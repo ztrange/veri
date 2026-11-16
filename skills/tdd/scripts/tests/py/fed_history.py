@@ -12,8 +12,8 @@ git takes it. A revision is named by its name (which is also its
 sha: `commit_of` answers it), by `HEAD`, or by either followed by `~<n>` or by `^` (`~1`, its first
 parent); `subject` answers its subject.
 `refs={"origin/main": "<name>"}` names a revision of the line by a ref as well; `detached={"<name>": (subject,
-{path: text})}` adds revisions off the line, each holding exactly the files it names (a commit a rebase left
-behind), readable by name but in no `revisions` answer; `default="main"` is what `default_branch` answers, and
+{path: text}[, parent])}` adds revisions off the line, each holding exactly the files it names (a commit a rebase left
+behind), readable by name (and through `parent`, a revision name, by `^` and `~<n>`) but in no `revisions` answer; `default="main"` is what `default_branch` answers, and
 without it `default_branch` is not answered.
 
 The work tree is the real directory `root` (default the case's tmp_path): the case writes the files it holds,
@@ -40,8 +40,9 @@ REV = re.compile(r"^(?P<name>[^~^]+)(?:~(?P<back>\d+)|(?P<parent>\^))?$")
 class FedHistory:
     def __init__(self, revisions, root, branch, refs=None, detached=None, default=None):
         self.root, self.branch, self.refs, self.default = str(root), branch, dict(refs or {}), default
-        self.detached = {name: {os.path.normpath(path): text for path, text in files.items()}
-                         for name, (_, files) in (detached or {}).items()}
+        self.detached = {name: {os.path.normpath(path): text for path, text in spec[1].items()}
+                         for name, spec in (detached or {}).items()}
+        self.parents = {name: spec[2] for name, spec in (detached or {}).items() if len(spec) > 2}
         self.names, self.subjects, self.trees = [], {}, []
         tree = {}
         for name, subject, files in revisions:
@@ -54,22 +55,36 @@ class FedHistory:
             self.names.append(name)
             self.subjects[name] = subject
             self.trees.append(tree)
-        self.subjects.update((name, subject) for name, (subject, _) in (detached or {}).items())
+        self.subjects.update((name, spec[0]) for name, spec in (detached or {}).items())
 
-    def index(self, rev):
+    def parse(self, rev):
+        """(name, back) of `rev`: its ref resolved, `^` as one generation back; None when it is not a revision."""
         found = REV.match(rev or "")
         if not found:
             return None
-        name = self.refs.get(found.group("name"), found.group("name"))
-        back = 1 if found.group("parent") else int(found.group("back") or 0)
+        return (self.refs.get(found.group("name"), found.group("name")),
+                1 if found.group("parent") else int(found.group("back") or 0))
+
+    def index(self, rev):
+        parsed = self.parse(rev)
+        if parsed is None:
+            return None
+        name, back = parsed
         at = len(self.names) - 1 if name == "HEAD" else (self.names.index(name) if name in self.names else None)
         return at - back if at is not None and at - back >= 0 else None
 
     def lookup(self, rev):
-        """(name, tree) of the revision `rev` names, on the line or detached; None when it names none."""
-        if rev in self.detached:
-            return rev, self.detached[rev]
-        at = self.index(rev)
+        """(name, tree) of the revision `rev` names, on the line or detached (walking a detached revision's parents
+        for `^` and `~<n>`); None when it names none."""
+        parsed = self.parse(rev)
+        if parsed is None:
+            return None
+        name, back = parsed
+        while name in self.detached:
+            if not back:
+                return name, self.detached[name]
+            name, back = self.parents.get(name), back - 1
+        at = self.index("%s~%d" % (name, back)) if name else None
         return None if at is None else (self.names[at], self.trees[at])
 
     def tree(self, rev):
@@ -237,8 +252,8 @@ class FedCommits:
         later revision staying readable by its name (detached, as the commits a rebase replaces stay), and the index
         and the work tree's tracked files are set to `rev`'s tree; untracked files are left alone."""
         names = [name for name, _, _ in self.revisions]
-        for name in names[names.index(rev) + 1:]:
-            self.detached[name] = self.snapshots[name]
+        for parent, name in zip(names[names.index(rev):], names[names.index(rev) + 1:]):
+            self.detached[name] = self.snapshots[name] + (parent,)
         self.revisions = self.revisions[:names.index(rev) + 1]
         old, self.tree = self.tree, dict(self.snapshots[rev][1])
         self.index = dict(self.tree)
