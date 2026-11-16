@@ -10,6 +10,7 @@ import re
 import sys
 
 from entry import no_arguments
+from wrong_test_route import file_defines
 
 MARKER_RE = re.compile(rb"^(SPLIT|NEEDS_USER):\s*(.*)$")
 STEP_AHEAD_RE = re.compile(rb"^STEP_AHEAD:\s*(.*?)\s*$")
@@ -54,6 +55,9 @@ def step_ahead(red_test_id):
             return _refuse("names no <file>::<case>", line)
         if not os.path.isfile(marker.group(1).rpartition(b"::")[0]):
             return _refuse("names no existing file", line)
+        file, _, case = os.fsdecode(marker.group(1)).rpartition("::")
+        if not file_defines(file, case):
+            return _refuse("names a case its file does not define", line)
         cases.append(marker.group(1))
     if not cases:
         return 3

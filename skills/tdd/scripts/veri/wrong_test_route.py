@@ -33,6 +33,18 @@ def _test_files():
             yield root, name, py, go, js
 
 
+def file_defines(path, case):
+    """True when the test file at path defines case, by the rules _defining_files searches with."""
+    root, name = os.path.split(path)
+    py_file, go_file, js_file = is_test_file(name), is_go_test_file(name), is_js_test_file(name, root)
+    if not (py_file or go_file or js_file or name.endswith(".test.sh")):
+        return False
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        text = handle.read()
+    return bool(defined_name(case, text, py_file, go_file) or js_file and case in live_titles(case, text)
+                or name.endswith(".test.sh") and ('name="%s"' % case) in text)
+
+
 def _defining_files(case):
     found = []
     for root, name, py_file, go_file, js_file in _test_files():
