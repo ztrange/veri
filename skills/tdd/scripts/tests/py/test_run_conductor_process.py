@@ -1323,6 +1323,7 @@ def test_main_after_release_issue_released_the_issue_re_pins_to_the_current_skil
     monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: None)
     monkeypatch.setattr(github, "gh_issue_remove_label", lambda number, label: None)
     release_issue = importlib.import_module("veri.release_issue")
+    monkeypatch.setattr(release_issue.run_records, "delete", lambda issue, cwd: None)  # origin is not what this case pins
     released = release_issue.main(["4242"])
     run_conductor = importlib.import_module("veri.run_conductor")
     worktree = tmp_path / ".tdd" / "wt" / "4242"
@@ -1354,6 +1355,7 @@ def test_main_relaunching_an_issue_not_released_since_its_last_launch_keeps_its_
     monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: None)
     monkeypatch.setattr(github, "gh_issue_remove_label", lambda number, label: None)
     release_issue = importlib.import_module("veri.release_issue")
+    monkeypatch.setattr(release_issue.run_records, "delete", lambda issue, cwd: None)  # origin is not what this case pins
     release_issue.main(["4242"])
     run_conductor = importlib.import_module("veri.run_conductor")
     worktree = tmp_path / ".tdd" / "wt" / "4242"
