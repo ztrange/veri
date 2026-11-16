@@ -36,7 +36,8 @@ def _digest(path):
         return hashlib.sha256(handle.read()).hexdigest()
 
 
-_toplevel = case_history.toplevel
+def _toplevel():
+    return case_history.toplevel()
 
 
 def _has_head():
