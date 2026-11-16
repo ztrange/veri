@@ -4192,3 +4192,28 @@ def test_3037_criterion_1_a_name_defined_only_in_an_untouched_test_file_routes_n
     code, out, err = route(run_cli, repo, ".tdd/develop-green.out")
 
     assert out == "revise\n", err
+
+
+def test_main_3917_exits_2_naming_the_case_and_both_files_for_a_contradicted_case_defined_in_two_test_files_once_the_step_log_holds_a_reroute_event(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    (suite / "test_solvable.py").write_text("def %s():\n    pass\n" % added)
+    for name in ("test_aaa.py", "test_zzz.py"):
+        (suite / name).write_text("def test_a():\n    pass\n")
+    (tmp_path / ".tdd").mkdir()
+    step = "solvable-issues.sh usage mentions --not-running, contradicted name ambiguous"
+    monkeypatch.setenv("VERI_STEP", step)
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"event": "reroute", "step": "%s", "kind": "red"}\n' % step)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nCONTRADICTS: test_a\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
+
+    lines = stderr.splitlines()
+    assert (code, stdout, len(lines)) == (2, "", 1), stderr
+    assert all(s in lines[0] for s in ("test_a", "tests/py/test_aaa.py", "tests/py/test_zzz.py")), stderr
+    assert "TypeError" not in stderr

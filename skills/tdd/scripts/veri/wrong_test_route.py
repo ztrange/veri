@@ -419,6 +419,11 @@ def main(argv):
         cases = _superseded(argv[0], step, argv[1])
         contradicted = route(argv[0], argv[1])
         if contradicted is not None:
+            defining = _defining_files(contradicted)
+            if len(defining) != 1:
+                write(sys.stderr, "the contradicted case %s is not defined in exactly one test file: %s"
+                      % (contradicted, " ".join(defining)))
+                return 2
             cases.append(contradicted)
         prep = [_file_case(_defining_file(c), c) for c in cases]
         if prep:
