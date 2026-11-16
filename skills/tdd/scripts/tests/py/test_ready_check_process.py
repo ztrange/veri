@@ -52,6 +52,8 @@ def build_ready_repo(tmp_path):
     subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True, capture_output=True)
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "init")
+    subprocess.run(["git", "init", "-q", "--bare", "origin.git"], cwd=tmp_path, check=True, capture_output=True)
+    _git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     gh = bin_dir / "gh"
