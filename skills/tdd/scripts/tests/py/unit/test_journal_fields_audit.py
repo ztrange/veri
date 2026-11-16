@@ -10,12 +10,7 @@ UNDOCUMENTED = {}
 
 # Ratchet: kind -> where a writer passes a literal kind JOURNAL.md has no row for (so its fields are
 # unaudited above). Entries may be removed, never added.
-UNDOCUMENTED_KINDS = {
-    "unpinnable-missing": "pin_reject_route.py:56",  # step
-    "prose-owed-waived": "prose_owed.py:69",  # unit, step
-    "suite-flake": "rerun_alone.py:24",  # files; at (suite_red_resume.py:121)
-    "skill-edit-no-author": "skill_edit_step.py:385",  # unit
-}
+UNDOCUMENTED_KINDS = {}
 
 # Fields every journal line carries from the run context, documented in JOURNAL.md's prose above the table.
 CONTEXT_KEYS = {"ts", "awake", "issue", "actor", "phase", "step", "event", "attempt", "skill_commit"}
