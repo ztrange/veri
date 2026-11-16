@@ -12,7 +12,8 @@ def build_verify_prompt():
 
 
 def test_each_verify_phase_renders_with_exit_0_its_issue_spec_text_and_no_unfilled_slot(
-        tmp_path, run_cli, build_verify_prompt):
+        tmp_path, run_cli, build_verify_prompt, fake_processes):
+    fake_processes.answers({"git ls-files": (0, "", "")})
     spec = tmp_path / "spec.md"
     spec.write_text(SPEC_TEXT)
     ledger = tmp_path / "ledger.md"
