@@ -84,17 +84,22 @@ def leaf_dispositions(ignored):
     return preexec
 
 
+def clock_command(command):
+    """A test seam's clock: <command> split on spaces, through /bin/sh when it is not executable; its stdout."""
+    words = command.split()
+    try:
+        done = captured(*words)
+    except OSError as error:
+        if error.errno != errno.ENOEXEC:
+            raise
+        done = captured("/bin/sh", *words)
+    return done.stdout.rstrip("\n")
+
+
 def awake_seconds():
     command = tunables.read("VERI_AWAKE_CLOCK")
     if command:
-        words = command.split()
-        try:
-            done = captured(*words)
-        except OSError as error:
-            if error.errno != errno.ENOEXEC:
-                raise
-            done = captured("/bin/sh", *words)
-        return int(done.stdout.rstrip("\n"))
+        return int(clock_command(command))
     clock = getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC)
     return int(time.clock_gettime(clock))
 
@@ -109,6 +114,9 @@ def answered(*args):
 
 
 def now():
+    command = tunables.read("VERI_WALL_CLOCK")
+    if command:
+        return clock_command(command)
     return captured("date", "+%s").stdout.rstrip("\n")
 
 
