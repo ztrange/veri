@@ -50,4 +50,4 @@ The one exception: a merge that stops on a rebase conflict, a refused push, or a
 
 ## Report
 
-Report exactly one line: the PR url, the merge sha, and the tag or `no tag`.
+Report exactly one line: the PR url, the merge sha, and the tag or `no tag`. The merge sha is the commit on main, with that commit's subject next to it: a rebase merge rewrites every sha, so one read before the merge names no commit on main.
