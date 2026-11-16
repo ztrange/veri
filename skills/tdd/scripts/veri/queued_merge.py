@@ -607,8 +607,10 @@ def _stack_base(repo, pr, worktree):
     if not stack:
         return None, None
     pull = _pull(repo, pr)
-    base = ((pull or {}).get("base") or {}) if isinstance(pull, dict) else {}
+    base = pull.get("base") if isinstance(pull, dict) else None
     ref = base.get("ref") if isinstance(base, dict) else None
+    if not isinstance(ref, str) or not ref:
+        return None, ("could not read the base branch of %s from GitHub; neither joined nor merged" % pr, 2)
     if ref != stack:
         return None, None
     default = (base.get("repo") or {}).get("default_branch") if isinstance(base.get("repo"), dict) else None
