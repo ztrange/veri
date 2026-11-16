@@ -118,11 +118,14 @@ def test_rerecord_earlier_for_a_diff_checked_step_rewrites_the_changed_case_so_a
         "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 2 == 2\n")
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "edit")
+    record = tmp_path / run_cli(tests_frozen, ["path", earlier], cwd=tmp_path)[1].strip()
+    head = dict(tests_frozen.cut_cases((tmp_path / "tests/test_suite.py").read_text()))["test_pinned_2199"]
 
     rerecorded = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
 
     assert (rerecorded, code, out) == (0, 0, "")
+    assert tests_frozen.body_line("tests/test_suite.py", "test_pinned_2199", head) in record.read_text().splitlines()
 
 
 @pytest.mark.process("a real git repository with an origin remote under tmp_path, rebased onto its default branch")
