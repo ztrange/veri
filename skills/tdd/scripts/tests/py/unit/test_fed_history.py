@@ -129,6 +129,15 @@ def test_fed_history_answers_a_ref_and_a_detached_revision_by_name_and_default_b
     }
 
 
+def test_fed_history_answers_revisions_since_a_revision_off_the_line_with_none_as_case_history_answers_a_failed_git_log(
+        fed_history, tests_frozen):
+    fed_history(("base", "start", {SUITE: ONE}), ("next", "more", {SUITE: ONE + "\n\n" + TWO}),
+                detached={"pre": ("before the rebase", {SUITE: TWO})})
+    history = tests_frozen.case_history
+
+    assert [history.revisions(SUITE, since=rev) for rev in ("pre", "nowhere", "base")] == [[], [], ["next"]]
+
+
 def test_fed_commits_checks_out_an_earlier_revision_as_git_checkout_would_keeping_the_later_ones_readable_and_names_a_ref_at_its_head(
         tmp_path, fed_commits, tests_frozen):
     repo = fed_commits(default="main")
