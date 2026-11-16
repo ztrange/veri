@@ -9,7 +9,9 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import datetime
 import http.client
 import json
+import signal
 import sys
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -33,13 +35,58 @@ class NoAnswer(Exception):
     """The status page gave no answer; its message names the cause."""
 
 
+def expired(url):
+    """The NoAnswer of a read that reached its deadline."""
+    return NoAnswer("%s: no complete answer before the read's deadline (VERI_GITHUB_STATUS_TIMEOUT, or wait's "
+                    "<max-seconds>)" % url)
+
+
 def left(url, deadline):
     """The seconds left before `deadline` (monotonic), or NoAnswer once none are."""
     seconds = deadline - monotonic()
     if seconds <= 0:
-        raise NoAnswer("%s: no complete answer before the read's deadline (VERI_GITHUB_STATUS_TIMEOUT, or wait's "
-                       "<max-seconds>)" % url)
+        raise expired(url)
     return seconds
+
+
+def main_thread():
+    return threading.current_thread() is threading.main_thread()
+
+
+def swap_alarm_handler(handler):
+    """Install `handler` for SIGALRM; the previous one (SIG_DFL for one installed outside Python)."""
+    previous = signal.signal(signal.SIGALRM, handler)
+    return signal.SIG_DFL if previous is None else previous
+
+
+def swap_timer(seconds, interval=0.0):
+    """Arm the real-time interval timer (0 disarms it); the previous (delay, interval)."""
+    return signal.setitimer(signal.ITIMER_REAL, seconds, interval)
+
+
+def alarmed(url, seconds, call):
+    """`call()`, ended by SIGALRM with NoAnswer after `seconds`, when this is the main thread of a platform that has
+    SIGALRM; else `call()` as is. The previous handler is put back, and a previous timer re-armed with what it had
+    left, less the time spent here (at least a millisecond, so one that came due fires at once)."""
+    if not (hasattr(signal, "SIGALRM") and main_thread()):
+        return call()
+
+    def expire(signum, frame):
+        raise expired(url)
+
+    started = monotonic()
+    previous = swap_alarm_handler(expire)
+    pending = (0, 0.0)
+    try:
+        pending = swap_timer(seconds)
+        try:
+            return call()
+        finally:
+            swap_timer(0)
+    finally:
+        swap_alarm_handler(previous)
+        if pending[0]:
+            swap_timer(max(pending[0] - (monotonic() - started), 0.001), pending[1])
 
 
 def cut_socket_timeout(response, seconds):
@@ -64,6 +111,11 @@ def opener(*handlers):
 def fetch(url, timeout, deadline):
     """(status, body) of one GET of `url`, the body at most MAX_BODY + 1 bytes, the whole read ended at `deadline`
     (monotonic) with NoAnswer; an HTTP error status is answered, not raised."""
+    return alarmed(url, left(url, deadline), lambda: fetch_within(url, timeout, deadline))
+
+
+def fetch_within(url, timeout, deadline):
+    """The fetch itself: the connection's timeout and each chunk's socket timeout cut to the time left."""
     try:
         response = opener().open(url, timeout=min(timeout, left(url, deadline)))
     except urllib.error.HTTPError as error:
