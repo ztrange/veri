@@ -59,3 +59,17 @@ def test_veri_redact_vars_defaults_to_gh_token_and_names_another_variable_when_s
 
     assert (unset, github.redact("fake-gh-token-value fake-deploy-key-value")) == (
         "[redacted] fake-deploy-key-value", "fake-gh-token-value [redacted]")
+
+
+def posted(fake_processes, answer=(0, "https://github.com/o/r/issues/7#issuecomment-1\n", "")):
+    """fake_processes answering every gh call with <answer>; the returned fake's argvs are what gh was handed."""
+    return fake_processes.answers({"gh": answer})
+
+
+def test_gh_issue_comment_hands_gh_the_body_redacted_issue_3960(github, fake_processes):
+    token = "ghp_" + FAKE * 3
+    fake = posted(fake_processes)
+
+    github.gh_issue_comment("7", "leaf said %s\n" % token)
+
+    assert "body=leaf said [redacted]\n" in fake.argvs[-1] and token not in " ".join(fake.argvs[-1])
