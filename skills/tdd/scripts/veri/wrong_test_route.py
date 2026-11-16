@@ -70,8 +70,6 @@ def _fixture(report, own_id):
         if name.startswith(("test_", "Test")):
             continue
         for root, file, py_file, go_file, js_file in _test_files():
-            if not py_file and not go_file and not js_file:
-                continue
             path = os.path.join(root, file)
             if own_file is not None and os.path.normpath(path) != own_file:
                 continue
