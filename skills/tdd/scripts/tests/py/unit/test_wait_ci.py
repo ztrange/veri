@@ -2803,6 +2803,47 @@ def test_main_with_every_pr_read_timing_out_exits_2_naming_the_pr_once_its_deadl
     assert (code, out, err) == (2, "", timed_out * 3 + UNREADABLE)
 
 
+@pytest.mark.parametrize("config", ["workflow-on-pr", "ci-on-pr-0", "no-pull-request-workflow"])
+def test_4018_the_rerun_filter_drops_only_the_re_run_runs_own_old_checks_and_a_list_it_empties_reads_pending(
+        tmp_path, wait_ci, fake_processes, run_cli, config):
+    import time
+    rerun_at = 1763300000
+    stamp = lambda offset: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(rerun_at + offset))
+
+    def run(name, run_id, conclusion, offset, status="completed"):
+        return dict(check_run(name, FULL_SHA, status, conclusion), completed_at=stamp(offset) if conclusion else None,
+                    details_url="https://github.com/o/r/actions/runs/%s/job/1" % run_id)
+
+    env = {"VERI_POLL": "0", **({"VERI_CI_ON_PR": "0"} if config == "ci-on-pr-0" else
+                                {"VERI_CI_ON_PR": "1"} if config == "workflow-on-pr" else {})}
+
+    def waited(name, page, journal_ahead=0):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        (work / ".tdd" / "events.jsonl").write_text(json.dumps(
+            {"ts": rerun_at + journal_ahead, "awake": 0, "issue": "4018", "event": "ci-rerun", "head": FULL_SHA,
+             "run": "9", "files": "t"}) + "\n")
+        bodies = sha_bodies([page], (), "pending")
+        bodies[f"gh api repos/o/r/contents/.github/workflows?ref={FULL_SHA}"] = (1, "", "HTTP 404: Not Found\n")
+        served(fake_processes, bodies)
+        return run_cli(wait_ci, [PR, "60", "60", FULL_SHA], env=env, cwd=work)[0]
+
+    observed = {
+        "another workflow's red is read beside a green re-run": waited(
+            "two-workflows", [run("gates", "9", "failure", -600), run("gates", "9", "success", 300),
+                              run("lint", "8", "failure", -600)]),
+        "the re-run's checks not listed yet": waited("not-listed", [run("gates", "9", "failure", -600)]),
+        "the journal 30 s ahead of GitHub, the re-run green 20 s in": waited(
+            "skew", [run("gates", "9", "failure", -600), run("gates", "9", "success", 20)], journal_ahead=30),
+    }
+
+    assert observed == {
+        "another workflow's red is read beside a green re-run": 1,
+        "the re-run's checks not listed yet": 3,
+        "the journal 30 s ahead of GitHub, the re-run green 20 s in": 3,
+    }
+
+
 def test_4018_after_a_ci_rerun_event_for_the_head_a_check_run_completed_before_it_is_never_the_answer(
         tmp_path, wait_ci, fake_processes, run_cli):
     import time
@@ -2810,7 +2851,8 @@ def test_4018_after_a_ci_rerun_event_for_the_head_a_check_run_completed_before_i
     stamp = lambda offset: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(rerun_at + offset))
 
     def run(name, conclusion, offset, status="completed"):
-        return dict(check_run(name, FULL_SHA, status, conclusion), completed_at=stamp(offset) if conclusion else None)
+        return dict(check_run(name, FULL_SHA, status, conclusion), completed_at=stamp(offset) if conclusion else None,
+                    details_url="https://github.com/o/r/actions/runs/9/job/1")
 
     def waited(name, page, rerun=True):
         work = tmp_path / name
