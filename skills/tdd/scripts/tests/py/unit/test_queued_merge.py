@@ -1332,3 +1332,16 @@ def test_queued_merge_refuses_an_empty_veri_gh_driver_with_2_naming_it_before_ta
     code, out, err = run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": ""})
 
     assert (code, out, err, calls) == (2, "", "VERI_GH_DRIVER is '': expected auto, rest or graphql\n", [])
+
+
+@pytest.mark.parametrize("env, named", [
+    ({"VERI_MERGE_SETTLE_READS": "many"}, "VERI_MERGE_SETTLE_READS"),
+    ({"VERI_MERGE_SETTLE_SLEEP": "soon"}, "VERI_MERGE_SETTLE_SLEEP"),
+    ({"VERI_MERGE_SETTLE_READS": "0"}, "VERI_MERGE_SETTLE_READS"),
+])
+def test_3979_queued_merge_refuses_a_settle_tunable_it_cannot_use_with_2_naming_it_before_any_lock_or_gh_call(fake_processes, run_cli, env, named):
+    calls = scenario(fake_processes)
+
+    code, _, err = run_cli(queued_merge, ARGV, env=env)
+
+    assert (code, named in err, calls) == (2, True, [])
