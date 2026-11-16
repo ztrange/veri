@@ -13,6 +13,7 @@ import event_log
 import paths
 import pinned_scripts
 import run_dir
+import stack_branch
 import tunables
 import git as git_module
 from git import default_branch, git, symref_default
@@ -150,7 +151,7 @@ def main(argv):
                          " — another conductor owns it\n" % (branch, holder))
         return 2
     with seeded_log_set_aside(path):
-        return cut(path, branch, take_over)
+        return cut(path, branch, take_over, root=main_tree)
 
 
 @contextlib.contextmanager
@@ -242,7 +243,17 @@ def take_over_cut(path, branch):
     return 0
 
 
-def cut(path, branch, take_over=False):
+def stack_cut(path, branch, stack):
+    """Cut <branch> at <path> from origin/<stack> as just fetched. Every network call is bounded by
+    VERI_GIT_NETWORK_TIMEOUT."""
+    fetched = git_module.network("fetch", "-q", "origin", "+refs/heads/%s:refs/remotes/origin/%s" % (stack, stack))
+    if fetched.returncode != 0:
+        return entry.refuse("git fetch origin %s got no answer (%s) — refusing to cut %s from a stale origin/%s"
+                            % (stack, " ".join((fetched.stderr or "").split()), branch, stack), prefix=PREFIX)
+    return worktree_add("--no-track", "-b", branch, path, "origin/" + stack)
+
+
+def cut(path, branch, take_over=False, root="."):
     if take_over:
         return take_over_cut(path, branch)
     remote_ref = "refs/remotes/origin/" + branch
@@ -283,6 +294,16 @@ def cut(path, branch, take_over=False):
                                     " — cannot tell whether another run claimed the issue", prefix=PREFIX)
             if pr:
                 return entry.refuse("%s claims the issue (Closes #%s)" % (pr, issue), prefix=PREFIX)
+        try:
+            stack = stack_branch.named(root)
+        except stack_branch.Refused as refused:
+            return entry.refuse(str(refused), prefix=PREFIX)
+        if stack:
+            code = stack_cut(path, branch, stack)
+            if code != 0:
+                return entry.to_contract(code)
+            sys.stdout.write(path + "\n")
+            return 0
         name, refusal = default_branch_name(origin)
         if not name:
             if refusal:
