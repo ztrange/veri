@@ -60,3 +60,12 @@ def test_issue_4077_a_strangers_comment_never_counts_neither_the_exact_decision_
               {**STRANGER, "body": "Take design C."}])
 
     assert run_cli(park_decision, ["42"]) == (0, "Take design B.\n", "")
+
+
+def test_issue_4077_text_in_a_quote_or_a_code_fence_is_not_a_decision_and_a_comment_of_only_such_text_is_not_counted(
+        decision, run_cli):
+    park_decision, comments = decision
+    comments([PARK, {**OWNER, "body": "> Take design A.\n```\nTake design A.\n```\n"},
+              {**OWNER, "body": "> #### Recommendation\n> Take design A.\n\nTake design B.\n~~~sh\nrm -rf x\n~~~\n"}])
+
+    assert run_cli(park_decision, ["42"]) == (0, "Take design B.\n", "")
