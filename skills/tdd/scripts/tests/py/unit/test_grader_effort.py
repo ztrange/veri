@@ -110,3 +110,13 @@ def test_adding_changing_or_removing_the_effort_line_makes_prose_owed_list_every
         answers.append((unchanged, run_cli(prose_owed, [str(tmp_path)])[:2]))
 
     assert answers == [((0, ""), (1, "a.md\nb.md\n"))] * 3
+
+
+def test_grader_conf_comments_name_the_effort_line_its_five_levels_and_the_re_grade_it_owes_and_set_no_effort():
+    from conftest import SCRIPTS
+
+    lines = (SCRIPTS.parent / "grader.conf").read_text(encoding="utf-8").splitlines()
+    comment = " ".join(line for line in lines if line.startswith("#"))
+
+    assert ("effort=" in comment, [level for level in ("low", "medium", "high", "xhigh", "max") if level not in comment],
+            "re-grade" in comment, [line for line in lines if line.startswith("effort=")]) == (True, [], True, [])
