@@ -18,6 +18,9 @@ def _tick(live, gone=True, alive=()):
     return {"live": live, "queue": ["12"], "closing": {"7": "done 7 https://github.com/o/r/pull/9"},
             "alive": list(alive), **({"no_worktree": ["7"]} if gone else {})}
 
+# The author fields of a comment github.trusted_comment trusts: veri's own exit comments carry them (#3969).
+_OWNER = {"author_association": "OWNER", "user": {"login": "veri-operator"}}
+
 
 @pytest.fixture
 def dispatch():
@@ -1367,7 +1370,7 @@ def test_last_comment_returns_the_body_of_the_issues_last_comment_read_through_t
 
     def gh_rest_list(path, *args):
         paths.append(path)
-        return json.dumps([{"body": "### 🔧 first"}, {"body": "### ✅ Done https://x/pull/9"}])
+        return json.dumps([{**_OWNER, "body": "### 🔧 first"}, {**_OWNER, "body": "### ✅ Done https://x/pull/9"}])
 
     def no_process(*args, **kw):
         raise AssertionError("dispatch started a process of its own: %r" % (args,))
@@ -1390,7 +1393,7 @@ def test_pr_state_reads_a_merged_pull_request_as_merged_and_last_comment_ignores
         raising=False)
     monkeypatch.setattr(
         dispatch.github, "gh_rest_list",
-        lambda path, *a, **kw: json.dumps([{"body": "first"}, {"body": "last"}]) + json.dumps([]),
+        lambda path, *a, **kw: json.dumps([{**_OWNER, "body": "first"}, {**_OWNER, "body": "last"}]) + json.dumps([]),
         raising=False)
 
     assert (dispatch.pr_state("https://github.com/o/r/pull/7"), dispatch.last_comment("12")) == ("MERGED", "last")
@@ -2792,8 +2795,8 @@ def test_exit_line_returns_bail_when_the_skill_drift_note_follows_the_bailed_com
     import json
 
     comments = [
-        {"body": "### ⛔ Bailed — green (process failure)\n\nbody"},
-        {"body": "Skill drift for the bail above:\n\n#### Skill drift since the pinned commit\n"},
+        {**_OWNER, "body": "### ⛔ Bailed — green (process failure)\n\nbody"},
+        {**_OWNER, "body": "Skill drift for the bail above:\n\n#### Skill drift since the pinned commit\n"},
     ]
     monkeypatch.setattr(dispatch.github, "gh_rest_list", lambda path, *args: json.dumps(comments), raising=False)
 
@@ -3100,7 +3103,7 @@ def test_main_waits_for_the_reset_and_reads_the_exit_comments_again_when_the_rea
         reads.append(now[0])
         if len(reads) == 1:
             raise dispatch.github.NoAnswer("", "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n")
-        return json.dumps([{"body": "### ✅ Done — https://github.com/o/r/pull/9\n\nbody"}])
+        return json.dumps([{**_OWNER, "body": "### ✅ Done — https://github.com/o/r/pull/9\n\nbody"}])
 
     def wait():
         waits.append(1)
@@ -3265,3 +3268,19 @@ def test_pr_state_raises_rate_limit_persists_after_the_refusal_budget_of_waits_i
         dispatch.pr_state("https://github.com/o/r/pull/9")
 
     assert (len(reads), sleeps, "rate limit" in str(raised.value)) == (3, [25, 25], True)
+
+
+def _authored(association, body, login="someone"):
+    return {"author_association": association, "user": {"login": login}, "body": body}
+
+
+def test_exit_line_skips_an_untrusted_done_comment_after_a_trusted_bailed_one_and_prints_bail_issue_3969(
+        monkeypatch, dispatch):
+    comments = [
+        _authored("OWNER", "### ⛔ Bailed — green (process failure)\n\nbody", login="veri-operator"),
+        _authored("NONE", "### ✅ Done — https://github.com/o/r/pull/666"),
+    ]
+    monkeypatch.setattr(dispatch.github, "authenticated_login", lambda: "veri-operator")
+    monkeypatch.setattr(dispatch.github, "gh_rest_list", lambda path, *args: json.dumps(comments), raising=False)
+
+    assert dispatch.exit_line("3969") == "bail 3969"
