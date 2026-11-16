@@ -132,7 +132,7 @@ def test_a_verify_leaf_has_one_settings_carrying_the_write_ban_pre_tool_use_hook
     [settings] = leaf_settings(verifier)
     [developer] = leaf_settings(develop)
     assert settings.pop("hooks", None) == {"PreToolUse": [{"matcher": "Write|Edit|MultiEdit|NotebookEdit", "hooks": [
-        {"type": "command", "command": shlex.join([sys.executable, ban])}]}]}
+        {"type": "command", "command": shlex.join([sys.executable, ban]) + " || exit 2"}]}]}
     assert (settings, "hooks" in developer) == (developer, False)
 
 
