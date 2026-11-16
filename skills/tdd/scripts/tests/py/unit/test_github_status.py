@@ -206,3 +206,13 @@ def test_wait_whose_reads_all_find_a_counting_incident_until_max_seconds_pass_ex
 
     assert code == 3
     assert page.read_at == [NOW + datetime.timedelta(seconds=s) for s in (0, 300, 600, 900)]
+
+
+def test_wait_whose_reads_all_get_no_answer_until_max_seconds_pass_exits_2(page, run_cli):
+    page.serve(status=503)
+
+    code, out, err = run_cli(page.module, ["wait", "1000"])
+
+    assert (code, out) == (2, "")
+    assert "status 503" in err
+    assert page.read_at == [NOW + datetime.timedelta(seconds=s) for s in (0, 300, 600, 900)]
