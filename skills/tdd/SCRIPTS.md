@@ -563,9 +563,13 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   origin holds then. The rebase is a plain `git rebase origin/<stack>`: a join never loses work, so a commit someone
   rewound off the stack that the run's branch still carries comes back with the join (the stack is rewritten only by a
   slice landing, which keeps every patch, so git skips them; a commit is taken off the stack by a revert on top, never
-  by a rewind). After the rebase and before any push, every patch the pre-rebase tip had must be in the rebased tip
-  (`git cherry <rebased tip> <pre-rebase tip>` prints no `+` line); a `+` line is exit **2** naming the commit, nothing
-  pushed and the run branch untouched on origin. It makes no `wait-ci.sh` call and no merge call, cuts no tag and closes no issue: the issue
+  by a rewind). Before the rebase, a run whose range holds a merge commit (`git rev-list --merges <stack>..<tip>` prints
+  anything) is exit **2**: its history must be linear. After the rebase and before any push, the rebased tip's tree must
+  equal the tree of merging the pre-rebase tip with the stack as fetched (`git merge-tree --write-tree`, git 2.38 or
+  later), a no-loss check complete by construction since it compares content, not commits; a differing tree is exit
+  **2** naming up to 5 differing paths, and a merge-tree that fails or reports a conflict is exit **2** naming that
+  command. Such a refusal puts the local branch back to the pre-rebase tip (`git reset --hard`; a reset that fails is
+  named with the command to run), so the worktree agrees with origin's untouched run branch. It makes no `wait-ci.sh` call and no merge call, cuts no tag and closes no issue: the issue
   closes, and its tag is cut, when the slice holding it lands on the default branch. A ledger line left unticked is
   refused before anything is pushed, except a `⟦full-suite⟧` line, which a stacked run never ticks (CI on the stack's tip
   is that run). Every git network call is bounded by `VERI_GIT_NETWORK_TIMEOUT`. After the push to the stack the pull
