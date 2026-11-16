@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 
+import ensure_run_state_ignored
 import git
 import launch_floor
 import paths
@@ -152,6 +153,21 @@ def actions_read_row():
         return "actions read", SKIPPED
     readable = gh("api", "repos/{owner}/{repo}/actions/runs?per_page=1").returncode == 0
     return "actions read", None if readable else "grant the token read access to Actions (`actions: read`)"
+
+
+def writable(path):
+    """Whether the user can write <path>, or create it in the nearest directory that exists."""
+    while not os.path.exists(path):
+        path = os.path.dirname(path) or "."
+    return os.access(path, os.W_OK)
+
+
+def run_state_ignore_row():
+    common = git.git("rev-parse", "--git-common-dir", capture_output=True, text=True).stdout.strip()
+    for path in (os.path.abspath(".gitignore"), os.path.join(os.path.abspath(common), "info", "exclude")):
+        if not ensure_run_state_ignored.has_rule(path) and not writable(path):
+            return "run-state ignore", f"chmod u+w {path}"
+    return "run-state ignore", None
 
 
 def bash_row():
