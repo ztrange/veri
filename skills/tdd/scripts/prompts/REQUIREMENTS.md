@@ -701,6 +701,7 @@
 | VG19 | The run-the-tests check: the verifier runs only the commands the prompt names, never sets `VERI_TEST_LOCK`, and when a command gives no answer it ends without a verdict rather than rerunning it another way. | A #2794 verifier widened to `make test`, timed out at 30 minutes and rerun with the lock off, so a verdict rested on a run the machine's lock never admitted. |
 | CY131 | The prompt lists the ledger's later unchecked steps and tells the verifier to put a `LATER_STEP: <step text>` line before the `VERDICT:` line when a `MISSING_TEST:` behaviour is one of them. | The verifier is the only leaf that sees the Green's gap and the plan together. |
 | VG20 | Where it sends the verifier through `{{MUTATION_PROBE}} <file> <old> <new>`, the template says that a probe exit 2 whose stderr names an allowed address domain means any email address in `<old>`/`<new>` must be on that domain, and the verifier retries with one that is. | Same recovery in verify-green as in verify-pin. |
+| VG21 | The prompt tells the verifier that on a REJECT it puts one `CHECK: <n>` line before the `VERDICT:` line, `<n>` the number of the lowest-numbered of its checks that failed. (The paragraphs after `### Your checks`.) | The failed check classes the reject, so green rejects can be counted by cause without reading every reason (PRD 024.9). |
 
 ## skills/tdd/scripts/prompts/verify-refactor.md
 

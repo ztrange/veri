@@ -69,5 +69,8 @@ When the step above is followed by a list of the ledger's later unchecked steps 
 `MISSING_TEST:` behaviour is one of them, also put one `LATER_STEP: <step text>` line, copying
 that step's text from the list, before the `VERDICT:` line.
 
+On a REJECT, put one `CHECK: <n>` line before the `VERDICT:` line, `<n>` the number of the
+lowest-numbered of the checks above that failed.
+
 PASS only if the target test, the fast command and the affected suites are green and the pass genuinely reflects
 the behavior the spec requires.
