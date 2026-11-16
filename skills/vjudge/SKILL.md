@@ -39,6 +39,15 @@ Run it on every question before it reaches the human.
    - A question about no issue: record it with `$S/role-state.sh <role> add decision`, and ask it
      once.
 
+## Recording
+
+Record every decision of step 3 where the owner audits it, the one line it states included:
+
+- **A decision about one issue** is a comment on that issue naming the rule applied and the option
+  not taken.
+- **A decision about no issue** is recorded with
+  `$S/decision-log.sh record <question> <decision> <rule> <by>`, `<by>` naming the role that decided.
+
 ## Rules
 
 - **veri fixes veri through a filed issue.**
