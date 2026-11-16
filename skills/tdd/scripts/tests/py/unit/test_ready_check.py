@@ -39,6 +39,7 @@ def holding(**overrides):
         "gh api repos/{owner}/{repo}/labels/": (0, "{}", ""),
         "gh api repos/{owner}/{repo}/actions/runs?per_page=1": (0, "{}", ""),
         "git rev-parse --git-common-dir": (0, ".git\n", ""),
+        "git push --dry-run origin": (0, "", ""),
     }
     table.update(overrides)
     return table
@@ -278,3 +279,11 @@ def test_issue_4090_the_push_dry_run_row_starts_only_git_and_every_push_is_a_dry
     assert all(re.fullmatch(r"HEAD:refs/heads/veri-permission-probe-\w+", argv[-1]) for argv in pushes), fake.calls
     assert pushes[0][-1] != pushes[1][-1], fake.calls
     assert len(fake.argvs) == 2, fake.calls
+
+
+def test_issue_4090_ready_check_prints_a_failing_push_dry_run_row_and_exits_1_when_origin_refuses_the_dry_run(ready_check, run_cli, fake_processes, tmp_path):
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{PROBE_PUSH: REFUSED})
+
+    assert [line for line in lines if line.startswith("fail")] == [
+        "fail  push dry-run: fatal: unable to access 'https://github.com/o/r.git/': The requested URL returned error: 403"], lines
+    assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
