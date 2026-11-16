@@ -229,6 +229,16 @@ def recover_finished_leaf(name, log, reason):
     return outcome
 
 
+def launch_fields(name, cmd, model):
+    """The `launch` event's fields: the leaf's name, its command line after the binary and its model, and for a
+    verifier leaf the VERI_EFFORT_VERIFIER it was launched at, when that is set (absent otherwise)."""
+    fields = [f"name={name}", f"cmd={' '.join(cmd)}", f"model={model}"]
+    effort = tunables.get("VERI_EFFORT_VERIFIER")
+    if effort and name.startswith("verify-"):
+        fields.append(f"effort={effort}")
+    return fields
+
+
 def mark(role, env, *fields):
     if not role:
         return
@@ -627,7 +637,7 @@ def main(argv):
     watched, kill_poll = watch.watched, watch.kill_poll
     if watched and not name.startswith("conductor-"):
         tolerated(name, "write", ownerfile, write_line, ownerfile, f"{os.getpid()} {name}")
-    mark(role, leaf_env, "launch", f"name={name}", f"cmd={' '.join(cmd)}", f"model={model}")
+    mark(role, leaf_env, "launch", *launch_fields(name, cmd, model))
     pidfile = run_dir.run_file("", f"{name}.pid")
     tolerated(name, "write", pidfile, record, pidfile, os.getpid())
     discard(exitfile)
