@@ -11,6 +11,10 @@ Interface:
                                 the repository's default branch name, or None when it
                                 cannot be told. Never raises.
   symref_default(answer)        the branch a `git ls-remote --symref` answer names, or None.
+  network(*args, cwd=None, limit_name="VERI_GIT_NETWORK_TIMEOUT")
+                                a call that talks to a remote, bounded: its whole process
+                                group killed at the limit and answered as a TimedOut (exit
+                                124, stderr naming the call and the limit). Never raises.
 
 Error modes: out raises GitFailed (args_, returncode, stderr; returncode is None when git
 could not start); ok and default_branch turn every failure into False / None. None, not an
@@ -23,8 +27,14 @@ code; else None. remote=False
 stops after (1), for callers that must not touch the network. A fallback to a local
 main/master is the caller's to write.
 """
+import contextlib
+import os
 import re
+import signal
 import subprocess
+
+import entry
+import tunables
 
 
 class GitFailed(Exception):
@@ -38,6 +48,36 @@ class GitFailed(Exception):
 
 def git(*args, **kwargs):
     return subprocess.run(["git", *args], **kwargs)
+
+
+class TimedOut(subprocess.CompletedProcess):
+    """The answer of a network call ended at its bound (exit 124); isinstance tells it from a git that exited 124."""
+
+
+def network(*args, cwd=None, limit_name="VERI_GIT_NETWORK_TIMEOUT"):
+    """`git <args>` that talks to a remote, text captured: run in a session of its own and, after <limit_name>'s
+    seconds, killed with its whole process group (no ssh outlives it) and answered as a TimedOut whose stderr names
+    the call and the limit. A limit that is not a whole number >= 1, or a git that cannot start, answers exit 2 with
+    the reason on stderr. Never raises."""
+    raw = tunables.get(limit_name)
+    limit = entry.whole_number(raw, 1)
+    argv = ["git", *args]
+    if limit is None:
+        return subprocess.CompletedProcess(argv, 2, "", "%s: invalid value %r\n" % (limit_name, raw))
+    try:
+        child = subprocess.Popen(argv, cwd=cwd, start_new_session=True,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    except OSError as error:
+        return subprocess.CompletedProcess(argv, 2, "", "%s\n" % error)
+    with child:
+        try:
+            stdout, stderr = child.communicate(timeout=limit)
+        except subprocess.TimeoutExpired:
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.killpg(child.pid, signal.SIGKILL)
+            child.communicate()
+            return TimedOut(argv, 124, "", "%s: no answer after %ds (%s)\n" % (" ".join(argv), limit, limit_name))
+    return subprocess.CompletedProcess(argv, child.returncode, stdout, stderr)
 
 
 def out(*args, cwd=None):

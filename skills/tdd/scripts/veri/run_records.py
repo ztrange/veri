@@ -79,14 +79,22 @@ def commit(run, issue):
 
 
 def push(run, issue):
-    """Replace origin's `refs/veri/runs/<issue>` with the commit of <run>'s records; GitFailed on a git error."""
-    _out("push", "-q", "--force", "origin", "%s:%s" % (commit(run, issue), ref(issue)), cwd=run)
+    """Replace origin's `refs/veri/runs/<issue>` with the commit of <run>'s records; GitFailed on a git error, a push
+    ended at VERI_GIT_NETWORK_TIMEOUT included."""
+    args = ("push", "-q", "--force", "origin", "%s:%s" % (commit(run, issue), ref(issue)))
+    done = git.network(*args, cwd=run)
+    if done.returncode != 0:
+        raise git.GitFailed(args, done.returncode, done.stderr or "")
 
 
 def read(issue, name, cwd):
     """The text of `.tdd/<name>` in origin's `refs/veri/runs/<issue>`, fetched into the clone at <cwd> under the same
-    ref; None when origin has no such ref or file, or cannot be reached."""
-    if git.git("fetch", "-q", "origin", "+%s:%s" % (ref(issue), ref(issue)), cwd=cwd, capture_output=True).returncode:
+    ref; None when origin has no such ref or file, or cannot be reached. A fetch ended at VERI_GIT_NETWORK_TIMEOUT is
+    no answer too, said in one stderr line."""
+    fetched = git.network("fetch", "-q", "origin", "+%s:%s" % (ref(issue), ref(issue)), cwd=cwd)
+    if isinstance(fetched, git.TimedOut):
+        sys.stderr.write("%s not read: %s\n" % (ref(issue), " ".join((fetched.stderr or "").split())))
+    if fetched.returncode:
         return None
     shown = git.git("show", "%s:.tdd/%s" % (ref(issue), name), cwd=cwd, capture_output=True)
     return os.fsdecode(shown.stdout) if shown.returncode == 0 else None
