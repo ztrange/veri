@@ -99,7 +99,8 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
   transitively, taking the better of its own band and the inherited one: blocking a `priority`
   `bug` puts it in the first band, blocking another `priority` issue in the second, and blocking
   a plain `bug` lifts nothing. The bands only reorder the solvable set, never enlarge it,
-  inherited bands included: open, opted in (`VERI_LABEL`), unblocked and unclaimed filter first,
+  inherited bands included: open, opted in (`VERI_LABEL`), written by an `OWNER`, `MEMBER` or `COLLABORATOR` or
+  labelled `VERI_AUTHOR_LABEL` (default `author-read`) once read, unblocked and unclaimed filter first,
   so neither `priority` nor blocking a `priority` issue makes an issue takeable.
 - **Refactor-owed items are issues titled `Refactor candidates left by #<n>`**, labelled `refactor`
   and `refactor-owed` and never opted in (no `VERI_LABEL`), so selection never takes them;

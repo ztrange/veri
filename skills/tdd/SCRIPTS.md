@@ -507,7 +507,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   set, it never enlarges it — the four conditions run first, so a `priority` issue, or a
   blocker of one, that is blocked, claimed or not opted in is still not printed. `VERI_PRIORITY_LABEL` names the
   `priority` label (default `priority`; set-but-empty is **exit 2**, like `VERI_LABEL`),
-  and `bug` is GitHub's own. **Exit 0** when it printed at least one,
+  and `bug` is GitHub's own. An issue is solvable only when its author's `author_association` is `OWNER`, `MEMBER`
+  or `COLLABORATOR`, or it carries the label `VERI_AUTHOR_LABEL` names (default `author-read`, applied once the issue
+  is read; set-but-empty is **exit 2**); a record with no association is refused as `unknown`. Each opted-in issue
+  this author rule alone removes gets one stderr line `solvable-issues: #<n> skipped: its author is <association>, not
+  OWNER, MEMBER or COLLABORATOR; label it <VERI_AUTHOR_LABEL> once read`; a refused issue still blocks its dependents
+  and lends its band, and with every otherwise-solvable issue refused the script exits 3. **Exit 0** when it printed at least one,
   **exit 3** with empty stdout when none is takeable (nothing to do, not an error).
   `VERI_GH_JSON=<dir>` reads `issues.json` / `prs.json` fixtures instead of shelling out to
   `gh`, which is what makes it testable with no network. `VERI_GH_DRIVER` picks the route
