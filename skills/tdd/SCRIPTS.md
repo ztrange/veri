@@ -41,7 +41,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   A refused launch exits 2, writes one `launch-refused` event (`name=`, `reason=`) naming the leaf
   and starts no leaf. Causes: a `run-leaf.sh` launch whose prompt file is missing or empty, a
   `run-leaf.sh` launch with no prompt argument, `VERI_STEP` set but empty, an empty `--step`
-  value, and a pending `.tdd/stop` of `at-leaf` or `now`.
+  value, and a pending `.tdd/stop` of `at-leaf` or `now`. Run from a `veri-snapshot-*` directory, it also refuses a launch of run
+  `VERI_ISSUE` whose snapshot no longer matches the digest the run recorded at extraction in `.tdd/issue-<n>-snapshot-digest`
+  (`the skill snapshot <entry> changed since extraction`, the first differing entry, the `.veri-snapshot` marker included), or that has no digest recorded.
 - `$S/detach-leaf.sh <cmd> [args...]` — **the detaching half of a detached launch.** Runs
   `<cmd>` as the leader of a **new session**, and so of a new process group, then returns at
   once. Every leaf launch below goes through it, and none uses `nohup` — *Launching a leaf*
@@ -382,7 +384,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   **refuses** (exit 2) one holding uncommitted changes. Once the worktree is removed it also deletes the run's pinned-scripts snapshot, the path recorded in
   `.tdd/pinned-scripts/.snapshot-dir`, only when that path is a directory (not a symlink) named `veri-snapshot-*` whose
   `.veri-snapshot` marker names this worktree; any other recorded path that exists is left in place with one stderr line
-  naming it, and the exit code is the removal's own.
+  naming it, and the exit code is the worktree removal's own, except that a snapshot it fails to remove is exit 2 with one stderr line naming that snapshot, the worktree already gone.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match

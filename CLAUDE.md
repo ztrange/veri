@@ -55,7 +55,8 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
 - **A run executes one skill snapshot.** `run-conductor.sh` pins the skill to the commit in
   `.tdd/issue-<n>-skill-commit` and refuses (exit 2) one the clone cannot resolve; only
   `VERI_NEW_SKILL=1`, or the `.tdd/issue-<n>-released` marker a successful `release-issue.sh <n>` leaves and the
-  next launch consumes, re-pins (a `skill-repin` event).
+  next launch consumes, re-pins (a `skill-repin` event). The snapshot is read-only, and a run stops (exit 2) when it
+  changed since extraction: `supervise.sh` refuses the next launch, `run-conductor.sh` its exit.
 - **Every leaf is launched through `supervise.sh`**, never `run-leaf.sh` or `claude` directly:
   stuck detection lives only there.
 - **The verifier is blind by construction.** No input of `build-verify-prompt.sh` can carry the
