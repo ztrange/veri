@@ -424,7 +424,7 @@ def test_a_guard_rejected_attempts_edits_to_the_unit_are_reset_before_the_next_a
         return 0
 
     def guard(unit, base, pins):
-        return ["stray.md"]
+        return ["stray.md"] if seen else []
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\n"))
     monkeypatch.setattr(skill_edit_step, "_author", author)
@@ -1285,7 +1285,7 @@ def test_a_refused_attempts_edit_to_a_file_the_guard_names_is_restored_so_the_ne
 
     def guard(unit, base, pins):
         guarded.append([unit, base, *pins])
-        return ["stray_test.py"] if len(guarded) == 1 else []
+        return ["stray_test.py"] if len(guarded) == 2 else []
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: next(attempts)() and 0)
@@ -1311,14 +1311,16 @@ def test_exhausted_author_attempts_exit_1_with_the_tree_as_before_the_run_requir
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
         "| A2 | The widget glows. | light |\n")
     before = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    authored = []
 
     def author(*a):
+        authored.append(a)
         (tmp_path / "unit.md").write_text("The widget hums.\n")
         (tmp_path / "stray_test.py").write_text("EDITED = 1\n")
         return 0
 
     def guard(unit, base, pins):
-        return ["stray_test.py"]
+        return ["stray_test.py"] if authored else []
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A2: FAIL - dark\n"))
     monkeypatch.setattr(skill_edit_step, "_author", author)
@@ -1919,6 +1921,7 @@ def test_an_author_leaf_failing_exits_2_leaving_the_list_the_unit_and_graded_byt
 
     monkeypatch.setattr(skill_edit_step, "_grade", grade)
     monkeypatch.setattr(skill_edit_step, "_author", author)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
         run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
 
@@ -2344,3 +2347,33 @@ def test_skill_edit_steps_graded_signature_splits_on_any_whitespace_where_grade_
 
     assert (skill_edit_step._signature(line.encode() + b"\n", "unit.md"), by_grader) == (step_reads, grader_reads)
     assert grade_prose.graded_line(fields) == line
+
+
+def test_a_stray_path_present_when_an_author_attempt_would_run_exits_2_naming_it_launching_no_author_and_leaving_unit_list_and_graded_byte_identical_4058(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    unit = tmp_path / "unit.md"
+    unit.write_text("The widget is painted a deep blue.\n")
+    listed = tmp_path / "REQUIREMENTS.md"
+    listed.write_text("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    graded = tmp_path / "GRADED"
+    graded.write_text("unit.md oldsig 2026-01-01 id prefix\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A<next> | The widget is round. | shape |\n")
+    before = {p: p.read_bytes() for p in (unit, listed, graded)}
+    authors = []
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A2: FAIL - not round\n"))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: authors.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending",
+                        lambda unit, base, pins: [".tdd/issue-3481-body.md"])
+    fake = types.SimpleNamespace(
+        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
+        PIPE=subprocess.PIPE)
+    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
+
+    code, _, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code, ".tdd/issue-3481-body.md" in err, authors) == (2, True, []), (code, err, len(authors))
+    assert {p: p.read_bytes() for p in (unit, listed, graded)} == before

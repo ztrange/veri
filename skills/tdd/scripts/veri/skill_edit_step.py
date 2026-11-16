@@ -348,6 +348,12 @@ def main(argv):
         undo()
         return 2
     authored = graded == 1 or change is not None
+    if authored:
+        stray, named = _guard(unit, base, issue, pins, [graded_file])
+        if stray:
+            sys.stderr.write(named)
+            undo()
+            return 2
     _change[0] = change
     before = _read_existing([unit, *pins])
     for attempt in range(1, int(budget) + 1):
