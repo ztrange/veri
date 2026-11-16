@@ -515,6 +515,10 @@ The budgets (steps, time, refactor, context, affordability) and what leaves cost
 - `step-cost.sh`: what a step spent on leaves, from `usage` events.
 - `time-budget.sh`: the time budgets.
 
+## prices
+- `PRICES`: dollars per million tokens, by model family and rate (`input`, `cache_read`, `cache_write_5m`, `cache_write_1h`, `output`).
+- `family(model)`: the `PRICES` key a model name falls under, `None` when none. `cache_write_tokens(usage)`: a usage's cache-write tokens by rate.
+
 ## growth
 - `growth(records, baseline=None)`: tokens of context a session grew since its first usage record (or `baseline`), `None` when it has none.
 
@@ -713,6 +717,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `parallel-conductors.sh`: launch conductors in parallel up to the cap.
 - `prd_report`: report.sh's renderer, run in-process.
 - `preflight-refused.sh`: record that preflight refused an issue.
+- `reset-cost.sh`: what each recorded reset of the dev session or a run's conductor cost, and the growth knob it calls for.
 - `reset-wait.sh`: wait for a usage-limit reset.
 - `restart-conductor.sh`: stop and watch a conductor restart.
 - `role-growth.sh`: read a role session's context growth.
@@ -731,7 +736,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `state_path(tree, role, lane=None)`: `.tdd/role-<role>[-<lane>].state` under `tree`. `read(path)`: text, `None` when missing.
 - `read_lines(role, lane=None)`: the role's state lines in the main tree, `None` when missing.
 - `State(lines)`: the grammar of the state file. `fields()` (every `key=value` line as a dict), `field(name)` (last `name=` value, `None`), `items(*kinds)` (raw item lines), `last_n()`, `timed_ns()` (`(value, expiry)` pairs), `override_numbers()`, `check()`. A bad line raises `Malformed(kind, line)` (`kind` one of `n-missing`, `n`, `timed-n`, `override`, `state`); each caller words it.
-- `append(path, text)`, `now()`: append (written through a temp file and renamed); the stamp. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
+- `append(path, text)`, `now()`, `epoch(stamp)`: append (written through a temp file and renamed); the stamp; a stamp's epoch seconds, read as local time. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
 
 ## status
 - `json_document(scope=None, read_states=True)`: `(exit code, --json document)`.
