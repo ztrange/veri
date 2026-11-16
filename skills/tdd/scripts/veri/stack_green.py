@@ -1,0 +1,46 @@
+"""stack-green.sh's logic, run in-process: the newest commit of the stack branch that ends an issue and that CI passed,
+where a slice of the stack may be cut (PRD 034.2b)."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import re
+import sys
+
+import entry
+
+USAGE = "usage: stack-green.sh"
+_TRAILING = re.compile(r"((?:\s*\(#\d+\))+)\s*$")
+
+
+def named(subject):
+    """The issue numbers a commit subject names: the `(#<n>)` groups it ends with, as a set; a `(#<n>)` elsewhere in it,
+    or a subject ending in anything else (a revert's closing quote), names none."""
+    found = _TRAILING.search(subject)
+    return set(re.findall(r"\(#(\d+)\)", found.group(1))) if found else set()
+
+
+def issue_ends(subjects):
+    """Per subject, oldest first, whether its commit is an issue end: no issue number named at or before it is named
+    after it, a subject naming none counting as naming the issues of the nearest earlier subject that names one (none
+    when no earlier one does). Linear in the number of subjects."""
+    issues, owner = [], set()
+    for subject in subjects:
+        owner = named(subject) or owner
+        issues.append(owner)
+    last = {}
+    for at, names in enumerate(issues):
+        for issue in names:
+            last[issue] = at
+    ends, reach = [], -1
+    for at, names in enumerate(issues):
+        reach = max([reach] + [last[issue] for issue in names])
+        ends.append(reach <= at)
+    return ends
+
+
+def main(argv):
+    if argv:
+        return entry.refuse(usage=USAGE)
+    return 3
+
+
+if __name__ == "__main__":
+    entry.run(main, sys.argv[1:])
