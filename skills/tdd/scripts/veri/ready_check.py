@@ -21,10 +21,14 @@ def default_tip():
     return "refs/remotes/origin/" + name if name else "main"
 
 
+def workflow_names(tip):
+    """The paths under .github/workflows/ at <tip>."""
+    return git.git("ls-tree", "--name-only", tip, ".github/workflows/", capture_output=True, text=True).stdout.split()
+
+
 def triggers_on(event):
     tip = default_tip()
-    names = git.git("ls-tree", "--name-only", tip, ".github/workflows/", capture_output=True, text=True).stdout.split()
-    for name in names:
+    for name in workflow_names(tip):
         text = git.git("show", tip + ":" + name, capture_output=True, text=True).stdout
         if any(event in line for line in trigger_lines(text)):
             return True
@@ -144,7 +148,7 @@ SKIPPED = Neutral("skipped")
 
 
 def actions_read_row():
-    if not git.git("ls-tree", "--name-only", default_tip(), ".github/workflows/", capture_output=True, text=True).stdout.split():
+    if not workflow_names(default_tip()):
         return "actions read", SKIPPED
     readable = gh("api", "repos/{owner}/{repo}/actions/runs?per_page=1").returncode == 0
     return "actions read", None if readable else "grant the token read access to Actions (`actions: read`)"
