@@ -34,10 +34,6 @@ EXEMPT = {
         "VERI_POLL, default 10 here, 1 in supervise.py and wait_leaf.py: two purposes, declined",
     ("wait_leaf.py", "VERI_POLL"):
         "VERI_POLL, default 1 here, 10 in github.py and wait_ci.py: two purposes, declined",
-    ("parallel_conductors.py", "VERI_RUN_TIMEOUT"):
-        "parallel_conductors.py's argument handling is filed as issue #3839; its reads migrate with it",
-    ("parallel_conductors.py", "VERI_PARALLEL"):
-        "parallel_conductors.py's argument handling is filed as issue #3839; its reads migrate with it",
     ("build_develop_prompt.py", "VERI_ISSUE"):
         "a run-context field the conductor exports, not a tunable: `or \"\"` states no default, only its absence",
     ("supervise.py", "VERI_STEP"):

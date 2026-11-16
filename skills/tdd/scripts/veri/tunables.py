@@ -185,6 +185,13 @@ TUNABLES = {
     "VERI_PYTEST_LEGS": Tunable(text, ""),
     "VERI_PYCACHE": Tunable(text, ""),
     "VERI_NEW_SKILL": Tunable(text, ""),
+    "VERI_PARALLEL": Tunable(text, "1"),
+    "VERI_RUN_TIMEOUT": Tunable(text, "14400"),
+    "VERI_MAX_ISSUES": Tunable(text, ""),
+    "VERI_SELF_UPDATE": Tunable(text, ""),
+    "VERI_MUTATION_ADDRESS_DOMAIN": Tunable(text, ""),
+    "VERI_SESSION_TRANSCRIPTS": Tunable(text, ""),
+    "VERI_HOME": Tunable(text, ""),
 }
 
 # The entries that state a refusal, which `resolve` serves (test_1313 pins their one-line refusal).

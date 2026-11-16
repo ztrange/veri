@@ -586,7 +586,7 @@ def fold(issue, path, ledger):
         tally.total[DOLLARS] += spend
         model = run_pins.conductor_model(issue, *pin_roots()) or ""
         estimated = any(r.get("open") for r in sessions)
-    transcripts = tunables.read("VERI_SESSION_TRANSCRIPTS")
+    transcripts = tunables.get("VERI_SESSION_TRANSCRIPTS")
     first_event = min((mark["ts"] for mark in marks if "ts" in mark), default=None)
     done_at = max((mark["ts"] for mark in marks if mark.get("event") == "done" and "ts" in mark), default=None)
     operator_sessions = []
