@@ -23,10 +23,11 @@ def case_env():
 
 
 LAST_COMMAND = ""
+LAST_CODE = 0
 
 
 def run_case(case):
-    global LAST_COMMAND
+    global LAST_COMMAND, LAST_CODE
     detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
     found = subprocess.run([detect, "--tier", "one test file"], capture_output=True, text=True)
     command = found.stdout.strip()
@@ -36,6 +37,9 @@ def run_case(case):
     path = case.split("::", 1)[0]
     LAST_COMMAND = f"{command} {path}"
     done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
+    LAST_CODE = done.returncode
+    if done.returncode == 126:
+        return 2
     if done.returncode and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", f"{done.stdout}{done.stderr}", re.I)):
         return 2
     return done.returncode
@@ -154,7 +158,7 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
             return 1
     ran = run_case(case) if case else 0
     if ran == 2:
-        complain(f"{matcher}: case {case} never run: no such file path or no tests ran: {LAST_COMMAND}")
+        complain(f"{matcher}: case {case} never run (exit {LAST_CODE}): no such file path, no tests ran, or the command could not run: {LAST_COMMAND}")
         return 2
     if ran:
         complain(f"{matcher}: case {case} fails")
