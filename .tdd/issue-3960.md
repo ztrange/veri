@@ -13,6 +13,6 @@
 - [x] a token wrapped across a line break or a JSON \n escape is redacted
 - [x] a token inside a URL, a query string or glued to text with no word boundary is redacted
 - [x] the base64 of a token or of a listed variable's value is redacted
-- [ ] a 1 MB body holding tokens is redacted within the case timeout
+- [x] a 1 MB body holding tokens is redacted within the case timeout
 - [ ] no veri module starts gh except through github.bounded or bounded_group, which redact every argument
 - [ ] the comment.sh entry of SCRIPTS.md says comments are redacted, naming the patterns and VERI_REDACT_VARS ⟦criterion 5⟧

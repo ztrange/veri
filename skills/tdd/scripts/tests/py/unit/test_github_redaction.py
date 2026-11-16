@@ -129,3 +129,14 @@ def test_redact_replaces_the_base64_of_a_token_or_of_a_listed_value_issue_3960(g
 
     assert [github.redact(text) for text in texts] == [
         "Authorization: Basic [redacted]\n", "x=[redacted];", "[redacted]", "[redacted]", "v [redacted]"]
+
+
+@pytest.mark.timeout(10)
+def test_redact_answers_a_1_mb_body_holding_tokens_within_the_case_timeout_issue_3960(github):
+    token = "ghp_" + FAKE * 3
+    prose = "step 4 FAIL_OUTPUT: assert 1 == 2 in test_split.py, line 17\n" * 400
+    body = (prose + "leaked %s here\n" % token + "QUFB" * 500 + "\n") * 40
+
+    redacted = github.redact(body)
+
+    assert (len(body) > 1000000, redacted.count("leaked [redacted] here\n"), "ghp_" in redacted) == (True, 40, False)
