@@ -1361,13 +1361,17 @@ def test_3980_queued_merge_whose_exception_escapes_while_a_rebase_is_stopped_kee
 
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
     refusals = [line for line in err.splitlines() if line.startswith("queued-merge.sh: ")]
-    assert (code, released, len(refusals), refusals[0].startswith("queued-merge.sh: OSError: ")) == (2, [], 1, True)
+    assert (code, released, len(refusals), refusals[0].startswith("queued-merge.sh: OSError: "),
+            "lock kept, clear it with merge-lock.sh release --force" in err) == (2, [], 1, True, True)
 
 
 @pytest.mark.parametrize("env, named", [
     ({"VERI_MERGE_SETTLE_READS": "many"}, "VERI_MERGE_SETTLE_READS"),
     ({"VERI_MERGE_SETTLE_SLEEP": "soon"}, "VERI_MERGE_SETTLE_SLEEP"),
     ({"VERI_MERGE_SETTLE_READS": "0"}, "VERI_MERGE_SETTLE_READS"),
+    ({"VERI_MERGE_SETTLE_SLEEP": "-1"}, "VERI_MERGE_SETTLE_SLEEP"),
+    ({"VERI_MERGE_SETTLE_SLEEP": "inf"}, "VERI_MERGE_SETTLE_SLEEP"),
+    ({"VERI_MERGE_SETTLE_SLEEP": "nan"}, "VERI_MERGE_SETTLE_SLEEP"),
 ])
 def test_3979_queued_merge_refuses_a_settle_tunable_it_cannot_use_with_2_naming_it_before_any_lock_or_gh_call(fake_processes, run_cli, env, named):
     calls = scenario(fake_processes)

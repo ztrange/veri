@@ -339,7 +339,10 @@ def _locked(pid, repo, pr, worktree, branch, message, window):
         head, stop = _to_merge(pid, repo, pr, worktree, branch)
     except Exception as error:
         sys.stderr.write(entry.refusal(main, error))
-        return 2, (LEAVE if _rebasing(worktree) else RELEASE)
+        if _rebasing(worktree):
+            _say("a rebase is stopped in %s; lock kept, clear it with merge-lock.sh release --force" % worktree)
+            return 2, LEAVE
+        return 2, RELEASE
     if stop:
         return stop
     gh_merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
