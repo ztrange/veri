@@ -154,6 +154,24 @@ def test_4017_reuse_with_an_unreadable_record_exits_2_naming_the_error_and_with_
     assert (code, out, len(err.splitlines()), "JSONDecodeError" in err, "Traceback" in err) == (2, "", 1, True, False)
 
 
+@pytest.mark.parametrize("value", ["0", "abc", "1.5", "-2"])
+def test_4017_a_bad_max_age_exits_2_naming_it_and_its_value_under_reuse_and_changes_nothing_under_run(
+        tmp_path, run_cli, baseline_full_tier, monkeypatch, value):
+    full_tier_time = importlib.import_module("veri.full_tier_time")
+    monkeypatch.setattr(full_tier_time, "now", lambda: 1763300000)
+    _recorded(tmp_path, '{"make test": 1763300000}')
+
+    reuse = run_cli(baseline_full_tier, ["4017", "make test"],
+                    env={"VERI_BASELINE_FULL_TIER": "reuse", "VERI_FULL_TIER_MAX_AGE_DAYS": value}, cwd=tmp_path)
+    run = run_cli(baseline_full_tier, ["4017", "make test"],
+                  env={"VERI_BASELINE_FULL_TIER": "run", "VERI_FULL_TIER_MAX_AGE_DAYS": value}, cwd=tmp_path)
+
+    code, out, err = reuse
+    assert (code, out, len(err.splitlines()), "VERI_FULL_TIER_MAX_AGE_DAYS" in err, "'%s'" % value in err,
+            "Traceback" in err) == (2, "", 1, True, True, False)
+    assert run == (0, "run\n", "")
+
+
 def test_4017_after_a_stale_run_recording_new_seconds_makes_the_next_call_print_reuse_with_the_new_seconds(
         tmp_path, run_cli, baseline_full_tier, monkeypatch):
     full_tier_time = importlib.import_module("veri.full_tier_time")

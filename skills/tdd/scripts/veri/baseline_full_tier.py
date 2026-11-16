@@ -19,6 +19,10 @@ def main(argv):
     if mode is None:
         mode = tunables.get("VERI_BASELINE_FULL_TIER")
     if mode == "reuse":
+        max_days, bad = tunables.resolve("VERI_FULL_TIER_MAX_AGE_DAYS")
+        if bad:
+            sys.stderr.write("baseline-full-tier: VERI_FULL_TIER_MAX_AGE_DAYS must be %s, got '%s'\n" % (bad[1], bad[0]))
+            return 2
         record = full_tier_time.record_path()
         times = full_tier_time.read_times(record)
         if argv[1] in times:
@@ -26,7 +30,6 @@ def main(argv):
                 recorded_at = full_tier_time.read_recorded_at(record).get(argv[1])
             except (OSError, ValueError):
                 recorded_at = None
-            max_days = int(tunables.get("VERI_FULL_TIER_MAX_AGE_DAYS"))
             age = None if recorded_at is None else full_tier_time.now() - recorded_at
             if age is not None and age <= max_days * 86400:
                 print("reuse " + times[argv[1]])
