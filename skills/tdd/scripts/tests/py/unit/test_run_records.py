@@ -153,6 +153,24 @@ def test_an_ip_form_host_is_never_split_so_metrics_over_the_carried_records_equa
     assert redacted == original
 
 
+def test_the_records_commit_is_made_by_veri_with_author_and_committer_dates_in_utc(tmp_path, monkeypatch, fake_processes,
+                                                                                    run_records):
+    (tmp_path / ".tdd").mkdir()
+    fake = fake_processes.answers({
+        "git hash-object": (0, "b" * 40 + "\n", ""),
+        "git mktree": (0, "c" * 40 + "\n", ""),
+        "git commit-tree": (0, "d" * 40 + "\n", ""),
+    })
+
+    run_records.commit(str(tmp_path), "7")
+
+    env = next(kwargs.get("env") or {} for argv, kwargs in fake.seen if argv[1:2] == ["commit-tree"])
+    assert ({k: env.get(k) for k in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL")},
+            env.get("GIT_AUTHOR_DATE", "").endswith(" +0000"), env.get("GIT_COMMITTER_DATE", "").endswith(" +0000")) == (
+        {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@localhost", "GIT_COMMITTER_NAME": "veri",
+         "GIT_COMMITTER_EMAIL": "veri@localhost"}, True, True)
+
+
 def test_the_local_journal_and_pin_are_byte_identical_after_a_push_of_their_redacted_records(tmp_path, monkeypatch,
                                                                                              fake_processes, run_records):
     home, run, temp = _a_machine(tmp_path, monkeypatch)
