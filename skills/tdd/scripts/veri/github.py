@@ -66,7 +66,7 @@ def _in_text(starts, index):
     return starts[low][1] + index - starts[low][0]
 
 
-def _decodes_to_secret(run):
+def _decodes_to_secret(run, values):
     """Whether the base64 (or base64url) <run>, read from each of its four alignments, decodes to text holding a token
     shape or a listed variable's value."""
     run = run.rstrip("=").translate(_URLSAFE)
@@ -78,27 +78,29 @@ def _decodes_to_secret(run):
             decoded = base64.b64decode(aligned).decode("latin-1")
         except binascii.Error:
             continue
-        if _secret_spans(decoded, encoded=False):
+        decoded = _BREAK.sub("", decoded)
+        if _TOKEN_SHAPES.search(decoded) or any(value in decoded for value in values):
             return True
     return False
 
 
-def _secret_spans(text, encoded=True):
-    """The (start, end) spans of <text> holding a token shape or a listed variable's value, a line break inside one
-    included; <encoded> also takes each base64 run that decodes to one."""
+def _listed_values():
+    """The values, 8 characters or more, of the variables VERI_REDACT_VARS names."""
+    values = (os.environ.get(name, "") for name in tunables.get("VERI_REDACT_VARS").split())
+    return [value for value in values if len(value) >= 8]
+
+
+def _secret_spans(text, values):
+    """The (start, end) spans of <text> holding a token shape or one of <values>, a line break inside one included,
+    and of each base64 run that decodes to one."""
     joined, starts = _unbroken(text)
-    spans = []
-    if encoded:
-        spans += [(_in_text(starts, run.start()), _in_text(starts, run.end() - 1) + 1)
-                  for run in _BASE64.finditer(joined) if _decodes_to_secret(run.group())]
+    spans = [(_in_text(starts, run.start()), _in_text(starts, run.end() - 1) + 1)
+             for run in _BASE64.finditer(joined) if _decodes_to_secret(run.group(), values)]
     for found in _TOKEN_SHAPES.finditer(joined):
         end = _in_text(starts, found.end() - 1) + 1
         run_on = next(chars for prefixes, chars in _RUN_ON if found.group().startswith(prefixes))
         spans.append((_in_text(starts, found.start()), run_on.match(text, end).end()))
-    for name in tunables.get("VERI_REDACT_VARS").split():
-        value = os.environ.get(name, "")
-        if len(value) < 8:
-            continue
+    for value in values:
         at = joined.find(value)
         while at != -1:
             spans.append((_in_text(starts, at), _in_text(starts, at + len(value) - 1) + 1))
@@ -111,7 +113,7 @@ def redact(text):
     names, replaced by [redacted]; a line break, or its JSON escape, inside one does not hide it, and a base64 run that
     decodes to one is replaced whole."""
     out, at = [], 0
-    for start, end in sorted(_secret_spans(text)):
+    for start, end in sorted(_secret_spans(text, _listed_values())):
         if end <= at:
             continue
         out.append(text[at:max(start, at)])
