@@ -192,3 +192,21 @@ def test_main_refuses_a_callers_settings_that_is_not_a_json_object_with_exit_2_n
     assert (code, out, err, calls) == (
         2, "", "run-leaf.sh: --settings %r is not a JSON object, so it cannot be merged into the leaf's"
                " one --settings\n" % value, [])
+
+
+def test_3976_a_veri_leaf_env_name_veri_redact_vars_also_names_passes_with_one_stderr_line_naming_it_never_its_value(
+        run_leaf, tmp_path, monkeypatch, run_cli, fake_processes):
+    prompt = tmp_path / "leaf.prompt"
+    prompt.write_text("hello")
+    for name, value in (("HOME", str(tmp_path)), ("TMPDIR", str(tmp_path)), ("CLAUDE_BIN", "/stub/claude"),
+                        ("VERI_LEAF_ENV", "GH_TOKEN JAVA_HOME"), ("GH_TOKEN", "ghvalue-not-printed"),
+                        ("JAVA_HOME", "/jdk")):
+        monkeypatch.setenv(name, value)
+    launched = fake_processes.answers({"claude": FileNotFoundError(2, "No such file or directory")})
+
+    _, _, err = run_cli(run_leaf, [str(prompt)])
+
+    [(_, kwargs)] = launched.seen
+    named = [line for line in err.splitlines() if "GH_TOKEN" in line]
+    assert (len(named), "ghvalue-not-printed" in err, "JAVA_HOME" in err) == (1, False, False)
+    assert kwargs["env"]["GH_TOKEN"] == "ghvalue-not-printed"
