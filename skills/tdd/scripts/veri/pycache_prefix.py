@@ -49,23 +49,25 @@ def from_source():
     sys.path_importer_cache.pop(sys.path[0], None)
 
 
-if sys.pycache_prefix is None:
-    if sys.dont_write_bytecode:
-        # A shim run: no manifest vouches for veri's bytecode (#2368, #2439), so its modules always
-        # compile from source. A prefix would hide the standard library's .pyc files too, and
-        # recompile every import on every start.
-        from_source()
-    else:
-        prefix = os.path.join(os.environ.get("TMPDIR") or "/tmp", "veri-pycache-%d" % os.getuid())
+if sys.pycache_prefix is None and sys.dont_write_bytecode:
+    # A shim run: no manifest vouches for veri's bytecode (#2368, #2439), so its modules always
+    # compile from source. A prefix would hide the standard library's .pyc files too, and
+    # recompile every import on every start.
+    from_source()
+else:
+    # The prefix is checked whatever set it: VERI_PYCACHE, the default, or a PYTHONPYCACHEPREFIX the caller exported.
+    prefix = sys.pycache_prefix
+    if prefix is None:
         # Until the prefix is proved this user's, tunables compiles from source: under /dev/null no .pyc can exist or be
         # written, and none beside the source is read (#2405).
         sys.pycache_prefix = os.devnull
         import tunables
         sys.pycache_prefix = None
-        prefix = tunables.get("VERI_PYCACHE") or prefix
-        reason = refusal(prefix)
-        if reason is None:
-            sys.pycache_prefix = prefix
-        else:
-            sys.stderr.write("veri: not using the bytecode cache %s: %s; compiling veri's modules from source\n" % (prefix, reason))
-            from_source()
+        prefix = tunables.get("VERI_PYCACHE") or os.path.join(os.environ.get("TMPDIR") or "/tmp", "veri-pycache-%d" % os.getuid())
+    reason = refusal(prefix)
+    if reason is None:
+        sys.pycache_prefix = prefix
+    else:
+        sys.pycache_prefix = None
+        sys.stderr.write("veri: not using the bytecode cache %s: %s; compiling veri's modules from source\n" % (prefix, reason))
+        from_source()

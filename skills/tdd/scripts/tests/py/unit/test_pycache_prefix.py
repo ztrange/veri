@@ -102,6 +102,33 @@ def test_3965_a_veri_pycache_path_that_cannot_be_created_is_refused_naming_why(r
     assert (used, capfd.readouterr().err.startswith("veri: not using the bytecode cache %s: it cannot be created or read: " % cache)) == (None, True)
 
 
+def test_3965_a_group_writable_prefix_the_caller_exported_as_pythonpycacheprefix_is_refused_and_its_planted_pyc_never_runs(
+        run_prefix, monkeypatch, tmp_path, capfd):
+    import importlib
+    import importlib.util
+    import py_compile
+
+    modules = tmp_path / "modules"
+    modules.mkdir()
+    victim, poison = modules / "victim_3965.py", tmp_path / "poison.py"
+    victim.write_text("X = 'clean'\n")
+    poison.write_text("X = 'dirty'\n")
+    os.utime(poison, ns=(os.stat(victim).st_atime_ns, os.stat(victim).st_mtime_ns))
+    prefix = cache_with_mode(tmp_path, 0o770)
+    monkeypatch.setattr(sys, "path", [str(modules)] + sys.path[1:])
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    py_compile.compile(str(poison), cfile=importlib.util.cache_from_source(str(victim)), doraise=True)
+    monkeypatch.delitem(sys.modules, "victim_3965", raising=False)
+
+    run_prefix()
+    importlib.invalidate_caches()
+    loaded = importlib.import_module("victim_3965")
+    monkeypatch.delitem(sys.modules, "victim_3965")
+
+    assert (sys.pycache_prefix, loaded.X, capfd.readouterr().err) == (
+        None, "clean", "veri: not using the bytecode cache %s: it is group-writable; compiling veri's modules from source\n" % prefix)
+
+
 def test_3965_on_a_refusal_veri_modules_compile_from_source_and_one_stderr_line_names_the_path_and_why(run_prefix, monkeypatch, tmp_path, capfd):
     cache = cache_with_mode(tmp_path, 0o770)
     monkeypatch.setenv("VERI_PYCACHE", str(cache))
