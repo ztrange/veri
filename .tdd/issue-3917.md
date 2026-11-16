@@ -21,7 +21,7 @@
 - [x] `--step-ahead` prints each id rebuilt from its checked parts, never the leaf's text
 - [x] `--step-ahead` refuses a class id whose class the file does not hold or whose class does not define the case
 - [x] `SCRIPTS.md`'s `exhausted-outcome.sh` entry states the id grammar and the class check, graded PASS against row SC140
-- [ ] `--step-ahead` skips the red case however the leaf spells its path
-- [ ] `--step-ahead` refuses a path that is absolute, starts with `..` or resolves outside the repository, naming the line
-- [ ] `--step-ahead` prints a case named twice once, in first-seen order
+- [x] `--step-ahead` skips the red case however the leaf spells its path
+- [x] `--step-ahead` refuses a path that is absolute, starts with `..` or resolves outside the repository, naming the line
+- [x] `--step-ahead` prints a case named twice once, in first-seen order
 - [ ] `SCRIPTS.md` and row SC140 say a `[param]` suffix is checked against the grammar only, graded PASS

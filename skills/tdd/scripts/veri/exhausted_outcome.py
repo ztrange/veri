@@ -47,14 +47,25 @@ def _refuse(why, line):
     return 2
 
 
+def _resolved(path, root):
+    """path resolved (symlinks included) relative to root, the working tree wrong-test-route.sh walks;
+    None when it resolves outside root."""
+    rel = os.path.relpath(os.path.realpath(path), root)
+    return None if rel == ".." or rel.startswith(".." + os.sep) else rel
+
+
 def step_ahead(red_test_id):
-    red = os.fsencode(red_test_id)
+    root = os.path.realpath(".")
+    red_file, sep, red_rest = red_test_id.partition("::")
+    red = (_resolved(red_file, root) or red_file) + sep + red_rest if sep else red_test_id
     cases = []
     for line in _lines():
         marker = STEP_AHEAD_RE.match(line)
-        if not marker or (marker.group(1) if b"::" in red else marker.group(1).rpartition(b"::")[2]) == red:
+        if not marker:
             continue
         if b"::" not in marker.group(1):
+            if os.fsdecode(marker.group(1)) == red:
+                continue
             return _refuse("names no <file>::<case>", line)
         checked = STEP_AHEAD_ID_RE.fullmatch(marker.group(1))
         if not checked:
@@ -62,11 +73,18 @@ def step_ahead(red_test_id):
         file = os.path.normpath(os.fsdecode(checked.group(1)))
         names = os.fsdecode(checked.group(2)).split("::")[1:]
         param = os.fsdecode(checked.group(3) or b"")
+        resolved = _resolved(file, root)
+        if red == ("::".join([resolved or file, *names]) + param if sep else names[-1] + param):
+            continue
+        if os.path.isabs(file) or file == ".." or file.startswith(".." + os.sep) or resolved is None:
+            return _refuse("names a path outside the repository", line)
         if not os.path.isfile(file):
             return _refuse("names no existing file", line)
         if not file_defines(file, names[-1], names[:-1]):
             return _refuse("names a case its file does not define", line)
-        cases.append(os.fsencode("::".join([file, *names]) + param))
+        case = os.fsencode("::".join([file, *names]) + param)
+        if case not in cases:
+            cases.append(case)
     if not cases:
         return 3
     _print_lines([b" ".join([b"prep", *cases])])
