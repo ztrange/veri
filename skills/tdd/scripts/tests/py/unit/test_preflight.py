@@ -892,6 +892,7 @@ import pytest
     ("issue-worktree.sh", 3, 2, None, None),
     ("unlabel-issue.sh", 3, 2, None, None),
     ("full-tier-time.sh", 3, 2, None, None),
+    ("baseline-full-tier.sh", 3, 2, None, None),
     ("gh", 4, 1, ".default_branch", "stopped at 4 gh api repos/{owner}/{repo} -q .default_branch"),
     ("refactor-budget.sh", 5, 2, ("0",), "stopped at 5 refactor-budget.sh 0"),
     ("refactor-budget.sh", 5, 2, ("--issue", "0"), "stopped at 5 refactor-budget.sh --issue 0"),
