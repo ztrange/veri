@@ -143,3 +143,17 @@ def test_main_at_exit_reports_a_digest_file_a_leaf_rewrote_naming_the_digest_fil
     assert exit_of(tmp_path, monkeypatch, capfdbinary, relabel) == (
         (2, []), [b"run-conductor: the skill snapshot changed during the run\n"],
         [("snapshot-changed", str(digest_file(tmp_path)))])
+
+
+def test_main_removes_the_snapshot_even_when_keeping_its_scripts_fails_on_a_fifo_a_leaf_left_3964(
+        tmp_path, monkeypatch, capfdbinary):
+    run_conductor = importlib.import_module("veri.run_conductor")
+    monkeypatch.setattr(run_conductor, "is_registered_worktree", lambda issue: True)
+
+    def leave_a_fifo(snapshot):
+        pinned_scripts.change_mode(os.path.join(snapshot, "scripts"), lambda mode: mode | 0o200)
+        os.mkfifo(os.path.join(snapshot, "scripts", "pipe"))
+
+    with pytest.raises(OSError):
+        launched(tmp_path, monkeypatch, capfdbinary, leave_a_fifo)
+    assert os.listdir(tmp_path / "tmp") == []
