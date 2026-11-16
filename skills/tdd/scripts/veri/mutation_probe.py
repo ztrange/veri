@@ -86,7 +86,7 @@ def main(argv):
     if len(argv) < 5 or argv[3] != "--":
         sys.stderr.write(USAGE + "\n")
         return 2
-    domain = tunables.read("VERI_MUTATION_ADDRESS_DOMAIN")
+    domain = tunables.get("VERI_MUTATION_ADDRESS_DOMAIN")
     if domain:
         for address in re.findall(r"[^\s@]+@[^\s@]+", argv[1] + " " + argv[2]):
             if address.rsplit("@", 1)[1] != domain:

@@ -331,3 +331,13 @@ def test_4047_the_six_knobs_claude_md_documents_are_keys_of_tunables_with_their_
     assert {name: tunables.default(name) for name in six if name in tunables.TUNABLES} == {
         "VERI_MISSING_REROUTE_BUDGET": "3", "VERI_TEST_LOCK": "", "VERI_PYTEST_WORKERS": "",
         "VERI_PYTEST_LEGS": "", "VERI_PYCACHE": "", "VERI_NEW_SKILL": ""}
+
+
+def test_4047_the_other_knobs_an_operator_sets_are_keys_of_tunables_with_their_readers_unset_defaults():
+    tunables = importlib.import_module("veri.tunables")
+    knobs = ("VERI_PARALLEL", "VERI_RUN_TIMEOUT", "VERI_MAX_ISSUES", "VERI_SELF_UPDATE",
+             "VERI_MUTATION_ADDRESS_DOMAIN", "VERI_SESSION_TRANSCRIPTS", "VERI_HOME")
+
+    assert {name: tunables.default(name) for name in knobs if name in tunables.TUNABLES} == {
+        "VERI_PARALLEL": "1", "VERI_RUN_TIMEOUT": "14400", "VERI_MAX_ISSUES": "", "VERI_SELF_UPDATE": "",
+        "VERI_MUTATION_ADDRESS_DOMAIN": "", "VERI_SESSION_TRANSCRIPTS": "", "VERI_HOME": ""}

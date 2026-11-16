@@ -31,7 +31,7 @@ def main(argv):
     if argv:
         print(USAGE, file=sys.stderr)
         return 2
-    if tunables.read("VERI_SELF_UPDATE") == "0":
+    if tunables.get("VERI_SELF_UPDATE") == "0":
         return refuse("VERI_SELF_UPDATE=0")
     if os.path.exists(record):
         answer = open(record).read().strip()

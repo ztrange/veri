@@ -148,7 +148,7 @@ def journal_path(clone, issue):
     owner, repo = url.removesuffix(".git").split("/")[-2:] if url.count("/") >= 2 else ("", "")
     if not (owner and repo and issue):
         return None
-    home = tunables.read("VERI_HOME") or os.path.expanduser("~/.veri")
+    home = tunables.get("VERI_HOME") or os.path.expanduser("~/.veri")
     return os.path.join(home, "runs", owner + "-" + repo, issue + ".jsonl")
 
 

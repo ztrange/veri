@@ -126,7 +126,7 @@ def _bash_arithmetic(value):
 
 
 def _run_timeout():
-    return tunables.read("VERI_RUN_TIMEOUT") or "14400"
+    return tunables.get("VERI_RUN_TIMEOUT", unless_empty=True)
 
 
 def _finish(code):
@@ -181,7 +181,7 @@ def main(argv):
         return _finish(2)
     if not _exclude_tdd():
         return 2
-    parallel = tunables.read("VERI_PARALLEL", "1")
+    parallel = tunables.get("VERI_PARALLEL")
     max_issues = tunables.read("VERI_MAX_ISSUES", None)
     if not (_whole_number("VERI_PARALLEL", parallel, 1)
             and (max_issues is None or _whole_number("VERI_MAX_ISSUES", max_issues, 1))):
