@@ -1,6 +1,6 @@
 """Cases for park-issue.sh that start a real process: the entry point, and the cases whose PR argument has the module
 read a real git origin. The module's other logic is tested in-process, in tests/py/unit/test_park_issue.py."""
-import os
+import importlib
 import subprocess
 
 import pytest
@@ -15,6 +15,38 @@ GH_STUB = """#!/bin/sh
 } >> "$GH_LOG" 2>/dev/null
 echo '{}'
 """
+
+
+def run(tmp_path, *argv):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "gh").write_text(GH_STUB)
+    (bin_dir / "gh").chmod(0o755)
+    ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), *argv], cwd=tmp_path, capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "GH_LOG": str(tmp_path / "gh.log"), "PYTHONDONTWRITEBYTECODE": "1"})
+    return ran.returncode, ran.stdout, ran.stderr
+
+
+def usage():
+    return importlib.import_module("veri.park_issue").USAGE
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that records every call")
+def test_the_shim_passes_exit_0_through_after_the_module_parks_the_issue(tmp_path):
+    assert run(tmp_path, "7", "held for review", "a human merges") == (0, "", "")
+    assert "### ⏸ Parked\nCause: held for review\n" in (tmp_path / "gh.log").read_text()
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that records every call")
+def test_the_shim_passes_exit_2_and_the_modules_stderr_through_for_a_bad_issue_number(tmp_path):
+    assert run(tmp_path, "0", "held for review", "a human merges") == (2, "", "park-issue.sh: bad issue number 0\n")
+
+
+@pytest.mark.process("park-issue.sh run as a script")
+def test_help_prints_the_modules_usage_on_stdout_and_exits_0(tmp_path):
+    assert run(tmp_path, "--help") == (0, usage(), "")
 
 
 URL_REFUSING_GH_STUB = """#!/bin/sh
