@@ -26,6 +26,13 @@ LAST_COMMAND = ""
 LAST_CODE = 0
 
 
+def case_code(done):
+    """The case's exit code: make exits 2 for any failed recipe, so its first `*** [<target>] Error <k>` line
+    (the innermost recipe's) gives `<k>` instead."""
+    recipe = re.search(r"\*\*\* \[[^\]]*\] Error (\d+)", f"{done.stdout}{done.stderr}") if done.returncode == 2 else None
+    return int(recipe.group(1)) if recipe else done.returncode
+
+
 def run_case(case):
     global LAST_COMMAND, LAST_CODE
     detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
@@ -33,15 +40,14 @@ def run_case(case):
     command = found.stdout.strip()
     if not command:
         LAST_COMMAND = f"make test TESTS={case}"
-        return subprocess.run(["make", "test", f"TESTS={case}"], env=case_env()).returncode
+        LAST_CODE = case_code(subprocess.run(["make", "test", f"TESTS={case}"], capture_output=True, text=True,
+                                             env=case_env()))
+        return 2 if LAST_CODE >= 126 else LAST_CODE
     path = case.split("::", 1)[0]
     LAST_COMMAND = f"{command} {path}"
     done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
     output = f"{done.stdout}{done.stderr}"
-    LAST_CODE = done.returncode
-    recipe = re.search(r"\*\*\* \[[^\]]*\] Error (\d+)", output) if LAST_CODE == 2 else None
-    if recipe:
-        LAST_CODE = int(recipe.group(1))
+    LAST_CODE = case_code(done)
     if LAST_CODE >= 126:
         return 2
     if LAST_CODE and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", output, re.I)):

@@ -85,3 +85,15 @@ def test_a_case_command_exiting_2_with_makes_error_2_line_stays_a_case_never_run
 
     assert (code, text, events) == (2, ORIGINAL, False), err
     assert f"case {CASE} never run" in err and "fails" not in err
+
+
+def test_the_make_test_fallback_reads_makes_error_1_line_as_a_case_that_ran_and_failed_exit_1_3987(
+        retire, fake_processes):
+    fake = fake_processes.answers({"detect-test-command.sh": (0, "", ""),
+                                   "": (2, "1 failed\n", "make: *** [test] Error 1\n")})
+
+    code, text, events, err = retire()
+
+    assert ["make", "test", f"TESTS={CASE}"] in fake.argvs
+    assert (code, text, events) == (1, ORIGINAL, False), err
+    assert f"case {CASE} fails" in err and "never run" not in err
