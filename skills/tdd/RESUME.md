@@ -70,11 +70,18 @@ default branch, whatever the previous bail's cause — saves the branch-red list
    on the ambient number the interrupted step pays for its tidying twice over, which is the
    cost the budget exists to bound. A `$left` of 0 is a budget already spent, and
    `refactor-budget.sh 0` then skips the leaf — the step is tidied as far as it was funded
-   to be. Run its **verify-refactor** after it — the check the interruption skipped — with
+   to be. Run its **verify-refactor** after it, unless the run pinned it off (below) — the check the interruption skipped — with
    `$green` as the cycle loop's `<green-sha>`:
    `verify.sh --step "<STEP>" --fast-cmd '<fast-cmd>' refactor <spec-file> <test-path> "$green"`, launched as there. Its
    PASS clears the mark and commits the cleared ledger exactly as in the cycle loop; then
    come back here and ask sub-step 2 again.
+   **Unless `refactor` is listed in `.tdd/issue-<n>-skip-verify`:** then no verify-refactor
+   launches, and the cycle loop's *Refactor loop* step 5 **Switched off** branch is taken
+   instead — the `verify-refactor-skipped reason=switched-off` event with `VERI_STEP` this
+   step, `skipped` in `.tdd/verdict-refactor.exit`, the `SKIPPED (switched off)` comment
+   (`$S/comment.sh <n> verify-refactor`), then `pin-recheck.sh`, the pending-mark clear and
+   the cleared-ledger commit — before sub-step 2 is asked again. The pin decides, never
+   `VERI_SKIP_VERIFY` at the resume: a resumed run keeps the configuration it started with.
 3. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
    loop continues from exactly there, so **STEP** is that step's description, bound here
    instead of at the top of the cycle loop. Already-checked steps (and their commits) are
