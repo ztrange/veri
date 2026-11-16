@@ -152,3 +152,14 @@ def test_an_issue_a_pull_request_merged_into_the_stack_closes_is_refused_as_clai
 
     out, err = capsys.readouterr()
     assert (code, out, added(fake), "claimed" in err) == (2, "", [], True), err
+
+
+
+def test_a_stacked_cut_records_the_base_it_cut_from_in_the_runs_own_state(
+        fake_processes, tmp_path, capsys, issue_worktree):
+    fake, path = stacked_world(fake_processes, tmp_path, Origin(stack=True))
+
+    code = issue_worktree.main(["7", "slug"])
+
+    with open(path + "/.tdd/issue-7-base") as recorded:
+        assert (code, recorded.read()) == (0, "stack\n")

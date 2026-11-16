@@ -77,6 +77,9 @@ def test_run_base_answers_the_named_stack_the_default_branch_with_none_named_and
         root.mkdir()
     (stacked / "CLAUDE.md").write_text("veri: stack branch: stack\n")
     (refused / "CLAUDE.md").write_text("veri: stack branch: trunk\n")
+    for root, recorded in ((stacked, "stack"), (refused, "trunk")):
+        (root / ".tdd").mkdir()
+        (root / ".tdd" / "issue-7-base").write_text(recorded + "\n")
 
     with pytest.raises(stack_branch.Refused) as refusal:
         stack_branch.run_base(str(refused))
@@ -97,3 +100,34 @@ def test_a_default_branch_that_cannot_be_told_locally_or_from_origin_is_exit_2_n
     git_world(fake_processes, local=False, remote=False)
 
     assert refusal_of(tmp_path, run_cli, stack_branch, "veri: stack branch: stack") == (2, "", True)
+
+
+@pytest.mark.parametrize("record, answer", [
+    (None, ("trunk", False)),
+    ("stack\n", ("stack", True)),
+])
+def test_run_base_is_the_stack_only_for_a_branch_whose_cut_recorded_it_and_the_default_branch_otherwise_4171(
+        tmp_path, fake_processes, stack_branch, record, answer):
+    git_world(fake_processes, default="trunk")
+    (tmp_path / "CLAUDE.md").write_text("veri: stack branch: stack\n")
+    if record is not None:
+        (tmp_path / ".tdd").mkdir()
+        (tmp_path / ".tdd" / "issue-7-base").write_text(record)
+
+    assert stack_branch.run_base(str(tmp_path)) == answer
+
+
+@pytest.mark.parametrize("records", [{"issue-7-base": "other\n"}, {"issue-7-base": ""}, {"issue-7-base": "stack\nmore\n"},
+                                     {"issue-7-base": "stack\n", "issue-8-base": "stack\n"}])
+def test_run_base_refuses_a_recorded_base_that_is_garbled_or_no_longer_the_named_stack_naming_both_4171(
+        tmp_path, fake_processes, stack_branch, records):
+    git_world(fake_processes, default="trunk")
+    (tmp_path / "CLAUDE.md").write_text("veri: stack branch: stack\n")
+    (tmp_path / ".tdd").mkdir()
+    for name, text in records.items():
+        (tmp_path / ".tdd" / name).write_text(text)
+
+    with pytest.raises(stack_branch.Refused) as refusal:
+        stack_branch.run_base(str(tmp_path))
+
+    assert "issue-7-base" in str(refusal.value) and "stack" in str(refusal.value)

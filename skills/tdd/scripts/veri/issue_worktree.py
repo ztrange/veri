@@ -290,7 +290,20 @@ def stack_cut(path, branch, stack):
     if fetched.returncode != 0:
         return entry.refuse("git fetch origin %s got no answer (%s) — refusing to cut %s from a stale origin/%s"
                             % (stack, " ".join((fetched.stderr or "").split()), branch, stack), prefix=PREFIX)
-    return worktree_add("--no-track", "-b", branch, path, "origin/" + stack)
+    code = worktree_add("--no-track", "-b", branch, path, "origin/" + stack)
+    if code == 0:
+        record_base(path, issue_of(branch), stack)
+    return code
+
+
+def record_base(path, issue, stack):
+    """Record in the run's own state the base its branch was cut from: `.tdd/issue-<n>-base`, written once at the cut,
+    never rewritten, read by stack_branch.run_base."""
+    record = run_dir.issue_file(path, issue, "-base")
+    os.makedirs(os.path.dirname(record), exist_ok=True)
+    if not os.path.exists(record):
+        with open(record, "w") as f:
+            f.write(stack + "\n")
 
 
 def cut(path, branch, take_over=False, root="."):

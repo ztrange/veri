@@ -1,5 +1,6 @@
 """stack-branch.sh's logic, run in-process: the stack branch a repository's CLAUDE.md names."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import glob
 import os
 import sys
 
@@ -65,15 +66,35 @@ def named(root):
     return name
 
 
+def recorded_base(root):
+    """(path, text) of the one `.tdd/issue-<n>-base` file under <root>, the base issue-worktree.sh recorded when it cut a
+    stacked run there; None when there is none. Refused when there are several."""
+    found = sorted(glob.glob(os.path.join(glob.escape(root), ".tdd", "issue-*-base")))
+    if len(found) > 1:
+        raise Refused("several recorded bases, cannot tell which is this run's: %s (the named stack branch is %r)"
+                      % (", ".join(found), named(root)))
+    if not found:
+        return None
+    with open(found[0], encoding="utf-8", errors="replace") as f:
+        return found[0], f.read()
+
+
 def run_base(root=None, remote=True):
-    """(branch, stacked): the one answer to which branch a run is cut from, rebased onto and diffed against. The stack
-    branch <root>'s CLAUDE.md names (exit 0 above; root None: the current directory) with stacked True; else
-    git.default_branch(root, remote), None when it cannot be told, with stacked False. Raises Refused (exit 2 above)
-    for a name that cannot be a stack."""
+    """(branch, stacked): the one answer to which branch a run is cut from, rebased onto and diffed against, from an
+    observed fact about that run: the stack, with stacked True, only when its cut recorded it (`.tdd/issue-<n>-base`
+    under <root>, root None: the current directory) and it is still the stack CLAUDE.md names; else
+    git.default_branch(root, remote), exactly as without a stack, None when it cannot be told. Raises Refused for a
+    garbled record, one that no longer names the named stack (naming both), or a name that cannot be a stack."""
+    record = recorded_base(root or ".")
+    if record is None:
+        return git.default_branch(cwd=root, remote=remote), False
+    path, text = record
+    lines = text.splitlines()
     stack = named(root or ".")
-    if stack:
-        return stack, True
-    return git.default_branch(cwd=root, remote=remote), False
+    if len(lines) != 1 or not lines[0].strip() or lines[0].strip() != stack:
+        raise Refused("%s records the base %r, but the named stack branch is %r — refusing to guess which this run"
+                      " is based on" % (path, text.strip()[:80], stack))
+    return stack, True
 
 
 def main(argv):

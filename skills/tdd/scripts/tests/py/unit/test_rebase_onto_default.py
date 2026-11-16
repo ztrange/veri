@@ -526,6 +526,8 @@ def stack_answers(contained=False):
 def test_main_rebases_onto_origin_stack_where_a_stack_branch_is_named_and_exits_3_when_the_branch_contains_it_4170(
         monkeypatch, tmp_path, cli, fake_processes, argv):
     (tmp_path / "CLAUDE.md").write_text("veri: stack branch: stack\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7-base").write_text("stack\n")
     monkeypatch.chdir(tmp_path)
 
     rebased = git_answers(fake_processes, **stack_answers())
@@ -536,3 +538,29 @@ def test_main_rebases_onto_origin_stack_where_a_stack_branch_is_named_and_exits_
     assert (code, out, [c for c in rebased if c.startswith("git rebase")], up_to_date,
             [c for c in contained if c.startswith("git rebase")]) == (
         0, f"{PRE}\n{STACK}\n", [f"git rebase -q {STACK}"], (3, ""), [])
+
+
+
+def test_main_rebases_a_hand_branch_in_a_stacking_repository_onto_the_default_branch_as_before_4171(
+        monkeypatch, tmp_path, cli, fake_processes):
+    (tmp_path / "CLAUDE.md").write_text("veri: stack branch: stack\n")
+    monkeypatch.chdir(tmp_path)
+
+    calls = git_answers(fake_processes, **stack_answers())
+    code, out = cli.main([]), cli.readouterr().out
+
+    assert (code, out, [c for c in calls if c.startswith("git rebase")]) == (0, f"{PRE}\n{ONTO}\n", [f"git rebase -q {ONTO}"])
+
+
+def test_main_exits_2_naming_both_when_the_recorded_base_is_not_the_named_stack_4171(
+        monkeypatch, tmp_path, cli, fake_processes):
+    (tmp_path / "CLAUDE.md").write_text("veri: stack branch: stack\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7-base").write_text("older-stack\n")
+    monkeypatch.chdir(tmp_path)
+
+    calls = git_answers(fake_processes, **stack_answers())
+    code, captured = cli.main([]), cli.readouterr()
+
+    assert (code, [c for c in calls if c.startswith("git rebase")], "older-stack" in captured.err, "stack" in captured.err) == (
+        2, [], True, True)
