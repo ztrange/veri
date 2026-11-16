@@ -16,6 +16,7 @@ REBASED = "abc1234"
 REBASED_AGAIN = "abc5678"
 CLONE = "/clone"
 FOREIGN = "fffffff"
+FAST_COMMIT = "ccccccc"
 TREE = "7777777"
 
 
@@ -39,6 +40,7 @@ class World:
             os.makedirs(self.stopped_dir)
         self.extra = extra or {}
         self.base = base
+        self.fast_commits = self.fast_dirties = self.fast_ran = False
         self.foreign = foreign
         self.pr_default = pr_default
         self.first = first
@@ -101,7 +103,12 @@ class World:
         if line.startswith("detect-test-command.sh --tier fast"):
             return 0, "make unit\n", ""
         if line == "sh -c make unit":
+            self.fast_ran = True
+            if self.fast_commits:
+                self.rebased.append(FAST_COMMIT)
             return self.fast, "", ""
+        if line == wt + "status --porcelain":
+            return 0, (" M r.txt\n" if self.fast_dirties and self.fast_ran else ""), ""
         if line.startswith("prose-owed.sh"):
             return self.owed, "", ""
         if line.startswith(wt + "push ") and line.endswith(":refs/heads/stack"):
@@ -143,7 +150,7 @@ def test_joins_a_pull_request_whose_base_is_the_stack_rebasing_checking_and_push
         "merge-lock.sh take --pid %s" % PID,
         wt + "fetch --prune origin",
         wt + "rebase origin/stack",
-        wt + "push --force-with-lease=%s:%s origin HEAD:refs/heads/%s" % (BRANCH, ORIGIN_SHA, BRANCH),
+        wt + "push --force-with-lease=%s:%s origin %s:refs/heads/%s" % (BRANCH, ORIGIN_SHA, REBASED, BRANCH),
         "sh -c make unit",
         "prose-owed.sh " + world.wt,
         wt + "push --force-with-lease=stack:%s origin %s:refs/heads/stack" % (STACK_SHA, REBASED)]), err
@@ -499,3 +506,25 @@ def test_after_a_refusal_past_the_rebase_head_is_the_pre_rebase_tip_and_a_second
     second = join(run_cli, world)
 
     assert (first[0], head, second[0], "evil.txt" in second[2], "head reads" in second[2]) == (2, ORIGIN_SHA, 2, True, False)
+
+
+
+@pytest.mark.parametrize("knob, named", [("fast_commits", FAST_COMMIT), ("fast_dirties", "r.txt")])
+def test_a_fast_tier_that_commits_or_leaves_the_tree_dirty_is_exit_2_nothing_pushed_to_the_stack(
+        tmp_path, fake_processes, monkeypatch, run_cli, knob, named):
+    world = World(tmp_path)
+    setattr(world, knob, True)
+    world.install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, world.stack_pushed(), world.stack[0], named in err, REBASED in err) == (2, [], STACK_SHA, True, True), err
+
+
+def test_the_clean_path_pushes_to_the_stack_the_sha_saved_right_after_the_content_check(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, [c.rsplit(" ", 1)[1] for c in world.stack_pushed()]) == (0, [REBASED + ":refs/heads/stack"]), err

@@ -575,10 +575,12 @@ def _joined(pid, repo, pr, worktree, branch, stack):
         differs = _content_differs(worktree, before, onto)
         if differs:
             return _put_back(worktree, before, differs)
+        # The checked tip, saved now: it alone is pushed, to the run branch and to the stack.
+        checked = _rev(worktree, "HEAD")
         pushed = git.network("-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
-                             "origin", "HEAD:refs/heads/%s" % branch)
+                             "origin", "%s:refs/heads/%s" % (checked, branch))
         if not pushed.returncode:
-            lease = _rev(worktree, "HEAD")
+            lease = checked
         if pushed.returncode:
             _say("the leased push of %s failed (exit %d): %s; nothing pushed to %s" % (
                 branch, pushed.returncode, pushed.stderr.strip(), stack))
@@ -596,7 +598,13 @@ def _joined(pid, repo, pr, worktree, branch, stack):
         if owed:
             _say("prose-owed.sh exited %d on the rebased tip; nothing pushed to %s" % (owed, stack))
             return 1 if owed == 1 else 2
-        head = _rev(worktree, "HEAD")
+        head, status = _rev(worktree, "HEAD"), _git(worktree, "status", "--porcelain")
+        if head != checked or status.returncode or status.stdout.strip():
+            _say("the fast tier or prose-owed.sh changed the worktree: HEAD is %s, the checked tip %s%s; nothing pushed to"
+                 " %s" % (head or "unresolvable", checked, "; uncommitted: " + " ".join(status.stdout.split()[1::2][:5])
+                          if status.stdout.strip() else "", stack))
+            return 2
+        head = checked
         if not head or _git(worktree, "merge-base", "--is-ancestor", onto, head).returncode:
             _say("the rebased tip %s does not descend from origin/%s at %s; nothing pushed to it" % (head, stack, onto))
             return 2
