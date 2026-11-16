@@ -497,6 +497,10 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             _say("origin/%s or origin/%s does not resolve; nothing pushed" % (stack, branch))
             return 2
         rebase = _git(worktree, "rebase", onto)
+        if rebase.returncode and not _rebasing(worktree):
+            _say("git rebase onto origin/%s was refused without a conflict (exit %d); nothing pushed" % (
+                stack, rebase.returncode))
+            return 2
         if rebase.returncode:
             _git(worktree, "rebase", "--abort")
             _say("rebasing %s onto origin/%s conflicted (%s); aborted, nothing pushed" % (
@@ -510,6 +514,10 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             return 2
         found = _start("detect-test-command.sh", "--tier", "fast", cwd=worktree, capture=True)
         fast = found.stdout.strip()
+        if found.returncode or not fast:
+            _say("no fast-tier command for the rebased tip (detect-test-command.sh exited %d); nothing pushed to %s" % (
+                found.returncode, stack))
+            return 2
         if subprocess.run(["sh", "-c", fast], cwd=worktree).returncode:
             _say("the fast tier (%s) is red on the rebased tip; nothing pushed to %s" % (fast, stack))
             return 1

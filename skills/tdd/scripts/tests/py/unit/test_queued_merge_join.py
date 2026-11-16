@@ -21,16 +21,21 @@ class World:
     """The join's world: origin's stack and run branch, what each call answers, and every call made."""
 
     def __init__(self, tmp_path, ledger="- [x] a step ⟦criterion 1⟧\n- [ ] the full suite ⟦full-suite⟧ ⟦criterion 2⟧\n",
-                 rebase=0, fast=0, owed=0, stack_pushes=(0,), reads=({"merged": True},), lock=0):
+                 rebase=0, fast=0, owed=0, stack_pushes=(0,), reads=({"merged": True},), lock=0, stopped=True, extra=None,
+                 stack_line="veri: stack branch: stack\n"):
         self.wt = str(tmp_path / "wt")
         os.makedirs(self.wt + "/.tdd")
         with open(self.wt + "/CLAUDE.md", "w") as f:
-            f.write("veri: stack branch: stack\n")
+            f.write(stack_line)
         with open(self.wt + "/.tdd/issue-7.md", "w") as f:
             f.write("# Plan for #7\n\n" + ledger)
         self.stack = [STACK_SHA]
         self.rebased = []
         self.rebase, self.fast, self.owed, self.lock = rebase, fast, owed, lock
+        self.stopped_dir = str(tmp_path / "rebase-merge") if rebase and stopped else ""
+        if self.stopped_dir:
+            os.makedirs(self.stopped_dir)
+        self.extra = extra or {}
         self.stack_pushes = list(stack_pushes)
         self.reads = list(reads)
         self.pulls = []
@@ -50,6 +55,13 @@ class World:
 
     def answer(self, line, **_):
         wt = "git -C %s " % self.wt
+        for prefix, answer in self.extra.items():
+            if line.startswith(prefix.replace("<wt>", self.wt)):
+                if isinstance(answer, BaseException):
+                    raise answer
+                return answer
+        if line == wt + "rev-parse --git-path rebase-merge":
+            return 0, self.stopped_dir + "\n", ""
         if line.startswith("merge-lock.sh take"):
             return self.lock, "", ""
         if line.startswith("merge-lock.sh"):
@@ -204,3 +216,27 @@ def test_a_unit_owing_a_grade_on_the_rebased_tip_exits_1_pushing_nothing_to_the_
     code, _, err = join(run_cli, world)
 
     assert (code, world.stack_pushed(), world.stack[0], len(released(world))) == (1, [], STACK_SHA, 1), err
+
+
+@pytest.mark.parametrize("kind, world", [
+    ("no fast tier", dict(extra={"detect-test-command.sh": (3, "", "")})),
+    ("rebase refused without a conflict", dict(rebase=1, stopped=False)),
+    ("an error raised mid-join", dict(extra={"git -C <wt> rev-parse --verify HEAD": OSError(5, "I/O error")})),
+])
+def test_a_join_that_gets_no_answer_exits_2_pushing_nothing_to_the_stack_and_releasing_the_lock(
+        tmp_path, fake_processes, monkeypatch, run_cli, kind, world):
+    world = World(tmp_path, **world).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, world.stack_pushed(), len(released(world))) == (2, [], 1), err
+
+
+def test_a_stack_line_that_cannot_be_a_stack_exits_2_naming_it_before_the_lock_is_taken(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, stack_line="veri: stack branch:\n").install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    taken = [c for c in world.calls if c.startswith("merge-lock.sh")]
+    assert (code, taken, "veri: stack branch:" in err) == (2, [], True), err
