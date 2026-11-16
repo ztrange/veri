@@ -24,3 +24,7 @@ if sys.pycache_prefix is None:
         sys.pycache_prefix = os.path.join(os.environ.get("TMPDIR") or "/tmp", "veri-pycache-%d" % os.getuid())
         import tunables
         sys.pycache_prefix = tunables.get("VERI_PYCACHE") or sys.pycache_prefix
+        try:
+            os.makedirs(sys.pycache_prefix, 0o700)
+        except FileExistsError:
+            pass
