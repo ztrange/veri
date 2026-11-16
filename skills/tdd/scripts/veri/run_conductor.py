@@ -45,7 +45,7 @@ HELD_REF_LOCK = ("cannot lock ref", "reference already exists")
 
 
 def main(argv):
-    os.environ.pop("VERI_EVENT_STRICT", None)  # a run never checks its events (PRD 014 JR3): telemetry never bails it
+    tunables.pop("VERI_EVENT_STRICT")  # a run never checks its events (PRD 014 JR3): telemetry never bails it
     for name in ("REVISE_BUDGET", "VERI_REBASED_TIP_SUITE", "VERI_BRANCH_SUITE", "VERI_BASELINE_FULL_TIER"):
         _, bad = tunables.resolve(name)
         if bad:
