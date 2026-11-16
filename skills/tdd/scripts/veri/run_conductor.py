@@ -108,8 +108,8 @@ def preflight_and_launch(argv):
     resuming = mode == "resume"
     if not resuming:
         for word in tunables.get("VERI_SKIP_VERIFY").split(","):
-            if word and word != "refactor":
-                sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped (only refactor can)\n" % word)
+            if word and word not in ("refactor", "pin"):
+                sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped (only refactor and pin can)\n" % word)
                 return 2
     if not resuming:
         try:
