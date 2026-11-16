@@ -124,7 +124,11 @@ def main(argv):
         ours = pinned_scripts.snapshot_made_for(snapshot, path)
         removed = subprocess.run(["git", "worktree", "remove", path], stdout=sys.stderr, stderr=sys.stderr)
         if removed.returncode == 0 and ours:
-            pinned_scripts.remove_tree(snapshot)
+            try:
+                pinned_scripts.remove_tree(snapshot)
+            except OSError as error:
+                sys.stderr.write("issue-worktree: could not remove the snapshot %s: %s\n" % (snapshot, error))
+                return 2
         elif removed.returncode == 0 and snapshot and not pinned_scripts.snapshot_gone(snapshot):
             sys.stderr.write("issue-worktree: %s is not a snapshot veri made for %s — left in place\n" % (snapshot, path))
         return entry.to_contract(removed.returncode)

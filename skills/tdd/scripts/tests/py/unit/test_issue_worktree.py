@@ -274,6 +274,19 @@ def test_main_remove_deletes_a_read_only_snapshot_veri_made_for_the_worktree_lea
     assert (code, err, os.path.lexists(snapshot)) == (0, "", False)
 
 
+def test_main_remove_exits_2_naming_the_snapshot_when_its_removal_fails_after_the_worktree_is_gone_3963(fake_processes,
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", run_worktree_of(tmp_path))
+
+    def fails(tree):
+        raise PermissionError(13, "Permission denied", tree)
+    monkeypatch.setattr(importlib.import_module("veri.pinned_scripts"), "remove_tree", fails)
+
+    code, err = remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, str(snapshot))
+
+    assert (code, err.startswith("issue-worktree: could not remove the snapshot %s: " % snapshot)) == (2, True), err
+
+
 def refusal_of(tmp_path, snapshot):
     return "issue-worktree: %s is not a snapshot veri made for %s — left in place\n" % (
         snapshot, run_worktree_of(tmp_path))
