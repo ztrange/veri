@@ -15,8 +15,9 @@ PID = str(os.getpid())
 WAIT_CI = os.path.join(queued_merge.SCRIPTS, "wait-ci.sh")
 
 
-def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), gh_code=0, fail=(), diverged=False, lease_readable=True, behind=False, dirty=False):
-    """A queued merge's world: the lock, CI's answers in order, GitHub's merged answer, and commands that fail."""
+def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), gh_code=0, fail=(), diverged=False, lease_readable=True, behind=False, dirty=False, tags="v0.10\nv0.9\n"):
+    """A queued merge's world: the lock, CI's answers in order, GitHub's merged answer, the clone's tags as
+    `git tag --sort=-v:refname` lists them, and commands that fail."""
     state = {"rebased": False, "ci": list(ci), "merged": False}
 
     def answer(line, **_):
@@ -53,7 +54,7 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
         if "--git-common-dir" in line:
             return 0, "/main/.git\n", ""
         if "tag --sort=-v:refname" in line:
-            return 0, "v0.10\nv0.9\n", ""
+            return 0, tags, ""
         if "gh api" in line and not is_put and not state["merged"]:
             return 0, json.dumps({"state": "open", "merged": False, "head": {"sha": "9999999"}}), ""
         if line.startswith("gh api"):
@@ -1379,3 +1380,12 @@ def test_3979_queued_merge_refuses_a_settle_tunable_it_cannot_use_with_2_naming_
     code, _, err = run_cli(queued_merge, ARGV, env=env)
 
     assert (code, named in err, calls) == (2, True, [])
+
+
+def test_3981_queued_merge_in_a_clone_holding_v1_2_3_release_1_and_v0_10_bumps_only_from_vN_M_tags_and_cuts_v0_11(fake_processes, run_cli):
+    calls = scenario(fake_processes, tags="v1.2.3\nv0.10\nrelease-1\n")
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    tags = [c for c in calls if " tag -a " in c or "push origin v" in c]
+    assert (code, tags) == (0, ["git -C /wt tag -a v0.11 -m the capability %s" % MERGE_SHA, "git -C /wt push origin v0.11"])
