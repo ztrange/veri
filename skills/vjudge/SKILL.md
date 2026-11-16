@@ -12,6 +12,8 @@ Alias: `/vjudge`
 
 Obeys `operator/PRINCIPLES.md` under the veri clone root (`git -C <base dir> rev-parse --show-toplevel`); read it first.
 
+`$S` is `skills/tdd/scripts/`, reached from this skill's base directory as `../tdd/scripts/`.
+
 The rules below were mined from the owner's replies to agents' questions: each is one the owner
 applied when overriding an agent's recommendation. Most questions an agent wants to ask are
 already answered by one of them.
