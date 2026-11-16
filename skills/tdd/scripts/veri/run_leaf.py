@@ -54,19 +54,33 @@ def top_level(directory):
         directory = parent
 
 
+class UnmergeableSettings(Exception):
+    """A caller's `--settings` value that is not a JSON object (a file path, say): `value`."""
+
+    def __init__(self, value):
+        super().__init__(value)
+        self.value = value
+
+
 def callers_settings(extra):
-    """`(settings, rest)`: the JSON object of a `--settings <json>` pair in the caller's arguments, merged into the
-    leaf's own one `--settings` since the CLI keeps only one, and the arguments without that pair; `(None, extra)`
-    when they hold none whose value is a JSON object."""
-    for at, word in enumerate(extra[:-1]):
-        if word == "--settings":
-            try:
-                settings = json.loads(extra[at + 1])
-            except ValueError:
-                continue
-            if isinstance(settings, dict):
-                return settings, extra[:at] + extra[at + 2:]
-    return None, extra
+    """`(settings, rest)`: every JSON object the caller's arguments pass as `--settings <json>`, merged in order
+    (a later key wins), since the CLI keeps only one `--settings` and the leaf already passes its own; and the
+    arguments without those pairs. Raises UnmergeableSettings for a `--settings` value that is not a JSON object."""
+    settings, rest, words = {}, [], list(extra)
+    while words:
+        word = words.pop(0)
+        if word != "--settings" or not words:
+            rest.append(word)
+            continue
+        value = words.pop(0)
+        try:
+            given = json.loads(value)
+        except ValueError:
+            given = None
+        if not isinstance(given, dict):
+            raise UnmergeableSettings(value)
+        settings.update(given)
+    return settings, rest
 
 
 def leaf_argv(binary, model, extra, excludes=()):
@@ -90,7 +104,8 @@ def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_
     PATH; the shim's locale marker, when `coerce_marker` (its value, read by the caller) is "1", is removed together with
     PYTHONCOERCECLOCALE. `toplevel` is the leaf's working tree's top level (None: outside one), above which no
     `CLAUDE.md` is loaded; `own_dir`, when given, is a directory whose project memory files are not
-    loaded either (the grader's). `seconds` is the hard cap as text: raises ValueError when it is not a whole number."""
+    loaded either (the grader's). `seconds` is the hard cap as text: raises ValueError when it is not a whole number;
+    UnmergeableSettings for a caller's `--settings` that is not a JSON object (`callers_settings`)."""
     env = dict(environ)
     strip_session_env(env)
     env["GIT_CONFIG_GLOBAL"] = git_path
@@ -175,6 +190,10 @@ def main(argv):
         try:
             command, env = launch_spec(tunables.environment(), git_path, shell, seconds, binary, model, argv[1:],
                                       coerce_marker, top_level(os.getcwd()), own_dir)
+        except UnmergeableSettings as bad:
+            print(f"run-leaf.sh: --settings {bad.value!r} is not a JSON object, so it cannot be merged into the"
+                  " leaf's one --settings", file=sys.stderr)
+            return 2
         except ValueError:
             print(f"run-leaf.sh: VERI_TIMEOUT is not a whole number: {seconds!r}",
                   file=sys.stderr)
