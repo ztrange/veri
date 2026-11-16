@@ -164,6 +164,20 @@ def test_3917_step_ahead_skips_the_red_case_and_exits_3_printing_nothing_when_no
     }
 
 
+def test_3917_the_plain_read_prints_and_exits_as_before_on_input_holding_step_ahead_lines(run_cli, tmp_path, exhausted_outcome):
+    _suite(tmp_path)
+    ahead = "STEP_AHEAD: tests/py/test_status.py::test_status_lists_runs\n"
+
+    results = {report: run_cli(exhausted_outcome, [], stdin=report, cwd=tmp_path)
+               for report in (ahead, ahead + "SPLIT: a\n", "NEEDS_USER: q\n" + ahead)}
+
+    assert results == {
+        ahead: (3, "", ""),
+        ahead + "SPLIT: a\n": (0, "a\n", ""),
+        "NEEDS_USER: q\n" + ahead: (1, "q\n" + ahead, ""),
+    }
+
+
 def _refused(result, line):
     code, stdout, stderr = result
     return code == 2 and stdout == "" and len(stderr.splitlines()) == 1 and line in stderr
