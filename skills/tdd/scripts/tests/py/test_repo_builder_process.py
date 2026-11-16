@@ -130,3 +130,12 @@ def test_two_repositories_from_new_repo_share_no_file_so_a_commit_in_one_leaves_
     assert run(one, "rev-parse", "--verify", "-q", "HEAD").returncode == 0
     assert run(other, "rev-parse", "--verify", "-q", "HEAD").returncode == 1
     assert run(other, "cat-file", "-e", run(one, "rev-parse", "HEAD").stdout.strip()).returncode != 0
+
+
+@pytest.mark.process("git init for the template new_repo copies, located against the run's --basetemp")
+def test_the_template_new_repo_copies_lives_under_the_runs_basetemp_so_the_legs_clean_up_removes_it(tmp_path, tmp_path_factory):
+    repo_builder.new_repo(tmp_path / "repo", branch="basetemp-probe")
+
+    template = repo_builder.TEMPLATES[(repo_builder.TEMPLATE_ROOT, "basetemp-probe")]
+    assert template.resolve().is_relative_to(tmp_path_factory.getbasetemp().resolve())
+    assert run(template, "symbolic-ref", "--short", "HEAD").stdout.strip() == "basetemp-probe"
