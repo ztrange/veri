@@ -182,3 +182,16 @@ def test_one_reset_with_an_unknown_figure_makes_the_optimum_unknown_and_the_sour
     assert (code, lines[1], lines[2], "optimum unknown: 1 of 2 resets has an unknown K or g" in lines[3]) == (
         0, "2026-11-13T12:00:00 K=unknown g=unknown",
         "median K=28270 g=1000 r=0.05 optimum=unknown VERI_RESET_GROWTH_DEV=70000", True), out
+
+
+def test_a_transcript_line_that_is_not_a_json_object_is_skipped_and_counted_in_the_sources_line(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    transcript, _ = two_resets(tmp_path)
+    transcript.write_text("[1, 2]\n" + transcript.read_text() + '{"type": "assistant", "timest')
+
+    code, out, err = run_cli(reset_cost, ["dev"])
+
+    lines = out.splitlines() + ["", "", "", ""]
+    assert (code, lines[:2], "2 transcript lines that are not a JSON object skipped" in lines[3]) == (
+        0, ["2026-11-13T10:00:00 K=28270 g=1000", "2026-11-13T12:00:00 K=26410 g=500"], True), (out, err)
