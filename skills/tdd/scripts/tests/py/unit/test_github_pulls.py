@@ -178,3 +178,14 @@ def test_joined_issues_asks_gh_pr_list_for_the_field_that_says_where_a_pr_s_head
 @pytest.mark.parametrize("raw", [{"number": 1}, {"number": 1, "isCrossRepository": None}])
 def test_a_record_that_does_not_say_where_its_head_is_reads_as_another_repository(github, raw):
     assert github.pulls_in(json.dumps([raw]))[0].cross_repository is True
+
+
+def test_gh_pr_create_posts_head_base_title_and_body_to_the_rest_pulls_route_and_answers_the_url_issue_4084(
+        github, fake_processes):
+    fake = fake_processes.answers({"gh api": (0, "https://github.com/o/r/pull/12\n", "")})
+
+    url = github.gh_pr_create("veri-install", "main", "a title", "a body")
+
+    assert url == "https://github.com/o/r/pull/12"
+    assert fake.argvs == [["gh", "api", "-X", "POST", "repos/{owner}/{repo}/pulls", "-f", "head=veri-install",
+                           "-f", "base=main", "-f", "title=a title", "-f", "body=a body", "-q", ".html_url"]]

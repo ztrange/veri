@@ -818,6 +818,15 @@ _READY_MUTATION = ("mutation($id: ID!) { markPullRequestReadyForReview(input: {p
                    " { pullRequest { isDraft } } }")
 
 
+def gh_pr_create(head, base, title, body):
+    """Open a pull request from branch <head> against <base> (REST); its URL. NoAnswer whose detail is gh's stderr."""
+    run = run_gh("api", "-X", "POST", _PULLS, "-f", "head=%s" % head, "-f", "base=%s" % base,
+                 "-f", "title=%s" % title, "-f", "body=%s" % body, "-q", ".html_url", stderr=subprocess.PIPE)
+    if run.returncode != 0:
+        raise NoAnswer("", run.stderr or "")
+    return run.stdout.strip()
+
+
 def _route_open(driver, route):
     if route == "graphql":
         return driver in ("auto", "graphql")
