@@ -1,6 +1,7 @@
 """run-finished.sh's entry point: the shim runs veri/run_finished.py and passes its exit code and output through,
 and a running run, which needs a live conductor process. The module's logic is tested in-process, in
 tests/py/unit/test_run_finished.py."""
+import importlib
 import json
 import os
 import subprocess
@@ -85,4 +86,36 @@ def test_a_running_run_exits_1_and_prints_a_not_done_line_naming_the_running_sta
 
     assert code == 1
     assert out.startswith("not-done running")
+
+
+def usage():
+    return importlib.import_module("veri.run_finished").USAGE
+
+
+@pytest.mark.process("run-finished.sh on a done run, with a fake gh answering the PR body")
+def test_the_shim_passes_exit_0_through_for_a_finished_run(tmp_path):
+    repo = make_run(tmp_path, [LAUNCH % 1000, DONE])
+
+    assert finish(repo, tmp_path, "Closes #4242") == (0, "", "")
+
+
+@pytest.mark.process("run-finished.sh on a done run with an unchecked step, with a fake gh")
+def test_the_shim_passes_exit_1_and_the_modules_stdout_through_for_an_unfinished_run(tmp_path):
+    repo = make_run(tmp_path, [LAUNCH % 1000, DONE], STEP + "- [ ] second step ⟦criterion 2⟧\n")
+
+    assert finish(repo, tmp_path, "Closes #4242") == (1, "unchecked second step ⟦criterion 2⟧\n", "")
+
+
+@pytest.mark.process("run-finished.sh run as a script")
+def test_the_shim_passes_exit_2_and_the_modules_stderr_through_for_no_arguments(tmp_path):
+    ran = subprocess.run([FINISHED], cwd=tmp_path, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout, ran.stderr) == (2, "", usage())
+
+
+@pytest.mark.process("run-finished.sh run as a script")
+def test_help_prints_the_modules_usage_on_stdout_and_exits_0(tmp_path):
+    ran = subprocess.run([FINISHED, "--help"], cwd=tmp_path, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout, ran.stderr) == (0, usage(), "")
 
