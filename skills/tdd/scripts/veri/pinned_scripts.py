@@ -1,6 +1,7 @@
 """pinned-scripts.sh: the directory holding a run's pinned scripts."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import shutil
 import stat
 import sys
 import tempfile
@@ -32,13 +33,27 @@ def make_read_only(tree):
     take_bits(tree, WRITE_BITS)
 
 
+def remove_tree(tree):
+    """Give the owner back the write bit of every directory under <tree>, <tree> included, then remove it all."""
+    for root, dirs, _ in os.walk(tree):
+        for name in dirs:
+            change_mode(os.path.join(root, name), lambda mode: mode | stat.S_IWUSR)
+    change_mode(tree, lambda mode: mode | stat.S_IWUSR)
+    shutil.rmtree(tree)
+
+
 def take_bits(path, bits):
-    """Remove <bits> from the mode of <path>, through a descriptor of it; a symlink is left as it is, never followed."""
+    """Remove <bits> from the mode of <path>."""
+    change_mode(path, lambda mode: mode & ~bits)
+
+
+def change_mode(path, new_mode):
+    """Set the mode of <path> to new_mode(its mode), through a descriptor of it; a symlink is left as it is, never followed."""
     if stat.S_ISLNK(os.lstat(path).st_mode):
         return
     handle = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
     try:
-        os.fchmod(handle, stat.S_IMODE(os.fstat(handle).st_mode) & ~bits)
+        os.fchmod(handle, new_mode(stat.S_IMODE(os.fstat(handle).st_mode)))
     finally:
         os.close(handle)
 
