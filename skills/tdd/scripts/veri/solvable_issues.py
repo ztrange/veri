@@ -6,10 +6,10 @@ import paths
 import pid_file
 import re
 import run_dir
-import subprocess
 import sys
 
 import blocked_by
+import git
 import stack_branch
 import tunables
 from github import NoAnswer, closed_issues, gh_json, gh_json_page, joined_issues, pulls_in
@@ -73,7 +73,7 @@ def open_listing(fixture, path, *args):
 def github_repository(root):
     """`owner/name`, lower-cased, of the GitHub repository origin of <root> points at (an https, ssh or scp-style URL,
     `.git` dropped); None when there is no origin or its URL names no GitHub repository."""
-    got = subprocess.run(["git", "remote", "get-url", "origin"], cwd=root, capture_output=True, text=True)
+    got = git.git("remote", "get-url", "origin", cwd=root, capture_output=True, text=True)
     if got.returncode != 0:
         return None
     found = re.fullmatch(r"(?:https://|ssh://git@|git@)github\.com[/:]([^/\s]+)/([^/\s]+?)(?:\.git)?/?",
