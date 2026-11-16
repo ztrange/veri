@@ -678,6 +678,7 @@ def test_store_owed_stores_the_answer_file_under_the_prd_with_its_current_cached
 
     assert code == 0
     stored = json.loads((tmp_path / ".tdd" / "report-owed.json").read_text())
+    stored["014"].pop("computedAt")
     assert stored == {"014": {"updatedAt": "2026-11-02T10:00:00Z", "answer": answer}}
 
 
@@ -699,6 +700,7 @@ def test_store_owed_preserves_every_other_prds_entry_already_in_the_owed_file(ru
 
     assert code == 0
     stored = json.loads((tmp_path / ".tdd" / "report-owed.json").read_text())
+    stored["014"].pop("computedAt")
     assert stored == {"016": other, "014": {"updatedAt": "2026-11-02T10:00:00Z", "answer": answer}}
 
 
@@ -839,3 +841,15 @@ def test_4021_with_no_owed_file_stale_lists_every_active_prd_and_exits_0_and_rep
 
     assert (stale[:2], report[0], [l for l in report[1].splitlines() if l.startswith("owed")]) == (
         (0, "014\n"), 0, ["owed: stale"])
+
+
+def test_4021_each_stored_owed_entry_carries_computed_at_as_a_utc_second_beside_updated_at_and_answer(run_cli, tmp_path):
+    prd_report = importlib.import_module("veri.prd_report")
+    _owed_tree(tmp_path, None)
+    (tmp_path / "answer.json").write_text(json.dumps({"count": 0, "sections": []}))
+
+    code, _, _ = run_cli(prd_report, ["--store-owed", "014", "answer.json"], cwd=tmp_path)
+
+    entry = json.loads((tmp_path / ".tdd" / "report-owed.json").read_text())["014"]
+    assert (code, sorted(entry), bool(re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", entry.get("computedAt", "")))) == (
+        0, ["answer", "computedAt", "updatedAt"], True)
