@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import re
+import signal
 import subprocess
 import sys
 
@@ -26,6 +27,22 @@ LAST_COMMAND = ""
 LAST_CODE = 0
 
 
+def no_answer(code):
+    """Whether a case command's code says it never ran: not executable or not found (126, 127), killed by a signal
+    (128 and above under a shell, negative when Python saw the signal itself)."""
+    return code < 0 or code >= 126
+
+
+def how_ended(code):
+    """The case command's end as stderr names it: `exit <code>`, or `killed by <SIGNAME>` for a negative code."""
+    if code >= 0:
+        return f"exit {code}"
+    try:
+        return f"killed by {signal.Signals(-code).name}"
+    except ValueError:
+        return f"killed by signal {-code}"
+
+
 def case_code(done):
     """The case's exit code: make exits 2 for any failed recipe, so its first `*** [<target>] Error <k>` line
     (the innermost recipe's) gives `<k>` instead."""
@@ -42,13 +59,13 @@ def run_case(case):
         LAST_COMMAND = f"make test TESTS={case}"
         LAST_CODE = case_code(subprocess.run(["make", "test", f"TESTS={case}"], capture_output=True, text=True,
                                              env=case_env()))
-        return 2 if LAST_CODE >= 126 else LAST_CODE
+        return 2 if no_answer(LAST_CODE) else LAST_CODE
     path = case.split("::", 1)[0]
     LAST_COMMAND = f"{command} {path}"
     done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
     output = f"{done.stdout}{done.stderr}"
     LAST_CODE = case_code(done)
-    if LAST_CODE >= 126:
+    if no_answer(LAST_CODE):
         return 2
     if LAST_CODE and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", output, re.I)):
         return 2
@@ -168,7 +185,7 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
             return 1
     ran = run_case(case) if case else 0
     if ran == 2:
-        complain(f"{matcher}: case {case} never run (exit {LAST_CODE}): no such file path, no tests ran, or the command could not run: {LAST_COMMAND}")
+        complain(f"{matcher}: case {case} never run ({how_ended(LAST_CODE)}): no such file path, no tests ran, or the command could not run: {LAST_COMMAND}")
         return 2
     if ran:
         complain(f"{matcher}: case {case} fails")
