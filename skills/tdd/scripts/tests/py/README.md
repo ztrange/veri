@@ -43,7 +43,7 @@ Directly under `tests/py/`, beside `conftest.py`; import them flat (`from repo_b
 - `dispatch_world.py`: `FakeWorld(*ticks, role_state=(), unreadable=False)`, a scripted in-memory adapter for `dispatch.World`; the keys a tick may carry are in its docstring.
 - `event_roster.py`: `emitted_events()` (every event name emitted under `skills/`, found by scanning for the shell and in-process emit calls) and `documented_events(text)`; behind `unit/test_journal_event_roster.py`.
 - `fast_tier_guard.py`: the fast tier's admission guard, `offences(root, exemptions)` names the lines of test files that start a process or wait; behind `test_fast_tier_guard.py`.
-- `fed_history.py`: `FedHistory` and `feeder`, behind the `fed_history` fixture: case_history's git queries answered from a table of named revisions, every query it does not answer failing the case by name.
+- `fed_history.py`: `FedHistory` and `feeder`, behind the `fed_history` fixture: case_history's git queries answered from a table of named revisions (`ANSWERED`: `toplevel`, `has_rev`, `current_branch`, `text_at`, `cases_at`, `revisions`, `first_revision_with`, `changed_test_files`, `commit_of`, `step_commits`, `subject`), every query it does not answer failing the case by name.
 - `leaf_waits.py`: `leaf_started(read_pid, sleep, clock)` and `leaf_left(pid, alive, sleep, clock)`, waits on a real leaf bounded far above load delay; `sleep` and `clock` are injected so a small case drives them.
 - `pass_marker.py`: `write_pass_marker(root, step, head, tree="tree")` writes a check-earlier pass marker.
 - `process_fake_detection.py`: `installs_a_subprocess_fake(source)`, which test source installs its own fake on `subprocess`; behind `unit/test_local_process_fakes.py`.
