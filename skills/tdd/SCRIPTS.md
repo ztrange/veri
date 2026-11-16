@@ -460,6 +460,20 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   list of pull requests naming their urls), when two or more open pull requests track the stack (naming them), or a
   fetch of origin gets no answer. When `stack-branch.sh` does not exit 0, it exits with the code `stack-branch.sh`
   exited with (3 stays 3, 2 stays 2), opening nothing. The join of `queued-merge.sh` calls it.
+- `$S/stack-green.sh` — run in the target repository's clone, no arguments: prints the sha of the newest commit in
+  `origin/<default>..origin/<stack>`, read after a fetch of origin, that is an issue end and is tested, and exits
+  **0**: where a slice of the stack may be cut. A commit is an *issue end* when no issue number named in a commit
+  subject at or before it on the stack is named in a subject after it; a commit whose subject names no issue belongs
+  to the issue of the nearest earlier commit that names one. A subject names the `(#<n>)` groups it ends with: a
+  `(#<n>)` elsewhere in it names nothing, so a revert subject, ending in its closing quote, belongs to the issue
+  before it. Read from subjects, the rule survives a landing that rewrites the stack's shas. *Tested* means GitHub's
+  check runs for the commit, read by sha (the latest attempt of each, every page), are all completed, each
+  concluding success, neutral or skipped, with at least one success; any other conclusion, a check run still in
+  progress, or no check run at all is not tested. The entry names no CI job: every check run counts. Issue ends are
+  read newest first, one read each, the newest 20 at most. **Exit 3**, one stderr line, when no commit qualifies (the
+  line says how many older issue ends were not read, when there are more than 20). **Exit 2** when GitHub gives no
+  answer (a failed read, or an answer not of the check-runs shape), when `stack-branch.sh` does not exit 0, 3
+  included, or when a fetch of origin gets no answer.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
