@@ -29,3 +29,18 @@ def test_issue_4072_record_appends_one_json_line_with_the_four_fields_and_an_off
     assert (code, out, err, len(lines), record, at.utcoffset() is not None) == (
         0, "", "", 2, {"question": "Raise N to 4?", "decision": "kept N at 3", "rule": "use plan capacity", "by": "dev"},
         True)
+
+
+@pytest.mark.parametrize("argv", [
+    ["record"],
+    ["record", "Raise N to 4?", "kept N at 3", "use plan capacity"],
+    ["record", "Raise N to 4?", "", "use plan capacity", "dev"],
+    ["record", "Raise N to 4?", "kept N at 3", "use plan capacity", " "],
+    ["record", "Raise N to 4?", "kept N at 3", "use plan capacity", "dev", "extra"],
+    [],
+])
+def test_issue_4072_record_with_an_argument_missing_or_empty_exits_2_and_writes_nothing(
+        decision_log, tmp_path, run_cli, argv):
+    code, out, err = run_cli(decision_log, argv)
+
+    assert (code, out, err, (tmp_path / ".tdd" / "decisions.jsonl").exists()) == (2, "", decision_log.USAGE, False)

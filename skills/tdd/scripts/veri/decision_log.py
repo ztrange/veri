@@ -26,7 +26,7 @@ def record(question, decision, rule, by):
 
 
 def main(argv):
-    if argv[:1] != ["record"]:
+    if argv[:1] != ["record"] or len(argv) != 5 or not all(a.strip() for a in argv[1:]):
         sys.stderr.write(USAGE)
         return 2
     record(*argv[1:])
