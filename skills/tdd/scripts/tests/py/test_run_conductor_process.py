@@ -783,16 +783,21 @@ def test_main_resolves_the_pin_ref_through_origin_head_else_origins_default_from
     }
 
 
-def fake_pin(monkeypatch, commit, accepted):
+def fake_pin(monkeypatch, commit, accepted, carried=None):
     """git faked as a process: no origin, `rev-parse HEAD` resolves to `commit`, `cat-file -e`
-    accepts only `accepted`, and `for-each-ref` names a run branch so a kept record stays."""
+    accepts only `accepted`, and `for-each-ref` names a run branch so a kept record stays; `carried`
+    is the skill commit origin's refs/veri/runs/4242 records, None for no such ref."""
     calls = []
 
     def answer(args, *_, **kwargs):
         args = list(args)
         calls.append(args)
         code, out, err = 0, "", ""
-        if args[:1] == ["git"] and args[3:] == ["remote", "get-url", "origin"]:
+        if args[:2] == ["git", "fetch"] and "refs/veri/runs/" in " ".join(args):
+            code = 0 if carried is not None else 128
+        elif args[:2] == ["git", "show"] and args[2:] == ["refs/veri/runs/4242:.tdd/issue-4242-skill-commit"]:
+            code, out = (0, carried + "\n") if carried is not None else (128, "")
+        elif args[:1] == ["git"] and args[3:] == ["remote", "get-url", "origin"]:
             code, err = 2, "error: No such remote 'origin'\n"
         elif args[:1] == ["git"] and args[3:4] == ["rev-parse"]:
             code, out = (0, commit + "\n") if args[4:] == ["HEAD"] else (128, "")
@@ -881,6 +886,24 @@ def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_
         "foreign": (2, b"", [refusal % "2222222"], "2222222\n"),
         "directory": (2, b"", [refusal % ""], None),
     }
+
+
+def test_main_with_no_local_skill_commit_record_pins_the_run_to_the_commit_origins_refs_veri_runs_n_records(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    head, carried = "1" * 40, "2" * 40
+    calls = fake_pin(monkeypatch, head, {head + "^{commit}", carried + "^{commit}"}, carried=carried)
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+
+    run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+
+    record = tmp_path / ".tdd" / "issue-4242-skill-commit"
+    archived = [call[4] for call in calls if call[:1] == ["git"] and call[3:4] == ["archive"]]
+    assert (record.read_text() if record.is_file() else None, archived) == (carried + "\n", [carried])
 
 
 def test_main_on_a_fresh_launch_with_skip_verify_refactor_writes_the_list_refactor_to_the_skip_verify_file_beside_the_skill_commit_pin(

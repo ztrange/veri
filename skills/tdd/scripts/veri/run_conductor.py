@@ -11,8 +11,10 @@ import os
 import paths
 import pinned_scripts
 import pid_file as pids
+import re
 import run_dir
 import run_pins
+import run_records
 import requirements
 import calendar
 import json
@@ -109,6 +111,10 @@ def preflight_and_launch(argv):
             if word and word not in ("refactor", "pin", "green", "red", "diff"):
                 sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped (only refactor, pin, green, red and diff can)\n" % word)
                 return 2
+    if mode == "first" and not os.path.lexists(record):
+        restore_carried_record(argv[0], record)
+        mode = pin_mode(record, released)
+        resuming = mode == "resume"
     if not resuming:
         try:
             subprocess.run([os.path.join(here, "update-veri.sh")])
@@ -187,6 +193,16 @@ def preflight_and_launch(argv):
 
 
 Snapshot = collections.namedtuple("Snapshot", "kind commit why message code")
+
+
+def restore_carried_record(issue, record):
+    """Write <record> from the skill commit origin's refs/veri/runs/<issue> carries, when it carries a commit name, so a
+    run resumed on another machine executes the snapshot it started on; nothing otherwise."""
+    carried = (run_records.read(issue, "issue-%s-skill-commit" % issue, event.toplevel() or ".") or "").strip()
+    if re.fullmatch(r"[0-9a-f]{7,40}", carried):
+        os.makedirs(os.path.dirname(record), exist_ok=True)
+        with open(record, "w") as out:
+            out.write(carried + "\n")
 
 
 def pin_mode(record, released):
