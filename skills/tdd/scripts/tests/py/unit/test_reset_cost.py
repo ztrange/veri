@@ -140,3 +140,18 @@ def test_an_unreadable_transcript_or_conductor_log_exits_2_naming_it(tmp_path, m
 
     assert (dev, conductor) == ((2, "", "reset-cost.sh: unreadable transcript %s\n" % transcript),
                                 (2, "", "reset-cost.sh: unreadable conductor log %s\n" % log))
+
+
+def test_a_role_other_than_dev_or_conductor_a_bad_lane_or_a_bad_run_number_exits_2_with_the_usage_line(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    two_resets(tmp_path)
+    restarted_conductor(tmp_path)
+    usage = "usage: reset-cost.sh dev [--lane <lane>] | conductor <n>\n"
+    refused = [["coord"], ["coord", "--lane", "mu"], ["conductr", "7"], [], ["dev", "--lane", ""],
+               ["dev", "--lane", "../mu"], ["dev", "--lane"], ["conductor", "0"], ["conductor", "x7"],
+               ["conductor"], ["conductor", "7", "8"], ["dev", "extra"]]
+
+    answers = {" ".join(argv): run_cli(reset_cost, argv) for argv in refused}
+
+    assert {argv: answer for argv, answer in answers.items() if answer != (2, "", usage)} == {}
