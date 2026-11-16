@@ -184,6 +184,21 @@ def test_a_join_calls_stack_pr_once_after_its_stack_push_and_merged_read_and_a_m
     assert code == 0 or not stacked
 
 
+@pytest.mark.parametrize("answer", [(2, "stack-pr: HTTP 502 from api.github.com; nothing opened\n"), (3, ""), (1, "a\nb\n")])
+def test_a_failed_stack_pr_call_prints_one_stderr_line_naming_it_and_the_confirmed_join_still_exits_0_4172(
+        tmp_path, fake_processes, monkeypatch, run_cli, answer):
+    clean = World(tmp_path / "clean").install(fake_processes, monkeypatch)
+    spy_tracking(monkeypatch, clean)
+    _, _, quiet = join(run_cli, clean)
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+    spy_tracking(monkeypatch, world, answer)
+
+    code, _, err = join(run_cli, world)
+    added = [line for line in err.splitlines() if line not in quiet.splitlines()]
+
+    assert (code, len(added), "stack-pr.sh" in "".join(added), "exit %d" % answer[0] in "".join(added)) == (0, 1, True, True), err
+
+
 def test_a_stack_push_refused_because_the_stack_moved_starts_again_from_the_fetch_and_never_forces(
         tmp_path, fake_processes, monkeypatch, run_cli):
     world = World(tmp_path, stack_pushes=(1, 0)).install(fake_processes, monkeypatch)

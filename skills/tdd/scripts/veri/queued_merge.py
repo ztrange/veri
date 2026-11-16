@@ -657,7 +657,11 @@ def _join(pid, repo, pr, worktree, branch, stack, window):
         released = _release(pid)
     if code:
         return code
-    _track(worktree)
+    tracked, said = _track(worktree)
+    if tracked:
+        # The join has already succeeded: a tracking pull request not (re)opened is said, never the join's failure.
+        _say("joined, but stack-pr.sh failed, exit %d (%s); the stack's tracking pull request may be missing" % (
+            tracked, " ".join(said.split())[:200] or "it said nothing"))
     return _join_cleanup(worktree, branch, released)
 
 
