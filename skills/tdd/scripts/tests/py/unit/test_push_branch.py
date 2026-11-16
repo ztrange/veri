@@ -20,6 +20,25 @@ def after_push(monkeypatch):
     return landed
 
 
+def test_main_keeps_exit_0_when_the_records_push_or_the_pointer_update_raises_any_exception_saying_each_on_one_line(
+        tmp_path, monkeypatch, capsys, push_branch, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_PUSH_RETRIES", "0")
+    fake_processes(lambda line, **_: (0, "", ""))
+
+    def raises(error):
+        def call():
+            raise error
+        return call
+
+    monkeypatch.setattr(importlib.import_module("veri.run_records"), "after_push", raises(KeyError("ledger")))
+    monkeypatch.setattr(importlib.import_module("veri.pointer_comment"), "after_push", raises(ValueError("not JSON")))
+
+    code = push_branch.main([])
+
+    assert (code, len(capsys.readouterr().err.splitlines())) == (0, 2)
+
+
 def test_main_updates_the_pointer_comment_after_a_push_that_lands_and_not_after_one_that_fails(tmp_path, monkeypatch, push_branch, fake_processes, events, after_push):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_PUSH_RETRIES", "0")

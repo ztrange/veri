@@ -37,6 +37,16 @@ def record(*fields):
     return 0
 
 
+def mirror(what, update):
+    """Run <update>, a mirror of the run that a landed push refreshes; any exception it raises is one stderr line
+    naming <what>, never push-branch.sh's exit code: the branch is already on the remote."""
+    try:
+        update()
+    except Exception as error:
+        print(f"push-branch.sh: {what} not updated: {type(error).__name__}: {' '.join(str(error).split())}",
+              file=sys.stderr)
+
+
 def output(args):
     return run(args, stdout=subprocess.PIPE, text=True).stdout.rstrip("\n")
 
@@ -86,8 +96,8 @@ def main(argv):
         if pushed.returncode == 0:
             if leased_push:
                 os.remove(lease_file)
-            run_records.after_push()
-            pointer_comment.after_push()
+            mirror("refs/veri/runs/<n>", run_records.after_push)
+            mirror("the pointer comment", pointer_comment.after_push)
             return 0
         out = pushed.stdout.rstrip("\n")
         if "[rejected]" in out and any(reason in out for reason in REJECTIONS):
