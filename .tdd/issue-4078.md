@@ -8,4 +8,4 @@
 - [x] the pointer comment states the machine as `VERI_MACHINE_NAME`, or what `hostname -s` prints when that is unset or empty ⟦criterion 3⟧
 - [x] `unlabel-issue.sh <n>` writes the pointer comment after taking the claim ⟦criterion 5⟧
 - [x] `push-branch.sh` updates the pointer comment after a push that exits 0 with the branch pushed, and not after a failed one ⟦criterion 6⟧
-- [ ] a `gh` failure writing the pointer comment is one stderr line naming the issue, and `unlabel-issue.sh` and `push-branch.sh` keep their exit codes ⟦criterion 7⟧
+- [x] a `gh` failure writing the pointer comment is one stderr line naming the issue, and `unlabel-issue.sh` and `push-branch.sh` keep their exit codes ⟦criterion 7⟧

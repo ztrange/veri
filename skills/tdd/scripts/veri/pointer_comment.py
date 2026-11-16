@@ -86,13 +86,20 @@ def render(issue, pushed_at):
 
 
 def write(issue, pushed_at=None):
-    """Post or edit issue <issue>'s pointer comment; <pushed_at> is the push just made, else the comment keeps its own."""
-    held = [c for c in github.issue_comments(issue) if (c.get("body") or "").startswith(HEADING)]
-    body = render(issue, pushed_at or last_push(held[0]["body"] if held else ""))
-    if held:
-        github.gh_comment_edit(held[0]["id"], body)
-    else:
-        github.gh_comment_post(issue, body)
+    """Post or edit issue <issue>'s pointer comment; <pushed_at> is the push just made, else the comment keeps its own.
+    0 written; 2 when gh gave no answer, said in one stderr line naming the issue."""
+    try:
+        held = [c for c in github.issue_comments(issue) if (c.get("body") or "").startswith(HEADING)]
+        body = render(issue, pushed_at or last_push(held[0]["body"] if held else ""))
+        if held:
+            github.gh_comment_edit(held[0]["id"], body)
+        else:
+            github.gh_comment_post(issue, body)
+    except github.NoAnswer as failed:
+        said = " ".join(failed.detail.split())
+        sys.stderr.write("pointer-comment: no answer from gh writing #%s's pointer comment%s\n"
+                         % (issue, ": " + said if said else ""))
+        return 2
     return 0
 
 
