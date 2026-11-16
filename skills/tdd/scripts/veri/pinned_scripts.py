@@ -34,12 +34,35 @@ def make_read_only(tree):
 
 
 def remove_tree(tree):
-    """Give the owner back the write bit of every directory under <tree>, <tree> included, then remove it all."""
+    """Give the owner back the write bit of every directory under <tree>, then remove it all."""
+    writable_directories(tree)
+    shutil.rmtree(tree)
+
+
+def writable_directories(tree):
+    """Give the owner back the write bit of every directory under <tree>, <tree> included, so entries can be added and removed."""
     for root, dirs, _ in os.walk(tree):
         for name in dirs:
             change_mode(os.path.join(root, name), lambda mode: mode | stat.S_IWUSR)
     change_mode(tree, lambda mode: mode | stat.S_IWUSR)
-    shutil.rmtree(tree)
+
+
+def copy_writable(source, destination):
+    """Copy the tree <source> to the new directory <destination>: a symlink as a symlink, a file with its content
+    and its mode plus the owner's write bit, a directory writable, so the copy can be added to and removed."""
+    os.makedirs(destination)
+    for root, dirs, files in os.walk(source):
+        target = os.path.join(destination, os.path.relpath(root, source))
+        for name in dirs + files:
+            path, copy = os.path.join(root, name), os.path.join(target, name)
+            mode = os.lstat(path).st_mode
+            if stat.S_ISLNK(mode):
+                os.symlink(os.readlink(path), copy)
+            elif stat.S_ISDIR(mode):
+                os.mkdir(copy)
+            else:
+                shutil.copyfile(path, copy)
+                change_mode(copy, lambda _: stat.S_IMODE(mode) | stat.S_IWUSR)
 
 
 def take_bits(path, bits):
