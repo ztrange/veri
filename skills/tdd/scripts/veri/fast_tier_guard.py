@@ -35,7 +35,7 @@ def _receiver_and_attr(func):
 def _process_start(module, attr):
     if module == "pty" and attr:
         return f"{module}.{attr}"
-    if module == "os" and attr and attr.startswith(("system", "popen", "exec", "spawn", "posix_spawn")):
+    if module == "os" and attr and attr.startswith(("system", "popen", "exec", "spawn", "posix_spawn", "fork")):
         return f"{module}.{attr}"
     return None
 
