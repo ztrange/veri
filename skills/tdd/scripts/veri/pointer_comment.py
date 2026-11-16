@@ -88,7 +88,9 @@ def write(issue, pushed_at=None):
     """Post or edit issue <issue>'s pointer comment; <pushed_at> is the push just made, else the comment keeps its own.
     0 written; 2 when gh gave no answer, said in one stderr line naming the issue."""
     try:
-        held = [c for c in github.issue_comments(issue) if (c.get("body") or "").startswith(HEADING)]
+        login = github.authenticated_login()
+        held = [c for c in github.issue_comments(issue)
+                if (c.get("body") or "").startswith(HEADING) and (c.get("user") or {}).get("login") == login]
         body = render(issue, pushed_at or last_push(held[0]["body"] if held else ""))
         if held:
             github.gh_comment_edit(held[0]["id"], body)
