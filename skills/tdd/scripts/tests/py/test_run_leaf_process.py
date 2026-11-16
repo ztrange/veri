@@ -234,6 +234,17 @@ def test_4010_the_grader_leaf_grade_unit_launches_excludes_claude_md_and_claude_
         str(work / "CLAUDE.md"), str(work / "CLAUDE.local.md")]
 
 
+def test_4010_a_leaf_launched_without_the_graders_request_keeps_its_working_directorys_claude_md_and_claude_local_md(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch, ".git")
+    monkeypatch.delenv("VERI_LEAF_SKIP_PROJECT_CLAUDE_MD", raising=False)
+
+    excluded = _launched_excludes(run_leaf, monkeypatch, capfd)
+
+    assert {str(work / "CLAUDE.md"), str(work / "CLAUDE.local.md")} & set(excluded) == set(), excluded
+
+
 def test_main_launches_claude_with_background_tasks_disabled_whatever_the_callers_environment_holds_1939(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
