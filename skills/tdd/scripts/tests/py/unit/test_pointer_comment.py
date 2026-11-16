@@ -68,6 +68,17 @@ def test_the_comment_states_the_machine_as_veri_machine_name_else_the_short_host
     assert stated == {"named": "Machine: lab-1", "empty": "Machine: studio", "unset": "Machine: studio"}
 
 
+def test_after_push_stamps_the_issue_the_run_branch_names_and_writes_nothing_on_another_branch(tmp_path, monkeypatch, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    run = FakeIssue(fake_processes, branch="tdd/7-pointer")
+    _module().after_push()
+    stamped = [line for line in run.bodies()[0].splitlines() if line.startswith("Last push: ")]
+    other = FakeIssue(fake_processes, branch="main")
+    _module().after_push()
+
+    assert (len(stamped), stamped[0] != "Last push: none", other.comments) == (1, True, [])
+
+
 def _module():
     return importlib.import_module("veri.pointer_comment")
 
