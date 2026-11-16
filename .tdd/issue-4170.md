@@ -1,7 +1,7 @@
 # Plan for #4170 — PRD 034.1b: a run in a stacking repository is cut from the stack and ends Done as a draft
 
 - [x] git.run_base answers the stack branch where stack-branch.sh would exit 0, the default branch where it would exit 3, and raises the refusal where it would exit 2 ⟦criterion 1⟧
-- [ ] issue-worktree.sh cuts a new run's branch from origin/<stack> as just fetched where a stack branch is named ⟦criterion 2⟧
+- [x] issue-worktree.sh cuts a new run's branch from origin/<stack> as just fetched where a stack branch is named ⟦criterion 2⟧
 - [ ] with no <stack> on origin, issue-worktree.sh first pushes it at the default branch's tip, never forced, then cuts from it ⟦criterion 3⟧
 - [ ] a refused or unanswered push of the stack exits 2 with no branch and no worktree made ⟦criterion 3⟧
 - [ ] a push refused because the stack now exists on origin is followed by a fetch and the cut from origin/<stack>, exit 0 ⟦criterion 3⟧
