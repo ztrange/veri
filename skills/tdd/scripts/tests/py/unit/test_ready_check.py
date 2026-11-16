@@ -158,6 +158,14 @@ def test_issue_4089_a_label_row_whose_call_fails_other_than_404_says_no_answer_w
     assert name == "label bug" and fix.startswith("no answer was obtained") and "gh label create" not in fix, fix
 
 
+def test_issue_4089_a_label_row_encodes_the_name_in_the_api_path_and_quotes_it_in_the_fix(ready_check, fake_processes, monkeypatch):
+    monkeypatch.setenv("VERI_PRIORITY_LABEL", "needs triage/a")
+    fake_processes.answers({"gh api repos/{owner}/{repo}/labels/needs%20triage%2Fa": [(0, "{}", ""), NOT_FOUND]}, exact=True)
+
+    assert ready_check.priority_label_row() == ("label needs triage/a", None)
+    assert ready_check.priority_label_row() == ("label needs triage/a", "gh label create 'needs triage/a'")
+
+
 ACTIONS_RUNS = "gh api repos/{owner}/{repo}/actions/runs?per_page=1"
 WITH_WORKFLOWS = {"git symbolic-ref": (0, "origin/main\n", ""), "git ls-tree": (0, ".github/workflows/ci.yml\n", "")}
 

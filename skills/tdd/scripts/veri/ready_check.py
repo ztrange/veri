@@ -3,8 +3,10 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import json
 import os
 import secrets
+import shlex
 import subprocess
 import sys
+import urllib.parse
 
 import ensure_run_state_ignored
 import git
@@ -138,12 +140,12 @@ def token_scopes_row():
 
 
 def selection_label_row(name):
-    path = f"repos/{{owner}}/{{repo}}/labels/{name}"
+    path = f"repos/{{owner}}/{{repo}}/labels/{urllib.parse.quote(name, safe='')}"
     answered = gh("api", path)
     if answered.returncode == 0:
         return f"label {name}", None
     if "HTTP 404" in (answered.stderr or ""):
-        return f"label {name}", f"gh label create {name}"
+        return f"label {name}", f"gh label create {shlex.quote(name)}"
     return f"label {name}", f"no answer was obtained (gh api {path} exited {answered.returncode})"
 
 
