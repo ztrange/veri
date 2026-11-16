@@ -86,6 +86,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 
 - `report.sh`: read `KEY: value` lines off a leaf report.
 - `requirements.sh`: the prose units and requirement rows of a file.
+- `stack-branch.sh`: the stack branch a repository's `CLAUDE.md` names (`veri: stack branch: <name>`), refused when it cannot be one.
 
 ## case_reader
 - `is_test_file(name)`, `is_test_path(path)`, `is_go_test_file(name)`, `is_js_test_file(name, root="")`: whether a name or path is a Python, Go or JavaScript test file (bool). `JS_EXT`: the regex source matching a JavaScript or TypeScript file's extension.
