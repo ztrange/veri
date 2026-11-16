@@ -964,7 +964,7 @@ def test_fresh_cut_from_a_github_enterprise_origin_runs_the_open_pr_check_and_an
 
 
 @pytest.mark.process("git clone and git worktree add on scratch repositories, a fetched remote-tracking ref of origin's branch")
-def test_fresh_call_over_a_fetched_remote_tracking_ref_of_a_branch_origin_holds_exits_2_naming_the_branch_and_the_git_branch_command_that_takes_the_run_over_creating_no_worktree_or_branch_issue_1734(
+def test_fresh_call_over_a_fetched_remote_tracking_ref_of_a_branch_origin_holds_exits_2_naming_the_branch_and_the_take_over_command_creating_no_worktree_or_branch_issue_1734(
         tmp_path, monkeypatch, issue_worktree, run_cli):
     upstream, clone = scratch_clone(tmp_path, "fetched-claimed")
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
@@ -976,8 +976,24 @@ def test_fresh_call_over_a_fetched_remote_tracking_ref_of_a_branch_origin_holds_
 
     code, _, err = run_cli(issue_worktree, ["64", "taken-over"], cwd=clone)
 
-    assert (bool(fetched), code, "git branch tdd/64-taken-over origin/tdd/64-taken-over" in err,
+    assert (bool(fetched), code, "issue-worktree.sh --take-over 64 taken-over" in err,
             os.path.exists(want), scratch_registry(clone)) == (True, 2, True, False, before)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, origin holding another run's branch")
+def test_take_over_over_a_fetched_branch_origin_holds_cuts_the_worktree_on_a_local_branch_at_origins_tip_4080(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "take-over")
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
+    scratch_git(upstream, "branch", "-q", "tdd/66-adopted", "main")
+    scratch_git(clone, "fetch", "-q", "origin")
+    tip = scratch_git(clone, "rev-parse", "refs/remotes/origin/tdd/66-adopted")
+    want = scratch_wt_path(clone, 66)
+
+    code, out, _ = run_cli(issue_worktree, ["--take-over", "66", "adopted"], cwd=clone)
+
+    assert (code, out.strip(), scratch_git(want, "branch", "--show-current"), scratch_git(want, "rev-parse", "HEAD")) == (
+        0, want, "tdd/66-adopted", tip)
 
 
 def resumed_on(worktree, code, out, local_tip, remote_tip):

@@ -445,7 +445,7 @@ def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_ad
 
     assert (code, capsys.readouterr()[:], [c for c in calls if c[:3] == ["git", "worktree", "add"]]) == (
         2, ("", "issue-worktree: tdd/7-slug is already on origin — another run holds it;"
-                " to take it over run: git branch tdd/7-slug origin/tdd/7-slug\n"), [])
+                " to take it over run: issue-worktree.sh --take-over 7 slug\n"), [])
 
 
 def test_main_take_over_cuts_the_worktree_on_a_local_branch_from_origins_branch_another_run_holds_4080(fake_processes,
