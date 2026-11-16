@@ -282,3 +282,130 @@ def test_check_step_on_a_fixture_repair_step_exits_0_silently_when_only_its_fixt
     code, out, _ = run_cli(tests_frozen, ["check", "--step", FIXTURE_STEP], cwd=tmp_path)
 
     assert (code, out) == (0, "")
+
+
+FIX_PY, DATA = "tests/test_fixture.py", "tests/fixture_data.py"
+GUARD, HELPER = "tests/no-thing.test.sh", "tests/lib-helper.sh"
+FIX_PY_STEP = ("the case passes: repairs the fixture 'helper' in %s, reproduced by a case in %s ⟦fixture-repair⟧"
+               % (FIX_PY, FIX_PY))
+GUARD_STEP = "step one fixes a guard ⟦guard-subject: %s⟧" % GUARD
+HELPER_STEP = "step one fixes a helper ⟦guard-subject: %s⟧" % FIXTURE
+RED_FIX_PY = "def helper():\n    return 1\n\n\ndef test_red_2359():\n    assert helper() == 2\n"
+
+
+def test_check_step_on_a_fixture_repair_step_exits_1_naming_the_fixture_file_when_green_changed_the_recorded_case_body_2359(
+        tmp_path, run_cli, tests_frozen, committed_once):
+    committed_once({FIX_PY: "def helper():\n    return 1\n"})
+    (tmp_path / FIX_PY).write_text(RED_FIX_PY)
+    run_cli(tests_frozen, ["record", "--step", FIX_PY_STEP, FIX_PY], cwd=tmp_path)
+
+    (tmp_path / FIX_PY).write_text("def helper():\n    return 2\n\n\ndef test_red_2359():\n    assert True\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", FIX_PY_STEP], cwd=tmp_path)
+
+    assert (code, out) == (1, FIX_PY + "\n")
+
+
+def test_check_step_on_a_fixture_repair_step_exits_0_when_green_changed_the_fixture_file_outside_the_recorded_case_2359(
+        tmp_path, run_cli, tests_frozen, committed_once):
+    committed_once({FIX_PY: "def helper():\n    return 1\n"})
+    (tmp_path / FIX_PY).write_text(RED_FIX_PY)
+    run_cli(tests_frozen, ["record", "--step", FIX_PY_STEP, FIX_PY], cwd=tmp_path)
+
+    (tmp_path / FIX_PY).write_text("def helper():\n    return 2\n\n\ndef test_red_2359():\n    assert helper() == 2\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", FIX_PY_STEP], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+def test_check_step_on_a_fixture_repair_step_exits_1_naming_a_fixture_file_the_record_holds_no_case_bodies_for_2404(
+        tmp_path, run_cli, tests_frozen, committed_once):
+    committed_once({DATA: "TABLE = [1]\n"})
+    step = ("the case passes: repairs the fixture 'TABLE' in %s, reproduced by a case in %s ⟦fixture-repair⟧"
+            % (DATA, OTHER))
+    (tmp_path / DATA).write_text("TABLE = [1, 2]\n")
+    run_cli(tests_frozen, ["record", "--step", step, DATA], cwd=tmp_path)
+
+    (tmp_path / DATA).write_text("TABLE = [9, 9, 9]\nOTHER = {}\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (1, DATA + "\n")
+
+
+def test_check_step_on_a_step_without_the_fixture_repair_mark_exits_1_naming_the_file_its_text_calls_a_fixture_1947(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    step = FIXTURE_STEP.replace(" ⟦fixture-repair⟧", "")
+    red_recorded({NEW: "one\n", FIXTURE: "one\n"}, step=step)
+
+    (tmp_path / FIXTURE).write_text("one, repaired\n")
+    checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
+
+    assert checked == (1, FIXTURE + "\n")
+
+
+def test_check_step_exits_0_when_a_green_edit_touches_the_guard_subject_the_step_names_1775(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    red_recorded({NEW: "one\n", GUARD: "one\n"}, step=GUARD_STEP)
+
+    (tmp_path / GUARD).write_text("one, fixed\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", GUARD_STEP], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+def test_check_step_exits_0_when_a_green_edit_touches_both_guard_subjects_the_step_names_1775(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    step = "step two ⟦guard-subject: %s⟧ ⟦guard-subject: %s⟧" % (GUARD, HELPER)
+    red_recorded({NEW: "one\n", GUARD: "one\n", HELPER: "one\n"}, step=step)
+
+    (tmp_path / GUARD).write_text("one, fixed\n")
+    (tmp_path / HELPER).write_text("one, fixed\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+def test_check_step_exits_1_naming_an_unrecorded_test_file_other_than_the_guard_subject_1775(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    red_recorded({NEW: "one\n", GUARD: "one\n", OTHER: "one\n"}, step=GUARD_STEP)
+
+    (tmp_path / GUARD).write_text("one, fixed\n")
+    (tmp_path / OTHER).write_text("one, weakened\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", GUARD_STEP], cwd=tmp_path)
+
+    assert (code, out) == (1, OTHER + "\n")
+
+
+def test_check_step_exits_1_naming_the_recorded_test_file_even_with_the_guard_subject_edited_1775(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    red_recorded({NEW: "one\n", GUARD: "one\n"}, step=GUARD_STEP)
+
+    (tmp_path / NEW).write_text("one\ntwo, weakened\n")
+    (tmp_path / GUARD).write_text("one, fixed\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", GUARD_STEP], cwd=tmp_path)
+
+    assert (code, out) == (1, NEW + "\n")
+
+
+def test_check_step_exits_1_naming_only_the_recorded_file_the_marker_does_not_name_when_the_guard_subject_was_recorded_too_2663(
+        tmp_path, run_cli, tests_frozen, committed_once):
+    committed_once({NEW: "one\n", FIXTURE: "one\n"})
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    (tmp_path / FIXTURE).write_text("one\nleaky\n")
+    run_cli(tests_frozen, ["record", "--step", HELPER_STEP, NEW, FIXTURE], cwd=tmp_path)
+
+    (tmp_path / NEW).write_text("one\ntwo, weakened\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", HELPER_STEP], cwd=tmp_path)
+
+    assert (code, out) == (1, NEW + "\n")
+
+
+def test_check_step_exits_1_naming_a_recorded_guard_subject_deleted_since_the_record_2663(
+        tmp_path, run_cli, tests_frozen, committed_once):
+    committed_once({FIXTURE: "one\n"})
+    (tmp_path / FIXTURE).write_text("one\nleaky\n")
+    run_cli(tests_frozen, ["record", "--step", HELPER_STEP, FIXTURE], cwd=tmp_path)
+
+    (tmp_path / FIXTURE).unlink()
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", HELPER_STEP], cwd=tmp_path)
+
+    assert (code, out) == (1, FIXTURE + "\n")
