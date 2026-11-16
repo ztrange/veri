@@ -83,3 +83,10 @@ def test_4016_graded_changed_prints_a_heading_unit_only_when_its_section_text_ch
     code, out, err = run_cli(changed, ["base"], cwd=tmp_path)
 
     assert (code, out.splitlines()) == (1 if printed else 0, printed), err
+
+
+def test_4016_the_requirements_list_of_a_heading_unit_whose_heading_holds_a_slash_sits_beside_its_file():
+    requirements = importlib.import_module("veri.requirements")
+
+    assert requirements.list_path("skills/tdd/SKILL.md#The scripts (this skill's `scripts/` directory)") == \
+        "skills/tdd/REQUIREMENTS.md"
