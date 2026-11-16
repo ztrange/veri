@@ -68,7 +68,7 @@ def acquire():
         waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
         try:
             if waitfile:
-                pid_file.record(waitfile, os.getpid())
+                pid_file.record(waitfile, os.getpid(), atomic=True)
         except OSError as error:
             sys.stderr.write("cannot mark the lock wait, so it counts toward the leaf's timeout: %s\n" % error)
             waitfile = ""

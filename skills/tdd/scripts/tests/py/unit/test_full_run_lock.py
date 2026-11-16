@@ -1,6 +1,7 @@
 """The one-full-run lock of veri/full_run_lock.py, driven in-process on a lock file under the case's tmp_path."""
 import fcntl
 import importlib
+from builtins import open as builtins_open
 import os
 
 import pytest
@@ -131,6 +132,28 @@ def test_3989_a_waiter_marks_its_wait_with_its_pid_on_line_1_and_its_start_time_
     monkeypatch.setattr(fcntl, "flock", flock)
     lock.acquire().release()
     assert texts == ["%d\n%s\n" % (os.getpid(), started)]
+
+
+def test_3989_a_wait_mark_whose_write_is_cut_short_leaves_no_empty_marker_behind(lock, monkeypatch, tmp_path):
+    pid_file = importlib.import_module("veri.pid_file")
+
+    class CutShort:
+        def __init__(self, handle):
+            self.handle = handle
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.handle.close()
+
+        def write(self, text):
+            raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(pid_file, "open", lambda path, mode="r", *a, **k: CutShort(builtins_open(path, mode, *a, **k)), raising=False)
+    marker = tmp_path / "marker"
+    flags, marked = contended(lock, monkeypatch, str(marker))
+    assert (marked, sorted(p.name for p in tmp_path.iterdir() if p.name.startswith("marker"))) == ([False], [])
 
 
 def test_a_waiter_that_cannot_write_its_wait_mark_says_so_and_still_waits_for_the_lock(lock, monkeypatch, tmp_path, capfd):
