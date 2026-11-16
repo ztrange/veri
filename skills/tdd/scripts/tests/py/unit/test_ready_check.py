@@ -56,3 +56,12 @@ def test_issue_4087_ready_check_fails_the_one_test_file_row_naming_the_claude_md
     assert row is not None and row.startswith("fail  one test file:"), lines
     assert "veri: one test file: <command>" in row and "CLAUDE.md" in row and '"$1"' in row, row
     assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
+
+
+def test_issue_4087_ready_check_fails_the_one_test_file_row_naming_exit_2_when_detect_test_command_gives_no_answer(ready_check, run_cli, fake_processes, tmp_path):
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{ONE_TEST_FILE: (2, "", "")})
+
+    row = one_test_file_row(lines)
+    assert row is not None and row.startswith("fail  one test file:"), lines
+    assert 'exit 2 from detect-test-command.sh --tier "one test file"' in row, row
+    assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")

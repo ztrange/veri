@@ -44,6 +44,8 @@ def tier_row(tier):
 def one_test_file_row():
     detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
     found = subprocess.run([detect, "--tier", "one test file"], capture_output=True)
+    if found.returncode == 2:
+        return "one test file", 'no answer was obtained (exit 2 from detect-test-command.sh --tier "one test file")'
     return "one test file", None if found.returncode == 0 else (
         'add a `veri: one test file: <command>` line to CLAUDE.md, the command taking the test file as "$1"')
 
