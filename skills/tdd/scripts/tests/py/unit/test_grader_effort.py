@@ -54,6 +54,21 @@ def test_the_grader_leaf_is_launched_with_effort_level_from_an_effort_line_and_w
     assert launched == [["--effort", "low"], []]
 
 
+def test_4013_veri_effort_verifier_gives_the_grader_leaf_no_effort_and_leaves_grader_confs_own(
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
+    unit_tree(tmp_path)
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setenv("VERI_EFFORT_VERIFIER", "max")
+    fake = fake_processes.answers({}, default=(2, "", ""))
+    launched = []
+    for text in ("model=sonnet-4\neffort=low\n", "model=sonnet-4\n"):
+        conf(tmp_path, monkeypatch, grade_prose, text)
+        run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+        launched.append([word for word in fake.argvs[-1] if word in ("--effort", "low", "max")])
+
+    assert launched == [["--effort", "low"], []]
+
+
 def test_an_effort_value_outside_the_five_levels_exits_2_naming_grader_conf_before_any_launch(
         tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     unit_tree(tmp_path)
