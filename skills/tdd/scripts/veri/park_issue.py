@@ -8,6 +8,7 @@ import tempfile
 
 import blocked_by
 import github
+import markdown_sections
 
 USAGE = ("usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>] [--blocked-by <n>[,<n>…]]"
          " [--question-file <path>]\n")
@@ -87,7 +88,8 @@ def main(argv):
     if argv is None:
         sys.stderr.write("park-issue.sh: %s\n" % question)
         return 2
-    missing = [h for h in QUESTION_HEADINGS if question and h not in question.splitlines()]
+    unfenced = [line for line, f in zip(question.splitlines(), markdown_sections.fenced_lines(question)) if not f]
+    missing = [h for h in QUESTION_HEADINGS if question and h not in unfenced]
     if missing:
         sys.stderr.write("park-issue.sh: the question file lacks the heading %s\n" % ", ".join(missing))
         return 2
