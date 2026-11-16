@@ -37,6 +37,8 @@ class FakeIssue:
         method = argv[argv.index("-X") + 1] if "-X" in argv else "GET"
         path = next(a for a in argv[2:] if a.startswith("repos/"))
         body = next((a[len("body="):] for a in argv if a.startswith("body=")), None)
+        if "/comments" in path and getattr(self, "garbled_comments", False):
+            return 0, "<html>not JSON</html>", ""
         if "/comments" in path and self.fail_comments:
             return 1, "", "gh: Server Error (HTTP 502)\nsecond line of gh's words\n"
         if path.endswith("/labels") and method == "GET":
@@ -136,6 +138,18 @@ def test_a_gh_failure_writing_the_comment_is_one_stderr_line_naming_the_issue_an
 
     one_line = {name: (code, len(lines), "#7" in "".join(lines)) for name, (code, lines) in said.items()}
     assert one_line == {"pointer": (2, 1, True), "unlabel": (0, 1, True), "push": (0, 1, True)}
+
+
+def test_a_malformed_gh_answer_writing_the_comment_after_the_claim_is_one_stderr_line_and_unlabel_issue_still_exits_0(
+        tmp_path, monkeypatch, capsys, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    issue = FakeIssue(fake_processes, labels=["ready-for-agent"])
+    issue.garbled_comments = True
+
+    code = importlib.import_module("veri.unlabel_issue").main(["7"])
+
+    err = capsys.readouterr().err.splitlines()
+    assert (code, len(err), "#7" in "".join(err), "taken:main" in issue.labels) == (0, 1, True, True)
 
 
 def _module():
