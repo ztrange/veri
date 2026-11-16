@@ -48,8 +48,8 @@ def world(tmp_path, fake_processes, monkeypatch, stack_line, joined, origin_url=
     })
 
 
-JOINED = [{"body": "Closes #5", "state": "MERGED"},
-          {"body": "Closes #6", "state": "closed", "merged_at": None}]
+JOINED = [{"body": "Closes #5", "state": "MERGED", "baseRefName": "stack"},
+          {"body": "Closes #6", "state": "closed", "merged_at": None, "base": {"ref": "stack"}}]
 
 
 def test_an_open_issue_a_pull_request_merged_into_the_stack_closes_is_not_listed(
@@ -75,3 +75,14 @@ def test_with_repo_and_a_stack_named_an_origin_that_names_no_github_repository_i
     code, out, err = run_cli(solvable_issues, ["--repo", "me/repo"])
 
     assert (code, out, "origin" in err) == (2, "", True)
+
+
+@pytest.mark.parametrize("elsewhere", [{"body": "Closes #6", "state": "MERGED", "baseRefName": "trunk"},
+                                       {"body": "Closes #6", "state": "closed", "merged_at": "2026-11-16T00:00:00Z",
+                                        "base": {"ref": "other"}},
+                                       {"body": "Closes #6", "state": "MERGED"}])
+def test_a_pull_request_merged_into_any_branch_but_the_stack_claims_nothing(
+        tmp_path, fake_processes, monkeypatch, run_cli, solvable_issues, elsewhere):
+    world(tmp_path, fake_processes, monkeypatch, "veri: stack branch: stack\n", JOINED + [elsewhere])
+
+    assert run_cli(solvable_issues, [])[:2] == (0, "6\n")
