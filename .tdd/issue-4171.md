@@ -13,6 +13,6 @@
 - [x] issue-worktree.sh refuses, exit 2, an issue a pull request merged into the stack closes, with no open pull request naming it ⟦criterion 7⟧
 - [x] after a join's exit 0 the run's remote branch is deleted and its worktree removed, the main clone not moved ⟦criterion 8⟧
 - [x] where no stack branch is named, queued-merge.sh merges as before and solvable-issues.sh and issue-worktree.sh read open pull requests only ⟦criterion 9⟧
-- [ ] no added skill line and nothing in stack_branch.py names a repository, issue, branch, label or person ⟦criterion 10⟧
-- [ ] SCRIPTS.md's queued-merge.sh, solvable-issues.sh and issue-worktree.sh entries state the join and the joined claim (SC198, SC199, SC200), graded ⟦criterion 11⟧
-- [ ] /vmerge says a reviewed run is joined, not merged, where a stack is named, the review being the gate, what a join does not do, and the ⟦full-suite⟧ precondition (M31, M32, M33), graded ⟦criterion 12⟧
+- [x] no added skill line and nothing in stack_branch.py names a repository, issue, branch, label or person ⟦criterion 10⟧
+- [x] SCRIPTS.md's queued-merge.sh, solvable-issues.sh and issue-worktree.sh entries state the join and the joined claim (SC198, SC199, SC200), graded ⟦criterion 11⟧
+- [x] /vmerge says a reviewed run is joined, not merged, where a stack is named, the review being the gate, what a join does not do, and the ⟦full-suite⟧ precondition (M31, M32, M33), graded ⟦criterion 12⟧
