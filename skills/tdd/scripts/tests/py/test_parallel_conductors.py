@@ -302,7 +302,7 @@ def test_tunables_are_validated_in_order_naming_only_the_first_bad_one_and_a_ref
     ({}, "dir", "x.tdd/*\n.tdd/*x\n", 0, 3, "x.tdd/*\n.tdd/*x\n.tdd/*\n"),
     ({}, "dir", "a\n.tdd/*\nb", 0, 3, "a\n.tdd/*\nb"),
     ({"VERI_PARALLEL": "0"}, None, None, 0, 2, ".tdd/*\n"),
-    ({"VERI_CONDUCTOR_CTX_BUDGET": "-1"}, "dir", "a", 0, 2, "a\n.tdd/*\n"),
+    ({"VERI_CONDUCTOR_CTX_BUDGET": "-1"}, "dir", "a", 0, 2, "a"),
     ({}, "dir", "a", 128, 2, "a"),
 ], ids=["no-info-dir", "empty", "no-final-newline", "final-newline", "not-a-whole-line",
         "present-already", "refused-tunable", "refused-budget", "git-128"])

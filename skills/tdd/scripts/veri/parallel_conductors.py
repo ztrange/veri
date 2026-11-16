@@ -175,14 +175,14 @@ def main(argv):
         print("parallel-conductors: type this from the target repo's primary checkout,"
               " not from the skill's own scripts directory", file=sys.stderr)
         return 2
-    if not _exclude_tdd():
-        return 2
-    parallel = tunables.read("VERI_PARALLEL", "1")
-    max_issues = tunables.read("VERI_MAX_ISSUES", None)
     _, bad = tunables.resolve("VERI_CONDUCTOR_CTX_BUDGET")
     if bad:
         print("parallel-conductors: VERI_CONDUCTOR_CTX_BUDGET must be a whole number >= 0: '%s'" % bad[0], file=sys.stderr)
         return _finish(2)
+    if not _exclude_tdd():
+        return 2
+    parallel = tunables.read("VERI_PARALLEL", "1")
+    max_issues = tunables.read("VERI_MAX_ISSUES", None)
     if not (_whole_number("VERI_PARALLEL", parallel, 1)
             and (max_issues is None or _whole_number("VERI_MAX_ISSUES", max_issues, 1))):
         return _finish(2)
