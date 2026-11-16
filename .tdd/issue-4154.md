@@ -5,7 +5,7 @@
 - [x] two counting incidents exit 1 with one tab-separated line each: name, matched components, local start, age in minutes ⟦criterion 3⟧
 - [x] no incident naming a component exits 0 printing `up`; only young ones exit 0 printing `young <minutes> <name>` each ⟦criterion 4⟧
 - [x] an incident with empty or absent `components` never counts ⟦criterion 5⟧
-- [ ] no response within `VERI_GITHUB_STATUS_TIMEOUT`, a non-200 status, a body not in the feed's shape, or an unparseable `created_at` exits 2 naming the cause ⟦criterion 6⟧
+- [x] no response within `VERI_GITHUB_STATUS_TIMEOUT`, a non-200 status, a body not in the feed's shape, or an unparseable `created_at` exits 2 naming the cause ⟦criterion 6⟧
 - [ ] a `VERI_GITHUB_OUTAGE_MIN` or `VERI_GITHUB_STATUS_TIMEOUT` that is not a positive integer exits 2 naming it before any fetch ⟦criterion 7⟧
 - [ ] a component argument not among GitHub's component names exits 2 naming it and listing them, before any fetch ⟦criterion 8⟧
 - [ ] the three tunables are `TUNABLES` keys with their rows in veri/README.md's table ⟦criterion 9⟧
