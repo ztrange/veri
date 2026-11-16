@@ -137,9 +137,11 @@ the branch already holds a ledger, runs steps 1 to 7 below and never calls the s
    runs in both modes. Settle the mode by running
    `$S/baseline-full-tier.sh <n> <full-tier-command>` and follow its output: `reuse <seconds>`
    means `full` is that many seconds (taken from `$S/full-tier-time.sh`, which holds a time for
-   this run's full-tier command) and the full tier is not run; `run` means the full tier runs,
-   as above, including when `reuse` had no usable time. A green full-tier run records its
-   elapsed whole seconds through `$S/full-tier-time.sh`, so a later run can reuse it.
+   this run's full-tier command recorded no more than `VERI_FULL_TIER_MAX_AGE_DAYS` days ago,
+   default 7) and the full tier is not run; `run` means the full tier runs, as above, including
+   when `reuse` had no usable time: none, one older than that, or one with no recorded age
+   (`.tdd/full-tier-time-at.json`) is not reused. A green full-tier run records its elapsed
+   whole seconds and their time through `$S/full-tier-time.sh`, so a later run can reuse it.
 4. **Default branch.** Capture it for the PR base:
    `gh api repos/{owner}/{repo} -q .default_branch`.
 5. **Tunables parse.** Run `$S/refactor-budget.sh 0` once. `VERI_REFACTOR_BUDGET`
