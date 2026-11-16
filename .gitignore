@@ -3,10 +3,13 @@
 __pycache__/
 *.pyc
 
-# veri run state (per-issue leaf logs, prompts) is ignored — EXCEPT the committed
-# ledger (.tdd/issue-<n>.md), which is the source of truth for which steps are done.
-# The blind-spec scratch (.tdd/issue-<n>-spec.md) is run state, so it is re-ignored
-# (last match wins): the ledger is tracked, the spec is not.
+# veri commits five kinds of .tdd/ file: the ledger .tdd/issue-<n>.md (the source of
+# truth for which steps are done), .tdd/issue-<n>-added.md, -mutations.md,
+# -refactor-owed.md and -metrics.md (a run's only committed figures, since the journal
+# is ignored). Everything else under .tdd/ is run state and ignored: leaf logs and
+# prompts, the blind spec -spec.md, the Draft-PR step's -pr-body.md, any other
+# issue-<n>-*.md, and the journal events.jsonl. Last match wins: every issue-*-*.md is
+# re-ignored, then the four suffixed kinds are admitted again.
 .tdd/*
 !.tdd/issue-*.md
 .tdd/issue-*-*.md
