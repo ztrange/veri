@@ -32,7 +32,7 @@
    Cover or Transform. After Cover, a transform leaf applies the step's one named refactoring and
    commits it; after its wait exits 0 and before the transform verifier is launched, run
    `$S/suite-reported.sh develop-transform 2> .tdd/suite-reported.err`: exit 2 means the report carries no `SUITE:` line,
-   so launch no transform verifier; if `$S/adjudicate.sh left <n>` exits 0, launch `adjudicate-report-missing` through `supervise.sh` with `.tdd/suite-reported.err` as the stderr file (`Read` `<base directory>/ADJUDICATE.md`), then on any answer, `retry` included, **bail** as a system failure with cause `report-missing`, with no verifier, no second `suite-reported.sh` call and no relaunch (`Read` `<base directory>/BAIL.md`). Then
+   so launch no transform verifier; if `$S/adjudicate.sh left <n>` exits 0, launch `adjudicate-report-missing` through `supervise.sh` with `.tdd/suite-reported.err` as the stderr file, its prompt built by `$S/build-adjudicate-prompt.sh <n> report-missing 2 .tdd/suite-reported.err suite-reported.sh develop-transform` (`Read` `<base directory>/ADJUDICATE.md`); on that `left` call's exit 3, or on any answer, `retry` included, **bail** as a system failure with cause `report-missing`, with no verifier, no second `suite-reported.sh` call and no relaunch, the bail event written by `BAIL.md`'s step 3 command with that cause, never a line guarded by a shell variable (`Read` `<base directory>/BAIL.md`). Then
    `$S/transform-touches-tests.sh <base-sha>` reads every commit since the
    step's base sha, and exit 1 rejects the transform — a refactoring that edits a test file
    has moved the goalposts — while exit 2 is no answer. After the transform commits, the

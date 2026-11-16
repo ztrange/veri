@@ -222,15 +222,15 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
    blocked=; $S/pr-ready.sh <pr-number> "$(git rev-parse HEAD)" 2> .tdd/pr-ready.err || blocked=1
-   # A `pr-ready.sh` exit 2 is adjudicated first, before any event and any `wait-ci.sh` call (`Read` `<base directory>/ADJUDICATE.md`): a `retry` runs the line above once more; `bail`, a `route`, an unparsed answer or a spent budget runs the bail line below. The `pr-ready.sh` paragraph after this block says each step.
-   [ -z "$blocked" ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=pr-ready-failed classification="$($S/classify-bail.sh pr-ready-failed)"
+   # On `pr-ready.sh` exit 2 the next line writes the bail only when no adjudication budget is left (`adjudicate.sh left` exit 3); with budget left it writes nothing, and the exit is adjudicated before any event and any `wait-ci.sh` call, as the `pr-ready.sh` paragraph after this block says (`Read` `<base directory>/ADJUDICATE.md`).
+   [ -z "$blocked" ] || $S/adjudicate.sh left <n> || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=pr-ready-failed classification="$($S/classify-bail.sh pr-ready-failed)"
    [ -n "$blocked" ] || $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/wait-ci.out 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
-   # A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and then the same `wait-ci.sh` line once more, its exits handled as at the first wait; any other outcome, or a spent budget, writes the `ci-timeout` bail that follows.
-   [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
+   # A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): the next line writes that bail only when no budget is left (`adjudicate.sh left` exit 3). With budget left, end this Bash call here and run the adjudication; then a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and, in one new Bash call, the `wait-ci.sh` line above and every line after it, its exits handled as at the first wait; any other outcome runs, alone in a Bash call of its own, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"`, and no later line of this block runs.
+   [ "$ci" != 2 ] || [ "$conflict" = 0 ] || $S/adjudicate.sh left <n> || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    graded=1; [ "$ci" != 2 ] || [ "$conflict" != 0 ] || { $S/rebase-onto-default.sh --graded-only > .tdd/graded-rebase.out; graded=$?; }
-   # A second conflict (the line below would bail) is adjudicated first, before that bail event: `$S/adjudicate.sh left <n>`, and on its exit 0 the `adjudicate-ci-conflict` leaf with `.tdd/wait-ci.err` as the stderr file (`Read` `<base directory>/ADJUDICATE.md`); `retry` and `route rebase` skip the line below and take their branches in the conflict paragraph; `bail`, an unparsed answer or a spent budget runs it.
-   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ "$graded" = 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
+   # A second conflict is adjudicated first, before the `ci-conflict` bail event: the next line writes that bail only when no budget is left (`adjudicate.sh left` exit 3). With budget left, end this Bash call here and run the adjudication the conflict paragraph after this block gives, with `.tdd/wait-ci.err` as the stderr file (`Read` `<base directory>/ADJUDICATE.md`); that paragraph names the command each outcome runs.
+   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ "$graded" = 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || $S/adjudicate.sh left <n> || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    [ "$ci" != 1 ] || gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
    [ "$ci" != 1 ] || ! $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
    [ "$ci" = 0 ] || [ "$ci" = 2 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
@@ -242,15 +242,20 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
    When `pr-ready.sh` exits non-zero (it exits only 0 or 2), its stderr is kept in `.tdd/pr-ready.err` and the exit is adjudicated
    first, before any event and any `wait-ci.sh` call, in the order `ADJUDICATE.md`'s *Procedure* gives (`Read` `<base directory>/ADJUDICATE.md`):
-   `$S/adjudicate.sh left <n>`; on its exit 0, `$S/build-adjudicate-prompt.sh <n> pr-ready-failed 2 .tdd/pr-ready.err pr-ready.sh <pr-number> "$(git rev-parse HEAD)" > .tdd/adjudicate-pr-ready-failed.prompt`,
+   the block's `$S/adjudicate.sh left <n>` runs first, and its exit 3 (a spent budget, `VERI_ADJUDICATE_BUDGET=0` included) writes the bail on that same line.
+   On its exit 0 that line writes nothing: end that Bash call there, and in Bash calls of their own run
+   `$S/build-adjudicate-prompt.sh <n> pr-ready-failed 2 .tdd/pr-ready.err pr-ready.sh <pr-number> "$(git rev-parse HEAD)" > .tdd/adjudicate-pr-ready-failed.prompt`,
    the `adjudicate-pr-ready-failed` leaf launched through `supervise.sh` and waited on, then
    `$S/adjudicate.sh record <n> pr-ready-failed .tdd/adjudicate-pr-ready-failed.out`, which writes the `adjudicated` event.
-   `retry` (exit 0) runs `$S/pr-ready.sh <pr-number> "$(git rev-parse HEAD)" 2> .tdd/pr-ready.err` once more, as the block's first line:
-   its exit 0 goes on to the `wait-ci.sh` line as a first-call exit 0 does, and its exit 2 is handled as at the first call.
-   `bail`, any `route` (`pr-ready-failed` lists none), an unparsed answer (`adjudicate.sh record` exit 2) or a spent budget
-   (`adjudicate.sh left` exit 3) runs the bail line. So when no adjudicated `retry` of it exits 0, the block writes its
-   `adjudicated` events, then the `pr-ready-failed` bail, and nothing else: `blocked` makes the wait line skip `wait-ci.sh` and leave `ci` at 0, so no CI deadline is started, no `ci-timeout`, `ci-conflict` or `ci-red` bail follows, no `step-added` event, `⟦ci-repair⟧` ledger line or `plan: repair the red CI check` commit is made and no `gh run view` is asked for. The run **bails** as a **system** failure (`pr-ready-failed`, classified by `classify-bail.sh`) with the PR left a draft, the bail comment carrying the text of `.tdd/pr-ready.err` as its last reason (`Read` `<base directory>/BAIL.md`).
-   A `ci-timeout` or `ci-red` bail ends the step there, and neither the `done` mark nor the
+   `retry` (exit 0) runs `$S/pr-ready.sh <pr-number> "$(git rev-parse HEAD)" 2> .tdd/pr-ready.err` once more: in one new Bash call, run the block again from
+   `blocked=; $S/pr-ready.sh <pr-number> "$(git rev-parse HEAD)" 2> .tdd/pr-ready.err || blocked=1` through its last line, so its exit 0 goes on to the
+   `wait-ci.sh` line as a first-call exit 0 does, and its exit 2 is handled as at the first call.
+   `bail`, any `route` (`pr-ready-failed` lists none) or an unparsed answer (`adjudicate.sh record` exit 2, the leaf's own no-answer included)
+   runs, alone in a Bash call of its own,
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=pr-ready-failed classification="$($S/classify-bail.sh pr-ready-failed)"`,
+   and no later line of the block runs. So when no adjudicated `retry` of it exits 0, the block writes its
+   `adjudicated` events, then the `pr-ready-failed` bail, and nothing else: no `wait-ci.sh` call follows (in the first call `blocked` makes the wait line skip it and leave `ci` at 0), so no CI deadline is started, no `ci-timeout`, `ci-conflict` or `ci-red` bail follows, no `step-added` event, `⟦ci-repair⟧` ledger line or `plan: repair the red CI check` commit is made and no `gh run view` is asked for. The run **bails** as a **system** failure (`pr-ready-failed`, classified by `classify-bail.sh`) with the PR left a draft, the bail comment carrying the text of `.tdd/pr-ready.err` as its last reason (`Read` `<base directory>/BAIL.md`).
+   A `pr-ready-failed`, `ci-timeout`, `ci-conflict` or `ci-red` bail ends the step there, and neither the `done` mark nor the
    `metrics:` commit below follows it (`Read` `<base directory>/BAIL.md`). Otherwise:
    ```
    # Only under VERI_BRANCH_SUITE=ci when no ⟦full-suite⟧ line was ticked before pr-ready.sh, and only when .tdd/wait-ci.err does not say `has no checks`
@@ -271,11 +276,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$no_repair" = 0 ] || $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
    [ "$no_repair" = 0 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red CI check (#<n>)"; }
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
-   # A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and then the same `wait-ci.sh` line once more, its exits handled as at the first wait; any other outcome, or a spent budget, writes the `ci-timeout` bail that follows.
-   [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
+   # A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): the next line writes that bail only when no budget is left (`adjudicate.sh left` exit 3). With budget left, end this Bash call here and run the adjudication; then a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and, in one new Bash call, the `wait-ci.sh` line above and every line after it, its exits handled as at the first wait; any other outcome runs, alone in a Bash call of its own, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"`, and no later line of this block runs.
+   [ "$ci" != 2 ] || [ "$conflict" = 0 ] || $S/adjudicate.sh left <n> || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    graded=1; [ "$ci" != 2 ] || [ "$conflict" != 0 ] || { $S/rebase-onto-default.sh --graded-only > .tdd/graded-rebase.out; graded=$?; }
-   # A second conflict (the line below would bail) is adjudicated first, before that bail event: `$S/adjudicate.sh left <n>`, and on its exit 0 the `adjudicate-ci-conflict` leaf with `.tdd/wait-ci.err` as the stderr file (`Read` `<base directory>/ADJUDICATE.md`); `retry` and `route rebase` skip the line below and take their branches in the conflict paragraph; `bail`, an unparsed answer or a spent budget runs it.
-   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ "$graded" = 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
+   # A second conflict is adjudicated first, before the `ci-conflict` bail event: the next line writes that bail only when no budget is left (`adjudicate.sh left` exit 3). With budget left, end this Bash call here and run the adjudication the conflict paragraph after this block gives, with `.tdd/wait-ci.err` as the stderr file (`Read` `<base directory>/ADJUDICATE.md`); that paragraph names the command each outcome runs.
+   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ "$graded" = 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || $S/adjudicate.sh left <n> || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"
    cat > .tdd/issue-<n>-pr-body.md <<'EOF'
@@ -293,7 +298,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    check is still pending, so call it again in a new Bash call; its exit 2 — a check still
    pending past the deadline its first call recorded, checks still queued `VERI_CI_QUEUE_WAIT` seconds after the first call that saw them queued, a ready, mergeable PR whose head has no check run and no commit status for `VERI_CI_NO_RUN_WAIT` seconds (default 600, a non-negative whole number; the grace restarts for each new head) while a `pull_request` workflow exists, its stderr naming `no CI run for <sha>` with the full 40-hex head, or `gh` unable to read the checks until that deadline (a 4xx other than 403 or 429 at once, a rate limit whose reset falls at or past that deadline at once; a rate limit on any read whose reset falls past the call's slice end waits only to the slice end and ends the call with exit 3) — does
    **bail**, with cause `ci-timeout`, rather than waiting on (`Read` `<base directory>/BAIL.md`).
-   A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and then the same `wait-ci.sh` line once more, its exits handled as at the first wait; any other outcome, or a spent budget, writes the `ci-timeout` bail below.
+   A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and then the same `wait-ci.sh` line once more, its exits handled as at the first wait; any other outcome runs `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"` alone in a Bash call of its own, and a spent budget writes that bail on the block's `adjudicate.sh left` line, as the comment in each block says.
    That deadline is `wait-ci.sh`'s own bound, since the call gives no total-seconds: twice the
    mean of the last 5 completed CI runs, capped at 10 minutes, or 540 s when fewer than 5
    exist or `gh` cannot answer.
@@ -327,19 +332,22 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    the conflict is adjudicated first and **bails** with cause `ci-conflict` unless the adjudicator
    answers `retry` or `route rebase` (`Read` `<base directory>/BAIL.md`).
    That adjudication, at both `ci-conflict` sites (the first CI wait and the wait after the `metrics:` push), runs before any
-   `bail` event, in the order `ADJUDICATE.md`'s *Procedure* gives (`Read` `<base directory>/ADJUDICATE.md`): `$S/adjudicate.sh left <n>`;
-   on its exit 0, `$S/build-adjudicate-prompt.sh <n> ci-conflict 2 .tdd/wait-ci.err wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/adjudicate-ci-conflict.prompt`,
+   `bail` event, in the order `ADJUDICATE.md`'s *Procedure* gives (`Read` `<base directory>/ADJUDICATE.md`): the block's `$S/adjudicate.sh left <n>`
+   runs first, and its exit 3 writes the bail on that same line; on its exit 0 that line writes nothing: end that Bash call there, and in Bash calls of their own run `$S/build-adjudicate-prompt.sh <n> ci-conflict 2 .tdd/wait-ci.err wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/adjudicate-ci-conflict.prompt`,
    the `adjudicate-ci-conflict` leaf launched through `supervise.sh` and waited on, then
    `$S/adjudicate.sh record <n> ci-conflict .tdd/adjudicate-ci-conflict.out`, which writes the `adjudicated` event. Then:
-   - `retry` (exit 0): `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"`, then the same `wait-ci.sh` line
-     once more, its exits handled as at that wait; a conflict again returns to this adjudication.
+   - `retry` (exit 0): `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"`, then, in one new Bash call, the same `wait-ci.sh` line
+     and every line of the block after it, its exits handled as at that wait; a conflict again returns to this adjudication.
    - `route rebase` (exit 1, printing `route rebase`): the one-rebase path again, `.tdd/ci-conflict-rebased`
      left in place — `$S/rebase-onto-default.sh` (no flag), its `develop-rebase` leaf and `verify-rebase` when it
      conflicts, the regrade block, under `VERI_REBASED_TIP_SUITE=local` the full suite once on the rebased tip, the push
-     under the lease pinned to `<pre-rebase-sha>` — then the same `wait-ci.sh` line; a conflict again returns
-     to this adjudication, so the budget, not the marker, bounds the repeats.
-   - `bail` (exit 1, printing `bail`), an unparsed answer (`adjudicate.sh record` exit 2) or a spent budget
-     (`adjudicate.sh left` exit 3): the existing `bail cause=ci-conflict` line, its class `system`.
+     under the lease pinned to `<pre-rebase-sha>` — then, in one new Bash call, the same `wait-ci.sh` line and every line
+     of the block after it; a conflict again returns to this adjudication, so the budget, not the marker, bounds the repeats.
+     A `verify-rebase` REJECT there spends `REVISE_BUDGET`: it goes round the revise loop with phase `rebase`, and a spent
+     budget bails `rebase-unresolved`, as on sub-step 1's path (`Read` `<base directory>/REVISE.md`).
+   - `bail` (exit 1, printing `bail`) or an unparsed answer (`adjudicate.sh record` exit 2, the leaf's own no-answer included):
+     alone in a Bash call of its own, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"`,
+     its class `system`, and no later line of the block runs. A spent budget (`adjudicate.sh left` exit 3) wrote that bail on the block's line.
    A conflict with `.tdd/ci-conflict-rebased` absent, the run's first, is never adjudicated: it takes the one-rebase
    path above, as does a `--graded-only` exit 0.
    There too `rebase-onto-default.sh`'s exit code decides the next action, so nothing after it — the
@@ -352,7 +360,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    commit as a failed check above, and returns to step 3, *The cycle loop*, to repair it as a
    red full suite is repaired; it bails with cause `ci-red` only when the ledger already holds
    a `⟦ci-repair⟧` step, and exit 2 bails with cause `ci-timeout` (`Read` `<base directory>/BAIL.md`).
-   A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and then the same `wait-ci.sh` line once more, its exits handled as at the first wait; any other outcome, or a spent budget, writes the `ci-timeout` bail below.
+   A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and then the same `wait-ci.sh` line once more, its exits handled as at the first wait; any other outcome runs `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"` alone in a Bash call of its own, and a spent budget writes that bail on the block's `adjudicate.sh left` line, as the comment in each block says.
    A `wait-ci.sh` exit 2 after the `metrics:` push whose stderr names a conflict takes the same one-rebase path as a conflict at the first CI wait, and on a second the same adjudication before it bails with cause `ci-conflict`, so the run never waits into `ci-timeout` on it (`Read` `<base directory>/BAIL.md`).
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The

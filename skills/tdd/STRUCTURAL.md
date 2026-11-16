@@ -60,7 +60,7 @@
    `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
    `develop-structural`. After its wait exits 0 and before its commits are checked, run
    `$S/suite-reported.sh develop-structural 2> .tdd/suite-reported.err`: exit 2 means the report carries no `SUITE:` line,
-   so launch no transform verifier; if `$S/adjudicate.sh left <n>` exits 0, launch `adjudicate-report-missing` through `supervise.sh` with `.tdd/suite-reported.err` as the stderr file (`Read` `<base directory>/ADJUDICATE.md`), then on any answer, `retry` included, **bail** as a system failure with cause `report-missing`, with no verifier, no second `suite-reported.sh` call and no relaunch (`Read` `<base directory>/BAIL.md`).
+   so launch no transform verifier; if `$S/adjudicate.sh left <n>` exits 0, launch `adjudicate-report-missing` through `supervise.sh` with `.tdd/suite-reported.err` as the stderr file, its prompt built by `$S/build-adjudicate-prompt.sh <n> report-missing 2 .tdd/suite-reported.err suite-reported.sh develop-structural` (`Read` `<base directory>/ADJUDICATE.md`); on that `left` call's exit 3, or on any answer, `retry` included, **bail** as a system failure with cause `report-missing`, with no verifier, no second `suite-reported.sh` call and no relaunch, the bail event written by `BAIL.md`'s step 3 command with that cause, never a line guarded by a shell variable (`Read` `<base directory>/BAIL.md`).
    An out-of-bounds skip — the leaf left the tree as it found it and said so — is exempt and unadjudicated: it
    keeps its main outcome, a transform `REJECT` and the next candidate (a process outcome),
    never a `report-missing` bail. Its commits are checked with

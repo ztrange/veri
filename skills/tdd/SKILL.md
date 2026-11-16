@@ -916,16 +916,16 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
-   The test path and target test id are the ones Red's report gave you. The leaf's report is
+   The test path and target test id come from Red's report. The leaf's report is
    in `.tdd/develop-green.out`, and ends with `IMPL_PATH:` (the production files it created
    or changed) and `SUITE: GREEN | RED` plus the suite's final summary line; both go into the
    narration below.
 
-   After the wait exits 0 and before verify-green is launched, run `$S/suite-reported.sh develop-green 2> .tdd/suite-reported.err`:
-   exit 2 (no `SUITE:` line) launches no verifier: if `$S/adjudicate.sh left <n>` exits 0, launch `adjudicate-report-missing`
-   through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`), then on any answer, `retry` included, **bail** as a system failure with cause
-   `report-missing`, with no second `suite-reported.sh` call and no relaunch (`Read` `<base directory>/BAIL.md`). A green that stops because the test looks wrong is exempt, unadjudicated: it
-   keeps its main outcome, a verify-green REJECT (a process outcome), never a `report-missing` bail.
+   After the wait exits 0, before verify-green, run `$S/suite-reported.sh develop-green 2> .tdd/suite-reported.err`:
+   exit 2 (no `SUITE:` line) launches no verifier: on `$S/adjudicate.sh left <n>` exit 0, launch `adjudicate-report-missing` through `supervise.sh`,
+   `.tdd/suite-reported.err` its stderr file (`Read` `<base directory>/ADJUDICATE.md`); on exit 3 or any answer, `retry` included, **bail** as a system failure with cause
+   `report-missing`, with no second `suite-reported.sh` call or relaunch (`Read` `<base directory>/BAIL.md`). A green that stops because the test looks wrong is exempt, unadjudicated: it
+   keeps its verify-green REJECT (a process outcome), never a `report-missing` bail.
 
    **A green report carrying `WRONG_TEST:` or a `SUPERSEDED:` line, with or without `WRONG_TEST:`,** gets `$S/wrong-test-route.sh --spec .tdd/issue-<n>-spec.md .tdd/develop-green.out '<target-test-id>'` before any revise:
    - exit 0 prints `red <case>`, a case other than the step's own that the report's `CONTRADICTS:` line names (a case cited only in the `WRONG_TEST:` text is evidence and routes to `repair`; a report of `WRONG_TEST:` with `CONTRADICTS:` is exempt from the `SUITE:` line as the `green-wrong-test-contradicts` format). Run it with `VERI_STEP` set to the current step, and on exit 0 write a `reroute` event before the launch: `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh reroute case=<case> kind=red`, `kind` being the first word `wrong-test-route.sh` printed, so a repeat `missing` reroute is distinguishable from a repeat of any other kind. The `red`, `repair`, `supersede` and `fixture` routes share the step's one free reroute, free only as the step's first reroute of any kind, `missing` included: a later `WRONG_TEST:` in the same step, once that reroute is used, answers `revise` (exit 3) and spends one `REVISE_BUDGET` attempt, except a `WRONG_TEST` that names no case, which is bounded on its own (see `repair` below). A prior `missing` reroute uses up that free reroute, while `missing` itself stays free up to `VERI_MISSING_REROUTE_BUDGET` (see `missing` below). Write no `revise` mark and spend no `REVISE_BUDGET` attempt for the free one. Launch the `red-contradicted` red over that case through `supervise.sh` (`build-develop-prompt.sh red-contradicted`), verify it with verify-red like any red, re-record the step's frozen tests as set out below over both test paths, then retry green.
