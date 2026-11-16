@@ -35,6 +35,7 @@ def probe(tmp_path, cfg, venv_python, path_python):
 
 SAYS_3_9_6 = 'case "$1" in -c) echo 3.9.6; exit 0 ;; --version) echo "Python 3.9.6"; exit 0 ;; esac\n'
 SAYS_3_9_6_ELSE_RUNS = '#!/bin/sh\n%sexec "%s" "$@"\n' % (SAYS_3_9_6, sys.executable)
+SAYS_3_9_6_ELSE_EXITS_9 = "#!/bin/sh\n%sexit 9\n" % SAYS_3_9_6
 EXITS_9 = "#!/bin/sh\nexit 9\n"
 RUNS = '#!/bin/sh\nexec "%s" "$@"\n' % sys.executable
 CFG = "home = /opt/homebrew/bin\ninclude-system-site-packages = false\nversion = %s\n"
@@ -45,6 +46,14 @@ def test_4130_a_venv_whose_pyvenv_cfg_meets_the_floor_runs_the_module_on_its_pyt
     ran, _ = probe(tmp_path, CFG % "3.14.7", SAYS_3_9_6_ELSE_RUNS, EXITS_9)
 
     assert (ran.returncode, ran.stdout) == (7, "probe ran\n"), ran.stderr
+
+
+@pytest.mark.process("the canonical shim over lib/shim-python.sh with a venv python3 stub that says 3.9.6, no or an unparseable pyvenv.cfg")
+@pytest.mark.parametrize("cfg", [None, "home = /usr/bin\n", "version = three\n", "version_info = 3.14.7.final.0\n"])
+def test_4130_a_venv_with_no_parseable_pyvenv_cfg_version_is_checked_by_running_its_python3(tmp_path, cfg):
+    ran, _ = probe(tmp_path, cfg, SAYS_3_9_6_ELSE_EXITS_9, RUNS)
+
+    assert (ran.returncode, ran.stdout, ran.stderr) == (7, "probe ran\n", "")
 
 
 @pytest.mark.process("the canonical shim over lib/shim-python.sh with a real venv python3 under a pyvenv.cfg saying 3.9.6 and a python3 on PATH that exits 1")
