@@ -109,7 +109,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, never a REJECT, and launch no verifier.
 
 5. **Re-verify (blind, same phase).** For a phase listed in `.tdd/issue-<n>-skip-verify`, no
-   re-verify launches: record `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/event.sh verify-pin-skipped reason=switched-off` for `pin` (for `refactor` the same command with `verify-refactor-skipped`: each phase records its own `verify-<phase>-skipped` event), write `skipped` to
+   re-verify launches: record `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/event.sh verify-pin-skipped reason=switched-off` for `pin` (for `green` the same command with `verify-green-skipped`, for `refactor` with `verify-refactor-skipped`: each phase records its own event), write `skipped` to
    `.tdd/verdict-<phase>.exit`, and `$S/comment.sh <n> verify-revised <phase>` posts
    `### 🔎 verify-<phase> (revised) — SKIPPED (switched off)`, never `PASS`; then continue as on the PASS
    below, posting no second comment. A revised red whose report says `AGAINST_UNMODIFIED: PASSES`

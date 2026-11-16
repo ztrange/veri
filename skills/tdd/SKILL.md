@@ -783,14 +783,6 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    `AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE`, `WHY:`, `FAIL_OUTPUT:` — so take the
    **test path** and **target test id** from the first two and read the third for the next
    sub-step.
-   `AGAINST_UNMODIFIED` exists because a criterion earlier work already satisfies cannot
-   yield a failing test, and that fact has to reach you as data: in #30's step 3 it did not,
-   and a faithful test spent two verify-red `REJECT`s and two revise leaves reporting
-   IMPOSSIBLE before the run bailed and the revert discarded it. `UNTESTABLE` is the same
-   kind of fact for a criterion that cannot be pinned as a lightweight, behavior-level test
-   at all (#331's "at most N python3" cost +41s of `make test`, satisfied only by a shim
-   that re-ran whole suites under a counter) — the leaf says so rather than writing that test
-   to force a pass.
    If the wait exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
    cleanly, after the stop check in *Launching a leaf*; do not retry (see `<base directory>/BAIL.md`).
 2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line.
@@ -946,6 +938,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    - exit 0 may instead print `missing <behaviour>`, a behaviour no test pins. The same route answers the other two entries: a verify-green REJECT (`$S/wrong-test-route.sh --spec .tdd/issue-<n>-spec.md .tdd/verify-green.reason '<target-test-id>'`) and the conductor's mutation-parity REJECT (its stderr saved to a reason file, routed the same way), before any revise attempt is spent. It needs no free reroute of its own, though it uses up the step's one free reroute for the four other kinds: a `missing` route spends no `REVISE_BUDGET` attempt however many times one step takes it, bounded per step by `VERI_MISSING_REROUTE_BUDGET` (default 3). It writes the same `reroute` event with `kind=missing` before the launch, with no `revise` mark and no `REVISE_BUDGET` attempt. Launch the `red-missing` red through `supervise.sh` (`build-develop-prompt.sh red-missing .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <reason-file>`: the reason file is the brief), verify the added case with verify-red (verify-pin when it reports `AGAINST_UNMODIFIED: PASSES`), re-record the step's frozen tests as set out below over the test paths, then run Green again. Only when the step's own red reported `AGAINST_UNMODIFIED: PASSES` (itself a pin, so verify-pin runs on it) is the `<target-test-id>` passed to `run-verdict.sh ... pin` the one `$S/pin-target.sh .tdd/develop-red.out .tdd/develop-red-missing.out` prints (`.tdd/revise-red-<k>.out` in place of `.tdd/develop-red.out` after a red revise): the step's own pinning case, the first red's `TARGET_TEST:`, never the `red-missing` leaf's `TARGET_TEST:` line. When the step's own red FAILS, the `missing` reroute is judged as before: the added case is verified by verify-red, and verify-pin runs only when it reports `AGAINST_UNMODIFIED: PASSES`, with no `pin-target.sh` call. A verify-pin REJECT of the added case is routed by PIN.md's REJECT branch (`Read` `<base directory>/PIN.md`) through `$S/pin-reject-route.sh --missing-reroute .tdd/verify-pin.reason .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <target-test>`, never a revise of red decided by reading the reason: exit 0 retires the step (commit the retired ledger, no `revise` mark, no `REVISE_BUDGET` attempt, Green not run again), exit 1 (also a failing target test, the step's `TARGET_TEST`) enters the revise loop for red, exit 2 bails (`Read` `<base directory>/BAIL.md`). A second `red`, `supersede` or `fixture` reroute in the step (a `repair` for a `WRONG_TEST` naming no case excepted, which is bounded as `repair` sets out), and a rejection naming a product defect (`revise`, exit 3), spend `REVISE_BUDGET` as today. Once the step has taken `VERI_MISSING_REROUTE_BUDGET` `missing` reroutes, `wrong-test-route.sh` exits 1 printing `missing-exhausted <behaviour>`: **bail** with cause `missing-reroutes-exhausted`, a process failure (`Read` `<base directory>/BAIL.md`).
    - exit 0 may instead print `fixture <path> <name>`: `<name>` is a function defined in the test file `<path>` that is not a test case (a helper, fixture or shared setup). It shares the step's one free reroute with `red`, `repair` and `supersede`, free only as the step's first reroute of any kind, `missing` included (a prior `missing` reroute uses it up), and spends no `REVISE_BUDGET` attempt; a `WRONG_TEST` naming no case never routes here once that reroute is spent, it gets `repair` (see `repair` above). Insert before the current step, with `add-ledger-step.sh … before`, the step `<the current step's criterion>: repairs the fixture '<name>' in <path>, reproduced by a case in <path> ⟦fixture-repair⟧`, commit the ledger, write the same `reroute` event with `kind=fixture`, and run that step's cycle; the current step then resumes at develop-green with its red case and frozen record kept. `add-ledger-step.sh` exit 1 (the growth cap, which files the step under `## Owed steps`) **bails** with cause `fixture-owed`, a process failure; exit 2 bails `step-add-refused` (see `<base directory>/BAIL.md`). A `fixture` route is taken only when the helper is defined in the step's own test file, the one before `::` in a `<file>::<case>` id; an id with no `::` (the Go and JS names) falls back to searching every test file.
    - exit 2 is a system failure: **bail** (`Read` `<base directory>/BAIL.md`).
+   - With `green` in `.tdd/issue-<n>-skip-verify`, the routes read from the green report (`red`, `repair`, `supersede`, `supersede-diff`, `fixture`) and a `mutation-parity.sh` REJECT's `missing` still fire; only a verify-green reason is never routed, as none is written.
 
    After a reroute's red leaf, re-record the step's frozen tests with this one command; the `--red-case '<red-test-id>'` checks that the step's own Red case still exists in its test file. It captures `$?` and stops on a non-zero status rather than echoing it:
    ```
@@ -996,6 +989,10 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    affected suites surfaces at the one full-suite run in *4. Draft PR*.
    The `⟦replaces-case⟧` unreplaced-cases check already ran in *Red*, before verify-red; it is not run again here.
    Run `$S/replaces-case-survivors.sh "<step text>"` before the launch below, on a ⟦replaces-case⟧ step only; its exit 1 means survivors (see the paragraph after the block).
+   **Switched off:** with `green` in `.tdd/issue-<n>-skip-verify`, launch no verify-green: record
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-green-skipped reason=switched-off`,
+   write `skipped` to `.tdd/verdict-green.exit`, and take 3's PASS branch; the checks before the
+   launch and `mutation-parity.sh` still run. Otherwise:
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
@@ -1037,15 +1034,10 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      `gh api -X PATCH … -f body=…`.
      `<done>` is the ticked checkboxes of the run's ledger `.tdd/issue-<n>.md` and
      `<total>` all of its steps — of the records `$S/ledger-steps.sh < .tdd/issue-<n>.md`
-     prints, those whose second field is `done` of all of them, counted after the tick above so the step just closed is in the number. The draft PR
-     opened at the plan commit is the only thing another machine can read for the hours a
-     multi-step run takes, and a body written once there says the same at step 1 as at step
-     7; the tick is where the count changes, so it is where the body is rewritten.
+     prints, those whose second field is `done` of all of them, counted after the tick above so the step just closed is in the number.
      **On a bug run that subject is `fix:`, not `feat:`** — `fix: <STEP summary> (#<n>)`.
      The run is a bug run when the issue carries the `bug` label, the same fact step 1 read
-     to give the spec its `## Bug` section. A bug step's green repairs a reported failure
-     rather than adding a capability, so a `feat:` subject would record a regression repair
-     as a new capability in the history.
+     to give the spec its `## Bug` section.
      The push is what stops the run living on one disk until it is review-ready: the first
      call creates the remote branch, later ones fast-forward, and no PR is opened, so
      nothing asks for review before the run is ready. An unreachable remote is **not** a
