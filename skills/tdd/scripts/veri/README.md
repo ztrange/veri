@@ -480,6 +480,7 @@ The budgets (steps, time, refactor, context, affordability) and what leaves cost
 
 How veri's own suite runs (`make test`, `make unit`, `make profile`): the pytest leg's launcher and its plugins, the bytecode cache, the one-full-run lock, the fast-tier admission guard and the per-case profiler. Builds on Foundations only.
 
+- `content_mtimes`: run by CI before `make test`: sets each tracked file's mtime from its blob id, so a restored `.pyc` of unchanged content stays valid.
 - `failed_cases`: the pytest leg's record plugin: keeps, in this process, the cases each session collected and how each one reported.
 - `full_run_lock`: the one-full-run lock: at most one full `make test` runs per machine, and a waiter names the holder.
 - `network_guard`: a pytest plugin the launcher loads: no case may reach a non-loopback address or start a gh or curl it did not plant under its basetemp.

@@ -9,7 +9,7 @@ import pytest
 
 from conftest import ROOT, SCRIPTS
 
-KEPT = {}
+KEPT = {"veri/content_mtimes.py": "run by .github/workflows/ci.yml before make test, a file this scan does not read"}
 
 MENTION = re.compile(r"\bimport\b|\bfrom\b|\.py\b|\bveri\.|PYTEST_PLUGINS")
 WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
