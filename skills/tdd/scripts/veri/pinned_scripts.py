@@ -21,6 +21,26 @@ def write_snapshot_marker(snapshot, worktree):
         serving.write(os.path.realpath(worktree) + "\n")
 
 
+WRITE_BITS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
+
+
+def make_read_only(tree):
+    """Remove the write bits of every file and directory under <tree>, <tree> included, so a write into it fails."""
+    for root, dirs, files in os.walk(tree, topdown=False):
+        for name in files + dirs:
+            take_bits(os.path.join(root, name), WRITE_BITS)
+    take_bits(tree, WRITE_BITS)
+
+
+def take_bits(path, bits):
+    """Remove <bits> from the mode of <path>, through a descriptor of it."""
+    handle = os.open(path, os.O_RDONLY)
+    try:
+        os.fchmod(handle, stat.S_IMODE(os.fstat(handle).st_mode) & ~bits)
+    finally:
+        os.close(handle)
+
+
 def snapshot_gone(recorded):
     """Whether <recorded> is a well-formed absolute path to nothing: a snapshot the conductor already removed."""
     return os.path.isabs(recorded) and "\n" not in recorded and not os.path.lexists(recorded)
