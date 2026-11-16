@@ -427,7 +427,7 @@ class _Tally:
         elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
             self.rejected.append((step, phase, attempt))
         if event == "verdict" and phase == "green" and line.get("verdict") == "REJECT":
-            self.green_rejects.append([step, attempt_no, None, line.get("reason")])
+            self.green_rejects.append([step, attempt_no, None, line.get("check", ""), line.get("reason")])
         if event == "verdict" and phase == "refactor":
             current = self.open_pass(step)
             current["verdict"] = line.get("verdict", "")
@@ -604,7 +604,7 @@ class Fold:
     structural_marked: bool     # the structural-pass event carries a stopped
     structural_inconsistency: object   # what contradicts itself in the structural mark, or None
     refactor_totals: list       # refactor_total rows: each step with a pass, then the issue
-    green_rejects: list         # (step, attempt, route, reason) per green REJECT verdict, in log order
+    green_rejects: list         # (step, attempt, route, check, reason) per green REJECT verdict, in log order
     green_reject_routes: list   # (route, count) over green_rejects, by count descending, then route
     launch_costs: dict          # (actor, model) -> {LAUNCH_COLUMNS: tokens}, leaf usage events with first-turn fields
     launch_cost_missing: int    # leaf usage events without the first-turn fields
@@ -677,9 +677,9 @@ def fold(issue, path, ledger):
         found = session_spend(transcripts, command, first_event, done_at) if transcripts else None
         if found:
             operator_sessions.append((label,) + found)
-    green_rejects = [(step, attempt, "none" if route is None else route, reason)
-                     for step, attempt, route, reason in tally.green_rejects]
-    routes = collections.Counter(route for _step, _attempt, route, _reason in green_rejects)
+    green_rejects = [(step, attempt, "none" if route is None else route, check, reason)
+                     for step, attempt, route, check, reason in tally.green_rejects]
+    routes = collections.Counter(route for _step, _attempt, route, _check, _reason in green_rejects)
     structural = tally.structural
     structural_marked = structural is not None and "stopped" in structural
     if structural is None and ending is not None and ending.get("event") == "done":
@@ -936,9 +936,9 @@ def layout(f):
     tier_section("#### Test-command seconds, by tier", "tier", f.tier_runs)
     section("#### Total", "run", COST_COLUMNS, {"total": f.total}, estimate=f.conductor_estimated)
     if f.green_rejects:
-        table_head("#### Green rejects", "step", ["attempt", "route", "reason"], ["---:", "---", "---"])
-        for step, attempt, route, reason in f.green_rejects:
-            row([step, attempt, route, UNKNOWN if reason is None else reason.replace("|", "\\|")])
+        table_head("#### Green rejects", "step", ["attempt", "route", "check", "reason"], ["---:", "---", "---:", "---"])
+        for step, attempt, route, check, reason in f.green_rejects:
+            row([step, attempt, route, check, UNKNOWN if reason is None else reason.replace("|", "\\|")])
     print()
     print("Green rejects by route: " + (", ".join("%s %d" % item for item in f.green_reject_routes) or "none"))
     if f.launch_costs:

@@ -19,16 +19,16 @@ def test_layout_prints_a_green_rejects_row_for_each_row_a_hand_built_fold_carrie
     write_log(tmp_path, [])
     monkeypatch.chdir(tmp_path)
     empty = metrics.fold("108", ".tdd/events.jsonl", ".tdd/issue-108.md")
-    built = dataclasses.replace(empty, green_rejects=[("2", "1", "revise", "the test is skipped"),
-                                                      ("4", "3", "bail", "no assertion")])
+    built = dataclasses.replace(empty, green_rejects=[("2", "1", "revise", "4", "the test is skipped"),
+                                                      ("4", "3", "bail", "", "no assertion")])
 
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         metrics.layout(built)
 
     assert table(out.getvalue(), "#### Green rejects") == [
-        {"step": "2", "attempt": "1", "route": "revise", "reason": "the test is skipped"},
-        {"step": "4", "attempt": "3", "route": "bail", "reason": "no assertion"}]
+        {"step": "2", "attempt": "1", "route": "revise", "check": "4", "reason": "the test is skipped"},
+        {"step": "4", "attempt": "3", "route": "bail", "check": "", "reason": "no assertion"}]
 
 
 def verdict(step, phase, attempt, word, reason=None):
@@ -77,7 +77,7 @@ def test_a_reason_cell_escapes_each_pipe_with_a_backslash_and_reads_unknown_with
 
     lines = render(metrics, capsys).split("\n")
 
-    assert ("| 1 | 1 | none | a \\| b\\|c |" in lines, "| 2 | 1 | none | unknown |" in lines) == (True, True)
+    assert ("| 1 | 1 | none |  | a \\| b\\|c |" in lines, "| 2 | 1 | none |  | unknown |" in lines) == (True, True)
 
 
 def test_below_the_table_one_line_counts_green_rejects_by_route_by_count_descending_then_route_name(tmp_path, monkeypatch, capsys, metrics):
@@ -103,3 +103,14 @@ def test_a_log_with_no_green_reject_prints_by_route_none_and_no_table(tmp_path, 
     lines = render(metrics, capsys).split("\n")
 
     assert ("Green rejects by route: none" in lines, "#### Green rejects" in lines) == (True, False)
+
+
+def test_a_rows_check_cell_is_the_verdict_events_check_and_empty_for_an_event_without_one(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [dict(verdict("1", "green", "1", "REJECT", "a"), check="3"),
+                         verdict("2", "green", "1", "REJECT", "b"),
+                         dict(verdict("3", "green", "1", "REJECT", "c"), check="1")])
+    monkeypatch.chdir(tmp_path)
+
+    rows = table(render(metrics, capsys), "#### Green rejects")
+
+    assert [(r["reason"], r.get("check")) for r in rows] == [("a", "3"), ("b", ""), ("c", "1")]
