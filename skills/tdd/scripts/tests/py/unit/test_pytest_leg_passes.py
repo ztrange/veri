@@ -5,6 +5,8 @@ import sys
 
 import pytest
 
+pytestmark = pytest.mark.usefixtures("frozen_heap")
+
 
 def test_a_leg_that_collects_no_serial_marked_case_starts_one_pytest_session_and_exits_as_it_decided_2092(run_cli, tmp_path):
     planted = tmp_path / "planted"

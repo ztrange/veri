@@ -59,6 +59,7 @@ Directly under `tests/py/`, beside `conftest.py`; import them flat (`from repo_b
 - `process_case_shim_has_a_floor_interpreter`: autouse; a `process` case that launches a `.sh` shim fails unless a python3 at the 3.12 floor is reachable.
 - `hermetic_environment`: autouse; clears ambient `VERI_*`, `CLAUDE_*`, `GH_*`, `GIT_*` and locale, sets `LC_ALL=C`, `VERI_HOME`, `VERI_VENV` and a per-case `TMPDIR`, and refuses a test that writes to the inherited `TMPDIR`.
 - `run_cli`: `run_cli(module, argv, stdin="", env=None, cwd=None) -> (code, stdout, stderr)`; drives a ported module's `main` in-process.
+- `frozen_heap`: freezes the garbage collector's heap for the case (`gc.freeze()`), so a pytest session it starts in-process does not walk everything the run has loaded in the five full collections pytest ends a session with.
 - `fake_processes`: `fake_processes.answers({prefix: answer})`; fakes every way `subprocess` starts a process (see `process_fakes.py`).
 - `events`: `events.records(directory)` reads `.tdd/events.jsonl` without `ts` and `awake`; `events.unappendable`, `events.refuse_event_sh()`.
 - `listing`: `listing(answers)` puts a stub `gh` on PATH that answers the open-issue and PR listings (`conftest.serve_through_gh`).
