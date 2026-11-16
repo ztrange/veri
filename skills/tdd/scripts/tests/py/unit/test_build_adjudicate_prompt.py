@@ -149,3 +149,17 @@ def test_a_cause_whose_bullet_lists_route_tokens_prints_them_unquoted_and_comma_
     assert code == 0
     assert "Routes: route-a, route-b\n" in out
     assert "`" not in out.split("Stderr:")[0]
+
+
+def test_ci_conflict_prompt_carries_rebase_as_its_route_tokens(run_cli, build_adjudicate_prompt, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "wait-ci.err"
+    stderr_file.write_text("the PR conflicts with its base branch\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt,
+        ["7", "ci-conflict", "2", str(stderr_file), "wait-ci.sh", "abc1234"],
+        cwd=tmp_path,
+    )
+    assert (code, err) == (0, "")
+    assert "Routes: rebase\n" in out

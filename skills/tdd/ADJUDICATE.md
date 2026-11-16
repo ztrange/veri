@@ -11,6 +11,7 @@ is read by a script: one bullet per cause, `` - `<cause>`: `` then its route tok
 backticked and comma-separated, or `none`.
 
 - `ci-timeout`: none
+- `ci-conflict`: `rebase`
 
 `killed-stuck`, `no-verdict`, `killed-external` and preflight refusals are never adjudicated:
 the first three already have a budget of their own (`VERI_STUCK_RETRIES`,
