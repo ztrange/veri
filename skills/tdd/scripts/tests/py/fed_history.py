@@ -8,7 +8,7 @@ drive tests_frozen over a multi-commit history without git (PRD 017.5, R26, R27)
 Each revision is `(name, subject, files)`, oldest first, one line of commits; HEAD is the last. `files` maps a path
 (relative to `root`) to its text at that revision, or to None when that revision deletes it; a path it does not
 name keeps its text from the revision before, as a commit does. A revision is named by its name (which is also its
-sha: `commit_of` answers it), by `HEAD`, or by either followed by `~<n>`.
+sha: `commit_of` answers it), by `HEAD`, or by either followed by `~<n>`; `subject` answers its subject.
 
 The work tree is the real directory `root` (default the case's tmp_path): the case writes the files it holds,
 and `changed_test_files` compares them with HEAD as `git diff HEAD` plus untracked files would, skipping `.git/`
@@ -27,7 +27,7 @@ import ledger
 from case_reader import cut_cases, is_js_test_file, is_test_path
 
 ANSWERED = ("toplevel", "has_rev", "current_branch", "text_at", "cases_at", "revisions",
-            "first_revision_with", "changed_test_files", "commit_of", "step_commits")
+            "first_revision_with", "changed_test_files", "commit_of", "step_commits", "subject")
 REV = re.compile(r"^(?P<name>[^~]+)(?:~(?P<back>\d+))?$")
 
 
@@ -101,6 +101,10 @@ class FedHistory:
         if at is None:
             raise OSError("fed_history: no commit %s" % rev)
         return self.names[at]
+
+    def subject(self, rev):
+        """As `git log -1 --format=%s <rev>` prints it: the subject and a newline."""
+        return self.subjects[self.commit_of(rev)] + "\n"
 
     def changed_test_files(self):
         head = self.trees[-1] if self.trees else {}
