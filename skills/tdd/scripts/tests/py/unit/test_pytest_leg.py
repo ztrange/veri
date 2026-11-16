@@ -954,3 +954,12 @@ def test_3985_a_leg_launched_as_make_test_runs_it_whose_passes_ran_and_had_a_fai
     for name, value in leg_env(VERI_PYTEST_WORKERS="1", VERI_TEST_LOCK="0").items():
         monkeypatch.setenv(name, value)
     assert pytest_leg.launch(["-q"]) == 1
+
+
+def test_3985_the_bytecode_cache_record_still_runs_after_a_leg_exits_2_on_an_escaped_oserror(pytest_leg, monkeypatch, capfd, tmp_path):
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    recorded = []
+    monkeypatch.setattr(pytest_leg, "record_bytecode_cache", lambda where, run: recorded.append(where))
+    code = launched_with_lock_raising(pytest_leg, monkeypatch, capfd, prefix=str(prefix))[0]
+    assert (code, recorded) == (2, [str(prefix)])
