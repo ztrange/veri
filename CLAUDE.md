@@ -21,7 +21,8 @@ Operator sessions, and every subagent they brief, run with `$VERI_VENV/bin` (def
 `~/.veri-tools/venv/bin`) first on PATH, since PATH's `python3` may lack pytest.
 
 CI runs `make test` only, on Linux only, with `timeout-minutes` on every job; never on a draft PR,
-and a newer push cancels a PR's in-progress run (never on `main`).
+and a newer push cancels a PR's in-progress run (never on `main`). It restores the bytecode cache the
+last push to `main` saved; only such a push saves it.
 
 **veri needs bash 5+** (`brew install bash` on a Mac): `make test`, `run-conductor.sh` and
 `leaf-launchable.sh` refuse an older one (exit 2).
