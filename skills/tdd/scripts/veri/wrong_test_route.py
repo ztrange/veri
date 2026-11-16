@@ -46,14 +46,8 @@ def file_defines(path, case):
 
 
 def _defining_files(case):
-    found = []
-    for root, name, py_file, go_file, js_file in _test_files():
-        with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
-            text = handle.read()
-        if (defined_name(case, text, py_file, go_file) or js_file and case in live_titles(case, text)
-                or name.endswith(".test.sh") and ('name="%s"' % case) in text):
-            found.append(os.path.relpath(os.path.join(root, name)))
-    return found
+    return [os.path.relpath(os.path.join(root, name)) for root, name, *_ in _test_files()
+            if file_defines(os.path.join(root, name), case)]
 
 
 def _defining_file(case):
