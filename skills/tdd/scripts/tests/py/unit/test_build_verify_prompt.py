@@ -1706,3 +1706,17 @@ def test_3919_plan_lists_no_case_of_a_test_file_holding_the_stem_only_inside_a_l
     section = touching_section(out)
 
     assert (code, section is not None, "test_router_routes" in (section or "")) == (0, True, False)
+
+
+NO_TOUCHING = "No test case touches a file the plan names."
+
+
+def test_3919_plan_section_is_the_one_no_case_line_when_no_step_names_a_file_or_no_test_file_touches_one(
+        tmp_path, run_cli, build_verify_prompt):
+    renders = {}
+    for name, steps in (("names-none", ["the router answers"]), ("touched-by-none", ["helper.py answers"])):
+        files = dict(ROUTE_TREE, **{"scripts/helper.py": "pass\n"})
+        code, out, _ = plan_in_tree(tmp_path / name, run_cli, build_verify_prompt, files, steps)
+        renders[name] = (code, (touching_section(out) or "").strip())
+
+    assert renders == dict.fromkeys(renders, (0, NO_TOUCHING))
