@@ -6,4 +6,5 @@
 - [x] `issue-worktree.sh --remove` restores write permission first and leaves no file of a read-only snapshot `snapshot_made_for` accepts behind ⟦criterion 3⟧
 - [x] `keep_pinned_scripts` replaces a read-only `.tdd/pinned-scripts` on the next of two launches ⟦criterion 4⟧
 - [x] after `extract` and `write_snapshot_marker`, `run_conductor.main` makes the snapshot read-only: a write into a file of a fresh snapshot fails with a permission error ⟦criterion 1⟧
+- [ ] a tree whose directory cannot be listed is refused: making it read-only raises rather than skip what it cannot read
 - [ ] README.md's *The skill snapshot* paragraph says the snapshot is read-only (RD29) ⟦criterion 5⟧
