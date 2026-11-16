@@ -323,10 +323,9 @@ def _locked(pid, repo, pr, worktree, branch, message):
         if read and read.get("merged") is True:
             pull = read
             break
-    if pull is None and not answered and not code:
-        return _refused("the merge call succeeded and the state of %s could not be read; nothing tagged or cleaned up" % pr)
     if pull is None and not answered:
-        return _refused("the merge call exited %d and the state of %s could not be read; nothing tagged or cleaned up" % (code, pr))
+        call = "exited %d" % code if code else "succeeded"
+        return _refused("the merge call %s and the state of %s could not be read; nothing tagged or cleaned up" % (call, pr))
     if pull is None and code:
         return _refused("%s did not read merged after the merge call exited %d; nothing tagged or cleaned up" % (pr, code), code)
     if pull is None:
