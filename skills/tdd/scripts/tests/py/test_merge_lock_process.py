@@ -97,47 +97,31 @@ def test_2381_take_waiting_on_a_held_lock_whose_release_removes_it_mid_read_exit
         sleeper.wait()
 
 
-@pytest.mark.process("a merge-lock.sh take shim waiting on a stale lock in a scratch repository, then release --force")
-def test_take_on_a_stale_lock_reports_the_stale_holder_on_stderr_and_waits_with_the_lock_in_place_until_release_force(
+@pytest.mark.process("a merge-lock.sh take shim run against a lock whose holder pid is dead, in a scratch repository")
+def test_take_on_a_dead_holder_exits_2_at_once_naming_release_force_with_the_lock_and_record_in_place_and_no_staging_directory_left(
         tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     subprocess.run(["git", "-C", str(repo), "init", "-q", "-b", "main"], check=True)
-    env = {**os.environ, "VERI_MERGE_LOCK_POLL": "0.05"}
+    env = {**os.environ, "VERI_MERGE_LOCK_POLL": "600"}
     child = subprocess.Popen([sys.executable, "-c", "pass"])
     child.wait()
-    dead = str(child.pid)
     lock = repo / ".tdd" / "merge.lock"
-
-    def shim(*args, **kw):
-        return subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args], cwd=repo, env=env,
-                              stdin=subprocess.DEVNULL, capture_output=True, text=True, **kw)
-
     lock.mkdir(parents=True)
-    (lock / "holder").write_text(f"{dead} {socket.gethostname()} gone\n")
-    errfile = tmp_path / "take.err"
-    with open(errfile, "w") as err:
-        taker = subprocess.Popen(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(os.getpid())],
-                                 cwd=repo, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=err)
+    text = f"{child.pid} {socket.gethostname()} gone\n"
+    (lock / "holder").write_text(text)
+    taker = subprocess.Popen(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(os.getpid())],
+                             cwd=repo, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, text=True)
     try:
-        deadline = time.monotonic() + 10
-        while not errfile.read_text() and taker.poll() is None and time.monotonic() < deadline:
-            time.sleep(0.02)
-        reported = errfile.read_text()
-        waiting = taker.poll() is None
-        kept = lock.is_dir()
-        forced = shim("release", "--force")
-        try:
-            taker.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            taker.kill()
-        held = shim("holder")
-        assert (dead in reported.split(), "stale" in reported.lower(), waiting, kept, forced.returncode,
-                taker.returncode, str(os.getpid()) in held.stdout.split()) == (True, True, True, True, 0, 0, True)
-    finally:
-        if taker.poll() is None:
-            taker.kill()
-        taker.communicate()
+        taker.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        taker.kill()
+    _, err = taker.communicate()
+    lines = err.splitlines()
+    assert (taker.returncode, len(lines), err.startswith("stale lock: " + text.strip()),
+            "merge-lock.sh release --force" in err, (lock / "holder").read_text(),
+            sorted(p.name for p in (repo / ".tdd").glob(".merge.lock.*"))) == (2, 1, True, True, text, [])
 
 
 @pytest.mark.process("merge-lock.sh take and holder as two separate shims in a scratch repository")

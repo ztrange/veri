@@ -143,6 +143,9 @@ def _take(lock, record, args):
                 print(f"merge-lock.sh: missing, unreadable or malformed holder record {record}", file=sys.stderr)
                 return 2
             missing = 0
+            if not _alive(holder):
+                print(f"stale lock: {text.strip()}; clear it with merge-lock.sh release --force", file=sys.stderr)
+                return 2
             if not reported:
                 if _reused(text, holder):
                     print("stale lock: " + text, end="", file=sys.stderr, flush=True)
