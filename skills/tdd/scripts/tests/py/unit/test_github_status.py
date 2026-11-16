@@ -5,7 +5,6 @@ import datetime
 import http.client
 import importlib
 import json
-import socket
 import urllib.error
 
 import pytest
@@ -311,7 +310,7 @@ def test_wait_whose_reads_never_answered_ends_with_one_line_saying_no_read_got_a
 
 @pytest.mark.parametrize("error, cause", [
     (urllib.error.URLError(ConnectionRefusedError(61, "Connection refused")), "Connection refused"),
-    (urllib.error.URLError(socket.gaierror(8, "nodename nor servname provided")), "nodename nor servname provided"),
+    (urllib.error.URLError(OSError(8, "nodename nor servname provided")), "nodename nor servname provided"),
 ], ids=["refused", "dns"])
 def test_a_fetch_failing_other_than_by_timeout_names_its_cause_and_not_a_timeout(page, run_cli, error, cause):
     page.serve(error=error)
