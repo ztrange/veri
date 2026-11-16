@@ -62,7 +62,7 @@ def _stale(stored, nnn, issue):
 
 def _print_stale():
     snapshot = _load(CACHE)
-    stored = _load(_owed_path())
+    stored = _owed()
     opened = [o for o in snapshot["issues"] if o["state"] == "OPEN"]
     for nnn, issue in _ordered_heads(opened):
         if _stale(stored, nnn, issue):

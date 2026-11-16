@@ -824,3 +824,18 @@ def test_4021_store_owed_stale_and_report_use_the_main_working_trees_owed_file_f
     assert (from_linked, stored, from_sub, stale[:2], [l for l in report[1].splitlines() if l.startswith("owed")],
             (linked / ".tdd" / "report-owed.json").exists(), (sub / ".tdd" / "report-owed.json").exists()) == (
         0, {"count": 2, "sections": ["Alpha", "Beta"]}, 0, (0, ""), ["owed: 1 (Gamma)"], False, False)
+
+
+def test_4021_with_no_owed_file_stale_lists_every_active_prd_and_exits_0_and_report_prints_owed_stale(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    monkeypatch.setattr(importlib.import_module("solvable_issues"), "solvable",
+                        lambda label, priority="priority", repo=None: (0, []))
+    monkeypatch.setattr(importlib.import_module("issue_worktree"), "remote_issue_branch", lambda n: "")
+    _owed_tree(tmp_path, None)
+
+    stale = run_cli(prd_report, ["--stale"], cwd=tmp_path)
+    report = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    assert (stale[:2], report[0], [l for l in report[1].splitlines() if l.startswith("owed")]) == (
+        (0, "014\n"), 0, ["owed: stale"])
