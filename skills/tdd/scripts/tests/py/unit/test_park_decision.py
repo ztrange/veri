@@ -62,6 +62,35 @@ def test_issue_4077_a_strangers_comment_never_counts_neither_the_exact_decision_
     assert run_cli(park_decision, ["42"]) == (0, "Take design B.\n", "")
 
 
+@pytest.mark.parametrize("answer", ["no answer", ["not a record"], [PARK, "not a record"],
+                                    [PARK, {**OWNER, "body": None}], {"message": "Not Found"}])
+def test_issue_4077_a_comments_answer_gh_does_not_give_or_that_is_not_comment_records_exits_2_never_3(
+        decision, run_cli, monkeypatch, answer):
+    park_decision, comments = decision
+    if answer == "no answer":
+        def refuse(number):
+            raise park_decision.github.NoAnswer("", "HTTP 502")
+        monkeypatch.setattr(park_decision.github, "issue_comments", refuse)
+    else:
+        comments(answer)
+
+    code, out, err = run_cli(park_decision, ["42"])
+
+    assert (code, out) == (2, "")
+    assert "park-decision.sh: no answer from gh to reading the comments of issue #42" in err
+
+
+@pytest.mark.parametrize("argv", [[], ["0"], ["x1"], ["٤٢"], ["42", "43"]])
+def test_issue_4077_bad_arguments_exit_2_with_usage_and_read_nothing(decision, run_cli, monkeypatch, argv):
+    park_decision, comments = decision
+    monkeypatch.setattr(park_decision.github, "issue_comments", lambda number: pytest.fail("read the comments"))
+
+    code, out, err = run_cli(park_decision, argv)
+
+    assert (code, out) == (2, "")
+    assert "usage: park-decision.sh <issue-number>" in err
+
+
 def test_issue_4077_text_in_a_quote_or_a_code_fence_is_not_a_decision_and_a_comment_of_only_such_text_is_not_counted(
         decision, run_cli):
     park_decision, comments = decision

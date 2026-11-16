@@ -23,7 +23,7 @@ EXEMPT = {
 }
 
 # The readers PRD 022.3 and 022.11-022.13 put behind the rule; the detector must keep finding them.
-KNOWN_READERS = ("dispatch", "parked_issues", "release_issue", "run_conductor")
+KNOWN_READERS = ("dispatch", "park_decision", "parked_issues", "release_issue", "run_conductor")
 
 _READ = re.compile(r"/comments(\?|$)|^comments$|^comments,|,comments(,|$)")
 
