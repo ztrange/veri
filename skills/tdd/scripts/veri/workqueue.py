@@ -82,7 +82,7 @@ def holder_path(lock):
 
 def holder_of(lock):
     """`holder <pid> alive` or `holder <pid> dead` for the pid the lock's holder file records, `holder unrecorded`
-    when it records none."""
+    when it records none. A live pid whose start time differs from the recorded one is a reused pid: dead."""
     pid = pid_file.number_in(holder_path(lock))
     if pid is None:
         return "holder unrecorded"
@@ -92,6 +92,8 @@ def holder_of(lock):
         return "holder %s dead" % pid
     except PermissionError:
         pass
+    if not pid_file.start_matches(holder_path(lock), pid):
+        return "holder %s dead" % pid
     return "holder %s alive" % pid
 
 

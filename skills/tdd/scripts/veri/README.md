@@ -578,7 +578,7 @@ gh access, issue selection (solvable, parked, blocked), claiming and releasing i
 - `solvable-issues.sh`: list the issues a conductor may take, in band order.
 - `tick-issue-criterion.sh`: tick a criterion on the issue.
 - `unlabel-issue.sh`: remove the opt-in label from an issue.
-- `workqueue.sh`: the work queue's subcommands. Taking the lock (`.tdd/workqueue.lock`) writes the taker's pid and start time to `.tdd/workqueue.lock/holder` (`pid_file.record`'s form), and release removes it with the directory; a take that gives up exits 2 with `could not take the lock <path>; holder <pid> alive`, `holder <pid> dead` or `holder unrecorded`, and never takes the lock over.
+- `workqueue.sh`: the work queue's subcommands. Taking the lock (`.tdd/workqueue.lock`) writes the taker's pid and start time to `.tdd/workqueue.lock/holder` (`pid_file.record`'s form), and release removes it with the directory; a take that gives up exits 2 with `could not take the lock <path>; holder <pid> alive`, `holder <pid> dead` (no such pid, or one started at another time than recorded) or `holder unrecorded`, and never takes the lock over. A holder write that fails releases the lock.
 
 ## blocked_by
 - `blockers(body, repo)`: the issue numbers under `## Blocked by`, as `#<n>` or `repo`'s issue URL.
