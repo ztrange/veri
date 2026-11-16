@@ -6,6 +6,11 @@ import pytest
 
 VERBS = {"read", "read_bytes", "pop"}
 
+# A name its one reader holds alone, so no table in tunables.py may name it: only event.py may write VERI_HOME's
+# journal (test_event_journal.py's test_only_event_py_outside_the_tests_names_veri_home_so_nothing_else_writes_there).
+# An operator's knob (default ~/.veri, computed by event.py). Kept here, not in tunables.py, by that guard.
+OWN_READER = {"VERI_HOME": "event.py"}
+
 
 def unlisted(tree, listed):
     """[(line, name)] for each literal name passed to tunables.read, read_bytes or pop that `listed` lacks."""
@@ -39,6 +44,11 @@ def test_4047_not_knobs_says_run_state_or_test_stand_in_for_each_name_and_none_i
 def test_4047_every_name_veri_reads_through_read_read_bytes_or_pop_is_a_knob_or_says_why_not(veri_modules_index):
     listed = listed_names()
     found = {f"{module}.py:{line}": name for module in veri_modules_index.names
-             for line, name in unlisted(veri_modules_index.tree(module), listed)}
+             for line, name in unlisted(veri_modules_index.tree(module), listed)
+             if OWN_READER.get(name) != f"{module}.py"}
 
     assert found == {}
+
+
+def test_4047_a_name_with_its_own_reader_is_in_neither_table():
+    assert set(OWN_READER) & listed_names() == set()

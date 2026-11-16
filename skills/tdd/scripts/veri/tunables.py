@@ -191,7 +191,6 @@ TUNABLES = {
     "VERI_SELF_UPDATE": Tunable(text, ""),
     "VERI_MUTATION_ADDRESS_DOMAIN": Tunable(text, ""),
     "VERI_SESSION_TRANSCRIPTS": Tunable(text, ""),
-    "VERI_HOME": Tunable(text, ""),
 }
 
 # Every other VERI_* name read through `read`, `read_bytes` or `pop`, and why it is not a knob: `run state` (veri sets
