@@ -26,7 +26,6 @@ UNCATALOGUED = frozenset(
     "cover-outcome.sh",
     "coverage-blocker.sh",
     "criterion-finished.sh",
-    "exhausted-outcome.sh",
     "grade-prose.sh",
     "graded-changed.sh",
     "harvest-usage.sh",
