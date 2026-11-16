@@ -69,14 +69,13 @@ def network(*args, cwd=None, limit_name="VERI_GIT_NETWORK_TIMEOUT"):
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     except OSError as error:
         return subprocess.CompletedProcess(argv, 2, "", "%s\n" % error)
-    with child:
-        try:
-            stdout, stderr = child.communicate(timeout=limit)
-        except subprocess.TimeoutExpired:
-            with contextlib.suppress(ProcessLookupError, PermissionError):
-                os.killpg(child.pid, signal.SIGKILL)
-            child.communicate()
-            return TimedOut(argv, 124, "", "%s: no answer after %ds (%s)\n" % (" ".join(argv), limit, limit_name))
+    try:
+        stdout, stderr = child.communicate(timeout=limit)
+    except subprocess.TimeoutExpired:
+        with contextlib.suppress(ProcessLookupError, PermissionError):
+            os.killpg(child.pid, signal.SIGKILL)
+        child.communicate()
+        return TimedOut(argv, 124, "", "%s: no answer after %ds (%s)\n" % (" ".join(argv), limit, limit_name))
     return subprocess.CompletedProcess(argv, child.returncode, stdout, stderr)
 
 

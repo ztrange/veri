@@ -11,7 +11,6 @@ from test_veri_interface_index import _modules, _private, _readme_lines, _shared
 # never grow; an entry that is used by a sibling after all, or no longer listed, fails the case that checks it.
 USED_ONLY_BY_TESTS = {
     "case_reader.js_title_pattern": "the public name wrong_test_route will import once its open PR lands (it reads the `_js_title_pattern` alias, KNOWN_REACHES in test_veri_interface_index.py)",
-    "git.ok": "the never-raises predicate of git's interface; every hand-written 'did git succeed' left in the tree differs in stderr or in raising on a missing git binary (case_history.has_rev passes stderr through and raises OSError by contract), so none can switch byte-identically",
     "grade_prose.signature": "the stamp formula: the graded-signature pins and signer() call it, in the tree's own grade_prose.py",
     "issue_body.section": "the text of a body's section, the suite's way to read what spans returns; callers use spans",
     "tests_frozen.check": "typed form of the `check` subcommand; the shim's main and the suite drive it",

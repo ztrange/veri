@@ -111,10 +111,9 @@ def preflight_and_launch(argv):
             if word and word not in ("refactor", "pin", "green", "red", "diff"):
                 sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped (only refactor, pin, green, red and diff can)\n" % word)
                 return 2
-    if mode == "first" and not os.path.lexists(record):
-        restore_carried_record(argv[0], record)
-        mode = pin_mode(record, released)
-        resuming = mode == "resume"
+    carried = carried_pin(argv[0]) if mode == "first" and not os.path.lexists(record) else None
+    if carried:
+        mode, resuming = "resume", True
     if not resuming:
         try:
             subprocess.run([os.path.join(here, "update-veri.sh")])
@@ -152,6 +151,8 @@ def preflight_and_launch(argv):
             head_rev = "refs/remotes/origin/" + default
             if not verifies(base, head_rev):
                 return refuse_unpinned(base, "origin's default branch '%s' has no %s" % (default, head_rev))
+    if carried:
+        mode = adopt_carried_pin(base, head_rev, carried, record)
     snap = skill_snapshot(base, head_rev, record, mode)
     if snap.kind != "unpinned":
         commit = snap.commit
@@ -195,14 +196,26 @@ def preflight_and_launch(argv):
 Snapshot = collections.namedtuple("Snapshot", "kind commit why message code")
 
 
-def restore_carried_record(issue, record):
-    """Write <record> from the skill commit origin's refs/veri/runs/<issue> carries, when it carries a commit name, so a
-    run resumed on another machine executes the snapshot it started on; nothing otherwise."""
+def carried_pin(issue):
+    """The skill commit origin's refs/veri/runs/<issue> carries, when it carries a commit name; None otherwise."""
     carried = (run_records.read(issue, "issue-%s-skill-commit" % issue, event.toplevel() or ".") or "").strip()
-    if re.fullmatch(r"[0-9a-f]{7,40}", carried):
-        os.makedirs(os.path.dirname(record), exist_ok=True)
-        with open(record, "w") as out:
-            out.write(carried + "\n")
+    return carried if re.fullmatch(r"[0-9a-f]{7,40}", carried) else None
+
+
+def adopt_carried_pin(base, head_rev, carried, record):
+    """The launch's mode once the <carried> pin is judged: "resume", its <record> written, when it is an ancestor of
+    <head_rev> (the skill clone's origin default) in <base>; else "first", with one stderr line naming it. refs/veri/*
+    lies outside the default branch's protection, so a pin anyone pushed there is honoured only when reviewed code
+    already holds it."""
+    if git(base, "merge-base", "--is-ancestor", carried, head_rev,
+           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+        sys.stderr.write("run-conductor: the carried skill pin %s is not an ancestor of %s in '%s' — ignored,"
+                         " pinning fresh\n" % (carried, head_rev, base))
+        return "first"
+    os.makedirs(os.path.dirname(record), exist_ok=True)
+    with open(record, "w") as out:
+        out.write(carried + "\n")
+    return "resume"
 
 
 def pin_mode(record, released):

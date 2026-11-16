@@ -91,6 +91,8 @@ def read(issue, name, cwd):
     """The text of `.tdd/<name>` in origin's `refs/veri/runs/<issue>`, fetched into the clone at <cwd> under the same
     ref; None when origin has no such ref or file, or cannot be reached. A fetch ended at VERI_GIT_NETWORK_TIMEOUT is
     no answer too, said in one stderr line."""
+    if not git.ok("remote", "get-url", "origin", cwd=cwd):
+        return None
     fetched = git.network("fetch", "-q", "origin", "+%s:%s" % (ref(issue), ref(issue)), cwd=cwd)
     if isinstance(fetched, git.TimedOut):
         sys.stderr.write("%s not read: %s\n" % (ref(issue), " ".join((fetched.stderr or "").split())))
