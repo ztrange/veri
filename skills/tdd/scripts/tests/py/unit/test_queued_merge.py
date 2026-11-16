@@ -172,6 +172,17 @@ def test_2372_queued_merge_whose_take_fails_stops_with_takes_code_and_touches_no
     assert (code, [c.split()[1] for c in calls]) == (take, ["take"])
 
 
+def test_3994_queued_merge_whose_take_exits_2_on_a_stale_holder_exits_2_naming_the_take_and_makes_no_fetch_push_merge_or_release(
+        fake_processes, run_cli):
+    calls = fake_processes(lambda line, **_: (2, "", "stale lock: 4242 host t; clear it with merge-lock.sh release --force\n")
+                           if line.startswith("merge-lock.sh take") else (0, "", ""))
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    assert (code, calls, "queued-merge: taking the merge lock failed (exit 2)" in err) == (
+        2, ["merge-lock.sh take --pid %s" % PID], True)
+
+
 @pytest.mark.parametrize("merged, gh_code, expected", [
     (json.dumps({"merged": None}), 0, 1),
     (json.dumps({"state": "closed"}), 0, 1),
