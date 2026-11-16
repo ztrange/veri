@@ -44,7 +44,7 @@ def build_ready_repo(tmp_path):
     repo = tmp_path / "ready-repo"
     (repo / ".github" / "workflows").mkdir(parents=True)
     (repo / "tests").mkdir()
-    (repo / "CLAUDE.md").write_text("veri: fast tests: `make unit`\nveri: all tests: `make test`\n")
+    (repo / "CLAUDE.md").write_text("veri: fast tests: `make unit`\nveri: all tests: `make test`\nveri: one test file: `pytest \"$1\"`\n")
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / ".github" / "workflows" / "ci.yml").write_text(
         "name: ci\non:\n  pull_request:\n  push:\n    branches: [main]\njobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n      - run: make test\n")
@@ -74,7 +74,7 @@ def test_issue_3055_ready_check_exits_0_with_ready_as_its_last_line_where_every_
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess inside a repository whose fast tier resolves to nothing")
 def test_issue_3055_ready_check_with_no_fast_tier_exits_1_with_a_fail_row_naming_the_claude_md_line_to_add(tmp_path):
     repo, env = build_ready_repo(tmp_path)
-    (repo / "CLAUDE.md").write_text("veri: all tests: `make test`\n")
+    (repo / "CLAUDE.md").write_text("veri: all tests: `make test`\nveri: one test file: `pytest \"$1\"`\n")
     _git(repo, "mv", "tests/test_one.py", "tests/one_test.py")
     _git(repo, "commit", "-q", "-am", "drop the fast tier line")
     resolved = subprocess.run([str(SCRIPTS / "detect-test-command.sh"), "--tier", "fast"], cwd=repo, capture_output=True, text=True, env=env)
@@ -90,7 +90,7 @@ def test_issue_3055_ready_check_with_no_fast_tier_exits_1_with_a_fail_row_naming
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess inside a repository whose full tier resolves to nothing")
 def test_issue_3055_ready_check_with_no_full_tier_exits_1_with_a_fail_row_naming_the_claude_md_line_to_add(tmp_path):
     repo, env = build_ready_repo(tmp_path)
-    (repo / "CLAUDE.md").write_text("veri: fast tests: `make unit`\n")
+    (repo / "CLAUDE.md").write_text("veri: fast tests: `make unit`\nveri: one test file: `pytest \"$1\"`\n")
     _git(repo, "mv", "tests/test_one.py", "tests/one_test.py")
     _git(repo, "commit", "-q", "-am", "drop the full tier line")
     resolved = subprocess.run([str(SCRIPTS / "detect-test-command.sh"), "--tier", "all"], cwd=repo, capture_output=True, text=True, env=env)
@@ -345,7 +345,7 @@ def test_issue_3055_ready_check_where_detect_test_command_exits_2_fails_the_tier
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     for tier in ("fast", "all"):
         assert any(l.startswith("fail") and f"{tier} tier" in l and "no answer was obtained" in l and "exit 2 from detect-test-command.sh" in l for l in lines), (tier, ran.stdout, ran.stderr)
-    assert lines and lines[-1] == "not ready — 2 rows to fix", (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 3 rows to fix", (ran.stdout, ran.stderr)
 
 
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess where preflight's bash check finds a bash older than 5")
