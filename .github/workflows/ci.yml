@@ -93,8 +93,8 @@ jobs:
           key: veri-pycache-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-${{ github.sha }}
           restore-keys: veri-pycache-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-
 
-      # Each pass prints its slowest cases, so a slow run says which cases made it slow:
-      # the job's time is decided by a few long cases at the end of pass 1, and the log
+      # pytest prints its slowest cases, so a slow run says which cases made it slow: the
+      # job's time is decided by a few long cases at the end of the run, and the log
       # otherwise names none of them. Printing only; nothing reads it.
       - name: make test
         env:
