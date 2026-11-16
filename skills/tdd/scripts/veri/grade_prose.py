@@ -23,6 +23,7 @@ import leaf
 
 USAGE = "usage: grade-prose.sh <requirements-file> <unit>"
 GRADE_KEY = r"^(?!VERDICT|REASON:)\S+: "
+EFFORTS = ("low", "medium", "high", "xhigh", "max")
 BAD_GRADE = re.compile(GRADE_KEY + r"(?!PASS\b|FAIL\b)\S", re.M)
 
 
@@ -289,6 +290,9 @@ def grade_unit(path, unit, read=None):
     effort_args = () if effort is None else ("--effort", effort)
     if not re.search(r"(^|-)\d+(-|$)", model):
         print("grade-prose.sh: grader.conf model %r names no version" % model, file=sys.stderr)
+        return Grading(2)
+    if effort is not None and effort not in EFFORTS:
+        print("grade-prose.sh: grader.conf effort %r is not one of %s" % (effort, ", ".join(EFFORTS)), file=sys.stderr)
         return Grading(2)
     text = unit_text(unit, read)
     claims = requirements.claims(path, unit)

@@ -2,7 +2,7 @@
 
 - [x] `grade_prose.grader_model` returns the `model=` value whether an `effort=` line sits above or below it ⟦criterion 7⟧
 - [x] with an `effort=<level>` line the grader leaf's argv carries `--effort <level>`; with none, no `--effort` ⟦criterion 1⟧
-- [ ] an `effort=` value outside low, medium, high, xhigh, max makes `grade-prose.sh` exit 2 naming `grader.conf`, nothing launched ⟦criterion 2⟧
+- [x] an `effort=` value outside low, medium, high, xhigh, max makes `grade-prose.sh` exit 2 naming `grader.conf`, nothing launched ⟦criterion 2⟧
 - [ ] the `grading` event carries `effort=<level>`, or `effort=default` with no line ⟦criterion 3⟧
 - [ ] with an `effort=` line `grade_prose.signature` stamps unit text, rows, model and level; with none, today's value ⟦criterion 5⟧
 - [ ] adding, changing or removing the `effort=` line makes `prose-owed.sh <repo-root>` print every listed unit and exit 1 ⟦criterion 6⟧
