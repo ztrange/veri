@@ -198,3 +198,13 @@ def test_remove_tree_removes_a_tree_holding_a_directory_set_to_mode_000_3963(tmp
     pinned_scripts.remove_tree(str(tree))
 
     assert not os.path.lexists(tree)
+
+
+@ROOT_IGNORES_WRITE_BITS
+def test_copy_writable_raises_on_a_directory_it_cannot_list_rather_than_leave_the_copy_incomplete_3963(tmp_path):
+    tree = skill_tree(tmp_path / "veri-snapshot-x")
+    (tree / "scripts" / "locked").mkdir()
+    pinned_scripts.take_bits(str(tree / "scripts" / "locked"), 0o777)
+
+    with pytest.raises(OSError):
+        pinned_scripts.copy_writable(str(tree / "scripts"), str(tmp_path / "pinned-scripts"))

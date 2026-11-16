@@ -72,7 +72,7 @@ def copy_writable(source, destination):
     """Copy the tree <source> to the new directory <destination>: a symlink as a symlink, a file with its content
     and its mode plus the owner's write bit, a directory writable, so the copy can be added to and removed."""
     os.makedirs(destination)
-    for root, dirs, files in os.walk(source):
+    for root, dirs, files in os.walk(source, onerror=raise_error):
         target = os.path.join(destination, os.path.relpath(root, source))
         for name in dirs + files:
             path, copy = os.path.join(root, name), os.path.join(target, name)
