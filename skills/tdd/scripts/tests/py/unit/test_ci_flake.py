@@ -1,5 +1,6 @@
 """In-process cases for veri/ci_flake.py, the module ci-flake.sh is a shim over."""
 import importlib
+import json
 
 import pytest
 
@@ -90,7 +91,7 @@ def test_4018_exits_2_when_an_alone_run_gets_no_answer_the_log_holds_a_line_with
     log = {"unprefixed-line": RED_LOG + "FAILED skills/a/test_z.py::test_three\n",
            "glued-line": RED_LOG.replace("\n", " ", 1)}.get(case, RED_LOG)
     if case == "event-unwritable":
-        events.unappendable(tmp_path)
+        monkeypatch.setattr(ci_flake.event, "mark", lambda *args, **kwargs: 2)
     fake = fake_processes.answers({"sh -c": HANGS if case == "alone-run-hangs" else (0, "", ""),
                                    "gh run rerun": (0, "", "")})
     started.append(fake)
@@ -98,8 +99,43 @@ def test_4018_exits_2_when_an_alone_run_gets_no_answer_the_log_holds_a_line_with
     code, out, err = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path, log)], cwd=tmp_path)
 
     assert (code, out, "Traceback" in err, bool(err.strip())) == (2, "", False, True)
-    if case != "event-unwritable":
-        assert [c for c in fake.calls if c.startswith("gh")] == []
+    assert [c for c in fake.calls if c.startswith("gh")] == (
+        ["gh run rerun 12345 --failed"] if case == "event-unwritable" else [])
+
+
+OTHER = "f" * 40
+
+
+def _journal(tmp_path, *lines):
+    (tmp_path / ".tdd").mkdir(exist_ok=True)
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(
+        json.dumps(dict({"ts": 1763300000 + i, "awake": 0}, **fields)) + "\n" for i, fields in enumerate(lines)))
+
+
+START = {"issue": "4018", "event": "conductor-start", "pid": "7", "started": ""}
+
+
+@pytest.mark.parametrize("knob, journal, answer", [
+    ("0", [START], 3),
+    ("x", [START], 2),
+    (None, [START, {"issue": "4018", "event": "ci-rerun", "head": OTHER, "run": "9", "files": "t"}], 3),
+    ("5", [{"issue": "4018", "event": "ci-rerun", "head": HEAD, "run": "9", "files": "t"}, START], 3),
+    (None, [{"issue": "4018", "event": "ci-rerun", "head": OTHER, "run": "9", "files": "t"}, START], 0),
+    (None, [START, {"issue": "77", "event": "ci-rerun", "head": OTHER, "run": "9", "files": "t"}], 0),
+], ids=["knob-0", "knob-not-whole", "budget-spent-this-run", "head-re-run-in-an-earlier-run", "spent-in-an-earlier-run-only",
+        "another-issues-re-run"])
+def test_4018_exits_3_running_nothing_and_writing_no_event_when_the_run_s_re_runs_are_spent_or_the_head_was_re_run(
+        tmp_path, run_cli, fake_processes, ci_flake, events, knob, journal, answer):
+    _journal(tmp_path, *journal)
+    before = events.records(tmp_path)
+    fake = fake_processes.answers({"sh -c": (0, "", ""), "gh run rerun": (0, "", "")})
+    env = {} if knob is None else {"VERI_CI_FLAKE_RERUNS": knob}
+
+    code, out, _ = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path)], env=env, cwd=tmp_path)
+
+    assert code == answer
+    if answer in (2, 3):
+        assert (out, fake.calls, events.records(tmp_path)) == ("", [], before)
 
 
 @pytest.mark.parametrize("log, alone", [
