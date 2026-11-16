@@ -48,3 +48,14 @@ def test_redact_leaves_alone_a_listed_variables_value_shorter_than_8_characters_
     monkeypatch.setenv("FAKE_SHORT", "a1b2c3d")
 
     assert github.redact("a1b2c3d stays") == "a1b2c3d stays"
+
+
+def test_veri_redact_vars_defaults_to_gh_token_and_names_another_variable_when_set_issue_3960(github, monkeypatch):
+    monkeypatch.delenv("VERI_REDACT_VARS", raising=False)
+    monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
+    monkeypatch.setenv("FAKE_DEPLOY_KEY", "fake-deploy-key-value")
+    unset = github.redact("fake-gh-token-value fake-deploy-key-value")
+    monkeypatch.setenv("VERI_REDACT_VARS", "FAKE_DEPLOY_KEY")
+
+    assert (unset, github.redact("fake-gh-token-value fake-deploy-key-value")) == (
+        "[redacted] fake-deploy-key-value", "fake-gh-token-value [redacted]")
