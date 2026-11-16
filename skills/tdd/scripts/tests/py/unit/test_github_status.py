@@ -149,6 +149,20 @@ def test_a_threshold_or_timeout_that_is_not_a_positive_integer_exits_2_naming_it
     assert page.calls == []
 
 
+def test_a_component_argument_that_is_not_one_of_githubs_names_exits_2_naming_it_and_listing_them_before_any_fetch(
+        page, run_cli):
+    page.serve()
+
+    code, out, err = run_cli(page.module, ["Actions", "pull requests"])
+
+    assert (code, out) == (2, "")
+    assert "'pull requests'" in err
+    for name in ("Git Operations", "Webhooks", "API Requests", "Issues", "Pull Requests", "Actions", "Packages",
+                 "Pages", "Copilot", "Codespaces", "Copilot AI Model Providers"):
+        assert name in err
+    assert page.calls == []
+
+
 def test_the_real_fetch_answers_an_http_error_status_rather_than_raising_it(monkeypatch):
     import urllib.error
     import urllib.request
