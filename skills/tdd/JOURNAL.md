@@ -53,4 +53,5 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `verdict` | `verdict`, `reason`, `cause` | A verifier ruled: `PASS`, `REJECT` or `malformed`; the first line of its reason; `cause=no-verdict` only when it never wrote a `VERDICT:` line. |
 | `verify-green-skipped` | `reason` | The green verifier was skipped (`switched-off`). |
 | `verify-pin-skipped` | `reason` | The pin verifier was skipped (`switched-off`). |
+| `verify-red-skipped` | `reason` | The red verifier was skipped (`switched-off`). |
 | `verify-refactor-skipped` | `reason` | The refactor verifier was skipped (`nothing-landed`, `switched-off`). |
