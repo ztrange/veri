@@ -198,7 +198,7 @@ def dev(lane):
                % (", ".join(transcripts) or "no transcript", path,
                   _count(skipped, "transcript line", "transcript lines"),
                   _count(bad, "request with an unreadable timestamp", "requests with an unreadable timestamp")))
-    return rows, measured, sources, "VERI_RESET_GROWTH_DEV", tunables.get("VERI_RESET_GROWTH_DEV")
+    return rows, measured, sources, "VERI_RESET_GROWTH_DEV", _knob("VERI_RESET_GROWTH_DEV")
 
 
 def launches(lines):
@@ -247,7 +247,15 @@ def conductor(run):
             measured += launch[:1]
     sources = "K and g from %s at the conductor-restart events of %s, %s skipped" % (
         log, journal, _count(bad, "request with an unreadable timestamp", "requests with an unreadable timestamp"))
-    return rows, measured, sources, "VERI_RESET_GROWTH_CONDUCTOR", tunables.get("VERI_RESET_GROWTH_CONDUCTOR")
+    return rows, measured, sources, "VERI_RESET_GROWTH_CONDUCTOR", _knob("VERI_RESET_GROWTH_CONDUCTOR")
+
+
+def _knob(name):
+    """The growth knob's value; a bad one is a Failure naming it, before anything is read or printed."""
+    value, bad = tunables.resolve(name)
+    if bad:
+        raise Failure("reset-cost.sh: %s must be %s, got '%s'\n" % (name, bad[1], bad[0]))
+    return value
 
 
 def main(argv):
@@ -266,8 +274,10 @@ def _main(argv):
     if lane is not None and not LANE.fullmatch(lane):
         raise Failure(USAGE)
     if argv == ["dev"]:
+        _knob("VERI_RESET_GROWTH_DEV")
         measures = dev(lane)
     elif len(argv) == 2 and argv[0] == "conductor" and lane is None and entry.whole_number(argv[1]) is not None:
+        _knob("VERI_RESET_GROWTH_CONDUCTOR")
         measures = conductor(argv[1])
     else:
         raise Failure(USAGE)
