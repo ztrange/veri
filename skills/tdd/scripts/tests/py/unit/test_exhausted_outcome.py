@@ -147,3 +147,18 @@ def test_3917_step_ahead_prints_one_prep_line_naming_each_step_ahead_case_its_fi
 
     assert run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path) == (
         0, "prep tests/py/test_solvable.py::test_prints_usage tests/py/test_status.py::test_status_lists_runs\n", "")
+
+
+def test_3917_step_ahead_skips_the_red_case_and_exits_3_printing_nothing_when_no_line_remains(run_cli, tmp_path, exhausted_outcome):
+    red = _suite(tmp_path)
+    own = "STEP_AHEAD: tests/py/test_solvable.py::test_prints_usage_with_not_running\n"
+    older = "STEP_AHEAD: tests/py/test_status.py::test_status_lists_runs\n"
+
+    results = {report: run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path)
+               for report in (own, own + older, "STATEMENT: nothing to name\n")}
+
+    assert results == {
+        own: (3, "", ""),
+        own + older: (0, "prep tests/py/test_status.py::test_status_lists_runs\n", ""),
+        "STATEMENT: nothing to name\n": (3, "", ""),
+    }
