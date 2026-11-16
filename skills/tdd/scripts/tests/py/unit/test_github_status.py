@@ -2,6 +2,7 @@
 
 Every case injects the fetch, the clock, the local timezone and the sleep: none touches the network or waits."""
 import datetime
+import http.client
 import importlib
 import json
 
@@ -267,3 +268,26 @@ def test_a_poll_that_is_not_a_positive_integer_exits_2_naming_it_before_any_read
     assert (code, out) == (2, "")
     assert "VERI_GITHUB_STATUS_POLL" in err
     assert page.calls == []
+
+
+def malformed_components():
+    bad = incident("Incident with Pull Requests", 120)
+    bad["components"] = ["Pull Requests"]
+    return {"body": json.dumps({"incidents": [bad]}).encode()}
+
+
+@pytest.mark.parametrize("failed", [
+    {"error": http.client.IncompleteRead(b"{")},
+    {"error": http.client.BadStatusLine("garbage")},
+    malformed_components(),
+    {"body": b"[" * 200000},
+], ids=["incomplete-read", "bad-status-line", "component-not-an-object", "nested-too-deep"])
+def test_wait_retries_every_kind_of_failed_read_at_the_next_poll_and_exits_0_when_a_later_read_finds_none(
+        page, run_cli, failed):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests")).serve(**failed).serve()
+
+    code, out, err = run_cli(page.module, ["wait", "3600"])
+
+    assert (code, out) == (0, "up\n")
+    assert len(page.calls) == 3
+    assert "no answer from GitHub's status page" in err
