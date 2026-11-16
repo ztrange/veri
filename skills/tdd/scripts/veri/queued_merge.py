@@ -180,9 +180,11 @@ def _tag(worktree, message, pull, pr):
     if _git(worktree, "tag", "-a", name, "-m", message, target).returncode:
         _say("git tag failed; tag %s not published" % name)
         return False
-    oid = ""
     try:
         oid = git.out("-C", worktree, "rev-parse", "--verify", "refs/tags/" + name)
+    except git.GitFailed:
+        oid = ""  # publishing goes on; only a later delete needs it, and refuses without it
+    try:
         pushed = _network_git(worktree, "push", "origin", name)
     except Exception as error:
         # Raised after the cut: the tag this run cut must not outlive it unnamed.

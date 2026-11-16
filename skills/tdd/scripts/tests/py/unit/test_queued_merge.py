@@ -1603,3 +1603,11 @@ def test_3984_queued_merge_whose_guarded_tag_delete_raises_names_the_tag_left_in
     code, _, err = run_cli(queued_merge, ARGV)
 
     assert (code, "tag v0.11 left in the clone" in err, "merged, but cleanup failed: tag" in err) == (2, True, True)
+
+
+def test_3984_queued_merge_whose_cut_tag_object_cannot_be_read_still_publishes_the_tag_and_exits_0(fake_processes, run_cli):
+    calls = scenario(fake_processes, fail=("rev-parse --verify refs/tags/v0.11",))
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    assert (code, first(calls, "git -C /wt push origin v0.11") is not None) == (0, True)
