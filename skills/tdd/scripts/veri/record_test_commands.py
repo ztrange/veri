@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import sys
 
+import detect_test_command
 import entry
 import git
 
@@ -15,11 +16,37 @@ class Refused(Exception):
     """No answer could be obtained (exit 2); str() is the stderr line."""
 
 
+def declaring(line, marker):
+    """Where in <line> the <marker> detect-test-command.sh reads a command after starts, or None: the first one outside
+    a backtick span that a non-empty command follows."""
+    at = 0
+    while True:
+        at = line.find(marker, at)
+        if at < 0:
+            return None
+        if line[:at].count(b"`") % 2 == 0 and detect_test_command.unwrapped(
+                line[at + len(marker):].lstrip(detect_test_command.SPACE)):
+            return at
+        at += len(marker)
+
+
 def recorded(text, fast, full):
-    """<text>, a CLAUDE.md's bytes, declaring <fast> and <full> as the fast and all tiers' commands."""
-    if text and not text.endswith(b"\n"):
+    """<text>, a CLAUDE.md's bytes, declaring <fast> and <full> as the fast and all tiers' commands: the line the
+    detector reads each from rewritten from its marker on, where it stands; a tier no line declares appended."""
+    lines = text.split(b"\n")
+    missing = []
+    for marker, command in ((b"veri: fast tests:", fast), (b"veri: all tests:", full)):
+        for i, line in enumerate(lines):
+            at = declaring(line, marker)
+            if at is not None:
+                lines[i] = line[:at] + marker + b" " + command
+                break
+        else:
+            missing.append(marker + b" " + command + b"\n")
+    text = b"\n".join(lines)
+    if missing and text and not text.endswith(b"\n"):
         text += b"\n"
-    return text + b"veri: fast tests: " + fast + b"\nveri: all tests: " + full + b"\n"
+    return text + b"".join(missing)
 
 
 def checked(*args, cwd, input=None):
