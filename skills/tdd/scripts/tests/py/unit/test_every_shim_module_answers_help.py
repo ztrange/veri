@@ -86,7 +86,7 @@ def test_help_prints_the_usage_on_stdout_exits_0_and_starts_no_process_and_no_co
 
 
 # Scripts that take no arguments and refuse one; unit/test_zero_argument_modules_refuse_an_argument.py fails for any module that should be here and is not.
-NO_ARGUMENTS = ["branch_suite", "cover_outcome", "exhausted_outcome", "extract_result", "handoff_state", "invisible_work",
+NO_ARGUMENTS = ["branch_suite", "cover_outcome", "exhausted_outcome", "extract_result", "invisible_work",
                 "leaf_launchable", "next_pending_refactor", "next_unchecked", "parse_verdict",
                 "rebased_tip_suite", "refactor_triage", "resume_clean", "skill_drift", "time_budget"]
 
