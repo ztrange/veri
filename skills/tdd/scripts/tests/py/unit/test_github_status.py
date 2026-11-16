@@ -226,3 +226,10 @@ def test_wait_retries_a_read_with_no_answer_at_the_next_poll_and_exits_0_after_a
 
     assert (code, out) == (0, "up\n")
     assert len(page.calls) == 3
+
+
+def test_wait_matches_the_components_named_after_max_seconds_and_with_none_the_default_set(page, run_cli):
+    page.serve(incident("Webhooks delayed", 120, "Webhooks"))
+
+    assert run_cli(page.module, ["wait", "600", "Webhooks"])[0] == 3
+    assert run_cli(page.module, ["wait", "600"])[:2] == (0, "up\n")
