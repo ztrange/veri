@@ -80,6 +80,23 @@ def test_a_commit_is_tested_only_when_its_check_runs_all_completed_success_neutr
     assert (code, out, world.read) == (0, sha(verdict) + "\n", [sha(3)] + ([sha(1)] if verdict == 1 else []))
 
 
+@pytest.mark.parametrize("subjects, runs, reads", [
+    (["feat: a (#1)", "feat: b (#2)"], {sha(1): [OK, RUNNING], sha(2): [RUNNING]}, 2),
+    (["feat: a (#1)", "feat: b (#2)"], {sha(1): [("queued", None)], sha(2): [OK, FAILED]}, 2),
+    ([], {}, 0),
+    (["feat: part (#%d)" % n for n in range(1, 26)], {sha(n): [FAILED] for n in range(1, 26)}, 20),
+])
+def test_exits_3_with_one_stderr_line_when_no_commit_qualifies_a_run_in_progress_not_tested_reading_at_most_20_ends(
+        monkeypatch, run_cli, stack_green, subjects, runs, reads):
+    world = World(monkeypatch, stack_green, subjects, runs)
+
+    code, out, err = run_cli(stack_green, [])
+
+    assert (code, out, len(world.read), err.count("\n"), err.startswith("stack-green: ")) == (3, "", reads, 1, True), err
+    assert stack_green.ENDS_READ == 20
+    assert ("20" in err) == (len(subjects) > 20)
+
+
 def test_issue_ends_over_300_commits_reads_each_subject_once(stack_green):
     subjects = ["feat: part %d (#%d)" % (n, n // 2) for n in range(300)]
 
