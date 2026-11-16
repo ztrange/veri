@@ -1389,3 +1389,15 @@ def test_3981_queued_merge_in_a_clone_holding_v1_2_3_release_1_and_v0_10_bumps_o
 
     tags = [c for c in calls if " tag -a " in c or "push origin v" in c]
     assert (code, tags) == (0, ["git -C /wt tag -a v0.11 -m the capability %s" % MERGE_SHA, "git -C /wt push origin v0.11"])
+
+
+def test_3981_queued_merge_in_a_clone_holding_only_release_1_cuts_no_tag_names_why_runs_the_cleanup_and_exits_2_naming_tag(fake_processes, run_cli):
+    calls = scenario(fake_processes, tags="release-1\n")
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    tagged = [c for c in calls if " tag -a " in c or "push origin v" in c]
+    ran = [first(calls, needle) is not None for needle in (
+        "push origin --delete feature", "worktree remove", "branch -D feature", "merge-lock.sh release", "pull --ff-only")]
+    assert (code, tagged, "no vN.M tag to bump from; no tag cut" in err, "merged, but cleanup failed: tag" in err, ran) == (
+        2, [], True, True, [True] * 5)
