@@ -360,6 +360,8 @@ def test_4013_a_verifier_leaf_carries_effort_and_veri_effort_verifiers_value_onl
 @pytest.mark.parametrize("effort, leaf_args, refused", [
     ("high", "--permission-mode bypassPermissions --effort low", True),
     ("high", "--effort", True),
+    ("high", "--permission-mode bypassPermissions --effort=low", True),
+    ("", "--effort=low", False),
     ("", "--effort low", False),
     (None, "--effort low", False),
     ("high", "--permission-mode bypassPermissions", False),

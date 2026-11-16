@@ -264,7 +264,7 @@ def main(argv):
     leaf_words = os.environ.get("VERIFY_LEAF_ARGS")
     effort = tunables.get("VERI_EFFORT_VERIFIER")
     flags = leaf_args(leaf_words)
-    if effort and "--effort" in flags:
+    if effort and any(flag == "--effort" or flag.startswith("--effort=") for flag in flags):
         write(sys.stderr, "verify: VERIFY_LEAF_ARGS carries its own --effort and VERI_EFFORT_VERIFIER is '%s'"
                " — which one the leaf would run at is flag order; unset one of them" % effort)
         return 2
