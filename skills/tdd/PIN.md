@@ -16,7 +16,7 @@ not on Red's `PASSES`, not on a `red-missing` added case that passes, not as a r
 re-verify. Record `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-pin-skipped reason=switched-off`,
 write `skipped` to `.tdd/verdict-pin.exit`, and take the PASS branch below as on exit 0,
 `pin-fast-tier.sh` (and `rerun-alone.sh` on its exit 1) included, or the `⟦replaces-case⟧`
-deletion path; the mirror comment carries `verify-pin — SKIPPED (switched off)` where it would
+deletion path; the `### 📌 Already satisfied — <STEP>` mirror comment carries `verify-pin — SKIPPED (switched off)` where it would
 carry the verifier's reason. No mutation is recorded, since only verify-pin's probe writes
 `.tdd/issue-<n>-mutations.md`, and no retirement is possible, since `pin-reject-route.sh` runs
 only on a REJECT. **The one exception:** a step whose text names a go-red control
