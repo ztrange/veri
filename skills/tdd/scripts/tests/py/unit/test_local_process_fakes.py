@@ -36,7 +36,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_dispatch.py": "not inventoried",
     "unit/test_dispatch_issue_states.py": "not inventoried",
     "unit/test_event_journal.py": "not inventoried",
-    "unit/test_orchestrate.py": "not inventoried",
     "unit/test_report_cache.py": "3 cases answer gh and pass git through to a real process (real_run)",
 }
 

@@ -38,7 +38,6 @@ UNCATALOGUED = frozenset(
     "leaf-timeout.sh",
     "ledger-steps.sh",
     "no-product-caller.sh",
-    "orchestrate.sh",
     "parallel-conductors.sh",
     "preserve-attempt.sh",
     "production-frozen.sh",

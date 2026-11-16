@@ -1,10 +1,7 @@
 """The one reader of VERI_* tunables."""
-import math
 import os
 import re
 import entry
-
-STOP_TIMEOUT_MAX = 100000000
 
 
 def read(name, default="", unless_empty=None):
@@ -53,13 +50,6 @@ def claude_bin():
 
 def venv_dir():
     return read("VERI_VENV") or os.path.join(os.environ.get("HOME", ""), ".veri-tools", "venv")
-
-
-def stop_timeout(raw):
-    value = float(raw)
-    if not math.isfinite(value) or value <= 0 or value > STOP_TIMEOUT_MAX:
-        raise ValueError
-    return value
 
 
 def tokens(raw):
@@ -129,7 +119,6 @@ class Tunable:
 TUNABLES = {
     "VERI_CONDUCTOR_CTX_BUDGET": Tunable(tokens, "120000", "a whole number of tokens"),
     "VERI_RESET_GROWTH_CONDUCTOR": Tunable(positive_tokens, "70000", "a whole number of tokens >= 1"),
-    "VERI_CONDUCTOR_STOP_TIMEOUT": Tunable(stop_timeout, "10", "a positive number of seconds"),
     "VERI_KILL_POLL": Tunable(kill_poll, "0.1", "a non-negative number"),
     "REVISE_BUDGET": Tunable(tokens, "2", "a whole number"),
     "VERI_COMMENT_CHUNK": Tunable(positive_tokens, "25", "a whole number >= 1"),

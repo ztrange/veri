@@ -105,7 +105,7 @@ def test_1138_a_suite_the_base_gained_after_the_branch_point_is_not_printed_only
     plant(repo, {SCRIPTS_REL + "tests/py/test_a.py": "# a suite 2\n"})
     commit_all(repo, "head")
     git(repo, "checkout", "-q", "main")
-    plant(repo, {SCRIPTS_REL + "tests/py/test_orchestrate.py": "# orchestrate suite\n"})
+    plant(repo, {SCRIPTS_REL + "tests/py/test_b.py": "# b suite\n"})
     commit_all(repo, "main gains a suite")
     git(repo, "checkout", "-q", "topic")
     assert topic_range(run_cli, affected, repo) == (0, SUITES + "py/test_a.py\n", "")
