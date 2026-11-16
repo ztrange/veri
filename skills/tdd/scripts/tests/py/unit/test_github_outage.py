@@ -318,3 +318,18 @@ def test_write_syncs_the_temporary_file_to_disk_before_renaming_it_over_the_file
     outage.write(str(tmp_path / "f"), ["one"])
 
     assert (seen, (tmp_path / "f").read_text()) == (["fsync", "replace"], "one\n")
+
+
+def test_status_reads_under_the_lock_so_a_change_made_by_the_holder_is_seen_whole(tmp_path, monkeypatch):
+    world = entered(tmp_path)
+    real = outage.acquire
+
+    def holder_takes_first(handle):
+        outage.acquire = real
+        outage.take(str(tmp_path), 5, world)
+        real(handle)
+
+    monkeypatch.setattr(outage, "acquire", holder_takes_first)
+    shown = outage.status(str(tmp_path), world)[1]
+
+    assert shown[:2] == ["mode on", "merging %s orphan" % (U % 1)]
