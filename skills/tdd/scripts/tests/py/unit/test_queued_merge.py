@@ -4,6 +4,7 @@ import os
 
 import pytest
 
+from process_fakes import HANGS
 from veri import queued_merge
 
 PR = "https://github.com/o/r/pull/7"
@@ -13,6 +14,29 @@ PUSHED_HEAD = "abc1234"
 MERGE_SHA = "fedcba9"
 PID = str(os.getpid())
 WAIT_CI = os.path.join(queued_merge.SCRIPTS, "wait-ci.sh")
+
+
+@pytest.fixture
+def fake_processes(fake_processes, monkeypatch):
+    """conftest's fake in its legacy form, fake_processes(answer) -> calls, answering every entry point Popen included
+    (the network calls run under github.bounded_group); os.killpg reaches the fake children by pid, never a real group."""
+    fakes = []
+
+    def every_entry(answer=None):
+        fake = fake_processes.answers({}, default=answer or (lambda line, **_: (0, "", "")))
+        fakes.append(fake)
+        return fake.calls
+
+    every_entry.answers = fake_processes.answers
+    monkeypatch.setattr(os, "killpg", lambda group, sig: [c.send_signal(sig) for f in fakes for c in f.popens if c.pid == group])
+    return every_entry
+
+
+def hanging(fake_processes, line):
+    """A fake_processes for scenario whose call <line> never returns."""
+    def install(answer):
+        return fake_processes(lambda called, **kwargs: HANGS if called == line else answer(called, **kwargs))
+    return install
 
 
 def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), gh_code=0, fail=(), diverged=False, lease_readable=True, behind=False, dirty=False, tags="v0.10\nv0.9\n"):
@@ -1445,3 +1469,13 @@ def test_3984_queued_merge_refuses_a_git_network_timeout_that_is_not_a_whole_num
     code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GIT_NETWORK_TIMEOUT": value})
 
     assert (code, "VERI_GIT_NETWORK_TIMEOUT" in err, calls) == (2, True, [])
+
+
+def test_3984_queued_merge_whose_fetch_origin_never_returns_ends_it_after_the_git_network_timeout_exits_2_naming_it_and_the_limit_and_releases_the_lock(fake_processes, run_cli):
+    calls = scenario(hanging(fake_processes, "merge-lock.sh gate --pid %s -- git -C /wt fetch origin" % PID))
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GIT_NETWORK_TIMEOUT": "7"})
+
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, "fetch origin: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err, len(released), first(calls, "rebase")) == (
+        2, True, 1, None)
