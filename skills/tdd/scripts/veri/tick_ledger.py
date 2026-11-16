@@ -38,7 +38,7 @@ def run_case(case):
     LAST_COMMAND = f"{command} {path}"
     done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
     LAST_CODE = done.returncode
-    if done.returncode == 126:
+    if done.returncode in (126, 127):
         return 2
     if done.returncode and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", f"{done.stdout}{done.stderr}", re.I)):
         return 2
