@@ -946,3 +946,11 @@ def test_3985_an_oserror_taking_the_full_run_lock_makes_the_leg_exit_2_with_one_
     assert (code, out) == (2, "")
     assert err == entry.refusal(pytest_leg.main, raised[0])
     assert "Traceback" not in err and err.count("\n") == 1
+
+
+def test_3985_a_leg_launched_as_make_test_runs_it_whose_passes_ran_and_had_a_failing_case_still_exits_1(pytest_leg, monkeypatch, capfd):
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.TESTS_FAILED)
+    monkeypatch.setattr(sys, "pycache_prefix", None)
+    for name, value in leg_env(VERI_PYTEST_WORKERS="1", VERI_TEST_LOCK="0").items():
+        monkeypatch.setenv(name, value)
+    assert pytest_leg.launch(["-q"]) == 1
