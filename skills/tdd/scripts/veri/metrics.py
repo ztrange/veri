@@ -587,7 +587,7 @@ class Fold:
     lane: str                   # the label the run was opted in by
     flaked: list                # files named by suite-flake events
     pinned: str                 # the phases whose verifiers the run skipped (VERI_SKIP_VERIFY, pinned)
-    model_knobs: dict           # VERI_MODEL* knob and VERI_EFFORT_VERIFIER -> its value, falsy when unset
+    model_knobs: dict           # VERI_MODEL* knob -> its value, and VERI_EFFORT_VERIFIER -> the launch events' efforts; falsy when unset
     sessions: list              # the conductor's sessions (result records, a trailing open one); [] when its usage
                                 # event is in the log or its stream log is missing
     turn_rows: list             # the conductor's turns as [number, dollars text, context text], with .estimated,
@@ -632,6 +632,12 @@ def revise_green_outcomes(marks, models):
         if verdict in ("PASS", "REJECT"):
             counts[verdict] += 1
     return outcomes
+
+
+def launched_efforts(marks):
+    """The efforts the run's verifier leaves were launched at, as their `launch` events record them: sorted, joined by
+    commas, empty when none carries one."""
+    return ",".join(sorted({mark["effort"] for mark in marks if mark.get("event") == "launch" and mark.get("effort")}))
 
 
 def fold(issue, path, ledger):
@@ -697,9 +703,10 @@ def fold(issue, path, ledger):
                 flaked=[name for mark in marks if mark.get("event") == "suite-flake"
                         for name in str(mark.get("files", "")).split(",")],
                 pinned=pinned,
-                model_knobs={knob: tunables.read(knob) for knob in
-                             ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE",
-                              "VERI_MODEL_REVISE_GREEN", "VERI_EFFORT_VERIFIER"]},
+                model_knobs=dict({knob: tunables.read(knob) for knob in
+                                  ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE",
+                                   "VERI_MODEL_REVISE_GREEN"]},
+                                 VERI_EFFORT_VERIFIER=launched_efforts(marks)),
                 phases=tally.counts, by_model=tally.by_model, lost=tally.lost(),
                 steps=tally.steps, step_marks=tally.spent, passes=passes, tier_runs=tally.tier_runs,
                 adjudications=tally.adjudications, switched_off=tally.switched_off,

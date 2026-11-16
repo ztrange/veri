@@ -334,20 +334,22 @@ def test_4012_the_models_requested_line_lists_veri_model_revise_green_with_its_v
     assert (with_knob[-2], requested()[-2]) == ("VERI_MODEL_REVISE_GREEN sonnet", "VERI_MODEL_REVISE_GREEN unset")
 
 
-def test_4013_the_models_requested_line_lists_veri_effort_verifier_with_its_value_or_unset(
+def test_4013_the_models_requested_line_reads_veri_effort_verifier_off_the_verifiers_launch_events_not_the_environment(
         tmp_path, monkeypatch, capsys, metrics):
-    write_log(tmp_path, ONE_STEP + [{"event": "usage", "step": "1", "phase": "green", "attempt": "1",
-                                     "actor": "verifier", "model": "sonnet"}])
+    usage = {"event": "usage", "step": "1", "phase": "green", "attempt": "1", "actor": "verifier", "model": "sonnet"}
+    launch = {"event": "launch", "step": "1", "phase": "green", "attempt": "1", "actor": "verifier",
+              "name": "verify-green", "cmd": "x", "model": "sonnet"}
     monkeypatch.chdir(tmp_path)
 
-    def requested():
+    def requested(events):
+        write_log(tmp_path, ONE_STEP + events)
         line = next(line for line in render(metrics, capsys).splitlines() if line.startswith("Models requested: "))
-        return line[len("Models requested: "):line.index(";")].split(", ")
+        return line[len("Models requested: "):line.index(";")].split(", ")[-1]
 
-    monkeypatch.setenv("VERI_EFFORT_VERIFIER", "low")
-    with_knob = requested()
-    monkeypatch.delenv("VERI_EFFORT_VERIFIER")
-    assert (with_knob[-1], requested()[-1]) == ("VERI_EFFORT_VERIFIER low", "VERI_EFFORT_VERIFIER unset")
+    monkeypatch.setenv("VERI_EFFORT_VERIFIER", "high")
+    assert [requested([launch, usage]), requested([dict(launch, effort="low"), usage]),
+            requested([dict(launch, effort="low"), dict(launch, attempt="2", effort="max"), usage])] == [
+        "VERI_EFFORT_VERIFIER unset", "VERI_EFFORT_VERIFIER low", "VERI_EFFORT_VERIFIER low,max"]
 
 
 def test_a_revise_mark_with_no_budget_prints_a_question_mark_for_it(tmp_path, monkeypatch, capsys, metrics):
