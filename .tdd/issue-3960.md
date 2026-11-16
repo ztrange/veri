@@ -15,4 +15,4 @@
 - [x] the base64 of a token or of a listed variable's value is redacted
 - [x] a 1 MB body holding tokens is redacted within the case timeout
 - [x] no veri module names a gh command line outside github.bounded's callers, save preflight's reads and queued_merge's merge, which carry no body
-- [ ] the comment.sh entry of SCRIPTS.md says comments are redacted, naming the patterns and VERI_REDACT_VARS ⟦criterion 5⟧
+- [x] the comment.sh entry of SCRIPTS.md says comments are redacted, naming the patterns and VERI_REDACT_VARS ⟦criterion 5⟧
