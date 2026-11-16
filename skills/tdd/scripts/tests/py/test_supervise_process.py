@@ -130,9 +130,10 @@ def run_queued_leaf_past_window(tmp_path, limits, own_session=False):
     ticks = state / "ticks"
     with supervised([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(script)],
                     cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                    env={"PATH": str(shims) + ":" + os.path.dirname(sys.executable) + ":/usr/bin:/bin",
+                    env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin",
                          "VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.05", **limits,
                          "VERI_AWAKE_CLOCK": "%s %s" % (shims / "clock", state),
+                         "VERI_WALL_CLOCK": str(shims / "date"),
                          "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
                          "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
                          "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"}) as ran:
@@ -677,6 +678,13 @@ def clean_env(monkeypatch, **env):
         SET_BY_CLEAN_ENV.add(key)
 
 
+def patch_clocks(monkeypatch, wall, mtime):
+    """supervise's wall clock and a log's mtime, answered in-process: `wall()` and `mtime(path)` return the text each reads."""
+    supervise = importlib.import_module("veri.supervise")
+    monkeypatch.setattr(supervise, "now", wall)
+    monkeypatch.setattr(supervise, "mtime_of", mtime)
+
+
 def as_asked(out, kwargs):
     """out as the str or bytes the subprocess call's kwargs ask for."""
     if kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding"):
@@ -831,16 +839,15 @@ def test_main_refuses_a_settled_timeout_not_a_whole_number_of_seconds_and_a_kill
 
 
 def fake_leaf_launch(monkeypatch):
-    """date, stat and git answered in-process; a Popen of a /bin/sh -c wrapper runs that wrapper for real, to its end."""
+    """The wall clock, a log's mtime and git answered in-process; a Popen of a /bin/sh -c wrapper runs that wrapper for real, to its end."""
     real_popen = subprocess.Popen
     launches = []
+    patch_clocks(monkeypatch, lambda: "1000", lambda _log: "1000")
 
     def answer(args, kwargs):
         args = list(args)
         if args[:1] == ["git"]:
             out = "0123456789abcdef0123456789abcdef01234567\n"
-        elif args[:1] in (["date"], ["stat"]):
-            out = "1000\n"
         elif args[:2] == ["ps", "-o"] and "lstart=" in args:
             out = "Thu Nov 11 09:00:00 2026\n"
         else:
@@ -1327,16 +1334,12 @@ def test_main_with_veri_heartbeat_unset_kills_a_silent_leaf_at_181s_of_silence_n
     monkeypatch.setattr(os, "killpg", killpg)
     monkeypatch.setattr(os, "kill", kill)
 
+    patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000")
+
     def answer(args):
         args = [str(a) for a in args]
         if args[:1] == ["git"]:
             return 0, "0123456789abcdef0123456789abcdef01234567\n"
-        if args[:1] == ["date"]:
-            return 0, f"{clock['wall']}\n"
-        if args[:3] == ["stat", "-c", "%Y"]:
-            return 0, "1000\n"
-        if args[:1] == ["stat"]:
-            return 1, ""
         return 0, ""
 
     def run(args, *_, **kwargs):
@@ -1381,13 +1384,13 @@ def test_main_with_veri_heartbeat_unset_kills_a_silent_leaf_at_181s_of_silence_n
         b"2\n")
 
 
-def test_main_reads_the_wall_clock_through_date_and_a_logs_mtime_through_stat_c_then_stat_f_falling_back_to_date_and_takes_veri_heartbeat_as_bash_arithmetic(
+def test_main_reads_the_wall_clock_through_now_and_a_logs_mtime_through_mtime_of_and_takes_veri_heartbeat_as_bash_arithmetic(
         monkeypatch, tmp_path, capsysbinary, supervise):
     import signal
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
 
-    def watch(name, heartbeat, stat, step, rc_after=None):
+    def watch(name, heartbeat, mtime, step, rc_after=None):
         work = tmp_path / f"w{len(list(tmp_path.iterdir()))}"
         work.mkdir()
         monkeypatch.chdir(work)
@@ -1427,16 +1430,16 @@ def test_main_reads_the_wall_clock_through_date_and_a_logs_mtime_through_stat_c_
         monkeypatch.setattr(os, "killpg", killpg)
         monkeypatch.setattr(os, "kill", kill)
 
+        def mtime_of(path):
+            calls.append(path)
+            return mtime(clock["wall"])
+
+        patch_clocks(monkeypatch, lambda: str(clock["wall"]), mtime_of)
+
         def answer(args):
             args = [str(a) for a in args]
             if args[:1] == ["git"]:
                 return 0, "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                calls.append(" ".join(args))
-                return 0, f"{clock['wall']}\n"
-            if args[:1] == ["stat"]:
-                calls.append(" ".join(args))
-                return stat(args[1], clock["wall"])
             return 0, ""
 
         def run(args, *_, **kwargs):
@@ -1476,38 +1479,27 @@ def test_main_reads_the_wall_clock_through_date_and_a_logs_mtime_through_stat_c_
                 "err": err.splitlines(),
                 "exit": exitfile.read_bytes() if exitfile.exists() else None}
 
-    log = ".tdd/develop-red.log"
-    date, gnu, bsd = "date +%s", f"stat -c %Y {log}", f"stat -f %m {log}"
-    fails = (1, "")
     term = signal.SIGTERM
 
-    spelled = [
-        watch("develop-red", None, lambda s, w: fails if s == "-c" else (0, "1000\n"), 1, rc_after=1)["calls"],
-        watch("develop-red", None, lambda s, w: (0, "1000\n") if s == "-c" else fails, 1, rc_after=1)["calls"],
-        watch("develop-red", None, lambda s, w: (0, "abc\n") if s == "-c" else (0, "1000\n"), 1, rc_after=1)["calls"],
-        watch("develop-red", None, lambda s, w: fails, 1, rc_after=1)["calls"],
-    ]
-    assert spelled == [[date, gnu, bsd] * 2, [date, gnu] * 2, [date, gnu, date] * 2, [date, gnu, bsd, date] * 2]
-
-    missing = watch("develop-red", "5", lambda s, w: fails, 10, rc_after=4)
-    changed = watch("develop-red", "5", lambda s, w: (0, f"{min(w, 1020)}\n") if s == "-c" else fails, 1)
-    verdict = watch("verdict-red", "5", lambda s, w: (0, "1000\n") if s == "-c" else fails, 10, rc_after=3)
-    octal = watch("develop-red", "010", lambda s, w: (0, "1000\n") if s == "-c" else fails, 1)
+    missing = watch("develop-red", "5", lambda w: str(w), 10, rc_after=4)
+    changed = watch("develop-red", "5", lambda w: str(min(w, 1020)), 1)
+    verdict = watch("verdict-red", "5", lambda w: "1000", 10, rc_after=3)
+    octal = watch("develop-red", "010", lambda w: "1000", 1)
     assert [(r["code"], r["kills"], r["status"]) for r in (missing, changed, verdict, octal)] + [
-        [c for c in verdict["calls"] if c.startswith("stat")]] == [
+        verdict["calls"]] == [
         (0, [], ["supervise[develop-red]: success"]),
         (2, [(1026, "group", 4242, term)], ["supervise[develop-red]: killed-stuck — no heartbeat for 6s (window 5s)"]),
         (0, [], ["supervise[verdict-red]: success"]),
         (2, [(1011, "group", 4242, term)], ["supervise[develop-red]: killed-stuck — no heartbeat for 11s (window 010s)"]),
         []]
 
-    broken = {value: watch("develop-red", value, lambda s, w: (0, "1000\n") if s == "-c" else fails, 100, rc_after=3)
+    broken = {value: watch("develop-red", value, lambda w: "1000", 100, rc_after=3)
               for value in ("1.5",)}
     assert {value: (r["code"], r["kills"], r["status"], len([l for l in r["err"] if value.encode() in l]))
             for value, r in broken.items()} == {
         "1.5": (2, [], [], 1)}
 
-    word = watch("develop-red", "abc", lambda s, w: (0, "1000\n") if s == "-c" else fails, 100)
+    word = watch("develop-red", "abc", lambda w: "1000", 100)
     assert (word["code"], word["sleeps"], word["kills"], word["exit"]) == (2, 0, [], None)
 
 
@@ -1551,16 +1543,12 @@ def test_main_reads_a_veri_heartbeat_with_leading_zeros_as_decimal_010_a_10s_win
         monkeypatch.setattr(os, "killpg", killpg)
         monkeypatch.setattr(os, "kill", kill)
 
+        patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000")
+
         def answer(args):
             args = [str(a) for a in args]
             if args[:1] == ["git"]:
                 return 0, "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                return 0, f"{clock['wall']}\n"
-            if args[:3] == ["stat", "-c", "%Y"]:
-                return 0, "1000\n"
-            if args[:1] == ["stat"]:
-                return 1, ""
             return 0, ""
 
         def run(args, *_, **kwargs):
@@ -1652,6 +1640,8 @@ def test_main_fires_the_hard_timeout_on_the_awake_clock_slides_the_heartbeat_by_
         monkeypatch.setattr(os, "killpg", killpg)
         monkeypatch.setattr(os, "kill", kill)
 
+        patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000")
+
         def answer(args):
             args = [str(a) for a in args]
             if args[:1] == ["/fake/awake-clock"]:
@@ -1661,12 +1651,6 @@ def test_main_fires_the_hard_timeout_on_the_awake_clock_slides_the_heartbeat_by_
                 return 0, f"{work}\n"
             if args[:1] == ["git"]:
                 return 0, "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                return 0, f"{clock['wall']}\n"
-            if args[:3] == ["stat", "-c", "%Y"]:
-                return 0, "1000\n"
-            if args[:1] == ["stat"]:
-                return 1, ""
             return 0, ""
 
         def run(args, *_, **kwargs):
@@ -1780,16 +1764,12 @@ def test_main_reads_a_veri_timeout_with_leading_zeros_as_decimal_010_a_10s_cap_a
         monkeypatch.setattr(os, "killpg", killpg)
         monkeypatch.setattr(os, "kill", kill)
 
+        patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000")
+
         def answer(args):
             args = [str(a) for a in args]
             if args[:1] == ["git"]:
                 return 0, "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                return 0, f"{clock['wall']}\n"
-            if args[:3] == ["stat", "-c", "%Y"]:
-                return 0, "1000\n"
-            if args[:1] == ["stat"]:
-                return 1, ""
             return 0, ""
 
         def run(args, *_, **kwargs):
@@ -1867,18 +1847,14 @@ def test_main_reads_a_settled_timeout_with_leading_zeros_as_decimal_010_a_10s_ca
     monkeypatch.setattr(os, "killpg", killpg)
     monkeypatch.setattr(os, "kill", kill)
 
+    patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000")
+
     def answer(args):
         args = [str(a) for a in args]
         if args[:3] == ["git", "rev-parse", "--show-toplevel"]:
             return 0, f"{tmp_path}\n"
         if args[:1] == ["git"]:
             return 0, "0123456789abcdef0123456789abcdef01234567\n"
-        if args[:1] == ["date"]:
-            return 0, f"{clock['wall']}\n"
-        if args[:3] == ["stat", "-c", "%Y"]:
-            return 0, "1000\n"
-        if args[:1] == ["stat"]:
-            return 1, ""
         return 0, ""
 
     def run(args, *_, **kwargs):
@@ -1951,18 +1927,19 @@ def test_main_kills_the_leaf_by_term_to_its_group_else_its_pid_then_five_reaping
         monkeypatch.setattr(time, "sleep", lambda secs: events.append(("sleep", float(secs))))
         monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
 
+        def wall():
+            clock["dates"] += 1
+            if clock["dates"] > 2000:
+                raise Runaway()
+            clock["wall"] += 1
+            return str(clock["wall"])
+
+        patch_clocks(monkeypatch, wall, lambda _log: "1000")
+
         def answer(args):
             args = [str(a) for a in args]
             if args[:1] == ["git"]:
                 return 0, "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                clock["dates"] += 1
-                if clock["dates"] > 2000:
-                    raise Runaway()
-                clock["wall"] += 1
-                return 0, f"{clock['wall']}\n"
-            if args[:1] == ["stat"]:
-                return 0, "1000\n"
             return 0, ""
 
         def run(args, *_, **kwargs):
@@ -2035,18 +2012,19 @@ def test_main_ignores_a_kill_whose_group_and_pid_signals_both_raise_and_still_en
     monkeypatch.setattr(time, "sleep", lambda secs: None)
     monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
 
+    def wall():
+        clock["dates"] += 1
+        if clock["dates"] > 2000:
+            raise Runaway()
+        clock["wall"] += 1
+        return str(clock["wall"])
+
+    patch_clocks(monkeypatch, wall, lambda _log: "1000")
+
     def answer(args):
         args = [str(a) for a in args]
         if args[:1] == ["git"]:
             return "0123456789abcdef0123456789abcdef01234567\n"
-        if args[:1] == ["date"]:
-            clock["dates"] += 1
-            if clock["dates"] > 2000:
-                raise Runaway()
-            clock["wall"] += 1
-            return f"{clock['wall']}\n"
-        if args[:1] == ["stat"]:
-            return "1000\n"
         return ""
 
     def run(args, *_, **kwargs):
@@ -2101,19 +2079,20 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
         monkeypatch.setattr(time, "sleep", lambda secs: None)
         monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
 
+        def wall():
+            clock["dates"] += 1
+            if clock["dates"] > 2000:
+                raise Runaway()
+            clock["wall"] += 1
+            return str(clock["wall"])
+
+        patch_clocks(monkeypatch, wall, lambda _log: "1000")
+
         def answer(args):
             args = [str(a) for a in args]
             ran.append(args)
             if args[:1] == ["git"]:
                 return "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                clock["dates"] += 1
-                if clock["dates"] > 2000:
-                    raise Runaway()
-                clock["wall"] += 1
-                return f"{clock['wall']}\n"
-            if args[:1] == ["stat"]:
-                return "1000\n"
             return ""
 
         def run(args, *_, **kwargs):
@@ -2200,18 +2179,19 @@ def test_main_keeps_a_killed_leaf_whose_log_cannot_be_opened_killed_stuck_writin
     monkeypatch.setattr(time, "sleep", lambda secs: None)
     monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
 
+    def wall():
+        clock["dates"] += 1
+        if clock["dates"] > 2000:
+            raise Runaway()
+        clock["wall"] += 1
+        return str(clock["wall"])
+
+    patch_clocks(monkeypatch, wall, lambda _log: "1000")
+
     def answer(args):
         args = [str(a) for a in args]
         if args[:1] == ["git"]:
             return "0123456789abcdef0123456789abcdef01234567\n"
-        if args[:1] == ["date"]:
-            clock["dates"] += 1
-            if clock["dates"] > 2000:
-                raise Runaway()
-            clock["wall"] += 1
-            return f"{clock['wall']}\n"
-        if args[:1] == ["stat"]:
-            return "1000\n"
         return ""
 
     def run(args, *_, **kwargs):
@@ -2275,6 +2255,15 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
         monkeypatch.setattr(time, "sleep", lambda secs: None)
         monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
 
+        def wall():
+            clock["dates"] += 1
+            if clock["dates"] > 2000:
+                raise Runaway()
+            clock["wall"] += 1
+            return str(clock["wall"])
+
+        patch_clocks(monkeypatch, wall, lambda _log: "1000")
+
         def run(args, *_, **kwargs):
             words = [str(a) for a in args]
             code, out = 0, ""
@@ -2289,14 +2278,6 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
                 elif "update-ref" in words:
                     preserved.append(words[2:])
                     code, out = preserve_rc, ""
-            elif words[:1] == ["date"]:
-                clock["dates"] += 1
-                if clock["dates"] > 2000:
-                    raise Runaway()
-                clock["wall"] += 1
-                out = f"{clock['wall']}\n"
-            elif words[:1] == ["stat"]:
-                out = "1000\n"
             elif words and words[0] == preserver:
                 raise AssertionError(f"preserve-attempt.sh started as a process: {words}")
             out = as_asked(out, kwargs) if kwargs.get("stdout") == subprocess.PIPE else None
@@ -2388,19 +2369,20 @@ def test_main_reads_veri_stuck_retries_with_leading_zeros_as_decimal_08_eight_re
     monkeypatch.setattr(time, "sleep", lambda secs: None)
     monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
 
+    def wall():
+        clock["dates"] += 1
+        if clock["dates"] > 2000:
+            raise Runaway()
+        clock["wall"] += 1
+        return str(clock["wall"])
+
+    patch_clocks(monkeypatch, wall, lambda _log: "1000")
+
     def run(args, *_, **kwargs):
         words = [str(a) for a in args]
         out = ""
         if words[:1] == ["git"]:
             out = "0123456789abcdef0123456789abcdef01234567\n"
-        elif words[:1] == ["date"]:
-            clock["dates"] += 1
-            if clock["dates"] > 2000:
-                raise Runaway()
-            clock["wall"] += 1
-            out = f"{clock['wall']}\n"
-        elif words[:1] == ["stat"]:
-            out = "1000\n"
         out = as_asked(out, kwargs) if kwargs.get("stdout") == subprocess.PIPE else None
         return subprocess.CompletedProcess(args, 0, out, None)
 
@@ -2730,20 +2712,21 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
         monkeypatch.setattr(time, "sleep", sleep)
         monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
 
+        def wall():
+            if deliver_at == "first date":
+                deliver()
+            clock["dates"] += 1
+            if clock["dates"] > 2000:
+                raise Runaway()
+            clock["wall"] += 1
+            return str(clock["wall"])
+
+        patch_clocks(monkeypatch, wall, lambda _log: "1000")
+
         def answer(args):
             args = [str(a) for a in args]
             if args[:1] == ["git"]:
                 return "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                if deliver_at == "first date":
-                    deliver()
-                clock["dates"] += 1
-                if clock["dates"] > 2000:
-                    raise Runaway()
-                clock["wall"] += 1
-                return f"{clock['wall']}\n"
-            if args[:1] == ["stat"]:
-                return "1000\n"
             return ""
 
         def run(args, *_, **kwargs):
@@ -2875,10 +2858,11 @@ def test_main_hands_the_leaf_its_dispositions_through_a_preexec_survives_a_close
                 log.write_bytes(b"leaf out\n")
             return StubLeaf(4242, returncode=0)
 
+        patch_clocks(monkeypatch, lambda: "1000", lambda _log: "1000")
+
         def run(args, *_, **kwargs):
             args = [str(a) for a in args]
-            out = "0123456789abcdef0123456789abcdef01234567\n" if args[:1] == ["git"] else (
-                "1000\n" if args[:1] in (["date"], ["stat"]) else "")
+            out = "0123456789abcdef0123456789abcdef01234567\n" if args[:1] == ["git"] else ""
             out = as_asked(out, kwargs)
             return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
 
@@ -2995,14 +2979,13 @@ def fake_clocked_leaf(monkeypatch, work, name, silent, ends_at, launches=None, l
         if sig:
             leaf.returncode = -sig
 
+    patch_clocks(monkeypatch, lambda: str(clock["wall"]),
+                 lambda _log: "1000" if silent else str(clock["wall"] - (lag if clock["wall"] > 1002 else 0)))
+
     def answer(args):
         args = [str(a) for a in args]
         if args[:1] == ["git"]:
             return "0123456789abcdef0123456789abcdef01234567\n"
-        if args[:1] == ["date"]:
-            return f"{clock['wall']}\n"
-        if args[:1] == ["stat"]:
-            return "1000\n" if silent else f"{clock['wall'] - (lag if clock['wall'] > 1002 else 0)}\n"
         return ""
 
     def popen(args, *_, **k):
@@ -3117,16 +3100,14 @@ def test_cli_does_not_read_a_suspend_as_silence_or_runtime_a_3s_suspend_against_
                 kills.append(sig)
                 leaf.returncode = -sig
 
+        patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000")
+
         def answer(args):
             args = [str(a) for a in args]
             if args[:1] == ["/fake/awake-clock"]:
                 return f"{clock['awake']}\n"
             if args[:1] == ["git"]:
                 return "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                return f"{clock['wall']}\n"
-            if args[:3] == ["stat", "-c", "%Y"]:
-                return "1000\n"
             return ""
 
         install_awake_fakes(monkeypatch, clock, leaf, sleep, stop, answer)
@@ -3165,14 +3146,12 @@ def test_cli_counts_awake_time_a_leaf_silent_1s_then_3s_against_a_2s_heartbeat_a
                     clock["killed_at"] = clock["sleeps"]
                 leaf.returncode = -sig
 
+        patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000" if silent else str(clock["wall"]))
+
         def answer(args):
             args = [str(a) for a in args]
             if args[:1] == ["git"]:
                 return "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                return f"{clock['wall']}\n"
-            if args[:3] == ["stat", "-c", "%Y"]:
-                return "1000\n" if silent else f"{clock['wall']}\n"
             return ""
 
         install_awake_fakes(monkeypatch, clock, leaf, sleep, stop, answer)
@@ -3220,16 +3199,14 @@ def test_cli_settles_the_hard_timeout_from_veri_timeout_else_the_issue_file_from
             if sig:
                 leaf.returncode = -sig
 
+        patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: str(clock["wall"]))
+
         def answer(args):
             args = [str(a) for a in args]
             if "--show-toplevel" in args:
                 return f"{work}\n"
             if args[:1] == ["git"]:
                 return "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                return f"{clock['wall']}\n"
-            if args[:3] == ["stat", "-c", "%Y"]:
-                return f"{clock['wall']}\n"
             return ""
 
         install_awake_fakes(monkeypatch, clock, leaf, sleep, stop, answer)
@@ -3798,12 +3775,10 @@ def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_rela
         if clock["wall"] > 5000:
             raise AssertionError("never ended")
 
+    patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000")
+
     def answer(args):
         words = [str(a) for a in args]
-        if words[:1] == ["date"]:
-            return f"{clock['wall']}\n"
-        if words[:1] == ["stat"]:
-            return "1000\n"
         return None
 
     def popen(args, *a, **kwargs):
@@ -4146,16 +4121,14 @@ def test_run_cli_reports_a_leaf_awake_2s_and_suspended_100s_as_exit_status_0_wit
             (work / ".tdd" / "develop-red.rc").write_text("0\n")
             leaf.returncode = 0
 
+    patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000")
+
     def answer(args):
         args = [str(a) for a in args]
         if "--show-toplevel" in args:
             return f"{work}\n"
         if args[:1] == ["git"]:
             return "0123456789abcdef0123456789abcdef01234567\n"
-        if args[:1] == ["date"]:
-            return f"{clock['wall']}\n"
-        if args[:1] == ["stat"]:
-            return "1000\n"
         return ""
 
     def run(args, *_, **kwargs):
@@ -4219,18 +4192,14 @@ def test_main_still_kills_a_4s_quiet_leaf_by_a_1s_hard_timeout_and_by_a_1s_heart
             if pid == leaf.pid and sig:
                 leaf.returncode = -sig
 
+        patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000")
+
         def answer(args):
             args = [str(a) for a in args]
             if args[:3] == ["git", "rev-parse", "--show-toplevel"]:
                 return 0, f"{tmp_path}\n"
             if args[:1] == ["git"]:
                 return 0, "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                return 0, f"{clock['wall']}\n"
-            if args[:3] == ["stat", "-c", "%Y"]:
-                return 0, "1000\n"
-            if args[:1] == ["stat"]:
-                return 1, ""
             return 0, ""
 
         def run(args, *_, **kwargs):
@@ -4297,14 +4266,12 @@ def test_main_launches_a_leaf_that_never_answers_the_same_number_of_times_with_v
             if sig:
                 launched[-1].returncode = -sig
 
+        patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000")
+
         def answer(args):
             args = [str(a) for a in args]
             if args[:1] == ["git"]:
                 return "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                return f"{clock['wall']}\n"
-            if args[:1] == ["stat"]:
-                return "1000\n"
             return ""
 
         install_awake_fakes(monkeypatch, clock, StubLeaf(), sleep, stop, answer)
