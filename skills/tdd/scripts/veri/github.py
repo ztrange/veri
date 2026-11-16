@@ -570,6 +570,11 @@ class Pull(NamedTuple):
     state: str
     labels: tuple
     mergeable: Optional[bool] = None
+    cross_repository: bool = True
+
+
+def _cross_repository(raw):
+    return raw.get("isCrossRepository") is not False
 
 
 def _pull(raw):
@@ -580,7 +585,7 @@ def _pull(raw):
                 head_sha=raw.get("headRefOid") or (head["sha"] or "" if "sha" in head else None),
                 body=raw.get("body") or "", state=str(raw.get("state", "")).upper(),
                 labels=tuple(label.get("name") for label in raw.get("labels") or []),
-                mergeable=raw.get("mergeable"))
+                mergeable=raw.get("mergeable"), cross_repository=_cross_repository(raw))
 
 
 def pulls_in(text):

@@ -148,3 +148,8 @@ def test_pull_raises_a_value_error_on_an_answer_that_is_not_json(github, fake_pr
     fake_processes.answers({"gh api": (0, "<html>502</html>", "")})
     with pytest.raises(ValueError):
         github.pull(7)
+
+
+@pytest.mark.parametrize("cross, expected", [(True, True), (False, False)])
+def test_a_graphql_record_says_whether_its_head_is_in_another_repository_by_is_cross_repository(github, cross, expected):
+    assert github.pulls_in(json.dumps([dict(GRAPHQL_SHAPED, isCrossRepository=cross)]))[0].cross_repository is expected
