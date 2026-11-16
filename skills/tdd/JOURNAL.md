@@ -4,63 +4,67 @@ The journal of a run is `$VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl` (`VERI_HO
 
 `event.sh <event> [key=value …]` (or `event.mark` from a Python module) appends one JSON line to the run's own copy, `.tdd/events.jsonl`, and the same line to the journal when the run writes one (it has an issue and an `origin` remote). Every line carries `ts` (epoch seconds), `awake` (awake-clock reading), `issue`, `actor`, `phase`, `step`, `event` (the name), `attempt` and `skill_commit` (the run context, empty when unset), then the keys below, in the order the emitter gives them. Every value is a string.
 
+Each key's format, after its name, says how to read its value: `whole` (decimal digits only), `decimal` (digits with at most one `.`), `url` (starts `https://` or `http://`), `sha` (7 to 40 lowercase hex digits), `json` (parses as JSON), `text` (any string), or `one of` a list of values, every value written out. A key's value is never empty unless its format ends `, or empty`. The table is declared in `skills/tdd/scripts/veri/event_table.py`, which a case keeps equal to this page.
+
+Run-context key formats: `issue` whole, or empty; `actor` text, or empty; `phase` text, or empty; `step` text, or empty; `event` text; `attempt` whole, or empty; `skill_commit` sha, or empty.
+
 Keys and events are append-only: a key or event is never removed or renamed, only added. No event carries a schema version key.
 
 | Event | Keys | Meaning |
 |---|---|---|
-| `adjudicated` | `cause`, `outcome`, `reason` | The adjudicate leaf judged an exit 2 before it bailed: `cause` is the eligible cause (`ci-timeout`, `ci-conflict`, `pr-ready-failed`, `report-missing`), `outcome` is `retry`, `route`, `bail` or `unparsed`, and `reason` is the leaf's stated reason. |
-| `already-holds-step` | `step`, `reason` | `tick-ledger.sh --already-holds` retired a step whose behaviour already holds: the step's text and the reason file's `REASON:` line. |
-| `bail` | `cause`, `classification`, `suites`, `failed` | The run stopped: `cause` is why (`needs-user`, `killed-stuck`, `no-verdict`, `step-too-big`, `revise-exhausted`, `ci-red`, `ci-timeout`, `ci-conflict`, `suite-red`, `pr-ready-failed`, `step-add-refused`, …); `classification` is `process` (the methodology spoke) or `system` (the plumbing broke), absent when the conductor stopped unmarked; `suites`, carried only by `cause=suite-red`, names every suite still red after the repair step; `failed`, carried only by `cause=ci-red`, names the CI checks that failed. |
-| `comment` | `kind`, `url` | comment.sh posted a routine comment: its `kind` (`step-done`, `red`, `verify-red`, `green`, `verify-green`, `refactor`, `verify-refactor`, `verify-revised`, `plan`, `verify-plan`, `resuming`, `done`, `bailed` or `stopped`) and the posted comment's url. |
-| `conductor-start` | `pid`, `started` | A conductor began a run: its process id and start time. |
-| `conductor-restart` | `growth`, `knob` | restart-conductor.sh relaunched a run's conductor: the plan-growth count that triggered it and the knob whose change it picks up. |
-| `criterion-unticked` | `matcher` | An issue acceptance criterion was unticked: the text that matched it (the issue number is the line's `issue`). |
-| `diff-leaf-deviation` | `leaf`, `base`, `head`, `commits` | A diff-checked leaf strayed from its one commit: the leaf, the step base sha, `HEAD` and the commit count. |
-| `done` | `pr`, `wall_seconds`, `awake_seconds`, `lane` | The run finished: the PR url, wall-clock seconds since the opening event (or last `resume`), awake-clock seconds over the same span (absent without both clocks), and the lane label. |
-| `exit` | `status`, `cause`, `secs` | A supervised leaf exited: its exit status, why when it was killed or refused (`cause`, absent otherwise), and the seconds it ran. |
-| `grading` | `unit`, `verdict`, `failing`, `cost_usd`, `id`, `effort` | grade-prose.sh graded a prose unit: the unit, the grader's `PASS` or `REJECT`, the ids of the rows it failed (comma-joined, empty when none), the grader leaves' dollars, the grading id its `GRADED` line names, and the effort the grader ran at (`grader.conf`'s `effort=` level, `default` when it has none). |
-| `launch` | `name`, `cmd`, `model` | The supervisor launched a leaf: its name, the command line after the binary, the model. |
-| `launch-refused` | `name`, `reason` | The supervisor refused to launch a leaf, and why. |
-| `merged` | `pr`, `tag`, `message` | The PR was merged (the issue number is the line's `issue`): `pr` the PR url; `tag` the version tag cut (empty when none); `message` the tag's capability message (empty when no tag). |
-| `mutation-record-restored` | `name`, `file` | A mutation record a leaf disturbed was restored: the record's name and file. |
+| `adjudicated` | `cause` one of ci-timeout, ci-conflict, pr-ready-failed, report-missing; `outcome` one of retry, route, bail, unparsed; `reason` text, or empty | The adjudicate leaf judged an exit 2 before it bailed: `cause` is the eligible cause (`ci-timeout`, `ci-conflict`, `pr-ready-failed`, `report-missing`), `outcome` is `retry`, `route`, `bail` or `unparsed`, and `reason` is the leaf's stated reason. |
+| `already-holds-step` | `step` text; `reason` text | `tick-ledger.sh --already-holds` retired a step whose behaviour already holds: the step's text and the reason file's `REASON:` line. |
+| `bail` | `cause` one of killed-stuck, killed-external, report-missing, no-verdict, reconcile-failed, ci-timeout, ci-conflict, step-add-refused, replaces-report-failed, criterion-unreadable, setup-failed, preflight-refused, pr-ready-failed, revise-exhausted, revise-impossible, untestable-criterion, step-too-big, rebase-unresolved, uncovered, ci-red, suite-red, rebased-tip-red, unreplaced-cases, needs-user, step-added-off-route, fixture-owed, missing-reroutes-exhausted, repair-reroutes-exhausted, graded-edit-outside-skill-edit, unpinnable-missing, repin-failed, skill-edit-refused, prep-owed; `classification` one of process, system; `suites` text; `failed` text | The run stopped: `cause` is why, one of the causes `classify-bail.sh` accepts; `classification` is `process` (the methodology spoke) or `system` (the plumbing broke), absent when the conductor stopped unmarked; `suites`, carried only by `cause=suite-red`, names every suite still red after the repair step; `failed`, carried only by `cause=ci-red`, names the CI checks that failed. |
+| `comment` | `kind` one of step-done, red, verify-red, green, verify-green, refactor, verify-refactor, verify-revised, plan, verify-plan, resuming, done, bailed, stopped; `url` url | comment.sh posted a routine comment: its `kind` (`step-done`, `red`, `verify-red`, `green`, `verify-green`, `refactor`, `verify-refactor`, `verify-revised`, `plan`, `verify-plan`, `resuming`, `done`, `bailed` or `stopped`) and the posted comment's url. |
+| `conductor-start` | `pid` whole; `started` text, or empty | A conductor began a run: its process id and start time. |
+| `conductor-restart` | `growth` whole; `knob` whole | restart-conductor.sh relaunched a run's conductor: the plan-growth count that triggered it and the knob whose change it picks up. |
+| `criterion-unticked` | `matcher` text | An issue acceptance criterion was unticked: the text that matched it (the issue number is the line's `issue`). |
+| `diff-leaf-deviation` | `leaf` text; `base` sha; `head` sha; `commits` whole | A diff-checked leaf strayed from its one commit: the leaf, the step base sha, `HEAD` and the commit count. |
+| `done` | `pr` url; `wall_seconds` whole; `awake_seconds` whole; `lane` text | The run finished: the PR url, wall-clock seconds since the opening event (or last `resume`), awake-clock seconds over the same span (absent without both clocks), and the lane label. |
+| `exit` | `status` whole; `cause` text; `secs` whole | A supervised leaf exited: its exit status, why when it was killed or refused (`cause`, absent otherwise), and the seconds it ran. |
+| `grading` | `unit` text; `verdict` one of PASS, REJECT; `failing` text, or empty; `cost_usd` decimal; `id` text; `effort` text | grade-prose.sh graded a prose unit: the unit, the grader's `PASS` or `REJECT`, the ids of the rows it failed (comma-joined, empty when none), the grader leaves' dollars, the grading id its `GRADED` line names, and the effort the grader ran at (`grader.conf`'s `effort=` level, `default` when it has none). |
+| `launch` | `name` text; `cmd` text; `model` text, or empty | The supervisor launched a leaf: its name, the command line after the binary, the model. |
+| `launch-refused` | `name` text; `reason` text | The supervisor refused to launch a leaf, and why. |
+| `merged` | `pr` url; `tag` text, or empty; `message` text, or empty | The PR was merged (the issue number is the line's `issue`): `pr` the PR url; `tag` the version tag cut (empty when none); `message` the tag's capability message (empty when no tag). |
+| `mutation-record-restored` | `name` text; `file` text | A mutation record a leaf disturbed was restored: the record's name and file. |
 | `pin` | — | The skill snapshot was pinned to a commit. |
-| `pin-retired` | `reason` | pin-recheck.sh retired a pin that a later issue's design supersedes: the reason the declaration gave. |
-| `plan` | `steps` | The plan was written to the ledger: the number of steps. |
+| `pin-retired` | `reason` text | pin-recheck.sh retired a pin that a later issue's design supersedes: the reason the declaration gave. |
+| `plan` | `steps` whole | The plan was written to the ledger: the number of steps. |
 | `prediction-diverged` | — | A step's predicted outcome differed from the observed one. |
-| `preflight-refused` | `check`, `cause`, `classification`, `detail` | A preflight check refused the run's start: `check` names the failing check, `cause` is always `preflight-refused`, and `classification` is its bail classification (`system`); `detail` is optional: the refusing check's own cause line, present only when `preflight-refused.sh` was given a third argument. |
-| `production-file-restored` | `name`, `file` | A production file a leaf changed was put back as it was before the leaf ran: `name` is the leaf, `file` the restored path. |
-| `prose-owed-waived` | `unit`, `step` | prose-owed.sh left out an owed unit because an open `⟦skill-edit⟧` step of the ledger names it: the unit and that step. |
-| `push-failed` | `error`, `attempts` | Pushing the branch failed after `attempts` tries: the git error. |
-| `push-rejected` | `remote_sha`, `error` | The remote refused the push: the remote tip sha and the git error. |
+| `preflight-refused` | `check` text; `cause` one of preflight-refused; `classification` one of system; `detail` text | A preflight check refused the run's start: `check` names the failing check, `cause` is always `preflight-refused`, and `classification` is its bail classification (`system`); `detail` is optional: the refusing check's own cause line, present only when `preflight-refused.sh` was given a third argument. |
+| `production-file-restored` | `name` text; `file` text | A production file a leaf changed was put back as it was before the leaf ran: `name` is the leaf, `file` the restored path. |
+| `prose-owed-waived` | `unit` text; `step` text | prose-owed.sh left out an owed unit because an open `⟦skill-edit⟧` step of the ledger names it: the unit and that step. |
+| `push-failed` | `error` text, or empty; `attempts` whole | Pushing the branch failed after `attempts` tries: the git error. |
+| `push-rejected` | `remote_sha` sha, or empty; `error` text, or empty | The remote refused the push: the remote tip sha and the git error. |
 | `rebase-refresh-retry` | — | A merge rebase was retried after a ref refresh. |
-| `refactor` | `transforms`, `budget`, `stopped`, `pass` | A refactor leaf finished: transforms applied, the `VERI_REFACTOR_BUDGET`, why it stopped, and whether the pass landed. |
-| `relaunch` | `cause` | A verifier was launched again: `tree-change` (the tree moved under it) or `no-verdict` (it finished without a `VERDICT:` line). |
-| `report-missing` | `name`, `missing` | A suite's output left no report line: the suite's name and the missing line (`SUITE`). |
-| `reroute` | `case`, `kind`, `at` | A step was rerouted: the case id (absent for `later`), the kind (`red`, `repair`, `supersede`, `supersede-diff`, `fixture`, `missing`, `later`, `prep`), and where (`exhausted` when the exhausted leaf asked for the step ahead; absent otherwise). |
+| `refactor` | `transforms` whole; `budget` whole; `stopped` one of nothing-left, budget, malformed, nothing-structural, structural-owed; `pass` whole | A refactor leaf finished: transforms applied, the `VERI_REFACTOR_BUDGET`, why it stopped, and which pass of the step's refactor this is (`1` for the first). |
+| `relaunch` | `cause` one of tree-change, no-verdict | A verifier was launched again: `tree-change` (the tree moved under it) or `no-verdict` (it finished without a `VERDICT:` line). |
+| `report-missing` | `name` text; `missing` one of SUITE | A suite's output left no report line: the suite's name and the missing line (`SUITE`). |
+| `reroute` | `case` text; `kind` one of red, repair, supersede, supersede-diff, fixture, missing, later, prep; `at` one of exhausted | A step was rerouted: the case id (absent for `later`), the kind (`red`, `repair`, `supersede`, `supersede-diff`, `fixture`, `missing`, `later`, `prep`), and where (`exhausted` when the exhausted leaf asked for the step ahead; absent otherwise). |
 | `resume` | — | A run resumed. |
-| `resume-rebase` | `from`, `rebased` | A resume rebased: the pre-rebase sha and the new tip. |
-| `retry` | `cause` | The supervisor relaunched a stuck leaf: why. |
-| `revise` | `budget` | A verdict was REJECT and the step was redone: the `REVISE_BUDGET`. |
-| `skill-edit-no-author` | `unit` | skill-edit-step.sh's first grading of a unit passed, so no author ran: the unit. |
-| `skill-repin` | `commit` | The skill pin was moved (`VERI_NEW_SKILL=1`, or a `release-issue.sh` release marker): the new commit. |
-| `step-added` | `anchor`, `added` | Steps were added to the ledger after `anchor`: how many. The conductor's mark carries both; add-ledger-step.sh also writes one line per inserted step, the step in the line's `step`, with neither (`anchor` and `added` absent). |
+| `resume-rebase` | `from` sha; `rebased` sha | A resume rebased: the pre-rebase sha and the new tip. |
+| `retry` | `cause` text | The supervisor relaunched a stuck leaf: why. |
+| `revise` | `budget` whole | A verdict was REJECT and the step was redone: the `REVISE_BUDGET`. |
+| `skill-edit-no-author` | `unit` text | skill-edit-step.sh's first grading of a unit passed, so no author ran: the unit. |
+| `skill-repin` | `commit` sha | The skill pin was moved (`VERI_NEW_SKILL=1`, or a `release-issue.sh` release marker): the new commit. |
+| `step-added` | `anchor` text; `added` whole | Steps were added to the ledger after `anchor`: how many. The conductor's mark carries both; add-ledger-step.sh also writes one line per inserted step, the step in the line's `step`, with neither (`anchor` and `added` absent). |
 | `step-done` | — | A step finished. |
-| `step-escalated` | `anchor`, `at` | A step was escalated to a stronger model: the step, and where (`over-budget`; absent for a revise escalation). |
-| `step-over-budget` | `spent`, `budget` | A step crossed its budget: what it spent and the budget. |
-| `step-split` | `anchor`, `added`, `at` | A step was split into smaller steps: the step, how many were added, and where (`over-budget`; absent otherwise). |
+| `step-escalated` | `anchor` text; `at` one of over-budget | A step was escalated to a stronger model: the step, and where (`over-budget`; absent for a revise escalation). |
+| `step-over-budget` | `spent` decimal; `budget` decimal | A step crossed its budget: what it spent and the budget. |
+| `step-split` | `anchor` text; `added` whole; `at` one of over-budget, exhausted | A step was split into smaller steps: the step, how many were added, and where (`over-budget`; absent otherwise). |
 | `step-start` | — | A step began. |
-| `stop` | `mode`, `at` | The run stopped on request: the mode and the point it stopped at. |
-| `structural-pass` | `transforms`, `budget`, `stopped` | The issue-wide structural pass finished: transforms applied, the `VERI_ISSUE_REFACTOR_BUDGET`, and why it stopped (`candidates-done`, `budget-spent`, `nothing-structural`; required). |
-| `suite-flake` | `at`, `files` | A red suite passed when rerun alone (rerun-alone.sh, `suite-red-resume.sh flake`): where it was red (`at`, absent from rerun-alone.sh) and the comma-joined test targets. |
+| `stop` | `mode` one of at-ledger, at-leaf, now; `at` one of unplanned, planned, green, step-done, unsettled | The run stopped on request: the mode and the point it stopped at. |
+| `structural-pass` | `transforms` whole; `budget` whole; `stopped` one of candidates-done, budget-spent, nothing-structural | The issue-wide structural pass finished: transforms applied, the `VERI_ISSUE_REFACTOR_BUDGET`, and why it stopped (`candidates-done`, `budget-spent`, `nothing-structural`; required). |
+| `suite-flake` | `at` one of suite-repair, resume; `files` text | A red suite passed when rerun alone (rerun-alone.sh, `suite-red-resume.sh flake`): where it was red (`at`, absent from rerun-alone.sh) and the comma-joined test targets. |
 | `suite-repair-retired` | — | A suite-repair step was retired. |
-| `tests-frozen-refused` | `exit`, `reason` | `tests-frozen.sh record` refused (exit 1 or 2) and wrote no record: its exit code and the message it printed. |
-| `test-run` | `tier`, `suites`, `seconds`, `status` | A timed test run ended: its tier (`fast`, `affected`, `full`), the suites it ran, seconds taken, exit status. |
-| `unpinnable-missing` | `step` | pin-reject-route.sh found that a missing-test reroute's added case cannot be pinned, the target case being green on the step's before-state: the step's text. |
-| `unpinnable-step` | `step`, `reason` | `tick-ledger.sh --unpinnable` retired a step no case can pin: the step's text and the reason file's `REASON:` line. |
-| `usage` | `duration_ms`, `duration_api_ms`, `num_turns`, `total_cost_usd`, `input_tokens`, `output_tokens`, `cache_read_input_tokens`, `cache_creation_input_tokens`, `model`, `model_usage`, `first_turn_cache_creation_input_tokens`, `first_turn_cache_read_input_tokens`, `first_turn_input_tokens` | What a leaf cost, from its closing result record: durations, turns, dollars, the four token counts, the model names (comma-joined) and a JSON object of per-model usage (`model_usage` absent when the record has none); and what its launch cost, from the first assistant record carrying usage: that turn's cache-write, cache-read and input tokens (the three `first_turn_*` keys, absent when no assistant record carries usage). |
-| `verdict` | `verdict`, `reason`, `cause` | A verifier ruled: `PASS`, `REJECT` or `malformed`; the first line of its reason; `cause=no-verdict` only when it never wrote a `VERDICT:` line. |
-| `verify-diff-skipped` | `reason` | The `diff` verifier was skipped (`switched-off`). |
-| `verify-green-skipped` | `reason` | The green verifier was skipped (`switched-off`). |
-| `verify-pin-skipped` | `reason` | The pin verifier was skipped (`switched-off`). |
-| `verify-red-skipped` | `reason` | The red verifier was skipped (`switched-off`). |
-| `verify-refactor-skipped` | `reason` | The refactor verifier was skipped (`nothing-landed`, `switched-off`). |
+| `tests-frozen-refused` | `exit` one of 1, 2; `reason` text, or empty | `tests-frozen.sh record` refused (exit 1 or 2) and wrote no record: its exit code and the message it printed. |
+| `test-run` | `tier` one of fast, affected, all, target; `suites` text, or empty; `seconds` whole; `status` whole | A timed test run ended: its tier (`fast`, `affected`, `all`, `target`), the suites it ran, seconds taken, exit status. |
+| `unpinnable-missing` | `step` text | pin-reject-route.sh found that a missing-test reroute's added case cannot be pinned, the target case being green on the step's before-state: the step's text. |
+| `unpinnable-step` | `step` text; `reason` text | `tick-ledger.sh --unpinnable` retired a step no case can pin: the step's text and the reason file's `REASON:` line. |
+| `usage` | `duration_ms` whole; `duration_api_ms` whole; `num_turns` whole; `total_cost_usd` decimal; `input_tokens` whole; `output_tokens` whole; `cache_read_input_tokens` whole; `cache_creation_input_tokens` whole; `model` text, or empty; `model_usage` json; `first_turn_cache_creation_input_tokens` whole; `first_turn_cache_read_input_tokens` whole; `first_turn_input_tokens` whole | What a leaf cost, from its closing result record: durations, turns, dollars, the four token counts, the model names (comma-joined) and a JSON object of per-model usage (`model_usage` absent when the record has none); and what its launch cost, from the first assistant record carrying usage: that turn's cache-write, cache-read and input tokens (the three `first_turn_*` keys, absent when no assistant record carries usage). |
+| `verdict` | `verdict` one of PASS, REJECT, malformed; `reason` text, or empty; `cause` one of no-verdict | A verifier ruled: `PASS`, `REJECT` or `malformed`; the first line of its reason; `cause=no-verdict` only when it never wrote a `VERDICT:` line. |
+| `verify-diff-skipped` | `reason` one of switched-off | The `diff` verifier was skipped (`switched-off`). |
+| `verify-green-skipped` | `reason` one of switched-off | The green verifier was skipped (`switched-off`). |
+| `verify-pin-skipped` | `reason` one of switched-off | The pin verifier was skipped (`switched-off`). |
+| `verify-red-skipped` | `reason` one of switched-off | The red verifier was skipped (`switched-off`). |
+| `verify-refactor-skipped` | `reason` one of nothing-landed, switched-off | The refactor verifier was skipped (`nothing-landed`, `switched-off`). |
