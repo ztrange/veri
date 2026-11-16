@@ -187,7 +187,7 @@ def run_state_ignore_row():
 def push_dry_run_row():
     probe = "HEAD:refs/heads/veri-permission-probe-" + secrets.token_hex(4)
     pushed = git.git("push", "--dry-run", "--no-verify", "origin", probe, capture_output=True, text=True,
-                     env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
+                     env={"GIT_SSH_COMMAND": "ssh -o BatchMode=yes", **os.environ, "GIT_TERMINAL_PROMPT": "0"})
     if pushed.returncode == 0:
         return "push dry-run", None
     said = [line.strip() for line in pushed.stderr.splitlines() if line.strip()]

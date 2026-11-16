@@ -324,6 +324,17 @@ def test_issue_4090_every_push_the_push_dry_run_row_makes_carries_dry_run_and_no
     assert pushes and all("--dry-run" in argv and "--no-verify" in argv for argv in pushes), fake.calls
 
 
+def test_issue_4090_the_dry_run_push_runs_ssh_in_batch_mode_unless_git_ssh_command_is_set(ready_check, fake_processes, monkeypatch):
+    fake = fake_processes.answers({PROBE_PUSH: (0, "", "")})
+    monkeypatch.delenv("GIT_SSH_COMMAND", raising=False)
+    ready_check.push_dry_run_row()
+    monkeypatch.setenv("GIT_SSH_COMMAND", "ssh -i ~/.ssh/deploy")
+    ready_check.push_dry_run_row()
+
+    commands = [(kwargs.get("env") or {}).get("GIT_SSH_COMMAND") for _, kwargs in fake.seen]
+    assert commands == ["ssh -o BatchMode=yes", "ssh -i ~/.ssh/deploy"], commands
+
+
 def test_issue_4090_ready_check_prints_a_failing_push_dry_run_row_and_exits_1_when_origin_refuses_the_dry_run(ready_check, run_cli, fake_processes, tmp_path):
     code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{PROBE_PUSH: REFUSED})
 
