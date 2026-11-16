@@ -9,7 +9,7 @@ LOGIN = "veri-bot"
 
 class FakeIssue:
     """GitHub as `gh api` sees it for one issue: its comments, the pull requests on the run's branch, and a switch that
-    makes every gh call fail. Answers git's branch read and `hostname -s` too."""
+    makes every gh call fail. Answers git's branch read, and `hostname` so a case can see it is never published."""
 
     def __init__(self, fake_processes, comments=(), pulls=(), branch="tdd/7-pointer", host="box", labels=(), extra=None):
         self.comments = [{"id": 100 + i, "body": body if isinstance(body, str) else body[0],
@@ -21,7 +21,7 @@ class FakeIssue:
         self.fake = fake_processes.answers({
             "gh": self.gh,
             "git rev-parse --abbrev-ref HEAD": (0, branch + "\n", ""),
-            "hostname -s": (0, host + "\n", ""),
+            "hostname": (0, host + "\n", ""),
             **(extra or {}),
         })
 
@@ -94,7 +94,7 @@ def test_veri_machine_name_is_a_tunable_parsed_as_text_with_an_empty_default():
     assert (entry is not None and entry.parse is tunables.text, entry and entry.default) == (True, "")
 
 
-def test_the_comment_states_the_machine_as_veri_machine_name_else_the_short_host_name_when_unset_or_empty(tmp_path, monkeypatch, fake_processes):
+def test_the_comment_states_the_machine_as_veri_machine_name_else_unnamed_machine_never_the_host_name(tmp_path, monkeypatch, fake_processes):
     monkeypatch.chdir(tmp_path)
     issue = FakeIssue(fake_processes, host="studio")
     stated = {}
@@ -106,7 +106,8 @@ def test_the_comment_states_the_machine_as_veri_machine_name_else_the_short_host
         _module().main(["7"])
         stated[case] = next(line for line in issue.bodies()[0].splitlines() if line.startswith("Machine:"))
 
-    assert stated == {"named": "Machine: lab-1", "empty": "Machine: studio", "unset": "Machine: studio"}
+    assert (stated, any("studio" in body for body in issue.bodies())) == (
+        {"named": "Machine: lab-1", "empty": "Machine: unnamed machine", "unset": "Machine: unnamed machine"}, False)
 
 
 def test_after_push_stamps_the_issue_the_run_branch_names_and_writes_nothing_on_another_branch(tmp_path, monkeypatch, fake_processes):
