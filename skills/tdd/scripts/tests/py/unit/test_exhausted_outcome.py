@@ -191,6 +191,16 @@ def test_3917_the_plain_read_prints_and_exits_as_before_on_input_holding_step_ah
     }
 
 
+def test_3917_step_ahead_reads_a_pytest_class_id_as_its_file_and_case(run_cli, tmp_path, exhausted_outcome):
+    red = _suite(tmp_path)
+    (tmp_path / "tests" / "py" / "test_cls.py").write_text(
+        "class TestUsage:\n    def test_prints_help(self):\n        pass\n")
+    report = "STEP_AHEAD: tests/py/test_cls.py::TestUsage::test_prints_help\n"
+
+    assert run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path) == (
+        0, "prep tests/py/test_cls.py::TestUsage::test_prints_help\n", "")
+
+
 def _refused(result, line):
     code, stdout, stderr = result
     return code == 2 and stdout == "" and len(stderr.splitlines()) == 1 and line in stderr
