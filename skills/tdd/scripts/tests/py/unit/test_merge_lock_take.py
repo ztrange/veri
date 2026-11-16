@@ -184,3 +184,27 @@ def test_3995_take_on_a_lock_held_past_veri_merge_lock_wait_exits_2_naming_the_h
     err = capsys.readouterr().err
     assert (code, len(err.splitlines()), f"{me} h t" in err, "100" in err, (lock / "holder").read_text(),
             sorted(p.name for p in lock.parent.glob(".merge.lock.*"))) == (2, 1, True, True, f"{me} h t\n", [])
+
+
+def test_3995_take_with_veri_merge_lock_wait_0_gives_up_at_the_first_poll_that_finds_the_lock_held(
+        tmp_path, monkeypatch, capsys):
+    me = os.getpid()
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    monkeypatch.setenv("VERI_MERGE_LOCK_WAIT", "0")
+    monkeypatch.setattr(merge_lock, "_clock", lambda: 1000.0)
+    polls = []
+
+    def sleep(_seconds):
+        polls.append(1)
+        if len(polls) > 3:
+            raise _StillPolling
+
+    monkeypatch.setattr(merge_lock, "time", SimpleNamespace(sleep=sleep))
+    lock = tmp_path / "tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    (lock / "holder").write_text(f"{me} h t\n")
+    try:
+        code = merge_lock._take(str(lock), str(lock / "holder"), ["--pid", str(me)])
+    except _StillPolling:
+        code = "still polling"
+    assert (code, polls, (lock / "holder").read_text()) == (2, [], f"{me} h t\n")
