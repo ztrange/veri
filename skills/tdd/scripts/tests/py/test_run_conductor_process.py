@@ -5239,6 +5239,38 @@ def test_cli_a_conductor_exiting_0_over_an_open_log_whose_issue_thread_already_c
     assert (code, [r.get("event") for r in events_named(tmp_path)], posted) == (0, ["done", "resume"], []), stderr
 
 
+@pytest.mark.parametrize("driver", ["graphql", "auto"])
+def test_cli_a_conductor_exiting_0_with_no_run_end_mark_finds_a_done_comment_posted_since_the_last_resume_under_the_graphql_and_auto_drivers_and_writes_no_needs_user_bail_3991(
+        tmp_path, monkeypatch, run_cli, driver):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    monkeypatch.setenv("VERI_GH_DRIVER", driver)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    gh_calls = conductor_that_prints(monkeypatch, tmp_path, ["done", "resume"],
+                                     result_record("Which option do you want?"))
+    done = {"body": "### ✅ Done\n\nhttps://github.com/ztrange/veri/pull/2066", "created_at": "2099-01-02T00:00:00Z"}
+    thread = json.dumps([done])
+    help_text = "Work seamlessly with GitHub from the command line.\n"
+    recorded = subprocess.run
+
+    def gh_reading_the_thread_only_through_gh_api(args, *a, **kwargs):
+        args = list(args)
+        if args == ["gh"]:
+            gh_calls.append([])
+            return subprocess.CompletedProcess(args, 0, help_text if kwargs.get("text") else help_text.encode(), b"")
+        if args[:2] == ["gh", "api"] and "/issues/4242/comments?" in args[2] and len(args) == 3:
+            gh_calls.append(args[1:])
+            return subprocess.CompletedProcess(args, 0, thread if kwargs.get("text") else thread.encode(), b"")
+        return recorded(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", gh_reading_the_thread_only_through_gh_api)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    posted = [call for call in gh_calls if "needs-user" in " ".join(call)]
+    assert (code, [r.get("event") for r in events_named(tmp_path)], posted) == (0, ["done", "resume"], []), stderr + repr(gh_calls)
+
+
 def test_cli_a_resumed_run_stopping_without_a_verdict_still_bails_needs_user_and_comments_when_the_only_done_on_the_thread_predates_its_last_resume_event_2238(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
