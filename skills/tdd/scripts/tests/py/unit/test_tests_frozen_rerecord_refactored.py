@@ -670,3 +670,213 @@ def test_rerecord_refactored_exits_2_not_1_when_check_earlier_cannot_obtain_an_a
     monkeypatch.chdir(tmp_path)
 
     assert tests_frozen.rerecord_refactored(PLAN_LEDGER, green) == 2
+
+
+def _step_a_red(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    """The plan repository with step A's red recorded over BODY % ("one", 1), not committed yet; returns the log."""
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, ROOT_SUITE], cwd=tmp_path)
+    return repo
+
+
+def test_rerecord_refactored_re_records_a_case_a_later_suite_repair_green_rewrote_with_the_same_assertion_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _step_a_red(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    repo.commit("A red", all=True)
+    repair = STEPS[2] + " ⟦suite-repair⟧"
+    (tmp_path / PLAN_LEDGER).write_text("- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (STEPS[0], step, repair))
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    green = repo.commit("B green", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", "step C"], cwd=tmp_path)[:2]
+
+    assert (code, _skip_lines(err, "test_suite.py test_one"), checked) == (0, 0, (0, ""))
+
+
+def test_rerecord_refactored_suite_repair_guard_skips_a_ledgers_header_and_blank_lines_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _step_a_red(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    repo.commit("A red", all=True)
+    repair = STEPS[2] + " ⟦suite-repair⟧"
+    (tmp_path / PLAN_LEDGER).write_text(
+        "# Plan\n\n- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (STEPS[0], step, repair))
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    green = repo.commit("B green", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", "step C"], cwd=tmp_path)[:2]
+
+    assert (code, _skip_lines(err, "test_suite.py test_one"), checked) == (0, 0, (0, ""))
+
+
+def test_rerecord_refactored_still_refuses_a_case_an_ordinary_green_rewrote_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _step_a_red(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    repo.commit("A red", all=True)
+    (tmp_path / PLAN_LEDGER).write_text("- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (STEPS[0], step, STEPS[2]))
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    green = repo.commit("B green", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_suite.py test_one")) == (1, 1)
+
+
+def test_rerecord_refactored_refuses_a_case_an_ordinary_green_rewrote_while_an_unrelated_earlier_suite_repair_step_is_ticked_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repair = STEPS[0] + " ⟦suite-repair⟧"
+    repo = _step_a_red(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    (tmp_path / PLAN_LEDGER).write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (repair, step, STEPS[2]))
+    repo.commit("A red, the suite-repair step ticked", all=True)
+    (tmp_path / PLAN_LEDGER).write_text("- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (repair, step, STEPS[2]))
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    green = repo.commit("B ordinary green", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_suite.py test_one")) == (1, 1)
+
+
+def test_rerecord_refactored_refuses_a_case_the_green_of_an_unticked_suite_repair_step_rewrote_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _step_a_red(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    repair = STEPS[2] + " ⟦suite-repair⟧"
+    (tmp_path / PLAN_LEDGER).write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (STEPS[0], step, repair))
+    repo.commit("A red, the suite-repair step listed but not ticked", all=True)
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    green = repo.commit("B green of the unticked step, the ledger untouched", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_suite.py test_one")) == (1, 1)
+
+
+def _repair_green_fixture(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, committed_repair):
+    """The ledger passed to rerecord-refactored ticks a suite-repair step 3 whose green rewrote step A's case; the
+    committed ledger holds that line only when `committed_repair`. Returns (fed log, green revision)."""
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _step_a_red(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    repo.commit("A red", all=True)
+    repair = STEPS[2] + " ⟦suite-repair⟧"
+    ticked = "# Plan\n\n- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (STEPS[0], step, repair)
+    if committed_repair:
+        (tmp_path / PLAN_LEDGER).write_text(ticked)
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    green = repo.commit("B green", all=True)
+    (tmp_path / PLAN_LEDGER).write_text(ticked)
+    (tmp_path / VERDICT).write_text("0")
+    return repo, green
+
+
+def test_rerecord_refactored_refuses_a_green_when_the_committed_ledger_never_held_the_suite_repair_line_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    _, green = _repair_green_fixture(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, False)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_suite.py test_one")) == (1, 1)
+
+
+def test_rerecord_refactored_skips_an_unmapped_suite_repair_line_and_accepts_a_later_valid_one_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _step_a_red(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    repo.commit("A red", all=True)
+    repair = STEPS[2] + " ⟦suite-repair⟧"
+    (tmp_path / PLAN_LEDGER).write_text("- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (STEPS[0], step, repair))
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    green = repo.commit("B green", all=True)
+    # A ticked suite-repair line the committed ledger never held, ahead of the valid one (uncommitted).
+    (tmp_path / PLAN_LEDGER).write_text("- [x] ghost step ⟦suite-repair⟧\n" + (tmp_path / PLAN_LEDGER).read_text())
+    (tmp_path / VERDICT).write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_suite.py test_one")) == (0, 0)
+
+
+def test_rerecord_refactored_refuses_a_case_a_later_commit_rewrote_again_after_a_suite_repair_green_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo, green = _repair_green_fixture(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, True)
+    suite = tmp_path / ROOT_SUITE
+    suite.write_text(suite.read_text().replace("    assert x\n", "    assert x == 1\n"))
+    repo.commit("C later rewrite that changes the assertion", all=True)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    kept = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", "step C"], cwd=tmp_path)[0]
+
+    assert (code, _skip_lines(err, "test_suite.py test_one"), kept) == (1, 1, 1)
+
+
+def test_rerecord_refactored_exits_0_for_a_case_a_later_replaces_case_step_names_in_a_pytest_suite_3624(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _step_a_red(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    repo.commit("A red", all=True)
+    replacing = "step B reverses it, replaces 'test_one' in test_suite.py ⟦replaces-case⟧"
+    (tmp_path / PLAN_LEDGER).write_text(
+        "- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (STEPS[0], step, replacing))
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 7\n"))
+    green = repo.commit("B green", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_suite.py test_one")) == (0, 0)
+
+
+def test_rerecord_refactored_exits_1_for_an_unnamed_case_a_green_rewrote_beside_a_case_a_replaces_case_step_names_3624(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1), BODY % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", step, ROOT_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    replacing = "step B reverses it, replaces 'test_one' in test_suite.py ⟦replaces-case⟧"
+    (tmp_path / PLAN_LEDGER).write_text(
+        "- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (STEPS[0], step, replacing))
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 7\n").replace("x = 2\n", "x = 8\n"))
+    green = repo.commit("B green", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_suite.py test_one"), _skip_lines(err, "test_suite.py test_two")) == (1, 0, 1)
+
+
+A_SUITE, B_SUITE = "test_a.py", "test_b.py"
+
+
+def test_rerecord_refactored_exits_1_for_a_same_named_case_in_another_suite_than_the_replaces_case_marker_names_3624(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    step = STEPS[1]
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    for suite in (A_SUITE, B_SUITE):
+        (tmp_path / suite).write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, A_SUITE, B_SUITE], cwd=tmp_path)
+    repo.add(A_SUITE, B_SUITE)
+    repo.commit("A red", all=True)
+    replacing = "step B reverses it, replaces 'test_one' in test_a.py ⟦replaces-case⟧"
+    (tmp_path / PLAN_LEDGER).write_text(
+        "- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (STEPS[0], step, replacing))
+    for suite in (A_SUITE, B_SUITE):
+        (tmp_path / suite).write_text((tmp_path / suite).read_text().replace("x = 1\n", "x = 7\n"))
+    green = repo.commit("B green", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_a.py test_one"), _skip_lines(err, "test_b.py test_one")) == (1, 0, 1)
