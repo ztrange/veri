@@ -1069,6 +1069,13 @@ def test_a_take_that_gives_up_on_a_lock_with_no_holder_file_exits_2_naming_the_l
     assert ran == (2, "", "workqueue.sh: could not take the lock %s; holder unrecorded\n" % lock)
 
 
+def test_a_take_that_gives_up_on_a_lock_whose_holder_pid_is_live_but_started_at_another_time_names_it_dead_3993(
+        tmp_path, fake_processes, run_cli, workqueue):
+    lock, ran = given_up(tmp_path, fake_processes, run_cli, workqueue, "%d\nMon Jan  5 09:00:00 2026\n" % os.getpid())
+
+    assert ran == (2, "", "workqueue.sh: could not take the lock %s; holder %d dead\n" % (lock, os.getpid()))
+
+
 def test_a_take_whose_holder_write_fails_leaves_no_lock_directory_behind_and_the_error_propagates_3993(
         tmp_path, fake_processes, monkeypatch, workqueue):
     queue_tree(tmp_path, fake_processes)
