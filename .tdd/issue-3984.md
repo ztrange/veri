@@ -7,4 +7,4 @@
 - [x] push origin --delete, faked to never return, ends after VERI_GIT_NETWORK_TIMEOUT seconds and is handled as a failed branch delete: exit 2, stderr naming the call and the limit, the lock released after cleanup ⟦criterion 1⟧
 - [x] the merge call, faked to never return after landing, ends after VERI_GH_TIMEOUT seconds and the settle window, holding the lock, reads the PR merged ⟦criterion 2⟧
 - [x] the fetch origin after the merge, faked to never return, ends after VERI_GIT_NETWORK_TIMEOUT seconds and is handled as a failed fetch: no tag, exit 2 naming tag, stderr naming the call and the limit ⟦criterion 1⟧
-- [ ] the queued-merge.sh entry of SCRIPTS.md states both bounds and how a timed-out call is handled (SC160) ⟦criterion 4⟧
+- [x] the queued-merge.sh entry of SCRIPTS.md states both bounds and how a timed-out call is handled (SC160) ⟦criterion 4⟧
