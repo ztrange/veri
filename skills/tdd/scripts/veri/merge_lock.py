@@ -112,7 +112,6 @@ def _take(lock, record, args):
         with open(os.path.join(staged, "holder"), "w") as f:
             owner = _owner(args)
             f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}" + (f" {owner}" if owner else "") + "\n")
-        reported = False
         missing = 0
         while True:
             if not _alive(int(pid)):
@@ -143,13 +142,9 @@ def _take(lock, record, args):
                 print(f"merge-lock.sh: missing, unreadable or malformed holder record {record}", file=sys.stderr)
                 return 2
             missing = 0
-            if not _alive(holder):
+            if _reused(text, holder):
                 print(f"stale lock: {text.strip()}; clear it with merge-lock.sh release --force", file=sys.stderr)
                 return 2
-            if not reported:
-                if _reused(text, holder):
-                    print("stale lock: " + text, end="", file=sys.stderr, flush=True)
-                    reported = True
             _poll_wait()
     finally:
         shutil.rmtree(staged, ignore_errors=True)
