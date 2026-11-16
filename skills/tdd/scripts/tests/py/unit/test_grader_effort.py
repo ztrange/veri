@@ -1,4 +1,5 @@
 """The grader's effort, set by an `effort=` line in grader.conf (PRD 024.10)."""
+import hashlib
 import importlib
 import json
 
@@ -74,3 +75,18 @@ def test_the_grading_event_carries_the_effort_level_or_default_when_grader_conf_
 
     gradings = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [g.get("effort") for g in gradings if g.get("event") == "grading"] == ["medium", "default"]
+
+
+def test_the_signature_stamps_the_effort_level_as_a_fourth_part_and_todays_three_parts_with_no_effort_line(
+        tmp_path, monkeypatch, grade_prose):
+    unit_tree(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    claims = "A1\tThe widget is blue.\n"
+    text = "The widget is painted a deep blue.\n"
+    signed = []
+    for line in ("effort=high\n", ""):
+        conf(tmp_path, monkeypatch, grade_prose, "model=sonnet-4\n" + line)
+        signed.append(grade_prose.signature("REQUIREMENTS.md", "unit.md"))
+
+    digest = lambda parts: hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()
+    assert signed == [digest([text, claims, "sonnet-4", "high"]), digest([text, claims, "sonnet-4"])]
