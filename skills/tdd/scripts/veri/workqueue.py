@@ -92,7 +92,11 @@ def holder_of(lock):
         return "holder %s dead" % pid
     except PermissionError:
         pass
-    if not pid_file.start_matches(holder_path(lock), pid):
+    try:
+        matches = pid_file.start_matches(holder_path(lock), pid)
+    except OSError:
+        matches = False
+    if not matches:
         return "holder %s dead" % pid
     return "holder %s alive" % pid
 
