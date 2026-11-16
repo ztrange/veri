@@ -1186,7 +1186,7 @@ def test_2483_a_unit_graded_on_a_tree_carrying_its_own_signature_formula_is_stil
     shutil.copy(SCRIPTS.parent / "grader.conf", tmp_path / "skills" / "tdd" / "grader.conf")
     module = tree_scripts / "veri" / "grade_prose.py"
     source = module.read_text()
-    formula = "parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]"
+    formula = "parts = [unit_text(unit) if text is None else text, requirements.claims(path, unit), grader_model()]"
     assert formula in source
     module.write_text(source.replace(formula, formula + "\n    parts.append(\"tree-formula\")"))
     (tmp_path / "guide").mkdir()
@@ -1217,7 +1217,7 @@ def test_2483_a_passing_grade_whose_tree_formula_cannot_be_obtained_writes_no_li
     shutil.copy(SCRIPTS.parent / "grader.conf", tmp_path / "skills" / "tdd" / "grader.conf")
     module = tree_scripts / "veri" / "grade_prose.py"
     source = module.read_text()
-    formula = "parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]"
+    formula = "parts = [unit_text(unit) if text is None else text, requirements.claims(path, unit), grader_model()]"
     assert formula in source
     module.write_text(source.replace(formula, formula + "\n    raise RuntimeError(\"tree-formula-broken\")"))
     (tmp_path / "guide").mkdir()
@@ -1259,7 +1259,7 @@ def test_2483_convert_on_a_tree_whose_signature_raises_exits_2_naming_the_disagr
     assert signed.returncode == 0, signed.stderr
     module = tree_scripts / "veri" / "grade_prose.py"
     source = module.read_text()
-    formula = "parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]"
+    formula = "parts = [unit_text(unit) if text is None else text, requirements.claims(path, unit), grader_model()]"
     assert formula in source
     module.write_text(source.replace(formula, formula + "\n    raise RuntimeError(\"tree-formula-broken\")"))
     before = (tmp_path / "guide" / "GRADED").read_bytes()
@@ -1298,7 +1298,7 @@ def test_2483_convert_resigns_the_listed_unit_under_the_trees_formula_and_leaves
     graded_file.write_text(listed_line + "\n" + unlisted_line + "\n")
     module = tree_scripts / "veri" / "grade_prose.py"
     source = module.read_text()
-    formula = "parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]"
+    formula = "parts = [unit_text(unit) if text is None else text, requirements.claims(path, unit), grader_model()]"
     assert formula in source
     module.write_text(source.replace(formula, formula + "\n    parts.append(\"tree-formula\")"))
 
@@ -1338,7 +1338,7 @@ def test_2483_convert_leaves_a_listed_units_stale_graded_line_byte_identical_and
     before = graded_file.read_bytes()
     module = tree_scripts / "veri" / "grade_prose.py"
     source = module.read_text()
-    formula = "parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]"
+    formula = "parts = [unit_text(unit) if text is None else text, requirements.claims(path, unit), grader_model()]"
     assert formula in source
     module.write_text(source.replace(formula, formula + "\n    parts.append(\"tree-formula\")"))
 
@@ -1384,7 +1384,7 @@ def test_2483_convert_resigns_a_unit_listed_only_in_a_per_directory_requirements
     before = graded_file.read_text()
     module = tree_scripts / "veri" / "grade_prose.py"
     source = module.read_text()
-    formula = "parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]"
+    formula = "parts = [unit_text(unit) if text is None else text, requirements.claims(path, unit), grader_model()]"
     assert formula in source
     module.write_text(source.replace(formula, formula + "\n    parts.append(\"tree-formula\")"))
 

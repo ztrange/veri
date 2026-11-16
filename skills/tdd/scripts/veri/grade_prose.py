@@ -97,8 +97,9 @@ def unit_text(unit, reader=None):
     return section(text, heading) if heading else text
 
 
-def signature(path, unit):
-    parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]
+def signature(path, unit, text=None):
+    """The stamp of `unit` under the list `path` names; `text` is the unit's text (None: the working tree's)."""
+    parts = [unit_text(unit) if text is None else text, requirements.claims(path, unit), grader_model()]
     return stamp(parts)
 
 
@@ -401,7 +402,7 @@ def grade_unit(path, unit, read=None):
     ours = stamp([text, claims, model])
     try:
         own = signer()
-        sig = ours if own is sys.modules[__name__] else own.signature(path, unit)
+        sig = ours if own is sys.modules[__name__] else own.signature(path, unit, text)
     except Exception as e:
         print("grade-prose.sh: signature-formula-disagreement: %s: the running grader signs %s, the tree's formula gave none (%s)"
               % (unit, ours, e), file=sys.stderr)

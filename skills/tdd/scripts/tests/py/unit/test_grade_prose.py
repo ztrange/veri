@@ -1840,3 +1840,25 @@ def test_main_renders_grade_units_record_to_the_bytes_grade_prose_printed_a_pass
 
     assert (grading.code, grading.verdict, grading.failing, grading.lines, grading.out) == (0, "PASS", (), (), "\n")
     assert (code, out) == (0, grading.out), err
+
+
+def test_in_a_tree_holding_grade_prose_py_a_pass_through_a_non_default_reader_signs_the_text_that_reader_returned_under_the_trees_formula_3891(
+        tmp_path, monkeypatch, grade_prose, fake_processes):
+    _grader_tree(tmp_path, monkeypatch, grade_prose, fake_processes,
+                 "BEGIN GRADES\nA1: PASS - blue\nVERDICT: PASS\nEND GRADES\n")
+    tree_module = tmp_path / "skills" / "tdd" / "scripts" / "veri" / "grade_prose.py"
+    tree_module.parent.mkdir()
+    with open(grade_prose.__file__, encoding="utf-8") as f:
+        tree_module.write_text(f.read() + "\n\nSCRIPTS = %r\n_running_stamp = stamp\n\n\ndef stamp(parts):\n"
+                               "    return _running_stamp(parts + [\"tree-formula\"])\n"
+                               % str(tmp_path / "skills" / "tdd" / "scripts"))
+    claims = grade_prose.requirements.claims("REQUIREMENTS.md", "unit.md")
+    under_tree_formula = {grade_prose.stamp([text, claims, "sonnet-4", "tree-formula"]): text
+                          for text in ("The default branch says blue.\n", "The working tree says green.\n")}
+
+    grading = grade_prose.grade_unit("REQUIREMENTS.md", "unit.md", read=lambda file: "The default branch says blue.\n")
+
+    graded = tmp_path / "GRADED"
+    fields = graded.read_text().split() if graded.exists() else []
+    signed = under_tree_formula.get(fields[1], fields[1]) if len(fields) > 1 else None
+    assert (grading.code, fields[:1], signed) == (0, ["unit.md"], "The default branch says blue.\n")
