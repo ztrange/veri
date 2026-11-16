@@ -103,9 +103,15 @@ def one_line(name):
 
 def read(components, threshold, timeout):
     """(code, lines) of one read: 1 and a line per counting incident, else 0 and `up` or the young lines."""
-    counting, young = [], []
+    counting, young, seen = [], [], set()
     for incident in incidents(timeout):
-        matched = [one_line(c.get("name")) for c in incident.get("components") or () if c.get("name") in components]
+        key = incident.get("id")
+        if key is not None:
+            if str(key) in seen:
+                continue
+            seen.add(str(key))
+        matched = list(dict.fromkeys(one_line(c.get("name")) for c in incident.get("components") or ()
+                                     if c.get("name") in components))
         if not matched:
             continue
         start = started(incident)
