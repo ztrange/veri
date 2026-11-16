@@ -246,6 +246,34 @@ def test_main_appends_one_verdict_record_with_the_verdict_word_and_the_reasons_f
         record("verdict", "verdict=" + word, "reason=" + reason_line, issue="931", step="5", phase=phase)]
 
 
+@pytest.mark.parametrize("verdict_lines, word, code", [
+    ("VERDICT: REJECT\nREASON: the pass is not genuine\n", "REJECT", 1),
+    ("VERDICT: PASS\nREASON: the pass is not genuine\n", "PASS", 0),
+    ("VERDICT: MAYBE\nREASON: the pass is not genuine\n", "malformed", 2),
+])
+@pytest.mark.parametrize("check_line, check", [
+    ("CHECK: 3\n", ["check=3"]), ("CHECK: 1\n", ["check=1"]), ("CHECK: 5\n", ["check=5"]),
+    ("", []), ("CHECK: 0\n", []), ("CHECK: 6\n", []), ("CHECK: three\n", []), ("CHECK: 3 and 4\n", []),
+    ("CHECK:\n", []), ("CHECK: 33\n", []),
+])
+def test_main_puts_a_check_from_1_to_5_on_a_green_verdict_event_and_none_for_an_absent_or_other_value_leaving_the_verdict_and_code_as_without_the_line(
+        verdict_lines, word, code, check_line, check, tmp_path, monkeypatch, events, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    write_inputs(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_ISSUE", "931")
+    monkeypatch.setenv("VERI_STEP", "5")
+    answering_leaf(monkeypatch, fake_processes, (check_line + verdict_lines).encode())
+    events.refuse_event_sh()
+    verify = importlib.import_module("veri.verify")
+
+    returned = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    reason = "" if word == "malformed" else "the pass is not genuine"
+    assert (returned, events.records()) == (code, [
+        record("verdict", "verdict=" + word, "reason=" + reason, *check, issue="931", step="5")])
+
+
 def test_main_launches_the_leaf_with_verify_leaf_args_words_split_on_whitespace_and_glob_expanded_in_the_working_directory(
         tmp_path, monkeypatch, fake_processes):
     monkeypatch.chdir(tmp_path)
