@@ -2602,13 +2602,13 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
                                 "4242\n", [(4242, 0)], True, []),
         "alive-refused-role": (2, b"", [REFUSAL.format("bogus-x", "develop-red", 4242)], "2\n", None,
                                "4242 develop-red\n", [(4242, 0)], True, []),
-        "alive-zero": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
-        "alive-negative": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
-        "owner-exit": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
-        "empty-pid": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
-        "word-pid": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
-        "dead": (launched, b"", [], None, mine, f"{me} verify-red\n", [(4242, 0)], True, verifier),
-        "none-watched": (launched, b"", [], None, mine, f"{me} develop-red\n", [], True,
+        "alive-zero": (launched, b"", [], None, mine, f"{me} verify-red\nThu Nov 11 09:00:00 2026\n", [], True, verifier),
+        "alive-negative": (launched, b"", [], None, mine, f"{me} verify-red\nThu Nov 11 09:00:00 2026\n", [], True, verifier),
+        "owner-exit": (launched, b"", [], None, mine, f"{me} verify-red\nThu Nov 11 09:00:00 2026\n", [], True, verifier),
+        "empty-pid": (launched, b"", [], None, mine, f"{me} verify-red\nThu Nov 11 09:00:00 2026\n", [], True, verifier),
+        "word-pid": (launched, b"", [], None, mine, f"{me} verify-red\nThu Nov 11 09:00:00 2026\n", [], True, verifier),
+        "dead": (launched, b"", [], None, mine, f"{me} verify-red\nThu Nov 11 09:00:00 2026\n", [(4242, 0)], True, verifier),
+        "none-watched": (launched, b"", [], None, mine, f"{me} develop-red\nThu Nov 11 09:00:00 2026\n", [], True,
                          [("launch", "developer", "develop-red")]),
         "none-verdict": (launched, b"", [], None, mine, None, [], True, []),
         "none-conductor": (launched, b"", [], None, mine, None, [], True, [("launch", "conductor", "conductor-1")]),
@@ -2644,9 +2644,26 @@ def test_main_treats_a_leaf_owner_pid_below_1_as_stale_and_launches_1200(
                 [(r["event"], r["actor"], r["name"]) for r in events.records(work)])
 
     assert {pid: supervised(pid) for pid in ("0", "-7")} == {
-        pid: (("launched", "/bin/sh"), b"", False, f"{me} verify-red\n", [("launch", "verifier", "verify-red")])
+        pid: (("launched", "/bin/sh"), b"", False, f"{me} verify-red\nThu Nov 11 09:00:00 2026\n", [("launch", "verifier", "verify-red")])
         for pid in ("0", "-7")
     }
+
+
+def test_main_writes_leaf_owner_with_pid_and_name_on_line_1_and_its_start_time_on_line_2_3988(
+        monkeypatch, tmp_path, capsysbinary, supervise, events):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    monkeypatch.chdir(tmp_path)
+    fake_git_only(monkeypatch, tmp_path)
+    events.refuse_event_sh()
+
+    with pytest.raises(Launched):
+        supervise.main(["develop-red", "true"])
+
+    assert (tdd / "leaf.owner").read_text() == f"{os.getpid()} develop-red\nThu Nov 11 09:00:00 2026\n"
 
 
 class NoHandler(BaseException):
@@ -4037,7 +4054,7 @@ def test_cli_launches_when_the_recorded_leaf_is_gone_or_finished_under_the_same_
     corpse.wait()
     (gone / ".tdd" / "leaf.owner").write_text(f"{corpse.pid} revise-green-1\n")
     gone_answer = (launch(gone, "revise-green-1", "sh", "-c", "echo ran > ran"), (gone / "ran").exists(),
-                   (gone / ".tdd" / "leaf.owner").read_text().endswith(" revise-green-1\n"))
+                   (gone / ".tdd" / "leaf.owner").read_text().split("\n")[0].endswith(" revise-green-1"))
 
     done = tmp_path / "done"
     done.mkdir()

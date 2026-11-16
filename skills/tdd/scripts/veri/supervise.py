@@ -30,7 +30,7 @@ from leaf_log import result_records
 from leaf_model import leaf_model
 from leaf_role import leaf_role
 from ledger import carries_mark, ledger_steps, step_at, trailing_markers
-from pid_file import number_in, record
+from pid_file import number_in, ps_field, record
 
 HERE = paths.scripts_of(__file__)
 
@@ -666,7 +666,9 @@ def main(argv):
     name, cmd, role, model, leaf_env, log, rcfile, exitfile, ownerfile, retries, watch = plan
     watched, kill_poll = watch.watched, watch.kill_poll
     if watched and not name.startswith("conductor-"):
-        tolerated(name, "write", ownerfile, write_line, ownerfile, f"{os.getpid()} {name}")
+        started = ps_field("lstart", os.getpid())
+        owner = f"{os.getpid()} {name}\n{started}" if started else f"{os.getpid()} {name}"
+        tolerated(name, "write", ownerfile, write_line, ownerfile, owner)
     mark(role, leaf_env, "launch", *launch_fields(name, cmd, model))
     pidfile = run_dir.run_file("", f"{name}.pid")
     tolerated(name, "write", pidfile, record, pidfile, os.getpid())
