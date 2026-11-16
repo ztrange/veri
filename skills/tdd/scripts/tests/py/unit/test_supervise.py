@@ -177,3 +177,15 @@ def test_now_with_veri_wall_clock_unset_or_empty_returns_int_time_time_as_text_4
     empty = supervise.now()
 
     assert (unset, empty) == ("1700000000", "1700000000")
+
+
+def test_mtime_of_returns_int_os_stat_st_mtime_as_text_and_now_when_the_file_is_missing_4129(
+        monkeypatch, tmp_path, supervise, fake_processes):
+    import time
+    fake_processes.answers({"stat": (0, "5\n", ""), "date": (0, "5\n", "")})
+    log = tmp_path / "develop-red.log"
+    log.write_text("")
+    os.utime(log, (1234567890.7, 1234567890.7))
+    monkeypatch.setattr(time, "time", lambda: 1700000000.2)
+
+    assert (supervise.mtime_of(str(log)), supervise.mtime_of(str(tmp_path / "missing.log"))) == ("1234567890", "1700000000")

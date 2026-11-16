@@ -121,12 +121,10 @@ def now():
 
 
 def mtime_of(path):
-    m = answered("stat", "-c", "%Y", path)
-    if m is None:
-        m = answered("stat", "-f", "%m", path)
-    if not re.fullmatch(r"[0-9]+", m or ""):
-        m = now()
-    return m
+    try:
+        return str(int(os.stat(path).st_mtime))
+    except OSError:
+        return now()
 
 
 def signal_tree(pid, sig):
