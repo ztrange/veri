@@ -240,3 +240,18 @@ def test_a_stack_line_that_cannot_be_a_stack_exits_2_naming_it_before_the_lock_i
 
     taken = [c for c in world.calls if c.startswith("merge-lock.sh")]
     assert (code, taken, "veri: stack branch:" in err) == (2, [], True), err
+
+
+def test_after_a_joins_exit_0_the_runs_remote_branch_is_deleted_and_its_worktree_removed_the_main_clone_not_moved(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    wt = "git -C %s " % world.wt
+    cleanup = [c for c in world.calls if "--delete" in c or "worktree remove" in c or "branch -D" in c]
+    moved = [c for c in world.calls if "pull" in c or "merge --ff-only" in c or "reset" in c or "checkout" in c]
+    after_release = world.calls.index(released(world)[0]) < world.calls.index(cleanup[0]) if cleanup else None
+    assert (code, cleanup, moved, after_release) == (0, [
+        wt + "push origin --delete " + BRANCH, wt + "worktree remove " + world.wt,
+        "git -C %s branch -D %s" % (CLONE, BRANCH)], [], True), err

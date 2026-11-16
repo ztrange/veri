@@ -566,9 +566,28 @@ def _join(pid, repo, pr, worktree, branch, stack, window):
         return code
     try:
         code = _joined(pid, repo, pr, worktree, branch, stack)
-        return code or _confirmed(repo, pr, stack, window)
+        code = code or _confirmed(repo, pr, stack, window)
     finally:
-        _release(pid)
+        released = _release(pid)
+    if code:
+        return code
+    return _join_cleanup(worktree, branch, released)
+
+
+def _join_cleanup(worktree, branch, released):
+    """After a confirmed join, the lock already released: delete the run's remote branch, remove its worktree and
+    its local branch; the main clone is not moved, since a join does not move the default branch. 0, or 2 naming
+    each step that failed (a failed release among them)."""
+    failed = ["release"] if released else []
+    clone = os.path.dirname(_git(worktree, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
+    _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch,
+          runner=lambda cwd, *args: git.network("-C", cwd, *args))
+    _step(failed, "worktree remove", worktree, "worktree", "remove", worktree)
+    _step(failed, "local branch delete", clone, "branch", "-D", branch)
+    if failed:
+        _say("joined, but cleanup failed: %s" % ", ".join(failed))
+        return 2
+    return 0
 
 
 def _stack_base(repo, pr, worktree):
