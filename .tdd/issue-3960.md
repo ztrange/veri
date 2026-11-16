@@ -30,4 +30,4 @@
 - [x] bounded redacts the input it hands gh on stdin
 - [x] a full-length token at a line's end leaves the next line byte-identical
 - [x] a token folded across two lines of a gh CI log, or after a bare ISO timestamp, is redacted whole
-- [ ] SCRIPTS.md and the docstring say exactly what may go with a token that ends a line
+- [x] SCRIPTS.md and the docstring say exactly what may go with a token that ends a line
