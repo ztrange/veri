@@ -51,3 +51,24 @@ def test_2750_report_running_omits_a_journal_whose_conductor_start_pid_is_alive_
     lines = [line.strip() for line in out.splitlines()]
     running = lines[lines.index("Running") + 1:lines.index("Queue")]
     assert (code, [x for x in running if x.startswith("#")]) == (0, []), running
+
+
+def test_3996_report_running_omits_a_journal_whose_conductor_start_records_no_start_time_though_its_pid_answers_and_ps_gives_none(tmp_path, monkeypatch, run_cli, fake_processes):
+    """No start time on either side is not an observed match: a live pid alone may be a reused one."""
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    home = tmp_path / "home"
+    monkeypatch.setenv("VERI_HOME", str(home))
+    runs = home / "runs" / "acme-widgets"
+    runs.mkdir(parents=True)
+    (runs / "2750.jsonl").write_text(json.dumps(
+        {"event": "conductor-start", "ts": "2026-11-02T10:00:00Z", "awake": 0, "pid": os.getpid(), "started": ""}) + "\n")
+    fake_processes.answers({"ps ": (0, "\n", "")}, default=(0, "", ""))
+
+    code, out, _ = run_cli(status, ["--report"])
+
+    lines = [line.strip() for line in out.splitlines()]
+    running = lines[lines.index("Running") + 1:lines.index("Queue")]
+    assert (code, [x for x in running if x.startswith("#")]) == (0, []), running
