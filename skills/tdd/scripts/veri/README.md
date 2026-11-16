@@ -268,7 +268,7 @@ Where a run lives on disk, its journal of events and its pin files and mutation 
 
 ## event
 - `mark(directory, context, event, fields=(), ts=None)`: appends an event to the run journal; returns 0, or 2 after printing the refusal on any exception.
-- `append(directory, context, event, fields=(), ts=None)`: the same without the catch; returns 2 for an empty event name or a bad `structural-pass`.
+- `append(directory, context, event, fields=(), ts=None)`: the same without the catch; returns 2 for an empty event name or a bad `structural-pass`, and, under `VERI_EVENT_STRICT=1`, for an event `event_table` does not allow (`strict_refusal(args)` says why).
 - `context(environ)`: the run's context fields (issue, step, …) read from an environment.
 - `line(args, context, ts, awake)`, `awake_reading()`, `toplevel()`: the JSON line (bytes); the uptime reading (bytes, or an int exit code on a failed clock); the repo top (`""` outside one).
 - `journal_path(clone, issue)`: the path of the shared journal, `None` when the clone's config is unreadable. `state_labels(event, issue)`: mirrors a bail, resume or start onto the issue's labels.
