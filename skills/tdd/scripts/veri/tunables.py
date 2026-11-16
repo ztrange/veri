@@ -149,6 +149,7 @@ TUNABLES = {
     "VERI_GH_REFUSAL_SLEEP": Tunable(text, "60"),
     "VERI_GH_DRIVER": Tunable(gh_driver, "rest"),
     "VERI_GH_TIMEOUT": Tunable(text, "300"),
+    # Set but empty or blank reads as this default too: value redaction cannot be turned off (github.redact).
     "VERI_REDACT_VARS": Tunable(text, "GH_TOKEN GITHUB_TOKEN ANTHROPIC_API_KEY CLAUDE_CODE_OAUTH_TOKEN"),
     "VERI_GIT_NETWORK_TIMEOUT": Tunable(text, "600"),
     "VERI_GITHUB_STATUS_URL": Tunable(text, "https://www.githubstatus.com"),

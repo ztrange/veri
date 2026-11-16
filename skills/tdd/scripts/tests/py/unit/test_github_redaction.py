@@ -65,6 +65,14 @@ def test_veri_redact_vars_defaults_to_gh_token_and_names_another_variable_when_s
         "[redacted] fake-deploy-key-value", "fake-gh-token-value [redacted]")
 
 
+@pytest.mark.parametrize("empty", ["", "  "])
+def test_a_set_but_empty_veri_redact_vars_reads_as_the_default_list_issue_3960(github, monkeypatch, empty):
+    monkeypatch.setenv("VERI_REDACT_VARS", empty)
+    monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
+
+    assert github.redact("t=fake-gh-token-value") == "t=[redacted]"
+
+
 def posted(fake_processes, answer=(0, "https://github.com/o/r/issues/7#issuecomment-1\n", "")):
     """fake_processes answering every gh call with <answer>; the returned fake's argvs are what gh was handed."""
     return fake_processes.answers({"gh": answer})
