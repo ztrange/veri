@@ -73,3 +73,13 @@ def test_gh_issue_comment_hands_gh_the_body_redacted_issue_3960(github, fake_pro
     github.gh_issue_comment("7", "leaf said %s\n" % token)
 
     assert "body=leaf said [redacted]\n" in fake.argvs[-1] and token not in " ".join(fake.argvs[-1])
+
+
+def test_a_comment_body_with_nothing_to_redact_reaches_gh_byte_identical_issue_3960(github, fake_processes, monkeypatch):
+    monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
+    body = "  ghp_short AKIA123 sk-ant-x github_pat_y fake-gh-token\r\n\\n é ✓ `gh[pousr]_` \t\n\n"
+    fake = posted(fake_processes)
+
+    github.gh_issue_comment("7", body)
+
+    assert fake.argvs[-1][4] == "body=" + body
