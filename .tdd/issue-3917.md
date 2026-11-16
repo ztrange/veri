@@ -24,4 +24,4 @@
 - [x] `--step-ahead` skips the red case however the leaf spells its path
 - [x] `--step-ahead` refuses a path that is absolute, starts with `..` or resolves outside the repository, naming the line
 - [x] `--step-ahead` prints a case named twice once, in first-seen order
-- [ ] `SCRIPTS.md` and row SC140 say a `[param]` suffix is checked against the grammar only, graded PASS
+- [x] `SCRIPTS.md` and row SC140 say a `[param]` suffix is checked against the grammar only, graded PASS
