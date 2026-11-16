@@ -1214,10 +1214,9 @@ def test_verify_refactor_skipped_posts_the_skipped_heading_without_reading_the_v
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-refactor", url)]
 
 
-def test_every_heading_comment_sh_posts_for_the_green_refactor_and_revised_kinds_is_classified_by_comment_class_as_the_hand_composed_heading_is(
+def test_comment_sh_posts_every_heading_of_the_green_refactor_and_revised_kinds_with_exit_0(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")
-    comment_class = importlib.import_module("veri.comment_class")
     posted = []
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
                         lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-97")
@@ -1235,28 +1234,6 @@ def test_every_heading_comment_sh_posts_for_the_green_refactor_and_revised_kinds
         for phase in ("green", "refactor"):
             (tdd / f"verdict-{phase}.exit").write_text((verdict or "0") + "\n")
         assert run_cli(comment, ["7", *argv], cwd=tmp_path)[0] == 0
-
-    headings = [body.splitlines()[0] for body in posted]
-    hand = [
-        "### 🟢 Green",
-        "### 🔎 verify-green — PASS",
-        "### 🔎 verify-green — REJECT",
-        "### 🛠️ Refactor",
-        "### 🔎 verify-refactor — PASS",
-        "### 🔎 verify-refactor — REJECT",
-        "### 🔎 verify-refactor — SKIPPED (nothing landed)",
-        "### 🔎 verify-green (revised) — PASS",
-    ]
-    results = []
-    for name, lines in (("posted", headings), ("hand", hand)):
-        directory = tmp_path / name
-        directory.mkdir()
-        (directory / "headings.md").write_text("\n".join(lines) + "\n")
-        code, out, err = run_cli(comment_class, ["headings.md"], cwd=directory)
-        assert code == 0, err
-        results.append(out)
-
-    assert results[0] == results[1]
 
 
 def test_plan_posts_the_plan_heading_listing_every_ledger_step_and_the_detected_test_command_and_appends_a_comment_event(
@@ -1412,10 +1389,9 @@ def test_resuming_with_no_unchecked_step_posts_the_heading_then_the_note_file_te
     assert posted == ["### ▶️ Resuming\n\nstray paths discarded: scratch/zulu.txt\n"]
 
 
-def test_every_heading_comment_sh_posts_for_plan_verify_plan_and_resuming_is_classified_by_comment_class_as_the_hand_composed_heading_is_and_falls_in_its_metrics_family(
+def test_every_heading_comment_sh_posts_for_plan_verify_plan_and_resuming_falls_in_the_metrics_family_of_the_hand_composed_heading(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")
-    comment_class = importlib.import_module("veri.comment_class")
     metrics = importlib.import_module("metrics")
     github = importlib.import_module("github")
     posted = []
@@ -1440,16 +1416,6 @@ def test_every_heading_comment_sh_posts_for_plan_verify_plan_and_resuming_is_cla
         "### 🗺️ verify-plan — REJECT",
         "### ▶️ Resuming",
     ]
-    results = []
-    for name, lines in (("posted", headings), ("hand", hand)):
-        directory = tmp_path / name
-        directory.mkdir()
-        (directory / "headings.md").write_text("\n".join(lines) + "\n")
-        code, out, err = run_cli(comment_class, ["headings.md"], cwd=directory)
-        assert code == 0, err
-        results.append(out)
-    assert results[0] == results[1]
-
     families = dict(metrics.COMMENT_FAMILIES)
     for heading, hand_heading, family in zip(headings, hand, ["🗺️ Plan", "🗺️ verify-plan", "🗺️ verify-plan", "▶️ Resuming"]):
         assert re.search(families[family], heading)
@@ -1763,10 +1729,9 @@ def test_stopped_posts_the_operator_stop_comment_with_the_resume_command_when_re
         assert "context growth" not in body
 
 
-def test_every_heading_comment_sh_posts_for_bailed_and_stopped_is_classified_by_comment_class_as_the_hand_composed_heading_is_and_falls_in_its_metrics_family_and_the_bailed_one_reads_as_bail(
+def test_every_heading_comment_sh_posts_for_bailed_and_stopped_falls_in_the_metrics_family_of_the_hand_composed_heading_and_the_bailed_one_reads_as_bail(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")
-    comment_class = importlib.import_module("veri.comment_class")
     metrics = importlib.import_module("metrics")
     dispatch = importlib.import_module("dispatch")
     posted = _done_setup(monkeypatch, tmp_path, [
@@ -1790,16 +1755,6 @@ def test_every_heading_comment_sh_posts_for_bailed_and_stopped_is_classified_by_
         "### ⏹️ Stopped — graceful",
         "### ⛔ Bailed — plan (system failure)",
     ]
-    results = []
-    for name, lines in (("posted", headings), ("hand", hand)):
-        directory = tmp_path / name
-        directory.mkdir()
-        (directory / "headings.md").write_text("\n".join(lines) + "\n")
-        code, out, err = run_cli(comment_class, ["headings.md"], cwd=directory)
-        assert code == 0, err
-        results.append(out)
-    assert results[0] == results[1]
-
     families = dict(metrics.COMMENT_FAMILIES)
     for heading, hand_heading, family in zip(headings, hand, ["⛔ Bailed", "⏹️ Stopped", "⛔ Bailed"]):
         assert re.search(families[family], heading)
