@@ -6,6 +6,7 @@ import sys
 import ci_marks
 import event
 import event_log
+import git
 import github
 import rerun_alone
 import tunables
@@ -39,6 +40,18 @@ def passes_alone(alone_cmd, target):
     return None if isinstance(ran, github.TimedOut) or not 0 <= ran.returncode < 128 else ran.returncode == 0
 
 
+def not_the_ci_head(head):
+    """Why the worktree cannot stand for the CI run's tree: HEAD is not <head>, the tree is dirty, or git cannot
+    answer; None when it can. A target passing alone elsewhere says nothing about the head CI ran."""
+    try:
+        at, dirty = git.out("rev-parse", "HEAD"), git.out("status", "--porcelain")
+    except git.GitFailed as failed:
+        return "git cannot read the worktree: %s" % failed
+    if at != head:
+        return "HEAD is %s, not the CI run's head %s" % (at, head)
+    return "the worktree has uncommitted changes" if dirty else None
+
+
 def no_rerun_left(n, head, budget):
     """True when issue <n> made <budget> or more re-runs since its last conductor-start, or ever re-ran <head>."""
     spent, head_rerun = 0, False
@@ -65,6 +78,10 @@ def main(argv):
         return 2
     if no_rerun_left(n, head, budget):
         return 3
+    refusal = not_the_ci_head(head)
+    if refusal:
+        sys.stderr.write("ci-flake: %s\n" % refusal)
+        return 2
     with open(log_file, errors="replace") as log:
         text = log.read()
     try:

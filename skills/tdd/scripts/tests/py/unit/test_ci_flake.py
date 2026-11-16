@@ -24,11 +24,21 @@ REAL_TARGET = ("skills/tdd/scripts/tests/py/unit/test_local_process_fakes.py::"
 
 def test_4018_a_real_gh_failed_log_with_its_byte_order_mark_before_the_first_timestamp_yields_its_one_failed_target(
         tmp_path, run_cli, fake_processes, ci_flake):
-    fake = fake_processes.answers({"sh -c": (1, "", "")})
+    fake = answered(fake_processes, {"sh -c": (1, "", "")})
 
     code, _, err = run_cli(ci_flake, ["4018", HEAD, "43927348629", ALONE, str(REAL_LOG)], cwd=tmp_path)
 
-    assert (code, fake.argvs, err) == (1, [["sh", "-c", ALONE, "sh", REAL_TARGET]], "")
+    assert (code, alone_runs(fake), err) == (1, [["sh", "-c", ALONE, "sh", REAL_TARGET]], "")
+
+
+def answered(fake_processes, table, head=HEAD, status=""):
+    """fake_processes.answers(<table>) over a worktree whose HEAD is <head> and whose `git status --porcelain` is <status>."""
+    return fake_processes.answers(dict({"git rev-parse HEAD": (0, head + "\n", ""),
+                                        "git status --porcelain": (0, status, "")}, **table))
+
+
+def alone_runs(fake):
+    return [argv for argv in fake.argvs if argv[:2] == ["sh", "-c"]]
 
 
 @pytest.fixture
@@ -44,11 +54,11 @@ def _log(tmp_path, text=RED_LOG):
 
 def test_4018_reads_the_targets_of_a_gh_prefixed_failed_log_and_runs_each_once_alone_with_the_target_as_1(
         tmp_path, run_cli, fake_processes, ci_flake):
-    fake = fake_processes.answers({"sh -c": (1, "", "")})
+    fake = answered(fake_processes, {"sh -c": (1, "", "")})
 
     run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path)], cwd=tmp_path)
 
-    assert fake.argvs == [["sh", "-c", ALONE, "sh", target] for target in TARGETS]
+    assert alone_runs(fake) == [["sh", "-c", ALONE, "sh", target] for target in TARGETS]
 
 
 def _marks(tmp_path, *shas):
@@ -62,7 +72,7 @@ def test_4018_every_target_green_alone_and_the_re_run_accepted_exits_0_with_one_
         tmp_path, run_cli, fake_processes, ci_flake, events):
     other = "f" * 40
     _marks(tmp_path, HEAD, other)
-    fake = fake_processes.answers({"sh -c": (0, "", ""), "gh run rerun 12345 --failed": (0, "", "")})
+    fake = answered(fake_processes, {"sh -c": (0, "", ""), "gh run rerun 12345 --failed": (0, "", "")})
 
     code, out, _ = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path)], cwd=tmp_path)
 
@@ -88,7 +98,7 @@ def test_4018_exits_2_writing_no_ci_rerun_event_on_bad_arguments_an_unreadable_l
         tmp_path, run_cli, fake_processes, ci_flake, events, argv, rerun):
     log = _log(tmp_path)
     argv = [{"LOG": log, "MISSING": str(tmp_path / "absent.log")}.get(a, a) for a in argv]
-    fake_processes.answers({"sh -c": (0, "", ""), "gh run rerun": rerun})
+    answered(fake_processes, {"sh -c": (0, "", ""), "gh run rerun": rerun})
 
     code, out, err = run_cli(ci_flake, argv, cwd=tmp_path)
 
@@ -107,7 +117,7 @@ def test_4018_exits_2_when_an_alone_run_gets_no_answer_the_log_holds_a_line_with
            "glued-line": RED_LOG.replace("\n", " ", 1)}.get(case, RED_LOG)
     if case == "event-unwritable":
         monkeypatch.setattr(ci_flake.event, "mark", lambda *args, **kwargs: 2)
-    fake = fake_processes.answers({"sh -c": HANGS if case == "alone-run-hangs" else
+    fake = answered(fake_processes, {"sh -c": HANGS if case == "alone-run-hangs" else
                                    [(0, "", ""), (-9, "", "")] if case == "alone-run-killed-by-a-signal" else
                                    [(0, "", ""), (137, "", "")] if case == "alone-run-child-killed-137" else (0, "", ""),
                                    "gh run rerun": (0, "", "")})
@@ -145,7 +155,7 @@ def test_4018_exits_3_running_nothing_and_writing_no_event_when_the_run_s_re_run
         tmp_path, run_cli, fake_processes, ci_flake, events, knob, journal, answer):
     _journal(tmp_path, *journal)
     before = events.records(tmp_path)
-    fake = fake_processes.answers({"sh -c": (0, "", ""), "gh run rerun": (0, "", "")})
+    fake = answered(fake_processes, {"sh -c": (0, "", ""), "gh run rerun": (0, "", "")})
     env = {} if knob is None else {"VERI_CI_FLAKE_RERUNS": knob}
 
     code, out, _ = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path)], env=env, cwd=tmp_path)
@@ -162,7 +172,7 @@ def test_4018_counts_only_ci_rerun_events_re_running_with_other_budgets_spent_an
              {"issue": "4018", "event": "revise", "budget": "0"})
     (tmp_path / ".tdd" / "issue-4018.md").write_text(
         "# Plan for #4018\n\n- [x] a step\n- [ ] ⟦ci-repair⟧ CI red: test_x fails\n")
-    fake = fake_processes.answers({"sh -c": (0, "", ""), "gh run rerun 12345 --failed": (0, "", "")})
+    fake = answered(fake_processes, {"sh -c": (0, "", ""), "gh run rerun 12345 --failed": (0, "", "")})
 
     code, out, _ = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path)],
                            env={"REVISE_BUDGET": "0", "VERI_ADJUDICATE_BUDGET": "0"}, cwd=tmp_path)
@@ -171,13 +181,31 @@ def test_4018_counts_only_ci_rerun_events_re_running_with_other_budgets_spent_an
     assert [c for c in fake.calls if c.startswith("gh")] == ["gh run rerun 12345 --failed"]
 
 
+@pytest.mark.parametrize("head, status, git_fails", [
+    ("f" * 40, "", False),
+    (HEAD, " M skills/a/test_x.py\n", False),
+    (HEAD, "", True),
+], ids=["head-is-another-commit", "dirty-tree", "git-fails"])
+def test_4018_exits_2_with_one_line_running_nothing_when_the_worktree_is_not_the_ci_head_clean(
+        tmp_path, run_cli, fake_processes, ci_flake, events, head, status, git_fails):
+    fake = answered(fake_processes, {"sh -c": (0, "", ""), "gh": (0, "", "")}, head=head, status=status)
+    if git_fails:
+        fake = answered(fake_processes, {"sh -c": (0, "", ""), "gh": (0, "", ""),
+                                         "git rev-parse HEAD": (128, "", "fatal: not a git repository\n")})
+
+    code, out, err = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path)], cwd=tmp_path)
+
+    assert (code, out, len(err.splitlines()), "Traceback" in err) == (2, "", 1, False)
+    assert ([c for c in fake.calls if not c.startswith("git ")], events.records(tmp_path)) == ([], [])
+
+
 @pytest.mark.parametrize("log, alone", [
     (PREFIX % 0 + "##[error]Process completed with exit code 2.\n", []),
     (RED_LOG, [(0, "", ""), (1, "", "")]),
 ], ids=["no-target", "one-target-stays-red"])
 def test_4018_exits_1_writing_no_event_and_making_no_re_run_when_the_log_names_no_target_or_one_stays_red_alone(
         tmp_path, run_cli, fake_processes, ci_flake, log, alone):
-    fake = fake_processes.answers({"sh -c": alone, "gh": (0, "", "")})
+    fake = answered(fake_processes, {"sh -c": alone, "gh": (0, "", "")})
 
     code, out, _ = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path, log)], cwd=tmp_path)
 
