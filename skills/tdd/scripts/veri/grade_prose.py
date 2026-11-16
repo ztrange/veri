@@ -402,7 +402,10 @@ def grade_unit(path, unit, read=None):
     ours = stamp([text, claims, model])
     try:
         own = signer()
-        sig = ours if own is sys.modules[__name__] else own.signature(path, unit, text)
+        if own is sys.modules[__name__]:
+            sig = ours
+        else:
+            sig = own.signature(path, unit) if read is None else own.signature(path, unit, text)
     except Exception as e:
         print("grade-prose.sh: signature-formula-disagreement: %s: the running grader signs %s, the tree's formula gave none (%s)"
               % (unit, ours, e), file=sys.stderr)
