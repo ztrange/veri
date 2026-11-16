@@ -49,9 +49,16 @@ def cut_socket_timeout(response, seconds):
         sock.settimeout(seconds)
 
 
-def opener():
-    """The opener the feed is fetched with."""
-    return urllib.request.build_opener()
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Follows no redirect: a 3xx reaches the caller as an HTTPError, its body unread."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def opener(*handlers):
+    """The opener the feed is fetched with: it follows no redirect. `handlers` are added (a test's transport)."""
+    return urllib.request.build_opener(NoRedirect(), *handlers)
 
 
 def fetch(url, timeout, deadline):
@@ -60,6 +67,7 @@ def fetch(url, timeout, deadline):
     try:
         response = opener().open(url, timeout=min(timeout, left(url, deadline)))
     except urllib.error.HTTPError as error:
+        error.close()
         return error.code, b""
     with response:
         read_some = getattr(response, "read1", response.read)
