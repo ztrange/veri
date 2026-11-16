@@ -17,13 +17,16 @@ repaired or removed, by name (a removed one prints as `removed <name>`).
 ## Stacking finished runs
 
 During setup, after reporting the links, run `$S/stack-branch.sh [repo-root]`. When it exits 0,
-report the stack branch it printed and do not ask. When it exits 3, ask the user whether the
+report the stack branch it printed and do not ask. When it exits 2, the `CLAUDE.md` already holds a
+`veri: stack branch:` line that cannot name a stack: report its stderr to the user, write nothing and
+do not ask; the user fixes or removes that line. When it exits 3, ask the user whether the
 repository stacks finished runs on a standing branch and, if so, under what branch name:
 
 - On a name, write the line `veri: stack branch: <name>` into the repository's `CLAUDE.md`
   (creating the file when there is none), then run `$S/stack-branch.sh [repo-root]` again. Exit 0
-  is done. Exit 2 means the name cannot be a stack (empty, the default branch, or refused by
-  `git check-ref-format --branch`): report its stderr, take the line out again and ask once more.
+  is done. Exit 2 means the name cannot be a stack (empty, a placeholder, the default branch in any
+  spelling, a `refs/` or `origin/` name, or refused by `git check-ref-format --branch`, or the default
+  branch cannot be told): report its stderr, take the line out again and ask once more.
 - On a no, write nothing: each run then keeps one pull request against the default branch, a CI
   wait and a merge call.
 
