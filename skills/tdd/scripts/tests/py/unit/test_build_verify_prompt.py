@@ -1873,3 +1873,20 @@ def test_3919_plan_states_each_touching_test_file_whose_cases_it_cannot_read_wit
                               "tests/test_gone.py: cases not readable"], False)
     assert stated(capped) == (["tests/route.test.js: cases not readable",
                                "2 more test files whose cases are not readable"], False)
+
+
+def test_3919_plan_lists_first_the_files_touching_a_path_a_step_gives_in_full_then_by_hits_then_alphabetically(
+        tmp_path, run_cli, build_verify_prompt):
+    tree = {"skills/tdd/SCRIPTS.md": "# scripts\n", "scripts/build-verify-prompt.sh": "exit 0\n",
+            "skills/x/route.py": "pass\n",
+            "tests/test_y_bvp.py": ("from veri import build_verify_prompt\n" + "build_verify_prompt.main\n" * 4
+                                    + "\n\ndef test_bvp_case():\n    pass\n"),
+            "tests/test_z_route.py": "import route\n\n\ndef test_route_case():\n    pass\n",
+            **{f"tests/test_a{i}_process.py": f"SCRIPTS = 1\n\n\ndef test_a{i}_case():\n    pass\n" for i in range(10)}}
+    code, out, _ = plan_in_tree(tmp_path, run_cli, build_verify_prompt, tree,
+                                ["SCRIPTS.md's build-verify-prompt.sh entry names skills/x/route.py"],
+                                env={"VERI_PLAN_TOUCHING_CASES": "3"})
+    section = touching_section(out) or ""
+
+    assert (code, re.findall(r"^tests/\S+\.py$", section, re.M)) == (
+        0, ["tests/test_z_route.py", "tests/test_y_bvp.py", "tests/test_a0_process.py"])
