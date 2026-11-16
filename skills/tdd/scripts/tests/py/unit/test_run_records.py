@@ -30,6 +30,19 @@ def test_the_carried_journal_keeps_the_issues_lines_and_those_naming_no_issue_as
     assert [json.loads(line) for line in carried] == lines[:3]
 
 
+def test_a_token_or_a_listed_value_in_a_journal_value_or_key_is_carried_redacted_issue_3960(tmp_path, monkeypatch, run_records):
+    token = "ghp_" + "FAKEfake0123" * 3
+    monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
+    (tmp_path / ".tdd").mkdir()
+    line = {"issue": "7", "event": "bail", "failed": "leaf said %s\\n and fake-gh-token-value" % token, token: "k"}
+    (tmp_path / ".tdd" / "events.jsonl").write_text(json.dumps(line) + "\n")
+
+    carried = run_records.records(str(tmp_path), "7")["events.jsonl"].decode()
+
+    assert json.loads(carried) == {"issue": "7", "event": "bail", "failed": "leaf said [redacted]\\n and [redacted]",
+                                   "[redacted]": "k"}
+
+
 def test_the_ref_carries_what_a_reader_restores_the_journal_lines_the_skill_pin_and_the_timeout_pin(tmp_path, run_records):
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "events.jsonl").write_text('{"issue": "7", "event": "start"}\n')
