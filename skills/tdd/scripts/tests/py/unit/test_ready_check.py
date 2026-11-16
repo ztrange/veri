@@ -133,6 +133,15 @@ def test_issue_4089_token_scopes_row_fails_saying_no_answer_was_obtained_when_gh
     assert ready_check.token_scopes_row() == ("token scopes", "no answer was obtained (gh api -i user exited 1)")
 
 
+def test_issue_4089_token_scopes_row_says_what_github_answered_when_gh_api_user_gets_a_non_2xx_status(ready_check, fake_processes):
+    unauthorized = "HTTP/2.0 401 Unauthorized\r\nContent-Type: application/json\r\n\r\n{\"message\": \"Bad credentials\"}"
+    fake_processes.answers({"gh api -i user": (1, unauthorized, "gh: Bad credentials (HTTP 401)\n"), "git remote get-url": SSH_ORIGIN})
+
+    name, fix = ready_check.token_scopes_row()
+
+    assert name == "token scopes" and "HTTP/2.0 401 Unauthorized" in fix and "no answer" not in fix, fix
+
+
 NOT_FOUND = (1,'{"message": "Not Found", "status": "404"}', "gh: Not Found (HTTP 404)\n")
 
 
