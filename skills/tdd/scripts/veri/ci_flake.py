@@ -11,8 +11,8 @@ import rerun_alone
 import tunables
 
 USAGE = "usage: ci-flake.sh <n> <head-sha> <run-id> '<alone-cmd>' <log-file>"
-# One line of `gh run view --log-failed`: job, step and timestamp before the runner's own text.
 WHOLE = re.compile(r"[0-9]+")
+# One line of `gh run view --log-failed`: job, step and timestamp before the runner's own text.
 STAMP = re.compile(r"\t\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z")
 GH_LINE = re.compile(r"^[^\t]*\t[^\t]*" + STAMP.pattern + " ?(.*)$")
 
