@@ -1,10 +1,12 @@
 """github-status.sh: whether GitHub's status page has an incident on the components veri needs, run in-process.
 
-One read is bounded as a whole on the monotonic clock: VERI_GITHUB_STATUS_TIMEOUT seconds from its start, and never
-past a `wait`'s own deadline. The connection's socket timeout is that time left, and the body is read in chunks, each
-with the socket timeout cut to what is left, so a server dripping bytes is cut off at the deadline; it reads at most
-MAX_BODY + 1 bytes. No thread and no process are started. Name resolution (getaddrinfo) has no timeout of its own
-and is the one step outside the bound."""
+One read has one deadline on the monotonic clock: VERI_GITHUB_STATUS_TIMEOUT seconds from its start, and never past a
+`wait`'s own deadline. On the main thread of a platform with SIGALRM, a real-time timer armed for the time left bounds
+the whole fetch (name resolution, connect, status line and headers, body), its handler raising NoAnswer; the previous
+SIGALRM handler and timer are put back after. Off the main thread, each socket operation is bounded by the time left
+and the body as a whole by the deadline checked between chunks (name resolution and a dripping status line or headers
+are then not bounded). Either way the body is read in chunks, at most MAX_BODY + 1 bytes, and no redirect is followed.
+No thread and no process are started."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import datetime
 import http.client
