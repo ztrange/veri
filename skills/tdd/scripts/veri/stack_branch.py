@@ -78,6 +78,39 @@ def named(root):
     return name
 
 
+def ahead(root="."):
+    """(stack, default, commits): the stack branch <root>'s CLAUDE.md names, the default branch, and the commits of
+    origin/<default>..origin/<stack> as [(sha, subject)], oldest first, read after a fetch of origin; commits is empty
+    when origin holds no stack branch. None when CLAUDE.md names no stack. Refused for a name that cannot be a stack,
+    a fetch that got no answer, a default branch that cannot be told or that origin lacks, or a log git refuses."""
+    stack = named(root)
+    if stack is None:
+        return None
+    fetch = git.network("-C", root, "fetch", "origin")
+    if fetch.returncode:
+        raise Refused("git fetch origin got no answer (exit %d): %s" % (fetch.returncode, " ".join(fetch.stderr.split())[:200]))
+    told = default_names(root)
+    if len(told) != 1:
+        raise Refused("the default branch cannot be told: origin and refs/remotes/origin/HEAD name %s"
+                      % (" and ".join(sorted(told)) or "none"))
+    default = told.pop()
+    refs = {}
+    for name in (default, stack):
+        found = git.git("-C", root, "rev-parse", "--verify", "--quiet", "refs/remotes/origin/" + name,
+                        capture_output=True, text=True)
+        refs[name] = found.stdout.strip() if found.returncode == 0 else None
+    if not refs[default]:
+        raise Refused("origin has no %s branch, the default branch" % default)
+    if not refs[stack]:
+        return stack, default, []
+    log = git.git("-C", root, "log", "--reverse", "--format=%H %s", "%s..%s" % (refs[default], refs[stack]),
+                  capture_output=True, text=True)
+    if log.returncode:
+        raise Refused("git log origin/%s..origin/%s failed (exit %d): %s" % (
+            default, stack, log.returncode, " ".join(log.stderr.split())[:200]))
+    return stack, default, [tuple(line.split(" ", 1)) if " " in line else (line, "") for line in log.stdout.splitlines()]
+
+
 def recorded_base(root):
     """(path, text) of the one `.tdd/issue-<n>-base` file under <root>, the base issue-worktree.sh recorded when it cut a
     stacked run there; None when there is none. Refused when there are several."""
