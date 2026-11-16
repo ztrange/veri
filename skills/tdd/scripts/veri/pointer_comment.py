@@ -38,7 +38,8 @@ def step(issue):
             steps = ledger.ledger_steps(f.read())
     except FileNotFoundError:
         return "none"
-    current = next((s.number for s in steps if s.state == "open"), str(len(steps)))
+    # A step ticked green whose refactor is still pending is not finished: it is the one the run is on.
+    current = next((s.number for s in steps if s.state == "open" or s.pending == "1"), str(len(steps)))
     return "%s/%d" % (current, len(steps))
 
 
