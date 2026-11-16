@@ -38,6 +38,20 @@ def passes_alone(alone_cmd, target):
     return None if isinstance(ran, github.TimedOut) else ran.returncode == 0
 
 
+def no_rerun_left(n, head, budget):
+    """True when issue <n> made <budget> or more re-runs since its last conductor-start, or ever re-ran <head>."""
+    spent, head_rerun = 0, False
+    for e in event_log.events(".", "conductor-start", "ci-rerun"):
+        if str(e.get("issue")) != n:
+            continue
+        if e.get("event") == "conductor-start":
+            spent = 0
+        else:
+            spent += 1
+            head_rerun = head_rerun or e.get("head") == head
+    return spent >= budget or head_rerun
+
+
 def main(argv):
     if len(argv) != 5 or not WHOLE.fullmatch(argv[0]) or not WHOLE.fullmatch(argv[2]) \
             or not re.fullmatch(r"[0-9a-f]{40}", argv[1]):
@@ -48,16 +62,7 @@ def main(argv):
     if bad:
         sys.stderr.write("ci-flake: VERI_CI_FLAKE_RERUNS must be %s, got '%s'\n" % (bad[1], bad[0]))
         return 2
-    spent, head_rerun = 0, False
-    for e in event_log.events(".", "conductor-start", "ci-rerun"):
-        if str(e.get("issue")) != n:
-            continue
-        if e.get("event") == "conductor-start":
-            spent = 0
-        elif e.get("event") == "ci-rerun":
-            spent += 1
-            head_rerun = head_rerun or e.get("head") == head
-    if spent >= budget or head_rerun:
+    if no_rerun_left(n, head, budget):
         return 3
     with open(log_file, errors="replace") as log:
         text = log.read()
