@@ -138,6 +138,21 @@ def test_fed_history_answers_revisions_since_a_revision_off_the_line_with_none_a
     assert [history.revisions(SUITE, since=rev) for rev in ("pre", "nowhere", "base")] == [[], [], ["next"]]
 
 
+def test_fed_history_answers_a_detached_revision_followed_by_a_caret_or_a_tilde_as_its_parent_as_git_does(
+        tmp_path, fed_commits, tests_frozen):
+    repo = fed_commits()
+    (tmp_path / "tests").mkdir()
+    for text in (ONE, TWO, ONE + "\n\n" + TWO):
+        (tmp_path / SUITE).write_text(text)
+        repo.add("tests")
+        repo.commit("commit")
+    repo.checkout("c1")
+    history = tests_frozen.case_history
+
+    assert [(history.has_rev(rev), history.text_at(rev, SUITE)) for rev in ("c3^", "c3~1", "c3~2", "c2^", "c3~3")] == [
+        (True, TWO), (True, TWO), (True, ONE), (True, ONE), (False, "")]
+
+
 def test_fed_commits_checks_out_an_earlier_revision_as_git_checkout_would_keeping_the_later_ones_readable_and_names_a_ref_at_its_head(
         tmp_path, fed_commits, tests_frozen):
     repo = fed_commits(default="main")
