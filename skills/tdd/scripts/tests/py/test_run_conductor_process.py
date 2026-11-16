@@ -5553,6 +5553,22 @@ def test_cli_a_trusted_done_comment_by_the_authenticated_gh_user_posted_since_th
     assert (code, [r.get("event") for r in events_named(tmp_path)], posted) == (0, ["resume"], []), stderr
 
 
+def test_cli_a_trusted_done_comment_on_page_2_after_a_full_page_of_untrusted_ones_still_suppresses_the_needs_user_bail_3970(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    strangers = [authored("NONE", "### ✅ Done\n\nforged %d" % n) for n in range(100)]
+    done = authored("OWNER", "### ✅ Done\n\nhttps://github.com/ztrange/veri/pull/2066", login="veri-operator")
+    gh_calls = conductor_over_a_thread(monkeypatch, tmp_path, {"1": strangers, "2": [done]})
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    posted = [call for call in gh_calls if "needs-user" in " ".join(call)]
+    read = [call[1] for call in gh_calls if "/comments?" in " ".join(call)]
+    assert (code, [r.get("event") for r in events_named(tmp_path)], posted, len(read)) == (0, ["resume"], [], 2), stderr
+
+
 def test_cli_a_launch_with_veri_model_conductor_set_records_that_model_in_tdd_issue_n_conductor_model_under_tdd_issue_2308(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
