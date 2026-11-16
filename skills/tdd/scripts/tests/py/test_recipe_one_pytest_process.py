@@ -62,14 +62,15 @@ def planted_tree(tmp_path, small=PLANTED_CASES.split("@pytest.mark.process")[0])
     return tree
 
 
-def make(tree, log, target, **veri):
+def make(tree, log, target, timeout=None, **veri):
+    """(exit code, sorted cases the planted tree noted, output) of one nested make; <timeout> bounds the wait."""
     log.write_text("")
     env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
     env["VERI_PYTEST_LEGS"] = os.environ["VERI_PYTEST_LEGS"]
     env.update({"VERI_PYTEST_WORKERS": "1", **veri})
     env["PLANTED_RAN_LOG"] = str(log)
     ran = subprocess.run(["make", "-C", str(tree), target], env=env, stdin=subprocess.DEVNULL,
-                         capture_output=True, text=True)
+                         capture_output=True, text=True, timeout=timeout)
     return ran.returncode, sorted(log.read_text().splitlines()), ran.stdout + ran.stderr
 
 
@@ -129,23 +130,33 @@ def test_make_test_with_tests_naming_a_file_and_a_node_id_runs_only_those_in_one
         (0, ["pytest medium", "pytest small"], 1), ran.stdout + ran.stderr
 
 
-# four nested make runs, 60 s each
-@pytest.mark.timeout(240)
-@pytest.mark.process("make unit and make test started for real, with two pytest workers, over a planted tree whose small case fails")
-@pytest.mark.serial("starts a nested pytest run that times out when every core is busy")
-def test_two_workers_pass_and_fail_the_same_cases_as_serial_and_name_a_failing_case_by_its_node_id(tmp_path):
+# two nested make runs per case, each bounded at NESTED_MAKE_BOUND, so a hung one fails the case before its mark does
+NESTED_MAKE_BOUND = 100
+
+
+def _two_workers_match_serial(tmp_path, target, ran_cases, counts):
     failing = PLANTED_CASES.split("@pytest.mark.process")[0].replace('note("pytest small")', 'note("pytest small")\n    assert False')
     tree, log = planted_tree(tmp_path, small=failing), tmp_path / "ran.log"
     node = "skills/tdd/scripts/tests/py/unit/test_planted_small.py::test_small"
-    for target, ran_cases, counts in (("unit", ["pytest small"], "1 failed in"),
-                                      ("test", ["pytest medium", "pytest small", "pytest small"], "1 failed, 2 passed in")):
-        serial = make(tree, log, target, VERI_PYTEST_WORKERS="1")
-        parallel = make(tree, log, target, VERI_PYTEST_WORKERS="2")
-        output = parallel[2]
-        assert (parallel[0], parallel[1]) == (serial[0], serial[1]) == (2, ran_cases), output
-        assert [line.startswith("FAILED " + node) for line in output.splitlines() if line.startswith("FAILED ")] == [True], output
-        assert counts in output, output
-        assert ("SUITES FAILED" in output, "all suites green" in output) == ("SUITES FAILED" in serial[2], False), output
+    serial = make(tree, log, target, timeout=NESTED_MAKE_BOUND, VERI_PYTEST_WORKERS="1")
+    parallel = make(tree, log, target, timeout=NESTED_MAKE_BOUND, VERI_PYTEST_WORKERS="2")
+    output = parallel[2]
+    assert (parallel[0], parallel[1]) == (serial[0], serial[1]) == (2, ran_cases), output
+    assert [line.startswith("FAILED " + node) for line in output.splitlines() if line.startswith("FAILED ")] == [True], output
+    assert counts in output, output
+    assert ("SUITES FAILED" in output, "all suites green" in output) == ("SUITES FAILED" in serial[2], False), output
+
+
+@pytest.mark.timeout(240)
+@pytest.mark.process("make unit started for real, with one and with two pytest workers, over a planted tree whose small case fails")
+def test_make_unit_with_two_workers_passes_and_fails_the_same_cases_as_serial_and_names_a_failing_case_by_its_node_id(tmp_path):
+    _two_workers_match_serial(tmp_path, "unit", ["pytest small"], "1 failed in")
+
+
+@pytest.mark.timeout(240)
+@pytest.mark.process("make test started for real, with one and with two pytest workers, over a planted tree whose small case fails")
+def test_make_test_with_two_workers_passes_and_fails_the_same_cases_as_serial_and_names_a_failing_case_by_its_node_id(tmp_path):
+    _two_workers_match_serial(tmp_path, "test", ["pytest medium", "pytest small", "pytest small"], "1 failed, 2 passed in")
 
 
 @pytest.mark.timeout(120)
