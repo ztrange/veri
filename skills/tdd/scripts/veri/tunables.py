@@ -100,6 +100,7 @@ def choice(*allowed):
 local_or_ci = choice("local", "ci")
 baseline_full_tier = choice("run", "reuse")
 gh_driver = choice("auto", "rest", "graphql")
+effort_level = choice("low", "medium", "high", "xhigh", "max")
 
 
 class Tunable:
@@ -185,6 +186,7 @@ TUNABLES = {
     "VERI_MODEL_VERIFIER": Tunable(text, "sonnet"),
     "VERI_MODEL_REVISE": Tunable(text, "opus"),
     "VERI_MODEL_REVISE_GREEN": Tunable(text, ""),
+    "VERI_EFFORT_VERIFIER": Tunable(effort_level, ""),
     "VERI_MODEL_ADJUDICATOR": Tunable(text, "opus"),
     "VERI_MODEL_CONDUCTOR": Tunable(text, "opus"),
     "VERI_MISSING_REROUTE_BUDGET": Tunable(tokens, "3"),
