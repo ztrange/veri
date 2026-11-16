@@ -64,7 +64,7 @@ def step_ahead(red_test_id):
         param = os.fsdecode(checked.group(3) or b"")
         if not os.path.isfile(file):
             return _refuse("names no existing file", line)
-        if not file_defines(file, names[-1]):
+        if not file_defines(file, names[-1], names[:-1]):
             return _refuse("names a case its file does not define", line)
         cases.append(os.fsencode("::".join([file, *names]) + param))
     if not cases:

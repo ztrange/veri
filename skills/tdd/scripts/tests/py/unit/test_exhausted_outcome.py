@@ -249,6 +249,20 @@ def test_3917_step_ahead_prints_each_id_rebuilt_from_its_checked_parts(run_cli, 
            " tests/py/test_solvable.py::test_prints_usage[x-y.1]\n", "")
 
 
+def test_3917_step_ahead_refuses_a_class_id_whose_class_is_absent_or_does_not_define_the_case(run_cli, tmp_path, exhausted_outcome):
+    red = _suite(tmp_path)
+    (tmp_path / "t").mkdir()
+    (tmp_path / "t" / "test_x.py").write_text(
+        "class TestK:\n    def test_b(self):\n        pass\n\n\ndef test_a():\n    pass\n")
+    lines = ["STEP_AHEAD: t/test_x.py::TestK::test_a", "STEP_AHEAD: t/test_x.py::TestNope::test_a"]
+
+    results = {line: run_cli(exhausted_outcome, ["--step-ahead", red], stdin=line + "\n", cwd=tmp_path)
+               for line in lines}
+
+    assert all(_refused(result, line) and "does not define" in result[2]
+               for line, result in results.items()), results
+
+
 def _refused(result, line):
     code, stdout, stderr = result
     return code == 2 and stdout == "" and len(stderr.splitlines()) == 1 and line in stderr
