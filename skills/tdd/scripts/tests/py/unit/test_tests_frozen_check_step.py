@@ -12,7 +12,7 @@ def tests_frozen():
 
 # Names, not literals, in calls: a literal suite path reads as a nested run.
 NEW, OTHER, GONE, LATER = "tests/test_new.py", "tests/test_other.py", "tests/test_gone.py", "tests/test_later.py"
-UNTRACKED, EXTRA, OLD_SH = "tests/test_untracked.py", "tests/test_extra.py", "tests/old.test.sh"
+UNTRACKED, EXTRA, OLD_SUITE = "tests/test_untracked.py", "tests/test_extra.py", "tests/old.py"
 OLD_PY, FIXTURE, SUITE = "tests/test_old.py", "tests/conftest.py", "a.test.sh"
 FIXTURE_STEP = ("the case passes: repairs the fixture 'db' in %s, reproduced by a case in %s ⟦fixture-repair⟧"
                 % (FIXTURE, NEW))
@@ -148,10 +148,10 @@ def test_check_step_exits_0_printing_nothing_when_only_non_test_files_changed_17
 
 def test_check_step_exits_0_on_a_replaces_case_step_when_only_the_suite_it_names_changed_1733(
         tmp_path, run_cli, tests_frozen, red_recorded):
-    step = "⟦replaces-case⟧ replaces 'old case' in %s" % OLD_SH
-    red_recorded({NEW: "one\n", OLD_SH: "one\n"}, step=step)
+    step = "⟦replaces-case⟧ replaces 'old case' in %s" % OLD_SUITE
+    red_recorded({NEW: "one\n", OLD_SUITE: "one\n"}, step=step)
 
-    (tmp_path / OLD_SH).write_text("case deleted\n")
+    (tmp_path / OLD_SUITE).write_text("case deleted\n")
     code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (code, out) == (0, "")
@@ -159,10 +159,10 @@ def test_check_step_exits_0_on_a_replaces_case_step_when_only_the_suite_it_names
 
 def test_check_step_on_a_replaces_case_step_exits_1_naming_another_unrecorded_test_file_and_not_the_suite_it_names_1733(
         tmp_path, run_cli, tests_frozen, red_recorded):
-    step = "⟦replaces-case⟧ replaces 'old case' in %s" % OLD_SH
-    red_recorded({NEW: "one\n", OLD_SH: "one\n", OTHER: "one\n"}, step=step)
+    step = "⟦replaces-case⟧ replaces 'old case' in %s" % OLD_SUITE
+    red_recorded({NEW: "one\n", OLD_SUITE: "one\n", OTHER: "one\n"}, step=step)
 
-    (tmp_path / OLD_SH).write_text("case deleted\n")
+    (tmp_path / OLD_SUITE).write_text("case deleted\n")
     (tmp_path / OTHER).write_text("one, weakened\n")
     code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
