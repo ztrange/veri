@@ -574,6 +574,7 @@ class Fold:
     structural_inconsistency: object   # what contradicts itself in the structural mark, or None
     refactor_totals: list       # refactor_total rows: each step with a pass, then the issue
     green_rejects: list         # (step, attempt, route, reason) per green REJECT verdict, in log order
+    green_reject_routes: list   # (route, count) over green_rejects, by count descending, then route
 
 
 def fold(issue, path, ledger):
@@ -612,8 +613,13 @@ def fold(issue, path, ledger):
         found = session_spend(transcripts, command, first_event, done_at) if transcripts else None
         if found:
             operator_sessions.append((label,) + found)
+    green_rejects = [(step, attempt, "none" if route is None else route, reason)
+                     for step, attempt, route, reason in tally.green_rejects]
+    routes = {}
+    for _step, _attempt, route, _reason in green_rejects:
+        routes[route] = routes.get(route, 0) + 1
     structural = tally.structural
-    structural_marked = structural is not None and "stopped" in structural
+    structural_marked =structural is not None and "stopped" in structural
     if structural is None and ending is not None and ending.get("event") == "done":
         structural = {"stopped": "not marked"}
     return Fold(issue=issue, marks=marks,
@@ -643,8 +649,8 @@ def fold(issue, path, ledger):
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
                 switched_off_pin=tally.switched_off_pin,
                 conductor_counted=tally.conductor_counted, total=tally.total, structural=structural,
-                green_rejects=[(step, attempt, "none" if route is None else route, reason)
-                               for step, attempt, route, reason in tally.green_rejects])
+                green_rejects=green_rejects,
+                green_reject_routes=sorted(routes.items(), key=lambda item: (-item[1], item[0])))
 
 
 def known(number):
@@ -832,6 +838,8 @@ def layout(f):
         table_head("#### Green rejects", "step", ["attempt", "route", "reason"], ["---:", "---", "---"])
         for step, attempt, route, reason in f.green_rejects:
             row([step, attempt, route, UNKNOWN if reason is None else reason.replace("|", "\\|")])
+        print()
+        print("Green rejects by route: " + ", ".join("%s %d" % item for item in f.green_reject_routes))
     print()
     print("The figure comparable across runs is turns, the same measurement on any model; dollars "
           "are not comparable, the same measurement only at the same VERI_MODEL, "
