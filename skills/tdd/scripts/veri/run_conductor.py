@@ -399,7 +399,11 @@ def conduct(text, issue, env):
             pass
     if code < 0:
         return 128 - code
-    if code == 0 and result is not None and not closed(issue) and not done_posted(issue):
+    posted = done_posted(issue) if code == 0 and result is not None and not closed(issue) else True
+    if posted is None:
+        sys.stderr.write("run-conductor: no answer reading the comments of issue #%s; no needs-user bail written\n" % issue)
+        return 2
+    if not posted:
         if event.mark(run_worktree(issue), event.context(tunables.with_values(VERI_ISSUE=issue)),
                       "bail", ["cause=needs-user"]) != 0:
             return 2
@@ -432,13 +436,16 @@ def closed(issue):
 
 
 def done_posted(issue):
+    """Whether a `### ✅ Done` comment was posted since the last resume; None when GitHub gave no answer."""
     since = last_resume(issue)
     number = 1
     while True:
         try:
-            page = github.gh_json_page("", "repos/{owner}/{repo}/issues/%s/comments?per_page=100&page=%d" % (issue, number))
-            thread = json.loads(page)
-        except (github.NoAnswer, ValueError):
+            thread = json.loads(github.gh_json_page(
+                "", "repos/{owner}/{repo}/issues/%s/comments?per_page=100&page=%d" % (issue, number)))
+        except github.NoAnswer:
+            return None
+        except ValueError:
             return False
         bodies = thread if isinstance(thread, list) else thread.get("comments", [])
         if any(isinstance(c, dict) and str(c.get("body", "")).startswith("### ✅ Done")
