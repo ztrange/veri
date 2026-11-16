@@ -174,7 +174,10 @@ def run_state_ignore_row():
 def push_dry_run_row():
     probe = "HEAD:refs/heads/veri-permission-probe-" + secrets.token_hex(4)
     pushed = git.git("push", "--dry-run", "origin", probe, capture_output=True, text=True)
-    return "push dry-run", None if pushed.returncode == 0 else "origin refused a dry-run push"
+    if pushed.returncode == 0:
+        return "push dry-run", None
+    said = [line.strip() for line in pushed.stderr.splitlines() if line.strip()]
+    return "push dry-run", said[-1] if said else f"git push --dry-run origin exited {pushed.returncode}"
 
 
 def bash_row():
