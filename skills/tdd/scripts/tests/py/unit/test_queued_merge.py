@@ -1490,3 +1490,13 @@ def test_3984_queued_merge_whose_leased_push_never_returns_ends_it_after_the_git
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
     assert (code, "HEAD:refs/heads/feature: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err, "lock kept" in err,
             released, first(calls, "wait-ci.sh")) == (2, True, True, [], None)
+
+
+def test_3984_queued_merge_whose_tag_push_never_returns_ends_it_after_the_git_network_timeout_as_a_failed_tag_push_and_exits_2_naming_tag(fake_processes, run_cli):
+    calls = scenario(hanging(fake_processes, "git -C /wt push origin v0.11"))
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GIT_NETWORK_TIMEOUT": "7"})
+
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, "push origin v0.11: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err, first(calls, "tag -d v0.11") is not None,
+            "merged, but cleanup failed: tag" in err, len(released)) == (2, True, True, True, 1)
