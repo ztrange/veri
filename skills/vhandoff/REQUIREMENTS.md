@@ -5,7 +5,7 @@
 | H1 | Invoked as `/vhandoff dev\|coord`. Resume is `/vdev --resume <file>` or `/vcoord --resume <file>`. | |
 | H2 | For the dev role, it refuses while `$S/merge-lock.sh holder` names a live holder, or a launch is half done. | A reset mid-merge would hand the next session a merge it does not know is running; a lock held by a dead process does not block the handoff. |
 | H3 | It writes the handoff to `.tdd/handoff-<role>.md` in the main clone. | `/tmp` and scratch dirs vanish mid-run. |
-| H4 | It carries: time, main sha and tag, live conductors (issue, step k/n, phase, cost), parked runs with their reason, PRs awaiting merge, N and any timed change, overrides and one-off permissions with their expiry, pending decisions. | |
+| H4 | It carries: time, main sha and tag, live conductors (issue, step k/n, phase, cost), parked runs with their reason, PRs awaiting merge, N and any timed change, pending decisions; for overrides and one-off permissions it copies none and points at the role state file (`.tdd/role-<role>.state`), where they are written. | P9: an override is written down in the role state file, never in a handoff (#3245). |
 | H5 | It carries no rule that the role's skill states (P2). | |
 | H6 | It is ≤40 lines, and every item names its issue number and title. | |
 | H7 | It stops no conductor. | Conductors are detached and outlive both sessions. |

@@ -36,7 +36,7 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
   A run is merged after its review is OK; never one in another repo.
 - **`--resume <file>`** is read only in a session without the app's `start_session` tool (a
   terminal). There it reads a handoff for state only (live conductors, PRs awaiting merge, N and
-  any timed change, overrides and permissions with their expiry); the rules are this skill's.
+  any timed change; overrides and permissions are in the role state file); the rules are this skill's.
   Re-read that state live before the first slot decision. In a session with that tool, read no
   handoff file, even when one is named: recover from the role state file as *Recovery* says.
 
