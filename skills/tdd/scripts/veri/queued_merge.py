@@ -615,6 +615,11 @@ def _stack_base(repo, pr, worktree, branch=None):
     merge as before; (None, (message, code)) to refuse before the lock. Raises stack_branch.Refused for a name that
     cannot be a stack."""
     stack = stack_branch.named(worktree)
+    record = stack_branch.recorded_base(worktree)
+    recorded = record[1].strip() if record else None
+    if record and recorded != stack:
+        return None, ("%s records the base %r its run was cut from, but the worktree's CLAUDE.md names %s; neither"
+                      " joined nor merged" % (record[0], recorded[:80], repr(stack) if stack else "no stack"), 2)
     if not stack:
         return None, None
     pull = _pull(repo, pr)
