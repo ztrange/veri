@@ -26,6 +26,8 @@ Run it in order, at the site where the eligible exit 2 came back.
 
 1. **Check the budget.** `$S/adjudicate.sh left <n>` reads `VERI_ADJUDICATE_BUDGET`. Exit 0:
    budget is left, go on. Exit 3: it is spent, so bail with the original cause and class.
+   Exit 2: the event log could not be read, so bail with the original cause and class, with no
+   adjudication.
    Every bail that follows a launched adjudicator (any answer, or its own no-answer) is written
    by a bare command in a Bash call of its own, never by a line guarded by a shell variable set
    in an earlier call: the conductor's Bash calls share no variables, and the leaf's launch and
