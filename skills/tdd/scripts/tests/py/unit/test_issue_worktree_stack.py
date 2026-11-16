@@ -125,3 +125,14 @@ def test_a_push_refused_because_another_machine_created_the_stack_fetches_it_and
     assert (code, capsys.readouterr().out, after_push[-2:]) == (0, path + "\n", [
         "git fetch -q origin +refs/heads/stack:refs/remotes/origin/stack",
         "git worktree add -q --no-track -b tdd/7-slug %s origin/stack" % path])
+
+
+@pytest.mark.parametrize("claude_md", ["# no stack named here\n", "The `veri: stack branch:` line is not stated here.\n"])
+def test_with_no_stack_branch_named_the_cut_is_from_origin_default_and_nothing_is_pushed(
+        fake_processes, tmp_path, capsys, issue_worktree, claude_md):
+    fake, path = stacked_world(fake_processes, tmp_path, Origin(stack=False), stack_line=claude_md)
+
+    code = issue_worktree.main(["7", "slug"])
+
+    assert (code, capsys.readouterr().out, pushes(fake), added(fake)) == (
+        0, path + "\n", [], ["git worktree add -q --no-track -b tdd/7-slug %s origin/trunk" % path])
