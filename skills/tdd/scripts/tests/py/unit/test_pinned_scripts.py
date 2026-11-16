@@ -186,3 +186,15 @@ def test_snapshot_digest_refuses_a_name_holding_a_newline_3964(tmp_path):
 
     with pytest.raises(OSError):
         pinned_scripts.snapshot_digest(str(tree))
+
+
+def test_remove_tree_removes_a_tree_holding_a_directory_set_to_mode_000_3963(tmp_path):
+    tree = skill_tree(tmp_path / "veri-snapshot-x")
+    (tree / "scripts" / "locked").mkdir()
+    (tree / "scripts" / "locked" / "inside.sh").write_text("echo in\n")
+    pinned_scripts.make_read_only(str(tree))
+    pinned_scripts.take_bits(str(tree / "scripts" / "locked"), 0o777)
+
+    pinned_scripts.remove_tree(str(tree))
+
+    assert not os.path.lexists(tree)

@@ -52,11 +52,20 @@ def remove_tree(tree):
 
 
 def writable_directories(tree):
-    """Give the owner back the write bit of every directory under <tree>, <tree> included, so entries can be added and removed."""
-    for root, dirs, _ in os.walk(tree):
+    """Give the owner read, write and search on every directory under <tree>, <tree> first, so each can be listed
+    and its entries added and removed, a directory a leaf set to mode 000 included; a symlink is never followed."""
+    owner_may_enter(tree)
+    for root, dirs, _ in os.walk(tree, onerror=raise_error):
         for name in dirs:
-            change_mode(os.path.join(root, name), lambda mode: mode | stat.S_IWUSR)
-    change_mode(tree, lambda mode: mode | stat.S_IWUSR)
+            owner_may_enter(os.path.join(root, name))
+
+
+def owner_may_enter(path):
+    """Add S_IRWXU to the directory <path>'s mode, by path, since a mode-000 directory cannot be opened; checked
+    with lstat first, so a symlink is left as it is."""
+    found = os.lstat(path)
+    if stat.S_ISDIR(found.st_mode):
+        os.chmod(path, stat.S_IMODE(found.st_mode) | stat.S_IRWXU)
 
 
 def copy_writable(source, destination):
