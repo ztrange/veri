@@ -173,6 +173,14 @@ the branch already holds a ledger, runs steps 1 to 7 below and never calls the s
    Then `VERI_SKIP_VERIFY`: it is a comma-separated list of phases whose verify is skipped. Each
    word must be a phase this release can skip, and `plan` is never one. Any other word is false, before the baseline.
 
+   Then `VERI_EFFORT_VERIFIER`, the effort every verifier leaf is launched at: it must be unset, empty, or one of
+   `low`, `medium`, `high`, `xhigh` or `max`:
+   ```
+   [[ -z "${VERI_EFFORT_VERIFIER:-}" || "$VERI_EFFORT_VERIFIER" =~ ^(low|medium|high|xhigh|max)$ ]]
+   ```
+   Anything else is false (`stopped at 5 VERI_EFFORT_VERIFIER`, exit 2): the CLI ignores an unknown effort with
+   only a warning, so a mistyped value would run every verifier at the default.
+
    Then the two money budgets: run `$S/step-budget.sh` once, with no arguments. `VERI_STEP_BUDGET` and
    `VERI_RUN_BUDGET` must be non-negative decimal numbers, checked before any leaf is launched. Exit 0 prints the step budget,
    then the run budget, one per line.
