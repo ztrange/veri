@@ -88,7 +88,7 @@ class World:
         if line.startswith(wt + "rebase ") and "--abort" not in line:
             if self.rebase:
                 return self.rebase, "", "CONFLICT (content): Merge conflict in a.py\n"
-            self.rebased.append(REBASED if line.endswith(STACK_SHA) else REBASED_AGAIN)
+            self.rebased.append(REBASED if self.stack[0] == STACK_SHA else REBASED_AGAIN)
             return 0, "", ""
         if line.startswith("detect-test-command.sh --tier fast"):
             return 0, "make unit\n", ""
@@ -134,7 +134,7 @@ def test_joins_a_pull_request_whose_base_is_the_stack_rebasing_checking_and_push
     assert (code, order[:7]) == (0, [
         "merge-lock.sh take --pid %s" % PID,
         wt + "fetch --prune origin",
-        wt + "rebase " + STACK_SHA,
+        wt + "rebase --fork-point refs/remotes/origin/stack",
         wt + "push --force-with-lease=%s:%s origin HEAD:refs/heads/%s" % (BRANCH, ORIGIN_SHA, BRANCH),
         "sh -c make unit",
         "prose-owed.sh " + world.wt,
@@ -151,7 +151,7 @@ def test_a_stack_push_refused_because_the_stack_moved_starts_again_from_the_fetc
     rebases = [c for c in world.calls if c.startswith(wt + "rebase ")]
     forced = [c for c in world.stack_pushed() if " --force " in c or " -f " in c or " +" in c]
     assert (code, rebases, world.stack_pushed(), forced, world.stack[0]) == (0, [
-        wt + "rebase " + STACK_SHA, wt + "rebase " + MOVED_SHA], [
+        wt + "rebase --fork-point refs/remotes/origin/stack", wt + "rebase --fork-point refs/remotes/origin/stack"], [
         wt + "push --force-with-lease=stack:%s origin %s:refs/heads/stack" % (STACK_SHA, REBASED),
         wt + "push --force-with-lease=stack:%s origin %s:refs/heads/stack" % (MOVED_SHA, REBASED_AGAIN)],
         [], REBASED_AGAIN), err
