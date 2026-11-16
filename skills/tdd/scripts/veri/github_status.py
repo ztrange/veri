@@ -58,7 +58,9 @@ def incidents(timeout):
     try:
         status, body = fetch(url, timeout)
     except (OSError, ValueError, http.client.HTTPException) as error:
-        reason = getattr(error, "reason", error)
+        reason = error.reason if isinstance(error, urllib.error.URLError) else error
+        if isinstance(reason, UnicodeError):
+            raise NoAnswer("%s: the answer cannot be decoded: %s" % (url, reason))
         if isinstance(reason, TimeoutError):
             raise NoAnswer("%s: no response within %d s (VERI_GITHUB_STATUS_TIMEOUT): %s" % (url, timeout, reason))
         raise NoAnswer("%s: no response: %s: %s" % (url, type(reason).__name__, reason))

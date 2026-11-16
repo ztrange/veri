@@ -470,3 +470,13 @@ def test_wait_retries_a_read_whose_data_raises_overflow_and_exits_0_when_a_later
     assert (code, out) == (0, "up\n")
     assert len(page.calls) == 3
     assert "0001-01-01T00:00:00+14:00" in err
+
+
+def test_an_undecodable_answer_is_named_as_one_and_not_by_its_reason_attribute(page, run_cli):
+    page.serve(error=UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte"))
+
+    code, out, err = run_cli(page.module, [])
+
+    assert (code, out) == (2, "")
+    assert "cannot be decoded" in err
+    assert "str:" not in err
