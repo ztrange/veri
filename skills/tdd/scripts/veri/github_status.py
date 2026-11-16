@@ -98,6 +98,7 @@ def positive(name):
 def main(argv):
     waiting = argv[:1] == ["wait"]
     if waiting:
+        deadline = now() + datetime.timedelta(seconds=int(argv[1]))
         argv = argv[2:]
     components = tuple(argv) or DEFAULT_COMPONENTS
     knobs = {name: positive(name) for name in ("VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT",
@@ -118,6 +119,9 @@ def main(argv):
         if not waiting or code == 0:
             break
         sleep(knobs["VERI_GITHUB_STATUS_POLL"])
+        if now() >= deadline:
+            code = 3
+            break
     for line in lines:
         print(line)
     return code

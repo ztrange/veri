@@ -35,6 +35,8 @@ class Page:
 
     def sleep(self, seconds):
         self.sleeps.append(seconds)
+        if len(self.sleeps) > 50:
+            raise AssertionError("waited past any deadline")
         self.at += datetime.timedelta(seconds=seconds)
 
     def serve(self, *incidents, body=None, status=200, error=None):
@@ -194,3 +196,13 @@ def test_wait_whose_reads_find_a_counting_incident_then_none_exits_0_after_the_r
     assert (code, out) == (0, "up\n")
     assert len(page.calls) == 2
     assert page.sleeps == [60]
+
+
+def test_wait_whose_reads_all_find_a_counting_incident_until_max_seconds_pass_exits_3_making_no_read_after_that_time(
+        page, run_cli):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests"))
+
+    code, _, _ = run_cli(page.module, ["wait", "1000"])
+
+    assert code == 3
+    assert page.read_at == [NOW + datetime.timedelta(seconds=s) for s in (0, 300, 600, 900)]
