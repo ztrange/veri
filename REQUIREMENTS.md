@@ -114,6 +114,7 @@
 | RD27 | `## Launching the conductor` is the section right after `## Install`. (Section order.) | The operator reads how to install before how to launch. |
 | RD28 | The paragraph on filing names `/vfile [bug\|refactor\|feature] [<one line>]`, says the kind is inferred from the line when omitted, and says `/vplan` turns an idea into a PRD of small sub-PRDs. | The current line would be false once the kind becomes optional. |
 | RD29 | The *The skill snapshot* paragraph says the snapshot is read-only: after extraction the write bits of its files and directories are removed, so a stray write into it fails, and that a leaf, running as the same user, can still restore them. (`## Launching the conductor`, *The skill snapshot* paragraph.) | A careless write into the skill a run executes fails loudly, and the paragraph does not overstate the protection. |
+| RD30 | The *The skill snapshot* paragraph says the snapshot is digest-checked: its digest is recorded at extraction in `.tdd/issue-<n>-snapshot-digest`; `supervise.sh` refuses a leaf launch (exit 2) when the snapshot no longer matches it; and when the conductor exits, a mismatch prints `run-conductor: the skill snapshot changed during the run`, logs a `snapshot-changed` event and exits 2. It states the limit: a leaf that edits `supervise.sh`'s check itself is caught only at exit. (`## Launching the conductor`, *The skill snapshot* paragraph.) | A run executes one skill, and an edit of it by a leaf is caught and said, without overstating the protection. |
 
 ## CONTEXT.md
 
