@@ -222,6 +222,37 @@ def test_record_under_ci_conflict_on_route_rebase_prints_the_route_writes_one_ro
     ] == [{"issue": "7", "cause": "ci-conflict", "outcome": "route", "reason": "the base moved again"}]
 
 
+@pytest.mark.parametrize("cause", ["pr-ready-failed"])
+def test_record_writes_one_adjudicated_event_of_the_cause_for_each_of_a_retry_a_bail_and_an_unparsable_answer(
+    run_cli, adjudicate, tmp_path, cause
+):
+    import json
+
+    (tmp_path / ".tdd").mkdir()
+    answers = {
+        "retry": "ADJUDICATION: retry — GitHub answered 502 once\n",
+        "bail": "ADJUDICATION: bail — the token lacks the scope\n",
+        "unparsed": "no answer line\n",
+    }
+    results = {}
+    for name, text in answers.items():
+        leaf = tmp_path / f"{name}.out"
+        leaf.write_text(text)
+        code, out, err = run_cli(adjudicate, ["record", "7", cause, str(leaf)], cwd=tmp_path)
+        results[name] = (code, out)
+    assert results == {"retry": (0, "retry\n"), "bail": (1, "bail\n"), "unparsed": (2, "unparsed\n")}
+    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [
+        (e.get("issue"), e.get("cause"), e.get("outcome"), e.get("reason"))
+        for e in events
+        if e.get("event") == "adjudicated"
+    ] == [
+        ("7", cause, "retry", "GitHub answered 502 once"),
+        ("7", cause, "bail", "the token lacks the scope"),
+        ("7", cause, "unparsed", "no ADJUDICATION line"),
+    ]
+
+
 @pytest.mark.parametrize("cause", ["ci-conflict"])
 def test_left_exits_0_when_every_adjudicated_event_of_the_cause_precedes_the_last_conductor_start(
     run_cli, adjudicate, monkeypatch, tmp_path, cause
