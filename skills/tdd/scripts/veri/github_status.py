@@ -32,16 +32,20 @@ def main(argv):
     components = tuple(argv) or DEFAULT_COMPONENTS
     _, body = fetch(tunables.get("VERI_GITHUB_STATUS_URL") + FEED, 15)
     threshold = datetime.timedelta(minutes=int(tunables.get("VERI_GITHUB_OUTAGE_MIN")))
-    counting = []
+    counting, young = [], []
     for incident in json.loads(body)["incidents"]:
         matched = [c["name"] for c in incident.get("components") or () if c["name"] in components]
+        if not matched:
+            continue
         start = datetime.datetime.fromisoformat(incident["created_at"])
         age = now() - start
-        if matched and age >= threshold:
+        minutes = str(int(age.total_seconds() // 60))
+        if age >= threshold:
             counting.append("\t".join((incident["name"], ", ".join(matched),
-                                       start.astimezone(local_zone()).strftime("%Y-%m-%d %H:%M"),
-                                       str(int(age.total_seconds() // 60)))))
-    for line in counting:
+                                       start.astimezone(local_zone()).strftime("%Y-%m-%d %H:%M"), minutes)))
+        else:
+            young.append("young %s %s" % (minutes, incident["name"]))
+    for line in counting or young or ["up"]:
         print(line)
     return 1 if counting else 0
 

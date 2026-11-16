@@ -90,3 +90,16 @@ def test_two_counting_incidents_exit_1_with_one_line_each_naming_it_its_matched_
 
     assert (code, out) == (1, "Incident with Pull Requests\tPull Requests, Actions\t2026-11-16 04:58\t61\n"
                               "Git slow\tGit Operations\t2026-11-16 05:30\t30\n")
+
+
+def test_no_incident_naming_a_component_exits_0_printing_up(page, run_cli):
+    page.serve(incident("Copilot down", 120, "Copilot"))
+
+    assert run_cli(page.module, [])[:2] == (0, "up\n")
+
+
+def test_only_incidents_younger_than_the_threshold_exit_0_printing_a_young_line_each_and_no_up(page, run_cli):
+    page.serve(incident("Slow PRs", 12.5, "Pull Requests"), incident("Copilot down", 120, "Copilot"),
+               incident("Slow issues", 5, "Issues"))
+
+    assert run_cli(page.module, [])[:2] == (0, "young 12 Slow PRs\nyoung 5 Slow issues\n")
