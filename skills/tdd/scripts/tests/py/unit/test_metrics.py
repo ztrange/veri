@@ -15,6 +15,12 @@ def metrics():
     return importlib.import_module("veri.metrics")
 
 
+@pytest.fixture(autouse=True)
+def no_records_on_origin(monkeypatch):
+    """origin carries no refs/veri/runs/<n> for any case here: the fallback read answers None and starts no git."""
+    monkeypatch.setattr(importlib.import_module("veri.run_records"), "read", lambda issue, name, cwd: None)
+
+
 def test_main_refuses_a_missing_or_empty_issue_number_with_its_usage_before_reading_any_tdd_file(tmp_path, monkeypatch, capsys, metrics):
     (tmp_path / ".tdd" / "events.jsonl").mkdir(parents=True)
     (tmp_path / ".tdd" / "issue-.md").mkdir()

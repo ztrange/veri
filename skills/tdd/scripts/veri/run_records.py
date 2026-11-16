@@ -83,6 +83,15 @@ def push(run, issue):
     _out("push", "-q", "--force", "origin", "%s:%s" % (commit(run, issue), ref(issue)), cwd=run)
 
 
+def read(issue, name, cwd):
+    """The text of `.tdd/<name>` in origin's `refs/veri/runs/<issue>`, fetched into the clone at <cwd> under the same
+    ref; None when origin has no such ref or file, or cannot be reached."""
+    if git.git("fetch", "-q", "origin", "+%s:%s" % (ref(issue), ref(issue)), cwd=cwd, capture_output=True).returncode:
+        return None
+    shown = git.git("show", "%s:.tdd/%s" % (ref(issue), name), cwd=cwd, capture_output=True)
+    return os.fsdecode(shown.stdout) if shown.returncode == 0 else None
+
+
 def delete(issue, cwd):
     """Delete origin's `refs/veri/runs/<issue>`, from the clone at <cwd>; one origin never had is already gone.
     GitFailed on any other git error."""

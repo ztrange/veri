@@ -59,6 +59,30 @@ def cells(out, heading, columns):
     return {row[key]: [row[c] for c in columns] for row in rows}
 
 
+@pytest.mark.process("git push and fetch of refs/veri/runs/<n> through a bare origin")
+def test_main_with_no_local_events_for_the_issue_reports_from_the_events_in_origins_refs_veri_runs_n(tmp_path, monkeypatch, capsys, metrics):
+    from repo_builder import commit_all, git, new_repo
+    run_records = importlib.import_module("veri.run_records")
+    origin = tmp_path / "origin.git"
+    origin.mkdir()
+    git(origin, "init", "-q", "--bare", "-b", "main")
+    events = (conductor("s", 30000, "step-start") + leaf("s", 30010, "developer", "green", 1, 90)
+              + conductor("s", 30200, "step-done"))
+    first, second = tmp_path / "first", tmp_path / "second"
+    for machine in (first, second):
+        new_repo(machine)
+        commit_all(machine, "initial", allow_empty=True)
+        git(machine, "remote", "add", "origin", str(origin))
+    write_log(first, events)
+    run_records.push(str(first), "108")
+    monkeypatch.chdir(first)
+    local = render(metrics, capsys)
+    write_log(second, [{"issue": "999", "event": "start"}])
+    monkeypatch.chdir(second)
+
+    assert render(metrics, capsys) == local
+
+
 def test_main_reports_relaunches_triage_stops_budget_crossings_splits_tier_seconds_and_stop_outcomes(tmp_path, monkeypatch, capsys, metrics):
     def report(name, events):
         root = tmp_path / name
