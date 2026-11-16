@@ -23,3 +23,16 @@ def test_make_read_only_makes_a_write_into_a_file_of_the_tree_fail_with_a_permis
 
     with pytest.raises(PermissionError):
         (tree / "scripts" / "status.sh").write_text("edited\n")
+
+
+def test_make_read_only_leaves_the_write_bits_of_a_file_a_symlink_in_the_tree_names_outside_it_3963(tmp_path):
+    outside = tmp_path / "outside.txt"
+    outside.write_text("not the skill's\n")
+    before = outside.stat().st_mode
+    tree = skill_tree(tmp_path / "veri-snapshot-x")
+    (tree / "scripts" / "link").symlink_to(outside)
+    (tree / "dirlink").symlink_to(tmp_path)
+
+    pinned_scripts.make_read_only(str(tree))
+
+    assert (outside.stat().st_mode, tmp_path.stat().st_mode & 0o200) == (before, 0o200)
