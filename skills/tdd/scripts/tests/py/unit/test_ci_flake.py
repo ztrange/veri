@@ -80,6 +80,28 @@ def test_4018_exits_2_writing_no_ci_rerun_event_on_bad_arguments_an_unreadable_l
     assert err.strip() and "Traceback" not in err
 
 
+@pytest.mark.parametrize("case", ["alone-run-hangs", "unprefixed-line", "glued-line", "event-unwritable"])
+def test_4018_exits_2_when_an_alone_run_gets_no_answer_the_log_holds_a_line_without_gh_s_prefix_or_the_event_is_not_written(
+        tmp_path, run_cli, fake_processes, ci_flake, events, monkeypatch, case):
+    from process_fakes import HANGS
+    started = []
+    monkeypatch.setattr(ci_flake.github.os, "killpg",
+                        lambda pid, sig: [p.send_signal(sig) for p in started[0].popens if p.pid == pid])
+    log = {"unprefixed-line": RED_LOG + "FAILED skills/a/test_z.py::test_three\n",
+           "glued-line": RED_LOG.replace("\n", " ", 1)}.get(case, RED_LOG)
+    if case == "event-unwritable":
+        events.unappendable(tmp_path)
+    fake = fake_processes.answers({"sh -c": HANGS if case == "alone-run-hangs" else (0, "", ""),
+                                   "gh run rerun": (0, "", "")})
+    started.append(fake)
+
+    code, out, err = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path, log)], cwd=tmp_path)
+
+    assert (code, out, "Traceback" in err, bool(err.strip())) == (2, "", False, True)
+    if case != "event-unwritable":
+        assert [c for c in fake.calls if c.startswith("gh")] == []
+
+
 @pytest.mark.parametrize("log, alone", [
     (PREFIX % 0 + "##[error]Process completed with exit code 2.\n", []),
     (RED_LOG, [(0, "", ""), (1, "", "")]),
