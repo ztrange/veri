@@ -105,6 +105,15 @@ def label_row():
     return f"label {label}", None if label in names else f"create the `{label}` label in the repository"
 
 
+class Fix(str):
+    """A failing row's fix (one command) with the reason the row fails, printed before it."""
+
+    def __new__(cls, command, reason):
+        fix = super().__new__(cls, command)
+        fix.reason = reason
+        return fix
+
+
 class Neutral(str):
     """A row's verdict that is neither ok nor fail: printed as its own word, and counted as no fail."""
 
@@ -179,11 +188,12 @@ def run_state_ignore_row():
     for path in (os.path.abspath(".gitignore"), os.path.join(os.path.abspath(common), "info", "exclude")):
         present = ensure_run_state_ignored.has_rule(path)
         if present is None:
-            shown = " ".join(f"-e '{line}'" for line in ensure_run_state_ignored.RULE)
-            return "run-state ignore", (f"grep -nF {shown} {path} — it carries veri's run-state rule only in part, "
-                                        "or out of order: complete those three lines, in that order, or remove them")
+            shown = " ".join("-e " + shlex.quote(line) for line in ensure_run_state_ignored.RULE)
+            return "run-state ignore", Fix(f"grep -nF {shown} {shlex.quote(path)}",
+                                           f"{path} carries veri's run-state rule only in part, or out of order: complete "
+                                           "those three lines, in that order, or remove them")
         if not present and not writable(path):
-            return "run-state ignore", f"chmod u+w {path}"
+            return "run-state ignore", f"chmod u+w {shlex.quote(path)}"
     return "run-state ignore", None
 
 
@@ -226,6 +236,8 @@ def rendered(name, verdict):
         return f"ok    {name}"
     if isinstance(verdict, Neutral):
         return f"{verdict}  {name}"
+    if isinstance(verdict, Fix):
+        return f"fail  {name}: {verdict.reason}; run `{verdict}`"
     return f"fail  {name}: {verdict}"
 
 
