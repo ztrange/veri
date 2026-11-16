@@ -74,3 +74,16 @@ def test_make_read_only_leaves_the_mode_of_a_file_hard_linked_from_outside_the_t
     pinned_scripts.make_read_only(str(tree))
 
     assert outside.stat().st_mode == before
+
+
+@pytest.mark.parametrize("flip", ["plus-x-on-a-plain-file", "minus-x-on-a-script"])
+def test_snapshot_digest_changes_with_a_files_executable_bit_3964(tmp_path, flip):
+    tree = skill_tree(tmp_path / "veri-snapshot-x")
+    script = tree / "scripts" / "status.sh"
+    if flip == "minus-x-on-a-script":
+        pinned_scripts.change_mode(str(script), lambda mode: mode | 0o111)
+    before = pinned_scripts.snapshot_digest(str(tree))
+
+    pinned_scripts.change_mode(str(script), lambda mode: mode ^ 0o111)
+
+    assert pinned_scripts.snapshot_digest(str(tree)) != before

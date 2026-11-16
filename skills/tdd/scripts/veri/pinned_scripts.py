@@ -104,6 +104,7 @@ def snapshot_digest(snapshot):
             else:
                 with open(path, "rb") as handle:
                     content = handle.read()
+                content += b" x" if os.lstat(path).st_mode & stat.S_IXUSR else b" -"
             lines.append((relative, hashlib.sha256(content).hexdigest()))
     return "".join("%s %s\n" % (digest, relative) for relative, digest in sorted(lines))
 
