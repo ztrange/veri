@@ -1851,3 +1851,25 @@ def test_3919_plan_never_follows_a_test_file_that_is_a_symbolic_link_to_a_file_o
     section = touching_section(out) or ""
 
     assert (code, "test_route_answers" in section, "test_outside_case" in section) == (0, True, False)
+
+
+def test_3919_plan_states_each_touching_test_file_whose_cases_it_cannot_read_within_the_cap_and_never_then_says_no_case_touches(
+        tmp_path, run_cli, build_verify_prompt, fake_processes):
+    tree = {"scripts/route.py": "pass\n",
+            "tests/route_test.rs": "use route;\n\n#[test]\nfn routes() {}\n",
+            "tests/route.test.js": "const route = require('route')\nit('never closes', () => {\n",
+            "tests/conftest.py": "import route\n"}
+    tracked = "scripts/route.py\0tests/route_test.rs\0tests/route.test.js\0tests/conftest.py\0tests/test_gone.py\0"
+    fake_processes.answers({"git ls-files": (0, tracked, "")})
+    _, whole, _ = plan_in_tree(tmp_path, run_cli, build_verify_prompt, tree, ["route.py answers"])
+    _, capped, _ = plan_in_tree(tmp_path, run_cli, build_verify_prompt, tree, ["route.py answers"],
+                                env={"VERI_PLAN_TOUCHING_CASES": "1"})
+
+    def stated(out):
+        section = touching_section(out) or ""
+        return [line for line in section.splitlines() if "not readable" in line], NO_TOUCHING in section
+
+    assert stated(whole) == (["tests/route.test.js: cases not readable", "tests/route_test.rs: cases not readable",
+                              "tests/test_gone.py: cases not readable"], False)
+    assert stated(capped) == (["tests/route.test.js: cases not readable",
+                               "2 more test files whose cases are not readable"], False)

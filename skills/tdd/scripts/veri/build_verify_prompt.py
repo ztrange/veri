@@ -96,19 +96,31 @@ def _tree_files():
             yield path
 
 
+READ_LANGUAGES = re.compile(r"\.(?:py|go)$|" + case_reader.JS_EXT)
+TEST_LOOKING = re.compile(r"(?i:(?:^|[._-])(?:test|spec)s?(?:[._-]|$))|Tests?\.\w+$")
+UNREADABLE = "unreadable"
+NO_TOUCHING = "No test case touches a file the plan names."
+NONE_READ = ("No case name could be read from the test files touching the files the plan names; "
+             "read these in the repository:")
+
+
 def _touching_names(path, stems):
-    """The case names of the test file at `path` when it holds one of `stems` as a whole word, `-` read as `_`; else []."""
+    """The case names of the test file at `path` when it holds one of `stems` as a whole word, `-` read as `_`; else
+    []. UNREADABLE for a file that cannot be read, or that touches one and whose cases cannot be cut: a call that never
+    closes, or a test-looking file in a language the reader does not read."""
     try:
         with open(path, "rb") as handle:
             text = handle.read().decode(errors="replace")
     except OSError:
-        return []
+        return UNREADABLE
     if not any(re.search(r"(?<!\w)" + re.escape(stem) + r"(?!\w)", text.replace("-", "_")) for stem in stems):
         return []
+    if not READ_LANGUAGES.search(path):
+        return UNREADABLE if TEST_LOOKING.search(os.path.basename(path)) else []
     try:
         return [name for name, _ in case_reader.cut_cases(text)]
     except case_reader.UnclosedCase:
-        return []
+        return UNREADABLE
 
 
 def _touching_cases(ledger):
@@ -118,16 +130,29 @@ def _touching_cases(ledger):
              for word in re.findall(r"[\w./-]+", step.text)}
     named = [path for path in files if path in words or os.path.basename(path) in words]
     stems = {os.path.splitext(os.path.basename(path))[0].replace("-", "_") for path in named}
-    lines, more, room = [], [], int(tunables.get("VERI_PLAN_TOUCHING_CASES"))
+    lines, more, unread_more, room = [], [], 0, int(tunables.get("VERI_PLAN_TOUCHING_CASES"))
+    read_any = False
     for path in (path for path in files if stems and case_reader.is_test_path(path) and not os.path.islink(path)):
         names = _touching_names(path, stems)
+        if names == UNREADABLE:
+            if room > 0:
+                lines.append(f"{path}: cases not readable")
+                room -= 1
+            else:
+                unread_more += 1
+            continue
         shown, room = names[:room], room - len(names[:room])
+        read_any = read_any or bool(names)
         if shown:
             lines += [path, *(f"- {name}" for name in shown), ""]
         if len(names) > len(shown):
             more.append(f"{path}: {len(names) - len(shown)} more cases")
-    listing = "\n".join(lines + more).rstrip("\n") or "No test case touches a file the plan names."
-    return TOUCHING_HEADING + b"\n\n" + listing.encode()
+    if unread_more:
+        more.append(f"{unread_more} more test files whose cases are not readable")
+    listing = "\n".join(lines + more).rstrip("\n")
+    if listing and not read_any:
+        listing = NONE_READ + "\n\n" + listing
+    return TOUCHING_HEADING + b"\n\n" + (listing or NO_TOUCHING).encode()
 
 
 def _refused(message=None):
