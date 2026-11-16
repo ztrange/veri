@@ -198,6 +198,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_ISSUE_REFACTOR_BUDGET` | `10` | its readers' own words |
 | `VERI_KILL_POLL` | `0.1` | a non-negative number |
 | `VERI_LABEL` | `ready-for-agent` | its readers' own words |
+| `VERI_MACHINE_NAME` | "" | its readers' own words |
 | `VERI_MAX_ISSUES` | "" | its readers' own words |
 | `VERI_MERGE_LOCK_POLL` | `30` | its readers' own words |
 | `VERI_MERGE_SETTLE_READS` | `10` | its readers' own words |

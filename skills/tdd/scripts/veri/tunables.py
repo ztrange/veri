@@ -195,6 +195,7 @@ TUNABLES = {
     "VERI_PARALLEL": Tunable(text, "1"),
     "VERI_RUN_TIMEOUT": Tunable(text, "14400"),
     "VERI_MAX_ISSUES": Tunable(text, ""),
+    "VERI_MACHINE_NAME": Tunable(text, ""),
     "VERI_SELF_UPDATE": Tunable(text, ""),
     "VERI_MUTATION_ADDRESS_DOMAIN": Tunable(text, ""),
     "VERI_SESSION_TRANSCRIPTS": Tunable(text, ""),

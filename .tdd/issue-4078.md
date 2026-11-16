@@ -4,7 +4,7 @@
 - [x] the pointer comment states the branch, the PR URL or `none`, and the resume command `$S/run-conductor.sh <n>` ⟦criterion 2⟧
 - [x] the pointer comment states the step as `k/n` from the ledger and the phase of the issue's last journal event that names one ⟦criterion 2⟧
 - [x] the pointer comment states the last push time, ISO-8601 with offset, kept from the previous comment when the caller pushed nothing ⟦criterion 2⟧
-- [ ] `VERI_MACHINE_NAME` is a `TUNABLES` entry parsed by `text`, default empty ⟦criterion 4⟧
+- [x] `VERI_MACHINE_NAME` is a `TUNABLES` entry parsed by `text`, default empty ⟦criterion 4⟧
 - [ ] the pointer comment states the machine as `VERI_MACHINE_NAME`, or what `hostname -s` prints when that is unset or empty ⟦criterion 3⟧
 - [ ] `unlabel-issue.sh <n>` writes the pointer comment after taking the claim ⟦criterion 5⟧
 - [ ] `push-branch.sh` updates the pointer comment after a push that exits 0 with the branch pushed, and not after a failed one ⟦criterion 6⟧

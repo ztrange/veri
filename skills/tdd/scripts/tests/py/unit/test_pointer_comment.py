@@ -46,6 +46,13 @@ class FakeIssue:
         raise AssertionError("unexpected gh call: %s" % argv)
 
 
+def test_veri_machine_name_is_a_tunable_parsed_as_text_with_an_empty_default():
+    tunables = importlib.import_module("veri.tunables")
+    entry = tunables.TUNABLES.get("VERI_MACHINE_NAME")
+
+    assert (entry is not None and entry.parse is tunables.text, entry and entry.default) == (True, "")
+
+
 def _module():
     return importlib.import_module("veri.pointer_comment")
 
