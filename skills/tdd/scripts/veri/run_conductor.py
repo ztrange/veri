@@ -544,10 +544,8 @@ def done_posted(issue):
         try:
             thread = json.loads(github.gh_json_page(
                 "", "repos/{owner}/{repo}/issues/%s/comments?per_page=100&page=%d" % (issue, number)))
-        except github.NoAnswer:
+        except (github.NoAnswer, ValueError):
             return None
-        except ValueError:
-            return False
         bodies = thread if isinstance(thread, list) else thread.get("comments", [])
         if any(github.trusted_comment(c) and str(c.get("body", "")).startswith("### ✅ Done")
                and posted_at(c) >= since for c in bodies):
