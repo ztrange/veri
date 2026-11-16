@@ -72,6 +72,7 @@
 | CM80 | CLAUDE.md names `Refactor candidates left by #<n>` issues, labelled `refactor` and `refactor-owed` and never opted in, as the refactor-owed items `/vgroom --refactor-owed` reads. (Whole file.) | A run's one candidates issue (ADR-0034) is recognised by title, so grooming reads it and no session mistakes it for queue work. |
 | CM81 | The *Commands* section says operator sessions, and every subagent they brief, run with `$VERI_VENV/bin` (default `~/.veri-tools/venv/bin`) first on PATH, since PATH's `python3` may lack pytest. (Commands section, after the `make install-dev` row.) | Three launches on 2026-10-28 refused at baseline on "No module named pytest". |
 | CM83 | The budgets invariant names eight axes, with `VERI_ADJUDICATE_BUDGET` (exit-2 judgments per run) as one never folded into the others. The model-knob invariant lists `VERI_MODEL_ADJUDICATOR` (the `adjudicate` leaf, opus when unset). | Otherwise the invariant is false. |
+| CM84 | CI restores the bytecode cache that the last push to `main` saved. (Paragraph under the Commands table.) | CLAUDE.md states what CI runs and what it costs (CM13). |
 
 ## README.md
 
