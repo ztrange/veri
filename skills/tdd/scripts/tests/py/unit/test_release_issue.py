@@ -16,6 +16,7 @@ def release(monkeypatch):
     monkeypatch.setattr(github, "gh_label_ensure", lambda label: calls.append(("ensure", label)))
     monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: calls.append(("label", number, label)))
     monkeypatch.setattr(github, "gh_issue_remove_label", lambda number, label: calls.append(("unlabel", number, label)))
+    monkeypatch.setattr(importlib.import_module("veri.run_records"), "delete", lambda issue, cwd: None, raising=False)
     return release_issue, calls, labels
 
 
@@ -37,6 +38,26 @@ def test_a_parked_issue_gets_the_opt_in_back_and_loses_its_claim_and_the_parked_
         ("unlabel", "3284", "parked"),
         ("unlabel", "3284", "bailed"),
     ]
+
+
+def test_a_released_run_has_origins_refs_veri_runs_n_deleted_and_a_delete_that_fails_is_one_stderr_line_not_an_exit_code(
+        run_cli, monkeypatch, fake_processes, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.chdir(tmp_path)
+    module = importlib.import_module("veri.release_issue")
+    github = module.github
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: "" if field == "comments" else "taken:main\nparked")
+    for name in ("gh_label_ensure", "gh_issue_add_label", "gh_issue_remove_label"):
+        monkeypatch.setattr(github, name, lambda *args: None)
+    fake = fake_processes.answers({
+        "git remote get-url origin": (0, "https://example.invalid/r.git\n", ""),
+        "git push origin --delete refs/veri/runs/3284": (1, "", "fatal: unable to access origin\n"),
+    })
+
+    code, out, err = run_cli(module, ["3284"])
+
+    assert (code, "git push origin --delete refs/veri/runs/3284" in fake.calls, len(err.splitlines()),
+            "refs/veri/runs/3284" in err) == (0, True, 1, True)
 
 
 def test_a_bailed_issue_is_released_the_same_way(release, run_cli):
@@ -247,6 +268,7 @@ def test_a_preflight_refused_claim_is_released_through_the_real_rest_adapter_368
         return subprocess.CompletedProcess(args, 0, out, "")
 
     monkeypatch.setattr(github, "run_gh", fake_gh)
+    monkeypatch.setattr(importlib.import_module("veri.run_records"), "delete", lambda issue, cwd: None)
     monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
 
     code, out, err = run_cli(release_issue, ["3241"])
