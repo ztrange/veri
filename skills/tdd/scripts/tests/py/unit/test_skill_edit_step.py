@@ -2398,3 +2398,32 @@ def test_the_issue_body_file_given_reported_changed_does_not_stop_the_step_whose
     code = run_cli(skill_edit_step, ["issue.md", "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})[0]
 
     assert (code, len(authors)) == (1, 2), (code, len(authors))
+
+
+def test_the_author_prompt_carries_the_untrusted_text_paragraph_of_leaf_safety_before_the_requirements_3959(tmp_path, monkeypatch):
+    import re
+    import types
+    from conftest import SCRIPTS
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep green.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    prompts = []
+
+    def launch(name, prompt, *args, env=None):
+        prompts.append(open(prompt).read())
+        return types.SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(skill_edit_step.leaf, "launch", launch)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+
+    def flat(text):
+        return re.sub(r"\s+", " ", text).strip()
+
+    paragraph = flat((SCRIPTS / "prompts" / "_leaf-safety.md").read_text().split("\n\n")[2])
+    skill_edit_step._author("unit.md", str(tmp_path / "REQUIREMENTS.md"), "A1: FAIL - not blue\n")
+    prompt = flat(prompts[0]) if len(prompts) == 1 else ""
+
+    assert (paragraph.startswith("{{INCLUDE:"), -1 < prompt.find(paragraph) < prompt.find("A1: The widget is blue.")) \
+        == (False, True), prompt
