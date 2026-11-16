@@ -241,6 +241,15 @@ def authenticated_login():
     return login
 
 
+TRUSTED_ASSOCIATIONS = ("OWNER", "COLLABORATOR")
+
+
+def trusted_comment(comment):
+    """Whether the REST comment object <comment> may speak for a run (PRD 022.3): its `author_association` is OWNER or
+    COLLABORATOR. Decided from the fields GitHub sets, never from the body."""
+    return comment.get("author_association") in TRUSTED_ASSOCIATIONS
+
+
 def _quiet_write(*args):
     run = run_gh("api", *args, stderr=subprocess.PIPE)
     if run.returncode != 0:

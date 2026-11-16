@@ -1,6 +1,6 @@
 # Plan for #3969 — PRD 022.3: the dispatcher reads a run's outcome only from a trusted comment
 
-- [ ] github.trusted_comment trusts a comment whose author_association is OWNER or COLLABORATOR and no other association, whatever its body says (a stranger's comment carrying veri's exact marker text, an edited one, a bot that is not veri's) ⟦criterion 1⟧
+- [x] github.trusted_comment trusts a comment whose author_association is OWNER or COLLABORATOR and no other association, whatever its body says (a stranger's comment carrying veri's exact marker text, an edited one, a bot that is not veri's) ⟦criterion 1⟧
 - [ ] a comment whose user.login is the authenticated gh user's is trusted whatever its association (a MEMBER) ⟦criterion 1⟧
 - [ ] the authenticated login is read with gh api user at most once per process ⟦criterion 1⟧
 - [ ] with the authenticated login unreadable, the association alone answers and the caller is not stopped ⟦criterion 2⟧
