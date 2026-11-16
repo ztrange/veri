@@ -57,3 +57,9 @@ def test_exits_2_naming_the_line_when_the_named_branch_is_the_default_branch(tmp
     git_world(fake_processes, default="trunk")
 
     assert refusal_of(tmp_path, run_cli, stack_branch, "veri: stack branch: trunk") == (2, "", True)
+
+
+def test_exits_2_naming_the_line_when_git_check_ref_format_refuses_the_name(tmp_path, run_cli, fake_processes, stack_branch):
+    git_world(fake_processes, refused=("bad..name",))
+
+    assert refusal_of(tmp_path, run_cli, stack_branch, "veri: stack branch: bad..name") == (2, "", True)
