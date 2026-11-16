@@ -107,6 +107,22 @@ def test_journal_md_states_the_format_veri_event_table_declares_for_every_key():
     assert not drift, "skills/tdd/JOURNAL.md states formats veri/event_table.py does not declare:\n" + "\n".join(drift)
 
 
+def test_no_list_in_journal_md_ends_with_an_ellipsis():
+    from veri import journal_schema
+
+    page = (SCRIPTS.parent / "JOURNAL.md").read_text(encoding="utf-8")
+    open_ended = []
+    for row in journal_schema.ROW.finditer(page):
+        keys = journal_schema.fields(page, row.group(1)) or ()
+        text = row.group(2) + "|" + row.group(3)
+        for at in [i for i, char in enumerate(text) if char == "…"]:
+            named = [name for name in journal_schema.NAME.findall(text[:at]) if name in keys]
+            open_ended.append(f"{row.group(1)} key {named[-1] if named else '(none)'}: its list ends with …; write out"
+                              " every value, as veri/event_table.py declares them")
+
+    assert not open_ended, "skills/tdd/JOURNAL.md lists that end with …:\n" + "\n".join(open_ended)
+
+
 @pytest.mark.tree_audit("reads every .sh and .md file under skills/ for event.sh call sites")
 def test_every_literal_event_and_key_of_an_event_sh_call_under_skills_is_declared_in_the_table():
     from event_roster import event_sh_call_sites
