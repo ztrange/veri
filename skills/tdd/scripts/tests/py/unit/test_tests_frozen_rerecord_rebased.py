@@ -284,3 +284,211 @@ def test_rerecord_rebased_skips_a_ticked_earlier_step_with_no_record_file_and_st
     after = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", CURRENT], cwd=repo)[0]
 
     assert (code, out, after) == (0, "", 0)
+
+
+def test_rerecord_rebased_exits_2_naming_an_unreadable_ledger_on_stderr_and_writes_no_record_2552(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = tmp_path / "repo"
+    fed, _ = _origin(repo, fed_commits, {SUITE: "def test_config_2552():\n    assert f() == 1\n"})
+    run_cli(tests_frozen, ["record", "--step", "step one pins the config", SUITE], cwd=repo)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+    ledger = repo / ".tdd/unreadable-ledger.md"
+    ledger.mkdir()
+
+    code, out, err = run_cli(tests_frozen, ["rerecord-rebased", str(ledger), fed.head], cwd=repo)
+
+    assert (code, out, record.read_bytes()) == (2, "", old)
+    assert str(ledger) in err
+
+
+def test_rerecord_rebased_with_no_ledger_file_exits_3_with_no_output_and_rewrites_no_record_2718(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = tmp_path / "repo"
+    fed, _ = _origin(repo, fed_commits, {SUITE: "def test_config_2718():\n    assert f() == 1\n"})
+    run_cli(tests_frozen, ["record", "--step", "step one pins the config", SUITE], cwd=repo)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+
+    code, out, _ = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/no-ledger-yet.md"), fed.head], cwd=repo)
+
+    assert (code, out, record.read_bytes()) == (3, "", old)
+
+
+def test_rerecord_rebased_exits_2_and_rewrites_no_record_when_the_pre_rebase_sha_names_no_commit_2552(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = tmp_path / "repo"
+    _upstream_only(repo, run_cli, tests_frozen, fed_commits, lib=False)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+
+    code, out, _ = run_cli(tests_frozen, ["rerecord-rebased", str(repo / LEDGER), "0" * 40], cwd=repo)
+
+    assert (code, out, record.read_bytes()) == (2, "", old)
+
+
+def test_rerecord_rebased_exits_2_naming_the_record_when_an_earlier_steps_record_exists_but_cannot_be_read_2552(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = tmp_path / "repo"
+    fed, _ = _origin(repo, fed_commits, {SUITE: "def test_config_2552():\n    assert f() == 1\n"})
+    run_cli(tests_frozen, ["record", "--step", EARLIER, SUITE], cwd=repo)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    record.unlink()
+    record.mkdir()
+    (repo / LEDGER).write_text("- [x] %s\n- [ ] %s\n" % (EARLIER, CURRENT))
+
+    code, out, err = run_cli(tests_frozen, ["rerecord-rebased", str(repo / LEDGER), fed.head], cwd=repo)
+
+    assert (code, out, record.name in err) == (2, "", True)
+
+
+def test_rerecord_rebased_exits_2_naming_the_record_when_writing_a_stale_cases_re_record_raises_2552(
+        tmp_path, run_cli, tests_frozen, fed_commits, monkeypatch, capfd):
+    repo = tmp_path / "repo"
+    _, before = _upstream_only(repo, run_cli, tests_frozen, fed_commits, lib=False)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+
+    def refusing_open(name, mode="r", *rest, **kwargs):
+        if "w" in mode and str(name).endswith(record.name):
+            raise OSError(28, "No space left on device", str(name))
+        return open(name, mode, *rest, **kwargs)
+
+    monkeypatch.setattr(tests_frozen, "open", refusing_open, raising=False)
+    monkeypatch.chdir(repo)
+
+    code = tests_frozen.rerecord_rebased(str(repo / LEDGER), before)
+
+    assert (code, record.name in capfd.readouterr().err, record.read_bytes() == old) == (2, True, True)
+
+
+def test_rerecord_rebased_exits_2_naming_the_record_when_writing_a_stale_cases_re_record_raises_file_not_found_so_it_is_not_read_as_a_missing_ledger_2718(
+        tmp_path, run_cli, tests_frozen, fed_commits, monkeypatch, capfd):
+    repo = tmp_path / "repo"
+    _, before = _upstream_only(repo, run_cli, tests_frozen, fed_commits, lib=False)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+
+    def refusing_open(name, mode="r", *rest, **kwargs):
+        if "w" in mode and str(name).endswith(record.name):
+            raise FileNotFoundError(2, "No such file or directory", str(name))
+        return open(name, mode, *rest, **kwargs)
+
+    monkeypatch.setattr(tests_frozen, "open", refusing_open, raising=False)
+    monkeypatch.chdir(repo)
+
+    code = tests_frozen.rerecord_rebased(str(repo / LEDGER), before)
+
+    assert (code, record.name in capfd.readouterr().err, record.read_bytes() == old) == (2, True, True)
+
+
+def test_rerecord_rebased_exits_2_naming_the_record_and_the_title_when_an_earlier_steps_recorded_case_is_missing_at_head_2825(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = tmp_path / "repo"
+    other = "def test_other_2825():\n    assert f() == 0\n"
+    fed, _ = _origin(repo, fed_commits, {SUITE: other})
+    (repo / SUITE).write_text(other + "\n\ndef test_config_before_rename_2825():\n    assert f() == 1\n")
+    run_cli(tests_frozen, ["record", "--step", EARLIER, SUITE], cwd=repo)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    pre = fed.commit("step one", all=True)
+    (repo / SUITE).write_text(other + "\n\ndef test_config_after_rename_2825():\n    assert f() == 1\n")
+    fed.commit("rename", all=True)
+    (repo / LEDGER).write_text("- [x] %s\n- [ ] %s\n" % (EARLIER, CURRENT))
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-rebased", str(repo / LEDGER), pre], cwd=repo)
+
+    assert (code, record.name in err, "test_config_before_rename_2825" in err, "KeyError" in err) == (
+        2, True, True, False)
+
+
+KEPT_2994 = "def test_kept_2994():\n    a = 1\n    b = 0\n    c = 0\n    d = 0\n    assert f() == 1\n"
+GHOST_2994 = "\n\ndef test_ghost_2994():\n    assert f() == 2\n"
+
+
+def _ghost(root, run_cli, tests_frozen, fed_commits, suite, base_text, kept, ghost, step, edit_record=None):
+    """Step one records `kept` and `ghost` in `suite` but commits `kept` only; upstream adds README.md, which the
+    rebased step one sits on. Returns the pre-rebase head."""
+    repo, base = _origin(root, fed_commits, {suite: base_text})
+    (root / suite).write_text(kept + ghost)
+    run_cli(tests_frozen, ["record", "--step", step, suite], cwd=root)
+    if edit_record:
+        edit_record()
+    _commit(root, repo, "step one", {suite: kept})
+    (root / LEDGER).write_text("- [x] %s\n- [ ] %s\n" % (step, CURRENT))
+    return _rebase(root, repo, base, [("upstream", {"README.md": "upstream\n"})], [("step one", {suite: kept})])
+
+
+def test_rerecord_rebased_drops_a_recorded_case_never_committed_on_the_branch_instead_of_exiting_2_2994(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = tmp_path / "repo"
+    before = _ghost(repo, run_cli, tests_frozen, fed_commits, SUITE, "", KEPT_2994, GHOST_2994,
+                    "step one pins the kept case")
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+
+    code, _, _ = run_cli(tests_frozen, ["rerecord-rebased", str(repo / LEDGER), before], cwd=repo)
+
+    assert (code in (0, 3), "test_ghost_2994" in record.read_text()) == (True, False)
+
+
+def test_rerecord_rebased_drops_the_helpers_line_of_a_recorded_go_case_never_committed_on_the_branch_2994(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = tmp_path / "repo"
+    kept = "func TestKept(t *testing.T) {\n\tx := 1\n\tif x != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n"
+    ghost = "\nfunc TestGhost(t *testing.T) {\n\tx := 2\n\tif x != 2 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n"
+
+    def stale_helpers_line():
+        (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+        lines = record.read_text().splitlines(keepends=True)
+        at = next(i for i, l in enumerate(lines) if l.startswith("case: TestGhost")) + 1
+        record.write_text("".join(lines[:at + 1] + ["helpers: tests/suite_test.go\tTestGhost\t%s\n" % ("a" * 64)]
+                                  + lines[at + 1:]))
+
+    before = _ghost(repo, run_cli, tests_frozen, fed_commits, GO_SUITE, "", kept, ghost,
+                    "step one pins the kept case", edit_record=stale_helpers_line)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+
+    code, _, _ = run_cli(tests_frozen, ["rerecord-rebased", str(repo / LEDGER), before], cwd=repo)
+
+    assert (code in (0, 3), "TestGhost" in record.read_text(), "a" * 64 in record.read_text()) == (
+        True, False, False)
+
+
+def test_rerecord_rebased_drops_only_the_never_committed_case_and_still_re_records_the_upstream_only_changed_one_2994(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = tmp_path / "repo"
+    case = "def test_config_2994():\n    assert f() == %d\n"
+    fed, base = _origin(repo, fed_commits, {SUITE: case % 1})
+    (repo / SUITE).write_text(case % 2 + "\n\ndef test_ghost_2994():\n    assert f() == 9\n")
+    run_cli(tests_frozen, ["record", "--step", EARLIER, SUITE], cwd=repo)
+    _commit(repo, fed, "step one", {SUITE: case % 2})
+    (repo / LEDGER).write_text("- [x] %s\n- [ ] %s\n" % (EARLIER, CURRENT))
+    # Upstream 2 holds step one's patch, so the rebase leaves no commit of the branch.
+    before = _rebase(repo, fed, base, [("upstream 2", {SUITE: case % 2}), ("upstream 3", {SUITE: case % 3})], [])
+    ledger = repo / LEDGER
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+
+    code, _, _ = run_cli(tests_frozen, ["rerecord-rebased", str(ledger), before], cwd=repo)
+    after = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", CURRENT], cwd=repo)[0]
+
+    text = record.read_text()
+    assert (code, "test_config_2994" in text, "test_ghost_2994" in text, after) == (0, True, False, 0)
+
+
+def test_rerecord_rebased_still_exits_2_for_a_recorded_case_committed_at_the_pre_rebase_sha_and_gone_at_head_2994(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = tmp_path / "repo"
+    fed, base = _origin(repo, fed_commits, {SUITE: KEPT_2994})
+    step = "step one pins the kept case"
+    (repo / SUITE).write_text(KEPT_2994 + GHOST_2994)
+    run_cli(tests_frozen, ["record", "--step", step, SUITE], cwd=repo)
+    with_ghost = fed.commit("step one adds the ghost", all=True)
+    (repo / SUITE).write_text(KEPT_2994)
+    fed.commit("a later commit removes the ghost", all=True)
+    (repo / LEDGER).write_text("- [x] %s\n- [ ] %s\n" % (step, CURRENT))
+    _rebase(repo, fed, base, [("upstream", {"README.md": "upstream\n"})],
+            [("step one adds the ghost", {SUITE: KEPT_2994 + GHOST_2994}),
+             ("a later commit removes the ghost", {SUITE: KEPT_2994})])
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-rebased", str(repo / LEDGER), with_ghost], cwd=repo)
+
+    assert (code, "names case test_ghost_2994, which tests/test_suite.py does not hold at HEAD" in err) == (2, True)
