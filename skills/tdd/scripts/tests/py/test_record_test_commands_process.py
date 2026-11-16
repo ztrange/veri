@@ -68,3 +68,23 @@ def test_it_pushes_veri_install_one_commit_on_the_default_tip_changing_only_a_cr
     assert git(origin, "diff", "--name-status", tip, branch) == "A\tCLAUDE.md"
     assert declared(detect, origin, branch, tmp_path, "fast") == fast
     assert declared(detect, origin, branch, tmp_path, "all") == full
+
+
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+def test_it_opens_the_pr_from_veri_install_against_the_default_branch_prints_its_url_and_leaves_the_checkout_as_it_was(
+        tmp_path, run_cli, record, pulls):
+    origin, work = project(tmp_path)
+    git(work, "checkout", "-q", "-b", "mid-work")
+    (work / "README.md").write_text("edited\n")
+    (work / "staged.txt").write_text("staged\n")
+    git(work, "add", "staged.txt")
+    before = (git(work, "rev-parse", "--abbrev-ref", "HEAD"), git(work, "status", "--porcelain"),
+              git(work, "diff"), git(work, "diff", "--cached"))
+
+    code, out, err = run_cli(record, ["make unit", "make test"], cwd=work)
+
+    assert (code, out) == (0, URL + "\n"), err
+    assert [(head, base) for head, base, title, body in pulls] == [("veri-install", "main")]
+    assert all(title and body for head, base, title, body in pulls)
+    assert (git(work, "rev-parse", "--abbrev-ref", "HEAD"), git(work, "status", "--porcelain"),
+            git(work, "diff"), git(work, "diff", "--cached")) == before
