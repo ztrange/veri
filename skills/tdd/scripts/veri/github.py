@@ -636,6 +636,53 @@ def joined_issues(base, repo=None):
             for n in closed_issues(raw.get("body") or "")}
 
 
+PULL_PAGES = 10
+_PULL_URL = re.compile(r"https://github\.com/[^/\s]+/[^/\s]+/pull/\d+")
+
+
+def _json_answer(run, what):
+    """The JSON <run> printed; NoAnswer naming <what> when the call failed or printed something that is not JSON."""
+    if run.returncode != 0:
+        raise NoAnswer("", "%s: %s" % (what, " ".join((run.stderr or "").split())[:200] or "exit %d" % run.returncode))
+    try:
+        return json.loads(run.stdout or "")
+    except ValueError:
+        raise NoAnswer("", "%s: the answer is not JSON (%r)" % (what, (run.stdout or "")[:80])) from None
+
+
+def stack_pulls(head, base):
+    """The open pull requests from <head> to <base> as Pull records, read over REST 100 to a page, a page short of 100
+    being the last, at most PULL_PAGES pages; kept only when the answer itself names <head> as the head ref and <base>
+    as the base ref, since the query's own filter is not trusted. NoAnswer, its detail naming why, when a read fails,
+    a page is not a JSON list of objects, or the pages run past the bound."""
+    found = []
+    for page in range(1, PULL_PAGES + 1):
+        path = "%s?state=open&head={owner}:%s&base=%s&per_page=100&page=%d" % (_PULLS, head, base, page)
+        items = _json_answer(gh_api(path, stderr=subprocess.PIPE), "reading the open pull requests from %s" % head)
+        if not isinstance(items, list) or not all(isinstance(raw, dict) for raw in items):
+            raise NoAnswer("", "the open pull requests from %s: the answer is not a list of objects" % head)
+        for raw in items:
+            if not all(isinstance(raw.get(side), dict) for side in ("head", "base")):
+                raise NoAnswer("", "the open pull requests from %s: a record without head and base objects" % head)
+        found += [_pull(raw) for raw in items if raw["head"].get("ref") == head and raw["base"].get("ref") == base]
+        if len(items) < 100:
+            return found
+    raise NoAnswer("", "the open pull requests from %s ran past %d pages of 100" % (head, PULL_PAGES))
+
+
+def pr_open(head, base, title, body):
+    """Open a pull request from <head> to <base>, ready (not a draft), over REST; its html url. NoAnswer, its detail
+    naming why, when the call fails or the answer names no pull request url."""
+    run = run_gh("api", "-X", "POST", _PULLS, "-f", "head=" + head, "-f", "base=" + base, "-f", "title=" + title,
+                 "-f", "body=" + body, "-F", "draft=false", stderr=subprocess.PIPE)
+    answer = _json_answer(run, "opening a pull request from %s to %s" % (head, base))
+    url = answer.get("html_url") if isinstance(answer, dict) else None
+    if not isinstance(url, str) or not _PULL_URL.fullmatch(url):
+        raise NoAnswer("", "opening a pull request from %s: the answer names no pull request url (%r)" % (
+            head, repr(url)[:80]))
+    return url
+
+
 def closed_issues(body, loose=False):
     """The issue numbers (strings) <body> closes, in order: `Closes #n`; <loose> also reads `closes #n`
     and `disCloses #n`, the spelling of status --recover."""
