@@ -5,7 +5,7 @@ import os
 import pytest
 
 ENTRY_POINTS = {
-    "VERI_CONDUCTOR_CTX_BUDGET": ("veri.orchestrate", [], {}),
+    "VERI_CONDUCTOR_CTX_BUDGET": ("veri.parallel_conductors", [], {}),
     "VERI_RESET_GROWTH_CONDUCTOR": ("veri.restart_conductor", ["7"], {}),
     "VERI_CONDUCTOR_STOP_TIMEOUT": ("veri.orchestrate", [], {}),
     "REVISE_BUDGET": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
