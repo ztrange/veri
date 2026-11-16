@@ -22,8 +22,10 @@
 #
 # --step-ahead <red-test-id>, run only after the plain read exits 3: reads the leaf's `STEP_AHEAD: <file>::<case>` lines,
 # the older cases a test-only step ahead of this one would update.
-# stdout:  one line `prep <file>::<case> …` naming each, skipping <red-test-id>'s case · or nothing.
-# exit:    0 printed · 3 no line remains · 2 a value with no `::`, naming no existing file, or
-#          naming a case its file does not define (stdout empty, stderr naming the line).
+# stdout:  one line `prep <file>::<case> …` naming each, rebuilt from its checked parts, skipping
+#          <red-test-id>'s case · or nothing.
+# exit:    0 printed · 3 no line remains · 2 a value with no `::`, not of the form
+#          <path>::<name>[::<name>…][[param]], naming no existing file, or naming a case its file
+#          (or, for a class id, its class chain) does not define (stdout empty, stderr naming the line).
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/exhausted_outcome.py" "$@"

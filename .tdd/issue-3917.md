@@ -20,4 +20,4 @@
 - [x] `--step-ahead` refuses a value outside the id grammar `<path>::<name>[::<name>…][[param]]`, naming the line
 - [x] `--step-ahead` prints each id rebuilt from its checked parts, never the leaf's text
 - [x] `--step-ahead` refuses a class id whose class the file does not hold or whose class does not define the case
-- [ ] `SCRIPTS.md`'s `exhausted-outcome.sh` entry states the id grammar and the class check, graded PASS against row SC140
+- [x] `SCRIPTS.md`'s `exhausted-outcome.sh` entry states the id grammar and the class check, graded PASS against row SC140
