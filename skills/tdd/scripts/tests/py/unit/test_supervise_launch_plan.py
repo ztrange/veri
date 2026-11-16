@@ -192,6 +192,19 @@ def test_gate_19_a_live_leaf_of_the_same_name_refuses_without_writing_its_exit(w
         2, False, None)
 
 
+LSTART = f"ps -o lstart= -p {os.getpid()}"
+
+
+def test_gate_19_a_leaf_owner_whose_pid_is_alive_under_another_start_time_refuses_nothing_3988(work_tree, fake_processes):
+    (work_tree / ".tdd").mkdir()
+    (work_tree / ".tdd" / "leaf.owner").write_text(f"{os.getpid()} develop-red\nMon Jan  1 00:00:00 2024\n")
+    fake_processes.answers({HEAD: (0, "abc\n", ""), LSTART: (0, "Thu Nov 11 09:00:00 2026\n", "")})
+
+    plan = supervise.launch_plan(["revise-red", "true"])
+
+    assert isinstance(plan, supervise.Launch), plan
+
+
 def test_a_stop_and_an_empty_prompt_report_the_earlier_gate(work_tree, fake_processes):
     (work_tree / ".tdd").mkdir()
     (work_tree / ".tdd" / "stop").write_text("now\n")

@@ -2576,7 +2576,7 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
                 [(r["event"], r["actor"], r["name"]) for r in events.records(work)])
 
     answers = {
-        "alive": supervised("alive", "verify-red", "4242 develop-red\nignored line\n"),
+        "alive": supervised("alive", "verify-red", "4242 develop-red\nThu Nov 11 09:00:00 2026\n"),
         "alive-same-name": supervised("alive-same-name", "develop-red", "4242 develop-red\n"),
         "alive-no-owner-name": supervised("alive-no-owner-name", "verify-red", "4242\n"),
         "alive-refused-role": supervised("alive-refused-role", "bogus-x", "4242 develop-red\n"),
@@ -2595,7 +2595,7 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
     launched, mine, verifier = ("launched", "/bin/sh"), f"{me}\nThu Nov 11 09:00:00 2026\n", [("launch", "verifier", "verify-red")]
     assert answers == {
         "alive": (2, b"", [REFUSAL.format("verify-red", "develop-red", 4242)], "2\n", None,
-                  "4242 develop-red\nignored line\n", [(4242, 0)], True, []),
+                  "4242 develop-red\nThu Nov 11 09:00:00 2026\n", [(4242, 0)], True, []),
         "alive-same-name": (2, b"", [REFUSAL.format("develop-red", "develop-red", 4242)], None, None,
                             "4242 develop-red\n", [(4242, 0)], True, []),
         "alive-no-owner-name": (2, b"", [REFUSAL.format("verify-red", "?", 4242)], "2\n", None,
