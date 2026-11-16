@@ -314,8 +314,8 @@ The mutation record `.tdd/issue-<n>-mutations.md`: its name and its entry format
 ## pinned_scripts
 - `make_snapshot()`: a new empty snapshot directory. `write_snapshot_marker(snapshot, worktree)`: names its worktree, in the file `SNAPSHOT_MARKER`.
 - `snapshot_gone(recorded)`, `snapshot_made_for(recorded, worktree)`: bool checks of a recorded path.
-- `snapshot_digest(snapshot)`: one `<sha256> <path>` line per file of a snapshot, sorted, the marker left out, a symlink by its target; raises on what it cannot read. `first_change(recorded, snapshot)`: the first file that differs from a recorded digest, joined to the snapshot, or `None`.
-- `make_read_only(tree)`: takes the write bits off every file and directory of a snapshot. `remove_tree(tree)`: gives the owner each directory's write bit back, then removes the tree (raises on what it cannot remove). `copy_writable(source, destination)`: the recovery copy, writable. Each changes a mode through a descriptor, never through a symlink.
+- `snapshot_digest(snapshot)`: one `<token> <path>` line per entry of a snapshot, sorted, the marker included: a directory as `directory`, a file by its content and owner executable bit, a symlink by its target; raises on what it cannot read, on a FIFO, socket or device (never opened) and on a file with a second hard link. `first_change(recorded, snapshot)`: the first entry that differs from a recorded digest, joined to the snapshot, or `None`.
+- `make_read_only(tree)`: takes the write bits off every file and directory of a snapshot. `remove_tree(tree)`: gives the owner each directory's write bit back, then removes the tree (raises on what it cannot remove, and, touching nothing, on a tree that is not a real directory). `copy_writable(source, destination)`: the recovery copy, writable. Each changes a mode through a descriptor, never through a symlink.
 
 ## restart_marker
 A run's `.tdd/restart-pending` marker, which says a conductor restart is in flight.
