@@ -9,6 +9,7 @@ import tempfile
 import blocked_by
 import github
 import markdown_sections
+import redaction
 
 USAGE = ("usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>] [--blocked-by <n>[,<n>…]]"
          " [--question-file <path>]\n")
@@ -17,8 +18,14 @@ COMMENT_LIMIT = 65536  # GitHub refuses an issue comment body longer than this m
 BYTE_LIMIT = 120000  # the body goes to gh as one argument; Linux refuses a single argument over 131,072 bytes
 
 
+# Room left under both limits: the body is redacted before it is cut, so what is measured is what github.bounded posts;
+# redacting it again there replaces nothing more, and these 256 characters (and bytes) absorb any secret a cut join could
+# still form, each replacement ([redacted], 10 characters) at most 2 longer than the shortest value it hides (8).
+MARGIN = 256
+
+
 def fits(body):
-    return len(body) <= COMMENT_LIMIT and len(body.encode("utf-8")) <= BYTE_LIMIT
+    return len(body) <= COMMENT_LIMIT - MARGIN and len(body.encode("utf-8")) <= BYTE_LIMIT - MARGIN
 
 
 def cut_at(head, question, cut):
@@ -30,9 +37,10 @@ def cut_at(head, question, cut):
 
 
 def fit(head, question):
-    """<head> + <question>, the question cut in its middle, on a character boundary, by the fewest characters that keep
-    the whole within COMMENT_LIMIT characters and BYTE_LIMIT UTF-8 bytes: its opening (the question) and its end (the
-    recommendation) stay."""
+    """<head> + <question>, both redacted, the question cut in its middle, on a character boundary, by the fewest
+    characters that keep the whole MARGIN within COMMENT_LIMIT characters and BYTE_LIMIT UTF-8 bytes: its opening (the
+    question) and its end (the recommendation) stay."""
+    head, question = redaction.redact(head), redaction.redact(question)
     if fits(head + question):
         return head + question
     low, high = 1, len(question)
