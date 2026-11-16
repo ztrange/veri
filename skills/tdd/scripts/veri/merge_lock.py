@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from time import monotonic as _clock
 
 import tunables
 
@@ -106,6 +107,8 @@ def _take(lock, record, args):
         return 2
     pid = _caller_pid(args)
     _owner(args)
+    limit = int(tunables.get("VERI_MERGE_LOCK_WAIT"))
+    started = _clock()
     os.makedirs(os.path.dirname(lock), exist_ok=True)
     staged = tempfile.mkdtemp(prefix=".merge.lock.", dir=os.path.dirname(lock))
     try:
@@ -144,6 +147,10 @@ def _take(lock, record, args):
             missing = 0
             if _reused(text, holder):
                 print(f"stale lock: {text.strip()}; clear it with merge-lock.sh release --force", file=sys.stderr)
+                return 2
+            if _clock() - started >= limit:
+                print(f"merge-lock.sh: lock still held by {text.strip()} after VERI_MERGE_LOCK_WAIT={limit} seconds; not taken",
+                      file=sys.stderr)
                 return 2
             _poll_wait()
     finally:

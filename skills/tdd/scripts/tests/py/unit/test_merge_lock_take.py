@@ -152,3 +152,35 @@ def test_the_poll_wait_reads_an_empty_veri_merge_lock_poll_as_empty_and_fails_no
 
     with pytest.raises(ValueError):
         merge_lock._poll_wait()
+
+
+class _StillPolling(Exception):
+    pass
+
+
+def test_3995_take_on_a_lock_held_past_veri_merge_lock_wait_exits_2_naming_the_holder_and_the_limit_with_the_lock_in_place(
+        tmp_path, monkeypatch, capsys):
+    me = os.getpid()
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    monkeypatch.setenv("VERI_MERGE_LOCK_WAIT", "100")
+    now = [1000.0]
+    polls = []
+
+    def sleep(_seconds):
+        polls.append(1)
+        if len(polls) > 20:
+            raise _StillPolling
+        now[0] += 30
+
+    monkeypatch.setattr(merge_lock, "time", SimpleNamespace(sleep=sleep))
+    monkeypatch.setattr(merge_lock, "_clock", lambda: now[0])
+    lock = tmp_path / "tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    (lock / "holder").write_text(f"{me} h t\n")
+    try:
+        code = merge_lock._take(str(lock), str(lock / "holder"), ["--pid", str(me)])
+    except _StillPolling:
+        code = "still polling"
+    err = capsys.readouterr().err
+    assert (code, len(err.splitlines()), f"{me} h t" in err, "100" in err, (lock / "holder").read_text(),
+            sorted(p.name for p in lock.parent.glob(".merge.lock.*"))) == (2, 1, True, True, f"{me} h t\n", [])
