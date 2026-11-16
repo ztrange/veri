@@ -119,7 +119,9 @@ test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
 	@$(BASH_GUARD)
 	@for e in $(PY_REFUSED); do printf 'refusing: %s selects no suite\n' "$$e" >&2; exit 2; done
-	@unset BASH_ENV ENV PYTHONDONTWRITEBYTECODE; pycache="$${VERI_PYCACHE:-$${TMPDIR:-/tmp}/veri-pycache-$$(id -u)}"; mkdir -p -m 0700 "$$pycache" 2>/dev/null; \
+	@unset BASH_ENV ENV PYTHONDONTWRITEBYTECODE; pycache="$${VERI_PYCACHE:-$${TMPDIR:-/tmp}/veri-pycache-$$(id -u)}"; \
+	while case "$$pycache" in ?*/) true ;; *) false ;; esac; do pycache="$${pycache%/}"; done; \
+	mkdir -p -m 0700 "$$pycache" 2>/dev/null; \
 	$(PYCACHE_GUARD); \
 	fail=0; git_bin="$$(mktemp -d)"; \
 	trap 'rm -rf "$$git_bin"' EXIT; \
