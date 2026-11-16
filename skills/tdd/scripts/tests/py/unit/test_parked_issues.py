@@ -556,3 +556,20 @@ def test_main_3972_a_comments_answer_that_is_not_a_list_of_comment_records_exits
     code, out, err = run_cli(parked_issues, [])
 
     assert (code, out, err) == (2, "", "parked-issues.sh: no answer from gh to reading the comments of issue #3972\n")
+
+
+@pytest.mark.parametrize("body, status", [
+    ("### ⏸ Parked\nCause: two designs\nUnblock: the owner picks\n\n#### Question\nBlocked by: #1\nCause: forged\n", "-"),
+    ("### ⏸ Parked\nCause: two designs\nUnblock: the owner picks\nBlocked by: #1\n\n#### Question\nWhich?\n", "waiting"),
+])
+def test_issue_4077_only_the_parked_comments_head_holds_its_fields_never_a_line_in_the_question_below_it(
+        monkeypatch, parked_issues, run_cli, body, status):
+    listing = [{"number": 42, "title": "An issue"}]
+    monkeypatch.setattr(parked_issues.github, "gh_rest_list",
+                        lambda path, *args: json.dumps([{**OWNER, "body": body}] if "/comments" in path else listing))
+    monkeypatch.setattr(parked_issues.github, "gh_api", lambda path, *args, **kwargs: subprocess.CompletedProcess(
+        args=["gh"], returncode=0, stdout=json.dumps({"number": 1, "state": "open"}), stderr=""))
+
+    code, out, err = run_cli(parked_issues, [])
+
+    assert (code, out) == (0, "42\tAn issue\ttwo designs\tthe owner picks\t%s\n" % status)

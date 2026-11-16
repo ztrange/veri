@@ -10,9 +10,18 @@ from json_documents import documents, items
 USAGE = "usage: parked-issues.sh"
 
 
+def head(body):
+    """The parked comment's field lines: after its heading (and any blank lines right below it), up to the next blank
+    line, where park-issue.sh writes them. A line further down (the question --question-file appends) is not a field."""
+    lines = body.splitlines()[1:]
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    return lines[:next((i for i, line in enumerate(lines) if not line.strip()), len(lines))]
+
+
 def field(body, name):
     prefix = name + ": "
-    return next((line[len(prefix):] for line in body.splitlines() if line.startswith(prefix)), None)
+    return next((line[len(prefix):] for line in head(body) if line.startswith(prefix)), None)
 
 
 def read(fetch, path, what):
