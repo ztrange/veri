@@ -109,3 +109,13 @@ def test_a_fifo_in_the_tree_is_refused_without_being_opened_3964(tmp_path, reade
 
     with pytest.raises(OSError):
         getattr(pinned_scripts, reader)(str(tree))
+
+
+def test_snapshot_digest_refuses_a_file_with_a_second_hard_link_3964(tmp_path):
+    outside = tmp_path / "outside.txt"
+    outside.write_text("not the skill's\n")
+    tree = skill_tree(tmp_path / "veri-snapshot-x")
+    os.link(outside, tree / "scripts" / "linked.txt")
+
+    with pytest.raises(OSError):
+        pinned_scripts.snapshot_digest(str(tree))

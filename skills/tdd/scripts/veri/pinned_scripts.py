@@ -100,7 +100,10 @@ def snapshot_digest(snapshot):
         for name in files + dirs:
             path = os.path.join(root, name)
             relative = os.path.relpath(path, snapshot)
-            mode = plain_entry(path).st_mode
+            found = plain_entry(path)
+            mode = found.st_mode
+            if stat.S_ISREG(mode) and found.st_nlink > 1:
+                raise OSError(errno.EMLINK, "a file with a second hard link, which may lie outside the snapshot", path)
             if stat.S_ISDIR(mode):
                 lines.append((relative, "directory"))
                 continue
