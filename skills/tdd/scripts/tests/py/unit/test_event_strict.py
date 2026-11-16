@@ -1,4 +1,5 @@
-"""VERI_EVENT_STRICT=1: event.sh and event.mark refuse an event veri/event_table.py does not allow (PRD 030.1, ET3, ET4)."""
+"""VERI_EVENT_STRICT=1: event.sh and event.mark refuse an event veri/event_table.py does not allow (PRD 030.1, ET3, ET4), and a
+value its key's declared format rejects (PRD 030.6, FS1, FS2)."""
 import pytest
 
 from veri import event
@@ -59,6 +60,19 @@ def test_strict_refuses_an_event_missing_a_key_the_table_marks_required(how, clo
     assert code == 2
     assert [path for path in journals(clone, tmp_path) if path.exists() and path.read_bytes()] == []
     assert "comment" in err and "url" in err
+
+
+@pytest.mark.parametrize("how", ["mark", "sh"])
+def test_strict_refuses_a_value_its_key_s_declared_format_rejects_naming_event_key_and_format(
+        how, clone, tmp_path, monkeypatch, run_cli, capfd):
+    monkeypatch.setenv("VERI_EVENT_STRICT", "1")
+
+    code, err = write(how, clone, monkeypatch, run_cli, "plan", ["steps=three"])
+    err = capfd.readouterr().err if err is None else err
+
+    assert code == 2
+    assert [path for path in journals(clone, tmp_path) if path.exists() and path.read_bytes()] == []
+    assert "plan" in err and "steps" in err and "whole" in err
 
 
 @pytest.mark.parametrize("how", ["mark", "sh"])
