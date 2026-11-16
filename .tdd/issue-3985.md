@@ -4,3 +4,4 @@
 - [x] a leg whose passes ran and had a failing case still exits 1 through the same entry ⟦criterion 2⟧
 - [x] the bytecode-cache record still runs after such an exit 2 ⟦criterion 3⟧
 - [x] CLAUDE.md's Testing idiom refusals paragraph says an error escaping the leg is exit 2 (CM158), graded ⟦criterion 4⟧
+- [x] a bytecode cache check or record that raises is exit 2 in one line, never masking a failing leg's 1 (review)
