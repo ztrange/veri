@@ -1,6 +1,6 @@
 # Plan for #3919 — PRD 029.4: the plan verifier is shown the touching cases
 
-- [ ] build-verify-prompt.sh plan adds, after the ledger, a `### Test cases touching the files the plan names` section listing, under a test file's repo-relative path, the names of its cases and no case body, when a step names a file by its repo-relative path and the test file holds that file's stem ⟦criterion 1⟧
+- [x] build-verify-prompt.sh plan adds, after the ledger, a `### Test cases touching the files the plan names` section listing, under a test file's repo-relative path, the names of its cases and no case body, when a step names a file by its repo-relative path and the test file holds that file's stem ⟦criterion 1⟧
 - [ ] a step naming a file by its basename alone lists the cases of the test files touching it ⟦criterion 1⟧
 - [ ] a test file holding the stem with `_` where the file name has `-` touches it ⟦criterion 1⟧
 - [ ] a test file holding the stem only inside a longer word contributes no case ⟦criterion 1⟧
