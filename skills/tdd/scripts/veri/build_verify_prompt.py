@@ -129,6 +129,11 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         return _refused(f"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got '{branch_base}'")
     if phase not in PHASES + INTERFACE_PHASES + VERIFY_ONLY_PHASES:
         return _refused(f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})")
+    cap = tunables.get("VERI_PLAN_TOUCHING_CASES")
+    if phase == "plan" and not tunables.parses("VERI_PLAN_TOUCHING_CASES", cap):
+        write(sys.stderr, f"build-verify-prompt: VERI_PLAN_TOUCHING_CASES must be a whole number, got '{cap}'",
+              before=False, after=False)
+        return 2, b""
     if "fast-cmd" in NEEDS.get(phase, ()) and not fast_cmd:
         return _refused(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
     if phase == "pin" and not branch_base:
