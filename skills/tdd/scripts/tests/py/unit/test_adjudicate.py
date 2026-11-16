@@ -220,3 +220,20 @@ def test_record_under_ci_conflict_on_route_rebase_prints_the_route_writes_one_ro
         for e in events
         if e.get("event") == "adjudicated"
     ] == [{"issue": "7", "cause": "ci-conflict", "outcome": "route", "reason": "the base moved again"}]
+
+
+@pytest.mark.parametrize("cause", ["ci-conflict"])
+def test_left_exits_0_when_every_adjudicated_event_of_the_cause_precedes_the_last_conductor_start(
+    run_cli, adjudicate, monkeypatch, tmp_path, cause
+):
+    import json
+
+    monkeypatch.delenv("VERI_ADJUDICATE_BUDGET", raising=False)
+    start = {"issue": "7", "event": "conductor-start"}
+    adjudicated = {"issue": "7", "event": "adjudicated", "cause": cause, "outcome": "retry"}
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        "".join(json.dumps(e) + "\n" for e in [start, *[adjudicated] * 5, start])
+    )
+    code, out, err = run_cli(adjudicate, ["left", "7"], cwd=tmp_path)
+    assert (code, out, err) == (0, "", "")
