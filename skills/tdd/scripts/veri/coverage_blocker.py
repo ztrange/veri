@@ -9,6 +9,7 @@ from blocked_by import add as block, blockers
 from detect_test_command import resolved
 from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
 from json_documents import documents
+from report import report_values
 import tunables
 
 USAGE = "usage: coverage-blocker.sh <refactor-issue-number>"
@@ -37,8 +38,9 @@ def main(argv):
             "Find a seam and surround the behaviour with tests, then #%s can be retaken." % (n, n))
     try:
         with open(".tdd/develop-cover.out") as f:
-            lines = [line.strip() for line in f]
-        mutations = [m for m in lines if m.startswith("MUTATION:")] if "COVERED: no" in lines else []
+            report = f.read()
+        uncovered = "no" in report_values(report, "COVERED", strip=True)
+        mutations = ["MUTATION:" + m for m in report_values(report, "MUTATION", space="kept", strip=True)] if uncovered else []
     except OSError:
         mutations = []
     if mutations:
