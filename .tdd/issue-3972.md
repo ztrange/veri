@@ -2,6 +2,6 @@
 
 - [x] parked_issues.main takes the last trusted ### ⏸ Parked comment: when the last parked comment is untrusted, the printed line carries the trusted comment's cause, unblock text and ready/waiting answer ⟦criterion 1⟧
 - [x] an issue whose only parked comments are untrusted exits 2 with the has-no-parked-comment line ⟦criterion 2⟧
-- [ ] a comments answer that is not a list of comment records exits 2 naming the read, printing no row
+- [x] a comments answer that is not a list of comment records exits 2 naming the read, printing no row
 - [ ] every reader of issue comments under veri/ goes through github.trusted_comment, or is listed with why it need not; a ratchet case names any that does not
 - [ ] the parked-issues.sh entry of SCRIPTS.md says the comment read is the last trusted one ⟦criterion 3⟧
