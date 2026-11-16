@@ -10,14 +10,17 @@ class FakeIssue:
     """GitHub as `gh api` sees it for one issue: its comments, the pull requests on the run's branch, and a switch that
     makes every gh call fail. Answers git's branch read and `hostname -s` too."""
 
-    def __init__(self, fake_processes, comments=(), pulls=(), branch="tdd/7-pointer", host="box"):
+    def __init__(self, fake_processes, comments=(), pulls=(), branch="tdd/7-pointer", host="box", labels=(), extra=None):
         self.comments = [{"id": 100 + i, "body": body} for i, body in enumerate(comments)]
         self.pulls = list(pulls)
+        self.labels = set(labels)
         self.fail = False
+        self.fail_comments = False
         self.fake = fake_processes.answers({
             "gh": self.gh,
             "git rev-parse --abbrev-ref HEAD": (0, branch + "\n", ""),
             "hostname -s": (0, host + "\n", ""),
+            **(extra or {}),
         })
 
     def bodies(self):
@@ -30,6 +33,17 @@ class FakeIssue:
         method = argv[argv.index("-X") + 1] if "-X" in argv else "GET"
         path = next(a for a in argv[2:] if a.startswith("repos/"))
         body = next((a[len("body="):] for a in argv if a.startswith("body=")), None)
+        if "/comments" in path and self.fail_comments:
+            return 1, "", "gh: Server Error (HTTP 502)\nsecond line of gh's words\n"
+        if path.endswith("/labels") and method == "GET":
+            return 0, json.dumps([{"name": name} for name in sorted(self.labels)]), ""
+        if "/labels" in path:
+            label = next((a.partition("=")[2] for a in argv if a.startswith("labels[]=")), None)
+            if method == "DELETE":
+                self.labels.discard(path.rpartition("/labels/")[2])
+            elif label:
+                self.labels.add(label)
+            return 0, "{}", ""
         if method == "GET":
             page = int(path.rpartition("page=")[2]) if "&page=" in path else 1
             items = self.pulls if "/pulls" in path else self.comments
@@ -77,6 +91,22 @@ def test_after_push_stamps_the_issue_the_run_branch_names_and_writes_nothing_on_
     _module().after_push()
 
     assert (len(stamped), stamped[0] != "Last push: none", other.comments) == (1, True, [])
+
+
+def test_a_gh_failure_writing_the_comment_is_one_stderr_line_naming_the_issue_and_the_callers_keep_their_exit_codes(tmp_path, monkeypatch, capsys, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_PUSH_RETRIES", "0")
+    issue = FakeIssue(fake_processes, labels=["ready-for-agent"], extra={"git push": (0, "", "")})
+    issue.fail_comments = True
+    said = {}
+    for name, call in (("pointer", lambda: _module().main(["7"])),
+                       ("unlabel", lambda: importlib.import_module("veri.unlabel_issue").main(["7"])),
+                       ("push", lambda: importlib.import_module("veri.push_branch").main([]))):
+        code = call()
+        said[name] = (code, capsys.readouterr().err.splitlines())
+
+    one_line = {name: (code, len(lines), "#7" in "".join(lines)) for name, (code, lines) in said.items()}
+    assert one_line == {"pointer": (2, 1, True), "unlabel": (0, 1, True), "push": (0, 1, True)}
 
 
 def _module():
