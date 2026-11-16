@@ -11,7 +11,8 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
   header     issue, clocked, issue_wall, asleep, steps_done, planned, ended, cause, ending, lane, flaked,
              pinned, model_knobs, models
   tables     phases, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
-             adjudications, switched_off, switched_off_pin, total, green_rejects (+ green_reject_routes)
+             adjudications, switched_off, switched_off_pin, total, green_rejects (+ green_reject_routes),
+             launch_costs (+ launch_cost_missing)
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
