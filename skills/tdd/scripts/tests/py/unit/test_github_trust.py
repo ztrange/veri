@@ -58,7 +58,21 @@ def test_with_the_authenticated_login_unreadable_the_association_alone_answers_a
     monkeypatch.setattr(github, "authenticated_login", no_answer)
     answers = [github.trusted_comment(comment(association, login="veri-operator"))
                for association in ("NONE", "MEMBER", "OWNER", "COLLABORATOR")]
-    assert (answers, reads) == ([False, False, True, True], ["user"])
+    assert (answers, reads) == ([False, False, True, True], ["user", "user"])
+
+
+def test_a_failed_login_read_is_not_kept_so_a_later_read_that_answers_trusts_the_gh_users_comment(github, monkeypatch):
+    answers = [None, "veri-operator"]
+
+    def login():
+        answer = answers.pop(0)
+        if answer is None:
+            raise github.NoAnswer("", "HTTP 502")
+        return answer
+
+    monkeypatch.setattr(github, "authenticated_login", login)
+    mine = comment("MEMBER", login="veri-operator")
+    assert [github.trusted_comment(mine), github.trusted_comment(mine)] == [False, True]
 
 
 @pytest.mark.parametrize("record, login_readable", [

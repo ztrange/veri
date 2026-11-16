@@ -246,13 +246,14 @@ _TRUSTING_LOGIN = {}
 
 
 def _trusting_login():
-    """The authenticated gh login trusted_comment compares against, read at most once per process; None when gh gave
-    none, so the association alone answers and the caller is not stopped."""
+    """The authenticated gh login trusted_comment compares against, kept once read so it is read at most once per
+    process; None when gh gave none, so the association alone answers and the caller is not stopped. A failed read is
+    not kept: a long-lived reader (the dispatcher) trusts its own comments again once gh answers."""
     if "login" not in _TRUSTING_LOGIN:
         try:
             _TRUSTING_LOGIN["login"] = authenticated_login()
         except NoAnswer:
-            _TRUSTING_LOGIN["login"] = None
+            return None
     return _TRUSTING_LOGIN["login"]
 
 
