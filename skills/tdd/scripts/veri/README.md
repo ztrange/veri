@@ -167,7 +167,6 @@ Where a run lives on disk, its journal of events and its pin files and mutation 
 - `classify-bail.sh`: label a bail as a process or a system failure.
 - `ensure-run-state-ignored.sh`: keep the run's `.tdd/` state git-ignored.
 - `event.sh`: append one event to a run's journal.
-- `event_roster`: every event name emitted under skills/, found by scanning for the shell and in-process emit calls.
 - `journal_schema`: what JOURNAL.md's table documents per event kind, and the literal kinds and fields writer calls pass, found with `ast`.
 - `pinned-scripts.sh`: the directory of a run's pinned scripts.
 - `preflight.sh`: the checks before a run starts.
@@ -406,7 +405,6 @@ The budgets (steps, time, refactor, context, affordability) and what leaves cost
 How veri's own suite runs (`make test`, `make unit`, `make profile`): the pytest leg's launcher and its plugins, the bytecode cache, the one-full-run lock, the fast-tier admission guard and the per-case profiler. Builds on Foundations only.
 
 - `failed_cases`: the pytest leg's record plugin: keeps, in this process, the cases each session collected and how each one reported.
-- `fast_tier_guard`: Fast-tier admission guard: names the lines of test files that start a process.
 - `full_run_lock`: the one-full-run lock: at most one full `make test` runs per machine, and a waiter names the holder.
 - `network_guard`: a pytest plugin the launcher loads: no case may reach a non-loopback address or start a gh or curl it did not plant under its basetemp.
 - `private_tmp_path`: the pytest leg's tmp_path plugin: one fresh directory under the session basetemp, made without numbering.

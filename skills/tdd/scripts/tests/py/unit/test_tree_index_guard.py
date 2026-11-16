@@ -5,9 +5,9 @@ import pytest
 # tree_audit cases that glob the test files but may not go through tests_py_index, each with why.
 EXEMPT = {
     "test_fast_tier_guard.py::test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_by_any_case_that_reads_the_real_table":
-        "lists file paths for the fast-tier placement audit, which never parses them; veri.fast_tier_guard reads each file itself",
+        "lists file paths for the fast-tier placement audit, which never parses them; tests/py/fast_tier_guard.py reads each file itself",
     "test_fast_tier_guard.py::test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it":
-        "lists file paths for the fast-tier placement audit, which never parses them; veri.fast_tier_guard reads each file itself",
+        "lists file paths for the fast-tier placement audit, which never parses them; tests/py/fast_tier_guard.py reads each file itself",
 }
 
 # tree_audit cases that glob `*.py` under veri/ without veri_modules_index, each with why.
