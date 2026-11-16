@@ -5,6 +5,7 @@ import getpass
 import json
 import os
 import platform
+import plistlib
 import re
 import socket
 import sys
@@ -26,14 +27,21 @@ def ref(issue):
 
 
 MAC_PREFIXES = ("/System/Volumes/Data", "/private")
-GENERIC_TEMP = re.compile(r"(?:/System/Volumes/Data)?(?:/private)?/var/folders/[^/\s\"'`]+/[^/\s\"'`]+/[A-Z]"
-                          r"|(?:/System/Volumes/Data)?(?:/private)?/tmp")
-WORD = r"(?<![A-Za-z0-9])%s(?![A-Za-z0-9])"
+PREFERENCES = "/Library/Preferences/SystemConfiguration/preferences.plist"
+# A path ends where a path component cannot go on: a sensitive path followed by a letter, digit, `_` or `-` is another
+# path (`/Users/<name>2`), left alone.
+PATH_END = r"(?![A-Za-z0-9_-])"
+PATH_START = r"(?<![A-Za-z0-9_.-])"
+GENERIC_TEMP = re.compile(PATH_START + r"(?:/System/Volumes/Data)?(?:/private)?(?:/var/folders/[^/\s\"'`]+/[^/\s\"'`]+/[A-Z]"
+                          r"|/tmp)" + PATH_END)
+# A whole word: no letter or digit on either side, and not the inside of a placeholder (`<user>`), so a second pass
+# finds nothing new; a preceding encoded slash (`%2F`, `%2f`) also starts a word.
+WORD = r"(?:(?<![A-Za-z0-9<])|(?<=%%2[Ff]))%s(?![A-Za-z0-9>])"
+REDACTED = "<redacted>"
 
 
-def _path_spellings(path):
-    """Every spelling of <path> a line may hold: as given and resolved, with or without the macOS prefixes
-    (`/private`, `/System/Volumes/Data`), each as is, with `/` written as an escaped slash, and URL-encoded (`safe=""` and `safe="/"`)."""
+def _path_bases(path):
+    """<path> as given and resolved, with and without the macOS prefixes (`/private`, `/System/Volumes/Data`)."""
     bases = set()
     for spelled in {path, os.path.realpath(path)}:
         bare = spelled
@@ -42,28 +50,52 @@ def _path_spellings(path):
         if not bare.strip("/"):
             continue
         bases |= {bare, "/private" + bare, "/System/Volumes/Data" + bare, "/System/Volumes/Data/private" + bare}
+    return bases
+
+
+def _path_spellings(path):
+    """The spellings the readable layer replaces: each base, with `/` written as an escaped slash, and URL-encoded
+    (`safe=""` and `safe="/"`); matched ignoring case, so lower-case hex is the same spelling."""
     forms = set()
-    for base in bases:
+    for base in _path_bases(path):
         forms |= {base, base.replace("/", "\\/"), urllib.parse.quote(base, safe=""), urllib.parse.quote(base, safe="/")}
     return forms
 
 
+def _plist_names():
+    """The Bonjour LocalHostName and the ComputerName from the system preferences, read with plistlib (no process);
+    none when the file or a key is absent or unreadable."""
+    try:
+        with open(PREFERENCES, "rb") as f:
+            prefs = plistlib.load(f)
+    except (OSError, ValueError, plistlib.InvalidFileException):
+        return set()
+    found = set()
+    for keys in (("System", "Network", "HostNames", "LocalHostName"), ("System", "System", "ComputerName")):
+        value = prefs
+        for key in keys:
+            value = value.get(key) if isinstance(value, dict) else None
+        if isinstance(value, str) and value:
+            found.add(value)
+    return found
+
+
 def _host_forms():
-    """The names this machine goes by, as Python sees them (no process started): socket.gethostname() and
-    platform.node(), their first DNS label when it is not numeric and at least 3 characters, each also with `.local`
-    and with `-` written as a space. An IP-looking name is kept whole, never split into labels."""
+    """The names this machine goes by, learnt with no process: socket.gethostname(), platform.node() and the plist's
+    LocalHostName and ComputerName; each with its first DNS label, each also with `.local` and with `-` and space
+    written either way. An IP-looking name is kept whole, never split; a form that is all digits or under 3
+    characters is left out."""
     forms = set()
-    for name in {socket.gethostname(), platform.node()} - {""}:
+    for name in ({socket.gethostname(), platform.node()} | _plist_names()) - {""}:
         if re.fullmatch(r"[0-9.]+|[0-9A-Fa-f:]*:[0-9A-Fa-f:.]*", name):
             forms.add(name)
             continue
-        names = {name}
-        label = name.split(".")[0]
-        if not label.isdigit() and len(label) >= 3:
-            names.add(label)
+        names = {name, name.split(".")[0]}
         for each in names:
-            forms |= {each, each + ".local", each.replace("-", " "), each.replace("-", " ") + ".local"}
-    return forms
+            forms |= {each, each + ".local", each.replace("-", " "), each.replace(" ", "-"),
+                      each.replace("-", " ") + ".local", each.replace(" ", "-") + ".local"}
+    return {form for form in forms if len(form) >= 3 and not form.replace(".", "").isdigit()
+            or re.fullmatch(r"[0-9]+(?:\.[0-9]+){3}", form)}
 
 
 def _account_names():
@@ -77,39 +109,77 @@ def _account_names():
     return {name for name in names if len(name) >= 3}
 
 
-def _redactions(run):
-    """The steps a carried string goes through, in order: plain substrings, the longest first within each kind (the
-    worktree and main clone roots read `<repo>`, then the temp directories `<tmp>`, then the home directory `~`, each in
-    every spelling _path_spellings gives); then any other temp path; then each host form, whole word and ignoring case,
-    `<host>`; then the account name, whole word and ignoring case, `<user>`."""
+def _sensitive(run):
+    """(paths by placeholder, host forms, account names) for the run at <run>."""
     run = os.path.abspath(run)
-    steps = []
-    kinds = (("<repo>", [run, run_dir.main_of_worktree(run)]),
-             ("<tmp>", [tempfile.gettempdir(), os.environ.get("TMPDIR", "").rstrip("/")]),
+    paths = (("<repo>", [p for p in (run, run_dir.main_of_worktree(run)) if p]),
+             ("<tmp>", [p for p in (tempfile.gettempdir(), os.environ.get("TMPDIR", "").rstrip("/")) if p]),
              ("~", [os.path.expanduser("~")]))
-    for repl, paths in kinds:
-        forms = set().union(*(_path_spellings(path) for path in paths if path))
-        steps += [(form, repl) for form in sorted(forms, key=len, reverse=True)]
+    return paths, _host_forms(), _account_names()
+
+
+def _redactions(run):
+    """The two layers a carried string goes through.
+
+    readable: (regex, replacement) steps, in order: the paths as plain substrings ending at a path boundary, the longest
+    first within each kind (the worktree and main clone roots `<repo>`, then the temp directories `<tmp>`, then the
+    home directory `~`, each in every spelling _path_spellings gives, ignoring case); then any other temp path at a path
+    boundary `<tmp>`; then each host form `<host>` and the account name `<user>`, whole words ignoring case.
+    fail-closed: (normalized paths, word regex) that a normalized copy of a string must not hold after the first layer;
+    one that still does is replaced whole by `<redacted>`."""
+    paths, hosts, accounts = _sensitive(run)
+    steps = []
+    for repl, kind in paths:
+        forms = set().union(*(_path_spellings(path) for path in kind))
+        steps += [(re.compile(re.escape(form) + PATH_END, re.I), repl) for form in sorted(forms, key=len, reverse=True)]
     steps.append((GENERIC_TEMP, "<tmp>"))
-    for names, repl in ((_host_forms(), "<host>"), (_account_names(), "<user>")):
+    for names, repl in ((hosts, "<host>"), (accounts, "<user>")):
         steps += [(re.compile(WORD % re.escape(name), re.I), repl) for name in sorted(names, key=len, reverse=True)]
-    return steps
+    normalized_paths = {_normalized(base) for _, kind in paths for path in kind for base in _path_bases(path)}
+    words = sorted({_normalized(name) for name in hosts | accounts}, key=len, reverse=True)
+    pattern = "|".join([re.escape(p) + PATH_END for p in sorted(normalized_paths, key=len, reverse=True)]
+                       + [r"(?<![a-z0-9<])%s(?![a-z0-9>])" % re.escape(w) for w in words])
+    return steps, re.compile(pattern) if pattern else None
+
+
+def _normalized(text):
+    """A copy of <text> as the fail-closed layer reads it: URL-decoded until it stops changing (at most 5 times), an
+    escaped slash or a backslash read as `/`, case-folded."""
+    for _ in range(5):
+        decoded = urllib.parse.unquote(text)
+        if decoded == text:
+            break
+        text = decoded
+    return text.replace("\\/", "/").replace("\\", "/").casefold()
 
 
 def _redact_text(text, redactions):
-    for pattern, repl in redactions:
-        text = text.replace(pattern, repl) if isinstance(pattern, str) else pattern.sub(repl, text)
+    steps, leak = redactions
+    for pattern, repl in steps:
+        text = pattern.sub(repl, text)
+    if leak is not None and leak.search(_normalized(text)):
+        return REDACTED
     return text
 
 
 def _redact(value, redactions):
-    """<value> (decoded JSON) with every string in it, keys included, redacted; the structure is kept as it is."""
+    """<value> (decoded JSON) with every string in it, keys included, redacted; the structure is kept as it is. A key
+    replaced whole becomes `<redacted>`, or `<redacted-2>`… when the object already holds that key."""
     if isinstance(value, str):
         return _redact_text(value, redactions)
     if isinstance(value, list):
         return [_redact(item, redactions) for item in value]
     if isinstance(value, dict):
-        return {_redact(key, redactions): _redact(item, redactions) for key, item in value.items()}
+        out = {}
+        for key, item in value.items():
+            name = _redact_text(key, redactions)
+            if name == REDACTED and key != REDACTED:
+                n = 1
+                while name in value or name in out:
+                    n += 1
+                    name = "<redacted-%d>" % n
+            out[name] = _redact(item, redactions)
+        return out
     return value
 
 
