@@ -5,6 +5,7 @@ import subprocess
 import pytest
 
 from conftest import SCRIPTS
+from repo_builder import new_repo
 
 RECHECK = str(SCRIPTS / "pin-recheck.sh")
 
@@ -26,7 +27,7 @@ def test_2506_a_record_naming_a_file_the_range_does_not_touch_exits_3_and_runs_n
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "other.txt").write_text("one\n")
     (tmp_path / ".tdd").mkdir()
@@ -56,7 +57,7 @@ def test_2506_a_record_whose_command_passes_unmutated_and_fails_mutated_exits_0_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -77,7 +78,7 @@ def test_3290_a_mutation_pin_red_under_its_mutation_at_head_with_an_origin_main_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -101,7 +102,7 @@ def test_2506_a_record_whose_command_stays_green_under_its_mutation_exits_1_nami
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -127,7 +128,7 @@ def test_3290_a_mutation_pin_green_under_its_mutation_at_head_but_red_at_the_bas
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -152,7 +153,7 @@ def test_3290_a_mutation_pin_green_under_its_mutation_at_head_and_at_the_base_pr
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -185,7 +186,7 @@ def test_3290_a_failing_base_run_of_the_mutation_leaves_the_files_byte_identical
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=repo,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(repo)
     (repo / "guard.txt").write_text("if guard\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -214,7 +215,7 @@ def test_2506_a_record_whose_old_text_is_gone_prints_the_pin_as_needing_a_look_a
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -235,7 +236,7 @@ def test_2506_a_record_whose_command_fails_unmutated_prints_the_pin_as_needing_a
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -257,7 +258,7 @@ def test_2506_a_base_sha_that_does_not_resolve_exits_2_with_nothing_on_stdout(tm
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -275,7 +276,7 @@ def test_2506_a_mutations_record_that_cannot_be_parsed_exits_2_with_nothing_on_s
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-835-mutations.md").write_text("this is not a record\n")
@@ -295,7 +296,7 @@ def test_2814_a_record_through_a_vanished_timed_test_run_path_is_replayed_and_no
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     gone = tmp_path / "gone-scratch" / "scripts" / "timed-test-run.sh"
@@ -318,7 +319,7 @@ def test_2814_a_record_through_a_timed_test_run_path_that_still_exists_is_replay
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     kept = tmp_path / "kept-scratch" / "scripts" / "timed-test-run.sh"
@@ -345,7 +346,7 @@ def test_2814_a_record_through_a_vanished_timed_test_run_path_whose_command_stil
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     gone = tmp_path / "gone-scratch" / "scripts" / "timed-test-run.sh"
@@ -368,7 +369,7 @@ def test_2827_a_mutated_run_that_exits_non_zero_and_still_prints_the_unmutated_r
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2827-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -390,7 +391,7 @@ def test_2827_a_mutated_run_that_exits_non_zero_and_prints_none_of_the_unmutated
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2827-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -412,7 +413,7 @@ def test_2827_a_result_line_printed_only_on_stderr_still_tells_a_build_failure_f
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2827-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -434,7 +435,7 @@ def test_2843_a_mutated_run_that_exits_non_zero_after_a_silent_unmutated_run_nee
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2843-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -456,7 +457,7 @@ def test_2843_a_mutation_that_did_not_build_writes_the_last_40_lines_of_the_muta
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2843-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -479,7 +480,7 @@ def test_2843_an_unmutated_run_that_exits_non_zero_writes_the_last_40_lines_of_i
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2843-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -502,7 +503,7 @@ def test_2843_a_silent_unmutated_run_and_a_mutated_build_failure_writes_the_muta
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2843-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -524,7 +525,7 @@ def test_2875_a_go_test_failure_on_the_mutated_run_counts_as_red_and_exits_0_and
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2875-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -547,7 +548,7 @@ def test_2875_a_go_build_failure_on_the_mutated_run_still_needs_a_look_and_exits
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2875-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -570,7 +571,7 @@ def test_2876_a_bash_c_command_with_its_script_unquoted_runs_no_test_and_needs_a
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2876-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -592,7 +593,7 @@ def test_2876_a_command_that_runs_its_test_passing_clean_and_failing_mutated_rep
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2876-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -614,7 +615,7 @@ def test_2876_a_command_that_reads_its_file_and_passes_clean_and_mutated_still_r
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -640,7 +641,7 @@ def test_2876_after_the_control_run_of_a_command_that_runs_no_test_the_pinned_fi
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2876-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -662,7 +663,7 @@ def test_2876_a_mutated_run_that_fails_makes_no_control_run_so_the_command_never
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2876-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -683,7 +684,7 @@ def test_2876_a_command_that_is_not_bash_c_and_runs_no_test_needs_a_look_and_exi
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2876-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -706,7 +707,7 @@ def test_2877_a_recorded_pin_whose_title_has_an_apostrophe_and_spaces_is_replaye
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
     title = "that shell's own job spec"
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "runner.sh").write_text('echo result\nprintf "%s:%s" "$#" "$1" > seen.txt\ngrep -q "if guard" guard.txt\n')
     (tmp_path / ".tdd").mkdir()
@@ -732,7 +733,7 @@ def test_2877_a_probe_through_timed_test_run_records_the_test_command_alone_and_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "runner.sh").write_text('echo result\ngrep -q "if guard" guard.txt\n')
     (tmp_path / ".tdd").mkdir()
@@ -764,7 +765,7 @@ def test_2919_a_probe_through_a_symlinked_scripts_directory_records_the_test_com
     def git(*words, cwd=repo):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=cwd,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(repo)
     (repo / "guard.txt").write_text("if guard\n")
     (repo / "runner.sh").write_text('echo result\ngrep -q "if guard" guard.txt\n')
     (repo / ".tdd").mkdir()
@@ -796,7 +797,7 @@ def test_2959_a_before_keep_record_whose_command_is_red_on_the_restored_files_ex
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -821,7 +822,7 @@ def test_2959_a_before_keep_record_leaves_the_keep_path_and_tdd_files_at_their_c
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
@@ -846,7 +847,7 @@ def test_2959_a_before_keep_record_whose_command_is_green_on_the_current_keep_pa
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
@@ -873,7 +874,7 @@ def test_2959_a_before_keep_record_whose_command_is_green_on_the_restored_files_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -898,7 +899,7 @@ def test_2959_a_green_before_keep_record_beside_an_old_format_record_is_reported
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     (tmp_path / "guard.txt").write_text("if guard\n")
@@ -927,7 +928,7 @@ def test_2959_a_record_with_neither_file_nor_before_exits_2_naming_the_record_an
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
@@ -949,7 +950,7 @@ def test_2959_a_red_before_keep_replay_leaves_every_restored_file_a_file_absent_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -976,7 +977,7 @@ def test_2959_a_before_keep_replay_removes_a_file_absent_at_the_before_sha_while
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -1004,7 +1005,7 @@ def test_2959_a_green_before_keep_replay_leaves_every_restored_file_a_file_absen
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -1032,7 +1033,7 @@ def test_2974_a_before_keep_replay_restores_a_file_the_branch_deleted_and_exits_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "gone.txt").write_text("needed by the old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -1056,7 +1057,7 @@ def test_2974_a_before_keep_record_on_a_branch_that_deleted_a_tracked_file_repla
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     (tmp_path / "gone.txt").write_text("doomed\n")
@@ -1082,7 +1083,7 @@ def test_2974_a_before_keep_record_with_a_green_commit_replays_without_touching_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     (tmp_path / "other.txt").write_text("other v0\n")
@@ -1110,7 +1111,7 @@ def test_3016_a_before_keep_record_whose_green_precedes_the_tick_commit_replays_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -1141,7 +1142,7 @@ def test_2919_pin_recheck_replays_the_record_from_the_directory_it_is_run_in_not
     def git(*words, cwd=repo):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=cwd,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(repo)
     (repo / "guard.txt").write_text("if guard\n")
     (repo / "runner.sh").write_text('echo result\ngrep -q "if guard" guard.txt && grep -qx other where.txt\n')
     (repo / ".tdd").mkdir()
@@ -1167,7 +1168,7 @@ def test_3016_a_before_keep_record_whose_range_replays_no_file_exits_2_naming_be
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -1193,7 +1194,7 @@ def test_3017_a_before_keep_record_whose_keep_file_the_range_does_not_touch_is_n
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "pin.txt").write_text("pin v0\n")
     (tmp_path / "other.txt").write_text("one\n")
     git("add", "-A")
@@ -1218,7 +1219,7 @@ def test_3017_a_before_keep_record_whose_keep_file_the_range_touches_is_replayed
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -1246,7 +1247,7 @@ def test_3046_a_before_replay_leaves_an_executable_file_100755_and_a_plain_one_1
         return (git("ls-files", "-s", "scripts/x.sh", "scripts/y.txt"),
                 {n: ((tmp_path / n).stat().st_mode & 0o111 != 0, (tmp_path / n).read_bytes())
                  for n in ("scripts/x.sh", "scripts/y.txt")})
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
@@ -1273,7 +1274,7 @@ def test_2972_an_exit_0_or_3_leaves_a_receipt_holding_the_head_sha(tmp_path):
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "other.txt").write_text("one\n")
     (tmp_path / ".tdd").mkdir()
@@ -1296,7 +1297,7 @@ def test_2972_an_exit_2_removes_a_receipt_an_earlier_run_left(tmp_path):
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "other.txt").write_text("one\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", old="if guard", new="if (true)", command="true")
@@ -1318,7 +1319,7 @@ def test_2972_an_exit_1_removes_a_receipt_an_earlier_run_left_and_writes_none(tm
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -1349,7 +1350,7 @@ def test_2967_a_before_replay_that_swaps_files_leaves_every_file_byte_identical_
     def tree():
         return {n: (tmp_path / n).read_bytes() for n in ("a_mod.txt", "b_recreated.txt", "c_added.txt", "z_gone.txt", "pin.txt")
                 if (tmp_path / n).exists()}
-    git("init", "-q")
+    new_repo(tmp_path)
     for n, text in (("a_mod.txt", "a v0\n"), ("b_recreated.txt", "b v0\n"), ("pin.txt", "pin v0\n")):
         (tmp_path / n).write_text(text)
     git("add", "-A")
@@ -1384,7 +1385,7 @@ def test_3124_a_record_whose_command_is_not_found_exits_2_naming_the_pin_file_an
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3124-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -1406,7 +1407,7 @@ def test_3124_a_record_whose_make_command_finds_no_makefile_exits_2_naming_the_p
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3124-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -1428,7 +1429,7 @@ def test_3124_a_record_whose_make_command_has_a_makefile_but_a_failing_target_pr
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "Makefile").write_text("test:\n\t@false\n")
     (tmp_path / ".tdd").mkdir()
@@ -1451,7 +1452,7 @@ def test_3151_a_pin_whose_named_test_the_range_deletes_is_retired_exits_3_and_ru
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
@@ -1479,7 +1480,7 @@ def test_3151_a_retired_pin_beside_a_live_pin_that_stays_green_exits_1_the_live_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "live.txt").write_text("if guard\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -1514,7 +1515,7 @@ def test_3151_a_retired_pin_beside_a_live_pin_that_goes_red_exits_0_the_live_pin
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "live.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
@@ -1544,7 +1545,7 @@ def test_3151_a_pin_whose_named_test_is_missing_at_head_but_not_deleted_by_the_r
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
@@ -1580,7 +1581,7 @@ def test_3151_a_pin_naming_several_test_files_some_deleted_by_the_range_is_repla
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_gone.py").write_text("def test_g(): pass\n")
@@ -1608,7 +1609,7 @@ def test_3151_a_deleted_test_path_that_prefixes_a_kept_one_leaves_the_kept_argum
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_a.py").write_text("def test_a(): pass\n")
@@ -1635,7 +1636,7 @@ def test_3151_a_before_replay_over_a_file_added_after_before_and_deleted_by_head
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -1670,7 +1671,7 @@ def test_3151_a_before_replay_whose_command_raises_mid_run_restores_every_file_b
     def tree():
         return {n: (tmp_path / n).read_bytes() for n in ("a_mod.txt", "c_added.txt", "z_gone.txt", "pin.txt")
                 if (tmp_path / n).exists()}
-    git("init", "-q")
+    new_repo(tmp_path)
     for n, text in (("a_mod.txt", "a v0\n"), ("z_gone.txt", "z v0\n"), ("pin.txt", "pin v0\n")):
         (tmp_path / n).write_text(text)
     git("add", "-A")
@@ -1702,7 +1703,7 @@ def test_3151_a_before_record_whose_named_test_the_range_deletes_is_retired_and_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "pin.txt").write_text("pin v0\n")
     (tmp_path / "t_gone.txt").write_text("test v0\n")
     git("add", "-A")
@@ -1726,7 +1727,7 @@ def test_3168_a_pin_naming_a_pytest_node_id_whose_file_exists_is_rechecked_by_it
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_guard.py").write_text("# v0\n")
@@ -1750,7 +1751,7 @@ def test_3181_a_pin_whose_command_quotes_its_tests_node_id_is_rechecked_by_its_f
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_guard.py").write_text("# v0\n")
@@ -1774,7 +1775,7 @@ def _repo_with_deleted_test(tmp_path):
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "pin.txt").write_text("pin v0\n")
     (tmp_path / "t_gone.py").write_text("test v0\n")
     (tmp_path / "t_keep.py").write_text("test v0\n")
@@ -1823,7 +1824,7 @@ def test_3160_a_before_state_pin_green_on_its_before_state_at_head_and_on_the_ba
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=repo,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(repo)
     (repo / "src.txt").write_text("old behaviour\n")
     (repo / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -1849,7 +1850,7 @@ def test_3160_a_before_state_pin_red_on_the_base_and_green_at_head_beside_a_stal
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     (tmp_path / "stale.txt").write_text("stale v0\n")
@@ -1878,7 +1879,7 @@ def test_3160_a_stale_before_state_pin_beside_an_old_format_pin_that_goes_red_un
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     (tmp_path / "guard.txt").write_text("if guard\n")
@@ -1906,7 +1907,7 @@ def test_3160_a_stale_before_state_pin_beside_an_old_format_pin_that_stays_green
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     (tmp_path / "guard.txt").write_text("if guard\n")
@@ -1936,7 +1937,7 @@ def test_3160_a_green_before_state_pin_in_a_repository_with_no_origin_main_exits
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -1958,7 +1959,7 @@ def test_3160_a_green_before_state_pin_whose_base_worktree_cannot_be_created_exi
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -1983,7 +1984,7 @@ def test_3160_a_stale_before_state_pin_whose_command_names_no_tests_value_names_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -2005,7 +2006,7 @@ def test_3160_a_pin_whose_named_test_is_missing_at_head_and_on_the_base_and_not_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -2029,7 +2030,7 @@ def test_3160_a_base_replay_that_fails_exits_2_and_still_removes_the_base_worktr
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     (tmp_path / "sub").mkdir()
@@ -2062,7 +2063,7 @@ def test_3204_a_pin_whose_old_text_is_gone_prints_old_text_gone_as_its_reason_an
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -2084,7 +2085,7 @@ def test_3204_a_base_run_that_fails_prints_needs_a_look_with_its_reason_and_stil
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -2106,7 +2107,7 @@ def test_3204_a_pin_whose_mutated_and_control_runs_both_pass_names_that_reason_a
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3204-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -2128,7 +2129,7 @@ def test_3204_pins_sharing_a_file_and_a_reason_print_one_line_with_a_count_and_a
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3204-mutations.md", file="guard.txt", old="if gone", new="if (true)",
@@ -2154,7 +2155,7 @@ def test_3204_a_pin_whose_make_command_make_rejects_as_a_usage_error_exits_2_nam
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "x").mkdir()
     (tmp_path / ".tdd").mkdir()
@@ -2188,7 +2189,7 @@ def test_3204_a_make_command_that_exits_1_printing_invalid_option_stays_a_base_r
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3204-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -2223,7 +2224,7 @@ def test_3204_a_make_exit_2_printing_only_invalid_option_or_only_its_usage_still
         def git(*words):
             return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=repo,
                                   capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-        git("init", "-q")
+        new_repo(repo)
         (repo / "guard.txt").write_text("if guard\n")
         (repo / "x").mkdir()
         (repo / ".tdd").mkdir()
@@ -2252,7 +2253,7 @@ def test_3290_a_mutation_pin_green_under_its_mutation_whose_file_is_absent_on_th
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "other.txt").write_text("one\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -2278,7 +2279,7 @@ def test_3290_a_mutation_pin_green_under_its_mutation_whose_base_worktree_cannot
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
     (tmp_path / "other.txt").write_text("one\n")
     (tmp_path / ".tdd").mkdir()
@@ -2303,7 +2304,7 @@ def test_3289_a_pin_dropped_by_an_unpinnable_retire_is_not_reported_as_base_run_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_thing.py").write_text("def test_other():\n    pass\n")
@@ -2334,7 +2335,7 @@ def test_3323_a_pin_whose_test_survives_and_a_ledger_step_declares_retired_is_no
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
@@ -2365,7 +2366,7 @@ def test_3323_a_retired_pin_gains_a_retired_line_with_the_reason_that_the_record
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
@@ -2395,7 +2396,7 @@ def test_3323_retiring_a_pin_in_one_record_file_leaves_the_other_record_file_unt
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "other.txt").write_text("if other\n")
     (tmp_path / "tests").mkdir()
@@ -2430,7 +2431,7 @@ def test_3323_retiring_a_declared_pin_writes_exactly_one_pin_retired_event_carry
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
@@ -2461,7 +2462,7 @@ def test_3323_a_second_run_after_a_pin_was_retired_neither_replays_it_nor_writes
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
@@ -2495,7 +2496,7 @@ def test_3323_a_pin_not_declared_retired_beside_a_retired_one_is_still_replayed_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     git("commit", "-q", "--allow-empty", "-m", "main")
     git("update-ref", "refs/remotes/origin/main", "HEAD")
     (tmp_path / "guard.txt").write_text("if guard\n")
@@ -2531,7 +2532,7 @@ def test_3323_a_retire_pin_declaration_with_an_empty_reason_exits_2_and_retires_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     mutations = tmp_path / ".tdd" / "issue-835-mutations.md"
@@ -2563,7 +2564,7 @@ def test_3323_a_retire_pin_declaration_naming_a_file_that_holds_no_pin_exits_2_a
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     mutations = tmp_path / ".tdd" / "issue-835-mutations.md"
@@ -2602,7 +2603,7 @@ def test_3383_a_replayed_mutant_dropping_o_append_from_event_py_leaves_the_live_
     shutil.copy(SCRIPTS / "timed-test-run.sh", scripts)
     shutil.copytree(SCRIPTS / "lib", scripts / "lib")
     shutil.copytree(SCRIPTS / "veri", scripts / "veri", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / ".gitignore").write_text(".tdd/events.jsonl\n")
     (tmp_path / ".tdd").mkdir()
     wrapper = scripts / "timed-test-run.sh"
@@ -2630,7 +2631,7 @@ def test_3363_without_a_ledger_flag_every_touched_record_of_every_ledger_is_repl
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard-a.txt").write_text("if guard\n")
     (tmp_path / "guard-b.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
@@ -2655,7 +2656,7 @@ def test_3363_with_a_ledger_flag_only_that_ledgers_touched_records_are_replayed(
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard-a.txt").write_text("if guard\n")
     (tmp_path / "guard-b.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
@@ -2681,7 +2682,7 @@ def test_3363_a_ledger_flag_with_no_file_after_it_exits_2_and_replays_nothing(tm
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard-a.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard-a.txt", old="if guard", new="if (true)",
@@ -2702,7 +2703,7 @@ def test_3363_a_ledger_flag_whose_ledger_has_no_touched_record_exits_3_and_repla
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard-a.txt").write_text("if guard\n")
     (tmp_path / "guard-b.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
@@ -2750,7 +2751,7 @@ def test_3471_an_encoded_record_whose_command_stays_green_under_its_mutation_exi
 
     def b64(text):
         return base64.b64encode(text.encode()).decode()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -2781,7 +2782,7 @@ def test_3471_an_encoded_record_whose_command_goes_red_under_its_mutation_exits_
 
     def b64(text):
         return base64.b64encode(text.encode()).decode()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3471-mutations.md", file="guard.txt", **{"old-b64": b64("if guard"),
@@ -2804,7 +2805,7 @@ def test_3471_a_plain_text_record_whose_command_stays_green_under_its_mutation_i
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -2835,7 +2836,7 @@ def test_3471_a_retire_rewrite_leaves_the_surviving_encoded_records_encoded_and_
 
     def b64(text):
         return base64.b64encode(text.encode()).decode()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "gone.txt").write_text("if gone\n")
     (tmp_path / "guard.txt").write_text("if MARKEROLD3471\n")
     git("add", "-A")
@@ -2875,7 +2876,7 @@ def test_3469_a_pin_disarmed_by_a_sibling_file_then_repinned_to_assert_its_own_f
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "README").write_text("main\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -2908,7 +2909,7 @@ def repo_whose_replay_path_left_before_the_range(tmp_path, gone, disarm_on_base)
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     (tmp_path / "tests").mkdir()
@@ -2980,7 +2981,7 @@ def test_3696_a_mutation_pin_whose_mutated_file_the_range_deletes_is_retired_and
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3696-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -3002,7 +3003,7 @@ def test_3713_a_record_holding_file_and_keep_is_selected_by_its_file_value_and_n
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     for name in ("file_a.txt", "keep_a.txt", "file_b.txt", "keep_b.txt"):
         (tmp_path / name).write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
@@ -3027,7 +3028,7 @@ def test_3713_a_record_holding_only_a_file_value_is_selected_when_that_file_is_t
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3713c-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -3048,7 +3049,7 @@ def test_3713_a_record_holding_only_a_keep_value_is_selected_when_that_file_is_t
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
     git("add", "-A")
@@ -3074,7 +3075,7 @@ def test_3707_a_mutation_record_already_red_at_an_unchanged_tree_is_not_replayed
     repo = tmp_path / "repo"
     repo.mkdir()
     counter = tmp_path / "runs.log"
-    git("init", "-q")
+    new_repo(repo)
     (repo / "guard.txt").write_text("if guard\n")
     (repo / ".tdd").mkdir()
     record(repo / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -3111,7 +3112,7 @@ def test_3707_a_sigterm_mid_mutation_replay_leaves_the_mutated_file_as_it_was_be
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
     repo = tmp_path / "repo"
     repo.mkdir()
-    git("init", "-q")
+    new_repo(repo)
     (repo / "guard.txt").write_text("if guard\n")
     (repo / ".tdd").mkdir()
     record(repo / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -3153,7 +3154,7 @@ def test_3707_a_sigint_mid_mutation_replay_leaves_the_mutated_file_as_it_was_bef
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
     repo = tmp_path / "repo"
     repo.mkdir()
-    git("init", "-q")
+    new_repo(repo)
     (repo / "guard.txt").write_text("if guard\n")
     (repo / ".tdd").mkdir()
     record(repo / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -3190,7 +3191,7 @@ def test_3740_a_mutation_record_whose_file_is_absent_and_not_deleted_in_the_rang
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3740-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -3213,7 +3214,7 @@ def test_3740_a_pin_green_under_its_mutation_beside_a_record_whose_file_is_absen
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "live.txt").write_text("if guard\n")
     (tmp_path / "gone.txt").write_text("if guard\n")
     git("add", "-A")

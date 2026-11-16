@@ -5,4 +5,4 @@
 - [x] two repositories from `new_repo` share no file: a commit in one leaves the other with no commit ⟦criterion 3⟧
 - [x] the template `new_repo` copies lives under the run's `--basetemp` ⟦criterion 4⟧
 - [x] no case in `test_tests_frozen_process.py` runs `git init` itself; each calls `new_repo` ⟦criterion 5⟧
-- [ ] no case in `test_pin_recheck_process.py` runs `git init` itself; each calls `new_repo` ⟦criterion 5⟧
+- [x] no case in `test_pin_recheck_process.py` runs `git init` itself; each calls `new_repo` ⟦criterion 5⟧
