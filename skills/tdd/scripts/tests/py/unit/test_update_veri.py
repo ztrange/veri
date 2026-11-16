@@ -117,6 +117,26 @@ def test_main_exits_1_with_one_stderr_line_naming_the_reason_and_leaves_the_clon
     assert out == "" and err.count("\n") == 1 and "branch" in err.lower()
 
 
+def test_main_exits_1_naming_the_branch_and_an_empty_default_and_leaves_the_clone_untouched_when_origin_head_is_unset_4042(
+        tmp_path, run_cli, update_veri, monkeypatch):
+    calls = []
+
+    def fake_git(*args, **_):
+        calls.append(args)
+        if "symbolic-ref" in args and "refs/remotes/origin/HEAD" in args:
+            return subprocess.CompletedProcess(args, 1, "", "fatal: ref refs/remotes/origin/HEAD is not a symbolic ref\n")
+        if "symbolic-ref" in args:
+            return subprocess.CompletedProcess(args, 0, "refs/heads/main\n", "")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(update_veri, "git", fake_git, raising=False)
+
+    code, out, err = run_cli(update_veri, [], env={"VERI_SELF_UPDATE_FILE": str(tmp_path / "self-update")})
+
+    moved = [a for a in calls if {"merge", "pull", "reset", "checkout", "stash", "fetch"} & set(a)]
+    assert (code, out, err, moved) == (1, "", "update-veri.sh: clone is on main, not its upstream default branch \n", [])
+
+
 def test_main_exits_1_with_one_stderr_line_naming_the_reason_and_leaves_the_clone_untouched_when_the_working_tree_is_dirty(
         tmp_path, run_cli, update_veri, monkeypatch):
     calls = []
