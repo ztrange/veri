@@ -165,6 +165,11 @@ accepted format.
 The lists, every variant, the grader prompt, the parser and the script that ran them are in
 `specs/grader-poc/`, so #1718 can repeat this measurement as is.
 
+PRD 025.20 removed that directory once #1718 had repeated the measurement. Its 18 files are
+recoverable from `d586fd79ca`, the directory's last change: `git show d586fd79ca:specs/grader-poc/<file>`
+prints one (for example `git show d586fd79ca:specs/grader-poc/develop-red.req`), and
+`git ls-tree --name-only d586fd79ca specs/grader-poc/` lists them.
+
 ## Grader system prompt (pass 3)
 
 ```
