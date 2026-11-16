@@ -6,10 +6,15 @@ import sys
 import detect_test_command
 import entry
 import git
+import github
 
 USAGE = "usage: record-test-commands.sh <fast-cmd> <all-cmd> [repo-root]"
 BRANCH = "veri-install"
 MESSAGE = "Record the test commands veri runs\n\nveri reads these CLAUDE.md lines ahead of any inference."
+TITLE = "Record the test commands veri runs"
+BODY = ("Adds or updates the `veri: fast tests:` and `veri: all tests:` lines of `CLAUDE.md`: the commands veri runs for "
+        "this repository's fast and full test tiers, read ahead of any inference. Until this pull request merges, veri's "
+        "runs infer the commands. `/vinstall` opened it and never merges it.")
 
 
 class Refused(Exception):
@@ -83,6 +88,11 @@ def record(fast, full, root):
     pushed = git.network("push", "-q", "origin", "%s:refs/heads/%s" % (sha, BRANCH), cwd=root)
     if pushed.returncode != 0:
         raise Refused(pushed.stderr.strip() or "git push origin %s failed" % BRANCH)
+    os.chdir(root)
+    try:
+        return github.gh_pr_create(BRANCH, default, TITLE, BODY)
+    except github.NoAnswer as refused:
+        raise Refused("pushed %s, but no pull request was opened: %s" % (BRANCH, refused.detail.strip())) from refused
 
 
 def main(argv):
@@ -90,9 +100,10 @@ def main(argv):
     fast, full = (args + ["", ""])[:2]
     root = args[2] if len(args) > 2 and args[2] else "."
     try:
-        record(os.fsencode(fast), os.fsencode(full), root)
+        url = record(os.fsencode(fast), os.fsencode(full), root)
     except Refused as refused:
         return entry.refuse(str(refused))
+    print(url)
     return 0
 
 
