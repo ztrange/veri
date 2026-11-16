@@ -115,10 +115,7 @@ def preflight_and_launch(argv):
     if carried:
         mode, resuming = "resume", True
     if not resuming:
-        try:
-            subprocess.run([os.path.join(here, "update-veri.sh")])
-        except OSError:
-            pass
+        update_veri(here)
     head_rev = "HEAD"
     if git(base, "remote", "get-url", "origin",
            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
@@ -153,6 +150,9 @@ def preflight_and_launch(argv):
                 return refuse_unpinned(base, "origin's default branch '%s' has no %s" % (default, head_rev))
     if carried:
         mode = adopt_carried_pin(base, head_rev, carried, record)
+        if mode == "first":
+            # A rejected carried pin leaves a fresh launch, which updates veri's clone first; that runs here instead.
+            update_veri(here)
     snap = skill_snapshot(base, head_rev, record, mode)
     if snap.kind != "unpinned":
         commit = snap.commit
@@ -194,6 +194,14 @@ def preflight_and_launch(argv):
 
 
 Snapshot = collections.namedtuple("Snapshot", "kind commit why message code")
+
+
+def update_veri(here):
+    """Fast-forward veri's own clone (update-veri.sh) before a fresh pin; a script that cannot start is skipped."""
+    try:
+        subprocess.run([os.path.join(here, "update-veri.sh")])
+    except OSError:
+        pass
 
 
 def carried_pin(issue):
