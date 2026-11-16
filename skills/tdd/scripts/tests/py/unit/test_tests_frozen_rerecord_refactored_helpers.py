@@ -71,6 +71,11 @@ def _refactored(tmp_path, run_cli, tests_frozen, repo, path, recorded, refactore
     return green
 
 
+def _record_of(tmp_path):
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    return record
+
+
 def test_rerecord_refactored_re_records_an_earlier_steps_case_whose_body_the_refactor_moved_into_a_shared_helper_2626(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     suite = tmp_path / ROOT_SUITE
@@ -249,3 +254,258 @@ def test_rerecord_refactored_leaves_a_go_cases_record_when_the_refactor_deleted_
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert checked == (1, "TestX (%s)\n" % step)
+
+
+SETUP_INLINE = "func TestX(t *testing.T) {\n\tx := 1\n\tt.Fatal(\"setup\")\n\tt.Error(\"later\")\n}\n"
+SETUP_EXTRACTED = ("func setupX(t *testing.T) {\n\tt.Fatal(\"setup\")\n}\n\n"
+                   "func TestX(t *testing.T) {\n\tx := 1\n\tsetupX(t)\n\tt.Error(\"later\")\n}\n")
+
+
+def test_rerecord_refactored_re_records_a_go_case_whose_setup_t_fatal_lines_a_refactor_moved_into_a_helper_ahead_of_later_assertions_2853(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, SETUP_INLINE, SETUP_EXTRACTED,
+                        message="A refactor extracts the setup check into a helper")
+
+    run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked == (0, "")
+
+
+def test_rerecord_refactored_re_records_a_go_case_whose_helper_lines_sort_before_its_own_remaining_assertion_2853(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE,
+                        "func TestX(t *testing.T) {\n\tt.Fatal(\"a setup\")\n\tt.Fatal(\"z later\")\n}\n",
+                        "func setupX(t *testing.T) {\n\tt.Fatal(\"a setup\")\n}\n\n"
+                        "func TestX(t *testing.T) {\n\tsetupX(t)\n\tt.Fatal(\"z later\")\n}\n",
+                        message="A refactor extracts the setup check into a helper")
+
+    run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked == (0, "")
+
+
+def test_rerecord_refactored_run_again_with_the_same_green_sha_heals_an_order_changing_helper_extractions_stale_record_2853(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, SETUP_INLINE, SETUP_EXTRACTED,
+                        message="A refactor extracts the setup check into a helper")
+    verdict = tmp_path / VERDICT
+    verdict.write_text("1")
+    run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    verdict.write_text("0")
+
+    run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked == (0, "")
+
+
+def _append_helpers_line(tmp_path, tests_frozen):
+    """As the process cases did after `record`: append TestX's helpers line, its digest over the suite as it reads."""
+    suite = tmp_path / GO_SUITE
+    with _record_of(tmp_path).open("a") as handle:
+        handle.write("helpers: suite_test.go\tTestX\t%s\n" % tests_frozen._helper_digest(
+            suite.read_text(), tests_frozen._bodies_of(suite.read_text(), "TestX")[0]))
+
+
+def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_refactor_lost_a_helper_assertion_line_2973(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite = tmp_path / GO_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    recorded = ("func checkX(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n"
+                "\tif x < 0 {\n\t\tt.Error(\"negative\")\n\t}\n}\n\n"
+                "func TestX(t *testing.T) {\n\tx := 1\n\tcheckX(t, x)\n\tif x > 1 {\n\t\tt.Fatal(\"big\")\n\t}\n}\n")
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, recorded,
+                        recorded.replace("\tif x < 0 {\n\t\tt.Error(\"negative\")\n\t}\n", ""),
+                        edit_record=lambda: _append_helpers_line(tmp_path, tests_frozen))
+    record = _record_of(tmp_path)
+    head_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
+    before = record.read_bytes()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (tests_frozen.body_line("suite_test.go", "TestX", head_body).encode() + b"\n" in before,
+            b"\nhelpers: " in before, code, _skip_lines(err, "suite_test.go TestX"),
+            record.read_bytes() == before) == (True, True, 1, 1, True)
+
+
+def test_rerecord_refactored_refreshes_the_helpers_line_of_a_go_case_already_recorded_at_heads_body_so_check_earlier_exits_0_2973(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite = tmp_path / GO_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    recorded = CHECK_X + "func TestX(t *testing.T) {\n\tx := 1\n\tcheckX(t, x)\n\tif x > 1 {\n\t\tt.Fatal(\"big\")\n\t}\n}\n"
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, recorded,
+                        recorded.replace("x := 1", "x := 1 // one").replace('"bad"', '"bad value"'),
+                        edit_record=lambda: _append_helpers_line(tmp_path, tests_frozen))
+    record = _record_of(tmp_path)
+    green_body = tests_frozen._bodies_of(recorded, "TestX")[0]
+    head_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
+    record.write_text(record.read_text().replace(
+        tests_frozen.body_line("suite_test.go", "TestX", green_body),
+        tests_frozen.body_line("suite_test.go", "TestX", head_body)))
+    held = tests_frozen._helper_digest(suite.read_text(), head_body)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (code, _skip_lines(err, "suite_test.go TestX") > 0,
+            "helpers: suite_test.go\tTestX\t%s\n" % held in record.read_text(), checked) == (
+        0, False, True, (0, ""))
+
+
+THREE = "".join("\tif x != %d {\n\t\tt.Fatal(\"bad %d\")\n\t}\n" % (n, n) for n in (1, 2, 3))
+TWO = "".join("\tif x != %d {\n\t\tt.Fatal(\"bad %d\")\n\t}\n" % (n, n) for n in (1, 2))
+REQUIRE_ALL = ("func requireAll(t *testing.T, x int) {\n" + THREE + "}\n\n"
+               "func TestX(t *testing.T) {\n\tx := 1\n\trequireAll(t, x)\n}\n")
+
+
+def test_rerecord_refactored_re_records_a_go_case_at_heads_body_whose_helpers_digest_is_neither_greens_nor_heads_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite = tmp_path / GO_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, "func TestX(t *testing.T) {\n\tx := 1\n" + THREE + "}\n",
+                        REQUIRE_ALL, edit_record=lambda: _append_helpers_line(tmp_path, tests_frozen),
+                        message="A refactor moves the assertions into a helper")
+    record = _record_of(tmp_path)
+    head_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
+    older = "helpers: suite_test.go\tTestX\t%s\n" % ("6" * 64)
+    record.write_text("".join(
+        tests_frozen.body_line("suite_test.go", "TestX", head_body) + "\n"
+        if line.startswith("body: ") else older if line.startswith("helpers: ") else line
+        for line in record.read_text().splitlines(keepends=True)))
+    held = tests_frozen._helper_digest(suite.read_text(), head_body)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (code, _skip_lines(err, "suite_test.go TestX") > 0,
+            "helpers: suite_test.go\tTestX\t%s\n" % held in record.read_text(), checked) == (
+        0, False, True, (0, ""))
+
+
+def _heads_with_foreign_helpers(tmp_path, tests_frozen):
+    """Rewrites each body line of the record to the case's body at HEAD, followed by a helpers line no tree holds;
+    returns the TestX lines and TestY's helpers line as HEAD holds it."""
+    suite, record = tmp_path / GO_SUITE, _record_of(tmp_path)
+    heads = {case: tests_frozen._bodies_of(suite.read_text(), case)[0] for case in ("TestX", "TestY")}
+    record.write_text("".join(
+        "%s\nhelpers: suite_test.go\t%s\t%s\n" % (tests_frozen.body_line(
+            "suite_test.go", line.split("\t")[1], heads[line.split("\t")[1]]), line.split("\t")[1], "6" * 64)
+        if line.startswith("body: ") else line for line in record.read_text().splitlines(keepends=True)))
+    x_lines = [line for line in record.read_text().splitlines() if "\tTestX\t" in line]
+    held = "helpers: suite_test.go\tTestY\t%s" % tests_frozen._helper_digest(suite.read_text(), heads["TestY"])
+    return x_lines, held
+
+
+def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_is_neither_greens_nor_heads_when_the_refactor_lost_an_assertion_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE,
+                        "func TestX(t *testing.T) {\n\tx := 1\n" + THREE + "}\n\n"
+                        "func TestY(t *testing.T) {\n\tx := 1\n" + THREE + "}\n",
+                        "func requireTwo(t *testing.T, x int) {\n" + TWO + "}\n\n"
+                        "func requireAll(t *testing.T, x int) {\n" + THREE + "}\n\n"
+                        "func TestX(t *testing.T) {\n\tx := 1\n\trequireTwo(t, x)\n}\n\n"
+                        "func TestY(t *testing.T) {\n\tx := 1\n\trequireAll(t, x)\n}\n",
+                        message="A refactor moves the assertions into helpers; TestX's loses one")
+    record = _record_of(tmp_path)
+    x_lines, held = _heads_with_foreign_helpers(tmp_path, tests_frozen)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    after = record.read_text().splitlines()
+
+    assert (code, _skip_lines(err, "suite_test.go TestX"),
+            _skip_lines(err, "suite_test.go TestY"),
+            [line for line in after if "\tTestX\t" in line] == x_lines, held in after) == (
+        1, 1, 0, True, True)
+
+
+def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_is_neither_greens_nor_heads_when_the_refactor_added_an_assertion_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE,
+                        "func TestX(t *testing.T) {\n\tx := 1\n" + TWO + "}\n\n"
+                        "func TestY(t *testing.T) {\n\tx := 1\n" + THREE + "}\n",
+                        "func requireAll(t *testing.T, x int) {\n" + THREE + "}\n\n"
+                        "func TestX(t *testing.T) {\n\tx := 1\n\trequireAll(t, x)\n}\n\n"
+                        "func TestY(t *testing.T) {\n\tx := 1\n\trequireAll(t, x)\n}\n",
+                        message="A refactor moves the assertions into a helper; TestX's gains one")
+    record = _record_of(tmp_path)
+    x_lines, held = _heads_with_foreign_helpers(tmp_path, tests_frozen)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    after = record.read_text().splitlines()
+
+    assert (code, _skip_lines(err, "suite_test.go TestX"),
+            _skip_lines(err, "suite_test.go TestY"),
+            [line for line in after if "\tTestX\t" in line] == x_lines, held in after) == (
+        1, 1, 0, True, True)
+
+
+def test_rerecord_refactored_skips_a_go_case_whose_body_digest_is_neither_greens_nor_heads_while_its_helpers_digest_is_greens_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    recorded = CHECK_X + "func TestX(t *testing.T) {\n\tx := 1\n\tcheckX(t, x)\n\tif x > 1 {\n\t\tt.Fatal(\"big\")\n\t}\n}\n"
+
+    def foreign_body():
+        record = _record_of(tmp_path)
+        record.write_text("".join(
+            "body: suite_test.go\tTestX\t%s\n" % ("f" * 64) if line.startswith("body: ") else line
+            for line in record.read_text().splitlines(keepends=True)))
+        _append_helpers_line(tmp_path, tests_frozen)
+
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, recorded,
+                        recorded.replace("x := 1", "x := 1 // one"), edit_record=foreign_body)
+    record = _record_of(tmp_path)
+    before = record.read_bytes()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (b"\nhelpers: " in before, code, _skip_lines(err, "suite_test.go TestX"),
+            record.read_bytes() == before) == (True, 1, 1, True)
+
+
+def test_rerecord_refactored_names_the_helpers_digest_guard_in_parentheses_on_the_skipped_line_of_a_record_at_greens_body_whose_helpers_digest_differs_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    recorded = CHECK_X + "func TestX(t *testing.T) {\n\tx := 1\n\tcheckX(t, x)\n}\n"
+
+    def foreign_helpers():
+        with _record_of(tmp_path).open("a") as handle:
+            handle.write("helpers: suite_test.go\tTestX\t%s\n" % ("0" * 64))
+
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, recorded, recorded + "\n// tidied\n",
+                        edit_record=foreign_helpers)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    lines = [l for l in err.splitlines() if l.startswith("skipped: suite_test.go TestX")]
+    assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
+                               and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
+        1, 1, [True])
+
+
+def test_rerecord_refactored_names_the_assertion_lines_guard_in_parentheses_on_the_skipped_line_of_a_head_body_record_whose_case_and_helpers_lost_an_assertion_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite = tmp_path / GO_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, "func TestX(t *testing.T) {\n\tx := 1\n" + THREE + "}\n",
+                        "func requireTwo(t *testing.T, x int) {\n" + TWO + "}\n\n"
+                        "func TestX(t *testing.T) {\n\tx := 1\n\trequireTwo(t, x)\n}\n",
+                        message="A refactor moves the assertions into a helper and loses one")
+    record = _record_of(tmp_path)
+    head = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
+    record.write_text("".join(
+        "%s\nhelpers: suite_test.go\tTestX\t%s\n" % (tests_frozen.body_line("suite_test.go", "TestX", head), "6" * 64)
+        if line.startswith("body: ") else line for line in record.read_text().splitlines(keepends=True)))
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    lines = [l for l in err.splitlines() if l.startswith("skipped: suite_test.go TestX")]
+    assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
+                               and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
+        1, 1, [True])
