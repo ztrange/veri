@@ -539,7 +539,6 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `affected-suites.sh`: the test suites a change touches.
 - `baseline-full-tier.sh`: run and record the baseline full tier.
 - `branch-suite.sh`: print `ci` or `local`: where the branch's full suite runs.
-- `ci-flake.sh`: rerun alone the test targets a red CI run's failed log names, and re-run its failed jobs once when all pass.
 - `detect-test-command.sh`: find the project's test commands.
 - `full-tier-time.sh`: how long the full tier takes, from recorded runs.
 - `mutation-parity.sh`: check the pairs of recorded mutations.
@@ -558,6 +557,10 @@ Choosing and running the suites of the project veri works on: finding its test c
 ## detect_test_command
 - `resolved(tier, issue, root)`: the test command for a tier, `None` when none is found.
 - `Answer(command)`: the exception that carries a found command out of the search; `answer_from_file(path, marker)` raises it from a file's lines.
+
+## rerun_alone
+- `named_targets(text)`: the test targets a red run's output names, in order, each once.
+- `rerun(alone_cmd, red_file)`: rerun each named target alone; 0 after a `suite-flake` event when all pass, 1 when none is named or one stays red.
 
 ## suite_mode
 - `run(script, variable)`: prints `ci` or `local` and returns 0; 2 with a message on a bad knob or a bad `VERI_CI_ON_PR`.
@@ -652,6 +655,7 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 
 Worktrees, pushing a branch, readying and merging the pull request, waiting for CI. Builds on GitHub and issues, Ledger and plan, Run state and journal, Target suites and tiers and Foundations.
 
+- `ci-flake.sh`: rerun alone the test targets a red CI run's failed log names, and re-run its failed jobs once when all pass.
 - `ci_decision`: what a polled CI state means for `wait-ci.sh`, as a pure `decide()` (values in, a decision out).
 - `ci_marks`: the `.tdd/ci-*` marks `wait-ci.sh` keeps for a head, with their file names and contents.
 - `issue-worktree.sh`: create or reuse the worktree of an issue's run.
@@ -664,6 +668,10 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `rebase-onto-default.sh`: rebase the branch onto the default branch.
 - `wait-ci.sh`: wait for a pull request's CI.
 - `worktree-setup.sh`: set up a worktree.
+
+## ci_marks
+- `load(run, key, head)`: the `Marks` a poll of `head` reads. `seconds(run, kind, key)`: a mark's number, None when absent or not one; `exists(run, kind, key)`.
+- `record(run, kind, key, value)`, `remove(run, kind, key)`: write or drop one mark. `fresh_window(run, key)`: drop every mark of `key`, so the next wait records a fresh deadline.
 
 # Prose grading and requirements
 
