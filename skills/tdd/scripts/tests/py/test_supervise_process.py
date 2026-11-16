@@ -5372,6 +5372,13 @@ def outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, marker_text,
     monkeypatch.setattr(os, "kill", kill)
     monkeypatch.setattr(importlib.import_module("veri.pid_file"), "ps_field",
                         lambda field, pid: started if field == "lstart" and int(pid) in alive else None)
+
+    def ps_in_callers_locale(args, **_kwargs):
+        """pid_file.same_start's second read, in the caller's locale: the same start time, or ps failing for a dead pid."""
+        known = int(args[-1]) in alive
+        return subprocess.CompletedProcess(args, 0 if known else 1, (started + "\n") if known else "", "")
+
+    monkeypatch.setattr(supervise.subprocess, "run", ps_in_callers_locale)
     watch = supervise.Watch(False, LOCK_WAIT_TIMEOUT, "180", "1", 0.0)
     status, reason, _rc, _a0 = supervise.attempt_once(
         [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc",
