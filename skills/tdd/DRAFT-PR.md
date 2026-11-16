@@ -17,21 +17,36 @@ green is not taken on trust here — sub-step 1 asks. Like every step since 1.2,
 **from inside the worktree** — every command below is issued there, so each sees the issue
 branch and its commits without any switching.
 
-**Where the repository names a stack branch.** Each time the run enters this step, also run
-`$S/stack-branch.sh` at the worktree root, in a Bash call of its own. Exit 3 (none named): every
-sub-step runs as written. Exit 2: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`).
-Exit 0, printing `<stack>`:
-- `origin/<default>` in the step's rebases and in the regrade block's `git merge-base HEAD origin/<default>`
-  means `origin/<stack>` (`rebase-onto-default.sh` already rebases onto it), so the run's diff never
-  carries joined but unlanded commits.
-- Sub-step 2 does not run `pr-ready.sh` and makes no `wait-ci.sh` call, before or after the `metrics:`
-  push: of its first block run only the `gh api` line that reads `<pr-url>`; of its second, every line
-  but the `wait-ci.sh` line and the lines that read its `ci`, `conflict` and `graded`. CI on the
-  stack's tip is the full suite, so the run ticks no `⟦full-suite⟧` line, whatever full run it made,
-  and makes no `plan: the full suite is green on CI` commit.
-- The `gh api -X PATCH` line that sets the title still drops the `WIP:` prefix; a title PATCH never
-  readies a pull request, so it stays a draft, and the run ends ✅ Done with its pull request a draft.
-- Every other part of the step runs as where no stack branch is named.
+**A stacked run.** Each time the run enters this step, first settle whether the run is stacked, in two
+Bash calls of their own:
+1. `test -f .tdd/issue-<n>-base` (the base `issue-worktree.sh` recorded when it cut the run from a stack). Exit 1:
+   the run is not stacked, and every sub-step runs as written. Exit 0: go on to 2.
+2. `$S/stack-branch.sh`. Exit 0 printing the name `.tdd/issue-<n>-base` holds: the run is stacked, read below as
+   `<stack>`. Exit 0 printing another name, exit 3 or exit 2: **bail** with cause `no-verdict` (`Read`
+   `<base directory>/BAIL.md`).
+
+In a stacked run, `origin/<default>` in the step's rebases and in the regrade block's `git merge-base HEAD origin/<default>`
+means `origin/<stack>` (`rebase-onto-default.sh` already rebases onto it), so the run's diff never carries joined but
+unlanded commits. Sub-step 2 runs neither of its blocks: it runs these lines instead, each in a Bash call of its own, in
+this order, none reading a variable another line set. Any exit not named here **bails** with cause `no-verdict`.
+1. `gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'`: exit 0 printing a url is
+   `<pr-url>`, `<pr-number>` its last path segment; printing nothing bails.
+2. `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>`: exit 0, go on.
+3. `$S/metrics.sh <n> > .tdd/issue-<n>-metrics.md`: exit 0 runs line 4; any other exit `<code>` skips line 4, and
+   line 8's body carries `metrics could not be rendered: metrics.sh exited <code>` in the metrics' place.
+4. `git add .tdd/issue-<n>-metrics.md && git commit -m "metrics: what solving #<n> cost (#<n>)"`: exit 0, go on.
+5. `$S/push-branch.sh`: exit 0, go on.
+6. `$S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md`: exit 0, its output is the body's `## Refactor owed`
+   section; exit 3, the body has no such section.
+7. `gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"`: exit 0,
+   go on. It drops the `WIP:` prefix and leaves the pull request a draft: a title PATCH never readies one.
+8. Write `.tdd/issue-<n>-pr-body.md` with the body sub-step 2's second block writes.
+9. `$S/pr-body.sh <pr-number> .tdd/issue-<n>-pr-body.md`: exit 0, go on to sub-step 3.
+
+So a stacked run runs no `pr-ready.sh` and no `wait-ci.sh`, before or after the `metrics:` push: CI on the stack's tip
+is the full suite. It ticks no `⟦full-suite⟧` line, whatever full run it made, makes no `plan: the full suite is
+green on CI` commit and adds no `⟦ci-repair⟧` step, and it ends ✅ Done with its pull request a draft. Every other part
+of the step runs as for a run that is not stacked.
 
 **Before any red full-run result takes its repair step or its `rebased-tip-red` bail** — the branch's own run here, and the rebased tip's run in sub-step 1 and after `verify-rebase` — run each test file the red output names alone, once, with the repo's own runner (`make test TESTS="<file>"` on veri). A red output that names no file takes today's path, unchanged. When every file passes alone, the red was a flake: write a `suite-flake` event naming the files, treat the run as green, and name the files in the PR body. When any file stays red alone, the red result stands as it is and takes its repair step or its bail.
 
