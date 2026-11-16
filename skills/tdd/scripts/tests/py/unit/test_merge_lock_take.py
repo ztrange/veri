@@ -214,11 +214,11 @@ PINNED_START = "Mon_Nov_16_10:00:00_2026"
 LOCAL_START = "lun._16_nov._19:00:00_2026"
 
 
-def _ps_by_environment(argv, stdout=None, text=None, env=None):
+def _ps_by_environment(line, env=None, **_):
     """ps -o lstart= as it prints under LC_ALL=C TZ=UTC (pinned) and under the caller's fr_FR, Asia/Tokyo one."""
     seen = os.environ if env is None else env
     pinned = (seen.get("LC_ALL"), seen.get("TZ")) == ("C", "UTC")
-    return SimpleNamespace(stdout=(PINNED_START if pinned else LOCAL_START).replace("_", " ") + "\n")
+    return 0, (PINNED_START if pinned else LOCAL_START).replace("_", " ") + "\n", ""
 
 
 @pytest.mark.parametrize("recorded, expected", [
@@ -227,10 +227,10 @@ def _ps_by_environment(argv, stdout=None, text=None, env=None):
     ("Thu_Jan__1_00:00:00_1970", (2, 0)),
 ], ids=["pinned-form-record", "old-local-form-record", "neither"])
 def test_review_take_reads_a_live_holder_recorded_in_the_pinned_or_the_callers_local_form_as_live_and_any_other_as_stale(
-        tmp_path, monkeypatch, recorded, expected):
+        tmp_path, monkeypatch, fake_processes, recorded, expected):
     monkeypatch.setenv("TZ", "Asia/Tokyo")
     monkeypatch.setenv("LC_ALL", "fr_FR.UTF-8")
-    monkeypatch.setattr(merge_lock.subprocess, "run", _ps_by_environment)
+    fake_processes.answers({"ps -o lstart= -p": _ps_by_environment})
     me = os.getpid()
     lock = tmp_path / "tdd" / "merge.lock"
     lock.mkdir(parents=True)
