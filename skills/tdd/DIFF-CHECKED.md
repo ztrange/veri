@@ -20,11 +20,10 @@ write `skipped` to `.tdd/verdict-diff.exit`, and take the PASS branch below, `pi
 first. The leaf, `suite-reported.sh` and `diff-leaf-deviation.sh` still run before it.
 
 A supervisor exit 2 on the `develop-diff` leaf is a `killed-stuck` bail, as for any developer
-leaf (see `<base directory>/BAIL.md`). After its wait exits 0 and before the verifier is launched, run `$S/suite-reported.sh develop-diff`:
-exit 2 means the leaf left no `SUITE:` line, so launch no verifier and **bail** as a system
-failure with cause `report-missing` (`Read` `<base directory>/BAIL.md`). The `diff` revise leaf asks for the line too, so after its wait
-exits 0 the same check, `$S/suite-reported.sh revise-diff-<k>` for the `revise-diff-<k>` leaf, runs
-before the re-verify with the same exit 2 outcome. After the `develop-diff` leaf's wait exits 0, and after each
+leaf (see `<base directory>/BAIL.md`). After its wait exits 0 and before the verifier is launched, run `$S/suite-reported.sh develop-diff 2> .tdd/suite-reported.err`:
+exit 2 means the leaf left no `SUITE:` line, so launch no verifier; if `$S/adjudicate.sh left <n>` exits 0, launch `adjudicate-report-missing` through `supervise.sh` with `.tdd/suite-reported.err` as the stderr file (`Read` `<base directory>/ADJUDICATE.md`), then on any answer, `retry` included, **bail** as a system failure with cause `report-missing`, with no verifier, no second `suite-reported.sh` call and no relaunch (`Read` `<base directory>/BAIL.md`). The `diff` revise leaf asks for the line too, so after its wait
+exits 0 the same check, `$S/suite-reported.sh revise-diff-<k> 2> .tdd/suite-reported.err` for the `revise-diff-<k>` leaf, runs
+before the re-verify with the same exit 2 outcome, its adjudication included. After the `develop-diff` leaf's wait exits 0, and after each
 `revise-diff-<k>`, before its verifier, run `$S/diff-leaf-deviation.sh <leaf> <step-base-sha> .tdd/issue-<n>.md`.
 Exit 0 means a deviation was found and recorded as a `diff-leaf-deviation` event; exit 3 means the one-commit
 flow, or no commit for an unchanged criterion. Both go on to the verifier. Exit 2 **bails** the run. Never
