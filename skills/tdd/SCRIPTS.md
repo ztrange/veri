@@ -429,6 +429,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   There an open issue named by `Closes #<n>` in a pull request merged into the stack branch counts as claimed, as an
   open PR saying it does: its run has joined the stack, so a fresh cut is refused, **exit 2**, though no pull request
   for it is open (a lookup that gets no answer is exit 2 too).
+  A fresh cut is refused as claimed (`… claims the issue (Closes #<n>)`, **exit 2**) only for an open PR saying
+  `Closes #<n>` whose head is in this repository; a PR from a fork, open or merged into the stack, does not stop the run.
 - `$S/rebase-onto-default.sh [--graded-only]` — rebase the run's branch, from the worktree it runs in, onto
   `origin/<default>` as just fetched and checked against what origin reports; `--graded-only` resolves a conflict
   confined to `GRADED` files by keeping each side's re-signed units. **Where the worktree holds `.tdd/issue-<n>-base`**,
