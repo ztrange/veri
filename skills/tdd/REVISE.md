@@ -108,7 +108,12 @@ For attempt `k = 1 … REVISE_BUDGET`:
    as a REJECT that spends REVISE_BUDGET, and launch no verifier for that attempt. On tests-frozen exit 0 the verifier is launched as before.
    On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, never a REJECT, and launch no verifier.
 
-5. **Re-verify (blind, same phase).**
+5. **Re-verify (blind, same phase).** For a phase listed in `.tdd/issue-<n>-skip-verify`, no
+   re-verify launches: record `verify-<phase>-skipped reason=switched-off`, write `skipped` to
+   `.tdd/verdict-<phase>.exit`, and `$S/comment.sh <n> verify-revised <phase>` posts
+   `### 🔎 verify-<phase> (revised) — SKIPPED (switched off)`, never `PASS`; then continue as on the PASS
+   below, posting no second comment. A revised red whose report says `AGAINST_UNMODIFIED: PASSES`
+   re-verifies as `pin`, and a `pin` step whose text names a go-red control still launches it (`PIN.md`). Otherwise:
    ```
    rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" --fast-cmd '<fast-cmd>' <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err

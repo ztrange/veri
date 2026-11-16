@@ -11,6 +11,20 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
 `verify-pin`'s probe is recorded in `.tdd/issue-<n>-mutations.md` by the probe itself, and
 that file is committed with the pin's tick (the `git add -A` below takes it).
 
+**Switched off:** with `pin` listed in `.tdd/issue-<n>-skip-verify`, no verify-pin launches —
+not on Red's `PASSES`, not on a `red-missing` added case that passes, not as a revised red's
+re-verify. Record `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-pin-skipped reason=switched-off`,
+write `skipped` to `.tdd/verdict-pin.exit`, and take the PASS branch below as on exit 0,
+`pin-fast-tier.sh` (and `rerun-alone.sh` on its exit 1) included, or the `⟦replaces-case⟧`
+deletion path; the mirror comment carries `verify-pin — SKIPPED (switched off)` where it would
+carry the verifier's reason. No mutation is recorded, since only verify-pin's probe writes
+`.tdd/issue-<n>-mutations.md`, and no retirement is possible, since `pin-reject-route.sh` runs
+only on a REJECT. **The one exception:** a step whose text names a go-red control
+(`mutation-probe.sh --before <sha>` or `the go-red control is <file> at <sha>`) runs verify-pin
+even with `pin` in `.tdd/issue-<n>-skip-verify`, and its verdict is read as below: the criterion
+itself names the probe, and `tick-ledger.sh` exits 2 on that step when the mutation record holds
+no line for it.
+
 A `⟦replaces-case⟧` step whose Red reports `AGAINST_UNMODIFIED: PASSES` takes a different
 path after verify-pin, because deleting the named bash cases is still owed.
 A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run
