@@ -334,6 +334,29 @@ def test_main_lets_a_literal_model_word_in_verify_leaf_args_stand_when_no_model_
     assert (code, captured.err, [words[-2:] for words in supervised]) == (0, b"", [["--model", "x"]])
 
 
+@pytest.mark.parametrize("leaf_args", [None, "--permission-mode bypassPermissions"])
+@pytest.mark.parametrize("effort, expected", [(None, []), ("", []), ("high", ["--effort", "high"]),
+                                              ("low", ["--effort", "low"])])
+def test_4013_a_verifier_leaf_carries_effort_and_veri_effort_verifiers_value_only_when_it_is_set_and_not_empty(
+        effort, expected, leaf_args, tmp_path, monkeypatch, capfdbinary, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    write_inputs(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    if effort is not None:
+        monkeypatch.setenv("VERI_EFFORT_VERIFIER", effort)
+    if leaf_args is not None:
+        monkeypatch.setenv("VERIFY_LEAF_ARGS", leaf_args)
+    supervised = []
+    answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine", supervised=supervised)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    efforts = [words[words.index("--effort"):words.index("--effort") + 2] if "--effort" in words else []
+               for words in supervised]
+    assert (code, supervised[0][1], efforts) == (0, "verify-green", [expected])
+
+
 def test_main_still_refuses_a_literal_model_word_in_verify_leaf_args_when_veri_model_verifier_is_also_set(
         tmp_path, monkeypatch, capfdbinary, fake_processes):
     monkeypatch.chdir(tmp_path)
