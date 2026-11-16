@@ -402,3 +402,21 @@ def test_park_issue_with_a_pr_that_is_neither_a_number_nor_a_pr_url_exits_2_with
         assert code == 2, (pr, code, err)
         assert usage and "number" in usage[0] and "URL" in usage[0], (pr, err)
         assert gh_log(fake) == "", pr
+
+
+QUESTION = ("#### Question\nKeep the shim or drop it?\n\n#### Options\n- keep: one more file, no cost\n- drop: $0, one revert\n\n"
+            "#### Found\nThe investigation found `run-leaf.sh --x` | tee out\n\n#### Recommendation\nKeep it.\n")
+
+
+def test_issue_4076_a_question_file_goes_verbatim_into_the_parked_comment_after_cause_and_unblock(
+        park, run_cli, monkeypatch, tmp_path):
+    park_issue, calls, edited = park
+    comments = []
+    monkeypatch.setattr(park_issue.github, "gh_issue_comment", lambda number, body: comments.append(body))
+    question = tmp_path / "question.md"
+    question.write_text(QUESTION)
+
+    code, out, err = run_cli(park_issue, ["42", "cause", "unblock", "--question-file", str(question)])
+
+    assert (code, err) == (0, "")
+    assert comments == ["### ⏸ Parked\nCause: cause\nUnblock: unblock\n\n" + QUESTION]

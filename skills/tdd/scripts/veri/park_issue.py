@@ -9,7 +9,8 @@ import tempfile
 import blocked_by
 import github
 
-USAGE = "usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>] [--blocked-by <n>[,<n>…]]\n"
+USAGE = ("usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>] [--blocked-by <n>[,<n>…]]"
+         " [--question-file <path>]\n")
 
 
 def origin_slug():
@@ -45,7 +46,17 @@ def block_on(number, blockers):
         os.remove(tmp)
 
 
+def split_question(argv):
+    """(argv without `--question-file <path>`, <path> or None)."""
+    if "--question-file" not in argv:
+        return argv, None
+    at = argv.index("--question-file")
+    return argv[:at] + argv[at + 2:], argv[at + 1]
+
+
 def main(argv):
+    argv, question_file = split_question(argv)
+    question = "\n" + open(question_file).read() if question_file else ""
     argv, blocker = split_blocker(argv)
     if argv is None:
         sys.stderr.write("park-issue.sh: --blocked-by takes a comma-separated list <n>[,<n>…]\n")
@@ -75,7 +86,7 @@ def main(argv):
     writes += [
         ("label", lambda: (github.gh_label_ensure("parked"), github.gh_issue_add_label(number, "parked"),
                            github.gh_issue_remove_label(number, "bailed"))),
-        ("comment", lambda: github.gh_issue_comment(number, github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n%s" % (cause, pr, unblock, "Blocked by: %s\n" % ", ".join("#" + b for b in blocker) if blocker else ""))),
+        ("comment", lambda: github.gh_issue_comment(number, github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n%s" % (cause, pr, unblock, "Blocked by: %s\n" % ", ".join("#" + b for b in blocker) if blocker else "") + question)),
     ]
     if len(argv) == 4:
         writes.append(("PR write", lambda: github.gh_issue_add_label(argv[3].rsplit("/", 1)[-1], "parked")))
