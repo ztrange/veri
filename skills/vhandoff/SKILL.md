@@ -42,7 +42,8 @@ It carries, and only this:
 - for dev, the attached coordinator's session id, if one is attached;
 - for dev, whether `.tdd/github-outage` exists in the main working tree, read from the file
   when the handoff is written (`test -f .tdd/github-outage`), and, when it does, each PR url it
-  lists, in the file's order (`grep '^https://' .tdd/github-outage`).
+  lists, in the file's order (printed by the `list` verb of the file tool in
+  `<base dir>/../voutage/SKILL.md`, which counts only exact PR url lines).
 
 It carries no rule the role's skill already states: the resuming session reads that skill.
 State only what is true now.
