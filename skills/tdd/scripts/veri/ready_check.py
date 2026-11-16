@@ -110,9 +110,10 @@ class Neutral(str):
 NOT_VERIFIABLE = Neutral("not verifiable")
 
 
-def granted_scopes():
-    """The scopes `gh api -i user`'s X-OAuth-Scopes header lists; None with no such header (a fine-grained token)."""
-    head = gh("api", "-i", "user").stdout.split("\r\n\r\n", 1)[0].split("\n\n", 1)[0]
+def granted_scopes(answer):
+    """The scopes the X-OAuth-Scopes header of `gh api -i user`'s <answer> lists; None with no such header (a
+    fine-grained token)."""
+    head = answer.split("\r\n\r\n", 1)[0].split("\n\n", 1)[0]
     for line in head.splitlines():
         name, _, value = line.partition(":")
         if name.strip().lower() == "x-oauth-scopes":
@@ -126,7 +127,10 @@ def origin_is_https():
 
 def token_scopes_row():
     needed = ["repo", "workflow"] if origin_is_https() else ["repo"]
-    granted = granted_scopes()
+    user = gh("api", "-i", "user")
+    if user.returncode != 0:
+        return "token scopes", f"no answer was obtained (gh api -i user exited {user.returncode})"
+    granted = granted_scopes(user.stdout)
     if granted is None:
         return "token scopes", NOT_VERIFIABLE
     missing = [scope for scope in needed if scope not in granted]

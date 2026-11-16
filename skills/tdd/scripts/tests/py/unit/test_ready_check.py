@@ -118,7 +118,13 @@ def test_issue_4089_token_scopes_row_with_no_x_oauth_scopes_header_reads_not_ver
     assert verdict is ready_check.NOT_VERIFIABLE
 
 
-NOT_FOUND = (1, '{"message": "Not Found", "status": "404"}', "gh: Not Found (HTTP 404)\n")
+def test_issue_4089_token_scopes_row_fails_saying_no_answer_was_obtained_when_gh_api_user_itself_fails(ready_check, fake_processes):
+    fake_processes.answers({"gh api -i user": (1, "", "error connecting to api.github.com\n"), "git remote get-url": SSH_ORIGIN})
+
+    assert ready_check.token_scopes_row() == ("token scopes", "no answer was obtained (gh api -i user exited 1)")
+
+
+NOT_FOUND = (1,'{"message": "Not Found", "status": "404"}', "gh: Not Found (HTTP 404)\n")
 
 
 def test_issue_4089_the_label_row_for_veri_priority_label_is_ok_when_it_answers_and_fails_on_404_with_gh_label_create(ready_check, fake_processes, monkeypatch):
