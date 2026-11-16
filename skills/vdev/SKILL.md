@@ -40,15 +40,15 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
 
 **Recovery.** When a state file for this role and lane exists, recover: read it through
 `$S/status.sh --recover dev [--lane <lane>]` and read nothing else before your first slot
-decision but the outage files (*Local mode*, below). An `N` on the invocation wins over the file's and is written to it (see *Role state*).
+decision but `$S/github-outage.sh status` (*Local mode*, below). An `N` on the invocation wins over the file's and is written to it (see *Role state*).
 Recovery re-asks each pending decision once, re-sends or checks each pending message, and ends
 with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. Recovery then
 ends by sending the resetter `ack`. With no state file for this role and lane, start fresh.
 
 **Local mode.** Whether the session starts fresh, recovers or resumes (`--resume`), run
-`cd "$(git rev-parse --path-format=absolute --git-common-dir)/.." && { test -f .tdd/github-outage || test -s .tdd/github-outage-merging; }`
-before its first slot decision. On exit 0 a GitHub outage holds merges, or held ones are still
-being merged: read `<resolved base dir>/../voutage/SKILL.md` yourself and follow it (it finishes
+`$S/github-outage.sh status` before its first slot decision. On exit 0 `.tdd/github-outage`
+exists in the target repository's main working tree (a GitHub outage holds merges), or held
+ones are still being merged: read `<resolved base dir>/../voutage/SKILL.md` yourself and follow it (it finishes
 those merges and waits on its wait) before that decision. The file is the mode, never a handoff
 or memory.
 
@@ -212,8 +212,9 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   held to the next slot decision. None of the three: route it as
   a bail.
 - **A failed merge.** It reaches you two ways, each with its report: a `merge-failed <pr-url>`
-  line from `dispatch.sh`, for a `queued-merge.sh` merge, whose report is that merge's own output
-  where its launcher sent it (no output found: no cause named); or the report of a `vmerge`
+  line from `dispatch.sh`, for a `queued-merge.sh` merge, which leaves no report the session can
+  read (its output goes wherever its launcher sent it, and no skill records where), so its cause
+  is not named; or the report of a `vmerge`
   subagent you started, saying the merge did not land. When the failed merge's report names red
   CI, a rebase conflict, a refused push or a billing block, handle it as `vmerge` says. Any other
   cause, by either way: read `<resolved base dir>/../voutage/SKILL.md` yourself, not through a
