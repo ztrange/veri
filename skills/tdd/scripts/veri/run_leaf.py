@@ -22,12 +22,14 @@ USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 
 def claude_mds(directory):
-    """The two `CLAUDE.md` files Claude Code reads in `directory`."""
-    return [os.path.join(directory, "CLAUDE.md"), os.path.join(directory, "CLAUDE.local.md")]
+    """The project memory files Claude Code reads in `directory`: `CLAUDE.md`, `CLAUDE.local.md` and
+    `.claude/CLAUDE.md`."""
+    return [os.path.join(directory, "CLAUDE.md"), os.path.join(directory, "CLAUDE.local.md"),
+            os.path.join(directory, ".claude", "CLAUDE.md")]
 
 
 def above_top_level(toplevel):
-    """`CLAUDE.md` and `CLAUDE.local.md` in every directory above `toplevel` up to the root; none for None."""
+    """The project memory files (`claude_mds`) of every directory above `toplevel` up to the root; none for None."""
     if toplevel is None:
         return []
     above = []
@@ -70,7 +72,7 @@ def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_
     config, bytecode, caching, background-task, shell and Bash-tool timeout settings and the guard first on
     PATH; the shim's locale marker, when `coerce_marker` (its value, read by the caller) is "1", is removed together with
     PYTHONCOERCECLOCALE. `toplevel` is the leaf's working tree's top level (None: outside one), above which no
-    `CLAUDE.md` is loaded; `own_dir`, when given, is a directory whose `CLAUDE.md` and `CLAUDE.local.md` are not
+    `CLAUDE.md` is loaded; `own_dir`, when given, is a directory whose project memory files are not
     loaded either (the grader's). `seconds` is the hard cap as text: raises ValueError when it is not a whole number."""
     env = dict(environ)
     strip_session_env(env)
