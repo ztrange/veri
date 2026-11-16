@@ -330,7 +330,7 @@ def test_release_with_pid_or_force_and_no_lock_exits_3_and_the_usage_line_names_
 
 
 @pytest.mark.process("git init on a scratch repository, take run against a lock whose live holder pid has another start time")
-def test_take_reports_stale_lock_with_the_record_when_the_holder_pid_is_alive_but_its_recorded_start_time_differs_2344(
+def test_take_exits_2_at_once_naming_release_force_when_the_holder_pid_is_alive_but_its_recorded_start_time_differs_2344(
         tmp_path, merge_lock, run_cli, monkeypatch):
     scratch_git(tmp_path, "init", "-q", "-b", "main")
     lock = tmp_path / ".tdd" / "merge.lock"
@@ -348,7 +348,9 @@ def test_take_reports_stale_lock_with_the_record_when_the_holder_pid_is_alive_bu
 
     taken = run_cli(merge_lock, ["take", "--pid", mine], cwd=tmp_path)
 
-    assert (taken[0], taken[2], len(waits)) == (0, "stale lock: " + text, 1)
+    assert (taken[0], len(taken[2].splitlines()), taken[2].startswith("stale lock: " + text.strip()),
+            "merge-lock.sh release --force" in taken[2], waits, (lock / "holder").read_text(),
+            sorted(p.name for p in (tmp_path / ".tdd").glob(".merge.lock.*"))) == (2, 1, True, True, [], text, [])
 
 
 @pytest.mark.process("git init on a scratch repository, take run against a lock directory with a malformed record")

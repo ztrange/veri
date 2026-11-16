@@ -115,13 +115,11 @@ def test_queued_merge_stopped_by_a_rebase_conflict_exits_1_and_keeps_the_merge_l
 
     stopped = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(repo), "feature", "-"],
                              timeout=30, **run)
-    try:
-        second = subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(os.getpid())],
-                                timeout=5, **run).returncode
-    except subprocess.TimeoutExpired:
-        second = "blocked"
+    taken = subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(os.getpid())],
+                           timeout=10, **run)
+    second = "held" if (taken.returncode, taken.stderr.startswith("stale lock: ")) == (2, True) else taken.returncode
 
-    assert (stopped.returncode, second) == (1, "blocked")
+    assert (stopped.returncode, second) == (1, "held")
 
 
 FAKE_GIT_PUSH_REFUSED = """#!/bin/sh
@@ -165,15 +163,13 @@ def test_queued_merge_whose_push_under_the_pinned_lease_is_refused_exits_1_and_k
 
     stopped = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(repo), "feature", "-"],
                              timeout=30, **run)
-    try:
-        second = subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(os.getpid())],
-                                timeout=5, **run).returncode
-    except subprocess.TimeoutExpired:
-        second = "blocked"
+    taken = subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(os.getpid())],
+                           timeout=10, **run)
+    second = "held" if (taken.returncode, taken.stderr.startswith("stale lock: ")) == (2, True) else taken.returncode
 
     pushes = [c.split()[:-1] for c in call_log.read_text().splitlines() if " push " in c]
     assert (stopped.returncode, second, pushes) == (
-        1, "blocked", [["git", "-C", str(repo), "push", "--force-with-lease=feature:1111111", "origin"]])
+        1, "held", [["git", "-C", str(repo), "push", "--force-with-lease=feature:1111111", "origin"]])
 
 
 FAKE_GH_MERGING = FAKE_GH_GREEN.replace("#!/bin/sh\n", '#!/bin/sh\necho "gh $*" >> "$CALL_LOG"\n', 1)
