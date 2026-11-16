@@ -102,7 +102,7 @@ def _touching_cases(ledger):
              for word in re.findall(r"[\w./-]+", step.text)}
     named = [path for path in files if path in words or os.path.basename(path) in words]
     stems = {os.path.splitext(os.path.basename(path))[0].replace("-", "_") for path in named}
-    lines = []
+    lines, more, room = [], [], int(tunables.get("VERI_PLAN_TOUCHING_CASES"))
     for path in files:
         if not stems or not case_reader.is_test_path(path):
             continue
@@ -111,9 +111,12 @@ def _touching_cases(ledger):
         if not any(re.search(r"(?<!\w)" + re.escape(stem) + r"(?!\w)", text.replace("-", "_")) for stem in stems):
             continue
         names = [name for name, _ in case_reader.cut_cases(text)]
-        if names:
-            lines += [path, *(f"- {name}" for name in names), ""]
-    listing = "\n".join(lines).rstrip("\n") or "No test case touches a file the plan names."
+        shown, room = names[:room], room - len(names[:room])
+        if shown:
+            lines += [path, *(f"- {name}" for name in shown), ""]
+        if len(names) > len(shown):
+            more.append(f"{path}: {len(names) - len(shown)} more cases")
+    listing = "\n".join(lines + more).rstrip("\n") or "No test case touches a file the plan names."
     return TOUCHING_HEADING + b"\n\n" + listing.encode()
 
 
