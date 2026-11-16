@@ -14,6 +14,10 @@ then the affected suites green before it reports. Then the blind `diff` verifier
 either is red, and judges it against the run's branch point, `git merge-base HEAD
 origin/<default>`, and its own diff from the step base sha. Both are launched through the supervisor and waited on as
 *Launching a leaf* sets out, the leaf as `develop-diff` and the verifier as `verdict-diff`.
+**Switched off:** with `diff` in `.tdd/issue-<n>-skip-verify`, no verifier launches: record
+`VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-diff-skipped reason=switched-off`,
+write `skipped` to `.tdd/verdict-diff.exit`, and take the PASS branch below, `pin-recheck.sh`
+first. The leaf, `suite-reported.sh` and `diff-leaf-deviation.sh` still run before it.
 
 A supervisor exit 2 on the `develop-diff` leaf is a `killed-stuck` bail, as for any developer
 leaf (see `<base directory>/BAIL.md`). After its wait exits 0 and before the verifier is launched, run `$S/suite-reported.sh develop-diff`:
