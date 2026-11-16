@@ -1,8 +1,6 @@
 """Fast-tier admission guard: names the lines of test files that start a process."""
-if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import ast
 import re
-import sys
 from pathlib import Path
 
 _SUITE_PATH = re.compile(r"(^|/)test_[^/]*\.py\Z|\.test\.sh\Z")
@@ -141,8 +139,3 @@ def main(argv):
     for line in found:
         print(line)
     return 1 if found else 0
-
-
-if __name__ == "__main__":
-    import entry
-    entry.run(main, sys.argv[1:])
