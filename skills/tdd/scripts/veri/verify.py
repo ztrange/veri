@@ -31,8 +31,15 @@ from leaf_role import leaf_role
 from paths import SCRIPTS
 from run_verdict import takes_a_value
 
+def write_ban_command(python, module):
+    """The write-ban hook's shell command: `python module`, any non-zero status of it turned into 2, the only status
+    with which the CLI blocks a call, so a missing interpreter (127) or a crash at import (1) blocks too."""
+    return shlex.join([python, module]) + " || exit 2"
+
+
 WRITE_BAN = {"PreToolUse": [{"matcher": "Write|Edit|MultiEdit|NotebookEdit", "hooks": [
-    {"type": "command", "command": shlex.join([sys.executable, os.path.join(SCRIPTS, "veri", "verifier_write_ban.py")])}]}]}
+    {"type": "command",
+     "command": write_ban_command(sys.executable, os.path.join(SCRIPTS, "veri", "verifier_write_ban.py"))}]}]}
 LEAF_ARGS = ["--permission-mode", "bypassPermissions", "--settings", json.dumps({"hooks": WRITE_BAN})]
 USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>']"
          " [--supersede-base <sha>] <phase> <issue-spec-file>"
