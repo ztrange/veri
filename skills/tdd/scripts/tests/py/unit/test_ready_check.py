@@ -8,6 +8,12 @@ WORKFLOW = "on:\n  pull_request:\n  push:\n    branches: [main]\n"
 ONE_TEST_FILE = "detect-test-command.sh --tier one test file"
 
 
+@pytest.fixture(autouse=True)
+def outside_this_repository(monkeypatch, tmp_path):
+    """A row run in-process reads the repository of the working directory: a scratch one, never veri's own."""
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.fixture
 def ready_check():
     return importlib.import_module("veri.ready_check")
@@ -81,3 +87,9 @@ def test_issue_4089_token_scopes_row_is_ok_when_the_header_lists_repo_and_origin
     fake_processes.answers({"gh api -i user": user_headers("gist, repo"), "git remote get-url origin": SSH_ORIGIN}, exact=True)
 
     assert ready_check.token_scopes_row() == ("token scopes", None)
+
+
+def test_issue_4089_token_scopes_row_over_an_https_origin_fails_without_workflow_its_fix_refreshing_that_scope(ready_check, fake_processes):
+    fake_processes.answers({"gh api -i user": user_headers("repo"), "git remote get-url origin": HTTPS_ORIGIN}, exact=True)
+
+    assert ready_check.token_scopes_row() == ("token scopes", "gh auth refresh -s workflow")
