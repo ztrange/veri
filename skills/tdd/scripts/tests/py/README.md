@@ -46,7 +46,7 @@ Directly under `tests/py/`, beside `conftest.py`; import them flat (`from repo_b
 - `pass_marker.py`: `write_pass_marker(root, step, head, tree="tree")` writes a check-earlier pass marker.
 - `process_fake_detection.py`: `installs_a_subprocess_fake(source)`, which test source installs its own fake on `subprocess`; behind `unit/test_local_process_fakes.py`.
 - `process_fakes.py`: the `fake_processes` implementation (`installer`, `FakePopen`, `FakeProcesses`); its module docstring is the interface of the fake.
-- `repo_builder.py`: `new_repo(path, branch="main")` and `commit_all(repo, message, **files)`, throwaway real git repositories; the case carries `process("git ...")`.
+- `repo_builder.py`: `new_repo(path, branch="main")` and `commit_all(repo, message, **files)`, throwaway real git repositories; the case carries `process("git ...")`. `new_repo` runs `git init` once per branch per worker and copies that template after (#3931): never `git init` in a case.
 - `shim_audit.py`: `shim_problems`, `entry_bypass_problems`, `shim_source_problems` over `skills/tdd/scripts`; behind `test_shims.py`.
 - `skill_sections.py`: `section(skill, heading)`, `heading_window`, `plain`, `has` ... read a heading's slice of SKILL.md-like prose with markup stripped.
 - `subsection_readers.py`: `Subsection` and `readers(...)`, which test cases still read one SKILL.md subsection by content; `stray_cases` (readers off the allow-list) and `lost_cases` (allow-list entries no longer reading); the engine of the readers audits.
