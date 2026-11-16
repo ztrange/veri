@@ -262,7 +262,8 @@ def main(argv):
         return entry.refuse(usage=USAGE)
     leaf = "verify-" + words[0]
     leaf_words = os.environ.get("VERIFY_LEAF_ARGS")
-    flags = leaf_args(leaf_words)
+    effort = tunables.get("VERI_EFFORT_VERIFIER")
+    flags = leaf_args(leaf_words) + (["--effort", effort] if effort else [])
     if leaf_words:
         model = resolve(leaf)
         if (model and not is_echo_flag(model) and "--model" in flags
