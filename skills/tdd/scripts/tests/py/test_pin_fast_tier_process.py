@@ -1,5 +1,6 @@
 """Cases for pin-fast-tier.sh that start a real process: the entry point, and the cases that also start git or a leaf.
 The module's other logic is tested in-process, in tests/py/unit/test_pin_fast_tier.py."""
+import importlib
 import os
 import subprocess
 
@@ -14,6 +15,33 @@ def stub(path, body):
     path.write_text("#!/bin/sh\n" + body)
     path.chmod(0o755)
     return str(path)
+
+
+def run(tmp_path, *argv):
+    ran = subprocess.run([CHECK, *argv], cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    return ran.returncode, ran.stdout, ran.stderr
+
+
+@pytest.mark.process("pin-fast-tier.sh run on a fast command that passes")
+def test_the_shim_passes_exit_0_through_silent_when_the_fast_command_passes(tmp_path):
+    assert run(tmp_path, stub(tmp_path / "fast-green", "echo '0 failed'\n: > ran\nexit 0\n")) == (0, "", "")
+    assert (tmp_path / "ran").exists()
+
+
+@pytest.mark.process("pin-fast-tier.sh run on a fast command that fails")
+def test_the_shim_passes_exit_1_through_after_the_module_writes_the_reason(tmp_path):
+    assert run(tmp_path, stub(tmp_path / "fast-red", "echo 'FAIL - a case'\nexit 1\n")) == (1, "", "")
+    assert (tmp_path / ".tdd" / "verify-pin.reason").read_text() == "FAIL - a case\n"
+
+
+@pytest.mark.process("pin-fast-tier.sh run with no argument")
+def test_the_shim_passes_exit_2_and_the_modules_stderr_through_with_no_argument(tmp_path):
+    assert run(tmp_path) == (2, "", "usage: pin-fast-tier.sh <fast-cmd>\n")
+
+
+@pytest.mark.process("pin-fast-tier.sh run as a script")
+def test_help_prints_the_modules_usage_on_stdout_and_exits_0(tmp_path):
+    assert run(tmp_path, "--help") == (0, importlib.import_module("pin_fast_tier").USAGE + "\n", "")
 
 
 @pytest.mark.process("pin-fast-tier.sh and git run for real, from a subdirectory of a throwaway repo")
