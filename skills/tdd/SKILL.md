@@ -734,9 +734,9 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   The `at=over-budget` is what tells this park apart from the revise-exhausted one: a verifier
   that could not be satisfied and a step that got expensive are different facts about the run.
 - **exit 3 — neither answer: record the crossing and carry on with the step.** This is
-  **not a bail**, and it is where this path parts from the revise-exhausted one, whose exit 3
-  bails with cause `revise-exhausted` because a verifier that will not pass the work leaves
-  nothing to go on with (`Read` `<base directory>/BAIL.md`). Here nothing has failed, for the reason the section gives above, and
+  **not a bail**, and it is where this path parts from the revise-exhausted one, whose exit 3,
+  with no step ahead, bails `revise-exhausted` because a verifier that will not pass the work leaves
+  nothing to go on (`Read` `<base directory>/BAIL.md`). Here nothing has failed, for the reason the section gives above, and
   bailing a converging step because it is expensive is exactly what this check exists not to do. The
   `step-over-budget` mark written before the launch already records the crossing, so this branch
   writes none of its own: leave the check disarmed, and let the step finish normally.

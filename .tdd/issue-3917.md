@@ -16,4 +16,4 @@
 - [x] `--step-ahead` reads a pytest class id `<file>::<Class>::<case>` as that file and case
 - [x] `--step-ahead` checks a parametrized case `<case>[…]` by its name without the suffix
 - [x] `--step-ahead` with no id or an empty one exits 2 with the usage line
-- [ ] `SKILL.md` says the revise-exhausted exit 3 bails only with no step ahead, graded PASS against row CY12
+- [x] `SKILL.md` says the revise-exhausted exit 3 bails only with no step ahead, graded PASS against row CY12
