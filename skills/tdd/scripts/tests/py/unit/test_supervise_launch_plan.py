@@ -285,15 +285,23 @@ def test_gate_20_a_snapshot_file_edited_since_its_digest_refuses_naming_it_with_
         "develop-red", f"the skill snapshot {snapshot / 'scripts' / 'status.sh'} changed since extraction")
 
 
-@pytest.mark.parametrize("skipped", ["unpinned", "no-digest"])
-def test_gate_20_an_unpinned_run_or_one_with_no_recorded_digest_launches_from_an_edited_snapshot_3964(
-        tmp_path, work_tree, monkeypatch, fake_processes, skipped):
+def test_gate_20_an_unpinned_run_launches_from_an_edited_snapshot_3964(tmp_path, work_tree, monkeypatch, fake_processes):
     snapshot = snapshot_serving(tmp_path, monkeypatch, work_tree)
     (snapshot / "scripts" / "status.sh").write_text("echo edited\n")
-    if skipped == "unpinned":
-        monkeypatch.setenv("VERI_SKILL_UNPINNED", "1")
-    else:
-        (work_tree / ".tdd" / "issue-7-snapshot-digest").unlink()
+    monkeypatch.setenv("VERI_SKILL_UNPINNED", "1")
     fake_processes.answers({HEAD: (0, "abc\n", ""), TOP: (0, f"{work_tree}\n", "")})
 
     assert isinstance(supervise.launch_plan(["develop-red", "true"]), supervise.Launch)
+
+
+@pytest.mark.parametrize("gone", ["marker", "digest"])
+def test_gate_20_a_snapshot_run_whose_marker_or_digest_file_is_gone_refuses_3964(
+        tmp_path, work_tree, monkeypatch, fake_processes, gone):
+    snapshot = snapshot_serving(tmp_path, monkeypatch, work_tree)
+    digest = work_tree / ".tdd" / "issue-7-snapshot-digest"
+    (snapshot / ".veri-snapshot" if gone == "marker" else digest).unlink()
+    fake_processes.answers({HEAD: (0, "abc\n", ""), TOP: (0, f"{work_tree}\n", "")})
+
+    assert shape(supervise.launch_plan(["develop-red", "true"])) == launch_refused("develop-red", {
+        "marker": f"the skill snapshot {snapshot / '.veri-snapshot'} changed since extraction",
+        "digest": f"the skill snapshot {snapshot} has no recorded digest {digest}"}[gone])
