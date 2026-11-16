@@ -1,6 +1,6 @@
 # Plan for #3960 — PRD 022.8: a token-shaped string never reaches a posted comment
 
-- [ ] redact replaces a token of each prefix gh[pousr]_ followed by 36 or more letters and digits with [redacted] ⟦criterion 1⟧
+- [x] redact replaces a token of each prefix gh[pousr]_ followed by 36 or more letters and digits with [redacted] ⟦criterion 1⟧
 - [ ] redact replaces a github_pat_ token with [redacted] ⟦criterion 1⟧
 - [ ] redact replaces an sk-ant- key with [redacted] ⟦criterion 1⟧
 - [ ] redact replaces an AKIA access key id with [redacted] ⟦criterion 1⟧

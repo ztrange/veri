@@ -25,6 +25,15 @@ import tunables
 PARKED_HEADING = "### ⏸ Parked"
 
 
+REDACTED = "[redacted]"
+_TOKEN_SHAPES = re.compile(r"gh[pousr]_[A-Za-z0-9]{36,}")
+
+
+def redact(text):
+    """<text> with every token-shaped string replaced by [redacted]."""
+    return _TOKEN_SHAPES.sub(REDACTED, text)
+
+
 class NoAnswer(Exception):
     """<answer>: what was read before the failure; <detail>: gh's stderr for it, when captured."""
     def __init__(self, answer, detail=""):
