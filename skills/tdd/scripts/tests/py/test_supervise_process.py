@@ -4054,7 +4054,8 @@ def test_cli_launches_when_the_recorded_leaf_is_gone_or_finished_under_the_same_
     corpse.wait()
     (gone / ".tdd" / "leaf.owner").write_text(f"{corpse.pid} revise-green-1\n")
     gone_answer = (launch(gone, "revise-green-1", "sh", "-c", "echo ran > ran"), (gone / "ran").exists(),
-                   (gone / ".tdd" / "leaf.owner").read_text().split("\n")[0].endswith(" revise-green-1"))
+                   (gone / ".tdd" / "leaf.owner").read_text()
+                   == f"{os.getpid()} revise-green-1\n{importlib.import_module('veri.pid_file').started_as(os.getpid())}\n")
 
     done = tmp_path / "done"
     done.mkdir()
