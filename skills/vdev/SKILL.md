@@ -188,7 +188,10 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   the three is not a bail: resume the run once usage is back or the API answers, from the target
   repository's main working tree:
   `$S/detach-leaf.sh $S/run-conductor.sh <n> >> .tdd/conductor-<n>.log 2>&1 < /dev/null`
-  (then the restart line from *Launching*). None of the three: route it as a bail.
+  (then the restart line from *Launching*). The resume takes a slot like any launch: it runs only
+  when the live conductors, counted fresh with `kill -0`, number fewer than N (an unexpired timed
+  N included); otherwise it is held, and the next freed slot goes to it ahead of the solvable
+  queue. None of the three: route it as a bail.
 
 After routing a `dispatch.sh` line, start `dispatch.sh` again as one background command. Then
 take the slot decision.
