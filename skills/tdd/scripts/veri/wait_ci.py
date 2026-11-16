@@ -213,6 +213,10 @@ def main(argv):
     if not re.fullmatch(r"[0-9]+", no_run_wait):
         warn("VERI_CI_NO_RUN_WAIT '%s' is not a non-negative whole number" % no_run_wait)
         return 2
+    head_wait = tunables.get("VERI_CI_HEAD_WAIT", unless_empty=True)
+    if not re.fullmatch(r"[0-9]+", head_wait):
+        warn("VERI_CI_HEAD_WAIT '%s' is not a non-negative whole number" % head_wait)
+        return 2
     pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
     want = argv[3] if len(argv) > 3 else ""
@@ -240,7 +244,7 @@ def main(argv):
     poll = tunables.read("VERI_POLL", unless_empty="10")
     options = Options(pr=pr, want=want, explicit=explicit, on_pr=on_pr, no_run_wait=int(no_run_wait),
                       queue_wait=tunables.get("VERI_CI_QUEUE_WAIT", unless_empty=True), poll=poll,
-                      span=arith(span, scope), total=arith(total, scope))
+                      span=arith(span, scope), total=arith(total, scope), head_wait=int(head_wait))
     bound = {}
     call_end = epoch() + options.span
     loop = Loop()

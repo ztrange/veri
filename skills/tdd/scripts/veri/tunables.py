@@ -152,6 +152,7 @@ TUNABLES = {
     "VERI_MERGE_SETTLE_SLEEP": Tunable(text, "3"),
     "VERI_CI_RETRY_BACKOFF": Tunable(text, "1"),
     "VERI_CI_NO_RUN_WAIT": Tunable(text, "600"),
+    "VERI_CI_HEAD_WAIT": Tunable(text, "600"),
     "VERI_CI_QUEUE_WAIT": Tunable(text, "3600"),
     "VERI_PRIORITY_LABEL": Tunable(text, "priority"),
     "VERI_PAGE_RETRIES": Tunable(text, "3"),
