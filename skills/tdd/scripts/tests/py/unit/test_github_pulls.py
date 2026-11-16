@@ -153,3 +153,21 @@ def test_pull_raises_a_value_error_on_an_answer_that_is_not_json(github, fake_pr
 @pytest.mark.parametrize("cross, expected", [(True, True), (False, False)])
 def test_a_graphql_record_says_whether_its_head_is_in_another_repository_by_is_cross_repository(github, cross, expected):
     assert github.pulls_in(json.dumps([dict(GRAPHQL_SHAPED, isCrossRepository=cross)]))[0].cross_repository is expected
+
+
+@pytest.mark.parametrize("head_repo, base_repo, expected", [
+    ({"full_name": "o/r"}, {"full_name": "o/r"}, False),
+    ({"full_name": "stranger/r"}, {"full_name": "o/r"}, True),
+    (None, {"full_name": "o/r"}, True),
+    ({"full_name": "o/r"}, None, True),
+    ({}, {}, True),
+])
+def test_a_rest_record_s_head_is_in_another_repository_unless_its_head_and_base_name_the_same_one(
+        github, head_repo, base_repo, expected):
+    raw = dict(REST_SHAPED, head=dict(REST_SHAPED["head"], repo=head_repo), base={"ref": "main", "repo": base_repo})
+    assert github.pulls_in(json.dumps([raw]))[0].cross_repository is expected
+
+
+@pytest.mark.parametrize("raw", [{"number": 1}, {"number": 1, "isCrossRepository": None}])
+def test_a_record_that_does_not_say_where_its_head_is_reads_as_another_repository(github, raw):
+    assert github.pulls_in(json.dumps([raw]))[0].cross_repository is True

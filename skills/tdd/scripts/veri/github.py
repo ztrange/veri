@@ -574,7 +574,13 @@ class Pull(NamedTuple):
 
 
 def _cross_repository(raw):
-    return raw.get("isCrossRepository") is not False
+    """Whether the PR's head is in another repository than its base (PRD 022.14), read from the fields GitHub sets:
+    `isCrossRepository` (gh pr list --json), else REST head.repo.full_name against base.repo.full_name. Fail closed: a
+    null head repository (a deleted fork), a missing name or a record carrying neither shape reads as another."""
+    if "isCrossRepository" in raw:
+        return raw["isCrossRepository"] is not False
+    names = [((raw.get(side) or {}).get("repo") or {}).get("full_name") for side in ("head", "base")]
+    return not (isinstance(names[0], str) and names[0] and names[0] == names[1])
 
 
 def _pull(raw):
