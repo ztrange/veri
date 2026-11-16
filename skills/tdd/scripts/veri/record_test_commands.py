@@ -87,7 +87,8 @@ def commit(root, tip, text):
 
 
 def record(fast, full, root):
-    default = git.default_branch(cwd=root)
+    checked("rev-parse", "--show-toplevel", cwd=root)
+    default =git.default_branch(cwd=root)
     if not default:
         raise Refused("the default branch cannot be told")
     listed = git.network("ls-remote", "--heads", "origin", "refs/heads/" + BRANCH, cwd=root)
@@ -114,6 +115,8 @@ def record(fast, full, root):
 def main(argv):
     args = list(argv)
     fast, full = (args + ["", ""])[:2]
+    if not fast or not full:
+        return entry.refuse("record-test-commands.sh: a command is missing or empty", usage=USAGE)
     root = args[2] if len(args) > 2 and args[2] else "."
     try:
         url = record(os.fsencode(fast), os.fsencode(full), root)
