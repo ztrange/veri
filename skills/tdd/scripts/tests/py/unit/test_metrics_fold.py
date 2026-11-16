@@ -86,7 +86,7 @@ def test_the_outcome_is_the_run_ends_answer_and_its_ending_mark(folded):
 
 def test_the_requested_model_knobs_are_read_off_the_environment_in_report_order(folded):
     assert list(folded.model_knobs) == ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE",
-                                     "VERI_MODEL_REVISE_GREEN"]
+                                     "VERI_MODEL_REVISE_GREEN", "VERI_EFFORT_VERIFIER"]
     assert (folded.model_knobs["VERI_MODEL"], folded.model_knobs["VERI_MODEL_DEVELOPER"]) == ("opus", "sonnet")
     assert not folded.model_knobs["VERI_MODEL_VERIFIER"]
 
