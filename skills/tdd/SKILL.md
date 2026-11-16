@@ -768,7 +768,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    rm -f .tdd/develop-red.exit .tdd/develop-red.pid .tdd/red-prediction.md .tdd/red-run-output.txt
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err
    $S/wait-leaf.sh develop-red     # foreground; on exit 3 call it again
-   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
+   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
    The template also states what a valid test is: behavior, not mechanism (no process, fork
    or call count and no timing across a suite run — those are `make profile`'s job — except
@@ -836,8 +836,8 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 
    **Switched off:** with `red` in `.tdd/issue-<n>-skip-verify`, a matched prediction launches no verify-red:
    record `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-red-skipped reason=switched-off`,
-   write `skipped` to `.tdd/verdict-red.exit`, then go on as on a PASS: the frozen record below
-   (`tests-frozen.sh record --step … --red-case`), then Green. The prediction check,
+   write `skipped` to `.tdd/verdict-red.exit`, take the frozen record below (`tests-frozen.sh record --step … --red-case`),
+   post 3's `### 🔴 Red` and `$S/comment.sh <n> verify-red` (SKIPPED), then Green. The prediction check,
    `unreplaced-cases.sh` and `tests-frozen.sh check-earlier` still run first. Otherwise, on a matched prediction, run
    the red verifier against the on-disk test and spec, **redirecting its stdout (the
    reason) to a file** — the revise step takes the reason as a *path*:
@@ -914,7 +914,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    rm -f .tdd/develop-green.exit .tdd/develop-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
    $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
-   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
+   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
    The test path and target test id are the ones Red's report gave you. The leaf's report is
    in `.tdd/develop-green.out`, and ends with `IMPL_PATH:` (the production files it created
@@ -938,7 +938,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    - exit 0 may instead print `fixture <path> <name>`: `<name>` is a function defined in the test file `<path>` that is not a test case (a helper, fixture or shared setup). It shares the step's one free reroute with `red`, `repair` and `supersede`, free only as the step's first reroute of any kind, `missing` included (a prior `missing` reroute uses it up), and spends no `REVISE_BUDGET` attempt; a `WRONG_TEST` naming no case never routes here once that reroute is spent, it gets `repair` (see `repair` above). Insert before the current step, with `add-ledger-step.sh … before`, the step `<the current step's criterion>: repairs the fixture '<name>' in <path>, reproduced by a case in <path> ⟦fixture-repair⟧`, commit the ledger, write the same `reroute` event with `kind=fixture`, and run that step's cycle; the current step then resumes at develop-green with its red case and frozen record kept. `add-ledger-step.sh` exit 1 (the growth cap, which files the step under `## Owed steps`) **bails** with cause `fixture-owed`, a process failure; exit 2 bails `step-add-refused` (see `<base directory>/BAIL.md`). A `fixture` route is taken only when the helper is defined in the step's own test file, the one before `::` in a `<file>::<case>` id; an id with no `::` (the Go and JS names) falls back to searching every test file.
    - exit 2 is a system failure: **bail** (`Read` `<base directory>/BAIL.md`).
    - With `green` in `.tdd/issue-<n>-skip-verify`, the routes read from the green report (`red`, `repair`, `supersede`, `supersede-diff`, `fixture`) and a `mutation-parity.sh` REJECT's `missing` still fire; only a verify-green reason is never routed.
-   - With `red` in `.tdd/issue-<n>-skip-verify`, a reroute's "verify it with verify-red like any red" launches no verifier: Red's **Switched off** branch is taken instead.
+   - With `red` in `.tdd/issue-<n>-skip-verify`, a reroute's "verify it with verify-red like any red" launches no verifier: record the event and `skipped` as Red's **Switched off** does, then as that reroute's PASS.
 
    After a reroute's red leaf, re-record the step's frozen tests with this one command; the `--red-case '<red-test-id>'` checks that the step's own Red case still exists in its test file. It captures `$?` and stops on a non-zero status rather than echoing it:
    ```
@@ -991,13 +991,13 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    Run `$S/replaces-case-survivors.sh "<step text>"` before the launch below, on a ⟦replaces-case⟧ step only; its exit 1 means survivors (see the paragraph after the block).
    **Switched off:** with `green` in `.tdd/issue-<n>-skip-verify`, launch no verify-green: record
    `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-green-skipped reason=switched-off`,
-   write `skipped` to `.tdd/verdict-green.exit`, and take 3's PASS branch; the checks before the
+   write `skipped` to `.tdd/verdict-green.exit`, post 3's two comments (`verify-green` says SKIPPED), then its PASS branch; the checks before
    launch and `mutation-parity.sh` still run. Otherwise:
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
    $S/wait-leaf.sh verdict-green    # foreground; on exit 3 call it again
-   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
+   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
    On a `⟦replaces-case⟧` step, a PASS is accepted only once the conductor's own run of
    `$S/mutation-parity.sh <pairs-table>` on that step's pairs table exits 0; exit 1 is a
