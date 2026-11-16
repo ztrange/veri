@@ -9,7 +9,7 @@ import sys
 import pytest
 
 
-USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>\n"
+USAGE = "usage: issue-worktree.sh [--take-over] <n> <slug> | --remove <n>\n"
 
 
 @pytest.fixture(autouse=True)

@@ -19,7 +19,7 @@ import github
 from github import NoAnswer
 from pid_file import ancestors, live_conductor
 
-USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>"
+USAGE = "usage: issue-worktree.sh [--take-over] <n> <slug> | --remove <n>"
 PREFIX = "issue-worktree: "
 
 
