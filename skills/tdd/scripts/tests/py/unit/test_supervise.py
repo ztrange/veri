@@ -189,3 +189,17 @@ def test_mtime_of_returns_int_os_stat_st_mtime_as_text_and_now_when_the_file_is_
     monkeypatch.setattr(time, "time", lambda: 1700000000.2)
 
     assert (supervise.mtime_of(str(log)), supervise.mtime_of(str(tmp_path / "missing.log"))) == ("1234567890", "1700000000")
+
+
+def test_now_with_veri_wall_clock_unset_and_mtime_of_an_existing_and_a_missing_file_start_no_process_4129(
+        monkeypatch, tmp_path, supervise, fake_processes):
+    fake = fake_processes.answers({}, default=(0, "5\n", ""))
+    monkeypatch.delenv("VERI_WALL_CLOCK", raising=False)
+    log = tmp_path / "develop-red.log"
+    log.write_text("")
+
+    supervise.now()
+    supervise.mtime_of(str(log))
+    supervise.mtime_of(str(tmp_path / "missing.log"))
+
+    assert fake.calls == []
