@@ -9,3 +9,5 @@
 - [x] `unlabel-issue.sh <n>` writes the pointer comment after taking the claim ⟦criterion 5⟧
 - [x] `push-branch.sh` updates the pointer comment after a push that exits 0 with the branch pushed, and not after a failed one ⟦criterion 6⟧
 - [x] a `gh` failure writing the pointer comment is one stderr line naming the issue, and `unlabel-issue.sh` and `push-branch.sh` keep their exit codes ⟦criterion 7⟧
+- [ ] the pointer comment is found by its heading and by its author being the authenticated `gh` login, so a human comment starting with the heading is never edited ⟦criterion 1⟧
+- [ ] a step whose refactor is still pending (`⟂ refactor pending`) is the comment's current step, not a done one ⟦criterion 2⟧
