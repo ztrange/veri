@@ -1,5 +1,6 @@
 """harvest-usage.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import decimal
 import json
 import sys
 
@@ -38,12 +39,19 @@ def first_turn_pairs(path):
     return []
 
 
+def plain(number):
+    """The number as Python prints it, unless that is in exponent form (1e-05): then as a plain decimal (0.00001)."""
+    text = str(number)
+    return format(decimal.Decimal(text), "f") if isinstance(number, float) and "e" in text else text
+
+
 def usage_pairs(record):
     """The eight numbers in one closing result record, as key=value event fields."""
     usage = record["usage"]
     pairs = []
-    for key in ("duration_ms", "duration_api_ms", "num_turns", "total_cost_usd"):
+    for key in ("duration_ms", "duration_api_ms", "num_turns"):
         pairs.append("%s=%s" % (key, record[key]))
+    pairs.append("total_cost_usd=%s" % plain(record["total_cost_usd"]))
     for key in ("input_tokens", "output_tokens",
                 "cache_read_input_tokens", "cache_creation_input_tokens"):
         pairs.append("%s=%s" % (key, usage[key]))
