@@ -212,6 +212,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_ISSUE_REFACTOR_BUDGET` | `10` | its readers' own words |
 | `VERI_KILL_POLL` | `0.1` | a non-negative number |
 | `VERI_LABEL` | `ready-for-agent` | its readers' own words |
+| `VERI_LEAF_ENV` | "" | its readers' own words |
 | `VERI_MACHINE_NAME` | "" | never: any value is the machine name the pointer comment shows; empty shows `unnamed machine`, and the host name is never read |
 | `VERI_MAX_ISSUES` | "" | its readers' own words |
 | `VERI_MERGE_LOCK_POLL` | `30` | its readers' own words |
