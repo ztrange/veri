@@ -260,7 +260,7 @@ def test_redact_answers_a_1_mb_body_holding_tokens_within_the_case_timeout_issue
 # Where a veri module may name the gh command: github.bounded, which redacts every argument it hands gh, and the
 # functions that call it; and three command lines that carry no text veri wrote, so nothing to redact.
 GH_SITES = {
-    ("github.py", "<module>"): "the shape prefix gh of the token patterns",
+    ("redaction.py", "<module>"): "the shape prefix gh of the token patterns",
     ("github.py", "bounded"): "the redaction itself",
     ("github.py", "run_gh"): "through bounded",
     ("github.py", "gh_probe"): "through bounded",
