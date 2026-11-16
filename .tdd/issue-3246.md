@@ -4,6 +4,6 @@
 - [x] reset-cost.sh conductor <n> prints one line per conductor-restart event: K the price of the relaunch's first request, g its mean growth per request ⟦criterion 2⟧
 - [x] after the per-reset lines it prints the medians of K and g, r and the optimum growth √(2·K·g / r) next to the knob's current value, and names its sources ⟦criterion 3⟧
 - [x] with no reset recorded it prints nothing and exits 3 ⟦criterion 4⟧
-- [ ] an unreadable transcript or conductor log exits 2 naming it ⟦criterion 4⟧
+- [x] an unreadable transcript or conductor log exits 2 naming it ⟦criterion 4⟧
 - [ ] a role other than dev or conductor, a bad lane or a bad <n> exits 2 with a usage line ⟦criterion 4⟧
 - [ ] SKILL catalogue SCRIPTS.md has the reset-cost.sh entry, graded by SC220 ⟦criterion 5⟧
