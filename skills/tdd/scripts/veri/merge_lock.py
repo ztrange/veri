@@ -51,9 +51,15 @@ def _owner(args):
     return _value(args, "--owner")
 
 
-def _start_time(pid):
-    out = subprocess.run(["ps", "-o", "lstart=", "-p", pid], stdout=subprocess.PIPE, text=True).stdout
+def _lstart(pid, env=None):
+    out = subprocess.run(["ps", "-o", "lstart=", "-p", pid], stdout=subprocess.PIPE, text=True, env=env).stdout
     return "_".join(out.split())
+
+
+def _start_time(pid):
+    """<pid>'s start time as ps prints it under LC_ALL=C TZ=UTC, so a record reads the same in any caller's locale
+    and time zone."""
+    return _lstart(pid, {**os.environ, "LC_ALL": "C", "TZ": "UTC"})
 
 
 def _read(record):
@@ -77,7 +83,12 @@ def _alive(pid):
 
 
 def _reused(text, pid):
-    return not _alive(pid) or text.split()[2:3] != [_start_time(str(pid))]
+    """Whether the record <text> names a pid that is dead, or alive under another start time. A record written before
+    the start time was pinned holds the writer's local form; one that matches it as this caller reads it is live."""
+    if not _alive(pid):
+        return True
+    recorded = text.split()[2:3]
+    return recorded != [_start_time(str(pid))] and recorded != [_lstart(str(pid))]
 
 
 def _needs_pid(args, force_ok):

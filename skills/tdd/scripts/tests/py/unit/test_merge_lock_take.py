@@ -208,3 +208,41 @@ def test_3995_take_with_veri_merge_lock_wait_0_gives_up_at_the_first_poll_that_f
     except _StillPolling:
         code = "still polling"
     assert (code, polls, (lock / "holder").read_text()) == (2, [], f"{me} h t\n")
+
+
+PINNED_START = "Mon_Nov_16_10:00:00_2026"
+LOCAL_START = "lun._16_nov._19:00:00_2026"
+
+
+def _ps_by_environment(argv, stdout=None, text=None, env=None):
+    """ps -o lstart= as it prints under LC_ALL=C TZ=UTC (pinned) and under the caller's fr_FR, Asia/Tokyo one."""
+    seen = os.environ if env is None else env
+    pinned = (seen.get("LC_ALL"), seen.get("TZ")) == ("C", "UTC")
+    return SimpleNamespace(stdout=(PINNED_START if pinned else LOCAL_START).replace("_", " ") + "\n")
+
+
+@pytest.mark.parametrize("recorded, expected", [
+    (PINNED_START, (0, 1)),
+    (LOCAL_START, (0, 1)),
+    ("Thu_Jan__1_00:00:00_1970", (2, 0)),
+], ids=["pinned-form-record", "old-local-form-record", "neither"])
+def test_review_take_reads_a_live_holder_recorded_in_the_pinned_or_the_callers_local_form_as_live_and_any_other_as_stale(
+        tmp_path, monkeypatch, recorded, expected):
+    monkeypatch.setenv("TZ", "Asia/Tokyo")
+    monkeypatch.setenv("LC_ALL", "fr_FR.UTF-8")
+    monkeypatch.setattr(merge_lock.subprocess, "run", _ps_by_environment)
+    me = os.getpid()
+    lock = tmp_path / "tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    (lock / "holder").write_text(f"{me} h {recorded}\n")
+    waits = []
+
+    def release_on_wait(_seconds):
+        waits.append(1)
+        shutil.rmtree(lock)
+
+    monkeypatch.setattr(merge_lock, "time", SimpleNamespace(sleep=release_on_wait))
+
+    code = merge_lock._take(str(lock), str(lock / "holder"), ["--pid", str(me)])
+
+    assert (code, len(waits)) == expected
