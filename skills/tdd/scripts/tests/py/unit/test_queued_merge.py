@@ -153,7 +153,7 @@ def test_2372_queued_merge_whose_take_fails_stops_with_takes_code_and_touches_no
 def test_2372_queued_merge_proceeds_to_tag_and_cleanup_only_on_an_observed_merged_true(fake_processes, run_cli, merged, gh_code):
     calls = scenario(fake_processes, merged=merged, gh_code=gh_code)
 
-    code, _, err = run_cli(queued_merge, ARGV)
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "2", "VERI_MERGE_SETTLE_SLEEP": "0"})
 
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
     assert (code, PR in err, cleaned(calls), len(released)) == (1, True, [], 1)
@@ -557,6 +557,36 @@ def test_3500_queued_merge_whose_pr_reads_open_on_the_first_reread_after_a_faile
     code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "5", "VERI_MERGE_SETTLE_SLEEP": "0"})
 
     assert (code, len(cleaned(calls)), len(reads)) == (0, 3, 3)
+
+
+def settling(fake_processes, merge_code, answers):
+    """A merge call exiting <merge_code>, then the PR reads after it answering <answers> in order (the last repeats):
+    "fail" a read that gets no answer, "open" one that answers unmerged, "merged" one that answers merged."""
+    after = []
+    bodies = {"open": json.dumps({"state": "open", "merged": False}),
+              "merged": json.dumps({"merged": True, "merge_commit_sha": MERGE_SHA})}
+
+    def wrapped(answer):
+        def inner(line, **kw):
+            if "pulls/7/merge" in line:
+                after.append(line)
+                return merge_code, "", "" if merge_code == 0 else "gh: HTTP 502"
+            if after and line.endswith("gh api repos/o/r/pulls/7"):
+                read = answers[min(len(after) - 1, len(answers) - 1)]
+                after.append(line)
+                return (1, "", "gh: HTTP 502") if read == "fail" else (0, bodies[read], "")
+            return answer(line, **kw)
+        return fake_processes(inner)
+
+    return scenario(wrapped)
+
+
+def test_3979_queued_merge_whose_merge_call_exits_0_and_whose_first_read_gets_no_answer_but_the_second_reads_merged_exits_0_tagged_and_cleaned_up(fake_processes, run_cli):
+    calls = settling(fake_processes, 0, ["fail", "merged"])
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    assert (code, len(cleaned(calls))) == (0, 3)
 
 
 def test_3500_queued_merge_with_no_settle_tunables_set_rereads_an_open_pr_ten_times_each_after_a_three_second_wait(fake_processes, run_cli, monkeypatch):
