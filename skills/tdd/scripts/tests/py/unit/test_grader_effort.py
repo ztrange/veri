@@ -28,6 +28,12 @@ def test_the_grader_model_is_the_model_lines_value_whether_an_effort_line_sits_a
     assert models == ["claude-x-4", "claude-x-4"]
 
 
+def test_a_key_less_grader_conf_line_is_the_model_as_main_read_it(tmp_path, monkeypatch, grade_prose):
+    conf(tmp_path, monkeypatch, grade_prose, "# The grader leaf's model.\nclaude-x-4\n")
+
+    assert grade_prose.grader_model() == "claude-x-4"
+
+
 def unit_tree(tmp_path):
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
