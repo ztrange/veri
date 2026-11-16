@@ -2475,3 +2475,44 @@ def test_rendered_answers_code_report_and_stderr_text_without_printing(tmp_path,
     assert (code, err) == (0, "")
     assert out == printed and out.startswith("### 📊 Metrics — issue 108\n")
     assert refused == (2, "", "usage: metrics.sh <issue-number>\n")
+
+
+def named(name, events):
+    return [dict(e, name=name) if e["event"] == "launch" else e for e in events]
+
+
+def test_4012_revise_green_by_model_counts_each_models_leaves_and_the_first_green_verdict_of_the_step_after_each(
+        tmp_path, monkeypatch, capsys, metrics):
+    opus, sonnet = "claude-opus-5-5", "claude-sonnet-5-5"
+    events = (conductor("1", 100, "step-start")
+              + named("develop-green", leaf("1", 110, "developer", "green", 1, 10, usage=dict(model=sonnet)))
+              + leaf("1", 130, "verifier", "green", 1, 10, verdict="REJECT")
+              + named("revise-green", leaf("1", 150, "developer", "green", 2, 10, usage=dict(model=opus)))
+              + leaf("1", 170, "verifier", "red", 9, 10, verdict="REJECT")
+              + leaf("1", 190, "verifier", "green", 2, 10, verdict="PASS")
+              + leaf("1", 210, "verifier", "green", 3, 10, verdict="REJECT")
+              + conductor("1", 230, "step-done")
+              + conductor("2", 300, "step-start")
+              + named("revise-green", leaf("2", 310, "developer", "green", 1, 10, usage=dict(model=sonnet)))
+              + leaf("2", 330, "verifier", "green", 1, 10, verdict="REJECT")
+              + named("revise-green-2", leaf("2", 350, "developer", "green", 2, 10, usage=dict(model=sonnet)))
+              + leaf("2", 370, "verifier", "green", 2, 10, verdict="PASS")
+              + named("revise-green", leaf("2", 390, "developer", "green", 3, 10, usage=dict(model=opus)))
+              + conductor("2", 410, "step-done"))
+    write_log(tmp_path, events)
+    monkeypatch.chdir(tmp_path)
+
+    rows = table(render(metrics, capsys), "#### Revise-green, by model")
+
+    assert rows == [{"model": opus, "leaves": "2", "PASS": "1", "REJECT": "0"},
+                    {"model": sonnet, "leaves": "2", "PASS": "1", "REJECT": "1"}]
+
+
+def test_4012_no_revise_green_by_model_section_when_no_revise_green_leaf_ran(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, conductor("1", 100, "step-start")
+              + named("develop-green", leaf("1", 110, "developer", "green", 1, 10, usage=dict(model="opus")))
+              + leaf("1", 130, "verifier", "green", 1, 10, verdict="PASS")
+              + conductor("1", 150, "step-done"))
+    monkeypatch.chdir(tmp_path)
+
+    assert "Revise-green" not in render(metrics, capsys)
