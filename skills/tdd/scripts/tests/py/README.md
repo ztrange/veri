@@ -49,7 +49,7 @@ Directly under `tests/py/`, beside `conftest.py`; import them flat (`from repo_b
 - `repo_builder.py`: `new_repo(path, branch="main")` and `commit_all(repo, message, **files)`, throwaway real git repositories; the case carries `process("git ...")`.
 - `shim_audit.py`: `shim_problems`, `entry_bypass_problems`, `shim_source_problems` over `skills/tdd/scripts`; behind `test_shims.py`.
 - `skill_sections.py`: `section(skill, heading)`, `heading_window`, `plain`, `has` ... read a heading's slice of SKILL.md-like prose with markup stripped.
-- `subsection_readers.py`: `Subsection` and `readers(...)`, which test cases still read one SKILL.md subsection by content; the engine of the readers audits.
+- `subsection_readers.py`: `Subsection` and `readers(...)`, which test cases still read one SKILL.md subsection by content; `stray_cases` (readers off the allow-list) and `lost_cases` (allow-list entries no longer reading); the engine of the readers audits.
 - `tree_index.py`: `TestFile`, `VeriModules(directory)` (every `*.py` of one directory by stem: `names`, `path`, `text`, `tree`), `tests_py_index_of(root)`, `mentioned_names`.
 
 ## conftest fixtures
