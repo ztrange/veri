@@ -218,6 +218,16 @@ def cut(path, branch, take_over=False):
             return entry.refuse("%s exist for the issue — cannot pick one for the requested %s"
                                 % (", ".join(names), branch), prefix=PREFIX)
         if on_origin and take_over:
+            refspec = "+refs/heads/%s:refs/remotes/origin/%s" % (branch, branch)
+            try:
+                fetched = github.bounded_group(["git", "fetch", "-q", "origin", refspec], limit_name="VERI_GIT_NETWORK_TIMEOUT",
+                                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            except OSError as error:
+                fetched = subprocess.CompletedProcess([], 2, "", str(error))
+            if fetched.returncode != 0:
+                return entry.refuse("git fetch origin %s got no answer (%s) — refusing to take over a run from a"
+                                    " stale origin/%s" % (branch, " ".join((fetched.stderr or "").split()), branch),
+                                    prefix=PREFIX)
             code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
             if code != 0:
                 return entry.to_contract(code)

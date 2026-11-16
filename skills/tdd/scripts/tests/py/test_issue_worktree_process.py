@@ -981,13 +981,15 @@ def test_fresh_call_over_a_fetched_remote_tracking_ref_of_a_branch_origin_holds_
 
 
 @pytest.mark.process("git clone and git worktree add on scratch repositories, origin holding another run's branch")
-def test_take_over_over_a_fetched_branch_origin_holds_cuts_the_worktree_on_a_local_branch_at_origins_tip_4080(
+def test_take_over_over_a_stale_fetched_branch_origin_holds_cuts_the_worktree_on_a_local_branch_at_origins_current_tip_4080(
         tmp_path, monkeypatch, issue_worktree, run_cli):
     upstream, clone = scratch_clone(tmp_path, "take-over")
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     scratch_git(upstream, "branch", "-q", "tdd/66-adopted", "main")
     scratch_git(clone, "fetch", "-q", "origin")
-    tip = scratch_git(clone, "rev-parse", "refs/remotes/origin/tdd/66-adopted")
+    later = scratch_git(upstream, "commit-tree", "main^{tree}", "-p", "main", "-m", "the other machine's last push")
+    scratch_git(upstream, "update-ref", "refs/heads/tdd/66-adopted", later)
+    tip = scratch_git(upstream, "rev-parse", "refs/heads/tdd/66-adopted")
     want = scratch_wt_path(clone, 66)
 
     code, out, _ = run_cli(issue_worktree, ["--take-over", "66", "adopted"], cwd=clone)
