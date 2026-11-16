@@ -2,6 +2,7 @@
 import importlib
 import json
 import os
+import re
 
 import pytest
 
@@ -78,12 +79,32 @@ HOST = "MacBook-Pro-de-Mariox.local"
 
 
 def _spellings(path):
-    """A path as a journal may hold it: as is, JSON-escaped slashes, URL-encoded both ways, and the macOS prefixes."""
+    """A path as a journal may hold it: as is, JSON-escaped slashes, URL-encoded both ways, with lower-case hex, encoded
+    two and three times, in mixed case, and under the macOS prefixes."""
     import urllib.parse
     forms = set()
     for base in {path, "/private" + path, "/System/Volumes/Data" + path}:
-        forms |= {base, base.replace("/", "\\/"), urllib.parse.quote(base, safe=""), urllib.parse.quote(base, safe="/")}
+        once = urllib.parse.quote(base, safe="")
+        forms |= {base, base.replace("/", "\\/"), once, urllib.parse.quote(base, safe="/"),
+                  re.sub(r"%[0-9A-F]{2}", lambda m: m.group().lower(), once),
+                  urllib.parse.quote(once, safe=""), urllib.parse.quote(urllib.parse.quote(once, safe=""), safe=""),
+                  base.swapcase()}
     return sorted(forms)
+
+
+def _normalized(text):
+    """<text> as the fail-closed layer reads it: URL-decoded until it stops changing, escaped slashes and backslashes
+    read as `/`, case-folded."""
+    import urllib.parse
+    for _ in range(6):
+        decoded = urllib.parse.unquote(text)
+        if decoded == text:
+            break
+        text = decoded
+    return text.replace("\\\\/", "/").replace("\\/", "/").replace("\\\\", "/").casefold()
+
+
+BONJOUR = ("Mariox-Studio", "Studio de Mariox")
 
 
 def _an_account(tmp_path, monkeypatch, host=HOST):
@@ -99,6 +120,11 @@ def _an_account(tmp_path, monkeypatch, host=HOST):
     monkeypatch.setattr(importlib.import_module("socket"), "gethostname", lambda: host)
     monkeypatch.setattr(importlib.import_module("platform"), "node", lambda: host)
     monkeypatch.setattr(importlib.import_module("getpass"), "getuser", lambda: "mariox")
+    import plistlib
+    preferences = tmp_path / "preferences.plist"
+    preferences.write_bytes(plistlib.dumps({"System": {"Network": {"HostNames": {"LocalHostName": BONJOUR[0]}},
+                                                       "System": {"ComputerName": BONJOUR[1]}}}))
+    monkeypatch.setattr(importlib.import_module("veri.run_records"), "PREFERENCES", str(preferences), raising=False)
     return home, run, temp
 
 
@@ -108,7 +134,8 @@ def test_no_carried_byte_holds_a_path_the_account_name_or_a_host_form_in_any_spe
     import re
     home, run, temp = _an_account(tmp_path, monkeypatch)
     sensitive = (_spellings(str(home)) + _spellings(str(run)) + _spellings(str(temp))
-                 + ["mariox", "MARIOX", HOST, "MacBook-Pro-de-Mariox", "MacBook Pro de Mariox", "macbook-pro-de-mariox.local"])
+                 + ["mariox", "MARIOX", HOST, "MacBook-Pro-de-Mariox", "MacBook Pro de Mariox", "macbook-pro-de-mariox.local",
+                    "%2Fmariox", "%2fMARIOX", "%252Fmariox", "/x/mariox%2F", *BONJOUR, "mariox-studio.local"])
     pick = random.Random(4079)
 
     def mixed():
@@ -123,13 +150,52 @@ def test_no_carried_byte_holds_a_path_the_account_name_or_a_host_form_in_any_spe
 
     carried = run_records.records(str(run), "7")["events.jsonl"].decode()
 
-    paths = _spellings(str(home)) + _spellings(str(temp))
-    leaked = sorted({form for form in paths if form in carried})
-    words = [w for w in ("mariox", "MacBook-Pro-de-Mariox", "MacBook Pro de Mariox", "mariox.local")
-             if re.search(r"(?<![A-Za-z0-9])%s(?![A-Za-z0-9])" % re.escape(w), carried, re.I)]
+    seen = _normalized(carried)
+    paths = [_normalized(p) for p in (str(home), str(temp), str(run))]
+    leaked = sorted({p for p in paths if re.search(re.escape(p) + r"(?![a-z0-9_-])", seen)})
+    words = [w for w in ("mariox", "macbook-pro-de-mariox", "macbook pro de mariox", *[b.casefold() for b in BONJOUR])
+             if re.search(r"(?<![a-z0-9<])%s(?![a-z0-9>])" % re.escape(w), seen)]
     parsed = [json.loads(line) for line in carried.splitlines()]
     assert (leaked, words, len(parsed), all({"issue", "event", "cmd", "detail", "tail"} <= set(p) for p in parsed)) == (
         [], [], 60, True)
+
+
+def test_another_users_path_and_paths_that_only_contain_tmp_are_left_alone(tmp_path, monkeypatch, run_records):
+    home, run, temp = _an_account(tmp_path, monkeypatch)
+    others = ["%s2/x" % home, "/tmpfoo/y", "/usr/tmp/z", "%s_old" % home]
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps({"issue": "7", "event": "note", "paths": others}) + "\n")
+
+    carried = json.loads(run_records.records(str(run), "7")["events.jsonl"])
+
+    assert carried["paths"][1:3] == ["/tmpfoo/y", "/usr/tmp/z"] and carried["paths"][0].endswith("mariox2/x") \
+        and not carried["paths"][0].startswith("~")
+
+
+def test_a_value_only_the_fail_closed_layer_catches_is_replaced_whole_while_its_siblings_survive(tmp_path, monkeypatch,
+                                                                                               run_records):
+    home, run, temp = _an_account(tmp_path, monkeypatch)
+    hidden = "see %25252F" + "mariox" + " there"
+    line = {"issue": "7", "event": "note", "a": hidden, "b": "plain words", "c": 3, hidden: "keyed", "<redacted>": "kept"}
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps(line) + "\n")
+
+    carried = json.loads(run_records.records(str(run), "7")["events.jsonl"])
+
+    assert carried == {"issue": "7", "event": "note", "a": "<redacted>", "b": "plain words", "c": 3,
+                       "<redacted-2>": "keyed", "<redacted>": "kept"}
+
+
+def test_redacting_twice_equals_redacting_once_even_for_an_account_named_user_on_a_host_named_host(tmp_path, monkeypatch,
+                                                                                                    run_records):
+    home, run, temp = _an_account(tmp_path, monkeypatch, host="host")
+    monkeypatch.setattr(importlib.import_module("getpass"), "getuser", lambda: "user")
+    line = {"issue": "7", "event": "note", "who": "user on host in %s/x and %s" % (home, temp), "user": "host"}
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps(line) + "\n")
+    once = run_records.records(str(run), "7")["events.jsonl"]
+    (run / ".tdd" / "events.jsonl").write_bytes(once)
+
+    twice = run_records.records(str(run), "7")["events.jsonl"]
+
+    assert (twice, b"<<" in once) == (once, False)
 
 
 def test_an_ip_form_host_is_never_split_so_metrics_over_the_carried_records_equals_metrics_over_the_originals(
