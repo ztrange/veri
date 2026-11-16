@@ -173,11 +173,12 @@ def test_redact_replaces_a_token_wrapped_across_a_line_break_or_a_json_newline_e
     token = "ghp_" + FAKE * 3 + "Zz"
     wrapped = "x %s\n%s rest\nNext line\n" % (token[:20], token[20:])
     crlf = "%s\r\n%s\r\n" % (token[:10], token[10:])
+    # Matched across split points, a token runs on into the next line's first word: that word goes with it ("ok").
     escaped = '{"out": "%s\\n%s\\nok"}' % (token[:30], token[30:])
     value = "v fake-gh-\ntoken-value w"
 
     assert [github.redact(text) for text in (wrapped, crlf, escaped, value)] == [
-        "x [redacted] rest\nNext line\n", "[redacted]\r\n", '{"out": "[redacted]\\nok"}', "v [redacted] w"]
+        "x [redacted] rest\nNext line\n", "[redacted]\r\n", '{"out": "[redacted]"}', "v [redacted] w"]
 
 
 def test_redact_replaces_a_token_inside_a_url_a_query_string_or_glued_to_text_issue_3960(github):

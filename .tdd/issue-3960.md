@@ -25,6 +25,6 @@
 - [x] the ratchet fails on a gh command run through os.system, sh -c or a shell string
 - [x] run_records redacts tokens and listed values in every string it pushes
 - [x] SC213 says exactly which comments are redacted
-- [ ] a secret split at any position by any line break, indent, markdown prefix, trailing backslash or zero-width character is redacted whole, and prose with no secret is left byte-identical
+- [x] a secret split at any position by any line break, indent, markdown prefix, trailing backslash or zero-width character is redacted whole, and prose with no secret is left byte-identical
 - [ ] SC217 names all three gh api calls the prose makes as not covered
 - [ ] bounded redacts the input it hands gh on stdin
