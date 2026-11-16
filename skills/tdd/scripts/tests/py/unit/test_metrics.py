@@ -352,6 +352,20 @@ def test_4013_the_models_requested_line_reads_veri_effort_verifier_off_the_verif
         "VERI_EFFORT_VERIFIER unset", "VERI_EFFORT_VERIFIER low", "VERI_EFFORT_VERIFIER low,max"]
 
 
+def test_4013_a_launch_event_whose_effort_is_not_a_string_is_skipped_and_the_models_requested_line_still_printed(
+        tmp_path, monkeypatch, capsys, metrics):
+    usage = {"event": "usage", "step": "1", "phase": "green", "attempt": "1", "actor": "verifier", "model": "sonnet"}
+    launch = {"event": "launch", "step": "1", "phase": "green", "attempt": "1", "actor": "verifier",
+              "name": "verify-green", "cmd": "x", "model": "sonnet"}
+    write_log(tmp_path, ONE_STEP + [dict(launch, effort=5), dict(launch, attempt="2", effort=["low"]),
+                                    dict(launch, attempt="3", effort="max"), usage])
+    monkeypatch.chdir(tmp_path)
+
+    line = next(line for line in render(metrics, capsys).splitlines() if line.startswith("Models requested: "))
+
+    assert line[len("Models requested: "):line.index(";")].split(", ")[-1] == "VERI_EFFORT_VERIFIER max"
+
+
 def test_a_revise_mark_with_no_budget_prints_a_question_mark_for_it(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP + [{"event": "launch", "step": "1", "phase": "red", "attempt": "1"},
                                     {"event": "launch", "step": "2", "phase": "red", "attempt": "1"},
