@@ -5,3 +5,7 @@ description: >-
 ---
 
 # voutage — hold merges through a GitHub outage
+
+`$S` is `skills/tdd/scripts/`, reached from this skill's base directory as `../tdd/scripts/`.
+
+On a failed merge, run `$S/github-status.sh`.
