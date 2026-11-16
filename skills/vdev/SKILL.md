@@ -1,7 +1,7 @@
 ---
 name: vdev
 description: >-
-  The veri dev session, reached by name: `/vdev [<lane>] [N] [--resume <file>]`, or `/vdev`.
+  The veri dev session, reached by name: `/vdev [<lane>] [N] [--resume <file>]` (`--resume` in a terminal only), or `/vdev`.
 ---
 
 # vdev — the dev session
@@ -34,9 +34,11 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
   instructions.
 - **Merging is always granted** for the runs this session finishes, in the project repo only.
   A run is merged after its review is OK; never one in another repo.
-- **`--resume <file>`** reads a handoff for state only (live conductors, PRs
-  awaiting merge, N and any timed change, overrides and permissions with their expiry); the
-  rules are this skill's. Re-read that state live before the first slot decision.
+- **`--resume <file>`** is read only in a session without the app's `start_session` tool (a
+  terminal). There it reads a handoff for state only (live conductors, PRs awaiting merge, N and
+  any timed change, overrides and permissions with their expiry); the rules are this skill's.
+  Re-read that state live before the first slot decision. In a session with that tool, read no
+  handoff file, even when one is named: recover from the role state file as *Recovery* says.
 
 **Recovery.** When a state file for this role and lane exists, recover: read it through
 `$S/status.sh --recover dev [--lane <lane>]` and read nothing else before your first slot
@@ -268,8 +270,10 @@ the job, briefed to return at most 10 lines and to read the skill at
 - A reviewer that pushes any fix does not merge: it reports and stops, and the fix is reviewed
   afresh before the merge.
 
-Load `vhandoff` yourself, by reading `<resolved base dir>/../vhandoff/SKILL.md`, and `voutage`
-likewise, at `<resolved base dir>/../voutage/SKILL.md`: it holds the session's own merge state.
+Only in a session without the app's `start_session` tool (a terminal), load `vhandoff` yourself,
+by reading `<resolved base dir>/../vhandoff/SKILL.md`; in a session with it, load no `vhandoff`.
+Load `voutage` yourself, at `<resolved base dir>/../voutage/SKILL.md`: it holds the session's own
+merge state.
 
 Your own reset is governed by *Resetting*, not by a context threshold you judge yourself.
 

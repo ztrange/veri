@@ -18,9 +18,10 @@ committed ledger (`.tdd/wt/<n>/.tdd/issue-<n>.md`), the run's `.tdd/` files, the
 before a context reset, is not an input. If you catch yourself deciding from memory, re-read
 first.
 
-**A handoff carries state, never rules (P2).** A handoff file says what is running, parked,
-waiting and pending, and with what permissions. It never copies a rule out of a skill; on
-resume the rules come from re-reading the skill and this file.
+**Saved state carries state, never rules (P2).** The role state file
+(`.tdd/role-<role>.state`), and in a terminal a handoff file, say what is running, parked,
+waiting and pending, and with what permissions. Neither copies a rule out of a skill; on
+recovery or resume the rules come from re-reading the skill and this file.
 
 **Wait in a blocking script, never on a timer (P3).** Any wait — for a conductor to exit, a
 merge to land, CI to finish — is a script that blocks until something actionable happens and
@@ -73,8 +74,8 @@ stopped. The next conductor that exits is simply not replaced, until the count i
 **Launch in the selection layer's order (P9).** The next issue launched is the first line of
 `$S/solvable-issues.sh` that has no live conductor (no `.tdd/wt/<n>/.tdd/conductor.pid`
 whose pid answers `kill -0`). Any other order is an override: it is explicit, it names who
-asked for it, and it is written down where the next reader of state finds it — the handoff,
-and the one line you tell the human.
+asked for it, and it is written down in the role state file, which every reset reads, never in
+a handoff — and in the one line you tell the human.
 
 **A silent exit is checked before it is a bail (P10).** A conductor that exits with no closing
 comment on its issue (neither ✅ Done nor a bail) is first checked for a usage limit — a 429 or
