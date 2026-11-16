@@ -463,3 +463,260 @@ def test_check_earlier_exits_1_naming_the_case_and_its_step_when_only_the_record
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
 
     assert (code, out) == (1, "test_decorated_2177 (%s)\n" % earlier)
+
+
+def test_check_earlier_exits_0_printing_nothing_when_a_later_step_appends_a_decorated_case_after_an_earlier_recorded_one_2177(
+        tmp_path, run_cli, tests_frozen, based):
+    earlier, current = "step one adds a case", "step two adds a decorated case"
+    recorded = OLDER + "\n\ndef test_first_2177():\n    assert 1 == 2\n"
+    (tmp_path / SUITE).write_text(recorded)
+    run_cli(tests_frozen, ["record", "--step", earlier, SUITE], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / SUITE).write_text(
+        recorded + '\n\n@pytest.mark.process("a real process")\n@pytest.mark.timeout(60)\n'
+        "def test_second_2177():\n    assert True\n")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+def test_check_earlier_exit_0_writes_a_pass_marker_under_tdd_naming_the_step_and_the_head_it_checked_2206(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    (tmp_path / "a.txt").write_text("one\n")
+    repo = fed_commits()
+    repo.add("a.txt")
+    repo.commit("first")
+    head = repo.head
+    step = "add the second case"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=tmp_path)
+
+    markers = [path for path in (tmp_path / ".tdd").rglob("*")
+               if path.is_file() and step in path.read_text() and head in path.read_text()]
+    assert (code, out, len(markers)) == (0, "", 1)
+
+
+def test_check_earlier_exit_1_removes_the_pass_marker_of_that_step_and_leaves_another_steps_marker_2206(
+        tmp_path, run_cli, tests_frozen, based):
+    earlier, current, other = "step one adds a case", "step two adds another", "step three adds more"
+    (tmp_path / SUITE).write_text(OLDER + "\n\ndef test_pinned_2206():\n    assert 1 == 2\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, SUITE], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n- [ ] %s\n" % (earlier, current, other))
+    passes = [run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=tmp_path)[0]
+              for step in (current, other)]
+    (tmp_path / SUITE).write_text(OLDER + "\n\ndef test_pinned_2206():\n    assert True\n")
+
+    code, _, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    kept = [path.read_text() for path in (tmp_path / ".tdd").rglob("*")
+            if path.is_file() and "head: " in path.read_text()]
+    assert (passes, code, [("step: %s\n" % current in text, "step: %s\n" % other in text) for text in kept]) == (
+        [0, 0], 1, [(False, True)])
+
+
+def test_check_earlier_exit_2_for_an_unreadable_ledger_removes_the_pass_marker_of_that_step_and_leaves_another_steps_marker_2206(
+        tmp_path, run_cli, tests_frozen, based):
+    current, other = "step two adds another", "step three adds more"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n- [ ] %s\n" % (current, other))
+    passes = [run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=tmp_path)[0]
+              for step in (current, other)]
+
+    code, _, _ = run_cli(tests_frozen, ["check-earlier", str(tmp_path / "missing.md"), "--step", current],
+                         cwd=tmp_path)
+
+    kept = [path.read_text() for path in (tmp_path / ".tdd").rglob("*")
+            if path.is_file() and "head: " in path.read_text()]
+    assert (passes, code, [("step: %s\n" % current in text, "step: %s\n" % other in text) for text in kept]) == (
+        [0, 0], 2, [(False, True)])
+
+
+def test_check_earlier_exit_2_outside_any_git_repository_removes_the_pass_marker_of_that_step_2206(
+        tmp_path, run_cli, tests_frozen, fed_commits, monkeypatch):
+    repo, plain = tmp_path / "repo", tmp_path / "plain"
+    (repo / ".tdd").mkdir(parents=True)
+    (plain / ".tdd").mkdir(parents=True)
+    (repo / "a.txt").write_text("one\n")
+    log = fed_commits(root=repo)
+    log.add("a.txt")
+    log.commit("first")
+    step = "add the second case"
+    ledger = repo / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+    passed = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=repo)[0]
+    for marker in (repo / ".tdd").glob("check-earlier-*.pass"):
+        (plain / ".tdd" / marker.name).write_text(marker.read_text())
+    # Outside a repository `git rev-parse --show-toplevel` fails, and case_history.toplevel answers None.
+    monkeypatch.setattr(importlib.import_module("case_history"), "toplevel", lambda: None)
+
+    code, _, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=plain)
+
+    assert (passed, code, list((plain / ".tdd").glob("check-earlier-*.pass"))) == (0, 2, [])
+
+
+def test_a_changed_frozen_case_of_a_step_not_diff_checked_is_not_rerecorded_and_check_earlier_names_it_2199(
+        tmp_path, run_cli, tests_frozen, based):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    earlier, edit, later = "step one adds a case", "step two edits it", "step three adds another"
+    (tmp_path / SUITE).write_text(OLDER + "\n\ndef test_pinned_2199():\n    assert 1 == 2\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, SUITE], cwd=tmp_path)
+    based.add("tests")
+    based.commit("red")
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n- [ ] %s\n" % (earlier, edit, later))
+    (tmp_path / SUITE).write_text(OLDER + "\n\ndef test_pinned_2199():\n    assert 2 == 2\n")
+
+    ticked = run_cli(tick_ledger, [str(ledger), "step two"], cwd=tmp_path)[0]
+    rerecorded = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
+
+    assert (ticked, rerecorded, code, "test_pinned_2199 (%s)" % earlier in out) == (0, 3, 1, True)
+
+
+# The plan repository of the rerecord-refactored cases: ledger .tdd/issue-9.md (VERI_ISSUE=9) over STEPS.
+STEPS = ["step Z adds an early case", "step A adds the cases", "step B adds a later case"]
+CASE = "def test_%s():\n    assert %d\n"
+BODY = "def test_%s():\n    x = %d\n    assert x\n"
+ROOT_SUITE = "test_suite.py"
+GO_SUITE = "suite_test.go"
+PLAN_LEDGER = ".tdd/issue-9.md"
+
+
+def _skip_lines(err, what):
+    return sum(1 for l in err.splitlines() if l == "skipped: " + what or l.startswith("skipped: " + what + " ("))
+
+
+def _ledger(root, **state):
+    """The ledger in its real shapes: open, pending (ticked, ledger.PENDING_MARK appended) and done."""
+    marks = {"open": "- [ ] %s", "pending": "- [x] %s ⟂ refactor pending", "done": "- [x] %s"}
+    (root / PLAN_LEDGER).write_text("".join(
+        marks[state.get(name, "open")] % text + "\n" for name, text in zip("ZAB", STEPS)))
+
+
+def _plan_repo(root, monkeypatch, fed_commits):
+    """root holding test_suite.py and the ledgers of issues 9 and 8, committed as "plan"; returns the fed_commits log."""
+    monkeypatch.setenv("VERI_ISSUE", "9")
+    (root / ".tdd").mkdir()
+    (root / ROOT_SUITE).write_text(CASE % ("base", 0))
+    _ledger(root)
+    (root / ".tdd/issue-8.md").write_text("- [x] %s\n" % STEPS[1])
+    repo = fed_commits(root=root)
+    repo.add(ROOT_SUITE, PLAN_LEDGER, ".tdd/issue-8.md")
+    repo.commit("plan")
+    return repo
+
+
+def test_check_earlier_exits_1_for_a_go_case_after_a_refactor_deletes_a_call_line_to_an_assert_named_library_function_2898(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    step = STEPS[1]
+    suite = tmp_path / GO_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    inline = ('func TestOne(t *testing.T) {\n\tx := 1\n\tassertEqual(t, x, 1)\n'
+              '\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n}\n')
+    dropped = 'func TestOne(t *testing.T) {\n\tx := 1\n\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n}\n'
+    suite.write_text(inline)
+    repo.add(GO_SUITE)
+    run_cli(tests_frozen, ["record", "--step", step, GO_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    repo.commit("A green", all=True)
+    green = repo.head
+    suite.write_text(dropped)
+    repo.commit("A refactor", all=True)
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+
+    run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[0]
+
+    assert checked == 1
+
+
+def test_check_earlier_exits_0_for_a_format_2_go_record_cut_with_the_body_running_past_the_closing_brace_2863(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    step = STEPS[1]
+    suite = tmp_path / GO_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    text = ('func TestOne(t *testing.T) {\n\tx := 1\n\tcheck(t, x)\n}\n\n'
+            'func check(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n}\n')
+    suite.write_text(text)
+    repo.add(GO_SUITE)
+    run_cli(tests_frozen, ["record", "--step", step, GO_SUITE], cwd=tmp_path)
+    record = tmp_path / run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
+    old_digest = hashlib.sha256(text.rstrip().encode()).hexdigest()
+    record.write_text("".join(
+        "body: %s\tTestOne\t%s\n" % (GO_SUITE, old_digest) if line.startswith("body: ") else line
+        for line in record.read_text().splitlines(keepends=True)))
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    repo.commit("A green", all=True)
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+def test_check_earlier_names_a_case_changed_in_a_refactor_commit_as_stale_against_a_verified_refactor_not_as_edited_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, ROOT_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    repo.commit("A green", all=True)
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    repo.commit("refactor: tidy the cases of step A", all=True)
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)
+
+    assert (code, out.startswith("test_one (%s)" % step), "stale" in out, "edited" in out) == (1, True, True, False)
+
+
+def test_check_earlier_names_a_case_deleted_from_the_tree_after_a_refactor_commit_as_removed_not_as_stale_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, ROOT_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    repo.commit("A green", all=True)
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    repo.commit("refactor: tidy the cases of step A", all=True)
+    suite.write_text(CASE % ("base", 0))
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)
+
+    assert (code, out) == (1, "test_one (%s)\n" % step)
+
+
+def test_check_earlier_exits_1_when_the_case_body_is_edited_after_a_successful_re_record_into_assert_refused_with_no_second_re_record_2898(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    step = STEPS[1]
+    suite = tmp_path / GO_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    chk = lambda m: '\tif v != "x" {\n\t\tt.Fatal("%s")\n\t}\n' % m
+    inline = 'func TestOne(t *testing.T) {\n\tv := "x"\n' + chk("a") + chk("b") + '}\n'
+    helper = 'func assertRefused(t *testing.T, v string) {\n' + chk("a") + chk("b") + '}\n\n'
+    suite.write_text(inline)
+    repo.add(GO_SUITE)
+    run_cli(tests_frozen, ["record", "--step", step, GO_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    repo.commit("A green", all=True)
+    green = repo.head
+    suite.write_text(helper + 'func TestOne(t *testing.T) {\n\tv := "x"\n\tassertRefused(t, "x")\n}\n')
+    repo.commit("A refactor", all=True)
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    first = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    suite.write_text(helper + 'func TestOne(t *testing.T) {\n\tv := "y"\n\tassertRefused(t, "x")\n}\n')
+    repo.commit("A later edit to the case body", all=True)
+
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[0]
+
+    assert (first[0], _skip_lines(first[2], "suite_test.go TestOne"), checked) == (0, 0, 1)
