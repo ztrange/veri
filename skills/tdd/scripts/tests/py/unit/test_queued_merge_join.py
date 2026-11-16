@@ -336,7 +336,9 @@ def test_a_pull_request_already_merged_is_exit_3_and_one_closed_unmerged_exit_2_
 
 def test_a_run_branch_delete_refused_under_its_lease_is_exit_2_naming_it_the_stack_left_as_pushed(
         tmp_path, fake_processes, monkeypatch, run_cli):
-    world = World(tmp_path, extra={"git -C <wt> push origin --delete": (1, "", " ! [rejected] (stale info)\n")}).install(
+    world = World(tmp_path, extra={"git -C <wt> push origin --delete tdd/7-slug": (1, "", " ! [rejected] (stale info)\n"),
+                                   "git -C <wt> ls-remote --heads origin refs/heads/tdd/7-slug":
+                                       (0, "9999999\trefs/heads/tdd/7-slug\n", "")}).install(
         fake_processes, monkeypatch)
 
     code, _, err = join(run_cli, world)
@@ -427,3 +429,19 @@ def test_the_patch_check_compares_the_rebased_tip_with_the_pre_rebase_tip(tmp_pa
     code, _, err = join(run_cli, world)
 
     assert (code, [c.split(" ", 3)[3] for c in world.calls if " cherry " in c]) == (0, ["cherry %s %s" % (REBASED, ORIGIN_SHA)]), err
+
+
+GONE = (1, "", "error: unable to delete 'tdd/7-slug': remote ref does not exist\n")
+
+
+@pytest.mark.parametrize("listed, expected", [((0, "", ""), 0), ((0, "9999999\trefs/heads/tdd/7-slug\n", ""), 2),
+                                              ((128, "", "fatal: unreachable\n"), 2)])
+def test_a_run_branch_origin_already_lacks_counts_as_deleted_and_one_still_there_is_exit_2(
+        tmp_path, fake_processes, monkeypatch, run_cli, listed, expected):
+    world = World(tmp_path, extra={"git -C <wt> push origin --delete tdd/7-slug": GONE,
+                                   "git -C <wt> ls-remote --heads origin refs/heads/tdd/7-slug": listed}).install(
+        fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, ("branch delete" in err) == (expected == 2)) == (expected, True), err

@@ -79,6 +79,8 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
             return 0, (PUSHED_HEAD if state["rebased"] else "0000000") + "\n", ""
         if "--git-common-dir" in line:
             return 0, "/main/.git\n", ""
+        if "ls-remote --heads origin refs/heads/feature" in line:
+            return 0, "9999999\trefs/heads/feature\n", ""  # origin still holds the branch unless a case says otherwise
         if line == "git -C /wt rev-parse --verify refs/tags/v0.11":
             return 0, TAG_OID + "\n", ""
         if "tag --sort=-v:refname" in line:
@@ -1670,3 +1672,23 @@ def test_the_merge_paths_branch_delete_is_leased_to_the_head_it_pushed_so_a_late
 
     deletes = [c for c in calls if c.startswith("git -C /wt push origin --delete feature")]
     assert (code, deletes) == (0, ["git -C /wt push origin --delete feature --force-with-lease=feature:%s" % PUSHED_HEAD])
+
+
+@pytest.mark.parametrize("listed, expected", [((0, "", ""), 0), ((0, "9999999\trefs/heads/feature\n", ""), 2)])
+def test_the_merge_paths_branch_origin_already_deleted_counts_as_deleted_and_one_still_there_is_exit_2(
+        fake_processes, run_cli, listed, expected):
+    gone = (1, "", "error: unable to delete 'feature': remote ref does not exist\n")
+
+    def world(answer):
+        def answering(line, **kwargs):
+            if "push origin --delete feature" in line:
+                return gone
+            if "ls-remote --heads origin refs/heads/feature" in line:
+                return listed
+            return answer(line, **kwargs)
+        return fake_processes(answering)
+
+    scenario(world)
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    assert (code, ("branch delete" in err) == (expected == 2)) == (expected, True), err
