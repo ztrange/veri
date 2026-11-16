@@ -30,6 +30,7 @@ class Page:
         self.at = NOW
         self.read_at = []
         self.sleeps = []
+        self.real_fetch = self.module.fetch
         monkeypatch.setattr(self.module, "fetch", self.fetch)
         monkeypatch.setattr(self.module, "now", lambda: self.at)
         monkeypatch.setattr(self.module, "local_zone", lambda: CST)
@@ -52,7 +53,7 @@ class Page:
         self.answers.append((status, body, error))
         return self
 
-    def fetch(self, url, timeout):
+    def fetch(self, url, timeout, deadline=None):
         self.calls.append((url, timeout))
         self.read_at.append(self.at)
         status, body, error = self.answers[min(len(self.calls), len(self.answers)) - 1]
@@ -191,7 +192,7 @@ def test_the_real_fetch_answers_an_http_error_status_rather_than_raising_it(monk
     monkeypatch.setattr(urllib.request, "urlopen", refused)
     module = importlib.import_module("veri.github_status")
 
-    assert module.fetch("https://status.example/feed", 3) == (503, b"")
+    assert module.fetch("https://status.example/feed", 3, float("inf")) == (503, b"")
 
 
 def test_wait_whose_reads_find_a_counting_incident_then_none_exits_0_after_the_read_that_found_none_sleeping_the_poll_between(
@@ -480,3 +481,47 @@ def test_an_undecodable_answer_is_named_as_one_and_not_by_its_reason_attribute(p
     assert (code, out) == (2, "")
     assert "cannot be decoded" in err
     assert "str:" not in err
+
+
+class Dripping:
+    """A response from a server that sends one byte a second on the page's monotonic clock: it never stops, so only
+    a deadline on the whole read ends it."""
+
+    status = 200
+
+    def __init__(self, page):
+        self.page = page
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def read(self, amount=-1):
+        amount = 1024 * 1024 * 8 if amount is None or amount < 0 else amount
+        self.page.mono += amount
+        return b" " * amount
+
+    def read1(self, amount=-1):
+        self.page.mono += 1
+        return b" "
+
+
+@pytest.mark.parametrize("argv, env, bound", [
+    ([], {"VERI_GITHUB_STATUS_TIMEOUT": "5"}, 5),
+    (["wait", "3"], {}, 3),
+], ids=["one-shot-timeout", "wait-deadline"])
+def test_a_dripping_server_is_cut_off_at_the_reads_deadline_on_the_monotonic_clock(
+        page, run_cli, monkeypatch, argv, env, bound):
+    import urllib.request
+
+    monkeypatch.setattr(page.module, "fetch", page.real_fetch)
+    monkeypatch.setattr(urllib.request, "urlopen", lambda url, timeout: Dripping(page))
+    start = page.mono
+
+    code, out, err = run_cli(page.module, argv, env=env)
+
+    assert (code, out) == (2, "")
+    assert "no complete answer" in err
+    assert page.mono - start <= bound
