@@ -1,4 +1,5 @@
 """In-process cases for veri/coverage_blocker.py, the module coverage-blocker.sh is a shim over."""
+import builtins
 import importlib
 import json
 import os
@@ -655,3 +656,28 @@ def test_main_3943_exits_2_files_and_edits_no_issue_and_names_the_report_on_stde
     code, writes, out, err = _run_answering_every_gh_call(fake_processes, coverage_blocker, capsys)
 
     assert (code, writes, out, ".tdd/develop-cover.out" in err) == (2, [], "", True)
+
+
+def test_main_3943_exits_2_files_and_edits_no_issue_and_names_the_report_on_stderr_when_the_cover_report_is_a_directory_or_mode_000(
+        tmp_path, monkeypatch, capsys, coverage_blocker, fake_processes):
+    real_open = builtins.open
+    denied = set()
+
+    def mode_000_open(file, *args, **kwargs):
+        """A file of mode 000 as a non-root reader meets it: open answers EACCES (chmod 000 is no proof, since uid 0 ignores it)."""
+        if os.path.realpath(file) in denied:
+            raise PermissionError(13, "Permission denied", os.fspath(file))
+        return real_open(file, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", mode_000_open)
+    seen = {}
+    for name, make_unreadable in (("directory", lambda path: path.mkdir()),
+                                  ("mode-000", lambda path: (path.write_text("COVERED: no\n"), denied.add(os.path.realpath(path))))):
+        cwd = tmp_path / name
+        (cwd / ".tdd").mkdir(parents=True)
+        make_unreadable(cwd / ".tdd" / "develop-cover.out")
+        monkeypatch.chdir(cwd)
+        code, writes, out, err = _run_answering_every_gh_call(fake_processes, coverage_blocker, capsys)
+        seen[name] = (code, writes, out, ".tdd/develop-cover.out" in err)
+
+    assert seen == {"directory": (2, [], "", True), "mode-000": (2, [], "", True)}
