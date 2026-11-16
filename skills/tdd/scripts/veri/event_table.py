@@ -1,75 +1,97 @@
 """Every event veri emits and the keys it carries: the one table the journal page, the writers and the fixture are checked against.
 
-`EVENTS` maps an event name to its keys, space-separated, in the order the emitter gives them; a key ending in `?` is
-optional, every other key is required. Adding an event or a key is one line: the event's entry. The keys every line
-carries from the run context (`COMMON`) are in no entry. It imports no veri module, so it can be read alone.
+`EVENTS` maps an event name to its keys, space-separated, in the order the emitter gives them. Each key is written
+`name:format`: a name ending in `?` is optional, every other key is required. The format is one of `FORMATS` or a list
+of values in parentheses, `(a|b|c)`; `,empty` after it marks the empty string valid too, and a key without it is
+invalid when empty, whatever its format. Adding an event or a key is one line: the event's entry. The keys every line
+carries from the run context (`COMMON`) are in no entry; `CONTEXT` declares the formats of its string keys, `ts` and
+`awake` being numbers. It imports no veri module, so it can be read alone.
 
 Interface:
   keys(event)       the event's keys in order, () for an event with none; KeyError for an event the table does not hold
   required(event)   the subset of those keys every line of the event carries
-  declaring(event, key)  the `EVENTS` line to write so that the table declares `key` for `event` (no key: just the event)
+  format(event, key)  (format, empty allowed) for a key of `event`, or of the run context (event None or not declaring it);
+                      the format is a `FORMATS` name, a tuple of values, or None when the key has none
+  declaring(event, key)  the `EVENTS` line to write so that the table declares `key` for `event` (no key: just the event;
+                         no event: the `CONTEXT` line)
 """
-
 COMMON = ("ts", "awake", "issue", "actor", "phase", "step", "event", "attempt", "skill_commit")
+# whole: decimal digits only; decimal: digits with at most one `.`; url: starts https:// or http://;
+# sha: 7 to 40 lowercase hex digits; json: parses as JSON; text: any string.
+FORMATS = ("whole", "decimal", "url", "sha", "json", "text")
+CONTEXT = ("issue:whole,empty actor:text,empty phase:text,empty step:text,empty event:text attempt:whole,empty"
+           " skill_commit:sha,empty")
 
 EVENTS = {
-    "adjudicated": "cause outcome reason",
-    "already-holds-step": "step reason",
-    "bail": "cause classification? suites? failed?",
-    "comment": "kind url",
-    "conductor-restart": "growth knob",
-    "conductor-start": "pid started",
-    "criterion-unticked": "matcher",
-    "diff-leaf-deviation": "leaf base head commits",
-    "done": "pr wall_seconds? awake_seconds? lane?",
-    "exit": "status cause? secs",
-    "grading": "unit verdict failing cost_usd id effort",
-    "launch": "name cmd model",
-    "launch-refused": "name reason",
-    "merged": "pr tag message",
-    "mutation-record-restored": "name file",
+    "adjudicated": "cause:(ci-timeout|ci-conflict|pr-ready-failed|report-missing) outcome:(retry|route|bail|unparsed)"
+                   " reason:text,empty",
+    "already-holds-step": "step:text reason:text",
+    "bail": "cause:(killed-stuck|killed-external|report-missing|no-verdict|reconcile-failed|ci-timeout|ci-conflict"
+            "|step-add-refused|replaces-report-failed|criterion-unreadable|setup-failed|preflight-refused|pr-ready-failed"
+            "|revise-exhausted|revise-impossible|untestable-criterion|step-too-big|rebase-unresolved|uncovered|ci-red"
+            "|suite-red|rebased-tip-red|unreplaced-cases|needs-user|step-added-off-route|fixture-owed"
+            "|missing-reroutes-exhausted|repair-reroutes-exhausted|graded-edit-outside-skill-edit|unpinnable-missing"
+            "|repin-failed|skill-edit-refused|prep-owed) classification?:(process|system) suites?:text failed?:text",
+    "comment": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|verify-revised|plan|verify-plan"
+               "|resuming|done|bailed|stopped) url:url",
+    "conductor-restart": "growth:whole knob:whole",
+    "conductor-start": "pid:whole started:text,empty",
+    "criterion-unticked": "matcher:text",
+    "diff-leaf-deviation": "leaf:text base:sha head:sha commits:whole",
+    "done": "pr:url wall_seconds?:whole awake_seconds?:whole lane?:text",
+    "exit": "status:whole cause?:text secs:whole",
+    "grading": "unit:text verdict:(PASS|REJECT) failing:text,empty cost_usd:decimal id:text effort:text",
+    "launch": "name:text cmd:text model:text,empty",
+    "launch-refused": "name:text reason:text",
+    "merged": "pr:url tag:text,empty message:text,empty",
+    "mutation-record-restored": "name:text file:text",
     "pin": "",
-    "pin-retired": "reason",
-    "plan": "steps",
+    "pin-retired": "reason:text",
+    "plan": "steps:whole",
     "prediction-diverged": "",
-    "preflight-refused": "check cause classification detail?",
-    "production-file-restored": "name file",
-    "prose-owed-waived": "unit step",
-    "push-failed": "error attempts",
-    "push-rejected": "remote_sha error",
+    "preflight-refused": "check:text cause:(preflight-refused) classification:(system) detail?:text",
+    "production-file-restored": "name:text file:text",
+    "prose-owed-waived": "unit:text step:text",
+    "push-failed": "error:text,empty attempts:whole",
+    "push-rejected": "remote_sha:sha,empty error:text,empty",
     "rebase-refresh-retry": "",
-    "refactor": "transforms budget stopped pass",
-    "relaunch": "cause",
-    "report-missing": "name missing",
-    "reroute": "case? kind at?",
+    "refactor": "transforms:whole budget:whole"
+                " stopped:(nothing-left|budget|malformed|nothing-structural|structural-owed) pass:whole",
+    "relaunch": "cause:(tree-change|no-verdict)",
+    "report-missing": "name:text missing:(SUITE)",
+    "reroute": "case?:text kind:(red|repair|supersede|supersede-diff|fixture|missing|later|prep) at?:(exhausted)",
     "resume": "",
-    "resume-rebase": "from rebased",
-    "retry": "cause",
-    "revise": "budget",
-    "skill-edit-no-author": "unit",
-    "skill-repin": "commit",
-    "step-added": "anchor? added?",
+    "resume-rebase": "from:sha rebased:sha",
+    "retry": "cause:text",
+    "revise": "budget:whole",
+    "skill-edit-no-author": "unit:text",
+    "skill-repin": "commit:sha",
+    "step-added": "anchor?:text added?:whole",
     "step-done": "",
-    "step-escalated": "anchor at?",
-    "step-over-budget": "spent budget",
-    "step-split": "anchor added at?",
+    "step-escalated": "anchor:text at?:(over-budget)",
+    "step-over-budget": "spent:decimal budget:decimal",
+    "step-split": "anchor:text added:whole at?:(over-budget|exhausted)",
     "step-start": "",
-    "stop": "mode at",
-    "structural-pass": "transforms? budget? stopped",
-    "suite-flake": "at? files",
+    "stop": "mode:(at-ledger|at-leaf|now) at:(unplanned|planned|green|step-done|unsettled)",
+    "structural-pass": "transforms?:whole budget?:whole stopped:(candidates-done|budget-spent|nothing-structural)",
+    "suite-flake": "at?:(suite-repair|resume) files:text",
     "suite-repair-retired": "",
-    "test-run": "tier suites seconds status",
-    "tests-frozen-refused": "exit reason",
-    "unpinnable-missing": "step",
-    "unpinnable-step": "step reason",
-    "usage": "duration_ms duration_api_ms num_turns total_cost_usd input_tokens output_tokens cache_read_input_tokens cache_creation_input_tokens model model_usage? first_turn_cache_creation_input_tokens? first_turn_cache_read_input_tokens? first_turn_input_tokens?",
-    "verdict": "verdict reason cause?",
-    "verify-diff-skipped": "reason",
-    "verify-green-skipped": "reason",
-    "verify-pin-skipped": "reason",
-    "verify-red-skipped": "reason",
-    "verify-refactor-skipped": "reason",
+    "test-run": "tier:(fast|affected|all|target) suites:text,empty seconds:whole status:whole",
+    "tests-frozen-refused": "exit:(1|2) reason:text,empty",
+    "unpinnable-missing": "step:text",
+    "unpinnable-step": "step:text reason:text",
+    "usage": "duration_ms:whole duration_api_ms:whole num_turns:whole total_cost_usd:decimal input_tokens:whole"
+             " output_tokens:whole cache_read_input_tokens:whole cache_creation_input_tokens:whole model:text,empty"
+             " model_usage?:json first_turn_cache_creation_input_tokens?:whole first_turn_cache_read_input_tokens?:whole"
+             " first_turn_input_tokens?:whole",
+    "verdict": "verdict:(PASS|REJECT|malformed) reason:text,empty cause?:(no-verdict)",
+    "verify-diff-skipped": "reason:(switched-off)",
+    "verify-green-skipped": "reason:(switched-off)",
+    "verify-pin-skipped": "reason:(switched-off)",
+    "verify-red-skipped": "reason:(switched-off)",
+    "verify-refactor-skipped": "reason:(nothing-landed|switched-off)",
 }
+CONTEXT_KEYS = tuple(token.partition(":")[0] for token in CONTEXT.split())
 
 
 def _declared(event):
@@ -77,14 +99,34 @@ def _declared(event):
 
 
 def keys(event):
-    return tuple(key.rstrip("?") for key in _declared(event))
+    return tuple(token.partition(":")[0].rstrip("?") for token in _declared(event))
 
 
 def required(event):
-    return {key for key in _declared(event) if not key.endswith("?")}
+    return {token.partition(":")[0] for token in _declared(event) if not token.partition(":")[0].endswith("?")}
+
+
+def _parse(text):
+    empty = text.endswith(",empty")
+    form = text.removesuffix(",empty")
+    if form.startswith("(") and form.endswith(")"):
+        return tuple(form[1:-1].split("|")), empty
+    return form or None, empty
+
+
+def format(event, key):
+    """(format, empty allowed) of `key`: the event's own declaration, else the run context's; KeyError for neither."""
+    tokens = _declared(event) if event in EVENTS else []
+    for token in tokens + CONTEXT.split():
+        name, _, form = token.partition(":")
+        if name.rstrip("?") == key:
+            return _parse(form)
+    raise KeyError(key)
 
 
 def declaring(event, key):
     """The one `EVENTS` line that declares `key` (optional) for `event`, the event's line grown, or a new one."""
+    if event is None:
+        return f'CONTEXT = "{CONTEXT}"'
     declared = _declared(event) if event in EVENTS else []
-    return f'"{event}": "{" ".join(declared + [key + "?"] if key else declared)}",'
+    return f'"{event}": "{" ".join(declared + [key + "?:text"] if key else declared)}",'

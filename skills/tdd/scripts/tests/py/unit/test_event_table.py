@@ -52,6 +52,22 @@ def test_journal_md_lists_exactly_the_events_and_keys_the_table_declares():
     assert not drift, "skills/tdd/JOURNAL.md and veri/event_table.py differ:\n" + "\n".join(drift)
 
 
+def test_every_key_of_every_event_and_every_string_common_key_has_a_format_from_the_closed_set():
+    from veri import event_table
+
+    declared = [(event, key) for event in event_table.EVENTS for key in event_table.keys(event)]
+    declared += [(None, key) for key in event_table.CONTEXT_KEYS]
+    problems = []
+    for event, key in declared:
+        form = event_table.format(event, key)[0]
+        if not (form in event_table.FORMATS or (isinstance(form, tuple) and form)):
+            problems.append(f"event {event or '(every line)'} key {key}: format {form!r} is none of"
+                            f" {', '.join(event_table.FORMATS)} or a (value|…) list; give it one in the line"
+                            f"  {event_table.declaring(event, None)}")
+
+    assert not problems, "veri/event_table.py keys without a format from its closed set:\n" + "\n".join(problems)
+
+
 @pytest.mark.tree_audit("reads every .sh and .md file under skills/ for event.sh call sites")
 def test_every_literal_event_and_key_of_an_event_sh_call_under_skills_is_declared_in_the_table():
     from event_roster import event_sh_call_sites

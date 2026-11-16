@@ -46,7 +46,7 @@ def test_an_undeclared_key_or_event_is_reported_with_its_site_and_the_line_to_ad
 
     assert _report(gaps) == (
         "comment.py:2: event 'comment' key 'colour' is not in veri/event_table.py; declare it with the line"
-        '  "comment": "kind url colour?",\n'
+        '  "comment": "%s colour?:text",\n' % event_table.EVENTS["comment"] +
         "x.py:3: event 'no-such-event' is not in veri/event_table.py; declare it with the line  \"no-such-event\": \"\",")
 
 
