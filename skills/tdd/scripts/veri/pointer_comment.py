@@ -2,7 +2,6 @@
 place otherwise, saying where the issue's run is."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import datetime
-import subprocess
 import sys
 
 import entry
@@ -16,6 +15,7 @@ import tunables
 HEADING = "### 📍 Run state"
 USAGE = "usage: pointer-comment.sh <issue-number>"
 LAST_PUSH = "Last push: "
+UNNAMED = "unnamed machine"  # shown for an unset or empty VERI_MACHINE_NAME; not a default of the knob
 
 
 def branch():
@@ -59,15 +59,9 @@ def last_push(previous):
 
 
 def machine():
-    """VERI_MACHINE_NAME, or what `hostname -s` prints when that is unset or empty."""
+    """VERI_MACHINE_NAME, or `unnamed machine` when that is unset or empty: the host name is never published."""
     named = tunables.get("VERI_MACHINE_NAME")
-    if named:
-        return named
-    try:
-        short = subprocess.run(["hostname", "-s"], capture_output=True, text=True).stdout.strip()
-    except OSError:
-        short = ""
-    return short or "unknown"
+    return named if named else UNNAMED
 
 
 def render(issue, pushed_at):
