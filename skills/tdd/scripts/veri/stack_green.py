@@ -5,6 +5,8 @@ import re
 import sys
 
 import entry
+import github
+import stack_branch
 
 USAGE = "usage: stack-green.sh"
 _TRAILING = re.compile(r"((?:\s*\(#\d+\))+)\s*$")
@@ -36,9 +38,21 @@ def issue_ends(subjects):
     return ends
 
 
+def tested(runs):
+    """Whether a commit whose check runs are <runs> [(status, conclusion)] is tested: all completed, each concluding
+    success, neutral or skipped, at least one success."""
+    return all(status == "completed" and conclusion in ("success", "neutral", "skipped") for status, conclusion in runs)
+
+
 def main(argv):
     if argv:
         return entry.refuse(usage=USAGE)
+    stack, default, commits = stack_branch.ahead(".")
+    ends = issue_ends([subject for _, subject in commits])
+    for (sha, _), end in reversed(list(zip(commits, ends))):
+        if end and tested(github.check_runs(sha)):
+            sys.stdout.write(sha + "\n")
+            return 0
     return 3
 
 
