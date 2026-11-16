@@ -53,11 +53,12 @@ def named(root):
     return name
 
 
-def run_base(root=".", remote=True):
+def run_base(root=None, remote=True):
     """(branch, stacked): the one answer to which branch a run is cut from, rebased onto and diffed against. The stack
-    branch <root>'s CLAUDE.md names (exit 0 above) with stacked True; else git.default_branch(root, remote), None when it
-    cannot be told, with stacked False. Raises Refused (exit 2 above) for a name that cannot be a stack."""
-    stack = named(root)
+    branch <root>'s CLAUDE.md names (exit 0 above; root None: the current directory) with stacked True; else
+    git.default_branch(root, remote), None when it cannot be told, with stacked False. Raises Refused (exit 2 above)
+    for a name that cannot be a stack."""
+    stack = named(root or ".")
     if stack:
         return stack, True
     return git.default_branch(cwd=root, remote=remote), False

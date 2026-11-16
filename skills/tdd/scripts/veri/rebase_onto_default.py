@@ -7,7 +7,8 @@ import subprocess
 import sys
 
 import entry
-from git import default_branch, git
+import stack_branch
+from git import git
 
 USAGE = "usage: rebase-onto-default.sh [--graded-only]"
 refuse = functools.partial(entry.refuse, prefix="rebase-onto-default: ")
@@ -49,7 +50,10 @@ def union_graded(path):
 
 def main(argv):
     graded_only = "--graded-only" in argv
-    default = default_branch() or ""
+    try:
+        default = stack_branch.run_base()[0] or ""
+    except stack_branch.Refused as refused:
+        return refuse(str(refused))
     if not default:
         return refuse("refs/remotes/origin/HEAD is not set — no default branch to rebase onto")
     if git("fetch", "-q", "origin", text=True,
