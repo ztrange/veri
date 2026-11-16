@@ -406,3 +406,12 @@ def test_3966_a_prefix_owned_by_another_user_makes_make_unit_and_make_test_exit_
     other = os.lstat("/dev")
     assert (other.st_uid != os.getuid(), other.st_mode & 0o022) == (True, 0), "the case needs /dev closed and not this user's"
     assert refusals_of_unit_and_test(tmp_path, "/dev") == [refusal("/dev", "it is owned by another user")] * 2
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit and make test started for real over a planted tree, VERI_PYCACHE naming a closed regular file")
+def test_3966_a_prefix_that_is_a_regular_file_makes_make_unit_and_make_test_exit_2_naming_it_not_a_directory(tmp_path):
+    cache = tmp_path / "cache"
+    cache.write_text("")
+    cache.chmod(0o600)
+    assert refusals_of_unit_and_test(tmp_path, cache) == [refusal(cache, "it is not a directory")] * 2
