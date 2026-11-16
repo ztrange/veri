@@ -127,7 +127,8 @@ def lists(path="REQUIREMENTS.md"):
 
 
 def list_path(unit):
-    return os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")
+    """The REQUIREMENTS.md beside `unit`'s file; a `file#heading` unit's heading is not part of its path."""
+    return os.path.join(os.path.dirname(unit.partition("#")[0]), "REQUIREMENTS.md")
 
 
 def fail(path, number, msg):
