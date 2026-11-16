@@ -186,6 +186,17 @@ def test_4009_a_leaf_in_a_git_working_tree_excludes_claude_md_and_claude_local_m
                         *(os.path.join(d, name) for d in above for name in ("CLAUDE.md", "CLAUDE.local.md"))]
 
 
+def test_4009_a_leaf_outside_a_git_working_tree_excludes_the_global_claude_md_alone(tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch, "sub")
+    monkeypatch.chdir(work / "sub")
+    assert not any((d / ".git").exists() for d in (work / "sub", *(work / "sub").parents))
+
+    excluded = _launched_excludes(run_leaf, monkeypatch, capfd)
+
+    assert excluded == [os.path.join(os.environ["HOME"], ".claude", "CLAUDE.md")]
+
+
 def test_main_launches_claude_with_background_tasks_disabled_whatever_the_callers_environment_holds_1939(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
