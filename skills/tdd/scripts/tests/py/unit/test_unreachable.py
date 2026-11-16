@@ -316,3 +316,30 @@ def test_main_over_this_repositorys_skill_md_reaches_skill_edit_md_and_follows_i
     assert code == 0
     assert "orphan.sh" in lines
     assert [line for line in lines if line.endswith("skill-edit-step.sh")] == []
+
+
+TUNABLES_VERBS = ("get", "get_bytes", "resolve", "read", "read_bytes", "pop", "default")
+
+
+def test_4047_main_counts_a_read_through_the_tunables_module_as_a_read_and_still_lists_a_name_nothing_reads(tmp_path, capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+    root = tmp_path / "tuned"
+    scripts = fixture_root(root)
+    script(scripts / "helper.sh", "echo helped")
+    (scripts / "veri").mkdir()
+    (scripts / "veri" / "knobs.py").write_text(
+        "import tunables\n" + "".join('tunables.%s("VERI_BY_%s")\n' % (verb, verb.upper()) for verb in TUNABLES_VERBS))
+    with (root / "skills" / "tdd" / "SKILL.md").open("a") as f:
+        f.write("\nSet " + ", ".join("`VERI_BY_%s`" % verb.upper() for verb in TUNABLES_VERBS) + " or `VERI_NOBODY`.\n")
+
+    code = unreachable.main([str(root)])
+    listing = capsys.readouterr()
+
+    assert (code, listing.out, listing.err) == (0, "promised-unread: VERI_NOBODY\n", "")
+
+
+@pytest.mark.tree_audit("every script under skills/tdd/scripts reached from this repository's entry points")
+def test_4047_main_over_this_repository_lists_no_promised_unread_veri_no_verdict_retries():
+    code, out, _ = _main_over_this_repository()
+
+    assert (code, "promised-unread: VERI_NO_VERDICT_RETRIES" in out.splitlines()) == (0, False)

@@ -6,6 +6,7 @@
 #                                         # one reached only from tests/ as `test-only: <name>`;
 #                                         # a VERI_* knob or script SKILL.md or CLAUDE.md
 #                                         # promises and nothing reads as `promised-unread: <name>`
+#                                         # (a veri/ module's `tunables.<verb>("<name>"` counts as a read)
 #
 # Exit:    0  the list was printed, possibly empty
 #          2  no <repo-root>
