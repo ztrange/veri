@@ -1364,7 +1364,9 @@ Cost is every leaf of the run, and the conductor own spending is not in it: this
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 33 | 800 | 1600 | 2400 | 3200 | 2.45 |"""
+| total | 33 | 800 | 1600 | 2400 | 3200 | 2.45 |
+
+Green rejects by route: none"""
 
 
 def test_metrics_sh_run_in_a_working_directory_with_no_tdd_events_jsonl_exits_2_and_prints_nothing_on_stdout(tmp_path, run_cli, metrics):

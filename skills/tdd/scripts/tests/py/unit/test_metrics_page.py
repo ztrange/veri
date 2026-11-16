@@ -261,6 +261,8 @@ Inconsistent mark: stopped=budget-spent, but transforms=1 is below budget=3
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | total | 50 | 588 | 880 | 1172 | 1464 | 6.62 (estimate) |
+
+Green rejects by route: none
 """
 
 

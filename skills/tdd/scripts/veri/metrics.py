@@ -834,12 +834,6 @@ def layout(f):
         print()
         print("Adjudications: " + ", ".join("%s %d" % (outcome, f.adjudications.get(outcome, 0))
                                          for outcome in ("retry", "bail", "route", "unparsed")))
-    if f.green_rejects:
-        table_head("#### Green rejects", "step", ["attempt", "route", "reason"], ["---:", "---", "---"])
-        for step, attempt, route, reason in f.green_rejects:
-            row([step, attempt, route, UNKNOWN if reason is None else reason.replace("|", "\\|")])
-        print()
-        print("Green rejects by route: " + ", ".join("%s %d" % item for item in f.green_reject_routes))
     print()
     print("The figure comparable across runs is turns, the same measurement on any model; dollars "
           "are not comparable, the same measurement only at the same VERI_MODEL, "
@@ -871,6 +865,12 @@ def layout(f):
                  "?" if nothing is None else str(nothing), ", ".join("%s %d" % item for item in reasons)])
     tier_section("#### Test-command seconds, by tier", "tier", f.tier_runs)
     section("#### Total", "run", COST_COLUMNS, {"total": f.total}, estimate=f.conductor_estimated)
+    if f.green_rejects:
+        table_head("#### Green rejects", "step", ["attempt", "route", "reason"], ["---:", "---", "---"])
+        for step, attempt, route, reason in f.green_rejects:
+            row([step, attempt, route, UNKNOWN if reason is None else reason.replace("|", "\\|")])
+    print()
+    print("Green rejects by route: " + (", ".join("%s %d" % item for item in f.green_reject_routes) or "none"))
 
 
 def render(issue, path, ledger):

@@ -94,3 +94,12 @@ def test_below_the_table_one_line_counts_green_rejects_by_route_by_count_descend
     below = lines[lines.index("#### Green rejects") + 2 + 2 + 6:]
 
     assert below[:2] == ["", "Green rejects by route: none 2, wrong-test 2, later 1, revise 1"]
+
+
+def test_a_log_with_no_green_reject_prints_by_route_none_and_no_table(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [verdict("1", "green", "1", "PASS", "fine"), verdict("1", "red", "1", "REJECT", "no")])
+    monkeypatch.chdir(tmp_path)
+
+    lines = render(metrics, capsys).split("\n")
+
+    assert ("Green rejects by route: none" in lines, "#### Green rejects" in lines) == (True, False)
