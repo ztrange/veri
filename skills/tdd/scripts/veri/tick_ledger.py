@@ -54,14 +54,14 @@ MAKE_EXEC_FAILED = re.compile(r"make: (?!\*\*\* ).+: (No such file or directory|
 
 def make_answer(stderr):
     """A failed make run's answer: 1 (the case ran and fails) only when make's last non-empty stderr line is a
-    top-level `make: *** [<target>] Error 1` (make prints it after the recipe is dead), no other top-level Error line
-    says anything but 1, and the line just before it is not make's own could-not-execute line; 2 (no answer) otherwise.
+    top-level `make: *** [<target>] Error 1` (make prints it after the recipe is dead), no other `make: *** [<target>]`
+    text anywhere in a line (glued to recipe output, or a signal's `Killed: 9`) ends in anything but `Error 1`, and the line just before it is not make's own could-not-execute line; 2 (no answer) otherwise.
     A nested make's failure therefore reads as 2: a repository that needs one declares its one-test-file command."""
-    lines = [line for line in stderr.splitlines() if line.strip()]
+    lines = [line.rstrip() for line in stderr.splitlines() if line.strip()]
     final = MAKE_ERROR.fullmatch(lines[-1]) if lines else None
     if not final or final.group(1) != "1":
         return 2
-    if any(m.group(1) != "1" for m in map(MAKE_ERROR.fullmatch, lines) if m):
+    if any(re.search(r"make: \*\*\* \[.*\] (?!Error 1\s*$)", line) for line in lines):
         return 2
     if len(lines) > 1 and MAKE_EXEC_FAILED.fullmatch(lines[-2]):
         return 2

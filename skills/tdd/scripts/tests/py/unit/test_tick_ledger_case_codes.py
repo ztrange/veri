@@ -125,6 +125,26 @@ def test_only_a_final_level_0_make_error_1_line_on_stderr_reads_as_a_case_that_f
     assert (got, text, events) == (expected, ORIGINAL, False), err
 
 
+@pytest.mark.parametrize("stderr, expected", [
+    ("no newlinemake: *** [a] Error 2\nmake: *** [b] Error 1\n", 2),
+    ("make: *** [a] Killed: 9\nmake: *** [b] Error 1\n", 2),
+    ("make: *** [test] Killed: 9\nmake: *** [test] Error 1\n", 2),
+    ("1 failedmake: *** [test] Error 2\nmake: *** [test] Error 1\n", 2),
+    ("make: *** [a]b] Error 1\n", 1),
+    ("1 failed\r\nmake: *** [test] Error 1  \r\n\r\n", 1),
+    ("make: [lint] Error 2 (ignored)\nmake: *** [test] Error 1\n", 1),
+], ids=["j2-glued-error-2-then-error-1", "j2-killed-then-error-1", "killed-then-fake-error-1",
+        "glued-error-2-then-fake-error-1", "target-holding-a-bracket", "crlf-and-trailing-blanks",
+        "ignored-error-2-then-real-error-1"])
+def test_any_top_level_make_line_ending_other_than_error_1_reads_as_no_answer_3987(
+        retire, fake_processes, stderr, expected):
+    fake_processes.answers({"detect-test-command.sh": (0, "", ""), "": (2, "", stderr)})
+
+    got, text, events, err = retire()
+
+    assert (got, text, events) == (expected, ORIGINAL, False), err
+
+
 @pytest.mark.parametrize("stderr", [
     "make: no-such-command-xyz: No such file or directory\nmake: *** [test] Error 1\n",
     "make: ./noexec: Permission denied\nmake: *** [test] Error 1\n",
