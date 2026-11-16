@@ -511,22 +511,27 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   issue, `.tdd/issue-<n>-skill-commit` and `.tdd/issue-<n>-timeout` (each pin read from the worktree, else from the main
   tree it sits under); records kept off the branch, since rebase-merge would carry them into `main`'s history. What
   travels is redacted, the local files left byte-identical, in every string of each carried line (decoded JSON, nested
-  values and keys included) and in each pin, in this order: the worktree and main clone roots read `<repo>`, then the
-  temp directories (`$TMPDIR`, the system's) `<tmp>`, then the home directory `~`, each replaced as a plain substring,
-  the longest first, in every spelling (as given and resolved, with and without `/private` and `/System/Volumes/Data`,
-  with `/` written `\/`, and URL-encoded with and without `/` kept); then any other temp path (`/var/folders/…`,
-  `/private/var/folders/…`, `/tmp`) `<tmp>`; then, as whole words ignoring case, the host's names `<host>`
-  (`socket.gethostname()` and `platform.node()`, their first DNS label when it is not numeric and at least 3 characters,
-  each also with `.local` and with `-` written as a space; an IP-form name is kept whole, never split into labels) and
-  the account's name `<user>` (the home directory's last component and `getpass.getuser()`, when at least 3
-  characters). A journal line that is not JSON is not carried. The records commit is by `veri <veri@localhost>`, its
+  values and keys included) and in each pin, in two layers. The first replaces the named spellings readably: the
+  worktree and main clone roots `<repo>`, then the temp directories (`$TMPDIR`, the system's) `<tmp>`, then the home
+  directory `~`, each the longest first and ignoring case, in every named spelling (as given and resolved, with and
+  without `/private` and `/System/Volumes/Data`, with `/` written `\/`, URL-encoded with and without `/` kept) and only
+  up to a path boundary (`/Users/<name>2` is another path, left alone); then any other temp path (`/var/folders/…`,
+  `/tmp`) at a path boundary `<tmp>`; then, as whole words ignoring case, the host's names `<host>` and the account's
+  name `<user>`. The second is fail-closed: a string whose copy, URL-decoded until it stops changing (at most 5 times),
+  with escaped slashes and backslashes read as `/` and case-folded, still holds any of those paths or names is replaced
+  whole by `<redacted>` (a key by `<redacted>`, or `<redacted-2>`… when that key is taken). The host's names are
+  `socket.gethostname()`, `platform.node()` and the `LocalHostName` and `ComputerName` of
+  `/Library/Preferences/SystemConfiguration/preferences.plist` (read with `plistlib`; no process is started), each with
+  its first DNS label, `.local` and `-` or space either way, never a form that is all digits or under 3 characters and
+  never an IP-form name split into labels; the account's name is the home directory's last component and
+  `getpass.getuser()`, when at least 3 characters. A journal line that is not JSON is not carried. The records commit is by `veri <veri@localhost>`, its
   author and committer dates in UTC (`+0000`). The push ends after `VERI_GIT_NETWORK_TIMEOUT` seconds. `metrics.sh <n>` reads that ref's events when the
   local journal has none for the issue, and `run-conductor.sh <n>`, on a first launch with no local
   `.tdd/issue-<n>-skill-commit`, pins the run to the commit the ref records, so a run resumed on another machine
   executes the snapshot it started on, but only when that commit is an ancestor of the skill clone's origin default
   branch as just fetched: `refs/veri/*` lies outside that branch's protection, so any other carried pin is named in one
-  stderr line and ignored, and the launch behaves as a fresh one does, `update-veri.sh` included. The same first launch
-  restores the carried timeout pin into the run's worktree when the run has none, if its value is one the run's own
+  stderr line and ignored, and the launch behaves as a fresh one does, `update-veri.sh` included. The same first launch,
+  with the carried skill pin accepted, restores the carried timeout pin into the run's worktree when the run has none, if its value is one the run's own
   reader accepts (a whole number of seconds >= 1); any other value is named in one stderr line and ignored, and the run
   settles its timeout as a fresh one does. Then it updates the issue's pointer comment (`pointer-comment.sh`), stamped with
   this push's time; after a failed push it does neither. A failure of either, any exception included, is one stderr
