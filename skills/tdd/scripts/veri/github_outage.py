@@ -286,8 +286,9 @@ def wait(root, max_seconds, poll, world):
 
 def status(root, world):
     """What a starting session, a handoff and the check read: mode, held PRs, merging PRs, the wait."""
-    lines = lines_of(os.path.join(root, FILE))
-    merging = merging_of(root)
+    with locked(root):
+        lines = lines_of(os.path.join(root, FILE))
+        merging = merging_of(root)
     busy = {entry_[0] for entry_ in merging}
     out = ["mode " + ("on" if lines is not None else "off")]
     out += ["held " + url for url in held(lines or []) if url not in busy]
