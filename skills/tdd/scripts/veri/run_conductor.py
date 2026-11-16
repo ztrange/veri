@@ -191,10 +191,11 @@ def preflight_and_launch(argv):
                 return status if status <= 3 else 2
             pinned_scripts.write_snapshot_marker(snapshot, run_worktree(argv[0]))
             pinned_scripts.make_read_only(snapshot)
-            run_pins.write_snapshot_digest(event.toplevel(), argv[0], pinned_scripts.snapshot_digest(snapshot))
+            extracted = pinned_scripts.snapshot_digest(snapshot)
+            run_pins.write_snapshot_digest(event.toplevel(), argv[0], extracted)
             keep_pinned_scripts(snapshot, argv[0])
             code = launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
-            changed = snapshot_change(snapshot, argv[0])
+            changed = snapshot_change(snapshot, argv[0], extracted)
             if changed is None:
                 return code
             sys.stderr.write("run-conductor: the skill snapshot changed during the run\n")
@@ -313,15 +314,24 @@ def skill_snapshot(base, head_rev, record, mode):
     return Snapshot("kept", recorded, "", "", 0)
 
 
-def snapshot_change(snapshot, issue):
-    """The first file of <snapshot>, relative to it, that differs from the digest recorded at extraction, `.` when
-    the digest or the snapshot cannot be read (fail closed); None when nothing changed."""
+def snapshot_change(snapshot, issue, extracted):
+    """What changed since extraction, against the digest <extracted> held in memory since then (never re-read from
+    disk, where a leaf can write): the first entry of <snapshot> that differs, relative to it, `.` when the snapshot
+    cannot be read (fail closed); else the digest file's path when that file no longer holds <extracted> (a leaf
+    tampered with what supervise.sh trusts); None when nothing changed."""
     try:
-        recorded = run_pins.snapshot_digest(issue, event.toplevel())
-        changed = pinned_scripts.first_change(recorded, snapshot) if recorded is not None else snapshot
+        changed = pinned_scripts.first_change(extracted, snapshot)
     except OSError:
         changed = snapshot
-    return None if changed is None else os.path.relpath(changed, snapshot)
+    if changed is not None:
+        return os.path.relpath(changed, snapshot)
+    try:
+        recorded = run_pins.snapshot_digest(issue, event.toplevel())
+    except OSError:
+        recorded = None
+    if recorded != extracted:
+        return os.path.abspath(run_dir.issue_file(event.toplevel(), issue, run_pins.SNAPSHOT_DIGEST))
+    return None
 
 
 def keep_pinned_scripts(snapshot, issue):

@@ -99,3 +99,47 @@ def test_main_on_a_snapshot_a_leaf_edited_says_so_logs_snapshot_changed_and_exit
     assert (answer, errors, [(e["event"], e.get("path")) for e in events]) == (
         (2, []), [b"run-conductor: the skill snapshot changed during the run\n"],
         [("snapshot-changed", "scripts/status.sh")])
+
+
+def exit_of(tmp_path, monkeypatch, capfdbinary, probe):
+    """(launched answer, stderr of main, [(event, path)] of the run's event log) for a launch whose leaf is <probe>."""
+    run_conductor = importlib.import_module("veri.run_conductor")
+    errors, real = [], run_conductor.main
+
+    def main_keeping_stderr(argv):
+        code = real(argv)
+        errors.append(capfdbinary.readouterr().err)
+        return code
+    monkeypatch.setattr(run_conductor, "main", main_keeping_stderr)
+    answer = launched(tmp_path, monkeypatch, capfdbinary, probe)
+    log = tmp_path / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
+    events = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+    return answer, errors, [(e["event"], e.get("path")) for e in events]
+
+
+def digest_file(tmp_path):
+    return tmp_path / ".tdd" / "issue-4242-snapshot-digest"
+
+
+def test_main_at_exit_catches_an_edited_snapshot_whose_digest_file_a_leaf_rewrote_to_match_3964(
+        tmp_path, monkeypatch, capfdbinary):
+    def edit_and_relabel(snapshot):
+        script = os.path.join(snapshot, "scripts", "status.sh")
+        pinned_scripts.change_mode(script, lambda mode: mode | 0o200)
+        with open(script, "a") as handle:
+            handle.write("echo edited\n")
+        digest_file(tmp_path).write_text(pinned_scripts.snapshot_digest(snapshot))
+
+    assert exit_of(tmp_path, monkeypatch, capfdbinary, edit_and_relabel) == (
+        (2, []), [b"run-conductor: the skill snapshot changed during the run\n"],
+        [("snapshot-changed", "scripts/status.sh")])
+
+
+def test_main_at_exit_reports_a_digest_file_a_leaf_rewrote_naming_the_digest_file_3964(
+        tmp_path, monkeypatch, capfdbinary):
+    def relabel(snapshot):
+        digest_file(tmp_path).write_text("0 SKILL.md\n")
+
+    assert exit_of(tmp_path, monkeypatch, capfdbinary, relabel) == (
+        (2, []), [b"run-conductor: the skill snapshot changed during the run\n"],
+        [("snapshot-changed", str(digest_file(tmp_path)))])
