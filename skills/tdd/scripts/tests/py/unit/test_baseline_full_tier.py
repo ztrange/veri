@@ -138,3 +138,28 @@ def test_4017_reuse_with_a_recorded_time_but_no_recorded_at_prints_run_and_one_s
 
     assert (code, out.strip(), len(err.splitlines())) == (0, "run", 1)
     assert ("'make test'" in err, "unknown" in err, "VERI_FULL_TIER_MAX_AGE_DAYS=7" in err) == (True, True, True)
+
+
+@pytest.mark.parametrize("age, knob, verdict, days", [
+    (7 * 86400, None, "reuse 727", None),
+    (7 * 86400 + 1, None, "run", "7"),
+    (3 * 86400 + 5, "2", "run", "3"),
+    (86400, "1", "reuse 727", None),
+], ids=["exactly-the-default-age", "a-second-older-than-the-default", "older-than-a-set-knob", "exactly-a-set-knob"])
+def test_4017_reuse_reuses_a_time_recorded_at_most_the_max_age_ago_and_times_an_older_one_again_naming_its_age_in_days(
+        tmp_path, run_cli, baseline_full_tier, monkeypatch, age, knob, verdict, days):
+    full_tier_time = importlib.import_module("veri.full_tier_time")
+    monkeypatch.setattr(full_tier_time, "now", lambda: 1763300000)
+    _recorded(tmp_path, '{"make test": %d}' % (1763300000 - age))
+    env = {"VERI_BASELINE_FULL_TIER": "reuse"}
+    if knob is not None:
+        env["VERI_FULL_TIER_MAX_AGE_DAYS"] = knob
+
+    code, out, err = run_cli(baseline_full_tier, ["4017", "make test"], env=env, cwd=tmp_path)
+
+    assert (code, out.strip()) == (0, verdict)
+    if days is None:
+        assert err == ""
+    else:
+        assert (len(err.splitlines()), "'make test'" in err, "%s days" % days in err,
+                "VERI_FULL_TIER_MAX_AGE_DAYS=%s" % (knob or "7") in err) == (1, True, True, True)

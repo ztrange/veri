@@ -26,11 +26,14 @@ def main(argv):
                 recorded_at = full_tier_time.read_recorded_at(record).get(argv[1])
             except (OSError, ValueError):
                 recorded_at = None
-            if recorded_at is not None:
+            max_days = int(tunables.get("VERI_FULL_TIER_MAX_AGE_DAYS"))
+            age = None if recorded_at is None else full_tier_time.now() - recorded_at
+            if age is not None and age <= max_days * 86400:
                 print("reuse " + times[argv[1]])
                 return 0
-            sys.stderr.write("baseline-full-tier: timing '%s' again: its recorded time's age is unknown, "
-                             "VERI_FULL_TIER_MAX_AGE_DAYS=%s\n" % (argv[1], tunables.get("VERI_FULL_TIER_MAX_AGE_DAYS")))
+            sys.stderr.write("baseline-full-tier: timing '%s' again: its recorded time is %s old, "
+                             "VERI_FULL_TIER_MAX_AGE_DAYS=%d\n"
+                             % (argv[1], "unknown" if age is None else "%d days" % (age // 86400), max_days))
     print("run")
     return 0
 
