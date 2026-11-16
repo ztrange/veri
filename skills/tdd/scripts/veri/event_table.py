@@ -25,7 +25,7 @@ COMMON = ("ts", "awake", "issue", "actor", "phase", "step", "event", "attempt", 
 # sha: 7 to 40 lowercase hex digits; json: parses as JSON; text: any string.
 FORMATS = ("whole", "decimal", "url", "sha", "json", "text")
 CONTEXT = ("issue:whole,empty actor:text,empty phase:text,empty step:text,empty event:text attempt:whole,empty"
-           " skill_commit:sha,empty")
+           " skill_commit:text,empty")
 
 EVENTS = {
     "adjudicated": "cause:(ci-timeout|ci-conflict|pr-ready-failed|report-missing) outcome:(retry|route|bail|unparsed)"
