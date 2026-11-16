@@ -73,9 +73,16 @@ def _in_text(starts, index):
     return starts[low][1] + index - starts[low][0]
 
 
-def _crosses(starts, first, last):
-    """Whether characters <first> to <last> of the joined text are split in the text: a split point lies between."""
-    return _in_text(starts, last - 1) - _in_text(starts, first) != last - 1 - first
+def _piece_end(starts, index, length):
+    """Where the piece of the joined text holding character <index> ends: the next piece's start, else <length>."""
+    low, high = 0, len(starts) - 1
+    while low < high:
+        middle = (low + high + 1) // 2
+        if starts[middle][0] <= index:
+            low = middle
+        else:
+            high = middle - 1
+    return starts[low + 1][0] if low + 1 < len(starts) else length
 
 
 def _decodes_to_secret(run, values):
@@ -117,9 +124,13 @@ def _secret_spans(text, values):
         shape = least.match(joined, prefix.end())
         if shape:
             # A shape starting inside the last one runs on from where that one ended, never back over it: one pass.
-            reached = run_on.match(joined, max(shape.end(), reached)).end()
-            if _crosses(starts, prefix.start(), reached):
-                reached = max(shape.end(), min(reached, prefix.end() + _DOCUMENTED[prefix.group()]))
+            # A run-on reads on to the end of its own piece of the text; past a split point it reads only up to the
+            # token's documented length. Both reads are bounded, so the pass stays linear.
+            at = max(shape.end(), reached)
+            piece_end = _piece_end(starts, at - 1, len(joined))
+            reached = run_on.match(joined, at, piece_end).end()
+            if reached == piece_end:
+                reached = run_on.match(joined, reached, max(reached, prefix.end() + _DOCUMENTED[prefix.group()])).end()
             found.append((prefix.start(), reached))
     for value in values:
         at = joined.find(value)
