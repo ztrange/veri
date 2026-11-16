@@ -412,3 +412,11 @@ def test_wait_with_a_max_seconds_over_86400_exits_2_with_the_usage_before_any_re
     assert (code, out) == (2, "")
     assert "usage: github-status.sh" in err
     assert page.calls == []
+
+
+def test_an_incident_listed_twice_prints_once_and_a_component_listed_twice_prints_once(page, run_cli):
+    twice = incident("Incident with Pull Requests", 61, "Pull Requests", "Pull Requests")
+    twice["id"] = "abc123"
+    page.serve(twice, dict(twice))
+
+    assert run_cli(page.module, [])[:2] == (1, "Incident with Pull Requests\tPull Requests\t2026-11-16 04:59\t61\n")
