@@ -15,13 +15,15 @@ USAGE = "usage: ci-flake.sh <n> <head-sha> <run-id> '<alone-cmd>' <log-file>"
 WHOLE = re.compile(r"[0-9]+")
 # The check's overall bound: at most this many alone runs, each bounded by VERI_TIMEOUT; a log naming more is no answer.
 MAX_TARGETS = 5
+# An ANSI colour or style sequence, stripped from the runner's text before its targets are read.
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
 # One line of `gh run view --log-failed`: job, step and timestamp before the runner's own text.
 STAMP = re.compile(r"\t\ufeff?\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z")
 GH_LINE = re.compile(r"^[^\t]*\t[^\t]*" + STAMP.pattern + " ?(.*)$")
 
 
 def runner_text(log):
-    """The runner's own output in a `--log-failed` log: each line without gh's prefix. ValueError naming the first
+    """The runner's own output in a `--log-failed` log: each line without gh's prefix or colour codes. ValueError naming the first
     non-empty line that is not one gh line (no prefix, or two lines glued into one), so such a log is no answer."""
     lines = []
     for number, line in enumerate(log.splitlines(), 1):
@@ -30,7 +32,7 @@ def runner_text(log):
             continue
         if not found or STAMP.search(found.group(1)):
             raise ValueError("line %d is not one line of gh run view --log-failed" % number)
-        lines.append(found.group(1))
+        lines.append(ANSI.sub("", found.group(1)))
     return "\n".join(lines) + "\n"
 
 
