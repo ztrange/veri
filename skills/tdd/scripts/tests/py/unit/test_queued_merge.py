@@ -1575,3 +1575,31 @@ def test_3984_queued_merge_deletes_an_unpublished_tag_only_while_its_ref_still_p
 
     deletes = [c for c in calls if "update-ref -d" in c or " tag -d " in c]
     assert (code, deletes, "tag v0.11 left in the clone" in err, "and removed" in err) == (2, [GUARDED_DELETE], True, False)
+
+
+def raising_on(fake_processes, needle):
+    """A fake_processes for scenario whose call containing <needle> raises instead of answering."""
+    def install(answer):
+        def world(line, **kwargs):
+            if needle in line:
+                raise RuntimeError("%s blew up" % needle)
+            return answer(line, **kwargs)
+        return fake_processes(world)
+    return install
+
+
+def test_3984_queued_merge_whose_tag_push_raises_after_the_cut_deletes_the_tag_it_cut_and_says_so_exiting_2_naming_tag(fake_processes, run_cli):
+    calls = scenario(raising_on(fake_processes, "push origin v0.11"))
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    assert (code, first(calls, GUARDED_DELETE) is not None, "tag v0.11" in err and "removed" in err,
+            "merged, but cleanup failed: tag" in err) == (2, True, True, True)
+
+
+def test_3984_queued_merge_whose_guarded_tag_delete_raises_names_the_tag_left_in_the_clone_and_exits_2_naming_tag(fake_processes, run_cli):
+    scenario(raising_on(fake_processes, "update-ref -d refs/tags/v0.11"), fail=("push origin v0.11",))
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    assert (code, "tag v0.11 left in the clone" in err, "merged, but cleanup failed: tag" in err) == (2, True, True)
