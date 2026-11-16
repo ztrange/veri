@@ -780,14 +780,25 @@ def _open_prs(issue_worktree, monkeypatch, prs):
 
 
 def test_claiming_pr_1656_asks_github_for_a_github_com_origin_and_names_the_open_pr_that_closes_the_issue_not_one_listed_before_it(issue_worktree, monkeypatch):
-    prs = [{"state": "OPEN", "body": "Closes #63", "url": "https://github.com/o/r/pull/10"},
-           {"state": "OPEN", "body": "Fixes it.\n\nCloses #62", "url": "https://github.com/o/r/pull/9"}]
+    prs = [{"isCrossRepository": False, "state": "OPEN", "body": "Closes #63", "url": "https://github.com/o/r/pull/10"},
+           {"isCrossRepository": False, "state": "OPEN", "body": "Fixes it.\n\nCloses #62", "url": "https://github.com/o/r/pull/9"}]
 
     assert _open_prs(issue_worktree, monkeypatch, prs) == ("https://github.com/o/r/pull/9", ["prs.json"])
 
 
 def test_claiming_pr_1656_names_no_pr_on_a_github_com_origin_when_the_only_open_one_closes_another_issue(issue_worktree, monkeypatch):
-    prs = [{"state": "OPEN", "body": "Closes #63", "url": "https://github.com/o/r/pull/10"}]
+    prs = [{"isCrossRepository": False, "state": "OPEN", "body": "Closes #63", "url": "https://github.com/o/r/pull/10"}]
+
+    assert _open_prs(issue_worktree, monkeypatch, prs) == ("", ["prs.json"])
+
+
+@pytest.mark.parametrize("fork", [{"isCrossRepository": True},
+                                  {"head": {"repo": {"full_name": "stranger/r"}}, "base": {"repo": {"full_name": "o/r"}}},
+                                  {"head": {"repo": None}, "base": {"repo": {"full_name": "o/r"}}},
+                                  {}])
+def test_claiming_pr_3974_names_no_pr_whose_head_is_in_another_repository(issue_worktree, monkeypatch, fork):
+    # A fork's PR, which anyone can open, saying Closes #62 must not stop a run of #62 (PRD 022.15, CW1).
+    prs = [dict(fork, state="OPEN", body="Closes #62", url="https://github.com/o/r/pull/9")]
 
     assert _open_prs(issue_worktree, monkeypatch, prs) == ("", ["prs.json"])
 
