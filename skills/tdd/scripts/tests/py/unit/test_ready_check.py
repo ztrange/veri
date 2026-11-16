@@ -335,6 +335,17 @@ def test_issue_4090_the_dry_run_push_runs_ssh_in_batch_mode_unless_git_ssh_comma
     assert commands == ["ssh -o BatchMode=yes", "ssh -i ~/.ssh/deploy"], commands
 
 
+def test_issue_4090_a_dry_run_push_that_never_answers_fails_the_row_naming_the_veri_gh_timeout_limit(ready_check, fake_processes, monkeypatch):
+    from process_fakes import HANGS
+    monkeypatch.setenv("VERI_GH_TIMEOUT", "7")
+    fake = fake_processes.answers({PROBE_PUSH: HANGS})
+    monkeypatch.setattr(os, "killpg", lambda group, sig: [c.send_signal(sig) for c in fake.popens if c.pid == group])
+
+    name, fix = ready_check.push_dry_run_row()
+
+    assert name == "push dry-run" and fix and "no answer after 7s (VERI_GH_TIMEOUT)" in fix, fix
+
+
 def test_issue_4090_ready_check_prints_a_failing_push_dry_run_row_and_exits_1_when_origin_refuses_the_dry_run(ready_check, run_cli, fake_processes, tmp_path):
     code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{PROBE_PUSH: REFUSED})
 

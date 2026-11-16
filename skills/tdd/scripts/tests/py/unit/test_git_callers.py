@@ -20,7 +20,7 @@ MODULES_RUNNING_GIT_DIRECTLY = {
     "add_ledger_step": "git rev-parse --short and a built git call, through subprocess",
     "ensure_run_state_ignored": "git -C <root> rev-parse, through subprocess",
     "frozen_record": "git rev-parse, write-tree and check-ignore, through subprocess",
-    "github": "git ls-remote origin, through subprocess",
+    "github": "git ls-remote origin and push --dry-run, through bounded_group",
     "graded_changed": "git diff --name-only, through subprocess",
     "install_links": "git -C <root>, through subprocess",
     "issue_worktree": "git remote, worktree, show-ref and fetch, through subprocess; its own read of origin/HEAD (PRD 025.14)",
