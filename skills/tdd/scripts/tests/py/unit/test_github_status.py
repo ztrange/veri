@@ -42,6 +42,28 @@ class Page:
         self.mono = 1000.0
         self.wall_frozen = False
         monkeypatch.setattr(self.module, "monotonic", lambda: self.mono, raising=False)
+        self.main = True
+        self.handler = "previous handler"
+        self.timer = (10.0, 0.0)
+        self.timer_calls = []
+        monkeypatch.setattr(self.module, "main_thread", lambda: self.main, raising=False)
+        monkeypatch.setattr(self.module, "swap_alarm_handler", self.swap_alarm_handler, raising=False)
+        monkeypatch.setattr(self.module, "swap_timer", self.swap_timer, raising=False)
+
+    def swap_alarm_handler(self, handler):
+        """The injected signal.signal(SIGALRM, ...): no real handler is ever installed."""
+        previous, self.handler = self.handler, handler
+        return previous
+
+    def swap_timer(self, seconds, interval=0.0):
+        """The injected setitimer(ITIMER_REAL, ...): no real timer is ever armed."""
+        self.timer_calls.append((seconds, interval))
+        previous, self.timer = self.timer, (seconds, interval)
+        return previous
+
+    def alarm(self):
+        """The armed timer going off: the handler the module installed runs."""
+        self.handler(14, None)
 
     def respond(self, monkeypatch, answer):
         """Drive the real fetch, its opener answering every URL with `answer(url)`."""
@@ -571,3 +593,49 @@ def test_a_redirect_is_not_followed_and_is_no_answer_naming_its_status(page, mon
     assert (code, out) == (2, "")
     assert "status 302" in err
     assert transport.opened == ["https://www.githubstatus.com/api/v2/incidents/unresolved.json"]
+
+
+def alarm_mid_fetch(page):
+    def answer(url):
+        page.mono += 1
+        page.alarm()
+        raise AssertionError("the alarm did not end the fetch")
+
+    return answer
+
+
+def refused_after_a_second(page):
+    def answer(url):
+        page.mono += 1
+        raise urllib.error.URLError(ConnectionRefusedError(61, "Connection refused"))
+
+    return answer
+
+
+@pytest.mark.parametrize("answer, cause", [
+    (alarm_mid_fetch, "no complete answer"),
+    (refused_after_a_second, "Connection refused"),
+], ids=["alarm-fires", "fetch-raises"])
+def test_on_the_main_thread_an_alarm_bounds_the_whole_fetch_and_the_previous_handler_and_timer_are_restored(
+        page, monkeypatch, run_cli, answer, cause):
+    page.respond(monkeypatch, answer(page))
+
+    code, out, err = run_cli(page.module, [], env={"VERI_GITHUB_STATUS_TIMEOUT": "2"})
+
+    assert (code, out) == (2, "")
+    assert cause in err
+    assert page.handler == "previous handler"
+    assert page.timer_calls == [(2.0, 0.0), (0, 0.0), (9.0, 0.0)]
+
+
+def test_off_the_main_thread_no_alarm_is_armed_and_the_chunk_deadline_still_ends_a_dripping_read(
+        page, monkeypatch, run_cli):
+    page.main = False
+    page.respond(monkeypatch, lambda url: Dripping(page))
+
+    code, out, err = run_cli(page.module, [], env={"VERI_GITHUB_STATUS_TIMEOUT": "5"})
+
+    assert (code, out) == (2, "")
+    assert "no complete answer" in err
+    assert page.timer_calls == []
+    assert page.handler == "previous handler"
