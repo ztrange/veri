@@ -11,3 +11,4 @@
 | H7 | It stops no conductor. | Conductors are detached and outlive both sessions. |
 | H8 | It prints the resume command in a fenced block. | |
 | H9 | The dev handoff also carries the attached coordinator's session id, if one is attached. | 2026-11-11: a resumed dev session narrated to the human after every `/vhandoff dev` reset and only went silent once the human pointed out the coordinator. |
+| H10 | The dev handoff also carries whether `.tdd/github-outage` exists in the main working tree, read from the file when the handoff is written, and, when it exists, each PR url it lists, in the file's order. | A handoff carries state, and a reset mid-outage must not resume merging (PRD 033, VO9; P2). |

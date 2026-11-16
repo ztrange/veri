@@ -39,7 +39,10 @@ It carries, and only this:
 - N, and any timed change to it;
 - overrides and one-off permissions, each with its expiry;
 - pending decisions;
-- for dev, the attached coordinator's session id, if one is attached.
+- for dev, the attached coordinator's session id, if one is attached;
+- for dev, whether `.tdd/github-outage` exists in the main working tree, read from the file
+  when the handoff is written (`test -f .tdd/github-outage`), and, when it does, each PR url it
+  lists, in the file's order (`grep '^https://' .tdd/github-outage`).
 
 It carries no rule the role's skill already states: the resuming session reads that skill.
 State only what is true now.
