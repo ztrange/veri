@@ -178,7 +178,6 @@ def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flag
     assert supervised == [([os.path.join(scripts, "supervise.sh"), "verify-green",
                             os.path.join(scripts, "run-leaf.sh"), ".tdd/verify-green.prompt",
                             "--permission-mode", "bypassPermissions",
-                            "--disallowedTools", "Write", "Edit", "MultiEdit", "NotebookEdit",
                             "--settings", json.dumps({"hooks": verify.WRITE_BAN})],
                            None, subprocess.PIPE)]
     forbidden = {"parse-verdict.sh", "leaf-role.sh", "leaf-model.sh"}
