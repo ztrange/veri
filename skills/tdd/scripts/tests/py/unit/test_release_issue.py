@@ -191,7 +191,7 @@ def test_a_refusal_comment_alone_does_not_make_an_issue_preflight_refused_3627(r
         "refused": (0, True),
         "already opted in": (3, False),
         "unclaimed": (3, False),
-        "comments unreadable": (3, False),
+        "comments unreadable": (2, False),
     }
 
 
@@ -326,3 +326,24 @@ def test_a_trusted_comment_starting_with_the_preflight_refused_heading_still_rel
     assert [call for call in writes(calls) if call[0] != "ensure"] == [
         ("unlabel", "3971", "taken:main"), ("label", "3971", "ready-for-agent"),
         ("unlabel", "3971", "parked"), ("unlabel", "3971", "bailed")]
+
+
+@pytest.mark.parametrize("answer", ["no answer", "not json", "not a list"])
+def test_comments_gh_gives_no_answer_for_or_answers_in_the_wrong_shape_exit_2_naming_the_read_and_nothing_is_written_3971(
+        release, run_cli, monkeypatch, answer):
+    release_issue, calls, labels = release
+    labels[:] = ["bug", "taken:main"]
+
+    def comments_of(number):
+        if answer == "no answer":
+            raise release_issue.github.NoAnswer("", "HTTP 502")
+        if answer == "not json":
+            return json.loads("<html>502</html>")
+        return {"body": REFUSAL, "author_association": "OWNER", "user": {"login": "veri-operator"}}
+
+    monkeypatch.setattr(release_issue.github, "issue_comments", comments_of)
+
+    code, out, err = run_cli(release_issue, ["3971"])
+
+    assert (code, err, writes(calls)) == (
+        2, "release-issue.sh: no answer from gh reading the comments of #3971\n", [])

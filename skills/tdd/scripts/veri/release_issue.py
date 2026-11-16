@@ -16,14 +16,18 @@ MARKERS = ("parked", "bailed")
 
 def _preflight_refused(number, labels, opt_in):
     """Whether the issue is preflight-refused: claimed, not opted in, and bearing veri's own refusal comment, one
-    github.trusted_comment trusts (a running issue carries the same labels, so a stranger's comment cannot count)."""
+    github.trusted_comment trusts (a running issue carries the same labels, so a stranger's comment cannot count)
+    and the heading starts. None when the comments cannot be read (no answer, or an answer that is not a list)."""
     if opt_in in labels or not any(name.startswith("taken:") for name in labels):
         return False
     try:
-        return any(github.trusted_comment(c) and (c.get("body") or "").startswith("### ⛔ Preflight refused")
-                   for c in github.issue_comments(number))
-    except github.NoAnswer:
-        return False
+        comments = github.issue_comments(number)
+    except (github.NoAnswer, ValueError):
+        return None
+    if not isinstance(comments, list):
+        return None
+    return any(github.trusted_comment(c) and (c.get("body") or "").startswith("### ⛔ Preflight refused")
+               for c in comments)
 
 
 def main(argv):
@@ -39,7 +43,11 @@ def main(argv):
         sys.stderr.write("release-issue.sh: no answer from gh reading the labels of #%s\n" % number)
         return 2
     marked = any(marker in labels for marker in MARKERS)
-    if not marked and not _preflight_refused(number, labels, opt_in):
+    refused = False if marked else _preflight_refused(number, labels, opt_in)
+    if refused is None:
+        sys.stderr.write("release-issue.sh: no answer from gh reading the comments of #%s\n" % number)
+        return 2
+    if not marked and not refused:
         sys.stderr.write("release-issue.sh: #%s is neither parked, bailed nor preflight-refused; nothing to release\n" % number)
         return 3
     foreign = [name for name in labels if name.startswith("taken:") and name != taken]
