@@ -486,15 +486,22 @@ def _joined(pid, repo, pr, worktree, branch, stack):
     code = _unchecked_steps(worktree, branch)
     if code:
         return code
+    lease = _rev(worktree, "HEAD")
+    if not lease:
+        _say("the worktree's HEAD does not resolve; nothing pushed")
+        return 2
     for _ in range(JOIN_ATTEMPTS):
         fetch = git.network("-C", worktree, "fetch", "origin")
         if fetch.returncode:
             _say("git fetch origin got no answer (%s); nothing pushed" % fetch.stderr.strip())
             return 2
         onto = _rev(worktree, "refs/remotes/origin/" + stack)
-        lease = _rev(worktree, "refs/remotes/origin/" + branch)
-        if not onto or not lease:
-            _say("origin/%s or origin/%s does not resolve; nothing pushed" % (stack, branch))
+        if not onto:
+            _say("origin/%s does not resolve; nothing pushed" % stack)
+            return 2
+        if _rev(worktree, "refs/remotes/origin/" + branch) != lease:
+            _say("origin/%s is not the run's tip %s (a commit the worktree lacks, or none pushed); nothing pushed"
+                 % (branch, lease))
             return 2
         rebase = _git(worktree, "rebase", onto)
         if rebase.returncode and not _rebasing(worktree):
@@ -508,6 +515,8 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             return 1
         pushed = git.network("-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
                              "origin", "HEAD:refs/heads/%s" % branch)
+        if not pushed.returncode:
+            lease = _rev(worktree, "HEAD")
         if pushed.returncode:
             _say("the leased push of %s failed (exit %d): %s; nothing pushed to %s" % (
                 branch, pushed.returncode, pushed.stderr.strip(), stack))

@@ -15,6 +15,7 @@ MOVED_SHA = "6666666"
 REBASED = "abc1234"
 REBASED_AGAIN = "abc5678"
 CLONE = "/clone"
+FOREIGN = "fffffff"
 
 
 class World:
@@ -22,7 +23,7 @@ class World:
 
     def __init__(self, tmp_path, ledger="- [x] a step ⟦criterion 1⟧\n- [ ] the full suite ⟦full-suite⟧ ⟦criterion 2⟧\n",
                  rebase=0, fast=0, owed=0, stack_pushes=(0,), reads=({"merged": True},), lock=0, stopped=True, extra=None,
-                 stack_line="veri: stack branch: stack\n", base="stack"):
+                 stack_line="veri: stack branch: stack\n", base="stack", foreign=False):
         self.wt = str(tmp_path / "wt")
         os.makedirs(self.wt + "/.tdd")
         with open(self.wt + "/CLAUDE.md", "w") as f:
@@ -37,6 +38,7 @@ class World:
             os.makedirs(self.stopped_dir)
         self.extra = extra or {}
         self.base = base
+        self.foreign = foreign
         self.stack_pushes = list(stack_pushes)
         self.reads = list(reads)
         self.pulls = []
@@ -70,9 +72,11 @@ class World:
         if line == wt + "rev-parse --verify refs/remotes/origin/stack":
             return 0, self.stack[0] + "\n", ""
         if line == wt + "rev-parse --verify refs/remotes/origin/" + BRANCH:
-            return 0, (self.rebased[-1] if self.rebased else ORIGIN_SHA) + "\n", ""
+            return 0, (self.rebased[-1] if self.rebased else FOREIGN if self.foreign else ORIGIN_SHA) + "\n", ""
         if line == wt + "rev-parse --verify HEAD":
-            return 0, (self.rebased[-1] if self.rebased else "0000000") + "\n", ""
+            return 0, (self.rebased[-1] if self.rebased else ORIGIN_SHA) + "\n", ""
+        if line.startswith(wt + "merge-base --is-ancestor " + FOREIGN):
+            return 1, "", ""
         if line.startswith(wt + "merge-base --is-ancestor"):
             return 0, "", ""
         if line.startswith(wt + "rebase ") and "--abort" not in line:
@@ -269,3 +273,23 @@ def test_with_no_stack_named_or_a_pull_request_based_elsewhere_queued_merge_wait
 
     asked = [c for c in world.calls if "wait-ci.sh" in c or "pulls/7/merge" in c or "pr merge" in c]
     assert (bool(asked), world.stack_pushed()) == (True, [])
+
+
+def test_a_commit_pushed_to_origins_run_branch_before_the_join_is_never_force_pushed_away_exit_2_nothing_pushed(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, foreign=True).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, pushed(world), world.rebased, len(released(world))) == (2, [], [], 1), err
+
+
+def test_the_lease_is_pinned_once_to_the_run_branchs_pre_rebase_sha_even_when_the_join_starts_again(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, stack_pushes=(1, 0)).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    leases = [c.split()[4] for c in world.calls if "--force-with-lease" in c]
+    assert (code, leases) == (0, ["--force-with-lease=%s:%s" % (BRANCH, ORIGIN_SHA),
+                                  "--force-with-lease=%s:%s" % (BRANCH, REBASED)]), err
