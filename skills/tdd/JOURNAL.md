@@ -47,6 +47,7 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `revise` | `budget` whole | A verdict was REJECT and the step was redone: the `REVISE_BUDGET`. |
 | `skill-edit-no-author` | `unit` text | skill-edit-step.sh's first grading of a unit passed, so no author ran: the unit. |
 | `skill-repin` | `commit` sha | The skill pin was moved (`VERI_NEW_SKILL=1`, or a `release-issue.sh` release marker): the new commit. |
+| `snapshot-changed` | `path` text | At the conductor's exit, the run's skill snapshot no longer matched the digest recorded at extraction: the first file that differs, relative to the snapshot (`.` when the digest or the snapshot could not be read). |
 | `step-added` | `anchor` text; `added` whole | Steps were added to the ledger after `anchor`: how many. The conductor's mark carries both; add-ledger-step.sh also writes one line per inserted step, the step in the line's `step`, with neither (`anchor` and `added` absent). |
 | `step-done` | — | A step finished. |
 | `step-escalated` | `anchor` text; `at` one of over-budget | A step was escalated to a stronger model: the step, and where (`over-budget`; absent for a revise escalation). |
