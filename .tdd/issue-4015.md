@@ -7,4 +7,4 @@
 - [x] with an `effort=` line `grade_prose.signature` stamps unit text, rows, model and level; with none, today's value ⟦criterion 5⟧
 - [x] adding, changing or removing the `effort=` line makes `prose-owed.sh <repo-root>` print every listed unit and exit 1 ⟦criterion 6⟧
 - [x] `metrics.sh <n>` prints a `Gradings:` line: count, PASS, REJECT, summed `cost_usd`, efforts seen; none without a `grading` event ⟦criterion 4⟧
-- [ ] `skills/tdd/grader.conf` holds a comment naming the `effort=` line, its five levels and the re-grade it owes, and no `effort=` line ⟦criterion 9⟧ ⟦criterion 8⟧
+- [x] `skills/tdd/grader.conf` holds a comment naming the `effort=` line, its five levels and the re-grade it owes, and no `effort=` line ⟦criterion 9⟧ ⟦criterion 8⟧
