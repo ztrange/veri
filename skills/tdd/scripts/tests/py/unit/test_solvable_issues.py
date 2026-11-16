@@ -362,6 +362,51 @@ def test_main_takes_a_stranger_s_issue_carrying_the_label_veri_author_label_name
     assert capsys.readouterr().out == printed
 
 
+def adding(issue, *labels):
+    return dict(issue, labels=issue["labels"] + [{"name": label} for label in labels])
+
+
+def test_main_never_prints_a_stranger_s_priority_bug_and_prints_the_others_in_today_s_order_3977(
+        fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(fake_processes)
+    (tmp_path / "issues.json").write_text(json.dumps([
+        stranger(3, "priority", "bug"), opted_in(4), adding(opted_in(8), "bug"), adding(opted_in(9), "priority")]))
+    (tmp_path / "prs.json").write_text("[]")
+
+    code = solvable_issues.main([])
+
+    assert (code, capsys.readouterr().out) == (0, "9\n8\n4\n")
+
+
+def test_main_a_stranger_s_open_issue_still_blocks_the_issue_it_names_and_lends_it_its_band_3977(
+        fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
+    # Refusing one issue must never unblock another (AU4): #6 names #3 under Blocked by, #3 is open but refused; #3,
+    # a priority bug blocked by #12, still lifts #12 into the first band.
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(fake_processes)
+    refused = adding(dict(blocked_by(3, "#12"), author_association="NONE"), "priority", "bug")
+    (tmp_path / "issues.json").write_text(json.dumps([refused, blocked_by(6, "#3"), opted_in(10), opted_in(12)]))
+    (tmp_path / "prs.json").write_text("[]")
+
+    code = solvable_issues.main([])
+
+    out, err = capsys.readouterr()
+    assert (code, out, "#12 inherits priority bug from #3\n" in err) == (0, "12\n10\n", True)
+
+
+def test_main_exits_3_with_empty_stdout_when_every_otherwise_solvable_issue_is_refused_3977(
+        fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(fake_processes)
+    (tmp_path / "issues.json").write_text(json.dumps([stranger(3), stranger(4, "priority")]))
+    (tmp_path / "prs.json").write_text("[]")
+
+    code = solvable_issues.main([])
+
+    assert (code, capsys.readouterr().out) == (3, "")
+
+
 def test_main_refuses_an_empty_veri_author_label_with_2_and_refused_if_empty_s_line_3977(
         fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
     monkeypatch.setenv("VERI_AUTHOR_LABEL", "")
