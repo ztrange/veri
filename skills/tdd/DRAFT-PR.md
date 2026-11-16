@@ -28,7 +28,8 @@ Bash calls of their own:
 In a stacked run, `origin/<default>` in the step's rebases and in the regrade block's `git merge-base HEAD origin/<default>`
 means `origin/<stack>` (`rebase-onto-default.sh` already rebases onto it), so the run's diff never carries joined but
 unlanded commits. Sub-step 2 runs neither of its blocks: it runs these lines instead, each in a Bash call of its own, in
-this order, none reading a variable another line set. Any exit not named here **bails** with cause `no-verdict`.
+this order, none reading a variable another line set. Any exit not named here **bails** with cause `no-verdict`
+(`Read` `<base directory>/BAIL.md`).
 1. `gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'`: exit 0 printing a url is
    `<pr-url>`, `<pr-number>` its last path segment; printing nothing bails.
 2. `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>`: exit 0, go on.
