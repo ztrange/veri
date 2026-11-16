@@ -377,7 +377,8 @@ def main(argv):
             code, reason = surviving
     word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
     cause = ["cause=no-verdict"] if no_verdict else []
-    marked = mark(role, "verdict", "verdict=" + word, "reason=" + reason.split("\n", 1)[0], *cause)
+    check = named_check(launched.stdout) if words[0] == "green" else []
+    marked = mark(role, "verdict", "verdict=" + word, "reason=" + reason.split("\n", 1)[0], *cause, *check)
     if marked:
         return marked
     issue, step = tunables.read("VERI_ISSUE") or None, tunables.read("VERI_STEP") or None
@@ -392,6 +393,15 @@ def survivors(step):
     code, printed, err = replaces_case_survivors.survivors(step)
     sys.stderr.write(err)
     return (code, printed.rstrip("\n")) if code in (1, 2) else (0, "")
+
+
+CHECK_RE = re.compile(rb"^[ \t]*CHECK:[ \t]*(.*?)[ \t\r]*$", re.IGNORECASE | re.MULTILINE)
+
+
+def named_check(out):
+    """The `check=<n>` word for the reply's last `CHECK:` line when its value is one digit 1 to 5, else none."""
+    said = CHECK_RE.findall(out.replace(b"\0", b""))
+    return ["check=" + said[-1].decode()] if said and said[-1] in (b"1", b"2", b"3", b"4", b"5") else []
 
 
 def parse(out):
