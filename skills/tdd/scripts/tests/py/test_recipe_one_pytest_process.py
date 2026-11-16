@@ -344,3 +344,14 @@ def test_3340_criterion_4_an_unmarked_veri_case_that_spawns_git_named_in_tests_r
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode != 0, log.read_text().splitlines()) == (True, []), ran.stdout + ran.stderr
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit and make test started for real over a planted tree, VERI_PYCACHE naming an absent directory")
+def test_3966_make_unit_and_make_test_create_an_absent_prefix_with_mode_0700_and_run(tmp_path):
+    tree, log, cache = planted_tree(tmp_path), tmp_path / "ran.log", tmp_path / "cache"
+    unit = make(tree, log, "unit", VERI_PYCACHE=str(cache))
+    mode = cache.is_dir() and oct(os.lstat(cache).st_mode & 0o777)
+    full = make(tree, log, "test", VERI_PYCACHE=str(cache))
+    assert (unit[0], unit[1], mode) == (0, ["pytest small"], oct(0o700)), unit[2]
+    assert full[0] == 0, full[2]
