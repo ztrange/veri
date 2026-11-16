@@ -9,6 +9,7 @@ import sys
 import time
 
 import entry
+import event_table
 import github
 import tunables
 
@@ -204,6 +205,15 @@ def write_journal(top, context, text):
             sys.stderr.write("event: cannot write journal " + journal + "\n")
 
 
+def strict_refusal(args):
+    """Under VERI_EVENT_STRICT=1, why veri/event_table.py does not allow this event, or None."""
+    name = os.fsdecode(args[0])
+    if name not in event_table.EVENTS:
+        return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s, which veri/event_table.py does not hold; declare it with"
+                " the line  %s" % (name, event_table.declaring(name, None)))
+    return None
+
+
 def append(directory, context, event, fields=(), ts=None):
     args = [os.fsencode(event)] + [os.fsencode(field) for field in fields]
     context = {os.fsencode(key): os.fsencode(value) for key, value in context.items()}
@@ -215,6 +225,10 @@ def append(directory, context, event, fields=(), ts=None):
         if refusal:
             sys.stderr.buffer.write(refusal + b"\n")
             return 2
+    refusal = strict_refusal(args) if tunables.read("VERI_EVENT_STRICT") == "1" else None
+    if refusal:
+        sys.stderr.write(refusal + "\n")
+        return 2
     top = os.fspath(directory) or toplevel()
     tdd = os.path.join(top, ".tdd")
     os.makedirs(tdd, exist_ok=True)
