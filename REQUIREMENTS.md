@@ -81,6 +81,7 @@
 | CM157 | Where it describes the `hermetic_environment` fixture's `VERI_EVENT_STRICT=1`, the list of what a case's event write is refused for includes a value that breaks its key's declared format and an empty value where none is allowed. | A case author reading that sentence must know a format mismatch fails the case too, not only an undeclared name or key. |
 | CM166 | The model-knob invariant lists `VERI_MODEL_REVISE_GREEN` (the `revise-green` leaf only), narrower than `VERI_MODEL_REVISE`, so it wins over it for that leaf. (Invariants, model-knob bullet.) | Every model knob is listed where the others are; one leaf can be trialled on its own (PRD 024.6). |
 | CM158 | The invariant *A run executes one skill snapshot* says the snapshot is read-only and that a run stops, exit 2, when the snapshot changed since extraction. (`## Invariants worth not breaking`, *A run executes one skill snapshot*.) | An agent changing the snapshot code keeps both protections. |
+| CM167 | The *Testing idiom* paragraph that lists the leg's three refusals also says that any other error escaping the leg (one raised registering the leg or taking the full-run lock, among them) exits 2 with one stderr line naming it, never a traceback and exit 1. (Testing idiom, third paragraph, after the three refusals.) | The Makefile counts a leg's exit 1 as failed suites and passes only exit 2 through as no answer, so a run that could not start read as a red suite. |
 
 ## README.md
 

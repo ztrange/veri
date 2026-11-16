@@ -140,7 +140,8 @@ legs leave free (physical cores on macOS, the CPU-affinity count elsewhere), at 
 `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and a dead pid holds no share.
 `VERI_PYTEST_WORKERS=<n>` overrides both, used as given; `1` runs serially (#2053). Three refusals, exit 2 before any
 suite: pytest or pytest_timeout not importable (stderr names `make install-dev`), or Python
-older than the 3.12 floor.
+older than the 3.12 floor. Any other error escaping the leg (registering it, taking the full-run lock) is exit 2
+too, with one stderr line naming it, never a traceback and exit 1.
 
 At most one full `make test` runs per machine (#2195): a second waits, naming the holder's pid and working tree on stderr,
 before its suites start, so the wait counts toward no per-case timeout. The lock is an `flock` held for the whole run, so a dead
