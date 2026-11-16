@@ -283,3 +283,17 @@ def test_gate_20_a_snapshot_file_edited_since_its_digest_refuses_naming_it_with_
 
     assert shape(supervise.launch_plan(["develop-red", "true"])) == launch_refused(
         "develop-red", f"the skill snapshot {snapshot / 'scripts' / 'status.sh'} changed since extraction")
+
+
+@pytest.mark.parametrize("skipped", ["unpinned", "no-digest"])
+def test_gate_20_an_unpinned_run_or_one_with_no_recorded_digest_launches_from_an_edited_snapshot_3964(
+        tmp_path, work_tree, monkeypatch, fake_processes, skipped):
+    snapshot = snapshot_serving(tmp_path, monkeypatch, work_tree)
+    (snapshot / "scripts" / "status.sh").write_text("#!/bin/sh\necho edited\n")
+    if skipped == "unpinned":
+        monkeypatch.setenv("VERI_SKILL_UNPINNED", "1")
+    else:
+        (work_tree / ".tdd" / "issue-7-snapshot-digest").unlink()
+    fake_processes.answers({HEAD: (0, "abc\n", ""), TOP: (0, f"{work_tree}\n", "")})
+
+    assert isinstance(supervise.launch_plan(["develop-red", "true"]), supervise.Launch)

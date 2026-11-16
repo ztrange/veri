@@ -518,9 +518,10 @@ def not_a_number(var, value):
 def snapshot_change(issue):
     """Why a leaf of run <issue> may not launch from the skill snapshot supervise runs from, or None: the first
     file that differs from the digest recorded at extraction, or what could not be read. A skill that is no
-    snapshot, or a run with no recorded digest, is not checked."""
+    snapshot, an unpinned run (VERI_SKILL_UNPINNED=1) or a run with no recorded digest is not checked."""
     snapshot = os.path.dirname(HERE)
-    if not issue or not os.path.lexists(os.path.join(snapshot, pinned_scripts.SNAPSHOT_MARKER)):
+    if not issue or tunables.read("VERI_SKILL_UNPINNED") == "1" \
+            or not os.path.lexists(os.path.join(snapshot, pinned_scripts.SNAPSHOT_MARKER)):
         return None
     try:
         recorded = run_pins.snapshot_digest(issue, run_dir.main_tree_from_files())
