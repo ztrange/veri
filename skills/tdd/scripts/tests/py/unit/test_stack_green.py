@@ -37,14 +37,14 @@ class World:
     """The stack's span as stack_branch.ahead answers it, each sha's check runs as github.check_runs answers them, and
     every sha read."""
 
-    def __init__(self, monkeypatch, stack_green, subjects, runs, span=None):
+    def __init__(self, monkeypatch, stack_green, subjects, runs, span="commits"):
         self.read = []
         commits = [(sha(n + 1), subject) for n, subject in enumerate(subjects)]
 
         def ahead(root):
             if isinstance(span, BaseException):
                 raise span
-            return ("stack", "trunk", commits) if span is None else span
+            return ("stack", "trunk", commits) if span == "commits" else span
 
         def check_runs(commit):
             self.read.append(commit)
@@ -95,6 +95,23 @@ def test_exits_3_with_one_stderr_line_when_no_commit_qualifies_a_run_in_progress
     assert (code, out, len(world.read), err.count("\n"), err.startswith("stack-green: ")) == (3, "", reads, 1, True), err
     assert stack_green.ENDS_READ == 20
     assert ("20" in err) == (len(subjects) > 20)
+
+
+@pytest.mark.parametrize("given, said", [
+    ("no answer", "the check runs of %s: HTTP 502" % sha(2)),
+    ("refused", "CLAUDE.md: the line names the default branch"),
+    ("unnamed", "names no stack branch"),
+])
+def test_exits_2_with_one_stderr_line_when_github_gives_no_answer_or_stack_branch_does_not_exit_0(
+        monkeypatch, run_cli, stack_green, given, said):
+    runs = {sha(2): stack_green.github.NoAnswer("", "the check runs of %s: HTTP 502" % sha(2)), sha(1): [OK]}
+    span = {"no answer": "commits", "unnamed": None,
+            "refused": stack_green.stack_branch.Refused("CLAUDE.md: the line names the default branch")}[given]
+    World(monkeypatch, stack_green, ["feat: a (#1)", "feat: b (#2)"], runs, span=span)
+
+    code, out, err = run_cli(stack_green, [])
+
+    assert (code, out, err.count("\n"), err.startswith("stack-green: "), said in err) == (2, "", 1, True, True), err
 
 
 def test_issue_ends_over_300_commits_reads_each_subject_once(stack_green):
