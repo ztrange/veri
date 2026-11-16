@@ -510,3 +510,39 @@ def test_main_with_only_veri_model_set_prints_veri_model_for_an_adjudicate_leaf(
     code = leaf_model.main(["adjudicate-ci-timeout"])
     captured = capsys.readouterr()
     assert (code, captured.out) == (0, "haiku\n")
+
+
+OTHER_MODEL_KNOBS = {"VERI_MODEL": "m-all", "VERI_MODEL_DEVELOPER": "m-dev", "VERI_MODEL_REVISE": "m-rev"}
+EVERY_LEAF_KIND = ("revise-green", "revise-green-2", "revise-red", "revise-refactor", "develop-exhausted",
+                   "develop-green", "verify-green", "adjudicate-ci-timeout")
+
+
+def test_4012_veri_model_revise_green_moves_the_revise_green_leaves_only_and_unset_or_blank_moves_none(
+        capsys, monkeypatch, leaf_model):
+    def printed(knobs):
+        for variable in MODEL_VARIABLES + ("VERI_MODEL_REVISE", "VERI_MODEL_REVISE_GREEN"):
+            monkeypatch.delenv(variable, raising=False)
+        for variable, value in knobs.items():
+            monkeypatch.setenv(variable, value)
+        answers = {}
+        for leaf in EVERY_LEAF_KIND:
+            code = leaf_model.main([leaf])
+            answers[leaf] = (code, capsys.readouterr().out)
+        return answers
+
+    for others in ({}, OTHER_MODEL_KNOBS):
+        today = printed(others)
+        with_knob = printed(dict(others, VERI_MODEL_REVISE_GREEN="m-green"))
+        assert {leaf: answer for leaf, answer in with_knob.items() if answer != today[leaf]} == {
+            "revise-green": (0, "m-green\n"), "revise-green-2": (0, "m-green\n")}
+        for blank in ("", "  "):
+            assert printed(dict(others, VERI_MODEL_REVISE_GREEN=blank)) == today
+
+
+def test_4012_a_veri_model_revise_green_holding_whitespace_is_refused_with_exit_2_for_a_revise_green_leaf(
+        capsys, monkeypatch, leaf_model):
+    monkeypatch.setenv("VERI_MODEL_REVISE_GREEN", "son net")
+    code = leaf_model.main(["revise-green"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (
+        2, "", "leaf-model: model 'son net' contains whitespace (a model id or alias is one word)\n")
