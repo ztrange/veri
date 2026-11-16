@@ -931,6 +931,22 @@ def test_main_on_a_fresh_launch_with_skip_verify_green_and_refactor_writes_the_l
     assert (skip.read_text() if skip.is_file() else None) == "green,refactor\n"
 
 
+def test_main_on_a_fresh_launch_with_skip_verify_red_writes_the_list_red_to_the_skip_verify_file_3936(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.setenv("VERI_SKIP_VERIFY", "red")
+    scratch_tmpdir(tmp_path, monkeypatch)
+    commit = "1" * 40
+    fake_pin(monkeypatch, commit, {commit + "^{commit}"})
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+    skip = tmp_path / ".tdd" / "issue-4242-skip-verify"
+    assert (skip.read_text() if skip.is_file() else None) == "red\n"
+
+
 def test_main_on_a_fresh_launch_with_skip_verify_unset_writes_an_empty_skip_verify_file(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
