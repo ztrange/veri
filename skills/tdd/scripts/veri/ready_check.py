@@ -138,8 +138,13 @@ def token_scopes_row():
 
 
 def selection_label_row(name):
-    answered = gh("api", f"repos/{{owner}}/{{repo}}/labels/{name}").returncode == 0
-    return f"label {name}", None if answered else f"gh label create {name}"
+    path = f"repos/{{owner}}/{{repo}}/labels/{name}"
+    answered = gh("api", path)
+    if answered.returncode == 0:
+        return f"label {name}", None
+    if "HTTP 404" in (answered.stderr or ""):
+        return f"label {name}", f"gh label create {name}"
+    return f"label {name}", f"no answer was obtained (gh api {path} exited {answered.returncode})"
 
 
 def priority_label_row():
