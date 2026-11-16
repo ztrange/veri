@@ -262,6 +262,18 @@ def test_main_remove_deletes_the_snapshot_veri_made_for_the_worktree_once_the_wo
     assert (code, err, snapshot.exists()) == (0, "", False)
 
 
+def test_main_remove_deletes_a_read_only_snapshot_veri_made_for_the_worktree_leaving_no_file_of_it_3963(fake_processes,
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", run_worktree_of(tmp_path))
+    (snapshot / "scripts").mkdir()
+    (snapshot / "scripts" / "status.sh").write_text("#!/bin/sh\n")
+    importlib.import_module("veri.pinned_scripts").make_read_only(str(snapshot))
+
+    code, err = remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, str(snapshot))
+
+    assert (code, err, os.path.lexists(snapshot)) == (0, "", False)
+
+
 def refusal_of(tmp_path, snapshot):
     return "issue-worktree: %s is not a snapshot veri made for %s — left in place\n" % (
         snapshot, run_worktree_of(tmp_path))
