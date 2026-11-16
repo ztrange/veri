@@ -93,6 +93,7 @@ Run with `make test TESTS="skills/tdd/scripts/tests/py/<file> ..."`.
 | `test_fast_tier_guard.py` (with `fast_tier_guard.py`) | placement: a file the guard names stays out of `unit/`, a clean one lives in it |
 | `unit/test_process_mark.py`, `unit/test_conftest_guards.py`, `case_size_guards` | marks carry their argument; an unmarked case starts no process, lists no repo directory, reads no process listing; exemption tables carry reasons |
 | `unit/test_local_process_fakes.py` | no new file installs its own fake on `subprocess` |
+| `unit/test_local_git_helpers.py` | no new test file defines a module-level `git`/`_git`; new cases use `repo_builder.git` |
 | `unit/test_git_callers.py` | no new `veri/` module starts git other than through `veri/git.py`; `MODULES_RUNNING_GIT_DIRECTLY` only shrinks |
 | `unit/test_tree_index_guard.py` | a `tree_audit` case reads test files and `veri/` through `tests_py_index` / `veri_modules_index`, never `rglob` or its own `ast.walk` |
 | `unit/test_module_importers.py` | every helper module here has an importer besides its own suite |
