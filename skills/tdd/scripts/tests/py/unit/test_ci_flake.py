@@ -33,3 +33,17 @@ def test_4018_reads_the_targets_of_a_gh_prefixed_failed_log_and_runs_each_once_a
     run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path)], cwd=tmp_path)
 
     assert fake.argvs == [["sh", "-c", ALONE, "sh", target] for target in TARGETS]
+
+
+@pytest.mark.parametrize("log, alone", [
+    (PREFIX % 0 + "##[error]Process completed with exit code 2.\n", []),
+    (RED_LOG, [(0, "", ""), (1, "", "")]),
+], ids=["no-target", "one-target-stays-red"])
+def test_4018_exits_1_writing_no_event_and_making_no_re_run_when_the_log_names_no_target_or_one_stays_red_alone(
+        tmp_path, run_cli, fake_processes, ci_flake, log, alone):
+    fake = fake_processes.answers({"sh -c": alone, "gh": (0, "", "")})
+
+    code, out, _ = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path, log)], cwd=tmp_path)
+
+    assert (code, out, [c for c in fake.calls if c.startswith("gh")]) == (1, "", [])
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
