@@ -17,28 +17,7 @@ MARKERS = (
     "next-phase", "--phase-owed", "--phase <phase>", "production-frozen.sh", "no-product-caller.sh",
 )
 
-ALLOWED = {
-    "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
-        "document-wide site list",
-    "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852":
-        "document-wide site list",
-    "unit/test_skill_event_files.py::test_every_line_sending_the_run_to_stopping_points_at_stopping_md_1716":
-        "document-wide site list",
-    "unit/test_skill_event_files.py::test_the_guard_reports_no_misplaced_bail_pointer_in_the_real_skill_md_2075":
-        "document-wide site list",
-    "unit/test_skill_event_files.py::test_the_guard_reports_no_unpointed_send_in_the_real_skill_md_2075":
-        "document-wide site list",
-    "unit/test_skill_event_files.py::test_the_send_scoped_placement_check_finds_no_misplaced_pointer_in_skill_md_or_any_event_file_2339":
-        "document-wide site list",
-    "test_skill_leaf_launch.py": "launch lines are Launching a leaf instances",
-    "test_skill_leaf_env.py": "launch lines are Launching a leaf instances",
-    "test_ledger_steps.py": "script suite", "test_tick_ledger.py": "script suite", "test_next_unchecked.py": "script suite",
-    "test_transform_touches_tests_process.py": "script suite", "test_production_frozen_process.py": "script suite",
-    "test_no_product_caller_process.py": "script suite", "test_tests_frozen_process.py": "script suite",
-    "test_suite_reported_process.py": "script suite", "test_prompt_test_tiers.py": "script suite",
-    "test_build_develop_prompt.py": "script suite", "test_build_verify_prompt.py": "script suite",
-    "unit/test_metrics.py": "the phases fixtures",
-}
+ALLOWED = {}
 
 
 SPEC = subsection_readers.Subsection(HEADING, MARKERS, PREFIX)
@@ -61,10 +40,17 @@ def stray_cases(entries, allowed):
     return subsection_readers.stray_cases(entries, allowed, SPEC, subsection, rest, TESTS_PY, __file__, _other_docs())
 
 
+def lost_cases(entries, allowed):
+    subsection, rest = _subsection_and_rest()
+    return subsection_readers.lost_cases(entries, allowed, SPEC, subsection, rest, TESTS_PY, __file__, _other_docs())
+
+
 @pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
 def test_every_remaining_case_reading_the_phases_step_subsection_by_its_content_is_on_the_mechanical_allow_list(tests_py_index):
     stray = stray_cases(tests_py_index, ALLOWED)
     assert stray == [], "cases read the phased-step subsection by content and are neither mechanical nor allow-listed:\n" + "\n".join(stray)
+    lost = lost_cases(tests_py_index, ALLOWED)
+    assert lost == [], "allow-listed entries no longer read the phased-step subsection:\n" + "\n".join(lost)
 
 
 def test_2220_sweep_flags_a_case_reading_the_phases_step_subsection_until_it_is_on_the_allow_list(tmp_path, monkeypatch):
