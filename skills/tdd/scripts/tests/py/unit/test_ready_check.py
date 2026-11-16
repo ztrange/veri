@@ -142,6 +142,14 @@ def test_issue_4089_the_label_bug_row_is_ok_when_it_answers_and_fails_on_404_wit
     assert ready_check.bug_label_row() == ("label bug", "gh label create bug")
 
 
+def test_issue_4089_a_label_row_whose_call_fails_other_than_404_says_no_answer_was_obtained_not_gh_label_create(ready_check, fake_processes):
+    fake_processes.answers({"gh api repos/{owner}/{repo}/labels/bug": (1, "", "gh: Bad Gateway (HTTP 502)\n")}, exact=True)
+
+    name, fix = ready_check.bug_label_row()
+
+    assert name == "label bug" and fix.startswith("no answer was obtained") and "gh label create" not in fix, fix
+
+
 ACTIONS_RUNS = "gh api repos/{owner}/{repo}/actions/runs?per_page=1"
 WITH_WORKFLOWS = {"git symbolic-ref": (0, "origin/main\n", ""), "git ls-tree": (0, ".github/workflows/ci.yml\n", "")}
 
