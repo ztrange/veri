@@ -14,6 +14,6 @@
 - [x] a git ls-files that fails makes the plan phase exit 2, not an empty section ⟦criterion 5⟧
 - [x] a touching test file that is a symbolic link is skipped, never followed
 - [x] a tracked test-looking file the reader cannot read or cut, or in a language it does not read, gets one '<file>: cases not readable' line within the cap, and the section never then says no case touches a named file
-- [ ] within the cap, files touching a file a step names by its full path come first, then by number of hits, then alphabetically ⟦criterion 3⟧
+- [x] within the cap, files touching a file a step names by its full path come first, then by number of hits, then alphabetically ⟦criterion 3⟧
 - [x] prompts/verify-plan.md explains the section and tells the verifier, in the older-cases check, to read those cases in the repository and apply the check to them ⟦skill-edit⟧ ⟦criterion 7⟧
 - [x] SCRIPTS.md's build-verify-prompt.sh entry states the plan phase's touching cases, the matching rules, and VERI_PLAN_TOUCHING_CASES with its default ⟦skill-edit⟧ ⟦criterion 8⟧

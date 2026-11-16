@@ -104,23 +104,34 @@ NONE_READ = ("No case name could be read from the test files touching the files 
              "read these in the repository:")
 
 
-def _touching_names(path, stems):
-    """The case names of the test file at `path` when it holds one of `stems` as a whole word, `-` read as `_`; else
-    []. UNREADABLE for a file that cannot be read, or that touches one and whose cases cannot be cut: a call that never
-    closes, or a test-looking file in a language the reader does not read."""
+def _hits(stems, text):
+    return sum(len(re.findall(r"(?<!\w)" + re.escape(stem) + r"(?!\w)", text)) for stem in stems)
+
+
+def _touching_names(path, stems, full_stems):
+    """((rank, names) for the test file at `path`: names [] unless it holds one of `stems` as a whole word, `-` read as
+    `_`, and UNREADABLE for a file that cannot be read, or that touches one and whose cases cannot be cut: a call that
+    never closes, or a test-looking file in a language the reader does not read. The rank puts first a file holding
+    a stem of a path a step gives in full, then the one with more hits."""
     try:
         with open(path, "rb") as handle:
-            text = handle.read().decode(errors="replace")
+            text = handle.read().decode(errors="replace").replace("-", "_")
     except OSError:
-        return UNREADABLE
-    if not any(re.search(r"(?<!\w)" + re.escape(stem) + r"(?!\w)", text.replace("-", "_")) for stem in stems):
-        return []
+        return (1, 0), UNREADABLE
+    hits = _hits(stems, text)
+    rank = (0 if _hits(full_stems, text) else 1, -hits)
+    if not hits:
+        return rank, []
     if not READ_LANGUAGES.search(path):
-        return UNREADABLE if TEST_LOOKING.search(os.path.basename(path)) else []
+        return rank, UNREADABLE if TEST_LOOKING.search(os.path.basename(path)) else []
     try:
-        return [name for name, _ in case_reader.cut_cases(text)]
+        return rank, [name for name, _ in case_reader.cut_cases(text)]
     except case_reader.UnclosedCase:
-        return UNREADABLE
+        return rank, UNREADABLE
+
+
+def _stem(path):
+    return os.path.splitext(os.path.basename(path))[0].replace("-", "_")
 
 
 def _touching_cases(ledger):
@@ -128,12 +139,14 @@ def _touching_cases(ledger):
     files = list(_tree_files())
     words = {word.rstrip(".") for step in ledger_steps(_read(ledger).decode(errors="replace"))
              for word in re.findall(r"[\w./-]+", step.text)}
-    named = [path for path in files if path in words or os.path.basename(path) in words]
-    stems = {os.path.splitext(os.path.basename(path))[0].replace("-", "_") for path in named}
+    stems = {_stem(path) for path in files if path in words or os.path.basename(path) in words}
+    full_stems = {_stem(path) for path in files if path in words}
+    candidates = [path for path in files if stems and case_reader.is_test_path(path) and not os.path.islink(path)]
+    ranked = sorted(((*_touching_names(path, stems, full_stems), path) for path in candidates),
+                    key=lambda found: (found[0], found[2]))
     lines, more, unread_more, room = [], [], 0, int(tunables.get("VERI_PLAN_TOUCHING_CASES"))
     read_any = False
-    for path in (path for path in files if stems and case_reader.is_test_path(path) and not os.path.islink(path)):
-        names = _touching_names(path, stems)
+    for _, names, path in ranked:
         if names == UNREADABLE:
             if room > 0:
                 lines.append(f"{path}: cases not readable")
