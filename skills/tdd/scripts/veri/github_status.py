@@ -115,7 +115,7 @@ def wait(read_once, max_seconds, poll):
         else:
             if answered[0] == 0:
                 return answered
-        sleep(poll)
+        sleep(min(poll, max(0, (deadline - now()).total_seconds())))
         if now() >= deadline:
             if answered is None:
                 return entry.refuse("github-status.sh: wait: no read got an answer in %s s" % max_seconds), []
