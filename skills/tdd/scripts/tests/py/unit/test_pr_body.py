@@ -90,6 +90,18 @@ def test_main_on_a_body_with_no_run_part_writes_the_file_as_the_run_part_so_the_
     assert "ready" not in second[0]
 
 
+def test_main_writes_the_body_redacted_a_token_and_a_listed_value_replaced_issue_3968(run_cli, pr_body, fake_processes, tmp_path, monkeypatch):
+    monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
+    token = "github_pat_" + "FAKEfake0123" * 2 + "_" + "FAKEfake0123" * 5
+    written = fake_gh_pr_body(fake_processes, "")
+    body_file = tmp_path / "body.md"
+    body_file.write_text("step 3 FAIL_OUTPUT: %s fake-gh-token-value" % token)
+
+    code, out, err = run_cli(pr_body, ["42", str(body_file)])
+
+    assert (code, written) == (0, ["%s\nstep 3 FAIL_OUTPUT: [redacted] [redacted]\n%s" % (BEGIN, END)]), err
+
+
 def test_main_when_the_current_body_cannot_be_read_exits_2_naming_the_pr_and_writes_nothing_3453(run_cli, pr_body, fake_processes, tmp_path):
     fake = fake_processes.answers({"gh": (1, "", "HTTP 502")})
     body_file = tmp_path / "body.md"
