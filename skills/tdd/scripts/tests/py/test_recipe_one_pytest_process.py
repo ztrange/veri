@@ -415,3 +415,29 @@ def test_3966_a_prefix_that_is_a_regular_file_makes_make_unit_and_make_test_exit
     cache.write_text("")
     cache.chmod(0o600)
     assert refusals_of_unit_and_test(tmp_path, cache) == [refusal(cache, "it is not a directory")] * 2
+
+
+def closed_cache_under(tmp_path, parent_mode):
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    cache = parent / "cache"
+    cache.mkdir()
+    cache.chmod(0o700)
+    parent.chmod(parent_mode)
+    return cache
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit and make test started for real over a planted tree, VERI_PYCACHE in a parent others can write, no sticky bit")
+def test_3966_a_closed_prefix_whose_parent_others_can_write_without_the_sticky_bit_makes_make_unit_and_make_test_exit_2(tmp_path):
+    cache = closed_cache_under(tmp_path, 0o777)
+    assert refusals_of_unit_and_test(tmp_path, cache) == [
+        refusal(cache, "its parent is group- or other-writable without the sticky bit")] * 2
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit started for real over a planted tree, VERI_PYCACHE in a parent writable by all with the sticky bit, as /tmp")
+def test_3966_a_closed_prefix_whose_parent_is_writable_by_all_with_the_sticky_bit_as_tmp_is_used(tmp_path):
+    tree, log, cache = planted_tree(tmp_path), tmp_path / "ran.log", closed_cache_under(tmp_path, 0o1777)
+    code, ran, output = make(tree, log, "unit", VERI_PYCACHE=str(cache))
+    assert (code, ran) == (0, ["pytest small"]), output
