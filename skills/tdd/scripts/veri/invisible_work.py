@@ -83,7 +83,7 @@ def main(argv):
         issues_text = gh_json("issues.json", "repos/{owner}/{repo}/issues?state=all&per_page=100",
                               "issue", "list", "--state", "all", "--limit", "10000",
                               "--json", "number,state")
-        prs_text = open_pulls_text("headRefName,state", state="all")
+        prs_text = open_pulls_text("headRefName,headRefOid,state", state="all")
     except (NoAnswer, OSError):
         print("invisible-work.sh: cannot read issues and PRs from gh (unauthenticated?)",
               file=sys.stderr)
@@ -103,7 +103,7 @@ def report(branches, locals_, issues_text, prs_text):
     issues = {i["number"]: i["state"].upper() for i in items(issues_text)}
     prs = pulls_in(prs_text)
     with_pr = {p.head_ref for p in prs}
-    decided = {p.head_ref for p in prs if p.state in ("MERGED", "CLOSED")}
+    decided = {(p.head_ref, p.head_sha) for p in prs if p.state in ("MERGED", "CLOSED")}
     findings = []
 
     for name, tip, ahead in branches:
@@ -118,7 +118,7 @@ def report(branches, locals_, issues_text, prs_text):
         findings.append(finding)
 
     for name, tip, lacks, worktree in locals_:
-        if name in decided:
+        if (name, tip) in decided:
             continue
         finding = f"invariant 1 (not on origin): {name} tip {tip} {lacks} commits origin lacks"
         if worktree:

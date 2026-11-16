@@ -125,7 +125,7 @@ def test_main_reads_issues_and_prs_from_veri_gh_json_or_from_gh_list_falling_bac
     issues_rest = "repos/{owner}/{repo}/issues?state=all&per_page=100&page="
     pulls_rest = "repos/{owner}/{repo}/pulls?state=all&per_page=100&page="
     issue_list = ["gh", "issue", "list", "--state", "all", "--limit", "10000", "--json", "number,state"]
-    pr_list = ["gh", "pr", "list", "--state", "all", "--limit", "10000", "--json", "headRefName,state"]
+    pr_list = ["gh", "pr", "list", "--state", "all", "--limit", "10000", "--json", "headRefName,headRefOid,state"]
     git_answers = sweep_answers(
         "refs/remotes/origin/HEAD 1111\nrefs/remotes/origin/main 1111\n"
         "refs/remotes/origin/tdd/007-x aaaa\n",
@@ -234,8 +234,8 @@ def test_main_keeps_the_report_rules_of_the_embedded_program_and_raises_on_a_mal
     (tmp_path / "prs.json").write_text(
         '[{"head": {"ref": "closed-pr"}, "state": "closed"},'
         ' {"headRefName": "merged-pr", "state": "MERGED"},'
-        ' {"head": {"ref": "done"}, "state": "closed"},'
-        ' {"headRefName": "gone", "state": "MERGED"}]')
+        ' {"head": {"ref": "done", "sha": "9999"}, "state": "closed"},'
+        ' {"headRefName": "gone", "headRefOid": "8888", "state": "MERGED"}]')
     swept = invisible_work.main([])
     swept_out = capsys.readouterr()
 
@@ -359,8 +359,8 @@ def test_main_reports_the_branches_on_origin_with_no_pr_and_the_local_branches_o
         ' {"headRefName": "chore/pushed-already", "state": "OPEN", "body": ""},'
         ' {"headRefName": "tdd/4-supervised-leaves", "state": "MERGED", "body": "Closes #4"},'
         ' {"headRefName": "chore/test-runner", "state": "CLOSED", "body": ""},'
-        ' {"headRefName": "tdd/5-merged-and-pruned", "state": "MERGED", "body": "Closes #5"},'
-        ' {"headRefName": "chore/closed-and-pruned", "state": "CLOSED", "body": ""},'
+        ' {"headRefName": "tdd/5-merged-and-pruned", "headRefOid": "e005", "state": "MERGED", "body": "Closes #5"},'
+        ' {"headRefName": "chore/closed-and-pruned", "headRefOid": "eeee", "state": "CLOSED", "body": ""},'
         ' {"headRefName": "tdd/150-a-run-whose-pr-is-still-open", "state": "OPEN", "body": "Closes #150"}]')
     remote = {
         "HEAD": "1111", "main": "1111",
@@ -491,3 +491,18 @@ def test_main_prints_the_same_report_and_exit_code_for_issue_and_pr_documents_ov
     assert small == (
         0, "invariant 2 (no PR): tdd/71-version-the-commentary tip a71a 2 commits ahead, issue #71 OPEN\n", "")
     assert large == small
+
+
+def test_a_local_branch_not_on_origin_whose_name_a_closed_pr_used_with_a_tip_past_that_prs_head_is_reported_under_invariant_1_3992(
+        monkeypatch, tmp_path, run_cli, fake_processes):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    (tmp_path / "issues.json").write_text("[]")
+    (tmp_path / "prs.json").write_text(
+        '[{"headRefName": "tdd/9-reused", "headRefOid": "a9a9", "state": "CLOSED", "body": ""}]')
+    fake_processes(origin_answer({"HEAD": "1111", "main": "1111"}, {},
+                                 {"main": ("1111", 0), "tdd/9-reused": ("b9b9", 2)}))
+
+    code, out, err = run_cli(invisible_work, [], env={"VERI_GH_JSON": str(tmp_path)})
+
+    assert (code, out, err) == (0, "invariant 1 (not on origin): tdd/9-reused tip b9b9 2 commits origin lacks\n", "")
