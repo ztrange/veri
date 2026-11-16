@@ -29,6 +29,15 @@ def test_the_carried_journal_keeps_the_issues_lines_and_those_naming_no_issue_as
     assert [json.loads(line) for line in carried] == lines[:3]
 
 
+def test_the_ref_carries_only_what_a_reader_restores_the_journal_lines_and_the_skill_pin_not_the_timeout_pin(tmp_path, run_records):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text('{"issue": "7", "event": "start"}\n')
+    (tmp_path / ".tdd" / "issue-7-skill-commit").write_text("abc1234\n")
+    (tmp_path / ".tdd" / "issue-7-timeout").write_text("3600\n")
+
+    assert sorted(run_records.records(str(tmp_path), "7")) == ["events.jsonl", "issue-7-skill-commit"]
+
+
 def test_a_records_push_and_fetch_that_never_answer_end_after_veri_git_network_timeout_as_no_answer_on_one_stderr_line(
         tmp_path, monkeypatch, capsys, fake_processes, run_records):
     monkeypatch.chdir(tmp_path)

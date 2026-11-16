@@ -7,6 +7,6 @@
 - [x] the records push and fetch end after `VERI_GIT_NETWORK_TIMEOUT` seconds: a timeout is one stderr line and no answer, never a hang ⟦criterion 1⟧
 - [x] any exception from the pointer update or the records push leaves `push-branch.sh`'s exit code unchanged ⟦criterion 1⟧
 - [x] the carried journal keeps lines naming no issue, as the report counts them ⟦criterion 1⟧
-- [ ] the ref carries only what a reader restores: the issue's journal lines and the skill pin, not the timeout pin ⟦criterion 1⟧
+- [x] the ref carries only what a reader restores: the issue's journal lines and the skill pin, not the timeout pin ⟦criterion 1⟧
 - [ ] `run-conductor.sh` honours a carried skill pin only when it is an ancestor of the skill clone's origin default branch, else names it on stderr and pins fresh ⟦criterion 4⟧
 - [ ] `release-issue.sh` deletes origin's `refs/veri/runs/<n>` once the run is released; a failure is one stderr line, never fatal ⟦criterion 2⟧
