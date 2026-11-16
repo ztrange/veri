@@ -13,7 +13,7 @@ def test_main_exits_2_with_one_stderr_line_naming_the_step_when_its_case_names_a
     step = (
         "- [x] tests/py/test_tick_ledger.py calls veri.tick_ledger.main(argv) for a ticked step, an unmatched matcher "
         "and `[]` and asserts return codes 0, 3 and 2 — every exit inside 0–3: replaces the tick-ledger.sh half of the "
-        "foreign ledger-transform code case in skills/tdd/scripts/tests/tick-ledger.test.sh, the "
+        "foreign ledger-transform code case in skills/tdd/scripts/tests/tick-ledger.py, the "
         "clear-refactor-pending.sh case staying with its assertion unmodified ⟦replaces-case⟧ ⟦criterion 3⟧"
     )
     report = tmp_path / "report.txt"
@@ -31,7 +31,7 @@ def test_main_exits_2_with_one_stderr_line_naming_the_step_when_its_case_names_a
 def test_main_exits_0_with_nothing_on_stdout_when_the_mark_is_only_in_the_prose_1538(tmp_path, run_cli, unreplaced):
     step = (
         "- [ ] a guard that reads ⟦replaces-case⟧ only among a step's trailing marks and "
-        "replaces 'first case', 'second case' in skills/tdd/scripts/tests/some.test.sh ⟦criterion 2⟧"
+        "replaces 'first case', 'second case' in skills/tdd/scripts/tests/some.py ⟦criterion 2⟧"
     )
     report = tmp_path / "report.txt"
     report.write_text("")
@@ -42,7 +42,7 @@ def test_main_exits_0_with_nothing_on_stdout_when_the_mark_is_only_in_the_prose_
     assert out == ""
 
 
-THREE = "- [ ] x: replaces 'first case', 'second case', 'third case' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+THREE = "- [ ] x: replaces 'first case', 'second case', 'third case' in scripts/tests/x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
 THREE_TESTS = "def test_first():\n    pass\n\n\ndef test_second():\n    pass\n\n\ndef test_third():\n    pass\n"
 
 
@@ -89,7 +89,7 @@ def test_step_naming_three_cases_and_a_report_replacing_all_three_prints_nothing
 
 def test_main_exits_0_with_nothing_on_stdout_when_the_replacement_is_a_parametrized_case_1826(tmp_path, run_cli, unreplaced):
     step = (
-        "- [x] a port replaces 'first case' in skills/tdd/scripts/tests/some.test.sh "
+        "- [x] a port replaces 'first case' in skills/tdd/scripts/tests/some.py "
         "⟦replaces-case⟧ ⟦criterion 1⟧"
     )
     (tmp_path / "test_x.py").write_text("def test_x(case):\n    assert case\n")
@@ -103,7 +103,7 @@ def test_main_exits_0_with_nothing_on_stdout_when_the_replacement_is_a_parametri
 
 def test_main_exits_1_printing_the_case_when_a_parametrized_replacement_names_a_def_absent_from_its_file_1826(tmp_path, run_cli, unreplaced):
     step = (
-        "- [x] a port replaces 'first case' in skills/tdd/scripts/tests/some.test.sh "
+        "- [x] a port replaces 'first case' in skills/tdd/scripts/tests/some.py "
         "⟦replaces-case⟧ ⟦criterion 2⟧"
     )
     (tmp_path / "test_x.py").write_text("def test_other(case):\n    assert case\n")
@@ -117,7 +117,7 @@ def test_main_exits_1_printing_the_case_when_a_parametrized_replacement_names_a_
 
 def test_main_exits_1_printing_the_case_when_an_unparametrized_replacement_names_a_def_absent_from_its_file_1826(tmp_path, run_cli, unreplaced):
     step = (
-        "- [x] a port replaces 'first case' in skills/tdd/scripts/tests/some.test.sh "
+        "- [x] a port replaces 'first case' in skills/tdd/scripts/tests/some.py "
         "⟦replaces-case⟧ ⟦criterion 2⟧"
     )
     (tmp_path / "test_x.py").write_text("def test_other(case):\n    assert case\n")
@@ -130,7 +130,7 @@ def test_main_exits_1_printing_the_case_when_an_unparametrized_replacement_names
 
 
 def test_replaces_line_naming_a_test_absent_from_the_tree_stays_printed_1521(tmp_path, run_cli, unreplaced):
-    step = "- [ ] x: replaces 'first case', 'second case' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+    step = "- [ ] x: replaces 'first case', 'second case' in scripts/tests/x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
     code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
         "REPLACES: first case => tests/py/test_x.py::test_first",
         "REPLACES: second case => tests/py/test_x.py::test_second",
@@ -149,7 +149,7 @@ def test_step_naming_three_cases_and_a_report_replacing_the_second_and_third_pri
 
 
 def test_replaces_claim_written_in_the_working_tree_in_an_existing_file_counts_1521(tmp_path, run_cli, unreplaced):
-    step = "- [ ] x: replaces 'first case', 'second case' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+    step = "- [ ] x: replaces 'first case', 'second case' in scripts/tests/x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
     code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
         "REPLACES: first case => tests/py/test_x.py::test_first",
         "REPLACES: second case => tests/py/test_x.py::test_second",
@@ -159,7 +159,7 @@ def test_replaces_claim_written_in_the_working_tree_in_an_existing_file_counts_1
 
 
 def test_replaces_claim_naming_a_test_file_missing_from_the_working_tree_stays_printed_1521(tmp_path, run_cli, unreplaced):
-    step = "- [ ] x: replaces 'first case' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+    step = "- [ ] x: replaces 'first case' in scripts/tests/x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
     code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
         "REPLACES: first case => tests/py/test_missing.py::test_first",
     ], {})
@@ -175,7 +175,7 @@ def test_step_naming_the_mark_but_carrying_no_replaces_clause_prints_no_case_160
 
 
 def test_replaces_line_wrapped_in_the_steps_backticks_counts_1600(tmp_path, run_cli, unreplaced):
-    step = "- [ ] x: replaces `first case` in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+    step = "- [ ] x: replaces `first case` in scripts/tests/x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
     code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
         "REPLACES: `first case` => tests/py/test_x.py::test_a",
     ], {"tests/py/test_x.py": "def test_a():\n    pass\n"})
@@ -184,7 +184,7 @@ def test_replaces_line_wrapped_in_the_steps_backticks_counts_1600(tmp_path, run_
 
 
 def test_replaces_line_wrapped_in_the_steps_double_quotes_counts_1600(tmp_path, run_cli, unreplaced):
-    step = "- [ ] x: replaces \"it's a case\" in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+    step = "- [ ] x: replaces \"it's a case\" in scripts/tests/x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
     code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
         "REPLACES: \"it's a case\" => tests/py/test_x.py::test_a",
     ], {"tests/py/test_x.py": "def test_a():\n    pass\n"})
@@ -193,7 +193,7 @@ def test_replaces_line_wrapped_in_the_steps_double_quotes_counts_1600(tmp_path, 
 
 
 TEST_A = {"tests/py/test_x.py": "def test_a():\n    pass\n"}
-TAIL = " in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+TAIL = " in scripts/tests/x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
 
 
 def test_replaces_line_with_a_bare_name_holding_both_quote_characters_counts_1600(tmp_path, run_cli, unreplaced):
@@ -303,7 +303,7 @@ def test_two_reports_each_replacing_one_case_count_both_as_replaced_1625(tmp_pat
 
 
 PY_UNIT = "skills/tdd/scripts/tests/py/unit"
-BARE_TAIL = " in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 3⟧"
+BARE_TAIL = " in scripts/tests/x.py ⟦replaces-case⟧ ⟦criterion 3⟧"
 
 
 def test_replaces_line_with_a_markdown_bullet_in_front_counts_like_the_same_line_without_it_1660(tmp_path, run_cli, unreplaced):
@@ -392,7 +392,7 @@ def refuses_with_one_line_naming(tmp_path, run_cli, step, fragment):
 def test_both_scripts_exit_2_naming_the_step_when_an_unquoted_name_follows_a_quoted_one_1538(tmp_path, run_cli):
     refuses_with_one_line_naming(
         tmp_path, run_cli,
-        "- [ ] x: replaces 'a', b in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 5⟧",
+        "- [ ] x: replaces 'a', b in t/x.py ⟦replaces-case⟧ ⟦criterion 5⟧",
         "replaces 'a', b in t/x",
     )
 
@@ -400,7 +400,7 @@ def test_both_scripts_exit_2_naming_the_step_when_an_unquoted_name_follows_a_quo
 def test_both_scripts_exit_2_naming_the_step_when_a_quoted_name_is_followed_by_a_parenthetical_1538(tmp_path, run_cli):
     refuses_with_one_line_naming(
         tmp_path, run_cli,
-        "- [ ] x: replaces 'a' (from #12) in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 5⟧",
+        "- [ ] x: replaces 'a' (from #12) in t/x.py ⟦replaces-case⟧ ⟦criterion 5⟧",
         "replaces 'a' (from #12) in t/x",
     )
 
@@ -419,7 +419,7 @@ def test_unreplaced_cases_exits_2_naming_the_step_and_the_suite_when_the_suite_i
 
 
 def test_unreplaced_cases_exits_2_with_one_stderr_line_naming_the_step_when_the_clause_mixes_quoted_and_unquoted_names_1882(tmp_path, run_cli, unreplaced):
-    step = "- [ ] x: replaces 'a', b, 'c' in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+    step = "- [ ] x: replaces 'a', b, 'c' in t/x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
     report = tmp_path / "report.txt"
     report.write_text("")
 

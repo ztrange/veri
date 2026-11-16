@@ -5,7 +5,7 @@ import importlib
 def test_parse_1521_yields_exactly_the_names_and_suite_each_replaces_case_step_carries():
     replaces_case = importlib.import_module("veri.replaces_case")
     mark = " ⟦replaces-case⟧ ⟦criterion 1⟧"
-    suite = "skills/tdd/scripts/tests/supervise.test.sh"
+    suite = "skills/tdd/scripts/tests/supervise.py"
     apostrophe = "#472: supervise.sh's header names the watchdog's clock source and why it pauses"
     in_name = "#512: case 50's slept-through leaf stays suspended and reports status 0 with secs in the awake range"
     comma_a = "#1126 a writer in a conductor's group ends 143, never 141 of SIGPIPE"
@@ -21,8 +21,8 @@ def test_parse_1521_yields_exactly_the_names_and_suite_each_replaces_case_step_c
          [apostrophe, in_name], suite),
         (f"- [x] backticks: replaces `{apostrophe}`, `{in_name}` in {suite}{mark}",
          [apostrophe, in_name], suite),
-        (f"- [x] deleted suite: replaces '{in_name}' in skills/tdd/scripts/tests/deleted-suite.test.sh{mark}",
-         [in_name], "skills/tdd/scripts/tests/deleted-suite.test.sh"),
+        (f"- [x] deleted suite: replaces '{in_name}' in skills/tdd/scripts/tests/deleted-suite.py{mark}",
+         [in_name], "skills/tdd/scripts/tests/deleted-suite.py"),
     ]
 
     parsed = [replaces_case.parse(step) for step, _, _ in fixtures]
@@ -32,14 +32,14 @@ def test_parse_1521_yields_exactly_the_names_and_suite_each_replaces_case_step_c
 
 def test_parse_1954_returns_none_for_a_name_left_holding_a_quote_then_a_separator():
     replaces_case = importlib.import_module("veri.replaces_case")
-    step = "- [x] a mixed clause: replaces 'a', b' in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+    step = "- [x] a mixed clause: replaces 'a', b' in t/x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
 
     assert replaces_case.parse(step) is None
 
 
 def test_parse_1954_returns_none_for_a_name_left_holding_a_separator_then_a_quote():
     replaces_case = importlib.import_module("veri.replaces_case")
-    step = "- [x] a mixed clause: replaces 'a, 'b' in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+    step = "- [x] a mixed clause: replaces 'a, 'b' in t/x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
 
     assert replaces_case.parse(step) is None
 
