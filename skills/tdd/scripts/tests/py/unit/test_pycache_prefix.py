@@ -49,3 +49,9 @@ def test_3965_a_group_writable_veri_pycache_directory_is_refused_and_no_prefix_s
     monkeypatch.setenv("VERI_PYCACHE", str(cache_with_mode(tmp_path, 0o770)))
 
     assert run_prefix() is None
+
+
+def test_3965_an_other_writable_veri_pycache_directory_is_refused_and_no_prefix_set(run_prefix, monkeypatch, tmp_path):
+    monkeypatch.setenv("VERI_PYCACHE", str(cache_with_mode(tmp_path, 0o707)))
+
+    assert run_prefix() is None

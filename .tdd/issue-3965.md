@@ -2,7 +2,7 @@
 
 - [x] `pycache_prefix.py` creates an absent prefix directory with mode `0700` and uses it ⟦criterion 1⟧
 - [x] it sets no prefix when the `VERI_PYCACHE` directory is group-writable ⟦criterion 2⟧
-- [ ] it sets no prefix when the `VERI_PYCACHE` directory is other-writable ⟦criterion 2⟧
+- [x] it sets no prefix when the `VERI_PYCACHE` directory is other-writable ⟦criterion 2⟧
 - [ ] it sets no prefix when the `VERI_PYCACHE` path is a symlink to a directory of the user's own ⟦criterion 2⟧
 - [ ] it sets no prefix when the `VERI_PYCACHE` directory is owned by another user ⟦criterion 2⟧
 - [ ] it sets no prefix when the default `${TMPDIR}/veri-pycache-<uid>` directory is group-writable ⟦criterion 2⟧

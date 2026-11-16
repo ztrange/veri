@@ -13,6 +13,8 @@ def refusal(prefix):
     mode = os.lstat(prefix).st_mode
     if mode & stat.S_IWGRP:
         return "it is group-writable"
+    if mode & stat.S_IWOTH:
+        return "it is other-writable"
     return None
 
 
