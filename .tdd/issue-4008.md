@@ -4,4 +4,4 @@
 - [x] the reason verify.sh prints for a green verdict holds no `CHECK:` line ⟦criterion 2⟧
 - [x] the `#### Green rejects` table has a `check` column, empty for an event with no `check` field ⟦criterion 3⟧
 - [x] under the table, a line `Green rejects by check: <n> <count>, …, unnamed <count>` ⟦criterion 3⟧
-- [ ] `prompts/verify-green.md` tells the verifier, on a REJECT, to put one `CHECK: <n>` line before `VERDICT:`, the lowest-numbered failed check ⟦criterion 4⟧
+- [x] `prompts/verify-green.md` tells the verifier, on a REJECT, to put one `CHECK: <n>` line before `VERDICT:`, the lowest-numbered failed check ⟦criterion 4⟧
