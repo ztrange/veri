@@ -720,3 +720,247 @@ def test_check_earlier_exits_1_when_the_case_body_is_edited_after_a_successful_r
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[0]
 
     assert (first[0], _skip_lines(first[2], "suite_test.go TestOne"), checked) == (0, 0, 1)
+
+
+MOVED_SUITE = "tests/unit/test_suite.py"
+MOVED_RENAMED = "tests/unit/test_suite_moved.py"
+MOVING = "tests/test_moved.py"
+MOVED = "tests/unit/test_moved.py"
+GONE = "tests/test_gone.py"
+OLDER_TESTS = "tests/test_older.py"
+RED = "tests/test_red.py"
+GUARD_BAK = "projects/x/tests/test_guard.py.bak"
+
+
+def _moving_based(root, fed_commits):
+    """root holding tests/unit/ and .tdd/, the suite holding OLDER committed as "base"; returns the fed_commits log."""
+    (root / "tests/unit").mkdir(parents=True)
+    (root / ".tdd").mkdir()
+    (root / SUITE).write_text(OLDER)
+    repo = fed_commits(root=root)
+    repo.add("tests")
+    repo.commit("base")
+    return repo
+
+
+def test_check_earlier_exits_1_naming_a_case_whose_test_file_was_git_mv_ed_with_its_assertion_changed_in_the_move_3284(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = _moving_based(tmp_path, fed_commits)
+    earlier, current = "step one adds a case", "step two adds another"
+    (tmp_path / SUITE).write_text(OLDER + "\n\ndef test_pinned_3284():\n    assert 1 == 1\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, SUITE], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    repo.mv(SUITE, MOVED_SUITE)
+    (tmp_path / MOVED_SUITE).write_text(OLDER + "\n\ndef test_pinned_3284():\n    assert 1 == 2\n")
+    repo.add("tests")
+    repo.commit("move")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (1, "test_pinned_3284 (%s)\n" % earlier)
+
+
+def test_check_earlier_exits_0_for_a_case_whose_test_file_was_git_mv_ed_with_its_body_identical_3284(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = _moving_based(tmp_path, fed_commits)
+    earlier, current = "step one adds a case", "step two adds another"
+    (tmp_path / SUITE).write_text(OLDER + "\n\ndef test_pinned_3284():\n    assert 1 == 1\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, SUITE], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    repo.mv(SUITE, MOVED_SUITE)
+    repo.add("tests")
+    repo.commit("move")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+def test_check_earlier_matches_a_moved_file_only_to_a_visible_copy_holding_the_case_3284(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    (tmp_path / "tests/unit").mkdir(parents=True)
+    (tmp_path / ".hidden").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    moved = "def test_moved_3284():\n    assert 1 == 1\n"
+    gone = "def test_gone_3284():\n    assert 2 == 2\n"
+    (tmp_path / OLDER_TESTS).write_text(OLDER)
+    repo = fed_commits()
+    repo.add("tests")
+    repo.commit("base")
+    earlier, current = "step one adds two cases", "step two adds another"
+    (tmp_path / MOVING).write_text(moved)
+    (tmp_path / GONE).write_text(gone)
+    run_cli(tests_frozen, ["record", "--step", earlier, MOVING, GONE], cwd=tmp_path)
+    repo.add("tests")
+    repo.commit("freeze")
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    repo.mv(MOVING, MOVED)
+    (tmp_path / GONE).unlink()
+    repo.add(GONE)
+    repo.commit("move and delete")
+    (tmp_path / "test_moved.py").write_text("def test_unrelated():\n    assert True\n")
+    (tmp_path / ".hidden/test_gone.py").write_text(gone)
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (1, "test_gone_3284 (%s)\n" % earlier)
+
+
+def test_check_earlier_exits_0_for_a_case_whose_test_file_was_git_mv_ed_to_a_different_basename_3284(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = _moving_based(tmp_path, fed_commits)
+    earlier, current = "step one adds a case", "step two adds another"
+    (tmp_path / SUITE).write_text(OLDER + "\n\ndef test_pinned_3284():\n    assert 1 == 1\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, SUITE], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    repo.mv(SUITE, MOVED_RENAMED)
+    repo.add("tests")
+    repo.commit("move")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+def test_check_earlier_exits_0_for_a_moved_case_whose_only_change_is_its_parents_root_lookup_3284(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = _moving_based(tmp_path, fed_commits)
+    earlier, current = "step one adds a case", "step two adds another"
+    case = "def test_roots_3284():\n    root = Path(__file__).parents[4]\n    assert root.name\n"
+    (tmp_path / SUITE).write_text(OLDER + "\n\n" + case)
+    run_cli(tests_frozen, ["record", "--step", earlier, SUITE], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    repo.mv(SUITE, MOVED_SUITE)
+    (tmp_path / MOVED_SUITE).write_text(OLDER + "\n\n" + case.replace("parents[4]", "parents[5]"))
+    repo.add("tests")
+    repo.commit("move")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+def test_3434_check_earlier_exits_0_with_except_for_a_rewritten_rerouted_case_and_1_without_it(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / SUITE).write_text("def test_base():\n    assert True\n")
+    repo = fed_commits()
+    repo.add("tests")
+    repo.commit("base")
+    earlier, current = "step one adds cases", "step two adds another"
+    (tmp_path / SUITE).write_text(
+        "def test_base():\n    assert True\n\n\n"
+        "def test_rerouted_3434():\n    assert 1 == 2\n\n\n"
+        "def test_other_3434():\n    assert 1 == 3\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, SUITE], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / SUITE).write_text(
+        "def test_base():\n    assert True\n\n\n"
+        "def test_rerouted_3434():\n    assert True\n\n\n"
+        "def test_other_3434():\n    assert 1 == 3\n")
+    argv = ["check-earlier", str(ledger), "--step", current]
+
+    with_except = run_cli(tests_frozen, argv + ["--except", "test_rerouted_3434"], cwd=tmp_path)
+    without_except = run_cli(tests_frozen, argv, cwd=tmp_path)
+    (tmp_path / SUITE).write_text(
+        "def test_base():\n    assert True\n\n\n"
+        "def test_rerouted_3434():\n    assert True\n\n\n"
+        "def test_other_3434():\n    assert True\n")
+    other_edited = run_cli(tests_frozen, argv + ["--except", "test_rerouted_3434"], cwd=tmp_path)
+
+    assert [with_except[:2], without_except[:2], other_edited[:2]] == [
+        (0, ""), (1, "test_rerouted_3434 (%s)\n" % earlier), (1, "test_other_3434 (%s)\n" % earlier)]
+
+
+def test_check_earlier_exits_0_for_a_later_step_changing_a_non_red_case_in_an_earlier_steps_guard_subject_and_1_naming_its_red_case_3443(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / RED).write_text("def test_older_red():\n    assert True\n")
+    (tmp_path / GUARD).write_text("def test_guarded():\n    assert True, 'a'\n")
+    repo = fed_commits()
+    repo.add("tests")
+    repo.commit("base")
+    earlier, current = "step one ⟦guard-subject: %s⟧" % GUARD, "step two"
+    (tmp_path / RED).write_text(
+        "def test_older_red():\n    assert True\n\n\ndef test_pinned_3443():\n    assert 1 == 2\n")
+    (tmp_path / GUARD).write_text("def test_guarded():\n    assert True, 'b'\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, RED], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / GUARD).write_text("def test_guarded():\n    assert True, 'c'\n")
+    argv = ["check-earlier", str(ledger), "--step", current]
+
+    guard_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+    (tmp_path / RED).write_text(
+        "def test_older_red():\n    assert True\n\n\ndef test_pinned_3443():\n    assert True\n")
+    red_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+
+    assert [guard_changed[:2], red_changed[:2]] == [
+        (0, ""), (1, "test_pinned_3443 (%s)\n" % earlier)]
+
+
+def test_check_earlier_exempts_a_guard_subjects_non_red_case_but_not_a_non_subject_whose_path_it_ends_with_3485(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "projects/x/tests").mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / GUARD_ELSEWHERE).write_text("def test_subject_case():\n    assert True, 'a'\n")
+    (tmp_path / GUARD).write_text("def test_other_case():\n    assert True, 'a'\n")
+    (tmp_path / GUARD_BAK).write_text("def test_bak_case():\n    assert True, 'a'\n")
+    repo = fed_commits()
+    repo.add("tests", "projects")
+    repo.commit("base")
+    earlier, current = "step one ⟦guard-subject: %s⟧" % GUARD_ELSEWHERE, "step two"
+    (tmp_path / GUARD_ELSEWHERE).write_text(
+        "def test_subject_case():\n    assert True, 'b'\n\n\ndef test_red_3485():\n    assert 1 == 2\n")
+    (tmp_path / GUARD).write_text("def test_other_case():\n    assert True, 'b'\n")
+    (tmp_path / GUARD_BAK).write_text("def test_bak_case():\n    assert True, 'b'\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, GUARD_ELSEWHERE, GUARD_BAK], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    argv = ["check-earlier", str(ledger), "--step", current]
+    (tmp_path / GUARD_ELSEWHERE).write_text(
+        "def test_subject_case():\n    assert True, 'c'\n\n\ndef test_red_3485():\n    assert 1 == 2\n")
+
+    subject_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+    (tmp_path / GUARD).write_text("def test_other_case():\n    assert True, 'c'\n")
+    other_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+
+    (tmp_path / GUARD).write_text("def test_other_case():\n    assert True, 'b'\n")
+    (tmp_path / GUARD_BAK).write_text("def test_bak_case():\n    assert True, 'c'\n")
+    prefixed_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+
+    recorded_changed = run_cli(tests_frozen, ["check", "--step", earlier], cwd=tmp_path)
+
+    assert [subject_changed[:2], other_changed[:2], prefixed_changed[:2],
+            "projects/x/tests/test_guard.py.bak" in recorded_changed[1].splitlines()] == [
+        (0, ""), (1, "test_other_case (%s)\n" % earlier), (1, "test_bak_case (%s)\n" % earlier), True]
+
+
+def test_check_earlier_exits_1_naming_an_edited_case_a_replaces_case_marker_naming_another_case_of_the_same_pytest_file_does_not_3624(
+        tmp_path, run_cli, tests_frozen, based):
+    earlier = "step one adds cases"
+    (tmp_path / SUITE).write_text(
+        OLDER + "\n\n"
+        "def test_named_3624():\n    assert 1 == 2\n\n\n"
+        "def test_unnamed_3624():\n    assert 1 == 3\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, SUITE], cwd=tmp_path)
+    (tmp_path / SUITE).write_text(
+        OLDER + "\n\n"
+        "def test_named_3624():\n    assert 1 == 2\n\n\n"
+        "def test_unnamed_3624():\n    assert True\n")
+    current = "reverses it, replaces 'test_named_3624' in %s ⟦replaces-case⟧" % SUITE
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (1, "test_unnamed_3624 (%s)\n" % earlier)
