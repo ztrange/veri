@@ -9,6 +9,7 @@ import time
 import pytest
 
 from conftest import SCRIPTS
+from process_fakes import HANGS
 
 
 @pytest.fixture
@@ -1237,9 +1238,10 @@ def test_every_gh_process_and_the_git_ls_remote_against_a_process_that_never_ret
         "gh api rate_limit --jq .resources.core.reset": never_returns,
         pull + " --jq .head.sha": [(0, "b" * 40 + "\n", ""), (0, head + "\n", "")],
         pull + " --jq .head.ref": (0, "br\n", ""),
-        "git ls-remote origin refs/heads/br": never_returns,
+        "git ls-remote origin refs/heads/br": HANGS,
         "gh api -X POST repos/{owner}/{repo}/pulls/12/ccr/ready_for_review": (0, "", ""),
     }, exact=True)
+    monkeypatch.setattr(os, "killpg", lambda group, sig: [c.send_signal(sig) for c in fake.popens if c.pid == group])
 
     run = github.run_gh("api", "x", stderr=subprocess.PIPE)
     probe = github.gh_probe("pr", "view", "1")
@@ -1252,7 +1254,39 @@ def test_every_gh_process_and_the_git_ls_remote_against_a_process_that_never_ret
     assert (probe.returncode != 0, probe.stderr) == (True, "gh pr view 1: no answer after 7s (VERI_GH_TIMEOUT)\n")
     assert (reset, reset_err) == (None, "gh api rate_limit --jq .resources.core.reset: no answer after 7s (VERI_GH_TIMEOUT)\n")
     assert ready_err == "git ls-remote origin refs/heads/br: no answer after 7s (VERI_GH_TIMEOUT)\n"
-    assert {kwargs.get("timeout") for _, kwargs in fake.seen} == {7}
+    assert {kwargs.get("timeout") for argv, kwargs in fake.seen if argv[0] == "gh"} == {7}
+
+
+def test_a_git_ls_remote_that_never_returns_is_started_in_its_own_session_and_its_whole_process_group_killed_at_veri_gh_timeout_3983(
+        fake_processes, monkeypatch, capsys, tmp_path, github):
+    """ssh under a git ls-remote outlives a kill of git alone; the group kill takes it too."""
+    monkeypatch.chdir(tmp_path)
+    fake_clock(monkeypatch)
+    monkeypatch.setenv("VERI_GH_TIMEOUT", "7")
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    head = "a" * 40
+    pull = "gh api repos/{owner}/{repo}/pulls/12"
+    fake = fake_processes.answers({
+        pull + " --jq .head.sha": [(0, "b" * 40 + "\n", ""), (0, head + "\n", "")],
+        pull + " --jq .head.ref": (0, "br\n", ""),
+        "git ls-remote origin refs/heads/br": HANGS,
+        "gh api -X POST repos/{owner}/{repo}/pulls/12/ccr/ready_for_review": (0, "", ""),
+    }, exact=True)
+    killed = []
+
+    def killpg(group, sig):
+        killed.append((group, sig))
+        for child in fake.popens:
+            if child.pid == group:
+                child.send_signal(sig)
+
+    monkeypatch.setattr(os, "killpg", killpg)
+
+    github.gh_pr_ready("12", head)
+
+    started = [kwargs for argv, kwargs in fake.seen if argv[0] == "git"]
+    assert (killed, [kwargs.get("start_new_session") for kwargs in started], capsys.readouterr().err) == (
+        [(4242, 9)], [True], "git ls-remote origin refs/heads/br: no answer after 7s (VERI_GH_TIMEOUT)\n")
 
 
 def test_pr_ready_sh_with_a_veri_gh_timeout_that_is_not_a_whole_number_of_at_least_1_exits_2_with_one_line_naming_it_and_starts_no_gh_3983(

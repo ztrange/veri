@@ -8,9 +8,11 @@ variable and the value. Operations with no GraphQL route (issue edit and create,
 gh_rest_list, gh_json and gh_json_page with no gh args) use REST under every value, and VERI_GH_JSON takes
 precedence over it. A Claude Code cloud session, where GraphQL is refused, needs nothing set.
 """
+import contextlib
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -81,14 +83,35 @@ def bounded(argv, run=None, **kwargs):
     try:
         return (run or subprocess.run)(argv, timeout=limit, **kwargs)
     except subprocess.TimeoutExpired:
-        said = "%s: no answer after %ds (VERI_GH_TIMEOUT)\n" % (" ".join(argv), limit)
-        stdout = "" if kwargs.get("capture_output") or kwargs.get("stdout") == subprocess.PIPE else None
-        if kwargs.get("stderr") == subprocess.STDOUT:
-            return subprocess.CompletedProcess(argv, 124, said, None)
-        if kwargs.get("capture_output") or kwargs.get("stderr") == subprocess.PIPE:
-            return subprocess.CompletedProcess(argv, 124, stdout, said)
-        sys.stderr.write(said)
-        return subprocess.CompletedProcess(argv, 124, stdout, None)
+        return _timed_out(argv, limit, kwargs)
+
+
+def bounded_group(argv, **kwargs):
+    """bounded, for a child that starts children of its own (git over ssh): it runs in a session of its own, and at
+    VERI_GH_TIMEOUT its whole process group is killed, so no ssh outlives it. Same exit 124 and line."""
+    limit = wait_seconds("VERI_GH_TIMEOUT", 1)
+    with subprocess.Popen(argv, start_new_session=True, **kwargs) as child:
+        try:
+            out, err = child.communicate(timeout=limit)
+        except subprocess.TimeoutExpired:
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(child.pid, signal.SIGKILL)
+            child.communicate()
+            return _timed_out(argv, limit, kwargs)
+    return subprocess.CompletedProcess(argv, child.returncode, out, err)
+
+
+def _timed_out(argv, limit, kwargs):
+    """The failed call a timed-out <argv> is answered as: exit 124, with a line naming the command and the limit on
+    the stream the caller captures (written to ours when it captures none)."""
+    said = "%s: no answer after %ds (VERI_GH_TIMEOUT)\n" % (" ".join(argv), limit)
+    stdout = "" if kwargs.get("capture_output") or kwargs.get("stdout") == subprocess.PIPE else None
+    if kwargs.get("stderr") == subprocess.STDOUT:
+        return subprocess.CompletedProcess(argv, 124, said, None)
+    if kwargs.get("capture_output") or kwargs.get("stderr") == subprocess.PIPE:
+        return subprocess.CompletedProcess(argv, 124, stdout, said)
+    sys.stderr.write(said)
+    return subprocess.CompletedProcess(argv, 124, stdout, None)
 
 
 def run_gh(*args, stderr=None):
@@ -522,8 +545,8 @@ def _retry_refused(call, stream):
 def _refuse_unpushed(number, head_sha):
     ref = run_gh("api", "%s/%s" % (_PULLS, number), "--jq", ".head.ref")
     branch = ref.stdout.rstrip("\n")
-    listed = bounded(["git", "ls-remote", "origin", "refs/heads/" + branch],
-                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    listed = bounded_group(["git", "ls-remote", "origin", "refs/heads/" + branch],
+                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     fields = listed.stdout.split()
     if not fields or fields[0] == head_sha:
         return
