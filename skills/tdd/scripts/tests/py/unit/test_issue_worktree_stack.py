@@ -112,3 +112,16 @@ def test_a_refused_or_unanswered_push_of_the_stack_exits_2_with_no_branch_and_no
 
     out, err = capsys.readouterr()
     assert (code, out, added(fake), "stack" in err) == (2, "", [], True)
+
+
+def test_a_push_refused_because_another_machine_created_the_stack_fetches_it_and_cuts_from_it(
+        fake_processes, tmp_path, capsys, issue_worktree):
+    origin = Origin(stack=False, push=(1, "", " ! [rejected] stack (fetch first)\n"), created_meanwhile=True)
+    fake, path = stacked_world(fake_processes, tmp_path, origin)
+
+    code = issue_worktree.main(["7", "slug"])
+
+    after_push = fake.calls[fake.calls.index("git push origin refs/remotes/origin/trunk:refs/heads/stack") + 1:]
+    assert (code, capsys.readouterr().out, after_push[-2:]) == (0, path + "\n", [
+        "git fetch -q origin +refs/heads/stack:refs/remotes/origin/stack",
+        "git worktree add -q --no-track -b tdd/7-slug %s origin/stack" % path])

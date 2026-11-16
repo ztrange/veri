@@ -4,7 +4,7 @@
 - [x] issue-worktree.sh cuts a new run's branch from origin/<stack> as just fetched where a stack branch is named ⟦criterion 2⟧
 - [x] with no <stack> on origin, issue-worktree.sh first pushes it at the default branch's tip, never forced, then cuts from it ⟦criterion 3⟧
 - [x] a refused or unanswered push of the stack exits 2 with no branch and no worktree made ⟦criterion 3⟧
-- [ ] a push refused because the stack now exists on origin is followed by a fetch and the cut from origin/<stack>, exit 0 ⟦criterion 3⟧
+- [x] a push refused because the stack now exists on origin is followed by a fetch and the cut from origin/<stack>, exit 0 ⟦criterion 3⟧
 - [ ] rebase-onto-default.sh, with and without --graded-only, rebases onto origin/<stack> where a stack branch is named, exit 3 when the branch already contains it ⟦criterion 4⟧
 - [ ] where no stack branch is named, issue-worktree.sh and rebase-onto-default.sh push no branch to origin ⟦criterion 5⟧
 - [ ] SKILL.md step 2.3 opens the draft PR against the stack branch where one is named and defines the run's base once (PL71, GD17), within its byte ceiling, graded ⟦criterion 6⟧
