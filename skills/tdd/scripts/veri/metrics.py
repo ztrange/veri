@@ -33,6 +33,8 @@ import sys
 import run_dir
 import run_end
 import run_pins
+import run_records
+import tempfile
 import tunables
 
 from event_log import read_events
@@ -981,8 +983,27 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     issue = argv[0]
-    report(issue, ".tdd/events.jsonl", run_dir.ledger(".", issue), stream=sys.stdout)
+    events = ".tdd/events.jsonl"
+    carried = None if has_events(events, issue) else run_records.read(issue, "events.jsonl", ".")
+    if not carried:
+        report(issue, events, run_dir.ledger(".", issue), stream=sys.stdout)
+        return 0
+    with tempfile.TemporaryDirectory() as elsewhere:
+        os.mkdir(os.path.join(elsewhere, ".tdd"))
+        fetched = os.path.join(elsewhere, events)
+        with open(fetched, "w", encoding="utf-8") as f:
+            f.write(carried)
+        report(issue, fetched, run_dir.ledger(".", issue), stream=sys.stdout)
     return 0
+
+
+def has_events(path, issue):
+    """Whether the journal at <path> holds an event of <issue>, or one naming no issue (an event written with no run
+    context belongs to the run whose journal holds it); False when it is missing."""
+    try:
+        return any(str(mark.get("issue") or issue) == issue for mark in read_events(path, skip_unreadable=True))
+    except FileNotFoundError:
+        return False
 
 
 if __name__ == "__main__":

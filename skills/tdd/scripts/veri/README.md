@@ -340,6 +340,7 @@ The pin files a launch records under `.tdd/` as `issue-<n>-<name>`; each pin's w
 A run's records on origin's `refs/veri/runs/<n>`: a commit with no parent holding `.tdd/events.jsonl` (the issue's lines only), `.tdd/issue-<n>-skill-commit` and `.tdd/issue-<n>-timeout`, each pin read from the run, else from the main tree it sits under. git errors raise `git.GitFailed`.
 - `after_push()`: pushes the records of the issue the current branch `tdd/<n>-<slug>` names, replacing the ref; nothing on another branch; a failure is one stderr line, never raised.
 - `delete(issue, cwd)`: deletes the ref on origin; a ref origin lacks counts as deleted.
+- `read(issue, name, cwd)`: the text of `.tdd/<name>` in origin's ref, fetched into the clone at `cwd` under the same ref; `None` when origin, the ref or the file is missing.
 
 ## run_end
 - `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events.
