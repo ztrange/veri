@@ -1,6 +1,7 @@
 """In-process cases for veri/verify.py, the module verify.sh is a shim over."""
 import importlib
 import io
+import json
 import os
 import pathlib
 import re
@@ -177,7 +178,8 @@ def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flag
     assert supervised == [([os.path.join(scripts, "supervise.sh"), "verify-green",
                             os.path.join(scripts, "run-leaf.sh"), ".tdd/verify-green.prompt",
                             "--permission-mode", "bypassPermissions",
-                            "--disallowedTools", "Write", "Edit", "MultiEdit", "NotebookEdit"],
+                            "--disallowedTools", "Write", "Edit", "MultiEdit", "NotebookEdit",
+                            "--settings", json.dumps({"hooks": verify.WRITE_BAN})],
                            None, subprocess.PIPE)]
     forbidden = {"parse-verdict.sh", "leaf-role.sh", "leaf-model.sh"}
     assert [words for words, _, _ in started

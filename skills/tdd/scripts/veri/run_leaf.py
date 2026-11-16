@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
 import entry
+import json
 import leaf_timeout
 import os
 import paths
@@ -53,9 +54,25 @@ def top_level(directory):
         directory = parent
 
 
+def callers_settings(extra):
+    """`(settings, rest)`: the JSON object of a `--settings <json>` pair in the caller's arguments, merged into the
+    leaf's own one `--settings` since the CLI keeps only one, and the arguments without that pair; `(None, extra)`
+    when they hold none whose value is a JSON object."""
+    for at, word in enumerate(extra[:-1]):
+        if word == "--settings":
+            try:
+                settings = json.loads(extra[at + 1])
+            except ValueError:
+                continue
+            if isinstance(settings, dict):
+                return settings, extra[:at] + extra[at + 2:]
+    return None, extra
+
+
 def leaf_argv(binary, model, extra, excludes=()):
+    settings, extra = callers_settings(extra)
     argv = [binary, "-p",
-            "--output-format", "stream-json", "--verbose"] + context_limits(excludes)
+            "--output-format", "stream-json", "--verbose"] + context_limits(excludes, settings)
     tools = tunables.read("VERI_LEAF_TOOLS", DEFAULT_TOOLS)
     if tools is not None and "--tools" not in extra:
         argv += ["--tools", tools]

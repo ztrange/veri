@@ -1,6 +1,9 @@
 """In-process cases for run_leaf.launch_spec: what a leaf is launched with, decided without a pipe or a process."""
 import importlib
+import json
 import os
+import shlex
+import sys
 
 import pytest
 
@@ -113,3 +116,27 @@ def test_launch_spec_passes_every_other_variable_through_and_leaves_the_incoming
     before = dict(held)
     _, env = spec(run_leaf, held, coerce_marker="1")
     assert env["VERI_TEST_CMD"] == "make" and held == before
+
+
+def leaf_settings(argv):
+    """Every --settings value of a leaf's argv, parsed."""
+    return [json.loads(argv[at + 1]) for at, word in enumerate(argv) if word == "--settings"]
+
+
+def test_a_verify_leaf_has_one_settings_carrying_the_write_ban_pre_tool_use_hook_and_a_develop_or_revise_leaf_has_none(run_leaf):
+    verify = importlib.import_module("veri.verify")
+    ban = os.path.join(os.path.dirname(os.path.abspath(verify.__file__)), "verifier_write_ban.py")
+    develop, _ = spec(run_leaf, model="sonnet", extra=["--permission-mode", "bypassPermissions"])
+    verifier, _ = spec(run_leaf, model="sonnet", extra=verify.leaf_args(None))
+
+    [settings] = leaf_settings(verifier)
+    [developer] = leaf_settings(develop)
+    assert settings.pop("hooks", None) == {"PreToolUse": [{"matcher": "Write|Edit|MultiEdit|NotebookEdit", "hooks": [
+        {"type": "command", "command": shlex.join([sys.executable, ban])}]}]}
+    assert (settings, "hooks" in developer) == (developer, False)
+
+
+@pytest.mark.parametrize("value", ["/etc/leaf-settings.json", "[1]", "{not json"])
+def test_a_callers_settings_that_is_not_a_json_object_stays_in_its_arguments_as_given(run_leaf, value):
+    argv, _ = spec(run_leaf, extra=["--settings", value, "--x"])
+    assert argv[-3:] == ["--settings", value, "--x"] and leaf_settings(argv[:-3])[0].get("hooks") is None
