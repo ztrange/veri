@@ -208,6 +208,15 @@ def test_wait_whose_reads_all_find_a_counting_incident_until_max_seconds_pass_ex
     assert page.read_at == [NOW + datetime.timedelta(seconds=s) for s in (0, 300, 600, 900)]
 
 
+def test_wait_never_sleeps_past_max_seconds_when_the_poll_is_longer_than_what_is_left(page, run_cli):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests"))
+
+    code, _, _ = run_cli(page.module, ["wait", "5"])
+
+    assert code == 3
+    assert page.sleeps == [5]
+
+
 def test_wait_whose_reads_all_get_no_answer_until_max_seconds_pass_exits_2(page, run_cli):
     page.serve(status=503)
 
