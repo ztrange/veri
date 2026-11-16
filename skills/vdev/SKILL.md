@@ -228,6 +228,9 @@ the job, briefed to return at most 10 lines and to read the skill at
   any output as dirt.
 - No concurrent background jobs that share a scratch file.
 - Every command reads stdin from `/dev/null`.
+- Every command runs with `$VERI_VENV/bin` (default `~/.veri-tools/venv/bin`) first on PATH, set
+  in that same call, since calls share no shell state:
+  `PATH="${VERI_VENV:-$HOME/.veri-tools/venv}/bin:$PATH" make unit`.
 - Every external command (a program, not a shell builtin such as `cd`) runs under a time limit,
   in a form that works on macOS: `perl -e 'alarm shift; exec @ARGV' <seconds> <command>`.
 - A hand fix runs `make unit` and every affected suite outside the fast tier before it pushes.
