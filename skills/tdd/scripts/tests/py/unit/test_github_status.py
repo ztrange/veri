@@ -325,3 +325,42 @@ def test_a_timeout_wrapped_by_urllib_is_still_named_as_no_response_within_the_ti
 
     assert code == 2
     assert "no response within 9 s (VERI_GITHUB_STATUS_TIMEOUT)" in err
+
+
+class Oversized:
+    """A response whose body is larger than any feed: it answers whatever amount is asked, up to 2 MiB."""
+
+    status = 200
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def read(self, amount=None):
+        size = 2 * 1024 * 1024
+        return b"x" * (size if amount is None or amount < 0 else min(amount, size))
+
+
+def test_a_body_larger_than_the_cap_is_no_answer_and_never_read_whole(monkeypatch, run_cli):
+    import urllib.request
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda url, timeout: Oversized())
+    module = importlib.import_module("veri.github_status")
+
+    code, out, err = run_cli(module, [])
+
+    assert (code, out) == (2, "")
+    assert "larger than %d bytes" % module.MAX_BODY in err
+
+
+@pytest.mark.parametrize("url", ["file:///etc/passwd", "ftp://status.example", "status.example"])
+def test_a_status_url_whose_scheme_is_not_http_or_https_exits_2_naming_it_before_any_fetch(page, run_cli, url):
+    page.serve()
+
+    code, out, err = run_cli(page.module, [], env={"VERI_GITHUB_STATUS_URL": url})
+
+    assert (code, out) == (2, "")
+    assert "VERI_GITHUB_STATUS_URL" in err
+    assert page.calls == []
