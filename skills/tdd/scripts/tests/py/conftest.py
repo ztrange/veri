@@ -335,8 +335,23 @@ def pytest_runtest_call(item):
 
 
 
+def evict_planted_modules(present, basetemp):
+    """Drops each module that is not in `present` and was loaded from a file under `basetemp`.
+
+    pytest's default import mode caches a planted test module by its basename, so one a call imported from its tree would
+    make the next tree planting that basename fail collection with `import file mismatch`. Only modules loaded from under
+    the run's --basetemp, where every case's tmp_path lives, go: veri's own and pytest's plugins never live there."""
+    root = os.path.join(os.path.realpath(basetemp), "")
+    for name, mod in list(sys.modules.items()):
+        path = getattr(mod, "__file__", None)
+        if name not in present and isinstance(path, str) and os.path.realpath(path).startswith(root):
+            sys.modules.pop(name, None)
+
+
 @pytest.fixture
-def run_cli(monkeypatch, capfd):
+def run_cli(monkeypatch, capfd, tmp_path_factory):
+    present, basetemp = set(sys.modules), tmp_path_factory.getbasetemp()
+
     def run(module, argv, stdin="", env=None, cwd=None):
         for name, value in (env or {}).items():
             monkeypatch.setenv(name, value)
@@ -344,6 +359,7 @@ def run_cli(monkeypatch, capfd):
             monkeypatch.chdir(cwd)
         monkeypatch.setattr(sys, "stdin", io.StringIO(stdin))
         monkeypatch.setattr(sys, "path", list(sys.path))
+        evict_planted_modules(present, basetemp)
         for name, mod in list(sys.modules.items()):
             if isinstance(getattr(mod, "__file__", None), str) and not os.path.exists(mod.__file__):
                 monkeypatch.delitem(sys.modules, name)
@@ -364,7 +380,8 @@ def run_cli(monkeypatch, capfd):
         out, err = capfd.readouterr()
         return 0 if code is None else code, out, err
 
-    return run
+    yield run
+    evict_planted_modules(present, basetemp)
 
 
 @pytest.fixture
