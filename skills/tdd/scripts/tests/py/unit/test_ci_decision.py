@@ -183,6 +183,18 @@ def test_a_mismatched_head_first_seen_records_a_head_mark_and_one_seen_differing
         Sleep("10"))
 
 
+@pytest.mark.parametrize("observation, options", [
+    (obs("none"), {"explicit": True, "on_pr": "0"}),
+    (obs("none", no_workflow=True), {}),
+    (obs("none", no_workflow=True, head=OTHER), {}),
+], ids=["no checks with VERI_CI_ON_PR=0", "no checks and no pull_request workflow",
+        "no checks and no pull_request workflow on another head"])
+def test_an_early_exit_0_on_the_expected_head_removes_its_head_mark_issue_3978(observation, options):
+    decided = run(observation, dataclasses.replace(NO_MARKS, head=NOW - 100), want=HEAD, **options)
+
+    assert (decided.outcome.code, Remove("head", HEAD) in decided.effects) == (0, True)
+
+
 def test_decide_leaves_the_observation_marks_and_loop_it_was_given_unchanged():
     observation, loop = obs(queued=True), Loop(slice_end=NOW + 1)
 
