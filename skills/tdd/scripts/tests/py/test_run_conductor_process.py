@@ -5539,6 +5539,20 @@ def test_cli_an_untrusted_done_comment_posted_since_the_last_resume_does_not_sup
     assert (code, last.get("event"), last.get("cause"), len(posted)) == (0, "bail", "needs-user", 1), stderr + repr(gh_calls)
 
 
+def test_cli_a_trusted_done_comment_by_the_authenticated_gh_user_posted_since_the_last_resume_still_suppresses_the_needs_user_bail_3970(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    done = authored("MEMBER", "### ✅ Done\n\nhttps://github.com/ztrange/veri/pull/2066", login="veri-operator")
+    gh_calls = conductor_over_a_thread(monkeypatch, tmp_path, {"1": [done]})
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    posted = [call for call in gh_calls if "needs-user" in " ".join(call)]
+    assert (code, [r.get("event") for r in events_named(tmp_path)], posted) == (0, ["resume"], []), stderr
+
+
 def test_cli_a_launch_with_veri_model_conductor_set_records_that_model_in_tdd_issue_n_conductor_model_under_tdd_issue_2308(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
