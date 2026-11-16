@@ -1,0 +1,2 @@
+- [ ] `harvest_usage` writes a cost Python prints in exponent form as a plain decimal, a typical cost byte-identical ⟦added⟧ ⟦criterion 4⟧
+- [ ] `CLAUDE.md` states that strict mode also refuses a value breaking its key's declared format or an empty value where none is allowed ⟦added⟧ ⟦criterion 4⟧
