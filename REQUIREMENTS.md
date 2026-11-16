@@ -73,6 +73,10 @@
 | CM81 | The *Commands* section says operator sessions, and every subagent they brief, run with `$VERI_VENV/bin` (default `~/.veri-tools/venv/bin`) first on PATH, since PATH's `python3` may lack pytest. (Commands section, after the `make install-dev` row.) | Three launches on 2026-10-28 refused at baseline on "No module named pytest". |
 | CM83 | The budgets invariant names eight axes, with `VERI_ADJUDICATE_BUDGET` (exit-2 judgments per run) as one never folded into the others. The model-knob invariant lists `VERI_MODEL_ADJUDICATOR` (the `adjudicate` leaf, opus when unset). | Otherwise the invariant is false. |
 | CM84 | CI restores the bytecode cache that the last push to `main` saved. (Paragraph under the Commands table.) | CLAUDE.md states what CI runs and what it costs (CM13). |
+| CM153 | The file has a section `## Graded prose` which says a `GRADED` file holds one line per graded unit, its fields split on a single space (unit path, signature, date, grading id, grader-template prefix), written by `grade-prose.sh` on a PASS and never by hand. (`## Graded prose`, first paragraph.) | 17 such files exist and no prose said what they are. |
+| CM154 | The same section says the signature is a sha256 over the unit's text, its requirement rows and the grader model, so a change to any of the three makes the unit owe a grade. (`## Graded prose`, the signature sentence.) | It is why an unrelated-looking edit turns `make unit` red. |
+| CM155 | The same section says a unit's rows live in the `REQUIREMENTS.md` beside its `GRADED` file, under a heading naming the unit, and that a unit under `skills/<x>/` is signed in `skills/<x>/GRADED`, any other in its own directory's `GRADED`. (`## Graded prose`, the where-to-look sentence.) | A reader holding either file can find the other. |
+| CM156 | The same section says `prose-owed.sh`, run by `make unit` and `make test`, exits 1 listing each unit that owes a grade and each orphan `GRADED` line, and that a `⟦skill-edit⟧` step regrades a unit. (`## Graded prose`, last paragraph.) | What fails, and the way out of it. |
 
 ## README.md
 

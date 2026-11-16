@@ -185,6 +185,24 @@ PATH shim counting processes.
 
 A guard or failure path never watched to fail is not tested: break it, see it go red, restore.
 
+## Graded prose
+
+A `GRADED` file holds one line per graded unit, its fields split on a single space: the unit
+path, the signature, the date, the grading id and the grader-template prefix. `grade-prose.sh`
+writes the line when a grade PASSes; it is never written by hand.
+
+The signature is a sha256 over the unit's text, its requirement rows and the grader model (plus
+the grader's effort level when `skills/tdd/grader.conf` sets one), so a change to any of them
+makes the unit owe a grade, however unrelated the edit looks.
+
+A unit's rows live in the `REQUIREMENTS.md` beside its `GRADED` file, under a heading naming the
+unit (`## <unit path>`). A unit under `skills/<x>/` is signed in `skills/<x>/GRADED`; any other
+unit in its own directory's `GRADED`.
+
+`prose-owed.sh`, run by `make unit` and `make test`, exits 1 listing each unit that owes a grade
+and each orphan `GRADED` line (one whose unit has no rows any more). A `⟦skill-edit⟧` step
+regrades a unit.
+
 ## `make test` on the development Mac
 
 - Suite stubs are `#!/bin/sh`, and per-leaf helpers are functions sourced from `scripts/lib/`
