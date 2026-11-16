@@ -169,7 +169,7 @@ def test_a_recorded_digest_naming_one_path_twice_is_a_change_3964(tmp_path):
     tree = skill_tree(tmp_path / "veri-snapshot-x")
     recorded = pinned_scripts.snapshot_digest(str(tree))
 
-    assert caught(recorded + [("SKILL.md", "0" * 64)], tree)
+    assert caught([("SKILL.md", "0" * 64)] + recorded, tree)
 
 
 def test_the_digest_file_form_reads_back_as_the_same_entries_and_refuses_any_other_text_3964(tmp_path):
