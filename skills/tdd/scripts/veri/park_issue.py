@@ -12,6 +12,23 @@ import github
 USAGE = ("usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>] [--blocked-by <n>[,<n>…]]"
          " [--question-file <path>]\n")
 QUESTION_HEADINGS = ("#### Question", "#### Options", "#### Found", "#### Recommendation")
+COMMENT_LIMIT = 65536  # GitHub refuses an issue comment body longer than this many characters
+
+
+def fit(head, question):
+    """<head> + <question>, the question cut in its middle when the whole would pass COMMENT_LIMIT, a line in place of
+    the cut saying how many characters it removed: its opening (the question) and its end (the recommendation) stay."""
+    if len(head) + len(question) <= COMMENT_LIMIT:
+        return head + question
+    cut = len(head) + len(question) - COMMENT_LIMIT
+    while True:
+        marker = ("\n[%d characters of the question file cut here: GitHub refuses a comment over %d characters]\n"
+                  % (cut, COMMENT_LIMIT))
+        if len(head) + len(question) - cut + len(marker) <= COMMENT_LIMIT:
+            break
+        cut += 1
+    keep = (len(question) - cut) // 2
+    return head + question[:keep] + marker + question[len(question) - (len(question) - cut - keep):]
 
 
 def origin_slug():
@@ -91,7 +108,7 @@ def main(argv):
     writes += [
         ("label", lambda: (github.gh_label_ensure("parked"), github.gh_issue_add_label(number, "parked"),
                            github.gh_issue_remove_label(number, "bailed"))),
-        ("comment", lambda: github.gh_issue_comment(number, github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n%s" % (cause, pr, unblock, "Blocked by: %s\n" % ", ".join("#" + b for b in blocker) if blocker else "") + question)),
+        ("comment", lambda: github.gh_issue_comment(number, fit(github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n%s" % (cause, pr, unblock, "Blocked by: %s\n" % ", ".join("#" + b for b in blocker) if blocker else ""), question))),
     ]
     if len(argv) == 4:
         writes.append(("PR write", lambda: github.gh_issue_add_label(argv[3].rsplit("/", 1)[-1], "parked")))
