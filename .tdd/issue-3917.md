@@ -10,4 +10,4 @@
 - [x] `JOURNAL.md`'s `reroute` row lists the `at` field ⟦criterion 6⟧
 - [x] `prompts/develop-exhausted.md` offers and declares `STEP_AHEAD:`, graded PASS against rows XH9 to XH11 ⟦criterion 7⟧
 - [x] `REVISE.md`'s exhausted section runs `--step-ahead` on the plain read's exit 3, graded PASS against rows RV66 and RV67 ⟦criterion 8⟧
-- [ ] `SCRIPTS.md` has an `$S/exhausted-outcome.sh` entry, graded PASS against row SC140 ⟦criterion 9⟧
+- [x] `SCRIPTS.md` has an `$S/exhausted-outcome.sh` entry, graded PASS against row SC140 ⟦criterion 9⟧
