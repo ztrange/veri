@@ -90,6 +90,11 @@ def record(fast, full, root):
     default = git.default_branch(cwd=root)
     if not default:
         raise Refused("the default branch cannot be told")
+    listed = git.network("ls-remote", "--heads", "origin", "refs/heads/" + BRANCH, cwd=root)
+    if listed.returncode != 0:
+        raise Refused(listed.stderr.strip() or "git ls-remote origin failed")
+    if listed.stdout.strip():
+        raise Refused("origin already has a branch %s: an earlier pull request may await review; nothing written" % BRANCH)
     tip = tip_of(root, default)
     shown = git.git("show", "%s:CLAUDE.md" % tip, cwd=root, capture_output=True)
     text = shown.stdout if shown.returncode == 0 else b""
