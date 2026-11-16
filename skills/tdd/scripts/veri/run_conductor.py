@@ -358,13 +358,10 @@ def conduct(text, issue, env):
             del CLAIM_DIRS[:]
 
             def record_pid():
-                started = pids.ps_field("lstart", os.getpid())
-                recorded = "%d\n%s\n" % (os.getpid(), started)
-                with open(pid_file, "w") as handle:
-                    handle.write(recorded)
+                recorded = pids.record(pid_file, os.getpid())
                 os.write(recorded_write, recorded.encode())
                 event.mark(run_worktree(issue), event.context(tunables.with_values(VERI_ISSUE=issue)),
-                           "conductor-start", ["pid=%d" % os.getpid(), "started=%s" % started])
+                           "conductor-start", ["pid=%d" % os.getpid(), "started=%s" % recorded.split("\n")[1]])
             code = subprocess.run([binary, "-p", "--output-format", "stream-json",
                                    "--verbose"] + context_limits() + [
                                    "--permission-mode", "bypassPermissions", "--model",
