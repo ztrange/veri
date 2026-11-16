@@ -47,7 +47,9 @@ def resolve(name):
     actor = role["VERI_ACTOR"]
     revise = is_revise(name)
     adjudicate = name.startswith("adjudicate-")
-    model = ((env_value("VERI_MODEL_REVISE") if revise else "")
+    revise_green = name == "revise-green" or name.startswith("revise-green-")
+    model = ((env_value("VERI_MODEL_REVISE_GREEN") if revise_green else "")
+             or (env_value("VERI_MODEL_REVISE") if revise else "")
              or env_value("VERI_MODEL_" + actor.upper()) or env_value("VERI_MODEL"))
     if not model:
         model = tunables.default(shipped_default_knob(actor, revise, adjudicate))
