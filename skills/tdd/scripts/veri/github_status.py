@@ -76,11 +76,13 @@ def incidents(timeout):
 
 
 def well_formed(incident):
-    """Whether an incident is an object whose `components`, when present, is a list of objects."""
+    """Whether an incident is an object whose `components`, when present, is a list of objects whose `name`, when
+    present, is a string."""
     if not isinstance(incident, dict):
         return False
     components = incident.get("components")
-    return components is None or isinstance(components, list) and all(isinstance(c, dict) for c in components)
+    return components is None or isinstance(components, list) and all(
+        isinstance(c, dict) and isinstance(c.get("name", ""), str) for c in components)
 
 
 def started(incident):
@@ -103,13 +105,9 @@ def one_line(name):
 
 def read(components, threshold, timeout):
     """(code, lines) of one read: 1 and a line per counting incident, else 0 and `up` or the young lines."""
-    counting, young, seen = [], [], set()
-    for incident in incidents(timeout):
-        key = incident.get("id")
-        if key is not None:
-            if str(key) in seen:
-                continue
-            seen.add(str(key))
+    counting, young = {}, {}
+    for index, incident in enumerate(incidents(timeout)):
+        key = json.dumps(incident["id"], sort_keys=True) if incident.get("id") is not None else index
         matched = list(dict.fromkeys(one_line(c.get("name")) for c in incident.get("components") or ()
                                      if c.get("name") in components))
         if not matched:
@@ -118,11 +116,11 @@ def read(components, threshold, timeout):
         age = max(now() - start, datetime.timedelta(0))
         minutes = str(int(age.total_seconds() // 60))
         if age >= threshold:
-            counting.append("\t".join((one_line(incident.get("name")), ", ".join(matched),
+            counting.setdefault(key, "\t".join((one_line(incident.get("name")), ", ".join(matched),
                                        start.astimezone(local_zone()).strftime("%Y-%m-%d %H:%M"), minutes)))
         else:
-            young.append("young %s %s" % (minutes, one_line(incident.get("name"))))
-    return (1, counting) if counting else (0, young or ["up"])
+            young.setdefault(key, "young %s %s" % (minutes, one_line(incident.get("name"))))
+    return (1, list(counting.values())) if counting else (0, list(young.values()) or ["up"])
 
 
 def positive(name):
