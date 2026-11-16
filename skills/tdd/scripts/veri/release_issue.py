@@ -15,10 +15,13 @@ MARKERS = ("parked", "bailed")
 
 
 def _preflight_refused(number, labels, opt_in):
+    """Whether the issue is preflight-refused: claimed, not opted in, and bearing veri's own refusal comment, one
+    github.trusted_comment trusts (a running issue carries the same labels, so a stranger's comment cannot count)."""
     if opt_in in labels or not any(name.startswith("taken:") for name in labels):
         return False
     try:
-        return "### ⛔ Preflight refused" in github.gh_issue_view(number, "comments")
+        return any(github.trusted_comment(c) and "### ⛔ Preflight refused" in (c.get("body") or "")
+                   for c in github.issue_comments(number))
     except github.NoAnswer:
         return False
 
