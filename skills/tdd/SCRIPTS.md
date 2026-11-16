@@ -10,14 +10,17 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   default 180), `VERI_TIMEOUT` (hard cap s, default 900), `VERI_STUCK_RETRIES` (extra
   attempts after a killed-stuck, default 1 — the **liveness** axis, independent of both the
   conductor's verdict-axis `REVISE_BUDGET` and its cost-axis `VERI_REFACTOR_BUDGET`).
-  Five more choose the **model** each leaf runs on, resolved here through
+  Six more choose the **model** each leaf runs on, resolved here through
   `$S/leaf-model.sh` and passed to `claude --model`: `VERI_MODEL` (every leaf),
   `VERI_MODEL_DEVELOPER` (developer leaves only — `develop-*`, `revise-*`),
   `VERI_MODEL_REVISE` (only the developer leaves that redo rejected work — `revise-*` and
-  `develop-exhausted` — beating `VERI_MODEL_DEVELOPER` for them) and
+  `develop-exhausted` — beating `VERI_MODEL_DEVELOPER` for them),
+  `VERI_MODEL_REVISE_GREEN` (`revise-green` leaves only, beating `VERI_MODEL_REVISE`,
+  `VERI_MODEL_DEVELOPER` and `VERI_MODEL` for them and changing no other leaf; unset or blank,
+  every leaf resolves as before),
   `VERI_MODEL_VERIFIER` (verifier leaves only — `verify-*`, `verify-pin` included) and
   `VERI_MODEL_ADJUDICATOR` (the `adjudicate-*` leaf only). A role
-  variable beats `VERI_MODEL`; all five unset means the shipped defaults: sonnet for first-try
+  variable beats `VERI_MODEL`; all six unset means the shipped defaults: sonnet for first-try
   developer leaves and verifiers, opus for the redo leaves, the adjudicator and the conductor. The value goes through verbatim, so an alias (`sonnet`, `opus[1m]`) or a full id
   (`claude-sonnet-5`) both work.
   Because leaves **stream** (below), the default

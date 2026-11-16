@@ -82,7 +82,8 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
   is caught in preflight.
 - **The developer's and the verifier's models are separate knobs**: `VERI_MODEL` (every leaf),
   `VERI_MODEL_DEVELOPER` (`develop-*`, `revise-*`), `VERI_MODEL_REVISE` (redo leaves:
-  `revise-*`, `develop-exhausted`), `VERI_MODEL_VERIFIER` (`verify-*`),
+  `revise-*`, `develop-exhausted`), `VERI_MODEL_REVISE_GREEN` (`revise-green` only, so it beats
+  `VERI_MODEL_REVISE` there), `VERI_MODEL_VERIFIER` (`verify-*`),
   `VERI_MODEL_ADJUDICATOR` (the `adjudicate` leaf; unset, it runs on opus) and
   `VERI_MODEL_CONDUCTOR` (the conductor); the narrower one wins. Unset, first-try developers
   and verifiers run on sonnet, redo leaves and the conductor on opus (an empty
