@@ -925,6 +925,21 @@ def test_main_ignores_a_carried_skill_pin_that_is_not_an_ancestor_of_the_skill_c
     assert (record.read_text() if record.is_file() else None, carried in err) == (head + "\n", True)
 
 
+def test_main_whose_carried_skill_pin_is_rejected_runs_update_veri_as_a_fresh_launch_does(tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    head, carried = "1" * 40, "3" * 40
+    calls = fake_pin(monkeypatch, head, {head + "^{commit}", carried + "^{commit}"}, carried=carried, ancestor=False)
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+
+    run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+
+    assert [call[0].rsplit("/", 1)[-1] for call in calls if str(call[0]).endswith("update-veri.sh")] == ["update-veri.sh"]
+
+
 def test_main_on_a_fresh_launch_with_skip_verify_refactor_writes_the_list_refactor_to_the_skip_verify_file_beside_the_skill_commit_pin(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
