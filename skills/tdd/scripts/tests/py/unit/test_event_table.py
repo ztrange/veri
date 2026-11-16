@@ -123,6 +123,20 @@ def test_no_list_in_journal_md_ends_with_an_ellipsis():
     assert not open_ended, "skills/tdd/JOURNAL.md lists that end with …:\n" + "\n".join(open_ended)
 
 
+def test_bail_s_cause_values_are_classify_bail_s_categories_and_its_classification_values_process_and_system():
+    from veri import classify_bail, event_table
+
+    causes = event_table.format("bail", "cause")[0]
+    line = event_table.declaring("bail", None)
+    differ = [f"bail cause {cause}: in veri/event_table.py's bail line, not in classify_bail.CATEGORIES; drop it from"
+              f" the line  {line}" for cause in causes if cause not in classify_bail.CATEGORIES]
+    differ += [f"bail cause {cause}: in classify_bail.CATEGORIES, not in veri/event_table.py's bail line; add it to the"
+               f" line  {line}" for cause in classify_bail.CATEGORIES if cause not in causes]
+
+    assert not differ, "bail's cause values and classify_bail.CATEGORIES differ:\n" + "\n".join(differ)
+    assert sorted(event_table.format("bail", "classification")[0]) == ["process", "system"], line
+
+
 @pytest.mark.tree_audit("reads every .sh and .md file under skills/ for event.sh call sites")
 def test_every_literal_event_and_key_of_an_event_sh_call_under_skills_is_declared_in_the_table():
     from event_roster import event_sh_call_sites
