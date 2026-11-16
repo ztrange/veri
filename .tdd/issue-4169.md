@@ -1,7 +1,7 @@
 # Plan for #4169 — PRD 034.1a: a repository can name a stack branch, and /vinstall asks for one
 
 - [x] stack-branch.sh prints the branch a `veri: stack branch: <name>` CLAUDE.md line names and exits 0; with no such line or no CLAUDE.md it prints nothing and exits 3; with no argument it reads the current directory's CLAUDE.md, given a repo-root that one's ⟦criterion 1⟧
-- [ ] it exits 2, stderr naming the line, when the named branch is empty ⟦criterion 2⟧
+- [x] it exits 2, stderr naming the line, when the named branch is empty ⟦criterion 2⟧
 - [ ] it exits 2, stderr naming the line, when the named branch is the repository's default branch ⟦criterion 2⟧
 - [ ] it exits 2, stderr naming the line, when `git check-ref-format --branch` refuses the name ⟦criterion 2⟧
 - [ ] stack-branch.sh is a /bin/sh shim over veri/stack_branch.py, its entry-point contract pinned by a process case ⟦criterion 3⟧
