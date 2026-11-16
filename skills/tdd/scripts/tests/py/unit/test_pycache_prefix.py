@@ -63,3 +63,11 @@ def test_3965_a_veri_pycache_path_that_is_a_symlink_even_to_a_closed_directory_o
     monkeypatch.setenv("VERI_PYCACHE", str(link))
 
     assert run_prefix() is None
+
+
+def test_3965_a_closed_veri_pycache_directory_owned_by_another_user_is_refused(run_prefix, monkeypatch, tmp_path):
+    cache = cache_with_mode(tmp_path, 0o700)
+    monkeypatch.setenv("VERI_PYCACHE", str(cache))
+    monkeypatch.setattr(os, "getuid", lambda: os.lstat(cache).st_uid + 1)
+
+    assert run_prefix() is None

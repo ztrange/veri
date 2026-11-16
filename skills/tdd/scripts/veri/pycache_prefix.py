@@ -10,9 +10,12 @@ def refusal(prefix):
         os.makedirs(prefix, 0o700)
     except FileExistsError:
         pass
-    mode = os.lstat(prefix).st_mode
+    info = os.lstat(prefix)
+    mode = info.st_mode
     if stat.S_ISLNK(mode):
         return "it is a symlink"
+    if info.st_uid != os.getuid():
+        return "it is owned by uid %d, not this user's %d" % (info.st_uid, os.getuid())
     if mode & stat.S_IWGRP:
         return "it is group-writable"
     if mode & stat.S_IWOTH:
