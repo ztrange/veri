@@ -255,3 +255,12 @@ def test_issue_4090_the_push_dry_run_row_fails_on_a_refused_dry_run_carrying_git
 
     assert ready_check.push_dry_run_row() == (
         "push dry-run", "fatal: unable to access 'https://github.com/o/r.git/': The requested URL returned error: 403")
+
+
+def test_issue_4090_the_dry_run_push_runs_with_git_terminal_prompt_0_so_missing_credentials_fail_instead_of_prompting(ready_check, fake_processes, monkeypatch):
+    monkeypatch.setenv("GIT_TERMINAL_PROMPT", "1")
+    fake = fake_processes.answers({PROBE_PUSH: (128, "", "fatal: could not read Username for 'https://github.com': terminal prompts disabled\n")})
+
+    assert ready_check.push_dry_run_row() == ("push dry-run", "fatal: could not read Username for 'https://github.com': terminal prompts disabled")
+    (argv, kwargs), = fake.seen
+    assert (kwargs.get("env") or {}).get("GIT_TERMINAL_PROMPT") == "0", kwargs
