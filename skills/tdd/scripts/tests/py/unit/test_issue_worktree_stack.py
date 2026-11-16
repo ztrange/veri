@@ -136,3 +136,18 @@ def test_with_no_stack_branch_named_the_cut_is_from_origin_default_and_nothing_i
 
     assert (code, capsys.readouterr().out, pushes(fake), added(fake)) == (
         0, path + "\n", [], ["git worktree add -q --no-track -b tdd/7-slug %s origin/trunk" % path])
+
+
+def test_an_issue_a_pull_request_merged_into_the_stack_closes_is_refused_as_claimed_with_no_open_pull_request_naming_it(
+        fake_processes, tmp_path, monkeypatch, capsys, issue_worktree):
+    fixtures = tmp_path / "gh"
+    fixtures.mkdir()
+    (fixtures / "prs.json").write_text("[]")
+    (fixtures / "stack-prs.json").write_text('[{"body": "Closes #7", "state": "MERGED", "url": "https://x/pull/3"}]')
+    monkeypatch.setenv("VERI_GH_JSON", str(fixtures))
+    fake, path = stacked_world(fake_processes, tmp_path, Origin(stack=True))
+
+    code = issue_worktree.main(["7", "slug"])
+
+    out, err = capsys.readouterr()
+    assert (code, out, added(fake), "claimed" in err) == (2, "", [], True), err
