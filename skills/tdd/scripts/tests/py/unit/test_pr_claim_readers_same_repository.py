@@ -16,7 +16,6 @@ import pytest
 # Modules of veri/ (by stem, sorted, ONE per line) that read pull requests and need not decide by cross_repository, each
 # with why. A listed module that names cross_repository, or no longer reads pull requests, fails a case below.
 EXEMPT = {
-    "dispatch": "owed: PRD 022.16 (#3975) puts run_prs behind the rule",
     "github": "the home of the readers and of Pull.cross_repository; its own Closes #n readers are checked below",
     "invisible_work": "reports branches no PR names, by head ref only; it claims, launches and skips nothing",
     "parallel_conductors": "prints a finished run's outcome line; it claims, launches and skips nothing (not in PRD 022's set)",
