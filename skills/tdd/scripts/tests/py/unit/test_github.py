@@ -1253,3 +1253,17 @@ def test_every_gh_process_and_the_git_ls_remote_against_a_process_that_never_ret
     assert (reset, reset_err) == (None, "gh api rate_limit --jq .resources.core.reset: no answer after 7s (VERI_GH_TIMEOUT)\n")
     assert ready_err == "git ls-remote origin refs/heads/br: no answer after 7s (VERI_GH_TIMEOUT)\n"
     assert {kwargs.get("timeout") for _, kwargs in fake.seen} == {7}
+
+
+def test_pr_ready_sh_with_a_veri_gh_timeout_that_is_not_a_whole_number_of_at_least_1_exits_2_with_one_line_naming_it_and_starts_no_gh_3983(
+        fake_processes, run_cli):
+    pr_ready = importlib.import_module("veri.pr_ready")
+    fake = fake_processes.answers({})
+    observed = {}
+    for value in ("0", "abc", "1.5", "-3", ""):
+        code, out, err = run_cli(pr_ready, ["12", "a" * 40], env={"VERI_GH_TIMEOUT": value, "VERI_GH_DRIVER": "rest"})
+        observed[value] = (code, out, err)
+
+    assert observed == {value: (2, "", "VERI_GH_TIMEOUT: invalid value %r\n" % value)
+                        for value in ("0", "abc", "1.5", "-3", "")}
+    assert fake.calls == []
