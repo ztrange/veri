@@ -361,7 +361,7 @@ def main(argv):
         if later:
             write(sys.stdout, "later " + later)
             return 0
-        budget = tunables.read("VERI_MISSING_REROUTE_BUDGET", unless_empty="3")
+        budget = tunables.get("VERI_MISSING_REROUTE_BUDGET", unless_empty=True)
         if _missing_reroutes(step) >= int(budget):
             write(sys.stdout, "missing-exhausted " + missing)
             return 1

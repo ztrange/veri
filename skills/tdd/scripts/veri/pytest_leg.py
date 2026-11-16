@@ -387,7 +387,7 @@ def main(argv):
             sys.stderr.write("veri needs %s for the suites under skills/tdd/scripts/tests/py/; %s cannot import %s. "
                              "Install it with `make install-dev`.\n" % (package, sys.executable, module))
             return 2
-    workers = tunables.read("VERI_PYTEST_WORKERS")
+    workers = tunables.get("VERI_PYTEST_WORKERS")
     if workers and not re.fullmatch("[1-9][0-9]*", workers):
         sys.stderr.write("VERI_PYTEST_WORKERS must be a whole number of at least 1; got %s.\n" % workers)
         return 2

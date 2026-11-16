@@ -179,6 +179,12 @@ TUNABLES = {
     "VERI_MODEL_REVISE": Tunable(text, "opus"),
     "VERI_MODEL_ADJUDICATOR": Tunable(text, "opus"),
     "VERI_MODEL_CONDUCTOR": Tunable(text, "opus"),
+    "VERI_MISSING_REROUTE_BUDGET": Tunable(tokens, "3"),
+    "VERI_TEST_LOCK": Tunable(text, ""),
+    "VERI_PYTEST_WORKERS": Tunable(text, ""),
+    "VERI_PYTEST_LEGS": Tunable(text, ""),
+    "VERI_PYCACHE": Tunable(text, ""),
+    "VERI_NEW_SKILL": Tunable(text, ""),
 }
 
 # The entries that state a refusal, which `resolve` serves (test_1313 pins their one-line refusal).

@@ -7,7 +7,7 @@ import tunables
 
 
 def legs_dir():
-    return tunables.read("VERI_PYTEST_LEGS") or os.path.join(os.path.expanduser("~"), ".veri-pytest-legs")
+    return tunables.get("VERI_PYTEST_LEGS") or os.path.join(os.path.expanduser("~"), ".veri-pytest-legs")
 
 
 def path():
@@ -19,7 +19,7 @@ def wait_marker(key):
 
 
 def enabled():
-    return tunables.read("VERI_TEST_LOCK") != "0"
+    return tunables.get("VERI_TEST_LOCK") != "0"
 
 
 def held_by_ancestor():

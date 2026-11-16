@@ -321,3 +321,13 @@ def test_get_bytes_returns_the_bytes_of_the_environment_undecoded(monkeypatch):
     tunables = importlib.import_module("veri.tunables")
     monkeypatch.setitem(os.environb, b"VERI_LABEL", b"\xff1")
     assert tunables.get_bytes("VERI_LABEL") == b"\xff1"
+
+
+def test_4047_the_six_knobs_claude_md_documents_are_keys_of_tunables_with_their_readers_unset_defaults():
+    tunables = importlib.import_module("veri.tunables")
+    six = ("VERI_MISSING_REROUTE_BUDGET", "VERI_TEST_LOCK", "VERI_PYTEST_WORKERS", "VERI_PYTEST_LEGS",
+           "VERI_PYCACHE", "VERI_NEW_SKILL")
+
+    assert {name: tunables.default(name) for name in six if name in tunables.TUNABLES} == {
+        "VERI_MISSING_REROUTE_BUDGET": "3", "VERI_TEST_LOCK": "", "VERI_PYTEST_WORKERS": "",
+        "VERI_PYTEST_LEGS": "", "VERI_PYCACHE": "", "VERI_NEW_SKILL": ""}
