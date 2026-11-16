@@ -367,6 +367,30 @@ def still_alive_owner(ownerfile):
     return owner_pid, owner_name
 
 
+def lock_waiting(marker):
+    """Whether the lock-wait marker at <marker> says a pytest leg is waiting for the full-run lock (#3989).
+
+    An empty marker (an older leg's) does; one naming a pid does only while that pid answers `kill 0`. A missing,
+    unreadable or malformed one does not, so a leaf's timers run."""
+    try:
+        with open(marker, "rb") as f:
+            text = f.read()
+    except OSError:
+        return False
+    if not text.strip():
+        return True
+    pid = number_in(marker)
+    if pid is None:
+        return False
+    try:
+        os.kill(int(pid), 0)
+    except PermissionError:
+        pass
+    except (OSError, OverflowError):
+        return False
+    return True
+
+
 def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
     watched, timeout, heartbeat, poll, kill_poll, _ = watch
     tolerated(name, "remove", rcfile, discard, rcfile)
@@ -407,7 +431,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
         t = int(now())
         a = awake_seconds()
         seen_at += (t - prev_t) - (a - prev_a)
-        if os.path.exists(waitfile):
+        if lock_waiting(waitfile):
             a0 += a - prev_a
             idle_since += a - prev_a
             seen_at += a - prev_a
