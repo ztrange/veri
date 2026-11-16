@@ -170,3 +170,43 @@ def test_a_spelling_of_the_default_branch_or_a_ref_or_remote_prefixed_name_is_ex
     git_world(fake_processes, default="trunk")
 
     assert refusal_of(tmp_path, run_cli, stack_branch, "veri: stack branch: " + name) == (2, "", True)
+
+
+def span_world(fake_processes, stack="2222222\n", log=(0, "a" * 40 + " feat: one (#1)\n" + "b" * 40 + " fix: two\n", ""),
+               fetch=(0, "", ""), default="trunk", local="trunk"):
+    """git faked for stack_branch.ahead in the current directory: the fetch, origin/<default> at 1111111, origin/stack at
+    <stack> (absent when empty) and the log of the range; refs/remotes/origin/HEAD records <local>."""
+    return fake_processes.answers({
+        "git symbolic-ref --quiet --short refs/remotes/origin/HEAD": (0, "origin/%s\n" % local, ""),
+        "git ls-remote --symref origin HEAD": (0, "ref: refs/heads/%s\tHEAD\n" % default, ""),
+        "git check-ref-format --branch": (0, "stack\n", ""),
+        "git -C . fetch origin": fetch,
+        "git -C . rev-parse --verify --quiet refs/remotes/origin/%s" % default: (0, "1111111\n", ""),
+        "git -C . rev-parse --verify --quiet refs/remotes/origin/stack": (0, stack, "") if stack else (1, "", ""),
+        "git -C . log --reverse --format=%H %s 1111111..2222222": log,
+    })
+
+
+def test_ahead_reads_the_commits_of_the_range_oldest_first_after_a_fetch_and_none_when_origin_has_no_stack_4172(
+        tmp_path, monkeypatch, fake_processes, stack_branch):
+    (tmp_path / "CLAUDE.md").write_text("veri: stack branch: stack\n")
+    monkeypatch.chdir(tmp_path)
+    span_world(fake_processes)
+    found = stack_branch.ahead(".")
+    span_world(fake_processes, stack="")
+    missing = stack_branch.ahead(".")
+
+    assert (found, missing) == (("stack", "trunk", [("a" * 40, "feat: one (#1)"), ("b" * 40, "fix: two")]),
+                                ("stack", "trunk", []))
+
+
+@pytest.mark.parametrize("world", [dict(fetch=(128, "", "fatal: unreachable\n")), dict(log=(128, "", "fatal: bad\n")),
+                                   dict(local="master")])
+def test_ahead_is_refused_when_the_fetch_gets_no_answer_the_log_fails_or_the_default_branch_is_told_two_ways_4172(
+        tmp_path, monkeypatch, fake_processes, stack_branch, world):
+    (tmp_path / "CLAUDE.md").write_text("veri: stack branch: stack\n")
+    monkeypatch.chdir(tmp_path)
+    span_world(fake_processes, **world)
+
+    with pytest.raises(stack_branch.Refused):
+        stack_branch.ahead(".")

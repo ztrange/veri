@@ -77,3 +77,11 @@ def test_the_body_of_the_pull_request_it_opens_says_it_is_never_merged_and_slice
     assert ("never merged" in body, "slices" in body and "cut from" in body,
             [line for line in body.splitlines() if any(w in line.lower() for w in ("closes", "fixes", "resolves"))]) == (
         True, True, [])
+
+
+def test_with_the_stack_not_ahead_of_the_default_branch_opens_nothing_and_exits_3(monkeypatch, run_cli, stack_pr):
+    world = World(monkeypatch, stack_pr, span=("stack", "trunk", []))
+
+    code, out, err = run_cli(stack_pr, [])
+
+    assert (code, out, world.listed, world.opened, err.count("\n")) == (3, "", [], [], 1)

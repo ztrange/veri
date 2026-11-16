@@ -18,6 +18,10 @@ def main(argv):
     if argv:
         return entry.refuse(usage=USAGE)
     stack, default, commits = stack_branch.ahead(".")
+    if not commits:
+        print("stack-pr: origin/%s is not ahead of origin/%s, or origin has no %s; nothing opened" % (
+            stack, default, stack), file=sys.stderr)
+        return 3
     pulls = github.stack_pulls(stack, default)
     if pulls:
         url = pulls[0].html_url
