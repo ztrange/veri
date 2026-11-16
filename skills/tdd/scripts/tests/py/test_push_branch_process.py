@@ -17,6 +17,13 @@ def push_branch():
     return importlib.import_module("veri.push_branch")
 
 
+@pytest.fixture(autouse=True)
+def no_pointer_comment(monkeypatch):
+    """The pointer comment a landed push writes goes to GitHub, which no case here reaches: recorded, not made."""
+    pointer_comment = importlib.import_module("veri.pointer_comment")
+    monkeypatch.setattr(pointer_comment, "after_push", lambda: None)
+
+
 def run_repo(path, remote=None, branch=BRANCH):
     new_repo(path)
     commit_all(path, "initial", allow_empty=True)

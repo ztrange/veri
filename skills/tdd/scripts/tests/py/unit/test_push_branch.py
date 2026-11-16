@@ -9,6 +9,28 @@ def push_branch():
     return importlib.import_module("veri.push_branch")
 
 
+@pytest.fixture(autouse=True)
+def after_push(monkeypatch):
+    """What runs after a push that lands, recorded instead of made: a case here fakes git's push only."""
+    landed = []
+    pointer_comment = importlib.import_module("veri.pointer_comment")
+    monkeypatch.setattr(pointer_comment, "after_push", lambda: landed.append("pointer"), raising=False)
+    return landed
+
+
+def test_main_updates_the_pointer_comment_after_a_push_that_lands_and_not_after_one_that_fails(tmp_path, monkeypatch, push_branch, fake_processes, events, after_push):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_PUSH_RETRIES", "0")
+    fake_processes(lambda line, **_: (0, "", ""))
+    landed = push_branch.main([])
+    after_landing = list(after_push)
+    fake_processes(lambda line, **_: (128, "fatal: unable to access origin\n", ""))
+    events.refuse_event_sh()
+    failed = push_branch.main([])
+
+    assert (landed, after_landing, failed, after_push) == (0, ["pointer"], 0, ["pointer"])
+
+
 def record(event, **fields):
     return dict({"issue": "", "actor": "", "phase": "", "step": "", "attempt": "", "skill_commit": ""},
                 event=event, **fields)

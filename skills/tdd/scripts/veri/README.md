@@ -619,6 +619,10 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 - `rate_limit_reset(run=subprocess.run)`: the epoch second the core rate limit resets, `None` when unreadable. `refusal_retries()`: how many rate-limit refusals a read waits out (`VERI_GH_REFUSAL_RETRIES`); NoAnswer when invalid. `PARKED_HEADING`: the `### ⏸ Parked` heading.
 - `refusal_kind(text)` and `NoAnswer.kind` (of its `detail`, else its `answer`): what kind of refusal gh's words describe, `"rate-limit"` (`rate limit`, a `Retry-After` or exhausted `X-RateLimit-Remaining` header), `"transient"` (`HTTP 5…`, `error connecting to api.github.com`) or `"refused"`; a rate limit outranks a transient marker. The one marker set: callers ask it and keep their own waiting policy, never matching stderr words themselves. `VERI_GH_REFUSAL_RETRIES` is spent inside `github`'s own reads (60 s sleeps) and again by `dispatch` (waits for the reset), each layer counting on its own.
 
+## pointer_comment
+- `mirror(issue, pushed_at=None)`: post or edit issue `issue`'s one `### 📍 Run state` comment from the current directory's branch, ledger and journal; `pushed_at` is the push just made, else the comment keeps its last one. Never changes its caller's exit code.
+- `after_push()`: `mirror` for the issue the current branch `tdd/<n>-<slug>` names, stamped with the time now; nothing on another branch.
+
 ## solvable_issues
 - `solvable(label, priority="priority", repo=None)`: `(exit code, issue numbers)` in selection order; code 2 when the listing is unreadable.
 - `solvable_in_scope()`: the same for the configured scope. `priority_label()`: the label, `None` when set but empty.

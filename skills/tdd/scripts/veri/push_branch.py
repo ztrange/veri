@@ -10,6 +10,7 @@ import subprocess
 import sys
 
 import event
+import pointer_comment
 import tunables
 
 SCRIPTS = paths.scripts_of(__file__)
@@ -84,6 +85,7 @@ def main(argv):
         if pushed.returncode == 0:
             if leased_push:
                 os.remove(lease_file)
+            pointer_comment.after_push()
             return 0
         out = pushed.stdout.rstrip("\n")
         if "[rejected]" in out and any(reason in out for reason in REJECTIONS):
