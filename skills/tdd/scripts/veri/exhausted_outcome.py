@@ -14,6 +14,9 @@ from case_reader import file_defines, strip_param_suffix
 
 MARKER_RE = re.compile(rb"^(SPLIT|NEEDS_USER):\s*(.*)$")
 STEP_AHEAD_RE = re.compile(rb"^STEP_AHEAD:\s*(.*?)\s*$")
+# Every character of a step-ahead id reaches the diff verifier's --step, so the whole id is checked:
+# a path, one or more ::-separated identifiers, an optional [param] of word characters, dots and dashes.
+STEP_AHEAD_ID_RE = re.compile(rb"([\w./-]+)((?:::[A-Za-z_]\w*)+)(\[[\w.-]*\])?", re.ASCII)
 
 
 def _read_stdin():
@@ -53,6 +56,8 @@ def step_ahead(red_test_id):
             continue
         if b"::" not in marker.group(1):
             return _refuse("names no <file>::<case>", line)
+        if not STEP_AHEAD_ID_RE.fullmatch(marker.group(1)):
+            return _refuse("is not a <path>::<name>[::<name>...][[param]] id", line)
         value = os.fsdecode(marker.group(1))
         file, case = value.partition("::")[0], strip_param_suffix(value.rpartition("::")[2])
         if not os.path.isfile(file):
