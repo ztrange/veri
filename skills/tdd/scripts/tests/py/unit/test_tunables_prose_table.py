@@ -17,10 +17,13 @@ def rows(text):
 
 
 def drift(text, table):
-    """[(name, why)] for each key of `table` with no row and each row naming no key."""
+    """[(name, why)] for each key of `table` with no row, each row naming no key and each row whose default differs."""
     found = rows(text)
+    stated = {name: "" if default == '""' else default.strip("`") for name, (default, _) in found.items()}
     return sorted([(name, "no row") for name in table if name not in found]
-                  + [(name, "names no key") for name in found if name not in table])
+                  + [(name, "names no key") for name in found if name not in table]
+                  + [(name, "default %s, not %s" % (stated[name], table[name].default))
+                     for name in found if name in table and stated[name] != table[name].default])
 
 
 def test_4053_the_readme_tunables_table_has_one_row_per_key_of_tunables_and_no_other():
@@ -30,6 +33,17 @@ def test_4053_the_readme_tunables_table_has_one_row_per_key_of_tunables_and_no_o
 
 
 def test_4053_a_key_with_no_row_and_a_row_naming_no_key_are_each_named():
+    tunables = importlib.import_module("veri.tunables")
     text = "# x\n\n## tunables\n| `VERI_A` | `1` | its readers' own words |\n| `VERI_GONE` | `2` | x |\n\n## next\n"
+    table = {"VERI_A": tunables.Tunable(tunables.text, "1"), "VERI_B": tunables.Tunable(tunables.text, "2")}
 
-    assert drift(text, {"VERI_A": None, "VERI_B": None}) == [("VERI_B", "no row"), ("VERI_GONE", "names no key")]
+    assert drift(text, table) == [("VERI_B", "no row"), ("VERI_GONE", "names no key")]
+
+
+def test_4053_a_row_whose_default_differs_from_the_tables_default_is_named_and_an_empty_default_reads_as_two_quotes():
+    tunables = importlib.import_module("veri.tunables")
+    text = "x\n## tunables\n| `VERI_A` | `1` | x |\n| `VERI_B` | \"\" | x |\n| `VERI_C` | `3` | x |\n"
+    table = {"VERI_A": tunables.Tunable(tunables.text, "1"), "VERI_B": tunables.Tunable(tunables.text, ""),
+             "VERI_C": tunables.Tunable(tunables.text, "30")}
+
+    assert drift(text, table) == [("VERI_C", "default 3, not 30")]
