@@ -61,8 +61,13 @@ jobs:
     env:
       VERI_PYCACHE: /home/runner/veri-pycache
 
+    # Every action is pinned by its full commit sha, the tag it was beside it (PRD 022.20): a tag
+    # can be moved to another commit, so what CI runs could change with no change here; a sha cannot.
+    # Bumping one means looking the tag's commit up (`gh api repos/<owner>/<repo>/git/ref/tags/<tag>`,
+    # dereferencing an annotated tag) and updating both. test_workflow_action_pins.py refuses a
+    # `uses:` that is not a 40-hex sha followed by its tag.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       # Linux only. veri needs bash 5 (the Makefile refuses an older one); this runner
       # covers Linux, and development on a Mac, under Homebrew's bash 5, covers macOS.
@@ -70,7 +75,7 @@ jobs:
       # the code was just tested on, at ten times the per-minute price of Linux, and was
       # ~94% of the billed minutes on 2026-09-11. bash is preinstalled, and nothing shells
       # out to jq or gh — the test suites stub the model via CLAUDE_BIN.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         id: python
         with:
           python-version: '3.12'
@@ -96,7 +101,7 @@ jobs:
         run: python3 skills/tdd/scripts/veri/content_mtimes.py
 
       - name: restore the bytecode cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: /home/runner/veri-pycache
           key: veri-pycache-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-${{ github.sha }}
@@ -112,7 +117,7 @@ jobs:
 
       - name: save the bytecode cache
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: /home/runner/veri-pycache
           key: veri-pycache-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-${{ github.sha }}
