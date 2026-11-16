@@ -305,3 +305,16 @@ def test_gate_20_a_snapshot_run_whose_marker_or_digest_file_is_gone_refuses_3964
     assert shape(supervise.launch_plan(["develop-red", "true"])) == launch_refused("develop-red", {
         "marker": f"the skill snapshot {snapshot / '.veri-snapshot'} changed since extraction",
         "digest": f"the skill snapshot {snapshot} has no recorded digest {digest}"}[gone])
+
+
+@pytest.mark.parametrize("recorded", [b"\xff\xfe not utf-8\n", b"directory scripts\n"], ids=["invalid-utf-8", "not-a-digest"])
+def test_gate_20_a_digest_file_it_cannot_parse_refuses_with_a_launch_refused_event_3964(
+        tmp_path, work_tree, monkeypatch, fake_processes, recorded):
+    snapshot = snapshot_serving(tmp_path, monkeypatch, work_tree)
+    (work_tree / ".tdd" / "issue-7-snapshot-digest").write_bytes(recorded)
+    fake_processes.answers({HEAD: (0, "abc\n", ""), TOP: (0, f"{work_tree}\n", "")})
+
+    lines, code, exit_written, journal = shape(supervise.launch_plan(["develop-red", "true"]))
+
+    assert (lines[0].startswith(REFUSING.format("develop-red", f"the skill snapshot {snapshot} could not be checked: ")),
+            code, exit_written, journal[0]) == (True, 2, True, "launch-refused")
