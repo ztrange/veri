@@ -613,6 +613,18 @@ def pull(url_or_number, repo=None):
     return _pull(json.loads(run.stdout))
 
 
+def joined_issues(base, repo=None):
+    """The issue numbers (ints) a `Closes #n` line names in the body of a pull request merged into <base>: closed pull
+    requests against <base>, kept only when the answer says merged (GraphQL state MERGED, REST merged_at set). NoAnswer
+    when GitHub gave none; ValueError when the answer is not JSON."""
+    path = "repos/%s/pulls?state=closed&base=%s&per_page=100" % (repo or "{owner}/{repo}", base)
+    answer = gh_json("stack-prs.json", path, "pr", "list", "--base", base, "--state", "merged", "--limit", "10000",
+                     "--json", "body,state", *(["--repo", repo] if repo else []))
+    return {int(n) for raw in json_documents.items(answer)
+            if str(raw.get("state", "")).upper() == "MERGED" or raw.get("merged_at") or raw.get("mergedAt")
+            for n in closed_issues(raw.get("body") or "")}
+
+
 def closed_issues(body, loose=False):
     """The issue numbers (strings) <body> closes, in order: `Closes #n`; <loose> also reads `closes #n`
     and `disCloses #n`, the spelling of status --recover."""

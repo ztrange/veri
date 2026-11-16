@@ -9,8 +9,9 @@ import run_dir
 import sys
 
 import blocked_by
+import stack_branch
 import tunables
-from github import NoAnswer, closed_issues, gh_json, gh_json_page, pulls_in
+from github import NoAnswer, closed_issues, gh_json, gh_json_page, joined_issues, pulls_in
 from json_documents import items
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name] [--not-running]"
@@ -136,6 +137,15 @@ def select(label, priority="priority", repo=None):
     bands = {issue["number"]: band(issue, priority) for issue in issues}
     origin = inherit_bands(issues, blockers, bands)
     main_tree = run_dir.main_tree(missing="")
+    try:
+        stack = stack_branch.named(main_tree or ".")
+        if stack:
+            claimed |= joined_issues(stack, repo)
+    except stack_branch.Refused as refused:
+        print("solvable-issues: %s" % refused, file=sys.stderr)
+        return 2, []
+    except NoAnswer:
+        return 2, []
     survivors = [issue for issue in issues
                  if is_open(issue) and carries(issue, label) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
                  and not in_flight(main_tree, issue["number"])
