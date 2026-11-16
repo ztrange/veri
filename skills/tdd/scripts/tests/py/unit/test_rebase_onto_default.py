@@ -506,3 +506,33 @@ def test_main_exits_2_with_one_stderr_line_naming_the_rebase_refused_without_a_c
     assert "rebase" in err and "without a conflict" in err, err
     assert "in progress" not in err and "fetch" not in err and "ls-remote" not in err, err
     assert "stale" not in err and "refs/remotes/origin/HEAD" not in err and "re-apply" not in err, err
+
+
+STACK = "3333333333333333333333333333333333333333"
+
+
+def stack_answers(contained=False):
+    """git_fake's overrides for a worktree whose CLAUDE.md names the stack branch `stack`, origin holding it at STACK."""
+    return {
+        "git check-ref-format --branch stack": (0, "stack\n"),
+        "git ls-remote origin refs/heads/stack": (0, f"{STACK}\trefs/heads/stack\n"),
+        "git rev-parse origin/stack": (0, f"{STACK}\n"),
+        f"git merge-base --is-ancestor {STACK} HEAD": ((0 if contained else 1), ""),
+        f"git rebase -q {STACK}": (0, ""),
+    }
+
+
+@pytest.mark.parametrize("argv", [[], ["--graded-only"]])
+def test_main_rebases_onto_origin_stack_where_a_stack_branch_is_named_and_exits_3_when_the_branch_contains_it_4170(
+        monkeypatch, tmp_path, cli, fake_processes, argv):
+    (tmp_path / "CLAUDE.md").write_text("veri: stack branch: stack\n")
+    monkeypatch.chdir(tmp_path)
+
+    rebased = git_answers(fake_processes, **stack_answers())
+    code, out = cli.main(argv), cli.readouterr().out
+    contained = git_answers(fake_processes, **stack_answers(contained=True))
+    up_to_date = cli.main(argv), cli.readouterr().out
+
+    assert (code, out, [c for c in rebased if c.startswith("git rebase")], up_to_date,
+            [c for c in contained if c.startswith("git rebase")]) == (
+        0, f"{PRE}\n{STACK}\n", [f"git rebase -q {STACK}"], (3, ""), [])

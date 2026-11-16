@@ -164,6 +164,10 @@ What every module stands on: the one `__main__` path and exit contract, script p
 ## session_env
 - `strip_session_env(env)`: removes the Claude Code session variables, and values carrying a session id, from `env`.
 
+## stack_branch
+- `named(root)`: the stack branch `<root>/CLAUDE.md` names, `None` when it names none; raises `Refused` (stack-branch.sh's exit 2, its text naming the line) for an empty name, the default branch, or a name `git check-ref-format --branch` refuses.
+- `run_base(root=None, remote=True)`: `(branch, stacked)`, the one answer to which branch a run is cut from, rebased onto and diffed against: the named stack, else `git.default_branch(root, remote)` (`None` when it cannot be told).
+
 ## tunables
 The one reader of `VERI_*` and related environment variables.
 - `read(name, default="", unless_empty=None)`: the value as a string. `read_bytes(name, default=b"")`: as bytes.
