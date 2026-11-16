@@ -403,6 +403,21 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `.tdd/pinned-scripts/.snapshot-dir`, only when that path is a directory (not a symlink) named `veri-snapshot-*` whose
   `.veri-snapshot` marker names this worktree; any other recorded path that exists is left in place with one stderr line
   naming it, and the exit code is the worktree removal's own, except that a snapshot it fails to remove is exit 2 with one stderr line naming that snapshot, the worktree already gone.
+  **Where `stack-branch.sh` exits 0** (the repository's `CLAUDE.md` names a stack branch `<stack>`), a new run's branch
+  is cut from **`origin/<stack>` as just fetched** in place of `origin/<default>`. When origin has no such branch, it is
+  first pushed there at the default branch's tip as just fetched, **never forced**: a refused or unanswered push is
+  **exit 2** with no branch and no worktree made, except that a push refused because the branch now exists on origin
+  (another machine created it) is followed by a fetch and the cut from `origin/<stack>`. Each of those network calls
+  ends after `VERI_GIT_NETWORK_TIMEOUT` seconds; one that gets no answer exits 2 naming it. A `stack-branch.sh` exit 2
+  (a name that cannot be a stack) is exit 2 here too; where it exits 3 the cut is as above and nothing is pushed.
+- `$S/rebase-onto-default.sh [--graded-only]` — rebase the run's branch, from the worktree it runs in, onto
+  `origin/<default>` as just fetched and checked against what origin reports; `--graded-only` resolves a conflict
+  confined to `GRADED` files by keeping each side's re-signed units. **Where `stack-branch.sh` exits 0** it rebases onto
+  `origin/<stack>` in place of `origin/<default>`, with and without `--graded-only`, its exit **3** then meaning the
+  branch already contains `origin/<stack>`. **Exit 0** rebased, stdout the pre-rebase sha then the onto sha; **1** a
+  conflict, aborted, stdout the conflicting files; **2** git refused the rebase, no base branch resolved (a
+  `stack-branch.sh` exit 2 included), origin not fetched, or the remote-tracking ref stale; **3** the branch already
+  contains the base, nothing touched.
 - `$S/stack-branch.sh [repo-root]` — print the stack branch the target repository names (repo-root defaults to the
   current repository): the branch a line `veri: stack branch: <name>` in its `CLAUDE.md` names, **exit 0**. With no such
   line, or no `CLAUDE.md`, it prints nothing, **exit 3**: the repository stacks nothing, and keeps one pull request per
