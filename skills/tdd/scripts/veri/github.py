@@ -86,10 +86,11 @@ def bounded(argv, run=None, **kwargs):
         return _timed_out(argv, limit, kwargs)
 
 
-def bounded_group(argv, **kwargs):
+def bounded_group(argv, limit_name="VERI_GH_TIMEOUT", **kwargs):
     """bounded, for a child that starts children of its own (git over ssh): it runs in a session of its own, and at
-    VERI_GH_TIMEOUT its whole process group is killed, so no ssh outlives it. Same exit 124 and line."""
-    limit = wait_seconds("VERI_GH_TIMEOUT", 1)
+    <limit_name>'s seconds (VERI_GH_TIMEOUT unless named) its whole process group is killed, so no ssh outlives it.
+    Same exit 124 and line, the line naming <limit_name>."""
+    limit = wait_seconds(limit_name, 1)
     with subprocess.Popen(argv, start_new_session=True, **kwargs) as child:
         try:
             out, err = child.communicate(timeout=limit)
@@ -97,21 +98,25 @@ def bounded_group(argv, **kwargs):
             with contextlib.suppress(ProcessLookupError, PermissionError):
                 os.killpg(child.pid, signal.SIGKILL)
             child.communicate()
-            return _timed_out(argv, limit, kwargs)
+            return _timed_out(argv, limit, kwargs, limit_name)
     return subprocess.CompletedProcess(argv, child.returncode, out, err)
 
 
-def _timed_out(argv, limit, kwargs):
+class TimedOut(subprocess.CompletedProcess):
+    """The answer of a call killed at its bound (exit 124); isinstance tells it from a child that exited 124 itself."""
+
+
+def _timed_out(argv, limit, kwargs, limit_name="VERI_GH_TIMEOUT"):
     """The failed call a timed-out <argv> is answered as: exit 124, with a line naming the command and the limit on
     the stream the caller captures (written to ours when it captures none)."""
-    said = "%s: no answer after %ds (VERI_GH_TIMEOUT)\n" % (" ".join(argv), limit)
+    said = "%s: no answer after %ds (%s)\n" % (" ".join(argv), limit, limit_name)
     stdout = "" if kwargs.get("capture_output") or kwargs.get("stdout") == subprocess.PIPE else None
     if kwargs.get("stderr") == subprocess.STDOUT:
-        return subprocess.CompletedProcess(argv, 124, said, None)
+        return TimedOut(argv, 124, said, None)
     if kwargs.get("capture_output") or kwargs.get("stderr") == subprocess.PIPE:
-        return subprocess.CompletedProcess(argv, 124, stdout, said)
+        return TimedOut(argv, 124, stdout, said)
     sys.stderr.write(said)
-    return subprocess.CompletedProcess(argv, 124, stdout, None)
+    return TimedOut(argv, 124, stdout, None)
 
 
 def run_gh(*args, stderr=None):
