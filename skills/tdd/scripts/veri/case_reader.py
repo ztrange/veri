@@ -251,11 +251,10 @@ def file_defines(path, case, classes=()):
     classes, only a Python test file whose class chain defines case does (class_defines)."""
     root, name = os.path.split(path)
     py_file, go_file, js_file = is_test_file(name), is_go_test_file(name), is_js_test_file(name, root)
-    if not (py_file or go_file or js_file or name.endswith(".test.sh")):
+    if not (py_file or go_file or js_file):
         return False
     with open(path, encoding="utf-8", errors="replace") as handle:
         text = handle.read()
     if classes:
         return py_file and _class_defines(text, classes, case)
-    return bool(defined_name(case, text, py_file, go_file) or js_file and case in live_titles(case, text)
-                or name.endswith(".test.sh") and ('name="%s"' % case) in text)
+    return bool(defined_name(case, text, py_file, go_file) or js_file and case in live_titles(case, text))
