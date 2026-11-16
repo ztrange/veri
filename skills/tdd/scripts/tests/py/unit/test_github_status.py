@@ -419,3 +419,38 @@ def test_an_incident_listed_twice_prints_once_and_a_component_listed_twice_print
     page.serve(twice, dict(twice))
 
     assert run_cli(page.module, [])[:2] == (1, "Incident with Pull Requests\tPull Requests\t2026-11-16 04:59\t61\n")
+
+
+def with_id(key, item):
+    item["id"] = key
+    return item
+
+
+@pytest.mark.parametrize("first", [
+    with_id("x", incident("Incident with Pull Requests", 61, "Copilot")),
+    with_id("x", incident("Incident with Pull Requests", 5, "Pull Requests")),
+], ids=["first-copy-names-no-wanted-component", "first-copy-young"])
+def test_a_counting_copy_of_an_incident_listed_twice_is_never_dropped_for_an_earlier_copy(page, run_cli, first):
+    page.serve(first, with_id("x", incident("Incident with Pull Requests", 61, "Pull Requests")))
+
+    assert run_cli(page.module, [])[:2] == (1, "Incident with Pull Requests\tPull Requests\t2026-11-16 04:59\t61\n")
+
+
+def test_ids_of_different_types_are_different_incidents(page, run_cli):
+    page.serve(with_id(1, incident("Numbered", 61, "Actions")), with_id("1", incident("Lettered", 61, "Actions")))
+
+    code, out, _ = run_cli(page.module, [])
+
+    assert code == 1
+    assert [line.split("\t")[0] for line in out.splitlines()] == ["Numbered", "Lettered"]
+
+
+def test_a_component_name_that_is_not_a_string_is_not_the_feeds_shape(page, run_cli):
+    bad = incident("Incident with Pull Requests", 61, "Pull Requests")
+    bad["components"].append({"name": 5, "status": "major_outage"})
+    page.serve(bad)
+
+    code, out, err = run_cli(page.module, [])
+
+    assert (code, out) == (2, "")
+    assert "not the feed's JSON" in err
