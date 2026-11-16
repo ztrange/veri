@@ -380,3 +380,9 @@ def test_a_name_holding_tabs_or_newlines_prints_on_one_line_with_whitespace_coll
                               "(unnamed)\tActions\t2026-11-16 05:15\t45\n")
     page.serve(young)
     assert run_cli(page.module, [])[:2] == (0, "young 5 Young one\n")
+
+
+def test_an_incident_opened_in_the_future_is_young_at_age_0(page, run_cli):
+    page.serve(incident("Clock skew", -10, "Actions"))
+
+    assert run_cli(page.module, [])[:2] == (0, "young 0 Clock skew\n")
