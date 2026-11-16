@@ -5,6 +5,7 @@ import re
 import subprocess
 
 import run_dir
+import tunables
 
 
 def listing(*, quiet=False):
@@ -28,6 +29,13 @@ def started_as(pid):
 
     A pid ps does not know answers "" (ps's exit is not read); a machine without ps raises FileNotFoundError."""
     return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+
+
+def started_utc(pid):
+    """The start time of <pid> as `ps -o lstart=` prints it under LC_ALL=C TZ=UTC, stripped: the same text whatever
+    the caller's locale or zone. A pid ps does not know answers ""; a machine without ps raises FileNotFoundError."""
+    return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True,
+                          env=tunables.with_values(LC_ALL="C", TZ="UTC")).stdout.strip()
 
 
 def pids_matching(pattern):
