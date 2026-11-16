@@ -225,6 +225,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    # On `pr-ready.sh` exit 2 the next line writes the bail only when `adjudicate.sh left` exits non-zero (3, no budget left; 2, the event log unreadable); with budget left it writes nothing and ends the call (`exit 0`, printing `adjudicate pr-ready-failed`), and the exit is adjudicated before any event and any `wait-ci.sh` call, as the `pr-ready.sh` paragraph after this block says (`Read` `<base directory>/ADJUDICATE.md`).
    [ -z "$blocked" ] || { $S/adjudicate.sh left <n> && { echo "adjudicate pr-ready-failed"; exit 0; }; VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=pr-ready-failed classification="$($S/classify-bail.sh pr-ready-failed)"; }
    [ -n "$blocked" ] || $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/wait-ci.out 2> .tdd/wait-ci.err; ci=$?; [ "$ci" != 3 ] || exit 0    # exit 3 ends the call → run this line and every line after it again, in a new Bash call
+   # The flake check, the CI flake paragraph after this block: on exit 1 the next line saves the failed log and runs ci-flake.sh; its exit 0 ends the call (`exit 0`, printing `ci-flake re-run`) → run the wait-ci.sh line above and every line after it again, in a new Bash call; its exit 1, 2 or 3, a `gh run view` failure, or no `veri: one test file:` line (detect-test-command.sh exit 3) goes on to the lines below, the red unchanged.
+   [ "$ci" != 1 ] || { gh run view <run-id> --log-failed > .tdd/ci-failed.log && alone="$($S/detect-test-command.sh --tier "one test file")" && $S/ci-flake.sh <n> "$(git rev-parse HEAD)" <run-id> "$alone" .tdd/ci-failed.log > .tdd/ci-flake.out && { echo "ci-flake re-run"; exit 0; }; }
+   [ "$ci" != 0 ] || [ ! -s .tdd/ci-flake.out ] || { VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh ci-flake head="$(git rev-parse HEAD)" run=<run-id> files="$(paste -sd , .tdd/ci-flake.out)" && cat .tdd/ci-flake.out >> .tdd/ci-flakes.txt && : > .tdd/ci-flake.out; }    # a green wait after a re-run: the flake, <run-id> the run ci-flake.sh re-ran
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
    # A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): the next line writes that bail only when `adjudicate.sh left` exits non-zero (3, no budget left; 2, the event log unreadable). With budget left it writes nothing and ends the call (`exit 0`, printing `adjudicate ci-timeout`), so no later line of it runs; run the adjudication, then a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and, in one new Bash call, the `wait-ci.sh` line above and every line after it, its exits handled as at the first wait; any other outcome runs, alone in a Bash call of its own, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"`, and no later line of this block runs.
    [ "$ci" != 2 ] || [ "$conflict" = 0 ] || { $S/adjudicate.sh left <n> && { echo "adjudicate ci-timeout"; exit 0; }; VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"; }
@@ -270,6 +273,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    fi
    $S/push-branch.sh
    $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/wait-ci.out 2> .tdd/wait-ci.err; ci=$?; [ "$ci" != 3 ] || exit 0    # exit 3 ends the call → run this line and every line after it again, in a new Bash call
+   # The same flake check as at the first wait, its exits routed the same way.
+   [ "$ci" != 1 ] || { gh run view <run-id> --log-failed > .tdd/ci-failed.log && alone="$($S/detect-test-command.sh --tier "one test file")" && $S/ci-flake.sh <n> "$(git rev-parse HEAD)" <run-id> "$alone" .tdd/ci-failed.log > .tdd/ci-flake.out && { echo "ci-flake re-run"; exit 0; }; }
+   [ "$ci" != 0 ] || [ ! -s .tdd/ci-flake.out ] || { VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh ci-flake head="$(git rev-parse HEAD)" run=<run-id> files="$(paste -sd , .tdd/ci-flake.out)" && cat .tdd/ci-flake.out >> .tdd/ci-flakes.txt && : > .tdd/ci-flake.out; }
    [ "$ci" != 1 ] || ! $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
    [ "$ci" = 0 ] || [ "$ci" = 2 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
    [ "$no_repair" = 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
@@ -284,7 +290,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"
    cat > .tdd/issue-<n>-pr-body.md <<'EOF'
-   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'>
+   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'>
    EOF
    $S/pr-body.sh <pr-number> .tdd/issue-<n>-pr-body.md
    ```
@@ -309,10 +315,23 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    step's red evidence, the same way a red full run's repair step is.
    A second red CI result after a CI repair step does **bail**, with cause `ci-red`, the way
    a second red full run does — the repair step is one more cycle, not a loop (`Read` `<base directory>/BAIL.md`).
-   A conductor never re-runs a failed CI job — no `gh run rerun`, no re-run of a failed
-   check: a red check is answered only by the repair step or the `ci-red` bail above, since
-   a re-run can turn a real failure into one that reads as a flake. Re-running a known flake
-   is the operator's decision, made outside a run.
+   **CI flakes.** At every `wait-ci.sh` exit 1 — after `pr-ready.sh`, after the `metrics:` push, after a CI-conflict
+   rebase or an adjudicated `retry`, each of which runs a block's `wait-ci.sh` line and the lines after it — before the
+   red takes its `⟦ci-repair⟧` step or its `ci-red` bail, the block's flake line saves `gh run view <run-id> --log-failed`
+   to `.tdd/ci-failed.log`, reads `<alone-cmd>` with `$S/detect-test-command.sh --tier "one test file"` and, unless that
+   exits 3, runs `$S/ci-flake.sh <n> <head-sha> <run-id> '<alone-cmd>' .tdd/ci-failed.log`. Its exit 0 (every target
+   passed alone and the failed jobs were re-run) runs the same `wait-ci.sh` line again; its exit 1, 2 or 3, or no
+   `one test file` line, takes the path a red CI takes without it, unchanged. A `wait-ci.sh` exit 0 after that re-run
+   is a flake: the block's next line writes `$S/event.sh ci-flake head=<sha> run=<run-id> files=<targets>` and keeps the
+   targets in `.tdd/ci-flakes.txt` for the PR body; no `⟦ci-repair⟧` step is appended, and the run goes on as after any
+   green wait, row DP101's `⟦full-suite⟧` tick under `VERI_BRANCH_SUITE=ci` included. That wait's exit 1 is a real red:
+   the flake line's `ci-flake.sh` exits 3 (the head was re-run) and the red takes the `⟦ci-repair⟧` step or the
+   `ci-red` bail above; its exit 2 and 3 are handled as at any wait. A re-run is counted only by
+   `VERI_CI_FLAKE_RERUNS`, never by `REVISE_BUDGET`, `VERI_ADJUDICATE_BUDGET` or the `⟦ci-repair⟧` count, and neither
+   a re-run nor a `⟦ci-repair⟧` step returns the readied PR to draft.
+   A conductor re-runs a failed CI job only through `$S/ci-flake.sh`: at most once per head and `VERI_CI_FLAKE_RERUNS`
+   times per run (default 1; `0` re-runs none), and only after every test target the failed log names has passed
+   alone. It never runs `gh run rerun` otherwise, and a re-run that is red again is a real red.
    That bail keys on `⟦ci-repair⟧` only: a ledger holding a `⟦suite-repair⟧` step and no
    `⟦ci-repair⟧` step still gets its one CI repair attempt.
    A `wait-ci.sh` exit 2 whose stderr names a conflict — the PR conflicts with its base
