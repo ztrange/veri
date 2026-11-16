@@ -32,8 +32,16 @@ If it needs a decision this run has no authority to make, one line naming that d
 
 NEEDS_USER: <the decision, stated so the user can answer it>
 
-If it is neither — this step is one behaviour the attempts simply failed to satisfy — print no
-SPLIT: line and no NEEDS_USER: line; the run then bails. Whichever answer you give, your
-STATEMENT: line comes with it.
+If older committed cases the step's change legitimately supersedes are why the step could not
+be satisfied, and they can be edited, with no production code, to hold both before and after
+the step's change, one line per such case; the run then adds a test-only step ahead of this
+one. Name only cases committed before this step, never a case this step's own Red wrote. Give
+this answer instead of a split or a decision, never beside one:
 
-REPORT-FORMAT exhausted | keys STATEMENT: SPLIT: NEEDS_USER: | suite exempt: the leaf changes nothing and answers in prose
+STEP_AHEAD: <file>::<case>
+
+If it is none of these — this step is one behaviour the attempts simply failed to satisfy —
+print no SPLIT: line, no NEEDS_USER: line and no STEP_AHEAD: line; the run then bails.
+Whichever answer you give, your STATEMENT: line comes with it.
+
+REPORT-FORMAT exhausted | keys STATEMENT: SPLIT: NEEDS_USER: STEP_AHEAD: | suite exempt: the leaf changes nothing and answers in prose

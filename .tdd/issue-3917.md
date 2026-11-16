@@ -8,6 +8,6 @@
 - [x] `exhausted-outcome.sh --step-ahead <red-test-id>` exits 2 with empty stdout and a stderr line naming the line when a `STEP_AHEAD:` value names a case its file does not define ⟦criterion 4⟧
 - [x] run without `--step-ahead`, `exhausted-outcome.sh` prints and exits as today on input holding `STEP_AHEAD:` lines, alone and beside `SPLIT:` or `NEEDS_USER:` lines ⟦criterion 5⟧
 - [x] `JOURNAL.md`'s `reroute` row lists the `at` field ⟦criterion 6⟧
-- [ ] `prompts/develop-exhausted.md` offers and declares `STEP_AHEAD:`, graded PASS against rows XH9 to XH11 ⟦criterion 7⟧
+- [x] `prompts/develop-exhausted.md` offers and declares `STEP_AHEAD:`, graded PASS against rows XH9 to XH11 ⟦criterion 7⟧
 - [ ] `REVISE.md`'s exhausted section runs `--step-ahead` on the plain read's exit 3, graded PASS against rows RV66 and RV67 ⟦criterion 8⟧
 - [ ] `SCRIPTS.md` has an `$S/exhausted-outcome.sh` entry, graded PASS against row SC140 ⟦criterion 9⟧
