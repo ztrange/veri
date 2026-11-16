@@ -109,6 +109,23 @@ def test_gh_issue_create_hands_gh_the_title_and_the_body_redacted_issue_3968(git
                                                       "body=found [redacted] in output")
 
 
+def test_gh_issue_edit_hands_gh_a_body_file_whose_contents_are_redacted_the_callers_file_unchanged_issue_3968(
+        github, fake_processes, tmp_path):
+    token = "ghs_" + FAKE * 3
+    body_file = tmp_path / "body.md"
+    body_file.write_text("## Problem\nleaked %s\n" % token)
+    read = []
+
+    def gh(line, **kwargs):
+        read.append(open(fake.argvs[-1][-1].split("=@", 1)[1]).read())
+        return 0, "{}", ""
+    fake = fake_processes.answers({"gh": gh})
+
+    github.gh_issue_edit("60", str(body_file))
+
+    assert (read, body_file.read_text()) == (["## Problem\nleaked [redacted]\n"], "## Problem\nleaked %s\n" % token)
+
+
 def test_redact_replaces_a_token_wrapped_across_a_line_break_or_a_json_newline_escape_issue_3960(github, monkeypatch):
     monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
     token = "ghp_" + FAKE * 3 + "Zz"

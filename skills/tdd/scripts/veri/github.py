@@ -17,6 +17,7 @@ import re
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 from typing import NamedTuple, Optional
 
@@ -179,12 +180,31 @@ def bounded(argv, run=None, **kwargs):
     call: exit 124, with a line naming the command and the limit on the stream the caller captures (written to ours
     when it captures none)."""
     limit = wait_seconds("VERI_GH_TIMEOUT", 1)
-    if argv[0] == "gh":
-        argv = [redact(arg) for arg in argv]
-    try:
-        return (run or subprocess.run)(argv, timeout=limit, **kwargs)
-    except subprocess.TimeoutExpired:
-        return _timed_out(argv, limit, kwargs)
+    with contextlib.ExitStack() as cleanup:
+        if argv[0] == "gh":
+            argv = [_redacted_arg(arg, flag in ("-F", "--field"), cleanup) for flag, arg in zip([None] + argv, argv)]
+        try:
+            return (run or subprocess.run)(argv, timeout=limit, **kwargs)
+        except subprocess.TimeoutExpired:
+            return _timed_out(argv, limit, kwargs)
+
+
+def _redacted_arg(arg, typed, cleanup):
+    """<arg> of a gh command line, redacted; a <typed> field (after -F) `<field>=@<file>` whose file holds something to
+    redact names instead a redacted copy of it, removed when <cleanup> closes, and the file itself is left as it was."""
+    field, at, path = arg.partition("=@")
+    if not (typed and at) or path == "-" or not os.path.isfile(path):
+        return redact(arg)
+    with open(path, encoding="utf-8", errors="surrogateescape") as f:
+        text = f.read()
+    redacted = redact(text)
+    if redacted == text:
+        return redact(arg)
+    fd, copy = tempfile.mkstemp(prefix="veri-redacted-")
+    cleanup.callback(os.remove, copy)
+    with os.fdopen(fd, "w", encoding="utf-8", errors="surrogateescape") as f:
+        f.write(redacted)
+    return redact(field) + at + copy
 
 
 def bounded_group(argv, limit_name="VERI_GH_TIMEOUT", **kwargs):
