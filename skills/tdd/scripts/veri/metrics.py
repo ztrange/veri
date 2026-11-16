@@ -11,7 +11,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
   header     issue, clocked, issue_wall, asleep, steps_done, planned, ended, cause, ending, lane, flaked,
              pinned, model_knobs, models
   tables     phases, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
-             adjudications, switched_off, switched_off_by, total, green_rejects (+ green_reject_routes),
+             adjudications, switched_off, switched_off_by, total, green_rejects (+ green_reject_routes, green_reject_checks),
              launch_costs (+ launch_cost_missing), gradings, revise_green
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
@@ -606,6 +606,7 @@ class Fold:
     refactor_totals: list       # refactor_total rows: each step with a pass, then the issue
     green_rejects: list         # (step, attempt, route, check, reason) per green REJECT verdict, in log order
     green_reject_routes: list   # (route, count) over green_rejects, by count descending, then route
+    green_reject_checks: list   # (check, count) over green_rejects, by check ascending, then ("unnamed", count)
     launch_costs: dict          # (actor, model) -> {LAUNCH_COLUMNS: tokens}, leaf usage events with first-turn fields
     launch_cost_missing: int    # leaf usage events without the first-turn fields
     gradings: dict              # the grading events: count, PASS, REJECT, $ (summed cost_usd), efforts (a set)
@@ -680,6 +681,7 @@ def fold(issue, path, ledger):
     green_rejects = [(step, attempt, "none" if route is None else route, check, reason)
                      for step, attempt, route, check, reason in tally.green_rejects]
     routes = collections.Counter(route for _step, _attempt, route, _check, _reason in green_rejects)
+    checks = collections.Counter(check for _step, _attempt, _route, check, _reason in green_rejects)
     structural = tally.structural
     structural_marked = structural is not None and "stopped" in structural
     if structural is None and ending is not None and ending.get("event") == "done":
@@ -715,6 +717,7 @@ def fold(issue, path, ledger):
                 conductor_counted=tally.conductor_counted, total=tally.total, structural=structural,
                 green_rejects=green_rejects,
                 green_reject_routes=sorted(routes.items(), key=lambda item: (-item[1], item[0])),
+                green_reject_checks=sorted(item for item in checks.items() if item[0]) + [("unnamed", checks[""])],
                 launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing,
                 gradings=tally.gradings, revise_green=revise_green_outcomes(marks, models))
 
@@ -941,6 +944,8 @@ def layout(f):
             row([step, attempt, route, check, UNKNOWN if reason is None else reason.replace("|", "\\|")])
     print()
     print("Green rejects by route: " + (", ".join("%s %d" % item for item in f.green_reject_routes) or "none"))
+    if f.green_rejects:
+        print("Green rejects by check: " + ", ".join("%s %d" % item for item in f.green_reject_checks))
     if f.launch_costs:
         table_head("#### Launch cost, by role", "role", ["model"] + LAUNCH_COLUMNS, ["---"] + ["---:"] * len(LAUNCH_COLUMNS))
         for (role, model), tokens in f.launch_costs.items():
