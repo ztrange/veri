@@ -205,8 +205,10 @@ def preflight_and_launch(argv):
                        "snapshot-changed", ["path=" + changed])
             return 2
         finally:
-            keep_pinned_scripts(snapshot, argv[0])
-            pinned_scripts.remove_tree(snapshot)
+            try:
+                keep_pinned_scripts(snapshot, argv[0])
+            finally:
+                pinned_scripts.remove_tree(snapshot)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
     return launch(base, argv[0], None, VERI_SKILL_UNPINNED="1")
 
