@@ -55,7 +55,7 @@ def build_ready_repo(tmp_path):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     gh = bin_dir / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api -i user") printf \'HTTP/2.0 200 OK\\r\\nX-Oauth-Scopes: repo\\r\\n\\r\\n{}\\n\' ;;\n  *label*) echo \'[{"name":"veri"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     gh.chmod(0o755)
     env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "VERI_LABEL": "veri"}
     return repo, env
@@ -315,7 +315,7 @@ def test_issue_3055_ready_check_with_two_failing_rows_counts_both_in_its_last_li
 def test_issue_3055_ready_check_with_a_failing_gh_label_list_fails_the_label_row_instead_of_crashing(tmp_path):
     repo, env = build_ready_repo(tmp_path)
     gh = tmp_path / "bin" / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"}]\'; echo "boom" >&2; exit 1 ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "label "*) echo \'[{"name":"veri"}]\'; echo "boom" >&2; exit 1 ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     lines = ran.stdout.splitlines()
 

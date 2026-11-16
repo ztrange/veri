@@ -33,6 +33,11 @@ def holding(**overrides):
         "gh api repos/{owner}/{repo}": (0, '{"permissions": {"push": true}}', ""),
         "gh label list": (0, '[{"name": "ready-for-agent"}]', ""),
         "detect-test-command.sh": (0, "make test\n", ""),
+        "gh api -i user": (0, "HTTP/2.0 200 OK\r\nX-Oauth-Scopes: repo, workflow\r\n\r\n{}", ""),
+        "git remote get-url origin": (0, "git@github.com:o/r.git\n", ""),
+        "gh api repos/{owner}/{repo}/labels/": (0, "{}", ""),
+        "gh api repos/{owner}/{repo}/actions/runs?per_page=1": (0, "{}", ""),
+        "git rev-parse --git-common-dir": (0, ".git\n", ""),
     }
     table.update(overrides)
     return table
@@ -180,3 +185,15 @@ def test_issue_4089_the_run_state_ignore_row_is_ok_when_each_file_carries_the_ru
     denied.add(os.path.realpath(exclude))
     name, fix = ready_check.run_state_ignore_row()
     assert name == "run-state ignore" and fix and str(exclude) in fix and ".gitignore" not in fix, fix
+
+
+def test_issue_4089_ready_check_prints_the_new_rows_and_counts_a_not_verifiable_or_skipped_row_as_no_fail(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
+    monkeypatch.setenv("VERI_CI_ON_PR", "1")
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{
+        "git ls-tree": (0, "", ""), "gh api -i user": user_headers(None), ONE_TEST_FILE: (0, 'pytest "$1"\n', "")})
+
+    for row in ("not verifiable  token scopes", "ok    label priority", "ok    label bug", "skipped  actions read", "ok    run-state ignore"):
+        assert row in lines, (row, lines)
+    assert [line for line in lines if line.startswith("fail")] == [
+        "fail  push: add a workflow under .github/workflows/ that triggers on push to the default branch"], lines
+    assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
