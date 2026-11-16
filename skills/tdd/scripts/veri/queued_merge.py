@@ -10,6 +10,7 @@ import sys
 import tempfile
 import time
 
+import entry
 import event
 import paths
 import run_dir
@@ -259,6 +260,36 @@ def _before_merge(pid, pr, worktree, branch, before, head):
     return None
 
 
+def _to_merge(pid, repo, pr, worktree, branch):
+    """Fetch, rebase, push, wait for CI and check before the merge: (head, None) to merge, ("", (code, outcome)) to stop."""
+    code = _gate(pid, "git", "-C", worktree, "fetch", "origin")
+    if code:
+        return "", (code, LEAVE)
+    lease, refusal = _before_rebase(repo, pr, worktree, branch)
+    if refusal:
+        return "", _refused(*refusal)
+    before = _rev(worktree, "HEAD")
+    code = _rebase(pid, worktree, ("rebase", "origin/main"))
+    if code:
+        return "", (code, LEAVE)
+    code = _gate(pid, "git", "-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
+                 "origin", "HEAD:refs/heads/%s" % branch, keep=True)
+    if code:
+        return "", (code, LEAVE)
+    head = _rev(worktree, "HEAD")
+    if not head:
+        return "", _refused("the pushed head does not resolve")
+    code = 3
+    while code == 3:
+        code = _gate(pid, os.path.join(SCRIPTS, "wait-ci.sh"), pr, "540", "", head)
+    if code:
+        return "", (code, LEAVE)
+    refusal = _before_merge(pid, pr, worktree, branch, before, head)
+    if refusal:
+        return "", _refused(*refusal)
+    return head, None
+
+
 def _locked(pid, repo, pr, worktree, branch, message):
     """Everything after the lock is taken: returns (exit code, RELEASE | LEAVE), never releasing itself.
 
@@ -273,32 +304,17 @@ def _locked(pid, repo, pr, worktree, branch, message):
     Already settled by the callee:
       - the first fetch, the wait-ci gate: a gate without --keep releases the lock itself on failure;
       - _cleanup: releases the lock after the tag, branch delete and worktree removal.
+
+    An exception escaping before the merge call is exit 2 with RELEASE, named in entry.refusal's form;
+    after the call, _cleanup releases from a copy of the scripts, so no blanket release is safe there.
     """
-    code = _gate(pid, "git", "-C", worktree, "fetch", "origin")
-    if code:
-        return code, LEAVE
-    lease, refusal = _before_rebase(repo, pr, worktree, branch)
-    if refusal:
-        return _refused(*refusal)
-    before = _rev(worktree, "HEAD")
-    code = _rebase(pid, worktree, ("rebase", "origin/main"))
-    if code:
-        return code, LEAVE
-    code = _gate(pid, "git", "-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
-                 "origin", "HEAD:refs/heads/%s" % branch, keep=True)
-    if code:
-        return code, LEAVE
-    head = _rev(worktree, "HEAD")
-    if not head:
-        return _refused("the pushed head does not resolve")
-    code = 3
-    while code == 3:
-        code = _gate(pid, os.path.join(SCRIPTS, "wait-ci.sh"), pr, "540", "", head)
-    if code:
-        return code, LEAVE
-    refusal = _before_merge(pid, pr, worktree, branch, before, head)
-    if refusal:
-        return _refused(*refusal)
+    try:
+        head, stop = _to_merge(pid, repo, pr, worktree, branch)
+    except Exception as error:
+        sys.stderr.write(entry.refusal(main, error))
+        return 2, RELEASE
+    if stop:
+        return stop
     gh_merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
     rest_merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, _number(pr)),
                   "-f", "merge_method=rebase", "-f", "sha=%s" % head)
@@ -358,5 +374,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])
