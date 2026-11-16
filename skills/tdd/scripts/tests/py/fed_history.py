@@ -9,7 +9,8 @@ Each revision is `(name, subject, files)`, oldest first, one line of commits; HE
 (relative to `root`) to its text at that revision, or to None when that revision deletes it; a path it does not
 name keeps its text from the revision before, as a commit does. A query may name a path absolute under `root`, as
 git takes it. A revision is named by its name (which is also its
-sha: `commit_of` answers it), by `HEAD`, or by either followed by `~<n>`; `subject` answers its subject.
+sha: `commit_of` answers it), by `HEAD`, or by either followed by `~<n>` or by `^` (`~1`, its first
+parent); `subject` answers its subject.
 `refs={"origin/main": "<name>"}` names a revision of the line by a ref as well; `detached={"<name>": (subject,
 {path: text})}` adds revisions off the line, each holding exactly the files it names (a commit a rebase left
 behind), readable by name but in no `revisions` answer; `default="main"` is what `default_branch` answers, and
@@ -33,7 +34,7 @@ from case_reader import cut_cases, is_js_test_file, is_test_path
 
 ANSWERED = ("toplevel", "has_rev", "current_branch", "text_at", "cases_at", "revisions",
             "first_revision_with", "changed_test_files", "commit_of", "step_commits", "subject", "default_branch")
-REV = re.compile(r"^(?P<name>[^~]+)(?:~(?P<back>\d+))?$")
+REV = re.compile(r"^(?P<name>[^~^]+)(?:~(?P<back>\d+)|(?P<parent>\^))?$")
 
 
 class FedHistory:
@@ -59,7 +60,8 @@ class FedHistory:
         found = REV.match(rev or "")
         if not found:
             return None
-        name, back = self.refs.get(found.group("name"), found.group("name")), int(found.group("back") or 0)
+        name = self.refs.get(found.group("name"), found.group("name"))
+        back = 1 if found.group("parent") else int(found.group("back") or 0)
         at = len(self.names) - 1 if name == "HEAD" else (self.names.index(name) if name in self.names else None)
         return at - back if at is not None and at - back >= 0 else None
 
