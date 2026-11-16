@@ -788,7 +788,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "suite-repair": (0, True, False),
         "replaces-case unreadable": (2, b"", True, [0]),
         "suite-repair unreadable": (2, b"", True, [0, 0]),
-        "#671 byte-identity": [(0, "2281127406 9627"), (0, "3449014854 9351")],
+        "#671 byte-identity": [(0, "1190361690 10112"), (0, "2568222660 9836")],
         "#703 include": (0, f"before outer inner judges {testpath} end after\n".encode(), b"", True),
         "#703 missing partial": (2, b"", True),
         "#703 self-including partial": (2, b"", True),
@@ -836,6 +836,40 @@ def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_f
     } == {
         "spelled in one partial of its own": True,
         "carried": dict.fromkeys(prompts, (0, True)),
+    }
+
+
+def test_a_develop_and_a_verify_prompt_carry_the_third_paragraph_of_leaf_safety_the_untrusted_text_rule_above_the_issue_text_3958(
+        tmp_path, capsysbinary, build_verify_prompt):
+    build_develop_prompt = importlib.import_module("veri.build_develop_prompt")
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    s = str(spec)
+
+    def flat(data):
+        return re.sub(rb"\s+", b" ", data).strip()
+
+    def rendered(main, argv):
+        code = main(argv)
+        out, _ = capsysbinary.readouterr()
+        return code, flat(out)
+
+    blocks = (SCRIPTS / "prompts" / "_leaf-safety.md").read_bytes().split(b"\n\n")
+    paragraph = flat(blocks[2]) if len(blocks) > 3 and b"{{INCLUDE:" not in blocks[2] else None
+    prompts = {
+        "develop red": rendered(build_develop_prompt.main, ["red", s, "zorblat frobs a nitz", "make test"]),
+        "verify red": rendered(build_verify_prompt.main, ["red", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"]),
+    }
+
+    def above_the_issue_text(out):
+        return paragraph is not None and -1 < out.find(paragraph) < out.find(b'zorblat("Frob & Nitz/Quux")')
+
+    assert {
+        "a prose third paragraph before the include line": paragraph is not None,
+        "carried above the issue text": {kind: (code, above_the_issue_text(out)) for kind, (code, out) in prompts.items()},
+    } == {
+        "a prose third paragraph before the include line": True,
+        "carried above the issue text": dict.fromkeys(prompts, (0, True)),
     }
 
 
