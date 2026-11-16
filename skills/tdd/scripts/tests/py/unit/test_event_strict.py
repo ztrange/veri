@@ -76,6 +76,19 @@ def test_strict_refuses_a_value_its_key_s_declared_format_rejects_naming_event_k
 
 
 @pytest.mark.parametrize("how", ["mark", "sh"])
+def test_strict_refuses_an_empty_value_of_a_key_the_table_does_not_allow_empty_naming_event_key_and_format(
+        how, clone, tmp_path, monkeypatch, run_cli, capfd):
+    monkeypatch.setenv("VERI_EVENT_STRICT", "1")
+
+    code, err = write(how, clone, monkeypatch, run_cli, "merged", ["pr=", "tag=", "message="])
+    err = capfd.readouterr().err if err is None else err
+
+    assert code == 2
+    assert [path for path in journals(clone, tmp_path) if path.exists() and path.read_bytes()] == []
+    assert "merged" in err and "key pr " in err and "url" in err
+
+
+@pytest.mark.parametrize("how", ["mark", "sh"])
 @pytest.mark.parametrize("name, fields", [("no-such-event", ["pr=1"]), ("comment", ["kind=red", "url=u", "colour=blue"]),
                                           ("comment", ["kind=red"])])
 def test_without_strict_each_refused_call_writes_its_line_and_exits_0_saying_nothing(
