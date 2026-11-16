@@ -56,3 +56,12 @@ def test_with_the_stack_ahead_and_one_pull_request_open_from_it_to_the_default_b
     got = run_cli(stack_pr, [])
 
     assert (got, world.listed, world.opened) == ((0, URL % 4 + "\n", ""), [("stack", "trunk")], [])
+
+
+def test_with_the_stack_ahead_and_none_open_opens_one_from_the_stack_to_the_default_branch_and_prints_its_url(
+        monkeypatch, run_cli, stack_pr):
+    world = World(monkeypatch, stack_pr)
+
+    got = run_cli(stack_pr, [])
+
+    assert (got, [(head, base) for head, base, _, _ in world.opened]) == ((0, URL % 9 + "\n", ""), [("stack", "trunk")])

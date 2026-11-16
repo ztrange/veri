@@ -8,6 +8,7 @@ import github
 import stack_branch
 
 USAGE = "usage: stack-pr.sh"
+TITLE = "Stack %s: tracks it for CI against %s (never merged)"
 
 
 def main(argv):
@@ -15,7 +16,11 @@ def main(argv):
         return entry.refuse(usage=USAGE)
     stack, default, commits = stack_branch.ahead(".")
     pulls = github.stack_pulls(stack, default)
-    sys.stdout.write(pulls[0].html_url + "\n")
+    if pulls:
+        url = pulls[0].html_url
+    else:
+        url = github.pr_open(stack, default, TITLE % (stack, default), "")
+    sys.stdout.write(url + "\n")
     return 0
 
 
