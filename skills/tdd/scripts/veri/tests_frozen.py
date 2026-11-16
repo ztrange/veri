@@ -493,10 +493,7 @@ def rerecord_rebased(ledger, pre):
     except FileNotFoundError:
         return 3
     os.chdir(_toplevel())
-    default = git.default_branch(remote=False)
-    if default is None:
-        raise git.GitFailed(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], None, "no refs/remotes/origin/HEAD")
-    upstream = "origin/" + default
+    upstream = "origin/" + case_history.default_branch()
     refused, missing, stale = [], [], False
     try:
         earlier = list(_earlier_records(lines, "", strict=True))

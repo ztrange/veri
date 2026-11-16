@@ -48,6 +48,14 @@ def has_rev(rev):
     return git.git("rev-parse", "--verify", "-q", rev, stdout=subprocess.DEVNULL).returncode == 0
 
 
+def default_branch():
+    """origin's default branch as refs/remotes/origin/HEAD names it, asking no remote; GitFailed when it names none."""
+    default = git.default_branch(remote=False)
+    if default is None:
+        raise git.GitFailed(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], None, "no refs/remotes/origin/HEAD")
+    return default
+
+
 def current_branch():
     done = git.git("rev-parse", "--abbrev-ref", "HEAD", stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                    stdin=subprocess.DEVNULL)
