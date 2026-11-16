@@ -20,7 +20,7 @@ about twelve lines.
 
 # Groups
 
-- **Foundations**: What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, starting a process detached, the bash and Python floors, the session environment, JSON/Markdown reading and the reading of test and requirements sources.
+- **Foundations**: What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, starting a process detached, the bash and Python floors, the session environment, JSON/Markdown reading, the reading of a leaf report's `KEY:` lines and the reading of test and requirements sources.
 - **Run state and journal**: Where a run lives on disk, its journal of events and its pin files and mutation record, whether it is live, stuck or ended, and how it is stopped.
 - **Ledger and plan**: The ledger of a run: reading its steps and finding the next one to do, growing, dropping and reordering them, the replaces-case steps, and checks of the plan itself. Ticking a step is in Frozen tests and case history (`tick_ledger` imports `tests_frozen`, which this group may not).
 - **Leaf launch and supervision**: How a leaf is launched through the supervisor, detached, waited for and timed, and how its stream log is read.
@@ -82,8 +82,9 @@ Rules this file states that no audit enforces; they rely on review.
 
 # Foundations
 
-What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, starting a process detached, the bash and Python floors, the session environment, JSON/Markdown reading and the reading of test and requirements sources. Builds on no other group; every other group may build on it.
+What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, starting a process detached, the bash and Python floors, the session environment, JSON/Markdown reading, the reading of a leaf report's `KEY:` lines and the reading of test and requirements sources. Builds on no other group; every other group may build on it.
 
+- `report.sh`: read `KEY: value` lines off a leaf report.
 - `requirements.sh`: the prose units and requirement rows of a file.
 
 ## case_reader
@@ -141,6 +142,10 @@ What every module stands on: the one `__main__` path and exit contract, script p
 ## renamed_case
 - `renamed_to(name, old_source, new_source, taken)`: the case of `new_source` with the same text as `name` but another name, else `None`.
 - `renamed_and_changed_to(name, old_source, new_source, taken)`: the case with the same def line but another name and a changed body.
+
+## report
+- `report_read(text, keys, *, optional_space=False, terminated_only=False)`: `{key: value}` for the `KEY: value` lines of a leaf report.
+- `report_values(text, key, *, occurrence="every", space="required", bullet=False, splitlines=False, strip=False)`: the values of `text`'s `key:` lines (str or bytes), each reader's own rule as options: `occurrence` `first`, `last` (value or None) or `every` (list); `space` `required`, `optional` or `kept` (a bare prefix, nothing removed); `bullet` lets a `- ` or `* ` precede the key; `splitlines` splits as `str.splitlines` rather than on `\n`; `strip` strips each line first.
 
 ## requirements
 - `lists(path="REQUIREMENTS.md")`: the REQUIREMENTS.md files that exist. `tracked(name)`: git-tracked files of that name; RuntimeError when `git ls-files` fails.
@@ -349,7 +354,6 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `refactor-owed.sh`: append, render and list refactor-owed items.
 - `refactor-touched.sh`: the files a refactor leaf touched.
 - `refactor-triage.sh`: read a refactor leaf's candidates.
-- `report.sh`: read `KEY: value` lines off a leaf report.
 - `report_formats`: the terminal report formats a develop prompt declares, parsed from its text.
 - `structural-predicate.sh`: read a predicate leaf's report on stdin.
 - `suite-reported.sh`: read a suite's reported result.
@@ -364,9 +368,6 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `has_heading(text, heading)`: whether `## <heading>` is a line of the bytes.
 - `expand_includes(text, prompts, chain=())`: `text` with every `{{INCLUDE:x}}` partial inlined; raises `IncludeRefused` for a missing or self-including partial.
 - `fill(text, pairs)`: `text` with each `{{NAME}}` replaced in order from `(name, value)` pairs; a callable value runs only while its placeholder is still in the text.
-
-## report
-- `report_read(text, keys, *, optional_space=False, terminated_only=False)`: `{key: value}` for the `KEY: value` lines of a leaf report.
 
 # Verdicts and verification
 

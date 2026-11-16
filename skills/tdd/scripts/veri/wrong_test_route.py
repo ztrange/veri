@@ -9,6 +9,7 @@ import re
 import sys
 import tunables
 from entry import write
+from report import report_values
 
 USAGE = "usage: wrong-test-route.sh --spec <spec-file> <green-report> <red-test-id> (prints red <case>, missing <behaviour>, later <step>, fixture <path> <name>, repair <case> <superseded>…, supersede <cases>, supersede-diff <cases>, prep <cases> or revise; repair-exhausted <case> on exit 1; a WRONG_TEST naming no case gets one extra repair after the free reroute, then repair-exhausted and exit 1)"
 
@@ -88,13 +89,14 @@ def _fixture(report, own_id):
     return None
 
 
-def _report_lines(report):
+def _text(report):
     with open(report, encoding="utf-8", errors="replace") as handle:
-        return handle.read().splitlines()
+        return handle.read()
 
 
-def _lines_with(report, prefix):
-    return [l for l in _report_lines(report) if l.startswith(prefix)]
+def _claims(report, key):
+    """The value of every `key:` line, a bare line-start prefix: no space required, none removed."""
+    return report_values(_text(report), key, space="kept", splitlines=True)
 
 
 def _spellings(line):
@@ -107,14 +109,14 @@ def _spellings(line):
 
 
 def _contradicted(report):
-    for line in _lines_with(report, "CONTRADICTS:"):
-        yield from _spellings(line.partition(":")[2])
+    for claim in _claims(report, "CONTRADICTS"):
+        yield from _spellings(claim)
 
 
 def _named_cases(report):
     yield from _contradicted(report)
-    for line in _lines_with(report, "WRONG_TEST:"):
-        yield from _spellings(line)
+    for claim in _claims(report, "WRONG_TEST"):
+        yield from _spellings("WRONG_TEST:" + claim)
 
 
 def _is_none(body):
@@ -165,8 +167,8 @@ def _names_a_case(name, own_id):
 
 def _supersedes_own(report, own_id):
     """A SUPERSEDED: name that expands to the own red case names a case: #1957 owns revise for it."""
-    for line in _lines_with(report, "SUPERSEDED:"):
-        case = _superseded_line_case(line)
+    for claim in _claims(report, "SUPERSEDED"):
+        case = _superseded_claim_case(claim)
         found = case and _exists(case)
         if found and _is_own(found, own_id):
             return True
@@ -176,10 +178,10 @@ def _supersedes_own(report, own_id):
 def _unparseable_claim(report, own_id):
     if any(_names_a_case(c, own_id) for c in _named_cases(report)) or _supersedes_own(report, own_id):
         return False
-    for line in _lines_with(report, "WRONG_TEST:"):
-        if not _is_none(line.partition(":")[2].strip()):
+    for claim in _claims(report, "WRONG_TEST"):
+        if not _is_none(claim.strip()):
             return True
-    return any(_prose_claim(l) and not any(True for _ in _spellings(l)) for l in _report_lines(report))
+    return any(_prose_claim(l) and not any(True for _ in _spellings(l)) for l in _text(report).splitlines())
 
 
 def _prose_claim(line):
@@ -250,23 +252,23 @@ def _superseded_case(body):
     return words[0].strip("`").rpartition("::")[2] if words else ""
 
 
-def _superseded_line_case(line):
-    return _superseded_case(re.sub(r"^[-*]\s+", "", line[11:].strip()))
+def _superseded_claim_case(claim):
+    return _superseded_case(re.sub(r"^[-*]\s+", "", claim.strip()))
 
 
 def _superseded(report, step, own_id=None):
     own = _recorded_cases(step)
     cases = []
-    for line in _lines_with(report, "SUPERSEDED:"):
-        case = _superseded_line_case(line)
+    for claim in _claims(report, "SUPERSEDED"):
+        case = _superseded_claim_case(claim)
         if case in own:
             continue
         if not case:
-            write(sys.stderr, "the line carried no case name: " + line)
+            write(sys.stderr, "the line carried no case name: SUPERSEDED:" + claim)
             continue
         found = _exists(case)
         if found is None:
-            write(sys.stderr, "no defined test case resolves: " + line)
+            write(sys.stderr, "no defined test case resolves: SUPERSEDED:" + claim)
         if found and found not in cases and not (own_id and _is_own(found, own_id)):
             cases.append(found)
     return cases
@@ -274,8 +276,8 @@ def _superseded(report, step, own_id=None):
 
 def _unresolved_superseded(report, step, own_id):
     own = _recorded_cases(step)
-    for line in _lines_with(report, "SUPERSEDED:"):
-        case = _superseded_line_case(line)
+    for claim in _claims(report, "SUPERSEDED"):
+        case = _superseded_claim_case(claim)
         if case and case not in own and not _is_own(case, own_id) and not os.path.isfile(case) and (_exists(case) is None or len(_defining_files(case)) > 1):
             return True
     return False
@@ -299,14 +301,14 @@ def _missing_reroutes(step):
 
 
 def _missing(report):
-    lines = _lines_with(report, "MISSING_TEST:")
-    for line in lines:
-        behaviour = line.partition(":")[2].strip()
+    claims = _claims(report, "MISSING_TEST")
+    for claim in claims:
+        behaviour = claim.strip()
         if _is_none(behaviour):
             return None
         if behaviour:
             return behaviour
-    if lines:
+    if claims:
         write(sys.stderr, "no well-formed MISSING_TEST: line was found")
     return None
 
@@ -331,8 +333,8 @@ def _criterion(spec, name):
 
 
 def _later(report, behaviour, spec):
-    for line in _lines_with(report, "LATER_STEP:"):
-        named = line.partition(":")[2].strip()
+    for claim in _claims(report, "LATER_STEP"):
+        named = claim.strip()
         return named if named in _open_after() else None
     try:
         after = _open_after()
@@ -394,7 +396,7 @@ def main(argv):
     where = None
     if case is not None and "::" not in case:
         given = [m.group(1) for m in (re.search(r"(\S+)::" + re.escape(case) + r"\s*$", line)
-                                      for line in _lines_with(argv[0], "CONTRADICTS:")) if m]
+                                      for line in ("CONTRADICTS:" + c for c in _claims(argv[0], "CONTRADICTS"))) if m]
         where = given[-1] if given else _defining_file(case)
         if where is None:
             return 2
