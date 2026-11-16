@@ -205,12 +205,18 @@ the job, briefed to return at most 10 lines and to read the skill at
 
 **Every brief for a review, hand-fix or merge subagent also says:**
 
+- Its first line, in bold, is the default: never write `rm` in any command, not even on
+  `/dev/null`, save the one exception its second line states.
+- Its second line states that exception: `rm` on a path inside the project directory, never on
+  one outside it; scratch lives under the run worktree's `.tdd/`.
 - Run `make unit` first. Start the full suite, or any suite beyond `make unit`, only while no
   conductor baseline is running: a running baseline is a `.tdd/wt/<n>/.tdd/baseline*.pid` (both
   `baseline.pid` and `baseline-<tier>.pid`) with no matching `.exit` whose pid is live, never a
   `pgrep` on the word "baseline".
 - Mutations (edit a file, run the suite, restore it) run only in a scratch clone or the run's
-  own worktree, never in the primary clone.
+  own worktree, never in the primary clone. A mutation probe backs the file up with `cp` into the
+  run worktree's `.tdd/`, mutates it with `perl -pi -e` or a script (never `sed -i.<ext>`, which
+  leaves a backup file), and restores it with `git checkout -- <file>` or `cp`.
 - Every `cd` in a chained command makes the whole command fail when the `cd` fails (`&&` or
   `set -e`); a `;` never follows a `cd`, or a guard whose failure would change where the next
   command runs.
@@ -220,8 +226,6 @@ the job, briefed to return at most 10 lines and to read the skill at
 - Every command reads stdin from `/dev/null`.
 - Every external command (a program, not a shell builtin such as `cd`) runs under a time limit,
   in a form that works on macOS: `perl -e 'alarm shift; exec @ARGV' <seconds> <command>`.
-- `rm` removes only paths inside the project directory, never outside it; scratch lives under
-  the run worktree's `.tdd/`.
 - A hand fix runs `make unit` and every affected suite outside the fast tier before it pushes.
 - A reviewer that pushes any fix does not merge: it reports and stops, and the fix is reviewed
   afresh before the merge.
