@@ -105,3 +105,13 @@ def test_redact_replaces_a_token_wrapped_across_a_line_break_or_a_json_newline_e
 
     assert [github.redact(text) for text in (wrapped, crlf, escaped, value)] == [
         "x [redacted] rest\nNext line\n", "[redacted]\r\n", '{"out": "[redacted]\\nok"}', "v [redacted] w"]
+
+
+def test_redact_replaces_a_token_inside_a_url_a_query_string_or_glued_to_text_issue_3960(github):
+    app, user = "ghs_" + FAKE * 3, "ghu_" + "fakeFAKE9876" * 3
+    texts = ("https://x-access-token:%s@github.com/o/r.git" % app, "https://h/x?token=%s&page=2" % user,
+             "abc%sdef!" % app, "AKIAFAKE0123FAKE0123XY", "keysk-ant-" + FAKE * 2)
+
+    assert [github.redact(text) for text in texts] == [
+        "https://x-access-token:[redacted]@github.com/o/r.git", "https://h/x?token=[redacted]&page=2",
+        "abc[redacted]!", "[redacted]XY", "key[redacted]"]
