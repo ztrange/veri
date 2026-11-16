@@ -98,9 +98,9 @@ def _tree_files():
 def _touching_cases(ledger):
     """The section naming, under each touching test file, its case names: computed from the ledger and the tree only."""
     files = list(_tree_files())
-    words = {word for step in ledger_steps(_read(ledger).decode(errors="replace"))
+    words = {word.rstrip(".") for step in ledger_steps(_read(ledger).decode(errors="replace"))
              for word in re.findall(r"[\w./-]+", step.text)}
-    named = [path for path in files if path in words]
+    named = [path for path in files if path in words or os.path.basename(path) in words]
     stems = {os.path.splitext(os.path.basename(path))[0] for path in named}
     lines = []
     for path in files:
