@@ -47,6 +47,13 @@ def test_a_writer_call_gives_its_literal_kind_and_field_names():
     assert journal_schema.writer_calls(source) == [(1, "plan", ["steps", "x", "k", "c"])]
 
 
+def test_an_event_line_call_gives_the_kind_and_fields_of_its_argument_list_bytes_or_str():
+    source = ('f.write(event.line([b"step-added", b"colour=red", b"n=%d" % n], ctx, 1, b"2"))\n'
+              'event.line(["plan", "steps=" + n], ctx, ts, awake)\n')
+
+    assert journal_schema.writer_calls(source) == [(1, "step-added", ["colour", "n"]), (2, "plan", ["steps"])]
+
+
 def test_every_writer_call_shape_is_seen():
     source = (
         'event.append(".", {}, "a", ["f1=1"])\n'
