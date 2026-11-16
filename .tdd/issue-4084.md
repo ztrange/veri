@@ -8,4 +8,4 @@
 - [x] an origin already holding veri-install is exit 2 naming it on stderr, nothing written ⟦criterion 5⟧
 - [x] a missing or empty command argument, or a repo-root outside a git repository, is exit 2 with nothing written ⟦criterion 5⟧
 - [x] the record-test-commands.sh shim execs its module: an empty command through the shim is exit 2 ⟦criterion 6⟧
-- [ ] skills/vinstall/SKILL.md gains ## Recording the test commands, graded ⟦criterion 7⟧
+- [x] skills/vinstall/SKILL.md gains ## Recording the test commands (VI6–VI9), graded once at the batch tip with #4086's rows ⟦criterion 7⟧

@@ -30,6 +30,32 @@ repository stacks finished runs on a standing branch and, if so, under what bran
 - On a no, write nothing: each run then keeps one pull request against the default branch, a CI
   wait and a merge call.
 
+## Recording the test commands
+
+After `install-links.sh` exits 0, read the target repository's `CLAUDE.md`. When it already holds
+both a `veri: fast tests:` and a `veri: all tests:` line, ask nothing about test commands and skip
+the rest of this section. When it lacks either line:
+
+1. Run `$S/detect-test-command.sh --tier fast [repo-root]` and
+   `$S/detect-test-command.sh --tier all [repo-root]`. Exit 0 printed the tier's proposed command;
+   exit 3 means none found, and that tier is shown as none found. Show the operator both, each
+   beside where it came from: the `CLAUDE.md` line, or the manifest file and key inference read
+   (`package.json`'s `scripts.test`, the `Makefile`'s `test` target, the pytest section of
+   `pytest.ini`, `pyproject.toml` or `setup.cfg`, `go.mod`, `Cargo.toml`, `tests/test_*.py`). Run
+   no install, no test and no network command to find a command.
+2. Ask the operator to confirm or replace each command. `record-test-commands.sh` runs only with
+   the two commands the operator confirmed or gave. Without a confirmed command for each tier,
+   nothing is written: say so and leave this section.
+3. Run `$S/record-test-commands.sh '<fast-cmd>' '<all-cmd>' [repo-root]`, each command one
+   argument. It pushes a `veri-install` branch whose one commit records both lines in `CLAUDE.md`,
+   and opens a pull request for it.
+   - Exit 0: report the pull request's URL it printed, and say that runs infer the test commands
+     until that pull request merges, and that `/vinstall` never merges it: merging is the
+     repository owner's.
+   - Exit 2: report what the script printed, and stop.
+   - Exit 3: report that there is nothing to record: the default branch already declares both
+     commands.
+
 ## Checking readiness
 
 Only when the script linked, repaired or removed at least one skill: run the readiness
