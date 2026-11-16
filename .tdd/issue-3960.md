@@ -14,5 +14,5 @@
 - [x] a token inside a URL, a query string or glued to text with no word boundary is redacted
 - [x] the base64 of a token or of a listed variable's value is redacted
 - [x] a 1 MB body holding tokens is redacted within the case timeout
-- [ ] no veri module starts gh except through github.bounded or bounded_group, which redact every argument
+- [x] no veri module names a gh command line outside github.bounded's callers, save preflight's reads and queued_merge's merge, which carry no body
 - [ ] the comment.sh entry of SCRIPTS.md says comments are redacted, naming the patterns and VERI_REDACT_VARS ⟦criterion 5⟧

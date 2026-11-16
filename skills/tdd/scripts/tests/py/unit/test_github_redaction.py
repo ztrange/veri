@@ -1,10 +1,13 @@
 """In-process cases for github.redact, the one function every body veri hands gh passes through (#3960, #3968).
 
 Every token here is built from a documented shape with an obviously fake body; none is read from the environment."""
+import ast
 import base64
 import importlib
 
 import pytest
+
+from conftest import SCRIPTS
 
 FAKE = "FAKEfake0123"  # 12 letters and digits, mixed case: three make a 36-character classic body
 
@@ -140,3 +143,41 @@ def test_redact_answers_a_1_mb_body_holding_tokens_within_the_case_timeout_issue
     redacted = github.redact(body)
 
     assert (len(body) > 1000000, redacted.count("leaked [redacted] here\n"), "ghp_" in redacted) == (True, 40, False)
+
+
+# Where a veri module may name the gh command: github.bounded, which redacts every argument it hands gh, and the
+# functions that call it; and three command lines that carry no text veri wrote, so nothing to redact.
+GH_SITES = {
+    ("github.py", "<module>"): "the shape prefix gh of the token patterns",
+    ("github.py", "bounded"): "the redaction itself",
+    ("github.py", "run_gh"): "through bounded",
+    ("github.py", "gh_probe"): "through bounded",
+    ("github.py", "rate_limit_reset"): "through bounded",
+    ("network_guard.py", "<module>"): "the names it refuses, starting nothing",
+    ("preflight.py", "issue_body"): "a read of the issue body",
+    ("preflight.py", "check_environment"): "gh api user, a read",
+    ("preflight.py", "finish"): "a read of the default branch",
+    ("queued_merge.py", "_locked"): "the merge call, which names a pull request and a sha only",
+}
+
+
+def gh_sites(veri):
+    """(file, enclosing function, line) of every string constant "gh" in the modules of <veri>."""
+    sites = []
+    for path in sorted(veri.glob("*.py")):
+        tree = ast.parse(path.read_text())
+        for function in [tree] + [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
+            inner = {id(c) for n in ast.walk(function) if n is not function and isinstance(n, ast.FunctionDef)
+                     for c in ast.walk(n)}
+            name = getattr(function, "name", "<module>")
+            sites += [(path.name, name, n.lineno) for n in ast.walk(function)
+                      if isinstance(n, ast.Constant) and n.value == "gh" and id(n) not in inner]
+    return sites
+
+
+@pytest.mark.tree_audit("the modules under veri/, for every place that names the gh command")
+def test_every_gh_command_line_a_veri_module_names_goes_through_github_bounded_or_carries_no_body_issue_3960():
+    stray = ["%s:%d (%s)" % (file, line, name) for file, name, line in gh_sites(SCRIPTS / "veri")
+             if (file, name) not in GH_SITES]
+
+    assert stray == [], "a gh call outside github.bounded would post unredacted: " + ", ".join(stray)
