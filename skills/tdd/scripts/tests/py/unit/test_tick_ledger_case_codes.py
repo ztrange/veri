@@ -55,3 +55,12 @@ def test_a_case_command_killed_by_a_signal_exiting_137_is_a_case_never_run_3986(
 
     assert (code, text, events) == (2, ORIGINAL, False), err
     assert f"case {CASE} never run" in err and "137" in err and './run-one "$1" tests/test_x.py' in err
+
+
+def test_a_case_command_exiting_3_is_a_case_that_ran_and_failed_exit_1_3986(retire, fake_processes):
+    fake_processes.answers({"detect-test-command.sh": (0, './run-one "$1"\n', ""), "": (3, "", "")})
+
+    code, text, events, err = retire()
+
+    assert (code, text, events) == (1, ORIGINAL, False), err
+    assert f"case {CASE} fails" in err and "never run" not in err
