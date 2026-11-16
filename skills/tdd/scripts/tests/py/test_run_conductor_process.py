@@ -2290,6 +2290,28 @@ def test_main_conductor_launch_limits_what_the_harness_loads_beside_its_permissi
          "claudeMdExcludes": [os.path.join(os.path.expanduser("~"), ".claude", "CLAUDE.md")]}, False)
 
 
+def test_4009_a_conductor_launched_inside_a_git_working_tree_still_excludes_the_global_claude_md_alone(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    scratch_tmpdir(tmp_path, monkeypatch)
+    cwd = tmp_path / "main" / ".tdd" / "wt" / "4242"
+    for directory in (tmp_path / "main" / ".git", cwd / ".git"):
+        directory.mkdir(parents=True)
+    monkeypatch.chdir(cwd)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+
+    code = run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    argv = launches[0][0]
+    assert (code, json.loads(argv[argv.index("--settings") + 1])["claudeMdExcludes"]) == (
+        0, [os.path.join(os.path.expanduser("~"), ".claude", "CLAUDE.md")])
+
+
 def test_main_a_conductor_launch_does_not_request_the_five_minute_cache_ttl_so_its_writes_stay_one_hour_1707(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
