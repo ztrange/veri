@@ -201,6 +201,14 @@ def test_3917_step_ahead_reads_a_pytest_class_id_as_its_file_and_case(run_cli, t
         0, "prep tests/py/test_cls.py::TestUsage::test_prints_help\n", "")
 
 
+def test_3917_step_ahead_checks_a_parametrized_case_by_its_name_without_the_suffix(run_cli, tmp_path, exhausted_outcome):
+    red = _suite(tmp_path)
+    report = "STEP_AHEAD: tests/py/test_solvable.py::test_prints_usage[x-y]\n"
+
+    assert run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path) == (
+        0, "prep tests/py/test_solvable.py::test_prints_usage[x-y]\n", "")
+
+
 def _refused(result, line):
     code, stdout, stderr = result
     return code == 2 and stdout == "" and len(stderr.splitlines()) == 1 and line in stderr

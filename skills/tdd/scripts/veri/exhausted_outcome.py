@@ -10,7 +10,7 @@ import re
 import sys
 
 from entry import no_arguments
-from case_reader import file_defines
+from case_reader import file_defines, strip_param_suffix
 
 MARKER_RE = re.compile(rb"^(SPLIT|NEEDS_USER):\s*(.*)$")
 STEP_AHEAD_RE = re.compile(rb"^STEP_AHEAD:\s*(.*?)\s*$")
@@ -54,7 +54,7 @@ def step_ahead(red_test_id):
         if b"::" not in marker.group(1):
             return _refuse("names no <file>::<case>", line)
         value = os.fsdecode(marker.group(1))
-        file, case = value.partition("::")[0], value.rpartition("::")[2]
+        file, case = value.partition("::")[0], strip_param_suffix(value.rpartition("::")[2])
         if not os.path.isfile(file):
             return _refuse("names no existing file", line)
         if not file_defines(file, case):
