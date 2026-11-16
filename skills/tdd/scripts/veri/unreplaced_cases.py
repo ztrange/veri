@@ -6,6 +6,7 @@ import sys
 
 import replaces_case
 from case_reader import strip_param_suffix
+from report import report_values
 
 USAGE = "usage: unreplaced-cases.sh"
 
@@ -72,12 +73,15 @@ def main(argv):
     ambiguous = set()
     for report in reports:
         with open(report, encoding="utf-8") as handle:
-            for m in re.finditer(r"^(?:[-*] )?REPLACES: (.*?) => (.*)$", handle.read(), re.M):
-                if exists_in_tree(m.group(2)):
-                    replaced.add(m.group(1))
-                    replaced.add(re.sub("^(" + re.escape(quote) + ")(.*)\\1$", r"\2", m.group(1)))
-                elif is_bare_name(m.group(2)):
-                    (not_found if bare_name_count(m.group(2).strip()) == 0 else ambiguous).add(m.group(1))
+            for value in report_values(handle.read(), "REPLACES", bullet=True):
+                old, arrow, new = value.partition(" => ")
+                if not arrow:
+                    continue
+                if exists_in_tree(new):
+                    replaced.add(old)
+                    replaced.add(re.sub("^(" + re.escape(quote) + ")(.*)\\1$", r"\2", old))
+                elif is_bare_name(new):
+                    (not_found if bare_name_count(new.strip()) == 0 else ambiguous).add(old)
     def named_in(name, names):
         return name in names or unescape(name) in names
 
