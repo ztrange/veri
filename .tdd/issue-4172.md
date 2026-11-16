@@ -5,7 +5,7 @@
 - [x] With the stack ahead and none open, stack-pr.sh opens one, ready and not a draft, prints its url and exits 0 ⟦criterion 2⟧
 - [x] The body of the pull request it opens says it is never merged itself and that slices are cut from it, and holds no Closes, Fixes or Resolves line ⟦criterion 5⟧
 - [x] With the stack not ahead of the default branch, or origin holding no stack branch, stack-pr.sh opens nothing and exits 3 ⟦criterion 3⟧
-- [ ] stack-pr.sh exits 2 when GitHub gives no answer, two open pull requests track the stack, or the open read's answer is garbled, opening nothing; and exits what stack-branch.sh exits when that is not 0 ⟦criterion 4⟧
+- [x] stack-pr.sh exits 2 when GitHub gives no answer, two open pull requests track the stack, or the open read's answer is garbled, opening nothing; and exits what stack-branch.sh exits when that is not 0 ⟦criterion 4⟧
 - [ ] A join calls stack-pr.sh after its push to the stack and its merged read, and a merge where stack-branch.sh exits 3 does not ⟦criterion 6⟧
 - [ ] When the join's stack-pr.sh call exits non-zero, the join prints one stderr line naming it and keeps its own exit code ⟦criterion 7⟧
 - [ ] stack-pr.sh is a /bin/sh shim by the status.sh convention, its entry-point contract pinned in test_stack_pr_process.py, and veri/README.md indexes it ⟦criterion 8⟧

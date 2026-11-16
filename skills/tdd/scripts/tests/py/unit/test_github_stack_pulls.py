@@ -34,7 +34,8 @@ def test_stack_pulls_keeps_only_pull_requests_the_answer_itself_names_from_head_
 
 
 @pytest.mark.parametrize("answer", [(1, "", "HTTP 502\n"), (0, "not json", ""), (0, '{"message": "x"}', ""),
-                                    (0, '["a string"]', ""), (0, json.dumps([{"head": "stack", "base": {}}]), "")])
+                                    (0, '["a string"]', ""), (0, json.dumps([{"head": "stack", "base": {}}]), ""),
+                                    (0, json.dumps([dict(pull(1), html_url="https://evil.example/pull/1")]), "")])
 def test_stack_pulls_is_no_answer_for_a_failed_read_or_an_answer_that_is_not_a_list_of_pull_request_objects(
         github, fake_processes, answer):
     fake_processes.answers({LIST % 1: answer})

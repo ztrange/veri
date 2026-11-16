@@ -664,7 +664,12 @@ def stack_pulls(head, base):
         for raw in items:
             if not all(isinstance(raw.get(side), dict) for side in ("head", "base")):
                 raise NoAnswer("", "the open pull requests from %s: a record without head and base objects" % head)
-        found += [_pull(raw) for raw in items if raw["head"].get("ref") == head and raw["base"].get("ref") == base]
+        kept = [_pull(raw) for raw in items if raw["head"].get("ref") == head and raw["base"].get("ref") == base]
+        for pr in kept:
+            if not isinstance(pr.html_url, str) or not _PULL_URL.fullmatch(pr.html_url):
+                raise NoAnswer("", "the open pull requests from %s: a record names no pull request url (%r)" % (
+                    head, repr(pr.html_url)[:80]))
+        found += kept
         if len(items) < 100:
             return found
     raise NoAnswer("", "the open pull requests from %s ran past %d pages of 100" % (head, PULL_PAGES))
