@@ -55,3 +55,11 @@ def test_3965_an_other_writable_veri_pycache_directory_is_refused_and_no_prefix_
     monkeypatch.setenv("VERI_PYCACHE", str(cache_with_mode(tmp_path, 0o707)))
 
     assert run_prefix() is None
+
+
+def test_3965_a_veri_pycache_path_that_is_a_symlink_even_to_a_closed_directory_of_the_users_own_is_refused(run_prefix, monkeypatch, tmp_path):
+    link = tmp_path / "link"
+    link.symlink_to(cache_with_mode(tmp_path, 0o700))
+    monkeypatch.setenv("VERI_PYCACHE", str(link))
+
+    assert run_prefix() is None
