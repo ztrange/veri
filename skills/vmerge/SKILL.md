@@ -16,12 +16,18 @@ Invoked as `/vmerge <issue-or-PR>`; resolve the argument to the issue, its PR an
 
 Merging is allowed under the standing permission that `vdev` and `vcoord` carry in the project repo, or under explicit permission from the user. Never merge in another repo, whatever the argument names.
 
+## Joining a stack
+
+First run `$S/stack-branch.sh <repo root>`. Exit 3 (no stack branch named): merge as the rest of this skill says. Exit 2: stop and report its stderr to the human. Exit 0: the target repository's `CLAUDE.md` names a stack branch, and a reviewed run whose PR has that branch as its base is **joined** to the stack, not merged (a PR based on the default branch is still merged as below). The review's OK is the gate to join, not CI. Check *Preconditions* below, then run `$S/queued-merge.sh <pr-url> <worktree> <branch> -` alone, and nothing of *The merge lock* or *Steps*: the script takes and releases the lock itself, rebases onto the stack, runs the fast tier and `prose-owed.sh`, pushes the stack and confirms the PR reads merged. Its exit 0 is joined (report the PR url and `joined, no tag`), exit 1 is a clean refusal (a conflict, a red fast tier, a unit owing a grade or an unticked line, named on stderr: report it to the human), and exit 2 is no answer (report its stderr; never retry it blind).
+
+A join makes no CI wait and no merge call, cuts no tag and closes no issue: the issue closes, and its tag is cut, when the slice holding it lands on the default branch.
+
 ## Preconditions
 
 Merge only when all of these hold; otherwise stop and tell the human which one failed:
 
 - The last comment on the issue is `✅ Done`.
-- The committed ledger has no unchecked step and no `⟂ refactor pending`.
+- The committed ledger has no unchecked step and no `⟂ refactor pending`. For a PR whose base is the stack branch (see *Joining a stack*), an unticked `⟦full-suite⟧` line does not count as an unchecked step: a stacked run never ticks it, since CI on the stack's tip is that run. Every other unticked line still fails this precondition.
 - Every ⟦human-owed⟧ line is ticked.
 - The run did not end with an open question for the human. Merging would answer it for them, so hand the question back instead.
 - No process has a file open or its working directory inside the run's worktree: run `lsof +D <worktree>` from outside the worktree (the call starts in another directory and names the worktree by its absolute path), and read its output, not its exit code (`lsof` can exit 1 while printing lines): any process line it prints is a foreign process. A process still there (a review, a hand fix, another merge) is a failed precondition: stop, do not wait.
