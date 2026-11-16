@@ -11,6 +11,7 @@ import entry
 import tunables
 
 import github
+import pointer_comment
 import run_dir
 
 
@@ -60,6 +61,7 @@ def main(argv):
         run = github.gh_api_add_label("repos/{owner}/{repo}/issues/%s/labels" % argv[0], taken)
     if run.returncode != 0:
         return _refuse("no answer to adding %s to issue #%s: %s" % (taken, argv[0], run.stderr.strip()))
+    pointer_comment.mirror(argv[0])
     return 0
 
 

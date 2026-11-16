@@ -95,6 +95,11 @@ def write(issue, pushed_at=None):
     return 0
 
 
+def mirror(issue, pushed_at=None):
+    """write, for a caller whose own exit code the pointer comment never changes."""
+    write(issue, pushed_at)
+
+
 def main(argv):
     if len(argv) != 1 or not argv[0].isdecimal():
         return entry.refuse(usage=USAGE)

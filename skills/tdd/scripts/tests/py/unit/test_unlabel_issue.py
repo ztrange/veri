@@ -4,6 +4,45 @@ import json
 import os
 import subprocess
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _pointer_writes(monkeypatch):
+    """The pointer comment's writes, recorded instead of made: a case here fakes the claim's gh calls only."""
+    written = []
+    pointer_comment = importlib.import_module("veri.pointer_comment")
+    monkeypatch.setattr(pointer_comment, "mirror", lambda issue, **kwargs: written.append(issue), raising=False)
+    return written
+
+
+def test_main_writes_the_pointer_comment_once_the_claim_is_taken(monkeypatch, fake_processes, _pointer_writes):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    labels = {"7": {"ready-for-agent"}}
+    seen_at_write = []
+    pointer_comment = importlib.import_module("veri.pointer_comment")
+    monkeypatch.setattr(pointer_comment, "mirror", lambda issue, **kwargs: seen_at_write.append((issue, set(labels["7"]))),
+                        raising=False)
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        read = _labels_read(args, labels)
+        if read:
+            return read
+        if args[:3] == ["gh", "api", "-X"] and args[3] == "DELETE":
+            labels["7"].discard(args[4].rpartition("/labels/")[2])
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        if args[:3] == ["gh", "api", "-X"] and args[3] == "POST":
+            labels["7"].add(args[args.index("-f") + 1].partition("=")[2])
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        if args[:2] == ["gh", "api"]:
+            return subprocess.CompletedProcess(args, 0, "{}", "")
+        raise AssertionError("unexpected call: %s" % args)
+
+    _install(fake_processes, fake_run)
+
+    assert (unlabel_issue.main(["7"]), seen_at_write) == (0, [("7", {"taken:main"})])
+
 
 def _install(fake_processes, fake_run):
     """Answers every gh call through <fake_run>(args, **kwargs), which returns a CompletedProcess, and records it."""
