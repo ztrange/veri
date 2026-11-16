@@ -5,3 +5,4 @@
 - [x] a case command exiting 137 does the same ⟦criterion 2⟧
 - [x] a case command exiting 3 still reads as "case fails", exit 1 ⟦criterion 3⟧
 - [x] the tick-ledger.sh entry of SCRIPTS.md states the mapping, graded ⟦criterion 4⟧
+- [x] a case command Python reports killed by a signal (a negative code) never ran, exit 2, stderr naming the signal, on both command paths ⟦criterion 2⟧
