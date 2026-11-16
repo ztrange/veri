@@ -188,10 +188,8 @@ def select(label, priority="priority", repo=None):
     survivors = [issue for issue in otherwise if author_read(issue, author)]
     for issue in otherwise:
         if not author_read(issue, author):
-            print("solvable-issues: #%d skipped: its author is %s, not %s; label it %s once read"
-                  % (issue["number"], author_association(issue), " or ".join([", ".join(ISSUE_AUTHOR_ASSOCIATIONS[:-1]),
-                                                                              ISSUE_AUTHOR_ASSOCIATIONS[-1]]), author),
-                  file=sys.stderr)
+            print("solvable-issues: #%d skipped: its author is %s, not OWNER, MEMBER or COLLABORATOR; label it %s once read"
+                  % (issue["number"], author_association(issue), author), file=sys.stderr)
     if not survivors:
         return 3, []
     ordered = sorted(survivors, key=lambda issue: (bands[issue["number"]], issue["number"]))
