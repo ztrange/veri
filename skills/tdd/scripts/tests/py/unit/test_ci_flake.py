@@ -138,6 +138,22 @@ def test_4018_exits_3_running_nothing_and_writing_no_event_when_the_run_s_re_run
         assert (out, fake.calls, events.records(tmp_path)) == ("", [], before)
 
 
+def test_4018_counts_only_ci_rerun_events_re_running_with_other_budgets_spent_and_a_ci_repair_step_and_never_readies_the_pr(
+        tmp_path, run_cli, fake_processes, ci_flake):
+    _journal(tmp_path, START,
+             {"issue": "4018", "event": "adjudicated", "cause": "ci-timeout", "outcome": "retry", "reason": ""},
+             {"issue": "4018", "event": "revise", "budget": "0"})
+    (tmp_path / ".tdd" / "issue-4018.md").write_text(
+        "# Plan for #4018\n\n- [x] a step\n- [ ] ⟦ci-repair⟧ CI red: test_x fails\n")
+    fake = fake_processes.answers({"sh -c": (0, "", ""), "gh run rerun 12345 --failed": (0, "", "")})
+
+    code, out, _ = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path)],
+                           env={"REVISE_BUDGET": "0", "VERI_ADJUDICATE_BUDGET": "0"}, cwd=tmp_path)
+
+    assert (code, out.splitlines()) == (0, TARGETS)
+    assert [c for c in fake.calls if c.startswith("gh")] == ["gh run rerun 12345 --failed"]
+
+
 @pytest.mark.parametrize("log, alone", [
     (PREFIX % 0 + "##[error]Process completed with exit code 2.\n", []),
     (RED_LOG, [(0, "", ""), (1, "", "")]),
