@@ -4,7 +4,7 @@
 - [x] `--record` replaces only `<command>`'s recorded-at entry, keeping the others, and replaces an unreadable `full-tier-time-at.json` whole ⟦criterion 1⟧
 - [x] `VERI_FULL_TIER_MAX_AGE_DAYS` is a `tunables.TABLE` entry, default `7`, refusal "a whole number of days >= 1", and `run-conductor.sh` given `0` or a non-whole value exits 2 before preflight naming it and its value ⟦criterion 2⟧
 - [x] Under `reuse`, a recorded time with no recorded-at (no `full-tier-time-at.json`, no entry for the command, or an unreadable file) makes `baseline-full-tier.sh` print `run`, exit 0, and write one stderr line naming the command, `unknown` and the knob's value ⟦criterion 4⟧
-- [ ] Under `reuse`, a recorded-at older than `VERI_FULL_TIER_MAX_AGE_DAYS` × 86,400 s makes it print `run`, exit 0, with one stderr line naming the command, the age in whole days and the knob's value; one at most that old prints `reuse <seconds>` ⟦criterion 4⟧ ⟦criterion 3⟧
+- [x] Under `reuse`, a recorded-at older than `VERI_FULL_TIER_MAX_AGE_DAYS` × 86,400 s makes it print `run`, exit 0, with one stderr line naming the command, the age in whole days and the knob's value; one at most that old prints `reuse <seconds>` ⟦criterion 4⟧ ⟦criterion 3⟧
 - [ ] After a stale `run`, a `--record` of new seconds makes the next `baseline-full-tier.sh` print `reuse` with the new seconds ⟦criterion 5⟧
 - [ ] Under `reuse`, an unreadable `full-tier-time.json` makes `baseline-full-tier.sh` exit 2 naming the error, and no `full-tier-time.json` prints `run` ⟦criterion 6⟧
 - [ ] Under `reuse`, a `VERI_FULL_TIER_MAX_AGE_DAYS` that is not a whole number >= 1 makes `baseline-full-tier.sh` exit 2 naming it and its value; under `run` it changes nothing ⟦criterion 7⟧
