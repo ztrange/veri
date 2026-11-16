@@ -76,7 +76,7 @@ class World:
         if line.startswith("merge-lock.sh"):
             return 0, "", ""
         if line == wt + "rev-parse --verify refs/remotes/origin/stack":
-            return 0, self.stack[0] + "\n", ""
+            return (0, self.stack[0] + "\n", "") if self.stack[0] else (128, "", "fatal: Needed a single revision\n")
         if line == wt + "rev-parse --verify refs/remotes/origin/" + BRANCH:
             return 0, (self.rebased[-1] if self.rebased else FOREIGN if self.foreign else ORIGIN_SHA) + "\n", ""
         if line == wt + "rev-parse --verify HEAD":
@@ -96,7 +96,7 @@ class World:
             return self.fast, "", ""
         if line.startswith("prose-owed.sh"):
             return self.owed, "", ""
-        if line.startswith(wt + "push origin ") and line.endswith(":refs/heads/stack"):
+        if line.startswith(wt + "push ") and line.endswith(":refs/heads/stack"):
             code = self.stack_pushes.pop(0) if self.stack_pushes else 0
             if code:
                 self.stack[0] = MOVED_SHA
@@ -133,12 +133,12 @@ def test_joins_a_pull_request_whose_base_is_the_stack_rebasing_checking_and_push
                                                      "sh -c", "prose-owed.sh"))]
     assert (code, order[:7]) == (0, [
         "merge-lock.sh take --pid %s" % PID,
-        wt + "fetch origin",
+        wt + "fetch --prune origin",
         wt + "rebase " + STACK_SHA,
         wt + "push --force-with-lease=%s:%s origin HEAD:refs/heads/%s" % (BRANCH, ORIGIN_SHA, BRANCH),
         "sh -c make unit",
         "prose-owed.sh " + world.wt,
-        wt + "push origin %s:refs/heads/stack" % REBASED]), err
+        wt + "push --force-with-lease=stack:%s origin %s:refs/heads/stack" % (STACK_SHA, REBASED)]), err
 
 
 def test_a_stack_push_refused_because_the_stack_moved_starts_again_from_the_fetch_and_never_forces(
@@ -149,10 +149,11 @@ def test_a_stack_push_refused_because_the_stack_moved_starts_again_from_the_fetc
 
     wt = "git -C %s " % world.wt
     rebases = [c for c in world.calls if c.startswith(wt + "rebase ")]
-    forced = [c for c in world.stack_pushed() if "--force" in c or " +" in c]
+    forced = [c for c in world.stack_pushed() if " --force " in c or " -f " in c or " +" in c]
     assert (code, rebases, world.stack_pushed(), forced, world.stack[0]) == (0, [
         wt + "rebase " + STACK_SHA, wt + "rebase " + MOVED_SHA], [
-        wt + "push origin %s:refs/heads/stack" % REBASED, wt + "push origin %s:refs/heads/stack" % REBASED_AGAIN],
+        wt + "push --force-with-lease=stack:%s origin %s:refs/heads/stack" % (STACK_SHA, REBASED),
+        wt + "push --force-with-lease=stack:%s origin %s:refs/heads/stack" % (MOVED_SHA, REBASED_AGAIN)],
         [], REBASED_AGAIN), err
 
 
@@ -179,7 +180,7 @@ def test_the_join_re_reads_the_pull_request_over_the_settle_window_and_exits_0_o
     code, _, err = join(run_cli, never)
 
     assert (landed, code, len(never.pulls), "weird" in err, never.stack[0], never.stack_pushed()[-1:]) == (
-        (0, 4), 2, 4, True, REBASED, ["git -C %s push origin %s:refs/heads/stack" % (never.wt, REBASED)])
+        (0, 4), 2, 4, True, REBASED, ["git -C %s push --force-with-lease=stack:%s origin %s:refs/heads/stack" % (never.wt, STACK_SHA, REBASED)])
 
 
 def released(world):
@@ -296,7 +297,7 @@ def test_the_lease_is_pinned_once_to_the_run_branchs_pre_rebase_sha_even_when_th
 
     code, _, err = join(run_cli, world)
 
-    leases = [c.split()[4] for c in world.calls if "--force-with-lease" in c and "--delete" not in c]
+    leases = [c.split()[4] for c in world.calls if "--force-with-lease=" + BRANCH in c and "--delete" not in c]
     assert (code, leases) == (0, ["--force-with-lease=%s:%s" % (BRANCH, ORIGIN_SHA),
                                   "--force-with-lease=%s:%s" % (BRANCH, REBASED)]), err
 
@@ -352,3 +353,32 @@ def test_a_pull_request_whose_head_is_not_the_branch_and_tip_being_joined_is_exi
     code, _, err = join(run_cli, world)
 
     assert (code, [c for c in world.calls if c.startswith("merge-lock.sh")], pushed(world)) == (2, [], []), err
+
+
+def test_a_stack_deleted_on_origin_at_join_time_is_exit_2_and_never_recreated(tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+    world.stack[0] = ""
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, world.stack_pushed(), len(released(world))) == (2, [], 1), err
+
+
+def test_a_stack_rewound_during_the_join_is_refused_by_the_lease_and_the_restart_rebases_onto_what_origin_holds_now(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, stack_pushes=(1, 0)).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    leases = [c.split()[4] for c in world.stack_pushed()]
+    assert (code, leases) == (0, ["--force-with-lease=stack:" + STACK_SHA, "--force-with-lease=stack:" + MOVED_SHA]), err
+
+
+def test_a_rebased_tip_that_does_not_descend_from_the_fetched_stack_is_never_pushed_to_it(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, extra={"git -C <wt> merge-base --is-ancestor " + STACK_SHA: (1, "", "")}).install(
+        fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, world.stack_pushed()) == (2, []), err

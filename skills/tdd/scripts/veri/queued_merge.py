@@ -483,8 +483,9 @@ def _unchecked_steps(worktree, branch):
 
 def _joined(pid, repo, pr, worktree, branch, stack):
     """The join with the lock held, never releasing it: rebase onto origin/<stack>, push the run's branch under a lease,
-    check the rebased tip, push it to <stack>, never forced: a push refused because origin's stack moved starts again
-    from the fetch, at most JOIN_ATTEMPTS times. Returns an exit code."""
+    check the rebased tip, push it to <stack> as a compare-and-swap that can only fast-forward what was fetched (leased to
+    the fetched stack, the tip descending from it): a push refused because origin's stack moved, or was rewound, starts
+    again from the fetch, at most JOIN_ATTEMPTS times; a stack origin no longer has is exit 2. Returns an exit code."""
     code = _unchecked_steps(worktree, branch)
     if code:
         return code
@@ -493,13 +494,14 @@ def _joined(pid, repo, pr, worktree, branch, stack):
         _say("the worktree's HEAD does not resolve; nothing pushed")
         return 2
     for _ in range(JOIN_ATTEMPTS):
-        fetch = git.network("-C", worktree, "fetch", "origin")
+        fetch = git.network("-C", worktree, "fetch", "--prune", "origin")
         if fetch.returncode:
             _say("git fetch origin got no answer (%s); nothing pushed" % fetch.stderr.strip())
             return 2
         onto = _rev(worktree, "refs/remotes/origin/" + stack)
         if not onto:
-            _say("origin/%s does not resolve; nothing pushed" % stack)
+            _say("origin has no %s branch (deleted?); a join never recreates a stack, only a launch does — nothing pushed"
+                 % stack)
             return 2
         if _rev(worktree, "refs/remotes/origin/" + branch) != lease:
             _say("origin/%s is not the run's tip %s (a commit the worktree lacks, or none pushed); nothing pushed"
@@ -537,9 +539,15 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             _say("prose-owed.sh exited %d on the rebased tip; nothing pushed to %s" % (owed, stack))
             return 1 if owed == 1 else 2
         head = _rev(worktree, "HEAD")
-        if not git.network("-C", worktree, "push", "origin", "%s:refs/heads/%s" % (head, stack)).returncode:
+        if not head or _git(worktree, "merge-base", "--is-ancestor", onto, head).returncode:
+            _say("the rebased tip %s does not descend from origin/%s at %s; nothing pushed to it" % (head, stack, onto))
+            return 2
+        # A compare-and-swap that can only fast-forward: the lease is the stack as fetched, and the tip descends from it.
+        if not git.network("-C", worktree, "push", "--force-with-lease=%s:%s" % (stack, onto), "origin",
+                           "%s:refs/heads/%s" % (head, stack)).returncode:
             return 0
-        if git.network("-C", worktree, "fetch", "origin").returncode or _rev(worktree, "refs/remotes/origin/" + stack) == onto:
+        if (git.network("-C", worktree, "fetch", "--prune", "origin").returncode
+                or _rev(worktree, "refs/remotes/origin/" + stack) == onto):
             _say("the push of %s to %s was refused and origin's %s did not move; nothing more pushed" % (head, stack, stack))
             return 2
         _say("origin's %s moved during the join; starting again from the fetch" % stack)
