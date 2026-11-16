@@ -265,7 +265,8 @@ def test_after_a_joins_exit_0_the_runs_remote_branch_is_deleted_and_its_worktree
     moved = [c for c in world.calls if "pull" in c or "merge --ff-only" in c or "reset" in c or "checkout" in c]
     after_release = world.calls.index(released(world)[0]) < world.calls.index(cleanup[0]) if cleanup else None
     assert (code, cleanup, moved, after_release) == (0, [
-        wt + "push origin --delete %s --force-with-lease=%s:%s" % (BRANCH, BRANCH, REBASED), wt + "worktree remove " + world.wt,
+        wt + "push origin --delete %s --force-with-lease=%s:%s" % (BRANCH, BRANCH, REBASED),
+        wt + "push origin --delete refs/veri/runs/7", wt + "worktree remove " + world.wt,
         "git -C %s branch -D %s" % (CLONE, BRANCH)], [], True), err
 
 
@@ -395,3 +396,16 @@ def test_a_run_whose_cut_recorded_a_stack_but_whose_claude_md_names_none_or_anot
 
     touched = [c for c in world.calls if c.startswith("merge-lock.sh") or "wait-ci.sh" in c or " push " in c]
     assert (code, touched, "stack" in err) == (2, [], True), err
+
+
+@pytest.mark.parametrize("answer, expected", [((0, "", ""), 0), ((1, "", "error: remote ref does not exist\n"), 0),
+                                              ((1, "", "fatal: unreachable\n"), 2)])
+def test_a_joins_cleanup_deletes_origins_run_records_ref_a_missing_one_counting_as_deleted(
+        tmp_path, fake_processes, monkeypatch, run_cli, answer, expected):
+    world = World(tmp_path, extra={"git -C <wt> push origin --delete refs/veri/runs/7": answer}).install(
+        fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    asked = "git -C %s push origin --delete refs/veri/runs/7" % world.wt in world.calls
+    assert (code, asked, ("run records delete" in err) == (expected == 2)) == (expected, True, True), err
