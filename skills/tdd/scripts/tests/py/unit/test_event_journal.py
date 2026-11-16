@@ -43,9 +43,9 @@ def test_journal_defaults_to_dot_veri_and_skips_a_clone_without_origin_url_or_an
     without_url = clone_with("b", "[core]\n\tbare = false\n")
 
     codes = (
-        event.append(str(with_origin), {"issue": "42"}, "done", [], ts=1700000000),
-        event.append(str(with_origin), {}, "done", [], ts=1700000001),
-        event.append(str(without_url), {"issue": "42"}, "done", [], ts=1700000002),
+        event.append(str(with_origin), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=1700000000),
+        event.append(str(with_origin), {}, "done", ["pr=https://x/pull/1"], ts=1700000001),
+        event.append(str(without_url), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=1700000002),
     )
 
     written = sorted(str(p.relative_to(home)) for p in (home / ".veri").rglob("*") if p.is_file())
@@ -63,8 +63,8 @@ def test_clone_without_readable_git_config_writes_no_journal_and_a_url_word_with
         '[remote "origin"]\n\turlish\n\turl = https://github.com/acme/widgets.git\n')
 
     codes = (
-        event.append(str(no_config), {"issue": "7"}, "done", [], ts=1700000000),
-        event.append(str(keyless), {"issue": "8"}, "done", [], ts=1700000001),
+        event.append(str(no_config), {"issue": "7"}, "done", ["pr=https://x/pull/1"], ts=1700000000),
+        event.append(str(keyless), {"issue": "8"}, "done", ["pr=https://x/pull/1"], ts=1700000001),
     )
 
     written = sorted(str(p.relative_to(tmp_path)) for p in (tmp_path / "runs").rglob("*") if p.is_file())
@@ -80,7 +80,7 @@ def test_journal_path_is_named_from_origins_url_when_another_remotes_url_comes_f
         '[remote "upstream"]\n\turl = https://github.com/other/forked.git\n'
         '[remote "origin"]\n\turl = https://github.com/acme/widgets.git\n')
 
-    code = event.append(str(clone), {"issue": "42"}, "done", [], ts=1700000000)
+    code = event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=1700000000)
 
     written = sorted(str(p.relative_to(tmp_path)) for p in (tmp_path / "runs").rglob("*") if p.is_file())
     assert (code, written) == (0, ["runs/acme-widgets/42.jsonl"])
@@ -99,7 +99,7 @@ def test_event_with_an_empty_issue_creates_nothing_under_veri_home_and_prints_no
     with_home = os.environ.get("VERI_HOME")
     os.environ["VERI_HOME"] = str(home)
     try:
-        code = event.append(str(clone), {"issue": ""}, "done", [], ts=1700000000)
+        code = event.append(str(clone), {"issue": ""}, "done", ["pr=https://x/pull/1"], ts=1700000000)
     finally:
         os.environ["VERI_HOME"] = with_home
 
@@ -120,7 +120,7 @@ def test_event_in_a_clone_with_no_origin_remote_creates_nothing_under_veri_home_
     with_home = os.environ.get("VERI_HOME")
     os.environ["VERI_HOME"] = str(home)
     try:
-        code = event.append(str(clone), {"issue": "42"}, "done", [], ts=1700000000)
+        code = event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=1700000000)
     finally:
         os.environ["VERI_HOME"] = with_home
 
@@ -141,7 +141,7 @@ def test_linked_worktree_names_the_journal_from_the_common_dirs_config(tmp_path)
     linked.mkdir()
     (linked / ".git").write_text("gitdir: " + str(admin) + "\n")
 
-    code = event.append(str(linked), {"issue": "42"}, "done", [], ts=1700000000)
+    code = event.append(str(linked), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=1700000000)
 
     per_run = (linked / ".tdd" / "events.jsonl").read_bytes()
     journal = tmp_path / "runs" / "acme-widgets" / "42.jsonl"
@@ -156,7 +156,7 @@ def test_scp_form_origin_names_the_same_journal_path_as_its_https_form(tmp_path)
     (clone / ".git" / "config").write_text(
         '[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
 
-    code = event.append(str(clone), {"issue": "42"}, "done", [], ts=1700000000)
+    code = event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=1700000000)
 
     written = sorted(str(p.relative_to(tmp_path)) for p in (tmp_path / "runs").rglob("*") if p.is_file())
     assert (code, written) == (0, ["runs/acme-widgets/42.jsonl"])
@@ -172,7 +172,7 @@ def test_with_veri_home_unset_the_journal_is_written_under_dot_veri_in_home(tmp_
     (clone / ".git" / "config").write_text(
         '[remote "origin"]\n\turl = https://github.com/acme/widgets.git\n')
 
-    code = event.append(str(clone), {"issue": "42"}, "done", [], ts=1700000000)
+    code = event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=1700000000)
 
     per_run = (clone / ".tdd" / "events.jsonl").read_bytes()
     journal = tmp_path / ".veri" / "runs" / "acme-widgets" / "42.jsonl"
@@ -189,7 +189,7 @@ def test_failed_journal_write_prints_one_stderr_line_naming_the_path_and_still_w
     journal = tmp_path / "runs" / "acme-widgets" / "42.jsonl"
     journal.mkdir(parents=True)
 
-    code = event.append(str(clone), {"issue": "42"}, "done", [], ts=1700000000)
+    code = event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=1700000000)
 
     err = capfd.readouterr().err
     per_run = (clone / ".tdd" / "events.jsonl").read_bytes()
@@ -229,7 +229,7 @@ def test_one_journal_write_starts_no_process_and_is_one_os_write_on_an_o_append_
         if hasattr(os, name):
             monkeypatch.setattr(os, name, spy_process)
 
-    code = event.append(str(clone), {"issue": "42"}, "done", [], ts=1700000000)
+    code = event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=1700000000)
 
     to_journal = [(data, target[1]) for _, data, target in written if target[0] == str(journal)]
     flags = [flag for _, flag in to_journal]

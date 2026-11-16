@@ -244,6 +244,7 @@ def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
     if request.node.get_closest_marker("process") is not None:
         monkeypatch.setenv("VERI_POLL", SUPERVISOR_POLL)
     monkeypatch.setenv("VERI_HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_EVENT_STRICT", "1")
     monkeypatch.setenv("VERI_VENV", INTERPRETER_VENV)
     inherited = os.path.realpath(tempfile.tempdir or os.environ.get("TMPDIR") or "/tmp")
     basetemp = os.path.realpath(tmp_path_factory.getbasetemp())
