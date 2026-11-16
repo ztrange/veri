@@ -37,12 +37,16 @@ def run_case(case):
     path = case.split("::", 1)[0]
     LAST_COMMAND = f"{command} {path}"
     done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
+    output = f"{done.stdout}{done.stderr}"
     LAST_CODE = done.returncode
-    if done.returncode >= 126:
+    recipe = re.search(r"\*\*\* \[[^\]]*\] Error (\d+)", output) if LAST_CODE == 2 else None
+    if recipe:
+        LAST_CODE = int(recipe.group(1))
+    if LAST_CODE >= 126:
         return 2
-    if done.returncode and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", f"{done.stdout}{done.stderr}", re.I)):
+    if LAST_CODE and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", output, re.I)):
         return 2
-    return done.returncode
+    return LAST_CODE
 
 
 def changed_index(text, new):
