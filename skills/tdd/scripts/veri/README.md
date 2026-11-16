@@ -100,6 +100,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 - `start(argv, stdin, stdout, stderr, xfsz=SIG_IGN)`: starts `argv` as leader of a new session and returns its pid without waiting.
 
 ## entry
+- `exit_code(main, argv, on_broken_pipe=silence_stdout)`: the code `run` exits with, returned instead (pytest_leg's `launch` records the bytecode cache after it).
 - `run(main, argv)`: `sys.exit(exit_code(main, argv))`; `--help` prints the module's `USAGE`, an uncaught exception prints one line and exits 2, a broken pipe exits quietly.
 - `write(stream, text, *, before=True, after=True, end="\n")`: writes str or bytes to the stream's binary buffer, flushing before and after by default.
 - `refusal(main, exc)`: the one-line `<shim>: <Type>: <reason> (at file:line)` text for an exception.
