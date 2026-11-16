@@ -60,10 +60,15 @@ def take_lock(lock):
     while True:
         try:
             os.mkdir(lock)
-            pid_file.record(holder_path(lock), os.getpid())
-            return
         except FileExistsError:
             pass
+        else:
+            try:
+                pid_file.record(holder_path(lock), os.getpid())
+            except BaseException:
+                release_lock(lock)
+                raise
+            return
         if tries <= 0:
             sys.stderr.write("workqueue.sh: could not take the lock %s; %s\n" % (lock, holder_of(lock)))
             raise SystemExit(2)
