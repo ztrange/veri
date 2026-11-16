@@ -123,10 +123,12 @@ def ancestors():
 
 
 def record(path, pid):
-    """Write <pid> on line 1 and its start time on line 2, the form conductor.pid has."""
+    """Write <pid> on line 1 and its start time on line 2, the form conductor.pid has; returns the text written."""
     started = ps_field("lstart", pid)
+    text = f"{pid}\n{started}\n" if started else f"{pid}\n"
     with open(path, "w") as handle:
-        handle.write(f"{pid}\n{started}\n" if started else f"{pid}\n")
+        handle.write(text)
+    return text
 
 
 def _recorded(path):
