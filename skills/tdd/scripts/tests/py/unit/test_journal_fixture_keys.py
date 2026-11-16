@@ -33,7 +33,8 @@ def test_an_undeclared_event_or_key_of_a_journal_line_is_a_problem():
              '{"ts": 1, "event": "comment", "colour": "red"}', '{"ts": 1, "event": "no-such-event"}']
 
     assert undeclared(lines, "x.jsonl") == [
-        "x.jsonl:2 key 'colour' of event 'comment' is not declared; make its line  \"comment\": \"kind url colour?\",",
+        "x.jsonl:2 key 'colour' of event 'comment' is not declared; make its line  \"comment\": \"%s colour?:text\","
+        % event_table.EVENTS["comment"],
         "x.jsonl:3 event 'no-such-event' is not declared; add  \"no-such-event\": \"\","]
 
 
