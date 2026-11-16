@@ -47,3 +47,15 @@ def test_strict_refuses_a_key_the_table_does_not_declare_for_the_event(how, clon
     assert code == 2
     assert [path for path in journals(clone, tmp_path) if path.exists() and path.read_bytes()] == []
     assert "comment" in err and "colour" in err
+
+
+@pytest.mark.parametrize("how", ["mark", "sh"])
+def test_strict_refuses_an_event_missing_a_key_the_table_marks_required(how, clone, tmp_path, monkeypatch, run_cli, capfd):
+    monkeypatch.setenv("VERI_EVENT_STRICT", "1")
+
+    code, err = write(how, clone, monkeypatch, run_cli, "comment", ["kind=red"])
+    err = capfd.readouterr().err if err is None else err
+
+    assert code == 2
+    assert [path for path in journals(clone, tmp_path) if path.exists() and path.read_bytes()] == []
+    assert "comment" in err and "url" in err
