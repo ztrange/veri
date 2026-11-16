@@ -218,3 +218,19 @@ def test_3976_a_veri_leaf_env_name_veri_redact_vars_also_names_passes_with_one_s
     named = [line for line in err.splitlines() if "GH_TOKEN" in line]
     assert (len(named), "ghvalue-not-printed" in err, "JAVA_HOME" in err) == (1, False, False)
     assert kwargs["env"]["GH_TOKEN"] == "ghvalue-not-printed"
+
+
+def test_3976_one_stderr_line_names_each_veri_leaf_env_item_that_is_not_a_variable_name_and_the_leaf_still_launches(
+        run_leaf, tmp_path, monkeypatch, run_cli, fake_processes):
+    prompt = tmp_path / "leaf.prompt"
+    prompt.write_text("hello")
+    for name, value in (("HOME", str(tmp_path)), ("TMPDIR", str(tmp_path)), ("CLAUDE_BIN", "/stub/claude"),
+                        ("VERI_LEAF_ENV", "A=B JAVA_* 9LIVES UNSET_BUT_VALID")):
+        monkeypatch.setenv(name, value)
+    launched = fake_processes.answers({"claude": FileNotFoundError(2, "No such file or directory")})
+
+    _, _, err = run_cli(run_leaf, [str(prompt)])
+
+    named = [line for line in err.splitlines() if "VERI_LEAF_ENV" in line]
+    assert (len(named), [item in named[0] for item in ("A=B", "JAVA_*", "9LIVES")] if named else None,
+            "UNSET_BUT_VALID" in err, len(launched.seen)) == (1, [True, True, True], False, 1)
