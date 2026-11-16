@@ -1503,6 +1503,14 @@ def test_3984_queued_merge_whose_tag_push_never_returns_ends_it_after_the_git_ne
             "merged, but cleanup failed: tag" in err, len(released)) == (2, True, True, True, 1)
 
 
+def test_3984_queued_merge_whose_tag_push_times_out_says_the_tag_may_have_been_published_never_that_it_was_not(fake_processes, run_cli):
+    scenario(hanging(fake_processes, "git -C /wt push origin v0.11"))
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GIT_NETWORK_TIMEOUT": "7"})
+
+    assert (code, "tag v0.11 cut, may have been published" in err, "not published" in err) == (2, True, False)
+
+
 def test_3984_queued_merge_whose_branch_delete_never_returns_ends_it_after_the_git_network_timeout_as_a_failed_branch_delete_and_runs_the_rest(fake_processes, run_cli):
     calls = scenario(hanging(fake_processes, "git -C /wt push origin --delete feature"))
 

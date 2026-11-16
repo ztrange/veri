@@ -182,12 +182,13 @@ def _tag(worktree, message, pull, pr):
     pushed = _network_git(worktree, "push", "origin", name)
     if pushed.returncode:
         failed = "git push failed (exit %d): %s;" % (pushed.returncode, (pushed.stderr or "").strip())
+        published = "may have been published" if isinstance(pushed, TimedOut) else "not published"
         deleted = _git(worktree, "tag", "-d", name)
         if deleted.returncode:
-            _say("%s tag %s cut, not published, and git tag -d %s failed (exit %d): %s" % (
-                failed, name, name, deleted.returncode, deleted.stderr.strip()))
+            _say("%s tag %s cut, %s, and git tag -d %s failed (exit %d): %s" % (
+                failed, name, published, name, deleted.returncode, deleted.stderr.strip()))
         else:
-            _say("%s tag %s cut, not published, and removed" % (failed, name))
+            _say("%s tag %s cut, %s, and removed" % (failed, name, published))
         return False
     return name
 
