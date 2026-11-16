@@ -6,6 +6,7 @@ import paths
 import re
 import sys
 
+import case_reader
 import event_log
 import tunables
 from entry import write
@@ -83,6 +84,38 @@ def main(argv):
 _HEX_SHA = re.compile(r"[0-9a-f]{7,40}")
 
 
+TOUCHING_HEADING = b"### Test cases touching the files the plan names"
+SKIPPED_DIRS = {".git", ".tdd", ".venv", "node_modules"}
+
+
+def _tree_files():
+    for root, dirs, files in os.walk("."):
+        dirs[:] = sorted(d for d in dirs if d not in SKIPPED_DIRS)
+        for name in sorted(files):
+            yield os.path.relpath(os.path.join(root, name)).replace(os.sep, "/")
+
+
+def _touching_cases(ledger):
+    """The section naming, under each touching test file, its case names: computed from the ledger and the tree only."""
+    files = list(_tree_files())
+    words = {word for step in ledger_steps(_read(ledger).decode(errors="replace"))
+             for word in re.findall(r"[\w./-]+", step.text)}
+    named = [path for path in files if path in words]
+    stems = {os.path.splitext(os.path.basename(path))[0] for path in named}
+    lines = []
+    for path in files:
+        if not stems or not case_reader.is_test_path(path):
+            continue
+        with open(path, "rb") as handle:
+            text = handle.read().decode(errors="replace")
+        if not any(stem in text for stem in stems):
+            continue
+        names = [name for name, _ in case_reader.cut_cases(text)]
+        if names:
+            lines += [path, *(f"- {name}" for name in names), ""]
+    return TOUCHING_HEADING + b"\n\n" + "\n".join(lines).rstrip("\n").encode()
+
+
 def _refused(message=None):
     return refuse(message), b""
 
@@ -144,7 +177,9 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         shared = expand_includes(_read(paths[1]), prompts_b)
         for placeholder, path in optional.items():
             values[placeholder] = _read(path)
-            if placeholder in GREEN_PARAGRAPHS:
+            if placeholder == "LEDGER":
+                values[placeholder] += b"\n\n" + _touching_cases(path)
+            elif placeholder in GREEN_PARAGRAPHS:
                 values[placeholder] = expand_includes(b"\n\n" + values[placeholder], prompts_b)
             elif placeholder == "RED_FAST_CHECK":
                 values[placeholder] = b"\n\n" + values[placeholder].rstrip(b"\n")

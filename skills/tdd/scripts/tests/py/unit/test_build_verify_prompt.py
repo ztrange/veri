@@ -1636,3 +1636,43 @@ def test_main_ends_every_phases_verify_prompt_with_the_output_contract_fragment_
 
     assert {phase: verdict(argv) for phase, argv in argvs.items()} == dict.fromkeys(argvs, (0, True, 1))
 
+
+TOUCHING = "### Test cases touching the files the plan names"
+
+
+def touching_section(out):
+    if TOUCHING not in out:
+        return None
+    return out.split(TOUCHING, 1)[1].split("\n### ", 1)[0]
+
+
+def plan_in_tree(tmp_path, run_cli, module, files, steps, env=None):
+    for rel, text in files.items():
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+    spec_file = tmp_path / "spec.md"
+    spec_file.write_text(SPEC_TEXT)
+    ledger = tmp_path / ".tdd" / "issue-1.md"
+    ledger.parent.mkdir(exist_ok=True)
+    ledger.write_text("# Plan for #1\n\n" + "".join(f"- [ ] {step} ⟦criterion 1⟧\n" for step in steps))
+    return run_cli(module, ["plan", str(spec_file), str(ledger)], env=env, cwd=tmp_path)
+
+
+ROUTE_TREE = {
+    "scripts/route.py": "def route():\n    return None\n",
+    "tests/test_route.py": ("import route\n\n\ndef test_route_answers():\n    assert route.route() is None\n\n\n"
+                            "def test_route_refuses():\n    CASE_BODY_MARKER = 1\n"),
+}
+
+
+def test_3919_plan_lists_after_the_ledger_the_case_names_of_a_test_file_holding_the_stem_of_a_path_a_step_names(
+        tmp_path, run_cli, build_verify_prompt):
+    code, out, _ = plan_in_tree(tmp_path, run_cli, build_verify_prompt, ROUTE_TREE,
+                                ["the router answers through scripts/route.py"])
+    section = touching_section(out)
+
+    assert (code, section is not None) == (0, True)
+    assert out.index("scripts/route.py ⟦criterion 1⟧") < out.index(TOUCHING)
+    assert ("tests/test_route.py" in section, "test_route_answers" in section, "test_route_refuses" in section,
+            "CASE_BODY_MARKER" in section) == (True, True, True, False)
