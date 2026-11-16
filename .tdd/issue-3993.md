@@ -4,4 +4,4 @@
 - [x] a take that gives up on a lock whose holder file names a live pid exits 2 with `could not take the lock <path>` and that pid with `alive`; a small case in `tests/py/unit/test_workqueue.py` ⟦criterion 2⟧
 - [x] a take that gives up on a lock whose holder file names a dead pid prints that pid with `dead`; a small case in `tests/py/unit/test_workqueue.py` ⟦criterion 2⟧
 - [x] a take that gives up on a lock with no holder file prints `unrecorded`; a small case in `tests/py/unit/test_workqueue.py` ⟦criterion 2⟧
-- [ ] the `workqueue.sh` entry of `skills/tdd/scripts/veri/README.md` states both ⟦criterion 3⟧
+- [x] the `workqueue.sh` entry of `skills/tdd/scripts/veri/README.md` states both ⟦criterion 3⟧
