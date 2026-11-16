@@ -205,8 +205,10 @@ def write_journal(top, context, text):
             sys.stderr.write("event: cannot write journal " + journal + "\n")
 
 
-def strict_refusal(args):
-    """Under VERI_EVENT_STRICT=1, why veri/event_table.py does not allow this event, or None."""
+def strict_refusal(args, context=None):
+    """Under VERI_EVENT_STRICT=1, why veri/event_table.py does not allow this event and its values (the run context's
+    `context` included), or None."""
+    context = context or {}
     name = os.fsdecode(args[0])
     if name not in event_table.EVENTS:
         return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s, which veri/event_table.py does not hold; declare it with"
@@ -220,6 +222,13 @@ def strict_refusal(args):
     if missing:
         return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s without its required key %s (veri/event_table.py)"
                 % (name, missing[0]))
+    pairs = [(None, os.fsdecode(key), os.fsdecode(context.get(key, b""))) for key, source in CONTEXT if source]
+    pairs += [(name, os.fsdecode(key), os.fsdecode(value)) for key, _, value in (arg.partition(b"=") for arg in args[1:])]
+    for owner, key, value in pairs:
+        if not event_table.valid(owner, key, value):
+            return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s key %s value %r, which its declared format %s"
+                    " (veri/event_table.py) does not accept; fix the value, or the format in the line  %s"
+                    % (name, key, value, event_table.stated(owner, key), event_table.declaring(owner, None)))
     return None
 
 
@@ -234,7 +243,7 @@ def append(directory, context, event, fields=(), ts=None):
         if refusal:
             sys.stderr.buffer.write(refusal + b"\n")
             return 2
-    refusal = strict_refusal(args) if tunables.read("VERI_EVENT_STRICT") == "1" else None
+    refusal = strict_refusal(args, context) if tunables.read("VERI_EVENT_STRICT") == "1" else None
     if refusal:
         sys.stderr.write(refusal + "\n")
         return 2

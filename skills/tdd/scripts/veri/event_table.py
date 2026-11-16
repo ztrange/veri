@@ -13,6 +13,7 @@ Interface:
   format(event, key)  (format, empty allowed) for a key of `event`, or of the run context (event None or not declaring it);
                       the format is a `FORMATS` name, a tuple of values, or None when the key has none
   valid(event, key, value)  whether `value` (a str) is a valid value of that key
+  stated(event, key)  that format in JOURNAL.md's words (`whole`, `one of a, b`, `, or empty` after one that may be)
   declaring(event, key)  the `EVENTS` line to write so that the table declares `key` for `event` (no key: just the event;
                          no event: the `CONTEXT` line)
 """
@@ -148,6 +149,12 @@ def valid(event, key, value):
     """Whether `value` is a valid value of `key` (see format): the empty string only where the table allows it."""
     form, empty = format(event, key)
     return empty if value == "" else _matches(form, value)
+
+
+def stated(event, key):
+    """The key's format in JOURNAL.md's words: `whole`, `one of a, b`, … with `, or empty` when it may be empty."""
+    form, empty = format(event, key)
+    return ("one of " + ", ".join(form) if isinstance(form, tuple) else str(form)) + (", or empty" if empty else "")
 
 
 def declaring(event, key):
