@@ -17,13 +17,52 @@ def log_path(main=None):
     return run_dir.main_file(run_dir.main_tree_from_files(os.getcwd()) if main is None else main, "decisions.jsonl")
 
 
-def read(main):
-    """The records of <main>'s decision log, oldest first; [] when it has none."""
+KEYS = ("question", "decision", "rule", "by", "at")
+
+
+class Malformed(Exception):
+    """A line of the decision log that is not a decision record: `where` is `<path>:<line number>`."""
+
+    def __init__(self, where):
+        super().__init__(where)
+        self.where = where
+
+
+def _record(text):
+    """<text> parsed as a decision record (every key of KEYS a non-empty string, `at` an ISO-8601 time with an
+    offset), else None."""
     try:
-        with open(log_path(main)) as f:
-            return [json.loads(line) for line in f if line.strip()]
+        record = json.loads(text)
+    except ValueError:
+        return None
+    if not (isinstance(record, dict) and all(isinstance(record.get(key), str) and record[key].strip() for key in KEYS)):
+        return None
+    try:
+        at = datetime.datetime.fromisoformat(record["at"])
+    except ValueError:
+        return None
+    return record if at.utcoffset() is not None else None
+
+
+def read(main):
+    """The records of <main>'s decision log, oldest first; [] when the file is missing. Raises Malformed for a
+    line that is not a decision record, and OSError for a log that cannot be read: an unread record is never "no
+    decision"."""
+    path = log_path(main)
+    try:
+        with open(path) as f:
+            lines = f.read().splitlines()
     except FileNotFoundError:
         return []
+    records = []
+    for number, line in enumerate(lines, 1):
+        if not line.strip():
+            continue
+        record = _record(line)
+        if record is None:
+            raise Malformed("%s:%d" % (path, number))
+        records.append(record)
+    return records
 
 
 def epoch(record):
