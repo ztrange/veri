@@ -509,7 +509,10 @@ def _joined(pid, repo, pr, worktree, branch, stack):
                 branch, pushed.returncode, pushed.stderr.strip(), stack))
             return 2
         found = _start("detect-test-command.sh", "--tier", "fast", cwd=worktree, capture=True)
-        subprocess.run(["sh", "-c", found.stdout.strip()], cwd=worktree)
+        fast = found.stdout.strip()
+        if subprocess.run(["sh", "-c", fast], cwd=worktree).returncode:
+            _say("the fast tier (%s) is red on the rebased tip; nothing pushed to %s" % (fast, stack))
+            return 1
         _start("prose-owed.sh", worktree, cwd=worktree)
         head = _rev(worktree, "HEAD")
         if not git.network("-C", worktree, "push", "origin", "%s:refs/heads/%s" % (head, stack)).returncode:
