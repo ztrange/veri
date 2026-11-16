@@ -156,8 +156,11 @@ def conductor(run):
     if not restarts:
         return None
     log = run_dir.main_file(main, "conductor-%s.log" % run)
-    with open(log) as f:
-        relaunches = launches(f)
+    try:
+        with open(log) as f:
+            relaunches = launches(f)
+    except (OSError, UnicodeDecodeError):
+        raise Failure("reset-cost.sh: unreadable conductor log %s\n" % log)
     rows = []
     measured = []
     for restart in restarts:

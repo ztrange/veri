@@ -122,3 +122,21 @@ def test_with_no_reset_recorded_it_prints_nothing_and_exits_3(tmp_path, monkeypa
     conductor = run_cli(reset_cost, ["conductor", "7"])
 
     assert (dev[:2], conductor[:2]) == ((3, ""), (3, ""))
+
+
+def test_an_unreadable_transcript_or_conductor_log_exits_2_naming_it(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    transcript, _ = two_resets(tmp_path)
+    transcript.unlink()
+    transcript.mkdir()
+    restarted_conductor(tmp_path)
+    log = tmp_path / ".tdd" / "conductor-7.log"
+    log.unlink()
+    log.mkdir()
+
+    dev = run_cli(reset_cost, ["dev"])
+    conductor = run_cli(reset_cost, ["conductor", "7"])
+
+    assert (dev, conductor) == ((2, "", "reset-cost.sh: unreadable transcript %s\n" % transcript),
+                                (2, "", "reset-cost.sh: unreadable conductor log %s\n" % log))
