@@ -13,8 +13,7 @@ from stub_script import holds_an_inline_stub
 FILES_WITH_AN_INLINE_STUB = {
     "test_add_ledger_step_process.py": "inline stubs, not yet on write_stub",
     "test_bash_version_guard_process.py": "inline stubs, not yet on write_stub",
-    "test_capture_spec_process.py": "inline stubs, not yet on write_stub",
-    "test_coverage_blocker_process.py": "inline stubs, not yet on write_stub",
+    "test_capture_spec_process.py": "inline stubs, not yet on write_stub",    "test_coverage_blocker_process.py": "inline stubs, not yet on write_stub",
     "test_detach_command_process.py": "inline stubs, not yet on write_stub",
     "test_emitted_text_process.py": "inline stubs, not yet on write_stub",
     "test_event.py": "inline stubs, not yet on write_stub",
@@ -112,3 +111,11 @@ def test_4052_no_test_file_outside_the_list_holds_an_inline_stub(tests_py_index)
     assert not unlisted, (
         f"{unlisted} write their own #!/bin/sh stub: use stub_script.write_stub(path, body) instead. "
         f"FILES_WITH_AN_INLINE_STUB only shrinks, never add to it")
+
+
+@pytest.mark.tree_audit("skills/tdd/scripts/tests/py")
+def test_4052_a_listed_file_that_no_longer_holds_an_inline_stub_is_removed_from_the_list(tests_py_index):
+    found = _files_holding_an_inline_stub(tests_py_index)
+    gone = [path for path in FILES_WITH_AN_INLINE_STUB if path not in found]
+
+    assert not gone, f"{gone} no longer hold an inline #!/bin/sh stub: remove them from FILES_WITH_AN_INLINE_STUB"
