@@ -646,7 +646,7 @@ def fold(issue, path, ledger):
                      for step, attempt, route, reason in tally.green_rejects]
     routes = collections.Counter(route for _step, _attempt, route, _reason in green_rejects)
     structural = tally.structural
-    structural_marked =structural is not None and "stopped" in structural
+    structural_marked = structural is not None and "stopped" in structural
     if structural is None and ending is not None and ending.get("event") == "done":
         structural = {"stopped": "not marked"}
     return Fold(issue=issue, marks=marks,
