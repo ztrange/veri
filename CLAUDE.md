@@ -148,6 +148,8 @@ before its suites start, so the wait counts toward no per-case timeout. The lock
 holder's lock is taken over; a run nested under the holder (`PYTEST_LEG_FULL_LOCK_HOLDER`) skips it, and neither `make unit` nor a
 `make test TESTS=…` subset (`--subset`) ever waits. Release empties the lock file, so it names a pid only while held. By that rule a live holder that never releases blocks the waiter
 without bound: the wait counts toward no timeout that could bail it, a supervised leaf's hard timeout and silence window included (#2380).
+A waiting leg marks its wait with a file naming its pid and start time; a supervisor ignores a marker whose waiter is no longer
+alive under that start time, so its hard timeout and silence window run, while an empty marker (an older leg's) still freezes them (#3989).
 `VERI_TEST_LOCK=0` turns the lock off. A verifier's full run takes the lock like any other, and a verifier that breaks the lock code still cannot hang on it.
 
 **Pytest case sizes** (#1259, #1513): an unmarked case is small — `git` and `python3` refuse
