@@ -129,11 +129,11 @@ def test_main_appends_a_model_usage_field_with_each_models_figures_only_when_the
     assert carried == ([] if model_usage is None else [model_usage])
 
 
-_RECORD = {"type": "result", "duration_ms": 228265.0, "duration_api_ms": 84513, "num_turns": 13,
-           "total_cost_usd": 1e-05,
+_RECORD = {"type": "result", "duration_ms": 228265, "duration_api_ms": 84513, "num_turns": 13,
+           "total_cost_usd": 0.04125,
            "usage": {"input_tokens": 41, "cache_creation_input_tokens": 52890,
                      "cache_read_input_tokens": 1287431, "output_tokens": 8203}}
-_NUMBERS = {"duration_ms": "228265.0", "duration_api_ms": "84513", "num_turns": "13", "total_cost_usd": "1e-05",
+_NUMBERS = {"duration_ms": "228265", "duration_api_ms": "84513", "num_turns": "13", "total_cost_usd": "0.04125",
             "input_tokens": "41", "output_tokens": "8203", "cache_read_input_tokens": "1287431",
             "cache_creation_input_tokens": "52890", "model": ""}
 _VERIFIER = {"issue": "", "actor": "verifier", "phase": "green", "step": "", "event": "usage", "attempt": "1",

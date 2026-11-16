@@ -41,7 +41,7 @@ EVENTS = {
                "|resuming|done|bailed|stopped) url:url",
     "conductor-restart": "growth:whole knob:whole",
     "conductor-start": "pid:whole started:text,empty",
-    "criterion-unticked": "matcher:text",
+    "criterion-unticked": "matcher:text,empty",
     "diff-leaf-deviation": "leaf:text base:sha head:sha commits:whole",
     "done": "pr:url wall_seconds?:whole awake_seconds?:whole lane?:text",
     "exit": "status:whole cause?:text secs:whole",
@@ -84,7 +84,7 @@ EVENTS = {
     "test-run": "tier:(fast|affected|all|target) suites:text,empty seconds:whole status:whole",
     "tests-frozen-refused": "exit:(1|2) reason:text,empty",
     "unpinnable-missing": "step:text",
-    "unpinnable-step": "step:text reason:text",
+    "unpinnable-step": "step:text reason:text,empty",
     "usage": "duration_ms:whole duration_api_ms:whole num_turns:whole total_cost_usd:decimal input_tokens:whole"
              " output_tokens:whole cache_read_input_tokens:whole cache_creation_input_tokens:whole model:text,empty"
              " model_usage?:json first_turn_cache_creation_input_tokens?:whole first_turn_cache_read_input_tokens?:whole"
