@@ -298,8 +298,8 @@ def test_the_answered_models_are_comma_split_deduplicated_sorted_and_blank_names
     monkeypatch.delenv("VERI_MODEL_REVISE", raising=False)
     monkeypatch.chdir(tmp_path)
 
-    assert ("Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER opus, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; "
-            "models that answered: alpha, mid, zeta.\n") in render(metrics, capsys)
+    assert ("Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER opus, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset, "
+            "VERI_MODEL_REVISE_GREEN unset; models that answered: alpha, mid, zeta.\n") in render(metrics, capsys)
 
 
 def test_the_models_requested_line_lists_veri_model_revise_with_its_value_or_unset(tmp_path, monkeypatch, capsys, metrics):
@@ -316,6 +316,22 @@ def test_the_models_requested_line_lists_veri_model_revise_with_its_value_or_uns
 
     monkeypatch.delenv("VERI_MODEL_REVISE")
     assert "VERI_MODEL_REVISE unset" in requested()
+
+
+def test_4012_the_models_requested_line_lists_veri_model_revise_green_with_its_value_or_unset(
+        tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP + [{"event": "usage", "step": "1", "phase": "green", "attempt": "2",
+                                     "actor": "developer", "model": "sonnet"}])
+    monkeypatch.chdir(tmp_path)
+
+    def requested():
+        line = next(line for line in render(metrics, capsys).splitlines() if line.startswith("Models requested: "))
+        return line[len("Models requested: "):line.index(";")].split(", ")
+
+    monkeypatch.setenv("VERI_MODEL_REVISE_GREEN", "sonnet")
+    with_knob = requested()
+    monkeypatch.delenv("VERI_MODEL_REVISE_GREEN")
+    assert (with_knob[-1], requested()[-1]) == ("VERI_MODEL_REVISE_GREEN sonnet", "VERI_MODEL_REVISE_GREEN unset")
 
 
 def test_a_revise_mark_with_no_budget_prints_a_question_mark_for_it(tmp_path, monkeypatch, capsys, metrics):
@@ -1008,14 +1024,15 @@ def test_main_renders_per_phase_revise_cells_the_by_step_kind_and_the_note_namin
         assert word in note
 
 
-def test_main_footer_sentence_on_comparable_dollars_names_all_four_model_knobs(tmp_path, monkeypatch, capsys, metrics):
+def test_main_footer_sentence_on_comparable_dollars_names_all_five_model_knobs(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     monkeypatch.chdir(tmp_path)
 
     out = render(metrics, capsys)
 
     sentence = next(line for line in out.split("\n") if "comparable" in line and "dollars" in line)
-    assert [knob for knob in ("VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE")
+    assert [knob for knob in ("VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE",
+                              "VERI_MODEL_REVISE_GREEN")
             if knob not in sentence] == []
 
 
@@ -1250,8 +1267,8 @@ def test_main_renders_a_by_model_table_per_role_and_model_and_states_the_request
                      + [dict(e, model=sonnet) if e["event"] == "launch" else e
                         for e in leaf("1", 9110, "verifier", "red", 1, 20, usage=used(15000, haiku), verdict="PASS")]
                      + conductor("1", 9400, "step-done"))
-    assert ("Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER %s, VERI_MODEL_VERIFIER %s, VERI_MODEL_REVISE unset; "
-            "models that answered: %s, %s.\n" % (opus, sonnet, haiku, opus)) in knobbed.split("#### ")[0]
+    assert ("Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER %s, VERI_MODEL_VERIFIER %s, VERI_MODEL_REVISE unset, "
+            "VERI_MODEL_REVISE_GREEN unset; models that answered: %s, %s.\n" % (opus, sonnet, haiku, opus)) in knobbed.split("#### ")[0]
 
     unmodeled = report("unmodeled", conductor("1", 9000, "step-start")
                        + [dict(e, model="") if e["event"] == "launch" else e
