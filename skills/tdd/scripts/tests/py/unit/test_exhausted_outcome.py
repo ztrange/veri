@@ -263,6 +263,45 @@ def test_3917_step_ahead_refuses_a_class_id_whose_class_is_absent_or_does_not_de
                for line, result in results.items()), results
 
 
+def test_3917_step_ahead_skips_the_red_case_however_its_path_is_spelt(run_cli, tmp_path, exhausted_outcome):
+    _suite(tmp_path)
+    (tmp_path / "t").mkdir()
+    (tmp_path / "t" / "test_y.py").write_text("def test_abcdef():\n    pass\n")
+    red = "t/test_y.py::test_abcdef"
+    spellings = ["./t/test_y.py::test_abcdef", "t//test_y.py::test_abcdef", str(tmp_path / "t" / "test_y.py") + "::test_abcdef"]
+
+    results = {s: run_cli(exhausted_outcome, ["--step-ahead", red], stdin="STEP_AHEAD: %s\n" % s, cwd=tmp_path)
+               for s in spellings}
+
+    assert results == dict.fromkeys(spellings, (3, "", ""))
+
+
+def test_3917_step_ahead_refuses_a_path_outside_the_repository_naming_the_line(run_cli, tmp_path, exhausted_outcome):
+    repo, outside = tmp_path / "repo", tmp_path / "outside"
+    repo.mkdir()
+    red = _suite(repo)
+    outside.mkdir()
+    (outside / "test_o.py").write_text("def test_a():\n    pass\n")
+    (repo / "tests" / "py" / "test_link.py").symlink_to(outside / "test_o.py")
+    lines = ["STEP_AHEAD: %s::test_a" % (outside / "test_o.py"), "STEP_AHEAD: ../outside/test_o.py::test_a",
+             "STEP_AHEAD: tests/py/test_link.py::test_a"]
+
+    results = {line: run_cli(exhausted_outcome, ["--step-ahead", red], stdin=line + "\n", cwd=repo) for line in lines}
+
+    assert all(_refused(result, line) and "outside the repository" in result[2]
+               for line, result in results.items()), results
+
+
+def test_3917_step_ahead_prints_a_case_named_twice_once_in_first_seen_order(run_cli, tmp_path, exhausted_outcome):
+    red = _suite(tmp_path)
+    report = ("STEP_AHEAD: tests/py/test_status.py::test_status_lists_runs\n"
+              "STEP_AHEAD: tests/py/test_solvable.py::test_prints_usage\n"
+              "STEP_AHEAD: ./tests/py/test_status.py::test_status_lists_runs\n")
+
+    assert run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path) == (
+        0, "prep tests/py/test_status.py::test_status_lists_runs tests/py/test_solvable.py::test_prints_usage\n", "")
+
+
 def _refused(result, line):
     code, stdout, stderr = result
     return code == 2 and stdout == "" and len(stderr.splitlines()) == 1 and line in stderr
