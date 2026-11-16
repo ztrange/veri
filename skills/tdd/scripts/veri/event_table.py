@@ -46,7 +46,7 @@ EVENTS = {
     "done": "pr:url wall_seconds?:whole awake_seconds?:whole lane?:text",
     "exit": "status:whole cause?:text secs:whole",
     "grading": "unit:text verdict:(PASS|REJECT) failing:text,empty cost_usd:decimal id:text effort:text",
-    "launch": "name:text cmd:text model:text,empty",
+    "launch": "name:text cmd:text model:text,empty effort?:(low|medium|high|xhigh|max)",
     "launch-refused": "name:text reason:text",
     "merged": "pr:url tag:text,empty message:text,empty",
     "mutation-record-restored": "name:text file:text",

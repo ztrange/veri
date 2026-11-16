@@ -7,3 +7,4 @@
 - [x] with the knob set and `VERIFY_LEAF_ARGS` carrying `--effort`, `verify.sh` exits 2 naming both ⟦criterion 5⟧
 - [x] the report's `Models requested:` line names `VERI_EFFORT_VERIFIER` with its value or `unset` ⟦criterion 6⟧
 - [x] with the knob set, a `VERIFY_LEAF_ARGS` carrying `--effort=<v>` makes `verify.sh` exit 2 as `--effort <v>` does ⟦criterion 5⟧
+- [x] a verifier leaf's `launch` event carries `effort` when `VERI_EFFORT_VERIFIER` is set, and no `effort` key when it is unset or empty ⟦criterion 6⟧
