@@ -16,6 +16,9 @@ Interface:
   declaring(event, key)  the `EVENTS` line to write so that the table declares `key` for `event` (no key: just the event;
                          no event: the `CONTEXT` line)
 """
+import json
+import re
+
 COMMON = ("ts", "awake", "issue", "actor", "phase", "step", "event", "attempt", "skill_commit")
 # whole: decimal digits only; decimal: digits with at most one `.`; url: starts https:// or http://;
 # sha: 7 to 40 lowercase hex digits; json: parses as JSON; text: any string.
@@ -125,9 +128,26 @@ def format(event, key):
     raise KeyError(key)
 
 
+PATTERNS = {"whole": r"[0-9]+", "decimal": r"(?=.*[0-9])[0-9]*\.?[0-9]*", "url": r"https?://.*", "sha": r"[0-9a-f]{7,40}",
+            "text": r".*"}
+
+
+def _matches(form, value):
+    if isinstance(form, tuple):
+        return value in form
+    if form == "json":
+        try:
+            json.loads(value)
+        except ValueError:
+            return False
+        return True
+    return form in PATTERNS and re.fullmatch(PATTERNS[form], value, re.S) is not None
+
+
 def valid(event, key, value):
     """Whether `value` is a valid value of `key` (see format): the empty string only where the table allows it."""
-    return value != "" or format(event, key)[1]
+    form, empty = format(event, key)
+    return empty if value == "" else _matches(form, value)
 
 
 def declaring(event, key):
