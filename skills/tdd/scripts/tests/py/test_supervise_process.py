@@ -2592,7 +2592,7 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
         "alive-verdict": supervised("alive-verdict", "verdict-red", "4242 develop-red\n"),
     }
 
-    launched, mine, verifier = ("launched", "date"), f"{me}\nThu Nov 11 09:00:00 2026\n", [("launch", "verifier", "verify-red")]
+    launched, mine, verifier = ("launched", "/bin/sh"), f"{me}\nThu Nov 11 09:00:00 2026\n", [("launch", "verifier", "verify-red")]
     assert answers == {
         "alive": (2, b"", [REFUSAL.format("verify-red", "develop-red", 4242)], "2\n", None,
                   "4242 develop-red\nignored line\n", [(4242, 0)], True, []),
@@ -2644,7 +2644,7 @@ def test_main_treats_a_leaf_owner_pid_below_1_as_stale_and_launches_1200(
                 [(r["event"], r["actor"], r["name"]) for r in events.records(work)])
 
     assert {pid: supervised(pid) for pid in ("0", "-7")} == {
-        pid: (("launched", "date"), b"", False, f"{me} verify-red\n", [("launch", "verifier", "verify-red")])
+        pid: (("launched", "/bin/sh"), b"", False, f"{me} verify-red\n", [("launch", "verifier", "verify-red")])
         for pid in ("0", "-7")
     }
 
