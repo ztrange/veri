@@ -38,7 +38,7 @@ def test_make_read_only_leaves_the_write_bits_of_a_file_a_symlink_in_the_tree_na
     assert (outside.stat().st_mode, tmp_path.stat().st_mode & 0o200) == (before, 0o200)
 
 
-def test_snapshot_digest_changes_with_one_files_content_and_not_with_the_marker_3964(tmp_path):
+def test_snapshot_digest_changes_with_one_files_content_and_with_the_marker_3964(tmp_path):
     tree = skill_tree(tmp_path / "veri-snapshot-x")
     (tree / ".veri-snapshot").write_text("/one/worktree\n")
     before = pinned_scripts.snapshot_digest(str(tree))
@@ -48,7 +48,7 @@ def test_snapshot_digest_changes_with_one_files_content_and_not_with_the_marker_
     (tree / "scripts" / "status.sh").write_text("echo edited\n")
     edited = pinned_scripts.snapshot_digest(str(tree))
 
-    assert (marker_only == before, edited == before, "scripts/status.sh" in before) == (True, False, True)
+    assert (marker_only == before, edited == marker_only, "scripts/status.sh" in before) == (False, False, True)
 
 
 def test_remove_tree_refuses_a_symlinked_tree_leaving_the_modes_under_its_target_as_they_were_3963(tmp_path):
