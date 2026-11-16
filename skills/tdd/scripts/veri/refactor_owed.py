@@ -6,7 +6,7 @@ from collections import Counter
 
 import entry
 from case_reader import is_test_path
-from candidates import CLASSES, LINE, candidate
+from candidates import CLASSES, candidate, line as candidate_line
 from report import report_read
 
 USAGE = ("refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' [<bounds>] < leaf-report.txt\n"
@@ -16,12 +16,12 @@ USAGE = ("refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' [<bounds
          "                      refactor-owed.sh list <file>")
 
 
-STRUCTURAL, _, TEST_ONLY, OUT_OF_SCOPE = (candidate(cls) for cls in CLASSES)
+STRUCTURAL, _, TEST_ONLY, OUT_OF_SCOPE = CLASSES
 TEST_ONLY_PREFIX = "test-only | "
 OUT_OF_SCOPE_PREFIX = "out-of-scope | "
-OUT_OF_BOUNDS = candidate("out-of-bounds")
+OUT_OF_BOUNDS = "out-of-bounds"
 OUT_OF_BOUNDS_PREFIX = "out-of-bounds | "
-IN_STEP = candidate("in-step")
+IN_STEP = "in-step"
 KNOWN_CLASSES = (*CLASSES, "in-step", "out-of-bounds", "none")
 TEST_ONLY_MARK = "- " + TEST_ONLY_PREFIX
 OUT_OF_SCOPE_MARK = "- " + OUT_OF_SCOPE_PREFIX
@@ -68,16 +68,16 @@ def append(file, step, bounds):
               (OUT_OF_BOUNDS, out_of_bounds, OUT_OF_BOUNDS_PREFIX))
     in_step, answers = [], {}
     for line in report.split("\n"):
-        if (found := LINE.match(line)) and (cls := found.group(1).partition("|")[0].strip()) not in KNOWN_CLASSES:
+        if (found := candidate_line(line)) is not None and (cls := found.partition("|")[0].strip()) not in KNOWN_CLASSES:
             print(f"refactor-owed.sh: unknown candidate class '{cls}': {line}", file=sys.stderr)
             return 2
-        if match := IN_STEP.match(line):
-            in_step.append(match.group(1).partition(" | ")[2])
+        if (match := candidate(line, IN_STEP)) is not None:
+            in_step.append(match.partition(" | ")[2])
         elif answer := report_read(line, ("COVERED",)).get("COVERED"):
             answers[len(in_step) - 1] = answer
-        for pattern, group, prefix in routes:
-            if (match := pattern.match(line)) and match.group(1):
-                group.append(prefix + match.group(1))
+        for cls, group, prefix in routes:
+            if transform := candidate(line, cls):
+                group.append(prefix + transform)
     owed = [text for at, text in enumerate(in_step) if answers.get(at) == "no"] + structural + test_only + out_of_scope + out_of_bounds
     return write(file, f"### {step}\n" + bullets(owed)) if owed else 0
 
