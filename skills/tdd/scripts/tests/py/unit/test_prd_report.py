@@ -756,3 +756,35 @@ def test_an_owed_entry_without_an_answer_from_the_old_format_counts_as_stale_in_
 
     owed = [line for line in report_out.splitlines() if line.startswith("owed")]
     assert (report_code, owed, stale_code, stale_out) == (0, ["owed: stale"], 0, "013\n")
+
+
+def _owed_tree(tmp_path, owed_text):
+    """A main tree holding a snapshot with PRD 014 (#5) and, unless <owed_text> is None, a stored owed file of it."""
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    prd = {"number": 5, "title": "PRD 014: some owed", "state": "OPEN", "labels": [], "closedAt": None,
+           "updatedAt": "2026-11-02T10:00:00Z", "body": "", "blockedBy": [], "links": [],
+           "wallSeconds": 0, "lane": None}
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": "2026-11-07T10:00:00Z", "issues": [prd]}))
+    if owed_text is not None:
+        (tmp_path / ".tdd" / "report-owed.json").write_text(owed_text)
+
+
+def test_4021_store_owed_whose_rename_fails_leaves_the_owed_file_byte_identical_no_temporary_file_and_exits_2(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    before = '{"016": {"updatedAt": "2026-10-20T09:00:00Z", "answer": {"count": 7, "sections": ["x"]}}}'
+    _owed_tree(tmp_path, before)
+    (tmp_path / "answer.json").write_text(json.dumps({"count": 2, "sections": ["Alpha"]}))
+
+    def refuse(src, dst):
+        raise OSError("rename refused")
+
+    monkeypatch.setattr(prd_report.os, "replace", refuse)
+
+    code, _, err = run_cli(prd_report, ["--store-owed", "014", "answer.json"], cwd=tmp_path)
+
+    assert (code, (tmp_path / ".tdd" / "report-owed.json").read_text(),
+            sorted(p.name for p in (tmp_path / ".tdd").iterdir()), "Traceback" in err) == (
+        2, before, ["report-cache.json", "report-owed.json"], False)
