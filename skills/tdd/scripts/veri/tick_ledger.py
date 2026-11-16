@@ -55,19 +55,20 @@ def run_case(case):
     detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
     found = subprocess.run([detect, "--tier", "one test file"], capture_output=True, text=True)
     command = found.stdout.strip()
-    if not command:
-        LAST_COMMAND = f"make test TESTS={case}"
-        LAST_CODE = case_code(subprocess.run(["make", "test", f"TESTS={case}"], capture_output=True, text=True,
-                                             env=case_env()))
-        return 2 if no_answer(LAST_CODE) else LAST_CODE
     path = case.split("::", 1)[0]
-    LAST_COMMAND = f"{command} {path}"
-    done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
-    output = f"{done.stdout}{done.stderr}"
+    if command:
+        LAST_COMMAND = f"{command} {path}"
+        done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
+    else:
+        LAST_COMMAND = f"make test TESTS={case}"
+        done = subprocess.run(["make", "test", f"TESTS={case}"], capture_output=True, text=True, env=case_env())
+        if "::" not in case and "/" not in path:
+            path = "."
     LAST_CODE = case_code(done)
     if no_answer(LAST_CODE):
         return 2
-    if LAST_CODE and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", output, re.I)):
+    if LAST_CODE and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items",
+                                                            f"{done.stdout}{done.stderr}", re.I)):
         return 2
     return LAST_CODE
 

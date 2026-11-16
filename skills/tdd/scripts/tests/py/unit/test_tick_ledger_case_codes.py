@@ -69,6 +69,28 @@ def test_a_case_command_killed_by_a_signal_python_reports_negative_is_a_case_nev
     assert f"case {CASE} never run" in err and signal_name in err and "fails" not in err
 
 
+@pytest.mark.parametrize("case, stdout, recipe", [
+    ("tests/test_gone.py::test_holds", "ERROR: file or directory not found: tests/test_gone.py\n", 4),
+    (CASE, "collected 0 items\n\nno tests ran in 0.01s\n", 5)], ids=["missing-path", "no-tests-ran"])
+def test_the_make_test_fallback_reads_a_missing_path_or_no_tests_ran_as_a_case_never_run_3987(
+        tmp_path, run_cli, tick_ledger, fake_processes, case, stdout, recipe):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text(ORIGINAL)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("REASON: already holds\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_x.py").write_text("def test_holds():\n    pass\n")
+    fake_processes.answers({"detect-test-command.sh": (0, "", ""),
+                            "make": (2, stdout, f"make: *** [test] Error {recipe}\n")})
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", case, str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (2, ORIGINAL, False), err
+    assert f"case {case} never run" in err and "fails" not in err
+
+
 def test_a_case_command_exiting_3_is_a_case_that_ran_and_failed_exit_1_3986(retire, fake_processes):
     fake_processes.answers({"detect-test-command.sh": (0, './run-one "$1"\n', ""), "": (3, "", "")})
 
