@@ -448,7 +448,27 @@ def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_ad
                 " to take it over run: git branch tdd/7-slug origin/tdd/7-slug\n"), [])
 
 
-def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_tracking_ref_names_the_issue_issue_1734(fake_processes, 
+def test_main_take_over_cuts_the_worktree_on_a_local_branch_from_origins_branch_another_run_holds_4080(fake_processes,
+        monkeypatch, capsys, issue_worktree):
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
+    main_tree = "/srv/repo"
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    listing = ("git", "worktree", "list", "--porcelain")
+    local = ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug")
+    remote = ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug")
+    claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
+    adopt = ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", "/srv/repo/.tdd/wt/7", "origin/tdd/7-slug")
+
+    calls = routing_git(fake_processes, {
+        listing: (0, registry, ""), local: (1, "", ""), remote: (0, "", ""),
+        claims: (0, "1111111111111111111111111111111111111111\trefs/heads/tdd/7-slug\n", ""), adopt: (0, "", "")})
+    code = issue_worktree.main(["--take-over", "7", "slug"])
+
+    assert (code, capsys.readouterr().out, [c for c in calls if c[:3] == ["git", "worktree", "add"]]) == (
+        0, "/srv/repo/.tdd/wt/7\n", [list(adopt)])
+
+
+def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_tracking_ref_names_the_issue_issue_1734(fake_processes,
         monkeypatch, capsys, issue_worktree):
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
