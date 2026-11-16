@@ -105,6 +105,10 @@ form:
 $S/detach-leaf.sh $S/run-conductor.sh <n> >> .tdd/conductor-<n>.log 2>&1 < /dev/null
 ```
 
+Several launches by hand are written out one literal line each, or looped under `bash -c`; never
+through an unquoted variable expanded into arguments (`set -- $spec`): zsh does not word-split
+it, so the issue number and its knobs reach `run-conductor.sh` as one argument.
+
 Every conductor launch, a resume included, is followed by:
 
 ```bash
