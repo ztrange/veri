@@ -185,9 +185,19 @@ def run_state_ignore_row():
     return "run-state ignore", None
 
 
+def ssh_chosen():
+    """Whether the user already chose how git runs ssh: GIT_SSH_COMMAND or GIT_SSH set, or core.sshCommand configured."""
+    if os.environ.get("GIT_SSH_COMMAND") or os.environ.get("GIT_SSH"):
+        return True
+    return bool(git.git("config", "--get", "core.sshCommand", capture_output=True, text=True).stdout.strip())
+
+
 def push_dry_run_row():
     probe = "HEAD:refs/heads/veri-permission-probe-" + secrets.token_hex(4)
-    pushed = push_dry_run(probe, {"GIT_SSH_COMMAND": "ssh -o BatchMode=yes", **os.environ, "GIT_TERMINAL_PROMPT": "0"})
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+    if not ssh_chosen():
+        env["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes"
+    pushed = push_dry_run(probe, env)
     if pushed.returncode == 0:
         return "push dry-run", None
     said = [line.strip() for line in pushed.stderr.splitlines() if line.strip()]
