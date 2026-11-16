@@ -1,8 +1,10 @@
 """verify.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import glob
+import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -29,8 +31,11 @@ from leaf_role import leaf_role
 from paths import SCRIPTS
 from run_verdict import takes_a_value
 
+WRITE_BAN = {"PreToolUse": [{"matcher": "Write|Edit|MultiEdit|NotebookEdit", "hooks": [
+    {"type": "command", "command": shlex.join([sys.executable, os.path.join(SCRIPTS, "veri", "verifier_write_ban.py")])}]}]}
 LEAF_ARGS = ["--permission-mode", "bypassPermissions",
-             "--disallowedTools", "Write", "Edit", "MultiEdit", "NotebookEdit"]
+             "--disallowedTools", "Write", "Edit", "MultiEdit", "NotebookEdit",
+             "--settings", json.dumps({"hooks": WRITE_BAN})]
 USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>']"
          " [--supersede-base <sha>] <phase> <issue-spec-file>"
          " <test-path> [<target-test-id>]")

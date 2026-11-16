@@ -429,7 +429,7 @@ How a leaf is launched through the supervisor, detached, waited for and timed, a
 - `wait-leaf.sh`: wait for a detached leaf's completion file.
 
 ## context_limits
-- `context_limits(excludes=())`: the list of `claude` options that limit what a veri session loads; `excludes` adds `claudeMdExcludes` paths after the global `CLAUDE.md`.
+- `context_limits(excludes=(), settings=None)`: the list of `claude` options that limit what a veri session loads; `excludes` adds `claudeMdExcludes` paths after the global `CLAUDE.md`, `settings` further keys of its one `--settings` object (`run_leaf` passes a caller's `--settings <json object>` there, as `verify` gives its write-ban hook).
 
 ## extract_result
 - `extract(data)`: the text of the last report-bearing `result` record of a stream-json log, newline-terminated; `data` unchanged when it has no result.
