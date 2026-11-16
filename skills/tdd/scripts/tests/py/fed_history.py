@@ -170,12 +170,18 @@ class FedHistory:
 
 class FedCommits:
     """A git index and commit log over the work tree `root`, every commit fed to case_history through `feed`, so a
-    case ports `git add`, `git commit [-a]` and `git mv` one call each. Revisions are named c1, c2, ... in order."""
+    case ports `git add`, `git commit [-a]` and `git mv` one call each, and a rebase as `checkout` of the revision it
+    starts from, the commits on top, and `ref("origin/<default>")`. Revisions are named c1, c2, ... in order."""
 
-    def __init__(self, feed, root, branch):
-        self.feed, self.root, self.branch = feed, str(root), branch
+    def __init__(self, feed, root, branch, default=None):
+        self.feed, self.root, self.branch, self.default = feed, str(root), branch, default
         self.revisions, self.tree, self.index = [], {}, {}
-        feed(root=self.root, branch=branch)
+        self.snapshots, self.refs, self.detached = {}, {}, {}
+        self._feed()
+
+    def _feed(self):
+        self.feed(*self.revisions, root=self.root, branch=self.branch, refs=self.refs, detached=self.detached,
+                  default=self.default)
 
     @property
     def head(self):
@@ -214,9 +220,35 @@ class FedCommits:
         files = {name: text for name, text in self.index.items() if self.tree.get(name) != text}
         files.update({name: None for name in self.tree if name not in self.index})
         self.tree = dict(self.index)
-        self.revisions.append(("c%d" % (len(self.revisions) + 1), subject, files))
-        self.feed(*self.revisions, root=self.root, branch=self.branch)
+        name = "c%d" % (len(self.snapshots) + 1)
+        self.revisions.append((name, subject, files))
+        self.snapshots[name] = (subject, dict(self.tree))
+        self._feed()
         return self.head
+
+    def checkout(self, rev):
+        """As `git checkout` of a branch whose tip is the revision `rev` of this log: the log is cut back to `rev`, each
+        later revision staying readable by its name (detached, as the commits a rebase replaces stay), and the index
+        and the work tree's tracked files are set to `rev`'s tree; untracked files are left alone."""
+        names = [name for name, _, _ in self.revisions]
+        for name in names[names.index(rev) + 1:]:
+            self.detached[name] = self.snapshots[name]
+        self.revisions = self.revisions[:names.index(rev) + 1]
+        old, self.tree = self.tree, dict(self.snapshots[rev][1])
+        self.index = dict(self.tree)
+        for path in old:
+            if path not in self.tree and os.path.isfile(os.path.join(self.root, path)):
+                os.remove(os.path.join(self.root, path))
+        for path, text in self.tree.items():
+            os.makedirs(os.path.dirname(os.path.join(self.root, path)), exist_ok=True)
+            with open(os.path.join(self.root, path), "w", encoding="utf-8") as handle:
+                handle.write(text)
+        self._feed()
+
+    def ref(self, name):
+        """As `git push origin <default>` then `git fetch`: the ref `name` (e.g. origin/main) names this log's head."""
+        self.refs[name] = self.head
+        self._feed()
 
     def git_answers(self):
         """fake_processes answers for the git calls of frozen_record's pass marker: .tdd not ignored, the work-tree

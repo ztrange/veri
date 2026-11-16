@@ -117,6 +117,42 @@ def test_fed_history_answers_a_ref_and_a_detached_revision_by_name_and_default_b
     }
 
 
+def test_fed_commits_checks_out_an_earlier_revision_as_git_checkout_would_keeping_the_later_ones_readable_and_names_a_ref_at_its_head(
+        tmp_path, fed_commits, tests_frozen):
+    repo = fed_commits(default="main")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / SUITE).write_text(ONE)
+    repo.add("tests")
+    base = repo.commit("base")
+    (tmp_path / SUITE).write_text(TWO)
+    (tmp_path / "lib.py").write_text("one\n")
+    (tmp_path / "notes.txt").write_text("untracked\n")
+    repo.add("tests", "lib.py")
+    work = repo.commit("work")
+    repo.checkout(base)
+    on_disk = ((tmp_path / SUITE).read_text(), (tmp_path / "lib.py").exists(), (tmp_path / "notes.txt").read_text())
+    (tmp_path / SUITE).write_text(ONE + "\n\n" + TWO)
+    upstream = repo.commit("upstream", all=True)
+    repo.ref("origin/main")
+    history = tests_frozen.case_history
+
+    assert {
+        "on disk": on_disk,
+        "names": [base, work, upstream],
+        "line": history.revisions(SUITE),
+        "work": (history.text_at(work, SUITE), history.text_at(work, "lib.py"), history.subject(work)),
+        "origin": (history.commit_of("origin/main"), history.default_branch()),
+        "head": (history.text_at("HEAD", SUITE), history.text_at("HEAD", "lib.py")),
+    } == {
+        "on disk": (ONE, False, "untracked\n"),
+        "names": ["c1", "c2", "c3"],
+        "line": ["c3", "c1"],
+        "work": (TWO, "one\n", "work\n"),
+        "origin": ("c3", "main"),
+        "head": (ONE + "\n\n" + TWO, ""),
+    }
+
+
 def test_fed_commits_commits_the_work_tree_as_git_add_and_git_commit_would_and_answers_the_pass_markers_git_calls(
         tmp_path, fed_commits, tests_frozen, monkeypatch):
     monkeypatch.chdir(tmp_path)

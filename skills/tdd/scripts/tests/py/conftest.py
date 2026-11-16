@@ -395,13 +395,14 @@ def fed_history(monkeypatch, tmp_path):
 
 @pytest.fixture
 def fed_commits(fed_history, fake_processes, tmp_path):
-    """`repo = fed_commits(root=tmp_path, branch="main")`: a git index and commit log over the work tree `root`
-    (`repo.add(*paths)`, `repo.commit(subject, all=False)`, `repo.mv(source, target)`, `repo.head`), each commit fed
+    """`repo = fed_commits(root=tmp_path, branch="main", default=None)`: a git index and commit log over the work tree
+    `root` (`repo.add(*paths)`, `repo.commit(subject, all=False)`, `repo.mv(source, target)`, `repo.head`,
+    `repo.checkout(rev)`, `repo.ref(name)`; `default` is origin's default branch), each commit fed
     to case_history through fed_history; the pass marker's git calls answered by fake_processes. See fed_history.py."""
     import fed_history as table
 
-    def start(root=tmp_path, branch="main"):
-        repo = table.FedCommits(fed_history, root, branch)
+    def start(root=tmp_path, branch="main", default=None):
+        repo = table.FedCommits(fed_history, root, branch, default)
         fake_processes.answers(repo.git_answers())
         return repo
     return start
