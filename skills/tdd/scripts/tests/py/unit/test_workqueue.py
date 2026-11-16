@@ -262,7 +262,7 @@ def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_w
         return code, out, err
 
     lock.mkdir()
-    held = (2, "", "workqueue.sh: could not take the lock %s\n" % lock)
+    held = (2, "", "workqueue.sh: could not take the lock %s; holder unrecorded\n" % lock)
     assert run(["start", "alpha", "12"], "1") == held
     assert sleeps == [0.05] * 20
     assert run(["done", "alpha", "13", "abc123"], "010") == held
@@ -961,7 +961,7 @@ def test_a_write_through_the_cli_that_cannot_take_the_lock_exits_2_without_touch
     queue.write_bytes(before)
     lock.mkdir()
     assert run_cli(workqueue, ["assign", "beta", "7"], env={"VERI_WORKQUEUE_LOCK_WAIT": "0"}) == (
-        2, "", "workqueue.sh: could not take the lock %s\n" % lock)
+        2, "", "workqueue.sh: could not take the lock %s; holder unrecorded\n" % lock)
     assert queue.read_bytes() == before
     assert lock.is_dir()
 
@@ -1000,7 +1000,7 @@ def test_an_empty_veri_workqueue_lock_wait_waits_the_default_30_times_20_polls_l
     code = workqueue.main(["start", "alpha", "12"])
 
     out, err = capsys.readouterr()
-    assert (code, out, err, sleeps) == (2, "", "workqueue.sh: could not take the lock %s\n" % lock, [0.05] * 600)
+    assert (code, out, err, sleeps) == (2, "", "workqueue.sh: could not take the lock %s; holder unrecorded\n" % lock, [0.05] * 600)
 
 
 def test_taking_the_lock_writes_the_takers_pid_and_start_time_to_the_holder_file_and_release_removes_it_with_the_directory_3993(
@@ -1027,3 +1027,21 @@ def test_taking_the_lock_writes_the_takers_pid_and_start_time_to_the_holder_file
 
     assert (code, seen, (tmp_path / ".tdd" / "workqueue.lock").exists()) == (
         (0, "", ""), ["%d\n%s\n" % (os.getpid(), STARTED)], False)
+
+
+def given_up(tmp_path, fake_processes, run_cli, workqueue, holder):
+    """A write through the CLI against a lock already held, whose holder file holds <holder> (None: no holder file)."""
+    queue = queue_tree(tmp_path, fake_processes)
+    queue.write_bytes(b"alpha\t12\tqueued\t\n")
+    lock = tmp_path / ".tdd" / "workqueue.lock"
+    lock.mkdir()
+    if holder is not None:
+        (lock / "holder").write_text(holder)
+    return lock, run_cli(workqueue, ["start", "alpha", "12"], env={"VERI_WORKQUEUE_LOCK_WAIT": "0"})
+
+
+def test_a_take_that_gives_up_on_a_lock_whose_holder_is_alive_exits_2_naming_the_lock_and_the_holders_pid_alive_3993(
+        tmp_path, fake_processes, run_cli, workqueue):
+    lock, ran = given_up(tmp_path, fake_processes, run_cli, workqueue, "%d\n%s\n" % (os.getpid(), STARTED))
+
+    assert ran == (2, "", "workqueue.sh: could not take the lock %s; holder %d alive\n" % (lock, os.getpid()))
