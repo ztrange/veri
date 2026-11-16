@@ -3,6 +3,7 @@ import fcntl
 import os
 import sys
 
+import pid_file
 import tunables
 
 
@@ -67,7 +68,7 @@ def acquire():
         waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
         try:
             if waitfile:
-                open(waitfile, "w").close()
+                pid_file.record(waitfile, os.getpid())
         except OSError as error:
             sys.stderr.write("cannot mark the lock wait, so it counts toward the leaf's timeout: %s\n" % error)
             waitfile = ""

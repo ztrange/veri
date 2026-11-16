@@ -17,6 +17,12 @@ def no_ambient_holder(monkeypatch):
     monkeypatch.delenv("PYTEST_LEG_LOCK_WAIT_MARKER", raising=False)
 
 
+@pytest.fixture(autouse=True)
+def no_ps(monkeypatch):
+    """A waiter records its start time through pid_file's ps reader; no case here starts ps."""
+    monkeypatch.setattr(importlib.import_module("veri.pid_file"), "ps_field", lambda field, pid: None)
+
+
 def test_the_lock_file_sits_beside_the_legs_registry_and_a_wait_marker_is_named_for_its_key(lock, monkeypatch):
     monkeypatch.setenv("VERI_PYTEST_LEGS", "/somewhere/legs/")
 
@@ -106,6 +112,25 @@ def test_a_waiter_says_once_who_holds_the_lock_marks_its_wait_while_it_lasts_and
 
     assert (flags, marked, os.path.exists(marker)) == ([fcntl.LOCK_EX | fcntl.LOCK_NB, fcntl.LOCK_EX], [True], False)
     assert capfd.readouterr().err == "waiting for the full run holding the lock: pid 4242 tree /other/tree\n"
+
+
+def test_3989_a_waiter_marks_its_wait_with_its_pid_on_line_1_and_its_start_time_on_line_2_in_pid_file_records_form(lock, monkeypatch, tmp_path):
+    pid_file = importlib.import_module("veri.pid_file")
+    started = "Mon Nov 16 10:00:00 2026"
+    monkeypatch.setattr(pid_file, "ps_field", lambda field, pid: started if (field, int(pid)) == ("lstart", os.getpid()) else None)
+    marker = tmp_path / "marker"
+    monkeypatch.setenv("PYTEST_LEG_LOCK_WAIT_MARKER", str(marker))
+    os.makedirs(os.path.dirname(lock.path()), exist_ok=True)
+    texts = []
+
+    def flock(handle, how):
+        if how & fcntl.LOCK_NB:
+            raise BlockingIOError()
+        texts.append(marker.read_text())
+
+    monkeypatch.setattr(fcntl, "flock", flock)
+    lock.acquire().release()
+    assert texts == ["%d\n%s\n" % (os.getpid(), started)]
 
 
 def test_a_waiter_that_cannot_write_its_wait_mark_says_so_and_still_waits_for_the_lock(lock, monkeypatch, tmp_path, capfd):
