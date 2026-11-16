@@ -78,8 +78,13 @@ def remote_issue_branch(issue):
     return ""
 
 
+def github_origin(url):
+    """Whether GitHub can be asked about origin's pull requests: a fixture directory is set, or <url> is a remote URL."""
+    return bool(tunables.read("VERI_GH_JSON") or re.match(r"^(\w+://(?!/)|[^/@]+@[^/]+:)", url.strip()))
+
+
 def claiming_pr(issue, url):
-    if not tunables.read("VERI_GH_JSON") and not re.match(r"^(\w+://(?!/)|[^/@]+@[^/]+:)", url.strip()):
+    if not github_origin(url):
         return ""
     try:
         prs = github.open_pulls("body,state,url")
@@ -94,7 +99,7 @@ def claiming_pr(issue, url):
 def joined_claim(issue, url, stack):
     """True when a pull request merged into <stack> closes <issue> (its run joined the stack), False when none does or
     origin is not one GitHub can be asked about, None when GitHub gave no answer."""
-    if not tunables.read("VERI_GH_JSON") and not re.match(r"^(\w+://(?!/)|[^/@]+@[^/]+:)", url.strip()):
+    if not github_origin(url):
         return False
     try:
         return int(issue) in github.joined_issues(stack)
