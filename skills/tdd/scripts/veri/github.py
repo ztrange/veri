@@ -246,9 +246,13 @@ _TRUSTING_LOGIN = {}
 
 
 def _trusting_login():
-    """The authenticated gh login trusted_comment compares against, read at most once per process."""
+    """The authenticated gh login trusted_comment compares against, read at most once per process; None when gh gave
+    none, so the association alone answers and the caller is not stopped."""
     if "login" not in _TRUSTING_LOGIN:
-        _TRUSTING_LOGIN["login"] = authenticated_login()
+        try:
+            _TRUSTING_LOGIN["login"] = authenticated_login()
+        except NoAnswer:
+            _TRUSTING_LOGIN["login"] = None
     return _TRUSTING_LOGIN["login"]
 
 
