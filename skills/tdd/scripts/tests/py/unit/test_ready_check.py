@@ -43,3 +43,16 @@ def test_issue_4087_ready_check_prints_an_ok_one_test_file_row_when_detect_test_
 
     assert "ok    one test file" in lines, lines
     assert (code, lines[-1]) == (0, "ready")
+
+
+def one_test_file_row(lines):
+    return next((line for line in lines if "one test file" in line), None)
+
+
+def test_issue_4087_ready_check_fails_the_one_test_file_row_naming_the_claude_md_line_and_exits_1_when_that_tier_resolves_to_nothing(ready_check, run_cli, fake_processes, tmp_path):
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{ONE_TEST_FILE: (3, "", "")})
+
+    row = one_test_file_row(lines)
+    assert row is not None and row.startswith("fail  one test file:"), lines
+    assert "veri: one test file: <command>" in row and "CLAUDE.md" in row and '"$1"' in row, row
+    assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
