@@ -1,7 +1,7 @@
 # Plan for #4016 — PRD 024.7a: a heading unit is graded on its own section, and the whole-file unit signs only what no heading unit claims
 
 - [x] signing a `file#heading` unit writes its GRADED unit field with each space as `%20` and each `%` as `%25` ⟦criterion 1⟧
-- [ ] every reader of GRADED decodes the unit field: a signed `file#heading` unit whose heading holds spaces owes nothing, and an orphan one is listed by its heading ⟦criterion 1⟧
+- [x] every reader of GRADED decodes the unit field: a signed `file#heading` unit whose heading holds spaces owes nothing, and an orphan one is listed by its heading ⟦criterion 1⟧
 - [ ] a whole-file unit's GRADED line stays byte for byte and owes nothing when a `file#heading` unit is signed beside it ⟦criterion 1⟧
 - [ ] `graded-changed.sh <base-sha>` prints a `file#heading` unit when its section text differs between the base and HEAD ⟦criterion 7⟧
 - [ ] `requirements.list_path` of a `file#heading` unit whose heading holds a `/` is the list beside its file ⟦criterion 8⟧

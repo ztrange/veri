@@ -163,8 +163,11 @@ def graded_path(unit):
 
 
 def graded_fields(line):
-    """A GRADED line's fields, split on each single space: unit, signature, date, grading id, grader-template prefix."""
-    return line.split(" ")
+    """A GRADED line's fields, split on each single space: unit, signature, date, grading id, grader-template prefix.
+    The unit field is decoded as graded_line encodes it: `%20` back to a space, `%25` back to `%`."""
+    fields = line.split(" ")
+    fields[0] = re.sub(r"%(20|25)", lambda m: " " if m.group(1) == "20" else "%", fields[0])
+    return fields
 
 
 def graded_line(fields):
