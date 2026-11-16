@@ -107,7 +107,13 @@ def _take(lock, record, args):
         return 2
     pid = _caller_pid(args)
     _owner(args)
-    limit = int(tunables.get("VERI_MERGE_LOCK_WAIT"))
+    raw = tunables.get("VERI_MERGE_LOCK_WAIT")
+    try:
+        limit = tunables.tokens(raw)
+    except ValueError:
+        print(f"merge-lock.sh: VERI_MERGE_LOCK_WAIT is '{raw}': expected a non-negative whole number of seconds",
+              file=sys.stderr)
+        return 2
     started = _clock()
     os.makedirs(os.path.dirname(lock), exist_ok=True)
     staged = tempfile.mkdtemp(prefix=".merge.lock.", dir=os.path.dirname(lock))
