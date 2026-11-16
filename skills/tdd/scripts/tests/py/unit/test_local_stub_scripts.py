@@ -58,7 +58,6 @@ FILES_WITH_AN_INLINE_STUB = {
     "test_suite_red_resume_process.py": "inline stubs, not yet on write_stub",
     "test_suite_reported_process.py": "inline stubs, not yet on write_stub",
     "test_supervise_process.py": "inline stubs, not yet on write_stub",
-    "test_tests_frozen_process.py": "inline stubs, not yet on write_stub",
     "test_tick_issue_criterion_process.py": "inline stubs, not yet on write_stub",
     "test_venv_python.py": "inline stubs, not yet on write_stub",
     "test_verdict_chain.py": "inline stubs, not yet on write_stub",
