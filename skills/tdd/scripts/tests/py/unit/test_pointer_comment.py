@@ -98,6 +98,7 @@ def test_a_gh_failure_writing_the_comment_is_one_stderr_line_naming_the_issue_an
     monkeypatch.setenv("VERI_PUSH_RETRIES", "0")
     issue = FakeIssue(fake_processes, labels=["ready-for-agent"], extra={"git push": (0, "", "")})
     issue.fail_comments = True
+    monkeypatch.setattr(importlib.import_module("veri.run_records"), "after_push", lambda: None)
     said = {}
     for name, call in (("pointer", lambda: _module().main(["7"])),
                        ("unlabel", lambda: importlib.import_module("veri.unlabel_issue").main(["7"])),

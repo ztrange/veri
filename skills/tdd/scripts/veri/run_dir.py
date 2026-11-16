@@ -16,6 +16,7 @@ here touches the disk except main_tree(), which asks git and raises NoMainTree w
 main_tree_from_files(), which reads `.git` files and starts no process.
 """
 import os
+import re
 import subprocess
 
 
@@ -84,6 +85,12 @@ def worktrees(main):
 def worktree(main, issue):
     """`<main>/.tdd/wt/<issue>`: the run of an issue (int or str). str, never raises."""
     return os.path.join(worktrees(main), str(issue))
+
+
+def branch_issue(name):
+    """The issue a run's branch `tdd/<n>-<slug>` names, as a str, or None for any other branch name. Never raises."""
+    found = re.fullmatch(r"tdd/(\d+)-.+", name or "")
+    return found.group(1) if found else None
 
 
 def main_of_worktree(run):
