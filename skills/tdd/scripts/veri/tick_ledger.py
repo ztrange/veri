@@ -44,13 +44,17 @@ def how_ended(code):
 
 
 MAKE_ERROR = re.compile(r"^make(?:\[(\d+)\])?: \*\*\* \[.*\] Error (\d+)$", re.M)
+# GNU make runs a simple recipe line without a shell and reports a command it could not execute as `Error 1`,
+# after its own `make: <command>: No such file or directory` (or `Permission denied`) line.
+MAKE_EXEC_FAILED = re.compile(r"^make(?:\[(\d+)\])?: (?!\*\*\* ).+: (No such file or directory|Permission denied)$", re.M)
 
 
 def case_code(done, make=False):
     """The case's exit code. Make exits 2 for any failed recipe, so make's own `make: *** [<target>] Error <k>` lines
     on stderr (never stdout, where a test's output goes) give `<k>` instead: the last line of the outermost make level,
-    and while that is `Error 2` relaying a sub-make, the last line of the next level down. `make` (the fallback, known to
-    be make): any non-zero exit with no such line answers None, a case never run."""
+    and while that is `Error 2` relaying a sub-make, the last line of the next level down; that level's own line saying a
+    command could not be executed reads as 127 (not found) or 126 (not executable). `make` (the fallback, known to be
+    make): any non-zero exit with no such line answers None, a case never run."""
     if done.returncode == 2 or (make and done.returncode > 0):
         found = {}
         for level, code in MAKE_ERROR.findall(done.stderr or ""):
@@ -58,12 +62,14 @@ def case_code(done, make=False):
         levels = sorted(found)
         if not levels:
             return None if make else done.returncode
-        code = found[levels[0]]
+        chosen = levels[0]
         for level in levels[1:]:
-            if code != 2:
+            if found[chosen] != 2:
                 break
-            code = found[level]
-        return code
+            chosen = level
+        unrunnable = {int(level or 0): 126 if why == "Permission denied" else 127
+                      for level, why in MAKE_EXEC_FAILED.findall(done.stderr or "")}
+        return unrunnable.get(chosen, found[chosen])
     return done.returncode
 
 

@@ -116,6 +116,20 @@ def test_only_makes_own_last_stderr_line_of_the_outermost_make_gives_the_case_co
     assert (got, text, events) == (expected, ORIGINAL, False), err
 
 
+@pytest.mark.parametrize("stderr", [
+    "make: no-such-command-xyz: No such file or directory\nmake: *** [test] Error 1\n",
+    "make: ./noexec: Permission denied\nmake: *** [test] Error 1\n",
+    "make[1]: no-such-xyz: No such file or directory\nmake[1]: *** [inner] Error 1\nmake: *** [test] Error 2\n",
+], ids=["not-found", "not-executable", "nested-not-found"])
+def test_a_recipe_command_make_itself_could_not_execute_is_a_case_never_run_3986(retire, fake_processes, stderr):
+    fake_processes.answers({"detect-test-command.sh": (0, "", ""), "": (2, "", stderr)})
+
+    code, text, events, err = retire()
+
+    assert (code, text, events) == (2, ORIGINAL, False), err
+    assert f"case {CASE} never run" in err and "fails" not in err
+
+
 def test_a_case_command_exiting_3_is_a_case_that_ran_and_failed_exit_1_3986(retire, fake_processes):
     fake_processes.answers({"detect-test-command.sh": (0, './run-one "$1"\n', ""), "": (3, "", "")})
 
