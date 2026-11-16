@@ -2844,6 +2844,51 @@ def test_4018_the_rerun_filter_drops_only_the_re_run_runs_own_old_checks_and_a_l
     }
 
 
+def test_4018_while_no_check_of_the_re_run_s_run_is_left_after_the_filter_the_head_reads_pending_whatever_others_say(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import time
+    rerun_at = 1763300000
+    stamp = lambda offset: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(rerun_at + offset))
+
+    def run(name, run_id, conclusion, offset):
+        return dict(check_run(name, FULL_SHA, "completed", conclusion), completed_at=stamp(offset),
+                    details_url="https://github.com/o/r/actions/runs/%s/job/1" % run_id)
+
+    def waited(name, page, journal_ahead=0):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        (work / ".tdd" / "events.jsonl").write_text(json.dumps(
+            {"ts": rerun_at + journal_ahead, "awake": 0, "issue": "4018", "event": "ci-rerun", "head": FULL_SHA,
+             "run": "9", "files": "t"}) + "\n")
+        served(fake_processes, sha_bodies([page], (), "pending"))
+        return run_cli(wait_ci, [PR, "60", "60", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)[0]
+
+    old_red, other_green, other_red = run("g", "9", "failure", -600), run("lint", "8", "success", -600), \
+        run("lint", "8", "failure", -600)
+    observed = {
+        "old red beside another workflow's green": waited("probe", [old_red, other_green]),
+        "skew 30 s, the re-run red at +20 s, another green": waited(
+            "skew", [old_red, run("g", "9", "failure", 20), other_green], journal_ahead=30),
+        "the re-run's new red listed": waited("new-red", [old_red, run("g", "9", "failure", 300), other_green]),
+        "the re-run's new green listed beside another green": waited(
+            "new-green", [old_red, run("g", "9", "success", 300), other_green]),
+        "another red, re-run not listed": waited("other-red-unlisted", [old_red, other_red]),
+        "another red, re-run green": waited("other-red-new-green", [old_red, run("g", "9", "success", 300), other_red]),
+        "another red, skew": waited("other-red-skew", [old_red, run("g", "9", "success", 20), other_red],
+                                    journal_ahead=30),
+    }
+
+    assert observed == {
+        "old red beside another workflow's green": 3,
+        "skew 30 s, the re-run red at +20 s, another green": 3,
+        "the re-run's new red listed": 1,
+        "the re-run's new green listed beside another green": 0,
+        "another red, re-run not listed": 1,
+        "another red, re-run green": 1,
+        "another red, skew": 1,
+    }
+
+
 def test_4018_after_a_ci_rerun_event_for_the_head_a_check_run_completed_before_it_is_never_the_answer(
         tmp_path, wait_ci, fake_processes, run_cli):
     import time

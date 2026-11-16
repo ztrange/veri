@@ -102,7 +102,8 @@ def pr_head(repo, pr, on_limit=None):
 
 def since_rerun(sha, check_runs):
     """(<check_runs> less every one of the re-run's own CI run that completed before the last `ci-rerun` event of <sha>,
-    whether that dropped all of them). A check run is the re-run's when its `details_url` holds
+    whether it dropped one and left none of that run: the re-run has no check listed yet, so only a red elsewhere may
+    answer). A check run is the re-run's when its `details_url` holds
     `/actions/runs/<run>/`, <run> the event's; any other run's checks, of another workflow or app, are kept, so their
     red is still read. A completed run of the re-run whose completion time cannot be read counts as before.
     With no such event: (<check_runs>, False)."""
@@ -120,7 +121,8 @@ def since_rerun(sha, check_runs):
             return True
 
     kept = [r for r in check_runs if not stale(r)]
-    return kept, bool(check_runs) and not kept
+    dropped = len(kept) < len(check_runs)
+    return kept, dropped and not any(marker in (r.get("details_url") or "") for r in kept)
 
 
 def sha_state(repo, sha, on_limit=None, draft=False):
@@ -141,14 +143,14 @@ def sha_state(repo, sha, on_limit=None, draft=False):
     docs = documents(runs + statuses)
     states = [s["state"] for s in docs[-1].get("statuses") or []]
     check_runs, emptied = since_rerun(sha, [r for p in docs[:-1] for r in p.get("check_runs") or []])
-    if emptied:
-        return "pending", "", False
     outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in check_runs]
     failed = [r.get("name", "") for r in check_runs
               if r.get("conclusion") and r["conclusion"].lower() not in PASSING]
     if any(o is not None and o not in PASSING for o in outcomes) \
             or any(s in ("failure", "error") for s in states):
         return "red", ",".join(failed), False
+    if emptied:
+        return "pending", "", False
     if not check_runs and not states:
         return "none", "", False
     only_skipped = all(o == "skipped" for o in outcomes)
