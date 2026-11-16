@@ -138,3 +138,12 @@ def test_issue_4089_the_actions_read_row_is_ok_when_the_runs_call_exits_0_and_fa
     assert ready_check.actions_read_row() == ("actions read", None)
     name, fix = ready_check.actions_read_row()
     assert name == "actions read" and fix and "actions: read" in fix, fix
+
+
+def test_issue_4089_the_actions_read_row_reads_skipped_with_no_workflows_at_the_default_branch_tip(ready_check, fake_processes):
+    fake_processes.answers({"git symbolic-ref": (0, "origin/main\n", ""), "git ls-tree": (0, "", "")})
+
+    name, verdict = ready_check.actions_read_row()
+
+    assert (name, verdict) == ("actions read", "skipped")
+    assert verdict is ready_check.SKIPPED

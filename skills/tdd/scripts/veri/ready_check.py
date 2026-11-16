@@ -140,7 +140,12 @@ def bug_label_row():
     return selection_label_row("bug")
 
 
+SKIPPED = Neutral("skipped")
+
+
 def actions_read_row():
+    if not git.git("ls-tree", "--name-only", default_tip(), ".github/workflows/", capture_output=True, text=True).stdout.split():
+        return "actions read", SKIPPED
     readable = gh("api", "repos/{owner}/{repo}/actions/runs?per_page=1").returncode == 0
     return "actions read", None if readable else "grant the token read access to Actions (`actions: read`)"
 
