@@ -205,6 +205,11 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     except IncludeRefused as refusal:
         sys.stderr.buffer.write(refusal.args[0] + b"\n")
         return 2, b""
+    except git.GitFailed as failed:
+        reason = " ".join((failed.stderr or "").split()) or str(failed)
+        write(sys.stderr, f"build-verify-prompt: git ls-files failed, so no touching cases can be listed: {reason}",
+              before=False, after=False)
+        return 2, b""
     step = os.fsencode(step_arg)
     step_block = b""
     if step:
