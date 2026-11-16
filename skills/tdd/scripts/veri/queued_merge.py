@@ -507,7 +507,9 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             _say("origin/%s is not the run's tip %s (a commit the worktree lacks, or none pushed); nothing pushed"
                  % (branch, lease))
             return 2
-        rebase = _git(worktree, "rebase", onto)
+        # --fork-point: a stack rewound since the run was cut drops the rewound commits from the run too, so a rewind is
+        # never undone by the join re-adding them (git reads the fork point from origin/<stack>'s reflog).
+        rebase = _git(worktree, "rebase", "--fork-point", "refs/remotes/origin/" + stack)
         if rebase.returncode and not _rebasing(worktree):
             _say("git rebase onto origin/%s was refused without a conflict (exit %d); nothing pushed" % (
                 stack, rebase.returncode))
