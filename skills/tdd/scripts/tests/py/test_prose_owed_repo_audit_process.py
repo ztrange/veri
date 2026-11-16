@@ -1,10 +1,10 @@
-"""Cases for prose-owed.sh, through the real entry point."""
+"""This repository's graded prose units owe no grade, audited through prose-owed.sh.
+They audit the tree, not prose_owed's logic (tests/py/unit/test_prose_owed.py holds that), and stay subprocess cases:
+the module's waiver reads HEAD with git, which no case may start in-process against the repository the tests live in."""
 import subprocess
 from pathlib import Path
 
 import pytest
-
-from conftest import INTERPRETER_VENV
 
 SCRIPTS = Path(__file__).resolve().parents[2]
 
