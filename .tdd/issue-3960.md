@@ -8,7 +8,7 @@
 - [x] redact leaves alone a listed variable's value shorter than 8 characters ⟦criterion 1⟧
 - [x] with VERI_REDACT_VARS unset GH_TOKEN's value is redacted, and set to another name that name's value is ⟦criterion 2⟧
 - [x] gh_issue_comment hands gh the body redacted ⟦criterion 3⟧
-- [ ] a comment body with nothing to redact reaches gh byte-identical ⟦criterion 4⟧
+- [x] a comment body with nothing to redact reaches gh byte-identical ⟦criterion 4⟧
 - [ ] gh_comment_post and gh_comment_edit hand gh the body redacted
 - [ ] a token wrapped across a line break or a JSON \n escape is redacted
 - [ ] a token inside a URL, a query string or glued to text with no word boundary is redacted
