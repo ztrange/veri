@@ -7,6 +7,7 @@ carries from the run context (`COMMON`) are in no entry. It imports no veri modu
 Interface:
   keys(event)       the event's keys in order, () for an event with none; KeyError for an event the table does not hold
   required(event)   the subset of those keys every line of the event carries
+  declaring(event, key)  the `EVENTS` line to write so that the table declares `key` for `event` (no key: just the event)
 """
 
 COMMON = ("ts", "awake", "issue", "actor", "phase", "step", "event", "attempt", "skill_commit")
@@ -78,3 +79,9 @@ def keys(event):
 
 def required(event):
     return {key for key in _declared(event) if not key.endswith("?")}
+
+
+def declaring(event, key):
+    """The one `EVENTS` line that declares `key` (optional) for `event`, the event's line grown, or a new one."""
+    declared = _declared(event) if event in EVENTS else []
+    return f'"{event}": "{" ".join(declared + [key + "?"] if key else declared)}",'
