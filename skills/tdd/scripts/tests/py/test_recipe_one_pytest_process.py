@@ -387,3 +387,14 @@ def test_3966_an_other_writable_prefix_makes_make_unit_and_make_test_exit_2_nami
     cache.mkdir()
     cache.chmod(0o707)
     assert refusals_of_unit_and_test(tmp_path, cache) == [refusal(cache, "it is other-writable")] * 2
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit and make test started for real over a planted tree, VERI_PYCACHE naming a symlink to a closed directory")
+def test_3966_a_prefix_that_is_a_symlink_makes_make_unit_and_make_test_exit_2_naming_it_and_the_fix_before_any_suite(tmp_path):
+    target = tmp_path / "target"
+    target.mkdir()
+    target.chmod(0o700)
+    cache = tmp_path / "cache"
+    cache.symlink_to(target)
+    assert refusals_of_unit_and_test(tmp_path, cache) == [refusal(cache, "it is a symlink")] * 2
