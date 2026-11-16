@@ -70,13 +70,31 @@ def _print_stale():
     return 0
 
 
+def _answer(path):
+    """The owed answer in <path>: a JSON object holding `count`, a whole number >= 0, and `sections`, a list of
+    strings; None for anything else, an unreadable or unparseable file included."""
+    try:
+        answer = _load(path)
+    except (OSError, ValueError):
+        return None
+    if not (isinstance(answer, dict) and type(answer.get("count")) is int and answer["count"] >= 0
+            and isinstance(answer.get("sections"), list) and all(isinstance(s, str) for s in answer["sections"])):
+        return None
+    return answer
+
+
 def _store_owed(prd, path):
     heads = _heads(_load(CACHE)["issues"])
     if prd not in heads:
         print("PRD %s is not in the snapshot" % prd, file=sys.stderr)
         return 2
+    answer = _answer(path)
+    if answer is None:
+        print("%s: the answer must be a JSON object holding count, a whole number of 0 or more, and sections, "
+              "a list of strings; nothing stored" % path, file=sys.stderr)
+        return 2
     stored = _owed()
-    stored[prd] = {"updatedAt": heads[prd]["updatedAt"], "answer": _load(path),
+    stored[prd] = {"updatedAt": heads[prd]["updatedAt"], "answer": answer,
                    "computedAt": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
     owed = _owed_path()
     os.makedirs(os.path.dirname(owed), exist_ok=True)

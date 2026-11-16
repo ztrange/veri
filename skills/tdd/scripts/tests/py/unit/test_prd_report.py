@@ -693,7 +693,7 @@ def test_store_owed_preserves_every_other_prds_entry_already_in_the_owed_file(ru
         {"cache_format": 2, "fetched_at": "2026-11-07T10:00:00Z", "issues": [prd]}))
     other = {"updatedAt": "2026-10-20T09:00:00Z", "answer": {"count": 7}}
     (tmp_path / ".tdd" / "report-owed.json").write_text(json.dumps({"016": other}))
-    answer = {"count": 2}
+    answer = {"count": 2, "sections": ["Alpha", "Beta"]}
     (tmp_path / "answer.json").write_text(json.dumps(answer))
 
     code, _, _ = run_cli(prd_report, ["--store-owed", "014", "answer.json"], cwd=tmp_path)
@@ -853,3 +853,21 @@ def test_4021_each_stored_owed_entry_carries_computed_at_as_a_utc_second_beside_
     entry = json.loads((tmp_path / ".tdd" / "report-owed.json").read_text())["014"]
     assert (code, sorted(entry), bool(re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", entry.get("computedAt", "")))) == (
         0, ["answer", "computedAt", "updatedAt"], True)
+
+
+def test_4021_store_owed_of_an_answer_of_the_wrong_shape_exits_2_naming_the_answer_file_leaving_the_owed_file_byte_identical(
+        run_cli, tmp_path):
+    prd_report = importlib.import_module("veri.prd_report")
+    before = '{"016": {"updatedAt": "2026-10-20T09:00:00Z", "answer": {"count": 7, "sections": ["x"]}}}'
+    _owed_tree(tmp_path, before)
+    wrong = ['[]', '{"count": 1}', '{"sections": []}', '{"count": -1, "sections": []}', '{"count": 1.5, "sections": []}',
+             '{"count": true, "sections": []}', '{"count": "1", "sections": []}', '{"count": 1, "sections": "Alpha"}',
+             '{"count": 1, "sections": [1]}', 'not json', '']
+    answers = {}
+    for text in wrong:
+        (tmp_path / "wrong-answer.json").write_text(text)
+        code, _, err = run_cli(prd_report, ["--store-owed", "014", "wrong-answer.json"], cwd=tmp_path)
+        answers[text] = (code, "wrong-answer.json" in err, "Traceback" in err,
+                         (tmp_path / ".tdd" / "report-owed.json").read_text() == before)
+
+    assert answers == {text: (2, True, False, True) for text in wrong}
