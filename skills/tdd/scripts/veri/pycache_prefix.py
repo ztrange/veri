@@ -10,10 +10,13 @@ def refusal(prefix):
     It may only when `lstat` shows a directory, not a symlink, owned by this user and writable by neither group nor
     others (#3965): on a shared /tmp another user can create the path first."""
     try:
-        os.makedirs(prefix, 0o700)
-    except FileExistsError:
-        pass
-    info = os.lstat(prefix)
+        try:
+            os.makedirs(prefix, 0o700)
+        except FileExistsError:
+            pass
+        info = os.lstat(prefix)
+    except OSError as error:
+        return "it cannot be created or read: %s" % error.strerror
     mode = info.st_mode
     if stat.S_ISLNK(mode):
         return "it is a symlink"

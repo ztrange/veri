@@ -92,6 +92,16 @@ def test_3965_a_veri_pycache_path_that_is_a_closed_regular_file_of_the_users_own
     assert run_prefix() is None
 
 
+def test_3965_a_veri_pycache_path_that_cannot_be_created_is_refused_naming_why(run_prefix, monkeypatch, tmp_path, capfd):
+    (tmp_path / "file").write_text("")
+    cache = tmp_path / "file" / "cache"
+    monkeypatch.setenv("VERI_PYCACHE", str(cache))
+
+    used = run_prefix()
+
+    assert (used, capfd.readouterr().err.startswith("veri: not using the bytecode cache %s: it cannot be created or read: " % cache)) == (None, True)
+
+
 def test_3965_on_a_refusal_veri_modules_compile_from_source_and_one_stderr_line_names_the_path_and_why(run_prefix, monkeypatch, tmp_path, capfd):
     cache = cache_with_mode(tmp_path, 0o770)
     monkeypatch.setenv("VERI_PYCACHE", str(cache))
