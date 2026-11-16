@@ -5,4 +5,4 @@
 - [x] `adjudicate.sh record <n> ci-conflict <leaf-output>` on `ADJUDICATION: route rebase — <reason>` prints `route rebase`, writes one `adjudicated cause=ci-conflict outcome=route reason=<reason>` event and exits 1 ⟦criterion 2⟧
 - [x] `adjudicate.sh left <n>` exits 0 when every `adjudicated cause=ci-conflict` event precedes the issue's last `conductor-start`, however many there are ⟦criterion 5⟧
 - [x] `JOURNAL.md`'s `adjudicated` row names `ci-conflict` among its causes and `route` among its outcomes ⟦criterion 7⟧
-- [ ] `ADJUDICATE.md`, `DRAFT-PR.md` and `BAIL.md` carry the issue's `## Requirements` rows, graded PASS ⟦criterion 6⟧
+- [x] `ADJUDICATE.md`, `DRAFT-PR.md` and `BAIL.md` carry the issue's `## Requirements` rows, graded PASS ⟦criterion 6⟧

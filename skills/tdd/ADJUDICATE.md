@@ -27,18 +27,23 @@ Run it in order, at the site where the eligible exit 2 came back.
 2. **Build the prompt.** `$S/build-adjudicate-prompt.sh <n> <cause> <exit-code> <stderr-file> <command…>
    > .tdd/adjudicate-<cause>.prompt`.
 3. **Launch the leaf** `adjudicate-<cause>` through `supervise.sh`, detached, then wait in the
-   foreground (on an exit 3 call the wait again):
+   foreground (on an exit 3 call the wait again). Remove the cause's completion and pid files
+   first, as *Launching a leaf* in `SKILL.md` does, so a second adjudication of one cause never
+   ends its wait on the first one's:
 
    ```
+   rm -f .tdd/adjudicate-<cause>.exit .tdd/adjudicate-<cause>.pid
    VERI_ISSUE=<n> $S/detach-leaf.sh $S/supervise.sh adjudicate-<cause> $S/run-leaf.sh .tdd/adjudicate-<cause>.prompt --permission-mode bypassPermissions > .tdd/adjudicate-<cause>.out 2> .tdd/adjudicate-<cause>.err
    $S/wait-leaf.sh adjudicate-<cause>   # foreground; on exit 3 call it again
    ```
+   Any other exit of the wait goes on to step 4: a leaf that left no answer records `unparsed`.
 4. **Parse and record.** `$S/adjudicate.sh record <n> <cause> .tdd/adjudicate-<cause>.out`
    reads the answer with `parse-adjudication.sh` and records the `adjudicated` event. Act on
    its exit:
    - `0` — `retry`: run the step that returned 2 once more.
    - `1` — `bail` or `route`: bail, or take the route token the cause allows (`ci-timeout`
-     allows none, so it bails).
+     allows none, so it bails; `ci-conflict`'s `rebase` is the path its site in `DRAFT-PR.md`
+     states).
    - `2` — unparsed: a bail with the original cause and class.
 
 ### Guards
