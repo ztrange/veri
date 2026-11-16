@@ -1,4 +1,5 @@
-"""The one scan for the result records of a leaf's stream-json log."""
+"""The one scan for the result records of a leaf's stream-json log, and the text its dollar figures are written in."""
+import decimal
 import json
 
 
@@ -44,3 +45,9 @@ def last_result_text(lines):
 def cost(lines):
     """Dollars: total_cost_usd summed over the result records among `lines` that carry a result field."""
     return sum(float(r.get("total_cost_usd") or 0) for r in result_records(lines) if "result" in r)
+
+
+def plain(number):
+    """The number as Python prints it, unless that is in exponent form (1e-05): then as a plain decimal (0.00001)."""
+    text = str(number)
+    return format(decimal.Decimal(text), "f") if isinstance(number, float) and "e" in text else text

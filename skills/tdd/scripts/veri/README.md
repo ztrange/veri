@@ -417,6 +417,7 @@ How a leaf is launched through the supervisor, detached, waited for and timed, a
 - `result_records(lines)`: every `{"type":"result", …}` record among a leaf log's lines, in order.
 - `result_text(line)`: the result string of the result record on one line (str or bytes), else `None`. `last_result_text(lines)`: the final one, else `None`.
 - `cost(lines)`: dollars, `total_cost_usd` (missing or null counts 0) summed over the result records that carry a `result` field.
+- `plain(number)`: the number as Python prints it, or as a plain decimal when that is exponent form (`1e-05` → `0.00001`), the text a journal's dollar figures are written in.
 
 ## leaf_timeout
 - `settled(root, issue)`: the run's pinned hard timeout (`<root>/.tdd/issue-<issue>-timeout`) as the digits written, `None` when unpinned; raises `Malformed` (`path`, `text`, `not_a_number`) for a pin that is not a whole number of seconds >= 1.
