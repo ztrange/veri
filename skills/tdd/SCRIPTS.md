@@ -82,10 +82,13 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   (`LEAF_ENV_NAMES` in `run_leaf.py`): `PATH`, `HOME`, `TMPDIR`, `PWD`, `USER`, `LOGNAME`, `LANG`,
   every `LC_*`, every `VERI_*`, `CLAUDE_BIN`, `REVISE_BUDGET`, `VERIFY_LEAF_ARGS`,
   `PYTHONCOERCECLOCALE`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_BASE_URL`,
-  `CLAUDE_CONFIG_DIR`, `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS` and
-  `PYTEST_LEG_LOCK_WAIT_MARKER` (which `supervise.sh` sets for the leaf); any other name, `GH_TOKEN`
-  and cloud keys included, is dropped. Tunable: `VERI_LEAF_ENV` (default empty) — space-separated
-  names added to the allow-list, for a test command that needs one. A name it adds that
+  `CLAUDE_CONFIG_DIR`, `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS`,
+  `PYTEST_LEG_LOCK_WAIT_MARKER` (which `supervise.sh` sets for the leaf) and `SSH_AUTH_SOCK` (the
+  reconcile leaf pushes, and over an ssh remote its key is held by an agent; it names a socket, not
+  a secret); any other name, `GH_TOKEN`, `GITHUB_TOKEN`, `GIT_SSH_COMMAND` and cloud keys included,
+  is dropped. Tunable: `VERI_LEAF_ENV` (default empty) — space-separated names added to the
+  allow-list, for a test command that needs one, or a push that needs one of the dropped names,
+  which would show as the reconcile leaf's push failing. A name it adds that
   `VERI_REDACT_VARS` also names passes, and `run-leaf.sh` prints one stderr line naming it, never
   its value.
 - `$S/extract-result.sh` — pulls the final result text out of a leaf's stream-json (used

@@ -30,6 +30,10 @@ LEAF_ENV_NAMES = frozenset((
     "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "NODE_EXTRA_CA_CERTS",
     # supervise.sh sets it for the leaf, so a full suite the leaf runs marks its wait on the full-run lock (#2380).
     "PYTEST_LEG_LOCK_WAIT_MARKER",
+    # The reconcile leaf pushes (prompts/develop-reconcile.md); over an ssh remote its key is held by an agent. It
+    # names a socket, not a secret, and a leaf can already reach gh's stored login under HOME, so it widens nothing.
+    # GH_TOKEN, GITHUB_TOKEN and GIT_SSH_COMMAND stay out: a push that needs one names it in VERI_LEAF_ENV.
+    "SSH_AUTH_SOCK",
 ))
 LEAF_ENV_PREFIXES = ("VERI_", "LC_")
 SET_NAMES = frozenset(("GIT_CONFIG_GLOBAL", "PYTHONDONTWRITEBYTECODE", "FORCE_PROMPT_CACHING_5M",

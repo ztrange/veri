@@ -139,6 +139,14 @@ def test_3976_veri_leaf_env_adds_its_names_to_the_allow_list_and_no_other(run_le
     assert (env.get("JAVA_HOME"), "GH_TOKEN" in env) == ("/jdk", False)
 
 
+def test_3976_ssh_auth_sock_reaches_a_develop_and_a_verify_leaf_and_gh_token_reaches_neither(run_leaf):
+    verify = importlib.import_module("veri.verify")
+    held = {"SSH_AUTH_SOCK": "/agent.sock", "GH_TOKEN": "g"}
+    for extra in (["--permission-mode", "bypassPermissions"], verify.leaf_args(None)):
+        _, env = spec(run_leaf, held, extra=extra)
+        assert (env.get("SSH_AUTH_SOCK"), "GH_TOKEN" in env) == ("/agent.sock", False)
+
+
 def leaf_settings(argv):
     """Every --settings value of a leaf's argv, parsed."""
     return [json.loads(argv[at + 1]) for at, word in enumerate(argv) if word == "--settings"]
