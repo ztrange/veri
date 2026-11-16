@@ -1465,9 +1465,10 @@ def test_main_on_a_re_pin_records_the_ambient_veri_context_in_the_skill_repin_ev
          "skill_commit": "ambient", "commit": commit}])
 
 
-def fake_snapshot(monkeypatch, calls, archive_code, tar_code):
-    """`git archive` and `tar` faked as processes exiting as given, tar dropping a SKILL.md into its
-    -C directory, and the launch of fake-claude recorded with the environment it was handed."""
+def fake_snapshot(monkeypatch, calls, archive_code, tar_code, files=None):
+    """`git archive` and `tar` faked as processes exiting as given, tar dropping a SKILL.md (or <files>,
+    relative path to text) into its -C directory, and the launch of fake-claude recorded with the
+    environment it was handed."""
     snapshots, launches = [], []
 
     def wrap(started):
@@ -1482,7 +1483,9 @@ def fake_snapshot(monkeypatch, calls, archive_code, tar_code):
                 snapshots.append(args[:-1] + [(os.path.dirname(target), os.path.basename(target)[:14],
                                                os.path.isdir(target))])
                 if os.path.isdir(target):
-                    pathlib.Path(target, "SKILL.md").write_text("# skill\n")
+                    for name, text in (files or {"SKILL.md": "# skill\n"}).items():
+                        pathlib.Path(target, name).parent.mkdir(parents=True, exist_ok=True)
+                        pathlib.Path(target, name).write_text(text)
             elif args[:1] == ["fake-claude"]:
                 code = 0
                 env = kwargs.get("env") if kwargs.get("env") is not None else os.environ

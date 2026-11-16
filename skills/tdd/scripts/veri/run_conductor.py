@@ -194,7 +194,7 @@ def preflight_and_launch(argv):
             return launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
         finally:
             keep_pinned_scripts(snapshot, argv[0])
-            shutil.rmtree(snapshot, ignore_errors=True)
+            pinned_scripts.remove_tree(snapshot)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
     return launch(base, argv[0], None, VERI_SKILL_UNPINNED="1")
 
