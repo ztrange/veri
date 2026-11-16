@@ -291,3 +291,12 @@ def test_wait_retries_every_kind_of_failed_read_at_the_next_poll_and_exits_0_whe
     assert (code, out) == (0, "up\n")
     assert len(page.calls) == 3
     assert "no answer from GitHub's status page" in err
+
+
+def test_wait_whose_reads_never_answered_ends_with_one_line_saying_no_read_got_an_answer_in_max_seconds(page, run_cli):
+    page.serve(error=ConnectionRefusedError(61, "Connection refused"))
+
+    code, out, err = run_cli(page.module, ["wait", "600"])
+
+    assert (code, out) == (2, "")
+    assert err.splitlines()[-1] == "github-status.sh: wait: no read got an answer in 600 s"
