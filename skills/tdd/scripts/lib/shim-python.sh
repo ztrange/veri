@@ -52,10 +52,9 @@ if [ -r "$shim_venv/pyvenv.cfg" ]; then
 fi
 py=
 if [ -x "$shim_venv_py" ]; then
-  if [ -n "$shim_cfg_version" ]; then
-    shim_version=$shim_cfg_version
-    shim_version_meets_floor && py="$shim_venv_py"
-  elif shim_meets_floor "$shim_venv_py"; then
+  if [ -n "$shim_cfg_version" ] && { shim_version=$shim_cfg_version; shim_version_meets_floor; }; then
+    py="$shim_venv_py"
+  elif [ -z "$shim_cfg_version" ] && shim_meets_floor "$shim_venv_py"; then
     py="$shim_venv_py"
   else
     shim_venv_said="the venv python3 at $shim_venv_py is version ${shim_version:-unknown}"
