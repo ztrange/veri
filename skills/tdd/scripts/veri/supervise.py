@@ -30,7 +30,7 @@ from leaf_log import result_records
 from leaf_model import leaf_model
 from leaf_role import leaf_role
 from ledger import carries_mark, ledger_steps, step_at, trailing_markers
-from pid_file import number_in, ps_field, record
+from pid_file import number_in, ps_field, record, start_matches
 
 HERE = paths.scripts_of(__file__)
 
@@ -370,7 +370,8 @@ def still_alive_owner(ownerfile):
 def lock_waiting(marker):
     """Whether the lock-wait marker at <marker> says a pytest leg is waiting for the full-run lock (#3989).
 
-    An empty marker (an older leg's) does; one naming a pid does only while that pid answers `kill 0`. A missing,
+    An empty marker (an older leg's) does; one naming a pid does only while that pid answers `kill 0` under the start
+    time on its line 2 (none recorded: alive is enough), as `pid_file.start_matches` reads it. A missing,
     unreadable or malformed one does not, so a leaf's timers run."""
     try:
         with open(marker, "rb") as f:
@@ -388,7 +389,7 @@ def lock_waiting(marker):
         pass
     except (OSError, OverflowError):
         return False
-    return True
+    return start_matches(marker, pid)
 
 
 def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
