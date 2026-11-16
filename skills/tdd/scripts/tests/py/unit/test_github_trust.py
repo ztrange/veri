@@ -36,6 +36,25 @@ def test_a_comment_is_trusted_by_its_owner_or_collaborator_association_and_never
     assert github.trusted_comment(record) is trusted
 
 
+@pytest.mark.parametrize("record, association, trusted", [
+    ({"author_association": "OWNER"}, "OWNER", True),
+    ({"author_association": "MEMBER"}, "MEMBER", True),
+    ({"author_association": "COLLABORATOR"}, "COLLABORATOR", True),
+    ({"author_association": "CONTRIBUTOR"}, "CONTRIBUTOR", False),
+    ({"author_association": "FIRST_TIME_CONTRIBUTOR"}, "FIRST_TIME_CONTRIBUTOR", False),
+    ({"author_association": "FIRST_TIMER"}, "FIRST_TIMER", False),
+    ({"author_association": "NONE"}, "NONE", False),
+    ({}, "unknown", False),
+    ({"author_association": None}, "unknown", False),
+    ({"author_association": ["OWNER"]}, "unknown", False),
+    (None, "unknown", False),
+])
+def test_an_issue_author_is_trusted_by_owner_member_or_collaborator_and_one_that_cannot_be_read_is_unknown_3977(
+        github, record, association, trusted):
+    assert (github.author_association(record), github.trusted_author(record, github.ISSUE_AUTHOR_ASSOCIATIONS)) == (
+        association, trusted)
+
+
 def test_a_member_whose_login_is_the_authenticated_gh_users_is_trusted(github):
     assert github.trusted_comment(comment("MEMBER", login="veri-operator", body=DONE)) is True
 

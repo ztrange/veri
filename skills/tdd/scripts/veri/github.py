@@ -322,7 +322,23 @@ def authenticated_login():
 
 
 TRUSTED_ASSOCIATIONS = ("OWNER", "COLLABORATOR")
+# Who may author a takeable issue (PRD 022.4, "Author policy at selection"): MEMBER counts here, unlike for comments,
+# since an issue is taken only after someone with triage access applied the opt-in label.
+ISSUE_AUTHOR_ASSOCIATIONS = ("OWNER", "MEMBER", "COLLABORATOR")
 _TRUSTING_LOGIN = {}
+
+
+def author_association(record):
+    """The REST record's `author_association`, the field GitHub sets, or "unknown" when it cannot be read (no field, not
+    text, not an object)."""
+    association = record.get("author_association") if isinstance(record, dict) else None
+    return association if isinstance(association, str) and association else "unknown"
+
+
+def trusted_author(record, associations=TRUSTED_ASSOCIATIONS):
+    """Whether the REST record's author is trusted by association: its `author_association` is one of <associations>.
+    The one author rule every reader shares; fail closed: an author that cannot be read is not trusted."""
+    return author_association(record) in associations
 
 
 def _trusting_login():
@@ -346,7 +362,7 @@ def trusted_comment(comment):
     login = user.get("login") if isinstance(user, dict) else None
     if not isinstance(login, str) or not login:
         return False
-    return comment.get("author_association") in TRUSTED_ASSOCIATIONS or login == _trusting_login()
+    return trusted_author(comment) or login == _trusting_login()
 
 
 def _quiet_write(*args):
