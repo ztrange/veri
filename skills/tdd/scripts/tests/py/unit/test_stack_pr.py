@@ -65,3 +65,15 @@ def test_with_the_stack_ahead_and_none_open_opens_one_from_the_stack_to_the_defa
     got = run_cli(stack_pr, [])
 
     assert (got, [(head, base) for head, base, _, _ in world.opened]) == ((0, URL % 9 + "\n", ""), [("stack", "trunk")])
+
+
+def test_the_body_of_the_pull_request_it_opens_says_it_is_never_merged_and_slices_are_cut_from_it_closing_nothing(
+        monkeypatch, run_cli, stack_pr):
+    world = World(monkeypatch, stack_pr)
+
+    run_cli(stack_pr, [])
+    body = world.opened[0][3]
+
+    assert ("never merged" in body, "slices" in body and "cut from" in body,
+            [line for line in body.splitlines() if any(w in line.lower() for w in ("closes", "fixes", "resolves"))]) == (
+        True, True, [])

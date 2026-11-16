@@ -9,6 +9,9 @@ import stack_branch
 
 USAGE = "usage: stack-pr.sh"
 TITLE = "Stack %s: tracks it for CI against %s (never merged)"
+BODY = ("This pull request tracks the stack branch `%s`, so CI runs on each push to it. It is never merged itself:"
+        " slices are cut from it, each a pull request of its own ending at a tested commit that ends an issue, and"
+        " those land on `%s`. Opened by veri's `stack-pr.sh`; a join reopens it when it is closed.")
 
 
 def main(argv):
@@ -19,7 +22,7 @@ def main(argv):
     if pulls:
         url = pulls[0].html_url
     else:
-        url = github.pr_open(stack, default, TITLE % (stack, default), "")
+        url = github.pr_open(stack, default, TITLE % (stack, default), BODY % (stack, default))
     sys.stdout.write(url + "\n")
     return 0
 
