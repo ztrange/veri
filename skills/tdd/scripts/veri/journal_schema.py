@@ -26,6 +26,7 @@ CALLS = {
     ("event", "mark"): (2, 3), ("event", "append"): (2, 3),
     ("verify", "mark"): (1, 2), ("supervise", "mark"): (2, 3), ("push_branch", "record"): (0, 1),
 }
+# `event.line([kind, field, …], context, ts, awake)` is read too (_line_call): a caller that writes the line itself.
 LOCAL_CALLS = {"verify": {"mark": (1, 2)}, "supervise": {"mark": (2, 3)}, "push_branch": {"record": (0, 1)}}
 
 
@@ -55,8 +56,8 @@ def optional(text, kind):
 
 def _literal(node):
     """The string a node starts with, when it is a literal, f-string, `+` or `%` expression."""
-    if isinstance(node, ast.Constant) and isinstance(node.value, str):
-        return node.value
+    if isinstance(node, ast.Constant) and isinstance(node.value, (str, bytes)):
+        return node.value if isinstance(node.value, str) else node.value.decode(errors="replace")
     if isinstance(node, ast.JoinedStr) and node.values:
         return _literal(node.values[0])
     if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add, ast.Mod)):
@@ -85,6 +86,17 @@ def _shape(call, module):
     return None
 
 
+def _line_call(call):
+    """The elements of the literal list `event.line([kind, "k=v", …], …)` is given, else None: that call builds a line
+    its caller writes itself, past event.append and its checks."""
+    func = getattr(call, "func", None)
+    if (isinstance(call, ast.Call) and isinstance(func, ast.Attribute) and func.attr == "line"
+            and isinstance(func.value, ast.Name) and func.value.id == "event"
+            and call.args and isinstance(call.args[0], (ast.List, ast.Tuple))):
+        return call.args[0].elts
+    return None
+
+
 def writer_calls(source, module=""):
     """(line, kind or None, literal field names) for every event-writing call in `source`; `module` is the
     source's own module name, so that a bare mark call inside verify.py is read as verify.mark."""
@@ -97,6 +109,12 @@ def writer_calls(source, module=""):
     constants = {name: values[0].value for name, values in assigned.items() if len(values) == 1
                  and isinstance(values[0], ast.Constant) and isinstance(values[0].value, str)}
     for call in ast.walk(tree):
+        line_args = _line_call(call)
+        if line_args is not None:
+            first = _literal(line_args[0]) if line_args else None
+            names = [name for argument in line_args[1:] for name in _field_names(argument)]
+            found.append((call.lineno, first if first and "=" not in first else None, names))
+            continue
         shape = isinstance(call, ast.Call) and _shape(call, module)
         if not shape or len(call.args) <= shape[0]:
             continue
@@ -109,4 +127,4 @@ def writer_calls(source, module=""):
         for argument in call.args[shape[1]:]:
             names += _field_names(argument)
         found.append((call.lineno, kind, names))
-    return found
+    return sorted(found, key=lambda call: call[0])

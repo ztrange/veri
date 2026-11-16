@@ -48,7 +48,7 @@ EVENTS = {
     "revise": "budget",
     "skill-edit-no-author": "unit",
     "skill-repin": "commit",
-    "step-added": "anchor added",
+    "step-added": "anchor? added?",
     "step-done": "",
     "step-escalated": "anchor at?",
     "step-over-budget": "spent budget",
