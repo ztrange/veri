@@ -7,5 +7,5 @@
 - [x] a default-branch tip already declaring both commands exactly is exit 3 with no branch or PR ⟦criterion 4⟧
 - [x] an origin already holding veri-install is exit 2 naming it on stderr, nothing written ⟦criterion 5⟧
 - [x] a missing or empty command argument, or a repo-root outside a git repository, is exit 2 with nothing written ⟦criterion 5⟧
-- [ ] the record-test-commands.sh shim execs its module: an empty command through the shim is exit 2 ⟦criterion 6⟧
+- [x] the record-test-commands.sh shim execs its module: an empty command through the shim is exit 2 ⟦criterion 6⟧
 - [ ] skills/vinstall/SKILL.md gains ## Recording the test commands, graded ⟦criterion 7⟧
