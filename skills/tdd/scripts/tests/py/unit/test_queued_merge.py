@@ -1500,3 +1500,13 @@ def test_3984_queued_merge_whose_tag_push_never_returns_ends_it_after_the_git_ne
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
     assert (code, "push origin v0.11: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err, first(calls, "tag -d v0.11") is not None,
             "merged, but cleanup failed: tag" in err, len(released)) == (2, True, True, True, 1)
+
+
+def test_3984_queued_merge_whose_branch_delete_never_returns_ends_it_after_the_git_network_timeout_as_a_failed_branch_delete_and_runs_the_rest(fake_processes, run_cli):
+    calls = scenario(hanging(fake_processes, "git -C /wt push origin --delete feature"))
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GIT_NETWORK_TIMEOUT": "7"})
+
+    ran = [first(calls, needle) is not None for needle in ("worktree remove", "branch -D feature", "merge-lock.sh release", "pull --ff-only")]
+    assert (code, "push origin --delete feature: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err,
+            "merged, but cleanup failed: branch delete" in err, ran) == (2, True, True, [True] * 4)
