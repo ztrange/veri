@@ -570,7 +570,12 @@ def main(argv):
         return recover(argv[1], argv[3])
     if list(argv) == ["--report"]:
         refresh_if_stale()
-        print("%s\nLanded\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (zone_line(), landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting_lines()) + unjournaled_notes())
+        try:
+            waiting = waiting_lines()
+        except decision_log.Malformed as bad:
+            print("status.sh: %s is not a decision record" % bad.where, file=sys.stderr)
+            return 2
+        print("%s\nLanded\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (zone_line(), landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting) + unjournaled_notes())
         queue = {}
         try:
             label, _issues, opted_in = opted_in_issues()

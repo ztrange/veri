@@ -3,6 +3,8 @@ status-last, for the owner to audit."""
 import importlib
 import json
 
+import pytest
+
 
 def report_tree(tmp_path, monkeypatch, fake_processes, decisions):
     """veri.status over a main tree at <tmp_path> with no runs, status-last at 2026-11-02T10:00:00Z and
@@ -39,3 +41,22 @@ def test_issue_4072_report_waiting_lists_each_decision_after_status_last_and_non
     waiting = [line for line in lines[lines.index("Waiting") + 1:] if line]
     assert (code, waiting) == (0, ["decided: after? → kept N at 3 (rule: use plan capacity)",
                                    "decided: after, in another zone? → kept N at 3 (rule: use plan capacity)"]), err
+
+
+@pytest.mark.parametrize("bad", [
+    '{"question": "torn',
+    '["a list"]',
+    json.dumps({"question": "q", "decision": "d", "by": "dev", "at": "2026-11-02T10:30:00+00:00"}),
+    json.dumps({"question": "q", "decision": "d", "rule": "r", "by": "dev", "at": "yesterday"}),
+    json.dumps({"question": "q", "decision": "d", "rule": "r", "by": "dev", "at": "2026-11-02T10:30:00"}),
+    json.dumps({"question": "q", "decision": 3, "rule": "r", "by": "dev", "at": "2026-11-02T10:30:00+00:00"}),
+])
+def test_issue_4072_report_exits_2_naming_the_line_when_the_decision_log_holds_one_that_is_not_a_decision_record(
+        tmp_path, monkeypatch, run_cli, fake_processes, bad):
+    status = report_tree(tmp_path, monkeypatch, fake_processes, decision("fine?", "2026-11-02T10:30:00+00:00") + bad + "\n")
+    last = (tmp_path / ".tdd" / "status-last").read_text()
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, out, err, (tmp_path / ".tdd" / "status-last").read_text()) == (
+        2, "", "status.sh: %s:2 is not a decision record\n" % (tmp_path / ".tdd" / "decisions.jsonl"), last)
