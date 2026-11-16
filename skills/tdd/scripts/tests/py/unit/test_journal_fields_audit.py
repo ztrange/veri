@@ -1,54 +1,53 @@
-"""A writer passes only the fields JOURNAL.md documents for the kind it writes."""
+"""A writer passes only events and keys veri/event_table.py declares (PRD 030.1, ET6)."""
 import pytest
 
-from veri import journal_schema
-
-# Ratchet: (kind, field) -> where a writer passes a field JOURNAL.md's row for that kind does not list.
-# Each is a documentation gap to close in JOURNAL.md (or a field to stop passing). Entries may be removed,
-# never added; a stale entry (the writer no longer passes it) fails the audit so the table shrinks.
-UNDOCUMENTED = {}
-
-# Ratchet: kind -> where a writer passes a literal kind JOURNAL.md has no row for (so its fields are
-# unaudited above). Entries may be removed, never added.
-UNDOCUMENTED_KINDS = {}
-
-# Fields every journal line carries from the run context, documented in JOURNAL.md's prose above the table.
-CONTEXT_KEYS = {"ts", "awake", "issue", "actor", "phase", "step", "event", "attempt", "skill_commit"}
+from veri import event_table, journal_schema
 
 
 def _writes(index):
-    """{(kind, field): 'file:line'} for every literal field a writer passes to a literal kind."""
+    """{(kind, field): 'file:line'} for every literal field a writer passes to a literal kind (field None: the kind)."""
     found = {}
     for module in index.names:
         for line, kind, names in journal_schema.writer_calls(index.text(module), module):
-            for name in names if kind else ():
+            for name in [None, *names] if kind else ():
                 found.setdefault((kind, name), f"{module}.py:{line}")
     return found
 
 
-@pytest.mark.tree_audit("skills/tdd/scripts/veri and skills/tdd/JOURNAL.md")
-def test_every_literal_field_a_writer_passes_is_documented_for_its_literal_kind(veri_modules_index):
+def _undeclared(writes):
+    return {key: where for key, where in writes.items()
+            if key[0] not in event_table.EVENTS or (key[1] and key[1] not in event_table.keys(key[0]))}
+
+
+def _report(gaps):
+    return "\n".join(f"{where}: event {kind!r}" + (f" key {key!r}" if key else "") + " is not in veri/event_table.py;"
+                     f" declare it with the line  {event_table.declaring(kind, key)}"
+                     for (kind, key), where in sorted(gaps.items(), key=lambda item: (item[0][0], item[0][1] or "")))
+
+
+@pytest.mark.tree_audit("skills/tdd/scripts/veri")
+def test_every_literal_event_and_key_a_writer_passes_is_declared_in_the_table(veri_modules_index):
     """Walks `event.mark`/`event.append`, `verify.mark`, `supervise.mark` and `push_branch.record` calls
     (and the bare `mark`/`record` inside the modules that define them) with `ast`, and fails when a call
-    whose kind is a string literal passes a field written as a literal `"name=…"` that the kind's row in
-    JOURNAL.md does not list. Kinds without a row are skipped (test_journal_event_roster audits names).
+    whose kind is a string literal names a kind the table does not hold, or passes a field written as a
+    literal `"name=…"` the table does not declare for it.
 
     It cannot see: a computed kind (`event.mark(d, c, event_name, …)`), `**fields`, a field list built in a
     variable (`harvest_usage`'s `pairs`) or a field whose name is not a literal; calls reached through a
     wrapper other than the five shapes; and events that prose writes through `event.sh`."""
-    from conftest import SCRIPTS
+    gaps = _undeclared(_writes(veri_modules_index))
 
-    journal = (SCRIPTS.parent / "JOURNAL.md").read_text(encoding="utf-8")
-    documented = journal_schema.kinds(journal)
-    gaps = {key: where for key, where in _writes(veri_modules_index).items()
-            if key[0] in documented and key[1] not in journal_schema.fields(journal, key[0])
-            and key[1] not in CONTEXT_KEYS}
+    assert not gaps, "writers pass events or keys the table does not declare:\n" + _report(gaps)
 
-    new = {key: where for key, where in gaps.items() if key not in UNDOCUMENTED}
-    stale = sorted(key for key in UNDOCUMENTED if key not in gaps)
 
-    assert not new, f"writers pass fields JOURNAL.md does not document: {new}"
-    assert not stale, f"UNDOCUMENTED lists gaps that no longer exist, remove them: {stale}"
+def test_an_undeclared_key_or_event_is_reported_with_its_site_and_the_line_to_add():
+    gaps = _undeclared({("comment", "kind"): "comment.py:1", ("comment", "colour"): "comment.py:2",
+                        ("no-such-event", None): "x.py:3"})
+
+    assert _report(gaps) == (
+        "comment.py:2: event 'comment' key 'colour' is not in veri/event_table.py; declare it with the line"
+        '  "comment": "kind url colour?",\n'
+        "x.py:3: event 'no-such-event' is not in veri/event_table.py; declare it with the line  \"no-such-event\": \"\",")
 
 
 @pytest.mark.tree_audit("skills/tdd/scripts/veri")
@@ -56,22 +55,3 @@ def test_the_walk_sees_the_writers_of_the_tree(veri_modules_index):
     kinds = {kind for kind, _ in _writes(veri_modules_index)}
 
     assert {"bail", "verdict", "launch", "merged", "test-run"} <= kinds
-
-
-@pytest.mark.tree_audit("skills/tdd/scripts/veri and skills/tdd/JOURNAL.md")
-def test_every_literal_kind_a_writer_passes_has_a_row_in_journal_md(veri_modules_index):
-    """Same walk as above; a kind that is not a string literal or a module-level constant is invisible."""
-    from conftest import SCRIPTS
-
-    documented = journal_schema.kinds((SCRIPTS.parent / "JOURNAL.md").read_text(encoding="utf-8"))
-    gaps = {}
-    for module in veri_modules_index.names:
-        for line, kind, _ in journal_schema.writer_calls(veri_modules_index.text(module), module):
-            if kind and kind not in documented:
-                gaps.setdefault(kind, f"{module}.py:{line}")
-
-    new = {kind: where for kind, where in gaps.items() if kind not in UNDOCUMENTED_KINDS}
-    stale = sorted(kind for kind in UNDOCUMENTED_KINDS if kind not in gaps)
-
-    assert not new, f"writers pass kinds JOURNAL.md has no row for: {new}"
-    assert not stale, f"UNDOCUMENTED_KINDS lists kinds that are now documented or unwritten, remove them: {stale}"
