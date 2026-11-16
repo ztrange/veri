@@ -411,7 +411,8 @@ def grade_unit(path, unit, read=None):
     grading_id = uuid.uuid4().hex
     event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
-                                       "cost_usd=%s" % cost, "id=" + grading_id])
+                                       "cost_usd=%s" % cost, "id=" + grading_id,
+                                       "effort=" + (effort or "default")])
     ours = stamp([text, claims, model])
     try:
         own = signer()

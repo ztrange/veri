@@ -1,5 +1,6 @@
 """The grader's effort, set by an `effort=` line in grader.conf (PRD 024.10)."""
 import importlib
+import json
 
 import pytest
 
@@ -56,3 +57,20 @@ def test_an_effort_value_outside_the_five_levels_exits_2_naming_grader_conf_befo
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     assert (code, fake.argvs, "grader.conf" in err) == (2, [], True), err
+
+
+def test_the_grading_event_carries_the_effort_level_or_default_when_grader_conf_has_no_effort_line(
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
+    unit_tree(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "grade-prose.log").write_text(
+        '{"type":"result","subtype":"success","is_error":false,"result":'
+        '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
+    monkeypatch.setenv("PATH", "")
+    fake_processes.answers({}, default=(0, "", ""))
+    for text in ("model=sonnet-4\neffort=medium\n", "model=sonnet-4\n"):
+        conf(tmp_path, monkeypatch, grade_prose, text)
+        run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    gradings = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [g.get("effort") for g in gradings if g.get("event") == "grading"] == ["medium", "default"]
