@@ -59,7 +59,8 @@ def _refused_outside_repository():
     return True
 
 
-differing_tests = case_history.changed_test_files
+def differing_tests():
+    return case_history.changed_test_files()
 
 
 _FIXTURE_FILE = re.compile(r"repairs the fixture '[^']*' in (\S+?),")
