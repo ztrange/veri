@@ -134,7 +134,9 @@ a same-second mutation included, from being served a stale `.pyc`: before import
 every `.pyc` the manifest does not vouch for by the hash of its source, and `.opt-N` files always; a pytest-rewritten `.pyc` is
 vouched for like any other, recorded only when its header carries its source's mtime and size and the source did not change after the run began
 (#1127, #2054). Sources a case creates under the run's `veri-pytest-*` scratch directory leave their `.pyc` under that path mirrored in the prefix, so after a run the leg removes the mirror of its own run directory, and the sweep of a dead run (pid no longer answering `kill 0`) removes that run's mirror with its directory; a tree that does not resolve to exactly such a mirror inside the prefix, or whose run it cannot prove dead, is left alone. A shim run has no manifest, so `shim-python.sh` clears the prefix and sets `PYTHONDONTWRITEBYTECODE=1`, and `veri/pycache_prefix.py`, which a module's first line runs before any veri import, compiles veri's modules from source: the run neither reads nor poisons a cache (#2406, #2439), while the standard library keeps its own `.pyc` files, since a prefix would recompile them on every start.
-A veri module run directly as `python3 <module>` with bytecode writing on takes the shared prefix from the same file. Cases run across pytest-xdist
+A veri module run directly as `python3 <module>` with bytecode writing on takes the shared prefix from the same file, but only when it is a
+directory, not a symlink, owned by the current user and writable by neither group nor others, created with mode `0700` when absent;
+otherwise it sets no prefix, compiles veri's modules from source and says why on stderr (#3965). Cases run across pytest-xdist
 workers: `make unit` 4 (each worker pays its own start-up); `make test` the cores other running
 legs leave free (physical cores on macOS, the CPU-affinity count elsewhere), at least 1 (#2100): each leg registers its pid and count under
 `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and a dead pid holds no share.
