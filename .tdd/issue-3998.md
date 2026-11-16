@@ -4,4 +4,4 @@
 - [x] `adjudicate.sh record <n> pr-ready-failed <leaf-output>` writes one `adjudicated cause=pr-ready-failed outcome=<o> reason=<r>` event for each of a `retry`, a `bail` and an unparsable answer ⟦criterion 2⟧
 - [x] `adjudicate.sh left <n>` exits 0 when every `adjudicated cause=pr-ready-failed` event precedes the issue's last `conductor-start` ⟦criterion 4⟧
 - [x] `JOURNAL.md`'s `adjudicated` row names `pr-ready-failed` among its causes ⟦criterion 6⟧
-- [ ] `ADJUDICATE.md`, `DRAFT-PR.md` and `BAIL.md` carry the issue's `## Requirements` rows, graded PASS ⟦criterion 5⟧
+- [x] `ADJUDICATE.md`, `DRAFT-PR.md` and `BAIL.md` carry the issue's `## Requirements` rows, graded PASS ⟦criterion 5⟧

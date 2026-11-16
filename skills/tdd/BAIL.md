@@ -54,7 +54,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   spoke: the prep step is owed and the plan has no room for it, and the plumbing did not
   break); the bail comment names the cases the step was to update.
 - `pr-ready-failed` — `pr-ready.sh` exited non-zero at the Draft PR step (GitHub refused or
-  never answered the ready request, after its refusal retries) → **system** failure (#2581).
+  never answered the ready request, after its refusal retries) → **system** failure (#2581). The bail can follow an
+  adjudication (`Read` `<base directory>/ADJUDICATE.md`): it keeps this cause and class.
 - `ci-timeout` — a readied PR's check was still pending when the Draft PR step's bounded CI
   wait ran out → **system** failure (CI never answered, not the methodology). The bail can follow an
   adjudication (`Read` `<base directory>/ADJUDICATE.md`): it keeps this cause and class.
