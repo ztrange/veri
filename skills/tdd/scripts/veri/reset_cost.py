@@ -3,11 +3,13 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import json
 import math
 import os
+import re
 import statistics
 import sys
 import time
 from datetime import datetime
 
+import entry
 import event_log
 import growth
 import prices
@@ -16,6 +18,7 @@ import run_dir
 import tunables
 
 USAGE = "usage: reset-cost.sh dev [--lane <lane>] | conductor <n>\n"
+LANE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 
 
 class Failure(Exception):
@@ -185,9 +188,11 @@ def _main(argv):
     if argv[1:2] == ["--lane"] and len(argv) == 3:
         lane = argv[2]
         argv = argv[:1]
+    if lane is not None and not LANE.fullmatch(lane):
+        raise Failure(USAGE)
     if argv == ["dev"]:
         measures = dev(lane)
-    elif len(argv) == 2 and argv[0] == "conductor" and lane is None:
+    elif len(argv) == 2 and argv[0] == "conductor" and lane is None and entry.whole_number(argv[1]) is not None:
         measures = conductor(argv[1])
     else:
         raise Failure(USAGE)
@@ -207,5 +212,4 @@ def _main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])
