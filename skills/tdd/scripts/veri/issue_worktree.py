@@ -14,6 +14,7 @@ import paths
 import pinned_scripts
 import run_dir
 import tunables
+import git as git_module
 from git import default_branch, git, symref_default
 import github
 from github import NoAnswer
@@ -200,7 +201,45 @@ def origin_issue_branches(issue):
     return issue_branches(issue, "remotes", "origin")
 
 
+def take_over_cut(path, branch):
+    """--take-over: ask origin which `tdd/<n>-*` branch it holds (the requested one, else its only one), fetch it, and
+    cut the worktree on a local branch from origin's tip as just fetched; a local branch of that name is used only when
+    it is at that same tip. Every network call is bounded by VERI_GIT_NETWORK_TIMEOUT."""
+    issue = issue_of(branch)
+    listed = git_module.network("ls-remote", "--heads", "origin", "refs/heads/tdd/%s-*" % issue)
+    if listed.returncode != 0:
+        return entry.refuse("git ls-remote origin got no answer (%s) — cannot tell which branch to take over"
+                            % " ".join((listed.stderr or "").split()), prefix=PREFIX)
+    names = sorted(line.partition("\trefs/heads/")[2] for line in listed.stdout.splitlines() if "\trefs/heads/" in line)
+    if branch not in names:
+        if len(names) != 1:
+            return entry.refuse("origin holds %s — nothing to take over as %s"
+                                % (", ".join(names) or "no tdd/%s-* branch" % issue, branch), prefix=PREFIX)
+        branch = names[0]
+    remote_ref = "refs/remotes/origin/" + branch
+    fetched = git_module.network("fetch", "-q", "origin", "+refs/heads/%s:%s" % (branch, remote_ref))
+    if fetched.returncode != 0:
+        return entry.refuse("git fetch origin %s got no answer (%s) — refusing to take over a run from a stale origin/%s"
+                            % (branch, " ".join((fetched.stderr or "").split()), branch), prefix=PREFIX)
+    if ref_exists("refs/heads/" + branch):
+        local, remote = (git("rev-parse", "--verify", "-q", ref, stdout=subprocess.PIPE, text=True).stdout.strip()
+                         for ref in ("refs/heads/" + branch, remote_ref))
+        if local != remote:
+            return entry.refuse("the local branch %s is at %s but origin's is at %s — run git branch -f %s origin/%s to"
+                                " take origin's run, or push the local branch first to keep it, then run again"
+                                % (branch, local, remote, branch, branch), prefix=PREFIX)
+        code = worktree_add(path, branch)
+    else:
+        code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
+    if code != 0:
+        return entry.to_contract(code)
+    sys.stdout.write(path + "\n")
+    return 0
+
+
 def cut(path, branch, take_over=False):
+    if take_over:
+        return take_over_cut(path, branch)
     remote_ref = "refs/remotes/origin/" + branch
     if ref_exists("refs/heads/" + branch):
         code = worktree_add(path, branch)
@@ -217,22 +256,6 @@ def cut(path, branch, take_over=False):
         if len(names) > 1:
             return entry.refuse("%s exist for the issue — cannot pick one for the requested %s"
                                 % (", ".join(names), branch), prefix=PREFIX)
-        if on_origin and take_over:
-            refspec = "+refs/heads/%s:refs/remotes/origin/%s" % (branch, branch)
-            try:
-                fetched = github.bounded_group(["git", "fetch", "-q", "origin", refspec], limit_name="VERI_GIT_NETWORK_TIMEOUT",
-                                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            except OSError as error:
-                fetched = subprocess.CompletedProcess([], 2, "", str(error))
-            if fetched.returncode != 0:
-                return entry.refuse("git fetch origin %s got no answer (%s) — refusing to take over a run from a"
-                                    " stale origin/%s" % (branch, " ".join((fetched.stderr or "").split()), branch),
-                                    prefix=PREFIX)
-            code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
-            if code != 0:
-                return entry.to_contract(code)
-            sys.stdout.write(path + "\n")
-            return 0
         if on_origin and remote_issue_branch("tdd/" + issue_of(branch)):
             sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
                              " to take it over run: issue-worktree.sh --take-over %s\n"
