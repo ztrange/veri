@@ -91,10 +91,8 @@ def test_4018_every_target_green_alone_and_the_re_run_accepted_exits_0_with_one_
     (["4018", HEAD, "12345", ALONE, "MISSING"], (0, "", "")),
     (["4018", HEAD[:7], "12345", ALONE, "LOG"], (0, "", "")),
     (["4018", HEAD.upper(), "12345", ALONE, "LOG"], (0, "", "")),
-    (["4018", HEAD, "12345", ALONE, "LOG"], (1, "", "HTTP 403: Must have admin rights")),
-], ids=["four-arguments", "issue-not-whole", "run-id-not-whole", "unreadable-log", "short-head", "upper-case-head",
-        "gh-refuses"])
-def test_4018_exits_2_writing_no_ci_rerun_event_on_bad_arguments_an_unreadable_log_a_head_not_40_hex_or_gh_refusing(
+], ids=["four-arguments", "issue-not-whole", "run-id-not-whole", "unreadable-log", "short-head", "upper-case-head"])
+def test_4018_exits_2_writing_no_ci_rerun_event_on_bad_arguments_an_unreadable_log_or_a_head_not_40_hex(
         tmp_path, run_cli, fake_processes, ci_flake, events, argv, rerun):
     log = _log(tmp_path)
     argv = [{"LOG": log, "MISSING": str(tmp_path / "absent.log")}.get(a, a) for a in argv]
@@ -104,6 +102,21 @@ def test_4018_exits_2_writing_no_ci_rerun_event_on_bad_arguments_an_unreadable_l
 
     assert (code, out, [e["event"] for e in events.records(tmp_path)]) == (2, "", [])
     assert err.strip() and "Traceback" not in err
+
+
+@pytest.mark.parametrize("rerun", [(1, "", "HTTP 403: Must have admin rights"),
+                                   (124, "", "gh run rerun 12345 --failed: no answer after 300s (VERI_GH_TIMEOUT)")],
+                         ids=["gh-refuses", "gh-times-out"])
+def test_4018_a_re_run_gh_does_not_accept_still_counts_exit_2_with_its_event_and_a_second_call_exits_3(
+        tmp_path, run_cli, fake_processes, ci_flake, events, rerun):
+    fake = answered(fake_processes, {"sh -c": (0, "", ""), "gh run rerun 12345 --failed": rerun})
+
+    first = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path)], cwd=tmp_path)
+    second = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path)], cwd=tmp_path)
+
+    assert (first[0], first[1], second[0], second[1]) == (2, "", 3, "")
+    assert [(e["event"], e["head"], e["run"]) for e in events.records(tmp_path)] == [("ci-rerun", HEAD, "12345")]
+    assert [c for c in fake.calls if c.startswith("gh")] == ["gh run rerun 12345 --failed"]
 
 
 @pytest.mark.parametrize("case", ["alone-run-hangs", "alone-run-killed-by-a-signal", "alone-run-child-killed-137", "unprefixed-line", "glued-line", "event-unwritable"])
