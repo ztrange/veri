@@ -208,6 +208,7 @@ NOT_KNOBS = {
     "VERI_SELF_UPDATE_FILE": "test stand-in",
     "VERI_ISSUE": "run state",
     "VERI_LEAF_MODEL": "run state",
+    "VERI_LEAF_SKIP_PROJECT_CLAUDE_MD": "run state",
     "VERI_LEAF_TOOLS": "run state",
     "VERI_MUTATION_RECORD": "run state",
     "VERI_SHIM_DEFAULT_SIGNALS": "run state",

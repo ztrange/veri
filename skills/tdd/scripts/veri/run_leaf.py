@@ -57,14 +57,16 @@ def leaf_argv(binary, model, extra, excludes=()):
     return argv + extra
 
 
-def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_marker="", toplevel=None):
+def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_marker="", toplevel=None,
+                own_dir=None):
     """What a leaf is launched with, decided and not started: `(argv, env)`, a pure function of its inputs.
 
     `env` is a copy of `environ` stripped of the conductor's session variables, with the leaf's private git
     config, bytecode, caching, background-task, shell and Bash-tool timeout settings and the guard first on
     PATH; the shim's locale marker, when `coerce_marker` (its value, read by the caller) is "1", is removed together with
     PYTHONCOERCECLOCALE. `toplevel` is the leaf's working tree's top level (None: outside one), above which no
-    `CLAUDE.md` is loaded. `seconds` is the hard cap as text: raises ValueError when it is not a whole number."""
+    `CLAUDE.md` is loaded; `own_dir`, when given, is a directory whose `CLAUDE.md` and `CLAUDE.local.md` are not
+    loaded either (the grader's). `seconds` is the hard cap as text: raises ValueError when it is not a whole number."""
     env = dict(environ)
     strip_session_env(env)
     env["GIT_CONFIG_GLOBAL"] = git_path
@@ -79,7 +81,8 @@ def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_
     if coerce_marker == "1":
         env.pop("VERI_SHIM_SET_COERCE", None)
         env.pop("PYTHONCOERCECLOCALE", None)
-    return leaf_argv(binary, model, extra, above_top_level(toplevel)), env
+    own = [] if own_dir is None else [os.path.join(own_dir, "CLAUDE.md"), os.path.join(own_dir, "CLAUDE.local.md")]
+    return leaf_argv(binary, model, extra, own + above_top_level(toplevel)), env
 
 
 def read_prompt(path):
@@ -138,6 +141,7 @@ def main(argv):
         model = tunables.read("VERI_LEAF_MODEL")
         shell = shutil.which("bash")
         coerce_marker = tunables.read("VERI_SHIM_SET_COERCE")
+        own_dir = os.getcwd() if tunables.read("VERI_LEAF_SKIP_PROJECT_CLAUDE_MD") == "1" else None
         try:
             seconds = effective_timeout()
         except leaf_timeout.Malformed as bad:
@@ -146,7 +150,7 @@ def main(argv):
             return 2
         try:
             command, env = launch_spec(tunables.environment(), git_path, shell, seconds, binary, model, argv[1:],
-                                      coerce_marker, top_level(os.getcwd()))
+                                      coerce_marker, top_level(os.getcwd()), own_dir)
         except ValueError:
             print(f"run-leaf.sh: VERI_TIMEOUT is not a whole number: {seconds!r}",
                   file=sys.stderr)

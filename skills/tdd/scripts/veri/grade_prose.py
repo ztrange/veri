@@ -321,6 +321,7 @@ def grade_unit(path, unit, read=None):
     env.pop("VERI_MODEL_GRADER", None)
     env["VERI_MODEL"] = model
     env["VERI_LEAF_TOOLS"] = ""
+    env["VERI_LEAF_SKIP_PROJECT_CLAUDE_MD"] = "1"
     raw_retries = tunables.get("VERI_NO_VERDICT_RETRIES", unless_empty=True)
     try:
         retries = tunables.tokens(raw_retries)
