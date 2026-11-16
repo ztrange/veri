@@ -31,10 +31,12 @@ def local_zone():
 def main(argv):
     components = tuple(argv) or DEFAULT_COMPONENTS
     _, body = fetch(tunables.get("VERI_GITHUB_STATUS_URL") + FEED, 15)
+    threshold = datetime.timedelta(minutes=int(tunables.get("VERI_GITHUB_OUTAGE_MIN")))
     counting = []
     for incident in json.loads(body)["incidents"]:
         matched = [c["name"] for c in incident.get("components") or () if c["name"] in components]
-        if matched:
+        age = now() - datetime.datetime.fromisoformat(incident["created_at"])
+        if matched and age >= threshold:
             counting.append(incident["name"])
     for name in counting:
         print(name)

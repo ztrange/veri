@@ -67,3 +67,15 @@ def test_with_component_arguments_it_matches_those_components_only(page, run_cli
     assert code == 1
     assert page.calls[0][0] == "https://www.githubstatus.com/api/v2/incidents/unresolved.json"
     assert sorted(line.split("\t")[0] for line in out.splitlines()) == ["Down: Copilot", "Down: Webhooks"]
+
+
+def test_an_incident_opened_exactly_the_threshold_ago_counts_whatever_its_impact_and_status_and_one_a_minute_younger_does_not(
+        page, run_cli):
+    old = incident("Old enough", 45, "Actions", impact="none")
+    old["components"][0]["status"] = "operational"
+    page.serve(old, incident("A minute short", 44, "Actions", impact="critical"))
+
+    code, out, _ = run_cli(page.module, [], env={"VERI_GITHUB_OUTAGE_MIN": "45"})
+
+    assert code == 1
+    assert [line.split("\t")[0] for line in out.splitlines()] == ["Old enough"]
