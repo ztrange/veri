@@ -36,10 +36,23 @@ def _lines():
     return lines
 
 
+def _refuse(why, line):
+    sys.stderr.flush()
+    sys.stderr.buffer.write(b"exhausted-outcome.sh: " + why.encode() + b": " + line + b"\n")
+    sys.stderr.buffer.flush()
+    return 2
+
+
 def step_ahead(red_test_id):
     own = os.fsencode(red_test_id).rpartition(b"::")[2]
-    cases = [m.group(1) for m in map(STEP_AHEAD_RE.match, _lines()) if m]
-    cases = [c for c in cases if c.rpartition(b"::")[2] != own]
+    cases = []
+    for line in _lines():
+        marker = STEP_AHEAD_RE.match(line)
+        if not marker or marker.group(1).rpartition(b"::")[2] == own:
+            continue
+        if b"::" not in marker.group(1):
+            return _refuse("names no <file>::<case>", line)
+        cases.append(marker.group(1))
     if not cases:
         return 3
     _print_lines([b" ".join([b"prep", *cases])])
