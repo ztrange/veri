@@ -2597,6 +2597,26 @@ def test_main_given_a_head_sha_the_pr_never_reports_writes_a_head_mark_and_exits
     assert (first[0], mark, later[0], FULL_SHA in later[2] and other in later[2]) == (3, "1000\n", 2, True)
 
 
+def test_main_removes_the_head_mark_on_a_read_of_the_expected_head_and_a_later_mismatch_starts_a_new_one_issue_3978(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    other = "fedcba9876543210fedcba9876543210fedcba98"
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    mark = work / ".tdd" / f"ci-head-{FULL_SHA}"
+    clock = {"now": 1000}
+    reported = {"sha": other}
+    head_world(fake_processes, clock, reported)
+    argv = [PR, "0", "3600", FULL_SHA]
+
+    observed = []
+    for at, sha in ((1000, other), (1300, FULL_SHA), (1500, other), (2000, other)):
+        clock["now"], reported["sha"] = at, sha
+        code, _, _ = run_cli(wait_ci, argv, env={"VERI_POLL": "0"}, cwd=work)
+        observed.append((code, mark.read_text() if mark.exists() else None))
+
+    assert observed == [(3, "1000\n"), (3, None), (3, "1500\n"), (3, "1500\n")]
+
+
 @pytest.mark.parametrize("value", ["-5", "5x", "soon"])
 def test_main_exits_2_naming_ci_head_wait_before_any_read_when_it_is_not_a_non_negative_whole_number_issue_3978(
         tmp_path, wait_ci, fake_processes, run_cli, value):

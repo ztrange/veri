@@ -128,6 +128,8 @@ def decide(obs, marks, now, loop, opts):
             return Decision(Exit(0, "", _warn("%s has no checks and no workflow triggers on pull_request; no check will come" % opts.pr)), (), loop)
     none = state == "none"
     effects = [] if none else [Remove("none", head)]
+    if opts.want and not mismatched and marks.head is not None:
+        effects.append(Remove("head", opts.want))
     if state == "skipped" or mismatched:
         state = "pending"
 
