@@ -85,3 +85,39 @@ def test_with_the_stack_not_ahead_of_the_default_branch_opens_nothing_and_exits_
     code, out, err = run_cli(stack_pr, [])
 
     assert (code, out, world.listed, world.opened, err.count("\n")) == (3, "", [], [], 1)
+
+
+def test_an_open_draft_tracking_pull_request_is_printed_with_one_stderr_line_saying_ci_skips_a_draft(
+        monkeypatch, run_cli, stack_pr):
+    world = World(monkeypatch, stack_pr, pulls=[open_pull(stack_pr, 4, draft=True)])
+
+    code, out, err = run_cli(stack_pr, [])
+
+    assert (code, out, world.opened, err.count("\n"), "draft" in err) == (0, URL % 4 + "\n", [], 1, True)
+
+
+def no_answer(stack_pr, detail):
+    return stack_pr.github.NoAnswer("", detail)
+
+
+@pytest.mark.parametrize("given, code, said", [
+    (dict(pulls="no answer"), 2, "reading the open pull requests from stack: HTTP 502"),
+    (dict(opened="no answer"), 2, "reading the open pull requests from stack: HTTP 502"),
+    (dict(pulls="two"), 2, "%s and %s" % (URL % 4, URL % 5)),
+    (dict(span=None), 3, None),
+    (dict(span="refused"), 2, "CLAUDE.md: the line names the default branch"),
+])
+def test_exits_2_on_no_answer_or_two_open_and_what_stack_branch_exits_when_not_0_opening_nothing(
+        monkeypatch, run_cli, stack_pr, given, code, said):
+    pulls = {"no answer": no_answer(stack_pr, "reading the open pull requests from stack: HTTP 502"),
+             "two": [open_pull(stack_pr, 4), open_pull(stack_pr, 5)]}.get(given.get("pulls"), ())
+    span = {None: None, "refused": stack_pr.stack_branch.Refused("CLAUDE.md: the line names the default branch")}
+    world = World(monkeypatch, stack_pr, pulls=pulls,
+                  opened=no_answer(stack_pr, "reading the open pull requests from stack: HTTP 502"),
+                  **({"span": span[given["span"]]} if "span" in given else {}))
+
+    got_code, out, err = run_cli(stack_pr, [])
+    opened_ok = world.opened == [] or given == dict(opened="no answer")
+
+    assert (got_code, out, opened_ok, err.count("\n") <= 1, err == "" if said is None else said in err,
+            "Traceback" in err or "NoAnswer" in err) == (code, "", True, True, True, False)

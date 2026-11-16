@@ -14,19 +14,39 @@ BODY = ("This pull request tracks the stack branch `%s`, so CI runs on each push
         " those land on `%s`. Opened by veri's `stack-pr.sh`; a join reopens it when it is closed.")
 
 
+def tracking(stack, default):
+    """The url of the one open pull request from <stack> to <default>, opened (ready) when none is. NoAnswer when
+    GitHub gives none; two or more open is NoAnswer naming them all, since none of them is the one."""
+    pulls = github.stack_pulls(stack, default)
+    if len(pulls) > 1:
+        raise github.NoAnswer("", "%d open pull requests track %s, so none is the one: %s" % (
+            len(pulls), stack, " and ".join(str(p.html_url) for p in pulls)))
+    if pulls:
+        if pulls[0].draft is not False:
+            print("stack-pr: %s is a draft (or does not say), and CI runs on no push to a draft: mark it ready" % (
+                pulls[0].html_url), file=sys.stderr)
+        return pulls[0].html_url
+    return github.pr_open(stack, default, TITLE % (stack, default), BODY % (stack, default))
+
+
 def main(argv):
     if argv:
         return entry.refuse(usage=USAGE)
-    stack, default, commits = stack_branch.ahead(".")
+    try:
+        span = stack_branch.ahead(".")
+    except stack_branch.Refused as refused:
+        return entry.refuse(str(refused), prefix="stack-pr: ")
+    if span is None:
+        return 3
+    stack, default, commits = span
     if not commits:
         print("stack-pr: origin/%s is not ahead of origin/%s, or origin has no %s; nothing opened" % (
             stack, default, stack), file=sys.stderr)
         return 3
-    pulls = github.stack_pulls(stack, default)
-    if pulls:
-        url = pulls[0].html_url
-    else:
-        url = github.pr_open(stack, default, TITLE % (stack, default), BODY % (stack, default))
+    try:
+        url = tracking(stack, default)
+    except github.NoAnswer as no:
+        return entry.refuse(" ".join(str(no.detail or no.answer).split()) + "; nothing opened", prefix="stack-pr: ")
     sys.stdout.write(url + "\n")
     return 0
 
