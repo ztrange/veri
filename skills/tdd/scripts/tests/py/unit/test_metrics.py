@@ -1922,6 +1922,20 @@ def test_the_report_counts_refactor_skips_with_reason_switched_off_apart_from_no
     assert "Verifiers switched off: refactor 2\n" in render(metrics, capsys)
 
 
+def test_the_report_counts_switched_off_pin_skips_as_pin_beside_refactor_on_one_comma_separated_line_3938(
+        tmp_path, monkeypatch, capsys, metrics):
+    skip = lambda phase, step: {"event": "verify-%s-skipped" % phase, "step": step, "reason": "switched-off"}
+    write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100}, skip("pin", "1"),
+                         {"event": "step-done", "step": "1", "ts": 160},
+                         {"event": "step-start", "step": "2", "ts": 200}, skip("refactor", "2"),
+                         {"event": "step-done", "step": "2", "ts": 260},
+                         {"event": "step-start", "step": "3", "ts": 300}, skip("pin", "3"),
+                         {"event": "step-done", "step": "3", "ts": 360}])
+    monkeypatch.chdir(tmp_path)
+
+    assert "Verifiers switched off: pin 2, refactor 1\n" in render(metrics, capsys)
+
+
 def transcript(path, prompt, turns):
     lines = [{"type": "user", "message": {"role": "user", "content": prompt}}]
     for number, (usage) in enumerate(turns):
