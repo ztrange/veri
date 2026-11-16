@@ -41,6 +41,12 @@ def tier_row(tier):
     return check
 
 
+def one_test_file_row():
+    detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
+    found = subprocess.run([detect, "--tier", "one test file"], capture_output=True)
+    return "one test file", None if found.returncode == 0 else "no one-test-file runner was found"
+
+
 def pull_request_row():
     holds = bool(tunables.read("VERI_CI_ON_PR")) or triggers_on("pull_request")
     return "pull_request", None if holds else "add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR"
@@ -94,7 +100,7 @@ def python_row():
     return "Python", None if holds else f"install Python {launch_floor.python_floor()} or newer and put it first on PATH"
 
 
-CHECKS = (tier_row("fast"), tier_row("all"), pull_request_row, push_row, test_file_row, tdd_ignored_row,
+CHECKS = (tier_row("fast"), tier_row("all"), one_test_file_row, pull_request_row, push_row, test_file_row, tdd_ignored_row,
           gh_auth_row, push_access_row, label_row, bash_row, python_row)
 
 
