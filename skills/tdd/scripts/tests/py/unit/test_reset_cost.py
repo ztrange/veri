@@ -250,3 +250,16 @@ def test_an_unparseable_stamp_in_the_state_file_exits_2_printing_nothing_and_nam
     code, out, err = run_cli(reset_cost, ["dev"])
 
     assert (code, out, err) == (2, "", "reset-cost.sh: %s line 6: reset-at is not a local time stamp\n" % state)
+
+
+def test_a_growth_knob_that_is_not_a_whole_number_of_tokens_of_at_least_1_exits_2_naming_it_and_printing_nothing(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    two_resets(tmp_path)
+    restarted_conductor(tmp_path)
+
+    answers = [run_cli(reset_cost, argv, env={knob: "abc"})
+               for argv, knob in ((["dev"], "VERI_RESET_GROWTH_DEV"), (["conductor", "7"], "VERI_RESET_GROWTH_CONDUCTOR"))]
+
+    assert [(code, out, len(err.splitlines()), knob in err) for (code, out, err), knob in
+            zip(answers, ("VERI_RESET_GROWTH_DEV", "VERI_RESET_GROWTH_CONDUCTOR"))] == [(2, "", 1, True), (2, "", 1, True)]

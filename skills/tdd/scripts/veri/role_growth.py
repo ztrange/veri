@@ -48,6 +48,21 @@ def _growth_line(path, lines, fields, transcript, knob):
     return "refused-at=%s\n" % role_state.now()
 
 
+def _knob(name):
+    """The knob's value; a bad one is a Failure naming it. VERI_RESET_GROWTH_COORD, which PRD 026.8 removes, is not in tunables.TUNABLES."""
+    try:
+        value, bad = tunables.resolve(name)
+    except KeyError:
+        raw = tunables.read(name, "70000")
+    else:
+        if bad:
+            raise Failure("%s must be %s, got %r\n" % (name, bad[1], bad[0]))
+        return value
+    if not raw.isdigit() or int(raw) < 1:
+        raise Failure("%s must be a whole number of at least 1, got %r\n" % (name, raw))
+    return int(raw)
+
+
 def main(argv):
     try:
         return _main(argv)
@@ -63,9 +78,7 @@ def _main(argv):
         argv = argv[:1]
     if len(argv) != 1 or argv[0] not in KNOBS:
         raise Failure(USAGE)
-    raw = tunables.read(KNOBS[argv[0]], "70000")
-    if not raw.isdigit() or int(raw) < 1:
-        raise Failure("%s must be a whole number of at least 1, got %r\n" % (KNOBS[argv[0]], raw))
+    knob = _knob(KNOBS[argv[0]])
     session = os.environ.get("CLAUDE_CODE_SESSION_ID")
     if not session:
         raise Failure("CLAUDE_CODE_SESSION_ID is not set\n")
@@ -87,7 +100,7 @@ def _main(argv):
     if "baseline-at" not in fields or (recovered and recovered > fields["baseline-at"]):
         text += _baseline(transcript)
     else:
-        text += _growth_line(path, lines, fields, transcript, int(raw))
+        text += _growth_line(path, lines, fields, transcript, knob)
     role_state.append(path, text)
     return 0
 
