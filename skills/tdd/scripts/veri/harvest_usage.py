@@ -17,6 +17,26 @@ def closing_result(path):
     return records[-1] if records else None
 
 
+FIRST_TURN_KEYS = ("cache_creation_input_tokens", "cache_read_input_tokens", "input_tokens")
+
+
+def first_turn_pairs(path):
+    """The usage of the first assistant record carrying one in the log at path, as first_turn_<key>=<value> event
+    fields; none when no assistant record carries a usage (a missing figure is unknown, not 0)."""
+    with open(path) as lines:
+        for line in lines:
+            try:
+                record = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(record, dict) or record.get("type") != "assistant":
+                continue
+            usage = (record.get("message") or {}).get("usage")
+            if isinstance(usage, dict) and all(key in usage for key in FIRST_TURN_KEYS):
+                return ["first_turn_%s=%s" % (key, usage[key]) for key in FIRST_TURN_KEYS]
+    return []
+
+
 def usage_pairs(record):
     """The eight numbers in one closing result record, as key=value event fields."""
     usage = record["usage"]
@@ -48,7 +68,7 @@ def harvest(name, env):
         if "usage" not in record:
             no_usage_event(name, "the closing result record in %s carries no usage" % log)
             return 2
-        pairs = usage_pairs(record)
+        pairs = usage_pairs(record) + first_turn_pairs(log)
     except UnicodeDecodeError:
         no_usage_event(name, "%s is not valid UTF-8" % log)
         return 2
