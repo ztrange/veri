@@ -1,7 +1,7 @@
 # Plan for #4173 — PRD 034.2b: the session can ask which stack commit is tested and ends an issue
 
 - [x] github.py reads a sha's check runs by sha, GitHub's latest attempt per check, every page within a bound; a failed read, a garbled answer or one past the bound is NoAnswer
-- [ ] A commit is an issue end when no issue number named in a subject at or before it is named in a subject after it; a subject names the (#n) groups at its very end ⟦criterion 3⟧
+- [x] A commit is an issue end when no issue number named in a subject at or before it is named in a subject after it; a subject names the (#n) groups at its very end ⟦criterion 3⟧
 - [ ] stack-green.sh prints the newest issue end whose check runs are all completed, each success, neutral or skipped, with at least one success, and exits 0 ⟦criterion 1⟧
 - [ ] Only neutral or skipped, a failure among successes, or no check run at all is not tested ⟦criterion 1⟧
 - [ ] It exits 3 when no commit qualifies, a check run in progress making its commit not tested, and when more issue ends than its bound would need reading ⟦criterion 4⟧
