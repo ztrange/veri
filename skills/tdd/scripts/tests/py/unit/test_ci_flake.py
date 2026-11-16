@@ -96,7 +96,7 @@ def test_4018_exits_2_writing_no_ci_rerun_event_on_bad_arguments_an_unreadable_l
     assert err.strip() and "Traceback" not in err
 
 
-@pytest.mark.parametrize("case", ["alone-run-hangs", "unprefixed-line", "glued-line", "event-unwritable"])
+@pytest.mark.parametrize("case", ["alone-run-hangs", "alone-run-killed-by-a-signal", "alone-run-child-killed-137", "unprefixed-line", "glued-line", "event-unwritable"])
 def test_4018_exits_2_when_an_alone_run_gets_no_answer_the_log_holds_a_line_without_gh_s_prefix_or_the_event_is_not_written(
         tmp_path, run_cli, fake_processes, ci_flake, events, monkeypatch, case):
     from process_fakes import HANGS
@@ -107,7 +107,9 @@ def test_4018_exits_2_when_an_alone_run_gets_no_answer_the_log_holds_a_line_with
            "glued-line": RED_LOG.replace("\n", " ", 1)}.get(case, RED_LOG)
     if case == "event-unwritable":
         monkeypatch.setattr(ci_flake.event, "mark", lambda *args, **kwargs: 2)
-    fake = fake_processes.answers({"sh -c": HANGS if case == "alone-run-hangs" else (0, "", ""),
+    fake = fake_processes.answers({"sh -c": HANGS if case == "alone-run-hangs" else
+                                   [(0, "", ""), (-9, "", "")] if case == "alone-run-killed-by-a-signal" else
+                                   [(0, "", ""), (137, "", "")] if case == "alone-run-child-killed-137" else (0, "", ""),
                                    "gh run rerun": (0, "", "")})
     started.append(fake)
 

@@ -32,10 +32,11 @@ def runner_text(log):
 
 
 def passes_alone(alone_cmd, target):
-    """True when <target> passes run alone, False when it fails, None when the run got no answer within VERI_TIMEOUT."""
+    """True when <target> passes run alone, False when it fails, None when the run got no answer: not done within
+    VERI_TIMEOUT, or killed by a signal (a negative code, or the shell's 128 and above for a killed child)."""
     cmd = alone_cmd if '"$1"' in alone_cmd else alone_cmd + ' "$1"'
     ran = github.bounded_group(["sh", "-c", cmd, "sh", target], limit_name="VERI_TIMEOUT")
-    return None if isinstance(ran, github.TimedOut) else ran.returncode == 0
+    return None if isinstance(ran, github.TimedOut) or not 0 <= ran.returncode < 128 else ran.returncode == 0
 
 
 def no_rerun_left(n, head, budget):
@@ -75,7 +76,7 @@ def main(argv):
     if False in alone or not targets:
         return 1
     if None in alone:
-        sys.stderr.write("ci-flake: an alone run got no answer within VERI_TIMEOUT\n")
+        sys.stderr.write("ci-flake: an alone run got no answer (not done within VERI_TIMEOUT, or killed by a signal)\n")
         return 2
     rerun = github.gh_run_rerun_failed(run_id)
     if rerun.returncode != 0:
