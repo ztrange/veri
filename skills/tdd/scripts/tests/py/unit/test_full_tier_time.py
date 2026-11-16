@@ -48,6 +48,23 @@ def test_4017_recording_a_time_writes_the_epoch_seconds_it_recorded_at_beside_th
     assert (rec_code, code, out.strip()) == (0, 0, "587")
 
 
+@pytest.mark.parametrize("stored", ["{not json", "[1, 2]", '{"make unit": "x"}'], ids=["bad-json", "list", "word-value"])
+def test_4017_recording_replaces_only_that_commands_recorded_at_and_an_unreadable_recorded_at_file_whole(
+        tmp_path, run_cli, full_tier_time, monkeypatch, stored):
+    clock = iter([1000, 2000, 3000])
+    monkeypatch.setattr(full_tier_time, "now", lambda: next(clock))
+    at = tmp_path / ".tdd" / "full-tier-time-at.json"
+
+    run_cli(full_tier_time, ["--record", "587", "make test"], cwd=tmp_path)
+    run_cli(full_tier_time, ["--record", "42", "make unit"], cwd=tmp_path)
+    kept = json.loads(at.read_text())
+    at.write_text(stored)
+    code, _, _ = run_cli(full_tier_time, ["--record", "601", "make test"], cwd=tmp_path)
+
+    assert (kept, code, json.loads(at.read_text())) == (
+        {"make test": 1000, "make unit": 2000}, 0, {"make test": 3000})
+
+
 def test_main_asked_for_a_command_when_the_record_file_is_not_parseable_exits_2_with_a_stderr_line(
         tmp_path, run_cli, full_tier_time):
     (tmp_path / ".tdd").mkdir()

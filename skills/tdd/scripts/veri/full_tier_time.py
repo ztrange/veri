@@ -40,6 +40,18 @@ def read_times(record):
     return times
 
 
+def read_recorded_at(record):
+    """The stored {command: epoch seconds} beside `record`; ValueError (or OSError) when that file is not one."""
+    path = at_path(record)
+    if not os.path.exists(path):
+        return {}
+    with open(path) as f:
+        stamps = json.load(f)
+    if not isinstance(stamps, dict) or not all(type(v) is int and v >= 0 for v in stamps.values()):
+        raise ValueError("not a record of epoch seconds")
+    return stamps
+
+
 def write_times(record, times):
     directory = os.path.dirname(record)
     fd, partial = tempfile.mkstemp(dir=directory, prefix="full-tier-time.", suffix=".tmp")
@@ -67,7 +79,12 @@ def main(argv):
             times = {}
         times[argv[2]] = argv[1]
         write_times(record, times)
-        write_times(at_path(record), {argv[2]: now()})
+        try:
+            stamps = read_recorded_at(record)
+        except (OSError, ValueError):
+            stamps = {}
+        stamps[argv[2]] = now()
+        write_times(at_path(record), stamps)
         return 0
     record = record_path()
     try:
