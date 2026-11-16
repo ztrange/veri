@@ -47,6 +47,7 @@ def test_a_records_push_and_fetch_that_never_answer_end_after_veri_git_network_t
         "git hash-object": (0, "b" * 40 + "\n", ""),
         "git mktree": (0, "c" * 40 + "\n", ""),
         "git commit-tree": (0, "d" * 40 + "\n", ""),
+        "git remote get-url origin": (0, "https://example.invalid/r.git\n", ""),
         "git push": HANGS,
         "git fetch": HANGS,
     })
