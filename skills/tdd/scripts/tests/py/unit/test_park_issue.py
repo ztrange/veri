@@ -487,6 +487,27 @@ def test_issue_4076_a_binary_question_file_exits_2_naming_the_file_and_that_it_i
     assert err.startswith("park-issue.sh: cannot read the --question-file %s: not UTF-8 text (" % question), err
 
 
+def test_issue_4076_a_question_of_four_byte_characters_is_cut_to_120000_utf8_bytes_on_a_character_boundary(
+        park, run_cli, monkeypatch, tmp_path):
+    park_issue, calls, edited = park
+    comments = []
+    monkeypatch.setattr(park_issue.github, "gh_issue_comment", lambda number, body: comments.append(body))
+    long_question = QUESTION.replace("#### Found\n", "#### Found\n" + "😀" * 40000 + "\n")
+    question = tmp_path / "question.md"
+    question.write_text(long_question, encoding="utf-8")
+
+    code, out, err = run_cli(park_issue, ["42", "cause", "unblock", "--question-file", str(question)])
+
+    assert (code, err) == (0, "")
+    [comment] = comments
+    assert len(comment.encode("utf-8")) <= 120000
+    assert comment.startswith("### ⏸ Parked\nCause: cause\nUnblock: unblock\n\n#### Question\n")
+    assert comment.endswith("#### Recommendation\nKeep it.\n")
+    marker = re.search(r"\n\[(\d+) characters of the question file cut here[^\n]*\]\n", comment)
+    full = "### ⏸ Parked\nCause: cause\nUnblock: unblock\n\n" + long_question
+    assert len(comment) == len(full) - int(marker.group(1)) + len(marker.group(0))
+
+
 @pytest.mark.parametrize("found", ["```\n#### Found\n```\n", "~~~\n#### Found\n~~~\n", "#### found\n", "#### Found \n"])
 def test_issue_4076_a_heading_only_inside_a_code_fence_or_in_another_case_or_with_a_trailing_space_is_not_found(
         park, run_cli, tmp_path, found):

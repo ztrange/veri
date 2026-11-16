@@ -14,22 +14,32 @@ USAGE = ("usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-U
          " [--question-file <path>]\n")
 QUESTION_HEADINGS = ("#### Question", "#### Options", "#### Found", "#### Recommendation")
 COMMENT_LIMIT = 65536  # GitHub refuses an issue comment body longer than this many characters
+BYTE_LIMIT = 120000  # the body goes to gh as one argument; Linux refuses a single argument over 131,072 bytes
+
+
+def fits(body):
+    return len(body) <= COMMENT_LIMIT and len(body.encode("utf-8")) <= BYTE_LIMIT
+
+
+def cut_at(head, question, cut):
+    """<head> + <question> with <cut> characters taken from the question's middle and a line in their place saying so."""
+    marker = ("\n[%d characters of the question file cut here: a comment is kept within %d characters and %d bytes]\n"
+              % (cut, COMMENT_LIMIT, BYTE_LIMIT))
+    keep = (len(question) - cut) // 2
+    return head + question[:keep] + marker + question[len(question) - (len(question) - cut - keep):]
 
 
 def fit(head, question):
-    """<head> + <question>, the question cut in its middle when the whole would pass COMMENT_LIMIT, a line in place of
-    the cut saying how many characters it removed: its opening (the question) and its end (the recommendation) stay."""
-    if len(head) + len(question) <= COMMENT_LIMIT:
+    """<head> + <question>, the question cut in its middle, on a character boundary, by the fewest characters that keep
+    the whole within COMMENT_LIMIT characters and BYTE_LIMIT UTF-8 bytes: its opening (the question) and its end (the
+    recommendation) stay."""
+    if fits(head + question):
         return head + question
-    cut = len(head) + len(question) - COMMENT_LIMIT
-    while True:
-        marker = ("\n[%d characters of the question file cut here: GitHub refuses a comment over %d characters]\n"
-                  % (cut, COMMENT_LIMIT))
-        if len(head) + len(question) - cut + len(marker) <= COMMENT_LIMIT:
-            break
-        cut += 1
-    keep = (len(question) - cut) // 2
-    return head + question[:keep] + marker + question[len(question) - (len(question) - cut - keep):]
+    low, high = 1, len(question)
+    while low < high:
+        mid = (low + high) // 2
+        low, high = (low, mid) if fits(cut_at(head, question, mid)) else (mid + 1, high)
+    return cut_at(head, question, low)
 
 
 def origin_slug():
