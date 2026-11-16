@@ -231,13 +231,31 @@ def defines_helper(name, text, py_file, go_file):
     return re.search(pattern, text, re.M) is not None
 
 
-def file_defines(path, case):
-    """True when the test file at path defines case, by the rules wrong-test-route.sh searches with."""
+def _class_defines(text, classes, case):
+    """True when the Python source text holds the class chain `classes` (outermost first, nested by
+    definition) and its innermost class defines a method named case; False on a source that does not parse."""
+    try:
+        body = ast.parse(text).body
+    except (SyntaxError, ValueError):
+        return False
+    for name in classes:
+        found = [node for node in body if isinstance(node, ast.ClassDef) and node.name == name]
+        if not found:
+            return False
+        body = found[0].body
+    return any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == case for node in body)
+
+
+def file_defines(path, case, classes=()):
+    """True when the test file at path defines case, by the rules wrong-test-route.sh searches with; with
+    classes, only a Python test file whose class chain defines case does (class_defines)."""
     root, name = os.path.split(path)
     py_file, go_file, js_file = is_test_file(name), is_go_test_file(name), is_js_test_file(name, root)
     if not (py_file or go_file or js_file or name.endswith(".test.sh")):
         return False
     with open(path, encoding="utf-8", errors="replace") as handle:
         text = handle.read()
+    if classes:
+        return py_file and _class_defines(text, classes, case)
     return bool(defined_name(case, text, py_file, go_file) or js_file and case in live_titles(case, text)
                 or name.endswith(".test.sh") and ('name="%s"' % case) in text)

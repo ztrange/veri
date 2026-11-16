@@ -7,3 +7,20 @@ def test_strip_param_suffix_strips_a_trailing_bracket_and_leaves_a_plain_name_un
 
     assert case_reader.strip_param_suffix("test_x[a-b]") == "test_x"
     assert case_reader.strip_param_suffix("test_x") == "test_x"
+
+
+def test_file_defines_with_classes_answers_for_the_class_chain_and_only_its_own_methods(tmp_path):
+    case_reader = importlib.import_module("veri.case_reader")
+    source = tmp_path / "test_x.py"
+    source.write_text("class TestK:\n    def test_b(self):\n        pass\n\n    class TestInner:\n"
+                      "        def test_c(self):\n            pass\n\n\ndef test_a():\n    pass\n")
+    broken = tmp_path / "test_broken.py"
+    broken.write_text("class TestK:\n    def test_b(self:\n")
+
+    answers = {args: case_reader.file_defines(str(source), args[1], args[0]) for args in (
+        (("TestK",), "test_b"), (("TestK",), "test_a"), (("TestNope",), "test_a"),
+        (("TestK", "TestInner"), "test_c"), (("TestInner",), "test_c"))}
+    assert answers == {
+        (("TestK",), "test_b"): True, (("TestK",), "test_a"): False, (("TestNope",), "test_a"): False,
+        (("TestK", "TestInner"), "test_c"): True, (("TestInner",), "test_c"): False}
+    assert case_reader.file_defines(str(broken), "test_b", ("TestK",)) is False
