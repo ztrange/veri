@@ -59,3 +59,17 @@ def test_fed_history_answers_every_case_history_query_tests_frozen_makes_from_it
         "commit_of": "red",
         "step_commits": [["green", "red"], ["later"]],
     }
+
+
+def test_fed_history_fails_the_case_naming_a_case_history_query_its_table_does_not_answer_past_any_except_exception(
+        fed_history, tests_frozen):
+    fed_history(("base", "start", {"test_a.py": ONE}), ("next", "more", {"test_a.py": ONE + "\n\n" + TWO}))
+
+    with pytest.raises(BaseException) as raised:
+        try:
+            tests_frozen.case_history.subject("HEAD")
+        except Exception:
+            pass
+
+    assert (type(raised.value) is pytest.fail.Exception, str(raised.value)) == (
+        True, "fed_history does not answer case_history.subject")
