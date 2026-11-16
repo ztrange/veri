@@ -1,6 +1,7 @@
 """In-process cases for veri/ready_check.py, the module ready-check.sh is a shim over: only the gh, git and
 detect-test-command.sh process boundaries are faked."""
 import importlib
+import os
 
 import pytest
 
@@ -147,3 +148,35 @@ def test_issue_4089_the_actions_read_row_reads_skipped_with_no_workflows_at_the_
 
     assert (name, verdict) == ("actions read", "skipped")
     assert verdict is ready_check.SKIPPED
+
+
+RUN_STATE_RULE = ".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n"
+
+
+def unwritable(monkeypatch, denied):
+    """os.access answering W_OK for a path in <denied> as a non-root user meets a read-only file (chmod is no proof,
+    since uid 0 ignores it)."""
+    real_access = os.access
+
+    def access(path, mode, *rest, **kwargs):
+        if mode & os.W_OK and os.path.realpath(path) in denied:
+            return False
+        return real_access(path, mode, *rest, **kwargs)
+    monkeypatch.setattr(os, "access", access)
+
+
+def test_issue_4089_the_run_state_ignore_row_is_ok_when_each_file_carries_the_rule_or_is_writable_and_fails_naming_the_one_that_is_neither(ready_check, fake_processes, tmp_path, monkeypatch):
+    common = tmp_path / "common.git"
+    (common / "info").mkdir(parents=True)
+    exclude = common / "info" / "exclude"
+    exclude.write_text("# git ls-files --others --exclude-from=.git/info/exclude\n")
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text(RUN_STATE_RULE)
+    denied = {os.path.realpath(gitignore)}
+    unwritable(monkeypatch, denied)
+    fake_processes.answers({"git rev-parse --git-common-dir": (0, str(common) + "\n", "")}, exact=True)
+
+    assert ready_check.run_state_ignore_row() == ("run-state ignore", None)
+    denied.add(os.path.realpath(exclude))
+    name, fix = ready_check.run_state_ignore_row()
+    assert name == "run-state ignore" and fix and str(exclude) in fix and ".gitignore" not in fix, fix
