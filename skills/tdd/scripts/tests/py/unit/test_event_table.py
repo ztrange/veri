@@ -68,6 +68,18 @@ def test_every_key_of_every_event_and_every_string_common_key_has_a_format_from_
     assert not problems, "veri/event_table.py keys without a format from its closed set:\n" + "\n".join(problems)
 
 
+def test_an_empty_value_is_invalid_for_a_key_not_marked_empty_allowed_whatever_its_format_and_valid_for_one_so_marked():
+    from veri import event_table
+
+    declared = [(event, key) for event in event_table.EVENTS for key in event_table.keys(event)]
+    declared += [(None, key) for key in event_table.CONTEXT_KEYS]
+    marked = {(event, key) for event, key in declared if event_table.format(event, key)[1]}
+    unmarked_formats = {str(event_table.format(event, key)[0]) for event, key in set(declared) - marked}
+
+    assert {"text", "whole", "url", "sha", "json", "decimal"} <= unmarked_formats and ("merged", "tag") in marked
+    assert [(event, key) for event, key in declared if event_table.valid(event, key, "") != ((event, key) in marked)] == []
+
+
 @pytest.mark.tree_audit("reads every .sh and .md file under skills/ for event.sh call sites")
 def test_every_literal_event_and_key_of_an_event_sh_call_under_skills_is_declared_in_the_table():
     from event_roster import event_sh_call_sites
