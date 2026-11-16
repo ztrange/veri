@@ -96,12 +96,12 @@ def test_fed_history_answers_a_file_named_by_its_absolute_path_under_the_root_as
 
 
 def test_fed_history_answers_a_revision_followed_by_a_caret_as_its_first_parent_as_git_does(fed_history, tests_frozen):
-    fed_history(("base", "start", {"test_a.py": ONE}), ("next", "more", {"test_a.py": ONE + "\n\n" + TWO}),
-                ("last", "again", {"test_a.py": TWO}))
+    fed_history(("base", "start", {SUITE: ONE}), ("next", "more", {SUITE: ONE + "\n\n" + TWO}),
+                ("last", "again", {SUITE: TWO}))
     history = tests_frozen.case_history
 
     assert {
-        "text_at": [history.text_at(rev, "test_a.py") for rev in ("last^", "next^", "HEAD^", "base^")],
+        "text_at": [history.text_at(rev, SUITE) for rev in ("last^", "next^", "HEAD^", "base^")],
         "has_rev": [history.has_rev(rev) for rev in ("next^", "base^")],
         "commit_of": history.commit_of("last^"),
     } == {"text_at": [ONE + "\n\n" + TWO, ONE, ONE + "\n\n" + TWO, ""], "has_rev": [True, False], "commit_of": "next"}
@@ -109,18 +109,18 @@ def test_fed_history_answers_a_revision_followed_by_a_caret_as_its_first_parent_
 
 def test_fed_history_answers_a_ref_and_a_detached_revision_by_name_and_default_branch_with_the_default_it_is_fed(
         fed_history, tests_frozen):
-    fed_history(("base", "start", {"test_a.py": ONE}), ("next", "more", {"test_a.py": ONE + "\n\n" + TWO}),
-                refs={"origin/main": "base"}, detached={"pre": ("before the rebase", {"test_a.py": TWO})},
+    fed_history(("base", "start", {SUITE: ONE}), ("next", "more", {SUITE: ONE + "\n\n" + TWO}),
+                refs={"origin/main": "base"}, detached={"pre": ("before the rebase", {SUITE: TWO})},
                 default="main")
     history = tests_frozen.case_history
 
     assert {
         "default_branch": history.default_branch(),
         "ref": (history.has_rev("origin/main"), history.commit_of("origin/main"),
-                sorted(history.cases_at("origin/main", "test_a.py")), history.subject("origin/main")),
-        "detached": (history.has_rev("pre"), history.commit_of("pre"), history.text_at("pre", "test_a.py"),
-                     sorted(history.cases_at("pre", "test_a.py")), history.subject("pre")),
-        "line": history.revisions("test_a.py"),
+                sorted(history.cases_at("origin/main", SUITE)), history.subject("origin/main")),
+        "detached": (history.has_rev("pre"), history.commit_of("pre"), history.text_at("pre", SUITE),
+                     sorted(history.cases_at("pre", SUITE)), history.subject("pre")),
+        "line": history.revisions(SUITE),
     } == {
         "default_branch": "main",
         "ref": (True, "base", ["test_one"], "start\n"),
