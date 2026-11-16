@@ -15,6 +15,7 @@ import restart_marker
 import run_dir
 import run_pins
 from ledger import handed_out, ledger_steps
+from report import report_values
 
 USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>] [--pr]  (kinds include bailed, stopped; --pr only with bailed)"
 
@@ -71,13 +72,11 @@ def post_done(issue):
     return post_and_record(issue, "done", f"### ✅ Done — {pr}\n\n{metrics}")
 
 
-def read_report(path):
-    report = {}
-    for line in read_or_empty(path).splitlines():
-        key, sep, value = line.partition(": ")
-        if sep:
-            report[key] = value
-    return report
+def read_report(path, keys):
+    """{key: value} of each key's last `KEY: value` line; a key with none is absent."""
+    text = read_or_empty(path)
+    found = {key: report_values(text, key, occurrence="last", splitlines=True) for key in keys}
+    return {key: value for key, value in found.items() if value is not None}
 
 
 def missing_line(path, key):
@@ -90,10 +89,10 @@ def missing_file(path):
     return 2
 
 
-def load_report(path, keys):
+def load_report(path, keys, optional=()):
     if not os.path.exists(path):
         return None, missing_file(path)
-    report = read_report(path)
+    report = read_report(path, keys + optional)
     for key in keys:
         if key not in report:
             return None, missing_line(path, key)
@@ -102,7 +101,8 @@ def load_report(path, keys):
 
 def post_red(issue, note_file=None):
     red_out = ".tdd/develop-red.out"
-    report, code = load_report(red_out, ("TEST_PATH", "TARGET_TEST", "FAIL_OUTPUT", "PREDICTED_FAILURE"))
+    report, code = load_report(red_out, ("TEST_PATH", "TARGET_TEST", "FAIL_OUTPUT", "PREDICTED_FAILURE"),
+                               ("PREDICTION", "PREDICTION_NOTE"))
     if report is None:
         return code
     verdict = "prediction matched"
@@ -143,10 +143,10 @@ def post_refactor(issue, note_file=None):
     refactor_out = ".tdd/develop-refactor.out"
     if not os.path.exists(refactor_out):
         return missing_file(refactor_out)
-    report = read_or_empty(refactor_out).splitlines()
-    transforms = [line.removeprefix("RESULT: ") for line in report if line.startswith("RESULT: ")]
-    flagged = "".join(f"triangulation flagged: {line.removeprefix('FLAGS: ')}\n"
-                      for line in report if line.startswith(("FLAGS: overfit:", "FLAGS: overfit |")))
+    report = read_or_empty(refactor_out)
+    transforms = report_values(report, "RESULT", splitlines=True)
+    flagged = "".join(f"triangulation flagged: {flags}\n" for flags in report_values(report, "FLAGS", splitlines=True)
+                      if flags.startswith(("overfit:", "overfit |")))
     if transforms == ["nothing left to tidy"]:
         content = "no refactor warranted\n"
     else:

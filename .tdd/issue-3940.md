@@ -2,4 +2,4 @@
 
 - [x] same_reject.py finds its first REASON: line through report.py; its cases pass unedited ⟦criterion 1⟧ ⟦criterion 2⟧
 - [x] parse_adjudication.py finds its last ADJUDICATION: line through report.py; its cases pass unedited ⟦criterion 1⟧ ⟦criterion 2⟧
-- [ ] comment.py reads its report keys and its RESULT: and FLAGS: lines through report.py, with no line-start match or ": " split of its own; its cases pass unedited ⟦criterion 1⟧ ⟦criterion 2⟧
+- [x] comment.py reads its report keys and its RESULT: and FLAGS: lines through report.py, with no line-start match or ": " split of its own; its cases pass unedited ⟦criterion 1⟧ ⟦criterion 2⟧
