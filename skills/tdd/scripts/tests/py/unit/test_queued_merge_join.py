@@ -156,6 +156,34 @@ def test_joins_a_pull_request_whose_base_is_the_stack_rebasing_checking_and_push
         wt + "push --force-with-lease=stack:%s origin %s:refs/heads/stack" % (STACK_SHA, REBASED)]), err
 
 
+def spy_tracking(monkeypatch, world, answer=(0, "")):
+    """queued_merge._track swapped for an in-process spy: each call records the worktree it was given, whether the
+    stack had been pushed and how many pull request reads had been made by then."""
+    tracked = []
+
+    def track(worktree):
+        tracked.append((worktree, bool(world.stack_pushed()), len(world.pulls)))
+        return answer
+
+    monkeypatch.setattr(queued_merge, "_track", track)
+    return tracked
+
+
+@pytest.mark.parametrize("stack_line", ["veri: stack branch: stack\n", "# no stack named\n"])
+def test_a_join_calls_stack_pr_once_after_its_stack_push_and_merged_read_and_a_merge_with_no_stack_never_4172(
+        tmp_path, fake_processes, monkeypatch, run_cli, stack_line):
+    unmerged = {"state": "open", "merged": False, "head": {"sha": "9999999"}}
+    stacked = stack_line.startswith("veri")
+    world = World(tmp_path, stack_line=stack_line, **({} if stacked else dict(reads=(unmerged,) * 20, extra={
+        "git -C <wt> merge-base --is-ancestor 9999999 origin/main": (1, "", "")}))).install(fake_processes, monkeypatch)
+    tracked = spy_tracking(monkeypatch, world)
+
+    code, _, err = join(run_cli, world)
+
+    assert tracked == ([(world.wt, True, 2)] if stacked else []), err
+    assert code == 0 or not stacked
+
+
 def test_a_stack_push_refused_because_the_stack_moved_starts_again_from_the_fetch_and_never_forces(
         tmp_path, fake_processes, monkeypatch, run_cli):
     world = World(tmp_path, stack_pushes=(1, 0)).install(fake_processes, monkeypatch)
