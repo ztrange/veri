@@ -35,6 +35,19 @@ def test_main_asked_for_a_command_after_recording_its_time_prints_those_seconds_
     assert (rec_code, code, out.strip()) == (0, 0, "587")
 
 
+def test_4017_recording_a_time_writes_the_epoch_seconds_it_recorded_at_beside_the_record_and_leaves_the_record_and_read_form_as_before(
+        tmp_path, run_cli, full_tier_time, monkeypatch):
+    monkeypatch.setattr(full_tier_time, "now", lambda: 1763300000, raising=False)
+
+    rec_code, _, _ = run_cli(full_tier_time, ["--record", "587", "make test"], cwd=tmp_path)
+    code, out, _ = run_cli(full_tier_time, ["make test"], cwd=tmp_path)
+
+    at = tmp_path / ".tdd" / "full-tier-time-at.json"
+    assert at.is_file() and json.loads(at.read_text()) == {"make test": 1763300000}
+    assert json.loads((tmp_path / ".tdd" / "full-tier-time.json").read_text()) == {"make test": "587"}
+    assert (rec_code, code, out.strip()) == (0, 0, "587")
+
+
 def test_main_asked_for_a_command_when_the_record_file_is_not_parseable_exits_2_with_a_stderr_line(
         tmp_path, run_cli, full_tier_time):
     (tmp_path / ".tdd").mkdir()
@@ -233,7 +246,7 @@ def test_main_asked_to_record_creates_its_partial_file_next_to_the_record(
 
     run_cli(full_tier_time, ["--record", "42", "make test"], cwd=tmp_path)
 
-    assert dirs == [str(tmp_path / ".tdd")]
+    assert dirs and set(dirs) == {str(tmp_path / ".tdd")}
 
 
 def test_main_asked_for_a_command_whose_stored_time_has_more_digits_than_an_int_can_be_read_from_exits_2_with_one_stderr_line(

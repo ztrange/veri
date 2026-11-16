@@ -1,6 +1,6 @@
 # Plan for #4017 — PRD 028.3: `reuse` re-times a stale full-tier time
 
-- [ ] `full-tier-time.sh --record <seconds> <command>` writes the epoch seconds it recorded at for `<command>` into `.tdd/full-tier-time-at.json`, while `full-tier-time.json` still holds `{"<command>": "<seconds>"}` and the read form prints the seconds ⟦criterion 1⟧
+- [x] `full-tier-time.sh --record <seconds> <command>` writes the epoch seconds it recorded at for `<command>` into `.tdd/full-tier-time-at.json`, while `full-tier-time.json` still holds `{"<command>": "<seconds>"}` and the read form prints the seconds ⟦criterion 1⟧
 - [ ] `--record` replaces only `<command>`'s recorded-at entry, keeping the others, and replaces an unreadable `full-tier-time-at.json` whole ⟦criterion 1⟧
 - [ ] `VERI_FULL_TIER_MAX_AGE_DAYS` is a `tunables.TABLE` entry, default `7`, refusal "a whole number of days >= 1", and `run-conductor.sh` given `0` or a non-whole value exits 2 before preflight naming it and its value ⟦criterion 2⟧
 - [ ] Under `reuse`, a recorded time with no recorded-at (no `full-tier-time-at.json`, no entry for the command, or an unreadable file) makes `baseline-full-tier.sh` print `run`, exit 0, and write one stderr line naming the command, `unknown` and the knob's value ⟦criterion 4⟧
