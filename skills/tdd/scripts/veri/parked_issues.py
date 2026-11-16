@@ -62,7 +62,8 @@ def main(argv):
         if raw is None:
             return 2
         comments = items(raw, strict=False)
-        bodies = [c["body"] for c in comments if c["body"].startswith(github.PARKED_HEADING)]
+        # Only a trusted comment (github.trusted_comment) is the parked record: a stranger's cannot change the answer.
+        bodies = [c["body"] for c in comments if github.trusted_comment(c) and c["body"].startswith(github.PARKED_HEADING)]
         if not bodies:
             sys.stderr.write("parked-issues.sh: issue #%d has no parked comment\n" % number)
             return 2

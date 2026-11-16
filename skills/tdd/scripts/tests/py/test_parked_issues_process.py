@@ -12,7 +12,7 @@ for a in "$@"; do
   case "$a" in
     *page=[2-9]*) echo '[]'; exit 0 ;;
     */issues/7/comments*)
-      echo '[{"body":"### ⏸ Parked\\nCause: a bail\\nUnblock: a human reads the diff"}]'
+      echo '[{"author_association":"OWNER","user":{"login":"veri-operator"},"body":"### ⏸ Parked\\nCause: a bail\\nUnblock: a human reads the diff"}]'
       exit 0 ;;
     */issues*)
       echo '[{"number":7,"title":"Teach the verifier to refuse","labels":[{"name":"parked"}]}]'
