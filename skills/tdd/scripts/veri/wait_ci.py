@@ -1,6 +1,7 @@
 """wait-ci.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import base64
+import calendar
 import json
 import re
 import subprocess
@@ -14,6 +15,7 @@ from github import NoAnswer, run_gh, gh_api, gh_rest_list, pull
 from json_documents import documents
 import tunables
 import ci_marks
+import event_log
 from ci_decision import Crash, Loop, Need, Observation, Options, Record, Sleep, UNREAD_LIMIT, decide, decimal, retry_sleep
 from ci_on_pr import declared, trigger_lines
 
@@ -98,6 +100,24 @@ def pr_head(repo, pr, on_limit=None):
     return found.mergeable, found.head_sha, found.draft is True
 
 
+def since_rerun(sha, check_runs):
+    """<check_runs> less every one that completed before the last `ci-rerun` event of <sha> (ci-flake.sh's re-run of
+    its failed jobs), so a re-run is answered by its own runs, never the failed attempt; all of them with no such event.
+    A completed run whose completion time cannot be read counts as completed before."""
+    reruns = [int(e["ts"]) for e in event_log.events(RUN, "ci-rerun") if e.get("head") == sha]
+    if not reruns:
+        return check_runs
+
+    def before(run):
+        try:
+            done = calendar.timegm(time.strptime(run.get("completed_at") or "", "%Y-%m-%dT%H:%M:%SZ"))
+        except ValueError:
+            return True
+        return done < max(reruns)
+
+    return [r for r in check_runs if r.get("status") != "completed" or not before(r)]
+
+
 def sha_state(repo, sha, on_limit=None, draft=False):
     try:
         runs = gh_rest_list("repos/%s/commits/%s/check-runs" % (repo, sha), r'"check_runs": *\[ *\]')
@@ -115,7 +135,7 @@ def sha_state(repo, sha, on_limit=None, draft=False):
     statuses = status.stdout
     docs = documents(runs + statuses)
     states = [s["state"] for s in docs[-1].get("statuses") or []]
-    check_runs = [r for p in docs[:-1] for r in p.get("check_runs") or []]
+    check_runs = since_rerun(sha, [r for p in docs[:-1] for r in p.get("check_runs") or []])
     outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in check_runs]
     failed = [r.get("name", "") for r in check_runs
               if r.get("conclusion") and r["conclusion"].lower() not in PASSING]

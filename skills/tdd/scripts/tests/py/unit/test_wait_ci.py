@@ -2801,3 +2801,43 @@ def test_main_with_every_pr_read_timing_out_exits_2_naming_the_pr_once_its_deadl
 
     timed_out = "gh api repos/o/r/pulls/1: no answer after 5s (VERI_GH_TIMEOUT)\n"
     assert (code, out, err) == (2, "", timed_out * 3 + UNREADABLE)
+
+
+def test_4018_after_a_ci_rerun_event_for_the_head_a_check_run_completed_before_it_is_never_the_answer(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import time
+    rerun_at = 1763300000
+    stamp = lambda offset: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(rerun_at + offset))
+
+    def run(name, conclusion, offset, status="completed"):
+        return dict(check_run(name, FULL_SHA, status, conclusion), completed_at=stamp(offset) if conclusion else None)
+
+    def waited(name, page, rerun=True):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        if rerun:
+            (work / ".tdd" / "events.jsonl").write_text(json.dumps(
+                {"ts": rerun_at, "awake": 0, "issue": "4018", "event": "ci-rerun", "head": FULL_SHA, "run": "9",
+                 "files": "t"}) + "\n")
+        served(fake_processes, sha_bodies([page], (), "pending"))
+        return run_cli(wait_ci, [PR, "60", "60", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)[0]
+
+    observed = {
+        "old failure only": waited("old-red", [run("gates", "failure", -600)]) in (0, 1),
+        "old success only": waited("old-green", [run("gates", "success", -600)]) in (0, 1),
+        "old failure beside the re-run in progress": waited(
+            "old-red-new-running", [run("gates", "failure", -600), run("gates", None, 0, "in_progress")]),
+        "old failure beside a green re-run": waited(
+            "old-red-new-green", [run("gates", "failure", -600), run("gates", "success", 300)]),
+        "a red re-run": waited("new-red", [run("gates", "failure", 300)]),
+        "no re-run event": waited("no-event", [run("gates", "failure", -600)], rerun=False),
+    }
+
+    assert observed == {
+        "old failure only": False,
+        "old success only": False,
+        "old failure beside the re-run in progress": 3,
+        "old failure beside a green re-run": 0,
+        "a red re-run": 1,
+        "no re-run event": 1,
+    }
