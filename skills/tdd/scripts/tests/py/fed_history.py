@@ -110,8 +110,12 @@ class FedHistory:
         return {} if text is None else dict(cut_cases(text))
 
     def revisions(self, path, since=None):
+        """With `since` naming no revision of the line (unknown, or detached: the table holds no ancestry for it),
+        [] as case_history answers when git log fails."""
         path = self.path(path)
-        start = 0 if since is None else self.index(since) + 1
+        if since and self.index(since) is None:
+            return []
+        start = self.index(since) + 1 if since else 0
         return [self.names[at] for at in range(len(self.names) - 1, start - 1, -1) if self.touched(at, path)]
 
     def first_revision_with(self, needle, path):
