@@ -1245,6 +1245,25 @@ def test_a_switched_off_skip_posts_no_stale_reason_left_in_the_reason_file_3933(
     assert "SKIPPED (switched off)" in posted[0] and "a stale reason from another step" not in posted[0]
 
 
+@pytest.mark.parametrize("argv, heading", [
+    (["verify-green"], "### 🔎 verify-green — SKIPPED (switched off)"),
+    (["verify-revised", "green"], "### 🔎 verify-green (revised) — SKIPPED (switched off)"),
+])
+def test_a_switched_off_green_posts_skipped_never_pass_and_no_stale_reason_3935(monkeypatch, run_cli, tmp_path, argv, heading):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-101")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-green.exit").write_text("skipped\n")
+    (tmp_path / ".tdd" / "verify-green.reason").write_text("a stale reason from another step\n")
+
+    code, out, err = run_cli(comment, ["7", *argv], cwd=tmp_path)
+
+    assert (code, [body.splitlines()[0] for body in posted], "stale" in "".join(posted)) == (0, [heading], False)
+
+
 def test_verify_refactor_skipped_posts_the_skipped_heading_without_reading_the_verdict_or_reason_and_appends_a_comment_event(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")
