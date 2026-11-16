@@ -57,10 +57,11 @@ def _bounded(argv, limit, **kwargs):
     return run
 
 
-def _network_gate(pid, *cmd, keep=False):
-    """_gate for a git network call, bounded by VERI_GIT_NETWORK_TIMEOUT: the CompletedProcess, a TimedOut when killed."""
+def _network_gate(pid, *cmd, keep=False, limit=NETWORK):
+    """_gate for a network call, bounded by <limit> (VERI_GIT_NETWORK_TIMEOUT unless named): the CompletedProcess, a
+    TimedOut when killed."""
     return _bounded([os.path.join(SCRIPTS, "merge-lock.sh"), "gate", *(["--keep"] if keep else []), "--pid", pid, "--", *cmd],
-                    NETWORK)
+                    limit)
 
 
 def _gate_output(pid, *cmd):
@@ -392,15 +393,19 @@ def _locked(pid, repo, pr, worktree, branch, message, window):
     driver = tunables.get("VERI_GH_DRIVER")
     # The merge call keeps the lock even when it errors: an errored call may have landed, and the
     # settle window below re-reads the PR while still holding it, so a landed merge reaches _cleanup
-    # with the lock its release expects, and no other merge takes the lock mid-window.
+    # with the lock its release expects, and no other merge takes the lock mid-window. A call killed at VERI_GH_TIMEOUT
+    # is one that exited non-zero: it may have landed too.
+    def merge(*cmd):
+        return _network_gate(pid, *cmd, keep=True, limit="VERI_GH_TIMEOUT").returncode
+
     if driver == "graphql":
-        code = _gate(pid, *gh_merge, keep=True)
+        code = merge(*gh_merge)
     elif driver == "auto":
-        code = _gate(pid, *gh_merge, keep=True)
+        code = merge(*gh_merge)
         if code:
-            code = _gate(pid, *rest_merge, keep=True)
+            code = merge(*rest_merge)
     else:
-        code = _gate(pid, *rest_merge, keep=True)
+        code = merge(*rest_merge)
     pull, answered = None, False
     reads, sleep = window
     for attempt in range(reads):
