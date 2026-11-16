@@ -600,6 +600,20 @@ def test_rerecord_rebased_with_no_pre_rebase_sha_or_an_extra_argument_is_exit_2_
         [(2, "", True), (2, "", True)], ["issue-1.md"])
 
 
+def test_rerecord_rebased_in_a_repository_with_no_origin_head_exits_2_naming_that_ref_and_writes_no_record_3952(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    ledger = tmp_path / ".tdd" / "issue-1.md"
+    ledger.write_text("- [x] step\n")
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen.case_history.git, "default_branch", lambda cwd=None, remote=True: None)
+
+    code, out, err = run_cli(tests_frozen, ["rerecord-rebased", str(ledger), "abc1234"], cwd=tmp_path)
+
+    assert (code, out, "refs/remotes/origin/HEAD" in err, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (
+        2, "", True, ["issue-1.md"])
+
+
 def test_check_earlier_exits_0_for_a_python_def_case_sharing_its_name_with_another_unchanged_since_head_2543(
         tmp_path, run_cli, tests_frozen, monkeypatch, fake_processes):
     (tmp_path / ".tdd").mkdir()
