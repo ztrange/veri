@@ -485,3 +485,16 @@ def test_issue_4076_a_binary_question_file_exits_2_naming_the_file_and_that_it_i
 
     assert (code, calls, edited) == (2, [], [])
     assert err.startswith("park-issue.sh: cannot read the --question-file %s: not UTF-8 text (" % question), err
+
+
+@pytest.mark.parametrize("found", ["```\n#### Found\n```\n", "~~~\n#### Found\n~~~\n", "#### found\n", "#### Found \n"])
+def test_issue_4076_a_heading_only_inside_a_code_fence_or_in_another_case_or_with_a_trailing_space_is_not_found(
+        park, run_cli, tmp_path, found):
+    park_issue, calls, edited = park
+    question = tmp_path / "question.md"
+    question.write_text(QUESTION.replace("#### Found\n", found))
+
+    code, out, err = run_cli(park_issue, ["42", "cause", "unblock", "--question-file", str(question)])
+
+    assert (code, calls, edited) == (2, [], [])
+    assert "#### Found" in err
