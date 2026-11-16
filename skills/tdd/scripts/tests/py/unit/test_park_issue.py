@@ -456,3 +456,21 @@ def test_issue_4076_a_question_too_long_for_one_comment_is_cut_in_the_middle_and
     marker = re.search(r"\n\[(\d+) characters of the question file cut here[^\n]*\]\n", comment)
     full = "### ⏸ Parked\nCause: cause\nUnblock: unblock\n\n" + long_question
     assert len(comment) == len(full) - int(marker.group(1)) + len(marker.group(0))
+
+
+@pytest.mark.parametrize("tail", [
+    ["--question-file"],
+    ["--question-file", "{dir}/absent.md"],
+    ["--question-file", "{dir}"],
+    ["--question-file", "{dir}/question.md", "--question-file", "{dir}/question.md"],
+])
+def test_issue_4076_a_question_file_that_is_missing_unreadable_or_repeated_exits_2_naming_the_flag_and_writes_nothing(
+        park, run_cli, tmp_path, tail):
+    park_issue, calls, edited = park
+    (tmp_path / "question.md").write_text(QUESTION)
+
+    code, out, err = run_cli(park_issue, ["42", "cause", "unblock"] + [t.format(dir=tmp_path) for t in tail])
+
+    assert code == 2
+    assert "--question-file" in err
+    assert (calls, edited) == ([], [])

@@ -64,18 +64,28 @@ def block_on(number, blockers):
         os.remove(tmp)
 
 
-def split_question(argv):
-    """(argv without `--question-file <path>`, <path> or None)."""
+def read_question(argv):
+    """(argv without `--question-file <path>`, "\\n" + the file's text, or "" without the flag); (None, why) when the
+    flag has no path, is repeated, or names a file that cannot be read."""
     if "--question-file" not in argv:
-        return argv, None
+        return argv, ""
     at = argv.index("--question-file")
-    return argv[:at] + argv[at + 2:], argv[at + 1]
+    rest = argv[:at] + argv[at + 2:]
+    if at + 1 >= len(argv) or "--question-file" in rest:
+        return None, "--question-file takes one path, once"
+    try:
+        with open(argv[at + 1]) as f:
+            return rest, "\n" + f.read()
+    except (OSError, UnicodeDecodeError) as e:
+        return None, "cannot read the --question-file %s: %s" % (argv[at + 1], e.strerror or e)
 
 
 def main(argv):
-    argv, question_file = split_question(argv)
-    question = "\n" + open(question_file).read() if question_file else ""
-    missing = [h for h in QUESTION_HEADINGS if question_file and h not in question.splitlines()]
+    argv, question = read_question(argv)
+    if argv is None:
+        sys.stderr.write("park-issue.sh: %s\n" % question)
+        return 2
+    missing = [h for h in QUESTION_HEADINGS if question and h not in question.splitlines()]
     if missing:
         sys.stderr.write("park-issue.sh: the question file lacks the heading %s\n" % ", ".join(missing))
         return 2
