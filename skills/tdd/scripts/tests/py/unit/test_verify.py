@@ -317,6 +317,24 @@ def test_main_refuses_a_literal_model_word_in_verify_leaf_args_beside_a_resolved
         assert (captured.out, started) == (b"", [])
 
 
+@pytest.mark.parametrize("effort", ["HIGH", " high", "high\n", "max "])
+def test_4013_a_veri_effort_verifier_outside_the_five_levels_exits_2_naming_the_knob_and_the_levels_and_launches_nothing(
+        effort, tmp_path, monkeypatch, capfdbinary, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    write_inputs(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_EFFORT_VERIFIER", effort)
+    supervised = []
+    answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine", supervised=supervised)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    err = capfdbinary.readouterr().err.decode("utf-8")
+    assert (code, supervised, "VERI_EFFORT_VERIFIER" in err,
+            all(level in err for level in ("low", "medium", "high", "xhigh", "max"))) == (2, [], True, True), err
+
+
 def test_main_lets_a_literal_model_word_in_verify_leaf_args_stand_when_no_model_variable_is_set(
         tmp_path, monkeypatch, capfdbinary, fake_processes):
     monkeypatch.chdir(tmp_path)
