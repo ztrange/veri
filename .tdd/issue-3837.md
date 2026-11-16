@@ -4,6 +4,6 @@
 - [x] with `VERI_EVENT_STRICT=1`, the same for a key the table does not declare for that event, naming the event and the key ⟦criterion 2⟧
 - [x] with `VERI_EVENT_STRICT=1`, the same when a key the table marks required is missing, naming the event and the key ⟦criterion 3⟧
 - [x] without `VERI_EVENT_STRICT`, each of those three calls writes its line and exits 0 with nothing on stderr ⟦criterion 4⟧
-- [ ] the `hermetic_environment` fixture sets `VERI_EVENT_STRICT=1`: a case that emits an undeclared key through `event.mark` gets exit 2 ⟦criterion 5⟧
+- [x] the `hermetic_environment` fixture sets `VERI_EVENT_STRICT=1`: a case that emits an undeclared key through `event.mark` gets exit 2 ⟦criterion 5⟧
 - [x] the environment `run_conductor.py` gives a run's conductor never carries `VERI_EVENT_STRICT`, also when the launching environment sets it ⟦criterion 6⟧
 - [ ] `SCRIPTS.md`'s `event.sh` entry states the strict mode, graded by the issue's `## Requirements` rows ⟦criterion 7⟧

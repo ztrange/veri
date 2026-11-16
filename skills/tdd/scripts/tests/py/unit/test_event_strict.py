@@ -74,3 +74,7 @@ def test_without_strict_each_refused_call_writes_its_line_and_exits_0_saying_not
     assert code == 0
     assert [len(path.read_bytes().splitlines()) for path in journals(clone, tmp_path)] == [1, 1]
     assert err == ""
+
+
+def test_a_case_emitting_an_undeclared_key_through_event_mark_gets_exit_2_with_no_strict_setting_of_its_own(clone):
+    assert event.mark(str(clone), {"issue": "7"}, "comment", ["kind=red", "url=u", "colour=blue"]) == 2
