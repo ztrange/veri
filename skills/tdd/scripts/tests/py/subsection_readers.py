@@ -132,3 +132,20 @@ def stray_cases(entries, allowed, spec, subsection, rest, tests_py, own_path, do
         stray += [f"{rel}::{name}" for name in readers(entry, subsection, rest, spec, docs)
                   if f"{rel}::{name}" not in allowed and f"{path.name}::{name}" not in allowed]
     return stray
+
+
+def lost_cases(entries, allowed, spec, subsection, rest, tests_py, own_path, docs=None):
+    """Each `allowed` entry, sorted, that `readers` no longer finds reading the subsection: a whole-file entry
+    (keyed by the path under tests_py) none of whose cases reads it, a case entry (by either path form) that does
+    not. An entry naming no file in `entries` is lost too. `own_path`, the audit's own file, is skipped."""
+    found = set()
+    for entry in entries:
+        path = entry.path
+        if path == pathlib.Path(own_path).resolve():
+            continue
+        rel = str(path.relative_to(tests_py))
+        names = readers(entry, subsection, rest, spec, docs)
+        if names:
+            found.add(rel)
+        found.update(f"{form}::{name}" for name in names for form in (rel, path.name))
+    return sorted(key for key in allowed if key not in found)
