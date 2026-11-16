@@ -12,6 +12,7 @@ ENTRY_POINTS = {
     "VERI_BRANCH_SUITE": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_BASELINE_FULL_TIER": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_FULL_TIER_MAX_AGE_DAYS": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
+    "VERI_CI_FLAKE_RERUNS": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_COMMENT_CHUNK": ("veri.report_cache", ["refresh"], {}),
     "VERI_KILL_POLL": ("veri.supervise", ["develop-red", "true"], {"VERI_TIMEOUT": "900"}),
 }
@@ -126,6 +127,27 @@ def test_2847_baseline_full_tier_set_to_a_value_but_run_or_reuse_makes_run_condu
     assert "VERI_BASELINE_FULL_TIER" in tunables.TABLE
     assert (code, out, len(err.splitlines()), "VERI_BASELINE_FULL_TIER" in err, "bogus" in err, tuple(calls)) == (
         2, "", 1, True, True, ())
+
+
+@pytest.mark.parametrize("value", ["abc", "1.5", "-3"])
+def test_4018_ci_flake_reruns_not_a_whole_number_makes_run_conductor_exit_2_naming_it_and_the_value(
+        monkeypatch, tmp_path, run_cli, fake_processes, value):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.chdir(tmp_path)
+    for name in [n for n in os.environ if n.startswith("VERI_") and n != "VERI_VENV"]:
+        monkeypatch.delenv(name)
+    module, argv, env = ENTRY_POINTS["VERI_CI_FLAKE_RERUNS"]
+    calls = fake_processes()
+
+    assert "VERI_CI_FLAKE_RERUNS" in tunables.TABLE
+    assert tunables.resolve("VERI_CI_FLAKE_RERUNS") == (1, None)
+    assert tunables.TABLE["VERI_CI_FLAKE_RERUNS"].refusal == "a whole number"
+    assert tunables.parses("VERI_CI_FLAKE_RERUNS", "0")
+    code, out, err = run_cli(importlib.import_module(module), argv,
+                             env=dict(env, VERI_CI_FLAKE_RERUNS=value), cwd=tmp_path)
+
+    assert (code, out, len(err.splitlines()), "VERI_CI_FLAKE_RERUNS" in err, "'%s'" % value in err,
+            tuple(calls)) == (2, "", 1, True, True, ())
 
 
 @pytest.mark.parametrize("value", ["0", "abc", "1.5", "-3"])
@@ -308,7 +330,8 @@ def test_the_refusing_table_is_exactly_the_entries_that_state_a_refusal():
     assert set(tunables.TABLE) == {
         "VERI_CONDUCTOR_CTX_BUDGET", "VERI_RESET_GROWTH_CONDUCTOR",
         "VERI_KILL_POLL", "REVISE_BUDGET", "VERI_COMMENT_CHUNK", "VERI_REBASED_TIP_SUITE",
-        "VERI_BRANCH_SUITE", "VERI_BASELINE_FULL_TIER", "VERI_FULL_TIER_MAX_AGE_DAYS"}
+        "VERI_BRANCH_SUITE", "VERI_BASELINE_FULL_TIER", "VERI_FULL_TIER_MAX_AGE_DAYS",
+        "VERI_CI_FLAKE_RERUNS"}
 
 
 def test_resolve_refuses_nothing_for_a_name_that_states_no_refusal_and_get_reads_it(monkeypatch):

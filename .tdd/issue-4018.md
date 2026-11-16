@@ -1,6 +1,6 @@
 # Plan for #4018 — PRD 028.2: a red CI gets a flake check before it spends the repair step
 
-- [ ] `VERI_CI_FLAKE_RERUNS` is a `tunables.TABLE` entry, default `1`, a whole number >= 0, refusal "a whole number", and `run-conductor.sh` given a value that is not a whole number exits 2 before preflight naming it and its value ⟦criterion 1⟧
+- [x] `VERI_CI_FLAKE_RERUNS` is a `tunables.TABLE` entry, default `1`, a whole number >= 0, refusal "a whole number", and `run-conductor.sh` given a value that is not a whole number exits 2 before preflight naming it and its value ⟦criterion 1⟧
 - [ ] `ci-flake.sh <n> <head-sha> <run-id> '<alone-cmd>' <log-file>` reads from a `gh run view --log-failed` log whose lines carry gh's job, step and timestamp prefix the test targets `rerun-alone.sh` reads from the unprefixed runner output, and runs each once alone through `<alone-cmd>` with the target as `$1` ⟦criterion 2⟧
 - [ ] It exits 1, writing no event and making no re-run, when the log names no target or a target stays red alone ⟦criterion 4⟧
 - [ ] `JOURNAL.md` and `veri/event_table.py` declare `ci-rerun` and `ci-flake` with keys `head`, `run`, `files`, and the sample journal fixture holds them ⟦criterion 9⟧
