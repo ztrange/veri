@@ -16,7 +16,15 @@
 # stdout:  the split criteria, one bare text per line (what add-ledger-step.sh takes as
 #          positional arguments) · or the needs-user answer verbatim (what the user reads on
 #          the issue) · or nothing.
-# exit:    0 split · 1 needs the user · 3 neither. Never 2: a leaf that volunteered neither
-#          answer gave an answer, not a plumbing failure, so this is veri's "nothing to do".
+# exit:    0 split · 1 needs the user · 3 neither. Never 2 on a report: a leaf that volunteered
+#          neither answer gave an answer, not a plumbing failure, so this is veri's "nothing to do".
+#
+# usage: exhausted-outcome.sh --step-ahead <red-test-id> < leaf-output.txt
+#
+# Run only after the plain read exits 3: reads the leaf's `STEP_AHEAD: <file>::<case>` lines,
+# the older cases a test-only step ahead of this one would update.
+# stdout:  one line `prep <file>::<case> …` naming each, skipping <red-test-id>'s case · or nothing.
+# exit:    0 printed · 3 no line remains · 2 a value with no `::`, naming no existing file, or
+#          naming a case its file does not define (stdout empty, stderr naming the line).
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/exhausted_outcome.py" "$@"
