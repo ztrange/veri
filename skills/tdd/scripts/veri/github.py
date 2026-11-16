@@ -86,6 +86,10 @@ def bounded(argv, run=None, **kwargs):
     with contextlib.ExitStack() as cleanup:
         if argv[0] == "gh":
             argv = _redacted_argv(argv, cleanup)
+            if isinstance(kwargs.get("input"), str):
+                kwargs["input"] = redact(kwargs["input"])
+            elif isinstance(kwargs.get("input"), bytes):
+                kwargs["input"] = os.fsencode(redact(os.fsdecode(kwargs["input"])))
         try:
             return (run or subprocess.run)(argv, timeout=limit, **kwargs)
         except subprocess.TimeoutExpired:
