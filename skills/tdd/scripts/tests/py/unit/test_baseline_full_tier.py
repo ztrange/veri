@@ -140,6 +140,21 @@ def test_4017_reuse_with_a_recorded_time_but_no_recorded_at_prints_run_and_one_s
     assert ("'make test'" in err, "unknown" in err, "VERI_FULL_TIER_MAX_AGE_DAYS=7" in err) == (True, True, True)
 
 
+def test_4017_after_a_stale_run_recording_new_seconds_makes_the_next_call_print_reuse_with_the_new_seconds(
+        tmp_path, run_cli, baseline_full_tier, monkeypatch):
+    full_tier_time = importlib.import_module("veri.full_tier_time")
+    monkeypatch.setattr(full_tier_time, "now", lambda: 1763300000)
+    _recorded(tmp_path, '{"make test": %d}' % (1763300000 - 30 * 86400))
+    env = {"VERI_BASELINE_FULL_TIER": "reuse"}
+
+    stale = run_cli(baseline_full_tier, ["4017", "make test"], env=env, cwd=tmp_path)
+    recorded = run_cli(full_tier_time, ["--record", "801", "make test"], cwd=tmp_path)
+    fresh = run_cli(baseline_full_tier, ["4017", "make test"], env=env, cwd=tmp_path)
+
+    assert (stale[0], stale[1].strip(), recorded[0], fresh[0], fresh[1].strip(), fresh[2]) == (
+        0, "run", 0, 0, "reuse 801", "")
+
+
 @pytest.mark.parametrize("age, knob, verdict, days", [
     (7 * 86400, None, "reuse 727", None),
     (7 * 86400 + 1, None, "run", "7"),
