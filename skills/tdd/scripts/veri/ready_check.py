@@ -122,7 +122,7 @@ def granted_scopes(answer):
 
 
 def origin_is_https():
-    return git.git("remote", "get-url", "origin", capture_output=True, text=True).stdout.strip().startswith("https://")
+    return git.git("remote", "get-url", "--push", "origin", capture_output=True, text=True).stdout.strip().startswith("https://")
 
 
 def token_scopes_row():
