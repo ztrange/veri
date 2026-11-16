@@ -15,10 +15,6 @@ MARKERS = (
 )
 
 ALLOWED = {
-    "test_skill_leaf_launch.py": "runs the leaf-launch guard over the document's launch lines, Red's among them",
-    "test_skill_leaf_env.py": "runs every launch line against a stub claude and checks what the leaf saw",
-    "unit/test_skill_red_untestable.py::test_window_given_a_dotted_start_pattern_starts_at_the_dotted_line_not_at_the_wildcard_match":
-        "tests heading_window on a scratch file; goes with the helper, not Red's prose",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852":
         "names the Red heading only to exclude it",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
@@ -42,3 +38,5 @@ def test_every_remaining_case_reading_the_red_subsection_by_its_content_is_on_th
     subsection, rest = _subsection_and_rest()
     stray = subsection_readers.stray_cases(tests_py_index, ALLOWED, SPEC, subsection, rest, TESTS_PY, __file__)
     assert stray == [], "cases read the Red subsection by content and are neither mechanical nor allow-listed:\n" + "\n".join(stray)
+    lost = subsection_readers.lost_cases(tests_py_index, ALLOWED, SPEC, subsection, rest, TESTS_PY, __file__)
+    assert lost == [], "allow-listed entries no longer read the Red subsection:\n" + "\n".join(lost)

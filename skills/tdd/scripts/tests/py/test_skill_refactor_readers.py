@@ -54,10 +54,17 @@ def stray_cases(entries, allowed):
     return subsection_readers.stray_cases(entries, allowed, SPEC, subsection, rest, TESTS_PY, __file__, _other_docs())
 
 
+def lost_cases(entries, allowed):
+    subsection, rest = _subsection_and_rest()
+    return subsection_readers.lost_cases(entries, allowed, SPEC, subsection, rest, TESTS_PY, __file__, _other_docs())
+
+
 @pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
 def test_every_remaining_case_reading_the_refactor_loop_subsection_by_its_content_is_on_the_mechanical_allow_list(tests_py_index):
     stray = stray_cases(tests_py_index, ALLOWED)
     assert stray == [], "cases read the Refactor loop subsection by content and are neither mechanical nor allow-listed:\n" + "\n".join(stray)
+    lost = lost_cases(tests_py_index, ALLOWED)
+    assert lost == [], "allow-listed entries no longer read the Refactor loop subsection:\n" + "\n".join(lost)
 
 
 def test_2220_sweep_flags_a_case_reading_the_refactor_loop_subsection_until_it_is_on_the_allow_list(tmp_path, monkeypatch):

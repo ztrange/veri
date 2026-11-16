@@ -9,6 +9,13 @@ import test_skill_red_readers
 import test_skill_refactor_readers
 
 
+def _allow_lists_cut_to(index, monkeypatch, *audits):
+    """The audits run over a three-file index: an allow-list entry naming a file outside it is not lost, only unindexed."""
+    for audit in audits:
+        forms = {form for entry in index for form in (str(entry.path.relative_to(audit.TESTS_PY)), entry.path.name)}
+        monkeypatch.setattr(audit, "ALLOWED", {k: v for k, v in audit.ALLOWED.items() if k.partition("::")[0] in forms})
+
+
 @pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
 def test_two_readers_audits_in_one_session_parse_each_test_file_once_2168(tests_py_index, monkeypatch):
     test_file = type(tests_py_index[0])
@@ -23,6 +30,7 @@ def test_two_readers_audits_in_one_session_parse_each_test_file_once_2168(tests_
         return real_parse(source, *args, **kwargs)
 
     monkeypatch.setattr(ast, "parse", spy)
+    _allow_lists_cut_to(index, monkeypatch, test_skill_red_readers, test_skill_green_readers)
     test_skill_red_readers.test_every_remaining_case_reading_the_red_subsection_by_its_content_is_on_the_mechanical_allow_list(index)
     test_skill_green_readers.test_every_remaining_case_reading_the_green_subsection_by_its_content_is_on_the_mechanical_allow_list(index)
 
@@ -58,6 +66,7 @@ def test_two_readers_audits_in_one_session_walk_each_test_file_once_2170(tests_p
         return real_walk(node)
 
     monkeypatch.setattr(ast, "walk", spy)
+    _allow_lists_cut_to(index, monkeypatch, test_skill_red_readers, test_skill_green_readers)
     test_skill_red_readers.test_every_remaining_case_reading_the_red_subsection_by_its_content_is_on_the_mechanical_allow_list(index)
     test_skill_green_readers.test_every_remaining_case_reading_the_green_subsection_by_its_content_is_on_the_mechanical_allow_list(index)
 
@@ -80,6 +89,7 @@ def test_phased_and_refactor_loop_audits_in_one_session_walk_each_test_file_once
         return real_walk(node)
 
     monkeypatch.setattr(ast, "walk", spy)
+    _allow_lists_cut_to(index, monkeypatch, test_skill_phased_readers, test_skill_refactor_readers)
     test_skill_phased_readers.test_every_remaining_case_reading_the_phases_step_subsection_by_its_content_is_on_the_mechanical_allow_list(index)
     test_skill_refactor_readers.test_every_remaining_case_reading_the_refactor_loop_subsection_by_its_content_is_on_the_mechanical_allow_list(index)
 

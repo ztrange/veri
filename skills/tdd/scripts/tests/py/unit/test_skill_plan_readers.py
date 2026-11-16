@@ -6,6 +6,7 @@ import warnings
 import pytest
 
 import skill_sections
+import subsection_readers
 
 TESTS_PY = pathlib.Path(__file__).resolve().parent.parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
@@ -16,14 +17,20 @@ HEADINGS = (
     "### 2c. Verify the plan (blind)",
 )
 
-ALLOWED = {
-    "test_skill_leaf_launch.py": "whole-file launch-line audits, the verdict-plan line included",
-    "test_skill_leaf_env.py": "runs every SKILL.md launch line through supervise.sh against a stub",
-    "test_skill_guard_subject_paragraph.py::test_skill_md_guard_subject_paragraph_names_a_pytest_guard_suite_and_conftest_and_says_the_path_is_matched_exactly_1775":
-        "no PL row yet",
-    "test_skill_suite_runs.py::test_1568_skill_md_runs_suite_reported_sh_develop_transform_after_the_refactor_kind_transform_leaf_and_before_its_blind_transform_verifier":
-        "no PL row yet",
-}
+ALLOWED = {}
+
+
+# The four headings are the markers; `lost_cases` judges an allow-list entry by `subsection_readers.readers`.
+SPEC = subsection_readers.Subsection(HEADINGS[0], HEADINGS, source_names=r"SKILL\w*|skill_sections")
+
+
+def _flat_sections_and_rest():
+    text = SKILL_MD.read_text(encoding="utf-8")
+    inside = [skill_sections.section_of(text, heading, str(SKILL_MD)) for heading in HEADINGS]
+    rest = text
+    for block in inside:
+        rest = rest.replace(block, "\n")
+    return subsection_readers.flat("\n".join(inside)), subsection_readers.flat(rest)
 
 
 def _flat(text):
@@ -111,6 +118,8 @@ def test_every_remaining_case_reading_skill_md_s_read_the_issue_scope_and_plan_s
             if f"{rel}::{name}" not in ALLOWED and f"{path.name}::{name}" not in ALLOWED:
                 strays.append(f"{rel}::{name}")
     assert strays == [], "cases read steps 1, 2, 2b or 2c by content and are neither mechanical nor allow-listed:\n" + "\n".join(strays)
+    lost = subsection_readers.lost_cases(tests_py_index, ALLOWED, SPEC, *_flat_sections_and_rest(), TESTS_PY, __file__)
+    assert lost == [], "allow-listed entries no longer read steps 1, 2, 2b or 2c:\n" + "\n".join(lost)
 
 
 ALLOW_LIST_HOLDERS = (
