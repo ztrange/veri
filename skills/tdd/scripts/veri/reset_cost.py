@@ -88,11 +88,21 @@ def _figure(value):
 
 
 def _read_records(path):
+    """(the transcript's JSON-object records, the count of its other non-blank lines); a file that cannot be read is a Failure."""
     try:
         with open(path) as f:
-            return [json.loads(line) for line in f if line.strip()]
-    except (OSError, ValueError, UnicodeDecodeError):
+            lines = [line for line in f if line.strip()]
+    except (OSError, UnicodeDecodeError):
         raise Failure("reset-cost.sh: unreadable transcript %s\n" % path)
+    records = []
+    for line in lines:
+        try:
+            record = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(record, dict):
+            records.append(record)
+    return records, len(lines) - len(records)
 
 
 def dev_resets(lines):
@@ -115,7 +125,9 @@ def dev(lane):
     if not resets:
         return None
     transcripts = list(dict.fromkeys(l.partition("=")[2] for l in lines if l.startswith("transcript=")))
-    records = sorted((r for t in transcripts for r in requests(_read_records(t)) if r.get("timestamp")),
+    read = [_read_records(t) for t in transcripts]
+    skipped = sum(n for _, n in read)
+    records = sorted((r for records, _ in read for r in requests(records) if r.get("timestamp")),
                      key=lambda r: _epoch(r["timestamp"]))
     rows = []
     measured = []
@@ -132,7 +144,8 @@ def dev(lane):
                 measured += after[:upto + 1]
             g = per_request([r for r in after if _epoch(r["timestamp"]) >= back])
         rows.append((at, k, g))
-    sources = "K and g from %s at the reset-at and recovered-at lines of %s" % (", ".join(transcripts) or "no transcript", path)
+    sources = ("K and g from %s at the reset-at and recovered-at lines of %s, %d transcript lines that are not a JSON object skipped"
+               % (", ".join(transcripts) or "no transcript", path, skipped))
     return rows, measured, sources, "VERI_RESET_GROWTH_DEV", tunables.get("VERI_RESET_GROWTH_DEV")
 
 
