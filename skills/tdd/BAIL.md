@@ -60,7 +60,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   adjudication (`Read` `<base directory>/ADJUDICATE.md`): it keeps this cause and class.
 - `ci-conflict` — a readied PR still conflicted with its base branch after the CI step's one
   rebase, so no workflow could start → **system** failure (CI could not answer, not the
-  methodology).
+  methodology). The bail can follow an adjudication (`Read` `<base directory>/ADJUDICATE.md`): it keeps
+  this cause and class.
 - `ci-red` — a readied PR's CI check failed again after a CI repair step → **process**
   failure (CI answered, and the repair did not fix what it said).
 - `suite-red` — the Draft PR step's full run was red again after a `⟦suite-repair⟧` step →
