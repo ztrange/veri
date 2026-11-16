@@ -57,3 +57,13 @@ def test_a_line_under_the_table_counts_the_leaf_usage_events_lacking_first_turn_
 
     line = "Leaf usage events without first-turn figures, not in the table: 2"
     assert (partial[-4:-1], line in whole) == (["| developer | m-1 | 1 | 1 | 1 | 1 |", "", line], False)
+
+
+def test_with_no_usage_event_carrying_first_turn_fields_the_report_has_no_launch_cost_section(
+        tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [usage("developer", "m-1"), usage("conductor", "m-1", (1, 1, 1))])
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert ("Launch cost" in out, "first-turn" in out) == (False, False)

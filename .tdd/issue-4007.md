@@ -4,4 +4,4 @@
 - [x] a log with no `assistant` record carrying `usage` gets none of the three fields, the event otherwise unchanged, the exit code today's ⟦criterion 2⟧
 - [x] `metrics.sh <n>` prints `#### Launch cost, by role`: per (actor, model) of usage events carrying the fields, conductor excluded, the leaves and the three sums in tokens, no dollar figure ⟦criterion 3⟧
 - [x] under the table, a line names how many leaf usage events lacked the fields; none lacking, no line ⟦criterion 4⟧
-- [ ] with no usage event carrying the fields, the report has no `#### Launch cost, by role` section ⟦criterion 5⟧
+- [x] with no usage event carrying the fields, the report has no `#### Launch cost, by role` section ⟦criterion 5⟧
