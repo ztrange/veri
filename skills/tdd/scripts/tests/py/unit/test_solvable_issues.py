@@ -340,6 +340,42 @@ def test_main_takes_an_opted_in_issue_only_when_its_author_is_owner_member_or_co
     assert capsys.readouterr().out == printed
 
 
+def stranger(number, *labels):
+    issue = dict(opted_in(number), author_association="NONE")
+    issue["labels"] = issue["labels"] + [{"name": label} for label in labels]
+    return issue
+
+
+@pytest.mark.parametrize("env, label, printed", [({}, "author-read", "5\n6\n"), ({"VERI_AUTHOR_LABEL": "seen"}, "seen", "5\n6\n"),
+                                                 ({"VERI_AUTHOR_LABEL": "seen"}, "author-read", "6\n")])
+def test_main_takes_a_stranger_s_issue_carrying_the_label_veri_author_label_names_3977(
+        fake_processes, tmp_path, monkeypatch, capsys, solvable_issues, env, label, printed):
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(fake_processes)
+    (tmp_path / "issues.json").write_text(json.dumps([stranger(5, label), opted_in(6)]))
+    (tmp_path / "prs.json").write_text("[]")
+
+    solvable_issues.main([])
+
+    assert capsys.readouterr().out == printed
+
+
+def test_main_refuses_an_empty_veri_author_label_with_2_and_refused_if_empty_s_line_3977(
+        fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
+    monkeypatch.setenv("VERI_AUTHOR_LABEL", "")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(fake_processes)
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(6)]))
+    (tmp_path / "prs.json").write_text("[]")
+
+    code = solvable_issues.main([])
+
+    assert (code, capsys.readouterr()) == (
+        2, ("", "solvable-issues: VERI_AUTHOR_LABEL is set but empty: name a label or leave it unset\n"))
+
+
 def test_main_claims_an_issue_only_by_an_open_pr_whose_head_is_in_this_repository_3973(fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
     # A stranger's fork PR saying Closes #7 must not take #7 off the queue (PRD 022.14, CL2); the same PR from a branch
     # of this repository claims it. Both shapes: gh pr list's isCrossRepository and REST head.repo against base.repo.
