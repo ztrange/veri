@@ -6,4 +6,4 @@
 - [x] the same with the prefix a symlink to a closed directory of the user's own ⟦criterion 2⟧
 - [x] the same with the prefix a closed directory owned by another user ⟦criterion 2⟧
 - [x] the same with the prefix a regular file, named as not a directory
-- [ ] CLAUDE.md's bytecode-cache paragraph names the refusal (CM161), graded ⟦criterion 3⟧
+- [x] CLAUDE.md's bytecode-cache paragraph names the refusal (CM161), graded ⟦criterion 3⟧

@@ -129,7 +129,9 @@ suites, or script run as a subprocess.
 `python3`). Admission rule: no process but the interpreter. Each case times out at 30 s
 (`VERI_PYTEST_TIMEOUT`, `@pytest.mark.timeout(n)`), a `process` case, or a `tree_audit` case, with no `timeout` mark of its own at 90 s
 (`PROCESS_CASE_TIMEOUT` in `tests/py/conftest.py`), since load stretches a real process and a tree audit's cost scales with the whole tree; an explicit mark wins; a wait inside a case bounds itself below `VERI_PYTEST_TIMEOUT` (30 s by default), or its failure path is unreachable because pytest-timeout fires first; the bytecode cache
-(`PYTHONPYCACHEPREFIX`, at `VERI_PYCACHE`, default `${TMPDIR:-/tmp}/veri-pycache-<uid>`, which the Makefile sets when unset) persists between runs, and a manifest of source hashes keeps a changed module,
+(`PYTHONPYCACHEPREFIX`, at `VERI_PYCACHE`, default `${TMPDIR:-/tmp}/veri-pycache-<uid>`, which the Makefile sets when unset) persists between runs
+(`make test` and `make unit` create it with mode `0700` and refuse, exit 2 before any suite, one that is not a directory owned by the
+current user and writable by neither group nor others, a symlink included, naming the path and the fix: remove it, or set `VERI_PYCACHE`), and a manifest of source hashes keeps a changed module,
 a same-second mutation included, from being served a stale `.pyc`: before importing, the leg drops
 every `.pyc` the manifest does not vouch for by the hash of its source, and `.opt-N` files always; a pytest-rewritten `.pyc` is
 vouched for like any other, recorded only when its header carries its source's mtime and size and the source did not change after the run began
