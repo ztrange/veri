@@ -97,14 +97,21 @@ def label_row():
     return f"label {label}", None if label in names else f"create the `{label}` label in the repository"
 
 
+class Neutral(str):
+    """A row's verdict that is neither ok nor fail: printed as its own word, and counted as no fail."""
+
+
+NOT_VERIFIABLE = Neutral("not verifiable")
+
+
 def granted_scopes():
-    """The scopes `gh api -i user`'s X-OAuth-Scopes header lists."""
+    """The scopes `gh api -i user`'s X-OAuth-Scopes header lists; None with no such header (a fine-grained token)."""
     head = gh("api", "-i", "user").stdout.split("\r\n\r\n", 1)[0].split("\n\n", 1)[0]
     for line in head.splitlines():
         name, _, value = line.partition(":")
         if name.strip().lower() == "x-oauth-scopes":
             return [scope.strip() for scope in value.split(",") if scope.strip()]
-    return []
+    return None
 
 
 def origin_is_https():
@@ -114,6 +121,8 @@ def origin_is_https():
 def token_scopes_row():
     needed = ["repo", "workflow"] if origin_is_https() else ["repo"]
     granted = granted_scopes()
+    if granted is None:
+        return "token scopes", NOT_VERIFIABLE
     missing = [scope for scope in needed if scope not in granted]
     return "token scopes", "gh auth refresh -s " + ",".join(missing) if missing else None
 
