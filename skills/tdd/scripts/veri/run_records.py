@@ -102,6 +102,17 @@ def read(issue, name, cwd):
     return os.fsdecode(shown.stdout) if shown.returncode == 0 else None
 
 
+def delete(issue, cwd):
+    """Delete origin's `refs/veri/runs/<issue>` from the clone at <cwd>, ended after VERI_GIT_NETWORK_TIMEOUT seconds;
+    None when deleted, absent on origin, or there is no origin; else the reason, one line. Never raises."""
+    if not git.ok("remote", "get-url", "origin", cwd=cwd):
+        return None
+    done = git.network("push", "origin", "--delete", ref(issue), cwd=cwd)
+    if done.returncode == 0 or "remote ref does not exist" in (done.stderr or ""):
+        return None
+    return " ".join((done.stderr or "exit %d" % done.returncode).split())
+
+
 def after_push():
     """push, for the issue the current branch `tdd/<n>-<slug>` names, from the working directory; nothing on another
     branch. A git failure is one stderr line and never an exit code: the records mirror the run."""

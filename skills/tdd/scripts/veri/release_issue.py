@@ -7,6 +7,7 @@ import sys
 import event
 import github
 import run_dir
+import run_records
 import tunables
 
 USAGE = "usage: release-issue.sh <issue-number>\n"
@@ -56,6 +57,10 @@ def main(argv):
             sys.stderr.write("release-issue.sh: no answer from gh releasing #%s; re-run it\n" % number)
             return 2
     open(run_dir.issue_file(event.toplevel(), number, "-released"), "w").close()
+    # A released run's carried pin must not be honoured on another machine: its records go with the claim.
+    failed = run_records.delete(number, event.toplevel() or ".")
+    if failed:
+        sys.stderr.write("release-issue.sh: %s not deleted on origin: %s\n" % (run_records.ref(number), failed))
     return 0
 
 
