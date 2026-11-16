@@ -242,6 +242,7 @@ DEFAULTED = {
     "VERI_CI_NO_RUN_WAIT": ("600", "600", None),
     "VERI_CI_QUEUE_WAIT": ("3600", "3600", None),
     "VERI_PRIORITY_LABEL": ("priority", "priority", None),
+    "VERI_AUTHOR_LABEL": ("author-read", "author-read", None),
     "VERI_PAGE_RETRIES": ("3", "3", None),
     "VERI_PAGE_RETRY_SLEEP": ("2", "2", None),
     "VERI_WORKQUEUE_LOCK_WAIT": ("30", "30", None),

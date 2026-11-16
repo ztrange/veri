@@ -49,6 +49,19 @@ def priority_label():
     return tunables.get("VERI_PRIORITY_LABEL")
 
 
+def author_label():
+    """The label that takes a stranger's issue once read (PRD 022.4), or None when VERI_AUTHOR_LABEL is set but empty."""
+    if refused_if_empty("VERI_AUTHOR_LABEL"):
+        return None
+    return tunables.get("VERI_AUTHOR_LABEL")
+
+
+def author_read(issue, label):
+    """Whether <issue>'s author may have it taken: an OWNER, MEMBER or COLLABORATOR (github.trusted_author), or it
+    carries <label>, the operator's mark that a stranger's issue was read."""
+    return trusted_author(issue, ISSUE_AUTHOR_ASSOCIATIONS) or carries(issue, label)
+
+
 def band(issue, priority):
     """An issue's selection band: priority bugs, then priority, then bugs the groom did not call low-risk, then the rest."""
     if carries(issue, priority):
@@ -103,7 +116,8 @@ def solvable_in_scope():
     """(exit code, the solvable issue numbers) for the configured scope; 2 when a label is unusable."""
     label = scope_label()
     priority = label and priority_label()
-    if label is None or priority is None:
+    author = priority and author_label()
+    if label is None or priority is None or author is None:
         return 2, []
     return solvable(label, priority)
 
@@ -134,6 +148,7 @@ def report_inherited(ordered, bands, origin):
 
 def select(label, priority="priority", repo=None):
     """(exit code, the solvable issue numbers in selection order) for the opt-in <label>."""
+    author = tunables.get("VERI_AUTHOR_LABEL")
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
     try:
@@ -167,7 +182,7 @@ def select(label, priority="priority", repo=None):
     except NoAnswer:
         return 2, []
     survivors = [issue for issue in issues
-                 if is_open(issue) and carries(issue, label) and trusted_author(issue, ISSUE_AUTHOR_ASSOCIATIONS) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
+                 if is_open(issue) and carries(issue, label) and author_read(issue, author) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
                  and not in_flight(main_tree, issue["number"])
                  and all(n not in open_issues for n in blockers[issue["number"]])]
     if not survivors:
@@ -200,7 +215,8 @@ def main(argv):
         skip = running_numbers() | {int(number) for number in starting}
     label = scope_label()
     priority = label and priority_label()
-    if label is None or priority is None:
+    author = priority and author_label()
+    if label is None or priority is None or author is None:
         return 2
     code, numbers = select(label, priority, repo)
     numbers = [number for number in numbers if int(number) not in skip]

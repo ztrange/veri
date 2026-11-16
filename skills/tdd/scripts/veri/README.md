@@ -185,6 +185,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 |---|---|---|
 | `REVISE_BUDGET` | `2` | a whole number |
 | `VERI_ADJUDICATE_BUDGET` | `2` | its readers' own words |
+| `VERI_AUTHOR_LABEL` | `author-read` | its readers' own words |
 | `VERI_BASELINE_FULL_TIER` | `reuse` | run or reuse |
 | `VERI_BRANCH_SUITE` | `local` | local or ci |
 | `VERI_CALLER_DIR` | `.` | its readers' own words |
