@@ -19,7 +19,7 @@ module or a conftest fixture has no bullet below, or a bullet names one that doe
 - `make unit` runs `-m "not process and not tree_audit"` over `tests/py/unit/` only (Makefile `unit:`); `make test` runs
   everything under `tests/py/` through `veri/pytest_leg.py`, in two passes: the non-`serial` cases, then the `serial` ones.
   `make test TESTS="<file or node id> ..."` runs only those, in the same invocation. Policy: root `CLAUDE.md`, "Testing idiom".
-- **A file lives in `unit/` only if `veri/fast_tier_guard.py` names none of its calls** (a process start, a real wait),
+- **A file lives in `unit/` only if `tests/py/fast_tier_guard.py` names none of its calls** (a process start, a real wait),
   enforced both ways by `test_fast_tier_guard.py`. So `make unit` runs `tests/py/unit/` only, and placement is judged per FILE:
   one case that calls `subprocess` (or sleeps) keeps every small case beside it out of `make unit`, and they run only in
   `make test` and as affected suites. So a file with a process case is split: its small cases move to `unit/test_<name>.py`,
@@ -40,6 +40,8 @@ Directly under `tests/py/`, beside `conftest.py`; import them flat (`from repo_b
 
 - `case_size_guards.py`: the admission guards (autouse fixtures that fail a small case which starts git or a test runner, lists a repo directory, forces a failure through permission bits ...), their exemption tables, `register_markers` and the collection hook; conftest imports every name, so `conftest.<name>` works.
 - `dispatch_world.py`: `FakeWorld(*ticks, role_state=(), unreadable=False)`, a scripted in-memory adapter for `dispatch.World`; the keys a tick may carry are in its docstring.
+- `event_roster.py`: `emitted_events()` (every event name emitted under `skills/`, found by scanning for the shell and in-process emit calls) and `documented_events(text)`; behind `unit/test_journal_event_roster.py`.
+- `fast_tier_guard.py`: the fast tier's admission guard, `offences(root, exemptions)` names the lines of test files that start a process or wait; behind `test_fast_tier_guard.py`.
 - `leaf_waits.py`: `leaf_started(read_pid, sleep, clock)` and `leaf_left(pid, alive, sleep, clock)`, waits on a real leaf bounded far above load delay; `sleep` and `clock` are injected so a small case drives them.
 - `pass_marker.py`: `write_pass_marker(root, step, head, tree="tree")` writes a check-earlier pass marker.
 - `process_fake_detection.py`: `installs_a_subprocess_fake(source)`, which test source installs its own fake on `subprocess`; behind `unit/test_local_process_fakes.py`.
@@ -88,7 +90,7 @@ Run with `make test TESTS="skills/tdd/scripts/tests/py/<file> ..."`.
 
 | Audit | Enforces |
 |---|---|
-| `test_fast_tier_guard.py` (with `veri/fast_tier_guard.py`) | placement: a file the guard names stays out of `unit/`, a clean one lives in it |
+| `test_fast_tier_guard.py` (with `fast_tier_guard.py`) | placement: a file the guard names stays out of `unit/`, a clean one lives in it |
 | `unit/test_process_mark.py`, `unit/test_conftest_guards.py`, `case_size_guards` | marks carry their argument; an unmarked case starts no process, lists no repo directory, reads no process listing; exemption tables carry reasons |
 | `unit/test_local_process_fakes.py` | no new file installs its own fake on `subprocess` |
 | `unit/test_tree_index_guard.py` | a `tree_audit` case reads test files and `veri/` through `tests_py_index` / `veri_modules_index`, never `rglob` or its own `ast.walk` |

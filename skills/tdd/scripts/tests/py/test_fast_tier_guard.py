@@ -1,4 +1,4 @@
-"""In-process cases for veri/fast_tier_guard.py, the fast tier's admission-bar guard."""
+"""In-process cases for tests/py/fast_tier_guard.py, the fast tier's admission-bar guard."""
 import functools
 import importlib
 
@@ -8,7 +8,7 @@ from conftest import SCRIPTS
 
 
 def test_a_planted_test_file_starting_a_process_through_subprocess_is_named_by_file_and_line_and_a_clean_one_is_not(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_offender.py"
     offender.write_text(
         "import subprocess\n"
@@ -25,7 +25,7 @@ def test_a_planted_test_file_starting_a_process_through_subprocess_is_named_by_f
 
 
 def test_a_planted_test_file_starting_a_process_through_an_imported_name_or_an_aliased_module_is_named_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     imported = tmp_path / "test_imported_name.py"
     imported.write_text(
         "from subprocess import run\n"
@@ -47,7 +47,7 @@ def test_a_planted_test_file_starting_a_process_through_an_imported_name_or_an_a
 
 
 def test_a_planted_test_file_starting_a_process_through_os_system_os_exec_os_spawn_or_pty_is_named_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     forms = {
         "test_os_system.py": ("os", "os.system('true')"),
         "test_os_exec.py": ("os", "os.execv('/bin/true', ['true'])"),
@@ -84,7 +84,7 @@ def test_a_planted_test_file_starting_a_process_through_os_system_os_exec_os_spa
     ],
 )
 def test_1641_a_planted_process_start_form_is_named_by_file_and_line_and_the_message_names_the_actual_call(tmp_path, import_line, call, named):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_offender.py"
     offender.write_text(
         f"{import_line}\n"
@@ -102,7 +102,7 @@ def test_1641_a_planted_process_start_form_is_named_by_file_and_line_and_the_mes
 
 
 def test_a_planted_test_file_calling_time_sleep_is_reported_as_a_sleep_offence_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_sleeper.py"
     offender.write_text(
         "import time\n"
@@ -118,7 +118,7 @@ def test_a_planted_test_file_calling_time_sleep_is_reported_as_a_sleep_offence_b
 
 
 def test_a_planted_test_file_opening_a_socket_is_reported_as_a_socket_offence_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_networker.py"
     offender.write_text(
         "import socket\n"
@@ -134,7 +134,7 @@ def test_a_planted_test_file_opening_a_socket_is_reported_as_a_socket_offence_by
 
 
 def test_a_planted_test_file_opening_a_socket_or_sleeping_through_an_imported_name_or_an_aliased_module_is_reported_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     forms = {
         "test_socket_imported.py": ("from socket import socket", "socket(), 'socket'"),
         "test_socket_aliased.py": ("import socket as s", "s.socket(), 'socket'"),
@@ -160,7 +160,7 @@ def test_a_planted_test_file_opening_a_socket_or_sleeping_through_an_imported_na
 
 
 def test_a_planted_test_file_running_another_suite_through_pytest_main_or_a_named_suite_path_is_reported_as_a_nested_suite_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     forms = {
         "test_pytest_main.py": ("import pytest", "pytest.main(['other'])"),
         "test_named_py_suite.py": ("", "run_it('tests/py/test_other.py')"),
@@ -185,7 +185,7 @@ def test_a_planted_test_file_running_another_suite_through_pytest_main_or_a_name
 
 
 def test_1641_a_planted_test_file_passing_a_suite_path_as_a_keyword_argument_is_reported_as_a_nested_suite_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     path = tmp_path / "test_keyword_suite.py"
     path.write_text(
         "def test_it():\n"
@@ -199,7 +199,7 @@ def test_1641_a_planted_test_file_passing_a_suite_path_as_a_keyword_argument_is_
 
 
 def test_2170_a_planted_test_file_only_building_a_path_object_from_a_test_file_name_is_not_reported_as_a_nested_suite(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "test_path_only.py").write_text(
         "import pathlib\n"
         "\n"
@@ -213,7 +213,7 @@ def test_2170_a_planted_test_file_only_building_a_path_object_from_a_test_file_n
 def test_an_offence_whose_file_and_line_the_exemption_table_lists_with_a_reason_is_not_reported_and_an_entry_with_an_empty_reason_is_refused_by_name(tmp_path):
     import pytest
 
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     exempt = tmp_path / "test_exempt.py"
     other = tmp_path / "test_other.py"
     for path in (exempt, other):
@@ -232,7 +232,7 @@ def test_an_offence_whose_file_and_line_the_exemption_table_lists_with_a_reason_
 
 
 def test_1641_an_exemption_keyed_by_a_path_relative_to_the_root_suppresses_its_offence_in_whatever_directory_the_tree_lives(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     roots = [tmp_path / "mac" / "py", tmp_path / "ci" / "elsewhere" / "py"]
     for root in roots:
         (root / "unit").mkdir(parents=True)
@@ -244,7 +244,7 @@ def test_1641_an_exemption_keyed_by_a_path_relative_to_the_root_suppresses_its_o
 
 
 def test_1641_an_exemption_keyed_relative_to_tests_py_silences_its_offence_and_is_not_stale_over_the_tree_and_over_its_unit_subdirectory(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "unit").mkdir()
     (tmp_path / "unit" / "test_waits.py").write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
     exemptions = {"unit/test_waits.py:4": "waits on a fake clock"}
@@ -255,7 +255,7 @@ def test_1641_an_exemption_keyed_relative_to_tests_py_silences_its_offence_and_i
 
 
 def test_1641_an_exemption_silences_only_the_offence_on_the_line_it_names_in_a_file_with_two(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     waits = tmp_path / "test_waits.py"
     waits.write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n    time.sleep(2)\n")
 
@@ -265,7 +265,7 @@ def test_1641_an_exemption_silences_only_the_offence_on_the_line_it_names_in_a_f
 
 
 def test_1641_an_exemption_entry_whose_reason_is_only_whitespace_is_refused_by_name(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "test_waits.py").write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
 
     with pytest.raises(ValueError, match="test_waits.py:4"):
@@ -274,7 +274,7 @@ def test_1641_an_exemption_entry_whose_reason_is_only_whitespace_is_refused_by_n
 
 @pytest.mark.parametrize("reason", [None, 7, "", "  \t\n"], ids=["none", "number", "empty", "whitespace"])
 def test_1641_an_exemption_entry_whose_reason_is_not_a_non_empty_string_is_refused_by_name(tmp_path, reason):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "test_waits.py").write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
 
     with pytest.raises(ValueError, match="test_waits.py:4"):
@@ -282,7 +282,7 @@ def test_1641_an_exemption_entry_whose_reason_is_not_a_non_empty_string_is_refus
 
 
 def test_1641_an_exemption_entry_that_matches_no_file_under_the_root_makes_the_guard_fail_naming_that_entry(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "test_clean.py").write_text("def test_clean():\n    assert True\n")
 
     with pytest.raises(ValueError, match="unit/test_gone.py:4"):
@@ -292,13 +292,13 @@ def test_1641_an_exemption_entry_that_matches_no_file_under_the_root_makes_the_g
 @functools.lru_cache(maxsize=None)
 def _sweep(directory):
     """`guard.offences` over a real `directory` under no table, run once per session."""
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     return tuple(guard.offences(directory, {}))
 
 
 def _under(directory, table):
     """`_sweep(directory)` judged against `table` as `guard.offences(directory, table)` would, without sweeping again."""
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     root, _ = guard._discover(directory, table)
     return [line for line in _sweep(directory) if not guard._exempt(line, root, table)]
 
@@ -309,7 +309,7 @@ def _real_table_audit(tmp_path):
     The scratch tree is judged against no table: the real one is keyed to files under tests/py/, and its stale check
     would refuse every entry over a tree that holds only the planted offender.
     """
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_offender.py"
     offender.write_text(
         "import time\n"
@@ -331,7 +331,7 @@ def test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_ti
 
 @pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
 def test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_by_any_case_that_reads_the_real_table(tmp_path, monkeypatch):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     assert (SCRIPTS / "tests" / "py" / "unit" / "test_add_ledger_step.py").is_file()
     monkeypatch.setattr(guard, "EXEMPTIONS", {"unit/test_add_ledger_step.py:1": "planted: a real-keyed entry no case may report stale"})
 
@@ -339,7 +339,7 @@ def test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_
 
 
 def test_the_shared_sweep_runs_guard_offences_once_per_real_directory_however_often_the_cases_request_it(monkeypatch, request):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     swept = []
     monkeypatch.setattr(guard, "offences", lambda directory, table: swept.append(directory) or [])
     _sweep.cache_clear()
@@ -353,7 +353,7 @@ def test_the_shared_sweep_runs_guard_offences_once_per_real_directory_however_of
 
 
 def test_a_root_that_does_not_exist_is_refused_with_exit_2_and_a_stderr_line_naming_the_path_instead_of_reporting_no_offences(tmp_path, run_cli):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     missing = tmp_path / "no-such-tier"
 
     code, stdout, stderr = run_cli(guard, [str(missing)])
@@ -362,7 +362,7 @@ def test_a_root_that_does_not_exist_is_refused_with_exit_2_and_a_stderr_line_nam
 
 
 def test_offences_raises_instead_of_returning_an_empty_list_when_its_root_does_not_exist(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     missing = tmp_path / "no-such-tier"
 
     with pytest.raises(Exception):
@@ -370,7 +370,7 @@ def test_offences_raises_instead_of_returning_an_empty_list_when_its_root_does_n
 
 
 def test_the_guards_command_line_on_a_missing_root_exits_2_with_the_refusal_line_offences_raising_produces_and_nothing_on_stdout(tmp_path, run_cli):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     missing = tmp_path / "no-such-tier"
 
     code, stdout, stderr = run_cli(guard, [str(missing)])
@@ -379,7 +379,7 @@ def test_the_guards_command_line_on_a_missing_root_exits_2_with_the_refusal_line
 
 
 def test_the_guards_command_line_prints_a_planted_offence_by_file_and_line_and_exits_1_and_exits_0_only_on_a_readable_root_with_none(tmp_path, run_cli):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     dirty = tmp_path / "dirty"
     dirty.mkdir()
     offender = dirty / "test_offender.py"
@@ -396,7 +396,7 @@ def test_the_guards_command_line_prints_a_planted_offence_by_file_and_line_and_e
 
 
 def test_a_root_that_is_a_regular_file_is_refused_by_offences_and_by_the_command_line_with_exit_2_naming_the_path(tmp_path, run_cli):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     root = tmp_path / "tier"
     root.write_text("not a directory\n")
 
@@ -408,7 +408,7 @@ def test_a_root_that_is_a_regular_file_is_refused_by_offences_and_by_the_command
 
 
 def test_the_guards_command_line_prints_every_offence_by_file_and_line_and_exits_1(tmp_path, run_cli):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     first = tmp_path / "test_a.py"
     first.write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
     second = tmp_path / "test_b.py"
@@ -425,7 +425,7 @@ FROZEN_OUTSIDE_THE_TIER = ("test_events_jsonl_openers.py", "test_events_jsonl_op
 
 def _misplaced(tier):
     """Criterion 1's placement rule over `tier` and its `unit/`, judged against no exemption table."""
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     named = {line.split(":")[0] for line in (_sweep(tier) if tier.is_relative_to(SCRIPTS) else guard.offences(tier, {}))}
     files = sorted(tier.glob("test_*.py")) + sorted((tier / "unit").glob("test_*.py"))
     return [
@@ -442,7 +442,7 @@ def test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_
 
 
 def test_the_placement_audit_still_names_an_offending_file_inside_the_tier_that_the_exemption_table_lists(tmp_path, monkeypatch):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "unit").mkdir()
     offender = tmp_path / "unit" / "test_waits.py"
     offender.write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
@@ -482,7 +482,7 @@ def test_the_f9_prompt_retirements_suite_whose_cases_start_no_process_lives_unde
 
 
 def test_1874_a_planted_test_file_building_a_subprocess_completed_process_is_not_reported_as_starting_a_process(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "test_fake_result.py").write_text(
         "import subprocess\n"
         "\n"
@@ -494,7 +494,7 @@ def test_1874_a_planted_test_file_building_a_subprocess_completed_process_is_not
 
 
 def test_1668_a_planted_test_file_calling_pytest_main_with_a_list_naming_a_test_file_is_still_reported_as_running_a_nested_suite_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_offender.py"
     offender.write_text(
         "import pytest\n"
@@ -509,7 +509,7 @@ def test_1668_a_planted_test_file_calling_pytest_main_with_a_list_naming_a_test_
 
 
 def test_1668_a_planted_test_file_calling_run_cli_with_an_argument_list_naming_a_test_file_is_still_reported_as_running_a_nested_suite_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_offender.py"
     offender.write_text(
         "def test_runs_a_suite(run_cli):\n"
@@ -522,7 +522,7 @@ def test_1668_a_planted_test_file_calling_run_cli_with_an_argument_list_naming_a
 
 
 def test_1668_a_planted_test_file_calling_subprocess_run_with_arguments_naming_a_test_file_is_still_reported_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_offender.py"
     offender.write_text(
         "import subprocess\n"
@@ -537,7 +537,7 @@ def test_1668_a_planted_test_file_calling_subprocess_run_with_arguments_naming_a
 
 
 def test_1668_a_planted_test_file_calling_os_exec_with_arguments_naming_a_test_file_is_still_reported_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_offender.py"
     offender.write_text(
         "import os\n"
@@ -552,7 +552,7 @@ def test_1668_a_planted_test_file_calling_os_exec_with_arguments_naming_a_test_f
 
 
 def test_1668_a_planted_test_file_whose_only_call_passing_a_suite_named_string_is_to_a_function_it_defines_is_not_reported_as_running_a_nested_suite_while_an_undefined_run_it_is(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "test_helper_call.py").write_text(
         "def says(label):\n"
         "    return label\n"
@@ -574,7 +574,7 @@ def test_1668_a_planted_test_file_whose_only_call_passing_a_suite_named_string_i
 
 
 def test_1668_a_planted_test_file_whose_only_call_passing_a_suite_named_string_is_to_an_imported_assertion_helper_is_not_reported_as_running_a_nested_suite(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "test_assert_helper.py").write_text(
         "from shared import assert_says\n"
         "\n"
@@ -586,7 +586,7 @@ def test_1668_a_planted_test_file_whose_only_call_passing_a_suite_named_string_i
 
 
 def test_1668_a_planted_test_file_passing_a_bare_suite_path_to_an_imported_assertion_helper_is_not_reported_as_running_a_nested_suite(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "test_assert_bare.py").write_text(
         "from shared import assert_names\n"
         "\n"
@@ -598,7 +598,7 @@ def test_1668_a_planted_test_file_passing_a_bare_suite_path_to_an_imported_asser
 
 
 def test_1668_a_planted_test_file_passing_a_prose_string_holding_a_suite_path_next_to_other_words_to_a_helper_is_not_reported_as_running_a_nested_suite(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "test_prose.py").write_text(
         "from shared import says\n"
         "\n"
@@ -611,7 +611,7 @@ def test_1668_a_planted_test_file_passing_a_prose_string_holding_a_suite_path_ne
 
 
 def test_1668_a_planted_test_file_passing_a_regex_ending_in_backslash_dot_py_to_a_helper_is_not_reported_as_running_a_nested_suite(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "test_regex.py").write_text(
         "from shared import says\n"
         "\n"
@@ -623,7 +623,7 @@ def test_1668_a_planted_test_file_passing_a_regex_ending_in_backslash_dot_py_to_
 
 
 def test_1900_a_planted_test_file_passing_a_shell_command_running_a_pytest_suite_to_an_imported_helper_is_reported_as_running_a_nested_suite_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_offender.py"
     offender.write_text(
         "from shared import sh\n"
@@ -638,7 +638,7 @@ def test_1900_a_planted_test_file_passing_a_shell_command_running_a_pytest_suite
 
 
 def test_1900_a_planted_test_file_passing_a_shell_command_running_a_bash_suite_to_an_imported_helper_is_reported_as_running_a_nested_suite_by_file_and_line(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_offender.py"
     offender.write_text(
         "from shared import sh\n"
@@ -653,7 +653,7 @@ def test_1900_a_planted_test_file_passing_a_shell_command_running_a_bash_suite_t
 
 
 def test_1900_a_planted_test_file_passing_a_suite_path_containing_a_space_to_an_imported_helper_is_reported_as_running_a_nested_suite_while_a_prose_string_and_a_regex_beside_it_are_not(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     offender = tmp_path / "test_offender.py"
     offender.write_text(
         "import re\n"
@@ -671,7 +671,7 @@ def test_1900_a_planted_test_file_passing_a_suite_path_containing_a_space_to_an_
 
 
 def test_a_planted_test_file_naming_a_bare_test_file_as_a_table_key_in_monkeypatch_setitem_is_not_reported_as_running_a_nested_suite(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     (tmp_path / "test_keyed.py").write_text(
         "import conftest\n"
         "\n"
@@ -683,7 +683,7 @@ def test_a_planted_test_file_naming_a_bare_test_file_as_a_table_key_in_monkeypat
 
 
 def test_a_planted_test_file_naming_a_test_file_as_a_table_key_is_exempt_only_when_setitem_or_delitem_is_called_on_monkeypatch(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     for name, call in (
         ("set", "monkeypatch.setitem(TABLE, \"test_planted.py\", 1)"),
         ("del", "monkeypatch.delitem(TABLE, \"test_planted.py\")"),
@@ -732,7 +732,7 @@ def test_the_fence_rule_home_suite_lives_under_tests_py_unit_and_not_beside_it()
 
 
 def test_2226_the_suite_red_resume_cases_in_the_fast_tier_are_not_reported_as_running_a_nested_suite():
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     path = SCRIPTS / "tests" / "py" / "unit" / "test_suite_red_resume.py"
 
     assert guard._file_offences(path) == []
@@ -745,7 +745,7 @@ def test_1842_the_retired_filers_gone_suite_lives_under_tests_py_unit_and_not_be
 
 
 def test_2623_the_venv_refusal_suite_that_starts_make_for_real_is_named_by_the_guard_and_so_belongs_outside_the_tier(tmp_path):
-    guard = importlib.import_module("veri.fast_tier_guard")
+    guard = importlib.import_module("fast_tier_guard")
     suite = SCRIPTS / "tests" / "py" / "test_recipe_venv_refusal_process.py"
     (tmp_path / suite.name).write_text(suite.read_text())
 

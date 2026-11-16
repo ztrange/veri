@@ -1,7 +1,7 @@
 """The event roster: every event name emitted under skills/ is documented in skills/tdd/JOURNAL.md."""
 import pytest
 
-from veri.event_roster import SKILLS, documented_events, emitted_events
+from event_roster import SKILLS, documented_events, emitted_events
 
 JOURNAL = SKILLS / "tdd" / "JOURNAL.md"
 
@@ -18,7 +18,7 @@ def test_every_event_emitted_under_skills_is_documented_in_journal_md():
 
 
 def test_the_guard_fails_on_an_event_named_only_in_prose_or_another_row():
-    from veri.event_roster import documented_events
+    from event_roster import documented_events
 
     text = (
         "# Journal\n\nThe `prose-only` event is mentioned here but has no row.\n\n"
@@ -27,6 +27,6 @@ def test_the_guard_fails_on_an_event_named_only_in_prose_or_another_row():
 
 
 def test_journal_md_has_a_table_row_for_the_conductor_restart_event():
-    from veri.event_roster import documented_events
+    from event_roster import documented_events
 
     assert "conductor-restart" in documented_events(JOURNAL.read_text(encoding="utf-8"))
