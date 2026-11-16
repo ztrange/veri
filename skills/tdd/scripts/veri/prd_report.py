@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 
 import issue_worktree
 import solvable_issues
@@ -69,8 +70,18 @@ def _store_owed(prd, path):
         return 2
     stored = _owed()
     stored[prd] = {"updatedAt": heads[prd]["updatedAt"], "answer": _load(path)}
-    with open(OWED, "w") as f:
-        json.dump(stored, f)
+    fd, temp = tempfile.mkstemp(dir=os.path.dirname(OWED), prefix="report-owed.json.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(stored, f)
+        os.replace(temp, OWED)
+    except OSError as error:
+        os.unlink(temp)
+        print("could not store %s: %s" % (OWED, error), file=sys.stderr)
+        return 2
+    except BaseException:
+        os.unlink(temp)
+        raise
     return 0
 
 
