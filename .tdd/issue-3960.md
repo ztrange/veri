@@ -17,9 +17,9 @@
 - [x] no veri module names a gh command line outside github.bounded's callers, save preflight's reads and queued_merge's merge, which carry no body
 - [x] the comment.sh entry of SCRIPTS.md says comments are redacted, naming the patterns and VERI_REDACT_VARS ⟦criterion 5⟧
 - [x] redact answers a 1 MB body of each repeated token shape in linear time
-- [ ] a token or listed value split by a wrap with indentation, a markdown break or trailing blanks is redacted
-- [ ] a token or listed value holding a zero-width character is redacted
-- [ ] a listed value is redacted in its JSON-escaped form
+- [x] a token or listed value split by a wrap with indentation, a markdown break or trailing blanks is redacted
+- [x] a token or listed value holding a zero-width character is redacted
+- [x] a listed value is redacted in its JSON-escaped form
 - [ ] a set-but-empty VERI_REDACT_VARS reads as the default list
 - [ ] a body handed gh by --input, --body-file, -Fbody=@f or --field=body=@f is redacted, the copy in a private directory
 - [ ] the ratchet fails on a gh command run through os.system, sh -c or a shell string

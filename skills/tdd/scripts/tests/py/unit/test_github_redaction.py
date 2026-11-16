@@ -4,6 +4,7 @@ Every token here is built from a documented shape with an obviously fake body; n
 import ast
 import base64
 import importlib
+import json
 
 import pytest
 
@@ -158,6 +159,41 @@ def test_redact_replaces_the_base64_of_a_token_or_of_a_listed_value_issue_3960(g
 
     assert [github.redact(text) for text in texts] == [
         "Authorization: Basic [redacted]\n", "x=[redacted];", "[redacted]", "[redacted]", "v [redacted]"]
+
+
+SHAPES = ["ghp_" + FAKE * 3, "github_pat_" + FAKE * 2 + "_" + FAKE * 5, "sk-ant-api03-" + FAKE * 2,
+          "AKIAFAKE0123FAKE0123", "fake-gh-token-value"]
+
+
+@pytest.mark.parametrize("wrap", ["\n    ", "\n\t", "  \n", " \t\n", "\\n  ", "\r\n  "])
+@pytest.mark.parametrize("secret", SHAPES)
+def test_redact_replaces_a_secret_split_by_a_wrap_with_indentation_or_trailing_blanks_issue_3960(
+        github, monkeypatch, secret, wrap):
+    monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
+
+    assert github.redact("a %s%s%s b" % (secret[:12], wrap, secret[12:])) == "a [redacted] b"
+
+
+@pytest.mark.parametrize("mark", ["​", "‌", "‍", "﻿", "­"])
+@pytest.mark.parametrize("secret", SHAPES)
+def test_redact_replaces_a_secret_holding_a_zero_width_character_issue_3960(github, monkeypatch, secret, mark):
+    monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
+
+    assert github.redact("a %s%s%s b" % (secret[:9], mark, secret[9:])) == "a [redacted] b"
+
+
+def test_redact_replaces_a_listed_value_in_its_json_escaped_form_issue_3960(github, monkeypatch):
+    value = 'fake\\secret"value'
+    monkeypatch.setenv("VERI_REDACT_VARS", "FAKE_SECRET")
+    monkeypatch.setenv("FAKE_SECRET", value)
+
+    assert github.redact(json.dumps({"out": value})) == '{"out": "[redacted]"}'
+
+
+@pytest.mark.timeout(10)
+@pytest.mark.parametrize("body", [" " * 1048576, "\t \n" * 349525, "\\n " * 349525, "​" * 1048576])
+def test_redact_answers_1_mb_of_blanks_and_breaks_within_the_case_timeout_issue_3960(github, body):
+    assert github.redact(body) == body
 
 
 @pytest.mark.timeout(10)
