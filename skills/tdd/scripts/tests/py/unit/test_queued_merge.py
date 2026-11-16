@@ -755,6 +755,31 @@ def test_2749_queued_merge_given_a_dash_for_the_message_emits_merged_with_the_pr
     assert (code, merged) == (0, [("2749", PR, "", "")])
 
 
+@pytest.mark.parametrize("merged, deleted", [
+    (json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), True),
+    (json.dumps({"state": "open", "merged": False}), False),
+])
+def test_4079_queued_merge_deletes_refs_veri_runs_n_on_origin_once_the_pr_reads_merged_and_leaves_it_otherwise(
+        fake_processes, run_cli, tmp_path, merged, deleted):
+    branch = "tdd/4079-run-records"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    calls = []
+
+    def spied(answer):
+        def wrapped(line, **kwargs):
+            calls.append(line)
+            return answer(line.replace(branch, "feature"), **kwargs)
+        return fake_processes(wrapped)
+
+    scenario(spied, merged=merged)
+
+    run_cli(queued_merge, [PR, str(worktree), branch, "the capability"],
+            env={"VERI_MERGE_SETTLE_READS": "2", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    assert any(line.endswith("push origin --delete refs/veri/runs/4079") for line in calls) is deleted
+
+
 def test_2886_queued_merge_on_a_pr_with_no_checks_whose_rebase_leaves_head_unchanged_merges_without_running_the_full_test_command(
         fake_processes, run_cli):
     def unmoved(answer):

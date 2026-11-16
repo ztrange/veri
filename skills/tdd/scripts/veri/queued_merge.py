@@ -15,6 +15,7 @@ import event
 import git
 import paths
 import run_dir
+import run_records
 import tunables
 from github import TimedOut, bounded_group, gh_api, gh_probe
 
@@ -245,6 +246,12 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
             event.mark(worktree, {"issue": issue.group(1)}, "merged",
                        ["pr=" + pr, "tag=" + name, "message=" + (message if name else "")])
     _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch, runner=_network_git)
+    run_issue = run_dir.branch_issue(branch)
+    if run_issue:
+        records = _network_git(worktree, "push", "origin", "--delete", run_records.ref(run_issue))
+        if records.returncode and "remote ref does not exist" not in (records.stderr or ""):
+            _say("run records delete failed (exit %d): %s" % (records.returncode, (records.stderr or "").strip()))
+            failed.append("run records delete")
     _step(failed, "worktree remove", worktree, "worktree", "remove", worktree)
     _step(failed, "local branch delete", clone, "branch", "-D", branch)
     if _release(pid, scripts, clone):
