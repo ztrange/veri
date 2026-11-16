@@ -539,6 +539,7 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `affected-suites.sh`: the test suites a change touches.
 - `baseline-full-tier.sh`: run and record the baseline full tier.
 - `branch-suite.sh`: print `ci` or `local`: where the branch's full suite runs.
+- `ci-flake.sh`: rerun alone the test targets a red CI run's failed log names, and re-run its failed jobs once when all pass.
 - `detect-test-command.sh`: find the project's test commands.
 - `full-tier-time.sh`: how long the full tier takes, from recorded runs.
 - `mutation-parity.sh`: check the pairs of recorded mutations.
