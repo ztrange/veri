@@ -144,7 +144,7 @@ def test_an_issue_a_pull_request_merged_into_the_stack_closes_is_refused_as_clai
     fixtures = tmp_path / "gh"
     fixtures.mkdir()
     (fixtures / "prs.json").write_text("[]")
-    (fixtures / "stack-prs.json").write_text('[{"body": "Closes #7", "state": "MERGED", "url": "https://x/pull/3"}]')
+    (fixtures / "stack-prs.json").write_text('[{"body": "Closes #7", "state": "MERGED", "baseRefName": "stack", "url": "https://x/pull/3"}]')
     monkeypatch.setenv("VERI_GH_JSON", str(fixtures))
     fake, path = stacked_world(fake_processes, tmp_path, Origin(stack=True))
 
