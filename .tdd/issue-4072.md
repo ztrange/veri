@@ -2,7 +2,7 @@
 
 - [x] `decision-log.sh record <question> <decision> <rule> <by>` appends one JSON line with keys question, decision, rule, by and at (ISO-8601 with offset) to `.tdd/decisions.jsonl` in the main working tree, exit 0 ⟦criterion 1⟧
 - [x] `decision-log.sh record` with an argument missing or empty exits 2 and writes nothing ⟦criterion 2⟧
-- [ ] a token-shaped credential or a `VERI_REDACT_VARS` value in a recorded field is written as `[redacted]`
+- [x] a token-shaped credential or a `VERI_REDACT_VARS` value in a recorded field is written as `[redacted]`
 - [ ] `status.sh --report` lists, under Waiting, each `.tdd/decisions.jsonl` line whose `at` is after the time in `.tdd/status-last`, with its question, decision and rule, and none at or before it ⟦criterion 3⟧
 - [ ] `status.sh --report` exits 2 naming the line when `.tdd/decisions.jsonl` holds a line that is not a decision record
 - [ ] `skills/vjudge/SKILL.md` *Recording* says a decision about one issue is a comment on it naming the rule applied and the option not taken, and one about no issue is recorded with `$S/decision-log.sh record` ⟦criterion 4⟧

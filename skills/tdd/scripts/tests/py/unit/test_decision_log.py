@@ -44,3 +44,18 @@ def test_issue_4072_record_with_an_argument_missing_or_empty_exits_2_and_writes_
     code, out, err = run_cli(decision_log, argv)
 
     assert (code, out, err, (tmp_path / ".tdd" / "decisions.jsonl").exists()) == (2, "", decision_log.USAGE, False)
+
+
+def test_issue_4072_record_writes_a_token_shape_or_a_listed_variables_value_as_redacted(
+        decision_log, tmp_path, run_cli, monkeypatch):
+    monkeypatch.setenv("VERI_REDACT_VARS", "FAKE_SECRET")
+    monkeypatch.setenv("FAKE_SECRET", "hunter2-correct-horse")
+    token = "ghp_" + "a1B2c3D4e5" * 4
+
+    code, _, _ = run_cli(decision_log, ["record", "Use token %s?" % token, "no; hunter2-correct-horse stays local",
+                                        "an established tool", "coord"])
+
+    text = (tmp_path / ".tdd" / "decisions.jsonl").read_text()
+    record = json.loads(text)
+    assert (code, token in text, "hunter2-correct-horse" in text, record["question"], record["decision"]) == (
+        0, False, False, "Use token [redacted]?", "no; [redacted] stays local")
