@@ -136,6 +136,19 @@ def test_a_verify_leaf_has_one_settings_carrying_the_write_ban_pre_tool_use_hook
     assert (settings, "hooks" in developer) == (developer, False)
 
 
+@pytest.mark.parametrize("tools", [None, "Bash,Read"])
+def test_a_verify_leaf_gets_the_tools_value_a_develop_leaf_gets_and_no_disallowed_tools(run_leaf, monkeypatch, tools):
+    if tools is not None:
+        monkeypatch.setenv("VERI_LEAF_TOOLS", tools)
+    verify = importlib.import_module("veri.verify")
+    develop, _ = spec(run_leaf, extra=["--permission-mode", "bypassPermissions"])
+    verifier, _ = spec(run_leaf, extra=verify.leaf_args(None))
+
+    given = lambda argv: [argv[at + 1] for at, word in enumerate(argv) if word == "--tools"]
+    assert (given(verifier), "--disallowedTools" in verifier) == ([tools or run_leaf.DEFAULT_TOOLS], False)
+    assert given(develop) == given(verifier)
+
+
 @pytest.mark.parametrize("value", ["/etc/leaf-settings.json", "[1]", "{not json"])
 def test_a_callers_settings_that_is_not_a_json_object_stays_in_its_arguments_as_given(run_leaf, value):
     argv, _ = spec(run_leaf, extra=["--settings", value, "--x"])
