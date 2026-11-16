@@ -35,6 +35,29 @@ def test_4018_reads_the_targets_of_a_gh_prefixed_failed_log_and_runs_each_once_a
     assert fake.argvs == [["sh", "-c", ALONE, "sh", target] for target in TARGETS]
 
 
+def _marks(tmp_path, *shas):
+    (tmp_path / ".tdd").mkdir(exist_ok=True)
+    for sha in shas:
+        for kind in ("deadline", "queued", "none", "head"):
+            (tmp_path / ".tdd" / ("ci-%s-%s" % (kind, sha))).write_text("1763300000\n")
+
+
+def test_4018_every_target_green_alone_and_the_re_run_accepted_exits_0_with_one_ci_rerun_event_fresh_marks_and_the_targets(
+        tmp_path, run_cli, fake_processes, ci_flake, events):
+    other = "f" * 40
+    _marks(tmp_path, HEAD, other)
+    fake = fake_processes.answers({"sh -c": (0, "", ""), "gh run rerun 12345 --failed": (0, "", "")})
+
+    code, out, _ = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path)], cwd=tmp_path)
+
+    assert (code, out.splitlines()) == (0, TARGETS)
+    assert "gh run rerun 12345 --failed" in fake.calls
+    assert [(e["event"], e["issue"], e.get("head"), e.get("run"), e.get("files")) for e in events.records(tmp_path)] == [
+        ("ci-rerun", "4018", HEAD, "12345", ",".join(TARGETS))]
+    assert sorted(p.name for p in (tmp_path / ".tdd").glob("ci-*")) == sorted(
+        "ci-%s-%s" % (kind, other) for kind in ("deadline", "queued", "none", "head"))
+
+
 @pytest.mark.parametrize("log, alone", [
     (PREFIX % 0 + "##[error]Process completed with exit code 2.\n", []),
     (RED_LOG, [(0, "", ""), (1, "", "")]),

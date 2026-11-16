@@ -161,6 +161,11 @@ def gh_api(path, stderr=None):
     return run_gh("api", path, stderr=stderr)
 
 
+def gh_run_rerun_failed(run_id):
+    """`gh run rerun <run_id> --failed`: re-runs a CI run's failed jobs; the CompletedProcess, stderr captured."""
+    return run_gh("run", "rerun", run_id, "--failed", stderr=subprocess.PIPE)
+
+
 def gh_api_delete(path):
     return run_gh("api", "-X", "DELETE", path, stderr=subprocess.PIPE)
 
