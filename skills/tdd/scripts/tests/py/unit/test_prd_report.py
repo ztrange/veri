@@ -6,6 +6,8 @@ import json
 import re
 from types import SimpleNamespace
 
+import pytest
+
 
 def test_report_with_a_snapshot_states_the_snapshots_age_on_its_first_line(run_cli, tmp_path, monkeypatch):
     prd_report = importlib.import_module("veri.prd_report")
@@ -588,7 +590,7 @@ def test_report_prints_owed_stale_for_a_prd_with_no_stored_entry_or_a_differing_
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
         {"cache_format": 2, "fetched_at": fetched, "issues": issues}))
     (tmp_path / ".tdd" / "report-owed.json").write_text(json.dumps(
-        {"014": {"updatedAt": "2026-11-01T10:00:00Z", "answer": {"items": []}}}))
+        {"014": {"updatedAt": "2026-11-01T10:00:00Z", "answer": {"count": 0, "sections": []}}}))
 
     code, out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
 
@@ -693,7 +695,7 @@ def test_store_owed_preserves_every_other_prds_entry_already_in_the_owed_file(ru
            "wallSeconds": 0, "lane": None}
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
         {"cache_format": 2, "fetched_at": "2026-11-07T10:00:00Z", "issues": [prd]}))
-    other = {"updatedAt": "2026-10-20T09:00:00Z", "answer": {"count": 7}}
+    other = {"updatedAt": "2026-10-20T09:00:00Z", "answer": {"count": 7, "sections": ["x"]}}
     (tmp_path / ".tdd" / "report-owed.json").write_text(json.dumps({"016": other}))
     answer = {"count": 2, "sections": ["Alpha", "Beta"]}
     (tmp_path / "answer.json").write_text(json.dumps(answer))
@@ -716,7 +718,7 @@ def test_store_owed_for_a_prd_absent_from_the_cache_exits_2_and_leaves_the_owed_
            "wallSeconds": 0, "lane": None}
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
         {"cache_format": 2, "fetched_at": "2026-11-07T10:00:00Z", "issues": [prd]}))
-    other = {"updatedAt": "2026-10-20T09:00:00Z", "answer": {"count": 7}}
+    other = {"updatedAt": "2026-10-20T09:00:00Z", "answer": {"count": 7, "sections": ["x"]}}
     (tmp_path / ".tdd" / "report-owed.json").write_text(json.dumps({"016": other}))
     (tmp_path / "answer.json").write_text(json.dumps({"count": 2}))
 
@@ -895,3 +897,28 @@ def test_review_store_owed_reads_the_owed_file_only_once_it_holds_the_lock_so_a_
 
     stored = json.loads((tmp_path / ".tdd" / "report-owed.json").read_text())
     assert (code, sorted(stored), locked) == (0, ["014", "016"], [str(tmp_path / ".tdd" / "report-owed.json.lock")])
+
+
+@pytest.mark.parametrize("owed_text", [
+    '{"014": {"updatedAt": "2026-11-02T10:00:00Z", "answer": {"count": "x", "sections": 5}}}',
+    '{"014": {"updatedAt": 5, "answer": {"count": 1, "sections": []}}}',
+    '{"014": "not an entry"}',
+    '["not", "an", "object"]',
+    '{"014": {"updatedAt": "2026-11-02T10:00:00Z", "answer"',
+], ids=["answer-wrong-shape", "updated-at-not-text", "entry-not-object", "file-not-object", "unparseable"])
+def test_review_a_malformed_owed_file_or_entry_makes_stale_and_report_exit_2_with_one_line_and_nothing_printed(
+        run_cli, tmp_path, monkeypatch, owed_text):
+    prd_report = importlib.import_module("veri.prd_report")
+    monkeypatch.setattr(importlib.import_module("solvable_issues"), "solvable",
+                        lambda label, priority="priority", repo=None: (0, []))
+    monkeypatch.setattr(importlib.import_module("issue_worktree"), "remote_issue_branch", lambda n: "")
+    _owed_tree(tmp_path, owed_text)
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    snapshot = json.loads(cache.read_text())
+    snapshot["fetched_at"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cache.write_text(json.dumps(snapshot))
+
+    answers = [run_cli(prd_report, [mode], cwd=tmp_path) for mode in ("--stale", "--report")]
+
+    assert [(code, out, len(err.splitlines()), "report-owed.json" in err, "Traceback" in err)
+            for code, out, err in answers] == [(2, "", 1, True, False)] * 2
