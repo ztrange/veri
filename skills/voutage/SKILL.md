@@ -60,8 +60,7 @@ out=$($S/github-status.sh < /dev/null); rc=$?; printf '%s\n' "$out" "exit $rc"; 
   create no file, and leave an existing one in place. Tell the human in one line that the status
   page gave no answer.
 
-After exit 0 or 2, when `test -f .tdd/github-outage` exits 0, local mode is still on: hold the
-failed PR with `first`, so it waits with the others rather than being lost.
+On exit 0 or 2 the failed PR is not held; the one line to the human names it.
 
 ## While the file exists
 
