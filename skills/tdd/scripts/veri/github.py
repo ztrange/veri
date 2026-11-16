@@ -94,7 +94,7 @@ def bounded_group(argv, **kwargs):
         try:
             out, err = child.communicate(timeout=limit)
         except subprocess.TimeoutExpired:
-            with contextlib.suppress(ProcessLookupError):
+            with contextlib.suppress(ProcessLookupError, PermissionError):
                 os.killpg(child.pid, signal.SIGKILL)
             child.communicate()
             return _timed_out(argv, limit, kwargs)

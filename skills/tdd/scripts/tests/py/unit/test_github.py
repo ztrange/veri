@@ -1257,6 +1257,27 @@ def test_every_gh_process_and_the_git_ls_remote_against_a_process_that_never_ret
     assert {kwargs.get("timeout") for argv, kwargs in fake.seen if argv[0] == "gh"} == {7}
 
 
+def test_a_git_ls_remote_whose_group_kill_is_refused_with_eperm_as_on_macos_for_a_zombie_leader_still_answers_124_naming_the_limit_3983(
+        fake_processes, monkeypatch, capsys, tmp_path, github):
+    """macOS answers killpg with EPERM when the group holds only its zombie leader: git exited at the bound."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_GH_TIMEOUT", "7")
+    fake = fake_processes.answers({"git ls-remote origin refs/heads/br": HANGS}, exact=True)
+
+    def killpg(group, sig):
+        for child in fake.popens:
+            child.send_signal(sig)
+        raise PermissionError(1, "Operation not permitted")
+
+    monkeypatch.setattr(os, "killpg", killpg)
+
+    listed = github.bounded_group(["git", "ls-remote", "origin", "refs/heads/br"],
+                                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+
+    assert (listed.returncode, listed.stdout, capsys.readouterr().err) == (
+        124, "", "git ls-remote origin refs/heads/br: no answer after 7s (VERI_GH_TIMEOUT)\n")
+
+
 def test_a_git_ls_remote_that_never_returns_is_started_in_its_own_session_and_its_whole_process_group_killed_at_veri_gh_timeout_3983(
         fake_processes, monkeypatch, capsys, tmp_path, github):
     """ssh under a git ls-remote outlives a kill of git alone; the group kill takes it too."""
