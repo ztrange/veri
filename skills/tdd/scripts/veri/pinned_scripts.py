@@ -33,8 +33,10 @@ def make_read_only(tree):
 
 
 def take_bits(path, bits):
-    """Remove <bits> from the mode of <path>, through a descriptor of it."""
-    handle = os.open(path, os.O_RDONLY)
+    """Remove <bits> from the mode of <path>, through a descriptor of it; a symlink is left as it is, never followed."""
+    if stat.S_ISLNK(os.lstat(path).st_mode):
+        return
+    handle = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
     try:
         os.fchmod(handle, stat.S_IMODE(os.fstat(handle).st_mode) & ~bits)
     finally:
