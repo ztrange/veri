@@ -24,7 +24,7 @@ def test_the_table_module_imports_no_other_veri_module():
 def test_the_table_declares_the_five_events_journal_md_lacked_with_the_keys_their_writers_pass():
     from veri import event_table
 
-    written = {"grading": {"unit", "verdict", "failing", "cost_usd", "id"}, "unpinnable-missing": {"step"},
+    written = {"grading": {"unit", "verdict", "failing", "cost_usd", "id", "effort"}, "unpinnable-missing": {"step"},
                "prose-owed-waived": {"unit", "step"}, "suite-flake": {"at", "files"}, "skill-edit-no-author": {"unit"}}
 
     assert {event: set(event_table.keys(event)) for event in written} == written
