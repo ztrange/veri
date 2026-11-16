@@ -59,3 +59,27 @@ def test_4016_a_whole_file_units_graded_line_stays_byte_for_byte_and_owes_nothin
 
     lines = (tmp_path / "GRADED").read_text().splitlines(keepends=True)
     assert (lines[0], grade_prose.owed_listed()) == (whole, ([], []))
+
+
+BEFORE = "# Unit\nintro\n## Two words, 100% sure\nThe widget is blue.\n## Other\nelse\n"
+
+
+@pytest.mark.parametrize("head_text, printed", [
+    (BEFORE.replace("The widget is blue.", "The widget is green."), [HEADING_UNIT, "unit.md"]),
+    (BEFORE.replace("else", "something else"), ["unit.md"]),
+    (BEFORE, []),
+])
+def test_4016_graded_changed_prints_a_heading_unit_only_when_its_section_text_changed_and_a_whole_file_unit_when_its_file_did(
+        head_text, printed, tmp_path, monkeypatch, run_cli, fake_processes):
+    changed = importlib.import_module("veri.graded_changed")
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "GRADED").write_text("%s sig 2026-01-01 g1 t1\nunit.md sig 2026-01-01 g2 t1\n" % ENCODED)
+    fake_processes.answers({
+        "git diff --name-only base HEAD": (0, "unit.md\n" if head_text != BEFORE else "", ""),
+        "git show base:unit.md": (0, BEFORE, ""),
+        "git show HEAD:unit.md": (0, head_text, ""),
+    })
+
+    code, out, err = run_cli(changed, ["base"], cwd=tmp_path)
+
+    assert (code, out.splitlines()) == (1 if printed else 0, printed), err
