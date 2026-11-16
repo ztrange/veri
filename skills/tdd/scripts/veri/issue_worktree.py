@@ -87,11 +87,11 @@ def claiming_pr(issue, url):
     if not github_origin(url):
         return ""
     try:
-        prs = github.open_pulls("body,state,url")
+        prs = github.open_pulls("body,state,url,isCrossRepository")
     except (NoAnswer, OSError):
         return None
     for pr in prs:
-        if pr.state == "OPEN" and issue in github.closed_issues(pr.body):
+        if pr.state == "OPEN" and not pr.cross_repository and issue in github.closed_issues(pr.body):
             return pr.url or "an open PR"
     return ""
 

@@ -883,7 +883,7 @@ def test_open_pr_saying_closes_62_makes_a_fresh_call_exit_2_naming_that_pr_and_l
         tmp_path, issue_worktree, run_cli):
     _, clone = scratch_clone(tmp_path, "pr-claimed")
     want = scratch_wt_path(clone, 62)
-    gh = prs_fixture(tmp_path, [{"body": "Closes #62", "state": "OPEN", "isDraft": True,
+    gh = prs_fixture(tmp_path, [{"body": "Closes #62", "isCrossRepository": False, "state": "OPEN", "isDraft": True,
                                  "url": "https://example.test/pull/620"}])
     before = (scratch_registry(clone), commits(clone))
 
@@ -891,6 +891,18 @@ def test_open_pr_saying_closes_62_makes_a_fresh_call_exit_2_naming_that_pr_and_l
 
     assert (code, "pull/620" in err, os.path.exists(want), (scratch_registry(clone), commits(clone))) == (
         2, True, False, before)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, a fork's PR fixture saying it closes the issue")
+def test_open_pr_from_a_fork_saying_closes_67_does_not_stop_a_fresh_call_issue_3974(tmp_path, issue_worktree, run_cli):
+    _, clone = scratch_clone(tmp_path, "fork-claimed")
+    want = scratch_wt_path(clone, 67)
+    gh = prs_fixture(tmp_path, [{"body": "Closes #67", "state": "OPEN", "isDraft": False, "isCrossRepository": True,
+                                 "url": "https://example.test/pull/670"}])
+
+    code, out, err = run_cli(issue_worktree, ["67", "fresh-start"], cwd=clone, env={"VERI_GH_JSON": gh})
+
+    assert (code, out.strip(), os.path.exists(want)) == (0, want, True), err
 
 
 @pytest.mark.process("git clone and git worktree add on scratch repositories, a PR fixture directory with no answer")
@@ -916,7 +928,7 @@ def test_resume_with_worktree_and_ledger_still_starts_though_its_branch_is_on_th
     scratch_git(clone, "worktree", "add", "-q", "-b", "tdd/63-mine", mine, "main")
     pathlib.Path(mine, ".tdd").mkdir()
     pathlib.Path(mine, ".tdd", "issue-63.md").write_text("- [ ] step\n")
-    gh = prs_fixture(tmp_path, [{"body": "Closes #63", "state": "OPEN", "isDraft": True,
+    gh = prs_fixture(tmp_path, [{"body": "Closes #63", "isCrossRepository": False, "state": "OPEN", "isDraft": True,
                                  "url": "https://example.test/pull/630"}])
 
     code, out, _ = run_cli(issue_worktree, ["63", "mine"], cwd=clone, env={"VERI_GH_JSON": gh})
@@ -946,7 +958,7 @@ def test_fresh_cut_from_a_github_enterprise_origin_runs_the_open_pr_check_and_an
     _, clone = scratch_clone(tmp_path, "ghe-claimed")
     want = scratch_wt_path(clone, 66)
     before = scratch_registry(clone)
-    page = json.dumps([{"body": "Closes #66", "state": "OPEN", "url": "https://ghe.example.test/acme/veri/pull/660"}])
+    page = json.dumps([{"body": "Closes #66", "state": "OPEN", "head": {"repo": {"full_name": "acme/veri"}}, "base": {"repo": {"full_name": "acme/veri"}}, "url": "https://ghe.example.test/acme/veri/pull/660"}])
 
     def answer(args):
         if args[:4] == ["git", "remote", "get-url", "origin"]:
