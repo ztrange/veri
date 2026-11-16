@@ -131,3 +131,14 @@ def test_a_stack_push_refused_because_the_stack_moved_starts_again_from_the_fetc
         wt + "rebase " + STACK_SHA, wt + "rebase " + MOVED_SHA], [
         wt + "push origin %s:refs/heads/stack" % REBASED, wt + "push origin %s:refs/heads/stack" % REBASED_AGAIN],
         [], REBASED_AGAIN), err
+
+
+def test_a_join_makes_no_ci_wait_and_no_merge_call_cuts_no_tag_and_closes_no_issue(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    forbidden = [c for c in world.calls if "wait-ci.sh" in c or "pr merge" in c or "/merge" in c or " tag" in c
+                 or "issue close" in c or "issues/7" in c or "refs/tags/" in c]
+    assert (code, forbidden) == (0, []), err
