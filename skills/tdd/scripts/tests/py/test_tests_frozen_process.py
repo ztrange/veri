@@ -2032,25 +2032,6 @@ def test_rerecord_on_head_walks_the_real_ledger_history_after_an_earlier_case_le
     assert (code, _names(repo, tests_frozen, step)) == (0, ["test_one", "test_pin_committed"]), err
 
 
-PHASED_STEP = STEPS[1] + " ⟦phases: expand, migrate⟧"
-
-
-def _phased_ledger(repo, marks="", **state):
-    """The ledger with step A listing its phases: its box stays open whatever `⟂ <phase> done` marks it gains."""
-    _ledger(repo, **state)
-    ledger = repo / ".tdd/issue-9.md"
-    ledger.write_text(ledger.read_text().replace(STEPS[1], PHASED_STEP + marks))
-
-
-REPAIR_STEP = "repairs the fixture 'f' in test_suite.py, reproduced by a case ⟦fixture-repair⟧"
-
-
-def _repair_ledger(repo, **state):
-    _ledger(repo, **state)
-    ledger = repo / ".tdd/issue-9.md"
-    ledger.write_text(ledger.read_text().replace(STEPS[1], REPAIR_STEP))
-
-
 BODY = "def test_%s():\n    x = %d\n    assert x\n"
 
 
