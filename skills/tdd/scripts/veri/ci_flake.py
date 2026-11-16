@@ -5,6 +5,7 @@ import sys
 
 import ci_marks
 import event
+import event_log
 import github
 import rerun_alone
 import tunables
@@ -43,6 +44,21 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     n, head, run_id, alone_cmd, log_file = argv
+    budget, bad = tunables.resolve("VERI_CI_FLAKE_RERUNS")
+    if bad:
+        sys.stderr.write("ci-flake: VERI_CI_FLAKE_RERUNS must be %s, got '%s'\n" % (bad[1], bad[0]))
+        return 2
+    spent, head_rerun = 0, False
+    for e in event_log.events(".", "conductor-start", "ci-rerun"):
+        if str(e.get("issue")) != n:
+            continue
+        if e.get("event") == "conductor-start":
+            spent = 0
+        elif e.get("event") == "ci-rerun":
+            spent += 1
+            head_rerun = head_rerun or e.get("head") == head
+    if spent >= budget or head_rerun:
+        return 3
     with open(log_file, errors="replace") as log:
         text = log.read()
     try:
