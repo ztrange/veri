@@ -6,4 +6,5 @@
 - [x] an empty marker still freezes the supervisor's timers ⟦criterion 3⟧
 - [x] a marker whose pid is alive under its recorded start time still freezes them
 - [x] veri/README.md's `acquire()` entry says the marker names the waiter and a dead waiter's marker is ignored ⟦criterion 4⟧
-- [x] CLAUDE.md's full-run lock paragraph says the same (CM159), graded ⟦criterion 5⟧
+- [x] CLAUDE.md's full-run lock paragraph says the same (CM168), graded ⟦criterion 5⟧
+- [x] a wait mark whose write is cut short leaves no empty marker (review)
