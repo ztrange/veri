@@ -24,3 +24,9 @@ def test_redact_replaces_a_fine_grained_github_pat_token_with_redacted_issue_396
     token = "github_pat_" + FAKE * 2 + "_" + FAKE * 5
 
     assert github.redact("pat=%s;" % token) == "pat=[redacted];"
+
+
+def test_redact_replaces_an_sk_ant_key_with_redacted_issue_3960(github):
+    key = "sk-ant-api03-" + FAKE + "_" + FAKE
+
+    assert github.redact("key %s\n" % key) == "key [redacted]\n"
