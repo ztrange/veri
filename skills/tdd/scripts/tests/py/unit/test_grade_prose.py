@@ -203,6 +203,20 @@ def test_a_units_signature_changes_when_any_id_cell_or_any_requirement_cell_of_i
     assert [s != base for s in changed] == [True] * 4
 
 
+def test_4010_a_units_signature_is_the_value_it_was_before_the_grader_stopped_loading_the_project_claude_md(
+        tmp_path, monkeypatch, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.chdir(tmp_path)
+
+    assert grade_prose.signature("REQUIREMENTS.md", "unit.md") == (
+        "f361d178d1bf7ebb72a81b0081587b3f694b6e7676453da140311f85bba28073")
+
+
 def test_a_units_signature_changes_when_the_grader_conf_model_changes_1725(
         tmp_path, monkeypatch, grade_prose):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
