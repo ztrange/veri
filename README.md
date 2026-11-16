@@ -161,13 +161,18 @@ skill mid-run. The snapshot is read-only: after extraction the write bits of its
 directories are removed, so a stray write into it (an in-place edit, a redirect) fails with a
 permission error. A leaf runs as the same user and can restore those bits, so this stops a
 careless write, not a deliberate one, which the digest check catches: at extraction the launch
-records a digest of every file of the snapshot (path and content) in
-`.tdd/issue-<n>-snapshot-digest`. Before each leaf launch `supervise.sh` recomputes it and, when
-the snapshot no longer matches, refuses the launch (exit 2) naming the first changed file; when
-the conductor exits, `run-conductor.sh` recomputes it again and on a mismatch prints
-`run-conductor: the skill snapshot changed during the run`, logs a `snapshot-changed` event and
-exits 2. The limit: `supervise.sh` lives inside the snapshot, so a leaf that edits
-`supervise.sh`'s check itself is caught only at exit. The record is run state and is git-ignored. Two cases refuse rather than guess:
+computes a digest of every entry of the snapshot (each file's path, content and executable bit,
+each directory, the `.veri-snapshot` marker included), keeps it in memory and records it in
+`.tdd/issue-<n>-snapshot-digest`. **At launch**, `supervise.sh`, run from the snapshot, compares
+the snapshot with that file and refuses the launch (exit 2) naming the first changed entry, or
+when no digest is recorded. That file is run state a leaf can write, and `supervise.sh` lives
+inside the snapshot, so a leaf that also rewrites the file, or edits `supervise.sh`'s check
+itself, gets past the launch check. **At exit**, `run-conductor.sh`, which runs from the
+operator's clone, compares the snapshot with the digest it kept in memory, and the file with it
+too; on any mismatch it prints `run-conductor: the skill snapshot changed during the run`, logs a
+`snapshot-changed` event naming the changed entry or the rewritten file, and exits 2. So the
+launch check stops an ordinary edit before the next leaf runs; the exit check catches, after the
+run, an edit still in place when the conductor exits, whatever file the leaf also rewrote. The record is run state and is git-ignored. Two cases refuse rather than guess:
 
 - **A recorded commit the launching clone cannot resolve** (a second clone, a shallow one, a
   pruned branch) is exit 2, never a silent re-pin to whatever the clone holds.
