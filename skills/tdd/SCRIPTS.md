@@ -71,6 +71,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `--tools Bash,Read,Edit,Write,Grep,Glob` (`DEFAULT_TOOLS`) to `claude`; set non-empty passes
   `--tools <value>`; set empty passes `--tools ""` (`grade-prose.sh` sets it empty, so its grader
   has no tools). A `--tools` in the caller's own arguments wins over all three.
+  Every `--settings` value in the caller's arguments that is a JSON object is merged into the
+  one `--settings` flag it passes `claude`; a value that is not a JSON object (a file path, say)
+  is refused with exit **2**, naming it, before any launch.
   It always sets `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` in `claude`'s environment, and sets
   `BASH_DEFAULT_TIMEOUT_MS` and `BASH_MAX_TIMEOUT_MS` to the leaf's effective timeout, the one
   `supervise.sh` enforces (`VERI_TIMEOUT`, else the run's `.tdd/issue-<n>-timeout`, else 900 s),
