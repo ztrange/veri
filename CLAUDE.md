@@ -68,7 +68,7 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
 - **The committed ledger is the source of truth** for done steps; the issue only mirrors it.
   A step's green tick appends `⟂ refactor pending`, removed only by its verify-refactor PASS,
   so a resumed run can tell green from finished.
-- **Eight budgets on eight axes, never merged**: `VERI_STUCK_RETRIES` (liveness — no answer),
+- **Nine budgets on nine axes, never merged**: `VERI_STUCK_RETRIES` (liveness — no answer),
   `VERI_NO_VERDICT_RETRIES` (protocol compliance — finished without a `VERDICT:` line),
   `REVISE_BUDGET` (verdict — rejected), `VERI_REFACTOR_BUDGET` (cost — the transforms one
   refactor leaf may apply for the whole step; ADR-0017) and `VERI_STEP_GROWTH` (plan growth —
@@ -78,7 +78,9 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
   missing reroutes per step), a seventh on an axis of its own: a missing test is not a rejected
   product, and `REVISE_BUDGET` would bail correct code, and `VERI_ADJUDICATE_BUDGET` (exit-2
   judgments per run, default 2; 0 keeps today's behaviour), an eighth on an axis of its own, never
-  folded into the other seven. One knob over
+  folded into the other seven, and `VERI_CI_FLAKE_RERUNS` (CI re-runs of a red head per run, default
+  1; 0 keeps today's behaviour), a ninth on an axis of its own, never folded into the other eight: a
+  flaky CI job is not a defect. One knob over
   any two would make different failures one decision (ADR-0020). A bad `VERI_REFACTOR_BUDGET`
   is caught in preflight.
 - **The developer's and the verifier's models are separate knobs**: `VERI_MODEL` (every leaf),
