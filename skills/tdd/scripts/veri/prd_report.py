@@ -8,11 +8,17 @@ import sys
 import tempfile
 
 import issue_worktree
+import run_dir
 import solvable_issues
 
 USAGE = "usage: report.sh --report"
 CACHE = ".tdd/report-cache.json"
-OWED = ".tdd/report-owed.json"
+OWED = "report-owed.json"
+
+
+def _owed_path():
+    """`<main working tree>/.tdd/report-owed.json`, whichever directory report.sh runs in."""
+    return run_dir.main_file(run_dir.main_tree_from_files(), OWED)
 
 
 def _utc(stamp):
@@ -45,7 +51,8 @@ def _load(path):
 
 
 def _owed():
-    return _load(OWED) if os.path.exists(OWED) else {}
+    path = _owed_path()
+    return _load(path) if os.path.exists(path) else {}
 
 
 def _stale(stored, nnn, issue):
@@ -55,7 +62,7 @@ def _stale(stored, nnn, issue):
 
 def _print_stale():
     snapshot = _load(CACHE)
-    stored = _load(OWED)
+    stored = _load(_owed_path())
     opened = [o for o in snapshot["issues"] if o["state"] == "OPEN"]
     for nnn, issue in _ordered_heads(opened):
         if _stale(stored, nnn, issue):
@@ -70,14 +77,16 @@ def _store_owed(prd, path):
         return 2
     stored = _owed()
     stored[prd] = {"updatedAt": heads[prd]["updatedAt"], "answer": _load(path)}
-    fd, temp = tempfile.mkstemp(dir=os.path.dirname(OWED), prefix="report-owed.json.", suffix=".tmp")
+    owed = _owed_path()
+    os.makedirs(os.path.dirname(owed), exist_ok=True)
+    fd, temp = tempfile.mkstemp(dir=os.path.dirname(owed), prefix="report-owed.json.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w") as f:
             json.dump(stored, f)
-        os.replace(temp, OWED)
+        os.replace(temp, owed)
     except OSError as error:
         os.unlink(temp)
-        print("could not store %s: %s" % (OWED, error), file=sys.stderr)
+        print("could not store %s: %s" % (owed, error), file=sys.stderr)
         return 2
     except BaseException:
         os.unlink(temp)
