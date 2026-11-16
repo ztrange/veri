@@ -91,6 +91,17 @@ def claiming_pr(issue, url):
     return ""
 
 
+def joined_claim(issue, url, stack):
+    """True when a pull request merged into <stack> closes <issue> (its run joined the stack), False when none does or
+    origin is not one GitHub can be asked about, None when GitHub gave no answer."""
+    if not tunables.read("VERI_GH_JSON") and not re.match(r"^(\w+://(?!/)|[^/@]+@[^/]+:)", url.strip()):
+        return False
+    try:
+        return int(issue) in github.joined_issues(stack)
+    except (NoAnswer, OSError, ValueError):
+        return None
+
+
 def worktree_add(*args):
     return subprocess.run(["git", "worktree", "add", "-q", *args], stdout=sys.stderr).returncode
 
@@ -322,6 +333,15 @@ def cut(path, branch, take_over=False, root="."):
             stack = stack_branch.named(root)
         except stack_branch.Refused as refused:
             return entry.refuse(str(refused), prefix=PREFIX)
+        if stack and origin:
+            joined = joined_claim(issue_of(branch), url, stack)
+            if joined is None:
+                return entry.refuse("the lookup of pull requests merged into %s got no answer"
+                                    " — cannot tell whether a joined run claims the issue" % stack, prefix=PREFIX)
+            if joined:
+                return entry.refuse("a pull request merged into the stack branch %s claims the issue (Closes #%s):"
+                                    " its run has joined and the issue stays claimed until it lands"
+                                    % (stack, issue_of(branch)), prefix=PREFIX)
         if stack:
             code = stack_cut(path, branch, stack)
             if code != 0:
