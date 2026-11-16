@@ -32,7 +32,6 @@ USAGE = [
     ("1250444232 315", "build-develop-prompt.sh", []),
     ("1786216893 158", "build-verify-prompt.sh", []),
     ("3916945256 64", "clear-refactor-pending.sh", []),
-    ("3860559291 55", "comment-class.sh", []),
     ("3619846594 58", "coverage-blocker.sh", []),
     ("1651026890 60", "criterion-finished.sh", []),
     ("3059909970 45", "detach-leaf.sh", []),

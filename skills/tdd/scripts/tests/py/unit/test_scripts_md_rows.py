@@ -23,7 +23,6 @@ def test_every_scripts_md_bullet_has_an_sc_row_2486():
 UNCATALOGUED = frozenset(
     {
     "affected-suites.sh",
-    "comment-class.sh",
     "cover-outcome.sh",
     "coverage-blocker.sh",
     "criterion-finished.sh",
