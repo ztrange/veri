@@ -5,5 +5,5 @@
 - [x] a case fails, naming the first differing line, when the committed `fixtures/journal/sample.jsonl` differs from what `journal_sample.py` builds; the sample is committed ⟦criterion 1⟧ ⟦criterion 3⟧
 - [x] a case fails, naming the event, when a declared event has no line in `sample.jsonl` or it holds a line for an undeclared event ⟦criterion 4⟧
 - [x] the fixture-format case reads `sample.jsonl` through its glob and fails naming the line, event, key and value for a sample value breaking its format ⟦criterion 5⟧
-- [ ] `fixtures/journal/README.md` names `sample.jsonl`, says it is generated from the table, not captured, with invented values, and gives the command that regenerates it ⟦criterion 6⟧
+- [x] `fixtures/journal/README.md` names `sample.jsonl`, says it is generated from the table, not captured, with invented values, and gives the command that regenerates it ⟦criterion 6⟧
 - [ ] `veri/README.md`'s module index has an entry for `journal_sample` ⟦criterion 7⟧
