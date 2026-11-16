@@ -214,10 +214,28 @@ answer. Each is a branch of its own:
   step="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-escalated anchor="$step"
   ```
 - **exit 3 — neither answer.** The leaf volunteered no split and asked for no decision, so
-  there is nothing new to act on: **bail the step** with cause `revise-exhausted` as a
-  **process** failure (the methodology could not satisfy the blind verifier within budget),
-  recording the **last rejection reason** — exactly the stop this section took before the
-  leaf above existed.
+  read the same output once more for a test-only step ahead:
+  ```
+  $S/exhausted-outcome.sh --step-ahead '<target-test-id>' < .tdd/develop-exhausted.out > .tdd/exhausted-answer.txt 2> .tdd/exhausted-step-ahead.err; echo $?
+  ```
+  - **its exit 0 — a step ahead.** `.tdd/exhausted-answer.txt` holds one `prep <file>::<case> …`
+    line: act on it as *The `prep` answer* paragraph above says — discard the stuck step's
+    uncommitted work, insert one `⟦diff-checked⟧ ⟦added⟧` step before the stuck step, commit
+    the ledger, and bail `prep-owed` or `step-add-refused` on `add-ledger-step.sh` exit 1 or 2 —
+    writing the `reroute` event with `at=exhausted`:
+    ```
+    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<stuck step>" $S/event.sh reroute kind=prep case=<cases> at=exhausted
+    ```
+    Once the inserted step is ticked, the stuck step starts again from Red and its revise loop
+    starts again at attempt 1: the spent budget is not carried, and `VERI_STEP_GROWTH` bounds
+    the repeats.
+  - **its exit 3 — no step ahead either.** There is nothing new to act on: **bail the step**
+    with cause `revise-exhausted` as a **process** failure (the methodology could not satisfy
+    the blind verifier within budget), recording the **last rejection reason** — exactly the
+    stop this section took before the leaf above existed.
+  - **its exit 2 — a step ahead naming nothing real.** Bail `revise-exhausted` the same way,
+    with the line `.tdd/exhausted-step-ahead.err` holds in the bail comment beside the last
+    rejection reason.
 
 A **supervisor exit 2** on that leaf is a bail like any other developer leaf's
 (`killed-stuck`, a system failure): nothing answered, so no outcome was reported.
