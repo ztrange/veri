@@ -219,7 +219,8 @@ the job, briefed to return at most 10 lines and to read the skill at
 - Mutations (edit a file, run the suite, restore it) run only in a scratch clone or the run's
   own worktree, never in the primary clone. A mutation probe backs the file up with `cp` into the
   run worktree's `.tdd/`, mutates it with `perl -pi -e` or a script (never `sed -i.<ext>`, which
-  leaves a backup file), and restores it with `git checkout -- <file>` or `cp`.
+  leaves a backup file), and restores it from the `cp` backup when the file has uncommitted edits
+  (`git checkout -- <file>` would discard them), with `git checkout -- <file>` otherwise.
 - Every `cd` in a chained command makes the whole command fail when the `cd` fails (`&&` or
   `set -e`); a `;` never follows a `cd`, or a guard whose failure would change where the next
   command runs.
