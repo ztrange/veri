@@ -1267,3 +1267,16 @@ def test_pr_ready_sh_with_a_veri_gh_timeout_that_is_not_a_whole_number_of_at_lea
     assert observed == {value: (2, "", "VERI_GH_TIMEOUT: invalid value %r\n" % value)
                         for value in ("0", "abc", "1.5", "-3", "")}
     assert fake.calls == []
+
+
+@pytest.mark.parametrize("driver", ["rest", "graphql", "auto"])
+def test_gh_json_page_with_no_gh_args_reads_the_path_through_gh_api_never_running_bare_gh_under_each_driver_3991(
+        fake_processes, monkeypatch, github, driver):
+    monkeypatch.setenv("VERI_GH_DRIVER", driver)
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    path = "repos/o/r/issues/1/comments"
+    fake = fake_gh(fake_processes, {("gh", "api", path): (0, '[{"body": "x"}]', "")})
+
+    page = github.gh_json_page("", path)
+
+    assert (page, fake.argvs) == ('[{"body": "x"}]', [["gh", "api", path]])
