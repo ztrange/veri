@@ -15,11 +15,13 @@ KINDS = ("deadline", "queued", "none")
 @dataclass(frozen=True)
 class Marks:
     """The marks on disk for the head: the deadline file's raw text (None: absent; "": unreadable), its path,
-    and the first queued and first none sightings as seconds (None: absent or not a number)."""
+    the first queued and first none sightings, and the first sighting of a head other than the wanted sha, as
+    seconds (None: absent or not a number)."""
     deadline: object
     deadline_path: str
     queued: object
     none: object
+    head: object = None
 
 
 def path(run, kind, key):
@@ -52,10 +54,10 @@ def deadline_text(run, key):
 
 
 def load(run, key, head):
-    """The marks a poll of <head> reads: the deadline and queued marks under <key> (the wanted sha, else the head)
-    and the none mark under the head."""
+    """The marks a poll of <head> reads: the deadline, queued and head marks under <key> (the wanted sha, else the
+    head) and the none mark under the head."""
     return Marks(deadline=deadline_text(run, key), deadline_path=path(run, "deadline", key),
-                 queued=seconds(run, "queued", key), none=seconds(run, "none", head))
+                 queued=seconds(run, "queued", key), none=seconds(run, "none", head), head=seconds(run, "head", key))
 
 
 def record(run, kind, key, value):

@@ -262,7 +262,7 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
         ([PR, "20", "100", SHA], None, False, {}, [1000, 1010, 1020],
          (3, "", True, None, tick * 2 + ["date +%s"])),
         ([PR, "20", "100", "def456" * 6 + "def4"], None, True, {}, [1000, 1010, 1020],
-         (3, "", "", {}, tick * 2 + ["date +%s"])),
+         (3, "", "", {"ci-head-" + "def456" * 6 + "def4": "1000\n"}, tick * 2 + ["date +%s"])),
         ([PR, "", "10000", SHA], None, True, {}, [1000, 1539, 1540],
          (3, "", "", {f"ci-deadline-{SHA}": "1600\n"}, tick * 2 + ["date +%s"])),
     ]
@@ -1524,7 +1524,7 @@ def test_main_records_no_deadline_and_ends_its_slice_with_3_while_the_pull_head_
     served(fake_processes, bodies)
     code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
-    assert (code, sorted(p.name for p in (work / ".tdd").iterdir())) == (3, [])
+    assert (code, sorted(p.name for p in (work / ".tdd").iterdir())) == (3, [f"ci-head-{FULL_SHA}"])
 
 
 def test_main_records_the_deadline_at_the_first_call_that_sees_the_given_head_and_a_later_call_inherits_it_issue_1896(
