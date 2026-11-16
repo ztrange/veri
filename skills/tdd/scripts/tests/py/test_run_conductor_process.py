@@ -5570,12 +5570,13 @@ def test_cli_a_trusted_done_comment_on_page_2_after_a_full_page_of_untrusted_one
     assert (code, [r.get("event") for r in events_named(tmp_path)], posted, len(read)) == (0, ["resume"], [], 2), stderr
 
 
+@pytest.mark.parametrize("answer", ["<html>502 Bad Gateway</html>", "null", '"a string"', "7"])
 def test_cli_a_comments_answer_that_is_not_json_exits_2_naming_the_issue_with_no_needs_user_bail_or_comment_3970(
-        tmp_path, monkeypatch, run_cli):
+        tmp_path, monkeypatch, run_cli, answer):
     past_the_guards(monkeypatch)
     scratch_tmpdir(tmp_path, monkeypatch)
     run_conductor = importlib.import_module("veri.run_conductor")
-    gh_calls = conductor_over_a_thread(monkeypatch, tmp_path, lambda page: "<html>502 Bad Gateway</html>")
+    gh_calls = conductor_over_a_thread(monkeypatch, tmp_path, lambda page: answer)
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
 
