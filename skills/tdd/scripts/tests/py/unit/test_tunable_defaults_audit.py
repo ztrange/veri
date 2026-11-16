@@ -34,10 +34,6 @@ EXEMPT = {
         "VERI_POLL, default 10 here, 1 in supervise.py and wait_leaf.py: two purposes, declined",
     ("wait_leaf.py", "VERI_POLL"):
         "VERI_POLL, default 1 here, 10 in github.py and wait_ci.py: two purposes, declined",
-    ("preflight.py", "VERI_MISSING_REROUTE_BUDGET"):
-        "read at two defaults (0 here, 3 in wrong_test_route.py): declined, no single default to state",
-    ("wrong_test_route.py", "VERI_MISSING_REROUTE_BUDGET"):
-        "the other default of VERI_MISSING_REROUTE_BUDGET (3 here, 0 in preflight.py): declined",
     ("parallel_conductors.py", "VERI_RUN_TIMEOUT"):
         "parallel_conductors.py's argument handling is filed as issue #3839; its reads migrate with it",
     ("parallel_conductors.py", "VERI_PARALLEL"):

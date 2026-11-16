@@ -23,4 +23,4 @@ if sys.pycache_prefix is None:
     else:
         sys.pycache_prefix = os.path.join(os.environ.get("TMPDIR") or "/tmp", "veri-pycache-%d" % os.getuid())
         import tunables
-        sys.pycache_prefix = tunables.read("VERI_PYCACHE") or sys.pycache_prefix
+        sys.pycache_prefix = tunables.get("VERI_PYCACHE") or sys.pycache_prefix

@@ -171,7 +171,7 @@ def finish(n, wt, baseline, full, fast, alone, began, reused, code):
         return stopped(5, "VERI_SKIP_VERIFY", 2)
     if tunables.set_but_empty("VERI_STEP_GROWTH"):
         return stopped(5, "VERI_STEP_GROWTH", 2)
-    if not tunables.read("VERI_MISSING_REROUTE_BUDGET", "0").isdigit():
+    if not tunables.get("VERI_MISSING_REROUTE_BUDGET").isdigit():
         return stopped(5, "VERI_MISSING_REROUTE_BUDGET", 2)
     checked(5, script("step-budget.sh"), cwd=wt)
     checked(5, script("adjudicate.sh"), "--check-budget", cwd=wt)

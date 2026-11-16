@@ -203,7 +203,7 @@ def pin_mode(record, released):
     """
     if not os.access(record, os.R_OK):
         return "first"
-    if tunables.read("VERI_NEW_SKILL", None) == "1":
+    if tunables.get("VERI_NEW_SKILL") == "1":
         return "env"
     return "released" if os.path.exists(released) else "resume"
 
