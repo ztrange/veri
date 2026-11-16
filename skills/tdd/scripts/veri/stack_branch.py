@@ -64,13 +64,15 @@ def named(root):
         raise Refused("%s: the line '%s' names no branch" % (path, line))
     if "<" in name or ">" in name:
         raise Refused("%s: the line '%s' holds a placeholder, not a branch name" % (path, line))
+    if name.startswith(("refs/", "origin/")):
+        raise Refused("%s: the line '%s' names a ref or a remote-tracking spelling; name the branch alone" % (path, line))
     if git.git("check-ref-format", "--branch", name, cwd=root, capture_output=True, text=True).returncode != 0:
         raise Refused("%s: the line '%s' names a branch git check-ref-format --branch refuses" % (path, line))
     told = default_names(root)
     if not told:
         raise Refused("%s: the line '%s' names a stack, but the default branch cannot be told (no refs/remotes/origin/HEAD,"
                       " and origin gave no answer) — refusing, since the stack may be the default branch" % (path, line))
-    if name in told:
+    if name.casefold() in {default.casefold() for default in told}:
         raise Refused("%s: the line '%s' names the default branch, and a stack there would be a direct push to it"
                       % (path, line))
     return name

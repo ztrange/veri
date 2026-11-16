@@ -162,3 +162,11 @@ def test_a_placeholder_name_is_not_a_name_exit_2_naming_the_line_4171(tmp_path, 
     git_world(fake_processes)
 
     assert refusal_of(tmp_path, run_cli, stack_branch, line) == (2, "", True)
+
+
+@pytest.mark.parametrize("name", ["Trunk", "TRUNK", "refs/heads/trunk", "origin/trunk", "refs/heads/stack", "origin/stack"])
+def test_a_spelling_of_the_default_branch_or_a_ref_or_remote_prefixed_name_is_exit_2_4171(
+        tmp_path, run_cli, fake_processes, stack_branch, name):
+    git_world(fake_processes, default="trunk")
+
+    assert refusal_of(tmp_path, run_cli, stack_branch, "veri: stack branch: " + name) == (2, "", True)
