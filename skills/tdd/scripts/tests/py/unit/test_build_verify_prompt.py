@@ -1696,3 +1696,13 @@ def test_3919_plan_counts_dash_and_underscore_alike_so_a_step_naming_wrong_test_
     section = touching_section(out) or ""
 
     assert (code, "tests/test_reroute.py" in section, "test_reroutes_once" in section) == (0, True, True)
+
+
+def test_3919_plan_lists_no_case_of_a_test_file_holding_the_stem_only_inside_a_longer_word(
+        tmp_path, run_cli, build_verify_prompt):
+    tree = {"scripts/route.py": "def route():\n    return None\n",
+            "tests/test_router.py": "import router\n\n\ndef test_router_routes():\n    assert router.routes\n"}
+    code, out, _ = plan_in_tree(tmp_path, run_cli, build_verify_prompt, tree, ["route.py answers"])
+    section = touching_section(out)
+
+    assert (code, section is not None, "test_router_routes" in (section or "")) == (0, True, False)
