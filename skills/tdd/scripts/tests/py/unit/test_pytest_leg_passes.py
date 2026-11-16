@@ -35,7 +35,7 @@ def test_a_leg_driven_in_process_on_a_tree_with_its_own_conftest_leaves_the_conf
     before = sys.modules.get("conftest")
 
     try:
-        run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+        code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
         after = sys.modules.get("conftest")
     finally:
         if before is None:
@@ -43,7 +43,7 @@ def test_a_leg_driven_in_process_on_a_tree_with_its_own_conftest_leaves_the_conf
         else:
             sys.modules["conftest"] = before
 
-    assert after is before
+    assert (after is before, code, out.count("1 passed")) == (True, 0, 1)
 
 
 def test_two_legs_driven_in_process_on_trees_planting_the_same_module_basename_each_collect_and_pass_their_own(run_cli, tmp_path):
@@ -85,9 +85,9 @@ def test_a_leg_run_on_a_host_whose_tmpdir_is_elsewhere_gives_its_cases_tmp_as_th
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1",
            "TMPDIR": str(elsewhere)}
 
-    run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+    code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
 
-    assert seen.read_text() == "/tmp"
+    assert (seen.read_text(), code, out.count("1 passed")) == ("/tmp", 0, 1)
 
 
 def test_a_leg_that_collects_a_serial_case_ends_with_one_line_counting_the_cases_passed_across_both_passes_3554(run_cli, tmp_path):
@@ -333,10 +333,10 @@ def test_a_leg_nested_in_a_run_that_holds_failed_case_records_leaves_those_recor
             record.clear()
             record.update(outer[name]) if isinstance(record, set) else record.extend(outer[name])
 
-        run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+        code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
 
         after = {name: getattr(records, name) for name in names}
-        assert after == outer
+        assert (after, code, out.count("1 passed")) == (outer, 0, 1)
     finally:
         for name in names:
             record = getattr(records, name)
