@@ -30,6 +30,10 @@ Run it on every question before it reaches the human.
    `Decided: filed the defect as an issue (veri fixes veri through a filed issue); not a hand fix.`
 4. **Still not clear-cut after the one investigation?**
    - A question about one issue: park that issue with `$S/park-issue.sh`, and take the next issue.
+     Pass it `--question-file <path>`, a file holding the whole question under the headings
+     `#### Question`, `#### Options` (each option stating its cost), `#### Found` (what the one
+     investigation returned) and `#### Recommendation`, so the owner can answer it from the issue
+     alone.
    - A question about no issue: record it with `$S/role-state.sh <role> add decision`, and ask it
      once.
 
