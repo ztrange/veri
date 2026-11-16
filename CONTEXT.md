@@ -284,6 +284,13 @@ before the change. The mark counts against `VERI_STEP_GROWTH` only when the step
 `⟦added⟧`. ADR-0027.
 _Avoid_: deletion step
 
+**Test-case reader**:
+The one module, `case_reader.py`, that decides whether a path is a test file (`test_*.py`,
+`*_test.py`, `*_test.go`, JS `.test`/`.spec` files, wherever they sit) and cuts a test source
+into its cases. No other veri module holds either answer; one that needs it asks this one.
+PRD 017.1.
+_Avoid_: test parser, case finder
+
 ## Scope ladder
 
 The framework grows in three rungs, each wrapping the previous — never a rewrite. Issue
