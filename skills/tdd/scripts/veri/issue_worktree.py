@@ -246,6 +246,11 @@ def take_over_cut(path, branch):
 def stack_cut(path, branch, stack):
     """Cut <branch> at <path> from origin/<stack> as just fetched. Every network call is bounded by
     VERI_GIT_NETWORK_TIMEOUT."""
+    listed = git_module.network("ls-remote", "--heads", "origin", "refs/heads/" + stack)
+    if not listed.stdout.strip():
+        default, _ = default_branch_name(True)
+        git_module.network("fetch", "-q", "origin", "+refs/heads/%s:refs/remotes/origin/%s" % (default, default))
+        git_module.network("push", "origin", "refs/remotes/origin/%s:refs/heads/%s" % (default, stack))
     fetched = git_module.network("fetch", "-q", "origin", "+refs/heads/%s:refs/remotes/origin/%s" % (stack, stack))
     if fetched.returncode != 0:
         return entry.refuse("git fetch origin %s got no answer (%s) — refusing to cut %s from a stale origin/%s"

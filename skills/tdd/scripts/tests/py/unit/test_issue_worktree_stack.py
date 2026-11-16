@@ -87,3 +87,17 @@ def test_cuts_a_new_runs_branch_from_origin_stack_as_just_fetched(fake_processes
     fetched = fake.calls.index("git fetch -q origin +refs/heads/stack:refs/remotes/origin/stack")
     cut = fake.calls.index("git worktree add -q --no-track -b tdd/7-slug %s origin/stack" % path)
     assert (code, capsys.readouterr().out, fetched < cut, pushes(fake)) == (0, path + "\n", True, [])
+
+
+def test_with_no_stack_on_origin_pushes_it_at_the_default_branchs_tip_unforced_then_cuts_from_it(
+        fake_processes, tmp_path, capsys, issue_worktree):
+    fake, path = stacked_world(fake_processes, tmp_path, Origin(stack=False))
+
+    code = issue_worktree.main(["7", "slug"])
+
+    order = [c for c in fake.calls if c.startswith(("git fetch", "git push", "git worktree add"))]
+    assert (code, capsys.readouterr().out, order) == (0, path + "\n", [
+        "git fetch -q origin +refs/heads/trunk:refs/remotes/origin/trunk",
+        "git push origin refs/remotes/origin/trunk:refs/heads/stack",
+        "git fetch -q origin +refs/heads/stack:refs/remotes/origin/stack",
+        "git worktree add -q --no-track -b tdd/7-slug %s origin/stack" % path])
