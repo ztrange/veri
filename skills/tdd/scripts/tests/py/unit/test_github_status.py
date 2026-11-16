@@ -35,12 +35,17 @@ class Page:
         monkeypatch.setattr(self.module, "now", lambda: self.at)
         monkeypatch.setattr(self.module, "local_zone", lambda: CST)
         monkeypatch.setattr(self.module, "sleep", self.sleep, raising=False)
+        self.mono = 1000.0
+        self.wall_frozen = False
+        monkeypatch.setattr(self.module, "monotonic", lambda: self.mono, raising=False)
 
     def sleep(self, seconds):
         self.sleeps.append(seconds)
         if len(self.sleeps) > 50:
             raise AssertionError("waited past any deadline")
-        self.at += datetime.timedelta(seconds=seconds)
+        self.mono += seconds
+        if not self.wall_frozen:
+            self.at += datetime.timedelta(seconds=seconds)
 
     def serve(self, *incidents, body=None, status=200, error=None):
         if body is None:
@@ -386,3 +391,24 @@ def test_an_incident_opened_in_the_future_is_young_at_age_0(page, run_cli):
     page.serve(incident("Clock skew", -10, "Actions"))
 
     assert run_cli(page.module, [])[:2] == (0, "young 0 Clock skew\n")
+
+
+def test_wait_keeps_its_deadline_on_the_monotonic_clock_when_the_wall_clock_stands_still(page, run_cli):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests"))
+    page.wall_frozen = True
+
+    code, _, _ = run_cli(page.module, ["wait", "600"])
+
+    assert code == 3
+    assert page.sleeps == [300, 300]
+
+
+@pytest.mark.parametrize("max_seconds", ["86401", "1" + "0" * 30])
+def test_wait_with_a_max_seconds_over_86400_exits_2_with_the_usage_before_any_read(page, run_cli, max_seconds):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests"))
+
+    code, out, err = run_cli(page.module, ["wait", max_seconds])
+
+    assert (code, out) == (2, "")
+    assert "usage: github-status.sh" in err
+    assert page.calls == []

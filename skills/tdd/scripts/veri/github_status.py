@@ -17,9 +17,10 @@ import entry
 import tunables
 
 USAGE = ("usage: github-status.sh [<component>…]\n"
-         "       github-status.sh wait <max-seconds> [<component>…]")
+         "       github-status.sh wait <max-seconds> [<component>…]   (<max-seconds>: 1 to 86400)")
 FEED = "/api/v2/incidents/unresolved.json"
 MAX_BODY = 1024 * 1024
+MAX_WAIT = 86400
 DEFAULT_COMPONENTS = ("Git Operations", "Pull Requests", "API Requests", "Issues", "Actions")
 COMPONENTS = ("Git Operations", "Webhooks", "API Requests", "Issues", "Pull Requests", "Actions", "Packages", "Pages",
               "Copilot", "Codespaces", "Copilot AI Model Providers")
@@ -39,6 +40,7 @@ def fetch(url, timeout):
 
 
 sleep = time.sleep
+monotonic = time.monotonic
 
 
 def now():
@@ -131,7 +133,7 @@ def wait(read_once, max_seconds, poll):
     """(code, lines): 0 and the first read finding nothing counting; 3 and the last counting read's lines once
     `max_seconds` pass, with no read after; 2 and no lines when no read in that time got an answer.
     A read with no answer is reported and retried at the next poll."""
-    deadline = now() + datetime.timedelta(seconds=max_seconds)
+    deadline = monotonic() + max_seconds
     answered = None
     while True:
         try:
@@ -141,8 +143,8 @@ def wait(read_once, max_seconds, poll):
         else:
             if answered[0] == 0:
                 return answered
-        sleep(min(poll, max(0, (deadline - now()).total_seconds())))
-        if now() >= deadline:
+        sleep(min(poll, max(0, deadline - monotonic())))
+        if monotonic() >= deadline:
             if answered is None:
                 return entry.refuse("github-status.sh: wait: no read got an answer in %s s" % max_seconds), []
             return 3, answered[1]
@@ -152,8 +154,9 @@ def main(argv):
     waiting = argv[:1] == ["wait"]
     if waiting:
         max_seconds = entry.whole_number(argv[1], 1) if len(argv) > 1 else None
-        if max_seconds is None:
-            return entry.refuse("github-status.sh: wait needs <max-seconds>, a positive integer", usage=USAGE)
+        if max_seconds is None or max_seconds > MAX_WAIT:
+            return entry.refuse("github-status.sh: wait needs <max-seconds>, a whole number from 1 to %d" % MAX_WAIT,
+                                usage=USAGE)
         argv = argv[2:]
     components = tuple(argv) or DEFAULT_COMPONENTS
     knobs = {name: positive(name) for name in ("VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT",
