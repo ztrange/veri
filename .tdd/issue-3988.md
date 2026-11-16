@@ -5,4 +5,4 @@
 - [x] a leaf.owner whose pid is alive under the same start time refuses the launch ⟦criterion 3⟧
 - [x] a leaf.owner with no line 2 whose pid is alive refuses the launch ⟦criterion 3⟧
 - [x] a leaf.owner with a line 2 whose live pid's start time ps cannot read refuses the launch
-- [ ] the supervise.sh entry of SCRIPTS.md states the two-line leaf.owner and when it refuses, graded ⟦criterion 5⟧
+- [x] the supervise.sh entry of SCRIPTS.md states the two-line leaf.owner and when it refuses, graded ⟦criterion 5⟧
