@@ -98,7 +98,8 @@ def positive(name):
 def main(argv):
     waiting = argv[:1] == ["wait"]
     if waiting:
-        deadline = now() + datetime.timedelta(seconds=int(argv[1]))
+        max_seconds = int(argv[1])
+        deadline = now() + datetime.timedelta(seconds=max_seconds)
         argv = argv[2:]
     components = tuple(argv) or DEFAULT_COMPONENTS
     knobs = {name: positive(name) for name in ("VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT",
@@ -111,15 +112,21 @@ def main(argv):
             return entry.refuse("github-status.sh: %r is not a GitHub component; the components are: %s"
                                 % (name, ", ".join(COMPONENTS)), usage=USAGE)
     threshold = datetime.timedelta(minutes=knobs["VERI_GITHUB_OUTAGE_MIN"])
+    answered = None
     while True:
         try:
-            code, lines = read(components, threshold, knobs["VERI_GITHUB_STATUS_TIMEOUT"])
+            code, lines = answered = read(components, threshold, knobs["VERI_GITHUB_STATUS_TIMEOUT"])
         except NoAnswer as cause:
-            return entry.refuse("github-status.sh: no answer from GitHub's status page: %s" % cause)
-        if not waiting or code == 0:
-            break
+            entry.refuse("github-status.sh: no answer from GitHub's status page: %s" % cause)
+            if not waiting:
+                return 2
+        else:
+            if not waiting or code == 0:
+                break
         sleep(knobs["VERI_GITHUB_STATUS_POLL"])
         if now() >= deadline:
+            if answered is None:
+                return entry.refuse("github-status.sh: wait: no read got an answer in %s s" % max_seconds)
             code = 3
             break
     for line in lines:
