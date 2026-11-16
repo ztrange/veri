@@ -224,6 +224,20 @@ def _step(failed, what, cwd, *args, label=None, runner=_git):
         failed.append(label or what)
 
 
+def _delete_branch(failed, worktree, branch, runner):
+    """Delete origin's <branch> under a lease pinned to the head this run pushed, so a commit pushed to it since is never
+    deleted unseen. A refused or unanswered delete is read again: origin listing no such branch (GitHub may have
+    deleted a merged PR's branch already) counts as deleted; listing it, or no answer, appends 'branch delete'."""
+    run = runner(worktree, "push", "origin", "--delete", branch, "--force-with-lease=%s:%s" % (branch, _rev(worktree, "HEAD")))
+    if not run.returncode:
+        return
+    listed = runner(worktree, "ls-remote", "--heads", "origin", "refs/heads/" + branch)
+    if not listed.returncode and not (listed.stdout or "").strip():
+        return
+    _say("branch delete failed (exit %d): %s" % (run.returncode, (run.stderr or "").strip()))
+    failed.append("branch delete")
+
+
 def _cleanup(pid, pr, pull, worktree, branch, message):
     """Tag, delete the branch, remove the worktree, release the lock: every step runs, each failure is named."""
     failed = []
@@ -247,9 +261,7 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
         if issue:
             event.mark(worktree, {"issue": issue.group(1)}, "merged",
                        ["pr=" + pr, "tag=" + name, "message=" + (message if name else "")])
-    # Leased to the head this merge pushed: a commit pushed to the branch since is never deleted unseen.
-    _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch,
-          "--force-with-lease=%s:%s" % (branch, _rev(worktree, "HEAD")), runner=_network_git)
+    _delete_branch(failed, worktree, branch, _network_git)
     run_issue = run_dir.branch_issue(branch)
     if run_issue:
         records = _network_git(worktree, "push", "origin", "--delete", run_records.ref(run_issue))
@@ -617,9 +629,7 @@ def _join_cleanup(worktree, branch, released):
     each step that failed (a failed release among them)."""
     failed = ["release"] if released else []
     clone = os.path.dirname(_git(worktree, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
-    _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch,
-          "--force-with-lease=%s:%s" % (branch, _rev(worktree, "HEAD")),
-          runner=lambda cwd, *args: git.network("-C", cwd, *args))
+    _delete_branch(failed, worktree, branch, lambda cwd, *args: git.network("-C", cwd, *args))
     run_issue = run_dir.branch_issue(branch)
     if run_issue:
         records = git.network("-C", worktree, "push", "origin", "--delete", run_records.ref(run_issue))
