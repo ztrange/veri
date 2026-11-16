@@ -2,10 +2,14 @@
 
 Every case injects the fetch, the clock, the local timezone and the sleep: none touches the network or waits."""
 import datetime
+import email.message
 import http.client
 import importlib
+import io
 import json
 import urllib.error
+import urllib.request
+import urllib.response
 
 import pytest
 
@@ -532,3 +536,38 @@ def test_a_dripping_server_is_cut_off_at_the_reads_deadline_on_the_monotonic_clo
     assert (code, out) == (2, "")
     assert "no complete answer" in err
     assert page.mono - start <= bound
+
+
+class Redirecting(urllib.request.BaseHandler):
+    """An HTTP transport inside the module's own opener: the feed's URL answers 302 to another URL, which answers a
+    good, empty feed. It records every URL opened."""
+
+    handler_order = 100
+
+    def __init__(self):
+        self.opened = []
+
+    def https_open(self, request):
+        self.opened.append(request.full_url)
+        headers = email.message.Message()
+        if request.full_url.endswith("/unresolved.json"):
+            headers["Location"] = "https://elsewhere.example/feed.json"
+            response = urllib.response.addinfourl(io.BytesIO(b"moved"), headers, request.full_url, 302)
+            response.msg = "Found"
+        else:
+            response = urllib.response.addinfourl(io.BytesIO(b'{"incidents": []}'), headers, request.full_url, 200)
+            response.msg = "OK"
+        return response
+
+
+def test_a_redirect_is_not_followed_and_is_no_answer_naming_its_status(page, monkeypatch, run_cli):
+    transport = Redirecting()
+    own_opener = page.module.opener
+    monkeypatch.setattr(page.module, "fetch", page.real_fetch)
+    monkeypatch.setattr(page.module, "opener", lambda: own_opener(transport))
+
+    code, out, err = run_cli(page.module, [])
+
+    assert (code, out) == (2, "")
+    assert "status 302" in err
+    assert transport.opened == ["https://www.githubstatus.com/api/v2/incidents/unresolved.json"]
