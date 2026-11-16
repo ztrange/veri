@@ -1,6 +1,7 @@
 """In-process cases for veri/stack_green.py, the module stack-green.sh is a shim over (PRD 034.2b): the stack's span and
 GitHub's check-run reads are injected in-process, so no case starts a process."""
 import importlib
+import re
 
 import pytest
 
@@ -112,6 +113,13 @@ def test_exits_2_with_one_stderr_line_when_github_gives_no_answer_or_stack_branc
     code, out, err = run_cli(stack_green, [])
 
     assert (code, out, err.count("\n"), err.startswith("stack-green: "), said in err) == (2, "", 1, True, True), err
+
+
+def test_the_module_names_no_ci_job_or_check_name_so_every_check_run_counts(stack_green):
+    with open(stack_green.__file__, encoding="utf-8") as f:
+        named = [line for line in f if re.search(r'gates|"ci"|check_name|name ==', line)]
+
+    assert named == []
 
 
 def test_issue_ends_over_300_commits_reads_each_subject_once(stack_green):
