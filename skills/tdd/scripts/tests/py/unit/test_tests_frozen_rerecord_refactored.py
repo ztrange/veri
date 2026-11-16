@@ -270,3 +270,212 @@ def test_rerecord_refactored_leaves_a_cases_record_when_the_refactor_changed_its
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert checked == (1, "test_one (%s)\n" % step)
+
+
+def test_rerecord_refactored_still_re_records_the_other_cases_when_the_refactor_renamed_one_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1), BODY % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", step, ROOT_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    green = repo.commit("A green", all=True)
+    suite.write_text(suite.read_text().replace("def test_one():\n", "def test_uno():\n")
+                     .replace("x = 2\n", "x = 3 - 1\n"))
+    repo.commit("A refactor", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
+    spared = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2], "--except", "test_one"],
+                     cwd=tmp_path)[:2]
+
+    assert (code, spared) == (0, (0, ""))
+
+
+def test_rerecord_refactored_still_re_records_the_other_cases_when_an_earlier_refactor_renamed_one_before_green_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite = tmp_path / ROOT_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1), BODY % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], ROOT_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    repo.commit("A green", all=True)
+    suite.write_text(suite.read_text().replace("def test_one():\n", "def test_uno():\n"))
+    repo.commit("A refactor renames a case", all=True)
+    _ledger(tmp_path, A="done", B="pending")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later", 9))
+    green = repo.commit("B green", all=True)
+    suite.write_text(suite.read_text().replace("x = 2\n", "x = 3 - 1\n"))
+    repo.commit("B refactor", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
+    spared = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", "step C", "--except", "test_one"],
+                     cwd=tmp_path)[:2]
+
+    assert (code, spared) == (0, (0, ""))
+
+
+def test_rerecord_refactored_re_records_nothing_and_exits_3_unless_verdict_refactor_exit_holds_0_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, ROOT_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    green = repo.commit("A green", all=True)
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    repo.commit("A refactor", all=True)
+    verdict = tmp_path / VERDICT
+
+    def records():
+        return {str(p): p.read_bytes() for p in sorted((tmp_path / ".tdd").rglob("*"))
+                if p.is_file() and p != verdict}
+    before, outcomes = records(), []
+    for held in (None, "1"):
+        if held is not None:
+            verdict.write_text(held)
+        outcomes.append((run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0],
+                         records() == before))
+
+    assert outcomes == [(3, True), (3, True)]
+
+
+def test_rerecord_refactored_run_outside_any_git_repository_exits_2_and_re_records_nothing_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    # Outside any repository case_history.toplevel answers None, as `git rev-parse --show-toplevel` failing makes it.
+    monkeypatch.setattr(tests_frozen.case_history, "toplevel", lambda: None)
+    (tmp_path / ".tdd").mkdir()
+    ledger, record = tmp_path / PLAN_LEDGER, tmp_path / ".tdd/record"
+    ledger.write_text("- [x] step one\n")
+    record.write_text("kept\n")
+
+    code, out, _ = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, "deadbeef"], cwd=tmp_path)
+
+    assert (code, out, record.read_text()) == (2, "", "kept\n")
+
+
+def test_rerecord_refactored_unreadable_ledger_exits_2_and_re_records_nothing_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    _plan_repo(tmp_path, monkeypatch, fed_commits)
+    (tmp_path / PLAN_LEDGER).unlink(missing_ok=True)
+    (tmp_path / PLAN_LEDGER).mkdir()
+    record = tmp_path / ".tdd/record"
+    record.write_text("kept\n")
+
+    code, out, _ = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, "deadbeef"], cwd=tmp_path)
+
+    assert (code, out, record.read_text()) == (2, "", "kept\n")
+
+
+def test_rerecord_refactored_exits_2_naming_the_record_when_writing_it_raises_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch, capfd, fed_commits):
+    suite, step = tmp_path / ROOT_SUITE, STEPS[1]
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, ROOT_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    green = repo.commit("A green", all=True)
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    repo.commit("A refactor", all=True)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+    (tmp_path / VERDICT).write_text("0")
+
+    def refusing_open(name, mode="r", *rest, **kwargs):
+        if "w" in mode and str(name).endswith(record.name):
+            raise OSError(28, "No space left on device", str(name))
+        return open(name, mode, *rest, **kwargs)
+
+    monkeypatch.setattr(tests_frozen, "open", refusing_open, raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    code = tests_frozen.rerecord_refactored(PLAN_LEDGER, green)
+
+    assert (code, record.name in capfd.readouterr().err, record.read_bytes() == old) == (2, True, True)
+
+
+def test_rerecord_refactored_re_records_a_case_with_no_assertion_line_when_the_refactor_only_changed_whitespace_2809(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    step = STEPS[1]
+    suite = tmp_path / ROOT_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    suite.write_text("\n\n".join([CASE % ("base", 0), "def test_one():\n    x = 1\n    check(x)\n"]))
+    run_cli(tests_frozen, ["record", "--step", step, ROOT_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    green = repo.commit("A green", all=True)
+    suite.write_text(suite.read_text().replace("check(x)\n", "check( x )\n"))
+    repo.commit("A refactor", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked == (0, "")
+
+
+ASSERT_REFUSED_CHECK = '\tif v != "x" {\n\t\tt.Fatal("%s")\n\t}\n'
+ASSERT_REFUSED_INLINE = ('func TestOne(t *testing.T) {\n\tv := "x"\n' + ASSERT_REFUSED_CHECK % "a"
+                         + ASSERT_REFUSED_CHECK % "b" + '}\n')
+
+
+def test_rerecord_refactored_names_a_go_case_on_a_skipped_line_and_check_earlier_exits_1_when_a_refactor_moved_its_assertions_into_assert_refused_and_dropped_one_2898(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    chk = lambda m: ASSERT_REFUSED_CHECK % m
+    moved = ('func assertRefused(t *testing.T, v string) {\n' + chk("a") + '}\n\n'
+             'func TestOne(t *testing.T) {\n\tv := "x"\n\tassertRefused(t, v)\n}\n')
+    green = _go_refactored(tmp_path, run_cli, tests_frozen, repo, ASSERT_REFUSED_INLINE, moved)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[0]
+
+    assert (code, _skip_lines(err, "suite_test.go TestOne"), checked) == (1, 1, 1)
+
+
+def test_rerecord_refactored_names_a_go_case_on_a_skipped_line_and_check_earlier_exits_1_when_a_refactor_moved_its_assertions_into_assert_refused_and_deleted_the_call_2898(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    chk = lambda m: ASSERT_REFUSED_CHECK % m
+    moved = ('func assertRefused(t *testing.T, v string) {\n' + chk("a") + chk("b") + '}\n\n'
+             'func TestOne(t *testing.T) {\n\tv := "x"\n\t_ = v\n}\n')
+    green = _go_refactored(tmp_path, run_cli, tests_frozen, repo, ASSERT_REFUSED_INLINE, moved)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[0]
+
+    assert (code, _skip_lines(err, "suite_test.go TestOne"), checked) == (1, 1, 1)
+
+
+def test_rerecord_refactored_exits_3_and_check_earlier_exits_1_when_a_refactor_moved_a_go_cases_assertions_into_assert_refused_and_the_verdict_is_not_0_2898(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    chk = lambda m: ASSERT_REFUSED_CHECK % m
+    moved = ('func assertRefused(t *testing.T, v string) {\n' + chk("a") + chk("b") + '}\n\n'
+             'func TestOne(t *testing.T) {\n\tv := "x"\n\tassertRefused(t, v)\n}\n')
+    green = _go_refactored(tmp_path, run_cli, tests_frozen, repo, ASSERT_REFUSED_INLINE, moved)
+    (tmp_path / VERDICT).write_text("1")
+
+    code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[0]
+
+    assert (code, checked) == (3, 1)
+
+
+def test_rerecord_refactored_re_records_a_go_case_without_a_skipped_line_and_check_earlier_exits_0_when_a_refactor_moved_its_assertions_into_assert_refused_2898(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    chk = lambda m: ASSERT_REFUSED_CHECK % m
+    moved = ('func assertRefused(t *testing.T, v string) {\n' + chk("a") + chk("b") + '}\n\n'
+             'func TestOne(t *testing.T) {\n\tv := "x"\n\tassertRefused(t, "x")\n}\n')
+    green = _go_refactored(tmp_path, run_cli, tests_frozen, repo, ASSERT_REFUSED_INLINE, moved)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[0]
+
+    assert (code, _skip_lines(err, "suite_test.go TestOne"), checked) == (0, 0, 0)
