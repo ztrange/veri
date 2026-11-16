@@ -10,7 +10,7 @@ _START = re.compile(_REPLACES + "(?=" + _QUOTE + ")")
 _UNQUOTED = re.compile(_REPLACES + "(?!" + _QUOTE + r")\S")
 _OTHER_SUITE = re.compile(_REPLACES + "(?=" + _QUOTE + r").*? in ([\w./-]+)")
 _JOINT = "(?:, | and )"
-_SUITE = re.compile(r" in ([\w./-]+\.(?:test\.sh|py))")
+_SUITE = re.compile(r" in ([\w./-]+\.py)")
 
 
 def is_replaces_case_step(step):
@@ -58,7 +58,7 @@ def refusal(step):
         return unreadable_message(step)
     other = other_suite(step)
     if parsed is None and other:
-        return "suite " + other + " is neither a .test.sh nor a .py file in step: " + step.replace("\n", " ")
+        return "suite " + other + " is not a .py file in step: " + step.replace("\n", " ")
     return None
 
 
