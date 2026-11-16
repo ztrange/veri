@@ -1,5 +1,6 @@
 """workqueue.sh's subcommands, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
 import locale
 import os
 import re
@@ -9,6 +10,7 @@ import time
 
 import blocked_by
 import entry
+import pid_file
 import run_dir
 import tunables
 from github import NoAnswer, gh_json
@@ -58,6 +60,7 @@ def take_lock(lock):
     while True:
         try:
             os.mkdir(lock)
+            pid_file.record(holder_path(lock), os.getpid())
             return
         except FileExistsError:
             pass
@@ -68,7 +71,13 @@ def take_lock(lock):
         time.sleep(0.05)
 
 
+def holder_path(lock):
+    return os.path.join(lock, "holder")
+
+
 def release_lock(lock):
+    with contextlib.suppress(FileNotFoundError):
+        os.remove(holder_path(lock))
     os.rmdir(lock)
 
 
