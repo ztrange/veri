@@ -17,3 +17,7 @@
 - [x] `--step-ahead` checks a parametrized case `<case>[…]` by its name without the suffix
 - [x] `--step-ahead` with no id or an empty one exits 2 with the usage line
 - [x] `SKILL.md` says the revise-exhausted exit 3 bails only with no step ahead, graded PASS against row CY12
+- [ ] `--step-ahead` refuses a value outside the id grammar `<path>::<name>[::<name>…][[param]]`, naming the line
+- [ ] `--step-ahead` prints each id rebuilt from its checked parts, never the leaf's text
+- [ ] `--step-ahead` refuses a class id whose class the file does not hold or whose class does not define the case
+- [ ] `SCRIPTS.md`'s `exhausted-outcome.sh` entry states the id grammar and the class check, graded PASS against row SC140
