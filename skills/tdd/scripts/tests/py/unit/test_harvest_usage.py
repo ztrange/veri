@@ -130,10 +130,10 @@ def test_main_appends_a_model_usage_field_with_each_models_figures_only_when_the
 
 
 _RECORD = {"type": "result", "duration_ms": 228265, "duration_api_ms": 84513, "num_turns": 13,
-           "total_cost_usd": 0.04125,
+           "total_cost_usd": 1e-05,
            "usage": {"input_tokens": 41, "cache_creation_input_tokens": 52890,
                      "cache_read_input_tokens": 1287431, "output_tokens": 8203}}
-_NUMBERS = {"duration_ms": "228265", "duration_api_ms": "84513", "num_turns": "13", "total_cost_usd": "0.04125",
+_NUMBERS = {"duration_ms": "228265", "duration_api_ms": "84513", "num_turns": "13", "total_cost_usd": "0.00001",
             "input_tokens": "41", "output_tokens": "8203", "cache_read_input_tokens": "1287431",
             "cache_creation_input_tokens": "52890", "model": ""}
 _VERIFIER = {"issue": "", "actor": "verifier", "phase": "green", "step": "", "event": "usage", "attempt": "1",
@@ -348,3 +348,15 @@ def test_main_on_a_log_whose_assistant_records_carry_no_usage_appends_todays_usa
         "skill_commit": "", "duration_ms": "1", "duration_api_ms": "2", "num_turns": "3", "total_cost_usd": "0.5",
         "input_tokens": "4", "output_tokens": "7", "cache_read_input_tokens": "6",
         "cache_creation_input_tokens": "5", "model": ""}])
+
+
+@pytest.mark.parametrize("cost, written", [(1e-05, "0.00001"), (3.2e-07, "0.00000032"),
+                                           (0.032333100000000004, "0.032333100000000004"), (0.75, "0.75"), (0, "0"),
+                                           (2, "2")])
+def test_a_cost_is_written_as_a_plain_decimal_with_no_exponent_and_a_typical_cost_as_python_prints_it(
+        harvest_usage, cost, written):
+    record = {"duration_ms": 1, "duration_api_ms": 1, "num_turns": 1, "total_cost_usd": cost,
+              "usage": {"input_tokens": 1, "output_tokens": 1, "cache_read_input_tokens": 0,
+                        "cache_creation_input_tokens": 0}}
+
+    assert "total_cost_usd=" + written in harvest_usage.usage_pairs(record)
