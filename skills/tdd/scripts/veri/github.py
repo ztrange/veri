@@ -73,11 +73,29 @@ def refusal_retries():
     return wait_seconds("VERI_GH_REFUSAL_RETRIES", 0)
 
 
+def bounded(argv, run=None, **kwargs):
+    """(run or subprocess.run)(argv, **kwargs), killed after VERI_GH_TIMEOUT seconds and then answered as a failed
+    call: exit 124, with a line naming the command and the limit on the stream the caller captures (written to ours
+    when it captures none)."""
+    limit = wait_seconds("VERI_GH_TIMEOUT", 1)
+    try:
+        return (run or subprocess.run)(argv, timeout=limit, **kwargs)
+    except subprocess.TimeoutExpired:
+        said = "%s: no answer after %ds (VERI_GH_TIMEOUT)\n" % (" ".join(argv), limit)
+        stdout = "" if kwargs.get("capture_output") or kwargs.get("stdout") == subprocess.PIPE else None
+        if kwargs.get("stderr") == subprocess.STDOUT:
+            return subprocess.CompletedProcess(argv, 124, said, None)
+        if kwargs.get("capture_output") or kwargs.get("stderr") == subprocess.PIPE:
+            return subprocess.CompletedProcess(argv, 124, stdout, said)
+        sys.stderr.write(said)
+        return subprocess.CompletedProcess(argv, 124, stdout, None)
+
+
 def run_gh(*args, stderr=None):
     first_miss = None
     while True:
         try:
-            return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
+            return bounded(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
         except FileNotFoundError:
             retry_sleep = wait_seconds("VERI_TOOL_RETRY_SLEEP", 1)
             fast_wait = wait_seconds("VERI_TOOL_FAST_WAIT", 0)
@@ -99,11 +117,12 @@ def run_gh(*args, stderr=None):
 
 
 def gh_probe(*args):
-    return subprocess.run(["gh", *args], capture_output=True, text=True)
+    return bounded(["gh", *args], capture_output=True, text=True)
 
 
 def rate_limit_reset(run=subprocess.run):
-    done = run(["gh", "api", "rate_limit", "--jq", ".resources.core.reset"], capture_output=True, text=True)
+    done = bounded(["gh", "api", "rate_limit", "--jq", ".resources.core.reset"], run=run,
+                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     try:
         return int(done.stdout.strip())
     except ValueError:
@@ -499,8 +518,8 @@ def _retry_refused(call, stream):
 def _refuse_unpushed(number, head_sha):
     ref = run_gh("api", "%s/%s" % (_PULLS, number), "--jq", ".head.ref")
     branch = ref.stdout.rstrip("\n")
-    listed =subprocess.run(["git", "ls-remote", "origin", "refs/heads/" + branch],
-                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    listed = bounded(["git", "ls-remote", "origin", "refs/heads/" + branch],
+                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     fields = listed.stdout.split()
     if not fields or fields[0] == head_sha:
         return

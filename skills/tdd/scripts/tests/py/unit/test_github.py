@@ -1213,3 +1213,43 @@ def test_gh_pr_ready_reads_an_empty_veri_gh_driver_as_empty_and_refuses_it_not_a
         github.gh_pr_ready("12")
 
     assert capsys.readouterr().err == "VERI_GH_DRIVER is '': expected auto, rest or graphql\n"
+
+
+def never_returns(line, **kwargs):
+    """A process that never answers: with a timeout it is killed as subprocess.run kills one; with none the case fails,
+    since the caller would hang without bound."""
+    if kwargs.get("timeout") is None:
+        pytest.fail("%r never returns, and no timeout bounds it" % line)
+    raise subprocess.TimeoutExpired(line, kwargs["timeout"])
+
+
+def test_every_gh_process_and_the_git_ls_remote_against_a_process_that_never_returns_end_after_veri_gh_timeout_naming_the_command_and_the_limit_3983(
+        fake_processes, monkeypatch, capsys, tmp_path, github):
+    monkeypatch.chdir(tmp_path)
+    fake_clock(monkeypatch)
+    monkeypatch.setenv("VERI_GH_TIMEOUT", "7")
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    head = "a" * 40
+    pull = "gh api repos/{owner}/{repo}/pulls/12"
+    fake = fake_processes.answers({
+        "gh api x": never_returns,
+        "gh pr view 1": never_returns,
+        "gh api rate_limit --jq .resources.core.reset": never_returns,
+        pull + " --jq .head.sha": [(0, "b" * 40 + "\n", ""), (0, head + "\n", "")],
+        pull + " --jq .head.ref": (0, "br\n", ""),
+        "git ls-remote origin refs/heads/br": never_returns,
+        "gh api -X POST repos/{owner}/{repo}/pulls/12/ccr/ready_for_review": (0, "", ""),
+    }, exact=True)
+
+    run = github.run_gh("api", "x", stderr=subprocess.PIPE)
+    probe = github.gh_probe("pr", "view", "1")
+    reset = github.rate_limit_reset(subprocess.run)
+    reset_err = capsys.readouterr().err
+    github.gh_pr_ready("12", head)
+    ready_err = capsys.readouterr().err
+
+    assert (run.returncode != 0, run.stderr) == (True, "gh api x: no answer after 7s (VERI_GH_TIMEOUT)\n")
+    assert (probe.returncode != 0, probe.stderr) == (True, "gh pr view 1: no answer after 7s (VERI_GH_TIMEOUT)\n")
+    assert (reset, reset_err) == (None, "gh api rate_limit --jq .resources.core.reset: no answer after 7s (VERI_GH_TIMEOUT)\n")
+    assert ready_err == "git ls-remote origin refs/heads/br: no answer after 7s (VERI_GH_TIMEOUT)\n"
+    assert {kwargs.get("timeout") for _, kwargs in fake.seen} == {7}
