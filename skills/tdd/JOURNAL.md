@@ -1,6 +1,8 @@
 # Event journal
 
-`event.sh <event> [key=value …]` (or `event.mark` from a Python module) appends one JSON line to `.tdd/events.jsonl`. Every line carries `ts` (epoch seconds), `awake` (awake-clock reading), `issue`, `actor`, `phase`, `step`, `event` (the name), `attempt` and `skill_commit` (the run context, empty when unset), then the keys below, in the order the emitter gives them. Every value is a string.
+The journal of a run is `$VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl` (`VERI_HOME` defaulting to `~/.veri`); what a reader outside veri may rely on is in [`PUBLISHED.md`](PUBLISHED.md). The run's own copy, `.tdd/events.jsonl` in its worktree, is private.
+
+`event.sh <event> [key=value …]` (or `event.mark` from a Python module) appends one JSON line to the run's own copy, `.tdd/events.jsonl`, and the same line to the journal when the run writes one (it has an issue and an `origin` remote). Every line carries `ts` (epoch seconds), `awake` (awake-clock reading), `issue`, `actor`, `phase`, `step`, `event` (the name), `attempt` and `skill_commit` (the run context, empty when unset), then the keys below, in the order the emitter gives them. Every value is a string.
 
 Keys and events are append-only: a key or event is never removed or renamed, only added. No event carries a schema version key.
 
