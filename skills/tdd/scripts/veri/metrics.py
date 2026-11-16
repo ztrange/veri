@@ -587,7 +587,7 @@ class Fold:
     lane: str                   # the label the run was opted in by
     flaked: list                # files named by suite-flake events
     pinned: str                 # the phases whose verifiers the run skipped (VERI_SKIP_VERIFY, pinned)
-    model_knobs: dict           # VERI_MODEL* knob -> its value, falsy when unset
+    model_knobs: dict           # VERI_MODEL* knob and VERI_EFFORT_VERIFIER -> its value, falsy when unset
     sessions: list              # the conductor's sessions (result records, a trailing open one); [] when its usage
                                 # event is in the log or its stream log is missing
     turn_rows: list             # the conductor's turns as [number, dollars text, context text], with .estimated,
@@ -699,7 +699,7 @@ def fold(issue, path, ledger):
                 pinned=pinned,
                 model_knobs={knob: tunables.read(knob) for knob in
                              ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE",
-                              "VERI_MODEL_REVISE_GREEN"]},
+                              "VERI_MODEL_REVISE_GREEN", "VERI_EFFORT_VERIFIER"]},
                 phases=tally.counts, by_model=tally.by_model, lost=tally.lost(),
                 steps=tally.steps, step_marks=tally.spent, passes=passes, tier_runs=tally.tier_runs,
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
