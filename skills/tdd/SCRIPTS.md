@@ -517,9 +517,11 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   without `/private` and `/System/Volumes/Data`, with `/` written `\/`, URL-encoded with and without `/` kept) and only
   up to a path boundary (`/Users/<name>2` is another path, left alone); then any other temp path (`/var/folders/…`,
   `/tmp`) at a path boundary `<tmp>`; then, as whole words ignoring case, the host's names `<host>` and the account's
-  name `<user>`. The second is fail-closed: a string whose copy, URL-decoded until it stops changing (at most 5 times),
-  with escaped slashes and backslashes read as `/` and case-folded, still holds any of those paths or names is replaced
-  whole by `<redacted>` (a key by `<redacted>`, or `<redacted-2>`… when that key is taken). The host's names are
+  name `<user>`. The second is fail-closed: a string whose copy, URL-decoded (`+` read as a space) until it stops
+  changing, then NFKC-normalized with zero-width characters and the soft hyphen dropped, escaped slashes and backslashes
+  read as `/` and case-folded, still holds any of those paths or names is replaced whole by `<redacted>`, and so is one
+  still changing after 50 decoding passes. A key whose redacted name another key already holds is suffixed (`~-2`,
+  `<redacted-2>`…), so no value is lost. The host's names are
   `socket.gethostname()`, `platform.node()` and the `LocalHostName` and `ComputerName` of
   `/Library/Preferences/SystemConfiguration/preferences.plist` (read with `plistlib`; no process is started), each with
   its first DNS label, `.local` and `-` or space either way, never a form that is all digits or under 3 characters and
