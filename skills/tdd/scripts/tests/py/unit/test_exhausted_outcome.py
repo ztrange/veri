@@ -127,3 +127,23 @@ def test_an_unexpected_argument_is_refused_naming_it_with_the_usage_exit_2_and_t
 def test_nothing_is_ever_written_to_stderr(run_cli, exhausted_outcome):
     for report in ("SPLIT: a", "NEEDS_USER: q", "neither"):
         assert run_cli(exhausted_outcome, [], stdin=report)[2] == ""
+
+
+def _suite(tmp_path):
+    suite = tmp_path / "tests" / "py"
+    suite.mkdir(parents=True)
+    (suite / "test_solvable.py").write_text(
+        "def test_prints_usage():\n    pass\n\n\ndef test_prints_usage_with_not_running():\n    pass\n")
+    (suite / "test_status.py").write_text("def test_status_lists_runs():\n    pass\n")
+    return "tests/py/test_solvable.py::test_prints_usage_with_not_running"
+
+
+def test_3917_step_ahead_prints_one_prep_line_naming_each_step_ahead_case_its_file_defines_and_exits_0(run_cli, tmp_path, exhausted_outcome):
+    red = _suite(tmp_path)
+    report = ("The older cases pin the usage text this step changes.\n"
+              "STATEMENT: the step is one behaviour; two older cases are why it failed\n"
+              "STEP_AHEAD: tests/py/test_solvable.py::test_prints_usage\n"
+              "STEP_AHEAD: tests/py/test_status.py::test_status_lists_runs\n")
+
+    assert run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path) == (
+        0, "prep tests/py/test_solvable.py::test_prints_usage tests/py/test_status.py::test_status_lists_runs\n", "")
