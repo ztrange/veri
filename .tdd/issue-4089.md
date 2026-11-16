@@ -4,7 +4,7 @@
 - [x] over an HTTPS `origin`, a header listing `repo` but not `workflow` fails the row, its fix `gh auth refresh -s workflow` ⟦criterion 1⟧
 - [x] a header listing neither fails the row over HTTPS with `gh auth refresh -s repo,workflow` ⟦criterion 1⟧
 - [x] with no `X-OAuth-Scopes` header the `token scopes` row reads `not verifiable` ⟦criterion 2⟧
-- [ ] the `label <VERI_PRIORITY_LABEL's value>` row is `ok` when `gh api repos/{owner}/{repo}/labels/<name>` answers and `fail` on 404, its fix `gh label create <name>` ⟦criterion 3⟧
+- [x] the `label <VERI_PRIORITY_LABEL's value>` row is `ok` when `gh api repos/{owner}/{repo}/labels/<name>` answers and `fail` on 404, its fix `gh label create <name>` ⟦criterion 3⟧
 - [ ] a `label bug` row is `ok` when that call answers for `bug` and `fail` on 404, its fix `gh label create bug` ⟦criterion 3⟧
 - [ ] the `actions read` row is `ok` when `gh api repos/{owner}/{repo}/actions/runs?per_page=1` exits 0 and `fail` otherwise ⟦criterion 4⟧
 - [ ] with no `.github/workflows/` at the default branch's tip the `actions read` row reads `skipped` ⟦criterion 4⟧
