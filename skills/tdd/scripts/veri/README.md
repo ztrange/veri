@@ -211,6 +211,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_MODEL_CONDUCTOR` | `opus` | its readers' own words |
 | `VERI_MODEL_DEVELOPER` | `sonnet` | its readers' own words |
 | `VERI_MODEL_REVISE` | `opus` | its readers' own words |
+| `VERI_MODEL_REVISE_GREEN` | "" | its readers' own words |
 | `VERI_MODEL_VERIFIER` | `sonnet` | its readers' own words |
 | `VERI_MUTATION_ADDRESS_DOMAIN` | "" | its readers' own words |
 | `VERI_NEW_SKILL` | "" | its readers' own words |
