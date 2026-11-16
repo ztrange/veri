@@ -113,11 +113,10 @@ def snapshot_digest(snapshot):
                 lines.append((relative, "directory"))
                 continue
             if stat.S_ISLNK(mode):
-                content = b"symlink " + os.fsencode(os.readlink(path))
+                token = hashlib.sha256(b"symlink " + os.fsencode(os.readlink(path))).hexdigest()
             else:
-                content = read_regular(path)
-                content += b" x" if mode & stat.S_IXUSR else b" -"
-            lines.append((relative, hashlib.sha256(content).hexdigest()))
+                token = regular_sha256(path, b" x" if mode & stat.S_IXUSR else b" -")
+            lines.append((relative, token))
     return sorted(lines)
 
 
@@ -164,16 +163,20 @@ def plain_entry(path):
     return found
 
 
-def read_regular(path):
-    """The bytes of the regular file <path>, opened without following a symlink or blocking; OSError otherwise."""
+def regular_sha256(path, trailer):
+    """The sha256 hex of the regular file <path>'s bytes then <trailer>, read in chunks, opened without following a
+    symlink or blocking; OSError otherwise."""
     handle = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     try:
         if not stat.S_ISREG(os.fstat(handle).st_mode):
             raise OSError(errno.EINVAL, "not a regular file", path)
-        with os.fdopen(os.dup(handle), "rb") as opened:
-            return opened.read()
+        digest = hashlib.sha256()
+        while chunk := os.read(handle, 1 << 20):
+            digest.update(chunk)
     finally:
         os.close(handle)
+    digest.update(trailer)
+    return digest.hexdigest()
 
 
 def raise_error(error):
