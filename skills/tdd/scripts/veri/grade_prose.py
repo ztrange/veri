@@ -107,14 +107,14 @@ def unit_text(unit, reader=None):
 
 def signature(path, unit, text=None):
     """The stamp of `unit` under the list `path` names; `text` is the unit's text (None: the working tree's)."""
-    return stamp(signed_parts(unit_text(unit) if text is None else text, requirements.claims(path, unit),
-                              grader_model(), grader_conf().get("effort")))
+    parts = [unit_text(unit) if text is None else text, requirements.claims(path, unit), grader_model()]
+    return stamp(with_effort(parts, grader_conf().get("effort")))
 
 
-def signed_parts(text, claims, model, effort):
+def with_effort(parts, effort):
     """What a signature stamps: the unit text, its rows and the grader model, and the effort level only when
     grader.conf sets one, so a grader.conf without an effort= line stamps the three parts it always did."""
-    return [text, claims, model] + ([] if effort is None else [effort])
+    return parts + ([] if effort is None else [effort])
 
 
 def stamp(parts):
@@ -419,7 +419,7 @@ def grade_unit(path, unit, read=None):
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
                                        "cost_usd=%s" % cost, "id=" + grading_id,
                                        "effort=" + (effort or "default")])
-    ours = stamp(signed_parts(text, claims, model, effort))
+    ours = stamp(with_effort([text, claims, model], effort))
     try:
         own = signer()
         if own is sys.modules[__name__]:
