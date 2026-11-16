@@ -237,6 +237,18 @@ def test_3917_step_ahead_refuses_a_value_outside_the_id_grammar_naming_the_line(
                for line, result in results.items()), results
 
 
+def test_3917_step_ahead_prints_each_id_rebuilt_from_its_checked_parts(run_cli, tmp_path, exhausted_outcome):
+    red = _suite(tmp_path)
+    (tmp_path / "tests" / "py" / "test_cls.py").write_text(
+        "class TestUsage:\n    def test_prints_help(self):\n        pass\n")
+    report = ("STEP_AHEAD: ./tests/py/test_cls.py::TestUsage::test_prints_help\n"
+              "STEP_AHEAD: tests/py//test_solvable.py::test_prints_usage[x-y.1]\n")
+
+    assert run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path) == (
+        0, "prep tests/py/test_cls.py::TestUsage::test_prints_help"
+           " tests/py/test_solvable.py::test_prints_usage[x-y.1]\n", "")
+
+
 def _refused(result, line):
     code, stdout, stderr = result
     return code == 2 and stdout == "" and len(stderr.splitlines()) == 1 and line in stderr

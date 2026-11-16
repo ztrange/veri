@@ -10,7 +10,7 @@ import re
 import sys
 
 from entry import no_arguments
-from case_reader import file_defines, strip_param_suffix
+from case_reader import file_defines
 
 MARKER_RE = re.compile(rb"^(SPLIT|NEEDS_USER):\s*(.*)$")
 STEP_AHEAD_RE = re.compile(rb"^STEP_AHEAD:\s*(.*?)\s*$")
@@ -56,15 +56,17 @@ def step_ahead(red_test_id):
             continue
         if b"::" not in marker.group(1):
             return _refuse("names no <file>::<case>", line)
-        if not STEP_AHEAD_ID_RE.fullmatch(marker.group(1)):
+        checked = STEP_AHEAD_ID_RE.fullmatch(marker.group(1))
+        if not checked:
             return _refuse("is not a <path>::<name>[::<name>...][[param]] id", line)
-        value = os.fsdecode(marker.group(1))
-        file, case = value.partition("::")[0], strip_param_suffix(value.rpartition("::")[2])
+        file = os.path.normpath(os.fsdecode(checked.group(1)))
+        names = os.fsdecode(checked.group(2)).split("::")[1:]
+        param = os.fsdecode(checked.group(3) or b"")
         if not os.path.isfile(file):
             return _refuse("names no existing file", line)
-        if not file_defines(file, case):
+        if not file_defines(file, names[-1]):
             return _refuse("names a case its file does not define", line)
-        cases.append(marker.group(1))
+        cases.append(os.fsencode("::".join([file, *names]) + param))
     if not cases:
         return 3
     _print_lines([b" ".join([b"prep", *cases])])
