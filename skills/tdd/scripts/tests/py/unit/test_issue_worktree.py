@@ -566,7 +566,38 @@ def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remo
                 [c for c in calls if c[1] in ("fetch", "ls-remote")]) == (label, *want, [])
 
 
-def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cut_from_a_stale_one_when_the_fetch_fails(fake_processes, 
+def test_default_branch_name_answers_the_same_name_and_message_from_origin_head_from_origin_and_from_a_local_main_or_master_4042(
+        fake_processes, issue_worktree):
+    symref = ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+    ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
+    main = ("git", "show-ref", "--verify", "--quiet", "refs/heads/main")
+    master = ("git", "show-ref", "--verify", "--quiet", "refs/heads/master")
+    unset = (1, "", "fatal: ref refs/remotes/origin/HEAD is not a symbolic ref\n")
+    origin_message = "cannot determine origin's default branch (no refs/remotes/origin/HEAD, and the remote did not name one)"
+    cases = {
+        "origin/HEAD set": ("/srv/origin.git\n", {symref: (0, "origin/trunk\n", "")}),
+        "origin names a branch": ("/srv/origin.git\n", {symref: unset, ls_remote: (0, "ref: refs/heads/develop\tHEAD\n", "")}),
+        "origin names none": ("/srv/origin.git\n", {symref: unset, ls_remote: (0, "2222\tHEAD\n", "")}),
+        "no origin, local main": (None, {symref: unset, main: (0, "", ""), master: (0, "", "")}),
+        "no origin, local master": (None, {symref: unset, main: (1, "", ""), master: (0, "", "")}),
+        "no origin, neither": (None, {symref: unset, main: (1, "", ""), master: (1, "", "")}),
+    }
+    answered = {}
+    for label, (origin, answers) in cases.items():
+        routing_git(fake_processes, answers)
+        answered[label] = issue_worktree.default_branch_name(origin)
+
+    assert answered == {
+        "origin/HEAD set": ("trunk", None),
+        "origin names a branch": ("develop", origin_message),
+        "origin names none": ("", origin_message),
+        "no origin, local main": ("main", None),
+        "no origin, local master": ("master", None),
+        "no origin, neither": ("", "cannot determine the default branch (no origin/HEAD, no local main or master)"),
+    }
+
+
+def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cut_from_a_stale_one_when_the_fetch_fails(fake_processes,
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
