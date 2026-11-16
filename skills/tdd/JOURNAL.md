@@ -50,4 +50,5 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `test-run` | `tier`, `suites`, `seconds`, `status` | A timed test run ended: its tier (`fast`, `affected`, `full`), the suites it ran, seconds taken, exit status. |
 | `usage` | `duration_ms`, `duration_api_ms`, `num_turns`, `total_cost_usd`, `input_tokens`, `output_tokens`, `cache_read_input_tokens`, `cache_creation_input_tokens`, `model`, `model_usage` | What a leaf cost, from its closing result record: durations, turns, dollars, the four token counts, the model names (comma-joined) and a JSON object of per-model usage (`model_usage` absent when the record has none). |
 | `verdict` | `verdict`, `reason`, `cause` | A verifier ruled: `PASS`, `REJECT` or `malformed`; the first line of its reason; `cause=no-verdict` only when it never wrote a `VERDICT:` line. |
+| `verify-pin-skipped` | `reason` | The pin verifier was skipped (`switched-off`). |
 | `verify-refactor-skipped` | `reason` | The refactor verifier was skipped (`nothing-landed`, `switched-off`). |
