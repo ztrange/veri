@@ -963,3 +963,40 @@ def test_3985_the_bytecode_cache_record_still_runs_after_a_leg_exits_2_on_an_esc
     monkeypatch.setattr(pytest_leg, "record_bytecode_cache", lambda where, run: recorded.append(where))
     code = launched_with_lock_raising(pytest_leg, monkeypatch, capfd, prefix=str(prefix))[0]
     assert (code, recorded) == (2, [str(prefix)])
+
+
+def launched_over_a_cache(pytest_leg, monkeypatch, capfd, tmp_path, status, check=None, record=None):
+    """launch over a bytecode cache under tmp_path, pytest answering <status>, check/record replaced when given:
+    (code, stderr, how many times pytest ran)."""
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    ran = []
+    monkeypatch.setattr(pytest, "main", lambda args: ran.append(args) or status)
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    if check:
+        monkeypatch.setattr(pytest_leg, "check_bytecode_cache", check)
+    if record:
+        monkeypatch.setattr(pytest_leg, "record_bytecode_cache", record)
+    for name, value in leg_env(VERI_PYTEST_WORKERS="1", VERI_TEST_LOCK="0").items():
+        monkeypatch.setenv(name, value)
+    code = pytest_leg.launch(["-q"])
+    return code, capfd.readouterr().err, len(ran)
+
+
+def unreadable_cache(*_):
+    raise PermissionError(13, "Permission denied", "veri-manifest.json")
+
+
+def test_3985_a_bytecode_cache_check_that_raises_makes_the_leg_exit_2_with_one_line_before_any_pass(pytest_leg, monkeypatch, capfd, tmp_path):
+    code, err, passes = launched_over_a_cache(pytest_leg, monkeypatch, capfd, tmp_path, pytest.ExitCode.OK, check=unreadable_cache)
+    assert (code, err.count("\n"), "PermissionError" in err, "Traceback" in err, passes) == (2, 1, True, False, 0)
+
+
+def test_3985_a_bytecode_cache_record_that_raises_after_green_passes_makes_the_leg_exit_2_with_one_line(pytest_leg, monkeypatch, capfd, tmp_path):
+    code, err, passes = launched_over_a_cache(pytest_leg, monkeypatch, capfd, tmp_path, pytest.ExitCode.OK, record=unreadable_cache)
+    assert (code, err.count("\n"), "PermissionError" in err, "Traceback" in err) == (2, 1, True, False)
+
+
+def test_3985_a_bytecode_cache_record_that_raises_after_a_failing_case_keeps_the_legs_exit_1_and_says_so_in_one_line(pytest_leg, monkeypatch, capfd, tmp_path):
+    code, err, passes = launched_over_a_cache(pytest_leg, monkeypatch, capfd, tmp_path, pytest.ExitCode.TESTS_FAILED, record=unreadable_cache)
+    assert (code, err.count("\n"), "PermissionError" in err, "Traceback" in err) == (1, 1, True, False)

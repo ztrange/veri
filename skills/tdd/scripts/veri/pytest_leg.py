@@ -480,14 +480,25 @@ def main(argv):
 
 def launch(argv):
     """The leg as `make test` runs it: main's code, an exception escaping it exit 2 in entry.refusal's form, between the
-    bytecode cache's check and its record."""
+    bytecode cache's check and its record. A check that raises is exit 2 before any pass; a record that raises is one
+    such line too, and turns a green leg's 0 into 2 while leaving a failing leg's 1 as it is."""
     prefix = sys.pycache_prefix
-    cache_run = check_bytecode_cache(prefix) if prefix and os.path.isdir(prefix) else None
     try:
-        return entry.exit_code(main, argv)
+        cache_run = check_bytecode_cache(prefix) if prefix and os.path.isdir(prefix) else None
+    except Exception as exc:
+        sys.stderr.write(entry.refusal(main, exc))
+        return 2
+    code = None
+    try:
+        code = entry.exit_code(main, argv)
     finally:
         if cache_run:
-            record_bytecode_cache(prefix, cache_run)
+            try:
+                record_bytecode_cache(prefix, cache_run)
+            except Exception as exc:
+                sys.stderr.write(entry.refusal(main, exc))
+                code = 2 if code == 0 else code
+    return code
 
 
 if __name__ == "__main__":
