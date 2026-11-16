@@ -165,6 +165,86 @@ The one reader of `VERI_*` and related environment variables.
 - `environment()`, `with_values(**values)`, `without(name)`, `pop(name, default="")`: a copy of the environment, with values set or removed; pop mutates it.
 - `lane_of(opt_in)`: the lane of a label, `None` for a plain one. `taken_label(opt_in)`: `taken:<lane or main>`. `venv_dir()`: `VERI_VENV` or `~/.veri-tools/venv`. `claude_bin()`: `CLAUDE_BIN`, `claude` when unset or empty.
 
+Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after which a reader may compute its own fallback, such as a path under `~`), and what a bad value is told: the entry's `refusal`, or "its readers' own words" when it states none. `tests/py/unit/test_tunables_prose_table.py` fails when this table and `TUNABLES` disagree.
+
+| Name | Default | A bad value is told |
+|---|---|---|
+| `REVISE_BUDGET` | `2` | a whole number |
+| `VERI_ADJUDICATE_BUDGET` | `2` | its readers' own words |
+| `VERI_BASELINE_FULL_TIER` | `reuse` | run or reuse |
+| `VERI_BRANCH_SUITE` | `local` | local or ci |
+| `VERI_CALLER_DIR` | `.` | its readers' own words |
+| `VERI_CI_NO_RUN_WAIT` | `600` | its readers' own words |
+| `VERI_CI_QUEUE_WAIT` | `3600` | its readers' own words |
+| `VERI_CI_RETRY_BACKOFF` | `1` | its readers' own words |
+| `VERI_COMMENT_CHUNK` | `25` | a whole number >= 1 |
+| `VERI_CONDUCTOR_CTX_BUDGET` | `120000` | a whole number of tokens |
+| `VERI_CONDUCTOR_STOP_TIMEOUT` | `10` | a positive number of seconds |
+| `VERI_DISPATCH_OVERLAP_POLL` | `60` | its readers' own words |
+| `VERI_DISPATCH_RETRY_SLEEP` | `5` | its readers' own words |
+| `VERI_DISPATCH_STALL` | `3600` | its readers' own words |
+| `VERI_FETCH_RETRY_SLEEP` | `1` | its readers' own words |
+| `VERI_GH_DRIVER` | `rest` | its readers' own words |
+| `VERI_GH_REFUSAL_RETRIES` | `3` | its readers' own words |
+| `VERI_GH_REFUSAL_SLEEP` | `60` | its readers' own words |
+| `VERI_HEARTBEAT` | `180` | its readers' own words |
+| `VERI_HOME` | "" | its readers' own words |
+| `VERI_ISSUE_REFACTOR_BUDGET` | `10` | its readers' own words |
+| `VERI_KILL_POLL` | `0.1` | a non-negative number |
+| `VERI_LABEL` | `ready-for-agent` | its readers' own words |
+| `VERI_MAX_ISSUES` | "" | its readers' own words |
+| `VERI_MERGE_LOCK_POLL` | `30` | its readers' own words |
+| `VERI_MERGE_SETTLE_READS` | `10` | its readers' own words |
+| `VERI_MERGE_SETTLE_SLEEP` | `3` | its readers' own words |
+| `VERI_MIN_FREE_GB` | `20` | its readers' own words |
+| `VERI_MISSING_REROUTE_BUDGET` | `3` | its readers' own words |
+| `VERI_MODEL` | "" | its readers' own words |
+| `VERI_MODEL_ADJUDICATOR` | `opus` | its readers' own words |
+| `VERI_MODEL_CONDUCTOR` | `opus` | its readers' own words |
+| `VERI_MODEL_DEVELOPER` | `sonnet` | its readers' own words |
+| `VERI_MODEL_REVISE` | `opus` | its readers' own words |
+| `VERI_MODEL_VERIFIER` | `sonnet` | its readers' own words |
+| `VERI_MUTATION_ADDRESS_DOMAIN` | "" | its readers' own words |
+| `VERI_NEW_SKILL` | "" | its readers' own words |
+| `VERI_NO_VERDICT_RETRIES` | `1` | its readers' own words |
+| `VERI_PAGE_RETRIES` | `3` | its readers' own words |
+| `VERI_PAGE_RETRY_SLEEP` | `2` | its readers' own words |
+| `VERI_PARALLEL` | `1` | its readers' own words |
+| `VERI_PRIORITY_LABEL` | `priority` | its readers' own words |
+| `VERI_PROFILE_THRESHOLD` | `1` | its readers' own words |
+| `VERI_PYCACHE` | "" | its readers' own words |
+| `VERI_PYTEST_LEGS` | "" | its readers' own words |
+| `VERI_PYTEST_WORKERS` | "" | its readers' own words |
+| `VERI_REBASED_TIP_SUITE` | `local` | local or ci |
+| `VERI_REFACTOR_BUDGET` | `5` | its readers' own words |
+| `VERI_RESET_ACK_TIMEOUT` | `300` | its readers' own words |
+| `VERI_RESET_GROWTH_CONDUCTOR` | `70000` | a whole number of tokens >= 1 |
+| `VERI_RESET_IDLE` | `3000` | its readers' own words |
+| `VERI_RESET_MAX_PER_HOUR` | `2` | its readers' own words |
+| `VERI_RUN_BUDGET` | `120` | its readers' own words |
+| `VERI_RUN_TIMEOUT` | `14400` | its readers' own words |
+| `VERI_SELF_UPDATE` | "" | its readers' own words |
+| `VERI_SESSION_TRANSCRIPTS` | "" | its readers' own words |
+| `VERI_SKILL_EDIT_BUDGET` | `3` | its readers' own words |
+| `VERI_SKIP_VERIFY` | "" | its readers' own words |
+| `VERI_SLEEP_GAP` | `900` | its readers' own words |
+| `VERI_SNAPSHOT_MAX_AGE` | `60` | its readers' own words |
+| `VERI_STEP_BUDGET` | `12` | its readers' own words |
+| `VERI_STEP_GROWTH` | `5` | its readers' own words |
+| `VERI_STOP_KILL_GRACE` | `5` | its readers' own words |
+| `VERI_STUCK_RETRIES` | `1` | its readers' own words |
+| `VERI_TEST_LOCK` | "" | its readers' own words |
+| `VERI_TIME_WARN_RATIO` | `1.5` | its readers' own words |
+| `VERI_TIMEOUT` | `900` | its readers' own words |
+| `VERI_TOOL_FAST_WAIT` | `900` | its readers' own words |
+| `VERI_TOOL_IDLE` | `600` | its readers' own words |
+| `VERI_TOOL_RETRY_SLEEP` | `15` | its readers' own words |
+| `VERI_TOOL_SLOW_SLEEP` | `900` | its readers' own words |
+| `VERI_TOOL_WAIT` | `3600` | its readers' own words |
+| `VERI_UNIT_BUDGET` | `10` | its readers' own words |
+| `VERI_WATCH_QUEUE_INTERVAL` | `60` | its readers' own words |
+| `VERI_WORKQUEUE_LOCK_WAIT` | `30` | its readers' own words |
+
 # Run state and journal
 
 Where a run lives on disk, its journal of events and its pin files and mutation record, whether it is live, stuck or ended, and how it is stopped. Builds on Foundations only.
