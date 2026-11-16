@@ -103,23 +103,36 @@ def one_line(name):
     return " ".join(str(name).split()) if name is not None and str(name).strip() else "(unnamed)"
 
 
+def judged(incident, components, threshold):
+    """(counting, line) for an incident naming one of `components`, else None."""
+    matched = list(dict.fromkeys(one_line(c.get("name")) for c in incident.get("components") or ()
+                                 if c.get("name") in components))
+    if not matched:
+        return None
+    start = started(incident)
+    age = max(now() - start, datetime.timedelta(0))
+    minutes = str(int(age.total_seconds() // 60))
+    if age >= threshold:
+        return True, "\t".join((one_line(incident.get("name")), ", ".join(matched),
+                                 start.astimezone(local_zone()).strftime("%Y-%m-%d %H:%M"), minutes))
+    return False, "young %s %s" % (minutes, one_line(incident.get("name")))
+
+
 def read(components, threshold, timeout):
-    """(code, lines) of one read: 1 and a line per counting incident, else 0 and `up` or the young lines."""
+    """(code, lines) of one read: 1 and a line per counting incident, else 0 and `up` or the young lines.
+
+    Any error the feed's data raises while it is judged (an out-of-range date, a missing key) is a NoAnswer, so a
+    `wait` retries it; only the interpreter's own failures (MemoryError) propagate."""
     counting, young = {}, {}
     for index, incident in enumerate(incidents(timeout)):
-        key = json.dumps(incident["id"], sort_keys=True) if incident.get("id") is not None else index
-        matched = list(dict.fromkeys(one_line(c.get("name")) for c in incident.get("components") or ()
-                                     if c.get("name") in components))
-        if not matched:
-            continue
-        start = started(incident)
-        age = max(now() - start, datetime.timedelta(0))
-        minutes = str(int(age.total_seconds() // 60))
-        if age >= threshold:
-            counting.setdefault(key, "\t".join((one_line(incident.get("name")), ", ".join(matched),
-                                       start.astimezone(local_zone()).strftime("%Y-%m-%d %H:%M"), minutes)))
-        else:
-            young.setdefault(key, "young %s %s" % (minutes, one_line(incident.get("name"))))
+        try:
+            key = json.dumps(incident["id"], sort_keys=True) if incident.get("id") is not None else index
+            verdict = judged(incident, components, threshold)
+        except (ArithmeticError, LookupError, TypeError, ValueError, AttributeError) as error:
+            raise NoAnswer("incident %r (created_at %r): %s: %s" % (incident.get("name"), incident.get("created_at"),
+                                                                    type(error).__name__, error))
+        if verdict is not None:
+            (counting if verdict[0] else young).setdefault(key, verdict[1])
     return (1, list(counting.values())) if counting else (0, list(young.values()) or ["up"])
 
 
