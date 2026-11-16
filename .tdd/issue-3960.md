@@ -3,7 +3,7 @@
 - [x] redact replaces a token of each prefix gh[pousr]_ followed by 36 or more letters and digits with [redacted] ⟦criterion 1⟧
 - [x] redact replaces a github_pat_ token with [redacted] ⟦criterion 1⟧
 - [x] redact replaces an sk-ant- key with [redacted] ⟦criterion 1⟧
-- [ ] redact replaces an AKIA access key id with [redacted] ⟦criterion 1⟧
+- [x] redact replaces an AKIA access key id with [redacted] ⟦criterion 1⟧
 - [ ] redact replaces every occurrence of the value of a variable VERI_REDACT_VARS names ⟦criterion 1⟧
 - [ ] redact leaves alone a listed variable's value shorter than 8 characters ⟦criterion 1⟧
 - [ ] with VERI_REDACT_VARS unset GH_TOKEN's value is redacted, and set to another name that name's value is ⟦criterion 2⟧

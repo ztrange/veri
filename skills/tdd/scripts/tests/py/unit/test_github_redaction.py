@@ -30,3 +30,7 @@ def test_redact_replaces_an_sk_ant_key_with_redacted_issue_3960(github):
     key = "sk-ant-api03-" + FAKE + "_" + FAKE
 
     assert github.redact("key %s\n" % key) == "key [redacted]\n"
+
+
+def test_redact_replaces_an_akia_access_key_id_with_redacted_issue_3960(github):
+    assert github.redact("id=AKIAFAKE0123FAKE0123 ok") == "id=[redacted] ok"
