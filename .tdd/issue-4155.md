@@ -8,5 +8,5 @@
 - [x] `wait` with a missing or non-positive-integer `<max-seconds>` exits 2 with the usage before any read ⟦criterion 6⟧
 - [x] a `VERI_GITHUB_STATUS_POLL` that is not a positive integer exits 2 naming it before any read, one-shot and `wait` ⟦criterion 7⟧
 - [x] `VERI_GITHUB_STATUS_POLL` is a `TUNABLES` key, default `300`, with its row in veri/README.md's table ⟦criterion 8⟧
-- [ ] the shim's `# Usage:` header and `USAGE` name the `wait <max-seconds> [<component>…]` form ⟦criterion 9⟧
-- [ ] SCRIPTS.md's `github-status.sh` entry names `wait`, its poll and its exits 0, 3 and 2, graded ⟦criterion 10⟧
+- [x] the shim's `# Usage:` header and `USAGE` name the `wait <max-seconds> [<component>…]` form ⟦criterion 9⟧
+- [x] SCRIPTS.md's `github-status.sh` entry names `wait`, its poll and its exits 0, 3 and 2, graded ⟦criterion 10⟧
