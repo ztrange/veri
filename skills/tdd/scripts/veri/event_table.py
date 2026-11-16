@@ -15,7 +15,7 @@ COMMON = ("ts", "awake", "issue", "actor", "phase", "step", "event", "attempt", 
 EVENTS = {
     "adjudicated": "cause outcome reason",
     "already-holds-step": "step reason",
-    "bail": "cause classification? suites?",
+    "bail": "cause classification? suites? failed?",
     "comment": "kind url",
     "conductor-restart": "growth knob",
     "conductor-start": "pid started",
