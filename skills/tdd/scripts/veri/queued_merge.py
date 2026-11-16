@@ -619,6 +619,10 @@ def _stack_base(repo, pr, worktree):
     if default == stack:
         return None, ("the stack branch %s is the default branch of %s's repository; a join there would be a direct"
                       " push to it — nothing joined" % (stack, pr), 2)
+    if pull.get("merged") is True:
+        return None, ("%s already reads merged into %s; nothing to join" % (pr, stack), 3)
+    if pull.get("state") != "open":
+        return None, ("%s reads %s and not merged; nothing joined" % (pr, repr(pull.get("state"))[:40]), 2)
     return stack, None
 
 
