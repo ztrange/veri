@@ -101,14 +101,14 @@ def _touching_cases(ledger):
     words = {word.rstrip(".") for step in ledger_steps(_read(ledger).decode(errors="replace"))
              for word in re.findall(r"[\w./-]+", step.text)}
     named = [path for path in files if path in words or os.path.basename(path) in words]
-    stems = {os.path.splitext(os.path.basename(path))[0] for path in named}
+    stems = {os.path.splitext(os.path.basename(path))[0].replace("-", "_") for path in named}
     lines = []
     for path in files:
         if not stems or not case_reader.is_test_path(path):
             continue
         with open(path, "rb") as handle:
             text = handle.read().decode(errors="replace")
-        if not any(stem in text for stem in stems):
+        if not any(stem in text.replace("-", "_") for stem in stems):
             continue
         names = [name for name, _ in case_reader.cut_cases(text)]
         if names:
