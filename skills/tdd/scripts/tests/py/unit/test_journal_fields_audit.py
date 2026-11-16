@@ -11,7 +11,6 @@ UNDOCUMENTED = {}
 # Ratchet: kind -> where a writer passes a literal kind JOURNAL.md has no row for (so its fields are
 # unaudited above). Entries may be removed, never added.
 UNDOCUMENTED_KINDS = {
-    "grading": "grade_prose.py:322",  # unit, verdict, failing, cost_usd, id
     "unpinnable-missing": "pin_reject_route.py:56",  # step
     "prose-owed-waived": "prose_owed.py:69",  # unit, step
     "suite-flake": "rerun_alone.py:24",  # files; at (suite_red_resume.py:121)
