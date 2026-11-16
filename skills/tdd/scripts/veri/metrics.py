@@ -831,7 +831,7 @@ def layout(f):
     if f.green_rejects:
         table_head("#### Green rejects", "step", ["attempt", "route", "reason"], ["---:", "---", "---"])
         for step, attempt, route, reason in f.green_rejects:
-            row([step, attempt, route, UNKNOWN if reason is None else reason])
+            row([step, attempt, route, UNKNOWN if reason is None else reason.replace("|", "\\|")])
     print()
     print("The figure comparable across runs is turns, the same measurement on any model; dollars "
           "are not comparable, the same measurement only at the same VERI_MODEL, "
