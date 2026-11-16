@@ -1,0 +1,1 @@
+probe for PRD 034: does a draft PR read merged when its head lands on its base by a push
