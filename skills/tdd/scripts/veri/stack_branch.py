@@ -15,26 +15,31 @@ class Refused(Exception):
     """A named stack branch that cannot be one (stack-branch.sh's exit 2); str() names the CLAUDE.md line and why."""
 
 
-def stated_line(path):
-    """The first line of <path> stating MARKER outside a backtick span, and the value after it, backticks unwrapped:
-    (line, value), or None when no line states it or the file cannot be read."""
+def stated_lines(path):
+    """Every line of <path> that starts with MARKER, outside a ``` or ~~~ code fence, and the value after it, backticks
+    unwrapped: [(line, value)]; empty when none does or the file cannot be read. A quoted (`>`) or indented line does
+    not start with the marker, so it names nothing."""
     try:
         with open(path, encoding="utf-8", errors="replace") as f:
             lines = f.read().splitlines()
     except OSError:
-        return None
+        return []
+    stated, fence = [], None
     for line in lines:
-        rest, seen = line, ""
-        while MARKER in rest:
-            before, rest = rest.split(MARKER, 1)
-            seen += before
-            if seen.count("`") % 2 == 0:
-                value = rest.strip()
-                if value.startswith("`"):
-                    value = value[1:].split("`", 1)[0].strip()
-                return line, value
-            seen += MARKER
-    return None
+        opener = line.lstrip()[:3]
+        if fence is None and opener in ("```", "~~~"):
+            fence = opener
+            continue
+        if fence is not None:
+            if line.lstrip().startswith(fence):
+                fence = None
+            continue
+        if line.startswith(MARKER):
+            value = line[len(MARKER):].strip()
+            if value.startswith("`"):
+                value = value[1:].split("`", 1)[0].strip()
+            stated.append((line, value))
+    return stated
 
 
 def default_names(root):
@@ -48,12 +53,17 @@ def default_names(root):
 def named(root):
     """The stack branch <root>'s CLAUDE.md names, or None when it names none; Refused when the name cannot be a stack."""
     path = os.path.join(root, "CLAUDE.md")
-    stated = stated_line(path)
-    if stated is None:
+    stated = stated_lines(path)
+    if not stated:
         return None
-    line, name = stated
+    if len(stated) > 1:
+        raise Refused("%s: %d lines name a stack branch, so none is the one: %s"
+                      % (path, len(stated), "; ".join("'%s'" % line for line, _ in stated)))
+    line, name = stated[0]
     if not name:
         raise Refused("%s: the line '%s' names no branch" % (path, line))
+    if "<" in name or ">" in name:
+        raise Refused("%s: the line '%s' holds a placeholder, not a branch name" % (path, line))
     if git.git("check-ref-format", "--branch", name, cwd=root, capture_output=True, text=True).returncode != 0:
         raise Refused("%s: the line '%s' names a branch git check-ref-format --branch refuses" % (path, line))
     told = default_names(root)

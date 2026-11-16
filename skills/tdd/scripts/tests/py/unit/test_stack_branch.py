@@ -131,3 +131,34 @@ def test_run_base_refuses_a_recorded_base_that_is_garbled_or_no_longer_the_named
         stack_branch.run_base(str(tmp_path))
 
     assert "issue-7-base" in str(refusal.value) and "stack" in str(refusal.value)
+
+
+@pytest.mark.parametrize("text", [
+    "Name it with a line like veri: stack branch: stack in this file.\n",
+    "```\nveri: stack branch: stack\n```\n",
+    "~~~sh\nveri: stack branch: stack\n~~~\n",
+    "> veri: stack branch: stack\n",
+    "  veri: stack branch: stack\n",
+])
+def test_only_a_line_starting_with_the_marker_outside_a_fence_or_a_quote_names_a_stack_4171(
+        tmp_path, run_cli, fake_processes, stack_branch, text):
+    git_world(fake_processes)
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\n" + text)
+
+    assert run_cli(stack_branch, [str(tmp_path)]) == (3, "", "")
+
+
+def test_two_stack_lines_are_exit_2_naming_both_4171(tmp_path, run_cli, fake_processes, stack_branch):
+    git_world(fake_processes)
+    (tmp_path / "CLAUDE.md").write_text("veri: stack branch: stack\nmore\nveri: stack branch: other\n")
+
+    code, out, err = run_cli(stack_branch, [str(tmp_path)])
+
+    assert (code, out, "veri: stack branch: stack" in err, "veri: stack branch: other" in err) == (2, "", True, True)
+
+
+@pytest.mark.parametrize("line", ["veri: stack branch: <name>", "veri: stack branch: `<name>`"])
+def test_a_placeholder_name_is_not_a_name_exit_2_naming_the_line_4171(tmp_path, run_cli, fake_processes, stack_branch, line):
+    git_world(fake_processes)
+
+    assert refusal_of(tmp_path, run_cli, stack_branch, line) == (2, "", True)
