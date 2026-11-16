@@ -181,6 +181,15 @@ def test_4018_counts_only_ci_rerun_events_re_running_with_other_budgets_spent_an
     assert [c for c in fake.calls if c.startswith("gh")] == ["gh run rerun 12345 --failed"]
 
 
+def test_4018_a_colour_coded_failed_line_names_its_target(tmp_path, run_cli, fake_processes, ci_flake):
+    coloured = PREFIX % 0 + "\x1b[31mFAILED\x1b[0m skills/a/test_x.py::test_one\x1b[0m - \x1b[31mboom\x1b[0m\n"
+    fake = answered(fake_processes, {"sh -c": (1, "", "")})
+
+    code, _, _ = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path, coloured)], cwd=tmp_path)
+
+    assert (code, alone_runs(fake)) == (1, [["sh", "-c", ALONE, "sh", "skills/a/test_x.py::test_one"]])
+
+
 def test_4018_exits_2_running_no_alone_run_when_the_log_names_more_targets_than_its_cap(
         tmp_path, run_cli, fake_processes, ci_flake):
     many = "".join(PREFIX % 0 + "FAILED skills/a/test_x.py::test_%d\n" % i for i in range(ci_flake.MAX_TARGETS + 1))
