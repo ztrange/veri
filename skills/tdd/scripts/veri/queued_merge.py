@@ -16,6 +16,7 @@ import git
 import paths
 import run_dir
 import run_records
+import stack_branch
 import tunables
 from github import TimedOut, bounded_group, gh_api, gh_probe
 
@@ -457,6 +458,56 @@ def _locked(pid, repo, pr, worktree, branch, message, window):
     return _cleanup(pid, pr, pull, worktree, branch, message), LEAVE
 
 
+def _joined(pid, repo, pr, worktree, branch, stack):
+    """The join with the lock held, never releasing it: rebase onto origin/<stack>, push the run's branch under a lease,
+    check the rebased tip, push it to <stack>. Returns an exit code."""
+    fetch = git.network("-C", worktree, "fetch", "origin")
+    if fetch.returncode:
+        _say("git fetch origin got no answer (%s); nothing pushed" % fetch.stderr.strip())
+        return 2
+    onto = _rev(worktree, "refs/remotes/origin/" + stack)
+    lease = _rev(worktree, "refs/remotes/origin/" + branch)
+    if not onto or not lease:
+        _say("origin/%s or origin/%s does not resolve; nothing pushed" % (stack, branch))
+        return 2
+    _git(worktree, "rebase", onto)
+    pushed = git.network("-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
+                         "origin", "HEAD:refs/heads/%s" % branch)
+    if pushed.returncode:
+        _say("the leased push of %s failed (exit %d): %s; nothing pushed to %s" % (
+            branch, pushed.returncode, pushed.stderr.strip(), stack))
+        return 2
+    found = _start("detect-test-command.sh", "--tier", "fast", cwd=worktree, capture=True)
+    subprocess.run(["sh", "-c", found.stdout.strip()], cwd=worktree)
+    _start("prose-owed.sh", worktree, cwd=worktree)
+    head = _rev(worktree, "HEAD")
+    git.network("-C", worktree, "push", "origin", "%s:refs/heads/%s" % (head, stack))
+    return 0
+
+
+def _join(pid, repo, pr, worktree, branch, stack):
+    """Join the run on <branch> to <stack> under the merge lock, released on every exit path."""
+    code = _script("merge-lock.sh", "take", "--pid", pid)
+    if code:
+        _say("taking the merge lock failed (exit %d)" % code)
+        return code
+    try:
+        return _joined(pid, repo, pr, worktree, branch, stack)
+    finally:
+        _release(pid)
+
+
+def _stack_base(repo, pr, worktree):
+    """The stack branch when the worktree's CLAUDE.md names one and it is <pr>'s base; None otherwise. Raises
+    stack_branch.Refused for a name that cannot be a stack."""
+    stack = stack_branch.named(worktree)
+    if not stack:
+        return None
+    pull = _pull(repo, pr)
+    base = ((pull or {}).get("base") or {}).get("ref")
+    return stack if base == stack else None
+
+
 def main(argv):
     if len(argv) != 4:
         print(USAGE, file=sys.stderr)
@@ -481,6 +532,9 @@ def main(argv):
             return 2
     repo = _repo(pr)
     pid = str(os.getpid())
+    stack = _stack_base(repo, pr, worktree)
+    if stack:
+        return _join(pid, repo, pr, worktree, branch, stack)
     code = _script("merge-lock.sh", "take", "--pid", pid)
     if code:
         _say("taking the merge lock failed (exit %d)" % code)
