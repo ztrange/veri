@@ -216,7 +216,7 @@ def diff_gate(words, options):
             write(sys.stdout, "step renamed and changed pytest cases, so the step must be split: "
                    + ", ".join("%s::%s -> %s" % (case + (other,)) for case, other in pairs))
             return 1
-        write(sys.stdout, "step deleted pytest cases an earlier step added: "
+        write(sys.stdout, "step deleted test cases an earlier step added: "
                + ", ".join("%s::%s" % case for case in deleted))
         return 1
     return None
