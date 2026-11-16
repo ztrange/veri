@@ -1,6 +1,8 @@
 """veri/event_table.py is the one table of every event veri emits and its keys (PRD 030.1)."""
 import ast
 
+import pytest
+
 from conftest import SCRIPTS
 
 TABLE = SCRIPTS / "veri" / "event_table.py"
@@ -48,3 +50,20 @@ def test_journal_md_lists_exactly_the_events_and_keys_the_table_declares():
                   for key in documented if key not in event_table.keys(event)]
 
     assert not drift, "skills/tdd/JOURNAL.md and veri/event_table.py differ:\n" + "\n".join(drift)
+
+
+@pytest.mark.tree_audit("reads every .sh and .md file under skills/ for event.sh call sites")
+def test_every_literal_event_and_key_of_an_event_sh_call_under_skills_is_declared_in_the_table():
+    from event_roster import event_sh_call_sites
+    from veri import event_table
+
+    sites = event_sh_call_sites()
+    assert any(keys for _, _, keys in sites), "no event.sh call site with a key found under skills/"
+    gaps = [f"{where}: event {event!r} is not in veri/event_table.py; add  {event_table.declaring(event, None)}"
+            for where, event, _ in sites if event not in event_table.EVENTS]
+    gaps += [f"{where}: event {event!r} key {key!r} is not in veri/event_table.py; make its line"
+             f"  {event_table.declaring(event, key)}"
+             for where, event, keys in sites if event in event_table.EVENTS
+             for key in keys if key not in event_table.keys(event)]
+
+    assert not gaps, "event.sh call sites under skills/ the table does not declare:\n" + "\n".join(gaps)
