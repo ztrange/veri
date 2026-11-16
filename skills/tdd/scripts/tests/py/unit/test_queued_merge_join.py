@@ -157,3 +157,22 @@ def test_the_join_re_reads_the_pull_request_over_the_settle_window_and_exits_0_o
 
     assert (landed, code, len(never.pulls), "weird" in err, never.stack[0], never.stack_pushed()[-1:]) == (
         (0, 4), 2, 4, True, REBASED, ["git -C %s push origin %s:refs/heads/stack" % (never.wt, REBASED)])
+
+
+def released(world):
+    return [c for c in world.calls if c.startswith("merge-lock.sh release")]
+
+
+def pushed(world):
+    return [c for c in world.calls if " push " in c]
+
+
+def test_an_unticked_full_suite_line_does_not_block_a_join_and_any_other_unticked_line_exits_1_before_any_push(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    only_full = World(tmp_path / "full").install(fake_processes, monkeypatch)
+    joined = join(run_cli, only_full)[0]
+    other = World(tmp_path / "other", ledger="- [ ] a step ⟦criterion 1⟧\n- [ ] the full suite ⟦full-suite⟧\n").install(
+        fake_processes, monkeypatch)
+    code, _, err = join(run_cli, other)
+
+    assert (joined, code, pushed(other), len(released(other)), "a step" in err) == (0, 1, [], 1, True)

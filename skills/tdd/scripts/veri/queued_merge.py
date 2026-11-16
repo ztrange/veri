@@ -459,10 +459,33 @@ def _locked(pid, repo, pr, worktree, branch, message, window):
     return _cleanup(pid, pr, pull, worktree, branch, message), LEAVE
 
 
+def _unchecked_steps(worktree, branch):
+    """0 when the run's committed ledger has no unticked line but its `⟦full-suite⟧` ones, which a stacked run never
+    ticks (CI on the stack's tip is that run); 1 naming the first other one; 2 when the ledger cannot be read."""
+    issue = run_dir.branch_issue(branch)
+    if issue is None:
+        return 0
+    path = run_dir.ledger(worktree, issue)
+    try:
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except (OSError, UnicodeDecodeError) as error:
+        _say("the ledger %s cannot be read (%s); nothing pushed" % (path, error))
+        return 2
+    for line in lines:
+        if line.startswith("- [ ] ") and "⟦full-suite⟧" not in line:
+            _say("the ledger %s has an unchecked step: %s; nothing pushed" % (path, line[6:]))
+            return 1
+    return 0
+
+
 def _joined(pid, repo, pr, worktree, branch, stack):
     """The join with the lock held, never releasing it: rebase onto origin/<stack>, push the run's branch under a lease,
     check the rebased tip, push it to <stack>, never forced: a push refused because origin's stack moved starts again
     from the fetch, at most JOIN_ATTEMPTS times. Returns an exit code."""
+    code = _unchecked_steps(worktree, branch)
+    if code:
+        return code
     for _ in range(JOIN_ATTEMPTS):
         fetch = git.network("-C", worktree, "fetch", "origin")
         if fetch.returncode:
