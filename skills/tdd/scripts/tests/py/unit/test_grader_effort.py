@@ -90,3 +90,23 @@ def test_the_signature_stamps_the_effort_level_as_a_fourth_part_and_todays_three
 
     digest = lambda parts: hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()
     assert signed == [digest([text, claims, "sonnet-4", "high"]), digest([text, claims, "sonnet-4"])]
+
+
+def test_adding_changing_or_removing_the_effort_line_makes_prose_owed_list_every_unit_and_exit_1(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    prose_owed = importlib.import_module("veri.prose_owed")
+    row = "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n"
+    (tmp_path / "a.md").write_text("The widget is blue.\n")
+    (tmp_path / "b.md").write_text("The widget is round.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text("## a.md\n\n%s\n## b.md\n\n%s" % (row, row))
+    monkeypatch.chdir(tmp_path)
+    answers = []
+    for before, after in (("", "effort=low\n"), ("effort=low\n", "effort=high\n"), ("effort=high\n", "")):
+        conf(tmp_path, monkeypatch, grade_prose, "model=sonnet-4\n" + before)
+        (tmp_path / "GRADED").write_text("".join("%s %s 2026-01-01 g t\n" % (unit, grade_prose.signature("REQUIREMENTS.md", unit))
+                                                 for unit in ("a.md", "b.md")))
+        unchanged = run_cli(prose_owed, [str(tmp_path)])[:2]
+        conf(tmp_path, monkeypatch, grade_prose, "model=sonnet-4\n" + after)
+        answers.append((unchanged, run_cli(prose_owed, [str(tmp_path)])[:2]))
+
+    assert answers == [((0, ""), (1, "a.md\nb.md\n"))] * 3
