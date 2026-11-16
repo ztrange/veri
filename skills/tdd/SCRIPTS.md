@@ -273,6 +273,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   issue: it adds `taken:<lane>` (the text after the last `:` of `VERI_LABEL`, `main` without one) and
   removes the opt-in label, besides removing `bailed`, so dispatch does not relaunch it.
   A short write of a line to either the event log or the journal exits **2** with `event: short write to journal <path>` on stderr, `<path>` naming the file written.
+  **Strict mode** (`VERI_EVENT_STRICT=1`): an event name `veri/event_table.py` does not hold, a key it does not declare
+  for that event, or a required key that is missing exits **2** and writes nothing to either file, stderr naming the
+  event and the key. The test suite sets it; a run never does (`run-conductor.sh` drops it from the conductor's
+  environment), so an exit 2 naming the table is never a run's. Without it the script writes the line as before.
 - `$S/metrics.sh <n>` — the event log's **reader**: prints on stdout one markdown
   `### 📊 Metrics` report of what solving issue `<n>` cost — attempts, verdicts, kills,
   retries and budgets spent, per phase and per step. A non-empty pinned `.tdd/issue-<n>-skip-verify` adds the line
