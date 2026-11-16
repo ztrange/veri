@@ -1862,3 +1862,28 @@ def test_in_a_tree_holding_grade_prose_py_a_pass_through_a_non_default_reader_si
     fields = graded.read_text().split() if graded.exists() else []
     signed = under_tree_formula.get(fields[1], fields[1]) if len(fields) > 1 else None
     assert (grading.code, fields[:1], signed) == (0, ["unit.md"], "The default branch says blue.\n")
+
+
+def _tree_whose_signature_takes_no_text(tmp_path, grade_prose):
+    """Gives the tree its own grade_prose.py, signing under its own formula with a signature() that takes no text."""
+    tree_module = tmp_path / "skills" / "tdd" / "scripts" / "veri" / "grade_prose.py"
+    tree_module.parent.mkdir()
+    with open(grade_prose.__file__, encoding="utf-8") as f:
+        tree_module.write_text(f.read() + "\n\nSCRIPTS = %r\n\n\ndef signature(path, unit):\n"
+                               "    return stamp([unit_text(unit), requirements.claims(path, unit), grader_model(), "
+                               "\"tree-formula\"])\n" % str(tmp_path / "skills" / "tdd" / "scripts"))
+
+
+def test_a_pass_through_the_default_reader_in_a_tree_whose_signature_takes_no_text_still_writes_that_trees_signature_3891(
+        tmp_path, monkeypatch, capsys, grade_prose, fake_processes):
+    _grader_tree(tmp_path, monkeypatch, grade_prose, fake_processes,
+                 "BEGIN GRADES\nA1: PASS - blue\nVERDICT: PASS\nEND GRADES\n")
+    _tree_whose_signature_takes_no_text(tmp_path, grade_prose)
+    claims = grade_prose.requirements.claims("REQUIREMENTS.md", "unit.md")
+    trees = grade_prose.stamp(["The working tree says green.\n", claims, "sonnet-4", "tree-formula"])
+
+    grading = grade_prose.grade_unit("REQUIREMENTS.md", "unit.md")
+
+    graded = tmp_path / "GRADED"
+    fields = graded.read_text().split() if graded.exists() else []
+    assert (grading.code, fields[:2]) == (0, ["unit.md", trees]), capsys.readouterr().err
