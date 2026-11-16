@@ -307,7 +307,8 @@ def test_gate_20_a_snapshot_run_whose_marker_or_digest_file_is_gone_refuses_3964
         "digest": f"the skill snapshot {snapshot} has no recorded digest {digest}"}[gone])
 
 
-@pytest.mark.parametrize("recorded", [b"\xff\xfe not utf-8\n", b"directory scripts\n"], ids=["invalid-utf-8", "not-a-digest"])
+@pytest.mark.parametrize("recorded", [b"\xff\xfe not utf-8\n", b"directory scripts\n", b"[" * 200000 + b"]" * 200000],
+                         ids=["invalid-utf-8", "not-a-digest", "nested-too-deep"])
 def test_gate_20_a_digest_file_it_cannot_parse_refuses_with_a_launch_refused_event_3964(
         tmp_path, work_tree, monkeypatch, fake_processes, recorded):
     snapshot = snapshot_serving(tmp_path, monkeypatch, work_tree)
