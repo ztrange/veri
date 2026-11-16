@@ -22,7 +22,7 @@ class World:
 
     def __init__(self, tmp_path, ledger="- [x] a step ⟦criterion 1⟧\n- [ ] the full suite ⟦full-suite⟧ ⟦criterion 2⟧\n",
                  rebase=0, fast=0, owed=0, stack_pushes=(0,), reads=({"merged": True},), lock=0, stopped=True, extra=None,
-                 stack_line="veri: stack branch: stack\n"):
+                 stack_line="veri: stack branch: stack\n", base="stack"):
         self.wt = str(tmp_path / "wt")
         os.makedirs(self.wt + "/.tdd")
         with open(self.wt + "/CLAUDE.md", "w") as f:
@@ -36,12 +36,13 @@ class World:
         if self.stopped_dir:
             os.makedirs(self.stopped_dir)
         self.extra = extra or {}
+        self.base = base
         self.stack_pushes = list(stack_pushes)
         self.reads = list(reads)
         self.pulls = []
 
     def install(self, fake_processes, monkeypatch):
-        first = {"state": "open", "merged": False, "base": {"ref": "stack"}, "head": {"sha": "9999999"}}
+        first = {"state": "open", "merged": False, "base": {"ref": self.base}, "head": {"sha": "9999999"}}
 
         def pull(repo, pr):
             self.pulls.append((repo, pr))
@@ -255,3 +256,16 @@ def test_after_a_joins_exit_0_the_runs_remote_branch_is_deleted_and_its_worktree
     assert (code, cleanup, moved, after_release) == (0, [
         wt + "push origin --delete " + BRANCH, wt + "worktree remove " + world.wt,
         "git -C %s branch -D %s" % (CLONE, BRANCH)], [], True), err
+
+
+@pytest.mark.parametrize("stack_line, base", [("# no stack named\n", "stack"), ("veri: stack branch: stack\n", "trunk")])
+def test_with_no_stack_named_or_a_pull_request_based_elsewhere_queued_merge_waits_on_ci_and_makes_the_merge_call_as_before(
+        tmp_path, fake_processes, monkeypatch, run_cli, stack_line, base):
+    unmerged = {"state": "open", "merged": False, "head": {"sha": "9999999"}}
+    world = World(tmp_path, stack_line=stack_line, base=base, reads=(unmerged,) * 20,
+                  extra={"git -C <wt> merge-base --is-ancestor 9999999 origin/main": (1, "", "")}).install(fake_processes, monkeypatch)
+
+    join(run_cli, world)
+
+    asked = [c for c in world.calls if "wait-ci.sh" in c or "pulls/7/merge" in c or "pr merge" in c]
+    assert (bool(asked), world.stack_pushed()) == (True, [])
