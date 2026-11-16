@@ -1,5 +1,6 @@
 """In-process `check --step` cases for veri/tests_frozen.py, on a case history fed by fed_history (PRD 017.4)."""
 import importlib
+import types
 
 import pytest
 
@@ -409,3 +410,128 @@ def test_check_step_exits_1_naming_a_recorded_guard_subject_deleted_since_the_re
     code, out, _ = run_cli(tests_frozen, ["check", "--step", HELPER_STEP], cwd=tmp_path)
 
     assert (code, out) == (1, FIXTURE + "\n")
+
+
+HARNESS = "tests/lib/harness.sh"
+
+
+def test_check_step_exits_0_for_a_recorded_guard_subject_whose_content_changed_since_the_record_2663(
+        tmp_path, run_cli, tests_frozen, committed_once):
+    committed_once({FIXTURE: "one\n"})
+    (tmp_path / FIXTURE).write_text("one\nleaky\n")
+    run_cli(tests_frozen, ["record", "--step", HELPER_STEP, FIXTURE], cwd=tmp_path)
+
+    (tmp_path / FIXTURE).write_text("one\nworking\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", HELPER_STEP], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+def test_check_step_exits_1_naming_the_file_of_a_guard_subject_marker_quoted_in_the_steps_prose_1775(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    step = "A step quoting `⟦guard-subject: %s⟧` in its prose ⟦added⟧ ⟦criterion 4⟧" % GUARD
+    red_recorded({NEW: "one\n", GUARD: "one\n"}, step=step)
+
+    (tmp_path / GUARD).write_text("one, fixed\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (1, GUARD + "\n")
+
+
+def test_check_step_exits_1_naming_a_test_file_the_steps_prose_names_as_plain_text_with_no_marker_1775(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    step = "A step fixing %s, named as plain text ⟦added⟧ ⟦criterion 4⟧" % GUARD
+    red_recorded({NEW: "one\n", GUARD: "one\n"}, step=step)
+
+    (tmp_path / GUARD).write_text("one, fixed\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (1, GUARD + "\n")
+
+
+def checked_after_editing_harness(tmp_path, run_cli, tests_frozen, red_recorded, step):
+    """check --step's (code, stdout) after red recorded NEW under `step` and green edited HARNESS."""
+    red_recorded({NEW: "one\n", HARNESS: "one\n"}, step=step)
+    (tmp_path / HARNESS).write_text("one, fixed\n")
+    return run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
+
+
+def test_check_step_exits_1_naming_a_test_file_under_a_directory_a_trailing_guard_subject_marker_names_1775(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    step = "step one fixes a helper ⟦guard-subject: tests/lib⟧"
+
+    assert checked_after_editing_harness(tmp_path, run_cli, tests_frozen, red_recorded, step) == (1, HARNESS + "\n")
+
+
+def test_check_step_exits_1_naming_a_test_file_a_trailing_guard_subject_glob_would_match_1775(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    step = "step one fixes a helper ⟦guard-subject: tests/*⟧"
+
+    assert checked_after_editing_harness(tmp_path, run_cli, tests_frozen, red_recorded, step) == (1, HARNESS + "\n")
+
+
+def test_check_step_exits_1_naming_a_test_file_a_trailing_phases_marker_names_1775(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    step = "step one fixes a helper ⟦phases: %s⟧" % HARNESS
+
+    assert checked_after_editing_harness(tmp_path, run_cli, tests_frozen, red_recorded, step) == (1, HARNESS + "\n")
+
+
+def test_check_step_exits_1_naming_the_guard_subject_a_green_deleted_1775(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    red_recorded({NEW: "one\n", GUARD: "one\n"}, step=GUARD_STEP)
+
+    (tmp_path / GUARD).unlink()
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", GUARD_STEP], cwd=tmp_path)
+
+    assert (code, out) == (1, GUARD + "\n")
+
+
+def test_check_step_from_a_subdirectory_exits_1_naming_an_untracked_test_file_a_green_weakened_by_its_root_path_1960(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "sub/.tdd").mkdir(parents=True)
+    (tmp_path / "lib.py").write_text("one\n")
+    fed_history(("base", "base", {"lib.py": "one\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("def test_a():\n    assert f() == 1\n")
+    run_cli(tests_frozen, ["record", "--step", STEP], cwd=tmp_path / "sub")
+
+    (tmp_path / NEW).write_text("def test_a():\n    assert True\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", STEP], cwd=tmp_path / "sub")
+
+    assert (code, out) == (1, NEW + "\n")
+
+
+def test_check_step_exits_2_with_gits_stderr_when_git_cannot_list_the_differing_test_files_2579(
+        tmp_path, run_cli, tests_frozen, red_recorded, monkeypatch):
+    case_history = tests_frozen.case_history
+    listing = case_history.changed_test_files  # case_history's own, before fed_history answers it
+    red_recorded({NEW: "one\n"})
+
+    def failing_git(*argv, **kwargs):
+        if argv[0] == "diff":
+            return types.SimpleNamespace(returncode=128, stdout=b"", stderr=b"fatal: stubbed diff failure\n")
+        pytest.fail("unexpected git %r" % (argv,))
+
+    monkeypatch.setattr(case_history, "changed_test_files", listing)
+    monkeypatch.setattr(case_history, "git", types.SimpleNamespace(git=failing_git))
+    code, out, err = run_cli(tests_frozen, ["check", "--step", STEP], cwd=tmp_path)
+
+    assert (code, out) == (2, "")
+    assert "stubbed diff failure" in err
+
+
+def test_check_exits_0_on_a_record_holding_helper_data_when_no_test_file_changed_2867(
+        tmp_path, run_cli, tests_frozen, committed_once):
+    step, suite = "step A adds the cases", "suite_test.go"
+    committed_once({"test_suite.py": "def test_base():\n    assert 0\n"})
+    (tmp_path / suite).write_text("func checkX(t *testing.T) {\n\tt.Fatal(\"bad\")\n}\n\n"
+                                  "func TestX(t *testing.T) {\n\tcheckX(t)\n}\n")
+    run_cli(tests_frozen, ["record", "--step", step, suite], cwd=tmp_path)
+    record = tmp_path / run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
+    with record.open("a") as handle:
+        handle.write("helpers: %s\tTestX\t%s\n" % (suite, "0" * 64))
+
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
