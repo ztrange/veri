@@ -274,6 +274,25 @@ def test_main_puts_a_check_from_1_to_5_on_a_green_verdict_event_and_none_for_an_
         record("verdict", "verdict=" + word, "reason=" + reason, *check, issue="931", step="5")])
 
 
+@pytest.mark.parametrize("leaf_out", [
+    b"CHECK: 3\nVERDICT: REJECT\nREASON: the pass is not genuine\nsee the diff\n",
+    b"VERDICT: REJECT\nCHECK: 3\nREASON: the pass is not genuine\nsee the diff\n",
+    b"VERDICT: REJECT\nREASON: the pass is not genuine\n  CHECK: 7\nsee the diff\n",
+    b"REASON: the pass is not genuine\nCHECK: 3\nsee the diff\nVERDICT: REJECT\n",
+])
+def test_main_prints_a_green_reason_holding_no_check_line_wherever_the_verifier_put_it(
+        leaf_out, tmp_path, monkeypatch, capfdbinary, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    write_inputs(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    answering_leaf(monkeypatch, fake_processes, leaf_out)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    assert (code, capfdbinary.readouterr().out) == (1, b"the pass is not genuine\nsee the diff\n")
+
+
 def test_main_launches_the_leaf_with_verify_leaf_args_words_split_on_whitespace_and_glob_expanded_in_the_working_directory(
         tmp_path, monkeypatch, fake_processes):
     monkeypatch.chdir(tmp_path)
