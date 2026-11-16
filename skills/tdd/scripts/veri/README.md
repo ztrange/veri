@@ -578,6 +578,7 @@ Choosing and running the suites of the project veri works on: finding its test c
 ## detect_test_command
 - `resolved(tier, issue, root)`: the test command for a tier, `None` when none is found.
 - `Answer(command)`: the exception that carries a found command out of the search; `answer_from_file(path, marker)` raises it from a file's lines.
+- `unwrapped(text)`, `SPACE`: the command a marker's rest names (a leading backtick span unwrapped), and the whitespace stripped before it; `record_test_commands` reads a CLAUDE.md line as the detector does.
 
 ## rerun_alone
 - `named_targets(text)`: the test targets a red run's output names, in order, each once.
@@ -664,6 +665,7 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 - `push_dry_run(refspec, env)`: `git push --dry-run --no-verify origin <refspec>` under `env`, in a process group of its own killed at `VERI_GH_TIMEOUT`, like `gh_pr_ready`'s `git ls-remote`; `ready-check.sh`'s `push dry-run` row.
 - `bounded_group(argv, limit_name="VERI_GH_TIMEOUT", **kwargs)`: that group-killing bound for a caller's own child, the limit read from `limit_name` (queued_merge passes `VERI_GIT_NETWORK_TIMEOUT` for its git network calls) and named in the line; a call killed at the bound is answered as a `TimedOut`, a `CompletedProcess` with exit 124, so a caller tells it from a child that exited 124 itself.
 - `gh_pr_ready(number, head_sha="")`, `gh_pr_diff_names(number)`: mark a draft PR ready, list the paths of a PR.
+- `gh_pr_create(head, base, title, body)`: open a pull request from branch `head` against `base` (REST), answering its URL; a `NoAnswer` whose `detail` is gh's stderr on failure.
 - `open_pulls(fields, state="open", head=None, limit=10000, repo=None)`: the pull requests as Pull records (`number`, `url`, `html_url`, `draft`, `head_ref`, `head_sha`, `body`, `state`, `labels`), the same whichever route or fixture (`prs.json`) answered. `draft` is `None` when the answer carried no flag (a record with both spellings reads `isDraft`); each caller spells its own default, `pr.draft is True`, `is not True` or `is False`. `fields` are the GraphQL `--json` fields, `limit=None` leaves gh's default. `open_pulls_text(...)` is the same read as text and `pulls_in(text)` the parse, for a caller deciding over a partial answer (`NoAnswer.answer`) or a list that is not JSON.
 - `pull(url_or_number, repo=None)`: one pull request as a Pull record (adds `mergeable`), read over REST under every driver; `NoAnswer` with gh's stderr as `detail` (not echoed) when the read fails, `ValueError` on a non-JSON answer.
 - `closed_issues(body, loose=False)`: the issue numbers (strings) a PR body closes with `Closes #n`, in order; `loose` reads `[Cc]loses #n` anywhere, as `status --recover` does.
@@ -694,6 +696,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `pr-ready.sh`: mark a pull request ready.
 - `push-branch.sh`: push the run's branch.
 - `queued-merge.sh`: merge a pull request in turn and clean up.
+- `record-test-commands.sh`: commit a project's test commands to its CLAUDE.md on the branch `veri-install` and open its pull request.
 - `ready-check.sh`: the checks before a pull request is readied.
 - `rebase-onto-default.sh`: rebase the branch onto the default branch.
 - `stack-green.sh`: print the newest stack commit that ends an issue and that CI passed, where a slice may be cut.

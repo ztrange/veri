@@ -1,8 +1,10 @@
 """Cases for record-test-commands.sh against real git: a bare origin, a clone of it, the pull request faked at gh."""
 import importlib
+import subprocess
 
 import pytest
 
+from conftest import SCRIPTS
 from repo_builder import commit_all, git, new_repo
 
 URL = "https://example.test/pull/1"
@@ -115,3 +117,12 @@ def test_an_origin_already_holding_veri_install_is_exit_2_naming_it_with_nothing
     assert (code, out, pulls) == (2, "", [])
     assert "veri-install" in err
     assert git(origin, "rev-parse", "veri-install") == before
+
+
+@pytest.mark.process("record-test-commands.sh, the shim, started as a script")
+def test_the_shim_execs_its_module_an_empty_command_through_it_is_exit_2_with_the_usage(tmp_path):
+    done = subprocess.run([str(SCRIPTS / "record-test-commands.sh"), "", "make test"],
+                          capture_output=True, text=True, cwd=str(tmp_path))
+
+    assert (done.returncode, done.stdout) == (2, "")
+    assert "usage: record-test-commands.sh" in done.stderr
