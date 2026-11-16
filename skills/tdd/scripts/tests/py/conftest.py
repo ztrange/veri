@@ -19,6 +19,7 @@ from time import time_ns
 
 import pytest
 import process_fakes
+import repo_builder
 from case_size_guards import (  # noqa: F401  (the guards, registered through this module; tests reach them as conftest.<name>)
     BELOW_FLOOR_INTERPRETER_EXEMPT, GUARD_WRAPPERS, PATHLIB_SOURCE, PERMISSION_BITS_EXEMPT, PROCESS_CASE_TIMEOUT,
     RUNS_GIT_WITH_NO_CWD, STARTS_GIT_IN_REPOSITORY_EXEMPT, STARTS_PYTEST_EXEMPT, SUPERVISOR_POLL, SYSTEM_LOCATION_EXEMPT,
@@ -109,6 +110,12 @@ def live_conductor(monkeypatch, run_tdd, issue):
     fake_pid_file_ps(monkeypatch)
 
 
+
+
+@pytest.fixture(autouse=True, scope="session")
+def repo_templates_under_basetemp(tmp_path_factory):
+    """repo_builder.new_repo keeps its templates under this worker's --basetemp, which the leg cleans up (#3931)."""
+    repo_builder.TEMPLATE_ROOT = tmp_path_factory.getbasetemp() / "repo-templates"
 
 
 @pytest.fixture(scope="session")

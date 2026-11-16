@@ -88,3 +88,20 @@ def test_commit_all_allowing_empty_commits_a_tree_with_nothing_to_commit_and_ret
     assert empty != first
     assert empty == run(repo, "rev-parse", "HEAD").stdout.strip()
     assert run(repo, "show", "--name-status", "--format=%s", "HEAD").stdout.split() == ["chore:", "empty"]
+
+
+@pytest.mark.process("git init for a worker's first repository, then a second new_repo watched through repo_builder.git")
+def test_a_second_new_repo_in_one_worker_makes_its_repository_without_an_init_call(tmp_path, monkeypatch):
+    repo_builder.new_repo(tmp_path / "first")
+    calls = []
+    real_git = repo_builder.git
+
+    def spy(repo, *args):
+        calls.append(args)
+        return real_git(repo, *args)
+
+    monkeypatch.setattr(repo_builder, "git", spy)
+    repo_builder.new_repo(tmp_path / "second")
+
+    assert [args for args in calls if "init" in args] == []
+    assert run(tmp_path / "second", "symbolic-ref", "--short", "HEAD").stdout.strip() == "main"
