@@ -225,7 +225,8 @@ def cut(path, branch, take_over=False):
             return 0
         if on_origin and remote_issue_branch("tdd/" + issue_of(branch)):
             sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
-                             " to take it over run: git branch %s origin/%s\n" % (branch, branch, branch))
+                             " to take it over run: issue-worktree.sh --take-over %s\n"
+                             % (branch, " ".join(branch.removeprefix("tdd/").split("-", 1))))
             return 2
         url = origin_url()
         origin = url is not None
