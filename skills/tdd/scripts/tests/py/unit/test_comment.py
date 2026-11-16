@@ -372,7 +372,8 @@ def test_the_posted_done_comment_passes_the_conductors_done_check_and_matches_th
     code, out, err = run_cli(comment, ["7", "done"], cwd=tmp_path)
 
     assert code == 0
-    thread = [{"body": posted[0], "created_at": "2026-11-08T00:00:00Z"}]
+    thread = [{"author_association": "OWNER", "user": {"login": "veri-operator"}, "body": posted[0],
+               "created_at": "2026-11-08T00:00:00Z"}]
     monkeypatch.setattr(conductor, "last_resume", lambda issue: 0)
     monkeypatch.setattr(conductor.github, "gh_json_page", lambda jq, path: json.dumps(thread))
     assert conductor.done_posted("7") is True
