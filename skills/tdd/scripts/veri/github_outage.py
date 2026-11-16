@@ -76,7 +76,8 @@ class World:
 
 def status_read():
     """github-status.sh's one-shot read with its default components, run in-process."""
-    knobs = {name: github_status.positive(name) for name in ("VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT")}
+    knobs = {name: github_status.positive(name) for name in
+             ("VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT", "VERI_GITHUB_STATUS_POLL")}
     for name, value in knobs.items():
         if value is None:
             raise github_status.NoAnswer("%s=%r is not a positive integer" % (name, tunables.get(name)))
