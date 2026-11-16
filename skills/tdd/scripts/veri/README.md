@@ -168,6 +168,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 ## stack_branch
 - `named(root)`: the stack branch `<root>/CLAUDE.md` names, `None` when it names none; raises `Refused` (stack-branch.sh's exit 2, its text naming the line) for an empty name, the default branch, or a name `git check-ref-format --branch` refuses.
 - `run_base(root=None, remote=True)`: `(branch, stacked)`, the one answer to which branch a run is cut from, rebased onto and diffed against: the stack only when the run's cut recorded it in `<root>/.tdd/issue-<n>-base` (written by `issue-worktree.sh`) and it is still the named stack, else `git.default_branch(root, remote)` exactly as without a stack; raises `Refused` for a garbled or outdated record, naming both.
+- `ahead(root=".")`: `(stack, default, commits)`, the named stack, the default branch and `origin/<default>..origin/<stack>` as `[(sha, subject)]` oldest first, read after a fetch of origin; `commits` empty when origin has no stack; `None` when no stack is named; `Refused` (exit 2 to its callers) for a name that cannot be a stack, a fetch with no answer, a default branch told two ways or not on origin, or a failed log. `stack-pr.sh`'s range.
 - `recorded_base(root)`: `(path, text)` of the one `<root>/.tdd/issue-<n>-base` a stacked cut recorded, `None` when there is none; `Refused` when there are several.
 
 ## tunables
@@ -690,6 +691,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `queued-merge.sh`: merge a pull request in turn and clean up.
 - `ready-check.sh`: the checks before a pull request is readied.
 - `rebase-onto-default.sh`: rebase the branch onto the default branch.
+- `stack-pr.sh`: print the one open pull request tracking the stack branch, opening it when none is.
 - `wait-ci.sh`: wait for a pull request's CI.
 - `worktree-setup.sh`: set up a worktree.
 
