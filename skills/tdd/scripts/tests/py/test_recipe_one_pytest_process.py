@@ -378,3 +378,12 @@ def test_3966_a_group_writable_prefix_makes_make_unit_and_make_test_exit_2_namin
     cache.mkdir()
     cache.chmod(0o770)
     assert refusals_of_unit_and_test(tmp_path, cache) == [refusal(cache, "it is group-writable")] * 2
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit and make test started for real over a planted tree, VERI_PYCACHE naming an other-writable directory")
+def test_3966_an_other_writable_prefix_makes_make_unit_and_make_test_exit_2_naming_it_and_the_fix_before_any_suite(tmp_path):
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    cache.chmod(0o707)
+    assert refusals_of_unit_and_test(tmp_path, cache) == [refusal(cache, "it is other-writable")] * 2
