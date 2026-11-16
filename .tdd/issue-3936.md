@@ -4,5 +4,5 @@
 - [x] `comment.sh <n> verify-red` posts `### 🔎 verify-red — SKIPPED (switched off)` when `.tdd/verdict-red.exit` reads `skipped`, never `PASS`, and `verify-revised red` posts its revised SKIPPED heading ⟦criterion 6⟧
 - [x] `metrics.sh` counts `verify-red-skipped reason=switched-off` events as `red <n>` on the `Verifiers switched off:` line, one `<phase> <n>` pair per phase, comma-separated ⟦criterion 12⟧
 - [x] `skills/tdd/JOURNAL.md`'s event table lists `verify-red-skipped` with its `reason` field (`switched-off`) beside `verify-refactor-skipped` ⟦criterion 13⟧
-- [ ] skill-edit step for the unit `skills/tdd/SKILL.md`: add CY150 and CY151 under `## skills/tdd/SKILL.md`, amend *Red* sub-step 2 and *Green* sub-step 1 within the byte ceiling, grade and sign ⟦skill-edit⟧ ⟦criterion 14⟧
-- [ ] skill-edit step for the unit `skills/tdd/REVISE.md`: check RV68 and RV69 against step 5 with `red` skippable, name `verify-red-skipped`, grade and sign ⟦skill-edit⟧ ⟦criterion 15⟧
+- [x] skill-edit step for the unit `skills/tdd/SKILL.md`: add CY150 and CY151 under `## skills/tdd/SKILL.md`, amend *Red* sub-step 2 and *Green* sub-step 1 within the byte ceiling, grade and sign ⟦skill-edit⟧ ⟦criterion 14⟧
+- [x] skill-edit step for the unit `skills/tdd/REVISE.md`: check RV68 and RV69 against step 5 with `red` skippable, name `verify-red-skipped`, grade and sign ⟦skill-edit⟧ ⟦criterion 15⟧

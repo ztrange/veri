@@ -365,8 +365,8 @@ primary alignment, but read `## What to build` (and any notes) as a second sourc
 for gaps: a behaviour the prose asks for that no criterion covers still gets a step. Phrase
 that step as a testable criterion of your own and add it to the ledger (it goes into the
 plan comment with the rest) rather than dropping it silently. A behaviour left unplanned
-surfaces mid-run as a plan amendment — a late extra step, or a verifier's remark — as it
-did in #43's step 5 and #41's step 6, instead of at scoping time.
+surfaces mid-run as a plan amendment — a late extra step, or a verifier's remark — instead
+of at scoping time.
 
 **Order a step that brings in code after the steps that pin its branches.** A step that
 introduces code — a port step, a new module — either comes after the steps whose tests pin
@@ -577,7 +577,7 @@ Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.m
    of** — `timeout 1200 s (6 × a 200 s full-tier baseline)`, or `timeout 900 s (floor; 40 s
    full-tier baseline)`, or `timeout 900 s (VERI_TIMEOUT set by hand)` — so a reader of the
    thread can see which number every leaf of this run is under, why, and that it was timed
-   against the work a leaf does rather than against the fast tier no leaf runs. On #71 that had to be reconstructed from the timestamps of two bails.
+   against the work a leaf does rather than against the fast tier no leaf runs (#71).
    Beside those two, the comment names the **skill commit** this run started on —
    `git -C "$S" rev-parse HEAD`, the version of the procedure and scripts you are executing.
    The thread is where a human reads a run back, so it is where the version has to be: a
@@ -786,9 +786,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    If the wait exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
    cleanly, after the stop check in *Launching a leaf*; do not retry (see `<base directory>/BAIL.md`).
 2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line.
-   On **`UNTESTABLE`** there is no test on disk for a blind verifier to judge — sending
-   nothing to verify-red would only get a malformed-verdict `REJECT` for the wrong reason —
-   so skip verify-red and verify-pin entirely and **bail** immediately with cause
+   On **`UNTESTABLE`** there is no test on disk for a blind verifier to judge, so skip verify-red and verify-pin entirely and **bail** immediately with cause
    `untestable-criterion`, carrying the leaf's `WHY:` as the reason (see `<base directory>/BAIL.md`). This is
    a **process** failure: the criterion as phrased cannot be tested as behavior, not that
    the plumbing broke.
@@ -803,10 +801,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    - **Exit 0 or 2 — diverged, or a prediction nobody can read:** the test failed for a
      reason other than the one it was written to catch (exit 0), or the report carries no
      readable `PREDICTION:` line at all (exit 2), which is handled the same way — an
-     unreadable prediction is not a matched one. Beck stops on that surprise, because the
-     test is then the suspect, and this gate is **yours**: verify-red is blind by
-     construction and the prediction is the developer's reasoning, so no verifier can be
-     told about it. So **skip verify-red and verify-pin**, keep the reason the script wrote
+     unreadable prediction is not a matched one. **Skip verify-red and verify-pin**, keep the reason the script wrote
      to `.tdd/verify-red.reason` (on exit 2 write your own one-line reason there instead —
      the report had no prediction to read), mark it with
      `$S/event.sh prediction-diverged` so the divergence is in the run log, preserve the
@@ -839,7 +834,11 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    write that to `.tdd/verify-red.reason`, treat the attempt as a verify-red REJECT that spends REVISE_BUDGET, and launch
    no verifier for it. Exit 0 launches the verifier as before; exit 2 is a system failure: **bail** (`Read` `<base directory>/BAIL.md`).
 
-   On a matched prediction, run
+   **Switched off:** with `red` in `.tdd/issue-<n>-skip-verify`, a matched prediction launches no verify-red:
+   record `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-red-skipped reason=switched-off`,
+   write `skipped` to `.tdd/verdict-red.exit`, then go on as on a PASS: the frozen record below
+   (`tests-frozen.sh record --step … --red-case`), then Green. The prediction check,
+   `unreplaced-cases.sh` and `tests-frozen.sh check-earlier` still run first. Otherwise, on a matched prediction, run
    the red verifier against the on-disk test and spec, **redirecting its stdout (the
    reason) to a file** — the revise step takes the reason as a *path*:
    ```
@@ -939,6 +938,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    - exit 0 may instead print `fixture <path> <name>`: `<name>` is a function defined in the test file `<path>` that is not a test case (a helper, fixture or shared setup). It shares the step's one free reroute with `red`, `repair` and `supersede`, free only as the step's first reroute of any kind, `missing` included (a prior `missing` reroute uses it up), and spends no `REVISE_BUDGET` attempt; a `WRONG_TEST` naming no case never routes here once that reroute is spent, it gets `repair` (see `repair` above). Insert before the current step, with `add-ledger-step.sh … before`, the step `<the current step's criterion>: repairs the fixture '<name>' in <path>, reproduced by a case in <path> ⟦fixture-repair⟧`, commit the ledger, write the same `reroute` event with `kind=fixture`, and run that step's cycle; the current step then resumes at develop-green with its red case and frozen record kept. `add-ledger-step.sh` exit 1 (the growth cap, which files the step under `## Owed steps`) **bails** with cause `fixture-owed`, a process failure; exit 2 bails `step-add-refused` (see `<base directory>/BAIL.md`). A `fixture` route is taken only when the helper is defined in the step's own test file, the one before `::` in a `<file>::<case>` id; an id with no `::` (the Go and JS names) falls back to searching every test file.
    - exit 2 is a system failure: **bail** (`Read` `<base directory>/BAIL.md`).
    - With `green` in `.tdd/issue-<n>-skip-verify`, the routes read from the green report (`red`, `repair`, `supersede`, `supersede-diff`, `fixture`) and a `mutation-parity.sh` REJECT's `missing` still fire; only a verify-green reason is never routed, as none is written.
+   - With `red` in `.tdd/issue-<n>-skip-verify`, a reroute's "verify it with verify-red like any red" launches no verifier: Red's **Switched off** branch is taken instead.
 
    After a reroute's red leaf, re-record the step's frozen tests with this one command; the `--red-case '<red-test-id>'` checks that the step's own Red case still exists in its test file. It captures `$?` and stops on a non-zero status rather than echoing it:
    ```
@@ -1038,7 +1038,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      **On a bug run that subject is `fix:`, not `feat:`** — `fix: <STEP summary> (#<n>)`.
      The run is a bug run when the issue carries the `bug` label, the same fact step 1 read
      to give the spec its `## Bug` section.
-     The push is what stops the run living on one disk until it is review-ready: the first
+     The first
      call creates the remote branch, later ones fast-forward, and no PR is opened, so
      nothing asks for review before the run is ready. An unreachable remote is **not** a
      bail — `push-branch.sh` retries it, records a `push-failed` event and exits 0, so the
