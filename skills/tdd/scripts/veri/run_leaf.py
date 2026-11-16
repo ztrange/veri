@@ -6,6 +6,7 @@ import json
 import leaf_timeout
 import os
 import paths
+import redaction
 import shutil
 import signal
 import subprocess
@@ -217,6 +218,9 @@ def main(argv):
             print(f"run-leaf.sh: VERI_TIMEOUT is not a whole number: {seconds!r}",
                   file=sys.stderr)
             return 2
+        for name in sorted(set(tunables.get("VERI_LEAF_ENV").split()) & set(redaction.listed_names())):
+            print(f"run-leaf.sh: VERI_LEAF_ENV passes {name}, which VERI_REDACT_VARS names as a credential, to the"
+                  " leaf", file=sys.stderr)
         try:
             leaf = subprocess.Popen(command, stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE, env=env,

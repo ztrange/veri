@@ -103,12 +103,15 @@ def _decodes_to_secret(run, values):
     return False
 
 
+def listed_names():
+    """The names VERI_REDACT_VARS lists (its default when it names none: there is no turning value redaction off)."""
+    return tunables.get("VERI_REDACT_VARS").split() or tunables.default("VERI_REDACT_VARS").split()
+
+
 def _listed_values():
-    """The values, 8 characters or more, of the variables VERI_REDACT_VARS names (its default when it names none: there
-    is no turning value redaction off), each also as a JSON string escapes
-    it."""
-    names = tunables.get("VERI_REDACT_VARS").split() or tunables.default("VERI_REDACT_VARS").split()
-    values = [tunables.read(name) for name in names]
+    """The values, 8 characters or more, of the variables VERI_REDACT_VARS names (`listed_names`), each also as a JSON
+    string escapes it."""
+    values = [tunables.read(name) for name in listed_names()]
     values = [value for value in values if len(value) >= 8]
     return values + [json.dumps(value)[1:-1] for value in values if json.dumps(value)[1:-1] != value]
 
