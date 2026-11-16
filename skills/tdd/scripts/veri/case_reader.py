@@ -35,7 +35,7 @@ def is_js_test_file(name, root=""):
     return in_tests and re.search(JS_EXT, name) is not None
 
 
-_CASE = re.compile(r"^\s*(?:(?:async\s+)?def\s+(?=test)|func\s+(?=Test))(\w+)|^\s*name=\"([^\"]+)\"|^\s*" + CALL + r"([\"'`])((?:\\.|.)+?)\3", re.M)
+_CASE = re.compile(r"^\s*(?:(?:async\s+)?def\s+(?=test)|func\s+(?=Test))(\w+)|^\s*" + CALL + r"([\"'`])((?:\\.|.)+?)\2", re.M)
 
 
 _MODULE_LEVEL = re.compile(r"\n[ \t]*\n(?:[ \t]*\n)*(?:#|\w+[ \t]*\(\))")
@@ -89,8 +89,8 @@ def _spans(text):
 
 def old_cut_cases_all(text, call_form_only=False):
     found, starts, ends = _spans(text)
-    return [(m.group(1) or m.group(2) or m.group(4), text[start:end].rstrip()) for m, start, end in zip(found, starts, ends)
-            if m.group(4) or not call_form_only or text.startswith("func", start)]
+    return [(m.group(1) or m.group(3), text[start:end].rstrip()) for m, start, end in zip(found, starts, ends)
+            if m.group(3) or not call_form_only or text.startswith("func", start)]
 
 
 class UnclosedCase(LookupError):
@@ -159,13 +159,13 @@ def cut_cases(text):
     for m, start, end in zip(found, starts, ends):
         body = text[start:end]
         span = def_ends.get(text.count("\n", 0, start) + 1)
-        closed = _call_end(text, text.rfind("(", start, m.start(4))) if m.group(4) else None
+        closed = _call_end(text, text.rfind("(", start, m.start(3))) if m.group(3) else None
         if m.group(1) and span:
             body = "".join(lines[span[0] - 1:span[1]]).rstrip()
         elif closed:
             body = text[start:closed]
-        elif m.group(4):
-            raise UnclosedCase("the call of case %s never closes" % _unescaped(m.group(4)))
+        elif m.group(3):
+            raise UnclosedCase("the call of case %s never closes" % _unescaped(m.group(3)))
         else:
             if m.group(1):
                 body = "".join(body.partition("\n}")[:2])
@@ -173,7 +173,7 @@ def cut_cases(text):
                 cut = _module_level_cut(body)
                 body = body[:cut.start()] if cut else body
             body = _DECORATORS.sub("", body.rstrip()).rstrip()
-        cases.append((m.group(1) or m.group(2) or _unescaped(m.group(4)), body))
+        cases.append((m.group(1) or _unescaped(m.group(3)), body))
     return cases
 
 
