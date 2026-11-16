@@ -3,7 +3,8 @@
 One read is bounded as a whole on the monotonic clock: VERI_GITHUB_STATUS_TIMEOUT seconds from its start, and never
 past a `wait`'s own deadline. The connection's socket timeout is that time left, and the body is read in chunks, each
 with the socket timeout cut to what is left, so a server dripping bytes is cut off at the deadline; it reads at most
-MAX_BODY + 1 bytes. No thread and no process are started."""
+MAX_BODY + 1 bytes. No thread and no process are started. Name resolution (getaddrinfo) has no timeout of its own
+and is the one step outside the bound."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import datetime
 import http.client
