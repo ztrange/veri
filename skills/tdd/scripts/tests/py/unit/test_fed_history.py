@@ -153,6 +153,13 @@ def test_fed_history_answers_a_detached_revision_followed_by_a_caret_or_a_tilde_
         (True, TWO), (True, TWO), (True, ONE), (True, ONE), (False, "")]
 
 
+def test_fed_history_answers_subject_of_a_revision_it_does_not_hold_with_nothing_as_case_history_answers_a_failed_git_log(
+        fed_history, tests_frozen):
+    fed_history(("base", "start", {SUITE: ONE}))
+
+    assert [tests_frozen.case_history.subject(rev) for rev in ("nowhere", "base~1", "base")] == ["", "", "start\n"]
+
+
 def test_fed_commits_checks_out_an_earlier_revision_as_git_checkout_would_keeping_the_later_ones_readable_and_names_a_ref_at_its_head(
         tmp_path, fed_commits, tests_frozen):
     repo = fed_commits(default="main")
