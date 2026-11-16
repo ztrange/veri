@@ -10,7 +10,8 @@ import urllib.request
 import entry
 import tunables
 
-USAGE = "usage: github-status.sh [<component>…]"
+USAGE = ("usage: github-status.sh [<component>…]\n"
+         "       github-status.sh wait <max-seconds> [<component>…]")
 FEED = "/api/v2/incidents/unresolved.json"
 DEFAULT_COMPONENTS = ("Git Operations", "Pull Requests", "API Requests", "Issues", "Actions")
 COMPONENTS = ("Git Operations", "Webhooks", "API Requests", "Issues", "Pull Requests", "Actions", "Packages", "Pages",
