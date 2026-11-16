@@ -161,8 +161,9 @@ skill mid-run. The snapshot is read-only: after extraction the write bits of its
 directories are removed, so a stray write into it (an in-place edit, a redirect) fails with a
 permission error. A leaf runs as the same user and can restore those bits, so this stops a
 careless write, not a deliberate one, which the digest check catches: at extraction the launch
-computes a digest of every entry of the snapshot (each file's path, content and executable bit,
-each directory, the `.veri-snapshot` marker included), keeps it in memory and records it in
+computes a digest of every entry of the snapshot (each file's path, content and owner executable
+bit, and no other mode bit, so `chmod 644` to `600` is no change; each directory; the
+`.veri-snapshot` marker included), keeps it in memory and records it in
 `.tdd/issue-<n>-snapshot-digest`. **At launch**, `supervise.sh`, run from the snapshot, compares
 the snapshot with that file and refuses the launch (exit 2) naming the first changed entry, or
 when no digest is recorded. That file is run state a leaf can write, and `supervise.sh` lives
