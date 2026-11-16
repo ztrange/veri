@@ -27,6 +27,18 @@ def namers(root, tracked):
     return sorted(found)
 
 
+def test_the_guard_names_a_skill_file_that_names_the_script_and_nothing_once_it_is_removed(tmp_path):
+    skill = tmp_path / "skills" / "vdev" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("Run `$S/" + RETIRED[0] + ".sh` first.\n")
+    (tmp_path / "specs").mkdir()
+    (tmp_path / "specs" / "prd.md").write_text(RETIRED[1] + "\n")
+    tracked = ["skills/vdev/SKILL.md", "specs/prd.md"]
+    assert namers(tmp_path, tracked) == ["skills/vdev/SKILL.md"]
+    skill.write_text("Run `$S/status.sh --recover` first.\n")
+    assert namers(tmp_path, tracked) == []
+
+
 @pytest.mark.process("git ls-files over the repository")
 @pytest.mark.tree_audit("a walk of every tracked file outside specs/, docs/adr/ and .tdd/")
 def test_no_tracked_file_outside_the_exempt_trees_names_the_retired_snapshot_script(monkeypatch, request):
