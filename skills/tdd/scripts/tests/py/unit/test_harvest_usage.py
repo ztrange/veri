@@ -313,3 +313,20 @@ def test_main_adds_the_first_assistant_records_cache_creation_cache_read_and_inp
     assert (code, [{key: r.get(key) for key in FIRST_TURN} for r in events.records()]) == (0, [{
         "first_turn_cache_creation_input_tokens": "19700", "first_turn_cache_read_input_tokens": "0",
         "first_turn_input_tokens": "3"}])
+
+
+def test_main_on_a_log_whose_assistant_records_carry_no_usage_appends_todays_usage_event_without_first_turn_fields_lc2(
+        tmp_path, monkeypatch, harvest_usage, events):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verify-green.log").write_text(
+        json.dumps({"type": "assistant", "message": {"id": "m", "content": []}}) + "\n" + _result_record())
+    monkeypatch.chdir(tmp_path)
+
+    events.refuse_event_sh()
+    code = harvest_usage.main(["verify-green"])
+
+    assert (code, events.records()) == (0, [{
+        "issue": "", "actor": "verifier", "phase": "green", "step": "", "event": "usage", "attempt": "1",
+        "skill_commit": "", "duration_ms": "1", "duration_api_ms": "2", "num_turns": "3", "total_cost_usd": "0.5",
+        "input_tokens": "4", "output_tokens": "7", "cache_read_input_tokens": "6",
+        "cache_creation_input_tokens": "5", "model": ""}])
