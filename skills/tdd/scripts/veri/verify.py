@@ -213,7 +213,7 @@ def diff_gate(words, options):
         changed = [(case, changed_rename(case, words[3], taken, tip)) for case in deleted]
         pairs = [(case, other) for case, other in changed if other]
         if pairs:
-            write(sys.stdout, "step renamed and changed pytest cases, so the step must be split: "
+            write(sys.stdout, "step renamed and changed test cases, so the step must be split: "
                    + ", ".join("%s::%s -> %s" % (case + (other,)) for case, other in pairs))
             return 1
         write(sys.stdout, "step deleted test cases an earlier step added: "
