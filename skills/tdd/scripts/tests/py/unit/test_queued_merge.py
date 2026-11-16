@@ -1401,3 +1401,20 @@ def test_3981_queued_merge_in_a_clone_holding_only_release_1_cuts_no_tag_names_w
         "push origin --delete feature", "worktree remove", "branch -D feature", "merge-lock.sh release", "pull --ff-only")]
     assert (code, tagged, "no vN.M tag to bump from; no tag cut" in err, "merged, but cleanup failed: tag" in err, ran) == (
         2, [], True, True, [True] * 5)
+
+
+def test_3981_queued_merge_whose_tag_step_raises_runs_every_later_cleanup_step_and_exits_2_with_tag_named_as_failed(fake_processes, run_cli):
+    def raising(answer):
+        def wrapped(line, **kwargs):
+            if "tag --sort=-v:refname" in line:
+                raise OSError("git vanished mid-tag")
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(raising)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    ran = [first(calls, needle) is not None for needle in (
+        "push origin --delete feature", "worktree remove", "branch -D feature", "merge-lock.sh release", "pull --ff-only")]
+    assert (code, "merged, but cleanup failed: tag" in err, ran) == (2, True, [True] * 5)
