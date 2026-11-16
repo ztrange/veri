@@ -44,6 +44,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   value, and a pending `.tdd/stop` of `at-leaf` or `now`. Run from a `veri-snapshot-*` directory, it also refuses a launch of run
   `VERI_ISSUE` whose snapshot no longer matches the digest the run recorded at extraction in `.tdd/issue-<n>-snapshot-digest`
   (`the skill snapshot <entry> changed since extraction`, the first differing entry, the `.veri-snapshot` marker included), or that has no digest recorded.
+  A watched leaf's supervisor records itself in `.tdd/leaf.owner`: `<pid> <name>` on line 1 and
+  its start time, as `ps -o lstart=` prints it, on line 2. A later launch in that worktree exits
+  2, with no event, refusing `leaf <o> (pid <p>) is still alive in this worktree`, only while that
+  pid is alive under that start time, or alive with no line 2 recorded (an older snapshot's file)
+  or a start time `ps` cannot read; a pid alive under another start time (a dead supervisor's pid
+  reused) refuses nothing, and neither does a dead pid or an owner whose `.tdd/<o>.exit` exists.
 - `$S/detach-leaf.sh <cmd> [args...]` — **the detaching half of a detached launch.** Runs
   `<cmd>` as the leader of a **new session**, and so of a new process group, then returns at
   once. Every leaf launch below goes through it, and none uses `nohup` — *Launching a leaf*
