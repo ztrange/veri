@@ -9,5 +9,9 @@ __pycache__/
 # (last match wins): the ledger is tracked, the spec is not.
 .tdd/*
 !.tdd/issue-*.md
-.tdd/issue-*-spec.md
+.tdd/issue-*-*.md
+!.tdd/issue-*-added.md
+!.tdd/issue-*-mutations.md
+!.tdd/issue-*-refactor-owed.md
+!.tdd/issue-*-metrics.md
 */**/.tdd/
