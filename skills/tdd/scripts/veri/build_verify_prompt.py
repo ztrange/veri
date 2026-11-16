@@ -108,7 +108,7 @@ def _touching_cases(ledger):
             continue
         with open(path, "rb") as handle:
             text = handle.read().decode(errors="replace")
-        if not any(stem in text.replace("-", "_") for stem in stems):
+        if not any(re.search(r"(?<!\w)" + re.escape(stem) + r"(?!\w)", text.replace("-", "_")) for stem in stems):
             continue
         names = [name for name, _ in case_reader.cut_cases(text)]
         if names:

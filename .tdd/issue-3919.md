@@ -3,7 +3,7 @@
 - [x] build-verify-prompt.sh plan adds, after the ledger, a `### Test cases touching the files the plan names` section listing, under a test file's repo-relative path, the names of its cases and no case body, when a step names a file by its repo-relative path and the test file holds that file's stem ⟦criterion 1⟧
 - [x] a step naming a file by its basename alone lists the cases of the test files touching it ⟦criterion 1⟧
 - [x] a test file holding the stem with `_` where the file name has `-` touches it ⟦criterion 1⟧
-- [ ] a test file holding the stem only inside a longer word contributes no case ⟦criterion 1⟧
+- [x] a test file holding the stem only inside a longer word contributes no case ⟦criterion 1⟧
 - [ ] with no step naming a file, or no test file touching one, the section is the one line `No test case touches a file the plan names.` ⟦criterion 2⟧
 - [ ] the section lists at most VERI_PLAN_TOUCHING_CASES case names (a TUNABLES entry, default 100), then one `<file>: <m> more cases` line per test file left over ⟦criterion 3⟧
 - [ ] a VERI_PLAN_TOUCHING_CASES that is not a whole number makes the plan phase exit 2 with one stderr line naming the knob and nothing on stdout ⟦criterion 4⟧
