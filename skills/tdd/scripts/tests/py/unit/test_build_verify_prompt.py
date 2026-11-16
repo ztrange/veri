@@ -51,13 +51,14 @@ def split_closing(out, fragment=CLOSING):
     return out, False
 
 
-TOUCHING_SECTION = re.compile(rb"\n\n### Test cases touching the files the plan names(?:\n\n.*?)?(?=\||\n?\Z)", re.S)
+EMPTY_TOUCHING_SECTION = (b"\n\n### Test cases touching the files the plan names\n\n"
+                          b"No test case touches a file the plan names.")
 
 
 def without_touching_cases(body):
-    """The render with the plan phase's touching-cases section (#3919) cut out, so a case pinning the bytes
-    around the LEDGER slot holds whether or not the section is rendered."""
-    return TOUCHING_SECTION.sub(b"", body)
+    """The render with exactly the plan phase's empty touching-cases section (#3919) cut out, as it renders where no
+    test file touches a file the plan names; anything else added to the render still shows."""
+    return body.replace(EMPTY_TOUCHING_SECTION, b"", 1)
 
 
 def test_main_refuses_a_missing_argument_an_option_with_no_value_an_unknown_phase_and_a_green_or_diff_call_without_fast_cmd_with_exit_2_and_its_message_then_the_usage_line(
