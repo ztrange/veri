@@ -297,6 +297,7 @@ class _Tally:
         self.launched = {}
         self.green_rejects = []
         self.launch_costs = {}
+        self.launch_cost_missing = 0
 
     def step_mark(self, step):
         return self.spent.setdefault(step, {})
@@ -415,6 +416,8 @@ class _Tally:
                 launch[LEAVES] += 1
                 for heading, field in FIRST_TURN:
                     launch[heading] += int(line[field])
+            else:
+                self.launch_cost_missing += 1
         elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
             self.rejected.append((step, phase, attempt))
         if event == "verdict" and phase == "green" and line.get("verdict") == "REJECT":
@@ -589,6 +592,7 @@ class Fold:
     green_rejects: list         # (step, attempt, route, reason) per green REJECT verdict, in log order
     green_reject_routes: list   # (route, count) over green_rejects, by count descending, then route
     launch_costs: dict          # (actor, model) -> {LAUNCH_COLUMNS: tokens}, leaf usage events with first-turn fields
+    launch_cost_missing: int    # leaf usage events without the first-turn fields
 
 
 def fold(issue, path, ledger):
@@ -663,7 +667,7 @@ def fold(issue, path, ledger):
                 conductor_counted=tally.conductor_counted, total=tally.total, structural=structural,
                 green_rejects=green_rejects,
                 green_reject_routes=sorted(routes.items(), key=lambda item: (-item[1], item[0])),
-                launch_costs=tally.launch_costs)
+                launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing)
 
 
 def known(number):
@@ -888,6 +892,9 @@ def layout(f):
         table_head("#### Launch cost, by role", "role", ["model"] + LAUNCH_COLUMNS, ["---"] + ["---:"] * len(LAUNCH_COLUMNS))
         for (role, model), tokens in f.launch_costs.items():
             row([role, model] + figures(tokens, LAUNCH_COLUMNS))
+        if f.launch_cost_missing:
+            print()
+            print("Leaf usage events without first-turn figures, not in the table: %d" % f.launch_cost_missing)
 
 
 def render(issue, path, ledger):

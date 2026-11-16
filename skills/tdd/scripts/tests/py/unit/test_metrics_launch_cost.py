@@ -40,3 +40,20 @@ def test_the_launch_cost_table_has_a_row_per_role_and_model_with_its_leaves_and_
          "first-turn cache read": "5", "first-turn input": "1"},
         {"role": "developer", "model": "claude-opus-5-5", "leaves": "1", "first-turn cache creation": "7",
          "first-turn cache read": "0", "first-turn input": "1"}]
+
+
+def test_a_line_under_the_table_counts_the_leaf_usage_events_lacking_first_turn_fields_and_is_absent_when_none_lacks_them(
+        tmp_path, monkeypatch, capsys, metrics):
+    def report(name, events):
+        root = tmp_path / name
+        root.mkdir()
+        write_log(root, events)
+        monkeypatch.chdir(root)
+        return render(metrics, capsys).split("\n")
+
+    partial = report("partial", [usage("developer", "m-1", (1, 1, 1)), usage("developer", "m-1"),
+                                 usage("verifier", "m-1"), usage("conductor", "m-1")])
+    whole = report("whole", [usage("developer", "m-1", (1, 1, 1)), usage("conductor", "m-1")])
+
+    line = "Leaf usage events without first-turn figures, not in the table: 2"
+    assert (partial[-4:-1], line in whole) == (["| developer | m-1 | 1 | 1 | 1 | 1 |", "", line], False)
