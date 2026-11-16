@@ -24,26 +24,18 @@ ALLOWED = {}
 SPEC = subsection_readers.Subsection(HEADINGS[0], HEADINGS, source_names=r"SKILL\w*|skill_sections")
 
 
-def _flat_sections_and_rest():
-    text = SKILL_MD.read_text(encoding="utf-8")
-    inside = [skill_sections.section_of(text, heading, str(SKILL_MD)) for heading in HEADINGS]
-    rest = text
-    for block in inside:
-        rest = rest.replace(block, "\n")
-    return subsection_readers.flat("\n".join(inside)), subsection_readers.flat(rest)
-
-
 def _flat(text):
     return " ".join(skill_sections.plain_lower(text).split())
 
 
-def _sections_and_rest():
+def _sections_and_rest(flatten=None):
+    flatten = flatten or _flat
     text = SKILL_MD.read_text(encoding="utf-8")
     inside = [skill_sections.section_of(text, heading, str(SKILL_MD)) for heading in HEADINGS]
     rest = text
     for block in inside:
         rest = rest.replace(block, "\n")
-    return _flat("\n".join(inside)), _flat(rest)
+    return flatten("\n".join(inside)), flatten(rest)
 
 
 def _only_in_sections(literal, inside, rest):
@@ -118,7 +110,7 @@ def test_every_remaining_case_reading_skill_md_s_read_the_issue_scope_and_plan_s
             if f"{rel}::{name}" not in ALLOWED and f"{path.name}::{name}" not in ALLOWED:
                 strays.append(f"{rel}::{name}")
     assert strays == [], "cases read steps 1, 2, 2b or 2c by content and are neither mechanical nor allow-listed:\n" + "\n".join(strays)
-    lost = subsection_readers.lost_cases(tests_py_index, ALLOWED, SPEC, *_flat_sections_and_rest(), TESTS_PY, __file__)
+    lost = subsection_readers.lost_cases(tests_py_index, ALLOWED, SPEC, *_sections_and_rest(subsection_readers.flat), TESTS_PY, __file__)
     assert lost == [], "allow-listed entries no longer read steps 1, 2, 2b or 2c:\n" + "\n".join(lost)
 
 
