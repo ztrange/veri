@@ -95,6 +95,28 @@ def test_fed_history_answers_a_file_named_by_its_absolute_path_under_the_root_as
     } == {"text_at": ONE, "cases_at": ["test_one", "test_two"], "revisions": ["red"], "first_revision_with": "red"}
 
 
+def test_fed_history_answers_a_ref_and_a_detached_revision_by_name_and_default_branch_with_the_default_it_is_fed(
+        fed_history, tests_frozen):
+    fed_history(("base", "start", {"test_a.py": ONE}), ("next", "more", {"test_a.py": ONE + "\n\n" + TWO}),
+                refs={"origin/main": "base"}, detached={"pre": ("before the rebase", {"test_a.py": TWO})},
+                default="main")
+    history = tests_frozen.case_history
+
+    assert {
+        "default_branch": history.default_branch(),
+        "ref": (history.has_rev("origin/main"), history.commit_of("origin/main"),
+                sorted(history.cases_at("origin/main", "test_a.py")), history.subject("origin/main")),
+        "detached": (history.has_rev("pre"), history.commit_of("pre"), history.text_at("pre", "test_a.py"),
+                     sorted(history.cases_at("pre", "test_a.py")), history.subject("pre")),
+        "line": history.revisions("test_a.py"),
+    } == {
+        "default_branch": "main",
+        "ref": (True, "base", ["test_one"], "start\n"),
+        "detached": (True, "pre", TWO, ["test_two"], "before the rebase\n"),
+        "line": ["next", "base"],
+    }
+
+
 def test_fed_commits_commits_the_work_tree_as_git_add_and_git_commit_would_and_answers_the_pass_markers_git_calls(
         tmp_path, fed_commits, tests_frozen, monkeypatch):
     monkeypatch.chdir(tmp_path)
