@@ -1,6 +1,6 @@
 # Plan for #3976 — PRD 022.5: a leaf's environment holds only named variables
 
-- [ ] `launch_spec` returns an env holding only allow-listed names (prefixes `VERI_`, `LC_`) and the names it sets itself: `GH_TOKEN`, `GITHUB_TOKEN`, `AWS_SECRET_ACCESS_KEY`, `SOME_UNLISTED` absent, every allow-listed name present ⟦criterion 1⟧
+- [x] `launch_spec` returns an env holding only allow-listed names (prefixes `VERI_`, `LC_`) and the names it sets itself: `GH_TOKEN`, `GITHUB_TOKEN`, `AWS_SECRET_ACCESS_KEY`, `SOME_UNLISTED` absent, every allow-listed name present ⟦criterion 1⟧
 - [ ] `VERI_LEAF_ENV` (a tunable, default empty) adds space-separated names: `JAVA_HOME` passes, `GH_TOKEN` still does not ⟦criterion 2⟧
 - [ ] a name `VERI_LEAF_ENV` adds that `VERI_REDACT_VARS` also names passes, and `run-leaf.sh` prints one stderr line naming it, never its value ⟦criterion 4⟧
 - [ ] a ratchet case fails when a veri module or the Makefile reads, by literal name, an environment variable the allow-list does not pass and no exemption names

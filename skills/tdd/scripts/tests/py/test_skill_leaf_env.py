@@ -27,8 +27,8 @@ LITERAL_STEP = "A title naming `kill " + chr(37) + "1`, the \"blind\" verifier, 
 SENTINEL_STEP = LITERAL_STEP.replace("shell s own", "shell's own")
 
 STUB = """#!/bin/sh
-printf '%s\\n' "${VERI_TEST_CMD-<unset>}" > "$SEEN"
-printf '%s\\n' "${VERI_STEP-<unset>}" > "$SEEN.step"
+printf '%s\\n' "${VERI_TEST_CMD-<unset>}" > "$VERI_TEST_SEEN"
+printf '%s\\n' "${VERI_STEP-<unset>}" > "$VERI_TEST_SEEN.step"
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 """
 
@@ -163,7 +163,7 @@ def launched_test_cmd(probe, lineno, line, leaf, launch, *files, scripts=SCRIPTS
     if leaf == "verify-plan":
         plant_repository(directory)
     env = {name: value for name, value in os.environ.items() if name not in ("VERI_TEST_CMD", "VERI_ISSUE", "VERI_STEP")}
-    env.update(S=str(scripts), CLAUDE_BIN=str(probe.stub / "claude"), SEEN=str(directory / "seen"),
+    env.update(S=str(scripts), CLAUDE_BIN=str(probe.stub / "claude"), VERI_TEST_SEEN=str(directory / "seen"),
                VERI_STUCK_RETRIES="0", VERI_NO_VERDICT_RETRIES="0", VERI_HEARTBEAT="30", VERI_TIMEOUT="60", VERI_POLL="0.2")
     subprocess.run(["bash", "-c", launch], cwd=directory, env=env, stdin=subprocess.DEVNULL,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -282,24 +282,24 @@ DECOY_STEP = "a decoy step the ledger holds, which ledger-steps.sh current never
 CRITERION_TEXT = "The issue's own words: `echo $SHELL` in \"quotes\" and $HOME, as the issue wrote them"
 
 DETACH_RECORDER = """#!/bin/sh
-printf '%s\\n' "${VERI_STEP-<unset>}" > "$SEEN"
+printf '%s\\n' "${VERI_STEP-<unset>}" > "$VERI_TEST_SEEN"
 step='<no --step argument>'
 while [ "$#" -gt 0 ]; do
   if [ "$1" = --step ]; then step="${2-<--step with no value>}"; break; fi
   shift
 done
-printf '%s\\n' "$step" > "$SEEN.argv"
+printf '%s\\n' "$step" > "$VERI_TEST_SEEN.argv"
 """
 
 TITLE_RECORDER = """#!/bin/sh
-out="$SEEN.$(basename "$0" .sh)"
+out="$VERI_TEST_SEEN.$(basename "$0" .sh)"
 printf '%s\\n' "${VERI_STEP-<unset>}" > "$out"
 for a in "$@"; do printf '%s\\n' "$a" >> "$out"; done
 """
 
 LEDGER_STEPS_RECORDER = """#!/bin/sh
 case "$1" in current|current-or-last-done) ;; *) exit 2 ;; esac
-cat "$SEEN.current"
+cat "$VERI_TEST_SEEN.current"
 """
 
 CONDUCTOR_CALLEES = ("event", "preserve-attempt", "tick-ledger", "clear-refactor-pending", "tick-issue-criterion")
@@ -387,7 +387,7 @@ def read_answer(path, default):
 
 def run_staged(stage, seen, tree, launch, default, path=None):
     env = {name: value for name, value in os.environ.items() if name not in ("VERI_TEST_CMD", "VERI_ISSUE", "VERI_STEP")}
-    env.update(S=str(stage), SEEN=str(seen))
+    env.update(S=str(stage), VERI_TEST_SEEN=str(seen))
     if path is not None:
         env["PATH"] = path
     done = subprocess.run(["bash", "-c", launch], cwd=tree, env=env, stdin=subprocess.DEVNULL,
@@ -1189,7 +1189,7 @@ def test_753_the_general_verifier_launch_shape_and_the_revise_loops_re_verify_li
 ANSWER_CEILING = 15
 
 LATE_COMPLETION_DETACH = """#!/bin/sh
-printf '%s\\n' "${VERI_TEST_CMD-<unset>}" > "$SEEN"
+printf '%s\\n' "${VERI_TEST_CMD-<unset>}" > "$VERI_TEST_SEEN"
 printf '%s\\n' "$$" > ".tdd/$2.pid"
 ( sleep 1; printf '0\\n' > ".tdd/$2.exit" ) </dev/null >/dev/null 2>&1 &
 """
@@ -1318,8 +1318,8 @@ def test_each_distinct_recorder_is_written_once_per_suite_run_and_every_stage_re
         if os.path.samefile(stage / f"{name}.sh", SCRIPTS / f"{name}.sh"):
             probe.problems.append(f"{name}.sh: the stage reaches the script under test, want the recorder")
         text = (stage / f"{name}.sh").read_text()
-        if "$SEEN" not in text or str(first) in text or str(stage) in text:
-            probe.problems.append(f"{name}.sh: the recorder differs per stage by more than $SEEN")
+        if "$VERI_TEST_SEEN" not in text or str(first) in text or str(stage) in text:
+            probe.problems.append(f"{name}.sh: the recorder differs per stage by more than $VERI_TEST_SEEN")
 
     assert probe.problems == []
 

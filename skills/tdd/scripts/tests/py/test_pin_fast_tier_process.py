@@ -64,11 +64,11 @@ def test_a_reason_file_at_the_bound_builds_a_revise_prompt_run_leaf_launches_und
     fast = stub(tmp_path / "fast-noisy",
                 f"yes '    at passing-noise-frame (src/component.tsx:1:10) padding padding' | head -c {2 * arg_max}\n"
                 "echo\necho ' FAIL  src/widget.test.ts > widget > renders'\nexit 1\n")
-    claude = stub(tmp_path / "claude", "echo '{\"type\":\"result\",\"result\":\"ok\"}'\n: > \"$STUB_RAN\"\n")
+    claude = stub(tmp_path / "claude", "echo '{\"type\":\"result\",\"result\":\"ok\"}'\n: > \"$VERI_TEST_STUB_RAN\"\n")
     spec = tmp_path / "spec.md"
     spec.write_text("## Problem\nA bug.\n")
     prompt_file = tmp_path / "revise.prompt"
-    env = {**os.environ, "CLAUDE_BIN": claude, "STUB_RAN": str(tmp_path / "ran"), "VERI_ISSUE": "3123"}
+    env = {**os.environ, "CLAUDE_BIN": claude, "VERI_TEST_STUB_RAN": str(tmp_path / "ran"), "VERI_ISSUE": "3123"}
 
     subprocess.run([CHECK, fast], cwd=tmp_path, capture_output=True)
     built = subprocess.run([str(SCRIPTS / "build-develop-prompt.sh"), "revise", "red", str(spec), "step", "make unit",

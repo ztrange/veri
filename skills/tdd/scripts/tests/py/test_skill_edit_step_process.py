@@ -66,16 +66,16 @@ STUB_MODEL = """#!/bin/sh
 """ + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
 case "$prompt" in
 *"You grade a piece of prose"*)
-  n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
-  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$CAP/grades"; echo "$n" > "$CAP/cur" ;; *) n=$(cat "$CAP/cur") ;; esac
+  n=$(cat "$VERI_TEST_CAP/grades" 2>/dev/null || echo 0)
+  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$VERI_TEST_CAP/grades"; echo "$n" > "$VERI_TEST_CAP/cur" ;; *) n=$(cat "$VERI_TEST_CAP/cur") ;; esac
   if [ "$n" = 0 ]; then
     reply_rows A1 'prose never says crimson'
   else
     reply_rows '' ''
   fi ;;
 *)
-  printf '%s' "$prompt" > "$CAP/author.txt"
-  [ -n "$REPO" ] && echo "The widget is crimson." >> "$REPO/unit.md"
+  printf '%s' "$prompt" > "$VERI_TEST_CAP/author.txt"
+  [ -n "$VERI_TEST_REPO" ] && echo "The widget is crimson." >> "$VERI_TEST_REPO/unit.md"
   reply='edited' ;;
 esac
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
@@ -101,7 +101,7 @@ def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whos
     claude.write_text(STUB_MODEL)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "REPO": str(repo), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "VERI_TEST_CAP": str(cap), "VERI_TEST_REPO": str(repo), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
@@ -123,16 +123,16 @@ STUB_UNCHANGED_FAILS = """#!/bin/sh
 """ + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
 case "$prompt" in
 *"You grade a piece of prose"*)
-  n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
-  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$CAP/grades"; echo "$n" > "$CAP/cur" ;; *) n=$(cat "$CAP/cur") ;; esac
+  n=$(cat "$VERI_TEST_CAP/grades" 2>/dev/null || echo 0)
+  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$VERI_TEST_CAP/grades"; echo "$n" > "$VERI_TEST_CAP/cur" ;; *) n=$(cat "$VERI_TEST_CAP/cur") ;; esac
   if [ "$n" -lt 3 ]; then
     reply_rows A2 'prose never says silent'
   else
     reply_rows '' ''
   fi ;;
 *)
-  git rev-list --count HEAD > "$CAP/commits-at-author"
-  [ -n "$REPO" ] && echo "It stays silent." >> "$REPO/unit.md"
+  git rev-list --count HEAD > "$VERI_TEST_CAP/commits-at-author"
+  [ -n "$VERI_TEST_REPO" ] && echo "It stays silent." >> "$VERI_TEST_REPO/unit.md"
   reply='edited' ;;
 esac
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
@@ -158,7 +158,7 @@ def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_befor
     claude.write_text(STUB_UNCHANGED_FAILS)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "REPO": str(repo), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "VERI_TEST_CAP": str(cap), "VERI_TEST_REPO": str(repo), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
@@ -221,8 +221,8 @@ STUB_AUTHOR_KILLED = """#!/bin/sh
 """ + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
 case "$prompt" in
 *"You grade a piece of prose"*)
-  n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
-  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$CAP/grades"; echo "$n" > "$CAP/cur" ;; *) n=$(cat "$CAP/cur") ;; esac
+  n=$(cat "$VERI_TEST_CAP/grades" 2>/dev/null || echo 0)
+  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$VERI_TEST_CAP/grades"; echo "$n" > "$VERI_TEST_CAP/cur" ;; *) n=$(cat "$VERI_TEST_CAP/cur") ;; esac
   if [ "$n" = 0 ]; then
     reply_rows A1 'prose never says crimson'
   else
@@ -254,7 +254,7 @@ def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_o
     claude.write_text(STUB_AUTHOR_KILLED)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "VERI_STUCK_RETRIES": "0", "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+           "VERI_TEST_CAP": str(cap), "VERI_STUCK_RETRIES": "0", "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
            "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
@@ -270,15 +270,15 @@ STUB_AUTHOR_TOUCHES_GRADED = """#!/bin/sh
 """ + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
 case "$prompt" in
 *"You grade a piece of prose"*)
-  n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
-  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$CAP/grades"; echo "$n" > "$CAP/cur" ;; *) n=$(cat "$CAP/cur") ;; esac
+  n=$(cat "$VERI_TEST_CAP/grades" 2>/dev/null || echo 0)
+  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$VERI_TEST_CAP/grades"; echo "$n" > "$VERI_TEST_CAP/cur" ;; *) n=$(cat "$VERI_TEST_CAP/cur") ;; esac
   if [ "$n" = 0 ]; then
     reply_rows A1 'prose never says crimson'
   else
     reply_rows '' ''
   fi ;;
 *)
-  echo tampered > "$REPO/GRADED"
+  echo tampered > "$VERI_TEST_REPO/GRADED"
   reply='edited' ;;
 esac
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
@@ -304,7 +304,7 @@ def test_an_attempt_that_grades_pass_but_whose_author_touched_graded_is_rejected
     claude.write_text(STUB_AUTHOR_TOUCHES_GRADED)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "REPO": str(repo), "VERI_SKILL_EDIT_BUDGET": "1",
+           "VERI_TEST_CAP": str(cap), "VERI_TEST_REPO": str(repo), "VERI_SKILL_EDIT_BUDGET": "1",
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
@@ -316,7 +316,7 @@ def test_an_attempt_that_grades_pass_but_whose_author_touched_graded_is_rejected
 
 
 STUB_AUTHOR_EDITS_PROSE = STUB_AUTHOR_TOUCHES_GRADED.replace(
-    'echo tampered > "$REPO/GRADED"', 'echo "The widget is crimson." >> "$REPO/unit.md"')
+    'echo tampered > "$VERI_TEST_REPO/GRADED"', 'echo "The widget is crimson." >> "$VERI_TEST_REPO/unit.md"')
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that edits the prose")
@@ -338,7 +338,7 @@ def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and
     claude.write_text(STUB_AUTHOR_EDITS_PROSE)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "REPO": str(repo),
+           "VERI_TEST_CAP": str(cap), "VERI_TEST_REPO": str(repo),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
@@ -708,10 +708,10 @@ STUB_ROLE_LOG = """#!/bin/sh
 """ + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
 case "$prompt" in
 *"You grade a piece of prose"*)
-  echo grader >> "$CAP/roles"
+  echo grader >> "$VERI_TEST_CAP/roles"
   reply_rows '' '' ;;
 *)
-  echo author >> "$CAP/roles"
+  echo author >> "$VERI_TEST_CAP/roles"
   reply='edited' ;;
 esac
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
@@ -734,7 +734,7 @@ def test_a_new_empty_unit_launches_the_author_before_any_grader_call_2072(tmp_pa
     claude.write_text(STUB_ROLE_LOG)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "VERI_TEST_CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
@@ -766,7 +766,7 @@ def test_a_new_empty_unit_the_author_then_writes_exits_zero_and_is_committed_207
     claude.write_text(STUB_WRITES_UNIT)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "VERI_TEST_CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
@@ -796,7 +796,7 @@ def test_a_non_empty_existing_unit_is_graded_first_and_a_grader_that_passes_ever
     claude.write_text(STUB_ROLE_LOG)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "VERI_TEST_CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
@@ -807,7 +807,7 @@ def test_a_non_empty_existing_unit_is_graded_first_and_a_grader_that_passes_ever
 
 
 STUB_AUTHOR_EDITS_PROSE_AND_PIN = STUB_AUTHOR_EDITS_PROSE.replace(
-    "  reply='edited' ;;", "  echo pinned-crimson > \"$REPO/pin.txt\"\n  reply='edited' ;;")
+    "  reply='edited' ;;", "  echo pinned-crimson > \"$VERI_TEST_REPO/pin.txt\"\n  reply='edited' ;;")
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that edits the prose and a pin file")
@@ -830,7 +830,7 @@ def test_an_attempt_that_edits_the_unit_and_a_named_pin_file_commits_the_pin_fil
     claude.write_text(STUB_AUTHOR_EDITS_PROSE_AND_PIN)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "REPO": str(repo),
+           "VERI_TEST_CAP": str(cap), "VERI_TEST_REPO": str(repo),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "unit.md", "pin.txt"], cwd=repo, capture_output=True, text=True, env=env)
@@ -841,7 +841,7 @@ def test_an_attempt_that_edits_the_unit_and_a_named_pin_file_commits_the_pin_fil
 
 
 STUB_AUTHOR_EDITS_PROSE_AND_REPINS = STUB_AUTHOR_EDITS_PROSE.replace(
-    "  reply='edited' ;;", "  cksum < \"$REPO/unit.md\" > \"$REPO/pin.txt\"\n  reply='edited' ;;")
+    "  reply='edited' ;;", "  cksum < \"$VERI_TEST_REPO/unit.md\" > \"$VERI_TEST_REPO/pin.txt\"\n  reply='edited' ;;")
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that edits the prose and re-pins its checksum")
@@ -865,7 +865,7 @@ def test_a_step_that_changes_a_checksum_pinned_unit_sentence_leaves_the_pin_matc
     claude.write_text(STUB_AUTHOR_EDITS_PROSE_AND_REPINS)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "REPO": str(repo),
+           "VERI_TEST_CAP": str(cap), "VERI_TEST_REPO": str(repo),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "unit.md", "pin.txt"], cwd=repo, capture_output=True, text=True, env=env)
@@ -1067,7 +1067,7 @@ def test_the_skill_edit_step_insert_appends_for_a_graded_pinned_red_amends_the_l
     claude.write_text(STUB_MODEL)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "REPO": str(repo), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "VERI_TEST_CAP": str(cap), "VERI_TEST_REPO": str(repo), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
     base = git(repo, "rev-list", "--count", "HEAD")
 

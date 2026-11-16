@@ -10,7 +10,7 @@ import pytest
 from conftest import SCRIPTS
 
 STUB = """#!/bin/sh
-printf '%s\\n' "$VERDICT_RESULT" | awk '{printf "{\\"type\\":\\"result\\",\\"subtype\\":\\"success\\",\\"is_error\\":false,\\"result\\":\\"%s\\"}\\n", $0}'
+printf '%s\\n' "$VERI_TEST_VERDICT_RESULT" | awk '{printf "{\\"type\\":\\"result\\",\\"subtype\\":\\"success\\",\\"is_error\\":false,\\"result\\":\\"%s\\"}\\n", $0}'
 """
 
 
@@ -42,7 +42,7 @@ def launch_verdict(tmp_path, result):
     home = tmp_path / "home"
     home.mkdir()
     env = {name: value for name, value in os.environ.items() if not name.startswith("VERI_")}
-    env.update(S=str(SCRIPTS), CLAUDE_BIN=str(stub), HOME=str(home), VERDICT_RESULT=result,
+    env.update(S=str(SCRIPTS), CLAUDE_BIN=str(stub), HOME=str(home), VERI_TEST_VERDICT_RESULT=result,
                VERI_ISSUE="2206", VERI_STEP="1", VERI_STUCK_RETRIES="0", VERI_NO_VERDICT_RETRIES="0", VERI_HEARTBEAT="30", VERI_TIMEOUT="60", VERI_POLL="0.2")
     launch = ('$S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh red spec.md probe.test.sh probe-target'
               ' > .tdd/verify-red.reason && $S/wait-leaf.sh verdict-red 60')
