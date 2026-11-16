@@ -76,7 +76,7 @@ def test_main_runs_the_command_inheriting_everything_then_records_whole_second_s
     events.refuse_event_sh()
 
     inherited = {"stdin", "stdout", "stderr", "env", "cwd", "shell", "executable", "close_fds", "pass_fds"}
-    for tier, suites in (("a=b", "x\ny"), ("fast", "")):
+    for tier, suites in (("target", "a=b\ny"), ("fast", "")):
         log.clear()
         (tmp_path / tier).mkdir()
         monkeypatch.chdir(tmp_path / tier)
@@ -165,8 +165,8 @@ def test_issue_1702_main_refuses_an_affected_tier_bare_make_test_with_exit_2_nam
     assert (code, "make test" in err, calls, events.records()) == (2, True, [], [])
 
 
-@pytest.mark.parametrize("tier", ["fast", "full", "all"])
-def test_issue_1702_main_runs_and_records_a_bare_make_test_on_the_fast_full_and_all_tiers_without_refusal(
+@pytest.mark.parametrize("tier", ["fast", "target", "all"])
+def test_issue_1702_main_runs_and_records_a_bare_make_test_on_the_fast_target_and_all_tiers_without_refusal(
         tier, tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
     monkeypatch.chdir(tmp_path)
     events.refuse_event_sh()
