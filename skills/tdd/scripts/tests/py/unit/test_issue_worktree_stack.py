@@ -61,6 +61,7 @@ def stacked_world(fake_processes, tmp_path, origin, stack_line="veri: stack bran
         "git ls-remote --heads origin refs/heads/tdd/7-*": (0, "", ""),
         "git check-ref-format --branch": lambda line, **_: (0, line.rsplit(" ", 1)[-1] + "\n", ""),
         "git symbolic-ref --quiet --short refs/remotes/origin/HEAD": (0, "origin/trunk\n", ""),
+        "git ls-remote --symref origin HEAD": (0, "ref: refs/heads/trunk\tHEAD\n", ""),
         "git ls-remote --heads origin refs/heads/stack": ls_stack,
         "git fetch -q origin +refs/heads/trunk:refs/remotes/origin/trunk": lambda line, **_: origin.fetch,
         "git push origin refs/remotes/origin/trunk:refs/heads/stack": push,

@@ -43,6 +43,7 @@ def world(tmp_path, fake_processes, monkeypatch, stack_line, joined):
         "git worktree list --porcelain": (0, "worktree %s\nHEAD 0000000\nbranch refs/heads/trunk\n" % main_tree, ""),
         "git check-ref-format --branch": lambda line, **_: (0, line.rsplit(" ", 1)[-1] + "\n", ""),
         "git symbolic-ref --quiet --short refs/remotes/origin/HEAD": (0, "origin/trunk\n", ""),
+        "git ls-remote --symref origin HEAD": (0, "ref: refs/heads/trunk\tHEAD\n", ""),
     })
 
 

@@ -36,6 +36,14 @@ def stated_line(path):
     return None
 
 
+def default_names(root):
+    """The default branch as origin states it (`git ls-remote --symref origin HEAD`, bounded by VERI_GIT_NETWORK_TIMEOUT)
+    and as refs/remotes/origin/HEAD records it: the set of names either gives, empty when neither does."""
+    asked = git.network("ls-remote", "--symref", "origin", "HEAD", cwd=root)
+    remote = git.symref_default(asked.stdout) if asked.returncode == 0 else None
+    return {name for name in (remote, git.default_branch(cwd=root, remote=False)) if name}
+
+
 def named(root):
     """The stack branch <root>'s CLAUDE.md names, or None when it names none; Refused when the name cannot be a stack."""
     path = os.path.join(root, "CLAUDE.md")
@@ -47,7 +55,11 @@ def named(root):
         raise Refused("%s: the line '%s' names no branch" % (path, line))
     if git.git("check-ref-format", "--branch", name, cwd=root, capture_output=True, text=True).returncode != 0:
         raise Refused("%s: the line '%s' names a branch git check-ref-format --branch refuses" % (path, line))
-    if name == git.default_branch(cwd=root, remote=False):
+    told = default_names(root)
+    if not told:
+        raise Refused("%s: the line '%s' names a stack, but the default branch cannot be told (no refs/remotes/origin/HEAD,"
+                      " and origin gave no answer) — refusing, since the stack may be the default branch" % (path, line))
+    if name in told:
         raise Refused("%s: the line '%s' names the default branch, and a stack there would be a direct push to it"
                       % (path, line))
     return name

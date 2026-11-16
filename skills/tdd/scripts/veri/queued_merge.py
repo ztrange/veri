@@ -600,14 +600,24 @@ def _join_cleanup(worktree, branch, released):
 
 
 def _stack_base(repo, pr, worktree):
-    """The stack branch when the worktree's CLAUDE.md names one and it is <pr>'s base; None otherwise. Raises
-    stack_branch.Refused for a name that cannot be a stack."""
+    """(stack, None) when the worktree's CLAUDE.md names a stack and <pr> reads as based on it, to join; (None, None) to
+    merge as before; (None, (message, code)) to refuse before the lock. Raises stack_branch.Refused for a name that
+    cannot be a stack."""
     stack = stack_branch.named(worktree)
     if not stack:
-        return None
+        return None, None
     pull = _pull(repo, pr)
-    base = ((pull or {}).get("base") or {}).get("ref")
-    return stack if base == stack else None
+    base = ((pull or {}).get("base") or {}) if isinstance(pull, dict) else {}
+    ref = base.get("ref") if isinstance(base, dict) else None
+    if ref != stack:
+        return None, None
+    default = (base.get("repo") or {}).get("default_branch") if isinstance(base.get("repo"), dict) else None
+    if not isinstance(default, str) or not default:
+        return None, ("could not read the default branch of %s's repository from GitHub; nothing joined" % pr, 2)
+    if default == stack:
+        return None, ("the stack branch %s is the default branch of %s's repository; a join there would be a direct"
+                      " push to it — nothing joined" % (stack, pr), 2)
+    return stack, None
 
 
 def main(argv):
@@ -634,7 +644,10 @@ def main(argv):
             return 2
     repo = _repo(pr)
     pid = str(os.getpid())
-    stack = _stack_base(repo, pr, worktree)
+    stack, refusal = _stack_base(repo, pr, worktree)
+    if refusal:
+        _say(refusal[0])
+        return refusal[1]
     if stack:
         return _join(pid, repo, pr, worktree, branch, stack, window)
     code = _script("merge-lock.sh", "take", "--pid", pid)
