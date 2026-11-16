@@ -7,6 +7,10 @@ import subprocess
 import pytest
 
 
+# The author fields of a comment github.trusted_comment trusts: veri's own parked comments carry them (#3972).
+OWNER = {"author_association": "OWNER", "user": {"login": "veri-operator"}}
+
+
 def first_four(out):
     return "".join("\t".join(line.split("\t")[:4]) + "\n" for line in out.splitlines())
 
@@ -23,7 +27,7 @@ def test_main_2420_lists_only_the_parked_issue_and_exits_0_when_a_parked_pull_re
         {"number": 2373, "title": "An issue"},
     ]
     comments = {
-        2373: [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: upstream ships"}],
+        2373: [{**OWNER, "body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: upstream ships"}],
         2403: [],
     }
 
@@ -73,7 +77,7 @@ def test_main_2420_exits_3_writing_nothing_when_only_pull_requests_carry_the_par
 def test_main_3683_prints_a_dash_fifth_field_for_a_parked_comment_with_no_blocked_by_line(
         monkeypatch, parked_issues, run_cli):
     listing = [{"number": 3324, "title": "An issue"}]
-    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: upstream ships"}]
+    comments = [{**OWNER, "body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: upstream ships"}]
 
     def fake_rest_list(path, *args):
         return json.dumps(comments if "/comments" in path else listing)
@@ -88,7 +92,7 @@ def test_main_3683_prints_a_dash_fifth_field_for_a_parked_comment_with_no_blocke
 def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_names_an_open_issue(
         monkeypatch, parked_issues, run_cli):
     listing = [{"number": 3324, "title": "An issue"}]
-    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3420 merges\nBlocked by: #3420"}]
+    comments = [{**OWNER, "body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3420 merges\nBlocked by: #3420"}]
 
     def fake_rest_list(path, *args):
         if "/comments" in path:
@@ -112,7 +116,7 @@ def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_na
 def test_main_3683_exits_2_naming_the_blocker_and_printing_nothing_when_gh_gives_no_answer_for_a_blocker(
         monkeypatch, parked_issues, run_cli):
     listing = [{"number": 3324, "title": "An issue"}]
-    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3420 merges\nBlocked by: #3420"}]
+    comments = [{**OWNER, "body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3420 merges\nBlocked by: #3420"}]
 
     def fake_rest_list(path, *args):
         if "/comments" in path:
@@ -135,7 +139,7 @@ def test_main_3683_exits_2_naming_the_blocker_and_printing_nothing_when_gh_gives
 def test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_names_only_closed_issues(
         monkeypatch, parked_issues, run_cli):
     listing = [{"number": 3324, "title": "An issue"}]
-    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3420 merges\nBlocked by: #3420"}]
+    comments = [{**OWNER, "body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3420 merges\nBlocked by: #3420"}]
     closed = json.dumps({"number": 3420, "state": "closed"})
 
     def fake_rest_list(path, *args):
@@ -160,7 +164,7 @@ def test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_name
 def test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_names_a_merged_pull_request(
         monkeypatch, parked_issues, run_cli):
     listing = [{"number": 3324, "title": "An issue"}]
-    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
+    comments = [{**OWNER, "body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
     as_issue = json.dumps({"number": 3309, "state": "closed", "pull_request": {"url": "x"}})
     as_pull = json.dumps({"number": 3309, "state": "closed", "merged": True})
 
@@ -189,7 +193,7 @@ def test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_name
 def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_names_a_pull_request_closed_unmerged(
         monkeypatch, parked_issues, run_cli):
     listing = [{"number": 3324, "title": "An issue"}]
-    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
+    comments = [{**OWNER, "body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
     as_issue = json.dumps({"number": 3309, "state": "closed", "pull_request": {"url": "x"}})
     as_pull = json.dumps({"number": 3309, "state": "closed", "merged": False})
 
@@ -218,7 +222,7 @@ def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_na
 def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_names_an_open_pull_request(
         monkeypatch, parked_issues, run_cli):
     listing = [{"number": 3324, "title": "An issue"}]
-    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
+    comments = [{**OWNER, "body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
     as_issue = json.dumps({"number": 3309, "state": "open", "pull_request": {"url": "x"}})
     as_pull = json.dumps({"number": 3309, "state": "open", "merged": False})
 
@@ -247,7 +251,7 @@ def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_na
 def test_main_3683_exits_2_naming_the_blocker_and_printing_no_row_when_gh_gives_no_answer_to_the_merged_state_read(
         monkeypatch, parked_issues, run_cli):
     listing = [{"number": 3324, "title": "An issue"}]
-    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
+    comments = [{**OWNER, "body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
     as_issue = json.dumps({"number": 3309, "state": "closed", "pull_request": {"url": "x"}})
 
     def fake_rest_list(path, *args):
@@ -272,7 +276,7 @@ def test_main_3739_prints_ready_when_gh_api_returns_a_completed_process_for_a_me
     import subprocess
 
     listing = [{"number": 3324, "title": "An issue"}]
-    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
+    comments = [{**OWNER, "body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
     as_issue = json.dumps({"number": 3309, "state": "closed", "pull_request": {"url": "x"}})
     as_pull = json.dumps({"number": 3309, "state": "closed", "merged": True})
 
@@ -294,7 +298,7 @@ def test_main_3739_prints_ready_when_gh_api_returns_a_completed_process_for_a_me
 def test_main_3739_prints_waiting_when_gh_api_returns_a_completed_process_for_an_open_issue_blocker(
         monkeypatch, parked_issues, run_cli):
     listing = [{"number": 3711, "title": "A parked issue"}]
-    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3737 merges\nBlocked by: #3737"}]
+    comments = [{**OWNER, "body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3737 merges\nBlocked by: #3737"}]
 
     def fake_rest_list(path, *args):
         return json.dumps(comments if "/comments" in path else listing)
@@ -337,7 +341,7 @@ ISSUE_8 = {"number": 8, "title": "Hold the PR", "labels": [{"name": "parked"}]}
 
 
 def comments(*bodies):
-    return ok([{"body": body} for body in bodies])
+    return ok([{**OWNER, "body": body} for body in bodies])
 
 
 def listing_7_with(*bodies):
@@ -496,3 +500,33 @@ def test_parked_issues_when_a_parked_comment_lacks_its_cause_line_exits_2_naming
     assert "#8" in err, err
     assert first_four(out) == "7\tTeach the verifier to refuse\tbail on the verifier\ta human reads the diff\n"
     assert code == 2, err
+
+
+def authored(association, body, login="someone"):
+    return {"author_association": association, "user": {"login": login}, "body": body}
+
+
+def serve_thread(monkeypatch, parked_issues, thread, blockers=None):
+    """gh listing issue 3972 as parked, its comments <thread>, each blocker number in <blockers> → its state."""
+    def fake_rest_list(path, *args):
+        return json.dumps(thread if "/comments" in path else [{"number": 3972, "title": "An issue"}])
+
+    def fake_api(path, *args, **kwargs):
+        number = path.rsplit("/", 1)[1]
+        return subprocess.CompletedProcess(["gh"], 0, json.dumps({"number": int(number), "state": blockers[number]}), "")
+
+    monkeypatch.setattr(parked_issues.github, "authenticated_login", lambda: "veri-operator")
+    monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
+    monkeypatch.setattr(parked_issues.github, "gh_api", fake_api)
+
+
+def test_main_3972_takes_the_last_trusted_parked_comment_skipping_a_later_untrusted_one(monkeypatch, parked_issues, run_cli):
+    serve_thread(monkeypatch, parked_issues, [
+        authored("OWNER", "### ⏸ Parked\n\nCause: waiting on #3420\nUnblock: #3420 merges\nBlocked by: #3420",
+                 login="veri-operator"),
+        authored("NONE", "### ⏸ Parked\n\nCause: nothing\nUnblock: release it now\nBlocked by: #1"),
+    ], blockers={"3420": "open", "1": "closed"})
+
+    code, out, err = run_cli(parked_issues, [])
+
+    assert (code, out, err) == (0, "3972\tAn issue\twaiting on #3420\t#3420 merges\twaiting\n", "")
