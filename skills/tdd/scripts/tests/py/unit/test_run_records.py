@@ -71,6 +71,88 @@ def test_no_carried_byte_holds_the_home_the_worktree_a_temp_directory_or_the_hos
     assert (leaked, parsed[0]["cmd"]) == ([], "<repo>/.tdd/pinned-scripts/run-leaf.sh ~/notes")
 
 
+FOLLOWERS = [".", "`", "}", "|", ",", ";", ":", ")", "]", '"', "'", ""]
+HOST = "MacBook-Pro-de-Mariox.local"
+
+
+def _spellings(path):
+    """A path as a journal may hold it: as is, JSON-escaped slashes, URL-encoded both ways, and the macOS prefixes."""
+    import urllib.parse
+    forms = set()
+    for base in {path, "/private" + path, "/System/Volumes/Data" + path}:
+        forms |= {base, base.replace("/", "\\/"), urllib.parse.quote(base, safe=""), urllib.parse.quote(base, safe="/")}
+    return sorted(forms)
+
+
+def _an_account(tmp_path, monkeypatch, host=HOST):
+    """A home named after the account `mariox`, a worktree under it, a temp directory and a host name."""
+    home = tmp_path / "Users" / "mariox"
+    run = home / "code" / "repo"
+    temp = tmp_path / "scratch" / "T"
+    (run / ".tdd").mkdir(parents=True)
+    temp.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("TMPDIR", str(temp))
+    monkeypatch.setattr(importlib.import_module("tempfile"), "tempdir", str(temp))
+    monkeypatch.setattr(importlib.import_module("socket"), "gethostname", lambda: host)
+    monkeypatch.setattr(importlib.import_module("platform"), "node", lambda: host)
+    monkeypatch.setattr(importlib.import_module("getpass"), "getuser", lambda: "mariox")
+    return home, run, temp
+
+
+def test_no_carried_byte_holds_a_path_the_account_name_or_a_host_form_in_any_spelling_or_position(
+        tmp_path, monkeypatch, run_records):
+    import random
+    import re
+    home, run, temp = _an_account(tmp_path, monkeypatch)
+    sensitive = (_spellings(str(home)) + _spellings(str(run)) + _spellings(str(temp))
+                 + ["mariox", "MARIOX", HOST, "MacBook-Pro-de-Mariox", "MacBook Pro de Mariox", "macbook-pro-de-mariox.local"])
+    pick = random.Random(4079)
+
+    def mixed():
+        return "x " + pick.choice(sensitive) + pick.choice(FOLLOWERS) + " y"
+
+    lines = []
+    for n in range(60):
+        lines.append({"issue": "7", "event": "launch", "cmd": mixed(), mixed(): mixed(),
+                      "detail": {"nested": [mixed(), {"deeper": mixed(), mixed(): "v"}]},
+                      "tail": pick.choice(sensitive)})
+    (run / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in lines))
+
+    carried = run_records.records(str(run), "7")["events.jsonl"].decode()
+
+    paths = _spellings(str(home)) + _spellings(str(temp))
+    leaked = sorted({form for form in paths if form in carried})
+    words = [w for w in ("mariox", "MacBook-Pro-de-Mariox", "MacBook Pro de Mariox", "mariox.local")
+             if re.search(r"(?<![A-Za-z0-9])%s(?![A-Za-z0-9])" % re.escape(w), carried, re.I)]
+    parsed = [json.loads(line) for line in carried.splitlines()]
+    assert (leaked, words, len(parsed), all({"issue", "event", "cmd", "detail", "tail"} <= set(p) for p in parsed)) == (
+        [], [], 60, True)
+
+
+def test_an_ip_form_host_is_never_split_so_metrics_over_the_carried_records_equals_metrics_over_the_originals(
+        tmp_path, monkeypatch, run_records):
+    home, run, temp = _an_account(tmp_path, monkeypatch, host="192.168.68.55")
+    metrics = importlib.import_module("veri.metrics")
+    monkeypatch.setattr(run_records, "read", lambda issue, name, cwd: None)
+    mark = {"issue": "7", "actor": "developer", "phase": "green", "step": "s", "attempt": "1"}
+    events = [dict(mark, actor="conductor", attempt="", ts=1000, event="step-start"),
+              dict(mark, ts=1010, event="launch", name="develop-green"),
+              dict(mark, ts=1202, event="exit", status="0", secs="192"),
+              dict(mark, ts=1202, event="usage", input_tokens=192, output_tokens=168, cache_read_input_tokens=55,
+                   cache_creation_input_tokens=68, cost_usd="1.92"),
+              dict(mark, actor="conductor", attempt="", ts=1300, event="step-done")]
+    (run / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    carried = tmp_path / "carried"
+    (carried / ".tdd").mkdir(parents=True)
+    (carried / ".tdd" / "events.jsonl").write_bytes(run_records.records(str(run), "7")["events.jsonl"])
+
+    original = metrics.report("7", str(run / ".tdd" / "events.jsonl"), str(run / ".tdd" / "issue-7.md"))
+    redacted = metrics.report("7", str(carried / ".tdd" / "events.jsonl"), str(carried / ".tdd" / "issue-7.md"))
+
+    assert redacted == original
+
+
 def test_the_local_journal_and_pin_are_byte_identical_after_a_push_of_their_redacted_records(tmp_path, monkeypatch,
                                                                                              fake_processes, run_records):
     home, run, temp = _a_machine(tmp_path, monkeypatch)

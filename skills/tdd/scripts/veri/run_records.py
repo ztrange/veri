@@ -1,12 +1,15 @@
 """A run's local records carried on origin's `refs/veri/runs/<n>`: a commit on no branch holding the issue's lines of
 `.tdd/events.jsonl` (and those naming no issue) and its `.tdd/issue-<n>-skill-commit`, so another machine's
 metrics and resume read them; nothing else travels, since nothing else is read back. Never committed on the run's branch: rebase-merge would carry them into main's history."""
+import getpass
 import json
 import os
+import platform
 import re
 import socket
 import sys
 import tempfile
+import urllib.parse
 
 import git
 import run_dir
@@ -20,35 +23,80 @@ def ref(issue):
     return "refs/veri/runs/%s" % issue
 
 
-TEMP_PATTERNS = (r"(?:/private)?/var/folders/[^/\s\"']+/[^/\s\"']+/[A-Z]", r"(?:/private)?/tmp")
-END = r"(?=$|[/\s\"':;,()\[\]])"
+MAC_PREFIXES = ("/System/Volumes/Data", "/private")
+GENERIC_TEMP = re.compile(r"(?:/System/Volumes/Data)?(?:/private)?/var/folders/[^/\s\"'`]+/[^/\s\"'`]+/[A-Z]"
+                          r"|(?:/System/Volumes/Data)?(?:/private)?/tmp")
+WORD = r"(?<![A-Za-z0-9])%s(?![A-Za-z0-9])"
+
+
+def _path_spellings(path):
+    """Every spelling of <path> a line may hold: as given and resolved, with or without the macOS prefixes
+    (`/private`, `/System/Volumes/Data`), each as is, with `/` written as an escaped slash, and URL-encoded (`safe=""` and `safe="/"`)."""
+    bases = set()
+    for spelled in {path, os.path.realpath(path)}:
+        bare = spelled
+        for prefix in MAC_PREFIXES:
+            bare = bare.removeprefix(prefix)
+        if not bare.strip("/"):
+            continue
+        bases |= {bare, "/private" + bare, "/System/Volumes/Data" + bare, "/System/Volumes/Data/private" + bare}
+    forms = set()
+    for base in bases:
+        forms |= {base, base.replace("/", "\\/"), urllib.parse.quote(base, safe=""), urllib.parse.quote(base, safe="/")}
+    return forms
+
+
+def _host_forms():
+    """The names this machine goes by, as Python sees them (no process started): socket.gethostname() and
+    platform.node(), their first DNS label when it is not numeric and at least 3 characters, each also with `.local`
+    and with `-` written as a space. An IP-looking name is kept whole, never split into labels."""
+    forms = set()
+    for name in {socket.gethostname(), platform.node()} - {""}:
+        if re.fullmatch(r"[0-9.]+|[0-9A-Fa-f:]*:[0-9A-Fa-f:.]*", name):
+            forms.add(name)
+            continue
+        names = {name}
+        label = name.split(".")[0]
+        if not label.isdigit() and len(label) >= 3:
+            names.add(label)
+        for each in names:
+            forms |= {each, each + ".local", each.replace("-", " "), each.replace("-", " ") + ".local"}
+    return forms
+
+
+def _account_names():
+    """The account's name: the home directory's last component, and getpass.getuser() when it differs; a name under
+    3 characters is left out."""
+    names = {os.path.basename(os.path.expanduser("~").rstrip("/"))}
+    try:
+        names.add(getpass.getuser())
+    except (KeyError, OSError):
+        pass
+    return {name for name in names if len(name) >= 3}
 
 
 def _redactions(run):
-    """(regex, replacement) pairs, the longest literal first: the run's worktree and main clone roots read `<repo>`, any
-    temp directory `<tmp>`, the home directory `~`, the host name `<host>`. Each literal is matched in the spelling
-    given and as its resolved path (macOS spells /var as /private/var)."""
-    def spellings(path):
-        return {path, os.path.realpath(path)} if path else set()
-
+    """The steps a carried string goes through, in order: plain substrings, the longest first within each kind (the
+    worktree and main clone roots read `<repo>`, then the temp directories `<tmp>`, then the home directory `~`, each in
+    every spelling _path_spellings gives); then any other temp path; then each host form, whole word and ignoring case,
+    `<host>`; then the account name, whole word and ignoring case, `<user>`."""
     run = os.path.abspath(run)
-    main = run_dir.main_of_worktree(run)
-    literals = [(spelled, "<repo>") for root in (run, main) for spelled in spellings(root)]
-    literals += [(spelled, "<tmp>") for temp in (tempfile.gettempdir(), os.environ.get("TMPDIR", "").rstrip("/"))
-                 for spelled in spellings(temp)]
-    home = os.path.expanduser("~")
-    literals += [(spelled, "~") for spelled in spellings(home if home != "/" else "")]
-    pairs = [(re.escape(text) + END, repl) for text, repl in sorted(literals, key=lambda item: -len(item[0]))]
-    pairs += [(pattern + END, "<tmp>") for pattern in TEMP_PATTERNS]
-    host = socket.gethostname()
-    pairs += [(r"\b%s\b" % re.escape(name), "<host>") for name in sorted({host, host.split(".")[0]} - {""}, key=len,
-                                                                           reverse=True)]
-    return [(re.compile(pattern), repl) for pattern, repl in pairs]
+    steps = []
+    kinds = (("<repo>", [run, run_dir.main_of_worktree(run)]),
+             ("<tmp>", [tempfile.gettempdir(), os.environ.get("TMPDIR", "").rstrip("/")]),
+             ("~", [os.path.expanduser("~")]))
+    for repl, paths in kinds:
+        forms = set().union(*(_path_spellings(path) for path in paths if path))
+        steps += [(form, repl) for form in sorted(forms, key=len, reverse=True)]
+    steps.append((GENERIC_TEMP, "<tmp>"))
+    for names, repl in ((_host_forms(), "<host>"), (_account_names(), "<user>")):
+        steps += [(re.compile(WORD % re.escape(name), re.I), repl) for name in sorted(names, key=len, reverse=True)]
+    return steps
 
 
 def _redact_text(text, redactions):
     for pattern, repl in redactions:
-        text = pattern.sub(repl, text)
+        text = text.replace(pattern, repl) if isinstance(pattern, str) else pattern.sub(repl, text)
     return text
 
 
