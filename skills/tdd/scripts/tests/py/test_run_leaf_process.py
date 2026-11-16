@@ -186,6 +186,24 @@ def test_4009_a_leaf_in_a_git_working_tree_excludes_claude_md_and_claude_local_m
                         *(os.path.join(d, name) for d in above for name in ("CLAUDE.md", "CLAUDE.local.md"))]
 
 
+def test_4009_a_leaf_in_a_linked_worktree_whose_git_is_a_file_excludes_the_ancestors_claude_md_and_keeps_its_own(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch, "wt")
+    (work / ".git").mkdir()
+    (work / "CLAUDE.md").write_text("main tree's rules\n")
+    linked = work / "wt"
+    (linked / ".git").write_text("gitdir: %s\n" % (work / ".git" / "worktrees" / "wt"))
+    (linked / "CLAUDE.md").write_text("branch's rules\n")
+    monkeypatch.chdir(linked)
+
+    excluded = _launched_excludes(run_leaf, monkeypatch, capfd)
+
+    assert (str(work / "CLAUDE.md") in excluded, str(work / "CLAUDE.local.md") in excluded,
+            str(linked / "CLAUDE.md") in excluded, str(linked / "CLAUDE.local.md") in excluded) == (
+        True, True, False, False), excluded
+
+
 def test_4009_a_leaf_outside_a_git_working_tree_excludes_the_global_claude_md_alone(tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch, "sub")
