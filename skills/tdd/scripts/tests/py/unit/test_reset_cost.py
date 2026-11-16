@@ -155,3 +155,16 @@ def test_a_role_other_than_dev_or_conductor_a_bad_lane_or_a_bad_run_number_exits
     answers = {" ".join(argv): run_cli(reset_cost, argv) for argv in refused}
 
     assert {argv: answer for argv, answer in answers.items() if answer != (2, "", usage)} == {}
+
+
+def test_a_reset_whose_requests_ran_on_an_unpriced_model_prints_its_K_as_unknown_never_0(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    transcript, _ = two_resets(tmp_path)
+    transcript.write_text(transcript.read_text().replace('"id": "m1", "model": "%s"' % MODEL,
+                                                         '"id": "m1", "model": "unpriced-model"'))
+
+    code, out, err = run_cli(reset_cost, ["dev"])
+
+    assert (code, out.splitlines()[:2]) == (0, ["2026-11-13T10:00:00 K=unknown g=1000",
+                                                "2026-11-13T12:00:00 K=26410 g=500"]), err
