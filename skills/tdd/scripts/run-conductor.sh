@@ -14,6 +14,9 @@
 #
 # The conductor runs on `--model opus` unless VERI_MODEL_CONDUCTOR is set and non-empty, then on that value.
 #
+# A first launch with no local .tdd/issue-<issue>-skill-commit pins the commit origin's refs/veri/runs/<issue>
+# records, when it carries one, so a run resumed on another machine executes the snapshot it started on.
+#
 # The prompt is the `/tdd` procedure itself — SKILL.md, verbatim, beside this script — with
 # the issue number appended, because print mode loads no skills roster: a conductor launched
 # this way cannot be handed the procedure by name, so it is handed the procedure.

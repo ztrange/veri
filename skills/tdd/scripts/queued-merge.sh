@@ -19,5 +19,9 @@
 #          unreadable or with its head already on origin/main (refused before any rebase or push), an
 #          unresolvable ref, a worktree lacking a commit origin/<branch> has (nothing pushed), or a
 #          failed cleanup step after the merge, the tag step included (named on stderr)
+#
+# On a tdd/<n>-<slug> branch, the cleanup after a confirmed merge also deletes origin's refs/veri/runs/<n> (the run's
+# records), bounded by VERI_GIT_NETWORK_TIMEOUT; a ref origin lacks counts as deleted, any other failure (a kill at the
+# bound included) is the failed cleanup step "run records delete".
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/queued_merge.py" "$@"
