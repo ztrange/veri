@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 
 import entry
 import run_dir
@@ -13,6 +14,15 @@ USAGE = "usage: full-tier-time.sh [--record <seconds>] <command>"
 
 def record_path():
     return os.path.join(run_dir.main_tree_from_files(os.getcwd()), ".tdd", "full-tier-time.json")
+
+
+def at_path(record):
+    """The recorded-at file beside `record`: {command: the epoch seconds its time was recorded at}."""
+    return os.path.join(os.path.dirname(record), "full-tier-time-at.json")
+
+
+def now():
+    return int(time.time())
 
 
 def whole(value):
@@ -57,6 +67,7 @@ def main(argv):
             times = {}
         times[argv[2]] = argv[1]
         write_times(record, times)
+        write_times(at_path(record), {argv[2]: now()})
         return 0
     record = record_path()
     try:
