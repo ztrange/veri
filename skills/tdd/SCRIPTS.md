@@ -403,6 +403,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `.tdd/pinned-scripts/.snapshot-dir`, only when that path is a directory (not a symlink) named `veri-snapshot-*` whose
   `.veri-snapshot` marker names this worktree; any other recorded path that exists is left in place with one stderr line
   naming it, and the exit code is the worktree removal's own, except that a snapshot it fails to remove is exit 2 with one stderr line naming that snapshot, the worktree already gone.
+- `$S/stack-branch.sh [repo-root]` — print the stack branch the target repository names (repo-root defaults to the
+  current repository): the branch a line `veri: stack branch: <name>` in its `CLAUDE.md` names, **exit 0**. With no such
+  line, or no `CLAUDE.md`, it prints nothing, **exit 3**: the repository stacks nothing, and keeps one pull request per
+  run against the default branch, a CI wait and a merge call. **Exit 2**, stderr naming the line, when the name is
+  empty, is the default branch (a stack there would be a direct push to it), or is one `git check-ref-format --branch`
+  refuses.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
