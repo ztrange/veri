@@ -8,7 +8,6 @@ import sys
 
 import case_history
 import case_identity
-import git
 import ledger
 import renamed_case
 import replaces_case
