@@ -1676,3 +1676,12 @@ def test_3919_plan_lists_after_the_ledger_the_case_names_of_a_test_file_holding_
     assert out.index("scripts/route.py ⟦criterion 1⟧") < out.index(TOUCHING)
     assert ("tests/test_route.py" in section, "test_route_answers" in section, "test_route_refuses" in section,
             "CASE_BODY_MARKER" in section) == (True, True, True, False)
+
+
+def test_3919_plan_lists_the_cases_touching_a_file_a_step_names_by_its_basename_alone(
+        tmp_path, run_cli, build_verify_prompt):
+    code, out, _ = plan_in_tree(tmp_path, run_cli, build_verify_prompt, ROUTE_TREE,
+                                ["the router answers through `route.py`."])
+    section = touching_section(out) or ""
+
+    assert (code, "tests/test_route.py" in section, "test_route_answers" in section) == (0, True, True)
