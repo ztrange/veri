@@ -49,3 +49,16 @@ def test_snapshot_digest_changes_with_one_files_content_and_not_with_the_marker_
     edited = pinned_scripts.snapshot_digest(str(tree))
 
     assert (marker_only == before, edited == before, "scripts/status.sh" in before) == (True, False, True)
+
+
+def test_remove_tree_refuses_a_symlinked_tree_leaving_the_modes_under_its_target_as_they_were_3963(tmp_path):
+    outside = skill_tree(tmp_path / "outside")
+    pinned_scripts.take_bits(str(outside / "scripts"), 0o222)
+    before = (outside / "scripts").stat().st_mode
+    link = tmp_path / "pinned-scripts"
+    link.symlink_to(outside)
+
+    with pytest.raises(OSError):
+        pinned_scripts.remove_tree(str(link))
+
+    assert ((outside / "scripts").stat().st_mode, link.is_symlink()) == (before, True)
