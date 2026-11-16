@@ -568,7 +568,7 @@ gh access, issue selection (solvable, parked, blocked), claiming and releasing i
 
 - `capture-spec.sh`: capture an issue as a spec file.
 - `coverage-blocker.sh`: file a coverage issue and block the refactor issue on it.
-- `invisible-work.sh`: sweep for work not visible on its issue.
+- `invisible-work.sh`: sweep for work not visible on its issue. A local branch not on origin is skipped only when its tip equals the head sha of a MERGED or CLOSED PR that used its name; otherwise it is reported under invariant 1, a reused name included.
 - `park-issue.sh`: park an issue with its cause and unblock.
 - `parked-issues.sh`: list the parked issues.
 - `refactor-candidates.sh`: file the run's one candidates issue.
