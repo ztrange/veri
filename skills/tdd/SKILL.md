@@ -938,7 +938,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    - exit 0 may instead print `fixture <path> <name>`: `<name>` is a function defined in the test file `<path>` that is not a test case (a helper, fixture or shared setup). It shares the step's one free reroute with `red`, `repair` and `supersede`, free only as the step's first reroute of any kind, `missing` included (a prior `missing` reroute uses it up), and spends no `REVISE_BUDGET` attempt; a `WRONG_TEST` naming no case never routes here once that reroute is spent, it gets `repair` (see `repair` above). Insert before the current step, with `add-ledger-step.sh … before`, the step `<the current step's criterion>: repairs the fixture '<name>' in <path>, reproduced by a case in <path> ⟦fixture-repair⟧`, commit the ledger, write the same `reroute` event with `kind=fixture`, and run that step's cycle; the current step then resumes at develop-green with its red case and frozen record kept. `add-ledger-step.sh` exit 1 (the growth cap, which files the step under `## Owed steps`) **bails** with cause `fixture-owed`, a process failure; exit 2 bails `step-add-refused` (see `<base directory>/BAIL.md`). A `fixture` route is taken only when the helper is defined in the step's own test file, the one before `::` in a `<file>::<case>` id; an id with no `::` (the Go and JS names) falls back to searching every test file.
    - exit 2 is a system failure: **bail** (`Read` `<base directory>/BAIL.md`).
    - With `green` in `.tdd/issue-<n>-skip-verify`, the routes read from the green report (`red`, `repair`, `supersede`, `supersede-diff`, `fixture`) and a `mutation-parity.sh` REJECT's `missing` still fire; only a verify-green reason is never routed.
-   - With `red` in `.tdd/issue-<n>-skip-verify`, a reroute's "verify it with verify-red like any red" launches no verifier: record the event and `skipped` as Red's **Switched off** does, then as that reroute's PASS.
+   - With `red` in `.tdd/issue-<n>-skip-verify`, no reroute launches verify-red, `missing` included: record the event and `skipped` as Red's **Switched off** does, then go on as on that reroute's PASS (re-record the frozen tests, retry green).
 
    After a reroute's red leaf, re-record the step's frozen tests with this one command; the `--red-case '<red-test-id>'` checks that the step's own Red case still exists in its test file. It captures `$?` and stops on a non-zero status rather than echoing it:
    ```
@@ -988,11 +988,11 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    Neither this verifier nor the develop leaf runs the full suite: a break outside the
    affected suites surfaces at the one full-suite run in *4. Draft PR*.
    The `⟦replaces-case⟧` unreplaced-cases check already ran in *Red*, before verify-red; it is not run again here.
-   Run `$S/replaces-case-survivors.sh "<step text>"` before the launch below, on a ⟦replaces-case⟧ step only; its exit 1 means survivors (see the paragraph after the block).
+   Run `$S/replaces-case-survivors.sh "<step text>"` before the launch below, on a ⟦replaces-case⟧ step only; its exit 1 means survivors (see below).
    **Switched off:** with `green` in `.tdd/issue-<n>-skip-verify`, launch no verify-green: record
    `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-green-skipped reason=switched-off`,
-   write `skipped` to `.tdd/verdict-green.exit`, post 3's two comments (`verify-green` says SKIPPED), then its PASS branch; the checks before
-   launch and `mutation-parity.sh` still run. Otherwise:
+   write `skipped` to `.tdd/verdict-green.exit`; the checks before launch and `mutation-parity.sh` still run first,
+   then post 3's two comments (`verify-green` says SKIPPED) and take its PASS branch. Otherwise:
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
@@ -1009,7 +1009,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    verifier on that green. Each such relaunch spends one `REVISE_BUDGET` attempt, the verdict
    axis, since a surviving named case is a mechanical rejection of the green; when the budget
    is spent the run bails with `cause=revise-exhausted` (`Read` `<base directory>/BAIL.md`).
-3. **Narrate + branch.** Post `### 🟢 Green` by running `$S/comment.sh <n> green` (implementation + green suite output) and
+3. **Narrate + branch.** Post `### 🟢 Green` by running `$S/comment.sh <n> green` and
    `### 🔎 verify-green — PASS|REJECT` by running `$S/comment.sh <n> verify-green` (the reason).
    - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,
      then commit the code **and** the ticked ledger in **one** commit so git and ledger
