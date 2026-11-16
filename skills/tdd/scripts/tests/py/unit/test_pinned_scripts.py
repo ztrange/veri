@@ -178,3 +178,11 @@ def test_the_digest_file_form_reads_back_as_the_same_entries_and_refuses_any_oth
     with pytest.raises(ValueError):
         pinned_scripts.parse_digest("directory scripts\n")
     assert pinned_scripts.parse_digest(pinned_scripts.digest_text(entries)) == entries
+
+
+def test_snapshot_digest_refuses_a_name_holding_a_newline_3964(tmp_path):
+    tree = skill_tree(tmp_path / "veri-snapshot-x")
+    (tree / "scripts" / "we\nird").write_text("q\n")
+
+    with pytest.raises(OSError):
+        pinned_scripts.snapshot_digest(str(tree))
