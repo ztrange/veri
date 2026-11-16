@@ -210,6 +210,19 @@ def test_issue_4089_the_run_state_ignore_row_is_ok_when_each_file_carries_the_ru
     assert name == "run-state ignore" and fix and str(exclude) in fix and ".gitignore" not in fix, fix
 
 
+def test_issue_4089_the_run_state_ignore_row_fails_naming_a_file_that_carries_the_rule_only_in_part(ready_check, fake_processes, tmp_path):
+    common = tmp_path / "common.git"
+    (common / "info").mkdir(parents=True)
+    (common / "info" / "exclude").write_text(RUN_STATE_RULE)
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text(".tdd/issue-*-spec.md\n")
+    fake_processes.answers({"git rev-parse --git-common-dir": (0, str(common) + "\n", "")}, exact=True)
+
+    name, fix = ready_check.run_state_ignore_row()
+
+    assert name == "run-state ignore" and fix and str(gitignore) in fix and "in part" in fix, fix
+
+
 def test_issue_4089_ready_check_prints_the_new_rows_and_counts_a_not_verifiable_or_skipped_row_as_no_fail(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
     monkeypatch.setenv("VERI_CI_ON_PR", "1")
     code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{

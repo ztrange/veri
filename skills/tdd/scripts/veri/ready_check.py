@@ -175,7 +175,11 @@ def writable(path):
 def run_state_ignore_row():
     common = git.git("rev-parse", "--git-common-dir", capture_output=True, text=True).stdout.strip()
     for path in (os.path.abspath(".gitignore"), os.path.join(os.path.abspath(common), "info", "exclude")):
-        if not ensure_run_state_ignored.has_rule(path) and not writable(path):
+        present = ensure_run_state_ignored.has_rule(path)
+        if present is None:
+            return "run-state ignore", (f"{path} carries veri's run-state rule only in part, or out of order: make it "
+                                        "the three lines `.tdd/*`, `!.tdd/issue-*.md`, `.tdd/issue-*-spec.md`")
+        if not present and not writable(path):
             return "run-state ignore", f"chmod u+w {path}"
     return "run-state ignore", None
 
