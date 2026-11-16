@@ -49,11 +49,23 @@ def tested(runs):
 def main(argv):
     if argv:
         return entry.refuse(usage=USAGE)
-    stack, default, commits = stack_branch.ahead(".")
+    try:
+        span = stack_branch.ahead(".")
+    except stack_branch.Refused as refused:
+        return entry.refuse(str(refused), prefix="stack-green: ")
+    if span is None:
+        return entry.refuse("the repository's CLAUDE.md names no stack branch (stack-branch.sh exits 3)",
+                            prefix="stack-green: ")
+    stack, default, commits = span
     ends = issue_ends([subject for _, subject in commits])
     candidates = [sha for (sha, _), end in reversed(list(zip(commits, ends))) if end]
     for sha in candidates[:ENDS_READ]:
-        if tested(github.check_runs(sha)):
+        try:
+            runs = github.check_runs(sha)
+        except (github.NoAnswer, ValueError) as no:
+            detail = no.detail or no.answer if isinstance(no, github.NoAnswer) else str(no)
+            return entry.refuse(" ".join(str(detail).split()), prefix="stack-green: ")
+        if tested(runs):
             sys.stdout.write(sha + "\n")
             return 0
     if len(candidates) > ENDS_READ:
