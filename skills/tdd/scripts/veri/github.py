@@ -547,6 +547,13 @@ def _retry_refused(call, stream):
         time.sleep(wait_seconds("VERI_GH_REFUSAL_SLEEP", 0))
 
 
+def push_dry_run(refspec, env):
+    """`git push --dry-run --no-verify origin <refspec>` under <env>, bounded like every other call to origin: at
+    VERI_GH_TIMEOUT its process group is killed and it answers exit 124 with a line naming the limit on stderr."""
+    return bounded_group(["git", "push", "--dry-run", "--no-verify", "origin", refspec],
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+
+
 def _refuse_unpushed(number, head_sha):
     ref = run_gh("api", "%s/%s" % (_PULLS, number), "--jq", ".head.ref")
     branch = ref.stdout.rstrip("\n")

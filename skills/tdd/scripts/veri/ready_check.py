@@ -11,7 +11,7 @@ import git
 import launch_floor
 import paths
 import tunables
-from github import gh_probe as gh
+from github import gh_probe as gh, push_dry_run
 from case_reader import is_test_path
 from wait_ci import trigger_lines
 
@@ -186,8 +186,7 @@ def run_state_ignore_row():
 
 def push_dry_run_row():
     probe = "HEAD:refs/heads/veri-permission-probe-" + secrets.token_hex(4)
-    pushed = git.git("push", "--dry-run", "--no-verify", "origin", probe, capture_output=True, text=True,
-                     env={"GIT_SSH_COMMAND": "ssh -o BatchMode=yes", **os.environ, "GIT_TERMINAL_PROMPT": "0"})
+    pushed = push_dry_run(probe, {"GIT_SSH_COMMAND": "ssh -o BatchMode=yes", **os.environ, "GIT_TERMINAL_PROMPT": "0"})
     if pushed.returncode == 0:
         return "push dry-run", None
     said = [line.strip() for line in pushed.stderr.splitlines() if line.strip()]
