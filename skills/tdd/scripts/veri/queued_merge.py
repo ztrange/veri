@@ -496,7 +496,12 @@ def _joined(pid, repo, pr, worktree, branch, stack):
         if not onto or not lease:
             _say("origin/%s or origin/%s does not resolve; nothing pushed" % (stack, branch))
             return 2
-        _git(worktree, "rebase", onto)
+        rebase = _git(worktree, "rebase", onto)
+        if rebase.returncode:
+            _git(worktree, "rebase", "--abort")
+            _say("rebasing %s onto origin/%s conflicted (%s); aborted, nothing pushed" % (
+                branch, stack, " ".join((rebase.stdout + rebase.stderr).split())[:400]))
+            return 1
         pushed = git.network("-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
                              "origin", "HEAD:refs/heads/%s" % branch)
         if pushed.returncode:

@@ -5,7 +5,7 @@
 - [x] a join makes no wait-ci.sh call and no merge call, cuts no tag and closes no issue ⟦criterion 3⟧
 - [x] after the stack push the join re-reads the pull request over the settle window: a merged read exits 0, none exits 2 naming the last state read ⟦criterion 4⟧
 - [x] a join whose ledger's only unticked line is ⟦full-suite⟧ goes ahead; any other unticked line exits 1 before anything is pushed to the stack ⟦criterion 5⟧
-- [ ] a rebase conflict exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
+- [x] a rebase conflict exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
 - [ ] a red fast tier exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
 - [ ] a prose-owed.sh exit 1 exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
 - [ ] solvable-issues.sh does not list an open issue a pull request merged into the stack closes ⟦criterion 7⟧
