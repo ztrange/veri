@@ -68,3 +68,13 @@ def test_a_rows_route_is_the_first_later_reroute_kind_revise_or_bail_of_its_step
 
     assert [(r["reason"], r["route"]) for r in rows] == [
         ("a", "revise"), ("b", "wrong-test"), ("c", "bail"), ("d", "bail"), ("e", "none")]
+
+
+def test_a_reason_cell_escapes_each_pipe_with_a_backslash_and_reads_unknown_without_a_reason(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [verdict("1", "green", "1", "REJECT", "a | b|c"),
+                         verdict("2", "green", "1", "REJECT")])
+    monkeypatch.chdir(tmp_path)
+
+    lines = render(metrics, capsys).split("\n")
+
+    assert ("| 1 | 1 | none | a \\| b\\|c |" in lines, "| 2 | 1 | none | unknown |" in lines) == (True, True)
