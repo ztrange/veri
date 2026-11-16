@@ -80,3 +80,49 @@ def test_fed_history_answers_subject_with_the_revisions_subject_as_git_log_print
     history = tests_frozen.case_history
 
     assert [history.subject(rev) for rev in ("HEAD", "HEAD~1", "base")] == ["refactor: more\n", "start\n", "start\n"]
+
+
+def test_fed_commits_commits_the_work_tree_as_git_add_and_git_commit_would_and_answers_the_pass_markers_git_calls(
+        tmp_path, fed_commits, tests_frozen, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    repo = fed_commits()
+    history = tests_frozen.case_history
+    unborn = (history.has_rev("HEAD"), history.changed_test_files())
+    (tmp_path / "tests").mkdir()
+    (tmp_path / SUITE).write_text(ONE)
+    (tmp_path / "notes.txt").write_text("one\n")
+    repo.add("tests", "notes.txt")
+    base = repo.commit("base")
+    (tmp_path / SUITE).write_text(ONE + "\n\n" + TWO)
+    (tmp_path / "notes.txt").write_text("two\n")
+    repo.add("tests")
+    (tmp_path / SUITE).write_text(TWO)
+    staged = repo.commit("red: stage the suite only")
+    repo.mv(SUITE, GONE)
+    moved = repo.commit("refactor: move the suite")
+    (tmp_path / "notes.txt").unlink()
+    everything = repo.commit("drop the notes", all=True)
+    marker = tests_frozen.frozen_record
+    marker.write_pass_marker("a step", marker.work_tree_hash())
+
+    assert {
+        "unborn": unborn,
+        "names": [base, staged, moved, everything, repo.head],
+        "staged at add time": history.text_at(staged, SUITE),
+        "notes unstaged": history.text_at(staged, "notes.txt"),
+        "moved": (history.text_at(moved, SUITE), history.text_at(moved, GONE)),
+        "deleted by -a": (history.has_rev(everything), history.text_at(everything, "notes.txt")),
+        "subject": history.subject("HEAD~1"),
+        "changed": history.changed_test_files(),
+        "marker": (tmp_path / marker.pass_marker_path("a step")).read_text(),
+    } == {
+        "unborn": (False, []),
+        "names": ["c1", "c2", "c3", "c4", "c4"],
+        "staged at add time": ONE + "\n\n" + TWO,
+        "notes unstaged": "one\n",
+        "moved": ("", ONE + "\n\n" + TWO),
+        "deleted by -a": (True, ""),
+        "subject": "refactor: move the suite\n",
+        "changed": [],
+        "marker": "step: a step\nhead: c4\ntree: fed-tree\n",
+    }

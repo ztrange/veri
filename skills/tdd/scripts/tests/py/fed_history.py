@@ -144,6 +144,64 @@ class FedHistory:
             case_history._out, ledger.items_at = saved
 
 
+class FedCommits:
+    """A git index and commit log over the work tree `root`, every commit fed to case_history through `feed`, so a
+    case ports `git add`, `git commit [-a]` and `git mv` one call each. Revisions are named c1, c2, ... in order."""
+
+    def __init__(self, feed, root, branch):
+        self.feed, self.root, self.branch = feed, str(root), branch
+        self.revisions, self.tree, self.index = [], {}, {}
+        feed(root=self.root, branch=branch)
+
+    @property
+    def head(self):
+        return self.revisions[-1][0] if self.revisions else ""
+
+    def _on_disk(self, path):
+        full = os.path.join(self.root, path)
+        if os.path.isfile(full):
+            return [os.path.normpath(path)]
+        return [os.path.relpath(os.path.join(top, file), self.root) for top, _, files in os.walk(full) for file in files]
+
+    def _read(self, path):
+        with open(os.path.join(self.root, path), encoding="utf-8", errors="replace") as handle:
+            return handle.read()
+
+    def add(self, *paths):
+        """As `git add <paths>`: each file under a path is staged as it reads now; a staged one gone from disk is unstaged."""
+        for path in paths:
+            prefix = os.path.normpath(path)
+            for name in [n for n in self.index if n == prefix or n.startswith(prefix + os.sep)]:
+                if not os.path.isfile(os.path.join(self.root, name)):
+                    del self.index[name]
+            for name in self._on_disk(path):
+                self.index[name] = self._read(name)
+
+    def mv(self, source, target):
+        """As `git mv <source> <target>`."""
+        os.makedirs(os.path.dirname(os.path.join(self.root, target)) or self.root, exist_ok=True)
+        os.rename(os.path.join(self.root, source), os.path.join(self.root, target))
+        self.index[os.path.normpath(target)] = self.index.pop(os.path.normpath(source))
+
+    def commit(self, subject, all=False):
+        """As `git commit [-a] -m <subject>`; returns the new revision's name."""
+        if all:
+            self.add(*list(self.index))
+        files = {name: text for name, text in self.index.items() if self.tree.get(name) != text}
+        files.update({name: None for name in self.tree if name not in self.index})
+        self.tree = dict(self.index)
+        self.revisions.append(("c%d" % (len(self.revisions) + 1), subject, files))
+        self.feed(*self.revisions, root=self.root, branch=self.branch)
+        return self.head
+
+    def git_answers(self):
+        """fake_processes answers for the git calls of frozen_record's pass marker: .tdd not ignored, the work-tree
+        hash `fed-tree`, and HEAD this log's head (unborn before the first commit)."""
+        return {"git check-ignore": (1, "", ""), "git add -A": (0, "", ""), "git write-tree": (0, "fed-tree\n", ""),
+                "git rev-parse HEAD": lambda line, **kwargs: (0, self.head + "\n", "") if self.head
+                else (128, "", "fatal: ambiguous argument 'HEAD'\n")}
+
+
 def unanswered(name):
     def query(*args, **kwargs):
         pytest.fail("fed_history does not answer case_history.%s" % name)
