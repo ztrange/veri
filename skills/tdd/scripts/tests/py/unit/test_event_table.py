@@ -80,6 +80,33 @@ def test_an_empty_value_is_invalid_for_a_key_not_marked_empty_allowed_whatever_i
     assert [(event, key) for event, key in declared if event_table.valid(event, key, "") != ((event, key) in marked)] == []
 
 
+def keys_cell(event_table, event, keys):
+    """The Keys cell of a JOURNAL.md row (or the run-context formats line) stating the table's formats for `keys`."""
+    def stated(form, empty):
+        words = "one of " + ", ".join(form) if isinstance(form, tuple) else str(form)
+        return words + (", or empty" if empty else "")
+    return "; ".join(f"`{key}` {stated(*event_table.format(event, key))}" for key in keys)
+
+
+def test_journal_md_states_the_format_veri_event_table_declares_for_every_key():
+    from veri import event_table, journal_schema
+
+    page = (SCRIPTS.parent / "JOURNAL.md").read_text(encoding="utf-8")
+    drift = []
+    for event in event_table.EVENTS:
+        stated = journal_schema.formats(page, event) or {}
+        drift += [f"{event} key {key}: JOURNAL.md states {stated.get(key)!r}, veri/event_table.py declares"
+                  f" {event_table.format(event, key)!r}; make the row's Keys cell  {keys_cell(event_table, event, event_table.keys(event))}"
+                  for key in event_table.keys(event) if stated.get(key) != event_table.format(event, key)]
+    context = journal_schema.context_formats(page) or {}
+    drift += [f"(every line) key {key}: JOURNAL.md states {context.get(key)!r}, veri/event_table.py declares"
+              f" {event_table.format(None, key)!r}; make the line  {journal_schema.CONTEXT_LEAD}"
+              f" {keys_cell(event_table, None, event_table.CONTEXT_KEYS)}."
+              for key in event_table.CONTEXT_KEYS if context.get(key) != event_table.format(None, key)]
+
+    assert not drift, "skills/tdd/JOURNAL.md states formats veri/event_table.py does not declare:\n" + "\n".join(drift)
+
+
 @pytest.mark.tree_audit("reads every .sh and .md file under skills/ for event.sh call sites")
 def test_every_literal_event_and_key_of_an_event_sh_call_under_skills_is_declared_in_the_table():
     from event_roster import event_sh_call_sites

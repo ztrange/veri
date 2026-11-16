@@ -4,6 +4,10 @@ Interface, documented side (pure: each takes JOURNAL.md's text, the caller reads
   kinds(text)             the event kinds that have a table row
   fields(text, kind)      the row's key names in table order, () for a "—" row, None for an undocumented kind
   optional(text, kind)    the subset of those keys the row's meaning calls optional or absent
+  formats(text, kind)     {key: (format, empty allowed)} the row's Keys cell states, None for an undocumented kind
+  context_formats(text)   the same for the run-context keys, from the line opening with CONTEXT_LEAD, None without one
+  A stated format reads `` `key` <format>[, or empty] ``, entries split by `;`; <format> is a word (`whole`, `text`, …)
+  or `one of a, b, c`, read as the tuple of values; a key with no word reads as None.
 
 Interface, writer side (pure: takes a module's source text):
   writer_calls(source)    one (line, kind, fields) per call that appends an event, found with `ast`
@@ -19,6 +23,8 @@ import re
 ROW = re.compile(r"^\|\s*`([a-z][a-z0-9-]*)`\s*\|([^|]*)\|(.*)\|\s*$", re.M)
 NAME = re.compile(r"`([A-Za-z_][A-Za-z0-9_]*)`")
 OPTIONAL_WORDS = re.compile(r"optional|absent|only", re.I)
+STATED = re.compile(r"`([A-Za-z_][A-Za-z0-9_]*)`([^`;]*)")
+CONTEXT_LEAD = "Run-context key formats:"
 FIELD_LITERAL = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=")
 
 # call shape -> (index of the kind among the positional arguments, index where the fields start)
@@ -52,6 +58,27 @@ def optional(text, kind):
         if OPTIONAL_WORDS.search(clause):
             names |= set(NAME.findall(clause))
     return names & set(NAME.findall(row.group(2)))
+
+
+def _formats(cell):
+    found = {}
+    for key, words in STATED.findall(cell):
+        words = words.strip().rstrip(",.").strip()
+        empty = words.endswith(", or empty")
+        words = words.removesuffix(", or empty")
+        found[key] = (tuple(v.strip() for v in words[len("one of "):].split(",")) if words.startswith("one of ")
+                      else words or None, empty)
+    return found
+
+
+def formats(text, kind):
+    row = _row(text, kind)
+    return None if row is None else _formats(row.group(2))
+
+
+def context_formats(text):
+    line = next((line for line in text.splitlines() if line.startswith(CONTEXT_LEAD)), None)
+    return None if line is None else _formats(line[len(CONTEXT_LEAD):])
 
 
 def _literal(node):
