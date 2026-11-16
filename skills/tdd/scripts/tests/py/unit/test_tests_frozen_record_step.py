@@ -1,6 +1,5 @@
 """In-process `record --step` cases for veri/tests_frozen.py, on a case history fed by fed_history (PRD 017.5)."""
 import importlib
-from pathlib import Path
 
 import pytest
 
@@ -11,7 +10,7 @@ def tests_frozen():
 
 
 # Names, not literals, in calls: a literal suite path reads as a nested run.
-PY_SUITE, SH_SUITE = "tests/test_suite.py", "tests/suite.test.sh"
+PY_SUITE = "tests/test_suite.py"
 NEW, HELPER = "tests/test_new.py", "tests/helper.test.sh"
 
 
@@ -59,17 +58,6 @@ def test_record_step_lists_by_name_the_pytest_function_red_added_to_a_test_file_
     assert "test_added_by_red_1765" in record
 
 
-def test_record_step_lists_by_name_the_bash_case_red_added_to_a_test_sh_suite_1765(
-        tmp_path, run_cli, tests_frozen, committed_once):
-    committed_once({SH_SUITE: 'name="older case"\ncheck_older\n'})
-    step = "step one adds a bash case"
-    (tmp_path / SH_SUITE).write_text('name="older case"\ncheck_older\nname="added by red 1765"\ncheck_added\n')
-
-    record = recorded(run_cli, tests_frozen, tmp_path, step, SH_SUITE)
-
-    assert ("case: added by red 1765\n" in record, "older case" in record) == (True, False)
-
-
 def test_record_step_lists_by_name_the_pytest_function_red_edited_and_not_the_one_it_left_alone_1765(
         tmp_path, run_cli, tests_frozen, committed_once):
     committed_once({PY_SUITE: "def test_edited_by_red_1765():\n    assert 1 == 2\n\n\n"
@@ -81,20 +69,6 @@ def test_record_step_lists_by_name_the_pytest_function_red_edited_and_not_the_on
     record = recorded(run_cli, tests_frozen, tmp_path, step, PY_SUITE)
 
     assert ("case: test_edited_by_red_1765\n" in record, "test_left_alone_1765" in record) == (True, False)
-
-
-def test_record_step_lists_only_the_bash_case_red_added_before_the_finish_trailer_not_the_previous_last_case_1861(
-        tmp_path, run_cli, tests_frozen, committed_once):
-    committed_once({SH_SUITE: 'name="first case"\ncheck_first\nok\n\n'
-                              'name="last case"\ncheck_last\nok\n\nfinish\n'})
-    step = "step one adds a case before finish"
-    (tmp_path / SH_SUITE).write_text('name="first case"\ncheck_first\nok\n\n'
-                                     'name="last case"\ncheck_last\nok\n\n'
-                                     'name="added by red 1861"\ncheck_added\nok\n\nfinish\n')
-
-    record = recorded(run_cli, tests_frozen, tmp_path, step, SH_SUITE)
-
-    assert ("case: added by red 1861\n" in record, "last case" in record) == (True, False)
 
 
 def test_record_step_lists_only_the_pytest_function_red_inserted_at_file_start_above_an_older_one_1861(
@@ -136,18 +110,6 @@ def test_record_step_lists_only_the_pytest_method_red_inserted_above_an_older_me
     assert ("case: test_inserted_by_red_1861\n" in record, "test_older_case_1861" in record) == (True, False)
 
 
-def test_record_step_lists_only_the_bash_case_red_inserted_above_an_older_one_whose_blank_lines_above_changed_1861(
-        tmp_path, run_cli, tests_frozen, committed_once):
-    committed_once({SH_SUITE: 'setup\n\nname="older case"\ncheck_older\nok\n\nfinish\n'})
-    step = "step one inserts a bash case above the older one"
-    (tmp_path / SH_SUITE).write_text('setup\n\nname="inserted by red 1861"\ncheck_added\nok\n'
-                                     'name="older case"\ncheck_older\nok\n\nfinish\n')
-
-    record = recorded(run_cli, tests_frozen, tmp_path, step, SH_SUITE)
-
-    assert ("case: inserted by red 1861\n" in record, "older case" in record) == (True, False)
-
-
 def test_record_step_lists_only_the_pytest_function_red_appended_after_an_older_one_1861(
         tmp_path, run_cli, tests_frozen, committed_once):
     committed_once({PY_SUITE: "def test_older_case_1861():\n    assert True\n"})
@@ -158,35 +120,6 @@ def test_record_step_lists_only_the_pytest_function_red_appended_after_an_older_
     record = recorded(run_cli, tests_frozen, tmp_path, step, PY_SUITE)
 
     assert ("case: test_appended_by_red_1861\n" in record, "test_older_case_1861" in record) == (True, False)
-
-
-def test_record_step_lists_only_the_bash_case_red_appended_at_the_end_of_a_suite_with_no_finish_trailer_1861(
-        tmp_path, run_cli, tests_frozen, committed_once):
-    committed_once({SH_SUITE: 'name="older case"\ncheck_older\nok\n'})
-    step = "step one appends a bash case with no trailer"
-    (tmp_path / SH_SUITE).write_text('name="older case"\ncheck_older\nok\n\n\n'
-                                     'name="appended by red 1861"\ncheck_added\nok\n')
-
-    record = recorded(run_cli, tests_frozen, tmp_path, step, SH_SUITE)
-
-    assert ("case: appended by red 1861\n" in record, "older case" in record) == (True, False)
-
-
-# run-finished.test.sh as it stood before #1378 replaced it with pytest cases, frozen
-REAL_SUITE = Path(__file__).resolve().parents[2] / "fixtures" / "tests-frozen" / "run-finished.test.sh.txt"
-
-
-def test_record_step_lists_only_the_case_red_appended_to_a_real_copy_of_a_bash_suite_with_its_finish_trailer_1861(
-        tmp_path, run_cli, tests_frozen, committed_once):
-    real = REAL_SUITE.read_text()
-    committed_once({SH_SUITE: real})
-    step = "step one appends a case to a real suite"
-    head, _, _ = real.rpartition("\nfinish\n")
-    (tmp_path / SH_SUITE).write_text(head + '\n\nname="appended by red 1861"\ncheck_added\nok\n\nfinish\n')
-
-    record = recorded(run_cli, tests_frozen, tmp_path, step, SH_SUITE)
-
-    assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: appended by red 1861"]
 
 
 def test_record_step_lists_only_the_pytest_function_red_inserted_above_an_older_one_on_the_files_first_line_1861(
@@ -211,31 +144,6 @@ def test_record_step_lists_only_the_pytest_method_red_inserted_above_an_older_me
     record = recorded(run_cli, tests_frozen, tmp_path, step, PY_SUITE)
 
     assert ("case: test_inserted_by_red_1861\n" in record, "test_older_case_1861" in record) == (True, False)
-
-
-def test_record_step_lists_the_last_bash_case_red_edited_below_a_heredoc_finish_line_when_no_finish_trailer_ends_the_file_1773(
-        tmp_path, run_cli, tests_frozen, committed_once):
-    suite = 'name="first case"\ncheck_first\nok\n\nname="heredoc case"\ncat > script.sh <<\'EOF\'\nfinish\nEOF\ncheck_heredoc %s\n'
-    committed_once({SH_SUITE: suite % "one"})
-    step = "step one edits the last case below a heredoc finish with no trailer"
-    (tmp_path / SH_SUITE).write_text(suite % "two")
-
-    record = recorded(run_cli, tests_frozen, tmp_path, step, SH_SUITE)
-
-    assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: heredoc case"]
-
-
-def test_record_step_lists_the_bash_case_red_edited_below_an_indented_finish_line_inside_its_body_1861(
-        tmp_path, run_cli, tests_frozen, committed_once):
-    suite = ('name="first case"\ncheck_first\nok\n\n'
-             'name="finishing case"\nif true; then\n  finish_up\n  finish\nfi\ncheck_finishing %s\n')
-    committed_once({SH_SUITE: suite % "one"})
-    step = "step one edits below an indented finish inside a case"
-    (tmp_path / SH_SUITE).write_text(suite % "two")
-
-    record = recorded(run_cli, tests_frozen, tmp_path, step, SH_SUITE)
-
-    assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: finishing case"]
 
 
 def test_record_step_run_outside_any_git_repository_exits_2_with_stderr_naming_the_missing_repository_and_writes_no_record_1960(

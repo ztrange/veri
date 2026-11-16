@@ -24,3 +24,9 @@ def test_file_defines_with_classes_answers_for_the_class_chain_and_only_its_own_
         (("TestK",), "test_b"): True, (("TestK",), "test_a"): False, (("TestNope",), "test_a"): False,
         (("TestK", "TestInner"), "test_c"): True, (("TestInner",), "test_c"): False}
     assert case_reader.file_defines(str(broken), "test_b", ("TestK",)) is False
+
+
+def test_cut_cases_4050_reads_no_name_line_as_a_case():
+    case_reader = importlib.import_module("veri.case_reader")
+
+    assert case_reader.cut_cases('name="a bash case"\n') == []
