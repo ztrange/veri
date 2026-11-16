@@ -110,6 +110,14 @@ NEXT_LINES = ["### ✅ Done", "- [ ] step", "- apple", "* bullet", "# Heading", 
               "--flag"]
 
 
+@pytest.mark.timeout(10)
+@pytest.mark.parametrize("shape", sorted(FULL_LENGTH))
+def test_1_mb_of_one_full_length_token_per_line_is_answered_within_the_case_timeout_issue_3960(redaction, shape):
+    lines = 1048576 // (len(FULL_LENGTH[shape]) + 1)
+
+    assert redaction.redact((FULL_LENGTH[shape] + "\n") * lines) == "[redacted]\n" * lines
+
+
 @pytest.mark.parametrize("shape", sorted(FULL_LENGTH))
 def test_a_full_length_token_at_a_lines_end_leaves_the_next_line_byte_identical_issue_3960(redaction, shape):
     changed = [line for line in NEXT_LINES if redaction.redact("token: %s\n%s\nlast" % (FULL_LENGTH[shape], line))
