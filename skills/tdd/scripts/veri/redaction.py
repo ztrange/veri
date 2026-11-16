@@ -134,7 +134,9 @@ def _secret_spans(text, values):
 def redact(text):
     """<text> with every token-shaped string, and every value (8 characters or more) of a variable VERI_REDACT_VARS
     names, replaced by [redacted]; no split point (_BREAK and what goes with it) inside one hides it, and a base64 run
-    that decodes to one is replaced whole."""
+    that decodes to one is replaced whole. What a token ending a line may take of the next: nothing at its documented
+    length (gh[pousr]_ 36, github_pat_ 82, AKIA 16 after the prefix; a listed value exactly), and for an sk-ant- key,
+    whose length varies, up to 101 minus its own length of the next line's first characters."""
     merged = []
     for start, end in sorted(_secret_spans(text, _listed_values())):
         if merged and start <= merged[-1][1]:
