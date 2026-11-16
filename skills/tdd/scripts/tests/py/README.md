@@ -56,6 +56,7 @@ Directly under `tests/py/`, beside `conftest.py`; import them flat (`from repo_b
 
 - `tests_py_index`: session; every `test_*.py` under `tests/py` as a `TestFile`, read and parsed once. An audit that sweeps test files reads this, never `rglob` (`unit/test_tree_index_guard.py`).
 - `veri_modules_index`: session; `VeriModules` over `veri/`, the same rule for audits of the production package.
+- `repo_templates_under_basetemp`: session, autouse; points `repo_builder.TEMPLATE_ROOT` at the worker's `--basetemp`, where `new_repo` keeps the template it copies.
 - `process_case_shim_has_a_floor_interpreter`: autouse; a `process` case that launches a `.sh` shim fails unless a python3 at the 3.12 floor is reachable.
 - `hermetic_environment`: autouse; clears ambient `VERI_*`, `CLAUDE_*`, `GH_*`, `GIT_*` and locale, sets `LC_ALL=C`, `VERI_HOME`, `VERI_VENV` and a per-case `TMPDIR`, and refuses a test that writes to the inherited `TMPDIR`.
 - `run_cli`: `run_cli(module, argv, stdin="", env=None, cwd=None) -> (code, stdout, stderr)`; drives a ported module's `main` in-process.
