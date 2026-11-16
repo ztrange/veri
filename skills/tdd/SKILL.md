@@ -60,8 +60,8 @@ verification.
 Let `S=<base directory>/scripts`, where *base directory* is the path the harness printed
 when this skill loaded (`Base directory for this skill: …/tdd`). It is the same
 skill whether it lives in the target repo's `.claude/skills/` or is symlinked into
-`~/.claude/skills/` for use from any repo — never assume a repo-relative path. All leaf
-machinery lives there and is unit-tested (`$S/tests/*.test.sh`).
+`~/.claude/skills/` for any repo — never assume a repo-relative path. All leaf
+machinery lives there and is tested by pytest files under `$S/tests/py/`.
 
 `$S` is pinned: a run launched through `$S/run-conductor.sh` executes the skill snapshot —
 the commit recorded in `.tdd/issue-<n>-skill-commit` and exported to every leaf as
