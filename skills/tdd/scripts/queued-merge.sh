@@ -2,14 +2,18 @@
 # queued-merge.sh — a merge that waits its turn on the merge lock: a shim over veri/queued_merge.py.
 #
 # Usage:   queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->
-# Exit:    0 merged and cleaned up; 1 red CI or a merge call that exited 0 with the PR not reported
-#          merged (lock released); a merge call that exits non-zero exits with its code unless the PR
-#          reads merged within VERI_MERGE_SETTLE_READS re-reads (default 10), VERI_MERGE_SETTLE_SLEEP
-#          s apart (default 3), the lock held through those re-reads and released once after the
-#          last; a rebase conflict or refused push exits with
-#          git's code (lock kept); 2 no answer — bad arguments, a PR already merged, closed unmerged,
-#          unreadable or with its head already on origin/main (refused before any rebase or push),
-#          an unresolvable ref, a worktree lacking a commit origin/<branch> has (nothing pushed),
-#          or a failed cleanup step after the merge (named on stderr)
+# Exit:    0 merged and cleaned up. After the merge call, whatever its code, the PR's state is re-read
+#          up to VERI_MERGE_SETTLE_READS times (default 10), VERI_MERGE_SETTLE_SLEEP s apart (default 3),
+#          the lock held through the window and released once after its last read when no read says
+#          merged. 1 red CI, or a merge call that exited 0 whose window's reads answered and never said
+#          merged (lock released); a merge call that exited non-zero whose window's reads answered and
+#          never said merged exits with its code; a rebase conflict or refused push exits with git's
+#          code (lock kept); 2 no answer — bad arguments or settle tunables (before the lock), a window
+#          in which no read answered, a wait-ci.sh exit 2 (a PR head that never matched the pushed sha;
+#          lock released), an error raised before the merge call (lock released, kept while a rebase
+#          is stopped), a PR already merged, closed unmerged, unreadable or with its head already on
+#          origin/main (refused before any rebase or push), an unresolvable ref, a worktree lacking a
+#          commit origin/<branch> has (nothing pushed), or a failed cleanup step after the merge
+#          (named on stderr)
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/queued_merge.py" "$@"
