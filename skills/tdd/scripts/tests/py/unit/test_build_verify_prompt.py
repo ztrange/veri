@@ -1768,3 +1768,24 @@ def test_3919_plan_lists_no_case_of_a_touching_test_file_under_dot_git_dot_tdd_d
     section = touching_section(out) or ""
 
     assert (code, "test_listed" in section, re.findall(r"test_hidden_in_\w+", section)) == (0, True, [])
+
+
+def test_3919_verify_plan_carries_no_tdd_file_naming_a_steps_file_no_step_text_and_no_fourth_positional_through_the_touching_cases(
+        tmp_path, run_cli, build_verify_prompt):
+    files = dict(ROUTE_TREE, **{".tdd/tests/test_route_reason.py": (
+        "import route\n\n\ndef test_RATIONALE_LEAK_route_was_kept_because_bash_c_broke_the_quoting():\n"
+        "    'RATIONALE-LEAK-MARKER the developer chose a launcher script'\n")})
+    for rel, text in files.items():
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text(text)
+    ledger = tmp_path / ".tdd" / "issue-1.md"
+    ledger.write_text("# Plan for #1\n\n- [ ] route.py answers ⟦criterion 1⟧\n")
+    spec_file = tmp_path / "spec.md"
+    spec_file.write_text(SPEC_TEXT)
+
+    code, out, _ = run_cli(build_verify_prompt, ["--step", "STEP-LEAK the developer reasoned about quoting", "plan",
+                                                 str(spec_file), str(ledger), "test_positional_leak"], cwd=tmp_path)
+    section = touching_section(out) or ""
+
+    assert (code, "test_route_answers" in section) == (0, True)
+    assert [leak for leak in ("RATIONALE", "STEP-LEAK", "test_positional_leak") if leak in out] == []
