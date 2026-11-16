@@ -12,7 +12,7 @@
 - [x] a touching test file that cannot be read, or whose case call never closes, contributes no case and the plan still renders
 - [x] the plan phase lists only test files git tracks: an untracked file and one in a gitignored directory are not listed, a tracked one is ⟦criterion 1⟧
 - [x] a git ls-files that fails makes the plan phase exit 2, not an empty section ⟦criterion 5⟧
-- [ ] a touching test file that is a symbolic link is skipped, never followed
+- [x] a touching test file that is a symbolic link is skipped, never followed
 - [ ] a tracked test-looking file the reader cannot read or cut, or in a language it does not read, gets one '<file>: cases not readable' line within the cap, and the section never then says no case touches a named file
 - [ ] within the cap, files touching a file a step names by its full path come first, then by number of hits, then alphabetically ⟦criterion 3⟧
 - [x] prompts/verify-plan.md explains the section and tells the verifier, in the older-cases check, to read those cases in the repository and apply the check to them ⟦skill-edit⟧ ⟦criterion 7⟧

@@ -1837,3 +1837,17 @@ def test_3919_plan_exits_2_with_one_stderr_line_naming_git_ls_files_and_no_promp
 
     assert (code, out, len(err.splitlines()), "build-verify-prompt:" in err, "git ls-files" in err,
             "not a git repository" in err) == (2, "", 1, True, True, True)
+
+
+def test_3919_plan_never_follows_a_test_file_that_is_a_symbolic_link_to_a_file_outside_the_repository(
+        tmp_path, run_cli, build_verify_prompt):
+    outside = tmp_path / "outside" / "test_elsewhere.py"
+    outside.parent.mkdir()
+    outside.write_text(route_cases("test_outside_case"))
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / "tests" / "test_linked.py").symlink_to(outside)
+    code, out, _ = plan_in_tree(repo, run_cli, build_verify_prompt, ROUTE_TREE, ["route.py answers"])
+    section = touching_section(out) or ""
+
+    assert (code, "test_route_answers" in section, "test_outside_case" in section) == (0, True, False)
