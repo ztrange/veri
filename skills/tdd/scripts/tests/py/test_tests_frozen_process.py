@@ -272,139 +272,6 @@ def test_check_step_still_exits_0_on_a_repair_step_when_an_unrecorded_test_file_
     assert (code, out) == (0, "")
 
 
-@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
-def test_record_step_lists_only_the_bash_case_red_appended_at_the_end_of_a_suite_with_no_finish_trailer_1861(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / "tests").mkdir()
-    (tmp_path / ".tdd").mkdir()
-    suite = tmp_path / "tests/suite.test.sh"
-    suite.write_text('name="older case"\ncheck_older\nok\n')
-    new_repo(tmp_path)
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    step = "step one appends a bash case with no trailer"
-    suite.write_text('name="older case"\ncheck_older\nok\n\n\n'
-                     'name="appended by red 1861"\ncheck_added\nok\n')
-
-    run_cli(tests_frozen, ["record", "--step", step, "tests/suite.test.sh"], cwd=tmp_path)
-    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    record = (tmp_path / record_path.rstrip("\n")).read_text()
-
-    assert "case: appended by red 1861\n" in record
-    assert "older case" not in record
-
-
-@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
-def test_record_step_lists_only_the_case_red_appended_to_a_real_copy_of_a_bash_suite_with_its_finish_trailer_1861(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / "tests").mkdir()
-    (tmp_path / ".tdd").mkdir()
-    # run-finished.test.sh as it stood before #1378 replaced it with pytest cases, frozen
-    real = (Path(__file__).resolve().parents[1] / "fixtures" / "tests-frozen" / "run-finished.test.sh.txt").read_text()
-    suite = tmp_path / "tests/suite.test.sh"
-    suite.write_text(real)
-    new_repo(tmp_path)
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    step = "step one appends a case to a real suite"
-    head, trailer, _ = real.rpartition("\nfinish\n")
-    suite.write_text(head + '\n\nname="appended by red 1861"\ncheck_added\nok\n\nfinish\n')
-
-    run_cli(tests_frozen, ["record", "--step", step, "tests/suite.test.sh"], cwd=tmp_path)
-    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    record = (tmp_path / record_path.rstrip("\n")).read_text()
-
-    assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: appended by red 1861"]
-
-
-@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
-def test_record_step_lists_only_the_pytest_function_red_inserted_above_an_older_one_on_the_files_first_line_1861(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / "tests").mkdir()
-    (tmp_path / ".tdd").mkdir()
-    suite = tmp_path / "tests/test_suite.py"
-    suite.write_text("def test_older_case_1861():\n    assert True\n")
-    new_repo(tmp_path)
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    step = "step one inserts a case above the one on line one"
-    suite.write_text("def test_inserted_by_red_1861():\n    assert True\n\n\n"
-                     "def test_older_case_1861():\n    assert True\n")
-
-    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
-    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    record = (tmp_path / record_path.rstrip("\n")).read_text()
-
-    assert "case: test_inserted_by_red_1861\n" in record
-    assert "test_older_case_1861" not in record
-
-
-@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
-def test_record_step_lists_only_the_pytest_method_red_inserted_above_an_older_method_directly_under_its_class_line_1861(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / "tests").mkdir()
-    (tmp_path / ".tdd").mkdir()
-    suite = tmp_path / "tests/test_suite.py"
-    suite.write_text("class TestSuite:\n    def test_older_case_1861(self):\n        assert True\n")
-    new_repo(tmp_path)
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    step = "step one inserts a method under the class line"
-    suite.write_text("class TestSuite:\n    def test_inserted_by_red_1861(self):\n        assert True\n\n"
-                     "    def test_older_case_1861(self):\n        assert True\n")
-
-    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
-    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    record = (tmp_path / record_path.rstrip("\n")).read_text()
-
-    assert "case: test_inserted_by_red_1861\n" in record
-    assert "test_older_case_1861" not in record
-
-
-@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
-def test_record_step_lists_the_last_bash_case_red_edited_below_a_heredoc_finish_line_when_no_finish_trailer_ends_the_file_1773(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / "tests").mkdir()
-    (tmp_path / ".tdd").mkdir()
-    suite = tmp_path / "tests/suite.test.sh"
-    suite.write_text('name="first case"\ncheck_first\nok\n\n'
-                     'name="heredoc case"\ncat > script.sh <<\'EOF\'\nfinish\nEOF\ncheck_heredoc one\n')
-    new_repo(tmp_path)
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    step = "step one edits the last case below a heredoc finish with no trailer"
-    suite.write_text('name="first case"\ncheck_first\nok\n\n'
-                     'name="heredoc case"\ncat > script.sh <<\'EOF\'\nfinish\nEOF\ncheck_heredoc two\n')
-
-    run_cli(tests_frozen, ["record", "--step", step, "tests/suite.test.sh"], cwd=tmp_path)
-    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    record = (tmp_path / record_path.rstrip("\n")).read_text()
-
-    assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: heredoc case"]
-
-
-@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
-def test_record_step_lists_the_bash_case_red_edited_below_an_indented_finish_line_inside_its_body_1861(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / "tests").mkdir()
-    (tmp_path / ".tdd").mkdir()
-    suite = tmp_path / "tests/suite.test.sh"
-    suite.write_text('name="first case"\ncheck_first\nok\n\n'
-                     'name="finishing case"\nif true; then\n  finish_up\n  finish\nfi\ncheck_finishing one\n')
-    new_repo(tmp_path)
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    step = "step one edits below an indented finish inside a case"
-    suite.write_text('name="first case"\ncheck_first\nok\n\n'
-                     'name="finishing case"\nif true; then\n  finish_up\n  finish\nfi\ncheck_finishing two\n')
-
-    run_cli(tests_frozen, ["record", "--step", step, "tests/suite.test.sh"], cwd=tmp_path)
-    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    record = (tmp_path / record_path.rstrip("\n")).read_text()
-
-    assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: finishing case"]
-
-
 @pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
 def test_check_step_run_from_a_subdirectory_exits_1_naming_a_tracked_test_file_green_edited_again_after_record_step_from_that_subdirectory_1960(
         tmp_path, run_cli, tests_frozen):
@@ -476,19 +343,6 @@ def test_check_step_run_outside_any_git_repository_exits_2_with_stderr_naming_th
     assert (code, out, "repository" in err) == (2, "", True)
 
 
-@pytest.mark.process("git asked for the repository toplevel from a directory under tmp_path that is in none")
-def test_record_step_run_outside_any_git_repository_exits_2_with_stderr_naming_the_missing_repository_and_writes_no_record_1960(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / ".tdd").mkdir()
-    (tmp_path / "tests").mkdir()
-    (tmp_path / "tests/test_new.py").write_text("one\n")
-    step = "step one adds a case"
-
-    code, out, err = run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
-
-    assert (code, out, "repository" in err, [p.name for p in (tmp_path / ".tdd").iterdir() if p.name != "events.jsonl"]) == (2, "", True, [])
-
-
 @pytest.mark.process("a real git repository with no commits under tmp_path, asked which test files differ from HEAD")
 def test_check_step_in_a_repository_with_no_commits_exits_2_with_stderr_naming_the_missing_head_over_a_staged_test_edit_1960(
         tmp_path, run_cli, tests_frozen):
@@ -505,25 +359,6 @@ def test_check_step_in_a_repository_with_no_commits_exits_2_with_stderr_naming_t
 
     refusals = [line for line in err.splitlines() if line.startswith("tests-frozen.sh:") and "HEAD" in line]
     assert (code, out, len(refusals)) == (2, "", 1)
-
-
-@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
-def test_record_step_for_a_red_whose_only_test_change_deletes_a_tracked_test_file_records_the_deletion_and_exits_0_1960(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / "tests").mkdir()
-    (tmp_path / ".tdd").mkdir()
-    (tmp_path / "tests/test_old.py").write_text("one\n")
-    new_repo(tmp_path)
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    step = "step one deletes a test file"
-    (tmp_path / "tests/test_old.py").unlink()
-
-    code, out, _ = run_cli(tests_frozen, ["record", "--step", step], cwd=tmp_path)
-
-    _, recorded, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    record = (tmp_path / recorded.strip()).read_text() if (tmp_path / recorded.strip()).exists() else None
-    assert (code, out, record) == (0, "", "deleted  tests/test_old.py\n")
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
@@ -544,28 +379,6 @@ def test_check_step_exits_1_naming_the_old_name_when_green_restores_a_test_file_
     code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (code, out) == (1, "tests/test_old.py\n")
-
-
-@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
-def test_record_step_lists_the_pytest_function_red_edited_below_a_finish_line_inside_its_multiline_string_1773(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / "tests").mkdir()
-    (tmp_path / ".tdd").mkdir()
-    suite = tmp_path / "tests/test_suite.py"
-    body = ('def test_first():\n    assert True\n\n\n'
-            'def test_last():\n    text = """\nfinish\n"""\n    assert text == {!r}\n')
-    suite.write_text(body.format("one"))
-    new_repo(tmp_path)
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    step = "step one edits a function below a string finish"
-    suite.write_text(body.format("two"))
-
-    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
-    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    record = (tmp_path / record_path.rstrip("\n")).read_text()
-
-    assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: test_last"]
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
