@@ -42,7 +42,10 @@ Run it in order, at the site where the eligible exit 2 came back.
 4. **Parse and record.** `$S/adjudicate.sh record <n> <cause> .tdd/adjudicate-<cause>.out`
    reads the answer with `parse-adjudication.sh` and records the `adjudicated` event. Act on
    its exit:
-   - `0` — `retry`: run the step that returned 2 once more.
+   - `0` — `retry`: run the step that returned 2 once more, but only where the cause's own site
+     states a retry (`ci-timeout`, `ci-conflict`, `pr-ready-failed`). For any other cause exit
+     `0` is a bail with the original cause and class, the `adjudicated` event still saying
+     `outcome=retry`.
    - `1` — `bail` or `route`: bail, or take the route token the cause allows (`ci-timeout`
      allows none, so it bails; `ci-conflict`'s `rebase` is the path its site in `DRAFT-PR.md`
      states).
