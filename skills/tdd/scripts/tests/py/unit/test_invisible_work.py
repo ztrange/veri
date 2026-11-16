@@ -506,3 +506,19 @@ def test_a_local_branch_not_on_origin_whose_name_a_closed_pr_used_with_a_tip_pas
     code, out, err = run_cli(invisible_work, [], env={"VERI_GH_JSON": str(tmp_path)})
 
     assert (code, out, err) == (0, "invariant 1 (not on origin): tdd/9-reused tip b9b9 2 commits origin lacks\n", "")
+
+
+def test_a_local_branch_not_on_origin_whose_tip_equals_the_head_of_one_of_the_merged_or_closed_prs_that_used_its_name_is_still_skipped_3992(
+        monkeypatch, tmp_path, run_cli, fake_processes):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    (tmp_path / "issues.json").write_text("[]")
+    (tmp_path / "prs.json").write_text(
+        '[{"headRefName": "tdd/9-reused", "headRefOid": "a9a9", "state": "CLOSED", "body": ""},'
+        ' {"head": {"ref": "tdd/9-reused", "sha": "b9b9"}, "state": "closed", "merged_at": "2026-11-01T00:00:00Z"}]')
+    fake_processes(origin_answer({"HEAD": "1111", "main": "1111"}, {},
+                                 {"main": ("1111", 0), "tdd/9-reused": ("b9b9", 2)}))
+
+    code, out, err = run_cli(invisible_work, [], env={"VERI_GH_JSON": str(tmp_path)})
+
+    assert (code, out, err) == (3, "", "")
