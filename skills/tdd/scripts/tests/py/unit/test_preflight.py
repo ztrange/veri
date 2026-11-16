@@ -2,6 +2,8 @@
 import importlib
 import os
 
+import pytest
+
 
 def test_3771_a_no_arguments_exit_2_with_the_usage_line_and_make_no_inner_call(monkeypatch, run_cli):
     preflight = importlib.import_module("veri.preflight")
@@ -581,6 +583,45 @@ def test_3771_r_skip_verify_plan_stops_at_5_after_refactor_budget_issue_0_with_n
     assert calls[-1] == ("refactor-budget.sh", ("--issue", "0"))
     assert code == 2
     assert out.splitlines()[-1] == "stopped at 5 VERI_SKIP_VERIFY"
+
+
+@pytest.mark.parametrize("effort, stops", [("minimal", True), ("LOW", True), (" low", True), ("high", False),
+                                           ("max", False), ("", False), (None, False)])
+def test_4013_a_veri_effort_verifier_outside_the_five_levels_stops_at_5_before_the_leaf_model_checks(
+        effort, stops, monkeypatch, run_cli, tmp_path):
+    import types
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+    now = [1000.0]
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: now[0]))
+    if effort is not None:
+        monkeypatch.setenv("VERI_EFFORT_VERIFIER", effort)
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append(base)
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            now[0] += 7.2
+        if base == "gh" and args[-1] == ".default_branch":
+            return 0, "main\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    if stops:
+        assert (code, out.splitlines()[-1], "leaf-model.sh" in calls) == (2, "stopped at 5 VERI_EFFORT_VERIFIER", False)
+    else:
+        assert (code, "VERI_EFFORT_VERIFIER" in out, "leaf-model.sh" in calls) == (0, False, True)
 
 
 def test_3771_s_exit_0_writes_the_preflight_file_in_the_worktree_and_prints_the_same_lines_last(monkeypatch, run_cli, tmp_path):
