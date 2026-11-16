@@ -12,6 +12,22 @@ def update_veri():
     return importlib.import_module("veri.update_veri")
 
 
+@pytest.fixture(autouse=True)
+def default_branch_answered_by_the_fake_git(update_veri, monkeypatch):
+    """git.default_branch(cwd=<clone>, remote=False) answered from whichever update_veri.git a case installs: its
+    `symbolic-ref ... refs/remotes/origin/HEAD` answer, None when that fails or names nothing."""
+    import os
+    clone = os.path.dirname(os.path.dirname(os.path.realpath(update_veri.__file__)))
+
+    def default_branch(cwd=None, remote=True):
+        assert (cwd, remote) == (clone, False), "update_veri reads its clone's origin/HEAD, never the remote"
+        head = update_veri.git("symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+        name = head.stdout.strip().removeprefix("refs/remotes/").removeprefix("origin/")
+        return name if head.returncode == 0 and name else None
+
+    monkeypatch.setattr(importlib.import_module("git"), "default_branch", default_branch)
+
+
 def test_main_exits_2_with_the_usage_line_and_writes_no_record_for_a_consent_value_other_than_yes_or_no_a_missing_value_or_any_other_argument(
         tmp_path, run_cli, update_veri):
     record = tmp_path / "self-update"
