@@ -117,3 +117,24 @@ def test_main_called_with_only_the_issue_prints_the_usage_line_to_stderr_and_exi
     assert (code, out) == (2, "")
     assert "usage: baseline-full-tier.sh <issue> <full-tier-command>" in err
     assert "Traceback" not in err
+
+
+def _recorded(tmp_path, stamps):
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "full-tier-time.json").write_text('{"make test": "727"}')
+    if stamps is not None:
+        (tmp_path / ".tdd" / "full-tier-time-at.json").write_text(stamps)
+
+
+@pytest.mark.parametrize("stamps", [None, '{"make unit": 1763300000}', "{not json"],
+                         ids=["no-recorded-at-file", "no-entry-for-the-command", "unreadable"])
+def test_4017_reuse_with_a_recorded_time_but_no_recorded_at_prints_run_and_one_stderr_line_naming_the_command_unknown_and_the_knob(
+        tmp_path, run_cli, baseline_full_tier, stamps):
+    _recorded(tmp_path, stamps)
+
+    code, out, err = run_cli(baseline_full_tier, ["4017", "make test"],
+                             env={"VERI_BASELINE_FULL_TIER": "reuse"}, cwd=tmp_path)
+
+    assert (code, out.strip(), len(err.splitlines())) == (0, "run", 1)
+    assert ("'make test'" in err, "unknown" in err, "VERI_FULL_TIER_MAX_AGE_DAYS=7" in err) == (True, True, True)
