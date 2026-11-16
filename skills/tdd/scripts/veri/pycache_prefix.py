@@ -67,7 +67,8 @@ else:
         sys.pycache_prefix = os.devnull
         import tunables
         sys.pycache_prefix = None
-        prefix = tunables.get("VERI_PYCACHE") or os.path.join(os.environ.get("TMPDIR") or "/tmp", "veri-pycache-%d" % os.getuid())
+        default = os.path.join(os.environ.get("TMPDIR") or "/tmp", "veri-pycache-%d" % os.getuid())
+        prefix = tunables.get("VERI_PYCACHE") or default
     reason = refusal(prefix)
     if reason is None:
         sys.pycache_prefix = prefix
