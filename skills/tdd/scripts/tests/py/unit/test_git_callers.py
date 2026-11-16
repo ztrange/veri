@@ -18,7 +18,6 @@ import pytest
 # conflicting.
 MODULES_RUNNING_GIT_DIRECTLY = {
     "add_ledger_step": "git rev-parse --short and a built git call, through subprocess",
-    "diff_leaf_deviation": "its own _git helper and GitFailure (PRD 025.15)",
     "ensure_run_state_ignored": "git -C <root> rev-parse, through subprocess",
     "frozen_record": "git rev-parse, write-tree and check-ignore, through subprocess",
     "github": "git ls-remote origin, through subprocess",
