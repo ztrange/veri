@@ -17,6 +17,22 @@ green is not taken on trust here — sub-step 1 asks. Like every step since 1.2,
 **from inside the worktree** — every command below is issued there, so each sees the issue
 branch and its commits without any switching.
 
+**Where the repository names a stack branch.** Each time the run enters this step, also run
+`$S/stack-branch.sh` at the worktree root, in a Bash call of its own. Exit 3 (none named): every
+sub-step runs as written. Exit 2: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`).
+Exit 0, printing `<stack>`:
+- `origin/<default>` in the step's rebases and in the regrade block's `git merge-base HEAD origin/<default>`
+  means `origin/<stack>` (`rebase-onto-default.sh` already rebases onto it), so the run's diff never
+  carries joined but unlanded commits.
+- Sub-step 2 does not run `pr-ready.sh` and makes no `wait-ci.sh` call, before or after the `metrics:`
+  push: of its first block run only the `gh api` line that reads `<pr-url>`; of its second, every line
+  but the `wait-ci.sh` line and the lines that read its `ci`, `conflict` and `graded`. CI on the
+  stack's tip is the full suite, so the run ticks no `⟦full-suite⟧` line, whatever full run it made,
+  and makes no `plan: the full suite is green on CI` commit.
+- The `gh api -X PATCH` line that sets the title still drops the `WIP:` prefix; a title PATCH never
+  readies a pull request, so it stays a draft, and the run ends ✅ Done with its pull request a draft.
+- Every other part of the step runs as where no stack branch is named.
+
 **Before any red full-run result takes its repair step or its `rebased-tip-red` bail** — the branch's own run here, and the rebased tip's run in sub-step 1 and after `verify-rebase` — run each test file the red output names alone, once, with the repo's own runner (`make test TESTS="<file>"` on veri). A red output that names no file takes today's path, unchanged. When every file passes alone, the red was a flake: write a `suite-flake` event naming the files, treat the run as green, and name the files in the PR body. When any file stays red alone, the red result stands as it is and takes its repair step or its bail.
 
 A red result on that full run does not bail: append a repair step to the ledger, commit it,

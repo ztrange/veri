@@ -553,21 +553,21 @@ three times over branches its ledger pinned on later lines.
    the plan commit, from inside the worktree:
    ```
    $S/push-branch.sh
-   gh api repos/{owner}/{repo}/pulls -F draft=true -f base=<default-branch> -f head="$(git branch --show-current)" \
+   gh api repos/{owner}/{repo}/pulls -F draft=true -f base=<base> -f head="$(git branch --show-current)" \
      -f title="WIP: <type>: <criterion summary> (#<n>)" \
      -f body="<!-- veri:run-body -->
 Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.md is the source of truth.
 <!-- /veri:run-body -->" \
      -q .html_url                         # → <pr-url>; <pr-number> is its last path segment
    ```
-   The body's first line starts `Closes #<n>`, inside the markers that set it apart as the run's own
+   `<base>` is what `$S/stack-branch.sh` prints (exit 0), else the default branch (exit 3); where a
+   stack is named, every mention of the default branch as the run's base, rebase target or diff
+   base in the procedure's files means the stack. The body's first line starts `Closes #<n>`, inside the markers that set it apart as the run's own
    part, the part `$S/pr-body.sh` rewrites; whatever else a body holds is not the run's.
-   An open PR saying `Closes #<n>` is the claim every other machine can see, and the plan
-   commit is the run's first — a PR needs a commit ahead of the base, so this is the
-   earliest the claim can be made. Until it exists a second machine running `/tdd <scope>`
-   reads the issue as free and takes it again, as four unseen runs did on 2026-09-14. The
-   title says **WIP** because a draft branch that reads as finished work is a second way to
-   be misread; step 4 is where the PR is retitled and readied.
+   An open PR saying `Closes #<n>` is the claim other machines see, made at the first commit a
+   PR can have; until then another machine takes the issue again. The title says **WIP**: a
+   draft that reads as finished is misread; step 4 retitles it and, unless a stack is named,
+   readies it.
 4. **Mirror the plan** to the issue thread: post a `### 🗺️ Plan` comment, by running `$S/comment.sh <n> plan`, listing the steps,
    naming the test command preflight detected and every leaf will run, and noting that the
    ledger is the source of truth and each step will be blind-verified. The test command is
@@ -582,7 +582,7 @@ Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.m
    `git -C "$S" rev-parse HEAD`, the version of the procedure and scripts you are executing.
    The thread is where a human reads a run back, so it is where the version has to be: a
    `### 🛠️ Refactor` comment describing work the run never did is indistinguishable from a
-   true one without it, as #150's narration landing under #170's run was.
+   true one without it.
    When `VERI_SKILL_UNPINNED=1` is in your environment the launch found no skill commit to
    pin, and the comment says `unpinned` in place of a commit rather than naming none.
 
@@ -1472,8 +1472,8 @@ hatch.
   branch's own full run, again after each `⟦suite-repair⟧` step a red result adds, and under
   `VERI_REBASED_TIP_SUITE=local` one more on the rebased tip when sub-step 1 rebased the branch.
   Under `VERI_BRANCH_SUITE=ci` no local full run of the branch is made: CI's run on the readied PR is it.
-- The PR is opened as a **draft** at the plan commit and readied for review at the Draft PR
-  step, always carries `Closes #<n>`, and is **never merged** by you.
+- The PR is opened as a **draft** at the plan commit and, unless a stack is named, readied for
+  review at the Draft PR step, always carries `Closes #<n>`, and is **never merged** by you.
 - On a `REJECT`, run the **bounded revise loop** (default 2 attempts, fresh leaf carrying
   the reason; when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). If it exhausts, **bail** (process failure, see `<base directory>/BAIL.md`). On a **killed-stuck** leaf past
   its retry budget, or an unreadable verdict, **bail** (system failure, see `<base directory>/BAIL.md`). Always preserve

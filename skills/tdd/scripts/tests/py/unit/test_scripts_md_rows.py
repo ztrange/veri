@@ -41,7 +41,6 @@ UNCATALOGUED = frozenset(
     "preserve-attempt.sh",
     "production-frozen.sh",
     "profile.sh",
-    "rebase-onto-default.sh",
     "red-divergence.sh",
     "refactor-touched.sh",
     "refactor-triage.sh",
