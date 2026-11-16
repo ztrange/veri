@@ -11,3 +11,9 @@
 - [x] `prompts/develop-exhausted.md` offers and declares `STEP_AHEAD:`, graded PASS against rows XH9 to XH11 ⟦criterion 7⟧
 - [x] `REVISE.md`'s exhausted section runs `--step-ahead` on the plain read's exit 3, graded PASS against rows RV66 and RV67 ⟦criterion 8⟧
 - [x] `SCRIPTS.md` has an `$S/exhausted-outcome.sh` entry, graded PASS against row SC140 ⟦criterion 9⟧
+- [ ] `--step-ahead` skips a `STEP_AHEAD:` value only when it is the red id itself, when that id names a file
+- [ ] `--step-ahead` refuses a value with no `::` naming that reason
+- [ ] `--step-ahead` reads a pytest class id `<file>::<Class>::<case>` as that file and case
+- [ ] `--step-ahead` checks a parametrized case `<case>[…]` by its name without the suffix
+- [ ] `--step-ahead` with no id or an empty one exits 2 with the usage line
+- [ ] `SKILL.md` says the revise-exhausted exit 3 bails only with no step ahead, graded PASS against row CY12
