@@ -192,7 +192,7 @@ def preflight_and_launch(argv):
             pinned_scripts.write_snapshot_marker(snapshot, run_worktree(argv[0]))
             pinned_scripts.make_read_only(snapshot)
             extracted = pinned_scripts.snapshot_digest(snapshot)
-            run_pins.write_snapshot_digest(event.toplevel(), argv[0], extracted)
+            run_pins.write_snapshot_digest(event.toplevel(), argv[0], pinned_scripts.digest_text(extracted))
             keep_pinned_scripts(snapshot, argv[0])
             code = launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
             changed = snapshot_change(snapshot, argv[0], extracted)
@@ -329,7 +329,7 @@ def snapshot_change(snapshot, issue, extracted):
         recorded = run_pins.snapshot_digest(issue, event.toplevel())
     except OSError:
         recorded = None
-    if recorded != extracted:
+    if recorded != pinned_scripts.digest_text(extracted):
         return os.path.abspath(run_dir.issue_file(event.toplevel(), issue, run_pins.SNAPSHOT_DIGEST))
     return None
 

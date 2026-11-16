@@ -48,7 +48,7 @@ def test_snapshot_digest_changes_with_one_files_content_and_with_the_marker_3964
     (tree / "scripts" / "status.sh").write_text("echo edited\n")
     edited = pinned_scripts.snapshot_digest(str(tree))
 
-    assert (marker_only == before, edited == marker_only, "scripts/status.sh" in before) == (False, False, True)
+    assert (marker_only == before, edited == marker_only, "scripts/status.sh" in dict(before)) == (False, False, True)
 
 
 def test_remove_tree_refuses_a_symlinked_tree_leaving_the_modes_under_its_target_as_they_were_3963(tmp_path):
@@ -163,3 +163,18 @@ def test_an_edit_hidden_behind_a_name_holding_a_newline_is_still_a_change_3964(t
     attack(tree, before)
 
     assert caught(before, tree)
+
+
+def test_a_recorded_digest_naming_one_path_twice_is_a_change_3964(tmp_path):
+    tree = skill_tree(tmp_path / "veri-snapshot-x")
+    recorded = pinned_scripts.snapshot_digest(str(tree))
+
+    assert caught(recorded + [("SKILL.md", "0" * 64)], tree)
+
+
+def test_the_digest_file_form_reads_back_as_the_same_entries_and_refuses_any_other_text_3964(tmp_path):
+    entries = pinned_scripts.snapshot_digest(str(skill_tree(tmp_path / "veri-snapshot-x")))
+
+    with pytest.raises(ValueError):
+        pinned_scripts.parse_digest("directory scripts\n")
+    assert pinned_scripts.parse_digest(pinned_scripts.digest_text(entries)) == entries
