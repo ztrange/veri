@@ -6,6 +6,7 @@ import base64
 import importlib
 import json
 import pathlib
+import re
 
 import pytest
 
@@ -286,10 +287,50 @@ def gh_sites(modules):
     return sites
 
 
+# A string that runs gh as a shell command: gh as a word of it.
+GH_WORD = re.compile(r"(^|[\s;&|(`$])gh(\s|$)")
+SHELLS = {"sh", "bash", "zsh", "dash"}
+
+
+def _dotted(node):
+    """`os.system` for the callee os.system, `run` for a bare run, "" for anything else."""
+    if isinstance(node, ast.Attribute):
+        return (_dotted(node.value) + "." + node.attr).lstrip(".")
+    return node.id if isinstance(node, ast.Name) else ""
+
+
+def _starts_a_process(call):
+    name = _dotted(call.func)
+    return (name in ("os.system", "os.popen", "system", "popen", "asyncio.create_subprocess_shell", "pty.spawn")
+            or name.startswith(("os.exec", "os.spawn", "os.posix_spawn", "subprocess.")))
+
+
+def _strings(node):
+    return [n.value for n in ast.walk(node) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+
+
+def shell_gh_sites(modules):
+    """(file, line) of every string naming gh as a command that a module runs through a shell or a process call:
+    an argument of os.system, os.popen, os.exec*, subprocess.* and the like, or a `sh -c` command line."""
+    sites = []
+    for stem in modules.names:
+        for node in ast.walk(modules.tree(stem)):
+            if isinstance(node, ast.Call) and _starts_a_process(node):
+                named = [text for arg in node.args + [k.value for k in node.keywords] for text in _strings(arg)]
+            elif isinstance(node, (ast.List, ast.Tuple)) and node.elts and isinstance(node.elts[0], ast.Constant) \
+                    and str(node.elts[0].value).rsplit("/", 1)[-1] in SHELLS and "-c" in _strings(node):
+                named = _strings(node)
+            else:
+                continue
+            if any(GH_WORD.search(text) for text in named):
+                sites.append("%s.py:%d (runs gh through a shell or a process call)" % (stem, node.lineno))
+    return sites
+
+
 @pytest.mark.tree_audit("the modules under veri/, for every place that names the gh command")
 def test_every_gh_command_line_a_veri_module_names_goes_through_github_bounded_or_carries_no_body_issue_3960(
         veri_modules_index):
     stray = ["%s:%d (%s)" % (file, line, name) for file, name, line in gh_sites(veri_modules_index)
-             if (file, name) not in GH_SITES]
+             if (file, name) not in GH_SITES] + shell_gh_sites(veri_modules_index)
 
     assert stray == [], "a gh call outside github.bounded would post unredacted: " + ", ".join(stray)

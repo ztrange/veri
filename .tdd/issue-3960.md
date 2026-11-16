@@ -22,6 +22,6 @@
 - [x] a listed value is redacted in its JSON-escaped form
 - [x] a set-but-empty VERI_REDACT_VARS reads as the default list
 - [x] a body handed gh by --input, --body-file, -Fbody=@f or --field=body=@f is redacted, the copy in a private directory
-- [ ] the ratchet fails on a gh command run through os.system, sh -c or a shell string
+- [x] the ratchet fails on a gh command run through os.system, sh -c or a shell string
 - [ ] run_records redacts tokens and listed values in every string it pushes
 - [ ] SC213 says exactly which comments are redacted
