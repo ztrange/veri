@@ -7,6 +7,6 @@
 - [x] it sets no prefix when the `VERI_PYCACHE` directory is owned by another user ⟦criterion 2⟧
 - [x] it sets no prefix when the default `${TMPDIR}/veri-pycache-<uid>` directory is group-writable ⟦criterion 2⟧
 - [x] on a refusal veri's modules compile from source through the `FromSource` finder and one stderr line names the path and why ⟦criterion 3⟧
-- [ ] a prefix path that is a regular file is refused, not used
+- [x] a prefix path that is a regular file is refused, not used
 - [ ] a prefix that cannot be created or read is refused, not a traceback
 - [ ] CLAUDE.md's bytecode-cache paragraph says the prefix is used only when the user's own and closed to others (CM160), graded ⟦criterion 4⟧
