@@ -1776,7 +1776,7 @@ def test_2594_verify_sh_diff_exits_1_with_the_deleted_cases_line_and_no_tracebac
         cwd=repo)
 
     assert (code, out.strip(), started.exists(), "Traceback" in err) == (
-        1, "step deleted pytest cases an earlier step added: tests/test_start.py::test_async_2594", False, False)
+        1, "step deleted test cases an earlier step added: tests/test_start.py::test_async_2594", False, False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -1817,7 +1817,7 @@ def test_2594_verify_sh_diff_exits_1_with_the_deleted_cases_line_alone_for_a_rem
         cwd=repo)
 
     assert (code, out.strip(), started.exists()) == (
-        1, "step deleted pytest cases an earlier step added: tests/test_start.py::test_dropped_2594", False)
+        1, "step deleted test cases an earlier step added: tests/test_start.py::test_dropped_2594", False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -1859,7 +1859,7 @@ def test_2419_verify_sh_diff_exits_1_naming_exactly_one_of_two_identical_removed
         cwd=repo)
 
     assert (code, out.strip(), started.exists()) == (
-        1, "step deleted pytest cases an earlier step added: tests/test_start.py::test_beta", False)
+        1, "step deleted test cases an earlier step added: tests/test_start.py::test_beta", False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -1903,7 +1903,7 @@ def test_2419_verify_sh_diff_exits_1_naming_exactly_the_third_of_three_identical
         cwd=repo)
 
     assert (code, out.strip(), started.exists()) == (
-        1, "step deleted pytest cases an earlier step added: tests/test_start.py::test_delta", False)
+        1, "step deleted test cases an earlier step added: tests/test_start.py::test_delta", False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -1988,7 +1988,7 @@ def test_2329_verify_sh_diff_exits_1_naming_a_removed_case_whose_text_reappears_
         cwd=repo)
 
     assert (code, out.strip(), started.exists()) == (
-        1, "step deleted pytest cases an earlier step added: tests/test_start.py::test_moved_old", False)
+        1, "step deleted test cases an earlier step added: tests/test_start.py::test_moved_old", False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2718,7 +2718,7 @@ def test_2897_verify_sh_diff_exits_1_with_the_deleted_cases_line_for_a_go_test_f
         cwd=repo)
 
     assert (code, out.strip(), started.exists()) == (
-        1, "step deleted pytest cases an earlier step added: pkg/start_test.go::TestDropped2897", False)
+        1, "step deleted test cases an earlier step added: pkg/start_test.go::TestDropped2897", False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2757,7 +2757,7 @@ def test_2897_verify_sh_diff_exits_1_with_the_deleted_cases_line_for_an_it_case_
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
-    assert (code, out.strip().startswith("step deleted pytest cases an earlier step added: web/start.test.js::"),
+    assert (code, out.strip().startswith("step deleted test cases an earlier step added: web/start.test.js::"),
             started.exists()) == (1, True, False), out
 
 
@@ -2799,7 +2799,7 @@ def test_2897_verify_sh_diff_does_not_refuse_a_non_test_go_func_removed_from_a_t
     code, out, started = run_2897_diff(run_cli, tmp_path, "pkg/start_test.go", keep,
                                        keep + "\nfunc helper2897() {\n}\n", keep)
 
-    assert (code, "deleted pytest cases" in out, started) == (0, False, True), out
+    assert (code, "deleted test cases" in out, started) == (0, False, True), out
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2810,7 +2810,7 @@ def test_2897_verify_sh_diff_refuses_an_indented_it_case_removed_by_deleting_its
     code, out, started = run_2897_diff(run_cli, tmp_path, "web/start.test.js", keep, keep + "\n" + block, keep)
 
     assert (code, out, started) == (
-        1, "step deleted pytest cases an earlier step added: web/start.test.js::nested2897", False)
+        1, "step deleted test cases an earlier step added: web/start.test.js::nested2897", False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2819,7 +2819,7 @@ def test_2897_verify_sh_diff_does_not_refuse_an_it_case_removed_from_a_plain_js_
     code, out, started = run_2897_diff(run_cli, tmp_path, "web/helpers.js", keep,
                                        keep + '\nit("dropped2897", () => {\n  run();\n});\n', keep)
 
-    assert (code, "deleted pytest cases" in out, started) == (0, False, True), out
+    assert (code, "deleted test cases" in out, started) == (0, False, True), out
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2829,7 +2829,7 @@ def test_3110_verify_sh_diff_refuses_a_single_quoted_it_case_removed_from_a_test
                                        keep + "\nit('dropped3110', () => {\n  expect(3).toBe(3);\n});\n", keep)
 
     assert (code, out, started) == (
-        1, "step deleted pytest cases an earlier step added: web/start.test.js::dropped3110", False)
+        1, "step deleted test cases an earlier step added: web/start.test.js::dropped3110", False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2839,7 +2839,7 @@ def test_3110_verify_sh_diff_refuses_a_backtick_it_case_removed_from_a_test_js_f
                                        keep + "\nit(`dropped3110`, () => {\n  expect(3).toBe(3);\n});\n", keep)
 
     assert (code, out, started) == (
-        1, "step deleted pytest cases an earlier step added: web/start.test.js::dropped3110", False)
+        1, "step deleted test cases an earlier step added: web/start.test.js::dropped3110", False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2849,7 +2849,7 @@ def test_3110_verify_sh_diff_refuses_a_double_quoted_test_case_removed_from_a_te
                                        keep + '\ntest("dropped3110", () => {\n  expect(3).toBe(3);\n});\n', keep)
 
     assert (code, out, started) == (
-        1, "step deleted pytest cases an earlier step added: web/start.test.js::dropped3110", False)
+        1, "step deleted test cases an earlier step added: web/start.test.js::dropped3110", False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2859,7 +2859,7 @@ def test_3110_verify_sh_diff_refuses_a_single_quoted_test_case_removed_from_a_te
                                        keep + "\ntest('dropped3110', () => {\n  expect(3).toBe(3);\n});\n", keep)
 
     assert (code, out, started) == (
-        1, "step deleted pytest cases an earlier step added: web/start.test.js::dropped3110", False)
+        1, "step deleted test cases an earlier step added: web/start.test.js::dropped3110", False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2869,7 +2869,7 @@ def test_3110_verify_sh_diff_refuses_a_double_quoted_it_case_removed_from_a_spec
                                        keep + '\nit("dropped3110", () => {\n  expect(3).toBe(3);\n});\n', keep)
 
     assert (code, out, started) == (
-        1, "step deleted pytest cases an earlier step added: web/start.spec.js::dropped3110", False)
+        1, "step deleted test cases an earlier step added: web/start.spec.js::dropped3110", False)
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2880,7 +2880,7 @@ def test_3110_verify_sh_diff_does_not_refuse_a_single_quoted_test_case_kept_in_a
     code, out, started = run_2897_diff(run_cli, tmp_path, "web/start.spec.js", keep, keep + case,
                                        keep.replace("keeps", "keeps edited") + case)
 
-    assert (code, "deleted pytest cases" in out, started) == (0, False, True), out
+    assert (code, "deleted test cases" in out, started) == (0, False, True), out
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2890,7 +2890,7 @@ def test_3110_verify_sh_diff_does_not_refuse_a_single_quoted_test_case_renamed_i
     code, out, started = run_2897_diff(run_cli, tmp_path, "web/start.spec.js", keep,
                                        keep + "\ntest('old3110" + body, keep + "\ntest('new3110" + body)
 
-    assert (code, "deleted pytest cases" in out, started) == (0, False, True), out
+    assert (code, "deleted test cases" in out, started) == (0, False, True), out
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2902,7 +2902,7 @@ def test_2897_verify_sh_diff_does_not_refuse_a_go_test_renamed_in_a_test_go_file
                                        keep + "\nfunc TestOld2897(t *testing.T) " + body,
                                        keep + "\nfunc TestNew2897(t *testing.T) " + body)
 
-    assert (code, "deleted pytest cases" in out, started) == (0, False, True), out
+    assert (code, "deleted test cases" in out, started) == (0, False, True), out
 
 
 @pytest.mark.process("a real git scratch repository whose working tree and git stash create snapshot the diff check reads, and a stub claude that records any start")
@@ -2946,7 +2946,7 @@ def test_3120_verify_sh_diff_with_supersede_base_exits_1_naming_a_case_the_uncom
         cwd=repo)
 
     assert (code, out.strip(), started.exists()) == (
-        1, "step deleted pytest cases an earlier step added: tests/test_start.py::test_old_3120", False)
+        1, "step deleted test cases an earlier step added: tests/test_start.py::test_old_3120", False)
 
 
 @pytest.mark.process("a real git scratch repository whose working tree and git stash create snapshot the diff check reads, and a stub claude that records any start")
@@ -2988,7 +2988,7 @@ def test_3120_verify_sh_diff_without_supersede_base_still_compares_against_head_
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
-    assert (code, "deleted pytest cases" in out, started.exists()) == (0, False, True), out
+    assert (code, "deleted test cases" in out, started.exists()) == (0, False, True), out
 
 
 @pytest.mark.process("a real git scratch repository whose working tree and git stash create snapshot the diff check reads, and a stub claude that records any start")
@@ -3031,7 +3031,7 @@ def test_3120_verify_sh_diff_with_supersede_base_does_not_report_a_case_the_unco
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
-    assert (code, "deleted pytest cases" in out, started.exists()) == (0, False, True), out
+    assert (code, "deleted test cases" in out, started.exists()) == (0, False, True), out
 
 
 @pytest.mark.process("a real git scratch repository whose working tree and git stash create snapshot the diff check reads, and a stub claude that records any start")
