@@ -164,6 +164,19 @@ def test_3917_step_ahead_skips_the_red_case_and_exits_3_printing_nothing_when_no
     }
 
 
+def test_3917_step_ahead_skips_only_the_red_id_itself_when_it_names_a_file_and_by_case_name_when_it_does_not(run_cli, tmp_path, exhausted_outcome):
+    _suite(tmp_path)
+    report = "STEP_AHEAD: tests/py/test_solvable.py::test_prints_usage\n"
+
+    results = {red: run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path)
+               for red in ("tests/py/test_other.py::test_prints_usage", "test_prints_usage")}
+
+    assert results == {
+        "tests/py/test_other.py::test_prints_usage": (0, "prep tests/py/test_solvable.py::test_prints_usage\n", ""),
+        "test_prints_usage": (3, "", ""),
+    }
+
+
 def test_3917_the_plain_read_prints_and_exits_as_before_on_input_holding_step_ahead_lines(run_cli, tmp_path, exhausted_outcome):
     _suite(tmp_path)
     ahead = "STEP_AHEAD: tests/py/test_status.py::test_status_lists_runs\n"
