@@ -2,9 +2,9 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import hashlib
 import os
-import subprocess
 import sys
 
+import git
 from entry import no_arguments, write
 
 USAGE = "usage: content_mtimes.py"
@@ -26,12 +26,12 @@ def main(argv):
     refused = no_arguments(argv, USAGE)
     if refused is not None:
         return refused
-    top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    top = git.git("rev-parse", "--show-toplevel", capture_output=True, text=True)
     if top.returncode != 0:
         write(sys.stderr, "content_mtimes: not inside a git working tree; changed no file.")
         return 2
     root = top.stdout.rstrip("\n")
-    listed = subprocess.run(["git", "ls-files", "-z"], cwd=root, capture_output=True, check=True).stdout
+    listed = git.git("ls-files", "-z", cwd=root, capture_output=True, check=True).stdout
     for name in filter(None, listed.split(b"\0")):
         path = os.path.join(os.fsencode(root), name)
         if os.path.islink(path) or not os.path.isfile(path):
