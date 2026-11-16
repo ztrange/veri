@@ -62,3 +62,15 @@ def test_remove_tree_refuses_a_symlinked_tree_leaving_the_modes_under_its_target
         pinned_scripts.remove_tree(str(link))
 
     assert ((outside / "scripts").stat().st_mode, link.is_symlink()) == (before, True)
+
+
+def test_make_read_only_leaves_the_mode_of_a_file_hard_linked_from_outside_the_tree_3963(tmp_path):
+    outside = tmp_path / "outside.txt"
+    outside.write_text("not the skill's\n")
+    before = outside.stat().st_mode
+    tree = skill_tree(tmp_path / "veri-snapshot-x")
+    os.link(outside, tree / "scripts" / "linked.txt")
+
+    pinned_scripts.make_read_only(str(tree))
+
+    assert outside.stat().st_mode == before

@@ -28,10 +28,15 @@ WRITE_BITS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 
 
 def make_read_only(tree):
-    """Remove the write bits of every file and directory under <tree>, <tree> included, so a write into it fails."""
+    """Remove the write bits of every file and directory under <tree>, <tree> included, so a write into it fails.
+    A file with a second hard link is left as it is: the other name may lie outside the tree."""
     for root, dirs, files in os.walk(tree, topdown=False):
         for name in files + dirs:
-            take_bits(os.path.join(root, name), WRITE_BITS)
+            path = os.path.join(root, name)
+            found = os.lstat(path)
+            if stat.S_ISREG(found.st_mode) and found.st_nlink > 1:
+                continue
+            take_bits(path, WRITE_BITS)
     take_bits(tree, WRITE_BITS)
 
 
