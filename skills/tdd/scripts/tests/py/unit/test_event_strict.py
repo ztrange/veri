@@ -90,7 +90,8 @@ def test_strict_refuses_an_empty_value_of_a_key_the_table_does_not_allow_empty_n
 
 @pytest.mark.parametrize("how", ["mark", "sh"])
 @pytest.mark.parametrize("name, fields", [("no-such-event", ["pr=1"]), ("comment", ["kind=red", "url=u", "colour=blue"]),
-                                          ("comment", ["kind=red"])])
+                                          ("comment", ["kind=red"]), ("plan", ["steps=three"]),
+                                          ("merged", ["pr=", "tag=", "message="])])
 def test_without_strict_each_refused_call_writes_its_line_and_exits_0_saying_nothing(
         how, name, fields, clone, tmp_path, monkeypatch, run_cli, capfd):
     monkeypatch.delenv("VERI_EVENT_STRICT", raising=False)
