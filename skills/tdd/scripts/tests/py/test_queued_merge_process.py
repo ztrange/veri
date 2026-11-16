@@ -288,7 +288,8 @@ def test_queued_merge_whose_pr_is_not_merged_afterwards_exits_1_and_leaves_the_m
     plant(bin_dir, "gh", FAKE_GH_UNMERGED)
     plant(bin_dir, "git", FAKE_GIT)
     env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git,
-           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
+           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0",
+           "VERI_MERGE_SETTLE_READS": "2", "VERI_MERGE_SETTLE_SLEEP": "0"}
     run = dict(cwd=repo, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     stopped = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(repo), "feature", "-"],
