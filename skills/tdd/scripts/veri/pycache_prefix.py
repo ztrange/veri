@@ -11,6 +11,8 @@ def refusal(prefix):
     except FileExistsError:
         pass
     mode = os.lstat(prefix).st_mode
+    if stat.S_ISLNK(mode):
+        return "it is a symlink"
     if mode & stat.S_IWGRP:
         return "it is group-writable"
     if mode & stat.S_IWOTH:
