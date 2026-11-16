@@ -1418,3 +1418,13 @@ def test_3981_queued_merge_whose_tag_step_raises_runs_every_later_cleanup_step_a
     ran = [first(calls, needle) is not None for needle in (
         "push origin --delete feature", "worktree remove", "branch -D feature", "merge-lock.sh release", "pull --ff-only")]
     assert (code, "merged, but cleanup failed: tag" in err, ran) == (2, True, [True] * 5)
+
+
+def test_3982_queued_merge_whose_tag_push_fails_deletes_the_local_tag_says_it_was_cut_not_published_and_removed_and_exits_2_naming_tag(fake_processes, run_cli):
+    calls = scenario(fake_processes, fail=("push origin v0.11",))
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    deleted = [c for c in calls if " tag -d " in c]
+    assert (code, deleted, "v0.11 cut, not published, and removed" in err, "merged, but cleanup failed: tag" in err) == (
+        2, ["git -C /wt tag -d v0.11"], True, True)

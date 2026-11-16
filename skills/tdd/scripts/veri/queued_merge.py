@@ -149,10 +149,13 @@ def _tag(worktree, message, pull, pr):
         return False
     major, minor = tags[0].removeprefix("v").split(".")
     name = "v%s.%d" % (major, int(minor) + 1)
-    for args in (("tag", "-a", name, "-m", message, target), ("push", "origin", name)):
-        if _git(worktree, *args).returncode:
-            _say("git %s failed; tag %s not published" % (args[0], name))
-            return False
+    if _git(worktree, "tag", "-a", name, "-m", message, target).returncode:
+        _say("git tag failed; tag %s not published" % name)
+        return False
+    if _git(worktree, "push", "origin", name).returncode:
+        _git(worktree, "tag", "-d", name)
+        _say("git push failed; tag %s cut, not published, and removed" % name)
+        return False
     return name
 
 
