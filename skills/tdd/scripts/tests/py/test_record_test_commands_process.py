@@ -88,3 +88,17 @@ def test_it_opens_the_pr_from_veri_install_against_the_default_branch_prints_its
     assert all(title and body for head, base, title, body in pulls)
     assert (git(work, "rev-parse", "--abbrev-ref", "HEAD"), git(work, "status", "--porcelain"),
             git(work, "diff"), git(work, "diff", "--cached")) == before
+
+
+def branches(origin):
+    return git(origin, "for-each-ref", "--format=%(refname)", "refs/heads").split()
+
+
+@pytest.mark.process("git clone and fetch from a bare origin")
+def test_a_default_tip_already_declaring_both_commands_exactly_is_exit_3_with_no_branch_or_pr(
+        tmp_path, run_cli, record, pulls):
+    origin, work = project(tmp_path, **{"CLAUDE.md": "# P\nveri: fast tests: `make unit`\nveri: all tests: make test\n"})
+
+    code, out, err = run_cli(record, ["make unit", "make test"], cwd=work)
+
+    assert (code, out, branches(origin), pulls) == (3, "", ["refs/heads/main"], [])

@@ -4,7 +4,7 @@
 - [x] an existing veri: fast tests: or veri: all tests: line is replaced where it stands, never duplicated, every other line byte-for-byte unchanged ⟦criterion 2⟧
 - [x] gh_pr_create opens a pull request from a head against a base through gh's REST route and answers its URL ⟦criterion 3⟧
 - [x] record-test-commands.sh opens the PR from veri-install against the default branch, prints its URL, exits 0, never merges, and leaves the checkout's branch, index and working tree as they were ⟦criterion 3⟧
-- [ ] a default-branch tip already declaring both commands exactly is exit 3 with no branch or PR ⟦criterion 4⟧
+- [x] a default-branch tip already declaring both commands exactly is exit 3 with no branch or PR ⟦criterion 4⟧
 - [ ] an origin already holding veri-install is exit 2 naming it on stderr, nothing written ⟦criterion 5⟧
 - [ ] a missing or empty command argument, or a repo-root outside a git repository, is exit 2 with nothing written ⟦criterion 5⟧
 - [ ] the record-test-commands.sh shim execs its module: an empty command through the shim is exit 2 ⟦criterion 6⟧
