@@ -1045,3 +1045,25 @@ def test_a_take_that_gives_up_on_a_lock_whose_holder_is_alive_exits_2_naming_the
     lock, ran = given_up(tmp_path, fake_processes, run_cli, workqueue, "%d\n%s\n" % (os.getpid(), STARTED))
 
     assert ran == (2, "", "workqueue.sh: could not take the lock %s; holder %d alive\n" % (lock, os.getpid()))
+
+
+def test_a_take_that_gives_up_on_a_lock_whose_holder_is_dead_exits_2_naming_the_lock_and_the_holders_pid_dead_3993(
+        tmp_path, fake_processes, run_cli, workqueue, monkeypatch):
+    dead = 4242424
+
+    def kill(pid, sig):
+        if pid == dead:
+            raise ProcessLookupError(3, "No such process")
+        raise AssertionError("signal to an unexpected pid %d" % pid)
+
+    monkeypatch.setattr(os, "kill", kill)
+    lock, ran = given_up(tmp_path, fake_processes, run_cli, workqueue, "%d\n%s\n" % (dead, STARTED))
+
+    assert ran == (2, "", "workqueue.sh: could not take the lock %s; holder %d dead\n" % (lock, dead))
+
+
+def test_a_take_that_gives_up_on_a_lock_with_no_holder_file_exits_2_naming_the_lock_and_the_holder_unrecorded_3993(
+        tmp_path, fake_processes, run_cli, workqueue):
+    lock, ran = given_up(tmp_path, fake_processes, run_cli, workqueue, None)
+
+    assert ran == (2, "", "workqueue.sh: could not take the lock %s; holder unrecorded\n" % lock)
