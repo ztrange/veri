@@ -24,7 +24,7 @@ Merge only when all of these hold; otherwise stop and tell the human which one f
 - The committed ledger has no unchecked step and no `⟂ refactor pending`.
 - Every ⟦human-owed⟧ line is ticked.
 - The run did not end with an open question for the human. Merging would answer it for them, so hand the question back instead.
-- No process has a file open or its working directory inside the run's worktree: `lsof +D <worktree>` lists none but the shell running the check and `lsof` itself. A process still there (a review, a hand fix, another merge) is a failed precondition: stop, do not wait.
+- No process has a file open or its working directory inside the run's worktree: run `lsof +D <worktree>` from outside the worktree (the call starts in another directory and names the worktree by its absolute path), and read its output, not its exit code (`lsof` can exit 1 while printing lines): any process line it prints is a foreign process. A process still there (a review, a hand fix, another merge) is a failed precondition: stop, do not wait.
 
 An unticked ⟦human-owed⟧ line gets one read-only review subagent (it may read, never write). If it answers OK, tick the line; if NOT OK, the line goes to the human and nothing merges.
 
