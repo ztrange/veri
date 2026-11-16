@@ -11,6 +11,7 @@ import sys
 from entry import no_arguments
 
 MARKER_RE = re.compile(rb"^(SPLIT|NEEDS_USER):\s*(.*)$")
+STEP_AHEAD_RE = re.compile(rb"^STEP_AHEAD:\s*(.*?)\s*$")
 
 
 def _read_stdin():
@@ -24,16 +25,29 @@ def _print_lines(lines):
     sys.stdout.buffer.flush()
 
 
-USAGE = "usage: exhausted-outcome.sh < leaf-output.txt"
+USAGE = "usage: exhausted-outcome.sh [--step-ahead <red-test-id>] < leaf-output.txt"
 
 
-def main(argv):
-    refused = no_arguments(argv, USAGE)
-    if refused is not None:
-        return refused
+def _lines():
     lines = _read_stdin().replace(b"\0", b"").split(b"\n")
     if lines[-1] == b"":
         lines.pop()
+    return lines
+
+
+def step_ahead(red_test_id):
+    cases = [m.group(1) for m in map(STEP_AHEAD_RE.match, _lines()) if m]
+    _print_lines([b" ".join([b"prep", *cases])])
+    return 0
+
+
+def main(argv):
+    if len(argv) == 2 and argv[0] == "--step-ahead" and argv[1]:
+        return step_ahead(argv[1])
+    refused = no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
+    lines = _lines()
     criteria, uidx = [], None
     for i, line in enumerate(lines):
         marker = MARKER_RE.match(line)
