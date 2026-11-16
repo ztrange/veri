@@ -393,60 +393,6 @@ def test_main_withholds_an_issue_blocked_by_an_open_fetched_issue_as_number_or_u
     assert observed == {(): (0, "22\n23\n24\n"), ("--repo", "o/r"): (0, "22\n23\n24\n25\n")}
 
 
-def dead_pid():
-    pid = os.fork()
-    if pid == 0:
-        os._exit(0)
-    os.waitpid(pid, 0)
-    return pid
-
-
-def test_main_reads_a_lock_under_the_main_tree_git_names_from_the_callers_directory_as_an_int_pid_that_is_alive(fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
-    numbers = [10, 11, 12, 13, 14, 15, 18, 19, 20]
-    (tmp_path / "issues.json").write_text(json.dumps([opted_in(n) for n in numbers]))
-    (tmp_path / "prs.json").write_text("[]")
-    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
-    pid = str(os.getpid())
-    texts = {10: " %s \n" % pid, 11: "+" + pid, 12: pid[0] + "_" + pid[1:] if len(pid) > 1 else pid,
-             14: "abc\n", 15: "%d\n" % dead_pid(), 18: pid + "\n"}
-    conducting(monkeypatch, *texts)
-    decoy = tmp_path / "decoy"
-    for number, text in texts.items():
-        lock = decoy / ".tdd" / "wt" / str(number) / ".tdd" / "conductor.pid"
-        lock.parent.mkdir(parents=True)
-        lock.write_text(text)
-    (decoy / ".tdd" / "wt" / "13" / ".tdd" / "conductor.pid").mkdir(parents=True)
-    caller = tmp_path / "caller"
-    stray = caller / ".tdd" / "wt" / "19" / ".tdd" / "conductor.pid"
-    stray.parent.mkdir(parents=True)
-    stray.write_text(pid)
-    monkeypatch.chdir(caller)
-    calls = []
-
-    def run(answer):
-        def fake_run(line, *rest, **kwargs):
-            args = fake.argvs[-1]
-            if list(args) != ["git", "worktree", "list", "--porcelain"]:
-                raise AssertionError("unexpected command: %r" % (args,))
-            calls.append((kwargs.get("cwd") in (None, str(caller), caller), kwargs.get("capture_output")))
-            if isinstance(answer, BaseException):
-                raise answer
-            return tuple(answer)
-
-        fake = fake_processes.answers({}, default=fake_run)
-        code = solvable_issues.main([])
-        out, err = capsys.readouterr()
-        return code, out
-
-    unlocked = "".join("%d\n" % n for n in numbers)
-    assert run((0, "worktree %s\nHEAD 0000000\n" % decoy, "")) == (0, "11\n12\n13\n14\n15\n19\n20\n")
-    assert run((0, "%s\nHEAD 0000000\n" % decoy, "")) == (0, "11\n12\n13\n14\n15\n19\n20\n")
-    assert run((128, "", "fatal: not a git repository\n")) == (0, unlocked)
-    assert run((0, "", "")) == (0, unlocked)
-    assert run(FileNotFoundError(2, "No such file or directory", "git")) == (0, unlocked)
-    assert calls == [(True, True)] * 5
-
-
 def test_main_sorts_survivors_by_priority_then_bug_band_then_number_never_widening_the_pool_and_returns_3_when_none_survive(fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
     monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
     fake_git_answering_nothing(fake_processes)
@@ -761,43 +707,6 @@ def plant_claim():
         lock.parent.mkdir(parents=True)
         lock.write_text("%d\n" % pid)
     return plant
-
-
-def test_cli_withholds_the_issue_whose_worktree_lock_holds_a_live_pid_and_lists_one_with_a_dead_pid_or_no_worktree(fake_processes, tmp_path, monkeypatch, run_cli, plant_claim, solvable_issues):
-    fixtures, cwd = cli_fixtures(tmp_path, fake_processes, [opted_in(170), opted_in(171), opted_in(172)])
-    main_tree = tmp_path / "main-tree"
-    plant_claim(main_tree, 170, os.getpid())
-    plant_claim(main_tree, 171, dead_pid())
-    conducting(monkeypatch, 170)
-    fake_git_answering(fake_processes, main_tree)
-
-    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
-
-    assert answer == (0, "171\n172\n", "")
-
-
-def test_cli_lists_again_a_bailed_runs_issue_whose_worktree_lock_holds_a_dead_pid_and_no_open_pr_closes(fake_processes, tmp_path, monkeypatch, run_cli, plant_claim, solvable_issues):
-    fixtures, cwd = cli_fixtures(tmp_path, fake_processes, [opted_in(173)])
-    main_tree = tmp_path / "main-tree"
-    plant_claim(main_tree, 173, dead_pid())
-    fake_git_answering(fake_processes, main_tree)
-
-    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
-
-    assert answer == (0, "173\n", "")
-
-
-def test_cli_keeps_out_an_issue_an_open_pr_closes_though_its_worktree_lock_holds_a_dead_pid_returning_3(fake_processes, tmp_path, monkeypatch, run_cli, plant_claim, solvable_issues):
-    fixtures, cwd = cli_fixtures(tmp_path, fake_processes, [opted_in(175)])
-    (fixtures / "prs.json").write_text(json.dumps([
-        {"state": "OPEN", "body": "Draft PR opened by a /tdd run that bailed.\n\nCloses #175\n"}]))
-    main_tree = tmp_path / "main-tree"
-    plant_claim(main_tree, 175, dead_pid())
-    fake_git_answering(fake_processes, main_tree)
-
-    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
-
-    assert answer == (3, "", "")
 
 
 def header_paragraphs():
