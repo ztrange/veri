@@ -95,6 +95,8 @@ def bounded(argv, run=None, **kwargs):
     call: exit 124, with a line naming the command and the limit on the stream the caller captures (written to ours
     when it captures none)."""
     limit = wait_seconds("VERI_GH_TIMEOUT", 1)
+    if argv[0] == "gh":
+        argv = [redact(arg) for arg in argv]
     try:
         return (run or subprocess.run)(argv, timeout=limit, **kwargs)
     except subprocess.TimeoutExpired:
