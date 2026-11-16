@@ -318,3 +318,15 @@ def test_where_a_stack_is_named_an_unreadable_pull_request_base_is_exit_2_before
     code, _, err = join(run_cli, world)
 
     assert (code, [c for c in world.calls if c.startswith("merge-lock.sh") or "wait-ci.sh" in c]) == (2, []), err
+
+
+@pytest.mark.parametrize("state, merged, expected", [("closed", True, 3), ("closed", False, 2)])
+def test_a_pull_request_already_merged_is_exit_3_and_one_closed_unmerged_exit_2_both_before_the_lock(
+        tmp_path, fake_processes, monkeypatch, run_cli, state, merged, expected):
+    first = {"state": state, "merged": merged, "head": {"sha": "9999999"},
+             "base": {"ref": "stack", "repo": {"default_branch": "trunk"}}}
+    world = World(tmp_path, first=first).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, [c for c in world.calls if c.startswith("merge-lock.sh")], pushed(world)) == (expected, [], []), err
