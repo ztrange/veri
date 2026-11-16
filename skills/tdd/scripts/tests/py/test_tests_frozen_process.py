@@ -178,6 +178,8 @@ def test_rerecord_rebased_keeps_every_non_body_line_of_the_record_and_rewrites_o
     assert [line for line in new if line.startswith("body: ")] != [
         line for line in old if line.startswith("body: ")]
     assert any(line.startswith("case: ") for line in old)
+    assert [line for line in new if line.startswith("body: ")] == [tests_frozen.body_line(
+        "tests/test_suite.py", "test_config_2552", dict(tests_frozen.cut_cases(suite.read_text()))["test_config_2552"])]
 
 
 STEPS = ["step Z adds an early case", "step A adds the cases", "step B adds a later case"]
