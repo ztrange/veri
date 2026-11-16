@@ -97,10 +97,13 @@ def _secret_spans(text, values):
     joined, starts = _unbroken(text)
     spans = [(_in_text(starts, run.start()), _in_text(starts, run.end() - 1) + 1)
              for run in _BASE64.finditer(joined) if _decodes_to_secret(run.group(), values)]
+    reached = 0
     for found in _TOKEN_SHAPES.finditer(joined):
-        end = _in_text(starts, found.end() - 1) + 1
+        # A shape starting inside the last one's span runs on from that span's end, never back over it: one pass.
+        end = max(_in_text(starts, found.end() - 1) + 1, reached)
         run_on = next(chars for prefixes, chars in _RUN_ON if found.group().startswith(prefixes))
-        spans.append((_in_text(starts, found.start()), run_on.match(text, end).end()))
+        reached = run_on.match(text, end).end()
+        spans.append((_in_text(starts, found.start()), reached))
     for value in values:
         at = joined.find(value)
         while at != -1:
@@ -113,13 +116,15 @@ def redact(text):
     """<text> with every token-shaped string, and every value (8 characters or more) of a variable VERI_REDACT_VARS
     names, replaced by [redacted]; a line break, or its JSON escape, inside one does not hide it, and a base64 run that
     decodes to one is replaced whole."""
-    out, at = [], 0
+    merged = []
     for start, end in sorted(_secret_spans(text, _listed_values())):
-        if end <= at:
-            continue
-        out.append(text[at:max(start, at)])
-        if start >= at:
-            out.append(REDACTED)
+        if merged and start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    out, at = [], 0
+    for start, end in merged:
+        out += [text[at:start], REDACTED]
         at = end
     out.append(text[at:])
     return "".join(out)
