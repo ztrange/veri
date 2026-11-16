@@ -16,7 +16,7 @@
 - [x] a 1 MB body holding tokens is redacted within the case timeout
 - [x] no veri module names a gh command line outside github.bounded's callers, save preflight's reads and queued_merge's merge, which carry no body
 - [x] the comment.sh entry of SCRIPTS.md says comments are redacted, naming the patterns and VERI_REDACT_VARS ⟦criterion 5⟧
-- [ ] redact answers a 1 MB body of each repeated token shape in linear time
+- [x] redact answers a 1 MB body of each repeated token shape in linear time
 - [ ] a token or listed value split by a wrap with indentation, a markdown break or trailing blanks is redacted
 - [ ] a token or listed value holding a zero-width character is redacted
 - [ ] a listed value is redacted in its JSON-escaped form

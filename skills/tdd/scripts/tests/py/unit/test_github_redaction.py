@@ -161,6 +161,14 @@ def test_redact_replaces_the_base64_of_a_token_or_of_a_listed_value_issue_3960(g
 
 
 @pytest.mark.timeout(10)
+@pytest.mark.parametrize("shape", ["github_pat_" + "a" * 22, "sk-ant-" + "a" * 20, "ghp_" + "a" * 36, "AKIA" + "A" * 16])
+def test_redact_answers_1_mb_of_one_repeated_token_shape_within_the_case_timeout_issue_3960(github, shape):
+    body = shape * (1048576 // len(shape)) + " tail"
+
+    assert github.redact(body) == "[redacted] tail"
+
+
+@pytest.mark.timeout(10)
 def test_redact_answers_a_1_mb_body_holding_tokens_within_the_case_timeout_issue_3960(github):
     token = "ghp_" + FAKE * 3
     prose = "step 4 FAIL_OUTPUT: assert 1 == 2 in test_split.py, line 17\n" * 400
