@@ -142,3 +142,18 @@ def test_a_join_makes_no_ci_wait_and_no_merge_call_cuts_no_tag_and_closes_no_iss
     forbidden = [c for c in world.calls if "wait-ci.sh" in c or "pr merge" in c or "/merge" in c or " tag" in c
                  or "issue close" in c or "issues/7" in c or "refs/tags/" in c]
     assert (code, forbidden) == (0, []), err
+
+
+OPEN = {"state": "open", "merged": False}
+
+
+def test_the_join_re_reads_the_pull_request_over_the_settle_window_and_exits_0_on_a_later_merged_read_2_naming_the_last_state(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    later = World(tmp_path / "later", reads=(OPEN, None, {"state": "closed", "merged": True})).install(fake_processes, monkeypatch)
+    landed = join(run_cli, later)[0], len(later.pulls)
+    never = World(tmp_path / "never", reads=(OPEN, OPEN, {"state": "weird\nstate", "merged": "true"})).install(
+        fake_processes, monkeypatch)
+    code, _, err = join(run_cli, never)
+
+    assert (landed, code, len(never.pulls), "weird" in err, never.stack[0], never.stack_pushed()[-1:]) == (
+        (0, 4), 2, 4, True, REBASED, ["git -C %s push origin %s:refs/heads/stack" % (never.wt, REBASED)])
