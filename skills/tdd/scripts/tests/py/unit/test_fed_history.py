@@ -95,6 +95,18 @@ def test_fed_history_answers_a_file_named_by_its_absolute_path_under_the_root_as
     } == {"text_at": ONE, "cases_at": ["test_one", "test_two"], "revisions": ["red"], "first_revision_with": "red"}
 
 
+def test_fed_history_answers_a_revision_followed_by_a_caret_as_its_first_parent_as_git_does(fed_history, tests_frozen):
+    fed_history(("base", "start", {"test_a.py": ONE}), ("next", "more", {"test_a.py": ONE + "\n\n" + TWO}),
+                ("last", "again", {"test_a.py": TWO}))
+    history = tests_frozen.case_history
+
+    assert {
+        "text_at": [history.text_at(rev, "test_a.py") for rev in ("last^", "next^", "HEAD^", "base^")],
+        "has_rev": [history.has_rev(rev) for rev in ("next^", "base^")],
+        "commit_of": history.commit_of("last^"),
+    } == {"text_at": [ONE + "\n\n" + TWO, ONE, ONE + "\n\n" + TWO, ""], "has_rev": [True, False], "commit_of": "next"}
+
+
 def test_fed_history_answers_a_ref_and_a_detached_revision_by_name_and_default_branch_with_the_default_it_is_fed(
         fed_history, tests_frozen):
     fed_history(("base", "start", {"test_a.py": ONE}), ("next", "more", {"test_a.py": ONE + "\n\n" + TWO}),
