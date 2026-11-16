@@ -118,3 +118,15 @@ def test_a_workers_first_and_second_new_repo_each_return_what_git_init_makes_on_
         assert run(repo, "rev-parse", "--verify", "-q", "HEAD").returncode == 1, f"{name} has a commit"
         assert run(repo, "config", "--local", "--get-regexp", "^user\\.").returncode == 1, f"{name} has an identity"
         assert run(repo, "status", "--porcelain").stdout == "", name
+
+
+@pytest.mark.process("two repositories new_repo copies from one template, a commit in one, read back with git rev-parse")
+def test_two_repositories_from_new_repo_share_no_file_so_a_commit_in_one_leaves_the_other_with_none(tmp_path):
+    one = repo_builder.new_repo(tmp_path / "one")
+    other = repo_builder.new_repo(tmp_path / "other")
+
+    repo_builder.commit_all(one, "feat: only here", kept="a\n")
+
+    assert run(one, "rev-parse", "--verify", "-q", "HEAD").returncode == 0
+    assert run(other, "rev-parse", "--verify", "-q", "HEAD").returncode == 1
+    assert run(other, "cat-file", "-e", run(one, "rev-parse", "HEAD").stdout.strip()).returncode != 0
