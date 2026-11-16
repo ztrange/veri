@@ -11,5 +11,5 @@
 - [x] `run-conductor.sh` honours a carried skill pin only when it is an ancestor of the skill clone's origin default branch, else names it on stderr and pins fresh ⟦criterion 4⟧
 - [x] `release-issue.sh` deletes origin's `refs/veri/runs/<n>` once the run is released; a failure is one stderr line, never fatal ⟦criterion 2⟧
 - [x] the ref carries `.tdd/issue-<n>-timeout` again, beside the journal lines and the skill pin ⟦criterion 1⟧
-- [ ] a first launch with no local timeout pin restores the carried one into the run's worktree ⟦criterion 4⟧
-- [ ] a carried timeout pin that is not a whole number of seconds >= 1 is ignored with one stderr line ⟦criterion 4⟧
+- [x] a first launch with no local timeout pin restores the carried one into the run's worktree ⟦criterion 4⟧
+- [x] a carried timeout pin that is not a whole number of seconds >= 1 is ignored with one stderr line ⟦criterion 4⟧

@@ -435,6 +435,7 @@ How a leaf is launched through the supervisor, detached, waited for and timed, a
 
 ## leaf_timeout
 - `settled(root, issue)`: the run's pinned hard timeout (`<root>/.tdd/issue-<issue>-timeout`) as the digits written, `None` when unpinned; raises `Malformed` (`path`, `text`, `not_a_number`) for a pin that is not a whole number of seconds >= 1.
+- `pin_path(root, issue)`: that pin's path. `valid_pin(text)`: whether a pin's text is one `settled` accepts, the check `run_conductor` applies to a carried pin before restoring it.
 
 ## leaf_model
 - `resolve(name)`: the model for a leaf, `None` when the name is invalid or the model has whitespace (message on stderr).

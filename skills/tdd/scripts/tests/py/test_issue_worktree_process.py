@@ -998,6 +998,21 @@ def test_take_over_over_a_stale_fetched_branch_origin_holds_cuts_the_worktree_on
         0, want, "tdd/66-adopted", tip)
 
 
+@pytest.mark.process("git worktree add on a scratch repository whose run directory holds a restored timeout pin")
+def test_a_run_directory_holding_only_a_restored_timeout_pin_still_gets_its_worktree_with_the_pin_kept_4079(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "restored-timeout")
+    want = scratch_wt_path(repo, 67)
+    pin = pathlib.Path(want, ".tdd", "issue-67-timeout")
+    pin.parent.mkdir(parents=True)
+    pin.write_text("3600\n")
+
+    code, out, _ = run_cli(issue_worktree, ["67", "restored"], cwd=repo)
+
+    assert (code, out.strip(), scratch_git(want, "branch", "--show-current"), pin.read_text() if pin.exists() else None) == (
+        0, want, "tdd/67-restored", "3600\n")
+
+
 def resumed_on(worktree, code, out, local_tip, remote_tip):
     return (local_tip != remote_tip, code, out.strip(), scratch_git(worktree, "branch", "--show-current"),
             scratch_git(worktree, "rev-parse", "HEAD"))
