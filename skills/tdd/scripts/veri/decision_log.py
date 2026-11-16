@@ -12,9 +12,23 @@ import run_dir
 USAGE = "usage: decision-log.sh record <question> <decision> <rule> <by>\n"
 
 
-def log_path():
-    """`.tdd/decisions.jsonl` in the main working tree."""
-    return run_dir.main_file(run_dir.main_tree_from_files(os.getcwd()), "decisions.jsonl")
+def log_path(main=None):
+    """`.tdd/decisions.jsonl` in the main working tree <main> (default: the one above the current directory)."""
+    return run_dir.main_file(run_dir.main_tree_from_files(os.getcwd()) if main is None else main, "decisions.jsonl")
+
+
+def read(main):
+    """The records of <main>'s decision log, oldest first; [] when it has none."""
+    try:
+        with open(log_path(main)) as f:
+            return [json.loads(line) for line in f if line.strip()]
+    except FileNotFoundError:
+        return []
+
+
+def epoch(record):
+    """A record's `at` as epoch seconds."""
+    return datetime.datetime.fromisoformat(record["at"]).timestamp()
 
 
 def record(question, decision, rule, by):
