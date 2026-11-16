@@ -119,7 +119,7 @@ def _touching_cases(ledger):
     named = [path for path in files if path in words or os.path.basename(path) in words]
     stems = {os.path.splitext(os.path.basename(path))[0].replace("-", "_") for path in named}
     lines, more, room = [], [], int(tunables.get("VERI_PLAN_TOUCHING_CASES"))
-    for path in (path for path in files if stems and case_reader.is_test_path(path)):
+    for path in (path for path in files if stems and case_reader.is_test_path(path) and not os.path.islink(path)):
         names = _touching_names(path, stems)
         shown, room = names[:room], room - len(names[:room])
         if shown:
