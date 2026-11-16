@@ -536,7 +536,8 @@ def closed(issue):
 
 
 def done_posted(issue):
-    """Whether a `### ✅ Done` comment was posted since the last resume; None when GitHub gave no answer."""
+    """Whether a trusted (github.trusted_comment) `### ✅ Done` comment was posted since the last resume; None when
+    GitHub gave no answer. An untrusted one counts as absent: a stranger's comment cannot silence the bail."""
     since = last_resume(issue)
     number = 1
     while True:
@@ -548,7 +549,7 @@ def done_posted(issue):
         except ValueError:
             return False
         bodies = thread if isinstance(thread, list) else thread.get("comments", [])
-        if any(isinstance(c, dict) and str(c.get("body", "")).startswith("### ✅ Done")
+        if any(github.trusted_comment(c) and str(c.get("body", "")).startswith("### ✅ Done")
                and posted_at(c) >= since for c in bodies):
             return True
         if len(bodies) < 100:
