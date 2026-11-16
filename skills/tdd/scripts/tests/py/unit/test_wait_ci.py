@@ -2,6 +2,7 @@
 import importlib
 import json
 import re
+import subprocess
 import sys
 
 import pytest
@@ -2692,3 +2693,28 @@ def test_main_reads_an_empty_ci_retry_backoff_and_an_empty_no_run_wait_as_their_
                            env={"VERI_POLL": "0", "VERI_CI_RETRY_BACKOFF": "", "VERI_CI_NO_RUN_WAIT": ""}, cwd=work)
 
     assert ("is not 0 or 1" in err, "non-negative whole number" in err) == (False, False)
+
+
+def test_main_with_every_pr_read_timing_out_exits_2_naming_the_pr_once_its_deadline_has_passed_never_3_3983(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    """Each `gh api` read of the pull never returns; the clock (`date +%s`) moves 1000 s per read, past the 120 s deadline."""
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    clock = []
+
+    def answer(line, **kwargs):
+        if line == "date +%s":
+            clock.append(1000 * len(clock))
+            return 0, f"{clock[-1]}\n", ""
+        if line == PULL:
+            if kwargs.get("timeout") is None:
+                pytest.fail("%r never returns, and no timeout bounds it" % line)
+            raise subprocess.TimeoutExpired(line, kwargs["timeout"])
+        return 0, "", ""
+
+    fake_processes(answer)
+    code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA],
+                             env={"VERI_POLL": "0", "VERI_GH_TIMEOUT": "5"}, cwd=work)
+
+    timed_out = "gh api repos/o/r/pulls/1: no answer after 5s (VERI_GH_TIMEOUT)\n"
+    assert (code, out, err) == (2, "", timed_out * 3 + UNREADABLE)
