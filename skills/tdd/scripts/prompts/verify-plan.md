@@ -70,7 +70,7 @@ REJECT a plan that carries a Red/Green step whose criterion changes prose or pro
 to a unit with a requirements list is that unit's `⟦skill-edit⟧` step, and a change to text no list
 claims is a `⟦diff-checked⟧` line, judged blind against the diff.
 
-REJECT a plan that changes a script's output which existing cases outside the changing step's own Red pin (a usage string, a constant, output compared verbatim or by checksum) without a step that updates those older cases ahead of the step that changes the output: Green may not edit a test, so the older cases go red and the revise budget runs out. Your reason names the changing step and the output its older cases pin.
+REJECT a plan with a step that changes what existing cases outside the changing step's own Red pin, without a step that updates those older cases ahead of the changing step. Each of these kinds counts: a script's output (a usage string, a constant, output compared verbatim or by checksum); the input those cases feed, made unacceptable; what a fake those cases use must return; and the calls, or their order, a fake records. Green may not edit a test, so the older cases go red and the revise budget runs out. Your reason names the changing step and what its older cases pin.
 
 REJECT a plan with a step that introduces a branch — a fallback an existing suite forces in,
 say — that only a later step's test requires: that step's blind green verifier sees code none
