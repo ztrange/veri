@@ -233,3 +233,16 @@ def test_wait_matches_the_components_named_after_max_seconds_and_with_none_the_d
 
     assert run_cli(page.module, ["wait", "600", "Webhooks"])[0] == 3
     assert run_cli(page.module, ["wait", "600"])[:2] == (0, "up\n")
+
+
+@pytest.mark.parametrize("argv", [["wait"], ["wait", "0"], ["wait", "-5"], ["wait", "abc"], ["wait", ""],
+                                  ["wait", "Actions"]])
+def test_wait_with_a_max_seconds_missing_or_not_a_positive_integer_exits_2_with_the_usage_before_any_read(
+        page, run_cli, argv):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests"))
+
+    code, out, err = run_cli(page.module, argv)
+
+    assert (code, out) == (2, "")
+    assert "usage: github-status.sh" in err
+    assert page.calls == []

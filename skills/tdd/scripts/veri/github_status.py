@@ -98,7 +98,9 @@ def positive(name):
 def main(argv):
     waiting = argv[:1] == ["wait"]
     if waiting:
-        max_seconds = int(argv[1])
+        max_seconds = entry.whole_number(argv[1], 1) if len(argv) > 1 else None
+        if max_seconds is None:
+            return entry.refuse("github-status.sh: wait needs <max-seconds>, a positive integer", usage=USAGE)
         deadline = now() + datetime.timedelta(seconds=max_seconds)
         argv = argv[2:]
     components = tuple(argv) or DEFAULT_COMPONENTS
