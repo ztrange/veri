@@ -494,14 +494,37 @@ def _joined(pid, repo, pr, worktree, branch, stack):
     return 2
 
 
-def _join(pid, repo, pr, worktree, branch, stack):
+def _state(pull):
+    """What a read of the pull request answered, for a message: GitHub's text is untrusted, so repr'd and cut short."""
+    if pull is None:
+        return "no answer"
+    return "state %s, merged %s" % (repr(pull.get("state"))[:40], repr(pull.get("merged"))[:40])
+
+
+def _confirmed(repo, pr, stack, window):
+    """0 when a read of <pr> over the settle window answers merged: true; 2 naming the last state read otherwise."""
+    reads, sleep = window
+    last = None
+    for attempt in range(reads):
+        if attempt:
+            time.sleep(sleep)
+        last = _pull(repo, pr)
+        if last and last.get("merged") is True:
+            return 0
+    _say("%s did not read merged after the push to %s (last read: %s); the stack is left as pushed" % (
+        pr, stack, _state(last)))
+    return 2
+
+
+def _join(pid, repo, pr, worktree, branch, stack, window):
     """Join the run on <branch> to <stack> under the merge lock, released on every exit path."""
     code = _script("merge-lock.sh", "take", "--pid", pid)
     if code:
         _say("taking the merge lock failed (exit %d)" % code)
         return code
     try:
-        return _joined(pid, repo, pr, worktree, branch, stack)
+        code = _joined(pid, repo, pr, worktree, branch, stack)
+        return code or _confirmed(repo, pr, stack, window)
     finally:
         _release(pid)
 
@@ -543,7 +566,7 @@ def main(argv):
     pid = str(os.getpid())
     stack = _stack_base(repo, pr, worktree)
     if stack:
-        return _join(pid, repo, pr, worktree, branch, stack)
+        return _join(pid, repo, pr, worktree, branch, stack, window)
     code = _script("merge-lock.sh", "take", "--pid", pid)
     if code:
         _say("taking the merge lock failed (exit %d)" % code)

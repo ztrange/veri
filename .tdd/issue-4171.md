@@ -3,7 +3,7 @@
 - [x] queued-merge.sh joins a pull request whose base is the stack: lock, fetch, rebase onto origin/<stack>, leased push of the run's branch, fast tier and prose-owed.sh on the rebased tip, push of that tip to <stack> ⟦criterion 1⟧
 - [x] a stack push refused because origin's stack moved starts the join again from the fetch, never forced, the stack ending with both writers' commits ⟦criterion 2⟧
 - [x] a join makes no wait-ci.sh call and no merge call, cuts no tag and closes no issue ⟦criterion 3⟧
-- [ ] after the stack push the join re-reads the pull request over the settle window: a merged read exits 0, none exits 2 naming the last state read ⟦criterion 4⟧
+- [x] after the stack push the join re-reads the pull request over the settle window: a merged read exits 0, none exits 2 naming the last state read ⟦criterion 4⟧
 - [ ] a join whose ledger's only unticked line is ⟦full-suite⟧ goes ahead; any other unticked line exits 1 before anything is pushed to the stack ⟦criterion 5⟧
 - [ ] a rebase conflict exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
 - [ ] a red fast tier exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
