@@ -1216,14 +1216,6 @@ def test_gh_pr_ready_reads_an_empty_veri_gh_driver_as_empty_and_refuses_it_not_a
     assert capsys.readouterr().err == "VERI_GH_DRIVER is '': expected auto, rest or graphql\n"
 
 
-def never_returns(line, **kwargs):
-    """A process that never answers: with a timeout it is killed as subprocess.run kills one; with none the case fails,
-    since the caller would hang without bound."""
-    if kwargs.get("timeout") is None:
-        pytest.fail("%r never returns, and no timeout bounds it" % line)
-    raise subprocess.TimeoutExpired(line, kwargs["timeout"])
-
-
 def test_every_gh_process_and_the_git_ls_remote_against_a_process_that_never_returns_end_after_veri_gh_timeout_naming_the_command_and_the_limit_3983(
         fake_processes, monkeypatch, capsys, tmp_path, github):
     monkeypatch.chdir(tmp_path)
@@ -1233,9 +1225,9 @@ def test_every_gh_process_and_the_git_ls_remote_against_a_process_that_never_ret
     head = "a" * 40
     pull = "gh api repos/{owner}/{repo}/pulls/12"
     fake = fake_processes.answers({
-        "gh api x": never_returns,
-        "gh pr view 1": never_returns,
-        "gh api rate_limit --jq .resources.core.reset": never_returns,
+        "gh api x": HANGS,
+        "gh pr view 1": HANGS,
+        "gh api rate_limit --jq .resources.core.reset": HANGS,
         pull + " --jq .head.sha": [(0, "b" * 40 + "\n", ""), (0, head + "\n", "")],
         pull + " --jq .head.ref": (0, "br\n", ""),
         "git ls-remote origin refs/heads/br": HANGS,

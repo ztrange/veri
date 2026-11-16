@@ -2,10 +2,11 @@
 import importlib
 import json
 import re
-import subprocess
 import sys
 
 import pytest
+
+from process_fakes import HANGS
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha] | --fresh-window <head-sha>\n"
 
@@ -2707,9 +2708,7 @@ def test_main_with_every_pr_read_timing_out_exits_2_naming_the_pr_once_its_deadl
             clock.append(1000 * len(clock))
             return 0, f"{clock[-1]}\n", ""
         if line == PULL:
-            if kwargs.get("timeout") is None:
-                pytest.fail("%r never returns, and no timeout bounds it" % line)
-            raise subprocess.TimeoutExpired(line, kwargs["timeout"])
+            return HANGS
         return 0, "", ""
 
     fake_processes(answer)
