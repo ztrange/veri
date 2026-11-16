@@ -96,13 +96,25 @@ BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO
 	  exit 2; \
 	fi
 
+# The bytecode cache the leg is handed as PYTHONPYCACHEPREFIX, and the manifest that vouches for its
+# .pyc files, must be this user's own (#3966): on a shared /tmp another user can create the path
+# first. The leg's interpreter reads the prefix before any veri code runs, so the check is here.
+PYCACHE_GUARD := why=; \
+	case "$$(ls -ld "$$pycache" 2>/dev/null)" in ?????w*) why="it is group-writable" ;; esac; \
+	if [ -n "$$why" ]; then \
+	  printf 'veri: refusing the bytecode cache %s: %s; remove it, or set VERI_PYCACHE to a directory of your own\n' "$$pycache" "$$why" >&2; \
+	  exit 2; \
+	fi
+
 MAX_MAKE_DEPTH := 4
 
 test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
 	@$(BASH_GUARD)
 	@for e in $(PY_REFUSED); do printf 'refusing: %s selects no suite\n' "$$e" >&2; exit 2; done
-	@unset BASH_ENV ENV PYTHONDONTWRITEBYTECODE; fail=0; git_bin="$$(mktemp -d)"; pycache="$${VERI_PYCACHE:-$${TMPDIR:-/tmp}/veri-pycache-$$(id -u)}"; mkdir -p -m 0700 "$$pycache"; \
+	@unset BASH_ENV ENV PYTHONDONTWRITEBYTECODE; pycache="$${VERI_PYCACHE:-$${TMPDIR:-/tmp}/veri-pycache-$$(id -u)}"; mkdir -p -m 0700 "$$pycache"; \
+	$(PYCACHE_GUARD); \
+	fail=0; git_bin="$$(mktemp -d)"; \
 	trap 'rm -rf "$$git_bin"' EXIT; \
 	$(OFFLINE_GIT); \
 	skills/tdd/scripts/prose-owed.sh . || fail=1; \
