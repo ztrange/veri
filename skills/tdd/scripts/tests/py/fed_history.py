@@ -151,7 +151,8 @@ def feeder(monkeypatch, default_root):
     def feed(*revisions, root=None, branch="main"):
         history = FedHistory(revisions, root or default_root, branch)
         for name, value in list(vars(case_history).items()):
-            if callable(value) and not name.startswith("_") and getattr(value, "__module__", "") == "case_history":
+            if callable(value) and not name.startswith("_") and getattr(value, "__module__", "") in ("case_history",
+                                                                                                    __name__):
                 monkeypatch.setattr(case_history, name,
                                     getattr(history, name) if name in ANSWERED else unanswered(name))
         return history
