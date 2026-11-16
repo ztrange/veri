@@ -357,6 +357,35 @@ def test_4013_a_verifier_leaf_carries_effort_and_veri_effort_verifiers_value_onl
     assert (code, supervised[0][1], efforts) == (0, "verify-green", [expected])
 
 
+@pytest.mark.parametrize("effort, leaf_args, refused", [
+    ("high", "--permission-mode bypassPermissions --effort low", True),
+    ("high", "--effort", True),
+    ("", "--effort low", False),
+    (None, "--effort low", False),
+    ("high", "--permission-mode bypassPermissions", False),
+])
+def test_4013_verify_leaf_args_carrying_effort_beside_a_set_veri_effort_verifier_exits_2_naming_both_and_launches_nothing(
+        effort, leaf_args, refused, tmp_path, monkeypatch, capfdbinary, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    write_inputs(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    if effort is not None:
+        monkeypatch.setenv("VERI_EFFORT_VERIFIER", effort)
+    monkeypatch.setenv("VERIFY_LEAF_ARGS", leaf_args)
+    supervised = []
+    answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine", supervised=supervised)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    err = capfdbinary.readouterr().err.decode("utf-8")
+    if refused:
+        assert (code, len(err.splitlines()), "VERIFY_LEAF_ARGS" in err, "--effort" in err,
+                "VERI_EFFORT_VERIFIER" in err, supervised) == (2, 1, True, True, True, [])
+    else:
+        assert (code, err, len(supervised)) == (0, "", 1)
+
+
 def test_main_still_refuses_a_literal_model_word_in_verify_leaf_args_when_veri_model_verifier_is_also_set(
         tmp_path, monkeypatch, capfdbinary, fake_processes):
     monkeypatch.chdir(tmp_path)
