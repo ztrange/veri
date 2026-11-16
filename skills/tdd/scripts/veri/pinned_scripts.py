@@ -33,7 +33,7 @@ def make_read_only(tree):
     for root, dirs, files in os.walk(tree, topdown=False):
         for name in files + dirs:
             path = os.path.join(root, name)
-            found = os.lstat(path)
+            found = plain_entry(path)
             if stat.S_ISREG(found.st_mode) and found.st_nlink > 1:
                 continue
             take_bits(path, WRITE_BITS)
@@ -84,7 +84,7 @@ def change_mode(path, new_mode):
     """Set the mode of <path> to new_mode(its mode), through a descriptor of it; a symlink is left as it is, never followed."""
     if stat.S_ISLNK(os.lstat(path).st_mode):
         return
-    handle = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    handle = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     try:
         os.fchmod(handle, new_mode(stat.S_IMODE(os.fstat(handle).st_mode)))
     finally:
@@ -100,15 +100,14 @@ def snapshot_digest(snapshot):
         for name in files + dirs:
             path = os.path.join(root, name)
             relative = os.path.relpath(path, snapshot)
-            mode = os.lstat(path).st_mode
+            mode = plain_entry(path).st_mode
             if stat.S_ISDIR(mode):
                 lines.append((relative, "directory"))
                 continue
             if stat.S_ISLNK(mode):
                 content = b"symlink " + os.fsencode(os.readlink(path))
             else:
-                with open(path, "rb") as handle:
-                    content = handle.read()
+                content = read_regular(path)
                 content += b" x" if mode & stat.S_IXUSR else b" -"
             lines.append((relative, hashlib.sha256(content).hexdigest()))
     return "".join("%s %s\n" % (digest, relative) for relative, digest in sorted(lines))
@@ -124,6 +123,27 @@ def first_change(recorded, snapshot):
         if before.get(path) != now.get(path):
             return os.path.join(snapshot, path)
     return None
+
+
+def plain_entry(path):
+    """os.lstat(<path>), or OSError when it is neither a regular file, a directory nor a symlink (a FIFO, a socket,
+    a device), which is never opened."""
+    found = os.lstat(path)
+    if not (stat.S_ISREG(found.st_mode) or stat.S_ISDIR(found.st_mode) or stat.S_ISLNK(found.st_mode)):
+        raise OSError(errno.EINVAL, "neither a file, a directory nor a symlink", path)
+    return found
+
+
+def read_regular(path):
+    """The bytes of the regular file <path>, opened without following a symlink or blocking; OSError otherwise."""
+    handle = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(handle).st_mode):
+            raise OSError(errno.EINVAL, "not a regular file", path)
+        with os.fdopen(os.dup(handle), "rb") as opened:
+            return opened.read()
+    finally:
+        os.close(handle)
 
 
 def raise_error(error):
