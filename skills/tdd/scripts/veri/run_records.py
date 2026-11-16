@@ -29,7 +29,8 @@ def _issue_lines(path, issue):
             record = json.loads(line)
         except ValueError:
             continue
-        if isinstance(record, dict) and str(record.get("issue", "")) == str(issue):
+        # A line naming no issue was written without run context and is this run's own, as metrics counts it.
+        if isinstance(record, dict) and str(record.get("issue") or issue) == str(issue):
             kept.append(line if line.endswith(b"\n") else line + b"\n")
     return b"".join(kept)
 

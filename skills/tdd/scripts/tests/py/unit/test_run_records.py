@@ -18,6 +18,17 @@ def _kill_reaches(monkeypatch, fake):
     monkeypatch.setattr(os, "killpg", lambda group, sig: [c.send_signal(sig) for c in fake.popens if c.pid == group])
 
 
+def test_the_carried_journal_keeps_the_issues_lines_and_those_naming_no_issue_as_the_report_counts_them(tmp_path, run_records):
+    (tmp_path / ".tdd").mkdir()
+    lines = [{"issue": "7", "event": "start"}, {"issue": "", "event": "usage"}, {"event": "test-run"},
+             {"issue": "8", "event": "start"}]
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in lines))
+
+    carried = run_records.records(str(tmp_path), "7")["events.jsonl"].decode().splitlines()
+
+    assert [json.loads(line) for line in carried] == lines[:3]
+
+
 def test_a_records_push_and_fetch_that_never_answer_end_after_veri_git_network_timeout_as_no_answer_on_one_stderr_line(
         tmp_path, monkeypatch, capsys, fake_processes, run_records):
     monkeypatch.chdir(tmp_path)
