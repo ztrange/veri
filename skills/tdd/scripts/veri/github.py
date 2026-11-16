@@ -223,6 +223,19 @@ def issue_comments(number):
     return rest_items("%s/comments?per_page=100" % _issue(number))
 
 
+def authenticated_login():
+    """The login `gh` is authenticated as (`gh api user`), read with gh's stderr captured and not echoed; NoAnswer whose
+    detail is that stderr when it cannot be read."""
+    run = gh_api("user", stderr=subprocess.PIPE)
+    try:
+        login = json.loads(run.stdout or "null").get("login") if run.returncode == 0 else None
+    except (ValueError, AttributeError):
+        login = None
+    if not login:
+        raise NoAnswer("", run.stderr or "gh api user named no login")
+    return login
+
+
 def _quiet_write(*args):
     run = run_gh("api", *args, stderr=subprocess.PIPE)
     if run.returncode != 0:

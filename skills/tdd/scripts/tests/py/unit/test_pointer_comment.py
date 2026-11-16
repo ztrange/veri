@@ -4,6 +4,7 @@ import json
 import re
 
 HEADING = "### 📍 Run state"
+LOGIN = "veri-bot"
 
 
 class FakeIssue:
@@ -11,7 +12,8 @@ class FakeIssue:
     makes every gh call fail. Answers git's branch read and `hostname -s` too."""
 
     def __init__(self, fake_processes, comments=(), pulls=(), branch="tdd/7-pointer", host="box", labels=(), extra=None):
-        self.comments = [{"id": 100 + i, "body": body} for i, body in enumerate(comments)]
+        self.comments = [{"id": 100 + i, "body": body if isinstance(body, str) else body[0],
+                          "user": {"login": LOGIN if isinstance(body, str) else body[1]}} for i, body in enumerate(comments)]
         self.pulls = list(pulls)
         self.labels = set(labels)
         self.fail = False
@@ -30,6 +32,8 @@ class FakeIssue:
         argv = [str(a) for a in self.fake.argvs[-1]]
         if self.fail:
             return 1, "", "gh: Server Error (HTTP 502)\nsecond line of gh's words\n"
+        if argv[2:] == ["user"]:
+            return 0, json.dumps({"login": LOGIN}), ""
         method = argv[argv.index("-X") + 1] if "-X" in argv else "GET"
         path = next(a for a in argv[2:] if a.startswith("repos/"))
         body = next((a[len("body="):] for a in argv if a.startswith("body=")), None)
@@ -49,7 +53,7 @@ class FakeIssue:
             items = self.pulls if "/pulls" in path else self.comments
             return 0, json.dumps(items if page == 1 else []), ""
         if method == "POST" and path.endswith("/comments"):
-            self.comments.append({"id": 100 + len(self.comments), "body": body})
+            self.comments.append({"id": 100 + len(self.comments), "body": body, "user": {"login": LOGIN}})
             return 0, "{}", ""
         if method == "PATCH" and "/issues/comments/" in path:
             wanted = int(path.rpartition("/")[2])
@@ -58,6 +62,18 @@ class FakeIssue:
                     comment["body"] = body
             return 0, "{}", ""
         raise AssertionError("unexpected gh call: %s" % argv)
+
+
+def test_a_comment_headed_like_the_pointer_by_someone_else_is_never_edited_the_pointer_is_posted_beside_it(tmp_path, monkeypatch, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    human = HEADING + "\n\nmy own notes"
+    issue = FakeIssue(fake_processes, comments=[(human, "a-human")])
+
+    _module().main(["7"])
+    _module().main(["7"])
+
+    ours = [c["body"] for c in issue.comments if c["user"]["login"] == LOGIN]
+    assert (issue.comments[0]["body"], len(ours), ours[0].startswith(HEADING)) == (human, 1, True)
 
 
 def test_veri_machine_name_is_a_tunable_parsed_as_text_with_an_empty_default():
