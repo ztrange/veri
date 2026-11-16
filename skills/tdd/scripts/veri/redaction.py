@@ -8,33 +8,41 @@ import re
 import tunables
 
 REDACTED = "[redacted]"
-# Each shape at its minimum length, with the characters it may run on in: gh[pousr]_[A-Za-z0-9]{36,},
-# github_pat_[A-Za-z0-9_]{22,}, sk-ant-[A-Za-z0-9_-]{20,} and AKIA[0-9A-Z]{16}.
-_TOKEN_SHAPES = re.compile(r"gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22}|sk-ant-[A-Za-z0-9_-]{20}|AKIA[0-9A-Z]{16}")
-_RUN_ON = ((("github_pat_",), re.compile(r"[A-Za-z0-9_]*")), (("gh",), re.compile(r"[A-Za-z0-9]*")),
-           (("sk-ant-",), re.compile(r"[A-Za-z0-9_-]*")), (("AKIA",), re.compile("")))
-# A line break or its JSON string escape, with the blanks before it and the next line's indent, or a zero-width
-# character (ZWSP, ZWNJ, ZWJ, BOM, soft hyphen): a token split by one is still a token.
+_TOKEN_SHAPES = re.compile(r"gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,}|sk-ant-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}")
+# The same shapes read in two parts, so a token glued to the next one is two tokens: a prefix, then the shape at its
+# minimum length, then the characters it may run on in.
+_PREFIX = re.compile(r"gh[pousr]_|github_pat_|sk-ant-|AKIA")
+_AT_LEAST = {"github_pat_": (re.compile(r"[A-Za-z0-9_]{22}"), re.compile(r"[A-Za-z0-9_]*")),
+             "sk-ant-": (re.compile(r"[A-Za-z0-9_-]{20}"), re.compile(r"[A-Za-z0-9_-]*")),
+             "AKIA": (re.compile(r"[0-9A-Z]{16}"), re.compile("")),
+             **{"gh%s_" % kind: (re.compile(r"[A-Za-z0-9]{36}"), re.compile(r"[A-Za-z0-9]*")) for kind in "pousr"}}
+# Where a secret may be split: a line break or its JSON string escape, or a zero-width character (ZWSP, ZWNJ, ZWJ, BOM,
+# soft hyphen). A line break takes with it the blanks and one backslash before it, and the next line's indent and any
+# run of markdown prefixes (`> `, `>`, `- `, `* `, `+ `, `# `), so a secret wrapped into a quote or a list is still one.
 _BREAK = re.compile(r"\r\n|\r|\n|\\r\\n|\\r|\\n|[\u200b\u200c\u200d\ufeff\u00ad]")
-_BLANKS = re.compile(r"[ \t]*")
 _ZERO_WIDTH = "\u200b\u200c\u200d\ufeff\u00ad"
+_LINE_START = re.compile(r"[ \t]*(?:(?:>[ \t]?|[-*+#][ \t])[ \t]*)*")
 # A base64 or base64url run long enough to encode the shortest secret (an 8-character value).
 _BASE64 = re.compile(r"[A-Za-z0-9+/_-]{12,}={0,2}")
 _URLSAFE = str.maketrans("-_", "+/")
 
 
-def _unbroken(text):
-    """<text> with every _BREAK removed, and where each piece of it starts in <text>: [(joined start, text start)]."""
+def _joined(text):
+    """<text> with every split point _BREAK finds removed (a line break with what goes with it), and where each piece
+    of it starts in <text>: [(joined start, text start)]. One pass: each character is read a bounded number of times."""
     pieces, starts, at, joined = [], [], 0, 0
     for found in _BREAK.finditer(text):
         start, end = found.start(), found.end()
-        if found.group() not in _ZERO_WIDTH:
-            # The blanks before a line break and the next line's indent go with it; each blank is read once.
-            while start > at and text[start - 1] in " \t":
-                start -= 1
-            end = _BLANKS.match(text, end).end()
         if end <= at:
             continue
+        if found.group() not in _ZERO_WIDTH:
+            while start > at and text[start - 1] in " \t":
+                start -= 1
+            if start > at and text[start - 1] == "\\":
+                start -= 1
+                while start > at and text[start - 1] in " \t":
+                    start -= 1
+            end = _LINE_START.match(text, end).end()
         if start > at:
             pieces.append(text[at:start])
             starts.append((joined, at))
@@ -69,7 +77,7 @@ def _decodes_to_secret(run, values):
             decoded = base64.b64decode(aligned).decode("latin-1")
         except binascii.Error:
             continue
-        decoded = _unbroken(decoded)[0]
+        decoded = _joined(decoded)[0]
         if _TOKEN_SHAPES.search(decoded) or any(value in decoded for value in values):
             return True
     return False
@@ -86,30 +94,32 @@ def _listed_values():
 
 
 def _secret_spans(text, values):
-    """The (start, end) spans of <text> holding a token shape or one of <values>, a line break inside one included,
-    and of each base64 run that decodes to one."""
-    joined, starts = _unbroken(text)
-    spans = [(_in_text(starts, run.start()), _in_text(starts, run.end() - 1) + 1)
-             for run in _BASE64.finditer(joined) if _decodes_to_secret(run.group(), values)]
+    """The (start, end) spans of <text> holding a token shape or one of <values>, or a base64 run that decodes to one,
+    each found in <text> joined across its split points."""
+    joined, starts = _joined(text)
+    found = [(run.start(), run.end()) for run in _BASE64.finditer(joined) if _decodes_to_secret(run.group(), values)]
     reached = 0
-    for found in _TOKEN_SHAPES.finditer(joined):
-        # A shape starting inside the last one's span runs on from that span's end, never back over it: one pass.
-        end = max(_in_text(starts, found.end() - 1) + 1, reached)
-        run_on = next(chars for prefixes, chars in _RUN_ON if found.group().startswith(prefixes))
-        reached = run_on.match(text, end).end()
-        spans.append((_in_text(starts, found.start()), reached))
+    for prefix in _PREFIX.finditer(joined):
+        least, run_on = _AT_LEAST[prefix.group()]
+        shape = least.match(joined, prefix.end())
+        if shape:
+            # A shape starting inside the last one runs on from where that one ended, never back over it: one pass.
+            reached = run_on.match(joined, max(shape.end(), reached)).end()
+            found.append((prefix.start(), reached))
     for value in values:
         at = joined.find(value)
         while at != -1:
-            spans.append((_in_text(starts, at), _in_text(starts, at + len(value) - 1) + 1))
+            found.append((at, at + len(value)))
             at = joined.find(value, at + len(value))
-    return spans
+    # Each match, made on the joined text only, covers the text from its first character to its last, whatever split
+    # points lie between.
+    return [(_in_text(starts, first), _in_text(starts, last - 1) + 1) for first, last in found]
 
 
 def redact(text):
     """<text> with every token-shaped string, and every value (8 characters or more) of a variable VERI_REDACT_VARS
-    names, replaced by [redacted]; a line break, or its JSON escape, inside one does not hide it, and a base64 run that
-    decodes to one is replaced whole."""
+    names, replaced by [redacted]; no split point (_BREAK and what goes with it) inside one hides it, and a base64 run
+    that decodes to one is replaced whole."""
     merged = []
     for start, end in sorted(_secret_spans(text, _listed_values())):
         if merged and start <= merged[-1][1]:
