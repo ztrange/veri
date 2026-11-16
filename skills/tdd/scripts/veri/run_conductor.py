@@ -332,6 +332,7 @@ def conduct(text, issue, env):
     strip_session_env(env)
     env.pop("VERI_NEW_SKILL", None)
     env.pop("FORCE_PROMPT_CACHING_5M", None)
+    env.pop("VERI_EVENT_STRICT", None)
     env["SHELL"] = env["CLAUDE_CODE_SHELL"] = shutil.which("bash")
     binary = tunables.claude_bin()
     event.state_labels(b"start", env.get("VERI_STATE_LABEL_ISSUE"))
