@@ -11,6 +11,7 @@ import socket
 import sys
 import tempfile
 import time
+import unicodedata
 import urllib.parse
 
 import git
@@ -135,21 +136,31 @@ def _redactions(run):
     steps.append((GENERIC_TEMP, "<tmp>"))
     for names, repl in ((hosts, "<host>"), (accounts, "<user>")):
         steps += [(re.compile(WORD % re.escape(name), re.I), repl) for name in sorted(names, key=len, reverse=True)]
-    normalized_paths = {_normalized(base) for _, kind in paths for path in kind for base in _path_bases(path)}
-    words = sorted({_normalized(name) for name in hosts | accounts}, key=len, reverse=True)
+    normalized_paths = {_normalized(base) for _, kind in paths for path in kind for base in _path_bases(path)} - {None}
+    words = sorted({_normalized(name) for name in hosts | accounts} - {None}, key=len, reverse=True)
     pattern = "|".join([re.escape(p) + PATH_END for p in sorted(normalized_paths, key=len, reverse=True)]
                        + [r"(?<![a-z0-9<])%s(?![a-z0-9>])" % re.escape(w) for w in words])
     return steps, re.compile(pattern) if pattern else None
 
 
+ZERO_WIDTH = dict.fromkeys(map(ord, "​‌‍⁠﻿­"))
+DECODE_PASSES = 50
+
+
 def _normalized(text):
-    """A copy of <text> as the fail-closed layer reads it: URL-decoded until it stops changing (at most 5 times), an
-    escaped slash or a backslash read as `/`, case-folded."""
-    for _ in range(5):
-        decoded = urllib.parse.unquote(text)
+    """A copy of <text> as the fail-closed layer reads it, or None when it never stops decoding: URL-decoded (`+` read as
+    a space, the form encoding) until it stops changing, each pass shrinking it or leaving it, at most DECODE_PASSES
+    passes; then NFKC, with the zero-width characters and the soft hyphen dropped, an escaped slash or a backslash read
+    as `/`, case-folded."""
+    for _ in range(DECODE_PASSES):
+        decoded = urllib.parse.unquote_plus(text)
         if decoded == text:
             break
         text = decoded
+    else:
+        if urllib.parse.unquote_plus(text) != text:
+            return None
+    text = unicodedata.normalize("NFKC", text).translate(ZERO_WIDTH)
     return text.replace("\\/", "/").replace("\\", "/").casefold()
 
 
@@ -157,14 +168,16 @@ def _redact_text(text, redactions):
     steps, leak = redactions
     for pattern, repl in steps:
         text = pattern.sub(repl, text)
-    if leak is not None and leak.search(_normalized(text)):
+    seen = _normalized(text)
+    if seen is None or leak is not None and leak.search(seen):
         return REDACTED
     return text
 
 
 def _redact(value, redactions):
     """<value> (decoded JSON) with every string in it, keys included, redacted; the structure is kept as it is. A key
-    replaced whole becomes `<redacted>`, or `<redacted-2>`… when the object already holds that key."""
+    whose redacted name another key already holds (an original one or one redacted before it) is suffixed, `~-2`,
+    `<redacted-2>`…, so no value is lost."""
     if isinstance(value, str):
         return _redact_text(value, redactions)
     if isinstance(value, list):
@@ -173,11 +186,12 @@ def _redact(value, redactions):
         out = {}
         for key, item in value.items():
             name = _redact_text(key, redactions)
-            if name == REDACTED and key != REDACTED:
-                n = 1
+            if name != key:
+                # A redacted key never takes the place of another: suffix it until it names no key, so no value is lost.
+                base, n = name, 1
                 while name in value or name in out:
                     n += 1
-                    name = "<redacted-%d>" % n
+                    name = "%s-%d" % (base[:-1], n) + ">" if base.startswith("<") and base.endswith(">") else "%s-%d" % (base, n)
             out[name] = _redact(item, redactions)
         return out
     return value
