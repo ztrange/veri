@@ -64,7 +64,7 @@ def take_lock(lock):
             pass
         else:
             try:
-                pid_file.record(holder_path(lock), os.getpid())
+                pid_file.record(holder_path(lock), os.getpid(), atomic=True)
             except BaseException:
                 release_lock(lock)
                 raise

@@ -610,7 +610,7 @@ def test_commands_of_answers_ps_pid_and_command_lines_for_the_pids_in_one_call(f
     assert (text, fake.argvs) == ("31 /s/report-cache.sh refresh\n", [["ps", "-p", "31,7", "-o", "pid=,command="]])
 
 
-def test_record_replaces_the_pid_file_only_by_rename_so_a_failed_write_leaves_the_old_text_and_no_other_file_3993(
+def test_an_atomic_record_replaces_the_pid_file_only_by_rename_so_a_failed_write_leaves_the_old_text_and_no_other_file_3993(
         tmp_path, fake_processes, monkeypatch):
     pid_file = importlib.import_module("veri.pid_file")
     ps_answering(fake_processes, {("ps", "-o", "lstart=", "-p", "77"): "Sun Nov 15 22:00:00 2026\n"})
@@ -622,7 +622,7 @@ def test_record_replaces_the_pid_file_only_by_rename_so_a_failed_write_leaves_th
 
     monkeypatch.setattr(pid_file.os, "replace", refused)
     try:
-        pid_file.record(str(path), 77)
+        pid_file.record(str(path), 77, atomic=True)
         raised = False
     except OSError:
         raised = True

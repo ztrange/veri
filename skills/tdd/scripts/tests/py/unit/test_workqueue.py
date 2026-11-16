@@ -1081,7 +1081,7 @@ def test_a_take_whose_holder_write_fails_leaves_no_lock_directory_behind_and_the
     queue_tree(tmp_path, fake_processes)
     lock = tmp_path / ".tdd" / "workqueue.lock"
 
-    def full_disk(path, pid):
+    def full_disk(path, pid, atomic=False):
         raise OSError(28, "No space left on device", path)
 
     monkeypatch.setattr(workqueue.pid_file, "record", full_disk)
