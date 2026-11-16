@@ -79,3 +79,17 @@ def test_no_module_outside_the_list_starts_git_itself(veri_modules_index):
     assert not unlisted, (
         f"{unlisted} start git themselves: run it through veri/git.py (git.git, git.out, git.ok) instead. "
         f"MODULES_RUNNING_GIT_DIRECTLY only shrinks, never add to it")
+
+
+@pytest.mark.tree_audit("every module of veri/")
+def test_a_listed_module_that_no_longer_starts_git_is_removed_from_the_list(veri_modules_index):
+    found = _modules_starting_git(veri_modules_index)
+    gone = [name for name in MODULES_RUNNING_GIT_DIRECTLY if name not in found]
+
+    assert not gone, f"{gone} no longer start git themselves: remove them from MODULES_RUNNING_GIT_DIRECTLY"
+
+
+def test_the_list_is_sorted():
+    names = list(MODULES_RUNNING_GIT_DIRECTLY)
+
+    assert names == sorted(names)
