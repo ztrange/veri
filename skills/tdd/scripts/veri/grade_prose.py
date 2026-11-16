@@ -285,6 +285,8 @@ def grade_unit(path, unit, read=None):
     no version, no requirements list, a reply that breaks the protocol, a signature disagreement), whose reason is
     on stderr."""
     model = grader_model()
+    effort = grader_conf().get("effort")
+    effort_args = () if effort is None else ("--effort", effort)
     if not re.search(r"(^|-)\d+(-|$)", model):
         print("grade-prose.sh: grader.conf model %r names no version" % model, file=sys.stderr)
         return Grading(2)
@@ -311,7 +313,7 @@ def grade_unit(path, unit, read=None):
     def launch(path, retry=""):
         launches[retry] = launches.get(retry, 0) + 1
         retry += "" if launches[retry] == 1 else ".%d" % launches[retry]
-        ran = leaf.launch("grade-prose", path, env=env)
+        ran = leaf.launch("grade-prose", path, *effort_args, env=env)
         if ran.returncode:
             return None
         live = os.path.join(".tdd", "grade-prose.log")

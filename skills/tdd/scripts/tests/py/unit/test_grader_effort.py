@@ -24,3 +24,23 @@ def test_the_grader_model_is_the_model_lines_value_whether_an_effort_line_sits_a
         models.append(grade_prose.grader_model())
 
     assert models == ["claude-x-4", "claude-x-4"]
+
+
+def unit_tree(tmp_path):
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+
+
+def test_the_grader_leaf_is_launched_with_effort_level_from_an_effort_line_and_without_effort_when_there_is_none(
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
+    unit_tree(tmp_path)
+    monkeypatch.setenv("PATH", "")
+    fake = fake_processes.answers({}, default=(2, "", ""))
+    launched = []
+    for text in ("model=sonnet-4\neffort=low\n", "model=sonnet-4\n"):
+        conf(tmp_path, monkeypatch, grade_prose, text)
+        run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+        launched.append([word for word in fake.argvs[-1] if word in ("--effort", "low")])
+
+    assert launched == [["--effort", "low"], []]
