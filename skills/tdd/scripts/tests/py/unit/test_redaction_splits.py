@@ -100,3 +100,17 @@ PROSE = "\n".join([
 
 def test_prose_holding_no_secret_is_left_byte_identical_issue_3960(redaction):
     assert redaction.redact(PROSE) == PROSE
+
+
+FULL_LENGTH = {"classic": SECRETS["classic"], "fine-grained": SECRETS["fine-grained"], "aws": SECRETS["aws"],
+               "env value": VALUE, "anthropic at its cap": "sk-ant-" + fake("ant-cap", 101)}
+NEXT_LINES = ["### ✅ Done", "- [ ] step", "- apple", "* bullet", "# Heading", "> quoted", "2. item", "Closes #123",
+              "--flag"]
+
+
+@pytest.mark.parametrize("shape", sorted(FULL_LENGTH))
+def test_a_full_length_token_at_a_lines_end_leaves_the_next_line_byte_identical_issue_3960(redaction, shape):
+    changed = [line for line in NEXT_LINES if redaction.redact("token: %s\n%s\nlast" % (FULL_LENGTH[shape], line))
+               != "token: [redacted]\n%s\nlast" % line]
+
+    assert changed == []

@@ -28,6 +28,6 @@
 - [x] a secret split at any position by any line break, indent, markdown prefix, trailing backslash or zero-width character is redacted whole, and prose with no secret is left byte-identical
 - [x] SC217 names all three gh api calls the prose makes as not covered
 - [x] bounded redacts the input it hands gh on stdin
-- [ ] a full-length token at a line's end leaves the next line byte-identical
+- [x] a full-length token at a line's end leaves the next line byte-identical
 - [ ] a token folded across two lines of a gh CI log, or after a bare ISO timestamp, is redacted whole
 - [ ] SCRIPTS.md and the docstring say exactly what may go with a token that ends a line

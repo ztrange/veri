@@ -182,15 +182,15 @@ def handed(arg):
 
 def test_redact_replaces_a_token_wrapped_across_a_line_break_or_a_json_newline_escape_issue_3960(github, monkeypatch):
     monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
-    token = "ghp_" + FAKE * 3 + "Zz"
+    token = "ghp_" + FAKE * 3
     wrapped = "x %s\n%s rest\nNext line\n" % (token[:20], token[20:])
     crlf = "%s\r\n%s\r\n" % (token[:10], token[10:])
-    # Matched across split points, a token runs on into the next line's first word: that word goes with it ("ok").
+    # Joined across split points, a token stops at its documented length: the next line's first word stays ("ok").
     escaped = '{"out": "%s\\n%s\\nok"}' % (token[:30], token[30:])
     value = "v fake-gh-\ntoken-value w"
 
     assert [github.redact(text) for text in (wrapped, crlf, escaped, value)] == [
-        "x [redacted] rest\nNext line\n", "[redacted]\r\n", '{"out": "[redacted]"}', "v [redacted] w"]
+        "x [redacted] rest\nNext line\n", "[redacted]\r\n", '{"out": "[redacted]\\nok"}', "v [redacted] w"]
 
 
 def test_redact_replaces_a_token_inside_a_url_a_query_string_or_glued_to_text_issue_3960(github):
@@ -216,7 +216,7 @@ def test_redact_replaces_the_base64_of_a_token_or_of_a_listed_value_issue_3960(g
         "Authorization: Basic [redacted]\n", "x=[redacted];", "[redacted]", "[redacted]", "v [redacted]"]
 
 
-SHAPES = ["ghp_" + FAKE * 3, "github_pat_" + FAKE * 2 + "_" + FAKE * 5, "sk-ant-api03-" + FAKE * 2,
+SHAPES = ["ghp_" + FAKE * 3, "github_pat_" + (FAKE * 2)[:22] + "_" + (FAKE * 5)[:59], "sk-ant-api03-" + FAKE * 2,
           "AKIAFAKE0123FAKE0123", "fake-gh-token-value"]
 
 

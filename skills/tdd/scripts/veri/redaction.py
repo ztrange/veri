@@ -16,6 +16,10 @@ _AT_LEAST = {"github_pat_": (re.compile(r"[A-Za-z0-9_]{22}"), re.compile(r"[A-Za
              "sk-ant-": (re.compile(r"[A-Za-z0-9_-]{20}"), re.compile(r"[A-Za-z0-9_-]*")),
              "AKIA": (re.compile(r"[0-9A-Z]{16}"), re.compile("")),
              **{"gh%s_" % kind: (re.compile(r"[A-Za-z0-9]{36}"), re.compile(r"[A-Za-z0-9]*")) for kind in "pousr"}}
+# A token's documented length after its prefix. A run-on that crosses a split point stops there, so a token ending a
+# line takes no more of the next line than that: none for a full-length one. sk-ant- keys vary in length; 101 is the
+# longest documented, so a shorter one ending a line may take up to 101 minus its length of the next line with it.
+_DOCUMENTED = {"github_pat_": 82, "sk-ant-": 101, "AKIA": 16, **{"gh%s_" % kind: 36 for kind in "pousr"}}
 # Where a secret may be split: a line break or its JSON string escape, or a zero-width character (ZWSP, ZWNJ, ZWJ, BOM,
 # soft hyphen). A line break takes with it the blanks and one backslash before it, and the next line's indent and any
 # run of markdown prefixes (`> `, `>`, `- `, `* `, `+ `, `# `), so a secret wrapped into a quote or a list is still one.
@@ -65,6 +69,11 @@ def _in_text(starts, index):
     return starts[low][1] + index - starts[low][0]
 
 
+def _crosses(starts, first, last):
+    """Whether characters <first> to <last> of the joined text are split in the text: a split point lies between."""
+    return _in_text(starts, last - 1) - _in_text(starts, first) != last - 1 - first
+
+
 def _decodes_to_secret(run, values):
     """Whether the base64 (or base64url) <run>, read from each of its four alignments, decodes to text holding a token
     shape or a listed variable's value."""
@@ -105,6 +114,8 @@ def _secret_spans(text, values):
         if shape:
             # A shape starting inside the last one runs on from where that one ended, never back over it: one pass.
             reached = run_on.match(joined, max(shape.end(), reached)).end()
+            if _crosses(starts, prefix.start(), reached):
+                reached = max(shape.end(), min(reached, prefix.end() + _DOCUMENTED[prefix.group()]))
             found.append((prefix.start(), reached))
     for value in values:
         at = joined.find(value)
