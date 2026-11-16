@@ -378,3 +378,16 @@ def test_take_leaves_no_staging_directory_behind_when_an_invalid_poll_interval_r
     taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
 
     assert (taken[0] != 0, sorted(p.name for p in (tmp_path / ".tdd").glob(".merge.lock.*"))) == (True, [])
+
+
+@pytest.mark.process("git init on a scratch repository, take run with bad VERI_MERGE_LOCK_WAIT values")
+def test_3995_take_with_a_veri_merge_lock_wait_that_is_not_a_non_negative_whole_number_exits_2_naming_it_creating_nothing(
+        tmp_path, merge_lock, run_cli):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    answers = {}
+    for value in ("abc", "-1", "1.5", ""):
+        code, out, err = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path,
+                                 env={"VERI_MERGE_LOCK_WAIT": value})
+        answers[value] = (code, "VERI_MERGE_LOCK_WAIT" in err, "Traceback" in err, (tmp_path / ".tdd").exists())
+
+    assert answers == {value: (2, True, False, False) for value in answers}
