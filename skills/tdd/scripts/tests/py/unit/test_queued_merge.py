@@ -598,6 +598,16 @@ def test_3979_queued_merge_whose_merge_call_exits_0_and_whose_window_gets_no_ans
     assert (code, "merge call succeeded" in err and "could not be read" in err, len(released), cleaned(calls)) == (2, True, 1, [])
 
 
+def test_3979_queued_merge_whose_merge_call_exits_0_and_whose_reads_answer_and_never_say_merged_exits_1_releasing_the_lock_once_after_the_window(fake_processes, run_cli):
+    calls = settling(fake_processes, 0, ["fail", "open"])
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "3", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    reads = [i for i, c in enumerate(calls) if i > first(calls, "pulls/7/merge") and c.endswith("gh api repos/o/r/pulls/7")]
+    released = [i for i, c in enumerate(calls) if c.startswith("merge-lock.sh release")]
+    assert (code, len(reads), len(released), released[-1:] > reads[-1:], cleaned(calls)) == (1, 3, 1, True, [])
+
+
 def test_3500_queued_merge_with_no_settle_tunables_set_rereads_an_open_pr_ten_times_each_after_a_three_second_wait(fake_processes, run_cli, monkeypatch):
     calls = scenario(fake_processes, fail=("pulls/7/merge",))
     waits = []
