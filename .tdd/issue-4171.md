@@ -8,6 +8,7 @@
 - [x] a rebase conflict exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
 - [x] a red fast tier exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
 - [x] a prose-owed.sh exit 1 exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
+- [ ] a join that gets no answer (no fast-tier command, a rebase refused without a conflict, a stack name that cannot be one, an error raised mid-join) exits 2 and releases the merge lock
 - [ ] solvable-issues.sh does not list an open issue a pull request merged into the stack closes ⟦criterion 7⟧
 - [ ] issue-worktree.sh refuses, exit 2, an issue a pull request merged into the stack closes, with no open pull request naming it ⟦criterion 7⟧
 - [ ] after a join's exit 0 the run's remote branch is deleted and its worktree removed, the main clone not moved ⟦criterion 8⟧
