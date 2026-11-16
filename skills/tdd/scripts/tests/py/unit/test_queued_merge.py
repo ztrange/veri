@@ -1527,3 +1527,12 @@ def test_3984_queued_merge_whose_merge_call_lands_and_never_returns_ends_it_afte
     tagged = first(calls, " tag -a v0.11 ")
     assert (code, "pulls/7/merge -f merge_method=rebase -f sha=%s: no answer after 5s (VERI_GH_TIMEOUT)" % PUSHED_HEAD in err,
             tagged is not None, len(released), bool(released) and tagged is not None and released[0] > tagged) == (0, True, True, 1, True)
+
+
+def test_3984_queued_merge_whose_fetch_after_the_merge_never_returns_ends_it_after_the_git_network_timeout_as_a_failed_fetch_and_cuts_no_tag(fake_processes, run_cli):
+    calls = scenario(hanging(fake_processes, "git -C /wt fetch origin"))
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GIT_NETWORK_TIMEOUT": "7", "VERI_FETCH_RETRY_SLEEP": "0"})
+
+    assert (code, "fetch origin: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err, "merged, but cleanup failed: tag" in err,
+            first(calls, " tag -a ")) == (2, True, True, None)
