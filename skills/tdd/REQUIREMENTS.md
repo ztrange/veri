@@ -1101,3 +1101,14 @@
 | AJ6 | The *Eligible causes* list holds the bullet `` - `pr-ready-failed`: none ``. (Eligible causes.) | The cause has one home. |
 | AJ7 | The *Eligible causes* list holds the bullet `` - `report-missing`: none ``. (Eligible causes.) | One home for the cause. |
 | AJ8 | *Procedure* step 4's exit-`0` bullet says the step that returned 2 is run once more only where the cause's own site states a retry (`ci-timeout`, `ci-conflict`, `pr-ready-failed`); for any other cause exit `0` is a bail with the original cause and class, the `adjudicated` event still saying `outcome=retry`. (Procedure, step 4.) | `parse-adjudication.sh` accepts `retry` for every cause, so the generic bullet would rerun a command known to return the same 2 and spend budget doing it (spec D1, deferred). |
+
+## skills/tdd/PUBLISHED.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| PB1 | `PUBLISHED.md` lists the published files: the journal, and `report-owed.json` marked optional (it may be absent or old). For each it states its path and how the path is resolved, which script writes it, and when. | A reader needs one place, and today the journal's path is only in a spec. |
+| PB2 | It states the journal's path as `$VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl` with `VERI_HOME` defaulting to `~/.veri`, and that a run with no issue or no `origin` remote writes none. | A reader globbed one directory too shallow for lack of this sentence. |
+| PB3 | It states the journal's line shape: one JSON object per line, `ts` and `awake` numbers, every other value a string, the common keys (`issue`, `actor`, `phase`, `step`, `event`, `attempt`, `skill_commit`) in that order, and that the events and their keys are those `JOURNAL.md` lists. | The page must be enough to write a parser. |
+| PB4 | It states the rules: events and keys are only ever added, never removed or renamed; no line carries a schema version; a reader ignores an event or key it does not know and survives a line that is not valid JSON. | Append-only is a promise on both sides: veri adds, the reader tolerates. |
+| PB5 | It names what is private and may change without notice: `report-cache.json`, `.tdd/status-last`, `conductor.pid`, the worktree's `.tdd/events.jsonl` path, and every other file under `.tdd/`. | A reader that knows what not to read does not break when it changes. |
+| PB6 | It says nothing of any particular reader: it names no dashboard, no reader's path and no rule for one reader alone. | Veri never knows which program reads it (PRD 014). |

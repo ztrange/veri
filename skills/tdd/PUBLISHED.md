@@ -33,7 +33,7 @@ Its path is `.tdd/report-owed.json`, relative to the working tree `/vreport` run
 object keyed by PRD number; each entry holds `updatedAt`, the PRD's `updatedAt` when its answer was
 computed, and `answer`, the owed work found for that PRD. It is written only when someone runs
 `/vreport` and a PRD's stored answer is missing or older than the PRD, so a reader must expect it
-to be absent, and old.
+to be absent, or old.
 
 ## Rules
 
