@@ -457,15 +457,34 @@ def test_main_take_over_cuts_the_worktree_on_a_local_branch_from_origins_branch_
     local = ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug")
     remote = ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug")
     claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
+    fetch = ("git", "fetch", "-q", "origin", "+refs/heads/tdd/7-slug:refs/remotes/origin/tdd/7-slug")
     adopt = ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", "/srv/repo/.tdd/wt/7", "origin/tdd/7-slug")
 
     calls = routing_git(fake_processes, {
-        listing: (0, registry, ""), local: (1, "", ""), remote: (0, "", ""),
+        listing: (0, registry, ""), local: (1, "", ""), remote: (0, "", ""), fetch: (0, "", ""),
         claims: (0, "1111111111111111111111111111111111111111\trefs/heads/tdd/7-slug\n", ""), adopt: (0, "", "")})
     code = issue_worktree.main(["--take-over", "7", "slug"])
 
-    assert (code, capsys.readouterr().out, [c for c in calls if c[:3] == ["git", "worktree", "add"]]) == (
-        0, "/srv/repo/.tdd/wt/7\n", [list(adopt)])
+    assert (code, capsys.readouterr().out, [c for c in calls if c[:2] == ["git", "fetch"] or c[:3] == ["git", "worktree", "add"]]) == (
+        0, "/srv/repo/.tdd/wt/7\n", [list(fetch), list(adopt)])
+
+
+def test_main_take_over_whose_fetch_of_origins_branch_gets_no_answer_exits_2_naming_the_fetch_and_adds_no_worktree_4080(
+        fake_processes, monkeypatch, capsys, issue_worktree):
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
+    registry = "worktree /srv/repo\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
+    calls = routing_git(fake_processes, {
+        ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug"): (1, "", ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug"): (0, "", ""),
+        ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*"): (0, "1111111\trefs/heads/tdd/7-slug\n", ""),
+        ("git", "fetch", "-q", "origin", "+refs/heads/tdd/7-slug:refs/remotes/origin/tdd/7-slug"):
+            (128, "", "fatal: unable to access origin\n")})
+    code = issue_worktree.main(["--take-over", "7", "slug"])
+
+    err = capsys.readouterr().err
+    assert (code, "git fetch" in err and "tdd/7-slug" in err, [c for c in calls if c[:3] == ["git", "worktree", "add"]]) == (
+        2, True, [])
 
 
 def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_tracking_ref_names_the_issue_issue_1734(fake_processes,
