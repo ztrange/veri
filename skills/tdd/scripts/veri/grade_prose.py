@@ -168,8 +168,10 @@ def graded_fields(line):
 
 
 def graded_line(fields):
-    """The GRADED line holding `fields`, without its newline: the inverse of graded_fields."""
-    return " ".join(fields)
+    """The GRADED line holding `fields`, without its newline: the inverse of graded_fields. The unit field is written
+    with each `%` as `%25` and each space as `%20`, so a `file#heading` unit whose heading holds spaces stays one field;
+    a unit holding neither is written as it is."""
+    return " ".join([fields[0].replace("%", "%25").replace(" ", "%20"), *fields[1:]])
 
 
 def graded_lines(graded):
