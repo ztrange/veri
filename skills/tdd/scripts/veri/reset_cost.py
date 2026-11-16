@@ -204,10 +204,12 @@ def _main(argv):
     k = _median(row[1] for row in rows)
     g = _median(row[2] for row in rows)
     r = cache_read_rate(measured)
-    best = None if None in (k, g, r) else math.sqrt(2 * k * g / r)
+    partial = sum(1 for _, rk, rg in rows if rk is None or rg is None)
+    best = None if partial or None in (k, g, r) else math.sqrt(2 * k * g / r)
     print("median K=%s g=%s r=%s optimum=%s %s=%s" % (_figure(k), _figure(g), "unknown" if r is None else "%g" % r,
                                                      _figure(best), knob, value))
-    print("source: %s; rates from veri/prices.py; %s from the environment or its default" % (sources, knob))
+    why = "; optimum unknown: %d of %d resets has an unknown K or g" % (partial, len(rows)) if partial else ""
+    print("source: %s; rates from veri/prices.py; %s from the environment or its default%s" % (sources, knob, why))
     return 0
 
 
