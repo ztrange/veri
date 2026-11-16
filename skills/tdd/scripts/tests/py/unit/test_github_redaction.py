@@ -18,3 +18,9 @@ def test_redact_replaces_a_token_of_each_github_prefix_with_redacted_issue_3960(
     token = prefix + FAKE * 3
 
     assert github.redact("before %s after" % token) == "before [redacted] after"
+
+
+def test_redact_replaces_a_fine_grained_github_pat_token_with_redacted_issue_3960(github):
+    token = "github_pat_" + FAKE * 2 + "_" + FAKE * 5
+
+    assert github.redact("pat=%s;" % token) == "pat=[redacted];"
