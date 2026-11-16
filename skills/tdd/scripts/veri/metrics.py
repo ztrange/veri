@@ -11,7 +11,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
   header     issue, clocked, issue_wall, asleep, steps_done, planned, ended, cause, ending, lane, flaked,
              pinned, model_knobs, models
   tables     phases, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
-             adjudications, switched_off, total
+             adjudications, switched_off, switched_off_pin, total
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
@@ -283,6 +283,7 @@ class _Tally:
         self.total = dict.fromkeys(COST_COLUMNS, 0)
         self.conductor_counted = False
         self.switched_off = 0
+        self.switched_off_pin = 0
         self.adjudications = {}
         self.opening = None
         self.structural = None
@@ -396,6 +397,8 @@ class _Tally:
             self.open_pass(step)["verdict"] = "skipped"
             if line.get("reason") == "switched-off":
                 self.switched_off += 1
+        if event == "verify-pin-skipped" and line.get("reason") == "switched-off":
+            self.switched_off_pin += 1
         if event == "adjudicated":
             outcome = line.get("outcome")
             self.adjudications[outcome] = self.adjudications.get(outcome, 0) + 1
@@ -521,6 +524,7 @@ class Fold:
     tier_runs: dict             # test tier -> [seconds as text, in run order]
     adjudications: dict         # outcome -> count
     switched_off: int           # refactor verifiers switched off
+    switched_off_pin: int       # pin verifiers switched off
     conductor_counted: bool     # whether the log carries the conductor's own usage event
     total: dict                 # {COST_COLUMNS: number}, leaves only until the conductor is added
     structural: object          # the structural-pass event, else {"stopped": "not marked"} for a landed run, else None
@@ -619,6 +623,7 @@ def fold(issue, path, ledger):
                 phases=tally.counts, by_model=tally.by_model, lost=tally.lost(),
                 steps=tally.steps, step_marks=tally.spent, passes=passes, tier_runs=tally.tier_runs,
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
+                switched_off_pin=tally.switched_off_pin,
                 conductor_counted=tally.conductor_counted, total=tally.total, structural=structural)
 
 
@@ -786,8 +791,9 @@ def layout(f):
                  ", ".join(sorted({m for answered in f.models.values() for m in answered.split(",") if m}))))
     if f.pinned:
         print("⚠️ Unverified phases: %s" % f.pinned)
-    if f.switched_off:
-        print("Verifiers switched off: refactor %d" % f.switched_off)
+    switched_off = [(phase, n) for phase, n in (("pin", f.switched_off_pin), ("refactor", f.switched_off)) if n]
+    if switched_off:
+        print("Verifiers switched off: %s" % ", ".join("%s %d" % pair for pair in switched_off))
     for operator_session in f.operator_sessions:
         print("%s session: %d turns, %d cache tokens read, $%.2f" % operator_session)
     section("#### By phase", "phase", PHASE_COLUMNS, f.phases)
