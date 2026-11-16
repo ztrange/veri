@@ -162,3 +162,18 @@ def test_3917_step_ahead_skips_the_red_case_and_exits_3_printing_nothing_when_no
         own + older: (0, "prep tests/py/test_status.py::test_status_lists_runs\n", ""),
         "STATEMENT: nothing to name\n": (3, "", ""),
     }
+
+
+def _refused(result, line):
+    code, stdout, stderr = result
+    return code == 2 and stdout == "" and len(stderr.splitlines()) == 1 and line in stderr
+
+
+def test_3917_step_ahead_exits_2_naming_the_line_when_a_value_has_no_double_colon(run_cli, tmp_path, exhausted_outcome):
+    red = _suite(tmp_path)
+    line = "STEP_AHEAD: test_prints_usage"
+    report = "STEP_AHEAD: tests/py/test_status.py::test_status_lists_runs\n" + line + "\n"
+
+    result = run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path)
+
+    assert _refused(result, line), result
