@@ -17,6 +17,8 @@ def refusal(prefix):
     mode = info.st_mode
     if stat.S_ISLNK(mode):
         return "it is a symlink"
+    if not stat.S_ISDIR(mode):
+        return "it is not a directory"
     if info.st_uid != os.getuid():
         return "it is owned by uid %d, not this user's %d" % (info.st_uid, os.getuid())
     if mode & stat.S_IWGRP:

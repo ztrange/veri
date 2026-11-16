@@ -83,6 +83,15 @@ def test_3965_a_group_writable_default_prefix_under_tmpdir_is_refused_and_no_pre
     assert run_prefix() is None
 
 
+def test_3965_a_veri_pycache_path_that_is_a_closed_regular_file_of_the_users_own_is_refused(run_prefix, monkeypatch, tmp_path):
+    cache = tmp_path / "cache"
+    cache.write_text("")
+    cache.chmod(0o600)
+    monkeypatch.setenv("VERI_PYCACHE", str(cache))
+
+    assert run_prefix() is None
+
+
 def test_3965_on_a_refusal_veri_modules_compile_from_source_and_one_stderr_line_names_the_path_and_why(run_prefix, monkeypatch, tmp_path, capfd):
     cache = cache_with_mode(tmp_path, 0o770)
     monkeypatch.setenv("VERI_PYCACHE", str(cache))
