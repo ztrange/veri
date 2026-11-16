@@ -60,7 +60,6 @@ UNCATALOGUED = frozenset(
     "step-cost.sh",
     "structural-predicate.sh",
     "suite-reported.sh",
-    "tier-usual.sh",
     "time-budget.sh",
     "timed-test-run.sh",
     "unlabel-issue.sh",

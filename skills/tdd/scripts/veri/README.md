@@ -436,7 +436,6 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `rebased-tip-suite.sh`: print `ci` or `local`: where the rebased tip's suite runs.
 - `rerun-alone.sh`: rerun each target of a red run alone.
 - `suite-flakes.sh`: flaky targets across runs.
-- `tier-usual.sh`: the usual (median) time of a tier.
 - `timed-test-run.sh`: run a test command and journal one `test-run` event.
 
 ## ci_on_pr
