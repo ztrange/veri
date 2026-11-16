@@ -74,10 +74,12 @@ def read_question(argv):
     if at + 1 >= len(argv) or "--question-file" in rest:
         return None, "--question-file takes one path, once"
     try:
-        with open(argv[at + 1]) as f:
+        with open(argv[at + 1], encoding="utf-8") as f:
             return rest, "\n" + f.read()
-    except (OSError, UnicodeDecodeError) as e:
+    except OSError as e:
         return None, "cannot read the --question-file %s: %s" % (argv[at + 1], e.strerror or e)
+    except UnicodeDecodeError as e:
+        return None, "cannot read the --question-file %s: not UTF-8 text (byte %d: %s)" % (argv[at + 1], e.start, e.reason)
 
 
 def main(argv):

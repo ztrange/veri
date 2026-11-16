@@ -474,3 +474,14 @@ def test_issue_4076_a_question_file_that_is_missing_unreadable_or_repeated_exits
     assert code == 2
     assert "--question-file" in err
     assert (calls, edited) == ([], [])
+
+
+def test_issue_4076_a_binary_question_file_exits_2_naming_the_file_and_that_it_is_not_utf_8_text(park, run_cli, tmp_path):
+    park_issue, calls, edited = park
+    question = tmp_path / "question.bin"
+    question.write_bytes(b"#### Question\n\xff\xfe\x00binary\n")
+
+    code, out, err = run_cli(park_issue, ["42", "cause", "unblock", "--question-file", str(question)])
+
+    assert (code, calls, edited) == (2, [], [])
+    assert err.startswith("park-issue.sh: cannot read the --question-file %s: not UTF-8 text (" % question), err
