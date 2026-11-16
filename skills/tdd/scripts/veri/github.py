@@ -688,6 +688,41 @@ def pr_open(head, base, title, body):
     return url
 
 
+CHECK_RUN_PAGES = 10
+
+
+def check_runs(sha):
+    """The check runs of commit <sha>, read by sha, as [(status, conclusion)] (conclusion None until completed): GitHub's
+    `filter=latest`, so a check re-run counts by its latest attempt only, an older one never listed. Read 100 to a page
+    until the answer's total_count is read, at most CHECK_RUN_PAGES pages. ValueError for a <sha> that is not 7 to 40 hex
+    digits, before any read; NoAnswer, its detail naming why, for a failed read, an answer not of that shape, a page
+    that ends short of the total, or a total past the bound."""
+    if not re.fullmatch(r"[0-9a-f]{7,40}", sha or ""):
+        raise ValueError("not a commit sha: %r" % (sha,))
+    found, total = [], None
+    for page in range(1, CHECK_RUN_PAGES + 1):
+        path = "repos/{owner}/{repo}/commits/%s/check-runs?filter=latest&per_page=100&page=%d" % (sha, page)
+        answer = _json_answer(gh_api(path, stderr=subprocess.PIPE), "reading the check runs of %s" % sha)
+        runs = answer.get("check_runs") if isinstance(answer, dict) else None
+        count = answer.get("total_count") if isinstance(answer, dict) else None
+        if not isinstance(runs, list) or not isinstance(count, int) or isinstance(count, bool) or count < 0:
+            raise NoAnswer("", "the check runs of %s: the answer is not {total_count, check_runs}" % sha)
+        if count > CHECK_RUN_PAGES * 100:
+            raise NoAnswer("", "the check runs of %s: %d of them, past the %d this reads" % (sha, count, CHECK_RUN_PAGES * 100))
+        total = count if total is None else total
+        for raw in runs:
+            status = raw.get("status") if isinstance(raw, dict) else None
+            conclusion = raw.get("conclusion") if isinstance(raw, dict) else None
+            if not isinstance(status, str) or not (conclusion is None or isinstance(conclusion, str)):
+                raise NoAnswer("", "the check runs of %s: a check run without a status or with a garbled conclusion" % sha)
+            found.append((status, conclusion))
+        if len(found) >= total:
+            return found
+        if not runs:
+            break
+    raise NoAnswer("", "the check runs of %s: the answer ended at %d of the %d it counts" % (sha, len(found), total))
+
+
 def closed_issues(body, loose=False):
     """The issue numbers (strings) <body> closes, in order: `Closes #n`; <loose> also reads `closes #n`
     and `disCloses #n`, the spelling of status --recover."""
