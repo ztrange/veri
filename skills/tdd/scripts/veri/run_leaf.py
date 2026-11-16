@@ -6,6 +6,7 @@ import json
 import leaf_timeout
 import os
 import paths
+import re
 import redaction
 import shutil
 import signal
@@ -36,6 +37,7 @@ LEAF_ENV_NAMES = frozenset((
     "SSH_AUTH_SOCK",
 ))
 LEAF_ENV_PREFIXES = ("VERI_", "LC_")
+VARIABLE_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 SET_NAMES = frozenset(("GIT_CONFIG_GLOBAL", "PYTHONDONTWRITEBYTECODE", "FORCE_PROMPT_CACHING_5M",
                        "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS", "SHELL", "CLAUDE_CODE_SHELL",
                        "BASH_DEFAULT_TIMEOUT_MS", "BASH_MAX_TIMEOUT_MS"))
@@ -224,6 +226,10 @@ def main(argv):
             print(f"run-leaf.sh: VERI_TIMEOUT is not a whole number: {seconds!r}",
                   file=sys.stderr)
             return 2
+        malformed = [item for item in tunables.get("VERI_LEAF_ENV").split() if not VARIABLE_NAME.fullmatch(item)]
+        if malformed:
+            print("run-leaf.sh: VERI_LEAF_ENV items that are not variable names, so they add nothing: "
+                  + " ".join(malformed), file=sys.stderr)
         for name in sorted(set(tunables.get("VERI_LEAF_ENV").split()) & set(redaction.listed_names())):
             print(f"run-leaf.sh: VERI_LEAF_ENV passes {name}, which VERI_REDACT_VARS names as a credential, to the"
                   " leaf", file=sys.stderr)
