@@ -6,4 +6,4 @@
 - [x] every case that writes an event through the real path writes values its keys' formats accept, each fix taken from what the real writer emits
 - [x] `SCRIPTS.md`'s `$S/event.sh` entry adds the format check to the strict mode ⟦criterion 4⟧
 - [x] `harvest_usage` writes a cost Python prints in exponent form as a plain decimal, a typical cost byte-identical ⟦added⟧
-- [ ] `CLAUDE.md` states that strict mode also refuses a value breaking its key's declared format or an empty value where none is allowed ⟦added⟧
+- [x] `CLAUDE.md` states that strict mode also refuses a value breaking its key's declared format or an empty value where none is allowed ⟦added⟧
