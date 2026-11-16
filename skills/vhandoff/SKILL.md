@@ -49,7 +49,7 @@ It carries, and only this:
   when the handoff is written, and, when it does, each PR url it lists, in the file's order:
   the `mode on|off` and `held <url>` lines `$S/github-outage.sh status` prints.
 
-It carries no rule the role's skill already states: the resuming session reads that skill.
+It carries no rule the role's skill already states (P2): the resuming session reads that skill.
 State only what is true now.
 
 Keep it to 40 lines or fewer. Every item names its issue number and title, as `#<n> <title>`.
