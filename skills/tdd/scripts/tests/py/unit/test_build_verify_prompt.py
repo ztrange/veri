@@ -1815,3 +1815,16 @@ def test_3919_plan_still_renders_when_a_touching_test_file_cannot_be_read_or_hol
     section = touching_section(out) or ""
 
     assert (code, "test_route_answers" in section, "never closes" in section) == (0, True, False)
+
+
+def test_3919_plan_lists_only_test_files_git_tracks_not_an_untracked_one_nor_one_in_a_gitignored_directory(
+        tmp_path, run_cli, build_verify_prompt, fake_processes):
+    tree = dict(ROUTE_TREE, **{"tests/test_untracked.py": route_cases("test_untracked_case"),
+                               "build/tests/test_ignored.py": route_cases("test_ignored_case"),
+                               ".gitignore": "build/\n"})
+    fake_processes.answers({"git ls-files": (0, "scripts/route.py\0tests/test_route.py\0.gitignore\0", "")})
+    code, out, _ = plan_in_tree(tmp_path, run_cli, build_verify_prompt, tree, ["route.py answers"])
+    section = touching_section(out) or ""
+
+    assert (code, "test_route_answers" in section, re.findall(r"test_(?:untracked|ignored)_case", section)) == (
+        0, True, [])

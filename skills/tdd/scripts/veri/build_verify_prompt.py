@@ -8,6 +8,7 @@ import sys
 
 import case_reader
 import event_log
+import git
 import tunables
 from entry import write
 from prompt_template import IncludeRefused, expand_includes, fill, has_heading, read as _read, spec_text_of
@@ -89,10 +90,10 @@ SKIPPED_DIRS = {".git", ".tdd", ".venv", "node_modules"}
 
 
 def _tree_files():
-    for root, dirs, files in os.walk("."):
-        dirs[:] = sorted(d for d in dirs if d not in SKIPPED_DIRS)
-        for name in sorted(files):
-            yield os.path.relpath(os.path.join(root, name)).replace(os.sep, "/")
+    """The files git tracks under the current directory, relative to it, none under a SKIPPED_DIRS directory."""
+    for path in sorted(name for name in git.out("ls-files", "-z").split("\0") if name):
+        if not SKIPPED_DIRS.intersection(path.split("/")[:-1]):
+            yield path
 
 
 def _touching_names(path, stems):
