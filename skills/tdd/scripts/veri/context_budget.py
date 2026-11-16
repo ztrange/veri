@@ -1,4 +1,4 @@
-"""The conductor context-budget rule, shared by orchestrate.py and parallel_conductors.py."""
+"""The conductor context-budget rule, read by parallel_conductors.py."""
 import re
 
 CACHE_READ = re.compile(rb'"cache_read_input_tokens":([0-9]+)')

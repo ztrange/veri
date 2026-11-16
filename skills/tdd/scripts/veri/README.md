@@ -385,6 +385,7 @@ The verifier and adjudicator legs: run the blind verifier, parse its verdict, co
 
 The budgets (steps, time, refactor, context, affordability) and what leaves cost. Builds on Run state and journal and Foundations only.
 
+- `context_budget`: the conductor context-budget rule parallel-conductors.sh stops a conductor by.
 - `over-budget.sh`: whether a time budget is exceeded.
 - `prices`: the price table and the helpers that read it.
 - `refactor-budget.sh`: compare transforms applied with `VERI_REFACTOR_BUDGET`.
@@ -392,10 +393,6 @@ The budgets (steps, time, refactor, context, affordability) and what leaves cost
 - `step-budget.sh`: the step budgets.
 - `step-cost.sh`: what a step spent on leaves, from `usage` events.
 - `time-budget.sh`: the time budgets.
-
-## context_budget
-- `START`: the initial `(context, armed)` state.
-- `watch(state, lines, budget)`: `(state, readings, exceeded)` after `lines`, stopping at the line that exceeds `budget`.
 
 ## growth
 - `growth(records, baseline=None)`: tokens of context a session grew since its first usage record (or `baseline`), `None` when it has none.
@@ -571,7 +568,6 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `install-links.sh`: link veri's skills into a project.
 - `metrics.sh`: a run's metrics report.
 - `no-product-caller.sh`: scan for callers of a product name.
-- `orchestrate.sh`: the loop that picks solvable issues and launches conductors.
 - `parallel-conductors.sh`: launch conductors in parallel up to the cap.
 - `prd_report`: report.sh's renderer, run in-process.
 - `preflight-refused.sh`: record that preflight refused an issue.
