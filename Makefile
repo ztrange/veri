@@ -1,6 +1,6 @@
 # veri — developer tasks.
 #
-# `make test` runs every pytest case that ships with the solve-issue skill, in one pytest
+# `make test` runs every pytest case that ships with the skill, `skills/tdd/`, in one pytest
 # invocation. This is also the command veri's own conductor detects in preflight ("Makefile
 # with a test target → make test"), so veri can be run against its own repository: the suite is
 # green when this target exits 0. `make test TESTS="<pytest file or node id> …"` runs only those:
@@ -81,12 +81,13 @@ VENV_LIB := skills/tdd/scripts/lib/venv-python.sh
 VENV_DIR := $$(bash -c '. $(VENV_LIB) && venv_dir')
 VENV_PY := $$(bash -c '. $(VENV_LIB) && venv_python')
 
-# veri needs bash 5 (since 2026-09-18), and the suites run under whatever `bash` is first on
-# PATH — every one starts with `#!/usr/bin/env bash`. Nothing tests veri on bash 3.2 any more,
-# the bash macOS ships in /bin, so a stale PATH must not be left to fail however a bash-4-only
-# construct happens to fail inside some suite: the recipe asks that bash its major version
-# before any suite runs, and refuses naming what to install. VERI_BASH_MAJOR stands in for the
-# answer, because CI's runner has no older bash to ask. An
+# veri needs bash 5 (since 2026-09-18). The suites are pytest files started by `pytest_leg.py`,
+# but bash is still needed: the recipe sources `lib/venv-python.sh` through `bash -c` (VENV_DIR,
+# VENV_PY, install-dev), and `launch_floor.py` guards the bash a launch hands its child. Nothing
+# tests veri on the older bash macOS ships in /bin, so a stale PATH must not be left to fail
+# however a bash-4-only construct happens to fail somewhere later: the recipe asks the bash on
+# PATH its major version before any suite runs, and refuses naming what to install.
+# VERI_BASH_MAJOR stands in for the answer, because CI's runner has no older bash to ask. An
 # answer that is not a number (no bash on PATH at all) is refused too, rather than compared.
 BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO[0]}"' 2>/dev/null)}"; \
 	case "$$bash_major" in ''|*[!0-9]*) bash_major=0 ;; esac; \
