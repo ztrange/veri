@@ -7,6 +7,7 @@ import re
 import shutil
 import signal
 import subprocess
+import sys
 import threading
 import time
 import traceback
@@ -96,8 +97,11 @@ def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"),
             raise ProcessLookupError(pid)
 
     clock = {"now": 1000.0}
+    real_sleep = time.sleep
 
     def fake_sleep(seconds):
+        if sys._getframe(1).f_globals.get("__name__") == "subprocess":
+            return real_sleep(seconds)
         clock["now"] += seconds if seconds else 0.001
         on_sleep(supervisors)
 
