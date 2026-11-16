@@ -1537,3 +1537,13 @@ def test_3984_queued_merge_whose_fetch_after_the_merge_never_returns_ends_it_aft
 
     assert (code, "fetch origin: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err, "merged, but cleanup failed: tag" in err,
             first(calls, " tag -a ")) == (2, True, True, None)
+
+
+def test_3984_queued_merge_whose_fetch_after_the_merge_times_out_does_not_fetch_again_and_exits_2_naming_tag_the_lock_released(fake_processes, run_cli):
+    calls = scenario(hanging(fake_processes, "git -C /wt fetch origin"))
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GIT_NETWORK_TIMEOUT": "7", "VERI_FETCH_RETRY_SLEEP": "0"})
+
+    fetches = [c for c in calls if c == "git -C /wt fetch origin"]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, fetches, "merged, but cleanup failed: tag" in err, len(released)) == (2, ["git -C /wt fetch origin"], True, 1)
