@@ -344,7 +344,7 @@ def conductor_alive(start):
         os.kill(pid, 0)
     except OSError:
         return False
-    return pid_file.started_as(pid) == start["started"]
+    return bool(start["started"]) and pid_file.started_as(pid) == start["started"]
 
 
 def sum_since(events, since, value=lambda e: 1):
