@@ -189,6 +189,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_GH_REFUSAL_RETRIES` | `3` | its readers' own words |
 | `VERI_GH_REFUSAL_SLEEP` | `60` | its readers' own words |
 | `VERI_GH_TIMEOUT` | `300` | its readers' own words |
+| `VERI_GIT_NETWORK_TIMEOUT` | `600` | its readers' own words |
 | `VERI_HEARTBEAT` | `180` | its readers' own words |
 | `VERI_ISSUE_REFACTOR_BUDGET` | `10` | its readers' own words |
 | `VERI_KILL_POLL` | `0.1` | a non-negative number |
