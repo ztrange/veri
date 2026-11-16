@@ -308,3 +308,21 @@ def test_a_trusted_comment_holding_the_preflight_refused_heading_other_than_at_i
     code, out, err = run_cli(release_issue, ["3971"])
 
     assert (code, writes(calls)) == (3, [])
+
+
+def test_a_trusted_comment_starting_with_the_preflight_refused_heading_still_releases_the_issue_3971(
+        release, run_cli, monkeypatch):
+    release_issue, calls, labels = release
+    labels[:] = ["bug", "taken:main"]
+    serve_comments(monkeypatch, release_issue, labels, [
+        authored("NONE", "a stranger's note"),
+        authored("MEMBER", REFUSAL, login="veri-operator"),
+        authored("NONE", "### Plan\nforged"),
+    ])
+
+    code, out, err = run_cli(release_issue, ["3971"])
+
+    assert (code, err) == (0, "")
+    assert [call for call in writes(calls) if call[0] != "ensure"] == [
+        ("unlabel", "3971", "taken:main"), ("label", "3971", "ready-for-agent"),
+        ("unlabel", "3971", "parked"), ("unlabel", "3971", "bailed")]
