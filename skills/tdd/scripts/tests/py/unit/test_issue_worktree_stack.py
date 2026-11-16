@@ -101,3 +101,14 @@ def test_with_no_stack_on_origin_pushes_it_at_the_default_branchs_tip_unforced_t
         "git push origin refs/remotes/origin/trunk:refs/heads/stack",
         "git fetch -q origin +refs/heads/stack:refs/remotes/origin/stack",
         "git worktree add -q --no-track -b tdd/7-slug %s origin/stack" % path])
+
+
+@pytest.mark.parametrize("push", [(1, "", " ! [rejected] (fetch first)\n"), (124, "", "no answer after 600s\n")])
+def test_a_refused_or_unanswered_push_of_the_stack_exits_2_with_no_branch_and_no_worktree(
+        fake_processes, tmp_path, capsys, issue_worktree, push):
+    fake, path = stacked_world(fake_processes, tmp_path, Origin(stack=False, push=push))
+
+    code = issue_worktree.main(["7", "slug"])
+
+    out, err = capsys.readouterr()
+    assert (code, out, added(fake), "stack" in err) == (2, "", [], True)

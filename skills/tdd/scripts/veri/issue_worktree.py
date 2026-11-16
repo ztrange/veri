@@ -247,10 +247,23 @@ def stack_cut(path, branch, stack):
     """Cut <branch> at <path> from origin/<stack> as just fetched. Every network call is bounded by
     VERI_GIT_NETWORK_TIMEOUT."""
     listed = git_module.network("ls-remote", "--heads", "origin", "refs/heads/" + stack)
+    if listed.returncode != 0:
+        return entry.refuse("git ls-remote origin %s got no answer (%s) — cannot tell whether the stack branch exists"
+                            % (stack, " ".join((listed.stderr or "").split())), prefix=PREFIX)
     if not listed.stdout.strip():
-        default, _ = default_branch_name(True)
-        git_module.network("fetch", "-q", "origin", "+refs/heads/%s:refs/remotes/origin/%s" % (default, default))
-        git_module.network("push", "origin", "refs/remotes/origin/%s:refs/heads/%s" % (default, stack))
+        default, refusal = default_branch_name(True)
+        if not default:
+            return entry.refuse(refusal, prefix=PREFIX)
+        fetched = git_module.network("fetch", "-q", "origin", "+refs/heads/%s:refs/remotes/origin/%s" % (default, default))
+        if fetched.returncode != 0:
+            return entry.refuse("git fetch origin %s got no answer (%s) — refusing to create the stack branch %s from a"
+                                " stale origin/%s" % (default, " ".join((fetched.stderr or "").split()), stack, default),
+                                prefix=PREFIX)
+        pushed = git_module.network("push", "origin", "refs/remotes/origin/%s:refs/heads/%s" % (default, stack))
+        if pushed.returncode != 0:
+            return entry.refuse("pushing the stack branch %s to origin at origin/%s was refused or got no answer (%s)"
+                                " — no branch and no worktree made"
+                                % (stack, default, " ".join((pushed.stderr or "").split())), prefix=PREFIX)
     fetched = git_module.network("fetch", "-q", "origin", "+refs/heads/%s:refs/remotes/origin/%s" % (stack, stack))
     if fetched.returncode != 0:
         return entry.refuse("git fetch origin %s got no answer (%s) — refusing to cut %s from a stale origin/%s"
