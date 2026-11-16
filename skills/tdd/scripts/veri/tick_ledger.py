@@ -43,11 +43,28 @@ def how_ended(code):
         return f"killed by signal {-code}"
 
 
-def case_code(done):
-    """The case's exit code: make exits 2 for any failed recipe, so its first `*** [<target>] Error <k>` line
-    (the innermost recipe's) gives `<k>` instead."""
-    recipe = re.search(r"\*\*\* \[[^\]]*\] Error (\d+)", f"{done.stdout}{done.stderr}") if done.returncode == 2 else None
-    return int(recipe.group(1)) if recipe else done.returncode
+MAKE_ERROR = re.compile(r"^make(?:\[(\d+)\])?: \*\*\* \[.*\] Error (\d+)$", re.M)
+
+
+def case_code(done, make=False):
+    """The case's exit code. Make exits 2 for any failed recipe, so make's own `make: *** [<target>] Error <k>` lines
+    on stderr (never stdout, where a test's output goes) give `<k>` instead: the last line of the outermost make level,
+    and while that is `Error 2` relaying a sub-make, the last line of the next level down. `make` (the fallback, known to
+    be make): any non-zero exit with no such line answers None, a case never run."""
+    if done.returncode == 2 or (make and done.returncode > 0):
+        found = {}
+        for level, code in MAKE_ERROR.findall(done.stderr or ""):
+            found[int(level or 0)] = int(code)
+        levels = sorted(found)
+        if not levels:
+            return None if make else done.returncode
+        code = found[levels[0]]
+        for level in levels[1:]:
+            if code != 2:
+                break
+            code = found[level]
+        return code
+    return done.returncode
 
 
 def run_case(case):
@@ -64,7 +81,10 @@ def run_case(case):
         done = subprocess.run(["make", "test", f"TESTS={case}"], capture_output=True, text=True, env=case_env())
         if "::" not in case and "/" not in path:
             path = "."
-    LAST_CODE = case_code(done)
+    LAST_CODE = case_code(done, make=not command)
+    if LAST_CODE is None:
+        LAST_CODE = done.returncode
+        return 2
     if no_answer(LAST_CODE):
         return 2
     if LAST_CODE and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items",
