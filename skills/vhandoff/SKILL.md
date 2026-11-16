@@ -41,7 +41,8 @@ It carries, and only this:
 - parked runs, each with its reason;
 - PRs awaiting merge;
 - N, and any timed change to it;
-- overrides and one-off permissions, each with its expiry;
+- for overrides and one-off permissions, a pointer to the role state file
+  (`.tdd/role-<role>.state`), where they are written (P9); copy none of them here;
 - pending decisions;
 - for dev, the attached coordinator's session id, if one is attached;
 - for dev, whether `.tdd/github-outage` exists in the main working tree, read from the file
