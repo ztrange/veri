@@ -788,3 +788,39 @@ def test_4021_store_owed_whose_rename_fails_leaves_the_owed_file_byte_identical_
     assert (code, (tmp_path / ".tdd" / "report-owed.json").read_text(),
             sorted(p.name for p in (tmp_path / ".tdd").iterdir()), "Traceback" in err) == (
         2, before, ["report-cache.json", "report-owed.json"], False)
+
+
+def test_4021_store_owed_stale_and_report_use_the_main_working_trees_owed_file_from_a_linked_worktree_or_a_subdirectory(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    monkeypatch.setattr(importlib.import_module("solvable_issues"), "solvable",
+                        lambda label, priority="priority", repo=None: (0, []))
+    monkeypatch.setattr(importlib.import_module("issue_worktree"), "remote_issue_branch", lambda n: "")
+    main = tmp_path / "main"
+    main.mkdir()
+    _owed_tree(main, None)
+    gitdir = main / ".git" / "worktrees" / "linked"
+    gitdir.mkdir(parents=True)
+    (gitdir / "commondir").write_text("../..\n")
+    linked = tmp_path / "linked"
+    (linked / ".tdd").mkdir(parents=True)
+    (linked / ".git").write_text(f"gitdir: {gitdir}\n")
+    sub = main / "sub"
+    (sub / ".tdd").mkdir(parents=True)
+    fetched = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    snapshot = json.loads((main / ".tdd" / "report-cache.json").read_text())
+    snapshot["fetched_at"] = fetched
+    for tree in (linked, sub):
+        (tree / ".tdd" / "report-cache.json").write_text(json.dumps(snapshot))
+    (linked / "answer.json").write_text(json.dumps({"count": 2, "sections": ["Alpha", "Beta"]}))
+    (sub / "answer.json").write_text(json.dumps({"count": 1, "sections": ["Gamma"]}))
+
+    from_linked = run_cli(prd_report, ["--store-owed", "014", "answer.json"], cwd=linked)[0]
+    stored = json.loads((main / ".tdd" / "report-owed.json").read_text())["014"]["answer"]
+    from_sub = run_cli(prd_report, ["--store-owed", "014", "answer.json"], cwd=sub)[0]
+    stale = run_cli(prd_report, ["--stale"], cwd=linked)
+    report = run_cli(prd_report, ["--report"], cwd=sub)
+
+    assert (from_linked, stored, from_sub, stale[:2], [l for l in report[1].splitlines() if l.startswith("owed")],
+            (linked / ".tdd" / "report-owed.json").exists(), (sub / ".tdd" / "report-owed.json").exists()) == (
+        0, {"count": 2, "sections": ["Alpha", "Beta"]}, 0, (0, ""), ["owed: 1 (Gamma)"], False, False)
