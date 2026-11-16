@@ -1720,3 +1720,28 @@ def test_3919_plan_section_is_the_one_no_case_line_when_no_step_names_a_file_or_
         renders[name] = (code, (touching_section(out) or "").strip())
 
     assert renders == dict.fromkeys(renders, (0, NO_TOUCHING))
+
+
+def route_cases(*names):
+    return "import route\n" + "".join(f"\n\ndef {name}():\n    pass\n" for name in names)
+
+
+def test_3919_plan_lists_at_most_veri_plan_touching_cases_names_default_100_then_one_more_cases_line_per_file_left_over(
+        tmp_path, run_cli, build_verify_prompt):
+    small = {"scripts/route.py": "pass\n",
+             "tests/test_a.py": route_cases("test_a1", "test_a2"),
+             "tests/test_b.py": route_cases("test_b1", "test_b2", "test_b3"),
+             "tests/test_c.py": route_cases("test_c1")}
+    big = {"scripts/route.py": "pass\n", "tests/test_many.py": route_cases(*(f"test_n{i}" for i in range(101)))}
+    _, default, _ = plan_in_tree(tmp_path / "default", run_cli, build_verify_prompt, big, ["route.py answers"])
+    _, capped, _ = plan_in_tree(tmp_path / "capped", run_cli, build_verify_prompt, small, ["route.py answers"],
+                                env={"VERI_PLAN_TOUCHING_CASES": "3"})
+
+    def listed(out):
+        section = touching_section(out) or ""
+        return (sorted(set(re.findall(r"\btest_[abc]\d\b|\btest_n\d+\b", section))),
+                [line for line in section.splitlines() if "more cases" in line])
+
+    assert listed(capped) == (["test_a1", "test_a2", "test_b1"],
+                              ["tests/test_b.py: 2 more cases", "tests/test_c.py: 1 more cases"])
+    assert (len(listed(default)[0]), listed(default)[1]) == (100, ["tests/test_many.py: 1 more cases"])
