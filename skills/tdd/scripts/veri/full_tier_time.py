@@ -52,6 +52,15 @@ def read_recorded_at(record):
     return stamps
 
 
+def age(record, command):
+    """Seconds since `command`'s time was recorded; None when no recorded-at says (no file, no entry, unreadable)."""
+    try:
+        recorded_at = read_recorded_at(record).get(command)
+    except (OSError, ValueError):
+        return None
+    return None if recorded_at is None else now() - recorded_at
+
+
 def write_times(record, times):
     directory = os.path.dirname(record)
     fd, partial = tempfile.mkstemp(dir=directory, prefix="full-tier-time.", suffix=".tmp")
