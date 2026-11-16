@@ -176,3 +176,13 @@ def test_an_unticked_full_suite_line_does_not_block_a_join_and_any_other_unticke
     code, _, err = join(run_cli, other)
 
     assert (joined, code, pushed(other), len(released(other)), "a step" in err) == (0, 1, [], 1, True)
+
+
+def test_a_rebase_conflict_exits_1_aborting_the_rebase_pushing_nothing_and_releasing_the_lock(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, rebase=1).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    aborted = "git -C %s rebase --abort" % world.wt in world.calls
+    assert (code, pushed(world), aborted, len(released(world))) == (1, [], True, 1), err
