@@ -41,11 +41,9 @@ def main(argv):
             report = f.read()
         uncovered = "no" in report_values(report, "COVERED", strip=True)
         mutations = ["MUTATION:" + m for m in report_values(report, "MUTATION", space="kept", strip=True)] if uncovered else []
-    except FileNotFoundError as error:
+    except OSError as error:
         print("coverage-blocker.sh: cannot read .tdd/develop-cover.out: %s" % error.strerror, file=sys.stderr)
         return 2
-    except OSError:
-        mutations = []
     if mutations:
         text += "\n\n## Acceptance criteria\n\n" + "".join("- [ ] %s: add a case that goes red under this mutation\n" % m for m in mutations)
     text += "\n\n## Blocked by\n\nNone.\n"
