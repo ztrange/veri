@@ -304,7 +304,7 @@ def test_cli_lists_again_a_bailed_runs_issue_whose_worktree_lock_holds_a_dead_pi
 def test_cli_keeps_out_an_issue_an_open_pr_closes_though_its_worktree_lock_holds_a_dead_pid_returning_3(fake_processes, tmp_path, monkeypatch, run_cli, plant_claim, solvable_issues):
     fixtures, cwd = cli_fixtures(tmp_path, fake_processes, [opted_in(175)])
     (fixtures / "prs.json").write_text(json.dumps([
-        {"state": "OPEN", "body": "Draft PR opened by a /tdd run that bailed.\n\nCloses #175\n"}]))
+        {"isCrossRepository": False, "state": "OPEN", "body": "Draft PR opened by a /tdd run that bailed.\n\nCloses #175\n"}]))
     main_tree = tmp_path / "main-tree"
     plant_claim(main_tree, 175, dead_pid())
     fake_git_answering(fake_processes, main_tree)
