@@ -2029,7 +2029,7 @@ def test_main_exits_2_naming_the_failure_and_launches_nothing_when_gh_pr_diff_of
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
-        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isCrossRepository": False, "isDraft": True, "headRefName": "tdd/80-other"}])
     monkeypatch.setattr(dispatch.github.subprocess, "run",
                         lambda argv, **kw: subprocess.CompletedProcess(argv, 1, stdout="", stderr="HTTP 502: Bad Gateway\n"))
 
@@ -2051,7 +2051,7 @@ def test_main_exits_2_naming_the_diff_read_when_gh_pr_diff_answers_http_500_on_e
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
-        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isCrossRepository": False, "isDraft": True, "headRefName": "tdd/80-other"}])
     monkeypatch.setattr(dispatch.github.subprocess, "run",
                         lambda argv, **kw: subprocess.CompletedProcess(argv, 1, stdout="", stderr="HTTP 500\n"))
 
@@ -2072,7 +2072,7 @@ def test_main_exits_2_naming_the_diff_read_after_one_read_when_gh_pr_diff_answer
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
-        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isCrossRepository": False, "isDraft": True, "headRefName": "tdd/80-other"}])
     reads = []
 
     def gh_pr_diff_names(number):
@@ -2099,7 +2099,7 @@ def test_main_goes_on_to_launch_when_gh_pr_diff_answers_http_5xx_for_the_first_r
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
-        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isCrossRepository": False, "isDraft": True, "headRefName": "tdd/80-other"}])
     reads = []
 
     def gh_pr_diff_names(number):
@@ -2127,7 +2127,7 @@ def test_main_retries_a_pr_diff_read_three_times_then_exits_2_naming_it_issue_35
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
-        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isCrossRepository": False, "isDraft": True, "headRefName": "tdd/80-other"}])
     reads = []
 
     def gh_pr_diff_names(number):
@@ -2161,7 +2161,7 @@ def test_main_goes_on_to_launch_when_the_open_pr_list_read_answers_http_500_for_
         list_reads.append(fields)
         if len(list_reads) <= 2:
             raise dispatch.github.NoAnswer("", "HTTP 500\n")
-        return [{"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}]
+        return [{"number": 90, "url": "https://github.com/o/r/pull/90", "isCrossRepository": False, "isDraft": True, "headRefName": "tdd/80-other"}]
 
     _serve_pulls(monkeypatch, dispatch, open_prs)
     monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", lambda number: ["skills/tdd/SCRIPTS.md"])
@@ -2207,7 +2207,7 @@ def test_main_goes_on_to_launch_when_gh_pr_diff_fails_connecting_to_api_github_c
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
-        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isCrossRepository": False, "isDraft": True, "headRefName": "tdd/80-other"}])
     reads = []
 
     def gh_pr_diff_names(number):
@@ -2235,7 +2235,7 @@ def test_main_sleeps_the_vari_dispatch_retry_sleep_seconds_once_per_failed_http_
     sleeps = []
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: sleeps.append(seconds))
     _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
-        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isCrossRepository": False, "isDraft": True, "headRefName": "tdd/80-other"}])
     reads = []
 
     def gh_pr_diff_names(number):
@@ -2275,7 +2275,7 @@ def test_main_while_every_solvable_issue_overlaps_reads_each_issue_body_once_eac
 
     def open_prs(fields, **extra):
         listed.append(1)
-        return [{"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True,
+        return [{"number": 90, "url": "https://github.com/o/r/pull/90", "isCrossRepository": False, "isDraft": True,
                  "headRefName": "tdd/80-other", "headRefOid": "bbb" if times[len(waits)] >= 140 else "aaa"}]
 
     def diff(number):
@@ -2339,7 +2339,7 @@ def test_main_counts_only_a_path_an_issue_body_names_in_backticks_not_one_it_nam
     path = "skills/tdd/scripts/veri/dispatch.py"
     launches, _ = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["12", "15", "18"], {}, None)
     _real_overlap_reads(monkeypatch, dispatch,
-                        [{"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True,
+                        [{"number": 90, "url": "https://github.com/o/r/pull/90", "isCrossRepository": False, "isDraft": True,
                           "headRefName": "tdd/80-other", "headRefOid": "aaa"}],
                         {"12": f"Change `{path}` and the `conductor` wording.\n",
                          "15": f"Touches {path} too, named in prose; run `make test`.\n",
@@ -2357,7 +2357,7 @@ def test_main_counts_only_an_open_draft_pr_on_a_tdd_branch_as_a_run_pr_issue_347
     path, other = "skills/tdd/scripts/veri/dispatch.py", "skills/tdd/SCRIPTS.md"
 
     def pr(number, draft, head):
-        return {"number": number, "url": f"https://github.com/o/r/pull/{number}", "isDraft": draft,
+        return {"number": number, "url": f"https://github.com/o/r/pull/{number}", "isCrossRepository": False, "isDraft": draft,
                 "headRefName": head, "headRefOid": "aaa"}
 
     launches, _ = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["15", "12"], {}, None)
@@ -2413,7 +2413,7 @@ def _gh_rest(monkeypatch, dispatch, times, waits, limited_until, limited_read, r
                                                    stderr=refusal if kw.get("stderr") == subprocess.PIPE else None)
         if what == "list":
             page = '[{"number": 90, "html_url": "https://github.com/o/r/pull/90", "draft": true,' \
-                   ' "head": {"ref": "tdd/80-other", "sha": "aaa"}}]'
+                   ' "head": {"ref": "tdd/80-other", "sha": "aaa", "repo": {"full_name": "o/r"}}, "base": {"repo": {"full_name": "o/r"}}}]'
             return subprocess.CompletedProcess(argv, 0, stdout=page if argv[2].endswith("page=1") else "[]", stderr="")
         if what == "diff":
             return subprocess.CompletedProcess(argv, 0, stdout="skills/tdd/SCRIPTS.md\n", stderr="")
@@ -2499,6 +2499,27 @@ def test_main_exits_2_naming_a_pr_list_diff_or_issue_body_read_still_rate_limite
     assert (code, launches, len(reads), f"reading {named} failed" in err) == (2, [], gh_reads, True)
 
 
+@pytest.mark.parametrize("where, launched, said", [
+    ({"isCrossRepository": True}, ["7"], ""),
+    ({"head": {"ref": "tdd/9-x", "sha": "aaa", "repo": None}, "base": {"repo": {"full_name": "o/r"}}}, ["7"], ""),
+    ({"isCrossRepository": False}, [], "skip 7 skills/tdd/SCRIPTS.md https://github.com/o/r/pull/90\n"),
+])
+def test_main_counts_a_draft_on_a_tdd_branch_as_a_run_pr_only_when_its_head_is_in_this_repository_issue_3975(
+        monkeypatch, capsys, tmp_path, dispatch, where, launched, said):
+    # A fork's draft on tdd/9-x, which anyone can open, must not make dispatch skip #7 (PRD 022.16, OV1).
+    path = "skills/tdd/SCRIPTS.md"
+    launches, _ = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["7"], {}, None)
+    _real_overlap_reads(monkeypatch, dispatch,
+                        [dict({"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True,
+                               "headRefName": "tdd/9-x", "headRefOid": "aaa"}, **where)],
+                        {"7": f"Change `{path}`.\n"}, {90: [path]})
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert (launches, capsys.readouterr().out) == (launched, said)
+
+
 def test_main_skips_an_overlap_read_through_the_rest_pr_shape_naming_its_html_url_and_rereads_the_diff_when_its_head_sha_changes_issue_3478(
         monkeypatch, capsys, tmp_path, dispatch):
     import subprocess
@@ -2515,7 +2536,7 @@ def test_main_skips_an_overlap_read_through_the_rest_pr_shape_naming_its_html_ur
         if "/pulls" in argv[2]:
             sha = "aaa" if times[len(waits)] < 70 else "bbb"
             page = '[{"number": 90, "html_url": "https://github.com/o/r/pull/90", "draft": true,' \
-                   ' "head": {"ref": "tdd/80-other", "sha": "%s"}}]' % sha
+                   ' "head": {"ref": "tdd/80-other", "sha": "%s", "repo": {"full_name": "o/r"}}, "base": {"repo": {"full_name": "o/r"}}}]' % sha
             return subprocess.CompletedProcess(argv, 0, stdout=page if argv[2].endswith("page=1") else "[]", stderr="")
         return subprocess.CompletedProcess(argv, 0, stdout='{"body": "Change `%s`.", "labels": []}' % path, stderr="")
 
@@ -2718,9 +2739,9 @@ def test_main_launches_an_issue_naming_a_path_only_a_parked_run_draft_pr_changes
         {"12": ["skills/tdd/SCRIPTS.md"], "15": ["skills/tdd/scripts/veri/status.py"]},
         _REAL["run_pr_paths"])
     _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
-        {"number": 90, "url": parked, "isDraft": True, "headRefName": "tdd/80-parked", "headRefOid": "a1",
+        {"number": 90, "url": parked, "isCrossRepository": False, "isDraft": True, "headRefName": "tdd/80-parked", "headRefOid": "a1",
          "labels": [{"name": "parked"}]},
-        {"number": 91, "url": other, "isDraft": True, "headRefName": "tdd/81-live", "headRefOid": "b2",
+        {"number": 91, "url": other, "isCrossRepository": False, "isDraft": True, "headRefName": "tdd/81-live", "headRefOid": "b2",
          "labels": []}])
     diffs = {90: ["skills/tdd/SCRIPTS.md"], 91: ["skills/tdd/scripts/veri/status.py"]}
     monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", lambda number: diffs[number])
@@ -3037,7 +3058,7 @@ def test_launchable_ignores_the_candidates_own_run_draft_pr_naming_a_path_it_cha
     path = "skills/tdd/scripts/veri/dispatch.py"
     dispatch._reads.clear()
     _real_overlap_reads(monkeypatch, dispatch,
-                        [{"number": 88, "url": "https://github.com/o/r/pull/88", "isDraft": True,
+                        [{"number": 88, "url": "https://github.com/o/r/pull/88", "isCrossRepository": False, "isDraft": True,
                           "headRefName": "tdd/86-x", "headRefOid": "aaa"}],
                         {"86": f"Change `{path}`.\n"},
                         {88: [path]})
@@ -3053,7 +3074,7 @@ def test_launchable_still_skips_for_another_issues_run_draft_pr_changing_a_path_
     url = "https://github.com/o/r/pull/89"
     dispatch._reads.clear()
     _real_overlap_reads(monkeypatch, dispatch,
-                        [{"number": 89, "url": url, "isDraft": True,
+                        [{"number": 89, "url": url, "isCrossRepository": False, "isDraft": True,
                           "headRefName": "tdd/87-x", "headRefOid": "bbb"}],
                         {"86": f"Change `{path}`.\n"},
                         {89: [path]})
@@ -3069,7 +3090,7 @@ def test_launchable_skips_for_a_run_draft_pr_whose_issue_number_merely_starts_wi
     url = "https://github.com/o/r/pull/90"
     dispatch._reads.clear()
     _real_overlap_reads(monkeypatch, dispatch,
-                        [{"number": 90, "url": url, "isDraft": True,
+                        [{"number": 90, "url": url, "isCrossRepository": False, "isDraft": True,
                           "headRefName": "tdd/36860-x", "headRefOid": "ccc"}],
                         {"3686": f"Change `{path}`.\n"},
                         {90: [path]})
