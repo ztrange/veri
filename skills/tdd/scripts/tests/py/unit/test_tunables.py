@@ -221,6 +221,7 @@ DEFAULTED = {
     "VERI_MODEL_DEVELOPER": ("sonnet", "opus", None),
     "VERI_MODEL_VERIFIER": ("sonnet", "opus", None),
     "VERI_MODEL_REVISE": ("opus", "sonnet", None),
+    "VERI_MODEL_REVISE_GREEN": ("", "sonnet", None),
     "VERI_MODEL_ADJUDICATOR": ("opus", "sonnet", None),
     "VERI_MODEL_CONDUCTOR": ("opus", "sonnet", None),
 }

@@ -184,6 +184,7 @@ TUNABLES = {
     "VERI_MODEL_DEVELOPER": Tunable(text, "sonnet"),
     "VERI_MODEL_VERIFIER": Tunable(text, "sonnet"),
     "VERI_MODEL_REVISE": Tunable(text, "opus"),
+    "VERI_MODEL_REVISE_GREEN": Tunable(text, ""),
     "VERI_MODEL_ADJUDICATOR": Tunable(text, "opus"),
     "VERI_MODEL_CONDUCTOR": Tunable(text, "opus"),
     "VERI_MISSING_REROUTE_BUDGET": Tunable(tokens, "3"),
