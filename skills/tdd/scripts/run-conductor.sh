@@ -16,7 +16,7 @@
 #
 # A first launch with no local .tdd/issue-<issue>-skill-commit pins the commit origin's refs/veri/runs/<issue>
 # records, when it carries one and that commit is an ancestor of the skill clone's origin default, so a run resumed on
-# another machine executes the snapshot it started on; it also restores the carried timeout pin into the run's worktree
+# another machine executes the snapshot it started on; with that pin accepted it also restores the carried timeout pin into the run's worktree
 # when the run has none and the value is one leaf_timeout accepts.
 #
 # The prompt is the `/tdd` procedure itself — SKILL.md, verbatim, beside this script — with
