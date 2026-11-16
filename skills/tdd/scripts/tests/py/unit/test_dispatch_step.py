@@ -67,3 +67,21 @@ def test_a_rate_limited_queue_read_pauses_launching_until_the_reset_the_world_re
     state, code = dispatch.step(dispatch.State(target=1), world)
 
     assert (code, state.resume_at, world.launched, world.said, world.complained) == (None, 5000, [], [], [])
+
+
+def test_3990_a_rate_limited_queue_read_whose_reset_cannot_be_read_pauses_the_queue_for_one_overlap_poll_then_launches(
+        dispatch, monkeypatch):
+    monkeypatch.setenv("VERI_DISPATCH_OVERLAP_POLL", "300")
+    limited = importlib.import_module("veri.watch_runs").QueueUnreadable("gh: API rate limit exceeded for user\n")
+    world = FakeWorld({"queue": limited, "reset": None, "clock": 1000},
+                      {"queue": ["12"], "clock": 1299},
+                      {"queue": ["12"], "clock": 1300})
+    state, codes = dispatch.State(target=1), []
+    for _ in range(3):
+        state, code = dispatch.step(state, world)
+        codes.append(code)
+        world.wait()
+
+    assert (codes, len(world.complained), "reset" in "".join(world.complained),
+            [tick for key, tick in world.reads if key == "queue"], world.launched) == (
+        [None, None, None], 1, True, [0, 2], ["12"])
