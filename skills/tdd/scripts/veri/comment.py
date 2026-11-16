@@ -119,9 +119,15 @@ def post_red(issue, note_file=None):
     return post_and_record(issue, "red", with_note(body, note_file))
 
 
+SWITCHED_OFF = "SKIPPED (switched off)"
+
+
+def verdict_file(phase):
+    return read_or_empty(run_dir.run_file(".", f"verdict-{phase}.exit")).strip()
+
+
 def verdict_word(phase):
-    verdict = read_or_empty(run_dir.run_file(".", f"verdict-{phase}.exit")).strip()
-    return {"1": "REJECT", "skipped": "SKIPPED (switched off)"}.get(verdict, "PASS")
+    return {"1": "REJECT", "skipped": SWITCHED_OFF}.get(verdict_file(phase), "PASS")
 
 
 def post_verify(issue, kind):
@@ -157,8 +163,7 @@ def post_refactor(issue, note_file=None):
 
 def post_revised(issue, phase):
     reason = read_or_empty(run_dir.run_file(".", f"verify-{phase}.reason"))
-    skipped = read_or_empty(run_dir.run_file(".", f"verdict-{phase}.exit")).strip() == "skipped"
-    verdict = "SKIPPED (switched off)" if skipped else "PASS"
+    verdict = SWITCHED_OFF if verdict_file(phase) == "skipped" else "PASS"
     return post_and_record(issue, "verify-revised", f"### 🔎 verify-{phase} (revised) — {verdict}\n\n{reason}")
 
 
