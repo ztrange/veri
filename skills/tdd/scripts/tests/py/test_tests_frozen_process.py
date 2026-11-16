@@ -1629,29 +1629,6 @@ def test_check_earlier_exits_0_and_writes_a_pass_marker_when_the_repository_giti
     assert (code, len(list((tmp_path / ".tdd").glob("check-earlier-*.pass")))) == (0, 1), err
 
 
-@pytest.mark.process("a real git repository under tmp_path, asked for the version of a test file at HEAD")
-def test_record_step_again_for_a_case_committed_unchanged_keeps_its_body_entry_at_the_current_digest_2199(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / "tests").mkdir()
-    (tmp_path / ".tdd").mkdir()
-    (tmp_path / "tests/test_new.py").write_text("def test_one():\n    assert 1\n")
-    new_repo(tmp_path)
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    step = "step one adds a case"
-    (tmp_path / "tests/test_new.py").write_text("def test_one():\n    assert 1\n\n\ndef test_two():\n    assert 2\n")
-    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "red")
-    record = tmp_path / run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
-    first = [l for l in record.read_text().splitlines() if l.startswith("body: ")]
-
-    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
-
-    again = [l for l in record.read_text().splitlines() if l.startswith("body: ")]
-    assert (len(first), again) == (1, first)
-
-
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_rerecord_earlier_for_a_diff_checked_step_rewrites_the_changed_case_so_a_later_check_earlier_names_nothing_2199(
         tmp_path, run_cli, tests_frozen):
@@ -2829,53 +2806,6 @@ def _names(repo, tests_frozen, step):
     return sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))
 
 
-@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
-def test_rerecord_on_head_keeps_a_pin_and_rename_committed_in_green_and_a_successor_a_later_step_renamed_2673(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
-    suite, step = tmp_path / "test_suite.py", STEPS[1]
-    _plan_repo(tmp_path, monkeypatch)
-    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("rejects_a_body_that_is_not_valid_json", 3),
-                                  CASE % ("one", 1), CASE % ("two", 2)]))
-    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
-    _commit(tmp_path, "A red")
-    suite.write_text(suite.read_text().replace("rejects_a_body", "rejects_to_a_body"))
-    _commit(tmp_path, "A renames in green")
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_committed", 5))
-    _ledger(tmp_path, A="pending")
-    _commit(tmp_path, "A green")
-    _ledger(tmp_path, A="done")
-    _commit(tmp_path, "A refactor verified")
-    suite.write_text(suite.read_text().replace("test_one", "test_one_renamed") + "\n\n" + CASE % ("later_step", 9))
-    _ledger(tmp_path, A="done", B="pending")
-    _commit(tmp_path, "B green")
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
-
-    code = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
-
-    assert (code, _names(tmp_path, tests_frozen, step)) == (
-        0, ["test_one_renamed", "test_pin_committed", "test_pin_wip", "test_rejects_to_a_body_that_is_not_valid_json",
-            "test_two"])
-
-
-@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
-def test_rerecord_on_head_mid_step_keeps_a_case_the_current_unticked_step_committed_not_an_earlier_steps_2673(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
-    suite, step = tmp_path / "test_suite.py", STEPS[1]
-    _plan_repo(tmp_path, monkeypatch)
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("early", 7))
-    _ledger(tmp_path, Z="pending")
-    _commit(tmp_path, "Z green")
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("one", 1))
-    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
-    _commit(tmp_path, "A red")
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_committed", 5))
-    _commit(tmp_path, "A pin, not ticked yet")
-
-    code = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
-
-    assert (code, _names(tmp_path, tests_frozen, step)) == (0, ["test_one", "test_pin_committed"])
-
-
 @pytest.mark.process("a real git repository under tmp_path, its history walked after an earlier case's receipt")
 def test_rerecord_on_head_walks_the_real_ledger_history_after_an_earlier_case_left_a_receipt_and_first_imported_ledger_3053(
         tmp_path, run_cli, monkeypatch):
@@ -2900,23 +2830,6 @@ def test_rerecord_on_head_walks_the_real_ledger_history_after_an_earlier_case_le
     assert (code, _names(repo, tests_frozen, step)) == (0, ["test_one", "test_pin_committed"]), err
 
 
-@pytest.mark.process("a real git repository under tmp_path, its committed ledger walked for the step's line")
-def test_rerecord_on_head_exits_2_naming_the_step_when_no_committed_ledger_line_of_it_is_found_2673(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
-    suite, step = tmp_path / "test_suite.py", "step C that no ledger names"
-    _plan_repo(tmp_path, monkeypatch)
-    suite.write_text(CASE % ("base", 0) + "\n\n" + CASE % ("one", 1))
-    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
-    before = (tmp_path / tests_frozen.record_path(step)).read_text()
-    _commit(tmp_path, "one")
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later", 2))
-    _commit(tmp_path, "later")
-
-    code, _, err = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
-
-    assert (code, step in err, (tmp_path / tests_frozen.record_path(step)).read_text()) == (2, True, before)
-
-
 PHASED_STEP = STEPS[1] + " ⟦phases: expand, migrate⟧"
 
 
@@ -2927,32 +2840,6 @@ def _phased_ledger(repo, marks="", **state):
     ledger.write_text(ledger.read_text().replace(STEPS[1], PHASED_STEP + marks))
 
 
-@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
-def test_rerecord_on_head_keeps_the_pins_and_renames_of_a_step_whose_ledger_line_went_through_phase_marks_2724(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
-    suite = tmp_path / "test_suite.py"
-    expand, migrate = " ⟂ expand done", " ⟂ expand done ⟂ migrate done"
-    _plan_repo(tmp_path, monkeypatch)
-    _phased_ledger(tmp_path)
-    _commit(tmp_path, "plan the phases")
-    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("one", 1), CASE % ("two", 2)]))
-    run_cli(tests_frozen, ["record", "--step", PHASED_STEP, "test_suite.py"], cwd=tmp_path)
-    _phased_ledger(tmp_path, expand)
-    _commit(tmp_path, "A expand")
-    suite.write_text(suite.read_text().replace("test_one", "test_one_renamed") + "\n\n" + CASE % ("pin_committed", 5))
-    _phased_ledger(tmp_path, migrate)
-    _commit(tmp_path, "A migrate")
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later_step", 9))
-    _phased_ledger(tmp_path, migrate, B="pending")
-    _commit(tmp_path, "B green")
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
-
-    code = run_cli(tests_frozen, ["record", "--step", PHASED_STEP, "test_suite.py"], cwd=tmp_path)[0]
-
-    assert (code, _names(tmp_path, tests_frozen, PHASED_STEP)) == (
-        0, ["test_one_renamed", "test_pin_committed", "test_pin_wip", "test_two"])
-
-
 REPAIR_STEP = "repairs the fixture 'f' in test_suite.py, reproduced by a case ⟦fixture-repair⟧"
 
 
@@ -2960,53 +2847,6 @@ def _repair_ledger(repo, **state):
     _ledger(repo, **state)
     ledger = repo / ".tdd/issue-9.md"
     ledger.write_text(ledger.read_text().replace(STEPS[1], REPAIR_STEP))
-
-
-@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
-def test_rerecord_on_head_keeps_the_pins_and_renames_of_a_fixture_repair_step_whose_ledger_line_ends_in_the_marker_2724(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
-    suite = tmp_path / "test_suite.py"
-    _plan_repo(tmp_path, monkeypatch)
-    _repair_ledger(tmp_path)
-    _commit(tmp_path, "plan the repair")
-    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("one", 1), CASE % ("two", 2)]))
-    run_cli(tests_frozen, ["record", "--step", REPAIR_STEP, "test_suite.py"], cwd=tmp_path)
-    suite.write_text(suite.read_text().replace("test_one", "test_one_renamed") + "\n\n" + CASE % ("pin_committed", 5))
-    _repair_ledger(tmp_path, A="pending")
-    _commit(tmp_path, "A green")
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later_step", 9))
-    _repair_ledger(tmp_path, A="pending", B="pending")
-    _commit(tmp_path, "B green")
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
-
-    code = run_cli(tests_frozen, ["record", "--step", REPAIR_STEP, "test_suite.py"], cwd=tmp_path)[0]
-
-    assert (code, _names(tmp_path, tests_frozen, REPAIR_STEP)) == (
-        0, ["test_one_renamed", "test_pin_committed", "test_pin_wip", "test_two"])
-
-
-@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
-def test_rerecord_on_head_keeps_a_case_the_steps_own_refactor_commit_renamed_before_the_next_step_began_2724(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
-    suite, step = tmp_path / "test_suite.py", STEPS[1]
-    _plan_repo(tmp_path, monkeypatch)
-    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("one", 1)]))
-    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_committed", 5))
-    _ledger(tmp_path, A="pending")
-    _commit(tmp_path, "A green")
-    suite.write_text(suite.read_text().replace("pin_committed", "pin_tidied"))
-    _commit(tmp_path, "A refactor renames the pin")
-    _ledger(tmp_path, A="done")
-    _commit(tmp_path, "A refactor verified")
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later_step", 9))
-    _ledger(tmp_path, A="done", B="pending")
-    _commit(tmp_path, "B green")
-    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
-
-    code = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
-
-    assert (code, _names(tmp_path, tests_frozen, step)) == (0, ["test_one", "test_pin_tidied", "test_pin_wip"])
 
 
 BODY = "def test_%s():\n    x = %d\n    assert x\n"
@@ -6426,43 +6266,6 @@ def test_check_earlier_exits_0_for_a_later_step_changing_a_non_red_case_in_an_ea
 
     assert [guard_changed[:2], red_changed[:2]] == [
         (0, ""), (1, "test_pinned_3443 (%s)\n" % earlier)]
-
-
-
-@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
-def test_record_step_freezes_only_the_red_case_of_each_of_two_prefix_sharing_guard_subjects_3443(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / "tests").mkdir()
-    (tmp_path / ".tdd").mkdir()
-    (tmp_path / "tests/test_guard.py").write_text("def test_guarded_one():\n    assert True, 'a'\n")
-    (tmp_path / "tests/test_guard_more.py").write_text("def test_guarded_two():\n    assert True, 'a'\n")
-    new_repo(tmp_path)
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    earlier, current = ("step one ⟦guard-subject: tests/test_guard.py⟧ ⟦guard-subject: tests/test_guard_more.py⟧",
-                        "step two")
-    (tmp_path / "tests/test_guard.py").write_text(
-        "def test_guarded_one():\n    assert True, 'b'\n\n\ndef test_red_one_3443():\n    assert 1 == 2\n")
-    (tmp_path / "tests/test_guard_more.py").write_text(
-        "def test_guarded_two():\n    assert True, 'b'\n\n\ndef test_red_two_3443():\n    assert 1 == 3\n")
-    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_guard.py"], cwd=tmp_path)
-    ledger = tmp_path / ".tdd/ledger.md"
-    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
-    (tmp_path / "tests/test_guard.py").write_text(
-        "def test_guarded_one():\n    assert True, 'c'\n\n\ndef test_red_one_3443():\n    assert 1 == 2\n")
-    (tmp_path / "tests/test_guard_more.py").write_text(
-        "def test_guarded_two():\n    assert True, 'c'\n\n\ndef test_red_two_3443():\n    assert 1 == 3\n")
-    argv = ["check-earlier", str(ledger), "--step", current]
-
-    guarded_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
-    (tmp_path / "tests/test_guard.py").write_text(
-        "def test_guarded_one():\n    assert True, 'c'\n\n\ndef test_red_one_3443():\n    assert True\n")
-    (tmp_path / "tests/test_guard_more.py").write_text(
-        "def test_guarded_two():\n    assert True, 'c'\n\n\ndef test_red_two_3443():\n    assert True\n")
-    red_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
-
-    assert [guarded_changed[:2], (red_changed[0], sorted(red_changed[1].splitlines()))] == [
-        (0, ""), (1, ["test_red_one_3443 (%s)" % earlier, "test_red_two_3443 (%s)" % earlier])]
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")

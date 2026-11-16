@@ -277,3 +277,236 @@ def test_record_step_lists_the_pytest_function_red_edited_below_a_finish_line_in
     record = recorded(run_cli, tests_frozen, tmp_path, step, PY_SUITE)
 
     assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: test_last"]
+
+
+def test_record_step_again_for_a_case_committed_unchanged_keeps_its_body_entry_at_the_current_digest_2199(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests").mkdir()
+    base = {NEW: "def test_one():\n    assert 1\n"}
+    (tmp_path / NEW).write_text(base[NEW])
+    fed_history(("base", "base", base), root=tmp_path)
+    step = "step one adds a case"
+    (tmp_path / NEW).write_text("def test_one():\n    assert 1\n\n\ndef test_two():\n    assert 2\n")
+    run_cli(tests_frozen, ["record", "--step", step, NEW], cwd=tmp_path)
+    fed_history(("base", "base", base), ("red", "red", {NEW: (tmp_path / NEW).read_text()}), root=tmp_path)
+    record = tmp_path / run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
+    first = [l for l in record.read_text().splitlines() if l.startswith("body: ")]
+
+    run_cli(tests_frozen, ["record", "--step", step, NEW], cwd=tmp_path)
+
+    again = [l for l in record.read_text().splitlines() if l.startswith("body: ")]
+    assert (len(first), again) == (1, first)
+
+
+STEPS = ["step Z adds an early case", "step A adds the cases", "step B adds a later case"]
+CASE = "def test_%s():\n    assert %d\n"
+SUITE, LEDGER, OTHER_LEDGER = "test_suite.py", ".tdd/issue-9.md", ".tdd/issue-8.md"
+
+
+def _ledger(root, **state):
+    """The ledger in its real shapes: open, pending (ticked, ledger.PENDING_MARK appended) and done."""
+    marks = {"open": "- [ ] %s", "pending": "- [x] %s ⟂ refactor pending", "done": "- [x] %s"}
+    (root / LEDGER).write_text("".join(
+        marks[state.get(name, "open")] % text + "\n" for name, text in zip("ZAB", STEPS)))
+
+
+@pytest.fixture
+def plan_repo(tmp_path, fed_history, monkeypatch):
+    """Issue 9's branch after its plan commit; `plan_repo(name)` commits the suite and both ledgers as they stand
+    in tmp_path, one fed revision each (names carry no whitespace: case_history splits revision lists on it)."""
+    monkeypatch.setenv("VERI_ISSUE", "9")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / SUITE).write_text(CASE % ("base", 0))
+    _ledger(tmp_path)
+    (tmp_path / OTHER_LEDGER).write_text("- [x] %s\n" % STEPS[1])
+    revisions = []
+
+    def commit(name):
+        revisions.append((name, name, {path: (tmp_path / path).read_text() for path in (SUITE, LEDGER, OTHER_LEDGER)}))
+        fed_history(*revisions, root=tmp_path)
+    commit("plan")
+    return commit
+
+
+def _names(root, tests_frozen, step):
+    record = (root / tests_frozen.record_path(step)).read_text()
+    return sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))
+
+
+def test_rerecord_on_head_keeps_a_pin_and_rename_committed_in_green_and_a_successor_a_later_step_renamed_2673(
+        tmp_path, run_cli, tests_frozen, plan_repo):
+    suite, step = tmp_path / SUITE, STEPS[1]
+    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("rejects_a_body_that_is_not_valid_json", 3),
+                                  CASE % ("one", 1), CASE % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", step, SUITE], cwd=tmp_path)
+    plan_repo("A-red")
+    suite.write_text(suite.read_text().replace("rejects_a_body", "rejects_to_a_body"))
+    plan_repo("A-renames-in-green")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_committed", 5))
+    _ledger(tmp_path, A="pending")
+    plan_repo("A-green")
+    _ledger(tmp_path, A="done")
+    plan_repo("A-refactor-verified")
+    suite.write_text(suite.read_text().replace("test_one", "test_one_renamed") + "\n\n" + CASE % ("later_step", 9))
+    _ledger(tmp_path, A="done", B="pending")
+    plan_repo("B-green")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
+
+    code = run_cli(tests_frozen, ["record", "--step", step, SUITE], cwd=tmp_path)[0]
+
+    assert (code, _names(tmp_path, tests_frozen, step)) == (
+        0, ["test_one_renamed", "test_pin_committed", "test_pin_wip", "test_rejects_to_a_body_that_is_not_valid_json",
+            "test_two"])
+
+
+def test_rerecord_on_head_mid_step_keeps_a_case_the_current_unticked_step_committed_not_an_earlier_steps_2673(
+        tmp_path, run_cli, tests_frozen, plan_repo):
+    suite, step = tmp_path / SUITE, STEPS[1]
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("early", 7))
+    _ledger(tmp_path, Z="pending")
+    plan_repo("Z-green")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("one", 1))
+    run_cli(tests_frozen, ["record", "--step", step, SUITE], cwd=tmp_path)
+    plan_repo("A-red")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_committed", 5))
+    plan_repo("A-pin-not-ticked-yet")
+
+    code = run_cli(tests_frozen, ["record", "--step", step, SUITE], cwd=tmp_path)[0]
+
+    assert (code, _names(tmp_path, tests_frozen, step)) == (0, ["test_one", "test_pin_committed"])
+
+
+def test_rerecord_on_head_exits_2_naming_the_step_when_no_committed_ledger_line_of_it_is_found_2673(
+        tmp_path, run_cli, tests_frozen, plan_repo):
+    suite, step = tmp_path / SUITE, "step C that no ledger names"
+    suite.write_text(CASE % ("base", 0) + "\n\n" + CASE % ("one", 1))
+    run_cli(tests_frozen, ["record", "--step", step, SUITE], cwd=tmp_path)
+    before = (tmp_path / tests_frozen.record_path(step)).read_text()
+    plan_repo("one")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later", 2))
+    plan_repo("later")
+
+    code, _, err = run_cli(tests_frozen, ["record", "--step", step, SUITE], cwd=tmp_path)
+
+    assert (code, step in err, (tmp_path / tests_frozen.record_path(step)).read_text()) == (2, True, before)
+
+
+PHASED_STEP = STEPS[1] + " ⟦phases: expand, migrate⟧"
+
+
+def _phased_ledger(root, marks="", **state):
+    """The ledger with step A listing its phases: its box stays open whatever `⟂ <phase> done` marks it gains."""
+    _ledger(root, **state)
+    ledger = root / LEDGER
+    ledger.write_text(ledger.read_text().replace(STEPS[1], PHASED_STEP + marks))
+
+
+def test_rerecord_on_head_keeps_the_pins_and_renames_of_a_step_whose_ledger_line_went_through_phase_marks_2724(
+        tmp_path, run_cli, tests_frozen, plan_repo):
+    suite = tmp_path / SUITE
+    expand, migrate = " ⟂ expand done", " ⟂ expand done ⟂ migrate done"
+    _phased_ledger(tmp_path)
+    plan_repo("plan-the-phases")
+    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("one", 1), CASE % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", PHASED_STEP, SUITE], cwd=tmp_path)
+    _phased_ledger(tmp_path, expand)
+    plan_repo("A-expand")
+    suite.write_text(suite.read_text().replace("test_one", "test_one_renamed") + "\n\n" + CASE % ("pin_committed", 5))
+    _phased_ledger(tmp_path, migrate)
+    plan_repo("A-migrate")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later_step", 9))
+    _phased_ledger(tmp_path, migrate, B="pending")
+    plan_repo("B-green")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
+
+    code = run_cli(tests_frozen, ["record", "--step", PHASED_STEP, SUITE], cwd=tmp_path)[0]
+
+    assert (code, _names(tmp_path, tests_frozen, PHASED_STEP)) == (
+        0, ["test_one_renamed", "test_pin_committed", "test_pin_wip", "test_two"])
+
+
+REPAIR_STEP = "repairs the fixture 'f' in test_suite.py, reproduced by a case ⟦fixture-repair⟧"
+
+
+def _repair_ledger(root, **state):
+    _ledger(root, **state)
+    ledger = root / LEDGER
+    ledger.write_text(ledger.read_text().replace(STEPS[1], REPAIR_STEP))
+
+
+def test_rerecord_on_head_keeps_the_pins_and_renames_of_a_fixture_repair_step_whose_ledger_line_ends_in_the_marker_2724(
+        tmp_path, run_cli, tests_frozen, plan_repo):
+    suite = tmp_path / SUITE
+    _repair_ledger(tmp_path)
+    plan_repo("plan-the-repair")
+    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("one", 1), CASE % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", REPAIR_STEP, SUITE], cwd=tmp_path)
+    suite.write_text(suite.read_text().replace("test_one", "test_one_renamed") + "\n\n" + CASE % ("pin_committed", 5))
+    _repair_ledger(tmp_path, A="pending")
+    plan_repo("A-green")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later_step", 9))
+    _repair_ledger(tmp_path, A="pending", B="pending")
+    plan_repo("B-green")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
+
+    code = run_cli(tests_frozen, ["record", "--step", REPAIR_STEP, SUITE], cwd=tmp_path)[0]
+
+    assert (code, _names(tmp_path, tests_frozen, REPAIR_STEP)) == (
+        0, ["test_one_renamed", "test_pin_committed", "test_pin_wip", "test_two"])
+
+
+def test_rerecord_on_head_keeps_a_case_the_steps_own_refactor_commit_renamed_before_the_next_step_began_2724(
+        tmp_path, run_cli, tests_frozen, plan_repo):
+    suite, step = tmp_path / SUITE, STEPS[1]
+    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, SUITE], cwd=tmp_path)
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_committed", 5))
+    _ledger(tmp_path, A="pending")
+    plan_repo("A-green")
+    suite.write_text(suite.read_text().replace("pin_committed", "pin_tidied"))
+    plan_repo("A-refactor-renames-the-pin")
+    _ledger(tmp_path, A="done")
+    plan_repo("A-refactor-verified")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later_step", 9))
+    _ledger(tmp_path, A="done", B="pending")
+    plan_repo("B-green")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
+
+    code = run_cli(tests_frozen, ["record", "--step", step, SUITE], cwd=tmp_path)[0]
+
+    assert (code, _names(tmp_path, tests_frozen, step)) == (0, ["test_one", "test_pin_tidied", "test_pin_wip"])
+
+
+GUARD, GUARD_MORE = "tests/test_guard.py", "tests/test_guard_more.py"
+
+
+def test_record_step_freezes_only_the_red_case_of_each_of_two_prefix_sharing_guard_subjects_3443(
+        tmp_path, run_cli, tests_frozen, committed_once, monkeypatch):
+    committed_once({GUARD: "def test_guarded_one():\n    assert True, 'a'\n",
+                    GUARD_MORE: "def test_guarded_two():\n    assert True, 'a'\n"})
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
+    earlier, current = "step one ⟦guard-subject: %s⟧ ⟦guard-subject: %s⟧" % (GUARD, GUARD_MORE), "step two"
+    (tmp_path / GUARD).write_text(
+        "def test_guarded_one():\n    assert True, 'b'\n\n\ndef test_red_one_3443():\n    assert 1 == 2\n")
+    (tmp_path / GUARD_MORE).write_text(
+        "def test_guarded_two():\n    assert True, 'b'\n\n\ndef test_red_two_3443():\n    assert 1 == 3\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, GUARD], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / GUARD).write_text(
+        "def test_guarded_one():\n    assert True, 'c'\n\n\ndef test_red_one_3443():\n    assert 1 == 2\n")
+    (tmp_path / GUARD_MORE).write_text(
+        "def test_guarded_two():\n    assert True, 'c'\n\n\ndef test_red_two_3443():\n    assert 1 == 3\n")
+    argv = ["check-earlier", str(ledger), "--step", current]
+
+    guarded_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+    (tmp_path / GUARD).write_text(
+        "def test_guarded_one():\n    assert True, 'c'\n\n\ndef test_red_one_3443():\n    assert True\n")
+    (tmp_path / GUARD_MORE).write_text(
+        "def test_guarded_two():\n    assert True, 'c'\n\n\ndef test_red_two_3443():\n    assert True\n")
+    red_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+
+    assert [guarded_changed[:2], (red_changed[0], sorted(red_changed[1].splitlines()))] == [
+        (0, ""), (1, ["test_red_one_3443 (%s)" % earlier, "test_red_two_3443 (%s)" % earlier])]
