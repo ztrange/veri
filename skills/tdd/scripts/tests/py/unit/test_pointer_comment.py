@@ -58,3 +58,17 @@ def test_two_calls_leave_exactly_one_run_state_comment_posted_then_edited_in_pla
     second = _module().main(["7"])
 
     assert (first, len(posted), second, len(issue.bodies()), len(issue.comments)) == (0, 1, 0, 1, 2)
+
+
+def test_the_comment_states_the_branch_the_pr_url_or_none_and_the_resume_command(tmp_path, monkeypatch, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    url = "https://github.com/o/r/pull/9"
+    with_pr = FakeIssue(fake_processes, pulls=[{"number": 9, "html_url": url, "head": {"ref": "tdd/7-pointer"}}])
+    _module().main(["7"])
+    stated = with_pr.bodies()[0].splitlines()
+    without = FakeIssue(fake_processes)
+    _module().main(["7"])
+    bare = without.bodies()[0].splitlines()
+
+    assert ("Branch: tdd/7-pointer" in stated, "PR: " + url in stated, "PR: none" in bare,
+            "Resume: $S/run-conductor.sh 7" in stated) == (True, True, True, True)

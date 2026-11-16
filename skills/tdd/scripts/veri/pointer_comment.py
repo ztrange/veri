@@ -4,14 +4,36 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import sys
 
 import entry
+import git
 import github
 
 HEADING = "### 📍 Run state"
 USAGE = "usage: pointer-comment.sh <issue-number>"
 
 
+def branch():
+    try:
+        return git.out("rev-parse", "--abbrev-ref", "HEAD") or "none"
+    except git.GitFailed:
+        return "none"
+
+
+def pr_url(name):
+    if name == "none":
+        return "none"
+    pulls = github.rest_items("repos/{owner}/{repo}/pulls?state=all&per_page=100&head={owner}:%s" % name)
+    return next((p.get("html_url") or p.get("url") for p in pulls if (p.get("head") or {}).get("ref") == name), "none")
+
+
 def render(issue):
-    return HEADING + "\n"
+    name = branch()
+    return "\n".join([
+        HEADING,
+        "",
+        "Branch: %s" % name,
+        "PR: %s" % pr_url(name),
+        "Resume: $S/run-conductor.sh %s" % issue,
+    ]) + "\n"
 
 
 def write(issue):
