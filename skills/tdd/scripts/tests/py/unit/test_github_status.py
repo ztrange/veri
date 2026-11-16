@@ -364,3 +364,19 @@ def test_a_status_url_whose_scheme_is_not_http_or_https_exits_2_naming_it_before
     assert (code, out) == (2, "")
     assert "VERI_GITHUB_STATUS_URL" in err
     assert page.calls == []
+
+
+def test_a_name_holding_tabs_or_newlines_prints_on_one_line_with_whitespace_collapsed_and_a_missing_one_as_unnamed(
+        page, run_cli):
+    forged = incident("Slow\tPRs\nFake incident\tActions", 61, "Pull Requests")
+    unnamed = incident(None, 45, "Actions")
+    del unnamed["name"]
+    young = incident("Young\n\tone", 5, "Issues")
+    page.serve(forged, unnamed)
+
+    code, out, _ = run_cli(page.module, [])
+
+    assert (code, out) == (1, "Slow PRs Fake incident Actions\tPull Requests\t2026-11-16 04:59\t61\n"
+                              "(unnamed)\tActions\t2026-11-16 05:15\t45\n")
+    page.serve(young)
+    assert run_cli(page.module, [])[:2] == (0, "young 5 Young one\n")

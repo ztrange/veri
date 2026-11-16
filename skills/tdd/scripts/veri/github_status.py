@@ -93,21 +93,27 @@ def started(incident):
     return start
 
 
+def one_line(name):
+    """A name as printed: its whitespace (tabs and newlines included) collapsed to single spaces; `(unnamed)` when
+    missing or blank, so no name can split a line or forge another."""
+    return " ".join(str(name).split()) if name is not None and str(name).strip() else "(unnamed)"
+
+
 def read(components, threshold, timeout):
     """(code, lines) of one read: 1 and a line per counting incident, else 0 and `up` or the young lines."""
     counting, young = [], []
     for incident in incidents(timeout):
-        matched = [c.get("name") for c in incident.get("components") or () if c.get("name") in components]
+        matched = [one_line(c.get("name")) for c in incident.get("components") or () if c.get("name") in components]
         if not matched:
             continue
         start = started(incident)
         age = now() - start
         minutes = str(int(age.total_seconds() // 60))
         if age >= threshold:
-            counting.append("\t".join((str(incident.get("name")), ", ".join(matched),
+            counting.append("\t".join((one_line(incident.get("name")), ", ".join(matched),
                                        start.astimezone(local_zone()).strftime("%Y-%m-%d %H:%M"), minutes)))
         else:
-            young.append("young %s %s" % (minutes, incident.get("name")))
+            young.append("young %s %s" % (minutes, one_line(incident.get("name"))))
     return (1, counting) if counting else (0, young or ["up"])
 
 
