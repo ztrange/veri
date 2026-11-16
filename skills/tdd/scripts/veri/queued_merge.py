@@ -657,7 +657,15 @@ def _join(pid, repo, pr, worktree, branch, stack, window):
         released = _release(pid)
     if code:
         return code
+    _track(worktree)
     return _join_cleanup(worktree, branch, released)
+
+
+def _track(worktree):
+    """stack-pr.sh run in <worktree>, so the first join after a landing reopens the tracking pull request:
+    (exit code, its stderr)."""
+    run = _start("stack-pr.sh", cwd=worktree, capture=True)
+    return run.returncode, run.stderr or ""
 
 
 def _join_cleanup(worktree, branch, released):
