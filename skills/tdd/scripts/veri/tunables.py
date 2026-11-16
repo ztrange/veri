@@ -147,6 +147,7 @@ TUNABLES = {
     "VERI_GH_DRIVER": Tunable(gh_driver, "rest"),
     "VERI_GH_TIMEOUT": Tunable(text, "300"),
     "VERI_GIT_NETWORK_TIMEOUT": Tunable(text, "600"),
+    "VERI_GITHUB_STATUS_URL": Tunable(text, "https://www.githubstatus.com"),
     "VERI_MERGE_LOCK_POLL": Tunable(text, "30"),
     "VERI_FETCH_RETRY_SLEEP": Tunable(text, "1"),
     "VERI_MERGE_SETTLE_READS": Tunable(text, "10"),
