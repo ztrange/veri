@@ -115,6 +115,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 - `out(*args, cwd=None)`: stdout as str, trailing newlines stripped; raises `GitFailed` on a non-zero exit or a missing git.
 - `ok(*args, cwd=None)`: whether the command exited 0; never raises.
 - `default_branch(cwd=None, remote=True)`: the default branch name, `None` when it cannot be told; `remote=False` never touches the network. A fallback is the caller's to write.
+- `network(*args, cwd=None, limit_name="VERI_GIT_NETWORK_TIMEOUT")`: a git call that talks to a remote, text captured, in a session of its own; at the limit its whole process group is killed and it answers a `TimedOut` (a CompletedProcess, exit 124, stderr naming the call and the limit). A bad limit or a git that cannot start answers exit 2. Never raises. `github.bounded_group` is the same bound for a caller that may import `github`; this one is for the Foundations and Run state modules that may not.
 
 ## json_documents
 - `documents(text, strict=True)`: the JSON documents in `text`, in order; raises `json.JSONDecodeError` on a malformed one.
