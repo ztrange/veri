@@ -105,6 +105,9 @@ PYCACHE_GUARD := why=; listing="$$(ls -nd "$$pycache" 2>/dev/null)"; \
 	elif [ "$$(printf '%s\n' "$$listing" | awk '{print $$3}')" != "$$(id -u)" ]; then why="it is owned by another user"; \
 	else case "$$listing" in ?????w*) why="it is group-writable" ;; ????????w*) why="it is other-writable" ;; esac; \
 	fi; \
+	if [ -z "$$why" ]; then case "$$(ls -ldL "$$(dirname "$$pycache")" 2>/dev/null)" in \
+	  ?????w???[!tT]*|????????w[!tT]*) why="its parent is group- or other-writable without the sticky bit" ;; esac; \
+	fi; \
 	if [ -n "$$why" ]; then \
 	  printf 'veri: refusing the bytecode cache %s: %s; remove it, or set VERI_PYCACHE to a directory of your own\n' "$$pycache" "$$why" >&2; \
 	  exit 2; \

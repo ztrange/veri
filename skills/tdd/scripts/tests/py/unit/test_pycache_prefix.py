@@ -102,6 +102,38 @@ def test_3965_a_veri_pycache_path_that_cannot_be_created_is_refused_naming_why(r
     assert (used, capfd.readouterr().err.startswith("veri: not using the bytecode cache %s: it cannot be created or read: " % cache)) == (None, True)
 
 
+def cache_under_parent_with_mode(tmp_path, mode):
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    cache = parent / "cache"
+    cache.mkdir()
+    cache.chmod(0o700)
+    parent.chmod(mode)
+    return cache
+
+
+def test_3965_a_closed_prefix_whose_parent_others_can_write_without_the_sticky_bit_is_refused(run_prefix, monkeypatch, tmp_path, capfd):
+    cache = cache_under_parent_with_mode(tmp_path, 0o777)
+    monkeypatch.setenv("VERI_PYCACHE", str(cache))
+
+    assert (run_prefix(), capfd.readouterr().err) == (
+        None, "veri: not using the bytecode cache %s: its parent is group- or other-writable without the sticky bit; "
+              "compiling veri's modules from source\n" % cache)
+
+
+def test_3965_a_refused_prefix_leaves_the_run_writing_no_bytecode_anywhere(run_prefix, monkeypatch, tmp_path):
+    monkeypatch.setenv("VERI_PYCACHE", str(cache_with_mode(tmp_path, 0o770)))
+
+    assert (run_prefix(), sys.dont_write_bytecode) == (None, True)
+
+
+def test_3965_a_closed_prefix_whose_parent_is_writable_by_all_with_the_sticky_bit_as_tmp_is_used(run_prefix, monkeypatch, tmp_path):
+    cache = cache_under_parent_with_mode(tmp_path, 0o1777)
+    monkeypatch.setenv("VERI_PYCACHE", str(cache))
+
+    assert run_prefix() == str(cache)
+
+
 def test_3965_a_group_writable_prefix_the_caller_exported_as_pythonpycacheprefix_is_refused_and_its_planted_pyc_never_runs(
         run_prefix, monkeypatch, tmp_path, capfd):
     import importlib

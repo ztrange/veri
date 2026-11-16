@@ -8,13 +8,15 @@ def refusal(prefix):
     """Why <prefix> may not be this user's bytecode cache, or None when it may; an absent one is created with mode 0700.
 
     It may only when `lstat` shows a directory, not a symlink, owned by this user and writable by neither group nor
-    others (#3965): on a shared /tmp another user can create the path first."""
+    others, in a parent that group and others cannot write unless it has the sticky bit, as /tmp does (#3965): on a
+    shared /tmp another user can create the path first, and in an open parent swap it after the check."""
     try:
         try:
             os.makedirs(prefix, 0o700)
         except FileExistsError:
             pass
         info = os.lstat(prefix)
+        parent = os.stat(os.path.dirname(os.path.abspath(prefix))).st_mode
     except OSError as error:
         return "it cannot be created or read: %s" % error.strerror
     mode = info.st_mode
@@ -28,6 +30,8 @@ def refusal(prefix):
         return "it is group-writable"
     if mode & stat.S_IWOTH:
         return "it is other-writable"
+    if parent & (stat.S_IWGRP | stat.S_IWOTH) and not parent & stat.S_ISVTX:
+        return "its parent is group- or other-writable without the sticky bit"
     return None
 
 
@@ -69,5 +73,6 @@ else:
         sys.pycache_prefix = prefix
     else:
         sys.pycache_prefix = None
+        sys.dont_write_bytecode = True  # with no prefix, a write would land beside the source, in the repository
         sys.stderr.write("veri: not using the bytecode cache %s: %s; compiling veri's modules from source\n" % (prefix, reason))
         from_source()

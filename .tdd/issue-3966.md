@@ -7,3 +7,4 @@
 - [x] the same with the prefix a closed directory owned by another user ⟦criterion 2⟧
 - [x] the same with the prefix a regular file, named as not a directory
 - [x] CLAUDE.md's bytecode-cache paragraph names the refusal (CM161), graded ⟦criterion 3⟧
+- [x] a prefix whose parent group or others can write without the sticky bit is refused, as pycache_prefix.py refuses it (review)

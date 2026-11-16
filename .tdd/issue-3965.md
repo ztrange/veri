@@ -11,3 +11,4 @@
 - [x] a prefix that cannot be created or read is refused, not a traceback
 - [x] CLAUDE.md's bytecode-cache paragraph says the prefix is used only when the user's own and closed to others (CM160), graded ⟦criterion 4⟧
 - [x] a prefix the caller exported as PYTHONPYCACHEPREFIX is checked too, and a planted .pyc there never runs (review)
+- [x] a prefix whose parent group or others can write without the sticky bit is refused; a refused run writes no bytecode (review)
