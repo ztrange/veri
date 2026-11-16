@@ -1076,6 +1076,22 @@ def test_a_take_that_gives_up_on_a_lock_whose_holder_pid_is_live_but_started_at_
     assert ran == (2, "", "workqueue.sh: could not take the lock %s; holder %d dead\n" % (lock, os.getpid()))
 
 
+def test_a_take_that_gives_up_while_the_holder_file_vanishes_after_its_pid_is_read_names_that_pid_dead_with_exit_2_3993(
+        tmp_path, fake_processes, run_cli, workqueue, monkeypatch):
+    real = workqueue.pid_file.number_in
+
+    def read_then_released(path):
+        pid = real(path)
+        if pid is not None and os.path.exists(path):
+            os.remove(path)
+        return pid
+
+    monkeypatch.setattr(workqueue.pid_file, "number_in", read_then_released)
+    lock, ran = given_up(tmp_path, fake_processes, run_cli, workqueue, "%d\n%s\n" % (os.getpid(), STARTED))
+
+    assert ran == (2, "", "workqueue.sh: could not take the lock %s; holder %d dead\n" % (lock, os.getpid()))
+
+
 def test_a_take_whose_holder_write_fails_leaves_no_lock_directory_behind_and_the_error_propagates_3993(
         tmp_path, fake_processes, monkeypatch, workqueue):
     queue_tree(tmp_path, fake_processes)
