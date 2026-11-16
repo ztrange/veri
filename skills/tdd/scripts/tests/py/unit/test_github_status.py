@@ -5,6 +5,8 @@ import datetime
 import http.client
 import importlib
 import json
+import socket
+import urllib.error
 
 import pytest
 
@@ -300,3 +302,26 @@ def test_wait_whose_reads_never_answered_ends_with_one_line_saying_no_read_got_a
 
     assert (code, out) == (2, "")
     assert err.splitlines()[-1] == "github-status.sh: wait: no read got an answer in 600 s"
+
+
+@pytest.mark.parametrize("error, cause", [
+    (urllib.error.URLError(ConnectionRefusedError(61, "Connection refused")), "Connection refused"),
+    (urllib.error.URLError(socket.gaierror(8, "nodename nor servname provided")), "nodename nor servname provided"),
+], ids=["refused", "dns"])
+def test_a_fetch_failing_other_than_by_timeout_names_its_cause_and_not_a_timeout(page, run_cli, error, cause):
+    page.serve(error=error)
+
+    code, out, err = run_cli(page.module, [])
+
+    assert (code, out) == (2, "")
+    assert cause in err
+    assert "no response within" not in err
+
+
+def test_a_timeout_wrapped_by_urllib_is_still_named_as_no_response_within_the_timeout(page, run_cli):
+    page.serve(error=urllib.error.URLError(TimeoutError("timed out")))
+
+    code, _, err = run_cli(page.module, [], env={"VERI_GITHUB_STATUS_TIMEOUT": "9"})
+
+    assert code == 2
+    assert "no response within 9 s (VERI_GITHUB_STATUS_TIMEOUT)" in err
