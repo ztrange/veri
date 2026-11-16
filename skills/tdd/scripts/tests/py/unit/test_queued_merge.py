@@ -123,6 +123,17 @@ def test_2372_queued_merge_treats_pending_or_absent_checks_as_not_green_and_asks
     assert (code, asked, merged_after) == (expected, len(ci), expected == 0)
 
 
+def test_3978_queued_merge_whose_wait_ci_exits_2_on_a_head_that_never_matched_exits_2_through_the_releasing_gate_and_makes_no_merge_call(fake_processes, run_cli):
+    calls = scenario(fake_processes, ci=(3, 3, 2))
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    waits = [c for c in calls if "wait-ci.sh" in c]
+    merges = [c for c in calls if "pr merge" in c or "pulls/7/merge" in c]
+    keeps_after_wait = [c for c in calls[first(calls, "wait-ci.sh"):] if c.startswith("merge-lock.sh") and "wait-ci.sh" not in c]
+    assert (code, [c.startswith("merge-lock.sh gate --pid") for c in waits], merges, keeps_after_wait) == (2, [True] * 3, [], [])
+
+
 @pytest.mark.parametrize("take", [2, 1])
 def test_2372_queued_merge_whose_take_fails_stops_with_takes_code_and_touches_nothing(fake_processes, run_cli, take):
     calls = scenario(fake_processes, take=take)
