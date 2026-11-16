@@ -46,3 +46,16 @@ def test_the_authenticated_login_is_read_at_most_once_per_process(github, monkey
     answers = [github.trusted_comment(comment(association, login=login))
                for association, login in (("NONE", "a"), ("MEMBER", "veri-operator"), ("CONTRIBUTOR", "b"))]
     assert (answers, reads) == ([False, True, False], ["user"])
+
+
+def test_with_the_authenticated_login_unreadable_the_association_alone_answers_and_nothing_raises(github, monkeypatch):
+    reads = []
+
+    def no_answer():
+        reads.append("user")
+        raise github.NoAnswer("", "HTTP 502")
+
+    monkeypatch.setattr(github, "authenticated_login", no_answer)
+    answers = [github.trusted_comment(comment(association, login="veri-operator"))
+               for association in ("NONE", "MEMBER", "OWNER", "COLLABORATOR")]
+    assert (answers, reads) == ([False, False, True, True], ["user"])
