@@ -449,6 +449,17 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   case-folded (a stack there would be a direct push to it) as origin states it (`git ls-remote --symref origin HEAD`, bounded by `VERI_GIT_NETWORK_TIMEOUT`) or as
   `refs/remotes/origin/HEAD` records it, or is one `git check-ref-format --branch` refuses; when neither tells the
   default branch; and when two lines name a stack, naming both.
+- `$S/stack-pr.sh` — run in the target repository's clone, no arguments: prints the url of the one open pull request
+  from the stack branch to the default branch and exits **0**. Read after a fetch of origin; when the stack is ahead
+  of the default branch and none is open it opens one, ready and not a draft, and prints that one's url. This pull
+  request is what makes CI run on each push to the stack, and it must not read as a claim on any issue or as a
+  landing: its body says it is never merged itself and that slices are cut from it, and it carries no `Closes`,
+  `Fixes` or `Resolves` line. An open one that is a draft is printed, exit 0, with one stderr line saying CI skips a
+  draft. **Exit 3**, nothing opened, when the stack is not ahead of the default branch or origin holds no stack.
+  **Exit 2**, nothing opened, when GitHub gives no answer (a read or the open that fails, or an answer that is not a
+  list of pull requests naming their urls), when two or more open pull requests track the stack (naming them), or a
+  fetch of origin gets no answer. When `stack-branch.sh` does not exit 0, it exits with the code `stack-branch.sh`
+  exited with (3 stays 3, 2 stays 2), opening nothing. The join of `queued-merge.sh` calls it.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
@@ -592,7 +603,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   refused before anything is pushed, except a `⟦full-suite⟧` line, which a stacked run never ticks (CI on the stack's tip
   is that run). Every git network call is bounded by `VERI_GIT_NETWORK_TIMEOUT`. After the push to the stack the pull
   request is re-read over the settle window (`VERI_MERGE_SETTLE_READS` reads, `VERI_MERGE_SETTLE_SLEEP` seconds
-  apart). **Exit 0** only when a read in it says merged; the lock is then released, the run's remote branch deleted under
+  apart). **Exit 0** only when a read in it says merged; the lock is then released, and the join calls `stack-pr.sh` in
+  the worktree, after its push to the stack and that read, so the first join after a landing reopens the tracking pull
+  request; a call that exits non-zero prints one stderr line naming `stack-pr.sh` and its exit code and leaves the
+  join's own exit code unchanged, since the join itself has succeeded. Then the run's remote branch is deleted under
   `--force-with-lease=<branch>:<the tip it pushed>` (a commit pushed to it since is never deleted unseen; a refused delete
   is read again, and a branch origin no longer lists, GitHub having deleted a merged PR's branch, counts as deleted,
   while one still listed is the failed step `branch delete`), origin's `refs/veri/runs/<n>` deleted (one origin lacks counts as deleted;
