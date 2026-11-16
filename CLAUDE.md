@@ -15,7 +15,7 @@ veri: one test file: `make test TESTS="$1"`
 | | |
 |---|---|
 | `make test` | The full suite, and the baseline veri detects in its own repo: it must stay green, since a red baseline makes the conductor refuse to start. |
-| `make install-dev` | Once per machine: creates the shared venv at `$VERI_VENV` (default `~/.veri-tools/venv`) and installs the pinned `requirements-dev.txt`. Idempotent, never activated; it prints the `export PATH=…` line for scripts that run `python3` from PATH. |
+| `make install-dev` | Once per machine: creates the shared venv at `$VERI_VENV` (default `~/.veri-tools/venv`) and installs the hash-checked lock `requirements-dev.txt` (generated from `requirements-dev.in`, installed with `--require-hashes`). Idempotent, never activated; it prints the `export PATH=…` line for scripts that run `python3` from PATH. |
 
 Operator sessions, and every subagent they brief, run with `$VERI_VENV/bin` (default
 `~/.veri-tools/venv/bin`) first on PATH, since PATH's `python3` may lack pytest.
