@@ -265,9 +265,13 @@ def test_issue_4089_the_new_rows_failing_make_only_rest_reads_through_gh_and_git
         assert not any(flag in argv for flag in WRITING_FLAGS), argv
         methods = [argv[i + 1] for i, arg in enumerate(argv[:-1]) if arg in ("-X", "--method")]
         assert set(methods) <= {"GET"}, argv
+    (tmp_path / ".gitignore").write_text(".tdd/issue-*-spec.md\n")
+    partial = tree_state(tmp_path)
+    rows.append(ready_check.run_state_ignore_row())
+    assert tree_state(tmp_path) == partial
     assert all(fix for _, fix in rows), rows
     for name, fix in rows:
-        one_command = "\n" not in fix and fix.split(" ")[0] in ("gh", "chmod") and not any(c in fix for c in ";&|")
+        one_command = "\n" not in fix and fix.split(" ")[0] in ("gh", "chmod", "grep") and not any(c in fix for c in ";&|")
         settings_key = "\n" not in fix and fix.count("`") == 2
         assert one_command or settings_key, (name, fix)
 

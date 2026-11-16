@@ -177,8 +177,9 @@ def run_state_ignore_row():
     for path in (os.path.abspath(".gitignore"), os.path.join(os.path.abspath(common), "info", "exclude")):
         present = ensure_run_state_ignored.has_rule(path)
         if present is None:
-            return "run-state ignore", (f"{path} carries veri's run-state rule only in part, or out of order: make it "
-                                        "the three lines `.tdd/*`, `!.tdd/issue-*.md`, `.tdd/issue-*-spec.md`")
+            shown = " ".join(f"-e '{line}'" for line in ensure_run_state_ignored.RULE)
+            return "run-state ignore", (f"grep -nF {shown} {path} — it carries veri's run-state rule only in part, "
+                                        "or out of order: complete those three lines, in that order, or remove them")
         if not present and not writable(path):
             return "run-state ignore", f"chmod u+w {path}"
     return "run-state ignore", None
