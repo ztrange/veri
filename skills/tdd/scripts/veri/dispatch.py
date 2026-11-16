@@ -84,10 +84,12 @@ def _read_after_rate_limit(read, path):
 
 
 def comment_bodies(issue):
+    """The bodies of issue <issue>'s trusted comments (github.trusted_comment), oldest first: an untrusted one is
+    skipped as if absent, so it never decides the exit line."""
     path = f"repos/{{owner}}/{{repo}}/issues/{issue}/comments?per_page=100"
     listed = _read_after_rate_limit(github.gh_rest_list, path)
     comments = json_documents.items(listed)
-    return [comment["body"] for comment in comments]
+    return [comment["body"] for comment in comments if github.trusted_comment(comment)]
 
 
 def last_comment(issue):

@@ -1856,7 +1856,7 @@ def test_every_heading_comment_sh_posts_for_bailed_and_stopped_falls_in_the_metr
     for heading, hand_heading in ((headings[0], hand[0]), (headings[2], hand[2])):
         for text in (heading, hand_heading):
             monkeypatch.setattr(dispatch.github, "gh_rest_list",
-                                lambda path, *a, text=text, **kw: json.dumps([{"body": text + "\n\nnote\n"}]),
+                                lambda path, *a, text=text, **kw: json.dumps([{"author_association": "OWNER", "user": {"login": "veri-operator"}, "body": text + "\n\nnote\n"}]),
                                 raising=False)
             assert dispatch.exit_line("7") == "bail 7"
 
