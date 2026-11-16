@@ -29,7 +29,7 @@ def _test_files():
         py = is_test_file(name)
         go = is_go_test_file(name)
         js = is_js_test_file(name, root)
-        if py or go or js or name.endswith(".test.sh"):
+        if py or go or js:
             yield root, name, py, go, js
 
 
@@ -61,8 +61,6 @@ def _exists(case):
         if found and cut is None:
             return found[0]
         titles.update(found)
-        if name.endswith(".test.sh") and ('name="%s"' % case) in text:
-            return case
     return titles.pop() if len(titles) == 1 else None
 
 
@@ -131,8 +129,7 @@ def _resolves(name):
     for root, file, py_file, go_file, js_file in _test_files():
         with open(os.path.join(root, file), encoding="utf-8", errors="replace") as handle:
             text = handle.read()
-        if (defined_name(name, text, py_file, go_file) or js_file and live_titles(name, text)
-                or file.endswith(".test.sh") and ('name="%s"' % name) in text):
+        if defined_name(name, text, py_file, go_file) or js_file and live_titles(name, text):
             return True
     return False
 

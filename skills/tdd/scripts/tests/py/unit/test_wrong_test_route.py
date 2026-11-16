@@ -173,13 +173,34 @@ def test_main_1621_prints_revise_when_a_wrong_test_names_only_the_step_own_red_p
     assert (code, stdout) == (3, "revise\n")
 
 
+def test_main_4050_reports_a_case_defined_only_by_a_name_line_in_a_test_sh_file_as_missing_like_a_case_with_no_file(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    case = "a repair text counts as a repair"
+    results = []
+    for directory, files in (("bare", {}), ("bash", {"ledger" + ".test" + ".sh": 'name="%s"\nrun_case\n' % case})):
+        repo = tmp_path / directory / "spec"
+        repo.mkdir(parents=True)
+        for name, body in files.items():
+            (repo / name).write_text(body)
+        report = repo.parent / "green-report.txt"
+        report.write_text(
+            "SUITE: make test\n"
+            "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % case + "CONTRADICTS: `%s`\n" % case)
+        code, stdout, stderr = run_cli(
+            wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=repo.parent)
+        results.append((code, stdout))
+
+    assert results == [(2, ""), (2, "")]
+
+
 def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_backticks_to_a_red_over_that_case(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     suite = tmp_path / "spec"
     suite.mkdir()
     contradicted = "a repair text counts as a repair"
-    (suite / ("ledger" + ".test" + ".sh")).write_text('name="%s"\nrun_case\n' % contradicted)
+    (suite / ("ledger" + ".test" + ".js")).write_text('it("%s", () => {});\n' % contradicted)
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
@@ -197,7 +218,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_double_qu
     suite = tmp_path / "spec"
     suite.mkdir()
     contradicted = "a repair text counts as a repair"
-    (suite / ("ledger" + ".test" + ".sh")).write_text('name="%s"\nrun_case\n' % contradicted)
+    (suite / ("ledger" + ".test" + ".js")).write_text('it("%s", () => {});\n' % contradicted)
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
@@ -215,7 +236,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_curly_quo
     suite = tmp_path / "spec"
     suite.mkdir()
     contradicted = "a repair text counts as a repair"
-    (suite / ("ledger" + ".test" + ".sh")).write_text('name="%s"\nrun_case\n' % contradicted)
+    (suite / ("ledger" + ".test" + ".js")).write_text('it("%s", () => {});\n' % contradicted)
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
@@ -303,11 +324,11 @@ def test_main_1621_routes_a_wrong_test_naming_a_case_in_a_repo_whose_tests_live_
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     pytest_case = "test_main_counts_a_repair_text_as_a_repair"
-    bash_case = "a repair text counts as a repair"
+    js_case = "a repair text counts as a repair"
     results = []
     for directory, filename, body, case in (
             ("test", "test_" + "ledger" + ".py", "def %s():\n    pass\n" % pytest_case, pytest_case),
-            ("spec", "ledger" + ".test" + ".sh", 'name="%s"\nrun_case\n' % bash_case, bash_case)):
+            ("spec", "ledger" + ".test" + ".js", 'it("%s", () => {});\n' % js_case, js_case)):
         repo = tmp_path / directory
         (repo / directory).mkdir(parents=True)
         (repo / directory / filename).write_text(body)
@@ -319,7 +340,7 @@ def test_main_1621_routes_a_wrong_test_naming_a_case_in_a_repo_whose_tests_live_
             wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=repo)
         results.append((code, bare_route(stdout)))
 
-    assert results == [(0, "red %s\n" % pytest_case), (0, "red %s\n" % bash_case)]
+    assert results == [(0, "red %s\n" % pytest_case), (0, "red %s\n" % js_case)]
 
 
 @pytest.mark.tree_audit("the repository's own Python files, searched for the case a WRONG_TEST names")
@@ -530,30 +551,6 @@ def test_main_1765_prints_repair_for_a_wrong_test_naming_a_pytest_function_in_th
         results.append((code, bare_route(stdout)))
 
     assert results == [(0, "repair %s\n" % added), (0, "repair %s\n" % own)]
-
-
-def test_main_1765_prints_repair_for_a_wrong_test_naming_a_bash_name_case_in_the_step_red_record(
-        run_cli, tmp_path, monkeypatch):
-    wrong_test_route = importlib.import_module("veri.wrong_test_route")
-    tests_frozen = importlib.import_module("veri.tests_frozen")
-    suite = tmp_path / "tests"
-    suite.mkdir()
-    added = "a repair text counts as a repair"
-    (suite / ("ledger" + ".test" + ".sh")).write_text('name="%s"\nrun_case\n' % added)
-    (tmp_path / ".tdd").mkdir()
-    step = "wrong-test-route.sh repairs a bash case red added"
-    monkeypatch.setenv("VERI_STEP", step)
-    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
-    report = tmp_path / "green-report.txt"
-    report.write_text(
-        "SUITE: make test\n"
-        "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % added)
-
-    code, stdout, stderr = run_cli(
-        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
-
-    assert (code, bare_route(stdout)) == (0, "repair %s\n" % added)
 
 
 def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_in_the_same_file_as_a_red_record_case(
