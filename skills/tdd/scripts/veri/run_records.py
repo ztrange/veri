@@ -92,14 +92,6 @@ def read(issue, name, cwd):
     return os.fsdecode(shown.stdout) if shown.returncode == 0 else None
 
 
-def delete(issue, cwd):
-    """Delete origin's `refs/veri/runs/<issue>`, from the clone at <cwd>; one origin never had is already gone.
-    GitFailed on any other git error."""
-    done = git.git("push", "origin", "--delete", ref(issue), cwd=cwd, capture_output=True, text=True)
-    if done.returncode != 0 and "remote ref does not exist" not in done.stderr:
-        raise git.GitFailed(("push", "origin", "--delete", ref(issue)), done.returncode, done.stderr)
-
-
 def after_push():
     """push, for the issue the current branch `tdd/<n>-<slug>` names, from the working directory; nothing on another
     branch. A git failure is one stderr line and never an exit code: the records mirror the run."""
