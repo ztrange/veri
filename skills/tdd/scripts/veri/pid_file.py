@@ -122,13 +122,18 @@ def ancestors():
     return found
 
 
-def record(path, pid):
+def record(path, pid, atomic=False):
     """Write <pid> on line 1 and its start time on line 2, the form conductor.pid has; returns the text written.
 
-    The file is replaced by renaming a temporary file beside it, so a reader never sees a half-written one and a
-    failed write leaves the old text and no temporary file."""
+    In place by default (detach-command.sh pins its pid file's inode). <atomic>: the file is replaced by renaming a
+    temporary file beside it, so a reader never sees a half-written one and a failed write leaves the old text and
+    no temporary file."""
     started = ps_field("lstart", pid)
     text = f"{pid}\n{started}\n" if started else f"{pid}\n"
+    if not atomic:
+        with open(path, "w") as handle:
+            handle.write(text)
+        return text
     temporary = "%s.tmp.%d" % (path, os.getpid())
     try:
         with open(temporary, "w") as handle:
