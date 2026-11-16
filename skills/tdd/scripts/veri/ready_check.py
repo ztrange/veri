@@ -127,6 +127,15 @@ def token_scopes_row():
     return "token scopes", "gh auth refresh -s " + ",".join(missing) if missing else None
 
 
+def selection_label_row(name):
+    answered = gh("api", f"repos/{{owner}}/{{repo}}/labels/{name}").returncode == 0
+    return f"label {name}", None if answered else f"gh label create {name}"
+
+
+def priority_label_row():
+    return selection_label_row(tunables.get("VERI_PRIORITY_LABEL"))
+
+
 def bash_row():
     holds = launch_floor.bash_refusal("ready-check") == 0
     return "bash", None if holds else "install bash 5 or newer (`brew install bash`) and put it first on PATH"

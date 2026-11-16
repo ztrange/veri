@@ -108,3 +108,14 @@ def test_issue_4089_token_scopes_row_with_no_x_oauth_scopes_header_reads_not_ver
 
     assert (name, verdict) == ("token scopes", "not verifiable")
     assert verdict is ready_check.NOT_VERIFIABLE
+
+
+NOT_FOUND = (1, '{"message": "Not Found", "status": "404"}', "gh: Not Found (HTTP 404)\n")
+
+
+def test_issue_4089_the_label_row_for_veri_priority_label_is_ok_when_it_answers_and_fails_on_404_with_gh_label_create(ready_check, fake_processes, monkeypatch):
+    monkeypatch.setenv("VERI_PRIORITY_LABEL", "urgent")
+    fake_processes.answers({"gh api repos/{owner}/{repo}/labels/urgent": [(0, '{"name": "urgent"}', ""), NOT_FOUND]}, exact=True)
+
+    assert ready_check.priority_label_row() == ("label urgent", None)
+    assert ready_check.priority_label_row() == ("label urgent", "gh label create urgent")
