@@ -12,7 +12,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
              pinned, model_knobs, models
   tables     phases, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
              adjudications, switched_off, switched_off_by, total, green_rejects (+ green_reject_routes),
-             launch_costs (+ launch_cost_missing), gradings
+             launch_costs (+ launch_cost_missing), gradings, revise_green
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
@@ -609,6 +609,29 @@ class Fold:
     launch_costs: dict          # (actor, model) -> {LAUNCH_COLUMNS: tokens}, leaf usage events with first-turn fields
     launch_cost_missing: int    # leaf usage events without the first-turn fields
     gradings: dict              # the grading events: count, PASS, REJECT, $ (summed cost_usd), efforts (a set)
+    revise_green: dict          # answering model -> {leaves, PASS, REJECT}: revise-green leaves, and the first green
+                                # verdict of the same step after each
+
+
+def is_revise_green(name):
+    return name == "revise-green" or name.startswith("revise-green-")
+
+
+def revise_green_outcomes(marks, models):
+    """Per model that answered a revise-green leaf: its leaves, and the PASS and REJECT counts of the first green
+    `verdict` event of the same step after each."""
+    outcomes = {}
+    for at, mark in enumerate(marks):
+        if mark.get("event") != "launch" or not is_revise_green(str(mark.get("name", ""))):
+            continue
+        key = (mark.get("step", ""), mark.get("phase", ""), mark.get("attempt", ""), mark.get("actor"))
+        counts = outcomes.setdefault(models.get(key) or "not recorded", {"leaves": 0, "PASS": 0, "REJECT": 0})
+        counts["leaves"] += 1
+        verdict = next((later.get("verdict") for later in marks[at + 1:] if later.get("event") == "verdict"
+                        and later.get("phase") == "green" and later.get("step", "") == key[0]), None)
+        if verdict in ("PASS", "REJECT"):
+            counts[verdict] += 1
+    return outcomes
 
 
 def fold(issue, path, ledger):
@@ -685,7 +708,7 @@ def fold(issue, path, ledger):
                 green_rejects=green_rejects,
                 green_reject_routes=sorted(routes.items(), key=lambda item: (-item[1], item[0])),
                 launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing,
-                gradings=tally.gradings)
+                gradings=tally.gradings, revise_green=revise_green_outcomes(marks, models))
 
 
 def known(number):
@@ -862,6 +885,10 @@ def layout(f):
         table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))
         for (role, model), row_counts in f.by_model.items():
             row([role, model or "not recorded"] + figures(row_counts, PHASE_COLUMNS))
+    if f.revise_green:
+        table_head("#### Revise-green, by model", "model", ["leaves", "PASS", "REJECT"], ["---:"] * 3)
+        for model, counts in sorted(f.revise_green.items()):
+            row([model] + ["%d" % counts[column] for column in ("leaves", "PASS", "REJECT")])
     section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, f.lost)
     section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, f.steps,
             ([WALL] + BUDGETS + MARK_COLUMNS + [KIND], lambda step: step_cells(f, step)))
