@@ -92,15 +92,13 @@ def change_mode(path, new_mode):
 
 
 def snapshot_digest(snapshot):
-    """Every file of <snapshot>, the marker excluded, as `<sha256 of its content> <path relative to it>` lines sorted by
+    """Every file of <snapshot>, the marker included (deleting it must show), as `<sha256 of its content> <path relative to it>` lines sorted by
     path; a symlink's content is its target, never followed. Raises OSError on what it cannot read."""
     lines = []
     for root, dirs, files in os.walk(snapshot, onerror=raise_error):
         for name in files + [name for name in dirs if os.path.islink(os.path.join(root, name))]:
             path = os.path.join(root, name)
             relative = os.path.relpath(path, snapshot)
-            if relative == SNAPSHOT_MARKER:
-                continue
             if os.path.islink(path):
                 content = b"symlink " + os.fsencode(os.readlink(path))
             else:
