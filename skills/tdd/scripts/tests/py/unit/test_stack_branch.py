@@ -37,3 +37,17 @@ def test_prints_the_named_branch_from_the_given_root_or_the_current_directory_an
            run_cli(stack_branch, [str(silent)]), run_cli(stack_branch, [str(bare)])]
 
     assert got == [(0, "stack\n", ""), (0, "stack\n", ""), (3, "", ""), (3, "", "")]
+
+
+def refusal_of(tmp_path, run_cli, stack_branch, line):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\n%s\n" % line)
+    code, out, err = run_cli(stack_branch, [str(tmp_path)])
+    return code, out, line in err
+
+
+def test_exits_2_naming_the_line_when_the_named_branch_is_empty(tmp_path, run_cli, fake_processes, stack_branch):
+    git_world(fake_processes)
+
+    got = [refusal_of(tmp_path, run_cli, stack_branch, line) for line in ("veri: stack branch:", "veri: stack branch: ``")]
+
+    assert got == [(2, "", True)] * 2

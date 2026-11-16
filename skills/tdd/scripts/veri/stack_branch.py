@@ -9,6 +9,10 @@ USAGE = "usage: stack-branch.sh [repo-root]"
 MARKER = "veri: stack branch:"
 
 
+class Refused(Exception):
+    """A named stack branch that cannot be one (stack-branch.sh's exit 2); str() names the CLAUDE.md line and why."""
+
+
 def stated_line(path):
     """The first line of <path> stating MARKER outside a backtick span, and the value after it, backticks unwrapped:
     (line, value), or None when no line states it or the file cannot be read."""
@@ -32,17 +36,24 @@ def stated_line(path):
 
 
 def named(root):
-    """The stack branch <root>'s CLAUDE.md names, or None when it names none."""
-    stated = stated_line(os.path.join(root, "CLAUDE.md"))
+    """The stack branch <root>'s CLAUDE.md names, or None when it names none; Refused when the name cannot be a stack."""
+    path = os.path.join(root, "CLAUDE.md")
+    stated = stated_line(path)
     if stated is None:
         return None
-    return stated[1]
+    line, name = stated
+    if not name:
+        raise Refused("%s: the line '%s' names no branch" % (path, line))
+    return name
 
 
 def main(argv):
     if len(argv) > 1:
         return entry.refuse(usage=USAGE)
-    name = named(argv[0] if argv and argv[0] else ".")
+    try:
+        name = named(argv[0] if argv and argv[0] else ".")
+    except Refused as refused:
+        return entry.refuse(str(refused), prefix="stack-branch: ")
     if name is None:
         return 3
     sys.stdout.write(name + "\n")
