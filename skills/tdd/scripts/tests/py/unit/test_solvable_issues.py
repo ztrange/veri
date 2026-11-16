@@ -211,7 +211,7 @@ def test_main_reads_issues_then_prs_through_gh_forwarding_repo_verbatim_and_fall
         return [
             ["gh", "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope],
             ["gh", "api", prefix + "/issues?state=open&per_page=100"],
-            ["gh", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName,isDraft", *scope],
+            ["gh", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName,isDraft,isCrossRepository", *scope],
             ["gh", "api", prefix + "/pulls?state=open&per_page=100"],
         ]
 
@@ -305,13 +305,13 @@ def test_main_counts_an_issue_open_by_its_upper_cased_state_and_withholds_one_an
         dict(opted_in(1), state="open"), stateless, dict(opted_in(3), state="CLOSED"), opted_in(5),
         opted_in(10), opted_in(11), opted_in(12), opted_in(13), opted_in(14), opted_in(50)]))
     (tmp_path / "prs.json").write_text(json.dumps([
-        {"state": "open", "body": "Closes #10"},
-        {"state": "CLOSED", "body": "Closes #11"},
-        {"state": "OPEN", "body": None},
-        {"state": "OPEN", "body": "closes #12"},
-        {"state": "OPEN", "body": "Fixes #13"},
-        {"state": "OPEN", "body": "xCloses #14"},
-        {"state": "OPEN", "body": "Closes #50"}]))
+        {"isCrossRepository": False, "state": "open", "body": "Closes #10"},
+        {"isCrossRepository": False, "state": "CLOSED", "body": "Closes #11"},
+        {"isCrossRepository": False, "state": "OPEN", "body": None},
+        {"isCrossRepository": False, "state": "OPEN", "body": "closes #12"},
+        {"isCrossRepository": False, "state": "OPEN", "body": "Fixes #13"},
+        {"isCrossRepository": False, "state": "OPEN", "body": "xCloses #14"},
+        {"isCrossRepository": False, "state": "OPEN", "body": "Closes #50"}]))
 
     code = solvable_issues.main([])
 
@@ -323,6 +323,26 @@ def test_main_counts_an_issue_open_by_its_upper_cased_state_and_withholds_one_an
         solvable_issues.main([])
 
 
+def test_main_claims_an_issue_only_by_an_open_pr_whose_head_is_in_this_repository_3973(fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
+    # A stranger's fork PR saying Closes #7 must not take #7 off the queue (PRD 022.14, CL2); the same PR from a branch
+    # of this repository claims it. Both shapes: gh pr list's isCrossRepository and REST head.repo against base.repo.
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(fake_processes)
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(n) for n in (7, 8, 9, 10, 11)]))
+    here, fork = {"full_name": "o/r"}, {"full_name": "stranger/r"}
+    (tmp_path / "prs.json").write_text(json.dumps([
+        {"state": "OPEN", "body": "Closes #7", "headRefName": "fix/7", "isCrossRepository": True},
+        {"state": "OPEN", "body": "Closes #8", "head": {"ref": "fix/8", "repo": fork}, "base": {"repo": here}},
+        {"state": "OPEN", "body": "Closes #9", "head": {"ref": "fix/9", "repo": None}, "base": {"repo": here}},
+        {"state": "OPEN", "body": "Closes #10", "headRefName": "fix/10", "isCrossRepository": False},
+        {"state": "OPEN", "body": "Closes #11", "head": {"ref": "fix/11", "repo": here}, "base": {"repo": here}}]))
+
+    code = solvable_issues.main([])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "7\n8\n9\n")
+
+
 def test_main_lists_a_released_issue_whose_only_open_pr_is_its_own_run_branch(fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
     # A bailed or parked run keeps its draft PR open (BL36); release-issue.sh restores the opt-in
     # label and drops the claim, and the resume continues that same branch and PR, so a PR on the
@@ -331,11 +351,11 @@ def test_main_lists_a_released_issue_whose_only_open_pr_is_its_own_run_branch(fa
     fake_git_answering_nothing(fake_processes)
     (tmp_path / "issues.json").write_text(json.dumps([opted_in(n) for n in (20, 21, 22, 23, 24)]))
     (tmp_path / "prs.json").write_text(json.dumps([
-        {"state": "OPEN", "body": "Closes #20", "headRefName": "tdd/20-check-earlier"},
-        {"state": "OPEN", "body": "Closes #21", "head": {"ref": "tdd/21-from-rest"}},
-        {"state": "OPEN", "body": "Closes #22", "headRefName": "fix/22-by-hand"},
-        {"state": "OPEN", "body": "Closes #23", "headRefName": "tdd/230-another-issue"},
-        {"state": "OPEN", "body": "Closes #24"}]))
+        {"isCrossRepository": False, "state": "OPEN", "body": "Closes #20", "headRefName": "tdd/20-check-earlier"},
+        {"isCrossRepository": False, "state": "OPEN", "body": "Closes #21", "head": {"ref": "tdd/21-from-rest"}},
+        {"isCrossRepository": False, "state": "OPEN", "body": "Closes #22", "headRefName": "fix/22-by-hand"},
+        {"isCrossRepository": False, "state": "OPEN", "body": "Closes #23", "headRefName": "tdd/230-another-issue"},
+        {"isCrossRepository": False, "state": "OPEN", "body": "Closes #24"}]))
 
     code = solvable_issues.main([])
 
@@ -348,8 +368,8 @@ def test_main_3460_withholds_an_issue_whose_own_run_branch_pr_is_ready_and_lists
     fake_git_answering_nothing(fake_processes)
     (tmp_path / "issues.json").write_text(json.dumps([opted_in(n) for n in (30, 31)]))
     (tmp_path / "prs.json").write_text(json.dumps([
-        {"state": "OPEN", "body": "Closes #30", "headRefName": "tdd/30-done-run", "isDraft": False},
-        {"state": "OPEN", "body": "Closes #31", "headRefName": "tdd/31-released-run", "isDraft": True}]))
+        {"isCrossRepository": False, "state": "OPEN", "body": "Closes #30", "headRefName": "tdd/30-done-run", "isDraft": False},
+        {"isCrossRepository": False, "state": "OPEN", "body": "Closes #31", "headRefName": "tdd/31-released-run", "isDraft": True}]))
 
     code = solvable_issues.main([])
 
@@ -362,8 +382,8 @@ def test_main_3460_withholds_an_issue_whose_rest_own_run_branch_pr_carries_draft
     fake_git_answering_nothing(fake_processes)
     (tmp_path / "issues.json").write_text(json.dumps([opted_in(n) for n in (40, 41)]))
     (tmp_path / "prs.json").write_text(json.dumps([
-        {"state": "OPEN", "body": "Closes #40", "head": {"ref": "tdd/40-done-run"}, "draft": False},
-        {"state": "OPEN", "body": "Closes #41", "head": {"ref": "tdd/41-released-run"}, "draft": True}]))
+        {"isCrossRepository": False, "state": "OPEN", "body": "Closes #40", "head": {"ref": "tdd/40-done-run"}, "draft": False},
+        {"isCrossRepository": False, "state": "OPEN", "body": "Closes #41", "head": {"ref": "tdd/41-released-run"}, "draft": True}]))
 
     code = solvable_issues.main([])
 
@@ -401,7 +421,7 @@ def test_main_sorts_survivors_by_priority_then_bug_band_then_number_never_wideni
         labelled(4, "priority", "bug"), dict(blocked_by(5, "#10"), labels=[{"name": "ready-for-agent"}, {"name": "priority"}]),
         labelled(6, "ready-for-agent", "bug"), dict(labelled(7, "ready-for-agent", "priority"), state="CLOSED"),
         labelled(8, "ready-for-agent", "bug", "priority"), labelled(9, "ready-for-agent", "urgent"), labelled(10, "urgent")]))
-    (tmp_path / "prs.json").write_text(json.dumps([{"state": "OPEN", "body": "Closes #6"}]))
+    (tmp_path / "prs.json").write_text(json.dumps([{"isCrossRepository": False, "state": "OPEN", "body": "Closes #6"}]))
 
     observed = []
     for tunables in ({}, {"VERI_PRIORITY_LABEL": "urgent"}):
@@ -599,7 +619,7 @@ def test_cli_still_withholds_a_priority_or_bug_issue_that_is_blocked_claimed_or_
         labelled(189), dict(blocked_by(190, "#189"), labels=[{"name": "ready-for-agent"}, {"name": "priority"}]),
         labelled(191, "ready-for-agent", "bug"), dict(labelled(192, "ready-for-agent", "priority"), state="CLOSED"),
         opted_in(195)])
-    (fixtures / "prs.json").write_text(json.dumps([{"state": "OPEN", "body": "Closes #191\n"}]))
+    (fixtures / "prs.json").write_text(json.dumps([{"isCrossRepository": False, "state": "OPEN", "body": "Closes #191\n"}]))
 
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
 
@@ -621,7 +641,7 @@ def test_cli_with_no_issue_carrying_a_band_label_prints_the_solvable_issues_asce
     fixtures, cwd = cli_fixtures(tmp_path, fake_processes, [
         opted_in(210), opted_in(208), opted_in(207), blocked_by(209, "#212"), labelled(211), labelled(212),
         dict(opted_in(213), state="CLOSED")])
-    (fixtures / "prs.json").write_text(json.dumps([{"state": "OPEN", "body": "Closes #207\n"}]))
+    (fixtures / "prs.json").write_text(json.dumps([{"isCrossRepository": False, "state": "OPEN", "body": "Closes #207\n"}]))
 
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
 
@@ -651,7 +671,7 @@ def newest_first(numbers, overrides):
 @pytest.mark.parametrize("issues, prs, answer", [
     (newest_first(range(140, 100, -1), {101: opted_in(101)}), [], (0, "101\n", "")),
     (newest_first(range(140, 100, -1), {140: blocked_by(140, "#101")}), [], (3, "", "")),
-    ([opted_in(7)], [{"state": "OPEN", "body": "Closes #7" if i == 39 else "Closes #%d" % (1000 + i)} for i in range(40)],
+    ([opted_in(7)], [{"isCrossRepository": False, "state": "OPEN", "body": "Closes #7" if i == 39 else "Closes #%d" % (1000 + i)} for i in range(40)],
      (3, "", "")),
 ], ids=["opted-in-issue", "open-blocker", "closes-pr"])
 def test_cli_honours_an_item_older_than_ghs_default_page_of_30(fake_processes, issues, prs, answer, tmp_path, monkeypatch, run_cli, solvable_issues):
@@ -843,7 +863,7 @@ def test_cli_reads_the_open_listing_in_one_request_under_100_open_items_and_the_
         else:
             claim = {40: 230, 100: 250, 130: 205}[count]
             listings = {"issues": [opted_in(n) for n in range(1, 11)],
-                        "pulls": [{"number": n, "state": "open", "body": "Closes #5" if n == claim else "Tidies something."}
+                        "pulls": [{"number": n, "isCrossRepository": False, "state": "open", "body": "Closes #5" if n == claim else "Tidies something."}
                                   for n in range(201, 201 + count)]}
             solvable = [n for n in range(1, 11) if n != 5]
         requests = fake_gh_api_shifting(fake_processes, listings)
@@ -885,7 +905,7 @@ def test_cli_against_a_gh_that_refuses_graphql_with_the_403_and_answers_rest_und
         opted_in(70), dict(opted_in(71), body="## Blocked by\n\n#72\n"), labelled(72), opted_in(73),
         dict(opted_in(74), labels=[{"name": "ready-for-agent"}, {"name": "priority"}])]
     pulls = [{"number": 1 + k, "state": "OPEN", "body": ""} for k in range(105)] + [
-        {"number": 900, "state": "OPEN", "body": "Draft PR opened by a /tdd run.\n\nCloses #73\n"}]
+        {"number": 900, "isCrossRepository": False, "state": "OPEN", "body": "Draft PR opened by a /tdd run.\n\nCloses #73\n"}]
     fake_gh_refusing_graphql_serving_rest(fake_processes, {"issues": issues, "pulls": pulls})
 
     answer = run_cli(solvable_issues, [], env={"VERI_GH_DRIVER": "auto"}, cwd=tmp_path)

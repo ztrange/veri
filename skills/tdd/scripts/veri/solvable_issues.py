@@ -138,11 +138,11 @@ def select(label, priority="priority", repo=None):
     try:
         issues = open_listing("issues.json", prefix + "/issues",
                               "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
-        prs = open_listing("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName,isDraft", *scope)
+        prs = open_listing("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName,isDraft,isCrossRepository", *scope)
     except NoAnswer:
         return 2, []
     issues = [issue for issue in items(issues) if "pull_request" not in issue]
-    claimed = {int(n) for pr in pulls_in(prs) if pr.state == "OPEN" for n in closed_issues(pr.body)
+    claimed = {int(n) for pr in pulls_in(prs) if pr.state == "OPEN" and not pr.cross_repository for n in closed_issues(pr.body)
                if not own_run_branch(pr, n) or pr.draft is False}
     open_issues = {issue["number"] for issue in issues if is_open(issue)}
     blockers = {issue["number"]: blocked_by.blockers(issue.get("body") or "", repo or "") for issue in issues}
