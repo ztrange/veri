@@ -87,3 +87,15 @@ def test_snapshot_digest_changes_with_a_files_executable_bit_3964(tmp_path, flip
     pinned_scripts.change_mode(str(script), lambda mode: mode ^ 0o111)
 
     assert pinned_scripts.snapshot_digest(str(tree)) != before
+
+
+@pytest.mark.parametrize("change", ["added", "removed"])
+def test_snapshot_digest_changes_when_an_empty_directory_is_added_or_removed_3964(tmp_path, change):
+    tree = skill_tree(tmp_path / "veri-snapshot-x")
+    if change == "removed":
+        (tree / "empty").mkdir()
+    before = pinned_scripts.snapshot_digest(str(tree))
+
+    (tree / "empty").mkdir() if change == "added" else (tree / "empty").rmdir()
+
+    assert pinned_scripts.snapshot_digest(str(tree)) != before

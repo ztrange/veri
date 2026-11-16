@@ -92,29 +92,34 @@ def change_mode(path, new_mode):
 
 
 def snapshot_digest(snapshot):
-    """Every file of <snapshot>, the marker included (deleting it must show), as `<sha256 of its content> <path relative to it>` lines sorted by
-    path; a symlink's content is its target, never followed. Raises OSError on what it cannot read."""
+    """Every entry of <snapshot>, the marker included (deleting it must show), as `<token> <path relative to it>`
+    lines sorted by path: a directory's token is `directory`; a file's, the sha256 of its content and its owner
+    executable bit; a symlink's, the sha256 of its target, never followed. Raises OSError on what it cannot read."""
     lines = []
     for root, dirs, files in os.walk(snapshot, onerror=raise_error):
-        for name in files + [name for name in dirs if os.path.islink(os.path.join(root, name))]:
+        for name in files + dirs:
             path = os.path.join(root, name)
             relative = os.path.relpath(path, snapshot)
-            if os.path.islink(path):
+            mode = os.lstat(path).st_mode
+            if stat.S_ISDIR(mode):
+                lines.append((relative, "directory"))
+                continue
+            if stat.S_ISLNK(mode):
                 content = b"symlink " + os.fsencode(os.readlink(path))
             else:
                 with open(path, "rb") as handle:
                     content = handle.read()
-                content += b" x" if os.lstat(path).st_mode & stat.S_IXUSR else b" -"
+                content += b" x" if mode & stat.S_IXUSR else b" -"
             lines.append((relative, hashlib.sha256(content).hexdigest()))
     return "".join("%s %s\n" % (digest, relative) for relative, digest in sorted(lines))
 
 
 def first_change(recorded, snapshot):
-    """The first path under <snapshot>, sorted, whose digest line differs from the digest text <recorded>, a file
+    """The first path under <snapshot>, sorted, whose digest line differs from the digest text <recorded>, an entry
     added or removed included, joined to <snapshot>; None when none does. OSError propagates."""
-    def files(text):
+    def entries(text):
         return {path: digest for digest, _, path in (line.partition(" ") for line in text.splitlines())}
-    before, now = files(recorded), files(snapshot_digest(snapshot))
+    before, now = entries(recorded), entries(snapshot_digest(snapshot))
     for path in sorted(set(before) | set(now)):
         if before.get(path) != now.get(path):
             return os.path.join(snapshot, path)
