@@ -382,3 +382,16 @@ def test_a_rebased_tip_that_does_not_descend_from_the_fetched_stack_is_never_pus
     code, _, err = join(run_cli, world)
 
     assert (code, world.stack_pushed()) == (2, []), err
+
+
+@pytest.mark.parametrize("stack_line", ["# the stack line removed\n", "veri: stack branch: another\n"])
+def test_a_run_whose_cut_recorded_a_stack_but_whose_claude_md_names_none_or_another_is_exit_2_before_the_lock(
+        tmp_path, fake_processes, monkeypatch, run_cli, stack_line):
+    world = World(tmp_path, stack_line=stack_line, base="trunk").install(fake_processes, monkeypatch)
+    with open(world.wt + "/.tdd/issue-7-base", "w") as f:
+        f.write("stack\n")
+
+    code, _, err = join(run_cli, world)
+
+    touched = [c for c in world.calls if c.startswith("merge-lock.sh") or "wait-ci.sh" in c or " push " in c]
+    assert (code, touched, "stack" in err) == (2, [], True), err
