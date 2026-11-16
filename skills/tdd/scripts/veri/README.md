@@ -189,6 +189,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_GH_REFUSAL_RETRIES` | `3` | its readers' own words |
 | `VERI_GH_REFUSAL_SLEEP` | `60` | its readers' own words |
 | `VERI_GH_TIMEOUT` | `300` | its readers' own words |
+| `VERI_GITHUB_STATUS_URL` | `https://www.githubstatus.com` | its readers' own words |
 | `VERI_GIT_NETWORK_TIMEOUT` | `600` | its readers' own words |
 | `VERI_HEARTBEAT` | `180` | its readers' own words |
 | `VERI_ISSUE_REFACTOR_BUDGET` | `10` | its readers' own words |
@@ -580,6 +581,7 @@ gh access, issue selection (solvable, parked, blocked), claiming and releasing i
 
 - `capture-spec.sh`: capture an issue as a spec file.
 - `coverage-blocker.sh`: file a coverage issue and block the refactor issue on it.
+- `github-status.sh`: whether GitHub's status page has an incident, open long enough, on the components veri needs.
 - `invisible-work.sh`: sweep for work not visible on its issue. A local branch not on origin is skipped only when its tip equals the head sha of a MERGED or CLOSED PR that used its name; otherwise it is reported under invariant 1, a reused name included.
 - `park-issue.sh`: park an issue with its cause and unblock.
 - `parked-issues.sh`: list the parked issues.
