@@ -102,3 +102,16 @@ def test_a_default_tip_already_declaring_both_commands_exactly_is_exit_3_with_no
     code, out, err = run_cli(record, ["make unit", "make test"], cwd=work)
 
     assert (code, out, branches(origin), pulls) == (3, "", ["refs/heads/main"], [])
+
+
+@pytest.mark.process("git clone, ls-remote and push to a bare origin")
+def test_an_origin_already_holding_veri_install_is_exit_2_naming_it_with_nothing_written(tmp_path, run_cli, record, pulls):
+    origin, work = project(tmp_path)
+    git(origin, "branch", "veri-install", "main")
+    before = git(origin, "rev-parse", "veri-install")
+
+    code, out, err = run_cli(record, ["make unit", "make test"], cwd=work)
+
+    assert (code, out, pulls) == (2, "", [])
+    assert "veri-install" in err
+    assert git(origin, "rev-parse", "veri-install") == before
