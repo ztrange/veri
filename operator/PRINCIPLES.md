@@ -122,3 +122,10 @@ apart, take the smaller slice: continuous delivery of value, shorter feedback lo
 bites of work. A plan, an issue or a group of issues is never made larger to save money, and
 saving money is never the reason for its size. This ranks only those two: it grants no
 real-money spend, which stays the human's.
+
+**A decision goes to the human as plain text (P21).** An operator role never asks the human
+through a question tool (`AskUserQuestion`) or a blocking end-of-turn box: either stops the role
+until the human answers. A decision goes out once, as plain text (P4), and only its own item waits;
+everything else goes on. It is not repeated on routine turns. When the human's next message
+arrives, whatever it is about, the role answers it and then restates every pending decision in
+full, a case P4's restatement rule adds to the two it names.
