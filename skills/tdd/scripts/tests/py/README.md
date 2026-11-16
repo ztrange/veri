@@ -17,7 +17,8 @@ module or a conftest fixture has no bullet below, or a bullet names one that doe
 - Collection refuses an unregistered mark and a `process`, `tree_audit` or `serial` mark without its argument
   (`case_size_guards.pytest_collection_modifyitems`).
 - `make unit` runs `-m "not process and not tree_audit"` over `tests/py/unit/` only (Makefile `unit:`); `make test` runs
-  everything under `tests/py/` through `veri/pytest_leg.py`, in two passes: the non-`serial` cases, then the `serial` ones.
+  everything under `tests/py/` through `veri/pytest_leg.py`: the non-`serial` cases, then a second pass over the `serial` ones
+  only when one was collected; veri's tree holds none (`unit/test_no_serial_case.py`), so it is one pytest session.
   `make test TESTS="<file or node id> ..."` runs only those, in the same invocation. Policy: root `CLAUDE.md`, "Testing idiom".
 - **A file lives in `unit/` only if `tests/py/fast_tier_guard.py` names none of its calls** (a process start, a real wait),
   enforced both ways by `test_fast_tier_guard.py`. So `make unit` runs `tests/py/unit/` only, and placement is judged per FILE:
