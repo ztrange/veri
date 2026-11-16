@@ -59,3 +59,31 @@ def test_with_the_authenticated_login_unreadable_the_association_alone_answers_a
     answers = [github.trusted_comment(comment(association, login="veri-operator"))
                for association in ("NONE", "MEMBER", "OWNER", "COLLABORATOR")]
     assert (answers, reads) == ([False, False, True, True], ["user"])
+
+
+@pytest.mark.parametrize("record, login_readable", [
+    ({"author_association": "OWNER", "body": DONE}, True),
+    ({"author_association": "OWNER", "user": None, "body": DONE}, True),
+    ({"author_association": "COLLABORATOR", "user": {}, "body": DONE}, True),
+    ({"author_association": "OWNER", "user": {"login": ""}, "body": DONE}, True),
+    ({"author_association": "OWNER", "user": {"login": 7}, "body": DONE}, True),
+    ({"author_association": "NONE", "user": None, "body": DONE}, False),
+    ({"author_association": "NONE", "user": {}, "body": DONE}, False),
+    ({"user": {"login": "someone"}, "body": DONE}, True),
+    (comment("owner"), True),
+    (comment("MANNEQUIN"), True),
+    (comment(["OWNER"]), True),
+    (DONE, True),
+    (None, True),
+    ([comment("OWNER")], True),
+], ids=["no-user", "deleted-user", "user-without-login", "empty-login", "login-not-text", "deleted-user-login-unreadable",
+        "no-login-login-unreadable", "no-association", "association-lowercase", "association-unlisted",
+        "association-not-text", "a-bare-body", "null", "a-list"])
+def test_a_comment_whose_author_cannot_be_read_or_whose_association_the_rule_does_not_list_is_not_trusted(
+        github, monkeypatch, record, login_readable):
+    def no_answer():
+        raise github.NoAnswer("")
+
+    if not login_readable:
+        monkeypatch.setattr(github, "authenticated_login", no_answer)
+    assert github.trusted_comment(record) is False

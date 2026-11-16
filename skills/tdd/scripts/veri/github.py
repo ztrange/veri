@@ -259,10 +259,13 @@ def _trusting_login():
 def trusted_comment(comment):
     """Whether the REST comment object <comment> may speak for a run (PRD 022.3): its `author_association` is OWNER or
     COLLABORATOR, or its `user.login` is the authenticated gh user's. Decided from the fields GitHub sets, never from
-    the body."""
-    if comment.get("author_association") in TRUSTED_ASSOCIATIONS:
-        return True
-    return comment["user"]["login"] == _trusting_login()
+    the body; fail closed: a record whose author cannot be read (not an object, no user, a deleted user, no login) is
+    not trusted, nor is an association the rule does not list."""
+    user = comment.get("user") if isinstance(comment, dict) else None
+    login = user.get("login") if isinstance(user, dict) else None
+    if not isinstance(login, str) or not login:
+        return False
+    return comment.get("author_association") in TRUSTED_ASSOCIATIONS or login == _trusting_login()
 
 
 def _quiet_write(*args):
