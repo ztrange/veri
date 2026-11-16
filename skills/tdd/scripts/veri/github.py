@@ -201,6 +201,44 @@ def _comments(number):
         bodies += "".join(c["body"] + "\n" for c in comments)
 
 
+def rest_items(path):
+    """The items of every page of the REST list <path>, read with gh's stderr captured and not echoed; NoAnswer whose
+    detail is that stderr when a page fails."""
+    items = []
+    sep = "&" if "?" in path else "?"
+    page = 1
+    while True:
+        run = gh_api("%s%spage=%d" % (path, sep, page), stderr=subprocess.PIPE)
+        if run.returncode != 0:
+            raise NoAnswer("", run.stderr or "")
+        found = json.loads(run.stdout or "[]")
+        if not found:
+            return items
+        items += found
+        page += 1
+
+
+def issue_comments(number):
+    """Issue <number>'s comments as REST records (`id`, `body`, ...), oldest first; NoAnswer as rest_items."""
+    return rest_items("%s/comments?per_page=100" % _issue(number))
+
+
+def _quiet_write(*args):
+    run = run_gh("api", *args, stderr=subprocess.PIPE)
+    if run.returncode != 0:
+        raise NoAnswer("", run.stderr or "")
+
+
+def gh_comment_post(number, body):
+    """Post <body> as a new comment on issue <number>; NoAnswer whose detail is gh's stderr, not echoed."""
+    _quiet_write("-X", "POST", "%s/comments" % _issue(number), "-f", "body=%s" % body)
+
+
+def gh_comment_edit(comment_id, body):
+    """Replace the body of the issue comment <comment_id>; NoAnswer whose detail is gh's stderr, not echoed."""
+    _quiet_write("-X", "PATCH", "%s/comments/%s" % (_ISSUES, comment_id), "-f", "body=%s" % body)
+
+
 class GraphQLAdapter:
     def _run(self, *args):
         run = _retry_refused(lambda: run_gh(*args, stderr=subprocess.PIPE), "stderr")
