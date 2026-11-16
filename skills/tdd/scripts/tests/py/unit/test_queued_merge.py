@@ -1334,6 +1334,36 @@ def test_queued_merge_refuses_an_empty_veri_gh_driver_with_2_naming_it_before_ta
     assert (code, out, err, calls) == (2, "", "VERI_GH_DRIVER is '': expected auto, rest or graphql\n", [])
 
 
+def test_3980_queued_merge_whose_exception_escapes_while_a_rebase_is_stopped_keeps_the_lock_and_exits_2_with_one_refusal_line(
+        fake_processes, run_cli, monkeypatch, tmp_path):
+    stopped_rebase = tmp_path / "rebase-merge"
+    stopped_rebase.mkdir()
+
+    def phantom_world(answer):
+        def world(line, **kwargs):
+            if "status --porcelain" in line:
+                return 0, "", ""
+            if "rebase origin/main" in line:
+                answer(line, **kwargs)
+                return 1, "", PHANTOM
+            if "rev-parse --git-path rebase-merge" in line:
+                return 0, "%s\n" % stopped_rebase, ""
+            return answer(line, **kwargs)
+        return fake_processes(world)
+
+    def broken_mark(*_args, **_kwargs):
+        raise OSError("events.jsonl is not writable")
+
+    calls = scenario(phantom_world)
+    monkeypatch.setattr(queued_merge.event, "mark", broken_mark)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    refusals = [line for line in err.splitlines() if line.startswith("queued-merge.sh: ")]
+    assert (code, released, len(refusals), refusals[0].startswith("queued-merge.sh: OSError: ")) == (2, [], 1, True)
+
+
 @pytest.mark.parametrize("env, named", [
     ({"VERI_MERGE_SETTLE_READS": "many"}, "VERI_MERGE_SETTLE_READS"),
     ({"VERI_MERGE_SETTLE_SLEEP": "soon"}, "VERI_MERGE_SETTLE_SLEEP"),

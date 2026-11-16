@@ -260,6 +260,16 @@ def _before_merge(pid, pr, worktree, branch, before, head):
     return None
 
 
+def _rebasing(worktree):
+    """True when <worktree> holds a rebase stopped mid-way (git's rebase-merge or rebase-apply directory exists)."""
+    for name in ("rebase-merge", "rebase-apply"):
+        found = _git(worktree, "rev-parse", "--git-path", name)
+        where = found.stdout.strip()
+        if not found.returncode and where and os.path.isdir(os.path.join(worktree, where)):
+            return True
+    return False
+
+
 def _to_merge(pid, repo, pr, worktree, branch):
     """Fetch, rebase, push, wait for CI and check before the merge: (head, None) to merge, ("", (code, outcome)) to stop."""
     code = _gate(pid, "git", "-C", worktree, "fetch", "origin")
@@ -321,14 +331,15 @@ def _locked(pid, repo, pr, worktree, branch, message, window):
       - the first fetch, the wait-ci gate: a gate without --keep releases the lock itself on failure;
       - _cleanup: releases the lock after the tag, branch delete and worktree removal.
 
-    An exception escaping before the merge call is exit 2 with RELEASE, named in entry.refusal's form;
+    An exception escaping before the merge call is exit 2, named in entry.refusal's form: RELEASE, or LEAVE when
+    a rebase is stopped mid-way in the worktree, kept as a rebase stop keeps it;
     after the call, _cleanup releases from a copy of the scripts, so no blanket release is safe there.
     """
     try:
         head, stop = _to_merge(pid, repo, pr, worktree, branch)
     except Exception as error:
         sys.stderr.write(entry.refusal(main, error))
-        return 2, RELEASE
+        return 2, (LEAVE if _rebasing(worktree) else RELEASE)
     if stop:
         return stop
     gh_merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
