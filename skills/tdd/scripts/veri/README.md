@@ -203,6 +203,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_MACHINE_NAME` | "" | never: any value is the machine name the pointer comment shows; empty shows `unnamed machine`, and the host name is never read |
 | `VERI_MAX_ISSUES` | "" | its readers' own words |
 | `VERI_MERGE_LOCK_POLL` | `30` | its readers' own words |
+| `VERI_MERGE_LOCK_WAIT` | `1800` | its readers' own words |
 | `VERI_MERGE_SETTLE_READS` | `10` | its readers' own words |
 | `VERI_MERGE_SETTLE_SLEEP` | `3` | its readers' own words |
 | `VERI_MIN_FREE_GB` | `20` | its readers' own words |

@@ -190,6 +190,7 @@ DEFAULTED = {
     "VERI_GH_REFUSAL_SLEEP": ("60", "60", None),
     "VERI_GH_DRIVER": ("rest", "graphql", "x"),
     "VERI_MERGE_LOCK_POLL": ("30", "30", None),
+    "VERI_MERGE_LOCK_WAIT": ("1800", "0", "-1"),
     "VERI_FETCH_RETRY_SLEEP": ("1", "1", None),
     "VERI_MERGE_SETTLE_READS": ("10", "10", None),
     "VERI_MERGE_SETTLE_SLEEP": ("3", "3", None),

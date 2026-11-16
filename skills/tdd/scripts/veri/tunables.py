@@ -153,7 +153,7 @@ TUNABLES = {
     "VERI_GITHUB_STATUS_TIMEOUT": Tunable(text, "15"),
     "VERI_GITHUB_STATUS_POLL": Tunable(text, "300"),
     "VERI_MERGE_LOCK_POLL": Tunable(text, "30"),
-    "VERI_MERGE_LOCK_WAIT": Tunable(text, "1800"),
+    "VERI_MERGE_LOCK_WAIT": Tunable(tokens, "1800"),
     "VERI_FETCH_RETRY_SLEEP": Tunable(text, "1"),
     "VERI_MERGE_SETTLE_READS": Tunable(text, "10"),
     "VERI_MERGE_SETTLE_SLEEP": Tunable(text, "3"),
