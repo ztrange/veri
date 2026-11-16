@@ -39,7 +39,7 @@ def test_a_token_or_a_listed_value_in_a_journal_value_or_key_is_carried_redacted
 
     carried = run_records.records(str(tmp_path), "7")["events.jsonl"].decode()
 
-    assert json.loads(carried) == {"issue": "7", "event": "bail", "failed": "leaf said [redacted] [redacted]",
+    assert json.loads(carried) == {"issue": "7", "event": "bail", "failed": "leaf said [redacted]\\n and [redacted]",
                                    "[redacted]": "k"}
 
 
