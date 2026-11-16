@@ -41,3 +41,10 @@ def test_redact_replaces_every_occurrence_of_a_listed_variables_value_issue_3960
     monkeypatch.setenv("FAKE_SECRET", "not-a-real-secret")
 
     assert github.redact("a not-a-real-secret b not-a-real-secret") == "a [redacted] b [redacted]"
+
+
+def test_redact_leaves_alone_a_listed_variables_value_shorter_than_8_characters_issue_3960(github, monkeypatch):
+    monkeypatch.setenv("VERI_REDACT_VARS", "FAKE_SHORT")
+    monkeypatch.setenv("FAKE_SHORT", "a1b2c3d")
+
+    assert github.redact("a1b2c3d stays") == "a1b2c3d stays"
