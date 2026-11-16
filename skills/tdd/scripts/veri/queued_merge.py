@@ -153,7 +153,7 @@ def _merge_commit(worktree, pull, pr):
     for attempt in range(FETCH_ATTEMPTS):
         if attempt:
             time.sleep(float(tunables.get("VERI_FETCH_RETRY_SLEEP", unless_empty=True)))
-        fetch = _git(worktree, "fetch", "origin")
+        fetch = _network_git(worktree, "fetch", "origin")
         if not fetch.returncode and not _git(worktree, "cat-file", "-e", sha + "^{commit}").returncode:
             return sha
     if fetch.returncode:
