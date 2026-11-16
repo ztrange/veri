@@ -355,3 +355,26 @@ def test_3966_make_unit_and_make_test_create_an_absent_prefix_with_mode_0700_and
     full = make(tree, log, "test", VERI_PYCACHE=str(cache))
     assert (unit[0], unit[1], mode) == (0, ["pytest small"], oct(0o700)), unit[2]
     assert full[0] == 0, full[2]
+
+
+def refusals_of_unit_and_test(tmp_path, cache):
+    """Per target, unit then test: (exit code, cases the planted tree noted, whether the leg started, the output lines naming <cache>)."""
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    answers = []
+    for target in ("unit", "test"):
+        code, ran, output = make(tree, log, target, VERI_PYCACHE=str(cache))
+        answers.append((code, ran, "== pytest" in output, [line for line in output.splitlines() if str(cache) in line]))
+    return answers
+
+
+def refusal(cache, why):
+    return (2, [], False, ["veri: refusing the bytecode cache %s: %s; remove it, or set VERI_PYCACHE to a directory of your own" % (cache, why)])
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit and make test started for real over a planted tree, VERI_PYCACHE naming a group-writable directory")
+def test_3966_a_group_writable_prefix_makes_make_unit_and_make_test_exit_2_naming_it_and_the_fix_before_any_suite(tmp_path):
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    cache.chmod(0o770)
+    assert refusals_of_unit_and_test(tmp_path, cache) == [refusal(cache, "it is group-writable")] * 2
