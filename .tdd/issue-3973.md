@@ -6,4 +6,4 @@
 - [x] `solvable_issues.select` claims only from PRs whose head is in this repository, requesting `isCrossRepository` ⟦criterion 2⟧
 - [x] `github.joined_issues` counts a merged PR's `Closes #n` only when its head is in this repository
 - [x] a ratchet: every module of veri/ reading a PR's claim decides it through `Pull.cross_repository`
-- [ ] the `solvable-issues.sh` entry of SCRIPTS.md says a claim counts only from a PR in this repository ⟦criterion 3⟧
+- [x] the `solvable-issues.sh` entry of SCRIPTS.md says a claim counts only from a PR in this repository ⟦criterion 3⟧
