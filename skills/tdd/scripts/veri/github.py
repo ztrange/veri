@@ -8,6 +8,8 @@ variable and the value. Operations with no GraphQL route (issue edit and create,
 gh_rest_list, gh_json and gh_json_page with no gh args) use REST under every value, and VERI_GH_JSON takes
 precedence over it. A Claude Code cloud session, where GraphQL is refused, needs nothing set.
 """
+import base64
+import binascii
 import contextlib
 import json
 import os
@@ -33,6 +35,9 @@ _RUN_ON = ((("github_pat_",), re.compile(r"[A-Za-z0-9_]*")), (("gh",), re.compil
            (("sk-ant-",), re.compile(r"[A-Za-z0-9_-]*")), (("AKIA",), re.compile("")))
 # A line break, or its JSON string escape: a token wrapped across one is still a token.
 _BREAK = re.compile(r"\r\n|\r|\n|\\r\\n|\\r|\\n")
+# A base64 or base64url run long enough to encode the shortest secret (an 8-character value).
+_BASE64 = re.compile(r"[A-Za-z0-9+/_-]{12,}={0,2}")
+_URLSAFE = str.maketrans("-_", "+/")
 
 
 def _unbroken(text):
@@ -61,11 +66,31 @@ def _in_text(starts, index):
     return starts[low][1] + index - starts[low][0]
 
 
-def _secret_spans(text):
+def _decodes_to_secret(run):
+    """Whether the base64 (or base64url) <run>, read from each of its four alignments, decodes to text holding a token
+    shape or a listed variable's value."""
+    run = run.rstrip("=").translate(_URLSAFE)
+    for skip in range(4):
+        aligned = run[skip:]
+        aligned = aligned[:-1] if len(aligned) % 4 == 1 else aligned
+        aligned += "=" * (-len(aligned) % 4)
+        try:
+            decoded = base64.b64decode(aligned).decode("latin-1")
+        except binascii.Error:
+            continue
+        if _secret_spans(decoded, encoded=False):
+            return True
+    return False
+
+
+def _secret_spans(text, encoded=True):
     """The (start, end) spans of <text> holding a token shape or a listed variable's value, a line break inside one
-    included."""
+    included; <encoded> also takes each base64 run that decodes to one."""
     joined, starts = _unbroken(text)
     spans = []
+    if encoded:
+        spans += [(_in_text(starts, run.start()), _in_text(starts, run.end() - 1) + 1)
+                  for run in _BASE64.finditer(joined) if _decodes_to_secret(run.group())]
     for found in _TOKEN_SHAPES.finditer(joined):
         end = _in_text(starts, found.end() - 1) + 1
         run_on = next(chars for prefixes, chars in _RUN_ON if found.group().startswith(prefixes))
@@ -83,7 +108,8 @@ def _secret_spans(text):
 
 def redact(text):
     """<text> with every token-shaped string, and every value (8 characters or more) of a variable VERI_REDACT_VARS
-    names, replaced by [redacted]; a line break, or its JSON escape, inside one does not hide it."""
+    names, replaced by [redacted]; a line break, or its JSON escape, inside one does not hide it, and a base64 run that
+    decodes to one is replaced whole."""
     out, at = [], 0
     for start, end in sorted(_secret_spans(text)):
         if end <= at:
