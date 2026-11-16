@@ -246,8 +246,11 @@ TRUSTED_ASSOCIATIONS = ("OWNER", "COLLABORATOR")
 
 def trusted_comment(comment):
     """Whether the REST comment object <comment> may speak for a run (PRD 022.3): its `author_association` is OWNER or
-    COLLABORATOR. Decided from the fields GitHub sets, never from the body."""
-    return comment.get("author_association") in TRUSTED_ASSOCIATIONS
+    COLLABORATOR, or its `user.login` is the authenticated gh user's. Decided from the fields GitHub sets, never from
+    the body."""
+    if comment.get("author_association") in TRUSTED_ASSOCIATIONS:
+        return True
+    return comment["user"]["login"] == authenticated_login()
 
 
 def _quiet_write(*args):

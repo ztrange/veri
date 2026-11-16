@@ -34,3 +34,7 @@ DONE = "### ✅ Done — https://github.com/o/r/pull/9"
         "stranger-with-veri-marker-text", "stranger-edited", "owner-edited", "bot-not-veri"])
 def test_a_comment_is_trusted_by_its_owner_or_collaborator_association_and_never_by_its_body(github, record, trusted):
     assert github.trusted_comment(record) is trusted
+
+
+def test_a_member_whose_login_is_the_authenticated_gh_users_is_trusted(github):
+    assert github.trusted_comment(comment("MEMBER", login="veri-operator", body=DONE)) is True
