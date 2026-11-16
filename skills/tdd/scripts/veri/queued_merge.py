@@ -290,7 +290,23 @@ def _to_merge(pid, repo, pr, worktree, branch):
     return head, None
 
 
-def _locked(pid, repo, pr, worktree, branch, message):
+def _settle_window():
+    """(reads, sleep) for the settle window from VERI_MERGE_SETTLE_READS (a whole number >= 1) and
+    VERI_MERGE_SETTLE_SLEEP (a non-negative number of seconds); a refusal message instead when either is unusable."""
+    reads = tunables.get("VERI_MERGE_SETTLE_READS", unless_empty=True)
+    sleep = tunables.get("VERI_MERGE_SETTLE_SLEEP", unless_empty=True)
+    if entry.whole_number(reads) is None:
+        return None, "VERI_MERGE_SETTLE_READS is '%s': expected a whole number of at least 1" % reads
+    try:
+        seconds = float(sleep)
+    except ValueError:
+        seconds = -1.0
+    if not seconds >= 0 or seconds == float("inf"):
+        return None, "VERI_MERGE_SETTLE_SLEEP is '%s': expected a non-negative number of seconds" % sleep
+    return (entry.whole_number(reads), seconds), None
+
+
+def _locked(pid, repo, pr, worktree, branch, message, window):
     """Everything after the lock is taken: returns (exit code, RELEASE | LEAVE), never releasing itself.
 
     main releases the lock exactly once when the outcome is RELEASE. LEAVE means the lock needs
@@ -331,9 +347,10 @@ def _locked(pid, repo, pr, worktree, branch, message):
     else:
         code = _gate(pid, *rest_merge, keep=True)
     pull, answered = None, False
-    for attempt in range(int(tunables.get("VERI_MERGE_SETTLE_READS", unless_empty=True))):
+    reads, sleep = window
+    for attempt in range(reads):
         if code or attempt:
-            time.sleep(float(tunables.get("VERI_MERGE_SETTLE_SLEEP", unless_empty=True)))
+            time.sleep(sleep)
         read = _pull(repo, pr)
         answered = answered or read is not None
         if read and read.get("merged") is True:
@@ -361,13 +378,17 @@ def main(argv):
     if driver not in ("auto", "rest", "graphql"):
         print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
         return 2
+    window, refusal = _settle_window()
+    if refusal:
+        print(refusal, file=sys.stderr)
+        return 2
     repo = _repo(pr)
     pid = str(os.getpid())
     code = _script("merge-lock.sh", "take", "--pid", pid)
     if code:
         _say("taking the merge lock failed (exit %d)" % code)
         return code
-    code, outcome = _locked(pid, repo, pr, worktree, branch, message)
+    code, outcome = _locked(pid, repo, pr, worktree, branch, message, window)
     if outcome is RELEASE:
         _release(pid)
     return code
