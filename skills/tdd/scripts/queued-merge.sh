@@ -8,7 +8,8 @@
 #          merged. 1 red CI, or a merge call that exited 0 whose window's reads answered and never said
 #          merged (lock released); a merge call that exited non-zero whose window's reads answered and
 #          never said merged exits with its code; a rebase conflict or refused push exits with git's
-#          code (lock kept); 2 no answer — bad arguments or settle tunables (before the lock), a window
+#          code (lock kept); 2 no answer — bad arguments, settle tunables or VERI_GIT_NETWORK_TIMEOUT
+#          (before the lock), a window
 #          in which no read answered, a wait-ci.sh exit 2 (a PR head that never matched the pushed sha;
 #          lock released), an error raised before the merge call (lock released, kept while a rebase
 #          is stopped), a PR already merged, closed unmerged, unreadable or with its head already on
