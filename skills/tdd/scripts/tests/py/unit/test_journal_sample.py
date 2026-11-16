@@ -1,8 +1,9 @@
-"""veri/journal_sample.py builds the sample journal from veri/event_table.py alone (PRD 030.4, SJ2)."""
+"""veri/journal_sample.py builds the sample journal from veri/event_table.py alone (PRD 030.4, SJ2 to SJ4)."""
+import json
 import pathlib
 import time
 
-from veri import journal_sample
+from veri import event_table, journal_sample
 
 SAMPLE = pathlib.Path(__file__).resolve().parents[6] / "fixtures" / "journal" / "sample.jsonl"
 REGENERATE = "python3 skills/tdd/scripts/veri/journal_sample.py > fixtures/journal/sample.jsonl"
@@ -33,3 +34,13 @@ def test_the_committed_sample_is_what_journal_sample_py_builds():
                            f"\n  committed: {committed[first - 1] if first <= len(committed) else '(no line)'}"
                            f"\n  built:     {built[first - 1] if first <= len(built) else '(no line)'}"
                            f"\nregenerate it:  {REGENERATE}")
+
+
+def test_the_sample_holds_a_line_for_every_declared_event_and_none_for_an_undeclared_one():
+    sampled = [json.loads(line).get("event") for line in SAMPLE.read_text(encoding="utf-8").splitlines() if line.strip()]
+    gaps = [f"event {name}: declared in veri/event_table.py, no line in fixtures/journal/sample.jsonl; regenerate it:"
+            f"  {REGENERATE}" for name in event_table.EVENTS if name not in sampled]
+    gaps += [f"event {name}: a line in fixtures/journal/sample.jsonl, not declared in veri/event_table.py; regenerate it:"
+             f"  {REGENERATE}" for name in sampled if name not in event_table.EVENTS]
+
+    assert not gaps, "fixtures/journal/sample.jsonl and veri/event_table.py's events differ:\n" + "\n".join(gaps)
