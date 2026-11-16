@@ -187,3 +187,13 @@ def test_3917_step_ahead_exits_2_naming_the_line_when_a_value_names_no_existing_
     result = run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path)
 
     assert _refused(result, line), result
+
+
+def test_3917_step_ahead_exits_2_naming_the_line_when_a_value_names_a_case_its_file_does_not_define(run_cli, tmp_path, exhausted_outcome):
+    red = _suite(tmp_path)
+    line = "STEP_AHEAD: tests/py/test_status.py::test_prints_usage"
+    report = "STEP_AHEAD: tests/py/test_solvable.py::test_prints_usage\n" + line + "\n"
+
+    result = run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path)
+
+    assert _refused(result, line), result
