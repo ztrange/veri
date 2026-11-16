@@ -264,3 +264,17 @@ def test_issue_4090_the_dry_run_push_runs_with_git_terminal_prompt_0_so_missing_
     assert ready_check.push_dry_run_row() == ("push dry-run", "fatal: could not read Username for 'https://github.com': terminal prompts disabled")
     (argv, kwargs), = fake.seen
     assert (kwargs.get("env") or {}).get("GIT_TERMINAL_PROMPT") == "0", kwargs
+
+
+def test_issue_4090_the_push_dry_run_row_starts_only_git_and_every_push_is_a_dry_run_to_a_fresh_probe_name(ready_check, fake_processes):
+    fake = fake_processes.answers({PROBE_PUSH: [(0, "", ""), REFUSED]}, default=(0, "", ""))
+
+    ready_check.push_dry_run_row()
+    ready_check.push_dry_run_row()
+
+    assert {argv[0] for argv in fake.argvs} == {"git"}, fake.calls
+    pushes = [argv for argv in fake.argvs if "push" in argv]
+    assert len(pushes) == 2 and all("--dry-run" in argv and "--delete" not in argv for argv in pushes), fake.calls
+    assert all(re.fullmatch(r"HEAD:refs/heads/veri-permission-probe-\w+", argv[-1]) for argv in pushes), fake.calls
+    assert pushes[0][-1] != pushes[1][-1], fake.calls
+    assert len(fake.argvs) == 2, fake.calls
