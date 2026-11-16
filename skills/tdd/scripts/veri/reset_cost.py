@@ -1,7 +1,9 @@
 """reset-cost.sh's logic, run in-process: what each recorded reset of a role cost, read from the files veri writes."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
+import math
 import os
+import statistics
 import sys
 import time
 from datetime import datetime
@@ -11,6 +13,7 @@ import growth
 import prices
 import role_state
 import run_dir
+import tunables
 
 USAGE = "usage: reset-cost.sh dev [--lane <lane>] | conductor <n>\n"
 
@@ -63,6 +66,20 @@ def per_request(window):
     return growth.growth(window) / (len(window) - 1)
 
 
+def cache_read_rate(measured):
+    """The cache-read rate in input-token units of the model of the last priced request in `measured`, None when none is."""
+    for record in reversed(measured):
+        model = prices.family(record["message"].get("model") or "")
+        if model:
+            return prices.PRICES[model]["cache_read"] / prices.PRICES[model]["input"]
+    return None
+
+
+def _median(values):
+    known = [v for v in values if v is not None]
+    return statistics.median(known) if known else None
+
+
 def _figure(value):
     return "unknown" if value is None else "%d" % round(value)
 
@@ -96,6 +113,7 @@ def dev(lane):
     records = sorted((r for t in transcripts for r in requests(_read_records(t)) if r.get("timestamp")),
                      key=lambda r: _epoch(r["timestamp"]))
     rows = []
+    measured = []
     for at, recovered, following in resets:
         start = role_state.epoch(at)
         end = role_state.epoch(following) if following else float("inf")
@@ -106,9 +124,11 @@ def dev(lane):
             upto = next((i for i, r in enumerate(after) if _epoch(r["timestamp"]) >= back), None)
             if upto is not None:
                 k = cost(after[:upto + 1])
+                measured += after[:upto + 1]
             g = per_request([r for r in after if _epoch(r["timestamp"]) >= back])
         rows.append((at, k, g))
-    return rows
+    sources = "K and g from %s at the reset-at and recovered-at lines of %s" % (", ".join(transcripts) or "no transcript", path)
+    return rows, measured, sources, "VERI_RESET_GROWTH_DEV", tunables.get("VERI_RESET_GROWTH_DEV")
 
 
 def launches(lines):
@@ -135,11 +155,14 @@ def conductor(run):
     with open(log) as f:
         relaunches = launches(f)
     rows = []
+    measured = []
     for restart in restarts:
         launch = next((l for l in relaunches if _epoch(l[0]["timestamp"]) >= restart["ts"]), None)
         at = time.strftime(role_state.STAMP, time.localtime(restart["ts"]))
         rows.append((at, cost(launch[:1]) if launch else None, per_request(launch) if launch else None))
-    return rows
+        measured += (launch or [])[:1]
+    sources = "K and g from %s at the conductor-restart events of %s" % (log, event_log.path(run_dir.worktree(main, run)))
+    return rows, measured, sources, "VERI_RESET_GROWTH_CONDUCTOR", tunables.get("VERI_RESET_GROWTH_CONDUCTOR")
 
 
 def main(argv):
@@ -156,13 +179,20 @@ def _main(argv):
         lane = argv[2]
         argv = argv[:1]
     if argv == ["dev"]:
-        rows = dev(lane)
+        rows, measured, sources, knob, value = dev(lane)
     elif len(argv) == 2 and argv[0] == "conductor" and lane is None:
-        rows = conductor(argv[1])
+        rows, measured, sources, knob, value = conductor(argv[1])
     else:
         raise Failure(USAGE)
     for at, k, g in rows:
         print("%s K=%s g=%s" % (at, _figure(k), _figure(g)))
+    k = _median(row[1] for row in rows)
+    g = _median(row[2] for row in rows)
+    r = cache_read_rate(measured)
+    best = None if None in (k, g, r) else math.sqrt(2 * k * g / r)
+    print("median K=%s g=%s r=%s optimum=%s %s=%s" % (_figure(k), _figure(g), "unknown" if r is None else "%g" % r,
+                                                     _figure(best), knob, value))
+    print("source: %s; rates from veri/prices.py; %s from the environment or its default" % (sources, knob))
     return 0
 
 

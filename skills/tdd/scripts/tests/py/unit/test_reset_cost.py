@@ -95,3 +95,17 @@ def test_conductor_prints_each_restart_with_its_local_time_the_relaunch_first_re
     code, out, err = run_cli(reset_cost, ["conductor", "7"])
 
     assert (code, out.splitlines()[:1]) == (0, ["2026-11-14T10:30:00 K=80552 g=1000"]), err
+
+
+def test_after_the_resets_it_prints_the_medians_the_cache_read_rate_and_the_optimum_growth_next_to_the_knob(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    transcript, state = two_resets(tmp_path)
+
+    code, out, err = run_cli(reset_cost, ["dev"], env={"VERI_RESET_GROWTH_DEV": "65000"})
+
+    # medians K = (28270 + 26410) / 2 = 27340, g = (1000 + 500) / 2 = 750; r = 0.2 / 4 = 0.05;
+    # √(2 · 27340 · 750 / 0.05) = 28639.1
+    lines = out.splitlines() + ["", ""]
+    assert (code, lines[2], str(state) in lines[3], str(transcript) in lines[3]) == (
+        0, "median K=27340 g=750 r=0.05 optimum=28639 VERI_RESET_GROWTH_DEV=65000", True, True), err
