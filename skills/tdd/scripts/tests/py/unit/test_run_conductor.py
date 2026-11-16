@@ -127,16 +127,16 @@ def test_cli_a_skip_verify_naming_plan_exits_2_naming_plan_on_stderr_before_any_
     assert (code, "plan" in stderr, calls) == (2, True, ["ps -o lstart= -p %d" % os.getpid()]), stderr
 
 
-def test_cli_a_skip_verify_naming_green_exits_2_naming_green_on_stderr_before_any_process_starts(
+def test_cli_a_skip_verify_naming_red_exits_2_naming_red_on_stderr_before_any_process_starts(
         tmp_path, monkeypatch, run_cli, fake_processes):
     past_the_guards(monkeypatch)
-    monkeypatch.setenv("VERI_SKIP_VERIFY", "green")
+    monkeypatch.setenv("VERI_SKIP_VERIFY", "red")
     calls = fake_processes()
     run_conductor = importlib.import_module("veri.run_conductor")
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
 
-    assert (code, "green" in stderr, calls) == (2, True, ["ps -o lstart= -p %d" % os.getpid()]), stderr
+    assert (code, "'red'" in stderr, calls) == (2, True, ["ps -o lstart= -p %d" % os.getpid()]), stderr
 
 
 def test_prompt_with_revise_budget_unset_holds_no_line_naming_a_revise_budget_value_2705(tmp_path, monkeypatch):
