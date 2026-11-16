@@ -989,6 +989,30 @@ def test_3422_queued_merge_of_a_pr_whose_body_carries_closes_for_the_runs_issue_
     assert (code, merges) == (0, ["merge-lock.sh gate --keep --pid %s -- gh pr merge %s --rebase --match-head-commit %s" % (PID, PR, PUSHED_HEAD)])
 
 
+def test_3980_queued_merge_whose_pr_body_read_answers_text_that_is_not_json_releases_the_lock_once_and_exits_2_with_one_refusal_line(
+        fake_processes, run_cli, tmp_path):
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+
+    def garbled(answer):
+        def wrapped(line, **kwargs):
+            if "diff --name-only origin/main...HEAD" in line:
+                return 0, ".tdd/issue-3255.md\n", ""
+            if "pr view" in line:
+                return 0, "<html>502 Bad Gateway</html>", ""
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(garbled)
+
+    code, _, err = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"])
+
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    merges = [c for c in calls if "pr merge" in c or "pulls/7/merge" in c]
+    assert (code, len(released), merges, err.splitlines()[-1:] == err.splitlines(),
+            err.startswith("queued-merge.sh: JSONDecodeError: "), "(at " in err) == (2, 1, [], True, True, True)
+
+
 def test_3422_queued_merge_of_a_pr_whose_body_lacks_closes_for_the_runs_issue_exits_2_naming_the_line_makes_no_merge_call_and_frees_the_lock(
         fake_processes, run_cli, tmp_path):
     worktree = tmp_path / "wt"
