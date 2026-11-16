@@ -28,3 +28,19 @@ def test_issue_4077_prints_the_trusted_comments_after_the_newest_parked_comment_
     code, out, err = run_cli(park_decision, ["42"])
 
     assert (code, out, err) == (0, "Take design B.\n\nAnd keep the old flag.\n", "")
+
+
+@pytest.mark.parametrize("comments, why", [
+    ([{**OWNER, "body": "Take design A."}, PARK], "no trusted comment after"),
+    ([{**OWNER, "body": "Take design A."}], "no parked comment"),
+    ([], "no parked comment"),
+])
+def test_issue_4077_with_no_trusted_comment_after_the_newest_parked_comment_it_exits_3_printing_nothing(
+        decision, run_cli, comments, why):
+    park_decision, set_comments = decision
+    set_comments(comments)
+
+    code, out, err = run_cli(park_decision, ["42"])
+
+    assert (code, out) == (3, "")
+    assert why in err
