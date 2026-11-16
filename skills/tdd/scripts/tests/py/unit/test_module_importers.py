@@ -9,7 +9,7 @@ import pytest
 
 from conftest import ROOT, SCRIPTS
 
-KEPT = {}
+KEPT = {"veri/journal_sample.py": "run by hand to regenerate fixtures/journal/sample.jsonl (fixtures/journal/README.md)"}
 
 MENTION = re.compile(r"\bimport\b|\bfrom\b|\.py\b|\bveri\.|PYTEST_PLUGINS")
 WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
