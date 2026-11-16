@@ -934,6 +934,7 @@ def launched_with_lock_raising(pytest_leg, monkeypatch, capfd, prefix=None):
     monkeypatch.setattr(sys, "pycache_prefix", prefix)
     for name, value in leg_env().items():
         monkeypatch.setenv(name, value)
+    monkeypatch.setattr(sys, "path", list(sys.path))  # main puts veri's directories first on sys.path
     code = pytest_leg.launch([])
     out, err = capfd.readouterr()
     return code, out, err, raised
@@ -953,6 +954,7 @@ def test_3985_a_leg_launched_as_make_test_runs_it_whose_passes_ran_and_had_a_fai
     monkeypatch.setattr(sys, "pycache_prefix", None)
     for name, value in leg_env(VERI_PYTEST_WORKERS="1", VERI_TEST_LOCK="0").items():
         monkeypatch.setenv(name, value)
+    monkeypatch.setattr(sys, "path", list(sys.path))  # main puts veri's directories first on sys.path
     assert pytest_leg.launch(["-q"]) == 1
 
 
@@ -979,6 +981,7 @@ def launched_over_a_cache(pytest_leg, monkeypatch, capfd, tmp_path, status, chec
         monkeypatch.setattr(pytest_leg, "record_bytecode_cache", record)
     for name, value in leg_env(VERI_PYTEST_WORKERS="1", VERI_TEST_LOCK="0").items():
         monkeypatch.setenv(name, value)
+    monkeypatch.setattr(sys, "path", list(sys.path))  # main puts veri's directories first on sys.path
     code = pytest_leg.launch(["-q"])
     return code, capfd.readouterr().err, len(ran)
 
