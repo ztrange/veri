@@ -3297,3 +3297,28 @@ def test_exit_line_prints_silent_exit_when_the_only_outcome_comment_is_untrusted
     monkeypatch.setattr(dispatch.github, "gh_rest_list", lambda path, *args: json.dumps(comments), raising=False)
 
     assert dispatch.exit_line("3969") == "silent-exit 3969"
+
+
+def test_exit_line_reads_every_page_so_the_newest_trusted_outcome_on_page_2_decides_the_line_issue_3969(
+        monkeypatch, dispatch):
+    import subprocess
+    pages = {
+        1: [_authored("OWNER", "### ⛔ Bailed — green", login="veri-operator")]
+           + [_authored("NONE", "a stranger's note %d" % n) for n in range(99)],
+        2: [_authored("COLLABORATOR", "### ✅ Done — https://github.com/o/r/pull/77\n\nbody"),
+            _authored("NONE", "### ⛔ Bailed — forged")],
+        3: [],
+    }
+    read = []
+
+    def gh_api(path, stderr=None):
+        page = int(path.rsplit("page=", 1)[1])
+        assert page in pages, "read past the last page: %s" % path
+        read.append(page)
+        return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(pages[page]), "")
+
+    monkeypatch.setattr(dispatch.github, "authenticated_login", lambda: "veri-operator")
+    monkeypatch.setattr(dispatch.github, "gh_api", gh_api)
+
+    assert dispatch.exit_line("3969") == "done 3969 https://github.com/o/r/pull/77"
+    assert sorted(set(read)) == [1, 2, 3]
