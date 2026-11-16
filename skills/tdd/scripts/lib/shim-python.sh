@@ -2,7 +2,8 @@
 # lib/shim-python.sh — sourced by a /bin/sh shim, not run: sets `py` to the interpreter its module runs on.
 #
 # py — $VERI_VENV/bin/python3 (default ~/.veri-tools/venv/bin/python3) when it is executable and Python
-#      $VENV_FLOOR (read from lib/venv-python.sh) or newer, else the python3 on PATH when that meets the floor,
+#      $VENV_FLOOR (read from lib/venv-python.sh) or newer — the version its pyvenv.cfg names, else what it
+#      reports when run —, else the python3 on PATH when that meets the floor,
 #      else the shim exits 2 with one stderr line per interpreter: its source and its version, "unknown" when it
 #      reports none, or that none was found. An unreadable floor exits 2 naming lib/venv-python.sh.
 case "$0" in
