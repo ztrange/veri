@@ -1,6 +1,20 @@
 """Sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import."""
 import os
+import stat
 import sys
+
+
+def refusal(prefix):
+    """Why <prefix> may not be this user's bytecode cache, or None when it may; an absent one is created with mode 0700."""
+    try:
+        os.makedirs(prefix, 0o700)
+    except FileExistsError:
+        pass
+    mode = os.lstat(prefix).st_mode
+    if mode & stat.S_IWGRP:
+        return "it is group-writable"
+    return None
+
 
 if sys.pycache_prefix is None:
     if sys.dont_write_bytecode:
@@ -21,10 +35,10 @@ if sys.pycache_prefix is None:
         sys.path_hooks.insert(0, veri_finder)
         sys.path_importer_cache.pop(sys.path[0], None)
     else:
-        sys.pycache_prefix = os.path.join(os.environ.get("TMPDIR") or "/tmp", "veri-pycache-%d" % os.getuid())
+        prefix = os.path.join(os.environ.get("TMPDIR") or "/tmp", "veri-pycache-%d" % os.getuid())
+        sys.dont_write_bytecode = True  # tunables' own bytecode waits until the prefix is proved this user's
         import tunables
-        sys.pycache_prefix = tunables.get("VERI_PYCACHE") or sys.pycache_prefix
-        try:
-            os.makedirs(sys.pycache_prefix, 0o700)
-        except FileExistsError:
-            pass
+        sys.dont_write_bytecode = False
+        prefix = tunables.get("VERI_PYCACHE") or prefix
+        if refusal(prefix) is None:
+            sys.pycache_prefix = prefix

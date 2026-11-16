@@ -36,3 +36,16 @@ def test_3965_an_absent_prefix_is_created_with_mode_0700_and_used(run_prefix, mo
     used = run_prefix()
 
     assert (used, cache.is_dir() and stat.S_IMODE(os.lstat(cache).st_mode)) == (str(cache), 0o700)
+
+
+def cache_with_mode(tmp_path, mode):
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    cache.chmod(mode)
+    return cache
+
+
+def test_3965_a_group_writable_veri_pycache_directory_is_refused_and_no_prefix_set(run_prefix, monkeypatch, tmp_path):
+    monkeypatch.setenv("VERI_PYCACHE", str(cache_with_mode(tmp_path, 0o770)))
+
+    assert run_prefix() is None
