@@ -7,6 +7,7 @@ import shutil
 import stat
 import sys
 import tempfile
+import unicodedata
 
 import run_dir
 
@@ -100,6 +101,8 @@ def snapshot_digest(snapshot):
         for name in files + dirs:
             path = os.path.join(root, name)
             relative = os.path.relpath(path, snapshot)
+            if not plain_name(name):
+                raise OSError(errno.EINVAL, "a name holding a line break or a control character", path)
             found = plain_entry(path)
             mode = found.st_mode
             if stat.S_ISREG(mode) and found.st_nlink > 1:
@@ -126,6 +129,11 @@ def first_change(recorded, snapshot):
         if before.get(path) != now.get(path):
             return os.path.join(snapshot, path)
     return None
+
+
+def plain_name(name):
+    """Whether <name> holds no character str.splitlines breaks on and no control character."""
+    return len(name.splitlines()) == 1 and not any(unicodedata.category(c) in ("Cc", "Zl", "Zp") for c in name)
 
 
 def plain_entry(path):

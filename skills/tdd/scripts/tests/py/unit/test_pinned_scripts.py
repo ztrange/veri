@@ -119,3 +119,47 @@ def test_snapshot_digest_refuses_a_file_with_a_second_hard_link_3964(tmp_path):
 
     with pytest.raises(OSError):
         pinned_scripts.snapshot_digest(str(tree))
+
+
+def token_of(digest, path):
+    """The token <digest> records for <path>, whichever form the digest takes."""
+    entries = digest if isinstance(digest, list) else [tuple(reversed(line.split(" ", 1))) for line in digest.splitlines()]
+    return dict(entries)[path]
+
+
+def caught(recorded, tree):
+    """Whether first_change reports <tree> changed against <recorded>: a path, or an OSError (fail closed)."""
+    try:
+        return pinned_scripts.first_change(recorded, str(tree)) is not None
+    except OSError:
+        return True
+
+
+def injected_edit_of_a_script(tree, before):
+    (tree / "scripts" / "status.sh").write_text("echo edited\n")
+    (tree / ("scripts/sub\n%s scripts" % token_of(before, "scripts/status.sh"))).mkdir()
+    (tree / ("scripts/sub\n%s scripts" % token_of(before, "scripts/status.sh")) / "status.sh\ndirectory scripts").mkdir()
+
+
+def injected_edit_of_a_top_level_md(tree, before):
+    (tree / "SKILL.md").write_text("# edited\n")
+    (tree / ("scripts\n%s SKILL.md" % token_of(before, "SKILL.md"))).mkdir()
+
+
+def injected_marker_rewrite(tree, before):
+    (tree / ".veri-snapshot").write_text("/another/worktree\n")
+    (tree / ("Z\n%s .veri-snapshot" % token_of(before, ".veri-snapshot"))).write_text("z\n")
+    (tree / "Z").write_text("z\n")
+
+
+@pytest.mark.parametrize("attack", [injected_edit_of_a_script, injected_edit_of_a_top_level_md, injected_marker_rewrite])
+def test_an_edit_hidden_behind_a_name_holding_a_newline_is_still_a_change_3964(tmp_path, attack):
+    tree = skill_tree(tmp_path / "veri-snapshot-x")
+    (tree / ".veri-snapshot").write_text("/one/worktree\n")
+    (tree / "Z").write_text("z\n")
+    (tree / "scripts" / "sub").mkdir()
+    before = pinned_scripts.snapshot_digest(str(tree))
+
+    attack(tree, before)
+
+    assert caught(before, tree)
