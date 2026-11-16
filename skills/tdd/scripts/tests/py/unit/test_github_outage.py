@@ -308,3 +308,13 @@ def test_take_drops_a_held_url_already_merging_so_a_crash_left_in_both_lists_is_
     assert taken == (0, [U % 10])
     assert [e[0] for e in outage.merging_of(str(tmp_path))] == [U % 1, U % 10]
     assert outage.held(outage.lines_of(str(tmp_path / outage.FILE))) == []
+
+
+def test_write_syncs_the_temporary_file_to_disk_before_renaming_it_over_the_file(tmp_path, monkeypatch):
+    seen, real_fsync, real_replace = [], outage.os.fsync, outage.os.replace
+    monkeypatch.setattr(outage.os, "fsync", lambda fd: (seen.append("fsync"), real_fsync(fd))[1])
+    monkeypatch.setattr(outage.os, "replace", lambda a, b: (seen.append("replace"), real_replace(a, b))[1])
+
+    outage.write(str(tmp_path / "f"), ["one"])
+
+    assert (seen, (tmp_path / "f").read_text()) == (["fsync", "replace"], "one\n")
