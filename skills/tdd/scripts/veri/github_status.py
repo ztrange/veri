@@ -1,8 +1,9 @@
 """github-status.sh: whether GitHub's status page has an incident on the components veri needs, run in-process.
 
-One read is bounded by VERI_GITHUB_STATUS_TIMEOUT per socket operation (connect, and each receive) and by MAX_BODY
-bytes; its total time is not bounded: urllib has no whole-request deadline, and a server trickling bytes inside each
-timeout could stretch it. Bounding the total would need a thread or a process, which this module does not start."""
+One read is bounded as a whole on the monotonic clock: VERI_GITHUB_STATUS_TIMEOUT seconds from its start, and never
+past a `wait`'s own deadline. The connection's socket timeout is that time left, and the body is read in chunks, each
+with the socket timeout cut to what is left, so a server dripping bytes is cut off at the deadline; it reads at most
+MAX_BODY + 1 bytes. No thread and no process are started."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import datetime
 import http.client
@@ -20,6 +21,7 @@ USAGE = ("usage: github-status.sh [<component>…]\n"
          "       github-status.sh wait <max-seconds> [<component>…]   (<max-seconds>: 1 to 86400)")
 FEED = "/api/v2/incidents/unresolved.json"
 MAX_BODY = 1024 * 1024
+CHUNK = 64 * 1024
 MAX_WAIT = 86400
 DEFAULT_COMPONENTS = ("Git Operations", "Pull Requests", "API Requests", "Issues", "Actions")
 COMPONENTS = ("Git Operations", "Webhooks", "API Requests", "Issues", "Pull Requests", "Actions", "Packages", "Pages",
@@ -30,13 +32,41 @@ class NoAnswer(Exception):
     """The status page gave no answer; its message names the cause."""
 
 
-def fetch(url, timeout):
-    """(status, body) of one GET of `url`; an HTTP error status is answered, not raised."""
+def left(url, deadline):
+    """The seconds left before `deadline` (monotonic), or NoAnswer once none are."""
+    seconds = deadline - monotonic()
+    if seconds <= 0:
+        raise NoAnswer("%s: no complete answer before the read's deadline (VERI_GITHUB_STATUS_TIMEOUT, or wait's "
+                       "<max-seconds>)" % url)
+    return seconds
+
+
+def cut_socket_timeout(response, seconds):
+    """Cut the socket timeout of a live HTTP response to `seconds`, where the response exposes its socket."""
+    sock = getattr(getattr(getattr(response, "fp", None), "raw", None), "_sock", None)
+    if sock is not None:
+        sock.settimeout(seconds)
+
+
+def fetch(url, timeout, deadline):
+    """(status, body) of one GET of `url`, the body at most MAX_BODY + 1 bytes, the whole read ended at `deadline`
+    (monotonic) with NoAnswer; an HTTP error status is answered, not raised."""
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:
-            return response.status, response.read(MAX_BODY + 1)
+        response = urllib.request.urlopen(url, timeout=min(timeout, left(url, deadline)))
     except urllib.error.HTTPError as error:
         return error.code, b""
+    with response:
+        read_some = getattr(response, "read1", response.read)
+        chunks, size = [], 0
+        while size <= MAX_BODY:
+            cut_socket_timeout(response, left(url, deadline))
+            chunk = read_some(min(CHUNK, MAX_BODY + 1 - size))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            size += len(chunk)
+            left(url, deadline)
+        return response.status, b"".join(chunks)
 
 
 sleep = time.sleep
@@ -52,11 +82,11 @@ def local_zone():
     return None
 
 
-def incidents(timeout):
+def incidents(timeout, deadline):
     """The feed's incidents, or NoAnswer naming why there is none."""
     url = tunables.get("VERI_GITHUB_STATUS_URL") + FEED
     try:
-        status, body = fetch(url, timeout)
+        status, body = fetch(url, timeout, deadline)
     except (OSError, ValueError, http.client.HTTPException) as error:
         reason = error.reason if isinstance(error, urllib.error.URLError) else error
         if isinstance(reason, UnicodeError):
@@ -120,13 +150,15 @@ def judged(incident, components, threshold):
     return False, "young %s %s" % (minutes, one_line(incident.get("name")))
 
 
-def read(components, threshold, timeout):
+def read(components, threshold, timeout, limit=None):
     """(code, lines) of one read: 1 and a line per counting incident, else 0 and `up` or the young lines.
 
     Any error the feed's data raises while it is judged (an out-of-range date, a missing key) is a NoAnswer, so a
-    `wait` retries it; only the interpreter's own failures (MemoryError) propagate."""
+    `wait` retries it; only the interpreter's own failures (MemoryError) propagate. The read ends `timeout` seconds
+    after it starts, or at `limit` (monotonic) when that comes first."""
+    deadline = monotonic() + timeout
     counting, young = {}, {}
-    for index, incident in enumerate(incidents(timeout)):
+    for index, incident in enumerate(incidents(timeout, deadline if limit is None else min(deadline, limit))):
         try:
             key = json.dumps(incident["id"], sort_keys=True) if incident.get("id") is not None else index
             verdict = judged(incident, components, threshold)
@@ -156,7 +188,7 @@ def wait(read_once, max_seconds, poll):
     answered = None
     while True:
         try:
-            answered = read_once()
+            answered = read_once(deadline)
         except NoAnswer as cause:
             no_answer(cause)
         else:
@@ -192,8 +224,8 @@ def main(argv):
                                 % (name, ", ".join(COMPONENTS)), usage=USAGE)
     threshold = datetime.timedelta(minutes=knobs["VERI_GITHUB_OUTAGE_MIN"])
 
-    def read_once():
-        return read(components, threshold, knobs["VERI_GITHUB_STATUS_TIMEOUT"])
+    def read_once(limit=None):
+        return read(components, threshold, knobs["VERI_GITHUB_STATUS_TIMEOUT"], limit)
 
     if waiting:
         code, lines = wait(read_once, max_seconds, knobs["VERI_GITHUB_STATUS_POLL"])
