@@ -454,3 +454,19 @@ def test_a_component_name_that_is_not_a_string_is_not_the_feeds_shape(page, run_
 
     assert (code, out) == (2, "")
     assert "not the feed's JSON" in err
+
+
+def overflowing_start():
+    bad = incident("Incident with Pull Requests", 120, "Pull Requests")
+    bad["created_at"] = "0001-01-01T00:00:00+14:00"
+    return {"body": json.dumps({"incidents": [bad]}).encode()}
+
+
+def test_wait_retries_a_read_whose_data_raises_overflow_and_exits_0_when_a_later_read_finds_none(page, run_cli):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests")).serve(**overflowing_start()).serve()
+
+    code, out, err = run_cli(page.module, ["wait", "3600"])
+
+    assert (code, out) == (0, "up\n")
+    assert len(page.calls) == 3
+    assert "0001-01-01T00:00:00+14:00" in err
