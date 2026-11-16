@@ -58,6 +58,28 @@ def test_4018_every_target_green_alone_and_the_re_run_accepted_exits_0_with_one_
         "ci-%s-%s" % (kind, other) for kind in ("deadline", "queued", "none", "head"))
 
 
+@pytest.mark.parametrize("argv, rerun", [
+    (["4018", HEAD, "12345", ALONE], (0, "", "")),
+    (["x", HEAD, "12345", ALONE, "LOG"], (0, "", "")),
+    (["4018", HEAD, "run-7", ALONE, "LOG"], (0, "", "")),
+    (["4018", HEAD, "12345", ALONE, "MISSING"], (0, "", "")),
+    (["4018", HEAD[:7], "12345", ALONE, "LOG"], (0, "", "")),
+    (["4018", HEAD.upper(), "12345", ALONE, "LOG"], (0, "", "")),
+    (["4018", HEAD, "12345", ALONE, "LOG"], (1, "", "HTTP 403: Must have admin rights")),
+], ids=["four-arguments", "issue-not-whole", "run-id-not-whole", "unreadable-log", "short-head", "upper-case-head",
+        "gh-refuses"])
+def test_4018_exits_2_writing_no_ci_rerun_event_on_bad_arguments_an_unreadable_log_a_head_not_40_hex_or_gh_refusing(
+        tmp_path, run_cli, fake_processes, ci_flake, events, argv, rerun):
+    log = _log(tmp_path)
+    argv = [{"LOG": log, "MISSING": str(tmp_path / "absent.log")}.get(a, a) for a in argv]
+    fake_processes.answers({"sh -c": (0, "", ""), "gh run rerun": rerun})
+
+    code, out, err = run_cli(ci_flake, argv, cwd=tmp_path)
+
+    assert (code, out, [e["event"] for e in events.records(tmp_path)]) == (2, "", [])
+    assert err.strip() and "Traceback" not in err
+
+
 @pytest.mark.parametrize("log, alone", [
     (PREFIX % 0 + "##[error]Process completed with exit code 2.\n", []),
     (RED_LOG, [(0, "", ""), (1, "", "")]),

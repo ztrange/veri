@@ -11,6 +11,7 @@ import tunables
 
 USAGE = "usage: ci-flake.sh <n> <head-sha> <run-id> '<alone-cmd>' <log-file>"
 # One line of `gh run view --log-failed`: job, step and timestamp before the runner's own text.
+WHOLE = re.compile(r"[0-9]+")
 GH_LINE = re.compile(r"^[^\t]*\t[^\t]*\t\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z ?(.*)$")
 
 
@@ -30,7 +31,8 @@ def passes_alone(alone_cmd, target):
 
 
 def main(argv):
-    if len(argv) != 5:
+    if len(argv) != 5 or not WHOLE.fullmatch(argv[0]) or not WHOLE.fullmatch(argv[2]) \
+            or not re.fullmatch(r"[0-9a-f]{40}", argv[1]):
         print(USAGE, file=sys.stderr)
         return 2
     n, head, run_id, alone_cmd, log_file = argv
@@ -39,7 +41,11 @@ def main(argv):
     still_red = [t for t in targets if not passes_alone(alone_cmd, t)]
     if still_red or not targets:
         return 1
-    github.gh_run_rerun_failed(run_id)
+    rerun = github.gh_run_rerun_failed(run_id)
+    if rerun.returncode != 0:
+        sys.stderr.write("ci-flake: gh run rerun %s --failed refused (exit %d): %s\n"
+                         % (run_id, rerun.returncode, (rerun.stderr or "").strip()))
+        return 2
     ci_marks.fresh_window("", head)
     event.mark(".", event.context(tunables.with_values(VERI_ISSUE=n)), "ci-rerun",
                ["head=" + head, "run=" + run_id, "files=" + ",".join(targets)])
