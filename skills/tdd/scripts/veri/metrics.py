@@ -556,6 +556,7 @@ class Fold:
     structural_marked: bool     # the structural-pass event carries a stopped
     structural_inconsistency: object   # what contradicts itself in the structural mark, or None
     refactor_totals: list       # refactor_total rows: each step with a pass, then the issue
+    green_rejects: list         # (step, attempt, route, reason) per green REJECT verdict, in log order
 
 
 def fold(issue, path, ledger):
@@ -624,7 +625,8 @@ def fold(issue, path, ledger):
                 steps=tally.steps, step_marks=tally.spent, passes=passes, tier_runs=tally.tier_runs,
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
                 switched_off_pin=tally.switched_off_pin,
-                conductor_counted=tally.conductor_counted, total=tally.total, structural=structural)
+                conductor_counted=tally.conductor_counted, total=tally.total, structural=structural,
+                green_rejects=[])
 
 
 def known(number):
@@ -808,6 +810,10 @@ def layout(f):
         print()
         print("Adjudications: " + ", ".join("%s %d" % (outcome, f.adjudications.get(outcome, 0))
                                          for outcome in ("retry", "bail", "route", "unparsed")))
+    if f.green_rejects:
+        table_head("#### Green rejects", "step", ["attempt", "route", "reason"], ["---:", "---", "---"])
+        for green_reject in f.green_rejects:
+            row(list(green_reject))
     print()
     print("The figure comparable across runs is turns, the same measurement on any model; dollars "
           "are not comparable, the same measurement only at the same VERI_MODEL, "
