@@ -161,6 +161,31 @@ def test_main_launch_limits_what_the_harness_loads_and_keeps_the_callers_argumen
         False, False)
 
 
+def _launched_excludes(run_leaf, monkeypatch, capfd):
+    """The `claudeMdExcludes` main launches its leaf with, from the current directory."""
+    import json
+    _write_prompt(pathlib.Path.cwd(), "do the step\n")
+    launches = []
+    monkeypatch.setattr(subprocess, "Popen", lambda argv, *args, **kwargs: _FakeLeaf(launches, argv, **kwargs))
+    run_leaf.main(["prompt.txt"])
+    capfd.readouterr()
+    argv = launches[0]
+    return json.loads(argv[argv.index("--settings") + 1])["claudeMdExcludes"]
+
+
+def test_4009_a_leaf_in_a_git_working_tree_excludes_claude_md_and_claude_local_md_above_its_top_level_and_not_its_own(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch, ".git", "sub")
+    monkeypatch.chdir(work / "sub")
+    above = [str(p) for p in work.parents]
+
+    excluded = _launched_excludes(run_leaf, monkeypatch, capfd)
+
+    assert excluded == [os.path.join(os.environ["HOME"], ".claude", "CLAUDE.md"),
+                        *(os.path.join(d, name) for d in above for name in ("CLAUDE.md", "CLAUDE.local.md"))]
+
+
 def test_main_launches_claude_with_background_tasks_disabled_whatever_the_callers_environment_holds_1939(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")

@@ -21,9 +21,34 @@ DEFAULT_TOOLS = "Bash,Read,Edit,Write,Grep,Glob"
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 
-def leaf_argv(binary, model, extra):
+def above_top_level(toplevel):
+    """`CLAUDE.md` and `CLAUDE.local.md` in every directory above `toplevel` up to the root; none for None."""
+    if toplevel is None:
+        return []
+    above = []
+    directory = toplevel
+    while os.path.dirname(directory) != directory:
+        directory = os.path.dirname(directory)
+        above += [os.path.join(directory, "CLAUDE.md"), os.path.join(directory, "CLAUDE.local.md")]
+    return above
+
+
+def top_level(directory):
+    """The top level of the working tree holding `directory`, as `git rev-parse --show-toplevel` names it for a main
+    tree or a linked worktree: the nearest directory at or above it holding a `.git` entry. None outside one. Read
+    from the file system, so no process is started per leaf."""
+    while True:
+        if os.path.lexists(os.path.join(directory, ".git")):
+            return directory
+        parent = os.path.dirname(directory)
+        if parent == directory:
+            return None
+        directory = parent
+
+
+def leaf_argv(binary, model, extra, excludes=()):
     argv = [binary, "-p",
-            "--output-format", "stream-json", "--verbose"] + context_limits()
+            "--output-format", "stream-json", "--verbose"] + context_limits(excludes)
     tools = tunables.read("VERI_LEAF_TOOLS", DEFAULT_TOOLS)
     if tools is not None and "--tools" not in extra:
         argv += ["--tools", tools]
@@ -32,13 +57,14 @@ def leaf_argv(binary, model, extra):
     return argv + extra
 
 
-def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_marker=""):
+def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_marker="", toplevel=None):
     """What a leaf is launched with, decided and not started: `(argv, env)`, a pure function of its inputs.
 
     `env` is a copy of `environ` stripped of the conductor's session variables, with the leaf's private git
     config, bytecode, caching, background-task, shell and Bash-tool timeout settings and the guard first on
     PATH; the shim's locale marker, when `coerce_marker` (its value, read by the caller) is "1", is removed together with
-    PYTHONCOERCECLOCALE. `seconds` is the hard cap as text: raises ValueError when it is not a whole number."""
+    PYTHONCOERCECLOCALE. `toplevel` is the leaf's working tree's top level (None: outside one), above which no
+    `CLAUDE.md` is loaded. `seconds` is the hard cap as text: raises ValueError when it is not a whole number."""
     env = dict(environ)
     strip_session_env(env)
     env["GIT_CONFIG_GLOBAL"] = git_path
@@ -53,7 +79,7 @@ def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_
     if coerce_marker == "1":
         env.pop("VERI_SHIM_SET_COERCE", None)
         env.pop("PYTHONCOERCECLOCALE", None)
-    return leaf_argv(binary, model, extra), env
+    return leaf_argv(binary, model, extra, above_top_level(toplevel)), env
 
 
 def read_prompt(path):
@@ -120,7 +146,7 @@ def main(argv):
             return 2
         try:
             command, env = launch_spec(tunables.environment(), git_path, shell, seconds, binary, model, argv[1:],
-                                      coerce_marker)
+                                      coerce_marker, top_level(os.getcwd()))
         except ValueError:
             print(f"run-leaf.sh: VERI_TIMEOUT is not a whole number: {seconds!r}",
                   file=sys.stderr)
