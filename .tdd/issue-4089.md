@@ -1,6 +1,6 @@
 # Plan for #4089 — PRD 016.6a: /vready checks the token's scopes, the selection labels and Actions read
 
-- [ ] the `token scopes` row is `ok` when `gh api -i user`'s `X-OAuth-Scopes` header lists `repo` and `origin` is not HTTPS ⟦criterion 1⟧
+- [x] the `token scopes` row is `ok` when `gh api -i user`'s `X-OAuth-Scopes` header lists `repo` and `origin` is not HTTPS ⟦criterion 1⟧
 - [ ] over an HTTPS `origin`, a header listing `repo` but not `workflow` fails the row, its fix `gh auth refresh -s workflow` ⟦criterion 1⟧
 - [ ] a header listing neither fails the row over HTTPS with `gh auth refresh -s repo,workflow` ⟦criterion 1⟧
 - [ ] with no `X-OAuth-Scopes` header the `token scopes` row reads `not verifiable` ⟦criterion 2⟧

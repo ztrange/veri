@@ -65,3 +65,19 @@ def test_issue_4087_ready_check_fails_the_one_test_file_row_naming_exit_2_when_d
     assert row is not None and row.startswith("fail  one test file:"), lines
     assert 'exit 2 from detect-test-command.sh --tier "one test file"' in row, row
     assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
+
+
+SSH_ORIGIN = (0, "git@github.com:o/r.git\n", "")
+HTTPS_ORIGIN = (0, "https://github.com/o/r.git\n", "")
+
+
+def user_headers(scopes=None):
+    """`gh api -i user`'s answer: a status line and headers, X-Oauth-Scopes listing <scopes> unless None, then the body."""
+    scope_line = "" if scopes is None else "X-Oauth-Scopes: %s\r\n" % scopes
+    return 0, "HTTP/2.0 200 OK\r\nContent-Type: application/json\r\n%s\r\n{\"login\": \"o\"}" % scope_line, ""
+
+
+def test_issue_4089_token_scopes_row_is_ok_when_the_header_lists_repo_and_origin_is_not_https(ready_check, fake_processes):
+    fake_processes.answers({"gh api -i user": user_headers("gist, repo"), "git remote get-url origin": SSH_ORIGIN}, exact=True)
+
+    assert ready_check.token_scopes_row() == ("token scopes", None)

@@ -97,6 +97,20 @@ def label_row():
     return f"label {label}", None if label in names else f"create the `{label}` label in the repository"
 
 
+def granted_scopes():
+    """The scopes `gh api -i user`'s X-OAuth-Scopes header lists."""
+    head = gh("api", "-i", "user").stdout.split("\r\n\r\n", 1)[0].split("\n\n", 1)[0]
+    for line in head.splitlines():
+        name, _, value = line.partition(":")
+        if name.strip().lower() == "x-oauth-scopes":
+            return [scope.strip() for scope in value.split(",") if scope.strip()]
+    return []
+
+
+def token_scopes_row():
+    return "token scopes", None if "repo" in granted_scopes() else "gh auth refresh -s repo"
+
+
 def bash_row():
     holds = launch_floor.bash_refusal("ready-check") == 0
     return "bash", None if holds else "install bash 5 or newer (`brew install bash`) and put it first on PATH"
