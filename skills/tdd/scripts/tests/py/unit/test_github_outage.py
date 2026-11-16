@@ -333,3 +333,14 @@ def test_status_reads_under_the_lock_so_a_change_made_by_the_holder_is_seen_whol
     shown = outage.status(str(tmp_path), world)[1]
 
     assert shown[:2] == ["mode on", "merging %s orphan" % (U % 1)]
+
+
+def test_status_with_pid_tells_the_callers_own_claims_from_a_live_other_sessions(tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / outage.MERGING).write_text("%s\t30\tstart-30\n%s\t20\tstart-20\n%s\t10\tstart-10\n" % (U % 1, U % 2, U % 3))
+    world = Fake(live={("20", "start-20"), ("30", "start-30")})
+
+    code, shown = outage.run(["status", "--pid", "30"], str(tmp_path), world)
+
+    assert (code, shown) == (0, ["mode off", "merging %s mine" % (U % 1), "merging %s live" % (U % 2),
+                                 "merging %s orphan" % (U % 3), "wait none"])

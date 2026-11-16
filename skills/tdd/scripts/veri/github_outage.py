@@ -32,7 +32,7 @@ import tunables
 
 USAGE = ("usage: github-outage.sh enter <pr-url> | hold <pr-url> | take --pid <pid> | adopt --pid <pid>\n"
          "       github-outage.sh settle <pr-url> merged|failed|released | wait-start | wait-status\n"
-         "       github-outage.sh wait [<max-seconds>] | status")
+         "       github-outage.sh wait [<max-seconds>] | status [--pid <pid>]")
 PR = re.compile(r"https://\S+/pull/[0-9]+")
 MARKER = "-- held after review --"
 FILE, MERGING, LOCK = ".tdd/github-outage", ".tdd/github-outage-merging", ".tdd/github-outage.lock"
@@ -284,15 +284,24 @@ def wait(root, max_seconds, poll, world):
         world.pause(poll)
 
 
-def status(root, world):
-    """What a starting session, a handoff and the check read: mode, held PRs, merging PRs, the wait."""
+def status(root, world, pid=None):
+    """What a starting session, a handoff and the check read: mode, held PRs, merging PRs, the wait.
+
+    With <pid>, a merging PR that <pid> claimed (same start time) reads `mine` rather than `live`."""
     with locked(root):
         lines = lines_of(os.path.join(root, FILE))
         merging = merging_of(root)
     busy = {entry_[0] for entry_ in merging}
     out = ["mode " + ("on" if lines is not None else "off")]
     out += ["held " + url for url in held(lines or []) if url not in busy]
-    out += ["merging %s %s" % (url, "live" if world.alive(pid, start) else "orphan") for url, pid, start in merging]
+    mine = world.started(pid) if pid else None
+
+    def claim(claimer, start):
+        if pid and claimer == str(pid) and start == mine:
+            return "mine"
+        return "live" if world.alive(claimer, start) else "orphan"
+
+    out += ["merging %s %s" % (url, claim(claimer, start)) for url, claimer, start in merging]
     out.append("wait " + wait_state(root, world))
     return (0 if lines is not None or merging else 3), out
 
@@ -309,6 +318,8 @@ def run(argv, root, world):
         return take(root, rest[1], world) if verb == "take" else adopt(root, rest[1], world)
     if verb == "settle" and len(rest) == 2 and rest[1] in ("merged", "failed", "released") and is_pr(rest[0]):
         return settle(root, rest[0], rest[1])
+    if verb == "status" and len(rest) == 2 and rest[0] == "--pid" and entry.whole_number(rest[1]):
+        return status(root, world, rest[1])
     if verb in ("wait-start", "wait-status", "status") and not rest:
         return {"wait-start": wait_start, "wait-status": wait_status, "status": status}[verb](root, world)
     if verb == "wait" and len(rest) <= 1 and (not rest or entry.whole_number(rest[0])):
