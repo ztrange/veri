@@ -4,6 +4,7 @@ import os
 import sys
 
 import entry
+import git
 
 USAGE = "usage: stack-branch.sh [repo-root]"
 MARKER = "veri: stack branch:"
@@ -44,6 +45,9 @@ def named(root):
     line, name = stated
     if not name:
         raise Refused("%s: the line '%s' names no branch" % (path, line))
+    if name == git.default_branch(cwd=root, remote=False):
+        raise Refused("%s: the line '%s' names the default branch, and a stack there would be a direct push to it"
+                      % (path, line))
     return name
 
 

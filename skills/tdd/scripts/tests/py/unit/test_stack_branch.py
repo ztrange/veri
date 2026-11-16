@@ -51,3 +51,9 @@ def test_exits_2_naming_the_line_when_the_named_branch_is_empty(tmp_path, run_cl
     got = [refusal_of(tmp_path, run_cli, stack_branch, line) for line in ("veri: stack branch:", "veri: stack branch: ``")]
 
     assert got == [(2, "", True)] * 2
+
+
+def test_exits_2_naming_the_line_when_the_named_branch_is_the_default_branch(tmp_path, run_cli, fake_processes, stack_branch):
+    git_world(fake_processes, default="trunk")
+
+    assert refusal_of(tmp_path, run_cli, stack_branch, "veri: stack branch: trunk") == (2, "", True)
