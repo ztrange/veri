@@ -76,6 +76,17 @@ def test_a_comment_headed_like_the_pointer_by_someone_else_is_never_edited_the_p
     assert (issue.comments[0]["body"], len(ours), ours[0].startswith(HEADING)) == (human, 1, True)
 
 
+def test_a_step_whose_refactor_is_still_pending_is_the_current_step_not_a_done_one(tmp_path, monkeypatch, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    issue = FakeIssue(fake_processes)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] one\n- [x] two ⟂ refactor pending\n- [ ] three\n")
+
+    _module().main(["7"])
+
+    assert "Step: 2/3" in issue.bodies()[0].splitlines()
+
+
 def test_veri_machine_name_is_a_tunable_parsed_as_text_with_an_empty_default():
     tunables = importlib.import_module("veri.tunables")
     entry = tunables.TUNABLES.get("VERI_MACHINE_NAME")
