@@ -312,7 +312,7 @@ The mutation record `.tdd/issue-<n>-mutations.md`: its name and its entry format
 - `ps_field(field, pid)`: a `ps` column, `None` when the pid is gone. `ancestors()`: the pids from this process up to pid 1. `cwd_of(pid)` (via `lsof`), `is_inside(cwd, root)`, `detached(pid)`, `supervising(pid, name)`: probes of a process.
 
 ## pinned_scripts
-- `make_snapshot()`: a new empty snapshot directory. `write_snapshot_marker(snapshot, worktree)`: names its worktree, in the file `SNAPSHOT_MARKER`.
+- `make_snapshot()`: a new empty snapshot directory. `write_snapshot_marker(snapshot, worktree)`: names its worktree. A snapshot's directory name starts `SNAPSHOT_PREFIX`.
 - `snapshot_gone(recorded)`, `snapshot_made_for(recorded, worktree)`: bool checks of a recorded path.
 - `snapshot_digest(snapshot)`: one `<token> <path>` line per entry of a snapshot, sorted, the marker included: a directory as `directory`, a file by its content and owner executable bit, a symlink by its target; raises on what it cannot read, on a FIFO, socket or device (never opened) and on a file with a second hard link. `first_change(recorded, snapshot)`: the first entry that differs from a recorded digest, joined to the snapshot, or `None`.
 - `make_read_only(tree)`: takes the write bits off every file and directory of a snapshot. `remove_tree(tree)`: gives the owner each directory's write bit back, then removes the tree (raises on what it cannot remove, and, touching nothing, on a tree that is not a real directory). `copy_writable(source, destination)`: the recovery copy, writable. Each changes a mode through a descriptor, never through a symlink.
@@ -339,7 +339,7 @@ The pin files a launch records under `.tdd/` as `issue-<n>-<name>`; each pin's w
 - `write_conductor_model(root, issue, model)`, `conductor_model(issue, *roots)`: the conductor's model, read the same way.
 - `write_launch_env(root, issue, environment)`, `launch_env(issue, root)`: the `VERI_*` environment a restart relaunches with (VERI_NEW_SKILL left out); the read is `{name: value}`, `None` when the run recorded none.
 - `write_baseline_full_tier(root, issue, mode)`, `baseline_full_tier(issue, root)`: the baseline full-tier mode, `None` when unpinned.
-- `write_snapshot_digest(root, issue, digest)`, `snapshot_digest(issue, root)`: the digest of the launch's skill snapshot, as written; `None` when none was recorded, other `OSError`s raised.
+- `write_snapshot_digest(root, issue, digest)`, `snapshot_digest(issue, root)`, at the suffix `SNAPSHOT_DIGEST`: the digest of the launch's skill snapshot, as written; `None` when none was recorded, other `OSError`s raised.
 - `gitignore_seed()`: the bytes a run's `.tdd/.gitignore` is seeded with, derived from the pin suffixes the module names.
 
 ## run_records
