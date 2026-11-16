@@ -109,3 +109,16 @@ def test_after_the_resets_it_prints_the_medians_the_cache_read_rate_and_the_opti
     lines = out.splitlines() + ["", ""]
     assert (code, lines[2], str(state) in lines[3], str(transcript) in lines[3]) == (
         0, "median K=27340 g=750 r=0.05 optimum=28639 VERI_RESET_GROWTH_DEV=65000", True, True), err
+
+
+def test_with_no_reset_recorded_it_prints_nothing_and_exits_3(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    (tmp_path / ".tdd" / "wt" / "7").mkdir(parents=True)
+    (tmp_path / ".tdd" / "conductor-7.log").write_text(json.dumps({"type": "system", "subtype": "init"}) + "\n")
+    (tmp_path / ".tdd" / "role-dev.state").write_text("n=1\nrecovered-at=2026-11-13T10:05:00\n")
+
+    dev = run_cli(reset_cost, ["dev"])
+    conductor = run_cli(reset_cost, ["conductor", "7"])
+
+    assert (dev[:2], conductor[:2]) == ((3, ""), (3, ""))

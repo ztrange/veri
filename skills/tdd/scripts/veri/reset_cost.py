@@ -109,6 +109,8 @@ def dev(lane):
     path = role_state.state_path(run_dir.main_tree_from_files(os.getcwd()), "dev", lane)
     lines = (role_state.read(path) or "").splitlines()
     resets = dev_resets(lines)
+    if not resets:
+        return None
     transcripts = list(dict.fromkeys(l.partition("=")[2] for l in lines if l.startswith("transcript=")))
     records = sorted((r for t in transcripts for r in requests(_read_records(t)) if r.get("timestamp")),
                      key=lambda r: _epoch(r["timestamp"]))
@@ -151,6 +153,8 @@ def launches(lines):
 def conductor(run):
     main = run_dir.main_tree_from_files(os.getcwd())
     restarts = event_log.events(run_dir.worktree(main, run), "conductor-restart", skip_unreadable=True)
+    if not restarts:
+        return None
     log = run_dir.main_file(main, "conductor-%s.log" % run)
     with open(log) as f:
         relaunches = launches(f)
@@ -179,11 +183,14 @@ def _main(argv):
         lane = argv[2]
         argv = argv[:1]
     if argv == ["dev"]:
-        rows, measured, sources, knob, value = dev(lane)
+        measures = dev(lane)
     elif len(argv) == 2 and argv[0] == "conductor" and lane is None:
-        rows, measured, sources, knob, value = conductor(argv[1])
+        measures = conductor(argv[1])
     else:
         raise Failure(USAGE)
+    if measures is None:
+        return 3
+    rows, measured, sources, knob, value = measures
     for at, k, g in rows:
         print("%s K=%s g=%s" % (at, _figure(k), _figure(g)))
     k = _median(row[1] for row in rows)
