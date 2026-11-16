@@ -238,6 +238,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_REDACT_VARS` | `GH_TOKEN GITHUB_TOKEN ANTHROPIC_API_KEY CLAUDE_CODE_OAUTH_TOKEN` | its readers' own words |
 | `VERI_RESET_ACK_TIMEOUT` | `300` | its readers' own words |
 | `VERI_RESET_GROWTH_CONDUCTOR` | `70000` | a whole number of tokens >= 1 |
+| `VERI_RESET_GROWTH_DEV` | `70000` | its readers' own words |
 | `VERI_RESET_IDLE` | `3000` | its readers' own words |
 | `VERI_RESET_MAX_PER_HOUR` | `2` | its readers' own words |
 | `VERI_RUN_BUDGET` | `120` | its readers' own words |
