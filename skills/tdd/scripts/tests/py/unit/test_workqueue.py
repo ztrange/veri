@@ -1067,3 +1067,19 @@ def test_a_take_that_gives_up_on_a_lock_with_no_holder_file_exits_2_naming_the_l
     lock, ran = given_up(tmp_path, fake_processes, run_cli, workqueue, None)
 
     assert ran == (2, "", "workqueue.sh: could not take the lock %s; holder unrecorded\n" % lock)
+
+
+def test_a_take_whose_holder_write_fails_leaves_no_lock_directory_behind_and_the_error_propagates_3993(
+        tmp_path, fake_processes, monkeypatch, workqueue):
+    queue_tree(tmp_path, fake_processes)
+    lock = tmp_path / ".tdd" / "workqueue.lock"
+
+    def full_disk(path, pid):
+        raise OSError(28, "No space left on device", path)
+
+    monkeypatch.setattr(workqueue.pid_file, "record", full_disk)
+
+    with pytest.raises(OSError):
+        workqueue.take_lock(str(lock))
+
+    assert not lock.exists()
