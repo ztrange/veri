@@ -46,7 +46,7 @@ class World:
         self.pulls = []
 
     def install(self, fake_processes, monkeypatch):
-        first = {"state": "open", "merged": False, "head": {"sha": "9999999"},
+        first = {"state": "open", "merged": False, "head": {"ref": BRANCH, "sha": ORIGIN_SHA},
                  "base": {"ref": self.base, "repo": {"default_branch": self.pr_default}}}
         first = self.first if self.first is not None else first
 
@@ -232,7 +232,7 @@ def test_a_unit_owing_a_grade_on_the_rebased_tip_exits_1_pushing_nothing_to_the_
 @pytest.mark.parametrize("kind, world", [
     ("no fast tier", dict(extra={"detect-test-command.sh": (3, "", "")})),
     ("rebase refused without a conflict", dict(rebase=1, stopped=False)),
-    ("an error raised mid-join", dict(extra={"git -C <wt> rev-parse --verify HEAD": OSError(5, "I/O error")})),
+    ("an error raised mid-join", dict(extra={"git -C <wt> rev-parse --verify refs/remotes/origin/stack": OSError(5, "I/O error")})),
 ])
 def test_a_join_that_gets_no_answer_exits_2_pushing_nothing_to_the_stack_and_releasing_the_lock(
         tmp_path, fake_processes, monkeypatch, run_cli, kind, world):
@@ -340,3 +340,15 @@ def test_a_run_branch_delete_refused_under_its_lease_is_exit_2_naming_it_the_sta
     code, _, err = join(run_cli, world)
 
     assert (code, "branch delete" in err, world.stack[0]) == (2, True, REBASED), err
+
+
+@pytest.mark.parametrize("head", [{"ref": "tdd/8-y", "sha": ORIGIN_SHA}, {"ref": BRANCH, "sha": "2222222"}, {"ref": BRANCH},
+                                  None])
+def test_a_pull_request_whose_head_is_not_the_branch_and_tip_being_joined_is_exit_2_before_the_lock(
+        tmp_path, fake_processes, monkeypatch, run_cli, head):
+    first = {"state": "open", "merged": False, "head": head, "base": {"ref": "stack", "repo": {"default_branch": "trunk"}}}
+    world = World(tmp_path, first=first).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, [c for c in world.calls if c.startswith("merge-lock.sh")], pushed(world)) == (2, [], []), err
