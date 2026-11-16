@@ -35,6 +35,15 @@ def declaring(line, marker):
         at += len(marker)
 
 
+def declared(text, marker):
+    """The command detect-test-command.sh reads after <marker> in <text>, a CLAUDE.md's bytes, or None."""
+    for line in text.split(b"\n"):
+        at = declaring(line, marker)
+        if at is not None:
+            return detect_test_command.unwrapped(line[at + len(marker):].lstrip(detect_test_command.SPACE))
+    return None
+
+
 def recorded(text, fast, full):
     """<text>, a CLAUDE.md's bytes, declaring <fast> and <full> as the fast and all tiers' commands: the line the
     detector reads each from rewritten from its marker on, where it stands; a tier no line declares appended."""
@@ -84,6 +93,8 @@ def record(fast, full, root):
     tip = tip_of(root, default)
     shown = git.git("show", "%s:CLAUDE.md" % tip, cwd=root, capture_output=True)
     text = shown.stdout if shown.returncode == 0 else b""
+    if (declared(text, b"veri: fast tests:"), declared(text, b"veri: all tests:")) == (fast, full):
+        return None
     sha = commit(root, tip, recorded(text, fast, full))
     pushed = git.network("push", "-q", "origin", "%s:refs/heads/%s" % (sha, BRANCH), cwd=root)
     if pushed.returncode != 0:
@@ -103,6 +114,8 @@ def main(argv):
         url = record(os.fsencode(fast), os.fsencode(full), root)
     except Refused as refused:
         return entry.refuse(str(refused))
+    if url is None:
+        return 3
     print(url)
     return 0
 
