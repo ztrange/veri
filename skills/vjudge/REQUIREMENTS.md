@@ -1,0 +1,24 @@
+## skills/vjudge/SKILL.md
+
+Rule rows (JR1–JR6) cite owner overrides found by re-running PRD 013's mining method (`specs/prd-013.md`,
+section 2) on 2026-11-16: 2,521 transcript files under `~/.claude/projects/*veri*` outside `-tdd-wt-`
+directories, 4,537 human messages, 999 pairs kept; the pairs were searched by keyword and read, not
+classified in full, so no acceptance rate is restated from that run. A rule for which the search found no
+dated override says so: its date is unknown, not guessed.
+
+| ID | Requirement | Why |
+|---|---|---|
+| JD2 | `skills/vjudge/SKILL.md` *The procedure* says a question not on the *Always surface* list is decided, acted on, and stated in one line naming the rule applied and the option not taken. | 79% acceptance; 21 rebukes were for asking or narrating when the agent should have acted (`specs/prd-013.md` section 2, the 2026-10-23 dataset). |
+| JD3 | `skills/vjudge/SKILL.md` *Always surface* lists exactly: any real-money spend, recurring or one-off, from $0 (CI minutes, runners, scheduled jobs, paid APIs, extra usage); setting N, the conductor count `/vdev` keeps running (timed changes included), above 5; anything in another repository; repository visibility and anything that exposes code. | Operator: "I'd not authorize autonomous spending of 10 USD." Every recurring-cost proposal on record was overridden (2026-09-11, 10-06, 10-15). The cap of 5 is the owner's "max 5 unless I explicitly say so". |
+| JD4 | `skills/vjudge/SKILL.md` *The procedure* says that with no recommendation, or one whose evidence it cannot name, the judge investigates once — one subagent on the cheapest adequate model, briefed to return at most 10 lines — then decides on what it found. | Operator: "if the issue has no recommendation or the certainty is low, the agent should investigate." |
+| JD5 | `skills/vjudge/SKILL.md` *The procedure* says a question about one issue that is still not clear-cut after the one investigation parks that issue with `$S/park-issue.sh`, and the next issue is taken. | A wrong guess on a real tension costs more than a park. |
+| JD11 | `skills/vjudge/SKILL.md` *The procedure* says a question about no issue that is still not clear-cut after the one investigation is recorded with `$S/role-state.sh <role> add decision` and asked once. | Same; the role state file survives a `/clear`. |
+| JD8 | `skills/vjudge/SKILL.md` *Rules* states exactly these rules: veri fixes veri through a filed issue; diagnose before filing; an established tool over an in-house one; file complete issues the first time; use plan capacity rather than idle it; raise a run's budget only to its projected need. | Rules mined from what the operator did, not from what an agent inferred he would say. |
+| JD13 | `skills/vjudge/SKILL.md` names no project fact (P12) and restates no rule of another skill or of `operator/PRINCIPLES.md` (P2). | The current skill copies dev-session rules. |
+| JD14 | `skills/vjudge/SKILL.md` names none of the current skill's principles J1–J12. | Replaced, not edited: its defaults contradict the measured answers. |
+| JR1 | `skills/vjudge/SKILL.md` *Rules* states the rule: veri fixes veri through a filed issue. | Owner override 2026-10-02: an agent reported a hand fix of veri's code; the owner asked why it fixed it instead of creating an issue for veri to fix. Also 2026-09-10: a committed fix was recommended, and the owner had it filed as an issue and solved test-first. |
+| JR2 | `skills/vjudge/SKILL.md` *Rules* states the rule: diagnose before filing. | Owner override 2026-09-23: an agent offered to file a ticket for a stale claim; the owner asked first why it happened and what made the process fail. |
+| JR3 | `skills/vjudge/SKILL.md` *Rules* states the rule: an established tool over an in-house one. | Owner override 2026-10-08: an agent recommended a per-case timeout written in the suite's own `conftest.py`; the owner asked why not the pytest-timeout plugin, and had that filed. |
+| JR4 | `skills/vjudge/SKILL.md` *Rules* states the rule: file complete issues the first time. | No dated owner override for this rule was found in the 2026-11-16 re-run (keyword search over the 999 pairs, not classified in full); its date is unknown. |
+| JR5 | `skills/vjudge/SKILL.md` *Rules* states the rule: use plan capacity rather than idle it. | Owner override 2026-09-16: an agent proposed settings changes; the owner had all three threads keep working through the night and asked for enough queued work to fill it. Also 2026-10-24: an idle second machine was reported, and the owner had more work assigned to it. |
+| JR6 | `skills/vjudge/SKILL.md` *Rules* states the rule: raise a run's budget only to its projected need. | No dated owner override for this rule was found in the 2026-11-16 re-run (keyword search over the 999 pairs, not classified in full); its date is unknown. |
