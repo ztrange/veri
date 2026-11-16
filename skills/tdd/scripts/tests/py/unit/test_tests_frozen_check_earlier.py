@@ -268,9 +268,6 @@ def test_check_earlier_prints_usage_naming_check_earlier_and_exits_2_without_a_l
     assert "check-earlier" in (scripts.parent / "SCRIPTS.md").read_text()
 
 
-BASH_SUITE = "tests/suite.test.sh"
-
-
 def _test_a_based(root, fed_commits):
     """root holding tests/ and .tdd/, the suite holding test_a committed as "base"; returns the suite's path."""
     (root / "tests").mkdir(parents=True)
