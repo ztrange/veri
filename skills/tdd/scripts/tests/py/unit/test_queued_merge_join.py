@@ -116,3 +116,18 @@ def test_joins_a_pull_request_whose_base_is_the_stack_rebasing_checking_and_push
         "sh -c make unit",
         "prose-owed.sh " + world.wt,
         wt + "push origin %s:refs/heads/stack" % REBASED]), err
+
+
+def test_a_stack_push_refused_because_the_stack_moved_starts_again_from_the_fetch_and_never_forces(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, stack_pushes=(1, 0)).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    wt = "git -C %s " % world.wt
+    rebases = [c for c in world.calls if c.startswith(wt + "rebase ")]
+    forced = [c for c in world.stack_pushed() if "--force" in c or " +" in c]
+    assert (code, rebases, world.stack_pushed(), forced, world.stack[0]) == (0, [
+        wt + "rebase " + STACK_SHA, wt + "rebase " + MOVED_SHA], [
+        wt + "push origin %s:refs/heads/stack" % REBASED, wt + "push origin %s:refs/heads/stack" % REBASED_AGAIN],
+        [], REBASED_AGAIN), err

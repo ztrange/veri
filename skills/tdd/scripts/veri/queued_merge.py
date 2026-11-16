@@ -22,6 +22,7 @@ from github import TimedOut, bounded_group, gh_api, gh_probe
 
 USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 FETCH_ATTEMPTS = 5
+JOIN_ATTEMPTS = 5
 REFRESH_RETRIES = 10
 SCRIPTS = paths.resolved_scripts_of(__file__)
 VERSION_TAG = re.compile(r"v[0-9]+\.[0-9]+")
@@ -460,29 +461,37 @@ def _locked(pid, repo, pr, worktree, branch, message, window):
 
 def _joined(pid, repo, pr, worktree, branch, stack):
     """The join with the lock held, never releasing it: rebase onto origin/<stack>, push the run's branch under a lease,
-    check the rebased tip, push it to <stack>. Returns an exit code."""
-    fetch = git.network("-C", worktree, "fetch", "origin")
-    if fetch.returncode:
-        _say("git fetch origin got no answer (%s); nothing pushed" % fetch.stderr.strip())
-        return 2
-    onto = _rev(worktree, "refs/remotes/origin/" + stack)
-    lease = _rev(worktree, "refs/remotes/origin/" + branch)
-    if not onto or not lease:
-        _say("origin/%s or origin/%s does not resolve; nothing pushed" % (stack, branch))
-        return 2
-    _git(worktree, "rebase", onto)
-    pushed = git.network("-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
-                         "origin", "HEAD:refs/heads/%s" % branch)
-    if pushed.returncode:
-        _say("the leased push of %s failed (exit %d): %s; nothing pushed to %s" % (
-            branch, pushed.returncode, pushed.stderr.strip(), stack))
-        return 2
-    found = _start("detect-test-command.sh", "--tier", "fast", cwd=worktree, capture=True)
-    subprocess.run(["sh", "-c", found.stdout.strip()], cwd=worktree)
-    _start("prose-owed.sh", worktree, cwd=worktree)
-    head = _rev(worktree, "HEAD")
-    git.network("-C", worktree, "push", "origin", "%s:refs/heads/%s" % (head, stack))
-    return 0
+    check the rebased tip, push it to <stack>, never forced: a push refused because origin's stack moved starts again
+    from the fetch, at most JOIN_ATTEMPTS times. Returns an exit code."""
+    for _ in range(JOIN_ATTEMPTS):
+        fetch = git.network("-C", worktree, "fetch", "origin")
+        if fetch.returncode:
+            _say("git fetch origin got no answer (%s); nothing pushed" % fetch.stderr.strip())
+            return 2
+        onto = _rev(worktree, "refs/remotes/origin/" + stack)
+        lease = _rev(worktree, "refs/remotes/origin/" + branch)
+        if not onto or not lease:
+            _say("origin/%s or origin/%s does not resolve; nothing pushed" % (stack, branch))
+            return 2
+        _git(worktree, "rebase", onto)
+        pushed = git.network("-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
+                             "origin", "HEAD:refs/heads/%s" % branch)
+        if pushed.returncode:
+            _say("the leased push of %s failed (exit %d): %s; nothing pushed to %s" % (
+                branch, pushed.returncode, pushed.stderr.strip(), stack))
+            return 2
+        found = _start("detect-test-command.sh", "--tier", "fast", cwd=worktree, capture=True)
+        subprocess.run(["sh", "-c", found.stdout.strip()], cwd=worktree)
+        _start("prose-owed.sh", worktree, cwd=worktree)
+        head = _rev(worktree, "HEAD")
+        if not git.network("-C", worktree, "push", "origin", "%s:refs/heads/%s" % (head, stack)).returncode:
+            return 0
+        if git.network("-C", worktree, "fetch", "origin").returncode or _rev(worktree, "refs/remotes/origin/" + stack) == onto:
+            _say("the push of %s to %s was refused and origin's %s did not move; nothing more pushed" % (head, stack, stack))
+            return 2
+        _say("origin's %s moved during the join; starting again from the fetch" % stack)
+    _say("origin's %s moved on each of %d attempts; nothing more pushed" % (stack, JOIN_ATTEMPTS))
+    return 2
 
 
 def _join(pid, repo, pr, worktree, branch, stack):
