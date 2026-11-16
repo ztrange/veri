@@ -46,3 +46,16 @@ def test_4016_prose_owed_reads_a_signed_heading_unit_back_as_owing_nothing_and_a
     code, out, err = run_cli(owed, [str(tmp_path)])
 
     assert (code, out) == (1, "unit.md#Gone heading (orphan)\n"), err
+
+
+def test_4016_a_whole_file_units_graded_line_stays_byte_for_byte_and_owes_nothing_when_a_heading_unit_is_signed_beside_it(
+        tmp_path, monkeypatch, grade_prose):
+    heading_tree(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    whole = "unit.md %s 2026-01-01 g2 t1\n" % grade_prose.signature("REQUIREMENTS.md", "unit.md")
+    (tmp_path / "GRADED").write_text(whole)
+
+    grade_prose.record_graded(HEADING_UNIT, grade_prose.signature("REQUIREMENTS.md", HEADING_UNIT), "g1")
+
+    lines = (tmp_path / "GRADED").read_text().splitlines(keepends=True)
+    assert (lines[0], grade_prose.owed_listed()) == (whole, ([], []))
