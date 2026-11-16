@@ -9,5 +9,5 @@
 - [x] a `VERI_GITHUB_OUTAGE_MIN` or `VERI_GITHUB_STATUS_TIMEOUT` that is not a positive integer exits 2 naming it before any fetch ⟦criterion 7⟧
 - [x] a component argument not among GitHub's component names exits 2 naming it and listing them, before any fetch ⟦criterion 8⟧
 - [x] the three tunables are `TUNABLES` keys with their rows in veri/README.md's table ⟦criterion 9⟧
-- [ ] `github-status.sh` is a `/bin/sh` shim over `veri/github_status.py`, answering `--help` ⟦criterion 10⟧
-- [ ] SCRIPTS.md catalogues `$S/github-status.sh [<component>…]`, graded ⟦criterion 11⟧
+- [x] `github-status.sh` is a `/bin/sh` shim over `veri/github_status.py`, answering `--help` ⟦criterion 10⟧
+- [x] SCRIPTS.md catalogues `$S/github-status.sh [<component>…]`, graded ⟦criterion 11⟧
