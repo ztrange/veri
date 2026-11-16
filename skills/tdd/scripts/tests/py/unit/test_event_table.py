@@ -31,6 +31,16 @@ def test_the_table_declares_the_five_events_journal_md_lacked_with_the_keys_thei
     assert event_table.required("suite-flake") == {"files"}
 
 
+def test_4018_the_table_declares_ci_rerun_and_ci_flake_each_with_a_sha_head_a_whole_run_and_the_files():
+    from veri import event_table
+
+    declared = {event: [(key, event_table.format(event, key)) for key in event_table.keys(event)]
+                for event in ("ci-rerun", "ci-flake")}
+
+    assert declared == {event: [("head", ("sha", False)), ("run", ("whole", False)), ("files", ("text", False))]
+                        for event in ("ci-rerun", "ci-flake")}
+
+
 def test_journal_md_lists_exactly_the_events_and_keys_the_table_declares():
     from veri import event_table, journal_schema
 
