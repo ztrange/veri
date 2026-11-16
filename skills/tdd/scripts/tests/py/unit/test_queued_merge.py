@@ -1462,13 +1462,14 @@ def test_3982_queued_merge_whose_tag_push_and_tag_delete_both_fail_names_the_fai
     assert (code, "git tag -d v0.11 failed" in err, "and removed" in err, "merged, but cleanup failed: tag" in err) == (2, True, False, True)
 
 
-@pytest.mark.parametrize("value", ["soon", "0", "-5", "2.5"])
-def test_3984_queued_merge_refuses_a_git_network_timeout_that_is_not_a_whole_number_of_at_least_1_with_2_naming_it_before_any_lock(fake_processes, run_cli, value):
+@pytest.mark.parametrize("name", ["VERI_GIT_NETWORK_TIMEOUT", "VERI_GH_TIMEOUT"])
+@pytest.mark.parametrize("value", ["soon", "0", "-5", "2.5", ""])
+def test_3984_queued_merge_refuses_a_network_timeout_that_is_not_a_whole_number_of_at_least_1_empty_included_with_2_naming_it_before_any_lock(fake_processes, run_cli, name, value):
     calls = scenario(fake_processes)
 
-    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GIT_NETWORK_TIMEOUT": value})
+    code, _, err = run_cli(queued_merge, ARGV, env={name: value})
 
-    assert (code, "VERI_GIT_NETWORK_TIMEOUT" in err, calls) == (2, True, [])
+    assert (code, name in err, calls) == (2, True, [])
 
 
 def test_3984_queued_merge_whose_fetch_origin_never_returns_ends_it_after_the_git_network_timeout_exits_2_naming_it_and_the_limit_and_releases_the_lock(fake_processes, run_cli):
