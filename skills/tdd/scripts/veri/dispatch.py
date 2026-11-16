@@ -492,7 +492,13 @@ def _launch_into_a_free_slot(state, world, live):
         return 2
     except watch_runs.QueueUnreadable as failure:
         if failure.kind == "rate-limit" and not isinstance(failure, RateLimitPersists):
-            state.resume_at = world.rate_limit_reset()
+            reset = world.rate_limit_reset()
+            if reset is None:
+                pause = int(overlap_poll())
+                world.complain(f"dispatch.sh: the queue read is rate-limited and its reset time could not be read; "
+                               f"reading the queue again in {pause} seconds\n")
+                reset = world.clock() + pause
+            state.resume_at = reset
         elif str(failure):
             world.complain(str(failure))
             return 2
