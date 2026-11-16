@@ -543,3 +543,16 @@ def test_main_3972_an_issue_whose_only_parked_comments_are_untrusted_exits_2_as_
     code, out, err = run_cli(parked_issues, [])
 
     assert (code, out, err) == (2, "", "parked-issues.sh: issue #3972 has no parked comment\n")
+
+
+@pytest.mark.parametrize("answer", ["<html>502 Bad Gateway</html>", '{"message": "Not Found"}', '["a bare string"]'])
+def test_main_3972_a_comments_answer_that_is_not_a_list_of_comment_records_exits_2_naming_the_read(
+        monkeypatch, parked_issues, run_cli, answer):
+    def fake_rest_list(path, *args):
+        return answer if "/comments" in path else json.dumps([{"number": 3972, "title": "An issue"}])
+
+    monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
+
+    code, out, err = run_cli(parked_issues, [])
+
+    assert (code, out, err) == (2, "", "parked-issues.sh: no answer from gh to reading the comments of issue #3972\n")

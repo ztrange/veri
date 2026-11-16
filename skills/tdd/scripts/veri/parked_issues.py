@@ -5,7 +5,7 @@ import re
 import sys
 
 import github
-from json_documents import items
+from json_documents import documents, items
 
 USAGE = "usage: parked-issues.sh"
 
@@ -22,6 +22,17 @@ def read(fetch, path, what):
     except github.NoAnswer:
         sys.stderr.write("parked-issues.sh: no answer from gh to %s\n" % what)
         return None
+
+
+def comment_records(raw):
+    """The comment records of a comments listing gh answered; None when the answer is not JSON lists of objects."""
+    try:
+        pages = documents(raw, strict=False)
+    except ValueError:
+        return None
+    if not all(isinstance(page, list) and all(isinstance(c, dict) for c in page) for page in pages):
+        return None
+    return [c for page in pages for c in page]
 
 
 def blockers_status(blocked_by):
@@ -61,9 +72,13 @@ def main(argv):
                    "reading the comments of issue #%d" % number)
         if raw is None:
             return 2
-        comments = items(raw, strict=False)
+        comments = comment_records(raw)
+        if comments is None:
+            sys.stderr.write("parked-issues.sh: no answer from gh to reading the comments of issue #%d\n" % number)
+            return 2
         # Only a trusted comment (github.trusted_comment) is the parked record: a stranger's cannot change the answer.
-        bodies = [c["body"] for c in comments if github.trusted_comment(c) and c["body"].startswith(github.PARKED_HEADING)]
+        bodies = [c["body"] for c in comments if github.trusted_comment(c)
+                  and str(c.get("body") or "").startswith(github.PARKED_HEADING)]
         if not bodies:
             sys.stderr.write("parked-issues.sh: issue #%d has no parked comment\n" % number)
             return 2
