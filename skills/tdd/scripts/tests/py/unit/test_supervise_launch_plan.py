@@ -214,6 +214,24 @@ def test_gate_19_a_leaf_owner_whose_pid_is_alive_under_the_same_start_time_refus
         "revise-red", f"leaf develop-red (pid {os.getpid()}) is still alive in this worktree")
 
 
+def test_gate_19_a_leaf_owner_with_no_start_time_line_whose_pid_is_alive_refuses_3988(work_tree, fake_processes):
+    (work_tree / ".tdd").mkdir()
+    (work_tree / ".tdd" / "leaf.owner").write_text(f"{os.getpid()} develop-red\n")
+    fake_processes.answers({HEAD: (0, "abc\n", ""), LSTART: (0, "Thu Nov 11 09:00:00 2026\n", "")})
+
+    assert shape(supervise.launch_plan(["revise-red", "true"])) == hand_exit(
+        "revise-red", f"leaf develop-red (pid {os.getpid()}) is still alive in this worktree")
+
+
+def test_gate_19_a_leaf_owner_whose_live_pids_start_time_ps_cannot_read_refuses_3988(work_tree, fake_processes):
+    (work_tree / ".tdd").mkdir()
+    (work_tree / ".tdd" / "leaf.owner").write_text(f"{os.getpid()} develop-red\nMon Jan  1 00:00:00 2024\n")
+    fake_processes.answers({HEAD: (0, "abc\n", ""), LSTART: (1, "", "")})
+
+    assert shape(supervise.launch_plan(["revise-red", "true"])) == hand_exit(
+        "revise-red", f"leaf develop-red (pid {os.getpid()}) is still alive in this worktree")
+
+
 def test_a_stop_and_an_empty_prompt_report_the_earlier_gate(work_tree, fake_processes):
     (work_tree / ".tdd").mkdir()
     (work_tree / ".tdd" / "stop").write_text("now\n")
