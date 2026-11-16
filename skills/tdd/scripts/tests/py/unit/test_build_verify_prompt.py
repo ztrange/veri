@@ -1757,3 +1757,14 @@ def test_3919_plan_refuses_a_veri_plan_touching_cases_that_is_not_a_whole_number
         results[value] = (code, out, len(err.splitlines()), "VERI_PLAN_TOUCHING_CASES" in err)
 
     assert results == dict.fromkeys(results, (2, "", 1, True))
+
+
+def test_3919_plan_lists_no_case_of_a_touching_test_file_under_dot_git_dot_tdd_dot_venv_or_node_modules(
+        tmp_path, run_cli, build_verify_prompt):
+    hidden = {f"{where}/tests/test_route.py": route_cases(f"test_hidden_in_{where.strip('.').replace('/', '_')}")
+              for where in (".git", ".tdd", ".venv", "node_modules", "pkg/node_modules")}
+    tree = dict(hidden, **{"scripts/route.py": "pass\n", "tests/test_route.py": route_cases("test_listed")})
+    code, out, _ = plan_in_tree(tmp_path, run_cli, build_verify_prompt, tree, ["route.py answers"])
+    section = touching_section(out) or ""
+
+    assert (code, "test_listed" in section, re.findall(r"test_hidden_in_\w+", section)) == (0, True, [])
