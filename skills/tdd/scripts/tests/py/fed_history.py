@@ -10,6 +10,10 @@ Each revision is `(name, subject, files)`, oldest first, one line of commits; HE
 name keeps its text from the revision before, as a commit does. A query may name a path absolute under `root`, as
 git takes it. A revision is named by its name (which is also its
 sha: `commit_of` answers it), by `HEAD`, or by either followed by `~<n>`; `subject` answers its subject.
+`refs={"origin/main": "<name>"}` names a revision of the line by a ref as well; `detached={"<name>": (subject,
+{path: text})}` adds revisions off the line, each holding exactly the files it names (a commit a rebase left
+behind), readable by name but in no `revisions` answer; `default="main"` is what `default_branch` answers, and
+without it `default_branch` is not answered.
 
 The work tree is the real directory `root` (default the case's tmp_path): the case writes the files it holds,
 and `changed_test_files` compares them with HEAD as `git diff HEAD` plus untracked files would, skipping `.git/`
@@ -28,13 +32,15 @@ import ledger
 from case_reader import cut_cases, is_js_test_file, is_test_path
 
 ANSWERED = ("toplevel", "has_rev", "current_branch", "text_at", "cases_at", "revisions",
-            "first_revision_with", "changed_test_files", "commit_of", "step_commits", "subject")
+            "first_revision_with", "changed_test_files", "commit_of", "step_commits", "subject", "default_branch")
 REV = re.compile(r"^(?P<name>[^~]+)(?:~(?P<back>\d+))?$")
 
 
 class FedHistory:
-    def __init__(self, revisions, root, branch):
-        self.root, self.branch = str(root), branch
+    def __init__(self, revisions, root, branch, refs=None, detached=None, default=None):
+        self.root, self.branch, self.refs, self.default = str(root), branch, dict(refs or {}), default
+        self.detached = {name: {os.path.normpath(path): text for path, text in files.items()}
+                         for name, (_, files) in (detached or {}).items()}
         self.names, self.subjects, self.trees = [], {}, []
         tree = {}
         for name, subject, files in revisions:
@@ -47,20 +53,28 @@ class FedHistory:
             self.names.append(name)
             self.subjects[name] = subject
             self.trees.append(tree)
+        self.subjects.update((name, subject) for name, (subject, _) in (detached or {}).items())
 
     def index(self, rev):
         found = REV.match(rev or "")
         if not found:
             return None
-        name, back = found.group("name"), int(found.group("back") or 0)
+        name, back = self.refs.get(found.group("name"), found.group("name")), int(found.group("back") or 0)
         at = len(self.names) - 1 if name == "HEAD" else (self.names.index(name) if name in self.names else None)
         return at - back if at is not None and at - back >= 0 else None
 
-    def tree(self, rev):
+    def lookup(self, rev):
+        """(name, tree) of the revision `rev` names, on the line or detached; None when it names none."""
+        if rev in self.detached:
+            return rev, self.detached[rev]
         at = self.index(rev)
-        if at is None:
+        return None if at is None else (self.names[at], self.trees[at])
+
+    def tree(self, rev):
+        found = self.lookup(rev)
+        if found is None:
             raise OSError("fed_history: no revision %s" % rev)
-        return self.trees[at]
+        return found[1]
 
     def path(self, path):
         """The repository-relative path git reads for `path`: an absolute one under the root is taken relative to it."""
@@ -75,14 +89,19 @@ class FedHistory:
         return self.root
 
     def has_rev(self, rev):
-        return self.index(rev) is not None
+        return self.lookup(rev) is not None
+
+    def default_branch(self):
+        if self.default is None:
+            pytest.fail("fed_history does not answer case_history.default_branch")
+        return self.default
 
     def current_branch(self):
         return self.branch
 
     def text_at(self, rev, path, quiet=False):
-        at = self.index(rev)
-        return "" if at is None else self.trees[at].get(self.path(path), "")
+        found = self.lookup(rev)
+        return "" if found is None else found[1].get(self.path(path), "")
 
     def cases_at(self, rev, path):
         text = self.tree(rev).get(self.path(path))
@@ -102,10 +121,10 @@ class FedHistory:
         return ""
 
     def commit_of(self, rev):
-        at = self.index(rev)
-        if at is None:
+        found = self.lookup(rev)
+        if found is None:
             raise OSError("fed_history: no commit %s" % rev)
-        return self.names[at]
+        return found[0]
 
     def subject(self, rev):
         """As `git log -1 --format=%s <rev>` prints it: the subject and a newline."""
@@ -215,8 +234,8 @@ def unanswered(name):
 
 def feeder(monkeypatch, default_root):
     """The fed_history fixture's value: call it with the revisions to feed case_history from them."""
-    def feed(*revisions, root=None, branch="main"):
-        history = FedHistory(revisions, root or default_root, branch)
+    def feed(*revisions, root=None, branch="main", refs=None, detached=None, default=None):
+        history = FedHistory(revisions, root or default_root, branch, refs, detached, default)
         for name, value in list(vars(case_history).items()):
             if callable(value) and not name.startswith("_") and getattr(value, "__module__", "") in ("case_history",
                                                                                                     __name__):
