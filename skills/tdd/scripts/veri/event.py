@@ -211,6 +211,11 @@ def strict_refusal(args):
     if name not in event_table.EVENTS:
         return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s, which veri/event_table.py does not hold; declare it with"
                 " the line  %s" % (name, event_table.declaring(name, None)))
+    for arg in args[1:]:
+        key = os.fsdecode(arg.partition(b"=")[0])
+        if key not in event_table.keys(name):
+            return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s key %s, which veri/event_table.py does not declare for"
+                    " it; declare it with the line  %s" % (name, key, event_table.declaring(name, key)))
     return None
 
 
