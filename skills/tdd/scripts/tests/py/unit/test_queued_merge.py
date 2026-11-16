@@ -617,6 +617,15 @@ def test_3979_queued_merge_whose_merge_call_exits_non_zero_and_whose_window_gets
     assert (code, len(released), cleaned(calls)) == (2, 1, [])
 
 
+def test_3979_queued_merge_whose_merge_call_exits_non_zero_and_whose_window_answered_unmerged_before_a_failed_read_exits_with_the_calls_code_releasing_the_lock_once(fake_processes, run_cli):
+    calls = settling(fake_processes, 4, ["open", "fail"])
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "3", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, len(released), cleaned(calls)) == (4, 1, [])
+
+
 def test_3500_queued_merge_with_no_settle_tunables_set_rereads_an_open_pr_ten_times_each_after_a_three_second_wait(fake_processes, run_cli, monkeypatch):
     calls = scenario(fake_processes, fail=("pulls/7/merge",))
     waits = []
