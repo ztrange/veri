@@ -256,6 +256,7 @@ Where a run lives on disk, its journal of events and its pin files and mutation 
 - `event.sh`: append one event to a run's journal.
 - `event_table`: the one table of every event veri emits, its keys, which are required and each key's format (`EVENTS`, the run context's in `CONTEXT`); `format(event, key)` and `valid(event, key, value)` read it; imports no veri module.
 - `journal_schema`: what JOURNAL.md's table documents per event kind (keys, and their formats with `formats`/`context_formats`), and the literal kinds and fields writer calls pass, found with `ast`.
+- `journal_sample`: prints `fixtures/journal/sample.jsonl`, one invented line per event `event_table` declares, every key carried, built through `event.line`.
 - `pinned-scripts.sh`: the directory of a run's pinned scripts.
 - `preflight.sh`: the checks before a run starts.
 - `run_pins`: a run's per-issue pin files (skip-verify list, conductor model, launch environment, baseline full-tier mode) and the `.tdd/.gitignore` seed, written and read in one place.
@@ -281,6 +282,11 @@ Where a run lives on disk, its journal of events and its pin files and mutation 
 - `usage_totals(events)`: `(dollars, tokens)` summed over the `usage` events.
 - `append_bytes(path, data)`: appends bytes to a file; raises OSError.
 - `run_keeping_journal(run)`: calls `run()` and puts the earlier `.tdd/events.jsonl` content back if it no longer starts with it; returns what `run()` returned.
+
+## event_table
+- `EVENTS`, `CONTEXT`, `COMMON`, `CONTEXT_KEYS`, `FORMATS`: the table; `keys(event)`, `required(event)`: an event's keys in order and the required subset.
+- `format(event, key)`: `(format, empty allowed)`, the format a `FORMATS` name or a tuple of values; `valid(event, key, value)`: whether a value matches it.
+- `declaring(event, key)`: the table line to write to declare `key` for `event` (`event` None: the `CONTEXT` line).
 
 ## mutation_record
 The mutation record `.tdd/issue-<n>-mutations.md`: its name and its entry format (`<name> <size>\n<value>\n` fields, a blank line closing each entry, `old`/`new`/`context` base64-encoded under `<name>-b64`).
