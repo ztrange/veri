@@ -87,8 +87,8 @@ def live_supervisor(run, name, started, stub_path):
 
 
 def start_time_of(pid):
-    """The start time as veri's writers record it (pid_file.started_as: ps under LC_ALL=C and TZ=UTC)."""
-    return importlib.import_module("veri.pid_file").started_as(pid)
+    """The start time as veri's writers record it (pid_file.ps_field: ps under LC_ALL=C and TZ=UTC)."""
+    return importlib.import_module("veri.pid_file").ps_field("lstart", pid)
 
 
 def recorded(pid):

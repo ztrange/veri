@@ -15,8 +15,12 @@
 #          record for that file — the ledger is left unmodified — or, for a ⟦diff-checked⟧
 #          tick, the re-record of earlier frozen records failed after the ledger was written, or a ⟦diff-checked⟧
 #          step is ticked without a .tdd/pin-recheck-ok receipt whose sha resolves and differs from HEAD only under .tdd/
-#          (the ledger is left untouched), or, with --unpinnable/--already-holds, the --case never ran (its
-#          file path does not exist, or the one-test-file command reports no tests ran; ledger and events untouched); 3 no unchecked step matched —
+#          (the ledger is left untouched), or, with --unpinnable/--already-holds, the --case never ran (ledger and
+#          events untouched): its command exited 2, 126 or 127, 128 or above, or was killed by a signal; its file
+#          path does not exist, or its output says no tests ran; or, run through make (the make test TESTS=<id>
+#          fallback, or a one-test-file command whose first word is make), make's last stderr line is not a
+#          top-level `make: *** [<target>] Error 1`, another `make: *** [<target>]` text ends in anything but
+#          `Error 1`, or make's could-not-execute line sits just before it; 1 the case ran and fails; 3 no unchecked step matched —
 #          the file is left untouched
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/tick_ledger.py" "$@"

@@ -422,9 +422,9 @@ def test_a_start_time_read_under_two_timezones_and_locales_is_the_same_text_3988
     for tz, locale in [("Europe/Lisbon", "pt_PT.UTF-8"), ("America/New_York", "en_US.UTF-8")]:
         monkeypatch.setenv("TZ", tz)
         monkeypatch.setenv("LC_ALL", locale)
-        seen += [pid_file.ps_field("lstart", 4242), pid_file.started_as(4242)]
+        seen.append(pid_file.ps_field("lstart", 4242))
 
-    assert seen == ["Thu Nov 11 09:00:00 2026 UTC C"] * 4
+    assert seen == ["Thu Nov 11 09:00:00 2026 UTC C"] * 2
 
 
 def test_a_pid_file_holding_the_start_time_an_older_snapshot_read_in_the_callers_environment_reads_live_3988(
@@ -600,31 +600,6 @@ def test_argument_lines_answers_each_process_arguments_and_raises_when_ps_fails(
         raised = False
 
     assert (text, raised, fake.argvs[0]) == ("sh a b\nclaude\n", True, ["ps", "-axo", "args="])
-
-
-def test_started_as_answers_the_start_time_text_ps_prints_stripped_whatever_ps_exits(fake_processes):
-    pid_file = importlib.import_module("veri.pid_file")
-    fake = fake_processes.answers({"ps": [(0, "Mon Nov  2 10:00:00 2026\n", ""), (1, "", ""), (1, "stale \n", "")]})
-
-    answers = [pid_file.started_as(4242), pid_file.started_as("4243"), pid_file.started_as(4244)]
-
-    assert answers == ["Mon Nov  2 10:00:00 2026", "", "stale"]
-    assert fake.argvs == [["ps", "-o", "lstart=", "-p", "4242"], ["ps", "-o", "lstart=", "-p", "4243"],
-                          ["ps", "-o", "lstart=", "-p", "4244"]]
-
-
-def test_started_as_raises_when_ps_is_missing(fake_processes):
-    pid_file = importlib.import_module("veri.pid_file")
-    fake_processes.answers({"ps": FileNotFoundError(2, "No such file or directory", "ps")})
-
-    try:
-        pid_file.started_as(1)
-    except FileNotFoundError:
-        raised = True
-    else:
-        raised = False
-
-    assert raised
 
 
 def test_pids_matching_answers_the_pids_pgrep_prints_in_order_and_none_when_it_prints_nothing(fake_processes):

@@ -30,14 +30,6 @@ def ps_env():
     return {**os.environ, "LC_ALL": "C", "TZ": "UTC"}
 
 
-def started_as(pid):
-    """The start time of <pid> as `ps -o lstart=` prints it, stripped: the text a pid file records on line 2.
-
-    A pid ps does not know answers "" (ps's exit is not read); a machine without ps raises FileNotFoundError."""
-    return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True,
-                          env=ps_env()).stdout.strip()
-
-
 def started_utc(pid):
     """The start time of <pid> as `ps -o lstart=` prints it under LC_ALL=C TZ=UTC, stripped: the same text whatever
     the caller's locale or zone. A pid ps does not know answers ""; a machine without ps raises FileNotFoundError."""
