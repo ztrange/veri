@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import errno
 import hashlib
+import json
 import os
 import shutil
 import stat
@@ -93,9 +94,10 @@ def change_mode(path, new_mode):
 
 
 def snapshot_digest(snapshot):
-    """Every entry of <snapshot>, the marker included (deleting it must show), as `<token> <path relative to it>`
-    lines sorted by path: a directory's token is `directory`; a file's, the sha256 of its content and its owner
-    executable bit; a symlink's, the sha256 of its target, never followed. Raises OSError on what it cannot read."""
+    """Every entry of <snapshot>, the marker included (deleting it must show), as a list of (path relative to it,
+    token) tuples sorted by path: a directory's token is `directory`; a file's, the sha256 of its content and its
+    owner executable bit; a symlink's, the sha256 of its target, never followed. Raises OSError on what it cannot
+    read and on a name holding a line break or a control character."""
     lines = []
     for root, dirs, files in os.walk(snapshot, onerror=raise_error):
         for name in files + dirs:
@@ -116,15 +118,32 @@ def snapshot_digest(snapshot):
                 content = read_regular(path)
                 content += b" x" if mode & stat.S_IXUSR else b" -"
             lines.append((relative, hashlib.sha256(content).hexdigest()))
-    return "".join("%s %s\n" % (digest, relative) for relative, digest in sorted(lines))
+    return sorted(lines)
+
+
+def digest_text(entries):
+    """The file form of a digest: one JSON list of [path, token] pairs, then a newline."""
+    return json.dumps([[path, token] for path, token in entries]) + "\n"
+
+
+def parse_digest(text):
+    """The entries of the file form <text>; ValueError for any text digest_text does not write."""
+    pairs = json.loads(text)
+    if not isinstance(pairs, list) or not all(
+            isinstance(pair, list) and len(pair) == 2 and all(isinstance(part, str) for part in pair) for pair in pairs):
+        raise ValueError("not a snapshot digest")
+    return [tuple(pair) for pair in pairs]
 
 
 def first_change(recorded, snapshot):
-    """The first path under <snapshot>, sorted, whose digest line differs from the digest text <recorded>, an entry
-    added or removed included, joined to <snapshot>; None when none does. OSError propagates."""
-    def entries(text):
-        return {path: digest for digest, _, path in (line.partition(" ") for line in text.splitlines())}
-    before, now = entries(recorded), entries(snapshot_digest(snapshot))
+    """The first path under <snapshot>, sorted, whose token differs from the one the entries <recorded> hold, an
+    entry added or removed included, or that <recorded> names twice, joined to <snapshot>; None when none does.
+    OSError propagates."""
+    paths = [path for path, _ in recorded]
+    twice = sorted(path for path in set(paths) if paths.count(path) > 1)
+    if twice:
+        return os.path.join(snapshot, twice[0])
+    before, now = dict(recorded), dict(snapshot_digest(snapshot))
     for path in sorted(set(before) | set(now)):
         if before.get(path) != now.get(path):
             return os.path.join(snapshot, path)

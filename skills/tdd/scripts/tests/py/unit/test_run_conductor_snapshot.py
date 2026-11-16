@@ -71,7 +71,7 @@ def test_main_writes_the_digest_of_the_extracted_snapshot_to_the_main_trees_issu
 
     assert launched(tmp_path, monkeypatch, capfdbinary, lambda snapshot: seen.append(
         pinned_scripts.snapshot_digest(snapshot))) == (0, [])
-    assert (tmp_path / ".tdd" / "issue-4242-snapshot-digest").read_text() == seen[0] != ""
+    assert (tmp_path / ".tdd" / "issue-4242-snapshot-digest").read_text() == pinned_scripts.digest_text(seen[0]) != "[]\n"
 
 
 def test_main_on_a_snapshot_a_leaf_edited_says_so_logs_snapshot_changed_and_exits_2_removing_the_snapshot_3964(
@@ -128,7 +128,7 @@ def test_main_at_exit_catches_an_edited_snapshot_whose_digest_file_a_leaf_rewrot
         pinned_scripts.change_mode(script, lambda mode: mode | 0o200)
         with open(script, "a") as handle:
             handle.write("echo edited\n")
-        digest_file(tmp_path).write_text(pinned_scripts.snapshot_digest(snapshot))
+        digest_file(tmp_path).write_text(pinned_scripts.digest_text(pinned_scripts.snapshot_digest(snapshot)))
 
     assert exit_of(tmp_path, monkeypatch, capfdbinary, edit_and_relabel) == (
         (2, []), [b"run-conductor: the skill snapshot changed during the run\n"],

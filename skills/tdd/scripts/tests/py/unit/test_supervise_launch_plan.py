@@ -269,7 +269,7 @@ def snapshot_serving(tmp_path, monkeypatch, work_tree, issue="7"):
     (snapshot / "scripts" / "status.sh").write_text("echo status\n")
     pinned_scripts.write_snapshot_marker(str(snapshot), str(work_tree))
     (work_tree / ".tdd").mkdir(exist_ok=True)
-    run_pins.write_snapshot_digest(str(work_tree), issue, pinned_scripts.snapshot_digest(str(snapshot)))
+    run_pins.write_snapshot_digest(str(work_tree), issue, pinned_scripts.digest_text(pinned_scripts.snapshot_digest(str(snapshot))))
     monkeypatch.setattr(supervise, "HERE", str(snapshot / "scripts"))
     monkeypatch.setenv("VERI_ISSUE", issue)
     return snapshot
