@@ -79,14 +79,18 @@ def modern_python_dir():
 
 
 def grader_conf():
-    """grader.conf's `key=value` lines as {key: value}, the first of a repeated key kept; comments skipped."""
+    """grader.conf's `key=value` lines as {key: value}, comments skipped; ValueError on a repeated key, since which
+    of two values the grader ran at would otherwise be a silent choice."""
     settings = {}
     with open(os.path.join(SCRIPTS, "..", "grader.conf"), encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith("#"):
                 key, _, value = line.partition("=")
-                settings.setdefault(key.strip(), value.strip().strip("'\""))
+                key = key.strip()
+                if key in settings:
+                    raise ValueError("grader.conf repeats the key %s" % key)
+                settings[key] = value.strip().strip("'\"")
     return settings
 
 
@@ -289,10 +293,14 @@ def grade_unit(path, unit, read=None):
     `read(file)` answers the text of the unit's file (None: `read`, the working tree). Launches the grader leaf
     (retrying a reply without a verdict, and re-grading failed rows), signs the unit into its GRADED file on PASS,
     appends a `grading` event, and returns a `Grading`: code 0 PASS; 1 REJECT; 2 no answer (a grader model naming
-    no version, no requirements list, a reply that breaks the protocol, a signature disagreement), whose reason is
+    no version, a grader.conf key repeated or effort level unknown, no requirements list, a reply that breaks the protocol, a signature disagreement), whose reason is
     on stderr."""
-    model = grader_model()
-    effort = grader_conf().get("effort")
+    try:
+        model = grader_model()
+        effort = grader_conf().get("effort")
+    except ValueError as e:
+        print("grade-prose.sh: %s" % e, file=sys.stderr)
+        return Grading(2)
     effort_args = () if effort is None else ("--effort", effort)
     if not re.search(r"(^|-)\d+(-|$)", model):
         print("grade-prose.sh: grader.conf model %r names no version" % model, file=sys.stderr)

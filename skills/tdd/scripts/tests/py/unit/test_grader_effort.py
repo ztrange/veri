@@ -60,6 +60,18 @@ def test_an_effort_value_outside_the_five_levels_exits_2_naming_grader_conf_befo
     assert (code, fake.argvs, "grader.conf" in err) == (2, [], True), err
 
 
+def test_a_key_grader_conf_repeats_exits_2_naming_grader_conf_and_the_key_before_any_launch(
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
+    unit_tree(tmp_path)
+    monkeypatch.setenv("PATH", "")
+    fake = fake_processes.answers({}, default=(2, "", ""))
+    conf(tmp_path, monkeypatch, grade_prose, "model=sonnet-4\neffort=low\neffort=high\n")
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    assert (code, fake.argvs, "grader.conf" in err, "effort" in err) == (2, [], True, True), err
+
+
 def test_the_grading_event_carries_the_effort_level_or_default_when_grader_conf_has_no_effort_line(
         tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     unit_tree(tmp_path)
