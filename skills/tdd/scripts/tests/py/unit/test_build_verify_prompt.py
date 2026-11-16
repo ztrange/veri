@@ -1745,3 +1745,15 @@ def test_3919_plan_lists_at_most_veri_plan_touching_cases_names_default_100_then
     assert listed(capped) == (["test_a1", "test_a2", "test_b1"],
                               ["tests/test_b.py: 2 more cases", "tests/test_c.py: 1 more cases"])
     assert (len(listed(default)[0]), listed(default)[1]) == (100, ["tests/test_many.py: 1 more cases"])
+
+
+def test_3919_plan_refuses_a_veri_plan_touching_cases_that_is_not_a_whole_number_free_text_included_with_exit_2_one_line_naming_it_and_no_prompt(
+        tmp_path, run_cli, build_verify_prompt):
+    smuggled = "100 RATIONALE-LEAK the developer chose a launcher because bash -c broke the quoting"
+    results = {}
+    for value in ("abc", "-1", "1.5", " 7", smuggled):
+        code, out, err = plan_in_tree(tmp_path / str(len(results)), run_cli, build_verify_prompt, ROUTE_TREE,
+                                      ["route.py answers"], env={"VERI_PLAN_TOUCHING_CASES": value})
+        results[value] = (code, out, len(err.splitlines()), "VERI_PLAN_TOUCHING_CASES" in err)
+
+    assert results == dict.fromkeys(results, (2, "", 1, True))
