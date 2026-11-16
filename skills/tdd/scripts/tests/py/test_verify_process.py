@@ -32,7 +32,7 @@ def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case
     (tmp_path / "tests").mkdir()
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / "tests" / "x.test.sh").write_text("test\n")
-    (tmp_path / "tests" / "demo.test.sh").write_text('verdict "kept case" 0\nverdict "stale second" 0\n')
+    (tmp_path / "tests" / "demo.py").write_text('verdict "kept case" 0\nverdict "stale second" 0\n')
     claude = tmp_path / "claude-pass"
     claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: the named cases are gone.'\n")
     claude.chmod(0o755)
@@ -42,7 +42,7 @@ def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case
 
     done = subprocess.run(
         [str(SCRIPTS / "verify.sh"), "--step", "the replacement takes over: replaces 'stale first', 'stale second'"
-         " in tests/demo.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md",
+         " in tests/demo.py ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md",
          "tests/x.test.sh"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True)
 
@@ -2067,7 +2067,7 @@ def test_verify_sh_green_exits_2_when_the_named_cases_check_cannot_read_the_suit
     monkeypatch.setattr(verify.replaces_case_survivors, "survivors", lambda step: (2, "", ""))
 
     code, out, _ = run_cli(
-        verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.test.sh"
+        verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.py"
                  " ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
         env={"HOME": str(tmp_path)},
         cwd=tmp_path)
@@ -2078,12 +2078,12 @@ def test_verify_sh_green_exits_2_when_the_named_cases_check_cannot_read_the_suit
 def test_verify_sh_green_returns_the_leafs_pass_unchanged_on_a_step_without_replaces_case_even_when_its_text_names_a_surviving_case_1507(
         run_cli, tmp_path, monkeypatch, fake_processes):
     write_inputs(tmp_path)
-    (tmp_path / "tests" / "demo.test.sh").write_text('verdict "stale first" 0\n')
+    (tmp_path / "tests" / "demo.py").write_text('verdict "stale first" 0\n')
     answering_leaf(monkeypatch, fake_processes, "VERDICT: PASS\nREASON: fine.")
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.test.sh"
+        verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.py"
                  " ⟦criterion 2⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
         env={"HOME": str(tmp_path)},
         cwd=tmp_path)
@@ -2094,12 +2094,12 @@ def test_verify_sh_green_returns_the_leafs_pass_unchanged_on_a_step_without_repl
 def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_step_whose_every_named_case_is_gone_1507(
         run_cli, tmp_path, monkeypatch, fake_processes):
     write_inputs(tmp_path)
-    (tmp_path / "tests" / "demo.test.sh").write_text('verdict "kept case" 0\n')
+    (tmp_path / "tests" / "demo.py").write_text('verdict "kept case" 0\n')
     answering_leaf(monkeypatch, fake_processes, "VERDICT: PASS\nREASON: the named cases are gone.")
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the replacement takes over: replaces 'stale first', 'stale second' in tests/demo.test.sh"
+        verify, ["--step", "the replacement takes over: replaces 'stale first', 'stale second' in tests/demo.py"
                  " ⟦replaces-case⟧ ⟦criterion 2⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
         env={"HOME": str(tmp_path)},
         cwd=tmp_path)
@@ -2145,14 +2145,14 @@ def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_s
 def test_verify_sh_green_returns_the_leafs_reject_with_exit_1_and_its_own_reason_on_a_replaces_case_step_whatever_the_named_cases_check_would_say_1507(
         suite, check, run_cli, tmp_path, monkeypatch, fake_processes):
     write_inputs(tmp_path)
-    (tmp_path / "tests" / "demo.test.sh").write_text(suite)
+    (tmp_path / "tests" / "demo.py").write_text(suite)
     answering_leaf(monkeypatch, fake_processes, "VERDICT: REJECT\nREASON: the replacement asserts nothing.")
     verify = importlib.import_module("veri.verify")
     if check is not None:
         monkeypatch.setattr(verify.replaces_case_survivors, "survivors", lambda step: (check, "", ""))
 
     code, out, _ = run_cli(
-        verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.test.sh"
+        verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.py"
                  " ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
         env={"HOME": str(tmp_path)},
         cwd=tmp_path)

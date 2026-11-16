@@ -81,4 +81,13 @@ def test_refusal_3624_names_both_suite_forms_it_parses_when_the_suite_is_neither
     step = "- [x] the notes: replaces 'a case' in docs/notes.md ⟦replaces-case⟧ ⟦criterion 1⟧"
 
     assert replaces_case.refusal(step) == (
-        "suite docs/notes.md is neither a .test.sh nor a .py file in step: " + step)
+        "suite docs/notes.md is not a .py file in step: " + step)
+
+
+def test_parse_4050_returns_none_and_refusal_says_not_a_py_file_for_a_step_whose_suite_is_a_test_sh_file():
+    replaces_case = importlib.import_module("veri.replaces_case")
+    suite = "skills/tdd/scripts/tests/supervise" + ".test" + ".sh"
+    step = f"- [x] the port: replaces 'a bash case' in {suite} ⟦replaces-case⟧ ⟦criterion 1⟧"
+
+    assert (replaces_case.parse(step), replaces_case.refusal(step)) == (
+        None, "suite " + suite + " is not a .py file in step: " + step)
