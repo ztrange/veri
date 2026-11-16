@@ -106,11 +106,17 @@ def _touching_cases(ledger):
     for path in files:
         if not stems or not case_reader.is_test_path(path):
             continue
-        with open(path, "rb") as handle:
-            text = handle.read().decode(errors="replace")
+        try:
+            with open(path, "rb") as handle:
+                text = handle.read().decode(errors="replace")
+        except OSError:
+            continue
         if not any(re.search(r"(?<!\w)" + re.escape(stem) + r"(?!\w)", text.replace("-", "_")) for stem in stems):
             continue
-        names = [name for name, _ in case_reader.cut_cases(text)]
+        try:
+            names = [name for name, _ in case_reader.cut_cases(text)]
+        except case_reader.UnclosedCase:
+            continue
         shown, room = names[:room], room - len(names[:room])
         if shown:
             lines += [path, *(f"- {name}" for name in shown), ""]

@@ -1789,3 +1789,14 @@ def test_3919_verify_plan_carries_no_tdd_file_naming_a_steps_file_no_step_text_a
 
     assert (code, "test_route_answers" in section) == (0, True)
     assert [leak for leak in ("RATIONALE", "STEP-LEAK", "test_positional_leak") if leak in out] == []
+
+
+def test_3919_plan_still_renders_when_a_touching_test_file_cannot_be_read_or_holds_a_case_call_that_never_closes(
+        tmp_path, run_cli, build_verify_prompt):
+    tree = dict(ROUTE_TREE, **{"tests/route.test.js": "const route = require('route')\nit('never closes', () => {\n"})
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_gone.py").symlink_to(tmp_path / "nowhere.py")
+    code, out, _ = plan_in_tree(tmp_path, run_cli, build_verify_prompt, tree, ["route.py answers"])
+    section = touching_section(out) or ""
+
+    assert (code, "test_route_answers" in section, "never closes" in section) == (0, True, False)
