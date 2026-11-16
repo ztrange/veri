@@ -99,3 +99,13 @@ def test_snapshot_digest_changes_when_an_empty_directory_is_added_or_removed_396
     (tree / "empty").mkdir() if change == "added" else (tree / "empty").rmdir()
 
     assert pinned_scripts.snapshot_digest(str(tree)) != before
+
+
+@pytest.mark.timeout(10)
+@pytest.mark.parametrize("reader", ["snapshot_digest", "make_read_only"])
+def test_a_fifo_in_the_tree_is_refused_without_being_opened_3964(tmp_path, reader):
+    tree = skill_tree(tmp_path / "veri-snapshot-x")
+    os.mkfifo(tree / "scripts" / "pipe")
+
+    with pytest.raises(OSError):
+        getattr(pinned_scripts, reader)(str(tree))
