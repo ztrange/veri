@@ -111,3 +111,39 @@ def test_an_incident_with_empty_or_absent_components_never_counts_however_old(pa
     page.serve(incident("Unnamed trouble", 600), absent)
 
     assert run_cli(page.module, [])[:2] == (0, "up\n")
+
+
+def unparseable_start():
+    bad = incident("Incident with Pull Requests", 120, "Pull Requests")
+    bad["created_at"] = "this morning"
+    return {"body": json.dumps({"incidents": [bad]}).encode()}
+
+
+@pytest.mark.parametrize("answer, cause", [
+    ({"error": TimeoutError("timed out")}, "no response within 7 s (VERI_GITHUB_STATUS_TIMEOUT)"),
+    ({"status": 503}, "status 503"),
+    ({"body": b"<html>unicorn</html>"}, "not the feed's JSON"),
+    ({"body": b'{"page": {}}'}, "not the feed's JSON"),
+    (unparseable_start(), "created_at 'this morning'"),
+], ids=["no-response", "status-503", "not-json", "no-incidents-list", "bad-created-at"])
+def test_no_answer_from_the_status_page_exits_2_naming_the_cause_and_never_0_or_1(page, run_cli, answer, cause):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests"), **answer)
+
+    code, out, err = run_cli(page.module, [], env={"VERI_GITHUB_STATUS_TIMEOUT": "7"})
+
+    assert (code, out) == (2, "")
+    assert cause in err
+    assert page.calls[0][1] == 7
+
+
+def test_the_real_fetch_answers_an_http_error_status_rather_than_raising_it(monkeypatch):
+    import urllib.error
+    import urllib.request
+
+    def refused(url, timeout):
+        raise urllib.error.HTTPError(url, 503, "Service Unavailable", {}, None)
+
+    monkeypatch.setattr(urllib.request, "urlopen", refused)
+    module = importlib.import_module("veri.github_status")
+
+    assert module.fetch("https://status.example/feed", 3) == (503, b"")
