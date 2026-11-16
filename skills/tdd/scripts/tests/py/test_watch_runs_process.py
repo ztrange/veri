@@ -90,7 +90,6 @@ def wait_for_snapshot(watcher, marker, bound=10):
 
 
 @pytest.mark.process("watch-runs.sh as a real process over real conductor pid files")
-@pytest.mark.serial("waits on a subprocess timeout of its own, which expires when every core is busy")
 def test_it_exits_only_when_the_second_of_two_running_conductors_exits_printing_that_issue_1930(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
