@@ -1,5 +1,6 @@
 """In-process cases for veri/pid_file.py, the pid-file reader."""
 import importlib
+import os
 
 
 def ps_answering(fake_processes, table):
@@ -407,6 +408,23 @@ def test_ps_answers_a_non_zero_exit_with_a_value_distinct_from_an_empty_field_25
 
     assert answers["empty-field"] == ""
     assert answers["no-such-process"] != answers["empty-field"]
+
+
+def test_a_start_time_read_under_two_timezones_and_locales_is_the_same_text_3988(fake_processes, monkeypatch):
+    pid_file = importlib.import_module("veri.pid_file")
+
+    def ps(line, **kwargs):
+        env = kwargs.get("env") or os.environ
+        return 0, f"Thu Nov 11 09:00:00 2026 {env.get('TZ', '')} {env.get('LC_ALL', '')}\n", ""
+
+    fake_processes.answers({"ps": ps})
+    seen = []
+    for tz, locale in [("Europe/Lisbon", "pt_PT.UTF-8"), ("America/New_York", "en_US.UTF-8")]:
+        monkeypatch.setenv("TZ", tz)
+        monkeypatch.setenv("LC_ALL", locale)
+        seen += [pid_file.ps_field("lstart", 4242), pid_file.started_as(4242)]
+
+    assert seen == ["Thu Nov 11 09:00:00 2026 UTC C"] * 4
 
 
 def test_ps_answers_a_ps_that_could_not_be_run_apart_from_no_such_process_and_an_empty_field_2537(fake_processes):

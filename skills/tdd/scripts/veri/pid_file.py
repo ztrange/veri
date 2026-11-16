@@ -24,11 +24,18 @@ def argument_lines():
     return subprocess.run(["ps", "-axo", "args="], capture_output=True, text=True, check=True).stdout
 
 
+def ps_env():
+    """The environment every ps call here runs under: `LC_ALL=C` and `TZ=UTC`, since `lstart` text depends on both and
+    a start time written under one environment is compared under another."""
+    return {**os.environ, "LC_ALL": "C", "TZ": "UTC"}
+
+
 def started_as(pid):
     """The start time of <pid> as `ps -o lstart=` prints it, stripped: the text a pid file records on line 2.
 
     A pid ps does not know answers "" (ps's exit is not read); a machine without ps raises FileNotFoundError."""
-    return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+    return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True,
+                          env=ps_env()).stdout.strip()
 
 
 def started_utc(pid):
@@ -113,7 +120,8 @@ def recorded_alive(path):
 
 def ps_field(field, pid):
     try:
-        ps = subprocess.run(["ps", "-o", field + "=", "-p", str(int(pid))], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        ps = subprocess.run(["ps", "-o", field + "=", "-p", str(int(pid))], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                            text=True, env=ps_env())
     except OSError:
         return False
     return ps.stdout.strip() if ps.returncode == 0 else None
