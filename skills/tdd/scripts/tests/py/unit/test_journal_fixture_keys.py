@@ -1,5 +1,6 @@
-"""The journals under fixtures/journal/ use only events and keys veri/event_table.py declares (PRD 030.1, ET7), each
-value in its key's declared format (PRD 030.3, FM3)."""
+"""The journals under fixtures/journal/ (the captured 3277.jsonl and the generated sample.jsonl, read by glob) use only
+events and keys veri/event_table.py declares (PRD 030.1, ET7), each value in its key's declared format (PRD 030.3, FM3;
+PRD 030.4, SJ5)."""
 import json
 import pathlib
 
