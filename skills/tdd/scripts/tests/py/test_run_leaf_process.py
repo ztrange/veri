@@ -197,6 +197,43 @@ def test_4009_a_leaf_outside_a_git_working_tree_excludes_the_global_claude_md_al
     assert excluded == [os.path.join(os.environ["HOME"], ".claude", "CLAUDE.md")]
 
 
+def test_4010_the_grader_leaf_grade_unit_launches_excludes_claude_md_and_claude_local_md_in_its_working_directory(
+        tmp_path, monkeypatch, capfd):
+    import json
+    run_leaf = importlib.import_module("veri.run_leaf")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    leaf = importlib.import_module("veri.leaf")
+    work, _ = _workspace(tmp_path, monkeypatch, ".tdd", "scripts")
+    (work / "grader.conf").write_text("model=sonnet-4\n")
+    (work / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (work / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(work / "scripts"))
+    monkeypatch.setattr(grade_prose, "grader_conf", lambda: {"model": "sonnet-4"})
+    monkeypatch.setattr(grade_prose, "modern_python_dir", lambda: "")
+    launches = []
+
+    def run_leaf_in_process(name, prompt, *args, env=None):
+        for key, value in env.items():
+            monkeypatch.setenv(key, value)
+        monkeypatch.setattr(subprocess, "Popen", lambda argv, *a, **k: _FakeLeaf(launches, argv, **k))
+        run_leaf.main([prompt, *args])
+        (work / ".tdd" / "grade-prose.log").write_text(
+            '{"type":"result","subtype":"success","is_error":false,"result":'
+            '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
+        return subprocess.CompletedProcess([name], 0)
+
+    monkeypatch.setattr(leaf, "launch", run_leaf_in_process)
+
+    grade_prose.grade_unit("REQUIREMENTS.md", "unit.md")
+    capfd.readouterr()
+
+    argv = launches[0]
+    assert json.loads(argv[argv.index("--settings") + 1])["claudeMdExcludes"] == [
+        os.path.join(os.environ["HOME"], ".claude", "CLAUDE.md"),
+        str(work / "CLAUDE.md"), str(work / "CLAUDE.local.md")]
+
+
 def test_main_launches_claude_with_background_tasks_disabled_whatever_the_callers_environment_holds_1939(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
