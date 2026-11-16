@@ -253,6 +253,7 @@ Where a run lives on disk, its journal of events and its pin files and mutation 
 - `classify-bail.sh`: label a bail as a process or a system failure.
 - `ensure-run-state-ignored.sh`: keep the run's `.tdd/` state git-ignored.
 - `event.sh`: append one event to a run's journal.
+- `event_table`: the one table of every event veri emits, its keys and which are required (`EVENTS`); imports no veri module.
 - `journal_schema`: what JOURNAL.md's table documents per event kind, and the literal kinds and fields writer calls pass, found with `ast`.
 - `pinned-scripts.sh`: the directory of a run's pinned scripts.
 - `preflight.sh`: the checks before a run starts.
