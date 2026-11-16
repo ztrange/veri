@@ -12,6 +12,7 @@ Interface:
   required(event)   the subset of those keys every line of the event carries
   format(event, key)  (format, empty allowed) for a key of `event`, or of the run context (event None or not declaring it);
                       the format is a `FORMATS` name, a tuple of values, or None when the key has none
+  valid(event, key, value)  whether `value` (a str) is a valid value of that key
   declaring(event, key)  the `EVENTS` line to write so that the table declares `key` for `event` (no key: just the event;
                          no event: the `CONTEXT` line)
 """
@@ -122,6 +123,11 @@ def format(event, key):
         if name.rstrip("?") == key:
             return _parse(form)
     raise KeyError(key)
+
+
+def valid(event, key, value):
+    """Whether `value` is a valid value of `key` (see format): the empty string only where the table allows it."""
+    return value != "" or format(event, key)[1]
 
 
 def declaring(event, key):
