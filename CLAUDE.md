@@ -107,7 +107,8 @@ one `pytest` invocation, and nothing under `tests/` ends in `.test.sh`. pytest's
 trusted: 0 only when every collected test passed, 5 when none were collected. The autouse
 `hermetic_environment` fixture in `tests/py/conftest.py` makes a case hermetic from ambient `VERI_*`.
 `make test TESTS="<pytest file or node id> …"` runs only those, in the same one invocation.
-The leg runs its cases in two pytest passes, the non-`serial` ones then the `serial` ones; when both run, its output ends with one
+The leg runs the non-`serial` cases, then a second pytest pass over the `serial` ones only when the first collected one; veri's own
+tree holds no `serial` case (`unit/test_no_serial_case.py` names the file and line of any), so `make test` on veri is one pytest session. When both run, its output ends with one
 line totalling them, `<named> named, <run> run, <passed> passed, <failed> failed across both passes`, not the second pass's
 `N deselected` line. A `--subset` run handed a `-m` exits 1, printing `<n> unselected: named cases that neither pass ran (<targets>)`,
 when a named target (file, directory or node id) holds cases its `-k` keeps of which neither pass ran one; a case its own
