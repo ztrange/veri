@@ -602,7 +602,7 @@ def _join_cleanup(worktree, branch, released):
     return 0
 
 
-def _stack_base(repo, pr, worktree):
+def _stack_base(repo, pr, worktree, branch=None):
     """(stack, None) when the worktree's CLAUDE.md names a stack and <pr> reads as based on it, to join; (None, None) to
     merge as before; (None, (message, code)) to refuse before the lock. Raises stack_branch.Refused for a name that
     cannot be a stack."""
@@ -626,6 +626,11 @@ def _stack_base(repo, pr, worktree):
         return None, ("%s already reads merged into %s; nothing to join" % (pr, stack), 3)
     if pull.get("state") != "open":
         return None, ("%s reads %s and not merged; nothing joined" % (pr, repr(pull.get("state"))[:40]), 2)
+    head = pull.get("head") if isinstance(pull.get("head"), dict) else {}
+    tip = _rev(worktree, "HEAD")
+    if head.get("ref") != branch or not tip or head.get("sha") != tip:
+        return None, ("%s's head reads %s at %s, not the branch %s at %s being joined; nothing joined" % (
+            pr, repr(head.get("ref"))[:80], repr(head.get("sha"))[:50], branch, tip or "an unresolvable HEAD"), 2)
     return stack, None
 
 
@@ -653,7 +658,7 @@ def main(argv):
             return 2
     repo = _repo(pr)
     pid = str(os.getpid())
-    stack, refusal = _stack_base(repo, pr, worktree)
+    stack, refusal = _stack_base(repo, pr, worktree, branch)
     if refusal:
         _say(refusal[0])
         return refusal[1]
