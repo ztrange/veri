@@ -7,7 +7,6 @@ import importlib
 
 import pytest
 
-from conftest import SCRIPTS
 
 FAKE = "FAKEfake0123"  # 12 letters and digits, mixed case: three make a 36-character classic body
 
@@ -188,23 +187,24 @@ GH_SITES = {
 }
 
 
-def gh_sites(veri):
-    """(file, enclosing function, line) of every string constant "gh" in the modules of <veri>."""
+def gh_sites(modules):
+    """(file, enclosing function, line) of every string constant "gh" in the veri modules <modules> indexes."""
     sites = []
-    for path in sorted(veri.glob("*.py")):
-        tree = ast.parse(path.read_text())
+    for stem in modules.names:
+        tree = modules.tree(stem)
         for function in [tree] + [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
             inner = {id(c) for n in ast.walk(function) if n is not function and isinstance(n, ast.FunctionDef)
                      for c in ast.walk(n)}
             name = getattr(function, "name", "<module>")
-            sites += [(path.name, name, n.lineno) for n in ast.walk(function)
+            sites += [(stem + ".py", name, n.lineno) for n in ast.walk(function)
                       if isinstance(n, ast.Constant) and n.value == "gh" and id(n) not in inner]
     return sites
 
 
 @pytest.mark.tree_audit("the modules under veri/, for every place that names the gh command")
-def test_every_gh_command_line_a_veri_module_names_goes_through_github_bounded_or_carries_no_body_issue_3960():
-    stray = ["%s:%d (%s)" % (file, line, name) for file, name, line in gh_sites(SCRIPTS / "veri")
+def test_every_gh_command_line_a_veri_module_names_goes_through_github_bounded_or_carries_no_body_issue_3960(
+        veri_modules_index):
+    stray = ["%s:%d (%s)" % (file, line, name) for file, name, line in gh_sites(veri_modules_index)
              if (file, name) not in GH_SITES]
 
     assert stray == [], "a gh call outside github.bounded would post unredacted: " + ", ".join(stray)
