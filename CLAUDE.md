@@ -1,9 +1,9 @@
 # veri — working notes for agents
 
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
-product is `skills/tdd/`: a procedure (`SKILL.md`) Claude follows, plus the bash scripts
-it calls. `invisible-work.sh` (#197) and `unreachable.sh` (#498) are maintenance utilities
-the procedure never calls. `CONTEXT.md` is the glossary; its terms (conductor, leaf,
+product is `skills/tdd/`: a procedure (`SKILL.md`) Claude follows, plus the scripts it calls,
+which are Python modules behind `/bin/sh` shims. `invisible-work.sh` (#197) and
+`unreachable.sh` (#498) are maintenance utilities the procedure never calls. `CONTEXT.md` is the glossary; its terms (conductor, leaf,
 supervisor, verdict, ledger, bail) are used precisely everywhere.
 
 ## Commands
