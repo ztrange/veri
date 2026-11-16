@@ -16,6 +16,7 @@ REBASED = "abc1234"
 REBASED_AGAIN = "abc5678"
 CLONE = "/clone"
 FOREIGN = "fffffff"
+TREE = "7777777"
 
 
 class World:
@@ -69,6 +70,13 @@ class World:
                 return answer
         if line == wt + "rev-parse --git-path rebase-merge":
             return 0, self.stopped_dir + "\n", ""
+        if line.startswith(wt + "reset --hard "):
+            self.rebased = []
+            return 0, "", ""
+        if " merge-tree --write-tree " in line:
+            return 0, TREE + "\n", ""
+        if line.endswith("rev-parse --verify HEAD^{tree}"):
+            return 0, TREE + "\n", ""
         if line.endswith("ls-remote --symref origin HEAD"):
             return 0, "ref: refs/heads/trunk\tHEAD\n", ""
         if line.startswith("merge-lock.sh take"):
@@ -413,24 +421,6 @@ def test_a_joins_cleanup_deletes_origins_run_records_ref_a_missing_one_counting_
     assert (code, asked, ("run records delete" in err) == (expected == 2)) == (expected, True, True), err
 
 
-def test_a_rebase_that_would_lose_a_patch_of_the_run_is_exit_2_naming_it_nothing_pushed(
-        tmp_path, fake_processes, monkeypatch, run_cli):
-    world = World(tmp_path, extra={"git -C <wt> cherry ": (0, "- 1234567\n+ 89abcde\n", "")}).install(
-        fake_processes, monkeypatch)
-
-    code, _, err = join(run_cli, world)
-
-    assert (code, pushed(world), "89abcde" in err, len(released(world))) == (2, [], True, 1), err
-
-
-def test_the_patch_check_compares_the_rebased_tip_with_the_pre_rebase_tip(tmp_path, fake_processes, monkeypatch, run_cli):
-    world = World(tmp_path).install(fake_processes, monkeypatch)
-
-    code, _, err = join(run_cli, world)
-
-    assert (code, [c.split(" ", 3)[3] for c in world.calls if " cherry " in c]) == (0, ["cherry %s %s" % (REBASED, ORIGIN_SHA)]), err
-
-
 GONE = (1, "", "error: unable to delete 'tdd/7-slug': remote ref does not exist\n")
 
 
@@ -445,3 +435,67 @@ def test_a_run_branch_origin_already_lacks_counts_as_deleted_and_one_still_there
     code, _, err = join(run_cli, world)
 
     assert (code, ("branch delete" in err) == (expected == 2)) == (expected, True), err
+
+
+
+def resets(world):
+    return [c for c in world.calls if " reset --hard " in c]
+
+
+def test_a_run_range_holding_a_merge_commit_is_exit_2_before_the_rebase_nothing_pushed(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, extra={"git -C <wt> rev-list --merges": (0, "abcdef0\n", "")}).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    rebased = [c for c in world.calls if " rebase " in c]
+    assert (code, rebased, pushed(world), "merge commit" in err, "linear" in err) == (2, [], [], True, True), err
+
+
+def test_a_rebased_tip_whose_tree_is_not_the_merge_of_the_run_and_the_stack_is_exit_2_naming_the_path_and_reset(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, extra={"git -C <wt> rev-parse --verify HEAD^{tree}": (0, "8888888\n", ""),
+                                   "git -C <wt> diff --name-only": (0, "evil.txt\n", "")}).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, pushed(world), "evil.txt" in err, resets(world)) == (
+        2, [], True, ["git -C %s reset --hard %s" % (world.wt, ORIGIN_SHA)]), err
+
+
+@pytest.mark.parametrize("answer, said", [((128, "", "error: unknown option `write-tree'\n"), "merge-tree"),
+                                          ((1, "7777777\nCONFLICT (content): a.py\n", ""), "conflict")])
+def test_a_merge_tree_that_fails_or_reports_conflicts_is_exit_2_naming_it_never_would_lose(
+        tmp_path, fake_processes, monkeypatch, run_cli, answer, said):
+    world = World(tmp_path, extra={"git -C <wt> merge-tree --write-tree": answer}).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, pushed(world), said in err, "would lose" in err, len(resets(world))) == (2, [], True, False, 1), err
+
+
+def test_a_reset_that_fails_after_a_refusal_names_the_exact_command_to_run(tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, extra={"git -C <wt> rev-parse --verify HEAD^{tree}": (0, "8888888\n", ""),
+                                   "git -C <wt> reset --hard": (128, "", "fatal: unable to write\n")}).install(
+        fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, "git -C %s reset --hard %s" % (world.wt, ORIGIN_SHA) in err) == (2, True), err
+
+
+
+def test_after_a_refusal_past_the_rebase_head_is_the_pre_rebase_tip_and_a_second_join_meets_the_same_refusal(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, reads=(), extra={"git -C <wt> rev-parse --verify HEAD^{tree}": (0, "8888888\n", ""),
+                                             "git -C <wt> diff --name-only": (0, "evil.txt\n", "")})
+    world.first = {"state": "open", "merged": False, "head": {"ref": BRANCH, "sha": ORIGIN_SHA},
+                   "base": {"ref": "stack", "repo": {"default_branch": "trunk"}}}
+    world.install(fake_processes, monkeypatch)
+
+    first = join(run_cli, world)
+    head = world.answer("git -C %s rev-parse --verify HEAD" % world.wt)[1].strip()
+    world.pulls.clear()
+    second = join(run_cli, world)
+
+    assert (first[0], head, second[0], "evil.txt" in second[2], "head reads" in second[2]) == (2, ORIGIN_SHA, 2, True, False)
