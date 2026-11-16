@@ -17,6 +17,13 @@ USAGE = "usage: event.sh <event> [key=value …]\n".encode()
 REASONS = b"candidates-done, budget-spent, nothing-structural"
 
 
+@pytest.fixture(autouse=True)
+def write_path_without_the_table(monkeypatch):
+    """These cases pin event.py's write path (escaping, key order, the clock, the directory) over synthetic event
+    names; the table's strict check has its own cases in unit/test_event_strict.py."""
+    monkeypatch.delenv("VERI_EVENT_STRICT", raising=False)
+
+
 @pytest.fixture
 def event():
     return importlib.import_module("veri.event")
