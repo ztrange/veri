@@ -6,3 +6,4 @@
 - [x] the tick-ledger.sh entry of SCRIPTS.md states the reading, graded ⟦criterion 4⟧
 - [x] the make test fallback reads a missing case file, or output saying no tests ran, as a case never run, exit 2 ⟦criterion 3⟧
 - [x] only make's own last stderr line of the outermost make level picks the case code; a test's output never does, and the fallback's non-zero exit with no such line never ran ⟦criterion 1⟧
+- [x] only a final top-level make Error 1 line on stderr reads as case fails; any other make ending, a nested make, a non-make runner's text, is its exit code or no answer ⟦criterion 1⟧

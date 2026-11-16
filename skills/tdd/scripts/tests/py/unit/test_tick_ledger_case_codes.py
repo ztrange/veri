@@ -96,18 +96,27 @@ MAKE_DECLARED = 'make test TESTS="$1"\n'
 
 @pytest.mark.parametrize("declared, code, stdout, stderr, expected", [
     (MAKE_DECLARED, 2, "E   assert 'make: *** [test] Error 2' == ''\n", "make: *** [test] Error 1\n", 1),
-    (MAKE_DECLARED, 2, "", "make: *** [test] Error 2\nmake: *** [test] Error 1\n", 1),
+    (MAKE_DECLARED, 2, "", "make: *** [test] Error 2\nmake: *** [test] Error 1\n", 2),
     (MAKE_DECLARED, 2, "*** [x] Error 1\n", "make: *** [test] Error 127\n", 2),
     ("", 2, "make: *** [test] Error 1\n", "sh: run-tests: command not found\nmake: *** [test] Error 127\n", 2),
-    ("", 2, "", "make[1]: *** [inner] Error 1\nmake: *** [test] Error 2\n", 1),
+    ("", 2, "", "make[1]: *** [inner] Error 1\nmake: *** [test] Error 2\n", 2),
     ("", 2, "", "make[1]: *** [inner] Error 2\nmake: *** [test] Error 2\n", 2),
     ("", 2, "", "make: *** [a] Error 1\nmake: *** [b] Error 127\nmake: Target `all' not remade because of errors.\n", 2),
-    ("", 2, "", "make: *** [a] Error 127\nmake: *** [b] Error 1\nmake: Target `all' not remade because of errors.\n", 1),
+    ("", 2, "", "make: *** [a] Error 127\nmake: *** [b] Error 1\nmake: Target `all' not remade because of errors.\n", 2),
     ("", 1, "1 failed\n", "", 2),
-], ids=["test-output-spoofs-error-2", "stderr-spoof-before-makes-own-line", "recipe-127-after-printing-error-1",
-        "fallback-127-after-test-printed-error-1", "nested-inner-error-1", "nested-inner-error-2", "make-k-last-127",
-        "make-k-last-1", "fallback-non-zero-with-no-make-line"])
-def test_only_makes_own_last_stderr_line_of_the_outermost_make_gives_the_case_code_3987(
+    ("", 2, "", "make: foo: No such file or directory\n1 failed\nmake: *** [test] Error 1\n", 1),
+    ('./run-one "$1"\n', 2, "", "make: *** [t] Error 1\n", 2),
+    ("", 2, "", "make[1]: *** [lint] Error 1\nmake: *** [test] Error 2\n", 2),
+    ("", 2, "make: *** [test] Error 1\n", "", 2),
+    (MAKE_DECLARED, 2, "make: *** [test] Error 1\n", "", 2),
+    ("", 2, "", "make: *** [a] Error 2\nmake: *** [b] Error 1\nmake: Target `test' not remade because of errors.\n", 2),
+    ("", 2, "", "make: *** [a] Error 2\nmake: *** [test] Error 1\n", 2),
+], ids=["test-output-spoofs-error-2", "two-level-0-lines-one-not-1", "recipe-127-after-printing-error-1",
+        "fallback-127-after-test-printed-error-1", "nested-inner-error-1-reads-no-answer", "nested-inner-error-2",
+        "make-k-last-127", "make-k-last-1", "fallback-non-zero-with-no-make-line", "not-found-line-not-adjacent",
+        "declared-non-make-runner-fakes-makes-line", "make-lint-or-true-then-exit-2", "fallback-line-only-on-stdout",
+        "declared-make-line-only-on-stdout", "make-k-a-2-b-1", "level-0-error-2-then-final-error-1"])
+def test_only_a_final_level_0_make_error_1_line_on_stderr_reads_as_a_case_that_fails_3987(
         retire, fake_processes, declared, code, stdout, stderr, expected):
     fake_processes.answers({"detect-test-command.sh": (0, declared, ""), "": (code, stdout, stderr)})
 
