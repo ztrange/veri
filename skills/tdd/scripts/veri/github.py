@@ -5,7 +5,7 @@ gh_issue_view, gh_list, gh_json with gh args): rest, the default when unset, run
 runs only the gh porcelain command, with no fallback; auto tries GraphQL, then REST. Set
 but empty, or any other value, raises NoAnswer at call time with a stderr line naming the
 variable and the value. Operations with no GraphQL route (issue edit and create,
-gh_rest_list, gh_json with no gh args) use REST under every value, and VERI_GH_JSON takes
+gh_rest_list, gh_json and gh_json_page with no gh args) use REST under every value, and VERI_GH_JSON takes
 precedence over it. A Claude Code cloud session, where GraphQL is refused, needs nothing set.
 """
 import json
@@ -283,6 +283,8 @@ class GraphQLOnlyAdapter(RestOnlyAdapter):
         return self.graphql.list(*args)
 
     def page(self, fixture, path, *args):
+        if not args:
+            return RestOnlyAdapter.page(self, fixture, path)
         return self.graphql.list(*args)
 
     def issue_view(self, number, field):
@@ -301,6 +303,8 @@ class FallbackAdapter(GraphQLOnlyAdapter):
                               lambda: RestOnlyAdapter.list(self, path))
 
     def page(self, fixture, path, *args):
+        if not args:
+            return RestOnlyAdapter.page(self, fixture, path)
         return self._fallback(lambda: GraphQLOnlyAdapter.page(self, fixture, path, *args),
                               lambda: RestOnlyAdapter.page(self, fixture, path, *args))
 
