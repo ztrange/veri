@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from conftest import INTERPRETER_VENV
-from test_supervise import checked_step, committed_head, checked_head
+from test_supervise_process import checked_step, committed_head, checked_head
 
 
 def with_origin_head(work):

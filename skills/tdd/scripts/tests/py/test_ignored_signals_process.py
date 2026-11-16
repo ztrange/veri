@@ -10,7 +10,7 @@ from conftest import PROCESS_CASE_TIMEOUT
 
 HERE = pathlib.Path(__file__).resolve().parent
 CHILD_SESSION_WAIT = 60
-SIGNAL_CASE = ("test_supervise.py::test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ignored_int_"
+SIGNAL_CASE = ("test_supervise_process.py::test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ignored_int_"
                "lets_the_leaf_finish_with_its_own_0_and_wait_leaf_against_a_live_supervisor_exits_3_silently")
 DETACH_CASE = ("test_detach_leaf.py::test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_the_"
                "launchers_process_group_where_a_nohup_child_does_not")
