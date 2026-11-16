@@ -6,6 +6,6 @@
 - [x] that guard goes red with a key removed from the table, and with a key removed from a `JOURNAL.md` row ⟦criterion 3⟧
 - [x] `test_journal_fields_audit.py` checks literal writer kinds and keys against the table, with no ratchet lists ⟦criterion 5⟧
 - [x] `test_journal_fixture_keys.py` checks the fixture against the table and no longer parses `JOURNAL.md` ⟦criterion 6⟧
-- [ ] a `tree_audit` case fails, naming file and line, on an `event.sh` call site under `skills/` whose literal event or key the table does not declare ⟦criterion 7⟧
-- [ ] that guard goes red with an undeclared key added to an `event.sh` call under `skills/` ⟦criterion 8⟧
+- [x] a `tree_audit` case fails, naming file and line, on an `event.sh` call site under `skills/` whose literal event or key the table does not declare ⟦criterion 7⟧
+- [x] that guard goes red with an undeclared key added to an `event.sh` call under `skills/` ⟦criterion 8⟧
 - [x] `veri/README.md`'s module index has an entry for the table module ⟦criterion 9⟧

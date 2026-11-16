@@ -36,8 +36,8 @@ def test_a_key_the_meaning_calls_optional_or_absent_is_optional():
 def test_the_real_journal_documents_bail_with_its_optional_suites():
     text = (Path(journal_schema.__file__).resolve().parents[2] / "JOURNAL.md").read_text(encoding="utf-8")
 
-    assert journal_schema.fields(text, "bail") == ("cause", "classification", "suites")
-    assert journal_schema.optional(text, "bail") == {"classification", "suites"}
+    assert journal_schema.fields(text, "bail") == ("cause", "classification", "suites", "failed")
+    assert journal_schema.optional(text, "bail") == {"classification", "suites", "failed"}
     assert "usage" in journal_schema.kinds(text)
 
 
