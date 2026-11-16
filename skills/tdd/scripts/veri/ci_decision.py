@@ -23,6 +23,7 @@ class Options:
     poll: str
     span: int
     total: int
+    head_wait: int = 600
 
 
 @dataclass(frozen=True)
@@ -139,6 +140,13 @@ def decide(obs, marks, now, loop, opts):
         return done(Exit(1, obs.failed + "\n" if obs.failed else ""))
     if now is None:
         return Decision(Need("now"), (), loop)
+    if mismatched:
+        first = now if marks.head is None else marks.head
+        if marks.head is None:
+            effects.append(Record("head", opts.want, str(now)))
+        if now - first >= opts.head_wait:
+            return done(Exit(2, "", _warn("%s still reports head %s, not the expected %s, %d s after it was first seen differing"
+                                          % (opts.pr, head, opts.want, now - first))))
     if none and obs.mergeable:
         if loop.none_head != head:
             first = now if marks.none is None else marks.none

@@ -39,14 +39,14 @@ ROWS = {
         (run(obs("green")), decision(Exit(0), Remove("none", HEAD))),
     "green on another head than the one wanted keeps waiting":
         (run(obs("green"), want=OTHER),
-         decision(Sleep("10"), Remove("none", HEAD), loop=Loop(slice_end=NOW + 540))),
+         decision(Sleep("10"), Remove("none", HEAD), Record("head", OTHER, str(NOW)), loop=Loop(slice_end=NOW + 540))),
     "red is exit 1 naming the failed checks":
         (run(obs("red", failed="a,b")), decision(Exit(1, "a,b\n"), Remove("none", HEAD))),
     "red with no names prints nothing":
         (run(obs("red")), decision(Exit(1), Remove("none", HEAD))),
     "red on another head than the one wanted keeps waiting":
         (run(obs("red", failed="a"), want=OTHER),
-         decision(Sleep("10"), Remove("none", HEAD), loop=Loop(slice_end=NOW + 540))),
+         decision(Sleep("10"), Remove("none", HEAD), Record("head", OTHER, str(NOW)), loop=Loop(slice_end=NOW + 540))),
     "no checks on a conflicting pull request is exit 2":
         (run(obs("none", mergeable=False)), decision(Exit(2, "", CONFLICT))),
     "only skipped checks on a conflicting pull request is exit 2":
@@ -112,7 +112,7 @@ ROWS = {
     "queued names the wanted sha for its mark":
         (run(obs(queued=True), want=HEAD).effects, (Remove("none", HEAD), Record("queued", HEAD, str(NOW)))),
     "queued on another head than the one wanted records no queued mark":
-        (run(obs(queued=True), want=OTHER).effects, (Remove("none", HEAD),)),
+        (run(obs(queued=True), want=OTHER).effects, (Remove("none", HEAD), Record("head", OTHER, str(NOW)))),
     "queued at the end of the slice is exit 3":
         (run(obs(queued=True), loop=Loop(slice_end=NOW)).outcome, Exit(3)),
     "a mismatched head at the end of the slice is exit 3":
@@ -170,6 +170,17 @@ def test_a_bad_queue_wait_is_a_crash_with_the_value_error():
     outcome = run(obs(queued=True), queue_wait="soon").outcome
 
     assert isinstance(outcome, Crash) and isinstance(outcome.error, ValueError)
+
+
+def test_a_mismatched_head_first_seen_records_a_head_mark_and_one_seen_differing_for_the_head_wait_is_exit_2_naming_both_shas_issue_3978():
+    first = run(obs(), want=OTHER)
+    later = run(obs(), dataclasses.replace(NO_MARKS, head=NOW - 600), want=OTHER, head_wait=600)
+    younger = run(obs(), dataclasses.replace(NO_MARKS, head=NOW - 599), want=OTHER, head_wait=600)
+
+    assert (first.outcome, Record("head", OTHER, str(NOW)) in first.effects, later.outcome, younger.outcome) == (
+        Sleep("10"), True,
+        Exit(2, "", f"wait-ci.sh: {PR} still reports head {HEAD}, not the expected {OTHER}, 600 s after it was first seen differing\n"),
+        Sleep("10"))
 
 
 def test_decide_leaves_the_observation_marks_and_loop_it_was_given_unchanged():
