@@ -56,3 +56,17 @@ def test_no_test_file_outside_the_list_defines_a_module_level_git_helper(tests_p
     assert not unlisted, (
         f"{unlisted} define their own module-level git or _git: use repo_builder.git instead. "
         f"FILES_WITH_A_LOCAL_GIT_HELPER only shrinks, never add to it")
+
+
+@pytest.mark.tree_audit("skills/tdd/scripts/tests/py")
+def test_a_listed_file_that_no_longer_defines_a_module_level_git_helper_is_removed_from_the_list(tests_py_index):
+    found = _files_defining_a_local_git_helper(tests_py_index)
+    gone = [path for path in FILES_WITH_A_LOCAL_GIT_HELPER if path not in found]
+
+    assert not gone, f"{gone} no longer define a module-level git helper: remove them from FILES_WITH_A_LOCAL_GIT_HELPER"
+
+
+def test_the_list_is_sorted():
+    paths = list(FILES_WITH_A_LOCAL_GIT_HELPER)
+
+    assert paths == sorted(paths)
