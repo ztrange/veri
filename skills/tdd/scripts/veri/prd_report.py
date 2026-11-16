@@ -76,7 +76,8 @@ def _store_owed(prd, path):
         print("PRD %s is not in the snapshot" % prd, file=sys.stderr)
         return 2
     stored = _owed()
-    stored[prd] = {"updatedAt": heads[prd]["updatedAt"], "answer": _load(path)}
+    stored[prd] = {"updatedAt": heads[prd]["updatedAt"], "answer": _load(path),
+                   "computedAt": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
     owed = _owed_path()
     os.makedirs(os.path.dirname(owed), exist_ok=True)
     fd, temp = tempfile.mkstemp(dir=os.path.dirname(owed), prefix="report-owed.json.", suffix=".tmp")
