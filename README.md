@@ -157,7 +157,10 @@ read that afterwards rather than answering it at the time.
 records the default branch's tip in `.tdd/issue-<n>-skill-commit` on a run's first launch,
 and runs every launch — the first and each resume — from a snapshot of that commit
 (`git archive` into a temporary directory), so a pull between two launches never changes the
-skill mid-run. The record is run state and is git-ignored. Two cases refuse rather than guess:
+skill mid-run. The snapshot is read-only: after extraction the write bits of its files and
+directories are removed, so a stray write into it (an in-place edit, a redirect) fails with a
+permission error. A leaf runs as the same user and can restore those bits, so this stops a
+careless write, not a deliberate one. The record is run state and is git-ignored. Two cases refuse rather than guess:
 
 - **A recorded commit the launching clone cannot resolve** (a second clone, a shallow one, a
   pruned branch) is exit 2, never a silent re-pin to whatever the clone holds.
