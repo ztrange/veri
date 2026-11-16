@@ -119,3 +119,10 @@ def test_issue_4089_the_label_row_for_veri_priority_label_is_ok_when_it_answers_
 
     assert ready_check.priority_label_row() == ("label urgent", None)
     assert ready_check.priority_label_row() == ("label urgent", "gh label create urgent")
+
+
+def test_issue_4089_the_label_bug_row_is_ok_when_it_answers_and_fails_on_404_with_gh_label_create_bug(ready_check, fake_processes):
+    fake_processes.answers({"gh api repos/{owner}/{repo}/labels/bug": [(0, '{"name": "bug"}', ""), NOT_FOUND]}, exact=True)
+
+    assert ready_check.bug_label_row() == ("label bug", None)
+    assert ready_check.bug_label_row() == ("label bug", "gh label create bug")

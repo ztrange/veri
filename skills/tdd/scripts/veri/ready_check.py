@@ -136,6 +136,10 @@ def priority_label_row():
     return selection_label_row(tunables.get("VERI_PRIORITY_LABEL"))
 
 
+def bug_label_row():
+    return selection_label_row("bug")
+
+
 def bash_row():
     holds = launch_floor.bash_refusal("ready-check") == 0
     return "bash", None if holds else "install bash 5 or newer (`brew install bash`) and put it first on PATH"
