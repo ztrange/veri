@@ -1167,6 +1167,27 @@ def test_verify_refactor_reject_posts_the_reject_heading_then_the_reason(monkeyp
     assert "the rename changed the public name of spin" in body.splitlines()[1:]
 
 
+def test_verify_refactor_posts_skipped_switched_off_when_the_verdict_file_reads_skipped_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-98"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-refactor.exit").write_text("skipped\n")
+    (tmp_path / ".tdd" / "verify-refactor.reason").write_text("")
+
+    code, out, err = run_cli(comment, ["7", "verify-refactor"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    assert posted[0][1].splitlines()[0] == "### 🔎 verify-refactor — SKIPPED (switched off)"
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-refactor", url)]
+
+
 def test_verify_revised_posts_the_revised_pass_heading_then_the_reason_and_appends_a_comment_event(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")

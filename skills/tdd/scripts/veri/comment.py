@@ -120,7 +120,8 @@ def post_red(issue, note_file=None):
 
 
 def verdict_word(phase):
-    return "REJECT" if read_or_empty(run_dir.run_file(".", f"verdict-{phase}.exit")).strip() == "1" else "PASS"
+    verdict = read_or_empty(run_dir.run_file(".", f"verdict-{phase}.exit")).strip()
+    return {"1": "REJECT", "skipped": "SKIPPED (switched off)"}.get(verdict, "PASS")
 
 
 def post_verify(issue, kind):
