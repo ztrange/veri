@@ -134,7 +134,7 @@ def test_joins_a_pull_request_whose_base_is_the_stack_rebasing_checking_and_push
     assert (code, order[:7]) == (0, [
         "merge-lock.sh take --pid %s" % PID,
         wt + "fetch --prune origin",
-        wt + "rebase --fork-point refs/remotes/origin/stack",
+        wt + "rebase origin/stack",
         wt + "push --force-with-lease=%s:%s origin HEAD:refs/heads/%s" % (BRANCH, ORIGIN_SHA, BRANCH),
         "sh -c make unit",
         "prose-owed.sh " + world.wt,
@@ -151,7 +151,7 @@ def test_a_stack_push_refused_because_the_stack_moved_starts_again_from_the_fetc
     rebases = [c for c in world.calls if c.startswith(wt + "rebase ")]
     forced = [c for c in world.stack_pushed() if " --force " in c or " -f " in c or " +" in c]
     assert (code, rebases, world.stack_pushed(), forced, world.stack[0]) == (0, [
-        wt + "rebase --fork-point refs/remotes/origin/stack", wt + "rebase --fork-point refs/remotes/origin/stack"], [
+        wt + "rebase origin/stack", wt + "rebase origin/stack"], [
         wt + "push --force-with-lease=stack:%s origin %s:refs/heads/stack" % (STACK_SHA, REBASED),
         wt + "push --force-with-lease=stack:%s origin %s:refs/heads/stack" % (MOVED_SHA, REBASED_AGAIN)],
         [], REBASED_AGAIN), err
@@ -409,3 +409,21 @@ def test_a_joins_cleanup_deletes_origins_run_records_ref_a_missing_one_counting_
 
     asked = "git -C %s push origin --delete refs/veri/runs/7" % world.wt in world.calls
     assert (code, asked, ("run records delete" in err) == (expected == 2)) == (expected, True, True), err
+
+
+def test_a_rebase_that_would_lose_a_patch_of_the_run_is_exit_2_naming_it_nothing_pushed(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, extra={"git -C <wt> cherry ": (0, "- 1234567\n+ 89abcde\n", "")}).install(
+        fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, pushed(world), "89abcde" in err, len(released(world))) == (2, [], True, 1), err
+
+
+def test_the_patch_check_compares_the_rebased_tip_with_the_pre_rebase_tip(tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, [c.split(" ", 3)[3] for c in world.calls if " cherry " in c]) == (0, ["cherry %s %s" % (REBASED, ORIGIN_SHA)]), err

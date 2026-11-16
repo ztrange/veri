@@ -481,6 +481,16 @@ def _unchecked_steps(worktree, branch):
     return 0
 
 
+def _lost_patches(worktree, before):
+    """The commits of <before> whose patch the rebased HEAD lacks (`git cherry HEAD <before>` lines starting `+`),
+    space-separated; "" when none. A cherry that cannot run counts as losing <before> itself."""
+    after = _rev(worktree, "HEAD")
+    cherry = _git(worktree, "cherry", after, before)
+    if cherry.returncode or not after:
+        return before or "the run's tip"
+    return " ".join(line.split()[1] for line in cherry.stdout.splitlines() if line.startswith("+ "))
+
+
 def _joined(pid, repo, pr, worktree, branch, stack):
     """The join with the lock held, never releasing it: rebase onto origin/<stack>, push the run's branch under a lease,
     check the rebased tip, push it to <stack> as a compare-and-swap that can only fast-forward what was fetched (leased to
@@ -507,9 +517,10 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             _say("origin/%s is not the run's tip %s (a commit the worktree lacks, or none pushed); nothing pushed"
                  % (branch, lease))
             return 2
-        # --fork-point: a stack rewound since the run was cut drops the rewound commits from the run too, so a rewind is
-        # never undone by the join re-adding them (git reads the fork point from origin/<stack>'s reflog).
-        rebase = _git(worktree, "rebase", "--fork-point", "refs/remotes/origin/" + stack)
+        # A plain rebase: a join may never lose work. A commit rewound off the stack that the run still carries comes
+        # back; the stack is only rewritten by a slice landing, which keeps every patch (git skips identical ones).
+        before = _rev(worktree, "HEAD")
+        rebase = _git(worktree, "rebase", "origin/" + stack)
         if rebase.returncode and not _rebasing(worktree):
             _say("git rebase onto origin/%s was refused without a conflict (exit %d); nothing pushed" % (
                 stack, rebase.returncode))
@@ -519,6 +530,11 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             _say("rebasing %s onto origin/%s conflicted (%s); aborted, nothing pushed" % (
                 branch, stack, " ".join((rebase.stdout + rebase.stderr).split())[:400]))
             return 1
+        lost = _lost_patches(worktree, before)
+        if lost:
+            _say("the rebase onto origin/%s would lose %s, a patch of the run origin/%s lacks; nothing pushed, the run"
+                 " branch untouched on origin" % (stack, lost, stack))
+            return 2
         pushed = git.network("-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
                              "origin", "HEAD:refs/heads/%s" % branch)
         if not pushed.returncode:
