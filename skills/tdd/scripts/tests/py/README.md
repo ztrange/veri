@@ -22,14 +22,17 @@ module or a conftest fixture has no bullet below, or a bullet names one that doe
 - **A file lives in `unit/` only if `veri/fast_tier_guard.py` names none of its calls** (a process start, a real wait),
   enforced both ways by `test_fast_tier_guard.py`. So `make unit` runs `tests/py/unit/` only, and placement is judged per FILE:
   one case that calls `subprocess` (or sleeps) keeps every small case beside it out of `make unit`, and they run only in
-  `make test` and as affected suites. The cost, measured 2026-11-15 with `-m "not process and not tree_audit"` over
-  `tests/py/` outside `unit/`: 1,364 small cases in 51 files do not run in `make unit` (46 non-`_process` files hold 1,352
-  of them, e.g. `test_metrics.py`, `test_run_conductor.py`, `test_supervise.py`), against 4,496 that do. This is the current
-  rule, not a verdict: the owner's standing target is a fast `make unit`, and growing the tier (moving a file's lone process
-  case to a `<name>_process.py` sibling, then `git mv` the file into `unit/`) is his decision. Do not move a file on your own.
+  `make test` and as affected suites. So a file with a process case is split: its small cases move to `unit/test_<name>.py`,
+  its process cases to `test_<name>_process.py`. Measured 2026-11-15 with `-m "not process and not tree_audit"`: the 22 files
+  directly under `tests/py/` that are not `*_process.py` hold 121 small cases that `make unit` does not run. Left unsplit on
+  purpose: `test_profile.py` (audits its own location), `test_detach_leaf.py` (its small cases all install a fake `Popen`),
+  `test_event.py` (the journal's owners'), `test_conftest.py` (tests the fixtures; its ids are pinned), `test_parallel_conductors.py`,
+  two files with one or two small cases, and files that hold only tree audits or only process cases. What the split taught: an
+  unmarked case that goes through a local fake in front of a real process is not small; it lives with the process half until
+  its fake is replaced by `fake_processes`.
 - A `unit/` file may still hold marked cases (they are deselected by `make unit`): the guard sees calls, not marks.
 - A new test file that starts no process and lists no repo directory goes in `unit/`; otherwise beside this file, a
-  process-starting suite as `test_<name>_process.py` (the established route, 105 such files).
+  process-starting suite as `test_<name>_process.py` (the established route, 137 such files).
 
 ## Helper modules
 
