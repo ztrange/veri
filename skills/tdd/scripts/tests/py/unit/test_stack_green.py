@@ -66,6 +66,20 @@ def test_prints_the_newest_issue_end_whose_check_runs_all_concluded_success_and_
     assert (got, world.read) == ((0, sha(3) + "\n", ""), [sha(3)])
 
 
+@pytest.mark.parametrize("tip, verdict", [
+    ([OK], 3), ([OK, NEUTRAL, SKIPPED], 3), ([NEUTRAL, SKIPPED], 1), ([SKIPPED], 1), ([OK, FAILED, OK], 1),
+    ([], 1), ([OK, ("completed", "cancelled")], 1), ([OK, ("completed", "timed_out")], 1),
+    ([OK, ("completed", "action_required")], 1),
+])
+def test_a_commit_is_tested_only_when_its_check_runs_all_completed_success_neutral_or_skipped_with_one_success(
+        monkeypatch, run_cli, stack_green, tip, verdict):
+    world = World(monkeypatch, stack_green, ["feat: a (#1)", "feat: b (#2)", "fix: b (#2)"], {sha(1): [OK], sha(3): tip})
+
+    code, out, _ = run_cli(stack_green, [])
+
+    assert (code, out, world.read) == (0, sha(verdict) + "\n", [sha(3)] + ([sha(1)] if verdict == 1 else []))
+
+
 def test_issue_ends_over_300_commits_reads_each_subject_once(stack_green):
     subjects = ["feat: part %d (#%d)" % (n, n // 2) for n in range(300)]
 
