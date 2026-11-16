@@ -181,7 +181,16 @@ def python_row():
 
 
 CHECKS = (tier_row("fast"), tier_row("all"), one_test_file_row, pull_request_row, push_row, test_file_row, tdd_ignored_row,
-          gh_auth_row, push_access_row, label_row, bash_row, python_row)
+          gh_auth_row, push_access_row, label_row, token_scopes_row, priority_label_row, bug_label_row,
+          actions_read_row, run_state_ignore_row, bash_row, python_row)
+
+
+def rendered(name, verdict):
+    if verdict is None:
+        return f"ok    {name}"
+    if isinstance(verdict, Neutral):
+        return f"{verdict}  {name}"
+    return f"fail  {name}: {verdict}"
 
 
 def main(argv):
@@ -199,8 +208,8 @@ def main(argv):
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
     results = [check() for check in CHECKS]
-    failed = sum(1 for _, fix in results if fix)
-    rows = [f"fail  {name}: {fix}" if fix else f"ok    {name}" for name, fix in results]
+    failed = sum(1 for _, verdict in results if verdict and not isinstance(verdict, Neutral))
+    rows = [rendered(name, verdict) for name, verdict in results]
     print(*rows, sep="\n")
     if failed:
         print(f"not ready — {failed} rows to fix")
