@@ -107,7 +107,7 @@ def read(components, threshold, timeout):
         if not matched:
             continue
         start = started(incident)
-        age = now() - start
+        age = max(now() - start, datetime.timedelta(0))
         minutes = str(int(age.total_seconds() // 60))
         if age >= threshold:
             counting.append("\t".join((one_line(incident.get("name")), ", ".join(matched),
