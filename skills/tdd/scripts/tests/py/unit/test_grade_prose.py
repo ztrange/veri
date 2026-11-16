@@ -1887,3 +1887,16 @@ def test_a_pass_through_the_default_reader_in_a_tree_whose_signature_takes_no_te
     graded = tmp_path / "GRADED"
     fields = graded.read_text().split() if graded.exists() else []
     assert (grading.code, fields[:2]) == (0, ["unit.md", trees]), capsys.readouterr().err
+
+
+def test_a_pass_through_a_non_default_reader_in_a_tree_whose_signature_takes_no_text_exits_2_and_writes_no_signature_3891(
+        tmp_path, monkeypatch, capsys, grade_prose, fake_processes):
+    _grader_tree(tmp_path, monkeypatch, grade_prose, fake_processes,
+                 "BEGIN GRADES\nA1: PASS - blue\nVERDICT: PASS\nEND GRADES\n")
+    _tree_whose_signature_takes_no_text(tmp_path, grade_prose)
+
+    grading = grade_prose.grade_unit("REQUIREMENTS.md", "unit.md", read=lambda file: "The default branch says blue.\n")
+
+    err = capsys.readouterr().err
+    named = ("signature-formula-disagreement" in err, "unit.md" in err)
+    assert (grading.code, grading.out, named, (tmp_path / "GRADED").exists()) == (2, "", (True, True), False), err
