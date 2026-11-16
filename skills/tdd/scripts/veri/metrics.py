@@ -288,6 +288,7 @@ class _Tally:
         self.opening = None
         self.structural = None
         self.launched = {}
+        self.green_rejects = []
 
     def step_mark(self, step):
         return self.spent.setdefault(step, {})
@@ -389,6 +390,8 @@ class _Tally:
                 self.conductor_counted = True
         elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
             self.rejected.append((step, phase, attempt))
+        if event == "verdict" and phase == "green" and line.get("verdict") == "REJECT":
+            self.green_rejects.append((step, attempt_no, "none", line.get("reason")))
         if event == "verdict" and phase == "refactor":
             current = self.open_pass(step)
             current["verdict"] = line.get("verdict", "")
@@ -626,7 +629,7 @@ def fold(issue, path, ledger):
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
                 switched_off_pin=tally.switched_off_pin,
                 conductor_counted=tally.conductor_counted, total=tally.total, structural=structural,
-                green_rejects=[])
+                green_rejects=tally.green_rejects)
 
 
 def known(number):
@@ -812,8 +815,8 @@ def layout(f):
                                          for outcome in ("retry", "bail", "route", "unparsed")))
     if f.green_rejects:
         table_head("#### Green rejects", "step", ["attempt", "route", "reason"], ["---:", "---", "---"])
-        for green_reject in f.green_rejects:
-            row(list(green_reject))
+        for step, attempt, route, reason in f.green_rejects:
+            row([step, attempt, route, UNKNOWN if reason is None else reason])
     print()
     print("The figure comparable across runs is turns, the same measurement on any model; dollars "
           "are not comparable, the same measurement only at the same VERI_MODEL, "
