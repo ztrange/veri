@@ -3,8 +3,10 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import json
 import os
 import sys
+import time
 from datetime import datetime
 
+import event_log
 import growth
 import prices
 import role_state
@@ -109,6 +111,37 @@ def dev(lane):
     return rows
 
 
+def launches(lines):
+    """Each launch's requests, a launch starting at each `system`/`init` record of a conductor log; lines that are not JSON are skipped."""
+    found = [[]]
+    for line in lines:
+        try:
+            record = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(record, dict):
+            continue
+        if record.get("type") == "system" and record.get("subtype") == "init":
+            found.append([])
+        else:
+            found[-1].append(record)
+    return [timed for timed in ([r for r in requests(launch) if r.get("timestamp")] for launch in found) if timed]
+
+
+def conductor(run):
+    main = run_dir.main_tree_from_files(os.getcwd())
+    restarts = event_log.events(run_dir.worktree(main, run), "conductor-restart", skip_unreadable=True)
+    log = run_dir.main_file(main, "conductor-%s.log" % run)
+    with open(log) as f:
+        relaunches = launches(f)
+    rows = []
+    for restart in restarts:
+        launch = next((l for l in relaunches if _epoch(l[0]["timestamp"]) >= restart["ts"]), None)
+        at = time.strftime(role_state.STAMP, time.localtime(restart["ts"]))
+        rows.append((at, cost(launch[:1]) if launch else None, per_request(launch) if launch else None))
+    return rows
+
+
 def main(argv):
     try:
         return _main(argv)
@@ -122,9 +155,13 @@ def _main(argv):
     if argv[1:2] == ["--lane"] and len(argv) == 3:
         lane = argv[2]
         argv = argv[:1]
-    if argv != ["dev"]:
+    if argv == ["dev"]:
+        rows = dev(lane)
+    elif len(argv) == 2 and argv[0] == "conductor" and lane is None:
+        rows = conductor(argv[1])
+    else:
         raise Failure(USAGE)
-    for at, k, g in dev(lane):
+    for at, k, g in rows:
         print("%s K=%s g=%s" % (at, _figure(k), _figure(g)))
     return 0
 
