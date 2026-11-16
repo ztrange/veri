@@ -199,7 +199,7 @@ def red_gate_failure():
 
 
 def diff_gate(words, options):
-    """The exit code when the diff step deleted or renamed-and-changed an earlier pytest case, else None."""
+    """The exit code when the diff step deleted or renamed-and-changed an earlier test case, else None."""
     if leaf_tree_guard.git("rev-parse", "--git-dir").returncode:
         return None
     tip = "HEAD"
