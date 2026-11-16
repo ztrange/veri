@@ -154,6 +154,8 @@ def _merge_commit(worktree, pull, pr):
         if attempt:
             time.sleep(float(tunables.get("VERI_FETCH_RETRY_SLEEP", unless_empty=True)))
         fetch = _network_git(worktree, "fetch", "origin")
+        if isinstance(fetch, TimedOut):
+            break  # the retries wait for a merge commit not yet visible, not out a hung network
         if not fetch.returncode and not _git(worktree, "cat-file", "-e", sha + "^{commit}").returncode:
             return sha
     if fetch.returncode:
