@@ -139,6 +139,24 @@ def test_cli_a_skip_verify_naming_a_word_no_phase_has_exits_2_naming_it_on_stder
     assert (code, "'lint'" in stderr, calls) == (2, True, ["ps -o lstart= -p %d" % os.getpid()]), stderr
 
 
+def test_cli_a_claim_whose_ps_gives_no_start_time_writes_the_pid_alone_on_one_line_to_conductor_pid_3996(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    past_the_guards(monkeypatch)
+    fake_processes.answers({"ps -o lstart= -p %d" % os.getpid(): (0, "\n", "")}, exact=True)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    claimed = []
+
+    def read_the_claim(argv):
+        claimed.append(pathlib.Path(run_conductor.pid_file_path(argv[0])).read_bytes())
+        return 0
+
+    monkeypatch.setattr(run_conductor, "preflight_and_launch", read_the_claim)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    assert (code, claimed) == (0, [b"%d\n" % os.getpid()]), stderr
+
+
 def test_prompt_with_revise_budget_unset_holds_no_line_naming_a_revise_budget_value_2705(tmp_path, monkeypatch):
     base = tmp_path / "s"
     base.mkdir()

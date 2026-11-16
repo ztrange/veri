@@ -66,10 +66,7 @@ def main(argv):
         made.insert(0, directory)
         directory = os.path.dirname(directory)
     os.makedirs(os.path.dirname(claim), exist_ok=True)
-    ours = ("%d\n%s\n" % (os.getpid(), pids.ps_field("lstart", os.getpid()))).encode()
-    with open(claim, "wb") as handle:
-        handle.write(ours)
-    CLAIM[:] = [ours]
+    CLAIM[:] = [pids.record(claim, os.getpid()).encode()]
     try:
         return preflight_and_launch(argv)
     finally:
