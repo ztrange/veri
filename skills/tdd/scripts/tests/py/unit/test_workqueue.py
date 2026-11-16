@@ -15,6 +15,8 @@ USAGE = """workqueue.sh: usage: workqueue.sh assign <worker> <issue>...
                      workqueue.sh park <worker> <issue> <reason>
                      workqueue.sh show [<worker>]
 """
+STARTED = "Sun Nov 15 22:00:00 2026"
+PS_STARTED = {"ps -o lstart= -p": (0, STARTED + "\n", "")}
 
 
 @pytest.fixture(autouse=True)
@@ -41,7 +43,7 @@ def fake_git(fake_processes, main_tree, origin=None, gh_api=None, extra=None):
             return 2, "", "error: No such remote 'origin'\n"
         raise AssertionError("unexpected command: %s" % line)
 
-    processes = fake_processes.answers({"": answer, **(extra or {})})
+    processes = fake_processes.answers({"": answer, **PS_STARTED, **(extra or {})})
 
 
 def test_main_refuses_bad_arguments_with_2_and_the_usage_text_and_answers_next_with_nothing_launchable_as_3(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
@@ -200,7 +202,7 @@ def test_next_fetches_the_listing_first_from_the_fixture_or_gh_pages_returning_2
                                                stderr if kwargs.get("stderr") == subprocess.PIPE else None)
         raise AssertionError("unexpected command: %r" % (args,))
 
-    processes = fake_processes.answers({"": answer})
+    processes = fake_processes.answers({"": answer, **PS_STARTED})
 
     def run(argv):
         requests.clear()
@@ -311,7 +313,7 @@ def test_start_done_park_rewrite_every_matching_line_in_place_as_four_tab_fields
             return (mv_status[0], "", "")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    processes = fake_processes.answers({"": answer})
+    processes = fake_processes.answers({"": answer, **PS_STARTED})
 
     def run(argv):
         moves.clear()
@@ -362,7 +364,7 @@ def test_the_rewrite_reads_fields_as_bash_read_does_and_a_signalled_mv_returns_2
             return (mv_status[0], "", "")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    processes = fake_processes.answers({"": answer})
+    processes = fake_processes.answers({"": answer, **PS_STARTED})
     queue.write_bytes(b"\talpha\t12\tqueued\tn\t\nalpha\t\t13\tqueued\tx\t\ty\t\nalpha\t14\tqueued\tc\rd\r\n")
     assert workqueue.main(["start", "alpha", "12"]) == 0
     assert queue.read_bytes() == b"alpha\t12\trunning\t\nalpha\t13\tqueued\tx\t\ty\nalpha\t14\tqueued\tc\rd\r\n"
@@ -387,7 +389,7 @@ def test_start_done_park_refuse_a_tabbed_park_reason_before_the_lock_and_return_
             return (0, "", "")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    processes = fake_processes.answers({"": answer})
+    processes = fake_processes.answers({"": answer, **PS_STARTED})
 
     def run(argv):
         code = workqueue.main(argv)
@@ -690,7 +692,7 @@ def test_show_when_git_worktree_list_fails_with_no_output_exits_2_with_empty_std
             return (128, "", "fatal: not a git repository (or any of the parent directories): .git\n")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    processes = fake_processes.answers({"": answer})
+    processes = fake_processes.answers({"": answer, **PS_STARTED})
     code = workqueue.main(["show"])
     out, err = capsys.readouterr()
     assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
@@ -709,7 +711,7 @@ def test_start_done_park_keep_a_last_queue_line_that_has_no_trailing_newline_iss
             return (0, "", "")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    processes = fake_processes.answers({"": answer})
+    processes = fake_processes.answers({"": answer, **PS_STARTED})
 
     def run(argv):
         code = workqueue.main(argv)
@@ -739,7 +741,7 @@ def test_assign_keeps_a_last_queue_line_that_has_no_trailing_newline_issue_777(t
             return (0, "worktree %s\n" % tmp_path, "")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    processes = fake_processes.answers({"": answer})
+    processes = fake_processes.answers({"": answer, **PS_STARTED})
 
     queue.write_bytes(b"alpha\t12\tqueued\t")
     assert workqueue.main(["assign", "alpha", "13", "14"]) == 0
@@ -902,6 +904,8 @@ def queue_tree(tmp_path, fake_processes, mv_status=0):
             if mv_status == 0:
                 os.replace(source, target)
             return mv_status, "", ""
+        if line.startswith("ps -o lstart= -p "):
+            return 0, STARTED + "\n", ""
         raise AssertionError("unexpected command: %s" % line)
 
     fake_processes(answer)
@@ -997,3 +1001,29 @@ def test_an_empty_veri_workqueue_lock_wait_waits_the_default_30_times_20_polls_l
 
     out, err = capsys.readouterr()
     assert (code, out, err, sleeps) == (2, "", "workqueue.sh: could not take the lock %s\n" % lock, [0.05] * 600)
+
+
+def test_taking_the_lock_writes_the_takers_pid_and_start_time_to_the_holder_file_and_release_removes_it_with_the_directory_3993(
+        tmp_path, fake_processes, run_cli, workqueue):
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+    queue.write_bytes(b"alpha\t12\tqueued\t\n")
+    holder = tmp_path / ".tdd" / "workqueue.lock" / "holder"
+    seen = []
+
+    def mv(line, **_):
+        seen.append(holder.read_text() if holder.exists() else None)
+        _, source, target = line.split(" ")
+        os.replace(source, target)
+        return 0, "", ""
+
+    fake_processes.answers({
+        "git worktree list": (0, "worktree %s\n" % tmp_path, ""),
+        "mv ": mv,
+        "ps -o lstart= -p %d" % os.getpid(): (0, STARTED + "\n", ""),
+    })
+
+    code = run_cli(workqueue, ["start", "alpha", "12"])
+
+    assert (code, seen, (tmp_path / ".tdd" / "workqueue.lock").exists()) == (
+        (0, "", ""), ["%d\n%s\n" % (os.getpid(), STARTED)], False)
