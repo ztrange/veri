@@ -490,6 +490,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
   issue under their `## Blocked by` heading closed, and not already claimed by an open PR
   saying `Closes #<n>` nor, where `stack-branch.sh` exits 0, by a PR the answer itself reads as merged into the stack branch saying it
+  (either claims only when its head is in this repository: a PR from a fork, or one whose head repository cannot be
+  read, claims nothing)
   (the issue's run has joined the stack, and the issue stays open and claimed until its slice lands; read from
   `stack-prs.json` under `VERI_GH_JSON`) (a still-draft PR on the issue's own run branch, `tdd/<n>-…`, claims nothing: a
   released issue's resume continues it, ADR-0036; the same PR once readied, not a draft, claims it again, since the run is Done) — one per line, in four bands: the `bug`s labelled `priority` first,
