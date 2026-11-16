@@ -1,6 +1,6 @@
 # Plan for #3936 — PRD 018.3: VERI_SKIP_VERIFY=red skips verify-red, prediction gate and frozen record kept
 
-- [ ] On a fresh launch with `VERI_SKIP_VERIFY=red`, `run-conductor.sh` does not exit 2 over that word and pins it; a word it still cannot skip (`diff`; `pin` landed with #3938) still exits 2, naming it ⟦criterion 1⟧
+- [x] On a fresh launch with `VERI_SKIP_VERIFY=red`, `run-conductor.sh` does not exit 2 over that word and pins it; a word it still cannot skip (`diff`; `pin` landed with #3938) still exits 2, naming it ⟦criterion 1⟧
 - [ ] `comment.sh <n> verify-red` posts `### 🔎 verify-red — SKIPPED (switched off)` when `.tdd/verdict-red.exit` reads `skipped`, never `PASS`, and `verify-revised red` posts its revised SKIPPED heading ⟦criterion 6⟧
 - [ ] `metrics.sh` counts `verify-red-skipped reason=switched-off` events as `red <n>` on the `Verifiers switched off:` line, one `<phase> <n>` pair per phase, comma-separated ⟦criterion 12⟧
 - [ ] `skills/tdd/JOURNAL.md`'s event table lists `verify-red-skipped` with its `reason` field (`switched-off`) beside `verify-refactor-skipped` ⟦criterion 13⟧
