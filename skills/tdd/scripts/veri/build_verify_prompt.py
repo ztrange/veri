@@ -95,6 +95,21 @@ def _tree_files():
             yield os.path.relpath(os.path.join(root, name)).replace(os.sep, "/")
 
 
+def _touching_names(path, stems):
+    """The case names of the test file at `path` when it holds one of `stems` as a whole word, `-` read as `_`; else []."""
+    try:
+        with open(path, "rb") as handle:
+            text = handle.read().decode(errors="replace")
+    except OSError:
+        return []
+    if not any(re.search(r"(?<!\w)" + re.escape(stem) + r"(?!\w)", text.replace("-", "_")) for stem in stems):
+        return []
+    try:
+        return [name for name, _ in case_reader.cut_cases(text)]
+    except case_reader.UnclosedCase:
+        return []
+
+
 def _touching_cases(ledger):
     """The section naming, under each touching test file, its case names: computed from the ledger and the tree only."""
     files = list(_tree_files())
@@ -103,20 +118,8 @@ def _touching_cases(ledger):
     named = [path for path in files if path in words or os.path.basename(path) in words]
     stems = {os.path.splitext(os.path.basename(path))[0].replace("-", "_") for path in named}
     lines, more, room = [], [], int(tunables.get("VERI_PLAN_TOUCHING_CASES"))
-    for path in files:
-        if not stems or not case_reader.is_test_path(path):
-            continue
-        try:
-            with open(path, "rb") as handle:
-                text = handle.read().decode(errors="replace")
-        except OSError:
-            continue
-        if not any(re.search(r"(?<!\w)" + re.escape(stem) + r"(?!\w)", text.replace("-", "_")) for stem in stems):
-            continue
-        try:
-            names = [name for name, _ in case_reader.cut_cases(text)]
-        except case_reader.UnclosedCase:
-            continue
+    for path in (path for path in files if stems and case_reader.is_test_path(path)):
+        names = _touching_names(path, stems)
         shown, room = names[:room], room - len(names[:room])
         if shown:
             lines += [path, *(f"- {name}" for name in shown), ""]
