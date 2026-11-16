@@ -38,9 +38,6 @@ def is_js_test_file(name, root=""):
 _CASE = re.compile(r"^\s*(?:(?:async\s+)?def\s+(?=test)|func\s+(?=Test))(\w+)|^\s*" + CALL + r"([\"'`])((?:\\.|.)+?)\2", re.M)
 
 
-_MODULE_LEVEL = re.compile(r"\n[ \t]*\n(?:[ \t]*\n)*(?:#|\w+[ \t]*\(\))")
-
-
 _DECORATORS = re.compile(r"(?:\n[ \t]*(?:@[^\n]*)?)+\Z")
 
 
@@ -52,27 +49,6 @@ def _def_ends(text):
     return {node.lineno: (min([d.lineno for d in node.decorator_list] + [node.lineno]), node.end_lineno)
             for node in ast.walk(tree)
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
-
-
-def _helpers_only(tail):
-    in_function = False
-    for line in tail.splitlines():
-        if in_function:
-            in_function = line.rstrip() != "}"
-        elif not line.strip() or line.lstrip().startswith("#"):
-            continue
-        elif re.match(r"\w+[ \t]*\(\)", line):
-            in_function = not line.rstrip().endswith("}")
-        else:
-            return False
-    return True
-
-
-def _module_level_cut(body):
-    for cut in _MODULE_LEVEL.finditer(body):
-        if _helpers_only(body[cut.start():]):
-            return cut
-    return None
 
 
 def _unescaped(title):
@@ -167,11 +143,7 @@ def cut_cases(text):
         elif m.group(3):
             raise UnclosedCase("the call of case %s never closes" % _unescaped(m.group(3)))
         else:
-            if m.group(1):
-                body = "".join(body.partition("\n}")[:2])
-            else:
-                cut = _module_level_cut(body)
-                body = body[:cut.start()] if cut else body
+            body = "".join(body.partition("\n}")[:2])
             body = _DECORATORS.sub("", body.rstrip()).rstrip()
         cases.append((m.group(1) or _unescaped(m.group(3)), body))
     return cases
