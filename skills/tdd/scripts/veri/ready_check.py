@@ -140,6 +140,11 @@ def bug_label_row():
     return selection_label_row("bug")
 
 
+def actions_read_row():
+    readable = gh("api", "repos/{owner}/{repo}/actions/runs?per_page=1").returncode == 0
+    return "actions read", None if readable else "grant the token read access to Actions (`actions: read`)"
+
+
 def bash_row():
     holds = launch_floor.bash_refusal("ready-check") == 0
     return "bash", None if holds else "install bash 5 or newer (`brew install bash`) and put it first on PATH"

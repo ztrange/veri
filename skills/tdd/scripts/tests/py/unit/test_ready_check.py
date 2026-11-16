@@ -126,3 +126,15 @@ def test_issue_4089_the_label_bug_row_is_ok_when_it_answers_and_fails_on_404_wit
 
     assert ready_check.bug_label_row() == ("label bug", None)
     assert ready_check.bug_label_row() == ("label bug", "gh label create bug")
+
+
+ACTIONS_RUNS = "gh api repos/{owner}/{repo}/actions/runs?per_page=1"
+WITH_WORKFLOWS = {"git symbolic-ref": (0, "origin/main\n", ""), "git ls-tree": (0, ".github/workflows/ci.yml\n", "")}
+
+
+def test_issue_4089_the_actions_read_row_is_ok_when_the_runs_call_exits_0_and_fails_otherwise(ready_check, fake_processes):
+    fake_processes.answers({**WITH_WORKFLOWS, ACTIONS_RUNS: [(0, '{"workflow_runs": []}', ""), (1, "", "gh: Resource not accessible by integration (HTTP 403)\n")]})
+
+    assert ready_check.actions_read_row() == ("actions read", None)
+    name, fix = ready_check.actions_read_row()
+    assert name == "actions read" and fix and "actions: read" in fix, fix
