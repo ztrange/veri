@@ -27,12 +27,12 @@ def main(argv):
         times = full_tier_time.read_times(record)
         if argv[1] in times:
             age = full_tier_time.age(record, argv[1])
-            if age is not None and age <= max_days * 86400:
+            if age is not None and 0 <= age <= max_days * 86400:
                 print("reuse " + times[argv[1]])
                 return 0
             sys.stderr.write("baseline-full-tier: timing '%s' again: its recorded time is %s old, "
                              "VERI_FULL_TIER_MAX_AGE_DAYS=%d\n"
-                             % (argv[1], "unknown" if age is None else "%d days" % (age // 86400), max_days))
+                             % (argv[1], "unknown" if age is None or age < 0 else "%d days" % (age // 86400), max_days))
     print("run")
     return 0
 
