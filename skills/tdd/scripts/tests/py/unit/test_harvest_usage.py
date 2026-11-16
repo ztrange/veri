@@ -282,3 +282,34 @@ def test_main_harvests_a_leading_word_added_to_leaf_roles_actor_table_with_that_
     assert code == 0
     assert [(r["actor"], r["phase"], r["attempt"], r["event"]) for r in events.records()] == [
         ("planner", "scope", "2", "usage")]
+
+
+FIRST_TURN = ("first_turn_cache_creation_input_tokens", "first_turn_cache_read_input_tokens", "first_turn_input_tokens")
+
+
+def _turn(usage):
+    return json.dumps({"type": "assistant", "message": {"id": "m", "content": [], "usage": usage}}) + "\n"
+
+
+def _result_record():
+    return json.dumps({"type": "result", "duration_ms": 1, "duration_api_ms": 2, "num_turns": 3, "total_cost_usd": 0.5,
+                       "usage": {"input_tokens": 4, "cache_creation_input_tokens": 5,
+                                 "cache_read_input_tokens": 6, "output_tokens": 7}}) + "\n"
+
+
+def test_main_adds_the_first_assistant_records_cache_creation_cache_read_and_input_tokens_to_the_usage_event_lc1(
+        tmp_path, monkeypatch, harvest_usage, events):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verify-green.log").write_text(
+        json.dumps({"type": "system", "subtype": "init"}) + "\n"
+        + _turn({"input_tokens": 3, "cache_creation_input_tokens": 19700, "cache_read_input_tokens": 0})
+        + _turn({"input_tokens": 9, "cache_creation_input_tokens": 400, "cache_read_input_tokens": 19700})
+        + _result_record())
+    monkeypatch.chdir(tmp_path)
+
+    events.refuse_event_sh()
+    code = harvest_usage.main(["verify-green"])
+
+    assert (code, [{key: r.get(key) for key in FIRST_TURN} for r in events.records()]) == (0, [{
+        "first_turn_cache_creation_input_tokens": "19700", "first_turn_cache_read_input_tokens": "0",
+        "first_turn_input_tokens": "3"}])
