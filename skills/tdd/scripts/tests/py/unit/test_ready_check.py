@@ -40,6 +40,7 @@ def holding(**overrides):
         "gh api repos/{owner}/{repo}/actions/runs?per_page=1": (0, "{}", ""),
         "git rev-parse --git-common-dir": (0, ".git\n", ""),
         "git push --dry-run --no-verify origin": (0, "", ""),
+        "git config --get core.sshCommand": (1, "", ""),
     }
     table.update(overrides)
     return table
@@ -277,20 +278,28 @@ def test_issue_4089_the_new_rows_failing_make_only_rest_reads_through_gh_and_git
 
 
 PROBE_PUSH = "git push --dry-run --no-verify origin HEAD:refs/heads/veri-permission-probe-"
+SSH_CONFIG = "git config --get core.sshCommand"
+NO_SSH_CONFIG = {SSH_CONFIG: (1, "", "")}
+
+
+def push_calls(fake):
+    """(argv, kwargs) of each `git push` the fake saw."""
+    return [(argv, kwargs) for argv, kwargs in fake.seen if "push" in argv]
 
 
 def test_issue_4090_the_push_dry_run_row_is_ok_when_a_dry_run_push_to_a_probe_branch_exits_0(ready_check, fake_processes):
-    fake = fake_processes.answers({PROBE_PUSH: (0, "", "To github.com:o/r.git\n * [new branch]      HEAD -> veri-permission-probe-1a2b\n")})
+    fake = fake_processes.answers({**NO_SSH_CONFIG, PROBE_PUSH: (0, "", "To github.com:o/r.git\n * [new branch]      HEAD -> veri-permission-probe-1a2b\n")})
 
     assert ready_check.push_dry_run_row() == ("push dry-run", None)
-    assert len(fake.argvs) == 1 and re.fullmatch(r"HEAD:refs/heads/veri-permission-probe-\w+", fake.argvs[0][-1]), fake.calls
+    pushes = [argv for argv, _ in push_calls(fake)]
+    assert len(pushes) == 1 and re.fullmatch(r"HEAD:refs/heads/veri-permission-probe-\w+", pushes[0][-1]), fake.calls
 
 
 REFUSED = (128, "", "remote: Permission to o/r.git denied to someone.\nfatal: unable to access 'https://github.com/o/r.git/': The requested URL returned error: 403\n\n")
 
 
 def test_issue_4090_the_push_dry_run_row_fails_on_a_refused_dry_run_carrying_gits_last_non_empty_stderr_line(ready_check, fake_processes):
-    fake_processes.answers({PROBE_PUSH: REFUSED})
+    fake_processes.answers({**NO_SSH_CONFIG, PROBE_PUSH: REFUSED})
 
     assert ready_check.push_dry_run_row() == (
         "push dry-run", "fatal: unable to access 'https://github.com/o/r.git/': The requested URL returned error: 403")
@@ -298,10 +307,10 @@ def test_issue_4090_the_push_dry_run_row_fails_on_a_refused_dry_run_carrying_git
 
 def test_issue_4090_the_dry_run_push_runs_with_git_terminal_prompt_0_so_missing_credentials_fail_instead_of_prompting(ready_check, fake_processes, monkeypatch):
     monkeypatch.setenv("GIT_TERMINAL_PROMPT", "1")
-    fake = fake_processes.answers({PROBE_PUSH: (128, "", "fatal: could not read Username for 'https://github.com': terminal prompts disabled\n")})
+    fake = fake_processes.answers({**NO_SSH_CONFIG, PROBE_PUSH: (128, "", "fatal: could not read Username for 'https://github.com': terminal prompts disabled\n")})
 
     assert ready_check.push_dry_run_row() == ("push dry-run", "fatal: could not read Username for 'https://github.com': terminal prompts disabled")
-    (argv, kwargs), = fake.seen
+    (argv, kwargs), = push_calls(fake)
     assert (kwargs.get("env") or {}).get("GIT_TERMINAL_PROMPT") == "0", kwargs
 
 
@@ -316,7 +325,7 @@ def test_issue_4090_the_push_dry_run_row_starts_only_git_and_every_push_is_a_dry
     assert len(pushes) == 2 and all("--dry-run" in argv and "--delete" not in argv for argv in pushes), fake.calls
     assert all(re.fullmatch(r"HEAD:refs/heads/veri-permission-probe-\w+", argv[-1]) for argv in pushes), fake.calls
     assert pushes[0][-1] != pushes[1][-1], fake.calls
-    assert len(fake.argvs) == 2, fake.calls
+    assert all(argv[1] in ("push", "config") for argv in fake.argvs), fake.calls
 
 
 def test_issue_4090_every_push_the_push_dry_run_row_makes_carries_dry_run_and_no_verify_so_no_pre_push_hook_runs(ready_check, fake_processes):
@@ -329,20 +338,43 @@ def test_issue_4090_every_push_the_push_dry_run_row_makes_carries_dry_run_and_no
 
 
 def test_issue_4090_the_dry_run_push_runs_ssh_in_batch_mode_unless_git_ssh_command_is_set(ready_check, fake_processes, monkeypatch):
-    fake = fake_processes.answers({PROBE_PUSH: (0, "", "")})
+    fake = fake_processes.answers({**NO_SSH_CONFIG, PROBE_PUSH: (0, "", "")})
     monkeypatch.delenv("GIT_SSH_COMMAND", raising=False)
+    monkeypatch.delenv("GIT_SSH", raising=False)
     ready_check.push_dry_run_row()
     monkeypatch.setenv("GIT_SSH_COMMAND", "ssh -i ~/.ssh/deploy")
     ready_check.push_dry_run_row()
 
-    commands = [(kwargs.get("env") or {}).get("GIT_SSH_COMMAND") for _, kwargs in fake.seen]
+    commands = [(kwargs.get("env") or {}).get("GIT_SSH_COMMAND") for _, kwargs in push_calls(fake)]
     assert commands == ["ssh -o BatchMode=yes", "ssh -i ~/.ssh/deploy"], commands
+
+
+def test_issue_4090_the_dry_run_push_adds_no_batch_mode_ssh_command_when_git_ssh_is_set(ready_check, fake_processes, monkeypatch):
+    fake = fake_processes.answers({**NO_SSH_CONFIG, PROBE_PUSH: (0, "", "")})
+    monkeypatch.delenv("GIT_SSH_COMMAND", raising=False)
+    monkeypatch.setenv("GIT_SSH", "/usr/local/bin/my-ssh")
+
+    ready_check.push_dry_run_row()
+
+    (_, kwargs), = push_calls(fake)
+    assert "GIT_SSH_COMMAND" not in (kwargs.get("env") or {}), kwargs.get("env")
+
+
+def test_issue_4090_the_dry_run_push_adds_no_batch_mode_ssh_command_when_core_ssh_command_is_configured(ready_check, fake_processes, monkeypatch):
+    fake = fake_processes.answers({SSH_CONFIG: (0, "ssh -i ~/.ssh/deploy\n", ""), PROBE_PUSH: (0, "", "")})
+    monkeypatch.delenv("GIT_SSH_COMMAND", raising=False)
+    monkeypatch.delenv("GIT_SSH", raising=False)
+
+    ready_check.push_dry_run_row()
+
+    (_, kwargs), = push_calls(fake)
+    assert "GIT_SSH_COMMAND" not in (kwargs.get("env") or {}), kwargs.get("env")
 
 
 def test_issue_4090_a_dry_run_push_that_never_answers_fails_the_row_naming_the_veri_gh_timeout_limit(ready_check, fake_processes, monkeypatch):
     from process_fakes import HANGS
     monkeypatch.setenv("VERI_GH_TIMEOUT", "7")
-    fake = fake_processes.answers({PROBE_PUSH: HANGS})
+    fake = fake_processes.answers({**NO_SSH_CONFIG, PROBE_PUSH: HANGS})
     monkeypatch.setattr(os, "killpg", lambda group, sig: [c.send_signal(sig) for c in fake.popens if c.pid == group])
 
     name, fix = ready_check.push_dry_run_row()
