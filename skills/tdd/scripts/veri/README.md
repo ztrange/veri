@@ -314,6 +314,7 @@ The mutation record `.tdd/issue-<n>-mutations.md`: its name and its entry format
 ## pinned_scripts
 - `make_snapshot()`: a new empty snapshot directory. `write_snapshot_marker(snapshot, worktree)`: names its worktree.
 - `snapshot_gone(recorded)`, `snapshot_made_for(recorded, worktree)`: bool checks of a recorded path.
+- `snapshot_digest(snapshot)`: one `<sha256> <path>` line per file of a snapshot, sorted, the marker left out, a symlink by its target; raises on what it cannot read. `first_change(recorded, snapshot)`: the first file that differs from a recorded digest, joined to the snapshot, or `None`.
 - `make_read_only(tree)`: takes the write bits off every file and directory of a snapshot. `remove_tree(tree)`: gives the owner each directory's write bit back, then removes the tree (raises on what it cannot remove). `copy_writable(source, destination)`: the recovery copy, writable. `writable_directories(tree)`, `take_bits(path, bits)`, `change_mode(path, new_mode)`: their parts, each through a descriptor and never through a symlink.
 
 ## restart_marker
@@ -338,6 +339,7 @@ The pin files a launch records under `.tdd/` as `issue-<n>-<name>`; each pin's w
 - `write_conductor_model(root, issue, model)`, `conductor_model(issue, *roots)`: the conductor's model, read the same way.
 - `write_launch_env(root, issue, environment)`, `launch_env(issue, root)`: the `VERI_*` environment a restart relaunches with (VERI_NEW_SKILL left out); the read is `{name: value}`, `None` when the run recorded none.
 - `write_baseline_full_tier(root, issue, mode)`, `baseline_full_tier(issue, root)`: the baseline full-tier mode, `None` when unpinned.
+- `write_snapshot_digest(root, issue, digest)`, `snapshot_digest(issue, root)`: the digest of the launch's skill snapshot, as written; `None` when none was recorded, other `OSError`s raised.
 - `gitignore_seed()`: the bytes a run's `.tdd/.gitignore` is seeded with, derived from the pin suffixes the module names.
 
 ## run_records
