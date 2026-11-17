@@ -98,3 +98,26 @@ def test_exits_2_naming_its_usage_when_given_an_argument(monkeypatch, run_cli, s
     code, out, err = run_cli(stack_red, ["stack"])
 
     assert (code, out, "usage: stack-red.sh" in err) == (2, "", True)
+
+
+def on(n, head, status="completed", conclusion="failure"):
+    """Run <n> (created at second <n>) on the head commit sha(<head>)."""
+    return ("%040x" % head, "https://github.com/o/r/actions/runs/%d" % n, status, conclusion,
+            "2026-11-16T10:00:%02dZ" % n)
+
+
+@pytest.mark.parametrize("runs, expected", [
+    ([on(1, 7), on(2, 5, conclusion="success"), on(3, 7, "in_progress", None)], (0, 1)),
+    ([on(1, 7), on(2, 5, conclusion="success"), on(3, 7, conclusion="cancelled"), on(4, 7, "queued", None)], (0, 1)),
+    ([on(1, 7, conclusion="success"), on(2, 5), on(3, 7, "in_progress", None)], (3, None)),
+    ([on(1, 5, conclusion="success"), on(2, 6), on(3, 7, "in_progress", None)], (0, 2)),
+    ([on(1, 5), on(2, 6, conclusion="success"), on(3, 7, "in_progress", None)], (3, None)),
+])
+def test_a_newest_run_not_completed_is_answered_by_the_newest_completed_run_on_its_own_head_else_the_branchs(
+        monkeypatch, run_cli, stack_red, runs, expected):
+    World(monkeypatch, stack_red, runs)
+
+    code, out, err = run_cli(stack_red, [])
+
+    code_wanted, n = expected
+    assert (code, out.split()[1:2]) == (code_wanted, ["https://github.com/o/r/actions/runs/%d" % n] if n else []), err

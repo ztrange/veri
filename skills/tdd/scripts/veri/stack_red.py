@@ -32,6 +32,10 @@ def main(argv):
         print("stack-red: CI has not answered on origin/%s yet: none of the %d workflow runs read completed with a"
               " conclusion other than cancelled" % (stack, len(runs)), file=sys.stderr)
         return 3
+    newest = max((found for found in runs if found[3] != "cancelled"), key=lambda found: found[4])
+    if newest[2] != "completed":
+        # A run re-run, or a newer one still going: its own head's last answer stands while it runs, if it has one.
+        answered = [found for found in answered if found[0] == newest[0]] or answered
     head, url, _, conclusion, _ = max(answered, key=lambda found: found[4])
     if conclusion in GREEN:
         print("stack-red: CI's latest answer on origin/%s is %s (%s), not red" % (stack, conclusion, head),

@@ -8,3 +8,4 @@
 - [x] stack-red.sh is a /bin/sh shim over veri/stack_red.py; veri/README.md indexes it; a process case runs the shim ⟦criterion 5⟧
 - [x] the module names no repository, issue, branch, label, person or CI job ⟦criterion 6⟧
 - [x] SCRIPTS.md lists stack-red.sh (SC250), graded ⟦criterion 7⟧
+- [x] (amended) with the newest non-cancelled run not completed, the newest completed non-cancelled run on the same head answers, else the branch's ⟦criterion 8⟧
