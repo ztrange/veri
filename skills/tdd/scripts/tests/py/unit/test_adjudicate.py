@@ -222,7 +222,7 @@ def test_record_under_ci_conflict_on_route_rebase_prints_the_route_writes_one_ro
     ] == [{"issue": "7", "cause": "ci-conflict", "outcome": "route", "reason": "the base moved again"}]
 
 
-@pytest.mark.parametrize("cause", ["pr-ready-failed", "report-missing"])
+@pytest.mark.parametrize("cause", ["pr-ready-failed", "report-missing", "step-add-refused"])
 def test_record_writes_one_adjudicated_event_of_the_cause_for_each_of_a_retry_a_bail_and_an_unparsable_answer(
     run_cli, adjudicate, tmp_path, cause
 ):
