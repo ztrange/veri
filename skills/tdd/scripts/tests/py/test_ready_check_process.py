@@ -443,6 +443,21 @@ def test_issue_4088_ready_check_with_a_red_tier_leaves_branches_index_tree_and_w
     assert not (repo / ".tdd" / "ready-all").exists() and not (repo / ".tdd" / "ready-fast").exists()
 
 
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess in a repository on master with no origin branch, so the default branch's tip does not resolve")
+def test_issue_4088_ready_check_whose_default_tip_does_not_resolve_fails_the_tier_run_rows_and_runs_no_tier_in_the_checkout(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    _git(repo, "branch", "-m", "main", "master")
+    before, listed = _repo_state(repo), _worktrees(repo)
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    for tier in ("fast", "all"):
+        assert any(l.startswith(f"fail  {tier} tier run: no answer was obtained") for l in lines), (tier, ran.stdout, ran.stderr)
+    assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
+    assert _repo_state(repo) == before and _worktrees(repo) == listed
+    assert not (repo / ".tdd").exists()
+
+
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess in a repository whose .gitignore ignores .tdd/* and re-includes the ledger")
 def test_issue_3172_ready_check_with_tdd_contents_ignored_and_the_ledger_re_included_exits_0_with_the_tdd_row_ok(tmp_path):
     repo, env = build_ready_repo(tmp_path)
