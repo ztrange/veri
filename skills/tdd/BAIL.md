@@ -18,8 +18,10 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   refusal message → **process** failure (the runner refused the step deterministically, and
   the plumbing did not break); the bail names the refusal.
 - `unreplaced-cases` — `unreplaced-cases.sh` exited **1** a second time, after the one correction
-  leaf, naming `⟦replaces-case⟧` cases with no `REPLACES:` line (or exited **2**, no answer, which
-  bails at once with no correction) before verify-green → **process** failure.
+  leaf, naming `⟦replaces-case⟧` cases with no `REPLACES:` line — or exited **2**, no answer, on its first
+  check and the adjudication (`Read` `<base directory>/ADJUDICATE.md`) did not route it to the correction
+  leaf, or exited **2** on its second check, which bails at once — before verify-green → **process**
+  failure, keeping its cause and class after an adjudication.
 - `replaces-report-failed` → **system** failure: `wait-leaf.sh develop-replaces-report` exited 1 or 2
   (the correction leaf did not finish cleanly, a killed-stuck one included) before verify-red. The wait's
   exit 2 can be adjudicated first (`Read` `<base directory>/ADJUDICATE.md`): the bail keeps this cause and class.
