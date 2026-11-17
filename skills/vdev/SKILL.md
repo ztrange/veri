@@ -298,7 +298,7 @@ The harness may report this skill's base dir as a symlink. Resolve it first, wit
 `cd -P <base dir> && pwd` (or `realpath <base dir>`), and read every sibling skill at
 `<resolved base dir>/../<skill>/SKILL.md`, never at the path the harness reports.
 
-Run `vmerge`, `vbail` and `vjudge` each through a subagent on the cheapest model that can do
+Run `vmerge`, `vbail`, `vjudge` and `vfile` each through a subagent on the cheapest model that can do
 the job, briefed to return at most 10 lines and to read the skill at
 `<resolved base dir>/../<skill>/SKILL.md`.
 
@@ -445,9 +445,17 @@ path, vdev's session id and this section. It asks nothing the file does not ask:
 
 ## Out of scope
 
-You do not file, groom or reprioritise issues — that is the coordinator's job. You do not edit
-veri's scripts or skills: a veri fault is reported to the coordinator as facts, and becomes an
-issue there.
+You do not groom issues: grooming (`vgroom`) is the human's to run, not yours. You do not edit
+veri's scripts or skills. You file and reprioritise issues only where this skill says you do:
+
+- **A veri fault** (a script, a prompt or a skill misbehaving) a run turns up is filed through
+  `vfile` when veri's repository is the project repo. Otherwise it becomes a question (*When to
+  stop and ask*) naming the repository, file and change, and nothing is written there (P11).
+- **A bug a run in your lane turns up** is filed through `vfile` with the lane as its scope, so
+  it carries `ready-for-agent:<lane>` (plain `ready-for-agent` with no lane word). A veri defect
+  from a run on another repository is never opted in.
+- **A split or criteria rewrite `vfile` proposes** passes `vjudge` and is not shown to the human
+  first; one `vjudge` surfaces becomes a question.
 
 With a coordinator attached (see *Starting*), each event P4 lets you speak about goes to the coordinator, not to
 the human, unless you stop and ask (above).
