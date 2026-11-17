@@ -2236,3 +2236,20 @@ def test_main_renders_a_red_prompt_with_a_line_starting_setup_4117(tmp_path, cap
     out, _ = capsysbinary.readouterr()
 
     assert (code, [line for line in out.split(b"\n") if line.startswith(b"SETUP:")] != []) == (0, True)
+
+
+def test_main_asks_for_a_setup_line_in_a_revise_prompt_only_when_redoing_red_4117(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+
+    seen = {}
+    for revised in ("red", "green", "refactor"):
+        code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)])
+        lines = capsysbinary.readouterr().out.splitlines()
+        format_line = next(l for l in lines if l.startswith(b"REPORT-FORMAT revise |"))
+        seen[revised] = (code, any(l.startswith(b"SETUP:") for l in lines), b" SETUP:?" in format_line)
+
+    assert seen == {"red": (0, True, True), "green": (0, False, False), "refactor": (0, False, False)}

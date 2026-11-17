@@ -269,8 +269,8 @@ def render(parsed, chosen):
         if "RED_CASES" in splice(("NODE_ID_RULE", "RED_LEAD", "RED_CASES", "TEST_REWRITE")) and chosen.replaces_red and phase == "revise":
             values["RED_CASES"] = b"\n\n" + values["RED_CASES"]
         if phase == "revise" and revised_phase != "red":
-            text = re.sub(rb"^(?:FAIL_OUTPUT|PREDICTION_NOTE):.*\n", b"", text, flags=re.MULTILINE)
-            text = text.replace(b" PREDICTION: FAIL_OUTPUT: PREDICTION_NOTE: |", b" PREDICTION: |")
+            text = re.sub(rb"^(?:FAIL_OUTPUT|PREDICTION_NOTE|SETUP):.*\n", b"", text, flags=re.MULTILINE)
+            text = text.replace(b" PREDICTION: FAIL_OUTPUT: PREDICTION_NOTE: SETUP:? |", b" PREDICTION: |")
         splice(("WRONG_TEST_REPORT", "WRONG_TEST_FORMAT"))
         for placeholder, path in optional.items():
             values[placeholder] = _read(path)

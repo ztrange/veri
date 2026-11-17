@@ -73,12 +73,13 @@ PREDICTED_FAILURE: <redoing red only — the assertion the rewritten test was pr
 PREDICTION: MATCHED | DIVERGED — <redoing red only, so omit this line entirely otherwise. MATCHED when the same assertion fired on the same observed and expected values, whatever the message text; DIVERGED only for a different assertion, different values, or a different kind of failure (an error instead of an assertion failure, or a pass). A message-text-only difference is MATCHED>
 FAIL_OUTPUT: <redoing red only — the failure line the run printed; omit this line entirely otherwise>
 PREDICTION_NOTE: <redoing red only, and only on DIVERGED — what actually happened and why it could not be reconciled; omit this line entirely otherwise>
+SETUP: <count> | <what> — <redoing red only: <count> the number of stubs, fakes, spies and fixtures the rewritten case needs beyond the code under test (0 when none), <what> naming them (`none` when 0); omit this line entirely otherwise>
 
 or, when the green you are redoing is a step too big for one, those lines replaced by one
 to three of:
 
 SPLIT: <a behaviour-level criterion, one per line, in the order they must be built>{{WRONG_TEST_REPORT}}
 
-REPORT-FORMAT revise | keys OUTCOME: AGAINST_UNMODIFIED: PREDICTED_FAILURE: PREDICTION: FAIL_OUTPUT: PREDICTION_NOTE: | suite exempt: the redone phase may be red, where the suite is meant to fail
+REPORT-FORMAT revise | keys OUTCOME: AGAINST_UNMODIFIED: PREDICTED_FAILURE: PREDICTION: FAIL_OUTPUT: PREDICTION_NOTE: SETUP:? | suite exempt: the redone phase may be red, where the suite is meant to fail
 
 REPORT-FORMAT revise-split | keys SPLIT: | suite exempt: a too-big step changes no code and runs no suite{{WRONG_TEST_FORMAT}}
