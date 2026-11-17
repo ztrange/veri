@@ -61,3 +61,24 @@ def test_record_refuses_a_missing_verb_or_issue_number_with_exit_2(run_cli, test
                for argv in ([], ["record"], ["record", "x"], ["list", "7"])]
 
     assert (answers, (worktree / ".tdd" / "issue-7-test-quality.md").exists()) == ([2, 2, 2, 2], False)
+
+
+def test_files_prints_the_test_files_the_range_names_that_still_exist_and_exits_0(run_cli, test_quality, worktree,
+                                                                                  fake_processes):
+    (worktree / "src").mkdir()
+    (worktree / "src" / "adder.py").write_text("def add(a, b):\n    return a + b\n")
+    fake = fake_processes.answers(
+        {"git diff --name-only": (0, "src/adder.py\ntests/test_alpha.py\ntests/test_gone.py\n", "")})
+
+    code, out, err = run_cli(test_quality, ["files", "abc1234"], cwd=str(worktree))
+
+    assert (code, out, err, fake.calls) == (0, "tests/test_alpha.py\n", "", ["git diff --name-only abc1234..HEAD"])
+
+
+def test_files_exits_3_when_the_range_names_no_test_file_and_2_when_git_cannot_answer(run_cli, test_quality, worktree,
+                                                                                      fake_processes):
+    fake_processes.answers({"git diff --name-only": [(0, "src/adder.py\n", ""), (128, "", "fatal: bad revision\n")]})
+
+    answers = [run_cli(test_quality, ["files", "abc1234"], cwd=str(worktree))[:2] for _ in range(2)]
+
+    assert answers == [(3, ""), (2, "")]
