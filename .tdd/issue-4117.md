@@ -13,7 +13,7 @@
 - [x] `red-setup.sh worst` run a second time replaces its own row rather than adding one ⟦criterion 6⟧
 - [x] `refactor-candidates.sh` lists a `testability` row and `refactor-owed.sh list` does not print it ⟦criterion 7⟧
 - [x] `VERI_SETUP_THRESHOLD` is a `TUNABLES` entry, a whole number, default 3, and any other value makes `red-setup.sh worst` exit 2 with one stderr line naming the knob ⟦criterion 8⟧
-- [ ] the row `red-setup.sh worst` records carries no local path, host or account name
+- [x] the row `red-setup.sh worst` records carries no local path, host or account name
 - [ ] `red-setup.sh` run as a script records a Red's count and the worst step end to end
 - [ ] no verifier prompt names `SETUP:` and `build-verify-prompt.sh` gains no input ⟦diff-checked⟧ ⟦criterion 9⟧
 - [x] `JOURNAL.md` has a `red-setup` row held by the journal roster cases ⟦full-suite⟧ ⟦criterion 10⟧

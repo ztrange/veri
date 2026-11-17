@@ -1,5 +1,6 @@
 """red-setup.sh's record and worst, run in-process: the setup a verified Red's case needed, and the run's worst step."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import re
 import sys
 
@@ -10,6 +11,7 @@ import ledger
 import ledger_steps
 import refactor_owed
 import run_dir
+import run_records
 import tunables
 from report import report_read
 
@@ -68,7 +70,9 @@ def worst(n, owed):
         sys.stderr.write("red-setup: cannot rewrite %s: %s\n" % (owed, error.strerror))
         return 2
     # not_done's 1 is a failed write, which it names on stderr: no answer, not a clean negative.
-    return 2 if refactor_owed.not_done(owed, "%s: %d stubs and setup (%s)" % (step, count, what), REASON) else 0
+    # The row reaches the candidates issue: the leaf's own words may name a local path, the host or the account.
+    row = run_records.redact_local("%s: %d stubs and setup (%s)" % (step, count, what), os.getcwd())
+    return 2 if refactor_owed.not_done(owed, row, REASON) else 0
 
 
 def drop_own_row(owed):
