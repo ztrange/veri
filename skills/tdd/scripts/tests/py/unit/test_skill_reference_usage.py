@@ -42,9 +42,13 @@ def invocations(name, block):
 
 
 def problems(scripts, skill):
-    found = []
+    """A script with several entries (`ledger-growth.sh split` has one of its own, #4251) is read against their
+    synopses joined: a verb or flag any of its entries names is named."""
+    found, joined = [], {}
     for synopsis in synopses(skill):
         name = synopsis.split(" ")[0]
+        joined[name] = joined[name] + " " + synopsis if name in joined else synopsis
+    for name, synopsis in joined.items():
         script = scripts / name
         if not script.is_file():
             continue
@@ -86,6 +90,17 @@ def test_a_first_line_flag_and_a_missing_literal_or_alternative_verb_are_each_na
         "exp-verb.sh: --quick is in its usage line, not in SKILL.md's entry",
         "exp-verb.sh: reset is a verb in its usage line, not in SKILL.md's entry",
         "exp-verb.sh: stop is a verb in its usage line, not in SKILL.md's entry"]
+
+
+def test_4251_a_script_with_two_entries_is_read_against_both_and_a_verb_in_neither_is_still_named(tmp_path):
+    """Subject is source text: a scratch catalogue giving one script two entries, never the real one."""
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "exp-split.sh").write_text(
+        "#!/bin/sh\n# usage: exp-split.sh <a> <b> | plan-sha | split <file> | reset\n")
+    skill = tmp_path / "SCRIPTS.md"
+    skill.write_text("- `$S/exp-split.sh <a> <b> | plan-sha` — the check.\n- `$S/exp-split.sh split <file>` — the report.\n")
+    assert problems(scripts, skill) == ["exp-split.sh: reset is a verb in its usage line, not in SKILL.md's entry"]
 
 
 def test_skill_md_points_at_scripts_md_and_carries_no_catalogue_entry_and_scripts_md_keeps_every_moved_entry_1715():
