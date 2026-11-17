@@ -99,3 +99,22 @@ def test_4016_a_heading_units_text_is_its_own_text_up_to_the_next_unfenced_headi
     text = grade_prose.unit_text(str(tmp_path / "unit.md") + "#Two words, 100% sure")
 
     assert text == "## Two words, 100% sure\nown\n```\n# fenced\n```\nstill own\n"
+
+
+@pytest.mark.parametrize("prose, count", [
+    ("# Unit\nintro\n## Other\nelse\n", 0),
+    ("# Unit\n```\n## Two words, 100% sure\n```\n## Other\nelse\n", 0),
+    ("# Unit\n## Two words, 100% sure\none\n### Two words, 100% sure\ntwo\n", 2),
+])
+@pytest.mark.parametrize("script", ["grade_prose", "prose_owed"])
+def test_4016_grade_prose_and_prose_owed_exit_2_naming_the_unit_and_the_count_when_a_heading_units_heading_matches_no_heading_or_several(
+        prose, count, script, tmp_path, monkeypatch, run_cli, grade_prose):
+    heading_tree(tmp_path)
+    (tmp_path / "unit.md").write_text(prose)
+    monkeypatch.chdir(tmp_path)
+    module = importlib.import_module("veri." + script)
+    argv = ["REQUIREMENTS.md", HEADING_UNIT] if script == "grade_prose" else [str(tmp_path)]
+
+    code, out, err = run_cli(module, argv, cwd=tmp_path)
+
+    assert (code, HEADING_UNIT in err, "matches %d unfenced heading" % count in err) == (2, True, True), (code, out, err)

@@ -53,20 +53,37 @@ def prompt(unit, text, claims):
     return "%s\n\nUnit: %s\n\n%s\n\nRequirements:\n%s" % (GRADER_INSTRUCTIONS, unit, text, rows)
 
 
+class HeadingCount(ValueError):
+    """A heading unit's heading matches `count` unfenced heading lines of its file, not exactly one."""
+
+    def __init__(self, count):
+        super().__init__(count)
+        self.count = count
+
+
 def section(text, heading):
+    """`heading`'s own text in `text`: its unfenced heading line up to the next unfenced heading line of any level.
+    HeadingCount when the heading matches no unfenced heading line, or more than one."""
     lines = text.split("\n")
     if lines[-1] == "":
         lines.pop()
     flat = "\n".join(" ".join(line.splitlines()) for line in lines)
-    for index, (line, fenced) in enumerate(zip(flat.split("\n"), markdown_sections.fenced_lines(flat))):
-        hashes = len(line) - len(line.lstrip("#"))
-        if not fenced and hashes and line[hashes:].strip() == heading:
-            body = markdown_sections.section(flat, line, bare=True, own=True)
-            joined = "".join(l + "\n" for l in lines[index:index + len(body)])
-            if not text.endswith("\n") and index + len(body) == len(lines):
-                return joined.removesuffix("\n")
-            return joined
-    return ""
+    found = [(index, line) for index, (line, fenced) in enumerate(zip(flat.split("\n"), markdown_sections.fenced_lines(flat)))
+             if not fenced and heading_text(line) == heading]
+    if len(found) != 1:
+        raise HeadingCount(len(found))
+    index, line = found[0]
+    body = markdown_sections.section(flat, line, bare=True, own=True)
+    joined = "".join(l + "\n" for l in lines[index:index + len(body)])
+    if not text.endswith("\n") and index + len(body) == len(lines):
+        return joined.removesuffix("\n")
+    return joined
+
+
+def heading_text(line):
+    """The heading a line of hashes names, None when the line is no heading line."""
+    hashes = len(line) - len(line.lstrip("#"))
+    return line[hashes:].strip() if hashes else None
 
 
 def modern_python_dir():
@@ -106,9 +123,16 @@ def read(file):
 
 
 def unit_text(unit, reader=None):
+    """`unit`'s text: a whole-file unit's file, a `file#heading` unit's own text (ValueError naming the unit and the
+    count when its heading matches no unfenced heading line of its file, or more than one)."""
     file, _, heading = unit.partition("#")
     text = (reader or read)(file)
-    return section(text, heading) if heading else text
+    if not heading:
+        return text
+    try:
+        return section(text, heading)
+    except HeadingCount as e:
+        raise ValueError("%s: its heading matches %d unfenced heading lines of %s, not one" % (unit, e.count, file))
 
 
 def signature(path, unit, text=None):
@@ -315,7 +339,11 @@ def grade_unit(path, unit, read=None):
     if effort is not None and effort not in EFFORTS:
         print("grade-prose.sh: grader.conf effort %r is not one of %s" % (effort, ", ".join(EFFORTS)), file=sys.stderr)
         return Grading(2)
-    text = unit_text(unit, read)
+    try:
+        text = unit_text(unit, read)
+    except ValueError as e:
+        print("grade-prose.sh: %s" % e, file=sys.stderr)
+        return Grading(2)
     claims = requirements.claims(path, unit)
     if not claims.strip():
         return no_verdict("%s has no requirements list for %s" % (path, unit))
