@@ -494,8 +494,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    A `pr-ready-failed`, `ci-timeout`, `ci-conflict` or `ci-red` bail ends the step there, and neither the `done` mark nor the
    `metrics:` commit below follows it (`Read` `<base directory>/BAIL.md`). Otherwise:
    ```
-   # Only under VERI_BRANCH_SUITE=ci when no ⟦full-suite⟧ line was ticked before pr-ready.sh, and only when .tdd/wait-ci.err does not say `has no checks`
-   # (CI's green run is the proof): tick each ⟦full-suite⟧ line and its issue criterion as the ⟦full-suite⟧ paragraph above describes, then
+   # Only under VERI_BRANCH_SUITE=ci (the mode $S/branch-suite.sh printed) when no ⟦full-suite⟧ line was ticked before pr-ready.sh, and only when .tdd/wait-ci.err does not say `has no checks`
+   # (CI's green run is the proof): tick each ⟦full-suite⟧ line with $S/tick-ledger.sh and its issue criterion with $S/tick-issue-criterion.sh as the ⟦full-suite⟧ paragraph above describes, then
    #   git add .tdd/issue-<n>.md && git commit -m "plan: the full suite is green on CI (#<n>)"      # only when a line was ticked: with none there is nothing to commit
    # In every other case skip this: the lines were ticked before readying, or nothing proved them.
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>

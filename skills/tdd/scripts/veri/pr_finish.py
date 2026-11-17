@@ -21,6 +21,11 @@ FULL_SUITE = "⟦full-suite⟧"
 REFACTOR_OWED = ".tdd/issue-%s-refactor-owed.md"
 RENDER = ".tdd/issue-%s-refactor-owed-render"
 
+# The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_pr_finish.py fails
+# when one is a script DRAFT-PR.md sub-step 2's second block does not name (FC19).
+CALLS = ("branch-suite.sh", "tick-ledger.sh", "ledger-steps.sh", "tick-issue-criterion.sh", "event.sh", "metrics.sh",
+         "push-branch.sh", "wait-ci.sh", "refactor-owed.sh")
+
 
 def main(argv):
     return fused.entry(argv, NAME + ".sh", run)
