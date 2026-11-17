@@ -36,11 +36,13 @@ def main(argv):
 
 
 def run(n, settled):
-    """Step 1's sub-steps 2-4 in the worktree preflight settled, in their order."""
+    """Step 1's sub-steps 2-5 in the worktree preflight settled, in their order; 0 with .tdd/issue-<n>-run-start
+    written and its lines printed last (ST3), else a Stop."""
     wt = settled["worktree"]
     fused.checked("1.2", fused.script("leaf-timeout.sh"), settled["baseline"], "--full", settled["full"], cwd=wt,
                   env=tunables.with_values(VERI_ISSUE=n))
-    fused.checked("1.3", fused.script("capture-spec.sh"), n, cwd=wt, into=os.path.join(".tdd", "issue-%s-spec.md" % n))
+    spec = os.path.join(".tdd", "issue-%s-spec.md" % n)
+    fused.checked("1.3", fused.script("capture-spec.sh"), n, cwd=wt, into=spec)
     ignored = fused.checked("1.4", fused.script("ensure-run-state-ignored.sh"), cwd=wt).strip()
     if ignored == "added":
         listed = fused.checked("1.4", "git", "status", "--porcelain", cwd=wt).splitlines()
@@ -49,12 +51,15 @@ def run(n, settled):
         fused.checked("1.4", "git", "add", ".gitignore", cwd=wt)
         fused.checked("1.4", "git", "commit", "-m", "chore: ignore veri run state (#%s)" % n, cwd=wt)
     ledger = os.path.join(".tdd", "issue-%s.md" % n)
-    if os.path.exists(os.path.join(wt, ledger)):
+    resume = os.path.exists(os.path.join(wt, ledger))
+    lines = ["run=" + ("resume" if resume else "fresh"), "spec=" + spec,
+             "timeout_recorded=" + os.path.join(".tdd", "issue-%s-timeout" % n), "gitignore=" + ignored]
+    if resume:
         code = fused.call(fused.script("plan-reverify.sh"), ledger, cwd=wt)[0]
         if code not in (0, 3):
             raise fused.Stop("1.5", "plan-reverify.sh %s exit %d" % (ledger, code), code)
-        sys.stdout.write("verify_plan=%s\n" % ("owed" if code == 0 else "skip"))
-    return 0
+        lines.append("verify_plan=" + ("owed" if code == 0 else "skip"))
+    return fused.settle(wt, n, "run-start", lines)
 
 
 if __name__ == "__main__":
