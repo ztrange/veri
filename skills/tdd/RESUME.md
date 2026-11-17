@@ -90,8 +90,8 @@ default branch, whatever the previous bail's cause — saves the branch-red list
    with `add-ledger-step.sh --planned --criterion k`, one call per criterion, committed as a
    `plan:` commit before the cycle loop with `git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md`,
    so the insertion records travel with the ledger. Those steps are planned steps, not `⟦added⟧` growth,
-   and do not count against `VERI_STEP_GROWTH`. Every other insertion during the resume omits
-   --planned, stays `⟦added⟧` and counts. A conductor never sets or raises `VERI_STEP_GROWTH`,
+   and do not count against `VERI_STEP_GROWTH_PERCENT`. Every other insertion during the resume omits
+   --planned, stays `⟦added⟧` and counts. A conductor never sets or raises `VERI_STEP_GROWTH_PERCENT`,
    `REVISE_BUDGET`, `VERI_REFACTOR_BUDGET`, `VERI_STUCK_RETRIES` or `VERI_NO_VERDICT_RETRIES`
    mid-run, in its environment or in a scratch helper, and a budget it cannot fit inside is a bail.
 4. Post a `### ▶️ Resuming` comment by running `$S/comment.sh <n> resuming --note-file <path>`, naming that step and, when `$stray` is non-empty, the
