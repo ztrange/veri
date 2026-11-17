@@ -55,7 +55,7 @@ def ci_wait(wt, n, owner, url):
     """`wait-ci.sh <pr-url> 540 "" <head>` into .tdd/wait-ci.out and .tdd/wait-ci.err (RC3, MC4): exit 3 raises
     Waiting, <owner>'s wait record kept; else the record is removed, 1 and 2 stop it, and an exit 0 with a non-empty
     .tdd/ci-flake.out stops it with exit 1, so the block writes the `ci-flake` event."""
-    head = fused.checked(WHERE, "git", "rev-parse", "HEAD", cwd=wt).strip()
+    head = answered(WHERE, "git", "rev-parse", "HEAD", cwd=wt).strip()
     waited = (fused.script("wait-ci.sh"), url, "540", "", head)
     files = {"out": ".tdd/wait-ci.out", "err": ".tdd/wait-ci.err"}
     code = fused.call(*waited, cwd=wt, **files)[0]
@@ -70,9 +70,9 @@ def ci_wait(wt, n, owner, url):
 
 def pr_url(wt):
     """The PR url read as sub-step 2 reads it (RC1); an empty answer stops it with exit 2."""
-    branch = fused.checked(WHERE, "git", "branch", "--show-current", cwd=wt).strip()
-    url = plan_publish.gh(WHERE, "api", "repos/{owner}/{repo}/pulls?head={owner}:%s" % branch, "-q",
-                          ".[0].html_url // empty", wt=wt).strip()
+    branch = answered(WHERE, "git", "branch", "--show-current", cwd=wt).strip()
+    url = gh_answered(WHERE, "api", "repos/{owner}/{repo}/pulls?head={owner}:%s" % branch, "-q",
+                      ".[0].html_url // empty", wt=wt).strip()
     if not url:
         raise fused.Stop(WHERE, "no PR for " + branch, 2)
     return url
@@ -81,12 +81,38 @@ def pr_url(wt):
 def ready(wt):
     """The PR url (RC1), the tree check (RC4, D10), then pr-ready.sh on the head (RC2): {"pr_url", "pr_number"}."""
     url = pr_url(wt)
-    if fused.changed_paths(WHERE, wt):
+    if dirty(WHERE, wt):
         raise fused.Stop(WHERE, "tree-check", 1)
     number = url.rstrip("/").rsplit("/", 1)[-1]
-    head = fused.checked(WHERE, "git", "rev-parse", "HEAD", cwd=wt).strip()
+    head = answered(WHERE, "git", "rev-parse", "HEAD", cwd=wt).strip()
     fused.checked(WHERE, fused.script("pr-ready.sh"), number, head, cwd=wt, err=".tdd/pr-ready.err")
     return {"pr_url": url, "pr_number": number}
+
+
+def answered(where, *args, **kw):
+    """fused.checked, a nonzero exit stopping it with exit 2: a git call that fails gave no answer, never a clean
+    negative (pr_prepare.answered's rule)."""
+    try:
+        return fused.checked(where, *args, **kw)
+    except fused.Stop as stop:
+        raise fused.Stop(stop.where, stop.what, 2)
+
+
+def gh_answered(where, *args, wt):
+    """plan_publish.gh, any failing exit (1, 4, a timeout's 124) stopping it with exit 2: GitHub gave no answer."""
+    try:
+        return plan_publish.gh(where, *args, wt=wt)
+    except fused.Stop as stop:
+        raise fused.Stop(stop.where, stop.what, 2)
+
+
+def dirty(where, wt, left=()):
+    """The paths `git status --porcelain --untracked-files=all` lists but <left>; a failing status is exit 2."""
+    try:
+        listed = fused.changed_paths(where, wt)
+    except fused.Stop as stop:
+        raise fused.Stop(stop.where, stop.what, 2)
+    return set(listed) - set(left)
 
 
 def said(wt, path, absent=""):

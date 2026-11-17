@@ -83,6 +83,41 @@ def test_4032_a_stacked_run_is_refused_with_exit_2_before_any_inner_call(ready):
     assert "stacked" in err and ".tdd/issue-12-base" in err
 
 
+class Failing(Fake):
+    """Fake, but the first call <hit> takes (base, args) to exits <code>."""
+
+    def __init__(self, hit, code):
+        super().__init__()
+        self.hit, self.code = hit, code
+
+    def __call__(self, name, *args, **kw):
+        if self.hit(os.path.basename(name), args):
+            self.hit = lambda *_: False
+            self.calls.append((os.path.basename(name), args, kw.get("cwd"), kw.get("env"), kw))
+            return self.code, "", "boom\n"
+        return super().__call__(name, *args, **kw)
+
+
+@pytest.mark.parametrize("hit, code", [
+    (lambda b, a: b == "git" and a[:1] == ("branch",), 128), (lambda b, a: b == "gh", 1),
+    (lambda b, a: b == "gh", 4), (lambda b, a: b == "git" and a[:1] == ("status",), 128),
+    (lambda b, a: b == "git" and a[:1] == ("rev-parse",), 128)],
+    ids=["git branch", "gh url read exit 1", "gh url read exit 4", "git status", "git rev-parse"])
+def test_4032_a_git_or_gh_call_that_fails_is_no_answer_exit_2(ready, hit, code):
+    out_code, out, err, fake = ready(fake=Failing(hit, code))
+
+    assert (out_code, out.splitlines()[-1].startswith("stopped at 2 ")) == (2, True)
+    assert "pr-ready.sh" not in fake.names()
+
+
+def test_4032_the_wait_s_head_read_failing_is_no_answer_exit_2(ready):
+    seen = []
+    code, out, err, fake = ready(fake=Failing(lambda b, a: b == "git" and a[:1] == ("rev-parse",) and seen.append(1)
+                                              is None and len(seen) == 2, 128))
+
+    assert (code, fake.names()[-1], "wait-ci.sh" in fake.names()) == (2, "git", False)
+
+
 def _flow(fake):
     return [(c[0], c[1]) for c in fake.calls if c[0] != "gh"]
 

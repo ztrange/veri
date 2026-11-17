@@ -87,6 +87,14 @@ def test_4034_a_dirty_tree_just_before_the_comment_stops_it_with_exit_1_and_no_c
     assert "comment.sh" not in fake.names()
 
 
+@pytest.mark.parametrize("code", [128, 1], ids=["git status exit 128", "git status exit 1"])
+def test_4034_a_git_status_that_fails_is_no_answer_exit_2_and_no_comment(done, code):
+    out_code, out, err, fake = done(answers={("git", "status"): (code, "")})
+
+    assert (out_code, out.splitlines()[-1].startswith("stopped at 4 ")) == (2, True)
+    assert "comment.sh" not in fake.names()
+
+
 def test_4034_a_comment_with_no_answer_stops_it_with_exit_2_before_any_clear(done):
     code, out, err, fake = done(answers={("stop-requested.sh", None): (0, "now\n"), ("comment.sh", None): (2, "")})
 
