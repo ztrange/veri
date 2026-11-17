@@ -152,7 +152,7 @@ def _say(message):
 
 
 def _checked(n, red):
-    """Every check before the push, with the lock held: (stack, onto, head). Refused or NoAnswer when one fails;
+    """The checks of the stack and the fix's commits, with the lock held: (stack, default, onto, head). Refused or NoAnswer when one fails;
     _NotRed when stack-red.sh exits 3."""
     code, said = _script("stack-red.sh", limit=NETWORK)
     if code == 3:
@@ -178,7 +178,7 @@ def _checked(n, red):
             raise Refused("%s (%s) on origin/%s already carries a %s: trailer for issue %s: one fix per culprit;"
                           " nothing pushed" % (commit, subject, stack, TRAILER, n))
     _bounds(n, red, stack, onto, head)
-    return stack, onto, head
+    return stack, default, onto, head
 
 
 def _bounds(n, red, stack, onto, head):
@@ -321,7 +321,7 @@ def main(argv):
     if code:
         return entry.refuse("taking the merge lock failed (exit %d); nothing pushed" % code, prefix="stack-fix: ")
     try:
-        stack, onto, head = _checked(n, red)
+        stack, default, onto, head = _checked(n, red)
         _no_test_moved(onto, head, cases)
         if _dirty().strip():
             raise Refused("the fix worktree has uncommitted changes, so a run there would not test HEAD; nothing"
@@ -341,7 +341,33 @@ def main(argv):
         if released:
             _say("releasing the merge lock failed (exit %d)" % released)
     sys.stdout.write(head + "\n")
+    body = "stack-fix: the hand fix for issue %s is pushed on %s at %s, on top of the red commit %s.\n\nCases fixed:\n%s" % (
+        n, stack, head, red, "".join("- %s\n" % case for case in cases))
+    comment(stack, default, n, body, "stack-fix")
     return 0
+
+
+def comment(stack, default, issue, body, name):
+    """Add <body> once to the stack's one open tracking pull request and once to issue <issue>, after a push: a
+    tracking pull request it cannot tell (none open, or several) or a comment that fails is said on stderr, prefixed
+    <name>, and never changes the exit, since the push already landed."""
+    try:
+        pulls = github.stack_pulls(stack, default)
+    except github.NoAnswer as no:
+        pulls = None
+        print("%s: the tracking pull request could not be read (%s); no comment posted there" % (
+            name, " ".join(str(no.detail or no.answer).split())[:200]), file=sys.stderr)
+    targets = []
+    if pulls is not None and len(pulls) != 1:
+        print("%s: %d open pull requests track %s; no comment posted there" % (name, len(pulls), stack), file=sys.stderr)
+    elif pulls:
+        targets.append(pulls[0].number)
+    for number in targets + [int(issue)]:
+        try:
+            github.gh_comment_post(number, body)
+        except github.NoAnswer as no:
+            print("%s: the comment on #%s failed (%s); the push stands" % (
+                name, number, " ".join(str(no.detail or no.answer).split())[:200]), file=sys.stderr)
 
 
 if __name__ == "__main__":

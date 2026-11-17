@@ -346,6 +346,39 @@ def test_every_exit_1_or_2_after_the_lock_pushes_nothing_frees_the_lock_and_keep
         True, [], ("merge-lock.sh", "take"), ("merge-lock.sh", "release"), []), err
 
 
+def test_after_the_push_it_comments_once_on_the_tracking_pull_request_and_once_on_issue_n_naming_red_pushed_and_cases(
+        monkeypatch, run_cli, fix, tmp_path):
+    world = World(monkeypatch, fix, tmp_path)
+
+    code, _, err = run_cli(fix, world.argv())
+
+    assert (code, [number for number, _ in world.posted]) == (0, [5, 12]), err
+    for _, body in world.posted:
+        assert (RED in body, HEAD in body, CASE in body, TOP in body, "/repo" in body) == (True, True, True, False, False)
+
+
+@pytest.mark.parametrize("pulls, fails", [(0, False), (2, False), (1, True)])
+def test_a_tracking_pull_request_it_cannot_tell_or_a_comment_that_fails_is_said_on_stderr_the_push_still_exit_0(
+        monkeypatch, run_cli, fix, tmp_path, pulls, fails):
+    world = World(monkeypatch, fix, tmp_path, pulls=pulls)
+    if fails:
+        def refuse(number, body):
+            raise fix.github.NoAnswer("", "HTTP 502")
+        monkeypatch.setattr(fix.github, "gh_comment_post", refuse)
+
+    code, out, err = run_cli(fix, world.argv())
+
+    assert (code, out, [number for number, _ in world.posted], "comment" in err) == (0, HEAD + "\n", [] if fails else [12], True), err
+
+
+def test_nothing_is_commented_when_nothing_is_pushed(monkeypatch, run_cli, fix, tmp_path):
+    world = World(monkeypatch, fix, tmp_path, fast=(1, ""))
+
+    run_cli(fix, world.argv())
+
+    assert world.posted == []
+
+
 @pytest.mark.parametrize("push, origin_after, code", [
     (1, sha(20), 1),
     (1, ONTO, 2),
