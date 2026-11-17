@@ -186,6 +186,26 @@ def test_4024_it_posts_no_comment_on_either_path(start, ledger):
     assert not [c for c in fake.calls if c[0] == "gh"]
 
 
+def _section(text, heading, following):
+    return text[text.index(heading):text.index(following)]
+
+
+def test_4024_every_inner_call_in_the_ordered_list_is_a_script_skill_md_step_1_names():
+    from pathlib import Path
+    run_start = importlib.import_module("veri.run_start")
+    skill = (Path(run_start.__file__).resolve().parents[2] / "SKILL.md").read_text()
+    step_1 = _section(skill, "### 1. Read the issue", "### 2. Scope & plan")
+
+    assert [name for name in run_start.CALLS if "$S/" + name not in step_1] == []
+
+
+def test_4024_a_resume_makes_the_calls_of_the_ordered_list_in_its_order(start):
+    run_start = importlib.import_module("veri.run_start")
+    code, out, err, fake = start(ledger=True)
+
+    assert [name for name in fake.names() if name != "git"] == list(run_start.CALLS)
+
+
 def test_4024_a_stop_handles_no_refusal_resets_nothing_and_writes_no_bail(start):
     code, out, err, fake = start(answers={("capture-spec.sh", None): (2, "")})
 

@@ -10,6 +10,10 @@ import tunables
 
 USAGE = "usage: run-start.sh <n>"
 
+# The $S/ scripts this call makes, in its order (git aside); unit/test_run_start.py fails when one is a script SKILL.md
+# step 1 does not name (FC19).
+CALLS = ("leaf-timeout.sh", "capture-spec.sh", "ensure-run-state-ignored.sh", "plan-reverify.sh")
+
 
 def preflight_file(n):
     """The settled file preflight.sh wrote for issue <n>: in its worktree under the main tree this is called from, or
