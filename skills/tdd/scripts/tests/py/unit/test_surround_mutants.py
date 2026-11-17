@@ -41,6 +41,7 @@ def test_main_runs_every_mutant_row_of_both_reports_through_mutation_probe_and_p
     code, out, _ = run_cli(surround_mutants, [*reports(tmp_path), "--", *COMMAND],
                            env={"VERI_SURROUND_MUTANTS": "1"})
 
+    assert code == 2
     assert [line.rsplit(" ", 1)[1] for line in out.splitlines()] == ["red", "survived", "no-answer"]
     assert [argv[1:4] for argv in probes.argvs] == [
         ["src/parse.py", "return tree", "return None"], ["src/parse.py", "if strict:", "if not strict:"],
