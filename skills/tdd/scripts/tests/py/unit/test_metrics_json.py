@@ -285,3 +285,15 @@ def test_4223_a_phase_entry_counts_its_verified_steps_those_passed_first_try_and
     green = as_json(metrics, capsys)["phases"]["green"]
 
     assert (green["verified_steps"], green["first_try_pass"], green["revise_cycles"]) == (2, 1, 2)
+
+
+def test_4223_a_journal_with_no_revise_event_folds_with_every_revise_cycles_0(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [mark(100, "launch", "red", "one", name="develop-red", cmd="c", model=""),
+                         verdict(110, "one", "REJECT", phase="red"),
+                         mark(200, "launch", "green", "one", name="develop-green", cmd="c", model=""),
+                         verdict(210, "one", "PASS")])
+    monkeypatch.chdir(tmp_path)
+
+    phases = as_json(metrics, capsys)["phases"]
+
+    assert {phase: entry["revise_cycles"] for phase, entry in phases.items()} == {"red": 0, "green": 0}
