@@ -8,6 +8,7 @@ import github
 import markdown_sections
 
 USAGE = "usage: record-answer.sh <issue-number> <question-file>\n"
+LIMIT = 2000  # characters of the question kept, and of an answer accepted
 
 
 def under(text, heading, level):
@@ -27,19 +28,70 @@ def under(text, heading, level):
     return "\n".join(body).strip()
 
 
+def read(path):
+    """The question file's text; (None, why) when it cannot be read as UTF-8 text."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read(), None
+    except OSError as e:
+        return None, e.strerror or str(e)
+    except UnicodeDecodeError as e:
+        return None, "not UTF-8 text (byte %d: %s)" % (e.start, e.reason)
+
+
 def body_of(text):
-    return "Question: %s\n\nOwner's answer: %s" % (under(text, "#### Question", 4), under(text, "## Answer", 2))
+    """(the comment body, None), or (None, why) when the file lacks a heading, its answer is empty or over LIMIT. The
+    question is cut at LIMIT characters with `…`: the park comment already holds it whole."""
+    question, answer = under(text, "#### Question", 4), under(text, "## Answer", 2)
+    if question is None:
+        return None, "has no #### Question heading"
+    if answer is None:
+        return None, "has no ## Answer heading"
+    if not answer:
+        return None, "has an empty answer"
+    if len(answer) > LIMIT:
+        return None, "has an answer of %d characters, over %d" % (len(answer), LIMIT)
+    if len(question) > LIMIT:
+        question = question[:LIMIT] + "…"
+    return "Question: %s\n\nOwner's answer: %s" % (question, answer), None
+
+
+def comments_of(number):
+    """Issue <number>'s comments; None when gh gave no answer or the answer is not comment records with a text body."""
+    try:
+        comments = github.issue_comments(number)
+    except github.NoAnswer:
+        return None
+    if not (isinstance(comments, list) and all(isinstance(c, dict) and isinstance(c.get("body"), str) for c in comments)):
+        return None
+    return comments
 
 
 def main(argv):
+    if len(argv) != 2 or not re.fullmatch(r"[1-9][0-9]*", argv[0]):
+        sys.stderr.write(USAGE)
+        return 2
     number, path = argv
-    with open(path, encoding="utf-8") as f:
-        body = body_of(f.read())
-    comments = github.issue_comments(number)
+    text, why = read(path)
+    if text is None:
+        sys.stderr.write("record-answer.sh: cannot read the question file %s: %s\n" % (path, why))
+        return 2
+    body, why = body_of(text)
+    if body is None:
+        sys.stderr.write("record-answer.sh: the question file %s %s\n" % (path, why))
+        return 2
+    comments = comments_of(number)
+    if comments is None:
+        sys.stderr.write("record-answer.sh: no answer from gh reading the comments of issue #%s\n" % number)
+        return 2
     if any(github.trusted_comment(c) and c["body"].strip() == body.strip() for c in comments):
         sys.stderr.write("record-answer.sh: issue #%s already has this answer\n" % number)
         return 3
-    github.gh_comment_post(number, body)
+    try:
+        github.gh_comment_post(number, body)
+    except github.NoAnswer:
+        sys.stderr.write("record-answer.sh: no answer from gh posting the answer on issue #%s\n" % number)
+        return 2
     return 0
 
 
