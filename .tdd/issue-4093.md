@@ -7,5 +7,5 @@
 - [x] the check's version is a constant in `ready_check.py`; a record written under another value runs the rows ⟦criterion 5⟧
 - [x] `VERI_RECHECK_PERMISSIONS` is a tunable (default `0`, `0` or `1`); any other value stops preflight at `2 VERI_RECHECK_PERMISSIONS`, exit 2, before `ready-check.sh` and the worktree ⟦criterion 6⟧
 - [ ] PREFLIGHT.md step 2 names the record, when the rows are skipped and `VERI_RECHECK_PERMISSIONS` (PF68) ⟦criterion 8⟧
-- [ ] README.md `## Install` names the record, `VERI_RECHECK_PERMISSIONS` and the paid re-check (RD33) ⟦criterion 9⟧
+- [x] README.md `## Install` names the record, `VERI_RECHECK_PERMISSIONS` and the paid re-check (RD33) ⟦criterion 9⟧
 - [x] SCRIPTS.md's `ready-check.sh` and `preflight.sh` entries name `--no-permissions` and the record (SC281, SC282)
