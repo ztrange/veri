@@ -23,9 +23,9 @@ def test_cli_renders_the_smells_test_code_rules_and_each_given_test_file(run_cli
     rules = SMELLS.read_text().split("#### Rules for test code", 1)[1].strip()
 
     code, out, err = run_cli(bdp,
-                    ["test-quality", spec, "make test", "tests/test_alpha.py", "src/beta.test.js"])
+                    ["test-quality", spec, "make test", "test_alpha.py", "beta.test.js"])
 
-    assert (code, err, rules in out, "tests/test_alpha.py" in out, "src/beta.test.js" in out, "{{" in out) == (
+    assert (code, err, rules in out, "- test_alpha.py" in out, "- beta.test.js" in out, "{{" in out) == (
         0, "", True, True, True, False)
 
 
