@@ -76,7 +76,8 @@ test commands and skip the rest of this section. Otherwise:
 Only when the script linked, repaired or removed at least one skill: run the readiness
 check through a subagent, on the cheapest model that can do it (haiku). Brief the
 subagent to read `<base dir>/../vready/SKILL.md` (this skill's base directory) and follow
-it, and to return at most 10 lines. Never tell it to run `/vready`: vready is not linked
+it, and to return at most 10 lines. Tell it that it runs as a subagent and starts none of its
+own, so no subagent starts a subagent. Never tell it to run `/vready`: vready is not linked
 into projects. Report the subagent's answer. When the script changed nothing, skip this:
 do not run the readiness check.
 

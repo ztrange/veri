@@ -10,7 +10,7 @@
 - [x] a tier still running at wait's bound prints `waiting on ready-<tier>` last and exits 3, its worktree left ⟦criterion 6⟧
 - [x] a re-run waits on the running tier instead of starting it, reporting its exit and wall time ⟦criterion 7⟧
 - [x] vready SKILL.md `## Run` says to re-run on exit 3 and to summarise a red tier through a haiku subagent ⟦criterion 8⟧
-- [ ] vinstall SKILL.md's readiness brief says it runs as a subagent and starts none ⟦criterion 9⟧
+- [x] vinstall SKILL.md's readiness brief says it runs as a subagent and starts none ⟦criterion 9⟧
 - [x] a tier whose run died without recording an exit fails its row saying no answer was obtained
 - [x] both tiers share one wait bound per call, so one call never outlasts detach-command.sh wait's 590 s
 - [x] a tier's wall time ends when its command recorded its exit, not when a later call read it
