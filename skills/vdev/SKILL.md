@@ -395,7 +395,8 @@ being `main` with no lane word.
 The issue of an issue-bound question is parked by `vjudge` (its *The procedure* step 5) with
 `$S/park-issue.sh --question-file` naming the question file, so the park comment is that file
 verbatim. You park no question's issue yourself, and never read the question or an answer back
-from the comment. Your own transcript never holds a question's text or a request for an answer.
+from the comment. In a session with `start_session`, your own transcript never holds a question's
+text or a request for an answer.
 
 **Answers.** On a message naming a question file, read the answer from the file, never from the
 message, and act on it. Delete the question file only after you observe your own action on the
