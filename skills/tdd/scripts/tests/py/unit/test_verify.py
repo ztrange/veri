@@ -1532,7 +1532,8 @@ def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_a
 def build_prompt(words, monkeypatch):
     built, captured = io.BytesIO(), sys.stdout
     monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(built, write_through=True))
-    pinned = ["--branch-base", FAKE_BASE] if "pin" in words and "--branch-base" not in words else []
+    pinned = (["--branch-base", FAKE_BASE] if ("pin" in words or "surround" in words) and "--branch-base" not in words
+              else [])
     code = importlib.import_module("veri.build_verify_prompt").main([*pinned, *words])
     monkeypatch.setattr(sys, "stdout", captured)
     return code, built.getvalue()
@@ -1589,7 +1590,7 @@ AMBIENT_STEP = "AMBIENT-STEP-must-not-appear"
                  [AMBIENT_STEP], id="step-flag-not-ambient"),
     *[pytest.param(FAST if phase in ("green", "refactor") else [], phase,
                    "0123abc" if phase == "refactor" else "test_lowercases", GREEN, 0, 1, [SPEC, "VERDICT:"], [],
-                   id="no-step-" + phase) for phase in ("red", "green", "refactor", "pin")],
+                   id="no-step-" + phase) for phase in ("red", "green", "refactor", "pin", "surround")],
 ])
 def test_verify_sh_hands_every_launch_the_builders_own_prompt_for_its_arguments_carrying_base_sha_and_step_flag_not_ambient_veri_step_with_no_unfilled_placeholder(
         flags, phase, fourth, leaf_out, expected_code, launches, present, absent, run_cli, tmp_path, monkeypatch, fake_processes):
