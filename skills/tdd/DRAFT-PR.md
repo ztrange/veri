@@ -281,6 +281,13 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    body it writes: each local path (the worktree, the main clone, a temp directory, the home
    directory), the host name and the account name, then the tokens and secrets `comment.sh`'s rule
    names, so nothing the lint printed about this machine reaches the PR.
+   After the structural pass (or its skip) and before `refactor-candidates.sh`, run
+   `$S/red-setup.sh worst <n> .tdd/issue-<n>-refactor-owed.md` once. It reads the run's `red-setup`
+   events (the latest per step) and, when the highest count exceeds `VERI_SETUP_THRESHOLD` (default 3),
+   records that one step as a `testability` `not-done` row of the owed file, replacing the row an
+   earlier entry recorded, so the candidates issue lists it. Exit **0** (recorded) and exit **3** (no
+   step over the threshold) go on; exit **2** is a system failure: **bail** with cause `no-verdict`
+   (`Read` `<base directory>/BAIL.md`).
    After the lint run (or its skip) and before the PR is readied, run
    `$S/refactor-candidates.sh <n> .tdd/issue-<n>-refactor-owed.md` once. Exit **0** prints the
    candidates issue's url, which goes in the PR body's `## Refactor owed` section; exit **3**
