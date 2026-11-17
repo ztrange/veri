@@ -5,8 +5,11 @@ import pytest
 
 from conftest import SCRIPTS
 
+import os
 import subprocess
 
+# add-ledger-step.sh reads the verified plan's size from the newest plan commit, so each repository's seed is one.
+PLAN_SUBJECT = "plan: scope #42 into 3 steps (#42)"
 SEED = (
     "# Plan for #42\n\n"
     "- [x] lowercase the slug ⟦criterion 1⟧\n"
@@ -15,7 +18,7 @@ SEED = (
 )
 
 
-@pytest.mark.process("add-ledger-step.sh run through a symlink to the skill directory from another working directory")
+@pytest.mark.process("add-ledger-step.sh run through a symlink to the skill directory from another working directory, in a real git repository")
 def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_rewrites_the_relative_ledger_as_it_does_in_place(
         tmp_path, run_cli):
     add_ledger_step = importlib.import_module("veri.add_ledger_step")
@@ -24,6 +27,10 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_rewri
     for name in ("in-place", "elsewhere"):
         (tmp_path / name).mkdir()
         (tmp_path / name / "l.md").write_text(SEED)
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com"}
+    for args in (["init", "-q"], ["add", "in-place/l.md", "elsewhere/l.md"], ["commit", "-q", "-m", PLAN_SUBJECT]):
+        subprocess.run(["git", *args], cwd=tmp_path, env=env, capture_output=True, check=True)
 
     answers = {}
     for anchor in ("collapse to single hyphen", "no such step"):
@@ -60,7 +67,7 @@ def test_cli_3618_step_added_while_the_conductor_is_live_is_committed_and_surviv
     (wt / "other.txt").write_text("one\n")
     git("init", "-q")
     git("add", "-A", "-f")
-    git("commit", "-q", "-m", "seed")
+    git("commit", "-q", "-m", PLAN_SUBJECT)
 
     conductor = subprocess.Popen(["sleep", "30"])
     try:
@@ -98,7 +105,7 @@ def test_cli_3618_stdout_states_the_committed_step_is_durable_naming_the_commit(
     ledger.write_text(SEED)
     git("init", "-q")
     git("add", "-A", "-f")
-    git("commit", "-q", "-m", "seed")
+    git("commit", "-q", "-m", PLAN_SUBJECT)
 
     conductor = subprocess.Popen(["sleep", "30"])
     try:
@@ -133,7 +140,7 @@ def test_cli_3618_stderr_says_not_durable_and_makes_no_durable_claim_when_the_co
     ledger.write_text(SEED)
     git("init", "-q")
     git("add", "-A", "-f")
-    git("commit", "-q", "-m", "seed")
+    git("commit", "-q", "-m", PLAN_SUBJECT)
     hook = wt / ".git" / "hooks" / "pre-commit"
     hook.parent.mkdir(exist_ok=True)
     hook.write_text("#!/bin/sh\nexit 1\n")
@@ -176,7 +183,7 @@ def test_cli_3618_step_added_by_the_live_conductor_itself_is_left_uncommitted(tm
     ledger.write_text(SEED)
     git("init", "-q")
     git("add", "-A", "-f")
-    git("commit", "-q", "-m", "seed")
+    git("commit", "-q", "-m", PLAN_SUBJECT)
     head = git("rev-parse", "HEAD")
 
     script = f'read go; "$0" "$@"; echo $? > "{tmp_path}/rc"'

@@ -131,8 +131,9 @@ def test_ledger_tick_appends_the_refactor_pending_mark_at_the_line_end_only_when
     )
 
 
-def test_the_four_ledger_entry_points_drop_a_nul_and_keep_a_non_utf8_byte_without_exiting_2(tmp_path, run_cli, leave_receipt):
+def test_the_four_ledger_entry_points_drop_a_nul_and_keep_a_non_utf8_byte_without_exiting_2(tmp_path, monkeypatch, run_cli, leave_receipt):
     leave_receipt(tmp_path / "ledger.md")
+    monkeypatch.setattr(importlib.import_module("veri.add_ledger_step"), "verified_plan_size", lambda path: 2)
     cases = {
         "tick_ledger": (b"- [ ] alpha\0 \xff\n- [ ] bravo\n", ["{p}", "alpha"]),
         "clear_refactor_pending": (b"- [x] alpha\0 \xff \xe2\x9f\x82 refactor pending\n- [ ] bravo\n", ["{p}", "alpha"]),
@@ -168,7 +169,7 @@ def test_the_four_entry_points_exit_2_and_name_the_temporary_file_when_a_failed_
 
     monkeypatch.setattr(os, "replace", refusing_replace)
     monkeypatch.setattr(os, "unlink", failing_unlink)
-    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    monkeypatch.setattr(importlib.import_module("veri.add_ledger_step"), "verified_plan_size", lambda path: 2)
     outcomes = {}
     for module, rest in (
         ("tick_ledger", ["beta"]),

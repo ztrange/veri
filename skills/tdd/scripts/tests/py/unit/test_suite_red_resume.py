@@ -2,6 +2,14 @@
 import importlib
 import json
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def verified_plan_of_ten_steps(monkeypatch):
+    """A skill-edit step these cases insert is ⟦added⟧, so add-ledger-step.sh reads the verified plan's size: ten steps."""
+    monkeypatch.setattr(importlib.import_module("veri.add_ledger_step"), "verified_plan_size", lambda path: 10)
+
 
 def test_check_lets_a_resume_after_a_suite_red_bail_go_on_unless_a_suite_is_red_on_the_default_branch_too_2226(run_cli, tmp_path):
     module = importlib.import_module("veri.suite_red_resume")

@@ -1,6 +1,8 @@
 """In-process cases for veri/add_ledger_step.py, the module add-ledger-step.sh is a shim over."""
 import importlib
 import json
+import os
+import types
 
 import pytest
 
@@ -26,13 +28,44 @@ def settled(err):
     return NOT_DURABLE if err.count("\n") == 1 and NOT_DURABLE in err.lower() else err
 
 
+# The commit `ledger-growth.sh plan-sha` prints, faked at the git boundary for every case below: its ledger holds
+# PLAN.steps planned steps, or (None) the ledger as it stood when add-ledger-step.sh first read that file in the case.
+PLAN = types.SimpleNamespace(steps=None, held={})
+PLAN_LOG = "beef plan: scope #42 into 3 steps (#42)\n"
+
+
+def show_plan(line, cwd=None, **_):
+    if PLAN.steps is not None:
+        return 0, "".join("- [ ] planned step %d\n" % i for i in range(PLAN.steps)), ""
+    path = os.path.join(cwd, line.rsplit(":./", 1)[1])
+    if path not in PLAN.held:
+        with open(path, "rb") as f:
+            PLAN.held[path] = f.read()
+    return 0, PLAN.held[path], ""
+
+
+PLAN_COMMIT = {"git log --format=%H %s": (0, PLAN_LOG, ""), "git show beef:./": show_plan}
+
+
+@pytest.fixture(autouse=True)
+def verified_plan(fake_processes, monkeypatch):
+    monkeypatch.setattr(PLAN, "steps", None)
+    monkeypatch.setattr(PLAN, "held", {})
+    return fake_processes.answers(PLAN_COMMIT)
+
+
+def cap_at(monkeypatch, budget):
+    """Cap the ledger's ⟦added⟧ steps at <budget>: a plan commit of that many steps, all of them allowed as growth."""
+    monkeypatch.setattr(PLAN, "steps", int(budget))
+    monkeypatch.setenv("VERI_STEP_GROWTH_PERCENT", "100")
+
+
 @pytest.fixture
 def add_ledger_step():
     return importlib.import_module("veri.add_ledger_step")
 
 
 def test_main_refuses_bad_arguments_with_exit_2_and_inserts_after_the_anchor(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
 
@@ -55,6 +88,43 @@ def test_main_refuses_bad_arguments_with_exit_2_and_inserts_after_the_anchor(tmp
         "- [ ] b two ⟦criterion 2⟧",
         "- [ ] t ⟦added⟧ ⟦criterion 2⟧",
     ]
+
+
+
+def test_4075_the_batch_is_capped_at_the_percent_of_the_steps_at_the_plan_commit_rounded_up_and_a_refused_percent_exits_2(
+        tmp_path, run_cli, fake_processes, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    fake = fake_processes.answers({
+        "git log --format=%H %s": (0, "f00d note: unrelated\nbeef plan: scope #42 into 3 steps (#42)\n", ""),
+        "git show beef:./issue-42.md": (0, LEDGER.decode(), ""),
+    })
+
+    fits = run_cli(add_ledger_step, [str(ledger), "after", "b two", "x one", "x two"], cwd=tmp_path)
+    grown = ledger.read_bytes()
+    past = run_cli(add_ledger_step, [str(ledger), "after", "b two", "x three"], cwd=tmp_path)
+    after_past = ledger.read_bytes()
+    refused = run_cli(add_ledger_step, [str(ledger), "after", "b two", "x four"], env={"VERI_STEP_GROWTH_PERCENT": "x"},
+                      cwd=tmp_path)
+
+    assert (fits[0], grown.decode().count("⟦added⟧"), past[0], after_past.decode().split("\n## Owed steps")[0], refused[0],
+            "VERI_STEP_GROWTH_PERCENT" in refused[2], ledger.read_bytes()) == (
+        0, 2, 1, grown.decode(), 2, True, after_past), (fits, past, refused, fake.calls)
+
+
+
+def test_4075_a_history_naming_no_plan_commit_or_one_git_cannot_show_exits_2_leaving_the_ledger(
+        tmp_path, run_cli, fake_processes, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    got = []
+    for table in ({"git log": (0, "f00d note: unrelated\n", "")}, {"git log": (128, "", "not a git repository\n")},
+                  {"git log": (0, "beef plan: rewrite #42\n", ""), "git show": (128, "", "no such path\n")}):
+        fake_processes.answers(table)
+        code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", "t"], cwd=tmp_path)
+        got.append((code, out, "no plan commit" in err, ledger.read_bytes()))
+
+    assert got == [(2, "", True, LEDGER)] * 3
 
 
 COUNTED_FIXTURES = (
@@ -81,7 +151,7 @@ COUNTED_FIXTURES = (
 
 
 def test_main_counts_against_a_budget_of_one_exactly_the_fixture_lines_lib_ledger_counts_as_added(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "1")
+    cap_at(monkeypatch, "1")
     ledger = tmp_path / "issue-42.md"
     got = {}
     for line, _ in COUNTED_FIXTURES:
@@ -92,7 +162,6 @@ def test_main_counts_against_a_budget_of_one_exactly_the_fixture_lines_lib_ledge
 
 
 def test_main_inserts_beside_the_one_dash_step_holding_the_anchor_leaving_prose_and_star_lines_alone(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(
         "# Plan for #42\n"
@@ -115,7 +184,6 @@ def test_main_inserts_beside_the_one_dash_step_holding_the_anchor_leaving_prose_
 
 
 def test_main_inserts_the_line_veri_ledger_new_step_returns_for_the_text_and_the_anchor_criterion(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes("# Plan for #42\n\n- [ ] a lamp glows ⟦criterion 2⟧\n".encode())
     code = add_ledger_step.main([str(ledger), "after", "a lamp glows", "a lamp dims"])
@@ -125,7 +193,6 @@ def test_main_inserts_the_line_veri_ledger_new_step_returns_for_the_text_and_the
 
 
 def test_main_puts_the_texts_above_below_or_in_place_of_the_anchor_and_gives_none_a_criterion_the_anchor_lacks(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     head = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n"
     anchor = "- [ ] b two ⟦criterion 2⟧\n"
@@ -142,11 +209,12 @@ def test_main_puts_the_texts_above_below_or_in_place_of_the_anchor_and_gives_non
         "instead-of": (0, NOT_DURABLE, head + added + tail),
     }
 
-    monkeypatch.setenv("VERI_STEP_GROWTH", "1")
+    cap_at(monkeypatch, "1")
     ledger.write_bytes(LEDGER)
     code = add_ledger_step.main([str(ledger), "instead-of", "c three", "t", "u"])
     assert (code, ledger.read_bytes()) == (1, LEDGER + "\n## Owed steps\n\n- t\n- u\n".encode())
-    monkeypatch.delenv("VERI_STEP_GROWTH")
+    monkeypatch.delenv("VERI_STEP_GROWTH_PERCENT")
+    monkeypatch.setattr(PLAN, "steps", None)
 
     ledger.write_bytes("# Plan for #42\n\n- [ ] b two\n".encode())
     code = add_ledger_step.main([str(ledger), "after", "b two", "t"])
@@ -154,7 +222,6 @@ def test_main_puts_the_texts_above_below_or_in_place_of_the_anchor_and_gives_non
 
 
 def test_main_inherits_the_last_criterion_unvalidated_and_writes_empty_multiline_and_indented_inserts_verbatim(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     head = "# Plan for #42\n\n"
     cases = {
@@ -177,7 +244,7 @@ def test_main_inherits_the_last_criterion_unvalidated_and_writes_empty_multiline
 
 
 def test_main_over_budget_returns_1_silently_and_owes_every_text_under_the_last_owed_steps_heading(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     text = LEDGER.decode()
     notes = text + "\n## Owed steps\n\n- old\n\n## Notes\n\na remark\n"
@@ -216,13 +283,13 @@ def test_main_refuses_position_then_anchor_then_budget_each_with_2_and_unset_all
         captured = capsys.readouterr()
         return (code, captured.out, settled(captured.err), ledger.read_bytes() if ledger.exists() else None)
 
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     assert run("afterr", "b two", "t") == (
         2, "", "add-ledger-step.sh: position must be after, before or instead-of: afterr\n", None
     )
 
     ledger.write_bytes(LEDGER)
-    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    cap_at(monkeypatch, "5")
     anchors = ("nothing", "⟦criterion", "*", "t[w]o")
     assert {anchor: run("after", anchor, "t") for anchor in anchors} == {
         anchor: (2, "", f"add-ledger-step.sh: anchor matches no single step: {anchor}\n", LEDGER)
@@ -232,19 +299,20 @@ def test_main_refuses_position_then_anchor_then_budget_each_with_2_and_unset_all
     budgets = ("", "x", "-1", "1.5")
     got = {}
     for budget in budgets:
-        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
+        monkeypatch.setenv("VERI_STEP_GROWTH_PERCENT", budget)
         got[budget] = run("after", "b two", "t")
     assert got == {
-        budget: (2, "", f"add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: {budget}\n", LEDGER)
+        budget: (2, "", f"add-ledger-step.sh: VERI_STEP_GROWTH_PERCENT must be a whole number >= 0: {budget}\n", LEDGER)
         for budget in budgets
     }
 
-    monkeypatch.setenv("VERI_STEP_GROWTH", "x")
+    monkeypatch.setenv("VERI_STEP_GROWTH_PERCENT", "x")
     assert run("after", "nothing", "t") == (
         2, "", "add-ledger-step.sh: anchor matches no single step: nothing\n", LEDGER
     )
 
-    monkeypatch.delenv("VERI_STEP_GROWTH")
+    monkeypatch.delenv("VERI_STEP_GROWTH_PERCENT")
+    monkeypatch.setattr(PLAN, "steps", 10)
     four = "".join(f"- [ ] extra {n} ⟦added⟧ ⟦criterion 2⟧\n" for n in range(4))
     seed = (LEDGER.decode() + four).encode()
     ledger.write_bytes(seed)
@@ -292,7 +360,7 @@ def test_main_counts_only_steps_ending_in_added_and_inserts_repair_texts_unmarke
          ["fix the CI failure: x.test.sh ⟦ci-repair⟧", "mid-text: y.test.sh ⟦suite-repair⟧"]),
     ):
         ledger.write_bytes(seed.encode())
-        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
+        cap_at(monkeypatch, budget)
         code = add_ledger_step.main([str(ledger), "after", "collapse to single hyphen", *texts])
         captured = capsys.readouterr()
         got[name] = (code, captured.out, settled(captured.err), ledger.read_bytes().decode())
@@ -318,46 +386,7 @@ def test_main_counts_only_steps_ending_in_added_and_inserts_repair_texts_unmarke
     ]
 
 
-def test_main_reads_veri_step_growth_as_bash_arithmetic_octal_base_errors_and_64_bit_wraps(tmp_path, monkeypatch, capsys, add_ledger_step):
-    ledger = tmp_path / "issue-42.md"
-    text = LEDGER.decode()
-    extras = lambda n: "".join(f"- [ ] extra {i} ⟦added⟧ ⟦criterion 2⟧\n" for i in range(n))
-    ten = [f"t{i}" for i in range(10)]
-    got = {}
-    for name, budget, seed, texts in (
-        ("010, eighth added step", "010", text + extras(7), ["t"]),
-        ("010, ninth added step", "010", text + extras(8), ["t"]),
-        ("08", "08", text, ten),
-        ("09", "09", text, ten),
-        ("2^64", "18446744073709551616", text, ["t"]),
-        ("2^65", "36893488147419103232", text, ["t"]),
-        ("2^63", "9223372036854775808", text, ["t"]),
-    ):
-        ledger.write_bytes(seed.encode())
-        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
-        code = add_ledger_step.main([str(ledger), "after", "c three", *texts])
-        captured = capsys.readouterr()
-        lines = captured.err.splitlines()
-        named = len(lines) == 2 and f"{budget}: value too great for base" in lines[0] and NOT_DURABLE in lines[1].lower()
-        got[name] = (code, captured.out, settled(captured.err) if not named else "named", ledger.read_bytes().decode())
-    inserted = lambda seed, texts: seed.replace(
-        "- [ ] c three ⟦criterion 3⟧\n",
-        "- [ ] c three ⟦criterion 3⟧\n" + "".join(f"- [ ] {t} ⟦added⟧ ⟦criterion 3⟧\n" for t in texts),
-    )
-    owed = text + "\n## Owed steps\n\n- t\n"
-    assert got == {
-        "010, eighth added step": (0, "", NOT_DURABLE, inserted(text + extras(7), ["t"])),
-        "010, ninth added step": (1, "", "", text + extras(8) + "\n## Owed steps\n\n- t\n"),
-        "08": (0, "", "named", inserted(text, ten)),
-        "09": (0, "", "named", inserted(text, ten)),
-        "2^64": (1, "", "", owed),
-        "2^65": (1, "", "", owed),
-        "2^63": (1, "", "", owed),
-    }
-
-
 def test_main_reads_and_rewrites_the_ledger_as_bytes_line_by_line_in_place(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     unterminated = LEDGER.removesuffix("- [ ] c three ⟦criterion 3⟧\n".encode()).removesuffix(b"\n")
     crlf = LEDGER.replace(b"\n", b"\r\n")
@@ -397,7 +426,7 @@ def test_main_writes_a_non_utf_8_byte_of_a_text_back_unchanged_when_it_inserts_a
     text = b"t \xff".decode(errors="surrogateescape")
     got = {}
     for name, budget in (("inserted", "3"), ("owed", "0")):
-        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
+        cap_at(monkeypatch, budget)
         ledger.write_bytes(LEDGER)
         code = add_ledger_step.main([str(ledger), "after", "b two", text])
         captured = capsys.readouterr()
@@ -414,7 +443,6 @@ def test_main_writes_a_non_utf_8_byte_of_a_text_back_unchanged_when_it_inserts_a
 
 
 def test_main_returns_2_naming_the_anchor_for_a_missing_or_directory_ledger_and_raises_on_a_failed_write(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     missing = tmp_path / "nofile.md"
     directory = tmp_path / "dir.md"
     directory.mkdir()
@@ -437,7 +465,7 @@ def test_main_returns_2_naming_the_anchor_for_a_missing_or_directory_ledger_and_
         return real_open(file, mode, *args, **kwargs)
 
     for budget in ("3", "0"):
-        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
+        cap_at(monkeypatch, budget)
         ledger.write_bytes(LEDGER)
         monkeypatch.setattr("builtins.open", unwritable)
         with pytest.raises(PermissionError):
@@ -453,17 +481,16 @@ def test_main_leaves_the_ledger_byte_identical_and_no_temporary_file_beside_it_w
         raise OSError(28, "No space left on device")
 
     for budget in ("3", "0"):
-        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
+        cap_at(monkeypatch, budget)
         ledger.write_bytes(LEDGER)
-        monkeypatch.setattr("os.replace", refuse_swap)
-        with pytest.raises(OSError):
-            add_ledger_step.main([str(ledger), "after", "b two", "t"])
-        monkeypatch.undo()
+        with monkeypatch.context() as swap:
+            swap.setattr("os.replace", refuse_swap)
+            with pytest.raises(OSError):
+                add_ledger_step.main([str(ledger), "after", "b two", "t"])
         assert (ledger.read_bytes(), sorted(p.name for p in tmp_path.iterdir())) == (LEDGER, ["issue-42.md"])
 
 
 def test_main_finds_a_last_step_without_a_trailing_newline_as_the_anchor_and_keeps_it_after_inserting_817(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER.removesuffix(b"\n"))
 
@@ -478,7 +505,6 @@ def test_main_finds_a_last_step_without_a_trailing_newline_as_the_anchor_and_kee
 
 
 def test_main_keeps_a_last_line_without_a_trailing_newline_after_inserting_beside_an_earlier_step_817(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER.removesuffix(b"\n"))
 
@@ -495,7 +521,7 @@ def test_main_keeps_a_last_line_without_a_trailing_newline_after_inserting_besid
 
 
 def test_main_counts_a_last_added_step_without_a_trailing_newline_against_the_budget_and_owes_the_batch_817(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "1")
+    cap_at(monkeypatch, "1")
     ledger = tmp_path / "issue-42.md"
     seed = LEDGER.decode().removesuffix(" ⟦criterion 3⟧\n") + " ⟦added⟧ ⟦criterion 3⟧"
     ledger.write_bytes(seed.encode())
@@ -510,7 +536,7 @@ def test_main_counts_a_last_added_step_without_a_trailing_newline_against_the_bu
 
 
 def test_main_starts_the_owed_steps_heading_on_its_own_line_after_a_last_line_without_a_trailing_newline_817(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     seed = LEDGER.removesuffix(b"\n")
     ledger.write_bytes(seed)
@@ -528,7 +554,7 @@ def test_main_starts_the_owed_steps_heading_on_its_own_line_after_a_last_line_wi
 
 
 def test_main_owes_each_bullet_on_its_own_line_after_an_unterminated_last_owed_bullet_1109(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     seed = LEDGER + b"\n## Owed steps\n\n- old"
     ledger.write_bytes(seed)
@@ -541,7 +567,7 @@ def test_main_owes_each_bullet_on_its_own_line_after_an_unterminated_last_owed_b
 
 
 def test_main_owes_each_bullet_under_an_unterminated_last_owed_steps_heading_without_a_second_heading_1109(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     seed = LEDGER + b"\n## Owed steps"
     ledger.write_bytes(seed)
@@ -558,7 +584,6 @@ def test_main_owes_each_bullet_under_an_unterminated_last_owed_steps_heading_wit
 
 
 def test_main_refuses_a_ledger_whose_step_carries_two_criterion_tags_naming_the_step_and_writing_nothing_1116(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     seeds = {
         "the anchor": (
@@ -589,7 +614,6 @@ def test_main_refuses_a_ledger_whose_step_carries_two_criterion_tags_naming_the_
 
 
 def test_main_given_criterion_k_tags_every_inserted_line_with_k_whatever_the_anchor_carries_1224(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     code = add_ledger_step.main(["--criterion", "3", str(ledger), "after", "b two", "t", "u"])
@@ -602,9 +626,9 @@ def test_main_given_criterion_k_tags_every_inserted_line_with_k_whatever_the_anc
 
 
 def test_main_without_criterion_tags_inserted_lines_with_the_anchor_criterion_and_an_untagged_anchor_yields_untagged_lines_1224(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     got = {}
+    monkeypatch.setenv("VERI_STEP_GROWTH_PERCENT", "100")
     for name, seed in (("tagged", LEDGER), ("untagged", "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two\n".encode())):
         ledger.write_bytes(seed)
         code = add_ledger_step.main([str(ledger), "after", "b two", "t", "u"])
@@ -625,7 +649,6 @@ def test_main_without_criterion_tags_inserted_lines_with_the_anchor_criterion_an
 
 
 def test_main_given_a_criterion_no_step_carries_tags_every_inserted_line_with_it_and_returns_0_1292(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     code = add_ledger_step.main(["--criterion", "7", str(ledger), "after", "b two", "t", "u"])
@@ -638,7 +661,6 @@ def test_main_given_a_criterion_no_step_carries_tags_every_inserted_line_with_it
 
 
 def test_main_refuses_a_criterion_that_is_not_a_whole_number_of_at_least_1_with_2_and_one_stderr_line_naming_it_writing_nothing_1292(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     got = {}
     for value in ("0", "two", "-1", ""):
@@ -669,7 +691,7 @@ def test_main_refusing_too_few_arguments_prints_a_usage_line_naming_planned_alon
 
 
 def test_main_planned_criterion_k_inserts_unmarked_steps_that_do_not_count_toward_a_zero_step_growth_and_files_nothing_owed_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n" + "".join(f"- [x] c{n}\n" for n in range(1, 7)) + "- [ ] c7\n\n## Blocked by\n")
@@ -683,7 +705,6 @@ def test_main_planned_criterion_k_inserts_unmarked_steps_that_do_not_count_towar
 
 
 def test_main_planned_without_criterion_or_with_a_criterion_a_step_already_serves_refuses_with_2_and_one_stderr_line_writing_nothing_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n- [x] c1\n- [ ] c2\n- [ ] c3\n\n## Blocked by\n")
     got = {}
@@ -696,7 +717,7 @@ def test_main_planned_without_criterion_or_with_a_criterion_a_step_already_serve
 
 
 def test_main_a_later_criterion_k_add_after_a_planned_one_is_marked_added_and_refused_into_owed_steps_at_a_spent_budget_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n" + "".join(f"- [x] c{n}\n" for n in range(1, 7)) + "- [ ] c7\n\n## Blocked by\n")
@@ -709,7 +730,7 @@ def test_main_a_later_criterion_k_add_after_a_planned_one_is_marked_added_and_re
 
 
 def test_main_planned_criterion_k_beyond_the_spec_files_checkboxes_refuses_with_2_naming_k_writing_nothing_and_filing_no_owed_step_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n- [x] one\n- [ ] two\n- [ ] three\n\n## Blocked by\n")
@@ -719,7 +740,7 @@ def test_main_planned_criterion_k_beyond_the_spec_files_checkboxes_refuses_with_
 
 
 def test_main_planned_criterion_k_ticked_in_the_spec_file_refuses_with_2_naming_k_writing_nothing_and_filing_no_owed_step_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     boxes = "".join(f"- [ ] c{n}\n" for n in range(1, 7)) + "- [x] c7\n"
@@ -730,7 +751,7 @@ def test_main_planned_criterion_k_ticked_in_the_spec_file_refuses_with_2_naming_
 
 
 def test_main_planned_criterion_k_unticked_in_the_spec_file_and_served_by_no_step_still_inserts_unmarked_steps_and_returns_0_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     boxes = "".join(f"- [x] c{n}\n" for n in range(1, 7)) + "- [ ] c7\n"
@@ -745,7 +766,7 @@ def test_main_planned_criterion_k_unticked_in_the_spec_file_and_served_by_no_ste
 
 
 def test_main_planned_criterion_k_with_no_spec_file_beside_the_ledger_refuses_with_2_naming_that_file_writing_nothing_and_filing_no_owed_step_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     code = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t"])
@@ -754,7 +775,7 @@ def test_main_planned_criterion_k_with_no_spec_file_beside_the_ledger_refuses_wi
 
 
 def test_main_planned_criterion_k_with_a_directory_in_place_of_the_spec_file_refuses_with_2_naming_that_path_writing_nothing_and_filing_no_owed_step_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     (tmp_path / "issue-42-spec.md").mkdir()
@@ -764,7 +785,7 @@ def test_main_planned_criterion_k_with_a_directory_in_place_of_the_spec_file_ref
 
 
 def test_main_planned_criterion_k_ticked_with_a_capital_x_in_the_spec_file_refuses_with_2_naming_k_writing_nothing_and_filing_no_owed_step_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     boxes = "".join(f"- [ ] c{n}\n" for n in range(1, 7)) + "- [X] c7\n"
@@ -776,7 +797,7 @@ def test_main_planned_criterion_k_ticked_with_a_capital_x_in_the_spec_file_refus
 
 def test_main_planned_criterion_k_ticked_in_an_indented_box_in_the_spec_file_refuses_with_2_naming_k_writing_nothing_and_filing_no_owed_step_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
     """A box ledger.STEP_RE counts as criterion k is ticked by the same pattern, indented or not."""
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     boxes = "".join(f"- [ ] c{n}\n" for n in range(1, 7)) + "  - [x] c7\n"
@@ -787,7 +808,7 @@ def test_main_planned_criterion_k_ticked_in_an_indented_box_in_the_spec_file_ref
 
 
 def test_main_accepts_criterion_k_before_planned_the_same_as_planned_before_criterion_k_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     got = {}
     for name, flags in (("planned first", ["--planned", "--criterion", "7"]), ("criterion first", ["--criterion", "7", "--planned"])):
         ledger = tmp_path / name / "issue-42.md"
@@ -1033,7 +1054,7 @@ def test_main_marks_a_text_that_only_quotes_a_repair_mark_in_its_prose_added_and
     code, out, err = run_cli(
         add_ledger_step,
         [str(ledger), "after", "a one", "explain why ⟦ci-repair⟧ and ⟦suite-repair⟧ end a repair step"],
-        env={"VERI_STEP_GROWTH": "0"},
+        env={"VERI_STEP_GROWTH_PERCENT": "0"},
     )
 
     assert (code, out) == (1, "")
@@ -1043,7 +1064,7 @@ def test_main_marks_a_text_that_only_quotes_a_repair_mark_in_its_prose_added_and
 def test_main_inserts_a_suite_repair_when_the_only_earlier_step_this_run_merely_quotes_the_mark_in_its_prose_1613_and_3618_says_durable_on_stderr_not_stdout(tmp_path, monkeypatch, run_cli, add_ledger_step, fake_processes):
     monkeypatch.setattr(add_ledger_step.pid_file, "recorded_started", lambda tree: "1")
     monkeypatch.setattr(add_ledger_step.pid_file, "ancestors", lambda: set())
-    fake_processes.answers({"git": (0, "abc1234\n", "")})
+    fake_processes.answers(dict(PLAN_COMMIT, git=(0, "abc1234\n", "")))
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(
         (
@@ -1122,7 +1143,6 @@ UNQUOTED_REPLACES_STEP = (
 
 
 def test_main_refuses_a_replaces_case_step_with_unreadable_case_names_1538(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
 
@@ -1147,7 +1167,6 @@ def test_main_reads_an_inserted_or_replaced_step_carrying_a_kind_mark_with_that_
             code, out, err = run_cli(
                 add_ledger_step,
                 [str(ledger), where, "b two", f"check it ⟦{kind}⟧"],
-                env={"VERI_STEP_GROWTH": "5"},
             )
 
             kinds = {record[6]: record[2] for record in ledger_steps(ledger.read_text())}
@@ -1159,7 +1178,7 @@ def test_main_counts_a_kind_marked_added_step_against_the_budget_and_owes_the_ne
     for kind in ("full-suite", "human-owed", "diff-checked"):
         ledger = tmp_path / f"issue-42-{kind}.md"
         ledger.write_bytes(LEDGER)
-        env = {"VERI_STEP_GROWTH": "1"}
+        env = {"VERI_STEP_GROWTH_PERCENT": "33"}
 
         first = run_cli(add_ledger_step, [str(ledger), "after", "b two", f"check it ⟦{kind}⟧"], env=env)
         second = run_cli(add_ledger_step, [str(ledger), "after", "b two", "one more"], env=env)
@@ -1250,7 +1269,7 @@ def test_main_names_the_log_and_the_unreadable_line_without_add_ledger_step_open
 
 
 def test_main_replaces_an_added_step_at_the_growth_budget_leaving_the_added_count_unchanged_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "2")
+    cap_at(monkeypatch, "2")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(
         "# Plan for #42\n\n"
@@ -1267,7 +1286,7 @@ def test_main_replaces_an_added_step_at_the_growth_budget_leaving_the_added_coun
 
 
 def test_main_refuses_a_newline_text_at_the_growth_budget_counting_it_as_one_added_step_and_owes_it_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "2")
+    cap_at(monkeypatch, "2")
     ledger = tmp_path / "issue-42.md"
     steps = (
         "# Plan for #42\n\n"
@@ -1285,7 +1304,7 @@ def test_main_refuses_a_newline_text_at_the_growth_budget_counting_it_as_one_add
 
 
 def test_main_refuses_a_kind_marked_text_at_the_growth_budget_counting_it_as_one_added_step_and_owes_it_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "2")
+    cap_at(monkeypatch, "2")
     ledger = tmp_path / "issue-42.md"
     steps = (
         "# Plan for #42\n\n"
@@ -1303,7 +1322,7 @@ def test_main_refuses_a_kind_marked_text_at_the_growth_budget_counting_it_as_one
 
 
 def test_main_refuses_an_instead_of_over_an_added_anchor_with_more_texts_than_the_budget_allows_after_the_credit_and_owes_them_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "2")
+    cap_at(monkeypatch, "2")
     ledger = tmp_path / "issue-42.md"
     steps = (
         "# Plan for #42\n\n"
@@ -1365,7 +1384,7 @@ def test_main_records_one_step_added_event_per_inserted_line_on_exit_0_and_none_
     events = tmp_path / "events.jsonl"
     ledger.write_bytes(LEDGER)
 
-    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    cap_at(monkeypatch, "5")
     code, _, _ = run_cli(add_ledger_step, [str(ledger), "after", "b two", "first", "second"])
     assert code == 0
     inserted = [line for line in ledger.read_text().split("\n") if "⟦added⟧" in line]
@@ -1374,7 +1393,7 @@ def test_main_records_one_step_added_event_per_inserted_line_on_exit_0_and_none_
     assert [line in e.values() for e, line in zip(recorded, inserted)] == [True, True]
 
     before = events.read_bytes()
-    monkeypatch.setenv("VERI_STEP_GROWTH", "2")
+    cap_at(monkeypatch, "2")
     assert run_cli(add_ledger_step, [str(ledger), "after", "b two", "third"])[0] == 1
     assert run_cli(add_ledger_step, [str(ledger), "sideways", "b two", "t"])[0] == 2
     assert events.read_bytes() == before
@@ -1385,7 +1404,7 @@ def test_main_writes_each_inserted_step_to_the_tracked_added_file_beside_the_led
     added = tmp_path / "issue-42-added.md"
     ledger.write_bytes(LEDGER)
 
-    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    cap_at(monkeypatch, "5")
     code, _, _ = run_cli(add_ledger_step, [str(ledger), "after", "b two", "first", "second"])
     assert code == 0
     inserted = [line for line in ledger.read_text().split("\n") if "⟦added⟧" in line]
@@ -1394,7 +1413,7 @@ def test_main_writes_each_inserted_step_to_the_tracked_added_file_beside_the_led
     assert [line in recorded.split("\n") for line in inserted] == [True, True]
 
     before = added.read_bytes()
-    monkeypatch.setenv("VERI_STEP_GROWTH", "2")
+    cap_at(monkeypatch, "2")
     assert run_cli(add_ledger_step, [str(ledger), "after", "b two", "third"])[0] == 1
     assert run_cli(add_ledger_step, [str(ledger), "sideways", "b two", "t"])[0] == 2
     assert added.read_bytes() == before
@@ -1403,7 +1422,7 @@ def test_main_writes_each_inserted_step_to_the_tracked_added_file_beside_the_led
 def test_main_writes_the_step_added_record_with_an_integer_ts_and_an_awake_reading_2265(tmp_path, monkeypatch, run_cli, add_ledger_step):
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
-    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    cap_at(monkeypatch, "5")
 
     code, _, _ = run_cli(add_ledger_step, [str(ledger), "after", "b two", "first"])
 
@@ -1425,7 +1444,7 @@ def test_stop_reason_and_metrics_read_a_run_log_holding_an_add_ledger_step_inser
         {"ts": 100, "awake": 10, "issue": "42", "event": "step-start", "step": "1"},
         {"ts": 130, "awake": 40, "issue": "42", "event": "step-done", "step": "1"}]
     events.write_text("".join(json.dumps(mark) + "\n" for mark in marks))
-    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    cap_at(monkeypatch, "5")
     monkeypatch.setenv("VERI_SLEEP_GAP", str(2**50))
     assert run_cli(add_ledger_step, [str(ledger), "after", "b two", "first"])[0] == 0
     with open(events, "a") as f:
@@ -1451,7 +1470,7 @@ def test_main_exits_2_leaving_the_ledger_the_added_file_and_the_events_log_byte_
     added.write_text("- [ ] earlier ⟦added⟧\n")
     events.write_bytes(b'{"ts": 1, "awake": 1, "event": "step-start"}\n')
     before = (ledger.read_bytes(), added.read_bytes(), events.read_bytes())
-    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    cap_at(monkeypatch, "5")
     monkeypatch.setenv("VERI_AWAKE_CLOCK", "failing-clock")
     monkeypatch.setattr(event, "run_clock", lambda clock: SimpleNamespace(returncode=1, stdout=b""))
 
@@ -1550,7 +1569,7 @@ def test_main_refuses_a_criterion_tagged_text_at_the_growth_budget_owing_nothing
     ledger.write_bytes(steps)
 
     code, out, err = run_cli(
-        add_ledger_step, [str(ledger), "after", "alpha", "tagged step ⟦criterion 2⟧"], env={"VERI_STEP_GROWTH": "2"}
+        add_ledger_step, [str(ledger), "after", "alpha", "tagged step ⟦criterion 2⟧"]
     )
 
     assert (code, out, "⟦criterion 2⟧" in err, ledger.read_bytes()) == (2, "", True, steps)
@@ -1651,7 +1670,6 @@ def test_3314_texts_without_the_refactor_pending_delimiter_are_inserted_with_exi
 def test_main_refuses_a_diff_checked_step_that_would_carry_no_criterion_naming_the_tag_and_still_accepts_one_with_it_3438(tmp_path, monkeypatch, capsys, add_ledger_step):
     from veri.ledger import ledger_steps
 
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     untagged = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two\n".encode()
     ledger.write_bytes(untagged)
@@ -1802,7 +1820,6 @@ def test_spec_criteria_reads_the_section_as_tick_issue_criterion_does_last_headi
 
 
 def test_add_inserts_each_text_at_the_anchor_through_typed_parameters_like_main(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     via_main, via_add = tmp_path / "main" / "issue-42.md", tmp_path / "add" / "issue-42.md"
     for ledger in (via_main, via_add):
         ledger.parent.mkdir()
@@ -1826,7 +1843,7 @@ def test_add_inserts_each_text_at_the_anchor_through_typed_parameters_like_main(
 
 
 def test_add_with_criterion_and_planned_tags_the_step_and_leaves_the_growth_budget_alone(tmp_path, monkeypatch, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    cap_at(monkeypatch, "0")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n" + "".join(f"- [ ] c{n}\n" for n in range(1, 5)))

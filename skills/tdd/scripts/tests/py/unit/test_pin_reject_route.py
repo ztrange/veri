@@ -5,6 +5,12 @@ import json
 import pytest
 
 
+def plan_commit(ledger_text):
+    """git's answers naming the plan commit add-ledger-step.sh reads the verified plan's steps from."""
+    return {"git log --format=%H %s": (0, "beef plan: scope #42 into 2 steps (#42)\n", ""),
+            "git show beef:./issue-42.md": (0, ledger_text, "")}
+
+
 @pytest.fixture
 def pin_reject_route():
     return importlib.import_module("veri.pin_reject_route")
@@ -388,10 +394,11 @@ def test_main_missing_reroute_before_state_and_green_in_different_clauses_prints
 
 
 def test_main_recheck_stayed_green_pin_inserts_a_diff_checked_repin_step_after_the_ticked_step_3469(
-        tmp_path, run_cli, pin_reject_route):
+        tmp_path, run_cli, pin_reject_route, fake_processes):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     ledger.write_text("# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    fake_processes.answers(plan_commit(ledger.read_text()))
     reason = tmp_path / "reason.txt"
     reason.write_text("pin stayed green under its mutation: tests/py/test_review.py\n")
 
@@ -409,10 +416,11 @@ def test_main_recheck_stayed_green_pin_inserts_a_diff_checked_repin_step_after_t
 
 
 def test_main_recheck_before_state_pin_disarmed_by_the_range_inserts_a_diff_checked_repin_step_3469(
-        tmp_path, run_cli, pin_reject_route):
+        tmp_path, run_cli, pin_reject_route, fake_processes):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     ledger.write_text("# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    fake_processes.answers(plan_commit(ledger.read_text()))
     reason = tmp_path / "reason.txt"
     reason.write_text("pin stayed green on the before-state: tests/py/test_review.py\n")
 

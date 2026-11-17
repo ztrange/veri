@@ -9,12 +9,14 @@ import time
 
 import entry
 import event
+import ledger_growth
 import issue_body
 import replaces_case
 import requirements
 import tunables
 
 from event_log import read_events
+from git import git
 from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
 
 SUITE_REPAIR = "suite-repair"
@@ -121,13 +123,17 @@ def restates_list(path, unit):
     return sorted(current.splitlines()) == sorted("\t".join(row) for row in rows)
 
 
-def bash_integer(value):
-    try:
-        n = int(value, 8 if value.startswith("0") else 10)
-    except ValueError:
+def verified_plan_size(path):
+    """The steps the ledger at `path` held at the commit `ledger-growth.sh plan-sha` prints; None when git names none."""
+    directory = os.path.dirname(os.path.abspath(path))
+    log = git("log", "--format=%H %s", cwd=directory, capture_output=True, text=True, errors=BYTES)
+    sha = ledger_growth.plan_sha(log.stdout) if log.returncode == 0 else None
+    if sha is None:
         return None
-    n %= 2**64
-    return n - 2**64 if n >= 2**63 else n
+    shown = git("show", f"{sha}:./{os.path.basename(path)}", cwd=directory, capture_output=True)
+    if shown.returncode != 0:
+        return None
+    return len(ledger_growth.step_texts(shown.stdout.decode(errors=BYTES)))
 
 
 def is_anchor_step(line, anchor):
@@ -192,7 +198,7 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     ledger at `path` whose line holds `anchor`: what `add-ledger-step.sh` does once its arguments are parsed.
 
     `criterion` is the criterion number as a string (None: each step inherits the anchor's); `planned` (needs a
-    criterion) inserts steps the spec already lists, outside the VERI_STEP_GROWTH budget.
+    criterion) inserts steps the spec already lists, outside the VERI_STEP_GROWTH_PERCENT budget.
     Returns 0 inserted; 1 clean negative (growth budget spent, the texts parked under "## Owed steps"; an
     unreadable replaces-case step; a second suite-repair step this run); 2 refused (stderr says why) or no answer.
     Writes the ledger, its added-steps record and events.jsonl (step-added, plan); commits the amendment when a
@@ -258,9 +264,9 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     if this_run and any(is_suite_repair(text) for text in texts):
         warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + (earlier[0] if this_run is True else this_run))
         return 1
-    budget = tunables.get("VERI_STEP_GROWTH")
-    if not re.fullmatch("[0-9]+", budget):
-        return entry.refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
+    percent = tunables.get("VERI_STEP_GROWTH_PERCENT")
+    if not tunables.parses("VERI_STEP_GROWTH_PERCENT", percent):
+        return entry.refuse("add-ledger-step.sh: VERI_STEP_GROWTH_PERCENT must be a whole number >= 0: " + percent)
     out = []
     inserted_lines = []
     for line in lines:
@@ -276,10 +282,11 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
             out.append(line)
     kept = [line for line in lines if where != "instead-of" or not is_anchor_step(line, anchor)]
     added = sum(record.added == "1" for record in ledger_steps("\n".join(kept))) + sum(not is_repair(text) for text in texts)
-    cap = bash_integer(budget)
-    if cap is None:
-        warn(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")')
-    elif not planned and added > cap:
+    plan_size = verified_plan_size(path) if added and not planned else 0
+    if plan_size is None:
+        return entry.refuse("add-ledger-step.sh: no plan commit holds " + os.path.basename(path)
+                            + " (git log names no plan: scope or plan: rewrite commit that git show can read)")
+    if not planned and added > ledger_growth.growth_cap(int(percent), plan_size):
         headings = [line for line in lines if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         if not owed and lines is not terminated:

@@ -957,10 +957,11 @@ def test_cli_ticking_an_added_step_ticks_its_line_in_the_added_file_leaving_ever
     ledger.write_text("# Plan for #7\n\n" + planned + first + second)
     added = tmp_path / "issue-7-added.md"
     added.write_text(first + second)
-    verdict_before = run_cli(ledger_growth, [str(plan), str(ledger)])[0]
+    roomy = {"VERI_STEP_GROWTH_PERCENT": "200"}
+    verdict_before = run_cli(ledger_growth, [str(plan), str(ledger)], env=roomy)[0]
 
     code = run_cli(tick_ledger, [str(ledger), "reject a blank slug"])[0]
-    verdict_after = run_cli(ledger_growth, [str(plan), str(ledger)])[0]
+    verdict_after = run_cli(ledger_growth, [str(plan), str(ledger)], env=roomy)[0]
 
     assert (code, added.read_text(), verdict_before, verdict_after) == (
         0, first.replace("- [ ]", "- [x]") + second, 0, 0)
