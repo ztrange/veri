@@ -5,7 +5,8 @@ import os
 import re
 
 
-HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages", "Questions"]
+HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages", "Questions",
+            "Unasked questions", "Answered questions"]
 
 
 def _serve(fake_processes, run):
@@ -722,9 +723,12 @@ def test_recover_prs_raises_the_open_pr_refusal_with_its_stderr_when_the_list_re
     assert str(raised.value) == "status.sh --recover: GitHub refused the open pull request read: boom"
 
 
-def _questions(out):
+def _questions(out, heading="Questions"):
+    """The lines of the recovery report's <heading> section, up to the next heading."""
     lines = [line.strip() for line in out.splitlines() if line.strip()]
-    return lines[lines.index("Questions") + 1:]
+    start = lines.index(heading) + 1
+    ends = [i for i, line in enumerate(lines) if i >= start and line in HEADINGS]
+    return lines[start:ends[0] if ends else len(lines)]
 
 
 def test_4094_recover_lists_under_questions_each_of_the_lanes_question_files_with_no_answer_heading(tmp_path, monkeypatch, run_cli, fake_processes):
