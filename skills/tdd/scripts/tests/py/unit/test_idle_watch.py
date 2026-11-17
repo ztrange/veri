@@ -22,6 +22,7 @@ class World:
 
     def __init__(self, obey_term=False):
         self.now, self.signals, self.dead, self.codes, self.obey_term = 1000.0, [], set(), [], obey_term
+        self.usr1 = []
 
     def clock(self):
         return self.now
@@ -30,6 +31,9 @@ class World:
         self.now += seconds
 
     def kill(self, pid, signum):
+        if signum == signal.SIGUSR1:
+            self.usr1.append(pid)
+            return
         self.signals.append((pid, signum))
         if signum == signal.SIGKILL or (signum == signal.SIGTERM and self.obey_term):
             self.dead.add(pid)
@@ -193,3 +197,32 @@ def test_4254_an_idle_leg_removes_its_registry_entry_and_releases_the_full_run_l
     assert pytest_leg.main(["some/dir"]) == 1  # the injected exit returned; the leg's own teardown finds nothing left
 
     assert (at_exit["registered"], at_exit["code"], at_exit["entries"], at_exit["lock"]) == ([str(os.getpid())], 2, [], "")
+
+
+def test_4254_an_idle_leg_dumps_all_its_threads_stacks_and_sends_each_worker_sigusr1_before_it_terms_any(idle_watch, stderr_pipe):
+    out, written = stderr_pipe
+    world = World(obey_term=True)
+    watch = watch_in(idle_watch, world, 5, out)
+    watch.workers[:] = [4701, 4702]
+    dumps, order = [], []
+    watch.dump = lambda **kwargs: dumps.append((kwargs, list(world.usr1), list(world.signals)))
+    real_kill = watch.kill
+    watch.kill = lambda pid, signum: (order.append((pid, signum)), real_kill(pid, signum))[1]
+
+    run_until_ended(watch)
+
+    assert dumps == [({"file": out, "all_threads": True}, [], [])]
+    assert order == [(4701, signal.SIGUSR1), (4702, signal.SIGUSR1), (4701, signal.SIGTERM), (4702, signal.SIGTERM)]
+
+
+def test_4254_in_a_worker_the_plugin_has_sigusr1_write_all_its_threads_stacks_to_the_stderr_it_started_with(idle_watch, monkeypatch):
+    registered = []
+    monkeypatch.setattr(idle_watch.faulthandler, "register", lambda signum, **kwargs: registered.append((signum, kwargs)))
+    monkeypatch.setenv("PYTEST_XDIST_WORKER", "gw0")
+
+    idle_watch.pytest_configure(None)
+    monkeypatch.delenv("PYTEST_XDIST_WORKER")
+    idle_watch.pytest_configure(None)
+
+    assert [(signum, kwargs["all_threads"], kwargs["file"]) for signum, kwargs in registered] == [
+        (signal.SIGUSR1, True, idle_watch.STDERR)]

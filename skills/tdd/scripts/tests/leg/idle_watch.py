@@ -5,8 +5,9 @@ fires only while a case runs, so a worker that stops reporting outside a case he
 module as a plugin (PYTEST_PLUGINS, so its workers load it too) and makes a `Watch` the CURRENT one while its passes run:
 the hooks below record, in the leg, each worker it started (by pid) and the time and node id of the last case that
 started or reported; in a worker, where no Watch is current, they do nothing. The Watch's thread, once the leg has been
-idle for the window, ends the workers (TERM, then KILL by pid after GRACE seconds), runs the leg's cleanups, prints one
-line and exits 2. `end` is also what
+idle for the window, writes the stacks of all the leg's threads, sends each worker SIGUSR1 (on which this plugin has the
+worker write all its threads' stacks), ends the workers (TERM, then KILL by pid after GRACE seconds), runs the leg's
+cleanups, prints one line and exits 2. `end` is also what
 the leg's TERM and HUP handler calls, so a signalled leg never waits on xdist's worker teardown.
 
 PYTEST_DONT_REWRITE: the leg imports this module before pytest loads it as a plugin."""
@@ -20,6 +21,9 @@ import pytest
 
 GRACE = 5
 STACK_WAIT = 1
+# The stderr this process started with, taken at import: pytest loads its PYTEST_PLUGINS before it starts capturing, and
+# a worker's later fd 2 is pytest's capture file.
+STDERR = os.dup(2)
 
 
 def worker_pid(gateway):
@@ -49,6 +53,11 @@ def gone(pid):
 
 
 CURRENT = [None]
+
+
+def pytest_configure(config):
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        faulthandler.register(signal.SIGUSR1, file=STDERR, all_threads=True)
 
 
 @pytest.hookimpl(optionalhook=True)
@@ -122,6 +131,11 @@ class Watch:
         self.exit(code)
 
     def idle_end(self, idle_for):
+        self.dump(file=self.out, all_threads=True)
+        for pid in self.workers:
+            if pid > 1 and pid != os.getpid():
+                self.signal(pid, signal.SIGUSR1)
+        self.sleep(STACK_WAIT)
         self.end(2, "pytest leg idle for %d s with no case running (last case seen: %s); workers %%s ended\n"
                  % (idle_for, self.last_case or "none"))
 

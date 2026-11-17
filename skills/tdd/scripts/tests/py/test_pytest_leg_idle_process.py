@@ -8,7 +8,8 @@ import pytest
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 LEG = os.path.join(SCRIPTS, "tests", "leg", "pytest_leg.py")
-BOUND = 20  # the test-side bound on a leg that never ends, well under the case's own timeout
+BOUND = 25  # the test-side bound on a leg that never ends, well under the case's own timeout
+IDLE = 4  # the idle window: long enough under load for both workers to reach their hang before it ends them
 
 # A worker that ran its one case and then never reports workerfinished: its sessionfinish blocks, as the hung legs'
 # workers did after their cases ran, and it ignores TERM when asked to, so only a KILL ends it.
@@ -42,7 +43,7 @@ def run_hanging_leg(tmp_path, **extra):
     pids.mkdir()
     (planted / "conftest.py").write_text(HANGING_CONFTEST)
     (planted / "test_one.py").write_text("def test_one():\n    pass\n\ndef test_two():\n    pass\n")
-    env = dict(os.environ, VERI_PYTEST_WORKERS="2", VERI_PYTEST_IDLE="2", PLANTED_PIDS=str(pids),
+    env = dict(os.environ, VERI_PYTEST_WORKERS="2", VERI_PYTEST_IDLE=str(IDLE), PLANTED_PIDS=str(pids),
                PYTHONPATH=os.path.join(SCRIPTS, "veri"), **extra)
     # Files, not pipes: the workers inherit the leg's stderr, and a pipe would wait for them, not for the leg, to end.
     with open(tmp_path / "out", "w") as out, open(tmp_path / "err", "w") as err:
@@ -74,3 +75,12 @@ def test_4254_a_leg_whose_workers_hang_after_their_cases_ran_ends_them_and_exits
     assert "with no case running (last case seen: " in lines[0] and "test_one.py::test_" in lines[0]
     assert lines[0].endswith(" ended") and all(str(pid) in lines[0] for pid in workers)
     assert alive_at_exit == []  # ended by the leg, before it exited, not by execnet noticing its leg gone
+
+
+@pytest.mark.process("the real leg over a planted suite whose two xdist workers hang after their cases ran")
+def test_4254_before_it_ends_its_hung_workers_an_idle_leg_writes_its_own_stacks_and_each_worker_s_to_stderr(tmp_path):
+    code, err, workers, alive_at_exit = run_hanging_leg(tmp_path)
+
+    hung_frames = [line for line in err.splitlines() if "conftest.py" in line and "pytest_sessionfinish" in line]
+    assert (code, len(hung_frames)) == (2, 2), err  # one per worker, where each hung
+    assert "idle_watch.py" in err.split("pytest leg idle for ")[0]  # the leg's own watch thread, among its stacks
