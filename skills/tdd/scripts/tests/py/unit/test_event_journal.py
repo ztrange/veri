@@ -375,6 +375,12 @@ PY_DELETES_OR_COPIES = re.compile(
     r"os\.(remove|unlink|rmdir|removedirs)\b|\.unlink\(|shutil\.(rmtree|copy\w*|move)\b|\.rmdir\(")
 SH_DELETES_OR_COPIES = re.compile(r"^\s*(rm|mv|cp)\s")
 
+# metrics.publish writes the metrics file under $VERI_HOME/runs/ at the path event.py hands it (#4204), so it is
+# audited although it never names VERI_HOME. Its one removal is of the temporary file it created itself a few lines
+# earlier with mkstemp, when the write or the rename failed: nothing another process wrote can be the target.
+WRITES_WHERE_EVENT_PY_POINTS = "skills/tdd/scripts/veri/metrics.py"
+OWN_TEMPORARY_REMOVED = {WRITES_WHERE_EVENT_PY_POINTS: ["os.remove(temporary)"]}
+
 
 @pytest.mark.tree_audit("every non-test .py and .sh file under skills/ that names $VERI_HOME")
 def test_nothing_in_skills_outside_the_tests_deletes_from_veri_home_or_copies_a_transcript_there():
@@ -383,10 +389,15 @@ def test_nothing_in_skills_outside_the_tests_deletes_from_veri_home_or_copies_a_
         if path.suffix not in (".py", ".sh") or "tests" in path.relative_to(ROOT).parts:
             continue
         text = path.read_text(errors="replace")
-        if "VERI_HOME" not in text and "/.veri/" not in text:
+        name = str(path.relative_to(ROOT))
+        if "VERI_HOME" not in text and "/.veri/" not in text and name != WRITES_WHERE_EVENT_PY_POINTS:
             continue
-        offenders += [f"{path.relative_to(ROOT)}:{n}" for n, line in enumerate(text.splitlines(), 1)
-                      if (SH_DELETES_OR_COPIES if path.suffix == ".sh" else PY_DELETES_OR_COPIES).search(line)]
+        hits = [(n, line.strip()) for n, line in enumerate(text.splitlines(), 1)
+                if (SH_DELETES_OR_COPIES if path.suffix == ".sh" else PY_DELETES_OR_COPIES).search(line)]
+        exempt = OWN_TEMPORARY_REMOVED.get(name)
+        if exempt is not None and [line for _, line in hits] == exempt:
+            continue
+        offenders += [f"{name}:{n}" for n, _ in hits]
     assert offenders == []
 
 
@@ -397,6 +408,7 @@ def test_only_event_py_outside_the_tests_names_veri_home_so_nothing_else_writes_
         if path.suffix in (".py", ".sh") and "tests" not in path.relative_to(ROOT).parts
         and ("VERI_HOME" in path.read_text(errors="replace") or "/.veri/" in path.read_text(errors="replace")))
     assert namers == ["skills/tdd/scripts/veri/event.py"]
+    assert (ROOT / WRITES_WHERE_EVENT_PY_POINTS).is_file()
 
 
 def test_append_once_exits_2_with_a_stderr_message_on_a_short_os_write_3604(tmp_path, monkeypatch, capfd):
