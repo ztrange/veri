@@ -116,7 +116,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 What a fused script after preflight shares (PRD 027 FC1-FC4, FC10, FC14).
 - `script(name)`: `name` in this skill's own scripts directory.
 - `label(name, *args)`: the call as one line, a newline inside an argument written `\n`.
-- `call(name, *args, **kw)`: one process (`stdin`, `out` and `err` redirections, a `run` such as `github.bounded`), printing a line naming the call and its exit code, then its stdout, and passing its stderr through. `checked(where, name, *args, ok=(0,), **kw)`: `call`, raising `Stop` on an exit outside `ok`; its stdout otherwise. `shown(name, *args, out=None, err=None, stdin=None)`: the line naming a call, with its redirections.
+- `call(name, *args, **kw)`: one process (`stdin`, `out` and `err` redirections, a `run` such as `github.bounded`), printing a line naming the call and its exit code, then its stdout, and passing its stderr through. `checked(where, name, *args, ok=(0,), **kw)`: `call`, raising `Stop` on an exit outside `ok`; its stdout otherwise. `shown(name, *args, out=None, err=None, stdin=None, **_)`: the line naming a call, with its redirections.
 - `Stop(where, what, code)`: the first outcome that is not clean. `stopped(stop)`: prints its `stopped at <where> <what>` line; the exit code, the inner code when neither 0 nor 3, else 1.
 - `conductor(wt)`: `{"pid", "started"}` as `<wt>/.tdd/conductor.pid` names them, `None` without one: the conductor a wait record is written for (FC7).
 - `settle(wt, n, name, lines)`: writes `.tdd/issue-<n>-<name>` and prints its lines; 0. `read_settled(path)`: its `{key: value}`; OSError when unreadable.
