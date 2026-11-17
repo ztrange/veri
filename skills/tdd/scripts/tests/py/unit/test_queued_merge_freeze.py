@@ -86,3 +86,16 @@ def test_no_argument_or_variable_of_the_join_gets_it_past_a_stack_red_exit_0(
                            env=env)
 
     assert (code, pushed(world), "stack-culprit.sh" in err) == (1, [], True), err
+
+
+@pytest.mark.parametrize("stack_line, base", [("# no stack named\n", "stack"), ("veri: stack branch: stack\n", "main")])
+def test_a_merge_with_no_stack_named_or_a_pull_request_based_elsewhere_makes_no_stack_red_call(
+        tmp_path, fake_processes, monkeypatch, run_cli, stack_line, base):
+    unmerged = {"state": "open", "merged": False, "head": {"sha": "9999999"}}
+    world = World(tmp_path, stack_line=stack_line, base=base, reads=(unmerged,) * 20, extra={
+        "git -C <wt> merge-base --is-ancestor 9999999 origin/main": (1, "", "")}).install(fake_processes, monkeypatch)
+    asked = spy_stack_red(monkeypatch, world)
+
+    join(run_cli, world)
+
+    assert (asked, [c for c in world.calls if "stack-red" in c]) == ([], [])
