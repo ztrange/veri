@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 
+import case_reader
 import entry
 from git import git
 
@@ -229,6 +230,15 @@ def untracked(*args):
     return output("ls-files", "--others", "--exclude-standard", *args)
 
 
+def foreign(files):
+    """The selection outside veri's own tree (no `skills/tdd/scripts/tests/py` directory): exit code, suites printed."""
+    placed = [f for f in files if case_reader.is_test_path(f) and os.path.isfile(f)]
+    if not placed:
+        return 3
+    sys.stdout.write("".join(s + "\n" for s in sorted(set(placed))))
+    return 0
+
+
 def main(argv):
     if not argv or not argv[0]:
         return entry.refuse(usage=USAGE)
@@ -248,6 +258,9 @@ def main(argv):
         files = "\n".join(f for f in [files, new] if f)
     if not files:
         return 3
+
+    if not os.path.isdir(PYTEST_DIRS[0]):
+        return foreign(files.split("\n"))
 
     placed, unplaced = [], []
     for f in files.split("\n"):
