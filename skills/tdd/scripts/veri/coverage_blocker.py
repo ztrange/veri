@@ -9,9 +9,10 @@ from blocked_by import add as block, blockers
 from detect_test_command import resolved
 from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_label_exists, gh_rest_list
 from json_documents import documents
-from ledger import decode_ledger, ledger_steps
+from ledger import ledger_steps, read_ledger
 from ledger_steps import current_or_last_done_record
 from report import report_values
+import run_dir
 import tunables
 
 USAGE = "usage: coverage-blocker.sh <refactor-issue-number>"
@@ -46,10 +47,9 @@ def main(argv):
     except OSError as error:
         print("coverage-blocker.sh: cannot read .tdd/develop-cover.out: %s" % error.strerror, file=sys.stderr)
         return 2
-    ledger = ".tdd/issue-%s.md" % n
+    ledger = run_dir.ledger(".", n)
     try:
-        with open(ledger, "rb") as f:
-            step = current_or_last_done_record(ledger_steps(decode_ledger(f.read())))
+        step = current_or_last_done_record(ledger_steps(read_ledger(ledger)))
     except OSError as error:
         print("coverage-blocker.sh: cannot read %s: %s" % (ledger, error.strerror), file=sys.stderr)
         return 2
