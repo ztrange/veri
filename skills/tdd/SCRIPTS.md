@@ -523,7 +523,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   within `VERI_TIMEOUT`), when GitHub or a fetch gives no answer, when the repository declares no
   `veri: one test file:` command, or when `stack-branch.sh` does not exit 0. On exit 0 or 3 it adds one comment to the
   stack's tracking pull request holding what it printed (or, on 3, the cases run) and the red run's url, and adds none
-  when a comment there already holds the same text; with no one tracking pull request open it opens none, posts
+  when a trusted comment there (an owner's, a collaborator's or the `gh` user's) already holds the same text; a
+  stranger's copy never stops it. With no one tracking pull request open it opens none, posts
   nothing, says so on stderr and keeps its exit.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
