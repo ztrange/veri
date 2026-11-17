@@ -7,3 +7,4 @@
 - [x] `status.sh --report` exits 2 naming the line when `.tdd/decisions.jsonl` holds a line that is not a decision record
 - [x] `skills/vjudge/SKILL.md` *Recording* says a decision about one issue is a comment on it naming the rule applied and the option not taken, and one about no issue is recorded with `$S/decision-log.sh record` ⟦criterion 4⟧
 - [x] `decision-log.sh record` takes `<by>` only as `coord`, `dev` or `owner`; anything else exits 2 and writes nothing
+- [x] `status.sh --report` marks an owner record as `owner decided:`

@@ -60,3 +60,16 @@ def test_issue_4072_report_exits_2_naming_the_line_when_the_decision_log_holds_o
 
     assert (code, out, err, (tmp_path / ".tdd" / "status-last").read_text()) == (
         2, "", "status.sh: %s:2 is not a decision record\n" % (tmp_path / ".tdd" / "decisions.jsonl"), last)
+
+
+def test_issue_4072_report_waiting_marks_an_owner_record_as_the_owners(tmp_path, monkeypatch, run_cli, fake_processes):
+    owner = json.dumps({"question": "Raise N to 4?", "decision": "N=4", "rule": "the owner's override", "by": "owner",
+                        "at": "2026-11-02T10:30:00+00:00"}) + "\n"
+    status = report_tree(tmp_path, monkeypatch, fake_processes, decision("Raise N to 4?", "2026-11-02T10:20:00+00:00") + owner)
+
+    code, out, err = run_cli(status, ["--report"])
+
+    lines = [line.strip() for line in out.splitlines()]
+    waiting = [line for line in lines[lines.index("Waiting") + 1:] if line]
+    assert (code, waiting) == (0, ["decided: Raise N to 4? → kept N at 3 (rule: use plan capacity)",
+                                   "owner decided: Raise N to 4? → N=4 (rule: the owner's override)"]), err
