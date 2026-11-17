@@ -3,11 +3,12 @@
 #
 # `append` reads a finished refactor leaf's report on stdin and appends the transform of every
 # `CANDIDATES: structural | …` and `CANDIDATES: test-only | …` line to <file> under the named step;
-# `applied` and `not-done` record a candidate the pass applied or left undone; `render` prints <file> as the `## Refactor owed` section; `list` prints each structural transform once.
+# `applied` and `not-done` record a candidate the pass applied or left undone; `clear` drops the one `coupling` row; `render` prints <file> as the `## Refactor owed` section; `list` prints each structural transform once.
 #
 # usage:   refactor-owed.sh append <file> '<STEP>' [<bounds>] < leaf-report.txt
 #          refactor-owed.sh applied <file> '<transform>' <sha> '<subject>'
 #          refactor-owed.sh not-done <file> '<candidate>' <reason>
+#          refactor-owed.sh clear <file> <reason>
 #          refactor-owed.sh render <file>
 #          refactor-owed.sh list <file>
 # Exit:    0 done; 1 the append's, applied's or not-done's write failed; 2 a missing argument, an unknown verb,
