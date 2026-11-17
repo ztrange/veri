@@ -211,3 +211,34 @@ def test_when_no_issue_end_turns_a_case_red_it_prints_nothing_says_so_on_stderr_
     code, out, err = run_cli(culprit, [sha(2)])
 
     assert (code, out, A in err, B in err, "no issue end" in err) == (3, "", True, True, True), err
+
+
+def no_answer(culprit, what):
+    return culprit.github.NoAnswer("", what)
+
+
+@pytest.mark.parametrize("given", ["log no answer", "log garbled", "log names none", "not on the stack", "not a sha",
+                                   "runs no answer", "no red run", "green run", "checks no answer", "fetch",
+                                   "unnamed", "no command", "checkout"])
+def test_exits_2_with_nothing_on_stdout_when_no_answer_can_be_had(monkeypatch, run_cli, culprit, given):
+    red = sha(9) if given == "not on the stack" else "zz" if given == "not a sha" else sha(2)
+    runs = {"runs no answer": no_answer(culprit, "HTTP 502"), "no red run": [],
+            "green run": [(sha(2), "https://github.com/o/r/actions/runs/42", "completed", "success",
+                           "2026-11-16T10:00:00Z")]}.get(given)
+    failed_log = {"log no answer": no_answer(culprit, "HTTP 502"), "log garbled": "not a gh log line\n",
+                  "log names none": log()}.get(given)
+    span = {"fetch": culprit.stack_branch.Refused("no answer from origin (exit 128)"), "unnamed": None}.get(
+        given, "commits")
+    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], red=red, runs=runs, failed_log=failed_log,
+                  span=span)
+    if given == "checks no answer":
+        monkeypatch.setattr(culprit.github, "check_runs", lambda commit: (_ for _ in ()).throw(no_answer(culprit, "x")))
+    if given == "no command":
+        monkeypatch.setattr(culprit, "_one_file_command", lambda root: None)
+    if given == "checkout":
+        monkeypatch.setattr(culprit, "_checkout", lambda path, commit: False)
+
+    code, out, err = run_cli(culprit, [red])
+
+    assert (code, out, err.count("\n") >= 1, world.alone) == (2, "", True, []), err
+    assert [step[0] for step in world.steps] in ([], ["add", "remove"]), world.steps
