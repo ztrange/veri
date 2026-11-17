@@ -4,23 +4,25 @@
 # Inserts each <text> as an unchecked step `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` on the lines
 # after the step containing <anchor-substring>, or on the lines before it, in the order
 # given. `instead-of` puts them where that step was and drops the step itself.
-# VERI_STEP_GROWTH (default 5) caps how many ⟦added⟧ steps one ledger may hold, and the call is
-# all or nothing: a batch that would exceed the cap inserts nothing and records every text as a
+# VERI_STEP_GROWTH_PERCENT (default 50) caps how many ⟦added⟧ steps one ledger may hold at
+# ⌈percent × P ÷ 100⌉, P the steps the ledger held at the commit `ledger-growth.sh plan-sha`
+# prints (read with git log and git show beside the ledger), and the call is all or nothing: a batch that would exceed the cap inserts nothing and records every text as a
 # plain bullet under `## Owed steps`. A <text> carrying ⟦ci-repair⟧ or ⟦suite-repair⟧ is inserted
 # without ⟦added⟧ and never counts against the cap. The added step inherits the anchor's criterion,
 # unless a leading --criterion <k> overrides it with criterion k.
-# --planned inserts the steps without ⟦added⟧, so --planned steps never count toward VERI_STEP_GROWTH.
+# --planned inserts the steps without ⟦added⟧, so --planned steps never count toward VERI_STEP_GROWTH_PERCENT.
 # When another process's conductor is live in the ledger's worktree, the script commits the grown
 # ledger and its .tdd/issue-<n>-added.md record in a commit of their own, so a later bail's revert
 # keeps the step. Stderr states whether the added step is durable (committed, naming the commit)
 # or not durable (uncommitted).
 #
 # usage: add-ledger-step.sh [--planned] [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]
-# Exit:    0 inserted; 1 the batch would exceed VERI_STEP_GROWTH, owed instead;
+# Exit:    0 inserted; 1 the batch would exceed the VERI_STEP_GROWTH_PERCENT cap, owed instead;
 #          2 a missing argument, an unknown position, an anchor matching no single step,
 #            --planned without --criterion, --planned for a criterion a ledger step already serves,
 #            --planned with no readable spec file beside the ledger (issue-<n>-spec.md),
-#            --planned for a k not unticked in the issue body the run read, a bad VERI_STEP_GROWTH, or a <text> already carrying ⟦criterion k⟧,
+#            --planned for a k not unticked in the issue body the run read, a bad VERI_STEP_GROWTH_PERCENT,
+#            the retired VERI_STEP_GROWTH set, no plan commit git can show the ledger at, or a <text> already carrying ⟦criterion k⟧,
 #            a skill-edit step (text starting with ⟦skill-edit⟧ or carrying it in its trailing tag run; a mere
 #            prose mention does not count) naming no backticked unit, a unit file that does not exist, or a
 #            unit whose list the issue's Requirements restate no differing row of

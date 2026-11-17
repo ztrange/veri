@@ -11,9 +11,11 @@
 # Records: every step line the plan did not hold must equal a line add-ledger-step.sh wrote to the
 # tracked issue-<n>-added.md beside the ledger, or one of its step-added events in events.jsonl.
 # Exit:    0 every new line is recorded and carries ⟦added⟧ (a recorded repair or --planned line
-#          need not), and the ⟦added⟧ lines are within VERI_STEP_GROWTH;
+#          need not), and the ⟦added⟧ lines are within ⌈VERI_STEP_GROWTH_PERCENT × P ÷ 100⌉,
+#          P the steps in <plan-ledger-file>;
 #          1 a new line lacks its record or ⟦added⟧, or the cap is passed, named on stderr;
-#          2 a missing argument, an unreadable ledger or plan file, a bad VERI_STEP_GROWTH, or
+#          2 a missing argument, an unreadable ledger or plan file, a bad VERI_STEP_GROWTH_PERCENT,
+#          the retired VERI_STEP_GROWTH set, or
 #          (plan-sha) no plan commit in the log
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/ledger_growth.py" "$@"
