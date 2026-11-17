@@ -186,7 +186,22 @@ def split(ledger):
         return 3
     print(f"plan grew from {planned} to {len(steps)} steps, past the growth bound of {bound}"
           f" (VERI_STEP_GROWTH_PERCENT {percent}% of {planned}, rounded up)")
+    print(split_point([int(step.criterion) for step in steps if step.criterion]))
     return 0
+
+
+def split_point(criteria):
+    """Where the steps serving `criteria` (one number per tagged counted step) split best: the boundary between two
+    consecutive criterion numbers that leaves the two sides' step counts closest, the earlier on a tie."""
+    numbers = sorted(set(criteria))
+    if not numbers:
+        return "no split point: no criterion tag"
+    if len(numbers) == 1:
+        return f"no split point: every counted step serves criterion {numbers[0]}"
+    sides = [(sum(k <= number for k in criteria), i) for i, number in enumerate(numbers[:-1])]
+    here, i = min(sides, key=lambda side: (abs(2 * side[0] - len(criteria)), side[1]))
+    return (f"split suggested after criterion {numbers[i]}: criteria {numbers[0]}–{numbers[i]} ({here} steps) here,"
+            f" criteria {numbers[i + 1]}–{numbers[-1]} ({len(criteria) - here} steps) in a follow-up issue")
 
 
 def main(argv):
