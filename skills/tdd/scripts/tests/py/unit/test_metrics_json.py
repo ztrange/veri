@@ -6,6 +6,7 @@ import importlib
 import io
 import json
 import os
+import re
 
 import pytest
 
@@ -146,6 +147,21 @@ def test_every_figure_is_a_json_number_or_null_and_an_unknown_one_is_null_never_
     assert len(found) > 100
     assert (bare["conductor"]["cost_usd"], bare["conductor"]["turns"], bare["steps"][0]["wall_seconds"],
             bare["run"]["wall_seconds"]) == (None, None, None, None)
+
+
+def keys(value):
+    if isinstance(value, dict):
+        return set(value) | {key for inner in value.values() for key in keys(inner)}
+    if isinstance(value, list):
+        return {key for inner in value for key in keys(inner)}
+    return set()
+
+
+def test_no_key_at_any_depth_holds_a_rate_a_percentage_or_an_average(rich, capsys, metrics):
+    named = keys(as_json(metrics, capsys))
+
+    assert len(named) > 20
+    assert sorted(key for key in named if re.search(r"rate|percent|pct|ratio|share|avg|average|mean|median|per_", key)) == []
 
 
 @pytest.mark.parametrize("priced, some_priced, expected", [(True, True, True), (False, True, "partial"),
