@@ -416,3 +416,18 @@ def test_4226_record_rewrite_writes_one_step_reworded_per_position_whose_step_te
     assert (code, reworded_lines(run)) == (0, [
         ("a broad step ⟦criterion 2⟧", "a narrow step ⟦criterion 2⟧", "42"),
         ("another broad step ⟦criterion 3⟧", "another narrow step ⟦criterion 3⟧", "42")])
+
+
+def test_4226_record_rewrite_writes_no_step_reworded_when_the_step_counts_differ_and_exits_as_before(
+        tmp_path, run_cli, ledger_growth):
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    pre = tmp_path / "pre-rewrite.md"
+    ledger = run / ".tdd" / "issue-42.md"
+    pre.write_text("# Plan for #42\n\n- [ ] a broad step ⟦criterion 1⟧\n- [ ] kept as is ⟦criterion 2⟧\n")
+    ledger.write_text("# Plan for #42\n\n- [ ] a narrow step ⟦criterion 1⟧\n- [ ] its twin ⟦criterion 1⟧\n"
+                      "- [ ] kept as is ⟦criterion 2⟧\n")
+
+    code = run_cli(ledger_growth, ["record-rewrite", str(pre), str(ledger)])
+
+    assert (code, reworded_lines(run)) == ((0, "", ""), [])
