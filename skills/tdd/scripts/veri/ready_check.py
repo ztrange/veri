@@ -300,16 +300,29 @@ def push_access_row():
     return "push access", None if can_push else "ask for write access to the repository, or use an account that has it"
 
 
-def label_row():
-    label = tunables.get("VERI_LABEL")
-    if not label:
-        return "label", "VERI_LABEL is set but empty: name a label or leave VERI_LABEL unset"
+def listed_label_row(label):
+    """The row for <label>: ok when `gh label list` names it; a failing call fails it like a missing label."""
     listed = gh("label", "list", "--json", "name")
     try:
         names = [entry["name"] for entry in json.loads(listed.stdout)] if listed.returncode == 0 else []
     except (ValueError, KeyError, TypeError):
         names = []
     return f"label {label}", None if label in names else f"create the `{label}` label in the repository"
+
+
+def label_row():
+    label = tunables.get("VERI_LABEL")
+    if not label:
+        return "label", "VERI_LABEL is set but empty: name a label or leave VERI_LABEL unset"
+    return listed_label_row(label)
+
+
+# The run-state labels a run writes and never creates (#4081): a repository lacking one learns it here, not mid-run.
+STATE_LABELS = ("pr-ready", "bailed", "parked", "stopped")
+
+
+def state_label_row(label):
+    return lambda: listed_label_row(label)
 
 
 class Fix(str):
@@ -499,7 +512,7 @@ def python_row():
 
 
 CHECKS = (tier_row("fast"), tier_row("all"), one_test_file_row, pull_request_row, push_row, test_file_row, tdd_ignored_row,
-          gh_auth_row, push_access_row, label_row, token_scopes_row, priority_label_row, bug_label_row,
+          gh_auth_row, push_access_row, label_row, *map(state_label_row, STATE_LABELS), token_scopes_row, priority_label_row, bug_label_row,
           actions_read_row, run_state_ignore_row, push_dry_run_row, bypass_permissions_row, bash_row, python_row)
 
 

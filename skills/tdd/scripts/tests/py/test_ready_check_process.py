@@ -58,7 +58,7 @@ def build_ready_repo(tmp_path):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     gh = bin_dir / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api -i user") printf \'HTTP/2.0 200 OK\\r\\nX-Oauth-Scopes: repo\\r\\n\\r\\n{}\\n\' ;;\n  *label*) echo \'[{"name":"veri"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api -i user") printf \'HTTP/2.0 200 OK\\r\\nX-Oauth-Scopes: repo\\r\\n\\r\\n{}\\n\' ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     gh.chmod(0o755)
     claude = write_stub(str(bin_dir / "claude-probe"), CLAUDE_PROBE)
     env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "VERI_LABEL": "veri", "VERI_POLL": "0.05",
@@ -251,7 +251,7 @@ def test_issue_3055_ready_check_with_tdd_not_ignored_exits_1_with_a_fail_row_nam
 def test_issue_3055_ready_check_with_gh_not_authenticated_exits_1_with_a_fail_row_naming_its_fix(tmp_path):
     repo, env = build_ready_repo(tmp_path)
     gh = tmp_path / "bin" / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 1 ;;\n  *label*) echo \'[{"name":"veri"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 1 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     lines = ran.stdout.splitlines()
 
@@ -264,7 +264,7 @@ def test_issue_3055_ready_check_with_gh_not_authenticated_exits_1_with_a_fail_ro
 def test_issue_3055_ready_check_with_no_push_access_exits_1_with_a_fail_row_naming_its_fix(tmp_path):
     repo, env = build_ready_repo(tmp_path)
     gh = tmp_path / "bin" / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"}]\' ;;\n  *) echo \'{"permissions":{"push":false,"admin":false}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":false,"admin":false}}\' ;;\nesac\n')
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     lines = ran.stdout.splitlines()
 
@@ -280,7 +280,7 @@ def test_issue_3055_ready_check_with_unusable_repo_api_output_fails_the_push_acc
         sub.mkdir()
         repo, env = build_ready_repo(sub)
         gh = sub / "bin" / "gh"
-        gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"}]\' ;;\n  *) echo \'' + body + '\' ;;\nesac\n')
+        gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'' + body + '\' ;;\nesac\n')
         ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
         lines = ran.stdout.splitlines()
 
@@ -309,7 +309,7 @@ def test_issue_3055_ready_check_with_the_opt_in_label_missing_exits_1_with_a_fai
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     assert any(l.startswith("fail") and "label" in l and "veri" in l for l in lines), (ran.stdout, ran.stderr)
-    assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 5 rows to fix", (ran.stdout, ran.stderr)
 
 
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess where two rows fail at once")
@@ -321,22 +321,22 @@ def test_issue_3055_ready_check_with_two_failing_rows_counts_both_in_its_last_li
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert sum(l.startswith("fail") for l in lines) == 2, (ran.stdout, ran.stderr)
-    assert lines and lines[-1] == "not ready — 2 rows to fix", (ran.stdout, ran.stderr)
+    assert sum(l.startswith("fail") for l in lines) == 6, (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 6 rows to fix", (ran.stdout, ran.stderr)
 
 
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess where gh label list itself fails")
 def test_issue_3055_ready_check_with_a_failing_gh_label_list_fails_the_label_row_instead_of_crashing(tmp_path):
     repo, env = build_ready_repo(tmp_path)
     gh = tmp_path / "bin" / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "label "*) echo \'[{"name":"veri"}]\'; echo "boom" >&2; exit 1 ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "label "*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\'; echo "boom" >&2; exit 1 ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     assert "Traceback" not in ran.stderr, ran.stderr
     assert any(l.startswith("fail") and "label" in l and "veri" in l for l in lines), (ran.stdout, ran.stderr)
-    assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 5 rows to fix", (ran.stdout, ran.stderr)
 
 
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess beside a detect-test-command.sh that exits 2")
@@ -401,7 +401,7 @@ def test_issue_3055_ready_check_where_every_row_holds_leaves_tree_index_and_refs
     repo, env = build_ready_repo(tmp_path)
     log = tmp_path / "gh.log"
     gh = tmp_path / "bin" / "gh"
-    gh.write_text('#!/bin/sh\necho "$*" >> "' + str(log) + '"\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\necho "$*" >> "' + str(log) + '"\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     before = _repo_state(repo)
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     after = _repo_state(repo)
