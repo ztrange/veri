@@ -14,6 +14,7 @@ import github
 import rerun_alone
 import stack_branch
 import stack_green
+import stack_red
 
 USAGE = "usage: stack-culprit.sh <red-sha>"
 MAX_CASES = 5  # the cases run alone at each issue end; ci-flake.sh bounds its alone runs the same way
@@ -64,13 +65,14 @@ def _run_alone(path, command, target):
     return ran.returncode, ran.stdout or ""
 
 
+ABSENT = "absent"
 _ABSENT = re.compile(r"^ERROR: not found: |\bno tests ran\b|^collected 0 items", re.M)
 
 
 def _verdict(code, output, case):
     """What an alone run of <case> says: True red (it exited non-zero and its output carries a failure line naming
-    <case>, read as ci-flake.sh reads one), False not red (it exited 0, or its output says the case was not found or
-    not collected), None no answer (any other ending, a kill or a timeout). The exit code alone never decides: a make
+    <case>, read as ci-flake.sh reads one), False not red (it exited 0), ABSENT not red because the output says the
+    case was not found or not collected, None no answer (any other ending, a kill or a timeout). The exit code alone never decides: a make
     wrapper exits 2 for a failing case and a missing one alike."""
     if code is None:
         return None
@@ -79,7 +81,7 @@ def _verdict(code, output, case):
     text = ci_flake.ANSI.sub("", output)
     if case in rerun_alone.named_targets(text):
         return True
-    return False if _ABSENT.search(text) else None
+    return ABSENT if _ABSENT.search(text) else None
 
 
 def _first_fail(output, path, case):
@@ -118,8 +120,8 @@ class _NoAnswer(Exception):
 
 def _search_inputs(red):
     """(stack, default, span, run url, cases): the stack and default branch, origin/<default>..<red> as [(sha,
-    subject)] oldest first, the url of the red run on <red> (the newest completed, not-cancelled run GitHub lists for
-    the stack with <red> as its head) and the cases its failed log names. _NoAnswer, stack_branch.Refused or
+    subject)] oldest first, the url of the red run on <red> (each workflow's answer on <red> read as stack-red.sh reads
+    one, the newest red one taken) and the cases the failed log of its answering attempt names. _NoAnswer, stack_branch.Refused or
     github.NoAnswer when any of them cannot be had."""
     found = stack_branch.ahead(".")
     if found is None:
@@ -128,14 +130,18 @@ def _search_inputs(red):
     shas = [commit for commit, _ in commits]
     if red not in shas:
         raise _NoAnswer("%s is not a commit of origin/%s..origin/%s" % (red, default, stack))
-    runs = [run for run in github.workflow_runs(stack) if run[0] == red and run[2] == "completed" and run[3] != "cancelled"]
-    if not runs:
-        raise _NoAnswer("no completed, not-cancelled workflow run on %s among those GitHub lists for %s" % (red, stack))
-    _, url, _, conclusion = max(runs, key=lambda run: run[4])[:4]
-    if conclusion in ("success", "neutral", "skipped"):
-        raise _NoAnswer("CI's latest answer on %s is %s (%s), not red: there is no red log to read" % (red, conclusion, url))
+    answers = stack_red.by_workflow([run for run in github.workflow_runs(stack) if run[0] == red])
+    red_runs = [found for found in answers.values() if isinstance(found, tuple) and found[1] not in stack_red.GREEN]
+    if not red_runs:
+        lost = [found for found in answers.values() if isinstance(found, github.NoAnswer)]
+        if lost:
+            raise lost[0]
+        raise _NoAnswer("no workflow's answer on %s is red among the runs GitHub lists for %s (%d workflows read):"
+                        " there is no red log to read" % (red, stack, len(answers)))
+    run, _, attempt = max(red_runs, key=lambda found: found[0][4])
+    url = run[1]
     try:
-        cases = rerun_alone.named_targets(ci_flake.runner_text(github.run_failed_log(url.rsplit("/", 1)[1])))
+        cases = rerun_alone.named_targets(ci_flake.runner_text(github.run_failed_log(stack_red.run_id(run), attempt)))
     except ValueError as unread:
         raise _NoAnswer("the failed log of %s cannot be read: %s" % (url, unread)) from None
     if not cases:
@@ -145,22 +151,26 @@ def _search_inputs(red):
 
 def _search(path, command, ends, before, red, cases):
     """Run <cases> alone at each of <ends> [(sha, owners)], oldest first, in the worktree <path>: the answer to print at
-    the first end where a case is red, None when none is. _NoAnswer for a checkout that fails or an alone run with no
-    answer. <before> is the commit the first end follows."""
+    the first end where a case is red, None when none is. _NoAnswer for a checkout that fails, an alone run with no
+    answer, or a case absent at <red> itself. <before> is the commit the first end follows."""
     for commit, owners in ends:
         if not _checkout(path, commit):
             raise _NoAnswer("checking out %s in the search's own worktree failed; nothing more run" % commit)
         red_here = []
         for case in cases:
             if not _has(path, commit, case.split("::", 1)[0]):
-                continue
-            code, output = _run_alone(path, command, case)
-            said = _verdict(code, output, case)
+                said, code, output = ABSENT, None, ""
+            else:
+                code, output = _run_alone(path, command, case)
+                said = _verdict(code, output, case)
+            if said == ABSENT and commit == red:
+                raise _NoAnswer("%s is absent at %s itself, where CI named it red: the CI id and the local one-test-file"
+                                " command disagree" % (case, red))
             if said is None:
                 raise _NoAnswer("%s run alone at %s gave no answer (%s, and its output names no failure of it and"
                                 " does not say it was not found)" % (
                                     case, commit, "no exit within VERI_TIMEOUT" if code is None else "exit %d" % code))
-            if said:
+            if said is True:
                 red_here.append((case, _first_fail(output, path, case)))
         if red_here:
             return "red: %s\nissue: %s\ncommit: %s\nbefore: %s\n%s" % (
