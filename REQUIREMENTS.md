@@ -88,6 +88,7 @@
 | CM163 | The *Commands* table has a `make watch` row saying it reruns `make unit` whenever a tracked file changes, and that nothing gates on it. (Commands table, the `make watch` row.) | Seven of nine targets were missing from the table. |
 | CM164 | The *Commands* table has a `make run-finished ISSUE=<n>` row saying it says whether run `<n>` is safe to merge, through `run-finished.sh`. (Commands table, the `make run-finished` row.) | Seven of nine targets were missing from the table. |
 | CM165 | The *Commands* table has a `make ready-check` row saying it reports whether veri can run in this repository, through `ready-check.sh`. (Commands table, the `make ready-check` row.) | Seven of nine targets were missing from the table. |
+| CM230 | *Invariants worth not breaking* names the legacy kind: an issue labelled `legacy` runs Seam → Surround → Verify under `skills/tdd/LEGACY.md`, never also `refactor`. | Docs change with the behaviour. |
 
 ## README.md
 
