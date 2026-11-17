@@ -844,6 +844,11 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `summary(step)`: the step's ledger text without its trailing markers, as a commit subject reads it (the #431/#437 rule).
 - `verdict_log(wt)`: the sha256 of `.tdd/verify-refactor.log`, `none` without one: the verdict a refactor-half file was settled after.
 
+## pr_ready_wait
+- `pr_url(wt)`: the PR url read as `DRAFT-PR.md` sub-step 2 reads it, an empty answer a stop with exit 2. `ci_wait(wt, n, owner, url)`: `wait-ci.sh` on the head into `.tdd/wait-ci.out` and `.tdd/wait-ci.err`, raising `Waiting` on `WAIT` (`wait-ci.sh`) at exit 3, stopping on 1 or 2 and on a green wait after a flake re-run.
+- `answered(where, ...)`, `gh_answered(where, ..., wt)`: a git or gh call whose failure is a stop with exit 2 (no answer). `dirty(where, wt, left=())`: the changed paths but `left`, a failing `git status` exit 2.
+- `stacked(name, wt, n)`: the run is stacked (`.tdd/issue-<n>-base`), named on stderr. `said(wt, path, absent="")`: a run-state file's text. `NO_CHECKS`: what `.tdd/wait-ci.err` says of a PR with no checks.
+
 ## metrics
 - `publish(target, issue, journal, ledger, run)`: writes the `metrics.sh --json` object of the journal at `journal` to `target`, renamed into place from a temporary file beside it; `run` is the run directory whose end, conductor log and pins the fold reads (`None`: the journal alone). `event` calls it for the published metrics file.
 - `rendered(issue)`: `(code, report, stderr)` of the markdown report of the working directory's run.
