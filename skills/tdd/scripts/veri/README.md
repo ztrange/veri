@@ -702,6 +702,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `rebase-onto-default.sh`: rebase the branch onto the default branch.
 - `stack-green.sh`: print the newest stack commit that ends an issue and that CI passed, where a slice may be cut.
 - `stack-pr.sh`: print the one open pull request tracking the stack branch, opening it when none is.
+- `stack-red.sh`: print CI's latest answer on the stack branch when it is red, which freezes joins.
 - `wait-ci.sh`: wait for a pull request's CI.
 - `worktree-setup.sh`: set up a worktree.
 

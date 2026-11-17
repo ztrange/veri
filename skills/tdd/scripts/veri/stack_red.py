@@ -12,8 +12,9 @@ GREEN = ("success", "neutral", "skipped")
 
 
 def main(argv):
-    if argv:
-        return entry.refuse(usage=USAGE)
+    refused = entry.no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     try:
         span = stack_branch.ahead(".")
     except stack_branch.Refused as refused:
