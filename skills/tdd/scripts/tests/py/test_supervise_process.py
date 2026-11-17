@@ -46,7 +46,8 @@ BROKEN_LOCK_WAIT = """\
 import sys, time
 sys.path[:0] = [%r, %r]
 import pytest
-from veri import pytest_leg
+sys.path.insert(0, sys.path[0] + "/tests/leg")
+import pytest_leg
 import full_run_lock
 pytest.main = lambda args: pytest.ExitCode.OK
 full_run_lock.acquire = lambda: time.sleep(3600)
@@ -78,7 +79,8 @@ SHORT_FULL_RUN = """\
 import sys
 sys.path[:0] = [%r, %r]
 import pytest
-from veri import pytest_leg
+sys.path.insert(0, sys.path[0] + "/tests/leg")
+import pytest_leg
 pytest.main = lambda args: pytest.ExitCode.OK
 sys.exit(pytest_leg.main([]))
 """
@@ -190,7 +192,8 @@ HANG_AFTER_LOCK = """\
 import sys, time
 sys.path[:0] = [%r, %r]
 import pytest
-from veri import pytest_leg
+sys.path.insert(0, sys.path[0] + "/tests/leg")
+import pytest_leg
 pytest.main = lambda args: (open(%r, "w").close(), time.sleep(3600))
 sys.exit(pytest_leg.main([]))
 """
@@ -1018,7 +1021,8 @@ VERIFIER_FULL_RUN = """\
 import os, sys
 sys.path[:0] = [%r, %r]
 import pytest
-from veri import pytest_leg
+sys.path.insert(0, sys.path[0] + "/tests/leg")
+import pytest_leg
 marks, release = sys.argv[1:3]
 def spy(args):
     open(os.path.join(marks, "started-after-release" if os.path.exists(release) else "started-before-release"), "a").close()

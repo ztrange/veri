@@ -31,7 +31,7 @@ def module_level_imports(module):
     "module_name, name", [(m, n) for m, names in RARE_PATH_IMPORTS.items() for n in names]
 )
 def test_module_does_not_import_a_rare_path_module_at_module_level(module_name, name):
-    module = importlib.import_module("veri." + module_name)
+    module = importlib.import_module(module_name)  # flat: pytest_leg lives in tests/leg/, not veri/ (#4051)
 
     assert name not in module_level_imports(module), (
         "%s: %s (import it inside the function that needs it)" % (name, RARE_PATH_IMPORTS[module_name][name])

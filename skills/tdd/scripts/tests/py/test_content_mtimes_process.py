@@ -61,7 +61,7 @@ def run_the_leg(tree, prefix, out):
                PYTHONPATH=os.path.join(scripts, "veri"))
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
-         os.path.join(scripts, "veri", "pytest_leg.py"), "--subset", "-q", "-p", "no:cacheprovider", "test_probe.py"],
+         os.path.join(scripts, "tests", "leg", "pytest_leg.py"), "--subset", "-q", "-p", "no:cacheprovider", "test_probe.py"],
         cwd=tree, env=env, capture_output=True, text=True, timeout=60)
     assert done.returncode == 0, done.stdout + done.stderr
     return out.read_text()

@@ -41,7 +41,7 @@ def bare_route(stdout):
     return re.sub(r"(?<=\s)[^\s:]*::", "", stdout) if stdout.startswith(("red ", "repair ", "supersede ")) else stdout
 
 
-for path in (SCRIPTS / "veri", SCRIPTS):
+for path in (SCRIPTS / "tests" / "leg", SCRIPTS / "veri", SCRIPTS):  # tests/leg: the pytest leg and its plugins (#4051)
     while str(path) in sys.path:
         sys.path.remove(str(path))
     sys.path.insert(0, str(path))

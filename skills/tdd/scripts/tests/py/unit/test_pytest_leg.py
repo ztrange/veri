@@ -1,4 +1,4 @@
-"""In-process cases for veri/pytest_leg.py, the launcher that makes the pytest leg's refusals and then runs pytest."""
+"""In-process cases for tests/leg/pytest_leg.py, the launcher that makes the pytest leg's refusals and then runs pytest."""
 import importlib
 import os
 import sys
@@ -9,7 +9,7 @@ import pytest
 
 @pytest.fixture
 def pytest_leg():
-    return importlib.import_module("veri.pytest_leg")
+    return importlib.import_module("pytest_leg")
 
 
 def leg_env(**extra):
@@ -18,7 +18,20 @@ def leg_env(**extra):
 
 
 def without_selection(args):
-    return importlib.import_module("veri.pytest_leg").split_marks(args)[0]
+    return importlib.import_module("pytest_leg").split_marks(args)[0]
+
+
+def test_the_leg_and_its_four_plugins_live_under_tests_leg_while_the_modules_launches_share_stay_in_veri_4051(pytest_leg):
+    """PRD 025.16 PL1: veri/ holds no test-runner code; the leg is loaded from skills/tdd/scripts/tests/leg/."""
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    leg = ["pytest_leg", "network_guard", "small_case_guard", "serial_seen", "private_tmp_path"]
+    shared = ["full_run_lock", "launch_floor", "tunables"]
+    where = {name: sorted(d for d in ("veri", os.path.join("tests", "leg"))
+                          if os.path.isfile(os.path.join(scripts, d, name + ".py"))) for name in leg + shared}
+
+    assert (where, os.path.dirname(os.path.realpath(pytest_leg.__file__))) == (
+        {**{name: [os.path.join("tests", "leg")] for name in leg}, **{name: ["veri"] for name in shared}},
+        os.path.join(os.path.realpath(scripts), "tests", "leg"))
 
 
 def test_an_interpreter_below_the_floor_exits_2_naming_the_floor_the_interpreter_and_its_version(pytest_leg, run_cli):

@@ -641,7 +641,7 @@ def test_each_case_gets_a_private_empty_tmp_path_that_exists_and_a_file_left_in_
         "def test_third(tmp_path):\n"
         "    check(tmp_path)\n" % str(seen))
 
-    ran = child_pytest(tmp_path, probe, os.environ, plugins=["veri.private_tmp_path"])
+    ran = child_pytest(tmp_path, probe, os.environ, plugins=["private_tmp_path"])
 
     output = ran.stdout + ran.stderr
     assert ran.returncode == 0, output
