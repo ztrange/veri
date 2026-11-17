@@ -17,11 +17,11 @@ from entry import write
 from prompt_template import IncludeRefused, expand_includes, fill, has_heading, spec_text_of
 
 DEVELOP_INTERFACE_PHASES = INTERFACE_PHASES[:1] + ("beside",) + INTERFACE_PHASES[1:]
-PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
+PHASES = ("red", "green", "refactor", "cover", "seam", "transform", "diff", "structural", "predicate", "revise",
           "reconcile", "exhausted", "over-budget", "rebase", "replaces-report", "red-contradicted", "red-repair",
           "red-missing", "red-supersede") + DEVELOP_INTERFACE_PHASES
 REVISE_PHASES = ("red", "green", "refactor", "transform", "diff")
-WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff": 5, "structural": 5,
+WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "seam": 4, "transform": 4, "diff": 5, "structural": 5,
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7,
         "replaces-report": 6, "red-contradicted": 5, "red-repair": 6, "red-missing": 5, "red-supersede": 6,
         **dict.fromkeys(DEVELOP_INTERFACE_PHASES, 4)}
