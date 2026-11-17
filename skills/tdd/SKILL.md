@@ -1070,15 +1070,13 @@ sub-step it names.
 
 The loop is stage `refactor-loop`, one end per start: entering it, unless `refactor-half.sh` got past its exit-2 refusals or 3 resumes it (it stays open through a triangulation), `VERI_ISSUE=<n> $S/event.sh stage-start stage=refactor-loop; date +%s > .tdd/stage-rl.t`,
 and when it ends `VERI_ISSUE=<n> $S/event.sh stage-end stage=refactor-loop status=<exit code> secs=$(($(date +%s)-$(cat .tdd/stage-rl.t)))`:
-0 once 6's `chore: refactor verified` push exits 0, or its reconcile succeeds, before its stop check; 1 at 6's `repin`, before the commit; 3 at a stop before
+0 once 6's `chore: refactor verified` push exits 0 unless `step-close.sh` pushed it (it ends the stage), or its reconcile succeeds, before its stop check; 1 at 6's `repin`, before the commit; 3 at a stop before
 that push; else the ending call's code (a bail's too).
 
 1. **One refactor leaf for the step.** Ask the budget first, with a count of **0**: that
-   call decides whether the leaf runs at all, since `VERI_REFACTOR_BUDGET=0`
-   switches refactoring off. Then build the prompt from the `refactor` template — which
+   call decides whether the leaf runs at all, since `VERI_REFACTOR_BUDGET=0` switches refactoring off. Then build the prompt from the `refactor` template — which
    carries the budget to the leaf as the number of transforms it may apply — and launch
-   **through the supervisor** (exit **2** → **bail**, after the stop check in *Launching a
-   leaf*; see `<base directory>/BAIL.md`):
+   **through the supervisor** (exit **2** → **bail**, after the stop check in *Launching a leaf*; see `<base directory>/BAIL.md`):
    ```
    $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 5
    touched="$($S/refactor-touched.sh HEAD)"
@@ -1087,24 +1085,16 @@ that push; else the ending call's code (a bail's too).
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh)" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor  # foreground; again on exit 3
    ```
-   **One leaf for the whole step**, not one per transform.
-   `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
-   comma-separated line. Compute it **once**, right after the step's atomic green commit —
-   `$S/refactor-touched.sh HEAD` is exactly that commit's files at that moment — adding
-   anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work
-   on disk.
+   **One leaf for the whole step**, not one per transform. `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
+   comma-separated line. Compute it **once**, right after the step's atomic green commit — `$S/refactor-touched.sh HEAD` is exactly that commit's files at that moment — adding
+   anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work on disk.
    The template owns the rules — the leaf triages what it sees in those files into
-   **structural** and **cosmetic** candidates and applies the structural ones, most valuable
-   first, up to its budget; it runs the **suites covering the files it touched** after every
+   **structural** and **cosmetic** candidates and applies the structural ones, most valuable first, up to its budget; it runs the **suites covering the files it touched** after every
    transform and **reverts** one that turns them red rather than leave a red suite; it takes
-   **no untested generality** (that comes only from **triangulation**) and **flags overfit**
-   code as needing a triangulating test instead of hand-generalizing it. It also **commits
-   its own transforms**, one commit each:
-   `git commit -m "refactor: <what> (#<n>)"`. The atomic tick-and-commit stays on green
-   (ADR-0007); it is the refactor commit that moved to the leaf. The report is in
-   `.tdd/develop-refactor.out` and ends with `RESULT:` (one line per transform applied, or
-   `nothing left to tidy`), `CANDIDATES:` (one line per leftover it still sees, each
-   carrying its class, or `none`) and `FLAGS:` (one finding per line, each carrying its
+   **no untested generality** (that comes only from **triangulation**) and **flags overfit** code as needing a triangulating test instead of hand-generalizing it. It also **commits
+   its own transforms**, one commit each: `git commit -m "refactor: <what> (#<n>)"`. The atomic tick-and-commit stays on green
+   (ADR-0007); it is the refactor commit that moved to the leaf. The report is in `.tdd/develop-refactor.out` and ends with `RESULT:` (one line per transform applied, or
+   `nothing left to tidy`), `CANDIDATES:` (one line per leftover it still sees, each carrying its class, or `none`) and `FLAGS:` (one finding per line, each carrying its
    class — `overfit`, `uncovered-spec` or `beyond-spec` — or `none`; 3 and 4 below route
    them).
 2. **Check what the leaf left.** The conductor **checks** it, because verify-refactor judges
