@@ -94,9 +94,10 @@ def test_a_push_that_lands_also_pushes_refs_veri_runs_n_a_commit_on_no_branch_ho
     on_a_branch = subprocess.run(["git", "-C", str(remote), "branch", "--contains", ref],
                                  capture_output=True, text=True).stdout.strip()
     carried = shown["events.jsonl"].splitlines()
-    under_way = json.loads(carried.pop())  # the push's own stage-start, written before it (#4230)
-    shown["events.jsonl"] = "".join(line + "\n" for line in carried)
-    assert (under_way["event"], under_way["stage"]) == ("stage-start", "push")
+    stage = [(m["event"], m["stage"], m.get("status")) for m in map(json.loads, carried[2:])]
+    shown["events.jsonl"] = "".join(line + "\n" for line in carried[:2])
+    # the push's own stage is closed before the snapshot is taken, so a reader of the ref never sees it unended (#4230)
+    assert stage == [("stage-start", "push", None), ("stage-end", "push", "0")]
     assert (code, shown, on_a_branch) == (0, {
         "events.jsonl": lines[0] + "\n" + lines[2] + "\n",
         "issue-191-skill-commit": "abc1234\n",

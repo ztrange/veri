@@ -75,10 +75,17 @@ def main(argv):
               f"got '{' '.join(argv)}'", file=sys.stderr)
         print(USAGE, file=sys.stderr)
         return 2
-    return event.stage("push", lambda: push(argv))
+    landed = []
+    code = event.stage("push", lambda: push(argv, landed))
+    if landed:
+        # After the stage ends, so the snapshot refs/veri/runs/<n> carries the push's stage closed, never unended.
+        mirror("refs/veri/runs/<n>", run_records.after_push)
+        mirror("the pointer comment", pointer_comment.after_push)
+    return code
 
 
-def push(argv):
+def push(argv, landed):
+    """The push itself, its exit code; `landed` gains True when the branch reached the remote."""
     retries = tunable("VERI_PUSH_RETRIES", "3")
     if retries is None:
         return 2
@@ -100,8 +107,7 @@ def push(argv):
         if pushed.returncode == 0:
             if leased_push:
                 os.remove(lease_file)
-            mirror("refs/veri/runs/<n>", run_records.after_push)
-            mirror("the pointer comment", pointer_comment.after_push)
+            landed.append(True)
             return 0
         out = pushed.stdout.rstrip("\n")
         if "[rejected]" in out and any(reason in out for reason in REJECTIONS):
