@@ -21,6 +21,7 @@ WHERE = "2"
 FULL_SUITE = "⟦full-suite⟧"
 REFACTOR_OWED = ".tdd/issue-%s-refactor-owed.md"
 RENDER = ".tdd/issue-%s-refactor-owed-render"
+METRICS = ".tdd/issue-%s-metrics.md"
 
 # The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_pr_finish.py fails
 # when one is a script DRAFT-PR.md sub-step 2's second block does not name (FC19).
@@ -52,7 +53,10 @@ def close(wt, n):
     url = pr_ready_wait.pr_url(wt)
     tick_full_suite(wt, n)
     values = {"pr_url": url, "metrics": record(wt, n, url)}
-    if fused.changed_paths(WHERE, wt):
+    # A failed render may leave its file behind, half written or over the one an earlier call committed: that file is
+    # carried as metrics=<code>, not committed, so it is no dirt; every other path still is.
+    left = {METRICS % n} if values["metrics"] else set()
+    if set(fused.changed_paths(WHERE, wt)) - left:
         raise fused.Stop(WHERE, "tree-check", 1)
     fused.checked(WHERE, fused.script("push-branch.sh"), cwd=wt)
     fused.save_wait(wt, n, NAME, pr_ready_wait.WAIT, values)
@@ -64,7 +68,7 @@ def record(wt, n, url):
     metrics.sh's exit code, which any other exit carries rather than stops on."""
     fused.checked(WHERE, fused.script("event.sh"), "done", "pr=" + url, cwd=wt,
                   env=tunables.with_values(VERI_ISSUE=n, VERI_ACTOR="conductor"))
-    metrics = ".tdd/issue-%s-metrics.md" % n
+    metrics = METRICS % n
     code = fused.call(fused.script("metrics.sh"), n, cwd=wt, out=metrics)[0]
     if code == 0:
         fused.checked(WHERE, "git", "add", metrics, cwd=wt)

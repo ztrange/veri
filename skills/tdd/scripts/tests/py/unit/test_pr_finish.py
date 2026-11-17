@@ -156,6 +156,22 @@ def test_4033_a_failed_metrics_render_commits_nothing_goes_on_and_carries_its_co
     assert _commits(fake) == [] and "push-branch.sh" in fake.names()
 
 
+@pytest.mark.parametrize("listed", ["?? .tdd/issue-12-metrics.md\n", " M .tdd/issue-12-metrics.md\n"],
+                         ids=["left untracked", "committed by an earlier call"])
+def test_4033_a_failed_metrics_render_that_left_its_file_is_no_dirty_tree(finish, listed):
+    code, out, err, fake = finish(fake=Fake(mode="local", answers={("metrics.sh", None): (1, ""),
+                                                                   ("git", "status"): (0, listed)}))
+
+    assert (code, "metrics=1" in out.splitlines()[-3:], "push-branch.sh" in fake.names()) == (0, True, True)
+
+
+def test_4033_a_failed_metrics_render_still_stops_at_any_other_dirty_path(finish):
+    code, out, err, fake = finish(fake=Fake(mode="local", answers={
+        ("metrics.sh", None): (1, ""), ("git", "status"): (0, "?? .tdd/issue-12-metrics.md\n?? stray.py\n")}))
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 2 tree-check")
+
+
 def test_4033_no_refactor_owed_render_writes_an_empty_file(finish):
     code, out, err, fake = finish(fake=Fake(mode="local", answers={("refactor-owed.sh", None): (3, "")}))
 
