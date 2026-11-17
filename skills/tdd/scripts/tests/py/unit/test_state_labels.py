@@ -67,7 +67,7 @@ def test_a_bail_event_labels_the_state_label_issue_bailed_and_takes_its_pr_ready
 
     code = event.append(clone(tmp_path), {"issue": "42"}, "bail", ["cause=revise-exhausted"], ts=1700000000)
 
-    assert (code, calls) == (0, [ADD_BAILED, DELETE_PR_READY])
+    assert (code, calls) == (0, [("gh", "api", "repos/{owner}/{repo}/labels/bailed"), ADD_BAILED, DELETE_PR_READY])
 
 
 def test_a_resume_event_takes_the_bailed_label_off_the_state_label_issue_and_re_claims_it_3460(event, monkeypatch, tmp_path, fake_processes):
@@ -100,7 +100,7 @@ def test_issue_4081_a_stop_event_labels_the_state_label_issue_stopped(event, mon
 
     code = event.append(clone(tmp_path), {"issue": "42"}, "stop", ["mode=now", "at=green"], ts=1700000000)
 
-    assert (code, calls) == (0, [ADD_STOPPED])
+    assert (code, calls) == (0, [("gh", "api", "repos/{owner}/{repo}/labels/stopped"), ADD_STOPPED])
 
 
 DELETE_STOPPED = ("gh", "api", "-X", "DELETE", "repos/{owner}/{repo}/issues/42/labels/stopped")
@@ -169,3 +169,17 @@ def test_issue_4081_park_issue_in_a_repository_with_no_parked_label_exits_2_crea
     writes = [argv for argv in calls if "-f" in argv or "-F" in argv or "POST" in argv or "--body-file" in argv]
     assert (code, writes) == (2, []), calls
     assert "parked" in err, err
+
+
+@pytest.mark.parametrize("name,label", [("stop", "stopped"), ("bail", "bailed")])
+def test_issue_4081_an_event_whose_label_the_repository_lacks_adds_nothing_says_so_and_still_exits_0(event, monkeypatch, tmp_path, capsys, fake_processes, name, label):
+    monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "42")
+    missing = (1, "", "gh: Not Found (HTTP 404)\n")
+    calls = fake_gh(fake_processes, lambda args: missing if args[-1] == "repos/{owner}/{repo}/labels/" + label else (0, "", ""))
+    fields = {"stop": ["mode=now", "at=green"], "bail": ["cause=revise-exhausted"]}[name]
+
+    code = event.append(clone(tmp_path), {"issue": "42"}, name, fields, ts=1700000000)
+
+    adds = [c for c in calls if "labels[]=" + label in c]
+    assert (code, adds) == (0, [])
+    assert "`%s`" % label in capsys.readouterr().err
