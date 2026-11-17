@@ -153,7 +153,8 @@ neither. It has exactly one of six outcomes:
 | `leaves.<kind>.cache_creation_input_tokens` | whole number | no |
 | `leaves.<kind>.cost_usd` | number, dollars | no |
 | `steps` | list of objects, one per ledger step a leaf ran for, in the order `metrics.sh`'s By step table lists them | no |
-| `steps[].text` | string, the step's ledger text | no |
+| `steps[].text` | string, the step's latest ledger text: a step a plan rewrite reworded (`step-reworded` lines, followed through chained rewordings) is one entry, every line naming any of its texts counted in it; a step reworded outside the ledger rewrite (a hand edit of the ledger) writes no such line and shows as a new step | no |
+| `steps[].former` | list of strings, the step's earlier texts in the order it carried them, `[]` when it was never reworded | no |
 | `steps[].attempts` | whole number | no |
 | `steps[].pass` | whole number | no |
 | `steps[].reject` | whole number | no |
