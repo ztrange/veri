@@ -130,17 +130,13 @@ def _fast_command(top):
     return os.fsdecode(found) if found else None
 
 
-def _fetch():
-    """Whether `git fetch --prune origin` answered."""
-    return git.network("fetch", "--prune", "origin").returncode == 0
-
-
-def _moved(stack, onto):
-    """After a refused push: True when a fetch shows origin's <stack> is no longer <onto>, False when it still is.
+def _origin_now(stack):
+    """After a push that did not answer 0: origin's <stack> as a fresh fetch reads it ("" when origin has none).
     NoAnswer when the fetch gets no answer."""
-    if not _fetch():
-        raise NoAnswer("the push was refused and a fetch of origin got no answer; nothing pushed")
-    return _rev("refs/remotes/origin/" + stack) != onto
+    if git.network("fetch", "--prune", "origin").returncode:
+        raise NoAnswer("the push did not answer 0 and a fetch of origin got no answer, so whether it landed is not"
+                       " known")
+    return _rev("refs/remotes/origin/" + stack)
 
 
 def _push(head, stack, onto):
@@ -204,6 +200,22 @@ def _bounds(n, red, stack, onto, head):
                                                n, TRAILER, red))
 
 
+def _pushed(head, stack, onto):
+    """Push <head> to <stack>, leased to <onto> and a fast-forward of it (its descent checked before): returns when
+    origin's stack is <head>, read back after a push that did not answer 0 (one that timed out may have landed).
+    Refused when origin's stack moved to another commit; NoAnswer when it still reads <onto> or cannot be read."""
+    if _push(head, stack, onto) == 0:
+        return
+    now = _origin_now(stack)
+    if now == head:
+        return
+    if now == onto:
+        raise NoAnswer("the push of %s to %s was refused or gave no answer, and origin's %s did not move; nothing"
+                       " pushed" % (head, stack, stack))
+    raise Refused("origin's %s moved since the fetch (now %s, fetched at %s); nothing pushed, nothing forced" % (
+        stack, now or "deleted", onto))
+
+
 def culprit_answer(text):
     """(red, issues, cases) a stack-culprit.sh answer records: the sha of its `red:` line, the issue numbers of its
     `issue:` line (none for `none`), and the case of each `case:` line, in order. None when it lacks any of them."""
@@ -239,18 +251,11 @@ def main(argv):
     if code:
         return entry.refuse("taking the merge lock failed (exit %d); nothing pushed" % code, prefix="stack-fix: ")
     try:
-        try:
-            stack, onto, head = _checked(n, red)
-        except Refused as refused:
-            _say(str(refused))
-            return 1
-        except NoAnswer as no:
-            _say(str(no))
-            return 2
-        except NotRed as not_red:
-            _say(str(not_red))
-            return 3
-        _push(head, stack, onto)
+        stack, onto, head = _checked(n, red)
+        _pushed(head, stack, onto)
+    except (Refused, NoAnswer, NotRed) as stopped:
+        _say(str(stopped))
+        return {Refused: 1, NoAnswer: 2, NotRed: 3}[type(stopped)]
     finally:
         released, _ = _script("merge-lock.sh", "release", "--pid", pid)
         if released:

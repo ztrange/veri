@@ -32,7 +32,7 @@ class World:
 
     def __init__(self, monkeypatch, fix, tmp_path, red_now=RED, red_code=0, stack_subjects=None, fixes=None,
                  changed=(("M", "src/a.py"),), dirty="", has=True, alone=(0, "1 passed\n"), fast=(0, ""), owed=0,
-                 push=0, moved=False, ancestor=True, pulls=1, lock=0, culprit=None, fetch=True, span=None,
+                 push=0, moved=ONTO, ancestor=True, pulls=1, lock=0, culprit=None, span=None,
                  log_fails=False, one_file='make test TESTS="$1"', fast_command="make unit", head_after=None):
         self.scripts, self.pushed, self.posted, self.runs = [], [], [], []
         self.head = HEAD
@@ -99,8 +99,12 @@ class World:
         monkeypatch.setattr(fix, "_one_file_command", lambda top: one_file)
         monkeypatch.setattr(fix, "_fast_command", lambda top: fast_command)
         monkeypatch.setattr(fix, "_push", do_push)
-        monkeypatch.setattr(fix, "_fetch", lambda: fetch)
-        monkeypatch.setattr(fix, "_moved", lambda stack_name, onto: moved)
+        def origin_now(stack_name):
+            if isinstance(moved, BaseException):
+                raise moved
+            return moved
+
+        monkeypatch.setattr(fix, "_origin_now", origin_now)
         monkeypatch.setattr(fix.github, "stack_pulls", stack_pulls)
         monkeypatch.setattr(fix.github, "gh_comment_post", lambda number, body: self.posted.append((number, body)))
 
@@ -223,3 +227,22 @@ def test_exits_1_pushing_nothing_unless_each_fix_commit_ends_its_subject_n_and_c
     got, _, err = run_cli(fix, world.argv())
 
     assert (got, len(world.pushed), world.lock_held) == (code, 1 if code == 0 else 0, False), err
+
+
+@pytest.mark.parametrize("push, origin_after, code", [
+    (1, sha(20), 1),
+    (1, ONTO, 2),
+    (124, sha(20), 1),
+    (124, ONTO, 2),
+    (124, HEAD, 0),
+    (1, "no answer", 2),
+])
+def test_the_push_is_leased_to_the_fetched_tip_never_forced_and_a_refusal_because_origin_moved_is_exit_1(
+        monkeypatch, run_cli, fix, tmp_path, push, origin_after, code):
+    moved = fix.NoAnswer("the fetch got no answer") if origin_after == "no answer" else origin_after
+    world = World(monkeypatch, fix, tmp_path, push=push, moved=moved)
+
+    got, out, err = run_cli(fix, world.argv())
+
+    assert (got, out, world.pushed, world.lock_held) == (
+        code, HEAD + "\n" if code == 0 else "", [(HEAD, "stack", ONTO)], False), err
