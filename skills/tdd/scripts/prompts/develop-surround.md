@@ -33,7 +33,8 @@ outside it.
 
    Every case must **pass** on the unmodified code. A case that fails pins nothing yet: fix the
    case, never the code.
-7. Make no commit: leave the new test file in the working tree for the verifier.
+7. Commit the new test file, and nothing else, as its own commit, its subject ending in
+   `(#<issue>)`: it is the step's Surround commit, which the verifier judges.
 
 ### Report (last lines of your output)
 
