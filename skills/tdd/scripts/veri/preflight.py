@@ -13,6 +13,7 @@ import tempfile
 import time
 
 import event
+import fused
 import ready_check
 import run_dir
 import tunables
@@ -89,21 +90,11 @@ def pending_in(wt, n):
     return run_dir.issue_file(wt, n, "-preflight-wait")
 
 
-def conductor(wt):
-    """The conductor this call runs under, as `.tdd/conductor.pid` names it: {"pid", "started"}; None without one."""
-    try:
-        with open(run_dir.run_file(wt, "conductor.pid")) as f:
-            lines = f.read().split("\n")
-    except OSError:
-        return None
-    return {"pid": lines[0].strip(), "started": (lines[1:] or [""])[0].strip()}
-
-
 def save_pending(wt, n, *fields):
     """Record the wait preflight exits 3 on: its <fields>, the conductor it ran under (FC7), and what step 3 settled
     before it (CARRIED), so a second call neither repeats nor loses it (RP8)."""
     with open(pending_in(wt, n), "w") as f:
-        json.dump({"conductor": conductor(wt), "fields": list(fields), "carried": CARRIED}, f)
+        json.dump({"conductor": fused.conductor(wt), "fields": list(fields), "carried": CARRIED}, f)
 
 
 def load_pending(wt, n):
@@ -116,7 +107,7 @@ def load_pending(wt, n):
         theirs = record.get("conductor")
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return None
-    if theirs != conductor(wt):
+    if theirs != fused.conductor(wt):
         os.remove(pending_in(wt, n))
         return None
     CARRIED.update(carried)
