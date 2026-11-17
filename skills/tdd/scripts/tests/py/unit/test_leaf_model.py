@@ -546,3 +546,13 @@ def test_4012_a_veri_model_revise_green_holding_whitespace_is_refused_with_exit_
     captured = capsys.readouterr()
     assert (code, captured.out, captured.err) == (
         2, "", "leaf-model: model 'son net' contains whitespace (a model id or alias is one word)\n")
+
+
+def test_develop_test_quality_runs_on_the_developer_model_else_veri_model_with_no_knob_of_its_own(monkeypatch, leaf_model):
+    monkeypatch.setenv("VERI_MODEL", "haiku")
+    monkeypatch.setenv("VERI_MODEL_TEST_QUALITY", "opus")
+    fallback = leaf_model.leaf_model("develop-test-quality")
+    monkeypatch.setenv("VERI_MODEL_DEVELOPER", "sonnet")
+    monkeypatch.setenv("VERI_MODEL_VERIFIER", "opus")
+
+    assert (fallback, leaf_model.leaf_model("develop-test-quality")) == ("haiku", "sonnet")
