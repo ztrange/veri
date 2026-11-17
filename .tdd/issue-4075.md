@@ -9,4 +9,4 @@
 - [x] ADR-0022, veri/README.md and both script headers name `VERI_STEP_GROWTH_PERCENT` ⟦criterion 9⟧
 - [x] ⟦skill-edit⟧ `skills/tdd/SKILL.md` says "the growth cap", no larger in bytes ⟦criterion 6⟧
 - [x] ⟦skill-edit⟧ `CLAUDE.md` names `VERI_STEP_GROWTH_PERCENT` as the plan-growth budget ⟦criterion 7⟧
-- [ ] ⟦skill-edit⟧ `skills/tdd/BAIL.md` and the other skill docs and `CONTEXT.md` name `VERI_STEP_GROWTH_PERCENT` ⟦criterion 8⟧
+- [x] ⟦skill-edit⟧ `skills/tdd/BAIL.md` and the other skill docs and `CONTEXT.md` name `VERI_STEP_GROWTH_PERCENT` ⟦criterion 8⟧
