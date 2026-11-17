@@ -18,7 +18,7 @@ def test_in_a_foreign_repo_only_the_added_file_nothing_names_is_printed_and_exit
     repo = new_repo(tmp_path / "repo")
     write(repo, {"src/main.py": "def main():\n    return 0\n"})
     base = commit_all(repo, "base")
-    write(repo, {"src/orphan.py": "def orphan():\n    return 1\n", "src/used.py": "def used():\n    return 2\n",
+    write(repo, {"src/orphan.py": "def orphan():\n    return orphan\n", "src/used.py": "def used():\n    return 2\n",
                  "src/main.py": "from used import used\n\n\ndef main():\n    return used()\n"})
     commit_all(repo, "add two files")
     done = subprocess.run(["/bin/sh", str(SCRIPTS / "unwired.sh"), base], cwd=repo,
