@@ -37,7 +37,7 @@ EVENTS = {
             "|revise-exhausted|revise-impossible|untestable-criterion|step-too-big|rebase-unresolved|uncovered|ci-red"
             "|suite-red|rebased-tip-red|unreplaced-cases|needs-user|step-added-off-route|fixture-owed"
             "|missing-reroutes-exhausted|repair-reroutes-exhausted|graded-edit-outside-skill-edit|unpinnable-missing"
-            "|repin-failed|skill-edit-refused|prep-owed|no-seam|surround-owed) classification?:(process|system) suites?:text failed?:text",
+            "|repin-failed|skill-edit-refused|prep-owed|no-seam|surround-owed|unwired) classification?:(process|system) suites?:text failed?:text",
     "ci-flake": "head:sha run:whole files:text",
     "ci-rerun": "head:sha run:whole files:text",
     "comment": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|verify-revised|plan|verify-plan"
