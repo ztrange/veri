@@ -12,7 +12,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
              pinned, model_knobs, models
   tables     phases, leaves, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
              adjudications, switched_off, switched_off_by, total, green_rejects (+ green_reject_routes, green_reject_checks),
-             launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green, runs, stages, reject_outcomes
+             launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green, runs, stages, reject_outcomes, former
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
@@ -595,7 +595,7 @@ def refactor_totals(passes, structural, structural_marked):
 class Fold:
     """What the report says, as plain data; `layout` prints it and reads nothing else."""
     issue: str
-    marks: list                 # every event of the log
+    marks: list                 # every event of the log, each reworded step named by its latest text (reworded)
     clocked: bool               # whether every timed event carries an awake-clock reading
     models: dict                # (step, phase, attempt, actor) -> the model(s) that answered
     phases: dict                # phase -> {PHASE_COLUMNS: number}
@@ -657,6 +657,7 @@ class Fold:
                                 # awake_seconds, sessions, leaves, cost_usd (runs_of)
     stages: dict                # stage -> {STAGE_KEYS: number}, for each stage the journal marked (stages_of)
     reject_outcomes: list       # (phase, step, outcome) per REJECT verdict, in log order (reject_outcomes)
+    former: dict                # step's latest text -> its earlier texts in order, for each reworded step (reworded)
 
 
 def is_revise_green(name):
@@ -749,6 +750,25 @@ def stages_of(marks):
     return stages
 
 
+def reworded(marks):
+    """The journal with every step a `step-reworded` line renamed, transitively, named by its latest text (PRD 035.4c,
+    MS3), and {latest text: [its earlier texts, in order]}; a journal with no such line comes back as it is, with {}.
+    A rewording back to an earlier text makes that text the latest again, never one of its own former texts."""
+    chains = {}
+    for line in marks:
+        if line.get("event") == "step-reworded" and line.get("from") and line.get("to"):
+            chain = chains.get(line["from"]) or [line["from"]]
+            if line["to"] in chain:
+                chain.remove(line["to"])
+            chain.append(line["to"])
+            for text in chain:
+                chains[text] = chain
+    if not chains:
+        return marks, {}
+    renamed = [dict(line, step=chains[line["step"]][-1]) if line.get("step") in chains else line for line in marks]
+    return renamed, {chain[-1]: chain[:-1] for chain in chains.values()}
+
+
 REJECT_OUTCOMES = ("caught", "flipped", "overturned", "unresolved", "pending", "untracked")
 
 
@@ -799,7 +819,7 @@ def fold(issue, path, ledger, run=BESIDE):
         run, beside, roots = os.path.dirname(os.path.dirname(os.path.abspath(path))), path, pin_roots()
     elif run is not None:
         beside, roots = run_dir.run_file(run, "events.jsonl"), pin_roots(run)
-    marks = read_events(path)
+    marks, former = reworded(read_events(path))
     clocked = bool(marks) and all("awake" in mark for mark in marks if "ts" in mark)
     models = {(mark.get("step", ""), mark.get("phase", ""), mark.get("attempt", ""), mark.get("actor")):
               mark["model"] for mark in marks if mark.get("event") == "usage" and "model" in mark}
@@ -882,7 +902,8 @@ def fold(issue, path, ledger, run=BESIDE):
                 green_reject_checks=sorted(item for item in checks.items() if item[0]) + [("unnamed", checks[""])],
                 launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing,
                 gradings=tally.gradings, first_tries=tally.first_tries(), revise_green=revise_green_outcomes(marks, models),
-                runs=runs_of(marks), stages=stages_of(marks), reject_outcomes=reject_outcomes(marks))
+                runs=runs_of(marks), stages=stages_of(marks), reject_outcomes=reject_outcomes(marks),
+                former=former)
 
 
 def known(number):
@@ -1207,7 +1228,8 @@ def as_json(f):
             "leaves": {kind: json_row(row_counts, PHASE_COLUMNS) for kind, row_counts in f.leaves.items()},
             # a step's wall is the markdown's: its start-to-done span, not its leaves' summed seconds
             "steps": [dict(json_row(row_counts, STEP_COLUMNS), text=step, wall_seconds=f.step_walls[step],
-                           rejects=rejects_json(f.reject_outcomes, lambda _phase, of: of == step))
+                           rejects=rejects_json(f.reject_outcomes, lambda _phase, of: of == step),
+                           former=list(f.former.get(step, [])))
                       for step, row_counts in f.steps.items()],
             "conductor": conductor_json(f),
             "total": dict(json_row(f.total, COST_COLUMNS), includes_conductor=f.total_includes_conductor)}
