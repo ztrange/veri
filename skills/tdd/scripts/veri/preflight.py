@@ -251,10 +251,13 @@ def set_up(n, slug, detect):
     marker = run_dir.run_file(wt, "ci-conflict-rebased")
     if os.path.exists(marker):
         os.remove(marker)
-    checked(3, script("unlabel-issue.sh"), n, cwd=wt)
+    ledger = os.path.join(".tdd", "issue-%s.md" % n)
+    resume = os.path.exists(os.path.join(wt, ledger))
+    if not resume:
+        checked(3, script("unlabel-issue.sh"), n, cwd=wt)
     checked(3, script("worktree-setup.sh"), n, cwd=wt, ok=(0, 3))
     body_file = issue_body(n, wt)
-    checked(3, script("requirements-preflight.sh"), body_file, cwd=wt)
+    checked(3, script("requirements-preflight.sh"), body_file, *([ledger] if resume else []), cwd=wt)
     fast = checked(3, detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt).strip()
     return wt, fast, body_file
 
@@ -344,9 +347,6 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     n = argv[0]
-    if os.path.exists(run_dir.ledger(run_dir.worktree("", n), n)):
-        sys.stderr.write("issue %s already holds a ledger: resume per RESUME.md\n" % n)
-        return 2
     wt = os.path.abspath(run_dir.worktree("", n))
     if not os.path.isdir(os.path.join(wt, ".tdd")):
         # Unmarked: the stage's lines would create the worktree's directory, which a stop before step 3 must not leave.
