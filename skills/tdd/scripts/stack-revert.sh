@@ -10,9 +10,10 @@
 # pushes the revert as a fast-forward leased to the fetched tip, never forced, starting again from the fetch while
 # origin's stack moves (5 attempts). After the push, each `Closes #<n>` in the body of a pull request merged into the
 # stack becomes `Reverted from <stack> by <sha>`, and it comments once on issue <n> and once on the tracking pull
-# request; it changes no label.
+# request; it changes no label. An issue reverted before has only its commits after its last revert reverted.
 # Exit:    0 pushed: the revert's sha printed; 1 a revert conflict, a red fast tier or a unit owing a grade, nothing
-#          pushed; 3 stack-red.sh exits 3, no commit of the stack belongs to <n>, or <n> is already reverted there;
+#          pushed; 3 stack-red.sh exits 3, no commit of the stack belongs to <n>, or <n>'s newest commit there is its
+#          revert (the Closes lines still reworded to name it);
 #          2 no answer from git, GitHub, stack-red.sh or the lock, origin moving on every attempt, bad arguments, or
 #          a merged pull request's body it cannot read or edit (named, the revert left pushed). The lock is freed on
 #          every exit.
