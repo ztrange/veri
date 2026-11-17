@@ -130,16 +130,20 @@ def test_4254_a_stopped_watch_never_ends_its_leg(idle_watch, stderr_pipe):
     assert (world.codes, world.signals) == ([], [])
 
 
-def test_4254_a_leg_whose_passes_return_while_its_watch_writes_the_stacks_is_never_ended(idle_watch, stderr_pipe):
+def test_4254_a_watch_claims_the_leg_before_it_writes_or_signals_so_a_return_during_the_stack_wait_yields_to_it(idle_watch, stderr_pipe):
     out, written = stderr_pipe
-    world = World()
+    world = World(obey_term=True)
     watch = watch_in(idle_watch, world, 1, out)
-    watch.workers[:] = [4451]
-    watch.sleep = lambda seconds: watch.stop()  # the leg's passes return during the wait for the workers' stacks
+    watch.workers[:] = [4451, 4452]
+    returns = []
+    real_sleep = watch.sleep
+    # the leg's passes return during the first wait for a worker's stacks: its return must not take the leg back, or
+    # it would close the fd the watch goes on writing to and reap workers the watch goes on signalling
+    watch.sleep = lambda seconds: (returns.append(watch.stop()) if not returns else None, real_sleep(seconds))[1]
 
-    watch.watch()
+    run_until_ended(watch)
 
-    assert (world.codes, world.signals) == ([], [])
+    assert (returns, world.usr1, world.codes) == ([False], [4451, 4452], [2])
 
 
 def test_4254_once_the_leg_has_returned_an_end_neither_runs_its_cleanups_nor_signals_nor_exits(idle_watch, stderr_pipe):
@@ -151,7 +155,7 @@ def test_4254_once_the_leg_has_returned_an_end_neither_runs_its_cleanups_nor_sig
     watch.cleanups.append(lambda: cleaned.append(1))
 
     returned = watch.stop()
-    ended = watch.end(2, "idle %s\n")
+    ended = watch.end(2, lambda workers: "idle %s\n" % workers)
 
     assert (returned, ended, world.codes, world.signals, cleaned) == (True, False, [], [], [])
 
@@ -165,7 +169,7 @@ def test_4254_a_leg_whose_passes_return_while_an_end_runs_is_told_not_to_run_its
     watch.cleanups.append(lambda: returned.append(watch.stop()))  # the passes return while the end runs its cleanups
 
     with pytest.raises(Ended):
-        watch.end(2, "idle %s\n")
+        watch.end(2, lambda workers: "idle %s\n" % workers)
 
     assert (returned, world.codes) == ([False], [2])
 
@@ -244,7 +248,7 @@ def test_4254_the_signal_path_never_blocks_on_a_claim_the_leg_s_own_return_is_ma
     ended = []
     watch.claim_lock.acquire()  # the leg's return, on the thread the signal handler interrupts, is mid-claim
     try:
-        handler = threading.Thread(target=lambda: ended.append(watch.end(143, "signal %s\n")), daemon=True)
+        handler = threading.Thread(target=lambda: ended.append(watch.end(143, lambda workers: "signal %s\n" % workers)), daemon=True)
         handler.start()
         handler.join(2)
         blocked = handler.is_alive()
@@ -273,23 +277,32 @@ def test_4254_a_worker_reported_down_during_the_stack_wait_is_not_asked_for_its_
     assert world.usr1 == [4651]
 
 
-def test_4254_once_the_leg_has_returned_an_idle_watch_writes_no_dump_and_asks_no_further_worker(idle_watch, stderr_pipe):
+def test_4254_once_the_leg_has_returned_an_idle_watch_writes_no_dump_and_signals_no_worker(idle_watch, stderr_pipe):
     out, written = stderr_pipe
     world = World(obey_term=True)
     watch = watch_in(idle_watch, world, 1, out)
     watch.workers[:] = [4661, 4662]
     dumps = []
     watch.dump = lambda **kwargs: dumps.append(kwargs)
-    watch.sleep = lambda seconds: watch.stop()  # the leg returns, closing its stderr copy, during the first stack wait
+    watch.stop()
 
     watch.idle_end(1)
 
-    assert (len(dumps), world.usr1, world.codes) == (1, [4661], [])
-    watch2 = watch_in(idle_watch, World(), 1, out)
-    watch2.dump = lambda **kwargs: dumps.append(kwargs)
-    watch2.stop()
-    watch2.idle_end(1)
-    assert len(dumps) == 1
+    assert (dumps, world.usr1, world.signals, world.codes) == ([], [], [], [])
+
+
+@pytest.mark.parametrize("nodeid", ["unit/test_a.py::test_a[50%]", "unit/test_b.py::test_b[%s %d %(x)s {} {0}]"])
+def test_4254_an_idle_leg_whose_last_case_id_holds_format_characters_still_exits_2_naming_it(idle_watch, stderr_pipe, nodeid):
+    out, written = stderr_pipe
+    world = World(obey_term=True)
+    watch = watch_in(idle_watch, world, 30, out)
+    watch.workers[:] = [4671]
+    watch.seen(nodeid)
+
+    run_until_ended(watch)
+
+    assert (world.codes, written()) == ([2], "pytest leg idle for 30 s with no case running (last case seen: %s); "
+                                             "workers 4671 ended\n" % nodeid)
 
 
 def test_4254_the_hooks_record_a_gateway_s_popen_pid_and_each_case_seen_on_the_current_watch_only(idle_watch, stderr_pipe, monkeypatch):

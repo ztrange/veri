@@ -143,10 +143,15 @@ class Watch:
             self.claim_lock.release()
 
     def end(self, code, line=None):
-        """Ends the workers, runs the leg's cleanups, writes `line` (formatted with the workers' pids) and exits `code`;
-        False, doing nothing, when the leg has already returned or another end runs."""
+        """Ends the workers, runs the leg's cleanups, writes `line(<the workers' pids>)` and exits `code`; False, doing
+        nothing, when the leg has already returned or another end runs."""
         if not self.claim("end"):
             return False
+        self.finish(code, line)
+        return True
+
+    def finish(self, code, line):
+        """The end of a leg this thread has claimed: whatever raises on the way, it still exits `code`."""
         try:
             workers = self.end_workers()
             for cleanup in self.cleanups:
@@ -155,25 +160,29 @@ class Watch:
                 except Exception as exc:
                     self.write("the leg's cleanup %s failed: %s\n" % (getattr(cleanup, "__name__", cleanup), exc))
             if line:
-                self.write(line % (" ".join(str(pid) for pid in workers) or "none"))
-            self.exit(code)
+                self.write(line(" ".join(str(pid) for pid in workers) or "none"))
         finally:
-            self.finished.set()
-        return True
+            try:
+                self.exit(code)
+            finally:
+                self.finished.set()
 
     def idle_end(self, idle_for):
-        # Each step first checks the leg has not returned: its return closes `out`, and a worker it reaped is gone.
-        if self.stopped.is_set():
+        # The claim comes first: once the watch holds it, the leg's return yields (it neither closes `out` nor reaps a
+        # worker this thread signals); a leg that has returned already is never written to or signalled.
+        if not self.claim("end"):
             return
-        self.dump(file=self.out, all_threads=True)
-        for pid in list(self.workers):
-            if self.stopped.is_set():
-                return
-            if pid in self.workers and pid > 1 and pid != os.getpid():
-                self.signal(pid, signal.SIGUSR1)
-                self.sleep(STACK_WAIT)  # one worker at a time: dumps sharing one stderr would interleave
-        self.end(2, "pytest leg idle for %d s with no case running (last case seen: %s); workers %%s ended\n"
-                 % (idle_for, self.last_case or "none"))
+        last = self.last_case or "none"
+        line = lambda workers: ("pytest leg idle for " + str(idle_for) + " s with no case running (last case seen: "
+                                + last + "); workers " + workers + " ended\n")
+        try:
+            self.dump(file=self.out, all_threads=True)
+            for pid in list(self.workers):
+                if pid in self.workers and pid > 1 and pid != os.getpid():  # still listed: not reported down meanwhile
+                    self.signal(pid, signal.SIGUSR1)
+                    self.sleep(STACK_WAIT)  # one worker at a time: dumps sharing one stderr would interleave
+        finally:
+            self.finish(2, line)
 
     def watch(self):
         while not self.stopped.is_set():
