@@ -12,6 +12,7 @@ import sys
 import tempfile
 import time
 
+import event
 import ready_check
 import run_dir
 import tunables
@@ -243,7 +244,8 @@ def check_readiness(user_answer=""):
     return None
 
 
-def start_fast(n, slug, detect, env):
+def set_up(n, slug, detect):
+    """The run's worktree, made ready for its baseline suite: (worktree, fast tier command, issue body file)."""
     wt = checked(3, script("issue-worktree.sh"), n, slug).strip()
     checked(3, script("stop-requested.sh"), "--clear", cwd=wt, ok=(0, 3))
     marker = run_dir.run_file(wt, "ci-conflict-rebased")
@@ -254,11 +256,15 @@ def start_fast(n, slug, detect, env):
     body_file = issue_body(n, wt)
     checked(3, script("requirements-preflight.sh"), body_file, cwd=wt)
     fast = checked(3, detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt).strip()
+    return wt, fast, body_file
+
+
+def start_fast(n, wt, fast, env):
     fast_began = time.monotonic()
     code = detached("preflight-fast-" + n, fast, wt, env)
     if code == 3:
         save_pending(wt, n, "fast", fast)
-    return wt, fast, body_file, fast_began, code
+    return fast_began, code
 
 
 def start_full(n, wt, fast, body_file, fast_began, code, detect, env):
@@ -283,18 +289,22 @@ def start_full(n, wt, fast, body_file, fast_began, code, detect, env):
     return baseline, full, alone, began, reused, code
 
 
-def finish(n, wt, baseline, full, fast, alone, began, reused, code):
+def full_result(n, wt, baseline, full, fast, alone, began, reused, code):
+    """(0, the full tier's seconds) once it passed or its time was reused; else (the exit code preflight stops with,
+    None)."""
     if reused is not None:
-        full_secs = reused
-    elif code == 3:
+        return 0, reused
+    if code == 3:
         save_pending(wt, n, "full", str(baseline), full, fast, alone)
         sys.stdout.write("waiting on preflight-full-%s\n" % n)
-        return 3
-    elif code != 0:
-        return stopped(3, "detach-command.sh wait", code)
-    if reused is None:
-        checked(3, script("full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
-        full_secs = math.ceil(time.monotonic() - began)
+        return 3, None
+    if code != 0:
+        return stopped(3, "detach-command.sh wait", code), None
+    checked(3, script("full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
+    return 0, math.ceil(time.monotonic() - began)
+
+
+def finish(n, wt, baseline, full, fast, alone, reused, full_secs):
     branch = checked(4, "gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
     for args in (("0",), ("--issue", "0")):
         checked(5, script("refactor-budget.sh"), *args, cwd=wt, ok=(0, 3))
@@ -330,35 +340,36 @@ def finish(n, wt, baseline, full, fast, alone, began, reused, code):
 
 
 def main(argv):
+    if len(argv) != 2:
+        sys.stderr.write(USAGE + "\n")
+        return 2
+    n = argv[0]
+    if os.path.exists(run_dir.ledger(run_dir.worktree("", n), n)):
+        sys.stderr.write("issue %s already holds a ledger: resume per RESUME.md\n" % n)
+        return 2
+    wt = os.path.abspath(run_dir.worktree("", n))
+    if not os.path.isdir(os.path.join(wt, ".tdd")):
+        # Unmarked: the stage's lines would create the worktree's directory, which a stop before step 3 must not leave.
+        # A conductor's launch has made it (its pid file) before preflight runs, so every launched preflight is marked.
+        return stopping(run, argv, wt)
+    return event.stage("preflight", lambda: stopping(run, argv, wt), wt,
+                       event.context(tunables.with_values(VERI_ISSUE=n)))
+
+
+def stopping(step, *args):
+    """`step(*args)`, a `Stop` it raises turned into its exit code."""
     try:
-        return run(argv)
+        return step(*args)
     except Stop as s:
         return stopped(s.step, s.what, s.code)
 
 
-def run(argv):
-    if len(argv) != 2:
-        sys.stderr.write(USAGE + "\n")
-        return 2
+def run(argv, wt):
     n, slug = argv
-    if os.path.exists(run_dir.ledger(run_dir.worktree("", n), n)):
-        sys.stderr.write("issue %s already holds a ledger: resume per RESUME.md\n" % n)
-        return 2
     env = tunables.with_values(VERI_ISSUE=n)
     detect = script("detect-test-command.sh")
-    wt = os.path.abspath(run_dir.worktree("", n))
     saved = load_pending(wt, n)
-    if saved is not None and saved[0] == "full":
-        baseline, full, fast, alone = int(saved[1]), saved[2], saved[3], saved[4]
-        began = time.monotonic()
-        code = wait_on("preflight-full-" + n, wt, env)
-        return finish(n, wt, baseline, full, fast, alone, began, None, code)
-    if saved is not None:
-        fast = saved[1]
-        body_file = None
-        fast_began = time.monotonic()
-        code = wait_on("preflight-fast-" + n, wt, env)
-    else:
+    if saved is None:
         answered = {}
         stop = check_environment(answered)
         if stop is not None:
@@ -366,12 +377,38 @@ def run(argv):
         stop = check_readiness(answered.get("user", ""))
         if stop is not None:
             return stop
-        wt, fast, body_file, fast_began, code = start_fast(n, slug, detect, env)
-    started = start_full(n, wt, fast, body_file, fast_began, code, detect, env)
-    if isinstance(started, int):
-        return started
-    baseline, full, alone, began, reused, code = started
-    return finish(n, wt, baseline, full, fast, alone, began, reused, code)
+        wt, fast, body_file = set_up(n, slug, detect)
+    got = {}
+    code = event.stage("baseline", lambda: stopping(baseline_suite, n, wt, saved, fast if saved is None else None,
+                                                    body_file if saved is None else None, detect, env, got),
+                       wt, event.context(env))
+    if code != 0:
+        return code
+    return stopping(finish, n, wt, got["baseline"], got["full"], got["fast"], got["alone"], got["reused"],
+                    got["full_secs"])
+
+
+def baseline_suite(n, wt, saved, fast, body_file, detect, env, got):
+    """Stage `baseline`: the fast tier, then the full tier (or its reused time), from wherever a waiting preflight left
+    them; 0 with `got` filled once both passed, else the exit code preflight stops with (3: still waiting)."""
+    if saved is not None and saved[0] == "full":
+        baseline, full, fast, alone = int(saved[1]), saved[2], saved[3], saved[4]
+        began, reused = time.monotonic(), None
+        code = wait_on("preflight-full-" + n, wt, env)
+    else:
+        if saved is not None:
+            fast = saved[1]
+            fast_began = time.monotonic()
+            code = wait_on("preflight-fast-" + n, wt, env)
+        else:
+            fast_began, code = start_fast(n, wt, fast, env)
+        started = start_full(n, wt, fast, body_file, fast_began, code, detect, env)
+        if isinstance(started, int):
+            return started
+        baseline, full, alone, began, reused, code = started
+    code, full_secs = full_result(n, wt, baseline, full, fast, alone, began, reused, code)
+    got.update(baseline=baseline, full=full, fast=fast, alone=alone, reused=reused, full_secs=full_secs)
+    return code
 
 
 if __name__ == "__main__":
