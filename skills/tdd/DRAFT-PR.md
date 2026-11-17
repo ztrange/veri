@@ -290,8 +290,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    the repo's CLAUDE.md, and its output's first non-empty line, capped at 200 characters and with
    every local path, the host and the account name redacted. Its exit **3** (no `veri: lint:` line
    declared) appends no step and writes no bail, and the section gains `No repair step could be
-   added.`; its exit **2** (no answer could be obtained) **bails** as a system failure with cause
-   `no-verdict` (`Read` `<base directory>/BAIL.md`), appending no step:
+   added.`; its exit **2** (no answer could be obtained) appends no step and **bails** as a system
+   failure with cause `no-verdict` (`Read` `<base directory>/BAIL.md`):
    ```
    text="$($S/lint-repair.sh step < .tdd/lint.out)"; made=$?
    [ "$made" != 3 ] || { printf '\nNo repair step could be added.\n' >> .tdd/issue-<n>-lint.md; exit 0; }
