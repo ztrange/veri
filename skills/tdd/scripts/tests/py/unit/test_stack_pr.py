@@ -87,13 +87,14 @@ def test_with_the_stack_not_ahead_of_the_default_branch_opens_nothing_and_exits_
     assert (code, out, world.listed, world.opened, err.count("\n")) == (3, "", [], [], 1)
 
 
-def test_an_open_draft_tracking_pull_request_is_printed_with_one_stderr_line_saying_ci_skips_a_draft(
-        monkeypatch, run_cli, stack_pr):
-    world = World(monkeypatch, stack_pr, pulls=[open_pull(stack_pr, 4, draft=True)])
+@pytest.mark.parametrize("draft", [True, None])
+def test_an_open_tracking_pull_request_that_is_a_draft_or_does_not_say_is_exit_2_naming_it_and_saying_mark_it_ready(
+        monkeypatch, run_cli, stack_pr, draft):
+    world = World(monkeypatch, stack_pr, pulls=[open_pull(stack_pr, 4, draft=draft)])
 
     code, out, err = run_cli(stack_pr, [])
 
-    assert (code, out, world.opened, err.count("\n"), "draft" in err) == (0, URL % 4 + "\n", [], 1, True)
+    assert (code, out, world.opened, err.count("\n"), URL % 4 in err, "marked ready" in err) == (2, "", [], 1, True, True)
 
 
 def no_answer(stack_pr, detail):

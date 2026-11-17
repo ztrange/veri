@@ -73,6 +73,7 @@ def run_shim(work, bin_dir):
     (dict(listed=[pull(4)]), (0, "https://github.com/o/r/pull/4\n", False, 0)),
     (dict(created=pull(9)), (0, "https://github.com/o/r/pull/9\n", False, 1)),
     (dict(listed=[pull(4), pull(5)]), (2, "", True, 0)),
+    (dict(listed=[pull(4, draft=True)]), (2, "", True, 0)),
     (dict(create_rc=1), (2, "", True, 1)),
     (dict(list_rc=1), (2, "", True, 0)),
 ])
