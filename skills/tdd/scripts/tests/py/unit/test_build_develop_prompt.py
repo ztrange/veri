@@ -2290,7 +2290,7 @@ def test_4118_develop_green_names_every_catalogue_smell_and_refactoring_and_carr
     thresholds = [cells[1].strip() for cells in rows if cells[0].strip() != "---"]
 
     code, out, err = run_cli(build_develop_prompt, ["green", str(spec), "a step ⟦criterion 1⟧", "make test",
-                                                    "tests/test_a.py", "test_a", "make unit"])
+                                                    "t.sh", "case", "make unit"])
 
     assert (code, err) == (0, "")
     assert [name for name in smells if name not in out] == [] and len(smells) >= 15
