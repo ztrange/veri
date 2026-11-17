@@ -1123,9 +1123,8 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>` for the landed
    commits; the ` ⟂ refactor pending` mark stays and **no ledger tick is committed**, both
    left for the step's final verify-refactor PASS, so the triangulating red's
-   `check-earlier` needs no `--except` for those cases. Its exit 1 means `check-earlier` still refuses a case after the re-record (a case it skipped
-   or any other stale one) and its exit 2 means no answer: treat them as at the final verify-refactor
-   PASS below (exit 1 a bail `needs-user`, exit 2 a system-failure bail), and launch no triangulating red (to bail, `Read` `<base directory>/BAIL.md`). A REJECT of that early
+   `check-earlier` needs no `--except` for those cases. Treat `rerecord-refactored`'s exits 1 and 2 as at the final verify-refactor
+   PASS below (exit 1 a bail `needs-user`, exit 2 a bail `rerecord-failed`, a system failure), and launch no triangulating red (to bail, `Read` `<base directory>/BAIL.md`). A REJECT of that early
    verify-refactor goes the normal revise path (when a verifier answers `REJECT`, `Read`
    `<base directory>/REVISE.md`), spends `REVISE_BUDGET`, and launches no triangulation
    until it passes. When no commit landed, no early verify-refactor runs. Then run, for
@@ -1299,7 +1298,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      the own commits of a ticked `⟦suite-repair⟧` step (the verified repair green that rewrote it;
      another step's `⟦suite-repair⟧` tick does not count); one that did not is left as recorded, so `check-earlier` still refuses it. A case a `⟦replaces-case⟧` step of the ledger names, in the suite it names, is neither re-recorded nor refused. Its exit 1 is a
      **bail** with cause `needs-user`, a process failure, quoting each `skipped:` line it printed, and its
-     exit 2 is a **bail** as a system failure; neither
+     exit 2 a **bail** with cause `rerecord-failed`, a system failure; neither
      `clear-refactor-pending.sh` nor the step's ledger commit follows either (`Read` `<base directory>/BAIL.md`):
      ```
      $S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>
