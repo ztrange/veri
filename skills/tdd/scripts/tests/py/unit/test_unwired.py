@@ -78,3 +78,17 @@ def test_a_base_that_does_not_resolve_or_a_directory_that_is_no_work_tree_exits_
         fake_processes.answers({"git": answer})
         results.append((unwired.main(["nope"]),) + tuple(capsys.readouterr()))
     assert results == [(2, "", "unwired: not a git work tree\n"), (2, "", "unwired: cannot resolve 'nope'\n")]
+
+
+def test_a_directory_where_git_answers_false_for_inside_work_tree_exits_2_with_one_stderr_line(
+        tmp_path, monkeypatch, capsys, unwired, fake_processes):
+    def answer(line, **kwargs):
+        if line.startswith("git rev-parse --is-inside-work-tree"):
+            return 0, "false\n", ""
+        if line.startswith("git rev-parse"):
+            return 0, "abc\n", ""
+        return 128, "", "fatal: this operation must be run in a work tree\n"
+
+    fake_processes.answers({"git": answer})
+    monkeypatch.chdir(tmp_path)
+    assert (unwired.main(["base"]),) + tuple(capsys.readouterr()) == (2, "", "unwired: not a git work tree\n")
