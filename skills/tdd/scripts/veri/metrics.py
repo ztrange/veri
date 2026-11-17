@@ -161,15 +161,28 @@ def count_families(turn_rows, open_turn_rows, result_output):
 
 
 def conductor_sessions(issue, path):
+    """The conductor's sessions read off its stream log, and its turns as `TurnRows`. A session ends at its `result`
+    record; one a `system` `init` record or the log's end finds without one (killed, or still going) is kept as an
+    open session priced from its own turns' usage."""
     sessions = []
-    open_rows = []
-    open_turns, open_cost, open_priced = 0, 0.0, True
-    open_contexts = []
-    open_turns_of = []
     turn_rows = TurnRows()
     seen_ids = {}
-    open_turn_rows = []
+    opened = {}
 
+    def start():
+        opened.update(rows=[], turns=0, cost=0.0, priced=True, contexts=[], turns_of=[], families=[])
+
+    def close_unended():
+        count_families(turn_rows, opened["families"], None)
+        turn_rows.turns += [[at, own, dollars if opened["priced"] else None] for at, own, dollars, _base in opened["turns_of"]]
+        if opened["turns"]:
+            sessions.append({"total_cost_usd": opened["cost"] if opened["priced"] else None,
+                             "num_turns": opened["turns"], "open": True})
+        if opened["contexts"]:
+            turn_rows.session_contexts.append(opened["contexts"])
+        start()
+
+    start()
     with contextlib.suppress(OSError):
         with open(main_checkout_file(path, "conductor-%s.log" % issue)) as stream_log:
             for text in stream_log:
@@ -177,11 +190,19 @@ def conductor_sessions(issue, path):
                     record = json.loads(text)
                     if not isinstance(record, dict):
                         continue
-                    if record.get("type") == "result":
-                        sessions.append(record)
-                        count_families(turn_rows, open_turn_rows, (record.get("usage") or {}).get("output_tokens"))
+                    if record.get("type") == "system" and record.get("subtype") == "init":
+                        close_unended()
+                    elif record.get("type") == "result":
+                        shown_turns = len(opened["turns_of"])
+                        counted_turns = record.get("num_turns")
+                        # a session's turns: the more of those its result counts and those the log shows, so no
+                        # turn by_phase attributes is missing from the per-run count
+                        turns = max(counted_turns, shown_turns) if isinstance(counted_turns, int) else shown_turns
+                        sessions.append(record if turns == counted_turns else dict(record, num_turns=turns))
+                        count_families(turn_rows, opened["families"], (record.get("usage") or {}).get("output_tokens"))
                         total = record.get("total_cost_usd")
-                        if open_rows and open_priced and total is not None:
+                        open_rows = opened["rows"]
+                        if open_rows and opened["priced"] and total is not None:
                             share = (total - sum(base for _, base in open_rows)) / len(open_rows)
                             running, shown = 0.0, 0
                             for position, base in open_rows:
@@ -190,13 +211,10 @@ def conductor_sessions(issue, path):
                                 shown += cents
                                 turn_rows[position][1] = "$%.2f" % (cents / 100)
                             turn_rows.estimated = True
-                        turn_rows.turns += closed_turns(open_turns_of, record, open_priced)
-                        open_turns_of = []
-                        open_rows = []
-                        open_turns, open_cost, open_priced = 0, 0.0, True
-                        if open_contexts:
-                            turn_rows.session_contexts.append(open_contexts)
-                        open_contexts = []
+                        turn_rows.turns += closed_turns(opened["turns_of"], record, opened["priced"])
+                        if opened["contexts"]:
+                            turn_rows.session_contexts.append(opened["contexts"])
+                        start()
                         seen_ids = {key: kept for key, kept in seen_ids.items() if kept}
                     elif record.get("type") == "assistant":
                         message = record.get("message") or {}
@@ -207,7 +225,7 @@ def conductor_sessions(issue, path):
                         names = [name for name, pattern in COMMENT_FAMILIES if re.search(pattern, calls)]
                         if message.get("id") is not None:
                             earlier = seen_ids.get(message["id"])
-                            flushed = not any(row[0] is earlier for row in open_turn_rows)
+                            flushed = not any(row[0] is earlier for row in opened["families"])
                             if earlier is not None and not (names and flushed and (not set(names) & set(earlier) or set(names) == set(earlier))):
                                 added = [n for n in names if n not in earlier]
                                 earlier.extend(added)
@@ -215,33 +233,27 @@ def conductor_sessions(issue, path):
                                     count_families(turn_rows, [(added, None, 0)], None)
                                 continue
                             seen_ids[message["id"]] = names
-                        open_turns += 1
+                        opened["turns"] += 1
                         model_name = message.get("model") or ""
                         model_family = family(model_name) or ("opus" if not model_name else None)
-                        open_turn_rows.append((names,
-                                               model_family, usage.get("output_tokens") or 0))
+                        opened["families"].append((names, model_family, usage.get("output_tokens") or 0))
                         context = sum((usage.get(key) or 0) for key in CONTEXT_KEYS)
-                        open_contexts.append(context)
+                        opened["contexts"].append(context)
                         own_output = usage.get("output_tokens") or 0
                         if model_family is None:
-                            open_turns_of.append([moment(record.get("timestamp")), own_output, None, None])
-                            open_priced = False
+                            opened["turns_of"].append([moment(record.get("timestamp")), own_output, None, None])
+                            opened["priced"] = False
                             turn_rows.append([str(len(turn_rows) + 1), "unpriced", str(context)])
                             continue
                         prices = PRICES[model_family]
                         output_dollars = (usage.get("output_tokens") or 0) * prices["output"] / 1e6
                         turn_dollars = usage_dollars(usage, prices)
-                        open_cost += turn_dollars
+                        opened["cost"] += turn_dollars
                         base_dollars = turn_dollars - output_dollars
-                        open_turns_of.append([moment(record.get("timestamp")), own_output, turn_dollars, base_dollars])
-                        open_rows.append((len(turn_rows), base_dollars))
+                        opened["turns_of"].append([moment(record.get("timestamp")), own_output, turn_dollars, base_dollars])
+                        opened["rows"].append((len(turn_rows), base_dollars))
                         turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % base_dollars, str(context)])
-        count_families(turn_rows, open_turn_rows, None)
-        turn_rows.turns += [[at, own, dollars if open_priced else None] for at, own, dollars, _base in open_turns_of]
-        if open_turns:
-            sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns, "open": True})
-        if open_contexts:
-            turn_rows.session_contexts.append(open_contexts)
+        close_unended()
     return sessions, turn_rows
 
 
@@ -256,8 +268,8 @@ def moment(stamp):
 
 def closed_turns(seen, result, priced):
     """[at, output tokens, dollars] per turn of a session its `result` record closes: `seen` holds each turn the log
-    showed as [at, own output tokens, dollars, non-output dollars]. A turn's output is the result's output split evenly
-    (its own when the result carries none) and its dollars its non-output usage plus an even share of the rest of the
+    showed as [at, own output tokens, dollars, non-output dollars]. A turn's output is the result's output split evenly,
+    the last turn taking the remainder (its own when the result carries none) and its dollars its non-output usage plus an even share of the rest of the
     result's cost, None when the session carries no price. A turn the result counts but no record showed is untimed,
     with no output or cost of its own (both shared over the turns shown), or all of them when none was shown."""
     total, output = result.get("total_cost_usd"), (result.get("usage") or {}).get("output_tokens")
@@ -265,6 +277,8 @@ def closed_turns(seen, result, priced):
     share = (total - sum(base for *_, base in seen)) / len(seen) if priced and seen else 0.0
     turns = [[at, own if output is None else output // len(seen), base + share if priced else None]
              for at, own, _dollars, base in seen]
+    if turns and output is not None:
+        turns[-1][1] += output % len(seen)
     unseen = result.get("num_turns") if isinstance(result.get("num_turns"), int) else 0
     for extra in range(unseen - len(seen)):
         alone = not seen and not extra
