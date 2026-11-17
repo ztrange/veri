@@ -115,7 +115,11 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
 - `unwired` — `unwired.sh` exited **1** at the Draft PR step: the run's range adds a non-test
   file that no other non-test file names → **process** failure (the methodology spoke: code
   nothing reaches is not delivered); the PR stays a draft. A human wires each named file into a
-  caller or removes it, then runs `release-issue.sh <n>`.
+  caller or removes it, then runs `release-issue.sh <n>`. A file wired in a way a stem search
+  cannot see (a Go file of the same package, a migration found by its framework) can stay: the
+  bail recorded every listed file in `.tdd/issue-<n>-unwired-accepted`, so the release accepts
+  them, and the resumed run goes on when every file `unwired.sh` prints is recorded and bails
+  `unwired` again when one is not.
 
 **A bail reached first stays a bail**, whatever stop is waiting behind it: the methodology or
 the plumbing has already answered, and a pause would hide that answer from the resume. Ask
