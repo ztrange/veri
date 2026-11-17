@@ -585,6 +585,13 @@
 | SM65 | The prompt tells the leaf to confirm that the step's named seam drives the step's named region from outside it, without editing the region, and to report `SEAM: <command or callable>`, `REACHES: yes` or `REACHES: no`, and one proof line. | The conductor decides a bail from the answer, and the proof lets a reader check it. |
 | SM66 | The prompt tells the leaf to write no test and edit no file, and to leave the working tree as it found it. | The run stops on a dirty tree; a seam is confirmed, not built. |
 
+## skills/tdd/scripts/prompts/develop-surround.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| SN1 | The prompt tells the leaf to write cases that drive the step's region only through its named seam, that pass on the unmodified code, and to edit no production file. | A characterization test pins what the code does now, from outside it (PRD 031, D9). |
+| SN2 | The prompt says a case that starts a process carries the target suite's slow-tier mark when that suite declares one (in veri `@pytest.mark.process`), and that where the suite declares none no mark is owed. | The tests are permanent and slow (PRD 031, D3), and veri reads no tier declaration from a foreign repo. |
+
 ## skills/tdd/scripts/prompts/develop-cover-new.md
 
 | ID | Requirement | Why |
