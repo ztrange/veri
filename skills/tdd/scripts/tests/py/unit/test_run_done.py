@@ -95,6 +95,28 @@ def test_4034_a_git_status_that_fails_is_no_answer_exit_2_and_no_comment(done, c
     assert "comment.sh" not in fake.names()
 
 
+METRICS_LEFT = "?? .tdd/issue-12-metrics.md\n"
+
+
+def test_4034_the_metrics_file_a_failed_render_left_is_no_dirty_tree(done):
+    (done.wt / ".tdd" / "issue-12-pr-finish").write_text("pr_url=u\nmetrics=1\nrefactor_owed_render=r\n")
+    code, out, err, fake = done(answers={("git", "status"): (0, METRICS_LEFT)})
+
+    assert (code, "comment.sh" in fake.names()) == (0, True)
+
+
+@pytest.mark.parametrize("settled, listed", [
+    ("pr_url=u\nrefactor_owed_render=r\n", METRICS_LEFT), ("pr_url=u\nmetrics=0\n", METRICS_LEFT), (None, METRICS_LEFT),
+    ("pr_url=u\nmetrics=1\n", METRICS_LEFT + "?? stray.py\n")],
+    ids=["no metrics= line", "metrics=0", "no pr-finish file", "another dirty path"])
+def test_4034_otherwise_a_dirty_metrics_file_or_any_other_path_still_stops_it(done, settled, listed):
+    if settled is not None:
+        (done.wt / ".tdd" / "issue-12-pr-finish").write_text(settled)
+    code, out, err, fake = done(answers={("git", "status"): (0, listed)})
+
+    assert (code, out.splitlines()[-1], "comment.sh" in fake.names()) == (1, "stopped at 4 tree-check", False)
+
+
 def test_4034_a_comment_with_no_answer_stops_it_with_exit_2_before_any_clear(done):
     code, out, err, fake = done(answers={("stop-requested.sh", None): (0, "now\n"), ("comment.sh", None): (2, "")})
 

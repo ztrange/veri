@@ -5,6 +5,7 @@ import sys
 
 import fused
 import fused_step
+import pr_finish
 import pr_ready_wait
 
 NAME = "run-done"
@@ -28,13 +29,23 @@ def run(n):
         return 2
     _, wt = given
     asked = fused.call(fused.script("stop-requested.sh"), cwd=wt)[0]
-    if pr_ready_wait.dirty(WHERE, wt):
+    if pr_ready_wait.dirty(WHERE, wt, render_left(wt, n)):
         raise fused.Stop(WHERE, "tree-check", 1)
     fused.checked(WHERE, fused.script("comment.sh"), n, "done", cwd=wt)
     cleared = asked in (0, 2)
     if cleared:
         fused.checked(WHERE, fused.script("stop-requested.sh"), "--clear", cwd=wt)
     return fused.settle(wt, n, NAME, ["stop_requested=%d" % asked, "cleared=%d" % cleared])
+
+
+def render_left(wt, n):
+    """{the metrics file} when .tdd/issue-<n>-pr-finish holds a non-zero `metrics=`: a failed render may leave that file
+    behind, carried rather than committed, so it is no dirt here either; else nothing."""
+    try:
+        failed = fused.read_settled(fused.settled_file(wt, n, pr_finish.NAME)).get("metrics", "0") != "0"
+    except OSError:
+        failed = False
+    return {pr_finish.METRICS % n} if failed else set()
 
 
 if __name__ == "__main__":
