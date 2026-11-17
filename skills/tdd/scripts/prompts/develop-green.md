@@ -23,6 +23,15 @@ weakened test or a half-written implementation. Report `SPLIT:` lines instead of
 nobody has written a test for would poison the first of them: leave the working tree
 exactly as you found it.
 
+A step that becomes one small change only after a behaviour-preserving restructuring of code
+already committed has one more answer: make the change easy first. Leave the working tree
+exactly as you found it and report one `TIDY_FIRST: <refactoring> | <file>::<symbol> | <why>`
+line instead of `SPLIT:` lines or a `SUITE:` line, `<refactoring>` a refactoring the catalogue
+below lists, spelt as it spells it, and `<file>::<symbol>` the committed code it restructures.
+The conductor lands that refactoring as a step of its own, then starts this step again from Red.
+
+{{INCLUDE:../../SMELLS.md}}
+
 ### The issue's behavior spec (context — build only what the failing test demands)
 
 {{ISSUE_SPEC}}
@@ -69,6 +78,10 @@ or, when the step is too big for one green, those two lines replaced by one to t
 
 SPLIT: <a behaviour-level criterion, one per line, in the order they must be built>
 
+or, when the step is one small change only after a restructuring, those two lines replaced by one:
+
+TIDY_FIRST: <refactoring> | <file>::<symbol> | <why>
+
 or, when the test itself looks wrong, those two lines replaced by one:
 
 WRONG_TEST: <why the test looks wrong>
@@ -92,6 +105,8 @@ A case the step's change does not supersede is a `WRONG_TEST:` line, never a `SU
 REPORT-FORMAT green | keys IMPL_PATH: SUITE: | suite required
 
 REPORT-FORMAT green-split | keys SPLIT: | suite exempt: a too-big step changes no code and runs no suite
+
+REPORT-FORMAT green-tidy-first | keys TIDY_FIRST: | suite exempt: a tidy-first answer changes no code and runs no suite
 
 REPORT-FORMAT green-wrong-test | keys WRONG_TEST: SUPERSEDED: | suite exempt: the test is wrong, so nothing was changed and no suite ran
 
