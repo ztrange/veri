@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from test_metrics import write_log
+from test_metrics import table, write_log
 
 
 @pytest.fixture
@@ -112,3 +112,37 @@ def test_4222_every_phase_and_step_entry_holds_six_numbers_summing_to_its_reject
     assert {text: entry["rejects"] for text, entry in steps.items()} == {
         "one": counts(caught=2, flipped=1), "two": counts(pending=1)}
     assert [sum(entry["rejects"].values()) - entry["reject"] for entry in [*phases.values(), *steps.values()]] == [0] * 5
+
+
+def reported(tmp_path, monkeypatch, capsys, metrics, lines):
+    """The markdown report and the JSON object of one journal."""
+    shaped = folded(tmp_path, monkeypatch, capsys, metrics, lines)
+    code = metrics.main(["108"])
+    out, err = capsys.readouterr()
+    assert code == 0, err
+    return out, shaped
+
+
+def test_4236_the_report_prints_a_reject_outcomes_table_right_after_the_phase_table_one_row_per_phase_with_a_reject(
+        tmp_path, monkeypatch, capsys, metrics):
+    out, shaped = reported(tmp_path, monkeypatch, capsys, metrics, [
+        mark(90, "launch", "red", "one", actor="developer", attempt="1", name="develop-red", cmd="c", model=""),
+        verdict(100, "REJECT", "t1"), verdict(110, "REJECT", "t2"), verdict(120, "PASS", "t3"),
+        verdict(130, "REJECT", "t3", phase="refactor"), verdict(140, "PASS", "t3", phase="refactor"),
+        verdict(200, "REJECT", "t1", step="two"), bail(210, "revise-impossible", step="two")])
+
+    headings = [line for line in out.split("\n") if line.startswith("#### ")]
+    assert headings[headings.index("#### By phase") + 1] == "#### REJECT outcomes"
+    rows = table(out, "#### REJECT outcomes")
+    assert list(rows[0]) == ["phase", "REJECT", *OUTCOMES]
+    assert {row["phase"]: {key: int(value) for key, value in row.items() if key != "phase"} for row in rows} == {
+        phase: dict(REJECT=sum(entry["rejects"].values()), **entry["rejects"])
+        for phase, entry in shaped["phases"].items() if any(entry["rejects"].values())}
+    assert [row["phase"] for row in rows] == ["green", "refactor"]
+
+
+def test_4236_a_run_with_no_reject_prints_no_reject_outcomes_table(tmp_path, monkeypatch, capsys, metrics):
+    out, _shaped = reported(tmp_path, monkeypatch, capsys, metrics, [verdict(100, "PASS", "t1"), verdict(110, "malformed")])
+
+    assert "#### By phase" in out
+    assert "REJECT outcomes" not in out

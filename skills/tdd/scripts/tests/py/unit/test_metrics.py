@@ -1393,6 +1393,12 @@ Cost is every leaf of the run, and the conductor own spending is not in it: this
 | green | 2 | 1 | 0 | 0 | 120 | 90 | 12 | 200 | 400 | 600 | 800 | 0.90 |
 | pin | 1 | 1 | 0 | 0 | 20 | 12 | 2 | 100 | 200 | 300 | 400 | 0.15 |
 
+#### REJECT outcomes
+
+| phase | REJECT | caught | flipped | overturned | unresolved | pending | untracked |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| red | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
+
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
