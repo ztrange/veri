@@ -136,6 +136,8 @@ class Watch:
             if pid > 1 and pid != os.getpid():
                 self.signal(pid, signal.SIGUSR1)
         self.sleep(STACK_WAIT)
+        if self.stopped.is_set():
+            return  # the leg's passes returned meanwhile: its own teardown ends it, not this thread
         self.end(2, "pytest leg idle for %d s with no case running (last case seen: %s); workers %%s ended\n"
                  % (idle_for, self.last_case or "none"))
 
