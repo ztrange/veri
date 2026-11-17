@@ -1309,6 +1309,7 @@ def _staged_builder(root, drop, strip=()):
             for placeholder in strip:
                 body = body.replace(placeholder, b"")
             (root / "prompts" / tpl.name).write_bytes(body)
+    (root.parent / "SMELLS.md").write_bytes((SCRIPTS.parent / "SMELLS.md").read_bytes())
     loader = importlib.util.spec_from_file_location(f"staged_{root.name}", root / "veri" / "build_develop_prompt.py")
     module = importlib.util.module_from_spec(loader)
     loader.loader.exec_module(module)
