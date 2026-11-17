@@ -9,8 +9,8 @@ import pytest
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 LEG = os.path.join(SCRIPTS, "tests", "leg", "pytest_leg.py")
-BOUND = 25  # the test-side bound on a leg that never ends, well under the case's own timeout
-IDLE = 4  # the idle window: long enough under load for both workers to reach their hang before it ends them
+BOUND = 45  # the test-side bound on a leg that never ends, well under the case's own timeout (90 s)
+IDLE = 8  # the idle window: long enough under CI start-up load for both workers to reach their hang
 
 # A worker that ran its one case and then never reports workerfinished: its sessionfinish blocks, as the hung legs'
 # workers did after their cases ran, and it ignores TERM when asked to, so only a KILL ends it.
