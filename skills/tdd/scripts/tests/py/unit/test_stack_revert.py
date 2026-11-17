@@ -240,3 +240,75 @@ def test_its_own_worktree_is_removed_on_every_exit_after_it_was_added_and_a_fail
     world = World(monkeypatch, revert, removed=False)
     code, _, err = run_cli(revert, ["12"])
     assert (code, "worktree remove" in err and PATH in err) == (0, True), err
+
+
+def test_after_the_push_each_merged_pull_requests_closes_n_line_becomes_reverted_from_the_stack_by_the_revert(
+        monkeypatch, run_cli, revert):
+    pulls = [(41, "Run.\n\nCloses #12\n", False), (42, "Closes #13\n", False), (43, "Closes #12\n", True),
+             (44, "Closes #120\nCloses #12", False)]
+    world = World(monkeypatch, revert, pulls=pulls)
+
+    code, _, err = run_cli(revert, ["12"])
+
+    assert (code, world.edited) == (0, [(41, "Run.\n\nReverted from stack by %s\n" % REVERTED),
+                                        (44, "Closes #120\nReverted from stack by %s" % REVERTED)]), err
+
+
+@pytest.mark.parametrize("given", [{"edit_fails": (41,)}, {"pulls": "no answer"}])
+def test_a_body_it_cannot_edit_or_read_is_exit_2_naming_the_pull_request_the_revert_left_pushed(
+        monkeypatch, run_cli, revert, given):
+    kwargs = dict(given)
+    if kwargs.get("pulls") == "no answer":
+        kwargs["pulls"] = revert.github.NoAnswer("", "HTTP 502")
+    world = World(monkeypatch, revert, **kwargs)
+
+    code, out, err = run_cli(revert, ["12"])
+
+    assert (code, out, len(world.pushed), "41" in err or "pull requests" in err) == (2, REVERTED + "\n", 1, True), err
+
+
+def test_it_comments_once_on_issue_n_and_once_on_the_tracking_pull_request_naming_red_revert_and_the_hand_fix(
+        monkeypatch, run_cli, revert):
+    world = World(monkeypatch, revert)
+
+    code, _, err = run_cli(revert, ["12"])
+
+    assert (code, sorted(number for number, _ in world.posted)) == (0, [5, 12]), err
+    for _, body in world.posted:
+        assert (RED in body, REVERTED in body, sha(5) in body, TOP in body) == (True, True, True, False), body
+
+
+def test_with_no_hand_fix_pushed_the_comment_says_so(monkeypatch, run_cli, revert):
+    world = World(monkeypatch, revert, stack=STACK[:4])
+
+    run_cli(revert, ["12"])
+
+    assert all("no hand fix" in body for _, body in world.posted) and world.posted, world.posted
+
+
+def test_it_adds_removes_or_changes_no_label_and_writes_nothing_else(monkeypatch, run_cli, revert):
+    world = World(monkeypatch, revert)
+    writes = []
+    for name in ("gh_api", "run_gh", "gh_issue_edit", "gh_issue_comment", "gh_issue_add_label", "gh_issue_remove_label",
+                 "gh_api_add_label", "gh_label_create", "gh_label_ensure", "gh_comment_edit", "pr_open"):
+        monkeypatch.setattr(revert.github, name, lambda *args, _name=name, **kwargs: writes.append(_name))
+
+    code, _, err = run_cli(revert, ["12"])
+
+    assert (code, writes, len(world.edited), len(world.posted)) == (0, [], 1, 2), err
+
+
+def test_an_issue_already_reverted_on_the_stack_is_exit_3_never_a_revert_of_its_revert(monkeypatch, run_cli, revert):
+    stack = STACK + [(sha(6), revert.SUBJECT % ("12", "12"), [])]
+    world = World(monkeypatch, revert, stack=stack)
+
+    code, _, err = run_cli(revert, ["12"])
+
+    assert (code, world.reverts, world.pushed, sha(6) in err) == (3, [], [], True), err
+
+
+def test_the_module_names_no_repository_issue_branch_label_person_or_ci_job(revert):
+    with open(revert.__file__, encoding="utf-8") as f:
+        named = [line for line in f if re.search(r"ztrange|gates|#[0-9]+", line)]
+
+    assert named == []

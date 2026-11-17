@@ -72,8 +72,9 @@ def _say(message):
 
 def _reverted(n, path, worktree):
     """Under the lock: revert issue <n>'s commits on a fresh fetch of the stack in the worktree <path> and push the
-    revert, starting again from the fetch while origin's stack moves. (stack, default, revert sha, n's commits, the
-    hand-fix commits among them). <worktree> is a one-item list set once the worktree is added."""
+    revert, starting again from the fetch while origin's stack moves: (stack, default, revert sha, the hand-fix commits
+    among n's, those carrying a Stack-fix: trailer). <worktree> is a list <path> is put in once the worktree is added.
+    Nothing when no commit is n's or n is already reverted; stack_fix.Refused or stack_fix.NoAnswer otherwise."""
     for _ in range(JOIN_ATTEMPTS):
         try:
             found = stack_branch.ahead(".")
@@ -89,6 +90,12 @@ def _reverted(n, path, worktree):
         mine = [(commit, subject) for (commit, subject), issues in zip(commits, owned) if n in issues]
         if not mine:
             raise Nothing("no commit of origin/%s..origin/%s belongs to issue %s; nothing reverted" % (default, stack, n))
+        done = [commit for commit, subject in mine if subject == SUBJECT % (n, n)]
+        if done:
+            raise Nothing("issue %s is already reverted on origin/%s by %s; nothing reverted again" % (n, stack, done[-1]))
+        shas = {commit for commit, _ in mine}
+        fixes = [commit for commit, _, trailers in stack_fix.log(
+            "refs/remotes/origin/%s..refs/remotes/origin/%s" % (default, stack)) if trailers and commit in shas]
         if worktree:
             if not _checkout(path, onto):
                 raise stack_fix.NoAnswer("checking out %s in its own worktree failed; nothing pushed" % onto)
@@ -113,7 +120,7 @@ def _reverted(n, path, worktree):
         except stack_fix.Refused as moved:
             _say("%s; starting again from the fetch" % moved)
             continue
-        return stack, default, sha
+        return stack, default, sha, fixes
     raise stack_fix.NoAnswer("origin's stack moved on each of %d attempts; nothing more pushed" % JOIN_ATTEMPTS)
 
 
@@ -132,7 +139,8 @@ def main(argv):
             raise Nothing("stack-red.sh exits 3: the stack is not red; nothing reverted")
         if code != 0:
             raise stack_fix.NoAnswer("stack-red.sh exited %d, so whether the stack is red is not known" % code)
-        stack, default, sha = _reverted(n, os.path.join(_top(), ".tdd", "stack-revert-%s" % pid), worktree)
+        red = (said.split() or [""])[0]
+        stack, default, sha, fixes = _reverted(n, os.path.join(_top(), ".tdd", "stack-revert-%s" % pid), worktree)
     except (stack_fix.Refused, stack_fix.NoAnswer, Nothing) as stopped:
         _say(str(stopped))
         return {stack_fix.Refused: 1, stack_fix.NoAnswer: 2, Nothing: 3}[type(stopped)]
@@ -144,7 +152,34 @@ def main(argv):
         if released:
             _say("releasing the merge lock failed (exit %d)" % released)
     sys.stdout.write(sha + "\n")
-    return 0
+    lifted = _lift_claims(stack, n, sha)
+    stack_fix.comment(stack, default, n, "stack-revert: issue %s's commits are reverted on %s by %s, on top of the red"
+                      " commit %s; %s. The issue keeps its labels and returns to selection only by release-issue.sh.\n"
+                      % (n, stack, sha, red, "the hand fix %s is reverted with them" % ", ".join(fixes) if fixes
+                         else "no hand fix was pushed"), "stack-revert")
+    return lifted
+
+
+def _lift_claims(stack, n, sha):
+    """In the body of each pull request merged into <stack> from this repository that carries `Closes #<n>`, that text
+    becomes `Reverted from <stack> by <sha>`, so the issue no longer reads as joined. 0, or 2 naming each pull request
+    whose body could not be edited, or saying the merged pull requests could not be read; the revert stays pushed."""
+    closes = re.compile(r"\bCloses #%s(?![0-9])" % n)
+    try:
+        pulls = [pr for pr in github.merged_pulls(stack) if not pr.cross_repository and n in github.closed_issues(pr.body)]
+    except (github.NoAnswer, ValueError) as no:
+        _say("the pull requests merged into %s could not be read (%s); the revert %s stays pushed, but issue %s may"
+             " still read as joined" % (stack, " ".join(str(getattr(no, "detail", "") or no).split())[:200], sha, n))
+        return 2
+    failed = []
+    for pr in pulls:
+        try:
+            github.pr_body_edit(pr.number, closes.sub("Reverted from %s by %s" % (stack, sha), pr.body))
+        except github.NoAnswer as no:
+            failed.append(pr.number)
+            _say("the body of pull request %s could not be edited (%s); the revert %s stays pushed" % (
+                pr.number, " ".join(str(no.detail or no.answer).split())[:200], sha))
+    return 2 if failed else 0
 
 
 if __name__ == "__main__":
