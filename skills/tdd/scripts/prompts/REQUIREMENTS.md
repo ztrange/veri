@@ -575,6 +575,13 @@
 | CO11 | The numbered list has eight items in this order: find the code (1), copy then break it (2), run the covering suites (3), restore and prove the tree unchanged (4), then the answers for not covered (5), unreachable (6), type-only (7) and reshaped runtime code (8). (Numbered list.) | The copy comes before the break, and the restore after the run that watches the break. |
 | CO12 | The prompt ends by asking, in its last lines, for `MUTATION:` (the edit, in one line), `COVERED: yes \| no \| unreachable \| type-only`, `CAUGHT_BY:` (the test that went red, or NONE on no) and `PROOF:` (the callers and why none reaches the code, or the type-check command run green; NONE otherwise). (Report section.) | The conductor reads fixed lines to decide whether the transform may proceed. |
 
+## skills/tdd/scripts/prompts/develop-seam.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| SM65 | The prompt tells the leaf to confirm that the step's named seam drives the step's named region from outside it, without editing the region, and to report `SEAM: <command or callable>`, `REACHES: yes` or `REACHES: no`, and one proof line. | The conductor decides a bail from the answer, and the proof lets a reader check it. |
+| SM66 | The prompt tells the leaf to write no test and edit no file, and to leave the working tree as it found it. | The run stops on a dirty tree; a seam is confirmed, not built. |
+
 ## skills/tdd/scripts/prompts/develop-cover-new.md
 
 | ID | Requirement | Why |
