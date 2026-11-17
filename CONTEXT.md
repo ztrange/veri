@@ -126,7 +126,7 @@ reject a passing test) the conductor runs **verify-pin**, a blind check that the
 passes now, *fails* under a behaviour-removing mutation the verifier applies and reverts
 itself, and is behaviour-level. On `PASS` the test lands as a `test:` commit with the
 ledger tick atomic, narrated as `📌 Already satisfied`; Green and Refactor are skipped.
-_Avoid_: characterization test (ok as a gloss), skip, no-op step
+_Avoid_: skip, no-op step
 
 **Dependency marker**:
 A reference to another issue under a GitHub issue's `## Blocked by` heading, declaring
@@ -301,6 +301,12 @@ A command or callable a test can drive from outside a **region** without editing
 entry-point CLI, an exported function, an HTTP handler. The plan step names it; veri detects
 none per language. PRD 031.
 _Avoid_: hook, entry point (unqualified)
+
+**Characterization test**:
+A black-box case a legacy step writes around a **region**, driving it only through its **seam**
+and pinning what the unmodified code does. It is permanent, in the slow tier, and judged by
+verify-surround. PRD 031.
+_Avoid_: pin (for this), scaffolding test
 
 ## Scope ladder
 
