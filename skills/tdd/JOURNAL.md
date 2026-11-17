@@ -55,6 +55,7 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `step-escalated` | `anchor` text; `at` one of over-budget | A step was escalated to a stronger model: the step, and where (`over-budget`; absent for a revise escalation). |
 | `step-over-budget` | `spent` decimal; `budget` decimal | A step crossed its budget: what it spent and the budget. |
 | `step-split` | `anchor` text; `added` whole; `at` one of over-budget, exhausted | A step was split into smaller steps: the step, how many were added, and where (`over-budget`; absent otherwise). |
+| `step-reworded` | `from` text; `to` text | A plan rewrite (`ledger-growth.sh record-rewrite`) reworded a step: its text before the rewrite and after it, the step at the same ledger position. Written only when both ledgers hold the same number of steps. |
 | `step-start` | — | A step began. |
 | `stop` | `mode` one of at-ledger, at-leaf, now; `at` one of unplanned, planned, green, step-done, unsettled | The run stopped on request: the mode and the point it stopped at. |
 | `structural-pass` | `transforms` whole; `budget` whole; `stopped` one of candidates-done, budget-spent, nothing-structural | The issue-wide structural pass finished: transforms applied, the `VERI_ISSUE_REFACTOR_BUDGET`, and why it stopped (`candidates-done`, `budget-spent`, `nothing-structural`; required). |
