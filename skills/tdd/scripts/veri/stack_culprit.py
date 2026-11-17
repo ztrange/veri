@@ -66,10 +66,10 @@ def _run_alone(path, command, target):
 
 
 ABSENT = "absent"
-_ABSENT = re.compile(r"^ERROR: not found: |\bno tests ran\b|^collected 0 items", re.M)
+ABSENT_OUTPUT = re.compile(r"^ERROR: not found: |\bno tests ran\b|^collected 0 items", re.M)
 
 
-def _verdict(code, output, case):
+def verdict(code, output, case):
     """What an alone run of <case> says: True red (it exited non-zero and its output carries a failure line naming
     <case>, read as ci-flake.sh reads one), False not red (it exited 0), ABSENT not red because the output says the
     case was not found or not collected, None no answer (any other ending, a kill or a timeout). The exit code alone never decides: a make
@@ -81,7 +81,7 @@ def _verdict(code, output, case):
     text = ci_flake.ANSI.sub("", output)
     if case in rerun_alone.named_targets(text):
         return True
-    return ABSENT if _ABSENT.search(text) else None
+    return ABSENT if ABSENT_OUTPUT.search(text) else None
 
 
 def _first_fail(output, path, case):
@@ -93,14 +93,14 @@ def _first_fail(output, path, case):
     return line.replace(path, "<worktree>").replace(os.path.expanduser("~"), "~")
 
 
-def _owners(subjects):
+def owners(subjects):
     """Per subject, oldest first, the issues its commit belongs to by KT5's subject rule: those it names, else those of
     the nearest earlier subject naming any (none when no earlier one does)."""
-    owners, owner = [], frozenset()
+    found, owner = [], frozenset()
     for subject in subjects:
         owner = frozenset(stack_green.named(subject)) or owner
-        owners.append(owner)
-    return owners
+        found.append(owner)
+    return found
 
 
 def _tested_base(span):
@@ -153,7 +153,7 @@ def _search(path, command, ends, before, red, cases):
     """Run <cases> alone at each of <ends> [(sha, owners)], oldest first, in the worktree <path>: the answer to print at
     the first end where a case is red, None when none is. _NoAnswer for a checkout that fails, an alone run with no
     answer, or a case absent at <red> itself. <before> is the commit the first end follows."""
-    for commit, owners in ends:
+    for commit, issues in ends:
         if not _checkout(path, commit):
             raise _NoAnswer("checking out %s in the search's own worktree failed; nothing more run" % commit)
         red_here = []
@@ -162,7 +162,7 @@ def _search(path, command, ends, before, red, cases):
                 said, code, output = ABSENT, None, ""
             else:
                 code, output = _run_alone(path, command, case)
-                said = _verdict(code, output, case)
+                said = verdict(code, output, case)
             if said == ABSENT and commit == red:
                 raise _NoAnswer("%s is absent at %s itself, where CI named it red: the CI id and the local one-test-file"
                                 " command disagree" % (case, red))
@@ -174,7 +174,7 @@ def _search(path, command, ends, before, red, cases):
                 red_here.append((case, _first_fail(output, path, case)))
         if red_here:
             return "red: %s\nissue: %s\ncommit: %s\nbefore: %s\n%s" % (
-                red, " ".join(sorted(owners, key=int)) or "none", commit, before,
+                red, " ".join(sorted(issues, key=int)) or "none", commit, before,
                 "".join("case: %s\t%s\n" % found for found in red_here))
         before = commit
     return None
@@ -205,8 +205,8 @@ def main(argv):
     except (stack_branch.Refused, github.NoAnswer, _NoAnswer) as no:
         said = no.detail or no.answer if isinstance(no, github.NoAnswer) else str(no)
         return entry.refuse(" ".join(str(said).split()), prefix="stack-culprit: ")
-    owners = _owners([subject for _, subject in span])
-    ends = [at for at in range(base + 1, len(span)) if at == len(span) - 1 or owners[at + 1] != owners[at]]
+    owned = owners([subject for _, subject in span])
+    ends = [at for at in range(base + 1, len(span)) if at == len(span) - 1 or owned[at + 1] != owned[at]]
     if len(ends) > MAX_ENDS:
         return entry.refuse("%d issue ends from %s to %s are untested, more than %d the search runs; nothing run" % (
             len(ends), span[base][0] if base >= 0 else "origin/" + default, red, MAX_ENDS), prefix="stack-culprit: ")
@@ -225,7 +225,7 @@ def main(argv):
                             prefix="stack-culprit: ")
     since = span[base][0] if base >= 0 else "origin/" + default
     try:
-        printed = _search(path, command, [(span[at][0], owners[at]) for at in ends], since, red, cases)
+        printed = _search(path, command, [(span[at][0], owned[at]) for at in ends], since, red, cases)
     except _NoAnswer as no:
         return entry.refuse(str(no), prefix="stack-culprit: ")
     finally:
