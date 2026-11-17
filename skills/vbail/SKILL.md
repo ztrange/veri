@@ -48,6 +48,9 @@ and label it with `$S/classify-bail.sh <cause>`; check its answer against the le
 - `needs-user` with no `classification` field: the conductor stopped unmarked (a red baseline
   or any other preflight stop, with the issue comment `needs-user: the conductor stopped
   without a verdict.`). No source tells these apart, so ask the human which;
+- `unwired`: a file nothing names, which only a human can wire, remove or accept. Do not
+  resume it once: a resume without `release-issue.sh` bails `unwired` again. Park it at once
+  (see A second bail: park), the unblock naming the listed files and that a release accepts them;
 - any other cause: a real bail of that cause and its classify-bail category.
 
 ## A usage limit, sleep or API outage is not a bail

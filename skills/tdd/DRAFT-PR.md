@@ -395,18 +395,19 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `<branch-base>` being the merge base with `origin/<default>`:
    ```
    $S/unwired.sh --accepted .tdd/issue-<n>-unwired-accepted "$(git merge-base HEAD origin/<default>)" > .tdd/unwired.out; unwired=$?
-   [ "$unwired" != 1 ] || cat .tdd/unwired.out >> .tdd/issue-<n>-unwired-accepted
+   [ "$unwired" != 1 ] || cat .tdd/unwired.out >> .tdd/issue-<n>-unwired-pending
    [ "$unwired" != 1 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=unwired classification="$($S/classify-bail.sh unwired)" failed="$(cat .tdd/unwired.out)"
    ```
    It checks only code: an added prose, config or data file and a path under `.github/` are
    never printed. Exit **1** printed each added code file whose stem no other non-test file
-   names and that the record does not list: the second line adds those files to the record and
-   the third **bails** with cause `unwired`, naming every file it printed, and the PR is left a
-   draft (`Read` `<base directory>/BAIL.md`). The human's `release-issue.sh <n>` after that bail
-   accepts the files it listed: the resumed run hands the same record, so a recorded file is not
-   printed, and the run goes on when every file it would print is recorded and bails `unwired`
-   again when one is not. Exits **0** (every such file is named or recorded) and **3** (the
-   range adds none) go on. Exit **2** (the base did not resolve, or no work tree) is a system
+   names and that the accepted record does not list: the second line adds those files to
+   `.tdd/issue-<n>-unwired-pending`, never to the accepted record, and the third **bails** with
+   cause `unwired`, naming every file it printed, and the PR is left a draft (`Read`
+   `<base directory>/BAIL.md`). Only the human's `release-issue.sh <n>` after that bail turns the
+   pending record into accepted files, so a resume without a release bails `unwired` again, and
+   a released run's resume goes on when every file it would print is accepted and bails `unwired`
+   again when one is not. Exits **0** (every such file is named or accepted) and **3** (the range
+   adds none) go on. Exit **2** (the base did not resolve, or no work tree) is a system
    failure: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`).
 2. **Mark the PR ready for review and read its CI, then close the run's log with the PR's
    URL, render the metrics, commit them, and rewrite the PR into its final form** — one
