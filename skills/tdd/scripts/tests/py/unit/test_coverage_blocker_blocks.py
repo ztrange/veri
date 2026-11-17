@@ -1,5 +1,6 @@
 """In-process cases for veri/coverage_blocker.py: the body it writes names the new issue as a blocker."""
 import importlib
+import json
 import pathlib
 
 import pytest
@@ -402,7 +403,7 @@ LEDGER = ("# Plan for #60\n\n- [x] Extract Method `parse` out of `veri/a.py:run`
           "- [ ] Inline Variable `tmp` in `veri/a.py:parse` ⟦criterion 2⟧\n- [ ] Rename `x` to `count`\n")
 
 
-def _region_run(monkeypatch, tmp_path, coverage_blocker, ledger):
+def _region_run(monkeypatch, tmp_path, coverage_blocker, ledger, open_issues="[]"):
     created = []
     (tmp_path / ".tdd").mkdir(parents=True, exist_ok=True)
     (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\nMUTATION: veri/a.py: parse `x` -> `y`\n")
@@ -410,7 +411,7 @@ def _region_run(monkeypatch, tmp_path, coverage_blocker, ledger):
         (tmp_path / ".tdd" / "issue-60.md").write_text(ledger)
     monkeypatch.chdir(tmp_path)
     edited = []
-    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: open_issues)
     monkeypatch.setattr(coverage_blocker, "gh_issue_create",
                         lambda title, text, *extra, **fields: created.append(text) or "https://github.com/owner/name/issues/77\n")
     monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
@@ -449,3 +450,15 @@ def test_main_4109_exits_2_filing_and_editing_nothing_naming_the_ledger_when_it_
         seen[name] = (code, created, edited, ".tdd/issue-60.md" in capsys.readouterr().err)
 
     assert seen == {"absent": (2, [], [], True), "empty": (2, [], [], True)}
+
+
+def test_main_4109_blocks_on_an_old_shape_coverage_issue_already_open_with_the_title_without_relabelling_or_refiling_it(
+        monkeypatch, tmp_path, coverage_blocker, capsys):
+    looked_up = []
+    monkeypatch.setattr(coverage_blocker, "gh_label_exists", lambda label: looked_up.append(label) or True)
+    open_issues = json.dumps([{"title": "Cover the behaviour #60 refactors", "html_url": "https://github.com/owner/name/issues/55"}])
+
+    code, created, edited = _region_run(monkeypatch, tmp_path, coverage_blocker, LEDGER, open_issues)
+
+    assert (code, created, looked_up, edited, capsys.readouterr().out) == (
+        0, [], [], ["60"], "https://github.com/owner/name/issues/55\n")
