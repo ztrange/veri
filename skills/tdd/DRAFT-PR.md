@@ -286,7 +286,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    directory), the host name and the account name, then the tokens and secrets `comment.sh`'s rule
    names, so nothing the lint printed about this machine reaches the PR.
    On a non-zero lint exit (`wait` exit 1), once the section is written, append one repair step
-   after the last done step. `$S/lint-repair.sh step` composes its text: the command, read from
+   after the last done step, carrying `⟦diff-checked⟧ ⟦lint-repair⟧`. `$S/lint-repair.sh step` composes its text: the command, read from
    the repo's CLAUDE.md, and its output's first non-empty line, capped at 200 characters and with
    every local path, the host and the account name redacted. Its non-zero exit appends no step
    and writes no bail, and the section gains `No repair step could be added.`:
