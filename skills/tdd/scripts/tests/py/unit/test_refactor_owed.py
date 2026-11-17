@@ -9,6 +9,7 @@ USAGE = (
     "refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' [<bounds>] < leaf-report.txt\n"
     "                      refactor-owed.sh applied <file> '<transform>' <sha> '<subject>'\n"
     "                      refactor-owed.sh not-done <file> '<candidate>' <reason>\n"
+    "                      refactor-owed.sh clear <file> <reason>\n"
     "                      refactor-owed.sh render <file>\n"
     "                      refactor-owed.sh list <file>\n"
 )
@@ -801,3 +802,13 @@ def test_a_second_coupling_row_replaces_the_first_and_keeps_every_other_row_4124
              refactor_owed.main(["not-done", str(owed), "mutual reference: c.py d.py", "coupling"])]
     assert (codes, owed.read_text()) == ([0, 0], "### step A\n- inline x\nnot-done | budget-spent | inline x\n"
                                                  "not-done | coupling | mutual reference: c.py d.py\n")
+
+
+def test_clear_drops_the_coupling_row_keeps_every_other_row_and_refuses_another_reason_4124(tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### step A\n- inline x\nnot-done | budget-spent | inline x\n"
+                    "not-done | coupling | mutual reference: a.py b.py\n")
+    codes = [refactor_owed.main(["clear", str(owed), "coupling"]),
+             refactor_owed.main(["clear", str(owed), "budget-spent"]),
+             refactor_owed.main(["clear", str(tmp_path / "missing.md"), "coupling"])]
+    assert (codes, owed.read_text()) == ([0, 2, 0], "### step A\n- inline x\nnot-done | budget-spent | inline x\n")

@@ -12,6 +12,7 @@ from report import report_read
 USAGE = ("refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' [<bounds>] < leaf-report.txt\n"
          "                      refactor-owed.sh applied <file> '<transform>' <sha> '<subject>'\n"
          "                      refactor-owed.sh not-done <file> '<candidate>' <reason>\n"
+         "                      refactor-owed.sh clear <file> <reason>\n"
          "                      refactor-owed.sh render <file>\n"
          "                      refactor-owed.sh list <file>")
 
@@ -89,19 +90,29 @@ def applied(file, transform, sha, subject=""):
 ONE_PER_FILE = ("coupling",)
 
 
+def clear(file, reason):
+    """Drops every not-done row of <reason>, a one-per-file reason, from <file>; a missing file has none."""
+    if reason not in ONE_PER_FILE:
+        return entry.refuse(usage=USAGE)
+    if not os.path.isfile(file):
+        return 0
+    stale = f"{NOT_DONE_MARK}{reason} | "
+    try:
+        with open(file, errors="surrogateescape") as owed:
+            kept = [l for l in owed.read().splitlines(keepends=True) if not l.startswith(stale)]
+        with open(file, "w", errors="surrogateescape") as owed:
+            owed.write("".join(kept))
+    except OSError as error:
+        print(f"refactor-owed.sh: {file}: {error.strerror}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def not_done(file, candidate, reason):
     if reason not in NOT_DONE_REASONS:
         return entry.refuse(usage=USAGE)
-    if reason in ONE_PER_FILE and os.path.isfile(file):
-        stale = f"{NOT_DONE_MARK}{reason} | "
-        try:
-            with open(file, errors="surrogateescape") as owed:
-                kept = [l for l in owed.read().splitlines(keepends=True) if not l.startswith(stale)]
-            with open(file, "w", errors="surrogateescape") as owed:
-                owed.write("".join(kept))
-        except OSError as error:
-            print(f"refactor-owed.sh: {file}: {error.strerror}", file=sys.stderr)
-            return 1
+    if reason in ONE_PER_FILE and (code := clear(file, reason)) != 0:
+        return code
     return write(file, f"{NOT_DONE_MARK}{reason} | {candidate}\n")
 
 
@@ -204,6 +215,8 @@ def main(argv):
         return applied(file, *args[:3])
     if verb == "not-done":
         return not_done(file, *args[:2])
+    if verb == "clear":
+        return clear(file, args[0])
     if verb in ("render", "list"):
         if not os.path.exists(file) or os.path.getsize(file) == 0:
             return 3
