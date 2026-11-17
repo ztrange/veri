@@ -186,6 +186,9 @@ def post_plan(issue):
         with open(body_file, "w") as f:
             f.write(github.gh_issue_view(issue, "body"))
         command = detect_test_command.resolved("fast", body_file, ".")
+    if command is None:
+        print("comment.sh: no fast-tier command found", file=sys.stderr)
+        return 2
     listed = "".join(f"- {r.text}\n" for r in steps)
     return post_and_record(issue, "plan", f"### 🗺️ Plan\n\n{listed}\nTest command: {os.fsdecode(command)}\n")
 
