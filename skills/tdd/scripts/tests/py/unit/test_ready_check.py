@@ -501,6 +501,15 @@ def test_issue_4088_a_tier_that_resolves_to_nothing_prints_no_tier_run_row_and_s
     assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
 
 
+def test_issue_4088_a_red_tiers_whole_output_is_kept_at_tdd_ready_tier_out_in_the_main_working_tree(ready_check, run_cli, fake_processes, tmp_path):
+    output = "collected 3 items\n\nFAILED tests/test_x.py::test_y - assert 1 == 2\n1 failed\n"
+    check(ready_check, run_cli, fake_processes, tmp_path, **TIERS, **{
+        "detach-command.sh start ready-all": writing_output("all", output), "detach-command.sh wait ready-all": (1, "1\n", "")})
+
+    assert (tmp_path / ".tdd" / "ready-all.out").read_text() == output
+    assert not (tmp_path / ".tdd" / "ready-fast.out").exists()
+
+
 def test_issue_4088_a_tier_run_that_raises_exits_2_having_removed_the_worktree_it_made(ready_check, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": OSError(7, "no detach")}))
     code, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})

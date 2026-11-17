@@ -6,6 +6,7 @@ import json
 import os
 import secrets
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -74,6 +75,8 @@ def tier_run_row(tier, command, wt):
             said = [line.strip() for line in out if line.strip()]
     if waited.returncode == 0:
         return row, None
+    if os.path.exists(output):
+        shutil.copyfile(output, os.path.join(os.path.dirname(wt), name + ".out"))
     return row, f"exit {waited.stdout.strip()}: {said[-1] if said else '(no output)'}"
 
 
