@@ -1,5 +1,6 @@
 """Cases for rebase-onto-default.sh and veri/rebase_onto_default.py that start a real process."""
 import importlib
+import json
 import os
 import pathlib
 import shutil
@@ -44,10 +45,15 @@ def test_main_rebases_a_real_branch_behind_origin_main_exits_0_prints_the_pre_re
     git(seed, "push", "-q", str(origin), "main")
     pre = git(clone, "rev-parse", "HEAD")
     onto = git(seed, "rev-parse", "HEAD")
+    (clone / ".tdd").mkdir()  # a run worktree's, its run state ignored
+    (clone / ".git" / "info" / "exclude").write_text(".tdd/\n")
 
-    code, out, err = run_cli(rebase_onto_default, [], cwd=clone)
+    code, out, err = run_cli(rebase_onto_default, [], cwd=clone, env={"VERI_STATE_LABEL_ISSUE": "1"})
 
     assert (code, out, err) == (0, f"{pre}\n{onto}\n", "")
+    marks = [json.loads(line) for line in (clone / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(m["event"], m["stage"], m.get("status"), m["issue"]) for m in marks] == [
+        ("stage-start", "rebase", None, "1"), ("stage-end", "rebase", "0", "1")]
     assert git(clone, "rev-parse", "HEAD~1") == onto
     assert git(clone, "log", "-1", "--format=%s") == "feat: a step's green commit (#1)"
     assert git(clone, "status", "--porcelain=v1", "--untracked-files=all") == ""
