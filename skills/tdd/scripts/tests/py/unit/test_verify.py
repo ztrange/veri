@@ -966,6 +966,35 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
     assert events.records() == [record("verdict", "verdict=REJECT", "reason=bad", issue="7", step="2")]
 
 
+def test_4221_main_names_on_the_verdict_event_the_tree_the_guard_took_before_the_leaf_it_judged(
+        tmp_path, monkeypatch, events, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    write_inputs(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_ISSUE", "7")
+    monkeypatch.setenv("VERI_STEP", "2")
+
+    def fake(args, *_, **__):
+        words = [w for w in (str(a) for a in args) if os.path.basename(w) != "env" and "=" not in w]
+        name = os.path.basename(words[0])
+        if name == "git" and words[1] == "write-tree":
+            return subprocess.CompletedProcess(args, 0, b"c" * 40 + b"\n", b"")
+        if name == "git" and words[1] == "rev-parse":
+            return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    through_fixture(fake_processes, fake)
+    events.refuse_event_sh()
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    assert (code, events.records()) == (
+        0, [record("verdict", "verdict=PASS", "reason=fine", "tree=" + "c" * 40, issue="7", step="2")])
+
+
 def test_main_in_a_repository_with_no_commit_reports_a_leaf_that_commits_as_head_and_makes_no_update_ref_call(
         tmp_path, monkeypatch, capfdbinary, fake_processes):
     monkeypatch.chdir(tmp_path)
