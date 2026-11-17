@@ -304,17 +304,6 @@ def test_a_name_in_the_refusing_table_keeps_its_default_through_the_same_functio
     assert (tunables.default("REVISE_BUDGET"), tunables.default("VERI_BASELINE_FULL_TIER")) == ("2", "reuse")
 
 
-def test_set_but_empty_tells_a_name_set_to_nothing_from_an_unset_one_and_a_set_one(monkeypatch):
-    tunables = importlib.import_module("veri.tunables")
-    monkeypatch.delenv("VERI_STEP_GROWTH_PERCENT", raising=False)
-    unset = tunables.set_but_empty("VERI_STEP_GROWTH_PERCENT")
-    monkeypatch.setenv("VERI_STEP_GROWTH_PERCENT", "")
-    empty = tunables.set_but_empty("VERI_STEP_GROWTH_PERCENT")
-    monkeypatch.setenv("VERI_STEP_GROWTH_PERCENT", "unset")
-
-    assert (unset, empty, tunables.set_but_empty("VERI_STEP_GROWTH_PERCENT")) == (False, True, False)
-
-
 def test_one_table_holds_every_tunable_and_each_entry_states_a_default_a_parse_and_a_refusal_or_none():
     tunables = importlib.import_module("veri.tunables")
 

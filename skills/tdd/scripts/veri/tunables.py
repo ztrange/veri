@@ -277,10 +277,6 @@ def is_set(name):
     return name in os.environ
 
 
-def set_but_empty(name):
-    return name in os.environ and not os.environ[name]
-
-
 def resolve(name):
     """(value, None), or (None, (raw, refusal)) when the environment holds a bad value.
 
