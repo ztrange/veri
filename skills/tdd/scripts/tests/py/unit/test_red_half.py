@@ -26,7 +26,7 @@ class Fake:
                 return code, out, ""
         if base == "extract-result.sh":
             return 0, self.report, ""
-        if base == "git" and args == ("status", "--porcelain"):
+        if base == "git" and args == ("status", "--porcelain", "--untracked-files=all"):
             return 0, self.porcelain, ""
         if base in ("stop-requested.sh", "red-divergence.sh"):
             return 3, "", ""
