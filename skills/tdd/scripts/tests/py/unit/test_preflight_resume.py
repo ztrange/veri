@@ -408,6 +408,15 @@ def test_4023_the_stage_events_are_written_in_the_same_order_on_either_path(driv
     assert [c[1][0] for c in fake.calls if c[0] == "event.sh"] == ["resume-rebase"]
 
 
+def test_4023_a_handed_back_resume_makes_the_calls_of_the_scripts_ordered_list_in_its_order(drive):
+    preflight = importlib.import_module("veri.preflight")
+    code, out, fake = drive(ledger=True, handed_back=True)
+
+    made = [preflight.label(c[0], *c[1]) for c in fake.calls]
+    at = [next(i for i, m in enumerate(made) if m.startswith(call)) for call in preflight.HANDED_BACK]
+    assert (code, at) == (0, sorted(at))
+
+
 def test_4023_a_worktree_not_handed_back_runs_none_of_the_handed_back_calls(drive):
     code, out, fake = drive(ledger=True)
 
