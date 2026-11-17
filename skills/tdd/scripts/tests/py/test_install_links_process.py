@@ -441,3 +441,19 @@ def test_install_links_sh_leaves_a_non_veri_entry_at_a_retired_name_untouched_37
     vstatus = (skills / "vstatus" / "SKILL.md").read_text() if (skills / "vstatus" / "SKILL.md").exists() else None
     vready = os.readlink(skills / "vready") if (skills / "vready").is_symlink() else None
     assert (done.returncode, vstatus, vready, "removed" in done.stdout) == (0, "mine\n", str(elsewhere), False)
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against it from a clone holding vish")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_leaves_no_vish_link_in_a_project_as_for_vinstall_4201(tmp_path):
+    clone, shim = _clone(tmp_path)
+    for name in ("vinstall", "vish"):
+        (clone / "skills" / name).mkdir()
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    skills = project / ".claude" / "skills"
+    user_level = sorted(n for n in ("vinstall", "vish") if os.path.lexists(skills / n))
+    assert (done.returncode, user_level) == (0, [])
