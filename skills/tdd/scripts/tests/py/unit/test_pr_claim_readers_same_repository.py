@@ -18,6 +18,7 @@ import pytest
 EXEMPT = {
     "github": "the home of the readers and of Pull.cross_repository; its own Closes #n readers are checked below",
     "invisible_work": "reports branches no PR names, by head ref only; it claims, launches and skips nothing",
+    "stack_culprit": "reads github.stack_pulls only to find the tracking pull request it comments on; it claims nothing",
     "stack_pr": "reads github.stack_pulls, which reads no Closes #n and already keeps only a head in this repository",
     "status": "status.sh --recover prints the open PRs for the operator to read; it claims, launches and skips nothing",
 }
