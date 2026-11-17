@@ -90,17 +90,32 @@ def pending_in(wt, n):
 
 
 def save_pending(wt, n, *fields):
+    """Record the wait preflight exits 3 on: its <fields>, and what step 3 settled before it (CARRIED), so a second call
+    neither repeats nor loses it (RP8)."""
     with open(pending_in(wt, n), "w") as f:
-        f.write("\n".join(fields))
+        json.dump({"fields": list(fields), "carried": CARRIED}, f)
 
 
 def load_pending(wt, n):
-    path = pending_in(wt, n)
-    return open(path).read().split("\n") if os.path.exists(path) else None
+    """The fields of the wait a first call recorded, CARRIED restored from it; None when there is no usable record."""
+    try:
+        with open(pending_in(wt, n)) as f:
+            record = json.load(f)
+        fields, carried = record["fields"], record["carried"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    CARRIED.update(carried)
+    return fields
+
+
+def carried_lines():
+    """The `stray=` and `rebased_from=` lines a handed-back worktree carries (RP6, RP7)."""
+    return (["stray=" + path for path in CARRIED.get("stray", [])]
+            + (["rebased_from=" + CARRIED["rebased_from"]] if CARRIED.get("rebased_from") else []))
 
 
 def stopped(step, what, code):
-    sys.stdout.write("stopped at %d %s\n" % (step, what))
+    sys.stdout.write("".join(line + "\n" for line in carried_lines()) + "stopped at %d %s\n" % (step, what))
     return code
 
 
@@ -244,8 +259,9 @@ def check_readiness(user_answer=""):
     return None
 
 
-# What a handed-back worktree carries to the rest of the run (RP6, RP7): the paths resume-clean.sh printed under
-# "stray", and under "rebased_from" the pre-rebase sha when the rebase moved the branch. Filled by one run of main().
+# What step 3 settles for the rest of the run (RP6, RP7): "run", resume or fresh; and for a handed-back worktree the
+# paths resume-clean.sh printed under "stray", and under "rebased_from" the pre-rebase sha when the rebase moved the
+# branch. Filled by one run of main().
 CARRIED = {}
 
 
@@ -253,7 +269,7 @@ def handed_back(n, wt, ledger):
     """PREFLIGHT.md step 3's block for a worktree issue-worktree.sh handed back: discard a killed leaf's leftovers, rebase
     onto the default branch and, when that moved the branch, mark it and re-record the frozen tests (RP4)."""
     stray = checked(3, script("resume-clean.sh"), cwd=wt)
-    CARRIED["stray"] = [line for line in stray.splitlines() if line.strip()]
+    CARRIED["stray"] = [line[3:] for line in stray.splitlines() if line.strip()]
     code, out, _ = call(script("rebase-onto-default.sh"), cwd=wt)
     if code not in (0, 1, 3):
         raise Stop(3, "rebase-onto-default.sh", code)
@@ -285,6 +301,7 @@ def set_up(n, slug, detect):
         os.remove(marker)
     ledger = os.path.join(".tdd", "issue-%s.md" % n)
     resume = os.path.exists(os.path.join(wt, ledger))
+    CARRIED["run"] = "resume" if resume else "fresh"
     if not resume:
         checked(3, script("unlabel-issue.sh"), n, cwd=wt)
     checked(3, script("worktree-setup.sh"), n, cwd=wt, ok=(0, 3))
@@ -370,7 +387,8 @@ def finish(n, wt, baseline, full, fast, alone, reused, full_secs):
     lines = ["worktree=" + wt, "fast_cmd=" + fast, "full_cmd=" + full, "alone_cmd=" + alone,
              "baseline=%d" % baseline, "full=%d" % full_secs, "full_tier_mode=" + ("reuse" if reused is not None else "run"),
              "default_branch=" + branch.strip(), "model_develop_red=" + models[0],
-             "model_revise_green=" + models[1], "model_verify_green=" + models[2], "timeout=" + timeout.strip()]
+             "model_revise_green=" + models[1], "model_verify_green=" + models[2], "timeout=" + timeout.strip(),
+             "run=" + CARRIED["run"], *carried_lines()]
     text = "\n".join(lines) + "\n"
     with open(run_dir.issue_file(wt, n, "-preflight"), "w") as f:
         f.write(text)

@@ -692,6 +692,7 @@ def test_3771_s_exit_0_writes_the_preflight_file_in_the_worktree_and_prints_the_
         "model_revise_green=m-rev",
         "model_verify_green=m-ver",
         "timeout=1800",
+        "run=fresh",
     ]
     assert code == 0
     assert (wt / ".tdd" / "issue-12-preflight").read_text().splitlines() == expected
@@ -1313,7 +1314,8 @@ def _staged_run(monkeypatch, run_cli, tmp_path, answers, saved=None):
     wt = tmp_path / ".tdd" / "wt" / "12"
     (wt / ".tdd").mkdir(parents=True)
     if saved is not None:
-        (wt / ".tdd" / "issue-12-preflight-wait").write_text(saved)
+        (wt / ".tdd" / "issue-12-preflight-wait").write_text(
+            json.dumps({"fields": saved.split("\n"), "carried": {"run": "fresh"}}))
 
     def run_script(name, *args, **kwargs):
         base = os.path.basename(name)
