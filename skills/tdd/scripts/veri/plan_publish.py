@@ -32,7 +32,7 @@ def inputs(n, title_file):
         settled = None
         missing.append(".tdd/issue-%s-preflight" % n)
     if settled is not None and not os.path.exists(run_dir.ledger(settled.get("worktree", ""), n)):
-        missing.append(".tdd/issue-%s.md" % n)
+        missing.append(os.path.relpath(run_dir.ledger(".", n)))
     try:
         with open(title_file) as f:
             title = f.read().strip()
@@ -59,9 +59,19 @@ def main(argv):
         return fused.stopped(stop)
 
 
-def gh(where, *args, wt, ok=(0,)):
-    """One gh call, bounded by VERI_GH_TIMEOUT and redacted as every gh call of veri's is."""
-    return fused.checked(where, "gh", *args, cwd=wt, ok=ok, run=github.bounded)
+def gh_call(*args, wt):
+    """One gh call, printed, bounded by VERI_GH_TIMEOUT and redacted as every gh call of veri's is: (code, stdout, the
+    call's label)."""
+    code, out, _ = fused.call("gh", *args, cwd=wt, run=github.bounded)
+    return code, out, fused.label("gh", *args)
+
+
+def gh(where, *args, wt):
+    """gh_call, raising a Stop at <where> on any exit but 0; its stdout otherwise."""
+    code, out, shown = gh_call(*args, wt=wt)
+    if code != 0:
+        raise fused.Stop(where, shown + " exit %d" % code, code)
+    return out
 
 
 def event(wt, n, *fields):
@@ -77,7 +87,7 @@ def run(n, settled, title):
     waited = load_wait(wt, n)
     if waited is not None:
         return verdict(n, wt, waited)
-    ledger = os.path.join(".tdd", "issue-%s.md" % n)
+    ledger = os.path.relpath(run_dir.ledger(".", n))
     plan_sha, k = commit_plan(n, wt, ledger)
     fused.checked("2.3", fused.script("push-branch.sh"), cwd=wt)
     branch = fused.checked("2.3", "git", "branch", "--show-current", cwd=wt).strip()
@@ -138,7 +148,7 @@ def launch_verdict_plan(n, wt, settled):
         with contextlib.suppress(FileNotFoundError):
             os.remove(run_dir.run_file(wt, name))
     fused.checked("2c", fused.script("detach-leaf.sh"), fused.script("supervise.sh"), LEAF,
-                  fused.script("run-verdict.sh"), "plan", SPEC % n, os.path.join(".tdd", "issue-%s.md" % n), cwd=wt,
+                  fused.script("run-verdict.sh"), "plan", SPEC % n, os.path.relpath(run_dir.ledger(".", n)), cwd=wt,
                   env=tunables.with_values(VERI_TEST_CMD=settled["fast_cmd"], VERI_ISSUE=n),
                   out=".tdd/verify-plan.reason", err=".tdd/verify-plan.err")
 
@@ -191,21 +201,21 @@ def draft_pr(n, wt, settled, title, k, branch):
     base = out.strip() if code == 0 else settled["default_branch"]
     event(wt, n, "stage-start", "stage=draft-pr")
     began = time.monotonic()
-    body = ("<!-- veri:run-body -->\nCloses #%s — work in progress: %d steps planned. The ledger .tdd/issue-%s.md is "
-            "the source of truth.\n<!-- /veri:run-body -->" % (n, k, n))
+    body = ("<!-- veri:run-body -->\nCloses #%s — work in progress: %d steps planned. The ledger %s is "
+            "the source of truth.\n<!-- /veri:run-body -->" % (n, k, os.path.relpath(run_dir.ledger(".", n))))
     args = ("api", "repos/{owner}/{repo}/pulls", "-F", "draft=true", "-f", "base=" + base, "-f", "head=" + branch,
             "-f", "title=" + title, "-f", "body=" + body, "-q", ".html_url")
-    code, out, _ = fused.call("gh", *args, cwd=wt, run=github.bounded)
+    code, out, shown = gh_call(*args, wt=wt)
     event(wt, n, "stage-end", "stage=draft-pr", "status=%d" % code, "secs=%d" % math.ceil(time.monotonic() - began))
     if code != 0:
-        raise fused.Stop("2.3", fused.label("gh", *args) + " exit %d" % code, code)
+        raise fused.Stop("2.3", shown + " exit %d" % code, code)
     return out.strip()
 
 
 def start_comment(n, k, branch):
     """Step 2b's comment: the branch, the worktree (as `.tdd/wt/<n>`, never a local absolute path), the step count, and
     that each phase will be blind-verified."""
-    return ("### ▶️ veri started\n\nBranch `%s`, worktree `.tdd/wt/%s`: %d steps planned. Each phase will be "
+    return ("veri started on branch `%s`, worktree `.tdd/wt/%s`: %d steps planned. Each phase will be "
             "blind-verified." % (branch, n, k))
 
 

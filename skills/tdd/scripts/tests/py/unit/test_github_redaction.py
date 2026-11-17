@@ -278,6 +278,7 @@ GH_SITES = {
     ("github.py", "run_gh"): "through bounded",
     ("github.py", "gh_probe"): "through bounded",
     ("github.py", "rate_limit_reset"): "through bounded",
+    ("plan_publish.py", "gh_call"): "through bounded (fused.run_script's run hook)",
     ("preflight.py", "issue_body"): "a read of the issue body",
     ("preflight.py", "check_environment"): "gh api user, a read",
     ("preflight.py", "finish"): "a read of the default branch",

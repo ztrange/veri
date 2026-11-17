@@ -54,7 +54,7 @@ def run(n, settled):
             raise fused.Stop("1.4", "tree-check", 1)
         fused.checked("1.4", "git", "add", ".gitignore", cwd=wt)
         fused.checked("1.4", "git", "commit", "-m", "chore: ignore veri run state (#%s)" % n, cwd=wt)
-    ledger = os.path.join(".tdd", "issue-%s.md" % n)
+    ledger = os.path.relpath(run_dir.ledger(".", n))
     resume = os.path.exists(os.path.join(wt, ledger))
     lines = ["run=" + ("resume" if resume else "fresh"), "spec=" + spec,
              "timeout_recorded=" + os.path.join(".tdd", "issue-%s-timeout" % n), "gitignore=" + ignored]
