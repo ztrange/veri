@@ -27,8 +27,9 @@ def main(argv):
     data = getattr(sys.stdin, "buffer", sys.stdin).read()
     text = data.decode("utf-8", "replace") if isinstance(data, bytes) else data
     finding = next((line.strip() for line in text.split("\n") if line.strip()), NO_OUTPUT)
-    step = f"make `{command.decode('utf-8', 'replace')}` pass: {finding[:FINDING_CHARS]}"
-    step = run_records.redact_local(step, os.getcwd()).replace("\n", " ")
+    cwd = os.getcwd()
+    finding = run_records.redact_local(finding, cwd)[:FINDING_CHARS]  # redacted first: a cut leaves no path fragment
+    step = run_records.redact_local(f"make `{command.decode('utf-8', 'replace')}` pass: ", cwd) + finding
     sys.stdout.buffer.write((step + " ⟦diff-checked⟧ ⟦lint-repair⟧\n").encode())
     sys.stdout.buffer.flush()
     return 0
