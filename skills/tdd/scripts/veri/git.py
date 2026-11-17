@@ -22,7 +22,8 @@ exception, because "cannot tell" is an ordinary answer and each caller's fallbac
 `git.default_branch() or "main"` or a refusal reads visibly at its own call site.
 
 default_branch order: (1) the local refs/remotes/origin/HEAD, no network; (2) with
-remote=True, what `git ls-remote --symref origin HEAD` prints, believed whatever its exit
+remote=True, what `git ls-remote --symref origin HEAD` prints, run through `network` (bounded by
+VERI_GIT_NETWORK_TIMEOUT; no answer in time is None), believed whatever its exit
 code; else None. remote=False
 stops after (1), for callers that must not touch the network. A fallback to a local
 main/master is the caller's to write.
@@ -106,11 +107,7 @@ def default_branch(cwd=None, remote=True):
         pass
     if not remote:
         return None
-    try:
-        answer = git("ls-remote", "--symref", "origin", "HEAD", cwd=cwd, capture_output=True, text=True)
-    except OSError:
-        return None
-    return symref_default(answer.stdout)
+    return symref_default(network("ls-remote", "--symref", "origin", "HEAD", cwd=cwd).stdout or "")
 
 
 def symref_default(answer):
