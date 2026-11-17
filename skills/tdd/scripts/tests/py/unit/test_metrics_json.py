@@ -323,3 +323,28 @@ def test_4224_leaves_are_keyed_by_leaf_kind_a_named_line_under_its_name_an_unnam
         "revise-green": {"attempts": 0, "pass": 0, "kills": 0, "wall_seconds": 0, "turns": 2, "cost_usd": 0.5},
         "unnamed": {"attempts": 0, "pass": 0, "kills": 1, "wall_seconds": 7, "turns": 0, "cost_usd": 0}}
     assert [sorted(entry) for entry in leaves.values()] == [sorted(PHASE_KEYS)] * 4
+
+
+def test_4224_on_a_journal_mixing_named_and_unnamed_lines_leaves_and_phases_sum_to_the_same_attempts_wall_and_cost(
+        tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [
+        mark(100, "launch", "red", "one", actor="developer", attempt="1", name="develop-red", cmd="c", model=""),
+        mark(130, "exit", "red", "one", actor="developer", attempt="1", status="0", secs="30"),
+        mark(131, "usage", "red", "one", actor="developer", attempt="1", total_cost_usd="0.25", num_turns="3"),
+        mark(140, "launch", "red", "one", actor="verifier", attempt="1", name="verify-red", cmd="c", model=""),
+        mark(150, "exit", "red", "one", actor="verifier", attempt="1", status="0", secs="10", name="verify-red"),
+        mark(151, "usage", "red", "one", actor="verifier", attempt="1", total_cost_usd="0.10", name="verify-red"),
+        leaf(200, "launch", "one", "developer", attempt="2", name="revise-green-2", cmd="c", model=""),
+        leaf(260, "exit", "one", "developer", attempt="2", status="0", secs="60", name="revise-green-2"),
+        leaf(261, "usage", "one", "developer", attempt="2", total_cost_usd="1.50"),
+        leaf(300, "exit", "two", "developer", attempt="9", status="2", secs="5"),
+        leaf(301, "usage", "two", "developer", attempt="9", total_cost_usd="0.05")])
+    monkeypatch.chdir(tmp_path)
+
+    shaped = as_json(metrics, capsys)
+
+    assert {view: {key: round(sum(entry[key] for entry in shaped[view].values()), 2)
+                   for key in ("attempts", "wall_seconds", "cost_usd")} for view in ("leaves", "phases")} == {
+        "leaves": {"attempts": 3, "wall_seconds": 105, "cost_usd": 1.9},
+        "phases": {"attempts": 3, "wall_seconds": 105, "cost_usd": 1.9}}
+    assert sorted(shaped["leaves"]) == ["develop-red", "revise-green", "unnamed", "verify-red"]
