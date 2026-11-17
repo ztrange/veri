@@ -75,14 +75,16 @@ and ask*), so the transcript carries neither.
 
 A **notice** — a refused reset, `role-growth.sh`'s exit 2, `request-reset`'s exit 1, the MCP
 launch line of *Starting*, a missing `delegate` skill, `github-outage.sh hold`'s exit 2, a red
-stack that stays frozen after its failed jobs' re-run — is sent once: as one `PushNotification`
+stack that stays frozen after its failed jobs' re-run, each line `voutage` tells the human — is
+sent once: as one `PushNotification`
 where the session has that tool, else as one line in its transcript.
 
 With a coordinator attached, each event P4 lets you speak about goes to it, as *Attached* says;
 the human still gets `.`.
 
 In a session with `start_session`, restate no pending decision in your own transcript, whatever
-the human's message is about: each is restated only in its own question session. In a session
+the human's message is about: each is restated only in its own question session, which is where
+P4's and P21's restatement is met. In a session
 without it (a terminal), a decision is asked in full in the transcript, once, as *When to stop and
 ask* says.
 
