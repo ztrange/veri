@@ -75,6 +75,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
 - `criterion-unreadable` — `criterion-finished.sh` exited 2 at a step's mirror (the criterion
   could not be read) → **system** failure. The bail can follow an adjudication (`Read`
   `<base directory>/ADJUDICATE.md`): it keeps this cause and class.
+- `rerecord-failed` — `tests-frozen.sh rerecord-refactored` exited **2** (no answer) after a
+  verify-refactor PASS or a `skipped` one → **system** failure.
 - `ci-timeout` — a readied PR's check was still pending when the Draft PR step's bounded CI
   wait ran out → **system** failure (CI never answered, not the methodology). The bail can follow an
   adjudication (`Read` `<base directory>/ADJUDICATE.md`): it keeps this cause and class.

@@ -695,6 +695,7 @@
 | BL56 | The `replaces-report-failed` bullet says the wait's exit 2 can be adjudicated first (`Read` `<base directory>/ADJUDICATE.md`) and the bail keeps its cause and class. (Cause list, `replaces-report-failed` bullet.) | The bail list stays true. |
 | BL67 | The cause list has a `reconcile-failed` bullet: the reconcile of a rejected push failed (the `develop-reconcile` leaf exited 1 or 2, the second `push-branch.sh` exited other than 0, or the ledger's ticks or marks changed) → **system** failure; its exit-2 sources can be adjudicated first (`Read` `<base directory>/ADJUDICATE.md`), and the bail keeps its cause and class. (Cause list, `reconcile-failed` bullet.) | `classify-bail.sh` knows the cause; the bail list does not. |
 | BL68 | The cause list has a `criterion-unreadable` bullet: `criterion-finished.sh` exited 2 at a step's mirror (the criterion could not be read) → **system** failure; the bail can follow an adjudication (`Read` `<base directory>/ADJUDICATE.md`) and keeps its cause and class. (Cause list, `criterion-unreadable` bullet.) | The bail list stays true. |
+| BL69 | The cause list has a `rerecord-failed` bullet: `tests-frozen.sh rerecord-refactored` exited **2** (no answer) after a verify-refactor PASS or a `skipped` one → **system** failure. (Cause list, `rerecord-failed` bullet.) | The bail list names every token `classify-bail.sh` knows. |
 
 ## skills/tdd/SCOPE-LOOP.md
 
