@@ -427,6 +427,10 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 - Building and checking: `new_step(text, criterion)`, `open_step_line(text)`, `retire_mark(reason)`, `multi_tag_refusal(steps)` (`""` if fine), `receipt_refusal(ledger_file)`, `ledger_path(run_dir, issue)` (a delegate of `run_dir.ledger`; only `wrong_test_route` calls it, deleted once PR #3792 lands), `added_file(path)` (the sibling `-added.md` path of a ledger file).
 - Constants: `BEFORE_STATE_GREEN` (compiled pattern: a clause of a pin's reason that calls the before-state green; tick-ledger, pin-reject-route and the develop prompt read it), `STEP_RE`, `ITEM_RE`, `KIND_RE`, `CRITERION_RE`, `CRITERION_TAG`, `ADDED_MARK`, `PENDING_MARK`, `OPEN_STEP`, `TICKED_STEP`, `INTERFACE_PHASES` (the phases of an interface change: `expand`, `cover-new`, `migrate`, `contract-a`, `contract-b`).
 
+## ledger_steps
+- `current_record(records)`: the current step of `ledger.ledger_steps` records (the first done step whose refactor is pending, else the first open step), `None` when there is none.
+- `current_or_last_done_record(records)`: the step `ledger-steps.sh current-or-last-done` prints, the current step else the last done one, `None` when neither; `coverage_blocker` names it as the coverage issue's region.
+
 ## preserve_attempt
 - `preserve(repo, issue, step, phase, attempt, mark="", env=None)`: saves the work tree as a commit under `refs/veri/attempts/…` without touching the branch; returns 0, 1 (stderr message) when the ref or leaf files cannot be written, or a failed git step's code.
 
