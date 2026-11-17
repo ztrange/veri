@@ -137,3 +137,11 @@ def test_4226_strict_writes_a_step_reworded_line_naming_both_texts_and_refuses_o
     refused = event.mark(str(clone), {"issue": "7"}, "step-reworded", ["from=old text"])
 
     assert (written, refused) == (0, 2)
+
+
+def test_4228_strict_writes_a_stage_start_and_end_of_a_listed_stage_and_refuses_an_unlisted_stage(clone):
+    started = event.mark(str(clone), {"issue": "7"}, "stage-start", ["stage=preflight"])
+    ended = event.mark(str(clone), {"issue": "7"}, "stage-end", ["stage=baseline", "status=1", "secs=12"])
+    unlisted = event.mark(str(clone), {"issue": "7"}, "stage-start", ["stage=merge"])
+
+    assert (started, ended, unlisted) == (0, 0, 2)

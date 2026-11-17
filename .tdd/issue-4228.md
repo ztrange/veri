@@ -1,6 +1,6 @@
 # Plan for #4228 — PRD 035.5a1: stages are marked, and preflight and the baseline suite are counted
 
-- [ ] under VERI_EVENT_STRICT=1 `stage-start` (`stage`) and `stage-end` (`stage`, `status` whole, `secs` whole) are accepted with `stage` one of preflight, baseline; JOURNAL.md states both ⟦criterion 1⟧
+- [x] under VERI_EVENT_STRICT=1 `stage-start` (`stage`) and `stage-end` (`stage`, `status` whole, `secs` whole) are accepted with `stage` one of preflight, baseline; JOURNAL.md states both ⟦criterion 1⟧
 - [ ] `event.stage` writes `stage-start`, runs its body and writes `stage-end` with the body's exit code and whole seconds, for a body exiting 0, 1 and 2 and one raising (status 2) ⟦criterion 2⟧
 - [ ] with the journal directory unwritable the stage helper returns the body's exit code unchanged ⟦criterion 3⟧
 - [ ] `preflight.sh` runs inside stage `preflight` and its baseline suite inside stage `baseline` ⟦criterion 4⟧

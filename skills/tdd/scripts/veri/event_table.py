@@ -74,6 +74,8 @@ EVENTS = {
     "skill-edit-no-author": "unit:text",
     "skill-repin": "commit:sha",
     "snapshot-changed": "path:text",
+    "stage-end": "stage:(preflight|baseline) status:whole secs:whole",
+    "stage-start": "stage:(preflight|baseline)",
     "step-added": "anchor?:text added?:whole",
     "step-done": "",
     "step-escalated": "anchor:text at?:(over-budget)",

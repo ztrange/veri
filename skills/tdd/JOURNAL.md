@@ -50,6 +50,8 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `skill-edit-no-author` | `unit` text | skill-edit-step.sh's first grading of a unit passed, so no author ran: the unit. |
 | `skill-repin` | `commit` sha | The skill pin was moved (`VERI_NEW_SKILL=1`, or a `release-issue.sh` release marker): the new commit. |
 | `snapshot-changed` | `path` text | At the conductor's exit, the run's skill snapshot no longer matched the digest the conductor computed at extraction and kept in memory: the first entry that differs, relative to the snapshot (`.` when the snapshot could not be read); or, the snapshot matching, the absolute path of `.tdd/issue-<n>-snapshot-digest` when that file no longer holds that digest. |
+| `stage-end` | `stage` one of preflight, baseline; `status` whole; `secs` whole | A stage (a non-leaf phase of a run) ended: which, its exit code (0 passed, 1 failed, 2 no answer, 3 nothing to do), and the whole seconds it took. Written on every exit of the stage, a raised error included (`status` 2). |
+| `stage-start` | `stage` one of preflight, baseline | A stage began: which. A start with no `stage-end` of that stage before the next start of it was killed. |
 | `step-added` | `anchor` text; `added` whole | Steps were added to the ledger after `anchor`: how many. The conductor's mark carries both; add-ledger-step.sh also writes one line per inserted step, the step in the line's `step`, with neither (`anchor` and `added` absent). |
 | `step-done` | — | A step finished. |
 | `step-escalated` | `anchor` text; `at` one of over-budget | A step was escalated to a stronger model: the step, and where (`over-budget`; absent for a revise escalation). |
