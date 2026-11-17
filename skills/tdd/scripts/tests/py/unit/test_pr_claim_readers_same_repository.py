@@ -2,11 +2,11 @@
 through github.Pull.cross_repository, so a fork's PR, which anyone can open, claims nothing (PRD 022.14-022.16).
 
 "Reads pull requests" is read with `ast`, by what a module names: github.py's PR readers `open_pulls`,
-`open_pulls_text`, `pulls_in` and `joined_issues`, or `closed_issues`, the reader of a body's `Closes #n`. "Goes
+`open_pulls_text`, `pulls_in`, `joined_issues` and `stack_pulls`, or `closed_issues`, the reader of a body's `Closes #n`. "Goes
 through the rule" is naming the attribute `cross_repository`. Inside github.py, every function that reads a body's
 `Closes #n` names it too (joined_issues, the stack's joined claim).
 
-Blind spots, by construction: a module that reaches GitHub's pulls without naming any of the five (a raw `gh api`
+Blind spots, by construction: a module that reaches GitHub's pulls without naming any of the six (a raw `gh api`
 path), and one that names `cross_repository` without filtering on it.
 """
 import ast
@@ -18,13 +18,14 @@ import pytest
 EXEMPT = {
     "github": "the home of the readers and of Pull.cross_repository; its own Closes #n readers are checked below",
     "invisible_work": "reports branches no PR names, by head ref only; it claims, launches and skips nothing",
+    "stack_pr": "reads github.stack_pulls, which reads no Closes #n and already keeps only a head in this repository",
     "status": "status.sh --recover prints the open PRs for the operator to read; it claims, launches and skips nothing",
 }
 
 # The readers PRD 022.14-022.16 put behind the rule; the detector must keep finding them.
 KNOWN_READERS = ("dispatch", "issue_worktree", "parallel_conductors", "solvable_issues")
 
-_READERS = {"open_pulls", "open_pulls_text", "pulls_in", "joined_issues", "closed_issues"}
+_READERS = {"open_pulls", "open_pulls_text", "pulls_in", "joined_issues", "stack_pulls", "closed_issues"}
 
 
 def _names(tree):
