@@ -799,3 +799,38 @@ def test_4094_recover_prints_none_under_questions_when_every_question_file_holds
     code, out, err = run_cli(status, ["--recover", "dev"])
 
     assert (code, _questions(out)) == (0, ["none"]), (out, err)
+
+
+def _recover_questions_with(tmp_path, monkeypatch, run_cli, fake_processes, make):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
+    questions = tmp_path / ".tdd" / "questions"
+    questions.mkdir(parents=True)
+    (questions / "main-41.md").write_text("#### Question\nopen\n")
+    make(questions)
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
+    return run_cli(status, ["--recover", "dev"])
+
+
+def test_4094_recover_skips_a_question_path_that_is_a_directory_and_still_exits_0(tmp_path, monkeypatch, run_cli, fake_processes):
+    code, out, err = _recover_questions_with(tmp_path, monkeypatch, run_cli, fake_processes,
+                                             lambda q: (q / "main-42.md").mkdir())
+    assert (code, _questions(out), str(tmp_path) in out + err) == (0, [".tdd/questions/main-41.md"], False), (out, err)
+
+
+def test_4094_recover_skips_a_dangling_question_symlink_and_still_exits_0(tmp_path, monkeypatch, run_cli, fake_processes):
+    code, out, err = _recover_questions_with(tmp_path, monkeypatch, run_cli, fake_processes,
+                                             lambda q: (q / "main-43.md").symlink_to(q / "gone.md"))
+    assert (code, _questions(out), str(tmp_path) in out + err) == (0, [".tdd/questions/main-41.md"], False), (out, err)
+
+
+def test_4094_recover_lists_a_question_file_that_is_not_utf8_as_open_and_reads_its_answer_heading(tmp_path, monkeypatch, run_cli, fake_processes):
+    def make(q):
+        (q / "main-44.md").write_bytes(b"#### Question\n\xff\xfe caf\xe9\n")
+        (q / "main-45.md").write_bytes(b"#### Question\n\xff\n## Answer\nyes\n")
+    code, out, err = _recover_questions_with(tmp_path, monkeypatch, run_cli, fake_processes, make)
+    assert (code, _questions(out)) == (0, [".tdd/questions/main-41.md", ".tdd/questions/main-44.md"]), (out, err)

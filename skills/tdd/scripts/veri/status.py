@@ -557,13 +557,21 @@ def recover_state(role, lane=None):
 
 
 def recover_questions(lane):
-    """The lane's open question files: `.tdd/questions/<lane>-*.md` (`main-*` with no lane) with no `## Answer` line."""
+    """The lane's open question files: each regular `.tdd/questions/<lane>-*.md` (`main-*` with no lane) with no
+    readable `## Answer` line. One bad entry never stops recovery: a directory or dangling link is skipped, and a
+    file that cannot be read is listed as open."""
     directory = os.path.join(run_dir.main_tree(missing=""), ".tdd", "questions")
     lines = []
     for path in sorted(glob.glob(os.path.join(directory, "%s-*.md" % (lane or "main")))):
-        with open(path) as f:
-            if not any(line.rstrip() == "## Answer" for line in f):
-                lines.append(os.path.join(".tdd", "questions", os.path.basename(path)))
+        if not os.path.isfile(path):
+            continue
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                answered = any(line.rstrip() == "## Answer" for line in f)
+        except OSError:
+            answered = False
+        if not answered:
+            lines.append(os.path.join(".tdd", "questions", os.path.basename(path)))
     return lines
 
 
