@@ -402,3 +402,19 @@ def test_a_release_gh_does_not_answer_on_a_marker_removal_exits_2_and_accepts_no
     labels[:] = ["taken:main", "bailed"]
     code = run_cli(release_issue, ["7"], cwd=tmp_path)[0]
     assert (code, pending.read_text(), accepted.read_text()) == (2, "pkg/helper.go\n", "pkg/a.go\n")
+
+
+def test_a_release_run_from_inside_the_runs_own_worktree_accepts_its_pending_unwired_files_4121(
+        release, run_cli, tmp_path):
+    release_issue, calls, labels = release
+    gitdir = tmp_path / ".git" / "worktrees" / "7"
+    gitdir.mkdir(parents=True)
+    (gitdir / "commondir").write_text("../..\n")
+    worktree = tmp_path / ".tdd" / "wt" / "7"
+    (worktree / ".tdd").mkdir(parents=True)
+    (worktree / ".git").write_text("gitdir: %s\n" % gitdir)
+    pending, accepted = worktree / ".tdd" / "issue-7-unwired-pending", worktree / ".tdd" / "issue-7-unwired-accepted"
+    pending.write_text("pkg/helper.go\n")
+    labels[:] = ["taken:main", "bailed"]
+    code = run_cli(release_issue, ["7"], cwd=worktree)[0]
+    assert (code, pending.exists(), accepted.read_text() if accepted.exists() else None) == (0, False, "pkg/helper.go\n")
