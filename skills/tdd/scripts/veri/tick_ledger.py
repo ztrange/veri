@@ -12,7 +12,7 @@ import mutation_record
 import paths
 import tests_frozen
 
-USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher> (--unpinnable and --already-holds drop every mutation record whose named test is absent from the tree)"
+USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --surround-short | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher> (--unpinnable and --already-holds drop every mutation record whose named test is absent from the tree)"
 
 
 def complain(message):
@@ -146,7 +146,35 @@ def mutations_path(ledger_path):
     return mutation_record.of_ledger(ledger_path)
 
 
+def surround_short(ledger_path, matcher):
+    """Record a legacy step's one free relaunch of develop-surround as ` ⟂ surround short` on its committed ledger
+    line: 0 recorded; 1 the step already carries it (a resumed run's included), ledger untouched; 2 surround is not
+    the step's next phase, or the ledger is unreadable; 3 no open step holds matcher."""
+    try:
+        text = ledger.read_ledger(ledger_path)
+    except OSError as error:
+        complain(f"{ledger_path}: {error.strerror}")
+        return 2
+    try:
+        found, new = ledger.ledger_mark_surround_short(text, matcher)
+    except ValueError as error:
+        complain(str(error))
+        return 2
+    if found is None:
+        complain(f"{matcher}: surround-short: the step's one free relaunch of develop-surround is already spent")
+        return 1
+    if not found:
+        return 3
+    left = ledger.rewrite_ledger(ledger_path, new)
+    if left:
+        complain(f"left {left} behind")
+        return 2
+    return 0
+
+
 def main(argv):
+    if argv[:1] == ["--surround-short"] and len(argv) == 3 and all(argv[1:]):
+        return surround_short(argv[1], argv[2])
     pending, phase, owed, reason_file, case = False, None, False, None, None
     retire = None
     while True:
