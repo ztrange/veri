@@ -74,3 +74,13 @@ def test_issue_4072_record_by_a_role_name_or_owner_is_recorded_with_that_by(deci
     code, _, _ = run_cli(decision_log, ["record", "Raise N to 4?", "N=4", "the owner's answer", by])
 
     assert (code, json.loads((tmp_path / ".tdd" / "decisions.jsonl").read_text())["by"]) == (0, by)
+
+
+def test_issue_4072_record_with_a_field_over_2000_characters_exits_2_naming_it_and_writes_nothing(
+        decision_log, tmp_path, run_cli):
+    fits = run_cli(decision_log, ["record", "q" * 2000, "d", "r", "dev"])[0]
+
+    code, out, err = run_cli(decision_log, ["record", "q", "d" * 2001, "r", "dev"])
+
+    assert (fits, code, out, err, len((tmp_path / ".tdd" / "decisions.jsonl").read_text().splitlines())) == (
+        0, 2, "", "decision-log.sh: the decision is over 2000 characters; record a shorter one\n", 1)

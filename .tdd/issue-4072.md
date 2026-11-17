@@ -10,3 +10,4 @@
 - [x] `status.sh --report` marks an owner record as `owner decided:`
 - [x] `status.sh --report` lists a decision at or after the status-last time, and writes as status-last the time it read the log at
 - [x] `status.sh --report` prints each decision on one line, its non-printing characters escaped and each field cut at 300 characters with …
+- [x] `decision-log.sh record` refuses a question, decision or rule over 2000 characters, exit 2 naming it, writing nothing
