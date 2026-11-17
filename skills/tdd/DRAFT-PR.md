@@ -1,5 +1,9 @@
 ## 4. Draft PR
 
+On entering this step run `$S/branch-gate.sh <n>` first, again on exit 3; on exit 0 take `branch_suite` from its last lines
+(under `local` the branch's full run below is made green and its time recorded, and no `⟦full-suite⟧` line is ticked);
+on any other exit go on by the paragraphs below from the point its last line names.
+
 Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off but the
 `⟦full-suite⟧` and `⟦human-owed⟧` lines, which that script skips and no cycle closes: an
 unchecked line carrying either does not hold the run back from this step. Each time the run enters this step, first settle
