@@ -43,14 +43,22 @@ def current(records):
     return answer(current_record(records))
 
 
-def last_done(records):
+def last_done_record(records):
     done = [r for r in records if r.state == "done"]
-    return answer(done[-1] if done else None)
+    return done[-1] if done else None
+
+
+def last_done(records):
+    return answer(last_done_record(records))
+
+
+def current_or_last_done_record(records):
+    """The step `current-or-last-done` prints: the current step, else the last done one; None when neither."""
+    return current_record(records) or last_done_record(records)
 
 
 def current_or_last_done(records):
-    code = current(records)
-    return last_done(records) if code == 3 else code
+    return answer(current_or_last_done_record(records))
 
 
 def phase_next(records):
