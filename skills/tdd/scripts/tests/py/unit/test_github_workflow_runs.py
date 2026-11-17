@@ -66,6 +66,12 @@ def test_run_failed_log_reads_the_failed_job_log_of_one_workflow_run(github, fak
     assert (got, fake.calls) == ("job\tstep\t2026-11-16T10:00:00Z FAILED a.py::t - x\n", [LOG])
 
 
+def test_run_failed_log_of_a_named_attempt_asks_gh_for_that_attempt(github, fake_processes):
+    fake = fake_processes.answers({LOG + " --attempt 2": (0, "second\n", "")})
+
+    assert (github.run_failed_log("42", 2), fake.calls) == ("second\n", [LOG + " --attempt 2"])
+
+
 @pytest.mark.parametrize("run_id", ["42", "4x"])
 def test_run_failed_log_is_no_answer_when_gh_gives_none_or_the_run_id_is_not_a_number(github, fake_processes, run_id):
     fake = fake_processes.answers({LOG: (1, "", "HTTP 502\n")})

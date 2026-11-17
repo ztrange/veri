@@ -31,6 +31,7 @@ class World:
                  absent=(), tested=(), runs=None, failed_log=None, span="commits", pulls=("pull",), comments=(),
                  add=True, alone=None, removed=True, alone_at=None):
         self.alone, self.steps, self.posted, self.checked = [], [], [], []
+        self.logs = []
         commits = [(sha(n + 1), subject) for n, subject in enumerate(subjects)]
         self.red = red or (commits[-1][0] if commits else sha(99))
         reds = reds or {}
@@ -47,6 +48,7 @@ class World:
                 (self.red, "https://github.com/o/r/actions/runs/42", "completed", "failure", "2026-11-16T10:00:00Z", 1, 7)]
 
         def run_failed_log(run_id, attempt=None):
+            self.logs.append((run_id, attempt))
             if isinstance(failed_log, BaseException):
                 raise failed_log
             return failed_log if failed_log is not None else log(*cases)
@@ -371,3 +373,15 @@ def test_a_collection_error_line_at_an_earlier_end_is_no_answer_exit_2_never_abs
     code, out, err = run_cli(culprit, [sha(2)])
 
     assert (code, out, world.alone) == (2, "", [(sha(1), X)]), err
+
+
+def test_reads_the_failed_log_of_the_attempt_that_answered_not_of_the_re_run_still_going(monkeypatch, run_cli, culprit):
+    going = (sha(2), "https://github.com/o/r/actions/runs/42", "in_progress", None, "2026-11-16T10:00:00Z", 3, 7)
+    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], runs=[going],
+                  reds={sha(2): ["t/test_a.py::test_x"]})
+    monkeypatch.setattr(culprit.github, "run_attempt",
+                        lambda run_id, attempt: ("completed", {2: "cancelled", 1: "failure"}[attempt]))
+
+    code, _, _ = run_cli(culprit, [sha(2)])
+
+    assert (code, world.logs) == (0, [("42", 1)])
