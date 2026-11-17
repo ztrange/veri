@@ -12,7 +12,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
              pinned, model_knobs, models
   tables     phases, leaves, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
              adjudications, switched_off, switched_off_by, total, green_rejects (+ green_reject_routes, green_reject_checks),
-             launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green, runs, stages
+             launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green, runs, stages, reject_outcomes
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
@@ -656,6 +656,7 @@ class Fold:
     runs: list                  # one dict per run of the issue, in order: index, ended, cause, wall_seconds,
                                 # awake_seconds, sessions, leaves, cost_usd (runs_of)
     stages: dict                # stage -> {STAGE_KEYS: number}, for each stage the journal marked (stages_of)
+    reject_outcomes: list       # (phase, step, outcome) per REJECT verdict, in log order (reject_outcomes)
 
 
 def is_revise_green(name):
@@ -746,6 +747,44 @@ def stages_of(marks):
     for name, unended in open_starts.items():
         stages[name]["unended"] += unended
     return stages
+
+
+REJECT_OUTCOMES = ("caught", "flipped", "overturned", "unresolved", "pending", "untracked")
+
+
+def reject_outcome(reject, later):
+    """What one REJECT `verdict` line led to (PRD 035.3a, D12), read off the lines after it: overturned when a
+    `revise-impossible` bail of its step comes before its paired PASS (the first later PASS of its step and phase);
+    else caught, flipped or untracked by the paired PASS's `tree`; else unresolved when any bail follows, pending
+    when none does."""
+    step, phase, bailed = reject.get("step", ""), reject.get("phase", ""), False
+    for line in later:
+        event = line.get("event")
+        if event == "bail":
+            if line.get("cause") == "revise-impossible" and line.get("step", "") == step:
+                return "overturned"
+            bailed = True
+        elif (event == "verdict" and line.get("verdict") == "PASS" and line.get("step", "") == step
+              and line.get("phase", "") == phase):
+            if not reject.get("tree") or not line.get("tree"):
+                return "untracked"
+            return "flipped" if line["tree"] == reject["tree"] else "caught"
+    return "unresolved" if bailed else "pending"
+
+
+def reject_outcomes(marks):
+    """(phase, step, outcome) per REJECT `verdict` line, in journal order; a `malformed` verdict is not one."""
+    return [(line.get("phase", ""), line.get("step", ""), reject_outcome(line, marks[at + 1:]))
+            for at, line in enumerate(marks) if line.get("event") == "verdict" and line.get("verdict") == "REJECT"]
+
+
+def rejects_json(outcomes, wanted):
+    """The six outcome counts over `outcomes` whose (phase, step) `wanted` accepts."""
+    counts = dict.fromkeys(REJECT_OUTCOMES, 0)
+    for phase, step, said in outcomes:
+        if wanted(phase, step):
+            counts[said] += 1
+    return counts
 
 
 BESIDE = "the run whose .tdd/ holds the journal"
@@ -843,7 +882,7 @@ def fold(issue, path, ledger, run=BESIDE):
                 green_reject_checks=sorted(item for item in checks.items() if item[0]) + [("unnamed", checks[""])],
                 launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing,
                 gradings=tally.gradings, first_tries=tally.first_tries(), revise_green=revise_green_outcomes(marks, models),
-                runs=runs_of(marks), stages=stages_of(marks))
+                runs=runs_of(marks), stages=stages_of(marks), reject_outcomes=reject_outcomes(marks))
 
 
 def known(number):
@@ -1162,11 +1201,13 @@ def as_json(f):
             "runs": f.runs,
             "stages": f.stages,
             "phases": {phase: dict(json_row(row_counts, PHASE_COLUMNS),
-                                   **f.first_tries.get(phase, dict.fromkeys(FIRST_TRY_KEYS, 0)))
+                                   **f.first_tries.get(phase, dict.fromkeys(FIRST_TRY_KEYS, 0)),
+                                   rejects=rejects_json(f.reject_outcomes, lambda of, _step: of == phase))
                        for phase, row_counts in f.phases.items()},
             "leaves": {kind: json_row(row_counts, PHASE_COLUMNS) for kind, row_counts in f.leaves.items()},
             # a step's wall is the markdown's: its start-to-done span, not its leaves' summed seconds
-            "steps": [dict(json_row(row_counts, STEP_COLUMNS), text=step, wall_seconds=f.step_walls[step])
+            "steps": [dict(json_row(row_counts, STEP_COLUMNS), text=step, wall_seconds=f.step_walls[step],
+                           rejects=rejects_json(f.reject_outcomes, lambda _phase, of: of == step))
                       for step, row_counts in f.steps.items()],
             "conductor": conductor_json(f),
             "total": dict(json_row(f.total, COST_COLUMNS), includes_conductor=f.total_includes_conductor)}
