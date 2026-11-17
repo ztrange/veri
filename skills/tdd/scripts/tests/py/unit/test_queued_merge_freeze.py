@@ -1,7 +1,10 @@
 """veri/queued_merge.py refusing a join while CI's latest answer on the stack is red (PRD 034.3a, D12), in-process: the
 join's world is test_queued_merge_join's, and the stack-red.sh call is queued_merge._stack_red, spied in-process."""
+import os
+
 import pytest
 
+from process_fakes import HANGS
 from test_queued_merge_join import BRANCH, ENV, PR, World, join, pushed, released
 from veri import queued_merge
 
@@ -99,3 +102,13 @@ def test_a_merge_with_no_stack_named_or_a_pull_request_based_elsewhere_makes_no_
     join(run_cli, world)
 
     assert (asked, [c for c in world.calls if "stack-red" in c]) == ([], [])
+
+
+def test_the_stack_red_call_is_bounded_a_hung_child_killed_and_answered_2(tmp_path, fake_processes, monkeypatch):
+    fake = fake_processes.answers({"stack-red.sh": HANGS})
+    monkeypatch.setattr(os, "killpg", lambda group, sig: [c.send_signal(sig) for c in fake.popens if c.pid == group])
+    monkeypatch.setenv("VERI_GIT_NETWORK_TIMEOUT", "1")
+
+    code, out = queued_merge._stack_red(str(tmp_path))
+
+    assert (code, out, [p.signals != [] for p in fake.popens]) == (2, "", [True])
