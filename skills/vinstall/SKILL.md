@@ -55,19 +55,21 @@ test commands and skip the rest of this section. Otherwise:
    operator for the command that runs one test file, taking the file as `"$1"`, and propose none:
    veri cannot infer it. The form recorded is one shell command, run as
    `sh -c '<command>' sh <test file>` and read by its exit code alone (0 the file passes, 1 it
-   fails), a `make` command by make's last `*** Error` line; for example `pytest -q "$1"` or
+   fails), a `make` command by make's last `*** Error` line. It must hold `"$1"` (anywhere in it)
+   or `$1` as a word of its own, or the script refuses it; for example `pytest -q "$1"` or
    `make test TESTS="$1"`. Pass the answer with `--one-file`. With no answer, record the tier lines
    alone (when both are already in `CLAUDE.md`, there is then nothing to record: leave this
    section), and say that a run's preflight stops without the line.
-3. Run `$S/record-test-commands.sh [--one-file '<one-file-cmd>'] '<fast-cmd>' '<all-cmd>' [repo-root]`,
-   each command one argument. It pushes a `veri-install` branch whose one commit records the lines
-   in `CLAUDE.md`, and opens a pull request for it.
+3. Run `$S/record-test-commands.sh [--one-file '<one-file-cmd>'] '<fast-cmd>' '<all-cmd>' [repo-root]`.
+   Quote each command as one shell word: wrap it in single quotes and write each `'` inside it as
+   `'\''`, so `echo 'hi'` is passed as `'echo '\''hi'\'''`. It pushes a `veri-install` branch whose
+   one commit records the lines in `CLAUDE.md`, and opens a pull request for it.
    - Exit 0: report the pull request's URL it printed, and say that runs infer the test commands
      until that pull request merges, and that `/vinstall` never merges it: merging is the
      repository owner's.
    - Exit 2: report what the script printed, and stop.
-   - Exit 3: report that there is nothing to record: the default branch already declares both
-     commands.
+   - Exit 3: report that there is nothing to record: the default branch already declares every
+     command given, or a pull request recording them is already open.
 
 ## Checking readiness
 
