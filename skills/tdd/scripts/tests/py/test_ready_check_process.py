@@ -402,6 +402,35 @@ def test_issue_3055_ready_check_where_every_row_holds_leaves_tree_index_and_refs
     assert writes == [], writes
 
 
+def _outside_kept_output(state):
+    """<state> without the .tdd/ready-<tier>.out files ready-check.sh keeps for a red tier (TR7)."""
+    kept = lambda path: path.startswith(".tdd")
+    return {**state, "files": [f for f in state["files"] if not kept(f)],
+            "contents": {f: c for f, c in state["contents"].items() if not kept(f)},
+            "status": "\n".join(l for l in state["status"].splitlines() if ".tdd/" not in l)}
+
+
+def _worktrees(repo):
+    return subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=repo, check=True, capture_output=True, text=True).stdout
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess in a repository whose full tier fails")
+def test_issue_4088_ready_check_with_a_red_tier_leaves_branches_index_tree_and_worktree_list_as_it_found_them(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    (repo / "CLAUDE.md").write_text("veri: fast tests: `true`\nveri: all tests: `false`\nveri: one test file: `pytest \"$1\"`\n")
+    _git(repo, "commit", "-q", "-am", "a red full tier")
+    before, listed = _repo_state(repo), _worktrees(repo)
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
+    assert any(l.startswith("fail  all tier run") for l in lines), ran.stdout
+    assert any(l.startswith("ok    fast tier run") for l in lines), ran.stdout
+    assert _outside_kept_output(_repo_state(repo)) == _outside_kept_output(before)
+    assert _worktrees(repo) == listed
+    assert not (repo / ".tdd" / "ready-all").exists() and not (repo / ".tdd" / "ready-fast").exists()
+
+
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess in a repository whose .gitignore ignores .tdd/* and re-includes the ledger")
 def test_issue_3172_ready_check_with_tdd_contents_ignored_and_the_ledger_re_included_exits_0_with_the_tdd_row_ok(tmp_path):
     repo, env = build_ready_repo(tmp_path)

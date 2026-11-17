@@ -499,3 +499,12 @@ def test_issue_4088_a_tier_that_resolves_to_nothing_prints_no_tier_run_row_and_s
     assert tier_run_line(lines, "fast").startswith("ok    fast tier run"), lines
     assert not [c for c in fake.calls if "ready-all" in c], fake.calls
     assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
+
+
+def test_issue_4088_a_tier_run_that_raises_exits_2_having_removed_the_worktree_it_made(ready_check, run_cli, fake_processes, tmp_path):
+    fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": OSError(7, "no detach")}))
+    code, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+
+    wt = str(tmp_path / ".tdd" / "ready-fast")
+    assert code == 2
+    assert [argv for argv, _ in calls_in(fake, "git worktree remove") if wt in argv], fake.calls

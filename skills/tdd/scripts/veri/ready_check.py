@@ -57,10 +57,9 @@ def detect_tier(tier):
     return resolved_tier(tier)[0]
 
 
-def tier_run_row(tier, command, root):
-    """Run <command> once in a detached worktree of the default branch's tip, through detach-command.sh."""
+def tier_run_row(tier, command, wt):
+    """Run <command> once in <wt>, a detached worktree of the default branch's tip, through detach-command.sh."""
     name = "ready-" + tier
-    wt = os.path.join(root, ".tdd", name)
     git.git("worktree", "add", "--detach", wt, default_tip(), capture_output=True, text=True)
     os.makedirs(os.path.join(wt, ".tdd"), exist_ok=True)
     detach = script("detach-command.sh")
@@ -73,23 +72,28 @@ def tier_run_row(tier, command, root):
     if os.path.exists(output):
         with open(output, errors="replace") as out:
             said = [line.strip() for line in out if line.strip()]
-    git.git("worktree", "remove", "--force", wt, capture_output=True, text=True)
     if waited.returncode == 0:
         return row, None
     return row, f"exit {waited.stdout.strip()}: {said[-1] if said else '(no output)'}"
 
 
 def tier_run_rows(root):
-    rows = []
+    """A row per tier RD2 resolves; the worktrees made for them, and a .tdd/ made for those, removed on every way out."""
+    rows, made = [], []
     tdd = os.path.join(root, ".tdd")
     made_tdd = not os.path.exists(tdd)
-    for tier in ("fast", "all"):
-        code, command = resolved_tier(tier)
-        if code == 0:
-            rows.append(tier_run_row(tier, command, root))
-    if made_tdd:
-        with contextlib.suppress(OSError):
-            os.rmdir(tdd)
+    try:
+        for tier in ("fast", "all"):
+            code, command = resolved_tier(tier)
+            if code == 0:
+                made.append(os.path.join(tdd, "ready-" + tier))
+                rows.append(tier_run_row(tier, command, made[-1]))
+    finally:
+        for wt in made:
+            git.git("worktree", "remove", "--force", wt, capture_output=True, text=True)
+        if made_tdd:
+            with contextlib.suppress(OSError):
+                os.rmdir(tdd)
     return rows
 
 
