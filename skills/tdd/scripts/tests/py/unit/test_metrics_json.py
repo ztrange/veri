@@ -72,12 +72,14 @@ def test_phases_hold_one_entry_per_phase_keyed_by_name_each_equal_to_its_by_phas
     rows = markdown_rows(metrics, "#### By phase")
 
     assert list(phases) == [row["phase"] for row in rows] == ["red", "green", "refactor", "pin", "cover"]
-    assert [sorted(entry) for entry in phases.values()] == [sorted(PHASE_KEYS)] * len(rows)
+    assert [sorted(entry) for entry in phases.values()] == [sorted([*PHASE_KEYS, *FIRST_TRY_KEYS])] * len(rows)
     assert ({name: {key: shown(entry[key], column) for key, column in PHASE_KEYS.items()} for name, entry in phases.items()}
             == {row["phase"]: {key: row[column] for key, column in PHASE_KEYS.items()} for row in rows})
 
 
 STEP_KEYS = dict(PHASE_KEYS, retries="retries", no_verdict="no-verdict")
+
+FIRST_TRY_KEYS = ["verified_steps", "first_try_pass", "revise_cycles"]
 
 
 def test_steps_hold_one_entry_per_step_in_the_by_step_order_with_its_text_and_its_start_to_done_wall(
@@ -264,3 +266,22 @@ def test_run_wall_and_awake_seconds_are_null_until_a_done_mark_carries_them(
     run = as_json(metrics, capsys)["run"]
 
     assert (run["outcome"], run["wall_seconds"], run["awake_seconds"]) == (outcome, None, None)
+
+
+def verdict(ts, step, word, phase="green"):
+    return mark(ts, "verdict", phase, step, verdict=word, reason="")
+
+
+def test_4223_a_phase_entry_counts_its_verified_steps_those_passed_first_try_and_its_revise_cycles(
+        tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [mark(100, "launch", "green", "one", name="develop-green", cmd="c", model=""),
+                         verdict(110, "one", "PASS"),
+                         mark(200, "launch", "green", "two", name="develop-green", cmd="c", model=""),
+                         verdict(210, "two", "REJECT"), mark(220, "revise", "green", "two", budget="3"),
+                         verdict(230, "two", "REJECT"), mark(240, "revise", "green", "two", budget="3"),
+                         verdict(250, "two", "PASS")])
+    monkeypatch.chdir(tmp_path)
+
+    green = as_json(metrics, capsys)["phases"]["green"]
+
+    assert (green["verified_steps"], green["first_try_pass"], green["revise_cycles"]) == (2, 1, 2)
