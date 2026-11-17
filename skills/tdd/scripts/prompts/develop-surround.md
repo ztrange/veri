@@ -40,6 +40,9 @@ outside it.
    that your cases should catch: a flipped condition, a dropped branch, a changed constant. A
    script, not you, runs every row against your cases; a mutant they leave green sends the step
    back, and a table shorter than `VERI_SURROUND_MUTANTS` (default 5) rows is owed more.
+   When the spec's acceptance criteria carry `MUTATION:` lines (the criteria `coverage-blocker.sh`
+   writes when a refactor refused this region), each is a row your table owes: write it as a
+   `MUTANT:` line beside the rows you propose, and make your cases catch it.
 
 ### Report (last lines of your output)
 
