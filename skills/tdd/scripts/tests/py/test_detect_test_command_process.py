@@ -23,3 +23,20 @@ def test_shim_run_through_a_symlink_and_from_another_directory_prints_the_same_c
 
     assert (in_place.returncode, in_place.stdout, in_place.stderr) == (0, "make test\n", "")
     assert (linked.returncode, linked.stdout, linked.stderr) == (0, "make test\n", "")
+
+
+@pytest.mark.process("detect-test-command.sh --tier lint run through its shim, in a repo with and without a veri: lint: line")
+def test_shim_tier_lint_prints_the_declared_lint_command_and_exits_3_printing_nothing_without_one_4122(tmp_path):
+    declared, undeclared = tmp_path / "declared", tmp_path / "undeclared"
+    for repo in (declared, undeclared):
+        repo.mkdir()
+        (repo / "Makefile").write_text("test:\n\ttrue\nlint:\n\ttrue\n")
+    (declared / "CLAUDE.md").write_text("veri: lint: `make lint`\n")
+    (undeclared / "CLAUDE.md").write_text("veri: all tests: `make test`\n")
+
+    runs = {repo.name: subprocess.run([SHIM, "--tier", "lint", str(repo)], capture_output=True, text=True,
+                                      stdin=subprocess.DEVNULL)
+            for repo in (declared, undeclared)}
+
+    assert {name: (run.returncode, run.stdout, run.stderr) for name, run in runs.items()} == {
+        "declared": (0, "make lint\n", ""), "undeclared": (3, "", "")}
