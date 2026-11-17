@@ -5,7 +5,7 @@
 This is a **legacy** run: the step below names one **region** of code no test covers (a file and a
 symbol or line range) and one **seam** that is meant to drive it. A seam leaf found that the named
 seam does **not** reach the region without an edit. Make the region reachable from outside it with
-**exactly one** dependency-breaking edit from this catalogue, and nothing else:
+**exactly one** dependency-breaking edit from the catalogue `LEGACY.md` names, and nothing else:
 
 - **`sprout`**: move the region's code, unchanged, into a new function or class that the old code
   now calls and a test can call directly.
