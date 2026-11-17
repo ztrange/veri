@@ -59,3 +59,14 @@ def test_4123_step_with_no_output_says_so_and_with_no_declared_lint_command_exit
 def test_4123_bad_arguments_exit_2_with_the_usage_line(repo, run_cli, lint_repair):
     for argv in ([], ["steps"], ["step", "extra"]):
         assert run_cli(lint_repair, argv, stdin="E501\n") == (2, "", "usage: lint-repair.sh step < <lint-output>\n"), argv
+
+
+def test_4123_step_redacts_before_it_caps_so_a_cut_never_leaves_a_fragment_of_a_path_or_the_account(
+        repo, tmp_path, run_cli, lint_repair):
+    home = f"{tmp_path}/home/laneuser"
+    for finding in ("p" * (200 - len(home) // 2) + home + "/a.py:1: E501", "p" * 195 + " laneuser broke a.py"):
+        code, out, err = run_cli(lint_repair, ["step"], stdin=finding + "\n")
+
+        assert code == 0, err
+        assert (str(tmp_path)[: len(str(tmp_path)) // 2] in out, "lane" in out) == (False, False), finding
+
