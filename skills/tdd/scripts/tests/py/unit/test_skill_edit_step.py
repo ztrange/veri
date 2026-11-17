@@ -2432,7 +2432,7 @@ def test_the_author_prompt_carries_the_untrusted_text_paragraph_of_leaf_safety_b
 HEADED_UNIT = "# Title\n\nIntro.\n\n## Part A\n\nThe widget is painted a deep blue.\n\n## Part B\n\nOther.\n"
 
 
-def _heading_unit_case(tmp_path, monkeypatch, fake_processes, grades, edit=None):
+def _heading_unit_case(tmp_path, monkeypatch, fake_processes, grades, edit=None, author_rc=0, seen=None):
     """A step on the heading unit `unit.md#Part A`: the list holds A1 under it, the issue adds A2. `grades` are the
     grader's exit codes in order; `edit` is what the author writes over unit.md."""
     monkeypatch.chdir(tmp_path)
@@ -2456,8 +2456,10 @@ def _heading_unit_case(tmp_path, monkeypatch, fake_processes, grades, edit=None)
 
     def launch(name, prompt, *args, env=None):
         launched.append(name)
+        if seen is not None:
+            seen.append((tmp_path / "unit.md").read_text())
         (tmp_path / "unit.md").write_text(edit)
-        return subprocess.CompletedProcess([name], 0, b"", None)
+        return subprocess.CompletedProcess([name], author_rc, b"", None)
 
     monkeypatch.setattr(skill_edit_step, "_grade", grade)
     monkeypatch.setattr(skill_edit_guard, "_git_ok", lambda *a: True)
@@ -2529,3 +2531,34 @@ def test_an_added_step_on_a_heading_unit_graded_pass_with_a_stale_graded_line_re
     commits = [c for c in commands if c[:2] == ["git", "commit"]]
     assert (code, len(commits)) == (3, 1), (code, out, err)
     assert (tmp_path / "GRADED").read_text() != stale
+
+
+def test_a_heading_unit_whose_author_attempts_are_rejected_starts_each_from_its_file_as_it_was_and_leaves_it_so_4210(tmp_path, monkeypatch, run_cli, fake_processes):
+    edited = HEADED_UNIT.replace("deep blue.", "pale green.")
+    seen = []
+    skill_edit_step, fake, graded, launched = _heading_unit_case(tmp_path, monkeypatch, fake_processes, [1, 1, 1], edited,
+                                                                 seen=seen)
+
+    code, out, err = run_cli(skill_edit_step, ["issue.md", "unit.md#Part A"], env={"VERI_SKILL_EDIT_BUDGET": "2"})
+
+    assert (code, seen, (tmp_path / "unit.md").read_text()) == (1, [HEADED_UNIT, HEADED_UNIT], HEADED_UNIT), (code, out, err)
+
+
+def test_a_heading_unit_whose_author_leaf_fails_after_editing_its_file_restores_the_file_and_exits_2_4210(tmp_path, monkeypatch, run_cli, fake_processes):
+    edited = HEADED_UNIT.replace("deep blue.", "pale green.")
+    skill_edit_step, fake, graded, launched = _heading_unit_case(tmp_path, monkeypatch, fake_processes, [1], edited,
+                                                                 author_rc=1)
+
+    code, out, err = run_cli(skill_edit_step, ["issue.md", "unit.md#Part A"], env={"VERI_SKILL_EDIT_BUDGET": "1"})
+
+    assert (code, launched, (tmp_path / "unit.md").read_text()) == (2, ["author-skill-edit-1"], HEADED_UNIT), (code, out, err)
+
+
+def test_a_change_step_on_a_heading_unit_whose_author_edits_its_file_counts_the_prose_as_changed_and_exits_0_4210(tmp_path, monkeypatch, run_cli, fake_processes):
+    edited = HEADED_UNIT.replace("deep blue.", "deep, deep blue.")
+    skill_edit_step, fake, graded, launched = _heading_unit_case(tmp_path, monkeypatch, fake_processes, [0, 0], edited)
+
+    code, out, err = run_cli(skill_edit_step, ["--change", "say deep twice", "issue.md", "unit.md#Part A"],
+                             env={"VERI_SKILL_EDIT_BUDGET": "1"})
+
+    assert (code, launched, (tmp_path / "unit.md").read_text()) == (0, ["author-skill-edit-1"], edited), (code, out, err)
