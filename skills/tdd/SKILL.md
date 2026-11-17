@@ -28,7 +28,7 @@ and the supervisor's **stuck-retry**, all still in force):
   until every criterion is covered, checking each step off in the ledger **atomically with
   its green commit** so git and ledger never diverge.
 - **Resume.** Re-running `/tdd <n>` reads the ledger and continues from the first
-  unchecked step.
+  unchecked step (`Read` `<base directory>/RESUME.md`).
 
 **Out of scope**: the loop and parallel rungs of the scope ladder. A step that
 exhausts its revise budget, or a leaf that stays killed-stuck past the supervisor's
