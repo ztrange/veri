@@ -1172,6 +1172,20 @@ def print_reject_outcomes(f):
         row([phase, "%d" % sum(counts.values())] + ["%d" % counts[said] for said in REJECT_OUTCOMES])
 
 
+STAGE_HEADINGS = {"runs": "runs", "ok": "ok", "failed": "failed", "no_answer": "no answer", "nothing": "nothing",
+                  "unended": "unended", "wall_seconds": WALL}
+
+
+def print_stages(f):
+    """Each stage the journal marked (PRD 035.7b, MD4), whatever its name: the figures `as_json` gives its `stages`
+    entry; nothing when no stage is marked."""
+    if not f.stages:
+        return
+    table_head("#### Stages", "stage", [STAGE_HEADINGS[key] for key in STAGE_KEYS], ["---:"] * len(STAGE_KEYS))
+    for name, counts in f.stages.items():
+        row([name] + ["%d" % counts[key] for key in STAGE_KEYS])
+
+
 def layout(f):
     """Print the report for a `Fold`; reads nothing else."""
     print_outcome(f)
@@ -1234,6 +1248,7 @@ def layout(f):
             row([label, str(passed), "?" if transforms is None else str(transforms),
                  "?" if nothing is None else str(nothing), ", ".join("%s %d" % item for item in reasons)])
     tier_section("#### Test-command seconds, by tier", "tier", f.tier_runs)
+    print_stages(f)
     section("#### Total", "run", COST_COLUMNS, {"total": f.total}, estimate=f.conductor_estimated)
     if f.green_rejects:
         table_head("#### Green rejects", "step", ["attempt", "route", "check", "reason"], ["---:", "---", "---:", "---"])
