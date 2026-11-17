@@ -72,7 +72,9 @@ Each of these is a preflight stop before any leaf is launched:
   an exit-2 stop (`stopped at 5 VERI_STEP_GROWTH_PERCENT`), reporting the value verbatim. A
   `VERI_STEP_GROWTH` set to any value, empty included, is the same stop (`stopped at 5
   VERI_STEP_GROWTH`): it is retired, and the output reports its value verbatim and names
-  `VERI_STEP_GROWTH_PERCENT`, the budget that replaced it.
+  `VERI_STEP_GROWTH_PERCENT`, the budget that replaced it. Migration: a run resumed on a new skill
+  snapshot with `VERI_STEP_GROWTH` still exported stops here (exit 2), and a small plan that already
+  grew under the old absolute cap may now fail `ledger-growth.sh` (exit 1).
 - `VERI_MISSING_REROUTE_BUDGET` failing its check (false) is an exit-2 stop that reports the value
   verbatim.
 - `adjudicate.sh --check-budget` exit 2 (`VERI_ADJUDICATE_BUDGET` not a whole number ≥ 0) is an exit-2
