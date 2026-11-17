@@ -70,3 +70,7 @@ A `⟦fixture-repair⟧` step's verify-green PASS closes it the same way: ticked
 loop run, and its criterion ticked with `tick-issue-criterion.sh` on `criterion-finished.sh`
 exit 0, ticking nothing on exit 3, as a `⟦diff-checked⟧` PASS does.
 
+A `⟦lint-repair⟧` step, the one `DRAFT-PR.md` appends on a red lint, runs as any
+`⟦diff-checked⟧` step does. Its verify-diff prompt carries the repo's declared lint command
+(the `veri: lint:` line of its CLAUDE.md), which the verifier runs, rejecting while it exits
+non-zero.
