@@ -125,3 +125,25 @@ def test_tests_each_issue_end_oldest_first_from_the_newest_tested_kt5_end_at_or_
     run_cli(culprit, [sha(len(subjects))])
 
     assert [commit for commit, _ in world.alone] == [sha(n) for n in ends]
+
+
+@pytest.mark.parametrize("alone, reds", [(None, {}), (None, {sha(1): ("t/test_a.py::test_x",)}), ((None, ""), {}),
+                                         ((3, ""), {})])
+def test_runs_in_a_detached_worktree_of_its_own_under_the_trees_tdd_dir_removing_it_on_every_exit(
+        monkeypatch, run_cli, culprit, alone, reds):
+    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], reds=reds, alone=alone)
+
+    run_cli(culprit, [sha(2)])
+
+    kinds = [step[0] for step in world.steps]
+    path = world.steps[0][1]
+    assert (kinds[0], kinds[-1], path.startswith(TOP + "/.tdd/"), {step[1] for step in world.steps}) == (
+        "add", "remove", True, {path})
+
+
+def test_a_worktree_that_cannot_be_added_is_exit_2_running_nothing_and_removing_nothing(monkeypatch, run_cli, culprit):
+    world = World(monkeypatch, culprit, ["feat: a (#1)"], add=False)
+
+    code, out, err = run_cli(culprit, [sha(1)])
+
+    assert (code, out, world.alone, [step[0] for step in world.steps], "worktree" in err) == (2, "", [], ["add"], True)
