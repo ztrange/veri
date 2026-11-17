@@ -101,7 +101,9 @@ def main(argv):
     top = _top()
     path = os.path.join(top, ".tdd", "stack-culprit-%d" % os.getpid())
     command = _one_file_command(top)
-    _add_worktree(path, red)
+    if not _add_worktree(path, red):
+        return entry.refuse("git worktree add --detach %s failed; nothing run, and never in this checkout" % path,
+                            prefix="stack-culprit: ")
     try:
         for at in ends:
             _checkout(path, span[at][0])
