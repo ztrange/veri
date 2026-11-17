@@ -2,6 +2,8 @@
 named red alone at each issue end, oldest first, in a detached worktree of its own (PRD 034.3b)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import re
+import subprocess
 import sys
 
 import ci_flake
@@ -54,8 +56,8 @@ def _run_alone(path, command, target):
     (not done within VERI_TIMEOUT, its process group killed, or killed by a signal)."""
     cmd = command if '"$1"' in command else command + ' "$1"'
     ran = github.bounded_group(["sh", "-c", cmd, "sh", target], limit_name="VERI_TIMEOUT", cwd=path,
-                               stdin=__import__("subprocess").DEVNULL, stdout=__import__("subprocess").PIPE,
-                               stderr=__import__("subprocess").STDOUT, text=True)
+                               stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT, text=True)
     if isinstance(ran, github.TimedOut) or not 0 <= ran.returncode < 128:
         return None, ran.stdout or ""
     return ran.returncode, ran.stdout or ""
@@ -89,18 +91,51 @@ def _tested_base(span):
     return -1
 
 
+class _NoAnswer(Exception):
+    """No answer to start the search from (exit 2); str() says why."""
+
+
+def _search_inputs(red):
+    """(stack, default, span, run url, cases): the stack and default branch, origin/<default>..<red> as [(sha,
+    subject)] oldest first, the url of the red run on <red> (the newest completed, not-cancelled run GitHub lists for
+    the stack with <red> as its head) and the cases its failed log names. _NoAnswer, stack_branch.Refused or
+    github.NoAnswer when any of them cannot be had."""
+    found = stack_branch.ahead(".")
+    if found is None:
+        raise _NoAnswer("the repository's CLAUDE.md names no stack branch (stack-branch.sh exits 3)")
+    stack, default, commits = found
+    shas = [commit for commit, _ in commits]
+    if red not in shas:
+        raise _NoAnswer("%s is not a commit of origin/%s..origin/%s" % (red, default, stack))
+    runs = [run for run in github.workflow_runs(stack) if run[0] == red and run[2] == "completed" and run[3] != "cancelled"]
+    if not runs:
+        raise _NoAnswer("no completed, not-cancelled workflow run on %s among those GitHub lists for %s" % (red, stack))
+    _, url, _, conclusion, _ = max(runs, key=lambda run: run[4])
+    if conclusion in ("success", "neutral", "skipped"):
+        raise _NoAnswer("CI's latest answer on %s is %s (%s), not red: there is no red log to read" % (red, conclusion, url))
+    try:
+        cases = rerun_alone.named_targets(ci_flake.runner_text(github.run_failed_log(url.rsplit("/", 1)[1])))
+    except ValueError as unread:
+        raise _NoAnswer("the failed log of %s cannot be read: %s" % (url, unread)) from None
+    if not cases:
+        raise _NoAnswer("the failed log of %s names no case" % url)
+    return stack, default, commits[:shas.index(red) + 1], url, cases
+
+
 def main(argv):
     if len(argv) != 1:
         return entry.refuse(usage=USAGE)
     red = argv[0]
-    stack, default, commits = stack_branch.ahead(".")
-    span = commits[:[commit for commit, _ in commits].index(red) + 1]
-    base, owners = _tested_base(span), _owners([subject for _, subject in span])
+    if not re.fullmatch(r"[0-9a-f]{40}", red):
+        return entry.refuse("<red-sha> must be a full 40-hex commit sha, got %r" % red[:80], usage=USAGE)
+    try:
+        stack, default, span, url, cases = _search_inputs(red)
+        base = _tested_base(span)
+    except (stack_branch.Refused, github.NoAnswer, _NoAnswer) as no:
+        said = no.detail or no.answer if isinstance(no, github.NoAnswer) else str(no)
+        return entry.refuse(" ".join(str(said).split()), prefix="stack-culprit: ")
+    owners = _owners([subject for _, subject in span])
     ends = [at for at in range(base + 1, len(span)) if at == len(span) - 1 or owners[at + 1] != owners[at]]
-    runs = [found for found in github.workflow_runs(stack)
-            if found[0] == red and found[2] == "completed" and found[3] != "cancelled"]
-    url = max(runs, key=lambda found: found[4])[1]
-    cases = rerun_alone.named_targets(ci_flake.runner_text(github.run_failed_log(url.rsplit("/", 1)[1])))
     if len(cases) > MAX_CASES:
         print("stack-culprit: the log names %d cases; the first %d are run, %d not run" % (
             len(cases), MAX_CASES, len(cases) - MAX_CASES), file=sys.stderr)
@@ -108,6 +143,9 @@ def main(argv):
     top = _top()
     path = os.path.join(top, ".tdd", "stack-culprit-%d" % os.getpid())
     command = _one_file_command(top)
+    if not command:
+        return entry.refuse("the repository declares no `veri: one test file:` command (detect-test-command.sh --tier"
+                            " \"one test file\"); nothing run", prefix="stack-culprit: ")
     if not _add_worktree(path, red):
         return entry.refuse("git worktree add --detach %s failed; nothing run, and never in this checkout" % path,
                             prefix="stack-culprit: ")
@@ -115,7 +153,9 @@ def main(argv):
         before = span[base][0] if base >= 0 else "origin/" + default
         for at in ends:
             commit = span[at][0]
-            _checkout(path, commit)
+            if not _checkout(path, commit):
+                return entry.refuse("checking out %s in the search's own worktree failed; nothing more run" % commit,
+                                    prefix="stack-culprit: ")
             red_here = []
             for case in cases:
                 if not _has(path, commit, case.split("::", 1)[0]):
