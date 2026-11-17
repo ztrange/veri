@@ -791,6 +791,12 @@
 | VC2 | The prompt tells the verifier not to reject a case for being slow, for starting a process, or for depending on fixtures outside its own file. | These are verify-pin's rejections and the nature of a test around a region (PRD 031, D9). |
 | VC3 | The prompt says the verifier may add `MUTANT: <file> \| <old> \| <new>` lines for mutants of the region it judges the cases should catch, and that a script, not the verifier, runs them. | The verifier may add rows; a script runs them all (PRD 031, D4; #2506). |
 
+## skills/tdd/scripts/prompts/verify-break.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VQ1 | The prompt tells the verifier to read `git diff <base-sha>..HEAD` and REJECT a diff that is not exactly one catalogued edit (`sprout` or `extract and override`) or that changes any behaviour observable at the region's existing callers. | The break edits uncovered code; its own blind verifier is the only judge besides the existing suite (PRD 031, D8, D9). |
+
 ## skills/tdd/scripts/prompts/verify-plan.md
 
 | ID | Requirement | Why |
