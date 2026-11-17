@@ -18,6 +18,11 @@ LEDGER = run_dir.ledger("", "%s")
 RUN = "rebased-full-%s"  # the rebased tip's detach-command.sh name: .tdd/rebased-full-<n>.out and .exit
 DETACH = fused.script("detach-command.sh")
 
+# The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_pr_prepare.py fails when one
+# is a script DRAFT-PR.md's sub-step 1 does not name (FC19).
+CALLS = ("next-pending-refactor.sh", "rebase-onto-default.sh", "grade-prose.sh", "rebased-tip-suite.sh",
+         "detect-test-command.sh", "detach-command.sh", "push-branch.sh", "refactor-owed.sh", "event.sh")
+
 
 def main(argv):
     return fused.entry(argv, NAME + ".sh", run)

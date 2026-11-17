@@ -240,6 +240,57 @@ def test_4031_it_runs_nothing_after_the_skip_event_and_handles_no_refusal_itself
         assert [c[1][0] for c in fake.calls if c[0] == "event.sh"] in ([], ["structural-pass"])
 
 
+READ = ("git", "rebase-onto-default.sh", "rebased-tip-suite.sh", "detect-test-command.sh")  # stdout read as a value
+
+
+def test_4031_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr(prep):
+    class Marked(Fake):
+        def __call__(self, name, *args, **kw):
+            code, out, err = super().__call__(name, *args, **kw)
+            if os.path.basename(name) in READ:
+                return code, out, err
+            return code, "OUT<%d>\n" % len(self.calls) + out, "ERR<%d>\n" % len(self.calls)
+
+    code, out, err, fake = prep(fake=Marked())
+
+    lines = out.splitlines()
+    assert code == 0
+    for i, c in enumerate(fake.calls, 1):
+        if c[0] in READ:
+            assert any(line.startswith(c[0]) for line in lines)
+            continue
+        named = lines[lines.index("OUT<%d>" % i) - 1]
+        assert named.startswith(c[0]) and "ERR<%d>" % i in err
+    assert "PASSED 812" in lines
+
+
+# Inner calls sub-step 1 does not name, each by name with its reason.
+NAMED_ELSEWHERE = {
+    "rebased-tip-suite.sh": "the step's opening paragraphs settle the mode with it; sub-step 1 reads it as "
+                            "`VERI_REBASED_TIP_SUITE=local` or `ci`",
+}
+
+
+def test_4031_every_inner_call_in_the_ordered_list_is_a_script_draft_pr_sub_step_1_names():
+    from pathlib import Path
+    pr_prepare = importlib.import_module("veri.pr_prepare")
+    draft = (Path(pr_prepare.__file__).resolve().parents[2] / "DRAFT-PR.md").read_text()
+    sub_step = draft[draft.index("\n1. **Ask the two questions"):draft.index("\n2. **Mark the PR ready")]
+
+    assert [name for name in pr_prepare.CALLS if "$S/" + name not in sub_step and name not in NAMED_ELSEWHERE] == []
+    assert all("$S/" + name in draft for name in NAMED_ELSEWHERE)
+
+
+def test_4031_a_local_rebase_makes_the_calls_of_the_ordered_list_in_its_order(prep):
+    pr_prepare = importlib.import_module("veri.pr_prepare")
+    code, out, err, fake = prep()
+
+    made = [name for name in fake.names() if name != "git"]
+    assert code == 0 and set(made) == set(pr_prepare.CALLS)
+    firsts = [made.index(name) for name in pr_prepare.CALLS]
+    assert firsts == sorted(firsts)
+
+
 def _pid(prep, text):
     (prep.wt / ".tdd" / "conductor.pid").write_text(text)
 
