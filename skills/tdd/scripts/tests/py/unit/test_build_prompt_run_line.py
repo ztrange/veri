@@ -8,6 +8,7 @@ import pytest
 from conftest import SCRIPTS
 
 TIMED = str(SCRIPTS / "timed-test-run.sh")
+TEST_CMD, TEST_PATH = "npm test", "tests/test_x.py"  # prompt arguments only: no suite runs
 LOOP = "sh -c 'for f; do set -- \"$f\"; npx jest \"$1\" || s=$?; done; exit ${s:-0}' sh <those paths>"
 
 
@@ -29,8 +30,8 @@ def lines_with(text, needle):
 def rendered(run_cli, builders, cwd):
     develop, verify = builders
     spec = str(cwd / "spec.md")
-    red = run_cli(develop, ["red", spec, "a step", "npm test"], cwd=cwd)
-    verify_red = run_cli(verify, ["red", spec, "tests/test_x.py"], cwd=cwd)
+    red = run_cli(develop, ["red", spec, "a step", TEST_CMD], cwd=cwd)
+    verify_red = run_cli(verify, ["red", spec, TEST_PATH], cwd=cwd)
     return [(code, err) for code, _, err in (red, verify_red)], [
         (lines_with(out, "timed-test-run.sh affected"), re.findall(r"(`[^`]*`) — the repo's runner for one test file", out))
         for _, out, _ in (red, verify_red)]
@@ -62,6 +63,6 @@ def test_the_run_line_reaches_the_prompt_from_claude_md_alone_and_no_tdd_file_do
     (cwd / ".tdd/notes.md").write_text("veri: one test file: `zq7_marker_4105 \"$1\"`\nzq7_marker_4105\n")
     develop, verify = builders
     spec = str(cwd / "spec.md")
-    outs = [run_cli(develop, ["red", spec, "a step", "npm test"], cwd=cwd),
-            run_cli(verify, ["red", spec, "tests/test_x.py"], cwd=cwd)]
+    outs = [run_cli(develop, ["red", spec, "a step", TEST_CMD], cwd=cwd),
+            run_cli(verify, ["red", spec, TEST_PATH], cwd=cwd)]
     assert [(code, "npx jest" in out, "zq7_marker_4105" in out) for code, out, _ in outs] == [(0, True, False)] * 2
