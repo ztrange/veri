@@ -202,3 +202,24 @@ def test_exits_2_pushing_nothing_on_no_answer_from_stack_red_the_lock_the_reads_
     code, _, err = run_cli(fix, world.argv())
 
     assert (code, world.pushed, world.lock_held) == (2, [], False), err
+
+
+@pytest.mark.parametrize("fixes, ancestor, code", [
+    ([(HEAD, "fix: b's case (#12)", [RED]), (sha(10), "fix: b's other case (#12)", [RED])], True, 0),
+    ([(HEAD, "fix: b's case", [RED])], True, 1),
+    ([(HEAD, "fix: b's case (#12) and more", [RED])], True, 1),
+    ([(HEAD, "fix: b's case (#13)", [RED])], True, 1),
+    ([(HEAD, "fix: b's case (#12)", [])], True, 1),
+    ([(HEAD, "fix: b's case (#12)", [sha(5)])], True, 1),
+    ([(sha(10), "fix: b's case (#12)", [RED]), (HEAD, "fix: more (#12)", [])], True, 1),
+    ([], True, 1),
+    ([(HEAD, "fix: b's case (#12)", [RED])], False, 1),
+    ([(HEAD, "fix: b's case (#12)", [RED])], None, 2),
+])
+def test_exits_1_pushing_nothing_unless_each_fix_commit_ends_its_subject_n_and_carries_stack_fix_red_sha_above_the_fetched_stack(
+        monkeypatch, run_cli, fix, tmp_path, fixes, ancestor, code):
+    world = World(monkeypatch, fix, tmp_path, fixes=fixes, ancestor=ancestor)
+
+    got, _, err = run_cli(fix, world.argv())
+
+    assert (got, len(world.pushed), world.lock_held) == (code, 1 if code == 0 else 0, False), err
