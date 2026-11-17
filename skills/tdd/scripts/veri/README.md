@@ -370,7 +370,7 @@ A run's records on origin's `refs/veri/runs/<n>`: a commit with no parent holdin
 - `read(issue, name, cwd)`: the text of `.tdd/<name>` in origin's ref, fetched into the clone at `cwd` under the same ref; `None` when origin, the ref or the file is missing.
 
 ## run_end
-- `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events.
+- `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events. `standing_mark(events)`: the mark that ended the run, `{}` when none stands; `MARKS`: the ending events, each to its cause.
 - `latest_result(path)`: `(launched, latest result record or None)` of a conductor log. `conductor_log(run_dir, issue)`: its path.
 
 ## stop_modes
@@ -756,6 +756,10 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `unreachable.sh`: walk reachability of the modules.
 - `update-veri.sh`: update veri itself.
 - `watch-runs.sh`: watch the runs of a queue.
+
+## metrics
+- `publish(target, issue, journal, ledger, run)`: writes the `metrics.sh --json` object of the journal at `journal` to `target`, renamed into place from a temporary file beside it; `run` is the run directory whose end, conductor log and pins the fold reads (`None`: the journal alone). `event` calls it for the published metrics file.
+- `rendered(issue)`: `(code, report, stderr)` of the markdown report of the working directory's run.
 
 ## role_state
 - `state_path(tree, role, lane=None)`: `.tdd/role-<role>[-<lane>].state` under `tree`. `read(path)`: text, `None` when missing.
