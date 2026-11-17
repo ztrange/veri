@@ -1,4 +1,4 @@
-"""Which lines of a Markdown text sit in a code fence, and how to cut a section out by its heading."""
+"""Which lines of a Markdown text sit in a code fence."""
 def _run(line):
     indent = len(line) - len(line.lstrip())
     if indent <= 3:
@@ -20,21 +20,3 @@ def fenced_lines(text):
             opener = None
     return flags
 
-
-def _level(line, bare=False):
-    hashes = len(line) - len(line.lstrip("#"))
-    if hashes and (bare or line[hashes:hashes + 1] == " "):
-        return hashes
-    return 0
-
-
-def section(text, heading, bare=False):
-    lines = text.splitlines()
-    fenced = fenced_lines(text)
-    start = next(i for i, line in enumerate(lines) if line == heading and not fenced[i])
-    level = _level(heading, bare)
-    end = next(
-        (i for i in range(start + 1, len(lines)) if not fenced[i] and 0 < _level(lines[i], bare) <= level),
-        len(lines),
-    )
-    return lines[start:end]

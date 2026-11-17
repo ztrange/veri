@@ -556,7 +556,7 @@ def test_grade_prose_and_requirements_read_fences_through_the_markdown_sections_
             return getattr(markdown_sections, "_orig_" + name)(*a, **k)
         return wrapped
 
-    for name in ("fenced_lines", "section"):
+    for name in ("fenced_lines",):
         original = getattr(markdown_sections, name)
         monkeypatch.setattr(markdown_sections, "_orig_" + name, original, raising=False)
         monkeypatch.setattr(reader, "_orig_" + name, getattr(reader, name), raising=False)
