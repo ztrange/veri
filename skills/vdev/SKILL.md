@@ -71,7 +71,8 @@ and ask*), so the transcript carries neither.
 
 A **notice** — a refused reset, `role-growth.sh`'s exit 2, `request-reset`'s exit 1, the MCP
 launch line of *Starting*, a missing `delegate` skill, `github-outage.sh hold`'s exit 2, a red
-stack that stays frozen after its failed jobs' re-run, each line `voutage` tells the human — is
+stack that stays frozen after its failed jobs' re-run, `record-answer.sh`'s exit 2 (*Answers*),
+each line `voutage` tells the human — is
 sent once: as one `PushNotification`
 where the session has that tool, else as one line in its transcript.
 
@@ -433,8 +434,14 @@ from the comment. In a session with `start_session`, your own transcript never h
 text or a request for an answer.
 
 **Answers.** On a message naming a question file, read the answer from the file, never from the
-message, and act on it. Delete the question file only after you observe your own action on the
-answer in state (the label gone, the run resumed, the merge landed), and say so nowhere. After a
+message, and act on it. For a question tied to issue `<n>`, first run
+`$S/record-answer.sh <n> <question-file>`, before you act: it posts the question and the answer
+on the issue as one comment, which `vjudge` reads as the owner's decision and a resumed run as the
+answer to its park. Act only on its exit 0 (posted) or 3 (already there); on exit 2 neither act
+nor delete the file, and send its stderr line once as a notice (*Speaking*). You post an answer on
+an issue by no other route. Delete the question file only after you observe your own action on
+the answer in state (the label gone, the run resumed, the merge landed) and, for a question tied
+to an issue, after `record-answer.sh` exited 0 or 3 for it, and say so nowhere. After a
 reset, each of your lane's question files without an `## Answer` heading (recovery's `Questions`
 section) is open and already asked: re-ask none of them.
 
