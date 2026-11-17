@@ -240,7 +240,8 @@ def test_record_under_unreplaced_cases_on_route_replaces_report_prints_the_route
         if e.get("event") == "adjudicated"
     ] == [{"issue": "7", "cause": "unreplaced-cases", "outcome": "route", "reason": "the report was written late"}]
 
-@pytest.mark.parametrize("cause", ["pr-ready-failed", "report-missing", "step-add-refused", "replaces-report-failed", "unreplaced-cases", "reconcile-failed"])
+@pytest.mark.parametrize("cause", ["pr-ready-failed", "report-missing", "step-add-refused", "replaces-report-failed", "unreplaced-cases", "reconcile-failed",
+                                   "criterion-unreadable"])
 def test_record_writes_one_adjudicated_event_of_the_cause_for_each_of_a_retry_a_bail_and_an_unparsable_answer(
     run_cli, adjudicate, tmp_path, cause
 ):
