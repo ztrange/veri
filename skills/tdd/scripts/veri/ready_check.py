@@ -8,6 +8,7 @@ import secrets
 import shlex
 import subprocess
 import sys
+import time
 import urllib.parse
 
 import ensure_run_state_ignored
@@ -63,8 +64,10 @@ def tier_run_row(tier, command, root):
     git.git("worktree", "add", "--detach", wt, default_tip(), capture_output=True, text=True)
     os.makedirs(os.path.join(wt, ".tdd"), exist_ok=True)
     detach = script("detach-command.sh")
+    began = time.time()
     subprocess.run([detach, "start", name, *shlex.split(command)], cwd=wt, capture_output=True, text=True)
     waited = subprocess.run([detach, "wait", name], cwd=wt, capture_output=True, text=True)
+    row = f"{tier} tier run ({int(time.time() - began)}s)"
     output = os.path.join(wt, ".tdd", name + ".out")
     said = []
     if os.path.exists(output):
@@ -72,8 +75,8 @@ def tier_run_row(tier, command, root):
             said = [line.strip() for line in out if line.strip()]
     git.git("worktree", "remove", "--force", wt, capture_output=True, text=True)
     if waited.returncode == 0:
-        return f"{tier} tier run", None
-    return f"{tier} tier run", f"exit {waited.stdout.strip()}: {said[-1] if said else '(no output)'}"
+        return row, None
+    return row, f"exit {waited.stdout.strip()}: {said[-1] if said else '(no output)'}"
 
 
 def tier_run_rows(root):

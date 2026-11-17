@@ -475,3 +475,15 @@ def test_issue_4088_a_tier_exiting_non_zero_fails_its_row_carrying_the_exit_code
     assert "exit 7" in row and row.endswith("FAILED tests/test_x.py::test_y"), row
     assert tier_run_line(lines, "all").startswith("ok    all tier run"), lines
     assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
+
+
+def test_issue_4088_each_tier_run_row_carries_its_wall_time_in_whole_seconds_whether_it_passed_or_failed(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
+    import types
+    clock = iter([1000.0, 1042.6, 2000.0, 2003.2])
+    monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=lambda: next(clock), monotonic=lambda: 0.0), raising=False)
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **TIERS, **{
+        "detach-command.sh wait ready-all": (1, "1\n", "")})
+
+    assert tier_run_line(lines, "fast") == "ok    fast tier run (42s)", lines
+    assert tier_run_line(lines, "all").startswith("fail  all tier run (3s): exit 1"), lines
+    assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
