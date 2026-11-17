@@ -168,7 +168,7 @@ def test_4030_every_inner_call_in_the_ordered_list_is_a_script_the_opening_parag
     from pathlib import Path
     branch_gate = importlib.import_module("veri.branch_gate")
     draft = (Path(branch_gate.__file__).resolve().parents[2] / "DRAFT-PR.md").read_text()
-    opening = draft[:draft.index("\n1. **Ask the two questions")]
+    opening = draft[:draft.index("\n1. Run `$S/pr-prepare.sh")]
 
     assert [name for name in branch_gate.CALLS if "$S/" + name not in opening] == []
 

@@ -275,7 +275,7 @@ def test_4031_every_inner_call_in_the_ordered_list_is_a_script_draft_pr_sub_step
     from pathlib import Path
     pr_prepare = importlib.import_module("veri.pr_prepare")
     draft = (Path(pr_prepare.__file__).resolve().parents[2] / "DRAFT-PR.md").read_text()
-    sub_step = draft[draft.index("\n1. **Ask the two questions"):draft.index("\n2. **Mark the PR ready")]
+    sub_step = draft[draft.index("\n1. Run `$S/pr-prepare.sh"):draft.index("\n2. **Mark the PR ready")]
 
     assert [name for name in pr_prepare.CALLS if "$S/" + name not in sub_step and name not in NAMED_ELSEWHERE] == []
     assert all("$S/" + name in draft for name in NAMED_ELSEWHERE)
