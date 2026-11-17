@@ -22,7 +22,7 @@
 #            --planned without --criterion, --planned for a criterion a ledger step already serves,
 #            --planned with no readable spec file beside the ledger (issue-<n>-spec.md),
 #            --planned for a k not unticked in the issue body the run read, a bad VERI_STEP_GROWTH_PERCENT,
-#            the retired VERI_STEP_GROWTH set, no plan commit git can show the ledger at, or a <text> already carrying ⟦criterion k⟧,
+#            the retired absolute-count knob set, no plan commit git can show the ledger at, or a <text> already carrying ⟦criterion k⟧,
 #            a skill-edit step (text starting with ⟦skill-edit⟧ or carrying it in its trailing tag run; a mere
 #            prose mention does not count) naming no backticked unit, a unit file that does not exist, or a
 #            unit whose list the issue's Requirements restate no differing row of
