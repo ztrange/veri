@@ -5,8 +5,10 @@ import sys
 
 import entry
 import event
+import event_log
 import ledger
 import ledger_steps
+import refactor_owed
 import run_dir
 import tunables
 from report import report_read
@@ -40,12 +42,29 @@ def record(n):
                       ["count=%d" % int(found.group(1)), "what=" + found.group(2)])
 
 
+def worst(n, owed):
+    """Record the run's worst Red, the step whose latest `red-setup` count is highest, as one `testability` not-done row
+    of <owed> when that count exceeds the threshold: 0 recorded, 3 none over it."""
+    latest = {}
+    for mark in event_log.events(".", "red-setup"):
+        if str(mark.get("issue")) == n and entry.whole_number(str(mark.get("count")), 0) is not None:
+            latest[mark.get("step", "")] = (int(mark["count"]), mark.get("what", ""))
+    if not latest:
+        return 3
+    step, (count, what) = max(latest.items(), key=lambda item: item[1][0])
+    if count <= 3:
+        return 3
+    return refactor_owed.not_done(owed, "%s: %d stubs and setup (%s)" % (step, count, what), "testability")
+
+
 def main(argv):
     verb, n = (list(argv) + ["", ""])[:2]
     if entry.whole_number(n) is None:
         return entry.refuse(usage=USAGE)
     if verb == "record" and len(argv) == 2:
         return record(n)
+    if verb == "worst" and len(argv) == 3 and argv[2]:
+        return worst(n, argv[2])
     return entry.refuse(usage=USAGE)
 
 
