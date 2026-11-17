@@ -322,8 +322,9 @@ label removal, which leaves the issue claimed (`taken:<lane>`) with nothing that
 ## When to stop and ask
 
 Stop and ask the human only for: red CI you cannot fix, a ⟦human-owed⟧ step, a conflict you
-cannot resolve, or a decision a ledger step asks for. Each goes to the human as P21 says, and is
-stated in full (P4). Everything
+cannot resolve, or a decision a ledger step asks for. Each first passes `vjudge`, run as
+*Running the sibling skills* says, and only what the judge surfaces reaches the human: as P21
+says, and stated in full (P4). Everything
 else you decide and keep going; a turn never ends while a slot can be filled (P5).
 
 ## Out of scope
