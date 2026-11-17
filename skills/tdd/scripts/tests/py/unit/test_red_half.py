@@ -224,3 +224,166 @@ def test_4026_a_missing_report_line_stops_it_with_exit_2(red, line):
 
     assert (code, fake.names()[-1]) == (2, "extract-result.sh")
     assert out.splitlines()[-1] == "stopped at 1 no %s line" % line
+
+
+REPLACES = "port it: replaces 'case one' and 'case two' in tests/py/test_x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
+
+
+def _after(fake, name, first=None):
+    at = fake.calls.index(fake.call(name, first))
+    return fake.calls[at + 1:]
+
+
+def test_4026_the_prediction_gate_runs_on_the_report_into_the_verify_red_reason(red):
+    code, out, err, fake = red()
+
+    gate = fake.call("red-divergence.sh")
+    assert gate[1] == (".tdd/red-prediction.md", ".tdd/red-run-output.txt")
+    assert (gate[4]["stdin"], gate[4]["out"]) == ("{}\n", ".tdd/verify-red.reason")
+
+
+@pytest.mark.parametrize("gate, stop", [(0, 1), (1, 1), (2, 2)])
+def test_4026_a_prediction_gate_exit_0_1_or_2_stops_it_with_no_verifier(red, gate, stop):
+    code, out, err, fake = red(answers={("red-divergence.sh", None): (gate, "")})
+
+    assert (code, fake.names()[-1], "verdict-red" in fake.launched()) == (stop, "red-divergence.sh", False)
+    assert out.splitlines()[-1].startswith("stopped at 2 red-divergence.sh")
+
+
+def test_4026_an_ordinary_step_runs_no_unreplaced_check_and_no_except(red):
+    code, out, err, fake = red()
+
+    assert "unreplaced-cases.sh" not in fake.names()
+    assert fake.call("tests-frozen.sh", "check-earlier")[1] == ("check-earlier", ".tdd/issue-12.md", "--step", STEP)
+
+
+def test_4026_a_replaces_case_step_checks_its_replaced_cases_and_excepts_each_from_the_earlier_check(red):
+    code, out, err, fake = red(step=REPLACES)
+
+    assert fake.call("unreplaced-cases.sh")[1] == (REPLACES, ".tdd/develop-red.out")
+    assert fake.call("tests-frozen.sh", "check-earlier")[1] == (
+        "check-earlier", ".tdd/issue-12.md", "--step", REPLACES, "--except", "case one", "--except", "case two")
+    assert code == 0
+
+
+@pytest.mark.parametrize("check", [1, 2])
+def test_4026_an_unreplaced_cases_exit_1_or_2_stops_it_with_no_verifier(red, check):
+    code, out, err, fake = red(step=REPLACES, answers={("unreplaced-cases.sh", None): (check, "")})
+
+    assert (code, fake.names()[-1], "verdict-red" in fake.launched()) == (check, "unreplaced-cases.sh", False)
+
+
+@pytest.mark.parametrize("check", [1, 2])
+def test_4026_an_earlier_steps_check_exit_1_or_2_stops_it_with_no_verifier(red, check):
+    code, out, err, fake = red(answers={("tests-frozen.sh", "check-earlier"): (check, "")})
+
+    assert (code, fake.names()[-1], "verdict-red" in fake.launched()) == (check, "tests-frozen.sh", False)
+    assert out.splitlines()[-1].startswith("stopped at 2 tests-frozen.sh check-earlier")
+
+
+def test_4026_it_launches_verdict_red_with_red_2s_arguments_only(red):
+    code, out, err, fake = red()
+
+    launch = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
+    assert tuple(os.path.basename(a) if a.endswith(".sh") else a for a in launch[1]) == (
+        "supervise.sh", "verdict-red", "run-verdict.sh", "--step", STEP, "--fast-cmd", "make unit", "red",
+        ".tdd/issue-12-spec.md", "tests/test_a.py", "tests/test_a.py::test_one")
+    assert (launch[3]["VERI_TEST_CMD"], launch[3]["VERI_STEP"]) == ("make unit", STEP)
+    assert (launch[4]["out"], launch[4]["err"]) == (".tdd/verify-red.reason", ".tdd/verify-red.err")
+    assert [c[0] for c in _after(fake, "tests-frozen.sh", "check-earlier")[:4]] == [
+        "stop-requested.sh", "detach-leaf.sh", "wait-leaf.sh", "step-cost.sh"]
+
+
+@pytest.mark.parametrize("verdict", [1, 2])
+def test_4026_a_verdict_of_1_or_2_stops_it_before_any_record_or_comment(red, verdict):
+    code, out, err, fake = red(answers={("wait-leaf.sh", "verdict-red"): (verdict, "")})
+
+    assert (code, out.splitlines()[-1]) == (verdict, "stopped at 2 wait-leaf.sh verdict-red exit %d" % verdict)
+    assert not {"comment.sh", "red-setup.sh"} & set(fake.names())
+    assert ("tests-frozen.sh", ("record",)) not in [(c[0], c[1][:1]) for c in fake.calls]
+
+
+def test_4026_a_pass_records_the_frozen_tests_with_the_red_case_into_the_verify_red_reason(red):
+    code, out, err, fake = red()
+
+    record = fake.call("tests-frozen.sh", "record")
+    assert record[1] == ("record", "--step", STEP, "--red-case", "tests/test_a.py::test_one", "tests/test_a.py")
+    assert record[4]["out"] == ".tdd/verify-red.reason"
+    assert fake.call("red-setup.sh")[1] == ("record", "12")
+
+
+def test_4026_a_bare_target_test_is_joined_to_its_path_for_the_red_case(red):
+    code, out, err, fake = red(fake=Fake(report=REPORT.replace("TARGET_TEST: tests/test_a.py::", "TARGET_TEST: ")))
+
+    assert fake.call("tests-frozen.sh", "record")[1][4] == "tests/test_a.py::test_one"
+
+
+@pytest.mark.parametrize("recorded", [1, 2])
+def test_4026_a_record_exit_1_or_2_stops_it_before_any_comment(red, recorded):
+    code, out, err, fake = red(answers={("tests-frozen.sh", "record"): (recorded, "")})
+
+    assert (code, fake.names()[-1]) == (recorded, "tests-frozen.sh")
+
+
+@pytest.mark.parametrize("porcelain", [" M src/a.py\n", "?? lib/b.py\n?? tests/test_a.py\n"])
+def test_4026_a_production_path_in_the_tree_stops_it_at_3_tree_check_before_any_comment(red, porcelain):
+    code, out, err, fake = red(fake=Fake(porcelain=porcelain))
+
+    assert (code, out.splitlines()[-1], "comment.sh" in fake.names()) == (1, "stopped at 3 tree-check", False)
+
+
+def test_4026_on_a_clean_path_it_posts_red_with_a_note_then_verify_red_and_settles_last(red):
+    code, out, err, fake = red(answers={("refresh-spec.sh", None): (2, "")})
+
+    comments = [c for c in fake.calls if c[0] == "comment.sh"]
+    assert [c[1][:2] for c in comments] == [("12", "red"), ("12", "verify-red")]
+    assert comments[0][1][2:] == ("--note-file", ".tdd/red-half-note.md")
+    note = (red.wt / ".tdd" / "red-half-note.md").read_text()
+    assert "capture" in note and "prediction matched" in note.lower()
+    expected = ["step=" + STEP, "test_path=tests/test_a.py", "target_test=tests/test_a.py::test_one",
+                "red_test_id=tests/test_a.py::test_one", "against_unmodified=FAILS"]
+    assert code == 0
+    assert (red.wt / ".tdd" / "issue-12-red-half").read_text().splitlines() == expected
+    assert out.splitlines()[-len(expected):] == expected
+    assert fake.names()[-1] == "comment.sh"
+
+
+def test_4026_a_refreshed_spec_is_named_in_the_note(red):
+    red()
+
+    assert "refreshed" in (red.wt / ".tdd" / "issue-12-red-half").parent.joinpath("red-half-note.md").read_text()
+
+
+def test_4026_it_commits_and_ticks_nothing(red):
+    code, out, err, fake = red()
+
+    assert code == 0
+    assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] != ("status",)]
+    assert not {"tick-ledger.sh", "push-branch.sh"} & set(fake.names())
+    assert "- [ ] " + STEP in (red.wt / ".tdd" / "issue-12.md").read_text()
+
+
+def test_4026_with_red_switched_off_it_marks_the_skip_and_launches_no_verdict_red(red):
+    (red.wt / ".tdd" / "issue-12-skip-verify").write_text("red\n")
+    code, out, err, fake = red()
+
+    assert (code, fake.launched()) == (0, ["develop-red"])
+    mark = fake.call("event.sh")
+    assert mark[1] == ("verify-red-skipped", "reason=switched-off")
+    assert (mark[3]["VERI_ACTOR"], mark[3]["VERI_STEP"], mark[3]["VERI_ISSUE"]) == ("conductor", STEP, "12")
+    assert (red.wt / ".tdd" / "verdict-red.exit").read_text().strip() == "skipped"
+    assert [c[0] for c in _after(fake, "event.sh")][:2] == ["tests-frozen.sh", "red-setup.sh"]
+
+
+def test_4026_it_launches_no_leaf_but_through_supervise(red):
+    code, out, err, fake = red()
+
+    assert not {"run-leaf.sh", "run-verdict.sh", "claude", "supervise.sh"} & set(fake.names())
+    assert fake.launched() == ["develop-red", "verdict-red"]
+
+
+def test_4026_it_writes_no_bail_and_resets_nothing_on_a_stop(red):
+    code, out, err, fake = red(answers={("wait-leaf.sh", "verdict-red"): (1, "")})
+
+    assert not {"classify-bail.sh", "preflight-refused.sh", "event.sh"} & set(fake.names())
+    assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("reset",), ("clean",))]

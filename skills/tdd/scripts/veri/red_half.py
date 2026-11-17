@@ -1,9 +1,12 @@
 """red-half.sh's computation, run in-process: a step's Red half on the FAILS path (SKILL.md *Red*, sub-steps 1-3),
 made in one call (PRD 027.4)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
 
+import case_reader
 import fused
+import replaces_case
 from ledger import handed_out
 
 NAME = "red-half"
@@ -26,10 +29,74 @@ def run(n):
     if step is None or any(kind in step for kind in REFUSED):
         sys.stderr.write("red-half.sh: %s\n" % ("no open step" if step is None else "a step its prose runs: " + step))
         return 2
-    values = develop(n, wt, settled, step)
-    waited(wt, n, "1", "develop-red", step)
-    values.update(red_report(wt))
-    return 0
+    resumed = fused.load_wait(wt, n, NAME)
+    at, values = resumed if resumed is not None else ("develop-red", develop(n, wt, settled, step))
+    if at == "develop-red":
+        waited(wt, n, "1", "develop-red", step)
+        values.update(red_report(wt))
+        at = verify(n, wt, settled, step, values)
+    if at == "verdict-red":
+        waited(wt, n, "2", "verdict-red", step)
+    return finish(n, wt, step, values)
+
+
+def verify(n, wt, settled, step, values):
+    """Red 2 up to the verifier: the prediction gate (RH6), on a ⟦replaces-case⟧ step the replaced-case check (RH7),
+    the earlier steps' records (RH8), then verdict-red (RH9), or its recorded skip when `red` is switched off. The
+    leaf it launched, or None."""
+    gate = fused.call(fused.script("red-divergence.sh"), ".tdd/red-prediction.md", ".tdd/red-run-output.txt", cwd=wt,
+                      stdin=read(wt, ".tdd/develop-red.out"), out=".tdd/verify-red.reason")[0]
+    if gate != 3:
+        raise fused.Stop("2", fused.label("red-divergence.sh", ".tdd/red-prediction.md", ".tdd/red-run-output.txt")
+                         + " exit %d" % gate, gate)
+    excepted = ()
+    if replaces_case.is_replaces_case_step(step):
+        fused.checked("2", fused.script("unreplaced-cases.sh"), step, ".tdd/develop-red.out", cwd=wt,
+                      err=".tdd/unreplaced-cases.err")
+        excepted = (replaces_case.parse(step) or ([], ""))[0]
+    fused.checked("2", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step,
+                  *[arg for case in excepted for arg in ("--except", case)], cwd=wt)
+    if fused.verify_switched_off(wt, n, "red"):
+        fused.mark("2", wt, n, step, "verify-red-skipped", "reason=switched-off")
+        with open(os.path.join(wt, ".tdd", "verdict-red.exit"), "w") as f:
+            f.write("skipped\n")
+        return None
+    fused.launch("2", wt, "verdict-red", "run-verdict.sh", "--step", step, "--fast-cmd", settled["fast_cmd"], "red",
+                 SPEC % n, values["test_path"], values["target_test"],
+                 env=fused.step_env(n, step, VERI_TEST_CMD=settled["fast_cmd"]), out=".tdd/verify-red.reason",
+                 err=".tdd/verify-red.err")
+    fused.save_wait(wt, n, NAME, "verdict-red", values)
+    return "verdict-red"
+
+
+def finish(n, wt, step, values):
+    """Red 2's record and Red 3's comments on the PASS path (RH9-RH12): the frozen tests recorded with the Red case,
+    red-setup.sh's record, the tree checked, the Red and verify-red comments, and the settled file."""
+    target = values["target_test"]
+    red_test_id = target if "::" in target else values["test_path"] + "::" + target
+    fused.checked("2", fused.script("tests-frozen.sh"), "record", "--step", step, "--red-case", red_test_id,
+                  values["test_path"], cwd=wt, out=".tdd/verify-red.reason")
+    fused.checked("2", fused.script("red-setup.sh"), "record", n, cwd=wt, ok=(0, 2, 3),
+                  stdin=read(wt, ".tdd/develop-red.out"))
+    if [p for p in fused.changed_paths("3", wt) if not p.startswith(".tdd/") and not case_reader.is_test_path(p)]:
+        raise fused.Stop("3", "tree-check", 1)
+    note = ".tdd/red-half-note.md"
+    with open(os.path.join(wt, note), "w") as f:
+        f.write(REFRESHED.get(values["refresh"], "") + "Prediction matched: verify-red judged the test.\n")
+    fused.checked("3", fused.script("comment.sh"), n, "red", "--note-file", note, cwd=wt)
+    fused.checked("3", fused.script("comment.sh"), n, "verify-red", cwd=wt)
+    return fused.settle(wt, n, NAME, ["step=" + step, "test_path=" + values["test_path"], "target_test=" + target,
+                                      "red_test_id=" + red_test_id, "against_unmodified=FAILS"])
+
+
+# What the Red comment says of refresh-spec.sh's exit (Red 1): 0 a refreshed spec, 2 the capture kept.
+REFRESHED = {0: "Spec refreshed from the issue before this step.\n",
+             2: "Spec refresh failed; this step ran on the capture.\n"}
+
+
+def read(wt, path):
+    with open(os.path.join(wt, path), encoding="utf-8", errors="replace") as f:
+        return f.read()
 
 
 def waited(wt, n, where, name, step):
