@@ -46,6 +46,9 @@ Run it in order, at the site where the eligible exit 2 came back.
    `wait-leaf.sh develop-replaces-report`.
    At the `unreplaced-cases` site (its first check only) they are `.tdd/unreplaced-cases.err` and
    `unreplaced-cases.sh <step line> <report>`.
+   At the `reconcile-failed` site (`RECONCILE.md`) they are `.tdd/develop-reconcile.err` and
+   `wait-leaf.sh develop-reconcile` for the leaf's exit 2, and `.tdd/push-branch.err` and
+   `push-branch.sh` for the second push's exit 2.
 3. **Launch the leaf** `adjudicate-<cause>` through `supervise.sh`, detached, then wait in the
    foreground (on an exit 3 call the wait again). Remove the cause's completion and pid files
    first, as *Launching a leaf* in `SKILL.md` does, so a second adjudication of one cause never

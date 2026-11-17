@@ -14,7 +14,7 @@ VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $
 $S/wait-leaf.sh develop-reconcile   # foreground; on exit 3 call it again
 ```
 
-After the leaf exits 0, re-run `$S/push-branch.sh` — it must now exit 0 — and check the
+After the leaf exits 0, re-run `$S/push-branch.sh 2> .tdd/push-branch.err` — it must now exit 0 — and check the
 committed ledger `.tdd/issue-<n>.md` still carries every `[x]` tick and every
 ` ⟂ refactor pending` mark `.tdd/reconcile-ledger.before` had:
 
@@ -25,3 +25,16 @@ diff <($S/ledger-steps.sh < .tdd/reconcile-ledger.before | awk -F'\t' '$2 == "do
 Then continue where the push was called. A leaf exit 1 or 2, a second `push-branch.sh` exit
 other than 0, or a ledger whose ticks or marks changed → **bail** with cause
 `reconcile-failed` (a system failure: where the branch lives broke, not the methodology).
+
+Two of those are exit 2s, and each is adjudicated once before any `bail` event (`Read`
+`<base directory>/ADJUDICATE.md`): the `wait-leaf.sh develop-reconcile` exit 2, its stderr file
+`.tdd/develop-reconcile.err` and its command `wait-leaf.sh develop-reconcile`, and the second
+`push-branch.sh` exit 2, its stderr file `.tdd/push-branch.err` and its command `push-branch.sh`.
+With `$S/adjudicate.sh left <n>` exit 0, launch `adjudicate-reconcile-failed` through
+`supervise.sh` as that file's *Procedure* says; then, whatever the answer (`retry` included), or
+on `adjudicate.sh left` exit 3 or 2, bail `reconcile-failed` by running, alone in a Bash call of
+its own, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=reconcile-failed
+classification="$($S/classify-bail.sh reconcile-failed)"`, relaunching no `develop-reconcile` leaf
+and calling `push-branch.sh` no more. A leaf exit 1,
+a second `push-branch.sh` exit 1 and a ledger whose ticks or marks changed are never adjudicated:
+each bails `reconcile-failed` at once.

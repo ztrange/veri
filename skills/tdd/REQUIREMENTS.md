@@ -692,6 +692,7 @@
 | BL54 | The cause list has a `report-missing` bullet: a phase leaf's report carried no `SUITE:` line (`suite-reported.sh` exited 2) → **system** failure; the bail can follow an adjudication (`Read` `<base directory>/ADJUDICATE.md`) and keeps its cause and class. (Cause list, `report-missing` bullet.) | `classify-bail.sh` knows the cause; the bail list does not. |
 | BL55 | The `step-add-refused` bullet says the bail can follow an adjudication (`Read` `<base directory>/ADJUDICATE.md`) and keeps its cause and class. (Cause list, `step-add-refused` bullet.) | The bail list stays true. |
 | BL56 | The `replaces-report-failed` bullet says the wait's exit 2 can be adjudicated first (`Read` `<base directory>/ADJUDICATE.md`) and the bail keeps its cause and class. (Cause list, `replaces-report-failed` bullet.) | The bail list stays true. |
+| BL67 | The cause list has a `reconcile-failed` bullet: the reconcile of a rejected push failed (the `develop-reconcile` leaf exited 1 or 2, the second `push-branch.sh` exited other than 0, or the ledger's ticks or marks changed) → **system** failure; its exit-2 sources can be adjudicated first (`Read` `<base directory>/ADJUDICATE.md`), and the bail keeps its cause and class. (Cause list, `reconcile-failed` bullet.) | `classify-bail.sh` knows the cause; the bail list does not. |
 
 ## skills/tdd/SCOPE-LOOP.md
 
@@ -777,6 +778,8 @@
 | RC10 | When the leaf exited 0, `push-branch.sh` exited 0 and the ledger check holds, the conductor continues where the push was called. | A successful reconcile resumes the run instead of ending it. |
 | RC11 | The conductor bails with cause `reconcile-failed` when the leaf exits 1 or 2, when the second `push-branch.sh` exits other than 0, or when the ledger's ticks or marks changed. | A reconcile that did not land cleanly ends the run, named, rather than pushing anything further. |
 | RC12 | `reconcile-failed` is a system failure: where the branch lives broke, not the methodology. | The bail is classified as plumbing, not as a rejected change. |
+| RC23 | A `wait-leaf.sh develop-reconcile` exit 2 (stderr file `.tdd/develop-reconcile.err`) or a second `push-branch.sh` exit 2 (its stderr kept in `.tdd/push-branch.err`), with `adjudicate.sh left <n>` exit 0, launches `adjudicate-reconcile-failed` through `supervise.sh` before any `bail` event (`Read` `<base directory>/ADJUDICATE.md`); every outcome, `retry` included, then bails `reconcile-failed`, `develop-reconcile` is not relaunched and `push-branch.sh` is not called again. (The paragraph after the ledger check.) | The site's two exit-2 sources, and RETRY reruns nothing here. |
+| RC24 | A leaf exit 1, a second `push-branch.sh` exit 1 and a ledger whose ticks or marks changed are never adjudicated: each bails `reconcile-failed` as before. (The same paragraph.) | Only an exit 2 is eligible. |
 
 ## skills/tdd/WORKER.md
 
@@ -1204,6 +1207,7 @@
 | AJ9 | The *Eligible causes* list holds the bullet `` - `step-add-refused`: none ``. (Eligible causes.) | One home for the cause. |
 | AJ10 | The *Eligible causes* list holds the bullet `` - `replaces-report-failed`: none ``. (Eligible causes.) | One home for the cause. |
 | AJ11 | The *Eligible causes* list holds the bullet `` - `unreplaced-cases`: `replaces-report` ``. (Eligible causes.) | One home for the cause and its route. |
+| AJ22 | The *Eligible causes* list holds the bullet `` - `reconcile-failed`: none ``. (Eligible causes.) | One home for the cause. |
 
 ## skills/tdd/PUBLISHED.md
 
