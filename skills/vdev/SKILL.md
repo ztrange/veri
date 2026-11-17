@@ -379,9 +379,9 @@ settle is asked in full in your own transcript, once (P4).
 `<id>` is `<lane>-<n>` for a question tied to issue `<n>` and `<lane>-<slug>` otherwise, `<lane>`
 being `main` with no lane word.
 
-1. Before briefing `vjudge` on a case, look for its question file. When it exists, the question is
-   open and already asked: run no `vjudge` on the case again, open no second session for it and
-   send no notification (an `## Answer` in it is read as *Answers* says).
+1. Before briefing `vjudge` on a case, look for its question file. When it exists, the question
+   was already asked: run no `vjudge` on the case again, open no second session for it and send no
+   notification; an `## Answer` in it is acted on as *Answers* says.
 2. Otherwise your brief to `vjudge` names that path. The judge writes there a case it does not
    settle, under `#### Question`, `#### Options`, `#### Found` and `#### Recommendation`, and
    returns the path.
