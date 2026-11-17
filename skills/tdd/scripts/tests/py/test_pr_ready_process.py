@@ -1,4 +1,5 @@
 """Cases for pr-ready.sh that start the real entry point, from zsh as a conductor's shell may be (#2147)."""
+import json
 import os
 import shutil
 import subprocess
@@ -21,7 +22,7 @@ def run_from_zsh(tmp_path, gh_body, command):
     env = {"PATH": os.pathsep.join([str(bin_dir), os.path.dirname(shutil.which("bash")), "/usr/bin", "/bin"]),
            "CALLS": str(calls), "VERI_GH_DRIVER": "auto", "VERI_POLL": "0"}
     ran = subprocess.run(["zsh", "-c", command, "zsh", str(SCRIPTS / "pr-ready.sh")],
-                         capture_output=True, text=True, env=env)
+                         capture_output=True, text=True, env=env, cwd=tmp_path)
     return ran, calls.read_text().splitlines()
 
 
@@ -48,6 +49,9 @@ def test_issue_2147_pr_ready_script_run_from_zsh_exits_2_when_github_answers_on_
 
     assert refused.returncode == 2, (refused.stdout, refused.stderr)
     assert "gh pr ready 42" in calls
+    marks = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(m["event"], m["stage"], m.get("status")) for m in marks] == [("stage-start", "ready", None),
+                                                                          ("stage-end", "ready", "2")]
 
 
 @pytest.mark.process("real git repository and bare remote holding the sha, a fake gh, and pr-ready.sh as a subprocess")

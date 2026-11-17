@@ -132,20 +132,20 @@ PORCELAIN = ("gh", "pr", "ready", "7")
 ADD_PR_READY = ("gh", "api", "repos/{owner}/{repo}/issues/42/labels", "-f", "labels[]=pr-ready")
 
 
-def test_pr_ready_labels_the_state_label_issue_pr_ready_once_github_marked_the_pr_ready(run_cli, fake_processes):
+def test_pr_ready_labels_the_state_label_issue_pr_ready_once_github_marked_the_pr_ready(run_cli, fake_processes, tmp_path):
     pr_ready = importlib.import_module("veri.pr_ready")
     calls = fake_gh(fake_processes, lambda args: (0, SHA + "\n", "") if args == HEAD_READ else (0, "", ""))
 
-    result = run_cli(pr_ready, ["7", SHA], env={"VERI_GH_DRIVER": "auto", "VERI_STATE_LABEL_ISSUE": "42"})
+    result = run_cli(pr_ready, ["7", SHA], env={"VERI_GH_DRIVER": "auto", "VERI_STATE_LABEL_ISSUE": "42"}, cwd=tmp_path)
 
     assert (result, calls) == ((0, "", ""), [HEAD_READ, PORCELAIN, ADD_PR_READY])
 
 
-def test_pr_ready_gh_refuses_to_label_still_exits_0_and_names_the_refusal(run_cli, fake_processes):
+def test_pr_ready_gh_refuses_to_label_still_exits_0_and_names_the_refusal(run_cli, fake_processes, tmp_path):
     pr_ready = importlib.import_module("veri.pr_ready")
     fake_gh(fake_processes, lambda args: {HEAD_READ: (0, SHA + "\n", ""), PORCELAIN: (0, "", "")}.get(args, (1, "", "")))
 
-    result = run_cli(pr_ready, ["7", SHA], env={"VERI_GH_DRIVER": "auto", "VERI_STATE_LABEL_ISSUE": "42"})
+    result = run_cli(pr_ready, ["7", SHA], env={"VERI_GH_DRIVER": "auto", "VERI_STATE_LABEL_ISSUE": "42"}, cwd=tmp_path)
 
     assert result == (0, "", "pr-ready.sh: no answer from gh labelling #42 pr-ready\n")
 

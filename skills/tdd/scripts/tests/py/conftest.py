@@ -198,6 +198,7 @@ CWD_OUTSIDE_REPOSITORY = {
     "test_invisible_work.py",
     "test_invisible_work_process.py",
     "test_parallel_conductors.py",
+    "test_pr_ready.py",
     "test_push_branch.py",
     "test_rebase_onto_default.py",
     "test_rebase_onto_default_process.py",

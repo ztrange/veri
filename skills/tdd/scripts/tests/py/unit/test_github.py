@@ -966,8 +966,9 @@ def test_gh_missing_from_path_with_an_interval_tunable_of_1_is_accepted_and_wait
     assert name not in capsys.readouterr().err
 
 
-def test_gh_pr_ready_waits_out_a_rate_limit_refusal_that_clears_and_retries_the_rest_route_2581(fake_processes, monkeypatch, github):
+def test_gh_pr_ready_waits_out_a_rate_limit_refusal_that_clears_and_retries_the_rest_route_2581(fake_processes, monkeypatch, github, tmp_path):
     from veri import pr_ready
+    monkeypatch.chdir(tmp_path)  # its ready stage's lines go to the case's own .tdd (#4230)
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     monkeypatch.delenv("VERI_GH_REFUSAL_SLEEP", raising=False)
     monkeypatch.delenv("VERI_GH_REFUSAL_RETRIES", raising=False)
@@ -1048,8 +1049,9 @@ def test_gh_pr_ready_with_veri_gh_refusal_retries_unset_retries_a_refused_rest_r
     assert fake.argvs[-1][:3] == ["gh", "api", "graphql"]
 
 
-def test_gh_pr_ready_with_a_rate_limit_refusal_that_never_clears_is_a_no_answer_with_the_refusal_as_the_last_stderr_line_not_a_later_routes_404_2581(fake_processes, monkeypatch, capsys, github):
+def test_gh_pr_ready_with_a_rate_limit_refusal_that_never_clears_is_a_no_answer_with_the_refusal_as_the_last_stderr_line_not_a_later_routes_404_2581(fake_processes, monkeypatch, capsys, github, tmp_path):
     from veri import pr_ready
+    monkeypatch.chdir(tmp_path)  # its ready stage's lines go to the case's own .tdd (#4230)
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     monkeypatch.delenv("VERI_GH_REFUSAL_SLEEP", raising=False)
     monkeypatch.delenv("VERI_GH_REFUSAL_RETRIES", raising=False)
@@ -1071,8 +1073,9 @@ def test_gh_pr_ready_with_a_rate_limit_refusal_that_never_clears_is_a_no_answer_
     assert err_lines[-1] == "API rate limit already exceeded"
 
 
-def test_gh_pr_ready_waits_out_a_rate_limit_refusal_that_clears_and_retries_the_graphql_route_2581(fake_processes, monkeypatch, github):
+def test_gh_pr_ready_waits_out_a_rate_limit_refusal_that_clears_and_retries_the_graphql_route_2581(fake_processes, monkeypatch, github, tmp_path):
     from veri import pr_ready
+    monkeypatch.chdir(tmp_path)  # its ready stage's lines go to the case's own .tdd (#4230)
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     monkeypatch.delenv("VERI_GH_REFUSAL_SLEEP", raising=False)
     monkeypatch.delenv("VERI_GH_REFUSAL_RETRIES", raising=False)
@@ -1303,12 +1306,13 @@ def test_a_git_ls_remote_that_never_returns_is_started_in_its_own_session_and_it
 
 
 def test_pr_ready_sh_with_a_veri_gh_timeout_that_is_not_a_whole_number_of_at_least_1_exits_2_with_one_line_naming_it_and_starts_no_gh_3983(
-        fake_processes, run_cli):
+        fake_processes, run_cli, tmp_path):
     pr_ready = importlib.import_module("veri.pr_ready")
     fake = fake_processes.answers({})
     observed = {}
     for value in ("0", "abc", "1.5", "-3", ""):
-        code, out, err = run_cli(pr_ready, ["12", "a" * 40], env={"VERI_GH_TIMEOUT": value, "VERI_GH_DRIVER": "rest"})
+        code, out, err = run_cli(pr_ready, ["12", "a" * 40], env={"VERI_GH_TIMEOUT": value, "VERI_GH_DRIVER": "rest"},
+                                 cwd=tmp_path)
         observed[value] = (code, out, err)
 
     assert observed == {value: (2, "", "VERI_GH_TIMEOUT: invalid value %r\n" % value)
