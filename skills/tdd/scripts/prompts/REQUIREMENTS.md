@@ -782,7 +782,7 @@
 |---|---|---|
 | VC1 | The prompt tells the verifier to run the cases on the unmodified code and to REJECT when one fails, when a case imports or calls anything inside the region other than the seam, when a case asserts on a value not observable at the seam, or when the diff changes any file outside the test files. | A characterization test must be black-box and pass on the code it characterizes (PRD 031, D9). |
 | VC2 | The prompt tells the verifier not to reject a case for being slow, for starting a process, or for depending on fixtures outside its own file. | These are verify-pin's rejections and the nature of a test around a region (PRD 031, D9). |
-| VC3 | The prompt says the verifier may add `MUTANT: <file> \| <old> \| <new>` lines for mutants of the region the developer's table misses, and that a script, not the verifier, runs them. | The verifier may add rows; a script runs them all (PRD 031, D4; #2506). |
+| VC3 | The prompt says the verifier may add `MUTANT: <file> \| <old> \| <new>` lines for mutants of the region it judges the cases should catch, and that a script, not the verifier, runs them. | The verifier may add rows; a script runs them all (PRD 031, D4; #2506). |
 
 ## skills/tdd/scripts/prompts/verify-plan.md
 
