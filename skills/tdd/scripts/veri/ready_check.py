@@ -59,17 +59,23 @@ def detect_tier(tier):
 
 
 def tier_run_row(tier, command, wt):
-    """Run <command> once in <wt>, a detached worktree of the default branch's tip, through detach-command.sh."""
+    """Run <command> once in <wt>, a detached worktree of the default branch's tip, through detach-command.sh; a run
+    an earlier call started there (its start time recorded in <wt>) is waited on, not started again. None while it
+    is still running at wait's bound."""
     name = "ready-" + tier
-    git.git("worktree", "add", "--detach", wt, default_tip(), capture_output=True, text=True)
-    os.makedirs(os.path.join(wt, ".tdd"), exist_ok=True)
     detach = script("detach-command.sh")
-    began = time.time()
-    subprocess.run([detach, "start", name, *shlex.split(command)], cwd=wt, capture_output=True, text=True)
+    started = os.path.join(wt, ".tdd", name + ".began")
+    if not os.path.exists(started):
+        git.git("worktree", "add", "--detach", wt, default_tip(), capture_output=True, text=True)
+        os.makedirs(os.path.join(wt, ".tdd"), exist_ok=True)
+        with open(started, "w") as began:
+            began.write(repr(time.time()))
+        subprocess.run([detach, "start", name, *shlex.split(command)], cwd=wt, capture_output=True, text=True)
     waited = subprocess.run([detach, "wait", name], cwd=wt, capture_output=True, text=True)
     if waited.returncode == 3:
         return None
-    row = f"{tier} tier run ({int(time.time() - began)}s)"
+    with open(started) as began:
+        row = f"{tier} tier run ({int(time.time() - float(began.read()))}s)"
     output = os.path.join(wt, ".tdd", name + ".out")
     said = []
     if os.path.exists(output):
