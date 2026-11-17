@@ -28,7 +28,23 @@ def test_an_existing_tier_line_is_replaced_where_it_stands_keeping_what_precedes
         b"tail")
 
 
-@pytest.mark.parametrize("argv", [[], ["make unit"], ["", "make test"], ["make unit", ""], ["make unit", "", "."]])
+def test_an_existing_one_test_file_line_is_replaced_where_it_stands_and_every_other_line_is_unchanged(record):
+    text = b"# P\nveri: one test file: `old \"$1\"`\nmid\nveri: fast tests: f\nveri: all tests: a\nend\n"
+
+    assert record.recorded(text, b"f", b"a", b'pytest -q "$1"') == (
+        b"# P\nveri: one test file: pytest -q \"$1\"\nmid\nveri: fast tests: f\nveri: all tests: a\nend\n")
+
+
+def test_without_one_file_no_one_test_file_line_is_added_and_an_existing_one_is_left_unchanged(record):
+    bare = b"# P\n"
+    held = b"# P\nveri: one test file: `old \"$1\"`\n"
+
+    assert (record.recorded(bare, b"f", b"a"), record.recorded(held, b"f", b"a")) == (
+        b"# P\nveri: fast tests: f\nveri: all tests: a\n",
+        b"# P\nveri: one test file: `old \"$1\"`\nveri: fast tests: f\nveri: all tests: a\n")
+
+
+@pytest.mark.parametrize("argv",[[], ["make unit"], ["", "make test"], ["make unit", ""], ["make unit", "", "."]])
 def test_a_missing_or_empty_command_is_exit_2_naming_the_usage_before_any_process_starts(
         record, run_cli, fake_processes, argv):
     fake = fake_processes.answers({})
