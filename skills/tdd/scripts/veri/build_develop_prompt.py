@@ -9,6 +9,7 @@ import sys
 import entry
 import event
 import event_log
+import run_line
 import tunables
 from ledger import BEFORE_STATE_GREEN, INTERFACE_PHASES, carries_mark, trailing_markers
 from replaces_case import is_replaces_case_step, parse as parse_replaces_case
@@ -225,7 +226,8 @@ def render(parsed, chosen):
     values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "FIXTURE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
-                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES", "ISSUE_NUMBER", "STEP_ARGUMENT"), b"")
+                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES", "ISSUE_NUMBER", "STEP_ARGUMENT",
+                            "AFFECTED_RUN_LINE", "RUN_LINE"), b"")
     for name, value in zip(names[3:], args[3:]):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
@@ -287,6 +289,7 @@ def render(parsed, chosen):
         values["REPLACES_CASE"] += b"\n\nStill owed for deletion: " + os.fsencode(args[6])
     values.update(ISSUE_SPEC=_without_test_command(_read(spec)), STEP=os.fsencode(step), TEST_CMD=os.fsencode(args[2]),
                   TIMED_TEST_RUN=os.fsencode(f"{HERE}/timed-test-run.sh"))
+    values["AFFECTED_RUN_LINE"], values["RUN_LINE"] = run_line.run_lines()
     lazy = {}
     if freeze:
         lazy["FREEZE_RULE"] = lambda: b"".join(expand_includes(b"\n\n" + _read(path), prompts_b) for path in freeze)

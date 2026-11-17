@@ -390,6 +390,7 @@ def test_main_resolves_includes_recursively_before_substitution_in_the_template_
 
 def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_each_slot_from_its_phases_argument_and_a_diff_render_runs_fast_cmd_then_the_affected_suites(
         tmp_path, capsysbinary, build_verify_prompt):
+    (tmp_path / "skills/tdd/scripts/tests/py").mkdir(parents=True)  # veri's own tree: today's run line (#4105)
     scripts = tmp_path / "scripts"
     (scripts / "veri").mkdir(parents=True)
     module_path = scripts / "veri" / "build_verify_prompt.py"
@@ -680,6 +681,7 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
 @pytest.mark.tree_audit("the templates under prompts/")
 def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_case_and_suite_repair_paragraphs_for_their_phase_alone_renders_the_comment_rules_byte_identical_unmarked_green_and_resolves_or_refuses_includes(
         tmp_path, capsysbinary, build_verify_prompt):
+    (tmp_path / "skills/tdd/scripts/tests/py").mkdir(parents=True)  # veri's own tree: today's run line (#4105)
     spec = tmp_path / "spec.md"
     spec.write_bytes(b'slugify("Hello & World/Foo") must return "hello-world-foo" \xe2\x80\x94 see {ref}\\n done.\n')
     refactor_spec = tmp_path / "refactor-spec.md"
