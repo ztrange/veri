@@ -1,6 +1,6 @@
 # Plan for #4093 — PRD 016.9: preflight runs the permission rows only when its record is missing or stale
 
-- [ ] `ready-check.sh --no-permissions` prints none of the skipped rows and makes none of their probes, and still prints RD7's `gh auth`, `push access` and `label <VERI_LABEL's value>` rows ⟦criterion 1⟧
+- [x] `ready-check.sh --no-permissions` prints none of the skipped rows and makes none of their probes, and still prints RD7's `gh auth`, `push access` and `label <VERI_LABEL's value>` rows ⟦criterion 1⟧
 - [ ] preflight passes `--no-permissions` and prints `permission rows skipped: checked <date>` when `.tdd/permissions-checked` in the main working tree holds the current gh login, origin URL and check version ⟦criterion 2⟧
 - [ ] a missing, stale, unreadable, malformed or future-dated record, or `VERI_RECHECK_PERMISSIONS=1`, leaves `--no-permissions` off the call ⟦criterion 3⟧
 - [ ] after a call without `--no-permissions` in which every skipped row was printed and none failed, preflight writes the record; after one in which any failed, it writes none and leaves an existing one byte-for-byte ⟦criterion 4⟧
