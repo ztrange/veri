@@ -177,3 +177,29 @@ def test_main_keeps_foreign_text_between_two_run_parts_byte_identical_3502(run_c
 
     assert code == 0, err
     assert written == ["%s\nnew\n%s\n\n%s\n\n%s\nnew\n%s" % (BEGIN, END, foreign, BEGIN, END)]
+
+
+def test_main_writes_no_local_path_host_or_account_name_in_the_lint_section_or_any_other_line_4122(
+        run_cli, pr_body, fake_processes, tmp_path, monkeypatch):
+    home = tmp_path / "home-of-zorblat"
+    run = home / "code" / "repo"
+    temp = tmp_path / "temp-of-zorblat"
+    run.mkdir(parents=True)
+    temp.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("TMPDIR", str(temp))
+    monkeypatch.setattr(importlib.import_module("tempfile"), "tempdir", str(temp))
+    monkeypatch.setattr(importlib.import_module("socket"), "gethostname", lambda: "zorblat-mbp.local")
+    written = fake_gh_pr_body(fake_processes, "")
+    body_file = tmp_path / "body.md"
+    body_file.write_text(
+        "## Summary\nbuilt in %s/scratch on zorblat-mbp as home-of-zorblat\n\n"
+        "### Lint\n\n`make lint` exited 1.\n\n~~~text\n%s/src/a.py:3: E1 unused\n"
+        "/var/folders/ab/cd0123/T/tmp9/x.py:1: E2\n%s/notes.txt: W3 (home-of-zorblat@zorblat-mbp)\n~~~\n"
+        % (temp, str(run).lower(), home))
+
+    code, out, err = run_cli(pr_body, ["42", str(body_file)], cwd=str(run))
+
+    sent = written[0].lower() if written else ""
+    assert (code, err, [leak for leak in (str(tmp_path).lower(), "/var/folders/", "zorblat-mbp", "home-of-zorblat")
+                        if leak in sent], "`make lint` exited 1." in sent) == (0, "", [], True)

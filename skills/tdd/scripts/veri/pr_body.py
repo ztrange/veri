@@ -1,10 +1,12 @@
 """pr-body.sh's body write, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
+import os
 import re
 import sys
 
 import github
+import run_records
 
 BEGIN, END = "<!-- veri:run-body -->", "<!-- /veri:run-body -->"
 USAGE = "usage: pr-body.sh <pr-number> <body-file>"
@@ -26,6 +28,7 @@ def main(argv):
     body, replaced = pattern.subn(lambda _: mine, current)
     if not replaced:
         body = mine
+    body = run_records.redact_local(body, os.getcwd())
     write = github.run_gh("api", "-X", "PATCH", path, "-f", "body=" + body)
     if write.returncode != 0:
         print("pr-body.sh: cannot write the body of PR #%s" % argv[0], file=sys.stderr)

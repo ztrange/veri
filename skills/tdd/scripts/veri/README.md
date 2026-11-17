@@ -368,6 +368,7 @@ A run's records on origin's `refs/veri/runs/<n>`: a commit with no parent holdin
 - `delete(issue, cwd)`: deletes the ref on origin, bounded by `VERI_GIT_NETWORK_TIMEOUT`; `None` when deleted, absent or with no origin, else the reason in one line. Never raises.
 - `after_push()`: pushes the records of the issue the current branch `tdd/<n>-<slug>` names, replacing the ref; nothing on another branch; a failure is one stderr line, never raised.
 - `read(issue, name, cwd)`: the text of `.tdd/<name>` in origin's ref, fetched into the clone at `cwd` under the same ref; `None` when origin, the ref or the file is missing.
+- `redact_local(text, run)`: `text` with the same two layers applied line by line for the run at `run` (a line still leaking after the first is `<redacted>` whole, the other lines kept); `pr_body` passes every PR body it writes through it.
 
 ## run_end
 - `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events. `standing_mark(events)`: the mark that ended the run, `{}` when none stands; `MARKS`: the ending events, each to its cause.
