@@ -132,7 +132,7 @@ def develop(n, wt, settled, step):
 
 def red_report(wt):
     """Red 1's three report lines, printed (RH5): a missing one stops with exit 2, PASSES or UNTESTABLE with 1."""
-    got = fused.report("1", wt, "develop-red", "TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED")
+    got = fused.report("1", wt, ".tdd/develop-red.out", "TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED")
     for key in ("TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED"):
         if got[key]:
             sys.stdout.write("%s=%s\n" % (key.lower(), got[key]))
