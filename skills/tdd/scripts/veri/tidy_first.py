@@ -18,11 +18,25 @@ SMELLS = os.path.join(os.path.dirname(paths.scripts_of(__file__)), "SMELLS.md")
 ANSWER_RE = re.compile(r"(?P<refactoring>[^|]+?) *\| *(?P<file>[\w./-]+)::(?P<symbol>[A-Za-z_][\w.]*) *\| *(?P<why>\S[^|]*)")
 
 
-def catalogue_refactorings(path=SMELLS):
-    """Every refactoring name the third column of SMELLS.md's smell table lists."""
+def catalogue(path=SMELLS):
+    """[(smell, [refactoring, ...])] in SMELLS.md's smell table order: its first and third columns, never the threshold."""
     with open(path, encoding="utf-8") as f:
         rows = [line.split("|") for line in f if line.startswith("| ")]
-    return {name.strip() for cells in rows[1:] if len(cells) > 4 for name in cells[3].split(",") if name.strip()}
+    return [(cells[1].strip(), [name.strip() for name in cells[3].split(",") if name.strip()])
+            for cells in rows[1:] if len(cells) > 4]
+
+
+def catalogue_refactorings(path=SMELLS):
+    """Every refactoring name the third column of SMELLS.md's smell table lists."""
+    return {name for _, names in catalogue(path) for name in names}
+
+
+def catalogue_names(path=SMELLS):
+    """The develop-green prompt's list of the catalogue's names: one `- <smell>: <refactorings>` line per smell, the
+    catalogue's path first, so the leaf names a refactoring as tidy-first.sh reads it without the thresholds' bytes."""
+    return (f"The smell catalogue, `{path}` (`Read` it for a smell's threshold), names these smells and the"
+            " refactorings that answer them:\n\n"
+            + "\n".join(f"- {smell}: {', '.join(names)}" for smell, names in catalogue(path)))
 
 
 def _refuse(why, line):

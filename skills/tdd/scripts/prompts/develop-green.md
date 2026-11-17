@@ -26,11 +26,11 @@ exactly as you found it.
 A step that becomes one small change only after a behaviour-preserving restructuring of code
 already committed has one more answer: make the change easy first. Leave the working tree
 exactly as you found it and report one `TIDY_FIRST: <refactoring> | <file>::<symbol> | <why>`
-line instead of `SPLIT:` lines or a `SUITE:` line, `<refactoring>` a refactoring the catalogue
-below lists, spelt as it spells it, and `<file>::<symbol>` the committed code it restructures.
+line instead of `SPLIT:` lines or a `SUITE:` line, `<refactoring>` a refactoring the list
+below names, spelt as it spells it, and `<file>::<symbol>` the committed code it restructures.
 The conductor lands that refactoring as a step of its own, then starts this step again from Red.
 
-{{INCLUDE:../../SMELLS.md}}
+{{SMELL_NAMES}}
 
 ### The issue's behavior spec (context — build only what the failing test demands)
 
