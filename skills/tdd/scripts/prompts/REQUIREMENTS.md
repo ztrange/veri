@@ -775,6 +775,13 @@
 | VP19 | Where check 2 sends the verifier through `{{MUTATION_PROBE}} <file> <old> <new>`, the template says that a probe exit 2 whose stderr names an allowed address domain means any email address in `<old>`/`<new>` must be on that domain, and the verifier retries with one that is. | A refused address is corrected by the verifier instead of ending in an unrecoverable no-verdict. |
 | VP20 | Where check 2 sends the verifier through `{{MUTATION_PROBE}} <file> <old> <new>`, the template says that a probe exit 2 can also mean `<old>` is absent from the working-tree file or the command fails on the unmutated file, and that the verifier fixes `<old>` or the command and retries, never reporting such an exit as a PASS. | The verifier reads the probe's new refusals as no verdict, not as a red (#3396). |
 
+## skills/tdd/scripts/prompts/verify-surround.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VC1 | The prompt tells the verifier to run the cases on the unmodified code and to REJECT when one fails, when a case imports or calls anything inside the region other than the seam, when a case asserts on a value not observable at the seam, or when the diff changes any file outside the test files. | A characterization test must be black-box and pass on the code it characterizes (PRD 031, D9). |
+| VC2 | The prompt tells the verifier not to reject a case for being slow, for starting a process, or for depending on fixtures outside its own file. | These are verify-pin's rejections and the nature of a test around a region (PRD 031, D9). |
+
 ## skills/tdd/scripts/prompts/verify-plan.md
 
 | ID | Requirement | Why |
