@@ -12,6 +12,7 @@ import entry
 from git import git
 
 import markdown_sections
+import run_line
 import stem_walk
 
 USAGE = "usage: affected-suites.sh <base>..<head>"
@@ -273,7 +274,7 @@ def main(argv):
     if not files:
         return 3
 
-    if not os.path.isdir(PYTEST_DIRS[0]):
+    if not run_line.own_tree():
         return foreign(files.split("\n"))
 
     placed, unplaced = [], []
