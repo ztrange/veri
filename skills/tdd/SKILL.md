@@ -841,10 +841,10 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    $S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" --red-case '<red-test-id>' <test-path>… > .tdd/verify-red.reason; rc=$?
    [ "$rc" = 0 ] || exit "$rc"
    ```
-   Exit 1 (Red case gone) is a verify-red REJECT spending `REVISE_BUDGET` (`Read` `<base directory>/REVISE.md`); exit 2, a bail (`<base directory>/BAIL.md`).
-   With `--step "<step text>"` in place of a record file, the record file is the one `$S/tests-frozen.sh path "<step text>"`
-   prints, `.tdd/tests-frozen-<k>.record` with `<k>` the first 16 hex digits of the step text's SHA-256: a step text is
-   often longer than a filename may be and may hold a `/`, so the text itself is never the filename.
+   Exit 1 (Red case gone) is a verify-red REJECT spending `REVISE_BUDGET` (`REVISE.md`); exit 2, a bail (`<base directory>/BAIL.md`).
+   Then `$S/red-setup.sh record <n> < .tdd/develop-red.out` once: on exit 0, 2 or 3 go on, never bail, revise or relaunch.
+   `--step "<step text>"`'s record file is what `$S/tests-frozen.sh path "<step text>"` prints,
+   `.tdd/tests-frozen-<k>.record`, `<k>` the first 16 hex digits of the step text's SHA-256, never the text (too long, or holding `/`).
    On **`PASSES`** the criterion is **already satisfied** — never send that test to
    verify-red, whose verdict on a passing test can only be `REJECT`. Run the pin check
    instead and continue at the pin (when a Red reports `AGAINST_UNMODIFIED: PASSES`, `Read` `<base directory>/PIN.md`):

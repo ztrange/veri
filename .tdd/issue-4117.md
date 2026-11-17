@@ -15,8 +15,8 @@
 - [x] `VERI_SETUP_THRESHOLD` is a `TUNABLES` entry, a whole number, default 3, and any other value makes `red-setup.sh worst` exit 2 with one stderr line naming the knob ⟦criterion 8⟧
 - [x] the row `red-setup.sh worst` records carries no local path, host or account name
 - [x] `red-setup.sh` run as a script records a Red's count and the worst step end to end
-- [ ] no verifier prompt names `SETUP:` and `build-verify-prompt.sh` gains no input ⟦diff-checked⟧ ⟦criterion 9⟧
+- [x] no verifier prompt names `SETUP:` and `build-verify-prompt.sh` gains no input ⟦diff-checked⟧ ⟦criterion 9⟧
 - [x] `JOURNAL.md` has a `red-setup` row held by the journal roster cases ⟦full-suite⟧ ⟦criterion 10⟧
 - [x] `_develop-red-run-and-report.md` asks for the `SETUP:` line ⟦skill-edit⟧ ⟦criterion 11⟧
-- [ ] `SKILL.md` *Red* runs `red-setup.sh record` after verify-red's PASS and goes on to Green on each exit, and no longer recounts why `AGAINST_UNMODIFIED` exists ⟦skill-edit⟧ ⟦criterion 12⟧
+- [x] `SKILL.md` *Red* runs `red-setup.sh record` after verify-red's PASS and goes on to Green on each exit, and no longer recounts why `AGAINST_UNMODIFIED` exists ⟦skill-edit⟧ ⟦criterion 12⟧
 - [ ] `DRAFT-PR.md` runs `red-setup.sh worst` in sub-step 1, and `SCRIPTS.md` has its entry ⟦skill-edit⟧ ⟦criterion 13⟧
