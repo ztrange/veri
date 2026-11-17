@@ -32,3 +32,17 @@ def test_a_join_asks_stack_red_after_its_fetch_and_before_its_rebase_and_on_exit
     kept = [c for c in world.calls if "worktree remove" in c or "branch -D" in c or "--delete" in c]
     assert (code, asked, rebased, pushed(world), len(released(world)), kept) == (
         1, [(world.wt, [wt + "fetch --prune origin"])], [], [], 1, []), err
+
+
+def test_a_refusal_by_the_freeze_is_one_stderr_line_naming_the_red_commit_its_run_url_and_stack_culprit_as_the_next_command(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    clean = World(tmp_path / "clean").install(fake_processes, monkeypatch)
+    spy_stack_red(monkeypatch, clean, (3, ""))
+    _, _, quiet = join(run_cli, clean)
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+    spy_stack_red(monkeypatch, world)
+
+    _, _, err = join(run_cli, world)
+    added = [line for line in err.splitlines() if line not in quiet.splitlines()]
+
+    assert (len(added), RED in added[0], URL in added[0], "stack-culprit.sh %s" % RED in added[0]) == (1, True, True, True), err
