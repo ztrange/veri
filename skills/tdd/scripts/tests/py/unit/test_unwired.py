@@ -55,3 +55,18 @@ def test_every_added_file_named_exits_0_printing_nothing_and_a_range_adding_none
         range_git(fake_processes, added, list(tree))
         results.append((unwired.main(["base"]),) + tuple(capsys.readouterr()))
     assert results == [(0, "", ""), (3, "", "")]
+
+
+def test_a_base_that_does_not_resolve_or_a_directory_that_is_no_work_tree_exits_2_with_one_stderr_line(
+        tmp_path, monkeypatch, capsys, unwired, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    results = []
+    for failing in ("--is-inside-work-tree", "--verify"):
+        def answer(line, **kwargs):
+            if failing in line or not line.startswith("git rev-parse"):
+                return 128, "", "fatal: no\n"
+            return 0, "true\n", ""
+
+        fake_processes.answers({"git": answer})
+        results.append((unwired.main(["nope"]),) + tuple(capsys.readouterr()))
+    assert results == [(2, "", "unwired: not a git work tree\n"), (2, "", "unwired: cannot resolve 'nope'\n")]
