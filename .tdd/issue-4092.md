@@ -5,7 +5,7 @@
 - [x] a failing step 2 check stops preflight before `ready-check.sh` runs ⟦criterion 1⟧
 - [x] a failing refusing row stops preflight at `2 ready-check.sh` with exit 1, its fail line printed and no worktree created ⟦criterion 2⟧
 - [x] any other failing row is printed and preflight goes on ⟦criterion 3⟧
-- [ ] an exit 2 from `ready-check.sh` stops preflight at `2 ready-check.sh` with exit 2 ⟦criterion 4⟧
+- [x] an exit 2 from `ready-check.sh` stops preflight at `2 ready-check.sh` with exit 2 ⟦criterion 4⟧
 - [ ] a stop at `2 ready-check.sh` writes no event and posts no comment ⟦criterion 6⟧
 - [ ] PREFLIGHT.md step 2 says preflight runs `ready-check.sh --no-suites` and which failing rows stop the run ⟦criterion 7⟧
 - [ ] PREFLIGHT-FAILURES.md `### Step 2` says a stop at `2 ready-check.sh` is a refusal recorded by `preflight-refused.sh` ⟦criterion 8⟧

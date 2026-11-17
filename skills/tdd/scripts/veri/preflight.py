@@ -125,6 +125,8 @@ def check_readiness():
                if any(line.startswith(f"fail  {name}: ") for name in refusing_rows())]
     if code == 1 and refused:
         return stopped(2, "ready-check.sh --no-suites", 1)
+    if code not in (0, 1):
+        return stopped(2, "ready-check.sh --no-suites", 2)
     return None
 
 

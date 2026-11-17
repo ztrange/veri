@@ -1053,3 +1053,11 @@ def test_issue_4092_any_other_failing_row_is_printed_and_preflight_goes_on_as_if
     assert all(row in lines for row in WARNING), out
     assert not [line for line in lines if line.startswith("stopped at 2")], out
     assert "issue-worktree.sh" in [n for n, _, _ in calls], calls
+
+
+def test_issue_4092_an_exit_2_from_ready_check_stops_preflight_at_2_ready_check_with_exit_2(monkeypatch, run_cli, tmp_path):
+    calls, code, out = _front(monkeypatch, run_cli, tmp_path, {"ready-check.sh": (2, "", "ready-check.sh: not a git repository\n")})
+
+    assert code == 2, out
+    assert out.splitlines()[-1].startswith("stopped at 2 ready-check.sh"), out
+    assert "issue-worktree.sh" not in [n for n, _, _ in calls], calls
