@@ -395,3 +395,12 @@ def test_4225_the_runs_leaves_and_cost_sum_to_the_issues_leaf_totals_on_two_runs
         sum(entry["attempts"] for entry in shaped["leaves"].values()),
         round(sum(entry["cost_usd"] for entry in shaped["leaves"].values()), 2)) == (3, 1.75)
 
+
+def test_4225_a_journal_with_no_done_bail_or_stop_line_folds_as_one_open_run(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [line for line in two_runs_and_a_restart() if line["event"] not in ("bail", "done")])
+    monkeypatch.chdir(tmp_path)
+
+    runs = as_json(metrics, capsys)["runs"]
+
+    assert runs == [{"index": 1, "ended": None, "cause": None, "wall_seconds": None, "awake_seconds": None,
+                     "sessions": 3, "leaves": 3, "cost_usd": 1.75}]
