@@ -19,6 +19,12 @@ USAGE = "usage: step-close.sh <n>"
 LEDGER = run_dir.ledger("", "%s")
 REFACTOR_HALF = ".tdd/issue-%s-refactor-half"
 
+# The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_step_close.py fails
+# when one is a script SKILL.md's Refactor loop section does not name (FC19).
+CALLS = ("graded-changed.sh", "pin-recheck.sh", "tests-frozen.sh", "clear-refactor-pending.sh", "push-branch.sh",
+         "event.sh", "stop-requested.sh", "comment.sh", "criterion-finished.sh", "ledger-steps.sh",
+         "tick-issue-criterion.sh", "next-unchecked.sh", "run-affordable.sh")
+
 
 def main(argv):
     return fused.entry(argv, NAME + ".sh", run)

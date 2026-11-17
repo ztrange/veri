@@ -280,6 +280,54 @@ def test_4029_the_pins_needing_a_look_are_settled_as_owed_pin_lines_and_printed_
     assert (close.wt / ".tdd" / "issue-12-step-close").read_text() == settled
 
 
+READ = ("git", "pin-recheck.sh", "ledger-steps.sh", "gh")  # stdout read as a value
+
+
+def test_4029_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr(close):
+    class Marked(Fake):
+        def __call__(self, name, *args, **kw):
+            code, out, err = super().__call__(name, *args, **kw)
+            if os.path.basename(name) in READ:
+                return code, out, err
+            return code, "OUT<%d>\n" % len(self.calls) + out, "ERR<%d>\n" % len(self.calls)
+
+    code, out, err, fake = close(fake=Marked())
+
+    lines = out.splitlines()
+    assert code == 0
+    for i, c in enumerate(fake.calls, 1):
+        if c[0] in READ:
+            assert any(line.startswith(c[0]) and line.endswith(" exit 0") for line in lines)
+            continue
+        named = lines[lines.index("OUT<%d>" % i) - 1]
+        assert named.startswith(c[0]) and named.endswith(" exit %d" % (3 if c[0] == "stop-requested.sh" else 0))
+        assert "ERR<%d>" % i in err or c[4].get("err")
+
+
+# Inner calls the Refactor loop section does not name, each by name with its reason: none.
+NAMED_ELSEWHERE = {}
+
+
+def test_4029_every_inner_call_in_the_ordered_list_is_a_script_the_refactor_loop_section_names():
+    from pathlib import Path
+    step_close = importlib.import_module("veri.step_close")
+    skill = (Path(step_close.__file__).resolve().parents[2] / "SKILL.md").read_text()
+    section = skill[skill.index("#### Refactor loop — one leaf"):skill.index("#### A `⟦diff-checked⟧` step")]
+
+    assert [name for name in step_close.CALLS if "$S/" + name not in section and name not in NAMED_ELSEWHERE] == []
+
+
+def test_4029_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(close):
+    step_close = importlib.import_module("veri.step_close")
+    code, out, err, fake = close()
+
+    made = [c[0] for c in fake.calls if c[0] not in ("git", "gh")]
+    assert code == 0
+    assert set(made) == set(step_close.CALLS)
+    firsts = [made.index(name) for name in step_close.CALLS]
+    assert firsts == sorted(firsts)
+
+
 def test_4029_it_writes_no_bail_classifies_nothing_resets_nothing_and_grows_no_plan(close):
     for answers in ({("push-branch.sh", None): (2, "")}, {}):
         code, out, err, fake = close(answers=answers)
