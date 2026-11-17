@@ -61,6 +61,16 @@ def detect_tier(tier):
     return resolved_tier(tier)[0]
 
 
+def tip_commit():
+    """(the default branch's tip commit, None), or (None, why it does not resolve)."""
+    ref = default_tip()
+    found = git.git("rev-parse", "--verify", "--quiet", ref + "^{commit}", capture_output=True, text=True)
+    sha = found.stdout.strip()
+    if found.returncode != 0 or not sha:
+        return None, f"the default branch's tip, {ref}, does not resolve to a commit"
+    return sha, None
+
+
 def tier_run_row(tier, command, wt, deadline):
     """Run <command> once in <wt>, a detached worktree of the default branch's tip, through detach-command.sh; a run
     an earlier call started there (its start time recorded in <wt>) is waited on, not started again. None while it
@@ -69,7 +79,14 @@ def tier_run_row(tier, command, wt, deadline):
     detach = script("detach-command.sh")
     started = os.path.join(wt, ".tdd", name + ".began")
     if not os.path.exists(started):
-        git.git("worktree", "add", "--detach", wt, default_tip(), capture_output=True, text=True)
+        tip, why = tip_commit()
+        if tip is None:
+            return f"{tier} tier run", f"no answer was obtained: {why}"
+        added = git.git("worktree", "add", "--detach", wt, tip, capture_output=True, text=True)
+        if added.returncode != 0:
+            said = [line.strip() for line in (added.stderr or "").splitlines() if line.strip()]
+            return f"{tier} tier run", "no answer was obtained: " + (
+                said[-1] if said else f"git worktree add exited {added.returncode}")
         os.makedirs(os.path.join(wt, ".tdd"), exist_ok=True)
         with open(started, "w") as began:
             began.write(repr(time.time()))

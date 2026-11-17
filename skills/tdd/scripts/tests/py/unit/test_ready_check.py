@@ -43,6 +43,7 @@ def holding(**overrides):
         "git push --dry-run --no-verify origin": (0, "", ""),
         "git config --get core.sshCommand": (1, "", ""),
         "git worktree": (0, "", ""),
+        "git rev-parse --verify": (0, "c0ffee\n", ""),
         "detach-command.sh": (0, "", ""),
         "claude -p": lambda line, **kwargs: probe_answer()(line, **kwargs),
     }
@@ -446,7 +447,8 @@ def test_issue_4088_each_resolved_tier_runs_in_a_detached_worktree_of_the_defaul
         wt = str(tmp_path / ".tdd" / f"ready-{tier}")
         assert any(row.startswith(f"ok    {tier} tier run") for row in lines), (tier, lines)
         added = [argv for argv, _ in calls_in(fake, "git worktree add") if wt in argv]
-        assert added and "--detach" in added[0] and added[0][-1] == "refs/remotes/origin/main", fake.calls
+        assert added and "--detach" in added[0] and added[0][-1] == "c0ffee", fake.calls
+        assert "git rev-parse --verify --quiet refs/remotes/origin/main^{commit}" in fake.calls, fake.calls
         starts = calls_in(fake, f"detach-command.sh start ready-{tier} ")
         assert [(argv[3:], cwd) for argv, cwd in starts] == [(command, wt)], fake.calls
         assert [cwd for _, cwd in calls_in(fake, f"detach-command.sh wait ready-{tier}")] == [wt], fake.calls
@@ -586,6 +588,21 @@ def test_issue_4088_a_tiers_wall_time_ends_when_its_command_recorded_its_exit_no
 
     assert tier_run_line(lines, "fast") == "ok    fast tier run (30s)", lines
     assert tier_run_line(lines, "all") == "ok    all tier run (4s)", lines
+
+
+@pytest.mark.parametrize("failing, said", [
+    ({"git rev-parse --verify": (1, "", "")}, "refs/remotes/origin/main"),
+    ({"git worktree add": (128, "", "fatal: invalid reference: c0ffee\n")}, "fatal: invalid reference: c0ffee")])
+def test_issue_4088_a_default_tip_that_does_not_resolve_or_a_failing_worktree_add_fails_the_row_starting_and_creating_nothing(ready_check, run_cli, fake_processes, tmp_path, failing, said):
+    fake = fake_processes.answers(holding(**TIERS, **failing))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    lines = out.splitlines()
+
+    row = tier_run_line(lines, "fast")
+    assert row is not None and row.startswith("fail  fast tier run: no answer was obtained") and said in row, lines
+    assert not calls_in(fake, "detach-command.sh start"), fake.calls
+    assert not (tmp_path / ".tdd" / "ready-fast").exists() and not (tmp_path / ".tdd" / "ready-all").exists()
+    assert code == 1
 
 
 def test_issue_4092_ready_check_no_suites_is_accepted_prints_no_tier_run_row_and_runs_no_tier(ready_check, run_cli, fake_processes, tmp_path):
