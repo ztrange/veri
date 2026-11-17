@@ -352,7 +352,8 @@ def ledger_mark_phase(text, matcher, phase, owed=False):
     )
 
 
-SURROUND_SHORT_MARK = mark("surround", "short")
+_SURROUND, _SHORT = "surround", "short"
+SURROUND_SHORT_MARK = mark(_SURROUND, _SHORT)
 
 
 def ledger_mark_surround_short(text, matcher):
@@ -367,7 +368,7 @@ def ledger_mark_surround_short(text, matcher):
         if line.endswith(SURROUND_SHORT_MARK) or SURROUND_SHORT_MARK + " " in line:
             spent.append(line)
             return line
-        return _with_phase_mark(line, "surround", "short")
+        return _with_phase_mark(line, _SURROUND, _SHORT)
 
     found, new = _rewrite_first_step(text, _open_holding(matcher), rewrite)
     return (None, text) if spent else (found, new)
