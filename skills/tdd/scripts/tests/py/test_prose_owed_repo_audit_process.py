@@ -215,7 +215,9 @@ def test_2679_the_five_verify_green_fragment_units_are_signed_and_owe_no_grade()
 def test_2782_the_eleven_wording_rows_sit_under_their_units_and_the_five_units_owe_no_grade():
     repo = SCRIPTS.parents[2]
     owed = {
-        "skills/tdd/SKILL.md": ("skills/tdd/REQUIREMENTS.md", ["SS1", "SS2", "SS3", "PL63", "CY129"]),
+        "skills/tdd/SKILL.md": ("skills/tdd/REQUIREMENTS.md", ["SS1", "SS2", "SS3", "PL63"]),
+        "skills/tdd/SKILL.md#Green — minimum implementation (developer leaf), then verify-green (blind)":
+            ("skills/tdd/REQUIREMENTS.md", ["CY129"]),
         "skills/tdd/PREFLIGHT.md": ("skills/tdd/REQUIREMENTS.md", ["PF37", "PF38"]),
         "skills/tdd/REFACTOR-KIND.md": ("skills/tdd/REQUIREMENTS.md", ["PL64"]),
         "skills/tdd/scripts/prompts/develop-revise.md": ("skills/tdd/scripts/prompts/REQUIREMENTS.md", ["DV5"]),
