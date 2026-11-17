@@ -46,7 +46,8 @@ limit: it is written in full. **Ask a decision once**, when it arises, and in fu
 the options in words, what each costs. Later events do not repeat it; a new decision is its own
 message, not a re-print of the pending list. Mention an open decision again only when the human
 asks what is pending or its facts change, and then restate it in full, never as a pointer to an
-earlier message.
+earlier message; a dev session with `start_session` restates it only inside its own question
+session, never in its transcript (vdev's *Speaking*).
 When a coordinator is attached to the dev session, an event the dev session reports is one
 message to the coordinator, carrying facts only and never a pasted log or issue tail (P6).
 
@@ -133,7 +134,8 @@ through a question tool (`AskUserQuestion`) or a blocking end-of-turn box: eithe
 until the human answers. A decision goes out once, as plain text (P4), and only its own item waits;
 everything else goes on. It is not repeated on routine turns. When the human's next message
 arrives, whatever it is about, the role answers it and then restates every pending decision in
-full, a third case beyond the two P4 names.
+full, a third case beyond the two P4 names. A dev session with `start_session` meets this inside
+each pending decision's own question session, never in its own transcript (vdev's *Speaking*).
 
 **Every question passes the judge first (P22).** An operator role passes each question through
 `vjudge` before it reaches the human; only what the judge surfaces reaches the human. Two

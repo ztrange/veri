@@ -16,6 +16,10 @@ The dev session reads this skill itself, never through a subagent, since it acts
 session's own state. It reaches it after `vmerge`'s own handling of the failed merge is over
 (its settle read, its one lock release): this skill takes no merge lock and releases none.
 
+Every line below that tells the human or is reported goes as the invoking role speaks: from
+the dev session, as one notice, as vdev's *Speaking* says; to the coordinator instead when one is
+attached (P4).
+
 ## The mode is a file
 
 *Local mode* is the file `.tdd/github-outage`: while it exists, merges are held; when it is
