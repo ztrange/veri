@@ -261,6 +261,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_SNAPSHOT_MAX_AGE` | `60` | its readers' own words |
 | `VERI_STEP_BUDGET` | `12` | its readers' own words |
 | `VERI_STEP_GROWTH` | `5` | its readers' own words |
+| `VERI_STEP_GROWTH_PERCENT` | `50` | its readers' own words |
 | `VERI_STOP_KILL_GRACE` | `5` | its readers' own words |
 | `VERI_STUCK_RETRIES` | `1` | its readers' own words |
 | `VERI_TEST_LOCK` | "" | its readers' own words |

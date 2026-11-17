@@ -133,6 +133,7 @@ TUNABLES = {
     "VERI_REFACTOR_BUDGET": Tunable(tokens, "5"),
     "VERI_ISSUE_REFACTOR_BUDGET": Tunable(tokens, "10"),
     "VERI_STEP_GROWTH": Tunable(tokens, "5"),
+    "VERI_STEP_GROWTH_PERCENT": Tunable(tokens, "50"),
     "VERI_NO_VERDICT_RETRIES": Tunable(tokens, "1"),
     "VERI_SKILL_EDIT_BUDGET": Tunable(decimal_at_least_one, "3"),
     "VERI_ADJUDICATE_BUDGET": Tunable(tokens, "2"),
