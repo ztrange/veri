@@ -35,6 +35,7 @@ def test_each_of_the_11_renamed_units_with_a_requirements_list_has_a_graded_line
     import importlib
 
     grade_prose = importlib.import_module("veri.grade_prose")
+    requirements = importlib.import_module("veri.requirements")
     monkeypatch.chdir(ROOT)
     stale = []
     for name in NAMES:
@@ -44,7 +45,9 @@ def test_each_of_the_11_renamed_units_with_a_requirements_list_has_a_graded_line
         graded = ROOT / "skills" / f"v{name}" / "GRADED"
         lines = [l.split(" ") for l in graded.read_text().splitlines()] if graded.is_file() else []
         found = [f[1] for f in lines if f[0] == unit and len(f) > 1]
-        want = grade_prose.signature(f"skills/v{name}/REQUIREMENTS.md", unit)
+        listed = f"skills/v{name}/REQUIREMENTS.md"
+        # The units its own list names, handed in: signature() would otherwise list the tracked lists with git (#4016).
+        want = grade_prose.signature(listed, unit, units=requirements.listed_units(listed))
         if found != [want]:
             stale.append((unit, found, want[:12]))
 
