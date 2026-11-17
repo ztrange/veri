@@ -54,3 +54,20 @@ def test_a_newer_run_in_progress_or_concluded_cancelled_is_skipped_for_the_newes
     code, out, _ = run_cli(stack_red, [])
 
     assert (code, out.split()[:1]) == (0, ["%040x" % 2])
+
+
+@pytest.mark.parametrize("runs, said", [
+    ([run(1), run(2, conclusion="success")], "success"),
+    ([run(1), run(2, conclusion="neutral")], "neutral"),
+    ([run(1), run(2, conclusion="skipped"), run(3, "in_progress", None)], "skipped"),
+    ([], "not answered"),
+    ([run(1, "in_progress", None), run(2, "queued", None)], "not answered"),
+    ([run(1, conclusion="cancelled"), run(2, conclusion="cancelled")], "not answered"),
+])
+def test_exits_3_printing_nothing_when_the_latest_answer_is_green_or_no_run_answered_saying_which_on_stderr(
+        monkeypatch, run_cli, stack_red, runs, said):
+    World(monkeypatch, stack_red, runs)
+
+    code, out, err = run_cli(stack_red, [])
+
+    assert (code, out, err.count("\n"), err.startswith("stack-red: "), said in err) == (3, "", 1, True, True), err
