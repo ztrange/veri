@@ -127,3 +127,41 @@ def test_4021_the_report_owed_example_in_published_md_has_the_keys_of_a_file_sto
     extra = sorted(_key_paths(example) - _key_paths(written))
     assert lacking == [], f"PUBLISHED.md's report-owed.json example lacks the key(s) {lacking}"
     assert extra == [], f"PUBLISHED.md's report-owed.json example has the key(s) {extra}, which --store-owed does not write"
+
+
+def _metrics_paths(value, prefix=""):
+    """Every key of a `metrics.sh --json` object as PUBLISHED.md spells it: `a.b`, `<phase>` for an entry of the map
+    keyed by phase name, `[]` for an entry of a list."""
+    if isinstance(value, dict):
+        paths = set()
+        for key, inner in value.items():
+            path = prefix + ("<phase>" if prefix == "phases." else key)
+            paths |= {path} | _metrics_paths(inner, path + ".")
+        return paths
+    if isinstance(value, list):
+        return {path for inner in value for path in _metrics_paths(inner, prefix.rstrip(".") + "[].")}
+    return set()
+
+
+def _stated_metrics_keys():
+    """The backticked keys in the first column of the table under PUBLISHED.md's `## The metrics file`."""
+    section = PUBLISHED.read_text(encoding="utf-8").split("## The metrics file", 1)[-1].split("\n## ", 1)[0]
+    return {m.group(1) for m in re.finditer(r"^\| `([^`]+)` \|", section, re.M)}
+
+
+def test_4204_published_md_states_exactly_the_keys_of_the_object_metrics_json_builds(tmp_path, monkeypatch):
+    metrics = importlib.import_module("veri.metrics")
+    from test_metrics_page import build_rich_root
+    build_rich_root(tmp_path)
+    log = tmp_path / ".tdd" / "events.jsonl"
+    log.write_text(log.read_text() + json.dumps({"ts": 5200, "issue": "108", "actor": "conductor", "phase": "green",
+                                                 "step": "two", "event": "bail", "cause": "uncovered",
+                                                 "classification": "process"}) + "\n")
+    monkeypatch.chdir(tmp_path)
+
+    built = _metrics_paths(metrics.as_json(metrics.fold("108", ".tdd/events.jsonl", ".tdd/issue-108.md")))
+    stated = _stated_metrics_keys()
+
+    assert {"run.bails[].cause", "phases.<phase>.attempts", "steps[].text"} <= built
+    assert sorted(built - stated) == [], f"PUBLISHED.md's metrics file section does not state the key(s) {sorted(built - stated)}"
+    assert sorted(stated - built) == [], f"PUBLISHED.md's metrics file section states the key(s) {sorted(stated - built)}, which metrics.sh --json does not build"
