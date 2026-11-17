@@ -1,6 +1,6 @@
 # Plan for #4198 — PRD 034.3b: one command names the issue that turned the stack red, and the cases it broke
 
-- [ ] github.run_failed_log reads a workflow run's failed-job log (gh run view <id> --log-failed); NoAnswer when gh gives none ⟦criterion 1⟧
+- [x] github.run_failed_log reads a workflow run's failed-job log (gh run view <id> --log-failed); NoAnswer when gh gives none ⟦criterion 1⟧
 - [ ] stack-culprit.sh reads the red cases from the failed log of the newest completed, not-cancelled run on <red-sha>, named by rerun-alone.sh's rule from the log as ci-flake.sh reads it, and runs at most the first 5, saying on stderr how many it did not run ⟦criterion 1⟧ ⟦criterion 2⟧
 - [ ] the commits tested are the issue ends (next commit toward the tip belongs to another issue) from the newest tested KT5 issue end at or below <red-sha> (origin/<default> when none) to <red-sha>, an issue end inside another issue's KT5 span included ⟦criterion 3⟧
 - [ ] each case runs alone through the one-test-file command, oldest end first, in a detached worktree of its own under .tdd/, removed on every exit; a worktree that cannot be added is exit 2 with nothing run ⟦criterion 4⟧

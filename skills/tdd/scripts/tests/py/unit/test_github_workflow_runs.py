@@ -49,3 +49,23 @@ def test_workflow_runs_is_no_answer_for_a_failed_read_or_an_answer_not_of_the_wo
 
     with pytest.raises(github.NoAnswer):
         github.workflow_runs("stack")
+
+
+LOG = "gh run view 42 --log-failed"
+
+
+def test_run_failed_log_reads_the_failed_job_log_of_one_workflow_run(github, fake_processes):
+    fake = fake_processes.answers({LOG: (0, "job\tstep\t2026-11-16T10:00:00Z FAILED a.py::t - x\n", "")})
+
+    got = github.run_failed_log("42")
+
+    assert (got, fake.calls) == ("job\tstep\t2026-11-16T10:00:00Z FAILED a.py::t - x\n", [LOG])
+
+
+@pytest.mark.parametrize("run_id", ["42", "4x"])
+def test_run_failed_log_is_no_answer_when_gh_gives_none_or_the_run_id_is_not_a_number(github, fake_processes, run_id):
+    fake = fake_processes.answers({LOG: (1, "", "HTTP 502\n")})
+
+    with pytest.raises(github.NoAnswer):
+        github.run_failed_log(run_id)
+    assert len(fake.calls) == (run_id == "42")
