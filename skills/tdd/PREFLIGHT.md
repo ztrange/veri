@@ -31,7 +31,8 @@ the branch already holds a ledger, runs steps 1 to 7 below and never calls the s
    worktree, run `$S/ready-check.sh --no-suites` on the target repo: the readiness table
    `/vready` prints, without the test-tier runs step 3 makes anyway. A failing `fast tier`,
    `all tier`, `pull_request`, `gh auth`, `push access` or `label <VERI_LABEL's value>` row
-   stops the run; any other failing row is printed and the run goes on.
+   stops the run with exit 1, and a `ready-check.sh` that gives no answer (its exit 2) stops it
+   with exit 2; any other failing row is printed and the run goes on.
 3. **Suite is green at baseline — and time it — on the commit the cycles build on.** Enter
    the issue's worktree first, as step 1.2 describes — slug from the title — and clear any stale stop request there before anything else. The
    worktree's lock, `.tdd/conductor.pid`, is not yours to write: `run_conductor.py` claims it
