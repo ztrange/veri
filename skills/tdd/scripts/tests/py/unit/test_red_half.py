@@ -387,3 +387,117 @@ def test_4026_it_writes_no_bail_and_resets_nothing_on_a_stop(red):
 
     assert not {"classify-bail.sh", "preflight-refused.sh", "event.sh"} & set(fake.names())
     assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("reset",), ("clean",))]
+
+
+def _pid(red, text):
+    (red.wt / ".tdd" / "conductor.pid").write_text(text)
+
+
+@pytest.mark.parametrize("leaf", ["develop-red", "verdict-red"])
+def test_4026_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line(red, leaf):
+    code, out, err, fake = red(answers={("wait-leaf.sh", leaf): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on " + leaf)
+    assert not (red.wt / ".tdd" / "issue-12-red-half").exists()
+
+
+def test_4026_called_again_after_a_develop_red_wait_it_only_waits_again_then_goes_on(red):
+    _pid(red, "111\nTue Nov 17 07:00:00 2026\n")
+    first = red(answers={("wait-leaf.sh", "develop-red"): (3, ""), ("refresh-spec.sh", None): (2, "")})[0]
+    code, out, err, fake = red()
+
+    assert (first, code) == (3, 0)
+    assert fake.calls[0][:2] == ("wait-leaf.sh", ("develop-red",))
+    assert fake.launched() == ["verdict-red"]
+    assert "refresh-spec.sh" not in fake.names()
+    assert "capture" in (red.wt / ".tdd" / "red-half-note.md").read_text()
+
+
+def test_4026_called_again_after_a_verdict_red_wait_it_only_waits_again_then_records_and_comments(red):
+    _pid(red, "111\nTue Nov 17 07:00:00 2026\n")
+    first = red(answers={("wait-leaf.sh", "verdict-red"): (3, "")})[0]
+    code, out, err, fake = red()
+
+    assert (first, code) == (3, 0)
+    assert [c[0] for c in fake.calls[:3]] == ["wait-leaf.sh", "step-cost.sh", "step-budget.sh"]
+    assert fake.calls[0][1] == ("verdict-red",)
+    assert fake.launched() == []
+    assert [c[1][1] for c in fake.calls if c[0] == "comment.sh"] == ["red", "verify-red"]
+    assert not (red.wt / ".tdd" / "issue-12-red-half-wait").exists()
+    assert (red.wt / ".tdd" / "issue-12-red-half").read_text().startswith("step=" + STEP + "\ntest_path=tests/")
+
+
+def test_4026_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(red):
+    _pid(red, "111\nTue Nov 17 07:00:00 2026\n")
+    red(answers={("wait-leaf.sh", "develop-red"): (3, "")})
+
+    record = json.loads((red.wt / ".tdd" / "issue-12-red-half-wait").read_text())
+    assert (record["conductor"], record["at"]) == ({"pid": "111", "started": "Tue Nov 17 07:00:00 2026"},
+                                                   "develop-red")
+
+
+@pytest.mark.parametrize("second", ["222\nTue Nov 17 07:00:00 2026\n", "111\nTue Nov 17 08:00:00 2026\n", None],
+                         ids=["another pid", "another start time", "no pid file"])
+def test_4026_called_under_another_conductor_it_discards_the_record_and_starts_from_its_first_call(red, second):
+    _pid(red, "111\nTue Nov 17 07:00:00 2026\n")
+    red(answers={("wait-leaf.sh", "verdict-red"): (3, "")})
+    if second is None:
+        (red.wt / ".tdd" / "conductor.pid").unlink()
+    else:
+        _pid(red, second)
+    code, out, err, fake = red()
+
+    assert (code, fake.calls[0][:2]) == (0, ("refresh-spec.sh", ("12", ".tdd/issue-12-spec.md")))
+
+
+READ = ("extract-result.sh", "step-cost.sh", "step-budget.sh")  # their stdout is read as a figure or a report
+
+
+def test_4026_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr(red):
+    class Marked(Fake):
+        def __call__(self, name, *args, **kw):
+            code, out, err = super().__call__(name, *args, **kw)
+            if os.path.basename(name) in READ:
+                return code, out, err
+            return code, "OUT<%d>\n" % len(self.calls) + out, "ERR<%d>\n" % len(self.calls)
+
+    code, out, err, fake = red(fake=Marked())
+
+    lines = out.splitlines()
+    for i, c in enumerate(fake.calls, 1):
+        if c[0] in READ:
+            continue
+        assert "OUT<%d>" % i in lines and "ERR<%d>" % i in err
+        named = lines[lines.index("OUT<%d>" % i) - 1]
+        assert named.startswith(c[0]) and named.endswith(" exit %d" % (3 if c[0] in (
+            "stop-requested.sh", "red-divergence.sh") else 0))
+
+
+# Inner calls the Red section does not name, each by name with its reason.
+NAMED_ELSEWHERE = {
+    "stop-requested.sh": "FC8: the stop check *Launching a leaf* states before every leaf, which Red defers to",
+    "step-budget.sh": "RH4: the budget *The step's cost check* weighs step-cost.sh's figure against",
+    "extract-result.sh": "FC2: *Launching a leaf* reads a leaf's report only through it",
+}
+
+
+def test_4026_every_inner_call_in_the_ordered_list_is_a_script_the_red_section_names():
+    from pathlib import Path
+    red_half = importlib.import_module("veri.red_half")
+    skill = (Path(red_half.__file__).resolve().parents[2] / "SKILL.md").read_text()
+    section = skill[skill.index("#### Red — one failing test"):skill.index("#### Green — minimum implementation")]
+
+    assert [name for name in red_half.CALLS if "$S/" + name not in section and name not in NAMED_ELSEWHERE] == []
+
+
+def test_4026_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(red):
+    red_half = importlib.import_module("veri.red_half")
+    code, out, err, fake = red(step=REPLACES)
+
+    made = [c[0] for c in fake.calls if c[0] != "git"]
+    made += [os.path.basename(a) for c in fake.calls if c[0] == "detach-leaf.sh" for a in c[1] if a.endswith(".sh")]
+    assert code == 0
+    assert set(made) | {"event.sh"} == set(red_half.CALLS)
+    firsts = [made.index(name) for name in red_half.CALLS if name in made and name not in (
+        "supervise.sh", "run-leaf.sh", "run-verdict.sh")]
+    assert firsts == sorted(firsts)
