@@ -296,10 +296,10 @@ def main(argv):
     if len(words) > 4:
         return entry.to_contract(build_verify_prompt.refuse("build-verify-prompt: too many arguments"))
     base = ""
-    if words[0] == "pin":
+    if words[0] in ("pin", "surround"):
         base = leaf_tree_guard.git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
         if not base:
-            write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; a pin needs the real before-state")
+            write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; a %s needs the real before-state" % words[0])
             return 2
     issue = tunables.read("VERI_ISSUE")
     ledger = run_dir.ledger(".", issue) if issue else ""

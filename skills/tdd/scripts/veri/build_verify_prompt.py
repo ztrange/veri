@@ -16,7 +16,7 @@ from prompt_template import IncludeRefused, expand_includes, fill, has_heading, 
 from ledger import INTERFACE_PHASES, carries_mark, ledger_steps, trailing_markers
 from replaces_case import is_replaces_case_step
 
-PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
+PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround")
 VERIFY_ONLY_PHASES = ("beside", "dual-stub")
 WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
 NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
@@ -74,6 +74,8 @@ def main(argv):
         return refuse()
     if len(argv) > 4:
         return refuse("build-verify-prompt: too many arguments")
+    if argv[0] == "surround" and options["--ledger"]:
+        return refuse("build-verify-prompt: surround takes the pin phase's inputs, and --ledger is not one")
     base = options["--supersede-base"]
     if base and not _HEX_SHA.fullmatch(base):
         return refuse(f"build-verify-prompt: --supersede-base needs 7-40 lowercase hex characters, got '{base}'")
@@ -185,8 +187,11 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         return 2, b""
     if "fast-cmd" in NEEDS.get(phase, ()) and not fast_cmd:
         return _refused(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
-    if phase == "pin" and not branch_base:
-        return _refused("build-verify-prompt: pin needs --branch-base '<sha>'")
+    if phase in ("pin", "surround") and not branch_base:
+        return _refused(f"build-verify-prompt: {phase} needs --branch-base '<sha>'")
+    if phase == "surround" and (fast_cmd or supersede_base):
+        return _refused("build-verify-prompt: surround takes the pin phase's inputs, and --fast-cmd and "
+                        "--supersede-base are not among them")
     fourth = test_id
     if phase == "diff":
         if not step_arg:

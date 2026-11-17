@@ -91,7 +91,7 @@ def test_main_refuses_a_missing_argument_an_option_with_no_value_an_unknown_phas
         ("red", "", "t"): (2, b"", USAGE),
         ("--fast-cmd",): (2, b"", b"build-verify-prompt: --fast-cmd needs a value\n" + USAGE),
         ("bogus", str(spec), "t"): (2, b"", b"build-verify-prompt: unknown phase 'bogus' "
-                                    b"(want red|green|refactor|pin|plan|rebase|transform|diff|expand|cover-new|migrate|contract-a|contract-b)\n"
+                                    b"(want red|green|refactor|pin|plan|rebase|transform|diff|surround|expand|cover-new|migrate|contract-a|contract-b)\n"
                                     + USAGE),
         ("green", str(spec), "t", "x"): (
             2, b"", b"build-verify-prompt: green needs --fast-cmd '<fast-tier test command>'\n" + USAGE),
@@ -144,7 +144,7 @@ def test_main_parses_only_leading_options_in_either_order_the_last_winning_and_r
     assert fast_first == step_first
     assert repeated == step_first
     assert build_verify_prompt.PHASES == (
-        "red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
+        "red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround")
 
 
 def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_and_refuses_diff_without_step_ahead_of_its_shas(
@@ -1943,3 +1943,28 @@ def test_4106_plan_fills_the_legacy_slot_with_the_legacy_fragment_for_a_legacy_s
 
     assert {name: (code, fragment in out, "{{LEGACY_PLAN}}" in out) for name, (code, out, _) in outs.items()} == {
         "legacy": (0, True, False), "plain": (0, False, False), "refactor": (0, False, False)}
+
+
+def test_4107_surround_renders_verify_surround_md_from_the_pin_phase_s_inputs_alone_and_refuses_any_other_with_exit_2(
+        tmp_path, spec, run_cli, build_verify_prompt):
+    step = "wrap parse() in src/parse.py:10-80 through bin/parse \u27e6phases: seam,surround\u27e7 \u27e6criterion 1\u27e7"
+    pin_inputs = ["--branch-base", "3f9a1c0", "surround", str(spec), "tests/test_parse_cli.py"]
+
+    def render(argv):
+        code, out, err = run_cli(build_verify_prompt, argv)
+        return code, "## Phase: verify-surround" in out, "3f9a1c0" in out, err
+
+    rendered = {"pin's inputs": render(pin_inputs),
+                "pin's inputs and a target": render(pin_inputs + ["test_parse_prints_the_tree"]),
+                "pin's inputs and its step": render(["--step", step] + pin_inputs)}
+    refused = {name: run_cli(build_verify_prompt, argv)[::2] for name, argv in {
+        "no branch base": ["surround", str(spec), "tests/test_parse_cli.py"],
+        "a fast command": ["--fast-cmd", "make unit"] + pin_inputs,
+        "a supersede base": ["--supersede-base", "3f9a1c0"] + pin_inputs,
+        "a ledger": ["--ledger", str(tmp_path / "ledger.md")] + pin_inputs,
+        "an extra positional": pin_inputs + ["test_parse_prints_the_tree", "extra"],
+    }.items()}
+
+    assert rendered == {name: (0, True, True, "") for name in rendered}
+    assert {name: (code, "surround" in err or "too many" in err) for name, (code, err) in refused.items()} == {
+        name: (2, True) for name in refused}
