@@ -55,6 +55,17 @@ def test_a_missing_or_empty_command_is_exit_2_naming_the_usage_before_any_proces
     assert record.USAGE in err
 
 
+@pytest.mark.parametrize("argv", [["--one-file", "", "make unit", "make test"], ["--one-file"]])
+def test_an_empty_or_missing_one_file_command_is_exit_2_naming_the_usage_before_any_process_starts(
+        record, run_cli, fake_processes, argv):
+    fake = fake_processes.answers({})
+
+    code, out, err = run_cli(record, argv)
+
+    assert (code, out, fake.calls) == (2, "", [])
+    assert record.USAGE in err
+
+
 def test_a_repo_root_outside_a_git_repository_is_exit_2_saying_so_with_nothing_written(
         record, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers({"git rev-parse": (128, "", "fatal: not a git repository\n")})

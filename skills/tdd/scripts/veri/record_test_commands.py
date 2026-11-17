@@ -126,7 +126,7 @@ def main(argv):
     if args[:1] == ["--one-file"]:
         one_file, args = (args[1:2] or [""])[0], args[2:]
     fast, full = (args + ["", ""])[:2]
-    if not fast or not full:
+    if not fast or not full or one_file == "":
         return entry.refuse("record-test-commands.sh: a command is missing or empty", usage=USAGE)
     root = args[2] if len(args) > 2 and args[2] else "."
     try:
