@@ -10,7 +10,7 @@ import pytest
 
 from conftest import SCRIPTS
 
-PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|beside|cover-new|migrate|contract-a|contract-b"
+PHASES = b"red|green|refactor|cover|seam|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|beside|cover-new|migrate|contract-a|contract-b"
 WANT_PHASES = PHASES + b"|dual-stub"
 USAGE = b"usage: build-develop-prompt.sh " + WANT_PHASES + b" <issue-spec-file> <step-text> <test-cmd> ...\n"
 NAMED_REVISABLE = {"expand", "beside", "migrate", "contract-a", "contract-b", "rebase"}
@@ -2211,3 +2211,18 @@ def test_main_takes_the_revise_prompts_issue_number_only_of_ascii_digits_and_ren
     out, err = capsysbinary.readouterr()
     assert (code, b".tdd/issue-" + issue.encode() + b".md" in re.sub(rb"\s+", b" ", out),
             b"a revise prompt needs VERI_ISSUE" in err) == ((0, True, False) if accepted else (2, False, True))
+
+
+def test_main_renders_develop_seam_md_carrying_the_step_for_the_seam_phase_and_refuses_it_short_of_its_arguments_4106(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n\n## Legacy\n")
+    step = "wrap parse() in src/parse.py:10-80 through the `parse` CLI ⟦phases: seam,surround⟧ ⟦criterion 1⟧"
+
+    code = build_develop_prompt.main(["seam", str(spec), step, "make test"])
+    out, err = capsysbinary.readouterr()
+    short = build_develop_prompt.main(["seam", str(spec), step])
+    short_err = capsysbinary.readouterr().err
+
+    assert (code, err, b"## Phase: develop-seam" in out, step.encode() in out) == (0, b"", True, True)
+    assert (short, b"seam needs 4 arguments" in short_err) == (2, True)
