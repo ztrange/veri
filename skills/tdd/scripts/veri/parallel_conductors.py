@@ -76,7 +76,7 @@ class _Conductor:
 
 
 def _prs_json():
-    return open_pulls_text("body,isDraft,url")
+    return open_pulls_text("body,isDraft,url,isCrossRepository")
 
 
 def _finish_prs_json():
@@ -99,7 +99,7 @@ def _outcome(n, code, prs):
         traceback.print_exc()
         return ""
     for pr in prs:
-        if n in closed_issues(pr.body):
+        if not pr.cross_repository and n in closed_issues(pr.body):
             url = pr.html_url if pr.html_url is not None else pr.url or ""
             try:
                 cause = run_end(run_dir.worktree(toplevel(), n))[1]
