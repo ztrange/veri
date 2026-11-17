@@ -15,7 +15,7 @@ LIST = "gh api repos/{owner}/{repo}/actions/runs?branch=stack&per_page=100"
 
 
 def run(n, status="completed", conclusion="failure", created="2026-11-16T10:00:%02dZ", head_repo="o/r", attempt=1):
-    return {"id": n, "run_attempt": attempt, "head_sha": "%040x" % n, "html_url": "https://github.com/o/r/actions/runs/%d" % n,
+    return {"id": n, "run_attempt": attempt, "workflow_id": 900 + n % 2, "head_sha": "%040x" % n, "html_url": "https://github.com/o/r/actions/runs/%d" % n,
             "status": status, "conclusion": conclusion, "created_at": created % n if "%" in created else created,
             "head_branch": "stack", "repository": {"full_name": "o/r"},
             "head_repository": {"full_name": head_repo} if head_repo else None}
@@ -32,9 +32,9 @@ def test_workflow_runs_reads_one_page_of_100_for_the_branch_keeping_only_this_re
     got = github.workflow_runs("stack")
 
     assert (got, fake.calls) == ([("%040x" % 1, "https://github.com/o/r/actions/runs/1", "completed", "failure",
-                                   "2026-11-16T10:00:01Z", 1),
+                                   "2026-11-16T10:00:01Z", 1, 901),
                                   ("%040x" % 2, "https://github.com/o/r/actions/runs/2", "in_progress", None,
-                                   "2026-11-16T10:00:02Z", 2)], [LIST])
+                                   "2026-11-16T10:00:02Z", 2, 900)], [LIST])
 
 
 @pytest.mark.parametrize("given", [
@@ -43,7 +43,8 @@ def test_workflow_runs_reads_one_page_of_100_for_the_branch_keeping_only_this_re
     (0, answer(dict(run(1), conclusion=7)), ""), (0, answer(dict(run(1), created_at="yesterday")), ""),
     (0, answer(dict(run(1), html_url="https://evil.example/1")), ""), (0, json.dumps({"workflow_runs": ["x"]}), ""),
     (0, answer(dict(run(1), run_attempt=0)), ""), (0, answer(dict(run(1), run_attempt="2")), ""),
-    (0, answer(dict(run(1), run_attempt=True)), ""),
+    (0, answer(dict(run(1), run_attempt=True)), ""), (0, answer(dict(run(1), workflow_id="ci")), ""),
+    (0, answer({k: v for k, v in run(1).items() if k != "workflow_id"}), ""),
     (0, answer({k: v for k, v in run(1).items() if k != "run_attempt"}), ""),
 ])
 def test_workflow_runs_is_no_answer_for_a_failed_read_or_an_answer_not_of_the_workflow_runs_shape(

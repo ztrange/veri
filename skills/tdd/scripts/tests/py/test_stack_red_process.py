@@ -23,7 +23,7 @@ def runs(*found):
     return json.dumps({"total_count": len(found), "workflow_runs": [
         {"head_sha": sha, "html_url": "https://github.com/o/r/actions/runs/%d" % n, "status": status,
          "conclusion": conclusion, "created_at": "2026-11-16T10:00:%02dZ" % n, "repository": {"full_name": "o/r"},
-         "head_repository": {"full_name": "o/r"}, "run_attempt": 1} for n, (sha, status, conclusion) in enumerate(found)]})
+         "head_repository": {"full_name": "o/r"}, "run_attempt": 1, "workflow_id": 7} for n, (sha, status, conclusion) in enumerate(found)]})
 
 
 @pytest.mark.process("stack-red.sh run as its /bin/sh shim in a clone of a local bare origin (default branch trunk) holding a stack, with a stub gh on PATH")
