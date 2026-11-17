@@ -291,6 +291,29 @@ def test_4023_called_again_under_the_same_conductor_it_continues_from_the_wait(d
     assert (code, fake.calls[0][:2]) == (0, ("detach-command.sh", ("wait", "preflight-fast-12")))
 
 
+def _red(tier):
+    class Red(Fake):
+        def __call__(self, name, *args, cwd=None, env=None):
+            if os.path.basename(name) == "detach-command.sh" and args[:2] == ("wait", "preflight-%s-12" % tier):
+                self.calls.append(("detach-command.sh", args, cwd, env))
+                return 1, "1 failed\n", ""
+            return super().__call__(name, *args, cwd=cwd, env=env)
+    return Red
+
+
+@pytest.mark.parametrize("tier", ["fast", "full"])
+def test_4023_a_red_tier_on_a_resume_stops_with_the_waits_code_and_runs_no_red_suite_path(drive, tier):
+    code, out, fake = drive(ledger=True, handed_back=True, fake=_red(tier)(drive.wt))
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 3 detach-command.sh wait")
+    assert fake.calls[-1][:2] == ("detach-command.sh", ("wait", "preflight-%s-12" % tier))
+    assert "suite-red-resume.sh" not in fake.names()
+    assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] == ("checkout",)]
+    assert [c[1][1] for c in fake.calls if c[0] == "detach-command.sh" and c[1][0] == "start"] == [
+        "preflight-%s-12" % t for t in ("fast", "full")[:("fast", "full").index(tier) + 1]]
+    assert not (drive.wt / ".tdd" / "issue-12-preflight").exists()
+
+
 def test_4023_a_worktree_not_handed_back_runs_none_of_the_handed_back_calls(drive):
     code, out, fake = drive(ledger=True)
 
