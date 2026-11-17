@@ -86,9 +86,22 @@ def applied(file, transform, sha, subject=""):
     return write(file, f"{APPLIED_MARK}{sha} | {transform}{SUBJECT_SEP + subject if subject else ''}\n")
 
 
+ONE_PER_FILE = ("coupling",)
+
+
 def not_done(file, candidate, reason):
     if reason not in NOT_DONE_REASONS:
         return entry.refuse(usage=USAGE)
+    if reason in ONE_PER_FILE and os.path.isfile(file):
+        stale = f"{NOT_DONE_MARK}{reason} | "
+        try:
+            with open(file, errors="surrogateescape") as owed:
+                kept = [l for l in owed.read().splitlines(keepends=True) if not l.startswith(stale)]
+            with open(file, "w", errors="surrogateescape") as owed:
+                owed.write("".join(kept))
+        except OSError as error:
+            print(f"refactor-owed.sh: {file}: {error.strerror}", file=sys.stderr)
+            return 1
     return write(file, f"{NOT_DONE_MARK}{reason} | {candidate}\n")
 
 

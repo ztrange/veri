@@ -792,3 +792,12 @@ def test_not_done_records_a_coupling_candidate_that_refactor_candidates_lists_an
     candidates = importlib.import_module("veri.refactor_candidates")
     assert (code, listed, capsys.readouterr().out, list(candidates.rows(owed.read_text()))) == (
         0, 3, "", ["- coupling | mutual reference: src/a.py src/b.py"])
+
+
+def test_a_second_coupling_row_replaces_the_first_and_keeps_every_other_row_4124(tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### step A\n- inline x\nnot-done | budget-spent | inline x\n")
+    codes = [refactor_owed.main(["not-done", str(owed), "mutual reference: a.py b.py", "coupling"]),
+             refactor_owed.main(["not-done", str(owed), "mutual reference: c.py d.py", "coupling"])]
+    assert (codes, owed.read_text()) == ([0, 0], "### step A\n- inline x\nnot-done | budget-spent | inline x\n"
+                                                 "not-done | coupling | mutual reference: c.py d.py\n")
