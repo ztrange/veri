@@ -236,3 +236,19 @@ def test_an_origin_veri_install_holding_other_commands_is_exit_2_saying_to_open_
 
     assert (code, out, pulls) == (2, "", [])
     assert "open a pull request from it" in err and "delete" in err and "re-run" in err
+
+
+@pytest.mark.process("git clone and fetch from a bare origin")
+def test_a_claude_md_that_is_a_symlink_is_exit_2_not_a_regular_file_with_nothing_pushed(tmp_path, run_cli, record, pulls):
+    seed = new_repo(tmp_path / "seed")
+    (seed / "AGENTS.md").write_text("# Agents\n")
+    (seed / "CLAUDE.md").symlink_to("AGENTS.md")
+    commit_all(seed, "initial")
+    origin, work = tmp_path / "origin.git", tmp_path / "work"
+    git(tmp_path, "clone", "-q", "--bare", str(seed), str(origin))
+    git(tmp_path, "clone", "-q", str(origin), str(work))
+
+    code, out, err = run_cli(record, ["make unit", "make test"], cwd=work)
+
+    assert (code, out, branches(origin), pulls) == (2, "", ["refs/heads/main"], [])
+    assert "CLAUDE.md is not a regular file" in err

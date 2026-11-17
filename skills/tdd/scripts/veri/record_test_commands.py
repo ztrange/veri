@@ -107,11 +107,23 @@ def tip_of(root, default):
     return checked("rev-parse", "--verify", "refs/remotes/origin/%s^{commit}" % default, cwd=root).decode()
 
 
-def tree_of(root, tip, text):
-    """The tree of <tip> with CLAUDE.md holding <text>."""
+def claude_md_mode(root, tip):
+    """The mode of <tip>'s root CLAUDE.md ("100644" when absent); Refused unless it is a regular file."""
+    try:
+        listed = git.out("ls-tree", tip, "--", "CLAUDE.md", cwd=root)
+    except git.GitFailed as failed:
+        raise Refused("git ls-tree %s -- CLAUDE.md: %s" % (tip, failed.stderr.strip())) from failed
+    mode = listed.split(" ", 1)[0] if listed else "100644"
+    if mode not in ("100644", "100755"):
+        raise Refused("CLAUDE.md is not a regular file on the default branch (mode %s): nothing written" % mode)
+    return mode
+
+
+def tree_of(root, tip, text, mode="100644"):
+    """The tree of <tip> with CLAUDE.md, of <mode>, holding <text>."""
     blob = checked("hash-object", "-w", "--stdin", cwd=root, input=text)
     entries = [e for e in checked("ls-tree", "-z", tip, cwd=root).split(b"\0") if e and not e.endswith(b"\tCLAUDE.md")]
-    entries.append(b"100644 blob " + blob + b"\tCLAUDE.md")
+    entries.append(mode.encode() + b" blob " + blob + b"\tCLAUDE.md")
     return checked("mktree", "-z", cwd=root, input=b"".join(e + b"\0" for e in entries)).decode()
 
 
@@ -161,6 +173,7 @@ def record(fast, full, root, one_file=None):
         raise Refused("the default branch cannot be told")
     held = remote_branch(root)
     tip = tip_of(root, default)
+    mode = claude_md_mode(root, tip)
     shown = git.git("show", "%s:CLAUDE.md" % tip, cwd=root, capture_output=True)
     text = shown.stdout if shown.returncode == 0 else b""
     wanted = declarations(fast, full, one_file)
@@ -170,7 +183,7 @@ def record(fast, full, root, one_file=None):
     why = unreadable(text, new, wanted)
     if why:
         raise Refused(why)
-    tree = tree_of(root, tip, new)
+    tree = tree_of(root, tip, new, mode)
     if held:
         return resume(root, default, held, tip, tree)
     sha = checked("commit-tree", tree, "-p", tip, "-m", MESSAGE, cwd=root).decode()
