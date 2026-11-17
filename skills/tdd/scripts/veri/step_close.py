@@ -2,11 +2,13 @@
 (SKILL.md *Refactor loop*, sub-step 6's PASS branch), made in one call after a clean refactor-half.sh (PRD 027.8)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import re
 import sys
 import time
 
 import fused
 import fused_step
+import plan_publish
 import run_dir
 import tunables
 from green_half import summary
@@ -36,9 +38,48 @@ def run(n):
     for uncovered in half.get("uncovered_spec", []):
         raise fused.Stop("6", "uncovered_spec=" + uncovered, 1)
     green_sha = half.get("green_sha", [""])[0]
-    checks(wt, n, green_sha)
+    pins = [line for line in checks(wt, n, green_sha).splitlines() if line.startswith("needs a look")]
     commit(wt, n, step)
-    return 0
+    mirror(wt, n, step)
+    return fused.settle(wt, n, NAME, ["next=" + next_stop(wt, n)] + ["owed_pin=" + pin for pin in pins])
+
+
+def ledger_text(wt, n):
+    with open(os.path.join(wt, LEDGER % n), encoding="utf-8", errors="surrogateescape") as f:
+        return f.read()
+
+
+def mirror(wt, n, step):
+    """6's mirror (CO7): the step-done comment, each `⟦criterion k⟧` of the step asked whether it is finished (0 ticks
+    criterion k's first line in the issue body, 3 ticks nothing), then the step-done mark."""
+    fused.checked("6", fused.script("comment.sh"), n, "step-done", cwd=wt)
+    for k in re.findall(r"⟦criterion (\d+)⟧", step):
+        if asked(fused.script("criterion-finished.sh"), k, cwd=wt, stdin=ledger_text(wt, n),
+                 err=".tdd/criterion-finished.err") == 0:
+            body = plan_publish.gh("6", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", wt=wt)
+            line = fused.checked("6", fused.script("ledger-steps.sh"), "criterion", k, cwd=wt, stdin=body).strip()
+            fused.checked("6", fused.script("tick-issue-criterion.sh"), n, line, cwd=wt)
+    done = fused.checked("6", fused.script("ledger-steps.sh"), "last-done", cwd=wt, stdin=ledger_text(wt, n)).strip()
+    fused.mark("6", wt, n, done, "step-done")
+
+
+def next_stop(wt, n):
+    """Where the run goes next (CO8): `draft-pr` when next-unchecked.sh exits 3, else `cycle` when run-affordable.sh,
+    given the count of open steps a cycle closes, exits 0 or 3; any other answer stops it."""
+    if asked(fused.script("next-unchecked.sh"), cwd=wt, stdin=ledger_text(wt, n)) == 3:
+        return "draft-pr"
+    rows = fused.checked("6", fused.script("ledger-steps.sh"), cwd=wt, stdin=ledger_text(wt, n)).splitlines()
+    open_steps = sum(1 for row in rows if row.split("\t")[1:3] == ["open", "step"])
+    asked(fused.script("run-affordable.sh"), str(open_steps), cwd=wt)
+    return "cycle"
+
+
+def asked(name, *args, **kw):
+    """A question whose exit 0 or 3 is the answer: that code; any other stops it at 6."""
+    code, _, _ = fused.call(name, *args, **kw)
+    if code not in (0, 3):
+        raise fused.Stop("6", fused.shown(name, *args, **kw) + " exit %d" % code, code)
+    return code
 
 
 def checks(wt, n, green_sha):

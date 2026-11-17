@@ -197,6 +197,89 @@ def test_4029_the_stop_ask_after_the_push_stops_it_on_exit_0_or_2(close, inner, 
     assert out.splitlines()[-1].startswith("stopped at 6 stop-requested.sh exit %d" % inner)
 
 
+def test_4029_after_the_stop_ask_it_mirrors_the_step_ticks_its_finished_criterion_and_marks_step_done(close):
+    code, out, err, fake = close()
+
+    tail = [(c[0], c[1]) for c in fake.calls[fake.names().index("stop-requested.sh") + 1:]]
+    assert tail[:6] == [("comment.sh", ("12", "step-done")), ("criterion-finished.sh", ("1",)),
+                        ("gh", ("api", "repos/{owner}/{repo}/issues/12", "-q", ".body")),
+                        ("ledger-steps.sh", ("criterion", "1")), ("tick-issue-criterion.sh", ("12", "one thing works")),
+                        ("ledger-steps.sh", ("last-done",))]
+    assert tail[6] == ("event.sh", ("step-done",))
+    assert fake.call("criterion-finished.sh")[4]["stdin"] == (close.wt / ".tdd" / "issue-12.md").read_text()
+    assert fake.call("criterion-finished.sh")[4]["err"] == ".tdd/criterion-finished.err"
+    assert fake.call("ledger-steps.sh", "criterion")[4]["stdin"] == BODY
+    done = fake.call("event.sh", "step-done")[3]
+    assert (done["VERI_ISSUE"], done["VERI_ACTOR"], done["VERI_STEP"]) == ("12", "conductor", STEP)
+
+
+def test_4029_a_criterion_not_yet_finished_ticks_nothing(close):
+    code, out, err, fake = close(answers={("criterion-finished.sh", None): (3, "")})
+
+    assert code == 0
+    assert "tick-issue-criterion.sh" not in fake.names() and "gh" not in fake.names()
+
+
+@pytest.mark.parametrize("inner", [1, 2])
+def test_4029_an_unreadable_criterion_stops_it_with_its_code_before_the_step_done_mark(close, inner):
+    code, out, err, fake = close(answers={("criterion-finished.sh", None): (inner, "")})
+
+    assert (code, out.splitlines()[-1]) == (inner, "stopped at 6 criterion-finished.sh 1 2> .tdd/criterion-finished.err exit %d" % inner)
+    assert fake.calls[-1][0] == "criterion-finished.sh"
+
+
+def test_4029_a_step_with_no_criterion_asks_nothing(close):
+    code, out, err, fake = close(step="one thing works")
+
+    assert code == 0
+    assert not {"criterion-finished.sh", "tick-issue-criterion.sh", "gh"} & set(fake.names())
+    assert "event.sh" in fake.names()[fake.names().index("comment.sh"):]
+
+
+def test_4029_a_step_with_two_criteria_asks_each_in_order(close):
+    code, out, err, fake = close(step="one thing works ⟦criterion 1⟧ ⟦criterion 3⟧")
+
+    assert [c[1] for c in fake.calls if c[0] == "criterion-finished.sh"] == [("1",), ("3",)]
+
+
+def test_4029_no_unchecked_step_left_settles_next_draft_pr_without_asking_the_budget(close):
+    code, out, err, fake = close(answers={("next-unchecked.sh", None): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (0, "next=draft-pr")
+    assert "run-affordable.sh" not in fake.names()
+    assert (close.wt / ".tdd" / "issue-12-step-close").read_text() == "next=draft-pr\n"
+
+
+@pytest.mark.parametrize("inner", [0, 3])
+def test_4029_an_affordable_run_settles_next_cycle_counting_the_open_steps_only(close, inner):
+    code, out, err, fake = close(answers={("run-affordable.sh", None): (inner, "")})
+
+    assert (code, out.splitlines()[-1]) == (0, "next=cycle")
+    assert fake.call("run-affordable.sh")[1] == ("1",)
+    assert fake.names()[-3:] == ["next-unchecked.sh", "ledger-steps.sh", "run-affordable.sh"]
+    assert fake.call("next-unchecked.sh")[4]["stdin"] == (close.wt / ".tdd" / "issue-12.md").read_text()
+
+
+@pytest.mark.parametrize("script, inner", [("run-affordable.sh", 1), ("run-affordable.sh", 2),
+                                           ("next-unchecked.sh", 2)])
+def test_4029_an_unaffordable_or_unanswered_next_step_stops_it_settling_nothing(close, script, inner):
+    code, out, err, fake = close(answers={(script, None): (inner, "")})
+
+    assert code == inner and out.splitlines()[-1].startswith("stopped at 6 " + script)
+    assert not (close.wt / ".tdd" / "issue-12-step-close").exists()
+    assert "comment.sh" in fake.names() and not [c for c in fake.calls if c[0] == "comment.sh" and c[1][1] != "step-done"]
+
+
+def test_4029_the_pins_needing_a_look_are_settled_as_owed_pin_lines_and_printed_last(close):
+    pins = "needs a look: a.mut (old text gone)\nstale: r.mut a.py\nneeds a look: 2 pins b.mut (base run failed)\n"
+    code, out, err, fake = close(fake=Fake(pins=pins))
+
+    settled = "next=cycle\nowed_pin=needs a look: a.mut (old text gone)\nowed_pin=needs a look: 2 pins b.mut (base run failed)\n"
+    assert code == 0
+    assert out.endswith(settled)
+    assert (close.wt / ".tdd" / "issue-12-step-close").read_text() == settled
+
+
 def test_4029_it_writes_no_bail_classifies_nothing_resets_nothing_and_grows_no_plan(close):
     for answers in ({("push-branch.sh", None): (2, "")}, {}):
         code, out, err, fake = close(answers=answers)
