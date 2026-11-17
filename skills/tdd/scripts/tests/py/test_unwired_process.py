@@ -1,4 +1,5 @@
 """unwired.sh run as a process in a scratch git repo that is not veri's own tree (#4121, PRD 032.6 WN6)."""
+import importlib
 import subprocess
 
 import pytest
@@ -26,28 +27,36 @@ def test_in_a_foreign_repo_only_the_added_file_nothing_names_is_printed_and_exit
     assert (done.returncode, done.stdout, done.stderr) == (1, "src/orphan.py\n", "")
 
 
-@pytest.mark.process("the unwired.sh shim over real git: a bail's record, then the resumed run's call")
-def test_files_a_bail_recorded_go_on_after_the_resume_and_a_file_not_recorded_bails_again(tmp_path):
+@pytest.mark.process("the unwired.sh shim over real git: a bail's pending record, a resume before and after the release")
+def test_an_unreleased_resume_bails_again_and_a_released_one_goes_on_until_a_file_not_recorded_is_added(tmp_path):
     repo = new_repo(tmp_path / "repo")
     write(repo, {"pkg/main.go": "package pkg\n"})
     base = commit_all(repo, "base")
     write(repo, {"pkg/helper.go": "package pkg\n"})
     commit_all(repo, "a file found by package discovery")
-    record = repo / ".tdd" / "issue-7-unwired-accepted"
-    record.parent.mkdir()
+    (repo / ".tdd").mkdir()
+    pending = repo / ".tdd" / "issue-7-unwired-pending"
+    accepted = repo / ".tdd" / "issue-7-unwired-accepted"
 
     def unwired():
-        done = subprocess.run(["/bin/sh", str(SCRIPTS / "unwired.sh"), "--accepted", str(record), base], cwd=repo,
+        done = subprocess.run(["/bin/sh", str(SCRIPTS / "unwired.sh"), "--accepted", str(accepted), base], cwd=repo,
                               capture_output=True, text=True, stdin=subprocess.DEVNULL)
         return done.returncode, done.stdout, done.stderr
 
+    def bail(printed):
+        with open(pending, "a") as kept:
+            kept.write(printed)
+
     bailed = unwired()
-    with open(record, "a") as kept:
-        kept.write(bailed[1])
-    resumed = unwired()
+    bail(bailed[1])
+    unreleased = unwired()
+    importlib.import_module("veri.release_issue").accept_unwired(str(repo), "7")
+    released = unwired()
     write(repo, {"pkg/other.go": "package pkg\n"})
     commit_all(repo, "another")
-    assert [bailed, resumed, unwired()] == [(1, "pkg/helper.go\n", ""), (0, "", ""), (1, "pkg/other.go\n", "")]
+    assert [bailed, unreleased, released, unwired()] == [
+        (1, "pkg/helper.go\n", ""), (1, "pkg/helper.go\n", ""), (0, "", ""), (1, "pkg/other.go\n", "")]
+
 
 
 @pytest.mark.process("the unwired.sh shim over real git, run from a subdirectory of a scratch repo")
