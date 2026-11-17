@@ -848,12 +848,15 @@ def stages_of(marks):
 def reworded(marks):
     """The journal with every step a `step-reworded` line renamed, transitively, named by its latest text (PRD 035.4c,
     MS3), and {latest text: [its earlier texts, in order]}; a journal with no such line comes back as it is, with {}.
-    A rewording back to an earlier text makes that text the latest again, never one of its own former texts."""
+    A rewording back to an earlier text makes that text the latest again, never one of its own former texts; two steps
+    reworded to one text are one step from then on, its former texts the target's then the source's."""
     chains = {}
     for line in marks:
         if line.get("event") == "step-reworded" and line.get("from") and line.get("to"):
-            chain = chains.get(line["from"]) or [line["from"]]
-            if line["to"] in chain:
+            chain, target = chains.get(line["from"]) or [line["from"]], chains.get(line["to"])
+            if target is not None and target is not chain:
+                chain = [text for text in target if text != line["to"]] + [text for text in chain if text not in target]
+            elif line["to"] in chain:
                 chain.remove(line["to"])
             chain.append(line["to"])
             for text in chain:
