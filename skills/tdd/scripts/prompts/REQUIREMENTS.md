@@ -876,6 +876,13 @@
 | VD8 | The closing paragraph says REJECT, too, if the step's own commits add a test (those in `git diff {{STEP_BASE_SHA}}..HEAD`, never a test an earlier step of the run added): a criterion judged against the diff is never also pinned by a case left behind. (Closing paragraph, fourth sentence.) | A diff-checked step leaves no test; an earlier step's tests are not this step's. |
 | VD9 | The closing paragraph ends: End with `VERDICT: PASS` or `VERDICT: REJECT`. (Closing paragraph, last sentence.) | The conductor reads one fixed verdict line. |
 | VD10 | The prompt says that when the step is a supersede edit, the rule rejecting a test added by the step's own commits does not apply to the step's own Red case, which is outside the diff under judgement. | The blind verifier must not reject the step's own pinned case on the supersede route. |
+| VD121 | For a `⟦lint-repair⟧` step the prompt tells the verifier to run the lint command it names and to REJECT when that command exits non-zero, naming its first finding: its `{{LINT_REPAIR}}` slot, between the included `_verify-coverage-probe.md` paragraph and the closing paragraph, carries the `_verify-diff-lint-repair.md` paragraph for such a step and nothing for any other. | A repair step is done only when the lint command passes (PRD 032, LR3). |
+
+## skills/tdd/scripts/prompts/_verify-diff-lint-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VDL1 | The paragraph says the step repairs the findings of the repo's declared lint command, tells the verifier to run that command, `{{LINT_CMD}}`, at the worktree root in the foreground and read its exit status, and to REJECT, naming its first finding, while it exits non-zero, since the step is done only when the command passes. | A repair step is judged by the command it repairs (PRD 032, LR3). |
 
 ## skills/tdd/scripts/prompts/_verify-diff-supersede.md
 
