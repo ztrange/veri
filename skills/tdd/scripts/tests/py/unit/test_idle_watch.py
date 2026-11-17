@@ -142,6 +142,74 @@ def test_4254_a_leg_whose_passes_return_while_its_watch_writes_the_stacks_is_nev
     assert (world.codes, world.signals) == ([], [])
 
 
+def test_4254_once_the_leg_has_returned_an_end_neither_runs_its_cleanups_nor_signals_nor_exits(idle_watch, stderr_pipe):
+    out, written = stderr_pipe
+    world = World()
+    watch = watch_in(idle_watch, world, 1, out)
+    watch.workers[:] = [4461]
+    cleaned = []
+    watch.cleanups.append(lambda: cleaned.append(1))
+
+    returned = watch.stop()
+    ended = watch.end(2, "idle %s\n")
+
+    assert (returned, ended, world.codes, world.signals, cleaned) == (True, False, [], [], [])
+
+
+def test_4254_a_leg_whose_passes_return_while_an_end_runs_is_told_not_to_run_its_own_cleanup(idle_watch, stderr_pipe):
+    out, written = stderr_pipe
+    world = World(obey_term=True)
+    watch = watch_in(idle_watch, world, 1, out)
+    watch.workers[:] = [4471]
+    returned = []
+    watch.cleanups.append(lambda: returned.append(watch.stop()))  # the passes return while the end runs its cleanups
+
+    with pytest.raises(Ended):
+        watch.end(2, "idle %s\n")
+
+    assert (returned, world.codes) == ([False], [2])
+
+
+def test_4254_an_idle_leg_asks_one_worker_at_a_time_for_its_stacks_waiting_between_so_their_dumps_never_interleave(idle_watch, stderr_pipe):
+    out, written = stderr_pipe
+    world = World(obey_term=True)
+    watch = watch_in(idle_watch, world, 5, out)
+    watch.workers[:] = [4481, 4482, 4483]
+    timeline = []
+    real_kill, real_sleep = watch.kill, watch.sleep
+    watch.kill = lambda pid, signum: (timeline.append(("usr1", pid)) if signum == signal.SIGUSR1 else None, real_kill(pid, signum))[1]
+    watch.sleep = lambda seconds: (timeline.append(("wait", seconds)), real_sleep(seconds))[1]
+
+    run_until_ended(watch)
+
+    asked = timeline[:timeline.index(("usr1", 4483)) + 2]
+    assert asked == [("usr1", 4481), ("wait", idle_watch.STACK_WAIT), ("usr1", 4482), ("wait", idle_watch.STACK_WAIT),
+                     ("usr1", 4483), ("wait", idle_watch.STACK_WAIT)]
+
+
+def test_4254_a_worker_xdist_reports_down_is_dropped_so_its_pid_is_never_signalled_again(idle_watch, stderr_pipe, monkeypatch):
+    out, written = stderr_pipe
+    world = World(obey_term=True)
+    watch = watch_in(idle_watch, world, 1, out)
+    monkeypatch.setattr(idle_watch, "CURRENT", [watch])
+
+    def gateway(pid):
+        return type("Gateway", (), {"_io": type("IO", (), {"popen": type("Popen", (), {"pid": pid})()})()})()
+
+    def node(pid):
+        return type("Node", (), {"gateway": gateway(pid)})()
+
+    for pid in (4491, 4492, 4493):
+        idle_watch.pytest_xdist_newgateway(gateway(pid))
+    idle_watch.pytest_testnodedown(node(4491), None)
+    idle_watch.pytest_testnodedown(node(4493), "crashed")
+    idle_watch.pytest_testnodedown(node(4999), None)
+
+    run_until_ended(watch)
+
+    assert world.usr1 == [4492] and world.signals == [(4492, signal.SIGTERM)]
+
+
 def test_4254_the_leg_ends_only_workers_it_recorded_never_itself_nor_a_pid_of_1_or_less(idle_watch, stderr_pipe):
     out, written = stderr_pipe
     world = World(obey_term=True)

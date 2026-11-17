@@ -67,6 +67,15 @@ def pytest_xdist_newgateway(gateway):
         CURRENT[0].workers.append(pid)
 
 
+@pytest.hookimpl(optionalhook=True)
+def pytest_testnodedown(node, error):
+    """A worker xdist reports down (finished, crashed, or replaced by a restart) is never signalled again: its pid may be
+    reused by then."""
+    pid = worker_pid(getattr(node, "gateway", None))
+    if CURRENT[0] is not None and pid in CURRENT[0].workers:
+        CURRENT[0].workers.remove(pid)
+
+
 def pytest_runtest_logstart(nodeid):
     if CURRENT[0] is not None:
         CURRENT[0].seen(nodeid)
@@ -86,7 +95,8 @@ class Watch:
         self.pause = pause or self.stopped.wait
         self.last, self.last_case = clock(), None
         self.workers, self.cleanups = [], []
-        self.ending = threading.Lock()
+        self.claim_lock, self.claimed = threading.Lock(), None
+        self.finished = threading.Event()  # set once an end that claimed the leg is past its exit (only in tests)
 
     def seen(self, nodeid):
         self.last, self.last_case = self.clock(), nodeid
@@ -116,28 +126,39 @@ class Watch:
         except OSError:
             pass
 
+    def claim(self, who):
+        """The leg ends once, by an end or by its own return, whichever claims it first."""
+        with self.claim_lock:
+            if self.claimed is not None:
+                return False
+            self.claimed = who
+            return True
+
     def end(self, code, line=None):
-        """Ends the workers, runs the leg's cleanups, writes `line` (formatted with the workers' pids) and exits `code`."""
-        if not self.ending.acquire(blocking=False):
-            return
-        workers = self.end_workers()
-        for cleanup in self.cleanups:
-            try:
-                cleanup()
-            except Exception as exc:
-                self.write("the leg's cleanup %s failed: %s\n" % (getattr(cleanup, "__name__", cleanup), exc))
-        if line:
-            self.write(line % (" ".join(str(pid) for pid in workers) or "none"))
-        self.exit(code)
+        """Ends the workers, runs the leg's cleanups, writes `line` (formatted with the workers' pids) and exits `code`;
+        False, doing nothing, when the leg has already returned or another end runs."""
+        if not self.claim("end"):
+            return False
+        try:
+            workers = self.end_workers()
+            for cleanup in self.cleanups:
+                try:
+                    cleanup()
+                except Exception as exc:
+                    self.write("the leg's cleanup %s failed: %s\n" % (getattr(cleanup, "__name__", cleanup), exc))
+            if line:
+                self.write(line % (" ".join(str(pid) for pid in workers) or "none"))
+            self.exit(code)
+        finally:
+            self.finished.set()
+        return True
 
     def idle_end(self, idle_for):
         self.dump(file=self.out, all_threads=True)
-        for pid in self.workers:
+        for pid in list(self.workers):
             if pid > 1 and pid != os.getpid():
                 self.signal(pid, signal.SIGUSR1)
-        self.sleep(STACK_WAIT)
-        if self.stopped.is_set():
-            return  # the leg's passes returned meanwhile: its own teardown ends it, not this thread
+                self.sleep(STACK_WAIT)  # one worker at a time: dumps sharing one stderr would interleave
         self.end(2, "pytest leg idle for %d s with no case running (last case seen: %s); workers %%s ended\n"
                  % (idle_for, self.last_case or "none"))
 
@@ -156,4 +177,7 @@ class Watch:
         return thread
 
     def stop(self):
+        """Called as the leg returns: True when the return claimed the leg, so its own teardown runs; False when an end
+        did, which then runs the cleanups and exits."""
         self.stopped.set()
+        return self.claim("return")
