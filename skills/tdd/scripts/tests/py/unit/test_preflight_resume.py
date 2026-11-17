@@ -99,3 +99,51 @@ def test_4023_a_fresh_run_still_claims_and_passes_no_ledger(drive):
     assert code == 0
     assert "unlabel-issue.sh" in fake.names()
     assert len(fake.call("requirements-preflight.sh")[1]) == 1
+
+
+def _handed_back_calls(fake):
+    names = fake.names()
+    start = names.index("worktree-setup.sh") + 1
+    end = names.index("gh", start)
+    return [(c[0], c[1]) for c in fake.calls[start:end]]
+
+
+@pytest.mark.parametrize("ledger", [True, False], ids=["resume", "fresh"])
+def test_4023_a_handed_back_worktree_cleans_rebases_marks_and_rerecords_before_reading_the_body(drive, ledger):
+    code, out, fake = drive(ledger=ledger, handed_back=True)
+
+    assert code == 0
+    assert _handed_back_calls(fake) == [
+        ("resume-clean.sh", ()), ("rebase-onto-default.sh", ()), ("git", ("rev-parse", "HEAD")),
+        ("event.sh", ("resume-rebase", "from=" + PRE, "rebased=" + POST)),
+        ("tests-frozen.sh", ("rerecord-rebased", ".tdd/issue-12.md", PRE))]
+    env = fake.call("event.sh", "resume-rebase")[3]
+    assert (env["VERI_ISSUE"], env["VERI_ACTOR"]) == ("12", "conductor")
+
+
+@pytest.mark.parametrize("rebase", [1, 3])
+def test_4023_a_rebase_that_did_not_move_the_branch_goes_on_with_no_event_and_no_rerecord(drive, rebase):
+    code, out, fake = drive(ledger=True, handed_back=True, answers={("rebase-onto-default.sh", None): (rebase, "")})
+
+    assert code == 0
+    assert [c[0] for c in _handed_back_calls(fake)] == ["resume-clean.sh", "rebase-onto-default.sh"]
+
+
+def test_4023_a_rebase_exit_2_stops_preflight_at_3_with_no_later_call(drive):
+    code, out, fake = drive(ledger=True, handed_back=True, answers={("rebase-onto-default.sh", None): (2, "")})
+
+    assert (code, out.splitlines()[-1], fake.names()[-1]) == (2, "stopped at 3 rebase-onto-default.sh",
+                                                             "rebase-onto-default.sh")
+
+
+@pytest.mark.parametrize("rerecord, stops", [(3, False), (1, True)])
+def test_4023_rerecord_rebased_exit_3_goes_on_and_any_other_failure_stops(drive, rerecord, stops):
+    code, out, fake = drive(ledger=True, handed_back=True, answers={("tests-frozen.sh", None): (rerecord, "")})
+
+    assert (code, fake.names()[-1] == "tests-frozen.sh") == ((1, True) if stops else (0, False))
+
+
+def test_4023_a_worktree_not_handed_back_runs_none_of_the_handed_back_calls(drive):
+    code, out, fake = drive(ledger=True)
+
+    assert _handed_back_calls(fake) == []

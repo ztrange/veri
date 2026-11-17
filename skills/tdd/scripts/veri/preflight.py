@@ -244,6 +244,29 @@ def check_readiness(user_answer=""):
     return None
 
 
+# What a handed-back worktree carries to the rest of the run (RP6, RP7): the paths resume-clean.sh printed under
+# "stray", and under "rebased_from" the pre-rebase sha when the rebase moved the branch. Filled by one run of main().
+CARRIED = {}
+
+
+def handed_back(n, wt, ledger):
+    """PREFLIGHT.md step 3's block for a worktree issue-worktree.sh handed back: discard a killed leaf's leftovers, rebase
+    onto the default branch and, when that moved the branch, mark it and re-record the frozen tests (RP4)."""
+    stray = checked(3, script("resume-clean.sh"), cwd=wt)
+    CARRIED["stray"] = [line for line in stray.splitlines() if line.strip()]
+    code, out, _ = call(script("rebase-onto-default.sh"), cwd=wt)
+    if code not in (0, 1, 3):
+        raise Stop(3, "rebase-onto-default.sh", code)
+    if code != 0:
+        return
+    pre = out.split("\n", 1)[0].strip()
+    CARRIED["rebased_from"] = pre
+    head = checked(3, "git", "rev-parse", "HEAD", cwd=wt).strip()
+    checked(3, script("event.sh"), "resume-rebase", "from=" + pre, "rebased=" + head, cwd=wt,
+            env=tunables.with_values(VERI_ISSUE=n, VERI_ACTOR="conductor"))
+    checked(3, script("tests-frozen.sh"), "rerecord-rebased", ledger, pre, cwd=wt, ok=(0, 3))
+
+
 def set_up(n, slug, detect):
     """The run's worktree, made ready for its baseline suite: (worktree, fast tier command, issue body file)."""
     wt = checked(3, script("issue-worktree.sh"), n, slug).strip()
@@ -256,6 +279,8 @@ def set_up(n, slug, detect):
     if not resume:
         checked(3, script("unlabel-issue.sh"), n, cwd=wt)
     checked(3, script("worktree-setup.sh"), n, cwd=wt, ok=(0, 3))
+    if os.path.exists(run_dir.run_file(wt, "handed-back")):
+        handed_back(n, wt, ledger)
     body_file = issue_body(n, wt)
     checked(3, script("requirements-preflight.sh"), body_file, *([ledger] if resume else []), cwd=wt)
     fast = checked(3, detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt).strip()
@@ -347,6 +372,7 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     n = argv[0]
+    CARRIED.clear()
     wt = os.path.abspath(run_dir.worktree("", n))
     if not os.path.isdir(os.path.join(wt, ".tdd")):
         # Unmarked: the stage's lines would create the worktree's directory, which a stop before step 3 must not leave.
