@@ -17,4 +17,4 @@
 - [x] a default tip that does not resolve, or a failing worktree add, fails the tier run row, starting and creating nothing
 - [x] a tier worktree is reused only when git lists it and its record names the tip and command of now
 - [ ] one deadline counted from the call's start bounds the permission probe and both tiers
-- [ ] an exception after a tier started leaves its worktree and record for the re-run
+- [x] an exception after a tier started leaves its worktree and record for the re-run

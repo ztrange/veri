@@ -195,7 +195,7 @@ def tier_run_rows(root):
                 rows.append(row)
     finally:
         if waiting is None:
-            for wt in state:
+            for wt in [wt for wt, how in state.items() if how != "started"]:
                 git.git("worktree", "remove", "--force", wt, capture_output=True, text=True)
             if made_tdd:
                 with contextlib.suppress(OSError):
