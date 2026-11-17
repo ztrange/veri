@@ -1012,3 +1012,30 @@ def test_issue_4092_a_failing_step_2_check_stops_preflight_before_ready_check_ru
 
     assert code == 1 and out.splitlines()[-1].startswith("stopped at 2 "), out
     assert "ready-check.sh" not in [n for n, _, _ in calls], calls
+
+
+def _ready(*fails):
+    """ready-check.sh's answer: every row ok but each of <fails> (a `fail  …` line)."""
+    rows = ["ok    one test file", *fails, "ok    bash"]
+    tail = f"not ready — {len(fails)} rows to fix" if fails else "ready"
+    return (1 if fails else 0), "\n".join(rows + [tail]) + "\n", ""
+
+
+REFUSING = ["fail  fast tier: add a `veri: fast tests:` line to CLAUDE.md",
+            "fail  all tier: add a `veri: all tests:` line to CLAUDE.md",
+            "fail  pull_request: add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR",
+            "fail  gh auth: run `gh auth login`",
+            "fail  push access: ask for write access to the repository, or use an account that has it",
+            "fail  label ready-for-agent:x: create the `ready-for-agent:x` label in the repository"]
+
+
+@pytest.mark.parametrize("row", REFUSING)
+def test_issue_4092_a_failing_refusing_row_stops_preflight_at_2_ready_check_with_exit_1_and_no_worktree(monkeypatch, run_cli, tmp_path, row):
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:x")
+    calls, code, out = _front(monkeypatch, run_cli, tmp_path, {"ready-check.sh": _ready("fail  push: add a workflow", row)})
+    lines = out.splitlines()
+
+    assert code == 1, out
+    assert row in lines, out
+    assert lines[-1].startswith("stopped at 2 ready-check.sh"), out
+    assert "issue-worktree.sh" not in [n for n, _, _ in calls], calls

@@ -112,6 +112,22 @@ def check_environment():
     return None
 
 
+def refusing_rows():
+    """The names of the readiness rows whose failure stops a run (RD2, RD3, RD7); every other failing row warns."""
+    label = tunables.get("VERI_LABEL")
+    return ("fast tier", "all tier", "pull_request", "gh auth", "push access", "label " + label if label else "label")
+
+
+def check_readiness():
+    """Step 2's last check: ready-check.sh --no-suites, stopping the run on a failing refusing row."""
+    code, out, _ = call(script("ready-check.sh"), "--no-suites")
+    refused = [line for line in out.splitlines()
+               if any(line.startswith(f"fail  {name}: ") for name in refusing_rows())]
+    if code == 1 and refused:
+        return stopped(2, "ready-check.sh --no-suites", 1)
+    return None
+
+
 def start_fast(n, slug, detect, env):
     wt = checked(3, script("issue-worktree.sh"), n, slug).strip()
     checked(3, script("stop-requested.sh"), "--clear", cwd=wt, ok=(0, 3))
@@ -231,7 +247,9 @@ def run(argv):
         stop = check_environment()
         if stop is not None:
             return stop
-        call(script("ready-check.sh"), "--no-suites")
+        stop = check_readiness()
+        if stop is not None:
+            return stop
         wt, fast, body_file, fast_began, code = start_fast(n, slug, detect, env)
     started = start_full(n, wt, fast, body_file, fast_began, code, detect, env)
     if isinstance(started, int):
