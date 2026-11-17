@@ -43,7 +43,9 @@ def run(n, settled):
     fused.checked("1.3", fused.script("capture-spec.sh"), n, cwd=wt, into=os.path.join(".tdd", "issue-%s-spec.md" % n))
     ignored = fused.checked("1.4", fused.script("ensure-run-state-ignored.sh"), cwd=wt).strip()
     if ignored == "added":
-        fused.checked("1.4", "git", "status", "--porcelain", cwd=wt)
+        listed = fused.checked("1.4", "git", "status", "--porcelain", cwd=wt).splitlines()
+        if [line for line in listed if line[3:] != ".gitignore"]:
+            raise fused.Stop("1.4", "tree-check", 1)
         fused.checked("1.4", "git", "add", ".gitignore", cwd=wt)
         fused.checked("1.4", "git", "commit", "-m", "chore: ignore veri run state (#%s)" % n, cwd=wt)
     return 0
