@@ -209,7 +209,6 @@ def test_main_reads_issues_then_prs_through_gh_forwarding_repo_verbatim_and_fall
         scope = ["--repo", repo] if repo else []
         prefix = "repos/%s" % (repo or "{owner}/{repo}")
         return [
-            ["gh", "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope],
             ["gh", "api", prefix + "/issues?state=open&per_page=100"],
             ["gh", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName,isDraft,isCrossRepository", *scope],
             ["gh", "api", prefix + "/pulls?state=open&per_page=100"],
@@ -783,12 +782,14 @@ def test_cli_with_no_issue_carrying_a_band_label_prints_the_solvable_issues_asce
 
 
 def fake_gh_paging(fake_processes, issues, prs):
-    """subprocess.run answering `gh issue list`/`gh pr list` with the first --limit items, 30 when none is given, and git with nothing."""
+    """subprocess.run answering the REST open-issue page with <issues>, `gh issue list`/`gh pr list` with the first --limit items, 30 when none is given, and git with nothing."""
     def fake_run(line, *rest, **kwargs):
         args = fake.argvs[-1]
         args = list(args)
         if args[:4] == ["git", "worktree", "list", "--porcelain"]:
             return (0, "", "")
+        if args[:2] == ["gh", "api"] and args[2] == "repos/{owner}/{repo}/issues?state=open&per_page=100":
+            return (0, json.dumps(issues) + "\n", "")
         if args[:1] != ["gh"] or args[2:3] != ["list"] or args[1] not in ("issue", "pr"):
             raise AssertionError("unexpected command: %r" % (args,))
         limit = int(args[args.index("--limit") + 1]) if "--limit" in args else 30
@@ -831,8 +832,8 @@ def test_main_repo_then_not_running_reads_that_repos_issues_and_omits_the_live_c
             return (0, "", "")
         if args[0] == "ps":
             return (0, listing, "")
-        if args[:3] == ["gh", "issue", "list"]:
-            started.append(args[args.index("--repo") + 1:] if "--repo" in args else None)
+        if args[:2] == ["gh", "api"] and args[2].endswith("/issues?state=open&per_page=100"):
+            started.append(args[2].split("/")[1:3])
             return (0, json.dumps([opted_in(5), opted_in(6), opted_in(7)]), "")
         if args[:3] == ["gh", "pr", "list"]:
             return (0, "[]", "")
@@ -843,7 +844,7 @@ def test_main_repo_then_not_running_reads_that_repos_issues_and_omits_the_live_c
     code = solvable_issues.main(["--repo", "o/n", "--not-running"])
 
     out, err = capsys.readouterr()
-    assert (code, out, started) == (0, "5\n7\n", [["o/n"]])
+    assert (code, out, started) == (0, "5\n7\n", [["o", "n"]])
 
 
 def test_shim_header_comment_names_both_blocker_spellings():
@@ -1034,6 +1035,39 @@ def fake_gh_refusing_graphql_serving_rest(fake_processes, listings):
     fake = fake_processes.answers({}, default=fake_run)
 
 
+@pytest.mark.parametrize("driver", ["rest", "auto", "graphql"])
+def test_cli_reads_each_issue_s_author_association_under_every_gh_driver_3977(
+        fake_processes, monkeypatch, run_cli, solvable_issues, driver):
+    # gh issue list --json offers no association field: read the issue listing over REST whatever the driver, so the
+    # author rule has its fact; a record that truly lacks it is still refused as unknown.
+    monkeypatch.setenv("VERI_GH_DRIVER", driver)
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    nameless = opted_in(7)
+    del nameless["author_association"]
+    rest = [opted_in(5), dict(opted_in(6), author_association="NONE"), nameless]
+    graphql = [{key: value for key, value in issue.items() if key != "author_association"} for issue in rest]
+
+    def fake_run(line, *more, **kwargs):
+        args = list(fake.argvs[-1])
+        if args[:4] == ["git", "worktree", "list", "--porcelain"]:
+            return (0, "", "")
+        if args[:3] == ["gh", "issue", "list"]:
+            return (0, json.dumps(graphql), "")
+        if args[:3] == ["gh", "pr", "list"]:
+            return (0, "[]", "")
+        if args[:2] == ["gh", "api"] and "/issues?" in args[2]:
+            return (0, json.dumps(rest), "")
+        if args[:2] == ["gh", "api"] and "/pulls?" in args[2]:
+            return (0, "[]", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    fake = fake_processes.answers({}, default=fake_run)
+
+    code, out, err = run_cli(solvable_issues, [])
+
+    assert (code, out, err) == (0, "5\n", skipped(6, "NONE") + skipped(7, "unknown"))
+
+
 def test_cli_against_a_gh_that_refuses_graphql_with_the_403_and_answers_rest_under_repos_owner_repo_a_page_at_a_time_prints_the_same_issue_numbers_and_exit_code_with_empty_stderr_across_more_than_one_100_item_page(fake_processes, tmp_path, monkeypatch, run_cli, solvable_issues):
     issues = [labelled(100 + k) for k in range(110)] + [
         opted_in(70), dict(opted_in(71), body="## Blocked by\n\n#72\n"), labelled(72), opted_in(73),
@@ -1175,8 +1209,8 @@ def test_main_not_running_then_repo_reads_that_repos_issues_and_omits_the_live_c
             return (0, "", "")
         if args[0] == "ps":
             return (0, listing, "")
-        if args[:3] == ["gh", "issue", "list"]:
-            started.append(args[args.index("--repo") + 1:] if "--repo" in args else None)
+        if args[:2] == ["gh", "api"] and args[2].endswith("/issues?state=open&per_page=100"):
+            started.append(args[2].split("/")[1:3])
             return (0, json.dumps([opted_in(5), opted_in(6), opted_in(7)]), "")
         if args[:3] == ["gh", "pr", "list"]:
             return (0, "[]", "")
@@ -1187,7 +1221,7 @@ def test_main_not_running_then_repo_reads_that_repos_issues_and_omits_the_live_c
     code = solvable_issues.main(["--not-running", "--repo", "o/n"])
 
     out, err = capsys.readouterr()
-    assert (code, out, started) == (0, "5\n7\n", [["o/n"]])
+    assert (code, out, started) == (0, "5\n7\n", [["o", "n"]])
 
 
 def _not_running_with(tmp_path, fake_processes, monkeypatch, capsys, solvable_issues, issues, live):
