@@ -136,6 +136,21 @@ def test_one_file_puts_the_one_test_file_line_in_the_same_commit_and_the_detecto
         "make unit", "make test")
 
 
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+def test_with_one_file_exit_3_needs_the_tip_to_declare_it_too_else_the_branch_and_pr_are_made(tmp_path, run_cli, record, pulls):
+    tiers = "veri: fast tests: make unit\nveri: all tests: make test\n"
+    origin, work = project(tmp_path / "tiers-only", **{"CLAUDE.md": tiers})
+    held_origin, held_work = project(tmp_path / "all-three", **{"CLAUDE.md": tiers + 'veri: one test file: pytest -q "$1"\n'})
+    argv = ["--one-file", 'pytest -q "$1"', "make unit", "make test"]
+
+    made = run_cli(record, argv, cwd=work)
+    held = run_cli(record, argv, cwd=held_work)
+
+    assert (made[0], held[:2]) == (0, (3, ""))
+    assert (branches(origin), branches(held_origin)) == (["refs/heads/main", "refs/heads/veri-install"], ["refs/heads/main"])
+    assert len(pulls) == 1
+
+
 @pytest.mark.process("record-test-commands.sh, the shim, started as a script")
 def test_the_shim_execs_its_module_an_empty_command_through_it_is_exit_2_with_the_usage(tmp_path):
     done = subprocess.run([str(SCRIPTS / "record-test-commands.sh"), "", "make test"],
