@@ -227,6 +227,33 @@ def test_4023_a_stop_after_resume_clean_prints_its_stray_and_rebased_from_lines_
     assert not (drive.wt / ".tdd" / "issue-12-preflight").exists()
 
 
+ONCE = ("resume-clean.sh", "rebase-onto-default.sh", "tests-frozen.sh", "push-branch.sh")
+
+
+@pytest.mark.parametrize("tier", ["fast", "full"])
+def test_4023_called_again_after_an_exit_3_repeats_no_handed_back_call_and_still_reports_their_values(drive, tier):
+    first_code, _, first = drive(ledger=True, handed_back=True,
+                                 answers={**STRAY, ("detach-command.sh", "wait"): (3, "")} if tier == "fast" else STRAY,
+                                 fake=None if tier == "fast" else _waiting_on_full(drive.wt))
+    code, out, second = drive(answers=STRAY)
+
+    made = [c[0] for c in first.calls + second.calls]
+    assert (first_code, code) == (3, 0)
+    assert [made.count(name) for name in ONCE] == [1, 1, 1, 1]
+    assert [c for c in second.calls if c[0] == "event.sh"] == []
+    assert _settled(drive)[-4:] == ["run=resume", "stray=src/a.py", "stray=notes.txt", "rebased_from=" + PRE]
+
+
+def _waiting_on_full(wt):
+    class FullWaits(Fake):
+        def __call__(self, name, *args, cwd=None, env=None):
+            if os.path.basename(name) == "detach-command.sh" and args[:2] == ("wait", "preflight-full-12"):
+                self.calls.append(("detach-command.sh", args, cwd, env))
+                return 3, "", ""
+            return super().__call__(name, *args, cwd=cwd, env=env)
+    return FullWaits(wt, STRAY)
+
+
 def test_4023_a_worktree_not_handed_back_runs_none_of_the_handed_back_calls(drive):
     code, out, fake = drive(ledger=True)
 
