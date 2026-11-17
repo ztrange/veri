@@ -243,6 +243,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_PYTEST_LEGS` | "" | its readers' own words |
 | `VERI_PYTEST_WORKERS` | "" | its readers' own words |
 | `VERI_REBASED_TIP_SUITE` | `local` | local or ci |
+| `VERI_RECHECK_PERMISSIONS` | `0` | its readers' own words |
 | `VERI_REFACTOR_BUDGET` | `5` | its readers' own words |
 | `VERI_REDACT_VARS` | `GH_TOKEN GITHUB_TOKEN ANTHROPIC_API_KEY CLAUDE_CODE_OAUTH_TOKEN` | its readers' own words |
 | `VERI_RESET_ACK_TIMEOUT` | `300` | its readers' own words |

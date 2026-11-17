@@ -168,6 +168,7 @@ TUNABLES = {
     "VERI_CI_HEAD_WAIT": Tunable(text, "600"),
     "VERI_CI_QUEUE_WAIT": Tunable(text, "3600"),
     "VERI_PRIORITY_LABEL": Tunable(text, "priority"),
+    "VERI_RECHECK_PERMISSIONS": Tunable(choice("0", "1"), "0"),
     "VERI_AUTHOR_LABEL": Tunable(text, "author-read"),
     "VERI_PAGE_RETRIES": Tunable(text, "3"),
     "VERI_PAGE_RETRY_SLEEP": Tunable(text, "2"),

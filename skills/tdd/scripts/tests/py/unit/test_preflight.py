@@ -40,19 +40,20 @@ def test_3771_b_fresh_run_makes_front_calls_in_order_with_the_worktree_as_cwd(mo
 
     run_cli(preflight, ["12", "my-slug"])
 
-    front = [(n, a) for n, a, _ in calls[:9]]
+    front = [(n, a) for n, a, _ in calls[:10]]
     assert front == [
         ("git", ("rev-parse", "--is-inside-work-tree")),
         ("git", ("status", "--porcelain")),
         ("gh", ("api", "user")),
         ("claude", ("auth", "status")),
         ("leaf-launchable.sh", ()),
+        ("git", ("worktree", "list", "--porcelain")),
         ("ready-check.sh", ("--no-suites",)),
         ("issue-worktree.sh", ("12", "my-slug")),
         ("stop-requested.sh", ("--clear",)),
         ("unlabel-issue.sh", ("12",)),
     ]
-    assert [str(c) for _, _, c in calls[7:9]] == [str(wt), str(wt)]
+    assert [str(c) for _, _, c in calls[8:10]] == [str(wt), str(wt)]
     assert not (wt / ".tdd" / "ci-conflict-rebased").exists()
     assert [n for n, _ in preflight.STEPS] == [1, 2, 3, 4, 5, 6, 7]
     assert all(isinstance(t, str) and t for _, t in preflight.STEPS)
@@ -1075,3 +1076,195 @@ def test_issue_4092_a_stop_at_2_ready_check_writes_no_event_and_posts_no_comment
     assert not {"preflight-refused.sh", "event.sh", "comment.sh"} & set(names), names
     assert not [args for n, args, _ in calls if n == "gh" and any("comment" in a for a in args)], calls
     assert not (repo / ".tdd" / "wt" / "12").exists()
+
+
+PERMISSION_OK = ["not verifiable  token scopes", "ok    label priority", "ok    label bug", "skipped  actions read",
+                 "ok    run-state ignore", "ok    push dry-run", "ok    bypassPermissions"]
+
+
+class Clone:
+    """The facts preflight reads of a clone whose main working tree is <main>: the gh login `gh api user` answers,
+    origin's URL, and ready-check.sh's rows."""
+
+    def __init__(self, tmp_path, login="octo", url="git@github.com:o/r.git", rows=PERMISSION_OK):
+        self.main, self.login, self.url, self.rows, self.ready = tmp_path / "main", login, url, list(rows), None
+        self.main.mkdir(exist_ok=True)
+
+    @property
+    def record(self):
+        return self.main / ".tdd" / "permissions-checked"
+
+    def answers(self, base, args):
+        if base == "gh" and args == ("api", "user"):
+            return 0, '{"login": "%s", "id": 1}\n' % self.login if self.login else "", ""
+        if base == "git" and args == ("worktree", "list", "--porcelain"):
+            return 0, "worktree %s\nHEAD c0ffee\nbranch refs/heads/main\n\nworktree %s/other\n" % (self.main, self.main), ""
+        if base == "git" and args == ("remote", "get-url", "origin"):
+            return (0, self.url + "\n", "") if self.url else (2, "", "error: No such remote 'origin'\n")
+        if base == "ready-check.sh" and self.ready is not None:
+            return self.ready
+        if base == "ready-check.sh":
+            fails = [row for row in self.rows if row.startswith("fail")]
+            tail = f"not ready — {len(fails)} rows to fix" if fails else "ready"
+            return (1 if fails else 0), "\n".join(["ok    gh auth", *self.rows, tail]) + "\n", ""
+        return None
+
+
+def _preflight(monkeypatch, run_cli, tmp_path, clone, env=None):
+    """Run preflight for #12 over <clone>; return (ready-check.sh's args per call, exit code, stdout, call names)."""
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True, exist_ok=True)
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        answer = clone.answers(base, args)
+        if answer is not None:
+            return answer
+        return (0, str(wt) + "\n", "") if base == "issue-worktree.sh" else (0, "", "")
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+    for name, value in (env or {}).items():
+        monkeypatch.setenv(name, value)
+    code, out, _ = run_cli(preflight, ["12", "my-slug"])
+    return [args for base, args in calls if base == "ready-check.sh"], code, out, [base for base, _ in calls]
+
+
+def _today():
+    import time
+    return time.strftime("%Y-%m-%d")
+
+
+def test_issue_4093_a_record_holding_the_current_login_url_and_version_skips_the_permission_rows_naming_its_date(monkeypatch, run_cli, tmp_path):
+    clone = Clone(tmp_path)
+    _preflight(monkeypatch, run_cli, tmp_path, clone)
+
+    called, _, out, _ = _preflight(monkeypatch, run_cli, tmp_path, clone)
+
+    assert called == [("--no-suites", "--no-permissions")], called
+    assert f"permission rows skipped: checked {_today()}" in out.splitlines(), out
+
+
+def test_issue_4093_the_skip_line_names_the_date_as_the_record_holds_it(monkeypatch, run_cli, tmp_path):
+    clone = Clone(tmp_path)
+    _preflight(monkeypatch, run_cli, tmp_path, clone)
+    clone.record.write_text(clone.record.read_text().replace(_today(), "2026-01-02"))
+
+    called, _, out, _ = _preflight(monkeypatch, run_cli, tmp_path, clone)
+
+    assert called == [("--no-suites", "--no-permissions")], called
+    assert "permission rows skipped: checked 2026-01-02" in out.splitlines(), out
+
+
+def _stale(how, clone, monkeypatch):
+    if how == "missing":
+        clone.record.unlink()
+    elif how == "login":
+        clone.login = "someone-else"
+    elif how == "url":
+        clone.url = "https://github.com/o/r.git"
+    elif how == "version":
+        preflight = importlib.import_module("veri.preflight")
+        monkeypatch.setattr(preflight.ready_check, "PERMISSIONS_CHECK_VERSION", preflight.ready_check.PERMISSIONS_CHECK_VERSION + 1)
+    elif how == "malformed":
+        clone.record.write_text("checked, trust me\n")
+    elif how == "truncated":
+        clone.record.write_text(clone.record.read_text().splitlines(keepends=True)[0])
+    elif how == "future-dated":
+        clone.record.write_text(clone.record.read_text().replace(_today(), "2999-01-01"))
+    elif how == "unreadable":
+        clone.record.unlink()
+        clone.record.mkdir()
+    elif how == "no login answered":
+        clone.login = ""
+    elif how == "no origin":
+        clone.url = ""
+
+
+STALE = ["missing", "login", "url", "version", "malformed", "truncated", "future-dated", "unreadable", "no login answered",
+         "no origin"]
+
+
+@pytest.mark.parametrize("how", STALE)
+def test_issue_4093_a_missing_stale_or_unusable_record_runs_the_permission_rows(monkeypatch, run_cli, tmp_path, how):
+    clone = Clone(tmp_path)
+    _preflight(monkeypatch, run_cli, tmp_path, clone)
+    _stale(how, clone, monkeypatch)
+
+    called, _, out, _ = _preflight(monkeypatch, run_cli, tmp_path, clone)
+
+    assert called == [("--no-suites",)], called
+    assert not [line for line in out.splitlines() if line.startswith("permission rows skipped")], out
+
+
+def test_issue_4093_veri_recheck_permissions_1_runs_the_permission_rows_over_a_current_record(monkeypatch, run_cli, tmp_path):
+    clone = Clone(tmp_path)
+    _preflight(monkeypatch, run_cli, tmp_path, clone)
+
+    called, _, out, _ = _preflight(monkeypatch, run_cli, tmp_path, clone, env={"VERI_RECHECK_PERMISSIONS": "1"})
+
+    assert called == [("--no-suites",)], called
+
+
+def test_issue_4093_veri_recheck_permissions_0_skips_over_a_current_record(monkeypatch, run_cli, tmp_path):
+    clone = Clone(tmp_path)
+    _preflight(monkeypatch, run_cli, tmp_path, clone)
+
+    called, _, _, _ = _preflight(monkeypatch, run_cli, tmp_path, clone, env={"VERI_RECHECK_PERMISSIONS": "0"})
+
+    assert called == [("--no-suites", "--no-permissions")], called
+
+
+def test_issue_4093_a_check_whose_permission_rows_all_pass_writes_the_record_of_login_url_version_and_date(monkeypatch, run_cli, tmp_path):
+    clone = Clone(tmp_path)
+
+    _preflight(monkeypatch, run_cli, tmp_path, clone)
+
+    held = clone.record.read_text()
+    preflight = importlib.import_module("veri.preflight")
+    for fact in ("octo", "git@github.com:o/r.git", str(preflight.ready_check.PERMISSIONS_CHECK_VERSION), _today()):
+        assert fact in held, held
+    assert str(tmp_path) not in held, held
+
+
+FAILING = [("ok    push dry-run", "fail  push dry-run: remote: Permission denied"),
+           ("ok    bypassPermissions", "fail  bypassPermissions: denied tools: `Bash`"),
+           ("ok    label bug", "fail  label bug: gh label create bug"),
+           ("ok    push dry-run", None)]
+
+
+@pytest.mark.parametrize("row, instead", FAILING)
+def test_issue_4093_a_check_with_a_failing_or_missing_permission_row_writes_no_record_and_leaves_one_as_it_was(monkeypatch, run_cli, tmp_path, row, instead):
+    clone = Clone(tmp_path, rows=[r for r in PERMISSION_OK if r != row] + ([instead] if instead else []))
+
+    _preflight(monkeypatch, run_cli, tmp_path, clone)
+    assert not clone.record.exists()
+
+    clone.record.parent.mkdir(exist_ok=True)
+    clone.record.write_bytes(b"login=someone-else\nkept as it was\n")
+    _preflight(monkeypatch, run_cli, tmp_path, clone)
+    assert clone.record.read_bytes() == b"login=someone-else\nkept as it was\n"
+
+
+@pytest.mark.parametrize("answer", [(2, "", "ready-check.sh: not a git repository\n"), (3, "waiting on ready-fast\n", "")])
+def test_issue_4093_a_check_with_no_answer_writes_no_record(monkeypatch, run_cli, tmp_path, answer):
+    clone = Clone(tmp_path, rows=PERMISSION_OK + ["ok    bash"])
+    clone.ready = answer
+
+    _preflight(monkeypatch, run_cli, tmp_path, clone)
+
+    assert not clone.record.exists()
+
+
+@pytest.mark.parametrize("value", ["", "2", "yes", " 1"])
+def test_issue_4093_a_bad_veri_recheck_permissions_stops_preflight_at_2_after_step_2s_checks_before_ready_check(monkeypatch, run_cli, tmp_path, value):
+    clone = Clone(tmp_path)
+
+    called, code, out, names = _preflight(monkeypatch, run_cli, tmp_path, clone, env={"VERI_RECHECK_PERMISSIONS": value})
+
+    assert code == 2, out
+    assert out.splitlines()[-1] == "stopped at 2 VERI_RECHECK_PERMISSIONS", out
+    assert called == [] and "leaf-launchable.sh" in names and "issue-worktree.sh" not in names, names
+    assert not (tmp_path / "wt" / ".tdd" / "wt").exists()
