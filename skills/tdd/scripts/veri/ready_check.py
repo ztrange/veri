@@ -24,7 +24,7 @@ from case_reader import is_test_path
 from session_env import strip_session_env
 from wait_ci import trigger_lines
 
-USAGE = "usage: ready-check.sh [--no-suites] [repo-root]"
+USAGE = "usage: ready-check.sh [--no-suites] [--no-permissions] [repo-root]"
 WAIT_BOUND = 590  # detach-command.sh wait's own default
 CALL_BOUND = WAIT_BOUND - 30  # one call's whole run, probe and tiers together, inside a 600 s tool call
 call_deadline = None  # time.monotonic() at which this call's waiting must end; main sets it
@@ -515,6 +515,9 @@ def python_row():
 CHECKS = (tier_row("fast"), tier_row("all"), one_test_file_row, pull_request_row, push_row, test_file_row, tdd_ignored_row,
           gh_auth_row, push_access_row, label_row, *map(state_label_row, STATE_LABELS), token_scopes_row, priority_label_row, bug_label_row,
           actions_read_row, run_state_ignore_row, push_dry_run_row, bypass_permissions_row, bash_row, python_row)
+# The permission rows (PRD 016.6a-c), which --no-permissions skips: RD7's rows are cheap and refuse a run, these only warn.
+PERMISSION_CHECKS = (token_scopes_row, priority_label_row, bug_label_row, actions_read_row, run_state_ignore_row,
+                     push_dry_run_row, bypass_permissions_row)
 
 
 def rendered(name, verdict):
@@ -538,8 +541,11 @@ def main(argv):
 
 
 def checked(argv):
-    suites = "--no-suites" not in argv[:1]
-    argv = argv[0 if suites else 1:]
+    flags = []
+    while argv and argv[0] in ("--no-suites", "--no-permissions") and argv[0] not in flags:
+        flags.append(argv[0])
+        argv = argv[1:]
+    suites, permissions = "--no-suites" not in flags, "--no-permissions" not in flags
     if len(argv) > 1 or any(a.startswith("-") for a in argv):
         print(USAGE, file=sys.stderr)
         return 2
@@ -557,7 +563,7 @@ def checked(argv):
     if inside.returncode != 0:
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
-    results = [check() for check in CHECKS]
+    results = [check() for check in CHECKS if permissions or check not in PERMISSION_CHECKS]
     tier_runs, waiting = tier_run_rows(root) if suites else ([], None)
     results += tier_runs
     failed = sum(1 for _, verdict in results if verdict and not isinstance(verdict, Neutral))

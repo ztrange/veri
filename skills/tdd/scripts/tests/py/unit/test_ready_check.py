@@ -917,3 +917,21 @@ def test_issue_4091_the_probes_scratch_directory_is_gone_on_exit_1_or_2_and_noth
     assert code == exit_code
     assert sorted(os.listdir(repo)) == ["kept"], os.listdir(repo)
     assert tree_state(tmp_path) == before
+
+
+PERMISSION_ROWS = ("token scopes", "label priority", "label bug", "actions read", "run-state ignore", "push dry-run",
+                   "bypassPermissions")
+
+
+def test_issue_4093_ready_check_no_permissions_prints_no_permission_row_makes_none_of_their_probes_and_keeps_rd7s_rows(ready_check, run_cli, fake_processes, tmp_path):
+    fake = fake_processes.answers(holding())
+    code, out, err = run_cli(ready_check, ["--no-suites", "--no-permissions", str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    lines = out.splitlines()
+
+    assert (code, lines[-1]) == (0, "ready"), (out, err)
+    assert not [line for line in lines if any(line.endswith("  " + row) or ("  " + row + ":") in line for row in PERMISSION_ROWS)], lines
+    assert {"ok    gh auth", "ok    push access", "ok    label ready-for-agent"} <= set(lines), lines
+    probes = ("gh api -i user", "gh api repos/{owner}/{repo}/labels/", ACTIONS_RUNS, "git rev-parse --git-common-dir",
+              "git push", "git remote get-url --push origin", "claude")
+    assert not [c for c in fake.calls if c.startswith(probes)], fake.calls
+    assert not (tmp_path / ".tdd").exists()
