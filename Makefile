@@ -130,7 +130,7 @@ test unit:
 	if [ -n "$(PY_TESTS)" ]; then \
 	  py_bin="$(VENV_PY)" || exit 2; \
 	  printf '== pytest\n'; \
-	  PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) $(if $(PY_WORKERS),VERI_PYTEST_WORKERS="$${VERI_PYTEST_WORKERS:-$(PY_WORKERS)}") "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py $(if $(TESTS_NAMED),--subset) --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
+	  PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) $(if $(PY_WORKERS),VERI_PYTEST_WORKERS="$${VERI_PYTEST_WORKERS:-$(PY_WORKERS)}") "$$py_bin" skills/tdd/scripts/tests/leg/pytest_leg.py $(if $(TESTS_NAMED),--subset) --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
 	fi; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
@@ -160,7 +160,7 @@ profile:
 	@$(OFFLINE_SCRATCH); \
 	if [ -n "$(PY_TESTS)" ]; then \
 	  py_bin="$(VENV_PY)"; \
-	  $(OFFLINE_ENV) "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py -q --durations=0 --durations-min="$${VERI_PROFILE_THRESHOLD:-1}" $(PY_SELECT) $(PY_TESTS) < /dev/null | grep -E '^[0-9.]+s +call +' || true; \
+	  $(OFFLINE_ENV) "$$py_bin" skills/tdd/scripts/tests/leg/pytest_leg.py -q --durations=0 --durations-min="$${VERI_PROFILE_THRESHOLD:-1}" $(PY_SELECT) $(PY_TESTS) < /dev/null | grep -E '^[0-9.]+s +call +' || true; \
 	fi
 
 # `make unreachable` lists the scripts no declared entry point reaches, through unreachable.sh.

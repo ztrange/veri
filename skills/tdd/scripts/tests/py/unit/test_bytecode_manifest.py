@@ -1,4 +1,4 @@
-"""The bytecode cache functions of veri/pytest_leg.py, called in-process over a cache prefix and sources inside tmp_path."""
+"""The bytecode cache functions of tests/leg/pytest_leg.py, called in-process over a cache prefix and sources inside tmp_path."""
 import importlib
 import importlib.util
 import json
@@ -9,7 +9,7 @@ import time
 
 
 def test_the_check_before_a_run_drops_an_optimised_pyc_and_leaves_a_recorded_plain_module_pyc_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     sources = tmp_path / "src"
@@ -35,7 +35,7 @@ def test_the_check_before_a_run_drops_an_optimised_pyc_and_leaves_a_recorded_pla
 
 
 def test_a_run_started_after_a_test_file_changed_drops_its_rewritten_pyc_even_at_the_same_size_and_second_and_keeps_an_unchanged_files_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     sources = tmp_path / "src"
@@ -66,7 +66,7 @@ def test_a_run_started_after_a_test_file_changed_drops_its_rewritten_pyc_even_at
 
 
 def test_the_record_after_a_run_leaves_out_a_rewritten_pyc_whose_header_names_another_source_size_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     source = tmp_path / "test_grown.py"
@@ -88,7 +88,7 @@ def test_the_record_after_a_run_leaves_out_a_rewritten_pyc_whose_header_names_an
 
 
 def test_the_check_treats_a_pyc_another_run_already_removed_as_dropped_and_carries_on_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     source = tmp_path / "test_gone.py"
@@ -113,7 +113,7 @@ def test_the_check_treats_a_pyc_another_run_already_removed_as_dropped_and_carri
 
 
 def test_the_check_drops_a_cached_plain_pyc_whose_source_the_manifest_does_not_list_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     source = tmp_path / "unlisted.py"
@@ -129,7 +129,7 @@ def test_the_check_drops_a_cached_plain_pyc_whose_source_the_manifest_does_not_l
 
 
 def test_the_check_drops_every_cached_pyc_when_the_manifest_is_empty_truncated_or_not_a_json_object_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     source = tmp_path / "recorded.py"
@@ -158,7 +158,7 @@ def test_the_check_drops_every_cached_pyc_when_the_manifest_is_empty_truncated_o
 
 
 def test_the_record_after_a_run_lists_a_plain_and_a_pytest_rewritten_pyc_this_run_compiled_and_never_an_optimised_one_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     helper = tmp_path / "helper.py"
@@ -181,7 +181,7 @@ def test_the_record_after_a_run_lists_a_plain_and_a_pytest_rewritten_pyc_this_ru
 
 
 def test_the_record_after_a_run_does_not_newly_record_a_pyc_present_in_the_snapshot_and_unchanged_since_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     helper = tmp_path / "helper.py"
@@ -205,7 +205,7 @@ def test_the_record_after_a_run_does_not_newly_record_a_pyc_present_in_the_snaps
 
 
 def test_the_record_after_a_run_does_not_list_a_pyc_planted_after_the_check_with_its_sources_mtime_and_size_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     helper = tmp_path / "helper.py"
@@ -224,7 +224,7 @@ def test_the_record_after_a_run_does_not_list_a_pyc_planted_after_the_check_with
 
 
 def test_the_record_after_a_run_leaves_out_a_source_modified_after_the_runs_start_and_lists_one_modified_before_it_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     old = tmp_path / "old.py"
@@ -249,7 +249,7 @@ def test_the_record_after_a_run_leaves_out_a_source_modified_after_the_runs_star
 
 
 def test_the_record_replaces_the_manifest_by_moving_a_complete_temp_file_from_its_own_directory_and_leaves_no_temp_file_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     helper = tmp_path / "helper.py"
@@ -282,7 +282,7 @@ def test_the_record_replaces_the_manifest_by_moving_a_complete_temp_file_from_it
 
 
 def test_the_record_holds_an_exclusive_flock_on_the_lock_file_beside_the_manifest_and_keeps_an_entry_another_run_recorded_after_the_check_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     helper = tmp_path / "helper.py"
@@ -318,7 +318,7 @@ def test_the_record_holds_an_exclusive_flock_on_the_lock_file_beside_the_manifes
 
 
 def test_a_pyc_planted_after_the_start_with_the_sources_mtime_and_size_but_compiled_from_other_text_is_dropped_by_the_next_check_and_a_pyc_this_run_compiled_stays_2054(tmp_path, monkeypatch):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     prefix = tmp_path / "prefix"
     prefix.mkdir()
     planted = tmp_path / "planted.py"

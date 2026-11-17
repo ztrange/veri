@@ -1,5 +1,11 @@
 """The pytest leg's launcher: refuses an interpreter below the Python floor, then runs pytest."""
-if __name__ == "__main__": __import__("runpy").run_path(__import__("os").path.dirname(__file__) + "/pycache_prefix.py")
+import os.path as _path
+VERI = _path.join(_path.dirname(_path.dirname(_path.dirname(_path.realpath(__file__)))), "veri")
+if __name__ == "__main__":
+    # Run directly, the leg's directory leads sys.path; it holds only the leg and its plugins, so veri/ takes its place
+    # before pycache_prefix.py runs (it compiles sys.path[0]'s modules) and before any veri import (PRD 025.16).
+    __import__("sys").path[0] = VERI
+    __import__("runpy").run_path(VERI + "/pycache_prefix.py")
 # Usage:   pytest_leg.py [--subset] [pytest-args...]
 #          --subset: the caller named the suites to run (`make test TESTS=…`), so no full-run lock is taken
 #          Cases run in two pytest passes, non-`serial` then `serial`; when both run, the output ends with one line
@@ -400,8 +406,10 @@ def main(argv):
         return 2
     import pytest
     os.environ["TMPDIR"] = leg_tmpdir.PINNED_TMPDIR
+    # The plugins load by name from the leg's directory; failed_cases from veri/; the plugins' `veri.x` from scripts/.
     sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-    sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+    sys.path.insert(1, VERI)
+    sys.path.insert(2, os.path.dirname(VERI))
     outer = sys.modules.get("failed_cases")
     records = (outer.NODEIDS, outer.PASSED, outer.REPORTED, outer.NAMED) if outer else ()
     saved = [list(record) for record in records]

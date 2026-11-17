@@ -20,7 +20,7 @@ def test_a_no_ini_subset_leg_started_beside_its_serial_case_is_unmoved_by_state_
     monkeypatch.setitem(sys.modules, "test_planted_serial_in_second", stale_module)
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+    code, out, err = run_cli(importlib.import_module("pytest_leg"),
                              ["--subset", "-m", "not slow", "-q", "-p", "no:cacheprovider", str(planted)], env=env,
                              cwd=planted / "second")
 

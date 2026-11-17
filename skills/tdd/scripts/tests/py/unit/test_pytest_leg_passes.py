@@ -1,4 +1,4 @@
-"""The passes veri/pytest_leg.py makes, driven in-process on a planted tree with pytest itself."""
+"""The passes tests/leg/pytest_leg.py makes, driven in-process on a planted tree with pytest itself."""
 import importlib
 import os
 import sys
@@ -20,7 +20,7 @@ def test_a_leg_that_collects_no_serial_marked_case_starts_one_pytest_session_and
     (planted / "test_planted_unmarked.py").write_text("def test_unmarked():\n    pass\n")
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+    code, out, _ = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
 
     assert sessions.read_text().splitlines() == ["session"]
     assert (code, out.count("1 passed")) == (0, 1)
@@ -35,7 +35,7 @@ def test_a_leg_driven_in_process_on_a_tree_with_its_own_conftest_leaves_the_conf
     before = sys.modules.get("conftest")
 
     try:
-        code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+        code, out, _ = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
         after = sys.modules.get("conftest")
     finally:
         if before is None:
@@ -54,14 +54,14 @@ def test_two_legs_driven_in_process_on_trees_planting_the_same_module_basename_e
         planted.mkdir()
         (planted / "test_planted_twice.py").write_text("def test_%s():\n    pass\n" % name)
 
-        code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+        code, out, err = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
         results.append((code, out.count("1 passed"), "import file mismatch" in out + err))
 
     assert results == [(0, 1, False), (0, 1, False)]
 
 
 def test_the_serial_probe_collecting_after_its_run_directory_vanished_neither_raises_nor_aborts_the_session_2099(monkeypatch, tmp_path):
-    serial_seen = importlib.import_module("veri.serial_seen")
+    serial_seen = importlib.import_module("serial_seen")
     monkeypatch.setenv("PYTEST_LEG_SERIAL_SEEN", str(tmp_path / "veri-pytest-gone" / "serial-seen"))
 
     serial_seen.pytest_collection_modifyitems([])
@@ -85,7 +85,7 @@ def test_a_leg_run_on_a_host_whose_tmpdir_is_elsewhere_gives_its_cases_tmp_as_th
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1",
            "TMPDIR": str(elsewhere)}
 
-    code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+    code, out, _ = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
 
     assert (seen.read_text(), code, out.count("1 passed")) == ("/tmp", 0, 1)
 
@@ -101,7 +101,7 @@ def test_a_leg_that_collects_a_serial_case_ends_with_one_line_counting_the_cases
     )
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+    code, out, _ = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
 
     last = [line for line in out.splitlines() if line.strip()][-1]
     assert (code, "2 passed" in last, "deselected" in last) == (0, True, False)
@@ -122,7 +122,7 @@ def test_a_subset_leg_whose_mark_expression_excludes_a_named_case_from_both_pass
     module = str(planted / "test_planted_unselected.py")
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+    code, out, err = run_cli(importlib.import_module("pytest_leg"),
                              ["--subset", "-q", "-p", "no:cacheprovider", "-m", "not slow",
                               module + "::test_unmarked", module + "::test_serial", module + "::test_left_out"], env=env)
 
@@ -144,7 +144,7 @@ def test_a_subset_leg_whose_own_mark_and_keyword_selection_leaves_cases_of_a_nam
     )
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+    code, out, err = run_cli(importlib.import_module("pytest_leg"),
                              ["--subset", "-q", "-p", "no:cacheprovider", "-m", "not slow", "-k", "not other", str(planted)], env=env)
 
     assert (code, "unselected" in out + err) == (0, False)
@@ -165,7 +165,7 @@ def test_a_two_pass_leg_ends_with_one_line_counting_the_cases_named_run_passed_a
     )
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", "-m", "not slow", str(planted)], env=env)
+    code, out, _ = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", "-m", "not slow", str(planted)], env=env)
 
     last = [line for line in out.splitlines() if line.strip()][-1]
     assert (code, last) == (1, "4 named, 3 run, 2 passed, 1 failed across both passes")
@@ -188,7 +188,7 @@ def test_a_subset_leg_over_named_files_runs_their_process_tree_audit_and_serial_
     )
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+    code, out, err = run_cli(importlib.import_module("pytest_leg"),
                              ["--subset", "-q", "-p", "no:cacheprovider", str(planted)], env=env)
 
     last = [line for line in out.splitlines() if line.strip()][-1]
@@ -216,7 +216,7 @@ def test_the_serial_pass_is_handed_only_the_test_files_that_hold_a_serial_case_a
     monkeypatch.setattr(pytest, "main", spy)
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+    code, out, _ = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
 
     serial_pass = handed[1]
     assert [os.path.basename(arg) for arg in serial_pass if arg.endswith(".py")] == ["test_planted_with_serial.py"]
@@ -240,7 +240,7 @@ def test_a_serial_pass_over_a_target_naming_one_class_runs_that_class_s_serial_c
     )
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(module) + "::TestNamed"], env=env)
+    code, out, _ = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", str(module) + "::TestNamed"], env=env)
 
     assert (code, out.splitlines()[-1]) == (0, "2 named, 2 run, 2 passed, 0 failed across both passes")
 
@@ -251,7 +251,7 @@ def test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_
     (planted / "second" / "test_planted_serial_in_second.py").write_text("import pytest\n@pytest.mark.serial\ndef test_serial():\n    pass\n")
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+    code, out, err = run_cli(importlib.import_module("pytest_leg"),
                              ["--subset", "-m", "not slow", "-q", "-p", "no:cacheprovider", str(planted)], env=env,
                              cwd=planted / "second")
 
@@ -259,7 +259,7 @@ def test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_
 
 
 def _collected(tmp_path, args, cases):
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    pytest_leg = importlib.import_module("pytest_leg")
     collected = pytest_leg.Collected()
     collected.root = str(tmp_path)
     collected.args = [str(tmp_path / arg) if "::" not in arg else str(tmp_path / arg.split("::", 1)[0]) + "::" + arg.split("::", 1)[1] for arg in args]
@@ -333,7 +333,7 @@ def test_a_leg_nested_in_a_run_that_holds_failed_case_records_leaves_those_recor
             record.clear()
             record.update(outer[name]) if isinstance(record, set) else record.extend(outer[name])
 
-        code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+        code, out, _ = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
 
         after = {name: getattr(records, name) for name in names}
         assert (after, code, out.count("1 passed")) == (outer, 0, 1)
@@ -357,7 +357,7 @@ def test_a_leg_without_subset_whose_mark_expression_excludes_a_named_case_prints
     module = str(planted / "test_planted_plain.py")
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+    code, out, err = run_cli(importlib.import_module("pytest_leg"),
                              ["-q", "-p", "no:cacheprovider", "-m", "not slow", module + "::test_unmarked", module + "::test_left_out"], env=env)
 
     assert (code, "unselected" in out + err) == (0, False)
@@ -370,7 +370,7 @@ def test_a_subset_leg_with_no_mark_expression_whose_stop_at_first_failure_leaves
     (planted / "test_planted_second.py").write_text("def test_never_reached():\n    pass\n")
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
-    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+    code, out, err = run_cli(importlib.import_module("pytest_leg"),
                              ["--subset", "-q", "-x", "-p", "no:cacheprovider",
                               str(planted / "test_planted_first.py"), str(planted / "test_planted_second.py")], env=env)
 

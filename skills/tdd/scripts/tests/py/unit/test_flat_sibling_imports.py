@@ -3,10 +3,6 @@ import ast
 
 import pytest
 
-# The pytest-leg plugins are loaded by name from pytest_leg.py (PYTEST_PLUGINS) in a process that may not have veri/
-# first on sys.path, so a flat import of a sibling could fail there; they name their sibling through the package.
-PYTEST_LEG_PLUGINS = {"network_guard", "small_case_guard"}
-
 
 def _package_imports(tree):
     for node in ast.walk(tree):
@@ -23,7 +19,6 @@ def test_no_module_imports_a_sibling_relatively_or_through_the_package_name(veri
     offenders = {
         name: sorted(_package_imports(veri_modules_index.tree(name)))
         for name in veri_modules_index.names
-        if name not in PYTEST_LEG_PLUGINS
     }
     offenders = {name: lines for name, lines in offenders.items() if lines}
 

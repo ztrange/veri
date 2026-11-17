@@ -17,8 +17,11 @@ module or a conftest fixture has no bullet below, or a bullet names one that doe
 - Collection refuses an unregistered mark and a `process`, `tree_audit` or `serial` mark without its argument
   (`case_size_guards.pytest_collection_modifyitems`).
 - `make unit` runs `-m "not process and not tree_audit"` over `tests/py/unit/` only (Makefile `unit:`); `make test` runs
-  everything under `tests/py/` through `veri/pytest_leg.py`: the non-`serial` cases, then a second pass over the `serial` ones
+  everything under `tests/py/` through `tests/leg/pytest_leg.py`: the non-`serial` cases, then a second pass over the `serial` ones
   only when one was collected; veri's tree holds none (`unit/test_no_serial_case.py`), so it is one pytest session.
+- The leg and the plugins it loads by name (`network_guard`, `small_case_guard`, `private_tmp_path`, `serial_seen`) live in
+  `skills/tdd/scripts/tests/leg/`, beside `tests/py/` and outside its rootdir, never in the product package `veri/` (#4051);
+  the TMPDIR it pins is `veri/leg_tmpdir.py`'s `PINNED_TMPDIR`, which run-conductor's free-space check reads too.
   `make test TESTS="<file or node id> ..."` runs only those, in the same invocation. Policy: root `CLAUDE.md`, "Testing idiom".
 - **A file lives in `unit/` only if `tests/py/fast_tier_guard.py` names none of its calls** (a process start, a real wait),
   enforced both ways by `test_fast_tier_guard.py`. So `make unit` runs `tests/py/unit/` only, and placement is judged per FILE:

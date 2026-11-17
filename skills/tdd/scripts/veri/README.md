@@ -4,8 +4,8 @@ The Python half of veri's scripts: each `<name>.sh` in `skills/tdd/scripts/` is 
 `veri/<name>.py`. Modules import their siblings flat (`import git`, `from ledger import ledger_path`) because they
 run as scripts, and never relatively or as `veri.x`, with no `try/except ImportError` fallback: tests name a module `veri.x`
 but get the same object as flat `x` (the finder in `tests/py/conftest.py`). `tests/py/unit/test_flat_sibling_imports.py`
-(a tree audit) fails otherwise; only the pytest-leg plugins `network_guard` and `small_case_guard`, loaded by name where
-`veri/` may not lead `sys.path`, import `veri.popen_command`.
+(a tree audit) fails otherwise. The pytest leg and its plugins are test plumbing and live outside `veri/`, in
+`skills/tdd/scripts/tests/leg/` (#4051).
 `entry.run(main, argv)` is the one `__main__` path: it turns an uncaught exception into exit 2. Exit codes 0/1/2/3 are
 the API; they are defined in the root `CLAUDE.md`.
 
@@ -27,7 +27,7 @@ about twelve lines.
 - **Prompts and leaf reports**: What a leaf is told (the prompt builders) and what it answers (the `KEY: value` report and the readers of each leaf's report).
 - **Verdicts and verification**: The verifier and adjudicator legs: run the blind verifier, parse its verdict, compare rejects, adjudicate an exit 2.
 - **Budgets and cost**: The budgets (steps, time, refactor, context, affordability) and what leaves cost.
-- **Veri's own test runner**: How veri's own suite runs (`make test`, `make unit`, `make profile`): the pytest leg's launcher and its plugins, the bytecode cache, the one-full-run lock, the fast-tier admission guard and the per-case profiler.
+- **Veri's own test runner**: How veri's own suite runs (`make test`, `make unit`, `make profile`): what the pytest leg shares with the launches, the bytecode cache, the one-full-run lock, the fast-tier admission guard and the per-case profiler.
 - **Target suites and tiers**: Choosing and running the suites of the project veri works on: finding its test commands, the suites a change affects, timed, baseline, branch and rebased-tip runs, flakes, reruns and mutation probes.
 - **Frozen tests and case history**: The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, ticking a ledger step (which re-records the earlier steps' cases), routing a rejected pin or wrong test, and the git history of cases.
 - **GitHub and issues**: gh access, issue selection (solvable, parked, blocked), claiming and releasing issues, specs captured from issues and ticking an issue's criteria.
@@ -535,19 +535,14 @@ The budgets (steps, time, refactor, context, affordability) and what leaves cost
 
 # Veri's own test runner
 
-How veri's own suite runs (`make test`, `make unit`, `make profile`): the pytest leg's launcher and its plugins, the bytecode cache, the one-full-run lock, the fast-tier admission guard and the per-case profiler. Builds on Foundations only.
+How veri's own suite runs (`make test`, `make unit`, `make profile`): what the pytest leg shares with the launches, the bytecode cache, the one-full-run lock, the fast-tier admission guard and the per-case profiler. The leg's launcher and its plugins live in `skills/tdd/scripts/tests/leg/`. Builds on Foundations only.
 
 - `content_mtimes`: run by CI before `make test`: sets each tracked file's mtime from its blob id, so a restored `.pyc` of unchanged content stays valid.
 - `failed_cases`: the pytest leg's record plugin: keeps, in this process, the cases each session collected and how each one reported.
 - `full_run_lock`: the one-full-run lock: at most one full `make test` runs per machine, and a waiter names the holder.
 - `leg_tmpdir`: `PINNED_TMPDIR`, the TMPDIR the pytest leg pins before it starts; run-conductor's free-space check reads it too, so a run never imports the leg.
-- `network_guard`: a pytest plugin the launcher loads: no case may reach a non-loopback address or start a gh or curl it did not plant under its basetemp.
-- `private_tmp_path`: the pytest leg's tmp_path plugin: one fresh directory under the session basetemp, made without numbering.
 - `profile.sh`: per-case timing of suites.
 - `pycache_prefix`: sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import.
-- `pytest_leg`: the pytest leg's launcher: refuses an interpreter below the Python floor, then runs pytest.
-- `serial_seen`: the pytest leg's probe plugin: records in a file what each collection held, for the leg to plan its serial pass from.
-- `small_case_guard`: a pytest plugin the launcher loads: an unmarked (small) case may not start git, or python3 on anything but a veri/ module.
 
 ## full_run_lock
 - `acquire()`: take the lock (waiting for a holder, saying who holds it and marking the wait at `PYTEST_LEG_LOCK_WAIT_MARKER` with a file naming the waiter, its pid and start time in `pid_file.record`'s form; a supervisor ignores a marker whose waiter is no longer alive under that start time, while an empty one, an older leg's, still freezes its timers), record this pid and tree in the lock file and mark this process the holder in `PYTEST_LEG_FULL_LOCK_HOLDER`; returns a `Lock` whose `release()` empties the file and restores the variable.

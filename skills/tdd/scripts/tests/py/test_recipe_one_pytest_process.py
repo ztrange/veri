@@ -52,6 +52,7 @@ def planted_tree(tmp_path, small=PLANTED_CASES.split("@pytest.mark.process")[0])
         (scripts / name).symlink_to(SCRIPTS / name)
     py = scripts / "tests" / "py"
     (py / "unit").mkdir(parents=True)
+    (scripts / "tests" / "leg").symlink_to(SCRIPTS / "tests" / "leg")
     (py / "conftest.py").write_text(PLANTED_CONFTEST)
     (py / "unit" / "test_planted_small.py").write_text(small)
     (py / "test_planted_medium.py").write_text(PLANTED_CASES.replace("def test_small", "def test_other_small"))
@@ -162,7 +163,7 @@ def test_make_test_with_two_workers_passes_and_fails_the_same_cases_as_serial_an
 @pytest.mark.timeout(120)
 @pytest.mark.process("make unit and make test started for real with VERI_PYTEST_WORKERS unset, over a planted tree whose small case notes its worker count")
 def test_with_no_worker_count_set_make_unit_runs_four_workers_and_make_test_one_per_available_core(tmp_path, monkeypatch):
-    from veri import pytest_leg
+    import pytest_leg
     tree, log = planted_tree(tmp_path, small=WORKER_COUNT_CASE), tmp_path / "ran.log"
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "legs"))
     monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)

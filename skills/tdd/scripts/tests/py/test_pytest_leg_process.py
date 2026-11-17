@@ -1,4 +1,4 @@
-"""In-process cases for veri/pytest_leg.py, the launcher that makes the pytest leg's refusals and then runs pytest."""
+"""In-process cases for tests/leg/pytest_leg.py, the launcher that makes the pytest leg's refusals and then runs pytest."""
 import importlib
 import os
 import sys
@@ -9,7 +9,7 @@ import pytest
 
 @pytest.fixture
 def pytest_leg():
-    return importlib.import_module("veri.pytest_leg")
+    return importlib.import_module("pytest_leg")
 
 
 def leg_env(**extra):
@@ -41,7 +41,7 @@ def test_a_launcher_run_interrupted_by_sigint_or_sigterm_leaves_no_base_director
         "import os, sys\n"
         "sys.path[:0] = [%r, %r]\n"
         "import pytest\n"
-        "from veri import pytest_leg\n"
+        "sys.path.insert(0, sys.path[0] + '/tests/leg')\nimport pytest_leg\n"
         "def spy(args):\n"
         "    base = [a.split('=', 1)[1] for a in args if a.startswith('--basetemp=')][0]\n"
         "    open(sys.argv[1], 'w').write(base)\n"
@@ -71,7 +71,7 @@ def test_2184_a_launcher_run_sent_sighup_during_its_pytest_run_leaves_no_veri_py
         "import os, sys\n"
         "sys.path[:0] = [%r, %r]\n"
         "import pytest\n"
-        "from veri import pytest_leg\n"
+        "sys.path.insert(0, sys.path[0] + '/tests/leg')\nimport pytest_leg\n"
         "def spy(args):\n"
         "    os.kill(os.getpid(), int(sys.argv[1]))\n"
         "    return pytest.ExitCode.OK\n"
@@ -106,7 +106,7 @@ def test_a_small_case_that_starts_git_fails_under_the_launcher_with_its_failure_
     path = os.environ["PATH"]
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
-         os.path.join(scripts, "veri", "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
+         os.path.join(scripts, "tests", "leg", "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
         cwd=tmp_path, env=dict(os.environ, VERI_PYTEST_WORKERS="1", PATH=path, PYTHONPATH=os.path.join(scripts, "veri")), capture_output=True, text=True, timeout=60,
     )
     assert done.returncode == 1
@@ -135,12 +135,12 @@ def test_a_small_case_that_starts_python3_on_a_script_outside_veri_fails_naming_
         "\n"
         "def test_runs_python3_on_a_veri_module():\n"
         "    subprocess.run(['python3', %r], capture_output=True)\n"
-        % (str(outside), os.path.join(veri, "small_case_guard.py"))
+        % (str(outside), os.path.join(veri, "leg_tmpdir.py"))
     )
     path = os.pathsep.join([str(bin_dir), os.environ["PATH"]])
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
-         os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
+         os.path.join(scripts, "tests", "leg", "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
         cwd=tmp_path, env=dict(os.environ, VERI_PYTEST_WORKERS="1", PATH=path, PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
     )
     out = done.stdout + done.stderr
@@ -190,7 +190,7 @@ def test_a_case_that_connects_to_a_non_loopback_address_or_starts_gh_or_curl_fai
     path = os.pathsep.join([str(bin_dir), os.environ["PATH"]])
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
-         os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
+         os.path.join(scripts, "tests", "leg", "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
         cwd=tmp_path, env=dict(os.environ, VERI_PYTEST_WORKERS="1", PATH=path, PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
     )
     out = done.stdout + done.stderr
@@ -231,7 +231,7 @@ def test_a_gh_or_curl_stub_a_case_plants_under_the_run_s_basetemp_starts_and_pas
     )
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
-         os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
+         os.path.join(scripts, "tests", "leg", "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
         cwd=tmp_path, env=dict(os.environ, VERI_PYTEST_WORKERS="1", PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
     )
     out = done.stdout + done.stderr
@@ -319,7 +319,7 @@ def run_the_real_leg_over(run_cli, tmp_path, cases, selection=()):
     log = tmp_path / "ran.log"
     env = leg_env(VERI_PYTEST_WORKERS="2", PLANTED_LOG=str(log))
     try:
-        code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", *selection, str(planted)], env=env)
+        code, out, err = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", *selection, str(planted)], env=env)
     finally:
         sys.modules.pop("test_planted", None)  # an in-process session imports it; the next planted tree's would mismatch
     return code, log.read_text().splitlines(), out + err
@@ -373,7 +373,7 @@ def test_2741_a_leg_whose_xdist_run_ends_in_an_internalerror_after_a_case_failed
     (planted / "test_planted.py").write_text("def test_fails():\n    assert False\n")
     env = leg_env(VERI_PYTEST_WORKERS="2")
     try:
-        code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+        code, out, err = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
     finally:
         sys.modules.pop("test_planted", None)
         sys.modules.pop("conftest", None)
@@ -389,7 +389,7 @@ def test_2741_a_leg_cut_short_by_an_internalerror_names_only_the_cases_that_fail
     (planted / "test_planted.py").write_text("def test_fails():\n    assert False\n\n\ndef test_passes_quietly():\n    pass\n")
     env = leg_env(VERI_PYTEST_WORKERS="2")
     try:
-        code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+        code, out, err = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
     finally:
         sys.modules.pop("test_planted", None)
         sys.modules.pop("conftest", None)
@@ -406,7 +406,7 @@ def test_2741_a_leg_whose_xdist_run_ends_in_an_internalerror_says_on_stderr_that
     (planted / "test_planted.py").write_text("def test_fails():\n    assert False\n")
     env = leg_env(VERI_PYTEST_WORKERS="2")
     try:
-        code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+        code, out, err = run_cli(importlib.import_module("pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
     finally:
         sys.modules.pop("test_planted", None)
         sys.modules.pop("conftest", None)
@@ -435,7 +435,7 @@ def test_2051_a_case_s_tmp_path_under_the_launcher_is_the_private_tmp_path_direc
     )
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
-         os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
+         os.path.join(scripts, "tests", "leg", "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
         cwd=tmp_path, env=dict(os.environ, VERI_PYTEST_WORKERS="1", PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
     )
     assert done.returncode == 0, done.stdout + done.stderr
@@ -449,7 +449,8 @@ LOCK_CHILD = """\
 import os, sys
 sys.path[:0] = [%r, %r]
 import pytest
-from veri import pytest_leg
+sys.path.insert(0, sys.path[0] + "/tests/leg")
+import pytest_leg
 name, marks, release = sys.argv[1:4]
 def spy(args):
     open(os.path.join(marks, name + "-started"), "a").close()
@@ -502,7 +503,8 @@ EXIT_CHILD = """\
 import os, sys, time
 sys.path[:0] = [%r, %r]
 import pytest
-from veri import pytest_leg
+sys.path.insert(0, sys.path[0] + "/tests/leg")
+import pytest_leg
 name, marks, release, status = sys.argv[1:5]
 def spy(args):
     open(os.path.join(marks, name + "-started"), "a").close()
@@ -559,7 +561,8 @@ NESTED_CHILD = """\
 import os, subprocess, sys
 sys.path[:0] = [%r, %r]
 import pytest
-from veri import pytest_leg
+sys.path.insert(0, sys.path[0] + "/tests/leg")
+import pytest_leg
 name, marks = sys.argv[1:3]
 def spy(args):
     open(os.path.join(marks, name + "-started"), "a").close()
@@ -710,7 +713,8 @@ WAIT_CHILD = """\
 import os, sys, time
 sys.path[:0] = [%r, %r]
 import pytest
-from veri import pytest_leg
+sys.path.insert(0, sys.path[0] + "/tests/leg")
+import pytest_leg
 name, marks, release, planted = sys.argv[1:5]
 def spy(args):
     open(os.path.join(marks, name + "-started"), "a").close()
