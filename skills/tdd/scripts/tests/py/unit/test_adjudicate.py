@@ -253,7 +253,7 @@ def test_record_writes_one_adjudicated_event_of_the_cause_for_each_of_a_retry_a_
     ]
 
 
-@pytest.mark.parametrize("cause", ["ci-conflict", "pr-ready-failed", "report-missing", "step-add-refused"])
+@pytest.mark.parametrize("cause", ["ci-conflict", "pr-ready-failed", "report-missing", "step-add-refused", "replaces-report-failed"])
 def test_left_exits_0_when_every_adjudicated_event_of_the_cause_precedes_the_last_conductor_start(
     run_cli, adjudicate, monkeypatch, tmp_path, cause
 ):
