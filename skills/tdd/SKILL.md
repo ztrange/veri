@@ -1309,8 +1309,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
      $S/push-branch.sh
      ```
-     `git add -A` is what carries `.tdd/issue-<n>-refactor-owed.md` into that same commit:
-     what `append` wrote is untracked until then.
+     `git add -A` carries `.tdd/issue-<n>-refactor-owed.md`, untracked since `append`, into that commit.
      `<k>` is the number of the issue's numbered acceptance criterion the behaviour serves,
      read from the issue's `## Acceptance criteria`, not inherited from the anchor. The
      uncovered-spec behaviours, the leaf's and the verifier's, serving one criterion go in
@@ -1329,17 +1328,18 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      PASS and the values are recorded. That grown ledger rides the same commit as the clear.
      The push copies the step's
      finished state to the remote on the same terms as Green's above: exit **1** launches
-     the reconcile leaf (when that happens, `Read` and run `<base directory>/RECONCILE.md`). Exit **2** is a **bail** (`Read` `<base directory>/BAIL.md`).
+     the reconcile leaf (`Read` and run `<base directory>/RECONCILE.md`). Exit **2** is a **bail** (`Read` `<base directory>/BAIL.md`).
      **Then run `$S/stop-requested.sh`**, immediately after that push, and handle its exit as
      Green's stop check after its own push does (exit 0 and exit 2 as it sets them out); on
      exit 3 carry on.
      Then **mirror to the issue**:
-     post the `### ✅ Step done` comment by running `$S/comment.sh <n> step-done`, composing none of it, then ask whether the step's criterion is finished
-     (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`, k from the step's `⟦criterion k⟧`):
+     post the `### ✅ Step done` comment by running `$S/comment.sh <n> step-done`, then ask whether the step's criterion is finished
+     (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md 2> .tdd/criterion-finished.err`, k from the step's `⟦criterion k⟧`):
      on exit **0** tick it in the **issue body** (`$S/tick-issue-criterion.sh <n>
-     "$(gh api repos/{owner}/{repo}/issues/<n> -q .body | $S/ledger-steps.sh criterion <k>)"`, the human mirror); on exit **3** tick nothing, since a step serving it is
-     still open or pending; on exit **2** the criterion could not be read, so **bail** with cause
-     `criterion-unreadable` (a system failure) and never treat it as exit 3 (see `<base directory>/BAIL.md`). Mark
+     "$(gh api repos/{owner}/{repo}/issues/<n> -q .body | $S/ledger-steps.sh criterion <k>)"`); on exit **3** tick nothing, since a step serving it is
+     still open or pending; on exit **2** the criterion could not be read, never exit 3: with `$S/adjudicate.sh left <n>` exit 0 first launch
+     `adjudicate-criterion-unreadable` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, on any answer (`retry` too),
+     **bail** with cause `criterion-unreadable` (a system failure), calling `criterion-finished.sh` no more (see `<base directory>/BAIL.md`). Mark
      the same moment in the log —
      `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" $S/event.sh step-done`.
      **Then ask whether the run can still afford to finish** — this step boundary is where
@@ -1360,16 +1360,17 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      rather than the fact: the spent, steps remaining, median and projection figures
      `run-affordable.sh` printed, the ceiling (`VERI_RUN_BUDGET`, the second line
      `step-budget.sh` printed), and the two answers available, in this order — split the issue, or
-     raise `VERI_RUN_BUDGET` and resume — since a run projected far past its ceiling is usually one
-     whose issue was too big, a decision no leaf has the authority to make.
+     raise `VERI_RUN_BUDGET` and resume — a decision no leaf has the authority to make.
      This park is **not a bail**: nothing failed, and the ledger is at a state a resume
      already handles — so `classify-bail.sh` is not called on it.
      On exit **2** no answer could be obtained — a missing event log, a bad
      `VERI_RUN_BUDGET`, a count that is not a whole number — a system failure, not a
-     projection: **bail** (`Read` `<base directory>/BAIL.md`). (Earlier steps' commits are preserved.)
+     projection: **bail** (`Read` `<base directory>/BAIL.md`).
    - **REJECT (exit 1):** enter the **revise loop** — when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`. On recovered PASS, mirror and loop; on
-     budget-exhausted, **bail** (`Read` `<base directory>/BAIL.md`). (Earlier steps' commits are preserved.)
-   - **Malformed / killed-stuck (exit 2):** **bail** (`Read` `<base directory>/BAIL.md`). (Earlier steps' commits are preserved.)
+     budget-exhausted, **bail** (`Read` `<base directory>/BAIL.md`).
+   - **Malformed / killed-stuck (exit 2):** **bail** (`Read` `<base directory>/BAIL.md`).
+
+   Each bail of this sub-step preserves the earlier steps' commits.
 
 Neither the refactor leaf nor verify-refactor runs the full suite: a break in a suite none of
 the step's transforms touched surfaces at the one full-suite run in *4. Draft PR*, where a red
