@@ -162,7 +162,8 @@ def resume(root, default, held, tip, tree, wanted, one_file=None):
                       "the branch, then re-run; nothing written" % BRANCH)
     os.chdir(root)
     try:
-        if github.open_pulls("number,url", head=BRANCH):
+        # A fork's PR from a branch of the same name is not this repository's branch, so it counts for nothing.
+        if [p for p in github.open_pulls("number,url,isCrossRepository", head=BRANCH) if not p.cross_repository]:
             print("a pull request from %s already records these commands" % BRANCH, file=sys.stderr)
             return None
     except (github.NoAnswer, ValueError) as unread:
