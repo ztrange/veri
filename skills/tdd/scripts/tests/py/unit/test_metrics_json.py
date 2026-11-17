@@ -419,6 +419,14 @@ def test_4228_stages_count_each_stages_starts_its_ends_by_exit_code_its_unended_
         "baseline": {"runs": 4, "ok": 1, "failed": 1, "no_answer": 0, "nothing": 0, "unended": 2, "wall_seconds": 40}}
 
 
+def test_4228_a_journal_with_no_stage_event_folds_with_stages_empty_and_a_line_naming_no_stage_counts_under_none(
+        tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, two_runs_and_a_restart() + [mark(950, "stage-end", status="0", secs="4")])
+    monkeypatch.chdir(tmp_path)
+
+    assert as_json(metrics, capsys)["stages"] == {}
+
+
 def test_4225_a_journal_with_no_done_bail_or_stop_line_folds_as_one_open_run(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, [line for line in two_runs_and_a_restart() if line["event"] not in ("bail", "done")])
     monkeypatch.chdir(tmp_path)
