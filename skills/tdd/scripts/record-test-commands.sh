@@ -7,7 +7,11 @@
 # Never merges; the checkout it runs from is left as it was.
 #
 # Usage:   record-test-commands.sh [--one-file <cmd>] <fast-cmd> <all-cmd> [repo-root]   (repo-root: default the current directory)
-# Exit:    0 the PR's URL printed; 2 a missing or empty command, not a git repository, origin already has veri-install,
-#          or no answer from git or gh; 3 the default branch's tip already declares every given command exactly
+# Exit:    0 the PR's URL printed, also on a re-run that finds origin's veri-install at exactly the commit it would push
+#          and no PR open from it; 2 a missing or empty command, a --one-file command without "$1" (or a $1 word), not a
+#          git repository, a CLAUDE.md that is not a regular file or would not read back each command exactly, origin's
+#          veri-install holding anything else (other commands, or cut from an older default tip), or no answer from
+#          git or gh; 3 the default branch's tip already declares every given command exactly, or a PR from
+#          veri-install at exactly that commit is already open
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/record_test_commands.py" "$@"
