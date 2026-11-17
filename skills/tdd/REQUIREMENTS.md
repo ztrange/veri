@@ -1296,6 +1296,16 @@
 | PB43 | In its section on the metrics file, `PUBLISHED.md` states that each step entry carries the step's latest text and `former`, the list of its earlier texts in order, empty when it was never reworded, and that a rewording made outside the ledger rewrite (a hand edit) shows as a new step. | A reader matching steps across files must know which text is current and when identity is lost. |
 | PB44 | In its section on the metrics file, `PUBLISHED.md` states `conductor.by_phase`, keyed by leaf kind, stage, `between` and `untimed`, each entry's `turns`, `output_tokens` and `cost_usd` with types and nullability; that a turn is counted under the innermost leaf or stage window holding its time; that its `turns` sum to `conductor.turns`, which counts each session's turns, the more of those its closing record counts and those the log shows, or the shown ones for a session with no closing record; that `by_phase` is `null` when no conductor log was read; and that its costs are estimates, not billed amounts. | A reader must not take an estimate for a bill, nor `null` for zero. |
 
+## skills/tdd/TIDY-FIRST.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TFS1 | The file says that when `$S/tidy-first.sh < .tdd/develop-green.out` exits 0 the conductor launches no verify-green, discards the step's uncommitted work as the `prep` answer does (`git reset --hard HEAD`, then `git clean -f -- <test-path>`), inserts the printed step with `$S/add-ledger-step.sh .tdd/issue-<n>.md before "<stuck step>"` carrying the stuck step's `⟦criterion k⟧`, commits the ledger, and writes `event.sh tidy-first anchor=<stuck step> refactoring=<refactoring>` beside the `step-added` event; exit 3 goes on as the green report would without it. | The insertion is 029.2's and 029.3's, unchanged (PRD 032, TI3). |
+| TFS2 | The file says the inserted step runs as any `⟦diff-checked⟧` step does (`develop-diff`, then the blind `diff` verifier), and once it is ticked the stuck step starts again from Red, its revise loop at attempt 1. | `verify-diff` runs the suites and rejects a step adding a test (PRD 032, TI4, C7). |
+| TFS3 | The file says a `TIDY_FIRST:` answer spends no `REVISE_BUDGET` attempt and writes no `revise` mark for the stuck step. | The budget is for a rejected product (PRD 032, TI5). |
+| TFS4 | The file says the inserted step carries `⟦added⟧` and counts toward `VERI_STEP_GROWTH_PERCENT`: `add-ledger-step.sh` exit 1 bails with cause `tidy-first-owed`, naming the refactoring, and exit 2 bails `step-add-refused`. | Plan growth is bounded on its existing axis (PRD 032, TI6, C8). |
+| TFS5 | The file says `tidy-first.sh` exit 2 is a verify-green REJECT whose reason is its stderr line, spending `REVISE_BUDGET`, with no verifier launched. | The leaf answered wrongly; the methodology spoke (PRD 032, TI7). |
+
 ## skills/tdd/SMELLS.md
 
 | ID | Requirement | Why |
