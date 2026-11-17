@@ -1429,9 +1429,8 @@ is dropped, and the full tier falls through to CLAUDE.md's `veri: all tests:` li
 the usual detection, so an issue naming the fast tier or a subset of the suite never stops the full suite running.
 
 When the inference guesses wrong for a particular repo rather than for one issue, the fix
-is that repo's, not this skill's: a human writes `.veri/test-command` there, and its first
-non-empty line is used verbatim ahead of every inference. That file is the per-repo escape
-hatch.
+is that repo's, not this skill's: its `veri: <tier> tests:` CLAUDE.md lines, recorded by
+`/vinstall`, are used ahead of every inference. They are the per-repo escape hatch.
 
 ## Guardrails
 

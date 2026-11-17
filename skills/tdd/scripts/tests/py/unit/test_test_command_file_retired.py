@@ -3,10 +3,41 @@
 This file holds the cases proving TF1, so it is the one file outside specs/ and .tdd/ the TF6 guard lets name the path.
 """
 import importlib
+from pathlib import Path
 
 import pytest
 
+import conftest
+from veri.git import git
+
 RETIRED = ".veri/test-command"
+REPO = Path(__file__).resolve().parents[6]
+OWN = Path(__file__).resolve().relative_to(REPO).as_posix()
+
+
+def namers(root, tracked):
+    """`<path>:<line>` for each line naming the retired file in <tracked> (paths under <root>), outside specs/, .tdd/
+    and this file."""
+    found = []
+    for name in tracked:
+        if name == OWN or name.startswith(("specs/", ".tdd/")) or "/.tdd/" in name:
+            continue
+        try:
+            lines = (root / name).read_text(encoding="utf-8").splitlines()
+        except (UnicodeDecodeError, OSError):
+            continue
+        found += ["%s:%d" % (name, n) for n, line in enumerate(lines, 1) if RETIRED in line]
+    return found
+
+
+@pytest.mark.process("git ls-files over the repository")
+@pytest.mark.tree_audit("a walk of every tracked file outside specs/ and .tdd/")
+def test_no_tracked_file_outside_specs_tdd_and_the_tf1_cases_names_the_retired_file(monkeypatch, request):
+    monkeypatch.setitem(conftest.STARTS_GIT_IN_REPOSITORY_EXEMPT, conftest.case_tail(request),
+                        "the repository's own tracked files are the subject")
+    tracked = git("ls-files", "-z", cwd=REPO, check=True, capture_output=True, text=True).stdout.split("\0")
+
+    assert namers(REPO, filter(None, tracked)) == []
 
 
 @pytest.fixture
