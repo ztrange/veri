@@ -30,14 +30,14 @@ def run(n):
         values = ready(wt)
         fused.save_wait(wt, n, NAME, WAIT, values)
     head = fused.checked(WHERE, "git", "rev-parse", "HEAD", cwd=wt).strip()
-    code = fused.call(fused.script("wait-ci.sh"), values["pr_url"], "540", "", head, cwd=wt,
-                      out=".tdd/wait-ci.out", err=".tdd/wait-ci.err")[0]
+    waited = (fused.script("wait-ci.sh"), values["pr_url"], "540", "", head)
+    files = {"out": ".tdd/wait-ci.out", "err": ".tdd/wait-ci.err"}
+    code = fused.call(*waited, cwd=wt, **files)[0]
     if code == 3:
         raise fused.Waiting(WAIT)
     os.remove(fused.wait_record(wt, n, NAME))
     if code != 0:
-        raise fused.Stop(WHERE, fused.shown(fused.script("wait-ci.sh"), values["pr_url"], "540", "", head,
-                                            out=".tdd/wait-ci.out", err=".tdd/wait-ci.err") + " exit %d" % code, code)
+        raise fused.Stop(WHERE, fused.shown(*waited, **files) + " exit %d" % code, code)
     if said(wt, ".tdd/ci-flake.out").strip():
         raise fused.Stop(WHERE, "wait-ci.sh exit 0 with .tdd/ci-flake.out non-empty", 1)
     lines = ["pr_url=" + values["pr_url"], "pr_number=" + values["pr_number"], "ci=green"]
