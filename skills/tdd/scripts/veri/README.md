@@ -84,6 +84,7 @@ Rules this file states that no audit enforces; they rely on review.
 
 What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, starting a process detached, the bash and Python floors, the session environment, JSON/Markdown reading, the reading of a leaf report's `KEY:` lines and the reading of test and requirements sources. Builds on no other group; every other group may build on it.
 
+- `fused`: what a fused script shares: an inner call from this skill's scripts directory, printed with its exit code, a `Stop` at the first call that is not clean, its `stopped at` line, and the settled `key=value` file.
 - `report.sh`: read `KEY: value` lines off a leaf report.
 - `requirements.sh`: the prose units and requirement rows of a file.
 - `stack-branch.sh`: the stack branch a repository's `CLAUDE.md` names (`veri: stack branch: <name>`), refused when it cannot be one.
@@ -795,6 +796,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `prd_report`: report.sh's renderer, run in-process.
 - `preflight-refused.sh`: record that preflight refused an issue.
 - `preflight.sh`: the checks before a run starts.
+- `run-start.sh`: SKILL.md step 1's fixed calls after preflight, in one call.
 - `reset-cost.sh`: what each recorded reset of the dev session or a run's conductor cost, and the growth knob it calls for.
 - `reset-wait.sh`: wait for a usage-limit reset.
 - `restart-conductor.sh`: stop and watch a conductor restart.
