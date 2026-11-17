@@ -1282,3 +1282,19 @@ def test_main_with_phase_seam_marks_seam_done_on_a_legacy_step_after_which_next_
 
     assert (code, ledger.read_text(), next_code, capsysbinary.readouterr()[0]) == (
         0, "# Plan for #4106\n\n- [ ] " + step + " ⟂ seam done\n", 0, b"surround\n")
+
+
+def test_main_with_phase_surround_marks_surround_done_after_seam_done_after_which_next_phase_exits_3_4107(
+        tmp_path, monkeypatch, capsysbinary, tick_ledger):
+    ledger_steps = importlib.import_module("veri.ledger_steps")
+    step = "wrap parse() in src/parse.py:10-80 through bin/parse ⟦phases: seam,surround⟧ ⟦criterion 1⟧ ⟂ seam done"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(("# Plan for #4107\n\n- [ ] " + step + "\n").encode())
+
+    code = tick_ledger.main(["--phase", "surround", str(ledger), "wrap parse() in src/parse.py:10-80"])
+    capsysbinary.readouterr()
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(ledger.read_bytes())))
+    next_code = ledger_steps.main(["next-phase"])
+
+    assert (code, ledger.read_text(), next_code, capsysbinary.readouterr()[0]) == (
+        0, "# Plan for #4107\n\n- [ ] " + step + " ⟂ surround done\n", 3, b"")
