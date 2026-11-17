@@ -117,6 +117,37 @@ def test_the_object_is_built_from_the_fold_alone_opening_no_file_and_reading_no_
     assert metrics.as_json(dataclasses.replace(folded, marks=[])) == expected
 
 
+TEXT_KEYS = {"issue", "outcome", "text", "model", "cause", "classification", "phase", "step"}
+FLAG_KEYS = {"estimated", "priced", "includes_conductor"}
+
+
+def figures(value, path=""):
+    """(dotted path, value) for every figure of the object: each leaf under a key that is neither text nor a flag."""
+    if isinstance(value, dict):
+        return [found for key, inner in value.items() if key not in TEXT_KEYS | FLAG_KEYS
+                for found in figures(inner, path + "." + key)]
+    if isinstance(value, list):
+        return [found for at, inner in enumerate(value) for found in figures(inner, "%s[%d]" % (path, at))]
+    return [(path, value)]
+
+
+def test_every_figure_is_a_json_number_or_null_and_an_unknown_one_is_null_never_zero(
+        rich, tmp_path, monkeypatch, capsys, metrics):
+    whole = as_json(metrics, capsys)
+    elsewhere = tmp_path / "bare"
+    elsewhere.mkdir()
+    write_log(elsewhere, [mark(100, "step-start", step="one"), usage("developer", "0.50")])
+    monkeypatch.chdir(elsewhere)
+    bare = as_json(metrics, capsys)
+
+    found = figures(whole) + figures(bare)
+    assert [(path, value) for path, value in found
+            if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float)))] == []
+    assert len(found) > 100
+    assert (bare["conductor"]["cost_usd"], bare["conductor"]["turns"], bare["steps"][0]["wall_seconds"],
+            bare["run"]["wall_seconds"]) == (None, None, None, None)
+
+
 @pytest.mark.parametrize("priced, some_priced, expected", [(True, True, True), (False, True, "partial"),
                                                             (False, False, False)])
 def test_conductor_priced_is_true_when_every_session_carries_a_price_false_when_none_does_and_partial_otherwise(
