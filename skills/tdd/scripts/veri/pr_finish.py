@@ -93,7 +93,12 @@ def tick_full_suite(wt, n):
         return
     lines = [r.text for r in ledger.ledger_steps(ledger.read_ledger(run_dir.ledger(wt, n)))
              if r.state == "open" and FULL_SUITE in r.text]
-    if not lines or pr_ready_wait.NO_CHECKS in pr_ready_wait.said(wt, ".tdd/wait-ci.err"):
+    if not lines:
+        return
+    first_wait = pr_ready_wait.said(wt, ".tdd/wait-ci.err", absent=None)
+    if first_wait is None:  # no record of what the first wait said is no proof CI ran
+        raise fused.Stop(WHERE, "no .tdd/wait-ci.err", 2)
+    if pr_ready_wait.NO_CHECKS in first_wait:
         return
     tick = (fused.script("tick-ledger.sh"), LEDGER % n, FULL_SUITE)
     while (code := fused.call(*tick, cwd=wt)[0]) != 3:

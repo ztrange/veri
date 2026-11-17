@@ -77,13 +77,13 @@ def ready(wt):
     return {"pr_url": url, "pr_number": number}
 
 
-def said(wt, path):
-    """The text of <path> under the worktree; "" when it cannot be read."""
+def said(wt, path, absent=""):
+    """The text of <path> under the worktree; <absent> when it cannot be read."""
     try:
         with open(os.path.join(wt, path), encoding="utf-8", errors="replace") as f:
             return f.read()
     except OSError:
-        return ""
+        return absent
 
 
 if __name__ == "__main__":
