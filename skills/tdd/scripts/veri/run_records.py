@@ -111,10 +111,10 @@ def _account_names():
     return {name for name in names if len(name) >= 3}
 
 
-def _sensitive(run, also=()):
-    """(paths by placeholder, host forms, account names) for the run at <run>; <also> names more `<repo>` roots."""
+def _sensitive(run):
+    """(paths by placeholder, host forms, account names) for the run at <run>."""
     run = os.path.abspath(run)
-    paths = (("<repo>", [p for p in (run, run_dir.main_of_worktree(run), *map(os.path.abspath, also)) if p]),
+    paths = (("<repo>", [p for p in (run, run_dir.main_of_worktree(run)) if p]),
              ("<tmp>", [p for p in (tempfile.gettempdir(), os.environ.get("TMPDIR", "").rstrip("/")) if p]),
              ("~", [os.path.expanduser("~")]))
     return paths, _host_forms(), _account_names()
@@ -129,7 +129,9 @@ def _redactions(run, also=()):
     boundary `<tmp>`; then each host form `<host>` and the account name `<user>`, whole words ignoring case.
     fail-closed: (normalized paths, word regex) that a normalized copy of a string must not hold after the first layer;
     one that still does is replaced whole by `<redacted>`."""
-    paths, hosts, accounts = _sensitive(run, also)
+    paths, hosts, accounts = _sensitive(run)
+    # <also>'s roots join the `<repo>` paths, which _sensitive (one argument, the seam tests fake) gives first.
+    paths = tuple((repl, kind + [os.path.abspath(p) for p in also] if repl == "<repo>" else kind) for repl, kind in paths)
     steps = []
     for repl, kind in paths:
         forms = set().union(*(_path_spellings(path) for path in kind))
