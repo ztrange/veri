@@ -49,7 +49,7 @@ def test_json_prints_one_object_with_the_five_top_level_keys_and_the_markdown_re
     code = metrics.main(["108"])
     again, _ = capsys.readouterr()
 
-    assert sorted(printed) == ["conductor", "leaves", "phases", "run", "steps", "total"]
+    assert sorted(printed) == ["conductor", "leaves", "phases", "run", "runs", "steps", "total"]
     assert (code, again) == (0, markdown)
 
 
@@ -120,7 +120,7 @@ def test_the_object_is_built_from_the_fold_alone_opening_no_file_and_reading_no_
     assert metrics.as_json(dataclasses.replace(folded, marks=[])) == expected
 
 
-TEXT_KEYS = {"issue", "outcome", "text", "model", "cause", "classification", "phase", "step"}
+TEXT_KEYS = {"issue", "outcome", "text", "model", "cause", "classification", "phase", "step", "ended"}
 FLAG_KEYS = {"estimated", "priced", "includes_conductor"}
 
 
@@ -348,3 +348,37 @@ def test_4224_on_a_journal_mixing_named_and_unnamed_lines_leaves_and_phases_sum_
         "leaves": {"attempts": 3, "wall_seconds": 105, "cost_usd": 1.9},
         "phases": {"attempts": 3, "wall_seconds": 105, "cost_usd": 1.9}}
     assert sorted(shaped["leaves"]) == ["develop-red", "revise-green", "unnamed", "verify-red"]
+
+
+def two_runs_and_a_restart():
+    """A first run that bails, then a resume whose conductor restarts (a second conductor-start, no ending line before
+    it) and lands; leaves cost 0.50, 0.25 and 1.00, the conductor's own usage line 2.00."""
+    return [mark(100, "conductor-start", pid="1", started="a"),
+            mark(110, "launch", "red", "one", actor="developer", attempt="1", name="develop-red", cmd="c", model=""),
+            mark(130, "usage", "red", "one", actor="developer", attempt="1", total_cost_usd="0.50", num_turns="2"),
+            mark(200, "bail", "red", "one", cause="revise-exhausted", classification="process"),
+            mark(300, "resume"),
+            mark(301, "conductor-start", pid="2", started="b"),
+            mark(310, "launch", "green", "one", actor="developer", attempt="1", name="develop-green", cmd="c", model=""),
+            mark(320, "usage", "green", "one", actor="developer", attempt="1", total_cost_usd="0.25", num_turns="1"),
+            mark(400, "conductor-start", pid="3", started="c"),
+            mark(410, "launch", "refactor", "one", actor="developer", attempt="1", name="develop-refactor", cmd="c",
+                 model=""),
+            mark(420, "usage", "refactor", "one", actor="developer", attempt="1", total_cost_usd="1.00", num_turns="3"),
+            mark(430, "usage", total_cost_usd="2.00", num_turns="9"),
+            dict(mark(900, "done", pr="https://github.com/o/r/pull/1", wall_seconds="600", awake_seconds="550"),
+                 awake=850)]
+
+
+def test_4225_runs_split_the_journal_at_each_ending_line_and_a_restart_continues_its_run(
+        tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, two_runs_and_a_restart())
+    monkeypatch.chdir(tmp_path)
+
+    runs = as_json(metrics, capsys)["runs"]
+
+    assert runs == [
+        {"index": 1, "ended": "bail", "cause": "revise-exhausted", "wall_seconds": 100, "awake_seconds": 100,
+         "sessions": 1, "leaves": 1, "cost_usd": 0.5},
+        {"index": 2, "ended": "done", "cause": None, "wall_seconds": 600, "awake_seconds": 550,
+         "sessions": 2, "leaves": 2, "cost_usd": 1.25}]
