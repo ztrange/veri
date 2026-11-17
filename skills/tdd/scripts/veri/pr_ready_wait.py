@@ -13,6 +13,10 @@ WHERE = "2"
 NO_CHECKS = "has no checks"
 WAIT = "wait-ci.sh"  # the `waiting on` name of the CI wait
 
+# The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_pr_ready_wait.py fails
+# when one is a script DRAFT-PR.md sub-step 2's first block does not name (FC19).
+CALLS = ("pr-ready.sh", "wait-ci.sh")
+
 
 def main(argv):
     return fused.entry(argv, NAME + ".sh", run)

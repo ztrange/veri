@@ -153,6 +153,30 @@ def test_4032_it_writes_no_event_commits_nothing_and_handles_no_refusal(ready):
     assert not [c for c in fake.made("git") if c[1][:1] in (("add",), ("commit",), ("push",), ("reset",))]
 
 
+def first_block():
+    """DRAFT-PR.md sub-step 2's opening and its first block, up to that block's closing fence."""
+    from pathlib import Path
+    module = importlib.import_module("veri.pr_ready_wait")
+    draft = (Path(module.__file__).resolve().parents[2] / "DRAFT-PR.md").read_text()
+    start = draft.index("\n2. **Mark the PR ready for review")
+    opened = draft.index("   ```\n", start) + len("   ```\n")
+    return draft[start:draft.index("   ```\n", opened)]
+
+
+def test_4032_every_inner_call_in_the_ordered_list_is_a_script_sub_step_2s_first_block_names():
+    pr_ready_wait = importlib.import_module("veri.pr_ready_wait")
+
+    assert [name for name in pr_ready_wait.CALLS if "$S/" + name not in first_block()] == []
+
+
+def test_4032_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(ready):
+    pr_ready_wait = importlib.import_module("veri.pr_ready_wait")
+    code, out, err, fake = ready()
+
+    made = [name for name in fake.names() if name not in ("git", "gh")]
+    assert code == 0 and made == list(pr_ready_wait.CALLS)
+
+
 def _pid(ready, text):
     (ready.wt / ".tdd" / "conductor.pid").write_text(text)
 
