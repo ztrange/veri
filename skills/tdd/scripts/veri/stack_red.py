@@ -17,8 +17,14 @@ def main(argv):
     stack, _, _ = stack_branch.ahead(".")
     runs = github.workflow_runs(stack)
     answered = [found for found in runs if found[2] == "completed" and found[3] != "cancelled"]
+    if not answered:
+        print("stack-red: CI has not answered on origin/%s yet: none of the %d workflow runs read completed with a"
+              " conclusion other than cancelled" % (stack, len(runs)), file=sys.stderr)
+        return 3
     head, url, _, conclusion, _ = max(answered, key=lambda found: found[4])
     if conclusion in GREEN:
+        print("stack-red: CI's latest answer on origin/%s is %s (%s), not red" % (stack, conclusion, head),
+              file=sys.stderr)
         return 3
     sys.stdout.write("%s %s %s\n" % (head, url, conclusion))
     return 0
