@@ -222,7 +222,25 @@ def test_record_under_ci_conflict_on_route_rebase_prints_the_route_writes_one_ro
     ] == [{"issue": "7", "cause": "ci-conflict", "outcome": "route", "reason": "the base moved again"}]
 
 
-@pytest.mark.parametrize("cause", ["pr-ready-failed", "report-missing", "step-add-refused", "replaces-report-failed"])
+
+def test_record_under_unreplaced_cases_on_route_replaces_report_prints_the_route_writes_one_route_event_and_exits_1(
+    run_cli, adjudicate, tmp_path
+):
+    import json
+
+    (tmp_path / ".tdd").mkdir()
+    leaf = tmp_path / "leaf.out"
+    leaf.write_text("ADJUDICATION: route replaces-report — the report was written late\n")
+    code, out, err = run_cli(adjudicate, ["record", "7", "unreplaced-cases", str(leaf)], cwd=tmp_path)
+    assert (code, out) == (1, "route replaces-report\n")
+    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [
+        {k: e.get(k) for k in ("issue", "cause", "outcome", "reason")}
+        for e in events
+        if e.get("event") == "adjudicated"
+    ] == [{"issue": "7", "cause": "unreplaced-cases", "outcome": "route", "reason": "the report was written late"}]
+
+@pytest.mark.parametrize("cause", ["pr-ready-failed", "report-missing", "step-add-refused", "replaces-report-failed", "unreplaced-cases"])
 def test_record_writes_one_adjudicated_event_of_the_cause_for_each_of_a_retry_a_bail_and_an_unparsable_answer(
     run_cli, adjudicate, tmp_path, cause
 ):
