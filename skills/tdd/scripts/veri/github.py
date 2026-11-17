@@ -765,6 +765,37 @@ def check_runs(sha):
     raise NoAnswer("", "the check runs of %s: the answer ended at %d of the %d it counts" % (sha, len(found), total))
 
 
+_RUN_URL = re.compile(r"https://github\.com/[^/\s]+/[^/\s]+/actions/runs/\d+")
+_CREATED = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ")
+
+
+def workflow_runs(branch):
+    """The newest 100 workflow runs GitHub lists for <branch>, one read, as [(head_sha, html_url, status, conclusion,
+    created_at)] (conclusion None until completed), kept only when the run's head repository is the repository it ran
+    in: a fork's branch of the same name lists under it too. NoAnswer, its detail naming why, for a failed read or an
+    answer not of the workflow-runs shape."""
+    what = "the workflow runs of %s" % branch
+    answer = _json_answer(gh_api("repos/{owner}/{repo}/actions/runs?branch=%s&per_page=100" % branch,
+                                 stderr=subprocess.PIPE), "reading " + what)
+    runs = answer.get("workflow_runs") if isinstance(answer, dict) else None
+    if not isinstance(runs, list) or not all(isinstance(raw, dict) for raw in runs):
+        raise NoAnswer("", "%s: the answer is not {workflow_runs: [...]}" % what)
+    found = []
+    for raw in runs:
+        head, url, status, conclusion, created = (raw.get(key) for key in (
+            "head_sha", "html_url", "status", "conclusion", "created_at"))
+        if not (isinstance(head, str) and re.fullmatch(r"[0-9a-f]{40}", head) and isinstance(url, str)
+                and _RUN_URL.fullmatch(url) and isinstance(status, str)
+                and (conclusion is None or isinstance(conclusion, str))
+                and isinstance(created, str) and _CREATED.fullmatch(created)):
+            raise NoAnswer("", "%s: a run without a head sha, url, status or creation time, or with a garbled one" % what)
+        repos = [(raw.get(side) or {}).get("full_name") if isinstance(raw.get(side) or {}, dict) else None
+                 for side in ("repository", "head_repository")]
+        if repos[0] and repos[0] == repos[1]:
+            found.append((head, url, status, conclusion, created))
+    return found
+
+
 def closed_issues(body, loose=False):
     """The issue numbers (strings) <body> closes, in order: `Closes #n`; <loose> also reads `closes #n`
     and `disCloses #n`, the spelling of status --recover."""
