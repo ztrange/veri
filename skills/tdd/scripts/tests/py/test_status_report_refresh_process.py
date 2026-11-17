@@ -45,6 +45,8 @@ def end_stub(fifo, started):
     if not recorded:
         return
     pid = int(recorded)
+    if pid <= 1:
+        return  # 0 and -1 name whole groups, 1 is init: never the stub this case started
     try:
         os.kill(pid, 9)
     except ProcessLookupError:
@@ -114,7 +116,7 @@ def test_4131_the_stub_refresh_has_ended_when_the_case_ends_also_when_it_opens_i
     try:
         assert pid is None or not alive(pid), "the stub report-cache.sh refresh %d outlived the case" % pid
     finally:
-        if pid is not None:
+        if pid is not None and pid > 1:
             try:
                 os.kill(pid, 9)
             except OSError:

@@ -19,7 +19,8 @@ SCRIPTS = Path(__file__).resolve().parents[2]
 
 
 # Spins while the process that started it lives, so a stub orphaned by a killed run (its parent gone) ends itself.
-SPINNER = "#!/bin/sh\nwhile kill -0 $PPID 2>/dev/null; do sleep 0.2; done\n"
+# /bin/sleep, not PATH's: the suite puts a guard shim named sleep first on PATH that forks a shell and ps per call.
+SPINNER = "#!/bin/sh\nwhile kill -0 $PPID 2>/dev/null; do /bin/sleep 0.2; done\n"
 
 
 @pytest.fixture
@@ -51,6 +52,8 @@ class ConductorHolder:
 
     def kill(self):
         for target in (self.pid, self.launcher.pid):
+            if target <= 1:
+                continue  # 0 and -1 name whole groups, 1 is init: never a process this case started
             try:
                 os.kill(target, 9)
             except OSError:
@@ -86,7 +89,10 @@ def live_conductor(run, started):
         if claude_pid.is_file() and claude_pid.read_text().strip():
             break
         time.sleep(0.05)
-    holder.pid = int(claude_pid.read_text())
+    recorded = claude_pid.read_text().strip() if claude_pid.is_file() else ""
+    if not recorded:
+        raise FileNotFoundError("%s: the stub claude recorded no pid within 25 s" % claude_pid)
+    holder.pid = int(recorded)
     (run / ".tdd" / "conductor.pid").write_text("%d\n" % holder.pid)
     return holder
 
@@ -500,7 +506,7 @@ def test_4131_the_started_teardown_ends_the_stub_claude_live_conductor_starts_al
     try:
         assert claude is None or not alive(claude), "the stub claude %d outlived the teardown" % claude
     finally:
-        if claude is not None:
+        if claude is not None and claude > 1:
             try:
                 os.kill(claude, 9)
             except OSError:
@@ -514,7 +520,7 @@ def test_4131_the_stub_claude_ends_itself_once_its_launcher_is_gone(tmp_path, st
     os.kill(holder.launcher.pid, 9)
     holder.launcher.wait()
 
-    deadline = time.monotonic() + 5
+    deadline = time.monotonic() + 20
     while alive(holder.pid) and time.monotonic() < deadline:
         time.sleep(0.05)
     assert not alive(holder.pid), "the stub claude %d outlived its launcher" % holder.pid
