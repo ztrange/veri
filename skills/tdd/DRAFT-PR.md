@@ -10,7 +10,7 @@ whether CI stands in for the branch's own full run: run `$S/branch-suite.sh` at 
 Under `VERI_BRANCH_SUITE=ci` the branch gets no local full run here and no `full-tier-time.sh` record: go on to sub-step 1, and the first
 `wait-ci.sh` of sub-step 2 is the branch's full-suite verdict, its first red appending the `⟦ci-repair⟧` step as any CI red does; a run that
 comes back here after that step's cycle makes no local full run either. Under `VERI_BRANCH_SUITE=local` the two sentences that follow apply. The full suite
-must be green before this step: each time the run enters this step, run `$S/detect-test-command.sh --tier all`'s command via `detach-command.sh` once,
+must be green before this step: each time the run enters this step, run `$S/detect-test-command.sh --tier all`'s command via `$S/detach-command.sh` once,
 in the same start-then-wait shape as the preflight baseline — the branch's own full-suite gate, since every leaf runs the fast
 command, the affected suites, or both. A run that comes back here after a repair step's cycle runs it again. Each such run is
 stage `full-suite`: `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh stage-start stage=full-suite` just before it starts, and

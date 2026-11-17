@@ -20,6 +20,10 @@ WHERE = "opening"  # the replaced paragraphs come before sub-step 1 and carry no
 RUN = "branch-full-%s"  # the full run's detach-command.sh name: .tdd/branch-full-<n>.out and .exit
 DETACH = fused.script("detach-command.sh")
 
+# The $S/ scripts this call makes, in the order each is first made; unit/test_branch_gate.py fails when one is a script
+# DRAFT-PR.md's opening paragraphs do not name (FC19).
+CALLS = ("branch-suite.sh", "detect-test-command.sh", "event.sh", "detach-command.sh", "full-tier-time.sh")
+
 
 def main(argv):
     return fused.entry(argv, NAME + ".sh", run)
