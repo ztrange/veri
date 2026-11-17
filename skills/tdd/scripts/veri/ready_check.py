@@ -9,6 +9,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.parse
 
@@ -305,6 +306,46 @@ def push_dry_run_row():
     return "push dry-run", said[-1] if said else f"git push --dry-run origin exited {pushed.returncode}"
 
 
+PROBE_FILES = ("bash-probe.txt", "write-probe.txt")
+
+
+def bypass_permissions_row():
+    """One haiku `claude -p` started as a leaf is, in a scratch directory under .tdd/, asked to write a nonce file
+    with Bash and another with Write: ok iff both hold the nonce and it lists no permission denial. The scratch
+    directory, and a .tdd/ made for it, are removed on every way out."""
+    made_tdd = not os.path.exists(".tdd")
+    os.makedirs(".tdd", exist_ok=True)
+    scratch = tempfile.mkdtemp(prefix="bypass-probe-", dir=".tdd")
+    try:
+        return probe_bypass(scratch)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+        if made_tdd:
+            with contextlib.suppress(OSError):
+                os.rmdir(".tdd")
+
+
+def probe_bypass(scratch):
+    nonce = secrets.token_hex(8)
+    prompt = (f"Permission probe, nonce {nonce}. First use the Bash tool to run `printf %s {nonce} > {PROBE_FILES[0]}`. "
+              f"Then use the Write tool to create {PROBE_FILES[1]} whose whole content is {nonce}. Do nothing else.")
+    ran = subprocess.run([tunables.claude_bin(), "-p", "--model", "haiku", "--permission-mode", "bypassPermissions",
+                          "--output-format", "json", prompt], cwd=scratch, capture_output=True, text=True)
+    try:
+        denials = json.loads(ran.stdout).get("permission_denials") or []
+    except (ValueError, AttributeError):
+        denials = []
+    written = []
+    for name in PROBE_FILES:
+        path = os.path.join(scratch, name)
+        if os.path.exists(path):
+            with open(path) as probe:
+                written.append(probe.read().strip() == nonce)
+        else:
+            written.append(False)
+    return "bypassPermissions", None if all(written) and not denials else "fail"
+
+
 def bash_row():
     holds = launch_floor.bash_refusal("ready-check") == 0
     return "bash", None if holds else "install bash 5 or newer (`brew install bash`) and put it first on PATH"
@@ -317,7 +358,7 @@ def python_row():
 
 CHECKS = (tier_row("fast"), tier_row("all"), one_test_file_row, pull_request_row, push_row, test_file_row, tdd_ignored_row,
           gh_auth_row, push_access_row, label_row, token_scopes_row, priority_label_row, bug_label_row,
-          actions_read_row, run_state_ignore_row, push_dry_run_row, bash_row, python_row)
+          actions_read_row, run_state_ignore_row, push_dry_run_row, bypass_permissions_row, bash_row, python_row)
 
 
 def rendered(name, verdict):

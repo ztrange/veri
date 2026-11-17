@@ -44,6 +44,7 @@ def holding(**overrides):
         "git config --get core.sshCommand": (1, "", ""),
         "git worktree": (0, "", ""),
         "detach-command.sh": (0, "", ""),
+        "claude -p": lambda line, **kwargs: probe_answer()(line, **kwargs),
     }
     table.update(overrides)
     return table
@@ -594,3 +595,32 @@ def test_issue_4088_a_tier_run_that_raises_exits_2_having_removed_the_worktree_i
     wt = str(tmp_path / ".tdd" / "ready-fast")
     assert code == 2
     assert [argv for argv, _ in calls_in(fake, "git worktree remove") if wt in argv], fake.calls
+
+
+PROBE = "claude -p --model haiku --permission-mode bypassPermissions --output-format json"
+NO_DENIALS = '{"type": "result", "is_error": false, "permission_denials": []}'
+
+
+def probe_answer(bash=True, write=True, result=NO_DENIALS, code=0, seen=None):
+    """A `claude -p` answer that, as the model would, creates the Bash and the Write nonce file it was asked for in
+    its working directory (each only when told to; a string writes that instead of the nonce), then prints <result>."""
+    def answer(line, cwd=None, env=None, **kwargs):
+        nonce = re.search(r"nonce ([0-9a-f]+)", line).group(1)
+        if seen is not None:
+            seen.append({"cwd": cwd, "env": env, "nonce": nonce})
+        for wanted, path in ((bash, "bash-probe.txt"), (write, "write-probe.txt")):
+            if wanted:
+                with open(os.path.join(cwd, path), "w") as probe:
+                    probe.write(nonce if wanted is True else wanted)
+        return code, result, ""
+    return answer
+
+
+def test_issue_4091_the_bypass_permissions_row_is_ok_when_a_haiku_probe_in_a_scratch_directory_under_tdd_leaves_both_nonce_files_and_no_denial(ready_check, fake_processes, tmp_path):
+    seen = []
+    fake = fake_processes.answers({PROBE: probe_answer(seen=seen)})
+
+    assert ready_check.bypass_permissions_row() == ("bypassPermissions", None)
+    assert {argv[0] for argv in fake.argvs} == {"claude"}, fake.calls
+    (probe,) = seen
+    assert os.path.dirname(os.path.realpath(probe["cwd"])) == os.path.realpath(tmp_path / ".tdd"), probe
