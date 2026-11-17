@@ -19,11 +19,12 @@ from prompt_template import IncludeRefused, expand_includes, fill, has_heading, 
 DEVELOP_INTERFACE_PHASES = INTERFACE_PHASES[:1] + ("beside",) + INTERFACE_PHASES[1:]
 PHASES = ("red", "green", "refactor", "cover", "seam", "transform", "diff", "structural", "predicate", "revise",
           "reconcile", "exhausted", "over-budget", "rebase", "replaces-report", "red-contradicted", "red-repair",
-          "red-missing", "red-supersede") + DEVELOP_INTERFACE_PHASES
+          "red-missing", "red-supersede", "test-quality") + DEVELOP_INTERFACE_PHASES
 REVISE_PHASES = ("red", "green", "refactor", "transform", "diff")
 WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "seam": 4, "transform": 4, "diff": 5, "structural": 5,
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7,
         "replaces-report": 6, "red-contradicted": 5, "red-repair": 6, "red-missing": 5, "red-supersede": 6,
+        "test-quality": 4,
         **dict.fromkeys(DEVELOP_INTERFACE_PHASES, 4)}
 ACCEPTED_WANT = {**WANT, "dual-stub": 4}
 WANT_PHASES = "|".join(PHASES + ("dual-stub",))
@@ -92,6 +93,8 @@ def arguments(argv):
     if len(argv) < ACCEPTED_WANT[phase]:
         return Refusal(f"build-develop-prompt: {phase} needs {ACCEPTED_WANT[phase]} arguments, got {len(argv)}")
     args = argv[1:]
+    if phase == "test-quality":
+        args.insert(1, "-")  # no step: the leaf reads the run's test files, not one step
     revised_phase = ""
     if phase == "revise":
         revised_phase = args.pop(0)
@@ -116,6 +119,7 @@ def arguments(argv):
         "red-repair": ["<case>", "<report-file>"],
         "red-missing": ["<reason-file>"],
         "red-supersede": ["<report-file>", "<case>"],
+        "test-quality": ["<test-file>"],
     }.get(phase, [])
     for index, name in enumerate(names):
         if not (args[index] if index < len(args) else ""):
@@ -227,10 +231,12 @@ def render(parsed, chosen):
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES", "ISSUE_NUMBER", "STEP_ARGUMENT",
-                            "AFFECTED_RUN_LINE", "RUN_LINE"), b"")
+                            "AFFECTED_RUN_LINE", "RUN_LINE", "TEST_FILES"), b"")
     for name, value in zip(names[3:], args[3:]):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
+    if phase == "test-quality":
+        values["TEST_FILES"] = os.fsencode(_bullets(args[3:]).lstrip("\n"))
     if phase == "red-supersede":
         values["CASES"] = os.fsencode(_bullets(args[4:]))
     if phase == "red-repair":
