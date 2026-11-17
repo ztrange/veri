@@ -1,0 +1,75 @@
+"""Cases for pr-prepare.sh (PRD 027.9, #4031) that start a real process: the shim's usage, and the rebase onto a moved
+default branch and the push under the lease pinned to the pre-rebase sha, made by the real rebase-onto-default.sh,
+push-branch.sh and git."""
+import importlib
+import os
+import subprocess
+
+import pytest
+
+from conftest import SCRIPTS
+
+IDENTITY = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com", "GIT_COMMITTER_NAME": "t",
+            "GIT_COMMITTER_EMAIL": "t@example.com"}
+LEDGER = "# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n"
+REAL = ("git", "next-pending-refactor.sh", "rebase-onto-default.sh", "push-branch.sh")
+
+
+@pytest.mark.process("pr-prepare.sh's /bin/sh shim exec'd on the interpreter with no argument")
+def test_4031_the_shim_with_no_argument_prints_its_usage_and_exits_2(tmp_path):
+    ran = subprocess.run([str(SCRIPTS / "pr-prepare.sh")], cwd=tmp_path, stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True, timeout=60)
+
+    assert (ran.returncode, ran.stdout, ran.stderr) == (2, "", "usage: pr-prepare.sh <n>\n")
+
+
+@pytest.mark.process("rebase-onto-default.sh, push-branch.sh --force-with-lease and git against a bare origin, all real")
+def test_4031_a_branch_behind_main_is_rebased_and_pushed_under_the_lease_pinned_to_its_pre_rebase_sha(
+        tmp_path, monkeypatch, run_cli):
+    fused = importlib.import_module("veri.fused")
+    pr_prepare = importlib.import_module("veri.pr_prepare")
+    real = fused.run_script
+    env = {**os.environ, **IDENTITY}
+
+    def git(*args, cwd):
+        return subprocess.run(["git", *args], cwd=cwd, env=env, capture_output=True, text=True, check=True,
+                              timeout=60).stdout
+
+    origin, other = tmp_path / "origin.git", tmp_path / "other"
+    git("init", "-q", "--bare", "-b", "main", str(origin), cwd=tmp_path)
+    git("clone", "-q", str(origin), str(other), cwd=tmp_path)
+    (other / "base.txt").write_text("base\n")
+    for args in (["add", "-A"], ["commit", "-q", "-m", "base"], ["push", "-q", "origin", "HEAD:main"]):
+        git(*args, cwd=other)
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    git("clone", "-q", str(origin), str(wt), cwd=tmp_path)
+    rule = importlib.import_module("veri.ensure_run_state_ignored").RULE
+    (wt / ".gitignore").write_text("".join(line + "\n" for line in rule))
+    (wt / ".tdd").mkdir()
+    (wt / ".tdd" / "issue-12.md").write_text(LEDGER)
+    (wt / "work.txt").write_text("work\n")
+    for args in (["checkout", "-q", "-b", "tdd/12-x"], ["add", "-A"], ["add", "-f", ".tdd/issue-12.md"],
+                 ["commit", "-q", "-m", "work"], ["push", "-q", "-u", "origin", "tdd/12-x"]):
+        git(*args, cwd=wt)
+    pre = git("rev-parse", "HEAD", cwd=wt).strip()
+    (other / "moved.txt").write_text("moved\n")
+    for args in (["add", "-A"], ["commit", "-q", "-m", "main moved"], ["push", "-q", "origin", "HEAD:main"]):
+        git(*args, cwd=other)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+
+    def answer(name, *args, **kw):
+        base = os.path.basename(name)
+        if base in REAL:
+            return real(name, *args, **kw)
+        return {"rebased-tip-suite.sh": (0, "ci\n", ""), "refactor-owed.sh": (3, "", "")}.get(base, (0, "", ""))
+
+    monkeypatch.setattr(fused, "run_script", answer)
+    code, out, err = run_cli(pr_prepare, ["12"], cwd=str(tmp_path), env={**IDENTITY, "VERI_ISSUE": "12"})
+
+    assert code == 0, out + err
+    assert out.endswith("rebased=1\nrebased_from=%s\nrebased_tip_suite=ci\n" % pre)
+    assert "push-branch.sh --force-with-lease=tdd/12-x:%s exit 0" % pre in out
+    tip = git("rev-parse", "HEAD", cwd=wt).strip()
+    assert tip != pre and git("rev-parse", "tdd/12-x", cwd=origin).strip() == tip
+    assert git("merge-base", "--is-ancestor", git("rev-parse", "main", cwd=origin).strip(), tip, cwd=wt) == ""
+    assert git("status", "--porcelain", cwd=wt) == ""
