@@ -137,5 +137,5 @@ skills/tdd/RESUME.md 982aea8058a7c462a51885f4caec6de6a2caedcc3cfed8dc719bb312bbc
 skills/tdd/SKILL.md#1.%20Read%20the%20issue,%20enter%20the%20issue's%20worktree,%20capture%20the%20spec%20(or%20resume) b50e14ef32a11be7bc4f02d6831ffbc568601316e7d91e21cc42bc605c08d72a 2026-11-17 58cc87754bae4614865cb5eee138c496 748391c71624
 skills/tdd/SKILL.md#2.%20Scope%20&%20plan%20→%20the%20ledger cec238a0268d0ce98d7793ecf4d648c916b7d5dfb449cebb4d463b0f58a240d0 2026-11-17 efa5064b39164dfdb8281dca076a71be 748391c71624
 skills/tdd/DRAFT-PR.md b43f8b2bf2e673bf58166e3aff893935cddb1f10c34d427fd59b12d927d97da3 2026-11-17 460e6ca97fd44876a3cd0405b02ca443 748391c71624
-skills/tdd/SKILL.md#Refactor%20loop%20—%20one%20leaf%20applies%20the%20step's%20transforms,%20then%20verify-refactor%20(blind,%20once) 17bbbcc004a56705f635d5ebcf5d00605139f98d3030f6fbb75f5c00377e704d 2026-11-17 e77e53cc790c4545b04c24bf2c0fa46f 748391c71624
-skills/tdd/SCRIPTS.md e69f0c8525cef1527c02d70781ea42354f752d9e1720fd258ac9abd39531b7af 2026-11-17 0cb62511f6db4c5a834b963116ed7581 748391c71624
+skills/tdd/SKILL.md#Refactor%20loop%20—%20one%20leaf%20applies%20the%20step's%20transforms,%20then%20verify-refactor%20(blind,%20once) 22a5f05ddf4592f8ddab18a332dd29ee9622f41933116f3bcdbd4aa22cfc608d 2026-11-17 169c905d967a43ada27b0c53fcefbf12 748391c71624
+skills/tdd/SCRIPTS.md 789dad69ab00ef27bffcaf960875d3816d9e0c1b13d3d5c60d788b77636d88ba 2026-11-17 f588aa152e334f63959f29c5bda91b9c 748391c71624
