@@ -87,7 +87,7 @@ def main(argv):
     if code == 2:
         print(f"test-quality.sh: nothing recorded: {text}", file=sys.stderr)
         return 2
-    path = os.path.join(".tdd", f"issue-{argv[1]}-test-quality.md")
+    path = os.path.join(".tdd", f"issue-{argv[1]}-test-quality")  # no .md: `!.tdd/issue-*.md` would re-admit it
     partial = path + ".partial"
     with open(partial, "w", encoding="utf-8") as out:
         out.write(text)
