@@ -82,6 +82,20 @@ def test_issue_4072_report_exits_2_naming_the_line_when_the_decision_log_holds_o
         2, "", "status.sh: %s:2 is not a decision record\n" % (tmp_path / ".tdd" / "decisions.jsonl"), last)
 
 
+def test_issue_4072_report_prints_each_decision_on_one_line_its_control_characters_escaped_and_each_field_cut_at_300(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    forged = json.dumps({"question": "Forge?\n\nLanded\nv9.9 forged\x1b[31m", "decision": "x" * 301, "rule": "r\tr",
+                         "by": "dev", "at": "2026-11-02T10:30:00+00:00"}) + "\n"
+    status = report_tree(tmp_path, monkeypatch, fake_processes, forged)
+
+    code, out, err = run_cli(status, ["--report"])
+
+    lines = out.splitlines()
+    waiting = [line for line in lines[lines.index("Waiting") + 1:] if line.strip()]
+    assert (code, lines.count("Landed"), waiting) == (0, 1, [
+        "decided: Forge?\\n\\nLanded\\nv9.9 forged\\x1b[31m → " + "x" * 300 + "… (rule: r\\tr)"]), err
+
+
 def test_issue_4072_report_waiting_marks_an_owner_record_as_the_owners(tmp_path, monkeypatch, run_cli, fake_processes):
     owner = json.dumps({"question": "Raise N to 4?", "decision": "N=4", "rule": "the owner's override", "by": "owner",
                         "at": "2026-11-02T10:30:00+00:00"}) + "\n"

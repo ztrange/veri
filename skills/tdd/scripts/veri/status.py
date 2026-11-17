@@ -425,9 +425,20 @@ def waiting_lines():
             lines.append("%s PR %s ready to merge" % (name, pr))
     for record in decision_log.read(run_dir.main_tree(missing="")):
         if decision_log.epoch(record) >= since:
+            shown = {key: printed_field(record[key]) for key in ("question", "decision", "rule")}
             lines.append(("owner decided" if record["by"] == "owner" else "decided")
-                         + ": %(question)s → %(decision)s (rule: %(rule)s)" % record)
+                         + ": %(question)s → %(decision)s (rule: %(rule)s)" % shown)
     return "\n".join(lines) or "none"
+
+
+PRINTED_FIELD_MAX = 300
+
+
+def printed_field(text):
+    """A decision log field as the report prints it: each character that does not print (a newline, an escape) written
+    as its Python escape, so a record stays one line and draws nothing; cut at PRINTED_FIELD_MAX, the cut shown by …."""
+    text = "".join(c if c.isprintable() else repr(c)[1:-1] for c in text)
+    return text if len(text) <= PRINTED_FIELD_MAX else text[:PRINTED_FIELD_MAX] + "…"
 
 
 def unjournaled_notes():
