@@ -102,6 +102,24 @@ def test_a_changed_path_git_quotes_for_its_non_ascii_bytes_is_read_unquoted(
         0, "tests/test_café.py\ntests/test_uses.py\n", "")
 
 
+def test_a_failed_tree_listing_is_no_answer_exit_2_never_a_selection(tmp_path, run_cli, affected, fake_processes):
+    write(tmp_path, {"src/foo.py": "", "tests/test_foo.py": "import foo\n"})
+
+    def answer(line, **kwargs):
+        args = fake.argvs[-1]
+        if list(args[:2]) == ["git", "rev-parse"]:
+            return 0, "abc\n", ""
+        if list(args[:3]) == ["git", "diff", "--name-only"]:
+            return 0, "src/foo.py\n", ""
+        if list(args[:2]) == ["git", "ls-files"]:
+            return 128, "", "fatal: index file corrupt\n"
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    fake = fake_processes.answers({"git": answer})
+    code, out, err = run_cli(affected, ["base..head"], cwd=tmp_path)
+    assert (code, out, "ls-files" in err, err.count("\n")) == (2, "", True, 1)
+
+
 def test_a_repo_whose_tests_no_file_name_rule_knows_falls_back_to_every_path_under_its_tests_rather_than_to_none(
         tmp_path, monkeypatch, capsys, affected, fake_processes):
     tree = {"lib/foo.rb": "", "tests/foo_spec.rb": "require 'foo'\n", "tests/bar_spec.rb": ""}
