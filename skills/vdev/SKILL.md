@@ -1,7 +1,7 @@
 ---
 name: vdev
 description: >-
-  The veri dev session, reached by name: `/vdev [<lane>] [N] [--resume <file>]` (`--resume` in a terminal only), or `/vdev`.
+  The veri dev session, reached by name: `/vdev [<lane>] [N] [--auto] [--resume <file>]` (`--resume` in a terminal only), or `/vdev`.
 ---
 
 # vdev — the dev session
@@ -16,7 +16,7 @@ under it. The target repo's CLAUDE.md supplies the project specifics.
 
 ## Starting
 
-Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
+Invoked as `/vdev [<lane>] [N] [--auto] [--resume <file>]`.
 
 - **`<lane>`** is an optional first word naming the lane: `/vdev mu [N] …` runs every read
   (`solvable-issues.sh`, `status.sh` included) and every conductor launch with
@@ -24,6 +24,11 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
   not state the lane in its output: the lane is in the role state and the `taken:<lane>` label.
 
 - **N** is how many conductors to keep running; it defaults to 1.
+- **`--auto`** opts this session into autonomous mode: parked issues go to `vjudge` (*Parked
+  issues*). On a `/vdev` turn the human typed, write `$S/role-state.sh dev [--lane <lane>] set
+  auto on` when the invocation carries `--auto`, and `set auto off` when it does not, so autonomy
+  never carries over from an earlier session; a recovery turn keeps the recorded value (*Role
+  state*).
 - **MCP servers:** when this session has tools from any MCP server, send once, as a notice
   (*Speaking*), the launch line that starts the session without them:
   `claude --strict-mcp-config --mcp-config '{"mcpServers":{}}'`. Change no setting yourself.
@@ -93,6 +98,11 @@ gives you, each pending human decision (in full) not held in a question file, an
 sent another session and have not yet confirmed. Drop the item when it ends. A pending decision `vjudge` recorded you do not write
 again with `role-state.sh … add decision`: the judge records it in a question file when your brief
 named one, and with `role-state.sh … add decision` otherwise.
+
+`--auto` is written with `$S/role-state.sh dev [--lane <lane>] set auto on|off` (*Starting*), and
+recovery restores it: `$S/status.sh --recover dev [--lane <lane>]` prints the recorded value as
+`auto on` or `auto off` under `State`, and a recovered session runs in the mode it names (with no
+`auto` line, off).
 
 ## Live conductors and the slot decision
 
@@ -386,6 +396,17 @@ label removal, which leaves the issue claimed (`taken:<lane>`) with nothing that
 
 After every merge, and on recovery, read `$S/parked-issues.sh` and release each issue whose fifth
 field is `ready` (every blocker it waits on landed) with `$S/release-issue.sh <n>`.
+
+**Under `--auto`** (the role state's `auto on`), at that same reading pass each other issue
+`$S/parked-issues.sh` lists to `vjudge`, run as *Running the sibling skills* says, with its park
+comment; an issue whose question file exists is not passed again, but handled as *When to stop
+and ask*, step 1, says. A decision the judge reaches is posted on the issue as a comment naming
+the rule applied and the option not taken (its *Recording*), and the issue is then returned with
+`$S/release-issue.sh <n>`, so its resumed run applies the decision. A judge outcome on its *Always
+surface* list leaves the issue parked, unreleased, and goes to the human as a question the way
+*When to stop and ask* puts one: a `.tdd/questions/<id>.md` file and a session for it. Without
+`--auto`, no parked issue is passed to `vjudge` by this rule, and a parked issue is released only
+on the human's answer, or when every blocker it waits on landed (above).
 
 ## Priority
 
