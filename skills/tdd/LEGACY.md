@@ -24,9 +24,35 @@
    - exit 0, `REACHES: yes`: record it with
      `$S/tick-ledger.sh --phase seam .tdd/issue-<n>.md "<STEP>"` and commit the ledger, so a
      resumed run does not confirm the seam twice;
-   - exit 1, `REACHES: no`: **bail with cause `no-seam`**, a process failure, carrying the
-     leaf's reason that `seam-outcome.sh` printed (`Read` `<base directory>/BAIL.md`);
+   - exit 1, `REACHES: no`: the first time for this region, do not bail: run **Break** below,
+     keeping the reason `seam-outcome.sh` printed. After a `verify-break` PASS, launch
+     `develop-seam` again; a second `REACHES: no` **bails with cause `no-seam`**, a process
+     failure, its note carrying both leaves' reasons, the first seam leaf's and the second's
+     (`Read` `<base directory>/BAIL.md`);
    - exit 2, no readable answer: **bail** as a system failure (`no-verdict`) (`Read`
+     `<base directory>/BAIL.md`).
+
+   **Break.** A region whose seam does not reach it gets **at most one** dependency-breaking edit,
+   and only one from this catalogue; no other edit is allowed:
+   - **`sprout`**: the region's code moved unchanged into a new function or class that the old
+     code now calls and a test can call directly;
+   - **`extract and override`**: a dependency call extracted into a method a test may override.
+   Record `git rev-parse HEAD` as the break's base sha and launch one `develop-break` leaf for the
+   region through `supervise.sh`, its prompt built by
+   `$S/build-develop-prompt.sh break <spec-file> "<STEP>" '<test-cmd>'`: it applies one catalogued
+   edit, names it on a `BREAK:` line, commits it and reports the seam it made. After its wait exits
+   0, `$S/suite-reported.sh develop-break` runs as `PHASED.md` sets out for a phase leaf. No test
+   exists to move, so `$S/transform-touches-tests.sh <base-sha>` exit 1 on the break commit
+   rejects it before any verifier is launched, and exit 2 is no answer; the existing suite is the only net, so the fast tier and
+   the affected suites must stay green. Then launch one `verify-break` leaf through
+   `supervise.sh`, named `verdict-break` as *Launching a leaf* sets out:
+   `run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' break .tdd/issue-<n>-spec.md <region-file> <base-sha>`.
+   The blind verifier reads `git diff <base-sha>..HEAD`, never the developer's report.
+   - PASS: launch `develop-seam` again, as **Seam** says.
+   - REJECT, or `transform-touches-tests.sh` exit 1: revise under `REVISE_BUDGET` like any other
+     reject, `break` being the phase revised (`Read` `<base directory>/REVISE.md`).
+   - `transform-touches-tests.sh` exit 2, or no verdict once `verify.sh` has relaunched the leaf
+     `VERI_NO_VERDICT_RETRIES` times: **bail** as a system failure (`no-verdict`) (`Read`
      `<base directory>/BAIL.md`).
 
    **Surround.** Once every legacy step's seam is confirmed, the run goes on to Surround. For each
