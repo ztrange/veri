@@ -44,3 +44,13 @@ def test_prints_the_head_sha_url_and_conclusion_of_a_red_latest_answer_on_one_li
     got = run_cli(stack_red, [])
 
     assert (got, world.read) == ((0, "%040x https://github.com/o/r/actions/runs/2 %s\n" % (2, conclusion), ""), ["stack"])
+
+
+@pytest.mark.parametrize("newer", [run(3, "in_progress", None), run(3, "queued", None), run(3, conclusion="cancelled")])
+def test_a_newer_run_in_progress_or_concluded_cancelled_is_skipped_for_the_newest_older_completed_one(
+        monkeypatch, run_cli, stack_red, newer):
+    World(monkeypatch, stack_red, [newer, run(1, conclusion="success"), run(2)])
+
+    code, out, _ = run_cli(stack_red, [])
+
+    assert (code, out.split()[:1]) == (0, ["%040x" % 2])
