@@ -172,7 +172,35 @@ def test_joined_issues_asks_gh_pr_list_for_the_field_that_says_where_a_pr_s_head
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     fake = fake_processes.answers({"gh pr list": (0, "[]", "")})
     github.joined_issues("stack")
-    assert fake.calls == ["gh pr list --base stack --state merged --limit 10000 --json body,state,baseRefName,isCrossRepository"]
+    assert fake.calls == [
+        "gh pr list --base stack --state merged --limit 10000 --json number,body,state,baseRefName,isCrossRepository"]
+
+
+def test_merged_pulls_are_the_pull_requests_the_answer_says_merged_into_the_base_with_their_number_body_and_side(
+        github, fake_processes, monkeypatch):
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    fake_processes.answers({"gh pr list": (0, json.dumps([
+        {"number": 4, "body": "Closes #9", "state": "MERGED", "baseRefName": "stack", "isCrossRepository": False},
+        {"number": 5, "body": "Closes #9", "state": "MERGED", "baseRefName": "stack", "isCrossRepository": True},
+        {"number": 6, "body": "Closes #9", "state": "CLOSED", "baseRefName": "stack", "isCrossRepository": False},
+        {"number": 7, "body": "Closes #9", "state": "MERGED", "baseRefName": "trunk", "isCrossRepository": False},
+    ]), "")})
+
+    found = github.merged_pulls("stack")
+
+    assert [(pr.number, pr.body, pr.cross_repository) for pr in found] == [(4, "Closes #9", False), (5, "Closes #9", True)]
+
+
+def test_pr_body_edit_patches_the_pull_requests_body_over_rest_and_a_refusal_is_no_answer(github, fake_processes):
+    fake = fake_processes.answers({"gh api": (0, "{}", "")})
+
+    github.pr_body_edit(4, "Reverted from stack by abc")
+
+    assert fake.argvs == [["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/pulls/4", "-f",
+                           "body=Reverted from stack by abc"]]
+    fake_processes.answers({"gh api": (1, "", "HTTP 403")})
+    with pytest.raises(github.NoAnswer):
+        github.pr_body_edit(4, "x")
 
 
 @pytest.mark.parametrize("raw", [{"number": 1}, {"number": 1, "isCrossRepository": None}])

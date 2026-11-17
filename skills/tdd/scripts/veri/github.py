@@ -656,13 +656,25 @@ def joined_issues(base, repo=None):
     filter is not trusted, and a fork's PR a collaborator merged is a stranger's text. The read is not bounded by the open issues it
     can matter to: it grows with every pull request merged into <base>. NoAnswer
     when GitHub gave none; ValueError when the answer is not JSON."""
+    return {int(n) for pr in merged_pulls(base, repo) if not pr.cross_repository for n in closed_issues(pr.body)}
+
+
+def merged_pulls(base, repo=None):
+    """The pull requests merged into <base> as Pull records (number, body, cross_repository among them): closed pull
+    requests against <base>, kept only when the answer itself names <base> as the base and says merged (GraphQL state
+    MERGED, REST merged_at set); a fork's is kept too, its cross_repository True, for the caller to decide. NoAnswer when
+    GitHub gave none; ValueError when the answer is not JSON."""
     path = "repos/%s/pulls?state=closed&base=%s&per_page=100" % (repo or "{owner}/{repo}", base)
     answer = gh_json("stack-prs.json", path, "pr", "list", "--base", base, "--state", "merged", "--limit", "10000",
-                     "--json", "body,state,baseRefName,isCrossRepository", *(["--repo", repo] if repo else []))
-    return {int(n) for raw in json_documents.items(answer)
-            if (raw.get("baseRefName") or (raw.get("base") or {}).get("ref")) == base and not _pull(raw).cross_repository
-            and (str(raw.get("state", "")).upper() == "MERGED" or raw.get("merged_at") or raw.get("mergedAt"))
-            for n in closed_issues(raw.get("body") or "")}
+                     "--json", "number,body,state,baseRefName,isCrossRepository", *(["--repo", repo] if repo else []))
+    return [_pull(raw) for raw in json_documents.items(answer)
+            if (raw.get("baseRefName") or (raw.get("base") or {}).get("ref")) == base
+            and (str(raw.get("state", "")).upper() == "MERGED" or raw.get("merged_at") or raw.get("mergedAt"))]
+
+
+def pr_body_edit(number, body):
+    """Replace the body of pull request <number> over REST; NoAnswer whose detail is gh's stderr, not echoed."""
+    _quiet_write("-X", "PATCH", "repos/{owner}/{repo}/pulls/%s" % number, "-f", "body=%s" % body)
 
 
 PULL_PAGES = 10
