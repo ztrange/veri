@@ -66,6 +66,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   that drives it without an edit → **process** failure, carrying the leaf's reason.
 - `surround-owed` — the planned stop of a legacy run made before the Surround phase existed:
   every step's seam is confirmed and its next phase is `surround` → **process** failure.
+- `surround-short` — a legacy step's mutant table stayed shorter than `VERI_SURROUND_MUTANTS`
+  after its one free relaunch of `develop-surround` → **process** failure.
 - `pr-ready-failed` — `pr-ready.sh` exited non-zero at the Draft PR step (GitHub refused or
   never answered the ready request, after its refusal retries) → **system** failure (#2581). The bail can follow an
   adjudication (`Read` `<base directory>/ADJUDICATE.md`): it keeps this cause and class.
