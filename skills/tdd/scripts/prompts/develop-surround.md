@@ -35,10 +35,16 @@ outside it.
    case, never the code.
 7. Commit the new test file, and nothing else, as its own commit, its subject ending in
    `(#<issue>)`: it is the step's Surround commit, which the verifier judges.
+8. Propose the region's mutant table: one `MUTANT: <file> | <old> | <new>` line per mutant, each
+   a literal replacement inside the region (`<old>` is text of `<file>`, `<new>` what replaces it)
+   that your cases should catch: a flipped condition, a dropped branch, a changed constant. A
+   script, not you, runs every row against your cases; a mutant they leave green sends the step
+   back, and a table shorter than `VERI_SURROUND_MUTANTS` (default 5) rows is owed more.
 
 ### Report (last lines of your output)
 
 TEST_PATH: <the test file holding the cases>
+MUTANT: <file> | <old> | <new>     (one line per mutant)
 SUITE: GREEN | RED — <the final summary line of that run>
 
-REPORT-FORMAT surround | keys TEST_PATH: SUITE: | suite required
+REPORT-FORMAT surround | keys TEST_PATH: MUTANT: SUITE: | suite required
