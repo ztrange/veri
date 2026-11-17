@@ -12,6 +12,9 @@ from repo_builder import git
 from stub_script import write_stub
 from test_stack_fix_process import mover, red_stack
 
+# The shim commits the revert itself, so its environment carries an identity: a CI runner has none configured.
+IDENTITY = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
+            "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test"}
 SHIM = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", "stack-revert.sh"))
 GH = """here="$(dirname "$0")"
 echo "$*" >> "$here/calls"
@@ -47,7 +50,7 @@ def test_stack_revert_reverts_the_culprit_and_its_hand_fix_on_top_and_lifts_its_
          "head_repository": {"full_name": "o/r"}, "run_attempt": 1, "workflow_id": 7}]}))
     (bin_dir / "merged").write_text(json.dumps([{"number": 41, "body": "Closes #12", "state": "MERGED",
                                                  "baseRefName": "stack", "isCrossRepository": False}]))
-    env = {**os.environ, "PATH": "%s:%s" % (bin_dir, os.environ["PATH"]), "VERI_GH_DRIVER": "graphql"}
+    env = {**os.environ, **IDENTITY, "PATH": "%s:%s" % (bin_dir, os.environ["PATH"]), "VERI_GH_DRIVER": "graphql"}
 
     done = subprocess.run([SHIM, "12"], cwd=str(work), env=env, capture_output=True, text=True,
                           stdin=subprocess.DEVNULL, timeout=60)
@@ -88,7 +91,7 @@ def gh_env(tmp_path, head):
          "head_repository": {"full_name": "o/r"}, "run_attempt": 1, "workflow_id": 7}]}))
     (bin_dir / "merged").write_text(json.dumps([{"number": 41, "body": "Closes #12", "state": "MERGED",
                                                  "baseRefName": "stack", "isCrossRepository": False}]))
-    return {**os.environ, "PATH": "%s:%s" % (bin_dir, os.environ["PATH"]), "VERI_GH_DRIVER": "graphql"}
+    return {**os.environ, **IDENTITY, "PATH": "%s:%s" % (bin_dir, os.environ["PATH"]), "VERI_GH_DRIVER": "graphql"}
 
 
 @pytest.mark.process("stack-revert.sh run as its /bin/sh shim on a local bare origin whose stack holds a later commit on the culprit's lines, so the real git revert conflicts")
