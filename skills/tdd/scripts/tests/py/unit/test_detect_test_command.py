@@ -539,3 +539,9 @@ def test_cli_tier_lint_without_a_claude_md_lint_line_exits_3_printing_nothing_wh
         "no issue": cli(run_cli, detect, "--tier", "lint", str(repo)),
         "with an issue": cli(run_cli, detect, "--tier", "lint", "--issue", str(body), str(repo)),
     } == {"no issue": (3, "", ""), "with an issue": (3, "", "")}
+
+
+def test_cli_help_prints_a_usage_line_listing_the_lint_tier_4122(run_cli, detect):
+    code, out, err = cli(run_cli, detect, "--help")
+
+    assert (code, "--tier fast|all|\"one test file\"|lint]" in out, err) == (0, True, "")
