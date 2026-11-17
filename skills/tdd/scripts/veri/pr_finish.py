@@ -2,6 +2,7 @@
 its clean path, after the first wait-ci.sh exited 0, made in one call (PRD 027.11). The PR's title and body stay the
 conductor's."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import re
 import sys
 
@@ -11,11 +12,14 @@ import ledger
 import plan_publish
 import pr_ready_wait
 import run_dir
+import tunables
 
 NAME = "pr-finish"
 LEDGER = run_dir.ledger("", "%s")
 WHERE = "2"
 FULL_SUITE = "⟦full-suite⟧"
+REFACTOR_OWED = ".tdd/issue-%s-refactor-owed.md"
+RENDER = ".tdd/issue-%s-refactor-owed-render"
 
 
 def main(argv):
@@ -27,8 +31,39 @@ def run(n):
     if given is None:
         return 2
     _, wt = given
+    url = pr_ready_wait.pr_url(wt)
     tick_full_suite(wt, n)
-    return 0
+    values = {"pr_url": url, "metrics": record(wt, n, url)}
+    if fused.changed_paths(WHERE, wt):
+        raise fused.Stop(WHERE, "tree-check", 1)
+    fused.checked(WHERE, fused.script("push-branch.sh"), cwd=wt)
+    fused.save_wait(wt, n, NAME, pr_ready_wait.WAIT, values)
+    pr_ready_wait.ci_wait(wt, n, NAME, url)
+    render(wt, n)
+    lines = ["pr_url=" + url] + (["metrics=%d" % values["metrics"]] if values["metrics"] else [])
+    return fused.settle(wt, n, NAME, lines + ["refactor_owed_render=" + RENDER % n])
+
+
+def record(wt, n, url):
+    """MC2, MC3: the `done` mark, then metrics.sh into .tdd/issue-<n>-metrics.md, committed as `metrics:` on exit 0;
+    metrics.sh's exit code, which any other exit carries rather than stops on."""
+    fused.checked(WHERE, fused.script("event.sh"), "done", "pr=" + url, cwd=wt,
+                  env=tunables.with_values(VERI_ISSUE=n, VERI_ACTOR="conductor"))
+    metrics = ".tdd/issue-%s-metrics.md" % n
+    code = fused.call(fused.script("metrics.sh"), n, cwd=wt, out=metrics)[0]
+    if code == 0:
+        fused.checked(WHERE, "git", "add", metrics, cwd=wt)
+        fused.checked(WHERE, "git", "commit", "-m", "metrics: what solving #%s cost (#%s)" % (n, n), cwd=wt)
+    return code
+
+
+def render(wt, n):
+    """MC6: refactor-owed.sh render's output written to .tdd/issue-<n>-refactor-owed-render; exit 3 an empty file."""
+    code, out, _ = fused.call(fused.script("refactor-owed.sh"), "render", REFACTOR_OWED % n, cwd=wt)
+    if code not in (0, 3):
+        raise fused.Stop(WHERE, fused.label("refactor-owed.sh", "render", REFACTOR_OWED % n) + " exit %d" % code, code)
+    with open(os.path.join(wt, RENDER % n), "w") as f:
+        f.write(out if code == 0 else "")
 
 
 def tick_full_suite(wt, n):
