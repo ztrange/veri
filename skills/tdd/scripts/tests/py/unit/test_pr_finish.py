@@ -121,16 +121,16 @@ class Failing(Fake):
         return super().__call__(name, *args, **kw)
 
 
-def _git(verb, *more):
+def _git_hit(verb, *more):
     return lambda b, a: b == "git" and a[:1] == (verb,) and all(m in a[-1] for m in more)
 
 
 @pytest.mark.parametrize("hit, code, mode", [
-    (_git("branch"), 128, "ci"), (lambda b, a: b == "gh" and "pulls" in a[1], 1, "ci"),
+    (_git_hit("branch"), 128, "ci"), (lambda b, a: b == "gh" and "pulls" in a[1], 1, "ci"),
     (lambda b, a: b == "gh" and "pulls" in a[1], 4, "ci"), (lambda b, a: b == "gh" and "issues/12" in a[1], 1, "ci"),
-    (_git("add", "issue-12.md"), 128, "ci"), (_git("commit", "plan:"), 1, "ci"),
-    (_git("add", "metrics"), 128, "local"), (_git("commit", "metrics:"), 1, "local"),
-    (_git("status"), 128, "local"), (_git("rev-parse"), 128, "local")],
+    (_git_hit("add", "issue-12.md"), 128, "ci"), (_git_hit("commit", "plan:"), 1, "ci"),
+    (_git_hit("add", "metrics"), 128, "local"), (_git_hit("commit", "metrics:"), 1, "local"),
+    (_git_hit("status"), 128, "local"), (_git_hit("rev-parse"), 128, "local")],
     ids=["git branch", "gh url read exit 1", "gh url read exit 4", "gh issue body read", "git add ledger",
          "git commit plan", "git add metrics", "git commit metrics", "git status", "git rev-parse"])
 def test_4033_a_git_or_gh_call_that_fails_is_no_answer_exit_2(finish, hit, code, mode):
