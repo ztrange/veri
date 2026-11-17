@@ -759,6 +759,23 @@ def main(argv):
     if not re.fullmatch(r"https://github\.com/[^/]+/[^/]+/pull/\d+", pr):
         print(USAGE, file=sys.stderr)
         return 2
+    clone, issue = _main_clone(worktree), run_dir.branch_issue(branch)
+    if clone is None:
+        return _merge(pr, worktree, branch, message)
+    return event.stage("merge", lambda: _merge(pr, worktree, branch, message), clone,
+                       event.context(tunables.with_values(VERI_ISSUE=issue)) if issue else None)
+
+
+def _main_clone(worktree):
+    """The main working tree <worktree> belongs to, read from its `.git` as git reads it, with no process: the merge's
+    stage lines go there, never to the worktree the merge removes. None when it cannot be read."""
+    try:
+        return os.path.dirname(os.path.normpath(os.path.abspath(event.common_dir(worktree))))
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def _merge(pr, worktree, branch, message):
     driver = tunables.get("VERI_GH_DRIVER")
     if driver not in ("auto", "rest", "graphql"):
         print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
