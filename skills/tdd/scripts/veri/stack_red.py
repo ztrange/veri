@@ -14,8 +14,18 @@ GREEN = ("success", "neutral", "skipped")
 def main(argv):
     if argv:
         return entry.refuse(usage=USAGE)
-    stack, _, _ = stack_branch.ahead(".")
-    runs = github.workflow_runs(stack)
+    try:
+        span = stack_branch.ahead(".")
+    except stack_branch.Refused as refused:
+        return entry.refuse(str(refused), prefix="stack-red: ")
+    if span is None:
+        return entry.refuse("the repository's CLAUDE.md names no stack branch (stack-branch.sh exits 3)",
+                            prefix="stack-red: ")
+    stack = span[0]
+    try:
+        runs = github.workflow_runs(stack)
+    except github.NoAnswer as no:
+        return entry.refuse(" ".join(str(no.detail or no.answer).split()), prefix="stack-red: ")
     answered = [found for found in runs if found[2] == "completed" and found[3] != "cancelled"]
     if not answered:
         print("stack-red: CI has not answered on origin/%s yet: none of the %d workflow runs read completed with a"

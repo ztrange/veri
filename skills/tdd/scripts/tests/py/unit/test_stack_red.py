@@ -71,3 +71,30 @@ def test_exits_3_printing_nothing_when_the_latest_answer_is_green_or_no_run_answ
     code, out, err = run_cli(stack_red, [])
 
     assert (code, out, err.count("\n"), err.startswith("stack-red: "), said in err) == (3, "", 1, True, True), err
+
+
+@pytest.mark.parametrize("given, said", [
+    ("no answer", "the workflow runs of stack: HTTP 502"),
+    ("fetch", "fetch origin got no answer"),
+    ("refused", "CLAUDE.md: the line names the default branch"),
+    ("unnamed", "names no stack branch"),
+])
+def test_exits_2_with_one_stderr_line_when_github_or_a_fetch_gives_no_answer_or_stack_branch_does_not_exit_0(
+        monkeypatch, run_cli, stack_red, given, said):
+    runs = stack_red.github.NoAnswer("", "the workflow runs of stack: HTTP 502") if given == "no answer" else [run(1)]
+    span = {"no answer": ("stack", "trunk", []), "unnamed": None,
+            "fetch": stack_red.stack_branch.Refused("fetch origin got no answer (exit 128): timeout"),
+            "refused": stack_red.stack_branch.Refused("CLAUDE.md: the line names the default branch")}[given]
+    World(monkeypatch, stack_red, runs, span=span)
+
+    code, out, err = run_cli(stack_red, [])
+
+    assert (code, out, err.count("\n"), err.startswith("stack-red: "), said in err) == (2, "", 1, True, True), err
+
+
+def test_exits_2_naming_its_usage_when_given_an_argument(monkeypatch, run_cli, stack_red):
+    World(monkeypatch, stack_red, [run(1)])
+
+    code, out, err = run_cli(stack_red, ["stack"])
+
+    assert (code, out, "usage: stack-red.sh" in err) == (2, "", True)
