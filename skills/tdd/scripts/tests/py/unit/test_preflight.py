@@ -1039,3 +1039,17 @@ def test_issue_4092_a_failing_refusing_row_stops_preflight_at_2_ready_check_with
     assert row in lines, out
     assert lines[-1].startswith("stopped at 2 ready-check.sh"), out
     assert "issue-worktree.sh" not in [n for n, _, _ in calls], calls
+
+
+WARNING = ["fail  push: add a workflow under .github/workflows/ that triggers on push to the default branch",
+           "fail  label priority: gh label create priority", "fail  bypassPermissions: denied tools: `Bash`; look in …",
+           "fail  one test file: add a `veri: one test file: <command>` line to CLAUDE.md"]
+
+
+def test_issue_4092_any_other_failing_row_is_printed_and_preflight_goes_on_as_if_it_had_passed(monkeypatch, run_cli, tmp_path):
+    calls, _, out = _front(monkeypatch, run_cli, tmp_path, {"ready-check.sh": _ready(*WARNING)})
+    lines = out.splitlines()
+
+    assert all(row in lines for row in WARNING), out
+    assert not [line for line in lines if line.startswith("stopped at 2")], out
+    assert "issue-worktree.sh" in [n for n, _, _ in calls], calls
