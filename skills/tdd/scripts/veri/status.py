@@ -424,7 +424,7 @@ def waiting_lines():
         if pr is not None and not any(t.endswith("(%s)" % n) for t in subjects for n in numbers):
             lines.append("%s PR %s ready to merge" % (name, pr))
     for record in decision_log.read(run_dir.main_tree(missing="")):
-        if decision_log.epoch(record) > since:
+        if decision_log.epoch(record) >= since:
             lines.append(("owner decided" if record["by"] == "owner" else "decided")
                          + ": %(question)s → %(decision)s (rule: %(rule)s)" % record)
     return "\n".join(lines) or "none"
@@ -571,6 +571,9 @@ def main(argv):
         return recover(argv[1], argv[3])
     if list(argv) == ["--report"]:
         refresh_if_stale()
+        # The window's next start is taken before the decision log is read, and written floored to the second, which
+        # the decisions are compared against with >=: one recorded at a boundary may be listed twice, never zero times.
+        read_at = time.time()
         try:
             waiting = waiting_lines()
         except decision_log.Malformed as bad:
@@ -585,7 +588,7 @@ def main(argv):
             pass
         os.makedirs(os.path.dirname(status_last_path()), exist_ok=True)
         with open(status_last_path(), "w") as f:
-            json.dump({"time": time.strftime(ISO_UTC, time.gmtime()), "queue": queue}, f)
+            json.dump({"time": time.strftime(ISO_UTC, time.gmtime(read_at)), "queue": queue}, f)
         return 0
     parsed = parse_args(argv)
     if parsed is None:
