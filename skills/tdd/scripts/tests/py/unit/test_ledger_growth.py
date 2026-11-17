@@ -510,3 +510,31 @@ def test_4251_split_names_no_split_point_with_one_criterion_or_none(tmp_path, ru
     none = split_second_line(tmp_path / "none", run_cli, ledger_growth, [None, None, None])
 
     assert (one, none) == ("no split point: every counted step serves criterion 2", "no split point: no criterion tag")
+
+
+GROWN = "# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦criterion 2⟧\n- [ ] a gear ⟦criterion 2⟧\n"
+
+
+@pytest.mark.parametrize("argv, env, git_answers, names", [
+    (["split"], {}, {}, "usage"),
+    (["split", "{ledger}", "extra"], {}, {}, "usage"),
+    (["split", "{missing}"], {}, {}, "missing.md"),
+    (["split", "{ledger}"], {}, {"git log": (0, "bbb plan: rewrite #42 (#42)\nddd green: a cog (#42)\n", "")},
+     "no plan: scope commit"),
+    (["split", "{ledger}"], {}, {"git log": (128, "", "fatal: not a git repository\n")}, "not a git repository"),
+    (["split", "{ledger}"], {}, {"git log": (0, "ccc plan: scope #42 (#42)\n", ""),
+                                 "git show": (128, "", "fatal: path not in ccc\n")}, "path not in ccc"),
+    (["split", "{ledger}"], {"VERI_STEP_GROWTH_PERCENT": "half"}, {}, "VERI_STEP_GROWTH_PERCENT"),
+    (["split", "{ledger}"], {"VERI_STEP_GROWTH_PERCENT": "-1"}, {}, "VERI_STEP_GROWTH_PERCENT"),
+    (["split", "{ledger}"], {"VERI_STEP_GROWTH": "3"}, {}, "VERI_STEP_GROWTH_PERCENT"),
+])
+def test_4251_split_exits_2_with_nothing_on_stdout_and_one_stderr_line_when_no_answer_can_be_had(
+        tmp_path, run_cli, ledger_growth, fake_processes, argv, env, git_answers, names):
+    fake = fake_processes.answers(git_answers)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(GROWN)
+    paths = {"ledger": str(ledger), "missing": str(tmp_path / "missing.md")}
+
+    code, out, err = run_cli(ledger_growth, [arg.format(**paths) for arg in argv], env=env)
+
+    assert (code, out, err.count("\n"), err.endswith("\n"), names in err) == (2, "", 1, True, True), (err, fake.calls)

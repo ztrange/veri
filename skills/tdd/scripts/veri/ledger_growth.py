@@ -17,7 +17,7 @@ RETIRED = ("VERI_STEP_GROWTH is retired: unset it; VERI_STEP_GROWTH_PERCENT (def
            " as a percent of the verified plan's steps")
 USAGE = ("usage: ledger-growth.sh <plan-ledger-file> <ledger-file> | plan-sha"
          " | record-existing <ledger-file> | record-rewrite <pre-rewrite-ledger-file> <ledger-file>"
-         " | reopen <ledger-file> <needle> <change>")
+         " | reopen <ledger-file> <needle> <change> | split <ledger-file>")
 
 
 def step_texts(text):
@@ -174,13 +174,25 @@ def counted_steps(text):
 
 def split(ledger):
     """`split <ledger-file>`: the growth of the ledger past ⌈VERI_STEP_GROWTH_PERCENT × P ÷ 100⌉ over P, the steps of
-    the ledger at the oldest `plan: scope` commit of its history; exit 0 reporting it, 3 within the bound."""
-    percent = tunables.get("VERI_STEP_GROWTH_PERCENT")
+    the ledger at the oldest `plan: scope` commit of its history; exit 0 reporting it, 3 within the bound, 2 (one
+    stderr line, nothing on stdout) when no answer can be had."""
+    percent = growth_percent()
+    if percent is None:
+        return 2
     directory, name = os.path.dirname(os.path.abspath(ledger)), os.path.basename(ledger)
-    steps = counted_steps(read_ledger(ledger))
-    log = git.out("log", "--format=%H %s", "--", name, cwd=directory)
-    sha = [line for line in log.split("\n") if SCOPE_RE.match(line)][-1].split(" ", 1)[0]
-    planned = len(counted_steps(git.out("show", f"{sha}:./{name}", cwd=directory)))
+    try:
+        steps = counted_steps(read_ledger(ledger))
+        log = git.out("log", "--format=%H %s", "--", name, cwd=directory)
+        scopes = [line.split(" ", 1)[0] for line in log.split("\n") if SCOPE_RE.match(line)]
+        if not scopes:
+            print(f"ledger-growth.sh: no plan: scope commit in the history of {name}", file=sys.stderr)
+            return 2
+        planned = len(counted_steps(git.out("show", f"{scopes[-1]}:./{name}", cwd=directory)))
+    except OSError as error:
+        return unreadable(error)
+    except git.GitFailed as error:
+        print(f"ledger-growth.sh: {error}: {' '.join(error.stderr.split())}", file=sys.stderr)
+        return 2
     bound = growth_cap(int(percent), planned)
     if len(steps) - planned <= bound:
         return 3
@@ -204,8 +216,24 @@ def split_point(criteria):
             f" criteria {numbers[i + 1]}–{numbers[-1]} ({len(criteria) - here} steps) in a follow-up issue")
 
 
+def growth_percent():
+    """VERI_STEP_GROWTH_PERCENT as given, or None after one stderr line when it is malformed or the retired
+    VERI_STEP_GROWTH is set."""
+    if tunables.is_set("VERI_STEP_GROWTH"):
+        print("ledger-growth.sh: " + RETIRED, file=sys.stderr)
+        return None
+    percent = tunables.get("VERI_STEP_GROWTH_PERCENT")
+    if not tunables.parses("VERI_STEP_GROWTH_PERCENT", percent):
+        print(f"ledger-growth.sh: VERI_STEP_GROWTH_PERCENT must be a whole number >= 0: {percent}", file=sys.stderr)
+        return None
+    return percent
+
+
 def main(argv):
     if argv[:1] == ["split"]:
+        if len(argv) != 2 or not argv[1]:
+            print("usage: ledger-growth.sh split <ledger-file>", file=sys.stderr)
+            return 2
         return split(argv[1])
     if len(argv) == 2 and argv[0] == "record-existing":
         return record_existing(argv[1])
@@ -229,12 +257,8 @@ def main(argv):
     except OSError as error:
         return unreadable(error)
     planned = set(plan_steps)
-    if tunables.is_set("VERI_STEP_GROWTH"):
-        print("ledger-growth.sh: " + RETIRED, file=sys.stderr)
-        return 2
-    percent = tunables.get("VERI_STEP_GROWTH_PERCENT")
-    if not tunables.parses("VERI_STEP_GROWTH_PERCENT", percent):
-        print(f"ledger-growth.sh: VERI_STEP_GROWTH_PERCENT must be a whole number >= 0: {percent}", file=sys.stderr)
+    percent = growth_percent()
+    if percent is None:
         return 2
     budget = growth_cap(int(percent), len(plan_steps))
     try:
