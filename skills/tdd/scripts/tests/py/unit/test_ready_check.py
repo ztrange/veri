@@ -675,6 +675,16 @@ def test_issue_4091_the_probes_claude_starts_without_a_session_variable_strip_se
     assert {argv[0] for argv in fake.argvs} == {"claude"}, fake.calls
 
 
+def test_issue_4091_a_probe_that_never_answers_fails_the_bypass_permissions_row_saying_no_answer_was_obtained(ready_check, fake_processes, tmp_path):
+    from process_fakes import HANGS
+    fake_processes.answers({PROBE: HANGS})
+
+    name, verdict = ready_check.bypass_permissions_row()
+
+    assert name == "bypassPermissions" and verdict.startswith("no answer was obtained"), verdict
+    assert os.listdir(tmp_path) == [], os.listdir(tmp_path)
+
+
 @pytest.mark.parametrize("answer, exit_code", [(probe_answer(), 1), (probe_answer(bash=False), 1), (OSError(13, "no claude"), 2)])
 def test_issue_4091_the_probes_scratch_directory_is_gone_on_exit_1_or_2_and_nothing_else_is_written(ready_check, run_cli, fake_processes, tmp_path, answer, exit_code):
     repo = tmp_path / "repo"
