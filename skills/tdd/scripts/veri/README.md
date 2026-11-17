@@ -190,6 +190,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_CALLER_DIR` | `.` | its readers' own words |
 | `VERI_CI_FLAKE_RERUNS` | `1` | a whole number |
 | `VERI_TEST_QUALITY_FIXES` | `1` | a whole number |
+| `VERI_SURROUND_MUTANTS` | `5` | a whole number >= 1 |
 | `VERI_CI_HEAD_WAIT` | `600` | its readers' own words |
 | `VERI_CI_NO_RUN_WAIT` | `600` | its readers' own words |
 | `VERI_CI_QUEUE_WAIT` | `3600` | its readers' own words |
