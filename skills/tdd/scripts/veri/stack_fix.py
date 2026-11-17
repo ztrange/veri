@@ -153,8 +153,8 @@ def _say(message):
 
 
 def _checked(n, red):
-    """The checks of the stack and the fix's commits, with the lock held: (stack, default, onto, head). Refused or NoAnswer when one fails;
-    _NotRed when stack-red.sh exits 3."""
+    """The checks of the stack and the fix's commits, with the lock held: (stack, default, onto, head). Refused or
+    NoAnswer when one fails; NotRed when stack-red.sh exits 3."""
     code, said = script("stack-red.sh", limit=NETWORK)
     if code == 3:
         raise NotRed("stack-red.sh exits 3: the stack is not red; nothing pushed")
@@ -226,12 +226,24 @@ def _no_test_moved(onto, head, cases):
                     path, status))
 
 
+def _alone(code, output, case):
+    """What an alone run of <case> that exited <code> with <output> says: "green" (exit 0, its output not saying the
+    case was not found or not collected), "absent" (the output says so, whatever the exit), "red" (a failure line naming
+    it, read as stack-culprit.sh reads one, or an exit 1, 4 or 5), None no answer (no exit, or any other exit)."""
+    if code is None:
+        return None
+    if code == 0:
+        return "absent" if stack_culprit.ABSENT_OUTPUT.search(ci_flake.ANSI.sub("", output)) else "green"
+    said = stack_culprit.verdict(code, output, case)
+    if said == stack_culprit.ABSENT:
+        return "absent"
+    return "red" if said is True or code in (1, 4, 5) else None
+
+
 def _cases_pass(top, cases):
-    """Each of <cases> run alone at HEAD through the repository's `veri: one test file:` command. Refused naming the
-    first that is red (its run exits 1, 4 or 5, or fails with a failure line naming it, read as stack-culprit.sh reads
-    one), absent (its file missing at HEAD, or the output saying it was not found or not collected, whatever the exit)
-    or not run; NoAnswer naming one whose run gave no answer (any other exit, or none within VERI_TIMEOUT), or when no
-    such command is declared. The exit code alone never passes a case that was not collected."""
+    """Each of <cases> run alone at HEAD in <top> through the repository's `veri: one test file:` command. Refused
+    naming the first that is red or absent (its file missing at HEAD, or not found or not collected); NoAnswer naming
+    one whose run gave no answer, or when no such command is declared. The exit code alone never passes a case."""
     command = _one_file_command(top)
     if not command:
         raise NoAnswer("the repository declares no `veri: one test file:` command (detect-test-command.sh --tier"
@@ -239,13 +251,11 @@ def _cases_pass(top, cases):
     for case in cases:
         if not _has(case.split("::", 1)[0]):
             raise Refused("%s: its file is absent at HEAD, and a case gone is not a pass; nothing pushed" % case)
-        code, output = _run(command, case)
-        said = stack_culprit.verdict(code, output, case) if code else code
-        if code == 0 and stack_culprit.ABSENT_OUTPUT.search(ci_flake.ANSI.sub("", output)):
-            said = stack_culprit.ABSENT
-        if said is True or said == stack_culprit.ABSENT or (said is None and code in (1, 4, 5)):
+        code, output = _run(command, case, cwd=top)
+        said = _alone(code, output, case)
+        if said in ("red", "absent"):
             raise Refused("%s is still %s at HEAD run alone (exit %d); nothing pushed" % (
-                case, "absent or not collected" if said == stack_culprit.ABSENT else "red", code))
+                case, "red" if said == "red" else "absent or not collected", code))
         if said is None:
             raise NoAnswer("%s run alone at HEAD gave no answer (%s); nothing pushed" % (
                 case, "no exit within VERI_TIMEOUT" if code is None else "exit %d, its output naming no failure of it"
