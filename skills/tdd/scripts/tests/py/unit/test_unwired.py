@@ -42,3 +42,16 @@ def test_an_added_non_test_file_no_other_non_test_file_names_is_printed_and_exit
               list(tree))
     monkeypatch.chdir(tmp_path)
     assert (unwired.main(["base"]),) + tuple(capsys.readouterr()) == (1, "src/orphan.py\n", "")
+
+
+def test_every_added_file_named_exits_0_printing_nothing_and_a_range_adding_none_exits_3(
+        tmp_path, monkeypatch, capsys, unwired, fake_processes):
+    tree = {"src/used.py": "y = 2\n", "src/main.py": "from used import y\n", "tests/test_new.py": "",
+            ".tdd/issue-7.md": ""}
+    write(tmp_path, tree)
+    monkeypatch.chdir(tmp_path)
+    results = []
+    for added in (["src/used.py", "tests/test_new.py"], ["tests/test_new.py", ".tdd/issue-7.md"]):
+        range_git(fake_processes, added, list(tree))
+        results.append((unwired.main(["base"]),) + tuple(capsys.readouterr()))
+    assert results == [(0, "", ""), (3, "", "")]
