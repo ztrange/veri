@@ -622,7 +622,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   apart). **Exit 0** only when a read in it says merged; the lock is then released, and the join calls `stack-pr.sh` in
   the worktree, after its push to the stack and that read, so the first join after a landing reopens the tracking pull
   request; a call that exits non-zero prints one stderr line naming `stack-pr.sh` and its exit code and leaves the
-  join's own exit code unchanged, since the join itself has succeeded. Then the run's remote branch is deleted under
+  join's own exit code unchanged, since the join itself has succeeded (an exit 3 is said plainly: the stack read as
+  not ahead right after the push). The call is bounded by `VERI_GIT_NETWORK_TIMEOUT`, its process group killed at the
+  limit and answered as exit 2. Then the run's remote branch is deleted under
   `--force-with-lease=<branch>:<the tip it pushed>` (a commit pushed to it since is never deleted unseen; a refused delete
   is read again, and a branch origin no longer lists, GitHub having deleted a merged PR's branch, counts as deleted,
   while one still listed is the failed step `branch delete`), origin's `refs/veri/runs/<n>` deleted (one origin lacks counts as deleted;

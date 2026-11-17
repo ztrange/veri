@@ -4,6 +4,7 @@ import os
 
 import pytest
 
+from process_fakes import HANGS
 from veri import queued_merge
 
 PR = "https://github.com/o/r/pull/7"
@@ -197,6 +198,28 @@ def test_a_failed_stack_pr_call_prints_one_stderr_line_naming_it_and_the_confirm
     added = [line for line in err.splitlines() if line not in quiet.splitlines()]
 
     assert (code, len(added), "stack-pr.sh" in "".join(added), "exit %d" % answer[0] in "".join(added)) == (0, 1, True, True), err
+
+
+def test_a_stack_pr_exit_3_after_a_join_is_said_plainly_as_the_stack_not_ahead_never_as_a_failure_4172(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+    spy_tracking(monkeypatch, world, (3, "stack-pr: origin/stack is not ahead of origin/trunk; nothing opened\n"))
+
+    code, _, err = join(run_cli, world)
+    said = [line for line in err.splitlines() if "stack-pr.sh" in line]
+
+    assert (code, len(said), "failed" in said[0], "not ahead" in said[0]) == (0, 1, False, True), err
+
+
+def test_the_stack_pr_call_has_a_bound_of_its_own_a_hung_child_killed_and_answered_2_naming_the_limit_4172(
+        tmp_path, fake_processes, monkeypatch):
+    fake = fake_processes.answers({"stack-pr.sh": HANGS})
+    monkeypatch.setattr(os, "killpg", lambda group, sig: [c.send_signal(sig) for c in fake.popens if c.pid == group])
+    monkeypatch.setenv("VERI_GIT_NETWORK_TIMEOUT", "1")
+
+    code, said = queued_merge._track(str(tmp_path))
+
+    assert (code, "VERI_GIT_NETWORK_TIMEOUT" in said, [p.signals != [] for p in fake.popens]) == (2, True, [True])
 
 
 def test_a_stack_push_refused_because_the_stack_moved_starts_again_from_the_fetch_and_never_forces(
