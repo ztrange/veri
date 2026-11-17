@@ -673,3 +673,18 @@ def test_issue_4091_the_probes_claude_starts_without_a_session_variable_strip_se
     assert env is not None and env.get("KEPT_VARIABLE") == "kept", env
     assert not {"CLAUDE_CODE_SESSION_ID", "CLAUDECODE", "SOME_HANDLE"} & set(env), sorted(env)
     assert {argv[0] for argv in fake.argvs} == {"claude"}, fake.calls
+
+
+@pytest.mark.parametrize("answer, exit_code", [(probe_answer(), 1), (probe_answer(bash=False), 1), (OSError(13, "no claude"), 2)])
+def test_issue_4091_the_probes_scratch_directory_is_gone_on_exit_1_or_2_and_nothing_else_is_written(ready_check, run_cli, fake_processes, tmp_path, answer, exit_code):
+    repo = tmp_path / "repo"
+    (repo / "kept").mkdir(parents=True)
+    (repo / "kept" / "file").write_text("as it was\n")
+    before = tree_state(tmp_path)
+    fake_processes.answers(holding(**{PROBE: answer, "detect-test-command.sh --tier": (3, "", "")}))
+
+    code, _, _ = run_cli(ready_check, [str(repo)], env={"VERI_BASH_MAJOR": "5"})
+
+    assert code == exit_code
+    assert sorted(os.listdir(repo)) == ["kept"], os.listdir(repo)
+    assert tree_state(tmp_path) == before
