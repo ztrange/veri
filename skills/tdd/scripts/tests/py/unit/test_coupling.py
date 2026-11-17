@@ -1,5 +1,6 @@
 """In-process cases for veri/coupling.py, the module coupling.sh is a shim over (#4124, PRD 032.8)."""
 import importlib
+import os
 
 import pytest
 
@@ -13,6 +14,8 @@ def range_git(fake_processes, changed, tracked=()):
     """Answers the git calls of a run: the base resolves, `diff --name-only` names <changed>, and `ls-files` lists
     <tracked> as the files git does not ignore."""
     def answer(line, **kwargs):
+        if line.startswith("git rev-parse --show-toplevel"):
+            return 0, os.getcwd() + "\n", ""
         if line.startswith("git rev-parse"):
             return 0, "abc\n", ""
         if line.startswith("git diff"):
