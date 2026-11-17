@@ -18,7 +18,7 @@ CONTEXT = ((b"issue", b"VERI_ISSUE"), (b"actor", b"VERI_ACTOR"), (b"phase", b"VE
            (b"step", b"VERI_STEP"), (b"event", None), (b"attempt", b"VERI_ATTEMPT"),
            (b"skill_commit", b"VERI_SKILL_COMMIT"))
 # the events that end a phase, after which the issue's metrics file is rewritten (PRD 035.2, D5)
-METRICS_EVENTS = (b"exit", b"step-done", b"bail", b"done")
+METRICS_EVENTS = (b"exit", b"step-done", b"bail", b"done", b"stage-end")
 STOPPED = (b"candidates-done", b"budget-spent", b"nothing-structural")
 REASONS = b", ".join(STOPPED)
 
