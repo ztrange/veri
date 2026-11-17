@@ -707,6 +707,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `stack-green.sh`: print the newest stack commit that ends an issue and that CI passed, where a slice may be cut.
 - `stack-pr.sh`: print the one open pull request tracking the stack branch, opening it when none is.
 - `stack-red.sh`: print CI's latest answer on the stack branch when it is red, which freezes joins.
+- `stack-revert.sh`: revert an issue's commits on the stack, its hand fix included, as one commit on the tip in a worktree of its own, and lift its join claim from the merged pull requests' bodies.
 - `wait-ci.sh`: wait for a pull request's CI.
 - `worktree-setup.sh`: set up a worktree.
 
@@ -716,6 +717,10 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 
 ## ci_flake
 - `ANSI`: the pattern of the terminal colour codes a runner's text carries, stripped before a line is read. `runner_text(log)`: the runner's own text of a `gh run view --log-failed` log, gh's job and step prefixes and timestamps removed.
+
+## stack_culprit
+- `verdict(code, output, case)`: what an alone run of a case says: `True` red (non-zero, with a failure line naming the case), `False` not red (exit 0), `ABSENT` (not found or not collected, its output matching `ABSENT_OUTPUT`), `None` no answer; the exit code alone never decides.
+- `owners(subjects)`: per subject, oldest first, the issues its commit belongs to by KT5's subject rule (those it names, else the nearest earlier subject's).
 
 ## stack_green
 - `named(subject)`: the issue numbers a commit subject names in the parenthesised group or groups it ends with. `issue_ends(subjects)`: per subject, whether its commit is an issue end. `tested(runs)`: whether check runs `[(status, conclusion)]` call a commit tested. `ENDS_READ`: the newest issue ends read.
