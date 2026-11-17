@@ -18,6 +18,10 @@ if __name__ == "__main__":
 #            or VERI_PYTEST_WORKERS is not a whole number of at least 1, or any other exception escaped the leg (registering
 #            it, taking the full-run lock, checking or recording the bytecode cache), one stderr line naming it in
 #            entry.refusal's form (#3985); a record that fails after failing suites leaves their 1
+#            or no case started or reported for VERI_PYTEST_IDLE seconds (default 1200): the leg ends the workers it
+#            started (TERM, KILL by pid after 5 s), removes its registry entry, releases the full-run lock and prints
+#            `pytest leg idle for <s> s with no case running (last case seen: <node id>|none); workers <pid>… ended`
+#            (idle_watch.py, #4254), whatever its cases' outcomes
 import contextlib
 import fcntl
 import hashlib
@@ -404,18 +408,20 @@ def main(argv):
     if workers and not re.fullmatch("[1-9][0-9]*", workers):
         sys.stderr.write("VERI_PYTEST_WORKERS must be a whole number of at least 1; got %s.\n" % workers)
         return 2
+    idle = int(tunables.get("VERI_PYTEST_IDLE"))
     import pytest
     os.environ["TMPDIR"] = leg_tmpdir.PINNED_TMPDIR
     # The plugins load by name from the leg's directory; failed_cases from veri/; the plugins' `veri.x` from scripts/.
     sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
     sys.path.insert(1, VERI)
     sys.path.insert(2, os.path.dirname(VERI))
+    import idle_watch
     outer = sys.modules.get("failed_cases")
     records = (outer.NODEIDS, outer.PASSED, outer.REPORTED, outer.NAMED) if outer else ()
     saved = [list(record) for record in records]
     for record in records:
         record.clear()
-    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen", "failed_cases"]))
+    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen", "failed_cases", "idle_watch"]))
     def terminate(signum, frame):
         sys.exit(128 + signum)
     previous = signal.signal(signal.SIGTERM, terminate)
@@ -426,11 +432,29 @@ def main(argv):
     subset = "--subset" in argv
     argv = [arg for arg in argv if arg != "--subset"]
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
+    held_run = None
+
+    def leg_cleanup():
+        nonlocal entry, full_lock
+        if entry:
+            unregister(entry)
+            entry = None
+        if full_lock:
+            full_lock.release()
+            full_lock = None
+        if held_run:
+            remove_scratch_mirror(sys.pycache_prefix, held_run)
+            shutil.rmtree(held_run, ignore_errors=True)
+
+    watch = idle_watch.Watch(idle, os.dup(2))
+    watch.cleanups.append(leg_cleanup)
+    outer_watch = idle_watch.CURRENT[0]
     try:
         if not subset and "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and full_run_lock.enabled() and not full_run_lock.held_by_ancestor():
             full_lock = full_run_lock.acquire()
         sweep_dead_runs()
         with run_directory() as run:
+            held_run = run
             base = os.path.join(run, "base")
             os.mkdir(base)
             with open(os.path.join(run, "pid"), "w") as record:
@@ -440,6 +464,8 @@ def main(argv):
             else:
                 count, entry = claim()
             parallel = ["-n", str(count), "--dist", "worksteal"] if count >= 2 else []
+            idle_watch.CURRENT[0] = watch
+            watch.start()
             rest, selected = split_marks(argv)
             seen = os.path.join(run, "serial-seen")
             os.environ["PYTEST_LEG_SERIAL_SEEN"] = seen
@@ -471,6 +497,9 @@ def main(argv):
                 for nodeid in failed_cases.NODEIDS:
                     sys.stderr.write(nodeid + "\n")
     finally:
+        watch.stop()
+        idle_watch.CURRENT[0] = outer_watch
+        os.close(watch.out)
         for record, kept in zip(records, saved):
             record.clear()
             record.update(kept) if isinstance(record, set) else record.extend(kept)
@@ -478,10 +507,7 @@ def main(argv):
             os.environ.pop("PYTEST_LEG_SERIAL_SEEN", None)
         else:
             os.environ["PYTEST_LEG_SERIAL_SEEN"] = serial_seen
-        if entry:
-            unregister(entry)
-        if full_lock:
-            full_lock.release()
+        leg_cleanup()
         signal.signal(signal.SIGTERM, previous)
         signal.signal(signal.SIGHUP, previous_hup)
         if conftest is None:

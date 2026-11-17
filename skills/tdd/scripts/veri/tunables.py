@@ -202,6 +202,7 @@ TUNABLES = {
     "VERI_PLAN_TOUCHING_CASES": Tunable(tokens, "100"),
     "VERI_TEST_LOCK": Tunable(text, ""),
     "VERI_PYTEST_WORKERS": Tunable(text, ""),
+    "VERI_PYTEST_IDLE": Tunable(text, "1200"),
     "VERI_PYTEST_LEGS": Tunable(text, ""),
     "VERI_PYCACHE": Tunable(text, ""),
     "VERI_NEW_SKILL": Tunable(text, ""),
