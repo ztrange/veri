@@ -495,10 +495,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   **exit 0**. It never touches the checkout it runs from (branch, index, working tree), never forces a push, never
   pushes the default branch and never merges. **Exit 3** when the tip already declares every given command exactly.
   **Exit 2**, nothing pushed, for a missing or empty command; a `--one-file` command that does not take the test file
-  as `"$1"` (anywhere in it) or as a `$1` word of its own; a `repo-root` outside a git repository; a `CLAUDE.md` that
+  as `"$1"` (anywhere in it) or as a `$1` word of its own; a `repo-root` outside a git repository; a root `CLAUDE.md`
+  on the tip that is not a regular file (a symlink, say: "CLAUDE.md is not a regular file"); a `CLAUDE.md` that
   would not read back, through `detect-test-command.sh`'s own reader, exactly the command given for each tier written
   and unchanged for every other tier; and an origin `veri-install` holding anything but the commit this run would
-  push (it names what to do: open a pull request from that branch, or delete it, then re-run). A re-run finding
+  push, whether other commands or these commands cut from an older tip of the default branch (it says which, and
+  what to do: open a pull request from that branch, or delete it, then re-run). A re-run finding
   `veri-install` at exactly that commit (same tree, same parent) opens the pull request when none is open from it,
   and exits 3 when one is: so a pull request refused after the push is recovered by running it again.
 - `$S/worktree-setup.sh <n>` — run from inside a run worktree: runs the `veri: setup: <cmd>` line of its CLAUDE.md (read like `veri: all tests:`) once in the worktree root; exit 2 with no argument. Called by preflight.
