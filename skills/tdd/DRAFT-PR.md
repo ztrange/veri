@@ -492,7 +492,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    and no later line of the block runs. So when no adjudicated `retry` of it exits 0, the block writes its
    `adjudicated` events, then the `pr-ready-failed` bail, and nothing else: no `wait-ci.sh` call follows (in the first call `blocked` makes the wait line skip it and leave `ci` at 0), so no CI deadline is started, no `ci-timeout`, `ci-conflict` or `ci-red` bail follows, no `step-added` event, `⟦ci-repair⟧` ledger line or `plan: repair the red CI check` commit is made and no `gh run view` is asked for. The run **bails** as a **system** failure (`pr-ready-failed`, classified by `classify-bail.sh`) with the PR left a draft, the bail comment carrying the text of `.tdd/pr-ready.err` as its last reason (`Read` `<base directory>/BAIL.md`).
    A `pr-ready-failed`, `ci-timeout`, `ci-conflict` or `ci-red` bail ends the step there, and neither the `done` mark nor the
-   `metrics:` commit below follows it (`Read` `<base directory>/BAIL.md`). Otherwise:
+   `metrics:` commit below follows it (`Read` `<base directory>/BAIL.md`). Once the first `wait-ci.sh` exited 0, before
+   the second block, run `$S/pr-finish.sh <n>`, and again on exit 3; on exit 0 take `metrics=` (there only when the
+   render failed, holding `metrics.sh`'s exit) and `.tdd/issue-<n>-refactor-owed-render`, the body's render, from its
+   last lines, and go on at the block's title `gh api -X PATCH` line; on any other exit go on by the second block from
+   the point its last line names. The PR's title and body stay the conductor's. Otherwise:
    ```
    # Only under VERI_BRANCH_SUITE=ci (the mode $S/branch-suite.sh printed) when no ⟦full-suite⟧ line was ticked before pr-ready.sh, and only when .tdd/wait-ci.err does not say `has no checks`
    # (CI's green run is the proof): tick each ⟦full-suite⟧ line with $S/tick-ledger.sh and its issue criterion with $S/tick-issue-criterion.sh as the ⟦full-suite⟧ paragraph above describes, then
