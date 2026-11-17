@@ -2427,3 +2427,105 @@ def test_the_author_prompt_carries_the_untrusted_text_paragraph_of_leaf_safety_b
 
     assert (paragraph.startswith("{{INCLUDE:"), -1 < prompt.find(paragraph) < prompt.find("A1: The widget is blue.")) \
         == (False, True), prompt
+
+
+HEADED_UNIT = "# Title\n\nIntro.\n\n## Part A\n\nThe widget is painted a deep blue.\n\n## Part B\n\nOther.\n"
+
+
+def _heading_unit_case(tmp_path, monkeypatch, fake_processes, grades, edit=None):
+    """A step on the heading unit `unit.md#Part A`: the list holds A1 under it, the issue adds A2. `grades` are the
+    grader's exit codes in order; `edit` is what the author writes over unit.md."""
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    skill_edit_guard = skill_edit_step.skill_edit_guard
+    leaf = importlib.import_module("veri.leaf")
+    (tmp_path / "unit.md").write_text(HEADED_UNIT)
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md#Part A\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md#Part A\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A2 | The widget is deep. | depth |\n")
+    graded = []
+    launched = []
+
+    def grade(path, unit):
+        graded.append(unit)
+        (tmp_path / "GRADED").write_text("sig\n")
+        return grades[len(graded) - 1], ""
+
+    def launch(name, prompt, *args, env=None):
+        launched.append(name)
+        (tmp_path / "unit.md").write_text(edit)
+        return subprocess.CompletedProcess([name], 0, b"", None)
+
+    monkeypatch.setattr(skill_edit_step, "_grade", grade)
+    monkeypatch.setattr(skill_edit_guard, "_git_ok", lambda *a: True)
+    monkeypatch.setattr(skill_edit_guard, "_git_lines", lambda *a: ["unit.md", "REQUIREMENTS.md", "GRADED"]
+                        if a[0] == "diff" else [])
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(leaf, "launch", launch)
+    fake = fake_processes.answers({"": lambda line, **kw: (0, "abc1234\n", "")})
+    return skill_edit_step, fake, graded, launched
+
+
+def test_a_step_on_a_heading_unit_applies_its_rows_under_its_heading_in_the_list_beside_its_file_and_creates_no_file_of_its_name_4210(tmp_path, monkeypatch, run_cli, fake_processes):
+    skill_edit_step, fake, graded, launched = _heading_unit_case(tmp_path, monkeypatch, fake_processes, [0])
+
+    code, out, err = run_cli(skill_edit_step, ["issue.md", "unit.md#Part A"])
+
+    requirements = importlib.import_module("veri.requirements")
+    ids = [r.split("\t")[0] for r in requirements.claims(str(tmp_path / "REQUIREMENTS.md"), "unit.md#Part A").splitlines()]
+    commits = [a for a in fake.argvs if a[:2] == ["git", "commit"]]
+    assert (code, ids, graded, launched) == (3, ["A1", "A2"], ["unit.md#Part A"], []), (code, out, err)
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["GRADED", "REQUIREMENTS.md", "issue.md", "unit.md"]
+    assert len(commits) == 1 and "unit.md#Part A" not in commits[0], commits
+
+
+def test_a_step_on_a_heading_unit_whose_author_edits_its_file_commits_the_file_not_a_path_of_the_units_name_4210(tmp_path, monkeypatch, run_cli, fake_processes):
+    edited = HEADED_UNIT.replace("deep blue.", "deep, deep blue.")
+    skill_edit_step, fake, graded, launched = _heading_unit_case(tmp_path, monkeypatch, fake_processes, [1, 0], edited)
+
+    code, out, err = run_cli(skill_edit_step, ["issue.md", "unit.md#Part A"], env={"VERI_SKILL_EDIT_BUDGET": "1"})
+
+    adds = [a for a in fake.argvs if a[:2] == ["git", "add"]]
+    assert (code, launched, (tmp_path / "unit.md").read_text()) == (0, ["author-skill-edit-1"], edited), (code, out, err)
+    assert len(adds) == 1 and "unit.md" in adds[0] and "unit.md#Part A" not in adds[0], adds
+
+
+def test_an_added_step_on_a_heading_unit_graded_pass_with_a_stale_graded_line_refreshes_the_signature_and_exits_3_4210(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    unit = "unit.md#Part A"
+    (tmp_path / "unit.md").write_text(HEADED_UNIT)
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md#Part A\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    monkeypatch.setattr(grade_prose, "grader_conf", lambda: {"model": "m"})
+    grade_prose.record_graded(unit, grade_prose.signature("REQUIREMENTS.md", unit, units=[unit]), "g1")
+    (tmp_path / "unit.md").write_text(HEADED_UNIT.replace("deep blue.", "deep, deep blue."))
+    stale = (tmp_path / "GRADED").read_text()
+    commands = []
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    def grade(path, unit):
+        grade_prose.record_graded(unit, grade_prose.signature(path, unit, units=[unit]), "g2")
+        return 0, ""
+
+    monkeypatch.setattr(skill_edit_step, "_grade", grade)
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 1)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "refresh part A", "issue.md", unit])
+
+    commits = [c for c in commands if c[:2] == ["git", "commit"]]
+    assert (code, len(commits)) == (3, 1), (code, out, err)
+    assert (tmp_path / "GRADED").read_text() != stale

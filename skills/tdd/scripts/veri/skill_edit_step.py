@@ -30,6 +30,11 @@ def issue_requirements_lines(issue):
     return requirements.requirements_lines(requirements.read_lines(issue))
 
 
+def unit_file(unit):
+    """The file a unit lives in: a `file#heading` unit's part before `#`, a whole-file unit itself."""
+    return unit.partition("#")[0]
+
+
 def names_unit(heading, unit):
     return heading in (unit, unit + " (new)")
 
@@ -51,7 +56,7 @@ def _headerless(issue, unit):
 
 def _unknown_heading(issue):
     for heading, line in issue_requirements_lines(issue):
-        if line.startswith("### ") and not heading.endswith(" (new)") and not os.path.exists(heading):
+        if line.startswith("### ") and not heading.endswith(" (new)") and not os.path.exists(unit_file(heading)):
             return heading
     return None
 
@@ -171,10 +176,10 @@ def _held_texts(lines, unit):
 
 def apply(issue, unit):
     path = requirements.list_path(unit)
-    moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
+    moved = "#" not in unit and not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
     rows = [r.replace("<reword>", "", 1) if row_id(r).endswith("<reword>") else r
             for r in unit_rows(issue, unit)]
-    if rows and not os.path.exists(unit):
+    if rows and not os.path.exists(unit_file(unit)):
         _create(unit, path, rows)
         return True
     claimed = _claimed(path, unit)
@@ -270,7 +275,7 @@ def _read_existing(names):
 def _signature(graded, unit):
     for line in (graded or b"").decode("utf-8", "replace").splitlines():
         cells = line.split()
-        if cells[:1] == [unit]:
+        if [grade_prose.graded_fields(c)[0] for c in cells[:1]] == [unit]:
             return cells[1:2]
     return None
 
@@ -320,10 +325,11 @@ def main(argv):
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     path = requirements.list_path(unit)
     graded_file = grade_prose.graded_path(unit)
-    snapshot = _read_existing((path, unit, graded_file))
+    file = unit_file(unit)
+    snapshot = _read_existing((path, file, graded_file))
 
     def undo():
-        _restore(snapshot, path, unit, graded_file)
+        _restore(snapshot, path, file, graded_file)
 
     listed = _listed_ids(path, unit)
     texts = listed_texts(path, unit)
@@ -343,7 +349,7 @@ def main(argv):
             undo()
             return 2
         return 3
-    if os.path.getsize(unit):
+    if os.path.getsize(file):
         graded, said = _grade(path, unit)
     else:
         graded, said = 1, "FAIL: unit is empty\n"
@@ -361,7 +367,7 @@ def main(argv):
             undo()
             return 2
     _change[0] = change
-    before = _read_existing([unit, *pins])
+    before = _read_existing([file, *pins])
     for attempt in range(1, int(budget) + 1):
         if graded != 1 and not (change is not None and attempt == 1):
             break
@@ -378,7 +384,7 @@ def main(argv):
                                               and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
         if not graded:
             graded, said = _grade(path, unit)
-        if change is not None and graded == 0 and _read_existing([unit]).get(unit) == before.get(unit):
+        if change is not None and graded == 0 and _read_existing([file]).get(file) == before.get(file):
             graded, said = 1, "FAIL: the author left the prose unchanged\n"
         if graded == 1:
             _restore(before, *before)
@@ -389,7 +395,7 @@ def main(argv):
         return graded
     if not authored:
         event.append(".", event.context(os.environ), "skill-edit-no-author", ["unit=" + unit])
-    files = [path, grade_prose.graded_path(unit)] + [unit] * (authored or moved) + pins * authored
+    files = [path, grade_prose.graded_path(unit)] + [file] * (authored or moved) + pins * authored
     subprocess.run(["git", "add", *files], check=True)
     subprocess.run(["git", "commit", "-q", "-m", "docs: requirements for %s, graded" % unit, *files], check=True)
     return 0 if authored else 3
