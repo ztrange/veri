@@ -9,5 +9,5 @@
 - [x] `run` holds `issue`, `outcome`, `wall_seconds`, `awake_seconds` (null before `done`) and every `bail` as `{cause, classification, phase, step}` ⟦criterion 7⟧
 - [x] every count, duration and cost is a number, and an unknown figure is `null` ⟦criterion 8⟧
 - [x] no key at any depth names a rate, a percentage or an average ⟦criterion 9⟧
-- [ ] under `--json` a missing issue or an unreadable log is exit 2 with nothing on stdout, and any other argument after the issue is exit 2 with the usage line ⟦criterion 10⟧
+- [x] under `--json` a missing issue or an unreadable log is exit 2 with nothing on stdout, and any other argument after the issue is exit 2 with the usage line ⟦criterion 10⟧
 - [ ] `SCRIPTS.md`'s `metrics.sh` entry states `--json` (SC264), graded ⟦criterion 11⟧

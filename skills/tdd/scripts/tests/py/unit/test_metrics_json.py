@@ -164,6 +164,28 @@ def test_no_key_at_any_depth_holds_a_rate_a_percentage_or_an_average(rich, capsy
     assert sorted(key for key in named if re.search(r"rate|percent|pct|ratio|share|avg|average|mean|median|per_", key)) == []
 
 
+USAGE = "usage: metrics.sh <issue-number> [--json]\n"
+
+
+@pytest.mark.parametrize("argv", [["--json"], ["", "--json"], ["108", "extra"], ["108", "--json", "extra"],
+                                  ["108", "extra", "--json"], ["108", "--JSON"]])
+def test_a_missing_issue_or_any_argument_after_it_but_json_is_exit_2_with_the_usage_line_and_nothing_on_stdout(
+        rich, run_cli, metrics, argv):
+    assert run_cli(metrics, argv, cwd=rich) == (2, "", USAGE)
+
+
+@pytest.mark.parametrize("log", ["missing", "a directory"])
+def test_under_json_an_unreadable_event_log_is_exit_2_with_nothing_on_stdout(tmp_path, run_cli, metrics, log):
+    (tmp_path / ".tdd").mkdir()
+    if log == "a directory":
+        (tmp_path / ".tdd" / "events.jsonl").mkdir()
+
+    code, out, err = run_cli(metrics, ["108", "--json"], cwd=tmp_path)
+
+    assert (code, out, len(err.splitlines())) == (2, "", 1), err
+    assert "events.jsonl" in err
+
+
 @pytest.mark.parametrize("priced, some_priced, expected", [(True, True, True), (False, True, "partial"),
                                                             (False, False, False)])
 def test_conductor_priced_is_true_when_every_session_carries_a_price_false_when_none_does_and_partial_otherwise(

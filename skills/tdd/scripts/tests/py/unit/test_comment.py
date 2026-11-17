@@ -1947,7 +1947,7 @@ def test_render_metrics_relays_the_renderers_stderr_line_and_answers_its_code_an
     comment = importlib.import_module("veri.comment")
 
     assert comment.render_metrics("") == (2, "")
-    assert capsys.readouterr() == ("", "usage: metrics.sh <issue-number>\n")
+    assert capsys.readouterr() == ("", "usage: metrics.sh <issue-number> [--json]\n")
     monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "### 📊 Metrics\n", ""))
     assert comment.render_metrics("7") == (0, "### 📊 Metrics\n")
     assert capsys.readouterr() == ("", "")

@@ -32,7 +32,7 @@ def test_main_refuses_a_missing_or_empty_issue_number_with_its_usage_before_read
         out, err = capsys.readouterr()
         seen.append((code, out, err))
 
-    assert seen == [(2, "", "usage: metrics.sh <issue-number>\n")] * 2
+    assert seen == [(2, "", "usage: metrics.sh <issue-number> [--json]\n")] * 2
 
 
 def write_log(root, events, raw=""):
@@ -78,15 +78,13 @@ def test_the_report_carries_a_lane_line_naming_veri_label_or_ready_for_agent_whe
             [line for line in named if line.startswith("Lane: ")]) == (["Lane: ready-for-agent"], ["Lane: lane-x"])
 
 
-def test_main_renders_the_report_for_an_issue_and_ignores_arguments_after_the_first(tmp_path, monkeypatch, capsys, metrics):
+def test_main_renders_the_report_for_an_issue(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     monkeypatch.chdir(tmp_path)
 
     alone = render(metrics, capsys, ["108"])
-    extra = render(metrics, capsys, ["108", "extra"])
 
     assert alone.startswith("### 📊 Metrics — issue 108\n")
-    assert extra == alone
 
 
 def test_the_planned_count_is_the_number_of_ledger_steps_records_not_of_checkboxes(tmp_path, monkeypatch, capsys, metrics):
@@ -2506,7 +2504,7 @@ def test_rendered_answers_code_report_and_stderr_text_without_printing(tmp_path,
 
     assert (code, err) == (0, "")
     assert out == printed and out.startswith("### 📊 Metrics — issue 108\n")
-    assert refused == (2, "", "usage: metrics.sh <issue-number>\n")
+    assert refused == (2, "", "usage: metrics.sh <issue-number> [--json]\n")
 
 
 def named(name, events):
