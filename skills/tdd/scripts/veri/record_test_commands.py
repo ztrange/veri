@@ -147,12 +147,17 @@ def remote_branch(root):
     return listed.stdout.split()[0]
 
 
-def resume(root, default, held, tip, tree, one_file=None):
+def resume(root, default, held, tip, tree, wanted, one_file=None):
     """Open the pull request from origin's BRANCH when it holds exactly the commit this run would push (<tree> on
     <tip>) and none is open from it; None (nothing to do) when one is."""
     same = (checked("rev-parse", held + "^{tree}", cwd=root).decode() == tree
             and checked("rev-parse", held + "^@", cwd=root).decode() == tip)
     if not same:
+        shown = git.git("show", "%s:CLAUDE.md" % held, cwd=root, capture_output=True)
+        theirs = shown.stdout if shown.returncode == 0 else b""
+        if all(declared(theirs, marker) == command for marker, command in wanted):
+            raise Refused("origin already has a branch %s with these commands, cut from an older tip of %s: delete the "
+                          "branch, or open a pull request from it, then re-run; nothing written" % (BRANCH, default))
         raise Refused("origin already has a branch %s holding other commands: open a pull request from it, or delete "
                       "the branch, then re-run; nothing written" % BRANCH)
     os.chdir(root)
@@ -192,7 +197,7 @@ def record(fast, full, root, one_file=None):
         raise Refused(why)
     tree = tree_of(root, tip, new, mode)
     if held:
-        return resume(root, default, held, tip, tree, one_file)
+        return resume(root, default, held, tip, tree, wanted, one_file)
     sha = checked("commit-tree", tree, "-p", tip, "-m", MESSAGE, cwd=root).decode()
     pushed = git.network("push", "-q", "origin", "%s:refs/heads/%s" % (sha, BRANCH), cwd=root)
     if pushed.returncode != 0:

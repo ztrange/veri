@@ -263,3 +263,17 @@ def test_the_pr_body_names_the_one_test_file_line_only_when_one_file_adds_it(tmp
     run_cli(record, ["make unit", "make test"], cwd=without)
 
     assert ["veri: one test file:" in body for _, _, _, body in pulls] == [True, False]
+
+
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+def test_a_veri_install_with_the_same_commands_cut_from_an_older_default_tip_is_exit_2_saying_so(
+        tmp_path, run_cli, record, pulls):
+    origin, work = project(tmp_path)
+    run_cli(record, ["make unit", "make test"], cwd=work)
+    commit_all(work, "later", **{"NEWS.md": "moved on\n"})
+    git(work, "push", "-q", "origin", "HEAD:main")
+
+    code, out, err = run_cli(record, ["make unit", "make test"], cwd=work)
+
+    assert (code, out) == (2, "")
+    assert "older tip" in err and "other commands" not in err
