@@ -12,3 +12,4 @@
 - [x] `status.sh --report` prints each decision on one line, its non-printing characters escaped and each field cut at 300 characters with …
 - [x] `decision-log.sh record` refuses a question, decision or rule over 2000 characters, exit 2 naming it, writing nothing
 - [x] `status.sh --report` exits 2 naming the line when a record's `at` is more than 300 s in the future
+- [x] `status.sh --report` exits 2 saying the decision log cannot be read, and why, when it is unreadable

@@ -590,6 +590,9 @@ def main(argv):
         except decision_log.Malformed as bad:
             print("status.sh: %s is not a decision record" % bad.where, file=sys.stderr)
             return 2
+        except decision_log.Unreadable as bad:
+            print("status.sh: cannot read the decision log %s: %s" % (bad.path, bad.reason), file=sys.stderr)
+            return 2
         print("%s\nLanded\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (zone_line(), landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting) + unjournaled_notes())
         queue = {}
         try:
