@@ -122,6 +122,44 @@ def _search_inputs(red):
     return stack, default, commits[:shas.index(red) + 1], url, cases
 
 
+def _search(path, command, ends, before, red, cases):
+    """Run <cases> alone at each of <ends> [(sha, owners)], oldest first, in the worktree <path>: the answer to print at
+    the first end where a case is red, None when none is. _NoAnswer for a checkout that fails or an alone run with no
+    answer. <before> is the commit the first end follows."""
+    for commit, owners in ends:
+        if not _checkout(path, commit):
+            raise _NoAnswer("checking out %s in the search's own worktree failed; nothing more run" % commit)
+        red_here = []
+        for case in cases:
+            if not _has(path, commit, case.split("::", 1)[0]):
+                continue
+            code, output = _run_alone(path, command, case)
+            if code not in (0, 1, 4, 5):
+                raise _NoAnswer("%s run alone at %s gave no answer (%s)" % (
+                    case, commit, "no exit within VERI_TIMEOUT" if code is None else "exit %d" % code))
+            if code == 1:
+                red_here.append((case, _first_fail(output, path)))
+        if red_here:
+            return "red: %s\nissue: %s\ncommit: %s\nbefore: %s\n%s" % (
+                red, " ".join(sorted(owners, key=int)) or "none", commit, before,
+                "".join("case: %s\t%s\n" % found for found in red_here))
+        before = commit
+    return None
+
+
+def _comment(stack, default, body):
+    """Add <body> as a comment on the stack's one open tracking pull request, unless a comment there already holds
+    exactly <body>. With none open, or several, nothing is posted and stderr says so. NoAnswer from GitHub passes up."""
+    pulls = github.stack_pulls(stack, default)
+    if len(pulls) != 1:
+        print("stack-culprit: %d open pull requests track %s; no comment posted" % (len(pulls), stack), file=sys.stderr)
+        return
+    number = pulls[0].number
+    if any(comment.get("body") == body for comment in github.issue_comments(number)):
+        return
+    github.gh_comment_post(number, body)
+
+
 def main(argv):
     if len(argv) != 1:
         return entry.refuse(usage=USAGE)
@@ -149,35 +187,25 @@ def main(argv):
     if not _add_worktree(path, red):
         return entry.refuse("git worktree add --detach %s failed; nothing run, and never in this checkout" % path,
                             prefix="stack-culprit: ")
+    since = span[base][0] if base >= 0 else "origin/" + default
     try:
-        before = span[base][0] if base >= 0 else "origin/" + default
-        for at in ends:
-            commit = span[at][0]
-            if not _checkout(path, commit):
-                return entry.refuse("checking out %s in the search's own worktree failed; nothing more run" % commit,
-                                    prefix="stack-culprit: ")
-            red_here = []
-            for case in cases:
-                if not _has(path, commit, case.split("::", 1)[0]):
-                    continue
-                code, output = _run_alone(path, command, case)
-                if code is None or code not in (0, 1, 4, 5):
-                    return entry.refuse("%s run alone at %s gave no answer (%s)" % (
-                        case, commit, "no exit within VERI_TIMEOUT" if code is None else "exit %d" % code),
-                        prefix="stack-culprit: ")
-                if code == 1:
-                    red_here.append((case, _first_fail(output, path)))
-            if red_here:
-                issues = " ".join(sorted(owners[at], key=int)) or "none"
-                sys.stdout.write("red: %s\nissue: %s\ncommit: %s\nbefore: %s\n%s" % (
-                    red, issues, commit, before, "".join("case: %s\t%s\n" % found for found in red_here)))
-                return 0
-            before = commit
+        printed = _search(path, command, [(span[at][0], owners[at]) for at in ends], since, red, cases)
+    except _NoAnswer as no:
+        return entry.refuse(str(no), prefix="stack-culprit: ")
     finally:
         _remove_worktree(path)
-    print("stack-culprit: no issue end from %s to %s turns a case red; cases run: %s" % (
-        span[base][0] if base >= 0 else "origin/" + default, red, ", ".join(cases)), file=sys.stderr)
-    return 3
+    if printed:
+        sys.stdout.write(printed)
+        answer = printed
+    else:
+        answer = "no issue end from %s to %s turns a case red; cases run: %s\n" % (since, red, ", ".join(cases))
+        print("stack-culprit: " + answer.rstrip("\n"), file=sys.stderr)
+    try:
+        _comment(stack, default, "stack-culprit: %s\n\n%s\nRed run: %s\n" % (red, answer, url))
+    except github.NoAnswer as no:
+        return entry.refuse("the answer was not commented on the tracking pull request: %s" % " ".join(
+            str(no.detail or no.answer).split()), prefix="stack-culprit: ")
+    return 0 if printed else 3
 
 
 if __name__ == "__main__":

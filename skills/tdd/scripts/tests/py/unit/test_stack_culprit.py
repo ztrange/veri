@@ -213,6 +213,51 @@ def test_when_no_issue_end_turns_a_case_red_it_prints_nothing_says_so_on_stderr_
     assert (code, out, A in err, B in err, "no issue end" in err) == (3, "", True, True, True), err
 
 
+RUN = "https://github.com/o/r/actions/runs/42"
+
+
+@pytest.mark.parametrize("reds, code", [({sha(2): (A,)}, 0), ({}, 3)])
+def test_on_exit_0_or_3_it_comments_once_on_the_tracking_pull_request_with_what_it_printed_and_the_red_runs_url(
+        monkeypatch, run_cli, culprit, reds, code):
+    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], reds=reds)
+
+    got, out, err = run_cli(culprit, [sha(2)])
+
+    (number, body), = world.posted
+    assert (got, number, sha(2) in body, RUN in body, out in body, "/repo" in body) == (code, 5, True, True, True, False), err
+
+
+@pytest.mark.parametrize("reds", [{sha(2): (A,)}, {}])
+def test_a_second_call_with_the_same_answer_for_the_same_red_sha_adds_no_comment(monkeypatch, run_cli, culprit, reds):
+    first = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], reds=reds)
+    run_cli(culprit, [sha(2)])
+    second = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], reds=reds,
+                   comments=("an earlier comment", first.posted[0][1]))
+
+    code, _, err = run_cli(culprit, [sha(2)])
+
+    assert (code, second.posted) == (0 if reds else 3, []), err
+
+
+@pytest.mark.parametrize("pulls", [(), ("one", "two")])
+def test_with_no_one_tracking_pull_request_open_it_posts_nothing_says_so_on_stderr_and_keeps_its_exit(
+        monkeypatch, run_cli, culprit, pulls):
+    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], reds={sha(2): (A,)}, pulls=pulls)
+
+    code, out, err = run_cli(culprit, [sha(2)])
+
+    assert (code, bool(out), world.posted, "no comment" in err) == (0, True, [], True), err
+
+
+def test_a_tracking_pull_request_read_with_no_answer_is_exit_2_after_the_answer_is_printed(monkeypatch, run_cli, culprit):
+    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], reds={sha(2): (A,)},
+                  pulls=culprit.github.NoAnswer("", "HTTP 502"))
+
+    code, out, err = run_cli(culprit, [sha(2)])
+
+    assert (code, bool(out), world.posted, "HTTP 502" in err) == (2, True, [], True), err
+
+
 def no_answer(culprit, what):
     return culprit.github.NoAnswer("", what)
 
