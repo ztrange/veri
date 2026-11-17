@@ -374,7 +374,13 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    `not-done` keeps one `coupling` row per file, so a resume's call replaces the row an earlier
    entry recorded rather than adding one; `refactor-candidates.sh` lists it and the structural
-   pass never takes it. Exit **3** (no pair) goes on, recording nothing. Exit **2** (the base did
+   pass never takes it. Exit **3** (no pair) records nothing and drops a row an earlier entry
+   recorded, then goes on:
+   ```
+   $S/refactor-owed.sh clear .tdd/issue-<n>-refactor-owed.md coupling
+   git add -f .tdd/issue-<n>-refactor-owed.md; git diff --cached --quiet || git commit -m "chore: drop the run's stale coupling candidate (#<n>)"
+   ```
+   Exit **2** (the base did
    not resolve) is a system failure: **bail** with cause `no-verdict` (`Read`
    `<base directory>/BAIL.md`). Only mutual references are reported; upward imports are not.
    After the coupling run and before the PR is readied, run
@@ -385,17 +391,23 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    labelled with the opt-in label (`VERI_LABEL`) and is filed at most once per run: a resume
    runs the same command and it replaces the existing issue's body.
    After `refactor-candidates.sh` and before the PR is readied, each time the run enters this
-   step, run `$S/unwired.sh <branch-base>` once, `<branch-base>` being the merge base with
-   `origin/<default>`:
+   step, run `$S/unwired.sh --accepted .tdd/issue-<n>-unwired-accepted <branch-base>` once,
+   `<branch-base>` being the merge base with `origin/<default>`:
    ```
-   $S/unwired.sh "$(git merge-base HEAD origin/<default>)" > .tdd/unwired.out; unwired=$?
+   $S/unwired.sh --accepted .tdd/issue-<n>-unwired-accepted "$(git merge-base HEAD origin/<default>)" > .tdd/unwired.out; unwired=$?
+   [ "$unwired" != 1 ] || cat .tdd/unwired.out >> .tdd/issue-<n>-unwired-accepted
    [ "$unwired" != 1 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=unwired classification="$($S/classify-bail.sh unwired)" failed="$(cat .tdd/unwired.out)"
    ```
-   Exit **1** printed each non-test file the range adds whose stem no other non-test file names:
-   the second line **bails** with cause `unwired`, naming every file it printed, and the PR is
-   left a draft (`Read` `<base directory>/BAIL.md`). Exits **0** (every such file is named) and
-   **3** (the range adds none) go on. Exit **2** (the base did not resolve, or no work tree) is a
-   system failure: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`).
+   It checks only code: an added prose, config or data file and a path under `.github/` are
+   never printed. Exit **1** printed each added code file whose stem no other non-test file
+   names and that the record does not list: the second line adds those files to the record and
+   the third **bails** with cause `unwired`, naming every file it printed, and the PR is left a
+   draft (`Read` `<base directory>/BAIL.md`). The human's `release-issue.sh <n>` after that bail
+   accepts the files it listed: the resumed run hands the same record, so a recorded file is not
+   printed, and the run goes on when every file it would print is recorded and bails `unwired`
+   again when one is not. Exits **0** (every such file is named or recorded) and **3** (the
+   range adds none) go on. Exit **2** (the base did not resolve, or no work tree) is a system
+   failure: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`).
 2. **Mark the PR ready for review and read its CI, then close the run's log with the PR's
    URL, render the metrics, commit them, and rewrite the PR into its final form** — one
    sub-step, in this order, from inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
