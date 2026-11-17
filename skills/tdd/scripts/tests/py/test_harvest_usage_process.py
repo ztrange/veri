@@ -38,7 +38,8 @@ def test_a_finished_leaf_appends_one_usage_event_with_the_numbers_of_its_closing
         "event": "usage", "issue": "", "actor": "verifier", "phase": "refactor", "step": "", "attempt": "1",
         "skill_commit": "", "duration_ms": "228265", "duration_api_ms": "84513", "num_turns": "13",
         "total_cost_usd": "0.74", "input_tokens": "41", "output_tokens": "8203",
-        "cache_read_input_tokens": "1287431", "cache_creation_input_tokens": "52890", "model": ""}]
+        "cache_read_input_tokens": "1287431", "cache_creation_input_tokens": "52890", "model": "",
+        "name": "verify-refactor"}]
 
 
 def test_a_log_with_no_closing_result_record_appends_no_usage_event_and_says_so_naming_itself_and_the_leaf(

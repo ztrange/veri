@@ -84,7 +84,7 @@ def harvest(name, env):
     role = leaf_role.leaf_role(name)
     if role is None:
         return 2
-    return entry.to_contract(event.mark("", event.context(dict(env, **role)), "usage", pairs))
+    return entry.to_contract(event.mark("", event.context(dict(env, **role)), "usage", pairs + ["name=" + name]))
 
 
 USAGE = "usage: harvest-usage.sh <leaf-name>"
