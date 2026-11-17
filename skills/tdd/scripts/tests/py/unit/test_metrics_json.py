@@ -1,8 +1,11 @@
 """`metrics.sh <n> --json`: the run's metrics as one JSON object, built from the same Fold as the markdown report
 (PRD 035.1, MJ1 to MJ10)."""
+import builtins
 import dataclasses
 import importlib
+import io
 import json
+import os
 
 import pytest
 
@@ -99,6 +102,19 @@ def test_conductor_holds_its_cost_turns_session_count_model_and_whether_it_is_es
     assert sorted(conductor) == ["cost_usd", "estimated", "model", "priced", "sessions", "turns"]
     assert (round(conductor["cost_usd"], 2), conductor["turns"], conductor["sessions"]) == (2.68, 6, 2)
     assert (conductor["model"], conductor["estimated"], conductor["priced"]) == ("opus", True, True)
+
+
+def test_the_object_is_built_from_the_fold_alone_opening_no_file_and_reading_no_mark(folded, metrics, monkeypatch):
+    expected = metrics.as_json(folded)
+
+    def refuse(*args, **kwargs):
+        raise AssertionError("as_json opened %r" % (args[:1],))
+
+    monkeypatch.setattr(builtins, "open", refuse)
+    monkeypatch.setattr(io, "open", refuse)
+    monkeypatch.setattr(os, "open", refuse)
+
+    assert metrics.as_json(dataclasses.replace(folded, marks=[])) == expected
 
 
 @pytest.mark.parametrize("priced, some_priced, expected", [(True, True, True), (False, True, "partial"),
