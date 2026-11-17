@@ -3,8 +3,8 @@
 # veri/stack_red.py.
 #
 # usage:   stack-red.sh   (run in the target repository's clone; no arguments)
-# Reads every workflow's runs; while the newest is a re-run not completed, its previous attempt answers (unreadable:
-# exit 2); while it is a first attempt not completed, its own head's newest completed run answers.
+# Reads every workflow's runs and decides each workflow alone (red if any is; else exit 2 if any gave no answer); a
+# run re-run or cancelled at a later attempt answers from its first earlier attempt that completed uncancelled.
 # Exit:    0 the stack is red: one line printed, `<head-sha> <run-url> <conclusion>`, of the newest by creation time of
 #          the newest 100 workflow runs GitHub lists for the stack branch that completed with a conclusion other than
 #          cancelled, when that conclusion is not success, neutral or skipped; 3 it concluded success, neutral or
