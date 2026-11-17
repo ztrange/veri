@@ -24,9 +24,11 @@ answer with `$S/tidy-first.sh < .tdd/develop-green.out`:
   A `TIDY_FIRST:` answer spends no `REVISE_BUDGET` attempt and writes no `revise` mark for the
   stuck step: the budget is for a rejected product.
 - **Exit 3**: the report has no `TIDY_FIRST:` line; go on as the green report would without it.
-- **Exit 2** is a verify-green REJECT whose reason is the script's stderr line, spending
+- **Exit 1** is a verify-green REJECT whose reason is the script's stderr line, spending
   `REVISE_BUDGET`, with no verifier launched: the leaf answered, wrongly (`Read`
   `<base directory>/REVISE.md`).
+- **Exit 2**: no answer could be read (the smell catalogue unreadable), so **bail** as a system
+  failure with cause `no-verdict` (`Read` `<base directory>/BAIL.md`).
 
 The inserted step carries `⟦added⟧` and counts toward `VERI_STEP_GROWTH_PERCENT`, with no budget of
 its own: `add-ledger-step.sh` exit **1** (the plan has no room; the script has parked the text under

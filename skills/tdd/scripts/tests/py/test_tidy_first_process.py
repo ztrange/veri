@@ -8,7 +8,7 @@ SCRIPTS = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.process("tidy-first.sh run through its shim on a green report")
-def test_4118_tidy_first_sh_answers_0_3_and_2_through_its_shim(tmp_path):
+def test_4118_tidy_first_sh_answers_0_3_and_1_through_its_shim(tmp_path):
     (tmp_path / "route.py").write_text("def answer():\n    pass\n")
 
     def run(report):
@@ -20,4 +20,4 @@ def test_4118_tidy_first_sh_answers_0_3_and_2_through_its_shim(tmp_path):
            " the step changes no behaviour and no test file ⟦diff-checked⟧\n", "")
     assert run("IMPL_PATH: route.py\n") == (3, "", "")
     assert run("TIDY_FIRST: Tidy | route.py::answer | x\n") == (
-        2, "", "tidy-first.sh: names a refactoring SMELLS.md does not list: TIDY_FIRST: Tidy | route.py::answer | x\n")
+        1, "", "tidy-first.sh: names a refactoring SMELLS.md does not list: TIDY_FIRST: Tidy | route.py::answer | x\n")

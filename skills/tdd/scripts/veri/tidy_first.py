@@ -18,23 +18,23 @@ SMELLS = os.path.join(os.path.dirname(paths.scripts_of(__file__)), "SMELLS.md")
 ANSWER_RE = re.compile(r"(?P<refactoring>[^|]+?) *\| *(?P<file>[\w./-]+)::(?P<symbol>[A-Za-z_][\w.]*) *\| *(?P<why>\S[^|]*)")
 
 
-def catalogue(path=SMELLS):
+def catalogue(path=None):
     """[(smell, [refactoring, ...])] in SMELLS.md's smell table order: its first and third columns, never the threshold."""
-    with open(path, encoding="utf-8") as f:
+    with open(path or SMELLS, encoding="utf-8") as f:
         rows = [line.split("|") for line in f if line.startswith("| ")]
     return [(cells[1].strip(), [name.strip() for name in cells[3].split(",") if name.strip()])
             for cells in rows[1:] if len(cells) > 4]
 
 
-def catalogue_refactorings(path=SMELLS):
+def catalogue_refactorings(path=None):
     """Every refactoring name the third column of SMELLS.md's smell table lists."""
     return {name for _, names in catalogue(path) for name in names}
 
 
-def catalogue_names(path=SMELLS):
+def catalogue_names(path=None):
     """The develop-green prompt's list of the catalogue's names: one `- <smell>: <refactorings>` line per smell, the
     catalogue's path first, so the leaf names a refactoring as tidy-first.sh reads it without the thresholds' bytes."""
-    return (f"The smell catalogue, `{path}` (`Read` it for a smell's threshold), names these smells and the"
+    return (f"The smell catalogue, `{path or SMELLS}` (`Read` it for a smell's threshold), names these smells and the"
             " refactorings that answer them:\n\n"
             + "\n".join(f"- {smell}: {', '.join(names)}" for smell, names in catalogue(path)))
 
@@ -43,6 +43,12 @@ def _refuse(why, line):
     sys.stderr.buffer.write(f"tidy-first.sh: {why}: {line}\n".encode("utf-8", "surrogateescape"))
     sys.stderr.buffer.flush()
     return 2
+
+
+def _refuse_answer(why, line):
+    """Exit 1: the leaf answered, wrongly. Its line is named on stderr, nothing on stdout."""
+    _refuse(why, line)
+    return 1
 
 
 def _in_tree(file):
@@ -60,16 +66,23 @@ def main(argv):
     if not lines:
         return 3
     if len(lines) > 1:
-        return _refuse("two or more TIDY_FIRST: lines", lines[1])
+        return _refuse_answer("two or more TIDY_FIRST: lines", lines[1])
     line = lines[0]
     answer = ANSWER_RE.fullmatch(report_values(line, "TIDY_FIRST", occurrence="first").strip())
     if answer is None:
-        return _refuse("is not <refactoring> | <file>::<symbol> | <why>", line)
+        return _refuse_answer("is not <refactoring> | <file>::<symbol> | <why>", line)
     refactoring, file, symbol = answer["refactoring"].strip(), answer["file"], answer["symbol"]
-    if refactoring not in catalogue_refactorings():
-        return _refuse("names a refactoring SMELLS.md does not list", line)
+    try:
+        listed = catalogue_refactorings()
+    except OSError as error:
+        sys.stderr.write(f"tidy-first.sh: cannot read the smell catalogue {SMELLS}: {error.strerror}\n")
+        return 2
+    if refactoring not in listed:
+        return _refuse_answer("names a refactoring SMELLS.md does not list", line)
+    if file.startswith("/"):
+        return _refuse_answer("names an absolute path, not one relative to the working tree", line)
     if not _in_tree(file):
-        return _refuse("names a file absent from the working tree", line)
+        return _refuse_answer("names a file absent from the working tree", line)
     step = (f"apply {refactoring} to `{file}::{symbol}`, so the step after it is one small change;"
             " the step changes no behaviour and no test file ⟦diff-checked⟧\n")
     sys.stdout.buffer.write(step.encode())
