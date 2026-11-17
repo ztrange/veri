@@ -179,7 +179,8 @@ def test_unreplaced_cases_prompt_carries_replaces_report_as_its_route_tokens(run
     assert (code, err) == (0, "")
     assert "Routes: replaces-report\n" in out
 
-@pytest.mark.parametrize("cause", ["pr-ready-failed", "report-missing", "step-add-refused", "replaces-report-failed", "reconcile-failed"])
+@pytest.mark.parametrize("cause", ["pr-ready-failed", "report-missing", "step-add-refused", "replaces-report-failed", "reconcile-failed",
+                                   "criterion-unreadable"])
 def test_a_cause_listed_with_no_route_exits_0_its_prompt_carrying_routes_none(
     run_cli, build_adjudicate_prompt, tmp_path, cause
 ):

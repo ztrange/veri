@@ -18,6 +18,7 @@ backticked and comma-separated, or `none`.
 - `replaces-report-failed`: none
 - `unreplaced-cases`: `replaces-report`
 - `reconcile-failed`: none
+- `criterion-unreadable`: none
 
 `killed-stuck`, `no-verdict`, `killed-external` and preflight refusals are never adjudicated:
 the first three already have a budget of their own (`VERI_STUCK_RETRIES`,
