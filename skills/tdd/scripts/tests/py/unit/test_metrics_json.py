@@ -436,6 +436,18 @@ def test_4228_a_journal_with_no_stage_event_folds_with_stages_empty_and_a_line_n
     assert as_json(metrics, capsys)["stages"] == {}
 
 
+def test_4225_a_launch_line_naming_no_phase_is_not_counted_among_a_runs_leaves(tmp_path, monkeypatch, capsys, metrics):
+    first_run = two_runs_and_a_restart()[:4]
+    write_log(tmp_path, first_run[:3] + [
+        mark(150, "launch", actor="developer", attempt="1", name="develop-red", cmd="c", model="")] + first_run[3:])
+    monkeypatch.chdir(tmp_path)
+
+    shaped = as_json(metrics, capsys)
+
+    assert ([run["leaves"] for run in shaped["runs"]], sum(entry["attempts"] for entry in shaped["leaves"].values())) == (
+        [1], 1)
+
+
 def test_4225_a_journal_with_no_done_bail_or_stop_line_folds_as_one_open_run(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, [line for line in two_runs_and_a_restart() if line["event"] not in ("bail", "done")])
     monkeypatch.chdir(tmp_path)
