@@ -2,6 +2,7 @@
 stack-red.sh (its script calls), the stack's span, every git read and the push, the alone runs, the fast tier and
 GitHub's reads and comments are injected in-process, so no case starts a process."""
 import importlib
+import re
 
 import pytest
 
@@ -383,6 +384,13 @@ def test_it_makes_no_wait_ci_call_and_writes_nothing_but_the_push_and_its_two_co
 
     assert (code, sorted({call[0] for call in world.scripts}), len(world.pushed), len(world.posted), writes) == (
         0, ["merge-lock.sh", "prose-owed.sh", "stack-red.sh"], 1, 2, []), err
+
+
+def test_the_module_names_no_repository_issue_branch_label_person_or_ci_job(fix):
+    with open(fix.__file__, encoding="utf-8") as f:
+        named = [line for line in f if re.search(r"ztrange|gates|#[0-9]+", line)]
+
+    assert named == []
 
 
 def test_nothing_is_commented_when_nothing_is_pushed(monkeypatch, run_cli, fix, tmp_path):
