@@ -4,6 +4,10 @@ import importlib
 import pytest
 
 
+# A cap no case below reaches: three ⟦added⟧ steps over a one-step plan.
+ROOMY = {"VERI_STEP_GROWTH_PERCENT": "300"}
+
+
 @pytest.fixture
 def ledger_growth():
     return importlib.import_module("veri.ledger_growth")
@@ -82,21 +86,25 @@ def test_2130_an_unmarked_repair_step_line_is_accepted_with_its_add_ledger_step_
     assert (missing[0], "repair the suite" in missing[2], recorded) == (1, True, (0, "", ""))
 
 
-def test_2130_recorded_added_lines_past_veri_step_growth_exit_1_and_a_malformed_veri_step_growth_exits_2(
+def test_4075_added_lines_are_capped_at_the_percent_of_the_plan_steps_rounded_up_and_a_refused_percent_exits_2(
         tmp_path, run_cli, ledger_growth):
     plan = tmp_path / "plan.md"
     ledger = tmp_path / "issue-42.md"
-    plan.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
-    lines = ["- [ ] first inserted step ⟦added⟧ ⟦criterion 1⟧", "- [ ] second inserted step ⟦added⟧ ⟦criterion 1⟧"]
-    ledger.write_text(
-        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n" + "\n".join(lines) + "\n")
-    (tmp_path / "events.jsonl").write_text("".join(
-        '{"event": "step-added", "actor": "add-ledger-step", "step": "' + line + '"}\n' for line in lines))
-    args = [str(plan), str(ledger)]
-    within = run_cli(ledger_growth, args, env={"VERI_STEP_GROWTH": "2"})
-    past = run_cli(ledger_growth, args, env={"VERI_STEP_GROWTH": "1"})
-    malformed = [run_cli(ledger_growth, args, env={"VERI_STEP_GROWTH": value})[0] for value in ("many", "-1", "")]
-    assert (within, past[0], malformed) == ((0, "", ""), 1, [2, 2, 2])
+    planned = ["- [ ] a cog exists ⟦criterion 1⟧", "- [ ] a gear turns ⟦criterion 1⟧", "- [ ] a lamp glows ⟦criterion 1⟧"]
+    plan.write_text("# Plan for #42\n\n" + "\n".join(planned) + "\n")
+    added = ["- [ ] inserted step %d ⟦added⟧ ⟦criterion 1⟧" % i for i in (1, 2, 3)]
+    (tmp_path / "issue-42-added.md").write_text("\n".join(added) + "\n")
+
+    def check(count, env=None):
+        ledger.write_text("# Plan for #42\n\n" + "\n".join(planned + added[:count]) + "\n")
+        return run_cli(ledger_growth, [str(plan), str(ledger)], env=env)
+
+    at_cap, past = check(2), check(3)
+    refused = [check(2, {"VERI_STEP_GROWTH_PERCENT": value})[0] for value in ("many", "-1", "")]
+    doubled = check(3, {"VERI_STEP_GROWTH_PERCENT": "100"})
+
+    assert (at_cap, past[0], "VERI_STEP_GROWTH_PERCENT" in past[2], refused, doubled) == (
+        (0, "", ""), 1, True, [2, 2, 2], (0, "", ""))
 
 
 def test_2130_a_record_covers_a_ledger_line_only_by_equal_step_text_never_by_substring(
@@ -230,9 +238,9 @@ def test_3439_steps_a_verify_plan_rewrite_added_are_recorded_by_record_rewrite_a
     ledger.write_text(
         head + "- [ ] landed lines ⟦added⟧ ⟦criterion 1⟧\n- [ ] waiting bail lines ⟦added⟧ ⟦criterion 1⟧\n")
     run_cli(ledger_growth, ["record-rewrite", str(pre), str(ledger)])
-    assert run_cli(ledger_growth, [str(plan), str(ledger)]) == (0, "", "")
+    assert run_cli(ledger_growth, [str(plan), str(ledger)], env=ROOMY) == (0, "", "")
     ledger.write_text(ledger.read_text() + "- [ ] a hand step ⟦added⟧ ⟦criterion 1⟧\n")
-    assert run_cli(ledger_growth, [str(plan), str(ledger)]) == (
+    assert run_cli(ledger_growth, [str(plan), str(ledger)], env=ROOMY) == (
         1, "", "ledger-growth.sh: step added without an add-ledger-step.sh record: a hand step ⟦added⟧ ⟦criterion 1⟧\n")
 
 

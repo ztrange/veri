@@ -131,6 +131,11 @@ def reopen(ledger, needle, change):
     return 0
 
 
+def growth_cap(percent, planned):
+    """The most ⟦added⟧ steps a ledger may hold: `percent` of the `planned` steps of the verified plan, rounded up."""
+    return -(-percent * planned // 100)
+
+
 def unreadable(error):
     print(f"ledger-growth.sh: {error.filename}: {error.strerror}", file=sys.stderr)
     return 2
@@ -154,14 +159,16 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     try:
-        planned = set(step_texts(read_ledger(argv[0])))
+        plan_steps = step_texts(read_ledger(argv[0]))
         steps = step_texts(read_ledger(argv[1]))
     except OSError as error:
         return unreadable(error)
-    budget = tunables.get("VERI_STEP_GROWTH")
-    if entry.whole_number(budget, 0) is None:
-        print(f"ledger-growth.sh: VERI_STEP_GROWTH must be a whole number >= 0: {budget}", file=sys.stderr)
+    planned = set(plan_steps)
+    percent = tunables.get("VERI_STEP_GROWTH_PERCENT")
+    if not tunables.parses("VERI_STEP_GROWTH_PERCENT", percent):
+        print(f"ledger-growth.sh: VERI_STEP_GROWTH_PERCENT must be a whole number >= 0: {percent}", file=sys.stderr)
         return 2
+    budget = growth_cap(int(percent), len(plan_steps))
     try:
         recorded = recorded_steps(argv[1])
     except OSError as error:
@@ -174,9 +181,10 @@ def main(argv):
     unrecorded = [step for step in unrecorded_new if is_added(step)]
     for step in unrecorded:
         print(f"ledger-growth.sh: step added without an add-ledger-step.sh record: {step}", file=sys.stderr)
-    over = sum(is_added(step) for step in steps) > int(budget)
+    over = sum(is_added(step) for step in steps) > budget
     if over:
-        print(f"ledger-growth.sh: more than {budget} ⟦added⟧ steps (VERI_STEP_GROWTH)", file=sys.stderr)
+        print(f"ledger-growth.sh: more than {budget} ⟦added⟧ steps"
+              f" (VERI_STEP_GROWTH_PERCENT {percent}% of {len(plan_steps)} planned steps, rounded up)", file=sys.stderr)
     return 1 if off or unrecorded or over else 0
 
 

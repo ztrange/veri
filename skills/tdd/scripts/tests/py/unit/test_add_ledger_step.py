@@ -1641,8 +1641,8 @@ def test_3314_texts_without_the_refactor_pending_delimiter_are_inserted_with_exi
 
     code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", "do X", "do Y⟂Z"], cwd=tmp_path)
     lines = ledger.read_bytes().decode().split("\n")
-    within = run_cli(growth, [str(plan), str(ledger)], env={"VERI_STEP_GROWTH": "2"}, cwd=tmp_path)
-    beyond = run_cli(growth, [str(plan), str(ledger)], env={"VERI_STEP_GROWTH": "1"}, cwd=tmp_path)
+    within = run_cli(growth, [str(plan), str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": "50"}, cwd=tmp_path)
+    beyond = run_cli(growth, [str(plan), str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": "33"}, cwd=tmp_path)
 
     assert (code, lines[4:6], within[0], beyond[0]) == (
         0, ["- [ ] do X ⟦added⟧ ⟦criterion 2⟧", "- [ ] do Y⟂Z ⟦added⟧ ⟦criterion 2⟧"], 0, 1), (err, within, beyond)

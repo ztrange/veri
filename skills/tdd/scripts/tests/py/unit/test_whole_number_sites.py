@@ -20,12 +20,12 @@ def module(name):
 
 
 @probes
-def test_ledger_growth_takes_a_veri_step_growth_only_of_ascii_digits(tmp_path, run_cli, probe, value):
+def test_ledger_growth_takes_a_veri_step_growth_percent_only_of_ascii_digits(tmp_path, run_cli, probe, value):
     plan = tmp_path / "plan.md"
     ledger = tmp_path / "issue-42.md"
     plan.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
     ledger.write_text("# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n")
-    code, out, err = run_cli(module("ledger_growth"), [str(plan), str(ledger)], env={"VERI_STEP_GROWTH": probe})
+    code, out, err = run_cli(module("ledger_growth"), [str(plan), str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": probe})
     assert (code, "must be a whole number >= 0" in err) == ((0, False) if value is not None else (2, True))
 
 
