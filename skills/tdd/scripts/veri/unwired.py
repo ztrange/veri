@@ -1,5 +1,6 @@
 """unwired.sh: the non-test files a range adds that no other non-test file names (PRD 032.6, WN1 to WN3)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
 
 import case_reader
@@ -36,6 +37,7 @@ def main(argv):
         return entry.refuse(usage=USAGE)
     if not work_tree():
         return entry.refuse("unwired: not a git work tree")
+    os.chdir(git.out("rev-parse", "--show-toplevel"))
     if not git.ok("rev-parse", "--verify", "--quiet", argv[0] + "^{commit}"):
         return entry.refuse("unwired: cannot resolve '%s'" % argv[0])
     paths = added(argv[0])
