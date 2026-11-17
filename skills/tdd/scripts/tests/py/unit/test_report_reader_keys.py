@@ -30,6 +30,7 @@ READERS = {
     "refactor_owed": ("develop-refactor", "develop-cover"),
     "seam_outcome": ("develop-seam",),
     "structural_predicate": ("develop-predicate",),
+    "tidy_first": ("develop-green",),
     "unreplaced_cases": ("develop-red", "develop-replaces-report"),
     "wrong_test_route": ("develop-green", "develop-revise", "_develop-wrong-test-format"),
 }
