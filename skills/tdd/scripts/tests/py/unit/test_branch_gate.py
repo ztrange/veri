@@ -91,3 +91,63 @@ def test_4030_only_full_suite_and_human_owed_lines_left_unchecked_let_it_run(gat
     code, out, err, fake = gate(ledger=LEDGER + "- [ ] a human reads it ⟦human-owed⟧\n")
 
     assert code == 0 and fake.calls
+
+
+def test_4030_under_ci_it_settles_branch_suite_ci_and_runs_nothing_more(gate):
+    code, out, err, fake = gate(fake=Fake(mode="ci"))
+
+    assert (code, out.splitlines()[-1]) == (0, "branch_suite=ci")
+    assert [(c[0], c[1], c[2]) for c in fake.calls] == [("branch-suite.sh", (), str(gate.wt))]
+    assert (gate.wt / ".tdd" / "issue-12-branch-gate").read_text() == "branch_suite=ci\n"
+
+
+def test_4030_under_local_it_runs_the_full_command_inside_the_full_suite_stage_records_its_time_and_settles_local(
+        gate, monkeypatch):
+    clock = iter([1000.0, 1042.0])
+    monkeypatch.setattr("time.time", lambda: next(clock))
+    code, out, err, fake = gate()
+
+    assert (code, out.splitlines()[-1]) == (0, "branch_suite=local")
+    assert [(c[0], c[1]) for c in fake.calls] == [
+        ("branch-suite.sh", ()), ("detect-test-command.sh", ("--tier", "all")),
+        ("event.sh", ("stage-start", "stage=full-suite")), ("detach-command.sh", ("start", "branch-full-12", "make", "test")),
+        ("detach-command.sh", ("wait", "branch-full-12")),
+        ("event.sh", ("stage-end", "stage=full-suite", "status=0", "secs=42")),
+        ("full-tier-time.sh", ("--record", "42", FULL))]
+    for c in fake.calls:
+        if c[0] == "event.sh":
+            assert (c[3]["VERI_ISSUE"], c[3]["VERI_ACTOR"]) == ("12", "conductor")
+    assert all(c[2] == str(gate.wt) for c in fake.calls)
+    assert (gate.wt / ".tdd" / "issue-12-branch-gate").read_text() == "branch_suite=local\n"
+
+
+def test_4030_it_ticks_no_full_suite_line_and_commits_nothing(gate):
+    code, out, err, fake = gate()
+
+    assert (gate.wt / ".tdd" / "issue-12.md").read_text() == LEDGER
+    assert not {"tick-ledger.sh", "tick-issue-criterion.sh", "push-branch.sh", "git"} & set(fake.names())
+
+
+@pytest.mark.parametrize("inner", [1, 2])
+def test_4030_a_red_wait_ends_the_stage_with_its_code_and_stops_before_any_flake_rerun_repair_or_bail(gate, inner):
+    code, out, err, fake = gate(answers={("detach-command.sh", "wait"): (inner, "FAILED 3\n")})
+
+    assert (code, out.splitlines()[-1]) == (inner, "stopped at opening detach-command.sh wait branch-full-12 exit %d"
+                                            % inner)
+    assert fake.call("event.sh", "stage-end")[1][2] == "status=%d" % inner
+    assert fake.calls[-1][0] == "event.sh"
+    assert not {"full-tier-time.sh", "add-ledger-step.sh", "classify-bail.sh", "preflight-refused.sh",
+                "suite-red-resume.sh", "detach-leaf.sh", "comment.sh"} & set(fake.names())
+    assert not [c for c in fake.calls if c[0] == "event.sh" and c[1][:1] in (("bail",), ("suite-flake",))]
+    assert not (gate.wt / ".tdd" / "issue-12-branch-gate").exists()
+    assert "FAILED 3" in out
+
+
+@pytest.mark.parametrize("script, first, inner", [("branch-suite.sh", None, 2), ("detect-test-command.sh", None, 2),
+                                                  ("detach-command.sh", "start", 2), ("full-tier-time.sh", None, 2),
+                                                  ("event.sh", "stage-start", 2)])
+def test_4030_an_inner_call_that_fails_stops_it_with_its_code_and_runs_nothing_later(gate, script, first, inner):
+    code, out, err, fake = gate(answers={(script, first): (inner, "")})
+
+    assert code == inner
+    assert (fake.calls[-1][0], out.splitlines()[-1].startswith("stopped at opening " + script)) == (script, True)
