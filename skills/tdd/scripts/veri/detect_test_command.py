@@ -71,7 +71,7 @@ def decide(tier, issue, root):
     def has(name):
         return os.path.isfile(at(name))
 
-    if tier not in ("fast", "one test file") and issue and os.path.isfile(issue):
+    if tier not in ("fast", "one test file", "lint") and issue and os.path.isfile(issue):
         try:
             answer_from_file(issue, b"Test command:")
         except Answer as found:
@@ -80,7 +80,7 @@ def decide(tier, issue, root):
     if tier and has("CLAUDE.md"):
         suffix = b":" if tier in ("one test file", "lint") else b" tests:"
         answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + suffix)
-    if tier == "one test file":
+    if tier in ("one test file", "lint"):
         return
     if has("package.json") and re.search(rb'"scripts":\{[^}]*"test":', bytes(b for b in read(at("package.json")) if b not in SPACE)):
         if has("pnpm-lock.yaml"):

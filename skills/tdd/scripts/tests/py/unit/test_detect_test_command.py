@@ -522,3 +522,20 @@ def test_cli_tier_lint_prints_the_command_of_the_claude_md_lint_line_4122(tmp_pa
     (repo / "CLAUDE.md").write_text("# notes\n\nveri: all tests: `make test`\nveri: lint: `ruff check .`\n")
 
     assert cli(run_cli, detect, "--tier", "lint", str(repo)) == (0, "ruff check .\n", "")
+
+
+def test_cli_tier_lint_without_a_claude_md_lint_line_exits_3_printing_nothing_whatever_else_the_repo_or_issue_declares_4122(
+        tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `make unit`\nveri: all tests: `make test`\n"
+                                    "veri: one test file: `make test TESTS=\"$1\"`\nveri: lint tests: `make lint`\n")
+    (repo / "Makefile").write_text("test:\n\ttrue\nlint:\n\ttrue\n")
+    (repo / "package.json").write_text('{"scripts": {"test": "jest", "lint": "eslint ."}}\n')
+    body = tmp_path / "body.md"
+    body.write_text("## Notes\n\nTest command: make lint\n")
+
+    assert {
+        "no issue": cli(run_cli, detect, "--tier", "lint", str(repo)),
+        "with an issue": cli(run_cli, detect, "--tier", "lint", "--issue", str(body), str(repo)),
+    } == {"no issue": (3, "", ""), "with an issue": (3, "", "")}
