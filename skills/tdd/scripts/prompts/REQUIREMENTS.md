@@ -586,6 +586,12 @@
 | SM65 | The prompt tells the leaf to confirm that the step's named seam drives the step's named region from outside it, without editing the region, and to report `SEAM: <command or callable>`, `REACHES: yes` or `REACHES: no`, and one proof line. | The conductor decides a bail from the answer, and the proof lets a reader check it. |
 | SM66 | The prompt tells the leaf to write no test and edit no file, and to leave the working tree as it found it. | The run stops on a dirty tree; a seam is confirmed, not built. |
 
+## skills/tdd/scripts/prompts/develop-break.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| BK1 | The prompt tells the leaf to apply exactly one edit of the catalogue `LEGACY.md` names to make the step's region reachable from outside, to name it in a `BREAK: <edit>` line, to commit it, and to report the seam it made. | One bounded edit, named so the verifier can check it is the one claimed. |
+
 ## skills/tdd/scripts/prompts/develop-surround.md
 
 | ID | Requirement | Why |
