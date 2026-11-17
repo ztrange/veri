@@ -311,3 +311,14 @@ def test_exits_2_with_nothing_on_stdout_when_no_answer_can_be_had(monkeypatch, r
 
     assert (code, out, err.count("\n") >= 1, world.alone) == (2, "", True, []), err
     assert [step[0] for step in world.steps] in ([], ["add", "remove"]), world.steps
+
+
+@pytest.mark.parametrize("issues, code", [(20, 3), (21, 2)])
+def test_it_tests_at_most_20_issue_ends_and_with_more_exits_2_saying_so_running_nothing(
+        monkeypatch, run_cli, culprit, issues, code):
+    world = World(monkeypatch, culprit, ["feat: part (#%d)" % n for n in range(1, issues + 1)])
+
+    got, out, err = run_cli(culprit, [sha(issues)])
+
+    assert (got, out, len(world.alone), "more than 20" in err) == (code, "", 20 if code == 3 else 0, code == 2), err
+    assert culprit.MAX_ENDS == 20

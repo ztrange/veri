@@ -13,3 +13,4 @@
 - [x] the module names no repository, issue, branch, label, person or CI job ⟦criterion 11⟧
 - [x] SCRIPTS.md lists stack-culprit.sh (SC252), graded ⟦criterion 12⟧
 - [x] (amended) a case is red when its run fails with a failure line naming it, absent when not found or not collected, else no answer, exit 2; the exit code alone never decides ⟦criterion 13⟧
+- [x] (amended) at most 20 issue ends are tested; with more it exits 2 saying so, running nothing ⟦criterion 14⟧

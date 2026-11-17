@@ -17,6 +17,7 @@ import stack_green
 
 USAGE = "usage: stack-culprit.sh <red-sha>"
 MAX_CASES = 5  # the cases run alone at each issue end; ci-flake.sh bounds its alone runs the same way
+MAX_ENDS = 20  # the issue ends one search tests; with more it runs nothing, since each end costs MAX_CASES alone runs
 
 
 def _top():
@@ -196,6 +197,9 @@ def main(argv):
         return entry.refuse(" ".join(str(said).split()), prefix="stack-culprit: ")
     owners = _owners([subject for _, subject in span])
     ends = [at for at in range(base + 1, len(span)) if at == len(span) - 1 or owners[at + 1] != owners[at]]
+    if len(ends) > MAX_ENDS:
+        return entry.refuse("%d issue ends from %s to %s are untested, more than %d the search runs; nothing run" % (
+            len(ends), span[base][0] if base >= 0 else "origin/" + default, red, MAX_ENDS), prefix="stack-culprit: ")
     if len(cases) > MAX_CASES:
         print("stack-culprit: the log names %d cases; the first %d are run, %d not run" % (
             len(cases), MAX_CASES, len(cases) - MAX_CASES), file=sys.stderr)
