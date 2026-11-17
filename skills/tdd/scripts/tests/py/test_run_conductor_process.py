@@ -5192,6 +5192,47 @@ def test_cli_a_conductor_that_exits_0_with_a_result_not_ending_on_a_question_and
     assert (code, records[-1].get("event"), records[-1].get("cause")) == (0, "bail", "needs-user"), stderr
 
 
+def test_cli_a_conductors_exit_is_handled_the_same_when_the_metrics_files_directory_is_not_writable_4204(
+        tmp_path_factory, monkeypatch, run_cli):
+    """The needs-user bail run_conductor.py writes is an event that rewrites the metrics file (PRD 035.2, MF9)."""
+    import tempfile
+    real_mkstemp = tempfile.mkstemp
+    seen = {}
+    for writable in (True, False):
+        root = tmp_path_factory.mktemp("writable" if writable else "unwritable")
+        monkeypatch.setenv("VERI_HOME", str(root / "home"))
+        past_the_guards(monkeypatch)
+        scratch_tmpdir(root, monkeypatch)
+        worktree = root / ".tdd" / "wt" / "4242"
+        (worktree / ".git").mkdir(parents=True)
+        (worktree / ".git" / "config").write_text('[remote "origin"]\n\turl = https://github.com/acme/widgets.git\n')
+        runs = root / "home" / "runs" / "acme-widgets"
+        runs.mkdir(parents=True)
+        (runs / "4242.jsonl").write_text(json.dumps({"ts": 1, "issue": "4242", "event": "phase-start"}) + "\n")
+
+        def refused(*args, _runs=runs, _writable=writable, **kwargs):
+            if not _writable and os.path.realpath(kwargs.get("dir") or "") == os.path.realpath(_runs):
+                raise PermissionError(13, "Permission denied", str(_runs))
+            return real_mkstemp(*args, **kwargs)
+
+        monkeypatch.setattr(tempfile, "mkstemp", refused)
+        run_conductor = importlib.import_module("veri.run_conductor")
+        gh_calls = conductor_that_prints(monkeypatch, root, ["phase-start"], result_record("I will stop here and wait for you."))
+
+        code, out, stderr = run_cli(run_conductor, ["4242"], cwd=root)
+
+        journal = [json.loads(line) for line in (runs / "4242.jsonl").read_text().splitlines()]
+        seen[writable] = (code, out, [(r.get("event"), r.get("cause")) for r in events_named(root)],
+                          [(r.get("event"), r.get("cause")) for r in journal], gh_calls,
+                          (runs / "4242.metrics.json").exists())
+        if not writable:
+            assert len([line for line in stderr.splitlines() if "metrics file" in line]) == 1, stderr
+
+    assert seen[True][-1] is True and seen[False][-1] is False
+    assert seen[True][:-1] == seen[False][:-1]
+    assert seen[False][2][-1] == ("bail", "needs-user") and seen[False][3][-1] == ("bail", "needs-user")
+
+
 def test_cli_a_run_whose_last_non_blank_event_is_done_after_an_open_one_and_before_blank_lines_is_closed_and_gets_no_bail_appended_1977(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
