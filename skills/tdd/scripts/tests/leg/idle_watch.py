@@ -127,12 +127,20 @@ class Watch:
             pass
 
     def claim(self, who):
-        """The leg ends once, by an end or by its own return, whichever claims it first."""
-        with self.claim_lock:
+        """The leg ends once, by an end or by its own return, whichever claims it first.
+
+        Never waits on the lock: a TERM handler runs on the main thread, which may be inside the return's own claim, and
+        waiting there would be the hang this module ends. A claim that finds the lock held loses: whoever holds it is
+        claiming the leg."""
+        if not self.claim_lock.acquire(blocking=False):
+            return False
+        try:
             if self.claimed is not None:
                 return False
             self.claimed = who
             return True
+        finally:
+            self.claim_lock.release()
 
     def end(self, code, line=None):
         """Ends the workers, runs the leg's cleanups, writes `line` (formatted with the workers' pids) and exits `code`;
@@ -154,9 +162,14 @@ class Watch:
         return True
 
     def idle_end(self, idle_for):
+        # Each step first checks the leg has not returned: its return closes `out`, and a worker it reaped is gone.
+        if self.stopped.is_set():
+            return
         self.dump(file=self.out, all_threads=True)
         for pid in list(self.workers):
-            if pid > 1 and pid != os.getpid():
+            if self.stopped.is_set():
+                return
+            if pid in self.workers and pid > 1 and pid != os.getpid():
                 self.signal(pid, signal.SIGUSR1)
                 self.sleep(STACK_WAIT)  # one worker at a time: dumps sharing one stderr would interleave
         self.end(2, "pytest leg idle for %d s with no case running (last case seen: %s); workers %%s ended\n"

@@ -431,7 +431,7 @@ def main(argv):
         # Ends the leg here, not by raising into pytest.main: pytest would run the session-finish hooks, xdist's worker
         # teardown among them, and a hung worker held that teardown up to its own timeout (#4254).
         if not watch.end(128 + signum, "pytest leg ended by signal %d; workers %%s ended\n" % signum):
-            sys.exit(128 + signum)  # the passes had returned: no teardown is left to hang on
+            signalled.append(signum)  # the leg's return owns its teardown: the leg exits 128 + signum once it is done
     conftest = sys.modules.get("conftest")
     entry = None
     full_lock = None
@@ -439,6 +439,7 @@ def main(argv):
     argv = [arg for arg in argv if arg != "--subset"]
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
     held_run = None
+    signalled = []
 
     def leg_cleanup():
         nonlocal entry, full_lock
@@ -525,6 +526,8 @@ def main(argv):
             sys.modules.pop("conftest", None)
         else:
             sys.modules["conftest"] = conftest
+    if signalled:
+        sys.exit(128 + signalled[0])
     passed = {pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED}
     return 0 if pytest.ExitCode.OK in statuses and set(statuses) <= passed else 1
 

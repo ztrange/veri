@@ -218,7 +218,78 @@ def test_4254_the_leg_ends_only_workers_it_recorded_never_itself_nor_a_pid_of_1_
 
     run_until_ended(watch)
 
-    assert world.signals == [(4501, signal.SIGTERM)]
+    assert (world.usr1, world.signals) == ([4501], [(4501, signal.SIGTERM)])
+
+
+@pytest.mark.parametrize("pid", [0, 1, -1, None, "4601"])
+def test_4254_a_gateway_whose_popen_pid_is_not_a_pid_above_1_is_never_recorded_so_never_signalled(idle_watch, stderr_pipe, monkeypatch, pid):
+    out, written = stderr_pipe
+    world = World(obey_term=True)
+    watch = watch_in(idle_watch, world, 1, out)
+    monkeypatch.setattr(idle_watch, "CURRENT", [watch])
+    gateway = type("Gateway", (), {"_io": type("IO", (), {"popen": type("Popen", (), {"pid": pid})()})()})()
+
+    idle_watch.pytest_xdist_newgateway(gateway)
+    run_until_ended(watch)
+
+    assert (watch.workers, world.usr1, world.signals) == ([], [], [])
+
+
+def test_4254_the_signal_path_never_blocks_on_a_claim_the_leg_s_own_return_is_making(idle_watch, stderr_pipe):
+    import threading
+
+    out, written = stderr_pipe
+    world = World(obey_term=True)
+    watch = watch_in(idle_watch, world, 1, out)
+    ended = []
+    watch.claim_lock.acquire()  # the leg's return, on the thread the signal handler interrupts, is mid-claim
+    try:
+        handler = threading.Thread(target=lambda: ended.append(watch.end(143, "signal %s\n")), daemon=True)
+        handler.start()
+        handler.join(2)
+        blocked = handler.is_alive()
+    finally:
+        watch.claim_lock.release()
+    handler.join(2)
+
+    assert (blocked, ended, world.codes) == (False, [False], [])
+
+
+def test_4254_a_worker_reported_down_during_the_stack_wait_is_not_asked_for_its_stacks(idle_watch, stderr_pipe):
+    out, written = stderr_pipe
+    world = World(obey_term=True)
+    watch = watch_in(idle_watch, world, 1, out)
+    watch.workers[:] = [4651, 4652]
+    real_sleep = world.sleep
+
+    def sleep(seconds):
+        if 4652 in watch.workers and world.usr1 == [4651]:
+            watch.workers.remove(4652)  # xdist reports 4652 down while the leg waits for 4651's stacks
+        real_sleep(seconds)
+
+    watch.sleep = sleep
+    run_until_ended(watch)
+
+    assert world.usr1 == [4651]
+
+
+def test_4254_once_the_leg_has_returned_an_idle_watch_writes_no_dump_and_asks_no_further_worker(idle_watch, stderr_pipe):
+    out, written = stderr_pipe
+    world = World(obey_term=True)
+    watch = watch_in(idle_watch, world, 1, out)
+    watch.workers[:] = [4661, 4662]
+    dumps = []
+    watch.dump = lambda **kwargs: dumps.append(kwargs)
+    watch.sleep = lambda seconds: watch.stop()  # the leg returns, closing its stderr copy, during the first stack wait
+
+    watch.idle_end(1)
+
+    assert (len(dumps), world.usr1, world.codes) == (1, [4661], [])
+    watch2 = watch_in(idle_watch, World(), 1, out)
+    watch2.dump = lambda **kwargs: dumps.append(kwargs)
+    watch2.stop()
+    watch2.idle_end(1)
+    assert len(dumps) == 1
 
 
 def test_4254_the_hooks_record_a_gateway_s_popen_pid_and_each_case_seen_on_the_current_watch_only(idle_watch, stderr_pipe, monkeypatch):
@@ -345,3 +416,46 @@ def test_4254_a_leg_sent_term_or_hup_ends_its_workers_removes_its_entry_releases
 
     assert at_exit == {"registered": [str(os.getpid())], "code": 128 + sig, "entries": [], "lock": "",
                        "signals": [(4801, signal.SIGTERM)]}
+
+
+@pytest.mark.timeout(10)
+@pytest.mark.parametrize("sig", [signal.SIGTERM, signal.SIGHUP], ids=["TERM", "HUP"])
+def test_4254_a_term_or_hup_landing_while_the_leg_s_return_holds_the_claim_ends_the_leg_128_plus_the_signal_after_one_cleanup(monkeypatch, tmp_path, sig):
+    pytest_leg = importlib.import_module("pytest_leg")
+    idle_watch = importlib.import_module("idle_watch")
+    lock = importlib.import_module("veri.full_run_lock")
+    legs = tmp_path / "legs"
+    for name, value in {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
+                        "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs), "PYTEST_PLUGINS": ""}.items():
+        monkeypatch.setenv(name, value)
+    for name in ("VERI_PYTEST_WORKERS", "PYTEST_XDIST_WORKER", "PYTEST_LEG_FULL_LOCK_HOLDER", "PYTEST_LEG_LOCK_WAIT_MARKER"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.setattr(pytest_leg, "worker_count", lambda requested: 2)
+    world = World(obey_term=True)
+    cleanups = []
+
+    def spy(args):
+        watch = idle_watch.CURRENT[0]
+        if watch is None or cleanups:
+            return pytest.ExitCode.NO_TESTS_COLLECTED
+        watch.exit, watch.kill, watch.gone, watch.sleep = world.exit, world.kill, world.gone, world.sleep
+        watch.cleanups.append(lambda: cleanups.append("end"))
+        real_claim = watch.claim
+
+        def claim(who):  # the signal lands on the main thread while its return holds the claim
+            if who == "return":
+                with watch.claim_lock:
+                    os.kill(os.getpid(), sig)
+            return real_claim(who)
+
+        watch.claim = claim
+        cleanups.append("spy")
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    with pytest.raises(SystemExit) as ended:
+        pytest_leg.main(["some/dir"])
+
+    assert (ended.value.code, cleanups, world.codes, os.listdir(legs), open(lock.path()).read()) == (
+        128 + sig, ["spy"], [], [], "")
