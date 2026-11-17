@@ -1228,7 +1228,7 @@ that push; else the ending call's code (a bail's too).
    `$touched` is the step's bounds: when all are test files, a structural candidate is
    recorded test-only — "test file" being `transform-touches-tests.sh`'s rule, which is
    `case_reader.is_test_path`'s: `tests/` directories, `*.test.*`, JS/TS `*.spec.*`, Go `*_test.go`, and Python `test_*.py` or `*_test.py` anywhere, so no transform could land it.
-   - **PASS:** run `$S/step-close.sh <n>` first (again on 3); on 0 its last lines hold `next`, `owed_pin`; on 2 naming none follow this branch from its start, never calling it again, else go on from the
+   - **PASS:** run `$S/step-close.sh <n>` first (again on 3); on 0 its last lines hold `next`, `owed_pin`; on 2 naming no sub-step, follow the rest of this branch by its prose, else go on from the
      sub-step it names. The step's cycle is complete — the step is tidied, not merely green, so **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and of
      the passing verify-refactor verdict's own `uncovered-spec` flags, then clear the refactor-pending mark and commit the grown, cleared
      ledger first**, before anything outside the repository says the step is done. The verifier's are the `FLAGS:` lines before the final `VERDICT:`/`REASON:` pair in
