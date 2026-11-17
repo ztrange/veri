@@ -82,6 +82,8 @@ class World:
             return 0, TREE + "\n", ""
         if line.endswith("ls-remote --symref origin HEAD"):
             return 0, "ref: refs/heads/trunk\tHEAD\n", ""
+        if line.startswith("stack-red.sh"):
+            return 3, "", "stack-red: CI's latest answer on origin/stack is success, not red\n"
         if line.startswith("merge-lock.sh take"):
             return self.lock, "", ""
         if line.startswith("merge-lock.sh"):

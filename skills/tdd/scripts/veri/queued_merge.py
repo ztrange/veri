@@ -547,6 +547,9 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             _say("origin has no %s branch (deleted?); a join never recreates a stack, only a launch does — nothing pushed"
                  % stack)
             return 2
+        frozen, said = _stack_red(worktree)
+        if frozen == 0:
+            return 1
         if _rev(worktree, "refs/remotes/origin/" + branch) != lease:
             _say("origin/%s is not the run's tip %s (a commit the worktree lacks, or none pushed); nothing pushed"
                  % (branch, lease))
@@ -676,6 +679,12 @@ def _track(worktree):
     run = _bounded([os.path.join(SCRIPTS, "stack-pr.sh")], NETWORK, cwd=worktree, stdout=subprocess.PIPE,
                    stderr=subprocess.PIPE, text=True)
     return run.returncode, run.stderr or ""
+
+
+def _stack_red(worktree):
+    """stack-red.sh run in <worktree>: (exit code, its stdout), its stderr passed through. Bounded like _track."""
+    run = _bounded([os.path.join(SCRIPTS, "stack-red.sh")], NETWORK, cwd=worktree, stdout=subprocess.PIPE, text=True)
+    return run.returncode, run.stdout or ""
 
 
 def _join_cleanup(worktree, branch, released):
