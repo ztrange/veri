@@ -71,3 +71,22 @@ def test_a_range_changing_only_run_state_under_tdd_exits_3_even_when_a_test_name
     foreign_git(fake_processes, [".tdd/issue-7.md", ".tdd/test_state.py"], ["tests/test_notes.py"])
     monkeypatch.chdir(tmp_path)
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (3, "", "")
+
+
+def test_a_changed_source_file_no_test_names_widens_to_every_test_file_and_with_none_exits_3_saying_so(
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    write(tmp_path, {"src/foo.py": "", "src/bar.py": "", "src/baz.py": "", "tests/test_baz.py": "import baz\n",
+                     "tests/test_other.py": "", "web/a.spec.ts": "", "tests/test_ignored.py": ""})
+    foreign_git(fake_processes, ["src/foo.py", "src/bar.py", "src/baz.py"],
+                ["src/foo.py", "src/bar.py", "src/baz.py", "tests/test_baz.py", "tests/test_other.py", "web/a.spec.ts"])
+    monkeypatch.chdir(tmp_path)
+    widened = (affected.main(["base..head"]),) + tuple(capsys.readouterr())
+    empty = tmp_path / "empty"
+    write(empty, {"src/foo.py": ""})
+    foreign_git(fake_processes, ["src/foo.py"], ["src/foo.py"])
+    monkeypatch.chdir(empty)
+    none = (affected.main(["base..head"]),) + tuple(capsys.readouterr())
+    line = "affected-suites: no test names %s; widening to every test file\n"
+    assert (widened, none) == (
+        (0, "tests/test_baz.py\ntests/test_other.py\nweb/a.spec.ts\n", line % "src/foo.py,src/bar.py"),
+        (3, "", line % "src/foo.py"))

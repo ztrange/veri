@@ -238,8 +238,15 @@ def foreign(files):
     sources = [f for f in files if not case_reader.is_test_path(f)]
     if sources:
         tests = [p for p in stem_walk.tree_files() if case_reader.is_test_path(p)]
+        unnamed = []
         for f in sources:
-            placed += stem_walk.naming(stem_walk.stem(f), tests)
+            naming = stem_walk.naming(stem_walk.stem(f), tests)
+            placed += naming
+            if not naming:
+                unnamed.append(f)
+        if unnamed:
+            print("affected-suites: no test names %s; widening to every test file" % ",".join(unnamed), file=sys.stderr)
+            placed += tests
     if not placed:
         return 3
     sys.stdout.write("".join(s + "\n" for s in sorted(set(placed))))
