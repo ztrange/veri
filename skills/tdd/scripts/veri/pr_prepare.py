@@ -46,7 +46,7 @@ def run(n):
             os.remove(fused.wait_record(wt, n, NAME))
             if code != 0:
                 raise fused.Stop("1", "detach-command.sh wait %s exit %d" % (RUN % n, code), code)
-        push(wt, values["rebased_from"])
+        push(wt, values["rebased_from"], values.get("regraded", []))
     skip(wt, n)
     return fused.settle(wt, n, NAME, ["%s=%s" % (key, values[key]) for key in
                                       ("rebased", "rebased_from", "rebased_tip_suite")])
@@ -59,8 +59,7 @@ def rebase(wt, n):
     code, said, _ = fused.call(fused.script("rebase-onto-default.sh"), cwd=wt)
     if code not in (0, 3):
         raise fused.Stop("1", "rebase-onto-default.sh exit %d" % code, code)
-    regrade(wt)
-    values = {"rebased": "0", "rebased_from": "", "rebased_tip_suite": "none"}
+    values = {"rebased": "0", "rebased_from": "", "rebased_tip_suite": "none", "regraded": regrade(wt)}
     if code == 0:
         values.update(rebased="1", rebased_from=(said.splitlines() or [""])[0].strip(), rebased_tip_suite=tip_suite(
             wt, n))
@@ -77,12 +76,15 @@ def default_branch(wt):
 
 def regrade(wt):
     """Sub-step 1's regrade block (RB3): every unit the branch signed since its merge base with origin/<default>, then
-    `grade-prose.sh --convert`; the block's highest exit 1 or 2 stops it once the block has run."""
+    `grade-prose.sh --convert`; the block's highest exit 1 or 2 stops it once the block has run. A failing git call is
+    no answer (exit 2), never git's own code. Returns the GRADED files the block modified: each listed modified by the
+    porcelain after it and not listed alike before it, the only paths the tree check before the push lets by."""
     default = default_branch(wt)
     if not default:
         raise fused.Stop("1", "no default branch for the regrade block", 2)
-    base = fused.checked("1", "git", "merge-base", "HEAD", "origin/" + default, cwd=wt).strip()
-    diff = fused.checked("1", "git", "diff", base, "HEAD", "-U0", "--", ":(glob)**/GRADED", cwd=wt)
+    base = answered("git", "merge-base", "HEAD", "origin/" + default, cwd=wt).strip()
+    diff = answered("git", "diff", base, "HEAD", "-U0", "--", ":(glob)**/GRADED", cwd=wt)
+    before = set(porcelain(wt))
     units = [m.group(1) for m in (re.match(r"^\+([^+][^ ]*) ", line) for line in diff.splitlines()) if m]
     highest = 0
     for args in [(os.path.join(os.path.dirname(unit) or ".", "REQUIREMENTS.md"), unit) for unit in units] + [
@@ -90,6 +92,22 @@ def regrade(wt):
         highest = max(highest, fused.call(fused.script("grade-prose.sh"), *args, cwd=wt, stdin="")[0])
     if highest:
         raise fused.Stop("1", "regrade block exit %d" % highest, highest)
+    return [line[3:] for line in porcelain(wt) if line not in before and line[:2] in (" M", "M ")
+            and os.path.basename(line[3:]) == "GRADED"]
+
+
+def answered(*args, **kw):
+    """fused.checked at sub-step 1, a nonzero exit stopping it with exit 2 (no answer could be obtained)."""
+    try:
+        return fused.checked("1", *args, **kw)
+    except fused.Stop as stop:
+        raise fused.Stop(stop.where, stop.what, 2)
+
+
+def porcelain(wt):
+    """The lines `git status --porcelain --untracked-files=all` prints."""
+    return [line for line in fused.checked("1", "git", "status", "--porcelain", "--untracked-files=all",
+                                           cwd=wt).splitlines() if line.strip()]
 
 
 def tip_suite(wt, n):
@@ -104,10 +122,10 @@ def tip_suite(wt, n):
     return mode
 
 
-def push(wt, pre):
-    """The tree check immediately before the push (RB6, D10), then the push under the lease pinned to the pre-rebase
-    sha (RB5)."""
-    if [path for path in fused.changed_paths("1", wt) if os.path.basename(path) != "GRADED"]:
+def push(wt, pre, regraded):
+    """The tree check immediately before the push (RB6, D10), every path but a GRADED file the regrade block modified
+    (<regraded>) refusing it, then the push under the lease pinned to the pre-rebase sha (RB5)."""
+    if [line for line in porcelain(wt) if not (line[:2] in (" M", "M ") and line[3:] in regraded)]:
         raise fused.Stop("1", "tree-check", 1)
     branch = fused.checked("1", "git", "branch", "--show-current", cwd=wt).strip()
     fused.checked("1", fused.script("push-branch.sh"), "--force-with-lease=%s:%s" % (branch, pre), cwd=wt)
