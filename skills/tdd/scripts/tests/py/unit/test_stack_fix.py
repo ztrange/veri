@@ -35,7 +35,7 @@ class World:
                  changed=(("M", "src/a.py"),), dirty="", has=True, alone=(0, "1 passed\n"), fast=(0, ""), owed=0,
                  push=0, moved=ONTO, ancestor=True, pulls=1, lock=0, culprit=None, span=None,
                  log_fails=False, one_file='make test TESTS="$1"', fast_command="make unit", head_after=None):
-        self.scripts, self.pushed, self.posted, self.runs = [], [], [], []
+        self.scripts, self.pushed, self.posted, self.runs, self.cwds = [], [], [], [], []
         self.head = HEAD
         self.culprit = tmp_path / "culprit"
         self.culprit.write_text(culprit_text() if culprit is None else culprit)
@@ -76,8 +76,9 @@ class World:
                 return [(commit[0], commit[1], list(commit[2:3] and commit[2])) for commit in stack]
             return list(fixes)
 
-        def run(command, target=None):
+        def run(command, target=None, cwd=None):
             self.runs.append((command, target))
+            self.cwds.append(cwd)
             return alone if target else fast
 
         def do_push(head, branch, lease):
@@ -87,12 +88,12 @@ class World:
         def stack_pulls(head, base):
             return [type("P", (), {"number": 5, "html_url": "https://github.com/o/r/pull/5"})() for _ in range(pulls)]
 
-        monkeypatch.setattr(fix, "_script", script)
+        monkeypatch.setattr(fix, "script", script)
         monkeypatch.setattr(fix.stack_branch, "ahead", ahead)
         monkeypatch.setattr(fix, "_top", lambda: TOP)
         monkeypatch.setattr(fix, "_rev", rev)
         monkeypatch.setattr(fix, "_ancestor", lambda older, newer: ancestor)
-        monkeypatch.setattr(fix, "_log", log)
+        monkeypatch.setattr(fix, "log", log)
         monkeypatch.setattr(fix, "_changed", lambda rev_range: list(changed))
         monkeypatch.setattr(fix, "_dirty", lambda: dirty)
         monkeypatch.setattr(fix, "_has", lambda path: has if not isinstance(has, dict) else has.get(path, True))
@@ -283,7 +284,7 @@ def test_each_named_case_runs_alone_at_head_a_red_absent_or_uncollected_one_is_e
 def test_runs_every_named_case_alone_and_names_the_red_one(monkeypatch, run_cli, fix, tmp_path):
     second = "t/test_b.py::test_y"
     world = World(monkeypatch, fix, tmp_path, culprit=culprit_text(cases=(CASE, second)))
-    monkeypatch.setattr(fix, "_run", lambda command, target=None: world.runs.append(target) or (
+    monkeypatch.setattr(fix, "_run", lambda command, target=None, cwd=None: world.runs.append(target) or (
         (1, "FAILED %s\n" % target) if target == second else (0, "1 passed\n")))
 
     code, _, err = run_cli(fix, world.argv())
@@ -325,7 +326,7 @@ def test_the_fast_tier_and_prose_owed_run_at_head_in_the_fix_worktree(monkeypatc
 
     run_cli(fix, world.argv())
 
-    assert (("make unit", None) in world.runs, ("prose-owed.sh", TOP) in world.scripts) == (True, True)
+    assert (world.cwds[world.runs.index(("make unit", None))], ("prose-owed.sh", TOP) in world.scripts) == (TOP, True)
 
 
 @pytest.mark.parametrize("given", [

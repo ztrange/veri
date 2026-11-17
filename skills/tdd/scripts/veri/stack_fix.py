@@ -33,7 +33,7 @@ class NotRed(Exception):
     """stack-red.sh exits 3: nothing to fix (exit 3)."""
 
 
-def _script(name, *args, limit=None):
+def script(name, *args, limit=None):
     """Run the sibling script <name> with <args>: (exit code, stdout), its stderr passed through. With <limit> (a
     tunable's name) its whole process group is killed at that bound and the call answers 2."""
     argv = [os.path.join(SCRIPTS, name), *args]
@@ -69,7 +69,7 @@ def _ancestor(older, newer):
 TRAILER = "Stack-fix"
 
 
-def _log(rev_range):
+def log(rev_range):
     """The commits of <rev_range>, oldest first, as [(sha, subject, [each Stack-fix trailer value])]. NoAnswer when git
     refuses the log."""
     found = git.git("log", "--reverse", "--format=%H%x1f%s%x1f%(trailers:key=" + TRAILER + ",valueonly,separator=%x1f)%x1e",
@@ -106,14 +106,14 @@ def _has(path):
     return git.git("cat-file", "-e", "HEAD:" + path, capture_output=True).returncode == 0
 
 
-def _run(command, target=None):
-    """<command> run in the fix worktree under VERI_TIMEOUT, <target> passed as "$1" (the alone run of a case) when
-    given: (exit code, output), the code None when the run gave no answer (no exit within VERI_TIMEOUT, its process
-    group killed, or killed by a signal)."""
+def _run(command, target=None, cwd=None):
+    """<command> run in <cwd> (default: the current directory) under VERI_TIMEOUT, <target> passed as "$1" (the alone
+    run of a case) when given: (exit code, output), the code None when the run gave no answer (no exit within
+    VERI_TIMEOUT, its process group killed, or killed by a signal)."""
     if target is not None and '"$1"' not in command:
         command += ' "$1"'
     ran = github.bounded_group(["sh", "-c", command, "sh", *([target] if target is not None else [])],
-                               limit_name="VERI_TIMEOUT", stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                               limit_name="VERI_TIMEOUT", cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, text=True)
     if isinstance(ran, github.TimedOut) or not 0 <= ran.returncode < 128:
         return None, ran.stdout or ""
@@ -155,7 +155,7 @@ def _say(message):
 def _checked(n, red):
     """The checks of the stack and the fix's commits, with the lock held: (stack, default, onto, head). Refused or NoAnswer when one fails;
     _NotRed when stack-red.sh exits 3."""
-    code, said = _script("stack-red.sh", limit=NETWORK)
+    code, said = script("stack-red.sh", limit=NETWORK)
     if code == 3:
         raise NotRed("stack-red.sh exits 3: the stack is not red; nothing pushed")
     if code != 0:
@@ -174,7 +174,7 @@ def _checked(n, red):
     if not onto or not head:
         raise NoAnswer("%s does not resolve after the fetch; nothing pushed" % (
             "origin/" + stack if not onto else "the fix worktree's HEAD"))
-    for commit, subject, trailers in _log("refs/remotes/origin/%s..refs/remotes/origin/%s" % (default, stack)):
+    for commit, subject, trailers in log("refs/remotes/origin/%s..refs/remotes/origin/%s" % (default, stack)):
         if trailers and n in stack_green.named(subject):
             raise Refused("%s (%s) on origin/%s already carries a %s: trailer for issue %s: one fix per culprit;"
                           " nothing pushed" % (commit, subject, stack, TRAILER, n))
@@ -191,7 +191,7 @@ def _bounds(n, red, stack, onto, head):
     if not descends:
         raise Refused("origin/%s at %s is not an ancestor of HEAD %s: the fix must sit on the stack's tip, and the push"
                       " is a fast-forward only; nothing pushed" % (stack, onto, head))
-    commits = _log("%s..%s" % (onto, head))
+    commits = log("%s..%s" % (onto, head))
     if not commits:
         raise Refused("HEAD adds no commit to origin/%s: there is no fix to push" % stack)
     for commit, subject, trailers in commits:
@@ -259,19 +259,19 @@ def tier_and_prose(top, say):
     fast = _fast_command(top)
     if not fast:
         raise NoAnswer("no fast tier command is found (detect-test-command.sh --tier fast); %s" % say)
-    code, _ = _run(fast)
+    code, _ = _run(fast, cwd=top)
     if code is None:
         raise NoAnswer("the fast tier (%s) gave no exit within VERI_TIMEOUT; %s" % (fast, say))
     if code:
         raise Refused("the fast tier (%s) is red at HEAD, exit %d; %s" % (fast, code, say))
-    owed, _ = _script("prose-owed.sh", top)
+    owed, _ = script("prose-owed.sh", top)
     if owed == 1:
         raise Refused("prose-owed.sh exits 1 at HEAD: a unit owes a grade; %s" % say)
     if owed:
         raise NoAnswer("prose-owed.sh exited %d at HEAD; %s" % (owed, say))
 
 
-def _pushed(head, stack, onto):
+def pushed(head, stack, onto):
     """Push <head> to <stack>, leased to <onto> and a fast-forward of it (its descent checked before): returns when
     origin's stack is <head>, read back after a push that did not answer 0 (one that timed out may have landed).
     Refused when origin's stack moved to another commit; NoAnswer when it still reads <onto> or cannot be read."""
@@ -318,7 +318,7 @@ def main(argv):
             " ".join(sorted(issues, key=int)) or "none", recorded, n, red))
         return 1
     pid = str(os.getpid())
-    code, _ = _script("merge-lock.sh", "take", "--pid", pid)
+    code, _ = script("merge-lock.sh", "take", "--pid", pid)
     if code:
         return entry.refuse("taking the merge lock failed (exit %d); nothing pushed" % code, prefix="stack-fix: ")
     try:
@@ -333,12 +333,12 @@ def main(argv):
         if _rev("HEAD") != head or _dirty().strip():
             raise NoAnswer("the alone runs, the fast tier or prose-owed.sh changed the fix worktree (HEAD or its files)"
                            " since %s was checked; nothing pushed" % head)
-        _pushed(head, stack, onto)
+        pushed(head, stack, onto)
     except (Refused, NoAnswer, NotRed) as stopped:
         _say(str(stopped))
         return {Refused: 1, NoAnswer: 2, NotRed: 3}[type(stopped)]
     finally:
-        released, _ = _script("merge-lock.sh", "release", "--pid", pid)
+        released, _ = script("merge-lock.sh", "release", "--pid", pid)
         if released:
             _say("releasing the merge lock failed (exit %d)" % released)
     sys.stdout.write(head + "\n")
