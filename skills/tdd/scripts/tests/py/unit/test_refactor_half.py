@@ -313,3 +313,115 @@ def test_4028_it_launches_no_leaf_but_through_supervise_and_no_cover_leaf(tidy):
 
     assert not {"run-leaf.sh", "run-verdict.sh", "claude", "supervise.sh"} & set(fake.names())
     assert fake.launched() == ["develop-refactor", "verdict-refactor"]
+
+
+@pytest.mark.parametrize("code, mode, launches", [(3, "", True), (0, "at-ledger\n", True), (0, "at-leaf\n", False),
+                                                  (0, "now\n", False), (2, "", False)])
+def test_4028_the_stop_check_before_develop_refactor(tidy, code, mode, launches):
+    got, out, err, fake = tidy(answers={("stop-requested.sh", None): (code, mode)})
+
+    assert ("develop-refactor" in fake.launched()) == launches
+    if not launches:
+        assert (got, out.splitlines()[-1].startswith("stopped at 1 stop-requested.sh")) == (2 if code == 2 else 1, True)
+
+
+def _pid(tidy, text):
+    (tidy.wt / ".tdd" / "conductor.pid").write_text(text)
+
+
+@pytest.mark.parametrize("leaf", ["develop-refactor", "verdict-refactor"])
+def test_4028_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line(tidy, leaf):
+    code, out, err, fake = tidy(answers={("wait-leaf.sh", leaf): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on " + leaf)
+
+
+@pytest.mark.parametrize("leaf, launched", [("develop-refactor", ["verdict-refactor"]), ("verdict-refactor", [])])
+def test_4028_called_again_after_an_exit_3_it_only_waits_again_then_goes_on_once(tidy, leaf, launched):
+    _pid(tidy, "111\nTue Nov 17 07:00:00 2026\n")
+    first = tidy(answers={("wait-leaf.sh", leaf): (3, "")})[0]
+    code, out, err, fake = tidy()
+
+    assert (first, code) == (3, 0)
+    assert fake.calls[0][:2] == ("wait-leaf.sh", (leaf,))
+    assert fake.launched() == launched
+    assert [c[1][0] for c in fake.calls if c[0] == "event.sh"] == ["refactor"]
+    assert [c[1][1] for c in fake.calls if c[0] == "comment.sh"] == ["refactor", "verify-refactor"]
+    assert "count=1" in out.splitlines() and "green_sha=" + GREEN_SHA in out.splitlines()
+    assert not (tidy.wt / ".tdd" / "issue-12-refactor-half-wait").exists()
+
+
+def test_4028_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(tidy):
+    _pid(tidy, "111\nTue Nov 17 07:00:00 2026\n")
+    tidy(answers={("wait-leaf.sh", "develop-refactor"): (3, "")})
+
+    record = json.loads((tidy.wt / ".tdd" / "issue-12-refactor-half-wait").read_text())
+    assert (record["conductor"], record["at"]) == ({"pid": "111", "started": "Tue Nov 17 07:00:00 2026"},
+                                                   "develop-refactor")
+
+
+@pytest.mark.parametrize("second", ["222\nTue Nov 17 07:00:00 2026\n", "111\nTue Nov 17 08:00:00 2026\n", None],
+                         ids=["another pid", "another start time", "no pid file"])
+def test_4028_called_under_another_conductor_it_discards_the_record_and_starts_from_its_first_call(tidy, second):
+    _pid(tidy, "111\nTue Nov 17 07:00:00 2026\n")
+    tidy(answers={("wait-leaf.sh", "verdict-refactor"): (3, "")})
+    if second is None:
+        (tidy.wt / ".tdd" / "conductor.pid").unlink()
+    else:
+        _pid(tidy, second)
+    code, out, err, fake = tidy()
+
+    assert (code, fake.calls[0][1]) == (0, ("stage-start", "stage=refactor-loop"))
+
+
+READ = ("extract-result.sh", "refactor-budget.sh", "refactor-touched.sh", "git")  # stdout read as a value
+
+
+def test_4028_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr(tidy):
+    class Marked(Fake):
+        def __call__(self, name, *args, **kw):
+            code, out, err = super().__call__(name, *args, **kw)
+            if os.path.basename(name) in READ:
+                return code, out, err
+            return code, "OUT<%d>\n" % len(self.calls) + out, "ERR<%d>\n" % len(self.calls)
+
+    code, out, err, fake = tidy(fake=Marked())
+
+    lines = out.splitlines()
+    assert code == 0
+    for i, c in enumerate(fake.calls, 1):
+        if c[0] in READ:
+            continue
+        assert "OUT<%d>" % i in lines and "ERR<%d>" % i in err
+        named = lines[lines.index("OUT<%d>" % i) - 1]
+        assert named.startswith(c[0]) and named.endswith(" exit %d" % (
+            3 if c[0] in ("stop-requested.sh", "refactor-triage.sh") else 0))
+    assert "CANDIDATES:" not in out and "VERDICT:" not in out
+
+
+# Inner calls the Refactor loop section does not name, each by name with its reason.
+NAMED_ELSEWHERE = {
+    "extract-result.sh": "FC2: *Launching a leaf* reads a leaf's report only through it",
+}
+
+
+def test_4028_every_inner_call_in_the_ordered_list_is_a_script_the_refactor_loop_section_names():
+    from pathlib import Path
+    refactor_half = importlib.import_module("veri.refactor_half")
+    skill = (Path(refactor_half.__file__).resolve().parents[2] / "SKILL.md").read_text()
+    section = skill[skill.index("#### Refactor loop — one leaf"):skill.index("#### A `⟦diff-checked⟧` step")]
+
+    assert [name for name in refactor_half.CALLS if "$S/" + name not in section and name not in NAMED_ELSEWHERE] == []
+
+
+def test_4028_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(tidy):
+    refactor_half = importlib.import_module("veri.refactor_half")
+    code, out, err, fake = tidy()
+
+    made = [c[0] for c in fake.calls if c[0] != "git"]
+    made += [os.path.basename(a) for c in fake.calls if c[0] == "detach-leaf.sh" for a in c[1] if a.endswith(".sh")]
+    assert code == 0
+    assert set(made) == set(refactor_half.CALLS)
+    firsts = [made.index(name) for name in refactor_half.CALLS if name not in (
+        "supervise.sh", "run-leaf.sh", "run-verdict.sh")]
+    assert firsts == sorted(firsts)
