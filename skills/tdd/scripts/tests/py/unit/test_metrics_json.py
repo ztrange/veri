@@ -88,7 +88,7 @@ def test_steps_hold_one_entry_per_step_in_the_by_step_order_with_its_text_and_it
     rows = markdown_rows(metrics, "#### By step")
 
     assert [entry["text"] for entry in steps] == [row["step"] for row in rows] == ["one", "two", "three", "five"]
-    assert [sorted(entry) for entry in steps] == [sorted(["text", "rejects", *STEP_KEYS])] * len(rows)
+    assert [sorted(entry) for entry in steps] == [sorted(["text", "rejects", "former", *STEP_KEYS])] * len(rows)
     assert ([{key: shown(entry[key], column) for key, column in STEP_KEYS.items()} for entry in steps]
             == [{key: row[column] for key, column in STEP_KEYS.items()} for row in rows])
     assert [entry["wall_seconds"] for entry in steps] == [690, None, 30, 20]
@@ -120,7 +120,7 @@ def test_the_object_is_built_from_the_fold_alone_opening_no_file_and_reading_no_
     assert metrics.as_json(dataclasses.replace(folded, marks=[])) == expected
 
 
-TEXT_KEYS = {"issue", "outcome", "text", "model", "cause", "classification", "phase", "step", "ended"}
+TEXT_KEYS = {"issue", "outcome", "text", "model", "cause", "classification", "phase", "step", "ended", "former"}
 FLAG_KEYS = {"estimated", "priced", "includes_conductor"}
 
 
