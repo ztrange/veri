@@ -111,16 +111,16 @@ def _account_names():
     return {name for name in names if len(name) >= 3}
 
 
-def _sensitive(run):
-    """(paths by placeholder, host forms, account names) for the run at <run>."""
+def _sensitive(run, also=()):
+    """(paths by placeholder, host forms, account names) for the run at <run>; <also> names more `<repo>` roots."""
     run = os.path.abspath(run)
-    paths = (("<repo>", [p for p in (run, run_dir.main_of_worktree(run)) if p]),
+    paths = (("<repo>", [p for p in (run, run_dir.main_of_worktree(run), *map(os.path.abspath, also)) if p]),
              ("<tmp>", [p for p in (tempfile.gettempdir(), os.environ.get("TMPDIR", "").rstrip("/")) if p]),
              ("~", [os.path.expanduser("~")]))
     return paths, _host_forms(), _account_names()
 
 
-def _redactions(run):
+def _redactions(run, also=()):
     """The two layers a carried string goes through.
 
     readable: (regex, replacement) steps, in order: the paths as plain substrings ending at a path boundary, the longest
@@ -129,7 +129,7 @@ def _redactions(run):
     boundary `<tmp>`; then each host form `<host>` and the account name `<user>`, whole words ignoring case.
     fail-closed: (normalized paths, word regex) that a normalized copy of a string must not hold after the first layer;
     one that still does is replaced whole by `<redacted>`."""
-    paths, hosts, accounts = _sensitive(run)
+    paths, hosts, accounts = _sensitive(run, also)
     steps = []
     for repl, kind in paths:
         forms = set().union(*(_path_spellings(path) for path in kind))
@@ -176,11 +176,12 @@ def _redact_text(text, redactions):
     return text
 
 
-def redact_local(text, run):
+def redact_local(text, run, also=()):
     """<text> with every local path, host name and account name of the run at <run> replaced, line by line, as a carried
-    string is (the two layers _redactions describes, after the token redaction): a line still holding one after the
+    string is (the two layers _redactions describes, after the token redaction; <also> names more roots written
+    `<repo>`): a line still holding one after the
     first layer is replaced whole by `<redacted>`, so one leak costs one line, never the rest."""
-    redactions = _redactions(run)
+    redactions = _redactions(run, also)
     return "\n".join(_redact_text(line, redactions) for line in text.split("\n"))
 
 

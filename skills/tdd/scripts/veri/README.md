@@ -353,9 +353,10 @@ A run's `.tdd/restart-pending` marker, which says a conductor restart is in flig
 - `state(run)`: just that state word. No journal reads as `running`; a dead pid with no end mark is `stale`.
 
 ## run_dir
-Where a run lives on disk; the module docstring draws the layout. Paths are str and nothing but `main_tree` and `main_tree_from_files` touches the disk.
+Where a run lives on disk; the module docstring draws the layout. Paths are str and nothing but `main_tree`, `main_tree_from_files` and `worktree_root_from_files` touches the disk.
 - `main_tree(cwd=None, *, missing=)`: the repository's main working tree; when git cannot name one it raises `NoMainTree`, or returns `missing` (any value, `""` included) if the caller gave one.
 - `main_tree_from_files(start=None)`: the same tree found by reading `.git` files, starting no process: walks up from `start` (default cwd) to the first `.git`; a linked worktree's `.git` file leads through its `commondir` to the main tree; no `.git` answers `start`; OSError when a linked gitdir has no `commondir`.
+- `worktree_root_from_files(start=None)`: the working tree holding `start` (default cwd), a linked worktree's own root included: the first directory up from it with a `.git`, starting no process; `start` itself when none. `record_answer` redacts it as `<repo>` beside the main tree.
 - `main_file(main, name)`: `<main>/.tdd/<name>`. `worktrees(main)`: `<main>/.tdd/wt`. `worktree(main, issue)`: the run of an issue. `main_of_worktree(run)`: the main tree a `<main>/.tdd/wt/<n>` directory sits under, from the layout alone, `None` for any other directory. `branch_issue(name)`: the issue a run's branch `tdd/<n>-<slug>` names, `None` for any other name.
 - `run_file(run, name)`: `<run>/.tdd/<name>`. `issue_file(run, issue, suffix="")`: `<run>/.tdd/issue-<n><suffix>`. `ledger(run, issue)`: the run's ledger.
 
@@ -374,7 +375,7 @@ A run's records on origin's `refs/veri/runs/<n>`: a commit with no parent holdin
 - `delete(issue, cwd)`: deletes the ref on origin, bounded by `VERI_GIT_NETWORK_TIMEOUT`; `None` when deleted, absent or with no origin, else the reason in one line. Never raises.
 - `after_push()`: pushes the records of the issue the current branch `tdd/<n>-<slug>` names, replacing the ref; nothing on another branch; a failure is one stderr line, never raised.
 - `read(issue, name, cwd)`: the text of `.tdd/<name>` in origin's ref, fetched into the clone at `cwd` under the same ref; `None` when origin, the ref or the file is missing.
-- `redact_local(text, run)`: `text` with the same two layers applied line by line for the run at `run` (a line still leaking after the first is `<redacted>` whole, the other lines kept); `pr_body` passes every PR body it writes through it, and `comment` every bail comment it posts.
+- `redact_local(text, run, also=())`: `text` with the same two layers applied line by line for the run at `run`, each path in `also` written `<repo>` too (a line still leaking after the first is `<redacted>` whole, the other lines kept); `pr_body` passes every PR body it writes through it, and `comment` every bail comment it posts.
 
 ## run_end
 - `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events. `standing_mark(events)`: the mark that ended the run, `{}` when none stands; `MARKS`: the ending events, each to its cause.

@@ -37,11 +37,12 @@ def read(path):
 
 
 def local(text, anchor):
-    """<text> as published: the clone's (the main working tree <anchor>, wherever in it this runs) and the temp
+    """<text> as published: the clone's (the main working tree <anchor>, wherever in it this runs, and the root of the
+    worktree this runs in, which a linked worktree may hold outside it) and the temp
     directory's paths `<repo>` and `<tmp>`, the home directory `~`, the
     host names `<host>`, the account name `<user>` and every token `[redacted]`, as run_records carries a run record
     (github redacts tokens again when it posts); None stays None."""
-    return None if text is None else run_records.redact_local(text, anchor).strip()
+    return None if text is None else run_records.redact_local(text, anchor, (run_dir.worktree_root_from_files(),)).strip()
 
 
 def body_of(text, anchor):
