@@ -1190,7 +1190,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    $S/wait-leaf.sh verdict-refactor  # foreground; on exit 3 call it again
    ```
    — one verdict on the final state (the **fast tier** plus the **affected suites** still
-   green, code up to standard, no smuggled generality).
+   green, no catalogue smell met, no smuggled generality).
 6. **Narrate + branch.** Post `### 🛠️ Refactor` by running `$S/comment.sh <n> refactor` (the transforms applied, or "no refactor
    warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT|SKIPPED` by running `$S/comment.sh <n> verify-refactor`.
    Say **how many transforms landed** — the `git rev-list --count` figure, never the leaf's
@@ -1391,7 +1391,7 @@ When `next-unchecked.sh` exits 3 — every ledger step checked off but the `⟦f
 
 Two of that step's outputs are worth knowing before you get there. The PR body: when `.tdd/issue-<n>-skip-verify` is non-empty, it carries a `⚠️ Unverified phases: <list>` line. And sub-step 4 posts the final `### ✅ Done — <pr-url>` comment by running `$S/comment.sh <n> done`, composing none of it: the script puts the same `### 📊 Metrics` block under it, verbatim from the file just committed (or, when `$metrics` is not 0, the failed-render line in its place), and adds the same `⚠️ Unverified phases: <list>` line when the skip-verify file is non-empty. It mirrors the `event.sh done pr=<pr-url>` mark sub-step 2 wrote and writes no second one.
 
-In that step, right after the structural pass (or its `nothing-structural` skip) and before the PR is readied, run `$S/refactor-candidates.sh <n> .tdd/issue-<n>-refactor-owed.md` once. Exit **0** prints the candidates issue's url, which goes in the PR body's `## Refactor owed` section; exit **3** (nothing out-of-bounds or not done) does nothing; exit **2** is a system failure: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`). The candidates issue is never labelled with the opt-in label (`VERI_LABEL`) and is filed at most once per run: a resume runs the same command and it replaces the existing issue's body.
+In that step, after the structural pass (or its `nothing-structural` skip) and before the PR is readied, run `$S/refactor-candidates.sh <n> .tdd/issue-<n>-refactor-owed.md` once. Exit **0** prints the candidates issue's url, which goes in the PR body's `## Refactor owed` section; exit **3** (nothing out-of-bounds or not done) does nothing; exit **2** is a system failure: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`). The candidates issue is never labelled with the opt-in label (`VERI_LABEL`) and is filed at most once per run: a resume runs the same command and it replaces the existing issue's body.
 
 ## Detecting the test command
 
