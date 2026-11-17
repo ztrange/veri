@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
+import event
 import github
 import tunables
 
@@ -13,6 +14,10 @@ def main(argv):
     if len(argv) != 2:
         print("usage: pr-ready.sh <pr-number> <sha>", file=sys.stderr)
         return 2
+    return event.stage("ready", lambda: ready(argv))
+
+
+def ready(argv):
     try:
         github.gh_pr_ready(argv[0], argv[1])
     except github.NoAnswer:

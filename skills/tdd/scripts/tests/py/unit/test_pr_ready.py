@@ -125,3 +125,15 @@ def test_pr_ready_exits_2_naming_a_bad_veri_gh_driver_and_runs_no_gh(pr_ready, r
 
     assert result == (2, "", "VERI_GH_DRIVER is '%s': expected auto, rest or graphql\n" % driver)
     assert calls == []
+
+
+@pytest.mark.parametrize("ready, code", [(0, 0), (1, 2)], ids=["readied", "no answer"])
+def test_4230_pr_ready_runs_as_stage_ready_of_the_runs_issue_ending_with_its_exit_code(
+        pr_ready, run_cli, monkeypatch, tmp_path, fake_processes, events, ready, code):
+    fake_gh(monkeypatch, fake_processes, lambda args: (0, NEW_SHA + "\n", "") if args == HEAD_READ else (ready, "", ""))
+
+    result = run_cli(pr_ready, ["42", NEW_SHA], env={"VERI_GH_DRIVER": "graphql", "VERI_STATE_LABEL_ISSUE": "12"},
+                     cwd=tmp_path)
+
+    stages = [(r["event"], r["stage"], r.get("status"), r["issue"]) for r in events.records(tmp_path)]
+    assert (result[0], stages) == (code, [("stage-start", "ready", None, "12"), ("stage-end", "ready", str(code), "12")])
