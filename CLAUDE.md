@@ -121,7 +121,7 @@ Admission bar: about 100 ms per case, no git, network, servers, real waits (`sle
 suites, or script run as a subprocess.
 
 **`make unit` and `make test` run pytest** over `skills/tdd/scripts/tests/py/`
-(`make unit`: `tests/py/unit/` only), launched by `skills/tdd/scripts/veri/pytest_leg.py` on
+(`make unit`: `tests/py/unit/` only), launched by `skills/tdd/scripts/tests/leg/pytest_leg.py` on
 `$VERI_VENV/bin/python3` (default `~/.veri-tools/venv`, from `make install-dev`; else PATH's
 `python3`). Admission rule: no process but the interpreter. Each case times out at 30 s
 (`VERI_PYTEST_TIMEOUT`, `@pytest.mark.timeout(n)`), a `process` case, or a `tree_audit` case, with no `timeout` mark of its own at 90 s
