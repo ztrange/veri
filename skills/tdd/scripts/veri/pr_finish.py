@@ -38,6 +38,8 @@ def run(n):
     if given is None:
         return 2
     _, wt = given
+    if pr_ready_wait.stacked(NAME, wt, n):
+        return 2
     resumed = fused.load_wait(wt, n, NAME)
     values = resumed[1] if resumed is not None else close(wt, n)
     pr_ready_wait.ci_wait(wt, n, NAME, values["pr_url"])

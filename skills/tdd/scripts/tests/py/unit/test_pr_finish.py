@@ -98,6 +98,14 @@ def test_4033_a_missing_input_is_exit_2_before_any_inner_call_named_on_stderr(fi
     assert named in err
 
 
+def test_4033_a_stacked_run_is_refused_with_exit_2_before_any_inner_call(finish):
+    (finish.wt / ".tdd" / "issue-12-base").write_text("tdd/11-below\n")
+    code, out, err, fake = finish()
+
+    assert (code, fake.calls) == (2, [])
+    assert "stacked" in err and ".tdd/issue-12-base" in err
+
+
 def _commits(fake):
     return [c[1][2] for c in fake.made("git", "commit")]
 
