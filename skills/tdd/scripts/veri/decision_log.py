@@ -5,6 +5,7 @@ import datetime
 import json
 import os
 import sys
+import time
 
 import redaction
 import run_dir
@@ -22,6 +23,8 @@ KEYS = ("question", "decision", "rule", "by", "at")
 BY = ("coord", "dev", "owner")
 # The longest field a record stores, in characters: a longer one is refused, not cut, so no record is stored partly.
 FIELD_MAX = 2000
+# How far past now a record's `at` may lie (clock skew between machines), in seconds; later is not a record.
+FUTURE_SKEW = 300
 
 
 class Malformed(Exception):
@@ -46,7 +49,9 @@ def _record(text):
         at = datetime.datetime.fromisoformat(record["at"])
     except ValueError:
         return None
-    return record if at.utcoffset() is not None else None
+    if at.utcoffset() is None or at.timestamp() > time.time() + FUTURE_SKEW:
+        return None
+    return record
 
 
 def read(main):
