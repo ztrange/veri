@@ -576,6 +576,7 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `rerun-alone.sh`: rerun each target of a red run alone.
 - `stem_walk`: the whole-word stem walk outside veri's own tree: the files git does not ignore, and which of them name a path's stem.
 - `suite-flakes.sh`: flaky targets across runs.
+- `surround-mutants.sh`: run a legacy step's mutant table through `mutation-probe.sh`.
 - `timed-test-run.sh`: run a test command and journal one `test-run` event.
 
 ## ci_on_pr
