@@ -87,3 +87,62 @@ def test_worst_records_one_testability_row_for_the_step_whose_count_is_highest_o
 
     assert _worst(run_cli, red_setup, tmp_path) == (
         0, "", "not-done | testability | step two: 5 stubs and setup (a fake clock, a stub gh)\n")
+
+
+@pytest.mark.parametrize("marks", [
+    (("7", "step one", "3", "a spy, a stub, a fixture"), ("7", "step two", "1", "a spy")),
+    (("8", "another run's step", "9", "nine fakes"),),
+    ()])
+def test_worst_exits_3_and_records_nothing_when_no_steps_count_exceeds_the_threshold(
+        tmp_path, run_cli, red_setup, marks):
+    _journal(tmp_path, *marks)
+
+    assert _worst(run_cli, red_setup, tmp_path) == (3, "", None)
+
+
+def test_worst_names_the_earliest_step_when_two_steps_tie_on_the_highest_count(tmp_path, run_cli, red_setup):
+    _journal(tmp_path, ("7", "step one", "2", "a spy"), ("7", "step two", "6", "six fakes"),
+             ("7", "step three", "6", "six other fakes"))
+
+    assert _worst(run_cli, red_setup, tmp_path) == (
+        0, "", "not-done | testability | step two: 6 stubs and setup (six fakes)\n")
+
+
+def test_worst_reads_only_each_steps_latest_red_setup_count(tmp_path, run_cli, red_setup):
+    _journal(tmp_path, ("7", "step one", "9", "nine fakes"), ("7", "step two", "5", "five fakes"),
+             ("7", "step one", "1", "a spy"))
+
+    assert _worst(run_cli, red_setup, tmp_path) == (
+        0, "", "not-done | testability | step two: 5 stubs and setup (five fakes)\n")
+
+
+def test_worst_run_a_second_time_replaces_its_own_row_and_keeps_the_owed_files_other_rows(
+        tmp_path, run_cli, red_setup):
+    _journal(tmp_path, ("7", "step one", "5", "five fakes"))
+    owed = tmp_path / ".tdd" / "issue-7-refactor-owed.md"
+    owed.write_text("### step one\n- extract the shared partial\n"
+                    "not-done | testability | step zero: 4 stubs and setup (four fakes)\n"
+                    "not-done | budget-spent | name the bounds walk once\n")
+
+    assert _worst(run_cli, red_setup, tmp_path) == (
+        0, "", "### step one\n- extract the shared partial\n"
+               "not-done | budget-spent | name the bounds walk once\n"
+               "not-done | testability | step one: 5 stubs and setup (five fakes)\n")
+
+
+
+def test_worst_exits_2_with_a_stderr_line_when_the_owed_file_is_a_directory(tmp_path, run_cli, red_setup):
+    _journal(tmp_path, ("7", "step one", "5", "five fakes"))
+    owed = tmp_path / ".tdd" / "issue-7-refactor-owed.md"
+    owed.mkdir()
+
+    code, _, err = run_cli(red_setup, ["worst", "7", str(owed)], cwd=tmp_path)
+
+    assert (code, len(err.splitlines()), err.startswith("red-setup: cannot rewrite " + str(owed))) == (2, 1, True)
+
+
+def test_worst_exits_2_when_the_row_cannot_be_appended(tmp_path, run_cli, red_setup, monkeypatch):
+    _journal(tmp_path, ("7", "step one", "5", "five fakes"))
+    monkeypatch.setattr(red_setup.refactor_owed, "write", lambda file, text: 1)
+
+    assert _worst(run_cli, red_setup, tmp_path)[0] == 2

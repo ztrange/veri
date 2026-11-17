@@ -7,10 +7,10 @@
 - [x] `red-setup.sh record` exits 2 and writes nothing when the ledger has no current step ⟦criterion 3⟧
 - [x] `refactor-owed.sh not-done` accepts the reason `testability` ⟦criterion 7⟧
 - [x] `red-setup.sh worst <n> <owed-file>` records one `not-done` row `'<step>: <count> stubs and setup (<what>)'` with reason `testability` for the step whose count is highest and over `VERI_SETUP_THRESHOLD`, and exits 0 ⟦criterion 4⟧
-- [ ] `red-setup.sh worst` exits 3 and records nothing when no step's count exceeds the threshold ⟦criterion 5⟧
-- [ ] `red-setup.sh worst` names the earliest step when two steps tie on the highest count ⟦criterion 4⟧
-- [ ] `red-setup.sh worst` reads only each step's latest `red-setup` count ⟦criterion 4⟧
-- [ ] `red-setup.sh worst` run a second time replaces its own row rather than adding one ⟦criterion 6⟧
+- [x] `red-setup.sh worst` exits 3 and records nothing when no step's count exceeds the threshold ⟦criterion 5⟧
+- [x] `red-setup.sh worst` names the earliest step when two steps tie on the highest count ⟦criterion 4⟧
+- [x] `red-setup.sh worst` reads only each step's latest `red-setup` count ⟦criterion 4⟧
+- [x] `red-setup.sh worst` run a second time replaces its own row rather than adding one ⟦criterion 6⟧
 - [ ] `refactor-candidates.sh` lists a `testability` row and `refactor-owed.sh list` does not print it ⟦criterion 7⟧
 - [ ] `VERI_SETUP_THRESHOLD` is a `TUNABLES` entry, a whole number, default 3, and any other value makes `red-setup.sh worst` exit 2 with one stderr line naming the knob ⟦criterion 8⟧
 - [ ] the row `red-setup.sh worst` records carries no local path, host or account name
