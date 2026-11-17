@@ -176,7 +176,9 @@ def finish(n, wt, baseline, full, fast, alone, began, reused, code):
         sys.stdout.write("VERI_STEP_GROWTH=%s: VERI_STEP_GROWTH is retired; unset it and use VERI_STEP_GROWTH_PERCENT\n"
                          % tunables.environment()["VERI_STEP_GROWTH"])
         return stopped(5, "VERI_STEP_GROWTH", 2)
-    if not tunables.parses("VERI_STEP_GROWTH_PERCENT", tunables.get("VERI_STEP_GROWTH_PERCENT")):
+    percent = tunables.get("VERI_STEP_GROWTH_PERCENT")
+    if not tunables.parses("VERI_STEP_GROWTH_PERCENT", percent):
+        sys.stdout.write("VERI_STEP_GROWTH_PERCENT=%s: not a whole number >= 0\n" % percent)
         return stopped(5, "VERI_STEP_GROWTH_PERCENT", 2)
     if not tunables.get("VERI_MISSING_REROUTE_BUDGET").isdigit():
         return stopped(5, "VERI_MISSING_REROUTE_BUDGET", 2)

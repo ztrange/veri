@@ -554,8 +554,8 @@ def test_4075_a_set_retired_step_growth_or_a_refused_percent_stops_at_5_with_no_
 
     code, out, err = run_cli(preflight, ["12", "my-slug"])
 
-    assert (code, out.splitlines()[-1], "VERI_STEP_GROWTH_PERCENT" in out, "step-budget.sh" in calls) == (
-        2, "stopped at 5 " + stop, True, False)
+    assert (code, out.splitlines()[-1], out.splitlines()[-2].startswith("%s=%s: " % (name, value)),
+            "VERI_STEP_GROWTH_PERCENT" in out, "step-budget.sh" in calls) == (2, "stopped at 5 " + stop, True, True, False)
 
 
 def test_3771_q_non_numeric_missing_reroute_budget_stops_at_5_after_refactor_budget_issue_0_with_no_step_budget_call(monkeypatch, run_cli, tmp_path):
