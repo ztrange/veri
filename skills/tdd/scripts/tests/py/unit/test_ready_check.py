@@ -487,3 +487,15 @@ def test_issue_4088_each_tier_run_row_carries_its_wall_time_in_whole_seconds_whe
     assert tier_run_line(lines, "fast") == "ok    fast tier run (42s)", lines
     assert tier_run_line(lines, "all").startswith("fail  all tier run (3s): exit 1"), lines
     assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
+
+
+@pytest.mark.parametrize("unresolved", [3, 2])
+def test_issue_4088_a_tier_that_resolves_to_nothing_prints_no_tier_run_row_and_starts_no_worktree_or_command(ready_check, run_cli, fake_processes, tmp_path, unresolved):
+    fake = fake_processes.answers(holding(**{**TIERS, "detect-test-command.sh --tier all": (unresolved, "", "")}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    lines = out.splitlines()
+
+    assert tier_run_line(lines, "all") is None, lines
+    assert tier_run_line(lines, "fast").startswith("ok    fast tier run"), lines
+    assert not [c for c in fake.calls if "ready-all" in c], fake.calls
+    assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
