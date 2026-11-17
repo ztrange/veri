@@ -12,6 +12,6 @@
 - [x] every exit 1 or 2 frees the lock, pushes nothing and keeps the fix worktree ⟦criterion 10⟧
 - [x] after the push it comments once on the tracking pull request and once on issue <n> ⟦criterion 11⟧
 - [x] it calls no wait-ci.sh and lifts no freeze, pinned by a spy on its script calls ⟦criterion 12⟧
-- [ ] the shim, the module index entry and a process case ⟦criterion 13⟧
+- [x] the shim, the module index entry and a process case ⟦criterion 13⟧
 - [ ] the module names no repository, issue or job ⟦criterion 14⟧
 - [ ] SCRIPTS.md lists stack-fix.sh, row SC257, graded ⟦criterion 15⟧
