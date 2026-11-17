@@ -36,6 +36,7 @@ def test_the_shim_run_through_a_symlink_to_the_skill_directory_from_another_cwd_
     for cwd in (tmp_path, tmp_path / "elsewhere"):
         (cwd / ".tdd").mkdir()
         (cwd / ".tdd" / "develop-cover.out").write_text("COVERED: no\n")
+        (cwd / ".tdd" / "issue-60.md").write_text("- [ ] Extract Method `parse` out of `veri/a.py:run`\n")
     env = {k: v for k, v in os.environ.items() if k != "VERI_GH_DRIVER"}
     env.update(PATH="%s:%s" % (bin_dir, os.environ["PATH"]), FAKE_VIEW=str(view))
 

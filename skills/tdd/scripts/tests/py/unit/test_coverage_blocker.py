@@ -17,9 +17,11 @@ def coverage_blocker():
 
 @pytest.fixture
 def cover_report(tmp_path, monkeypatch):
-    """The working directory moved to tmp_path, holding a cover report that says `COVERED: no` with no `MUTATION:` line (#3943)."""
+    """The working directory moved to tmp_path, holding a cover report that says `COVERED: no` with no `MUTATION:` line (#3943) and a ledger for each issue a case names (#4109)."""
     (tmp_path / ".tdd").mkdir(exist_ok=True)
     (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\n")
+    for n in ("60", "7", "abc"):
+        (tmp_path / ".tdd" / ("issue-%s.md" % n)).write_text("- [ ] Extract Method `parse` out of `veri/a.py:run`\n")
     monkeypatch.chdir(tmp_path)
 
 

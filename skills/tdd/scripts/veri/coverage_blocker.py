@@ -9,6 +9,8 @@ from blocked_by import add as block, blockers
 from detect_test_command import resolved
 from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_label_exists, gh_rest_list
 from json_documents import documents
+from ledger import decode_ledger, ledger_steps
+from ledger_steps import current_or_last_done_record
 from report import report_values
 import tunables
 
@@ -44,6 +46,17 @@ def main(argv):
     except OSError as error:
         print("coverage-blocker.sh: cannot read .tdd/develop-cover.out: %s" % error.strerror, file=sys.stderr)
         return 2
+    ledger = ".tdd/issue-%s.md" % n
+    try:
+        with open(ledger, "rb") as f:
+            step = current_or_last_done_record(ledger_steps(decode_ledger(f.read())))
+    except OSError as error:
+        print("coverage-blocker.sh: cannot read %s: %s" % (ledger, error.strerror), file=sys.stderr)
+        return 2
+    if step is None:
+        print("coverage-blocker.sh: %s holds no step to name as the region" % ledger, file=sys.stderr)
+        return 2
+    text += "\n\n## Region\n\n" + step.text
     if mutations:
         text += "\n\n## Acceptance criteria\n\n" + "".join("- [ ] %s: add a case that goes red under this mutation\n" % m for m in mutations)
     text += "\n\n## Blocked by\n\nNone.\n"

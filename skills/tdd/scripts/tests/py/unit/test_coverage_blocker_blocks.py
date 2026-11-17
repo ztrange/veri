@@ -17,6 +17,7 @@ def cover_report(tmp_path, monkeypatch):
     """The working directory moved to tmp_path, holding a cover report that says `COVERED: no` with no `MUTATION:` line (#3943)."""
     (tmp_path / ".tdd").mkdir(exist_ok=True)
     (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\n")
+    (tmp_path / ".tdd" / "issue-60.md").write_text("- [ ] Extract Method `parse` out of `veri/a.py:run`\n")
     monkeypatch.chdir(tmp_path)
 
 
@@ -183,6 +184,7 @@ def test_main_3721_files_a_cover_issue_with_an_acceptance_criterion_quoting_the_
     mutation = "MUTATION: veri/status.py: recover_prs `if single.returncode != 0` -> `False`"
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "develop-cover.out").write_text("narration\nCOVERED: no\nCAUGHT_BY: NONE\n" + mutation + "\n")
+    (tmp_path / ".tdd" / "issue-60.md").write_text("- [ ] Extract Method `parse` out of `veri/a.py:run`\n")
     monkeypatch.chdir(tmp_path)
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
@@ -220,6 +222,7 @@ def test_main_3721_files_the_acceptance_criteria_section_only_when_the_cover_rep
     for name, report in reports.items():
         created.clear()
         (tmp_path / ".tdd" / "develop-cover.out").write_text(report)
+        (tmp_path / ".tdd" / "issue-60.md").write_text("- [ ] Extract Method `parse` out of `veri/a.py:run`\n")
         coverage_blocker.main(["60"])
         has_section[name] = bool(created) and "## Acceptance criteria" in created[0]
 
@@ -232,6 +235,7 @@ def test_main_3721_files_an_acceptance_criterion_that_requires_a_case_going_red_
     mutation = "MUTATION: veri/status.py: recover_prs `if single.returncode != 0` -> `False`"
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\n" + mutation + "\n")
+    (tmp_path / ".tdd" / "issue-60.md").write_text("- [ ] Extract Method `parse` out of `veri/a.py:run`\n")
     monkeypatch.chdir(tmp_path)
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
@@ -254,6 +258,7 @@ def test_main_3721_files_a_cover_issue_whose_blocked_by_section_holds_the_line_n
     mutation = "MUTATION: veri/status.py: recover_prs `if single.returncode != 0` -> `False`"
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\n" + mutation + "\n")
+    (tmp_path / ".tdd" / "issue-60.md").write_text("- [ ] Extract Method `parse` out of `veri/a.py:run`\n")
     monkeypatch.chdir(tmp_path)
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
@@ -276,6 +281,7 @@ def test_main_3721_files_a_cover_issue_whose_last_line_is_the_test_command_of_th
     mutation = "MUTATION: veri/status.py: recover_prs `if single.returncode != 0` -> `False`"
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\n" + mutation + "\n")
+    (tmp_path / ".tdd" / "issue-60.md").write_text("- [ ] Extract Method `parse` out of `veri/a.py:run`\n")
     (tmp_path / "CLAUDE.md").write_text("veri: fast tests: `make quick`\nveri: all tests: `make everything`\n")
     monkeypatch.chdir(tmp_path)
 
@@ -297,6 +303,7 @@ def test_main_3721_files_a_cover_issue_carrying_the_opt_in_label_of_the_run(
     monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\nMUTATION: veri/a.py: f `x` -> `y`\n")
+    (tmp_path / ".tdd" / "issue-60.md").write_text("- [ ] Extract Method `parse` out of `veri/a.py:run`\n")
     monkeypatch.chdir(tmp_path)
 
     def fake_create(title, text, *extra, **fields):
@@ -344,6 +351,7 @@ def _label_run(monkeypatch, tmp_path, coverage_blocker, report):
     (tmp_path / ".tdd").mkdir(parents=True, exist_ok=True)
     if report is not None:
         (tmp_path / ".tdd" / "develop-cover.out").write_text(report)
+        (tmp_path / ".tdd" / "issue-60.md").write_text("- [ ] Extract Method `parse` out of `veri/a.py:run`\n")
     monkeypatch.chdir(tmp_path)
 
     def fake_create(title, text, *extra, **fields):
@@ -388,3 +396,56 @@ def test_main_4109_files_the_cover_issue_labelled_legacy_beside_the_opt_in_label
 
     assert {k: sorted(v) for k, v in labels.items()} == {
         "mut": ["filed-by:mu", "legacy", "ready-for-agent:mu"], "nomut": ["filed-by:mu", "legacy"]}
+
+
+LEDGER = ("# Plan for #60\n\n- [x] Extract Method `parse` out of `veri/a.py:run`\n"
+          "- [ ] Inline Variable `tmp` in `veri/a.py:parse` ⟦criterion 2⟧\n- [ ] Rename `x` to `count`\n")
+
+
+def _region_run(monkeypatch, tmp_path, coverage_blocker, ledger):
+    created = []
+    (tmp_path / ".tdd").mkdir(parents=True, exist_ok=True)
+    (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\nMUTATION: veri/a.py: parse `x` -> `y`\n")
+    if ledger is not None:
+        (tmp_path / ".tdd" / "issue-60.md").write_text(ledger)
+    monkeypatch.chdir(tmp_path)
+    edited = []
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create",
+                        lambda title, text, *extra, **fields: created.append(text) or "https://github.com/owner/name/issues/77\n")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: edited.append(n))
+    return coverage_blocker.main(["60"]), created, edited
+
+
+def _section(body, heading):
+    return body.split("\n## " + heading + "\n", 1)[1].split("\n## ", 1)[0].strip("\n") if "\n## " + heading + "\n" in body else None
+
+
+def test_main_4109_files_a_region_section_holding_the_refactor_steps_ledger_line_as_current_or_last_done_prints_it(
+        monkeypatch, tmp_path, coverage_blocker):
+    lines = {}
+    for name, ledger in (("open", LEDGER), ("done", LEDGER.replace("- [ ]", "- [x]"))):
+        code, created, _ = _region_run(monkeypatch, tmp_path / name, coverage_blocker, ledger)
+        lines[name] = (code, _section(created[0], "Region") if created else None)
+
+    assert lines == {"open": (0, "Inline Variable `tmp` in `veri/a.py:parse` ⟦criterion 2⟧"),
+                     "done": (0, "Rename `x` to `count`")}
+
+
+def test_main_4109_places_the_region_section_after_the_problem_and_before_the_acceptance_criteria(
+        monkeypatch, tmp_path, coverage_blocker):
+    _, created, _ = _region_run(monkeypatch, tmp_path, coverage_blocker, LEDGER)
+
+    headings = [line for line in (created[0] if created else "").split("\n") if line.startswith("## ")]
+    assert headings == ["## Problem", "## Region", "## Acceptance criteria", "## Blocked by"]
+
+
+def test_main_4109_exits_2_filing_and_editing_nothing_naming_the_ledger_when_it_is_absent_or_holds_no_step(
+        monkeypatch, tmp_path, coverage_blocker, capsys):
+    seen = {}
+    for name, ledger in (("absent", None), ("empty", "# Plan for #60\n")):
+        code, created, edited = _region_run(monkeypatch, tmp_path / name, coverage_blocker, ledger)
+        seen[name] = (code, created, edited, ".tdd/issue-60.md" in capsys.readouterr().err)
+
+    assert seen == {"absent": (2, [], [], True), "empty": (2, [], [], True)}
