@@ -382,3 +382,16 @@ def test_4225_runs_split_the_journal_at_each_ending_line_and_a_restart_continues
          "sessions": 1, "leaves": 1, "cost_usd": 0.5},
         {"index": 2, "ended": "done", "cause": None, "wall_seconds": 600, "awake_seconds": 550,
          "sessions": 2, "leaves": 2, "cost_usd": 1.25}]
+
+
+def test_4225_the_runs_leaves_and_cost_sum_to_the_issues_leaf_totals_on_two_runs_and_a_restart(
+        tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, two_runs_and_a_restart())
+    monkeypatch.chdir(tmp_path)
+
+    shaped = as_json(metrics, capsys)
+
+    assert (sum(run["leaves"] for run in shaped["runs"]), round(sum(run["cost_usd"] for run in shaped["runs"]), 2)) == (
+        sum(entry["attempts"] for entry in shaped["leaves"].values()),
+        round(sum(entry["cost_usd"] for entry in shaped["leaves"].values()), 2)) == (3, 1.75)
+
