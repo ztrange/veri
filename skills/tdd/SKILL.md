@@ -559,7 +559,7 @@ Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.m
    base in the procedure's files means the stack. The body's first line starts `Closes #<n>`, inside the markers that set it apart as the run's own
    part, the part `$S/pr-body.sh` rewrites; whatever else a body holds is not the run's.
    An open PR saying `Closes #<n>` is the claim other machines see. The title says **WIP**: a
-   draft that reads as finished is misread; step 4 retitles it and, unless a stack is named,
+   draft reading as finished is misread; step 4 retitles it and, unless a stack is named,
    readies it.
 4. **Mirror the plan** to the issue thread: post a `### 🗺️ Plan` comment, by running `$S/comment.sh <n> plan`, listing the steps,
    naming the test command preflight detected and every leaf will run, and noting that the
