@@ -7,12 +7,15 @@ import sys
 import time
 
 import fused
+import fused_step
+import run_dir
 import tunables
 from next_pending_refactor import refactor_pending
 
 NAME = "refactor-half"
+USAGE = "usage: refactor-half.sh <n>"
 SPEC = ".tdd/issue-%s-spec.md"
-LEDGER = ".tdd/issue-%s.md"
+LEDGER = run_dir.ledger("", "%s")
 RED_HALF = ".tdd/issue-%s-red-half"
 
 # The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_refactor_half.py fails when
@@ -27,12 +30,12 @@ def main(argv):
 
 
 def run(n):
-    given = fused.inputs(NAME + ".sh", n, LEDGER, SPEC, RED_HALF)
+    given = fused_step.inputs(NAME + ".sh", n, LEDGER, SPEC, RED_HALF)
     if given is None:
         return 2
     settled, wt = given
     red = fused.read_settled(os.path.join(wt, RED_HALF % n))
-    step = fused.first_step(wt, n, refactor_pending)
+    step = fused_step.first_step(wt, n, refactor_pending)
     if step is None or red.get("step") != step:
         sys.stderr.write("refactor-half.sh: %s\n" % ("no refactor-pending step" if step is None else
                                                      ".tdd/issue-%s-red-half names another step" % n))
@@ -119,7 +122,7 @@ def verify(n, wt, settled, step, values):
     """Refactor 5 (RL6): nothing landed marks the skip and posts the skipped comment; `refactor` switched off marks
     it, writes `skipped` and posts verify-refactor once; otherwise verdict-refactor is launched. The leaf launched, or
     None."""
-    if values["count"] == 0 or fused.verify_switched_off(wt, n, "refactor"):
+    if values["count"] == 0 or fused_step.verify_switched_off(wt, n, "refactor"):
         reason = "nothing-landed" if values["count"] == 0 else "switched-off"
         fused.mark("5", wt, n, step, "verify-refactor-skipped", "reason=" + reason)
         if reason == "switched-off":

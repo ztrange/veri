@@ -5,14 +5,17 @@ import os
 import sys
 
 import fused
+import fused_step
 import ledger
 import plan_publish
 import replaces_case
+import run_dir
 from ledger import handed_out
 
 NAME = "green-half"
+USAGE = "usage: green-half.sh <n>"
 SPEC = ".tdd/issue-%s-spec.md"
-LEDGER = ".tdd/issue-%s.md"
+LEDGER = run_dir.ledger("", "%s")
 RED_HALF = ".tdd/issue-%s-red-half"
 
 # The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_green_half.py fails
@@ -28,12 +31,12 @@ def main(argv):
 
 
 def run(n):
-    given = fused.inputs(NAME + ".sh", n, LEDGER, SPEC, RED_HALF)
+    given = fused_step.inputs(NAME + ".sh", n, LEDGER, SPEC, RED_HALF)
     if given is None:
         return 2
     settled, wt = given
     red = fused.read_settled(os.path.join(wt, RED_HALF % n))
-    step = fused.first_step(wt, n, handed_out)
+    step = fused_step.first_step(wt, n, handed_out)
     if step is None or red.get("step") != step:
         sys.stderr.write("green-half.sh: .tdd/issue-%s-red-half names another step than the open one\n" % n)
         return 2
@@ -56,7 +59,7 @@ def waited(wt, n, where, name, step):
     code = fused.wait(wt, n, NAME, name)
     if code != 0:
         raise fused.Stop(where, "wait-leaf.sh %s exit %d" % (name, code), code)
-    fused.cost_check(wt, step)
+    fused_step.cost_check(wt, step)
 
 
 def develop(n, wt, settled, step, values):
@@ -86,7 +89,7 @@ def verify(n, wt, settled, step, values):
     fused.checked("1", fused.script("suite-reported.sh"), "develop-green", cwd=wt, err=".tdd/suite-reported.err")
     fused.checked("1", fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
     fused.checked("1", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step, cwd=wt)
-    if fused.verify_switched_off(wt, n, "green"):
+    if fused_step.verify_switched_off(wt, n, "green"):
         fused.mark("2", wt, n, step, "verify-green-skipped", "reason=switched-off")
         with open(os.path.join(wt, ".tdd", "verdict-green.exit"), "w") as f:
             f.write("skipped\n")

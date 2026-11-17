@@ -120,6 +120,9 @@ What a fused script after preflight shares (PRD 027 FC1-FC4, FC10, FC14).
 - `Stop(where, what, code)`: the first outcome that is not clean. `stopped(stop)`: prints its `stopped at <where> <what>` line; the exit code, the inner code when neither 0 nor 3, else 1.
 - `conductor(wt)`: `{"pid", "started"}` as `<wt>/.tdd/conductor.pid` names them, `None` without one: the conductor a wait record is written for (FC7).
 - `settle(wt, n, name, lines)`: writes `.tdd/issue-<n>-<name>` and prints its lines; 0. `read_settled(path)`: its `{key: value}`; OSError when unreadable.
+- The fused halves of a step (PRD 027.4-027.6): `entry(argv, name, run)`, their main (usage and 2, the `stopped at` line on a `Stop`, `waiting on <name>` and 3 when a wait's slice runs out); `step_env(n, step, **more)` and `mark(where, wt, n, step, *fields, **more)`, the run context and a conductor mark.
+- `launch(where, wt, name, command, *args, env, out, err, clear=())`: a leaf under *Launching a leaf* (FC8). `wait(wt, n, owner, name)`: `wait-leaf.sh`, raising on 3, else the leaf's code with the wait record removed. `save_wait`/`load_wait(wt, n, owner, …)`: the wait record `.tdd/issue-<n>-<owner>-wait`, discarded under another conductor (FC5-FC7).
+- `report(where, wt, path, *keys, every=False)`: a leaf's report lines through `extract-result.sh`, printing none of it (FC2). `changed_paths(where, wt)`: the paths `git status --porcelain` lists.
 
 ## git
 - `git(*args, **kwargs)`: `subprocess.run(["git", *args], **kwargs)`; the CompletedProcess, never raises on a non-zero exit.
@@ -807,6 +810,10 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `preflight.sh`: the checks before a run starts.
 - `plan-publish.sh`: SKILL.md step 2's fixed tail once the plan is written, in one call.
 - `run-start.sh`: SKILL.md step 1's fixed calls after preflight, in one call.
+- `fused_step`: the step helpers the fused halves share above `fused`.
+- `red-half.sh`: a step's Red half on the FAILS path, in one call.
+- `green-half.sh`: a step's Green half on the PASS path, in one call.
+- `refactor-half.sh`: a step's first refactor pass, in one call.
 - `reset-cost.sh`: what each recorded reset of the dev session or a run's conductor cost, and the growth knob it calls for.
 - `reset-wait.sh`: wait for a usage-limit reset.
 - `restart-conductor.sh`: stop and watch a conductor restart.
@@ -822,6 +829,10 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `update-veri.sh`: update veri itself.
 - `watch-runs.sh`: watch the runs of a queue.
 
+## fused_step
+- `inputs(name, n, *files)`: the settled preflight values and worktree once every input exists, else `None`, each missing one on stderr (FC15). `first_step(wt, n, chosen)`: the first ledger step a predicate takes.
+- `cost_check(wt, step)`: *The step's cost check*, stopping at `cost-check`. `verify_switched_off(wt, n, phase)`: the run's pinned `VERI_SKIP_VERIFY` names the phase.
+
 ## metrics
 - `publish(target, issue, journal, ledger, run)`: writes the `metrics.sh --json` object of the journal at `journal` to `target`, renamed into place from a temporary file beside it; `run` is the run directory whose end, conductor log and pins the fold reads (`None`: the journal alone). `event` calls it for the published metrics file.
 - `rendered(issue)`: `(code, report, stderr)` of the markdown report of the working directory's run.
@@ -831,6 +842,9 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `read_lines(role, lane=None)`: the role's state lines in the main tree, `None` when missing.
 - `State(lines)`: the grammar of the state file. `fields()` (every `key=value` line as a dict), `field(name)` (last `name=` value, `None`), `items(*kinds)` (raw item lines), `last_n()`, `timed_ns()` (`(value, expiry)` pairs), `override_numbers()`, `check()`. A bad line raises `Malformed(kind, line)` (`kind` one of `n-missing`, `n`, `timed-n`, `override`, `state`); each caller words it.
 - `append(path, text)`, `now()`, `epoch(stamp)`, `STAMP`: append (written through a temp file and renamed); the stamp; a stamp's epoch seconds, read as local time; the stamp's strftime format. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
+
+## run_start
+- `preflight_file(n)`: the settled file `preflight.sh` wrote for issue `<n>`, under its worktree when called from the main tree, else under this directory's `.tdd/`.
 
 ## status
 - `json_document(scope=None, read_states=True)`: `(exit code, --json document)`.
