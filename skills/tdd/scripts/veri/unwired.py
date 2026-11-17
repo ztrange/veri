@@ -25,9 +25,12 @@ def unnamed(paths):
 def main(argv):
     if len(argv) != 1 or not argv[0]:
         return entry.refuse(usage=USAGE)
-    found = unnamed(added(argv[0]))
+    paths = added(argv[0])
+    if not paths:
+        return 3
+    found = unnamed(paths)
     sys.stdout.write("".join(p + "\n" for p in found))
-    return 1
+    return 1 if found else 0
 
 
 if __name__ == "__main__":
