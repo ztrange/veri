@@ -274,6 +274,11 @@ def check_readiness(user_answer=""):
     return None
 
 
+# The calls PREFLIGHT.md step 3 names for a worktree issue-worktree.sh handed back, in the order this script makes them
+# (RP4, RP5); unit/test_preflight_steps.py fails when one of them is missing here (RP15).
+HANDED_BACK = ("resume-clean.sh", "rebase-onto-default.sh", "event.sh resume-rebase",
+               "tests-frozen.sh rerecord-rebased", "push-branch.sh --force-with-lease")
+
 # What step 3 settles for the rest of the run (RP6, RP7): "run", resume or fresh; and for a handed-back worktree the
 # paths resume-clean.sh printed under "stray", and under "rebased_from" the pre-rebase sha when the rebase moved the
 # branch. Filled by one run of main().
