@@ -30,6 +30,19 @@ def _preflight_refused(number, labels, opt_in):
                for c in comments)
 
 
+def accept_unwired(run, number):
+    """The files an `unwired` bail recorded as pending become accepted: appended to the run's accepted record, which
+    `unwired.sh --accepted` reads, and the pending record removed. Only a successful release calls it."""
+    pending = run_dir.issue_file(run, number, "-unwired-pending")
+    if not os.path.isfile(pending):
+        return
+    with open(pending, errors="surrogateescape") as listed:
+        files = listed.read()
+    with open(run_dir.issue_file(run, number, "-unwired-accepted"), "a", errors="surrogateescape") as accepted:
+        accepted.write(files)
+    os.unlink(pending)
+
+
 def main(argv):
     if len(argv) != 1 or not re.fullmatch(r"[1-9][0-9]*", argv[0]):
         sys.stderr.write(USAGE)
@@ -72,6 +85,7 @@ def release(number):
             sys.stderr.write("release-issue.sh: no answer from gh releasing #%s; re-run it\n" % number)
             return 2
     open(run_dir.issue_file(event.toplevel(), number, "-released"), "w").close()
+    accept_unwired(run_dir.worktree(event.toplevel(), number), number)
     # A released run's carried pin must not be honoured on another machine: its records go with the claim.
     failed = run_records.delete(number, event.toplevel() or ".")
     if failed:

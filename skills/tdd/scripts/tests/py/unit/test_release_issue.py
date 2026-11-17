@@ -363,3 +363,21 @@ def test_4232_release_issue_runs_as_stage_release_carrying_the_issue_ending_with
     stages = [(r["event"], r["stage"], r.get("status"), r["issue"]) for r in events.records(tmp_path)]
     assert (returned, stages) == (code, [("stage-start", "release", None, "3284"),
                                          ("stage-end", "release", str(code), "3284")])
+
+
+def test_a_successful_release_turns_the_runs_unwired_pending_record_into_its_accepted_one_and_a_refused_one_does_not_4121(
+        release, run_cli, tmp_path):
+    release_issue, calls, labels = release
+    (tmp_path / ".git").mkdir()
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    pending, accepted = run / "issue-7-unwired-pending", run / "issue-7-unwired-accepted"
+    pending.write_text("pkg/helper.go\n")
+    accepted.write_text("pkg/a.go\n")
+    labels[:] = ["taken:main"]
+    refused = run_cli(release_issue, ["7"], cwd=tmp_path)[0]
+    kept = (pending.exists(), accepted.read_text())
+    labels[:] = ["taken:main", "bailed"]
+    released = run_cli(release_issue, ["7"], cwd=tmp_path)[0]
+    assert (refused, kept, released, pending.exists(), accepted.read_text()) == (
+        3, (True, "pkg/a.go\n"), 0, False, "pkg/a.go\npkg/helper.go\n")
