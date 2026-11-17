@@ -2937,7 +2937,8 @@ def test_4018_after_a_ci_rerun_event_for_the_head_a_check_run_completed_before_i
     }
 
 
-@pytest.mark.parametrize("conclusions, code", [(["success"], 0), (["failure"], 1)], ids=["green", "red"])
+@pytest.mark.parametrize("conclusions, code", [(["success"], 0), (["failure"], 1), ([None], 3)],
+                         ids=["green", "red", "pending past the slice"])
 def test_4230_wait_ci_runs_as_stage_ci_wait_of_the_runs_issue_ending_with_its_exit_code(
         monkeypatch, capsys, wait_ci, fake_processes, tmp_path, events, conclusions, code):
     (tmp_path / ".tdd").mkdir()
