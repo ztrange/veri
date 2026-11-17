@@ -361,6 +361,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   It holds a `#### Stages` table, one row per stage the run marked, whatever its name, giving its runs, its ends by
   exit code (ok, failed, no answer, nothing), its unended starts and its wall seconds, the figures of that stage's
   entry in `--json`'s `stages`; a run with no stage marked has no such table.
+  It holds a `#### Conductor by phase` table whose heading says its figures are estimated (each turn is placed by its
+  timestamp), one row per entry of `--json`'s `conductor.by_phase` giving the conductor's turns and cost there,
+  `unknown` for a cost that cannot be priced; when no conductor log was read (`by_phase` is `null`), or the log holds
+  no turn, there is no such table.
   `$S/metrics.sh <n> --json` prints, in place of the markdown report, one JSON object holding the same figures under
   the top-level keys `run`, `phases`, `steps`, `conductor` and `total`, `leaves`, the phase figures split by
   leaf kind, `runs`, one entry per run of the issue, and `stages`, the figures of each stage the journal marks. Every figure in it is a number, or `null` when
