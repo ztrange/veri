@@ -23,7 +23,7 @@ from case_reader import is_test_path
 from session_env import strip_session_env
 from wait_ci import trigger_lines
 
-USAGE = "usage: ready-check.sh [repo-root]"
+USAGE = "usage: ready-check.sh [--no-suites] [repo-root]"
 WAIT_BOUND = 590  # detach-command.sh wait's own default: one call's whole wait on the tiers, both together
 
 
@@ -393,6 +393,8 @@ def rendered(name, verdict):
 
 
 def main(argv):
+    suites = "--no-suites" not in argv[:1]
+    argv = argv[0 if suites else 1:]
     if len(argv) > 1 or any(a.startswith("-") for a in argv):
         print(USAGE, file=sys.stderr)
         return 2
@@ -411,7 +413,7 @@ def main(argv):
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
     results = [check() for check in CHECKS]
-    tier_runs, waiting = tier_run_rows(root)
+    tier_runs, waiting = tier_run_rows(root) if suites else ([], None)
     results += tier_runs
     failed = sum(1 for _, verdict in results if verdict and not isinstance(verdict, Neutral))
     rows = [rendered(name, verdict) for name, verdict in results]
