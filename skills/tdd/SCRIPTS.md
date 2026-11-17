@@ -344,6 +344,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   naming no issue counts as the local run's own), it reports instead from the events in origin's `refs/veri/runs/<n>`
   (fetched into the clone under that ref, the fetch ended after `VERI_GIT_NETWORK_TIMEOUT` seconds and then read as no
   answer in one stderr line), so a run made on another machine is reported here too.
+  `$S/metrics.sh <n> --json` prints, in place of the markdown report, one JSON object holding the same figures under
+  the top-level keys `run`, `phases`, `steps`, `conductor` and `total`. Every figure in it is a number, or `null` when
+  it is not known, never a zero standing for unknown; the object holds counts and sums, and no rate. Any other argument
+  after the issue number is exit 2, the usage line on stderr and nothing on stdout.
 - `$S/over-budget.sh <tier> <seconds> <usual>` — say whether one recorded test-command run
   was slow enough to be worth a word: **exit 0** = over budget, **exit 1** = not, **exit 2** =
   `VERI_UNIT_BUDGET` or `VERI_TIME_WARN_RATIO` cannot be read (the same misconfiguration
