@@ -71,3 +71,10 @@
      spent, **bail** as a system failure (`no-verdict`) (`Read` `<base directory>/BAIL.md`).
    verify-surround adds no budget of its own; the rows a mutant table owes are
    `VERI_SURROUND_MUTANTS`, a budget on an axis of its own, never folded into `REVISE_BUDGET`.
+
+   **After the run is done.** Once `DRAFT-PR.md` sub-step 4 has made the ✅ Done comment (or
+   `run-done.sh` has, where it makes that comment), run `$S/release-covered.sh <n>`: when this
+   issue is the coverage issue a refusing refactor filed, it releases the bailed refactor issue
+   it blocks, so that issue is taken again once this one closes. Exit 0 (released) and exit 3
+   (nothing to release) go on; exit 2 is reported in the run's final report and is not a bail,
+   since the run is already done.
