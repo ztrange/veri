@@ -782,3 +782,13 @@ def test_not_done_records_a_candidate_with_the_reason_testability_4117(tmp_path,
 
     assert (code, owed.read_text() if owed.exists() else None) == (
         0, "not-done | testability | zorblat refuses an empty nitz: 4 stubs and setup (a spy)\n")
+
+
+def test_not_done_records_a_coupling_candidate_that_refactor_candidates_lists_and_list_does_not_print_4124(
+        capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    code = refactor_owed.main(["not-done", str(owed), "mutual reference: src/a.py src/b.py", "coupling"])
+    listed = refactor_owed.main(["list", str(owed)])
+    candidates = importlib.import_module("veri.refactor_candidates")
+    assert (code, listed, capsys.readouterr().out, list(candidates.rows(owed.read_text()))) == (
+        0, 3, "", ["- coupling | mutual reference: src/a.py src/b.py"])
