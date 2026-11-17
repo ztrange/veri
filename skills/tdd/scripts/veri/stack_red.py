@@ -16,7 +16,8 @@ def main(argv):
         return entry.refuse(usage=USAGE)
     stack, _, _ = stack_branch.ahead(".")
     runs = github.workflow_runs(stack)
-    head, url, _, conclusion, _ = max(runs, key=lambda found: found[4])
+    answered = [found for found in runs if found[2] == "completed" and found[3] != "cancelled"]
+    head, url, _, conclusion, _ = max(answered, key=lambda found: found[4])
     if conclusion in GREEN:
         return 3
     sys.stdout.write("%s %s %s\n" % (head, url, conclusion))
