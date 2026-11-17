@@ -75,7 +75,7 @@ def test_on_veris_own_one_test_file_command_a_failing_case_is_red_a_passing_one_
     for name in ("test_red", "test_green", "test_nope"):
         case = "t/test_tiny.py::" + name
         code, output = culprit._run_alone(str(tmp_path), command, case)
-        said[name] = (code, culprit._verdict(code, output, case))
+        said[name] = (code, culprit.verdict(code, output, case))
 
     assert (command, said) == ('make test TESTS="$1"', {"test_red": (2, True), "test_green": (0, False),
                                                         "test_nope": (2, culprit.ABSENT)}), said
