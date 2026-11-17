@@ -71,8 +71,9 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
 - **Nine budgets on nine axes, never merged**: `VERI_STUCK_RETRIES` (liveness — no answer),
   `VERI_NO_VERDICT_RETRIES` (protocol compliance — finished without a `VERDICT:` line),
   `REVISE_BUDGET` (verdict — rejected), `VERI_REFACTOR_BUDGET` (cost — the transforms one
-  refactor leaf may apply for the whole step; ADR-0017) and `VERI_STEP_GROWTH` (plan growth —
-  max `⟦added⟧` steps per ledger; ADR-0022), never folded into the other four, and
+  refactor leaf may apply for the whole step; ADR-0017) and `VERI_STEP_GROWTH_PERCENT` (plan
+  growth — max `⟦added⟧` steps per ledger, as a percent of the steps in the verified plan, rounded
+  up; ADR-0022), never folded into the other four, and
   `VERI_SKILL_EDIT_BUDGET` (the attempts one `⟦skill-edit⟧` step's author may make), a sixth on an
   axis of its own, never folded into the other five, and `VERI_MISSING_REROUTE_BUDGET` (repeat
   missing reroutes per step), a seventh on an axis of its own: a missing test is not a rejected
