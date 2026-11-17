@@ -1061,3 +1061,17 @@ def test_issue_4092_an_exit_2_from_ready_check_stops_preflight_at_2_ready_check_
     assert code == 2, out
     assert out.splitlines()[-1].startswith("stopped at 2 ready-check.sh"), out
     assert "issue-worktree.sh" not in [n for n, _, _ in calls], calls
+
+
+@pytest.mark.parametrize("answer", [_ready(REFUSING[2]), (2, "", "ready-check.sh: not a git repository\n")])
+def test_issue_4092_a_stop_at_2_ready_check_writes_no_event_and_posts_no_comment(monkeypatch, run_cli, tmp_path, answer):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    monkeypatch.chdir(repo)
+    calls, code, out = _front(monkeypatch, run_cli, tmp_path, {"ready-check.sh": answer})
+    names = [n for n, _, _ in calls]
+
+    assert out.splitlines()[-1].startswith("stopped at 2 ready-check.sh"), out
+    assert not {"preflight-refused.sh", "event.sh", "comment.sh"} & set(names), names
+    assert not [args for n, args, _ in calls if n == "gh" and any("comment" in a for a in args)], calls
+    assert not (repo / ".tdd" / "wt" / "12").exists()
