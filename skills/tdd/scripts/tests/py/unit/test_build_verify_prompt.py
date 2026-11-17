@@ -91,7 +91,7 @@ def test_main_refuses_a_missing_argument_an_option_with_no_value_an_unknown_phas
         ("red", "", "t"): (2, b"", USAGE),
         ("--fast-cmd",): (2, b"", b"build-verify-prompt: --fast-cmd needs a value\n" + USAGE),
         ("bogus", str(spec), "t"): (2, b"", b"build-verify-prompt: unknown phase 'bogus' "
-                                    b"(want red|green|refactor|pin|plan|rebase|transform|diff|surround|expand|cover-new|migrate|contract-a|contract-b)\n"
+                                    b"(want red|green|refactor|pin|plan|rebase|transform|diff|surround|break|expand|cover-new|migrate|contract-a|contract-b)\n"
                                     + USAGE),
         ("green", str(spec), "t", "x"): (
             2, b"", b"build-verify-prompt: green needs --fast-cmd '<fast-tier test command>'\n" + USAGE),
@@ -144,7 +144,7 @@ def test_main_parses_only_leading_options_in_either_order_the_last_winning_and_r
     assert fast_first == step_first
     assert repeated == step_first
     assert build_verify_prompt.PHASES == (
-        "red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround")
+        "red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround", "break")
 
 
 def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_and_refuses_diff_without_step_ahead_of_its_shas(
@@ -2026,3 +2026,21 @@ def test_4123_build_verify_prompt_keeps_its_usage_line_and_options_and_reads_the
                                                    "diff", str(tmp_path / "spec.md"), "0123abc", "4567def"])
 
     assert (with_env == plain, "injected" in with_env, code, out) == (True, False, 2, "")
+
+
+def test_4111_break_renders_verify_break_md_given_a_hex_base_sha_and_exits_2_for_any_other_value(
+        spec, run_cli, build_verify_prompt):
+    step = "wrap parse() in src/parse.py:10-80 through bin/parse \u27e6phases: seam,surround\u27e7 \u27e6criterion 1\u27e7"
+
+    def run(*argv):
+        code, out, err = run_cli(build_verify_prompt, ["--step", step, "--fast-cmd", "make unit", *argv])
+        return code, "## Phase: verify-break" in out, argv[-1] in out if code == 0 else argv[-1] in err
+
+    rendered = {sha: run("break", str(spec), "src/parse.py", sha) for sha in ("3f9a1c0", "3f9a1c0" * 5 + "abcde")}
+    refused = {sha: run("break", str(spec), "src/parse.py", sha)[0]
+               for sha in ("3f9a1c", "3F9A1C0", "3f9a1c0g", "HEAD", "3f9a1c0 ", "a" * 41)}
+    no_sha = run_cli(build_verify_prompt, ["--fast-cmd", "make unit", "break", str(spec), "src/parse.py"])[0]
+
+    assert rendered == {sha: (0, True, True) for sha in rendered}
+    assert (refused, no_sha) == ({sha: 2 for sha in refused}, 2)
+    assert ("break" in build_verify_prompt.PHASES, build_verify_prompt.NEEDS.get("break")) == (True, {"fast-cmd", "base-sha"})

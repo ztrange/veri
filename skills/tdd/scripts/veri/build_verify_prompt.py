@@ -17,10 +17,10 @@ from prompt_template import IncludeRefused, expand_includes, fill, has_heading, 
 from ledger import INTERFACE_PHASES, carries_mark, ledger_steps, trailing_markers
 from replaces_case import is_replaces_case_step
 
-PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround")
+PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround", "break")
 VERIFY_ONLY_PHASES = ("beside", "dual-stub")
 WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
-NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
+NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "break": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
          "transform": {"base-sha"}, **dict.fromkeys(INTERFACE_PHASES + VERIFY_ONLY_PHASES, {"fast-cmd", "base-sha"})}
 HERE = paths.scripts_of(__file__)
 USAGE = ("usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>]"
