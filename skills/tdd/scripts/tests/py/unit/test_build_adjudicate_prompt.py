@@ -165,7 +165,7 @@ def test_ci_conflict_prompt_carries_rebase_as_its_route_tokens(run_cli, build_ad
     assert "Routes: rebase\n" in out
 
 
-@pytest.mark.parametrize("cause", ["pr-ready-failed", "report-missing", "step-add-refused"])
+@pytest.mark.parametrize("cause", ["pr-ready-failed", "report-missing", "step-add-refused", "replaces-report-failed"])
 def test_a_cause_listed_with_no_route_exits_0_its_prompt_carrying_routes_none(
     run_cli, build_adjudicate_prompt, tmp_path, cause
 ):
