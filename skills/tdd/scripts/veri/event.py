@@ -345,8 +345,12 @@ def stage(name, body, directory="", run_context=None):
     `stage-end stage=<name> status=<code> secs=<whole seconds>` after it, on every exit; a body that raises ends its
     stage with status 2 and its error is raised on, and so does a code outside the four exit codes (a script's 4, git's
     128): no answer could be obtained, the code itself returned unchanged. Each line goes through `mark`, so a line that
-    cannot be written is one stderr line and never changes what the body returns: telemetry never bails a run."""
-    run_context = context(os.environ) if run_context is None else run_context
+    cannot be written is one stderr line and never changes what the body returns: telemetry never bails a run. With no
+    `run_context`, the environment's, its issue `VERI_STATE_LABEL_ISSUE` when `VERI_ISSUE` is unset: the conductor
+    exports that to every command it runs, so a script's stage reaches its issue's journal."""
+    if run_context is None:
+        run_context = context(os.environ)
+        run_context["issue"] = run_context["issue"] or os.environ.get("VERI_STATE_LABEL_ISSUE", "")
     stage_mark(directory, run_context, "stage-start", ["stage=" + name])
     began = time.monotonic()
     status = 2

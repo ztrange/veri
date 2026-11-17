@@ -57,6 +57,11 @@ def record(event, **fields):
                 event=event, **fields)
 
 
+def unstaged(events):
+    """The records but the push stage's own `stage-start` and `stage-end` lines (#4230), which a case of its own pins."""
+    return [r for r in events.records() if r["event"] not in ("stage-start", "stage-end")]
+
+
 def merged(answer):
     """<answer>(line) -> (exit code, merged output), as the shared fake's answer."""
     return lambda line, **_: (*answer(line), "")
@@ -82,7 +87,7 @@ def test_main_with_one_retry_runs_a_failed_push_to_its_push_failed_event(tmp_pat
         "sleep 2",
         "git push --set-upstream origin HEAD",
     ]
-    assert events.records() == [record("push-failed", error="fatal: unable to access origin", attempts="2")]
+    assert unstaged(events) == [record("push-failed", error="fatal: unable to access origin", attempts="2")]
     assert (code, captured.out, captured.err) == (
         0, "", "push-branch.sh: push failed after 2 attempts; the branch is not on the remote\n")
 
@@ -138,7 +143,7 @@ def test_main_reports_a_non_fast_forward_rejection_once_and_records_push_rejecte
         "git rev-parse --abbrev-ref HEAD",
         "git ls-remote origin refs/heads/feature",
     ]
-    assert (code, captured.out, captured.err, events.records()) == (
+    assert (code, captured.out, captured.err, unstaged(events)) == (
         1, "", "push rejected (non-fast-forward): origin/feature is at abc1234def\n",
         [record("push-rejected", remote_sha="abc1234def", error=rejected)])
 
@@ -159,7 +164,7 @@ def test_main_reads_retries_and_backoff_with_leading_zeros_as_decimal_and_record
         monkeypatch.setenv("VERI_PUSH_BACKOFF", backoff)
         code = push_branch.main([])
         sleeps = [line for line in calls if line.startswith("sleep ")]
-        return code, calls.count(push), sleeps[1:], events.records(), capsys.readouterr().err
+        return code, calls.count(push), sleeps[1:], unstaged(events), capsys.readouterr().err
 
     def failed_record(attempts):
         return [record("push-failed", error="fatal: unable to access origin", attempts=attempts)]
@@ -187,7 +192,7 @@ def test_main_lands_a_lease_push_silently_and_records_the_last_attempts_merged_o
         monkeypatch.setenv("VERI_PUSH_BACKOFF", "0")
         code = push_branch.main(argv)
         captured = capsys.readouterr()
-        return code, calls, captured.out, captured.err, events.records()
+        return code, calls, captured.out, captured.err, unstaged(events)
 
     lease = "--force-with-lease=feature:abc1234"
     leased_push = f"git push {lease} --set-upstream origin HEAD"
@@ -245,7 +250,7 @@ def test_main_returns_2_on_a_failed_event_write_bad_tunable_or_bad_argument_and_
         monkeypatch.setenv("VERI_PUSH_RETRIES", retries)
         monkeypatch.setenv("VERI_PUSH_BACKOFF", backoff)
         code = push_branch.main(argv)
-        return code, calls, capsys.readouterr().err, events.records()
+        return code, calls, capsys.readouterr().err, unstaged(events)
 
     unreachable = (128, "fatal: unable to access origin\n")
     observed = (
@@ -303,7 +308,7 @@ def test_main_retries_an_unreachable_origin_doubling_its_backoff_and_returns_2_o
             else:
                 monkeypatch.delenv(name, raising=False)
         code = push_branch.main([])
-        return code, calls, capsys.readouterr().err, [r["event"] for r in events.records()]
+        return code, calls, capsys.readouterr().err, [r["event"] for r in unstaged(events)]
 
     two_retries = run_with({"VERI_PUSH_RETRIES": "2", "VERI_PUSH_BACKOFF": "0"}, [unreachable])
     default_retries = run_with({"VERI_PUSH_BACKOFF": "0"}, [unreachable])
@@ -350,3 +355,24 @@ def test_main_refuses_a_retries_or_backoff_that_is_not_a_non_negative_whole_numb
         (2, [], f"push-branch.sh: {name} must be a non-negative integer, got '{value}'\n")
         for name in names for value in bad
     ]
+
+
+@pytest.mark.parametrize("push_answer, code", [((0, ""), 0), ((1, " ! [rejected]        HEAD -> feature (non-fast-forward)\n"), 1)],
+                         ids=["landed", "rejected"])
+def test_4230_push_branch_runs_as_stage_push_of_the_runs_issue_ending_with_its_exit_code(
+        tmp_path, monkeypatch, push_branch, fake_processes, events, push_answer, code):
+    def answer(line):
+        if line.startswith("git push "):
+            return push_answer
+        return (0, "abc1234def\trefs/heads/feature\n") if "ls-remote" in line else (0, "feature\n")
+
+    fake_processes(merged(answer))
+    events.refuse_event_sh()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_PUSH_RETRIES", "0")
+    monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "12")
+
+    returned = push_branch.main([])
+
+    stages = [(r["event"], r["stage"], r.get("status"), r["issue"]) for r in events.records() if "stage" in r]
+    assert (returned, stages) == (code, [("stage-start", "push", None, "12"), ("stage-end", "push", str(code), "12")])
