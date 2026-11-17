@@ -32,7 +32,7 @@ def rendered(run_cli, builders, cwd):
     red = run_cli(develop, ["red", spec, "a step", "npm test"], cwd=cwd)
     verify_red = run_cli(verify, ["red", spec, "tests/test_x.py"], cwd=cwd)
     return [(code, err) for code, _, err in (red, verify_red)], [
-        (lines_with(out, "timed-test-run.sh affected"), re.findall(r"(`[^`]*`) — the one invocation for a single", out))
+        (lines_with(out, "timed-test-run.sh affected"), re.findall(r"(`[^`]*`) — the repo's runner for one test file", out))
         for _, out, _ in (red, verify_red)]
 
 
