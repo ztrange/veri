@@ -48,6 +48,12 @@ def run(n, settled):
             raise fused.Stop("1.4", "tree-check", 1)
         fused.checked("1.4", "git", "add", ".gitignore", cwd=wt)
         fused.checked("1.4", "git", "commit", "-m", "chore: ignore veri run state (#%s)" % n, cwd=wt)
+    ledger = os.path.join(".tdd", "issue-%s.md" % n)
+    if os.path.exists(os.path.join(wt, ledger)):
+        code = fused.call(fused.script("plan-reverify.sh"), ledger, cwd=wt)[0]
+        if code not in (0, 3):
+            raise fused.Stop("1.5", "plan-reverify.sh %s exit %d" % (ledger, code), code)
+        sys.stdout.write("verify_plan=%s\n" % ("owed" if code == 0 else "skip"))
     return 0
 
 
