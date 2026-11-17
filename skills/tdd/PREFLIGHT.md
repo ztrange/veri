@@ -38,12 +38,14 @@ the branch already holds a ledger, runs steps 1 to 7 below and never calls the s
    call) are paid once per clone: pass `--no-permissions` too, and print
    `permission rows skipped: checked <date>` (the date as the file holds it), when
    `.tdd/permissions-checked` in the main working tree holds the current gh login (`gh api user`'s
-   `login`), `origin`'s current URL (`git remote get-url origin`) and the check's current version,
+   `login`), a sha256 of `origin`'s current URL (`git remote get-url origin`; the URL itself, which
+   may carry a credential, is never written) and the check's current version,
    and `VERI_RECHECK_PERMISSIONS` is unset or `0`. A missing or stale record — one naming another
    login, URL or version, or one that cannot be read, is malformed or is dated in the future — or
    `VERI_RECHECK_PERMISSIONS=1` runs the permission rows. The record (those three facts and the date)
    is written only after a check that ran them in which every permission row was printed and none
-   failed; after one in which any failed, an existing record is left as it was. A
+   failed; after one in which any failed, an existing record is left as it was. A record that cannot
+   be written costs only the record: one stderr line names it and why, and the run goes on. A
    `VERI_RECHECK_PERMISSIONS` other than `0` or `1`, set-but-empty included, stops the run before
    `ready-check.sh` (`stopped at 2 VERI_RECHECK_PERMISSIONS`, exit 2).
 3. **Suite is green at baseline — and time it — on the commit the cycles build on.** Enter
