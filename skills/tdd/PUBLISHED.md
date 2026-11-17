@@ -183,6 +183,11 @@ neither. It has exactly one of six outcomes:
 | `conductor.model` | string, the conductor's model | yes, when none was recorded |
 | `conductor.estimated` | boolean, `true` when a session has no closing record yet | no |
 | `conductor.priced` | `true` when every session carries a price, `false` when none does, the string `"partial"` otherwise | no |
+| `conductor.by_phase` | object keyed by window: a leaf kind (a leaf's `launch` to its `exit`), a stage (its `stage-start` to its `stage-end`), `between` (a timed turn no such window holds) or `untimed` (a turn whose record carries no time, or that the session's closing record counts and no record shows); each turn of the conductor's stream log counted once, under the innermost leaf or stage window holding its time, so its `turns` sum to `conductor.turns`. A window with no end holds no turn | yes, when no conductor log was read |
+| `conductor.by_phase.<window>` | object, the conductor's turns in that window | no |
+| `conductor.by_phase.<window>.turns` | whole number | no |
+| `conductor.by_phase.<window>.output_tokens` | whole number, the turns' output tokens: a closed session's output split evenly over its turns | no |
+| `conductor.by_phase.<window>.cost_usd` | number, dollars: an estimate from each turn's own usage and a share of its session's cost, not a billed amount | yes, when a turn of the window belongs to a session that carries no price |
 | `total` | object: the run's whole spend | no |
 | `total.turns` | whole number | no |
 | `total.input_tokens` | whole number | no |
