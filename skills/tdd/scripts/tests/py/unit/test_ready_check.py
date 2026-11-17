@@ -537,9 +537,11 @@ def test_issue_4088_a_re_run_while_a_tier_is_still_running_waits_on_that_run_and
     import types
     clock = iter([1000.0, 1100.4, 1100.4, 1105.0])
     monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=lambda: next(clock), monotonic=lambda: 0.0), raising=False)
-    fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (3, "", ""), "git worktree list": listing(tmp_path)}))
+    fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (3, "", ""), "git worktree list": listing(tmp_path),
+                                               "detach-command.sh start ready-fast": running_suite("fast")}))
     first, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
-    fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (1, "4\n", ""), "git worktree list": listing(tmp_path, "fast")}))
+    fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (1, "4\n", ""), "git worktree list": listing(tmp_path, "fast"),
+                                                      LSTART: (0, STARTED + "\n", "")}))
     code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
     lines = out.splitlines()
 
@@ -564,7 +566,7 @@ def test_issue_4088_a_tier_whose_run_died_without_recording_an_exit_fails_its_ro
 def test_issue_4088_both_tiers_share_one_wait_bound_per_call_the_second_waiting_only_what_the_first_left(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
     import types
     import time
-    ticks = iter([0.0, 0.0, 0.0])
+    ticks = iter([0.0, 0.0, 0.0, 0.0])
     monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=time.time, monotonic=lambda: next(ticks, 400.0)), raising=False)
     fake = fake_processes.answers(holding(**TIERS))
     run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
@@ -652,7 +654,8 @@ def test_issue_4088_a_plain_directory_left_at_a_tier_worktrees_path_is_not_reuse
                                      {"detect-test-command.sh --tier fast": (0, "make unit-fast\n", "")}])
 def test_issue_4088_a_tier_worktree_left_for_another_tip_or_command_is_not_reused_but_replaced_by_a_fresh_run(ready_check, run_cli, fake_processes, tmp_path, changed):
     wt = str(tmp_path / ".tdd" / "ready-fast")
-    fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (3, "", ""), "git worktree list": listing(tmp_path, "fast")}))
+    fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (3, "", ""), "git worktree list": listing(tmp_path, "fast"),
+                                               "detach-command.sh start ready-fast": ended_suite("fast")}))
     first, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
     fake = fake_processes.answers(holding(**{**TIERS, "git worktree list": listing(tmp_path, "fast"), **changed}))
     code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
@@ -686,12 +689,106 @@ def test_issue_4088_an_exception_after_a_tier_started_exits_2_leaving_its_worktr
     assert (wt / ".tdd" / "ready-fast.record").exists()
 
 
-def test_issue_4088_an_exception_before_a_tier_started_exits_2_having_removed_the_worktree_it_added(ready_check, run_cli, fake_processes, tmp_path):
-    fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh start ready-fast": OSError(7, "no detach")}))
-    code, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+def test_issue_4088_an_interrupt_during_a_tiers_start_leaves_its_worktree_and_record_since_the_suite_may_have_started(ready_check, run_cli, fake_processes, tmp_path):
+    fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh start ready-fast": KeyboardInterrupt()}))
+    with pytest.raises(KeyboardInterrupt):
+        run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
 
-    assert code == 2
-    assert [argv for argv, _ in calls_in(fake, "git worktree remove") if str(tmp_path / ".tdd" / "ready-fast") in argv], fake.calls
+    wt = tmp_path / ".tdd" / "ready-fast"
+    assert not [argv for argv, _ in calls_in(fake, "git worktree remove") if str(wt) in argv], fake.calls
+    assert (wt / ".tdd" / "ready-fast.record").exists()
+
+
+STARTED = "Mon Nov 16 10:00:00 2026"
+LSTART = "ps -o lstart= -p"
+
+
+def leave_tier(tmp_path, tier="fast", tip="c0ffee", command="make unit", pid=None, started=STARTED, exit_code=None):
+    """A tier worktree an earlier call left: its record, and the pid file and exit file detach-command.sh writes."""
+    tdd = tmp_path / ".tdd" / f"ready-{tier}" / ".tdd"
+    tdd.mkdir(parents=True)
+    (tdd / f"ready-{tier}.record").write_text(f"1000.0\n{tip}\n{command}\n")
+    if pid is not None:
+        (tdd / f"ready-{tier}.pid").write_text(f"{pid}\n{started}\n")
+    if exit_code is not None:
+        (tdd / f"ready-{tier}.exit").write_text(f"{exit_code}\n")
+    return tmp_path / ".tdd" / f"ready-{tier}"
+
+
+def test_issue_4088_a_stale_tier_worktree_whose_run_still_goes_is_not_removed_and_fails_the_row_naming_it(ready_check, run_cli, fake_processes, tmp_path):
+    wt = leave_tier(tmp_path, tip="0ld0ld", pid=os.getpid())
+    fake = fake_processes.answers(holding(**TIERS, **{"git worktree list": listing(tmp_path, "fast"), LSTART: (0, STARTED + "\n", "")}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+
+    row = tier_run_line(out.splitlines(), "fast")
+    assert row.startswith("fail  fast tier run:") and str(wt) in row, out
+    assert not [argv for argv, _ in calls_in(fake, "git worktree remove") if str(wt) in argv], fake.calls
+    assert not calls_in(fake, "detach-command.sh start ready-fast"), fake.calls
+
+
+def running_suite(tier):
+    """A detach-command.sh start answer that leaves a pid file naming a live process, as a suite still running would."""
+    def start(line, cwd=None, **kwargs):
+        with open(os.path.join(cwd, ".tdd", f"ready-{tier}.pid"), "w") as pid_file:
+            pid_file.write(f"{os.getpid()}\n{STARTED}\n")
+        return 0, "", ""
+    return start
+
+
+def ended_suite(tier):
+    """A detach-command.sh start answer whose suite has since ended: its pid file names a pid no process holds."""
+    def start(line, cwd=None, **kwargs):
+        with open(os.path.join(cwd, ".tdd", f"ready-{tier}.pid"), "w") as pid_file:
+            pid_file.write(f"999999\n{STARTED}\n")
+        return 0, "", ""
+    return start
+
+
+def test_issue_4088_a_wait_answering_2_while_the_suite_still_runs_leaves_its_worktree_and_record(ready_check, run_cli, fake_processes, tmp_path):
+    fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh start ready-fast": running_suite("fast"),
+                                                      "detach-command.sh wait ready-fast": (2, "", ""), LSTART: (0, STARTED + "\n", "")}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+
+    wt = tmp_path / ".tdd" / "ready-fast"
+    assert tier_run_line(out.splitlines(), "fast").startswith("fail  fast tier run"), out
+    assert not [argv for argv, _ in calls_in(fake, "git worktree remove") if str(wt) in argv], fake.calls
+    assert (wt / ".tdd" / "ready-fast.record").exists()
+
+
+def test_issue_4088_a_started_tier_with_no_pid_file_and_no_exit_may_be_running_so_it_is_kept_and_its_row_fails_naming_it(ready_check, run_cli, fake_processes, tmp_path):
+    wt = leave_tier(tmp_path)
+    fake = fake_processes.answers(holding(**TIERS, **{"git worktree list": listing(tmp_path, "fast")}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+
+    row = tier_run_line(out.splitlines(), "fast")
+    assert row.startswith("fail  fast tier run:") and str(wt) in row, out
+    assert not calls_in(fake, "detach-command.sh wait ready-fast"), fake.calls
+    assert not [argv for argv, _ in calls_in(fake, "git worktree remove") if str(wt) in argv], fake.calls
+
+
+def test_issue_4088_a_tier_whose_pid_was_reused_by_another_process_died_without_an_answer_and_its_worktree_is_removed(ready_check, run_cli, fake_processes, tmp_path):
+    wt = leave_tier(tmp_path, pid=os.getpid(), started="Sun Nov 15 09:00:00 2026")
+    fake = fake_processes.answers(holding(**TIERS, **{"git worktree list": listing(tmp_path, "fast"), LSTART: (0, STARTED + "\n", "")}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+
+    row = tier_run_line(out.splitlines(), "fast")
+    assert row.startswith("fail  fast tier run") and "no answer was obtained" in row, out
+    assert not calls_in(fake, "detach-command.sh wait ready-fast"), fake.calls
+    assert [argv for argv, _ in calls_in(fake, "git worktree remove") if str(wt) in argv], fake.calls
+
+
+def test_issue_4088_a_deadline_passed_before_the_tiers_starts_none_and_exits_3_naming_the_tiers_not_started(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
+    import types
+    import time
+    ticks = iter([0.0])
+    monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=time.time, monotonic=lambda: next(ticks, 600.0)), raising=False)
+    fake = fake_processes.answers(holding(**TIERS))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    lines = out.splitlines()
+
+    assert code == 3, out
+    assert lines[-1].startswith("waiting on ready-fast") and "ready-fast" in lines[-1] and "ready-all" in lines[-1], lines
+    assert not calls_in(fake, "detach-command.sh start") and not calls_in(fake, "git worktree add"), fake.calls
 
 
 PROBE = "claude -p --model haiku --permission-mode bypassPermissions --output-format json"
