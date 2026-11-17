@@ -1,7 +1,7 @@
 ---
 name: vhandoff
 description: >-
-  Write a session handoff so a fresh session can take over: `/vhandoff dev|coord`. Use when the user asks to hand off, or the context is running out.
+  Write a session handoff so a fresh session can take over: `/vhandoff dev`. Use when the user asks to hand off, or the context is running out.
 ---
 
 # vhandoff — hand a session over
@@ -13,21 +13,21 @@ Every command runs from the target repository's main working tree.
 
 ## Invocation
 
-Invoked as `/vhandoff dev|coord`. The role is the one argument. Resume is
-`/vdev --resume <file>` for dev, or `/vcoord --resume <file>` for coord.
+Invoked as `/vhandoff dev`. The role is the one argument. Resume is
+`/vdev --resume <file>`.
 
 In a session that has the app's `start_session` tool (the desktop app), `/vhandoff dev` writes
 nothing: say that the dev session resets itself and recovers from its role state file
 (`.tdd/role-dev.state`), and stop. In a session without it (a terminal), it works as below.
 
-## Refusals (dev only)
+## Refusals
 
 For the dev role, refuse, say which, and write nothing while:
 
 - `$S/merge-lock.sh holder` names a live holder (a stale lock, whose holder is gone, does not refuse);
 - a launch is half done (a worktree or claim exists without its conductor running).
 
-Wait for it to finish, then retry. The coord role has no such refusal.
+Wait for it to finish, then retry.
 
 ## Writing it
 
@@ -44,8 +44,7 @@ It carries, and only this:
 - for overrides and one-off permissions, a pointer to the role state file
   (`.tdd/role-<role>.state`), where they are written (P9); copy none of them here;
 - pending decisions;
-- for dev, the attached coordinator's session id, if one is attached;
-- for dev, whether `.tdd/github-outage` exists in the main working tree, read from the file
+- whether `.tdd/github-outage` exists in the main working tree, read from the file
   when the handoff is written, and, when it does, each PR url it lists, in the file's order:
   the `mode on|off` and `held <url>` lines `$S/github-outage.sh status` prints.
 
@@ -65,5 +64,3 @@ Print the resume command in a fenced block, with the real file path:
 ```
 /vdev --resume .tdd/handoff-dev.md
 ```
-
-(or `/vcoord --resume .tdd/handoff-coord.md` for coord).
