@@ -105,9 +105,9 @@ def answered(*args, **kw):
 
 
 def porcelain(wt):
-    """The lines `git status --porcelain --untracked-files=all` prints."""
-    return [line for line in fused.checked("1", "git", "status", "--porcelain", "--untracked-files=all",
-                                           cwd=wt).splitlines() if line.strip()]
+    """The lines `git status --porcelain --untracked-files=all` prints; its failure is exit 2."""
+    return [line for line in answered("git", "status", "--porcelain", "--untracked-files=all", cwd=wt).splitlines()
+            if line.strip()]
 
 
 def tip_suite(wt, n):
@@ -127,7 +127,7 @@ def push(wt, pre, regraded):
     (<regraded>) refusing it, then the push under the lease pinned to the pre-rebase sha (RB5)."""
     if [line for line in porcelain(wt) if not (line[:2] in (" M", "M ") and line[3:] in regraded)]:
         raise fused.Stop("1", "tree-check", 1)
-    branch = fused.checked("1", "git", "branch", "--show-current", cwd=wt).strip()
+    branch = answered("git", "branch", "--show-current", cwd=wt).strip()
     fused.checked("1", fused.script("push-branch.sh"), "--force-with-lease=%s:%s" % (branch, pre), cwd=wt)
 
 
@@ -148,7 +148,7 @@ def ledger_text(wt, n):
 
 def questions(wt, n):
     """Sub-step 1's two questions (RB1): a dirty tree, or a step still only green, stops it with exit 1."""
-    if fused.changed_paths("1", wt):
+    if porcelain(wt):
         raise fused.Stop("1", "tree-check", 1)
     code = fused.call(fused.script("next-pending-refactor.sh"), cwd=wt, stdin=ledger_text(wt, n))[0]
     if code != 3:
