@@ -549,6 +549,9 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `held_by_ancestor()`: True when `PYTEST_LEG_FULL_LOCK_HOLDER` names the live pid the lock file records, so a nested run skips the lock. `enabled()`: False when `VERI_TEST_LOCK` is 0.
 - `wait_marker(key)`: the path a waiting run marks its wait at. `legs_dir()`: the registry directory the lock file sits beside.
 
+## leg_tmpdir
+- `PINNED_TMPDIR`: the TMPDIR the pytest leg pins before it starts, and a directory run-conductor's free-space check reads.
+
 # Target suites and tiers
 
 Choosing and running the suites of the project veri works on: finding its test commands, the suites a change affects, timed, baseline, branch and rebased-tip runs, flakes, reruns and mutation probes. Builds on Run state and journal and Foundations only.

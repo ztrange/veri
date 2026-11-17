@@ -125,7 +125,9 @@ def tests_py_index():
 
 @pytest.fixture(scope="session")
 def veri_modules_index():
-    return VeriModules(SCRIPTS / "veri")
+    # The pytest leg (tests/leg/) is the product's own test launcher and imports veri/'s interface, so its modules count
+    # as users of veri/'s names in the index audits; it moved out of veri/ (#4051). tests/py files never count.
+    return VeriModules(SCRIPTS / "veri", users=SCRIPTS / "tests" / "leg")
 
 
 REAL_RUN, REAL_POPEN = subprocess.run, subprocess.Popen
