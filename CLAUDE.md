@@ -17,7 +17,14 @@ veri: one test file: `make test TESTS="$1"`
 | | |
 |---|---|
 | `make test` | The full suite, and the baseline veri detects in its own repo: it must stay green, since a red baseline makes the conductor refuse to start. |
+| `make unit` | The fast tier: `skills/tdd/scripts/tests/py/unit/` only, without the `process` and `tree_audit` cases. |
 | `make install-dev` | Once per machine: creates the shared venv at `$VERI_VENV` (default `~/.veri-tools/venv`) and installs the hash-checked lock `requirements-dev.txt` (generated from `requirements-dev.in`, installed with `--require-hashes`). Idempotent, never activated; it prints the `export PATH=…` line for scripts that run `python3` from PATH. |
+| `make profile` | Runs the suites `make test` runs and prints one line per case at or above `VERI_PROFILE_THRESHOLD` seconds, slowest first. Nothing gates on it. |
+| `make unreachable` | Lists the scripts no declared entry point reaches, through `unreachable.sh`. |
+| `make report` | Prints the `/vreport` figures, through `report.sh`. |
+| `make watch` | Reruns `make unit` whenever a tracked file changes. Nothing gates on it. |
+| `make run-finished ISSUE=<n>` | Says whether run `<n>` is safe to merge, through `run-finished.sh`. |
+| `make ready-check` | Reports whether veri can run in this repository, through `ready-check.sh`. |
 
 Operator sessions, and every subagent they brief, run with `$VERI_VENV/bin` (default
 `~/.veri-tools/venv/bin`) first on PATH, since PATH's `python3` may lack pytest.
