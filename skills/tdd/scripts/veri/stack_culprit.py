@@ -63,10 +63,30 @@ def _run_alone(path, command, target):
     return ran.returncode, ran.stdout or ""
 
 
-def _first_fail(output, path):
-    """The first line of an alone run's <output> holding FAIL, stripped, with <path> written `<worktree>` and the home
-    directory `~`, since it is published; `(no FAIL line)` when none holds it."""
-    line = next((line.strip() for line in output.splitlines() if "FAIL" in line), "(no FAIL line)")
+_ABSENT = re.compile(r"^ERROR: not found: |\bno tests ran\b|^collected 0 items", re.M)
+
+
+def _verdict(code, output, case):
+    """What an alone run of <case> says: True red (it exited non-zero and its output carries a failure line naming
+    <case>, read as ci-flake.sh reads one), False not red (it exited 0, or its output says the case was not found or
+    not collected), None no answer (any other ending, a kill or a timeout). The exit code alone never decides: a make
+    wrapper exits 2 for a failing case and a missing one alike."""
+    if code is None:
+        return None
+    if code == 0:
+        return False
+    text = ci_flake.ANSI.sub("", output)
+    if case in rerun_alone.named_targets(text):
+        return True
+    return False if _ABSENT.search(text) else None
+
+
+def _first_fail(output, path, case):
+    """The first failure line of an alone run's <output> naming <case> (else the first holding FAIL), stripped, with
+    <path> written `<worktree>` and the home directory `~`, since it is published; `(no FAIL line)` when none is."""
+    lines = [line.strip() for line in ci_flake.ANSI.sub("", output).splitlines()]
+    line = next((line for line in lines if line.startswith(("FAILED " + case, "ERROR " + case))),
+                next((line for line in lines if "FAIL" in line), "(no FAIL line)"))
     return line.replace(path, "<worktree>").replace(os.path.expanduser("~"), "~")
 
 
@@ -134,11 +154,13 @@ def _search(path, command, ends, before, red, cases):
             if not _has(path, commit, case.split("::", 1)[0]):
                 continue
             code, output = _run_alone(path, command, case)
-            if code not in (0, 1, 4, 5):
-                raise _NoAnswer("%s run alone at %s gave no answer (%s)" % (
-                    case, commit, "no exit within VERI_TIMEOUT" if code is None else "exit %d" % code))
-            if code == 1:
-                red_here.append((case, _first_fail(output, path)))
+            said = _verdict(code, output, case)
+            if said is None:
+                raise _NoAnswer("%s run alone at %s gave no answer (%s, and its output names no failure of it and"
+                                " does not say it was not found)" % (
+                                    case, commit, "no exit within VERI_TIMEOUT" if code is None else "exit %d" % code))
+            if said:
+                red_here.append((case, _first_fail(output, path, case)))
         if red_here:
             return "red: %s\nissue: %s\ncommit: %s\nbefore: %s\n%s" % (
                 red, " ".join(sorted(owners, key=int)) or "none", commit, before,
