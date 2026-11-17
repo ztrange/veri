@@ -33,6 +33,19 @@ the branch already holds a ledger, runs steps 1 to 7 below and never calls the s
    `all tier`, `pull_request`, `gh auth`, `push access` or `label <VERI_LABEL's value>` row
    stops the run with exit 1, and a `ready-check.sh` that gives no answer (its exit 2) stops it
    with exit 2; any other failing row is printed and the run goes on.
+   Its permission rows (`token scopes`, `label <VERI_PRIORITY_LABEL's value>`, `label bug`,
+   `actions read`, `run-state ignore`, `push dry-run`, `bypassPermissions`, the last a paid Haiku
+   call) are paid once per clone: pass `--no-permissions` too, and print
+   `permission rows skipped: checked <date>` (the date as the file holds it), when
+   `.tdd/permissions-checked` in the main working tree holds the current gh login (`gh api user`'s
+   `login`), `origin`'s current URL (`git remote get-url origin`) and the check's current version,
+   and `VERI_RECHECK_PERMISSIONS` is unset or `0`. A missing or stale record — one naming another
+   login, URL or version, or one that cannot be read, is malformed or is dated in the future — or
+   `VERI_RECHECK_PERMISSIONS=1` runs the permission rows. The record (those three facts and the date)
+   is written only after a check that ran them in which every permission row was printed and none
+   failed; after one in which any failed, an existing record is left as it was. A
+   `VERI_RECHECK_PERMISSIONS` other than `0` or `1`, set-but-empty included, stops the run before
+   `ready-check.sh` (`stopped at 2 VERI_RECHECK_PERMISSIONS`, exit 2).
 3. **Suite is green at baseline — and time it — on the commit the cycles build on.** Enter
    the issue's worktree first, as step 1.2 describes — slug from the title — and clear any stale stop request there before anything else. The
    worktree's lock, `.tdd/conductor.pid`, is not yours to write: `run_conductor.py` claims it
