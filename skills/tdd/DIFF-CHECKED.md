@@ -46,8 +46,8 @@ The verifier's verdict closes the `⟦diff-checked⟧` step:
   `alone="$($S/detect-test-command.sh --tier "one test file")"` then `sh -c "$alone" sh <test file>`,
   or, when the repo declares none (that call exits 3), its all-tier command,
   `all="$($S/detect-test-command.sh --tier all)"` then `sh -c "$all"`. Exit **0** (the flipped case
-  went red) goes on to the PASS branch below, the probe's `.tdd/issue-<n>-mutations.md` record
-  committed with the step's tick. Exit **1** (it stayed green) is a verify-diff REJECT naming the
+  went red) goes on to the PASS branch below. The call sets no `VERI_MUTATION_RECORD`, so the probe
+  writes no `.tdd/issue-<n>-mutations.md` record: the flip proves the fix once, and nothing replays it. Exit **1** (it stayed green) is a verify-diff REJECT naming the
   case, spending `REVISE_BUDGET`: write `REJECT: flipping <old>→<new> in <test file> left <file>::<case> green`
   to `.tdd/verify-diff.reason` (`Read` `<base directory>/REVISE.md`); a report with no `FLIP:` line is a
   REJECT the same way, its reason saying the line is missing. Exit **2**, or a `detect-test-command.sh` exit 2, bails `no-verdict`, a
