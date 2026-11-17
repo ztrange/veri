@@ -41,7 +41,7 @@ Directions the tree obeys (checked by the same test; every group states what it 
 - Run state and journal imports only: Foundations
 - Ledger and plan imports only: Foundations; Run state and journal
 - Leaf launch and supervision imports only: Foundations; Run state and journal; Ledger and plan; Target suites and tiers; Veri's own test runner; Frozen tests and case history
-- Prompts and leaf reports imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision
+- Prompts and leaf reports imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Target suites and tiers
 - Verdicts and verification imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Prompts and leaf reports
 - Veri's own test runner imports only: Foundations; Run state and journal
 - Target suites and tiers imports only: Foundations; Run state and journal
@@ -473,7 +473,7 @@ How a leaf is launched through the supervisor, detached, waited for and timed, a
 
 # Prompts and leaf reports
 
-What a leaf is told (the prompt builders) and what it answers (the `KEY: value` report and the readers of each leaf's report). Builds on Ledger and plan, Run state and journal, Leaf launch and supervision and Foundations.
+What a leaf is told (the prompt builders) and what it answers (the `KEY: value` report and the readers of each leaf's report). Builds on Ledger and plan, Run state and journal, Leaf launch and supervision, Target suites and tiers (the run lines a prompt gives, `run_line`) and Foundations.
 
 - `build-adjudicate-prompt.sh`: render the adjudicator leaf's prompt.
 - `build-develop-prompt.sh`: render a developer leaf's prompt (red, green, refactor, revise).
@@ -567,6 +567,7 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `pin-fast-tier.sh`: run the fast tier over the tree a pin would commit.
 - `rebased-tip-suite.sh`: print `ci` or `local`: where the rebased tip's suite runs.
 - `rerun-alone.sh`: rerun each target of a red run alone.
+- `stem_walk`: the whole-word stem walk outside veri's own tree: the files git does not ignore, and which of them name a path's stem.
 - `suite-flakes.sh`: flaky targets across runs.
 - `timed-test-run.sh`: run a test command and journal one `test-run` event.
 
@@ -579,6 +580,10 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `resolved(tier, issue, root)`: the test command for a tier, `None` when none is found.
 - `Answer(command)`: the exception that carries a found command out of the search; `answer_from_file(path, marker)` raises it from a file's lines.
 - `unwrapped(text)`, `SPACE`: the command a marker's rest names (a leading backtick span unwrapped), and the whitespace stripped before it; `answer_from(line, marker)`: raises `Answer` with the command one line declares after `marker`. `record_test_commands` reads a CLAUDE.md line as the detector does.
+
+## run_line
+- `own_tree(root=".")`: whether `root` is veri's own tree (`skills/tdd/scripts/tests/py` is a directory there).
+- `run_lines(root=".")`: `(affected, one)` as bytes, the commands a leaf prompt gives for the suites `affected-suites.sh` printed and for a single suite: today's `make test TESTS="…"` text in veri's own tree, elsewhere the repo's `veri: one test file:` command once per path through `sh -c`, or its all-tier command when it declares none. Read from the tree's files alone.
 
 ## rerun_alone
 - `named_targets(text)`: the test targets a red run's output names, in order, each once.

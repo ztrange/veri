@@ -1,1 +1,1 @@
-{{TIMED_TEST_RUN}} affected '<the suites you ran>' make test TESTS="<those paths>"
+{{TIMED_TEST_RUN}} affected '<the suites you ran>' {{AFFECTED_RUN_LINE}}
