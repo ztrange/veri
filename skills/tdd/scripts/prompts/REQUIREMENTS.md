@@ -905,6 +905,12 @@
 | QF2 | It tells the verifier to REJECT, naming the path or hunk, any change outside the target test's file, the named fixture file and Red's case. (Third sentence.) | A fixture repair may touch only those files; anything else is a hidden change. |
 | QF3 | It tells the verifier to PASS only when the target case passes with every change confined to those. (Last sentence.) | The repair is proven by the target case, within the permitted files. |
 
+## skills/tdd/scripts/prompts/_verify-plan-legacy.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QL1 | The fragment tells the plan verifier to REJECT a legacy step that names no region, names no seam, or names a seam inside its own region. | The seam is what makes the test black-box (PRD 031, D1). |
+
 ## skills/tdd/scripts/prompts/_verify-plan-refactor.md
 
 | ID | Requirement | Why |
