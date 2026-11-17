@@ -67,3 +67,14 @@ def test_4227_a_journal_with_no_step_reworded_line_folds_as_before_with_every_fo
 
     assert [(entry["text"], entry["former"], entry["attempts"], entry["rejects"]["pending"]) for entry in steps] == [
         ("a", [], 1, 1), ("b", [], 1, 0)]
+
+
+def test_4227_two_steps_reworded_to_one_text_keep_both_former_chains_and_both_figures(
+        tmp_path, monkeypatch, capsys, metrics):
+    steps = shaped(tmp_path, monkeypatch, capsys, metrics, [
+        *leaf(100, "a", "0.50", "1"), *leaf(200, "x", "0.25", "1"),
+        mark(300, "step-reworded", **{"from": "a", "to": "b"}), mark(310, "step-reworded", **{"from": "x", "to": "b"}),
+        *leaf(400, "b", "1.00", "2")])["steps"]
+
+    assert [(entry["text"], entry["former"], entry["attempts"], entry["cost_usd"]) for entry in steps] == [
+        ("b", ["a", "x"], 3, 1.75)]
