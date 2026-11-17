@@ -254,15 +254,14 @@ drive it to a draft PR or to a clean stop on a `REJECT`.
 ### 0. Preflight — baseline checks (bail before any cycle)
 
 Run `$S/preflight.sh <n> <slug>` (slug as in step 1.1) first, `PREFLIGHT.md` unread; on exit 3 run
-it again. Exit 0 is a whole preflight on a fresh run and on a resume (`Read` `<base directory>/RESUME.md`)
-alike, step 1.6's claim included on a fresh run: take its values from its last lines. On any other
-exit `Read` `<base directory>/PREFLIGHT.md` and run it from the step the last line names.
+it again. Exit 0 is a whole preflight, fresh or a resume (`Read` `<base directory>/RESUME.md`), with
+step 1.6's claim when fresh; its values are its last lines. Else `Read` `<base directory>/PREFLIGHT.md`
+and run it from the step its last line names.
 
 ### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)
 
-Run `$S/run-start.sh <n>` first, again on exit 3. Exit 0 made sub-steps 2–5's calls: their values (timeout,
-spec path, `.gitignore` outcome, `run=`, `verify_plan=`) are its last lines. Else go on from the sub-step
-its last line names.
+Run `$S/run-start.sh <n>` first, again on exit 3; exit 0 made 2–5's calls, their values (timeout, spec
+path, `.gitignore` outcome, `run=`, `verify_plan=`) its last lines. Else go on from the sub-step it names.
 
 1. Read the issue: `gh api repos/{owner}/{repo}/issues/<n> -q '{number, title, body, url: .html_url}'`.
 2. **Derive the slug and enter the issue's worktree.** Slug from the title — lowercase,
@@ -352,6 +351,10 @@ its last line names.
    expected, since the claim removed it at the first launch, so never stop or ask about it.
 
 ### 2. Scope & plan → the ledger
+
+With the ledger and a PR title file written, run `$S/plan-publish.sh <n> <title-file>` for 2–4, 2b
+and 2c to its PASS, again on exit 3; on 0 its last lines hold `plan_sha`, `steps`, `pr_url`, `pr_number`,
+`verify_plan`, else go on from the sub-step it names.
 
 Decompose the issue into a **plan**: a checklist of small steps, each one cycle's worth and
 aligned to an acceptance criterion. Surface sizing (note if a step looks too big to be one
