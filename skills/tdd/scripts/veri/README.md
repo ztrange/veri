@@ -240,6 +240,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_PRIORITY_LABEL` | `priority` | its readers' own words |
 | `VERI_PROFILE_THRESHOLD` | `1` | its readers' own words |
 | `VERI_PYCACHE` | "" | its readers' own words |
+| `VERI_PYTEST_IDLE` | `1200` | its readers' own words |
 | `VERI_PYTEST_LEGS` | "" | its readers' own words |
 | `VERI_PYTEST_WORKERS` | "" | its readers' own words |
 | `VERI_REBASED_TIP_SUITE` | `local` | local or ci |
