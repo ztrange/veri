@@ -29,7 +29,7 @@ class World:
 
     def __init__(self, monkeypatch, culprit, subjects, red=None, cases=("t/test_a.py::test_x",), reds=None,
                  absent=(), tested=(), runs=None, failed_log=None, span="commits", pulls=("pull",), comments=(),
-                 add=True, alone=None):
+                 add=True, alone=None, removed=True):
         self.alone, self.steps, self.posted, self.checked = [], [], [], []
         commits = [(sha(n + 1), subject) for n, subject in enumerate(subjects)]
         self.red = red or (commits[-1][0] if commits else sha(99))
@@ -66,7 +66,7 @@ class World:
 
         def remove(path):
             self.steps.append(("remove", path))
-            return True
+            return removed
 
         def has(path, commit, name):
             return (commit, name) not in absent
@@ -322,3 +322,15 @@ def test_it_tests_at_most_20_issue_ends_and_with_more_exits_2_saying_so_running_
 
     assert (got, out, len(world.alone), "more than 20" in err) == (code, "", 20 if code == 3 else 0, code == 2), err
     assert culprit.MAX_ENDS == 20
+
+
+@pytest.mark.parametrize("reds, code", [({sha(1): (A,)}, 0), ({}, 3), ("no answer", 2)])
+def test_a_failed_removal_of_its_own_worktree_is_said_on_stderr_naming_the_path_its_exit_unchanged(
+        monkeypatch, run_cli, culprit, reds, code):
+    world = World(monkeypatch, culprit, ["feat: a (#1)"], reds={} if reds == "no answer" else reds, removed=False,
+                  alone=(2, "") if reds == "no answer" else None)
+
+    got, _, err = run_cli(culprit, [sha(1)])
+
+    path = world.steps[0][1]
+    assert (got, [line for line in err.splitlines() if path in line and "remove" in line] != []) == (code, True), err

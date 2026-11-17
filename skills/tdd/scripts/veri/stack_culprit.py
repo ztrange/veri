@@ -219,7 +219,9 @@ def main(argv):
     except _NoAnswer as no:
         return entry.refuse(str(no), prefix="stack-culprit: ")
     finally:
-        _remove_worktree(path)
+        if not _remove_worktree(path):
+            print("stack-culprit: git worktree remove --force %s failed; the search's own worktree is left there"
+                  % path, file=sys.stderr)
     if printed:
         sys.stdout.write(printed)
         answer = printed
