@@ -24,6 +24,8 @@ A join makes no CI wait and no merge call, cuts no tag and closes no issue: the 
 
 A join is refused while the stack is red: `queued-merge.sh` exits 1 with one stderr line naming the red commit (CI's latest answer on the stack failed). The run is done and kept as it is; retry the join after the stack is green, never sooner, and no flag or variable gets a join past the freeze. The next step is the culprit search: run `$S/stack-culprit.sh <sha>` on the commit the refusal names, and report what it prints to the human.
 
+When the one hand-fix attempt on a red stack fails (its review is not OK, `stack-fix.sh` refuses it, or CI is red on the fix's tip), run `$S/stack-revert.sh <n>` for the culprit's issue `<n>`: it reverts the culprit's commits on top of the stack, the hand fix's too when one was pushed, as one commit, and nothing below the tip is rewritten. The reverted issue then keeps the labels its run left and does not return to selection by itself: it waits for `$S/release-issue.sh <n>`, as any bailed issue does. A revert exit 1 (a conflict, a red fast tier or a unit owing a grade) pushes nothing and leaves the stack frozen: report its stderr to the human, whose call it is, and never force it.
+
 ## Preconditions
 
 Merge only when all of these hold; otherwise stop and tell the human which one failed:
