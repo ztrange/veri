@@ -90,7 +90,7 @@ def test_stack_culprit_names_the_issue_whose_end_turned_the_case_red_and_removes
     (bin_dir / "runs").write_text(json.dumps({"total_count": 1, "workflow_runs": [
         {"head_sha": shas[2], "html_url": "https://github.com/o/r/actions/runs/42", "status": "completed",
          "conclusion": "failure", "created_at": "2026-11-16T10:00:00Z", "repository": {"full_name": "o/r"},
-         "head_repository": {"full_name": "o/r"}}]}))
+         "head_repository": {"full_name": "o/r"}, "run_attempt": 1}]}))
     (bin_dir / "log").write_text("tests\tRun\t﻿2026-11-16T10:00:00.1Z FAILED %s - red\n" % CASE)
     env = {**os.environ, "PATH": "%s:%s" % (bin_dir, os.environ["PATH"])}
 

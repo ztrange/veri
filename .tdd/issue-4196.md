@@ -9,3 +9,4 @@
 - [x] the module names no repository, issue, branch, label, person or CI job ⟦criterion 6⟧
 - [x] SCRIPTS.md lists stack-red.sh (SC250), graded ⟦criterion 7⟧
 - [x] (amended) with the newest non-cancelled run not completed, the newest completed non-cancelled run on the same head answers, else the branch's ⟦criterion 8⟧
+- [x] (amended) a re-run in progress (run_attempt > 1) is answered by its previous attempt, read from GitHub; an unreadable one is exit 2 ⟦criterion 8⟧
