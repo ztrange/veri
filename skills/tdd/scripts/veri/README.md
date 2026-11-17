@@ -255,6 +255,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_RUN_TIMEOUT` | `14400` | its readers' own words |
 | `VERI_SELF_UPDATE` | "" | its readers' own words |
 | `VERI_SESSION_TRANSCRIPTS` | "" | its readers' own words |
+| `VERI_SETUP_THRESHOLD` | `3` | its readers' own words |
 | `VERI_SKILL_EDIT_BUDGET` | `3` | its readers' own words |
 | `VERI_SKIP_VERIFY` | "" | its readers' own words |
 | `VERI_SLEEP_GAP` | `900` | its readers' own words |
