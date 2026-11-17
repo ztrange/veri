@@ -130,6 +130,7 @@ TUNABLES = {
     "VERI_FULL_TIER_MAX_AGE_DAYS": Tunable(decimal_at_least_one, "7", "a whole number of days >= 1"),
     "VERI_CI_FLAKE_RERUNS": Tunable(tokens, "1", "a whole number"),
     "VERI_TEST_QUALITY_FIXES": Tunable(tokens, "1", "a whole number"),
+    "VERI_SURROUND_MUTANTS": Tunable(positive_tokens, "5", "a whole number >= 1"),
 
     "VERI_REFACTOR_BUDGET": Tunable(tokens, "5"),
     "VERI_ISSUE_REFACTOR_BUDGET": Tunable(tokens, "10"),
