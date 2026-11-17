@@ -545,19 +545,20 @@ of at scoping time.
    the plan commit, from inside the worktree:
    ```
    $S/push-branch.sh
+   VERI_ISSUE=<n> $S/event.sh stage-start stage=draft-pr; t=$(date +%s)
    gh api repos/{owner}/{repo}/pulls -F draft=true -f base=<base> -f head="$(git branch --show-current)" \
      -f title="WIP: <type>: <criterion summary> (#<n>)" \
      -f body="<!-- veri:run-body -->
 Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.md is the source of truth.
 <!-- /veri:run-body -->" \
-     -q .html_url                         # → <pr-url>; <pr-number> is its last path segment
+     -q .html_url; rc=$?                  # → <pr-url>; <pr-number> is its last path segment
+   VERI_ISSUE=<n> $S/event.sh stage-end stage=draft-pr status=$rc secs=$(($(date +%s)-t))
    ```
    `<base>` is what `$S/stack-branch.sh` prints (exit 0), else the default branch (exit 3); where a
    stack is named, every mention of the default branch as the run's base, rebase target or diff
    base in the procedure's files means the stack. The body's first line starts `Closes #<n>`, inside the markers that set it apart as the run's own
    part, the part `$S/pr-body.sh` rewrites; whatever else a body holds is not the run's.
-   An open PR saying `Closes #<n>` is the claim other machines see, made at the first commit a
-   PR can have; until then another machine takes the issue again. The title says **WIP**: a
+   An open PR saying `Closes #<n>` is the claim other machines see. The title says **WIP**: a
    draft that reads as finished is misread; step 4 retitles it and, unless a stack is named,
    readies it.
 4. **Mirror the plan** to the issue thread: post a `### 🗺️ Plan` comment, by running `$S/comment.sh <n> plan`, listing the steps,
