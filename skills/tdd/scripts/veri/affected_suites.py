@@ -232,6 +232,15 @@ def untracked(*args):
     return output("ls-files", "--others", "--exclude-standard", *args)
 
 
+def unquoted(path):
+    """<path> as git names it with core.quotePath on: a name holding a non-ASCII byte, a quote, a backslash or a control
+    character comes double-quoted with C escapes (`"tests/test_caf\\303\\251.py"`); any other name is unchanged."""
+    if len(path) < 2 or not (path.startswith('"') and path.endswith('"')):
+        return path
+    raw = path[1:-1].encode("latin-1", "backslashreplace").decode("unicode_escape").encode("latin-1")
+    return raw.decode("utf-8", "surrogateescape")
+
+
 def is_test_file(path):
     """Whether the file at <path> is itself a Python, Go or JavaScript test file by its name, not a helper, fixture or
     snapshot that only sits among the tests."""
@@ -284,7 +293,7 @@ def main(argv):
         return 3
 
     if not run_line.own_tree():
-        return foreign(files.split("\n"))
+        return foreign([unquoted(f) for f in files.split("\n")])
 
     placed, unplaced = [], []
     for f in files.split("\n"):

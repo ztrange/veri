@@ -91,6 +91,17 @@ def test_the_walk_and_the_widening_print_only_files_that_are_themselves_test_fil
         (0, tests, "affected-suites: no test names src/bar.py; widening to every test file\n"))
 
 
+def test_a_changed_path_git_quotes_for_its_non_ascii_bytes_is_read_unquoted(
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    tree = {"tests/test_café.py": "", "src/naïve.py": "", "tests/test_uses.py": "import naïve\n",
+            "tests/test_other.py": ""}
+    write(tmp_path, tree)
+    monkeypatch.chdir(tmp_path)
+    foreign_git(fake_processes, ['"tests/test_caf\\303\\251.py"', '"src/na\\303\\257ve.py"'], list(tree))
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "tests/test_café.py\ntests/test_uses.py\n", "")
+
+
 def test_a_repo_whose_tests_no_file_name_rule_knows_falls_back_to_every_path_under_its_tests_rather_than_to_none(
         tmp_path, monkeypatch, capsys, affected, fake_processes):
     tree = {"lib/foo.rb": "", "tests/foo_spec.rb": "require 'foo'\n", "tests/bar_spec.rb": ""}
