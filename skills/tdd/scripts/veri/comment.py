@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
 import os
+import re
 import sys
 import tempfile
 
@@ -14,6 +15,7 @@ import paths
 import restart_marker
 import run_dir
 import run_pins
+import run_records
 from ledger import handed_out, ledger_steps
 from report import report_values
 
@@ -234,6 +236,17 @@ def event_before_last(name):
     return before
 
 
+# An absolute local path redact_local leaves (another account's home, any temp or /private path): to `<path>`, whole.
+_LOCAL_PATH = re.compile(r"(?<![A-Za-z0-9_.-])(?:/System/Volumes/Data)?(?:/private)?"
+                        r"/(?:Users|home|tmp|var/folders|private)(?:/[^\s\"'`<>()\[\]]*)?")
+
+
+def _without_local_paths(text):
+    """<text> as a bail comment publishes it: this machine's paths, host and account names redacted as a PR body's
+    are (`~` for the home directory), then any other absolute local path replaced by `<path>`."""
+    return _LOCAL_PATH.sub("<path>", run_records.redact_local(text, os.getcwd()))
+
+
 def post_bailed(issue, note_file, pr=False):
     bail = last_event("bail")
     if bail is None:
@@ -243,7 +256,7 @@ def post_bailed(issue, note_file, pr=False):
     target = run_pr_number() if pr else None
     if pr and target is None:
         return 2
-    return post_and_record(issue, "bailed", with_note(heading, note_file), target=target)
+    return post_and_record(issue, "bailed", _without_local_paths(with_note(heading, note_file)), target=target)
 
 
 def restart_pending():
