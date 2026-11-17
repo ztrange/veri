@@ -116,3 +116,34 @@ def test_2213_record_existing_takes_its_baseline_from_the_newest_of_two_plan_com
 
     assert (code, (repo / ".tdd" / "issue-42-added.md").read_text()) == (
         0, "- [ ] a gear meshes ⟦added⟧ ⟦criterion 2⟧\n"), err
+
+
+@pytest.mark.process("git")
+def test_4251_split_reads_the_oldest_plan_scope_commit_of_the_ledgers_own_history_from_a_real_repository(
+        tmp_path, run_cli):
+    ledger_growth = importlib.import_module("veri.ledger_growth")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] another issue's only step ⟦criterion 1⟧\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "plan: scope #7 into 1 step (#7)")
+    ledger = repo / ".tdd" / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦criterion 2⟧\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "plan: scope #42 into 2 steps (#42)")
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦criterion 2⟧\n"
+                      "- [ ] a gear meshes ⟦criterion 2⟧\n")
+    git(repo, "commit", "-q", "-am", "plan: rewrite #42 after verify-plan (#42)")
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦criterion 2⟧\n"
+                      "- [ ] a gear meshes ⟦criterion 2⟧\n- [ ] a belt runs ⟦criterion 3⟧\n")
+    git(repo, "commit", "-q", "-am", "plan: rewrite #42 on the owner's answer (#42)")
+
+    (repo / ".tdd" / "issue-9.md").write_text("# Plan for #9\n\n- [ ] never committed ⟦criterion 1⟧\n")
+    grown = run_cli(ledger_growth, ["split", ".tdd/issue-42.md"], env={"VERI_STEP_GROWTH_PERCENT": "50"}, cwd=repo)
+    unscoped = run_cli(ledger_growth, ["split", ".tdd/issue-9.md"], cwd=repo)
+
+    assert grown == (0, "plan grew from 2 to 4 steps, past the growth bound of 1 (VERI_STEP_GROWTH_PERCENT 50% of 2,"
+                        " rounded up)\nsplit suggested after criterion 1: criteria 1–1 (1 steps) here, criteria 2–3"
+                        " (3 steps) in a follow-up issue\n", "")
+    assert (unscoped[0], unscoped[1]) == (2, "")
