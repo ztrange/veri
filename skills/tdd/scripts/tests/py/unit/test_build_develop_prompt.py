@@ -10,7 +10,7 @@ import pytest
 
 from conftest import SCRIPTS
 
-PHASES = b"red|green|refactor|cover|seam|surround|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|test-quality|expand|beside|cover-new|migrate|contract-a|contract-b"
+PHASES = b"red|green|refactor|cover|seam|break|surround|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|test-quality|expand|beside|cover-new|migrate|contract-a|contract-b"
 WANT_PHASES = PHASES + b"|dual-stub"
 USAGE = b"usage: build-develop-prompt.sh " + WANT_PHASES + b" <issue-spec-file> <step-text> <test-cmd> ...\n"
 NAMED_REVISABLE = {"expand", "beside", "migrate", "contract-a", "contract-b", "rebase"}
@@ -2297,4 +2297,28 @@ def test_4118_develop_green_names_every_catalogue_smell_and_refactoring_and_carr
     assert sorted(name for name in refactorings if name not in out) == []
     assert [text for text in thresholds if text in out] == []
     assert ("Met when" in out, "{{" in out) == (False, False)
+
+
+def test_4111_renders_develop_break_md_for_the_break_phase_and_a_revise_of_break_that_leaves_the_tests_as_they_are(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n\n## Legacy\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"REASON: the sprout also renamed a parameter the callers pass by keyword\n")
+    step = "wrap parse() in src/parse.py:10-80 through the `parse` CLI \u27e6phases: seam,surround\u27e7 \u27e6criterion 1\u27e7"
+    none = (SCRIPTS / "prompts" / "_develop-test-rewrite-none.md").read_bytes().rstrip(b"\n")
+
+    code = build_develop_prompt.main(["break", str(spec), step, "make test"])
+    out, err = capsysbinary.readouterr()
+    short = build_develop_prompt.main(["break", str(spec), step])
+    short_err = capsysbinary.readouterr().err
+    revised = build_develop_prompt.main(["revise", "break", str(spec), step, "make test", str(reason)])
+    revise_out, revise_err = capsysbinary.readouterr()
+
+    assert (code, err, b"## Phase: develop-break" in out, step.encode() in out) == (0, b"", True, True)
+    assert (short, b"break needs 4 arguments" in short_err) == (2, True)
+    assert (revised, revise_err, b"(redoing break)" in revise_out, b"renamed a parameter" in revise_out,
+            none in revise_out) == (0, b"", True, True, True)
+    assert ("break" in build_develop_prompt.PHASES, build_develop_prompt.WANT.get("break"),
+            "break" in build_develop_prompt.REVISABLE_PHASES) == (True, 4, True)
 
