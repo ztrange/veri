@@ -336,10 +336,10 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    so the inserted `⟦added⟧ ⟦criterion k⟧` follows `⟦diff-checked⟧`):
    ```
    step="$($S/test-quality.sh anchor .tdd/issue-<n>.md)" || exit 0    # exit 3 or 2: routed as above, no step appended
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=<count>
-   $S/add-ledger-step.sh .tdd/issue-<n>.md after "$step" '<fix the <kind> case <file>::<case>: <why>; edit only that case, no production code> ⟦test-quality⟧ ⟦diff-checked⟧' … 2> .tdd/add-ledger-step.err
+   $S/add-ledger-step.sh .tdd/issue-<n>.md after "$step" '<fix the <kind> case <file>::<case>: <why>; edit only that case, no production code> ⟦test-quality⟧ ⟦diff-checked⟧' … 2> .tdd/add-ledger-step.err; rc=$?
+   [ "$rc" != 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=<count>
    ```
-   Exit **0**: `git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: fix the test-quality findings (#<n>)"`,
+   The `step-added` event is written only on exit 0, after the insertion has happened. Exit **0**: `git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: fix the test-quality findings (#<n>)"`,
    and return to step 3, *The cycle loop*, without readying the PR. Exit **1** (`VERI_STEP_GROWTH_PERCENT`
    cannot hold them, the texts filed under `## Owed steps`) leaves those findings unfixed and writes
    no bail: a quality fix is never worth losing a finished run; commit the ledger as on exit 0 and go
