@@ -145,3 +145,11 @@ def test_4228_strict_writes_a_stage_start_and_end_of_a_listed_stage_and_refuses_
     unlisted = event.mark(str(clone), {"issue": "7"}, "stage-start", ["stage=merge"])
 
     assert (started, ended, unlisted) == (0, 0, 2)
+
+
+@pytest.mark.parametrize("stage", ["push", "draft-pr", "full-suite", "ready", "ci-wait"])
+def test_4230_strict_writes_a_stage_start_and_end_of_each_stage_push_readying_and_the_ci_wait_add(clone, stage):
+    started = event.mark(str(clone), {"issue": "7"}, "stage-start", ["stage=" + stage])
+    ended = event.mark(str(clone), {"issue": "7"}, "stage-end", ["stage=" + stage, "status=0", "secs=3"])
+
+    assert (started, ended) == (0, 0)
