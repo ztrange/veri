@@ -1,7 +1,7 @@
 # Plan for #4203 — PRD 035.1: metrics.sh <n> --json prints the run's metrics as JSON
 
 - [x] `metrics.sh <n> --json` prints exactly one JSON object and exits 0; `metrics.sh <n>` prints the markdown report unchanged ⟦criterion 1⟧
-- [ ] the object is built by a function that takes a `Fold` and reads no event, ledger or log ⟦criterion 2⟧
+- [x] the object is built by a function that takes a `Fold` and reads no event, ledger or log ⟦criterion 2⟧
 - [x] `phases` holds one entry per leaf phase, keyed by phase, equal to the markdown's By phase row ⟦criterion 3⟧
 - [x] `steps` holds one entry per step in the markdown's order, with `text`, the phase keys, `retries`, `no_verdict` and the step's start-to-done `wall_seconds` ⟦criterion 4⟧
 - [x] `conductor` holds `cost_usd`, `turns`, `sessions`, `model`, `estimated` and `priced` (true, false or "partial") ⟦criterion 5⟧
