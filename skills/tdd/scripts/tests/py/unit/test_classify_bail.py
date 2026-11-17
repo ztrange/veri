@@ -240,3 +240,9 @@ def test_main_classifies_unwired_as_a_process_failure_with_0_4121(capsys, classi
     code = classify_bail.main(["unwired"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_main_classifies_a_legacy_step_s_surround_short_bail_as_process_with_0_4108(capsys, classify_bail):
+    code = classify_bail.main(["surround-short"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
