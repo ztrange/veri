@@ -16,15 +16,17 @@ BODY = ("This pull request tracks the stack branch `%s`, so CI runs on each push
 
 def tracking(stack, default):
     """The url of the one open pull request from <stack> to <default>, opened (ready) when none is. NoAnswer when
-    GitHub gives none; two or more open is NoAnswer naming them all, since none of them is the one."""
+    GitHub gives none; two or more open is NoAnswer naming them all, since none of them is the one; an open one that
+    is a draft, on which CI runs nothing, is NoAnswer naming it and saying it must be marked ready."""
     pulls = github.stack_pulls(stack, default)
     if len(pulls) > 1:
         raise github.NoAnswer("", "%d open pull requests track %s, so none is the one: %s" % (
             len(pulls), stack, " and ".join(str(p.html_url) for p in pulls)))
     if pulls:
         if pulls[0].draft is not False:
-            print("stack-pr: %s is a draft (or does not say), and CI runs on no push to a draft: mark it ready" % (
-                pulls[0].html_url), file=sys.stderr)
+            raise github.NoAnswer("", "%s, the stack's tracking pull request, is a draft%s, and CI runs on no push to a"
+                                  " draft: it must be marked ready (this script never changes it)" % (
+                                      pulls[0].html_url, "" if pulls[0].draft else " (or does not say)"))
         return pulls[0].html_url
     return github.pr_open(stack, default, TITLE % (stack, default), BODY % (stack, default))
 

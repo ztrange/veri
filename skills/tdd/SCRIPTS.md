@@ -455,8 +455,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   of the default branch and none is open it opens one, ready and not a draft, and prints that one's url. This pull
   request is what makes CI run on each push to the stack, and it must not read as a claim on any issue or as a
   landing: its body says it is never merged itself and that slices are cut from it, and it carries no `Closes`,
-  `Fixes` or `Resolves` line. An open one that is a draft is printed, exit 0, with one stderr line saying CI skips a
-  draft. **Exit 3**, nothing opened, when the stack is not ahead of the default branch or origin holds no stack.
+  `Fixes` or `Resolves` line. An open one that is a draft (or does not say) is exit **2**, one stderr line naming it
+  and saying it must be marked ready, since CI runs on no push to a draft; the script never changes a pull request's
+  state itself. **Exit 3**, nothing opened, when the stack is not ahead of the default branch or origin holds no stack.
   **Exit 2**, nothing opened, when GitHub gives no answer (a read or the open that fails, or an answer that is not a
   list of pull requests naming their urls), when two or more open pull requests track the stack (naming them), or a
   fetch of origin gets no answer. When `stack-branch.sh` does not exit 0, it exits with the code `stack-branch.sh`
