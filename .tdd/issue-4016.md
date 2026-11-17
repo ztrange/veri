@@ -12,5 +12,5 @@
 - [x] `grade-prose.sh` shows the grader a split whole-file unit's view, while `unit_text` still returns the whole file ⟦criterion 6⟧
 - [x] `graded-changed.sh` prints a split whole-file unit only when its view differs ⟦criterion 7⟧
 - [x] the tree audits that split GRADED lines decode the unit field ⟦criterion 1⟧
-- [ ] `CLAUDE.md` *Graded prose* states heading units, own text, the split view and signature, and the unit field encoding (CM177–CM179), graded ⟦criterion 10⟧
+- [x] `CLAUDE.md` *Graded prose* states heading units, own text, the split view and signature, and the unit field encoding (CM177–CM179), graded ⟦criterion 10⟧
 - [ ] `skills/tdd/SCRIPTS.md` gains `grade-prose.sh` and `graded-changed.sh` entries and `prose-owed.sh`'s exit 2 (SC261–SC263), graded ⟦criterion 10⟧ ⟦criterion 11⟧
