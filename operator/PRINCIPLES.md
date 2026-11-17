@@ -1,6 +1,6 @@
 # veri-ops — the principles every operator skill obeys
 
-An *operator skill* is one that runs veri rather than being veri: `vcoord`, `vdev`,
+An *operator skill* is one that runs veri rather than being veri: `vdev`,
 `vstatus` and the ones that follow them. Each says near its top that it obeys this file,
 and each reads it first. A rule stated here is not restated in a skill, and a skill that
 contradicts this file is wrong, not an exception.
@@ -36,20 +36,13 @@ text makes the harness ask for visible output, and answering that with prose is 
 creeps back in. So the size of the text follows the event. **The dev session prints `.` and
 nothing else**, as vdev's *Speaking* says: a run's events are on its issue (its claim, step
 ticks, bails, merges), not in the transcript. A decision it asks in its own transcript, in a
-session without `start_session` (vdev's *When to stop and ask*), is written in full. For a
-coordinator, while one exists, an important event gets one line of fewer than ten words: a run started, as `Started #N — title`; a bail or a stall; red CI; a merge
-landed; a cost or plan surprise. Anything else a watch returns — a re-arm, a conductor start
-the dev session already announced, a merge already reported, a routine message from the dev
-session, a `pong`, a progress check, a watch expiry — gets a single `.` and nothing else, not
-"noted" or "still watching". A decision the human must make is the one exception to the size
-limit: it is written in full. **Ask a decision once**, when it arises, and in full: what is being decided,
+session without `start_session` (vdev's *When to stop and ask*), is written in full: a decision
+the human must make is the one exception to the size limit. **Ask a decision once**, when it arises, and in full: what is being decided,
 the options in words, what each costs. Later events do not repeat it; a new decision is its own
 message, not a re-print of the pending list. Mention an open decision again only when the human
 asks what is pending or its facts change, and then restate it in full, never as a pointer to an
 earlier message; a dev session with `start_session` restates it only inside its own question
 session, never in its transcript (vdev's *Speaking*).
-When a coordinator is attached to the dev session, an event the dev session reports is one
-message to the coordinator, carrying facts only and never a pasted log or issue tail (P6).
 
 **Never end a turn while work is takeable (P5).** If a slot is empty and the solvable list is
 not, you are not done. A turn that does stop says why in its last line: the queue is empty, or
@@ -79,8 +72,7 @@ stopped. The next conductor that exits is simply not replaced, until the count i
 `$S/solvable-issues.sh` that has no live conductor (no `.tdd/wt/<n>/.tdd/conductor.pid`
 whose pid answers `kill -0`). Any other order is an override: it is explicit, it names who
 asked for it, and it is written down in the role state file, which every reset reads, never in
-a handoff — and, for a coordinator while one exists, in the one line it tells the human; the dev
-session tells the human nothing of it (vdev's *Speaking*).
+a handoff; the dev session tells the human nothing of it (vdev's *Speaking*).
 
 **A silent exit is checked before it is a bail (P10).** A conductor that exits with no closing
 comment on its issue (neither ✅ Done nor a bail) is first checked for a usage limit — a 429 or
@@ -101,7 +93,7 @@ specifics are read from the target repository's CLAUDE.md each time they are nee
 tdd scripts' own defaults stand where it is silent.
 
 **Messages between sessions are self-contained and sent by you (P13).** A message to another
-session — the coordinator, the dev session, another machine's coordinator — names everything it
+session — vdev, one of its question sessions, its resetter — names everything it
 refers to: no option letters, no "as above", no reference only you saw. You send it yourself
 with `SendMessage`. Only when delivery is held does the human get it instead: one fenced code
 block per recipient, with the recipient named on the line above it. A comm check is the
@@ -118,8 +110,7 @@ A routine report still gets no text for the human (P4).
 **Never ask permission for what a run needs (P14).** A role never asks permission for an
 operation a run needs in order to continue, in the project repo: opening or updating a PR,
 filing, commenting on or closing an issue, editing repo files, running tests, removing a run's
-own files, worktree or branch, and any `gh` command. It does the operation and reports it. That
-holds for the human and for the coordinator alike. Asking is kept for the decisions its own
+own files, worktree or branch, and any `gh` command. It does the operation and reports it. Asking is kept for the decisions its own
 skill lists (vdev's D8); P11's other-repo boundary and the rulings that hold a merge still
 apply.
 
