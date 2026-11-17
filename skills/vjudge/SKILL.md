@@ -73,7 +73,8 @@ would read either as an earlier decision and answer the same question later with
 
 ## Recording
 
-Record every decision of step 4 where the owner audits it, the one line it states included:
+Record every decision of step 4 where the owner audits it, the one line it states included. A
+review of a recommendation (*Reviewing a recommendation*) is not a decision and is not recorded:
 
 - **A decision about one issue** is a comment on that issue naming the rule applied and the option
   not taken. It starts with `Decided:`, so the owner tells it from their own comments, both being
