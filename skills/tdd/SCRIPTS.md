@@ -603,7 +603,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   from git, GitHub, `stack-red.sh` or the lock, when origin moved on every attempt, or on bad arguments; and, the
   revert left pushed, when the merged pull requests cannot be read or a body cannot be edited, naming the pull
   request.
-- `$S/detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]` — print the one command that
+- `$S/detect-test-command.sh [--tier fast|all|"one test file"|lint] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
   wins: for `--tier all` only, the issue body's own `Test command:` line, unless it equals the
@@ -611,7 +611,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   (`veri: <tier> tests:`); then every inference (see *Detecting the test command*).
   `--tier fast` never reads the issue's line. `--tier "one test file"` has one source: the repo's
   CLAUDE.md line `veri: one test file: <command>`, the command taking the target (a test file or a pytest node id) as `"$1"`; no
-  inference, and **exit 3** when the line is absent. A bad argument is **exit 2**.
+  inference, and **exit 3** when the line is absent. `--tier lint` has one source too: the repo's
+  CLAUDE.md line `veri: lint: <command>`, whose command it prints, **exit 0**; with no such line it
+  prints nothing and exits **3**, reading no other source (not the issue's line, not a `Makefile` or
+  any other inference), so veri never guesses a lint command. A bad argument is **exit 2**.
 - `$S/affected-suites.sh <range>` — print, one per line, sorted and each once, the suites a change affects, so a leaf
   runs a narrow slice instead of the full suite. `<range>` is `<base>..<head>`, or one revision compared with the
   working tree, untracked files included. In veri's own tree (one where `skills/tdd/scripts/tests/py` is a directory)
