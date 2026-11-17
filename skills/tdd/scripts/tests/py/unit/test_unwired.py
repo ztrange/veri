@@ -70,6 +70,15 @@ def test_added_prose_config_and_data_files_and_github_paths_nothing_names_are_sk
     assert (unwired.main(["base"]),) + tuple(capsys.readouterr()) == (3, "", "")
 
 
+def test_an_added_code_file_under_github_nothing_names_is_skipped_and_exits_3(
+        tmp_path, monkeypatch, capsys, unwired, fake_processes):
+    tree = {".github/scripts/x.py": "y = 1\n", "src/main.py": "z = 1\n"}
+    write(tmp_path, tree)
+    range_git(fake_processes, [".github/scripts/x.py"], list(tree))
+    monkeypatch.chdir(tmp_path)
+    assert (unwired.main(["base"]),) + tuple(capsys.readouterr()) == (3, "", "")
+
+
 def test_accepted_files_are_not_printed_so_a_range_whose_every_unnamed_file_is_accepted_exits_0(
         tmp_path, monkeypatch, capsys, unwired, fake_processes):
     tree = {"pkg/a.go": "package pkg\n", "pkg/b.go": "package pkg\n", "db/0001_init.py": "x = 1\n",
