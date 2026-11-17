@@ -14,7 +14,7 @@ Obeys `operator/PRINCIPLES.md` under the veri clone root (`git -C <base dir> rev
 
 Invoked as `/vmerge <issue-or-PR>`; resolve the argument to the issue, its PR and its worktree.
 
-Merging is allowed under the standing permission that `vdev` and `vcoord` carry in the project repo, or under explicit permission from the user. Never merge in another repo, whatever the argument names.
+Merging is allowed under the standing permission that `vdev` carries in the project repo, or under explicit permission from the user. Never merge in another repo, whatever the argument names.
 
 ## Joining a stack
 
