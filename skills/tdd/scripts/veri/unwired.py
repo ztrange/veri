@@ -22,10 +22,19 @@ def unnamed(paths):
     return [p for p in paths if not stem_walk.naming(stem_walk.stem(p), [s for s in sources if s != p])]
 
 
+def work_tree():
+    """Whether git answers `true` for the current directory being inside a work tree (exit 0 alone is not enough:
+    inside a `.git` directory it prints `false`)."""
+    try:
+        return git.out("rev-parse", "--is-inside-work-tree") == "true"
+    except git.GitFailed:
+        return False
+
+
 def main(argv):
     if len(argv) != 1 or not argv[0]:
         return entry.refuse(usage=USAGE)
-    if not git.ok("rev-parse", "--is-inside-work-tree"):
+    if not work_tree():
         return entry.refuse("unwired: not a git work tree")
     if not git.ok("rev-parse", "--verify", "--quiet", argv[0] + "^{commit}"):
         return entry.refuse("unwired: cannot resolve '%s'" % argv[0])
