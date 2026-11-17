@@ -153,6 +153,53 @@ def test_4032_it_writes_no_event_commits_nothing_and_handles_no_refusal(ready):
     assert not [c for c in fake.made("git") if c[1][:1] in (("add",), ("commit",), ("push",), ("reset",))]
 
 
+def _pid(ready, text):
+    (ready.wt / ".tdd" / "conductor.pid").write_text(text)
+
+
+def test_4032_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line(ready):
+    code, out, err, fake = ready(answers={("wait-ci.sh", None): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on wait-ci.sh")
+    assert not (ready.wt / ".tdd" / "issue-12-pr-ready-wait").exists()
+
+
+def test_4032_called_again_after_an_exit_3_it_only_waits_again_and_never_readies_twice(ready):
+    _pid(ready, "111\nTue Nov 17 07:00:00 2026\n")
+    first = ready(answers={("wait-ci.sh", None): (3, "")})[0]
+    code, out, err, fake = ready()
+
+    assert (first, code) == (3, 0)
+    assert [(c[0], c[1]) for c in fake.calls] == [("git", ("rev-parse", "HEAD")),
+                                                  ("wait-ci.sh", (URL, "540", "", HEAD))]
+    assert out.splitlines()[-3:] == ["pr_url=" + URL, "pr_number=42", "ci=green"]
+    assert not (ready.wt / ".tdd" / "issue-12-pr-ready-wait-wait").exists()
+
+
+def test_4032_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(ready):
+    import json
+    _pid(ready, "111\nTue Nov 17 07:00:00 2026\n")
+    ready(answers={("wait-ci.sh", None): (3, "")})
+
+    record = json.loads((ready.wt / ".tdd" / "issue-12-pr-ready-wait-wait").read_text())
+    assert (record["conductor"], record["values"]) == ({"pid": "111", "started": "Tue Nov 17 07:00:00 2026"},
+                                                       {"pr_url": URL, "pr_number": "42"})
+
+
+@pytest.mark.parametrize("second", ["222\nTue Nov 17 07:00:00 2026\n", "111\nTue Nov 17 08:00:00 2026\n", None],
+                         ids=["another pid", "another start time", "no pid file"])
+def test_4032_called_under_another_conductor_it_discards_the_record_and_starts_from_its_first_call(ready, second):
+    _pid(ready, "111\nTue Nov 17 07:00:00 2026\n")
+    ready(answers={("wait-ci.sh", None): (3, "")})
+    if second is None:
+        (ready.wt / ".tdd" / "conductor.pid").unlink()
+    else:
+        _pid(ready, second)
+    code, out, err, fake = ready()
+
+    assert (code, fake.names()[:2], fake.names().count("pr-ready.sh")) == (0, ["git", "gh"], 1)
+
+
 def test_4032_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr(ready):
     class Marked(Fake):
         def __call__(self, name, *args, **kw):

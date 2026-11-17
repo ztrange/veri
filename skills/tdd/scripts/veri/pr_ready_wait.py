@@ -11,6 +11,7 @@ import plan_publish
 NAME = "pr-ready-wait"
 WHERE = "2"
 NO_CHECKS = "has no checks"
+WAIT = "wait-ci.sh"  # the `waiting on` name of the CI wait
 
 
 def main(argv):
@@ -22,10 +23,21 @@ def run(n):
     if given is None:
         return 2
     _, wt = given
-    values = ready(wt)
+    resumed = fused.load_wait(wt, n, NAME)
+    if resumed is not None:
+        values = resumed[1]
+    else:
+        values = ready(wt)
+        fused.save_wait(wt, n, NAME, WAIT, values)
     head = fused.checked(WHERE, "git", "rev-parse", "HEAD", cwd=wt).strip()
-    fused.checked(WHERE, fused.script("wait-ci.sh"), values["pr_url"], "540", "", head, cwd=wt,
-                  out=".tdd/wait-ci.out", err=".tdd/wait-ci.err")
+    code = fused.call(fused.script("wait-ci.sh"), values["pr_url"], "540", "", head, cwd=wt,
+                      out=".tdd/wait-ci.out", err=".tdd/wait-ci.err")[0]
+    if code == 3:
+        raise fused.Waiting(WAIT)
+    os.remove(fused.wait_record(wt, n, NAME))
+    if code != 0:
+        raise fused.Stop(WHERE, fused.shown(fused.script("wait-ci.sh"), values["pr_url"], "540", "", head,
+                                            out=".tdd/wait-ci.out", err=".tdd/wait-ci.err") + " exit %d" % code, code)
     if said(wt, ".tdd/ci-flake.out").strip():
         raise fused.Stop(WHERE, "wait-ci.sh exit 0 with .tdd/ci-flake.out non-empty", 1)
     lines = ["pr_url=" + values["pr_url"], "pr_number=" + values["pr_number"], "ci=green"]
