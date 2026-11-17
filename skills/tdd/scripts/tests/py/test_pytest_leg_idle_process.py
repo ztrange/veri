@@ -3,6 +3,7 @@ import os
 import signal
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -36,14 +37,15 @@ def alive(pid):
     return True
 
 
-def run_hanging_leg(tmp_path, **extra):
+def run_hanging_leg(tmp_path, idle=IDLE, signal_when_hung=None, **extra):
+    """(exit code, stderr, worker pids, those alive when the leg exited, seconds from the signal to the exit)."""
     planted = tmp_path / "planted"
     planted.mkdir()
     pids = tmp_path / "worker-pids"
     pids.mkdir()
     (planted / "conftest.py").write_text(HANGING_CONFTEST)
     (planted / "test_one.py").write_text("def test_one():\n    pass\n\ndef test_two():\n    pass\n")
-    env = dict(os.environ, VERI_PYTEST_WORKERS="2", VERI_PYTEST_IDLE=str(IDLE), PLANTED_PIDS=str(pids),
+    env = dict(os.environ, VERI_PYTEST_WORKERS="2", VERI_PYTEST_IDLE=str(idle), PLANTED_PIDS=str(pids),
                PYTHONPATH=os.path.join(SCRIPTS, "veri"), **extra)
     # Files, not pipes: the workers inherit the leg's stderr, and a pipe would wait for them, not for the leg, to end.
     with open(tmp_path / "out", "w") as out, open(tmp_path / "err", "w") as err:
@@ -51,7 +53,14 @@ def run_hanging_leg(tmp_path, **extra):
             [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
              LEG, "--subset", "-q", "-p", "no:cacheprovider", str(planted)],
             cwd=tmp_path, env=env, stdout=out, stderr=err, start_new_session=True)
+    signalled = None
     try:
+        if signal_when_hung:
+            deadline = time.monotonic() + BOUND
+            while len(os.listdir(pids)) < 2 and leg.poll() is None and time.monotonic() < deadline:
+                time.sleep(0.1)
+            signalled = time.monotonic()
+            leg.send_signal(signal_when_hung)
         leg.wait(timeout=BOUND)
     except subprocess.TimeoutExpired:
         if leg.pid > 1:
@@ -62,13 +71,14 @@ def run_hanging_leg(tmp_path, **extra):
     alive_at_exit = [pid for pid in workers if alive(pid)]
     if alive_at_exit and leg.pid > 1:
         os.killpg(leg.pid, signal.SIGKILL)  # leave nothing running past the case
-    return leg.returncode, (tmp_path / "err").read_text(), workers, alive_at_exit
+    took = time.monotonic() - signalled if signalled else None
+    return leg.returncode, (tmp_path / "err").read_text(), workers, alive_at_exit, took
 
 
 @pytest.mark.process("the real leg over a planted suite whose two xdist workers hang after their cases ran")
 @pytest.mark.parametrize("ignore_term", ["", "1"], ids=["workers-end-on-term", "workers-ignore-term"])
 def test_4254_a_leg_whose_workers_hang_after_their_cases_ran_ends_them_and_exits_2_naming_the_idle_time_and_the_last_case(tmp_path, ignore_term):
-    code, err, workers, alive_at_exit = run_hanging_leg(tmp_path, PLANTED_IGNORE_TERM=ignore_term)
+    code, err, workers, alive_at_exit, _ = run_hanging_leg(tmp_path, PLANTED_IGNORE_TERM=ignore_term)
 
     lines = [line for line in err.splitlines() if line.startswith("pytest leg idle for ")]
     assert (code, len(lines), len(workers)) == (2, 1, 2), err
@@ -79,8 +89,27 @@ def test_4254_a_leg_whose_workers_hang_after_their_cases_ran_ends_them_and_exits
 
 @pytest.mark.process("the real leg over a planted suite whose two xdist workers hang after their cases ran")
 def test_4254_before_it_ends_its_hung_workers_an_idle_leg_writes_its_own_stacks_and_each_worker_s_to_stderr(tmp_path):
-    code, err, workers, alive_at_exit = run_hanging_leg(tmp_path)
+    # A window twice the others': a worker that has not reached its hang when the leg dumps shows no frame there.
+    code, err, workers, alive_at_exit, _ = run_hanging_leg(tmp_path, idle=2 * IDLE)
 
     hung_frames = [line for line in err.splitlines() if "conftest.py" in line and "pytest_sessionfinish" in line]
     assert (code, len(hung_frames)) == (2, 2), err  # one per worker, where each hung
     assert "idle_watch.py" in err.split("pytest leg idle for ")[0]  # the leg's own watch thread, among its stacks
+
+
+@pytest.mark.process("the real leg over a planted suite whose two xdist workers hang, sent TERM or HUP")
+@pytest.mark.parametrize("sig", [signal.SIGTERM, signal.SIGHUP], ids=["TERM", "HUP"])
+def test_4254_a_leg_sent_term_or_hup_while_its_workers_hang_ends_them_and_exits_128_plus_the_signal_without_xdist_s_teardown(tmp_path, sig):
+    code, err, workers, alive_at_exit, took = run_hanging_leg(tmp_path, idle=600, signal_when_hung=sig)
+
+    assert (code, len(workers), alive_at_exit) == (128 + sig, 2, []), err
+    # xdist's teardown waits up to its EXIT_TIMEOUT (10 s) on workers that do not answer; ending them here takes no wait
+    assert took < 4, err
+
+
+@pytest.mark.process("the real leg over a planted suite whose two xdist workers hang and ignore TERM, sent TERM")
+def test_4254_a_leg_sent_term_kills_by_pid_a_hung_worker_that_ignores_term_5_s_later(tmp_path):
+    code, err, workers, alive_at_exit, took = run_hanging_leg(tmp_path, idle=600, signal_when_hung=signal.SIGTERM,
+                                                             PLANTED_IGNORE_TERM="1")
+
+    assert (code, len(workers), alive_at_exit) == (143, 2, []), err

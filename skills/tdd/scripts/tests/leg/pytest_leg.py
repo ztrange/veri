@@ -22,6 +22,8 @@ if __name__ == "__main__":
 #            started (TERM, KILL by pid after 5 s), removes its registry entry, releases the full-run lock and prints
 #            `pytest leg idle for <s> s with no case running (last case seen: <node id>|none); workers <pid>… ended`
 #            (idle_watch.py, #4254), whatever its cases' outcomes
+#          128 + the signal's number on TERM or HUP: the leg ends its workers, entry and lock the same way, without
+#            waiting on xdist's worker teardown, and prints `pytest leg ended by signal <n>; workers <pid>… ended`
 import contextlib
 import fcntl
 import hashlib
@@ -423,9 +425,9 @@ def main(argv):
         record.clear()
     os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen", "failed_cases", "idle_watch"]))
     def terminate(signum, frame):
-        sys.exit(128 + signum)
-    previous = signal.signal(signal.SIGTERM, terminate)
-    previous_hup = signal.signal(signal.SIGHUP, terminate)
+        # Ends the leg here, not by raising into pytest.main: pytest would run the session-finish hooks, xdist's worker
+        # teardown among them, and a hung worker held that teardown up to its own timeout (#4254).
+        watch.end(128 + signum, "pytest leg ended by signal %d; workers %%s ended\n" % signum)
     conftest = sys.modules.get("conftest")
     entry = None
     full_lock = None
@@ -449,6 +451,8 @@ def main(argv):
     watch = idle_watch.Watch(idle, os.dup(2))
     watch.cleanups.append(leg_cleanup)
     outer_watch = idle_watch.CURRENT[0]
+    previous = signal.signal(signal.SIGTERM, terminate)
+    previous_hup = signal.signal(signal.SIGHUP, terminate)
     try:
         if not subset and "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and full_run_lock.enabled() and not full_run_lock.held_by_ancestor():
             full_lock = full_run_lock.acquire()
