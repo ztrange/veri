@@ -624,3 +624,21 @@ def test_issue_4091_the_bypass_permissions_row_is_ok_when_a_haiku_probe_in_a_scr
     assert {argv[0] for argv in fake.argvs} == {"claude"}, fake.calls
     (probe,) = seen
     assert os.path.dirname(os.path.realpath(probe["cwd"])) == os.path.realpath(tmp_path / ".tdd"), probe
+
+
+@pytest.mark.parametrize("files", [dict(bash=False), dict(write=False), dict(write="something else"), dict(bash=False, write=False)])
+def test_issue_4091_an_exit_0_with_is_error_false_but_a_nonce_file_missing_or_wrong_fails_the_bypass_permissions_row(ready_check, fake_processes, files):
+    fake_processes.answers({PROBE: probe_answer(**files)})
+
+    name, verdict = ready_check.bypass_permissions_row()
+
+    assert name == "bypassPermissions" and verdict, verdict
+
+
+def test_issue_4091_a_listed_permission_denial_fails_the_bypass_permissions_row_though_both_nonce_files_hold_the_nonce(ready_check, fake_processes):
+    denied = '{"type": "result", "is_error": false, "permission_denials": [{"tool_name": "Bash", "tool_use_id": "t1", "tool_input": {}}]}'
+    fake_processes.answers({PROBE: probe_answer(result=denied)})
+
+    name, verdict = ready_check.bypass_permissions_row()
+
+    assert name == "bypassPermissions" and verdict, verdict
