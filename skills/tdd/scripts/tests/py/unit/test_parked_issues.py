@@ -86,7 +86,7 @@ def test_main_3683_prints_a_dash_fifth_field_for_a_parked_comment_with_no_blocke
 
     code, out, err = run_cli(parked_issues, [])
 
-    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\tupstream ships\t-\n")
+    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\tupstream ships\t-\t-\n")
 
 
 def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_names_an_open_issue(
@@ -110,7 +110,7 @@ def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_na
 
     code, out, err = run_cli(parked_issues, [])
 
-    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3420 merges\twaiting\n")
+    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3420 merges\twaiting\t-\n")
 
 
 def test_main_3683_exits_2_naming_the_blocker_and_printing_nothing_when_gh_gives_no_answer_for_a_blocker(
@@ -158,7 +158,7 @@ def test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_name
 
     code, out, err = run_cli(parked_issues, [])
 
-    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3420 merges\tready\n")
+    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3420 merges\tready\t-\n")
 
 
 def test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_names_a_merged_pull_request(
@@ -187,7 +187,7 @@ def test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_name
 
     code, out, err = run_cli(parked_issues, [])
 
-    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\tready\n")
+    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\tready\t-\n")
 
 
 def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_names_a_pull_request_closed_unmerged(
@@ -216,7 +216,7 @@ def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_na
 
     code, out, err = run_cli(parked_issues, [])
 
-    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\twaiting\n")
+    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\twaiting\t-\n")
 
 
 def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_names_an_open_pull_request(
@@ -245,7 +245,7 @@ def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_na
 
     code, out, err = run_cli(parked_issues, [])
 
-    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\twaiting\n")
+    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\twaiting\t-\n")
 
 
 def test_main_3683_exits_2_naming_the_blocker_and_printing_no_row_when_gh_gives_no_answer_to_the_merged_state_read(
@@ -292,7 +292,7 @@ def test_main_3739_prints_ready_when_gh_api_returns_a_completed_process_for_a_me
 
     code, out, err = run_cli(parked_issues, [])
 
-    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\tready\n")
+    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\tready\t-\n")
 
 
 def test_main_3739_prints_waiting_when_gh_api_returns_a_completed_process_for_an_open_issue_blocker(
@@ -311,7 +311,7 @@ def test_main_3739_prints_waiting_when_gh_api_returns_a_completed_process_for_an
 
     code, out, err = run_cli(parked_issues, [])
 
-    assert (code, out) == (0, "3711\tA parked issue\twaiting on upstream\t#3737 merges\twaiting\n")
+    assert (code, out) == (0, "3711\tA parked issue\twaiting on upstream\t#3737 merges\twaiting\t-\n")
 
 
 # main through run_cli as `parked-issues.sh`, gh faked at its process boundary. gh_stub answers each gh call as the shell stub
@@ -529,7 +529,7 @@ def test_main_3972_takes_the_last_trusted_parked_comment_skipping_a_later_untrus
 
     code, out, err = run_cli(parked_issues, [])
 
-    assert (code, out, err) == (0, "3972\tAn issue\twaiting on #3420\t#3420 merges\twaiting\n", "")
+    assert (code, out, err) == (0, "3972\tAn issue\twaiting on #3420\t#3420 merges\twaiting\t-\n", "")
 
 
 def test_main_3972_an_issue_whose_only_parked_comments_are_untrusted_exits_2_as_one_with_no_parked_comment(
@@ -572,4 +572,31 @@ def test_issue_4077_only_the_parked_comments_head_holds_its_fields_never_a_line_
 
     code, out, err = run_cli(parked_issues, [])
 
-    assert (code, out) == (0, "42\tAn issue\ttwo designs\tthe owner picks\t%s\n" % status)
+    assert (code, out) == (0, "42\tAn issue\ttwo designs\tthe owner picks\t%s\tquestion\n" % status)
+
+
+PARK_HEAD = "### ⏸ Parked\nCause: two designs\nUnblock: the owner picks\n"
+QUESTION_PARK = PARK_HEAD + "\n#### Question\nWhich?\n#### Options\n#### Found\n#### Recommendation\n"
+STRANGER = {"author_association": "NONE", "user": {"login": "someone"}}
+
+
+@pytest.mark.parametrize("comments, sixth", [
+    ([{**OWNER, "body": QUESTION_PARK}], "question"),
+    ([{**OWNER, "body": QUESTION_PARK}, {**OWNER, "body": "### ✅ Step done\nstep 2"}], "question"),
+    ([{**OWNER, "body": QUESTION_PARK}, {**STRANGER, "body": "Take A."}], "question"),
+    ([{**OWNER, "body": QUESTION_PARK}, {**OWNER, "body": "> Which?\n"}], "question"),
+    ([{**OWNER, "body": QUESTION_PARK}, {**OWNER, "body": "Take A."}], "-"),
+    ([{**OWNER, "body": QUESTION_PARK}, {**OWNER, "body": "Take A."}, {**OWNER, "body": QUESTION_PARK}], "question"),
+    ([{**OWNER, "body": PARK_HEAD}], "-"),
+    ([{**OWNER, "body": PARK_HEAD + "\n```\n#### Question\n```\n"}], "-"),
+])
+def test_issue_4100_the_sixth_field_says_question_while_the_newest_parks_question_has_no_trusted_answer(
+        monkeypatch, parked_issues, run_cli, comments, sixth):
+    listing = [{"number": 42, "title": "An issue"}]
+    monkeypatch.setattr(parked_issues.github, "_trusting_login", lambda: "veri-operator")
+    monkeypatch.setattr(parked_issues.github, "gh_rest_list",
+                        lambda path, *args: json.dumps(comments if "/comments" in path else listing))
+
+    code, out, err = run_cli(parked_issues, [])
+
+    assert (code, out, err) == (0, "42\tAn issue\ttwo designs\tthe owner picks\t-\t%s\n" % sixth, "")

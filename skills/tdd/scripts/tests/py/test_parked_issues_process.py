@@ -42,7 +42,7 @@ def usage():
 @pytest.mark.process("parked-issues.sh run against a gh stub serving one parked issue and its comments")
 def test_the_shim_passes_exit_0_and_the_modules_stdout_through(tmp_path):
     assert run(tmp_path, gh=ONE_PARKED_GH_STUB) == (
-        0, "7\tTeach the verifier to refuse\ta bail\ta human reads the diff\t-\n", "")
+        0, "7\tTeach the verifier to refuse\ta bail\ta human reads the diff\t-\t-\n", "")
 
 
 @pytest.mark.process("parked-issues.sh run against a gh stub serving no issue at all")

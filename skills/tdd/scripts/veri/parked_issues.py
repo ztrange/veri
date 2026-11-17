@@ -5,6 +5,8 @@ import re
 import sys
 
 import github
+import markdown_sections
+from park_decision import own_words
 from json_documents import documents, items
 
 USAGE = "usage: parked-issues.sh"
@@ -22,6 +24,19 @@ def head(body):
 def field(body, name):
     prefix = name + ": "
     return next((line[len(prefix):] for line in head(body) if line.startswith(prefix)), None)
+
+
+def open_question(comments):
+    """`question` when the newest trusted parked comment among <comments> holds an unfenced `#### Question` line and
+    no trusted comment after it is an answer (park-decision.sh's rule: not one of veri's headed comments, and words of
+    its own outside quotes and fences), else `-`: a question the human has not answered."""
+    trusted = [c for c in comments if github.trusted_comment(c)]
+    park = max(i for i, c in enumerate(trusted) if str(c.get("body") or "").startswith(github.PARKED_HEADING))
+    if not any(line.rstrip() == "#### Question" for _, line in markdown_sections.unfenced(trusted[park]["body"])):
+        return "-"
+    answered = any(not body.startswith(github.VERI_COMMENT_PREFIXES) and own_words(body).strip()
+                   for body in (str(c.get("body") or "") for c in trusted[park + 1:]))
+    return "-" if answered else "question"
 
 
 def read(fetch, path, what):
@@ -100,7 +115,8 @@ def main(argv):
         status = blockers_status(blocked_by)
         if status is None:
             return 2
-        sys.stdout.write("%d\t%s\t%s\t%s\t%s\n" % (number, issue["title"], cause, unblock, status))
+        sys.stdout.write("%d\t%s\t%s\t%s\t%s\t%s\n" % (number, issue["title"], cause, unblock, status,
+                                                      open_question(comments)))
     return 0
 
 
