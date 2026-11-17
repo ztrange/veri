@@ -14,9 +14,9 @@ EXEMPT = {
     "comment.sh": "the module takes [--pr] (bailed only); SCRIPTS.md's synopsis does not list it, so the shim header cannot yet",
     "pin-reject-route.sh": "the module takes `--recheck <reason-file> <ledger-file> <matcher>`; SCRIPTS.md's synopsis does not list"
                            " --recheck (it is in prose), and test_skill_reference_usage fails a shim flag the synopsis lacks",
-    "role-state.sh":"the module lists every `set` field, `drop coordinator` and `request-reset [--idle]`; SCRIPTS.md's synopsis"
+    "role-state.sh":"the module lists every `set` field and `request-reset [--idle]`; SCRIPTS.md's synopsis"
                      " says `set <field>`, so the shim header cannot spell the fields out",
-    "status.sh": "the module also takes `--report` and `--recover <coord|dev> [--lane <lane>]`; SCRIPTS.md's synopsis lists"
+    "status.sh": "the module also takes `--report` and `--recover dev [--lane <lane>]`; SCRIPTS.md's synopsis lists"
                  " `--report` only and `--recover` in prose, so the shim header cannot add them",
     "stop-reason.sh": "the module's USAGE also describes the first output line (running | done <pr> | bailed …); adding those"
                       " words to the shim header would put verbs in it that SCRIPTS.md's synopsis does not have",

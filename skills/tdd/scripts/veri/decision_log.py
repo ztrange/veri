@@ -19,8 +19,8 @@ def log_path(main=None):
 
 
 KEYS = ("question", "decision", "rule", "by", "at")
-# Who may decide: an operator role (role-state.sh's roles), or the owner, whose own answer or override is recorded too.
-BY = ("coord", "dev", "owner")
+# Who may decide: the operator role (role-state.sh's one role), or the owner, whose own answer or override is recorded too.
+BY = ("dev", "owner")
 # The longest field a record stores, in characters: a longer one is refused, not cut, so no record is stored partly.
 FIELD_MAX = 2000
 # How far past now a record's `at` may lie (clock skew between machines), in seconds; later is not a record.

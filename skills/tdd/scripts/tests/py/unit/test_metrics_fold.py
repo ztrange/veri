@@ -115,7 +115,7 @@ def test_the_total_row_is_the_leaves_plus_the_conductors_own_spending(folded):
 
 def test_each_operator_session_in_the_transcripts_is_a_label_turns_cache_tokens_and_dollars(folded):
     assert [(label, turns, cache) for label, turns, cache, _ in folded.operator_sessions] == [
-        ("Coordinator", 2, 250000), ("Dev", 2, 250000)]
+        ("Dev", 2, 250000)]
     assert folded.operator_sessions[0][3] == pytest.approx(0.48, abs=0.01)
 
 
