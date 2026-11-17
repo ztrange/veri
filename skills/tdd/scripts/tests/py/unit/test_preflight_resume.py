@@ -64,7 +64,7 @@ def drive(monkeypatch, run_cli, tmp_path):
             (wt / ".tdd" / "handed-back").write_text("")
         fake = fake or Fake(wt, answers, dirty)
         monkeypatch.setattr(preflight, "run_script", fake)
-        code, out, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
+        code, out, go.err = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
         return code, out, fake
 
     go.wt = wt
@@ -312,6 +312,100 @@ def test_4023_a_red_tier_on_a_resume_stops_with_the_waits_code_and_runs_no_red_s
     assert [c[1][1] for c in fake.calls if c[0] == "detach-command.sh" and c[1][0] == "start"] == [
         "preflight-%s-12" % t for t in ("fast", "full")[:("fast", "full").index(tier) + 1]]
     assert not (drive.wt / ".tdd" / "issue-12-preflight").exists()
+
+
+BOTH = pytest.mark.parametrize("ledger", [True, False], ids=["resume", "fresh"])
+
+
+@BOTH
+def test_4023_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr_on_both_paths(
+        drive, ledger):
+    clean = ("status", "--porcelain")
+    valued = {"issue-worktree.sh", "rebase-onto-default.sh", "detect-test-command.sh", "baseline-full-tier.sh"}
+
+    class Marked(Fake):
+        def __call__(self, name, *args, cwd=None, env=None):
+            code, out, _ = super().__call__(name, *args, cwd=cwd, env=env)
+            if out or args == clean:
+                return code, out, ""
+            return code, "OUT<%d>\n" % len(self.calls), "ERR<%d>\n" % len(self.calls)
+
+    fake = Marked(drive.wt)
+    preflight = importlib.import_module("veri.preflight")
+    code, out, _ = drive(ledger=ledger, handed_back=True, fake=fake)
+
+    lines = out.splitlines()
+    # The permission record's two reads (git worktree list, git remote get-url; #4093) are made unprinted, as on 027.1.
+    marked = [i for i, c in enumerate(fake.calls, 1)
+              if c[1] != clean and c[1][:1] not in (("worktree",), ("remote",), ("rev-parse",), ("api",))
+              and c[0] not in valued]
+    heads = [lines.index("OUT<%d>" % i) for i in marked]
+    assert code == 0
+    assert heads == sorted(heads)
+    for k, i in enumerate(marked):
+        base, args = fake.calls[i - 1][:2]
+        between = lines[(heads[k - 1] + 1 if k else 0):heads[k]]
+        assert preflight.label(base, *args) + " exit 0" == [line for line in between if line.endswith(" exit 0")][-1]
+    assert all("ERR<%d>" % i in drive.err for i in marked)
+
+
+@BOTH
+def test_4023_no_detached_runs_output_file_is_printed_on_either_path(drive, ledger):
+    for name in ("preflight-fast-12", "preflight-full-12"):
+        (drive.wt / ".tdd" / (name + ".out")).write_text("SENTINEL-OUTPUT\n")
+
+    code, out, _ = drive(ledger=ledger, handed_back=True)
+
+    assert (code, "SENTINEL-OUTPUT" in out) == (0, False)
+
+
+@BOTH
+def test_4023_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line_on_either_path(drive, ledger):
+    code, out, _ = drive(ledger=ledger, answers={("detach-command.sh", "wait"): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on preflight-fast-12")
+
+
+@BOTH
+def test_4023_a_reused_full_tier_time_starts_no_full_tier_run_on_either_path(drive, ledger):
+    code, out, fake = drive(ledger=ledger, answers={("baseline-full-tier.sh", None): (0, "reuse 40\n")})
+
+    settled = dict(line.split("=", 1) for line in _settled(drive) if not line.startswith("stray="))
+    assert (code, settled["full"], settled["full_tier_mode"]) == (0, "40", "reuse")
+    assert [c[1][1] for c in fake.calls if c[0] == "detach-command.sh" and c[1][0] == "start"] == ["preflight-fast-12"]
+
+
+@BOTH
+def test_4023_the_settled_file_is_run_state_the_ignore_rule_keeps_out_of_every_commit(drive, ledger):
+    import fnmatch
+    rule = importlib.import_module("veri.ensure_run_state_ignored").RULE
+    drive(ledger=ledger)
+
+    name = ".tdd/" + (drive.wt / ".tdd" / "issue-12-preflight").name
+    assert fnmatch.fnmatch(name, rule[0]) and not fnmatch.fnmatch(name, rule[1].lstrip("!"))
+
+
+@BOTH
+def test_4023_a_stop_handles_no_refusal_on_either_path(drive, ledger):
+    code, out, fake = drive(ledger=ledger, handed_back=True, answers={("baseline-full-tier.sh", None): (1, "")})
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 3 baseline-full-tier.sh 12 make test")
+    assert not {"preflight-refused.sh", "classify-bail.sh", "comment.sh"} & set(fake.names())
+    assert not [c for c in fake.calls if c[0] == "event.sh" and c[1][:1] == ("bail",)]
+    assert not [c for c in fake.calls if c[0] == "gh" and "comments" in " ".join(c[1])]
+    assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("reset",), ("checkout",))]
+
+
+@BOTH
+def test_4023_the_stage_events_are_written_in_the_same_order_on_either_path(drive, ledger):
+    code, _, fake = drive(ledger=ledger, handed_back=True)
+
+    lines = [json.loads(line) for line in (drive.wt / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert code == 0
+    assert [(line["event"], line["stage"]) for line in lines] == [
+        ("stage-start", "preflight"), ("stage-start", "baseline"), ("stage-end", "baseline"),
+        ("stage-end", "preflight")]
+    assert [c[1][0] for c in fake.calls if c[0] == "event.sh"] == ["resume-rebase"]
 
 
 def test_4023_a_worktree_not_handed_back_runs_none_of_the_handed_back_calls(drive):
