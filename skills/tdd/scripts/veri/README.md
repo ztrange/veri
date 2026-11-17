@@ -667,6 +667,7 @@ gh access, issue selection (solvable, parked, blocked), claiming and releasing i
 - `refactor-candidates.sh`: file the run's one candidates issue.
 - `refresh-spec.sh`: re-capture an issue's spec.
 - `release-issue.sh`: release a parked, bailed or refused issue.
+- `release-covered.sh`: release the bailed refactor issue a coverage issue's title names (`Cover the behaviour #<m> refactors`).
 - `report-cache.sh`: refresh the cached report data.
 - `solvable-issues.sh`: list the issues a conductor may take, in band order.
 - `tick-issue-criterion.sh`: tick a criterion on the issue.
