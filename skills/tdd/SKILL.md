@@ -1057,7 +1057,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 
 The loop is stage `refactor-loop`, one end per start: entering it (not at 3's resume; it stays open through a triangulation), `VERI_ISSUE=<n> $S/event.sh stage-start stage=refactor-loop; date +%s > .tdd/stage-rl.t`,
 and when it ends `VERI_ISSUE=<n> $S/event.sh stage-end stage=refactor-loop status=<exit code> secs=$(($(date +%s)-$(cat .tdd/stage-rl.t)))`:
-0 right after 6's `chore: refactor verified` push, before its stop check; 1 at 6's `repin`, before the commit; 3 at a stop before
+0 once 6's `chore: refactor verified` push exits 0, or its reconcile succeeds, before its stop check; 1 at 6's `repin`, before the commit; 3 at a stop before
 that push; else the ending call's code (a bail's too).
 
 1. **One refactor leaf for the step.** Ask the budget first, with a count of **0**: that
