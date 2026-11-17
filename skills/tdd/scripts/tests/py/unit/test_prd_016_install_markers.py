@@ -1,16 +1,17 @@
-"""PRD 016.2: every skill but vinstall carries an .on-demand marker."""
+"""PRD 016.2: every skill but vinstall and vish (#4201) carries an .on-demand marker."""
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[6]
+USER_LEVEL = ("vinstall", "vish")  # installed once, user-level, never linked per project
 
 
 @pytest.mark.tree_audit("every directory under skills/")
 def test_every_directory_under_skills_other_than_vinstall_carries_an_on_demand_marker():
     missing = sorted(
         d.name for d in (ROOT / "skills").iterdir()
-        if d.is_dir() and d.name != "vinstall" and not (d / ".on-demand").is_file()
+        if d.is_dir() and d.name not in USER_LEVEL and not (d / ".on-demand").is_file()
     )
 
     assert missing == [], missing
@@ -41,3 +42,9 @@ def test_the_on_demand_marker_of_each_retired_skill_says_vinstall_does_not_link_
 
 def test_vinstall_carries_no_on_demand_marker():
     assert not (ROOT / "skills" / "vinstall" / ".on-demand").exists()
+
+
+def test_vish_is_a_skill_directory_and_carries_no_on_demand_marker_4201():
+    vish = ROOT / "skills" / "vish"
+
+    assert ((vish / "SKILL.md").is_file(), (vish / ".on-demand").exists()) == (True, False)
