@@ -796,6 +796,18 @@ def workflow_runs(branch):
     return found
 
 
+def run_failed_log(run_id):
+    """The failed-job log of workflow run <run_id> (`gh run view <run_id> --log-failed`), as gh prints it. NoAnswer, its
+    detail naming why, for a <run_id> that is not a whole number (before any call) or a call that fails."""
+    if not re.fullmatch(r"[0-9]+", str(run_id)):
+        raise NoAnswer("", "not a workflow run id: %r" % (run_id,))
+    run = run_gh("run", "view", str(run_id), "--log-failed", stderr=subprocess.PIPE)
+    if run.returncode != 0:
+        raise NoAnswer("", "the failed log of run %s: %s" % (run_id, " ".join((run.stderr or "").split())[:200]
+                                                              or "exit %d" % run.returncode))
+    return run.stdout or ""
+
+
 def closed_issues(body, loose=False):
     """The issue numbers (strings) <body> closes, in order: `Closes #n`; <loose> also reads `closes #n`
     and `disCloses #n`, the spelling of status --recover."""
