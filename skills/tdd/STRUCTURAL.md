@@ -17,8 +17,8 @@
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh stage-start stage=structural; date +%s > .tdd/stage-structural.t
    ```
-   It ends with the `stage-end` line below, after its `structural-pass` mark with status 0, or, on
-   any other way the pass ends (a bail), with the code of the call that ended it.
+   It ends once, with the `stage-end` line below: after its `structural-pass` mark with status 0,
+   at a stop (the stop check before a leaf's launch) with 3, or at a bail with the code of the call that ended it.
    A candidate recorded test-only is never listed, so it launches no predicate or
    transform leaf; `render` still shows it under `### Test-only` in the PR body.
    An out-of-scope candidate is listed like any other.

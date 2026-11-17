@@ -354,7 +354,7 @@ aligned to an acceptance criterion. Surface sizing (note if a step looks too big
 cycle) but do **not** gate on it.
 
 **The plan is stage `plan`**: first `VERI_ISSUE=<n> $S/event.sh stage-start stage=plan; date +%s > .tdd/stage-plan.t`, and once
-the plan commit (1.2) or anything else (a park, stop or bail) ends it, `VERI_ISSUE=<n> $S/event.sh stage-end stage=plan status=<exit code>
+the plan commit (2.2) or anything else (a park, stop or bail) ends it, `VERI_ISSUE=<n> $S/event.sh stage-end stage=plan status=<exit code>
 secs=$(($(date +%s)-$(cat .tdd/stage-plan.t)))`: 0 at the plan commit, 1 at a park, 3 at a stop, else the ending call's code.
 
 **An issue holding more than one deliverable is parked, not planned.** Before the plan is
@@ -1055,9 +1055,10 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 
 #### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)
 
-The loop is stage `refactor-loop`: entering it (not at 3's resume), `VERI_ISSUE=<n> $S/event.sh stage-start stage=refactor-loop; date +%s > .tdd/stage-rl.t`,
-and on every way it ends `VERI_ISSUE=<n> $S/event.sh stage-end stage=refactor-loop status=<exit code> secs=$(($(date +%s)-$(cat .tdd/stage-rl.t)))`:
-0 after 6's `chore: refactor verified` push, 3 at a stop, else the ending call's code (a bail's too).
+The loop is stage `refactor-loop`, one end per start: entering it (not at 3's resume; it stays open through a triangulation), `VERI_ISSUE=<n> $S/event.sh stage-start stage=refactor-loop; date +%s > .tdd/stage-rl.t`,
+and when it ends `VERI_ISSUE=<n> $S/event.sh stage-end stage=refactor-loop status=<exit code> secs=$(($(date +%s)-$(cat .tdd/stage-rl.t)))`:
+0 right after 6's `chore: refactor verified` push, before its stop check; 1 at 6's `repin`, before the commit; 3 at a stop before
+that push; else the ending call's code (a bail's too).
 
 1. **One refactor leaf for the step.** Ask the budget first, with a count of **0**: that
    call is what decides whether the leaf runs at all, since `VERI_REFACTOR_BUDGET=0`
@@ -1118,7 +1119,7 @@ and on every way it ends `VERI_ISSUE=<n> $S/event.sh stage-end stage=refactor-lo
 3. **An `overfit` flag is answered inside this step.** The leaf's `FLAGS:` lines each carry
    their class. A line whose class is **overfit** names code that passes this step's test
    without implementing the criterion the step states, and names the case that would force
-   the general implementation. Stop the refactor loop there. **When the loop has landed
+   the general implementation. Stop the refactor loop there (its stage stays open). **When the loop has landed
    commits since `<green-sha>`, first run 2's checks and verify-refactor (5) over them**,
    before the triangulating red, and launch the red only after that PASS. On that PASS run
    `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>` for the landed
@@ -1273,7 +1274,7 @@ and on every way it ends `VERI_ISSUE=<n> $S/event.sh stage-end stage=refactor-lo
      in place, and route the finding before any revise with
      `$S/pin-reject-route.sh --recheck .tdd/verify-refactor.reason .tdd/issue-<n>.md "<STEP>"`
      (`<STEP>` read from the ledger as above). A pin this range disarmed is never given to a refactor revise leaf, which may not edit tests. Branch on its answer:
-     `repin <file>` means it inserted a `⟦diff-checked⟧` re-pin step after the step: commit the ledger
+     `repin <file>` means it inserted a `⟦diff-checked⟧` re-pin step after the step: end the stage (status 1), commit the ledger
      (`git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit`), run that step
      (`Read` and run `<base directory>/DIFF-CHECKED.md`) and launch no refactor revise leaf;
      `revise` keeps it a verify-refactor REJECT naming that pin, spending `REVISE_BUDGET` (when a verifier
