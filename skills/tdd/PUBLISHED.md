@@ -83,6 +83,15 @@ never removed or renamed, and the file carries no version key. A reader ignores 
 | `run.bails[].classification` | string, `process` or `system` | yes, when the event lacks it |
 | `run.bails[].phase` | string, empty when the bail named no phase | yes, when the event lacks it |
 | `run.bails[].step` | string, the ledger step's text, empty when none | yes, when the event lacks it |
+| `runs` | list of objects, one per run of the issue, in journal order. A run ends at a `done`, `bail` or `stop` line and the next line opens the next run, so a conductor restart with no ending line before it continues the run it is in | no |
+| `runs[].index` | whole number, the run's place in the list, from 1 | no |
+| `runs[].ended` | string, the event of the line that ended the run: `done`, `bail` or `stop` | yes, while the run is open (no ending line yet) |
+| `runs[].cause` | string, the `bail`'s cause | yes, unless a `bail` ended the run and names a cause |
+| `runs[].wall_seconds` | whole number, from the run's first line to its ending line | yes, while the run is open |
+| `runs[].awake_seconds` | whole number, the awake clock's reading at the ending line less the first line's | yes, while the run is open, or when either line lacks the reading |
+| `runs[].sessions` | whole number, the run's `conductor-start` lines | no |
+| `runs[].leaves` | whole number, the run's `launch` lines that name a phase; summed over `runs` it equals `attempts` summed over `leaves` | no |
+| `runs[].cost_usd` | number, dollars: the run's `usage` lines that name a phase, summed; summed over `runs` it equals `cost_usd` summed over `leaves`. The conductor's own spend is not split per run | no |
 | `phases` | object keyed by phase name, one entry per phase a leaf was launched for | no |
 | `phases.<phase>` | object, one phase's figures | no |
 | `phases.<phase>.attempts` | whole number, leaves launched | no |

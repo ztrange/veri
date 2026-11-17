@@ -12,7 +12,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
              pinned, model_knobs, models
   tables     phases, leaves, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
              adjudications, switched_off, switched_off_by, total, green_rejects (+ green_reject_routes, green_reject_checks),
-             launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green
+             launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green, runs
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
@@ -653,6 +653,8 @@ class Fold:
                                 # whose first such verdict was PASS, and the phase's revise events
     revise_green: dict          # answering model -> {leaves, PASS, REJECT}: revise-green leaves, and the first green
                                 # verdict of the same step after each
+    runs: list                  # one dict per run of the issue, in order: index, ended, cause, wall_seconds,
+                                # awake_seconds, sessions, leaves, cost_usd (runs_of)
 
 
 def is_revise_green(name):
@@ -681,6 +683,39 @@ def launched_efforts(marks):
     commas, empty when none carries one; an effort that is not a string is skipped."""
     return ",".join(sorted({mark["effort"] for mark in marks if mark.get("event") == "launch"
                             and isinstance(mark.get("effort"), str) and mark["effort"]}))
+
+
+RUN_ENDINGS = ("done", "bail", "stop")
+
+
+def runs_of(marks):
+    """The journal split into runs (PRD 035.4b, D11): the first line opens run 1, a `done`, `bail` or `stop` line ends
+    the run it is in and the next line opens the next, so a restart's `conductor-start` continues its run. Per run: its
+    ending line's event and a bail's cause, its first-to-ending wall and awake seconds (None while open, or when a clock
+    reading is missing), its `conductor-start` lines, and the `launch` and `usage` lines naming a phase, the ones the
+    leaf tables count, so the runs sum to the issue's leaf totals."""
+    runs, current = [], None
+    for line in marks:
+        if current is None:
+            current = {"first": line, "ending": None, "sessions": 0, "leaves": 0, "cost_usd": 0.0}
+            runs.append(current)
+        event, phase = line.get("event"), line.get("phase")
+        current["sessions"] += event == "conductor-start"
+        current["leaves"] += bool(event == "launch" and phase)
+        if event == "usage" and phase:
+            current["cost_usd"] += float(line.get("total_cost_usd") or 0)
+        if event in RUN_ENDINGS:
+            current["ending"] = line
+            current = None
+    shaped = []
+    for index, run in enumerate(runs, 1):
+        first, ending = run["first"], run["ending"] or {}
+        shaped.append({"index": index, "ended": ending.get("event"),
+                       "cause": ending.get("cause") if ending.get("event") == "bail" else None,
+                       "wall_seconds": span(first.get("ts"), ending.get("ts")),
+                       "awake_seconds": span(first.get("awake"), ending.get("awake")),
+                       "sessions": run["sessions"], "leaves": run["leaves"], "cost_usd": run["cost_usd"]})
+    return shaped
 
 
 BESIDE = "the run whose .tdd/ holds the journal"
@@ -777,7 +812,8 @@ def fold(issue, path, ledger, run=BESIDE):
                 green_reject_routes=sorted(routes.items(), key=lambda item: (-item[1], item[0])),
                 green_reject_checks=sorted(item for item in checks.items() if item[0]) + [("unnamed", checks[""])],
                 launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing,
-                gradings=tally.gradings, first_tries=tally.first_tries(), revise_green=revise_green_outcomes(marks, models))
+                gradings=tally.gradings, first_tries=tally.first_tries(), revise_green=revise_green_outcomes(marks, models),
+                runs=runs_of(marks))
 
 
 def known(number):
@@ -1093,6 +1129,7 @@ def as_json(f):
     done = f.ending if f.ending is not None and f.ending.get("event") == "done" else {}
     return {"run": {"issue": f.issue, "outcome": outcome(f), "wall_seconds": whole(done.get("wall_seconds")),
                     "awake_seconds": whole(done.get("awake_seconds")), "bails": f.bails},
+            "runs": f.runs,
             "phases": {phase: dict(json_row(row_counts, PHASE_COLUMNS),
                                    **f.first_tries.get(phase, dict.fromkeys(FIRST_TRY_KEYS, 0)))
                        for phase, row_counts in f.phases.items()},
