@@ -279,12 +279,31 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `<base directory>/STOPPING.md`) and does not bail. Otherwise the command could not be run (it died
    before recording an exit), so no event is written and the section is `### Lint` followed by
    `` `<command>` could not be run: no exit code was recorded. `` — reported as neither a pass nor a
-   failure of the lint. A non-zero lint exit, and a lint that could not be run or read, neither
-   bails the run nor holds the PR: the section reports it and the step goes on. Sub-step 2 puts the
+   failure of the lint. A lint that could not be run or read neither bails the run nor holds the
+   PR: the section reports it and the step goes on. Sub-step 2 puts the
    file's contents, when it is non-empty, in the PR body. `pr-body.sh` redacts every line of the
    body it writes: each local path (the worktree, the main clone, a temp directory, the home
    directory), the host name and the account name, then the tokens and secrets `comment.sh`'s rule
    names, so nothing the lint printed about this machine reaches the PR.
+   On a non-zero lint exit (`wait` exit 1), once the section is written, append one repair step
+   after the last done step, naming the command and its output's first non-empty line (the
+   worktree's path cut from it):
+   ```
+   first="$(grep -m1 . .tdd/lint.out | sed "s|$PWD/||g" | cut -c1-200)"
+   $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" "make \`$lint\` pass: $first ⟦diff-checked⟧ ⟦lint-repair⟧" 2> .tdd/add-ledger-step.err; rc=$?
+   [ "$rc" != 2 ] || { $S/adjudicate.sh left <n> && { echo "adjudicate step-add-refused"; exit 0; }; VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=step-add-refused classification="$($S/classify-bail.sh step-add-refused)"; }
+   [ "$rc" != 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
+   [ "$rc" != 0 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the lint findings (#<n>)"; }
+   ```
+   Exit **0** returns to step 3, *The cycle loop*: the step runs as any `⟦diff-checked⟧` step does
+   (`Read` `<base directory>/DIFF-CHECKED.md`), and the run comes back to this step and runs the
+   lint again. Exit **2** bails `step-add-refused`, adjudicated first exactly as the full-suite
+   repair block's exit 2 is (`Read` `<base directory>/BAIL.md`). Exit **1** appends no step and
+   writes no bail, since a lint finding is not a broken product and a bail at the last step would
+   lose a finished run: it is the one repair per run already spent (`.tdd/add-ledger-step.err`
+   names `already inserted a lint-repair step`), and the section gains the line `The command is
+   not clean after one repair step.`, or the plan's growth budget spent, and the section gains
+   `No repair step could be added.`; either way the step goes on.
    **The test-quality check.** After the lint run (or its skip) and before `refactor-candidates.sh`,
    unless `.tdd/issue-<n>-test-quality` exists (an earlier entry of this step recorded it, so a
    resume does not pay for the leaf again), list the test files the run's range touched: those
