@@ -1095,6 +1095,21 @@ def print_json(issue, path, ledger):
     sys.stdout.write(json.dumps(as_json(fold(issue, path, ledger)), indent=2) + "\n")
 
 
+def publish(target, issue, journal, ledger, run):
+    """Write `as_json` of the journal at `journal` (the ledger and run directory as `fold` takes them) to `target`:
+    a temporary file beside it renamed over it, so a reader sees the old file or the new one, never part of one; the
+    temporary file is removed when anything fails, and the error raised."""
+    text = json.dumps(as_json(fold(issue, journal, ledger, run=run)), indent=2) + "\n"
+    descriptor, temporary = tempfile.mkstemp(dir=os.path.dirname(target), prefix="." + os.path.basename(target) + ".")
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        os.replace(temporary, target)
+    except BaseException:
+        os.remove(temporary)
+        raise
+
+
 def main(argv):
     if not argv or argv[0] in ("", JSON) or argv[1:] not in ([], [JSON]):
         sys.stderr.write(USAGE + "\n")
