@@ -368,6 +368,7 @@ def test_4230_push_branch_runs_as_stage_push_of_the_runs_issue_ending_with_its_e
 
     fake_processes(merged(answer))
     events.refuse_event_sh()
+    (tmp_path / ".tdd").mkdir()  # a run worktree's
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_PUSH_RETRIES", "0")
     monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "12")

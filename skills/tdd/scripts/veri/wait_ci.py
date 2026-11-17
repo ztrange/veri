@@ -15,6 +15,7 @@ from github import NoAnswer, run_gh, gh_api, gh_rest_list, pull
 from json_documents import documents
 import tunables
 import ci_marks
+import event
 import event_log
 from ci_decision import Crash, Loop, Need, Observation, Options, Record, Sleep, UNREAD_LIMIT, decide, decimal, retry_sleep
 from ci_on_pr import declared, trigger_lines
@@ -227,6 +228,10 @@ def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
+    return event.stage("ci-wait", lambda: wait(argv))
+
+
+def wait(argv):
     try:
         stated = declared()
     except ValueError as refusal:

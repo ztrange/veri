@@ -16,6 +16,13 @@ def wait_ci():
     return importlib.import_module("veri.wait_ci")
 
 
+def kept(tdd, deep=False):
+    """The entries of <tdd> (every file under it when <deep>) but `events.jsonl`, which holds the ci-wait stage's lines
+    (#4230), not a mark wait-ci.sh keeps."""
+    return [p for p in (tdd.rglob("*") if deep else tdd.iterdir())
+            if p.name != "events.jsonl" and (p.is_file() or not deep)]
+
+
 def test_main_refuses_a_missing_or_empty_pr_url_with_its_usage_and_no_process(monkeypatch, capsys, wait_ci, fake_processes):
     calls = fake_processes(lambda line, **_: (0, "", ""))
 
@@ -308,7 +315,7 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
         err = captured.err if isinstance(expected[2], str) else bool(captured.err)
         recorded = None if not (work / ".tdd").exists() else {
             str(p.relative_to(work / ".tdd")): p.read_text()
-            for p in (work / ".tdd").rglob("*") if p.is_file()}
+            for p in kept(work / ".tdd", deep=True)}
         observed.append((code, captured.out, err, recorded,
                          [c for c in calls if not c.startswith("gh ")]))
 
@@ -395,7 +402,7 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refu
         err = None if expected[2] is None else (
             captured.err if isinstance(expected[2], str) else bool(captured.err))
         recorded = {str(p.relative_to(work / ".tdd")): p.read_text()
-                    for p in (work / ".tdd").rglob("*") if p.is_file()}
+                    for p in kept(work / ".tdd", deep=True)}
         observed.append((code, captured.out, err, recorded,
                          [c for c in calls if not c.startswith("gh ")]))
 
@@ -473,7 +480,7 @@ def test_main_bounds_an_omitted_or_empty_total_by_the_mean_of_the_last_five_ci_r
         if expected[2] == traceback and err.startswith("Traceback") and "bounding" not in err:
             err = traceback
         recorded = {str(p.relative_to(work / ".tdd")): p.read_text()
-                    for p in (work / ".tdd").rglob("*") if p.is_file()}
+                    for p in kept(work / ".tdd", deep=True)}
         observed.append((code, captured.out, err, recorded,
                          [c for c in calls if not c.startswith("gh api ")]))
 
@@ -504,7 +511,7 @@ def test_main_splits_the_pr_url_at_its_last_pull_and_keys_the_deadline_by_a_head
     captured = capsys.readouterr()
 
     assert (code, captured.out, captured.err, calls,
-            {p.name: p.read_text() for p in (tmp_path / ".tdd").iterdir()}) == (
+            {p.name: p.read_text() for p in kept(tmp_path / ".tdd")}) == (
         3, "", "", list(bodies), {f"ci-deadline-{head}": "1100\n"})
 
 
@@ -1000,7 +1007,7 @@ def test_main_refuses_a_missing_pr_url_or_a_bad_number_and_records_the_deadline_
         reads = []
         served(fake_processes, bodies, lambda line: reads.append(line) if line.startswith("gh ") else None)
         code, out, err = run_cli(wait_ci, argv, env={"VERI_POLL": "0"}, cwd=work)
-        recorded = {p.name: p.read_text() for p in (work / ".tdd").iterdir()}
+        recorded = {p.name: p.read_text() for p in kept(work / ".tdd")}
         return code, out, err, recorded, bool(reads)
 
     observed = {
@@ -1042,7 +1049,7 @@ def test_main_exits_2_naming_draft_and_records_no_deadline_on_a_draft_pr_issue_2
     served(fake_processes, {}, answer)
     code, _, err = run_cli(wait_ci, [PR, "120", "", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
-    assert (code, "draft" in err, sorted(p.name for p in (work / ".tdd").iterdir())) == (2, True, [])
+    assert (code, "draft" in err, sorted(p.name for p in kept(work / ".tdd"))) == (2, True, [])
 
 
 def test_main_on_a_non_draft_pr_still_records_its_deadline_and_ends_0_green_1_red_2_past_it_3_pending_issue_2147(
@@ -1524,7 +1531,7 @@ def test_main_records_no_deadline_and_ends_its_slice_with_3_while_the_pull_head_
     served(fake_processes, bodies)
     code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
-    assert (code, sorted(p.name for p in (work / ".tdd").iterdir())) == (3, [f"ci-head-{FULL_SHA}"])
+    assert (code, sorted(p.name for p in kept(work / ".tdd"))) == (3, [f"ci-head-{FULL_SHA}"])
 
 
 def test_main_records_the_deadline_at_the_first_call_that_sees_the_given_head_and_a_later_call_inherits_it_issue_1896(
@@ -1700,7 +1707,7 @@ def test_main_exits_0_on_the_first_poll_of_a_mergeable_pr_with_no_checks_when_ci
                              env={"VERI_POLL": "0", "VERI_CI_ON_PR": "0"}, cwd=work)
 
     assert (code, out, len(reads), err.count("\n"), "no checks" in err, "VERI_CI_ON_PR=0" in err,
-            sorted(p.name for p in (work / ".tdd").iterdir())) == (0, "", 1, 1, True, True, [])
+            sorted(p.name for p in kept(work / ".tdd"))) == (0, "", 1, 1, True, True, [])
 
 
 @pytest.mark.parametrize("ci_on_pr", [None, "1"])
@@ -2302,7 +2309,7 @@ def test_main_writes_no_deadline_mark_for_a_draft_pr_whose_reads_fail_and_ends_2
     served(fake_processes, sha_bodies([[]], [], "pending"), answer)
     code, _, _ = run_cli(wait_ci, [PR, "1800", "6000", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
-    assert (code, len(reads), sorted(p.name for p in (work / ".tdd").iterdir())) == (2, 3, [])
+    assert (code, len(reads), sorted(p.name for p in kept(work / ".tdd"))) == (2, 3, [])
 
 
 def test_main_keys_its_deadline_mark_by_the_head_sha_it_was_given_not_by_the_pull_requests_head_issue_3089(
@@ -2641,7 +2648,7 @@ def test_main_fresh_window_removes_one_shas_marks_reads_no_checks_and_exits_0(wa
 
     code, out, _ = run_cli(wait_ci, ["--fresh-window", SHA], cwd=tmp_path)
 
-    assert (code, out, calls, sorted(p.name for p in tdd.iterdir())) == (
+    assert (code, out, calls, sorted(p.name for p in kept(tdd))) == (
         0, "", [], sorted(f"ci-{k}-{other}" for k in ("deadline", "queued", "none")))
 
 
@@ -2655,7 +2662,7 @@ def test_main_fresh_window_removes_the_head_mark_of_its_sha_and_no_other_issue_3
 
     code, _, _ = run_cli(wait_ci, ["--fresh-window", SHA], cwd=tmp_path)
 
-    assert (code, sorted(p.name for p in tdd.iterdir())) == (0, [f"ci-head-{other}"])
+    assert (code, sorted(p.name for p in kept(tdd))) == (0, [f"ci-head-{other}"])
 
 
 def test_main_fresh_window_with_some_marks_absent_exits_0_and_a_wrong_argument_count_removes_nothing(wait_ci, fake_processes, run_cli, tmp_path):
@@ -2665,13 +2672,13 @@ def test_main_fresh_window_with_some_marks_absent_exits_0_and_a_wrong_argument_c
     (tdd / f"ci-queued-{SHA}").write_text("1000\n")
 
     partial = run_cli(wait_ci, ["--fresh-window", SHA], cwd=tmp_path)
-    left_after_partial = sorted(p.name for p in tdd.iterdir())
+    left_after_partial = sorted(p.name for p in kept(tdd))
     for kind in ("deadline", "queued", "none"):
         (tdd / f"ci-{kind}-{SHA}").write_text("1000\n")
     extra = run_cli(wait_ci, ["--fresh-window", SHA, "extra"], cwd=tmp_path)
 
     assert (partial[0], "Traceback" in partial[2], left_after_partial, extra[0],
-            sorted(p.name for p in tdd.iterdir())) == (
+            sorted(p.name for p in kept(tdd))) == (
         0, False, [], 2, sorted(f"ci-{k}-{SHA}" for k in ("deadline", "queued", "none")))
 
 
@@ -2928,3 +2935,26 @@ def test_4018_after_a_ci_rerun_event_for_the_head_a_check_run_completed_before_i
         "a red re-run": 1,
         "no re-run event": 1,
     }
+
+
+@pytest.mark.parametrize("conclusions, code", [(["success"], 0), (["failure"], 1)], ids=["green", "red"])
+def test_4230_wait_ci_runs_as_stage_ci_wait_of_the_runs_issue_ending_with_its_exit_code(
+        monkeypatch, capsys, wait_ci, fake_processes, tmp_path, events, conclusions, code):
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "12")
+
+    returned = one_poll(fake_processes, capsys, wait_ci, {"mergeable": True, "head": {"sha": SHA}}, conclusions, [])[0]
+
+    stages = [(r["event"], r["stage"], r.get("status"), r["issue"]) for r in events.records(tmp_path) if "stage" in r]
+    assert (returned, stages) == (code, [("stage-start", "ci-wait", None, "12"),
+                                         ("stage-end", "ci-wait", str(code), "12")])
+
+
+def test_4230_wait_ci_fresh_window_is_no_wait_and_marks_no_stage(monkeypatch, wait_ci, fake_processes, tmp_path, events):
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    returned = wait_ci.main(["--fresh-window", SHA])
+
+    assert (returned, [r for r in events.records(tmp_path) if "stage" in r]) == (0, [])

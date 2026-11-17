@@ -215,6 +215,7 @@ CWD_OUTSIDE_REPOSITORY = {
     "test_verify.py",
     "test_verify_process.py",
     "test_verify_prompt_retirements.py",
+    "test_wait_ci.py",
     "test_workqueue.py",
     "test_workqueue_process.py",
 }
