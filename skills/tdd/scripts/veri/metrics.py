@@ -1033,7 +1033,10 @@ def json_row(row_counts, columns):
 def as_json(f):
     """The run's figures as one JSON-ready object, read off a `Fold` alone (PRD 035.1)."""
     return {"run": {}, "phases": {phase: json_row(row_counts, PHASE_COLUMNS) for phase, row_counts in f.phases.items()},
-            "steps": [], "conductor": {}, "total": {}}
+            # a step's wall is the markdown's: its start-to-done span, not its leaves' summed seconds
+            "steps": [dict(json_row(row_counts, STEP_COLUMNS), text=step, wall_seconds=f.step_walls[step])
+                      for step, row_counts in f.steps.items()],
+            "conductor": {}, "total": {}}
 
 
 def print_json(issue, path, ledger):
