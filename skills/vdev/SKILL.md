@@ -20,12 +20,12 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
 
 - **`<lane>`** is an optional first word naming the lane: `/vdev mu [N] …` runs every read
   (`solvable-issues.sh`, `status.sh` included) and every conductor launch with
-  `VERI_LABEL=ready-for-agent:mu`; with no lane word, plain `ready-for-agent`. State the lane
-  in your first line of output.
+  `VERI_LABEL=ready-for-agent:mu`; with no lane word, plain `ready-for-agent`. The session does
+  not state the lane in its output: the lane is in the role state and the `taken:<lane>` label.
 
 - **N** is how many conductors to keep running; it defaults to 1.
-- **MCP servers:** when this session has tools from any MCP server, tell the human once, in one
-  line, the launch line that starts the session without them:
+- **MCP servers:** when this session has tools from any MCP server, send once, as a notice
+  (*Speaking*), the launch line that starts the session without them:
   `claude --strict-mcp-config --mcp-config '{"mcpServers":{}}'`. Change no setting yourself.
 - **Writing in another repository:** when the user's instructions in this session forbid
   writing in a repository other than the session's, ask the human once whether veri may
@@ -65,6 +65,25 @@ when the role state records one (recovery lists `coordinator <session-id>` under
 the first line after recovery a recorded coordinator counts as attached: every event P4 lets you
 speak about goes to it, by that session id, and the human gets `.`.
 
+## Speaking
+
+Every turn of the dev session prints `.` and nothing else, except a turn answering a question the
+human typed, which answers it. A run's status is on its issue (the `taken:<lane>` claim, step
+ticks, bails, merges), and a question the human must answer is in its own session (*When to stop
+and ask*), so the transcript carries neither.
+
+A **notice** — a refused reset, `role-growth.sh`'s exit 2, `request-reset`'s exit 1, the MCP
+launch line of *Starting*, a missing `delegate` skill — is sent once: as one `PushNotification`
+where the session has that tool, else as one line in its transcript.
+
+With a coordinator attached, each event P4 lets you speak about goes to it, as *Attached* says;
+the human still gets `.`.
+
+In a session with `start_session`, restate no pending decision in your own transcript, whatever
+the human's message is about: each is restated only in its own question session. In a session
+without it (a terminal), a decision is asked in full in the transcript, once, as *When to stop and
+ask* says.
+
 ## Role state
 
 Write your state through `$S/role-state.sh dev [--lane <lane>]` at the moment it changes, never
@@ -94,7 +113,8 @@ conductor exit:
    dispatch: it launches nothing and keeps watching exits; a later positive N resumes launching.
 2. Count live conductors. While fewer than N are live, launch the next issue (below). When N
    went down, stop nothing: a live run finishes, and its slot is simply not refilled (P8).
-3. When `$S/solvable-issues.sh` exits 3 and no run is live, the queue is empty: say so and stop.
+3. When `$S/solvable-issues.sh` exits 3 and no run is live, the queue is empty: stop with `.`
+   (*Speaking*); the exit 3 is the record.
 
 Keep exactly N conductors running for as long as the solvable list is non-empty.
 
@@ -106,8 +126,8 @@ detached, never as a conductor inside this session, and only after the previous 
 exists. The skill arms no ledger wait of its own.
 
 `dispatch.sh` skips a solvable issue whose named paths an open run draft PR changes, on any
-machine, a run on another machine included, but never the issue's own run draft PR. It prints each skip line, and you report each one to
-the coordinator as an override (P4).
+machine, a run on another machine included, but never the issue's own run draft PR. It prints each skip line; each goes only to
+an attached coordinator, as an override (P4), never to the human.
 
 Every launch, a resume included, appends with `>>` to `.tdd/conductor-<n>.log`, the file
 `stop-reason.sh` and `metrics.sh` read; none truncates it. A launch by hand follows the same
@@ -132,9 +152,10 @@ It restarts that run's conductor at its next ledger commit once its growth reach
 (`restart-conductor.sh`) itself for every launch it makes, so you run the line above by hand only
 for a launch you make by hand. A restart is not an exit to route.
 
-`dispatch.sh` launches without printing. Announce each launch recorded in `.tdd/dispatch.log`
-since your last turn as `Started #<n> — <title>`, the title read from
-`gh issue view <n> --json title` (to the coordinator when one is attached, P4).
+`dispatch.sh` launches without printing. Announce no launch to the human: the run's
+`taken:<lane>` claim carries its start. Each launch recorded in `.tdd/dispatch.log` since your
+last turn goes as `Started #<n> — <title>`, the title read from `gh issue view <n> --json title`,
+only to an attached coordinator (P4).
 
 ## Watching
 
@@ -278,7 +299,7 @@ review and issue sweep is read by a subagent briefed as that skill says, and onl
 enters your context. Where `delegate` and P6 differ (the return's length, the cheapest adequate
 model, work done inline rather than in a subagent), P6 holds. The subagents and the brief block
 below stay as this section states them, a merge or hand-fix subagent pushing as its skill or
-brief says. When `delegate` is not installed, say so once and follow P6.
+brief says. When `delegate` is not installed, send that once as a notice (*Speaking*) and follow P6.
 
 **Every brief for a review, hand-fix or merge subagent also says:**
 
@@ -330,14 +351,12 @@ else. Act on what it prints:
 - **Arm line** (growth since recovery ≥ 0.85 × `VERI_RESET_GROWTH_DEV`, default 70000 tokens):
   reset at the next quiet point — no launch half done, no merge in flight.
 - **Reset-now line** (2 × the knob): reset at once, even mid-task.
-- **A refused reset:** report the reason once (to the coordinator when attached, P4) and do not
-  retry it.
-- **Exit 2:** report it once and the turn goes on.
+- **A refused reset:** send the reason once as a notice (*Speaking*) and do not retry it.
+- **Exit 2:** send it once as a notice (*Speaking*), and the turn goes on.
 
 A reset is `$S/role-state.sh dev [--lane <lane>] request-reset` followed by the app's clear of the
 dev session's own session. Nothing else is written at reset time (*Role state*). When
-`request-reset` exits 1, report the reason once (to the coordinator when attached, P4) and do not
-retry it.
+`request-reset` exits 1, send the reason once as a notice (*Speaking*) and do not retry it.
 
 After recovery, arm `$S/reset-wait.sh idle dev [--lane <lane>]` as a background command. When it
 returns, run `request-reset --idle` and clear yourself; the resetter recovers you at once, as after
