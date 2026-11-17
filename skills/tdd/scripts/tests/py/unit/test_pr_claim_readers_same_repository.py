@@ -18,12 +18,11 @@ import pytest
 EXEMPT = {
     "github": "the home of the readers and of Pull.cross_repository; its own Closes #n readers are checked below",
     "invisible_work": "reports branches no PR names, by head ref only; it claims, launches and skips nothing",
-    "parallel_conductors": "prints a finished run's outcome line; it claims, launches and skips nothing (not in PRD 022's set)",
     "status": "status.sh --recover prints the open PRs for the operator to read; it claims, launches and skips nothing",
 }
 
 # The readers PRD 022.14-022.16 put behind the rule; the detector must keep finding them.
-KNOWN_READERS = ("dispatch", "issue_worktree", "solvable_issues")
+KNOWN_READERS = ("dispatch", "issue_worktree", "parallel_conductors", "solvable_issues")
 
 _READERS = {"open_pulls", "open_pulls_text", "pulls_in", "joined_issues", "closed_issues"}
 

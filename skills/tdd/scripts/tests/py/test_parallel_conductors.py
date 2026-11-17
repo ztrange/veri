@@ -164,7 +164,7 @@ def test_an_assistant_event_the_conductor_writes_in_two_pieces_still_prints_one_
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text(json.dumps(
-        [{"body": "Closes #7", "isDraft": False, "url": "https://github.com/o/r/pull/70"}]))
+        [{"isCrossRepository": False, "body": "Closes #7", "isDraft": False, "url": "https://github.com/o/r/pull/70"}]))
     monkeypatch.setenv("VERI_GH_JSON", str(gh))
     work = tmp_path / "repo"
     work.mkdir()
@@ -698,20 +698,20 @@ def test_the_report_prints_one_line_per_issue_in_launch_order_killed_ahead_of_an
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text(json.dumps([
-        {"body": "Closes #21", "isDraft": False, "url": "https://github.com/o/r/pull/121"},
-        {"body": "Closes #3", "isDraft": False, "url": "https://github.com/o/r/pull/103"},
-        {"body": "Fixes the thing.\n\nCloses #14", "isDraft": False, "url": "https://github.com/o/r/pull/114"},
-        {"body": "Closes #5", "draft": False, "html_url": "https://github.com/o/r/pull/105"},
-        {"body": "Closes #6", "isDraft": False},
-        {"body": "Closes #7", "isDraft": True, "url": "https://github.com/o/r/pull/107"},
-        {"body": "Closes #8", "draft": True, "html_url": "https://github.com/o/r/pull/108"},
-        {"body": "Closes #9", "isDraft": True, "url": "https://github.com/o/r/pull/109"},
-        {"body": "closes #10 and Closes #100", "isDraft": False, "url": "https://github.com/o/r/pull/110"},
-        {"body": None, "isDraft": False, "url": "https://github.com/o/r/pull/1"},
-        {"body": "Closes #110 and Closes #11", "isDraft": False, "draft": True,
+        {"isCrossRepository": False, "body": "Closes #21", "isDraft": False, "url": "https://github.com/o/r/pull/121"},
+        {"isCrossRepository": False, "body": "Closes #3", "isDraft": False, "url": "https://github.com/o/r/pull/103"},
+        {"isCrossRepository": False, "body": "Fixes the thing.\n\nCloses #14", "isDraft": False, "url": "https://github.com/o/r/pull/114"},
+        {"isCrossRepository": False, "body": "Closes #5", "draft": False, "html_url": "https://github.com/o/r/pull/105"},
+        {"isCrossRepository": False, "body": "Closes #6", "isDraft": False},
+        {"isCrossRepository": False, "body": "Closes #7", "isDraft": True, "url": "https://github.com/o/r/pull/107"},
+        {"isCrossRepository": False, "body": "Closes #8", "draft": True, "html_url": "https://github.com/o/r/pull/108"},
+        {"isCrossRepository": False, "body": "Closes #9", "isDraft": True, "url": "https://github.com/o/r/pull/109"},
+        {"isCrossRepository": False, "body": "closes #10 and Closes #100", "isDraft": False, "url": "https://github.com/o/r/pull/110"},
+        {"isCrossRepository": False, "body": None, "isDraft": False, "url": "https://github.com/o/r/pull/1"},
+        {"isCrossRepository": False, "body": "Closes #110 and Closes #11", "isDraft": False, "draft": True,
          "html_url": "https://github.com/o/r/pull/111", "url": "https://api.github.com/o/r/pulls/111"},
-        {"body": "Closes #11", "isDraft": False, "url": "https://github.com/o/r/pull/211"},
-        {"body": "Closes #12", "isDraft": True, "url": "https://github.com/o/r/pull/112"},
+        {"isCrossRepository": False, "body": "Closes #11", "isDraft": False, "url": "https://github.com/o/r/pull/211"},
+        {"isCrossRepository": False, "body": "Closes #12", "isDraft": True, "url": "https://github.com/o/r/pull/112"},
     ]))
     monkeypatch.setenv("VERI_GH_JSON", str(gh))
     work = tmp_path / "repo"
@@ -755,9 +755,9 @@ def test_the_cli_reports_a_ready_pr_done_a_draft_ending_in_a_bail_bailed_a_draft
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text(json.dumps([
-        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
-        {"body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
-        {"body": "Closes #9", "isDraft": True, "url": "https://example.test/pull/9"},
+        {"isCrossRepository": False, "body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
+        {"isCrossRepository": False, "body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
+        {"isCrossRepository": False, "body": "Closes #9", "isDraft": True, "url": "https://example.test/pull/9"},
     ]))
     work = tmp_path / "repo"
     (work / ".tdd").mkdir(parents=True)
@@ -790,7 +790,7 @@ def test_a_finished_run_ending_in_a_standing_done_mark_whose_pr_is_still_a_draft
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text(json.dumps([
-        {"body": "Closes #7", "isDraft": True, "url": "https://example.test/pull/7"},
+        {"isCrossRepository": False, "body": "Closes #7", "isDraft": True, "url": "https://example.test/pull/7"},
     ]))
     work = tmp_path / "repo"
     (work / ".tdd").mkdir(parents=True)
@@ -810,7 +810,7 @@ def test_a_finished_run_ending_in_a_standing_bail_mark_whose_pr_is_ready_for_rev
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text(json.dumps([
-        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
+        {"isCrossRepository": False, "body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
     ]))
     work = tmp_path / "repo"
     (work / ".tdd").mkdir(parents=True)
@@ -830,7 +830,7 @@ def test_the_report_over_a_run_whose_events_log_holds_one_non_utf_8_byte_prints_
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text(json.dumps([
-        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
+        {"isCrossRepository": False, "body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
     ]))
     work = tmp_path / "repo"
     (work / ".tdd").mkdir(parents=True)
@@ -852,8 +852,8 @@ def test_the_exit_code_the_parked_file_and_a_missing_pr_each_answer_beside_a_sta
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text(json.dumps([
-        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
-        {"body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
+        {"isCrossRepository": False, "body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
+        {"isCrossRepository": False, "body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
     ]))
     work = tmp_path / "repo"
     (work / ".tdd" / "parked").mkdir(parents=True)
@@ -877,7 +877,7 @@ def test_the_full_answer_is_the_same_when_starting_solvable_issues_sh_as_a_proce
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text(json.dumps([
-        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"}]))
+        {"isCrossRepository": False, "body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"}]))
     work = tmp_path / "repo"
     (work / ".tdd").mkdir(parents=True)
 
@@ -927,9 +927,9 @@ def test_an_empty_label_is_a_selection_that_could_not_answer_when_starting_solva
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_the_open_pr_list_is_read_through_gh_json_a_no_answer_at_the_report_returns_2_unwritten_at_a_finish_it_decides_over_the_pages_read_and_a_non_json_list_is_survived_as_bash_survives_it(
         capsys, monkeypatch, tmp_path, parallel_conductors):
-    graphql = ["gh", "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,isDraft,url"]
+    graphql = ["gh", "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,isDraft,url,isCrossRepository"]
     rest = "repos/{owner}/{repo}/pulls?state=open&per_page=100&page=%d"
-    bailed = json.dumps([{"body": "Closes #7", "draft": True, "html_url": "https://github.com/o/r/pull/107"}])
+    bailed = json.dumps([{"isCrossRepository": False, "body": "Closes #7", "draft": True, "html_url": "https://github.com/o/r/pull/107"}])
 
     applied = []
 
@@ -1016,8 +1016,8 @@ def test_a_finished_sweep_in_launch_order_restarts_past_a_stop_prints_parked_alo
         gh = root / "gh"
         gh.mkdir(parents=True)
         (gh / "prs.json").write_text(json.dumps([
-            {"body": "Closes #4", "isDraft": True, "url": "https://github.com/o/r/pull/104"},
-            {"body": "Closes #6", "isDraft": True, "url": "https://github.com/o/r/pull/106"},
+            {"isCrossRepository": False, "body": "Closes #4", "isDraft": True, "url": "https://github.com/o/r/pull/104"},
+            {"isCrossRepository": False, "body": "Closes #6", "isDraft": True, "url": "https://github.com/o/r/pull/106"},
         ]))
         monkeypatch.setenv("VERI_GH_JSON", str(gh))
         work = root / "repo"
@@ -1466,7 +1466,7 @@ def test_the_cli_prints_parked_for_a_conductor_that_halts_writing_its_parked_fil
         gh = root / "gh"
         gh.mkdir(parents=True)
         (gh / "prs.json").write_text(json.dumps([
-            {"body": "Closes #%s" % n, "isDraft": n in bailed, "url": "https://example.test/pull/%s" % n}
+            {"isCrossRepository": False, "body": "Closes #%s" % n, "isDraft": n in bailed, "url": "https://example.test/pull/%s" % n}
             for n in prs]))
         work = root / "repo"
         (work / ".tdd" / "parked").mkdir(parents=True)
@@ -1547,7 +1547,7 @@ def test_the_cli_exits_0_all_done_1_a_bail_or_a_kill_2_plumbing_and_3_nothing_so
         gh = root / "gh"
         gh.mkdir(exist_ok=True)
         (gh / "prs.json").write_text(json.dumps([
-            {"body": "Closes #7", "isDraft": draft, "url": "https://example.test/pull/7"} for draft in prs]))
+            {"isCrossRepository": False, "body": "Closes #7", "isDraft": draft, "url": "https://example.test/pull/7"} for draft in prs]))
         return work, gh, launches
 
     def report(code, out, work):
@@ -1573,7 +1573,8 @@ def test_the_cli_exits_0_all_done_1_a_bail_or_a_kill_2_plumbing_and_3_nothing_so
 
     def pull(number, draft, url="https://example.test/pull/%s"):
         return {"number": number, "body": "Closes #%s" % number if number == 7 else "", "state": "open",
-                "draft": draft, "html_url": url % number}
+                "draft": draft, "html_url": url % number,
+                "head": {"repo": {"full_name": "o/r"}}, "base": {"repo": {"full_name": "o/r"}}}
 
     pages = {
         "two": [[pull(901, False), pull(902, False)], [pull(7, True)]],
@@ -1802,8 +1803,8 @@ def test_the_cli_reports_a_draft_whose_compact_separator_log_ends_in_a_bail_bail
         monkeypatch, tmp_path, parallel_conductors, run_cli):
     gh, work = _gh_and_work(tmp_path)
     (gh / "prs.json").write_text(json.dumps([
-        {"body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
-        {"body": "Closes #9", "isDraft": True, "url": "https://example.test/pull/9"},
+        {"isCrossRepository": False, "body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
+        {"isCrossRepository": False, "body": "Closes #9", "isDraft": True, "url": "https://example.test/pull/9"},
     ]))
     _event_log(work, "8", '{"event":"launch"}\n{"event":"bail","why":"stuck"}\n')
     _event_log(work, "9", '{"event":"bail"}\n{"event":"launch"}\n')
@@ -1822,8 +1823,8 @@ def test_a_draft_run_whose_bail_mark_is_spaced_or_compact_is_reported_bailed_eit
         monkeypatch, tmp_path, parallel_conductors, run_cli):
     gh, work = _gh_and_work(tmp_path)
     (gh / "prs.json").write_text(json.dumps([
-        {"body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
-        {"body": "Closes #9", "isDraft": True, "url": "https://example.test/pull/9"},
+        {"isCrossRepository": False, "body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
+        {"isCrossRepository": False, "body": "Closes #9", "isDraft": True, "url": "https://example.test/pull/9"},
     ]))
     _event_log(work, "8", '{ "event" : "launch" }\n{ "event" : "bail" }\n')
     _event_log(work, "9", '{"event":"launch"}\n{"event":"bail"}\n')
@@ -1842,8 +1843,8 @@ def test_a_child_that_died_before_writing_any_event_is_answered_from_its_pr_and_
         monkeypatch, tmp_path, parallel_conductors, run_cli):
     gh, work = _gh_and_work(tmp_path)
     (gh / "prs.json").write_text(json.dumps([
-        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
-        {"body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
+        {"isCrossRepository": False, "body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
+        {"isCrossRepository": False, "body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
     ]))
 
     def on_launch(sup):
@@ -1865,8 +1866,8 @@ def test_whether_a_run_has_ended_is_answered_only_from_run_end_not_from_the_even
         monkeypatch, tmp_path, parallel_conductors, run_cli):
     gh, work = _gh_and_work(tmp_path)
     (gh / "prs.json").write_text(json.dumps([
-        {"body": "Closes #7", "isDraft": True, "url": "https://example.test/pull/7"},
-        {"body": "Closes #8", "isDraft": False, "url": "https://example.test/pull/8"},
+        {"isCrossRepository": False, "body": "Closes #7", "isDraft": True, "url": "https://example.test/pull/7"},
+        {"isCrossRepository": False, "body": "Closes #8", "isDraft": False, "url": "https://example.test/pull/8"},
     ]))
     _event_log(work, "7", '{"event":"launch"}\n{"event":"bail"}\n')
     _event_log(work, "8", '{"event":"launch"}\n')
