@@ -19,7 +19,7 @@ def added(base):
 def unnamed(paths):
     """The paths among <paths> whose stem no other non-test file git does not ignore holds as a whole word."""
     sources = [p for p in stem_walk.tree_files() if not case_reader.is_test_path(p)]
-    return [p for p in paths if not stem_walk.naming(stem_walk.stem(p), sources)]
+    return [p for p in paths if not stem_walk.naming(stem_walk.stem(p), [s for s in sources if s != p])]
 
 
 def main(argv):
