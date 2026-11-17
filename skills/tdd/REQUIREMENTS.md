@@ -659,7 +659,9 @@
 | LY2 | The file says it, not `PHASED.md`, runs a legacy step, and that a legacy step is never run through a fused call of PRD 027: its leaves are launched by the conductor through `supervise.sh`. | Stuck detection lives only in the supervisor, and a fused call would run the wrong kind's phases. |
 | LY3 | The file says each step's Seam phase launches one `develop-seam` leaf through `supervise.sh`, whose report a script reads: `REACHES: no` bails with cause `no-seam`, carrying the leaf's reason; a non-empty `git status --porcelain` once the leaf exits stops the run, as after a cover leaf. | A region nothing drives without an edit cannot be surrounded, and the seam leaf must leave the tree as it found it. |
 | LY4 | The file says `REACHES: yes` is recorded with `$S/tick-ledger.sh --phase seam`, so a resumed run does not confirm a seam twice. | Resume reads the committed ledger. |
-| LY5 | The file says that once every legacy step's next phase (`$S/ledger-steps.sh next-phase`) is `surround`, the run bails with cause `surround-owed`, its `### ⛔ Bailed` note listing each step's region and confirmed seam read from the ledger; ledger, branch and draft PR stay, so `release-issue.sh` and a resume carry on from the ledger. | A run with no test written has no product for a PR (PRD 031, O1). |
+| LY5 | The file says that once every legacy step's seam is confirmed the run goes on to Surround: per step, one `develop-surround` leaf then one `verify-surround` leaf, each launched through `supervise.sh`. | The run ends with the characterization tests committed, not with a `surround-owed` stop. |
+| LY6 | The file says a `verify-surround` PASS is recorded with `$S/tick-ledger.sh --phase surround`. | Resume restarts at the phase not yet done. |
+| LY7 | The file says a `verify-surround` REJECT spends `REVISE_BUDGET` like any other reject and a leaf ending without a verdict spends `VERI_NO_VERDICT_RETRIES`, with no new budget, and that `VERI_SKIP_VERIFY` never skips `surround`. | Budgets stay on their axes, and a legacy run with its one verifier skipped proves nothing. |
 
 ## skills/tdd/BAIL.md
 

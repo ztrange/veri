@@ -5,4 +5,4 @@
 - [x] `tick-ledger.sh --phase surround` records `⟂ surround done` after `⟂ seam done`, and `ledger-steps.sh next-phase` then exits 3 ⟦criterion 3⟧
 - [x] a run started with `VERI_SKIP_VERIFY=surround` exits 2 before its baseline ⟦criterion 4⟧
 - [x] `classify-bail.sh surround-owed` still prints `process` ⟦criterion 5⟧
-- [ ] docs: `develop-surround.md`, `verify-surround.md`, `LEGACY.md`, CLAUDE.md, SKILL.md sentence, CONTEXT.md, rows and grades ⟦criterion 6⟧ ⟦criterion 7⟧ ⟦criterion 8⟧ ⟦criterion 9⟧
+- [x] docs: `develop-surround.md`, `verify-surround.md`, `LEGACY.md`, CLAUDE.md, SKILL.md sentence, CONTEXT.md, rows and grades ⟦criterion 6⟧ ⟦criterion 7⟧ ⟦criterion 8⟧ ⟦criterion 9⟧
