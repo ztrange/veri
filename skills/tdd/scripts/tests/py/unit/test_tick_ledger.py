@@ -1266,3 +1266,19 @@ def test_tick_retire_unpinnable_without_a_case_exits_1_naming_the_matcher_and_al
     assert held == 0
     assert "retired already holds" in ledger.read_text()
     assert '"already-holds-step"' in (ledger.parent / "events.jsonl").read_text()
+
+
+def test_main_with_phase_seam_marks_seam_done_on_a_legacy_step_after_which_next_phase_prints_surround_4106(
+        tmp_path, monkeypatch, capsysbinary, tick_ledger):
+    ledger_steps = importlib.import_module("veri.ledger_steps")
+    step = "wrap parse() in src/parse.py:10-80 through bin/parse ⟦phases: seam,surround⟧ ⟦criterion 1⟧"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(("# Plan for #4106\n\n- [ ] " + step + "\n").encode())
+
+    code = tick_ledger.main(["--phase", "seam", str(ledger), "wrap parse() in src/parse.py:10-80"])
+    capsysbinary.readouterr()
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(ledger.read_bytes())))
+    next_code = ledger_steps.main(["next-phase"])
+
+    assert (code, ledger.read_text(), next_code, capsysbinary.readouterr()[0]) == (
+        0, "# Plan for #4106\n\n- [ ] " + step + " ⟂ seam done\n", 0, b"surround\n")
