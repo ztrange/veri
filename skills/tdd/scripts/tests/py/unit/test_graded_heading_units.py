@@ -118,3 +118,38 @@ def test_4016_grade_prose_and_prose_owed_exit_2_naming_the_unit_and_the_count_wh
     code, out, err = run_cli(module, argv, cwd=tmp_path)
 
     assert (code, HEADING_UNIT in err, "matches %d unfenced heading" % count in err) == (2, True, True), (code, out, err)
+
+
+SPLIT = ("---\nname: f\n---\n# Title\ntitle text\n## Claimed one\nclaimed text\n```\n## fenced\n```\n### Sub of claimed\n"
+         "sub text\n## Path/with a slash\nslash text\n## Free\nfree text\n")
+SPLIT_VIEW = ("# Title\n## Claimed one\n### Sub of claimed\n## Path/with a slash\n## Free\n\n"
+              "---\nname: f\n---\n# Title\ntitle text\n### Sub of claimed\nsub text\n## Free\nfree text\n")
+
+
+def split_tree(root, claimed=("Claimed one", "Path/with a slash")):
+    (root / "f.md").write_text(SPLIT)
+    (root / "REQUIREMENTS.md").write_text("".join("## %s\n\n%s\n" % (unit, ROWS)
+                                                  for unit in ["f.md"] + ["f.md#" + h for h in claimed]))
+
+
+def test_4016_a_whole_file_unit_with_a_listed_heading_unit_is_split_and_signs_the_heading_lines_then_every_unclaimed_own_text(
+        tmp_path, monkeypatch, grade_prose):
+    split_tree(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    assert grade_prose.signed_text("f.md", SPLIT) == SPLIT_VIEW
+
+
+def test_4016_a_whole_file_unit_with_no_listed_heading_unit_is_unsplit_and_signs_its_file(tmp_path, monkeypatch, grade_prose):
+    split_tree(tmp_path, claimed=())
+    monkeypatch.chdir(tmp_path)
+
+    assert grade_prose.signed_text("f.md", SPLIT) == SPLIT
+
+
+@pytest.mark.parametrize("text", [SPLIT, SPLIT.replace("\n", "\r\n"), SPLIT.rstrip("\n"), SPLIT + "\n\n"])
+def test_4016_the_views_cuts_join_back_to_the_file_and_each_heading_cut_is_that_heading_units_own_text(text, grade_prose):
+    cuts = grade_prose.own_texts(text)
+
+    assert "".join(own for _, own in cuts) == text
+    assert [own for line, own in cuts[1:]] == [grade_prose.section(text, grade_prose.heading_text(line)) for line, _ in cuts[1:]]
