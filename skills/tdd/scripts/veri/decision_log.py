@@ -20,6 +20,8 @@ def log_path(main=None):
 KEYS = ("question", "decision", "rule", "by", "at")
 # Who may decide: an operator role (role-state.sh's roles), or the owner, whose own answer or override is recorded too.
 BY = ("coord", "dev", "owner")
+# The longest field a record stores, in characters: a longer one is refused, not cut, so no record is stored partly.
+FIELD_MAX = 2000
 
 
 class Malformed(Exception):
@@ -87,6 +89,10 @@ def main(argv):
     if argv[:1] != ["record"] or len(argv) != 5 or not all(a.strip() for a in argv[1:]) or argv[4] not in BY:
         sys.stderr.write(USAGE)
         return 2
+    for name, value in zip(("question", "decision", "rule"), argv[1:4]):
+        if len(value) > FIELD_MAX:
+            sys.stderr.write("decision-log.sh: the %s is over %d characters; record a shorter one\n" % (name, FIELD_MAX))
+            return 2
     record(*argv[1:])
     return 0
 
