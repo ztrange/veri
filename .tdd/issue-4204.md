@@ -8,4 +8,4 @@
 - [x] an event with no issue, or in a clone with no `origin`, writes no metrics file and prints nothing about it ⟦criterion 6⟧
 - [ ] `PUBLISHED.md` lists the metrics file as a third published file (PB1 reworded, PB12, PB13), graded ⟦criterion 7⟧
 - [ ] a case names the key when the `--json` object's keys and those `PUBLISHED.md` states for the metrics file differ ⟦criterion 8⟧
-- [ ] `run_conductor.py` handles a conductor's exit the same with the metrics file's directory not writable ⟦criterion 9⟧
+- [x] `run_conductor.py` handles a conductor's exit the same with the metrics file's directory not writable ⟦criterion 9⟧
