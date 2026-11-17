@@ -254,9 +254,9 @@ drive it to a draft PR or to a clean stop on a `REJECT`.
 ### 0. Preflight — baseline checks (bail before any cycle)
 
 Run `$S/preflight.sh <n> <slug>` (slug as in step 1.1) first, `PREFLIGHT.md` unread; on exit 3 run
-it again. Exit 0 is a whole preflight, step 1.6's claim included: take its values from its last
-lines. On any other exit `Read` `<base directory>/PREFLIGHT.md` and run it: from the step the last
-line names, or as a resume when exit 2 says the branch holds a ledger (`Read` `<base directory>/RESUME.md`).
+it again. Exit 0 is a whole preflight on a fresh run and on a resume (`Read` `<base directory>/RESUME.md`)
+alike, step 1.6's claim included on a fresh run: take its values from its last lines. On any other
+exit `Read` `<base directory>/PREFLIGHT.md` and run it from the step the last line names.
 
 ### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)
 
