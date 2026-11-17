@@ -123,6 +123,15 @@ def test_4024_a_failed_gitignore_commit_stops_it_at_1_4(start):
                                             + COMMIT[2] + " exit 1")
 
 
+@pytest.mark.parametrize("porcelain", [" M .gitignore\n?? stray.py\n", " M src/a.py\n", " M .gitignore\n M .gitignore2\n"])
+def test_4024_a_tree_listing_anything_but_gitignore_before_the_commit_stops_at_1_4_tree_check_committing_nothing(
+        start, porcelain):
+    code, out, err, fake = start(fake=Fake(porcelain=porcelain))
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 1.4 tree-check")
+    assert fake.calls[-1][:2] == ("git", ("status", "--porcelain"))
+
+
 def test_4024_a_stop_handles_no_refusal_resets_nothing_and_writes_no_bail(start):
     code, out, err, fake = start(answers={("capture-spec.sh", None): (2, "")})
 
