@@ -1,6 +1,7 @@
 """In-process cases for veri/ready_check.py, the module ready-check.sh is a shim over: only the gh, git and
 detect-test-command.sh process boundaries are faked."""
 import importlib
+import json
 import os
 import re
 import shlex
@@ -74,6 +75,19 @@ def test_issue_4081_ready_check_prints_a_row_per_state_label_failing_with_the_cr
         assert f"ok    label {label}" in lines, (label, lines)
     assert "fail  label stopped: create the `stopped` label in the repository" in lines, lines
     assert code == 1
+
+
+def test_issue_4081_a_state_label_past_the_first_30_labels_reads_ok(ready_check, run_cli, fake_processes, tmp_path):
+    names = ["ready-for-agent"] + ["area-%d" % i for i in range(40)] + ["pr-ready", "bailed", "parked", "stopped"]
+
+    def gh_label_list(line, **kwargs):
+        argv = line.split()
+        limit = int(argv[argv.index("--limit") + 1]) if "--limit" in argv else 30
+        return 0, json.dumps([{"name": n} for n in names[:limit]]), ""
+
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{"gh label list": gh_label_list})
+
+    assert [l for l in lines if l.startswith("fail  label")] == [], lines
 
 
 def one_test_file_row(lines):
