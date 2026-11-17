@@ -68,6 +68,10 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
 - `report-missing` — a phase leaf's report carried no `SUITE:` line (`suite-reported.sh` exited
   2) → **system** failure. The bail can follow an adjudication (`Read`
   `<base directory>/ADJUDICATE.md`): it keeps this cause and class.
+- `reconcile-failed` — the reconcile of a rejected push failed (the `develop-reconcile` leaf
+  exited 1 or 2, the second `push-branch.sh` exited other than 0, or the ledger's ticks or marks
+  changed; `RECONCILE.md`) → **system** failure. Its exit-2 sources can be adjudicated first
+  (`Read` `<base directory>/ADJUDICATE.md`): the bail keeps this cause and class.
 - `ci-timeout` — a readied PR's check was still pending when the Draft PR step's bounded CI
   wait ran out → **system** failure (CI never answered, not the methodology). The bail can follow an
   adjudication (`Read` `<base directory>/ADJUDICATE.md`): it keeps this cause and class.
