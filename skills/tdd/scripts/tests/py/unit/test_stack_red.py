@@ -13,7 +13,7 @@ def stack_red():
 def run(n, status="completed", conclusion="failure"):
     """Run <n>: created at second <n>, so a higher n is newer."""
     return ("%040x" % n, "https://github.com/o/r/actions/runs/%d" % n, status, conclusion, "2026-11-16T10:00:%02dZ" % n,
-            1)
+            1, 1)
 
 
 class World:
@@ -101,10 +101,10 @@ def test_exits_2_naming_its_usage_when_given_an_argument(monkeypatch, run_cli, s
     assert (code, out, "usage: stack-red.sh" in err) == (2, "", True)
 
 
-def on(n, head, status="completed", conclusion="failure", attempt=1):
-    """Run <n> (created at second <n>) on the head commit sha(<head>), at its attempt <attempt>."""
+def on(n, head, status="completed", conclusion="failure", attempt=1, workflow=1):
+    """Run <n> (created at second <n>) of workflow <workflow> on the head commit sha(<head>), at its attempt <attempt>."""
     return ("%040x" % head, "https://github.com/o/r/actions/runs/%d" % n, status, conclusion,
-            "2026-11-16T10:00:%02dZ" % n, attempt)
+            "2026-11-16T10:00:%02dZ" % n, attempt, workflow)
 
 
 @pytest.mark.parametrize("runs, expected", [
@@ -160,3 +160,50 @@ def test_a_re_runs_previous_attempt_that_cannot_be_read_is_exit_2_never_green(mo
     code, out, err = run_cli(stack_red, [])
 
     assert (code, out, err.count("\n"), err.startswith("stack-red: ")) == (2, "", 1, True), err
+
+
+def test_a_re_run_walks_its_earlier_attempts_past_a_cancelled_one_to_the_first_that_answered(
+        monkeypatch, run_cli, stack_red):
+    World(monkeypatch, stack_red, [on(1, 5, conclusion="success"), on(3, 7, "in_progress", None, attempt=3)])
+    read = attempts(monkeypatch, stack_red, {("3", 2): ("completed", "cancelled"), ("3", 1): ("completed", "failure")})
+
+    code, out, err = run_cli(stack_red, [])
+
+    assert (code, out, read) == (0, "%040x https://github.com/o/r/actions/runs/3 failure\n" % 7, [("3", 2), ("3", 1)]), err
+
+
+def test_a_listed_run_cancelled_at_a_later_attempt_keeps_the_answer_of_its_earlier_attempt(
+        monkeypatch, run_cli, stack_red):
+    World(monkeypatch, stack_red, [on(1, 5, conclusion="success"), on(3, 7, conclusion="cancelled", attempt=2)])
+    attempts(monkeypatch, stack_red, {("3", 1): ("completed", "failure")})
+
+    code, out, err = run_cli(stack_red, [])
+
+    assert (code, out) == (0, "%040x https://github.com/o/r/actions/runs/3 failure\n" % 7), err
+
+
+def test_a_run_whose_earlier_attempts_were_all_cancelled_falls_to_the_same_head_rule(monkeypatch, run_cli, stack_red):
+    World(monkeypatch, stack_red, [on(1, 7), on(2, 5, conclusion="success"), on(3, 7, "in_progress", None, attempt=2)])
+    attempts(monkeypatch, stack_red, {("3", 1): ("completed", "cancelled")})
+
+    code, out, err = run_cli(stack_red, [])
+
+    assert (code, out) == (0, "%040x https://github.com/o/r/actions/runs/1 failure\n" % 7), err
+
+
+def test_a_later_green_workflow_on_the_same_head_does_not_hide_a_red_one(monkeypatch, run_cli, stack_red):
+    World(monkeypatch, stack_red, [on(1, 7, workflow=11), on(2, 7, conclusion="success", workflow=12)])
+
+    code, out, err = run_cli(stack_red, [])
+
+    assert (code, out) == (0, "%040x https://github.com/o/r/actions/runs/1 failure\n" % 7), err
+
+
+def test_a_green_workflow_beside_one_that_gives_no_answer_is_exit_2(monkeypatch, run_cli, stack_red):
+    World(monkeypatch, stack_red, [on(1, 7, "in_progress", None, attempt=2, workflow=12),
+                                   on(2, 7, conclusion="success", workflow=11)])
+    attempts(monkeypatch, stack_red, {("1", 1): stack_red.github.NoAnswer("", "HTTP 502")})
+
+    code, out, err = run_cli(stack_red, [])
+
+    assert (code, out, err.startswith("stack-red: ")) == (2, "", True), err
