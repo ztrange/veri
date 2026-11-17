@@ -207,7 +207,9 @@ A guard or failure path never watched to fail is not tested: break it, see it go
 
 A `GRADED` file holds one line per graded unit, its fields split on a single space: the unit
 path, the signature, the date, the grading id and the grader-template prefix. `grade-prose.sh`
-writes the line when a grade PASSes; it is never written by hand.
+writes the line when a grade PASSes; it is never written by hand. Since the fields are split on
+single spaces, a heading unit's field writes each `%` as `%25` and each space as `%20`, and every
+reader decodes it.
 
 The signature is a sha256 over the unit's text, its requirement rows and the grader model (plus
 the grader's effort level when `skills/tdd/grader.conf` sets one), so a change to any of them
@@ -216,6 +218,15 @@ makes the unit owe a grade, however unrelated the edit looks.
 A unit's rows live in the `REQUIREMENTS.md` beside its `GRADED` file, under a heading naming the
 unit (`## <unit path>`). A unit under `skills/<x>/` is signed in `skills/<x>/GRADED`; any other
 unit in its own directory's `GRADED`.
+
+A unit may be one section of a file, a heading unit named `<file>#<heading>`, with its rows under
+`## <file>#<heading>` in the `REQUIREMENTS.md` beside the file. Its text is its own text: its
+heading line and the lines after it, up to the next unfenced heading line of any level, so its
+subsections are not in it. Once any tracked `REQUIREMENTS.md` lists a heading unit of a file, that
+file's whole-file unit is split: it is shown to the grader and signed over its view instead of the
+file's text. The view is the file's heading lines in order, then the text above the first heading
+and the own text of every section no heading unit claims. So an edit inside a claimed section owes
+only that section's unit, and an edit to a heading line still owes the whole-file unit.
 
 `prose-owed.sh`, run by `make unit` and `make test`, exits 1 listing each unit that owes a grade
 and each orphan `GRADED` line (one whose unit has no rows any more). A `⟦skill-edit⟧` step
