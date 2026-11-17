@@ -450,7 +450,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `refs/remotes/origin/HEAD` records it, or is one `git check-ref-format --branch` refuses; when neither tells the
   default branch; and when two lines name a stack, naming both.
 - `$S/stack-pr.sh` — run in the target repository's clone, no arguments: prints the url of the one open pull request
-  from the stack branch to the default branch and exits **0**. Read after a fetch of origin; when the stack is ahead
+  from the stack branch to the default branch and exits **0**; one whose head is a fork's branch of that name (or a
+  deleted fork's) is not it. Read after a fetch of origin; when the stack is ahead
   of the default branch and none is open it opens one, ready and not a draft, and prints that one's url. This pull
   request is what makes CI run on each push to the stack, and it must not read as a claim on any issue or as a
   landing: its body says it is never merged itself and that slices are cut from it, and it carries no `Closes`,

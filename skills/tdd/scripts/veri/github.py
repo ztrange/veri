@@ -650,6 +650,18 @@ def _json_answer(run, what):
         raise NoAnswer("", "%s: the answer is not JSON (%r)" % (what, (run.stdout or "")[:80])) from None
 
 
+def _same_repository(raw, head):
+    """Whether pull request record <raw>'s head branch lives in its base repository: head.repo.full_name is the base
+    repository's and head.label is `<its owner>:<head>`. A fork's, or a deleted fork's (head.repo null), is not."""
+    def full_name(side):
+        repo = raw[side].get("repo")
+        name = repo.get("full_name") if isinstance(repo, dict) else None
+        return name if isinstance(name, str) and "/" in name else None
+    base_repo = full_name("base")
+    return (base_repo is not None and full_name("head") == base_repo
+            and raw["head"].get("label") == "%s:%s" % (base_repo.split("/", 1)[0], head))
+
+
 def stack_pulls(head, base):
     """The open pull requests from <head> to <base> as Pull records, read over REST 100 to a page, a page short of 100
     being the last, at most PULL_PAGES pages; kept only when the answer itself names <head> as the head ref and <base>
@@ -664,7 +676,8 @@ def stack_pulls(head, base):
         for raw in items:
             if not all(isinstance(raw.get(side), dict) for side in ("head", "base")):
                 raise NoAnswer("", "the open pull requests from %s: a record without head and base objects" % head)
-        kept = [_pull(raw) for raw in items if raw["head"].get("ref") == head and raw["base"].get("ref") == base]
+        kept = [_pull(raw) for raw in items if raw["head"].get("ref") == head and raw["base"].get("ref") == base
+                and _same_repository(raw, head)]
         for pr in kept:
             if not isinstance(pr.html_url, str) or not _PULL_URL.fullmatch(pr.html_url):
                 raise NoAnswer("", "the open pull requests from %s: a record names no pull request url (%r)" % (
