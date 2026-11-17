@@ -36,6 +36,22 @@ changed something leaves the leaf's commit and then the tick commit, in that ord
 
 The verifier's verdict closes the `⟦diff-checked⟧` step:
 
+- **The flip of a `⟦test-quality⟧` step.** Such a step fixes one test case (`<base directory>/DRAFT-PR.md`),
+  and the conductor, not the verifier, proves the fix live. After its verify-diff PASS (or
+  `skipped`) and before anything below, read the last `FLIP: <test file> '<old>→<new>'` line of the
+  report of the leaf that made the step's last commit (`.tdd/develop-diff.out`, or the last
+  `revise-diff-<k>` leaf's), and run
+  `$S/mutation-probe.sh <test file> '<old>' '<new>' -- <command…>`, `<command…>` the repo's
+  `veri: one test file:` command run on that test file,
+  `alone="$($S/detect-test-command.sh --tier "one test file")"` then `sh -c "$alone" sh <test file>`,
+  or, when the repo declares none (that call exits 3), its all-tier command,
+  `all="$($S/detect-test-command.sh --tier all)"` then `sh -c "$all"`. Exit **0** (the flipped case
+  went red) goes on to the PASS branch below, the probe's `.tdd/issue-<n>-mutations.md` record
+  committed with the step's tick. Exit **1** (it stayed green) is a verify-diff REJECT naming the
+  case, spending `REVISE_BUDGET`: write `REJECT: flipping <old>→<new> in <test file> left <file>::<case> green`
+  to `.tdd/verify-diff.reason` (`Read` `<base directory>/REVISE.md`); a report with no `FLIP:` line is a
+  REJECT the same way, its reason saying the line is missing. Exit **2**, or a `detect-test-command.sh` exit 2, bails `no-verdict`, a
+  system failure (`Read` `<base directory>/BAIL.md`).
 - **PASS (exit 0):** first run `$S/pin-recheck.sh <step-base-sha>` against the step base sha,
   its work being committed by now, and read its exit as the Refactor loop's PASS reads it, a
   pin that stayed green, or a before-state pin this range disarmed (a stale one, green on the base too, is printed `stale: <record file> <test path>`, or `<mutated file>` for a mutation pin, and is no REJECT), being a REJECT of this step that spends `REVISE_BUDGET`; a pin whose own tested file is gone (a before record included, whose named test file the range deletes) or whose mutated file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired); a before-state pin's replay path gone before the range is skipped and the pin still runs. The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
