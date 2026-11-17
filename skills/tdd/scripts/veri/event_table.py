@@ -33,7 +33,7 @@ EVENTS = {
                    "|criterion-unreadable) outcome:(retry|route|bail|unparsed) reason:text,empty",
     "already-holds-step": "step:text reason:text",
     "bail": "cause:(killed-stuck|killed-external|report-missing|no-verdict|reconcile-failed|ci-timeout|ci-conflict"
-            "|step-add-refused|replaces-report-failed|criterion-unreadable|setup-failed|preflight-refused|pr-ready-failed"
+            "|step-add-refused|replaces-report-failed|criterion-unreadable|setup-failed|preflight-refused|pr-ready-failed|rerecord-failed"
             "|revise-exhausted|revise-impossible|untestable-criterion|step-too-big|rebase-unresolved|uncovered|ci-red"
             "|suite-red|rebased-tip-red|unreplaced-cases|needs-user|step-added-off-route|fixture-owed"
             "|missing-reroutes-exhausted|repair-reroutes-exhausted|graded-edit-outside-skill-edit|unpinnable-missing"

@@ -219,3 +219,9 @@ def test_main_classifies_prep_owed_as_a_process_failure_with_0_3785(capsys, clas
     code = classify_bail.main(["prep-owed"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_main_classifies_rerecord_failed_as_system_with_0_4005(capsys, classify_bail):
+    code = classify_bail.main(["rerecord-failed"])
+
+    assert (code, *capsys.readouterr()) == (0, "system\n", "")
