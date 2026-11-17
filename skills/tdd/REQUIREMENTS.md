@@ -1197,6 +1197,7 @@
 | SC391 | The `refactor-owed.sh` entry names `clear <file> <reason>`, which drops the `coupling` row and refuses (exit 2) any other reason. | The conductor's exit-3 call is in the catalogue (PRD 032, CU3). |
 | SC392 | The `release-issue.sh` entry says a release appends the run's `issue-<n>-unwired-pending` record, when there is one, to its `issue-<n>-unwired-accepted` record and removes it. | Acceptance of unwired files is a release's effect, looked up where release is (PRD 032, WN5). |
 | SC448 | The catalogue has a `$S/surround-mutants.sh <report-file>… -- <command…>` entry: it runs every `MUTANT: <file> \| <old> \| <new>` line of the reports through `mutation-probe.sh`, prints one line per row ending `red`, `survived` or `no-answer`, and exits 0 when every row is red and there are at least `VERI_SURROUND_MUTANTS` (default 5) rows, 1 on a survivor or a short table (last line `short <k> of <N>`), 2 when no answer could be obtained. | The catalogue is where a conductor looks a script and its knobs up. |
+| SC449 | The `$S/tick-ledger.sh` entry says `--surround-short` appends ` ⟂ surround short` to the open legacy step whose next phase is `surround`, ticking nothing: exit 0 recorded, exit 1 when the step already carries the mark (its one free `develop-surround` relaunch spent, a resumed run's included), exit 2 when `surround` is not its next phase or the ledger is unreadable, exit 3 when no open step matched. | A resume reads the committed ledger, so the free relaunch is spent once. |
 
 ## skills/tdd/SKILL-EDIT.md
 
