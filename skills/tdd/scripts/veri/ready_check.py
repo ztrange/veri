@@ -65,8 +65,15 @@ def tier_run_row(tier, command, root):
     detach = script("detach-command.sh")
     subprocess.run([detach, "start", name, *shlex.split(command)], cwd=wt, capture_output=True, text=True)
     waited = subprocess.run([detach, "wait", name], cwd=wt, capture_output=True, text=True)
+    output = os.path.join(wt, ".tdd", name + ".out")
+    said = []
+    if os.path.exists(output):
+        with open(output, errors="replace") as out:
+            said = [line.strip() for line in out if line.strip()]
     git.git("worktree", "remove", "--force", wt, capture_output=True, text=True)
-    return f"{tier} tier run", None if waited.returncode == 0 else "exit " + waited.stdout.strip()
+    if waited.returncode == 0:
+        return f"{tier} tier run", None
+    return f"{tier} tier run", f"exit {waited.stdout.strip()}: {said[-1] if said else '(no output)'}"
 
 
 def tier_run_rows(root):

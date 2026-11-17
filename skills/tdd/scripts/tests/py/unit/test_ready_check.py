@@ -450,3 +450,28 @@ def test_issue_4088_each_resolved_tier_runs_in_a_detached_worktree_of_the_defaul
         assert [(argv[3:], cwd) for argv, cwd in starts] == [(command, wt)], fake.calls
         assert [cwd for _, cwd in calls_in(fake, f"detach-command.sh wait ready-{tier}")] == [wt], fake.calls
     assert (code, lines[-1]) == (0, "ready")
+
+
+def writing_output(tier, text):
+    """A detach-command.sh start answer that leaves <text> as ready-<tier>'s output in its working directory."""
+    def start(line, cwd=None, **kwargs):
+        with open(os.path.join(cwd, ".tdd", f"ready-{tier}.out"), "w") as out:
+            out.write(text)
+        return 0, "", ""
+    return start
+
+
+def tier_run_line(lines, tier):
+    return next((line for line in lines if f"{tier} tier run" in line), None)
+
+
+def test_issue_4088_a_tier_exiting_non_zero_fails_its_row_carrying_the_exit_code_and_the_outputs_last_non_empty_line(ready_check, run_cli, fake_processes, tmp_path):
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **TIERS, **{
+        "detach-command.sh start ready-fast": writing_output("fast", "collected 3 items\nFAILED tests/test_x.py::test_y\n\n  \n"),
+        "detach-command.sh wait ready-fast": (1, "7\n", "")})
+
+    row = tier_run_line(lines, "fast")
+    assert row is not None and row.startswith("fail  fast tier run"), lines
+    assert "exit 7" in row and row.endswith("FAILED tests/test_x.py::test_y"), row
+    assert tier_run_line(lines, "all").startswith("ok    all tier run"), lines
+    assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
