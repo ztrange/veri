@@ -656,7 +656,7 @@ gh access, issue selection (solvable, parked, blocked), claiming and releasing i
 - `issue-decisions.sh`: the decisions on an issue, oldest first, each marked `owner:` or `judge:`; a stranger's comment and veri's own are never one.
 - `park-decision.sh`: the owner's answer to a park: the trusted comments after an issue's newest parked comment.
 - `park-issue.sh`: park an issue with its cause and unblock.
-- `parked-issues.sh`: list the parked issues.
+- `parked-issues.sh`: list the parked issues, each with its blockers' state and whether its park's question is still unanswered.
 - `pointer-comment.sh`: the issue's one `### 📍 Run state` comment, posted when it has none and edited in place otherwise.
 - `record-answer.sh`: post the owner's answer to a question tied to an issue on that issue, once, local paths, host and account names redacted.
 - `refactor-candidates.sh`: file the run's one candidates issue.
