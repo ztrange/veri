@@ -1157,6 +1157,13 @@ def print_conductor(f):
         table_head("#### Conductor comments, by family", "family", ["turns", "output tokens", "dollars"], ["---:", "---:", "---:"])
         for name, (turns, tokens, dollars) in turn_rows.families.items():
             row([name, str(turns), str(tokens), "$%.2f" % dollars])
+    if f.conductor_by_phase:
+        table_head("#### Conductor by phase (estimated: each turn placed by its timestamp)", "phase",
+                   ["turns", DOLLARS], ["---:", "---:"])
+        for window, entry in f.conductor_by_phase.items():
+            cost = entry["cost_usd"]
+            row([window, "%d" % entry["turns"], UNKNOWN if cost is None else "%.2f" % cost])
+        print()  # a line straight after a table would read as one more row of it
 
 
 def print_reject_outcomes(f):
