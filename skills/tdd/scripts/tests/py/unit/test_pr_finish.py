@@ -94,3 +94,30 @@ def test_4033_a_missing_input_is_exit_2_before_any_inner_call_named_on_stderr(fi
 
     assert (code, fake.calls) == (2, [])
     assert named in err
+
+
+def _commits(fake):
+    return [c[1][2] for c in fake.made("git", "commit")]
+
+
+def test_4033_under_ci_it_ticks_each_full_suite_line_and_its_criterion_and_commits_the_plan(finish):
+    code, out, err, fake = finish()
+
+    assert [c[1] for c in fake.made("tick-ledger.sh")] == [(".tdd/issue-12.md", "⟦full-suite⟧")] * 3
+    assert [c[1] for c in fake.made("ledger-steps.sh", "criterion")] == [("criterion", "2"), ("criterion", "3")]
+    assert all(c[4]["stdin"] == BODY for c in fake.made("ledger-steps.sh", "criterion"))
+    assert [c[1] for c in fake.made("tick-issue-criterion.sh")] == [("12", "two"), ("12", "three")]
+    assert [c[1] for c in fake.made("git", "add")][0] == ("add", ".tdd/issue-12.md")
+    assert _commits(fake)[0] == "plan: the full suite is green on CI (#12)"
+
+
+@pytest.mark.parametrize("mode, ledger, err_text", [
+    ("local", LEDGER, ""), ("ci", "# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n", ""),
+    ("ci", LEDGER.replace("- [ ]", "- [x]"), ""), ("ci", LEDGER, "PR 42 has no checks\n")],
+    ids=["local", "no full-suite line", "every full-suite line ticked", "has no checks"])
+def test_4033_otherwise_it_ticks_and_commits_nothing_of_the_kind(finish, mode, ledger, err_text):
+    (finish.wt / ".tdd" / "wait-ci.err").write_text(err_text)
+    code, out, err, fake = finish(fake=Fake(mode=mode), ledger=ledger)
+
+    assert not {"tick-ledger.sh", "tick-issue-criterion.sh"} & set(fake.names())
+    assert "plan: the full suite is green on CI (#12)" not in _commits(fake)
