@@ -17,11 +17,11 @@ def test_every_directory_under_skills_other_than_vinstall_carries_an_on_demand_m
     assert missing == [], missing
 
 
-LINKED = ("vcoord", "vdev", "vfile", "vgroom", "vhandoff", "vplan")
+LINKED = ("vdev", "vfile", "vgroom", "vhandoff", "vplan")
 RETIRED = ("vready", "vreport", "vstatus", "vstop")
 
 
-@pytest.mark.tree_audit("the six linked skills' markers")
+@pytest.mark.tree_audit("the five linked skills' markers")
 def test_the_on_demand_marker_of_each_linked_skill_says_vinstall_links_it_not_by_hand():
     stale = {}
     for name in LINKED:
