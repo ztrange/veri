@@ -30,10 +30,9 @@ def test_main_returns_3_with_nothing_for_a_makefile_without_a_test_target(tmp_pa
     assert (detect.main([str(tmp_path)]), capsys.readouterr().out) == (3, "")
 
 
-def test_main_answers_the_issue_bodys_test_command_ahead_of_veri_test_command_and_inference(tmp_path, capsys, detect):
+def test_main_answers_the_issue_bodys_test_command_ahead_of_inference(tmp_path, capsys, detect):
     repo = tmp_path / "repo"
-    (repo / ".veri").mkdir(parents=True)
-    (repo / ".veri" / "test-command").write_text("./run-tests\n")
+    repo.mkdir()
     (repo / "Makefile").write_text("test:\n\t./run\n")
     (repo / "go.mod").write_text("module x\n")
     body = tmp_path / "body.md"
@@ -68,10 +67,9 @@ def test_main_answers_the_issue_bodys_marker_bare_or_backticked_and_falls_throug
     def answer(*argv):
         return detect.main(list(argv)), capsys.readouterr().out
 
-    override = tmp_path / "override"
-    (override / ".veri").mkdir(parents=True)
-    (override / ".veri" / "test-command").write_text("bin/run-suite --all --strict\n")
-    (override / "package.json").write_text('{"scripts":{"test":"jest"}}\n')
+    node = tmp_path / "node"
+    node.mkdir()
+    (node / "package.json").write_text('{"scripts":{"test":"jest"}}\n')
     inference = tmp_path / "inference"
     inference.mkdir()
     (inference / "Makefile").write_text("test:\n\techo hi\n")
@@ -89,12 +87,12 @@ def test_main_answers_the_issue_bodys_marker_bare_or_backticked_and_falls_throug
     bare.write_text("## Notes\n\nTest command: bin/run --all\n")
     fixtures = SCRIPTS / "tests" / "fixtures" / "detect-test-command"
 
-    untouched = [answer(*flag, str(repo)) for repo in (override, inference, none) for flag in (["--issue", str(silent)], [])]
+    untouched = [answer(*flag, str(repo)) for repo in (node, inference, none) for flag in (["--issue", str(silent)], [])]
     stated = [answer("--issue", str(body), str(inference)) for body in (midline, linestart, bare)]
     real = [answer("--issue", str(fixtures / f"issue-{n}.md"), str(inference)) for n in (71, 75, 80, 123)]
 
     assert (untouched, stated, real) == (
-        [(0, "bin/run-suite --all --strict\n")] * 2 + [(0, "make test\n")] * 2 + [(3, "")] * 2,
+        [(0, "npm test\n")] * 2 + [(0, "make test\n")] * 2 + [(3, "")] * 2,
         [(0, "make docs-test\n"), (0, "make docs-test\n"), (0, "bin/run --all\n")],
         [(0, "make docs-test\n")] * 4,
     )
@@ -109,9 +107,9 @@ def test_main_skips_a_marker_quoted_inside_a_backtick_span_and_answers_a_stated_
         path.write_text(text)
         return str(path)
 
-    override = tmp_path / "override"
-    (override / ".veri").mkdir(parents=True)
-    (override / ".veri" / "test-command").write_text("bin/run-suite --all --strict\n")
+    node = tmp_path / "node"
+    node.mkdir()
+    (node / "package.json").write_text('{"scripts":{"test":"jest"}}\n')
     made = tmp_path / "made"
     made.mkdir()
     (made / "Makefile").write_text("test:\n\techo hi\n")
@@ -124,31 +122,30 @@ def test_main_skips_a_marker_quoted_inside_a_backtick_span_and_answers_a_stated_
     issue_144 = str(SCRIPTS / "tests" / "fixtures" / "detect-test-command" / "issue-144.md")
 
     got = [
-        answer("--issue", quoted, str(override)),
-        answer("--issue", only_quoted, str(override)),
-        answer("--issue", absent, str(override)),
+        answer("--issue", quoted, str(node)),
+        answer("--issue", only_quoted, str(node)),
+        answer("--issue", absent, str(node)),
         answer("--issue", then_stated, str(made)),
-        answer("--issue", docs_quoted, str(override)),
-        answer("--issue", issue_144, str(override)),
+        answer("--issue", docs_quoted, str(node)),
+        answer("--issue", issue_144, str(node)),
     ]
 
     assert got == [
         (0, "make test\n"),
-        (0, "bin/run-suite --all --strict\n"),
-        (0, "bin/run-suite --all --strict\n"),
+        (0, "npm test\n"),
+        (0, "npm test\n"),
         (0, "make docs-test\n"),
         (0, "make test\n"),
         (0, "make test\n"),
     ]
 
 
-def test_main_answers_veri_test_command_ahead_of_package_json_and_makefile_and_names_the_node_runner_by_lockfile(tmp_path, capsys, detect):
+def test_main_answers_package_json_ahead_of_makefile_and_names_the_node_runner_by_lockfile(tmp_path, capsys, detect):
     def answer(repo):
         return detect.main([str(repo)]), capsys.readouterr().out
 
-    override = tmp_path / "override"
-    (override / ".veri").mkdir(parents=True)
-    (override / ".veri" / "test-command").write_text("bin/run-suite --all --strict\n")
+    override = tmp_path / "node-and-make"
+    override.mkdir()
     (override / "package.json").write_text('{"scripts":{"test":"jest"}}\n')
     (override / "Makefile").write_text("test:\n\techo hi\n")
     lockfiles = {"npm": None, "pnpm": ("pnpm-lock.yaml", "lockfileVersion: 9.0\n"), "yarn": ("yarn.lock", "# yarn lockfile v1\n")}
@@ -160,7 +157,7 @@ def test_main_answers_veri_test_command_ahead_of_package_json_and_makefile_and_n
             (repo / lockfile[0]).write_text(lockfile[1])
 
     assert [answer(override)] + [answer(tmp_path / f"node-{runner}") for runner in lockfiles] == [
-        (0, "bin/run-suite --all --strict\n"),
+        (0, "npm test\n"),
         (0, "npm test\n"),
         (0, "pnpm test\n"),
         (0, "yarn test\n"),
@@ -220,7 +217,6 @@ def test_main_without_a_tier_leaves_every_single_command_answer_as_today_and_exi
     body = tmp_path / "tier-issue-body.md"
     body.write_text("## Notes\n\nTest command: bin/issue-suite\n")
     shapes = {
-        "override": ({".veri/test-command": "bin/run-suite --all --strict\n"}, "bin/run-suite --all --strict"),
         "npm": ({"package.json": '{"scripts":{"test":"jest"}}\n'}, "npm test"),
         "pnpm": ({"package.json": '{"scripts":{"test":"jest"}}\n', "pnpm-lock.yaml": "lockfileVersion: 9.0\n"}, "pnpm test"),
         "yarn": ({"package.json": '{"scripts":{"test":"jest"}}\n', "yarn.lock": "# yarn lockfile v1\n"}, "yarn test"),
@@ -269,7 +265,7 @@ def test_main_with_a_tier_answers_from_its_claude_md_marker_and_falls_back_to_th
         "And the full suite is veri: all tests: `bin/real-all -v`. More prose.\n"
     )})
     tierless = repo("tierless-claude-md", {"Makefile": makefile, "CLAUDE.md": "# demo\n\nThe fast tests and all tests are the same here.\n"})
-    no_claude = repo("tierless-no-claude-md", {".veri/test-command": "bin/run-suite --all --strict\n"})
+    no_claude = repo("tierless-no-claude-md", {"go.mod": "module x\n"})
     all_only = repo("tiered-all-only", {"Makefile": makefile, "CLAUDE.md": "# demo\n\nveri: all tests: bin/all-only-suite --every -v\n"})
     issue_both = repo("tiered-issue-both", {"Makefile": makefile, "CLAUDE.md": "# demo\n\nveri: fast tests: bin/fast-suite --unit -q\nveri: all tests: bin/all-suite --every -v\n"})
     issue_all_only = repo("tiered-issue-all-only", {"Makefile": makefile, "CLAUDE.md": "# demo\n\nveri: all tests: bin/all-suite --every -v\n"})
@@ -284,8 +280,8 @@ def test_main_with_a_tier_answers_from_its_claude_md_marker_and_falls_back_to_th
         ("quoted", "all"): (["--tier", "all", quoted], "bin/real-all -v"),
         ("tierless", "fast"): (["--tier", "fast", tierless], "make test"),
         ("tierless", "all"): (["--tier", "all", tierless], "make test"),
-        ("no-claude-md", "fast"): (["--tier", "fast", no_claude], "bin/run-suite --all --strict"),
-        ("no-claude-md", "all"): (["--tier", "all", no_claude], "bin/run-suite --all --strict"),
+        ("no-claude-md", "fast"): (["--tier", "fast", no_claude], "go test ./..."),
+        ("no-claude-md", "all"): (["--tier", "all", no_claude], "go test ./..."),
         ("all-only", "fast"): (["--tier", "fast", all_only], "make test"),
         ("issue-both", "fast"): (["--tier", "fast", "--issue", str(body), issue_both], "bin/fast-suite --unit -q"),
         ("issue-both", "all"): (["--tier", "all", "--issue", str(body), issue_both], 'bin/issue-suite --only "this run" -q'),
@@ -337,7 +333,7 @@ def test_main_reads_tier_only_first_and_issue_only_first_or_after_tier_takes_any
     }
 
 
-def test_main_keeps_a_markers_trailing_whitespace_answers_an_unclosed_backtick_skips_an_empty_command_and_answers_a_whitespace_only_override_line(tmp_path, capsys, detect):
+def test_main_keeps_a_markers_trailing_whitespace_answers_an_unclosed_backtick_and_skips_an_empty_command(tmp_path, capsys, detect):
     def answer(*argv):
         code = detect.main(list(argv))
         return code, capsys.readouterr().out
@@ -350,23 +346,17 @@ def test_main_keeps_a_markers_trailing_whitespace_answers_an_unclosed_backtick_s
     made = tmp_path / "made"
     made.mkdir()
     (made / "Makefile").write_text("test:\n\techo hi\n")
-    blank = tmp_path / "blank"
-    (blank / ".veri").mkdir(parents=True)
-    (blank / ".veri" / "test-command").write_bytes(b"   \nbin/run-suite\n")
-    (blank / "Makefile").write_text("test:\n\techo hi\n")
 
     got = [
         answer("--issue", body("trailing", b"## Notes\n\nTest command: bin/run --all  \t\r\n"), str(made)),
         answer("--issue", body("unclosed", b"## Notes\n\nTest command: `make docs-test and the rest\n"), str(made)),
         answer("--issue", body("empty", b"## Notes\n\nTest command: `` and later Test command: make docs-test\n"), str(made)),
-        answer(str(blank)),
     ]
 
     assert got == [
         (0, "bin/run --all  \t\r\n"),
         (0, "make docs-test and the rest\n"),
         (0, "make docs-test\n"),
-        (0, "   \n"),
     ]
 
 
@@ -398,10 +388,9 @@ def cli(run_cli, detect, *argv):
     return run_cli(detect, list(argv))
 
 
-def test_cli_issue_body_first_test_command_beats_veri_test_command_and_every_inference_printed_verbatim(tmp_path, run_cli, detect):
+def test_cli_issue_body_first_test_command_beats_every_inference_printed_verbatim(tmp_path, run_cli, detect):
     repo = tmp_path / "issue-command"
-    (repo / ".veri").mkdir(parents=True)
-    (repo / ".veri" / "test-command").write_text("bin/run-suite --all --strict\n")
+    repo.mkdir()
     (repo / "package.json").write_text('{"scripts":{"test":"jest"}}\n')
     (repo / "Makefile").write_text("test:\n\techo hi\n")
     body = tmp_path / "body.md"
@@ -504,11 +493,10 @@ def test_cli_tier_one_test_file_prints_the_command_of_the_claude_md_one_test_fil
     assert cli(run_cli, detect, "--tier", "one test file", str(repo)) == (0, 'npm test -- "$1"\n', "")
 
 
-def test_cli_tier_one_test_file_without_a_claude_md_line_exits_3_even_with_a_veri_test_command_and_a_makefile_test_target(tmp_path, run_cli, detect):
+def test_cli_tier_one_test_file_without_a_claude_md_line_exits_3_even_with_a_makefile_test_target(tmp_path, run_cli, detect):
     repo = tmp_path / "repo"
-    (repo / ".veri").mkdir(parents=True)
+    repo.mkdir()
     (repo / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `make unit`\n")
-    (repo / ".veri" / "test-command").write_text("make everything\n")
     (repo / "Makefile").write_text("test:\n\ttrue\n")
 
     assert cli(run_cli, detect, "--tier", "one test file", str(repo)) == (3, "", "")

@@ -82,10 +82,6 @@ def decide(tier, issue, root):
         answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + suffix)
     if tier == "one test file":
         return
-    if has(".veri/test-command"):
-        for line in lines_of(at(".veri/test-command")):
-            if line:
-                raise Answer(line)
     if has("package.json") and re.search(rb'"scripts":\{[^}]*"test":', bytes(b for b in read(at("package.json")) if b not in SPACE)):
         if has("pnpm-lock.yaml"):
             raise Answer(b"pnpm test")
