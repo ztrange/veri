@@ -419,6 +419,15 @@ def test_4228_stages_count_each_stages_starts_its_ends_by_exit_code_its_unended_
         "baseline": {"runs": 4, "ok": 1, "failed": 1, "no_answer": 0, "nothing": 0, "unended": 2, "wall_seconds": 40}}
 
 
+def test_4228_a_stage_end_whose_status_is_outside_0_to_3_counts_as_no_answer(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [stage(100, "stage-start", "preflight"), stage(104, "stage-end", "preflight", "4", "4"),
+                         stage(200, "stage-start", "preflight"), stage(201, "stage-end", "preflight", "128", "1")])
+    monkeypatch.chdir(tmp_path)
+
+    assert as_json(metrics, capsys)["stages"]["preflight"] == {
+        "runs": 2, "ok": 0, "failed": 0, "no_answer": 2, "nothing": 0, "unended": 0, "wall_seconds": 5}
+
+
 def test_4228_a_journal_with_no_stage_event_folds_with_stages_empty_and_a_line_naming_no_stage_counts_under_none(
         tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, two_runs_and_a_restart() + [mark(950, "stage-end", status="0", secs="4")])
