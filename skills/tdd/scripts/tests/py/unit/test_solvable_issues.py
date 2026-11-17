@@ -1457,3 +1457,22 @@ def test_cli_names_on_stderr_the_priority_band_for_a_blocker_of_only_a_priority_
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
 
     assert answer == (0, "30\n", "#30 inherits priority from #50\n")
+
+
+def test_main_4110_lists_a_released_refactor_issue_once_its_coverage_issue_closes_its_draft_pr_still_open_and_not_while_it_is_open(
+        fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
+    # The labels release-covered.sh leaves on #60 (release-issue.sh's: opt-in back, claim and bailed gone), its
+    # bailed run's draft PR still open on its own run branch, and the block coverage-blocker.sh wrote naming #77.
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(fake_processes)
+    released = dict(opted_in(60), labels=[{"name": "refactor"}, {"name": "ready-for-agent"}], body="## Blocked by\n\n- #77\n")
+    covering = dict(opted_in(77), title="Cover the behaviour #60 refactors", labels=[{"name": "legacy"}, {"name": "taken:main"}])
+    (tmp_path / "prs.json").write_text(json.dumps([
+        {"isCrossRepository": False, "state": "OPEN", "body": "Closes #60", "headRefName": "tdd/60-extract-parser", "isDraft": True}]))
+    listed = {}
+    for state in ("OPEN", "CLOSED"):
+        (tmp_path / "issues.json").write_text(json.dumps([released, dict(covering, state=state)]))
+        code = solvable_issues.main([])
+        listed[state] = (code, capsys.readouterr().out)
+
+    assert listed == {"OPEN": (3, ""), "CLOSED": (0, "60\n")}
