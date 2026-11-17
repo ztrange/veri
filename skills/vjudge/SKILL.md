@@ -28,8 +28,10 @@ Run it on every question before it reaches the human.
    issue, and `.tdd/decisions.jsonl` in the main working tree, for a question about no issue. Two
    questions are the same only when they concern the same issue (or both no issue) and ask for the
    same choice: the same words about another issue, or another question about the same issue, are
-   not. Of several decisions of it, the newest counts, and one the owner made or overrode beats
-   any judge's decision. Follow it, stating it as step 4 does, unless a fact it rested on changed.
+   not. The owner's decision beats every judge's decision of the same question, whichever came
+   later: on an issue, a comment that does not start with `Decided:` is the owner's; in the log, a
+   record with `by` `owner`. The newest of the owner's decisions counts; with none, the newest
+   judge's decision. Follow it, stating it as step 4 does, unless a fact it rested on changed.
    When one did, when in doubt whether it answers this question, or when a record cannot be read,
    no earlier decision holds: go on to step 3.
 3. **Is there a recommendation whose evidence you can name?** If there is none, or you cannot say
@@ -52,9 +54,12 @@ Run it on every question before it reaches the human.
 Record every decision of step 4 where the owner audits it, the one line it states included:
 
 - **A decision about one issue** is a comment on that issue naming the rule applied and the option
-  not taken.
+  not taken. It starts with `Decided:`, so the owner tells it from their own comments, both being
+  posted under one account, and carries no credential or local path.
 - **A decision about no issue** is recorded with
   `$S/decision-log.sh record <question> <decision> <rule> <by>`, `<by>` naming the role that decided.
+- **The owner's answer or override about no issue** is recorded at once, the same way, with `<by>`
+  `owner`.
 
 ## Rules
 
