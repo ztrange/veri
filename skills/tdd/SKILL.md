@@ -535,10 +535,10 @@ three times over branches its ledger pinned on later lines.
    `⟦ci-repair⟧` plan commits and the resume's `--planned` commit included. Each such line must
    carry `⟦added⟧` unless that record shows it was inserted as a `⟦suite-repair⟧` or
    `⟦ci-repair⟧` step or with `--planned`; and the
-   `⟦added⟧` lines never exceed `VERI_STEP_GROWTH`. A line that fails either check — exit 1, the
+   `⟦added⟧` lines never exceed the growth cap. A line that fails either check — exit 1, the
    line named on stderr — is **a bail with cause `step-added-off-route`** (a process failure): the plan
    grew by a route other than `add-ledger-step.sh`, and no commit is made over it (see `<base directory>/BAIL.md`). `ledger-growth.sh` exit 2 — no answer could be obtained (an unreadable
-   ledger, plan file or record, a bad `VERI_STEP_GROWTH`, no plan commit for `plan-sha`) — is **a bail
+   ledger, plan file or record, a bad growth cap, no plan commit for `plan-sha`) — is **a bail
    with cause `no-verdict`** (a system failure), never `step-added-off-route`, and no commit is
    made over it (see `<base directory>/BAIL.md`).
    The growth check and the ledger commit are never one chained command. Run the check and keep its
@@ -719,7 +719,7 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   same behaviour broken smaller.
   Then loop back to `next-unchecked.sh`, which now hands over the first of them.
   **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`**, as it already is on the
-  other two paths that grow a plan — see `<base directory>/BAIL.md`. The split shares `VERI_STEP_GROWTH` with
+  other two paths that grow a plan — see `<base directory>/BAIL.md`. The split shares the growth cap with
   them, because all three are plan growth. **`add-ledger-step.sh` exit 2 → bail with cause
   `step-add-refused`** — see `<base directory>/BAIL.md`.
 - **exit 1 — a decision for the user.** `.tdd/over-budget-answer.txt` holds the leaf's answer.
@@ -979,7 +979,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    **STEP** itself starts again from Red once the smaller steps ahead of it are done.
 
    **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`** — see `<base directory>/BAIL.md`. The
-   insertion would take the ledger past `VERI_STEP_GROWTH`, so the script has already filed
+   insertion would take the ledger past the growth cap, so the script has already filed
    the criteria under `## Owed steps`: the step's own red is discarded and the smaller steps
    it needs are not in the plan, so there is nothing for the run to go on with.
    **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
