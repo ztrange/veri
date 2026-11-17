@@ -50,11 +50,14 @@ Run it on every question before it reaches the human.
    - A question about no issue: record it with `$S/role-state.sh <role> add decision`, and ask it
      once.
 6. **At a `step-too-big` bail**, handed the ledger's `## Owed steps` and the issue's acceptance
-   criteria: put each owed step that serves one of the issue's numbered acceptance criteria, k,
-   into the ledger with `$S/add-ledger-step.sh --criterion <k>`. File the owed steps that serve no
-   acceptance criterion as one new issue with `vfile`, and remove them from `## Owed steps`. Commit
-   the ledger as `plan: rewrite #<n>`, which makes the grown plan the new verified baseline, so the
-   resume is not bailed again by the same limit, and resume the run without the filed steps.
+   criteria: write each owed step that serves one of the issue's numbered acceptance criteria, k,
+   into the ledger by hand as a plain planned line `- [ ] <text> ⟦criterion k⟧`, never through
+   `$S/add-ledger-step.sh`, whose `⟦added⟧` steps the cap that just bailed the run would refuse
+   again, and take it out of `## Owed steps`. File the owed steps that serve no acceptance
+   criterion as one new issue with `vfile`, and remove them from `## Owed steps` too. Make both
+   changes in one commit, `plan: rewrite #<n>`: a planned line in it is part of the new verified
+   baseline, not growth, so the resume is not bailed again by the same limit. Then resume the run
+   without the filed steps.
 
 ## Recording
 
