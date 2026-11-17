@@ -33,7 +33,9 @@ Render one verdict on the settled result.
    code is what `git diff {{BASE_SHA}}^..HEAD` adds or changes: this cycle's green commit and
    the refactor after it. A design REJECT names one catalogue smell, by its name in the
    catalogue, and the file and symbol where it is met; a REJECT for design that names no
-   catalogue smell, or no file and symbol, is not a valid design REJECT. The settled code must
+   catalogue smell, or no file and symbol, is not a valid design REJECT. A smell the code already
+   met at `{{BASE_SHA}}^`, or whose answer would change a file outside the cycle's files (check 8),
+   is named in REASON: as out of scope and is not by itself a REJECT. The settled code must
    not have smuggled in untested generality — generality is only earned through triangulation,
    not hand-written here.
 3. **A missing case is a flag, not a REJECT.** An obvious unhandled edge case the spec

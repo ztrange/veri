@@ -731,6 +731,7 @@
 | VF19 | Check 4 says a refactor that adds or changes an assertion line of a case frozen at any earlier step (not only one removed or weakened) is a REJECT naming the case, but an assertion line moved into a helper unchanged modulo whitespace is not such a change. | `rerecord-refactored` skips such a case, and a later `check-earlier` refuses it where no revise can fix it (clarion2 #5). |
 | VF20 | The prompt says a REJECT for design that names no catalogue smell, or no file and symbol, is not a valid design REJECT. | D3 (PRD 032, SM5). |
 | VF21 | The prompt says, beside check 6, that when the verifier finds no catalogue smell in the range's files it does not reject the absence of a transform. | `VERI_REFACTOR_BUDGET` is a ceiling, not a quota (PRD 032, SM7). |
+| VF22 | Check 2 says a smell the code already met at `{{BASE_SHA}}^`, or whose answer would change a file outside the cycle's files (check 8), is named in REASON: as out of scope and is not by itself a REJECT. (Check 2.) | A REJECT no revise can satisfy only spends the revise budget: a smell the cycle inherited, or one whose answer check 8 refuses, is not this refactor's to fix (PRD 032, D3). |
 
 ## skills/tdd/scripts/prompts/verify-pin.md
 
