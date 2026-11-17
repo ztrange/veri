@@ -308,6 +308,7 @@ def push_dry_run_row():
 
 
 PROBE_FILES = ("bash-probe.txt", "write-probe.txt")
+PROBE_TIMEOUT = 300  # seconds; one haiku turn writing two files takes well under a minute
 DENY_PLACES = ("/Library/Application Support/ClaudeCode/managed-settings.json, /etc/claude-code/managed-settings.json, "
                "and the user (~/.claude/settings.json) and project (.claude/settings.json) permissions.deny")
 
@@ -339,8 +340,12 @@ def probe_bypass(scratch):
     nonce = secrets.token_hex(8)
     prompt = (f"Permission probe, nonce {nonce}. First use the Bash tool to run `printf %s {nonce} > {PROBE_FILES[0]}`. "
               f"Then use the Write tool to create {PROBE_FILES[1]} whose whole content is {nonce}. Do nothing else.")
-    ran = subprocess.run([tunables.claude_bin(), "-p", "--model", "haiku", "--permission-mode", "bypassPermissions",
-                          "--output-format", "json", prompt], cwd=scratch, env=leaf_env(), capture_output=True, text=True)
+    try:
+        ran = subprocess.run([tunables.claude_bin(), "-p", "--model", "haiku", "--permission-mode", "bypassPermissions",
+                              "--output-format", "json", prompt], cwd=scratch, env=leaf_env(), capture_output=True,
+                             text=True, timeout=PROBE_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        return "bypassPermissions", f"no answer was obtained (claude -p gave none within {PROBE_TIMEOUT}s)"
     try:
         denials = json.loads(ran.stdout).get("permission_denials") or []
     except (ValueError, AttributeError):
