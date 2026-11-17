@@ -1,6 +1,6 @@
 # Plan for #4086 — PRD 016.8: /vinstall records the one-test-file runner
 
-- [ ] record-test-commands.sh --one-file <cmd> puts a veri: one test file: <cmd> line in the same commit, and on it detect-test-command.sh --tier "one test file" prints <cmd> exactly ⟦criterion 1⟧
+- [x] record-test-commands.sh --one-file <cmd> puts a veri: one test file: <cmd> line in the same commit, and on it detect-test-command.sh --tier "one test file" prints <cmd> exactly ⟦criterion 1⟧
 - [ ] an existing veri: one test file: line is replaced where it stands, never duplicated, every other line unchanged ⟦criterion 2⟧
 - [ ] without --one-file the commit adds no veri: one test file: line and leaves an existing one unchanged ⟦criterion 3⟧
 - [ ] with --one-file, exit 3 holds only when the tip also declares veri: one test file: with exactly <cmd>; otherwise the branch and PR are made ⟦criterion 4⟧

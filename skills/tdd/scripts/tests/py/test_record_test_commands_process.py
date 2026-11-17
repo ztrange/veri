@@ -119,6 +119,23 @@ def test_an_origin_already_holding_veri_install_is_exit_2_naming_it_with_nothing
     assert git(origin, "rev-parse", "veri-install") == before
 
 
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+def test_one_file_puts_the_one_test_file_line_in_the_same_commit_and_the_detector_reads_it_back_exactly(
+        tmp_path, run_cli, record, detect):
+    origin, work = project(tmp_path)
+    tip = git(origin, "rev-parse", "main")
+    one = 'pytest -q "$1"'
+
+    code, out, err = run_cli(record, ["--one-file", one, "make unit", "make test"], cwd=work)
+
+    assert code == 0, err
+    branch = git(origin, "rev-parse", "refs/heads/veri-install")
+    assert git(origin, "rev-parse", branch + "^") == tip
+    assert declared(detect, origin, branch, tmp_path, "one test file") == one
+    assert (declared(detect, origin, branch, tmp_path, "fast"), declared(detect, origin, branch, tmp_path, "all")) == (
+        "make unit", "make test")
+
+
 @pytest.mark.process("record-test-commands.sh, the shim, started as a script")
 def test_the_shim_execs_its_module_an_empty_command_through_it_is_exit_2_with_the_usage(tmp_path):
     done = subprocess.run([str(SCRIPTS / "record-test-commands.sh"), "", "make test"],

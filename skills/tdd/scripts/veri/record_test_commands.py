@@ -8,7 +8,8 @@ import entry
 import git
 import github
 
-USAGE = "usage: record-test-commands.sh <fast-cmd> <all-cmd> [repo-root]"
+USAGE = "usage: record-test-commands.sh [--one-file <cmd>] <fast-cmd> <all-cmd> [repo-root]"
+FAST, ALL, ONE_FILE = b"veri: fast tests:", b"veri: all tests:", b"veri: one test file:"
 BRANCH = "veri-install"
 MESSAGE = "Record the test commands veri runs\n\nveri reads these CLAUDE.md lines ahead of any inference."
 TITLE = "Record the test commands veri runs"
@@ -44,12 +45,18 @@ def declared(text, marker):
     return None
 
 
-def recorded(text, fast, full):
-    """<text>, a CLAUDE.md's bytes, declaring <fast> and <full> as the fast and all tiers' commands: the line the
-    detector reads each from rewritten from its marker on, where it stands; a tier no line declares appended."""
+def declarations(fast, full, one_file=None):
+    """The (marker, command) pairs to record: both tiers, and the one-test-file line when <one_file> is given."""
+    return [(FAST, fast), (ALL, full)] + ([(ONE_FILE, one_file)] if one_file is not None else [])
+
+
+def recorded(text, fast, full, one_file=None):
+    """<text>, a CLAUDE.md's bytes, declaring <fast> and <full> as the fast and all tiers' commands, and <one_file> as
+    the one-test-file command when given: the line the detector reads each from rewritten from its marker on, where it
+    stands; a declaration no line holds appended."""
     lines = text.split(b"\n")
     missing = []
-    for marker, command in ((b"veri: fast tests:", fast), (b"veri: all tests:", full)):
+    for marker, command in declarations(fast, full, one_file):
         for i, line in enumerate(lines):
             at = declaring(line, marker)
             if at is not None:
@@ -86,7 +93,7 @@ def commit(root, tip, text):
     return checked("commit-tree", tree.decode(), "-p", tip, "-m", MESSAGE, cwd=root).decode()
 
 
-def record(fast, full, root):
+def record(fast, full, root, one_file=None):
     checked("rev-parse", "--show-toplevel", cwd=root)
     default =git.default_branch(cwd=root)
     if not default:
@@ -99,9 +106,10 @@ def record(fast, full, root):
     tip = tip_of(root, default)
     shown = git.git("show", "%s:CLAUDE.md" % tip, cwd=root, capture_output=True)
     text = shown.stdout if shown.returncode == 0 else b""
-    if (declared(text, b"veri: fast tests:"), declared(text, b"veri: all tests:")) == (fast, full):
+    wanted = declarations(fast, full, one_file)
+    if all(declared(text, marker) == command for marker, command in wanted):
         return None
-    sha = commit(root, tip, recorded(text, fast, full))
+    sha = commit(root, tip, recorded(text, fast, full, one_file))
     pushed = git.network("push", "-q", "origin", "%s:refs/heads/%s" % (sha, BRANCH), cwd=root)
     if pushed.returncode != 0:
         raise Refused(pushed.stderr.strip() or "git push origin %s failed" % BRANCH)
@@ -114,12 +122,15 @@ def record(fast, full, root):
 
 def main(argv):
     args = list(argv)
+    one_file = None
+    if args[:1] == ["--one-file"]:
+        one_file, args = (args[1:2] or [""])[0], args[2:]
     fast, full = (args + ["", ""])[:2]
     if not fast or not full:
         return entry.refuse("record-test-commands.sh: a command is missing or empty", usage=USAGE)
     root = args[2] if len(args) > 2 and args[2] else "."
     try:
-        url = record(os.fsencode(fast), os.fsencode(full), root)
+        url = record(os.fsencode(fast), os.fsencode(full), root, None if one_file is None else os.fsencode(one_file))
     except Refused as refused:
         return entry.refuse(str(refused))
     if url is None:
