@@ -487,6 +487,20 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `--tier fast` never reads the issue's line. `--tier "one test file"` has one source: the repo's
   CLAUDE.md line `veri: one test file: <command>`, the command taking the target (a test file or a pytest node id) as `"$1"`; no
   inference, and **exit 3** when the line is absent. A bad argument is **exit 2**.
+- `$S/record-test-commands.sh [--one-file <cmd>] <fast-cmd> <all-cmd> [repo-root]` — `/vinstall`'s writer of the
+  target repo's test commands (default: the current repository): on the default branch's tip as freshly fetched, it
+  writes the `veri: fast tests:` and `veri: all tests:` lines of the root `CLAUDE.md` (and with `--one-file` the
+  `veri: one test file:` line), each replaced where it stands or appended, in one commit on a new branch
+  `veri-install`, pushes that branch and opens a pull request from it against the default branch, printing its URL:
+  **exit 0**. It never touches the checkout it runs from (branch, index, working tree), never forces a push, never
+  pushes the default branch and never merges. **Exit 3** when the tip already declares every given command exactly.
+  **Exit 2**, nothing pushed, for a missing or empty command; a `--one-file` command that does not take the test file
+  as `"$1"` (anywhere in it) or as a `$1` word of its own; a `repo-root` outside a git repository; a `CLAUDE.md` that
+  would not read back, through `detect-test-command.sh`'s own reader, exactly the command given for each tier written
+  and unchanged for every other tier; and an origin `veri-install` holding anything but the commit this run would
+  push (it names what to do: open a pull request from that branch, or delete it, then re-run). A re-run finding
+  `veri-install` at exactly that commit (same tree, same parent) opens the pull request when none is open from it,
+  and exits 3 when one is: so a pull request refused after the push is recovered by running it again.
 - `$S/worktree-setup.sh <n>` — run from inside a run worktree: runs the `veri: setup: <cmd>` line of its CLAUDE.md (read like `veri: all tests:`) once in the worktree root; exit 2 with no argument. Called by preflight.
 - `$S/solvable-issues.sh [--repo <owner/name>] [--not-running]` — the **selection layer**: prints the
   numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
