@@ -456,3 +456,41 @@ def test_4225_a_journal_with_no_done_bail_or_stop_line_folds_as_one_open_run(tmp
 
     assert runs == [{"index": 1, "ended": None, "cause": None, "wall_seconds": None, "awake_seconds": None,
                      "sessions": 3, "leaves": 3, "cost_usd": 1.75}]
+
+
+STAGE_CELLS = {"runs": "runs", "ok": "ok", "failed": "failed", "no answer": "no_answer", "nothing": "nothing",
+               "unended": "unended", "wall s": "wall_seconds"}
+
+
+def test_4237_the_report_prints_a_stages_table_one_row_per_marked_stage_its_figures_those_of_the_json(
+        tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [stage(100, "stage-start", "preflight"), stage(101, "stage-start", "baseline"),
+                         stage(131, "stage-end", "baseline", "0", "30"), stage(140, "stage-end", "preflight", "0", "40"),
+                         stage(200, "stage-start", "a-stage-no-list-names"),
+                         stage(300, "stage-start", "baseline"), stage(310, "stage-end", "baseline", "1", "10"),
+                         stage(400, "stage-start", "preflight"), stage(402, "stage-end", "preflight", "3", "2"),
+                         stage(500, "stage-start", "a-stage-no-list-names"),
+                         stage(505, "stage-end", "a-stage-no-list-names", "2", "5")])
+    monkeypatch.chdir(tmp_path)
+
+    stages = as_json(metrics, capsys)["stages"]
+    code = metrics.main(["108"])
+    out, err = capsys.readouterr()
+
+    assert code == 0, err
+    rows = table(out, "#### Stages")
+    assert list(rows[0]) == ["stage", *STAGE_CELLS]
+    assert [row["stage"] for row in rows] == list(stages) == ["preflight", "baseline", "a-stage-no-list-names"]
+    assert {row["stage"]: {key: int(row[cell]) for cell, key in STAGE_CELLS.items()} for row in rows} == stages
+
+
+def test_4237_a_run_with_no_stage_marked_prints_no_stages_table(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, two_runs_and_a_restart() + [mark(950, "stage-end", status="0", secs="4")])
+    monkeypatch.chdir(tmp_path)
+
+    code = metrics.main(["108"])
+    out, err = capsys.readouterr()
+
+    assert code == 0, err
+    assert "#### By phase" in out
+    assert "#### Stages" not in out
