@@ -1,6 +1,8 @@
 """preflight.sh's computation, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
 import datetime
+import hashlib
 import json
 import math
 import os
@@ -136,8 +138,9 @@ def main_working_tree():
 
 
 def permission_facts(user_answer):
-    """The facts the permission record is keyed on: the gh login (from step 2's `gh api user` answer), origin's URL and
-    the check's version, as {key: text}; None when any cannot be read, so nothing is skipped or written."""
+    """The facts the permission record is keyed on: the gh login (from step 2's `gh api user` answer), a sha256 of
+    origin's URL (never the URL, which may carry a credential) and the check's version, as {key: text}; None when any
+    cannot be read, so nothing is skipped or written."""
     try:
         login = json.loads(user_answer)["login"]
     except (ValueError, KeyError, TypeError):
@@ -146,16 +149,22 @@ def permission_facts(user_answer):
     url = url.strip() if code == 0 else ""
     if not isinstance(login, str) or not login.strip() or not url or "\n" in login + url:
         return None
-    return {"login": login.strip(), "origin": url, "version": str(ready_check.PERMISSIONS_CHECK_VERSION)}
+    return {"login": login.strip(), "origin": hashlib.sha256(url.encode()).hexdigest(),
+            "version": str(ready_check.PERMISSIONS_CHECK_VERSION)}
 
 
 def permissions_record(main):
     return os.path.join(main, ".tdd", "permissions-checked")
 
 
-def recorded_date(path, facts):
+def today():
+    """The local date, read once per check: the one clock the permission record is written and judged by."""
+    return datetime.date.today()
+
+
+def recorded_date(path, facts, on):
     """The date <path>'s record holds when it names exactly <facts>; None for one that is missing, unreadable,
-    malformed, future-dated or written for another login, URL or version: each runs the permission rows."""
+    malformed, dated after <on> or written for another login, URL or version: each runs the permission rows."""
     try:
         with open(path) as f:
             lines = f.read().split("\n")
@@ -171,19 +180,30 @@ def recorded_date(path, facts):
         date = datetime.date.fromisoformat(record["date"])
     except ValueError:
         return None
-    if date > datetime.date.today() or any(record[key] != value for key, value in facts.items()):
+    if date > on or any(record[key] != value for key, value in facts.items()):
         return None
     return record["date"]
 
 
-def write_record(path, facts):
-    """Write <facts> and today's date to <path>, whole or not at all."""
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    text = "".join(f"{key}={value}\n" for key, value in {**facts, "date": datetime.date.today().isoformat()}.items())
-    fd, partial = tempfile.mkstemp(prefix=".permissions-checked-", dir=os.path.dirname(path))
-    with os.fdopen(fd, "w") as f:
-        f.write(text)
-    os.replace(partial, path)
+def write_record(path, facts, on):
+    """Write <facts> and the date <on> to <path>, whole or not at all. A write that fails costs only the record: one
+    stderr line naming it (relative to the main working tree) and why, the temporary file this call made removed, and
+    preflight goes on, the rows simply running again next time."""
+    text = "".join(f"{key}={value}\n" for key, value in {**facts, "date": on.isoformat()}.items())
+    partial = None
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        fd, partial = tempfile.mkstemp(prefix=".permissions-checked-", dir=os.path.dirname(path))
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+        os.replace(partial, path)
+    except OSError as e:
+        if partial is not None:
+            with contextlib.suppress(OSError):
+                os.remove(partial)
+        shown = os.path.join(".tdd", os.path.basename(path))
+        sys.stderr.write("preflight.sh: %s not written (%s); the permission rows run again next time\n"
+                         % (shown, e.strerror or type(e).__name__))
 
 
 def permission_rows_passed(out):
@@ -205,14 +225,15 @@ def check_readiness(user_answer=""):
     main = main_working_tree()
     facts = permission_facts(user_answer) if main else None
     record = permissions_record(main) if facts else None
-    checked_on = recorded_date(record, facts) if record and recheck == "0" else None
+    on = today()
+    checked_on = recorded_date(record, facts, on) if record and recheck == "0" else None
     if checked_on:
         sys.stdout.write("permission rows skipped: checked %s\n" % checked_on)
         code, out, _ = call(script("ready-check.sh"), "--no-suites", "--no-permissions")
     else:
         code, out, _ = call(script("ready-check.sh"), "--no-suites")
         if record and code in (0, 1) and permission_rows_passed(out):
-            write_record(record, facts)
+            write_record(record, facts, on)
     refused = [line for line in out.splitlines()
                if any(line.startswith(f"fail  {name}: ") for name in refusing_rows())]
     if code == 1 and refused:

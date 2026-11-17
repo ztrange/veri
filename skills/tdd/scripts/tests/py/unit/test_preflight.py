@@ -1,4 +1,5 @@
 """In-process cases for veri/preflight.py, the module preflight.sh is a shim over."""
+import hashlib
 import importlib
 import os
 
@@ -1110,9 +1111,15 @@ class Clone:
         return None
 
 
-def _preflight(monkeypatch, run_cli, tmp_path, clone, env=None):
-    """Run preflight for #12 over <clone>; return (ready-check.sh's args per call, exit code, stdout, call names)."""
+TODAY = "2026-03-04"  # preflight's one date reader is fixed here, so no case reads the wall clock
+
+
+def _preflight(monkeypatch, run_cli, tmp_path, clone, env=None, seen=None):
+    """Run preflight for #12 over <clone> on TODAY; return (ready-check.sh's args per call, exit code, stdout, call
+    names); <seen>, when given, gets its stderr under "err"."""
+    import datetime
     preflight = importlib.import_module("veri.preflight")
+    monkeypatch.setattr(preflight, "today", lambda: datetime.date.fromisoformat(TODAY))
     wt = tmp_path / "wt"
     (wt / ".tdd").mkdir(parents=True, exist_ok=True)
     calls = []
@@ -1128,13 +1135,10 @@ def _preflight(monkeypatch, run_cli, tmp_path, clone, env=None):
     monkeypatch.setattr(preflight, "run_script", run_script)
     for name, value in (env or {}).items():
         monkeypatch.setenv(name, value)
-    code, out, _ = run_cli(preflight, ["12", "my-slug"])
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+    if seen is not None:
+        seen["err"] = err
     return [args for base, args in calls if base == "ready-check.sh"], code, out, [base for base, _ in calls]
-
-
-def _today():
-    import time
-    return time.strftime("%Y-%m-%d")
 
 
 def test_issue_4093_a_record_holding_the_current_login_url_and_version_skips_the_permission_rows_naming_its_date(monkeypatch, run_cli, tmp_path):
@@ -1144,13 +1148,13 @@ def test_issue_4093_a_record_holding_the_current_login_url_and_version_skips_the
     called, _, out, _ = _preflight(monkeypatch, run_cli, tmp_path, clone)
 
     assert called == [("--no-suites", "--no-permissions")], called
-    assert f"permission rows skipped: checked {_today()}" in out.splitlines(), out
+    assert f"permission rows skipped: checked {TODAY}" in out.splitlines(), out
 
 
 def test_issue_4093_the_skip_line_names_the_date_as_the_record_holds_it(monkeypatch, run_cli, tmp_path):
     clone = Clone(tmp_path)
     _preflight(monkeypatch, run_cli, tmp_path, clone)
-    clone.record.write_text(clone.record.read_text().replace(_today(), "2026-01-02"))
+    clone.record.write_text(clone.record.read_text().replace(TODAY, "2026-01-02"))
 
     called, _, out, _ = _preflight(monkeypatch, run_cli, tmp_path, clone)
 
@@ -1173,7 +1177,7 @@ def _stale(how, clone, monkeypatch):
     elif how == "truncated":
         clone.record.write_text(clone.record.read_text().splitlines(keepends=True)[0])
     elif how == "future-dated":
-        clone.record.write_text(clone.record.read_text().replace(_today(), "2999-01-01"))
+        clone.record.write_text(clone.record.read_text().replace(TODAY, "2026-03-05"))
     elif how == "unreadable":
         clone.record.unlink()
         clone.record.mkdir()
@@ -1190,13 +1194,19 @@ STALE = ["missing", "login", "url", "version", "malformed", "truncated", "future
 @pytest.mark.parametrize("how", STALE)
 def test_issue_4093_a_missing_stale_or_unusable_record_runs_the_permission_rows(monkeypatch, run_cli, tmp_path, how):
     clone = Clone(tmp_path)
-    _preflight(monkeypatch, run_cli, tmp_path, clone)
+    _, first, _, _ = _preflight(monkeypatch, run_cli, tmp_path, clone)
     _stale(how, clone, monkeypatch)
 
-    called, _, out, _ = _preflight(monkeypatch, run_cli, tmp_path, clone)
+    seen = {}
+    called, code, out, _ = _preflight(monkeypatch, run_cli, tmp_path, clone, seen=seen)
 
     assert called == [("--no-suites",)], called
     assert not [line for line in out.splitlines() if line.startswith("permission rows skipped")], out
+    if how == "unreadable":
+        assert code == first, (code, first, out, seen["err"])
+        assert not [f for f in os.listdir(clone.record.parent) if f.startswith(".permissions-checked-")], os.listdir(clone.record.parent)
+        said = [line for line in seen["err"].splitlines() if "permissions-checked" in line]
+        assert len(said) == 1 and str(tmp_path) not in said[0], seen["err"]
 
 
 def test_issue_4093_veri_recheck_permissions_1_runs_the_permission_rows_over_a_current_record(monkeypatch, run_cli, tmp_path):
@@ -1224,9 +1234,21 @@ def test_issue_4093_a_check_whose_permission_rows_all_pass_writes_the_record_of_
 
     held = clone.record.read_text()
     preflight = importlib.import_module("veri.preflight")
-    for fact in ("octo", "git@github.com:o/r.git", str(preflight.ready_check.PERMISSIONS_CHECK_VERSION), _today()):
+    origin = hashlib.sha256(b"git@github.com:o/r.git").hexdigest()
+    for fact in ("octo", origin, str(preflight.ready_check.PERMISSIONS_CHECK_VERSION), TODAY):
         assert fact in held, held
-    assert str(tmp_path) not in held, held
+    assert "git@github.com" not in held and str(tmp_path) not in held, held
+
+
+def test_issue_4093_a_token_bearing_origin_url_leaves_no_trace_of_the_token_in_the_record_yet_still_keys_it(monkeypatch, run_cli, tmp_path):
+    clone = Clone(tmp_path, url="https://someone:ghp_s3cretTok3nValue0123456789abcdefABCD@github.com/o/r.git")
+
+    _preflight(monkeypatch, run_cli, tmp_path, clone)
+    held = clone.record.read_bytes()
+    called, _, _, _ = _preflight(monkeypatch, run_cli, tmp_path, clone)
+
+    assert b"ghp_s3cretTok3nValue" not in held and b"someone" not in held and b"github.com" not in held, held
+    assert called == [("--no-suites", "--no-permissions")], called
 
 
 FAILING = [("ok    push dry-run", "fail  push dry-run: remote: Permission denied"),
