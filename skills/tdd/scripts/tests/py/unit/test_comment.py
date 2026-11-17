@@ -1539,6 +1539,30 @@ def test_bailed_posts_the_heading_from_the_last_bail_event_then_the_note_and_app
     assert [(e["event"], e.get("kind"), e.get("url")) for e in events[2:]] == [("comment", "bailed", url)]
 
 
+@pytest.mark.parametrize("cause, reason", [
+    ("no-seam", "parse_all() never reaches parse(): see /Users/someone/src/parse.py:12 and /home/someone/x.py"),
+    ("uncovered", "no test went red mutating /private/var/folders/ab/cd/T/tmp1/src/route.py or /tmp/x/route.py"),
+])
+def test_bailed_publishes_a_leafs_reason_with_no_absolute_local_path_4106(monkeypatch, run_cli, tmp_path, cause, reason):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-56")
+    monkeypatch.setenv("HOME", "/Users/someone-else")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"event": "bail", "cause": cause, "phase": "develop-seam", "classification": "process"}) + "\n")
+    note = tmp_path / "note.txt"
+    note.write_text(f"Bailed `{cause}`: {reason}\nand {os.path.expanduser('~')}/notes.md\n")
+
+    code, _, _ = run_cli(comment, ["7", "bailed", "--note-file", str(note)], cwd=tmp_path)
+
+    body = posted[0] if posted else ""
+    assert (code, [p for p in ("/Users/", "/home/", "/private/", "/var/folders/", "/tmp/") if p in body]) == (0, [])
+    assert f"Bailed `{cause}`" in body and "~/notes.md" in body
+
+
 def test_bailed_exits_2_naming_the_missing_bail_event_and_posts_nothing_when_the_journal_has_none(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")
