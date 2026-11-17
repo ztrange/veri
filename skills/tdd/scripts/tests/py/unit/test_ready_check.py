@@ -642,3 +642,18 @@ def test_issue_4091_a_listed_permission_denial_fails_the_bypass_permissions_row_
     name, verdict = ready_check.bypass_permissions_row()
 
     assert name == "bypassPermissions" and verdict, verdict
+
+
+PLACES = ("/Library/Application Support/ClaudeCode/managed-settings.json", "/etc/claude-code/managed-settings.json",
+          "permissions.deny")
+
+
+def test_issue_4091_a_failing_bypass_permissions_row_quotes_the_denied_tools_and_names_where_to_look(ready_check, fake_processes):
+    denied = ('{"type": "result", "is_error": false, "permission_denials": [{"tool_name": "Bash", "tool_use_id": "t1"}, '
+              '{"tool_name": "Write", "tool_use_id": "t2"}]}')
+    fake_processes.answers({PROBE: probe_answer(bash=False, write=False, result=denied)})
+
+    _, verdict = ready_check.bypass_permissions_row()
+
+    assert "`Bash`" in verdict and "`Write`" in verdict, verdict
+    assert all(place in verdict for place in PLACES) and "user" in verdict and "project" in verdict, verdict

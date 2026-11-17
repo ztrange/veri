@@ -307,6 +307,8 @@ def push_dry_run_row():
 
 
 PROBE_FILES = ("bash-probe.txt", "write-probe.txt")
+DENY_PLACES = ("/Library/Application Support/ClaudeCode/managed-settings.json, /etc/claude-code/managed-settings.json, "
+               "and the user (~/.claude/settings.json) and project (.claude/settings.json) permissions.deny")
 
 
 def bypass_permissions_row():
@@ -343,7 +345,13 @@ def probe_bypass(scratch):
                 written.append(probe.read().strip() == nonce)
         else:
             written.append(False)
-    return "bypassPermissions", None if all(written) and not denials else "fail"
+    if all(written) and not denials:
+        return "bypassPermissions", None
+    tools = sorted({str(denial.get("tool_name")) for denial in denials if isinstance(denial, dict)})
+    said = ", ".join(f"`{tool}`" for tool in tools) or "none listed"
+    missing = [name for name, held in zip(PROBE_FILES, written) if not held]
+    return "bypassPermissions", (
+        f"denied tools: {said}; nonce files missing or wrong: {', '.join(missing) or 'none'}; look in {DENY_PLACES}")
 
 
 def bash_row():
