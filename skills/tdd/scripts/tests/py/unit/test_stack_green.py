@@ -1,6 +1,7 @@
 """In-process cases for veri/stack_green.py, the module stack-green.sh is a shim over (PRD 034.2b): the stack's span and
 GitHub's check-run reads are injected in-process, so no case starts a process."""
 import importlib
+import os
 import re
 
 import pytest
@@ -120,6 +121,34 @@ def test_the_module_names_no_ci_job_or_check_name_so_every_check_run_counts(stac
         named = [line for line in f if re.search(r'gates|"ci"|check_name|name ==', line)]
 
     assert named == []
+
+
+@pytest.mark.parametrize("subject, issues", [
+    ("feat: a (#1)", {"1"}), ("docs: z (#1, #3)", {"1", "3"}), ("fix: y (#1) (#2)", {"1", "2"}),
+    ("fix: y (#1,#3)", {"1", "3"}), ("fix: y (#1 #3)", {"1", "3"}), ("fix: y (#1 and #3)", {"1", "3"}),
+    ("fix: (#1, #3) mid-subject", set()), ("fix: names none", set()), ('Revert "feat: a (#5)"', set()),
+])
+def test_a_subject_names_every_issue_number_in_the_parenthesised_group_or_groups_it_ends_with(stack_green, subject, issues):
+    assert stack_green.named(subject) == issues
+
+
+def test_a_comma_form_subject_naming_an_earlier_issue_again_keeps_that_earlier_commit_from_being_an_end(stack_green):
+    assert stack_green.issue_ends(["x (#1)", "y (#2)", "docs: z (#1, #3)"]) == [False, False, True]
+
+
+FIXTURE = os.path.join(os.path.dirname(__file__), "..", "..", "fixtures", "stack-subjects", "origin-main-40.txt")
+
+
+def test_over_40_real_subjects_of_origin_main_the_comma_forms_name_each_issue_and_only_two_commits_are_ends(stack_green):
+    with open(FIXTURE, encoding="utf-8") as f:
+        newest_first = f.read().splitlines()
+    subjects = newest_first[::-1]
+
+    ends = stack_green.issue_ends(subjects)
+    commas = [stack_green.named(s) for s in subjects if re.search(r"\(#\d+, #\d+", s)]
+
+    assert ([subjects[n] for n, end in enumerate(ends) if end] == [newest_first[37], newest_first[0]],
+            commas) == (True, [{"4071", "4076", "4077"}, {"4076", "4077"}])
 
 
 def test_issue_ends_over_300_commits_reads_each_subject_once(stack_green):

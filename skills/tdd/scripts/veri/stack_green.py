@@ -10,14 +10,15 @@ import stack_branch
 
 USAGE = "usage: stack-green.sh"
 ENDS_READ = 20  # the newest issue ends whose check runs are read, one read each; an older one is never cut at
-_TRAILING = re.compile(r"((?:\s*\(#\d+\))+)\s*$")
+_TRAILING = re.compile(r"((?:\s*\([^()]*\))+)\s*$")
 
 
 def named(subject):
-    """The issue numbers a commit subject names: the `(#<n>)` groups it ends with, as a set; a `(#<n>)` elsewhere in it,
-    or a subject ending in anything else (a revert's closing quote), names none."""
+    """The issue numbers a commit subject names, as a set: every `#<n>` inside the parenthesised group or groups it
+    ends with (`(#1)`, `(#1, #3)`, `(#1) (#2)`, `(#1 and #3)`); a `#<n>` elsewhere in it, or a subject ending in
+    anything else (a revert's closing quote), names none."""
     found = _TRAILING.search(subject)
-    return set(re.findall(r"\(#(\d+)\)", found.group(1))) if found else set()
+    return set(re.findall(r"#(\d+)", found.group(1))) if found else set()
 
 
 def issue_ends(subjects):
