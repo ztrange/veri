@@ -70,6 +70,7 @@ def test_issue_4072_report_writes_as_status_last_the_time_it_read_the_decision_l
     json.dumps({"question": "q", "decision": "d", "rule": "r", "by": "dev", "at": "yesterday"}),
     json.dumps({"question": "q", "decision": "d", "rule": "r", "by": "dev", "at": "2026-11-02T10:30:00"}),
     json.dumps({"question": "q", "decision": 3, "rule": "r", "by": "dev", "at": "2026-11-02T10:30:00+00:00"}),
+    json.dumps({"question": "q", "decision": "d", "rule": "r", "by": "dev", "at": "2099-01-01T00:00:00+00:00"}),
 ])
 def test_issue_4072_report_exits_2_naming_the_line_when_the_decision_log_holds_one_that_is_not_a_decision_record(
         tmp_path, monkeypatch, run_cli, fake_processes, bad):
