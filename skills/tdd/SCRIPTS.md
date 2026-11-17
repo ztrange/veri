@@ -491,23 +491,24 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   answer (a failed read, or an answer not of the check-runs shape), when `stack-branch.sh` does not exit 0, 3
   included, or when a fetch of origin gets no answer.
 - `$S/stack-red.sh` — run in the target repository's clone, no arguments: says whether CI's latest answer on the
-  stack is red, which freezes joins. It reads the runs of every workflow on the branch, not one named workflow. It
-  reads the newest 100 workflow runs GitHub lists for the stack branch (a run whose head is a fork's branch of that
-  name is not counted) and takes the newest by creation time that completed with a conclusion other than
-  `cancelled`: a run still in progress, or one a newer push cancelled, is no answer yet, not a red. When the newest
-  run not cancelled is not completed and is a re-run (its `run_attempt` above 1), the answer is that run's previous
-  attempt, read from GitHub, so re-running a red run does not lift the freeze while it runs; a previous attempt that
-  cannot be read, or reads not completed, is exit **2**, never green. When it is not completed at its first attempt
-  (queued or in progress), the answer is the newest completed, not-cancelled run for that run's own head commit when
-  there is one; only with none for that commit is the branch's newest one read. When that run's conclusion is not `success`, `neutral` or `skipped`, it prints one line,
-  `<head-sha> <run-url> <conclusion>`, and exits **0**: the stack is frozen. **Exit 3**, nothing printed, when it
-  concluded `success`, `neutral` or `skipped`, or when none of the 100 completed with a conclusion other than
-  `cancelled`; one stderr line says which of the two. **Exit 2** when GitHub gives no answer or an answer not of the
-  workflow-runs shape, when a fetch of origin gets no answer, or when `stack-branch.sh` does not exit 0, 3 included.
+  stack is red, which freezes joins. It reads the runs of every workflow on the branch, not one named workflow: the
+  newest 100 workflow runs GitHub lists for the stack branch (a run whose head is a fork's branch of that name is not
+  counted). Each workflow (`workflow_id`) is decided alone. A run answers with its conclusion when it completed and
+  was not cancelled; a run at an attempt above 1 that is not completed (a re-run) or completed `cancelled` answers from
+  its earlier attempts, read from GitHub and walked from attempt n-1 down to 1, the first completed and not cancelled
+  answering, so re-running or cancelling a red run does not lift the freeze; an earlier attempt that cannot be read,
+  or reads not completed, is no answer. A workflow's answer is its newest run that has one, except that while its
+  newest run without one is still going (queued or in progress), the newest answer on that run's own head commit wins
+  when there is one. When any workflow's answer is not `success`, `neutral` or `skipped`, it prints one line,
+  `<head-sha> <run-url> <conclusion>` of the newest such run, and exits **0**: the stack is frozen. Otherwise **exit
+  2** when any workflow gave no answer. **Exit 3**, nothing printed, when every workflow that answered is green, or
+  when none has answered yet (nothing completed with a conclusion other than `cancelled`); one stderr line says which
+  of the two. **Exit 2** also when GitHub gives no answer or an answer not of the workflow-runs shape, when a fetch of
+  origin gets no answer, or when `stack-branch.sh` does not exit 0, 3 included.
 - `$S/stack-culprit.sh <red-sha>` — run in the target repository's clone: names the issue whose end turned the stack
   red, and the cases it broke. It reads the red cases from the failed-job log (`gh run view <run-id> --log-failed`) of
-  the red workflow run on `<red-sha>` (the newest completed, not-cancelled run GitHub lists for the stack with that
-  head), naming them by `rerun-alone.sh`'s rule from the runner's text as `ci-flake.sh` reads the log, and runs at most
+  the red workflow run on `<red-sha>` (each workflow's answer on that head read as `stack-red.sh` reads one, the
+  newest red one taken, at the attempt that answered), naming them by `rerun-alone.sh`'s rule from the runner's text as `ci-flake.sh` reads the log, and runs at most
   the first 5, saying on stderr how many it did not run. The commits it tests are the *issue ends* from the newest
   commit at or below `<red-sha>` that `stack-green.sh`'s rule calls tested (a KT5 issue end whose check runs passed,
   the newest 20 such ends read) to `<red-sha>`, `<red-sha>` included, `origin/<default>` standing for the start when
@@ -522,7 +523,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `ci-flake.sh` reads one); it is **absent**, not red, when its file is missing there or the output says the case was
   not found or not collected; an exit 0 is not red; any other non-zero ending, a kill or no exit within
   `VERI_TIMEOUT` is no answer. The exit code alone never decides: `make test TESTS="$1"` exits 2 for a failing case
-  and a missing one alike. At the first issue end where a case is red it prints, one per line, `red: <red-sha>` (the full sha the
+  and a missing one alike. A case absent at `<red-sha>` itself is exit **2**: the CI id and the local command
+  disagree. A `FAILED` line for an id that only begins with the case's id is not that case's. At the first issue end where a case is red it prints, one per line, `red: <red-sha>` (the full sha the
   search was run for, so a file holding the answer is told apart from one recorded for another red), `issue: <n>`
   (each number, ascending and space-separated, when the subject names several; `none` before any subject names one),
   `commit: <sha>`, `before: <sha>` (the issue end before it, or `origin/<default>`), then one
