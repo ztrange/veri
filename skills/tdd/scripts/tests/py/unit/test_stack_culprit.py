@@ -84,7 +84,8 @@ class World:
             return [type("P", (), {"number": 5, "html_url": "https://github.com/o/r/pull/5"})() for _ in pulls]
 
         def issue_comments(number):
-            return [{"body": body} for body in comments]
+            return [body if isinstance(body, dict) else
+                    {"body": body, "author_association": "OWNER", "user": {"login": "owner"}} for body in comments]
 
         def comment_post(number, body):
             self.posted.append((number, body))
@@ -237,6 +238,18 @@ def test_a_second_call_with_the_same_answer_for_the_same_red_sha_adds_no_comment
     code, _, err = run_cli(culprit, [sha(2)])
 
     assert (code, second.posted) == (0 if reds else 3, []), err
+
+
+def test_a_comment_holding_the_same_answer_from_an_untrusted_author_does_not_stop_its_own(monkeypatch, run_cli, culprit):
+    first = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], reds={sha(2): (A,)})
+    run_cli(culprit, [sha(2)])
+    second = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], reds={sha(2): (A,)},
+                   comments=({"body": first.posted[0][1], "author_association": "NONE", "user": {"login": "stranger"}},))
+    monkeypatch.setattr(culprit.github, "_trusting_login", lambda: "operator")
+
+    run_cli(culprit, [sha(2)])
+
+    assert second.posted == first.posted
 
 
 @pytest.mark.parametrize("pulls", [(), ("one", "two")])
