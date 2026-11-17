@@ -6,6 +6,6 @@
 - [x] classify-bail.sh tidy-first-owed prints process ⟦criterion 4⟧
 - [x] JOURNAL.md has a tidy-first row held by the roster cases ⟦criterion 5⟧
 - [x] develop-green.md offers TIDY_FIRST: and declares the key ⟦criterion 6⟧
-- [ ] TIDY-FIRST.md states the procedure ⟦criterion 7⟧
-- [ ] SKILL.md Green points to TIDY-FIRST.md, no larger than before ⟦criterion 8⟧
-- [ ] BAIL.md names tidy-first-owed, SCRIPTS.md has a tidy-first.sh entry ⟦criterion 9⟧
+- [x] TIDY-FIRST.md states the procedure ⟦criterion 7⟧
+- [x] SKILL.md Green points to TIDY-FIRST.md, no larger than before ⟦criterion 8⟧
+- [x] BAIL.md names tidy-first-owed, SCRIPTS.md has a tidy-first.sh entry ⟦criterion 9⟧
