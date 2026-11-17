@@ -20,7 +20,8 @@ already answered by one of them.
 
 ## The procedure
 
-Run it on every question before it reaches the human.
+Run it on every question before it reaches the human, save a recommendation passed for review
+(*Reviewing a recommendation*, below).
 
 1. **Is it on the *Always surface* list below?** Then surface it to the human (P4, P21), and stop
    here.
@@ -58,6 +59,17 @@ Run it on every question before it reaches the human.
    changes in one commit, `plan: rewrite #<n>`: a planned line in it is part of the new verified
    baseline, not growth, so the resume is not bailed again by the same limit. Then resume the run
    without the filed steps.
+
+## Reviewing a recommendation
+
+In `/vplan` the human makes every design decision (P22's exception), so a recommendation passed
+for review is reviewed, never decided. Take it through *The procedure*'s steps 2 to 4 and return
+a verdict: **kept**, or **changed** to another option, with one line naming the rule applied. A
+question on the *Always surface* list, or one still not clear-cut after the one investigation,
+returns the recommendation kept, with that reason. Nothing is acted on and nothing is parked.
+
+A review is recorded nowhere: no `Decided:` comment and no `$S/decision-log.sh` line, since step 2
+would read either as an earlier decision and answer the same question later without the owner.
 
 ## Recording
 
