@@ -15,19 +15,27 @@ def text_at(rev, file):
     return None if shown.returncode else shown.stdout
 
 
-def section_at(rev, unit):
-    file = unit.partition("#")[0]
-    if text_at(rev, file) is None:
+def signed_at(rev, unit, units):
+    """What `unit` signs at `rev`: a heading unit's own text, a split whole-file unit's view (cut by the heading units
+    listed in the working tree), None when git cannot show the file there or the heading matches no line, or several."""
+    text = text_at(rev, unit.partition("#")[0])
+    if text is None:
         return None
-    return grade_prose.unit_text(unit, lambda path: text_at(rev, path))
+    try:
+        return grade_prose.signed_text(unit, grade_prose.unit_text(unit, lambda path: text), units)
+    except ValueError:
+        return None
 
 
-def changed_unit(unit, changed, base):
-    """Whether `unit` changed: a whole-file unit when its file did, a `file#heading` unit when its section's text did."""
+def changed_unit(unit, changed, base, units):
+    """Whether what `unit` signs changed: a heading unit's own text, a split whole-file unit's view, an unsplit
+    whole-file unit's file."""
     file, _, heading = unit.partition("#")
     if file not in changed:
         return False
-    return not heading or section_at(base, unit) != section_at("HEAD", unit)
+    if not heading and not grade_prose.claimed_headings(file, units):
+        return True
+    return signed_at(base, unit, units) != signed_at("HEAD", unit, units)
 
 
 def main(argv):
@@ -38,8 +46,9 @@ def main(argv):
     if diff.returncode:
         return 2
     changed = diff.stdout.split()
+    units = [u for p in requirements.lists() for u in requirements.listed_units(p)]
     hits = [fields[0] for g in requirements.tracked("GRADED") for fields in grade_prose.graded_lines(g)
-            if changed_unit(fields[0], changed, argv[0])]
+            if changed_unit(fields[0], changed, argv[0], units)]
     for path in hits:
         print(path)
     return 1 if hits else 0

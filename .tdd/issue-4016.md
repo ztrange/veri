@@ -10,7 +10,7 @@
 - [x] a whole-file unit with a listed heading unit is split, and its view is the heading lines then the frontmatter and every unclaimed section's own text ⟦criterion 4⟧
 - [x] a split whole-file unit signs its view; an edit inside a claimed section owes only that heading unit, and removing the last heading unit unsplits it ⟦criterion 5⟧ ⟦criterion 9⟧
 - [x] `grade-prose.sh` shows the grader a split whole-file unit's view, while `unit_text` still returns the whole file ⟦criterion 6⟧
-- [ ] `graded-changed.sh` prints a split whole-file unit only when its view differs ⟦criterion 7⟧
+- [x] `graded-changed.sh` prints a split whole-file unit only when its view differs ⟦criterion 7⟧
 - [ ] the tree audits that split GRADED lines decode the unit field ⟦criterion 1⟧
 - [ ] `CLAUDE.md` *Graded prose* states heading units, own text, the split view and signature, and the unit field encoding (CM177–CM179), graded ⟦criterion 10⟧
 - [ ] `skills/tdd/SCRIPTS.md` gains `grade-prose.sh` and `graded-changed.sh` entries and `prose-owed.sh`'s exit 2 (SC261–SC263), graded ⟦criterion 10⟧ ⟦criterion 11⟧

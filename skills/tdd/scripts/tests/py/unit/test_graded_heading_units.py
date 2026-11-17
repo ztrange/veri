@@ -233,3 +233,26 @@ def test_4016_grade_prose_shows_the_grader_a_split_whole_file_units_view_and_sig
     assert (code, prompts, signed, grade_prose.unit_text("f.md")) == (
         0, [grade_prose.prompt("f.md", SPLIT_VIEW, "A1\tThe widget is blue.\n")],
         [grade_prose.signature("REQUIREMENTS.md", "f.md")], SPLIT), err
+
+
+@pytest.mark.parametrize("head_text, printed", [
+    (BEFORE.replace("The widget is blue.", "The widget is green."), [HEADING_UNIT]),
+    (BEFORE.replace("else", "something else"), ["unit.md"]),
+    (BEFORE.replace("## Other", "## Another"), ["unit.md"]),
+    (BEFORE.replace("intro", "preface"), ["unit.md"]),
+])
+def test_4016_graded_changed_prints_a_split_whole_file_unit_only_when_its_view_changed(
+        head_text, printed, tmp_path, monkeypatch, run_cli, fake_processes):
+    changed = importlib.import_module("veri.graded_changed")
+    heading_tree(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "GRADED").write_text("%s sig 2026-01-01 g1 t1\nunit.md sig 2026-01-01 g2 t1\n" % ENCODED)
+    fake_processes.answers({
+        "git diff --name-only base HEAD": (0, "unit.md\n", ""),
+        "git show base:unit.md": (0, BEFORE, ""),
+        "git show HEAD:unit.md": (0, head_text, ""),
+    })
+
+    code, out, err = run_cli(changed, ["base"], cwd=tmp_path)
+
+    assert (code, out.splitlines()) == (1, printed), err
