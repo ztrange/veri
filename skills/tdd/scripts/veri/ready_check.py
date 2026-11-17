@@ -73,10 +73,13 @@ def tier_run_row(tier, command, wt):
     if os.path.exists(output):
         with open(output, errors="replace") as out:
             said = [line.strip() for line in out if line.strip()]
+    kept = os.path.join(os.path.dirname(wt), name + ".out")
     if waited.returncode == 0:
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(kept)
         return row, None
     if os.path.exists(output):
-        shutil.copyfile(output, os.path.join(os.path.dirname(wt), name + ".out"))
+        shutil.copyfile(output, kept)
     return row, f"exit {waited.stdout.strip()}: {said[-1] if said else '(no output)'}"
 
 
