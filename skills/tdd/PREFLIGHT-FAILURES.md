@@ -24,6 +24,10 @@ If the caller's checkout is dirty, stop and ask the user to commit or stash.
 - An exit 2 from `leaf-launchable.sh` stops the run, and its stderr diagnostic is reported verbatim. It
   is the case the README's *Launching the conductor* section describes (#187). veri never unsets
   `CLAUDECODE` or any other launch guard itself.
+- A stop at `2 ready-check.sh` (a failing refusing row, exit 1, or no answer, exit 2) is a preflight
+  refusal: call `$S/preflight-refused.sh <n> ready-check.sh <cause>`, `<cause>` being the first
+  refusing row's `fail` line, or on exit 2 `ready-check.sh`'s own stderr line. The fix is the one
+  each `fail` row names.
 
 ### Step 3 — worktree, resume and baseline
 
