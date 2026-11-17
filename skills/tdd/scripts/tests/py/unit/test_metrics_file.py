@@ -129,6 +129,21 @@ def test_two_runs_of_the_issue_in_two_worktrees_make_one_metrics_file_covering_b
     assert (red["attempts"], red["kills"]) == (2, 1)
 
 
+@pytest.mark.parametrize("origin, issue", [("https://github.com/acme/widgets.git", ""), (None, "42")],
+                         ids=["an event with no issue", "a clone with no origin remote"])
+def test_a_run_that_writes_no_journal_writes_no_metrics_file_and_prints_nothing_about_it(
+        tmp_path, event, capfd, origin, issue):
+    clone = clone_at(tmp_path, origin=origin)
+    context = dict(LEAF, issue=issue)
+
+    codes = [event.append(str(clone), context, name, fields, ts=1700000000 + at) for at, (name, fields) in enumerate([
+        ("launch", ["name=develop-red", "cmd=run-leaf.sh", "model="]), ("exit", ["status=0", "secs=30"]),
+        ("step-done", []), ("bail", ["cause=uncovered"]), ("done", ["pr=https://github.com/acme/widgets/pull/1"])])]
+
+    assert (codes, capfd.readouterr().err) == ([0] * 5, "")
+    assert sorted(str(path.relative_to(tmp_path)) for path in tmp_path.rglob("*.json")) == []
+
+
 @pytest.fixture
 def unwritable(monkeypatch):
     """Make a directory refuse new files as a non-root writer meets one of mode 555: creating a file in it answers
