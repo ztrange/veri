@@ -7,5 +7,5 @@
 - [x] the probe's `claude` is started with `strip_session_env` applied ⟦criterion 4⟧ ⟦criterion 6⟧
 - [x] the scratch directory is gone on every exit with 0, 1 or 2, and nothing else is written ⟦criterion 5⟧
 - [x] a probe that never answers fails the row instead of hanging the check
-- [ ] vready SKILL.md `## Run` says the check makes one paid Haiku call, about $0.004 ⟦criterion 7⟧
+- [x] vready SKILL.md `## Run` says the check makes one paid Haiku call, about $0.004 ⟦criterion 7⟧
 - [ ] README `## Install` says `/vready` makes that paid call and names its cost ⟦criterion 8⟧
