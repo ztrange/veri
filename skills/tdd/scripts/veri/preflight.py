@@ -172,8 +172,12 @@ def finish(n, wt, baseline, full, fast, alone, began, reused, code):
     effort = tunables.get("VERI_EFFORT_VERIFIER")
     if effort and not tunables.parses("VERI_EFFORT_VERIFIER", effort):
         return stopped(5, "VERI_EFFORT_VERIFIER", 2)
-    if tunables.set_but_empty("VERI_STEP_GROWTH"):
+    if tunables.is_set("VERI_STEP_GROWTH"):
+        sys.stdout.write("VERI_STEP_GROWTH=%s: VERI_STEP_GROWTH is retired; unset it and use VERI_STEP_GROWTH_PERCENT\n"
+                         % tunables.environment()["VERI_STEP_GROWTH"])
         return stopped(5, "VERI_STEP_GROWTH", 2)
+    if not tunables.parses("VERI_STEP_GROWTH_PERCENT", tunables.get("VERI_STEP_GROWTH_PERCENT")):
+        return stopped(5, "VERI_STEP_GROWTH_PERCENT", 2)
     if not tunables.get("VERI_MISSING_REROUTE_BUDGET").isdigit():
         return stopped(5, "VERI_MISSING_REROUTE_BUDGET", 2)
     checked(5, script("step-budget.sh"), cwd=wt)
