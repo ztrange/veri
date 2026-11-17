@@ -1000,7 +1000,7 @@ def test_main_marks_a_watched_names_launch_and_exit_as_records_under_its_role_an
     marked = [
         {**context, "event": "launch", "name": "develop-red", "cmd": "sh -c printf 'leaf out\\n'; exit 1",
          "model": "opus-x"},
-        {**context, "event": "exit", "status": "1", "secs": "0"},
+        {**context, "event": "exit", "status": "1", "secs": "0", "name": "develop-red"},
     ]
     leaf = "printf 'leaf out\\n'; exit 1"
     env = {"VERI_ISSUE": "1073", "VERI_STEP": "4", "VERI_MODEL": "opus-x", "VERI_TIMEOUT": "900"}
@@ -2316,7 +2316,8 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
         return [[f"refs/veri/attempts/1073/27/develop-red-{a}", "c" * 40] for a in attempts]
 
     retry = {"issue": "1073", "actor": "developer", "phase": "red", "step": "27", "event": "retry", "attempt": "1",
-             "skill_commit": "0123456789abcdef0123456789abcdef01234567", "cause": "no heartbeat for 4s (window 3s)"}
+             "skill_commit": "0123456789abcdef0123456789abcdef01234567", "cause": "no heartbeat for 4s (window 3s)",
+             "name": "develop-red"}
     issue_step = {"VERI_ISSUE": "1073", "VERI_STEP": "27"}
 
     default = stuck("default", **issue_step)
@@ -3359,11 +3360,13 @@ def test_cli_appends_one_retry_event_carrying_the_kill_cause_per_relaunch_and_on
     failed = real_leaf("develop-fail", "exit 3")
     hung = hung_leaf("develop-hung", "0")
     retried = hung_leaf("develop-retried", "1")
-    assert shape(ok) == [{**context("ok"), "event": "exit", "status": "0", "secs": "n"}]
-    assert shape(failed) == [{**context("fail"), "event": "exit", "status": "1", "secs": "n"}]
-    assert shape(hung) == [{**context("hung"), "event": "exit", "status": "2", "cause": cause, "secs": "n"}]
+    assert shape(ok) == [{**context("ok"), "event": "exit", "status": "0", "secs": "n", "name": "develop-ok"}]
+    assert shape(failed) == [{**context("fail"), "event": "exit", "status": "1", "secs": "n", "name": "develop-fail"}]
+    assert shape(hung) == [{**context("hung"), "event": "exit", "status": "2", "cause": cause, "secs": "n",
+                           "name": "develop-hung"}]
     assert int(hung[0]["secs"]) >= 5
-    assert shape(retried)[:1] == [{**context("retried"), "event": "retry", "cause": cause}]
+    assert shape(retried)[:1] == [{**context("retried"), "event": "retry", "cause": cause,
+                                     "name": "develop-retried"}]
     assert [r["event"] for r in retried].count("retry") == 1
     assert {k: retried[-1][k] for k in ("event", "status", "cause")} == {"event": "exit", "status": "2", "cause": cause}
 
