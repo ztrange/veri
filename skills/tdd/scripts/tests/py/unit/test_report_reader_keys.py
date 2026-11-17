@@ -24,6 +24,7 @@ READERS = {
     "coverage_blocker": ("develop-cover",),
     "exhausted_outcome": ("develop-exhausted", "develop-over-budget"),
     "pin_target": ("develop-red", "develop-red-missing"),
+    "quality_findings": ("develop-test-quality",),
     "red_divergence": ("develop-red", "develop-revise"),
     "red_setup": ("develop-red", "develop-revise"),
     "refactor_owed": ("develop-refactor", "develop-cover"),
