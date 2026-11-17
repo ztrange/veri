@@ -12,5 +12,5 @@
 - [ ] vready SKILL.md `## Run` says to re-run on exit 3 and to summarise a red tier through a haiku subagent ⟦criterion 8⟧
 - [ ] vinstall SKILL.md's readiness brief says it runs as a subagent and starts none ⟦criterion 9⟧
 - [x] a tier whose run died without recording an exit fails its row saying no answer was obtained
-- [ ] both tiers share one wait bound per call, so one call never outlasts detach-command.sh wait's 590 s
+- [x] both tiers share one wait bound per call, so one call never outlasts detach-command.sh wait's 590 s
 - [ ] a tier's wall time ends when its command recorded its exit, not when a later call read it

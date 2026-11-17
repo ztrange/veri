@@ -22,6 +22,7 @@ from case_reader import is_test_path
 from wait_ci import trigger_lines
 
 USAGE = "usage: ready-check.sh [repo-root]"
+WAIT_BOUND = 590  # detach-command.sh wait's own default: one call's whole wait on the tiers, both together
 
 
 def default_tip():
@@ -58,7 +59,7 @@ def detect_tier(tier):
     return resolved_tier(tier)[0]
 
 
-def tier_run_row(tier, command, wt):
+def tier_run_row(tier, command, wt, deadline):
     """Run <command> once in <wt>, a detached worktree of the default branch's tip, through detach-command.sh; a run
     an earlier call started there (its start time recorded in <wt>) is waited on, not started again. None while it
     is still running at wait's bound."""
@@ -71,7 +72,8 @@ def tier_run_row(tier, command, wt):
         with open(started, "w") as began:
             began.write(repr(time.time()))
         subprocess.run([detach, "start", name, *shlex.split(command)], cwd=wt, capture_output=True, text=True)
-    waited = subprocess.run([detach, "wait", name], cwd=wt, capture_output=True, text=True)
+    bound = str(max(0, int(deadline - time.monotonic())))
+    waited = subprocess.run([detach, "wait", name, bound], cwd=wt, capture_output=True, text=True)
     if waited.returncode == 3:
         return None
     with open(started) as began:
@@ -100,12 +102,13 @@ def tier_run_rows(root):
     rows, made, waiting = [], [], None
     tdd = os.path.join(root, ".tdd")
     made_tdd = not os.path.exists(tdd)
+    deadline = time.monotonic() + WAIT_BOUND
     try:
         for tier in ("fast", "all"):
             code, command = resolved_tier(tier)
             if code == 0:
                 made.append(os.path.join(tdd, "ready-" + tier))
-                row = tier_run_row(tier, command, made[-1])
+                row = tier_run_row(tier, command, made[-1], deadline)
                 if row is None:
                     waiting = "ready-" + tier
                     break
