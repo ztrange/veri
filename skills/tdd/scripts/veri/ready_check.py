@@ -301,8 +301,9 @@ def push_access_row():
 
 
 def listed_label_row(label):
-    """The row for <label>: ok when `gh label list` names it; a failing call fails it like a missing label."""
-    listed = gh("label", "list", "--json", "name")
+    """The row for <label>: ok when `gh label list` names it; a failing call fails it like a missing label. The limit
+    lifts gh's default of 30, past which a label that exists would read missing."""
+    listed = gh("label", "list", "--limit", "1000", "--json", "name")
     try:
         names = [entry["name"] for entry in json.loads(listed.stdout)] if listed.returncode == 0 else []
     except (ValueError, KeyError, TypeError):
