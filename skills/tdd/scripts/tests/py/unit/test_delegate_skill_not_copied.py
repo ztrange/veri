@@ -6,7 +6,7 @@ import pytest
 import conftest
 from veri.git import git
 
-REPO = Path(__file__).resolve().parents[5]
+REPO = Path(__file__).resolve().parents[6]
 
 
 @pytest.mark.process("git ls-files over the repository")
