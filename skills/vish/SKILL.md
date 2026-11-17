@@ -15,9 +15,18 @@ description: >-
 
 # vish — TDD discipline, nothing around it
 
-Obeys `operator/PRINCIPLES.md` under the veri clone root (`git -C <base dir> rev-parse --show-toplevel`); read it first.
+Obeys `operator/PRINCIPLES.md` under the veri clone root (`git -C <resolved base dir> rev-parse --show-toplevel`); read it first.
 
-`$S` is `skills/tdd/scripts/`, reached from this skill's base directory as `../tdd/scripts/`.
+Installed user-level, this skill's base directory is a symlink, and `<base dir>/../` does not
+reach veri through it. Resolve it first, `cd -P <base dir> && pwd`, and use that resolved
+directory, `<resolved base dir>`, everywhere below, never the path the harness reports. `$S` is
+`skills/tdd/scripts/`, reached as `<resolved base dir>/../tdd/scripts/`.
+
+**Run veri's scripts from the project worktree**: they read the repository from the current
+directory.
+
+**You run in the user's own session, so your questions go straight to the user, never through
+`vjudge`** (P22's exception).
 
 **The rigour lives in the order of operations and in what each phase is allowed to touch, not in
 machinery.** There is no blind verifier and no bail/revise loop.
@@ -56,7 +65,7 @@ what fills a TDD session's context; none of it belongs in the main thread.
 The cycle agent's brief is self-contained, since the agent knows only what it is given. It carries,
 pasted: the repo and worktree path, the step's criterion verbatim, the narrow and full test
 commands, the ledger path and line if any, the commit-subject convention, and *The cycle* of this
-file by path (`<base dir>/SKILL.md`, `## The cycle`) as its rules. Its return, at most 20 lines:
+file by path (`<resolved base dir>/SKILL.md`, `## The cycle`) as its rules. Its return, at most 20 lines:
 
 ```
 step: <criterion>
@@ -76,15 +85,19 @@ as a decision — the agent does not drop, split or re-phrase a step on its own.
 1. **Name the test commands out loud, and say where they came from.** Read them with
    `$S/detect-test-command.sh --tier fast`, `--tier all` and `--tier "one test file"`: the root
    `CLAUDE.md` lines `veri: fast tests:`, `veri: all tests:` and `veri: one test file:`, then
-   inference from the repo's files. **An exit 3 → ask**, never guess. A guessed command that runs
-   a subset looks exactly like a green suite.
+   inference from the repo's files. **An exit 3 for the fast or all tier → ask**, never guess. A
+   guessed command that runs a subset looks exactly like a green suite. An exit 3 for the
+   one-file tier means the repo states no `veri: one test file:` line: the narrow command is then
+   derived from the runner, as *Red* says.
 2. **Claim the issue, when the request names one**, with `$S/unlabel-issue.sh <n>` — when that
    issue's baseline (item 3) starts, never ahead. It swaps the opt-in label (`$VERI_LABEL`, default
    `ready-for-agent`) for `taken:<lane>`, so veri's `solvable-issues.sh` stops listing it.
    - **Exit 2 naming the missing opt-in label → no claim**: say so and carry on; the issue is not
      this skill's to take.
-   - **Exit 2 naming a `taken:` label → stop and ask**: an issue already taken by another lane is
-     someone else's run.
+   - **Exit 2 naming another lane's `taken:` label → stop and ask**: an issue already taken by
+     another lane is someone else's run.
+   - **Exit 2 naming this lane's own `taken:<lane>`, with the ledger `.tdd/issue-<n>.md` present →
+     a resumed hand run**: that refusal is the expected answer; carry on without claiming again.
    - **On a claim, it also posts or updates the issue's `### 📍 Run state` comment**, whose
      `Resume:` line names `$S/run-conductor.sh <n>`. Say so when you report the claim, and that no
      conductor is running: the issue is in development by hand.
@@ -105,7 +118,7 @@ as a decision — the agent does not drop, split or re-phrase a step on its own.
 Write the steps where the user can see them — the task list, or the draft PR body.
 
 **When the request names issue `<n>`, the plan is also a ledger**, `.tdd/issue-<n>.md`, in the
-format `skills/tdd/SKILL.md` *2. Scope & plan → the ledger* defines (`<base dir>/../tdd/SKILL.md`),
+format `skills/tdd/SKILL.md` *2. Scope & plan → the ledger* defines (`<resolved base dir>/../tdd/SKILL.md`),
 so a veri run could resume the same branch:
 
 ```
