@@ -267,6 +267,15 @@ def handed_back(n, wt, ledger):
     checked(3, script("tests-frozen.sh"), "rerecord-rebased", ledger, pre, cwd=wt, ok=(0, 3))
 
 
+def leased_push(wt, pre):
+    """Publish a resume rebase that moved the branch, once the fast tier is green: the lease pinned to the pre-rebase
+    sha, never a bare force, and only from a clean tree (RP5, RP10)."""
+    if checked(3, "git", "status", "--porcelain", cwd=wt).strip():
+        raise Stop(3, "tree-check", 1)
+    branch = checked(3, "git", "rev-parse", "--abbrev-ref", "HEAD", cwd=wt).strip()
+    checked(3, script("push-branch.sh"), "--force-with-lease=%s:%s" % (branch, pre), cwd=wt)
+
+
 def set_up(n, slug, detect):
     """The run's worktree, made ready for its baseline suite: (worktree, fast tier command, issue body file)."""
     wt = checked(3, script("issue-worktree.sh"), n, slug).strip()
@@ -302,6 +311,8 @@ def start_full(n, wt, fast, body_file, fast_began, code, detect, env):
     if code != 0:
         return stopped(3, "detach-command.sh wait", code)
     baseline = math.ceil(time.monotonic() - fast_began)
+    if CARRIED.get("rebased_from"):
+        leased_push(wt, CARRIED["rebased_from"])
     if body_file is None:
         body_file = issue_body(n, wt)
     full = checked(3, detect, "--tier", "all", "--issue", body_file, wt, cwd=wt).strip()

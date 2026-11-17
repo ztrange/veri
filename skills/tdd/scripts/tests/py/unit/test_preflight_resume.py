@@ -13,12 +13,14 @@ class Fake:
     """A run_script stand-in: records every call as (script basename, args, cwd, env) and answers from <answers>,
     keyed by (basename, first argument or None) -> (code, stdout)."""
 
-    def __init__(self, wt, answers=None):
-        self.wt, self.answers, self.calls = wt, dict(answers or {}), []
+    def __init__(self, wt, answers=None, dirty=""):
+        self.wt, self.answers, self.calls, self.dirty = wt, dict(answers or {}), [], dirty
 
     def __call__(self, name, *args, cwd=None, env=None):
         base = os.path.basename(name)
         self.calls.append((base, args, cwd, env))
+        if base == "git" and args == ("status", "--porcelain") and cwd == str(self.wt):
+            return 0, self.dirty, ""
         for (script, first), (code, out) in self.answers.items():
             if base == script and (first is None or args[:1] == (first,)):
                 return code, out, ""
@@ -55,12 +57,12 @@ def drive(monkeypatch, run_cli, tmp_path):
     wt = tmp_path / ".tdd" / "wt" / "12"
     (wt / ".tdd").mkdir(parents=True)
 
-    def go(ledger=False, handed_back=False, answers=None, fake=None):
+    def go(ledger=False, handed_back=False, answers=None, fake=None, dirty=""):
         if ledger:
             (wt / ".tdd" / "issue-12.md").write_text("- [ ] a step\n")
         if handed_back:
             (wt / ".tdd" / "handed-back").write_text("")
-        fake = fake or Fake(wt, answers)
+        fake = fake or Fake(wt, answers, dirty)
         monkeypatch.setattr(preflight, "run_script", fake)
         code, out, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
         return code, out, fake
@@ -141,6 +143,49 @@ def test_4023_rerecord_rebased_exit_3_goes_on_and_any_other_failure_stops(drive,
     code, out, fake = drive(ledger=True, handed_back=True, answers={("tests-frozen.sh", None): (rerecord, "")})
 
     assert (code, fake.names()[-1] == "tests-frozen.sh") == ((1, True) if stops else (0, False))
+
+
+LEASE = "--force-with-lease=tdd/12-my-slug:" + PRE
+
+
+def test_4023_a_moved_branch_is_pushed_with_the_pinned_lease_after_the_green_fast_tier_and_before_the_full_tier(drive):
+    code, out, fake = drive(ledger=True, handed_back=True)
+
+    seq = [(c[0], c[1][:2]) for c in fake.calls]
+    fast_wait = seq.index(("detach-command.sh", ("wait", "preflight-fast-12")))
+    full_detect = seq.index(("detect-test-command.sh", ("--tier", "all")))
+    assert code == 0
+    assert seq[fast_wait + 1:full_detect] == [("git", ("status", "--porcelain")),
+                                              ("git", ("rev-parse", "--abbrev-ref")), ("push-branch.sh", (LEASE,))]
+
+
+@pytest.mark.parametrize("rebase", [1, 3])
+def test_4023_a_branch_the_rebase_did_not_move_is_not_pushed(drive, rebase):
+    code, out, fake = drive(ledger=True, handed_back=True, answers={("rebase-onto-default.sh", None): (rebase, "")})
+
+    assert (code, "push-branch.sh" in fake.names()) == (0, False)
+
+
+def test_4023_a_dirty_tree_before_the_leased_push_stops_at_3_tree_check_with_exit_1_and_no_push(drive):
+    code, out, fake = drive(ledger=True, handed_back=True, dirty="?? stray.txt\n")
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 3 tree-check")
+    assert "push-branch.sh" not in fake.names()
+    assert fake.calls[-1][:2] == ("git", ("status", "--porcelain"))
+
+
+@pytest.mark.parametrize("push", [1, 2])
+def test_4023_a_failed_leased_push_stops_with_its_code_before_the_full_tier(drive, push):
+    code, out, fake = drive(ledger=True, handed_back=True, answers={("push-branch.sh", None): (push, "")})
+
+    assert (code, out.splitlines()[-1], fake.names()[-1]) == (push, "stopped at 3 push-branch.sh " + LEASE,
+                                                             "push-branch.sh")
+
+
+def test_4023_a_red_fast_tier_on_a_moved_branch_pushes_nothing(drive):
+    code, out, fake = drive(ledger=True, handed_back=True, answers={("detach-command.sh", "wait"): (1, "")})
+
+    assert (code, "push-branch.sh" in fake.names()) == (1, False)
 
 
 def test_4023_a_worktree_not_handed_back_runs_none_of_the_handed_back_calls(drive):
