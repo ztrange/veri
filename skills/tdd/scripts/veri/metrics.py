@@ -12,7 +12,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
              pinned, model_knobs, models
   tables     phases, leaves, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
              adjudications, switched_off, switched_off_by, total, green_rejects (+ green_reject_routes, green_reject_checks),
-             launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green, runs
+             launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green, runs, stages
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
@@ -655,6 +655,7 @@ class Fold:
                                 # verdict of the same step after each
     runs: list                  # one dict per run of the issue, in order: index, ended, cause, wall_seconds,
                                 # awake_seconds, sessions, leaves, cost_usd (runs_of)
+    stages: dict                # stage -> {STAGE_KEYS: number}, for each stage the journal marked (stages_of)
 
 
 def is_revise_green(name):
@@ -716,6 +717,35 @@ def runs_of(marks):
                        "awake_seconds": span(first.get("awake"), ending.get("awake")),
                        "sessions": run["sessions"], "leaves": run["leaves"], "cost_usd": run["cost_usd"]})
     return shaped
+
+
+STAGE_ENDS = {"0": "ok", "1": "failed", "2": "no_answer", "3": "nothing"}
+STAGE_KEYS = ("runs", "ok", "failed", "no_answer", "nothing", "unended", "wall_seconds")
+
+
+def stages_of(marks):
+    """Per stage a journal marked (PRD 035.5a, D13): its `stage-start` lines (`runs`), its `stage-end` lines by exit code
+    (`ok`, `failed`, `no_answer`, `nothing` for 0 to 3), its starts with no end of that stage before its next start
+    or the journal's end (`unended`: killed), and its ends' seconds summed. A stage no line names is absent, never
+    zero; a line naming no stage is skipped."""
+    stages, open_starts = {}, {}
+    for line in marks:
+        event, name = line.get("event"), line.get("stage")
+        if event not in ("stage-start", "stage-end") or not isinstance(name, str) or not name:
+            continue
+        counts = stages.setdefault(name, dict.fromkeys(STAGE_KEYS, 0))
+        if event == "stage-start":
+            counts["runs"] += 1
+            counts["unended"] += open_starts.get(name, False)
+            open_starts[name] = True
+            continue
+        open_starts[name] = False
+        if line.get("status") in STAGE_ENDS:
+            counts[STAGE_ENDS[line["status"]]] += 1
+        counts["wall_seconds"] += whole(line.get("secs")) or 0
+    for name, unended in open_starts.items():
+        stages[name]["unended"] += unended
+    return stages
 
 
 BESIDE = "the run whose .tdd/ holds the journal"
@@ -813,7 +843,7 @@ def fold(issue, path, ledger, run=BESIDE):
                 green_reject_checks=sorted(item for item in checks.items() if item[0]) + [("unnamed", checks[""])],
                 launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing,
                 gradings=tally.gradings, first_tries=tally.first_tries(), revise_green=revise_green_outcomes(marks, models),
-                runs=runs_of(marks))
+                runs=runs_of(marks), stages=stages_of(marks))
 
 
 def known(number):
@@ -1130,6 +1160,7 @@ def as_json(f):
     return {"run": {"issue": f.issue, "outcome": outcome(f), "wall_seconds": whole(done.get("wall_seconds")),
                     "awake_seconds": whole(done.get("awake_seconds")), "bails": f.bails},
             "runs": f.runs,
+            "stages": f.stages,
             "phases": {phase: dict(json_row(row_counts, PHASE_COLUMNS),
                                    **f.first_tries.get(phase, dict.fromkeys(FIRST_TRY_KEYS, 0)))
                        for phase, row_counts in f.phases.items()},
