@@ -551,7 +551,7 @@ of at scoping time.
      -f body="<!-- veri:run-body -->
 Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.md is the source of truth.
 <!-- /veri:run-body -->" \
-     -q .html_url; rc=$?                  # → <pr-url>; <pr-number> is its last path segment
+     -q .html_url; rc=$?  # → <pr-url>; <pr-number> is its last path segment
    VERI_ISSUE=<n> $S/event.sh stage-end stage=draft-pr status=$rc secs=$(($(date +%s)-t))
    ```
    `<base>` is what `$S/stack-branch.sh` prints (exit 0), else the default branch (exit 3); where a
@@ -1284,7 +1284,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      `repin-failed`, a process failure naming the pin (`Read` `<base directory>/BAIL.md`). Exit 2, no answer (a base that cannot be resolved or replayed included, and the other cases the `pin-recheck.sh` header lists), **bails** as a system failure (`Read` `<base directory>/BAIL.md`).
      Exit 0 prints any pin that needs a look: copy each into the PR body's list of what a human
      owes, under `## Owed by a human`. Exit 3, no record touches the range or every selected pin is retired (a pin whose named `TESTS=` test file the range deletes, a before record included, or a mutation pin whose mutated file the range deletes, prints `retired: <record file> <mutated file> <path>` on stdout and is not a REJECT; a before record is never retired for a replay file gone before the range: the replay skips that file and the pin still runs), goes on. Exits 0 and 3 leave
-     the `.tdd/pin-recheck-ok` receipt, and `clear-refactor-pending.sh` refuses (exit 2) without it.
+     the `.tdd/pin-recheck-ok` receipt, and `clear-refactor-pending.sh` and the tick refuse (exit 2) without it.
      **Only after that PASS, and before the step's ledger commit**, re-record the frozen cases
      the refactor changed, an earlier step's included, with
      `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>`: a case is
