@@ -78,6 +78,10 @@ rest are not linked: the operator skills read them by path when they need them, 
 earlier install left to `vready`, `vreport`, `vstatus` or `vstop` is removed, reported as
 `removed <name>`. To type one of the rest yourself, link it by hand.
 
+`/vready`, the readiness check `/vinstall` runs after an install that changed a link, makes one
+paid Haiku call, about $0.004, to prove a leaf may bypass permission prompts: a `claude -p`
+started the way a leaf is must write two files with Bash and Write under `bypassPermissions`.
+
 The skill locates its own scripts from the base directory Claude Code reports when it
 loads, so nothing is copied into a target repo. On the first run against a repo the
 conductor's preflight writes the `.tdd` ignore rule into that repo's `.gitignore`
