@@ -53,9 +53,14 @@
        `next-phase` then exits 3, so the step reads as done.
      - 1 with a `survived` row: revise it as a REJECT, the script's output as the reason,
        spending `REVISE_BUDGET`.
-     - 1 ending `short <k> of <N>`: relaunch `develop-surround` once to add rows, spending no
-       `REVISE_BUDGET`, then verify-surround and this run again; a second `short` **bails with
-       cause `surround-short`**, a process failure (`Read` `<base directory>/BAIL.md`).
+     - 1 ending `short <k> of <N>`: run
+       `$S/tick-ledger.sh --surround-short .tdd/issue-<n>.md "<STEP>"`, which records the step's one
+       free relaunch on its ledger line. On exit 0 commit the ledger, then relaunch
+       `develop-surround` once to add rows, spending no `REVISE_BUDGET`, then verify-surround and
+       this run again. On exit 1 the relaunch was already spent, by this run or by the run a resume
+       carries on: **bail with cause `surround-short`**, a process failure (`Read`
+       `<base directory>/BAIL.md`); on exit 2, **bail** as a system failure (`no-verdict`)
+       (`Read` `<base directory>/BAIL.md`).
      - 2: **bail** as a system failure (`no-verdict`) (`Read` `<base directory>/BAIL.md`).
    - REJECT: revise under `REVISE_BUDGET` like any other reject, `surround` being the phase
      revised (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
