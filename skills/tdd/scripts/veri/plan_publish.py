@@ -175,7 +175,7 @@ def commit_plan(n, wt, ledger):
     with open(os.path.join(wt, ledger)) as f:
         steps = fused.checked("2.2", fused.script("ledger-steps.sh"), cwd=wt, stdin=f.read())
     k = len([line for line in steps.splitlines() if line.strip()])
-    listed = fused.checked("2.2", "git", "status", "--porcelain", cwd=wt).splitlines()
+    listed = fused.checked("2.2", "git", "status", "--porcelain", "--untracked-files=all", cwd=wt).splitlines()
     if [line for line in listed if line[3:] != ledger]:
         raise fused.Stop("2.2", "tree-check", 1)
     fused.checked("2.2", "git", "add", ledger, cwd=wt)

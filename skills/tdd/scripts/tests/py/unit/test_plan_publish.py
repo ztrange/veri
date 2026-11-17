@@ -26,7 +26,7 @@ class Fake:
                 return code, out, ""
         if base == "ledger-steps.sh":
             return 0, "1\topen\tstep\t0\t0\t1\tone\n2\topen\tstep\t0\t0\t2\ttwo\n", ""
-        if base == "git" and args == ("status", "--porcelain"):
+        if base == "git" and args == ("status", "--porcelain", "--untracked-files=all"):
             return 0, self.porcelain, ""
         if base == "git" and args == ("rev-parse", "HEAD"):
             return 0, PLAN_SHA + "\n", ""
@@ -198,7 +198,7 @@ def test_4025_a_tree_listing_anything_but_the_ledger_before_the_plan_commit_stop
     code, out, err, fake = publish(fake=Fake(porcelain=porcelain))
 
     assert (code, out.splitlines()[-1]) == (1, "stopped at 2.2 tree-check")
-    assert fake.calls[-1][:2] == ("git", ("status", "--porcelain"))
+    assert fake.calls[-1][:2] == ("git", ("status", "--porcelain", "--untracked-files=all"))
 
 
 LAUNCH_TAIL = ("supervise.sh", "verdict-plan", "run-verdict.sh", "plan", ".tdd/issue-12-spec.md", ".tdd/issue-12.md")
