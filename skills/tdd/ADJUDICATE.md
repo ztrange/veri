@@ -37,6 +37,8 @@ Run it in order, at the site where the eligible exit 2 came back.
    > .tdd/adjudicate-<cause>.prompt`. Each site names its `<stderr-file>` and `<command…>`; at every
    `report-missing` site they are `.tdd/suite-reported.err` and `suite-reported.sh <leaf>`, `<leaf>`
    the leaf whose report was checked (`develop-green` in `SKILL.md`).
+   At every `step-add-refused` site they are `.tdd/add-ledger-step.err` and the `add-ledger-step.sh`
+   call that exited 2.
 3. **Launch the leaf** `adjudicate-<cause>` through `supervise.sh`, detached, then wait in the
    foreground (on an exit 3 call the wait again). Remove the cause's completion and pid files
    first, as *Launching a leaf* in `SKILL.md` does, so a second adjudication of one cause never

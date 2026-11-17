@@ -53,7 +53,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   the retired `VERI_STEP_GROWTH` was set (any value: the old absolute count no longer bounds
   growth), no plan commit could be read, or
   `--criterion` was malformed (the conductor passed a call the script refused, not a
-  methodology answer).
+  methodology answer). The bail can follow an adjudication (`Read`
+  `<base directory>/ADJUDICATE.md`): it keeps this cause and class.
 - `prep-owed` — `add-ledger-step.sh` refused with exit **1** the step a `prep` answer asks
   for (the insertion would exceed `VERI_STEP_GROWTH_PERCENT` of the plan's steps) → **process** failure (the methodology
   spoke: the prep step is owed and the plan has no room for it, and the plumbing did not
