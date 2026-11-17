@@ -254,6 +254,43 @@ def _waiting_on_full(wt):
     return FullWaits(wt, STRAY)
 
 
+def _pid_file(drive, text):
+    (drive.wt / ".tdd" / "conductor.pid").write_text(text)
+
+
+def test_4023_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(drive):
+    _pid_file(drive, "111\nTue Nov 17 07:00:00 2026\n")
+    code, _, _ = drive(ledger=True, answers={("detach-command.sh", "wait"): (3, "")})
+
+    record = json.loads((drive.wt / ".tdd" / "issue-12-preflight-wait").read_text())
+    assert (code, record["conductor"]) == (3, {"pid": "111", "started": "Tue Nov 17 07:00:00 2026"})
+
+
+@pytest.mark.parametrize("second", ["222\nTue Nov 17 07:00:00 2026\n", "111\nTue Nov 17 08:00:00 2026\n", ""],
+                         ids=["another pid", "another start time", "no pid file"])
+def test_4023_called_under_another_conductor_it_discards_the_wait_record_and_starts_from_its_first_call(drive, second):
+    _pid_file(drive, "111\nTue Nov 17 07:00:00 2026\n")
+    drive(ledger=True, answers={("detach-command.sh", "wait"): (3, "")})
+    if second:
+        _pid_file(drive, second)
+    else:
+        (drive.wt / ".tdd" / "conductor.pid").unlink()
+    code, out, fake = drive()
+
+    assert code == 0
+    assert fake.calls[0][:2] == ("git", ("rev-parse", "--is-inside-work-tree"))
+    assert [c[1][1] for c in fake.calls if c[0] == "detach-command.sh" and c[1][0] == "start"] == [
+        "preflight-fast-12", "preflight-full-12"]
+
+
+def test_4023_called_again_under_the_same_conductor_it_continues_from_the_wait(drive):
+    _pid_file(drive, "111\nTue Nov 17 07:00:00 2026\n")
+    drive(ledger=True, answers={("detach-command.sh", "wait"): (3, "")})
+    code, out, fake = drive()
+
+    assert (code, fake.calls[0][:2]) == (0, ("detach-command.sh", ("wait", "preflight-fast-12")))
+
+
 def test_4023_a_worktree_not_handed_back_runs_none_of_the_handed_back_calls(drive):
     code, out, fake = drive(ledger=True)
 

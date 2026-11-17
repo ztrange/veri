@@ -89,20 +89,35 @@ def pending_in(wt, n):
     return run_dir.issue_file(wt, n, "-preflight-wait")
 
 
+def conductor(wt):
+    """The conductor this call runs under, as `.tdd/conductor.pid` names it: {"pid", "started"}; None without one."""
+    try:
+        with open(run_dir.run_file(wt, "conductor.pid")) as f:
+            lines = f.read().split("\n")
+    except OSError:
+        return None
+    return {"pid": lines[0].strip(), "started": (lines[1:] or [""])[0].strip()}
+
+
 def save_pending(wt, n, *fields):
-    """Record the wait preflight exits 3 on: its <fields>, and what step 3 settled before it (CARRIED), so a second call
-    neither repeats nor loses it (RP8)."""
+    """Record the wait preflight exits 3 on: its <fields>, the conductor it ran under (FC7), and what step 3 settled
+    before it (CARRIED), so a second call neither repeats nor loses it (RP8)."""
     with open(pending_in(wt, n), "w") as f:
-        json.dump({"fields": list(fields), "carried": CARRIED}, f)
+        json.dump({"conductor": conductor(wt), "fields": list(fields), "carried": CARRIED}, f)
 
 
 def load_pending(wt, n):
-    """The fields of the wait a first call recorded, CARRIED restored from it; None when there is no usable record."""
+    """The fields of the wait a first call recorded, CARRIED restored from it; None when there is no usable record. A
+    record another conductor wrote is removed: its wait would hand back a dead run's code (FC7)."""
     try:
         with open(pending_in(wt, n)) as f:
             record = json.load(f)
         fields, carried = record["fields"], record["carried"]
-    except (OSError, ValueError, KeyError, TypeError):
+        theirs = record.get("conductor")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+    if theirs != conductor(wt):
+        os.remove(pending_in(wt, n))
         return None
     CARRIED.update(carried)
     return fields
