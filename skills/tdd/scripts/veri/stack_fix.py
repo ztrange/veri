@@ -12,6 +12,7 @@ import git
 import github
 import paths
 import stack_branch
+import stack_green
 
 USAGE = "usage: stack-fix.sh <n> <red-sha> <culprit-file>"
 SCRIPTS = paths.resolved_scripts_of(__file__)
@@ -162,8 +163,12 @@ def _checked(n, red):
         found = stack_branch.ahead(".")
     except stack_branch.Refused as refused:
         raise NoAnswer(str(refused)) from None
-    stack = found[0]
+    stack, default, _ = found
     onto = _rev("refs/remotes/origin/" + stack)
+    for commit, subject, trailers in _log("refs/remotes/origin/%s..refs/remotes/origin/%s" % (default, stack)):
+        if trailers and n in stack_green.named(subject):
+            raise Refused("%s (%s) on origin/%s already carries a %s: trailer for issue %s: one fix per culprit;"
+                          " nothing pushed" % (commit, subject, stack, TRAILER, n))
     head = _rev("HEAD")
     return stack, onto, head
 
