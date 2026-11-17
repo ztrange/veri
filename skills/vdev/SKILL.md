@@ -196,7 +196,10 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   **Rate limits.** A GitHub call refused with `rate limit exceeded` while `gh api rate_limit`
   still reports quota has hit GitHub's secondary limit: use REST rather than wait for the
   reset.
-- **Last comment is a bail.** Hand it to `vbail <n>`. An issue is parked only through
+- **Last comment is a bail.** A bail whose last `bail` event in `.tdd/wt/<n>/.tdd/events.jsonl` has
+  cause `step-too-big` is first passed to `vjudge`, run as *Running the sibling skills* says, with
+  the ledger's `## Owed steps` and the issue's acceptance criteria, before `vbail`: the run stopped
+  at the growth limit, and the judge rules on what the issue needs. Hand it to `vbail <n>`. An issue is parked only through
   `$S/park-issue.sh <n> <cause> <unblock> [<pr>] [--blocked-by <n>[,<n>…]]`: it labels the issue
   `parked` and posts the cause and what would unblock it. Pass the number of every issue or PR
   that must land first as `--blocked-by`, so the parked issue waits on each. Budget raises come only from the coordinator or the human.
