@@ -1,5 +1,5 @@
 #!/bin/sh
-# preflight.sh — run PREFLIGHT.md's steps for a fresh run: a shim over veri/preflight.py.
+# preflight.sh — run PREFLIGHT.md's steps for a fresh run or a resume: a shim over veri/preflight.py.
 #
 # Usage:   preflight.sh <n> <slug>
 # Exit:    2 bad arguments
