@@ -232,13 +232,22 @@ def untracked(*args):
     return output("ls-files", "--others", "--exclude-standard", *args)
 
 
+def is_test_file(path):
+    """Whether the file at <path> is itself a Python, Go or JavaScript test file by its name, not a helper, fixture or
+    snapshot that only sits among the tests."""
+    root, name = os.path.split(path)
+    return (case_reader.is_test_file(name) or case_reader.is_go_test_file(name)
+            or bool(case_reader.is_js_test_file(name, root)))
+
+
 def foreign(files):
     """The selection outside veri's own tree (no `skills/tdd/scripts/tests/py` directory): exit code, suites printed."""
     files = [f for f in files if not f.startswith(".tdd/")]
     placed = [f for f in files if case_reader.is_test_path(f) and os.path.isfile(f)]
     sources = [f for f in files if not case_reader.is_test_path(f)]
     if sources:
-        tests = [p for p in stem_walk.tree_files() if case_reader.is_test_path(p)]
+        listed = [p for p in stem_walk.tree_files() if case_reader.is_test_path(p)]
+        tests = [p for p in listed if is_test_file(p)] or listed
         unnamed = []
         for f in sources:
             naming = stem_walk.naming(stem_walk.stem(f), tests)

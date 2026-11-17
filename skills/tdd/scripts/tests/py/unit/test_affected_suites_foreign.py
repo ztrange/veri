@@ -73,6 +73,33 @@ def test_a_range_changing_only_run_state_under_tdd_exits_3_even_when_a_test_name
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (3, "", "")
 
 
+def test_the_walk_and_the_widening_print_only_files_that_are_themselves_test_files_never_helpers_data_or_snapshots(
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    named = "foo = 1\n"
+    tree = {"src/foo.py": "", "src/bar.py": "", "tests/test_uses.py": named, "tests/conftest.py": named,
+            "tests/fixtures/d.json": '{"foo": 1}\n', "web/__snapshots__/x.test.js.snap": "exports[`foo`] = 1\n",
+            "web/x.test.js": named, "pkg/foo_test.go": named}
+    write(tmp_path, tree)
+    monkeypatch.chdir(tmp_path)
+    foreign_git(fake_processes, ["src/foo.py"], list(tree))
+    walked = (affected.main(["base..head"]),) + tuple(capsys.readouterr())
+    foreign_git(fake_processes, ["src/bar.py"], list(tree))
+    widened = (affected.main(["base..head"]),) + tuple(capsys.readouterr())
+    tests = "pkg/foo_test.go\ntests/test_uses.py\nweb/x.test.js\n"
+    assert (walked, widened) == (
+        (0, tests, ""),
+        (0, tests, "affected-suites: no test names src/bar.py; widening to every test file\n"))
+
+
+def test_a_repo_whose_tests_no_file_name_rule_knows_falls_back_to_every_path_under_its_tests_rather_than_to_none(
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    tree = {"lib/foo.rb": "", "tests/foo_spec.rb": "require 'foo'\n", "tests/bar_spec.rb": ""}
+    write(tmp_path, tree)
+    monkeypatch.chdir(tmp_path)
+    foreign_git(fake_processes, ["lib/foo.rb"], list(tree))
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (0, "tests/foo_spec.rb\n", "")
+
+
 def test_a_changed_source_file_no_test_names_widens_to_every_test_file_and_with_none_exits_3_saying_so(
         tmp_path, monkeypatch, capsys, affected, fake_processes):
     write(tmp_path, {"src/foo.py": "", "src/bar.py": "", "src/baz.py": "", "tests/test_baz.py": "import baz\n",
