@@ -821,7 +821,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    `rm -f .tdd/develop-replaces-report.exit .tdd/develop-replaces-report.pid`, then
    `VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-replaces-report $S/run-leaf.sh .tdd/develop-replaces-report.prompt --permission-mode bypassPermissions > .tdd/develop-replaces-report.out 2> .tdd/develop-replaces-report.err`
    and `$S/wait-leaf.sh develop-replaces-report` in the foreground (on exit 3 call it again).
-   Then run `$S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"` like after every other leaf. If that wait exits 1 or 2 (a killed-stuck correction leaf included), **bail with cause=replaces-report-failed** and launch no verify-red (`Read` `<base directory>/BAIL.md`).
+   Then run `$S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"` like after every other leaf. If that wait exits 1 or 2 (a killed-stuck correction leaf included), launch no verify-red and **bail with cause=replaces-report-failed** (`Read` `<base directory>/BAIL.md`); exit 1 is never adjudicated, but on exit 2 with `$S/adjudicate.sh left <n>` exit 0 first launch `adjudicate-replaces-report-failed` through `supervise.sh`, `.tdd/develop-replaces-report.err` its stderr file (`Read` `<base directory>/ADJUDICATE.md`), then bail whatever the answer (`retry` too), never relaunching the leaf.
 
    **Before each verify-red launch** (and before each verify-green, below), also check every earlier step's frozen record:
    `$S/tests-frozen.sh check-earlier .tdd/issue-<n>.md --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" [--except <case>]…`,
@@ -852,8 +852,6 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    With `--step "<step text>"` in place of a record file, the record file is the one `$S/tests-frozen.sh path "<step text>"`
    prints, `.tdd/tests-frozen-<k>.record` with `<k>` the first 16 hex digits of the step text's SHA-256: a step text is
    often longer than a filename may be and may hold a `/`, so the text itself is never the filename.
-   That is the verifier shape from *Launching a leaf*: the wait returns the **verdict** —
-   0 PASS, 1 REJECT, 2 malformed or killed-stuck — not the supervisor's status.
    On **`PASSES`** the criterion is **already satisfied** — never send that test to
    verify-red, whose verdict on a passing test can only be `REJECT`. Run the pin check
    instead and continue at the pin (when a Red reports `AGAINST_UNMODIFIED: PASSES`, `Read` `<base directory>/PIN.md`):
@@ -868,7 +866,6 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    `test: pin` tick-and-commit.
    A step marked `⟦suite-repair⟧` or `⟦ci-repair⟧` is never frozen: for it `record --step` writes nothing and
    `check --step` exits 0, because its fix is often an edit to the very test file the full run or CI left red.
-   A `⟦ci-repair⟧` step therefore records nothing before its green, and its green may edit the test the CI job failed.
    A step whose trailing marker is `⟦fixture-repair⟧` is frozen like any other, except for the one fixture file its
    text names (`repairs the fixture '<name>' in <path>,`): `check --step` exits 1 naming any other changed test file.
    Either way, note the **wait's exit code** — the verdict — and read the reason back out of

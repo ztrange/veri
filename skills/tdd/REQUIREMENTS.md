@@ -344,6 +344,8 @@
 | CY175 | A `suite-reported.sh develop-green` exit 2 keeps its stderr in `.tdd/suite-reported.err` and, with `adjudicate.sh left <n>` exit 0, launches `adjudicate-report-missing` through `supervise.sh` before any `bail` event and before verify-green (`Read` `<base directory>/ADJUDICATE.md`); every outcome, `retry` included, then bails `report-missing` with no verifier, no second `suite-reported.sh` call and no relaunch. (§3 *Green*, sub-step 1.) | The cause's site in the procedure names the rule in one line, and RETRY reruns nothing here. |
 | CY176 | A green that stops because the test looks wrong stays unadjudicated: it keeps its verify-green REJECT. (§3 *Green*, sub-step 1.) | It is not an exit-2 bail today. |
 | CY177 | At §3 *The step's cost check* (the over-budget split), §3 *Green* sub-step 1 (the leaf's split) and §3 *Refactor loop* sub-step 6 (the `--criterion` growth), an `add-ledger-step.sh` exit 2 keeps its stderr in `.tdd/add-ledger-step.err` and, with `adjudicate.sh left <n>` exit 0, launches `adjudicate-step-add-refused` through `supervise.sh` before any `bail` event (`Read` `<base directory>/ADJUDICATE.md`); every outcome, `retry` included, then bails `step-add-refused` and `add-ledger-step.sh` is not called again. (Each of the three sites, at its `add-ledger-step.sh` exit 2.) | Each site names the rule in one line, and RETRY reruns nothing here. |
+| CY178 | A `wait-leaf.sh develop-replaces-report` exit 2, with `adjudicate.sh left <n>` exit 0, launches `adjudicate-replaces-report-failed` through `supervise.sh` with `.tdd/develop-replaces-report.err` as the stderr file, before any `bail` event and before verify-red (`Read` `<base directory>/ADJUDICATE.md`); every outcome, `retry` included, then bails `replaces-report-failed`, `develop-replaces-report` is not relaunched and no verify-red is launched. (§3 *Red*, sub-step 2.) | The cause's site names the rule in one line, and RETRY reruns nothing here. |
+| CY179 | That wait's exit 1 is never adjudicated: it bails `replaces-report-failed` as before. (§3 *Red*, sub-step 2.) | Only an exit 2 is eligible. |
 | PL72 | *1. Read the issue, enter the issue's worktree, capture the spec (or resume)* says a resumed run reads `$S/park-decision.sh <n>` before its first leaf and applies a decision that changes the plan as a `plan: rewrite #<n>` commit. | The decision lives on GitHub, whoever made it; a ledger change outside a plan commit is an off-route bail. |
 
 ## skills/tdd/DIFF-CHECKED.md
@@ -684,6 +686,7 @@
 | BL53 | The `pr-ready-failed` bullet says the bail can follow an adjudication (`Read` `<base directory>/ADJUDICATE.md`) and keeps its cause and class. (Cause list, `pr-ready-failed` bullet.) | The bail list stays true. |
 | BL54 | The cause list has a `report-missing` bullet: a phase leaf's report carried no `SUITE:` line (`suite-reported.sh` exited 2) → **system** failure; the bail can follow an adjudication (`Read` `<base directory>/ADJUDICATE.md`) and keeps its cause and class. (Cause list, `report-missing` bullet.) | `classify-bail.sh` knows the cause; the bail list does not. |
 | BL55 | The `step-add-refused` bullet says the bail can follow an adjudication (`Read` `<base directory>/ADJUDICATE.md`) and keeps its cause and class. (Cause list, `step-add-refused` bullet.) | The bail list stays true. |
+| BL56 | The `replaces-report-failed` bullet says the wait's exit 2 can be adjudicated first (`Read` `<base directory>/ADJUDICATE.md`) and the bail keeps its cause and class. (Cause list, `replaces-report-failed` bullet.) | The bail list stays true. |
 
 ## skills/tdd/SCOPE-LOOP.md
 
@@ -1190,6 +1193,7 @@
 | AJ7 | The *Eligible causes* list holds the bullet `` - `report-missing`: none ``. (Eligible causes.) | One home for the cause. |
 | AJ8 | *Procedure* step 4's exit-`0` bullet says the step that returned 2 is run once more only where the cause's own site states a retry (`ci-timeout`, `ci-conflict`, `pr-ready-failed`); for any other cause exit `0` is a bail with the original cause and class, the `adjudicated` event still saying `outcome=retry`. (Procedure, step 4.) | `parse-adjudication.sh` accepts `retry` for every cause, so the generic bullet would rerun a command known to return the same 2 and spend budget doing it (spec D1, deferred). |
 | AJ9 | The *Eligible causes* list holds the bullet `` - `step-add-refused`: none ``. (Eligible causes.) | One home for the cause. |
+| AJ10 | The *Eligible causes* list holds the bullet `` - `replaces-report-failed`: none ``. (Eligible causes.) | One home for the cause. |
 
 ## skills/tdd/PUBLISHED.md
 
