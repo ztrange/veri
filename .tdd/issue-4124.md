@@ -5,5 +5,5 @@
 - [x] a process case in a scratch repo prints only `mutual: a.py b.py` ⟦criterion 3⟧
 - [x] `refactor-owed.sh not-done` accepts `coupling`; `refactor-candidates.sh` lists it, `list` does not ⟦criterion 4⟧
 - [x] a second `coupling` row replaces the first, so a resume never adds one ⟦criterion 5⟧
-- [ ] `DRAFT-PR.md` runs `coupling.sh` after the structural pass and before `refactor-candidates.sh`, the `### Coupling` section and the one `coupling` row; rows graded ⟦criterion 5⟧
-- [ ] `SCRIPTS.md` has a `coupling.sh` entry; rows graded ⟦criterion 6⟧
+- [x] `DRAFT-PR.md` runs `coupling.sh` after the structural pass and before `refactor-candidates.sh`, the `### Coupling` section and the one `coupling` row; rows graded ⟦criterion 5⟧
+- [x] `SCRIPTS.md` has a `coupling.sh` entry; rows graded ⟦criterion 6⟧
