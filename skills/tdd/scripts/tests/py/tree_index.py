@@ -147,10 +147,15 @@ class VeriModules:
     """Every `*.py` module of one directory (veri/), by stem: its path, text and parsed tree, each read on first use
     and kept."""
 
-    def __init__(self, directory):
+    def __init__(self, directory, users=None):
         self._paths = {path.stem: path for path in sorted(pathlib.Path(directory).glob("*.py"))}
         self._texts = {}
         self._trees = {}
+        self._users = VeriModules(users) if users else None
+
+    def user_trees(self):
+        """{stem: tree} of the modules outside the directory that count as users of its names, never as its modules."""
+        return {} if self._users is None else {name: self._users.tree(name) for name in self._users.names}
 
     @property
     def names(self):

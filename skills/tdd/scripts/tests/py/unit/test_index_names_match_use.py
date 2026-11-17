@@ -5,7 +5,7 @@ from collections import defaultdict
 
 import pytest
 
-from test_veri_interface_index import _modules, _private, _readme_lines, _shared_modules, _sibling_imports
+from test_veri_interface_index import _modules, _private, _readme_lines, _shared_modules, _sibling_imports, _users
 
 # Names a section lists that no other module of veri/ uses, each with why it stays. A ratchet: the set may shrink,
 # never grow; an entry that is used by a sibling after all, or no longer listed, fails the case that checks it.
@@ -127,7 +127,7 @@ def uses(index):
     modules = _modules(index)
     imports = {name: imported_modules(tree) for name, tree in modules.items()}
     used, reaches = defaultdict(lambda: defaultdict(set)), []
-    for name, tree in modules.items():
+    for name, tree in {**modules, **_users(index)}.items():  # the leg in tests/leg/ uses veri/'s names (#4051)
         aliases = {}
         for target, imported, alias in _sibling_imports(tree, modules):
             if target == name:
@@ -253,6 +253,22 @@ def test_uses_collects_from_imports_and_attribute_reads_through_aliases_and_flag
 
     assert {k: sorted(v) for k, v in used["a"].items()} == {"f": ["b"], "g": ["b"]}
     assert reaches == ["b: from a import time", "b: m.time.sleep"]
+
+
+def test_a_user_module_outside_veri_counts_as_a_user_of_a_name_but_never_as_a_module_with_names_of_its_own_4051():
+    class Fake:
+        names = ("a",)
+
+        def tree(self, name):
+            return ast.parse("def f(): pass\ndef g(): pass\n")
+
+        def user_trees(self):
+            return {"pytest_leg": ast.parse("import a\nfrom a import f\ndef h(): pass\n")}
+
+    used, _ = uses(Fake())
+
+    assert ({k: sorted(v) for k, v in used.items() if v}, {k: sorted(v) for k, v in used["a"].items()}) == (
+        {"a": ["f"]}, {"f": ["pytest_leg"]})
 
 
 

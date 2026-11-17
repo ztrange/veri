@@ -32,10 +32,15 @@ def _sibling_imports(tree, modules):
                 yield parts[1], [alias.name for alias in node.names], None
 
 
+def _users(index):
+    """{stem: tree} of the modules outside veri/ that count as its importers: the pytest leg, tests/leg/ (#4051)."""
+    return index.user_trees() if hasattr(index, "user_trees") else {}
+
+
 def _importers(index):
     modules = _modules(index)
     importers = defaultdict(set)
-    for name, tree in modules.items():
+    for name, tree in {**modules, **_users(index)}.items():
         for target, _, _ in _sibling_imports(tree, modules):
             if target != name:
                 importers[target].add(name)
