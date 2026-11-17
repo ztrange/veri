@@ -10,8 +10,8 @@ import role_state
 import run_dir
 import tunables
 
-KNOBS = {"coord": "VERI_RESET_GROWTH_COORD", "dev": "VERI_RESET_GROWTH_DEV"}
-USAGE = "usage: role-growth.sh <coord|dev> [--lane <lane>]\n"
+KNOBS = {"dev": "VERI_RESET_GROWTH_DEV"}
+USAGE = "usage: role-growth.sh dev [--lane <lane>]\n"
 
 
 class Failure(Exception):
@@ -49,18 +49,11 @@ def _growth_line(path, lines, fields, transcript, knob):
 
 
 def _knob(name):
-    """The knob's value; a bad one is a Failure naming it. VERI_RESET_GROWTH_COORD, which PRD 026.8 removes, is not in tunables.TUNABLES."""
-    try:
-        value, bad = tunables.resolve(name)
-    except KeyError:
-        raw = tunables.read(name, "70000")
-    else:
-        if bad:
-            raise Failure("%s must be %s, got %r\n" % (name, bad[1], bad[0]))
-        return value
-    if not raw.isdigit() or int(raw) < 1:
-        raise Failure("%s must be a whole number of at least 1, got %r\n" % (name, raw))
-    return int(raw)
+    """The knob's value; a bad one is a Failure naming it."""
+    value, bad = tunables.resolve(name)
+    if bad:
+        raise Failure("%s must be %s, got %r\n" % (name, bad[1], bad[0]))
+    return value
 
 
 def main(argv):

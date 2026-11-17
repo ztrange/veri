@@ -8,7 +8,7 @@ import entry
 import run_dir
 import tunables
 
-USAGE = "usage: reset-wait.sh marker|recovered|idle <coord|dev> [--lane <lane>] [<seconds>]"
+USAGE = "usage: reset-wait.sh marker|recovered|idle dev [--lane <lane>] [<seconds>]"
 
 
 def poll():
@@ -25,7 +25,7 @@ def role_key(role, lane=None):
 
 def parse(argv):
     """(verb, role, key, seconds) for a well-formed argv, else None. Nothing touches a file before this."""
-    if len(argv) < 2 or argv[0] not in ("marker", "recovered", "idle") or argv[1] not in ("coord", "dev"):
+    if len(argv) < 2 or argv[0] not in ("marker", "recovered", "idle") or argv[1] != "dev":
         return None
     rest, lane, seconds = argv[2:], None, None
     if rest[:1] == ["--lane"]:

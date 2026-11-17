@@ -12,9 +12,9 @@ import run_dir
 import timed_n_format
 import tunables
 
-USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane|coordinator|session|transcript|baseline|baseline-at|refused-at|resetter> <value>"
+USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|session|transcript|baseline|baseline-at|refused-at|resetter> <value>"
          " | add <decision|message|override|timed-n> <text>"
-         " | drop <decision|message|override|timed-n> <id> | drop coordinator | show | recovered | request-reset [--idle]\n")
+         " | drop <decision|message|override|timed-n> <id> | show | recovered | request-reset [--idle]\n")
 
 
 def state_path(tree, role, lane=None):
@@ -140,7 +140,7 @@ def main(argv):
     if len(argv) < 2:
         return usage()
     name = argv[0]
-    if name not in ("coord", "dev"):
+    if name != "dev":
         return usage()
     lane = None
     if argv[1] == "--lane":
@@ -233,8 +233,6 @@ def drop_lines(path, doomed):
 
 
 def do_drop(path, argv):
-    if argv[2:] == ["coordinator"]:
-        return drop_lines(path, lambda l: l.startswith("coordinator="))
     if argv[2] not in LISTS:
         return usage()
     code = drop_lines(path, lambda l: l.split()[:2] == argv[2:4])
@@ -251,7 +249,7 @@ def do_show(path, argv):
     return 0
 
 
-SET_FIELDS = ("n", "lane", "coordinator", "session", "transcript", "baseline", "baseline-at", "refused-at", "resetter")
+SET_FIELDS = ("n", "lane", "session", "transcript", "baseline", "baseline-at", "refused-at", "resetter")
 LISTS = ("decision", "message", "override", "timed-n")
 ITEM_KINDS = LISTS + ("dropped-decision",)
 VERBS = {"recovered": do_recovered, "request-reset": do_request_reset, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}

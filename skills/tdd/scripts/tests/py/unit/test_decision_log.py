@@ -53,7 +53,7 @@ def test_issue_4072_record_writes_a_token_shape_or_a_listed_variables_value_as_r
     token = "ghp_" + "a1B2c3D4e5" * 4
 
     code, _, _ = run_cli(decision_log, ["record", "Use token %s?" % token, "no; hunter2-correct-horse stays local",
-                                        "an established tool", "coord"])
+                                        "an established tool", "dev"])
 
     text = (tmp_path / ".tdd" / "decisions.jsonl").read_text()
     record = json.loads(text)
@@ -61,7 +61,7 @@ def test_issue_4072_record_writes_a_token_shape_or_a_listed_variables_value_as_r
         0, False, False, "Use token [redacted]?", "no; [redacted] stays local")
 
 
-@pytest.mark.parametrize("by", ["judge", "Owner", "vdev", "mario"])
+@pytest.mark.parametrize("by", ["judge", "Owner", "vdev", "mario", "coord"])
 def test_issue_4072_record_by_anything_but_a_role_name_or_owner_exits_2_and_writes_nothing(
         decision_log, tmp_path, run_cli, by):
     code, out, err = run_cli(decision_log, ["record", "Raise N to 4?", "kept N at 3", "use plan capacity", by])
@@ -69,7 +69,7 @@ def test_issue_4072_record_by_anything_but_a_role_name_or_owner_exits_2_and_writ
     assert (code, out, err, (tmp_path / ".tdd" / "decisions.jsonl").exists()) == (2, "", decision_log.USAGE, False)
 
 
-@pytest.mark.parametrize("by", ["coord", "dev", "owner"])
+@pytest.mark.parametrize("by", ["dev", "owner"])
 def test_issue_4072_record_by_a_role_name_or_owner_is_recorded_with_that_by(decision_log, tmp_path, run_cli, by):
     code, _, _ = run_cli(decision_log, ["record", "Raise N to 4?", "N=4", "the owner's answer", by])
 

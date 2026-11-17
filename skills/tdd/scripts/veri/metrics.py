@@ -732,7 +732,7 @@ class Fold:
     conductor_priced: bool      # every session carries a price
     conductor_some_priced: bool
     conductor_estimated: bool   # some session has no result record yet
-    operator_sessions: list     # (label, turns, cache tokens read, dollars) per coordinator / dev transcript found
+    operator_sessions: list     # (label, turns, cache tokens read, dollars) per dev transcript found
     step_walls: dict            # step -> seconds between its start and done marks, or None
     structural_marked: bool     # the structural-pass event carries a stopped
     structural_inconsistency: object   # what contradicts itself in the structural mark, or None
@@ -951,7 +951,7 @@ def fold(issue, path, ledger, run=BESIDE):
     first_event = min((mark["ts"] for mark in marks if "ts" in mark), default=None)
     done_at = max((mark["ts"] for mark in marks if mark.get("event") == "done" and "ts" in mark), default=None)
     operator_sessions = []
-    for label, command in (("Coordinator", "/vcoord"), ("Dev", "/vdev")):
+    for label, command in (("Dev", "/vdev"),):
         found = session_spend(transcripts, command, first_event, done_at) if transcripts else None
         if found:
             operator_sessions.append((label,) + found)

@@ -20,7 +20,7 @@ def test_main_called_with_no_argument_exits_2_naming_reset_wait_sh_in_its_usage_
     assert "usage:" in err and "reset-wait.sh" in err
 
 
-def test_issue_3242_marker_with_the_coord_reset_marker_already_present_prints_its_time_and_exits_0_without_sleeping(
+def test_issue_3242_marker_with_the_dev_reset_marker_already_present_prints_its_time_and_exits_0_without_sleeping(
         tmp_path, monkeypatch, run_cli):
     def no_wait(*args, **kwargs):
         raise AssertionError("reset_wait slept")
@@ -32,11 +32,11 @@ def test_issue_3242_marker_with_the_coord_reset_marker_already_present_prints_it
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
 
-    code, out, _ = run_cli(reset_wait, ["marker", "coord"])
+    code, out, _ = run_cli(reset_wait, ["marker", "dev"])
 
-    assert (code, out) == (0, "reset-request coord 2026-11-12T10:00:00\n")
+    assert (code, out) == (0, "reset-request dev 2026-11-12T10:00:00\n")
 
 
 def test_issue_3242_marker_with_no_dev_reset_marker_polls_at_veri_poll_until_it_appears_then_prints_its_time_and_exits_0(
@@ -124,16 +124,16 @@ def test_issue_3242_marker_dev_with_lane_waits_on_the_lane_marker_not_the_plain_
     assert (code, out) == (0, "reset-request dev 2026-11-12T14:45:00\n")
 
 
-def test_issue_3242_recovered_coord_with_the_marker_present_prints_the_recovered_at_written_after_it_and_exits_0(
+def test_issue_3242_recovered_dev_with_the_marker_present_prints_the_recovered_at_written_after_it_and_exits_0(
         tmp_path, monkeypatch, run_cli):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
 
     def nap(seconds):
-        (tdd / "role-coord.state").write_text(
+        (tdd / "role-dev.state").write_text(
             "reset-at=2026-11-12T10:00:00\nrecovered-at=2026-11-12T10:02:30\nsession-id=s1\n")
-        (tdd / "reset-request-coord").unlink()
+        (tdd / "reset-request-dev").unlink()
 
     monkeypatch.setattr(time, "sleep", nap)
     monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
@@ -141,16 +141,16 @@ def test_issue_3242_recovered_coord_with_the_marker_present_prints_the_recovered
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["recovered", "coord", "60"])
+    code, out, _ = run_cli(reset_wait, ["recovered", "dev", "60"])
 
-    assert (code, out) == (0, "recovered coord 2026-11-12T10:02:30\n")
+    assert (code, out) == (0, "recovered dev 2026-11-12T10:02:30\n")
 
 
-def test_issue_3242_recovered_coord_keeps_waiting_through_a_state_file_with_no_recovered_at_and_one_not_later_than_the_marker_and_returns_on_the_later_one(
+def test_issue_3242_recovered_dev_keeps_waiting_through_a_state_file_with_no_recovered_at_and_one_not_later_than_the_marker_and_returns_on_the_later_one(
         tmp_path, monkeypatch, run_cli):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
     states = iter([
         "reset-at=2026-11-12T10:00:00\nsession-id=s1\n",
         "reset-at=2026-11-12T10:00:00\nrecovered-at=2026-11-12T10:00:00\n",
@@ -160,7 +160,7 @@ def test_issue_3242_recovered_coord_keeps_waiting_through_a_state_file_with_no_r
 
     def nap(seconds):
         naps.append(seconds)
-        (tdd / "role-coord.state").write_text(next(states))
+        (tdd / "role-dev.state").write_text(next(states))
 
     monkeypatch.setattr(time, "sleep", nap)
     monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
@@ -168,24 +168,24 @@ def test_issue_3242_recovered_coord_keeps_waiting_through_a_state_file_with_no_r
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["recovered", "coord", "60"])
+    code, out, _ = run_cli(reset_wait, ["recovered", "dev", "60"])
 
-    assert (code, out) == (0, "recovered coord 2026-11-12T10:03:10\n")
+    assert (code, out) == (0, "recovered dev 2026-11-12T10:03:10\n")
     assert len(naps) == 3
 
 
-def test_issue_3242_recovered_coord_with_lane_waits_on_the_lane_marker_and_lane_recovered_at_not_the_plain_roles(
+def test_issue_3242_recovered_dev_with_lane_waits_on_the_lane_marker_and_lane_recovered_at_not_the_plain_roles(
         tmp_path, monkeypatch, run_cli):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "reset-request-coord").write_text("2026-11-12T09:00:00\n")
-    (tdd / "reset-request-coord-a").write_text("2026-11-12T10:00:00\n")
-    (tdd / "role-coord.state").write_text("recovered-at=2026-11-12T09:30:00\n")
+    (tdd / "reset-request-dev").write_text("2026-11-12T09:00:00\n")
+    (tdd / "reset-request-dev-a").write_text("2026-11-12T10:00:00\n")
+    (tdd / "role-dev.state").write_text("recovered-at=2026-11-12T09:30:00\n")
 
     def nap(seconds):
-        (tdd / "role-coord-a.state").write_text(
+        (tdd / "role-dev-a.state").write_text(
             "reset-at=2026-11-12T10:00:00\nrecovered-at=2026-11-12T10:04:00\n")
-        (tdd / "reset-request-coord-a").unlink()
+        (tdd / "reset-request-dev-a").unlink()
 
     monkeypatch.setattr(time, "sleep", nap)
     monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
@@ -193,17 +193,17 @@ def test_issue_3242_recovered_coord_with_lane_waits_on_the_lane_marker_and_lane_
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["recovered", "coord", "--lane", "a", "60"])
+    code, out, _ = run_cli(reset_wait, ["recovered", "dev", "--lane", "a", "60"])
 
-    assert (code, out) == (0, "recovered coord 2026-11-12T10:04:00\n")
+    assert (code, out) == (0, "recovered dev 2026-11-12T10:04:00\n")
 
 
-def test_issue_3242_recovered_coord_with_no_recovered_at_later_than_the_marker_once_the_seconds_pass_prints_not_recovered_coord_and_exits_1(
+def test_issue_3242_recovered_dev_with_no_recovered_at_later_than_the_marker_once_the_seconds_pass_prints_not_recovered_dev_and_exits_1(
         tmp_path, monkeypatch, run_cli):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
-    (tdd / "role-coord.state").write_text("reset-at=2026-11-12T10:00:00\nsession-id=s1\n")
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
+    (tdd / "role-dev.state").write_text("reset-at=2026-11-12T10:00:00\nsession-id=s1\n")
     now = [1_000_000.0]
     naps = []
 
@@ -219,18 +219,18 @@ def test_issue_3242_recovered_coord_with_no_recovered_at_later_than_the_marker_o
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["recovered", "coord", "60"], env={"VERI_POLL": "20"})
+    code, out, _ = run_cli(reset_wait, ["recovered", "dev", "60"], env={"VERI_POLL": "20"})
 
     assert len(naps) <= 50, "recovered never gave up waiting"
-    assert (code, out) == (1, "not-recovered coord\n")
+    assert (code, out) == (1, "not-recovered dev\n")
 
 
-def test_issue_3242_recovered_coord_with_no_seconds_and_veri_reset_ack_timeout_50_gives_up_after_50_injected_seconds_printing_not_recovered_coord_and_exits_1(
+def test_issue_3242_recovered_dev_with_no_seconds_and_veri_reset_ack_timeout_50_gives_up_after_50_injected_seconds_printing_not_recovered_dev_and_exits_1(
         tmp_path, monkeypatch, run_cli):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
-    (tdd / "role-coord.state").write_text("reset-at=2026-11-12T10:00:00\nsession-id=s1\n")
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
+    (tdd / "role-dev.state").write_text("reset-at=2026-11-12T10:00:00\nsession-id=s1\n")
     now = [1_000_000.0]
     naps = []
 
@@ -246,19 +246,19 @@ def test_issue_3242_recovered_coord_with_no_seconds_and_veri_reset_ack_timeout_5
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["recovered", "coord"],
+    code, out, _ = run_cli(reset_wait, ["recovered", "dev"],
                            env={"VERI_RESET_ACK_TIMEOUT": "50", "VERI_POLL": "20"})
 
-    assert (code, out) == (1, "not-recovered coord\n")
+    assert (code, out) == (1, "not-recovered dev\n")
     assert 50 <= now[0] - 1_000_000.0 < 70
 
 
-def test_issue_3242_recovered_coord_with_no_seconds_and_veri_reset_ack_timeout_unset_is_still_waiting_at_299_injected_seconds_and_gives_up_at_300_printing_not_recovered_coord_and_exits_1(
+def test_issue_3242_recovered_dev_with_no_seconds_and_veri_reset_ack_timeout_unset_is_still_waiting_at_299_injected_seconds_and_gives_up_at_300_printing_not_recovered_dev_and_exits_1(
         tmp_path, monkeypatch, run_cli):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
-    (tdd / "role-coord.state").write_text("reset-at=2026-11-12T10:00:00\nsession-id=s1\n")
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
+    (tdd / "role-dev.state").write_text("reset-at=2026-11-12T10:00:00\nsession-id=s1\n")
     now = [1_000_000.0]
     naps = []
 
@@ -275,13 +275,13 @@ def test_issue_3242_recovered_coord_with_no_seconds_and_veri_reset_ack_timeout_u
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["recovered", "coord"], env={"VERI_POLL": "1"})
+    code, out, _ = run_cli(reset_wait, ["recovered", "dev"], env={"VERI_POLL": "1"})
 
-    assert (code, out) == (1, "not-recovered coord\n")
+    assert (code, out) == (1, "not-recovered dev\n")
     assert now[0] - 1_000_000.0 == 300.0
 
 
-def test_issue_3242_recovered_coord_with_no_reset_marker_for_the_role_exits_3_without_sleeping(
+def test_issue_3242_recovered_dev_with_no_reset_marker_for_the_role_exits_3_without_sleeping(
         tmp_path, monkeypatch, run_cli):
     def no_wait(*args, **kwargs):
         raise AssertionError("reset_wait slept")
@@ -294,21 +294,21 @@ def test_issue_3242_recovered_coord_with_no_reset_marker_for_the_role_exits_3_wi
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["recovered", "coord", "60"])
+    code, out, _ = run_cli(reset_wait, ["recovered", "dev", "60"])
 
     assert (code, out) == (3, "")
 
 
-def test_issue_3242_idle_coord_with_the_recorded_transcript_last_written_the_seconds_before_now_prints_idle_coord_and_the_seconds_and_exits_0(
+def test_issue_3242_idle_dev_with_the_recorded_transcript_last_written_the_seconds_before_now_prints_idle_dev_and_the_seconds_and_exits_0(
         tmp_path, monkeypatch, run_cli):
     import os
 
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    transcript = tmp_path / "coord.jsonl"
+    transcript = tmp_path / "dev.jsonl"
     transcript.write_text("{}\n")
     os.utime(transcript, (1_000_000.0 - 600, 1_000_000.0 - 600))
-    (tdd / "role-coord.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
+    (tdd / "role-dev.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
     naps = []
     monkeypatch.setattr(time, "sleep", lambda seconds: naps.append(seconds))
     monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
@@ -316,13 +316,13 @@ def test_issue_3242_idle_coord_with_the_recorded_transcript_last_written_the_sec
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["idle", "coord", "600"], env={"VERI_POLL": "1"})
+    code, out, _ = run_cli(reset_wait, ["idle", "dev", "600"], env={"VERI_POLL": "1"})
 
-    assert (code, out) == (0, "idle coord 600\n")
+    assert (code, out) == (0, "idle dev 600\n")
     assert len(naps) <= 1
 
 
-def test_issue_3242_idle_coord_returns_only_once_the_transcript_has_gone_the_seconds_unwritten_and_a_write_during_the_wait_restarts_the_window(
+def test_issue_3242_idle_dev_returns_only_once_the_transcript_has_gone_the_seconds_unwritten_and_a_write_during_the_wait_restarts_the_window(
         tmp_path, monkeypatch, run_cli):
     import os
 
@@ -330,10 +330,10 @@ def test_issue_3242_idle_coord_returns_only_once_the_transcript_has_gone_the_sec
     clock = [start]
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    transcript = tmp_path / "coord.jsonl"
+    transcript = tmp_path / "dev.jsonl"
     transcript.write_text("{}\n")
     os.utime(transcript, (start - 250, start - 250))
-    (tdd / "role-coord.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
+    (tdd / "role-dev.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
     naps = []
     written = []
 
@@ -350,13 +350,13 @@ def test_issue_3242_idle_coord_returns_only_once_the_transcript_has_gone_the_sec
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["idle", "coord", "600"], env={"VERI_POLL": "100"})
+    code, out, _ = run_cli(reset_wait, ["idle", "dev", "600"], env={"VERI_POLL": "100"})
 
-    assert (code, out) == (0, "idle coord 600\n")
+    assert (code, out) == (0, "idle dev 600\n")
     assert written and clock[0] >= written[0] + 600
 
 
-def test_issue_3242_idle_coord_with_lane_reads_the_transcript_recorded_in_the_lane_state_not_the_plain_roles(
+def test_issue_3242_idle_dev_with_lane_reads_the_transcript_recorded_in_the_lane_state_not_the_plain_roles(
         tmp_path, monkeypatch, run_cli):
     import os
 
@@ -368,8 +368,8 @@ def test_issue_3242_idle_coord_with_lane_reads_the_transcript_recorded_in_the_la
     old = tmp_path / "lane.jsonl"
     old.write_text("{}\n")
     os.utime(old, (1_000_000.0 - 600, 1_000_000.0 - 600))
-    (tdd / "role-coord.state").write_text("transcript=%s\n" % fresh)
-    (tdd / "role-coord-a.state").write_text("transcript=%s\n" % old)
+    (tdd / "role-dev.state").write_text("transcript=%s\n" % fresh)
+    (tdd / "role-dev-a.state").write_text("transcript=%s\n" % old)
     naps = []
     monkeypatch.setattr(time, "sleep", lambda seconds: naps.append(seconds))
     monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
@@ -377,13 +377,13 @@ def test_issue_3242_idle_coord_with_lane_reads_the_transcript_recorded_in_the_la
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["idle", "coord", "--lane", "a", "600"], env={"VERI_POLL": "1"})
+    code, out, _ = run_cli(reset_wait, ["idle", "dev", "--lane", "a", "600"], env={"VERI_POLL": "1"})
 
-    assert (code, out) == (0, "idle coord 600\n")
+    assert (code, out) == (0, "idle dev 600\n")
     assert naps == []
 
 
-def test_issue_3242_idle_coord_with_a_transcript_write_at_the_third_injected_sleep_returns_within_one_poll_of_the_seconds_after_that_write(
+def test_issue_3242_idle_dev_with_a_transcript_write_at_the_third_injected_sleep_returns_within_one_poll_of_the_seconds_after_that_write(
         tmp_path, monkeypatch, run_cli):
     import os
 
@@ -391,10 +391,10 @@ def test_issue_3242_idle_coord_with_a_transcript_write_at_the_third_injected_sle
     clock = [start]
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    transcript = tmp_path / "coord.jsonl"
+    transcript = tmp_path / "dev.jsonl"
     transcript.write_text("{}\n")
     os.utime(transcript, (start, start))
-    (tdd / "role-coord.state").write_text("transcript=%s\n" % transcript)
+    (tdd / "role-dev.state").write_text("transcript=%s\n" % transcript)
     naps = []
     written = []
 
@@ -413,13 +413,13 @@ def test_issue_3242_idle_coord_with_a_transcript_write_at_the_third_injected_sle
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["idle", "coord", "50"], env={"VERI_POLL": "10"})
+    code, out, _ = run_cli(reset_wait, ["idle", "dev", "50"], env={"VERI_POLL": "10"})
 
-    assert (code, out) == (0, "idle coord 50\n")
+    assert (code, out) == (0, "idle dev 50\n")
     assert written[0] + 50 <= clock[0] < written[0] + 50 + 10
 
 
-def test_issue_3242_idle_coord_with_no_seconds_and_veri_reset_idle_60_returns_once_the_transcript_has_gone_60_injected_seconds_unwritten_printing_idle_coord_60_and_exits_0(
+def test_issue_3242_idle_dev_with_no_seconds_and_veri_reset_idle_60_returns_once_the_transcript_has_gone_60_injected_seconds_unwritten_printing_idle_dev_60_and_exits_0(
         tmp_path, monkeypatch, run_cli):
     import os
 
@@ -427,10 +427,10 @@ def test_issue_3242_idle_coord_with_no_seconds_and_veri_reset_idle_60_returns_on
     clock = [start]
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    transcript = tmp_path / "coord.jsonl"
+    transcript = tmp_path / "dev.jsonl"
     transcript.write_text("{}\n")
     os.utime(transcript, (start, start))
-    (tdd / "role-coord.state").write_text("transcript=%s\n" % transcript)
+    (tdd / "role-dev.state").write_text("transcript=%s\n" % transcript)
     naps = []
 
     def nap(seconds):
@@ -445,14 +445,14 @@ def test_issue_3242_idle_coord_with_no_seconds_and_veri_reset_idle_60_returns_on
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["idle", "coord"],
+    code, out, _ = run_cli(reset_wait, ["idle", "dev"],
                            env={"VERI_RESET_IDLE": "60", "VERI_POLL": "20"})
 
-    assert (code, out) == (0, "idle coord 60\n")
+    assert (code, out) == (0, "idle dev 60\n")
     assert 60 <= clock[0] - start < 80
 
 
-def test_issue_3242_idle_coord_with_no_seconds_and_veri_reset_idle_unset_is_still_waiting_at_2999_unwritten_seconds_and_returns_idle_coord_3000_at_3000_exit_0(
+def test_issue_3242_idle_dev_with_no_seconds_and_veri_reset_idle_unset_is_still_waiting_at_2999_unwritten_seconds_and_returns_idle_dev_3000_at_3000_exit_0(
         tmp_path, monkeypatch, run_cli):
     import os
 
@@ -460,10 +460,10 @@ def test_issue_3242_idle_coord_with_no_seconds_and_veri_reset_idle_unset_is_stil
     clock = [start]
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    transcript = tmp_path / "coord.jsonl"
+    transcript = tmp_path / "dev.jsonl"
     transcript.write_text("{}\n")
     os.utime(transcript, (start, start))
-    (tdd / "role-coord.state").write_text("transcript=%s\n" % transcript)
+    (tdd / "role-dev.state").write_text("transcript=%s\n" % transcript)
     naps = []
 
     def nap(seconds):
@@ -479,27 +479,27 @@ def test_issue_3242_idle_coord_with_no_seconds_and_veri_reset_idle_unset_is_stil
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["idle", "coord"], env={"VERI_POLL": "1"})
+    code, out, _ = run_cli(reset_wait, ["idle", "dev"], env={"VERI_POLL": "1"})
 
-    assert (code, out) == (0, "idle coord 3000\n")
+    assert (code, out) == (0, "idle dev 3000\n")
     assert clock[0] - start == 3000.0
 
 
-def test_issue_3242_idle_coord_with_no_transcript_recorded_in_the_state_file_exits_2_with_one_stderr_line_naming_the_transcript_without_sleeping(
+def test_issue_3242_idle_dev_with_no_transcript_recorded_in_the_state_file_exits_2_with_one_stderr_line_naming_the_transcript_without_sleeping(
         tmp_path, monkeypatch, run_cli):
     def no_wait(*args, **kwargs):
         raise AssertionError("reset_wait slept")
 
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "role-coord.state").write_text("session-id=s1\n")
+    (tdd / "role-dev.state").write_text("session-id=s1\n")
     monkeypatch.setattr(time, "sleep", no_wait)
     monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
     monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, err = run_cli(reset_wait, ["idle", "coord", "600"], env={"VERI_POLL": "1"})
+    code, out, err = run_cli(reset_wait, ["idle", "dev", "600"], env={"VERI_POLL": "1"})
 
     assert (code, out) == (2, "")
     assert len(err.splitlines()) == 1
@@ -517,13 +517,13 @@ def test_issue_3242_a_verb_other_than_marker_recovered_or_idle_exits_2_with_the_
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, err = run_cli(reset_wait, ["frobnicate", "coord"], env={"VERI_POLL": "1"})
+    code, out, err = run_cli(reset_wait, ["frobnicate", "dev"], env={"VERI_POLL": "1"})
 
     assert (code, out) == (2, "")
     assert err.startswith("usage:") and "marker|recovered|idle" in err
 
 
-def test_issue_3242_marker_with_a_role_other_than_coord_or_dev_exits_2_with_the_usage_line_on_stderr_without_sleeping(
+def test_issue_3242_marker_with_a_role_other_than_dev_or_dev_exits_2_with_the_usage_line_on_stderr_without_sleeping(
         tmp_path, monkeypatch, run_cli):
     naps = []
     monkeypatch.setattr(time, "sleep", naps.append)
@@ -561,7 +561,7 @@ def test_issue_3242_marker_dev_with_lane_given_no_value_exits_2_with_the_usage_l
     assert naps == []
 
 
-def test_issue_3242_recovered_coord_with_seconds_abc_exits_2_with_the_usage_line_on_stderr_without_sleeping(
+def test_issue_3242_recovered_dev_with_seconds_abc_exits_2_with_the_usage_line_on_stderr_without_sleeping(
         tmp_path, monkeypatch, run_cli):
     naps = []
     monkeypatch.setattr(time, "sleep", naps.append)
@@ -571,16 +571,16 @@ def test_issue_3242_recovered_coord_with_seconds_abc_exits_2_with_the_usage_line
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
 
-    code, out, err = run_cli(reset_wait, ["recovered", "coord", "abc"], env={"VERI_POLL": "1"})
+    code, out, err = run_cli(reset_wait, ["recovered", "dev", "abc"], env={"VERI_POLL": "1"})
 
     assert (code, out) == (2, "")
     assert err.startswith("usage:") and "marker|recovered|idle" in err
     assert naps == []
 
 
-def test_issue_3242_recovered_coord_with_seconds_0_or_a_non_ascii_digit_string_exits_2_with_the_usage_line_on_stderr_without_sleeping(
+def test_issue_3242_recovered_dev_with_seconds_0_or_a_non_ascii_digit_string_exits_2_with_the_usage_line_on_stderr_without_sleeping(
         tmp_path, monkeypatch, run_cli):
     naps = []
 
@@ -595,11 +595,11 @@ def test_issue_3242_recovered_coord_with_seconds_0_or_a_non_ascii_digit_string_e
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
 
     results = {}
     for bad in ("0", "٣"):
-        code, out, err = run_cli(reset_wait, ["recovered", "coord", bad], env={"VERI_POLL": "1"})
+        code, out, err = run_cli(reset_wait, ["recovered", "dev", bad], env={"VERI_POLL": "1"})
         results[bad] = (code, out, err.startswith("usage:") and "marker|recovered|idle" in err)
 
     assert results == {"0": (2, "", True), "٣": (2, "", True)}
@@ -611,7 +611,7 @@ def test_issue_3242_recovered_with_any_token_in_place_of_lane_exits_2_with_the_u
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path / "absent"))
 
-    code, out, err = run_cli(reset_wait, ["recovered", "coord", "x", "5", "5"])
+    code, out, err = run_cli(reset_wait, ["recovered", "dev", "x", "5", "5"])
 
     assert (code, out) == (2, "")
     assert err.startswith("usage: reset-wait.sh")
@@ -631,23 +631,23 @@ def test_issue_3242_idle_with_a_recorded_transcript_that_is_gone_exits_2_naming_
         tmp_path, monkeypatch, run_cli):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "role-coord.state").write_text("transcript=%s\n" % (tmp_path / "gone.jsonl"))
+    (tdd / "role-dev.state").write_text("transcript=%s\n" % (tmp_path / "gone.jsonl"))
     monkeypatch.setattr(time, "sleep", lambda seconds: None)
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, err = run_cli(reset_wait, ["idle", "coord", "600"])
+    code, out, err = run_cli(reset_wait, ["idle", "dev", "600"])
 
     assert (code, out) == (2, "")
     assert "gone.jsonl" in err
 
 
-def test_issue_3242_recovered_coord_with_two_recovered_at_lines_answers_from_the_latest_not_the_stale_first(
+def test_issue_3242_recovered_dev_with_two_recovered_at_lines_answers_from_the_latest_not_the_stale_first(
         tmp_path, monkeypatch, run_cli):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
-    (tdd / "role-coord.state").write_text(
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
+    (tdd / "role-dev.state").write_text(
         "recovered-at=2026-11-12T09:30:00\nreset-at=2026-11-12T10:00:00\nrecovered-at=2026-11-12T10:02:30\n")
     now = [1_000_000.0]
     naps = []
@@ -664,12 +664,12 @@ def test_issue_3242_recovered_coord_with_two_recovered_at_lines_answers_from_the
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["recovered", "coord", "60"], env={"VERI_POLL": "20"})
+    code, out, _ = run_cli(reset_wait, ["recovered", "dev", "60"], env={"VERI_POLL": "20"})
 
-    assert (code, out) == (0, "recovered coord 2026-11-12T10:02:30\n")
+    assert (code, out) == (0, "recovered dev 2026-11-12T10:02:30\n")
 
 
-def test_issue_3242_idle_coord_with_two_transcript_lines_reads_the_latest_recorded_not_the_first(
+def test_issue_3242_idle_dev_with_two_transcript_lines_reads_the_latest_recorded_not_the_first(
         tmp_path, monkeypatch, run_cli):
     import os
 
@@ -681,7 +681,7 @@ def test_issue_3242_idle_coord_with_two_transcript_lines_reads_the_latest_record
     old = tmp_path / "latest.jsonl"
     old.write_text("{}\n")
     os.utime(old, (1_000_000.0 - 600, 1_000_000.0 - 600))
-    (tdd / "role-coord.state").write_text("transcript=%s\ntranscript=%s\n" % (fresh, old))
+    (tdd / "role-dev.state").write_text("transcript=%s\ntranscript=%s\n" % (fresh, old))
     now = [1_000_000.0]
     naps = []
 
@@ -697,9 +697,9 @@ def test_issue_3242_idle_coord_with_two_transcript_lines_reads_the_latest_record
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, _ = run_cli(reset_wait, ["idle", "coord", "600"], env={"VERI_POLL": "1"})
+    code, out, _ = run_cli(reset_wait, ["idle", "dev", "600"], env={"VERI_POLL": "1"})
 
-    assert (code, out) == (0, "idle coord 600\n")
+    assert (code, out) == (0, "idle dev 600\n")
     assert naps == []
 
 
@@ -748,10 +748,10 @@ def test_idle_with_an_empty_veri_reset_idle_reads_it_as_empty_and_fails_not_as_t
 
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    transcript = tmp_path / "coord.jsonl"
+    transcript = tmp_path / "dev.jsonl"
     transcript.write_text("{}\n")
     os.utime(transcript, (1_000_000.0, 1_000_000.0))
-    (tdd / "role-coord.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
+    (tdd / "role-dev.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
     clock = {"now": 1_000_600.0}
 
     def nap(seconds):
@@ -762,6 +762,6 @@ def test_idle_with_an_empty_veri_reset_idle_reads_it_as_empty_and_fails_not_as_t
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
-    code, out, err = run_cli(reset_wait, ["idle", "coord"], env={"VERI_POLL": "1", "VERI_RESET_IDLE": ""})
+    code, out, err = run_cli(reset_wait, ["idle", "dev"], env={"VERI_POLL": "1", "VERI_RESET_IDLE": ""})
 
     assert (code, out, "ValueError" in err) == (2, "", True)

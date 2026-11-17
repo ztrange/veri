@@ -2035,45 +2035,26 @@ def transcript(path, prompt, turns):
     path.write_text("".join(json.dumps(line) + "\n" for line in lines))
 
 
-def test_the_report_names_the_coordinator_sessions_turns_cache_tokens_read_and_dollars_from_the_session_transcripts(tmp_path, monkeypatch, capsys, metrics):
-    write_log(tmp_path, ONE_STEP)
-    transcripts = tmp_path / "transcripts"
-    transcripts.mkdir()
-    transcript(transcripts / "coord.jsonl", "/vcoord 3154",
-               [{"input_tokens": 1000, "cache_read_input_tokens": 100000, "cache_creation_input_tokens": 10000, "output_tokens": 500},
-                {"input_tokens": 2000, "cache_read_input_tokens": 200000, "cache_creation_input_tokens": 0, "output_tokens": 2000}])
-    transcript(transcripts / "dev.jsonl", "fix the flaky test",
-               [{"input_tokens": 1, "cache_read_input_tokens": 999999, "cache_creation_input_tokens": 0, "output_tokens": 1}] * 5)
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("VERI_SESSION_TRANSCRIPTS", str(transcripts))
-
-    out = render(metrics, capsys)
-
-    assert "Coordinator session: 2 turns, 300000 cache tokens read, $0.87\n" in out
-
-
-def test_the_coordinator_session_is_the_transcript_whose_first_prompt_invokes_vcoord_not_one_sorting_before_it(tmp_path, monkeypatch, capsys, metrics):
+def test_the_dev_session_is_the_transcript_whose_first_prompt_invokes_vdev_not_one_sorting_before_it(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     transcripts = tmp_path / "transcripts"
     transcripts.mkdir()
     transcript(transcripts / "a_dev.jsonl", "fix the flaky test",
                [{"input_tokens": 1, "cache_read_input_tokens": 7, "cache_creation_input_tokens": 0, "output_tokens": 1}] * 3)
-    transcript(transcripts / "z_coord.jsonl", "/vcoord 3154",
+    transcript(transcripts / "z_dev.jsonl", "/vdev 3154",
                [{"input_tokens": 1, "cache_read_input_tokens": 50000, "cache_creation_input_tokens": 0, "output_tokens": 1}])
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_SESSION_TRANSCRIPTS", str(transcripts))
 
     out = render(metrics, capsys)
 
-    assert "Coordinator session: 1 turns, 50000 cache tokens read, $" in out
+    assert "Dev session: 1 turns, 50000 cache tokens read, $" in out
 
 
-def test_the_report_names_the_dev_sessions_turns_cache_tokens_read_and_dollars_beside_the_coordinators(tmp_path, monkeypatch, capsys, metrics):
+def test_the_report_names_the_dev_sessions_turns_cache_tokens_read_and_dollars(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     transcripts = tmp_path / "transcripts"
     transcripts.mkdir()
-    transcript(transcripts / "coord.jsonl", "/vcoord 3154",
-               [{"input_tokens": 1, "cache_read_input_tokens": 50000, "cache_creation_input_tokens": 0, "output_tokens": 1}])
     transcript(transcripts / "dev.jsonl", "/vdev 3154",
                [{"input_tokens": 0, "cache_read_input_tokens": 1000000, "cache_creation_input_tokens": 0, "output_tokens": 20000},
                 {"input_tokens": 0, "cache_read_input_tokens": 2000000, "cache_creation_input_tokens": 0, "output_tokens": 0}])
@@ -2148,21 +2129,21 @@ def test_an_assistant_message_written_as_several_records_sharing_one_message_id_
     assert "Dev session: 2 turns, 3000000 cache tokens read, $" in out
 
 
-def test_a_timestamped_coordinator_transcript_is_counted_whole_when_no_event_carries_a_ts_issue_3201(tmp_path, monkeypatch, capsys, metrics):
+def test_a_timestamped_dev_transcript_is_counted_whole_when_no_event_carries_a_ts_issue_3201(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, [{"event": "step-start", "step": "1"}, {"event": "step-done", "step": "1"}])
     transcripts = tmp_path / "transcripts"
     transcripts.mkdir()
     usage = {"input_tokens": 0, "cache_creation_input_tokens": 0, "output_tokens": 0}
-    rows = [{"type": "user", "message": {"role": "user", "content": "/vcoord 3201"}},
+    rows = [{"type": "user", "message": {"role": "user", "content": "/vdev 3201"}},
             {"type": "assistant", "timestamp": "2026-11-06T12:01:00.000Z",
              "message": {"id": "msg_one", "model": "claude-opus-4", "usage": dict(usage, cache_read_input_tokens=2000000)}}]
-    (transcripts / "coord.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+    (transcripts / "dev.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_SESSION_TRANSCRIPTS", str(transcripts))
 
     out = render(metrics, capsys)
 
-    assert "Coordinator session: 1 turns, 2000000 cache tokens read, $" in out
+    assert "Dev session: 1 turns, 2000000 cache tokens read, $" in out
 
 
 def test_a_run_with_only_a_structural_pass_mark_prints_refactor_totals_with_an_issue_row_counting_that_pass(tmp_path, monkeypatch, capsys, metrics):

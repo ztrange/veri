@@ -113,7 +113,7 @@ def solvable_count(name):
     return "?"
 
 
-USAGE = "usage: status.sh [--json] [--scope <name>] [--watch [seconds]] | status.sh --report | status.sh --recover <coord|dev> [--lane <lane>]"
+USAGE = "usage: status.sh [--json] [--scope <name>] [--watch [seconds]] | status.sh --report | status.sh --recover dev [--lane <lane>]"
 
 
 def parse_args(argv):
@@ -552,7 +552,7 @@ def recover_state(role, lane=None):
     if lines is None:
         return ["no state file"]
     state = role_state.State(lines)
-    return ["%s %s" % (key, state.field(key)) for key in ("n", "lane", "coordinator") if state.field(key) is not None] + state.items(
+    return ["%s %s" % (key, state.field(key)) for key in ("n", "lane") if state.field(key) is not None] + state.items(
         "timed-n", "override")
 
 
@@ -576,8 +576,8 @@ def recover_questions(lane):
 
 
 def recover(role, lane=None):
-    if role not in ("coord", "dev"):
-        print("usage: status.sh --recover <coord|dev> [--lane <lane>]", file=sys.stderr)
+    if role != "dev":
+        print("usage: status.sh --recover dev [--lane <lane>]", file=sys.stderr)
         return 2
     bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock,
               "State": lambda: recover_state(role, lane),

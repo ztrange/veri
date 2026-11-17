@@ -115,7 +115,7 @@ def build_rich_root(root):
 
     transcripts = root / "transcripts"
     transcripts.mkdir()
-    for name, prompt in (("coord.jsonl", "/vcoord 3154"), ("dev.jsonl", "/vdev 3154")):
+    for name, prompt in (("dev.jsonl", "/vdev 3154"),):
         lines = [{"type": "user", "message": {"role": "user", "content": prompt}}]
         for number in range(3):
             lines.append({"type": "assistant", "timestamp": "1970-01-01T00:30:00+00:00" if number else "1970-01-01T00:00:01+00:00",
@@ -182,7 +182,6 @@ Conductor context: first turn 400060 tokens, largest 900060 tokens
 Models requested: VERI_MODEL opus, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset, VERI_MODEL_REVISE_GREEN unset, VERI_EFFORT_VERIFIER unset; models that answered: claude-opus-5-5, claude-sonnet-4.
 ⚠️ Unverified phases: refactor,green
 Verifiers switched off: refactor 1
-Coordinator session: 2 turns, 250000 cache tokens read, $0.48
 Dev session: 2 turns, 250000 cache tokens read, $0.48
 
 #### By phase
