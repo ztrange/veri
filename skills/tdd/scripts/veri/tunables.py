@@ -132,7 +132,6 @@ TUNABLES = {
 
     "VERI_REFACTOR_BUDGET": Tunable(tokens, "5"),
     "VERI_ISSUE_REFACTOR_BUDGET": Tunable(tokens, "10"),
-    "VERI_STEP_GROWTH": Tunable(tokens, "5"),
     "VERI_STEP_GROWTH_PERCENT": Tunable(tokens, "50"),
     "VERI_NO_VERDICT_RETRIES": Tunable(tokens, "1"),
     "VERI_SKILL_EDIT_BUDGET": Tunable(decimal_at_least_one, "3"),
@@ -271,6 +270,11 @@ def get(name, unless_empty=False):
 def get_bytes(name, unless_empty=False):
     """`get`, as the bytes of the environment (a name that is not valid UTF-8 survives); same empty rule."""
     return os.fsencode(get(name, unless_empty=unless_empty))
+
+
+def is_set(name):
+    """Whether `name` is in the environment at all, set-but-empty included: how a retired name is refused."""
+    return name in os.environ
 
 
 def set_but_empty(name):

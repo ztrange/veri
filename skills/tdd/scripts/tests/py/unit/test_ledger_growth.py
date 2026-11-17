@@ -107,6 +107,17 @@ def test_4075_added_lines_are_capped_at_the_percent_of_the_plan_steps_rounded_up
         (0, "", ""), 1, True, [2, 2, 2], (0, "", ""))
 
 
+def test_4075_a_set_retired_veri_step_growth_exits_2_naming_veri_step_growth_percent(tmp_path, run_cli, ledger_growth):
+    plan = tmp_path / "plan.md"
+    ledger = tmp_path / "issue-42.md"
+    plan.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    ledger.write_text("# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n")
+
+    got = [run_cli(ledger_growth, [str(plan), str(ledger)], env={"VERI_STEP_GROWTH": value}) for value in ("5", "")]
+
+    assert [(code, out, "VERI_STEP_GROWTH_PERCENT" in err) for code, out, err in got] == [(2, "", True)] * 2
+
+
 def test_2130_a_record_covers_a_ledger_line_only_by_equal_step_text_never_by_substring(
         tmp_path, run_cli, ledger_growth):
     plan = tmp_path / "plan.md"
