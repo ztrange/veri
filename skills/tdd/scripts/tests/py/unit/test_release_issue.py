@@ -381,3 +381,24 @@ def test_a_successful_release_turns_the_runs_unwired_pending_record_into_its_acc
     released = run_cli(release_issue, ["7"], cwd=tmp_path)[0]
     assert (refused, kept, released, pending.exists(), accepted.read_text()) == (
         3, (True, "pkg/a.go\n"), 0, False, "pkg/a.go\npkg/helper.go\n")
+
+
+def test_a_release_gh_does_not_answer_on_a_marker_removal_exits_2_and_accepts_no_unwired_file_4121(
+        release, run_cli, tmp_path, monkeypatch):
+    release_issue, calls, labels = release
+    github = release_issue.github
+
+    def unlabel(number, label):
+        if label == "bailed":
+            raise github.NoAnswer("")
+
+    monkeypatch.setattr(github, "gh_issue_remove_label", unlabel)
+    (tmp_path / ".git").mkdir()
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    pending, accepted = run / "issue-7-unwired-pending", run / "issue-7-unwired-accepted"
+    pending.write_text("pkg/helper.go\n")
+    accepted.write_text("pkg/a.go\n")
+    labels[:] = ["taken:main", "bailed"]
+    code = run_cli(release_issue, ["7"], cwd=tmp_path)[0]
+    assert (code, pending.read_text(), accepted.read_text()) == (2, "pkg/helper.go\n", "pkg/a.go\n")
