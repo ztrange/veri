@@ -1213,6 +1213,7 @@
 | SC478 | The `metrics.sh` entry says the report holds a `#### REJECT outcomes` table after the phase table, one row per phase with a REJECT, giving its REJECT count and its caught, flipped, overturned, unresolved, pending and untracked counts, and no such table when the run has no REJECT. | The catalogue is where a script's output is looked up. |
 | SC479 | The `metrics.sh` entry says the report holds a `#### Stages` table, one row per stage the run marked, giving its runs, ok, failed, no answer, nothing and unended counts and its wall seconds, and no such table when no stage is marked. | The catalogue is where a script's output is looked up. |
 | SC480 | The `metrics.sh` entry says the report holds a `#### Conductor by phase` table, its heading saying the figures are estimated, one row per phase with the conductor's turns and cost, `unknown` for a cost that cannot be priced, and no such table when no conductor log was read. | The catalogue is where a script's output is looked up, and an estimate must say so. |
+| SC498 | The catalogue has a `$S/release-covered.sh <issue-number>` entry: when the issue's title is `Cover the behaviour #<m> refactors` and #<m> is open and labelled `bailed`, it runs `release-issue.sh <m>` and prints `released #<m>`, exit 0; exit 3 when the title has another shape or #<m> is closed or not `bailed`; exit 2 when `gh` gives no answer or `release-issue.sh` exits 2. | The catalogue is where a conductor looks a script up. |
 
 ## skills/tdd/SKILL-EDIT.md
 
