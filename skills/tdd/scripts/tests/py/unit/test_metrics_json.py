@@ -72,7 +72,7 @@ def test_phases_hold_one_entry_per_phase_keyed_by_name_each_equal_to_its_by_phas
     rows = markdown_rows(metrics, "#### By phase")
 
     assert list(phases) == [row["phase"] for row in rows] == ["red", "green", "refactor", "pin", "cover"]
-    assert [sorted(entry) for entry in phases.values()] == [sorted([*PHASE_KEYS, *FIRST_TRY_KEYS])] * len(rows)
+    assert [sorted(entry) for entry in phases.values()] == [sorted([*PHASE_KEYS, *FIRST_TRY_KEYS, "rejects"])] * len(rows)
     assert ({name: {key: shown(entry[key], column) for key, column in PHASE_KEYS.items()} for name, entry in phases.items()}
             == {row["phase"]: {key: row[column] for key, column in PHASE_KEYS.items()} for row in rows})
 
@@ -88,7 +88,7 @@ def test_steps_hold_one_entry_per_step_in_the_by_step_order_with_its_text_and_it
     rows = markdown_rows(metrics, "#### By step")
 
     assert [entry["text"] for entry in steps] == [row["step"] for row in rows] == ["one", "two", "three", "five"]
-    assert [sorted(entry) for entry in steps] == [sorted(["text", *STEP_KEYS])] * len(rows)
+    assert [sorted(entry) for entry in steps] == [sorted(["text", "rejects", *STEP_KEYS])] * len(rows)
     assert ([{key: shown(entry[key], column) for key, column in STEP_KEYS.items()} for entry in steps]
             == [{key: row[column] for key, column in STEP_KEYS.items()} for row in rows])
     assert [entry["wall_seconds"] for entry in steps] == [690, None, 30, 20]
