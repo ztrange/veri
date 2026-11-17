@@ -15,6 +15,13 @@ SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = ".tdd/issue-%s.md"
 RED_HALF = ".tdd/issue-%s-red-half"
 
+# The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_green_half.py fails
+# when one is a script SKILL.md's Green section does not name, save two it exempts by name (FC19).
+CALLS = ("build-develop-prompt.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh", "run-leaf.sh",
+         "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "extract-result.sh", "suite-reported.sh",
+         "tests-frozen.sh", "event.sh", "run-verdict.sh", "comment.sh", "graded-changed.sh", "tick-ledger.sh",
+         "push-branch.sh", "pr-body.sh")
+
 
 def main(argv):
     return fused.entry(argv, NAME + ".sh", run)
