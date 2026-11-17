@@ -4,7 +4,7 @@
 - [x] a non-zero exit fails the `<tier> tier run` row, carrying the exit code and the output's last non-empty line ⟦criterion 1⟧
 - [x] each `<tier> tier run` row carries its wall time in whole seconds ⟦criterion 2⟧
 - [x] a tier resolving to nothing prints no `<tier> tier run` row and starts nothing ⟦criterion 3⟧
-- [ ] every exit leaves the repo's branches, index, tree and worktree list as found ⟦criterion 4⟧
+- [x] every exit leaves the repo's branches, index, tree and worktree list as found ⟦criterion 4⟧
 - [ ] a red tier's whole output is kept at `.tdd/ready-<tier>.out` in the main tree ⟦criterion 5⟧
 - [ ] a green tier leaves no `.tdd/ready-<tier>.out`, an older one included ⟦criterion 5⟧
 - [ ] a tier still running at wait's bound prints `waiting on ready-<tier>` last and exits 3, its worktree left ⟦criterion 6⟧
