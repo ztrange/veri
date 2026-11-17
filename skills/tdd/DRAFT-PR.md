@@ -317,6 +317,30 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    Exit **0** (findings recorded) and exit **3** (`FINDING: none`, the record written empty) go on.
    Exit **2** (nothing recorded: no `FINDING:` line, or a line naming no `<file>::<case>` or a case
    its file does not define) is a system failure: **bail** with cause `no-verdict`.
+   **Test-quality fixes.** Then, each time the run enters this step and the record holds findings
+   (`record` exited 0 on this entry, or an earlier entry's record is non-empty), the run fixes the
+   `weak-assertion` and `implementation-coupled` ones itself, each in a step of its own. A
+   `redundant` finding gets no step: which of two cases is redundant is the reviewer's call. Take
+   the record's `weak-assertion` and `implementation-coupled` lines in recorded order, skip each whose
+   `<file>::<case>` a `⟦test-quality⟧` step of the committed ledger already names (a resume, or an
+   entry after those steps ran, appends none twice), and keep the first ones up to
+   `${VERI_TEST_QUALITY_FIXES:-1}` less the `⟦test-quality⟧` steps the ledger already holds — that
+   knob is a budget on an axis of its own (cost: the test-quality steps one run may add), never
+   folded into another, and `0` appends none. For those findings, append all their steps in one
+   call after the last done step, each text naming the case, the kind and the why, saying it edits
+   only that case and no production code, and ending `⟦test-quality⟧ ⟦diff-checked⟧` (in that order,
+   so the inserted `⟦added⟧ ⟦criterion k⟧` follows `⟦diff-checked⟧`):
+   ```
+   step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=<count>
+   $S/add-ledger-step.sh .tdd/issue-<n>.md after "$step" '<fix the <kind> case <file>::<case>: <why>; edit only that case, no production code> ⟦test-quality⟧ ⟦diff-checked⟧' … 2> .tdd/add-ledger-step.err
+   ```
+   Exit **0**: `git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: fix the test-quality findings (#<n>)"`,
+   and return to step 3, *The cycle loop*, without readying the PR. Exit **1** (`VERI_STEP_GROWTH_PERCENT`
+   cannot hold them, the texts filed under `## Owed steps`) leaves those findings unfixed and writes
+   no bail: a quality fix is never worth losing a finished run; commit the ledger as on exit 0 and go
+   on. Exit **2** bails with cause `step-add-refused` (`Read` `<base directory>/BAIL.md`). Each
+   appended step runs as any `⟦diff-checked⟧` step, its flip proving the fix
+   (`<base directory>/DIFF-CHECKED.md`).
    After the structural pass (or its skip) and before `refactor-candidates.sh`, run
    `$S/red-setup.sh worst <n> .tdd/issue-<n>-refactor-owed.md` once. It reads the run's `red-setup`
    events (the latest per step) and, when the highest count exceeds `VERI_SETUP_THRESHOLD` (default 3),
@@ -411,7 +435,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"
    $S/ledger-growth.sh split .tdd/issue-<n>.md > .tdd/issue-<n>-growth.md; growth=$?
    cat > .tdd/issue-<n>-pr-body.md <<'EOF'
-   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by, when $growth is 0, a ## Plan growth section holding .tdd/issue-<n>-growth.md and saying the owner is strongly advised to split the work after the criterion it names (when $growth is 2, the section holds the one line 'plan growth could not be measured: ledger-growth.sh split exited 2'; when 3, there is no such section), followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section; and the ### Test quality section: one bullet per line of .tdd/issue-<n>-test-quality.md giving its kind, its <file>::<case> and its why, or, when the file is empty, the line 'No weak-assertion, redundant or implementation-coupled case was found.'>
+   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by, when $growth is 0, a ## Plan growth section holding .tdd/issue-<n>-growth.md and saying the owner is strongly advised to split the work after the criterion it names (when $growth is 2, the section holds the one line 'plan growth could not be measured: ledger-growth.sh split exited 2'; when 3, there is no such section), followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section; and the ### Test quality section: one bullet per line of .tdd/issue-<n>-test-quality.md giving its kind, its <file>::<case> and its why, marked 'fixed' with the subject of the test: commit its ⟦test-quality⟧ step made, or 'not fixed' with why: 'redundant', 'budget' (past VERI_TEST_QUALITY_FIXES) or 'step growth' (its step filed under ## Owed steps), or, when the file is empty, the line 'No weak-assertion, redundant or implementation-coupled case was found.'>
    EOF
    $S/pr-body.sh <pr-number> .tdd/issue-<n>-pr-body.md
    ```
