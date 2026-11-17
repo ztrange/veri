@@ -1968,3 +1968,61 @@ def test_4107_surround_renders_verify_surround_md_from_the_pin_phase_s_inputs_al
     assert rendered == {name: (0, True, True, "") for name in rendered}
     assert {name: (code, "surround" in err or "too many" in err) for name, (code, err) in refused.items()} == {
         name: (2, True) for name in refused}
+
+
+LINT_STEP = "make `ruff check .` pass: E501 line too long ⟦diff-checked⟧ ⟦lint-repair⟧ ⟦added⟧ ⟦criterion 2⟧"
+
+
+def lint_render(tmp_path, monkeypatch, run_cli, build_verify_prompt, step, claude_md=b"veri: lint: `ruff check --quiet .`\n", env=None):
+    repo = tmp_path / "repo"
+    repo.mkdir(exist_ok=True)
+    if claude_md is not None:
+        (repo / "CLAUDE.md").write_bytes(claude_md)
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"the spec\n")
+    monkeypatch.chdir(repo)
+    return run_cli(build_verify_prompt, ["--step", step, "--fast-cmd", "make unit", "diff", str(spec), "0123abc", "4567def"],
+                   env=env)
+
+
+def test_4123_a_lint_repair_diff_prompt_names_the_declared_lint_command_and_tells_the_verifier_to_run_it(
+        tmp_path, monkeypatch, run_cli, build_verify_prompt):
+    code, out, err = lint_render(tmp_path, monkeypatch, run_cli, build_verify_prompt, LINT_STEP)
+
+    words = " ".join(out.split())
+    assert (code, err) == (0, "")
+    assert "Run the repo's declared lint command, `ruff check --quiet .`," in words
+    assert "REJECT, naming its first finding, while it exits non-zero" in words
+    assert "{{" not in out
+
+
+def test_4123_a_diff_prompt_for_a_step_without_the_lint_repair_mark_names_no_lint_command(
+        tmp_path, monkeypatch, run_cli, build_verify_prompt):
+    for step in ("the dead line is gone ⟦diff-checked⟧ ⟦criterion 2⟧",
+                 "explain why ⟦lint-repair⟧ ends a lint repair step ⟦diff-checked⟧ ⟦criterion 2⟧"):
+        code, out, err = lint_render(tmp_path, monkeypatch, run_cli, build_verify_prompt, step)
+
+        assert (code, err, "ruff check --quiet ." in out, "declared lint command" in out, "{{" in out) == (
+            0, "", False, False, False), step
+
+
+def test_4123_a_lint_repair_diff_prompt_with_no_declared_lint_command_exits_2_printing_nothing(
+        tmp_path, monkeypatch, run_cli, build_verify_prompt):
+    for claude_md in (None, b"veri: all tests: make test\n"):
+        code, out, err = lint_render(tmp_path, monkeypatch, run_cli, build_verify_prompt, LINT_STEP, claude_md=claude_md)
+
+        assert (code, out) == (2, ""), claude_md
+        assert err == ("build-verify-prompt: a lint-repair step needs the repo's declared lint command, and its CLAUDE.md"
+                       " declares no `veri: lint:` line\n")
+
+
+def test_4123_build_verify_prompt_keeps_its_usage_line_and_options_and_reads_the_lint_command_from_no_environment(
+        tmp_path, monkeypatch, run_cli, build_verify_prompt):
+    assert build_verify_prompt.USAGE.encode() + b"\n" == USAGE
+    _, plain, _ = lint_render(tmp_path, monkeypatch, run_cli, build_verify_prompt, LINT_STEP)
+    ambient = {name: "echo injected" for name in ("VERI_LINT", "VERI_LINT_CMD", "LINT", "LINT_CMD", "VERI_LINT_COMMAND")}
+    _, with_env, _ = lint_render(tmp_path, monkeypatch, run_cli, build_verify_prompt, LINT_STEP, env=ambient)
+    code, out, err = run_cli(build_verify_prompt, ["--lint", "echo injected", "--step", LINT_STEP, "--fast-cmd", "m",
+                                                   "diff", str(tmp_path / "spec.md"), "0123abc", "4567def"])
+
+    assert (with_env == plain, "injected" in with_env, code, out) == (True, False, 2, "")

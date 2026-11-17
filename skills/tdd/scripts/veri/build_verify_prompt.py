@@ -7,6 +7,7 @@ import re
 import sys
 
 import case_reader
+import detect_test_command
 import event_log
 import git
 import run_line
@@ -273,6 +274,15 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         supersede = _read(f"{prompts}/_verify-diff-supersede.md").replace(
             b"{{SUPERSEDE_BASE}}", os.fsencode(supersede_base)) + b"\n"
     out = out.replace(b"{{SUPERSEDE}}", supersede)
+    lint_repair = b""
+    if phase == "diff" and carries_mark(trailing, "lint-repair"):
+        lint = detect_test_command.resolved("lint", "", ".")
+        if lint is None:
+            write(sys.stderr, "build-verify-prompt: a lint-repair step needs the repo's declared lint command, and its"
+                  " CLAUDE.md declares no `veri: lint:` line", before=False, after=False)
+            return 2, b""
+        lint_repair = _read(f"{prompts}/_verify-diff-lint-repair.md").replace(b"{{LINT_CMD}}", lint) + b"\n"
+    out = out.replace(b"{{LINT_REPAIR}}", lint_repair)
     written = b"**one new failing test**"
     if phase == "red" and is_replaces_case_step(step_arg):
         written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
