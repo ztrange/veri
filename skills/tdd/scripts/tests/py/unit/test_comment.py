@@ -1375,6 +1375,25 @@ def test_plan_names_the_test_command_as_plain_text_on_its_own_test_command_line(
     assert [l for l in posted[0].split("\n") if l.startswith("Test command:")] == ["Test command: bin/detected-fast -q"]
 
 
+def test_plan_with_no_fast_tier_command_found_exits_2_naming_it_on_one_stderr_line_and_posts_nothing(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    github = importlib.import_module("github")
+    posted = []
+    monkeypatch.setattr(github, "gh_issue_comment", lambda number, body: posted.append(body) or "https://x/7#c-1")
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: "## Problem\n\nbody of the issue\n")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] only step\n")
+
+    code, out, err = run_cli(comment, ["7", "plan"], cwd=tmp_path)
+
+    assert code == 2
+    assert err.splitlines() == ["comment.sh: no fast-tier command found"]
+    assert posted == []
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
 def test_verify_plan_pass_posts_the_pass_heading_then_the_reason_and_appends_a_comment_event(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")
