@@ -143,3 +143,39 @@ def test_total_includes_conductor_exactly_when_the_conductors_spend_is_added_int
     monkeypatch.chdir(tmp_path)
 
     assert as_json(metrics, capsys)["total"]["includes_conductor"] is expected
+
+
+def mark(ts, event, phase="", step="", **fields):
+    return {"ts": ts, "awake": ts, "issue": "108", "actor": "conductor", "phase": phase, "step": step, "event": event,
+            "attempt": "", **fields}
+
+
+def test_run_holds_the_issue_the_outcome_the_done_marks_seconds_and_every_bail_in_order(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [mark(100, "step-start", step="one"),
+                         mark(200, "bail", "green", "one", cause="revise-exhausted", classification="process"),
+                         mark(300, "resume"),
+                         mark(400, "bail", "", "two", cause="needs-user"),
+                         mark(500, "resume"),
+                         mark(900, "done", pr="https://github.com/o/r/pull/1", wall_seconds="600", awake_seconds="550")])
+    monkeypatch.chdir(tmp_path)
+
+    run = as_json(metrics, capsys)["run"]
+
+    assert run == {"issue": "108", "outcome": "landed", "wall_seconds": 600, "awake_seconds": 550,
+                   "bails": [{"cause": "revise-exhausted", "classification": "process", "phase": "green", "step": "one"},
+                             {"cause": "needs-user", "classification": None, "phase": "", "step": "two"}]}
+
+
+@pytest.mark.parametrize("ending, outcome", [
+    ([mark(400, "bail", cause="uncovered", classification="process")], "bailed"),
+    ([mark(400, "stop", mode="now", at="red")], "stopped"),
+    ([mark(400, "done", pr="https://github.com/o/r/pull/1")], "landed"),
+], ids=["bail", "stop", "done without its seconds, as an older log wrote it"])
+def test_run_wall_and_awake_seconds_are_null_until_a_done_mark_carries_them(
+        tmp_path, monkeypatch, capsys, metrics, ending, outcome):
+    write_log(tmp_path, [mark(100, "step-start", step="one")] + ending)
+    monkeypatch.chdir(tmp_path)
+
+    run = as_json(metrics, capsys)["run"]
+
+    assert (run["outcome"], run["wall_seconds"], run["awake_seconds"]) == (outcome, None, None)
