@@ -59,6 +59,7 @@ COMMENT_FAMILIES = [
 ]
 
 USAGE = "usage: metrics.sh <issue-number>"
+JSON = "--json"
 # the skip events counted on the "Verifiers switched off:" line beside refactor's own count
 SWITCHED_OFF_EVENTS = {"verify-%s-skipped" % phase: phase for phase in ("diff", "green", "pin", "red")}
 
@@ -1019,22 +1020,33 @@ def rendered(issue):
     return 0, report(issue, ".tdd/events.jsonl", run_dir.ledger(".", issue)), ""
 
 
+def as_json(f):
+    """The run's figures as one JSON-ready object, read off a `Fold` alone (PRD 035.1)."""
+    return {"run": {}, "phases": {}, "steps": [], "conductor": {}, "total": {}}
+
+
+def print_json(issue, path, ledger):
+    """Print `as_json` of the journal at `path` as one JSON object, nothing before it is whole."""
+    sys.stdout.write(json.dumps(as_json(fold(issue, path, ledger)), indent=2) + "\n")
+
+
 def main(argv):
     if not argv or not argv[0]:
         sys.stderr.write(USAGE + "\n")
         return 2
     issue = argv[0]
+    write = print_json if argv[1:] == [JSON] else (lambda *where: report(*where, stream=sys.stdout))
     events = ".tdd/events.jsonl"
     carried = None if has_events(events, issue) else run_records.read(issue, "events.jsonl", ".")
     if not carried:
-        report(issue, events, run_dir.ledger(".", issue), stream=sys.stdout)
+        write(issue, events, run_dir.ledger(".", issue))
         return 0
     with tempfile.TemporaryDirectory() as elsewhere:
         os.mkdir(os.path.join(elsewhere, ".tdd"))
         fetched = os.path.join(elsewhere, events)
         with open(fetched, "w", encoding="utf-8") as f:
             f.write(carried)
-        report(issue, fetched, run_dir.ledger(".", issue), stream=sys.stdout)
+        write(issue, fetched, run_dir.ledger(".", issue))
     return 0
 
 
