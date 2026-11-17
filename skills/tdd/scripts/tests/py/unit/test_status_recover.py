@@ -1,5 +1,6 @@
 """Small cases for veri.status --recover: the recovery report."""
 import importlib
+import io
 import json
 import os
 import re
@@ -861,6 +862,34 @@ def test_4253_recover_lists_each_question_file_in_exactly_one_of_asked_unasked_a
         "Unasked questions": [".tdd/questions/main-40.md", ".tdd/questions/main-51.md", ".tdd/questions/main-54.md",
                               ".tdd/questions/main-55.md"],
         "Answered questions": [".tdd/questions/main-52.md", ".tdd/questions/main-53.md"]}
+
+
+def test_4253_recover_lists_a_question_file_that_changes_while_it_is_read_in_exactly_one_section(tmp_path, monkeypatch, run_cli, fake_processes):
+    status = importlib.import_module("veri.status")
+    real_open = open
+    texts = iter(["#### Question\nq\n", "#### Question\nq\n## Asked s-70\n", "#### Question\nq\n## Asked s-70\n"])
+
+    def shifting_open(path, *a, **k):
+        if str(path).endswith("main-70.md"):
+            return io.StringIO(next(texts, "#### Question\nq\n## Asked s-70\n"))
+        return real_open(path, *a, **k)
+    monkeypatch.setattr(status, "open", shifting_open, raising=False)
+
+    code, out, err = _recover_questions_with(tmp_path, monkeypatch, run_cli, fake_processes,
+                                             lambda q: (q / "main-70.md").write_text("#### Question\nq\n"))
+
+    listed = [path for heading in SECTIONS for path in _questions(out, heading)]
+    assert (code, listed.count(".tdd/questions/main-70.md")) == (0, 1), (out, err)
+
+
+def test_4253_recover_ignores_answer_and_asked_lines_inside_a_code_fence(tmp_path, monkeypatch, run_cli, fake_processes):
+    def make(q):
+        (q / "main-80.md").write_text("#### Question\nq\n\n## Asked s-80\n\n```\n## Answer\n```\n")
+        (q / "main-81.md").write_text("#### Question\nq\n\n~~~\n## Asked s-81\n~~~\n")
+    code, out, err = _recover_questions_with(tmp_path, monkeypatch, run_cli, fake_processes, make)
+
+    assert (code, [_questions(out, heading) for heading in SECTIONS]) == (
+        0, [[".tdd/questions/main-41.md", ".tdd/questions/main-80.md"], [".tdd/questions/main-81.md"], ["none"]]), (out, err)
 
 
 def test_4253_recover_lists_a_question_file_it_cannot_read_under_questions_only(tmp_path, monkeypatch, run_cli, fake_processes):
