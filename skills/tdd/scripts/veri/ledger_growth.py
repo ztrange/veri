@@ -11,6 +11,8 @@ import tunables
 from event_log import read_events
 from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body, carries_mark, is_added, open_step_line, read_ledger, replace_ledger
 
+RETIRED = ("VERI_STEP_GROWTH is retired: unset it; VERI_STEP_GROWTH_PERCENT (default 50) caps ⟦added⟧ steps"
+           " as a percent of the verified plan's steps")
 USAGE = ("usage: ledger-growth.sh <plan-ledger-file> <ledger-file> | plan-sha"
          " | record-existing <ledger-file> | record-rewrite <pre-rewrite-ledger-file> <ledger-file>"
          " | reopen <ledger-file> <needle> <change>")
@@ -164,6 +166,9 @@ def main(argv):
     except OSError as error:
         return unreadable(error)
     planned = set(plan_steps)
+    if tunables.is_set("VERI_STEP_GROWTH"):
+        print("ledger-growth.sh: " + RETIRED, file=sys.stderr)
+        return 2
     percent = tunables.get("VERI_STEP_GROWTH_PERCENT")
     if not tunables.parses("VERI_STEP_GROWTH_PERCENT", percent):
         print(f"ledger-growth.sh: VERI_STEP_GROWTH_PERCENT must be a whole number >= 0: {percent}", file=sys.stderr)

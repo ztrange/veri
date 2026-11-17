@@ -175,7 +175,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 The one reader of `VERI_*` and related environment variables.
 - `read(name, default="", unless_empty=None)`: the value as a string. `read_bytes(name, default=b"")`: as bytes.
 - `TUNABLES`: name to `Tunable(parse, default, refusal=None)`, every tunable once. `TABLE`: the entries that state a `refusal`. `tokens(raw)`: int, ValueError otherwise.
-- Two verbs over the one table. `get(name, unless_empty=False)`: the value, its default when unset (`unless_empty=True` also when set but empty); for readers that refuse in their own words (the budgets, the model knobs, `VERI_LABEL`, `VERI_DISPATCH_RETRY_SLEEP`, `VERI_GH_REFUSAL_RETRIES`, ...). `resolve(name)`: `(value, None)`, or `(None, (raw, refusal))` for a bad value; the `TABLE` entries only (KeyError otherwise). Also `default(name)`, `parses(name, raw)`, `set_but_empty(name)`, `get_bytes(name, unless_empty=False)` (`get`, as bytes). A reader of any `VERI_*` name passes no literal default: `test_tunable_defaults_audit.py` fails when one does, bar the sites its `EXEMPT` dict names, a reason each; read that dict, this file does not copy it. Its kinds: a name read at two defaults (not in `TUNABLES`) and the run-context fields the conductor exports.
+- Two verbs over the one table. `get(name, unless_empty=False)`: the value, its default when unset (`unless_empty=True` also when set but empty); for readers that refuse in their own words (the budgets, the model knobs, `VERI_LABEL`, `VERI_DISPATCH_RETRY_SLEEP`, `VERI_GH_REFUSAL_RETRIES`, ...). `resolve(name)`: `(value, None)`, or `(None, (raw, refusal))` for a bad value; the `TABLE` entries only (KeyError otherwise). Also `default(name)`, `parses(name, raw)`, `set_but_empty(name)`, `is_set(name)` (in the environment at all, empty included: how a retired name such as the old absolute growth knob is refused), `get_bytes(name, unless_empty=False)` (`get`, as bytes). A reader of any `VERI_*` name passes no literal default: `test_tunable_defaults_audit.py` fails when one does, bar the sites its `EXEMPT` dict names, a reason each; read that dict, this file does not copy it. Its kinds: a name read at two defaults (not in `TUNABLES`) and the run-context fields the conductor exports.
 - `environment()`, `with_values(**values)`, `without(name)`, `pop(name, default="")`: a copy of the environment, with values set or removed; pop mutates it.
 - `lane_of(opt_in)`: the lane of a label, `None` for a plain one. `taken_label(opt_in)`: `taken:<lane or main>`. `venv_dir()`: `VERI_VENV` or `~/.veri-tools/venv`. `claude_bin()`: `CLAUDE_BIN`, `claude` when unset or empty.
 
@@ -260,7 +260,6 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_SLEEP_GAP` | `900` | its readers' own words |
 | `VERI_SNAPSHOT_MAX_AGE` | `60` | its readers' own words |
 | `VERI_STEP_BUDGET` | `12` | its readers' own words |
-| `VERI_STEP_GROWTH` | `5` | its readers' own words |
 | `VERI_STEP_GROWTH_PERCENT` | `50` | its readers' own words |
 | `VERI_STOP_KILL_GRACE` | `5` | its readers' own words |
 | `VERI_STUCK_RETRIES` | `1` | its readers' own words |

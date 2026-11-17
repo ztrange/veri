@@ -264,6 +264,8 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     if this_run and any(is_suite_repair(text) for text in texts):
         warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + (earlier[0] if this_run is True else this_run))
         return 1
+    if tunables.is_set("VERI_STEP_GROWTH"):
+        return entry.refuse("add-ledger-step.sh: " + ledger_growth.RETIRED)
     percent = tunables.get("VERI_STEP_GROWTH_PERCENT")
     if not tunables.parses("VERI_STEP_GROWTH_PERCENT", percent):
         return entry.refuse("add-ledger-step.sh: VERI_STEP_GROWTH_PERCENT must be a whole number >= 0: " + percent)

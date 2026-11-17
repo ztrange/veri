@@ -127,6 +127,19 @@ def test_4075_a_history_naming_no_plan_commit_or_one_git_cannot_show_exits_2_lea
     assert got == [(2, "", True, LEDGER)] * 3
 
 
+
+def test_4075_a_set_retired_veri_step_growth_exits_2_naming_veri_step_growth_percent_leaving_the_ledger(
+        tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+
+    got = [run_cli(add_ledger_step, [str(ledger), "after", "b two", "t"], env={"VERI_STEP_GROWTH": value}, cwd=tmp_path)
+           for value in ("5", "")]
+
+    assert [(code, out, "VERI_STEP_GROWTH_PERCENT" in err) for code, out, err in got] == [(2, "", True)] * 2
+    assert ledger.read_bytes() == LEDGER
+
+
 COUNTED_FIXTURES = (
     ("- [x] lowercase the slug ⟦criterion 1⟧", 0),
     ("- [ ] collapse to single hyphen ⟦criterion 2⟧", 0),
