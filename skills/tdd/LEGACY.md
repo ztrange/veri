@@ -41,10 +41,25 @@
    the leaf's `TEST_PATH:`. The blind verifier takes the `pin` phase's inputs and never the
    developer's report. `VERI_SKIP_VERIFY` never skips `surround`: a run naming it exits 2 at
    launch.
-   - PASS: record it with `$S/tick-ledger.sh --phase surround .tdd/issue-<n>.md "<STEP>"` and
-     commit the ledger; `next-phase` then exits 3, so the step reads as done.
+   - PASS: the region is not yet surrounded. Run
+     `$S/surround-mutants.sh <develop-report> .tdd/verify-surround.reason -- <command>`, where
+     `<develop-report>` is the step's last `develop-surround` (or revise) report, and `<command>` runs
+     each test file the step's Surround commit added (`git diff --name-only --diff-filter=A
+     <base-sha> HEAD`) through the repo's `veri: one test file:` command
+     (`$S/detect-test-command.sh --tier "one test file"`, `"$1"` being the file), or once through
+     the all tier when the repo declares none. Route its exit:
+     - 0, every mutant red: record it with
+       `$S/tick-ledger.sh --phase surround .tdd/issue-<n>.md "<STEP>"` and commit the ledger;
+       `next-phase` then exits 3, so the step reads as done.
+     - 1 with a `survived` row: revise it as a REJECT, the script's output as the reason,
+       spending `REVISE_BUDGET`.
+     - 1 ending `short <k> of <N>`: relaunch `develop-surround` once to add rows, spending no
+       `REVISE_BUDGET`, then verify-surround and this run again; a second `short` **bails with
+       cause `surround-short`**, a process failure (`Read` `<base directory>/BAIL.md`).
+     - 2: **bail** as a system failure (`no-verdict`) (`Read` `<base directory>/BAIL.md`).
    - REJECT: revise under `REVISE_BUDGET` like any other reject, `surround` being the phase
      revised (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
    - No verdict: `verify.sh` relaunches the leaf up to `VERI_NO_VERDICT_RETRIES` times; once
      spent, **bail** as a system failure (`no-verdict`) (`Read` `<base directory>/BAIL.md`).
-   Surround adds no budget of its own.
+   verify-surround adds no budget of its own; the rows a mutant table owes are
+   `VERI_SURROUND_MUTANTS`, a budget on an axis of its own, never folded into `REVISE_BUDGET`.
