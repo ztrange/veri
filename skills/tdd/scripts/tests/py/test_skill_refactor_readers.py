@@ -25,6 +25,8 @@ ALLOWED = {
     "test_skill_leaf_env.py": "launch lines are Launching a leaf instances",
     "unit/test_refactor_half.py::test_4028_every_inner_call_in_the_ordered_list_is_a_script_the_refactor_loop_section_names":
         "mechanical: each `$S/<script>` refactor-half.py calls is named in the section (PRD 027 FC19), no wording read",
+    "unit/test_step_close.py::test_4029_every_inner_call_in_the_ordered_list_is_a_script_the_refactor_loop_section_names":
+        "mechanical: each `$S/<script>` step-close.py calls is named in the section (PRD 027 FC19), no wording read",
 }
 
 # A heading named in any case, as a regex or a plain string: `(?i)^#{4}\s+refactor\s+loop`, `#### refactor loop`,
