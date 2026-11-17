@@ -131,7 +131,7 @@ def _search_inputs(red):
     runs = [run for run in github.workflow_runs(stack) if run[0] == red and run[2] == "completed" and run[3] != "cancelled"]
     if not runs:
         raise _NoAnswer("no completed, not-cancelled workflow run on %s among those GitHub lists for %s" % (red, stack))
-    _, url, _, conclusion, _ = max(runs, key=lambda run: run[4])
+    _, url, _, conclusion = max(runs, key=lambda run: run[4])[:4]
     if conclusion in ("success", "neutral", "skipped"):
         raise _NoAnswer("CI's latest answer on %s is %s (%s), not red: there is no red log to read" % (red, conclusion, url))
     try:

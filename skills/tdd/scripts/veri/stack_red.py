@@ -36,7 +36,7 @@ def main(argv):
     if newest[2] != "completed":
         # A run re-run, or a newer one still going: its own head's last answer stands while it runs, if it has one.
         answered = [found for found in answered if found[0] == newest[0]] or answered
-    head, url, _, conclusion, _ = max(answered, key=lambda found: found[4])
+    head, url, _, conclusion = max(answered, key=lambda found: found[4])[:4]
     if conclusion in GREEN:
         print("stack-red: CI's latest answer on origin/%s is %s (%s), not red" % (stack, conclusion, head),
               file=sys.stderr)
