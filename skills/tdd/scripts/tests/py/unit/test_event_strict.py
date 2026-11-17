@@ -106,3 +106,15 @@ def test_without_strict_each_refused_call_writes_its_line_and_exits_0_saying_not
 
 def test_a_case_emitting_an_undeclared_key_through_event_mark_gets_exit_2_with_no_strict_setting_of_its_own(clone):
     assert event.mark(str(clone), {"issue": "7"}, "comment", ["kind=red", "url=u", "colour=blue"]) == 2
+
+
+def test_4221_strict_writes_a_verdict_naming_the_sha_of_the_tree_it_judged_and_refuses_one_whose_tree_is_not_a_sha(
+        clone, tmp_path, monkeypatch, capfd):
+    monkeypatch.setenv("VERI_EVENT_STRICT", "1")
+    judged = event.mark(str(clone), {"issue": "7"}, "verdict", ["verdict=PASS", "reason=fine", "tree=" + "a" * 40])
+    refused = event.mark(str(clone), {"issue": "7"}, "verdict", ["verdict=PASS", "reason=fine", "tree=the-tree"])
+    err = capfd.readouterr().err
+
+    assert (judged, refused) == (0, 2)
+    assert [len(path.read_bytes().splitlines()) for path in journals(clone, tmp_path)] == [1, 1]
+    assert "verdict" in err and "tree" in err and "sha" in err
