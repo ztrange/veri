@@ -469,3 +469,44 @@ def test_4251_split_exits_3_printing_nothing_when_the_growth_equals_the_bound(
         "- [ ] a gear meshes ⟦added⟧ ⟦criterion 2⟧\n- [ ] fix the CI failure: z ⟦ci-repair⟧\n")
 
     assert run_cli(ledger_growth, ["split", str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": "50"}) == (3, "", "")
+
+
+def split_second_line(directory, run_cli, ledger_growth, criteria):
+    """The second stdout line of `split` over a ledger holding one step per entry of criteria (None: untagged), and a
+    repair line that serves criterion 1; the case answers git with split_history."""
+    directory.mkdir(exist_ok=True)
+    ledger = directory / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n" + "".join(
+        f"- [ ] step {i}" + (f" ⟦criterion {k}⟧" if k else "") + "\n" for i, k in enumerate(criteria))
+        + "- [ ] fix the full-suite failure: x ⟦suite-repair⟧ ⟦criterion 1⟧\n")
+    code, out, err = run_cli(ledger_growth, ["split", str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": "0"})
+    assert (code, err, len(out.split("\n"))) == (0, "", 3)
+    return out.split("\n")[1]
+
+
+def test_4251_split_suggests_the_criterion_boundary_leaving_the_two_sides_closest(
+        tmp_path, run_cli, ledger_growth, fake_processes):
+    split_history(fake_processes)
+
+    line = split_second_line(tmp_path, run_cli, ledger_growth, [1, 3, 3, 5, 5, 5, None, None])
+
+    assert line == ("split suggested after criterion 3: criteria 1–3 (3 steps) here,"
+                    " criteria 5–5 (3 steps) in a follow-up issue")
+
+
+def test_4251_split_takes_the_earlier_boundary_on_a_tie(tmp_path, run_cli, ledger_growth, fake_processes):
+    split_history(fake_processes)
+
+    line = split_second_line(tmp_path, run_cli, ledger_growth, [1, 1, 2, 3, 3])
+
+    assert line == ("split suggested after criterion 1: criteria 1–1 (2 steps) here,"
+                    " criteria 2–3 (3 steps) in a follow-up issue")
+
+
+def test_4251_split_names_no_split_point_with_one_criterion_or_none(tmp_path, run_cli, ledger_growth, fake_processes):
+    split_history(fake_processes)
+
+    one = split_second_line(tmp_path / "one", run_cli, ledger_growth, [2, 2, None])
+    none = split_second_line(tmp_path / "none", run_cli, ledger_growth, [None, None, None])
+
+    assert (one, none) == ("no split point: every counted step serves criterion 2", "no split point: no criterion tag")
