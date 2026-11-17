@@ -152,8 +152,8 @@ def select(label, priority="priority", repo=None):
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
     try:
-        issues = open_listing("issues.json", prefix + "/issues",
-                              "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
+        # Over REST under every driver: gh issue list --json has no author_association, which the author rule reads.
+        issues = open_listing("issues.json", prefix + "/issues")
         prs = open_listing("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName,isDraft,isCrossRepository", *scope)
     except NoAnswer:
         return 2, []
