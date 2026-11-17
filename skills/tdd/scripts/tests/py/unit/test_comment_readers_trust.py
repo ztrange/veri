@@ -18,6 +18,7 @@ import pytest
 # why. A listed module that no longer reads comments fails the second case below.
 EXEMPT = {
     "github": "the home of the readers and of trusted_comment itself",
+    "plan_publish": "posts step 2b's start comment through the comments path; reads no comment",
     "pointer_comment": "matches only its own pointer comment, by the gh login alone (stricter than trust): it edits it",
     "report_cache": "reports links and metrics fields only; nothing it reads changes a run (PRD 022, not in the set)",
 }

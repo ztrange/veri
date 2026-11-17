@@ -310,7 +310,7 @@ def set_up(n, slug, detect):
     marker = run_dir.run_file(wt, "ci-conflict-rebased")
     if os.path.exists(marker):
         os.remove(marker)
-    ledger = os.path.join(".tdd", "issue-%s.md" % n)
+    ledger = os.path.relpath(run_dir.ledger(".", n))
     resume = os.path.exists(os.path.join(wt, ledger))
     CARRIED["run"] = "resume" if resume else "fresh"
     if not resume:
