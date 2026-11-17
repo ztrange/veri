@@ -285,6 +285,38 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    body it writes: each local path (the worktree, the main clone, a temp directory, the home
    directory), the host name and the account name, then the tokens and secrets `comment.sh`'s rule
    names, so nothing the lint printed about this machine reaches the PR.
+   **The test-quality check.** After the lint run (or its skip) and before `refactor-candidates.sh`,
+   unless `.tdd/issue-<n>-test-quality.md` exists (an earlier entry of this step recorded it, so a
+   resume does not pay for the leaf again), list the test files the run's range touched: those
+   `git diff --name-only <branch-base>..HEAD` names that `case_reader.is_test_path` accepts and
+   that still exist, `<branch-base>` being `git merge-base HEAD origin/<default>`:
+   ```
+   $S/test-quality.sh files "$(git merge-base HEAD origin/<default>)" > .tdd/test-quality-files; files=$?
+   ```
+   Exit **3** (no test file touched) launches no leaf: write the record empty,
+   `: > .tdd/issue-<n>-test-quality.md`, and go on. Exit **2** is a system failure: **bail** with
+   cause `no-verdict` (`Read` `<base directory>/BAIL.md`). On exit **0**, record `HEAD`, then launch
+   one `develop-test-quality` leaf **through the supervisor**, prompted with the spec, the test
+   command and those files:
+   ```
+   git rev-parse HEAD > .tdd/test-quality-head
+   $S/build-develop-prompt.sh test-quality .tdd/issue-<n>-spec.md '<test-cmd>' $(cat .tdd/test-quality-files) > .tdd/develop-test-quality.prompt
+   rm -f .tdd/develop-test-quality.exit .tdd/develop-test-quality.pid
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh develop-test-quality $S/run-leaf.sh .tdd/develop-test-quality.prompt --permission-mode bypassPermissions > .tdd/develop-test-quality.out 2> .tdd/develop-test-quality.err
+   $S/wait-leaf.sh develop-test-quality   # foreground; on exit 3 call it again
+   ```
+   A supervisor exit 2 on the leaf is a `killed-stuck` bail, as for any developer leaf. The leaf
+   has no verifier, so it may change nothing: when it leaves a changed working tree or a commit
+   (`git status --porcelain` prints anything, or `HEAD` is not the sha
+   `.tdd/test-quality-head` holds), put the branch back first with
+   `git reset --hard "$(cat .tdd/test-quality-head)" && git clean -fd`, and still record its
+   report:
+   ```
+   $S/test-quality.sh record <n> < .tdd/develop-test-quality.out
+   ```
+   Exit **0** (findings recorded) and exit **3** (`FINDING: none`, the record written empty) go on.
+   Exit **2** (nothing recorded: no `FINDING:` line, or a line naming no `<file>::<case>` or a case
+   its file does not define) is a system failure: **bail** with cause `no-verdict`.
    After the structural pass (or its skip) and before `refactor-candidates.sh`, run
    `$S/red-setup.sh worst <n> .tdd/issue-<n>-refactor-owed.md` once. It reads the run's `red-setup`
    events (the latest per step) and, when the highest count exceeds `VERI_SETUP_THRESHOLD` (default 3),
@@ -379,7 +411,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"
    $S/ledger-growth.sh split .tdd/issue-<n>.md > .tdd/issue-<n>-growth.md; growth=$?
    cat > .tdd/issue-<n>-pr-body.md <<'EOF'
-   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by, when $growth is 0, a ## Plan growth section holding .tdd/issue-<n>-growth.md and saying the owner is strongly advised to split the work after the criterion it names (when $growth is 2, the section holds the one line 'plan growth could not be measured: ledger-growth.sh split exited 2'; when 3, there is no such section), followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section>
+   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by, when $growth is 0, a ## Plan growth section holding .tdd/issue-<n>-growth.md and saying the owner is strongly advised to split the work after the criterion it names (when $growth is 2, the section holds the one line 'plan growth could not be measured: ledger-growth.sh split exited 2'; when 3, there is no such section), followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section; and the ### Test quality section: one bullet per line of .tdd/issue-<n>-test-quality.md giving its kind, its <file>::<case> and its why, or, when the file is empty, the line 'No weak-assertion, redundant or implementation-coupled case was found.'>
    EOF
    $S/pr-body.sh <pr-number> .tdd/issue-<n>-pr-body.md
    ```
