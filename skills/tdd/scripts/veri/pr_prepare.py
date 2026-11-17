@@ -28,6 +28,28 @@ def run(n):
     if given is None:
         return 2
     _, wt = given
+    resumed = fused.load_wait(wt, n, NAME)
+    if resumed is not None:
+        values = resumed[1]
+    else:
+        values = rebase(wt, n)
+    if values["rebased"] == "1":
+        if values["rebased_tip_suite"] == "local":
+            code = fused.call(DETACH, "wait", RUN % n, cwd=wt)[0]
+            if code == 3:
+                raise fused.Waiting(RUN % n)
+            os.remove(fused.wait_record(wt, n, NAME))
+            if code != 0:
+                raise fused.Stop("1", "detach-command.sh wait %s exit %d" % (RUN % n, code), code)
+        push(wt, values["rebased_from"])
+    skip(wt, n)
+    return fused.settle(wt, n, NAME, ["%s=%s" % (key, values[key]) for key in
+                                      ("rebased", "rebased_from", "rebased_tip_suite")])
+
+
+def rebase(wt, n):
+    """The two questions, the rebase, the regrade block and, after a rebase, the rebased tip's suite started (RB1-RB4):
+    the values settled so far, the local run's wait recorded so a second call only waits again (FC6)."""
     questions(wt, n)
     code, said, _ = fused.call(fused.script("rebase-onto-default.sh"), cwd=wt)
     if code not in (0, 3):
@@ -35,12 +57,11 @@ def run(n):
     regrade(wt)
     values = {"rebased": "0", "rebased_from": "", "rebased_tip_suite": "none"}
     if code == 0:
-        values.update(rebased="1", rebased_from=(said.splitlines() or [""])[0].strip())
-        values["rebased_tip_suite"] = tip_suite(wt, n)
-        push(wt, values["rebased_from"])
-    skip(wt, n)
-    return fused.settle(wt, n, NAME, ["%s=%s" % (key, values[key]) for key in
-                                      ("rebased", "rebased_from", "rebased_tip_suite")])
+        values.update(rebased="1", rebased_from=(said.splitlines() or [""])[0].strip(), rebased_tip_suite=tip_suite(
+            wt, n))
+        if values["rebased_tip_suite"] == "local":
+            fused.save_wait(wt, n, NAME, RUN % n, values)
+    return values
 
 
 def default_branch(wt):
@@ -67,17 +88,14 @@ def regrade(wt):
 
 
 def tip_suite(wt, n):
-    """The rebased tip's suite (RB4): `rebased-tip-suite.sh`, and under `local` the full command detached and waited
-    on; a red wait stops it with the wait's code."""
+    """The rebased tip's suite (RB4): `rebased-tip-suite.sh`, and under `local` the full command started detached;
+    the caller waits on it."""
     mode = fused.checked("1", fused.script("rebased-tip-suite.sh"), cwd=wt).strip()
     if mode not in ("ci", "local"):
         raise fused.Stop("1", "rebased-tip-suite.sh printed " + (mode or "nothing"), 2)
     if mode == "local":
         full = fused.checked("1", fused.script("detect-test-command.sh"), "--tier", "all", cwd=wt).strip()
         fused.checked("1", DETACH, "start", RUN % n, *shlex.split(full), cwd=wt)
-        code = fused.call(DETACH, "wait", RUN % n, cwd=wt)[0]
-        if code != 0:
-            raise fused.Stop("1", "detach-command.sh wait %s exit %d" % (RUN % n, code), code)
     return mode
 
 

@@ -238,3 +238,52 @@ def test_4031_it_runs_nothing_after_the_skip_event_and_handles_no_refusal_itself
                     "add-ledger-step.sh", "detach-leaf.sh", "supervise.sh", "comment.sh"} & set(fake.names())
         assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("reset",), ("clean",), ("commit",))]
         assert [c[1][0] for c in fake.calls if c[0] == "event.sh"] in ([], ["structural-pass"])
+
+
+def _pid(prep, text):
+    (prep.wt / ".tdd" / "conductor.pid").write_text(text)
+
+
+def test_4031_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line(prep):
+    code, out, err, fake = prep(answers={("detach-command.sh", "wait"): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on rebased-full-12")
+    assert "push-branch.sh" not in fake.names()
+
+
+def test_4031_called_again_after_an_exit_3_it_only_waits_again_then_pushes_and_marks_once(prep):
+    _pid(prep, "111\nTue Nov 17 07:00:00 2026\n")
+    first = prep(answers={("detach-command.sh", "wait"): (3, "")})[0]
+    code, out, err, fake = prep()
+
+    assert (first, code) == (3, 0)
+    assert fake.calls[0][:2] == ("detach-command.sh", ("wait", "rebased-full-12"))
+    assert not {"rebase-onto-default.sh", "grade-prose.sh", "next-pending-refactor.sh"} & set(fake.names())
+    assert [c[0] for c in fake.calls].count("push-branch.sh") == 1
+    assert fake.call("push-branch.sh")[1] == ("--force-with-lease=tdd/12-x:" + PRE,)
+    assert out.endswith("rebased=1\nrebased_from=%s\nrebased_tip_suite=local\n" % PRE)
+    assert not (prep.wt / ".tdd" / "issue-12-pr-prepare-wait").exists()
+
+
+def test_4031_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(prep):
+    _pid(prep, "111\nTue Nov 17 07:00:00 2026\n")
+    prep(answers={("detach-command.sh", "wait"): (3, "")})
+
+    record = json.loads((prep.wt / ".tdd" / "issue-12-pr-prepare-wait").read_text())
+    assert (record["conductor"], record["at"]) == ({"pid": "111", "started": "Tue Nov 17 07:00:00 2026"},
+                                                   "rebased-full-12")
+
+
+@pytest.mark.parametrize("second", ["222\nTue Nov 17 07:00:00 2026\n", "111\nTue Nov 17 08:00:00 2026\n", None],
+                         ids=["another pid", "another start time", "no pid file"])
+def test_4031_called_under_another_conductor_it_discards_the_record_and_starts_from_its_first_call(prep, second):
+    _pid(prep, "111\nTue Nov 17 07:00:00 2026\n")
+    prep(answers={("detach-command.sh", "wait"): (3, "")})
+    if second is None:
+        (prep.wt / ".tdd" / "conductor.pid").unlink()
+    else:
+        _pid(prep, second)
+    code, out, err, fake = prep()
+
+    assert (code, fake.calls[0][1]) == (0, ("status", "--porcelain", "--untracked-files=all"))
+    assert not (prep.wt / ".tdd" / "issue-12-pr-prepare-wait").exists()
