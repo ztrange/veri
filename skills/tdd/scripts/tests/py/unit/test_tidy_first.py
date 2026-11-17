@@ -5,8 +5,12 @@ import pytest
 
 
 @pytest.fixture
-def tidy_first():
-    return importlib.import_module("veri.tidy_first")
+def tidy_first(tmp_path, monkeypatch):
+    module = importlib.import_module("veri.tidy_first")
+    run_records = importlib.import_module("veri.run_records")
+    monkeypatch.setattr(run_records, "_sensitive", lambda run: (
+        (("<repo>", [str(tmp_path)]), ("<tmp>", ["/scratch/tmp"]), ("~", ["/home/laneuser"])), {"lanehost"}, {"laneuser"}))
+    return module
 
 
 @pytest.fixture
@@ -67,7 +71,18 @@ def test_4118_an_absolute_path_inside_the_working_tree_exits_1_and_never_reaches
     line = f"TIDY_FIRST: Extract Function | {tree}/lib/route.py::answer | a"
 
     assert run_cli(tidy_first, [], stdin=line + "\n") == (
-        1, "", f"tidy-first.sh: names an absolute path, not one relative to the working tree: {line}\n")
+        1, "", "tidy-first.sh: names an absolute path, not one relative to the working tree:"
+               " TIDY_FIRST: Extract Function | <repo>/lib/route.py::answer | a\n")
+
+
+def test_4118_a_wrong_answers_stderr_line_carries_no_local_path_host_or_account(tree, run_cli, tidy_first):
+    line = "TIDY_FIRST: Make It Nicer | lib/route.py::answer | laneuser on lanehost saw /home/laneuser/notes and /scratch/tmp/x"
+
+    code, out, err = run_cli(tidy_first, [], stdin=line + "\n")
+
+    assert (code, out) == (1, "")
+    assert err == ("tidy-first.sh: names a refactoring SMELLS.md does not list: TIDY_FIRST: Make It Nicer |"
+                   " lib/route.py::answer | <user> on <host> saw ~/notes and <tmp>/x\n")
 
 
 def test_4118_an_unreadable_catalogue_exits_2_printing_nothing_on_stdout(tree, monkeypatch, run_cli, tidy_first):

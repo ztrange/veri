@@ -10,6 +10,7 @@ import re
 import sys
 
 import paths
+import run_records
 from entry import no_arguments
 from report import report_values
 
@@ -40,6 +41,8 @@ def catalogue_names(path=None):
 
 
 def _refuse(why, line):
+    """The stderr line naming `line`, redacted: it becomes a verify-green REJECT's reason, which may be posted."""
+    line = run_records.redact_local(line, os.getcwd())
     sys.stderr.buffer.write(f"tidy-first.sh: {why}: {line}\n".encode("utf-8", "surrogateescape"))
     sys.stderr.buffer.flush()
     return 2
