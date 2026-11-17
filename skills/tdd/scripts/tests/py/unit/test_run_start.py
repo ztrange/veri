@@ -132,6 +132,29 @@ def test_4024_a_tree_listing_anything_but_gitignore_before_the_commit_stops_at_1
     assert fake.calls[-1][:2] == ("git", ("status", "--porcelain"))
 
 
+@pytest.mark.parametrize("reverify, line", [(0, "verify_plan=owed"), (3, "verify_plan=skip")])
+def test_4024_on_a_resume_it_asks_plan_reverify_and_prints_whether_verify_plan_is_owed(start, reverify, line):
+    code, out, err, fake = start(ledger=True, answers={("plan-reverify.sh", None): (reverify, "")})
+
+    assert (code, fake.calls[-1][:2]) == (0, ("plan-reverify.sh", (".tdd/issue-12.md",)))
+    assert line in out.splitlines()
+
+
+@pytest.mark.parametrize("reverify", [1, 2])
+def test_4024_plan_reverify_failing_stops_it_at_1_5(start, reverify):
+    code, out, err, fake = start(ledger=True, answers={("plan-reverify.sh", None): (reverify, "")})
+
+    assert (code, out.splitlines()[-1]) == (reverify, "stopped at 1.5 plan-reverify.sh .tdd/issue-12.md exit %d"
+                                            % reverify)
+
+
+def test_4024_a_fresh_run_asks_no_plan_reverify(start):
+    code, out, err, fake = start()
+
+    assert "plan-reverify.sh" not in fake.names()
+    assert not [line for line in out.splitlines() if line.startswith("verify_plan=")]
+
+
 def test_4024_a_stop_handles_no_refusal_resets_nothing_and_writes_no_bail(start):
     code, out, err, fake = start(answers={("capture-spec.sh", None): (2, "")})
 
