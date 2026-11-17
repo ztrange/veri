@@ -464,8 +464,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `origin/<default>..origin/<stack>`, read after a fetch of origin, that is an issue end and is tested, and exits
   **0**: where a slice of the stack may be cut. A commit is an *issue end* when no issue number named in a commit
   subject at or before it on the stack is named in a subject after it; a commit whose subject names no issue belongs
-  to the issue of the nearest earlier commit that names one. A subject names the `(#<n>)` groups it ends with: a
-  `(#<n>)` elsewhere in it names nothing, so a revert subject, ending in its closing quote, belongs to the issue
+  to the issue of the nearest earlier commit that names one. A subject names every `#<n>` inside the parenthesised group or
+  groups it ends with (`(#1)`, `(#1, #3)`, `(#1) (#2)`, `(#1 and #3)`); a `#<n>` elsewhere in it names nothing, so a revert subject, ending in its closing quote, belongs to the issue
   before it. Read from subjects, the rule survives a landing that rewrites the stack's shas. *Tested* means GitHub's
   check runs for the commit, read by sha (the latest attempt of each, every page), are all completed, each
   concluding success, neutral or skipped, with at least one success; any other conclusion, a check run still in
