@@ -509,7 +509,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `priority` label (default `priority`; set-but-empty is **exit 2**, like `VERI_LABEL`),
   and `bug` is GitHub's own. An issue is solvable only when its author's `author_association` is `OWNER`, `MEMBER`
   or `COLLABORATOR`, or it carries the label `VERI_AUTHOR_LABEL` names (default `author-read`, applied once the issue
-  is read; set-but-empty is **exit 2**); a record with no association is refused as `unknown`. Each opted-in issue
+  is read; set-but-empty is **exit 2**). The issue listing is read over REST under every `VERI_GH_DRIVER` value, since
+  `gh issue list` carries no association; a record that still lacks one is refused as `unknown`. Each opted-in issue
   this author rule alone removes gets one stderr line `solvable-issues: #<n> skipped: its author is <association>, not
   OWNER, MEMBER or COLLABORATOR; label it <VERI_AUTHOR_LABEL> once read`; a refused issue still blocks its dependents
   and lends its band, and with every otherwise-solvable issue refused the script exits 3. **Exit 0** when it printed at least one,
@@ -521,7 +522,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `gh pr` command with no fallback, and `auto` tries GraphQL then REST. Set but empty, or any
   other value, is **exit 2**, with a stderr line naming `VERI_GH_DRIVER` and the value, checked
   at call time. Operations with no GraphQL route — issue edit and create, `gh_rest_list`,
-  `gh_json` with no gh args — use REST under every value, and `VERI_GH_JSON` takes precedence
+  `gh_json` with no gh args, selection's issue listing — use REST under every value, and `VERI_GH_JSON` takes precedence
   over it. A Claude Code cloud session, where GraphQL is refused, needs nothing set: the
   default is already `rest`. The conductor does not call this —
   it is rung 2's, driven by the loop branch of this skill.
