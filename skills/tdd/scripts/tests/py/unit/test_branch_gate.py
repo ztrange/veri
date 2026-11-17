@@ -51,7 +51,7 @@ def gate(monkeypatch, run_cli, tmp_path):
                  "ledger": (wt / ".tdd" / "issue-12.md", ledger)}
         for key, (path, text) in files.items():
             if key not in missing:
-                path.write_text(text)
+                path.write_bytes(text) if isinstance(text, bytes) else path.write_text(text)
         fake = fake or Fake(answers)
         monkeypatch.setattr(fused, "run_script", fake)
         code, out, err = run_cli(branch_gate, list(argv if argv is not None else ("12",)), cwd=str(tmp_path))
@@ -85,6 +85,16 @@ def test_4030_a_step_next_unchecked_would_still_hand_out_is_exit_2_before_any_in
 
     assert (code, fake.calls) == (2, [])
     assert "unchecked step" in err
+
+
+@pytest.mark.parametrize("ledger, refused", [
+    ("# Plan\n\n- [x] one\n- [\0 ] two ⟦criterion 2⟧\n".encode(), True),
+    ("# Plan\n\n- [x] one ⟦criterion 1⟧\r- [ ] two ⟦criterion 2⟧\n".encode(), False)],
+    ids=["a NUL inside an open step's box", "a lone carriage return"])
+def test_4030_the_ledger_is_read_as_next_unchecked_reads_it(gate, ledger, refused):
+    code, out, err, fake = gate(ledger=ledger)
+
+    assert (code == 2 and fake.calls == []) == refused
 
 
 def test_4030_only_full_suite_and_human_owed_lines_left_unchecked_let_it_run(gate):

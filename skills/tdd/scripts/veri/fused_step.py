@@ -30,10 +30,9 @@ def inputs(name, n, *files):
 
 def first_step(wt, n, chosen):
     """The text of the first ledger record <chosen> takes, as next-unchecked.sh and next-pending-refactor.sh print
-    it; None for none."""
-    with open(run_dir.ledger(wt, n), encoding="utf-8", errors="surrogateescape") as f:
-        text = f.read()
-    return next((r.text for r in ledger_steps(text) if chosen(r)), None)
+    it, the ledger read through ledger.read_ledger as they read it (a NUL dropped, a lone carriage return kept); None
+    for none."""
+    return next((r.text for r in ledger_steps(ledger.read_ledger(run_dir.ledger(wt, n))) if chosen(r)), None)
 
 
 def cost_check(wt, step):
