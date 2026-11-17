@@ -24,3 +24,16 @@ def test_in_a_foreign_repo_only_the_added_file_nothing_names_is_printed_and_exit
     done = subprocess.run(["/bin/sh", str(SCRIPTS / "unwired.sh"), base], cwd=repo,
                           capture_output=True, text=True, stdin=subprocess.DEVNULL)
     assert (done.returncode, done.stdout, done.stderr) == (1, "src/orphan.py\n", "")
+
+
+@pytest.mark.process("the unwired.sh shim over real git, run from a subdirectory of a scratch repo")
+def test_run_from_a_subdirectory_it_reads_repo_root_paths_and_prints_the_same_answer(tmp_path):
+    repo = new_repo(tmp_path / "repo")
+    write(repo, {"src/main.py": "def main():\n    return 0\n"})
+    base = commit_all(repo, "base")
+    write(repo, {"src/orphan.py": "def orphan():\n    return orphan\n", "src/used.py": "def used():\n    return 2\n",
+                 "src/main.py": "from used import used\n\n\ndef main():\n    return used()\n"})
+    commit_all(repo, "add two files")
+    done = subprocess.run(["/bin/sh", str(SCRIPTS / "unwired.sh"), base], cwd=repo / "src",
+                          capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    assert (done.returncode, done.stdout, done.stderr) == (1, "src/orphan.py\n", "")

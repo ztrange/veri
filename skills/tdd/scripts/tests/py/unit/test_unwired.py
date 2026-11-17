@@ -1,5 +1,6 @@
 """In-process cases for veri/unwired.py, the module unwired.sh is a shim over (#4121, PRD 032.6)."""
 import importlib
+import os
 
 import pytest
 
@@ -14,6 +15,8 @@ def range_git(fake_processes, added, tracked=()):
     <added>, and `ls-files` lists <tracked> as the files git does not ignore."""
     def answer(line, **kwargs):
         args = list(fake.argvs[-1])
+        if args[:3] == ["git", "rev-parse", "--show-toplevel"]:
+            return 0, os.getcwd() + "\n", ""
         if args[:2] == ["git", "rev-parse"]:
             return 0, "true\n", ""
         if args[:2] == ["git", "diff"]:
@@ -73,7 +76,7 @@ def test_a_base_that_does_not_resolve_or_a_directory_that_is_no_work_tree_exits_
         def answer(line, **kwargs):
             if failing in line or not line.startswith("git rev-parse"):
                 return 128, "", "fatal: no\n"
-            return 0, "true\n", ""
+            return 0, (str(tmp_path) if "--show-toplevel" in line else "true") + "\n", ""
 
         fake_processes.answers({"git": answer})
         results.append((unwired.main(["nope"]),) + tuple(capsys.readouterr()))
