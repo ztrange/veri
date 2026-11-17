@@ -260,6 +260,10 @@ exit `Read` `<base directory>/PREFLIGHT.md` and run it from the step the last li
 
 ### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)
 
+Run `$S/run-start.sh <n>` first, again on exit 3. Exit 0 made sub-steps 2–5's calls: their values (timeout,
+spec path, `.gitignore` outcome, `run=`, `verify_plan=`) are its last lines. Else go on from the sub-step
+its last line names.
+
 1. Read the issue: `gh api repos/{owner}/{repo}/issues/<n> -q '{number, title, body, url: .html_url}'`.
 2. **Derive the slug and enter the issue's worktree.** Slug from the title — lowercase,
    non-alphanumerics to `-`, collapse and trim `-`, cap to ~6 words. Preflight step 3 has
