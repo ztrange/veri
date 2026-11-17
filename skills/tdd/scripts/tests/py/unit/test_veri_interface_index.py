@@ -119,8 +119,9 @@ def test_every_module_has_a_docstring(veri_modules_index):
 EXEMPT_DIRECTION_BREAKS = {
     # event.sh imports github to mirror an event onto the issue; Run state and journal builds on Foundations only.
     "event -> github",
-    # event.sh imports metrics, only after an exit, step-done, bail or done, to rewrite the issue's published metrics
-    # file (PRD 035.2): the fold is the one definition of every figure, and it lives with the operator's report.
+    # event.sh imports metrics, only after an exit, step-done, bail, done or stage-end, to rewrite the issue's
+    # published metrics file (PRD 035.2): the fold is the one definition of every figure, and it lives with the
+    # operator's report.
     "event -> metrics",
 }
 
