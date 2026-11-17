@@ -106,6 +106,40 @@ def test_4033_a_stacked_run_is_refused_with_exit_2_before_any_inner_call(finish)
     assert "stacked" in err and ".tdd/issue-12-base" in err
 
 
+class Failing(Fake):
+    """Fake, but the first call <hit> takes (base, args) to exits <code>."""
+
+    def __init__(self, hit, code, **kw):
+        super().__init__(**kw)
+        self.hit, self.code = hit, code
+
+    def __call__(self, name, *args, **kw):
+        if self.hit(os.path.basename(name), args):
+            self.hit = lambda *_: False
+            self.calls.append((os.path.basename(name), args, kw.get("cwd"), kw.get("env"), kw))
+            return self.code, "", "boom\n"
+        return super().__call__(name, *args, **kw)
+
+
+def _git(verb, *more):
+    return lambda b, a: b == "git" and a[:1] == (verb,) and all(m in a[-1] for m in more)
+
+
+@pytest.mark.parametrize("hit, code, mode", [
+    (_git("branch"), 128, "ci"), (lambda b, a: b == "gh" and "pulls" in a[1], 1, "ci"),
+    (lambda b, a: b == "gh" and "pulls" in a[1], 4, "ci"), (lambda b, a: b == "gh" and "issues/12" in a[1], 1, "ci"),
+    (_git("add", "issue-12.md"), 128, "ci"), (_git("commit", "plan:"), 1, "ci"),
+    (_git("add", "metrics"), 128, "local"), (_git("commit", "metrics:"), 1, "local"),
+    (_git("status"), 128, "local"), (_git("rev-parse"), 128, "local")],
+    ids=["git branch", "gh url read exit 1", "gh url read exit 4", "gh issue body read", "git add ledger",
+         "git commit plan", "git add metrics", "git commit metrics", "git status", "git rev-parse"])
+def test_4033_a_git_or_gh_call_that_fails_is_no_answer_exit_2(finish, hit, code, mode):
+    out_code, out, err, fake = finish(fake=Failing(hit, code, mode=mode))
+
+    assert (out_code, out.splitlines()[-1].startswith("stopped at 2 ")) == (2, True)
+    assert "wait-ci.sh" not in fake.names()
+
+
 def _commits(fake):
     return [c[1][2] for c in fake.made("git", "commit")]
 

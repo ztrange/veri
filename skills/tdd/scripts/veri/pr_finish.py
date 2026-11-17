@@ -9,7 +9,6 @@ import sys
 import fused
 import fused_step
 import ledger
-import plan_publish
 import pr_ready_wait
 import run_dir
 import tunables
@@ -58,7 +57,7 @@ def close(wt, n):
     # A failed render may leave its file behind, half written or over the one an earlier call committed: that file is
     # carried as metrics=<code>, not committed, so it is no dirt; every other path still is.
     left = {METRICS % n} if values["metrics"] else set()
-    if set(fused.changed_paths(WHERE, wt)) - left:
+    if pr_ready_wait.dirty(WHERE, wt, left):
         raise fused.Stop(WHERE, "tree-check", 1)
     fused.checked(WHERE, fused.script("push-branch.sh"), cwd=wt)
     fused.save_wait(wt, n, NAME, pr_ready_wait.WAIT, values)
@@ -73,8 +72,8 @@ def record(wt, n, url):
     metrics = METRICS % n
     code = fused.call(fused.script("metrics.sh"), n, cwd=wt, out=metrics)[0]
     if code == 0:
-        fused.checked(WHERE, "git", "add", metrics, cwd=wt)
-        fused.checked(WHERE, "git", "commit", "-m", "metrics: what solving #%s cost (#%s)" % (n, n), cwd=wt)
+        pr_ready_wait.answered(WHERE, "git", "add", metrics, cwd=wt)
+        pr_ready_wait.answered(WHERE, "git", "commit", "-m", "metrics: what solving #%s cost (#%s)" % (n, n), cwd=wt)
     return code
 
 
@@ -107,11 +106,11 @@ def tick_full_suite(wt, n):
         if code != 0:
             raise fused.Stop(WHERE, fused.shown(*tick) + " exit %d" % code, code)
     for k in [k for line in lines for k in re.findall(r"⟦criterion (\d+)⟧", line)]:
-        body = plan_publish.gh(WHERE, "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", wt=wt)
+        body = pr_ready_wait.gh_answered(WHERE, "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", wt=wt)
         criterion = fused.checked(WHERE, fused.script("ledger-steps.sh"), "criterion", k, cwd=wt, stdin=body).strip()
         fused.checked(WHERE, fused.script("tick-issue-criterion.sh"), n, criterion, cwd=wt, ok=(0, 3))
-    fused.checked(WHERE, "git", "add", LEDGER % n, cwd=wt)
-    fused.checked(WHERE, "git", "commit", "-m", "plan: the full suite is green on CI (#%s)" % n, cwd=wt)
+    pr_ready_wait.answered(WHERE, "git", "add", LEDGER % n, cwd=wt)
+    pr_ready_wait.answered(WHERE, "git", "commit", "-m", "plan: the full suite is green on CI (#%s)" % n, cwd=wt)
 
 
 if __name__ == "__main__":
