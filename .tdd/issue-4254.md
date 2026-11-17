@@ -4,4 +4,4 @@
 - [x] an idle leg dumps its own threads' stacks and sends each worker SIGUSR1, on which a plugin the leg loads dumps the worker's stacks ⟦criterion 2⟧
 - [x] a leg sent TERM or HUP ends its workers the same way, removes its entry, releases the lock and exits 128 + the signal without xdist's worker teardown ⟦criterion 3⟧
 - [x] a `VERI_PYTEST_IDLE` that is not a whole number of at least 1 is exit 2 before any suite; the key is in `veri.tunables.TUNABLES` and the `## tunables` table ⟦criterion 4⟧
-- [ ] CLAUDE.md's *Testing idiom* says how a leg ends a hang and a TERM, graded by its row ⟦criterion 5⟧
+- [x] CLAUDE.md's *Testing idiom* says how a leg ends a hang and a TERM, graded by its row ⟦criterion 5⟧
