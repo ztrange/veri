@@ -82,7 +82,7 @@ def live_conductor(run, started):
     proc = subprocess.Popen([str(launcher), run.name], start_new_session=True)
     holder = ConductorHolder(proc, proc.pid)
     started.append(holder)
-    for _ in range(200):
+    for _ in range(500):
         if claude_pid.is_file() and claude_pid.read_text().strip():
             break
         time.sleep(0.05)
