@@ -36,7 +36,8 @@ def main(argv):
         return entry.refuse("coupling: cannot resolve '%s'" % argv[0])
     files = [f for f in stem_walk.tree_files() if code(f)]
     listed = git.out("diff", "--name-only", "-z", argv[0] + "..HEAD").split("\0")
-    found = pairs([p for p in listed if p in files], files)
+    known = set(files)
+    found = pairs([p for p in listed if p in known], files)
     sys.stdout.write("".join("mutual: %s %s\n" % pair for pair in found))
     return 0 if found else 3
 
