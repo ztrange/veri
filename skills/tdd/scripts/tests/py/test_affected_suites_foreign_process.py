@@ -17,6 +17,18 @@ def write(root, files):
         (root / name).write_text(text)
 
 
+@pytest.mark.process("the affected-suites.sh shim over real git, which quotes a non-ASCII path")
+def test_in_a_foreign_repo_a_changed_non_ascii_source_and_test_are_read_unquoted(tmp_path):
+    repo = new_repo(tmp_path / "repo")
+    write(repo, {"CLAUDE.md": CLAUDE_MD, "src/naïve.py": "x = 1\n", "tests/test_café.py": "import naïve\n",
+                 "tests/test_other.py": ""})
+    commit_all(repo, "base")
+    write(repo, {"src/naïve.py": "x = 2\n", "tests/test_café.py": "import naïve\n# edited\n"})
+    done = subprocess.run(["/bin/sh", str(SCRIPTS / "affected-suites.sh"), "HEAD"], cwd=repo,
+                          capture_output=True, stdin=subprocess.DEVNULL)
+    assert (done.returncode, done.stdout.decode(), done.stderr.decode()) == (0, "tests/test_café.py\n", "")
+
+
 @pytest.mark.process("the affected-suites.sh shim over real git in a scratch foreign repo")
 def test_in_a_foreign_repo_a_test_selects_itself_a_source_selects_the_tests_naming_it_and_an_unnamed_one_widens(
         tmp_path):
