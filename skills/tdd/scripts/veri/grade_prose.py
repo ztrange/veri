@@ -85,18 +85,20 @@ def own_texts(text):
     return [tuple(cut) for cut in cuts]
 
 
-def claimed_headings(file):
-    """The headings of every `<file>#<heading>` unit a tracked REQUIREMENTS.md lists."""
-    return {unit.partition("#")[2] for listed in requirements.lists() for unit in requirements.listed_units(listed)
-            if unit.partition("#")[0] == file and "#" in unit}
+def claimed_headings(file, units=None):
+    """The headings of every `<file>#<heading>` unit a tracked REQUIREMENTS.md lists; `units` are the listed units
+    when the caller has read them already (None: read every list)."""
+    if units is None:
+        units = [unit for listed in requirements.lists() for unit in requirements.listed_units(listed)]
+    return {unit.partition("#")[2] for unit in units if unit.partition("#")[0] == file and "#" in unit}
 
 
-def signed_text(unit, text):
+def signed_text(unit, text, units=None):
     """What `unit` signs and the grader is shown, from `text`, its unit text. A whole-file unit whose file has a listed
     heading unit is split: its view is the file's heading lines, a blank line, then the text above the first heading
     and the own text of every section no listed heading unit claims, in file order. Any other unit signs `text`."""
     file, _, heading = unit.partition("#")
-    claimed = set() if heading else claimed_headings(file)
+    claimed = set() if heading else claimed_headings(file, units)
     if not claimed:
         return text
     cuts = own_texts(text)
@@ -160,10 +162,11 @@ def unit_text(unit, reader=None):
         raise ValueError("%s: its heading matches %d unfenced heading lines of %s, not one" % (unit, e.count, file))
 
 
-def signature(path, unit, text=None):
-    """The stamp of `unit` under the list `path` names; `text` is the unit's text (None: the working tree's)."""
+def signature(path, unit, text=None, units=None):
+    """The stamp of `unit` under the list `path` names; `text` is the unit's text (None: the working tree's); `units`
+    the listed units, when the caller has read them (None: claimed_headings reads every list)."""
     parts = [unit_text(unit) if text is None else text, requirements.claims(path, unit), grader_model()]
-    parts[0] = signed_text(unit, parts[0])
+    parts[0] = signed_text(unit, parts[0], units)
     return stamp(with_effort(parts, grader_conf().get("effort")))
 
 
@@ -252,8 +255,9 @@ def orphans(units):
 
 def owed_listed(path="REQUIREMENTS.md"):
     listed = [(p, u) for p in requirements.lists(path) for u in requirements.listed_units(p)]
-    owed = [(p, u) for p, u in listed if graded_signature(u) != signature(p, u)]
-    return owed, list(orphans([u for _, u in listed]))
+    units = [u for _, u in listed]
+    owed = [(p, u) for p, u in listed if graded_signature(u) != signature(p, u, units=units)]
+    return owed, list(orphans(units))
 
 
 def read_graded(graded):
