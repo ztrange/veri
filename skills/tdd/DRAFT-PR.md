@@ -286,7 +286,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    directory), the host name and the account name, then the tokens and secrets `comment.sh`'s rule
    names, so nothing the lint printed about this machine reaches the PR.
    **The test-quality check.** After the lint run (or its skip) and before `refactor-candidates.sh`,
-   unless `.tdd/issue-<n>-test-quality.md` exists (an earlier entry of this step recorded it, so a
+   unless `.tdd/issue-<n>-test-quality` exists (an earlier entry of this step recorded it, so a
    resume does not pay for the leaf again), list the test files the run's range touched: those
    `git diff --name-only <branch-base>..HEAD` names that `case_reader.is_test_path` accepts and
    that still exist, `<branch-base>` being `git merge-base HEAD origin/<default>`:
@@ -294,7 +294,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/test-quality.sh files "$(git merge-base HEAD origin/<default>)" > .tdd/test-quality-files; files=$?
    ```
    Exit **3** (no test file touched) launches no leaf: write the record empty,
-   `: > .tdd/issue-<n>-test-quality.md`, and go on. Exit **2** is a system failure: **bail** with
+   `: > .tdd/issue-<n>-test-quality`, and go on. Exit **2** is a system failure: **bail** with
    cause `no-verdict` (`Read` `<base directory>/BAIL.md`). On exit **0**, record `HEAD`, then launch
    one `develop-test-quality` leaf **through the supervisor**, prompted with the spec, the test
    command and those files:
@@ -327,11 +327,16 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `${VERI_TEST_QUALITY_FIXES:-1}` less the `⟦test-quality⟧` steps the ledger already holds — that
    knob is a budget on an axis of its own (cost: the test-quality steps one run may add), never
    folded into another, and `0` appends none. For those findings, append all their steps in one
-   call after the last done step, each text naming the case, the kind and the why, saying it edits
+   call after the anchor `$S/test-quality.sh anchor` prints: the last done step carrying exactly one
+   `⟦criterion k⟧` tag, which the appended steps inherit. Its exit **3** — no such step, or a ledger
+   step carrying two tags, which `add-ledger-step.sh` would refuse — appends nothing and leaves those
+   findings unfixed with no bail, as a growth refusal does; its exit **2** (the ledger unreadable)
+   bails `no-verdict` (`Read` `<base directory>/BAIL.md`). Each text names the case, the kind and the why, saying it edits
    only that case and no production code, and ending `⟦test-quality⟧ ⟦diff-checked⟧` (in that order,
    so the inserted `⟦added⟧ ⟦criterion k⟧` follows `⟦diff-checked⟧`):
    ```
-   step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=<count>
+   step="$($S/test-quality.sh anchor .tdd/issue-<n>.md)" || exit 0    # exit 3 or 2: routed as above, no step appended
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=<count>
    $S/add-ledger-step.sh .tdd/issue-<n>.md after "$step" '<fix the <kind> case <file>::<case>: <why>; edit only that case, no production code> ⟦test-quality⟧ ⟦diff-checked⟧' … 2> .tdd/add-ledger-step.err
    ```
    Exit **0**: `git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: fix the test-quality findings (#<n>)"`,
@@ -435,7 +440,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"
    $S/ledger-growth.sh split .tdd/issue-<n>.md > .tdd/issue-<n>-growth.md; growth=$?
    cat > .tdd/issue-<n>-pr-body.md <<'EOF'
-   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by, when $growth is 0, a ## Plan growth section holding .tdd/issue-<n>-growth.md and saying the owner is strongly advised to split the work after the criterion it names (when $growth is 2, the section holds the one line 'plan growth could not be measured: ledger-growth.sh split exited 2'; when 3, there is no such section), followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section; and the ### Test quality section: one bullet per line of .tdd/issue-<n>-test-quality.md giving its kind, its <file>::<case> and its why, marked 'fixed' with the subject of the test: commit its ⟦test-quality⟧ step made, or 'not fixed' with why: 'redundant', 'budget' (past VERI_TEST_QUALITY_FIXES) or 'step growth' (its step filed under ## Owed steps), or, when the file is empty, the line 'No weak-assertion, redundant or implementation-coupled case was found.'>
+   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by, when $growth is 0, a ## Plan growth section holding .tdd/issue-<n>-growth.md and saying the owner is strongly advised to split the work after the criterion it names (when $growth is 2, the section holds the one line 'plan growth could not be measured: ledger-growth.sh split exited 2'; when 3, there is no such section), followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section; and the ### Test quality section: one bullet per line of .tdd/issue-<n>-test-quality giving its kind, its <file>::<case> and its why, marked 'fixed' with the subject of the test: commit its ⟦test-quality⟧ step made, or 'not fixed' with why: 'redundant', 'budget' (past VERI_TEST_QUALITY_FIXES), 'step growth' (its step filed under ## Owed steps) or 'no anchor' (test-quality.sh anchor exited 3), or, when the file is empty, the line 'No weak-assertion, redundant or implementation-coupled case was found.'>
    EOF
    $S/pr-body.sh <pr-number> .tdd/issue-<n>-pr-body.md
    ```
