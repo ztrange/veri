@@ -8,11 +8,11 @@ import pytest
 
 SCRIPTS = Path(__file__).resolve().parents[2]
 ROOT = SCRIPTS.parents[2]
-LINKED = ["vcoord", "vdev", "vfile", "vgroom", "vhandoff", "vplan"]
+LINKED = ["vdev", "vfile", "vgroom", "vhandoff", "vplan"]
 
 
 def _clone(tmp_path):
-    """A scratch git repository holding a copy of the scripts and the six skill directories."""
+    """A scratch git repository holding a copy of the scripts and the five skill directories."""
     clone = (tmp_path / "clone").resolve()
     scripts = clone / "skills" / "tdd" / "scripts"
     scripts.mkdir(parents=True)
@@ -28,7 +28,7 @@ def _clone(tmp_path):
 
 @pytest.mark.process("git init of a scratch repository, then install-links.sh run as the /bin/sh shim it is")
 @pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
-def test_install_links_sh_links_exactly_the_six_skills_into_the_main_tree_and_is_a_documented_shim_over_its_module(
+def test_install_links_sh_links_exactly_the_five_skills_into_the_main_tree_and_is_a_documented_shim_over_its_module(
         tmp_path):
     clone, shim = _clone(tmp_path)
     done = subprocess.run(["/bin/sh", str(shim), str(clone)], stdin=subprocess.DEVNULL,
@@ -123,7 +123,7 @@ def test_install_links_sh_link_lets_the_filesystem_resolve_dotdot_to_the_unlinke
     done = subprocess.run(["/bin/sh", str(shim), str(clone)], stdin=subprocess.DEVNULL,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     skills = clone / ".claude" / "skills"
-    base = str(skills / "vcoord")
+    base = str(skills / "vdev")
     scripts = os.stat(base + "/../tdd/scripts/")
     merge = os.stat(base + "/../vmerge/SKILL.md")
     assert (done.returncode, (skills / "tdd").exists(), (skills / "vmerge").exists(),
@@ -295,7 +295,7 @@ def test_install_links_sh_run_from_outside_a_git_repository_exits_2_and_creates_
 
 @pytest.mark.process("git init --template= on a scratch project, then install-links.sh run against it")
 @pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
-def test_install_links_sh_in_a_repo_with_no_git_info_directory_creates_it_and_lists_the_six_links_2830(tmp_path):
+def test_install_links_sh_in_a_repo_with_no_git_info_directory_creates_it_and_lists_the_five_links_2830(tmp_path):
     _, shim = _clone(tmp_path)
     project = (tmp_path / "project").resolve()
     project.mkdir()
@@ -311,7 +311,7 @@ def test_install_links_sh_in_a_repo_with_no_git_info_directory_creates_it_and_li
         0, sorted("/.claude/skills/" + n for n in LINKED), sorted(LINKED))
 
 
-@pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding none of the six links")
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding none of the five links")
 @pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
 def test_install_links_sh_on_a_repo_with_none_of_the_links_prints_one_stdout_line_per_skill_name_and_exits_0(tmp_path):
     _, shim = _clone(tmp_path)
@@ -322,12 +322,12 @@ def test_install_links_sh_on_a_repo_with_none_of_the_links_prints_one_stdout_lin
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     reported = done.stdout.splitlines()
     assert (done.returncode, len(reported), sorted(n for n in LINKED if sum(n in line for line in reported) == 1)) == (
-        0, 6, sorted(LINKED))
+        0, 5, sorted(LINKED))
 
 
 @pytest.mark.process("git init on a scratch project, then install-links.sh run twice against it")
 @pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
-def test_install_links_sh_second_run_on_a_repo_already_holding_all_six_links_prints_nothing_on_stdout(tmp_path):
+def test_install_links_sh_second_run_on_a_repo_already_holding_all_five_links_prints_nothing_on_stdout(tmp_path):
     _, shim = _clone(tmp_path)
     project = (tmp_path / "project").resolve()
     project.mkdir()
@@ -339,7 +339,7 @@ def test_install_links_sh_second_run_on_a_repo_already_holding_all_six_links_pri
 
     first = run()
     second = run()
-    assert (first.returncode, len(first.stdout.splitlines()), second.returncode, second.stdout) == (0, 6, 0, "")
+    assert (first.returncode, len(first.stdout.splitlines()), second.returncode, second.stdout) == (0, 5, 0, "")
 
 
 @pytest.mark.process("git init on a scratch project, then install-links.sh run twice against it around a dangling veri link")
@@ -383,7 +383,7 @@ def test_install_links_sh_invoked_through_a_skill_symlink_dotdot_path_links_the_
 
 @pytest.mark.process("git init on a scratch project, then install-links.sh run against it")
 @pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
-def test_install_links_sh_on_a_fresh_repo_links_and_excludes_exactly_the_six_operator_typed_skills_3750(tmp_path):
+def test_install_links_sh_on_a_fresh_repo_links_and_excludes_exactly_the_five_operator_typed_skills_3750(tmp_path):
     _, shim = _clone(tmp_path)
     project = (tmp_path / "project").resolve()
     project.mkdir()
@@ -395,8 +395,8 @@ def test_install_links_sh_on_a_fresh_repo_links_and_excludes_exactly_the_six_ope
     exclude = project / ".git" / "info" / "exclude"
     listed = sorted(line.strip().strip("/")[len(".claude/skills/"):] for line in exclude.read_text().splitlines()
                     if line.strip().strip("/").startswith(".claude/skills/")) if exclude.exists() else []
-    six = ["vcoord", "vdev", "vfile", "vgroom", "vhandoff", "vplan"]
-    assert (done.returncode, links, listed) == (0, six, six)
+    five = ["vdev", "vfile", "vgroom", "vhandoff", "vplan"]
+    assert (done.returncode, links, listed) == (0, five, five)
 
 
 @pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding the retired veri links")
@@ -457,3 +457,21 @@ def test_install_links_sh_leaves_no_vish_link_in_a_project_as_for_vinstall_4201(
     skills = project / ".claude" / "skills"
     user_level = sorted(n for n in ("vinstall", "vish") if os.path.lexists(skills / n))
     assert (done.returncode, user_level) == (0, [])
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding a veri vcoord link")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_removes_an_existing_veri_vcoord_link_names_it_and_links_the_rest_4102(tmp_path):
+    clone, shim = _clone(tmp_path)
+    (clone / "skills" / "vcoord").mkdir(exist_ok=True)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    skills = project / ".claude" / "skills"
+    skills.mkdir(parents=True)
+    os.symlink(clone / "skills" / "vcoord", skills / "vcoord")
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    links = sorted(p.name for p in skills.iterdir())
+    assert (done.returncode, links, "removed vcoord" in done.stdout.splitlines()) == (
+        0, ["vdev", "vfile", "vgroom", "vhandoff", "vplan"], True)
