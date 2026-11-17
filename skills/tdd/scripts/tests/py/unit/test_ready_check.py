@@ -33,7 +33,8 @@ def holding(**overrides):
         "git check-ignore": (0, "", ""),
         "gh auth status": (0, "", ""),
         "gh api repos/{owner}/{repo}": (0, '{"permissions": {"push": true}}', ""),
-        "gh label list": (0, '[{"name": "ready-for-agent"}]', ""),
+        "gh label list": (0, '[{"name": "ready-for-agent"}, {"name": "pr-ready"}, {"name": "bailed"}, {"name": "parked"}, '
+                             '{"name": "stopped"}]', ""),
         "detect-test-command.sh": (0, "make test\n", ""),
         "gh api -i user": (0, "HTTP/2.0 200 OK\r\nX-Oauth-Scopes: repo, workflow\r\n\r\n{}", ""),
         "git remote get-url --push origin": (0, "git@github.com:o/r.git\n", ""),
@@ -63,6 +64,16 @@ def test_issue_4087_ready_check_prints_an_ok_one_test_file_row_when_detect_test_
 
     assert "ok    one test file" in lines, lines
     assert (code, lines[-1]) == (0, "ready")
+
+
+def test_issue_4081_ready_check_prints_a_row_per_state_label_failing_with_the_create_fix_and_exits_1_when_gh_label_list_lacks_one(ready_check, run_cli, fake_processes, tmp_path):
+    listed = '[{"name": "ready-for-agent"}, {"name": "pr-ready"}, {"name": "bailed"}, {"name": "parked"}]'
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{"gh label list": (0, listed, "")})
+
+    for label in ("pr-ready", "bailed", "parked"):
+        assert f"ok    label {label}" in lines, (label, lines)
+    assert "fail  label stopped: create the `stopped` label in the repository" in lines, lines
+    assert code == 1
 
 
 def one_test_file_row(lines):
