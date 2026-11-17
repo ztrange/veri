@@ -18,7 +18,8 @@ def stop_run():
 SCRIPTS = Path(__file__).resolve().parents[2]
 
 
-SPINNER = "#!/bin/sh\nwhile :; do sleep 0.2; done\n"
+# Spins while the process that started it lives, so a stub orphaned by a killed run (its parent gone) ends itself.
+SPINNER = "#!/bin/sh\nwhile kill -0 $PPID 2>/dev/null; do sleep 0.2; done\n"
 
 
 @pytest.fixture
@@ -504,3 +505,16 @@ def test_4131_the_started_teardown_ends_the_stub_claude_live_conductor_starts_al
                 os.kill(claude, 9)
             except OSError:
                 pass
+
+
+@pytest.mark.process("the stub claude live_conductor starts, left behind by a launcher killed alone")
+def test_4131_the_stub_claude_ends_itself_once_its_launcher_is_gone(tmp_path, started):
+    holder = live_conductor(tmp_path / ".tdd" / "wt" / "5", started)
+
+    os.kill(holder.launcher.pid, 9)
+    holder.launcher.wait()
+
+    deadline = time.monotonic() + 5
+    while alive(holder.pid) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert not alive(holder.pid), "the stub claude %d outlived its launcher" % holder.pid
