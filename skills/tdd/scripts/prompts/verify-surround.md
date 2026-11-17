@@ -35,3 +35,7 @@ callable outside it, and to pin what the unmodified code does now. Judge whether
    depending on fixtures outside its own file. These are what such a test is.
 
 PASS only if all four hold. Leave the working tree exactly as you found it.
+
+You may add mutants of the region the developer's table misses, as further lines of your
+reason after the `REASON:` line: one `MUTANT: <file> | <old> | <new>` line each, a literal
+replacement inside the region the cases should catch. Do not run them: a script, not you, runs every row of both tables against the cases.
