@@ -331,6 +331,15 @@ def mark(directory, context, event, fields=(), ts=None):
         sys.stderr.flush()
 
 
+def stage_mark(directory, run_context, name, fields):
+    """`mark`, and a SystemExit it lets through (append_once's short write exits 2) kept from ending the stage's caller:
+    inside `stage`'s finally it would replace the body's exit code. Its stderr line is already written."""
+    try:
+        mark(directory, run_context, name, fields)
+    except SystemExit:
+        pass
+
+
 def stage(name, body, directory="", run_context=None):
     """Run `body()`, which returns an exit code, as stage `name` (D13): `stage-start stage=<name>` before it and
     `stage-end stage=<name> status=<code> secs=<whole seconds>` after it, on every exit; a body that raises ends its
@@ -338,14 +347,14 @@ def stage(name, body, directory="", run_context=None):
     128): no answer could be obtained, the code itself returned unchanged. Each line goes through `mark`, so a line that
     cannot be written is one stderr line and never changes what the body returns: telemetry never bails a run."""
     run_context = context(os.environ) if run_context is None else run_context
-    mark(directory, run_context, "stage-start", ["stage=" + name])
+    stage_mark(directory, run_context, "stage-start", ["stage=" + name])
     began = time.monotonic()
     status = 2
     try:
         status = body()
         return status
     finally:
-        mark(directory, run_context, "stage-end",
+        stage_mark(directory, run_context, "stage-end",
              ["stage=" + name, "status=%d" % (status if status in (0, 1, 2, 3) else 2),
               "secs=%d" % (time.monotonic() - began)])
 
