@@ -85,7 +85,7 @@ def release(number):
             sys.stderr.write("release-issue.sh: no answer from gh releasing #%s; re-run it\n" % number)
             return 2
     open(run_dir.issue_file(event.toplevel(), number, "-released"), "w").close()
-    accept_unwired(run_dir.worktree(event.toplevel(), number), number)
+    accept_unwired(run_dir.worktree(run_dir.main_tree_from_files(), number), number)
     # A released run's carried pin must not be honoured on another machine: its records go with the claim.
     failed = run_records.delete(number, event.toplevel() or ".")
     if failed:
