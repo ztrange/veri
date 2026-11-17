@@ -17,6 +17,7 @@ import ensure_run_state_ignored
 import git
 import launch_floor
 import paths
+import pid_file as pid_file_module
 import tunables
 from github import gh_probe as gh, push_dry_run
 from case_reader import is_test_path
@@ -102,32 +103,57 @@ def listed(wt):
     return os.path.realpath(wt) in paths
 
 
-def still_running(wt, tier):
-    """Whether ready-<tier>'s detached run in <wt> has recorded no exit and its pid still answers."""
-    if os.path.exists(os.path.join(wt, ".tdd", f"ready-{tier}.exit")):
-        return False
+def run_state(wt, tier):
+    """What is known of ready-<tier>'s detached run in <wt>: "ended" (it recorded an exit), "dead" (no exit, and its
+    recorded pid answers no more, or now names a process started at another time), "running", or "unknown" (no
+    exit and no readable pid file: it may be running). Only "ended" and "dead" let its worktree be removed."""
+    base = os.path.join(wt, ".tdd", f"ready-{tier}")
+    if os.path.exists(base + ".exit"):
+        return "ended"
     try:
-        with open(os.path.join(wt, ".tdd", f"ready-{tier}.pid")) as pid_file:
-            os.kill(int(pid_file.read().split()[0]), 0)
-    except (OSError, ValueError, IndexError):
-        return False
-    return True
+        with open(base + ".pid") as pid_file:
+            lines = pid_file.read().split("\n")
+        pid = int(lines[0])
+    except (OSError, ValueError):
+        return "unknown"
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return "dead"
+    except PermissionError:
+        pass
+    except OSError:
+        return "unknown"
+    started = lines[1].strip() if len(lines) > 1 else ""
+    if not started:
+        return "running"
+    if pid_file_module.ps_field("lstart", pid) is False:
+        return "unknown"
+    return "running" if pid_file_module.same_start(started, pid) else "dead"
+
+
+def removable(wt, tier):
+    """Whether <wt> may be removed: no suite of ready-<tier> is, or may be, still running in it."""
+    return run_state(wt, tier) in ("ended", "dead")
 
 
 def placed(tier, wt, tip, command):
     """How <wt> holds ready-<tier>'s run of <command> at <tip>: "reuse" when git lists it and its record names this
-    tip and command; "fresh" when nothing is there, or only a stale tier worktree of ours, removed first; else why
-    it cannot hold the run."""
+    tip and command; "fresh" when nothing is there, or only a stale tier worktree of ours whose run is over, removed
+    first; else why it cannot hold the run."""
     if not os.path.lexists(wt):
         return "fresh"
     ours = listed(wt) and read_record(wt, tier)
     if ours and ours[1:] == (tip, command):
         return "reuse"
-    if ours and still_running(wt, tier):
-        return f"no answer was obtained: an earlier run for another tip or command still runs in {wt}; wait for it to end"
+    if ours and not removable(wt, tier):
+        return f"no answer was obtained: an earlier run for another tip or command still runs, or may, in {wt}; wait for it to end"
     if ours and git.git("worktree", "remove", "--force", wt, capture_output=True, text=True).returncode == 0:
         return "fresh"
     return f"no answer was obtained: {wt} is in the way and is not a tier worktree this check made; move it aside"
+
+
+NOT_STARTED = object()  # tier_run_row's answer when the call's deadline passed before the tier could start
 
 
 def tier_run_row(tier, command, wt, deadline, state):
@@ -142,6 +168,15 @@ def tier_run_row(tier, command, wt, deadline, state):
     how = placed(tier, wt, tip, command)
     if how not in ("reuse", "fresh"):
         return f"{tier} tier run", how
+    if how == "reuse":
+        state[wt] = "started"
+        known = run_state(wt, tier)
+        if known == "unknown":
+            return f"{tier} tier run", f"no answer was obtained: a run started in {wt} left no pid file and no exit, so it may still run; wait for it to end"
+        if known == "dead":
+            return f"{tier} tier run", f"no answer was obtained: the run in {wt} ended without recording an exit"
+    if how == "fresh" and deadline - time.monotonic() <= 0:
+        return NOT_STARTED
     if how == "fresh":
         added = git.git("worktree", "add", "--detach", wt, tip, capture_output=True, text=True)
         if added.returncode != 0:
@@ -189,7 +224,7 @@ def tier_run_rows(root):
     name it runs under). The tier worktrees this call added or used, and a .tdd/ made for those, are removed on every
     way out but that one, which leaves every tier's worktree in place for the call that waits again — save one whose
     detached run was started and not yet waited out, which an exception leaves in place, record and all."""
-    rows, state, waiting = [], {}, None
+    rows, state, waiting, not_started = [], {}, None, []
     tdd = os.path.join(root, ".tdd")
     made_tdd = not os.path.exists(tdd)
     deadline = call_deadline if call_deadline is not None else time.monotonic() + CALL_BOUND
@@ -198,13 +233,18 @@ def tier_run_rows(root):
             code, command = resolved_tier(tier)
             if code == 0:
                 row = tier_run_row(tier, command, os.path.join(tdd, "ready-" + tier), deadline, state)
+                if row is NOT_STARTED:
+                    not_started.append("ready-" + tier)
+                    continue
                 if row is None:
                     waiting = "ready-" + tier
                     break
                 rows.append(row)
+        if not_started and waiting is None:
+            waiting = f"{not_started[0]} (not started, the call's deadline passed: {', '.join(not_started)})"
     finally:
         if waiting is None:
-            for wt in [wt for wt, how in state.items() if how != "started"]:
+            for wt in [wt for wt in state if removable(wt, os.path.basename(wt)[len("ready-"):])]:
                 git.git("worktree", "remove", "--force", wt, capture_output=True, text=True)
             if made_tdd:
                 with contextlib.suppress(OSError):

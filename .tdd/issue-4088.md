@@ -18,3 +18,6 @@
 - [x] a tier worktree is reused only when git lists it and its record names the tip and command of now
 - [x] one deadline counted from the call's start bounds the permission probe and both tiers
 - [x] an exception after a tier started leaves its worktree and record for the re-run
+- [x] no tier worktree is removed while its suite is or may be running: a stale one still running, a wait exit 2 with the suite alive, an interrupt during start, a missing pid file
+- [x] a pid reused by another process reads as a dead run: the row says no answer and the worktree may go
+- [x] a deadline passed before a tier would start starts none and exits 3 naming the tiers not started
