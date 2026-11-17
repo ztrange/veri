@@ -1,0 +1,46 @@
+"""In-process cases for veri/coupling.py, the module coupling.sh is a shim over (#4124, PRD 032.8)."""
+import importlib
+
+import pytest
+
+
+@pytest.fixture
+def coupling():
+    return importlib.import_module("veri.coupling")
+
+
+def range_git(fake_processes, changed, tracked=()):
+    """Answers the git calls of a run: the base resolves, `diff --name-only` names <changed>, and `ls-files` lists
+    <tracked> as the files git does not ignore."""
+    def answer(line, **kwargs):
+        if line.startswith("git rev-parse"):
+            return 0, "abc\n", ""
+        if line.startswith("git diff"):
+            return 0, "".join(f + "\0" for f in changed), ""
+        if line.startswith("git ls-files"):
+            return 0, "".join(f + "\0" for f in tracked), ""
+        raise AssertionError("unexpected command: %s" % line)
+
+    return fake_processes.answers({"git": answer})
+
+
+def write(root, files):
+    for name, text in files.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+
+
+def test_each_same_extension_non_test_pair_naming_each_other_one_of_them_changed_is_printed_in_byte_order(
+        tmp_path, monkeypatch, capsys, coupling, fake_processes):
+    tree = {"src/b.py": "import a\n", "src/a.py": "import b\nimport Z\n",
+            "src/c.py": "import a\n",
+            "src/d.py": "import e\n", "src/e.py": "import d\n",
+            "src/f.js": "require('./g')\n", "src/g.py": "f = 1\n",
+            "docs/h.md": "i\n", "docs/i.md": "h\n",
+            "tests/test_j.py": "import a\n", "src/Z.py": "import a\n"}
+    write(tmp_path, tree)
+    range_git(fake_processes, ["src/b.py", "src/Z.py", "src/f.js", "docs/h.md", "tests/test_j.py"], list(tree))
+    monkeypatch.chdir(tmp_path)
+    assert (coupling.main(["base"]),) + tuple(capsys.readouterr()) == (
+        0, "mutual: src/Z.py src/a.py\nmutual: src/a.py src/b.py\n", "")
