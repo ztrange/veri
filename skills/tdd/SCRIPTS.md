@@ -355,6 +355,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   naming no issue counts as the local run's own), it reports instead from the events in origin's `refs/veri/runs/<n>`
   (fetched into the clone under that ref, the fetch ended after `VERI_GIT_NETWORK_TIMEOUT` seconds and then read as no
   answer in one stderr line), so a run made on another machine is reported here too.
+  Right after its `#### By phase` table the report holds a `#### REJECT outcomes` table, one row per phase with a
+  verifier REJECT, giving its REJECT count and how many of those REJECTs were caught, flipped, overturned, unresolved,
+  pending and untracked, the figures of that phase's `rejects` in `--json`; a run with no REJECT has no such table.
   `$S/metrics.sh <n> --json` prints, in place of the markdown report, one JSON object holding the same figures under
   the top-level keys `run`, `phases`, `steps`, `conductor` and `total`, `leaves`, the phase figures split by
   leaf kind, `runs`, one entry per run of the issue, and `stages`, the figures of each stage the journal marks. Every figure in it is a number, or `null` when
