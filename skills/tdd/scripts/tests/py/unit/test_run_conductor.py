@@ -183,4 +183,20 @@ def test_prompt_with_revise_budget_set_holds_one_line_naming_it_and_its_value_27
     assert len(named) == 1 and "3" in named[0], text
 
 
+def test_run_conductor_imports_no_leg_module_and_reads_the_directory_the_leg_pins_from_veri_4051():
+    """A run must not import test plumbing (PRD 025.16, PL3): the free-space check's pinned directory comes from
+    veri/leg_tmpdir.py, the module the pytest leg pins TMPDIR from, never from the leg itself."""
+    import ast
+    tree = ast.parse((SCRIPTS / "veri" / "run_conductor.py").read_text())
+    leg_modules = {"pytest_leg", "network_guard", "small_case_guard", "serial_seen", "private_tmp_path"}
+    named = {node.value for node in ast.walk(tree) if isinstance(node, ast.Constant) and isinstance(node.value, str)}
+    imported = {alias.name.split(".")[-1] for node in ast.walk(tree) if isinstance(node, (ast.Import, ast.ImportFrom))
+                for alias in node.names} | {(node.module or "").split(".")[-1] for node in ast.walk(tree)
+                                            if isinstance(node, ast.ImportFrom)}
+    leg_tmpdir = importlib.import_module("veri.leg_tmpdir")
+    run_conductor = importlib.import_module("veri.run_conductor")
+
+    assert (sorted(leg_modules & (named | imported)), run_conductor.pinned_tmpdir()) == ([], leg_tmpdir.PINNED_TMPDIR)
+
+
 REAL_RUN, REAL_POPEN = subprocess.run, subprocess.Popen

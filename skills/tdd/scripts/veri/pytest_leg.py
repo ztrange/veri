@@ -32,12 +32,12 @@ import time
 import entry
 import full_run_lock
 import launch_floor
+import leg_tmpdir
 import tunables
 from full_run_lock import legs_dir
 
 
 MANIFEST = "veri-manifest.json"
-PINNED_TMPDIR = "/tmp"
 # Whether the last main()'s passes ran and were red, set before its teardown, so launch keeps their 1 when the
 # teardown raises (#3985).
 PASSES_RED = [False]
@@ -399,7 +399,7 @@ def main(argv):
         sys.stderr.write("VERI_PYTEST_WORKERS must be a whole number of at least 1; got %s.\n" % workers)
         return 2
     import pytest
-    os.environ["TMPDIR"] = PINNED_TMPDIR
+    os.environ["TMPDIR"] = leg_tmpdir.PINNED_TMPDIR
     sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
     sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     outer = sys.modules.get("failed_cases")

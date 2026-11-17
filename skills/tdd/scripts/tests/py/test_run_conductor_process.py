@@ -3654,11 +3654,11 @@ def test_cli_the_free_space_preflight_reads_the_directory_the_pytest_legs_pinned
     monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
     monkeypatch.delenv("VERI_MIN_FREE_GB", raising=False)
     scratch_tmpdir(tmp_path, monkeypatch)
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    leg_tmpdir = importlib.import_module("veri.leg_tmpdir")
     run_conductor = importlib.import_module("veri.run_conductor")
     pinned = tmp_path / "pinned"
     pinned.mkdir()
-    monkeypatch.setattr(pytest_leg, "PINNED_TMPDIR", str(pinned))
+    monkeypatch.setattr(leg_tmpdir, "PINNED_TMPDIR", str(pinned))
     launches = fake_claude_exiting(monkeypatch, 0, 0)
     monkeypatch.setattr(run_conductor, "free_gb",
                         lambda path: 5 if os.path.realpath(path) == os.path.realpath(pinned) else 500,
