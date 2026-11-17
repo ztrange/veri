@@ -1259,48 +1259,33 @@ that push; else the ending call's code (a bail's too).
    `$touched` is the step's bounds: when all are test files, a structural candidate is
    recorded test-only — "test file" being `transform-touches-tests.sh`'s rule, which is
    `case_reader.is_test_path`'s: `tests/` directories, `*.test.*`, JS/TS `*.spec.*`, Go `*_test.go`, and Python `test_*.py` or `*_test.py` anywhere, so no transform could land it.
-   - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
-     **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and of
+   - **PASS:** run `$S/step-close.sh <n>` first (again on 3); on 0 its last lines hold `next`, `owed_pin`, else go on from the
+     sub-step it names. The step's cycle is complete — the step is tidied, not merely green, so **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and of
      the passing verify-refactor verdict's own `uncovered-spec` flags, then clear the refactor-pending mark and commit the grown, cleared
-     ledger first**, before anything outside the repository says the step is done. The
-     verifier's are the `FLAGS:` lines before the final `VERDICT:`/`REASON:` pair in
-     `.tdd/verify-refactor.log` — the unhandled edge case it reports rather than REJECTs
-     for, carrying the same three classes as the leaf's. Only its `uncovered-spec` lines go
-     into the call, by 4's rule; its `overfit` and `beyond-spec` lines are narrated as
-     follow-ups in the `### 🛠️ Refactor` comment and the PR body, since the step's refactor
-     loop has already closed and no triangulation reopens it. **Before the clear**, run
-     `$S/graded-changed.sh <green-sha>` over the refactor leaf's commits: its exit 1 prints each
-     graded unit they changed, and the run **bails** with cause `graded-edit-outside-skill-edit`, a
-     process failure, naming each unit, with the refactor-pending mark left in place (`Read`
-     `<base directory>/BAIL.md`). **Also before the clear, run
-     `$S/pin-recheck.sh "$(git rev-parse <green-sha>~1)"`**, the commit before the step's green
-     commit, so the range holds the step's code; the call names no `--ledger <file>` selector, so
-     every ledger's touched records are replayed (the selector and its exit codes are in the
-     `pin-recheck.sh` entry of `SCRIPTS.md`): a step can disarm an earlier pin and still
-     pass its own verification, and nothing else compares them. Exit 1 is a pin that stayed
+     ledger first**, before anything outside the repository says the step is done. The verifier's are the `FLAGS:` lines before the final `VERDICT:`/`REASON:` pair in
+     `.tdd/verify-refactor.log` — the unhandled edge case it reports rather than REJECTs for, carrying the same three classes as the leaf's. Only its `uncovered-spec` lines go
+     into the call, by 4's rule; its `overfit` and `beyond-spec` lines are narrated as follow-ups in the `### 🛠️ Refactor` comment and the PR body, since the step's refactor
+     loop has already closed and no triangulation reopens it. **Before the clear**, run `$S/graded-changed.sh <green-sha>` over the refactor leaf's commits: its exit 1 prints each
+     graded unit they changed, and the run **bails** with cause `graded-edit-outside-skill-edit`, a process failure, naming each unit, with the refactor-pending mark left in place (`Read`
+     `<base directory>/BAIL.md`). **Also before the clear, run `$S/pin-recheck.sh "$(git rev-parse <green-sha>~1)"`**, the commit before the step's green
+     commit, so the range holds the step's code; the call names no `--ledger <file>` selector, so every ledger's touched records are replayed (the selector and its exit codes are in the
+     `pin-recheck.sh` entry of `SCRIPTS.md`): a step can disarm an earlier pin and still pass its own verification, and nothing else compares them. Exit 1 is a pin that stayed
      green under its recorded mutation, or a before-state pin this range disarmed (green at `HEAD`, red on the range's base; a before-state pin green on both is stale, printed `stale: <record file> <test path>` on stdout, and so is a mutation pin green under its mutation on the base too, printed `stale: <record file> <mutated file>`; neither changes the exit): write its reason, naming that pin, to `.tdd/verify-refactor.reason`, leave the refactor-pending mark
-     in place, and route the finding before any revise with
-     `$S/pin-reject-route.sh --recheck .tdd/verify-refactor.reason .tdd/issue-<n>.md "<STEP>"`
+     in place, and route the finding before any revise with `$S/pin-reject-route.sh --recheck .tdd/verify-refactor.reason .tdd/issue-<n>.md "<STEP>"`
      (`<STEP>` read from the ledger as above). A pin this range disarmed is never given to a refactor revise leaf, which may not edit tests. Branch on its answer:
      `repin <file>` means it inserted a `⟦diff-checked⟧` re-pin step after the step: end the stage (status 1), commit the ledger
-     (`git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit`), run that step
-     (`Read` and run `<base directory>/DIFF-CHECKED.md`) and launch no refactor revise leaf;
-     `revise` keeps it a verify-refactor REJECT naming that pin, spending `REVISE_BUDGET` (when a verifier
-     answers `REJECT`, `Read` `<base directory>/REVISE.md`);
+     (`git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit`), run that step (`Read` and run `<base directory>/DIFF-CHECKED.md`) and launch no refactor revise leaf;
+     `revise` keeps it a verify-refactor REJECT naming that pin, spending `REVISE_BUDGET` (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`);
      `repin-failed <file>` is a re-pin that left the pin still disarmed: **bail** once with cause
      `repin-failed`, a process failure naming the pin (`Read` `<base directory>/BAIL.md`). Exit 2, no answer (a base that cannot be resolved or replayed included, and the other cases the `pin-recheck.sh` header lists), **bails** as a system failure (`Read` `<base directory>/BAIL.md`).
      Exit 0 prints any pin that needs a look: copy each into the PR body's list of what a human
      owes, under `## Owed by a human`. Exit 3, no record touches the range or every selected pin is retired (a pin whose named `TESTS=` test file the range deletes, a before record included, or a mutation pin whose mutated file the range deletes, prints `retired: <record file> <mutated file> <path>` on stdout and is not a REJECT; a before record is never retired for a replay file gone before the range: the replay skips that file and the pin still runs), goes on. Exits 0 and 3 leave
      the `.tdd/pin-recheck-ok` receipt, and `clear-refactor-pending.sh` and the tick refuse (exit 2) without it.
-     **Only after that PASS, and before the step's ledger commit**, re-record the frozen cases
-     the refactor changed, an earlier step's included, with
-     `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>`: a case is
-     re-recorded only when it kept its title and its assertion lines modulo whitespace, and its
-     record matched its body at `<green-sha>`, or at `<green-sha>^` when `<green-sha>` is one of
-     the own commits of a ticked `⟦suite-repair⟧` step (the verified repair green that rewrote it;
+     **Only after that PASS, and before the step's ledger commit**, re-record the frozen cases the refactor changed, an earlier step's included, with
+     `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>`: a case is re-recorded only when it kept its title and its assertion lines modulo whitespace, and its
+     record matched its body at `<green-sha>`, or at `<green-sha>^` when `<green-sha>` is one of the own commits of a ticked `⟦suite-repair⟧` step (the verified repair green that rewrote it;
      another step's `⟦suite-repair⟧` tick does not count); one that did not is left as recorded, so `check-earlier` still refuses it. A case a `⟦replaces-case⟧` step of the ledger names, in the suite it names, is neither re-recorded nor refused. Its exit 1 is a
-     **bail** with cause `needs-user`, a process failure, quoting each `skipped:` line it printed, and its
-     exit 2 a **bail** with cause `rerecord-failed`, a system failure; neither
+     **bail** with cause `needs-user`, a process failure, quoting each `skipped:` line it printed, and its exit 2 a **bail** with cause `rerecord-failed`, a system failure; neither
      `clear-refactor-pending.sh` nor the step's ledger commit follows either (`Read` `<base directory>/BAIL.md`):
      ```
      $S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>
@@ -1310,41 +1295,29 @@ that push; else the ending call's code (a bail's too).
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
      $S/push-branch.sh
      ```
-     `git add -A` carries `.tdd/issue-<n>-refactor-owed.md`, untracked since `append`, into that commit.
-     `<k>` is the number of the issue's numbered acceptance criterion the behaviour serves,
-     read from the issue's `## Acceptance criteria`, not inherited from the anchor. The
-     uncovered-spec behaviours, the leaf's and the verifier's, serving one criterion go in
-     **one** call, under the script's own one-call rule — one call per criterion when they
-     serve different ones — anchored `after "<STEP>"` so the triangulating step lands next to
+     `git add -A` carries `.tdd/issue-<n>-refactor-owed.md`, untracked since `append`, into that commit. `<k>` is the number of the issue's numbered acceptance criterion the behaviour serves,
+     read from the issue's `## Acceptance criteria`, not inherited from the anchor. The uncovered-spec behaviours, the leaf's and the verifier's, serving one criterion go in
+     **one** call, under the script's own one-call rule — one call per criterion when they serve different ones — anchored `after "<STEP>"` so the triangulating step lands next to
      the code it triangulates. Each per-criterion call emits its own step-added event, the
      line above run once per call, anchored on the step and carrying `added=<that call's count>`. **`add-ledger-step.sh` exit 2** here means the call itself was
      malformed — a `<k>` that is not a whole number ≥ 1: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, on any answer (`retry` too), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`. A criterion no
-     ledger step serves yet is no obstacle: the script tags the new step `⟦criterion k⟧` all
-     the same. Neither reporting one — no `uncovered-spec` flag
-     from the leaf and none in the verdict — is no call and no mark at all.
-     **exit 1** is that one call meeting the plan-growth budget: the values are filed as
-     owed steps rather than planned — the script's own entry in `SCRIPTS.md` says how — and
-     `next-unchecked.sh` never finds them there, so the run does not plan what it recorded.
-     Narrate it as the owed steps it is and carry on to the clear below — the step verified
-     PASS and the values are recorded. That grown ledger rides the same commit as the clear.
-     The push copies the step's
-     finished state to the remote on the same terms as Green's above: exit **1** launches
+     ledger step serves yet is no obstacle: the script tags the new step `⟦criterion k⟧` all the same. Neither reporting one — no `uncovered-spec` flag
+     from the leaf and none in the verdict — is no call and no mark at all. **exit 1** is that one call meeting the plan-growth budget: the values are filed as
+     owed steps rather than planned — the script's own entry in `SCRIPTS.md` says how — and `next-unchecked.sh` never finds them there, so the run does not plan what it recorded.
+     Narrate it as the owed steps it is and carry on to the clear below — the step verified PASS and the values are recorded. That grown ledger rides the same commit as the clear.
+     The push copies the step's finished state to the remote on the same terms as Green's above: exit **1** launches
      the reconcile leaf (`Read` and run `<base directory>/RECONCILE.md`). Exit **2** is a **bail** (`Read` `<base directory>/BAIL.md`).
-     **Then run `$S/stop-requested.sh`**, immediately after that push, and handle its exit as
-     Green's stop check after its own push does (exit 0 and exit 2 as it sets them out); on
-     exit 3 carry on.
-     Then **mirror to the issue**:
+     **Then run `$S/stop-requested.sh`**, immediately after that push, and handle its exit as Green's stop check after its own push does (exit 0 and exit 2 as it sets them out); on
+     exit 3 carry on. Then **mirror to the issue**:
      post the `### ✅ Step done` comment by running `$S/comment.sh <n> step-done`, then ask whether the step's criterion is finished
      (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md 2> .tdd/criterion-finished.err`, k from the step's `⟦criterion k⟧`):
      on exit **0** tick it in the **issue body** (`$S/tick-issue-criterion.sh <n>
      "$(gh api repos/{owner}/{repo}/issues/<n> -q .body | $S/ledger-steps.sh criterion <k>)"`); on exit **3** tick nothing, since a step serving it is
      still open or pending; on exit **2** the criterion could not be read, never exit 3: with `$S/adjudicate.sh left <n>` exit 0 first launch
      `adjudicate-criterion-unreadable` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, on any answer (`retry` too),
-     **bail** with cause `criterion-unreadable` (a system failure), calling `criterion-finished.sh` no more (see `<base directory>/BAIL.md`). Mark
-     the same moment in the log —
+     **bail** with cause `criterion-unreadable` (a system failure), calling `criterion-finished.sh` no more (see `<base directory>/BAIL.md`). Mark the same moment in the log —
      `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" $S/event.sh step-done`.
-     **Then ask whether the run can still afford to finish** — this step boundary is where
-     the run first knows what is left. When `next-unchecked.sh` exits 3 there is no next
+     **Then ask whether the run can still afford to finish** — this step boundary is where the run first knows what is left. When `next-unchecked.sh` exits 3 there is no next
      step and nothing to ask; otherwise pass it the count of steps it has still to hand
      over — the ledger's unchecked boxes under the same grammar, leaving out the
      `⟦full-suite⟧` and `⟦human-owed⟧` lines it skips, since no cycle closes those and
