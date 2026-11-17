@@ -847,7 +847,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    $S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" --red-case '<red-test-id>' <test-path>… > .tdd/verify-red.reason; rc=$?
    [ "$rc" = 0 ] || exit "$rc"
    ```
-   Exit 1 (Red case gone) is a verify-red REJECT spending `REVISE_BUDGET` (`Read` `<base directory>/REVISE.md`); exit 2, a bail (`BAIL.md`).
+   Exit 1 (Red case gone) is a verify-red REJECT spending `REVISE_BUDGET` (`Read` `<base directory>/REVISE.md`); exit 2, a bail (`<base directory>/BAIL.md`).
    With `--step "<step text>"` in place of a record file, the record file is the one `$S/tests-frozen.sh path "<step text>"`
    prints, `.tdd/tests-frozen-<k>.record` with `<k>` the first 16 hex digits of the step text's SHA-256: a step text is
    often longer than a filename may be and may hold a `/`, so the text itself is never the filename.
