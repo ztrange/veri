@@ -539,6 +539,43 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   when a trusted comment there (an owner's, a collaborator's or the `gh` user's) already holds the same text; a
   stranger's copy never stops it. With no one tracking pull request open it opens none, posts
   nothing, says so on stderr and keeps its exit.
+- `$S/stack-fix.sh <n> <red-sha> <culprit-file>` — run in a *fix worktree* (a detached worktree under the target
+  repository's `.tdd/`, cut from `origin/<stack>`'s tip) with `<culprit-file>` holding `stack-culprit.sh`'s output for
+  that red: the one way a reviewed hand fix reaches a frozen stack. It takes the merge lock, runs `stack-red.sh`,
+  fetches, and pushes the worktree's `HEAD` to the stack only when every check holds:
+  - `<red-sha>` is the commit `stack-red.sh` prints now (another commit is **exit 1**, naming the one red now);
+  - `<culprit-file>`'s `red:` line is `<red-sha>` and its `issue:` line names `<n>` (else **exit 1**; a file without
+    its `red:`, `issue:` and `case:` lines, or one it cannot read, is **exit 2**);
+  - one fix per culprit: no commit of `origin/<default>..origin/<stack>` already carries a `Stack-fix:` trailer and a
+    subject naming `<n>` by `stack-green.sh`'s rule (else **exit 1**);
+  - `origin/<stack>`, as fetched, is an ancestor of `HEAD`, `HEAD` adds at least one commit, and every commit of
+    `origin/<stack>..HEAD` ends its subject `(#<n>)` and carries the trailer `Stack-fix: <red-sha>` (else **exit 1**);
+  - no *test file* is added, changed, deleted or renamed in `git diff --name-status origin/<stack>..HEAD` (either side
+    of a rename): the file of a case `<culprit-file>` names, or a path with a directory named `test`, `tests`, `spec`
+    or `__tests__`, or a file name that starts `test_` or holds `_test.`, `.test.` or `.spec.` (else **exit 1** naming
+    it);
+  - the worktree has no uncommitted change (else **exit 1**: a run there would not test `HEAD`);
+  - at `HEAD`, each named case passes run alone through the repository's `veri: one test file:` command
+    (`detect-test-command.sh --tier "one test file"`): a case whose run exits 1, 4 or 5, or exits otherwise with a
+    failure line naming it (read as `stack-culprit.sh` reads one), or whose file is absent, or whose output says it
+    was not found or not collected whatever the exit, is **exit 1** naming it; any other exit, no exit within
+    `VERI_TIMEOUT`, or no such command declared is **exit 2**. The exit code alone never passes a case;
+  - at `HEAD`, the fast tier (`detect-test-command.sh --tier fast`) exits 0 (non-zero is **exit 1**; no command found
+    or no exit within `VERI_TIMEOUT`, **exit 2**) and `prose-owed.sh` exits 0 (exit 1, a unit owing a grade, is
+    **exit 1**; any other, **exit 2**); a run that moved `HEAD` or left the worktree changed is **exit 2**.
+
+  The push is a compare-and-swap leased to the fetched tip (`--force-with-lease=refs/heads/<stack>:<fetched sha>`), a
+  fast-forward since `HEAD` descends from it, never a bare force and never the default branch. A push that does not
+  answer 0 is read back with a fetch: origin's stack at `HEAD` is the push landed; moved to another commit is **exit
+  1**, nothing pushed; still the fetched tip, or a fetch with no answer, **exit 2**. On success it prints the pushed
+  sha and exits **0**, then adds one comment to the stack's tracking pull request (`stack-pr.sh`'s) and one to issue
+  `<n>`, each naming `<red-sha>`, the pushed sha and the cases; a tracking pull request it cannot tell (none open, or
+  several) or a comment that fails is said on stderr and leaves the exit 0, since the push landed. **Exit 3**, nothing
+  pushed, when `stack-red.sh` exits 3; **exit 2** on no answer from `stack-red.sh` (any other non-zero exit), the
+  merge lock, git or GitHub, when the repository names no stack or origin has none, or on bad arguments (`<n>` not an
+  issue number, `<red-sha>` not 40 hex). On every exit 1 or 2 nothing is pushed, the merge lock is freed and the fix
+  worktree and its commits are kept. It makes no `wait-ci.sh` call and lifts no freeze: CI on the new tip, read by
+  `stack-red.sh`, is the fix's gate.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
