@@ -14,6 +14,7 @@ ENTRY_POINTS = {
     "VERI_BASELINE_FULL_TIER": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_FULL_TIER_MAX_AGE_DAYS": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_CI_FLAKE_RERUNS": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
+    "VERI_TEST_QUALITY_FIXES": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_COMMENT_CHUNK": ("veri.report_cache", ["refresh"], {}),
     "VERI_KILL_POLL": ("veri.supervise", ["develop-red", "true"], {"VERI_TIMEOUT": "900"}),
 }
@@ -149,6 +150,26 @@ def test_4018_ci_flake_reruns_not_a_whole_number_makes_run_conductor_exit_2_nami
 
     assert (code, out, len(err.splitlines()), "VERI_CI_FLAKE_RERUNS" in err, "'%s'" % value in err,
             tuple(calls)) == (2, "", 1, True, True, ())
+
+
+@pytest.mark.parametrize("value", ["abc", "1.5", "-3"])
+def test_4120_test_quality_fixes_not_a_whole_number_makes_run_conductor_exit_2_naming_it_and_the_value(
+        monkeypatch, tmp_path, run_cli, fake_processes, value):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.chdir(tmp_path)
+    for name in [n for n in os.environ if n.startswith("VERI_") and n != "VERI_VENV"]:
+        monkeypatch.delenv(name)
+    module, argv, env = ENTRY_POINTS["VERI_TEST_QUALITY_FIXES"]
+    calls = fake_processes()
+    entry = tunables.TABLE["VERI_TEST_QUALITY_FIXES"]
+    unset = tunables.resolve("VERI_TEST_QUALITY_FIXES")
+
+    code, out, err = run_cli(importlib.import_module(module), argv,
+                             env=dict(env, VERI_TEST_QUALITY_FIXES=value), cwd=tmp_path)
+
+    assert ((entry.default, entry.refusal, unset, tunables.parses("VERI_TEST_QUALITY_FIXES", "0")),
+            (code, out, len(err.splitlines()), "VERI_TEST_QUALITY_FIXES" in err, "'%s'" % value in err,
+             tuple(calls))) == (("1", "a whole number", (1, None), True), (2, "", 1, True, True, ()))
 
 
 @pytest.mark.parametrize("value", ["0", "abc", "1.5", "-3"])
@@ -322,7 +343,7 @@ def test_the_refusing_table_is_exactly_the_entries_that_state_a_refusal():
         "VERI_CONDUCTOR_CTX_BUDGET", "VERI_RESET_GROWTH_CONDUCTOR", "VERI_RESET_GROWTH_DEV",
         "VERI_KILL_POLL", "REVISE_BUDGET", "VERI_COMMENT_CHUNK", "VERI_REBASED_TIP_SUITE",
         "VERI_BRANCH_SUITE", "VERI_BASELINE_FULL_TIER", "VERI_FULL_TIER_MAX_AGE_DAYS",
-        "VERI_CI_FLAKE_RERUNS"}
+        "VERI_CI_FLAKE_RERUNS", "VERI_TEST_QUALITY_FIXES"}
 
 
 def test_resolve_refuses_nothing_for_a_name_that_states_no_refusal_and_get_reads_it(monkeypatch):
