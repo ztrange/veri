@@ -331,7 +331,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   own marks nor the conductor and anything under it see it, and an exit 2 naming the table is never a run's. A script
   a person runs by hand outside a run checks only if they export this test-only variable. Without it the script
   writes the line as before.
-- `$S/metrics.sh <n>` — the event log's **reader**: prints on stdout one markdown
+- `$S/metrics.sh <n> [--json]` — the event log's **reader**: prints on stdout one markdown
   `### 📊 Metrics` report of what solving issue `<n>` cost — attempts, verdicts, kills,
   retries and budgets spent, per phase and per step. A non-empty pinned `.tdd/issue-<n>-skip-verify` adds the line
   `⚠️ Unverified phases: <list>`, and any `reason=switched-off` skips (apart from `nothing-landed` ones) add
