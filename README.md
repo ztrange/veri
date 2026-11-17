@@ -87,10 +87,10 @@ the `claude` CLI are both authenticated.
 
 Preflight infers the target repo's full-suite test command from what the repo committed —
 a `package.json` test script, a `Makefile` `test` target, pytest config, `go.mod`,
-`Cargo.toml`. When that inference is wrong, put a `.veri/test-command` file in the target
-repo: its first non-empty line is run verbatim as the full suite, ahead of every
-inference. That file is the per-repo escape hatch; without it, a repo veri cannot read is
-asked about rather than guessed at.
+`Cargo.toml`. When that inference is wrong, the fix is the target repo's
+`veri: <tier> tests:` CLAUDE.md lines, which `/vinstall` records and which are used ahead of
+every inference: they are the per-repo escape hatch. Without them, a repo veri cannot read
+is asked about rather than guessed at.
 
 The `veri: all tests` command must be the project's whole merge gate: a run's full suite is
 never a subset of what the merge checks, or a run can report green and still fail the gate.

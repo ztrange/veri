@@ -3,8 +3,8 @@
 #
 # Precedence is first-match-wins: for --tier all (the default) only (never for --tier fast or "one test file"), the issue's `Test command:` line (never for
 # --tier fast; dropped when it equals the fast tier's command or is CLAUDE.md's `veri: all tests:`
-# command plus a ` TESTS=` selector); then the tier markers in the repo's CLAUDE.md, then .veri/test-command, then
-# inference from the repo's files.
+# command plus a ` TESTS=` selector); then the tier markers in the repo's CLAUDE.md (`veri: <tier> tests:`, which
+# /vinstall records), then inference from the repo's files.
 #
 # usage:   detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]
 #          (repo-root defaults to the current directory)

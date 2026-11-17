@@ -482,11 +482,11 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
   wins: for `--tier all` only, the issue body's own `Test command:` line, unless it equals the
-  fast tier's command or is CLAUDE.md's `veri: all tests:` command plus a ` TESTS=` selector (#1225); then the repo's CLAUDE.md line for the tier; then the repo's
-  `.veri/test-command`; then every inference (see *Detecting the test command*).
+  fast tier's command or is CLAUDE.md's `veri: all tests:` command plus a ` TESTS=` selector (#1225); then the repo's CLAUDE.md line for the tier
+  (`veri: <tier> tests:`); then every inference (see *Detecting the test command*).
   `--tier fast` never reads the issue's line. `--tier "one test file"` has one source: the repo's
   CLAUDE.md line `veri: one test file: <command>`, the command taking the target (a test file or a pytest node id) as `"$1"`; no
-  `.veri/test-command`, no inference, and **exit 3** when the line is absent. A bad argument is **exit 2**.
+  inference, and **exit 3** when the line is absent. A bad argument is **exit 2**.
 - `$S/worktree-setup.sh <n>` — run from inside a run worktree: runs the `veri: setup: <cmd>` line of its CLAUDE.md (read like `veri: all tests:`) once in the worktree root; exit 2 with no argument. Called by preflight.
 - `$S/solvable-issues.sh [--repo <owner/name>] [--not-running]` — the **selection layer**: prints the
   numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
