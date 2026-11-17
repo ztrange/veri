@@ -180,7 +180,28 @@ def _checked(n, red):
         if trailers and n in stack_green.named(subject):
             raise Refused("%s (%s) on origin/%s already carries a %s: trailer for issue %s: one fix per culprit;"
                           " nothing pushed" % (commit, subject, stack, TRAILER, n))
+    _bounds(n, red, stack, onto, head)
     return stack, onto, head
+
+
+def _bounds(n, red, stack, onto, head):
+    """The fix's commits: origin/<stack> as fetched (<onto>) is an ancestor of <head>, and each commit of
+    <onto>..<head> ends its subject `(#<n>)` and carries `Stack-fix: <red>`. Refused, or NoAnswer from git."""
+    descends = _ancestor(onto, head)
+    if descends is None:
+        raise NoAnswer("git merge-base --is-ancestor gave no answer; nothing pushed")
+    if not descends:
+        raise Refused("origin/%s at %s is not an ancestor of HEAD %s: the fix must sit on the stack's tip, and the push"
+                      " is a fast-forward only; nothing pushed" % (stack, onto, head))
+    commits = _log("%s..%s" % (onto, head))
+    if not commits:
+        raise Refused("HEAD adds no commit to origin/%s: there is no fix to push" % stack)
+    for commit, subject, trailers in commits:
+        if not subject.endswith("(#%s)" % n) or red not in trailers:
+            raise Refused("the fix commit %s (%s) %s; every fix commit ends its subject (#%s) and carries %s: %s;"
+                          " nothing pushed" % (commit, subject, "lacks the trailer %s: %s" % (TRAILER, red)
+                                               if subject.endswith("(#%s)" % n) else "does not end its subject (#%s)" % n,
+                                               n, TRAILER, red))
 
 
 def culprit_answer(text):
