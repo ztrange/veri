@@ -68,6 +68,10 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   every step's seam is confirmed and its next phase is `surround` → **process** failure.
 - `surround-short` — a legacy step's mutant table stayed shorter than `VERI_SURROUND_MUTANTS`
   after its one free relaunch of `develop-surround` → **process** failure.
+- `tidy-first-owed` — `add-ledger-step.sh` refused with exit **1** the step a green leaf's
+  `TIDY_FIRST:` answer asks for (the ledger at `VERI_STEP_GROWTH_PERCENT` of the plan's steps;
+  the text is parked under `## Owed steps`) → **process** failure (the methodology spoke: the
+  tidy step is owed and the plan has no room for it); the bail comment names the refactoring.
 - `pr-ready-failed` — `pr-ready.sh` exited non-zero at the Draft PR step (GitHub refused or
   never answered the ready request, after its refusal retries) → **system** failure (#2581). The bail can follow an
   adjudication (`Read` `<base directory>/ADJUDICATE.md`): it keeps this cause and class.
