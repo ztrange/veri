@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
 from typing import NamedTuple, Optional
 
 import entry
@@ -804,6 +805,16 @@ def gh_issue_remove_label(number, label):
     run = gh_api_delete(_issue(number) + "/labels/" + label)
     if run.returncode != 0 and "HTTP 404" not in run.stderr:
         raise NoAnswer("")
+
+
+def gh_label_exists(label):
+    """Whether the repository has label <label>: False on a 404, NoAnswer on any other failure."""
+    run = run_gh("api", "repos/{owner}/{repo}/labels/" + urllib.parse.quote(label, safe=""), stderr=subprocess.PIPE)
+    if run.returncode == 0:
+        return True
+    if "HTTP 404" in run.stderr:
+        return False
+    raise NoAnswer(" ".join(run.stderr.split()))
 
 
 def gh_label_ensure(label):

@@ -157,3 +157,15 @@ def test_park_issue_takes_the_bailed_label_off_the_issue_it_parks(run_cli, fake_
     result = run_cli(park_issue, ["42", "second bail", "a human reads the diff"])
 
     assert (result[0], DELETE_BAILED in calls) == (0, True)
+
+
+def test_issue_4081_park_issue_in_a_repository_with_no_parked_label_exits_2_creates_no_label_and_posts_no_comment(run_cli, fake_processes):
+    park_issue = importlib.import_module("veri.park_issue")
+    missing = (1, "", "gh: Not Found (HTTP 404)\n")
+    calls = fake_gh(fake_processes, lambda args: missing if args[-1].endswith("labels/parked") else (0, "{}", ""))
+
+    code, out, err = run_cli(park_issue, ["42", "second bail", "a human reads the diff"])
+
+    writes = [argv for argv in calls if "-f" in argv or "-F" in argv or "POST" in argv or "--body-file" in argv]
+    assert (code, writes) == (2, []), calls
+    assert "parked" in err, err
