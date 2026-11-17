@@ -153,8 +153,8 @@ neither. It has exactly one of six outcomes:
 | `leaves.<kind>.cache_creation_input_tokens` | whole number | no |
 | `leaves.<kind>.cost_usd` | number, dollars | no |
 | `steps` | list of objects, one per ledger step a leaf ran for, in the order `metrics.sh`'s By step table lists them | no |
-| `steps[].text` | string, the step's latest ledger text: a step a plan rewrite reworded (`step-reworded` lines, followed through chained rewordings) is one entry, every line naming any of its texts counted in it; a step reworded outside the ledger rewrite (a hand edit of the ledger) writes no such line and shows as a new step | no |
-| `steps[].former` | list of strings, the step's earlier texts in the order it carried them, `[]` when it was never reworded | no |
+| `steps[].text` | string, the step's latest ledger text: a step a plan rewrite reworded (`step-reworded` lines, followed through chained rewordings) is one entry, every line naming any of its texts counted in it; two steps reworded to one text are one entry from then on, holding both steps' lines; a step reworded outside the ledger rewrite (a hand edit of the ledger) writes no such line and shows as a new step | no |
+| `steps[].former` | list of strings, the step's earlier texts in the order it carried them (for two steps reworded to one text, the first's then the second's), `[]` when it was never reworded | no |
 | `steps[].attempts` | whole number | no |
 | `steps[].pass` | whole number | no |
 | `steps[].reject` | whole number | no |
@@ -178,10 +178,10 @@ neither. It has exactly one of six outcomes:
 | `steps[].rejects.untracked` | whole number, the step's REJECTs that were untracked | no |
 | `conductor` | object: the conductor's own spending | no |
 | `conductor.cost_usd` | number, dollars over its priced sessions | yes, when no session was read or none carries a price |
-| `conductor.turns` | whole number | yes, when no session was read |
-| `conductor.sessions` | whole number, the sessions read | no |
+| `conductor.turns` | whole number, each session's turns summed: for a session its closing record ends, the more of the turns that record counts and the turns the log shows; for one with no closing record (killed before it, or still going), the turns the log shows | yes, when no session was read |
+| `conductor.sessions` | whole number, the sessions read: a session ends at its closing record, or at the next session's start when it has none | no |
 | `conductor.model` | string, the conductor's model | yes, when none was recorded |
-| `conductor.estimated` | boolean, `true` when a session has no closing record yet | no |
+| `conductor.estimated` | boolean, `true` when a session has no closing record (killed before it, or still going), its cost then priced from its own turns' usage | no |
 | `conductor.priced` | `true` when every session carries a price, `false` when none does, the string `"partial"` otherwise | no |
 | `conductor.by_phase` | object keyed by window: a leaf kind (a leaf's `launch` to its `exit`), a stage (its `stage-start` to its `stage-end`), `between` (a timed turn no such window holds) or `untimed` (a turn whose record carries no time, or that the session's closing record counts and no record shows); each turn of the conductor's stream log counted once, under the innermost leaf or stage window holding its time, so its `turns` sum to `conductor.turns`. A window with no end holds no turn | yes, when no conductor log was read |
 | `conductor.by_phase.<window>` | object, the conductor's turns in that window | no |
