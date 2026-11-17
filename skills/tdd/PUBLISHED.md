@@ -7,7 +7,7 @@ that ran veri: veri commits and pushes none of them.
 | File | Path | Written by | When |
 |---|---|---|---|
 | The journal | `$VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl` | `event.sh` (`veri/event.py`) | As an event is written whose line carries an issue: one line per such event (see which events never do, below) |
-| The metrics file | `$VERI_HOME/runs/<owner>-<repo>/<issue>.metrics.json`, beside the issue's journal | `event.sh` (`veri/event.py`) | After an `exit`, `step-done`, `bail` or `done` event of that issue reaches the journal: the whole file rewritten |
+| The metrics file | `$VERI_HOME/runs/<owner>-<repo>/<issue>.metrics.json`, beside the issue's journal | `event.sh` (`veri/event.py`) | After an `exit`, `step-done`, `bail`, `done` or `stage-end` event of that issue reaches the journal: the whole file rewritten |
 | `report-owed.json` (**optional**) | `.tdd/report-owed.json` in the main working tree, whichever directory `/vreport` runs in | `report.sh --store-owed` (`veri/prd_report.py`) | When `/vreport` stores a PRD's owed answer |
 
 ## The journal
@@ -61,7 +61,7 @@ writes no journal (no issue, or no `origin` remote) writes no metrics file eithe
 It holds the object `metrics.sh <issue> --json` builds, folded from the whole journal, so it covers
 every run of the issue, a resumed one and one made in another worktree included. `event.sh` rewrites
 the whole file at once (a temporary file in the same directory renamed over it, so a reader never sees
-half of it), and only after an `exit`, `step-done`, `bail` or `done` event of that issue reaches the
+half of it), and only after an `exit`, `step-done`, `bail`, `done` or `stage-end` event of that issue reaches the
 journal; every other event leaves it as it is. It may therefore be one phase behind the journal. A
 missing file means no such event of the issue has been written yet. A failure to compute or write it
 is one line on `event.sh`'s stderr and never stops a run: the event is written and the run goes on.

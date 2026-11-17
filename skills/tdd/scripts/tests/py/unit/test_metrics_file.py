@@ -57,6 +57,20 @@ def metrics_file(root, issue="42"):
     return root / "runs" / "acme-widgets" / ("%s.metrics.json" % issue)
 
 
+def test_4228_after_a_stage_end_the_metrics_file_holds_the_object_of_the_journal_with_that_line(tmp_path, event):
+    clone = clone_at(tmp_path)
+    run = {"issue": "42", "actor": "", "phase": "", "step": "", "attempt": ""}
+
+    started = event.append(str(clone), run, "stage-start", ["stage=baseline"], ts=1700000000)
+    written_at_start = metrics_file(tmp_path).exists()
+    ended = event.append(str(clone), run, "stage-end", ["stage=baseline", "status=1", "secs=12"], ts=1700000012)
+
+    published = json.loads(metrics_file(tmp_path).read_text())
+    assert (started, written_at_start, ended) == (0, False, 0)
+    assert published["stages"]["baseline"] == {"runs": 1, "ok": 0, "failed": 1, "no_answer": 0, "nothing": 0,
+                                               "unended": 0, "wall_seconds": 12}
+
+
 def test_an_event_of_any_other_name_leaves_the_files_absence_and_its_bytes_unchanged(tmp_path, event):
     clone = clone_at(tmp_path)
 
