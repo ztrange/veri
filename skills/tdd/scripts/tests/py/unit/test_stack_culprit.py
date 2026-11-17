@@ -169,3 +169,36 @@ def test_a_case_whose_file_is_absent_at_an_end_is_not_red_there_so_a_case_the_cu
     code, out, err = run_cli(culprit, [sha(2)])
 
     assert (code, world.alone, sha(2) in out) == (0, [(sha(2), case)], True), err
+
+
+A, B, C = "t/test_a.py::test_x", "t/test_b.py::test_y", "t/test_c.py::test_z"
+
+
+@pytest.mark.parametrize("subjects, tested, reds, printed", [
+    (["feat: a (#1)", "feat: b (#2)", "fix: b (#2)", "feat: c (#3)", "feat: d (#4)"], (1,),
+     {sha(4): (A, C), sha(5): (A, B, C)}, ["issue: 3", "commit: " + sha(4), "before: " + sha(3),
+                                          "case: %s\tFAILED %s - AssertionError: red at 04" % (A, A),
+                                          "case: %s\tFAILED %s - AssertionError: red at 04" % (C, C)]),
+    (["feat: a (#1)", "feat: b and c (#2, #3)"], (), {sha(2): (B,)},
+     ["issue: 2 3", "commit: " + sha(2), "before: " + sha(1), "case: %s\tFAILED %s - AssertionError: red at 02" % (B, B)]),
+    (["chore: names none", "feat: a (#1)"], (), {sha(1): (A,)},
+     ["issue: none", "commit: " + sha(1), "before: origin/trunk", "case: %s\tFAILED %s - AssertionError: red at 01" % (A, A)]),
+])
+def test_at_the_first_red_issue_end_prints_the_red_sha_its_issue_that_commit_the_end_before_it_and_each_red_case_exit_0(
+        monkeypatch, run_cli, culprit, subjects, tested, reds, printed):
+    World(monkeypatch, culprit, subjects, cases=(A, B, C), reds=reds, tested={sha(n) for n in tested})
+
+    code, out, err = run_cli(culprit, [sha(len(subjects))])
+
+    assert (code, out.splitlines()) == (0, ["red: " + sha(len(subjects))] + printed), err
+
+
+def test_the_first_fail_line_carries_no_local_path_of_the_worktree_or_the_home_directory(monkeypatch, run_cli, culprit):
+    home = __import__("os").path.expanduser("~")
+    path = "%s/.tdd/stack-culprit-%d" % (TOP, __import__("os").getpid())
+    World(monkeypatch, culprit, ["feat: a (#1)"], alone=(1, "collected 1\nFAILED %s/t/a.py::t - %s/f missing\n" % (
+        path, home)))
+
+    _, out, _ = run_cli(culprit, [sha(1)])
+
+    assert (TOP in out, home in out, "<worktree>/t/a.py::t" in out, "~/f missing" in out) == (False, False, True, True), out
