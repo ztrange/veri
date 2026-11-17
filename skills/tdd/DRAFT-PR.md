@@ -286,11 +286,13 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    directory), the host name and the account name, then the tokens and secrets `comment.sh`'s rule
    names, so nothing the lint printed about this machine reaches the PR.
    On a non-zero lint exit (`wait` exit 1), once the section is written, append one repair step
-   after the last done step, naming the command and its output's first non-empty line (the
-   worktree's path cut from it):
+   after the last done step. `$S/lint-repair.sh step` composes its text: the command, read from
+   the repo's CLAUDE.md, and its output's first non-empty line, capped at 200 characters and with
+   every local path, the host and the account name redacted. Its non-zero exit appends no step
+   and writes no bail, and the section gains `No repair step could be added.`:
    ```
-   first="$(grep -m1 . .tdd/lint.out | sed "s|$PWD/||g" | cut -c1-200)"
-   $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" "make \`$lint\` pass: $first ⟦diff-checked⟧ ⟦lint-repair⟧" 2> .tdd/add-ledger-step.err; rc=$?
+   text="$($S/lint-repair.sh step < .tdd/lint.out)" || { printf '\nNo repair step could be added.\n' >> .tdd/issue-<n>-lint.md; exit 0; }
+   $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" "$text" 2> .tdd/add-ledger-step.err; rc=$?
    [ "$rc" != 2 ] || { $S/adjudicate.sh left <n> && { echo "adjudicate step-add-refused"; exit 0; }; VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=step-add-refused classification="$($S/classify-bail.sh step-add-refused)"; }
    [ "$rc" != 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
    [ "$rc" != 0 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the lint findings (#<n>)"; }
