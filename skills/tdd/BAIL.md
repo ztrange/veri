@@ -62,6 +62,10 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   for (the insertion would exceed `VERI_STEP_GROWTH_PERCENT` of the plan's steps) → **process** failure (the methodology
   spoke: the prep step is owed and the plan has no room for it, and the plumbing did not
   break); the bail comment names the cases the step was to update.
+- `no-seam` — a legacy step's `develop-seam` leaf answered `REACHES: no`: the region has no seam
+  that drives it without an edit → **process** failure, carrying the leaf's reason.
+- `surround-owed` — the planned stop of a legacy run made before the Surround phase existed:
+  every step's seam is confirmed and its next phase is `surround` → **process** failure.
 - `pr-ready-failed` — `pr-ready.sh` exited non-zero at the Draft PR step (GitHub refused or
   never answered the ready request, after its refusal retries) → **system** failure (#2581). The bail can follow an
   adjudication (`Read` `<base directory>/ADJUDICATE.md`): it keeps this cause and class.
