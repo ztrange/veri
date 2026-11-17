@@ -95,7 +95,7 @@ def test_4118_an_unreadable_catalogue_exits_2_printing_nothing_on_stdout(tree, m
 
 def test_4118_an_argument_is_refused_with_exit_2_and_the_usage_line(tree, run_cli, tidy_first):
     assert run_cli(tidy_first, ["extra"], stdin=REPORT) == (
-        2, "", "tidy-first.sh: unexpected argument 'extra'\nusage: tidy-first.sh < <green-report>\n")
+        2, "", "tidy-first.sh: unexpected argument 'extra'\nusage: tidy-first.sh < green-report.txt\n")
 
 
 def test_4118_every_refactoring_the_catalogue_lists_is_accepted_and_a_smell_name_is_not(tree, run_cli, tidy_first):
