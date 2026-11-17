@@ -24,16 +24,17 @@ Run it on every question before it reaches the human.
 
 1. **Is it on the *Always surface* list below?** Then surface it to the human (P4, P21), and stop
    here.
-2. **Was the same question decided before?** Read the issue's comments, for a question about one
-   issue, and `.tdd/decisions.jsonl` in the main working tree, for a question about no issue. Two
-   questions are the same only when they concern the same issue (or both no issue) and ask for the
-   same choice: the same words about another issue, or another question about the same issue, are
-   not. The owner's decision beats every judge's decision of the same question, whichever came
-   later: on an issue, a comment that does not start with `Decided:` is the owner's; in the log, a
-   record with `by` `owner`. The newest of the owner's decisions counts; with none, the newest
-   judge's decision. Follow it, stating it as step 4 does, unless a fact it rested on changed.
-   When one did, when in doubt whether it answers this question, or when a record cannot be read,
-   no earlier decision holds: go on to step 3.
+2. **Was the same question decided before?** For a question about one issue, run
+   `$S/issue-decisions.sh <n>`: on exit 0 the blocks it prints are the issue's decisions, oldest
+   first, each marked `owner:` or `judge:`; exit 3 means none. For a question about no issue, read
+   `.tdd/decisions.jsonl` in the main working tree, where the owner's records have `by` `owner`.
+   Two questions are the same only when they concern the same issue (or both no issue) and ask for
+   the same choice: the same words about another issue, or another question about the same issue,
+   are not. The owner's decision beats every judge's decision of the same question, whichever came
+   later. The newest of the owner's decisions counts; with none, the newest judge's decision.
+   Follow it, stating it as step 4 does, unless a fact it rested on changed. When one did, when in
+   doubt whether it answers this question, or when a record cannot be read (`issue-decisions.sh`
+   exits 2), no earlier decision holds: go on to step 3.
 3. **Is there a recommendation whose evidence you can name?** If there is none, or you cannot say
    what it rests on, investigate once: one subagent on the cheapest adequate model, briefed to
    return at most 10 lines. Then decide on what it found.
