@@ -10,9 +10,10 @@ import sys
 import entry
 from case_reader import file_defines, is_test_path, strip_param_suffix
 from git import GitFailed, out
+from ledger import CRITERION_TAG, ledger_steps, multi_tag_refusal, read_ledger, trailing_markers
 from report import report_values
 
-USAGE = "usage: test-quality.sh files <branch-base> | record <n> < <leaf-report>"
+USAGE = "usage: test-quality.sh files <branch-base> | anchor <ledger> | record <n> < <leaf-report>"
 KINDS = ("weak-assertion", "redundant", "implementation-coupled")
 
 
@@ -54,7 +55,29 @@ def files(base):
     return 0 if found else 3
 
 
+def anchor(path):
+    """The last done step add-ledger-step.sh can anchor a fix step on: one criterion tag, in a ledger it does not refuse
+    (no step carries two). Exit 3 when there is none, so the findings stay unfixed with no bail."""
+    try:
+        records = ledger_steps(read_ledger(path))
+    except OSError as error:
+        print(f"test-quality.sh: {path}: {error.strerror}", file=sys.stderr)
+        return 2
+    refusal = multi_tag_refusal(records)
+    if refusal:
+        print(f"test-quality.sh: no anchor: {refusal}", file=sys.stderr)
+        return 3
+    done = [r.text for r in records if r.state == "done" and trailing_markers(r.text).count(CRITERION_TAG) == 1]
+    if not done:
+        print("test-quality.sh: no anchor: no done step carries one criterion tag", file=sys.stderr)
+        return 3
+    print(done[-1])
+    return 0
+
+
 def main(argv):
+    if len(argv) == 2 and argv[0] == "anchor" and argv[1]:
+        return anchor(argv[1])
     if len(argv) == 2 and argv[0] == "files" and argv[1]:
         return files(argv[1])
     if len(argv) != 2 or argv[0] != "record" or entry.whole_number(argv[1], 1) is None:

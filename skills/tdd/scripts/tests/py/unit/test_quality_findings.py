@@ -63,6 +63,29 @@ def test_record_refuses_a_missing_verb_or_issue_number_with_exit_2(run_cli, test
     assert (answers, (worktree / ".tdd" / "issue-7-test-quality.md").exists()) == ([2, 2, 2, 2], False)
 
 
+LEDGER = ("# Plan\n\n"
+          "- [x] the adder adds ⟦criterion 1⟧\n"
+          "- [x] the adder carries ⟦criterion 2⟧ ⟂ refactor pending\n"
+          "- [ ] the adder overflows ⟦criterion 3⟧\n")
+
+
+@pytest.mark.parametrize("ledger, answer", [
+    (LEDGER, (0, "the adder carries ⟦criterion 2⟧\n")),
+    (LEDGER.replace("- [x] the adder carries", "- [ ] the adder carries"), (0, "the adder adds ⟦criterion 1⟧\n")),
+    (LEDGER.replace("⟦criterion 2⟧", "⟦criterion 2⟧ ⟦criterion 3⟧"), (3, "")),
+    (LEDGER.replace("[x]", "[ ]"), (3, "")),
+])
+def test_anchor_prints_the_last_done_step_add_ledger_step_accepts_or_exits_3(run_cli, test_quality, worktree,
+                                                                            ledger, answer):
+    (worktree / ".tdd" / "issue-7.md").write_text(ledger)
+
+    assert run_cli(test_quality, ["anchor", ".tdd/issue-7.md"], cwd=str(worktree))[:2] == answer
+
+
+def test_anchor_exits_2_on_an_unreadable_ledger(run_cli, test_quality, worktree):
+    assert run_cli(test_quality, ["anchor", ".tdd/issue-8.md"], cwd=str(worktree))[0] == 2
+
+
 def test_files_prints_the_test_files_the_range_names_that_still_exist_and_exits_0(run_cli, test_quality, worktree,
                                                                                   fake_processes):
     (worktree / "src").mkdir()
