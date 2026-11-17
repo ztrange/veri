@@ -33,29 +33,41 @@ def run(n):
     else:
         values = ready(wt)
         fused.save_wait(wt, n, NAME, WAIT, values)
-    head = fused.checked(WHERE, "git", "rev-parse", "HEAD", cwd=wt).strip()
-    waited = (fused.script("wait-ci.sh"), values["pr_url"], "540", "", head)
-    files = {"out": ".tdd/wait-ci.out", "err": ".tdd/wait-ci.err"}
-    code = fused.call(*waited, cwd=wt, **files)[0]
-    if code == 3:
-        raise fused.Waiting(WAIT)
-    os.remove(fused.wait_record(wt, n, NAME))
-    if code != 0:
-        raise fused.Stop(WHERE, fused.shown(*waited, **files) + " exit %d" % code, code)
-    if said(wt, ".tdd/ci-flake.out").strip():
-        raise fused.Stop(WHERE, "wait-ci.sh exit 0 with .tdd/ci-flake.out non-empty", 1)
+    ci_wait(wt, n, NAME, values["pr_url"])
     lines = ["pr_url=" + values["pr_url"], "pr_number=" + values["pr_number"], "ci=green"]
     return fused.settle(wt, n, NAME, lines + (["no_checks=1"] if NO_CHECKS in said(wt, ".tdd/wait-ci.err") else []))
 
 
-def ready(wt):
-    """The PR url read as sub-step 2 reads it (RC1), the tree check (RC4, D10), then pr-ready.sh on the head (RC2):
-    {"pr_url", "pr_number"}."""
+def ci_wait(wt, n, owner, url):
+    """`wait-ci.sh <pr-url> 540 "" <head>` into .tdd/wait-ci.out and .tdd/wait-ci.err (RC3, MC4): exit 3 raises
+    Waiting, <owner>'s wait record kept; else the record is removed, 1 and 2 stop it, and an exit 0 with a non-empty
+    .tdd/ci-flake.out stops it with exit 1, so the block writes the `ci-flake` event."""
+    head = fused.checked(WHERE, "git", "rev-parse", "HEAD", cwd=wt).strip()
+    waited = (fused.script("wait-ci.sh"), url, "540", "", head)
+    files = {"out": ".tdd/wait-ci.out", "err": ".tdd/wait-ci.err"}
+    code = fused.call(*waited, cwd=wt, **files)[0]
+    if code == 3:
+        raise fused.Waiting(WAIT)
+    os.remove(fused.wait_record(wt, n, owner))
+    if code != 0:
+        raise fused.Stop(WHERE, fused.shown(*waited, **files) + " exit %d" % code, code)
+    if said(wt, ".tdd/ci-flake.out").strip():
+        raise fused.Stop(WHERE, "wait-ci.sh exit 0 with .tdd/ci-flake.out non-empty", 1)
+
+
+def pr_url(wt):
+    """The PR url read as sub-step 2 reads it (RC1); an empty answer stops it with exit 2."""
     branch = fused.checked(WHERE, "git", "branch", "--show-current", cwd=wt).strip()
     url = plan_publish.gh(WHERE, "api", "repos/{owner}/{repo}/pulls?head={owner}:%s" % branch, "-q",
                           ".[0].html_url // empty", wt=wt).strip()
     if not url:
         raise fused.Stop(WHERE, "no PR for " + branch, 2)
+    return url
+
+
+def ready(wt):
+    """The PR url (RC1), the tree check (RC4, D10), then pr-ready.sh on the head (RC2): {"pr_url", "pr_number"}."""
+    url = pr_url(wt)
     if fused.changed_paths(WHERE, wt):
         raise fused.Stop(WHERE, "tree-check", 1)
     number = url.rstrip("/").rsplit("/", 1)[-1]
