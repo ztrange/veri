@@ -142,7 +142,7 @@ def test_4226_strict_writes_a_step_reworded_line_naming_both_texts_and_refuses_o
 def test_4228_strict_writes_a_stage_start_and_end_of_a_listed_stage_and_refuses_an_unlisted_stage(clone):
     started = event.mark(str(clone), {"issue": "7"}, "stage-start", ["stage=preflight"])
     ended = event.mark(str(clone), {"issue": "7"}, "stage-end", ["stage=baseline", "status=1", "secs=12"])
-    unlisted = event.mark(str(clone), {"issue": "7"}, "stage-start", ["stage=merge"])
+    unlisted = event.mark(str(clone), {"issue": "7"}, "stage-start", ["stage=lunch"])
 
     assert (started, ended, unlisted) == (0, 0, 2)
 
@@ -151,5 +151,13 @@ def test_4228_strict_writes_a_stage_start_and_end_of_a_listed_stage_and_refuses_
 def test_4230_strict_writes_a_stage_start_and_end_of_each_stage_push_readying_and_the_ci_wait_add(clone, stage):
     started = event.mark(str(clone), {"issue": "7"}, "stage-start", ["stage=" + stage])
     ended = event.mark(str(clone), {"issue": "7"}, "stage-end", ["stage=" + stage, "status=0", "secs=3"])
+
+    assert (started, ended) == (0, 0)
+
+
+@pytest.mark.parametrize("stage", ["plan", "refactor-loop", "structural", "rebase", "merge", "release"])
+def test_4232_strict_writes_a_stage_start_and_end_of_each_stage_the_plan_rebase_merge_and_release_add(clone, stage):
+    started = event.mark(str(clone), {"issue": "7"}, "stage-start", ["stage=" + stage])
+    ended = event.mark(str(clone), {"issue": "7"}, "stage-end", ["stage=" + stage, "status=1", "secs=3"])
 
     assert (started, ended) == (0, 0)
