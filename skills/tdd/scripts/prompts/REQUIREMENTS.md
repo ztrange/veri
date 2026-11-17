@@ -504,7 +504,7 @@
 | ID | Requirement | Why |
 |---|---|---|
 | DF1 | The prompt says this step's criterion is a property of the branch's own diff (something removed, left unchanged, or confined to named lines), that a blind verifier judges it against the diff alone, and so that no test is this step's deliverable. (Opening paragraph under "Phase: develop-diff".) | The leaf must know its deliverable is a diff, not a test. |
-| DF2 | Under its own heading the prompt gives the leaf the step (`{{STEP}}`), followed by the include line of `_develop-spec-context-only.md`. (Section "The step" and the include after it.) | The leaf needs the criterion it is changing the diff for. |
+| DF2 | Under its own heading the prompt gives the leaf the step (`{{STEP}}`) with the `{{TEST_QUALITY}}` slot right after it on the same line, followed by the include line of `_develop-spec-context-only.md`. (Section "The step" and the include after it.) | The leaf needs the criterion it is changing the diff for. |
 | DF3 | Item 1 tells the leaf to make the change the step's criterion names, and nothing else, then commit that change as its own commit, its subject ending in `(#<issue>)`. (Numbered list, item 1.) | The diff holds one change, and its commit carries the issue number. |
 | DF4 | Item 2 tells the leaf that, when the criterion is that something stays unchanged, it makes no commit and leaves the tree as it found it. (Numbered list, item 2.) | An "unchanged" criterion is satisfied by no diff at all. |
 | DF5 | Item 3 tells the leaf to add no test, and says a case that pins this criterion by reading another file's text or the git history is rejected. (Numbered list, item 3.) | A test reading text or history is the substring pin a diff-checked step exists to avoid. |
@@ -517,7 +517,7 @@
 |---|---|---|
 | DQ1 | The prompt's phase heading names it develop-revise redoing diff, and the heading is followed by the include line of `_develop-revise-opening.md`. (Heading and the line after it.) | The leaf must know it redoes a rejected diff-checked step. |
 | DQ2 | The prompt says this step's criterion is a property of the branch's own diff, judged against the diff alone, so no test is this step's deliverable. (Paragraph after the opening include.) | A redo must not answer a diff criterion with a test. |
-| DQ3 | Under their own headings the prompt gives the leaf the step (`{{STEP}}`), the verifier's rejection reason (`{{REJECTION_REASON}}`, headed "address exactly this"), the issue's behavior spec as context with the criterion above as what is in scope (`{{ISSUE_SPEC}}`), and the test command (`{{TEST_CMD}}`). (Sections before "What to do".) | The redo is driven by the rejection reason, within the step's criterion. |
+| DQ3 | Under their own headings the prompt gives the leaf the step (`{{STEP}}`, with the `{{TEST_QUALITY}}` slot right after it on the same line), the verifier's rejection reason (`{{REJECTION_REASON}}`, headed "address exactly this"), the issue's behavior spec as context with the criterion above as what is in scope (`{{ISSUE_SPEC}}`), and the test command (`{{TEST_CMD}}`). (Sections before "What to do".) | The redo is driven by the rejection reason, within the step's criterion. |
 | DQ4 | Item 1 tells the leaf to read what this step left on disk and change it to answer that objection, and only that objection, then commit that change, its subject ending in `(#<issue>)`. (What to do, item 1.) | The redo fixes what was rejected, nothing more, and its commit carries the issue number. |
 | DQ5 | Item 2 tells the leaf to add no test, and says a case that pins this criterion by reading another file's text or the git history is rejected. (What to do, item 2.) | A redo must not add the text pin the step avoids. |
 | DQ6 | Item 3 is the include line of `_develop-diff-run-fast-affected.md`. (What to do, item 3.) | The redone change is proven green before the report. |
@@ -1072,3 +1072,10 @@
 |---|---|---|
 | TQP1 | The prompt includes `skills/tdd/SMELLS.md`'s test-code rules and the test files it is given, and tells the leaf to change no file and make no commit. | The leaf has no verifier, so it may change nothing (PRD 032, TQ2, C4). |
 | TQP2 | The prompt asks for one `FINDING: <kind> \| <file>::<case> \| <why>` line per finding, `<kind>` one of `weak-assertion` (asserts less than its criterion's observable), `redundant` (asserts nothing another case of those files does not) and `implementation-coupled` (imports or asserts on a name private to the code under test, or computes its expected value with that code), or the one line `FINDING: none`; its `REPORT-FORMAT` line declares `FINDING:`. | Farley: trustworthy feedback, over the range's tests and not only the step's new case (PRD 032, TQ2). |
+
+## skills/tdd/scripts/prompts/_develop-diff-test-quality.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TQF1 | The fragment tells the leaf to fix only the test case the step names, changing no production code, and to commit the fix as a `test:` commit. | Fowler's two hats: a test change is a `test:` commit, never inside a refactor range (PRD 032, TX3; PRD 017). |
+| TQF2 | The fragment asks for one `FLIP: <test file> '<old>→<new>'` report line, `<old>` a literal of the fixed case's expected value and `<new>` a different value, which the conductor flips to show the case goes red. | Each fix is proven live by a script (PRD 032, TX3, C6). |
