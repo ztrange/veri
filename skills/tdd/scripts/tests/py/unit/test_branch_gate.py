@@ -143,6 +143,46 @@ def test_4030_a_red_wait_ends_the_stage_with_its_code_and_stops_before_any_flake
     assert "FAILED 3" in out
 
 
+def test_4030_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr(gate):
+    class Marked(Fake):
+        def __call__(self, name, *args, **kw):
+            code, out, err = super().__call__(name, *args, **kw)
+            if os.path.basename(name) in ("branch-suite.sh", "detect-test-command.sh"):
+                return code, out, err
+            return code, "OUT<%d>\n" % len(self.calls) + out, "ERR<%d>\n" % len(self.calls)
+
+    code, out, err, fake = gate(fake=Marked())
+
+    lines = out.splitlines()
+    assert code == 0
+    assert lines[:2] == ["branch-suite.sh exit 0", "local"]
+    for i, c in enumerate(fake.calls, 1):
+        if c[0] in ("branch-suite.sh", "detect-test-command.sh"):
+            continue
+        named = lines[lines.index("OUT<%d>" % i) - 1]
+        assert named.startswith(c[0]) and named.endswith(" exit 0") and "ERR<%d>" % i in err
+    assert "PASSED 812" in lines
+
+
+def test_4030_every_inner_call_in_the_ordered_list_is_a_script_the_opening_paragraphs_name():
+    from pathlib import Path
+    branch_gate = importlib.import_module("veri.branch_gate")
+    draft = (Path(branch_gate.__file__).resolve().parents[2] / "DRAFT-PR.md").read_text()
+    opening = draft[:draft.index("\n1. **Ask the two questions")]
+
+    assert [name for name in branch_gate.CALLS if "$S/" + name not in opening] == []
+
+
+def test_4030_a_local_run_makes_the_calls_of_the_ordered_list_in_its_order(gate):
+    branch_gate = importlib.import_module("veri.branch_gate")
+    code, out, err, fake = gate()
+
+    made = fake.names()
+    assert code == 0 and set(made) == set(branch_gate.CALLS)
+    firsts = [made.index(name) for name in branch_gate.CALLS]
+    assert firsts == sorted(firsts)
+
+
 def _pid(gate, text):
     (gate.wt / ".tdd" / "conductor.pid").write_text(text)
 
