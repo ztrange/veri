@@ -188,6 +188,45 @@ def test_4023_a_red_fast_tier_on_a_moved_branch_pushes_nothing(drive):
     assert (code, "push-branch.sh" in fake.names()) == (1, False)
 
 
+STRAY = {("resume-clean.sh", None): (0, " M src/a.py\n?? notes.txt\n")}
+
+
+def _settled(drive):
+    return (drive.wt / ".tdd" / "issue-12-preflight").read_text().splitlines()
+
+
+def test_4023_a_resumed_handed_back_run_settles_run_resume_its_stray_paths_and_the_pre_rebase_sha(drive):
+    code, out, fake = drive(ledger=True, handed_back=True, answers=STRAY)
+
+    settled = _settled(drive)
+    assert code == 0
+    assert settled[-4:] == ["run=resume", "stray=src/a.py", "stray=notes.txt", "rebased_from=" + PRE]
+    assert out.splitlines()[-len(settled):] == settled
+
+
+def test_4023_a_fresh_run_settles_run_fresh_with_no_stray_or_rebased_from_line(drive):
+    code, out, fake = drive()
+
+    settled = _settled(drive)
+    assert (code, settled[-1]) == (0, "run=fresh")
+    assert not [line for line in settled if line.startswith(("stray=", "rebased_from="))]
+
+
+def test_4023_a_rebase_that_did_not_move_the_branch_settles_its_stray_paths_and_no_rebased_from(drive):
+    code, out, fake = drive(ledger=True, handed_back=True,
+                            answers={**STRAY, ("rebase-onto-default.sh", None): (3, "")})
+
+    assert _settled(drive)[-3:] == ["run=resume", "stray=src/a.py", "stray=notes.txt"]
+
+
+def test_4023_a_stop_after_resume_clean_prints_its_stray_and_rebased_from_lines_before_the_stopped_at_line(drive):
+    code, out, fake = drive(ledger=True, handed_back=True, answers={**STRAY, ("push-branch.sh", None): (1, "")})
+
+    assert out.splitlines()[-4:] == ["stray=src/a.py", "stray=notes.txt", "rebased_from=" + PRE,
+                                     "stopped at 3 push-branch.sh " + LEASE]
+    assert not (drive.wt / ".tdd" / "issue-12-preflight").exists()
+
+
 def test_4023_a_worktree_not_handed_back_runs_none_of_the_handed_back_calls(drive):
     code, out, fake = drive(ledger=True)
 
