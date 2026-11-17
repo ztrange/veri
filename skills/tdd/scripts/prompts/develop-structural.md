@@ -26,7 +26,10 @@ as you found it and say so in your report as one `SKIPPED: <why>` line.
 1. Apply exactly the candidate above — no other transform, no behaviour change.
 2. {{INCLUDE:_develop-run-affected.md}}
 3. Commit this one transform as its own commit, as `refactor: <what changed> (#<issue>)`.
-   Never modify a test file: a transform commit that touches one is rejected.
+   Never modify a test file: a transform commit that touches one is rejected. Name in that
+   commit, in its subject or its body, the catalogue refactoring the candidate names, or, for a
+   candidate that names none, the catalogue refactoring you apply, by its name in the catalogue
+   above.
 
 {{INCLUDE:_develop-transform-suite-report.md}}
 
