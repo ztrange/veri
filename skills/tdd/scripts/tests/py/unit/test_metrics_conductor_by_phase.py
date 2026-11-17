@@ -101,3 +101,39 @@ def test_4235_a_turn_the_result_counts_but_no_record_shows_is_untimed_so_the_tur
 
 def test_4235_with_no_stream_log_beside_the_journal_by_phase_is_null(tmp_path, monkeypatch, capsys, metrics):
     assert conductor(tmp_path, monkeypatch, capsys, metrics, WINDOWS, None)["by_phase"] is None
+
+
+INIT = {"type": "system", "subtype": "init"}
+
+
+def test_4235_a_session_killed_before_its_result_then_a_resumed_one_counts_each_sessions_turns_and_the_turns_sum(
+        tmp_path, monkeypatch, capsys, metrics):
+    shaped = conductor(tmp_path, monkeypatch, capsys, metrics, WINDOWS, [
+        INIT, turn(1, 150), turn(2, 600), INIT, turn(3, 320), turn(4, 370), turn(5, 610), result(3.0, 3, 300)])
+
+    assert (shaped["turns"], shaped["sessions"]) == (5, 2)
+    assert sum(entry["turns"] for entry in shaped["by_phase"].values()) == 5
+    assert round(shaped["by_phase"]["preflight"]["cost_usd"] + shaped["by_phase"]["baseline"]["cost_usd"], 6) < 3.0
+
+
+def test_4235_a_result_without_num_turns_counts_the_turns_its_session_showed(tmp_path, monkeypatch, capsys, metrics):
+    closing = {key: value for key, value in result(2.0, 0, 20).items() if key != "num_turns"}
+    shaped = conductor(tmp_path, monkeypatch, capsys, metrics, WINDOWS, [INIT, turn(1, 150), turn(2, 600), closing])
+
+    assert shaped["turns"] == sum(entry["turns"] for entry in shaped["by_phase"].values()) == 2
+
+
+def test_4235_a_session_showing_more_turns_than_its_result_counts_counts_the_turns_it_showed(
+        tmp_path, monkeypatch, capsys, metrics):
+    shaped = conductor(tmp_path, monkeypatch, capsys, metrics, WINDOWS,
+                       [INIT, turn(1, 150), turn(2, 320), turn(3, 600), result(1.0, 2, 30)])
+
+    assert shaped["turns"] == sum(entry["turns"] for entry in shaped["by_phase"].values()) == 3
+
+
+def test_4235_a_sessions_output_tokens_split_over_its_turns_lose_no_remainder(tmp_path, monkeypatch, capsys, metrics):
+    shaped = conductor(tmp_path, monkeypatch, capsys, metrics, WINDOWS,
+                       [turn(1, 150), turn(2, 320), turn(3, 600), result(1.0, 3, 101)])
+
+    assert {key: entry["output_tokens"] for key, entry in shaped["by_phase"].items()} == {
+        "develop-green": 33, "preflight": 33, "between": 35}
