@@ -208,7 +208,7 @@ def suite_of(f, revisions=None):
             if has_line(script, line):
                 found += suite_of(script)
         return found
-    if match(SCRIPTS + "/veri/*.py"):
+    if match(SCRIPTS + "/veri/*.py", SCRIPTS + "/tests/leg/*.py"):  # tests/leg/: the pytest leg, out of veri/ (#4051)
         name = basename(f, ".py")
         return pytest_files_of(name)
     if match(SCRIPTS + "/*.sh"):

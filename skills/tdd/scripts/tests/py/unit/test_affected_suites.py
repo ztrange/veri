@@ -1057,3 +1057,18 @@ def test_a_changed_fixture_alone_places_without_widening_and_prints_no_suite(
     assert affected_by(
         fake_processes, run_cli, affected, tmp_path, [SUITES + "fixtures/plan.md"],
         {SUITES + "fixtures/plan.md": "# plan\n", **pytest_plants("foo")}) == (3, "", "")
+
+
+@pytest.mark.parametrize("name", ["pytest_leg", "network_guard", "small_case_guard", "serial_seen", "private_tmp_path"])
+def test_a_changed_leg_module_under_tests_leg_selects_what_it_selected_under_veri_4051(affected, tmp_path, monkeypatch,
+                                                                                         name):
+    """The leg moved from veri/ to tests/leg/ (#4051); a changed leg module still selects its own test files."""
+    monkeypatch.chdir(tmp_path)
+    for test in ("skills/tdd/scripts/tests/py/test_%s.py" % name, "skills/tdd/scripts/tests/py/unit/test_%s.py" % name):
+        (tmp_path / test).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / test).write_text("def test_x():\n    pass\n")
+
+    selected = affected.suite_of("skills/tdd/scripts/tests/leg/%s.py" % name)
+
+    assert selected == affected.suite_of("skills/tdd/scripts/veri/%s.py" % name) == [
+        "skills/tdd/scripts/tests/py/test_%s.py" % name, "skills/tdd/scripts/tests/py/unit/test_%s.py" % name]
