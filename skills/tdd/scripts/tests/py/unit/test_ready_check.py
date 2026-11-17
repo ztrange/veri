@@ -658,13 +658,22 @@ def test_issue_4092_ready_check_no_suites_is_accepted_prints_no_tier_run_row_and
     assert not [c for c in fake.calls if "detach-command.sh" in c or "git worktree" in c], fake.calls
 
 
-def test_issue_4088_a_tier_run_that_raises_exits_2_having_removed_the_worktree_it_made(ready_check, run_cli, fake_processes, tmp_path):
+def test_issue_4088_an_exception_after_a_tier_started_exits_2_leaving_its_worktree_and_record_for_the_re_run(ready_check, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": OSError(7, "no detach")}))
     code, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
 
-    wt = str(tmp_path / ".tdd" / "ready-fast")
+    wt = tmp_path / ".tdd" / "ready-fast"
     assert code == 2
-    assert [argv for argv, _ in calls_in(fake, "git worktree remove") if wt in argv], fake.calls
+    assert not [argv for argv, _ in calls_in(fake, "git worktree remove") if str(wt) in argv], fake.calls
+    assert (wt / ".tdd" / "ready-fast.record").exists()
+
+
+def test_issue_4088_an_exception_before_a_tier_started_exits_2_having_removed_the_worktree_it_added(ready_check, run_cli, fake_processes, tmp_path):
+    fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh start ready-fast": OSError(7, "no detach")}))
+    code, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+
+    assert code == 2
+    assert [argv for argv, _ in calls_in(fake, "git worktree remove") if str(tmp_path / ".tdd" / "ready-fast") in argv], fake.calls
 
 
 PROBE = "claude -p --model haiku --permission-mode bypassPermissions --output-format json"
