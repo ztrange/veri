@@ -17,6 +17,8 @@ import tempfile
 
 import pytest
 
+from stub_script import write_stub
+
 # Computed here as conftest.py computes them: this module cannot import conftest, which imports it.
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 ROOT = SCRIPTS.parents[2]
@@ -103,14 +105,21 @@ def case_waits_no_default_push_backoff(request, monkeypatch):
     monkeypatch.setattr(module, "run", guarded)
 
 
-SLEEP_SHIM = """#!/bin/sh
-second() { echo "$2"; }
+# The real sleep and the log are written into the shim, not read from its environment: a process that passes on only
+# an allow-list of names (run_leaf's leaf environment) drops REAL_SLEEP, and the shim's `exec ""` then made every
+# `sleep` a leaf ran exit 126/127 within milliseconds (#4243).
+SLEEP_SHIM_BODY = """second() { echo "$2"; }
 set -f
 case "$(second $(ps -o command= -p "$PPID"))" in
-  */veri/push_branch.py) [ -n "${VERI_PUSH_BACKOFF+x}" ] || { echo "$0" >> "$PUSH_BACKOFF_LOG"; exit 1; } ;;
+  */veri/push_branch.py) [ -n "${VERI_PUSH_BACKOFF+x}" ] || { echo "$0" >> %(log)s; exit 1; } ;;
 esac
-exec "$REAL_SLEEP" "$@"
+exec %(sleep)s "$@"
 """
+
+
+def write_sleep_shim(path, real_sleep, log):
+    """Write the push-backoff `sleep` shim to `path`, with `real_sleep` and `log` in its text, and return `path`."""
+    return write_stub(path, SLEEP_SHIM_BODY % {"sleep": shlex.quote(str(real_sleep)), "log": shlex.quote(str(log))})
 
 
 @pytest.fixture(autouse=True)
@@ -120,10 +129,7 @@ def process_case_waits_no_default_push_backoff(request, monkeypatch, tmp_path_fa
         return
     shim_dir = tmp_path_factory.mktemp("push-backoff-guard")
     log = shim_dir / "reached"
-    shim = shim_dir / "sleep"
-    shim.write_text(SLEEP_SHIM)
-    shim.chmod(0o755)
-    monkeypatch.setenv("REAL_SLEEP", shutil.which("sleep"))
+    write_sleep_shim(shim_dir / "sleep", shutil.which("sleep"), log)
     monkeypatch.setenv("PUSH_BACKOFF_LOG", str(log))
     monkeypatch.setenv("PATH", str(shim_dir) + os.pathsep + os.environ.get("PATH", ""))
     yield
