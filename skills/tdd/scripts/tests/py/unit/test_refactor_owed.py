@@ -772,3 +772,13 @@ def test_not_done_still_exits_2_and_writes_nothing_for_a_reason_outside_the_five
     owed = tmp_path / "owed.md"
     code = refactor_owed.main(["not-done", str(owed), "inline the one-use wrapper in lib", "out-of-bound"])
     assert (code, owed.exists()) == (2, False)
+
+
+def test_not_done_records_a_candidate_with_the_reason_testability_4117(tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+
+    code = refactor_owed.main(["not-done", str(owed), "zorblat refuses an empty nitz: 4 stubs and setup (a spy)",
+                               "testability"])
+
+    assert (code, owed.read_text() if owed.exists() else None) == (
+        0, "not-done | testability | zorblat refuses an empty nitz: 4 stubs and setup (a spy)\n")

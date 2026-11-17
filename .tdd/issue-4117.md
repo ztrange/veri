@@ -5,7 +5,7 @@
 - [x] `red-setup.sh record` exits 3 and writes nothing when the report has no `SETUP:` line ⟦criterion 3⟧
 - [x] `red-setup.sh record` exits 2 and writes nothing on a malformed `SETUP:` line ⟦criterion 3⟧
 - [x] `red-setup.sh record` exits 2 and writes nothing when the ledger has no current step ⟦criterion 3⟧
-- [ ] `refactor-owed.sh not-done` accepts the reason `testability` ⟦criterion 7⟧
+- [x] `refactor-owed.sh not-done` accepts the reason `testability` ⟦criterion 7⟧
 - [ ] `red-setup.sh worst <n> <owed-file>` records one `not-done` row `'<step>: <count> stubs and setup (<what>)'` with reason `testability` for the step whose count is highest and over `VERI_SETUP_THRESHOLD`, and exits 0 ⟦criterion 4⟧
 - [ ] `red-setup.sh worst` exits 3 and records nothing when no step's count exceeds the threshold ⟦criterion 5⟧
 - [ ] `red-setup.sh worst` names the earliest step when two steps tie on the highest count ⟦criterion 4⟧
