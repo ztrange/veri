@@ -2,7 +2,7 @@
 join's world is test_queued_merge_join's, and the stack-red.sh call is queued_merge._stack_red, spied in-process."""
 import pytest
 
-from test_queued_merge_join import World, join, pushed, released
+from test_queued_merge_join import BRANCH, ENV, PR, World, join, pushed, released
 from veri import queued_merge
 
 RED = "%040x" % 9
@@ -59,3 +59,30 @@ def test_a_stack_red_exit_2_or_any_exit_but_0_and_3_is_the_joins_exit_2_nothing_
     code, _, err = join(run_cli, world)
 
     assert (code, pushed(world), len(released(world)), "stack-red.sh" in err) == (2, [], 1, True), err
+
+
+def test_a_stack_red_exit_3_lets_the_join_go_on_to_its_stack_push_as_before(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+    asked = spy_stack_red(monkeypatch, world, (3, ""))
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, len(asked), len(world.stack_pushed())) == (0, 1, 1), err
+
+
+KNOBS = {"VERI_CI_ON_PR": "0", "VERI_FETCH_RETRY_SLEEP": "0", "VERI_GH_DRIVER": "rest", "VERI_GH_TIMEOUT": "5",
+         "VERI_GIT_NETWORK_TIMEOUT": "5", "VERI_MERGE_SETTLE_READS": "1", "VERI_MERGE_SETTLE_SLEEP": "0"}
+
+
+@pytest.mark.parametrize("knob", sorted(KNOBS) + ["all", "no tag message"])
+def test_no_argument_or_variable_of_the_join_gets_it_past_a_stack_red_exit_0(
+        tmp_path, fake_processes, monkeypatch, run_cli, knob):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+    spy_stack_red(monkeypatch, world)
+    env = dict(ENV, **(KNOBS if knob == "all" else {knob: KNOBS[knob]} if knob in KNOBS else {}))
+
+    code, _, err = run_cli(queued_merge, [PR, world.wt, BRANCH, "-" if knob == "no tag message" else "the capability"],
+                           env=env)
+
+    assert (code, pushed(world), "stack-culprit.sh" in err) == (1, [], True), err
