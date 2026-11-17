@@ -190,6 +190,24 @@ def test_issue_4252_a_rerun_from_a_subdirectory_of_the_clone_posts_nothing_and_e
     assert (codes, posted) == ([0, 3], [("42", "Question: Keep <repo>/skills/tdd/SKILL.md?\n\nOwner's answer: Yes.")])
 
 
+def test_issue_4252_a_linked_worktree_outside_the_main_tree_has_its_root_redacted_from_any_directory_in_it(
+        world, run_cli, tmp_path):
+    record_answer, comments, posted, write_file = world
+    main = tmp_path / "main"
+    (main / ".git" / "worktrees" / "wt").mkdir(parents=True)
+    (main / ".git" / "worktrees" / "wt" / "commondir").write_text("../..\n")
+    worktree = tmp_path / "elsewhere" / "wt"
+    (worktree / "skills" / "tdd").mkdir(parents=True)
+    (worktree / ".git").write_text("gitdir: %s\n" % (main / ".git" / "worktrees" / "wt"))
+    path = write_file("#### Question\n\nKeep %s and %s?\n\n## Answer\n\nYes.\n"
+                      % (worktree / "skills" / "tdd" / "SKILL.md", main / "README.md"))
+
+    codes = [run_cli(record_answer, ["42", path], cwd=str(where))[0] for where in (worktree / "skills", worktree)]
+
+    assert (codes, posted) == (
+        [0, 3], [("42", "Question: Keep <repo>/skills/tdd/SKILL.md and <repo>/README.md?\n\nOwner's answer: Yes.")])
+
+
 def test_issue_4252_a_clone_whose_main_working_tree_cannot_be_found_exits_2_posting_nothing(world, run_cli, tmp_path):
     record_answer, comments, posted, write_file = world
     worktree = tmp_path / "wt"

@@ -72,6 +72,20 @@ def main_tree_from_files(start=None):
         directory = parent
 
 
+def worktree_root_from_files(start=None):
+    """The working tree holding `start` (default: the current directory), a linked worktree's own root included,
+    found by walking up to the first `.git` (directory or file), starting no process; no `.git` up to the root
+    answers `start` itself. str, never raises."""
+    start = os.getcwd() if start is None else start
+    directory = os.path.abspath(start)
+    while not os.path.exists(os.path.join(directory, ".git")):
+        parent = os.path.dirname(directory)
+        if parent == directory:
+            return os.path.abspath(start)
+        directory = parent
+    return directory
+
+
 def main_file(main, name):
     """`<main>/.tdd/<name>`: a file of the main working tree's own state. str, never raises."""
     return os.path.join(main, ".tdd", name)
