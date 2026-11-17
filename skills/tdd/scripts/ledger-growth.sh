@@ -15,7 +15,7 @@
 #          P the steps in <plan-ledger-file>;
 #          1 a new line lacks its record or ⟦added⟧, or the cap is passed, named on stderr;
 #          2 a missing argument, an unreadable ledger or plan file, a bad VERI_STEP_GROWTH_PERCENT,
-#          the retired VERI_STEP_GROWTH set, or
+#          the retired absolute-count knob set, or
 #          (plan-sha) no plan commit in the log
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/ledger_growth.py" "$@"
