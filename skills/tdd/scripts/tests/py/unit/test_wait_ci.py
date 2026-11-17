@@ -2959,3 +2959,16 @@ def test_4230_wait_ci_fresh_window_is_no_wait_and_marks_no_stage(monkeypatch, wa
     returned = wait_ci.main(["--fresh-window", SHA])
 
     assert (returned, [r for r in events.records(tmp_path) if "stage" in r]) == (0, [])
+
+
+@pytest.mark.parametrize("argv", [[PR, "x"], [PR, "60", "-1"], [PR, "60", "120", "nothex"]],
+                         ids=["bad slice", "bad total", "bad head sha"])
+def test_4230_wait_ci_refusing_its_arguments_exits_2_and_marks_no_stage(
+        monkeypatch, capsys, wait_ci, fake_processes, tmp_path, events, argv):
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.chdir(tmp_path)
+    fake_processes(lambda line, **_: (0, "", ""))
+
+    returned = wait_ci.main(argv)
+
+    assert (returned, [r for r in events.records(tmp_path) if "stage" in r]) == (2, [])

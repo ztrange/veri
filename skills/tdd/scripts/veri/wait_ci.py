@@ -228,10 +228,22 @@ def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
-    return event.stage("ci-wait", lambda: wait(argv))
+    # The arguments are refused before the stage starts: a call refused for its arguments is not a wait.
+    want = argv[3] if len(argv) > 3 else ""
+    if want and not re.fullmatch(r"[0-9a-f]{40}", want):
+        warn("head-sha '%s' is not a full 40-hex sha; a full 40-hex sha is required" % want)
+        return 2
+    numbers = []
+    for which, given in zip(("slice-seconds", "total-seconds"), (argv[1:3] + ["", ""])[:2]):
+        value = decimal(given) if given else ""
+        if value is None:
+            warn("%s '%s' is not a non-negative whole number" % (which, given))
+            return 2
+        numbers.append(value)
+    return event.stage("ci-wait", lambda: wait(argv[0], want, *numbers))
 
 
-def wait(argv):
+def wait(pr, want, slice_arg, total):
     try:
         stated = declared()
     except ValueError as refusal:
@@ -251,21 +263,8 @@ def wait(argv):
     if not re.fullmatch(r"[0-9]+", head_wait):
         warn("VERI_CI_HEAD_WAIT '%s' is not a non-negative whole number" % head_wait)
         return 2
-    pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
-    want = argv[3] if len(argv) > 3 else ""
-    if want and not re.fullmatch(r"[0-9a-f]{40}", want):
-        warn("head-sha '%s' is not a full 40-hex sha; a full 40-hex sha is required" % want)
-        return 2
     scope = {}
-    numbers = []
-    for which, given in zip(("slice-seconds", "total-seconds"), (argv[1:3] + ["", ""])[:2]):
-        value = decimal(given) if given else ""
-        if value is None:
-            warn("%s '%s' is not a non-negative whole number" % (which, given))
-            return 2
-        numbers.append(value)
-    slice_arg, total = numbers
     span = capped(slice_arg or str(SLICE_CAP), SLICE_CAP, scope)
     if total:
         total = capped(total, CEILING, scope)
