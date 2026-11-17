@@ -5,4 +5,4 @@
 - [x] `test-quality.sh record <n> < <report>` writes `.tdd/issue-<n>-test-quality.md` with each `FINDING:` line's finding and exits 0 ⟦criterion 3⟧
 - [x] `test-quality.sh record` exits 3 on `FINDING: none`, the file written with no finding ⟦criterion 4⟧
 - [x] `test-quality.sh record` exits 2, writing nothing, on a line naming no `::` case, a case its file does not define, or no `FINDING:` line ⟦criterion 5⟧
-- [ ] `prompts/develop-test-quality.md`, `DRAFT-PR.md` sub-step 1 and the PR body section, and `SCRIPTS.md`'s `test-quality.sh` entry, graded ⟦criterion 6⟧ ⟦criterion 7⟧ ⟦criterion 8⟧
+- [x] `prompts/develop-test-quality.md`, `DRAFT-PR.md` sub-step 1 and the PR body section, and `SCRIPTS.md`'s `test-quality.sh` entry, graded ⟦criterion 6⟧ ⟦criterion 7⟧ ⟦criterion 8⟧
