@@ -9,12 +9,20 @@ import git
 import stem_walk
 
 USAGE = "usage: unwired.sh <branch-base>"
+NOT_CODE = frozenset((".md", ".txt", ".rst", ".yml", ".yaml", ".json", ".toml", ".ini", ".cfg", ".lock", ".csv"))
+
+
+def code(path):
+    """Whether <path> is code this gate checks: not a test file, not under `.tdd/` or `.github/`, and not of a prose,
+    config or data extension."""
+    return (not path.startswith((".tdd/", ".github/")) and not case_reader.is_test_path(path)
+            and os.path.splitext(path)[1] not in NOT_CODE)
 
 
 def added(base):
-    """The paths <base>..HEAD adds that are not test files and not under `.tdd/`."""
+    """The code paths <base>..HEAD adds."""
     listed = git.out("diff", "--diff-filter=A", "--name-only", "-z", base + "..HEAD")
-    return [p for p in listed.split("\0") if p and not p.startswith(".tdd/") and not case_reader.is_test_path(p)]
+    return [p for p in listed.split("\0") if p and code(p)]
 
 
 def unnamed(paths):

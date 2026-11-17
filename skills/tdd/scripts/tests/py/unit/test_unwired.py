@@ -60,6 +60,16 @@ def test_every_added_file_named_exits_0_printing_nothing_and_a_range_adding_none
     assert results == [(0, "", ""), (3, "", "")]
 
 
+def test_added_prose_config_and_data_files_and_github_paths_nothing_names_are_skipped_and_exit_3(
+        tmp_path, monkeypatch, capsys, unwired, fake_processes):
+    tree = {"README.md": "# scratch\n", ".github/workflows/lint.yml": "on: push\n", "conf.json": "{}\n",
+            "src/main.py": "x = 1\n"}
+    write(tmp_path, tree)
+    range_git(fake_processes, ["README.md", ".github/workflows/lint.yml", "conf.json"], list(tree))
+    monkeypatch.chdir(tmp_path)
+    assert (unwired.main(["base"]),) + tuple(capsys.readouterr()) == (3, "", "")
+
+
 def test_the_stem_inside_the_added_file_itself_is_no_caller(tmp_path, monkeypatch, capsys, unwired, fake_processes):
     tree = {"src/orphan.py": "def orphan():\n    return orphan\n", "src/main.py": "x = 1\n"}
     write(tmp_path, tree)
