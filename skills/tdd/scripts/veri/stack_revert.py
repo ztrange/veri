@@ -21,6 +21,14 @@ class Nothing(Exception):
     """Nothing to revert (exit 3); str() says why."""
 
 
+class AlreadyReverted(Nothing):
+    """Nothing to revert because the issue's newest commit on <stack> is its revert <sha> (exit 3, its claim still
+    lifted)."""
+    def __init__(self, stack, sha, said):
+        super().__init__(said)
+        self.stack, self.sha = stack, sha
+
+
 def _top():
     """The working tree the script was run in: its worktree is made under that tree's `.tdd/`."""
     return git.out("rev-parse", "--show-toplevel")
@@ -73,8 +81,9 @@ def _say(message):
 def _reverted(n, path, worktree):
     """Under the lock: revert issue <n>'s commits on a fresh fetch of the stack in the worktree <path> and push the
     revert, starting again from the fetch while origin's stack moves: (stack, default, revert sha, the hand-fix commits
-    among n's, those carrying a Stack-fix: trailer). <worktree> is a list <path> is put in once the worktree is added.
-    Nothing when no commit is n's or n is already reverted; stack_fix.Refused or stack_fix.NoAnswer otherwise."""
+    among n's, those carrying a Stack-fix: trailer). Only n's commits after its last revert by this script are
+    reverted. <worktree> is a list <path> is put in once the worktree is added. Nothing when no commit is n's,
+    AlreadyReverted when n's newest commit is its revert; stack_fix.Refused or stack_fix.NoAnswer otherwise."""
     for _ in range(JOIN_ATTEMPTS):
         try:
             found = stack_branch.ahead(".")
@@ -90,9 +99,11 @@ def _reverted(n, path, worktree):
         mine = [(commit, subject) for (commit, subject), issues in zip(commits, owned) if n in issues]
         if not mine:
             raise Nothing("no commit of origin/%s..origin/%s belongs to issue %s; nothing reverted" % (default, stack, n))
-        done = [commit for commit, subject in mine if subject == SUBJECT % (n, n)]
-        if done:
-            raise Nothing("issue %s is already reverted on origin/%s by %s; nothing reverted again" % (n, stack, done[-1]))
+        done = [at for at, (_, subject) in enumerate(mine) if subject == SUBJECT % (n, n)]
+        if done and done[-1] == len(mine) - 1:
+            raise AlreadyReverted(stack, mine[-1][0], "issue %s's newest commit on origin/%s is its revert %s; nothing"
+                                  " reverted again" % (n, stack, mine[-1][0]))
+        mine = mine[done[-1] + 1:] if done else mine
         shas = {commit for commit, _ in mine}
         fixes = [commit for commit, _, trailers in stack_fix.log(
             "refs/remotes/origin/%s..refs/remotes/origin/%s" % (default, stack)) if trailers and commit in shas]
@@ -132,7 +143,7 @@ def main(argv):
     code, _ = stack_fix.script("merge-lock.sh", "take", "--pid", pid)
     if code:
         return entry.refuse("taking the merge lock failed (exit %d); nothing reverted" % code, prefix="stack-revert: ")
-    worktree = []
+    worktree, done = [], None
     try:
         code, said = stack_fix.script("stack-red.sh", limit=stack_fix.NETWORK)
         if code == 3:
@@ -141,6 +152,9 @@ def main(argv):
             raise stack_fix.NoAnswer("stack-red.sh exited %d, so whether the stack is red is not known" % code)
         red = (said.split() or [""])[0]
         stack, default, sha, fixes = _reverted(n, os.path.join(_top(), ".tdd", "stack-revert-%s" % pid), worktree)
+    except AlreadyReverted as reverted:
+        _say(str(reverted))
+        done = reverted
     except (stack_fix.Refused, stack_fix.NoAnswer, Nothing) as stopped:
         _say(str(stopped))
         return {stack_fix.Refused: 1, stack_fix.NoAnswer: 2, Nothing: 3}[type(stopped)]
@@ -151,6 +165,9 @@ def main(argv):
         released, _ = stack_fix.script("merge-lock.sh", "release", "--pid", pid)
         if released:
             _say("releasing the merge lock failed (exit %d)" % released)
+    if done:
+        # Rewording is safe to repeat: a re-run after an edit that failed lifts the claim the first run left.
+        return _lift_claims(done.stack, n, done.sha) or 3
     sys.stdout.write(sha + "\n")
     lifted = _lift_claims(stack, n, sha)
     stack_fix.comment(stack, default, n, "stack-revert: issue %s's commits are reverted on %s by %s, on top of the red"
