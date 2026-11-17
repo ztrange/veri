@@ -57,7 +57,7 @@ TINY = "def test_red():\n    assert 0\n\n\ndef test_green():\n    pass\n"
 
 
 @pytest.mark.process("veri's own `veri: one test file:` command (make test TESTS=\"$1\") run for real on a tiny test file, in a directory holding veri's Makefile and CLAUDE.md and a link to its skills")
-@pytest.mark.timeout(900)
+@pytest.mark.timeout(300)
 def test_on_veris_own_one_test_file_command_a_failing_case_is_red_a_passing_one_not_and_a_missing_id_absent(
         tmp_path, monkeypatch):
     import importlib
@@ -90,7 +90,7 @@ def test_stack_culprit_names_the_issue_whose_end_turned_the_case_red_and_removes
     (bin_dir / "runs").write_text(json.dumps({"total_count": 1, "workflow_runs": [
         {"head_sha": shas[2], "html_url": "https://github.com/o/r/actions/runs/42", "status": "completed",
          "conclusion": "failure", "created_at": "2026-11-16T10:00:00Z", "repository": {"full_name": "o/r"},
-         "head_repository": {"full_name": "o/r"}, "run_attempt": 1}]}))
+         "head_repository": {"full_name": "o/r"}, "run_attempt": 1, "workflow_id": 7}]}))
     (bin_dir / "log").write_text("tests\tRun\t﻿2026-11-16T10:00:00.1Z FAILED %s - red\n" % CASE)
     env = {**os.environ, "PATH": "%s:%s" % (bin_dir, os.environ["PATH"])}
 

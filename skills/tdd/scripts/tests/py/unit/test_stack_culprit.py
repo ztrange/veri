@@ -29,7 +29,7 @@ class World:
 
     def __init__(self, monkeypatch, culprit, subjects, red=None, cases=("t/test_a.py::test_x",), reds=None,
                  absent=(), tested=(), runs=None, failed_log=None, span="commits", pulls=("pull",), comments=(),
-                 add=True, alone=None, removed=True):
+                 add=True, alone=None, removed=True, alone_at=None):
         self.alone, self.steps, self.posted, self.checked = [], [], [], []
         commits = [(sha(n + 1), subject) for n, subject in enumerate(subjects)]
         self.red = red or (commits[-1][0] if commits else sha(99))
@@ -44,9 +44,9 @@ class World:
             if isinstance(runs, BaseException):
                 raise runs
             return list(runs) if runs is not None else [
-                (self.red, "https://github.com/o/r/actions/runs/42", "completed", "failure", "2026-11-16T10:00:00Z", 1)]
+                (self.red, "https://github.com/o/r/actions/runs/42", "completed", "failure", "2026-11-16T10:00:00Z", 1, 7)]
 
-        def run_failed_log(run_id):
+        def run_failed_log(run_id, attempt=None):
             if isinstance(failed_log, BaseException):
                 raise failed_log
             return failed_log if failed_log is not None else log(*cases)
@@ -73,6 +73,8 @@ class World:
 
         def run_alone(path, command, target):
             self.alone.append((self.at, target))
+            if alone_at and self.at in alone_at:
+                return alone_at[self.at]
             if alone is not None:
                 return alone
             return (1, "FAILED %s - AssertionError: red at %s\n" % (target, self.at[-2:])) \
@@ -156,12 +158,14 @@ X = "t/test_a.py::test_x"
 @pytest.mark.parametrize("alone, code", [
     ((2, "collected 1 item\n\x1b[31mFAILED %s - assert 0\x1b[0m\n----\nSUITES FAILED\n" % X), 0),
     ((1, "FAILED %s - assert 0\n" % X), 0),
-    ((2, "ERROR: not found: /w/%s\n(no match in any of [<Module test_a.py>])\nno tests ran in 0.3s\n" % X), 3),
-    ((5, "collected 0 items\nno tests ran in 0.1s\n"), 3),
+    ((2, "ERROR: not found: /w/%s\n(no match in any of [<Module test_a.py>])\nno tests ran in 0.3s\n" % X), 2),
+    ((5, "collected 0 items\nno tests ran in 0.1s\n"), 2),
     ((0, "1 passed\n"), 3),
     ((2, "1 passed\n----\nSUITES FAILED\n"), 2),
     ((1, "FAILED t/test_a.py::test_other - assert 0\n"), 2),
     ((2, ""), 2), ((None, "FAILED %s - assert 0\n" % X), 2),
+    ((1, "FAILED %s2 - assert 0\n" % X), 2),
+    ((2, "ERROR t/test_a.py - ImportError: cannot import name x\n1 error in 0.2s\n"), 2),
 ])
 def test_a_case_is_red_when_its_run_fails_naming_it_absent_when_not_found_and_any_other_failure_is_no_answer(
         monkeypatch, run_cli, culprit, alone, code):
@@ -293,7 +297,7 @@ def test_exits_2_with_nothing_on_stdout_when_no_answer_can_be_had(monkeypatch, r
     red = sha(9) if given == "not on the stack" else "zz" if given == "not a sha" else sha(2)
     runs = {"runs no answer": no_answer(culprit, "HTTP 502"), "no red run": [],
             "green run": [(sha(2), "https://github.com/o/r/actions/runs/42", "completed", "success",
-                           "2026-11-16T10:00:00Z", 1)]}.get(given)
+                           "2026-11-16T10:00:00Z", 1, 7)]}.get(given)
     failed_log = {"log no answer": no_answer(culprit, "HTTP 502"), "log garbled": "not a gh log line\n",
                   "log names none": log()}.get(given)
     span = {"fetch": culprit.stack_branch.Refused("no answer from origin (exit 128)"), "unnamed": None}.get(
@@ -334,3 +338,36 @@ def test_a_failed_removal_of_its_own_worktree_is_said_on_stderr_naming_the_path_
 
     path = world.steps[0][1]
     assert (got, [line for line in err.splitlines() if path in line and "remove" in line] != []) == (code, True), err
+
+
+@pytest.mark.parametrize("how", ["file missing", "not found"])
+def test_a_case_absent_at_the_red_sha_itself_is_exit_2_the_ci_id_and_the_local_command_disagree(
+        monkeypatch, run_cli, culprit, how):
+    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"],
+                  absent={(sha(2), "t/test_a.py")} if how == "file missing" else (),
+                  alone=(2, "ERROR: not found: /w/%s\nno tests ran in 0.1s\n" % X) if how == "not found" else None)
+
+    code, out, err = run_cli(culprit, [sha(2)])
+
+    assert (code, out, world.posted, sha(2) in err) == (2, "", [], True), err
+
+
+@pytest.mark.parametrize("output", ["ERROR: not found: /w/%s\nno tests ran in 0.3s\n" % X,
+                                    "collected 0 items\nno tests ran in 0.1s\n"])
+def test_a_case_reported_not_found_or_not_collected_at_an_earlier_end_is_not_red_there(
+        monkeypatch, run_cli, culprit, output):
+    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], alone=(0, "1 passed\n"),
+                  alone_at={sha(1): (2, output)})
+
+    code, out, err = run_cli(culprit, [sha(2)])
+
+    assert (code, out, len(world.alone)) == (3, "", 2), err
+
+
+def test_a_collection_error_line_at_an_earlier_end_is_no_answer_exit_2_never_absent(monkeypatch, run_cli, culprit):
+    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], alone=(0, "1 passed\n"),
+                  alone_at={sha(1): (2, "ERROR t/test_a.py - ImportError: cannot import name x\n1 error in 0.2s\n")})
+
+    code, out, err = run_cli(culprit, [sha(2)])
+
+    assert (code, out, world.alone) == (2, "", [(sha(1), X)]), err
