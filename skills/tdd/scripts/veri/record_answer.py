@@ -35,6 +35,10 @@ def main(argv):
     number, path = argv
     with open(path, encoding="utf-8") as f:
         body = body_of(f.read())
+    comments = github.issue_comments(number)
+    if any(github.trusted_comment(c) and c["body"].strip() == body.strip() for c in comments):
+        sys.stderr.write("record-answer.sh: issue #%s already has this answer\n" % number)
+        return 3
     github.gh_comment_post(number, body)
     return 0
 
