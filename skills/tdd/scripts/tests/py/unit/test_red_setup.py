@@ -195,3 +195,15 @@ def test_worst_records_a_row_carrying_no_local_path_of_the_run_or_the_home_direc
 
     assert (code, str(tmp_path) in owed, home in owed, owed.startswith("not-done | testability | step one: 5")) == (
         0, False, False, True)
+
+
+@pytest.mark.parametrize("marks", [(("7", "step one", "5", "five fakes"),), ()])
+def test_worst_exiting_3_drops_the_testability_row_an_earlier_run_recorded_and_keeps_the_other_rows(
+        tmp_path, run_cli, red_setup, marks):
+    _journal(tmp_path, *marks)
+    owed = tmp_path / ".tdd" / "issue-7-refactor-owed.md"
+    owed.write_text("### step one\n- extract the shared partial\n"
+                    "not-done | testability | step one: 5 stubs and setup (five fakes)\n")
+
+    assert _worst(run_cli, red_setup, tmp_path, env={"VERI_SETUP_THRESHOLD": "5"}) == (
+        3, "", "### step one\n- extract the shared partial\n")
