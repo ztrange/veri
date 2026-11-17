@@ -430,7 +430,7 @@ def main(argv):
     def terminate(signum, frame):
         # Ends the leg here, not by raising into pytest.main: pytest would run the session-finish hooks, xdist's worker
         # teardown among them, and a hung worker held that teardown up to its own timeout (#4254).
-        if not watch.end(128 + signum, "pytest leg ended by signal %d; workers %%s ended\n" % signum):
+        if not watch.end(128 + signum, lambda workers: "pytest leg ended by signal %d; workers %s ended\n" % (signum, workers)):
             signalled.append(signum)  # the leg's return owns its teardown: the leg exits 128 + signum once it is done
     conftest = sys.modules.get("conftest")
     entry = None
