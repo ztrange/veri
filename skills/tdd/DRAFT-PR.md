@@ -664,7 +664,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
 3. **Never merge the PR.** Landing the code is always the human's deliberate act.
 4. Run `$S/run-done.sh <n>` first; it never exits 3. On exit 0 take `stop_requested=` (the first ask's exit) and
    `cleared=` from its last lines: the done comment is posted and a reported stop request cleared. On any other exit
-   go on by this sub-step from the point its last line names.
+   go on by this sub-step from the point its last line names. Its tree check before the comment leaves out
+   `.tdd/issue-<n>-metrics.md` when `.tdd/issue-<n>-pr-finish` holds a non-zero `metrics=`: a failed render's leftover.
    Before posting it, run `$S/stop-requested.sh`. Then post the final done comment by running
    `$S/comment.sh <n> done`, composing none of it: it posts `### ✅ Done — <pr-url>` (the url from
    the `done` mark sub-step 2 wrote) with the same `### 📊 Metrics` block under it, verbatim from
