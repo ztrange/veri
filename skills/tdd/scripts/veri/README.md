@@ -839,6 +839,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `inputs(name, n, *files)`: the settled preflight values and worktree once every input exists, else `None`, each missing one on stderr (FC15). `first_step(wt, n, chosen)`: the first ledger step a predicate takes.
 - `cost_check(wt, step)`: *The step's cost check*, stopping at `cost-check`. `verify_switched_off(wt, n, phase)`: the run's pinned `VERI_SKIP_VERIFY` names the phase.
 - `summary(step)`: the step's ledger text without its trailing markers, as a commit subject reads it (the #431/#437 rule).
+- `verdict_log(wt)`: the sha256 of `.tdd/verify-refactor.log`, `none` without one: the verdict a refactor-half file was settled after.
 
 ## metrics
 - `publish(target, issue, journal, ledger, run)`: writes the `metrics.sh --json` object of the journal at `journal` to `target`, renamed into place from a temporary file beside it; `run` is the run directory whose end, conductor log and pins the fold reads (`None`: the journal alone). `event` calls it for the published metrics file.
