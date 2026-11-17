@@ -43,7 +43,8 @@
    launch.
    - PASS: the region is not yet surrounded. Run
      `$S/surround-mutants.sh <develop-report> .tdd/verify-surround.reason -- <command>`, where
-     `<develop-report>` is the step's last `develop-surround` (or revise) report, and `<command>` runs
+     `<develop-report>` is the step's `develop-surround` report (a revise keeps its table: the
+     mutants target production code, which no revise edits), and `<command>` runs
      each test file the step's Surround commit added (`git diff --name-only --diff-filter=A
      <base-sha> HEAD`) through the repo's `veri: one test file:` command
      (`$S/detect-test-command.sh --tier "one test file"`, `"$1"` being the file), or once through
