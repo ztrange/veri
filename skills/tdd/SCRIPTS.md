@@ -499,6 +499,32 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   concluded `success`, `neutral` or `skipped`, or when none of the 100 completed with a conclusion other than
   `cancelled`; one stderr line says which of the two. **Exit 2** when GitHub gives no answer or an answer not of the
   workflow-runs shape, when a fetch of origin gets no answer, or when `stack-branch.sh` does not exit 0, 3 included.
+- `$S/stack-culprit.sh <red-sha>` — run in the target repository's clone: names the issue whose end turned the stack
+  red, and the cases it broke. It reads the red cases from the failed-job log (`gh run view <run-id> --log-failed`) of
+  the red workflow run on `<red-sha>` (the newest completed, not-cancelled run GitHub lists for the stack with that
+  head), naming them by `rerun-alone.sh`'s rule from the runner's text as `ci-flake.sh` reads the log, and runs at most
+  the first 5, saying on stderr how many it did not run. The commits it tests are the *issue ends* from the newest
+  commit at or below `<red-sha>` that `stack-green.sh`'s rule calls tested (a KT5 issue end whose check runs passed,
+  the newest 20 such ends read) to `<red-sha>`, `<red-sha>` included, `origin/<default>` standing for the start when
+  none is tested; here an issue end is each commit whose next commit toward the tip belongs to another issue by
+  subject (a subject names the issues of the parenthesised group it ends with; one naming none belongs to the nearest
+  earlier issue). At those commits, oldest first, it runs each case alone through the repository's
+  `veri: one test file:` command in a detached worktree of its own under the tree's `.tdd/`, never in a run's worktree
+  or the main clone, and removes that worktree on every exit; a worktree it cannot add is exit **2** with nothing run.
+  A case is red at a commit when its file exists there and its alone run exits 1; exit 0, 4 or 5, or its file absent,
+  is not red. At the first issue end where a case is red it prints, one per line, `red: <red-sha>` (the full sha the
+  search was run for, so a file holding the answer is told apart from one recorded for another red), `issue: <n>`
+  (each number, ascending and space-separated, when the subject names several; `none` before any subject names one),
+  `commit: <sha>`, `before: <sha>` (the issue end before it, or `origin/<default>`), then one
+  `case: <case><TAB><first FAIL line>` per red case, its local paths written `<worktree>` and `~`, and exits **0**.
+  **Exit 3**, nothing printed, when no issue end turns a case red, `<red-sha>` included, its stderr naming the cases
+  run. **Exit 2** when the log cannot be read or names no case, when `<red-sha>` is not a full sha of a commit of
+  `origin/<default>..origin/<stack>` or has no red run, when an alone run gives no answer (any other exit, or none
+  within `VERI_TIMEOUT`), when GitHub or a fetch gives no answer, when the repository declares no
+  `veri: one test file:` command, or when `stack-branch.sh` does not exit 0. On exit 0 or 3 it adds one comment to the
+  stack's tracking pull request holding what it printed (or, on 3, the cases run) and the red run's url, and adds none
+  when a comment there already holds the same text; with no one tracking pull request open it opens none, posts
+  nothing, says so on stderr and keeps its exit.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match

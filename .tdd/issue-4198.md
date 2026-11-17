@@ -10,5 +10,5 @@
 - [x] an unreadable log or one naming no case, a <red-sha> not on origin/<default>..origin/<stack>, no answer from GitHub or a fetch, and stack-branch.sh not exiting 0 are exit 2 ⟦criterion 8⟧
 - [x] on exit 0 or 3 it comments once on the stack's tracking pull request with what it printed and the red run's url, never twice for the same answer; with none open it says on stderr no comment was posted ⟦criterion 9⟧
 - [x] stack-culprit.sh is a /bin/sh shim over veri/stack_culprit.py, indexed in veri/README.md, run as a process ⟦criterion 10⟧
-- [ ] the module names no repository, issue, branch, label, person or CI job ⟦criterion 11⟧
-- [ ] SCRIPTS.md lists stack-culprit.sh (SC252), graded ⟦criterion 12⟧
+- [x] the module names no repository, issue, branch, label, person or CI job ⟦criterion 11⟧
+- [x] SCRIPTS.md lists stack-culprit.sh (SC252), graded ⟦criterion 12⟧
