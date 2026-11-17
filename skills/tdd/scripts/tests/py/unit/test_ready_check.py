@@ -588,6 +588,17 @@ def test_issue_4088_a_tiers_wall_time_ends_when_its_command_recorded_its_exit_no
     assert tier_run_line(lines, "all") == "ok    all tier run (4s)", lines
 
 
+def test_issue_4092_ready_check_no_suites_is_accepted_prints_no_tier_run_row_and_runs_no_tier(ready_check, run_cli, fake_processes, tmp_path):
+    fake = fake_processes.answers(holding(**TIERS))
+    code, out, err = run_cli(ready_check, ["--no-suites", str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    lines = out.splitlines()
+
+    assert (code, lines[-1]) == (0, "ready"), (out, err)
+    assert "ok    fast tier" in lines and "ok    all tier" in lines, lines
+    assert not [line for line in lines if "tier run" in line], lines
+    assert not [c for c in fake.calls if "detach-command.sh" in c or "git worktree" in c], fake.calls
+
+
 def test_issue_4088_a_tier_run_that_raises_exits_2_having_removed_the_worktree_it_made(ready_check, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": OSError(7, "no detach")}))
     code, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})

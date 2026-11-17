@@ -1,6 +1,6 @@
 # Plan for #4092 — PRD 016.7: run preflight refuses on a failing readiness row
 
-- [ ] `ready-check.sh --no-suites` is accepted, prints no `<tier> tier run` row and runs no test tier ⟦criterion 5⟧
+- [x] `ready-check.sh --no-suites` is accepted, prints no `<tier> tier run` row and runs no test tier ⟦criterion 5⟧
 - [ ] preflight runs `ready-check.sh --no-suites` after step 2's checks pass and before step 3 creates the worktree ⟦criterion 1⟧
 - [ ] a failing step 2 check stops preflight before `ready-check.sh` runs ⟦criterion 1⟧
 - [ ] a failing refusing row stops preflight at `2 ready-check.sh` with exit 1, its fail line printed and no worktree created ⟦criterion 2⟧

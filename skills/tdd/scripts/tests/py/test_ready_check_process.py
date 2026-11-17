@@ -32,7 +32,7 @@ def test_issue_3055_ready_check_with_two_positionals_or_an_unknown_option_exits_
         ran = subprocess.run([str(SCRIPTS / "ready-check.sh"), *argv], cwd=repo, capture_output=True, text=True)
 
         assert ran.returncode == 2, (argv, ran.returncode, ran.stdout, ran.stderr)
-        assert "usage: ready-check.sh [repo-root]" in ran.stderr, (argv, ran.stderr)
+        assert "usage: ready-check.sh [--no-suites] [repo-root]" in ran.stderr, (argv, ran.stderr)
         assert ran.stdout == "", (argv, ran.stdout)
 
 
