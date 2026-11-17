@@ -153,13 +153,18 @@ the branch already holds a ledger, runs steps 1 to 7 below and never calls the s
    Then run `$S/refactor-budget.sh --issue 0` once, which reads `VERI_ISSUE_REFACTOR_BUDGET`,
    the structural pass's budget, the same way: exit 0 and exit 3 both mean it parses.
 
-   Then the plan-growth budget, which `add-ledger-step.sh` reads the same way: it must be
-   unset, or a whole number ≥ 0. There is nothing to run, since that script refuses an
-   anchor it cannot find before it ever looks at the budget, so read the value here:
+   Then the plan-growth budget, `VERI_STEP_GROWTH_PERCENT`, which `add-ledger-step.sh` and
+   `ledger-growth.sh` read the same way: it must be unset (50), or a whole number ≥ 0. There is
+   nothing to run, since that script refuses an anchor it cannot find before it ever looks at
+   the budget, so read the value here:
    ```
-   [[ -z "${VERI_STEP_GROWTH+x}" || "$VERI_STEP_GROWTH" =~ ^[0-9]+$ ]]
+   [[ -z "${VERI_STEP_GROWTH_PERCENT+x}" || "$VERI_STEP_GROWTH_PERCENT" =~ ^[0-9]+$ ]]
    ```
-   Anything else is false, **including set-but-empty**. Caught here
+   Anything else is false, **including set-but-empty** (`stopped at 5 VERI_STEP_GROWTH_PERCENT`).
+   The old absolute knob, `VERI_STEP_GROWTH`, is retired and must be unset: any value, empty
+   included, is false (`stopped at 5 VERI_STEP_GROWTH`), and the output names
+   `VERI_STEP_GROWTH_PERCENT`, since a count set for the old knob would otherwise be silently
+   ignored. Caught here
    it costs nothing; left to the first leaf that tries to grow the plan, it surfaces as a
    refused insertion mid-cycle, with the branch, the worktree and the plan already built.
 
@@ -169,7 +174,7 @@ the branch already holds a ledger, runs steps 1 to 7 below and never calls the s
    [[ "${VERI_MISSING_REROUTE_BUDGET:-3}" =~ ^[0-9]+$ ]]
    ```
    It is a seventh budget axis, never folded into `REVISE_BUDGET`,
-   `VERI_STUCK_RETRIES`, `VERI_NO_VERDICT_RETRIES`, `VERI_REFACTOR_BUDGET`, `VERI_STEP_GROWTH` or
+   `VERI_STUCK_RETRIES`, `VERI_NO_VERDICT_RETRIES`, `VERI_REFACTOR_BUDGET`, `VERI_STEP_GROWTH_PERCENT` or
    `VERI_SKILL_EDIT_BUDGET`.
 
    Then `VERI_SKIP_VERIFY`: it is a comma-separated list of phases whose verify is skipped. Each
@@ -191,7 +196,7 @@ the branch already holds a ledger, runs steps 1 to 7 below and never calls the s
    `${VERI_ADJUDICATE_BUDGET:-2}`, a non-negative whole number. Exit 0 means it parses; exit 2, its
    stderr naming `VERI_ADJUDICATE_BUDGET`, is a refusal before the baseline, like a bad
    `VERI_REFACTOR_BUDGET`. It is an eighth budget axis, never folded into `REVISE_BUDGET`,
-   `VERI_STUCK_RETRIES`, `VERI_NO_VERDICT_RETRIES`, `VERI_REFACTOR_BUDGET`, `VERI_STEP_GROWTH`,
+   `VERI_STUCK_RETRIES`, `VERI_NO_VERDICT_RETRIES`, `VERI_REFACTOR_BUDGET`, `VERI_STEP_GROWTH_PERCENT`,
    `VERI_SKILL_EDIT_BUDGET` or `VERI_MISSING_REROUTE_BUDGET`.
 6. **Leaf models parse.** Run `$S/leaf-model.sh develop-red`,
    `$S/leaf-model.sh revise-green` and `$S/leaf-model.sh verify-green` once each. All three,
