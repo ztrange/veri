@@ -132,4 +132,6 @@ arrives, whatever it is about, the role answers it and then restates every pendi
 full, a third case beyond the two P4 names.
 
 **Every question passes the judge first (P22).** An operator role passes each question through
-`vjudge` before it reaches the human; only what the judge surfaces reaches the human.
+`vjudge` before it reaches the human; only what the judge surfaces reaches the human. `/vplan` is
+the one exception: there every design decision still reaches the human, the judge reviewing the
+planner's recommendation for it and never settling or withholding it.
