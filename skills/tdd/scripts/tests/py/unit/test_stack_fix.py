@@ -371,6 +371,20 @@ def test_a_tracking_pull_request_it_cannot_tell_or_a_comment_that_fails_is_said_
     assert (code, out, [number for number, _ in world.posted], "comment" in err) == (0, HEAD + "\n", [] if fails else [12], True), err
 
 
+def test_it_makes_no_wait_ci_call_and_writes_nothing_but_the_push_and_its_two_comments_so_no_freeze_is_lifted(
+        monkeypatch, run_cli, fix, tmp_path):
+    world = World(monkeypatch, fix, tmp_path)
+    writes = []
+    for name in ("gh_api", "run_gh", "gh_issue_edit", "gh_issue_comment", "gh_issue_add_label", "gh_issue_remove_label",
+                 "gh_run_rerun_failed", "gh_comment_edit", "pr_open"):
+        monkeypatch.setattr(fix.github, name, lambda *args, _name=name, **kwargs: writes.append(_name))
+
+    code, _, err = run_cli(fix, world.argv())
+
+    assert (code, sorted({call[0] for call in world.scripts}), len(world.pushed), len(world.posted), writes) == (
+        0, ["merge-lock.sh", "prose-owed.sh", "stack-red.sh"], 1, 2, []), err
+
+
 def test_nothing_is_commented_when_nothing_is_pushed(monkeypatch, run_cli, fix, tmp_path):
     world = World(monkeypatch, fix, tmp_path, fast=(1, ""))
 
