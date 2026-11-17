@@ -28,6 +28,16 @@ def default_driver(monkeypatch):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
 
 
+@pytest.fixture(autouse=True)
+def legacy_label(monkeypatch, coverage_blocker):
+    """The repository has a `legacy` label unless a case puts the real lookup back (#4109)."""
+    monkeypatch.setattr(coverage_blocker, "gh_label_exists", lambda label: True, raising=False)
+
+
+def _real_label_lookup(monkeypatch, coverage_blocker):
+    monkeypatch.setattr(coverage_blocker, "gh_label_exists", importlib.import_module("veri.github").gh_label_exists, raising=False)
+
+
 @pytest.fixture
 def tmpdir_env(tmp_path, monkeypatch):
     """TMPDIR pointed at an empty directory under tmp_path."""
@@ -681,3 +691,55 @@ def test_main_3943_exits_2_files_and_edits_no_issue_and_names_the_report_on_stde
         seen[name] = (code, writes, out, ".tdd/develop-cover.out" in err)
 
     assert seen == {"directory": (2, [], "", True), "mode-000": (2, [], "", True)}
+
+
+def _legacy_run(monkeypatch, coverage_blocker, fake_processes, label_answer):
+    """main(["60"]) with every gh call faked at the process boundary, the `legacy` label GET answered by <label_answer>."""
+    calls = []
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        calls.append(args)
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            flag = args.index("-F") + 1
+            seen["body"] = pathlib.Path(args[flag].split("body=@", 1)[1]).read_text()
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[2] == "repos/{owner}/{repo}/labels/legacy":
+            return subprocess.CompletedProcess(args, *label_answer)
+        if args[2].startswith("repos/{owner}/{repo}/issues?"):
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
+            return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+            return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    _real_label_lookup(monkeypatch, coverage_blocker)
+    _install(fake_processes, fake_run)
+    code = coverage_blocker.main(["60"])
+    create = [c for c in calls if c[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"] and "-f" in c]
+    return code, create, seen.get("body")
+
+
+def test_main_4109_files_without_the_legacy_label_says_so_on_one_stderr_line_and_still_blocks_when_the_repo_has_none(
+        cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+    code, create, body = _legacy_run(monkeypatch, coverage_blocker, fake_processes, (1, "", "gh: Not Found (HTTP 404)\n"))
+    captured = capsys.readouterr()
+
+    assert (code, len(create), any("legacy" in a for c in create for a in c), body, captured.err) == (
+        0, 1, False, "## Blocked by\n\n- #77\n", "coverage-blocker: no legacy label; filed as an ordinary issue\n")
+
+
+def test_main_4109_labels_the_issue_legacy_with_no_stderr_when_the_label_lookup_finds_it(
+        cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+    code, create, body = _legacy_run(monkeypatch, coverage_blocker, fake_processes, (0, "{}", ""))
+
+    assert (code, ["labels[]=legacy" in c for c in create], body, capsys.readouterr().err) == (0, [True], "## Blocked by\n\n- #77\n", "")
+
+
+def test_main_4109_exits_2_filing_and_editing_nothing_when_the_label_lookup_gets_no_answer(
+        cover_report, tmpdir_env, monkeypatch, coverage_blocker, fake_processes):
+    code, create, body = _legacy_run(monkeypatch, coverage_blocker, fake_processes, (1, "", "HTTP 502 Bad Gateway\n"))
+
+    assert (code, create, body) == (2, [], None)
