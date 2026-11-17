@@ -234,3 +234,9 @@ def test_main_classifies_a_legacy_run_s_no_seam_and_surround_owed_bails_as_proce
         results[cause] = (code, *capsys.readouterr())
 
     assert results == {"no-seam": (0, "process\n", ""), "surround-owed": (0, "process\n", "")}
+
+
+def test_main_classifies_unwired_as_a_process_failure_with_0_4121(capsys, classify_bail):
+    code = classify_bail.main(["unwired"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
