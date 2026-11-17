@@ -17,7 +17,10 @@ def report_tree(tmp_path, monkeypatch, fake_processes, decisions):
     (tmp_path / "home" / "runs" / "acme-widgets").mkdir(parents=True)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "status-last").write_text(json.dumps({"time": "2026-11-02T10:00:00Z", "queue": {}}))
-    (tmp_path / ".tdd" / "decisions.jsonl").write_text(decisions)
+    if decisions is None:
+        (tmp_path / ".tdd" / "decisions.jsonl").mkdir()
+    else:
+        (tmp_path / ".tdd" / "decisions.jsonl").write_text(decisions)
     fake_processes.answers({}, default=(0, "", ""))
     return status
 
@@ -95,6 +98,16 @@ def test_issue_4072_report_prints_each_decision_on_one_line_its_control_characte
     waiting = [line for line in lines[lines.index("Waiting") + 1:] if line.strip()]
     assert (code, lines.count("Landed"), waiting) == (0, 1, [
         "decided: Forge?\\n\\nLanded\\nv9.9 forged\\x1b[31m → " + "x" * 300 + "… (rule: r\\tr)"]), err
+
+
+def test_issue_4072_report_exits_2_saying_the_decision_log_cannot_be_read_when_it_is_a_directory(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    status = report_tree(tmp_path, monkeypatch, fake_processes, None)
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, out, err) == (
+        2, "", "status.sh: cannot read the decision log %s: Is a directory\n" % (tmp_path / ".tdd" / "decisions.jsonl"))
 
 
 def test_issue_4072_report_waiting_marks_an_owner_record_as_the_owners(tmp_path, monkeypatch, run_cli, fake_processes):

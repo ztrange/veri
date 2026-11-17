@@ -35,6 +35,14 @@ class Malformed(Exception):
         self.where = where
 
 
+class Unreadable(Exception):
+    """The decision log exists but cannot be read: `path`, and `reason`, the system's words for why."""
+
+    def __init__(self, path, reason):
+        super().__init__(path)
+        self.path, self.reason = path, reason
+
+
 def _record(text):
     """<text> parsed as a decision record (every key of KEYS a non-empty string, `at` an ISO-8601 time with an
     offset), else None."""
@@ -56,7 +64,7 @@ def _record(text):
 
 def read(main):
     """The records of <main>'s decision log, oldest first; [] when the file is missing. Raises Malformed for a
-    line that is not a decision record, and OSError for a log that cannot be read: an unread record is never "no
+    line that is not a decision record, and Unreadable for a log that cannot be read: an unread record is never "no
     decision"."""
     path = log_path(main)
     try:
@@ -64,6 +72,8 @@ def read(main):
             lines = f.read().splitlines()
     except FileNotFoundError:
         return []
+    except (OSError, UnicodeDecodeError) as error:
+        raise Unreadable(path, getattr(error, "strerror", None) or str(error)) from error
     records = []
     for number, line in enumerate(lines, 1):
         if not line.strip():
