@@ -13,22 +13,24 @@ def script(name):
     return os.path.join(SCRIPTS, name)
 
 
-def run_script(name, *args, cwd=None, env=None, stdin=None, out=None, err=None):
+def run_script(name, *args, cwd=None, env=None, stdin=None, out=None, err=None, run=subprocess.run):
     """(code, stdout, stderr) of one process. <stdin> is text fed to it; <out> and <err>, paths under <cwd>, take its
-    stdout and stderr as `> <out>` and `2> <err>` would, a process it leaves running included, and come back as ""."""
+    stdout and stderr as `> <out>` and `2> <err>` would, a process it leaves running included, and come back as "".
+    <run> starts it, subprocess.run's signature (github.bounded for gh)."""
     def opened(path):
         return open(os.path.join(cwd or ".", path), "w") if path is not None else subprocess.PIPE
     with contextlib.ExitStack() as files:
         stdout, stderr = (files.enter_context(f) if f is not subprocess.PIPE else f for f in map(opened, (out, err)))
-        proc = subprocess.run([name, *args], input=stdin, stdout=stdout, stderr=stderr, text=True, cwd=cwd, env=env)
+        proc = run([name, *args], input=stdin, stdout=stdout, stderr=stderr, text=True, cwd=cwd, env=env)
     return proc.returncode, proc.stdout or "", proc.stderr or ""
 
 
 def label(name, *args):
-    return " ".join([os.path.basename(name), *args])
+    """The call as one line: its script's name and its arguments, a newline inside one written `\\n`."""
+    return " ".join([os.path.basename(name), *(arg.replace("\n", "\\n") for arg in args)])
 
 
-def shown(name, *args, out=None, err=None, **_):
+def shown(name, *args, out=None, err=None, stdin=None, **_):
     """The line naming a call: its script's name, its arguments and any redirection."""
     return label(name, *args) + (" > " + out if out is not None else "") + (" 2> " + err if err is not None else "")
 

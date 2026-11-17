@@ -1,12 +1,16 @@
 """plan-publish.sh's computation, run in-process: SKILL.md step 2's fixed tail once the plan is written (sub-steps 2-4,
 step 2b, and step 2c up to its PASS branch), made in one call (PRD 027.3)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import math
 import os
 import sys
+import time
 
 import fused
+import github
 import run_dir
 import run_start
+import tunables
 
 USAGE = "usage: plan-publish.sh <n> <title-file>"
 
@@ -41,7 +45,87 @@ def main(argv):
     given = inputs(n, title_file)
     if given is None:
         return 2
+    settled, title = given
+    try:
+        return run(n, settled, title)
+    except fused.Stop as stop:
+        return fused.stopped(stop)
+
+
+def gh(where, *args, wt, ok=(0,)):
+    """One gh call, bounded by VERI_GH_TIMEOUT and redacted as every gh call of veri's is."""
+    return fused.checked(where, "gh", *args, cwd=wt, ok=ok, run=github.bounded)
+
+
+def event(wt, n, *fields):
+    fused.checked(fused_where(fields), fused.script("event.sh"), *fields, cwd=wt, env=tunables.with_values(VERI_ISSUE=n))
+
+
+def fused_where(fields):
+    return "2.2" if "stage=plan" in fields else "2.3"
+
+
+def run(n, settled, title):
+    wt = settled["worktree"]
+    ledger = os.path.join(".tdd", "issue-%s.md" % n)
+    plan_sha, k = commit_plan(n, wt, ledger)
+    fused.checked("2.3", fused.script("push-branch.sh"), cwd=wt)
+    branch = fused.checked("2.3", "git", "branch", "--show-current", cwd=wt).strip()
+    pr_url = draft_pr(n, wt, settled, title, k, branch)
+    fused.checked("2.4", fused.script("comment.sh"), n, "plan", cwd=wt)
+    gh("2b", "api", "repos/{owner}/{repo}/issues/%s/comments" % n, "-f", "body=" + start_comment(n, k, branch), wt=wt)
     return 0
+
+
+def commit_plan(n, wt, ledger):
+    """Step 2.2: the scope check, then the ledger committed alone from a tree listing nothing else (PT1, PT2, PT8);
+    (plan sha, step count)."""
+    fused.checked("2.2", fused.script("scope-check.sh"), ledger, ".", cwd=wt)
+    with open(os.path.join(wt, ledger)) as f:
+        steps = fused.checked("2.2", fused.script("ledger-steps.sh"), cwd=wt, stdin=f.read())
+    k = len([line for line in steps.splitlines() if line.strip()])
+    listed = fused.checked("2.2", "git", "status", "--porcelain", cwd=wt).splitlines()
+    if [line for line in listed if line[3:] != ledger]:
+        raise fused.Stop("2.2", "tree-check", 1)
+    fused.checked("2.2", "git", "add", ledger, cwd=wt)
+    fused.checked("2.2", "git", "commit", "-m", "plan: scope #%s into %d steps (#%s)" % (n, k, n), cwd=wt)
+    plan_sha = fused.checked("2.2", "git", "rev-parse", "HEAD", cwd=wt).strip()
+    began = os.path.join(wt, ".tdd", "stage-plan.t")
+    if os.path.exists(began):
+        with open(began) as f:
+            secs = int(time.time()) - int(f.read().strip() or 0)
+        event(wt, n, "stage-end", "stage=plan", "status=0", "secs=%d" % secs)
+    return plan_sha, k
+
+
+def draft_pr(n, wt, settled, title, k, branch):
+    """Step 2.3's draft PR, opened only when <branch> has none (PT4); its url."""
+    found = gh("2.3", "api", "repos/{owner}/{repo}/pulls?head={owner}:%s" % branch, "-q", ".[0].html_url // empty",
+               wt=wt).strip()
+    if found:
+        return found
+    code, out, _ = fused.call(fused.script("stack-branch.sh"), cwd=wt)
+    if code not in (0, 3):
+        raise fused.Stop("2.3", "stack-branch.sh exit %d" % code, code)
+    base = out.strip() if code == 0 else settled["default_branch"]
+    event(wt, n, "stage-start", "stage=draft-pr")
+    began = time.monotonic()
+    body = ("<!-- veri:run-body -->\nCloses #%s — work in progress: %d steps planned. The ledger .tdd/issue-%s.md is "
+            "the source of truth.\n<!-- /veri:run-body -->" % (n, k, n))
+    args = ("api", "repos/{owner}/{repo}/pulls", "-F", "draft=true", "-f", "base=" + base, "-f", "head=" + branch,
+            "-f", "title=" + title, "-f", "body=" + body, "-q", ".html_url")
+    code, out, _ = fused.call("gh", *args, cwd=wt, run=github.bounded)
+    event(wt, n, "stage-end", "stage=draft-pr", "status=%d" % code, "secs=%d" % math.ceil(time.monotonic() - began))
+    if code != 0:
+        raise fused.Stop("2.3", fused.label("gh", *args) + " exit %d" % code, code)
+    return out.strip()
+
+
+def start_comment(n, k, branch):
+    """Step 2b's comment: the branch, the worktree (as `.tdd/wt/<n>`, never a local absolute path), the step count, and
+    that each phase will be blind-verified."""
+    return ("### ▶️ veri started\n\nBranch `%s`, worktree `.tdd/wt/%s`: %d steps planned. Each phase will be "
+            "blind-verified." % (branch, n, k))
 
 
 if __name__ == "__main__":
