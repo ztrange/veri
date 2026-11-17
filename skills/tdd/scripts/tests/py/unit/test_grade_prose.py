@@ -580,11 +580,11 @@ def test_grade_prose_and_requirements_read_fences_and_a_units_section_through_th
         through_grade_prose, set(calls))
 
 
-def test_in_a_file_with_no_fence_a_hash_run_with_no_space_after_it_ends_a_section_exactly_where_it_did_before_the_section_reader_1978(grade_prose):
+def test_in_a_file_with_no_fence_a_hash_run_with_no_space_after_it_ends_a_units_own_text_1978_4016(grade_prose):
     text = "## unit.md\nbody\n###deep\nkept\n##next\nother\n"
-    assert grade_prose.section(text, "unit.md") == "## unit.md\nbody\n###deep\nkept\n"
-    spaceless = "##unit.md\nbody\n###deep\nkept\n#tag\nother\n"
-    assert grade_prose.section(spaceless, "unit.md") == "##unit.md\nbody\n###deep\nkept\n"
+    assert grade_prose.section(text, "unit.md") == "## unit.md\nbody\n"
+    spaceless = "##unit.md\nbody\n#tag\nother\n"
+    assert grade_prose.section(spaceless, "unit.md") == "##unit.md\nbody\n"
 
 
 def test_a_crlf_files_unit_text_is_byte_identical_to_what_main_produced_before_the_section_reader_1978(tmp_path, grade_prose):

@@ -90,3 +90,12 @@ def test_4016_the_requirements_list_of_a_heading_unit_whose_heading_holds_a_slas
 
     assert requirements.list_path("skills/tdd/SKILL.md#The scripts (this skill's `scripts/` directory)") == \
         "skills/tdd/REQUIREMENTS.md"
+
+
+def test_4016_a_heading_units_text_is_its_own_text_up_to_the_next_unfenced_heading_of_any_level(tmp_path, grade_prose):
+    (tmp_path / "unit.md").write_text("# Unit\nintro\n## Two words, 100% sure\nown\n```\n# fenced\n```\nstill own\n"
+                                      "### Deeper\nsubsection\n## Other\nelse\n")
+
+    text = grade_prose.unit_text(str(tmp_path / "unit.md") + "#Two words, 100% sure")
+
+    assert text == "## Two words, 100% sure\nown\n```\n# fenced\n```\nstill own\n"

@@ -61,7 +61,7 @@ def section(text, heading):
     for index, (line, fenced) in enumerate(zip(flat.split("\n"), markdown_sections.fenced_lines(flat))):
         hashes = len(line) - len(line.lstrip("#"))
         if not fenced and hashes and line[hashes:].strip() == heading:
-            body = markdown_sections.section(flat, line, bare=True)
+            body = markdown_sections.section(flat, line, bare=True, own=True)
             joined = "".join(l + "\n" for l in lines[index:index + len(body)])
             if not text.endswith("\n") and index + len(body) == len(lines):
                 return joined.removesuffix("\n")
