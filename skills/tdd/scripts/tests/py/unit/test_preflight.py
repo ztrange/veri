@@ -1290,3 +1290,35 @@ def test_issue_4093_a_bad_veri_recheck_permissions_stops_preflight_at_2_after_st
     assert out.splitlines()[-1] == "stopped at 2 VERI_RECHECK_PERMISSIONS", out
     assert called == [] and "leaf-launchable.sh" in names and "issue-worktree.sh" not in names, names
     assert not (tmp_path / "wt" / ".tdd" / "wt").exists()
+
+
+@pytest.mark.parametrize("baseline_wait, code", [(0, 0), (1, 1)], ids=["green baseline", "red baseline"])
+def test_4228_preflight_runs_as_stage_preflight_and_its_baseline_suite_as_stage_baseline_each_ending_with_its_exit_code(
+        monkeypatch, run_cli, tmp_path, baseline_wait, code):
+    import json
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)  # as a conductor's launch leaves it, holding its pid file
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            return baseline_wait, "", ""
+        if base == "gh" and args[-1] == ".default_branch":
+            return 0, "main\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    assert run_cli(preflight, ["12", "my-slug"], cwd=tmp_path)[0] == code
+    lines = [json.loads(line) for line in (wt / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(line["event"], line["stage"], line.get("status"), line["issue"]) for line in lines] == [
+        ("stage-start", "preflight", None, "12"), ("stage-start", "baseline", None, "12"),
+        ("stage-end", "baseline", str(code), "12"), ("stage-end", "preflight", str(code), "12")]
+    assert all(line["secs"].isdigit() for line in lines if line["event"] == "stage-end")
