@@ -1,4 +1,5 @@
 """In-process cases for veri/step_close.py, the module step-close.sh is a shim over (PRD 027.8, #4029)."""
+import hashlib
 import importlib
 import os
 
@@ -8,7 +9,9 @@ STEP = "one thing works ⟦criterion 1⟧"
 LEDGER = "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] two ⟦criterion 2⟧\n"
 GREEN_SHA = "d" * 40
 BASE_SHA = "c" * 40
+VERDICT_LOG = "FLAGS: none\nVERDICT: PASS\n"
 REFACTOR_HALF = ("step=%s\ngreen_sha=" + GREEN_SHA + "\ncount=1\nbudget=5\nstopped=nothing-left\n"
+                 "verdict_log=" + hashlib.sha256(VERDICT_LOG.encode()).hexdigest() + "\n"
                  "touched=src/a.py,tests/test_a.py\n")
 BODY = "## Acceptance criteria\n\n- [ ] one thing works\n- [ ] two\n"
 LEDGER_ROWS = "1\tdone\tstep\tone thing works\n2\topen\tstep\ttwo\n3\topen\tfull-suite\tfull\n"
@@ -65,7 +68,8 @@ def close(monkeypatch, run_cli, tmp_path):
         files = {"preflight": (wt / ".tdd" / "issue-12-preflight", "worktree=%s\nfast_cmd=make unit\n" % wt),
                  "ledger": (wt / ".tdd" / "issue-12.md", ledger or LEDGER % step),
                  "refactor-half": (wt / ".tdd" / "issue-12-refactor-half", half or REFACTOR_HALF % step),
-                 "stage": (wt / ".tdd" / "stage-rl.t", "100\n")}
+                 "stage": (wt / ".tdd" / "stage-rl.t", "100\n"),
+                 "verdict": (wt / ".tdd" / "verify-refactor.log", VERDICT_LOG)}
         for key, (path, text) in files.items():
             if key not in missing and not path.exists():
                 path.write_text(text)
@@ -113,6 +117,25 @@ def test_4029_an_uncovered_spec_line_stops_it_with_exit_1_before_any_inner_call(
 
     assert (code, fake.calls) == (1, [])
     assert out.splitlines()[-1] == "stopped at 6 uncovered_spec=empty input returns 0"
+
+
+@pytest.mark.parametrize("log", ["FLAGS: uncovered-spec | a later verdict's flag\nVERDICT: PASS\n", None],
+                         ids=["a later verdict", "no verdict log"])
+def test_4029_a_refactor_half_file_from_an_earlier_verdict_is_exit_2_before_any_inner_call(close, log):
+    if log is not None:
+        (close.wt / ".tdd" / "verify-refactor.log").write_text(log)
+    code, out, err, fake = close(missing=("verdict",) if log is None else ())
+
+    assert (code, fake.calls) == (2, [])
+    assert "another verdict" in err
+
+
+def test_4029_a_refactor_half_file_from_a_skipped_verify_names_no_verdict_log(close):
+    code, out, err, fake = close(half=REFACTOR_HALF.replace(
+        "verdict_log=" + hashlib.sha256(VERDICT_LOG.encode()).hexdigest(), "verdict_log=none") % STEP,
+        missing=("verdict",))
+
+    assert code == 0
 
 
 def _named(fake):

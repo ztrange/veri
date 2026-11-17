@@ -40,6 +40,10 @@ def run(n):
         sys.stderr.write("step-close.sh: %s\n" % ("no refactor-pending step" if step is None else
                                                  ".tdd/issue-%s-refactor-half names another step" % n))
         return 2
+    if half.get("verdict_log", [None])[0] != fused_step.verdict_log(wt):
+        sys.stderr.write("step-close.sh: .tdd/issue-%s-refactor-half was settled after another verdict than "
+                         ".tdd/verify-refactor.log holds\n" % n)
+        return 2
     for uncovered in half.get("uncovered_spec", []):
         raise fused.Stop("6", "uncovered_spec=" + uncovered, 1)
     green_sha = half.get("green_sha", [""])[0]
