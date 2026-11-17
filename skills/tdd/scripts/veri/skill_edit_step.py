@@ -176,7 +176,7 @@ def _held_texts(lines, unit):
 
 def apply(issue, unit):
     path = requirements.list_path(unit)
-    moved = "#" not in unit and not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
+    moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
     rows = [r.replace("<reword>", "", 1) if row_id(r).endswith("<reword>") else r
             for r in unit_rows(issue, unit)]
     if rows and not os.path.exists(unit_file(unit)):
