@@ -62,11 +62,6 @@ session on Haiku, briefed with the *Resetter* section, and record its id with
 `$S/role-state.sh dev [--lane <lane>] set resetter <id>`. Keep it until the dev session ends,
 then archive it.
 
-**Attached.** A coordinator is attached when this session has received a message from one, or
-when the role state records one (recovery lists `coordinator <session-id>` under State). From
-the first line after recovery a recorded coordinator counts as attached: every event P4 lets you
-speak about goes to it, by that session id, and the human gets `.`.
-
 ## Speaking
 
 Every turn of the dev session prints `.` and nothing else, except a turn answering a question the
@@ -80,9 +75,6 @@ stack that stays frozen after its failed jobs' re-run, each line `voutage` tells
 sent once: as one `PushNotification`
 where the session has that tool, else as one line in its transcript.
 
-With a coordinator attached, each event P4 lets you speak about goes to it, as *Attached* says;
-the human still gets `.`.
-
 In a session with `start_session`, restate no pending decision in your own transcript, whatever
 the human's message is about: each is restated only in its own question session, which is where
 P4's and P21's restatement is met. In a session
@@ -92,14 +84,11 @@ ask* says.
 ## Role state
 
 Write your state through `$S/role-state.sh dev [--lane <lane>]` at the moment it changes, never
-at reset time: N, each timed N change (with its expiry, written as `<n> until <ISO-8601 datetime>`, the form `role-state.sh ... add timed-n` accepts and `dispatch.sh` parses) and order override the coordinator
-or the human sends, each pending human decision (in full), and each message sent to the coordinator and not
-yet confirmed. Drop the item when it ends. A pending decision `vjudge` recorded you do not write
+at reset time: N, each timed N change (with its expiry, written as `<n> until <ISO-8601 datetime>`, the form `role-state.sh ... add timed-n` accepts and `dispatch.sh` parses) and order override the human
+gives you, each pending human decision (in full) not held in a question file, and each message you
+sent another session and have not yet confirmed. Drop the item when it ends. A pending decision `vjudge` recorded you do not write
 again with `role-state.sh … add decision`: the judge records it in a question file when your brief
-named one, and with `role-state.sh … add decision` otherwise. When a coordinator's first message arrives, or a
-message comes from a different coordinator session id, record it with
-`set coordinator <session-id>`; when a send to it fails because that session is gone, remove it
-with `drop coordinator`.
+named one, and with `role-state.sh … add decision` otherwise.
 
 ## Live conductors and the slot decision
 
@@ -110,10 +99,8 @@ runs with their step k/n and phase.
 **The slot decision**, taken at the start and again after every merge, every park and every
 conductor exit:
 
-1. Apply any change the coordinator sent since the last decision — a new N (including a timed
-   one now due or expired) or an order override — and send the coordinator no reply for it (P13).
-   A new N (a timed one with its expiry, as `<n> until <ISO-8601 datetime>`) or an order override
-   the human gives you directly is written to the role state file with
+1. A new N (a timed one with its expiry, as `<n> until <ISO-8601 datetime>`) or an order override
+   the human gives you is written to the role state file with
    `$S/role-state.sh dev [--lane <lane>]` at once, an override with the human as who asked (P9),
    and applied at this slot decision. Never change N on your own: no judgment of your own and no
    `vjudge` ruling changes N.
@@ -131,13 +118,13 @@ Keep exactly N conductors running for as long as the solvable list is non-empty.
 ## Launching
 
 Launches go through `$S/dispatch.sh`: it launches the next issue (the first line of
-`$S/solvable-issues.sh` with no live conductor, unless the coordinator gave an override, P9)
+`$S/solvable-issues.sh` with no live conductor, unless the human gave an override, P9)
 detached, never as a conductor inside this session, and only after the previous launch's ledger
 exists. The skill arms no ledger wait of its own.
 
 `dispatch.sh` skips a solvable issue whose named paths an open run draft PR changes, on any
-machine, a run on another machine included, but never the issue's own run draft PR. It prints each skip line; each goes only to
-an attached coordinator, as an override (P4), never to the human.
+machine, a run on another machine included, but never the issue's own run draft PR. Its output holds each skip; you report
+no skip line.
 
 Every launch, a resume included, appends with `>>` to `.tdd/conductor-<n>.log`, the file
 `stop-reason.sh` and `metrics.sh` read; none truncates it. A launch by hand follows the same
@@ -162,10 +149,8 @@ It restarts that run's conductor at its next ledger commit once its growth reach
 (`restart-conductor.sh`) itself for every launch it makes, so you run the line above by hand only
 for a launch you make by hand. A restart is not an exit to route.
 
-`dispatch.sh` launches without printing. Announce no launch to the human: the run's
-`taken:<lane>` claim carries its start. Each launch recorded in `.tdd/dispatch.log` since your
-last turn goes as `Started #<n> — <title>`, the title read from `gh issue view <n> --json title`,
-only to an attached coordinator (P4).
+`dispatch.sh` launches without printing. Announce no launch: `dispatch.sh` records each in
+`.tdd/dispatch.log`, and the run's `taken:<lane>` claim carries its start.
 
 ## Watching
 
@@ -212,11 +197,6 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   the answer from the question file, and every other run goes on. A review reporting no caveat
   is merged on its OK.
 
-  **With a coordinator attached**, the handshake takes the place of those rulings, whether on
-  your own OK or on a coordinator's merge instruction: send the coordinator every caveat your
-  review found, and merge only after a reply that names each caveat. A review with none says so
-  in the same report, and that report is still sent.
-
   **No coverage claim from the diff alone.** A review never reports "no coverage" or
   "coverage lost" from the diff alone: before the claim it searches the whole test tree,
   including directories the diff never touches, for the behaviour's name. The claim carries
@@ -245,7 +225,7 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   when the judge did not resume the run, so one bail is never acted on twice. An issue is parked only through
   `$S/park-issue.sh <n> <cause> <unblock> [<pr>] [--blocked-by <n>[,<n>…]]`: it labels the issue
   `parked` and posts the cause and what would unblock it. Pass the number of every issue or PR
-  that must land first as `--blocked-by`, so the parked issue waits on each. Budget raises come only from the coordinator or the human.
+  that must land first as `--blocked-by`, so the parked issue waits on each. Budget raises come only from the human.
 - **No closing comment.** Check for a usage limit, an API outage or sleep first (P10). Any of
   the three is not a bail: resume the run once usage is back or the API answers, from the target
   repository's main working tree:
@@ -483,9 +463,3 @@ veri's scripts or skills. You file and reprioritise issues only where this skill
   from a run on another repository is never opted in.
 - **A split or criteria rewrite `vfile` proposes** passes `vjudge` and is not shown to the human
   first; one `vjudge` surfaces becomes a question.
-
-With a coordinator attached (see *Starting*), each event P4 lets you speak about goes to the coordinator, not to
-the human, unless you stop and ask (above).
-
-You are the only role that watches run state; the coordinator watches none. When a coordinator is
-attached, send it one message per conductor exit, bail or merge (P4).
