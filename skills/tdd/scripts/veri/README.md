@@ -485,7 +485,7 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `build-verify-prompt.sh`: render the blind verifier's prompt.
 - `cover-outcome.sh`: read a cover leaf's report on stdin.
 - `pin-target.sh`: read a pin leaf's target from its report.
-- `quality_findings`: test-quality.sh's record verb: check the develop-test-quality leaf's `FINDING:` lines and record them.
+- `quality_findings`: test-quality.sh: list the test files a run's range touched, and check and record the develop-test-quality leaf's `FINDING:` lines.
 - `red-divergence.sh`: read a red leaf's report on stdin.
 - `red-setup.sh`: record a verified Red's `SETUP:` count; name the run's worst step as a `testability` candidate.
 - `refactor-owed.sh`: append, render and list refactor-owed items.
