@@ -3,4 +3,4 @@
 - [x] under VERI_EVENT_STRICT=1 `step-reworded` with text keys `from` and `to` is accepted; JOURNAL.md states it ⟦criterion 1⟧
 - [x] `ledger-growth.sh record-rewrite <pre> <ledger>` writes one `step-reworded from=<old> to=<new>` per position whose step text differs when the step counts match ⟦criterion 2⟧
 - [x] when the step counts differ `record-rewrite` writes no `step-reworded` and exits as before ⟦criterion 2⟧
-- [ ] `SCRIPTS.md`'s `ledger-growth.sh` entry states the event (SC270) ⟦criterion 3⟧
+- [x] `SCRIPTS.md`'s `ledger-growth.sh` entry states the event (SC270) ⟦criterion 3⟧
