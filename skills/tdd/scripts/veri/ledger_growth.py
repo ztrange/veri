@@ -7,6 +7,7 @@ import sys
 
 import entry
 import event
+import git
 import tunables
 
 from event_log import read_events
@@ -162,7 +163,35 @@ def unreadable(error):
     return 2
 
 
+SCOPE_RE = re.compile(r"[0-9a-f]+ plan: scope\b")
+
+
+def counted_steps(text):
+    """The ledger's steps that count toward its size: every step line but a ⟦suite-repair⟧ or ⟦ci-repair⟧ one."""
+    return [step for step in ledger_steps(text)
+            if not carries_mark(step.text, "suite-repair") and not carries_mark(step.text, "ci-repair")]
+
+
+def split(ledger):
+    """`split <ledger-file>`: the growth of the ledger past ⌈VERI_STEP_GROWTH_PERCENT × P ÷ 100⌉ over P, the steps of
+    the ledger at the oldest `plan: scope` commit of its history; exit 0 reporting it, 3 within the bound."""
+    percent = tunables.get("VERI_STEP_GROWTH_PERCENT")
+    directory, name = os.path.dirname(os.path.abspath(ledger)), os.path.basename(ledger)
+    steps = counted_steps(read_ledger(ledger))
+    log = git.out("log", "--format=%H %s", "--", name, cwd=directory)
+    sha = [line for line in log.split("\n") if SCOPE_RE.match(line)][-1].split(" ", 1)[0]
+    planned = len(counted_steps(git.out("show", f"{sha}:./{name}", cwd=directory)))
+    bound = growth_cap(int(percent), planned)
+    if len(steps) - planned <= bound:
+        return 3
+    print(f"plan grew from {planned} to {len(steps)} steps, past the growth bound of {bound}"
+          f" (VERI_STEP_GROWTH_PERCENT {percent}% of {planned}, rounded up)")
+    return 0
+
+
 def main(argv):
+    if argv[:1] == ["split"]:
+        return split(argv[1])
     if len(argv) == 2 and argv[0] == "record-existing":
         return record_existing(argv[1])
     if len(argv) == 3 and argv[0] == "record-rewrite":
