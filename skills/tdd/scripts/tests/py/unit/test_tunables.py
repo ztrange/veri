@@ -216,7 +216,7 @@ def test_3223_reset_growth_conductor_is_in_the_readers_table_defaulting_to_70000
 DEFAULTED = {
     "VERI_REFACTOR_BUDGET": ("5", "0", "x"),
     "VERI_ISSUE_REFACTOR_BUDGET": ("10", "0", "-1"),
-    "VERI_STEP_GROWTH": ("5", "0", "1.5"),
+    "VERI_STEP_GROWTH_PERCENT": ("50", "0", "1.5"),
     "VERI_NO_VERDICT_RETRIES": ("1", "010", None),
     "VERI_SKILL_EDIT_BUDGET": ("3", "1", "0"),
     "VERI_ADJUDICATE_BUDGET": ("2", "0", "-1"),
@@ -306,13 +306,13 @@ def test_a_name_in_the_refusing_table_keeps_its_default_through_the_same_functio
 
 def test_set_but_empty_tells_a_name_set_to_nothing_from_an_unset_one_and_a_set_one(monkeypatch):
     tunables = importlib.import_module("veri.tunables")
-    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
-    unset = tunables.set_but_empty("VERI_STEP_GROWTH")
-    monkeypatch.setenv("VERI_STEP_GROWTH", "")
-    empty = tunables.set_but_empty("VERI_STEP_GROWTH")
-    monkeypatch.setenv("VERI_STEP_GROWTH", "unset")
+    monkeypatch.delenv("VERI_STEP_GROWTH_PERCENT", raising=False)
+    unset = tunables.set_but_empty("VERI_STEP_GROWTH_PERCENT")
+    monkeypatch.setenv("VERI_STEP_GROWTH_PERCENT", "")
+    empty = tunables.set_but_empty("VERI_STEP_GROWTH_PERCENT")
+    monkeypatch.setenv("VERI_STEP_GROWTH_PERCENT", "unset")
 
-    assert (unset, empty, tunables.set_but_empty("VERI_STEP_GROWTH")) == (False, True, False)
+    assert (unset, empty, tunables.set_but_empty("VERI_STEP_GROWTH_PERCENT")) == (False, True, False)
 
 
 def test_one_table_holds_every_tunable_and_each_entry_states_a_default_a_parse_and_a_refusal_or_none():
