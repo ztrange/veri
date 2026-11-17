@@ -37,11 +37,27 @@ def declaring(line, marker):
 
 
 def declared(text, marker):
-    """The command detect-test-command.sh reads after <marker> in <text>, a CLAUDE.md's bytes, or None."""
-    for line in text.split(b"\n"):
-        at = declaring(line, marker)
-        if at is not None:
-            return detect_test_command.unwrapped(line[at + len(marker):].lstrip(detect_test_command.SPACE))
+    """The command detect-test-command.sh reads after <marker> in <text>, a CLAUDE.md's bytes, or None: its own
+    reader, line by line, first match."""
+    try:
+        for line in text.split(b"\n"):
+            detect_test_command.answer_from(line, marker)
+    except detect_test_command.Answer as found:
+        return found.command
+    return None
+
+
+def unreadable(old, new, wanted):
+    """Why <new>, the CLAUDE.md written over <old>, would not read back as asked, or None: every marker in <wanted>
+    must read back exactly its command, and every other marker as it read in <old>."""
+    asked = dict(wanted)
+    for marker in (FAST, ALL, ONE_FILE):
+        expected = asked.get(marker, declared(old, marker))
+        got = declared(new, marker)
+        if got != expected:
+            return "%s would read back %r, not %r: nothing written" % (
+                marker.decode(), None if got is None else got.decode(errors="replace"),
+                None if expected is None else expected.decode(errors="replace"))
     return None
 
 
@@ -95,7 +111,7 @@ def commit(root, tip, text):
 
 def record(fast, full, root, one_file=None):
     checked("rev-parse", "--show-toplevel", cwd=root)
-    default =git.default_branch(cwd=root)
+    default = git.default_branch(cwd=root)
     if not default:
         raise Refused("the default branch cannot be told")
     listed = git.network("ls-remote", "--heads", "origin", "refs/heads/" + BRANCH, cwd=root)
@@ -109,7 +125,11 @@ def record(fast, full, root, one_file=None):
     wanted = declarations(fast, full, one_file)
     if all(declared(text, marker) == command for marker, command in wanted):
         return None
-    sha = commit(root, tip, recorded(text, fast, full, one_file))
+    new = recorded(text, fast, full, one_file)
+    why = unreadable(text, new, wanted)
+    if why:
+        raise Refused(why)
+    sha = commit(root, tip, new)
     pushed = git.network("push", "-q", "origin", "%s:refs/heads/%s" % (sha, BRANCH), cwd=root)
     if pushed.returncode != 0:
         raise Refused(pushed.stderr.strip() or "git push origin %s failed" % BRANCH)

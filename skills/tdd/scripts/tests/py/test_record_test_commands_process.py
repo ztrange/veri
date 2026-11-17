@@ -158,3 +158,28 @@ def test_the_shim_execs_its_module_an_empty_command_through_it_is_exit_2_with_th
 
     assert (done.returncode, done.stdout) == (2, "")
     assert "usage: record-test-commands.sh" in done.stderr
+
+
+@pytest.mark.process("git clone and fetch from a bare origin")
+@pytest.mark.parametrize("fast", ["make\nrm x", "echo veri: all tests: SUBSET", "echo veri: one test file: x", "   ",
+                                  "  pytest  ", "`make unit`"])
+def test_a_command_that_would_not_read_back_exactly_is_exit_2_naming_the_tier_with_nothing_pushed(
+        tmp_path, run_cli, record, pulls, fast):
+    origin, work = project(tmp_path)
+
+    code, out, err = run_cli(record, [fast, "make test"], cwd=work)
+
+    assert (code, out, branches(origin), pulls) == (2, "", ["refs/heads/main"], [])
+    assert "veri: " in err and "read back" in err
+
+
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+@pytest.mark.parametrize("fast", ["make test ARGS=`date`", "echo $(pwd) done", "pytest -q | tee out", "echo \"a\" 'b'",
+                                  "make unit \\", "echo " + "a" * 4995, 'pytest -q "$1"'])
+def test_a_command_that_reads_back_exactly_is_recorded(tmp_path, run_cli, record, detect, fast):
+    origin, work = project(tmp_path)
+
+    code, out, err = run_cli(record, [fast, "make test"], cwd=work)
+
+    assert code == 0, err
+    assert declared(detect, origin, "veri-install", tmp_path, "fast") == fast
