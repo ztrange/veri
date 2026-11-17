@@ -366,15 +366,9 @@ plan comment with the rest) rather than dropping it silently. A behaviour left u
 surfaces mid-run as a plan amendment — a late extra step, or a verifier's remark — instead
 of at scoping time.
 
-**Order a step that brings in code after the steps that pin its branches.** A step that
-introduces code — a port step, a new module — either comes after the steps whose tests pin
-every branch it brings in, or brings in only the branches its own test requires, the rest
-arriving with the steps that pin them. A branch an existing suite forces in (a fallback, a
-usage header, a null guard) is still one no test of that step requires if only a later step
-pins it, and the blind verify-green rejects it as unrequired code, as #760's port step was
-three times over branches its ledger pinned on later lines.
+**A step that brings in code (a port, a new module) comes after the steps whose tests pin its branches, or brings in only those its own test requires;** verify-green rejects a branch no test of the step requires (#760). A branch the code cannot be written without (a loop's fall-through return, a required `else`) is pinned by an earlier step or merged into the step needing it (#775, #2607).
 
-**A step whose code cannot be written without a branch only a later step's test pins is ordered after that step, or merged with it.** A loop's fall-through return, a required `else`: the code cannot be written without the branch, and no test of this step requires it, so the blind verify-green rejects it as unrequired code (#775). The pinning step comes first, or the two are one step (#2607).
+**A Red/Green step whose criterion makes an outcome depend on a condition (when, if, only, unless, a threshold) is followed at once by the step pinning the outcome when the condition does not hold,** unless an earlier step is that step or a committed case already pins it; verify-plan rejects the plan otherwise.
 
 **A step that makes code produce a new outcome an existing caller does not yet handle is ordered after the step that adds that caller's handling.** A new rejection, error or empty result reaching a caller that cannot yet take it turns that caller's existing cases red the moment the producer starts producing it, and Green may not edit a test to put them right (#946, #2607).
 
