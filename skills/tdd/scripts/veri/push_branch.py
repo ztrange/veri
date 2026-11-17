@@ -75,6 +75,10 @@ def main(argv):
               f"got '{' '.join(argv)}'", file=sys.stderr)
         print(USAGE, file=sys.stderr)
         return 2
+    return event.stage("push", lambda: push(argv))
+
+
+def push(argv):
     retries = tunable("VERI_PUSH_RETRIES", "3")
     if retries is None:
         return 2

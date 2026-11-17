@@ -1,5 +1,6 @@
 """Cases for push-branch.sh, driven through its command-line interface."""
 import importlib
+import json
 import subprocess
 
 import pytest
@@ -58,7 +59,9 @@ def test_a_failing_push_exits_0_leaving_head_the_commit_count_and_the_ledger_unc
 
     assert code == 0
     assert (git(repo, "rev-parse", "HEAD"), git(repo, "rev-list", "--count", "HEAD"), ledger.read_text()) == before
-    assert [(r["event"], r["attempts"]) for r in events.records(repo)] == [("push-failed", "4")]
+    assert [(r["event"], r.get("attempts"), r.get("stage"), r.get("status"), r["issue"]) for r in events.records(repo)] == [
+        ("stage-start", None, "push", None, "191"), ("push-failed", "4", None, None, "191"),
+        ("stage-end", None, "push", "0", "191")]
 
 
 @pytest.mark.process("git push to a bare repository")
@@ -90,6 +93,10 @@ def test_a_push_that_lands_also_pushes_refs_veri_runs_n_a_commit_on_no_branch_ho
              for name in ("events.jsonl", "issue-191-skill-commit", "issue-191-timeout")}
     on_a_branch = subprocess.run(["git", "-C", str(remote), "branch", "--contains", ref],
                                  capture_output=True, text=True).stdout.strip()
+    carried = shown["events.jsonl"].splitlines()
+    under_way = json.loads(carried.pop())  # the push's own stage-start, written before it (#4230)
+    shown["events.jsonl"] = "".join(line + "\n" for line in carried)
+    assert (under_way["event"], under_way["stage"]) == ("stage-start", "push")
     assert (code, shown, on_a_branch) == (0, {
         "events.jsonl": lines[0] + "\n" + lines[2] + "\n",
         "issue-191-skill-commit": "abc1234\n",
@@ -118,11 +125,12 @@ def test_a_non_fast_forward_rejection_exits_1_after_one_attempt_naming_the_remot
     assert code == 1
     assert len([c for c in calls if c.startswith("git push")]) == 1
     assert SHA in err
-    assert [(r["event"], r["remote_sha"]) for r in events.records(tmp_path)] == [("push-rejected", SHA)]
+    assert [(r["event"], r.get("remote_sha"), r.get("status")) for r in events.records(tmp_path)] == [
+        ("stage-start", None, None), ("push-rejected", SHA, None), ("stage-end", None, "1")]
 
 
 @pytest.mark.process("git push to a bare repository")
-def test_a_push_that_lands_exits_0_writes_nothing_to_stderr_and_appends_no_event(
+def test_a_push_that_lands_exits_0_writes_nothing_to_stderr_and_appends_only_its_push_stage(
         tmp_path, run_cli, push_branch, events):
     remote = bare(tmp_path / "origin.git")
     repo = run_repo(tmp_path / "quiet", remote)
@@ -130,7 +138,8 @@ def test_a_push_that_lands_exits_0_writes_nothing_to_stderr_and_appends_no_event
     code, out, err = run_cli(push_branch, [], env=LANDED_ENV, cwd=repo)
 
     assert (code, out, err) == (0, "", "")
-    assert events.records(repo) == []
+    assert [(r["event"], r["stage"], r.get("status"), r["issue"]) for r in events.records(repo)] == [
+        ("stage-start", "push", None, "191"), ("stage-end", "push", "0", "191")]
 
 
 def test_a_push_to_a_missing_origin_sleeps_the_backoff_the_case_sets_and_never_the_default(
@@ -199,7 +208,7 @@ def test_cli_run_through_a_symlink_from_another_directory_answers_as_in_place_re
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout, ran.stderr) == expected == (0, "", expected[2])
-    assert [r["event"] for r in events.records(linked)] == ["push-failed"]
+    assert [r["event"] for r in events.records(linked)] == ["stage-start", "push-failed", "stage-end"]
 
 
 def test_a_bad_argument_and_a_bad_push_retries_each_exit_2_with_nothing_on_stdout_and_their_stderr_text(
