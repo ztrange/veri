@@ -223,6 +223,27 @@ def test_4031_immediately_before_the_push_a_path_beyond_the_files_the_regrade_mo
     assert "push-branch.sh" not in fake.names()
 
 
+@pytest.mark.parametrize("failing", [("status", 1), ("status", 2), ("status", 3), ("status", 4), ("branch", 1)],
+                         ids=["the first question", "before the regrade", "after the regrade", "before the push",
+                              "the branch name"])
+def test_4031_a_git_read_that_fails_is_exit_2_not_gits_own_code(prep, failing):
+    class Failing(Fake):
+        seen = 0
+
+        def __call__(self, name, *args, **kw):
+            if os.path.basename(name) == "git" and args[:1] == (failing[0],):
+                self.seen += 1
+                if self.seen == failing[1]:
+                    self.calls.append(("git", args, kw.get("cwd"), kw.get("env"), kw))
+                    return 128, "", "fatal: not a git repository\n"
+            return super().__call__(name, *args, **kw)
+
+    code, out, err, fake = prep(fake=Failing())
+
+    assert code == 2 and "push-branch.sh" not in fake.names()
+    assert out.splitlines()[-1].startswith("stopped at 1 git " + failing[0])
+
+
 @pytest.mark.parametrize("args", [("merge-base",), ("diff",)])
 def test_4031_a_git_call_of_the_regrade_block_that_fails_is_exit_2_not_gits_own_code(prep, args):
     code, out, err, fake = prep(answers={("git", args[0]): (128, "")})
