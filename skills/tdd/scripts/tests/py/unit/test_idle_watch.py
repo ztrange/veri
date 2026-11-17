@@ -96,6 +96,54 @@ def test_4254_a_worker_that_obeys_term_is_never_killed_and_a_leg_that_saw_no_cas
     assert "(last case seen: none); workers 4201 ended" in written()
 
 
+class DyingWorld(World):
+    """Workers a KILL leaves dying: each answers gone only on the `gone()` call after the one that first sees it dying,
+    as a killed child is still running or a zombie until it is reaped."""
+
+    def __init__(self):
+        super().__init__()
+        self.dying, self.reaped = {}, set()
+
+    def kill(self, pid, signum):
+        if signum == signal.SIGKILL:
+            self.signals.append((pid, signum))
+            self.dying[pid] = 0
+            return
+        super().kill(pid, signum)
+
+    def gone(self, pid):
+        if pid in self.dying:
+            self.dying[pid] += 1
+            if self.dying[pid] > 1:
+                self.reaped.add(pid)
+        return pid in self.reaped
+
+
+def test_4278_after_kill_end_workers_returns_only_once_every_killed_worker_is_gone_reaped_within_the_grace_window(idle_watch, stderr_pipe):
+    out, _ = stderr_pipe
+    world = DyingWorld()
+    watch = watch_in(idle_watch, world, 30, out)
+    watch.workers[:] = [4301, 4302]
+
+    workers = watch.end_workers()
+
+    assert workers == [4301, 4302]
+    assert [signum for _, signum in world.signals] == [signal.SIGTERM] * 2 + [signal.SIGKILL] * 2
+    assert world.reaped == {4301, 4302}
+
+
+def test_4278_a_killed_worker_that_never_goes_bounds_the_wait_by_the_grace_window(idle_watch, stderr_pipe):
+    out, _ = stderr_pipe
+    world = World()
+    world.kill = lambda pid, signum: world.signals.append((pid, signum))  # nothing ever dies
+    watch = watch_in(idle_watch, world, 30, out)
+    watch.workers[:] = [4401]
+    start = world.now
+
+    assert watch.end_workers() == [4401]
+    assert world.now - start <= 2 * idle_watch.GRACE + 0.5
+
+
 def test_4254_a_case_that_keeps_reporting_within_the_window_is_never_ended_and_the_window_counts_from_its_last_report(idle_watch, stderr_pipe):
     out, written = stderr_pipe
     world = World(obey_term=True)
