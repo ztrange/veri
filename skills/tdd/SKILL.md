@@ -961,21 +961,18 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    $S/add-ledger-step.sh .tdd/issue-<n>.md before "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<SPLIT: value>' … 2> .tdd/add-ledger-step.err   # every SPLIT: value in ONE call
    git add -A && git commit -m "plan: split <STEP summary> into <count> smaller steps (#<n>)"
    ```
-   The two marks go first because they read the step's title out of the ledger, and the
-   insertion puts the first split step ahead of it there (#437). It passes no
-   `--criterion`: a split keeps its anchor's criterion, because it is the same behaviour broken
-   smaller. A split is
-   the one thing that changes a step's plan without a green commit of its own, so `step-split`
-   is what tells the run log the step was split rather than silently restarted — beside the
-   `step-added` mark the insertion owes as any other does, which says the plan grew but not
-   why. Then loop back to `next-unchecked.sh`, which now hands over the first split step;
-   **STEP** itself starts again from Red once the smaller steps ahead of it are done.
+   The two marks go first: they read the step's title, which the insertion moves (#437). No
+   `--criterion`: a split keeps its anchor's criterion, being the same behaviour broken smaller.
+   Then loop back to `next-unchecked.sh`, which hands over the first split step; **STEP** itself
+   starts again from Red once the steps ahead of it are done.
 
    **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`** — see `<base directory>/BAIL.md`. The
    insertion would take the ledger past the growth cap, so the script has already filed
    the criteria under `## Owed steps`: the step's own red is discarded and the smaller steps
    it needs are not in the plan, so there is nothing for the run to go on with.
    **`add-ledger-step.sh` exit 2**: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, on any answer (`retry` too), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
+
+   **A `TIDY_FIRST:` line in place of `SPLIT:` lines:** `Read` `<base directory>/TIDY-FIRST.md`.
 2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict.
    Neither this verifier nor the develop leaf runs the full suite: a break outside the
    affected suites surfaces at the one full-suite run in *4. Draft PR*.
