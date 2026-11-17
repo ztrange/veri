@@ -57,6 +57,14 @@ def test_every_added_file_named_exits_0_printing_nothing_and_a_range_adding_none
     assert results == [(0, "", ""), (3, "", "")]
 
 
+def test_the_stem_inside_the_added_file_itself_is_no_caller(tmp_path, monkeypatch, capsys, unwired, fake_processes):
+    tree = {"src/orphan.py": "def orphan():\n    return orphan\n", "src/main.py": "x = 1\n"}
+    write(tmp_path, tree)
+    range_git(fake_processes, ["src/orphan.py"], list(tree))
+    monkeypatch.chdir(tmp_path)
+    assert (unwired.main(["base"]),) + tuple(capsys.readouterr()) == (1, "src/orphan.py\n", "")
+
+
 def test_a_base_that_does_not_resolve_or_a_directory_that_is_no_work_tree_exits_2_with_one_stderr_line(
         tmp_path, monkeypatch, capsys, unwired, fake_processes):
     monkeypatch.chdir(tmp_path)
