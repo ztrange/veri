@@ -202,6 +202,32 @@ def test_4033_it_writes_no_bail_and_handles_no_refusal_and_leaves_the_title_and_
     assert not [c for c in fake.made("git") if c[1][:1] in (("reset",), ("push",))]
 
 
+def second_block():
+    """DRAFT-PR.md sub-step 2's second block, from the `Otherwise:` that opens it to its closing fence."""
+    from pathlib import Path
+    module = importlib.import_module("veri.pr_finish")
+    draft = (Path(module.__file__).resolve().parents[2] / "DRAFT-PR.md").read_text()
+    start = draft.index("\n2. **Mark the PR ready for review")
+    opened = draft.index("Otherwise:\n   ```\n", start)
+    return draft[opened:draft.index("   ```\n", opened + len("Otherwise:\n   ```\n"))]
+
+
+def test_4033_every_inner_call_in_the_ordered_list_is_a_script_sub_step_2s_second_block_names():
+    pr_finish = importlib.import_module("veri.pr_finish")
+
+    assert [name for name in pr_finish.CALLS if "$S/" + name not in second_block()] == []
+
+
+def test_4033_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(finish):
+    pr_finish = importlib.import_module("veri.pr_finish")
+    code, out, err, fake = finish()
+
+    made = [name for name in fake.names() if name not in ("git", "gh")]
+    assert code == 0 and set(made) == set(pr_finish.CALLS)
+    firsts = [made.index(name) for name in pr_finish.CALLS]
+    assert firsts == sorted(firsts)
+
+
 def _pid(finish, text):
     (finish.wt / ".tdd" / "conductor.pid").write_text(text)
 
