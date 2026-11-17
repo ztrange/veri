@@ -520,6 +520,16 @@ def test_issue_4088_a_green_tier_leaves_no_tdd_ready_tier_out_in_the_main_workin
     assert not (tmp_path / ".tdd" / "ready-fast.out").exists()
 
 
+def test_issue_4088_a_tier_still_running_at_waits_bound_prints_waiting_on_it_last_exits_3_and_leaves_its_worktree(ready_check, run_cli, fake_processes, tmp_path):
+    fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (3, "", "")}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    lines = out.splitlines()
+
+    assert (code, lines[-1]) == (3, "waiting on ready-fast"), lines
+    assert not [line for line in lines if line == "ready" or line.startswith("not ready")], lines
+    assert not [argv for argv, _ in calls_in(fake, "git worktree remove") if str(tmp_path / ".tdd" / "ready-fast") in argv], fake.calls
+
+
 def test_issue_4088_a_tier_run_that_raises_exits_2_having_removed_the_worktree_it_made(ready_check, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": OSError(7, "no detach")}))
     code, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
