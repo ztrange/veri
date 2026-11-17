@@ -42,9 +42,28 @@ Investigation (reading source, grepping for how a script works, git archaeology,
 
 **A fact is never asked of the human.** Anything section 1 or the repo can answer, you answer.
 
+**Every recommendation passes the judge first (P22's exception).** Before a decision is asked
+of the human, pass your recommendation for it to `vjudge` for review: a subagent briefed as
+section 1 says, to read `<resolved base dir>/../vjudge/SKILL.md` (resolve the base dir with
+`cd -P <base dir> && pwd`) and follow its *Reviewing a recommendation*; one subagent may review
+a round's recommendations together. The judge returns a verdict for each: kept, or changed to
+another option, with one line naming the rule applied. Every decision is still asked of the
+human: the judge settles none and withholds none.
+
+**Each question shows both recommendations, labelled and in this order**, whether asked
+through `grilling` or in numbered rounds: yours as you first wrote it, then the judge's, kept
+as is or changed to what, with its one-line reason naming the rule. **Yes** accepts the
+judge's. For example:
+
+```
+3. Parse the new report with jq, or with a parser written for it?
+   Planner's recommendation: a parser written for it.
+   Judge's recommendation: changed to jq (An established tool over an in-house one).
+```
+
 Ask through the installed `grilling` skill. When it is not installed, say so, and ask in
-numbered rounds of every question now answerable, each with your recommendation, worded so
-that **yes** accepts it.
+numbered rounds of every question now answerable, each with the two recommendations above,
+worded so that **yes** accepts the judge's.
 
 No spec is written until no decision is open, or the human has said to stop asking.
 
