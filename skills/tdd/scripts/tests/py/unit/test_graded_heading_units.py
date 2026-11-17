@@ -1,4 +1,5 @@
 """`file#heading` units in GRADED files (PRD 024.7): a heading holding spaces is one unit field."""
+import hashlib
 import importlib
 
 import pytest
@@ -153,3 +154,55 @@ def test_4016_the_views_cuts_join_back_to_the_file_and_each_heading_cut_is_that_
 
     assert "".join(own for _, own in cuts) == text
     assert [own for line, own in cuts[1:]] == [grade_prose.section(text, grade_prose.heading_text(line)) for line, _ in cuts[1:]]
+
+
+def signed_split_tree(root, grade_prose):
+    split_tree(root)
+    units = ["f.md", "f.md#Claimed one", "f.md#Path/with a slash"]
+    (root / "GRADED").write_text("".join(
+        grade_prose.graded_line([u, grade_prose.signature("REQUIREMENTS.md", u), "2026-01-01", "g", "t"]) + "\n"
+        for u in units))
+
+
+@pytest.mark.parametrize("old, new, owed", [
+    ("claimed text", "claimed words", ["f.md#Claimed one"]),
+    ("slash text", "slash words", ["f.md#Path/with a slash"]),
+    # A subsection of a claimed section is not in the claimed unit's own text; unclaimed, it is in f.md's view.
+    ("sub text", "sub words", ["f.md"]),
+    ("free text", "free words", ["f.md"]),
+    ("## Free\n", "## Freed\n", ["f.md"]),
+    ("name: f\n", "name: g\n", ["f.md"]),
+    ("title text", "title words", ["f.md"]),
+])
+def test_4016_an_edit_owes_the_unit_that_signs_the_edited_text_and_no_other(
+        old, new, owed, tmp_path, monkeypatch, run_cli, grade_prose):
+    monkeypatch.chdir(tmp_path)
+    signed_split_tree(tmp_path, grade_prose)
+    (tmp_path / "f.md").write_text(SPLIT.replace(old, new))
+
+    code, out, err = run_cli(importlib.import_module("veri.prose_owed"), [str(tmp_path)])
+
+    assert (code, out.splitlines()) == (1, owed), err
+
+
+def test_4016_a_split_whole_file_units_signature_stamps_its_view_its_rows_and_the_model(tmp_path, monkeypatch, grade_prose):
+    split_tree(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    claims = "A1\tThe widget is blue.\n"
+
+    expected = hashlib.sha256("\0".join([SPLIT_VIEW, claims, MODEL]).encode("utf-8")).hexdigest()
+
+    assert grade_prose.signature("REQUIREMENTS.md", "f.md") == expected
+
+
+def test_4016_removing_the_last_listed_heading_unit_unsplits_the_whole_file_unit_which_owes_against_its_whole_file(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    monkeypatch.chdir(tmp_path)
+    signed_split_tree(tmp_path, grade_prose)
+    (tmp_path / "REQUIREMENTS.md").write_text("## f.md\n\n%s" % ROWS)
+    whole = hashlib.sha256("\0".join([SPLIT, "A1\tThe widget is blue.\n", MODEL]).encode("utf-8")).hexdigest()
+
+    code, out, err = run_cli(importlib.import_module("veri.prose_owed"), [str(tmp_path)])
+
+    assert (code, out.splitlines(), grade_prose.signature("REQUIREMENTS.md", "f.md")) == (
+        1, ["f.md", "f.md#Claimed one (orphan)", "f.md#Path/with a slash (orphan)"], whole), err

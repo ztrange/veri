@@ -163,6 +163,7 @@ def unit_text(unit, reader=None):
 def signature(path, unit, text=None):
     """The stamp of `unit` under the list `path` names; `text` is the unit's text (None: the working tree's)."""
     parts = [unit_text(unit) if text is None else text, requirements.claims(path, unit), grader_model()]
+    parts[0] = signed_text(unit, parts[0])
     return stamp(with_effort(parts, grader_conf().get("effort")))
 
 
