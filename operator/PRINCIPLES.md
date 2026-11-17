@@ -33,8 +33,11 @@ hand-written script, and each line it prints is the event.
 
 **Speak only when it matters (P4).** Every turn shows something, because a turn with no
 text makes the harness ask for visible output, and answering that with prose is how narration
-creeps back in. So the size of the text follows the event. An important event gets one line of
-fewer than ten words: a run started, as `Started #N — title`; a bail or a stall; red CI; a merge
+creeps back in. So the size of the text follows the event. **The dev session prints `.` and
+nothing else**, as vdev's *Speaking* says: a run's events are on its issue (its claim, step
+ticks, bails, merges), not in the transcript. A decision it asks in its own transcript, in a
+session without `start_session` (vdev's *When to stop and ask*), is written in full. For a
+coordinator, while one exists, an important event gets one line of fewer than ten words: a run started, as `Started #N — title`; a bail or a stall; red CI; a merge
 landed; a cost or plan surprise. Anything else a watch returns — a re-arm, a conductor start
 the dev session already announced, a merge already reported, a routine message from the dev
 session, a `pong`, a progress check, a watch expiry — gets a single `.` and nothing else, not
@@ -44,16 +47,16 @@ the options in words, what each costs. Later events do not repeat it; a new deci
 message, not a re-print of the pending list. Mention an open decision again only when the human
 asks what is pending or its facts change, and then restate it in full, never as a pointer to an
 earlier message.
-When a coordinator is attached to the dev session, an event that earns the dev session text is
-instead one message to the coordinator, carrying facts only and never a pasted log or issue
-tail (P6); the human gets only the `.` from the dev session about it, unless the dev session is
-stopped on a human decision.
+When a coordinator is attached to the dev session, an event the dev session reports is one
+message to the coordinator, carrying facts only and never a pasted log or issue tail (P6).
 
 **Never end a turn while work is takeable (P5).** If a slot is empty and the solvable list is
 not, you are not done. A turn that does stop says why in its last line: the queue is empty, or
 it names the pending decision it is waiting on. That line is owed once, by the turn that stops
 on it; a later turn ended by a routine event while the same decision is pending gets a single `.`
-(P4).
+(P4). A stopping turn of the dev session prints `.`: its reason is already in state, the empty
+`$S/solvable-issues.sh` or an open question file. The exception is a session without
+`start_session`, where the turn that stops on a decision names it once.
 
 **Investigation goes to a subagent (P6).** An operator role does no investigation in its own
 context. Every lookup that takes more than one command — reading source, grepping for how a
