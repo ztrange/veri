@@ -41,10 +41,46 @@ def triggers_on(event):
     return False
 
 
+def script(name):
+    return os.path.join(paths.resolved_scripts_of(__file__), name)
+
+
+def resolved_tier(tier):
+    """detect-test-command.sh --tier <tier>'s (exit code, command)."""
+    found = subprocess.run([script("detect-test-command.sh"), "--tier", tier], capture_output=True, text=True)
+    return found.returncode, found.stdout.strip()
+
+
 def detect_tier(tier):
     """detect-test-command.sh --tier <tier>'s exit code."""
-    detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
-    return subprocess.run([detect, "--tier", tier], capture_output=True).returncode
+    return resolved_tier(tier)[0]
+
+
+def tier_run_row(tier, command, root):
+    """Run <command> once in a detached worktree of the default branch's tip, through detach-command.sh."""
+    name = "ready-" + tier
+    wt = os.path.join(root, ".tdd", name)
+    git.git("worktree", "add", "--detach", wt, default_tip(), capture_output=True, text=True)
+    os.makedirs(os.path.join(wt, ".tdd"), exist_ok=True)
+    detach = script("detach-command.sh")
+    subprocess.run([detach, "start", name, *shlex.split(command)], cwd=wt, capture_output=True, text=True)
+    waited = subprocess.run([detach, "wait", name], cwd=wt, capture_output=True, text=True)
+    git.git("worktree", "remove", "--force", wt, capture_output=True, text=True)
+    return f"{tier} tier run", None if waited.returncode == 0 else "exit " + waited.stdout.strip()
+
+
+def tier_run_rows(root):
+    rows = []
+    tdd = os.path.join(root, ".tdd")
+    made_tdd = not os.path.exists(tdd)
+    for tier in ("fast", "all"):
+        code, command = resolved_tier(tier)
+        if code == 0:
+            rows.append(tier_run_row(tier, command, root))
+    if made_tdd:
+        with contextlib.suppress(OSError):
+            os.rmdir(tdd)
+    return rows
 
 
 def tier_row(tier):
@@ -251,17 +287,21 @@ def main(argv):
     if len(argv) > 1 or any(a.startswith("-") for a in argv):
         print(USAGE, file=sys.stderr)
         return 2
+    root = None
     if argv:
-        os.chdir(argv[0])
+        root = argv[0]
     else:
         listing = git.git("worktree", "list", "--porcelain", capture_output=True, text=True).stdout.split("\n", 1)[0]
         if listing.startswith("worktree "):
-            os.chdir(listing[len("worktree "):])
+            root = listing[len("worktree "):]
+    if root is not None:
+        os.chdir(root)
+    root = os.path.abspath(root) if root is not None else os.getcwd()
     inside = git.git("rev-parse", "--git-dir", capture_output=True, text=True)
     if inside.returncode != 0:
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
-    results = [check() for check in CHECKS]
+    results = [check() for check in CHECKS] + tier_run_rows(root)
     failed = sum(1 for _, verdict in results if verdict and not isinstance(verdict, Neutral))
     rows = [rendered(name, verdict) for name, verdict in results]
     print(*rows, sep="\n")

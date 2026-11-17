@@ -42,6 +42,8 @@ def holding(**overrides):
         "git rev-parse --git-common-dir": (0, ".git\n", ""),
         "git push --dry-run --no-verify origin": (0, "", ""),
         "git config --get core.sshCommand": (1, "", ""),
+        "git worktree": (0, "", ""),
+        "detach-command.sh": (0, "", ""),
     }
     table.update(overrides)
     return table
@@ -423,3 +425,28 @@ def test_issue_4090_ready_check_prints_a_failing_push_dry_run_row_and_exits_1_wh
     assert [line for line in lines if line.startswith("fail")] == [
         "fail  push dry-run: fatal: unable to access 'https://github.com/o/r.git/': The requested URL returned error: 403"], lines
     assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
+
+
+TIERS = {"detect-test-command.sh --tier fast": (0, "make unit\n", ""), "detect-test-command.sh --tier all": (0, "make test\n", "")}
+
+
+def calls_in(fake, prefix):
+    """(argv, cwd) of each call whose command line starts with <prefix>."""
+    return [(argv, kwargs.get("cwd")) for argv, kwargs in fake.seen
+            if " ".join([os.path.basename(argv[0]), *map(str, argv[1:])]).startswith(prefix)]
+
+
+def test_issue_4088_each_resolved_tier_runs_in_a_detached_worktree_of_the_default_tip_through_detach_command_and_prints_an_ok_tier_run_row(ready_check, run_cli, fake_processes, tmp_path):
+    fake = fake_processes.answers(holding(**TIERS))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    lines = out.splitlines()
+
+    for tier, command in (("fast", ["make", "unit"]), ("all", ["make", "test"])):
+        wt = str(tmp_path / ".tdd" / f"ready-{tier}")
+        assert any(row.startswith(f"ok    {tier} tier run") for row in lines), (tier, lines)
+        added = [argv for argv, _ in calls_in(fake, "git worktree add") if wt in argv]
+        assert added and "--detach" in added[0] and added[0][-1] == "refs/remotes/origin/main", fake.calls
+        starts = calls_in(fake, f"detach-command.sh start ready-{tier} ")
+        assert [(argv[3:], cwd) for argv, cwd in starts] == [(command, wt)], fake.calls
+        assert [cwd for _, cwd in calls_in(fake, f"detach-command.sh wait ready-{tier}")] == [wt], fake.calls
+    assert (code, lines[-1]) == (0, "ready")

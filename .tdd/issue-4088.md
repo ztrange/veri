@@ -1,6 +1,6 @@
 # Plan for #4088 — PRD 016.5b: /vready runs both test tiers on the default branch's tip
 
-- [ ] a tier RD2 resolves runs in a detached worktree of the default tip through detach-command.sh start and wait, its `<tier> tier run` row ok on exit 0 ⟦criterion 1⟧
+- [x] a tier RD2 resolves runs in a detached worktree of the default tip through detach-command.sh start and wait, its `<tier> tier run` row ok on exit 0 ⟦criterion 1⟧
 - [ ] a non-zero exit fails the `<tier> tier run` row, carrying the exit code and the output's last non-empty line ⟦criterion 1⟧
 - [ ] each `<tier> tier run` row carries its wall time in whole seconds ⟦criterion 2⟧
 - [ ] a tier resolving to nothing prints no `<tier> tier run` row and starts nothing ⟦criterion 3⟧
