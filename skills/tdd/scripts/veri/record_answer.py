@@ -1,11 +1,13 @@
 """record-answer.sh's work, run in-process: the owner's answer to a question tied to an issue, posted on that issue as
 one comment, so it outlives its question file as a decision issue-decisions.sh and park-decision.sh read."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import re
 import sys
 
 import github
 import markdown_sections
+import run_records
 
 USAGE = "usage: record-answer.sh <issue-number> <question-file>\n"
 LIMIT = 2000  # characters of the question kept, and of an answer accepted
@@ -39,10 +41,18 @@ def read(path):
         return None, "not UTF-8 text (byte %d: %s)" % (e.start, e.reason)
 
 
+def local(text):
+    """<text> as published: the clone's and the temp directory's paths `<repo>` and `<tmp>`, the home directory `~`, the
+    host names `<host>`, the account name `<user>` and every token `[redacted]`, as run_records carries a run record
+    (github redacts tokens again when it posts); None stays None."""
+    return None if text is None else run_records.redact_local(text, os.getcwd()).strip()
+
+
 def body_of(text):
     """(the comment body, None), or (None, why) when the file lacks a heading, its answer is empty or over LIMIT. The
-    question is cut at LIMIT characters with `…`: the park comment already holds it whole."""
-    question, answer = under(text, "#### Question", 4), under(text, "## Answer", 2)
+    question is cut at LIMIT characters with `…`: the park comment already holds it whole. Both are measured as
+    posted, after `local`, so a cut never leaves part of a path or a name behind."""
+    question, answer = (local(under(text, heading, level)) for heading, level in (("#### Question", 4), ("## Answer", 2)))
     if question is None:
         return None, "has no #### Question heading"
     if answer is None:
