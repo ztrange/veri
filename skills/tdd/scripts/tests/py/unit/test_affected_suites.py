@@ -813,7 +813,7 @@ def doc_edit_with_pytest_file(fake_processes, run_cli, affected, tmp_path, doc, 
     ("BAIL", "test_bail_file.py"), ("PIN", "test_pin_file.py"), ("SKILL-EDIT", "test_skill_edit_file.py"),
     ("RESUME", "test_resume_file.py"), ("REVISE", "test_revise_file.py"),
     ("STRUCTURAL", "test_structural_file.py"), ("PHASED", "test_phased_file.py"),
-    ("REFACTOR-KIND", "test_refactor_kind_file.py"),
+    ("REFACTOR-KIND", "test_refactor_kind_file.py"), ("LEGACY", "test_legacy_file.py"),
 ])
 def test_an_edit_to_a_skill_doc_prints_exactly_the_pytest_file_mentioning_it_without_widening(
         fake_processes, run_cli, affected, tmp_path, doc, pytest_file):
