@@ -278,7 +278,7 @@ def test_each_named_case_runs_alone_at_head_a_red_absent_or_uncollected_one_is_e
     got, _, err = run_cli(fix, world.argv())
 
     assert (got, len(world.pushed), code == 0 or CASE in err) == (code, 1 if code == 0 else 0, True), err
-    assert world.runs[:1] == ([('make test TESTS="$1"', CASE)] if has else [])
+    assert (world.runs[:1], world.cwds[:1]) == (([('make test TESTS="$1"', CASE)], [TOP]) if has else ([], []))
 
 
 def test_runs_every_named_case_alone_and_names_the_red_one(monkeypatch, run_cli, fix, tmp_path):
