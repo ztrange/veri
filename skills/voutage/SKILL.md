@@ -17,8 +17,7 @@ session's own state. It reaches it after `vmerge`'s own handling of the failed m
 (its settle read, its one lock release): this skill takes no merge lock and releases none.
 
 Every line below that tells the human or is reported goes as the invoking role speaks: from
-the dev session, as one notice, as vdev's *Speaking* says; to the coordinator instead when one is
-attached (P4).
+the dev session, as one notice, as vdev's *Speaking* says (P4).
 
 ## The mode is a file
 
@@ -37,7 +36,7 @@ Run `$S/github-outage.sh enter <pr-url>`. It reads GitHub's status page in-proce
 merge needs).
 
 - **Exit 0, `entered`.** A counting incident; the file now holds the status lines and the failed
-  PR. Local mode has begun: tell the human (the coordinator, when one is attached, P4) in one
+  PR. Local mode has begun: tell the human (P4) in one
   line, naming the incident from the line printed after `entered`, e.g.
   `Local mode: GitHub incident "<name>" (<age> min); merges held`. Then arm the wait.
 - **Exit 0, `held`.** Local mode was already on; the PR is held again, ahead of the reviewed runs'
