@@ -231,6 +231,7 @@ def run(argv):
         stop = check_environment()
         if stop is not None:
             return stop
+        call(script("ready-check.sh"), "--no-suites")
         wt, fast, body_file, fast_began, code = start_fast(n, slug, detect, env)
     started = start_full(n, wt, fast, body_file, fast_began, code, detect, env)
     if isinstance(started, int):

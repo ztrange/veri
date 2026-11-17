@@ -40,18 +40,19 @@ def test_3771_b_fresh_run_makes_front_calls_in_order_with_the_worktree_as_cwd(mo
 
     run_cli(preflight, ["12", "my-slug"])
 
-    front = [(n, a) for n, a, _ in calls[:8]]
+    front = [(n, a) for n, a, _ in calls[:9]]
     assert front == [
         ("git", ("rev-parse", "--is-inside-work-tree")),
         ("git", ("status", "--porcelain")),
         ("gh", ("api", "user")),
         ("claude", ("auth", "status")),
         ("leaf-launchable.sh", ()),
+        ("ready-check.sh", ("--no-suites",)),
         ("issue-worktree.sh", ("12", "my-slug")),
         ("stop-requested.sh", ("--clear",)),
         ("unlabel-issue.sh", ("12",)),
     ]
-    assert [str(c) for _, _, c in calls[6:8]] == [str(wt), str(wt)]
+    assert [str(c) for _, _, c in calls[7:9]] == [str(wt), str(wt)]
     assert not (wt / ".tdd" / "ci-conflict-rebased").exists()
     assert [n for n, _ in preflight.STEPS] == [1, 2, 3, 4, 5, 6, 7]
     assert all(isinstance(t, str) and t for _, t in preflight.STEPS)
@@ -972,3 +973,34 @@ def test_3771_z_exit_3_of_worktree_setup_and_stop_requested_goes_on(monkeypatch,
 
     assert code == 0
     assert (wt / ".tdd" / "issue-12-preflight").exists()
+
+
+def _front(monkeypatch, run_cli, tmp_path, answers=None):
+    """Run preflight for #12 with every inner call answered 0 but those <answers> (basename → (code, out, err)) names;
+    return (calls as (basename, args, cwd), exit code, stdout)."""
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True, exist_ok=True)
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args, kwargs.get("cwd")))
+        if answers and base in answers:
+            return answers[base]
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+    code, out, _ = run_cli(preflight, ["12", "my-slug"])
+    return calls, code, out
+
+
+def test_issue_4092_preflight_runs_ready_check_no_suites_after_step_2s_checks_and_before_step_3_creates_the_worktree(monkeypatch, run_cli, tmp_path):
+    calls, _, out = _front(monkeypatch, run_cli, tmp_path)
+    names = [n for n, _, _ in calls]
+
+    assert names.index("leaf-launchable.sh") < names.index("ready-check.sh") < names.index("issue-worktree.sh"), names
+    assert [args for n, args, _ in calls if n == "ready-check.sh"] == [("--no-suites",)], calls
+    assert "ready-check.sh --no-suites exit 0" in out.splitlines(), out
