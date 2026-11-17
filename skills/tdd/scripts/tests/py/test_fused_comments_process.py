@@ -8,6 +8,7 @@ import subprocess
 
 import pytest
 
+from repo_builder import git
 from stub_script import write_stub
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
@@ -43,10 +44,6 @@ exit 0
 """
 
 
-def git(cwd, *args):
-    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, stdin=subprocess.DEVNULL)
-
-
 @pytest.mark.process("run-start.sh and plan-publish.sh through their shims on a real git repository, gh a stub")
 def test_4025_the_plan_and_start_comments_that_reach_gh_carry_no_local_path_account_or_host_name(tmp_path):
     bin_dir, log = tmp_path / "bin", tmp_path / "gh-log"
@@ -64,7 +61,7 @@ def test_4025_the_plan_and_start_comments_that_reach_gh_carry_no_local_path_acco
                GIT_COMMITTER_EMAIL="t@example.invalid")
     for args in (("add", "CLAUDE.md"), ("commit", "-qm", "init"), ("remote", "add", "origin", str(tmp_path / "remote.git")),
                  ("push", "-q", "origin", "main"), ("checkout", "-qb", "feature-12")):
-        subprocess.run(["git", *args], cwd=wt, env=env, check=True, capture_output=True, stdin=subprocess.DEVNULL)
+        git(wt, *args)
     (wt / ".tdd").mkdir()
     (wt / ".tdd" / "issue-12-preflight").write_text(
         "worktree=%s\nbaseline=5\nfull=10\nfast_cmd=true\ndefault_branch=main\n" % wt)
