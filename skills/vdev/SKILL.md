@@ -399,8 +399,10 @@ field is `ready` (every blocker it waits on landed) with `$S/release-issue.sh <n
 
 **Under `--auto`** (the role state's `auto on`), at that same reading pass each other issue
 `$S/parked-issues.sh` lists to `vjudge`, run as *Running the sibling skills* says, with its park
-comment; an issue whose question file exists is not passed again, but handled as *When to stop
-and ask*, step 1, says. A decision the judge reaches is posted on the issue as a comment naming
+comment, except one whose sixth field is `question`: its park holds a question the human has not
+answered on the issue, in a terminal as in a session with `start_session`, so it is never passed
+again and waits for that answer (in a session with `start_session`, its question file is handled
+as *When to stop and ask*, step 1, says). A decision the judge reaches is posted on the issue as a comment naming
 the rule applied and the option not taken (its *Recording*), and the issue is then returned with
 `$S/release-issue.sh <n>`, so its resumed run applies the decision. A judge outcome on its *Always
 surface* list leaves the issue parked, unreleased, and goes to the human as a question the way
