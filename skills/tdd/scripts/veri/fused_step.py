@@ -9,6 +9,7 @@ import run_dir
 import run_pins
 import run_start
 from fused import Stop, call, checked, label, read_settled, script
+import ledger
 from ledger import ledger_steps
 
 
@@ -58,3 +59,9 @@ def cost_check(wt, step):
 def verify_switched_off(wt, n, phase):
     """True when the run's pinned VERI_SKIP_VERIFY (.tdd/issue-<n>-skip-verify) names <phase> (ADR-0033)."""
     return phase in (run_pins.skip_verify(n, wt) or "").replace(",", " ").split()
+
+
+def summary(step):
+    """The step's ledger text without its trailing markers, read as data (the #431/#437 rule)."""
+    text = ledger.body(step)
+    return text[:len(text) - len(ledger.trailing_markers(text))].rstrip()
