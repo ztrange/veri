@@ -1,6 +1,7 @@
 """record-test-commands.sh's logic, run in-process: commit a project's test commands to its CLAUDE.md on a branch."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import re
 import sys
 
 import detect_test_command
@@ -10,6 +11,8 @@ import github
 
 USAGE = "usage: record-test-commands.sh [--one-file <cmd>] <fast-cmd> <all-cmd> [repo-root]"
 FAST, ALL, ONE_FILE = b"veri: fast tests:", b"veri: all tests:", b"veri: one test file:"
+# The one-test-file command takes the file as "$1" anywhere in it, or as a $1 word of its own.
+PLACEHOLDER = re.compile(r'"\$1"|(?:^|\s)\$1(?:\s|$)')
 BRANCH = "veri-install"
 MESSAGE = "Record the test commands veri runs\n\nveri reads these CLAUDE.md lines ahead of any inference."
 TITLE = "Record the test commands veri runs"
@@ -148,6 +151,9 @@ def main(argv):
     fast, full = (args + ["", ""])[:2]
     if not fast or not full or one_file == "":
         return entry.refuse("record-test-commands.sh: a command is missing or empty", usage=USAGE)
+    if one_file is not None and not PLACEHOLDER.search(one_file):
+        return entry.refuse('record-test-commands.sh: the --one-file command must take the test file as "$1" '
+                            '(anywhere in it) or as a $1 word of its own: %s' % one_file, usage=USAGE)
     root = args[2] if len(args) > 2 and args[2] else "."
     try:
         url = record(os.fsencode(fast), os.fsencode(full), root, None if one_file is None else os.fsencode(one_file))

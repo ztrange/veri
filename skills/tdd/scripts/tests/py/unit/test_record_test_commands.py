@@ -66,6 +66,17 @@ def test_an_empty_or_missing_one_file_command_is_exit_2_naming_the_usage_before_
     assert record.USAGE in err
 
 
+@pytest.mark.parametrize("one", ["make test", "pytest $10", "echo '$1'x", "pytest x$1"])
+def test_a_one_file_command_without_the_file_placeholder_is_exit_2_before_any_process_starts(
+        record, run_cli, fake_processes, one):
+    fake = fake_processes.answers({})
+
+    code, out, err = run_cli(record, ["--one-file", one, "make unit", "make test"])
+
+    assert (code, out, fake.calls) == (2, "", [])
+    assert '"$1"' in err
+
+
 def test_a_repo_root_outside_a_git_repository_is_exit_2_saying_so_with_nothing_written(
         record, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers({"git rev-parse": (128, "", "fatal: not a git repository\n")})
