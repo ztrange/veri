@@ -10,7 +10,7 @@ import pytest
 
 from repo_builder import git
 from stub_script import write_stub
-from test_stack_fix_process import red_stack
+from test_stack_fix_process import mover, red_stack
 
 SHIM = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", "stack-revert.sh"))
 GH = """here="$(dirname "$0")"
@@ -62,6 +62,62 @@ def test_stack_revert_reverts_the_culprit_and_its_hand_fix_on_top_and_lifts_its_
     assert ("body=Reverted from stack by " + tip in calls, calls.count("comments"), "/labels" in calls) == (True, 1, False)
     assert (git(work, "worktree", "list", "--porcelain").count("worktree "), os.path.isdir(work / ".tdd" / "merge.lock")) == (
         1, False)
+
+
+def stack_on_top(work, *changes):
+    """Commit each (path, text, subject) of <changes> on the stack and push it: the new tip."""
+    git(work, "checkout", "-q", "stack")
+    for path, text, subject in changes:
+        (work / path).write_text(text)
+        git(work, "add", "-A")
+        git(work, "commit", "-q", "-m", subject)
+    git(work, "push", "-q", "origin", "stack")
+    tip = git(work, "rev-parse", "HEAD")
+    git(work, "checkout", "-q", "trunk")
+    return tip
+
+
+def gh_env(tmp_path, head):
+    """A stub gh answering a red run on <head> and one merged pull request closing issue 12: the environment."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    write_stub(str(bin_dir / "gh"), GH)
+    (bin_dir / "runs").write_text(json.dumps({"total_count": 1, "workflow_runs": [
+        {"head_sha": head, "html_url": "https://github.com/o/r/actions/runs/43", "status": "completed",
+         "conclusion": "failure", "created_at": "2026-11-16T10:00:00Z", "repository": {"full_name": "o/r"},
+         "head_repository": {"full_name": "o/r"}, "run_attempt": 1, "workflow_id": 7}]}))
+    (bin_dir / "merged").write_text(json.dumps([{"number": 41, "body": "Closes #12", "state": "MERGED",
+                                                 "baseRefName": "stack", "isCrossRepository": False}]))
+    return {**os.environ, "PATH": "%s:%s" % (bin_dir, os.environ["PATH"]), "VERI_GH_DRIVER": "graphql"}
+
+
+@pytest.mark.process("stack-revert.sh run as its /bin/sh shim on a local bare origin whose stack holds a later commit on the culprit's lines, so the real git revert conflicts")
+def test_stack_revert_on_a_real_conflict_exits_1_pushing_nothing_removing_its_worktree_and_freeing_the_lock(tmp_path):
+    work, red = red_stack(tmp_path)
+    tip = stack_on_top(work, ("src/flag", "blue", "feat: c recolours the flag (#13)"))
+
+    done = subprocess.run([SHIM, "12"], cwd=str(work), env=gh_env(tmp_path, tip), capture_output=True, text=True,
+                          stdin=subprocess.DEVNULL, timeout=60)
+
+    assert (done.returncode, done.stdout, "conflicts" in done.stderr,
+            git(work, "ls-remote", "origin", "refs/heads/stack").split()[0],
+            git(work, "worktree", "list", "--porcelain").count("worktree "),
+            os.path.isdir(work / ".tdd" / "merge.lock")) == (1, "", True, tip, 1, False), done.stderr
+
+
+@pytest.mark.process("stack-revert.sh run as its /bin/sh shim on a local bare origin, its fast tier pushing another party's commit from a second clone the first time, so the first leased push is refused and the revert starts again from the fetch")
+def test_stack_revert_starts_again_from_the_fetch_when_origin_moved_and_lands_on_top_of_the_other_partys_commit(
+        tmp_path):
+    work, red = red_stack(tmp_path, fast=mover(tmp_path))
+    tip = stack_on_top(work, ("src/other", "c", "feat: c (#13)"))
+
+    done = subprocess.run([SHIM, "12"], cwd=str(work), env=gh_env(tmp_path, tip), capture_output=True, text=True,
+                          stdin=subprocess.DEVNULL, timeout=90)
+
+    git(work, "fetch", "-q", "origin")
+    other = (tmp_path / "other-sha").read_text().strip()
+    assert (done.returncode, done.stdout, git(work, "rev-parse", "origin/stack~1"), "starting again" in done.stderr) == (
+        0, git(work, "rev-parse", "origin/stack") + "\n", other, True), done.stderr
 
 
 @pytest.mark.process("stack-revert.sh run as its /bin/sh shim with bad arguments")
