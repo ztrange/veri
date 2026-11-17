@@ -6,5 +6,5 @@
 - [x] outside veri's own tree, a non-test path no test names widens to every test file with one stderr line; no test file at all exits 3 with that line ⟦criterion 4⟧
 - [x] the affected-run line and the single-suite lead render from a placeholder: the repo's one-test-file command per path (the all tier when undeclared) outside veri, today's text in veri ⟦criterion 6⟧
 - [x] the placeholder is computed in-process from the tree's CLAUDE.md, and a `.tdd/` marker never reaches the prompt ⟦criterion 7⟧
-- [ ] a process case in a scratch foreign repo pins criteria 1, 2 and 4 on stdout, stderr and exit, watched red with the foreign rules removed ⟦criterion 8⟧ ⟦criterion 9⟧
+- [x] a process case in a scratch foreign repo pins criteria 1, 2 and 4 on stdout, stderr and exit, watched red with the foreign rules removed ⟦criterion 8⟧ ⟦criterion 9⟧
 - [ ] SCRIPTS.md gains an affected-suites.sh entry and `_run-suite-lead.md` states its rendered runner, graded ⟦criterion 10⟧
