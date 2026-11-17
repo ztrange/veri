@@ -176,6 +176,14 @@ def _redact_text(text, redactions):
     return text
 
 
+def redact_local(text, run):
+    """<text> with every local path, host name and account name of the run at <run> replaced, line by line, as a carried
+    string is (the two layers _redactions describes, after the token redaction): a line still holding one after the
+    first layer is replaced whole by `<redacted>`, so one leak costs one line, never the rest."""
+    redactions = _redactions(run)
+    return "\n".join(_redact_text(line, redactions) for line in text.split("\n"))
+
+
 def _redact(value, redactions):
     """<value> (decoded JSON) with every string in it, keys included, redacted; the structure is kept as it is. A key
     whose redacted name another key already holds (an original one or one redacted before it) is suffixed, `~-2`,

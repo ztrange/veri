@@ -263,19 +263,22 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    { printf '### Lint\n\n'
      if [ "$code" = 0 ]; then printf '`%s` passed.\n' "$lint"
      else printf '`%s` exited %s. The last 20 lines of its output:\n\n~~~text\n' "$lint" "$code"
-       tail -n 20 .tdd/lint.out | perl -pe 'BEGIN { ($w, $p, $h) = splice @ARGV, 0, 3 } s/\Q$w\E/<worktree>/g if length $w; s/\Q$p\E/<worktree>/g if length $p; s/\Q$h\E/~/g if length $h' "$PWD" "$(pwd -P)" "$HOME"
+       tail -n 20 .tdd/lint.out | cut -c1-300
        printf '~~~\n'; fi; } > .tdd/issue-<n>-lint.md
    ```
-   The output's tail is published, so the worktree root is written `<worktree>` and the home
-   directory `~` before it reaches the file. `wait` exit **2** means no exit code was recorded:
+   Each of those lines is cut at 300 characters, so the section stays far inside GitHub's body
+   limit and a long line cannot make `pr-body.sh` fail. The file holds the output as the command
+   printed it; `pr-body.sh` redacts it on the way out (below). `wait` exit **2** means no exit code was recorded:
    first run `$S/stop-requested.sh`: on `now` the run goes to *Stopping* (`Read` and run
    `<base directory>/STOPPING.md`) and does not bail. Otherwise the command could not be run (it died
    before recording an exit), so no event is written and the section is `### Lint` followed by
    `` `<command>` could not be run: no exit code was recorded. `` — reported as neither a pass nor a
    failure of the lint. A non-zero lint exit, and a lint that could not be run or read, neither
    bails the run nor holds the PR: the section reports it and the step goes on. Sub-step 2 puts the
-   file's contents, when it is non-empty, in the PR body, which `pr-body.sh` writes through veri's
-   redaction of tokens and secrets (`comment.sh`'s rule).
+   file's contents, when it is non-empty, in the PR body. `pr-body.sh` redacts every line of the
+   body it writes: each local path (the worktree, the main clone, a temp directory, the home
+   directory), the host name and the account name, then the tokens and secrets `comment.sh`'s rule
+   names, so nothing the lint printed about this machine reaches the PR.
    After the lint run (or its skip) and before the PR is readied, run
    `$S/refactor-candidates.sh <n> .tdd/issue-<n>-refactor-owed.md` once. Exit **0** prints the
    candidates issue's url, which goes in the PR body's `## Refactor owed` section; exit **3**
