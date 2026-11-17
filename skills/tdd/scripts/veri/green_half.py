@@ -112,7 +112,7 @@ def finish(n, wt, step, values):
     fused.checked("3", fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
     fused.checked("3", fused.script("tick-ledger.sh"), "--refactor-pending", LEDGER % n, step, cwd=wt)
     fused.checked("3", "git", "add", "-A", cwd=wt)
-    fused.checked("3", "git", "commit", "-m", "%s: %s (#%s)" % (kind(wt, n), summary(step), n), cwd=wt)
+    fused.checked("3", "git", "commit", "-m", "%s: %s (#%s)" % (kind(wt, n), fused_step.summary(step), n), cwd=wt)
     green_sha = fused.checked("3", "git", "rev-parse", "HEAD", cwd=wt).strip()
     fused.checked("3", fused.script("push-branch.sh"), cwd=wt)
     pr_body(n, wt)
@@ -126,12 +126,6 @@ def kind(wt, n):
     """`fix` when the spec holds the `## Bug` section capture-spec.sh writes for a bug issue, else `feat` (GH9)."""
     with open(os.path.join(wt, SPEC % n), encoding="utf-8", errors="replace") as f:
         return "fix" if "## Bug" in f.read().splitlines() else "feat"
-
-
-def summary(step):
-    """The step's ledger text without its trailing markers, read as data (the #431/#437 rule)."""
-    text = ledger.body(step)
-    return text[:len(text) - len(ledger.trailing_markers(text))].rstrip()
 
 
 def pr_body(n, wt):

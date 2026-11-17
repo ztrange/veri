@@ -11,7 +11,6 @@ import fused_step
 import plan_publish
 import run_dir
 import tunables
-from green_half import summary
 from next_pending_refactor import refactor_pending
 
 NAME = "step-close"
@@ -106,7 +105,8 @@ def commit(wt, n, step):
         raise fused.Stop("6", "tree-check", 1)
     fused.checked("6", fused.script("clear-refactor-pending.sh"), LEDGER % n, step, cwd=wt)
     fused.checked("6", "git", "add", "-A", cwd=wt)
-    fused.checked("6", "git", "commit", "-m", "chore: refactor verified for %s (#%s)" % (summary(step), n), cwd=wt)
+    subject = "chore: refactor verified for %s (#%s)" % (fused_step.summary(step), n)
+    fused.checked("6", "git", "commit", "-m", subject, cwd=wt)
     fused.checked("6", fused.script("push-branch.sh"), cwd=wt)
     stage_end(wt, n)
     code, said, _ = fused.call(fused.script("stop-requested.sh"), cwd=wt)
