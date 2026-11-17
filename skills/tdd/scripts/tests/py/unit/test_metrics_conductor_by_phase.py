@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from test_metrics import write_log
+from test_metrics import table, write_log
 
 
 @pytest.fixture
@@ -137,3 +137,36 @@ def test_4235_a_sessions_output_tokens_split_over_its_turns_lose_no_remainder(tm
 
     assert {key: entry["output_tokens"] for key, entry in shaped["by_phase"].items()} == {
         "develop-green": 33, "preflight": 33, "between": 35}
+
+
+def markdown(metrics, capsys):
+    code = metrics.main(["108"])
+    out, err = capsys.readouterr()
+    assert code == 0, err
+    return out
+
+
+def test_4238_the_report_prints_an_estimated_conductor_by_phase_table_its_turns_and_cost_those_of_the_json(
+        tmp_path, monkeypatch, capsys, metrics):
+    by_phase = conductor(tmp_path, monkeypatch, capsys, metrics, WINDOWS, [
+        turn(1, 150), turn(2, 320), turn(3, 370), result(3.0, 3, 300),
+        turn(4, 600, model="mystery-1"), turn(5, None, model="mystery-1"), result(None, 2, 50)])["by_phase"]
+    out = markdown(metrics, capsys)
+
+    heading = next(line for line in out.split("\n") if line.startswith("#### Conductor by phase"))
+    assert "estimated" in heading
+    rows = table(out, heading)
+    assert list(rows[0]) == ["phase", "turns", "$"]
+    assert {row["phase"]: (int(row["turns"]), row["$"]) for row in rows} == {
+        key: (entry["turns"], "unknown" if entry["cost_usd"] is None else "%.2f" % entry["cost_usd"])
+        for key, entry in by_phase.items()}
+    assert [row["$"] for row in rows if row["phase"] in ("between", "untimed")] == ["unknown", "unknown"]
+
+
+def test_4238_with_by_phase_null_the_report_prints_no_conductor_by_phase_table(tmp_path, monkeypatch, capsys, metrics):
+    assert conductor(tmp_path, monkeypatch, capsys, metrics, WINDOWS, None)["by_phase"] is None
+
+    out = markdown(metrics, capsys)
+
+    assert "#### By phase" in out
+    assert "Conductor by phase" not in out

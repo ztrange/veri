@@ -179,6 +179,13 @@ Conductor context: first turn 400060 tokens, largest 900060 tokens
 | ⛔ Bailed | 1 | 60000 | $1.20 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
 | Total | 5 | 203750 | $3.19 |
+
+#### Conductor by phase (estimated: each turn placed by its timestamp)
+
+| phase | turns | $ |
+| --- | ---: | ---: |
+| untimed | 6 | unknown |
+
 Models requested: VERI_MODEL opus, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset, VERI_MODEL_REVISE_GREEN unset, VERI_EFFORT_VERIFIER unset; models that answered: claude-opus-5-5, claude-sonnet-4.
 ⚠️ Unverified phases: refactor,green
 Verifiers switched off: refactor 1
