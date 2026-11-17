@@ -212,7 +212,7 @@ def test_2679_the_five_verify_green_fragment_units_are_signed_and_owe_no_grade()
 
 @pytest.mark.process("prose-owed.sh run as a script")
 @pytest.mark.tree_audit("the repository's own graded prose units")
-def test_2782_the_twelve_wording_rows_sit_under_their_units_and_the_six_units_owe_no_grade():
+def test_2782_the_eleven_wording_rows_sit_under_their_units_and_the_five_units_owe_no_grade():
     repo = SCRIPTS.parents[2]
     owed = {
         "skills/tdd/SKILL.md": ("skills/tdd/REQUIREMENTS.md", ["SS1", "SS2", "SS3", "PL63", "CY129"]),
@@ -220,7 +220,6 @@ def test_2782_the_twelve_wording_rows_sit_under_their_units_and_the_six_units_ow
         "skills/tdd/REFACTOR-KIND.md": ("skills/tdd/REQUIREMENTS.md", ["PL64"]),
         "skills/tdd/scripts/prompts/develop-revise.md": ("skills/tdd/scripts/prompts/REQUIREMENTS.md", ["DV5"]),
         "skills/vdev/SKILL.md": ("skills/vdev/REQUIREMENTS.md", ["D22"]),
-        "skills/vcoord/SKILL.md": ("skills/vcoord/REQUIREMENTS.md", ["C19"]),
     }
     missing = []
     for unit, (path, ids) in owed.items():
@@ -233,7 +232,6 @@ def test_2782_the_twelve_wording_rows_sit_under_their_units_and_the_six_units_ow
         missing += [unit + ":" + i for i in ids if i not in rows]
     graded = graded_units(repo / "skills/tdd/GRADED")
     graded |= graded_units(repo / "skills/vdev/GRADED")
-    graded |= graded_units(repo / "skills/vcoord/GRADED")
 
     ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(repo)], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)

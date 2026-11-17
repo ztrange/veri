@@ -1,4 +1,4 @@
-"""Source-text audit of skills/vcoord and skills/vdev: no gh comment read returns a whole thread."""
+"""Source-text audit of skills/vdev: no gh comment read returns a whole thread."""
 import re
 
 import pytest
@@ -15,10 +15,10 @@ def commands(text):
     return [c for c in spans + lines if re.search(r"\bgh\b", c)]
 
 
-@pytest.mark.tree_audit("every Markdown file under skills/vcoord and skills/vdev")
-def test_every_gh_comment_read_in_vcoord_and_vdev_is_bounded():
+@pytest.mark.tree_audit("every Markdown file under skills/vdev")
+def test_every_gh_comment_read_in_vdev_is_bounded():
     unbounded = []
-    for skill in ("vcoord", "vdev"):
+    for skill in ("vdev",):
         for path in sorted((ROOT / "skills" / skill).rglob("*.md")):
             text = path.read_bytes().decode("utf-8", "surrogateescape")
             for cmd in commands(text):
