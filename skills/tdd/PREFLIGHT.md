@@ -7,10 +7,9 @@ names as a stop or a bail), `Read` `<base directory>/PREFLIGHT-FAILURES.md` then
 run it. A preflight that passes never reads it.
 
 **The script ran before this file was read.** `SKILL.md` step 0 runs `$S/preflight.sh <n> <slug>`
-first, and this file is read only when it exits neither 0 nor 3. A fresh run continues from the
-step the script's last line names, by the steps below. A resume, told by the script's exit 2 saying
-the branch already holds a ledger, runs steps 1 to 7 below and never calls the script again. Steps
-1 to 7 stay stated here.
+first, and this file is read only when it exits neither 0 nor 3. The script runs a fresh run and a
+resume alike, so a fresh run and a resume both continue from the step the script's last line names,
+by the steps below. Steps 1 to 7 stay stated here.
 
 1. **Git repo & clean tree.** `git rev-parse --is-inside-work-tree` succeeds and
    `git status --porcelain` is empty.
@@ -83,7 +82,8 @@ the branch already holds a ledger, runs steps 1 to 7 below and never calls the s
    ```
    `resume-clean.sh` captures `git status --porcelain` and runs `git reset --hard HEAD`, so its
    stdout is the paths that reset discarded: keep it as `$stray` for sub-step 4 to
-   name (`<base directory>/RESUME.md`).
+   name (`<base directory>/RESUME.md`). When `preflight.sh` ran this call, `$stray` is the paths on
+   its `stray=` lines, and `<pre-rebase-sha>` below is its `rebased_from=` line.
    When a ledger exists, the script also reconciles it: a tick is committed with its step's green commit, so the committed ledger's ticks record which greens exist, and a working-copy `- [x]` line is kept ticked only when the committed
    ledger holds a tick of the same step text (the text without its trailing markers), so n committed ticks of a text keep at
    most n working ticks of it; every other `- [x]` line — its green commit is not on the branch — is unticked and loses its
