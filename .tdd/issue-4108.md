@@ -6,5 +6,5 @@
 - [x] it exits 1 with last line `short <k> of <N>` when every row is red but too few ⟦criterion 3⟧
 - [x] it exits 2 for no command, an unreadable report, a malformed `MUTANT:` line, a row the probe answered 2, or a bad `VERI_SURROUND_MUTANTS` ⟦criterion 4⟧ ⟦criterion 5⟧
 - [x] a process case runs the shim over the real `mutation-probe.sh` in a scratch repo ⟦criterion 1⟧
-- [ ] `classify-bail.sh surround-short` prints `process` ⟦criterion 6⟧
+- [x] `classify-bail.sh surround-short` prints `process` ⟦criterion 6⟧
 - [ ] docs: `develop-surround.md`, `verify-surround.md`, `LEGACY.md`, `BAIL.md`, `SCRIPTS.md`, CLAUDE.md, rows and grades ⟦criterion 7⟧ ⟦criterion 8⟧ ⟦criterion 9⟧
