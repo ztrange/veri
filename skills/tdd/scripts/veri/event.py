@@ -269,10 +269,10 @@ def state_labels(event, issue):
         return
     try:
         if event == b"bail":
-            github.gh_issue_add_label(issue, "bailed")
+            add_state_label(issue, "bailed")
             github.gh_issue_remove_label(issue, "pr-ready")
         elif event == b"stop":
-            github.gh_issue_add_label(issue, "stopped")
+            add_state_label(issue, "stopped")
         elif event == b"resume":
             github.gh_issue_remove_label(issue, "bailed")
             github.gh_issue_remove_label(issue, "stopped")
@@ -285,6 +285,16 @@ def state_labels(event, issue):
             github.gh_issue_remove_label(issue, "pr-ready")
     except github.NoAnswer:
         sys.stderr.write("event: no answer from gh labelling #%s's run state\n" % issue)
+
+
+def add_state_label(issue, label):
+    """Label <issue> <label> only when the repository has that label: REST's add-labels call would create a missing
+    one, and veri creates no state label (ready-check.sh reports it). A missing label is one stderr line, never fatal."""
+    if not github.gh_label_exists(label):
+        sys.stderr.write("event: the repository has no `%s` label, so #%s is not labelled %s (ready-check.sh reports it)\n"
+                         % (label, issue, label))
+        return
+    github.gh_issue_add_label(issue, label)
 
 
 def context(environ):
