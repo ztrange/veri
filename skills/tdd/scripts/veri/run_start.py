@@ -6,6 +6,7 @@ import sys
 
 import fused
 import run_dir
+import tunables
 
 USAGE = "usage: run-start.sh <n>"
 
@@ -28,6 +29,23 @@ def main(argv):
     except OSError:
         sys.stderr.write("run-start.sh: no .tdd/issue-%s-preflight: run preflight.sh first\n" % n)
         return 2
+    try:
+        return run(n, settled)
+    except fused.Stop as stop:
+        return fused.stopped(stop)
+
+
+def run(n, settled):
+    """Step 1's sub-steps 2-4 in the worktree preflight settled, in their order."""
+    wt = settled["worktree"]
+    fused.checked("1.2", fused.script("leaf-timeout.sh"), settled["baseline"], "--full", settled["full"], cwd=wt,
+                  env=tunables.with_values(VERI_ISSUE=n))
+    fused.checked("1.3", fused.script("capture-spec.sh"), n, cwd=wt, into=os.path.join(".tdd", "issue-%s-spec.md" % n))
+    ignored = fused.checked("1.4", fused.script("ensure-run-state-ignored.sh"), cwd=wt).strip()
+    if ignored == "added":
+        fused.checked("1.4", "git", "status", "--porcelain", cwd=wt)
+        fused.checked("1.4", "git", "add", ".gitignore", cwd=wt)
+        fused.checked("1.4", "git", "commit", "-m", "chore: ignore veri run state (#%s)" % n, cwd=wt)
     return 0
 
 

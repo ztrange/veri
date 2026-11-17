@@ -21,11 +21,16 @@ def label(name, *args):
     return " ".join([os.path.basename(name), *args])
 
 
-def call(name, *args, cwd=None, env=None, shown=None):
-    """Run one inner call and print a line naming it (<shown> when given) and its exit code, then its stdout, and pass
-    its stderr through unchanged (FC1)."""
+def call(name, *args, cwd=None, env=None, into=None):
+    """Run one inner call and print a line naming it and its exit code, then its stdout, and pass its stderr through
+    unchanged (FC1). With <into>, a path under <cwd>, its stdout goes to that file instead, as `> <into>` would send it,
+    and the line names the redirection."""
     code, out, err = run_script(name, *args, cwd=cwd, env=env)
-    sys.stdout.write((shown or label(name, *args)) + " exit " + str(code) + "\n" + out)
+    if into is not None:
+        with open(os.path.join(cwd or ".", into), "w") as f:
+            f.write(out)
+    shown = label(name, *args) + (" > " + into if into is not None else "")
+    sys.stdout.write(shown + " exit " + str(code) + "\n" + (out if into is None else ""))
     sys.stderr.write(err)
     return code, out, err
 
@@ -42,7 +47,8 @@ def checked(where, name, *args, ok=(0,), **kw):
     """call(), raising Stop at <where> on an exit outside <ok>; its stdout otherwise."""
     code, out, _ = call(name, *args, **kw)
     if code not in ok:
-        raise Stop(where, label(name, *args) + " exit " + str(code), code)
+        shown = label(name, *args) + (" > " + kw["into"] if kw.get("into") is not None else "")
+        raise Stop(where, shown + " exit " + str(code), code)
     return out
 
 
