@@ -233,22 +233,24 @@ def cost_check(wt, step):
         raise Stop("cost-check", "spent %s over the step budget %s" % (out.strip(), budget), 1)
 
 
-def report(where, wt, name, *keys):
-    """{key: its last value, or None} of the report extract-result.sh reads from .tdd/<name>.out, read through
-    report.report_values. Only the line naming the call and its exit is printed, never the report (FC2); an exit
-    but 0, or no such file, stops at <where> with exit 2."""
+def report(where, wt, path, *keys, every=False):
+    """{key: its last value, or None; with <every>, the list of its values} of the report extract-result.sh reads from
+    <path> under the worktree (a leaf's .out, or a verifier's .log), read through report.report_values. Only the line
+    naming the call and its exit is printed, never the report (FC2); an exit but 0, or no such file, stops at <where>
+    with exit 2."""
     from report import report_values
-    shown_as = "extract-result.sh < .tdd/%s.out" % name
+    shown_as = "extract-result.sh < " + path
     try:
-        with open(os.path.join(wt, ".tdd", name + ".out"), encoding="utf-8", errors="replace") as f:
+        with open(os.path.join(wt, path), encoding="utf-8", errors="replace") as f:
             stream = f.read()
     except OSError:
-        raise Stop(where, "no .tdd/%s.out" % name, 2)
+        raise Stop(where, "no " + path, 2)
     code, out, _ = run_script(script("extract-result.sh"), cwd=wt, stdin=stream)
     sys.stdout.write(shown_as + " exit %d\n" % code)
     if code != 0:
-        raise Stop(where, shown_as + " exit %d" % code, code)
-    return {key: report_values(out, key, occurrence="last", splitlines=True, strip=True) for key in keys}
+        raise Stop(where, shown_as + " exit %d" % code, 2 if code in (0, 3) else code)
+    return {key: report_values(out, key, occurrence="every" if every else "last", splitlines=True, strip=True)
+            for key in keys}
 
 
 def changed_paths(where, wt):

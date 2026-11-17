@@ -79,7 +79,7 @@ def verify(n, wt, settled, step, values):
     """Green 1's checks, then Green 2's verifier (GH3-GH6): the route lines first, since a split or wrong-test report
     carries no SUITE: line by design, then suite-reported.sh and the two frozen-test checks, then verdict-green, or its
     recorded skip with `green` switched off. The leaf it launched, or None."""
-    got = fused.report("1", wt, "develop-green", *ROUTES)
+    got = fused.report("1", wt, ".tdd/develop-green.out", *ROUTES)
     for key in ROUTES:
         if got[key] is not None:
             raise fused.Stop("1", "%s: %s" % (key, got[key]), 1)
