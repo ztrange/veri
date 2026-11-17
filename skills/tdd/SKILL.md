@@ -752,6 +752,10 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
+Unless the step carries `⟦diff-checked⟧`, `⟦phases:`, `⟦skill-edit⟧` or `⟦fixture-repair⟧`, run
+`$S/red-half.sh <n>` first, again on exit 3; on 0 its last lines hold `test_path`, `target_test`,
+`red_test_id`; else go on from the sub-step it names.
+
 1. **Develop.** Before the prompt is built, run `$S/refresh-spec.sh <n> .tdd/issue-<n>-spec.md`.
    Exit 0 and exit 3 go on, and exit 0 is named in the step's `### 🔴 Red` comment as a
    refreshed spec. Exit 2 goes on with the capture, and the `### 🔴 Red` comment says so.
@@ -768,7 +772,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' > .tdd/develop-red.prompt
    rm -f .tdd/develop-red.exit .tdd/develop-red.pid .tdd/red-prediction.md .tdd/red-run-output.txt
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err
-   $S/wait-leaf.sh develop-red     # foreground; on exit 3 call it again
+   $S/wait-leaf.sh develop-red  # foreground; again on exit 3
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
    The template also states what a valid test is: behavior, not mechanism (no process, fork
@@ -779,8 +783,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    self-contained (never runs another suite, whole or sliced, and never re-runs its own). A
    criterion that cannot be pinned within those rules is not weakened into one that can —
    the leaf reports it untestable instead (below).
-   You supply only those variables; the instructions are the template's, identical every
-   run. The leaf's report is in `.tdd/develop-red.out`, and ends with the lines you branch on — `TEST_PATH:`, `TARGET_TEST:`,
+   You supply only those variables; the template's instructions are the same every run. The leaf's report is in `.tdd/develop-red.out`, and ends with the lines you branch on — `TEST_PATH:`, `TARGET_TEST:`,
    `AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE`, `WHY:`, `FAIL_OUTPUT:` — so take the
    **test path** and **target test id** from the first two and read the third for the next
    sub-step.
@@ -845,7 +848,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    ```
    rm -f .tdd/verdict-red.exit .tdd/verdict-red.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
-   $S/wait-leaf.sh verdict-red     # foreground; on exit 3 call it again
+   $S/wait-leaf.sh verdict-red  # foreground; again on exit 3
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
    Once verify-red PASSes, record the test files before comment or leaf (`<red-test-id>` is `<test-path>::<case>`):
@@ -863,7 +866,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    ```
    rm -f .tdd/verdict-pin.exit .tdd/verdict-pin.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-pin $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err
-   $S/wait-leaf.sh verdict-pin     # foreground; on exit 3 call it again
+   $S/wait-leaf.sh verdict-pin  # foreground; again on exit 3
    ```
    A `⟦ci-repair⟧` step is the one exception to `PASSES`: its test failed on CI and may pass
    here, so on `AGAINST_UNMODIFIED: PASSES` it goes on to Green with the failing CI job's log
@@ -879,10 +882,8 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    overwrites it.
 3. **Narrate + branch (the `FAILS` path).** Post a `### 🔴 Red` comment, by running `$S/comment.sh <n> red --note-file <path>`, with the test, the
    failing output, the leaf's `PREDICTED_FAILURE:` and whether the prediction **matched or
-   diverged** — with its `PREDICTION_NOTE:` when it diverged. Both halves, always: the
-   prediction is what the failing output is read against, so a thread carrying only one of
-   them cannot be read for divergence, and on a repository where the two keep diverging
-   that thread is the evidence. Follow it with a `### 🔎 verify-red — PASS|REJECT` comment, posted by running
+   diverged** — with its `PREDICTION_NOTE:` when it diverged. Both halves, always: a thread carrying only one of
+   them cannot be read for divergence. Follow it with a `### 🔎 verify-red — PASS|REJECT` comment, posted by running
    `$S/comment.sh <n> verify-red`, carrying the verifier's reason.
    - **PASS (exit 0):** continue to Green.
    - **REJECT (exit 1) whose reason file `.tdd/verify-red.reason` begins with a `GATE:` line:**
@@ -903,6 +904,10 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 
 #### Green — minimum implementation (developer leaf), then verify-green (blind)
 
+After a clean `red-half.sh`, unless the step carries `⟦replaces-case⟧` or `⟦ci-repair⟧`, run
+`$S/green-half.sh <n>` first, again on exit 3; on 0 its last lines hold `step`, `green_sha`,
+`test_path`, else go on from the sub-step it names.
+
 1. **Develop.** Build the prompt from the `green` template — the **minimum** production
    code, no generality the test does not demand, the **test itself untouched**, the
    fast command and the affected suites green — and launch **through the supervisor** (exit **2** → **bail**, after the stop
@@ -911,7 +916,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <test-path> '<target-test-id>' '<fast-cmd>' '<owed-cases>' > .tdd/develop-green.prompt
    rm -f .tdd/develop-green.exit .tdd/develop-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
-   $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
+   $S/wait-leaf.sh develop-green  # foreground; again on exit 3
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
    The test path and target test id come from Red's report. The leaf's report is
@@ -992,7 +997,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
-   $S/wait-leaf.sh verdict-green    # foreground; on exit 3 call it again
+   $S/wait-leaf.sh verdict-green  # foreground; again on exit 3
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
    On a `⟦replaces-case⟧` step, a PASS is accepted only once the conductor's own run of
@@ -1010,9 +1015,9 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,
      then commit the code **and** the ticked ledger in **one** commit so git and ledger
      never diverge. The tick carries `--refactor-pending`, which appends ` ⟂ refactor
-     pending` to that same line: the step is green, but its refactor loop and
-     verify-refactor are still ahead of it, so a run interrupted between here and them must
-     resume into that loop rather than read the tick as *done*.
+     pending` to that same line: its refactor loop and
+     verify-refactor are still ahead, so a run interrupted before them resumes into that loop
+     rather than reading the tick as *done*.
      **Before the tick, on every step not marked `⟦skill-edit⟧`, run
      `$S/graded-changed.sh <step-base-sha>`** over the step's commits, `<step-base-sha>` being the
      commit the step started from (`git log -1 --format=%H -- .tdd/issue-<n>.md`). Its exit 1
@@ -1059,6 +1064,10 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 
 #### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)
 
+On the step's first pass run `$S/refactor-half.sh <n>` first (it starts the stage), again on exit 3;
+on 0 its last lines hold `count`, `budget`, `stopped`, `touched`, `uncovered_spec`, else go on from the
+sub-step it names.
+
 The loop is stage `refactor-loop`, one end per start: entering it (not at 3's resume; it stays open through a triangulation), `VERI_ISSUE=<n> $S/event.sh stage-start stage=refactor-loop; date +%s > .tdd/stage-rl.t`,
 and when it ends `VERI_ISSUE=<n> $S/event.sh stage-end stage=refactor-loop status=<exit code> secs=$(($(date +%s)-$(cat .tdd/stage-rl.t)))`:
 0 once 6's `chore: refactor verified` push exits 0, or its reconcile succeeds, before its stop check; 1 at 6's `repin`, before the commit; 3 at a stop before
@@ -1076,7 +1085,7 @@ that push; else the ending call's code (a bail's too).
    $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
    rm -f .tdd/develop-refactor.exit .tdd/develop-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh)" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
-   $S/wait-leaf.sh develop-refactor   # foreground; on exit 3 call it again
+   $S/wait-leaf.sh develop-refactor  # foreground; again on exit 3
    ```
    **One leaf for the whole step**, not one per transform.
    `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
@@ -1098,9 +1107,8 @@ that push; else the ending call's code (a bail's too).
    carrying its class, or `none`) and `FLAGS:` (one finding per line, each carrying its
    class — `overfit`, `uncovered-spec` or `beyond-spec` — or `none`; 3 and 4 below route
    them).
-2. **Check what the leaf left.** The leaf produced the result; the conductor's job in this
-   phase is to **check** it, because verify-refactor judges the **settled tree** and can see
-   neither of the two faults below. Ask git, not the report:
+2. **Check what the leaf left.** The conductor **checks** it, because verify-refactor judges
+   the **settled tree** and can see neither of the two faults below. Ask git, not the report:
    ```
    git status --porcelain                   # any output ⇒ refuse to go on, see below
    git log --format=%s <green-sha>..HEAD    # every one must be a refactor:, or refuse to go on
@@ -1113,8 +1121,7 @@ that push; else the ending call's code (a bail's too).
      reset --hard HEAD` drops it, leaving the last committed transform, which the leaf's own
      suite run found green — and say in the narration that it was dropped.
    - **A commit in that range whose subject is not `refactor:`** is production code carried
-     into a behaviour-preserving phase: the blind verifier ahead is asked whether behaviour
-     was preserved, and nothing there asks whether that code was earned by a test. Do
+     into a behaviour-preserving phase, where nothing asks whether a test earned it. Do
      **not** continue either — `git reset --hard <green-sha>` drops every commit the leaf
      made for this step, the well-formed ones with it, since a leaf that committed
      production code here is not one whose other commits can be taken on trust — and the
@@ -1138,9 +1145,8 @@ that push; else the ending call's code (a bail's too).
    triangulating **red → verify-red → green → verify-green** inside this same step, exactly
    as the **Red** and **Green** phases above run them. An overfit flag grows **no ledger
    step**, makes **no plan amendment** and posts **no second step-done comment**: a step is
-   mirrored done once, at the end of its own cycle, and this is not that moment — the
-   step is interrupted here, not finished, and the case is this step's own criterion
-   caught late rather than a step the plan is missing. The triangulation's own green commit is this
+   mirrored done once, at the end of its own cycle, and the step is interrupted here, not
+   finished. The triangulation's own green commit is this
    step's `<green-sha>` from here on — that is the state the tidying now starts from, so 2
    above still reads exactly what the step's refactor produced. Then **resume this step's
    refactor loop** at 1 with the **budget it had left**, asking
@@ -1184,7 +1190,7 @@ that push; else the ending call's code (a bail's too).
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
-   $S/wait-leaf.sh verdict-refactor  # foreground; on exit 3 call it again
+   $S/wait-leaf.sh verdict-refactor  # foreground; again on exit 3
    ```
    — one verdict on the final state (the **fast tier** plus the **affected suites** still
    green, no catalogue smell met, no smuggled generality).
@@ -1193,9 +1199,8 @@ that push; else the ending call's code (a bail's too).
    Say **how many transforms landed** — the `git rev-list --count` figure, never the leaf's
    own account of what it did — against the budget, in `refactor-budget.sh`'s own shape
    (`refactor 2/5`). A count **above** the budget is narrated as an **overrun** (`refactor
-   7/5 — overrun`), never clamped to the budget: the budget reaches the leaf as a number, so
-   a count over it is the leaf ignoring it, and that is the one thing this narration exists
-   to make visible. Say too **why the tidying stopped**: the leaf reported
+   7/5 — overrun`), never clamped to the budget: a count over it is the leaf ignoring the
+   number it was given. Say too **why the tidying stopped**: the leaf reported
    **nothing left to tidy**, it spent the **budget** it was given, or
    `$S/refactor-triage.sh < .tdd/develop-refactor.out` says so — exit **2**, a malformed
    report, is **narrated** as that rather than bailed on; exit **3**, nothing structural is
@@ -1207,8 +1212,7 @@ that push; else the ending call's code (a bail's too).
    structural pass, is in neither list: it is recorded through
    `refactor-owed.sh`, below and at the Draft PR, and is not narrated as a backlog. Each
    list says **how many candidates** it holds and then **lists** them, one per line. A
-   count with no items is not a backlog, and the two classes run together are a backlog
-   nobody can size.
+   count with no items, or the two classes run together, is a backlog nobody can size.
 
    An **out-of-scope** candidate is routed by whether its transform changes a file in
    `<touched-files>`. One that changes **at least one** is done in the step, and the refactor
@@ -1351,13 +1355,12 @@ that push; else the ending call's code (a bail's too).
      On exit **0** — or exit **3**, when no full step has completed yet and so there is no
      median to project with — loop back to the top of **step 3** for the next unchecked
      ledger step.
-     On exit **1** the projection is over the ceiling: **park the run** here, while parking
-     is still cheap — the ledger is committed, so a resume loses none of what was spent.
-     Post a `### ⏸️ Parked — run budget (needs the user)` comment carrying the projection
-     rather than the fact: the spent, steps remaining, median and projection figures
+     On exit **1** the projection is over the ceiling: **park the run** here: the ledger is
+     committed, so a resume loses none of what was spent.
+     Post a `### ⏸️ Parked — run budget (needs the user)` comment carrying the projection: the spent, steps remaining, median and projection figures
      `run-affordable.sh` printed, the ceiling (`VERI_RUN_BUDGET`, the second line
      `step-budget.sh` printed), and the two answers available, in this order — split the issue, or
-     raise `VERI_RUN_BUDGET` and resume — a decision no leaf has the authority to make.
+     raise `VERI_RUN_BUDGET` and resume, a decision no leaf may make.
      This park is **not a bail**: nothing failed, and the ledger is at a state a resume
      already handles — so `classify-bail.sh` is not called on it.
      On exit **2** no answer could be obtained — a missing event log, a bad
