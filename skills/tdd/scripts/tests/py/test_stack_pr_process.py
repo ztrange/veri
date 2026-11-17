@@ -23,7 +23,8 @@ exit 1
 
 def pull(number, draft=False):
     return {"number": number, "html_url": "https://github.com/o/r/pull/%d" % number, "draft": draft,
-            "head": {"ref": "stack", "sha": "abc"}, "base": {"ref": "trunk"}, "state": "open"}
+            "head": {"ref": "stack", "sha": "abc", "label": "o:stack", "repo": {"full_name": "o/r"}},
+            "base": {"ref": "trunk", "repo": {"full_name": "o/r"}}, "state": "open"}
 
 
 def clone_with_stack(tmp_path, ahead=True):

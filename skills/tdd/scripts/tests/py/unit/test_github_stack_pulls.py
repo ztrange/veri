@@ -15,9 +15,19 @@ LIST = "gh api repos/{owner}/{repo}/pulls?state=open&head={owner}:stack&base=tru
 CREATE = "gh api -X POST repos/{owner}/{repo}/pulls"
 
 
-def pull(number, head="stack", base="trunk", draft=False):
+def pull(number, head="stack", base="trunk", draft=False, owner="o", head_repo="o/r"):
     return {"number": number, "html_url": "https://github.com/o/r/pull/%d" % number, "draft": draft,
-            "head": {"ref": head, "sha": "abc"}, "base": {"ref": base}, "state": "open"}
+            "head": {"ref": head, "sha": "abc", "label": "%s:%s" % (owner, head),
+                     "repo": {"full_name": head_repo} if head_repo else None},
+            "base": {"ref": base, "label": "o:" + base, "repo": {"full_name": "o/r"}}, "state": "open"}
+
+
+def test_stack_pulls_keeps_only_a_pull_request_whose_head_repository_is_this_one_never_a_fork_or_a_deleted_fork(
+        github, fake_processes):
+    fake_processes.answers({LIST % 1: (0, json.dumps([pull(1, owner="evil", head_repo="evil/r"), pull(2, head_repo=None),
+                                                      pull(3, owner="evil", head_repo="o/r"), pull(4)]), "")})
+
+    assert [p.number for p in github.stack_pulls("stack", "trunk")] == [4]
 
 
 def test_stack_pulls_keeps_only_pull_requests_the_answer_itself_names_from_head_to_base_reading_every_full_page(
