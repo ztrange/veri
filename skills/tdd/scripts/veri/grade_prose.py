@@ -370,11 +370,12 @@ def grade_unit(path, unit, read=None):
     except ValueError as e:
         print("grade-prose.sh: %s" % e, file=sys.stderr)
         return Grading(2)
+    shown = signed_text(unit, text)
     claims = requirements.claims(path, unit)
     if not claims.strip():
         return no_verdict("%s has no requirements list for %s" % (path, unit))
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
-        f.write(prompt(unit, text, claims))
+        f.write(prompt(unit, shown, claims))
     env = dict(os.environ)
     env["PATH"] = modern_python_dir() + env.get("PATH", "")
     env.pop("VERI_MODEL_GRADER", None)
@@ -405,7 +406,7 @@ def grade_unit(path, unit, read=None):
     def launch_rows(ids):
         rows = "".join(r + "\n" for r in claims.splitlines() if r.split("\t", 1)[0] in ids)
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as g:
-            g.write(prompt(unit, text, rows))
+            g.write(prompt(unit, shown, rows))
         try:
             return launch(g.name, ".rows")
         finally:
@@ -489,7 +490,7 @@ def grade_unit(path, unit, read=None):
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
                                        "cost_usd=%s" % leaf_log.plain(cost), "id=" + grading_id,
                                        "effort=" + (effort or "default")])
-    ours = stamp(with_effort([text, claims, model], effort))
+    ours = stamp(with_effort([shown, claims, model], effort))
     try:
         own = signer()
         if own is sys.modules[__name__]:

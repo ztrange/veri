@@ -206,3 +206,30 @@ def test_4016_removing_the_last_listed_heading_unit_unsplits_the_whole_file_unit
 
     assert (code, out.splitlines(), grade_prose.signature("REQUIREMENTS.md", "f.md")) == (
         1, ["f.md", "f.md#Claimed one (orphan)", "f.md#Path/with a slash (orphan)"], whole), err
+
+
+def test_4016_grade_prose_shows_the_grader_a_split_whole_file_units_view_and_signs_it_while_unit_text_is_the_whole_file(
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
+    import json
+    split_tree(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    prompts = []
+
+    def launch(line, **kwargs):
+        with open(line.split()[3], encoding="utf-8") as f:
+            prompts.append(f.read())
+        reply = "BEGIN GRADES\nA1: PASS - blue\nVERDICT: PASS\nEND GRADES\n"
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(json.dumps({"type": "result", "result": reply}) + "\n")
+        return (0, "", "")
+
+    monkeypatch.setenv("PATH", "")
+    fake_processes.answers({"supervise.sh": launch})
+    monkeypatch.chdir(tmp_path)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "f.md"], cwd=tmp_path)
+
+    graded = tmp_path / "GRADED"
+    signed = [l.split(" ")[1] for l in graded.read_text().splitlines() if l.startswith("f.md ")] if graded.exists() else []
+    assert (code, prompts, signed, grade_prose.unit_text("f.md")) == (
+        0, [grade_prose.prompt("f.md", SPLIT_VIEW, "A1\tThe widget is blue.\n")],
+        [grade_prose.signature("REQUIREMENTS.md", "f.md")], SPLIT), err
