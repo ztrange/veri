@@ -771,7 +771,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `reset-wait.sh`: wait for a usage-limit reset.
 - `restart-conductor.sh`: stop and watch a conductor restart.
 - `role-growth.sh`: read a role session's context growth.
-- `role-state.sh`: a coordinator's or dev session's recorded state.
+- `role-state.sh`: the dev session's recorded state.
 - `run-conductor.sh`: launch one conductor on an issue.
 - `run-finished.sh`: whether an issue's run finished.
 - `script-help.sh`: look up a script's help.
