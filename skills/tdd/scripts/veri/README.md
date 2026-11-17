@@ -702,6 +702,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `ready-check.sh`: the checks before a pull request is readied.
 - `rebase-onto-default.sh`: rebase the branch onto the default branch.
 - `stack-culprit.sh`: name the issue whose end turned the stack red, and the cases it broke, by running them alone at each issue end in a worktree of its own.
+- `stack-fix.sh`: push a fix worktree's reviewed hand fix on top of a red stack, once per culprit, after checking its bounds and running the named cases, the fast tier and `prose-owed.sh` at its HEAD.
 - `stack-green.sh`: print the newest stack commit that ends an issue and that CI passed, where a slice may be cut.
 - `stack-pr.sh`: print the one open pull request tracking the stack branch, opening it when none is.
 - `stack-red.sh`: print CI's latest answer on the stack branch when it is red, which freezes joins.
@@ -711,6 +712,12 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 ## ci_marks
 - `load(run, key, head)`: the `Marks` a poll of `head` reads. `seconds(run, kind, key)`: a mark's number, None when absent or not one; `exists(run, kind, key)`.
 - `record(run, kind, key, value)`, `remove(run, kind, key)`: write or drop one mark. `fresh_window(run, key)`: drop every mark of `key`, so the next wait records a fresh deadline.
+
+## ci_flake
+- `ANSI`: the pattern of the terminal colour codes a runner's text carries, stripped before a line is read. `runner_text(log)`: the runner's own text of a `gh run view --log-failed` log, gh's job and step prefixes and timestamps removed.
+
+## stack_green
+- `named(subject)`: the issue numbers a commit subject names in the parenthesised group or groups it ends with. `issue_ends(subjects)`: per subject, whether its commit is an issue end. `tested(runs)`: whether check runs `[(status, conclusion)]` call a commit tested. `ENDS_READ`: the newest issue ends read.
 
 # Prose grading and requirements
 

@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 
+import ci_flake
 import detect_test_command
 import entry
 import git
@@ -239,8 +240,8 @@ def _cases_pass(top, cases):
         if not _has(case.split("::", 1)[0]):
             raise Refused("%s: its file is absent at HEAD, and a case gone is not a pass; nothing pushed" % case)
         code, output = _run(command, case)
-        said = stack_culprit._verdict(code, output, case) if code else code
-        if code == 0 and stack_culprit._ABSENT.search(stack_culprit.ci_flake.ANSI.sub("", output)):
+        said = stack_culprit.verdict(code, output, case) if code else code
+        if code == 0 and stack_culprit.ABSENT_OUTPUT.search(ci_flake.ANSI.sub("", output)):
             said = stack_culprit.ABSENT
         if said is True or said == stack_culprit.ABSENT or (said is None and code in (1, 4, 5)):
             raise Refused("%s is still %s at HEAD run alone (exit %d); nothing pushed" % (
