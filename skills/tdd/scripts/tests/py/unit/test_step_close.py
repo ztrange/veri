@@ -340,6 +340,20 @@ def test_4029_every_inner_call_in_the_ordered_list_is_a_script_the_refactor_loop
     assert [name for name in step_close.CALLS if "$S/" + name not in section and name not in NAMED_ELSEWHERE] == []
 
 
+@pytest.mark.parametrize("site", ["settle", "ledger_text"])
+def test_4029_an_exception_after_the_push_is_a_stop_at_6_with_exit_2_naming_it(close, monkeypatch, site):
+    module = importlib.import_module("veri.fused" if site == "settle" else "veri.step_close")
+
+    def broken(*args, **kw):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(module, site, broken)
+    code, out, err, fake = close()
+
+    assert code == 2 and "push-branch.sh" in fake.names()
+    assert out.splitlines()[-1].startswith("stopped at 6 ") and "disk full" in out.splitlines()[-1]
+
+
 def test_4029_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(close):
     step_close = importlib.import_module("veri.step_close")
     code, out, err, fake = close()
