@@ -331,6 +331,23 @@ def mark(directory, context, event, fields=(), ts=None):
         sys.stderr.flush()
 
 
+def stage(name, body, directory="", run_context=None):
+    """Run `body()`, which returns an exit code, as stage `name` (D13): `stage-start stage=<name>` before it and
+    `stage-end stage=<name> status=<code> secs=<whole seconds>` after it, on every exit; a body that raises ends its
+    stage with status 2 and its error is raised on. Each line goes through `mark`, so a line that cannot be written is
+    one stderr line and never changes what the body returns: telemetry never bails a run."""
+    run_context = context(os.environ) if run_context is None else run_context
+    mark(directory, run_context, "stage-start", ["stage=" + name])
+    began = time.monotonic()
+    status = 2
+    try:
+        status = body()
+        return status
+    finally:
+        mark(directory, run_context, "stage-end",
+             ["stage=" + name, "status=%d" % status, "secs=%d" % (time.monotonic() - began)])
+
+
 def main(argv):
     if not argv:
         sys.stderr.buffer.write(USAGE)
