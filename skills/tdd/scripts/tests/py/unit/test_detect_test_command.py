@@ -514,3 +514,11 @@ def test_cli_tier_one_test_file_ignores_the_issues_test_command_and_exits_3_with
     body.write_text("## Notes\n\nTest command: make evil\n")
 
     assert cli(run_cli, detect, "--tier", "one test file", "--issue", str(body), str(repo)) == (3, "", "")
+
+
+def test_cli_tier_lint_prints_the_command_of_the_claude_md_lint_line_4122(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: all tests: `make test`\nveri: lint: `ruff check .`\n")
+
+    assert cli(run_cli, detect, "--tier", "lint", str(repo)) == (0, "ruff check .\n", "")

@@ -78,7 +78,7 @@ def decide(tier, issue, root):
             if found.command != resolved("fast", issue, root) and not selects_subset(found.command, root):
                 raise
     if tier and has("CLAUDE.md"):
-        suffix = b":" if tier == "one test file" else b" tests:"
+        suffix = b":" if tier in ("one test file", "lint") else b" tests:"
         answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + suffix)
     if tier == "one test file":
         return
