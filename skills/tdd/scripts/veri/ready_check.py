@@ -88,6 +88,8 @@ def tier_run_row(tier, command, wt):
         return row, None
     if os.path.exists(output):
         shutil.copyfile(output, kept)
+    if waited.returncode == 2:
+        return row, f"no answer was obtained (exit 2 from detach-command.sh wait {name})"
     return row, f"exit {waited.stdout.strip()}: {said[-1] if said else '(no output)'}"
 
 

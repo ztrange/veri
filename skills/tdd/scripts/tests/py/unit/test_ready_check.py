@@ -549,6 +549,15 @@ def test_issue_4088_a_re_run_while_a_tier_is_still_running_waits_on_that_run_and
     assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
 
 
+def test_issue_4088_a_tier_whose_run_died_without_recording_an_exit_fails_its_row_saying_no_answer_was_obtained(ready_check, run_cli, fake_processes, tmp_path):
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **TIERS, **{"detach-command.sh wait ready-all": (2, "", "")})
+
+    row = tier_run_line(lines, "all")
+    assert row.startswith("fail  all tier run (") and row.endswith(
+        "s): no answer was obtained (exit 2 from detach-command.sh wait ready-all)"), row
+    assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
+
+
 def test_issue_4088_a_tier_run_that_raises_exits_2_having_removed_the_worktree_it_made(ready_check, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": OSError(7, "no detach")}))
     code, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
