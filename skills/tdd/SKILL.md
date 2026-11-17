@@ -494,9 +494,9 @@ three times over branches its ledger pinned on later lines.
    An issue whose work changes only tests (extracting a repeated helper, sharing a fixture,
    production untouched) is planned as `⟦diff-checked⟧` steps, whatever its label, refactor-kind or not.
 
-   When the spec carries the `## Refactor` section `capture-spec.sh` writes for the `refactor`
-   label: when you plan, and on a resume before the first step since a resume skips the plan, and
-   not before, `Read` and run `<base directory>/REFACTOR-KIND.md`.
+   When you plan, and on a resume before any step as a resume skips the plan, not before,
+   `Read` and run `<base directory>/LEGACY.md` for a `## Legacy` spec or, for the `## Refactor`
+   section `capture-spec.sh` writes, `<base directory>/REFACTOR-KIND.md`.
 2. **Commit the ledger** as the run's starting point. Before committing, run
    `$S/scope-check.sh .tdd/issue-<n>.md .`: it exits 1 when a step names a new `test_<x>.py` under
    `skills/tdd/scripts/tests/py/` whose basename already exists anywhere under it (pytest refuses
