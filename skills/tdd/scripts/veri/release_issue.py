@@ -34,7 +34,11 @@ def main(argv):
     if len(argv) != 1 or not re.fullmatch(r"[1-9][0-9]*", argv[0]):
         sys.stderr.write(USAGE)
         return 2
-    number = argv[0]
+    return event.stage("release", lambda: release(argv[0]), "",
+                       event.context(tunables.with_values(VERI_ISSUE=argv[0])))
+
+
+def release(number):
     opt_in = tunables.get("VERI_LABEL")
     taken = tunables.taken_label(opt_in)
     try:

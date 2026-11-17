@@ -7,8 +7,10 @@ import pytest
 
 
 @pytest.fixture
-def release(monkeypatch):
-    """release_issue with every gh call faked; returns (module, calls, labels) — set labels[:] per case."""
+def release(monkeypatch, tmp_path):
+    """release_issue with every gh call faked, run in <tmp_path> holding a `.tdd/` as a clone's; returns (module, calls,
+    labels) — set labels[:] per case."""
+    (tmp_path / ".tdd").mkdir()
     release_issue = importlib.import_module("veri.release_issue")
     github = release_issue.github
     calls, labels = [], []
@@ -242,7 +244,8 @@ def test_a_claimed_unopted_issue_with_only_other_comments_still_exits_3_and_noth
     assert writes(calls) == []
 
 
-def test_a_preflight_refused_claim_is_released_through_the_real_rest_adapter_3687(run_cli, monkeypatch):
+def test_a_preflight_refused_claim_is_released_through_the_real_rest_adapter_3687(run_cli, monkeypatch, tmp_path):
+    (tmp_path / ".tdd").mkdir()  # a clone's, where the release marker goes
     release_issue = importlib.import_module("veri.release_issue")
     github = release_issue.github
     issue = "repos/{owner}/{repo}/issues/3241"
@@ -347,3 +350,16 @@ def test_comments_gh_gives_no_answer_for_or_answers_in_the_wrong_shape_exit_2_na
 
     assert (code, err, writes(calls)) == (
         2, "release-issue.sh: no answer from gh reading the comments of #3971\n", [])
+
+
+@pytest.mark.parametrize("held, code", [("parked", 0), ("bug", 3)], ids=["released", "nothing to release"])
+def test_4232_release_issue_runs_as_stage_release_carrying_the_issue_ending_with_its_exit_code(
+        release, run_cli, tmp_path, events, held, code):
+    release_issue, calls, labels = release
+    labels[:] = ["taken:main", held]
+
+    returned = run_cli(release_issue, ["3284"], cwd=tmp_path)[0]
+
+    stages = [(r["event"], r["stage"], r.get("status"), r["issue"]) for r in events.records(tmp_path)]
+    assert (returned, stages) == (code, [("stage-start", "release", None, "3284"),
+                                         ("stage-end", "release", str(code), "3284")])
