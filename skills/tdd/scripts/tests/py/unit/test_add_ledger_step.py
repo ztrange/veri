@@ -1358,7 +1358,7 @@ def test_shim_header_describes_planned_and_its_exit_2_refusals_and_no_longer_lis
     planned = [l for l in header.split("\n") if "--planned" in l]
 
     assert (
-        any("VERI_STEP_GROWTH" in l for l in planned),
+        any("VERI_STEP_GROWTH_PERCENT" in l for l in planned),
         any("⟦added⟧" in l for l in planned),
         "--planned without --criterion" in exit2,
         "already serves" in exit2,

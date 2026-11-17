@@ -384,7 +384,7 @@ The ledger of a run: reading its steps and finding the next one to do, growing, 
 - `clear-refactor-pending.sh`: remove a step's `⟂ refactor pending` mark.
 - `criterion-finished.sh`: whether every step of an issue criterion is ticked.
 - `drop-ledger-step.sh`: remove a step from the ledger.
-- `ledger-growth.sh`: check the ledger stayed within `VERI_STEP_GROWTH`.
+- `ledger-growth.sh`: check the ledger stayed within `VERI_STEP_GROWTH_PERCENT` of the verified plan's steps.
 - `ledger-steps.sh`: list the ledger's steps.
 - `next-pending-refactor.sh`: the next step whose refactor is pending.
 - `next-unchecked.sh`: the next unchecked step.

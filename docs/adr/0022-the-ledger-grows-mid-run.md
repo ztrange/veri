@@ -1,5 +1,7 @@
 # The ledger grows mid-run, under a fifth budget: plan growth
 
+**2026-11-16:** the budget is now `VERI_STEP_GROWTH_PERCENT`, relative to the verified plan: ⌈percent × P ÷ 100⌉ `⟦added⟧` steps, P the steps at the newest plan commit (PRD 013.9); the absolute `VERI_STEP_GROWTH` below is retired.
+
 Until now the ledger was written once, at scoping, and never grew. From here on a run may add
 steps to it. There are three sources:
 - the refactor leaf's `NEW_STEP:` lines, naming a test that would force the general version
