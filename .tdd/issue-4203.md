@@ -4,7 +4,7 @@
 - [ ] the object is built by a function that takes a `Fold` and reads no event, ledger or log ⟦criterion 2⟧
 - [x] `phases` holds one entry per leaf phase, keyed by phase, equal to the markdown's By phase row ⟦criterion 3⟧
 - [x] `steps` holds one entry per step in the markdown's order, with `text`, the phase keys, `retries`, `no_verdict` and the step's start-to-done `wall_seconds` ⟦criterion 4⟧
-- [ ] `conductor` holds `cost_usd`, `turns`, `sessions`, `model`, `estimated` and `priced` (true, false or "partial") ⟦criterion 5⟧
+- [x] `conductor` holds `cost_usd`, `turns`, `sessions`, `model`, `estimated` and `priced` (true, false or "partial") ⟦criterion 5⟧
 - [ ] `total` holds the markdown's total row and `includes_conductor` ⟦criterion 6⟧
 - [ ] `run` holds `issue`, `outcome`, `wall_seconds`, `awake_seconds` (null before `done`) and every `bail` as `{cause, classification, phase, step}` ⟦criterion 7⟧
 - [ ] every count, duration and cost is a number, and an unknown figure is `null` ⟦criterion 8⟧

@@ -1,5 +1,6 @@
 """`metrics.sh <n> --json`: the run's metrics as one JSON object, built from the same Fold as the markdown report
 (PRD 035.1, MJ1 to MJ10)."""
+import dataclasses
 import importlib
 import json
 
@@ -85,3 +86,25 @@ def test_steps_hold_one_entry_per_step_in_the_by_step_order_with_its_text_and_it
     assert ([{key: shown(entry[key], column) for key, column in STEP_KEYS.items()} for entry in steps]
             == [{key: row[column] for key, column in STEP_KEYS.items()} for row in rows])
     assert [entry["wall_seconds"] for entry in steps] == [690, None, 30, 20]
+
+
+@pytest.fixture
+def folded(rich, metrics):
+    return metrics.fold("108", ".tdd/events.jsonl", ".tdd/issue-108.md")
+
+
+def test_conductor_holds_its_cost_turns_session_count_model_and_whether_it_is_estimated_and_priced(rich, capsys, metrics):
+    conductor = as_json(metrics, capsys)["conductor"]
+
+    assert sorted(conductor) == ["cost_usd", "estimated", "model", "priced", "sessions", "turns"]
+    assert (round(conductor["cost_usd"], 2), conductor["turns"], conductor["sessions"]) == (2.68, 6, 2)
+    assert (conductor["model"], conductor["estimated"], conductor["priced"]) == ("opus", True, True)
+
+
+@pytest.mark.parametrize("priced, some_priced, expected", [(True, True, True), (False, True, "partial"),
+                                                            (False, False, False)])
+def test_conductor_priced_is_true_when_every_session_carries_a_price_false_when_none_does_and_partial_otherwise(
+        folded, metrics, priced, some_priced, expected):
+    shaped = metrics.as_json(dataclasses.replace(folded, conductor_priced=priced, conductor_some_priced=some_priced))
+
+    assert shaped["conductor"]["priced"] == expected
