@@ -155,6 +155,37 @@ def test_4024_a_fresh_run_asks_no_plan_reverify(start):
     assert not [line for line in out.splitlines() if line.startswith("verify_plan=")]
 
 
+@pytest.mark.parametrize("ledger, ignored, expected", [
+    (False, "added", ["run=fresh", "spec=.tdd/issue-12-spec.md", "timeout_recorded=.tdd/issue-12-timeout",
+                      "gitignore=added"]),
+    (True, "already present", ["run=resume", "spec=.tdd/issue-12-spec.md", "timeout_recorded=.tdd/issue-12-timeout",
+                               "gitignore=already present", "verify_plan=owed"])], ids=["fresh", "resume"])
+def test_4024_exit_0_writes_the_run_start_file_and_prints_the_same_lines_last(start, ledger, ignored, expected):
+    code, out, err, fake = start(ledger=ledger, answers={("ensure-run-state-ignored.sh", None): (0, ignored + "\n")})
+
+    assert code == 0
+    assert (start.wt / ".tdd" / "issue-12-run-start").read_text().splitlines() == expected
+    assert out.splitlines()[-len(expected):] == expected
+
+
+def test_4024_the_run_start_file_is_run_state_the_ignore_rule_keeps_out_of_every_commit(start):
+    import fnmatch
+    rule = importlib.import_module("veri.ensure_run_state_ignored").RULE
+    start()
+
+    name = ".tdd/" + (start.wt / ".tdd" / "issue-12-run-start").name
+    assert fnmatch.fnmatch(name, rule[0]) and not fnmatch.fnmatch(name, rule[1].lstrip("!"))
+
+
+@pytest.mark.parametrize("ledger", [True, False], ids=["resume", "fresh"])
+def test_4024_it_posts_no_comment_on_either_path(start, ledger):
+    code, out, err, fake = start(ledger=ledger)
+
+    assert code == 0
+    assert "comment.sh" not in fake.names()
+    assert not [c for c in fake.calls if c[0] == "gh"]
+
+
 def test_4024_a_stop_handles_no_refusal_resets_nothing_and_writes_no_bail(start):
     code, out, err, fake = start(answers={("capture-spec.sh", None): (2, "")})
 
