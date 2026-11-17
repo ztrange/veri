@@ -203,7 +203,9 @@ def record(fast, full, root, one_file=None):
     if held:
         return resume(root, default, held, tip, tree, wanted, one_file)
     sha = checked("commit-tree", tree, "-p", tip, "-m", MESSAGE, cwd=root).decode()
-    pushed = git.network("push", "-q", "origin", "%s:refs/heads/%s" % (sha, BRANCH), cwd=root)
+    # Create-only: the lease expects the branch absent, so one created since the check is refused, never moved.
+    pushed = git.network("push", "-q", "--force-with-lease=refs/heads/%s:" % BRANCH, "origin",
+                         "%s:refs/heads/%s" % (sha, BRANCH), cwd=root)
     if pushed.returncode != 0:
         raise Refused(pushed.stderr.strip() or "git push origin %s failed" % BRANCH)
     os.chdir(root)
