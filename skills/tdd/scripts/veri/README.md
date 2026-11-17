@@ -496,6 +496,7 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `report_formats`: the terminal report formats a develop prompt declares, parsed from its text.
 - `structural-predicate.sh`: read a predicate leaf's report on stdin.
 - `suite-reported.sh`: read a suite's reported result.
+- `tidy-first.sh`: read a green leaf's `TIDY_FIRST:` answer into the step it asks for.
 
 ## candidates
 - `KEY`: the `CANDIDATES:` marker. `line(text)`: what follows it and any ASCII whitespace on one line (str or bytes), found through `report`; `None` for another line.
@@ -518,7 +519,6 @@ The verifier and adjudicator legs: run the blind verifier, parse its verdict, co
 - `parse-verdict.sh`: read the verifier's `VERDICT:` line.
 - `run-verdict.sh`: run a verifier and print its verdict.
 - `same-reject.sh`: compare two rejects.
-- `tidy-first.sh`: read a green leaf's `TIDY_FIRST:` answer into the step it asks for.
 - `verify.sh`: run a verify leg and decide its verdict.
 - `verifier_write_ban`: the PreToolUse hook command a verifier leaf's settings carry; blocks a `Write`, `Edit`, `MultiEdit` or `NotebookEdit` call (exit 2), lets any other through.
 - `leaf_tree_guard`: snapshot the repository before a verifier leaf, report what the leaf changed and put it back; `start(args, **kwargs)` (a `subprocess.run` answering a 127 CompletedProcess when the program cannot start) and `git(*args, env=None)` (its stdout captured, stderr dropped) are the process boundary `verify` shares.

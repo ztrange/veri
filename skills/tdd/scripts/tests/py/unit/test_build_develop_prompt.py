@@ -740,7 +740,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
     for tpl in (SCRIPTS / "prompts").glob("*.md"):
         if tpl.name not in ("_develop-green-suite-repair.md", "_verify-green-suite-repair.md"):
             (unmodified / "prompts" / tpl.name).write_bytes(tpl.read_bytes().replace(b"{{SUITE_REPAIR}}", b""))
-    (tmp_path / "SMELLS.md").write_bytes((SCRIPTS.parent / "SMELLS.md").read_bytes())  # develop-green's ../../SMELLS.md (#4118)
 
     def load(name):
         loader = importlib.util.spec_from_file_location(f"{name}_unmodified", unmodified / "veri" / f"{name}.py")
@@ -2278,3 +2277,24 @@ def test_main_renders_develop_surround_md_for_the_surround_phase_and_a_revise_of
     assert (short, b"surround needs 4 arguments" in short_err) == (2, True)
     assert (revised, revise_err, b"(redoing surround)" in revise_out, b"a case imports parse_inner" in revise_out,
             rewrite in revise_out, none in revise_out) == (0, b"", True, True, True, False)
+
+
+def test_4118_develop_green_names_every_catalogue_smell_and_refactoring_and_carries_none_of_their_thresholds(
+        tmp_path, run_cli, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_text("the spec\n")
+    rows = [line.split("|")[1:4] for line in (SCRIPTS.parent / "SMELLS.md").read_text().splitlines()
+            if line.startswith("| ")][1:]
+    smells = [cells[0].strip() for cells in rows if cells[0].strip() != "---"]
+    refactorings = {name.strip() for cells in rows for name in cells[2].split(",") if name.strip() and "-" not in name}
+    thresholds = [cells[1].strip() for cells in rows if cells[0].strip() != "---"]
+
+    code, out, err = run_cli(build_develop_prompt, ["green", str(spec), "a step ⟦criterion 1⟧", "make test",
+                                                    "tests/test_a.py", "test_a", "make unit"])
+
+    assert (code, err) == (0, "")
+    assert [name for name in smells if name not in out] == [] and len(smells) >= 15
+    assert sorted(name for name in refactorings if name not in out) == []
+    assert [text for text in thresholds if text in out] == []
+    assert ("Met when" in out, "{{" in out) == (False, False)
+
