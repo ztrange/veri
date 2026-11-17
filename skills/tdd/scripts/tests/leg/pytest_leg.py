@@ -15,7 +15,7 @@ if __name__ == "__main__":
 #            `<n> unselected: named cases that neither pass ran (<targets>)`; cases the run's own -m/-k deselects from a
 #            target that ran never count
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
-#            or VERI_PYTEST_WORKERS is not a whole number of at least 1, or any other exception escaped the leg (registering
+#            or VERI_PYTEST_WORKERS or VERI_PYTEST_IDLE is not a whole number of at least 1, or any other exception escaped the leg (registering
 #            it, taking the full-run lock, checking or recording the bytecode cache), one stderr line naming it in
 #            entry.refusal's form (#3985); a record that fails after failing suites leaves their 1
 #            or no case started or reported for VERI_PYTEST_IDLE seconds (default 1200): the leg ends the workers it
@@ -410,7 +410,10 @@ def main(argv):
     if workers and not re.fullmatch("[1-9][0-9]*", workers):
         sys.stderr.write("VERI_PYTEST_WORKERS must be a whole number of at least 1; got %s.\n" % workers)
         return 2
-    idle = int(tunables.get("VERI_PYTEST_IDLE"))
+    idle = tunables.get("VERI_PYTEST_IDLE")
+    if not re.fullmatch("[1-9][0-9]*", idle):
+        sys.stderr.write("VERI_PYTEST_IDLE must be a whole number of seconds of at least 1; got %s.\n" % (idle or "it set but empty"))
+        return 2
     import pytest
     os.environ["TMPDIR"] = leg_tmpdir.PINNED_TMPDIR
     # The plugins load by name from the leg's directory; failed_cases from veri/; the plugins' `veri.x` from scripts/.
@@ -448,7 +451,7 @@ def main(argv):
             remove_scratch_mirror(sys.pycache_prefix, held_run)
             shutil.rmtree(held_run, ignore_errors=True)
 
-    watch = idle_watch.Watch(idle, os.dup(2))
+    watch = idle_watch.Watch(int(idle), os.dup(2))
     watch.cleanups.append(leg_cleanup)
     outer_watch = idle_watch.CURRENT[0]
     previous = signal.signal(signal.SIGTERM, terminate)

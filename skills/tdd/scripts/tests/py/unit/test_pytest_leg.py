@@ -85,6 +85,21 @@ def test_a_worker_count_that_is_not_a_whole_number_of_at_least_1_exits_2_naming_
     assert calls == []
 
 
+def test_4254_an_idle_window_that_is_not_a_whole_number_of_at_least_1_set_but_empty_included_exits_2_in_one_line_naming_it_before_pytest_runs(pytest_leg, run_cli, monkeypatch):
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(list(args)) or pytest.ExitCode.OK)
+    for value in ("0", "-2", "two", "1.5", "", "05x"):
+        code, out, err = run_cli(pytest_leg, [], env=leg_env(VERI_PYTEST_WORKERS="1", VERI_PYTEST_IDLE=value))
+        assert (code, out, len(err.splitlines())) == (2, "", 1), (value, err)
+        assert "VERI_PYTEST_IDLE" in err and value in err, value
+    assert calls == []
+
+
+def test_4254_the_idle_window_is_a_tunable_whose_default_1200_outlasts_the_longest_timeout_mark_900(pytest_leg):
+    tunables = importlib.import_module("veri.tunables")
+    assert tunables.TUNABLES["VERI_PYTEST_IDLE"].default == "1200"
+
+
 def test_past_its_checks_the_launcher_runs_pytest_on_its_arguments_and_exits_1_for_a_status_that_is_not_ok(pytest_leg, run_cli, monkeypatch):
     calls = []
 
