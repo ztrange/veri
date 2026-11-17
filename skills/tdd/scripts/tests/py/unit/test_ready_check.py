@@ -657,3 +657,19 @@ def test_issue_4091_a_failing_bypass_permissions_row_quotes_the_denied_tools_and
 
     assert "`Bash`" in verdict and "`Write`" in verdict, verdict
     assert all(place in verdict for place in PLACES) and "user" in verdict and "project" in verdict, verdict
+
+
+def test_issue_4091_the_probes_claude_starts_without_a_session_variable_strip_session_env_strips(ready_check, fake_processes, monkeypatch):
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "sess-123")
+    monkeypatch.setenv("CLAUDECODE", "1")
+    monkeypatch.setenv("SOME_HANDLE", "/tmp/sess-123/socket")
+    monkeypatch.setenv("KEPT_VARIABLE", "kept")
+    seen = []
+    fake = fake_processes.answers({PROBE: probe_answer(seen=seen)})
+
+    assert ready_check.bypass_permissions_row() == ("bypassPermissions", None)
+    (probe,) = seen
+    env = probe["env"]
+    assert env is not None and env.get("KEPT_VARIABLE") == "kept", env
+    assert not {"CLAUDE_CODE_SESSION_ID", "CLAUDECODE", "SOME_HANDLE"} & set(env), sorted(env)
+    assert {argv[0] for argv in fake.argvs} == {"claude"}, fake.calls

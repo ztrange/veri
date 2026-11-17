@@ -20,6 +20,7 @@ import paths
 import tunables
 from github import gh_probe as gh, push_dry_run
 from case_reader import is_test_path
+from session_env import strip_session_env
 from wait_ci import trigger_lines
 
 USAGE = "usage: ready-check.sh [repo-root]"
@@ -327,12 +328,19 @@ def bypass_permissions_row():
                 os.rmdir(".tdd")
 
 
+def leaf_env():
+    """This process's environment with strip_session_env applied, as a leaf's `claude` is started."""
+    env = dict(os.environ)
+    strip_session_env(env)
+    return env
+
+
 def probe_bypass(scratch):
     nonce = secrets.token_hex(8)
     prompt = (f"Permission probe, nonce {nonce}. First use the Bash tool to run `printf %s {nonce} > {PROBE_FILES[0]}`. "
               f"Then use the Write tool to create {PROBE_FILES[1]} whose whole content is {nonce}. Do nothing else.")
     ran = subprocess.run([tunables.claude_bin(), "-p", "--model", "haiku", "--permission-mode", "bypassPermissions",
-                          "--output-format", "json", prompt], cwd=scratch, capture_output=True, text=True)
+                          "--output-format", "json", prompt], cwd=scratch, env=leaf_env(), capture_output=True, text=True)
     try:
         denials = json.loads(ran.stdout).get("permission_denials") or []
     except (ValueError, AttributeError):
