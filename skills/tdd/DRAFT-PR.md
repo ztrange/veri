@@ -450,7 +450,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    asked to merge are two different pages. Before the first block, run `$S/pr-ready-wait.sh <n>`, and again on exit 3; on
    exit 0 take `pr_url`, `pr_number`, `ci=` and `no_checks=` from its last lines (the PR is readied and its first
    `wait-ci.sh` exited 0: go on after the first block); on any other exit go on by the first block from the point its
-   last line names, the `pr-ready-failed` bail included. Read the existing PR's URL rather than assuming the
+   last line names, the `pr-ready-failed` bail included. A stacked run never calls it (it refuses one with exit 2,
+   `.tdd/issue-<n>-base` present), and a `git` or `gh` call that fails inside it is its exit 2. Read the existing PR's URL rather than assuming the
    run remembers it, so a resumed run edits the PR its branch already has:
    ```
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
@@ -496,7 +497,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    the second block, run `$S/pr-finish.sh <n>`, and again on exit 3; on exit 0 take `metrics=` (there only when the
    render failed, holding `metrics.sh`'s exit) and `.tdd/issue-<n>-refactor-owed-render`, the body's render, from its
    last lines, and go on at the block's title `gh api -X PATCH` line; on any other exit go on by the second block from
-   the point its last line names. The PR's title and body stay the conductor's. Otherwise:
+   the point its last line names. The PR's title and body stay the conductor's. A stacked run never calls it either
+   (exit 2 with `.tdd/issue-<n>-base` present); a failing `git` or `gh` call, or no `.tdd/wait-ci.err` when a
+   `⟦full-suite⟧` line is left to tick, is its exit 2. Otherwise:
    ```
    # Only under VERI_BRANCH_SUITE=ci (the mode $S/branch-suite.sh printed) when no ⟦full-suite⟧ line was ticked before pr-ready.sh, and only when .tdd/wait-ci.err does not say `has no checks`
    # (CI's green run is the proof): tick each ⟦full-suite⟧ line with $S/tick-ledger.sh and its issue criterion with $S/tick-issue-criterion.sh as the ⟦full-suite⟧ paragraph above describes, then
