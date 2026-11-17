@@ -49,6 +49,12 @@ Run it on every question before it reaches the human.
      alone.
    - A question about no issue: record it with `$S/role-state.sh <role> add decision`, and ask it
      once.
+6. **At a `step-too-big` bail**, handed the ledger's `## Owed steps` and the issue's acceptance
+   criteria: put each owed step that serves one of the issue's numbered acceptance criteria, k,
+   into the ledger with `$S/add-ledger-step.sh --criterion <k>`. File the owed steps that serve no
+   acceptance criterion as one new issue with `vfile`, and remove them from `## Owed steps`. Commit
+   the ledger as `plan: rewrite #<n>`, which makes the grown plan the new verified baseline, so the
+   resume is not bailed again by the same limit, and resume the run without the filed steps.
 
 ## Recording
 
