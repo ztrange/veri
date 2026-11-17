@@ -1159,6 +1159,19 @@ def print_conductor(f):
             row([name, str(turns), str(tokens), "$%.2f" % dollars])
 
 
+def print_reject_outcomes(f):
+    """What each phase's REJECTs led to (PRD 035.7a, MD1): one row per phase with a REJECT, the figures `as_json` gives
+    its `rejects`; nothing when the run has none."""
+    rejected = [(phase, rejects_json(f.reject_outcomes, lambda of, _step, phase=phase: of == phase))
+                for phase in f.phases]
+    rejected = [(phase, counts) for phase, counts in rejected if any(counts.values())]
+    if not rejected:
+        return
+    table_head("#### REJECT outcomes", "phase", ["REJECT", *REJECT_OUTCOMES], ["---:"] * (1 + len(REJECT_OUTCOMES)))
+    for phase, counts in rejected:
+        row([phase, "%d" % sum(counts.values())] + ["%d" % counts[said] for said in REJECT_OUTCOMES])
+
+
 def layout(f):
     """Print the report for a `Fold`; reads nothing else."""
     print_outcome(f)
@@ -1175,6 +1188,7 @@ def layout(f):
     for operator_session in f.operator_sessions:
         print("%s session: %d turns, %d cache tokens read, $%.2f" % operator_session)
     section("#### By phase", "phase", PHASE_COLUMNS, f.phases)
+    print_reject_outcomes(f)
     if f.by_model_shown:
         table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))
         for (role, model), row_counts in f.by_model.items():

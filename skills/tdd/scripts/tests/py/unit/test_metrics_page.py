@@ -194,6 +194,13 @@ Dev session: 2 turns, 250000 cache tokens read, $0.48
 | pin | 1 | 1 | 0 | 0 | 10 | 0 | 1 | 1 | 1 | 1 | 1 | 0.08 |
 | cover | 1 | 0 | 0 | 0 | 10 | 0 | 1 | 1 | 1 | 1 | 1 | 0.02 |
 
+#### REJECT outcomes
+
+| phase | REJECT | caught | flipped | overturned | unresolved | pending | untracked |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| red | 2 | 0 | 0 | 0 | 0 | 1 | 1 |
+| refactor | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
+
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
