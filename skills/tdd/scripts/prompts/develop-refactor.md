@@ -57,6 +57,15 @@ your words rather than its own judgement:
 - **uncovered-spec** — a behaviour the spec requires that no step of the plan covers
 - **beyond-spec** — an input class or edge the spec does not ask for at all
 
+### Naming what you find
+
+Name the catalogue smell a transform answers and the catalogue refactoring it is, both by their
+names in the catalogue above: on each `RESULT: applied …` line, and inside the transform text of
+each `CANDIDATES: structural`, `CANDIDATES: in-step` and `CANDIDATES: out-of-scope` line, as
+`<smell>: <refactoring> — <the transform>`. Add no `|`-separated field to any of those lines: the
+names ride inside the text the line already carries, so every reader of these lines reads them as
+before.
+
 ### What to do
 
 1. Triage the candidates you see in those files into the four classes above, then apply the
@@ -70,7 +79,8 @@ your words rather than its own judgement:
 2. Commit each transform on its own, as `refactor: <what changed> (#<issue>)`, never a
    batch, so a break stays attributable to one change. That attribution is the whole of
    what a leaf per transform used to buy, and it is what has to survive several transforms
-   sharing this one.
+   sharing this one. Name the refactoring applied by its catalogue name in each `refactor:`
+   commit, in its subject or its body.
 3. Run the suites `affected-suites.sh` prints for the files `refactor-touched.sh` printed —
    the ones listed above — after each transform, not the full suite: they answer what one transform could plausibly break, and answer it in a fraction of the
    time. Those suites must stay green; revert a transform that turns them red rather than
@@ -97,9 +107,9 @@ your words rather than its own judgement:
    classes above name. Report each finding as a `FLAGS:` line carrying its class, so the
    conductor can tell a triangulation this step owes from a step the plan is missing from
    a follow-up nobody is building in this run.
-7. If no structural candidate is left under those rules, change nothing and report
-   "nothing left to tidy" — even when cosmetic candidates remain, since none of them is
-   worth a transform. That is a legitimate result, not a failure to find work.
+7. If no catalogue smell is met in the step's files, or no structural candidate is left under
+   those rules, change nothing and report "nothing left to tidy" — even when cosmetic
+   candidates remain, since none of them is worth a transform. That is a legitimate result, not a failure to find work.
 8. **Frozen cases stay frozen.** A refactor may not add or change an assertion line of a
    frozen case of any step. Moving an assertion line into a helper is allowed only when it
    arrives unchanged modulo whitespace.

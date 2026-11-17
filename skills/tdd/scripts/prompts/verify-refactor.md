@@ -28,11 +28,14 @@ Render one verdict on the settled result.
    {{INCLUDE:_exit-status-back.md}} so a red run stays red.
 
    {{INCLUDE:_verify-coverage-probe.md}}
-2. **Up to standard.** The settled code should be code you would approve: it follows the
-   repository's **conventions**, uses sensible **typing**/structure where the project
-   does, names things clearly, and is reasonably **robust**. It must not have smuggled in
-   untested generality — generality is only earned through triangulation, not hand-written
-   here.
+2. **Against the catalogue.** Judge the settled code against the smell catalogue above: a
+   catalogue smell whose threshold the range's code meets is a design weakness. The range's
+   code is what `git diff {{BASE_SHA}}^..HEAD` adds or changes: this cycle's green commit and
+   the refactor after it. A design REJECT names one catalogue smell, by its name in the
+   catalogue, and the file and symbol where it is met; a REJECT for design that names no
+   catalogue smell, or no file and symbol, is not a valid design REJECT. The settled code must
+   not have smuggled in untested generality — generality is only earned through triangulation,
+   not hand-written here.
 3. **A missing case is a flag, not a REJECT.** An obvious unhandled edge case the spec
    implies is not by itself a REJECT: handling it changes behavior, which a
    behavior-preserving refactor may not do, so the REJECT would demand what no revise leaf
@@ -53,7 +56,9 @@ Render one verdict on the settled result.
    with no other effect) is named in REASON: but is not a REJECT by itself, since a REJECT
    costs a revise leaf.
 6. **Empty range.** An empty range, which a reset of the leaf's commits leaves, is not a
-   REJECT by itself: judge the settled result as it stands.
+   REJECT by itself: judge the settled result as it stands. When you find no catalogue smell
+   in the range's files, do not reject the absence of a transform: a refactor is not owed
+   where nothing smells.
 7. **Out of scope.** A shortfall against a criterion outside the step under judgement is
    named in REASON: as out of scope and is not by itself a REJECT: a behavior-preserving
    refactor may not add another step's work, so demanding it here is a demand no revise
@@ -65,5 +70,6 @@ Render one verdict on the settled result.
    code in the list — the one reason a transform was allowed to leave the list for.
 9. {{INCLUDE:_verify-comments-lead.md}} range {{INCLUDE:_verify-comments-allowed.md}} range {{INCLUDE:_verify-comments-never-reject.md}}
 
-PASS if the suite is green and the code is up to standard. REJECT, naming the specific
-weakness, if the tidy-up left the code below standard or altered behavior.
+PASS if the suite is green and the range's code meets no catalogue smell. REJECT if the
+tidy-up altered behavior, or if it left a catalogue smell met, naming that smell and the file
+and symbol where it is met.
