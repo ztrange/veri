@@ -148,8 +148,18 @@ def remote_branch(root):
 
 
 def resume(root, default, held, tip, tree, wanted, one_file=None):
-    """Open the pull request from origin's BRANCH when it holds exactly the commit this run would push (<tree> on
-    <tip>) and none is open from it; None (nothing to do) when one is."""
+    """For an origin BRANCH that exists: None (nothing to do) when a pull request from it in this repository is open,
+    whatever it holds; else open one when the branch holds exactly the commit this run would push (<tree> on <tip>);
+    else Refused, saying whether it holds these commands cut from an older tip or other commands."""
+    os.chdir(root)
+    try:
+        # A fork's PR from a branch of the same name is not this repository's branch, so it counts for nothing.
+        ours = [p for p in github.open_pulls("number,url,isCrossRepository", head=BRANCH) if not p.cross_repository]
+    except (github.NoAnswer, ValueError) as unread:
+        raise Refused("cannot tell whether a pull request from %s is open" % BRANCH) from unread
+    if ours:
+        print("a pull request from %s is already open: %s" % (BRANCH, ours[0].html_url or ours[0].url), file=sys.stderr)
+        return None
     same = (checked("rev-parse", held + "^{tree}", cwd=root).decode() == tree
             and checked("rev-parse", held + "^@", cwd=root).decode() == tip)
     if not same:
@@ -160,14 +170,6 @@ def resume(root, default, held, tip, tree, wanted, one_file=None):
                           "branch, or open a pull request from it, then re-run; nothing written" % (BRANCH, default))
         raise Refused("origin already has a branch %s holding other commands: open a pull request from it, or delete "
                       "the branch, then re-run; nothing written" % BRANCH)
-    os.chdir(root)
-    try:
-        # A fork's PR from a branch of the same name is not this repository's branch, so it counts for nothing.
-        if [p for p in github.open_pulls("number,url,isCrossRepository", head=BRANCH) if not p.cross_repository]:
-            print("a pull request from %s already records these commands" % BRANCH, file=sys.stderr)
-            return None
-    except (github.NoAnswer, ValueError) as unread:
-        raise Refused("cannot tell whether a pull request from %s is open" % BRANCH) from unread
     return open_pull(default, one_file)
 
 
@@ -180,6 +182,7 @@ def open_pull(default, one_file=None):
 
 
 def record(fast, full, root, one_file=None):
+    root = os.path.abspath(root)
     checked("rev-parse", "--show-toplevel", cwd=root)
     default = git.default_branch(cwd=root)
     if not default:
