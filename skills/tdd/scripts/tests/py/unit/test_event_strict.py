@@ -118,3 +118,15 @@ def test_4221_strict_writes_a_verdict_naming_the_sha_of_the_tree_it_judged_and_r
     assert (judged, refused) == (0, 2)
     assert [len(path.read_bytes().splitlines()) for path in journals(clone, tmp_path)] == [1, 1]
     assert "verdict" in err and "tree" in err and "sha" in err
+
+
+def test_4224_strict_writes_an_exit_retry_usage_and_verdict_line_naming_its_leaf(clone, tmp_path, monkeypatch):
+    monkeypatch.setenv("VERI_EVENT_STRICT", "1")
+    usage = ["duration_ms=1", "duration_api_ms=1", "num_turns=1", "total_cost_usd=0.1", "input_tokens=1",
+             "output_tokens=1", "cache_read_input_tokens=1", "cache_creation_input_tokens=1", "model="]
+    lines = [("exit", ["status=0", "secs=3"]), ("retry", ["cause=stuck"]), ("usage", usage),
+             ("verdict", ["verdict=PASS", "reason=fine"])]
+
+    codes = [event.mark(str(clone), {"issue": "7"}, name, fields + ["name=verify-green-2"]) for name, fields in lines]
+
+    assert codes == [0, 0, 0, 0]

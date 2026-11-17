@@ -1,6 +1,6 @@
 # Plan for #4224 — PRD 035.4a: every leaf event names its leaf, and the metrics count per leaf kind
 
-- [ ] under VERI_EVENT_STRICT=1 `exit`, `retry`, `usage` and `verdict` each accept the optional text key `name`; JOURNAL.md states it on each ⟦criterion 1⟧
+- [x] under VERI_EVENT_STRICT=1 `exit`, `retry`, `usage` and `verdict` each accept the optional text key `name`; JOURNAL.md states it on each ⟦criterion 1⟧
 - [ ] supervise writes on `exit` and `retry` the `name` its `launch` line carries ⟦criterion 1⟧
 - [ ] harvest-usage writes on `usage` the name of the leaf whose log it read ⟦criterion 1⟧
 - [ ] verify writes on `verdict` the name of the verifier leaf it launched ⟦criterion 1⟧

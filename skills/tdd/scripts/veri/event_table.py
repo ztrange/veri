@@ -46,7 +46,7 @@ EVENTS = {
     "criterion-unticked": "matcher:text,empty",
     "diff-leaf-deviation": "leaf:text base:sha head:sha commits:whole",
     "done": "pr:url wall_seconds?:whole awake_seconds?:whole lane?:text",
-    "exit": "status:whole cause?:text secs:whole",
+    "exit": "status:whole cause?:text secs:whole name?:text",
     "grading": "unit:text verdict:(PASS|REJECT) failing:text,empty cost_usd:decimal id:text effort:text",
     "launch": "name:text cmd:text model:text,empty effort?:(low|medium|high|xhigh|max)",
     "launch-refused": "name:text reason:text",
@@ -69,7 +69,7 @@ EVENTS = {
     "reroute": "case?:text kind:(red|repair|supersede|supersede-diff|fixture|missing|later|prep) at?:(exhausted)",
     "resume": "",
     "resume-rebase": "from:sha rebased:sha",
-    "retry": "cause:text",
+    "retry": "cause:text name?:text",
     "revise": "budget:whole",
     "skill-edit-no-author": "unit:text",
     "skill-repin": "commit:sha",
@@ -91,8 +91,8 @@ EVENTS = {
     "usage": "duration_ms:whole duration_api_ms:whole num_turns:whole total_cost_usd:decimal input_tokens:whole"
              " output_tokens:whole cache_read_input_tokens:whole cache_creation_input_tokens:whole model:text,empty"
              " model_usage?:json first_turn_cache_creation_input_tokens?:whole first_turn_cache_read_input_tokens?:whole"
-             " first_turn_input_tokens?:whole",
-    "verdict": "verdict:(PASS|REJECT|malformed) reason:text,empty cause?:(no-verdict) check?:(1|2|3|4|5) tree?:sha",
+             " first_turn_input_tokens?:whole name?:text",
+    "verdict": "verdict:(PASS|REJECT|malformed) reason:text,empty cause?:(no-verdict) check?:(1|2|3|4|5) tree?:sha name?:text",
     "verify-diff-skipped": "reason:(switched-off)",
     "verify-green-skipped": "reason:(switched-off)",
     "verify-pin-skipped": "reason:(switched-off)",
