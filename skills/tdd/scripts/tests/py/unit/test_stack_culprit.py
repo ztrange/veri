@@ -147,3 +147,25 @@ def test_a_worktree_that_cannot_be_added_is_exit_2_running_nothing_and_removing_
     code, out, err = run_cli(culprit, [sha(1)])
 
     assert (code, out, world.alone, [step[0] for step in world.steps], "worktree" in err) == (2, "", [], ["add"], True)
+
+
+@pytest.mark.parametrize("alone, code", [((1, "FAILED x"), 0), ((0, ""), 3), ((4, ""), 3), ((5, ""), 3), ((2, ""), 2),
+                                         ((3, ""), 2), ((None, ""), 2)])
+def test_a_case_is_red_only_when_its_alone_run_exits_1_0_4_and_5_are_not_red_and_any_other_exit_or_none_is_exit_2(
+        monkeypatch, run_cli, culprit, alone, code):
+    World(monkeypatch, culprit, ["feat: a (#1)"], alone=alone)
+
+    got, out, err = run_cli(culprit, [sha(1)])
+
+    assert (got, bool(out)) == (code, code == 0), err
+
+
+def test_a_case_whose_file_is_absent_at_an_end_is_not_red_there_so_a_case_the_culprit_added_blames_the_culprit(
+        monkeypatch, run_cli, culprit):
+    case = "t/test_new.py::test_x"
+    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], cases=(case,), alone=(1, "FAILED x"),
+                  absent={(sha(1), "t/test_new.py")})
+
+    code, out, err = run_cli(culprit, [sha(2)])
+
+    assert (code, world.alone, sha(2) in out) == (0, [(sha(2), case)], True), err

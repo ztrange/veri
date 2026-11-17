@@ -106,9 +106,22 @@ def main(argv):
                             prefix="stack-culprit: ")
     try:
         for at in ends:
-            _checkout(path, span[at][0])
+            commit = span[at][0]
+            _checkout(path, commit)
+            red_here = []
             for case in cases:
-                _run_alone(path, command, case)
+                if not _has(path, commit, case.split("::", 1)[0]):
+                    continue
+                code, output = _run_alone(path, command, case)
+                if code is None or code not in (0, 1, 4, 5):
+                    return entry.refuse("%s run alone at %s gave no answer (%s)" % (
+                        case, commit, "no exit within VERI_TIMEOUT" if code is None else "exit %d" % code),
+                        prefix="stack-culprit: ")
+                if code == 1:
+                    red_here.append(case)
+            if red_here:
+                sys.stdout.write("commit: %s\n" % commit)
+                return 0
     finally:
         _remove_worktree(path)
     return 3
