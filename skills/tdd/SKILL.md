@@ -48,8 +48,8 @@ budget, **bails** — preserving completed steps' commits and classifying the ca
   physically cannot reach it (see ADR-0003). No input may be added to `build-verify-prompt.sh`
   that could carry the developer's rationale.
 
-Verification is on unless the run's pinned `VERI_SKIP_VERIFY` names the phase; the `plan`
-phase is never skipped (ADR-0033).
+Verification is on unless the run's pinned `VERI_SKIP_VERIFY` names the phase, never `plan`
+or `surround` (ADR-0033).
 
 You — the conductor — must keep these roles distinct. Do **not** write the test or the
 implementation yourself, and do **not** pass a developer leaf's explanation into a
