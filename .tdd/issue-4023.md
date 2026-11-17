@@ -9,4 +9,4 @@
 - [x] a red tier on a resume stops under FP4 with no re-run, checkout or `suite-red-resume.sh` ⟦criterion 8⟧
 - [x] resume cases beside the fresh ones for output, stops, waits, reuse, file and events ⟦criterion 9⟧
 - [x] a guard fails when a handed-back call of `PREFLIGHT.md` step 3 is missing from the script's ordered list ⟦criterion 10⟧
-- [ ] docs: `SKILL.md` step 0, `PREFLIGHT.md`, `RESUME.md` sub-step 2, `SCRIPTS.md`, rows and grades ⟦criterion 11⟧ ⟦criterion 12⟧
+- [x] docs: `SKILL.md` step 0, `PREFLIGHT.md`, `RESUME.md` sub-step 2, `SCRIPTS.md`, rows and grades ⟦criterion 11⟧ ⟦criterion 12⟧
