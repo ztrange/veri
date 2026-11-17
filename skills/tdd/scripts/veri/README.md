@@ -599,6 +599,11 @@ Choosing and running the suites of the project veri works on: finding its test c
 ## suite_mode
 - `run(script, variable)`: prints `ci` or `local` and returns 0; 2 with a message on a bad knob or a bad `VERI_CI_ON_PR`.
 
+## stem_walk
+- `stem(path)`: the path's basename without its last extension, `-` read as `_`.
+- `tree_files()`: every file git does not ignore that exists, outside `.git`, `.tdd`, `.venv` and `node_modules`; raises `git.GitFailed` when the listing fails.
+- `naming(stem_, paths)`: the paths among `paths` whose text holds `stem_` as a whole word, `-` and `_` alike; an unreadable file names nothing.
+
 # Frozen tests and case history
 
 The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, ticking a ledger step (which re-records the earlier steps' cases), routing a rejected pin or wrong test, and the git history of cases. Builds on Ledger and plan, Run state and journal and Foundations.
@@ -721,6 +726,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `stack-pr.sh`: print the one open pull request tracking the stack branch, opening it when none is.
 - `stack-red.sh`: print CI's latest answer on the stack branch when it is red, which freezes joins.
 - `stack-revert.sh`: revert an issue's commits on the stack, its hand fix included, as one commit on the tip in a worktree of its own, and lift its join claim from the merged pull requests' bodies.
+- `unwired.sh`: the non-test files a range adds that no other non-test file names, the gate before a pull request is readied.
 - `wait-ci.sh`: wait for a pull request's CI.
 - `worktree-setup.sh`: set up a worktree.
 
