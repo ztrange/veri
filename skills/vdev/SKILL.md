@@ -257,6 +257,8 @@ test-first hand method.
 - **No culprit.** On a `stack-culprit.sh` exit 3, re-run the red workflow run's failed jobs once
   (`gh run rerun <run-id> --failed`). Green, the freeze lifts; red again, the freeze stays and the
   human is told. Nothing is reverted without a culprit.
+- **No answer.** A `stack-fix.sh` exit 2, or a `stack-revert.sh` exit 2 or exit 3, is never taken
+  as fixed or reverted: the stack stays frozen, and it goes to *When to stop and ask*.
 
 ## Running the sibling skills
 
