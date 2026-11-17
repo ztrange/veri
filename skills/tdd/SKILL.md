@@ -256,7 +256,7 @@ drive it to a draft PR or to a clean stop on a `REJECT`.
 Run `$S/preflight.sh <n> <slug>` (slug as in step 1.1) first, `PREFLIGHT.md` unread; on exit 3 run
 it again. Exit 0 is a whole preflight, step 1.6's claim included: take its values from its last
 lines. On any other exit `Read` `<base directory>/PREFLIGHT.md` and run it: from the step the last
-line names, or as a resume when exit 2 says the branch holds a ledger.
+line names, or as a resume when exit 2 says the branch holds a ledger (`Read` `<base directory>/RESUME.md`).
 
 ### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)
 
@@ -1435,7 +1435,7 @@ is that repo's, not this skill's: its `veri: <tier> tests:` CLAUDE.md lines, rec
 - One failing test, then minimum code, then the refactor loop — in that order, per step.
   Never production code before its failing test.
 - **A test that passes against unmodified code is never sent to verify-red**; it is either
-  a blind-verified pin or a bail — never a Green, save on a `⟦replaces-case⟧` step, whose
+  a blind-verified pin or a bail (see `<base directory>/BAIL.md`) — never a Green, save on a `⟦replaces-case⟧` step, whose
   pin is followed by the green that deletes exactly the named cases.
 - **The committed ledger is the source of truth.** Loop the cycle over its steps until none
   remain; check each step off **atomically with its green commit**; the issue thread only
