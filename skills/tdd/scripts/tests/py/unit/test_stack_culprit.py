@@ -150,9 +150,20 @@ def test_a_worktree_that_cannot_be_added_is_exit_2_running_nothing_and_removing_
     assert (code, out, world.alone, [step[0] for step in world.steps], "worktree" in err) == (2, "", [], ["add"], True)
 
 
-@pytest.mark.parametrize("alone, code", [((1, "FAILED x"), 0), ((0, ""), 3), ((4, ""), 3), ((5, ""), 3), ((2, ""), 2),
-                                         ((3, ""), 2), ((None, ""), 2)])
-def test_a_case_is_red_only_when_its_alone_run_exits_1_0_4_and_5_are_not_red_and_any_other_exit_or_none_is_exit_2(
+X = "t/test_a.py::test_x"
+
+
+@pytest.mark.parametrize("alone, code", [
+    ((2, "collected 1 item\n\x1b[31mFAILED %s - assert 0\x1b[0m\n----\nSUITES FAILED\n" % X), 0),
+    ((1, "FAILED %s - assert 0\n" % X), 0),
+    ((2, "ERROR: not found: /w/%s\n(no match in any of [<Module test_a.py>])\nno tests ran in 0.3s\n" % X), 3),
+    ((5, "collected 0 items\nno tests ran in 0.1s\n"), 3),
+    ((0, "1 passed\n"), 3),
+    ((2, "1 passed\n----\nSUITES FAILED\n"), 2),
+    ((1, "FAILED t/test_a.py::test_other - assert 0\n"), 2),
+    ((2, ""), 2), ((None, "FAILED %s - assert 0\n" % X), 2),
+])
+def test_a_case_is_red_when_its_run_fails_naming_it_absent_when_not_found_and_any_other_failure_is_no_answer(
         monkeypatch, run_cli, culprit, alone, code):
     World(monkeypatch, culprit, ["feat: a (#1)"], alone=alone)
 
@@ -164,7 +175,7 @@ def test_a_case_is_red_only_when_its_alone_run_exits_1_0_4_and_5_are_not_red_and
 def test_a_case_whose_file_is_absent_at_an_end_is_not_red_there_so_a_case_the_culprit_added_blames_the_culprit(
         monkeypatch, run_cli, culprit):
     case = "t/test_new.py::test_x"
-    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], cases=(case,), alone=(1, "FAILED x"),
+    world = World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], cases=(case,), alone=(1, "FAILED %s - x" % case),
                   absent={(sha(1), "t/test_new.py")})
 
     code, out, err = run_cli(culprit, [sha(2)])
@@ -197,12 +208,12 @@ def test_at_the_first_red_issue_end_prints_the_red_sha_its_issue_that_commit_the
 def test_the_first_fail_line_carries_no_local_path_of_the_worktree_or_the_home_directory(monkeypatch, run_cli, culprit):
     home = __import__("os").path.expanduser("~")
     path = "%s/.tdd/stack-culprit-%d" % (TOP, __import__("os").getpid())
-    World(monkeypatch, culprit, ["feat: a (#1)"], alone=(1, "collected 1\nFAILED %s/t/a.py::t - %s/f missing\n" % (
-        path, home)))
+    World(monkeypatch, culprit, ["feat: a (#1)"], alone=(2, "collected 1\nFAILED %s - %s/g and %s/f missing\n" % (
+        X, path, home)))
 
     _, out, _ = run_cli(culprit, [sha(1)])
 
-    assert (TOP in out, home in out, "<worktree>/t/a.py::t" in out, "~/f missing" in out) == (False, False, True, True), out
+    assert (TOP in out, home in out, "<worktree>/g and" in out, "~/f missing" in out) == (False, False, True, True), out
 
 
 def test_when_no_issue_end_turns_a_case_red_it_prints_nothing_says_so_on_stderr_naming_the_cases_run_and_exits_3(

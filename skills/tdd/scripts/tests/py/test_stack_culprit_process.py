@@ -52,6 +52,35 @@ def culprit_clone(tmp_path):
     return work, shas
 
 
+REPO = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
+TINY = "def test_red():\n    assert 0\n\n\ndef test_green():\n    pass\n"
+
+
+@pytest.mark.process("veri's own `veri: one test file:` command (make test TESTS=\"$1\") run for real on a tiny test file, in a directory holding veri's Makefile and CLAUDE.md and a link to its skills")
+@pytest.mark.timeout(900)
+def test_on_veris_own_one_test_file_command_a_failing_case_is_red_a_passing_one_not_and_a_missing_id_absent(
+        tmp_path, monkeypatch):
+    import importlib
+    culprit = importlib.import_module("veri.stack_culprit")
+    for name in ("Makefile", "CLAUDE.md"):
+        (tmp_path / name).write_text(open(os.path.join(REPO, name), encoding="utf-8").read())
+    (tmp_path / "skills").symlink_to(os.path.join(REPO, "skills"))
+    (tmp_path / "t").mkdir()
+    (tmp_path / "t" / "test_tiny.py").write_text(TINY)
+    command = culprit._one_file_command(str(tmp_path))
+    monkeypatch.setenv("VERI_TIMEOUT", "600")
+    monkeypatch.setenv("VERI_PYTEST_WORKERS", "1")
+
+    said = {}
+    for name in ("test_red", "test_green", "test_nope"):
+        case = "t/test_tiny.py::" + name
+        code, output = culprit._run_alone(str(tmp_path), command, case)
+        said[name] = (code, culprit._verdict(code, output, case))
+
+    assert (command, said) == ('make test TESTS="$1"', {"test_red": (2, True), "test_green": (0, False),
+                                                        "test_nope": (2, False)}), said
+
+
 @pytest.mark.process("stack-culprit.sh run as its /bin/sh shim in a clone of a local bare origin holding a stack, with a stub gh on PATH, adding and removing a real worktree")
 def test_stack_culprit_names_the_issue_whose_end_turned_the_case_red_and_removes_its_worktree(tmp_path):
     work, shas = culprit_clone(tmp_path)

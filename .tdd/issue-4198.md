@@ -12,3 +12,4 @@
 - [x] stack-culprit.sh is a /bin/sh shim over veri/stack_culprit.py, indexed in veri/README.md, run as a process ⟦criterion 10⟧
 - [x] the module names no repository, issue, branch, label, person or CI job ⟦criterion 11⟧
 - [x] SCRIPTS.md lists stack-culprit.sh (SC252), graded ⟦criterion 12⟧
+- [x] (amended) a case is red when its run fails with a failure line naming it, absent when not found or not collected, else no answer, exit 2; the exit code alone never decides ⟦criterion 13⟧
