@@ -12,6 +12,7 @@ import git
 import github
 import paths
 import stack_branch
+import stack_culprit
 import stack_green
 
 USAGE = "usage: stack-fix.sh <n> <red-sha> <culprit-file>"
@@ -224,6 +225,32 @@ def _no_test_moved(onto, head, cases):
                     path, status))
 
 
+def _cases_pass(top, cases):
+    """Each of <cases> run alone at HEAD through the repository's `veri: one test file:` command. Refused naming the
+    first that is red (its run exits 1, 4 or 5, or fails with a failure line naming it, read as stack-culprit.sh reads
+    one), absent (its file missing at HEAD, or the output saying it was not found or not collected, whatever the exit)
+    or not run; NoAnswer naming one whose run gave no answer (any other exit, or none within VERI_TIMEOUT), or when no
+    such command is declared. The exit code alone never passes a case that was not collected."""
+    command = _one_file_command(top)
+    if not command:
+        raise NoAnswer("the repository declares no `veri: one test file:` command (detect-test-command.sh --tier"
+                       " \"one test file\"), so the named cases cannot be run; nothing pushed")
+    for case in cases:
+        if not _has(case.split("::", 1)[0]):
+            raise Refused("%s: its file is absent at HEAD, and a case gone is not a pass; nothing pushed" % case)
+        code, output = _run(command, case)
+        said = stack_culprit._verdict(code, output, case) if code else code
+        if code == 0 and stack_culprit._ABSENT.search(stack_culprit.ci_flake.ANSI.sub("", output)):
+            said = stack_culprit.ABSENT
+        if said is True or said == stack_culprit.ABSENT or (said is None and code in (1, 4, 5)):
+            raise Refused("%s is still %s at HEAD run alone (exit %d); nothing pushed" % (
+                case, "absent or not collected" if said == stack_culprit.ABSENT else "red", code))
+        if said is None:
+            raise NoAnswer("%s run alone at HEAD gave no answer (%s); nothing pushed" % (
+                case, "no exit within VERI_TIMEOUT" if code is None else "exit %d, its output naming no failure of it"
+                % code))
+
+
 def _pushed(head, stack, onto):
     """Push <head> to <stack>, leased to <onto> and a fast-forward of it (its descent checked before): returns when
     origin's stack is <head>, read back after a push that did not answer 0 (one that timed out may have landed).
@@ -277,6 +304,10 @@ def main(argv):
     try:
         stack, onto, head = _checked(n, red)
         _no_test_moved(onto, head, cases)
+        if _dirty().strip():
+            raise Refused("the fix worktree has uncommitted changes, so a run there would not test HEAD; nothing"
+                          " pushed")
+        _cases_pass(_top(), cases)
         _pushed(head, stack, onto)
     except (Refused, NoAnswer, NotRed) as stopped:
         _say(str(stopped))

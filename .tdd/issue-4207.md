@@ -7,7 +7,7 @@
 - [x] exits 1 on a fix commit without the (#<n>) subject or the Stack-fix trailer, or a fetched stack that is not an ancestor of HEAD ⟦criterion 5⟧
 - [x] a push refused because origin's stack moved is exit 1, never forced ⟦criterion 6⟧
 - [x] a test file added, changed, deleted or renamed is exit 1 naming it ⟦criterion 7⟧
-- [ ] each named case runs alone at HEAD: red, absent or not collected is exit 1, no answer exit 2 ⟦criterion 8⟧
+- [x] each named case runs alone at HEAD: red, absent or not collected is exit 1, no answer exit 2 ⟦criterion 8⟧
 - [ ] a red fast tier or prose-owed.sh non-zero is exit 1 ⟦criterion 9⟧
 - [ ] every exit 1 or 2 frees the lock, pushes nothing and keeps the fix worktree ⟦criterion 10⟧
 - [ ] after the push it comments once on the tracking pull request and once on issue <n> ⟦criterion 11⟧

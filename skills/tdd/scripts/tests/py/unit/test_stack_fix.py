@@ -255,6 +255,52 @@ def test_a_test_file_the_diff_adds_changes_deletes_or_renames_is_exit_1_naming_i
     assert (code, len(world.pushed), named is None or named in err) == ((1, 0, True) if named else (0, 1, True)), err
 
 
+@pytest.mark.parametrize("alone, has, code", [
+    ((0, "1 passed\n"), True, 0),
+    ((1, "FAILED %s - assert 0\n" % CASE), True, 1),
+    ((4, "ERROR: not found: %s\n" % CASE), True, 1),
+    ((5, "collected 0 items\n"), True, 1),
+    ((1, "1 failed\n"), True, 1),
+    ((0, "1 passed\n"), False, 1),
+    ((2, "FAILED %s - assert 0\nmake: *** [test] Error 1\n" % CASE), True, 1),
+    ((2, "ERROR: not found: %s\nmake: *** [test] Error 4\n" % CASE), True, 1),
+    ((0, "no tests ran in 0.01s\n"), True, 1),
+    ((2, "make: *** [test] Error 2\n"), True, 2),
+    ((3, ""), True, 2),
+    ((None, ""), True, 2),
+])
+def test_each_named_case_runs_alone_at_head_a_red_absent_or_uncollected_one_is_exit_1_naming_it_no_answer_exit_2(
+        monkeypatch, run_cli, fix, tmp_path, alone, has, code):
+    world = World(monkeypatch, fix, tmp_path, alone=alone, has=has)
+
+    got, _, err = run_cli(fix, world.argv())
+
+    assert (got, len(world.pushed), code == 0 or CASE in err) == (code, 1 if code == 0 else 0, True), err
+    assert world.runs[:1] == ([('make test TESTS="$1"', CASE)] if has else [])
+
+
+def test_runs_every_named_case_alone_and_names_the_red_one(monkeypatch, run_cli, fix, tmp_path):
+    second = "t/test_b.py::test_y"
+    world = World(monkeypatch, fix, tmp_path, culprit=culprit_text(cases=(CASE, second)))
+    monkeypatch.setattr(fix, "_run", lambda command, target=None: world.runs.append(target) or (
+        (1, "FAILED %s\n" % target) if target == second else (0, "1 passed\n")))
+
+    code, _, err = run_cli(fix, world.argv())
+
+    assert (code, world.pushed, world.runs[:2], second in err) == (1, [], [CASE, second], True), err
+
+
+@pytest.mark.parametrize("given", ["no one-file command", "dirty"])
+def test_no_one_file_command_is_exit_2_and_uncommitted_changes_exit_1_since_the_runs_would_not_test_head(
+        monkeypatch, run_cli, fix, tmp_path, given):
+    world = World(monkeypatch, fix, tmp_path, one_file=None if given == "no one-file command" else 'make t "$1"',
+                  dirty=" M src/a.py\n" if given == "dirty" else "")
+
+    code, _, err = run_cli(fix, world.argv())
+
+    assert (code, world.pushed, world.runs) == ({"dirty": 1}.get(given, 2), [], []), err
+
+
 @pytest.mark.parametrize("push, origin_after, code", [
     (1, sha(20), 1),
     (1, ONTO, 2),
