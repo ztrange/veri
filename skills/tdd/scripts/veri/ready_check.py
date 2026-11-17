@@ -76,22 +76,27 @@ def tier_run_row(tier, command, wt, deadline):
     waited = subprocess.run([detach, "wait", name, bound], cwd=wt, capture_output=True, text=True)
     if waited.returncode == 3:
         return None
-    exit_file = os.path.join(wt, ".tdd", name + ".exit")
+    return finished_row(tier, wt, waited)
+
+
+def finished_row(tier, wt, waited):
+    """The row of ready-<tier>'s run in <wt>, which <waited> (detach-command.sh wait's answer) says has ended; a red
+    run's whole output is kept beside <wt>, and a green run removes one kept before."""
+    name = "ready-" + tier
+    exit_file, output = (os.path.join(wt, ".tdd", name + suffix) for suffix in (".exit", ".out"))
     ended = os.path.getmtime(exit_file) if os.path.exists(exit_file) else time.time()
-    with open(started) as began:
+    with open(os.path.join(wt, ".tdd", name + ".began")) as began:
         row = f"{tier} tier run ({int(ended - float(began.read()))}s)"
-    output = os.path.join(wt, ".tdd", name + ".out")
-    said = []
-    if os.path.exists(output):
-        with open(output, errors="replace") as out:
-            said = [line.strip() for line in out if line.strip()]
     kept = os.path.join(os.path.dirname(wt), name + ".out")
     if waited.returncode == 0:
         with contextlib.suppress(FileNotFoundError):
             os.remove(kept)
         return row, None
+    said = []
     if os.path.exists(output):
         shutil.copyfile(output, kept)
+        with open(output, errors="replace") as out:
+            said = [line.strip() for line in out if line.strip()]
     if waited.returncode == 2:
         return row, f"no answer was obtained (exit 2 from detach-command.sh wait {name})"
     return row, f"exit {waited.stdout.strip()}: {said[-1] if said else '(no output)'}"
