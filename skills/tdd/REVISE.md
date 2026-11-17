@@ -199,7 +199,10 @@ answer. Each is a branch of its own:
   handed out again. **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`**, exactly
   as a Green leaf's volunteered split does when it meets
   `VERI_STEP_GROWTH_PERCENT`: the criteria are filed under `## Owed steps` and the plan is unchanged (see `<base directory>/BAIL.md`).
-  **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
+  **`add-ledger-step.sh` exit 2**, its stderr kept in `.tdd/add-ledger-step.err` as that split's call writes it: with
+  `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh`, before any `bail`
+  event (`Read` `<base directory>/ADJUDICATE.md`); then, whatever the answer (`retry` included), **bail** with cause
+  `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
 - **exit 1 — the step needs the user.** `.tdd/exhausted-answer.txt` holds the leaf's answer:
   the criterion is wrong, contradicts another, or needs a decision this run has no authority
   to make. **Park the step** — stop the run there, carrying that answer and the verifier's

@@ -61,14 +61,14 @@ verifier judges the fix against the full command, not the fast one.
 
 When every failing case pins prose of one graded unit, the step appended is a `⟦skill-edit⟧` step naming that unit (run from `<base directory>/SKILL-EDIT.md`), not a `⟦suite-repair⟧` step; otherwise it is the `⟦suite-repair⟧` step as before. A red after that step's cycle bails, with no second repair step (`Read` `<base directory>/BAIL.md`).
 ```
-$S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the full-suite failure: <suite> — <its FAIL - line>> ⟦suite-repair⟧'; rc=$?
-[ "$rc" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=step-add-refused classification="$($S/classify-bail.sh step-add-refused)"
+$S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the full-suite failure: <suite> — <its FAIL - line>> ⟦suite-repair⟧' 2> .tdd/add-ledger-step.err; rc=$?
+[ "$rc" != 2 ] || { $S/adjudicate.sh left <n> && { echo "adjudicate step-add-refused"; exit 0; }; VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=step-add-refused classification="$($S/classify-bail.sh step-add-refused)"; }
 [ "$rc" = 1 ] || [ "$rc" = 2 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
 [ "$rc" = 1 ] || [ "$rc" = 2 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red full suite (#<n>)"; }
 ```
 That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
 The block captures `add-ledger-step.sh`'s exit code: the `step-added` event, the `git add` and the `git commit` run only on exit 0, after the insertion has happened.
-**`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`, writing neither the `step-added` nor the `step-start` event** — see `<base directory>/BAIL.md`.
+**`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`, writing neither the `step-added` nor the `step-start` event** — see `<base directory>/BAIL.md`. Its stderr is kept in `.tdd/add-ledger-step.err`, and the exit is adjudicated before any `bail` event, in the order `ADJUDICATE.md`'s *Procedure* gives (`Read` `<base directory>/ADJUDICATE.md`): the block's `$S/adjudicate.sh left <n>` runs first, and its exit 3 or 2 writes the bail on that same line; on its exit 0 that line writes nothing and ends the Bash call (`exit 0`, printing `adjudicate step-add-refused`), so no later line of the block runs. Then, in Bash calls of their own, run `$S/build-adjudicate-prompt.sh <n> step-add-refused 2 .tdd/add-ledger-step.err add-ledger-step.sh .tdd/issue-<n>.md after <anchor> <step text> > .tdd/adjudicate-step-add-refused.prompt`, the `adjudicate-step-add-refused` leaf launched through `supervise.sh` and waited on, and `$S/adjudicate.sh record <n> step-add-refused .tdd/adjudicate-step-add-refused.out`; whatever it answers, `retry` included, run, alone in a Bash call of its own, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=step-add-refused classification="$($S/classify-bail.sh step-add-refused)"`, calling `add-ledger-step.sh` no more and writing neither a `step-added` nor a `step-start` event.
 **`add-ledger-step.sh` exit 1 on the `⟦suite-repair⟧` insertion → bail with cause `suite-red`, naming every suite still red**, exactly as the second-red-run bail below does (`Read` `<base directory>/BAIL.md`).
 
 A second red result on the full run after a repair step does **bail** — the repair step is
@@ -270,11 +270,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$ci" != 1 ] || ! $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
    [ "$ci" = 0 ] || [ "$ci" = 2 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
    [ "$no_repair" = 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
-   [ "$no_repair" = 0 ] || $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
+   [ "$no_repair" = 0 ] || $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧' 2> .tdd/add-ledger-step.err
    [ "$no_repair" = 0 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red CI check (#<n>)"; }
    ```
    That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
-   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
+   **`add-ledger-step.sh` exit 2** on the `⟦ci-repair⟧` insertion, its stderr kept in `.tdd/add-ledger-step.err`: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh`, before any `bail` event (`Read` `<base directory>/ADJUDICATE.md`); then, whatever the answer (`retry` included), or on `adjudicate.sh left` exit 3 or 2, **bail** with cause `step-add-refused` by running, alone in a Bash call of its own, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=step-add-refused classification="$($S/classify-bail.sh step-add-refused)"`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
    When `pr-ready.sh` exits non-zero (it exits only 0 or 2), its stderr is kept in `.tdd/pr-ready.err` and the exit is adjudicated
    first, before any event and any `wait-ci.sh` call, in the order `ADJUDICATE.md`'s *Procedure* gives (`Read` `<base directory>/ADJUDICATE.md`):
    the block's `$S/adjudicate.sh left <n>` runs first, and its exit 3 (a spent budget, `VERI_ADJUDICATE_BUDGET=0` included) or 2 (the event log unreadable) writes the bail on that same line.
@@ -311,7 +311,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$ci" != 1 ] || ! $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
    [ "$ci" = 0 ] || [ "$ci" = 2 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
    [ "$no_repair" = 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
-   [ "$no_repair" = 0 ] || $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
+   [ "$no_repair" = 0 ] || $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧' 2> .tdd/add-ledger-step.err
    [ "$no_repair" = 0 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red CI check (#<n>)"; }
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
    # A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): the next line writes that bail only when `adjudicate.sh left` exits non-zero (3, no budget left; 2, the event log unreadable). With budget left it writes nothing and ends the call (`exit 0`, printing `adjudicate ci-timeout`), so no later line of it runs; run the adjudication, then a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and, in one new Bash call, the `wait-ci.sh` line above and every line after it, its exits handled as at the first wait; any other outcome runs, alone in a Bash call of its own, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"`, and no later line of this block runs.
@@ -326,7 +326,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    EOF
    $S/pr-body.sh <pr-number> .tdd/issue-<n>-pr-body.md
    ```
-   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
+   **`add-ledger-step.sh` exit 2** on the `⟦ci-repair⟧` insertion, its stderr kept in `.tdd/add-ledger-step.err`: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh`, before any `bail` event (`Read` `<base directory>/ADJUDICATE.md`); then, whatever the answer (`retry` included), or on `adjudicate.sh left` exit 3 or 2, **bail** with cause `step-add-refused` by running, alone in a Bash call of its own, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=step-add-refused classification="$($S/classify-bail.sh step-add-refused)"`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
    The title is set by `gh api -X PATCH`, the body by `$S/pr-body.sh <pr-number> <body-file>`, never a whole-body `-f body=…` replacement: `pr-body.sh` keeps every section the run did not author, so a `## Review notes` section appended after the body survives a resumed run's next write.
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
    rollup is never a pass, and a completed check whose conclusion is anything other than
