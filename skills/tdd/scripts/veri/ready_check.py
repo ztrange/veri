@@ -67,6 +67,8 @@ def tier_run_row(tier, command, wt):
     began = time.time()
     subprocess.run([detach, "start", name, *shlex.split(command)], cwd=wt, capture_output=True, text=True)
     waited = subprocess.run([detach, "wait", name], cwd=wt, capture_output=True, text=True)
+    if waited.returncode == 3:
+        return None
     row = f"{tier} tier run ({int(time.time() - began)}s)"
     output = os.path.join(wt, ".tdd", name + ".out")
     said = []
@@ -84,8 +86,10 @@ def tier_run_row(tier, command, wt):
 
 
 def tier_run_rows(root):
-    """A row per tier RD2 resolves; the worktrees made for them, and a .tdd/ made for those, removed on every way out."""
-    rows, made = [], []
+    """(a row per tier RD2 resolves, None) — or, while a tier is still running at wait's bound, (the rows so far, the
+    name it runs under). The worktrees made for them, and a .tdd/ made for those, are removed on every way out but
+    that one, which leaves every tier's worktree in place for the call that waits again."""
+    rows, made, waiting = [], [], None
     tdd = os.path.join(root, ".tdd")
     made_tdd = not os.path.exists(tdd)
     try:
@@ -93,14 +97,19 @@ def tier_run_rows(root):
             code, command = resolved_tier(tier)
             if code == 0:
                 made.append(os.path.join(tdd, "ready-" + tier))
-                rows.append(tier_run_row(tier, command, made[-1]))
+                row = tier_run_row(tier, command, made[-1])
+                if row is None:
+                    waiting = "ready-" + tier
+                    break
+                rows.append(row)
     finally:
-        for wt in made:
-            git.git("worktree", "remove", "--force", wt, capture_output=True, text=True)
-        if made_tdd:
-            with contextlib.suppress(OSError):
-                os.rmdir(tdd)
-    return rows
+        if waiting is None:
+            for wt in made:
+                git.git("worktree", "remove", "--force", wt, capture_output=True, text=True)
+            if made_tdd:
+                with contextlib.suppress(OSError):
+                    os.rmdir(tdd)
+    return rows, waiting
 
 
 def tier_row(tier):
@@ -321,10 +330,15 @@ def main(argv):
     if inside.returncode != 0:
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
-    results = [check() for check in CHECKS] + tier_run_rows(root)
+    results = [check() for check in CHECKS]
+    tier_runs, waiting = tier_run_rows(root)
+    results += tier_runs
     failed = sum(1 for _, verdict in results if verdict and not isinstance(verdict, Neutral))
     rows = [rendered(name, verdict) for name, verdict in results]
     print(*rows, sep="\n")
+    if waiting:
+        print("waiting on " + waiting)
+        return 3
     if failed:
         print(f"not ready — {failed} rows to fix")
         return 1
