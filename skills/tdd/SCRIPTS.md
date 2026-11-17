@@ -576,6 +576,26 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   issue number, `<red-sha>` not 40 hex). On every exit 1 or 2 nothing is pushed, the merge lock is freed and the fix
   worktree and its commits are kept. It makes no `wait-ci.sh` call and lifts no freeze: CI on the new tip, read by
   `stack-red.sh`, is the fix's gate.
+- `$S/stack-revert.sh <n>` — run in the target repository's clone when the one fix attempt failed: under the merge
+  lock, after `stack-red.sh` and a fetch, it reverts every commit of `origin/<default>..origin/<stack>` that belongs to
+  issue `<n>` by `stack-green.sh`'s subject rule (a subject naming no issue belongs to the nearest earlier one), the
+  hand fix's commits included since they end `(#<n>)` too, newest first, as one commit on the stack's tip whose
+  subject ends `(#<n>)`, so the revert stays in the culprit's span. It works in a detached worktree of its own under
+  the tree's `.tdd/`, removed on every exit (a removal that fails is said on stderr, naming its path), runs the fast
+  tier and `prose-owed.sh` there, and pushes the revert as a fast-forward of the fetched tip, leased to it, never
+  forced; when origin's stack moved it starts again from the fetch, at most 5 times. No commit below the tip is
+  rewritten. It prints the revert's sha and exits **0**. After the push, in the body of each pull request merged into
+  the stack from this repository that carries `Closes #<n>`, that text becomes `Reverted from <stack> by <sha>`, so
+  `solvable-issues.sh` and `issue-worktree.sh` no longer read the issue as joined; then it adds one comment to issue
+  `<n>` and one to the tracking pull request (`stack-pr.sh`'s), each naming the red commit, the revert commit and the
+  hand fix's commit (one carrying a `Stack-fix:` trailer among the issue's) when one was pushed. It adds, removes or
+  changes no label: the issue returns to selection only by `release-issue.sh <n>`. **Exit 1**, nothing pushed and the
+  lock freed, on a revert conflict (a later commit depends on the culprit: a human's call), a red fast tier or a unit
+  owing a grade. **Exit 3**, nothing pushed, when `stack-red.sh` exits 3, when no commit of the stack belongs to
+  `<n>`, or when the stack already holds its revert of `<n>` (it never reverts its own revert). **Exit 2** on no answer
+  from git, GitHub, `stack-red.sh` or the lock, when origin moved on every attempt, or on bad arguments; and, the
+  revert left pushed, when the merged pull requests cannot be read or a body cannot be edited, naming the pull
+  request.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
