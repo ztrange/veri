@@ -62,3 +62,17 @@ def test_4228_a_body_exit_code_outside_0_to_3_ends_its_stage_with_status_2_and_i
     assert returned == code
     assert stage_lines(run)[-1] == {"event": "stage-end", "stage": "preflight", "status": "2", "secs": "7",
                                     "issue": "7"}
+
+
+@pytest.mark.parametrize("code", [0, 1, 3])
+def test_4228_a_stage_line_whose_write_exits_the_process_still_runs_the_body_and_returns_its_code(run, monkeypatch, code):
+    ran = []
+
+    def short_write(*args, **kwargs):
+        raise SystemExit(2)  # append_once's short journal write
+
+    monkeypatch.setattr(event, "append", short_write)
+
+    returned = event.stage("baseline", lambda: ran.append(code) or code, str(run), {"issue": "7"})
+
+    assert (returned, ran) == (code, [code])
