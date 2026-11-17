@@ -1322,3 +1322,60 @@ def test_4228_preflight_runs_as_stage_preflight_and_its_baseline_suite_as_stage_
         ("stage-start", "preflight", None, "12"), ("stage-start", "baseline", None, "12"),
         ("stage-end", "baseline", str(code), "12"), ("stage-end", "preflight", str(code), "12")]
     assert all(line["secs"].isdigit() for line in lines if line["event"] == "stage-end")
+
+
+def _staged_run(monkeypatch, run_cli, tmp_path, answers, saved=None):
+    """Drive preflight for issue 12 from a worktree a conductor's launch made (its .tdd/ present), <saved> its
+    preflight-wait file when given, <answers> overriding (script, first argument) -> (code, stdout); returns the exit
+    code and the (event, stage, status) of each stage line."""
+    import json
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    if saved is not None:
+        (wt / ".tdd" / "issue-12-preflight-wait").write_text(saved)
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        for (script, first), (code, out) in answers.items():
+            if base == script and (first is None or args[:1] == (first,)):
+                return code, out, ""
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "gh" and args[-1] == ".default_branch":
+            return 0, "main\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+    code = run_cli(preflight, ["12", "my-slug"], cwd=tmp_path)[0]
+    lines = [json.loads(line) for line in (wt / ".tdd" / "events.jsonl").read_text().splitlines()]
+    return code, [(line["event"], line["stage"], line.get("status")) for line in lines]
+
+
+def test_4228_a_call_that_stops_preflight_inside_the_baseline_ends_both_stages_with_that_calls_own_code(
+        monkeypatch, run_cli, tmp_path):
+    code, lines = _staged_run(monkeypatch, run_cli, tmp_path, {("baseline-full-tier.sh", None): (1, "")})
+
+    assert (code, lines) == (1, [("stage-start", "preflight", None), ("stage-start", "baseline", None),
+                                 ("stage-end", "baseline", "1"), ("stage-end", "preflight", "1")])
+
+
+def test_4228_a_preflight_whose_wait_ran_out_ends_both_stages_with_status_3(monkeypatch, run_cli, tmp_path):
+    code, lines = _staged_run(monkeypatch, run_cli, tmp_path, {("detach-command.sh", "wait"): (3, "")})
+
+    assert (code, lines) == (3, [("stage-start", "preflight", None), ("stage-start", "baseline", None),
+                                 ("stage-end", "baseline", "3"), ("stage-end", "preflight", "3")])
+
+
+@pytest.mark.parametrize("saved", ["fast\nmake unit", "full\n8\nmake test\nmake unit\nmake test TESTS=$1"],
+                         ids=["a saved fast-tier wait", "a saved full-tier wait"])
+def test_4228_a_preflight_called_again_after_a_wait_marks_both_stages_again_and_ends_them_with_its_code(
+        monkeypatch, run_cli, tmp_path, saved):
+    code, lines = _staged_run(monkeypatch, run_cli, tmp_path, {}, saved=saved)
+
+    assert (code, lines) == (0, [("stage-start", "preflight", None), ("stage-start", "baseline", None),
+                                 ("stage-end", "baseline", "0"), ("stage-end", "preflight", "0")])
