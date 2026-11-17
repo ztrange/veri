@@ -4,6 +4,7 @@ import errno
 import importlib
 import json
 import os
+import tempfile
 
 import pytest
 
@@ -90,3 +91,43 @@ def test_the_file_is_renamed_into_place_from_its_own_directory_so_a_failed_renam
     assert renames == [(str(directory), True, str(metrics_file(tmp_path)))]
     assert metrics_file(tmp_path).read_bytes() == before
     assert sorted(path.name for path in directory.iterdir()) == ["42.jsonl", "42.metrics.json"]
+
+
+@pytest.fixture
+def unwritable(monkeypatch):
+    """Make a directory refuse new files as a non-root writer meets one of mode 555: creating a file in it answers
+    EACCES (chmod is no proof, since uid 0 ignores it); appending to a file already in it still works."""
+    real = tempfile.mkstemp
+
+    def make(directory):
+        def refused(*args, **kwargs):
+            if os.path.realpath(kwargs.get("dir") or "") == os.path.realpath(directory):
+                raise PermissionError(errno.EACCES, "Permission denied", str(directory))
+            return real(*args, **kwargs)
+        monkeypatch.setattr(tempfile, "mkstemp", refused)
+
+    return make
+
+
+@pytest.mark.parametrize("failure", ["the fold raises", "the directory is not writable"])
+def test_a_metrics_file_that_cannot_be_computed_or_written_leaves_the_event_written_its_exit_0_and_one_stderr_line(
+        tmp_path, event, monkeypatch, capfd, unwritable, failure):
+    clone = clone_at(tmp_path)
+    leaf_exit(event, clone)
+    capfd.readouterr()
+    if failure == "the fold raises":
+        def broken(*args, **kwargs):
+            raise RuntimeError("fold broke")
+        monkeypatch.setattr(importlib.import_module("metrics"), "fold", broken)
+    else:
+        unwritable(metrics_file(tmp_path).parent)
+
+    code = event.append(str(clone), LEAF, "exit", ["status=2", "secs=40"], ts=1700000300)
+
+    err = capfd.readouterr().err
+    journal = (tmp_path / "runs" / "acme-widgets" / "42.jsonl").read_text().splitlines()
+    own = (clone / ".tdd" / "events.jsonl").read_text().splitlines()
+    assert code == 0
+    assert journal[-1] == own[-1] and json.loads(own[-1])["secs"] == "40"
+    assert len(err.splitlines()) == 1 and str(metrics_file(tmp_path)) in err, err
+    assert ("fold broke" if failure == "the fold raises" else "Permission denied") in err, err

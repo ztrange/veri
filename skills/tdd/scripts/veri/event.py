@@ -212,12 +212,16 @@ def write_journal(top, context, text):
 
 
 def write_metrics(top, issue, journal):
-    """Rewrite `<issue>.metrics.json` beside the journal with `metrics.sh <issue> --json`'s object of the journal."""
-    import metrics
-    import run_dir
+    """Rewrite `<issue>.metrics.json` beside the journal with `metrics.sh <issue> --json`'s object of the journal. A
+    failure to compute or write it is one stderr line, never the event's: telemetry never bails a run."""
     target = journal.removesuffix(".jsonl") + ".metrics.json"
-    figures = metrics.as_json(metrics.fold(issue, journal, run_dir.ledger(top, issue), run=top))
-    replace_whole(target, json.dumps(figures, indent=2) + "\n")
+    try:
+        import metrics
+        import run_dir
+        figures = metrics.as_json(metrics.fold(issue, journal, run_dir.ledger(top, issue), run=top))
+        replace_whole(target, json.dumps(figures, indent=2) + "\n")
+    except Exception as exc:
+        sys.stderr.write("event: cannot write metrics file %s: %s\n" % (target, " ".join(str(exc).split())))
 
 
 def replace_whole(path, text):
