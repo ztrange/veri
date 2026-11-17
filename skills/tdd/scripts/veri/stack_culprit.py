@@ -61,6 +61,13 @@ def _run_alone(path, command, target):
     return ran.returncode, ran.stdout or ""
 
 
+def _first_fail(output, path):
+    """The first line of an alone run's <output> holding FAIL, stripped, with <path> written `<worktree>` and the home
+    directory `~`, since it is published; `(no FAIL line)` when none holds it."""
+    line = next((line.strip() for line in output.splitlines() if "FAIL" in line), "(no FAIL line)")
+    return line.replace(path, "<worktree>").replace(os.path.expanduser("~"), "~")
+
+
 def _owners(subjects):
     """Per subject, oldest first, the issues its commit belongs to by KT5's subject rule: those it names, else those of
     the nearest earlier subject naming any (none when no earlier one does)."""
@@ -86,7 +93,7 @@ def main(argv):
     if len(argv) != 1:
         return entry.refuse(usage=USAGE)
     red = argv[0]
-    stack, _, commits = stack_branch.ahead(".")
+    stack, default, commits = stack_branch.ahead(".")
     span = commits[:[commit for commit, _ in commits].index(red) + 1]
     base, owners = _tested_base(span), _owners([subject for _, subject in span])
     ends = [at for at in range(base + 1, len(span)) if at == len(span) - 1 or owners[at + 1] != owners[at]]
@@ -105,6 +112,7 @@ def main(argv):
         return entry.refuse("git worktree add --detach %s failed; nothing run, and never in this checkout" % path,
                             prefix="stack-culprit: ")
     try:
+        before = span[base][0] if base >= 0 else "origin/" + default
         for at in ends:
             commit = span[at][0]
             _checkout(path, commit)
@@ -118,10 +126,13 @@ def main(argv):
                         case, commit, "no exit within VERI_TIMEOUT" if code is None else "exit %d" % code),
                         prefix="stack-culprit: ")
                 if code == 1:
-                    red_here.append(case)
+                    red_here.append((case, _first_fail(output, path)))
             if red_here:
-                sys.stdout.write("commit: %s\n" % commit)
+                issues = " ".join(sorted(owners[at], key=int)) or "none"
+                sys.stdout.write("red: %s\nissue: %s\ncommit: %s\nbefore: %s\n%s" % (
+                    red, issues, commit, before, "".join("case: %s\t%s\n" % found for found in red_here)))
                 return 0
+            before = commit
     finally:
         _remove_worktree(path)
     return 3
