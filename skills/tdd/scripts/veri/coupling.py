@@ -34,6 +34,7 @@ def main(argv):
         return entry.refuse(usage=USAGE)
     if not git.ok("rev-parse", "--verify", "--quiet", argv[0] + "^{commit}"):
         return entry.refuse("coupling: cannot resolve '%s'" % argv[0])
+    os.chdir(git.out("rev-parse", "--show-toplevel"))
     files = [f for f in stem_walk.tree_files() if code(f)]
     listed = git.out("diff", "--name-only", "-z", argv[0] + "..HEAD").split("\0")
     known = set(files)
