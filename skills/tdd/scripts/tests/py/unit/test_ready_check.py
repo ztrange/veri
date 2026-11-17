@@ -510,6 +510,16 @@ def test_issue_4088_a_red_tiers_whole_output_is_kept_at_tdd_ready_tier_out_in_th
     assert not (tmp_path / ".tdd" / "ready-fast.out").exists()
 
 
+def test_issue_4088_a_green_tier_leaves_no_tdd_ready_tier_out_in_the_main_working_tree_removing_an_older_one(ready_check, run_cli, fake_processes, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "ready-fast.out").write_text("an earlier red run\n")
+
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **TIERS)
+
+    assert (code, lines[-1]) == (0, "ready")
+    assert not (tmp_path / ".tdd" / "ready-fast.out").exists()
+
+
 def test_issue_4088_a_tier_run_that_raises_exits_2_having_removed_the_worktree_it_made(ready_check, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": OSError(7, "no detach")}))
     code, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
