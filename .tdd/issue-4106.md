@@ -1,7 +1,7 @@
 # Plan for #4106 — PRD 031.1a: a `legacy` issue names a region, and its seam is confirmed or refused
 
-- [ ] capture writes a `## Legacy` section for a `legacy`-labelled issue ⟦criterion 1⟧
-- [ ] capture refuses an issue labelled both `legacy` and `refactor`, exit 2, naming both labels ⟦criterion 1⟧
+- [x] capture writes a `## Legacy` section for a `legacy`-labelled issue ⟦criterion 1⟧
+- [x] capture refuses an issue labelled both `legacy` and `refactor`, exit 2, naming both labels ⟦criterion 1⟧
 - [ ] `classify-bail.sh no-seam` and `classify-bail.sh surround-owed` print `process` ⟦criterion 9⟧
 - [ ] `build-verify-prompt.sh plan` fills `{{LEGACY_PLAN}}` with `_verify-plan-legacy.md` for a `## Legacy` spec, nothing otherwise ⟦criterion 4⟧
 - [ ] `build-develop-prompt.sh seam` renders `prompts/develop-seam.md` ⟦criterion 6⟧

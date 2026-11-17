@@ -371,3 +371,28 @@ def test_with_veri_gh_driver_graphql_a_failing_gh_issue_view_makes_the_cli_exit_
 
     assert (code, out) == (2, "")
     assert calls and [c for c in calls if c.startswith("gh api")] == []
+
+
+def test_main_appends_a_legacy_section_for_a_legacy_labelled_issue_as_it_does_a_refactor_one_4106(monkeypatch, capsys, capture_spec, fake_processes):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    fake_gh(fake_processes, "legacy\n", PLAIN_BODY)
+
+    code = capture_spec.main(["4106"])
+    captured = capsys.readouterr()
+
+    assert (code, captured.err) == (0, "")
+    assert captured.out.startswith(PLAIN_BODY)
+    assert re.search(r"^## Legacy$", captured.out[len(PLAIN_BODY):], re.M)
+    assert "## Refactor" not in captured.out
+
+
+def test_main_refuses_an_issue_labelled_both_legacy_and_refactor_with_exit_2_naming_both_labels_and_nothing_on_stdout_4106(monkeypatch, capsys, capture_spec, fake_processes):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    for labels in ("legacy\nrefactor\n", "refactor\nbug\nlegacy\n"):
+        fake_gh(fake_processes, labels, PLAIN_BODY)
+
+        code = capture_spec.main(["4106"])
+        captured = capsys.readouterr()
+
+        assert (labels, code, captured.out) == (labels, 2, "")
+        assert "`legacy`" in captured.err and "`refactor`" in captured.err
