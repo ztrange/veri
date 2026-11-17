@@ -15,6 +15,12 @@ LEDGER = ".tdd/issue-%s.md"
 # The step kinds whose Red is not this one (RH1): they run from their own files or need a route's --except.
 REFUSED = ("⟦diff-checked⟧", "⟦phases:", "⟦skill-edit⟧", "⟦fixture-repair⟧")
 
+# The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_red_half.py fails when one
+# is a script SKILL.md's Red section does not name, save three it exempts by name (FC19).
+CALLS = ("refresh-spec.sh", "build-develop-prompt.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh",
+         "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "extract-result.sh", "red-divergence.sh",
+         "unreplaced-cases.sh", "tests-frozen.sh", "event.sh", "run-verdict.sh", "red-setup.sh", "comment.sh")
+
 
 def main(argv):
     return fused.entry(argv, NAME + ".sh", run)
