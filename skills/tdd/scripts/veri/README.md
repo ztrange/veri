@@ -286,7 +286,6 @@ Where a run lives on disk, its journal of events and its pin files and mutation 
 - `journal_schema`: what JOURNAL.md's table documents per event kind (keys, and their formats with `formats`/`context_formats`), and the literal kinds and fields writer calls pass, found with `ast`.
 - `journal_sample`: prints `fixtures/journal/sample.jsonl`, one invented line per event `event_table` declares, every key carried, built through `event.line`.
 - `pinned-scripts.sh`: the directory of a run's pinned scripts.
-- `preflight.sh`: the checks before a run starts.
 - `run_records`: a run's records (its journal lines, skill pin and timeout pin) carried on origin's `refs/veri/runs/<n>`, a commit on no branch.
 - `run_pins`: a run's per-issue pin files (skip-verify list, conductor model, launch environment, baseline full-tier mode) and the `.tdd/.gitignore` seed, written and read in one place.
 - `stop-reason.sh`: why a run stopped.
@@ -747,6 +746,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `parallel-conductors.sh`: launch conductors in parallel up to the cap.
 - `prd_report`: report.sh's renderer, run in-process.
 - `preflight-refused.sh`: record that preflight refused an issue.
+- `preflight.sh`: the checks before a run starts.
 - `reset-cost.sh`: what each recorded reset of the dev session or a run's conductor cost, and the growth knob it calls for.
 - `reset-wait.sh`: wait for a usage-limit reset.
 - `restart-conductor.sh`: stop and watch a conductor restart.
