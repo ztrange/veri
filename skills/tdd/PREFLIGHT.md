@@ -118,6 +118,14 @@ the branch already holds a ledger, runs steps 1 to 7 below and never calls the s
    sends the run to `<base directory>/PREFLIGHT-FAILURES.md`: `Read` it then and not before,
    and run it. On a fresh run the ledger does not exist
    yet, so `scope-check.sh` checks the skill-edit units at the plan commit instead.
+   **On a resume, mark the baseline run as stage `baseline`**, as `preflight.sh` marks a fresh run's: just
+   before the fast tier's `detach-command.sh start`, run `VERI_ISSUE=<n> $S/event.sh stage-start stage=baseline`
+   and note the time; once the baseline run has answered (the full tier's last wait, or its reused time, or the
+   wait that stopped it), run
+   `VERI_ISSUE=<n> $S/event.sh stage-end stage=baseline status=<exit code> secs=<seconds>`, whatever its exit: `<exit code>` is the baseline run's exit code (0 when both tiers passed or
+   the full tier's time was reused, else the code of the wait that stopped it) and `<seconds>` the whole seconds
+   since the start. A red baseline is so counted as failed, never missing; a wait answering 3 is not an exit,
+   so wait again first.
    Then, for `detach-command.sh`, get the fast tier's command from `$S/detect-test-command.sh --tier fast --issue "$body"` (see *Detecting the test command*),
    and run it through `$S/detach-command.sh start <name> <cmd>`, then `VERI_ISSUE=<n> $S/detach-command.sh wait <name> --alone '<alone-cmd>'` in the foreground with no max-seconds argument and the Bash tool's `timeout` of 600000 ms, calling `wait` again each time it returns 3 (never background it and end the turn).
    `<alone-cmd>` is the repo's own runner for one test target, with the target as `$1`: a test file, or a pytest node id `path::name` when the red output has `FAILED`/`ERROR` lines (`make test TESTS="$1"` on veri, named here with `detach-command.sh`). With `--alone`, a command that finished red has each failing test its output names re-run alone once, as a pytest node id when it has them and else as a test file, through the shared `rerun_alone` helper: when every one passes alone, `detach-command.sh wait` answers 0 and has itself written the one `suite-flake` event naming the targets, so preflight goes on as on a green baseline.
