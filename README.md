@@ -65,12 +65,14 @@ veri grows in three rungs, each wrapping the previous — never a rewrite:
 
 ## Install
 
-veri is a Claude Code skill, not an application. One skill, `vinstall`, is installed once,
-user-level, as a symlink to this clone — then `/vinstall` links the skills you type into each
-project, as ignored symlinks:
+veri is a Claude Code skill, not an application. Two skills are installed once, user-level, each
+as a symlink to this clone: `vinstall`, after which `/vinstall` links the skills you type into each
+project, as ignored symlinks, and `vish`, which develops a change test-first by hand, without a
+veri run:
 
 ```sh
 ln -s "$(pwd)/skills/vinstall" ~/.claude/skills/vinstall
+ln -s "$(pwd)/skills/vish" ~/.claude/skills/vish
 ```
 
 `/vinstall` links six skills: `vcoord`, `vdev`, `vfile`, `vgroom`, `vhandoff` and `vplan`. The
