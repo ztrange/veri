@@ -135,6 +135,8 @@ def main(argv):
             before = commit
     finally:
         _remove_worktree(path)
+    print("stack-culprit: no issue end from %s to %s turns a case red; cases run: %s" % (
+        span[base][0] if base >= 0 else "origin/" + default, red, ", ".join(cases)), file=sys.stderr)
     return 3
 
 
