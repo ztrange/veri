@@ -138,10 +138,10 @@ def main_checkout_file(path, name):
     return found
 
 
-def pin_roots():
+def pin_roots(run="."):
     """Where a run's pin files may sit: the run's own `.tdd/`, then the main working tree's."""
-    main = run_dir.main_of_worktree(os.getcwd())
-    return (".",) if main is None else (".", main)
+    main = run_dir.main_of_worktree(os.path.abspath(run))
+    return (run,) if main is None else (run, main)
 
 
 def count_families(turn_rows, open_turn_rows, result_output):
@@ -646,8 +646,16 @@ def launched_efforts(marks):
                             and isinstance(mark.get("effort"), str) and mark["effort"]}))
 
 
-def fold(issue, path, ledger):
-    """Read the journal at `path` (and the ledger and files beside it) into a `Fold`; prints nothing."""
+BESIDE = "the run whose .tdd/ holds the journal"
+
+
+def fold(issue, path, ledger, run=BESIDE):
+    """Read the journal at `path` (and the ledger and files beside it) into a `Fold`; prints nothing. `run` is the run
+    directory whose end, conductor stream log and pins are read: by default the one whose `.tdd/` holds `path`."""
+    if run is BESIDE:
+        run, beside, roots = os.path.dirname(os.path.dirname(os.path.abspath(path))), path, pin_roots()
+    else:
+        beside, roots = run_dir.run_file(run, "events.jsonl"), pin_roots(run)
     marks = read_events(path)
     clocked = bool(marks) and all("awake" in mark for mark in marks if "ts" in mark)
     models = {(mark.get("step", ""), mark.get("phase", ""), mark.get("attempt", ""), mark.get("actor")):
@@ -658,21 +666,21 @@ def fold(issue, path, ledger):
     passes = [{"step": step, "pass": index, "mark": mark, "verdict": spent_by["verdict"],
                "revise": spent_by["revise"], "wall": spent_by[WALL], "dollars": spent_by[DOLLARS]}
               for (step, index), (mark, spent_by) in tally.passes.items()]
-    ended, cause, ending = run_end.run_end(os.path.dirname(os.path.dirname(os.path.abspath(path))))
+    ended, cause, ending = run_end.run_end(run)
     ending = ending or None
     wall_span, awake_span = wall_and_awake_spans(tally.opening, ending, clocked)
     planned, full_suite = planned_steps(ledger)
-    pinned = run_pins.skip_verify(issue, *pin_roots()) or ""
+    pinned = run_pins.skip_verify(issue, *roots) or ""
     sessions, turn_rows = [], []
     if not tally.conductor_counted:
-        sessions, turn_rows = conductor_sessions(issue, path)
+        sessions, turn_rows = conductor_sessions(issue, beside)
     spend, model, estimated, priced, some_priced = 0.0, "", False, False, False
     if sessions:
         priced = not any(r.get("total_cost_usd", 0) is None for r in sessions)
         some_priced = any(r.get("total_cost_usd") is not None for r in sessions)
         spend = sum(r.get("total_cost_usd") or 0 for r in sessions)
         tally.total[DOLLARS] += spend
-        model = run_pins.conductor_model(issue, *pin_roots()) or ""
+        model = run_pins.conductor_model(issue, *roots) or ""
         estimated = any(r.get("open") for r in sessions)
     transcripts = tunables.get("VERI_SESSION_TRANSCRIPTS")
     first_event = min((mark["ts"] for mark in marks if "ts" in mark), default=None)

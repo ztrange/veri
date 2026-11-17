@@ -17,6 +17,8 @@ USAGE = "usage: event.sh <event> [key=value …]\n".encode()
 CONTEXT = ((b"issue", b"VERI_ISSUE"), (b"actor", b"VERI_ACTOR"), (b"phase", b"VERI_PHASE"),
            (b"step", b"VERI_STEP"), (b"event", None), (b"attempt", b"VERI_ATTEMPT"),
            (b"skill_commit", b"VERI_SKILL_COMMIT"))
+# the events that end a phase, after which the issue's metrics file is rewritten (PRD 035.2, D5)
+METRICS_EVENTS = (b"exit", b"step-done", b"bail", b"done")
 STOPPED = (b"candidates-done", b"budget-spent", b"nothing-structural")
 REASONS = b", ".join(STOPPED)
 
@@ -196,13 +198,26 @@ def done_fields(path, ts, awake):
 
 
 def write_journal(top, context, text):
+    """Append `text` to the issue's journal; the journal's path when it was written, else None."""
     journal = journal_path(top, os.fsdecode(context.get(b"issue", b"")))
     if journal:
         try:
             os.makedirs(os.path.dirname(journal), exist_ok=True)
             append_once(journal, text)
+            return journal
         except OSError:
             sys.stderr.write("event: cannot write journal " + journal + "\n")
+    return None
+
+
+def write_metrics(top, issue, journal):
+    """Rewrite `<issue>.metrics.json` beside the journal with `metrics.sh <issue> --json`'s object of the journal."""
+    import metrics
+    import run_dir
+    target = journal.removesuffix(".jsonl") + ".metrics.json"
+    figures = metrics.as_json(metrics.fold(issue, journal, run_dir.ledger(top, issue), run=top))
+    with open(target, "w", encoding="utf-8") as handle:
+        handle.write(json.dumps(figures, indent=2) + "\n")
 
 
 def strict_refusal(args, context=None):
@@ -258,7 +273,9 @@ def append(directory, context, event, fields=(), ts=None):
         args += done_fields(tdd + "/events.jsonl", ts, awake.decode())
     text = line(args, context, ts, awake)
     append_once(tdd + "/events.jsonl", text)
-    write_journal(top, context, text)
+    journal = write_journal(top, context, text)
+    if journal and args[0] in METRICS_EVENTS:
+        write_metrics(top, os.fsdecode(context[b"issue"]), journal)
     state_labels(args[0], tunables.read("VERI_STATE_LABEL_ISSUE"))
     return 0
 
