@@ -58,7 +58,7 @@ COMMENT_FAMILIES = [
     ("⏹️ Stopped", "⏹️ Stopped"),
 ]
 
-USAGE = "usage: metrics.sh <issue-number>"
+USAGE = "usage: metrics.sh <issue-number> [--json]"
 JSON = "--json"
 # the skip events counted on the "Verifiers switched off:" line beside refactor's own count
 SWITCHED_OFF_EVENTS = {"verify-%s-skipped" % phase: phase for phase in ("diff", "green", "pin", "red")}
@@ -1080,7 +1080,7 @@ def print_json(issue, path, ledger):
 
 
 def main(argv):
-    if not argv or not argv[0]:
+    if not argv or argv[0] in ("", JSON) or argv[1:] not in ([], [JSON]):
         sys.stderr.write(USAGE + "\n")
         return 2
     issue = argv[0]
