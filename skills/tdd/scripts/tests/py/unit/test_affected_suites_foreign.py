@@ -43,3 +43,31 @@ def test_a_changed_test_file_that_exists_selects_itself_and_a_deleted_one_select
     monkeypatch.chdir(tmp_path)
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "src/app.test.js\ntests/test_foo.py\n", "")
+
+
+def test_a_changed_source_file_selects_the_test_files_git_does_not_ignore_naming_its_stem_as_a_whole_word(
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    named = "import foo_bar\n"
+    write(tmp_path, {"src/foo-bar.py": "x = 1\n",
+                     "tests/test_uses.py": named,
+                     "src/widget.test.js": "require('./foo-bar')\n",
+                     "tests/test_longer.py": "import foo_barbaz\n",
+                     "tests/test_ignored.py": named,
+                     "node_modules/pkg/tests/test_vendored.py": named,
+                     ".venv/lib/tests/test_venv.py": named,
+                     ".tdd/tests/test_state.py": named})
+    foreign_git(fake_processes, ["src/foo-bar.py"],
+                ["src/foo-bar.py", "tests/test_uses.py", "src/widget.test.js", "tests/test_longer.py",
+                 "node_modules/pkg/tests/test_vendored.py", ".venv/lib/tests/test_venv.py", ".tdd/tests/test_state.py"])
+    monkeypatch.chdir(tmp_path)
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "src/widget.test.js\ntests/test_uses.py\n", "")
+
+
+def test_a_range_changing_only_run_state_under_tdd_exits_3_even_when_a_test_names_its_stem(
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    write(tmp_path, {".tdd/issue-7.md": "- [ ] step\n", ".tdd/test_state.py": "",
+                     "tests/test_notes.py": "issue_7 = 1\n"})
+    foreign_git(fake_processes, [".tdd/issue-7.md", ".tdd/test_state.py"], ["tests/test_notes.py"])
+    monkeypatch.chdir(tmp_path)
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (3, "", "")
