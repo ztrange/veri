@@ -38,3 +38,11 @@ def test_journal_md_has_a_table_row_for_the_lint_event_and_the_event_table_decla
 
     assert ("lint" in documented_events(JOURNAL.read_text(encoding="utf-8")),
             "lint" in event_table.EVENTS and list(event_table.keys("lint"))) == (True, ["exit"])
+
+
+def test_journal_md_has_a_table_row_for_the_tidy_first_event_and_the_event_table_declares_its_keys_4118():
+    from event_roster import documented_events
+    from veri import event_table
+
+    assert ("tidy-first" in documented_events(JOURNAL.read_text(encoding="utf-8")),
+            "tidy-first" in event_table.EVENTS and sorted(event_table.keys("tidy-first"))) == (True, ["anchor", "refactoring"])

@@ -37,7 +37,7 @@ EVENTS = {
             "|revise-exhausted|revise-impossible|untestable-criterion|step-too-big|rebase-unresolved|uncovered|ci-red"
             "|suite-red|rebased-tip-red|unreplaced-cases|needs-user|step-added-off-route|fixture-owed"
             "|missing-reroutes-exhausted|repair-reroutes-exhausted|graded-edit-outside-skill-edit|unpinnable-missing"
-            "|repin-failed|skill-edit-refused|prep-owed|no-seam|surround-owed|unwired|surround-short) classification?:(process|system) suites?:text failed?:text",
+            "|repin-failed|skill-edit-refused|prep-owed|no-seam|surround-owed|unwired|surround-short|tidy-first-owed) classification?:(process|system) suites?:text failed?:text",
     "ci-flake": "head:sha run:whole files:text",
     "ci-rerun": "head:sha run:whole files:text",
     "comment": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|verify-revised|plan|verify-plan"
@@ -91,6 +91,7 @@ EVENTS = {
     "suite-flake": "at?:(suite-repair|resume) files:text",
     "suite-repair-retired": "",
     "test-run": "tier:(fast|affected|all|target) suites:text,empty seconds:whole status:whole",
+    "tidy-first": "anchor:text refactoring:text",
     "tests-frozen-refused": "exit:(1|2) reason:text,empty",
     "unpinnable-missing": "step:text",
     "unpinnable-step": "step:text reason:text,empty",
