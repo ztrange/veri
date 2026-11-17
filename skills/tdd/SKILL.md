@@ -715,8 +715,7 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   title from the ledger, which the insertion rewrites.
   The `at=over-budget` is what tells this split apart from the other two causes that grow a
   plan: a Green leaf volunteering one (no `at=`) and a spent revise budget (`at=exhausted`).
-  The call passes no `--criterion`: a split keeps its anchor's criterion, because it is the
-  same behaviour broken smaller.
+  The call passes no `--criterion`: a split keeps its anchor's criterion.
   Then loop back to `next-unchecked.sh`, which now hands over the first of them.
   **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`**, as on the other two
   plan-growth paths, whose growth cap the split shares — see `<base directory>/BAIL.md`. **`add-ledger-step.sh` exit 2**: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, whatever the answer (`retry` too), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
@@ -808,14 +807,14 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      **revise loop** for red exactly as a verify-red `REJECT` does — the revise leaf answers `.tdd/verify-red.reason`, and the attempt spends
      `REVISE_BUDGET` like any other (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
 
-   Run `$S/unreplaced-cases.sh "<step line>" .tdd/develop-red.out` on a `⟦replaces-case⟧` step once the
+   Run `$S/unreplaced-cases.sh "<step line>" .tdd/develop-red.out 2> .tdd/unreplaced-cases.err` on a `⟦replaces-case⟧` step once the
    Red report is written, against the current attempt's report (`.tdd/revise-red-<k>.out` after a red
    revise), before verify-red launches. Exit 1 prints each named case with no `REPLACES:` line:
    give the Red one chance to correct its report. Launch one `develop-replaces-report` leaf, spending no `REVISE_BUDGET`
    attempt and writing no `revise` mark, then run `$S/unreplaced-cases.sh` again as `$S/unreplaced-cases.sh "<step line>" .tdd/develop-red.out .tdd/develop-replaces-report.out` (`.tdd/revise-red-<k>.out` in place of `.tdd/develop-red.out` after a red revise), so a case the Red report already replaced still counts and a correction naming exactly the missing cases does not bail, before verify-red launches.
    Exit 1 again: **bail with cause=unreplaced-cases**, naming each case it printed, and launch no second correction leaf and no verifier — verify-green
-   never runs on a step whose named cases lack a replacement (`Read` `<base directory>/BAIL.md`). Exit 2 — no answer could be obtained (no
-   readable report, bad arguments) — bails with cause=unreplaced-cases at once, launching no correction leaf and no verifier (`Read` `<base directory>/BAIL.md`).
+   never runs on a step whose named cases lack a replacement (`Read` `<base directory>/BAIL.md`). A first-check exit 2 — no answer could be obtained (no
+   readable report, bad arguments) — with `$S/adjudicate.sh left <n>` exit 0 first launches `adjudicate-unreplaced-cases` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`): `route replaces-report` takes the exit-1 path; any other answer (`retry` too) or a spent budget bails with cause=unreplaced-cases, with no second check, correction leaf or verifier (`Read` `<base directory>/BAIL.md`). A second-check exit 2 bails so at once, unadjudicated, with no second correction leaf or verifier.
    The correction leaf: save the printed cases to `.tdd/replaces-missing.txt` (and read `.tdd/revise-red-<k>.out` in place of `.tdd/develop-red.out` after a red revise), then
    `$S/build-develop-prompt.sh replaces-report .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' .tdd/develop-red.out .tdd/replaces-missing.txt > .tdd/develop-replaces-report.prompt`,
    `rm -f .tdd/develop-replaces-report.exit .tdd/develop-replaces-report.pid`, then
@@ -1311,8 +1310,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      $S/push-branch.sh
      ```
      `git add -A` is what carries `.tdd/issue-<n>-refactor-owed.md` into that same commit:
-     what `append` wrote is untracked until then, and a file left beside the worktree is
-     lost with it.
+     what `append` wrote is untracked until then.
      `<k>` is the number of the issue's numbered acceptance criterion the behaviour serves,
      read from the issue's `## Acceptance criteria`, not inherited from the anchor. The
      uncovered-spec behaviours, the leaf's and the verifier's, serving one criterion go in
@@ -1328,8 +1326,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      owed steps rather than planned — the script's own entry in `SCRIPTS.md` says how — and
      `next-unchecked.sh` never finds them there, so the run does not plan what it recorded.
      Narrate it as the owed steps it is and carry on to the clear below — the step verified
-     PASS and the values are recorded; the plan simply did not grow, which is nothing to
-     stop a run for. That grown ledger rides the same commit as the clear.
+     PASS and the values are recorded. That grown ledger rides the same commit as the clear.
      The push copies the step's
      finished state to the remote on the same terms as Green's above: exit **1** launches
      the reconcile leaf (when that happens, `Read` and run `<base directory>/RECONCILE.md`). Exit **2** is a **bail** (`Read` `<base directory>/BAIL.md`).

@@ -43,6 +43,8 @@ Run it in order, at the site where the eligible exit 2 came back.
    call that exited 2.
    At the `replaces-report-failed` site they are `.tdd/develop-replaces-report.err` and
    `wait-leaf.sh develop-replaces-report`.
+   At the `unreplaced-cases` site (its first check only) they are `.tdd/unreplaced-cases.err` and
+   `unreplaced-cases.sh <step line> <report>`.
 3. **Launch the leaf** `adjudicate-<cause>` through `supervise.sh`, detached, then wait in the
    foreground (on an exit 3 call the wait again). Remove the cause's completion and pid files
    first, as *Launching a leaf* in `SKILL.md` does, so a second adjudication of one cause never
@@ -63,6 +65,7 @@ Run it in order, at the site where the eligible exit 2 came back.
      `outcome=retry`.
    - `1` — `bail` or `route`: bail, or take the route token the cause allows (`ci-timeout`
      allows none, so it bails; `ci-conflict`'s `rebase` is the path its site in `DRAFT-PR.md`
+     states, and `unreplaced-cases`'s `replaces-report` the correction leaf its site in `SKILL.md`
      states).
    - `2` — unparsed: a bail with the original cause and class.
 
