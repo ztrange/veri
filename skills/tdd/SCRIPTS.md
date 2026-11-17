@@ -317,7 +317,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   (`VERI_ISSUE`, `VERI_ACTOR=conductor`, `VERI_STEP`, `VERI_PHASE`, `VERI_ATTEMPT`) rides on
   the call in the environment. The log is run state: it is ignored, never committed, and
   goes with the worktree. With `VERI_STATE_LABEL_ISSUE=<n>` set, a `stop` event adds the `stopped`
-  label, so every state a run can be in reads off the issue's labels, and `start` and `resume` remove
+  label (a `bail`, `bailed`) when the repository has it, never creating it, so every state a run can be in reads off the issue's labels, and `start` and `resume` remove
   `stopped` as they remove `bailed`. `resume` also re-claims a released
   issue: it adds `taken:<lane>` (the text after the last `:` of `VERI_LABEL`, `main` without one) and
   removes the opt-in label, so dispatch does not relaunch it.
