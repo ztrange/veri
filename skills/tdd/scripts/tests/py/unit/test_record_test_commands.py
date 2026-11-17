@@ -28,6 +28,15 @@ def test_an_existing_tier_line_is_replaced_where_it_stands_keeping_what_precedes
         b"tail")
 
 
+def test_a_crlf_claude_md_gets_its_tier_lines_with_crlf_endings_backticked_so_the_detector_reads_them_back_exactly(record):
+    text = b"# P\r\nveri: fast tests: old\r\nend\r\n"
+
+    new = record.recorded(text, b"make unit", b"make test")
+
+    assert new == b"# P\r\nveri: fast tests: `make unit`\r\nend\r\nveri: all tests: `make test`\r\n"
+    assert (record.declared(new, record.FAST), record.declared(new, record.ALL)) == (b"make unit", b"make test")
+
+
 def test_an_existing_one_test_file_line_is_replaced_where_it_stands_and_every_other_line_is_unchanged(record):
     text = b"# P\nveri: one test file: `old \"$1\"`\nmid\nveri: fast tests: f\nveri: all tests: a\nend\n"
 

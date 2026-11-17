@@ -74,18 +74,22 @@ def recorded(text, fast, full, one_file=None):
     the one-test-file command when given: the line the detector reads each from rewritten from its marker on, where it
     stands; a declaration no line holds appended."""
     lines = text.split(b"\n")
+    crlf = lines[0].endswith(b"\r") and len(lines) > 1
+    end = b"\r" if crlf else b""
     missing = []
     for marker, command in declarations(fast, full, one_file):
+        # The detector keeps a line's trailing \r, so a CRLF file's command is backticked to read back exactly.
+        stated = marker + (b" `" + command + b"`" if crlf else b" " + command) + end
         for i, line in enumerate(lines):
             at = declaring(line, marker)
             if at is not None:
-                lines[i] = line[:at] + marker + b" " + command
+                lines[i] = line[:at] + stated
                 break
         else:
-            missing.append(marker + b" " + command + b"\n")
+            missing.append(stated + b"\n")
     text = b"\n".join(lines)
     if missing and text and not text.endswith(b"\n"):
-        text += b"\n"
+        text += end + b"\n"
     return text + b"".join(missing)
 
 
