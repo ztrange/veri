@@ -1106,8 +1106,7 @@ that push; else the ending call's code (a bail's too).
      reset --hard HEAD` drops it, leaving the last committed transform, which the leaf's own suite run found green — and say in the narration that it was dropped.
    - **A commit in that range whose subject is not `refactor:`** is production code carried into a behaviour-preserving phase, where nothing asks whether a test earned it. Do
      **not** continue either — `git reset --hard <green-sha>` drops every commit the leaf made for this step, the well-formed ones with it, since a leaf that committed
-     production code here is not one whose other commits can be taken on trust — and the step goes to verify-refactor on its green state, with what was dropped named in the
-     narration.
+     production code here is not one whose other commits can be taken on trust — and the step goes to verify-refactor on its green state, with what was dropped named in the narration.
 3. **An `overfit` flag is answered inside this step.** The leaf's `FLAGS:` lines each carry their class. A line whose class is **overfit** names code that passes this step's test
    without implementing the criterion the step states, and names the case that would force the general implementation. Stop the refactor loop there (its stage stays open). **When the loop has landed
    commits since `<green-sha>`, first run 2's checks and verify-refactor (5) over them**, before the triangulating red, and launch the red only after that PASS. On that PASS run
@@ -1116,18 +1115,12 @@ that push; else the ending call's code (a bail's too).
    `check-earlier` needs no `--except` for those cases. Treat `rerecord-refactored`'s exits 1 and 2 as at the final verify-refactor
    PASS below (exit 1 a bail `needs-user`, exit 2 a bail `rerecord-failed`, a system failure), and launch no triangulating red (to bail, `Read` `<base directory>/BAIL.md`). A REJECT of that early
    verify-refactor goes the normal revise path (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`), spends `REVISE_BUDGET`, and launches no triangulation
-   until it passes. When no commit landed, no early verify-refactor runs. Then run, for
-   that case, one
-   triangulating **red → verify-red → green → verify-green** inside this same step, exactly
-   as the **Red** and **Green** phases above run them. An overfit flag grows **no ledger
-   step**, makes **no plan amendment** and posts **no second step-done comment**: a step is
-   mirrored done once, at the end of its own cycle, and the step is interrupted here, not
-   finished. The triangulation's own green commit is this
-   step's `<green-sha>` from here on — that is the state the tidying now starts from, so 2
-   above still reads exactly what the step's refactor produced. Then **resume this step's
-   refactor loop** at 1 with the **budget it had left**, asking
-   `$S/refactor-budget.sh <count>` with the transforms already landed as `<count>`, so an
-   overfit flag costs the step a triangulation and never a second budget. The step's final
+   until it passes. When no commit landed, no early verify-refactor runs. Then run, for that case, one
+   triangulating **red → verify-red → green → verify-green** inside this same step, exactly as the **Red** and **Green** phases above run them. An overfit flag grows **no ledger
+   step**, makes **no plan amendment** and posts **no second step-done comment**: a step is mirrored done once, at the end of its own cycle, and the step is interrupted here, not
+   finished. The triangulation's own green commit is this step's `<green-sha>` from here on — that is the state the tidying now starts from, so 2
+   above still reads exactly what the step's refactor produced. Then **resume this step's refactor loop** at 1 with the **budget it had left**, asking
+   `$S/refactor-budget.sh <count>` with the transforms already landed as `<count>`, so an overfit flag costs the step a triangulation and never a second budget. The step's final
    verify-refactor then judges only what the resumed loop landed.
    **A step's triangulation runs at most once.** The loop resumed there is another refactor
    leaf reading the files the triangulation just generalized, so it can raise an `overfit`
@@ -1235,7 +1228,7 @@ that push; else the ending call's code (a bail's too).
    `$touched` is the step's bounds: when all are test files, a structural candidate is
    recorded test-only — "test file" being `transform-touches-tests.sh`'s rule, which is
    `case_reader.is_test_path`'s: `tests/` directories, `*.test.*`, JS/TS `*.spec.*`, Go `*_test.go`, and Python `test_*.py` or `*_test.py` anywhere, so no transform could land it.
-   - **PASS:** run `$S/step-close.sh <n>` first (again on 3); on 0 its last lines hold `next`, `owed_pin`; on 2 naming no sub-step rerun `refactor-half.sh <n>`, else go on from the
+   - **PASS:** run `$S/step-close.sh <n>` first (again on 3); on 0 its last lines hold `next`, `owed_pin`; on 2 naming none follow this branch from its start, never calling it again, else go on from the
      sub-step it names. The step's cycle is complete — the step is tidied, not merely green, so **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and of
      the passing verify-refactor verdict's own `uncovered-spec` flags, then clear the refactor-pending mark and commit the grown, cleared
      ledger first**, before anything outside the repository says the step is done. The verifier's are the `FLAGS:` lines before the final `VERDICT:`/`REASON:` pair in
