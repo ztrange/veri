@@ -1,4 +1,5 @@
 """In-process cases for veri/refactor_half.py, the module refactor-half.sh is a shim over (PRD 027.6, #4028)."""
+import hashlib
 import importlib
 import json
 import os
@@ -286,7 +287,8 @@ def test_4028_on_a_pass_it_posts_the_noted_refactor_and_verify_refactor_marks_th
         assert part in note
     assert "overrun" not in note
     expected = ["step=" + STEP, "green_sha=" + GREEN_SHA, "count=1", "budget=5", "stopped=nothing-structural",
-                "touched=" + TOUCHED, "uncovered_spec=empty input returns 0", "uncovered_spec=a tab separates too"]
+                "touched=" + TOUCHED, "verdict_log=" + hashlib.sha256(b"{\"VERDICT\": 1}\n").hexdigest(),
+                "uncovered_spec=empty input returns 0", "uncovered_spec=a tab separates too"]
     assert (tidy.wt / ".tdd" / "issue-12-refactor-half").read_text().splitlines() == expected
     assert out.splitlines()[-len(expected):] == expected
 

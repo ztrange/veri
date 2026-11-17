@@ -64,3 +64,14 @@ def summary(step):
     """The step's ledger text without its trailing markers, read as data (the #431/#437 rule)."""
     text = ledger.body(step)
     return text[:len(text) - len(ledger.trailing_markers(text))].rstrip()
+
+
+def verdict_log(wt):
+    """The sha256 of `.tdd/verify-refactor.log` as it now stands, or `none` without one: which verify-refactor verdict
+    a refactor-half file was settled after, so step-close can refuse one a later verdict has superseded."""
+    import hashlib
+    try:
+        with open(os.path.join(wt, ".tdd", "verify-refactor.log"), "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()
+    except FileNotFoundError:
+        return "none"

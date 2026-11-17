@@ -160,7 +160,8 @@ def finish(n, wt, step, values):
     uncovered = [detail(line) for line in values["flags"] + verdict_flags if kind(line) == "uncovered-spec"]
     return fused.settle(wt, n, NAME, ["step=" + step, "green_sha=" + values["green_sha"], "count=%d" % values["count"],
                                       "budget=%d" % values["budget"], "stopped=" + values["stopped"],
-                                      "touched=" + values["touched"]] + ["uncovered_spec=" + u for u in uncovered])
+                                      "touched=" + values["touched"], "verdict_log=" + fused_step.verdict_log(wt)]
+                      + ["uncovered_spec=" + u for u in uncovered])
 
 
 def tree_check(wt):

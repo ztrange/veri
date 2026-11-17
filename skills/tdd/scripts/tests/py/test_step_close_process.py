@@ -49,7 +49,7 @@ def test_4029_the_clear_commit_and_push_land_the_cleared_ledger_and_the_owed_fil
     green = git("rev-parse", "HEAD", cwd=wt).strip()
     (wt / ".tdd" / "issue-12-refactor-owed.md").write_text("## one thing works\n\n- structural | split g\n")
     (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
-    (wt / ".tdd" / "issue-12-refactor-half").write_text("step=%s\ngreen_sha=%s\n" % (STEP, green))
+    (wt / ".tdd" / "issue-12-refactor-half").write_text("step=%s\ngreen_sha=%s\nverdict_log=none\n" % (STEP, green))
     (wt / ".tdd" / "stage-rl.t").write_text("100\n")
     (wt / ".tdd" / "pin-recheck-ok").write_text(green + "\n")
 
