@@ -582,6 +582,8 @@ class Fold:
     ended: bool                 # whether the run is over (run_end's answer)
     cause: object               # why it ended without an ending mark: "usage-limit", "killed" or None
     ending: object              # the mark that ended the run (done, stop or bail event), or None
+    bails: list                 # every bail event in log order, as {cause, classification, phase, step}; a key the
+                                # event lacks is None
     issue_wall: object          # seconds from the opening mark to the ending, or None
     asleep: object              # seconds of that span the machine was not running, or None
     steps_done: object          # steps recovered plus ticked full-suite lines, or None when zero
@@ -697,6 +699,8 @@ def fold(issue, path, ledger):
                 refactor_totals=refactor_totals(passes, structural, structural_marked), clocked=clocked, models=models,
                 by_model_shown=bool(models) or any(mark.get("event") == "launch" and "model" in mark for mark in marks),
                 ended=ended, cause=cause, ending=ending,
+                bails=[{key: mark.get(key) for key in ("cause", "classification", "phase", "step")}
+                       for mark in marks if mark.get("event") == "bail"],
                 sessions=sessions, turn_rows=turn_rows, conductor_spend=spend,
                 conductor_turns=sum(r.get("num_turns") or 0 for r in sessions), conductor_model=model,
                 conductor_priced=priced, conductor_some_priced=some_priced, conductor_estimated=estimated,
@@ -1034,12 +1038,30 @@ def json_row(row_counts, columns):
 
 def as_json(f):
     """The run's figures as one JSON-ready object, read off a `Fold` alone (PRD 035.1)."""
-    return {"run": {}, "phases": {phase: json_row(row_counts, PHASE_COLUMNS) for phase, row_counts in f.phases.items()},
+    done = f.ending if f.ending is not None and f.ending.get("event") == "done" else {}
+    return {"run": {"issue": f.issue, "outcome": outcome(f), "wall_seconds": whole(done.get("wall_seconds")),
+                    "awake_seconds": whole(done.get("awake_seconds")), "bails": f.bails},
+            "phases": {phase: json_row(row_counts, PHASE_COLUMNS) for phase, row_counts in f.phases.items()},
             # a step's wall is the markdown's: its start-to-done span, not its leaves' summed seconds
             "steps": [dict(json_row(row_counts, STEP_COLUMNS), text=step, wall_seconds=f.step_walls[step])
                       for step, row_counts in f.steps.items()],
             "conductor": conductor_json(f),
             "total": dict(json_row(f.total, COST_COLUMNS), includes_conductor=f.total_includes_conductor)}
+
+
+def whole(text):
+    """A mark's whole-number value as an int; None when the mark lacks it or it is not a whole number."""
+    return int(text) if isinstance(text, str) and text.isdigit() else None
+
+
+def outcome(f):
+    """How the run ended, in the word the report's Outcome sentence says it: running, usage-limit, killed, unknown,
+    landed, stopped or bailed."""
+    if not f.ended:
+        return "running"
+    if f.ending is None:
+        return f.cause if f.cause in ("usage-limit", "killed") else UNKNOWN
+    return {"done": "landed", "stop": "stopped"}.get(f.ending.get("event"), "bailed")
 
 
 def conductor_json(f):
