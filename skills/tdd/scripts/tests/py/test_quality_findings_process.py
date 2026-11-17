@@ -17,7 +17,7 @@ def test_the_shim_records_a_finding_with_0_and_refuses_an_undefined_case_with_2(
     def record(report):
         ran = subprocess.run([str(SCRIPT), "record", "9"], cwd=tmp_path, input=report, capture_output=True,
                              text=True, env=os.environ)
-        return ran.returncode, (tmp_path / ".tdd" / "issue-9-test-quality.md").read_text()
+        return ran.returncode, (tmp_path / ".tdd" / "issue-9-test-quality").read_text()
 
     recorded = record("FINDING: weak-assertion | test_alpha.py::test_adds | asserts arithmetic only\n")
     refused = record("FINDING: redundant | test_alpha.py::test_gone | gone\n")
