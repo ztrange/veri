@@ -212,6 +212,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         optional["BUG_REPRODUCTION"] = f"{prompts}/_verify-red-bug.md"
     if phase == "plan" and has_heading(spec_text, b"Refactor"):
         optional["REFACTOR_PLAN"] = f"{prompts}/_verify-plan-refactor.md"
+    if phase == "plan" and has_heading(spec_text, b"Legacy"):
+        optional["LEGACY_PLAN"] = f"{prompts}/_verify-plan-legacy.md"
     trailing = trailing_markers(step_arg)
     for placeholder, mark in GREEN_PARAGRAPHS.items():
         marked = is_replaces_case_step(step_arg) if mark == "replaces-case" else carries_mark(
@@ -229,7 +231,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
             write(sys.stderr, f"build-verify-prompt: cannot read '{path}'", before=False, after=False)
             return 2, b""
     prompts_b = os.fsencode(prompts)
-    values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", "RED_FAST_CHECK", *GREEN_PARAGRAPHS, "LEDGER"), b"")
+    values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", "LEGACY_PLAN", "RED_FAST_CHECK", *GREEN_PARAGRAPHS,
+                            "LEDGER"), b"")
     try:
         template = expand_includes(_read(paths[0]), prompts_b)
         shared = expand_includes(_read(paths[1]), prompts_b)

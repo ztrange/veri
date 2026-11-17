@@ -1926,3 +1926,20 @@ def test_3919_plan_lists_first_the_files_touching_a_path_a_step_gives_in_full_th
 
     assert (code, re.findall(r"^tests/\S+\.py$", section, re.M)) == (
         0, ["tests/test_z_route.py", "tests/test_y_bvp.py", "tests/test_a0_process.py"])
+
+
+def test_4106_plan_fills_the_legacy_slot_with_the_legacy_fragment_for_a_legacy_spec_alone_and_with_no_new_input(
+        tmp_path, spec, run_cli, build_verify_prompt):
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("# Plan for #4106\n\n- [ ] wrap the parser ⟦phases: seam,surround⟧ ⟦criterion 1⟧\n")
+    legacy_spec = tmp_path / "legacy-spec.md"
+    legacy_spec.write_text(open(spec).read() + "\n## Legacy\n\nRun kind: legacy.\n")
+    refactor_spec = tmp_path / "refactor-spec.md"
+    refactor_spec.write_text(open(spec).read() + "\n## Refactor\n\nRun kind: refactor.\n")
+    fragment = (SCRIPTS / "prompts" / "_verify-plan-legacy.md").read_text().strip()
+
+    outs = {name: run_cli(build_verify_prompt, ["plan", str(path), str(ledger)])
+            for name, path in (("legacy", legacy_spec), ("plain", spec), ("refactor", refactor_spec))}
+
+    assert {name: (code, fragment in out, "{{LEGACY_PLAN}}" in out) for name, (code, out, _) in outs.items()} == {
+        "legacy": (0, True, False), "plain": (0, False, False), "refactor": (0, False, False)}
