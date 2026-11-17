@@ -132,9 +132,11 @@ def test_4031_a_clean_rebase_regrades_runs_the_local_suite_checks_the_tree_pushe
         ("rebase-onto-default.sh", ()),
         ("git", ("merge-base", "HEAD", "origin/main")),
         ("git", ("diff", BASE, "HEAD", "-U0", "--", ":(glob)**/GRADED")),
+        ("git", ("status", "--porcelain", "--untracked-files=all")),
         ("grade-prose.sh", ("skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md")),
         ("grade-prose.sh", ("./REQUIREMENTS.md", "README.md")),
         ("grade-prose.sh", ("--convert",)),
+        ("git", ("status", "--porcelain", "--untracked-files=all")),
         ("rebased-tip-suite.sh", ()), ("detect-test-command.sh", ("--tier", "all")),
         ("detach-command.sh", ("start", "rebased-full-12", "make", "test")),
         ("detach-command.sh", ("wait", "rebased-full-12")),
@@ -200,17 +202,33 @@ def test_4031_a_red_rebased_tip_stops_it_with_the_waits_code_before_any_resume_o
     assert not {"suite-red-resume.sh", "push-branch.sh", "refactor-owed.sh"} & set(fake.names())
 
 
-@pytest.mark.parametrize("porcelain, clean", [(" M skills/tdd/GRADED\n M GRADED\n", True),
-                                              (" D skills/tdd/x.py\n", False), (" M skills/tdd/GRADED.bak\n", False)])
-def test_4031_immediately_before_the_push_a_path_beyond_the_regraded_files_stops_it_with_exit_1(
-        prep, porcelain, clean):
-    code, out, err, fake = prep(fake=Fake(porcelain=("", porcelain)))
+@pytest.mark.parametrize("before, after, pushed, clean", [
+    ("", " M skills/tdd/GRADED\nM  GRADED\n", " M skills/tdd/GRADED\nM  GRADED\n", True),
+    ("", "", " D skills/tdd/x.py\n", False),
+    ("", " M skills/tdd/GRADED.bak\n", " M skills/tdd/GRADED.bak\n", False),
+    (" D docs/GRADED\n", " D docs/GRADED\n", " D docs/GRADED\n", False),
+    (" M docs/GRADED\n", " M docs/GRADED\n", " M docs/GRADED\n", False),
+    ("", " D docs/GRADED\n", " D docs/GRADED\n", False),
+    ("", "", " M docs/GRADED\n", False)],
+    ids=["regraded files", "another path", "a GRADED lookalike", "a GRADED the rebase left deleted",
+         "a GRADED modified before the regrade", "a GRADED the regrade deleted", "a GRADED changed after the regrade"])
+def test_4031_immediately_before_the_push_a_path_beyond_the_files_the_regrade_modified_stops_it_with_exit_1(
+        prep, before, after, pushed, clean):
+    code, out, err, fake = prep(fake=Fake(porcelain=("", before, after, pushed)))
 
     if clean:
         assert code == 0 and "push-branch.sh" in fake.names()
         return
     assert (code, out.splitlines()[-1]) == (1, "stopped at 1 tree-check")
     assert "push-branch.sh" not in fake.names()
+
+
+@pytest.mark.parametrize("args", [("merge-base",), ("diff",)])
+def test_4031_a_git_call_of_the_regrade_block_that_fails_is_exit_2_not_gits_own_code(prep, args):
+    code, out, err, fake = prep(answers={("git", args[0]): (128, "")})
+
+    assert code == 2 and "grade-prose.sh" not in fake.names()
+    assert out.splitlines()[-1].startswith("stopped at 1 git " + args[0])
 
 
 @pytest.mark.parametrize("script, first, inner", [("push-branch.sh", None, 1), ("push-branch.sh", None, 2),
@@ -314,6 +332,14 @@ def test_4031_called_again_after_an_exit_3_it_only_waits_again_then_pushes_and_m
     assert fake.call("push-branch.sh")[1] == ("--force-with-lease=tdd/12-x:" + PRE,)
     assert out.endswith("rebased=1\nrebased_from=%s\nrebased_tip_suite=local\n" % PRE)
     assert not (prep.wt / ".tdd" / "issue-12-pr-prepare-wait").exists()
+
+
+def test_4031_a_resumed_call_keeps_the_files_the_regrade_modified_exempt_at_the_push(prep):
+    _pid(prep, "111\nTue Nov 17 07:00:00 2026\n")
+    prep(fake=Fake(answers={("detach-command.sh", "wait"): (3, "")}, porcelain=("", "", " M GRADED\n")))
+    code, out, err, fake = prep(fake=Fake(porcelain=(" M GRADED\n",)))
+
+    assert code == 0 and "push-branch.sh" in fake.names()
 
 
 def test_4031_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(prep):
