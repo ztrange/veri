@@ -102,13 +102,14 @@ def stopped(step, what, code):
 
 
 def check_environment(answered=None):
-    """Steps 1 and 2's checks before ready-check.sh; each call's stdout lands in <answered>, keyed by its argv."""
+    """Steps 1 and 2's checks before ready-check.sh; the gh call's stdout lands in <answered>["user"], "" when it
+    failed."""
     for step, *cmd in ((1, "git", "rev-parse", "--is-inside-work-tree"), (1, "git", "status", "--porcelain"),
                        (2, "gh", "api", "user"), (2, "claude", "auth", "status"),
                        (2, script("leaf-launchable.sh"))):
         code, out, _ = call(*cmd)
-        if answered is not None:
-            answered[tuple(cmd)] = out if code == 0 else ""
+        if answered is not None and cmd[0] == "gh":
+            answered["user"] = out if code == 0 else ""
         if cmd[1:] == ["status", "--porcelain"] and code == 0 and out.strip():
             code = 1
         if cmd[1:] == ["auth", "status"] and '"loggedIn": false' in out:
@@ -341,7 +342,7 @@ def run(argv):
         stop = check_environment(answered)
         if stop is not None:
             return stop
-        stop = check_readiness(answered.get(("gh", "api", "user"), ""))
+        stop = check_readiness(answered.get("user", ""))
         if stop is not None:
             return stop
         wt, fast, body_file, fast_began, code = start_fast(n, slug, detect, env)
