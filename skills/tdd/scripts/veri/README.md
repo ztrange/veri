@@ -112,6 +112,14 @@ What every module stands on: the one `__main__` path and exit contract, script p
 - `to_contract(code)`: the code when it is 0, 1, 2 or 3, else 2.
 - `whole_number(text, minimum=1)`: the int of `text` when it is ASCII digits only (leading zeros allowed; no sign, space or non-ASCII digit) and at least `minimum`, else `None`.
 
+## fused
+What a fused script after preflight shares (PRD 027 FC1-FC4, FC10, FC14).
+- `script(name)`: `name` in this skill's own scripts directory.
+- `run_script(name, *args, cwd=None, env=None, stdin=None, out=None, err=None)`: `(code, stdout, stderr)` of one process; `out` and `err`, paths under `cwd`, take its output as a shell redirect would and come back as `""`.
+- `call(name, *args, **kw)`: `run_script`, printing a line naming the call and its exit code, then its stdout, and passing its stderr through. `checked(where, name, *args, ok=(0,), **kw)`: `call`, raising `Stop` on an exit outside `ok`; its stdout otherwise.
+- `Stop(where, what, code)`: the first outcome that is not clean. `stopped(stop)`: prints its `stopped at <where> <what>` line; the exit code, the inner code when neither 0 nor 3, else 1.
+- `settle(wt, n, name, lines)`: writes `.tdd/issue-<n>-<name>` and prints its lines; 0. `read_settled(path)`: its `{key: value}`; OSError when unreadable.
+
 ## git
 - `git(*args, **kwargs)`: `subprocess.run(["git", *args], **kwargs)`; the CompletedProcess, never raises on a non-zero exit.
 - `symref_default(answer)`: the default branch named in `ls-remote --symref` output, `None` when absent.
@@ -796,6 +804,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `prd_report`: report.sh's renderer, run in-process.
 - `preflight-refused.sh`: record that preflight refused an issue.
 - `preflight.sh`: the checks before a run starts.
+- `plan-publish.sh`: SKILL.md step 2's fixed tail once the plan is written, in one call.
 - `run-start.sh`: SKILL.md step 1's fixed calls after preflight, in one call.
 - `reset-cost.sh`: what each recorded reset of the dev session or a run's conductor cost, and the growth knob it calls for.
 - `reset-wait.sh`: wait for a usage-limit reset.
