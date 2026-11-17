@@ -353,7 +353,31 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    earlier entry recorded, so the candidates issue lists it. Exit **0** (recorded) and exit **3** (no
    step over the threshold) go on; exit **2** is a system failure: **bail** with cause `no-verdict`
    (`Read` `<base directory>/BAIL.md`).
-   After the lint run (or its skip) and before the PR is readied, run
+   After the lint run (or its skip) and before `refactor-candidates.sh`, each time the run enters
+   this step, run `$S/coupling.sh <branch-base>` once, `<branch-base>` being the merge base with
+   `origin/<default>`. The block first empties `.tdd/issue-<n>-coupling.md`, so a section an
+   earlier entry wrote never outlives this one:
+   ```
+   : > .tdd/issue-<n>-coupling.md
+   $S/coupling.sh "$(git merge-base HEAD origin/<default>)" > .tdd/coupling.out; coupling=$?
+   [ "$coupling" != 0 ] || { printf '### Coupling\n\n'; cat .tdd/coupling.out; } > .tdd/issue-<n>-coupling.md
+   ```
+   Exit **0** printed each pair of same-extension code files, at least one changed by the run,
+   that name each other (`mutual: <a> <b>`): the block wrote them all, under `### Coupling`, to
+   `.tdd/issue-<n>-coupling.md`, which sub-step 2 puts in the PR body. Then record exactly one
+   row, for the printed pair whose two files the range changed the most lines in (`git diff
+   --numstat <branch-base>..HEAD`, added plus deleted, summed over the two files), the first
+   printed on a tie, since `coupling.sh` prints in byte order:
+   ```
+   $S/refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md 'mutual reference: <a> <b>' coupling
+   git add -f .tdd/issue-<n>-refactor-owed.md; git diff --cached --quiet || git commit -m "chore: record the run's coupling candidate (#<n>)"
+   ```
+   `not-done` keeps one `coupling` row per file, so a resume's call replaces the row an earlier
+   entry recorded rather than adding one; `refactor-candidates.sh` lists it and the structural
+   pass never takes it. Exit **3** (no pair) goes on, recording nothing. Exit **2** (the base did
+   not resolve) is a system failure: **bail** with cause `no-verdict` (`Read`
+   `<base directory>/BAIL.md`). Only mutual references are reported; upward imports are not.
+   After the coupling run and before the PR is readied, run
    `$S/refactor-candidates.sh <n> .tdd/issue-<n>-refactor-owed.md` once. Exit **0** prints the
    candidates issue's url, which goes in the PR body's `## Refactor owed` section; exit **3**
    (nothing out-of-bounds or not done) does nothing; exit **2** is a system failure: **bail**
@@ -452,7 +476,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"
    $S/ledger-growth.sh split .tdd/issue-<n>.md > .tdd/issue-<n>-growth.md; growth=$?
    cat > .tdd/issue-<n>-pr-body.md <<'EOF'
-   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by, when $growth is 0, a ## Plan growth section holding .tdd/issue-<n>-growth.md and saying the owner is strongly advised to split the work after the criterion it names (when $growth is 2, the section holds the one line 'plan growth could not be measured: ledger-growth.sh split exited 2'; when 3, there is no such section), followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section; and the ### Test quality section: one bullet per line of .tdd/issue-<n>-test-quality giving its kind, its <file>::<case> and its why, marked 'fixed' with the subject of the test: commit its ⟦test-quality⟧ step made, or 'not fixed' with why: 'redundant', 'budget' (past VERI_TEST_QUALITY_FIXES), 'step growth' (its step filed under ## Owed steps) or 'no anchor' (test-quality.sh anchor exited 3), or, when the file is empty, the line 'No weak-assertion, redundant or implementation-coupled case was found.'>
+   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by, when $growth is 0, a ## Plan growth section holding .tdd/issue-<n>-growth.md and saying the owner is strongly advised to split the work after the criterion it names (when $growth is 2, the section holds the one line 'plan growth could not be measured: ledger-growth.sh split exited 2'; when 3, there is no such section), followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section; and, when .tdd/issue-<n>-coupling.md is non-empty, its contents, the ### Coupling section; and the ### Test quality section: one bullet per line of .tdd/issue-<n>-test-quality giving its kind, its <file>::<case> and its why, marked 'fixed' with the subject of the test: commit its ⟦test-quality⟧ step made, or 'not fixed' with why: 'redundant', 'budget' (past VERI_TEST_QUALITY_FIXES), 'step growth' (its step filed under ## Owed steps) or 'no anchor' (test-quality.sh anchor exited 3), or, when the file is empty, the line 'No weak-assertion, redundant or implementation-coupled case was found.'>
    EOF
    $S/pr-body.sh <pr-number> .tdd/issue-<n>-pr-body.md
    ```
