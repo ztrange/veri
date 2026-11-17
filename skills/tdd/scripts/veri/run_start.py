@@ -46,7 +46,7 @@ def run(n, settled):
     fused.checked("1.2", fused.script("leaf-timeout.sh"), settled["baseline"], "--full", settled["full"], cwd=wt,
                   env=tunables.with_values(VERI_ISSUE=n))
     spec = os.path.join(".tdd", "issue-%s-spec.md" % n)
-    fused.checked("1.3", fused.script("capture-spec.sh"), n, cwd=wt, into=spec)
+    fused.checked("1.3", fused.script("capture-spec.sh"), n, cwd=wt, out=spec)
     ignored = fused.checked("1.4", fused.script("ensure-run-state-ignored.sh"), cwd=wt).strip()
     if ignored == "added":
         listed = fused.checked("1.4", "git", "status", "--porcelain", cwd=wt).splitlines()

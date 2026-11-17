@@ -1,5 +1,6 @@
 """What every fused script after preflight shares (PRD 027 FC1-FC4, FC10): run an inner call from this skill's own
 scripts directory, print it, and stop at the first call that is not clean."""
+import contextlib
 import os
 import subprocess
 import sys
@@ -12,25 +13,31 @@ def script(name):
     return os.path.join(SCRIPTS, name)
 
 
-def run_script(name, *args, cwd=None, env=None):
-    proc = subprocess.run([name, *args], capture_output=True, text=True, cwd=cwd, env=env)
-    return proc.returncode, proc.stdout, proc.stderr
+def run_script(name, *args, cwd=None, env=None, stdin=None, out=None, err=None):
+    """(code, stdout, stderr) of one process. <stdin> is text fed to it; <out> and <err>, paths under <cwd>, take its
+    stdout and stderr as `> <out>` and `2> <err>` would, a process it leaves running included, and come back as ""."""
+    def opened(path):
+        return open(os.path.join(cwd or ".", path), "w") if path is not None else subprocess.PIPE
+    with contextlib.ExitStack() as files:
+        stdout, stderr = (files.enter_context(f) if f is not subprocess.PIPE else f for f in map(opened, (out, err)))
+        proc = subprocess.run([name, *args], input=stdin, stdout=stdout, stderr=stderr, text=True, cwd=cwd, env=env)
+    return proc.returncode, proc.stdout or "", proc.stderr or ""
 
 
 def label(name, *args):
     return " ".join([os.path.basename(name), *args])
 
 
-def call(name, *args, cwd=None, env=None, into=None):
-    """Run one inner call and print a line naming it and its exit code, then its stdout, and pass its stderr through
-    unchanged (FC1). With <into>, a path under <cwd>, its stdout goes to that file instead, as `> <into>` would send it,
-    and the line names the redirection."""
-    code, out, err = run_script(name, *args, cwd=cwd, env=env)
-    if into is not None:
-        with open(os.path.join(cwd or ".", into), "w") as f:
-            f.write(out)
-    shown = label(name, *args) + (" > " + into if into is not None else "")
-    sys.stdout.write(shown + " exit " + str(code) + "\n" + (out if into is None else ""))
+def shown(name, *args, out=None, err=None, **_):
+    """The line naming a call: its script's name, its arguments and any redirection."""
+    return label(name, *args) + (" > " + out if out is not None else "") + (" 2> " + err if err is not None else "")
+
+
+def call(name, *args, **kw):
+    """Run one inner call (run_script's keywords) and print a line naming it and its exit code, then its stdout, and
+    pass its stderr through unchanged (FC1); what it sends to a file is not printed."""
+    code, out, err = run_script(name, *args, **kw)
+    sys.stdout.write(shown(name, *args, **kw) + " exit " + str(code) + "\n" + out)
     sys.stderr.write(err)
     return code, out, err
 
@@ -47,8 +54,7 @@ def checked(where, name, *args, ok=(0,), **kw):
     """call(), raising Stop at <where> on an exit outside <ok>; its stdout otherwise."""
     code, out, _ = call(name, *args, **kw)
     if code not in ok:
-        shown = label(name, *args) + (" > " + kw["into"] if kw.get("into") is not None else "")
-        raise Stop(where, shown + " exit " + str(code), code)
+        raise Stop(where, shown(name, *args, **kw) + " exit " + str(code), code)
     return out
 
 
