@@ -169,3 +169,11 @@ def test_3007_suite_reported_refuses_a_wrong_test_line_alone_on_green_and_revise
     code, events = run_suite_reported(run_cli, tmp_path / "work", leaf, ["WRONG_TEST:"])
 
     assert code == 2 and '"event": "report-missing"' in events
+
+
+def test_parse_reads_a_key_written_with_a_trailing_question_mark_as_an_optional_key_of_its_format_4117(report_formats):
+    declared = "REPORT-FORMAT red | keys TEST_PATH: SETUP:? | suite exempt: a red test fails\n"
+
+    assert report_formats.parse(declared) == [
+        {"name": "red", "keys": ["TEST_PATH:", "SETUP:"], "optional": ["SETUP:"], "suite": "exempt",
+         "reason": "a red test fails"}]
