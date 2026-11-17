@@ -19,7 +19,7 @@ def test_prose_owed_sh_prints_nothing_for_veri_plan_skill_and_requirements_list_
 
     ids = re.findall(r"^\| (VPL\d+) \|", (root / "skills/vplan/REQUIREMENTS.md").read_text(), re.M)
     assert "skills/vplan/SKILL.md" not in out.split("\n") and code in (0, 1), (code, out, err)
-    assert ids == ["VPL%d" % n for n in range(1, 20)], ids
+    assert ids == ["VPL%d" % n for n in range(1, 22)], ids
 
 
 @pytest.mark.tree_audit("the repository's graded prose units, copied without .git")
