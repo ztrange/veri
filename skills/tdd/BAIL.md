@@ -117,8 +117,9 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   nothing reaches is not delivered); the PR stays a draft. A human wires each named file into a
   caller or removes it, then runs `release-issue.sh <n>`. A file wired in a way a stem search
   cannot see (a Go file of the same package, a migration found by its framework) can stay: the
-  bail recorded every listed file as pending in `.tdd/issue-<n>-unwired-pending`, and only the
-  release accepts them, moving them to `.tdd/issue-<n>-unwired-accepted`. A resume without a
+  bail recorded every listed file as pending in `.tdd/issue-<n>-unwired-pending`, and only a
+  successful release (`release-issue.sh <n>` exit 0) accepts them, moving every pending file
+  to `.tdd/issue-<n>-unwired-accepted`; a release that exits 2 accepts none. A resume without a
   release bails `unwired` again; a released run's resume goes on when every file `unwired.sh`
   prints is accepted and bails `unwired` again when one is not.
 
