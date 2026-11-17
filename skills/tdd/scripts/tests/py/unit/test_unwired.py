@@ -70,6 +70,22 @@ def test_added_prose_config_and_data_files_and_github_paths_nothing_names_are_sk
     assert (unwired.main(["base"]),) + tuple(capsys.readouterr()) == (3, "", "")
 
 
+def test_accepted_files_are_not_printed_so_a_range_whose_every_unnamed_file_is_accepted_exits_0(
+        tmp_path, monkeypatch, capsys, unwired, fake_processes):
+    tree = {"pkg/a.go": "package pkg\n", "pkg/b.go": "package pkg\n", "db/0001_init.py": "x = 1\n",
+            ".tdd/issue-7-unwired-accepted": "pkg/a.go\ndb/0001_init.py\n"}
+    write(tmp_path, tree)
+    monkeypatch.chdir(tmp_path)
+    accepted = ".tdd/issue-7-unwired-accepted"
+    results = []
+    for added in (["pkg/a.go", "db/0001_init.py"], ["pkg/a.go", "pkg/b.go", "db/0001_init.py"]):
+        range_git(fake_processes, added, list(tree))
+        results.append((unwired.main(["--accepted", accepted, "base"]),) + tuple(capsys.readouterr()))
+    range_git(fake_processes, ["pkg/a.go"], list(tree))
+    results.append((unwired.main(["--accepted", ".tdd/none", "base"]),) + tuple(capsys.readouterr()))
+    assert results == [(0, "", ""), (1, "pkg/b.go\n", ""), (1, "pkg/a.go\n", "")]
+
+
 def test_the_stem_inside_the_added_file_itself_is_no_caller(tmp_path, monkeypatch, capsys, unwired, fake_processes):
     tree = {"src/orphan.py": "def orphan():\n    return orphan\n", "src/main.py": "x = 1\n"}
     write(tmp_path, tree)

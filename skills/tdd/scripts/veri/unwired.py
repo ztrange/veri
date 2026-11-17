@@ -8,7 +8,7 @@ import entry
 import git
 import stem_walk
 
-USAGE = "usage: unwired.sh <branch-base>"
+USAGE = "usage: unwired.sh [--accepted <record>] <branch-base>"
 NOT_CODE = frozenset((".md", ".txt", ".rst", ".yml", ".yaml", ".json", ".toml", ".ini", ".cfg", ".lock", ".csv"))
 
 
@@ -40,7 +40,19 @@ def work_tree():
         return False
 
 
+def accepted(record):
+    """The paths <record> lists, one per line; a missing record accepts none."""
+    try:
+        with open(record, errors="surrogateescape") as lines:
+            return set(lines.read().splitlines())
+    except FileNotFoundError:
+        return set()
+
+
 def main(argv):
+    record = None
+    if argv[:1] == ["--accepted"] and len(argv) > 1:
+        record, argv = os.path.abspath(argv[1]), argv[2:]
     if len(argv) != 1 or not argv[0]:
         return entry.refuse(usage=USAGE)
     if not work_tree():
@@ -52,6 +64,8 @@ def main(argv):
     if not paths:
         return 3
     found = unnamed(paths)
+    if record is not None:
+        found = [p for p in found if p not in accepted(record)]
     sys.stdout.write("".join(p + "\n" for p in found))
     return 1 if found else 0
 
