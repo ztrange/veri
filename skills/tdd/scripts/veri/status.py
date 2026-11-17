@@ -484,7 +484,7 @@ def zone_line():
     return window + "%s (UTC%s%s)" % (now.tm_zone, "−" if now.tm_gmtoff < 0 else "+", offset)
 
 
-RECOVER_HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages"]
+RECOVER_HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages", "Questions"]
 
 
 def recover_runs():
@@ -556,6 +556,17 @@ def recover_state(role, lane=None):
         "timed-n", "override")
 
 
+def recover_questions(lane):
+    """The lane's open question files: `.tdd/questions/<lane>-*.md` (`main-*` with no lane) with no `## Answer` line."""
+    directory = os.path.join(run_dir.main_tree(missing=""), ".tdd", "questions")
+    lines = []
+    for path in sorted(glob.glob(os.path.join(directory, "%s-*.md" % (lane or "main")))):
+        with open(path) as f:
+            if not any(line.rstrip() == "## Answer" for line in f):
+                lines.append(os.path.join(".tdd", "questions", os.path.basename(path)))
+    return lines
+
+
 def recover(role, lane=None):
     if role not in ("coord", "dev"):
         print("usage: status.sh --recover <coord|dev> [--lane <lane>]", file=sys.stderr)
@@ -563,7 +574,8 @@ def recover(role, lane=None):
     bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock,
               "State": lambda: recover_state(role, lane),
               "Pending decisions": lambda: recover_items(role, lane, "decision"),
-              "Pending messages": lambda: recover_items(role, lane, "message")}
+              "Pending messages": lambda: recover_items(role, lane, "message"),
+              "Questions": lambda: recover_questions(lane)}
     try:
         sections = [(heading, bodies[heading]()) for heading in RECOVER_HEADINGS]
     except OSError as refused:

@@ -5,7 +5,7 @@ import os
 import re
 
 
-HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages"]
+HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages", "Questions"]
 
 
 def _serve(fake_processes, run):
@@ -24,7 +24,7 @@ def _fake_gh_serving(pulls, states):
     return run
 
 
-def test_3224_recover_with_nothing_taken_prints_the_seven_headings_in_order_with_none_under_each_empty_one_and_free_for_the_lock(tmp_path, monkeypatch, run_cli, fake_processes):
+def test_3224_recover_with_nothing_taken_prints_every_heading_in_order_with_none_under_each_empty_one_and_free_for_the_lock(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -601,7 +601,7 @@ def test_3224_usage_strings_name_every_verb_and_flag(run_cli):
     assert "--recover <coord|dev> [--lane <lane>]" in status.USAGE
 
 
-def test_3578_recover_skips_a_wt_directory_with_no_ledger_and_still_renders_all_seven_sections_with_exit_0(tmp_path, monkeypatch, run_cli, fake_processes):
+def test_3578_recover_skips_a_wt_directory_with_no_ledger_and_still_renders_every_section_with_exit_0(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd" / "wt" / "fix-2898-pin").mkdir(parents=True)
@@ -738,3 +738,64 @@ def test_recover_prs_raises_the_open_pr_refusal_with_its_stderr_when_the_list_re
         status.recover_prs()
 
     assert str(raised.value) == "status.sh --recover: GitHub refused the open pull request read: boom"
+
+
+def _questions(out):
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    return lines[lines.index("Questions") + 1:]
+
+
+def test_4094_recover_lists_under_questions_each_of_the_lanes_question_files_with_no_answer_heading(tmp_path, monkeypatch, run_cli, fake_processes):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
+    questions = tmp_path / ".tdd" / "questions"
+    questions.mkdir(parents=True)
+    (questions / "mu-12.md").write_text("#### Question\nmerge 12 first?\n#### Options\n#### Found\n#### Recommendation\n")
+    (questions / "mu-rebase-order.md").write_text("#### Question\nwhich order?\n")
+    (questions / "mu-13.md").write_text("#### Question\nhold 13?\n\n## Answer\nhold it\n")
+    (questions / "main-14.md").write_text("#### Question\nanother lane's question\n")
+    (questions / "mu.md").write_text("#### Question\nnot a question id of lane mu\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
+
+    code, out, err = run_cli(status, ["--recover", "dev", "--lane", "mu"])
+
+    assert (code, _questions(out)) == (0, [".tdd/questions/mu-12.md", ".tdd/questions/mu-rebase-order.md"]), (out, err)
+
+
+def test_4094_recover_with_no_lane_lists_only_the_main_lanes_question_files(tmp_path, monkeypatch, run_cli, fake_processes):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
+    questions = tmp_path / ".tdd" / "questions"
+    questions.mkdir(parents=True)
+    (questions / "main-21.md").write_text("#### Question\nopen\n")
+    (questions / "mu-22.md").write_text("#### Question\nanother lane\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
+
+    code, out, err = run_cli(status, ["--recover", "dev"])
+
+    assert (code, _questions(out)) == (0, [".tdd/questions/main-21.md"]), (out, err)
+
+
+def test_4094_recover_prints_none_under_questions_when_every_question_file_holds_an_answer(tmp_path, monkeypatch, run_cli, fake_processes):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
+    questions = tmp_path / ".tdd" / "questions"
+    questions.mkdir(parents=True)
+    (questions / "main-31.md").write_text("#### Question\nanswered\n## Answer\nyes\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
+
+    code, out, err = run_cli(status, ["--recover", "dev"])
+
+    assert (code, _questions(out)) == (0, ["none"]), (out, err)
