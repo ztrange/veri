@@ -1,6 +1,8 @@
 """graded-changed.sh's entry point, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
+import tempfile
 
 import git
 import grade_prose
@@ -15,9 +17,30 @@ def text_at(rev, file):
     return None if shown.returncode else shown.stdout
 
 
+def units_at(rev):
+    """The units every REQUIREMENTS.md at `rev` lists, read from that commit; a list absent there lists nothing."""
+    tree = git.git("ls-tree", "-r", "-z", "--name-only", rev, capture_output=True, text=True)
+    if tree.returncode:
+        return []
+    units = []
+    for path in tree.stdout.split("\0"):
+        if os.path.basename(path) != "REQUIREMENTS.md":
+            continue
+        text = text_at(rev, path)
+        if text is None:
+            continue
+        with tempfile.TemporaryDirectory() as scratch:
+            copy = os.path.join(scratch, "REQUIREMENTS.md")
+            with open(copy, "w", encoding="utf-8") as f:
+                f.write(text)
+            units += requirements.listed_units(copy)
+    return units
+
+
 def signed_at(rev, unit, units):
-    """What `unit` signs at `rev`: a heading unit's own text, a split whole-file unit's view (cut by the heading units
-    listed in the working tree), None when git cannot show the file there or the heading matches no line, or several."""
+    """What `unit` signs at `rev`, cut by `units`, the units listed at `rev`: a heading unit's own text, a split
+    whole-file unit's view, an unsplit one's file; None when git cannot show the file there or the heading matches no
+    line, or several."""
     text = text_at(rev, unit.partition("#")[0])
     if text is None:
         return None
@@ -27,15 +50,16 @@ def signed_at(rev, unit, units):
         return None
 
 
-def changed_unit(unit, changed, base, units):
-    """Whether what `unit` signs changed: a heading unit's own text, a split whole-file unit's view, an unsplit
-    whole-file unit's file."""
+def changed_unit(unit, changed, base, listed):
+    """Whether what `unit` signs changed between `base` and HEAD, each revision's view cut by the heading units that
+    revision lists (`listed`, {rev: units}): so a range that claims or drops a section and edits it reports the
+    whole-file unit. An unsplit whole-file unit at both revisions changed when its file did."""
     file, _, heading = unit.partition("#")
     if file not in changed:
         return False
-    if not heading and not grade_prose.claimed_headings(file, units):
+    if not heading and not any(grade_prose.claimed_headings(file, units) for units in listed.values()):
         return True
-    return signed_at(base, unit, units) != signed_at("HEAD", unit, units)
+    return signed_at(base, unit, listed[base]) != signed_at("HEAD", unit, listed["HEAD"])
 
 
 def main(argv):
@@ -46,9 +70,9 @@ def main(argv):
     if diff.returncode:
         return 2
     changed = diff.stdout.split()
-    units = [u for p in requirements.lists() for u in requirements.listed_units(p)]
+    listed = {argv[0]: units_at(argv[0]), "HEAD": units_at("HEAD")}
     hits = [fields[0] for g in requirements.tracked("GRADED") for fields in grade_prose.graded_lines(g)
-            if changed_unit(fields[0], changed, argv[0], units)]
+            if changed_unit(fields[0], changed, argv[0], listed)]
     for path in hits:
         print(path)
     return 1 if hits else 0

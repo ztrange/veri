@@ -75,11 +75,7 @@ def test_4016_graded_changed_prints_a_heading_unit_only_when_its_section_text_ch
     changed = importlib.import_module("veri.graded_changed")
     monkeypatch.chdir(tmp_path)
     (tmp_path / "GRADED").write_text("%s sig 2026-01-01 g1 t1\nunit.md sig 2026-01-01 g2 t1\n" % ENCODED)
-    fake_processes.answers({
-        "git diff --name-only base HEAD": (0, "unit.md\n" if head_text != BEFORE else "", ""),
-        "git show base:unit.md": (0, BEFORE, ""),
-        "git show HEAD:unit.md": (0, head_text, ""),
-    })
+    answer_revisions(fake_processes, {"base": {"unit.md": BEFORE}, "HEAD": {"unit.md": head_text}})
 
     code, out, err = run_cli(changed, ["base"], cwd=tmp_path)
 
@@ -247,10 +243,53 @@ def test_4016_graded_changed_prints_a_split_whole_file_unit_only_when_its_view_c
     heading_tree(tmp_path)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "GRADED").write_text("%s sig 2026-01-01 g1 t1\nunit.md sig 2026-01-01 g2 t1\n" % ENCODED)
-    fake_processes.answers({
-        "git diff --name-only base HEAD": (0, "unit.md\n", ""),
-        "git show base:unit.md": (0, BEFORE, ""),
-        "git show HEAD:unit.md": (0, head_text, ""),
+    listed = (tmp_path / "REQUIREMENTS.md").read_text()
+    answer_revisions(fake_processes, {"base": {"unit.md": BEFORE, "REQUIREMENTS.md": listed},
+                                      "HEAD": {"unit.md": head_text, "REQUIREMENTS.md": listed}})
+
+    code, out, err = run_cli(changed, ["base"], cwd=tmp_path)
+
+    assert (code, out.splitlines()) == (1, printed), err
+
+
+def answer_revisions(fake_processes, revisions):
+    """Answers graded-changed.sh's git calls from `revisions`, {rev: {path: text}}: the diff between `base` and `HEAD`,
+    each revision's file list and each file's text there (a path absent at a revision is a failed show)."""
+    def show(line, **kwargs):
+        rev, _, path = line.split(" ", 2)[2].partition(":")
+        text = revisions[rev].get(path)
+        return (0, text, "") if text is not None else (128, "", "fatal: path not in revision")
+
+    changed = sorted(p for p in set(revisions["base"]) | set(revisions["HEAD"])
+                     if revisions["base"].get(p) != revisions["HEAD"].get(p))
+    table = {"git diff --name-only base HEAD": (0, "".join(p + "\n" for p in changed), ""), "git show": show}
+    for rev, files in revisions.items():
+        table["git ls-tree -r -z --name-only " + rev] = (0, "".join(p + "\0" for p in sorted(files)), "")
+    fake_processes.answers(table)
+
+
+WHOLE_LISTED = "## unit.md\n\n%s" % ROWS
+BOTH_LISTED = "## %s\n\n%s\n## unit.md\n\n%s" % (HEADING_UNIT, ROWS, ROWS)
+CLAIMED_EDIT = BEFORE.replace("The widget is blue.", "The widget is green.")
+
+
+@pytest.mark.parametrize("base_list, head_list, graded, printed", [
+    # The range claims A and edits inside it: the base view keeps A, the HEAD view does not, so unit.md is reported
+    # although f.md#A has no GRADED line yet.
+    (WHOLE_LISTED, BOTH_LISTED, "unit.md sig 2026-01-01 g2 t1\n", ["unit.md"]),
+    # The reverse: the range drops the claim on A and edits inside it.
+    (BOTH_LISTED, WHOLE_LISTED, "%s sig 2026-01-01 g1 t1\nunit.md sig 2026-01-01 g2 t1\n" % ENCODED,
+     [HEADING_UNIT, "unit.md"]),
+])
+def test_4016_graded_changed_cuts_each_revisions_view_by_the_heading_units_that_revision_lists(
+        base_list, head_list, graded, printed, tmp_path, monkeypatch, run_cli, fake_processes):
+    changed = importlib.import_module("veri.graded_changed")
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "REQUIREMENTS.md").write_text(head_list)
+    (tmp_path / "GRADED").write_text(graded)
+    answer_revisions(fake_processes, {
+        "base": {"unit.md": BEFORE, "REQUIREMENTS.md": base_list, "GRADED": graded},
+        "HEAD": {"unit.md": CLAIMED_EDIT, "REQUIREMENTS.md": head_list, "GRADED": graded},
     })
 
     code, out, err = run_cli(changed, ["base"], cwd=tmp_path)
