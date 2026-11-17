@@ -42,47 +42,84 @@ def gh_answers(body_file):
             '  *) exit 1 ;;\nesac\n' % (URL, body_file, body_file, pull))
 
 
+class Run:
+    """A run's worktree at .tdd/wt/12 on branch `work`, its ledger committed and pushed to a bare remote, the first
+    wait's .tdd/wait-ci.err left empty, and a stub gh; run(answer=None) runs pr-finish for issue 12, <answer> standing
+    in for fused.run_script, and returns (code, stdout, stderr)."""
+
+    def __init__(self, tmp_path, run_cli):
+        self.tmp, self.run_cli = tmp_path, run_cli
+        self.wt, self.remote = tmp_path / ".tdd" / "wt" / "12", tmp_path / "remote.git"
+        (self.wt / ".tdd").mkdir(parents=True)
+        self.env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
+                        GIT_COMMITTER_EMAIL="t@t")
+        self.git("init", "-q", "--bare", str(self.remote), cwd=tmp_path)
+        self.git("init", "-q", "-b", "work")
+        (self.wt / ".gitignore").write_text(IGNORE)
+        (self.wt / ".tdd" / "issue-12.md").write_text(LEDGER)
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "plan")
+        self.git("remote", "add", "origin", str(self.remote))
+        self.git("push", "-q", "origin", "work")
+        (self.wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % self.wt)
+        (self.wt / ".tdd" / "wait-ci.err").write_text("")
+        self.body = tmp_path / "body"
+        self.body.write_text(BODY)
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        write_stub(bin_dir / "gh", gh_answers(self.body))
+        self.calls = tmp_path / "calls"
+        self.calls.write_text("")
+        self.path = str(bin_dir) + os.pathsep + os.environ["PATH"]
+
+    def git(self, *args, cwd=None):
+        return subprocess.run(["git", *args], cwd=cwd or self.wt, capture_output=True, text=True, check=True,
+                              timeout=60, env=self.env).stdout.strip()
+
+    def run(self, monkeypatch, answer=None):
+        pr_finish = importlib.import_module("veri.pr_finish")
+        if answer is not None:
+            monkeypatch.setattr(importlib.import_module("veri.fused"), "run_script", answer)
+        return self.run_cli(pr_finish, ["12"], cwd=str(self.tmp), env={
+            "PATH": self.path, "CALLS": str(self.calls), "REMOTE": str(self.remote), "VERI_GH_DRIVER": "auto",
+            "VERI_POLL": "0", "VERI_BRANCH_SUITE": "ci", "VERI_CI_HEAD_WAIT": "0", "GIT_AUTHOR_NAME": "t",
+            "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"})
+
+
 @pytest.mark.process("git with a bare remote, branch-suite.sh, tick-ledger.sh, tick-issue-criterion.sh, event.sh, "
                      "metrics.sh, push-branch.sh, wait-ci.sh and refactor-owed.sh, all real, against a stub gh")
-def test_4033_the_tick_mark_metrics_commit_push_and_wait_are_made_for_real(tmp_path, run_cli):
-    pr_finish = importlib.import_module("veri.pr_finish")
-    wt, remote = tmp_path / ".tdd" / "wt" / "12", tmp_path / "remote.git"
-    (wt / ".tdd").mkdir(parents=True)
-    env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
-               GIT_COMMITTER_EMAIL="t@t")
+def test_4033_the_tick_mark_metrics_commit_push_and_wait_are_made_for_real(tmp_path, run_cli, monkeypatch):
+    run = Run(tmp_path, run_cli)
+    wt, git = run.wt, run.git
 
-    def git(*args, cwd=wt):
-        return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True, timeout=60,
-                              env=env).stdout.strip()
+    code, out, err = run.run(monkeypatch)
 
-    git("init", "-q", "--bare", str(remote), cwd=tmp_path)
-    git("init", "-q", "-b", "work")
-    (wt / ".gitignore").write_text(IGNORE)
-    (wt / ".tdd" / "issue-12.md").write_text(LEDGER)
-    git("add", "-A")
-    git("commit", "-q", "-m", "plan")
-    git("remote", "add", "origin", str(remote))
-    git("push", "-q", "origin", "work")
-    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
-    body = tmp_path / "body"
-    body.write_text(BODY)
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    write_stub(bin_dir / "gh", gh_answers(body))
-    calls = tmp_path / "calls"
-    calls.write_text("")
-
-    code, out, err = run_cli(pr_finish, ["12"], cwd=str(tmp_path), env={
-        "PATH": str(bin_dir) + os.pathsep + os.environ["PATH"], "CALLS": str(calls), "REMOTE": str(remote),
-        "VERI_GH_DRIVER": "auto", "VERI_POLL": "0", "VERI_BRANCH_SUITE": "ci", "VERI_CI_HEAD_WAIT": "0", "GIT_AUTHOR_NAME": "t",
-        "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"})
-
-    assert code == 0, out + err + calls.read_text()
+    assert code == 0, out + err + run.calls.read_text()
     assert git("log", "--format=%s").splitlines()[:2] == ["metrics: what solving #12 cost (#12)",
                                                           "plan: the full suite is green on CI (#12)"]
-    assert git("rev-parse", "work", cwd=remote) == git("rev-parse", "HEAD")
+    assert git("rev-parse", "work", cwd=run.remote) == git("rev-parse", "HEAD")
     assert "- [x] the full suite is green ⟦full-suite⟧" in (wt / ".tdd" / "issue-12.md").read_text()
-    assert "- [x] the full suite is green" in body.read_text()
+    assert "- [x] the full suite is green" in run.body.read_text()
     marks = [json.loads(line) for line in (wt / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(m["event"], m.get("pr")) for m in marks if m["event"] == "done"] == [("done", URL)]
     assert out.splitlines()[-1] == "refactor_owed_render=.tdd/issue-12-refactor-owed-render"
+
+
+@pytest.mark.process("git with a bare remote and every inner script real but metrics.sh, a stub that writes its file "
+                     "and exits 1, against a stub gh")
+def test_4033_a_failed_metrics_render_that_left_its_file_commits_nothing_and_goes_on_for_real(tmp_path, run_cli,
+                                                                                               monkeypatch):
+    fused = importlib.import_module("veri.fused")
+    run = Run(tmp_path, run_cli)
+    stub = write_stub(tmp_path / "metrics.sh", 'echo "half a report"\nexit 1\n')
+    real = fused.run_script
+
+    def answer(name, *args, **kw):
+        return real(str(stub) if os.path.basename(name) == "metrics.sh" else name, *args, **kw)
+
+    code, out, err = run.run(monkeypatch, answer)
+
+    assert code == 0, out + err
+    assert "metrics=1" in out.splitlines()[-3:]
+    assert "metrics:" not in run.git("log", "--format=%s")
+    assert run.git("rev-parse", "work", cwd=run.remote) == run.git("rev-parse", "HEAD")
