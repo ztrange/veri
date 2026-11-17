@@ -61,7 +61,7 @@ class World:
         def ahead(root):
             if isinstance(span, BaseException):
                 raise span
-            return ("stack", "trunk", list(stack)) if span is None else span
+            return ("stack", "trunk", [commit[:2] for commit in stack]) if span is None else span
 
         def rev(ref):
             if ref == "HEAD":
@@ -72,7 +72,7 @@ class World:
             if log_fails:
                 raise fix.NoAnswer("git log %s failed (exit 128)" % rev_range)
             if rev_range.startswith("refs/remotes/origin/trunk"):
-                return [(commit, subject, []) for commit, subject in stack]
+                return [(commit[0], commit[1], list(commit[2:3] and commit[2])) for commit in stack]
             return list(fixes)
 
         def run(command, target=None):
@@ -163,3 +163,18 @@ def test_bad_arguments_or_an_unreadable_culprit_file_are_exit_2_before_the_lock(
     code, _, err = run_cli(fix, argv)
 
     assert (code, world.pushed, world.scripts) == (2, [], []), err
+
+
+@pytest.mark.parametrize("trailers, subject, code", [
+    ([sha(1)], "fix: b's earlier fix (#12)", 1),
+    ([sha(1)], "fix: c's fix (#13)", 0),
+    ([], "fix: b again (#12)", 0),
+])
+def test_exits_1_pushing_nothing_when_a_commit_of_the_stack_already_carries_a_stack_fix_trailer_and_names_n(
+        monkeypatch, run_cli, fix, tmp_path, trailers, subject, code):
+    stack = [(sha(1), "feat: a (#11)"), (sha(2), "feat: b (#12)"), (sha(4), subject, trailers), (sha(3), "feat: c (#13)")]
+    world = World(monkeypatch, fix, tmp_path, stack_subjects=stack)
+
+    got, _, err = run_cli(fix, world.argv())
+
+    assert (got, len(world.pushed), world.lock_held) == (code, 1 - code, False), err
