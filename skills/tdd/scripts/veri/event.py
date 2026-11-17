@@ -275,11 +275,13 @@ def state_labels(event, issue):
             github.gh_issue_add_label(issue, "stopped")
         elif event == b"resume":
             github.gh_issue_remove_label(issue, "bailed")
+            github.gh_issue_remove_label(issue, "stopped")
             opt_in = tunables.get("VERI_LABEL")
             github.gh_issue_add_label(issue, tunables.taken_label(opt_in))
             github.gh_issue_remove_label(issue, opt_in)
         elif event == b"start":
             github.gh_issue_remove_label(issue, "bailed")
+            github.gh_issue_remove_label(issue, "stopped")
             github.gh_issue_remove_label(issue, "pr-ready")
     except github.NoAnswer:
         sys.stderr.write("event: no answer from gh labelling #%s's run state\n" % issue)

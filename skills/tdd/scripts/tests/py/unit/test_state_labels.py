@@ -103,6 +103,18 @@ def test_issue_4081_a_stop_event_labels_the_state_label_issue_stopped(event, mon
     assert (code, calls) == (0, [ADD_STOPPED])
 
 
+DELETE_STOPPED = ("gh", "api", "-X", "DELETE", "repos/{owner}/{repo}/issues/42/labels/stopped")
+
+
+@pytest.mark.parametrize("name", ["start", "resume"])
+def test_issue_4081_a_start_or_resume_event_takes_the_stopped_label_off_as_it_takes_bailed_off(event, fake_processes, name):
+    calls = fake_gh(fake_processes, lambda args: (0, "", ""))
+
+    event.state_labels(name.encode(), "42")
+
+    assert (DELETE_BAILED in calls, DELETE_STOPPED in calls) == (True, True)
+
+
 def test_a_bail_event_gh_refuses_to_label_still_writes_its_line_exits_0_and_names_the_refusal(event, monkeypatch, tmp_path, capsys, fake_processes):
     monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "42")
     fake_gh(fake_processes, lambda args: (1, "", "HTTP 502: Bad Gateway\n"))
