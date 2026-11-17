@@ -1,9 +1,10 @@
 #!/bin/sh
 # stack-fix.sh — push a reviewed hand fix on top of a red stack, once per culprit: a shim over veri/stack_fix.py.
 #
-# usage:   stack-fix.sh <n> <red-sha> <culprit-file>   (run in a fix worktree: a detached worktree under the target
-#          repository's .tdd/, cut from origin/<stack>'s tip; <culprit-file> holds stack-culprit.sh's answer)
-# Under the merge lock, after a fetch, it pushes HEAD to the stack as a fast-forward leased to the fetched tip, never
+# usage:   stack-fix.sh <n> <red-sha> <culprit-file>   (run in a fix worktree)
+#
+# A fix worktree is a detached worktree under the target repository's .tdd/, cut from origin/<stack>'s tip;
+# <culprit-file> holds stack-culprit.sh's answer for <red-sha>. Under the merge lock, after a fetch, it pushes HEAD to the stack as a fast-forward leased to the fetched tip, never
 # forced, only when <red-sha> is the commit stack-red.sh prints, <culprit-file> names issue <n> for <red-sha>, no stack
 # commit already carries a Stack-fix: trailer and names <n>, every commit of origin/<stack>..HEAD ends its subject
 # (#<n>) and carries `Stack-fix: <red-sha>`, no test file is added, changed, deleted or renamed, and at HEAD each named
