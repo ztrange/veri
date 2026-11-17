@@ -1,11 +1,13 @@
 # Published files
 
-What a program outside veri may read, and what it may rely on when it does. Veri publishes two
-files; everything else it writes is private (see the end of this page).
+What a program outside veri may read, and what it may rely on when it does. Veri publishes three
+files; everything else it writes is private (see the end of this page). All three stay on the machine
+that ran veri: veri commits and pushes none of them.
 
 | File | Path | Written by | When |
 |---|---|---|---|
 | The journal | `$VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl` | `event.sh` (`veri/event.py`) | As an event is written whose line carries an issue: one line per such event (see which events never do, below) |
+| The metrics file | `$VERI_HOME/runs/<owner>-<repo>/<issue>.metrics.json`, beside the issue's journal | `event.sh` (`veri/event.py`) | After an `exit`, `step-done`, `bail` or `done` event of that issue reaches the journal: the whole file rewritten |
 | `report-owed.json` (**optional**) | `.tdd/report-owed.json` in the main working tree, whichever directory `/vreport` runs in | `report.sh --store-owed` (`veri/prd_report.py`) | When `/vreport` stores a PRD's owed answer |
 
 ## The journal
@@ -49,6 +51,83 @@ only ever in the worktree's event log, never in the journal:
 - `suite-flake` (`rerun-alone.sh` and `suite-red-resume.sh flake`)
 - `step-added` as `add-ledger-step.sh` writes it, one line per inserted step; the conductor's own
   `step-added` mark, written through `event.sh` with `VERI_ISSUE` set, does reach the journal.
+
+## The metrics file
+
+Its path is `<issue>.metrics.json` beside the issue's journal,
+`$VERI_HOME/runs/<owner>-<repo>/<issue>.metrics.json`, resolved as the journal's path is: a run that
+writes no journal (no issue, or no `origin` remote) writes no metrics file either.
+
+It holds the object `metrics.sh <issue> --json` builds, folded from the whole journal, so it covers
+every run of the issue, a resumed one and one made in another worktree included. `event.sh` rewrites
+the whole file at once (a temporary file in the same directory renamed over it, so a reader never sees
+half of it), and only after an `exit`, `step-done`, `bail` or `done` event of that issue reaches the
+journal; every other event leaves it as it is. It may therefore be one phase behind the journal. A
+missing file means no such event of the issue has been written yet. A failure to compute or write it
+is one line on `event.sh`'s stderr and never stops a run: the event is written and the run goes on.
+
+Every figure in it is a count or a sum, and none is a rate: rates over many issues are the reader's,
+since counts add up across files and rates do not. `null` means not known, and is never zero: a reader
+that sums skips it rather than adding nothing. Its keys are those below; keys are only ever added,
+never removed or renamed, and the file carries no version key. A reader ignores a key it does not know.
+
+| Key | Type | May be `null` |
+|---|---|---|
+| `run` | object: the run as a whole | no |
+| `run.issue` | string, the issue number | no |
+| `run.outcome` | string: `running`, `landed`, `stopped`, `bailed`, `usage-limit`, `killed` or `unknown` | yes, when how the run ended cannot be told |
+| `run.wall_seconds` | whole number, the issue's wall time as the `done` mark states it | yes, until the run writes `done` |
+| `run.awake_seconds` | whole number, the part of that time the machine was awake | yes, until the run writes `done` |
+| `run.bails` | list of objects, one per `bail` event, in journal order | no |
+| `run.bails[].cause` | string, the bail's cause | yes, when the event lacks it |
+| `run.bails[].classification` | string, `process` or `system` | yes, when the event lacks it |
+| `run.bails[].phase` | string, empty when the bail named no phase | yes, when the event lacks it |
+| `run.bails[].step` | string, the ledger step's text, empty when none | yes, when the event lacks it |
+| `phases` | object keyed by phase name, one entry per phase a leaf was launched for | no |
+| `phases.<phase>` | object, one phase's figures | no |
+| `phases.<phase>.attempts` | whole number, leaves launched | no |
+| `phases.<phase>.pass` | whole number, `PASS` verdicts | no |
+| `phases.<phase>.reject` | whole number, `REJECT` verdicts | no |
+| `phases.<phase>.kills` | whole number, leaves that exited 2 | no |
+| `phases.<phase>.wall_seconds` | whole number, the leaves' seconds summed | no |
+| `phases.<phase>.api_seconds` | whole number, the leaves' API seconds summed | no |
+| `phases.<phase>.turns` | whole number | no |
+| `phases.<phase>.input_tokens` | whole number | no |
+| `phases.<phase>.output_tokens` | whole number | no |
+| `phases.<phase>.cache_read_input_tokens` | whole number | no |
+| `phases.<phase>.cache_creation_input_tokens` | whole number | no |
+| `phases.<phase>.cost_usd` | number, dollars | no |
+| `steps` | list of objects, one per ledger step a leaf ran for, in the order `metrics.sh`'s By step table lists them | no |
+| `steps[].text` | string, the step's ledger text | no |
+| `steps[].attempts` | whole number | no |
+| `steps[].pass` | whole number | no |
+| `steps[].reject` | whole number | no |
+| `steps[].kills` | whole number | no |
+| `steps[].retries` | whole number, leaves the supervisor relaunched | no |
+| `steps[].no_verdict` | whole number, verifiers relaunched for giving no verdict | no |
+| `steps[].wall_seconds` | whole number, from the step's `step-start` to its `step-done` | yes, until the step has both |
+| `steps[].api_seconds` | whole number | no |
+| `steps[].turns` | whole number | no |
+| `steps[].input_tokens` | whole number | no |
+| `steps[].output_tokens` | whole number | no |
+| `steps[].cache_read_input_tokens` | whole number | no |
+| `steps[].cache_creation_input_tokens` | whole number | no |
+| `steps[].cost_usd` | number, dollars | no |
+| `conductor` | object: the conductor's own spending | no |
+| `conductor.cost_usd` | number, dollars over its priced sessions | yes, when no session was read or none carries a price |
+| `conductor.turns` | whole number | yes, when no session was read |
+| `conductor.sessions` | whole number, the sessions read | no |
+| `conductor.model` | string, the conductor's model | yes, when none was recorded |
+| `conductor.estimated` | boolean, `true` when a session has no closing record yet | no |
+| `conductor.priced` | `true` when every session carries a price, `false` when none does, the string `"partial"` otherwise | no |
+| `total` | object: the run's whole spend | no |
+| `total.turns` | whole number | no |
+| `total.input_tokens` | whole number | no |
+| `total.output_tokens` | whole number | no |
+| `total.cache_read_input_tokens` | whole number | no |
+| `total.cache_creation_input_tokens` | whole number | no |
+| `total.cost_usd` | number, dollars | no |
+| `total.includes_conductor` | boolean, `true` when the conductor's spend is in the total's figures | no |
 
 ## `report-owed.json` (optional)
 
