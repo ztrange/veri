@@ -28,13 +28,11 @@ def _level(line, bare=False):
     return 0
 
 
-def section(text, heading, bare=False, own=False):
-    """The lines of `heading`'s section: up to the next unfenced heading of its level or above, or, with `own`, of
-    any level, so its subsections are left out."""
+def section(text, heading, bare=False):
     lines = text.splitlines()
     fenced = fenced_lines(text)
     start = next(i for i, line in enumerate(lines) if line == heading and not fenced[i])
-    level = float("inf") if own else _level(heading, bare)
+    level = _level(heading, bare)
     end = next(
         (i for i in range(start + 1, len(lines)) if not fenced[i] and 0 < _level(lines[i], bare) <= level),
         len(lines),

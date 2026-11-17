@@ -543,7 +543,7 @@ def test_a_line_indented_four_spaces_that_starts_with_backticks_is_text_so_a_rea
     assert grade_prose.section(text, "unit.md") == "## unit.md\nbefore\n    ```\nafter\n"
 
 
-def test_grade_prose_and_requirements_read_fences_and_a_units_section_through_the_markdown_sections_reader_1978(
+def test_grade_prose_and_requirements_read_fences_through_the_markdown_sections_reader_1978_4016(
         tmp_path, monkeypatch, grade_prose):
     import markdown_sections
     requirements = importlib.import_module("veri.requirements")
@@ -576,7 +576,7 @@ def test_grade_prose_and_requirements_read_fences_and_a_units_section_through_th
     requirements.units(str(tmp_path / "REQUIREMENTS.md"))
     requirements.claims(str(tmp_path / "REQUIREMENTS.md"), "unit.md")
 
-    assert (through_grade_prose, set(calls)) == ({"section", "fenced_lines"}, {"fenced_lines"}), (
+    assert (through_grade_prose, set(calls)) == ({"fenced_lines"}, {"fenced_lines"}), (
         through_grade_prose, set(calls))
 
 

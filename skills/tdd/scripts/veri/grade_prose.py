@@ -64,24 +64,49 @@ class HeadingCount(ValueError):
 def section(text, heading):
     """`heading`'s own text in `text`: its unfenced heading line up to the next unfenced heading line of any level.
     HeadingCount when the heading matches no unfenced heading line, or more than one."""
-    lines = text.split("\n")
-    if lines[-1] == "":
-        lines.pop()
-    flat = "\n".join(" ".join(line.splitlines()) for line in lines)
-    found = [(index, line) for index, (line, fenced) in enumerate(zip(flat.split("\n"), markdown_sections.fenced_lines(flat)))
-             if not fenced and heading_text(line) == heading]
+    found = [own for line, own in own_texts(text)[1:] if heading_text(line) == heading]
     if len(found) != 1:
         raise HeadingCount(len(found))
-    index, line = found[0]
-    body = markdown_sections.section(flat, line, bare=True, own=True)
-    joined = "".join(l + "\n" for l in lines[index:index + len(body)])
-    if not text.endswith("\n") and index + len(body) == len(lines):
-        return joined.removesuffix("\n")
-    return joined
+    return found[0]
+
+
+def own_texts(text):
+    """`text` cut at its unfenced heading lines, in file order: `(None, the text above the first heading)`, then
+    `(heading line as written, its own text)` per heading line; the texts joined are `text`."""
+    lines = re.findall(r"[^\n]*\n|[^\n]+\Z", text)
+    flat = [" ".join(line.removesuffix("\n").splitlines()) for line in lines]
+    fenced = markdown_sections.fenced_lines("\n".join(flat))
+    fenced += [False] * (len(lines) - len(fenced))
+    cuts = [[None, ""]]
+    for line, plain, inside in zip(lines, flat, fenced):
+        if not inside and heading_text(plain) is not None:
+            cuts.append([line.removesuffix("\n"), ""])
+        cuts[-1][1] += line
+    return [tuple(cut) for cut in cuts]
+
+
+def claimed_headings(file):
+    """The headings of every `<file>#<heading>` unit a tracked REQUIREMENTS.md lists."""
+    return {unit.partition("#")[2] for listed in requirements.lists() for unit in requirements.listed_units(listed)
+            if unit.partition("#")[0] == file and "#" in unit}
+
+
+def signed_text(unit, text):
+    """What `unit` signs and the grader is shown, from `text`, its unit text. A whole-file unit whose file has a listed
+    heading unit is split: its view is the file's heading lines, a blank line, then the text above the first heading
+    and the own text of every section no listed heading unit claims, in file order. Any other unit signs `text`."""
+    file, _, heading = unit.partition("#")
+    claimed = set() if heading else claimed_headings(file)
+    if not claimed:
+        return text
+    cuts = own_texts(text)
+    return ("".join(line + "\n" for line, _ in cuts if line is not None) + "\n"
+            + "".join(own for line, own in cuts if line is None or heading_text(line) not in claimed))
 
 
 def heading_text(line):
     """The heading a line of hashes names, None when the line is no heading line."""
+    line = " ".join(line.splitlines())
     hashes = len(line) - len(line.lstrip("#"))
     return line[hashes:].strip() if hashes else None
 
