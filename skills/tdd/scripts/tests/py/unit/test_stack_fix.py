@@ -387,6 +387,17 @@ def test_it_makes_no_wait_ci_call_and_writes_nothing_but_the_push_and_its_two_co
         0, ["merge-lock.sh", "prose-owed.sh", "stack-red.sh"], 1, 2, []), err
 
 
+def test_the_push_is_one_compare_and_swap_leased_to_the_fetched_tip_never_a_force_or_a_plus_refspec(monkeypatch, fix):
+    calls = []
+    monkeypatch.setattr(fix.git, "network", lambda *args, **kwargs: calls.append(args) or type("R", (), {"returncode": 0})())
+
+    code = fix._push(HEAD, "stack", ONTO)
+
+    assert (code, calls) == (0, [("push", "--force-with-lease=refs/heads/stack:%s" % ONTO, "origin",
+                                  "%s:refs/heads/stack" % HEAD)])
+    assert not any(arg in ("--force", "-f") or arg.startswith("+") for arg in calls[0])
+
+
 def test_the_module_names_no_repository_issue_branch_label_person_or_ci_job(fix):
     with open(fix.__file__, encoding="utf-8") as f:
         named = [line for line in f if re.search(r"ztrange|gates|#[0-9]+", line)]
