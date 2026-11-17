@@ -714,7 +714,7 @@ def main(argv):
         if tries >= int(retries, 10):
             break
         tries += 1
-        mark(role, leaf_env, "retry", f"cause={reason}")
+        mark(role, leaf_env, "retry", f"cause={reason}", f"name={name}")
         print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
     if records is not None:
         restore_mutation_records(records, role, leaf_env, name)
@@ -729,7 +729,7 @@ def main(argv):
         harvest_usage.harvest(name, leaf_env)
     print(f"supervise[{name}]: {status}" + (f" — {reason}" if reason else ""), file=sys.stderr)
     sys.stderr.flush()
-    mark(role, leaf_env, "exit", f"status={ec}", *([f"cause={reason}"] if reason else []), f"secs={secs}")
+    mark(role, leaf_env, "exit", f"status={ec}", *([f"cause={reason}"] if reason else []), f"secs={secs}", f"name={name}")
     data = read_log(name, log) or b""
     try:
         sys.stdout.buffer.write(data)
