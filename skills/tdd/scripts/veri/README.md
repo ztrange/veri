@@ -116,12 +116,12 @@ What every module stands on: the one `__main__` path and exit contract, script p
 What a fused script after preflight shares (PRD 027 FC1-FC4, FC10, FC14).
 - `script(name)`: `name` in this skill's own scripts directory.
 - `label(name, *args)`: the call as one line, a newline inside an argument written `\n`.
-- `call(name, *args, **kw)`: one process (`stdin`, `out` and `err` redirections, a `run` such as `github.bounded`), printing a line naming the call and its exit code, then its stdout, and passing its stderr through. `checked(where, name, *args, ok=(0,), **kw)`: `call`, raising `Stop` on an exit outside `ok`; its stdout otherwise.
+- `call(name, *args, **kw)`: one process (`stdin`, `out` and `err` redirections, a `run` such as `github.bounded`), printing a line naming the call and its exit code, then its stdout, and passing its stderr through. `checked(where, name, *args, ok=(0,), **kw)`: `call`, raising `Stop` on an exit outside `ok`; its stdout otherwise. `shown(name, *args, out=None, err=None, stdin=None)`: the line naming a call, with its redirections.
 - `Stop(where, what, code)`: the first outcome that is not clean. `stopped(stop)`: prints its `stopped at <where> <what>` line; the exit code, the inner code when neither 0 nor 3, else 1.
 - `conductor(wt)`: `{"pid", "started"}` as `<wt>/.tdd/conductor.pid` names them, `None` without one: the conductor a wait record is written for (FC7).
 - `settle(wt, n, name, lines)`: writes `.tdd/issue-<n>-<name>` and prints its lines; 0. `read_settled(path)`: its `{key: value}`; OSError when unreadable.
-- The fused halves of a step (PRD 027.4-027.6): `entry(argv, name, run)`, their main (usage and 2, the `stopped at` line on a `Stop`, `waiting on <name>` and 3 when a wait's slice runs out); `step_env(n, step, **more)` and `mark(where, wt, n, step, *fields, **more)`, the run context and a conductor mark.
-- `launch(where, wt, name, command, *args, env, out, err, clear=())`: a leaf under *Launching a leaf* (FC8). `wait(wt, n, owner, name)`: `wait-leaf.sh`, raising on 3, else the leaf's code with the wait record removed. `save_wait`/`load_wait(wt, n, owner, …)`: the wait record `.tdd/issue-<n>-<owner>-wait`, discarded under another conductor (FC5-FC7).
+- The fused halves of a step (PRD 027.4-027.6): `entry(argv, name, run)`, their main (usage and 2, the `stopped at` line on a `Stop`, `waiting on <name>` and 3 on a `Waiting(name)`, a wait whose slice ran out); `step_env(n, step, **more)` and `mark(where, wt, n, step, *fields, **more)`, the run context and a conductor mark.
+- `launch(where, wt, name, command, *args, env, out, err, clear=())`: a leaf under *Launching a leaf* (FC8). `wait(wt, n, owner, name)`: `wait-leaf.sh`, raising on 3, else the leaf's code with the wait record removed. `save_wait`/`load_wait(wt, n, owner, …)`: the wait record `.tdd/issue-<n>-<owner>-wait` (`wait_record(wt, n, owner)` its path), discarded under another conductor (FC5-FC7).
 - `report(where, wt, path, *keys, every=False)`: a leaf's report lines through `extract-result.sh`, printing none of it (FC2). `changed_paths(where, wt)`: each changed or untracked file, one by one (`git status --porcelain --untracked-files=all`), a rename by its new path.
 
 ## git
@@ -430,6 +430,9 @@ The one reading of a GitHub issue's markdown body: its `## <heading>` sections, 
 - `add_blocker(body, new)`: `body` with `- #<new>` listed under `## Blocked by` (pinned by `test_coverage_blocker`: every section starting with it, every `None` line).
 
 A heading matches when it equals the heading once stripped (CRLF and trailing whitespace tolerated; `prefix=True` also accepts a suffix); a heading inside a fenced block is none; a section ends at the next unfenced `# ` or `## `; the last occurrence wins unless `first` or `all` is asked. Callers: `blocked_by`, `report_cache`, `tick_issue_criterion`, `ledger_steps`, `add_ledger_step`, `refresh_spec`.
+
+## next_pending_refactor
+- `refactor_pending(record)`: the ledger record `next-pending-refactor.sh` prints, a checked step still carrying ` ⟂ refactor pending`.
 
 ## ledger
 The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase marks.
@@ -834,6 +837,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 ## fused_step
 - `inputs(name, n, *files)`: the settled preflight values and worktree once every input exists, else `None`, each missing one on stderr (FC15). `first_step(wt, n, chosen)`: the first ledger step a predicate takes.
 - `cost_check(wt, step)`: *The step's cost check*, stopping at `cost-check`. `verify_switched_off(wt, n, phase)`: the run's pinned `VERI_SKIP_VERIFY` names the phase.
+- `summary(step)`: the step's ledger text without its trailing markers, as a commit subject reads it (the #431/#437 rule).
 
 ## metrics
 - `publish(target, issue, journal, ledger, run)`: writes the `metrics.sh --json` object of the journal at `journal` to `target`, renamed into place from a temporary file beside it; `run` is the run directory whose end, conductor log and pins the fold reads (`None`: the journal alone). `event` calls it for the published metrics file.
@@ -844,6 +848,9 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `read_lines(role, lane=None)`: the role's state lines in the main tree, `None` when missing.
 - `State(lines)`: the grammar of the state file. `fields()` (every `key=value` line as a dict), `field(name)` (last `name=` value, `None`), `items(*kinds)` (raw item lines), `last_n()`, `timed_ns()` (`(value, expiry)` pairs), `override_numbers()`, `check()`. A bad line raises `Malformed(kind, line)` (`kind` one of `n-missing`, `n`, `timed-n`, `override`, `state`); each caller words it.
 - `append(path, text)`, `now()`, `epoch(stamp)`, `STAMP`: append (written through a temp file and renamed); the stamp; a stamp's epoch seconds, read as local time; the stamp's strftime format. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
+
+## plan_publish
+- `gh(where, *args, wt)`: one bounded, redacted `gh` call printed as an inner call, raising `Stop` at `where` on any exit but 0; its stdout otherwise.
 
 ## run_start
 - `preflight_file(n)`: the settled file `preflight.sh` wrote for issue `<n>`, under its worktree when called from the main tree, else under this directory's `.tdd/`.
