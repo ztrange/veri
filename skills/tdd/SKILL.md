@@ -842,7 +842,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    [ "$rc" = 0 ] || exit "$rc"
    ```
    Exit 1 (Red case gone) is a verify-red REJECT spending `REVISE_BUDGET` (`REVISE.md`); exit 2, a bail (`<base directory>/BAIL.md`).
-   Then `$S/red-setup.sh record <n> < .tdd/develop-red.out` once: on exit 0, 2 or 3 go on, never bail, revise or relaunch.
+   Then `$S/red-setup.sh record <n> < .tdd/develop-red.out` once: exit 0, 2 or 3 alike goes on to Green, no Red redone.
    `--step "<step text>"`'s record file is what `$S/tests-frozen.sh path "<step text>"` prints,
    `.tdd/tests-frozen-<k>.record`, `<k>` the first 16 hex digits of the step text's SHA-256, never the text (too long, or holding `/`).
    On **`PASSES`** the criterion is **already satisfied** — never send that test to
