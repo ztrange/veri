@@ -9,7 +9,7 @@ alone, so no test is this step's deliverable.
 
 ### The step
 
-{{STEP}}
+{{STEP}}{{TEST_QUALITY}}
 
 ### The verifier's rejection reason (address exactly this)
 

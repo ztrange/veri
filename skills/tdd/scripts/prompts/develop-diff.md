@@ -8,7 +8,7 @@ so no test is this step's deliverable.
 
 ### The step
 
-{{STEP}}
+{{STEP}}{{TEST_QUALITY}}
 
 {{INCLUDE:_develop-spec-context-only.md}}
 
