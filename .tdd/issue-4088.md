@@ -13,4 +13,4 @@
 - [ ] vinstall SKILL.md's readiness brief says it runs as a subagent and starts none ⟦criterion 9⟧
 - [x] a tier whose run died without recording an exit fails its row saying no answer was obtained
 - [x] both tiers share one wait bound per call, so one call never outlasts detach-command.sh wait's 590 s
-- [ ] a tier's wall time ends when its command recorded its exit, not when a later call read it
+- [x] a tier's wall time ends when its command recorded its exit, not when a later call read it

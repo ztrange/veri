@@ -76,8 +76,10 @@ def tier_run_row(tier, command, wt, deadline):
     waited = subprocess.run([detach, "wait", name, bound], cwd=wt, capture_output=True, text=True)
     if waited.returncode == 3:
         return None
+    exit_file = os.path.join(wt, ".tdd", name + ".exit")
+    ended = os.path.getmtime(exit_file) if os.path.exists(exit_file) else time.time()
     with open(started) as began:
-        row = f"{tier} tier run ({int(time.time() - float(began.read()))}s)"
+        row = f"{tier} tier run ({int(ended - float(began.read()))}s)"
     output = os.path.join(wt, ".tdd", name + ".out")
     said = []
     if os.path.exists(output):
