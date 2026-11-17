@@ -178,6 +178,30 @@ def test_issue_4252_the_posted_body_carries_no_local_path_host_or_account_name_n
     assert not [leak for leak in (home, str(tmp_path), host, account, token) if leak.casefold() in body.casefold()]
 
 
+def test_issue_4252_a_rerun_from_a_subdirectory_of_the_clone_posts_nothing_and_exits_3(world, run_cli, tmp_path):
+    record_answer, comments, posted, write_file = world
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    (repo / "skills" / "tdd").mkdir(parents=True)
+    path = write_file("#### Question\n\nKeep %s?\n\n## Answer\n\nYes.\n" % (repo / "skills" / "tdd" / "SKILL.md"))
+
+    codes = [run_cli(record_answer, ["42", path], cwd=str(where))[0] for where in (repo, repo / "skills" / "tdd")]
+
+    assert (codes, posted) == ([0, 3], [("42", "Question: Keep <repo>/skills/tdd/SKILL.md?\n\nOwner's answer: Yes.")])
+
+
+def test_issue_4252_a_clone_whose_main_working_tree_cannot_be_found_exits_2_posting_nothing(world, run_cli, tmp_path):
+    record_answer, comments, posted, write_file = world
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    (worktree / ".git").write_text("gitdir: %s\n" % (tmp_path / "no-such-gitdir"))
+
+    code, out, err = run_cli(record_answer, ["42", write_file(QUESTION + "\n## Answer\n\nYes.\n")], cwd=str(worktree))
+
+    assert (code, out, posted) == (2, "", [])
+    assert err.startswith("record-answer.sh: cannot find the clone's main working tree: ") and err.count("\n") == 1
+
+
 def test_issue_4252_a_long_question_is_redacted_before_it_is_cut_so_no_part_of_a_path_survives(world, run_cli):
     record_answer, comments, posted, write_file = world
     home = os.path.expanduser("~")
