@@ -447,7 +447,10 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    there is nothing left here for a PR-creating `gh api` call to do: a second one against a branch that
    already has an open PR is either a refusal that ends the run at its last step, or a second
    PR for the same branch — and then the claim another machine reads and the page a human is
-   asked to merge are two different pages. Read the existing PR's URL rather than assuming the
+   asked to merge are two different pages. Before the first block, run `$S/pr-ready-wait.sh <n>`, and again on exit 3; on
+   exit 0 take `pr_url`, `pr_number`, `ci=` and `no_checks=` from its last lines (the PR is readied and its first
+   `wait-ci.sh` exited 0: go on after the first block); on any other exit go on by the first block from the point its
+   last line names, the `pr-ready-failed` bail included. Read the existing PR's URL rather than assuming the
    run remembers it, so a resumed run edits the PR its branch already has:
    ```
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
