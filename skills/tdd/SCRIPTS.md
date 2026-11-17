@@ -322,6 +322,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   issue: it adds `taken:<lane>` (the text after the last `:` of `VERI_LABEL`, `main` without one) and
   removes the opt-in label, so dispatch does not relaunch it.
   A short write of a line to either the event log or the journal exits **2** with `event: short write to journal <path>` on stderr, `<path>` naming the file written.
+  After an `exit`, `step-done`, `bail` or `done` line reaches an issue's journal it also rewrites that issue's metrics
+  file beside it (`PUBLISHED.md`); a failure there is one stderr line and never changes its exit code.
   **Strict mode** (`VERI_EVENT_STRICT=1`): an event name `veri/event_table.py` does not hold, a key it does not declare
   for that event, or a required key that is missing exits **2** and writes nothing to either file, stderr naming the
   event and the key. So does a value that does not match the format the table declares for its key, or an empty value
