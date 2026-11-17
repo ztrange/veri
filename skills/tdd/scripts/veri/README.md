@@ -709,6 +709,9 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 - `solvable(label, priority="priority", repo=None)`: `(exit code, issue numbers)` in selection order; code 2 when the listing is unreadable.
 - `solvable_in_scope()`: the same for the configured scope. `priority_label()`: the label, `None` when set but empty.
 
+## park_decision
+- `own_words(body)`: a comment body without its quoted lines (`>`) and code fences, stripped; `""` when nothing else is left. The one reading of a human's own words in a comment: `issue_decisions` prints them as a decision, `parked_issues` counts them as the answer to a park's question.
+
 # Branch, PR and merge
 
 Worktrees, pushing a branch, readying and merging the pull request, waiting for CI. Builds on GitHub and issues, Ledger and plan, Run state and journal, Target suites and tiers and Foundations.
