@@ -36,6 +36,7 @@ callable outside it, and to pin what the unmodified code does now. Judge whether
 
 PASS only if all four hold. Leave the working tree exactly as you found it.
 
-You may add mutants of the region the developer's table misses, as further lines of your
+You may add mutants of the region you judge the cases should catch, as further lines of your
 reason after the `REASON:` line: one `MUTANT: <file> | <old> | <new>` line each, a literal
-replacement inside the region the cases should catch. Do not run them: a script, not you, runs every row of both tables against the cases.
+replacement inside the region. Do not run them: a script, not you, runs every row, yours and the
+developer's, against the cases.
