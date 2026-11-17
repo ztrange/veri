@@ -4,7 +4,7 @@
 - [x] `unwired.sh` exits 0 printing nothing when every added non-test file is named, and 3 when the range adds none ⟦criterion 2⟧
 - [x] `unwired.sh` exits 2 with one stderr line when the base does not resolve or the directory is not a git work tree ⟦criterion 3⟧
 - [x] the stem inside the added file itself does not count as a caller ⟦criterion 4⟧
-- [ ] a process case in a scratch repo prints only `src/orphan.py` and exits 1 ⟦criterion 5⟧
+- [x] a process case in a scratch repo prints only `src/orphan.py` and exits 1 ⟦criterion 5⟧
 - [ ] `classify-bail.sh unwired` prints `process` ⟦criterion 6⟧
 - [ ] `unreachable.sh` unchanged and called by no procedure file ⟦criterion 7⟧
 - [ ] `DRAFT-PR.md` runs `unwired.sh` after `refactor-candidates.sh` and before readying; `BAIL.md` names `unwired`; `SCRIPTS.md` has its entry; rows graded ⟦criterion 8⟧
