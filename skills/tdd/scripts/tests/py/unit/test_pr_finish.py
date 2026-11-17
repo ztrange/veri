@@ -71,6 +71,8 @@ def finish(monkeypatch, run_cli, tmp_path):
         for key, (path, text) in files.items():
             if key not in missing:
                 path.write_text(text)
+        if "wait-ci.err" not in missing and not (wt / ".tdd" / "wait-ci.err").exists():
+            (wt / ".tdd" / "wait-ci.err").write_text("")  # the first wait's, which pr-ready-wait.sh leaves
         fake = fake or Fake(answers)
         monkeypatch.setattr(fused, "run_script", fake)
         code, out, err = run_cli(pr_finish, list(argv if argv is not None else ("12",)), cwd=str(tmp_path))
@@ -121,6 +123,13 @@ def test_4033_otherwise_it_ticks_and_commits_nothing_of_the_kind(finish, mode, l
 
     assert not {"tick-ledger.sh", "tick-issue-criterion.sh"} & set(fake.names())
     assert "plan: the full suite is green on CI (#12)" not in _commits(fake)
+
+
+def test_4033_no_wait_ci_err_under_ci_with_a_line_to_tick_stops_it_with_exit_2_before_any_tick(finish):
+    code, out, err, fake = finish(missing=("wait-ci.err",))
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at 2 no .tdd/wait-ci.err")
+    assert not {"tick-ledger.sh", "event.sh"} & set(fake.names())
 
 
 RENDER = ".tdd/issue-12-refactor-owed-render"
