@@ -131,6 +131,7 @@ def test_pr_ready_exits_2_naming_a_bad_veri_gh_driver_and_runs_no_gh(pr_ready, r
 def test_4230_pr_ready_runs_as_stage_ready_of_the_runs_issue_ending_with_its_exit_code(
         pr_ready, run_cli, monkeypatch, tmp_path, fake_processes, events, ready, code):
     fake_gh(monkeypatch, fake_processes, lambda args: (0, NEW_SHA + "\n", "") if args == HEAD_READ else (ready, "", ""))
+    (tmp_path / ".tdd").mkdir()  # a run worktree's
 
     result = run_cli(pr_ready, ["42", NEW_SHA], env={"VERI_GH_DRIVER": "graphql", "VERI_STATE_LABEL_ISSUE": "12"},
                      cwd=tmp_path)

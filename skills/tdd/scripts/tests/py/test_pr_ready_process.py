@@ -44,6 +44,7 @@ def test_issue_2147_pr_ready_script_marks_a_draft_ready_from_zsh_and_is_listed_w
 @pytest.mark.skipif(shutil.which("zsh") is None, reason="no zsh installed")
 @pytest.mark.process("zsh -c runs pr-ready.sh, a /bin/sh shim over veri/pr_ready.py")
 def test_issue_2147_pr_ready_script_run_from_zsh_exits_2_when_github_answers_on_no_route(tmp_path):
+    (tmp_path / ".tdd").mkdir()  # a run worktree's
     refused, calls = run_from_zsh(tmp_path, 'case "$*" in *--jq*) echo abc123; exit 0 ;; esac\nexit 1\n',
                                   '"$1" 42 abc123')
 

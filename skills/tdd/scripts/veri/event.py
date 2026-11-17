@@ -347,10 +347,13 @@ def stage(name, body, directory="", run_context=None):
     128): no answer could be obtained, the code itself returned unchanged. Each line goes through `mark`, so a line that
     cannot be written is one stderr line and never changes what the body returns: telemetry never bails a run. With no
     `run_context`, the environment's, its issue `VERI_STATE_LABEL_ISSUE` when `VERI_ISSUE` is unset: the conductor
-    exports that to every command it runs, so a script's stage reaches its issue's journal."""
+    exports that to every command it runs, so a script's stage reaches its issue's journal. A directory with no `.tdd/`
+    runs the body unmarked: a stage never creates it, as its absence is state a body may read (wait-ci.sh's marks)."""
+    if not os.path.isdir(os.path.join(os.fspath(directory) or toplevel(), ".tdd")):
+        return body()
     if run_context is None:
         run_context = context(os.environ)
-        run_context["issue"] = run_context["issue"] or os.environ.get("VERI_STATE_LABEL_ISSUE", "")
+        run_context["issue"] = run_context["issue"] or tunables.read("VERI_STATE_LABEL_ISSUE")
     stage_mark(directory, run_context, "stage-start", ["stage=" + name])
     began = time.monotonic()
     status = 2

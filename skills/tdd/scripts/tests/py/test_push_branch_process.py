@@ -107,7 +107,8 @@ def test_a_push_that_lands_also_pushes_refs_veri_runs_n_a_commit_on_no_branch_ho
 def test_a_non_fast_forward_rejection_exits_1_after_one_attempt_naming_the_remote_sha_and_recording_push_rejected(
         tmp_path, run_cli, push_branch, events, fake_processes):
     (tmp_path / ".git").mkdir()
-    rejected = " ! [rejected]        HEAD -> %s (non-fast-forward)\n" % BRANCH
+    (tmp_path / ".tdd").mkdir()
+    rejected =" ! [rejected]        HEAD -> %s (non-fast-forward)\n" % BRANCH
 
     def answer(line, **kwargs):
         if line.startswith("git push"):

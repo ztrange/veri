@@ -10,9 +10,10 @@ from veri import event
 
 @pytest.fixture
 def run(tmp_path, monkeypatch):
-    """A run directory, and a monotonic clock that reads 100 s, then 107.9 s."""
+    """A run directory, holding its `.tdd/`, and a monotonic clock that reads 100 s, then 107.9 s."""
     readings = iter([100.0, 107.9])
     monkeypatch.setattr(event.time, "monotonic", lambda: next(readings))
+    (tmp_path / ".tdd").mkdir()
     return tmp_path
 
 
@@ -46,12 +47,12 @@ def test_4228_a_body_that_raises_ends_its_stage_with_status_2_and_its_error_goes
 
 @pytest.mark.parametrize("code", [0, 1, 3])
 def test_4228_with_the_journal_directory_unwritable_a_stage_returns_its_bodys_exit_code_unchanged(run, code, capfd):
-    (run / ".tdd").write_text("a file where the run's event directory should be\n")
+    (run / ".tdd" / "events.jsonl").mkdir()  # a directory where the run's event log should be
 
     returned = event.stage("baseline", lambda: code, str(run), {"issue": "7"})
 
     assert returned == code
-    assert (run / ".tdd").read_text() == "a file where the run's event directory should be\n"
+    assert list((run / ".tdd" / "events.jsonl").iterdir()) == []
     assert capfd.readouterr().err != ""
 
 
@@ -76,3 +77,10 @@ def test_4228_a_stage_line_whose_write_exits_the_process_still_runs_the_body_and
     returned = event.stage("baseline", lambda: ran.append(code) or code, str(run), {"issue": "7"})
 
     assert (returned, ran) == (code, [code])
+
+
+@pytest.mark.parametrize("code", [0, 1, 2])
+def test_4230_a_stage_in_a_directory_with_no_tdd_runs_its_body_unmarked_and_creates_no_tdd(tmp_path, code):
+    returned = event.stage("ci-wait", lambda: code, str(tmp_path), {"issue": "7"})
+
+    assert (returned, (tmp_path / ".tdd").exists()) == (code, False)
