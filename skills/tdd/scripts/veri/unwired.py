@@ -1,0 +1,34 @@
+"""unwired.sh: the non-test files a range adds that no other non-test file names (PRD 032.6, WN1 to WN3)."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import sys
+
+import case_reader
+import entry
+import git
+import stem_walk
+
+USAGE = "usage: unwired.sh <branch-base>"
+
+
+def added(base):
+    """The paths <base>..HEAD adds that are not test files and not under `.tdd/`."""
+    listed = git.out("diff", "--diff-filter=A", "--name-only", "-z", base + "..HEAD")
+    return [p for p in listed.split("\0") if p and not p.startswith(".tdd/") and not case_reader.is_test_path(p)]
+
+
+def unnamed(paths):
+    """The paths among <paths> whose stem no other non-test file git does not ignore holds as a whole word."""
+    sources = [p for p in stem_walk.tree_files() if not case_reader.is_test_path(p)]
+    return [p for p in paths if not stem_walk.naming(stem_walk.stem(p), sources)]
+
+
+def main(argv):
+    if len(argv) != 1 or not argv[0]:
+        return entry.refuse(usage=USAGE)
+    found = unnamed(added(argv[0]))
+    sys.stdout.write("".join(p + "\n" for p in found))
+    return 1
+
+
+if __name__ == "__main__":
+    entry.run(main, sys.argv[1:])

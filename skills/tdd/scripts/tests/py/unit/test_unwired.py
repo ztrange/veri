@@ -1,0 +1,44 @@
+"""In-process cases for veri/unwired.py, the module unwired.sh is a shim over (#4121, PRD 032.6)."""
+import importlib
+
+import pytest
+
+
+@pytest.fixture
+def unwired():
+    return importlib.import_module("veri.unwired")
+
+
+def range_git(fake_processes, added, tracked=()):
+    """Answers the git calls of a run: the tree is a work tree, the base resolves, `diff --diff-filter=A` names
+    <added>, and `ls-files` lists <tracked> as the files git does not ignore."""
+    def answer(line, **kwargs):
+        args = list(fake.argvs[-1])
+        if args[:2] == ["git", "rev-parse"]:
+            return 0, "true\n", ""
+        if args[:2] == ["git", "diff"]:
+            return 0, "".join(f + "\0" for f in added), ""
+        if args[:2] == ["git", "ls-files"]:
+            return 0, "".join(f + "\0" for f in tracked), ""
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    fake = fake_processes.answers({"git": answer})
+    return fake
+
+
+def write(root, files):
+    for name, text in files.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+
+
+def test_an_added_non_test_file_no_other_non_test_file_names_is_printed_and_exits_1(
+        tmp_path, monkeypatch, capsys, unwired, fake_processes):
+    tree = {"src/orphan.py": "x = 1\n", "src/used-one.py": "y = 2\n", "src/main.py": "import used_one\n",
+            "tests/test_orphan.py": "import orphan\n", ".tdd/issue-7.md": ""}
+    write(tmp_path, tree)
+    range_git(fake_processes, ["src/orphan.py", "src/used-one.py", "tests/test_orphan.py", ".tdd/issue-7.md"],
+              list(tree))
+    monkeypatch.chdir(tmp_path)
+    assert (unwired.main(["base"]),) + tuple(capsys.readouterr()) == (1, "src/orphan.py\n", "")
