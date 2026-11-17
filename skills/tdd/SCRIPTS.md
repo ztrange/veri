@@ -358,6 +358,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   Right after its `#### By phase` table the report holds a `#### REJECT outcomes` table, one row per phase with a
   verifier REJECT, giving its REJECT count and how many of those REJECTs were caught, flipped, overturned, unresolved,
   pending and untracked, the figures of that phase's `rejects` in `--json`; a run with no REJECT has no such table.
+  It holds a `#### Stages` table, one row per stage the run marked, whatever its name, giving its runs, its ends by
+  exit code (ok, failed, no answer, nothing), its unended starts and its wall seconds, the figures of that stage's
+  entry in `--json`'s `stages`; a run with no stage marked has no such table.
   `$S/metrics.sh <n> --json` prints, in place of the markdown report, one JSON object holding the same figures under
   the top-level keys `run`, `phases`, `steps`, `conductor` and `total`, `leaves`, the phase figures split by
   leaf kind, `runs`, one entry per run of the issue, and `stages`, the figures of each stage the journal marks. Every figure in it is a number, or `null` when
