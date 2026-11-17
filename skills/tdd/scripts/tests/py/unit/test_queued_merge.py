@@ -1692,3 +1692,34 @@ def test_the_merge_paths_branch_origin_already_deleted_counts_as_deleted_and_one
     code, _, err = run_cli(queued_merge, ARGV)
 
     assert (code, ("branch delete" in err) == (expected == 2)) == (expected, True), err
+
+
+def linked_worktree(tmp_path, n):
+    """A main clone holding `.tdd/` and its linked worktree `<main>/.tdd/wt/<n>`, laid out as git lays them out."""
+    main = tmp_path / "main"
+    admin = main / ".git" / "worktrees" / n
+    admin.mkdir(parents=True)
+    (admin / "commondir").write_text("../..\n")
+    worktree = main / ".tdd" / "wt" / n
+    worktree.mkdir(parents=True)
+    (worktree / ".git").write_text("gitdir: %s\n" % admin)
+    return main, worktree
+
+
+@pytest.mark.parametrize("take, code", [(0, 0), (2, 2)], ids=["merged", "lock refused"])
+def test_4232_queued_merge_runs_as_stage_merge_carrying_the_branchs_issue_in_the_main_clone_ending_with_its_exit_code(
+        fake_processes, run_cli, tmp_path, events, take, code):
+    main, worktree = linked_worktree(tmp_path, "12")
+
+    def world(answer):  # the scenario's world, its worktree /wt and branch feature here a run's
+        return fake_processes(lambda line, **kwargs: answer(
+            line.replace(str(worktree), "/wt").replace("tdd/12-a-run", "feature"), **kwargs))
+
+    scenario(world, take=take)
+
+    returned, _, err = run_cli(queued_merge, [PR, str(worktree), "tdd/12-a-run", "-"], cwd=tmp_path)
+
+    stages = [(r["event"], r["stage"], r.get("status"), r["issue"]) for r in events.records(main) if "stage" in r]
+    in_worktree = [r for r in events.records(worktree) if "stage" in r]  # the worktree a merge removes holds none
+    assert (returned, stages, in_worktree) == (
+        code, [("stage-start", "merge", None, "12"), ("stage-end", "merge", str(code), "12")], []), err

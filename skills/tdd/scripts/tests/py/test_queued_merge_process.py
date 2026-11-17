@@ -1,4 +1,5 @@
 """queued-merge.sh through the real /bin/sh shim, with gh and git faked on PATH."""
+import json
 import os
 import shutil
 import signal
@@ -465,7 +466,8 @@ def test_queued_merge_run_from_the_scripts_of_the_worktree_it_removes_fast_forwa
     upstream = subprocess.run([real_git, "-C", str(primary), "rev-parse", "refs/remotes/origin/main"],
                               check=True, capture_output=True, text=True).stdout.strip()
     worktree = tmp_path / "wt"
-    (primary / ".git" / "info" / "exclude").write_text("scripts-copy/\n")
+    (primary / ".git" / "info" / "exclude").write_text("scripts-copy/\n.tdd/\n")
+    (primary / ".tdd").mkdir()  # the main clone's run state, where the merge's stage lines go
     copied = worktree / "scripts-copy"
     shutil.copytree(SCRIPTS, copied, ignore=shutil.ignore_patterns("tests", "__pycache__"))
     bin_dir = tmp_path / "bin"
@@ -482,6 +484,9 @@ def test_queued_merge_run_from_the_scripts_of_the_worktree_it_removes_fast_forwa
                               capture_output=True, text=True).stdout.strip()
 
     assert (run.returncode, main_tip) == (0, upstream), run.stderr
+    marks = [json.loads(line) for line in (primary / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert ([(m["event"], m["stage"], m.get("status")) for m in marks], worktree.exists()) == (
+        [("stage-start", "merge", None), ("stage-end", "merge", "0")], False)
 
 
 FAKE_GIT_LOSING_RELEASE_SCRIPT = FAKE_GIT.replace(
