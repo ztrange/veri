@@ -192,12 +192,20 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   the block under "Running the sibling skills" that opens "Every brief for a review, hand-fix or
   merge subagent also says".
 
-  **Caveats before any merge**, whether on your own OK or on a coordinator's merge
-  instruction: send the coordinator every caveat your review found, of three kinds only:
-  a test never watched failing; a change to a guard or other product code outside the
-  issue's stated scope; a departure from the issue's wording. Merge only after a reply that
-  names each caveat. A review with none says so in the same report, and that report is
-  still sent.
+  **Caveats before any merge.** A caveat is one of three kinds only: a test never watched
+  failing; a change to a guard or other product code outside the issue's stated scope; a
+  departure from the issue's wording. Each caveat your review found passes `vjudge`, run as
+  *Running the sibling skills* says, and a caveat `vjudge` settles is ruled by it. Before the
+  merge, append each ruling to the PR's body as one line naming the caveat and the ruling (read
+  the body, add the line, write it back). A caveat `vjudge` does not settle becomes a question as
+  *When to stop and ask* puts one, tied to the run's issue: that PR is not merged until you read
+  the answer from the question file, and every other run goes on. A review reporting no caveat
+  is merged on its OK.
+
+  **With a coordinator attached**, the handshake takes the place of those rulings, whether on
+  your own OK or on a coordinator's merge instruction: send the coordinator every caveat your
+  review found, and merge only after a reply that names each caveat. A review with none says so
+  in the same report, and that report is still sent.
 
   **No coverage claim from the diff alone.** A review never reports "no coverage" or
   "coverage lost" from the diff alone: before the claim it searches the whole test tree,
