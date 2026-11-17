@@ -631,6 +631,7 @@ gh access, issue selection (solvable, parked, blocked), claiming and releasing i
 - `coverage-blocker.sh`: file a coverage issue and block the refactor issue on it.
 - `github-status.sh`: whether GitHub's status page has an incident, open long enough, on the components veri needs; `wait` blocks, polling, until none counts (exit 3: call again).
 - `invisible-work.sh`: sweep for work not visible on its issue. A local branch not on origin is skipped only when its tip equals the head sha of a MERGED or CLOSED PR that used its name; otherwise it is reported under invariant 1, a reused name included.
+- `issue-decisions.sh`: the decisions on an issue, oldest first, each marked `owner:` or `judge:`; a stranger's comment and veri's own are never one.
 - `park-decision.sh`: the owner's answer to a park: the trusted comments after an issue's newest parked comment.
 - `park-issue.sh`: park an issue with its cause and unblock.
 - `parked-issues.sh`: list the parked issues.
