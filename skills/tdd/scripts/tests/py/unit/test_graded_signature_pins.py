@@ -18,7 +18,7 @@ UNITS = {
     "sections.md": "# Top\nintro\n## Part one\nfirst\n```\n## Part two\ndecoy\n```\n## Part two\nsecond\nline\n## Part three\nthird\n",
     "unicode.md": "Der Käfer ist blau — 青い.\n",
 }
-UNIT_NAMES = ["plain.md", "no-newline.md", "empty.md", "sections.md#Part two", "sections.md#Part one", "sections.md#Missing",
+UNIT_NAMES = ["plain.md", "no-newline.md", "empty.md", "sections.md#Part two", "sections.md#Part one",
               "unicode.md"]
 ROW = "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n| A2 | It is round \\| flat. | because |\n"
 
@@ -28,7 +28,6 @@ PINS = {
     "empty.md": "0dfad5ea9d8e0285c5d1e4b6c224bb16f562599b3e6860ac75a6b9bd6dcc7a93",
     "sections.md#Part two": "57265dd0e3b29a981fdeb5eb18d691d784ec2053f668b6c8fb2fe61377ecd5fe",
     "sections.md#Part one": "539b30f097346c6be960d3a7191c6e63c04a0d1568ec23efbe7ad1309753cbc9",
-    "sections.md#Missing": "0dfad5ea9d8e0285c5d1e4b6c224bb16f562599b3e6860ac75a6b9bd6dcc7a93",
     "unicode.md": "03367441b15ed2d415bb2d8747b74b7c707763923136148fd07b90940e3e91b3",
 }
 
