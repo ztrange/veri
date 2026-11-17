@@ -12,7 +12,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
              pinned, model_knobs, models
   tables     phases, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
              adjudications, switched_off, switched_off_by, total, green_rejects (+ green_reject_routes, green_reject_checks),
-             launch_costs (+ launch_cost_missing), gradings, revise_green
+             launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
@@ -108,6 +108,8 @@ PHASE_COLUMNS = COUNTS + TIMES + COST_COLUMNS
 STEP_COLUMNS = STEP_COUNTS + TIMES + COST_COLUMNS
 
 ROLES = ("developer", "verifier", "adjudicator")
+
+FIRST_TRY_KEYS = ("verified_steps", "first_try_pass", "revise_cycles")
 
 UNKNOWN = "unknown"
 
@@ -305,6 +307,8 @@ class _Tally:
         self.launch_costs = {}
         self.launch_cost_missing = 0
         self.gradings = {"count": 0, "PASS": 0, "REJECT": 0, DOLLARS: 0.0, "efforts": set()}
+        self.first_verdicts = {}
+        self.revise_cycles = collections.Counter()
 
     def step_mark(self, step):
         return self.spent.setdefault(step, {})
@@ -374,6 +378,10 @@ class _Tally:
         step = line.get("step", "")
         phase = line.get("phase", "")
         self.route_green_rejects(event, step, line)
+        if event == "verdict" and phase and step and line.get("verdict") in ("PASS", "REJECT"):
+            self.first_verdicts.setdefault((phase, step), line["verdict"])
+        if event == "revise" and phase:
+            self.revise_cycles[phase] += 1
         if self.opening is None or event == "resume":
             self.opening = line
         if event == "structural-pass":
@@ -492,6 +500,18 @@ class _Tally:
             model[count] += 1
         if step:
             self.tally(self.steps, step, STEP_COLUMNS, count)
+
+    def first_tries(self):
+        """Per phase: the steps with a PASS or REJECT verdict of it, those whose first such verdict was PASS, and its
+        `revise` events."""
+        tries = {}
+        for (phase, _step), word in self.first_verdicts.items():
+            counts = tries.setdefault(phase, dict.fromkeys(FIRST_TRY_KEYS, 0))
+            counts["verified_steps"] += 1
+            counts["first_try_pass"] += word == "PASS"
+        for phase, cycles in self.revise_cycles.items():
+            tries.setdefault(phase, dict.fromkeys(FIRST_TRY_KEYS, 0))["revise_cycles"] = cycles
+        return tries
 
     def lost(self):
         """Per phase, the wall seconds and dollars of rejected attempts of steps that later finished (rework)
@@ -614,6 +634,8 @@ class Fold:
     launch_costs: dict          # (actor, model) -> {LAUNCH_COLUMNS: tokens}, leaf usage events with first-turn fields
     launch_cost_missing: int    # leaf usage events without the first-turn fields
     gradings: dict              # the grading events: count, PASS, REJECT, $ (summed cost_usd), efforts (a set)
+    first_tries: dict           # phase -> {FIRST_TRY_KEYS: count}: steps with a PASS or REJECT verdict of the phase, those
+                                # whose first such verdict was PASS, and the phase's revise events
     revise_green: dict          # answering model -> {leaves, PASS, REJECT}: revise-green leaves, and the first green
                                 # verdict of the same step after each
 
@@ -740,7 +762,7 @@ def fold(issue, path, ledger, run=BESIDE):
                 green_reject_routes=sorted(routes.items(), key=lambda item: (-item[1], item[0])),
                 green_reject_checks=sorted(item for item in checks.items() if item[0]) + [("unnamed", checks[""])],
                 launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing,
-                gradings=tally.gradings, revise_green=revise_green_outcomes(marks, models))
+                gradings=tally.gradings, first_tries=tally.first_tries(), revise_green=revise_green_outcomes(marks, models))
 
 
 def known(number):
@@ -1056,7 +1078,9 @@ def as_json(f):
     done = f.ending if f.ending is not None and f.ending.get("event") == "done" else {}
     return {"run": {"issue": f.issue, "outcome": outcome(f), "wall_seconds": whole(done.get("wall_seconds")),
                     "awake_seconds": whole(done.get("awake_seconds")), "bails": f.bails},
-            "phases": {phase: json_row(row_counts, PHASE_COLUMNS) for phase, row_counts in f.phases.items()},
+            "phases": {phase: dict(json_row(row_counts, PHASE_COLUMNS),
+                                   **f.first_tries.get(phase, dict.fromkeys(FIRST_TRY_KEYS, 0)))
+                       for phase, row_counts in f.phases.items()},
             # a step's wall is the markdown's: its start-to-done span, not its leaves' summed seconds
             "steps": [dict(json_row(row_counts, STEP_COLUMNS), text=step, wall_seconds=f.step_walls[step])
                       for step, row_counts in f.steps.items()],

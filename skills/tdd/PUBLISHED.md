@@ -97,6 +97,9 @@ never removed or renamed, and the file carries no version key. A reader ignores 
 | `phases.<phase>.cache_read_input_tokens` | whole number | no |
 | `phases.<phase>.cache_creation_input_tokens` | whole number | no |
 | `phases.<phase>.cost_usd` | number, dollars | no |
+| `phases.<phase>.verified_steps` | whole number, the steps with a `PASS` or `REJECT` verdict of the phase, `0` when none | no |
+| `phases.<phase>.first_try_pass` | whole number, those steps whose first such verdict was `PASS`, `0` when none | no |
+| `phases.<phase>.revise_cycles` | whole number, the phase's `revise` events, `0` when none | no |
 | `steps` | list of objects, one per ledger step a leaf ran for, in the order `metrics.sh`'s By step table lists them | no |
 | `steps[].text` | string, the step's ledger text | no |
 | `steps[].attempts` | whole number | no |
