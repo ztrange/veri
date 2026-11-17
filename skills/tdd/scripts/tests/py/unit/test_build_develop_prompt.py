@@ -10,7 +10,7 @@ import pytest
 
 from conftest import SCRIPTS
 
-PHASES = b"red|green|refactor|cover|seam|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|test-quality|expand|beside|cover-new|migrate|contract-a|contract-b"
+PHASES = b"red|green|refactor|cover|seam|surround|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|test-quality|expand|beside|cover-new|migrate|contract-a|contract-b"
 WANT_PHASES = PHASES + b"|dual-stub"
 USAGE = b"usage: build-develop-prompt.sh " + WANT_PHASES + b" <issue-spec-file> <step-text> <test-cmd> ...\n"
 NAMED_REVISABLE = {"expand", "beside", "migrate", "contract-a", "contract-b", "rebase"}
@@ -2253,3 +2253,27 @@ def test_main_asks_for_a_setup_line_in_a_revise_prompt_only_when_redoing_red_411
         seen[revised] = (code, any(l.startswith(b"SETUP:") for l in lines), b" SETUP:?" in format_line)
 
     assert seen == {"red": (0, True, True), "green": (0, False, False), "refactor": (0, False, False)}
+
+
+def test_main_renders_develop_surround_md_for_the_surround_phase_and_a_revise_of_surround_that_may_rewrite_the_step_s_cases_4107(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n\n## Legacy\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"REASON: a case imports parse_inner from inside the region\n")
+    step = "wrap parse() in src/parse.py:10-80 through the `parse` CLI \u27e6phases: seam,surround\u27e7 \u27e6criterion 1\u27e7"
+    prompts = SCRIPTS / "prompts"
+    rewrite = (prompts / "_develop-test-rewrite-surround.md").read_bytes().rstrip(b"\n")
+    none = (prompts / "_develop-test-rewrite-none.md").read_bytes().rstrip(b"\n")
+
+    code = build_develop_prompt.main(["surround", str(spec), step, "make test"])
+    out, err = capsysbinary.readouterr()
+    short = build_develop_prompt.main(["surround", str(spec), step])
+    short_err = capsysbinary.readouterr().err
+    revised = build_develop_prompt.main(["revise", "surround", str(spec), step, "make test", str(reason)])
+    revise_out, revise_err = capsysbinary.readouterr()
+
+    assert (code, err, b"## Phase: develop-surround" in out, step.encode() in out) == (0, b"", True, True)
+    assert (short, b"surround needs 4 arguments" in short_err) == (2, True)
+    assert (revised, revise_err, b"(redoing surround)" in revise_out, b"a case imports parse_inner" in revise_out,
+            rewrite in revise_out, none in revise_out) == (0, b"", True, True, True, False)

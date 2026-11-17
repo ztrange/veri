@@ -17,18 +17,18 @@ from entry import write
 from prompt_template import IncludeRefused, expand_includes, fill, has_heading, spec_text_of
 
 DEVELOP_INTERFACE_PHASES = INTERFACE_PHASES[:1] + ("beside",) + INTERFACE_PHASES[1:]
-PHASES = ("red", "green", "refactor", "cover", "seam", "transform", "diff", "structural", "predicate", "revise",
+PHASES = ("red", "green", "refactor", "cover", "seam", "surround", "transform", "diff", "structural", "predicate", "revise",
           "reconcile", "exhausted", "over-budget", "rebase", "replaces-report", "red-contradicted", "red-repair",
           "red-missing", "red-supersede", "test-quality") + DEVELOP_INTERFACE_PHASES
 REVISE_PHASES = ("red", "green", "refactor", "transform", "diff")
-WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "seam": 4, "transform": 4, "diff": 5, "structural": 5,
+WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "seam": 4, "surround": 4, "transform": 4, "diff": 5, "structural": 5,
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7,
         "replaces-report": 6, "red-contradicted": 5, "red-repair": 6, "red-missing": 5, "red-supersede": 6,
         "test-quality": 4,
         **dict.fromkeys(DEVELOP_INTERFACE_PHASES, 4)}
 ACCEPTED_WANT = {**WANT, "dual-stub": 4}
 WANT_PHASES = "|".join(PHASES + ("dual-stub",))
-REVISABLE_PHASES = REVISE_PHASES + DEVELOP_INTERFACE_PHASES + ("dual-stub", "rebase")
+REVISABLE_PHASES = REVISE_PHASES + DEVELOP_INTERFACE_PHASES + ("dual-stub", "rebase", "surround")
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = paths.scripts_of(__file__)
 ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",
@@ -186,8 +186,8 @@ def fragments(phase, revised_phase, step, has_bug):
               "RED_LEAD": "_develop-red-lead-replaces-case.md" if replaces_red else "_develop-red-lead.md"}
     if phase != "revise" or replaces_red:
         inline["RED_CASES"] = "_develop-red-cases-replaces-case.md" if replaces_red else "_develop-red-cases.md"
-    inline["TEST_REWRITE"] = "_develop-" + {"red": "test-rewrite-grant", "contract-a": "test-move-contract-a"
-                                           }.get(revised_phase, "test-rewrite-none") + ".md"
+    inline["TEST_REWRITE"] = "_develop-" + {"red": "test-rewrite-grant", "contract-a": "test-move-contract-a",
+                                            "surround": "test-rewrite-surround"}.get(revised_phase, "test-rewrite-none") + ".md"
     if revised_phase == "green":
         inline["WRONG_TEST_REPORT"] = "_develop-wrong-test-report.md"
         inline["WRONG_TEST_FORMAT"] = "_develop-wrong-test-format.md"
