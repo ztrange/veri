@@ -260,8 +260,8 @@ and run it from the step its last line names.
 
 ### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)
 
-Run `$S/run-start.sh <n>` first, again on exit 3; exit 0 made 2–5's calls, their values (timeout, spec
-path, `.gitignore` outcome, `run=`, `verify_plan=`) its last lines. Else go on from the sub-step it names.
+Run `$S/run-start.sh <n>` first; exit 0 made 2–5's calls, their values (timeout, spec path, `.gitignore`
+outcome, `run=`, `verify_plan=`) its last lines. Else go on from the sub-step it names.
 
 1. Read the issue: `gh api repos/{owner}/{repo}/issues/<n> -q '{number, title, body, url: .html_url}'`.
 2. **Derive the slug and enter the issue's worktree.** Slug from the title — lowercase,
