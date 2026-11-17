@@ -240,6 +240,13 @@ Run `vmerge`, `vbail` and `vjudge` each through a subagent on the cheapest model
 the job, briefed to return at most 10 lines and to read the skill at
 `<resolved base dir>/../<skill>/SKILL.md`.
 
+Load the installed `delegate` skill with the Skill tool and work through it: every log, diff,
+review and issue sweep is read by a subagent briefed as that skill says, and only its report
+enters your context. Where `delegate` and P6 differ (the return's length, the cheapest adequate
+model, work done inline rather than in a subagent), P6 holds. The subagents and the brief block
+below stay as this section states them, a merge or hand-fix subagent pushing as its skill or
+brief says. When `delegate` is not installed, say so once and follow P6.
+
 **Every brief for a review, hand-fix or merge subagent also says:**
 
 - Its first line, in bold, is the default: never write `rm` in any command, not even on
