@@ -43,7 +43,8 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
 **Recovery.** When a state file for this role and lane exists, recover: read it through
 `$S/status.sh --recover dev [--lane <lane>]` and read nothing else before your first slot
 decision but `$S/github-outage.sh status` (*Local mode*, below). An `N` on the invocation wins over the file's and is written to it (see *Role state*).
-Recovery re-asks each pending decision once, re-asks none of the question files its `Questions`
+Recovery re-asks each pending decision once in a session without `start_session` (in a session
+with it, each is restated only in its own question session, *Speaking*), re-asks none of the question files its `Questions`
 section lists (*When to stop and ask*), re-sends or checks each pending message, and ends
 with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. Recovery then
 ends by sending the resetter `ack`. With no state file for this role and lane, start fresh.
@@ -73,7 +74,8 @@ ticks, bails, merges), and a question the human must answer is in its own sessio
 and ask*), so the transcript carries neither.
 
 A **notice** — a refused reset, `role-growth.sh`'s exit 2, `request-reset`'s exit 1, the MCP
-launch line of *Starting*, a missing `delegate` skill — is sent once: as one `PushNotification`
+launch line of *Starting*, a missing `delegate` skill, `github-outage.sh hold`'s exit 2, a red
+stack that stays frozen after its failed jobs' re-run — is sent once: as one `PushNotification`
 where the session has that tool, else as one line in its transcript.
 
 With a coordinator attached, each event P4 lets you speak about goes to it, as *Attached* says;
@@ -190,7 +192,7 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
 - **Last comment ✅ Done.** Review it, and on OK run `$S/github-outage.sh hold <pr-url>` first:
   exit 3 (`.tdd/github-outage` does not exist) merges it through `vmerge`; exit 0 holds it
   instead, since a GitHub outage holds merges, and it is then handled as `voutage` says; exit 2
-  is reported once and nothing is merged. A run that ended with an open question for the human
+  is sent once as a notice (*Speaking*) and nothing is merged. A run that ended with an open question for the human
   is never merged.
 
   **Briefing a review, hand-fix or merge subagent here:** the brief also carries the rules in
@@ -292,8 +294,8 @@ test-first hand method.
   fix's tip is answered by `$S/stack-revert.sh <n>`, which reverts the fix, when it was pushed,
   with the culprit. No second fix is briefed.
 - **No culprit.** On a `stack-culprit.sh` exit 3, re-run the red workflow run's failed jobs once
-  (`gh run rerun <run-id> --failed`). Green, the freeze lifts; red again, the freeze stays and the
-  human is told. Nothing is reverted without a culprit.
+  (`gh run rerun <run-id> --failed`). Green, the freeze lifts; red again, the freeze stays and a
+  notice is sent (*Speaking*). Nothing is reverted without a culprit.
 - **No answer.** A `stack-fix.sh` exit 2, or a `stack-revert.sh` exit 2 or exit 3, is never taken
   as fixed or reverted: the stack stays frozen, and it goes to *When to stop and ask*.
 
