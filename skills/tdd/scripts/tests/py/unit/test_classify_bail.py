@@ -225,3 +225,12 @@ def test_main_classifies_rerecord_failed_as_system_with_0_4005(capsys, classify_
     code = classify_bail.main(["rerecord-failed"])
 
     assert (code, *capsys.readouterr()) == (0, "system\n", "")
+
+
+def test_main_classifies_a_legacy_run_s_no_seam_and_surround_owed_bails_as_process_with_0_4106(capsys, classify_bail):
+    results = {}
+    for cause in ("no-seam", "surround-owed"):
+        code = classify_bail.main([cause])
+        results[cause] = (code, *capsys.readouterr())
+
+    assert results == {"no-seam": (0, "process\n", ""), "surround-owed": (0, "process\n", "")}

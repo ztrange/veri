@@ -2,7 +2,7 @@
 
 - [x] capture writes a `## Legacy` section for a `legacy`-labelled issue ⟦criterion 1⟧
 - [x] capture refuses an issue labelled both `legacy` and `refactor`, exit 2, naming both labels ⟦criterion 1⟧
-- [ ] `classify-bail.sh no-seam` and `classify-bail.sh surround-owed` print `process` ⟦criterion 9⟧
+- [x] `classify-bail.sh no-seam` and `classify-bail.sh surround-owed` print `process` ⟦criterion 9⟧
 - [ ] `build-verify-prompt.sh plan` fills `{{LEGACY_PLAN}}` with `_verify-plan-legacy.md` for a `## Legacy` spec, nothing otherwise ⟦criterion 4⟧
 - [ ] `build-develop-prompt.sh seam` renders `prompts/develop-seam.md` ⟦criterion 6⟧
 - [ ] `seam-outcome.sh` reads a develop-seam report: yes+SEAM exit 0, no exit 1 with the reason, unreadable exit 2 ⟦criterion 7⟧
