@@ -442,7 +442,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    promises a backlog nobody left.
    The ledger's own owed steps are copied the same way, and out of the ledger itself: every
    plain bullet under the trailing `## Owed steps` heading of `.tdd/issue-<n>.md` — a step
-   `add-ledger-step.sh` could not fit inside `VERI_STEP_GROWTH`, which nothing in the run
+   `add-ledger-step.sh` could not fit inside `VERI_STEP_GROWTH_PERCENT`, which nothing in the run
    reads again — goes into the PR body under a `## Owed steps` heading of its own. A ledger
    carrying no such heading adds no such section.
    What a human still owes is copied last: every `⟦human-owed⟧` ledger line — a record of a
