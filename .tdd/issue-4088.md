@@ -15,6 +15,6 @@
 - [x] both tiers share one wait bound per call, so one call never outlasts detach-command.sh wait's 590 s
 - [x] a tier's wall time ends when its command recorded its exit, not when a later call read it
 - [x] a default tip that does not resolve, or a failing worktree add, fails the tier run row, starting and creating nothing
-- [ ] a tier worktree is reused only when git lists it and its record names the tip and command of now
+- [x] a tier worktree is reused only when git lists it and its record names the tip and command of now
 - [ ] one deadline counted from the call's start bounds the permission probe and both tiers
 - [ ] an exception after a tier started leaves its worktree and record for the re-run

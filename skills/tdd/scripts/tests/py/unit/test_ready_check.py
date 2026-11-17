@@ -537,9 +537,9 @@ def test_issue_4088_a_re_run_while_a_tier_is_still_running_waits_on_that_run_and
     import types
     clock = iter([1000.0, 1100.4, 1100.4, 1105.0])
     monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=lambda: next(clock), monotonic=lambda: 0.0), raising=False)
-    fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (3, "", "")}))
+    fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (3, "", ""), "git worktree list": listing(tmp_path)}))
     first, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
-    fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (1, "4\n", "")}))
+    fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (1, "4\n", ""), "git worktree list": listing(tmp_path, "fast")}))
     code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
     lines = out.splitlines()
 
@@ -603,6 +603,48 @@ def test_issue_4088_a_default_tip_that_does_not_resolve_or_a_failing_worktree_ad
     assert not calls_in(fake, "detach-command.sh start"), fake.calls
     assert not (tmp_path / ".tdd" / "ready-fast").exists() and not (tmp_path / ".tdd" / "ready-all").exists()
     assert code == 1
+
+
+def listing(tmp_path, *tiers):
+    """`git worktree list --porcelain`'s answer: the main tree and a detached tier worktree per <tiers>."""
+    text = f"worktree {tmp_path}\nHEAD c0ffee\nbranch refs/heads/main\n\n"
+    for tier in tiers:
+        text += f"worktree {tmp_path / '.tdd' / ('ready-' + tier)}\nHEAD c0ffee\ndetached\n\n"
+    return 0, text, ""
+
+
+def test_issue_4088_a_plain_directory_left_at_a_tier_worktrees_path_is_not_reused_and_fails_the_row_naming_it(ready_check, run_cli, fake_processes, tmp_path):
+    left = tmp_path / ".tdd" / "ready-fast" / ".tdd"
+    left.mkdir(parents=True)
+    (left / "ready-fast.began").write_text("1000.0")
+    (left / "ready-fast.exit").write_text("0\n")
+    fake = fake_processes.answers(holding(**TIERS, **{"git worktree list": listing(tmp_path)}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    lines = out.splitlines()
+
+    row = tier_run_line(lines, "fast")
+    assert row.startswith("fail  fast tier run:") and str(tmp_path / ".tdd" / "ready-fast") in row, lines
+    assert not calls_in(fake, "detach-command.sh start ready-fast") and not calls_in(fake, "detach-command.sh wait ready-fast"), fake.calls
+    assert not [argv for argv, _ in calls_in(fake, "git worktree remove") if str(tmp_path / ".tdd" / "ready-fast") in argv], fake.calls
+    assert (left / "ready-fast.began").read_text() == "1000.0"
+    assert code == 1
+
+
+@pytest.mark.parametrize("changed", [{"git rev-parse --verify": (0, "beef00\n", "")},
+                                     {"detect-test-command.sh --tier fast": (0, "make unit-fast\n", "")}])
+def test_issue_4088_a_tier_worktree_left_for_another_tip_or_command_is_not_reused_but_replaced_by_a_fresh_run(ready_check, run_cli, fake_processes, tmp_path, changed):
+    wt = str(tmp_path / ".tdd" / "ready-fast")
+    fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (3, "", ""), "git worktree list": listing(tmp_path, "fast")}))
+    first, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    fake = fake_processes.answers(holding(**{**TIERS, "git worktree list": listing(tmp_path, "fast"), **changed}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+
+    assert first == 3
+    removed = [i for i, (argv, _) in enumerate(fake.seen) if argv[:3] == ["git", "worktree", "remove"] and wt in argv]
+    added = [i for i, (argv, _) in enumerate(fake.seen) if argv[:3] == ["git", "worktree", "add"] and wt in argv]
+    assert removed and added and removed[0] < added[0], fake.calls
+    assert calls_in(fake, "detach-command.sh start ready-fast"), fake.calls
+    assert tier_run_line(out.splitlines(), "fast").startswith("ok    fast tier run"), out
 
 
 def test_issue_4092_ready_check_no_suites_is_accepted_prints_no_tier_run_row_and_runs_no_tier(ready_check, run_cli, fake_processes, tmp_path):

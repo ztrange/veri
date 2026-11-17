@@ -71,30 +71,85 @@ def tip_commit():
     return sha, None
 
 
-def tier_run_row(tier, command, wt, deadline):
+def record_path(wt, tier):
+    """The record a tier run leaves in its worktree: its start time, the tip commit and the command, a line each."""
+    return os.path.join(wt, ".tdd", f"ready-{tier}.record")
+
+
+def read_record(wt, tier):
+    """(start time, tip, command) from <wt>'s record, or None when there is none to read."""
+    try:
+        with open(record_path(wt, tier)) as record:
+            began, tip, command = record.read().split("\n", 2)
+        return float(began), tip, command.rstrip("\n")
+    except (OSError, ValueError):
+        return None
+
+
+def listed(wt):
+    """Whether `git worktree list` names <wt> as one of the repository's worktrees."""
+    answer = git.git("worktree", "list", "--porcelain", capture_output=True, text=True).stdout
+    paths = {os.path.realpath(line[len("worktree "):]) for line in answer.splitlines() if line.startswith("worktree ")}
+    return os.path.realpath(wt) in paths
+
+
+def still_running(wt, tier):
+    """Whether ready-<tier>'s detached run in <wt> has recorded no exit and its pid still answers."""
+    if os.path.exists(os.path.join(wt, ".tdd", f"ready-{tier}.exit")):
+        return False
+    try:
+        with open(os.path.join(wt, ".tdd", f"ready-{tier}.pid")) as pid_file:
+            os.kill(int(pid_file.read().split()[0]), 0)
+    except (OSError, ValueError, IndexError):
+        return False
+    return True
+
+
+def placed(tier, wt, tip, command):
+    """How <wt> holds ready-<tier>'s run of <command> at <tip>: "reuse" when git lists it and its record names this
+    tip and command; "fresh" when nothing is there, or only a stale tier worktree of ours, removed first; else why
+    it cannot hold the run."""
+    if not os.path.lexists(wt):
+        return "fresh"
+    ours = listed(wt) and read_record(wt, tier)
+    if ours and ours[1:] == (tip, command):
+        return "reuse"
+    if ours and still_running(wt, tier):
+        return f"no answer was obtained: an earlier run for another tip or command still runs in {wt}; wait for it to end"
+    if ours and git.git("worktree", "remove", "--force", wt, capture_output=True, text=True).returncode == 0:
+        return "fresh"
+    return f"no answer was obtained: {wt} is in the way and is not a tier worktree this check made; move it aside"
+
+
+def tier_run_row(tier, command, wt, deadline, state):
     """Run <command> once in <wt>, a detached worktree of the default branch's tip, through detach-command.sh; a run
-    an earlier call started there (its start time recorded in <wt>) is waited on, not started again. None while it
-    is still running at wait's bound."""
+    an earlier call started there for this tip and command is waited on, not started again. None while it is still
+    running at wait's bound. <state>[wt] says how far this call got: added, started, or done."""
     name = "ready-" + tier
     detach = script("detach-command.sh")
-    started = os.path.join(wt, ".tdd", name + ".began")
-    if not os.path.exists(started):
-        tip, why = tip_commit()
-        if tip is None:
-            return f"{tier} tier run", f"no answer was obtained: {why}"
+    tip, why = tip_commit()
+    if tip is None:
+        return f"{tier} tier run", f"no answer was obtained: {why}"
+    how = placed(tier, wt, tip, command)
+    if how not in ("reuse", "fresh"):
+        return f"{tier} tier run", how
+    if how == "fresh":
         added = git.git("worktree", "add", "--detach", wt, tip, capture_output=True, text=True)
         if added.returncode != 0:
             said = [line.strip() for line in (added.stderr or "").splitlines() if line.strip()]
             return f"{tier} tier run", "no answer was obtained: " + (
                 said[-1] if said else f"git worktree add exited {added.returncode}")
+        state[wt] = "added"
         os.makedirs(os.path.join(wt, ".tdd"), exist_ok=True)
-        with open(started, "w") as began:
-            began.write(repr(time.time()))
+        with open(record_path(wt, tier), "w") as record:
+            record.write(f"{time.time()!r}\n{tip}\n{command}\n")
         subprocess.run([detach, "start", name, *shlex.split(command)], cwd=wt, capture_output=True, text=True)
+    state[wt] = "started"
     bound = str(max(0, int(deadline - time.monotonic())))
     waited = subprocess.run([detach, "wait", name, bound], cwd=wt, capture_output=True, text=True)
     if waited.returncode == 3:
         return None
+    state[wt] = "done"
     return finished_row(tier, wt, waited)
 
 
@@ -104,8 +159,7 @@ def finished_row(tier, wt, waited):
     name = "ready-" + tier
     exit_file, output = (os.path.join(wt, ".tdd", name + suffix) for suffix in (".exit", ".out"))
     ended = os.path.getmtime(exit_file) if os.path.exists(exit_file) else time.time()
-    with open(os.path.join(wt, ".tdd", name + ".began")) as began:
-        row = f"{tier} tier run ({int(ended - float(began.read()))}s)"
+    row = f"{tier} tier run ({int(ended - read_record(wt, tier)[0])}s)"
     kept = os.path.join(os.path.dirname(wt), name + ".out")
     if waited.returncode == 0:
         with contextlib.suppress(FileNotFoundError):
@@ -123,9 +177,10 @@ def finished_row(tier, wt, waited):
 
 def tier_run_rows(root):
     """(a row per tier RD2 resolves, None) — or, while a tier is still running at wait's bound, (the rows so far, the
-    name it runs under). The worktrees made for them, and a .tdd/ made for those, are removed on every way out but
-    that one, which leaves every tier's worktree in place for the call that waits again."""
-    rows, made, waiting = [], [], None
+    name it runs under). The tier worktrees this call added or used, and a .tdd/ made for those, are removed on every
+    way out but that one, which leaves every tier's worktree in place for the call that waits again — save one whose
+    detached run was started and not yet waited out, which an exception leaves in place, record and all."""
+    rows, state, waiting = [], {}, None
     tdd = os.path.join(root, ".tdd")
     made_tdd = not os.path.exists(tdd)
     deadline = time.monotonic() + WAIT_BOUND
@@ -133,15 +188,14 @@ def tier_run_rows(root):
         for tier in ("fast", "all"):
             code, command = resolved_tier(tier)
             if code == 0:
-                made.append(os.path.join(tdd, "ready-" + tier))
-                row = tier_run_row(tier, command, made[-1], deadline)
+                row = tier_run_row(tier, command, os.path.join(tdd, "ready-" + tier), deadline, state)
                 if row is None:
                     waiting = "ready-" + tier
                     break
                 rows.append(row)
     finally:
         if waiting is None:
-            for wt in made:
+            for wt in state:
                 git.git("worktree", "remove", "--force", wt, capture_output=True, text=True)
             if made_tdd:
                 with contextlib.suppress(OSError):
