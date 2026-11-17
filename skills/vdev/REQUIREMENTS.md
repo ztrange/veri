@@ -6,7 +6,7 @@
 | D2 | It keeps exactly N conductors running while the solvable list is non-empty. | Idle slots were the recurring waste. |
 | D3 | Each conductor is a detached `run-conductor.sh <n>`, never a conductor run inline. | An inline conductor costs ~60k tokens per issue in the session. |
 | D4 | *Launching* says launches go through `$S/dispatch.sh`, which launches the next issue only after the previous launch's ledger exists; the skill arms no ledger wait of its own. | A claim appears only ~10 minutes into a run; the hand-armed `until` Monitor cost a wake per launch. |
-| D5 | On each exit it routes by fact: ✅ Done → review, then `vmerge` on OK; a bail → `vbail`; no closing comment → P10. The text never says either skill does not exist. | Stale prose sends the role down the fallback path. |
+| D5 | On each exit it routes by fact: ✅ Done → review, then `vmerge` on OK; a bail → `vbail`, save a `step-too-big` bail the judge resumed; no closing comment → P10. The text never says either skill does not exist. | Stale prose sends the role down the fallback path. |
 | D6 | After every merge, park or exit it recounts and refills to N. | |
 | D7 | It applies the coordinator's changes to N or to the order at the next slot decision. | |
 | D8 | It stops and asks only for: red CI it cannot fix, a ⟦human-owed⟧ step, an unresolvable conflict, a decision a ledger step asks for. | |
