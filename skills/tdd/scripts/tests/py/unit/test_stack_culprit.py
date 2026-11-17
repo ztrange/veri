@@ -202,3 +202,12 @@ def test_the_first_fail_line_carries_no_local_path_of_the_worktree_or_the_home_d
     _, out, _ = run_cli(culprit, [sha(1)])
 
     assert (TOP in out, home in out, "<worktree>/t/a.py::t" in out, "~/f missing" in out) == (False, False, True, True), out
+
+
+def test_when_no_issue_end_turns_a_case_red_it_prints_nothing_says_so_on_stderr_naming_the_cases_run_and_exits_3(
+        monkeypatch, run_cli, culprit):
+    World(monkeypatch, culprit, ["feat: a (#1)", "feat: b (#2)"], cases=(A, B))
+
+    code, out, err = run_cli(culprit, [sha(2)])
+
+    assert (code, out, A in err, B in err, "no issue end" in err) == (3, "", True, True, True), err
