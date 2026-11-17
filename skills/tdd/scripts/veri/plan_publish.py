@@ -1,6 +1,7 @@
 """plan-publish.sh's computation, run in-process: SKILL.md step 2's fixed tail once the plan is written (sub-steps 2-4,
 step 2b, and step 2c up to its PASS branch), made in one call (PRD 027.3)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
 import math
 import os
 import sys
@@ -74,7 +75,45 @@ def run(n, settled, title):
     pr_url = draft_pr(n, wt, settled, title, k, branch)
     fused.checked("2.4", fused.script("comment.sh"), n, "plan", cwd=wt)
     gh("2b", "api", "repos/{owner}/{repo}/issues/%s/comments" % n, "-f", "body=" + start_comment(n, k, branch), wt=wt)
-    return 0
+    refresh_spec(n, wt)
+    launch_verdict_plan(n, wt, settled)
+    return verdict(n, wt, ["plan_sha=" + plan_sha, "steps=%d" % k, "pr_url=" + pr_url,
+                           "pr_number=" + pr_url.rstrip("/").rsplit("/", 1)[-1]])
+
+
+SPEC = ".tdd/issue-%s-spec.md"
+LEAF = "verdict-plan"
+
+
+def refresh_spec(n, wt):
+    """Step 2c's refresh before the launch: 0, 2 and 3 go on; 1, a changed criteria count, stops it (PT6)."""
+    fused.checked("2c", fused.script("refresh-spec.sh"), n, SPEC % n, cwd=wt, ok=(0, 2, 3))
+
+
+def launch_verdict_plan(n, wt, settled):
+    """The verdict-plan leaf under *Launching a leaf* (FC8): the stop check, the completion files cleared, then the
+    detached supervise.sh with step 2c's arguments, no --step, VERI_TEST_CMD the fast tier (PT7, FC9)."""
+    code, out, _ = fused.call(fused.script("stop-requested.sh"), cwd=wt)
+    mode = out.strip()
+    if code not in (0, 3) or (code == 0 and mode != "at-ledger"):
+        raise fused.Stop("2c", "stop-requested.sh exit %d%s" % (code, " " + mode if mode else ""), code)
+    for name in (LEAF + ".exit", LEAF + ".pid"):
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(run_dir.run_file(wt, name))
+    fused.checked("2c", fused.script("detach-leaf.sh"), fused.script("supervise.sh"), LEAF,
+                  fused.script("run-verdict.sh"), "plan", SPEC % n, os.path.join(".tdd", "issue-%s.md" % n), cwd=wt,
+                  env=tunables.with_values(VERI_TEST_CMD=settled["fast_cmd"], VERI_ISSUE=n),
+                  out=".tdd/verify-plan.reason", err=".tdd/verify-plan.err")
+
+
+def verdict(n, wt, lines):
+    """Wait for verdict-plan: 0 posts the verify-plan comment and settles <lines> with verify_plan=PASS; 1 or 2
+    stops it before that comment."""
+    code = fused.call(fused.script("wait-leaf.sh"), LEAF, cwd=wt)[0]
+    if code != 0:
+        raise fused.Stop("2c", "wait-leaf.sh %s exit %d" % (LEAF, code), code)
+    fused.checked("2c", fused.script("comment.sh"), n, "verify-plan", cwd=wt)
+    return fused.settle(wt, n, "plan-publish", lines + ["verify_plan=PASS"])
 
 
 def commit_plan(n, wt, ledger):
