@@ -113,6 +113,24 @@ def test_4034_it_never_merges_and_handles_no_refusal(done):
     assert not {"event.sh", "classify-bail.sh", "preflight-refused.sh", "detach-leaf.sh", "gh"} & set(fake.names())
 
 
+def test_4034_every_inner_call_in_the_ordered_list_is_a_script_sub_step_4_names():
+    from pathlib import Path
+    run_done = importlib.import_module("veri.run_done")
+    draft = (Path(run_done.__file__).resolve().parents[2] / "DRAFT-PR.md").read_text()
+    start = draft.index("\n4. ", draft.index("\n3. **Never merge the PR.**"))
+    sub_step = draft[start:draft.index("\n**The worktree stays.**", start)]
+
+    assert [name for name in run_done.CALLS if "$S/" + name not in sub_step] == []
+
+
+def test_4034_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(done):
+    run_done = importlib.import_module("veri.run_done")
+    code, out, err, fake = done()
+
+    made = [name for name in fake.names() if name != "git"]
+    assert code == 0 and made == list(run_done.CALLS)
+
+
 def test_4034_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr(done):
     class Marked(Fake):
         def __call__(self, name, *args, **kw):

@@ -9,6 +9,10 @@ import fused_step
 NAME = "run-done"
 WHERE = "4"
 
+# The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_run_done.py fails when one is
+# a script DRAFT-PR.md sub-step 4 does not name (FC19).
+CALLS = ("stop-requested.sh", "comment.sh")
+
 
 def main(argv):
     return fused.entry(argv, NAME + ".sh", run)
