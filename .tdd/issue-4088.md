@@ -3,7 +3,7 @@
 - [x] a tier RD2 resolves runs in a detached worktree of the default tip through detach-command.sh start and wait, its `<tier> tier run` row ok on exit 0 ⟦criterion 1⟧
 - [x] a non-zero exit fails the `<tier> tier run` row, carrying the exit code and the output's last non-empty line ⟦criterion 1⟧
 - [x] each `<tier> tier run` row carries its wall time in whole seconds ⟦criterion 2⟧
-- [ ] a tier resolving to nothing prints no `<tier> tier run` row and starts nothing ⟦criterion 3⟧
+- [x] a tier resolving to nothing prints no `<tier> tier run` row and starts nothing ⟦criterion 3⟧
 - [ ] every exit leaves the repo's branches, index, tree and worktree list as found ⟦criterion 4⟧
 - [ ] a red tier's whole output is kept at `.tdd/ready-<tier>.out` in the main tree ⟦criterion 5⟧
 - [ ] a green tier leaves no `.tdd/ready-<tier>.out`, an older one included ⟦criterion 5⟧
