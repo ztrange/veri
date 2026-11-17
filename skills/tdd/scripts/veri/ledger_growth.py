@@ -6,10 +6,11 @@ import subprocess
 import sys
 
 import entry
+import event
 import tunables
 
 from event_log import read_events
-from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body, carries_mark, is_added, open_step_line, read_ledger, replace_ledger
+from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body, carries_mark, is_added, ledger_steps, open_step_line, read_ledger, replace_ledger
 
 RETIRED = ("VERI_STEP_GROWTH is retired: unset it; VERI_STEP_GROWTH_PERCENT (default 50) caps ⟦added⟧ steps"
            " as a percent of the verified plan's steps")
@@ -89,15 +90,33 @@ def record_existing(ledger):
 
 def record_rewrite(pre, ledger):
     try:
-        before = set(step_texts(read_ledger(pre)))
-        steps = step_texts(read_ledger(ledger))
+        pre_text, text = read_ledger(pre), read_ledger(ledger)
+        before = set(step_texts(pre_text))
+        steps = step_texts(text)
         recorded = set(recorded_steps(ledger))
         with open(added_file(ledger), "ab") as f:
             f.write(record_lines(step for step in steps if step not in before
                                  and step not in recorded))
     except OSError as error:
         return unreadable(error)
+    record_rewordings(ledger, pre_text, text)
     return 0
+
+
+def record_rewordings(ledger, pre_text, text):
+    """One `step-reworded from=<old> to=<new>` event per ledger position whose step text (as events name a step) the
+    rewrite changed, when both ledgers hold the same number of steps; none otherwise, since positions pair only when
+    nothing was inserted or removed. Written beside the ledger's `.tdd/`, for the issue its file name carries; a failed
+    write is the event call's own stderr line and never changes the exit code."""
+    old, new = [step.text for step in ledger_steps(pre_text)], [step.text for step in ledger_steps(text)]
+    if len(old) != len(new):
+        return
+    issue = re.fullmatch(r"issue-(\d+)\.md", os.path.basename(ledger))
+    run_context = event.context(tunables.with_values(VERI_ISSUE=issue.group(1)) if issue else tunables.environment())
+    run = os.path.dirname(os.path.dirname(os.path.abspath(ledger)))
+    for was, now in zip(old, new):
+        if was != now:
+            event.mark(run, run_context, "step-reworded", ["from=" + was, "to=" + now])
 
 
 def reopen(ledger, needle, change):

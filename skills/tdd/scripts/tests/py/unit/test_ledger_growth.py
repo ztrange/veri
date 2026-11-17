@@ -1,5 +1,6 @@
 """In-process cases for veri/ledger_growth.py, the module ledger-growth.sh is a shim over."""
 import importlib
+import json
 
 import pytest
 
@@ -390,3 +391,28 @@ def test_3427_after_a_reopen_of_a_passed_skill_edit_step_the_growth_check_agains
         "- [x] ⟦skill-edit⟧ regrade `skills/tdd/SCRIPTS.md` against A1 ⟦criterion 2⟧ ⟂ refactor pending\n")
     reopened = run_cli(ledger_growth, ["reopen", str(ledger), "regrade", "extend it with the reopen"])[0]
     assert (reopened, run_cli(ledger_growth, [str(plan), str(ledger)])) == (0, (0, "", ""))
+
+
+def reworded_lines(run):
+    """The `step-reworded` lines of the event log under <run>/.tdd, as (from, to, issue)."""
+    log = run / ".tdd" / "events.jsonl"
+    lines = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+    return [(line["from"], line["to"], line["issue"]) for line in lines if line["event"] == "step-reworded"]
+
+
+def test_4226_record_rewrite_writes_one_step_reworded_per_position_whose_step_text_differs_when_the_counts_match(
+        tmp_path, run_cli, ledger_growth):
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    pre = tmp_path / "pre-rewrite.md"
+    ledger = run / ".tdd" / "issue-42.md"
+    pre.write_text("# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n- [ ] a broad step ⟦criterion 2⟧\n"
+                   "- [ ] kept as is ⟦criterion 2⟧\n- [ ] another broad step ⟦criterion 3⟧\n")
+    ledger.write_text("# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n- [ ] a narrow step ⟦criterion 2⟧\n"
+                      "- [ ] kept as is ⟦criterion 2⟧\n- [ ] another narrow step ⟦criterion 3⟧\n")
+
+    code = run_cli(ledger_growth, ["record-rewrite", str(pre), str(ledger)])[0]
+
+    assert (code, reworded_lines(run)) == (0, [
+        ("a broad step ⟦criterion 2⟧", "a narrow step ⟦criterion 2⟧", "42"),
+        ("another broad step ⟦criterion 3⟧", "another narrow step ⟦criterion 3⟧", "42")])
