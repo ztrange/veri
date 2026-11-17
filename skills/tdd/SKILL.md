@@ -718,7 +718,7 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   The call passes no `--criterion`: a split keeps its anchor's criterion.
   Then loop back to `next-unchecked.sh`, which now hands over the first of them.
   **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`**, as on the other two
-  plan-growth paths, whose growth cap the split shares — see `<base directory>/BAIL.md`. **`add-ledger-step.sh` exit 2**: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, whatever the answer (`retry` too), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
+  plan-growth paths, whose growth cap the split shares — see `<base directory>/BAIL.md`. **`add-ledger-step.sh` exit 2**: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, on any answer (`retry` too), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
 - **exit 1 — a decision for the user.** `.tdd/over-budget-answer.txt` holds the leaf's answer.
   **Park the step** — the same park the revise-exhausted path takes: stop the
   run there, carrying that answer and the two figures, what the step has spent and the
@@ -814,7 +814,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    attempt and writing no `revise` mark, then run `$S/unreplaced-cases.sh` again as `$S/unreplaced-cases.sh "<step line>" .tdd/develop-red.out .tdd/develop-replaces-report.out` (`.tdd/revise-red-<k>.out` in place of `.tdd/develop-red.out` after a red revise), so a case the Red report already replaced still counts and a correction naming exactly the missing cases does not bail, before verify-red launches.
    Exit 1 again: **bail with cause=unreplaced-cases**, naming each case it printed, and launch no second correction leaf and no verifier — verify-green
    never runs on a step whose named cases lack a replacement (`Read` `<base directory>/BAIL.md`). A first-check exit 2 — no answer could be obtained (no
-   readable report, bad arguments) — with `$S/adjudicate.sh left <n>` exit 0 first launches `adjudicate-unreplaced-cases` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`): `route replaces-report` takes the exit-1 path; any other answer (`retry` too) or a spent budget bails with cause=unreplaced-cases, with no second check, correction leaf or verifier (`Read` `<base directory>/BAIL.md`). A second-check exit 2 bails so at once, unadjudicated, with no second correction leaf or verifier.
+   readable report, bad arguments) — with `$S/adjudicate.sh left <n>` exit 0 first launches `adjudicate-unreplaced-cases` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`): `route replaces-report` takes the exit-1 path; any other answer (`retry` too) or a spent budget bails with cause=unreplaced-cases, with no second check, correction leaf or verifier (`Read` `<base directory>/BAIL.md`). A second-check exit 2 bails so at once, unadjudicated, with no second correction leaf or verifier (`Read` `<base directory>/BAIL.md`).
    The correction leaf: save the printed cases to `.tdd/replaces-missing.txt` (and read `.tdd/revise-red-<k>.out` in place of `.tdd/develop-red.out` after a red revise), then
    `$S/build-develop-prompt.sh replaces-report .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' .tdd/develop-red.out .tdd/replaces-missing.txt > .tdd/develop-replaces-report.prompt`,
    `rm -f .tdd/develop-replaces-report.exit .tdd/develop-replaces-report.pid`, then
@@ -976,7 +976,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    insertion would take the ledger past the growth cap, so the script has already filed
    the criteria under `## Owed steps`: the step's own red is discarded and the smaller steps
    it needs are not in the plan, so there is nothing for the run to go on with.
-   **`add-ledger-step.sh` exit 2**: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, whatever the answer (`retry` too), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
+   **`add-ledger-step.sh` exit 2**: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, on any answer (`retry` too), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
 2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict.
    Neither this verifier nor the develop leaf runs the full suite: a break outside the
    affected suites surfaces at the one full-suite run in *4. Draft PR*.
@@ -1318,7 +1318,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      serve different ones — anchored `after "<STEP>"` so the triangulating step lands next to
      the code it triangulates. Each per-criterion call emits its own step-added event, the
      line above run once per call, anchored on the step and carrying `added=<that call's count>`. **`add-ledger-step.sh` exit 2** here means the call itself was
-     malformed — a `<k>` that is not a whole number ≥ 1: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, whatever the answer (`retry` too), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`. A criterion no
+     malformed — a `<k>` that is not a whole number ≥ 1: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, on any answer (`retry` too), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`. A criterion no
      ledger step serves yet is no obstacle: the script tags the new step `⟦criterion k⟧` all
      the same. Neither reporting one — no `uncovered-spec` flag
      from the leaf and none in the verdict — is no call and no mark at all.
