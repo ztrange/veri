@@ -612,6 +612,19 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `--tier fast` never reads the issue's line. `--tier "one test file"` has one source: the repo's
   CLAUDE.md line `veri: one test file: <command>`, the command taking the target (a test file or a pytest node id) as `"$1"`; no
   inference, and **exit 3** when the line is absent. A bad argument is **exit 2**.
+- `$S/affected-suites.sh <range>` — print, one per line, sorted and each once, the suites a change affects, so a leaf
+  runs a narrow slice instead of the full suite. `<range>` is `<base>..<head>`, or one revision compared with the
+  working tree, untracked files included. In veri's own tree (one where `skills/tdd/scripts/tests/py` is a directory)
+  it prints the pytest files veri's path rules place, section by section for `skills/tdd/SKILL.md`. Elsewhere it reads
+  no declaration: a changed test file (by `case_reader.is_test_path`) that exists selects itself; any other changed
+  file selects every test file git does not ignore whose text holds the file's stem (its basename without its last
+  extension) as a whole word, `-` and `_` counted alike, the walk skipping `.git`, `.tdd`, `.venv` and `node_modules`;
+  a `.tdd/` path selects nothing. A changed file no test names widens to every test file, with one stderr line
+  `affected-suites: no test names <paths>; widening to every test file` (veri's own tree: `no rule places <paths>;
+  widening to every suite`). **Exit 0** always prints at least one suite; **exit 3** means nothing to run (an empty
+  range, run state alone, or no test file at all); **exit 2** a malformed or unresolvable range, or a failed listing of the tree's files.
+  The leaves run what it prints with the repo's `veri: one test file:` command once per path, or its all-tier command
+  once when the repo declares none (`make test TESTS="<those paths>"` in veri's own tree).
 - `$S/record-test-commands.sh [--one-file <cmd>] <fast-cmd> <all-cmd> [repo-root]` — `/vinstall`'s writer of the
   target repo's test commands (default: the current repository): on the default branch's tip as freshly fetched, it
   writes the `veri: fast tests:` and `veri: all tests:` lines of the root `CLAUDE.md` (and with `--one-file` the
