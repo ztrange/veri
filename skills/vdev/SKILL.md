@@ -43,7 +43,8 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
 **Recovery.** When a state file for this role and lane exists, recover: read it through
 `$S/status.sh --recover dev [--lane <lane>]` and read nothing else before your first slot
 decision but `$S/github-outage.sh status` (*Local mode*, below). An `N` on the invocation wins over the file's and is written to it (see *Role state*).
-Recovery re-asks each pending decision once, re-sends or checks each pending message, and ends
+Recovery re-asks each pending decision once, re-asks none of the question files its `Questions`
+section lists (*When to stop and ask*), re-sends or checks each pending message, and ends
 with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. Recovery then
 ends by sending the resetter `ack`. With no state file for this role and lane, start fresh.
 
@@ -69,7 +70,9 @@ speak about goes to it, by that session id, and the human gets `.`.
 Write your state through `$S/role-state.sh dev [--lane <lane>]` at the moment it changes, never
 at reset time: N, each timed N change (with its expiry, written as `<n> until <ISO-8601 datetime>`, the form `role-state.sh ... add timed-n` accepts and `dispatch.sh` parses) and order override the coordinator
 sends, each pending human decision (in full), and each message sent to the coordinator and not
-yet confirmed. Drop the item when it ends. When a coordinator's first message arrives, or a
+yet confirmed. Drop the item when it ends. A pending decision `vjudge` recorded you do not write
+again with `role-state.sh … add decision`: the judge records it in a question file when your brief
+named one, and with `role-state.sh … add decision` otherwise. When a coordinator's first message arrives, or a
 message comes from a different coordinator session id, record it with
 `set coordinator <session-id>`; when a send to it fails because that session is gone, remove it
 with `drop coordinator`.
@@ -363,10 +366,53 @@ label removal, which leaves the issue claimed (`taken:<lane>`) with nothing that
 ## When to stop and ask
 
 Stop and ask the human only for: red CI you cannot fix, a ⟦human-owed⟧ step, a conflict you
-cannot resolve, or a decision a ledger step asks for. Each first passes `vjudge`, run as
-*Running the sibling skills* says, and only what the judge surfaces reaches the human: as P21
-says, and stated in full (P4). Everything
-else you decide and keep going; a turn never ends while a slot can be filled (P5).
+cannot resolve, or a decision a ledger step asks for. Each such case first goes through `vjudge`,
+run as *Running the sibling skills* says: what the judge settles is acted on and never asked, and
+only what it surfaces reaches the human, as P21 says, stated in full (P4). Everything else you
+decide and keep going; a turn never ends while a slot can be filled (P5).
+
+**In a session without the app's `start_session` tool** (a terminal), your brief to `vjudge` names
+no question-file path and nothing is written under `.tdd/questions/`: a case the judge does not
+settle is asked in full in your own transcript, once (P4).
+
+**In a session with `start_session`**, each case has a question file, `.tdd/questions/<id>.md`:
+`<id>` is `<lane>-<n>` for a question tied to issue `<n>` and `<lane>-<slug>` otherwise, `<lane>`
+being `main` with no lane word.
+
+1. Before briefing `vjudge` on a case, look for its question file. When it exists, the question is
+   open and already asked: run no `vjudge` on the case again, open no second session for it and
+   send no notification (an `## Answer` in it is read as *Answers* says).
+2. Otherwise your brief to `vjudge` names that path. The judge writes there a case it does not
+   settle, under `#### Question`, `#### Options`, `#### Found` and `#### Recommendation`, and
+   returns the path.
+3. When `vjudge` returns the path, call `start_session` once, with a brief naming the file's path,
+   your own session id and the *Question session* section of this skill as the procedure to
+   follow, and nothing else of the question. Send one `PushNotification` naming the question by
+   its `<id>`.
+4. Do not wait for that session to start or to answer: on the same turn, carry on with every run
+   the question does not block.
+
+The issue of an issue-bound question is parked by `vjudge` (its *The procedure* step 5) with
+`$S/park-issue.sh --question-file` naming the question file, so the park comment is that file
+verbatim. You park no question's issue yourself, and never read the question or an answer back
+from the comment. Your own transcript never holds a question's text or a request for an answer.
+
+**Answers.** On a message naming a question file, read the answer from the file, never from the
+message, and act on it. Delete the question file only after you observe your own action on the
+answer in state (the label gone, the run resumed, the merge landed), and say so nowhere. After a
+reset, each of your lane's question files without an `## Answer` heading (recovery's `Questions`
+section) is open and already asked: re-ask none of them.
+
+## Question session
+
+A question session is started by vdev with `start_session` and briefed with a question file's
+path, vdev's session id and this section. It asks nothing the file does not ask:
+
+1. Read the question file.
+2. Put its question to the human, as plain text (P21).
+3. Write the human's answer under an `## Answer` heading in the same file.
+4. Send vdev, by the session id in the brief, one line naming the file.
+5. Archive itself.
 
 ## Out of scope
 
