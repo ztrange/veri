@@ -126,6 +126,8 @@ REJECT a plan holding a step whose text names more than one observable outcome: 
 
 {{REFACTOR_PLAN}}
 
+{{LEGACY_PLAN}}
+
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
 the criterion's own words, so that the plan can be rewritten from your reason alone.
 
