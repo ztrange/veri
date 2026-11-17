@@ -1,5 +1,7 @@
 """preflight.sh's computation, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import datetime
+import json
 import math
 import os
 import shlex
@@ -8,6 +10,7 @@ import sys
 import tempfile
 import time
 
+import ready_check
 import run_dir
 import tunables
 
@@ -98,11 +101,14 @@ def stopped(step, what, code):
     return code
 
 
-def check_environment():
+def check_environment(answered=None):
+    """Steps 1 and 2's checks before ready-check.sh; each call's stdout lands in <answered>, keyed by its argv."""
     for step, *cmd in ((1, "git", "rev-parse", "--is-inside-work-tree"), (1, "git", "status", "--porcelain"),
                        (2, "gh", "api", "user"), (2, "claude", "auth", "status"),
                        (2, script("leaf-launchable.sh"))):
         code, out, _ = call(*cmd)
+        if answered is not None:
+            answered[tuple(cmd)] = out if code == 0 else ""
         if cmd[1:] == ["status", "--porcelain"] and code == 0 and out.strip():
             code = 1
         if cmd[1:] == ["auth", "status"] and '"loggedIn": false' in out:
@@ -118,9 +124,94 @@ def refusing_rows():
     return ("fast tier", "all tier", "pull_request", "gh auth", "push access", "label " + label if label else "label")
 
 
-def check_readiness():
-    """Step 2's last check: ready-check.sh --no-suites, stopping the run on a failing refusing row."""
-    code, out, _ = call(script("ready-check.sh"), "--no-suites")
+RECORD_KEYS = ("login", "origin", "version", "date")
+
+
+def main_working_tree():
+    """The main working tree's path, from `git worktree list`'s first entry; None when git gives none."""
+    code, out, _ = run_script("git", "worktree", "list", "--porcelain")
+    first = out.split("\n", 1)[0] if code == 0 else ""
+    return first[len("worktree "):] or None if first.startswith("worktree ") else None
+
+
+def permission_facts(user_answer):
+    """The facts the permission record is keyed on: the gh login (from step 2's `gh api user` answer), origin's URL and
+    the check's version, as {key: text}; None when any cannot be read, so nothing is skipped or written."""
+    try:
+        login = json.loads(user_answer)["login"]
+    except (ValueError, KeyError, TypeError):
+        return None
+    code, url, _ = run_script("git", "remote", "get-url", "origin")
+    url = url.strip() if code == 0 else ""
+    if not isinstance(login, str) or not login.strip() or not url or "\n" in login + url:
+        return None
+    return {"login": login.strip(), "origin": url, "version": str(ready_check.PERMISSIONS_CHECK_VERSION)}
+
+
+def permissions_record(main):
+    return os.path.join(main, ".tdd", "permissions-checked")
+
+
+def recorded_date(path, facts):
+    """The date <path>'s record holds when it names exactly <facts>; None for one that is missing, unreadable,
+    malformed, future-dated or written for another login, URL or version: each runs the permission rows."""
+    try:
+        with open(path) as f:
+            lines = f.read().split("\n")
+    except (OSError, UnicodeDecodeError):
+        return None
+    if lines[-1:] == [""]:
+        lines.pop()
+    held = [line.partition("=") for line in lines]
+    if [key for key, eq, _ in held if eq] != list(RECORD_KEYS) or len(held) != len(RECORD_KEYS):
+        return None
+    record = {key: value for key, _, value in held}
+    try:
+        date = datetime.date.fromisoformat(record["date"])
+    except ValueError:
+        return None
+    if date > datetime.date.today() or any(record[key] != value for key, value in facts.items()):
+        return None
+    return record["date"]
+
+
+def write_record(path, facts):
+    """Write <facts> and today's date to <path>, whole or not at all."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    text = "".join(f"{key}={value}\n" for key, value in {**facts, "date": datetime.date.today().isoformat()}.items())
+    fd, partial = tempfile.mkstemp(prefix=".permissions-checked-", dir=os.path.dirname(path))
+    with os.fdopen(fd, "w") as f:
+        f.write(text)
+    os.replace(partial, path)
+
+
+def permission_rows_passed(out):
+    """Whether ready-check.sh's <out> prints every permission row, none of them `fail`: a failing row ends in its
+    fix (`fail  <name>: <fix>`), so only a row that holds ends in its name."""
+    lines = out.splitlines()
+    return all(any(line.endswith("  " + name) for line in lines)
+               for name in ready_check.permission_row_names())
+
+
+def check_readiness(user_answer=""):
+    """Step 2's last check: ready-check.sh --no-suites, stopping the run on a failing refusing row. Its permission
+    rows are skipped (--no-permissions) while the main working tree's .tdd/permissions-checked names the current gh
+    login, origin URL and check version, and VERI_RECHECK_PERMISSIONS is not 1."""
+    recheck = tunables.get("VERI_RECHECK_PERMISSIONS")
+    if not tunables.parses("VERI_RECHECK_PERMISSIONS", recheck):
+        sys.stdout.write("VERI_RECHECK_PERMISSIONS=%s: not 0 or 1\n" % recheck)
+        return stopped(2, "VERI_RECHECK_PERMISSIONS", 2)
+    main = main_working_tree()
+    facts = permission_facts(user_answer) if main else None
+    record = permissions_record(main) if facts else None
+    checked_on = recorded_date(record, facts) if record and recheck == "0" else None
+    if checked_on:
+        sys.stdout.write("permission rows skipped: checked %s\n" % checked_on)
+        code, out, _ = call(script("ready-check.sh"), "--no-suites", "--no-permissions")
+    else:
+        code, out, _ = call(script("ready-check.sh"), "--no-suites")
+        if record and code in (0, 1) and permission_rows_passed(out):
+            write_record(record, facts)
     refused = [line for line in out.splitlines()
                if any(line.startswith(f"fail  {name}: ") for name in refusing_rows())]
     if code == 1 and refused:
@@ -246,10 +337,11 @@ def run(argv):
         fast_began = time.monotonic()
         code = wait_on("preflight-fast-" + n, wt, env)
     else:
-        stop = check_environment()
+        answered = {}
+        stop = check_environment(answered)
         if stop is not None:
             return stop
-        stop = check_readiness()
+        stop = check_readiness(answered.get(("gh", "api", "user"), ""))
         if stop is not None:
             return stop
         wt, fast, body_file, fast_began, code = start_fast(n, slug, detect, env)

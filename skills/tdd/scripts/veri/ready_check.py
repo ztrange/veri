@@ -518,6 +518,15 @@ CHECKS = (tier_row("fast"), tier_row("all"), one_test_file_row, pull_request_row
 # The permission rows (PRD 016.6a-c), which --no-permissions skips: RD7's rows are cheap and refuse a run, these only warn.
 PERMISSION_CHECKS = (token_scopes_row, priority_label_row, bug_label_row, actions_read_row, run_state_ignore_row,
                      push_dry_run_row, bypass_permissions_row)
+# The permission rows' check version, which preflight's .tdd/permissions-checked record carries: raise it whenever a
+# permission row's probe changes, so every clone's record goes stale and the rows run again (PRD 016.9).
+PERMISSIONS_CHECK_VERSION = 1
+
+
+def permission_row_names():
+    """The names PERMISSION_CHECKS' rows print under, in order."""
+    return ["token scopes", "label " + tunables.get("VERI_PRIORITY_LABEL"), "label bug", "actions read",
+            "run-state ignore", "push dry-run", "bypassPermissions"]
 
 
 def rendered(name, verdict):
