@@ -21,8 +21,8 @@ def test_red_green_and_diff_calls_through_a_symlink_to_the_scripts_directory_ans
     problems = []
 
     def same_through_link(label, args):
-        want = subprocess.run([str(SCRIPTS / "build-verify-prompt.sh"), *args], stdin=subprocess.DEVNULL,
-                              capture_output=True)
+        want = subprocess.run([str(SCRIPTS / "build-verify-prompt.sh"), *args], cwd=linked,
+                              stdin=subprocess.DEVNULL, capture_output=True)
         got = subprocess.run(["./veri-scripts/build-verify-prompt.sh", *args], cwd=linked,
                              stdin=subprocess.DEVNULL, capture_output=True)
         if str(in_place).encode() not in want.stdout:
