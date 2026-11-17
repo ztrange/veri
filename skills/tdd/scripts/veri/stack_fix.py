@@ -27,6 +27,10 @@ class Refused(Exception):
     """A bound the fix does not hold (exit 1); str() says which."""
 
 
+class NotRed(Exception):
+    """stack-red.sh exits 3: nothing to fix (exit 3)."""
+
+
 def _script(name, *args, limit=None):
     """Run the sibling script <name> with <args>: (exit code, stdout), its stderr passed through. With <limit> (a
     tunable's name) its whole process group is killed at that bound and the call answers 2."""
@@ -154,6 +158,8 @@ def _checked(n, red):
     """Every check before the push, with the lock held: (stack, onto, head). Refused or NoAnswer when one fails;
     _NotRed when stack-red.sh exits 3."""
     code, said = _script("stack-red.sh", limit=NETWORK)
+    if code == 3:
+        raise NotRed("stack-red.sh exits 3: the stack is not red; nothing pushed")
     if code != 0:
         raise NoAnswer("stack-red.sh exited %d, so whether the stack is red is not known; nothing pushed" % code)
     now = (said.split() or [""])[0]
@@ -163,13 +169,17 @@ def _checked(n, red):
         found = stack_branch.ahead(".")
     except stack_branch.Refused as refused:
         raise NoAnswer(str(refused)) from None
+    if found is None:
+        raise NoAnswer("the repository's CLAUDE.md names no stack branch (stack-branch.sh exits 3)")
     stack, default, _ = found
-    onto = _rev("refs/remotes/origin/" + stack)
+    onto, head = _rev("refs/remotes/origin/" + stack), _rev("HEAD")
+    if not onto or not head:
+        raise NoAnswer("%s does not resolve after the fetch; nothing pushed" % (
+            "origin/" + stack if not onto else "the fix worktree's HEAD"))
     for commit, subject, trailers in _log("refs/remotes/origin/%s..refs/remotes/origin/%s" % (default, stack)):
         if trailers and n in stack_green.named(subject):
             raise Refused("%s (%s) on origin/%s already carries a %s: trailer for issue %s: one fix per culprit;"
                           " nothing pushed" % (commit, subject, stack, TRAILER, n))
-    head = _rev("HEAD")
     return stack, onto, head
 
 
@@ -216,6 +226,9 @@ def main(argv):
         except NoAnswer as no:
             _say(str(no))
             return 2
+        except NotRed as not_red:
+            _say(str(not_red))
+            return 3
         _push(head, stack, onto)
     finally:
         released, _ = _script("merge-lock.sh", "release", "--pid", pid)

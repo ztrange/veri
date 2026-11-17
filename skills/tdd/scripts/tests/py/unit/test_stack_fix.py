@@ -178,3 +178,27 @@ def test_exits_1_pushing_nothing_when_a_commit_of_the_stack_already_carries_a_st
     got, _, err = run_cli(fix, world.argv())
 
     assert (got, len(world.pushed), world.lock_held) == (code, 1 - code, False), err
+
+
+def test_exits_3_pushing_nothing_when_stack_red_exits_3(monkeypatch, run_cli, fix, tmp_path):
+    world = World(monkeypatch, fix, tmp_path, red_code=3)
+
+    code, _, err = run_cli(fix, world.argv())
+
+    assert (code, world.pushed, world.lock_held) == (3, [], False), err
+
+
+@pytest.mark.parametrize("given", ["red 2", "red 1", "lock", "log", "no stack", "refused", "no origin stack"])
+def test_exits_2_pushing_nothing_on_no_answer_from_stack_red_the_lock_the_reads_or_the_fetch(
+        monkeypatch, run_cli, fix, tmp_path, given):
+    kwargs = {"red 2": {"red_code": 2}, "red 1": {"red_code": 1}, "lock": {"lock": 2}, "log": {"log_fails": True},
+              "refused": {"span": fix.stack_branch.Refused("the fetch got no answer (exit 128)")}}.get(given, {})
+    world = World(monkeypatch, fix, tmp_path, **kwargs)
+    if given == "no stack":
+        monkeypatch.setattr(fix.stack_branch, "ahead", lambda root: None)
+    if given == "no origin stack":
+        monkeypatch.setattr(fix, "_rev", lambda ref: "" if "origin" in ref else HEAD)
+
+    code, _, err = run_cli(fix, world.argv())
+
+    assert (code, world.pushed, world.lock_held) == (2, [], False), err
