@@ -4,7 +4,7 @@
 - [x] an event of any other name leaves the file's bytes, and its absence, unchanged ⟦criterion 2⟧
 - [x] the file is written under a temporary name in its directory and renamed; a failed rename leaves the previous file intact and no partial one ⟦criterion 3⟧
 - [x] a fold or write failure leaves the event written and its exit unchanged, with one stderr line naming the file and the error ⟦criterion 4⟧
-- [ ] the fold of a journal alone writes the file with every figure needing a missing file `null`, and two runs in one journal make one file ⟦criterion 5⟧
+- [x] the fold of a journal alone writes the file with every figure needing a missing file `null`, and two runs in one journal make one file ⟦criterion 5⟧
 - [ ] an event with no issue, or in a clone with no `origin`, writes no metrics file and prints nothing about it ⟦criterion 6⟧
 - [ ] `PUBLISHED.md` lists the metrics file as a third published file (PB1 reworded, PB12, PB13), graded ⟦criterion 7⟧
 - [ ] a case names the key when the `--json` object's keys and those `PUBLISHED.md` states for the metrics file differ ⟦criterion 8⟧

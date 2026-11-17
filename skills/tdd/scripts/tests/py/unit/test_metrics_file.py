@@ -93,6 +93,42 @@ def test_the_file_is_renamed_into_place_from_its_own_directory_so_a_failed_renam
     assert sorted(path.name for path in directory.iterdir()) == ["42.jsonl", "42.metrics.json"]
 
 
+def test_a_journal_alone_folds_with_every_figure_that_needs_a_missing_file_null_and_no_error(tmp_path, event, metrics):
+    clone = clone_at(tmp_path)
+    leaf_exit(event, clone)
+    event.append(str(clone), dict(LEAF, actor="conductor"), "bail", ["cause=uncovered", "classification=process"],
+                 ts=1700000400)
+    alone = tmp_path / "elsewhere" / "42.jsonl"
+    alone.parent.mkdir()
+    alone.write_bytes((tmp_path / "runs" / "acme-widgets" / "42.jsonl").read_bytes())
+
+    folded = metrics.as_json(metrics.fold("42", str(alone), None, run=None))
+
+    assert folded["phases"]["red"]["attempts"] == 1
+    assert (folded["conductor"]["cost_usd"], folded["conductor"]["turns"], folded["conductor"]["model"]) == (None, None, None)
+    assert folded["run"]["outcome"] == "bailed"
+    assert folded["run"]["bails"] == [{"cause": "uncovered", "classification": "process", "phase": "red", "step": "one"}]
+
+
+def test_a_journal_alone_whose_run_left_no_ending_mark_has_an_outcome_of_null(tmp_path, event, metrics):
+    clone = clone_at(tmp_path)
+    leaf_exit(event, clone)
+
+    folded = metrics.as_json(metrics.fold("42", str(tmp_path / "runs" / "acme-widgets" / "42.jsonl"), None, run=None))
+
+    assert folded["run"]["outcome"] is None
+
+
+def test_two_runs_of_the_issue_in_two_worktrees_make_one_metrics_file_covering_both(tmp_path, event):
+    first, second = clone_at(tmp_path / "a"), clone_at(tmp_path / "b")
+
+    leaf_exit(event, first, status="2")
+    leaf_exit(event, second, ts=1700000500)
+
+    red = json.loads(metrics_file(tmp_path).read_text())["phases"]["red"]
+    assert (red["attempts"], red["kills"]) == (2, 1)
+
+
 @pytest.fixture
 def unwritable(monkeypatch):
     """Make a directory refuse new files as a non-root writer meets one of mode 555: creating a file in it answers
