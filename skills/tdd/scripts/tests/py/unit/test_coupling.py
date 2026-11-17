@@ -44,3 +44,15 @@ def test_each_same_extension_non_test_pair_naming_each_other_one_of_them_changed
     monkeypatch.chdir(tmp_path)
     assert (coupling.main(["base"]),) + tuple(capsys.readouterr()) == (
         0, "mutual: src/Z.py src/a.py\nmutual: src/a.py src/b.py\n", "")
+
+
+def test_no_pair_exits_3_printing_nothing_and_a_base_that_does_not_resolve_exits_2_with_one_stderr_line(
+        tmp_path, monkeypatch, capsys, coupling, fake_processes):
+    tree = {"src/a.py": "import b\n", "src/b.py": "x = 1\n"}
+    write(tmp_path, tree)
+    monkeypatch.chdir(tmp_path)
+    range_git(fake_processes, ["src/a.py"], list(tree))
+    results = [(coupling.main(["base"]),) + tuple(capsys.readouterr())]
+    fake_processes.answers({"git": (128, "", "fatal: bad revision\n")})
+    results.append((coupling.main(["nope"]),) + tuple(capsys.readouterr()))
+    assert results == [(3, "", ""), (2, "", "coupling: cannot resolve 'nope'\n")]
