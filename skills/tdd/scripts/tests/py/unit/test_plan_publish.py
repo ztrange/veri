@@ -402,6 +402,15 @@ def test_4025_a_stop_handles_no_refusal_resets_nothing_and_spends_no_budget(publ
                    for c in fake.calls if c[3] for k in set(c[3]) - set(os.environ))
 
 
+def test_4025_a_push_that_fails_after_the_plan_commit_ends_stage_plan_no_second_time(publish):
+    (publish.wt / ".tdd" / "stage-plan.t").write_text("1\n")
+    code, out, err, fake = publish(answers={("push-branch.sh", None): (1, "")})
+
+    ends = [c for c in fake.calls if c[0] == "event.sh" and c[1][:2] == ("stage-end", "stage=plan")]
+    assert (code, len(ends)) == (1, 1)
+    assert out.splitlines()[-1].startswith("stopped at 2.3 ")
+
+
 def test_4025_the_plan_commit_ends_stage_plan_when_the_conductor_started_it(publish):
     (publish.wt / ".tdd" / "stage-plan.t").write_text("1\n")
     code, out, err, fake = publish(answers=WAITING)

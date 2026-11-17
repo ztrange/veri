@@ -360,9 +360,9 @@ Decompose the issue into a **plan**: a checklist of small steps, each one cycle'
 aligned to an acceptance criterion. Surface sizing (note if a step looks too big to be one
 cycle) but do **not** gate on it.
 
-**The plan is stage `plan`**: first `VERI_ISSUE=<n> $S/event.sh stage-start stage=plan; date +%s > .tdd/stage-plan.t`, and once
-the plan commit (2.2) or anything else (a park, stop or bail) ends it, `VERI_ISSUE=<n> $S/event.sh stage-end stage=plan status=<exit code>
-secs=$(($(date +%s)-$(cat .tdd/stage-plan.t)))`: 0 at the plan commit, 1 at a park, 3 at a stop, else the ending call's code.
+**The plan is stage `plan`**: first `VERI_ISSUE=<n> $S/event.sh stage-start stage=plan; date +%s > .tdd/stage-plan.t`; it ends once:
+`plan-publish.sh`'s plan commit ends it, else what does (own 2.2 commit, park, stop, bail): `VERI_ISSUE=<n> $S/event.sh stage-end stage=plan status=<exit code>
+secs=$(($(date +%s)-$(cat .tdd/stage-plan.t)))`: 0 at a commit, 1 a park, 3 a stop, else the ending call's code.
 
 **An issue holding more than one deliverable is parked, not planned.** Before the plan is
 committed, when the issue asks for more than one deliverable, run
