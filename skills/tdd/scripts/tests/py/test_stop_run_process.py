@@ -26,6 +26,10 @@ def started(request):
     """Processes the case starts, each killed and reaped by the pid recorded at its start."""
     procs = []
     yield procs
+    end_all(procs)
+
+
+def end_all(procs):
     for proc in procs:
         proc.kill()
     for proc in procs:
@@ -38,7 +42,8 @@ def git(*args, cwd):
 
 
 class ConductorHolder:
-    """A claude -p stand-in run by a run_conductor.py stand-in; pid is the claude's."""
+    """A claude -p stand-in run by a run_conductor.py stand-in; pid is the claude's. The launcher leads its own
+    process group, so the claude in it ends with it also when its pid was never read."""
 
     def __init__(self, launcher, pid):
         self.launcher, self.pid = launcher, pid
@@ -49,9 +54,22 @@ class ConductorHolder:
                 os.kill(target, 9)
             except OSError:
                 pass
+        try:
+            os.killpg(self.launcher.pid, 9)
+        except OSError:
+            pass
 
     def wait(self):
         self.launcher.wait()
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            try:
+                os.killpg(self.launcher.pid, 0)
+            except ProcessLookupError:
+                return
+            except PermissionError:
+                pass  # macOS refuses a group whose members are all zombies awaiting their reaper
+            time.sleep(0.05)
 
 
 def live_conductor(run, started):
@@ -60,7 +78,7 @@ def live_conductor(run, started):
     claude_pid = holder_dir / "claude.pid"
     claude = stub(holder_dir / "claude", '#!/bin/sh\necho $$ > "%s"\n%s' % (claude_pid, SPINNER.split("\n", 1)[1]))
     launcher = stub(holder_dir / "run_conductor.py", '#!/bin/sh\n"%s" -p run\n' % claude)
-    proc = subprocess.Popen([str(launcher), run.name])
+    proc = subprocess.Popen([str(launcher), run.name], start_new_session=True)
     holder = ConductorHolder(proc, proc.pid)
     started.append(holder)
     for _ in range(200):
@@ -453,3 +471,36 @@ def test_stop_run_run_as_a_script_with_an_empty_veri_caller_dir_stays_in_its_dir
                          env={**os.environ, "VERI_CALLER_DIR": ""}, capture_output=True, text=True, stdin=subprocess.DEVNULL)
 
     assert (ran.returncode, ran.stdout.startswith("usage: stop-run.sh")) == (0, True)
+
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+@pytest.mark.process("the stub claude live_conductor starts, torn down by the started fixture's teardown")
+def test_4131_the_started_teardown_ends_the_stub_claude_live_conductor_starts_also_when_its_claude_pid_was_never_read(tmp_path):
+    run = tmp_path / ".tdd" / "wt" / "5"
+    claude_pid = run / ".tdd" / "holder" / "claude.pid"
+    procs = []
+    try:
+        live_conductor(run, procs)
+    except FileNotFoundError:
+        pass
+    procs[0].pid = procs[0].launcher.pid
+    end_all(procs)
+    deadline = time.monotonic() + 10
+    while not (claude_pid.is_file() and claude_pid.read_text().strip()) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    claude = int(claude_pid.read_text()) if claude_pid.is_file() and claude_pid.read_text().strip() else None
+    try:
+        assert claude is None or not alive(claude), "the stub claude %d outlived the teardown" % claude
+    finally:
+        if claude is not None:
+            try:
+                os.kill(claude, 9)
+            except OSError:
+                pass
