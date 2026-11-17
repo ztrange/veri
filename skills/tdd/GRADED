@@ -128,7 +128,6 @@ skills/tdd/SKILL.md#2c.%20Verify%20the%20plan%20(blind) 8f628036a6ec1875c47dec38
 skills/tdd/SKILL.md#The%20step's%20cost%20check d599082ad82a298b5173aa03966dd422c1c54ae752c16aa24a6f7ab97479df87 2026-11-17 475c6a2a0b474e9c8e13ce041978fd17 748391c71624
 skills/tdd/SKILL.md#Red%20—%20one%20failing%20test%20(developer%20leaf),%20then%20verify-red%20(blind) ee2c9fbde8facb6e3d00191ab62473f5f0cd6af66ba85db908891acaa1415d9e 2026-11-17 91e7f296408c4b05845d39e1f5336dc0 748391c71624
 skills/tdd/SKILL.md#Green%20—%20minimum%20implementation%20(developer%20leaf),%20then%20verify-green%20(blind) e06f85f7f97bbff4f845f0a773a1cf5622ef7c1a0a43b2e0f367a5820b4c75c1 2026-11-17 ec81896b20824b8b90860ad3e5e6b1ac 748391c71624
-skills/tdd/SKILL.md#Refactor%20loop%20—%20one%20leaf%20applies%20the%20step's%20transforms,%20then%20verify-refactor%20(blind,%20once) 1059954af789b08ace21c395cdc17760e8031b05269f939c69f2ed29c7c2a2cd 2026-11-17 b23d3871ec114535b03e20eeb639dfa0 748391c71624
 skills/tdd/SKILL.md#4.%20Draft%20PR 8e155b6a157cd53b3b39944348457b810248e6daa1ab17040f6838951c729fd9 2026-11-17 578610232ea34cb594676c7442f3c125 748391c71624
 skills/tdd/SKILL.md#Detecting%20the%20test%20command eca2d0f3beed5dc70f63013c1d70ee8f84dc8ee2de6cf6df2a507bd4cc84078d 2026-11-17 a71c02f521854bc496f6b62b8174d3bf 748391c71624
 skills/tdd/SKILL.md#Guardrails 60dc8606096d62c464b8ac934823ac9be1d1be8e9ff52399fd881bd1eaf01594 2026-11-17 39b439841ab9444d9aad641d7e6e041c 748391c71624
@@ -139,3 +138,4 @@ skills/tdd/RESUME.md 982aea8058a7c462a51885f4caec6de6a2caedcc3cfed8dc719bb312bbc
 skills/tdd/SKILL.md#1.%20Read%20the%20issue,%20enter%20the%20issue's%20worktree,%20capture%20the%20spec%20(or%20resume) b50e14ef32a11be7bc4f02d6831ffbc568601316e7d91e21cc42bc605c08d72a 2026-11-17 58cc87754bae4614865cb5eee138c496 748391c71624
 skills/tdd/SKILL.md#2.%20Scope%20&%20plan%20→%20the%20ledger cec238a0268d0ce98d7793ecf4d648c916b7d5dfb449cebb4d463b0f58a240d0 2026-11-17 efa5064b39164dfdb8281dca076a71be 748391c71624
 skills/tdd/SCRIPTS.md fc171280bea7b825578867e9897299b79be4ecc09aa0cd8911ed0acde51d6106 2026-11-17 2b82ebbb18cb4fa3925dbd60f4942b32 748391c71624
+skills/tdd/SKILL.md#Refactor%20loop%20—%20one%20leaf%20applies%20the%20step's%20transforms,%20then%20verify-refactor%20(blind,%20once) 383e5e77b7f202f38655a21c37ed126e3786fc3cfe911fbbca7b033fef20fbac 2026-11-17 df231f9f991c4a70bed33108e7b7b4ac 748391c71624

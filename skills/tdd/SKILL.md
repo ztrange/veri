@@ -1064,17 +1064,17 @@ After a clean `red-half.sh`, unless the step carries `⟦replaces-case⟧` or `�
 
 #### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)
 
-On the step's first pass run `$S/refactor-half.sh <n>` first (it starts the stage), again on exit 3;
+On the step's first pass run `$S/refactor-half.sh <n>` first, again on exit 3;
 on 0 its last lines hold `count`, `budget`, `stopped`, `touched`, `uncovered_spec`, else go on from the
 sub-step it names.
 
-The loop is stage `refactor-loop`, one end per start: entering it (not at 3's resume; it stays open through a triangulation), `VERI_ISSUE=<n> $S/event.sh stage-start stage=refactor-loop; date +%s > .tdd/stage-rl.t`,
+The loop is stage `refactor-loop`, one end per start: entering it, unless `refactor-half.sh` got past its exit-2 refusals or 3 resumes it (it stays open through a triangulation), `VERI_ISSUE=<n> $S/event.sh stage-start stage=refactor-loop; date +%s > .tdd/stage-rl.t`,
 and when it ends `VERI_ISSUE=<n> $S/event.sh stage-end stage=refactor-loop status=<exit code> secs=$(($(date +%s)-$(cat .tdd/stage-rl.t)))`:
 0 once 6's `chore: refactor verified` push exits 0, or its reconcile succeeds, before its stop check; 1 at 6's `repin`, before the commit; 3 at a stop before
 that push; else the ending call's code (a bail's too).
 
 1. **One refactor leaf for the step.** Ask the budget first, with a count of **0**: that
-   call is what decides whether the leaf runs at all, since `VERI_REFACTOR_BUDGET=0`
+   call decides whether the leaf runs at all, since `VERI_REFACTOR_BUDGET=0`
    switches refactoring off. Then build the prompt from the `refactor` template — which
    carries the budget to the leaf as the number of transforms it may apply — and launch
    **through the supervisor** (exit **2** → **bail**, after the stop check in *Launching a
@@ -1099,7 +1099,7 @@ that push; else the ending call's code (a bail's too).
    transform and **reverts** one that turns them red rather than leave a red suite; it takes
    **no untested generality** (that comes only from **triangulation**) and **flags overfit**
    code as needing a triangulating test instead of hand-generalizing it. It also **commits
-   its own transforms**, one commit each so a break stays attributable to one change:
+   its own transforms**, one commit each:
    `git commit -m "refactor: <what> (#<n>)"`. The atomic tick-and-commit stays on green
    (ADR-0007); it is the refactor commit that moved to the leaf. The report is in
    `.tdd/develop-refactor.out` and ends with `RESULT:` (one line per transform applied, or
