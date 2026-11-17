@@ -68,7 +68,7 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
 - **The committed ledger is the source of truth** for done steps; the issue only mirrors it.
   A step's green tick appends `⟂ refactor pending`, removed only by its verify-refactor PASS,
   so a resumed run can tell green from finished.
-- **Nine budgets on nine axes, never merged**: `VERI_STUCK_RETRIES` (liveness — no answer),
+- **Ten budgets on ten axes, never merged**: `VERI_STUCK_RETRIES` (liveness — no answer),
   `VERI_NO_VERDICT_RETRIES` (protocol compliance — finished without a `VERDICT:` line),
   `REVISE_BUDGET` (verdict — rejected), `VERI_REFACTOR_BUDGET` (cost — the transforms one
   refactor leaf may apply for the whole step; ADR-0017) and `VERI_STEP_GROWTH_PERCENT` (plan
@@ -81,7 +81,9 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
   judgments per run, default 2; 0 keeps today's behaviour), an eighth on an axis of its own, never
   folded into the other seven, and `VERI_CI_FLAKE_RERUNS` (CI re-runs of a red head per run, default
   1; 0 keeps today's behaviour), a ninth on an axis of its own, never folded into the other eight: a
-  flaky CI job is not a defect. One knob over
+  flaky CI job is not a defect, and `VERI_TEST_QUALITY_FIXES` (cost — the test-quality steps one run
+  may add, default 1), a tenth on an axis of its own, never folded into the other nine: a weak test
+  is not a rejected product. One knob over
   any two would make different failures one decision (ADR-0020). A bad `VERI_REFACTOR_BUDGET`
   is caught in preflight.
 - **The developer's and the verifier's models are separate knobs**: `VERI_MODEL` (every leaf),
