@@ -20,6 +20,12 @@ def cover_report(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
 
+@pytest.fixture(autouse=True)
+def legacy_label(monkeypatch, coverage_blocker):
+    """The repository has a `legacy` label unless a case says otherwise (#4109)."""
+    monkeypatch.setattr(coverage_blocker, "gh_label_exists", lambda label: True, raising=False)
+
+
 def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when_the_body_has_no_blocked_by_heading(
         cover_report, monkeypatch, coverage_blocker):
     original = "## Problem\n\nx"
@@ -371,3 +377,14 @@ def test_main_3721_files_a_cover_issue_without_the_opt_in_label_when_the_probe_g
 
     assert {k: ("ready-for-agent:mu" in v, "filed-by:mu" in v) for k, v in labels.items()} == {
         "none": (False, True), "nomut": (False, True)}
+
+
+def test_main_4109_files_the_cover_issue_labelled_legacy_beside_the_opt_in_label_and_filed_by_the_lane(
+        monkeypatch, tmp_path, coverage_blocker):
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+
+    labels = {name: _label_run(monkeypatch, tmp_path / name, coverage_blocker, report)
+              for name, report in (("mut", "COVERED: no\nMUTATION: veri/a.py: f `x` -> `y`\n"), ("nomut", "COVERED: no\n"))}
+
+    assert {k: sorted(v) for k, v in labels.items()} == {
+        "mut": ["filed-by:mu", "legacy", "ready-for-agent:mu"], "nomut": ["filed-by:mu", "legacy"]}

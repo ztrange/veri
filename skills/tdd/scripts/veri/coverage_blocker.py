@@ -56,7 +56,7 @@ def main(argv):
         label = tunables.get("VERI_LABEL")
         lane = label.rsplit(":", 1)[1] if ":" in label else "main"
         try:
-            labels = (label, "filed-by:" + lane) if mutations else ("filed-by:" + lane,)
+            labels = (label, "filed-by:" + lane, "legacy") if mutations else ("filed-by:" + lane, "legacy")
             url = gh_issue_create(title, text, *labels).rstrip("\n")
         except NoAnswer:
             return 2
