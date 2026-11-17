@@ -236,7 +236,47 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass stopped=nothing-structural
    ```
-   Right after the structural pass (or this skip) and before the PR is readied, run
+   After the structural pass (or this skip) and before `refactor-candidates.sh`, each time the run
+   enters this step, run the repo's declared lint command once, at the worktree root (the
+   conductor's working directory), through `detach-command.sh`. The command is the one
+   `$S/detect-test-command.sh --tier lint` prints from the repo CLAUDE.md's `veri: lint: <command>`
+   line; veri never guesses one. The block first empties `.tdd/issue-<n>-lint.md`, so a section an
+   earlier entry wrote never outlives this one:
+   ```
+   : > .tdd/issue-<n>-lint.md
+   lint="$($S/detect-test-command.sh --tier lint)"; found=$?
+   [ "$found" != 0 ] || $S/detach-command.sh start lint sh -c "$lint"
+   ```
+   `--tier lint` exit **3** (no `veri: lint:` line) runs nothing, writes no event and adds no PR
+   body section: go on to `refactor-candidates.sh`. Its exit **2** (no answer could be obtained)
+   runs nothing and writes no event either, and the section says so: write
+   `### Lint` followed by `The lint command could not be read: detect-test-command.sh --tier lint
+   exited 2.` to `.tdd/issue-<n>-lint.md`. On exit **0**, wait on the run in the foreground:
+   ```
+   $S/detach-command.sh wait lint > /dev/null; waited=$?; [ "$waited" != 3 ] || exit 0    # exit 3: still running → run this line and every line after it again, in a new Bash call
+   [ "$waited" = 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh lint exit="$(cat .tdd/lint.exit)"
+   ```
+   `wait` exit **0** (the command exited 0) or **1** (it exited non-zero) writes
+   `event.sh lint exit=<code>`, the code `.tdd/lint.exit` holds, and then the `### Lint` section:
+   ```
+   lint="$($S/detect-test-command.sh --tier lint)"; code="$(cat .tdd/lint.exit)"
+   { printf '### Lint\n\n'
+     if [ "$code" = 0 ]; then printf '`%s` passed.\n' "$lint"
+     else printf '`%s` exited %s. The last 20 lines of its output:\n\n~~~text\n' "$lint" "$code"
+       tail -n 20 .tdd/lint.out | perl -pe 'BEGIN { ($w, $p, $h) = splice @ARGV, 0, 3 } s/\Q$w\E/<worktree>/g if length $w; s/\Q$p\E/<worktree>/g if length $p; s/\Q$h\E/~/g if length $h' "$PWD" "$(pwd -P)" "$HOME"
+       printf '~~~\n'; fi; } > .tdd/issue-<n>-lint.md
+   ```
+   The output's tail is published, so the worktree root is written `<worktree>` and the home
+   directory `~` before it reaches the file. `wait` exit **2** means no exit code was recorded:
+   first run `$S/stop-requested.sh`: on `now` the run goes to *Stopping* (`Read` and run
+   `<base directory>/STOPPING.md`) and does not bail. Otherwise the command could not be run (it died
+   before recording an exit), so no event is written and the section is `### Lint` followed by
+   `` `<command>` could not be run: no exit code was recorded. `` — reported as neither a pass nor a
+   failure of the lint. A non-zero lint exit, and a lint that could not be run or read, neither
+   bails the run nor holds the PR: the section reports it and the step goes on. Sub-step 2 puts the
+   file's contents, when it is non-empty, in the PR body, which `pr-body.sh` writes through veri's
+   redaction of tokens and secrets (`comment.sh`'s rule).
+   After the lint run (or its skip) and before the PR is readied, run
    `$S/refactor-candidates.sh <n> .tdd/issue-<n>-refactor-owed.md` once. Exit **0** prints the
    candidates issue's url, which goes in the PR body's `## Refactor owed` section; exit **3**
    (nothing out-of-bounds or not done) does nothing; exit **2** is a system failure: **bail**
@@ -322,7 +362,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"
    cat > .tdd/issue-<n>-pr-body.md <<'EOF'
-   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'>
+   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section>
    EOF
    $S/pr-body.sh <pr-number> .tdd/issue-<n>-pr-body.md
    ```
