@@ -591,8 +591,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   hand fix's commit (one carrying a `Stack-fix:` trailer among the issue's) when one was pushed. It adds, removes or
   changes no label: the issue returns to selection only by `release-issue.sh <n>`. **Exit 1**, nothing pushed and the
   lock freed, on a revert conflict (a later commit depends on the culprit: a human's call), a red fast tier or a unit
-  owing a grade. **Exit 3**, nothing pushed, when `stack-red.sh` exits 3, when no commit of the stack belongs to
-  `<n>`, or when the stack already holds its revert of `<n>` (it never reverts its own revert). **Exit 2** on no answer
+  owing a grade. An issue reverted before (its revert subject is this script's) has only its commits after its last
+  revert reverted, so an issue released, re-run and joined again can be reverted again; when the newest commit
+  belonging to `<n>` is that revert itself it reverts nothing and exits **3**, but still rewords the `Closes #<n>`
+  lines to name that revert (rewording is safe to repeat, so a re-run after a body edit that failed lifts the claim;
+  a body it cannot edit then is **exit 2**). **Exit 3**, nothing pushed, also when `stack-red.sh` exits 3 or no commit
+  of the stack belongs to `<n>`. **Exit 2** on no answer
   from git, GitHub, `stack-red.sh` or the lock, when origin moved on every attempt, or on bad arguments; and, the
   revert left pushed, when the merged pull requests cannot be read or a body cannot be edited, naming the pull
   request.
