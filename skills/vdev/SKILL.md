@@ -377,7 +377,8 @@ settle is asked in full in your own transcript, once (P4).
 
 **In a session with `start_session`**, each case has a question file, `.tdd/questions/<id>.md`:
 `<id>` is `<lane>-<n>` for a question tied to issue `<n>` and `<lane>-<slug>` otherwise, `<lane>`
-being `main` with no lane word.
+being `main` with no lane word. A lane word holds no `-` and is not `main`, so no two lanes share a
+question-file prefix.
 
 1. Before briefing `vjudge` on a case, look for its question file. When it exists, the question
    was already asked: run no `vjudge` on the case again, open no second session for it and send no
