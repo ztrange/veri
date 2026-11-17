@@ -4,9 +4,9 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import collections
 import contextlib
 import glob
-import importlib
 import io
 import entry
+import leg_tmpdir
 import os
 import paths
 import pinned_scripts
@@ -350,8 +350,7 @@ def keep_pinned_scripts(snapshot, issue):
 
 
 def pinned_tmpdir():
-    leg = importlib.import_module((__package__ + "." if __package__ else "") + "pytest_leg")
-    return leg.PINNED_TMPDIR
+    return leg_tmpdir.PINNED_TMPDIR
 
 
 def free_gb(path):
