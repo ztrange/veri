@@ -78,7 +78,8 @@ stopped. The next conductor that exits is simply not replaced, until the count i
 `$S/solvable-issues.sh` that has no live conductor (no `.tdd/wt/<n>/.tdd/conductor.pid`
 whose pid answers `kill -0`). Any other order is an override: it is explicit, it names who
 asked for it, and it is written down in the role state file, which every reset reads, never in
-a handoff — and in the one line you tell the human.
+a handoff — and, for a coordinator while one exists, in the one line it tells the human; the dev
+session tells the human nothing of it (vdev's *Speaking*).
 
 **A silent exit is checked before it is a bail (P10).** A conductor that exits with no closing
 comment on its issue (neither ✅ Done nor a bail) is first checked for a usage limit — a 429 or
