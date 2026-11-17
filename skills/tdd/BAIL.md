@@ -112,6 +112,10 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   in a `GRADED` file (`graded-changed.sh` exited **1**) → **process** failure (the step
   edited graded prose by a route other than the ⟦skill-edit⟧ runner, and the plumbing did
   not break).
+- `unwired` — `unwired.sh` exited **1** at the Draft PR step: the run's range adds a non-test
+  file that no other non-test file names → **process** failure (the methodology spoke: code
+  nothing reaches is not delivered); the PR stays a draft. A human wires each named file into a
+  caller or removes it, then runs `release-issue.sh <n>`.
 
 **A bail reached first stays a bail**, whatever stop is waiting behind it: the methodology or
 the plumbing has already answered, and a pause would hide that answer from the resume. Ask
