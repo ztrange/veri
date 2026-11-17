@@ -132,7 +132,10 @@ and loses nothing. So no checkpoint runs here — sub-step 4 asks once, clears t
 step a red full run appends: it launches leaves and ends in a ledger commit like any other
 step, so both checkpoints apply to the repair step as they do in step 3.
 
-1. **Ask the two questions that decide whether there is anything fit to push, and refuse to
+1. Run `$S/pr-prepare.sh <n>` first, again on exit 3. On exit 0 take `rebased`, `rebased_from` and
+   `rebased_tip_suite` from its last lines (nothing rebased: `rebased=0`, `rebased_tip_suite=none`) and go on from the lint run
+   below, the structural pass skipped; on any other exit go on by this sub-step from the point its last line names.
+   **Ask the two questions that decide whether there is anything fit to push, and refuse to
    go on while either says no** — both from inside the worktree, before a human is asked to
    look:
    ```
