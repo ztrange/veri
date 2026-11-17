@@ -63,3 +63,27 @@ def test_record_exits_2_with_one_stderr_line_and_writes_nothing_when_the_ledger_
     code, _, err = run_cli(red_setup, ["record", "7"], stdin=REPORT, cwd=_run(tmp_path, ledger))
 
     assert (code, len(err.splitlines()), err.startswith(said), _events(tmp_path)) == (2, 1, True, [])
+
+
+def _journal(tmp_path, *marks):
+    """A run whose journal holds a red-setup event per (issue, step, count, what), in order."""
+    _run(tmp_path)
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(
+        json.dumps({"ts": 1, "event": "red-setup", "issue": issue, "step": step, "count": count, "what": what}) + "\n"
+        for issue, step, count, what in marks))
+    return tmp_path
+
+
+def _worst(run_cli, red_setup, tmp_path, env=None):
+    owed = tmp_path / ".tdd" / "issue-7-refactor-owed.md"
+    code, _, err = run_cli(red_setup, ["worst", "7", str(owed)], cwd=tmp_path, env=env)
+    return code, err, owed.read_text() if owed.exists() else None
+
+
+def test_worst_records_one_testability_row_for_the_step_whose_count_is_highest_over_the_threshold_and_exits_0(
+        tmp_path, run_cli, red_setup):
+    _journal(tmp_path, ("7", "step one", "2", "a spy"), ("7", "step two", "5", "a fake clock, a stub gh"),
+             ("7", "step three", "4", "a tmp repo"))
+
+    assert _worst(run_cli, red_setup, tmp_path) == (
+        0, "", "not-done | testability | step two: 5 stubs and setup (a fake clock, a stub gh)\n")
