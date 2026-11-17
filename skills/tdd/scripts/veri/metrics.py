@@ -576,6 +576,7 @@ class Fold:
     switched_off_by: dict       # phase -> verifiers switched off, every phase but refactor
     conductor_counted: bool     # whether the log carries the conductor's own usage event
     total: dict                 # {COST_COLUMNS: number}, leaves only until the conductor is added
+    total_includes_conductor: bool   # the conductor's spend is in `total`: its usage event, or a priced session
     structural: object          # the structural-pass event, else {"stopped": "not marked"} for a landed run, else None
     by_model_shown: bool        # a model answered, or a launch named one
     ended: bool                 # whether the run is over (run_end's answer)
@@ -715,7 +716,8 @@ def fold(issue, path, ledger):
                 steps=tally.steps, step_marks=tally.spent, passes=passes, tier_runs=tally.tier_runs,
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
                 switched_off_by=tally.switched_off_by,
-                conductor_counted=tally.conductor_counted, total=tally.total, structural=structural,
+                conductor_counted=tally.conductor_counted, total=tally.total,
+                total_includes_conductor=tally.conductor_counted or some_priced, structural=structural,
                 green_rejects=green_rejects,
                 green_reject_routes=sorted(routes.items(), key=lambda item: (-item[1], item[0])),
                 green_reject_checks=sorted(item for item in checks.items() if item[0]) + [("unnamed", checks[""])],
@@ -1036,7 +1038,8 @@ def as_json(f):
             # a step's wall is the markdown's: its start-to-done span, not its leaves' summed seconds
             "steps": [dict(json_row(row_counts, STEP_COLUMNS), text=step, wall_seconds=f.step_walls[step])
                       for step, row_counts in f.steps.items()],
-            "conductor": conductor_json(f), "total": {}}
+            "conductor": conductor_json(f),
+            "total": dict(json_row(f.total, COST_COLUMNS), includes_conductor=f.total_includes_conductor)}
 
 
 def conductor_json(f):

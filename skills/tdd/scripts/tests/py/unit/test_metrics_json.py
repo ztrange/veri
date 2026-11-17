@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from test_metrics import table
+from test_metrics import table, write_log
 from test_metrics_page import build_rich_root
 
 
@@ -108,3 +108,38 @@ def test_conductor_priced_is_true_when_every_session_carries_a_price_false_when_
     shaped = metrics.as_json(dataclasses.replace(folded, conductor_priced=priced, conductor_some_priced=some_priced))
 
     assert shaped["conductor"]["priced"] == expected
+
+
+TOTAL_KEYS = {key: column for key, column in PHASE_KEYS.items() if column in
+              ("turns", "input", "output", "cache read", "cache creation", "$")}
+
+
+def test_total_holds_the_total_rows_figures_and_says_the_conductors_spend_is_in_them(rich, capsys, metrics):
+    total = as_json(metrics, capsys)["total"]
+    (row,) = markdown_rows(metrics, "#### Total")
+
+    assert sorted(total) == sorted([*TOTAL_KEYS, "includes_conductor"])
+    assert ({key: shown(total[key], column) for key, column in TOTAL_KEYS.items()}
+            == {key: row[column].removesuffix(" (estimate)") for key, column in TOTAL_KEYS.items()})
+    assert total["includes_conductor"] is True
+
+
+def usage(actor, dollars):
+    return {"ts": 10, "issue": "108", "actor": actor, "phase": "red" if actor != "conductor" else "", "step": "1",
+            "event": "usage", "attempt": "1", "num_turns": "2", "total_cost_usd": dollars}
+
+
+@pytest.mark.parametrize("conductor_log, events, expected", [
+    (False, [usage("developer", "0.50")], False),
+    (False, [usage("developer", "0.50"), usage("conductor", "1.25")], True),
+    (True, [usage("developer", "0.50")], True),
+], ids=["no conductor spend anywhere", "the conductor's usage event", "a priced conductor stream log"])
+def test_total_includes_conductor_exactly_when_the_conductors_spend_is_added_into_it(
+        tmp_path, monkeypatch, capsys, metrics, conductor_log, events, expected):
+    write_log(tmp_path, events)
+    if conductor_log:
+        (tmp_path / ".tdd" / "conductor-108.log").write_text(json.dumps(
+            {"type": "result", "total_cost_usd": 1.0, "num_turns": 3}) + "\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert as_json(metrics, capsys)["total"]["includes_conductor"] is expected
