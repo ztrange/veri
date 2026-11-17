@@ -24,7 +24,10 @@ Run it on every question before it reaches the human, save a recommendation pass
 (*Reviewing a recommendation*, below).
 
 1. **Is it on the *Always surface* list below?** Then surface it to the human (P4, P21), and stop
-   here.
+   here. When the caller's brief names a question-file path, surfacing it means putting it the way
+   step 5 puts a question for such a caller: written to that path under the four headings and, for
+   a question about one issue, that issue parked with `--question-file` naming the path; the reply
+   is the path alone.
 2. **Was the same question decided before?** For a question about one issue, run
    `$S/issue-decisions.sh <n>`: on exit 0 the blocks it prints are the issue's decisions, oldest
    first, each marked `owner:` or `judge:`; exit 3 means none. For a question about no issue, read
@@ -42,14 +45,17 @@ Run it on every question before it reaches the human, save a recommendation pass
 4. **Decide by the *Rules* below**, and act. State it in one line naming the rule applied and the
    option not taken:
    `Decided: filed the defect as an issue (veri fixes veri through a filed issue); not a hand fix.`
-5. **Still not clear-cut after the one investigation?**
-   - A question about one issue: park that issue with `$S/park-issue.sh`, and take the next issue.
-     Pass it `--question-file <path>`, a file holding the whole question under the headings
-     `#### Question`, `#### Options` (each option stating its cost), `#### Found` (what the one
-     investigation returned) and `#### Recommendation`, so the owner can answer it from the issue
-     alone.
-   - A question about no issue: record it with `$S/role-state.sh <role> add decision`, and ask it
-     once.
+5. **Still not clear-cut after the one investigation?** The question is written whole, under the
+   headings `#### Question`, `#### Options` (each option stating its cost), `#### Found` (what the
+   one investigation returned) and `#### Recommendation`.
+   - **When the caller's brief names a question-file path**, write the question to that path. A
+     question about one issue: park that issue with `$S/park-issue.sh`, passing `--question-file`
+     that path, and take the next issue. A question about no issue is recorded nowhere else. Reply
+     with the path and nothing of the question: no question text and no request for an answer.
+   - **With no such path**, a question about one issue: park that issue with `$S/park-issue.sh`,
+     and take the next issue. Pass it `--question-file <path>`, a file holding the whole question
+     under those headings, so the owner can answer it from the issue alone. A question about no
+     issue: record it with `$S/role-state.sh <role> add decision`, and ask it once.
 6. **At a `step-too-big` bail**, handed the ledger's `## Owed steps` and the issue's acceptance
    criteria: write each owed step that serves one of the issue's numbered acceptance criteria, k,
    into the ledger by hand as a plain planned line `- [ ] <text> ⟦criterion k⟧`, never through
