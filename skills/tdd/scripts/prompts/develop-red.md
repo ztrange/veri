@@ -85,5 +85,6 @@ FAIL_OUTPUT: <the failure line — from the unmodified code if it fails there, o
 PREDICTED_FAILURE: <the missing name, when the predicted failure is an error on the name the step introduces rather than an assertion; otherwise the assertion and the observed and expected values, as predicted before running; the message shape only as a hint, which the run is not compared on>
 PREDICTION: MATCHED | DIVERGED
 PREDICTION_NOTE: <on DIVERGED, what actually happened and why it could not be reconciled>
+SETUP: <n> | <what> — <n> the number of stubs, fakes, spies and fixtures the case needed beyond the code under test (0 when none), <what> naming them (`none` when 0)
 
-REPORT-FORMAT red | keys TEST_PATH: TARGET_TEST: AGAINST_UNMODIFIED: WHY: FAIL_OUTPUT: PREDICTED_FAILURE: PREDICTION: PREDICTION_NOTE: | suite exempt: a red step's test is meant to fail
+REPORT-FORMAT red | keys TEST_PATH: TARGET_TEST: AGAINST_UNMODIFIED: WHY: FAIL_OUTPUT: PREDICTED_FAILURE: PREDICTION: PREDICTION_NOTE: SETUP:? | suite exempt: a red step's test is meant to fail

@@ -1,6 +1,6 @@
 # Plan for #4117 — PRD 032.3: a run records its worst testability smell in its candidates issue
 
-- [ ] the prompt `build-develop-prompt.sh red` renders has a line starting `SETUP:`, and `_develop-red-run-and-report.md` declares `SETUP:` in its `REPORT-FORMAT red` line ⟦criterion 1⟧
+- [x] the prompt `build-develop-prompt.sh red` renders has a line starting `SETUP:`, and `_develop-red-run-and-report.md` declares `SETUP:` in its `REPORT-FORMAT red` line ⟦criterion 1⟧
 - [ ] `red-setup.sh record <n> < <red-report>` writes a `red-setup` event with `count` and `what` for the ledger's current step from the report's `SETUP: <n> | <what>` line and exits 0, the event declared in `veri/event_table.py` and `JOURNAL.md` ⟦criterion 2⟧
 - [ ] `red-setup.sh record` exits 3 and writes nothing when the report has no `SETUP:` line ⟦criterion 3⟧
 - [ ] `red-setup.sh record` exits 2 and writes nothing on a malformed `SETUP:` line ⟦criterion 3⟧
@@ -17,6 +17,6 @@
 - [ ] `red-setup.sh` run as a script records a Red's count and the worst step end to end
 - [ ] no verifier prompt names `SETUP:` and `build-verify-prompt.sh` gains no input ⟦diff-checked⟧ ⟦criterion 9⟧
 - [ ] `JOURNAL.md` has a `red-setup` row held by the journal roster cases ⟦full-suite⟧ ⟦criterion 10⟧
-- [ ] `_develop-red-run-and-report.md` asks for the `SETUP:` line ⟦skill-edit⟧ ⟦criterion 11⟧
+- [x] `_develop-red-run-and-report.md` asks for the `SETUP:` line ⟦skill-edit⟧ ⟦criterion 11⟧
 - [ ] `SKILL.md` *Red* runs `red-setup.sh record` after verify-red's PASS and goes on to Green on each exit, and no longer recounts why `AGAINST_UNMODIFIED` exists ⟦skill-edit⟧ ⟦criterion 12⟧
 - [ ] `DRAFT-PR.md` runs `red-setup.sh worst` in sub-step 1, and `SCRIPTS.md` has its entry ⟦skill-edit⟧ ⟦criterion 13⟧

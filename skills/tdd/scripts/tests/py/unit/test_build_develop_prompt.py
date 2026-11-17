@@ -2226,3 +2226,13 @@ def test_main_renders_develop_seam_md_carrying_the_step_for_the_seam_phase_and_r
 
     assert (code, err, b"## Phase: develop-seam" in out, step.encode() in out) == (0, b"", True, True)
     assert (short, b"seam needs 4 arguments" in short_err) == (2, True)
+
+
+def test_main_renders_a_red_prompt_with_a_line_starting_setup_4117(tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"zorblat frobs a nitz.\n")
+
+    code = build_develop_prompt.main(["red", str(spec), "zorblat frobs a nitz ⟦criterion 1⟧", "make test"])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, [line for line in out.split(b"\n") if line.startswith(b"SETUP:")] != []) == (0, True)
