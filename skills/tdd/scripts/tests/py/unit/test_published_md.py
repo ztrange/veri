@@ -135,7 +135,7 @@ def _metrics_paths(value, prefix=""):
     if isinstance(value, dict):
         paths = set()
         for key, inner in value.items():
-            path = prefix + {"phases.": "<phase>", "leaves.": "<kind>"}.get(prefix, key)
+            path = prefix + {"phases.": "<phase>", "leaves.": "<kind>", "stages.": "<stage>"}.get(prefix, key)
             paths |= {path} | _metrics_paths(inner, path + ".")
         return paths
     if isinstance(value, list):
@@ -156,7 +156,9 @@ def test_4204_published_md_states_exactly_the_keys_of_the_object_metrics_json_bu
     log = tmp_path / ".tdd" / "events.jsonl"
     log.write_text(log.read_text() + json.dumps({"ts": 5200, "issue": "108", "actor": "conductor", "phase": "green",
                                                  "step": "two", "event": "bail", "cause": "uncovered",
-                                                 "classification": "process"}) + "\n")
+                                                 "classification": "process"}) + "\n"
+                   + json.dumps({"ts": 5300, "issue": "108", "event": "stage-end", "stage": "baseline", "status": "0",
+                                 "secs": "9"}) + "\n")
     monkeypatch.chdir(tmp_path)
 
     built = _metrics_paths(metrics.as_json(metrics.fold("108", ".tdd/events.jsonl", ".tdd/issue-108.md")))

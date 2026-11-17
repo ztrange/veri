@@ -49,7 +49,7 @@ def test_json_prints_one_object_with_the_five_top_level_keys_and_the_markdown_re
     code = metrics.main(["108"])
     again, _ = capsys.readouterr()
 
-    assert sorted(printed) == ["conductor", "leaves", "phases", "run", "runs", "steps", "total"]
+    assert sorted(printed) == ["conductor", "leaves", "phases", "run", "runs", "stages", "steps", "total"]
     assert (code, again) == (0, markdown)
 
 
@@ -394,6 +394,29 @@ def test_4225_the_runs_leaves_and_cost_sum_to_the_issues_leaf_totals_on_two_runs
     assert (sum(run["leaves"] for run in shaped["runs"]), round(sum(run["cost_usd"] for run in shaped["runs"]), 2)) == (
         sum(entry["attempts"] for entry in shaped["leaves"].values()),
         round(sum(entry["cost_usd"] for entry in shaped["leaves"].values()), 2)) == (3, 1.75)
+
+
+def stage(ts, event, name, status=None, secs=None):
+    fields = {} if status is None else {"status": status, "secs": secs}
+    return mark(ts, event, stage=name, **fields)
+
+
+def test_4228_stages_count_each_stages_starts_its_ends_by_exit_code_its_unended_starts_and_its_seconds(
+        tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [stage(100, "stage-start", "preflight"), stage(101, "stage-start", "baseline"),
+                         stage(131, "stage-end", "baseline", "0", "30"), stage(140, "stage-end", "preflight", "0", "40"),
+                         stage(200, "stage-start", "baseline"),
+                         stage(300, "stage-start", "baseline"), stage(310, "stage-end", "baseline", "1", "10"),
+                         stage(400, "stage-start", "preflight"), stage(402, "stage-end", "preflight", "3", "2"),
+                         stage(500, "stage-start", "preflight"), stage(505, "stage-end", "preflight", "2", "5"),
+                         stage(600, "stage-start", "baseline")])
+    monkeypatch.chdir(tmp_path)
+
+    stages = as_json(metrics, capsys)["stages"]
+
+    assert stages == {
+        "preflight": {"runs": 3, "ok": 1, "failed": 0, "no_answer": 1, "nothing": 1, "unended": 0, "wall_seconds": 47},
+        "baseline": {"runs": 4, "ok": 1, "failed": 1, "no_answer": 0, "nothing": 0, "unended": 2, "wall_seconds": 40}}
 
 
 def test_4225_a_journal_with_no_done_bail_or_stop_line_folds_as_one_open_run(tmp_path, monkeypatch, capsys, metrics):

@@ -92,6 +92,15 @@ never removed or renamed, and the file carries no version key. A reader ignores 
 | `runs[].sessions` | whole number, the run's `conductor-start` lines | no |
 | `runs[].leaves` | whole number, the run's `launch` lines that name a phase; summed over `runs` it equals `attempts` summed over `leaves` | no |
 | `runs[].cost_usd` | number, dollars: the run's `usage` lines that name a phase, summed; summed over `runs` it equals `cost_usd` summed over `leaves`. The conductor's own spend is not split per run | no |
+| `stages` | object keyed by stage name, one entry per stage (a non-leaf phase of a run, such as `preflight` or `baseline`) the journal marks with `stage-start` or `stage-end` lines; `{}` when it marks none. A stage absent from it was not recorded (veri did not mark it then), never a stage that ran zero times | no |
+| `stages.<stage>` | object, one stage's figures | no |
+| `stages.<stage>.runs` | whole number, the stage's `stage-start` lines | no |
+| `stages.<stage>.ok` | whole number, its `stage-end` lines with `status` 0 (passed) | no |
+| `stages.<stage>.failed` | whole number, its `stage-end` lines with `status` 1 (failed: a clean negative) | no |
+| `stages.<stage>.no_answer` | whole number, its `stage-end` lines with `status` 2 (no answer could be obtained) | no |
+| `stages.<stage>.nothing` | whole number, its `stage-end` lines with `status` 3 (nothing to do, or still waiting) | no |
+| `stages.<stage>.unended` | whole number, its starts with no `stage-end` of that stage before its next start or the journal's end: a stage killed before it could end, never counted as passed | no |
+| `stages.<stage>.wall_seconds` | whole number, its `stage-end` lines' `secs` summed | no |
 | `phases` | object keyed by phase name, one entry per phase a leaf was launched for | no |
 | `phases.<phase>` | object, one phase's figures | no |
 | `phases.<phase>.attempts` | whole number, leaves launched | no |
