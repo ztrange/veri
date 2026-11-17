@@ -353,6 +353,10 @@ Decompose the issue into a **plan**: a checklist of small steps, each one cycle'
 aligned to an acceptance criterion. Surface sizing (note if a step looks too big to be one
 cycle) but do **not** gate on it.
 
+**The plan is stage `plan`**: first `VERI_ISSUE=<n> $S/event.sh stage-start stage=plan; date +%s > .tdd/stage-plan.t`, and once
+the plan commit (1.2) or anything else (a park, stop or bail) ends it, `VERI_ISSUE=<n> $S/event.sh stage-end stage=plan status=<exit code>
+secs=$(($(date +%s)-$(cat .tdd/stage-plan.t)))`: 0 at the plan commit, 1 at a park, 3 at a stop, else the ending call's code.
+
 **An issue holding more than one deliverable is parked, not planned.** Before the plan is
 committed, when the issue asks for more than one deliverable, run
 `$S/park-issue.sh <n> '<cause naming the deliverables>' '<unblock asking for the split>'` and
@@ -1051,6 +1055,10 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 
 #### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)
 
+The loop is stage `refactor-loop`: entering it (not at 3's resume), `VERI_ISSUE=<n> $S/event.sh stage-start stage=refactor-loop; date +%s > .tdd/stage-rl.t`,
+and on every way it ends `VERI_ISSUE=<n> $S/event.sh stage-end stage=refactor-loop status=<exit code> secs=$(($(date +%s)-$(cat .tdd/stage-rl.t)))`:
+0 after 6's `chore: refactor verified` push, 3 at a stop, else the ending call's code (a bail's too).
+
 1. **One refactor leaf for the step.** Ask the budget first, with a count of **0**: that
    call is what decides whether the leaf runs at all, since `VERI_REFACTOR_BUDGET=0`
    switches refactoring off. Then build the prompt from the `refactor` template — which
@@ -1065,9 +1073,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh)" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor   # foreground; on exit 3 call it again
    ```
-   **One leaf for the whole step**, not one per transform: the cold `claude -p` start and
-   the re-read of the spec and of the touched files are paid once for the step instead of
-   once for every transform it applies.
+   **One leaf for the whole step**, not one per transform.
    `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
    comma-separated line. Compute it **once**, right after the step's atomic green commit —
    `$S/refactor-touched.sh HEAD` is exactly that commit's files at that moment — adding
@@ -1138,9 +1144,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    verify-refactor then judges only what the resumed loop landed.
    **A step's triangulation runs at most once.** The loop resumed there is another refactor
    leaf reading the files the triangulation just generalized, so it can raise an `overfit`
-   flag about that same code a second time — and a conductor that answers the second flag
-   the way it answered the first has rebuilt #107's chain inside one step, where each flag
-   came from the refactor loop of the step the flag before it created. So a flag raised
+   flag about that same code a second time. So a flag raised
    inside a triangulation's own refactor loop about the same code is **narrated** in the
    `### 🛠️ Refactor` comment at 6 as a follow-up, not triangulated again: the step keeps
    what the second leaf saw on the record and spends nothing more on it.
@@ -1153,17 +1157,11 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    6's PASS branch, one call per criterion, beside the verdict's own `uncovered-spec` flags, so
    the missing step is planned and built like any other. No other class amends
    the plan — an **overfit** flag is answered inside the step at 3, and the plan never grows
-   for what the spec did not ask for. A flag class turned into a step of its own is what
-   #175 measured: six `plan: amend` commits on `origin/main`, each buying a whole cycle and
-   a refactor loop that flagged the next one.
+   for what the spec did not ask for.
    - **A `beyond-spec` flag is narrated as a follow-up in the `### 🛠️ Refactor`
      comment at 6 and in the PR body, and is not planned and not built in this run.**
-     It names an input class or an edge the issue's spec never asked for. The comment is
-     where the step accounts for itself while the run is live and the PR body is what the
-     human deciding the merge reads afterwards, so the follow-up outlives the run without
-     costing it a step: one made from a `beyond-spec` flag would build behaviour no
-     criterion of the issue states, and nothing ahead could judge it — the blind verifier
-     is given the spec, and the spec is where that behaviour is not.
+     It names an input class or an edge the issue's spec never asked for, which the blind
+     verifier, given the spec, could not judge.
 5. **Verify (blind, once) on the settled result — unless nothing landed.** After the checks
    in 2, when `git rev-list --count <green-sha>..HEAD` is 0 and `git status --porcelain`
    prints nothing — the leaf landed no transform, or the budget was 0 and no leaf ran —
