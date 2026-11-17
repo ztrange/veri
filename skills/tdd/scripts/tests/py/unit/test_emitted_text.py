@@ -40,7 +40,7 @@ USAGE = [
     ("1821482823 72", "issue-worktree.sh", []),
     ("620984865 40", "leaf-model.sh", []),
     ("1964507760 39", "leaf-role.sh", []),
-    ("1507644654 40", "metrics.sh", []),
+    ("4098910436 49", "metrics.sh", []),
     ("3513573825 54", "over-budget.sh", []),
     ("4065736600 81", "refactor-touched.sh", []),
     ("134802541 39", "run-conductor.sh", []),
