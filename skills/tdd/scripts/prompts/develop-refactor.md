@@ -25,6 +25,8 @@ wrote. Tidying code this cycle did not write is otherwise out of scope, however 
 
 {{TEST_CMD}}
 
+{{INCLUDE:../../SMELLS.md}}
+
 ### The four classes of candidate
 
 What class a candidate falls into is decided by what the transform **changes**, never by

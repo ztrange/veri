@@ -13,6 +13,8 @@ Render one verdict on the settled result.
 
 {{ISSUE_SPEC}}
 
+{{INCLUDE:../../SMELLS.md}}
+
 ### Your checks
 
 1. **Still green.** Run the fast command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast`
