@@ -22,15 +22,28 @@ def detect():
 
 @pytest.fixture(autouse=True)
 def pulls(monkeypatch):
-    """The pull requests opened, as (head, base, title, body); gh itself is never reached."""
+    """The pull requests opened, as (head, base, title, body); gh itself is never reached. `opened.refusals` is how many
+    next creates gh refuses; an opened one is listed as open from its head."""
     github = importlib.import_module("veri.github")
-    opened = []
+
+    class Opened(list):
+        refusals = 0
+
+    opened = Opened()
 
     def create(head, base, title, body):
+        if opened.refusals:
+            opened.refusals -= 1
+            raise github.NoAnswer("", "HTTP 502: bad gateway\n")
         opened.append((head, base, title, body))
         return URL
 
+    def listed(fields, state="open", head=None, limit=10000, repo=None):
+        return [github.Pull(number=1, url=URL, html_url=URL, draft=False, head_ref=h, head_sha=None, body=b,
+                            state="OPEN", labels=()) for h, _, _, b in opened if head in (None, h)]
+
     monkeypatch.setattr(github, "gh_pr_create", create, raising=False)
+    monkeypatch.setattr(github, "open_pulls", listed)
     return opened
 
 
@@ -183,3 +196,43 @@ def test_a_command_that_reads_back_exactly_is_recorded(tmp_path, run_cli, record
 
     assert code == 0, err
     assert declared(detect, origin, "veri-install", tmp_path, "fast") == fast
+
+
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+def test_a_pr_refused_after_the_push_says_to_re_run_and_a_re_run_opens_it_leaving_the_branch_as_pushed(
+        tmp_path, run_cli, record, pulls):
+    origin, work = project(tmp_path)
+    pulls.refusals = 1
+
+    first = run_cli(record, ["make unit", "make test"], cwd=work)
+    pushed = git(origin, "rev-parse", "veri-install")
+    again = run_cli(record, ["make unit", "make test"], cwd=work)
+
+    assert (first[0], first[1]) == (2, "")
+    assert "re-run" in first[2]
+    assert again[:2] == (0, URL + "\n"), again[2]
+    assert git(origin, "rev-parse", "veri-install") == pushed
+    assert [head for head, _, _, _ in pulls] == ["veri-install"]
+
+
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+def test_a_re_run_with_the_pr_already_open_from_the_same_commit_is_exit_3(tmp_path, run_cli, record, pulls):
+    origin, work = project(tmp_path)
+    run_cli(record, ["make unit", "make test"], cwd=work)
+
+    code, out, err = run_cli(record, ["make unit", "make test"], cwd=work)
+
+    assert (code, out, len(pulls)) == (3, "", 1)
+
+
+@pytest.mark.process("git clone, ls-remote and push to a bare origin")
+def test_an_origin_veri_install_holding_other_commands_is_exit_2_saying_to_open_its_pr_or_delete_it(
+        tmp_path, run_cli, record, pulls):
+    origin, work = project(tmp_path)
+    run_cli(record, ["make unit", "make test"], cwd=work)
+    del pulls[:]
+
+    code, out, err = run_cli(record, ["make unit", "make all"], cwd=work)
+
+    assert (code, out, pulls) == (2, "", [])
+    assert "open a pull request from it" in err and "delete" in err and "re-run" in err

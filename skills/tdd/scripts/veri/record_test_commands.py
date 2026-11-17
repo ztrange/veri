@@ -103,13 +103,51 @@ def tip_of(root, default):
     return checked("rev-parse", "--verify", "refs/remotes/origin/%s^{commit}" % default, cwd=root).decode()
 
 
-def commit(root, tip, text):
-    """A commit on <tip> whose tree is <tip>'s with CLAUDE.md holding <text>."""
+def tree_of(root, tip, text):
+    """The tree of <tip> with CLAUDE.md holding <text>."""
     blob = checked("hash-object", "-w", "--stdin", cwd=root, input=text)
     entries = [e for e in checked("ls-tree", "-z", tip, cwd=root).split(b"\0") if e and not e.endswith(b"\tCLAUDE.md")]
     entries.append(b"100644 blob " + blob + b"\tCLAUDE.md")
-    tree = checked("mktree", "-z", cwd=root, input=b"".join(e + b"\0" for e in entries))
-    return checked("commit-tree", tree.decode(), "-p", tip, "-m", MESSAGE, cwd=root).decode()
+    return checked("mktree", "-z", cwd=root, input=b"".join(e + b"\0" for e in entries)).decode()
+
+
+def remote_branch(root):
+    """The commit origin's BRANCH points at, fetched, or None when origin has no such branch."""
+    listed = git.network("ls-remote", "--heads", "origin", "refs/heads/" + BRANCH, cwd=root)
+    if listed.returncode != 0:
+        raise Refused(listed.stderr.strip() or "git ls-remote origin failed")
+    if not listed.stdout.strip():
+        return None
+    fetched = git.network("fetch", "-q", "origin", "refs/heads/" + BRANCH, cwd=root)
+    if fetched.returncode != 0:
+        raise Refused(fetched.stderr.strip() or "git fetch origin %s failed" % BRANCH)
+    return listed.stdout.split()[0]
+
+
+def resume(root, default, held, tip, tree):
+    """Open the pull request from origin's BRANCH when it holds exactly the commit this run would push (<tree> on
+    <tip>) and none is open from it; None (nothing to do) when one is."""
+    same = (checked("rev-parse", held + "^{tree}", cwd=root).decode() == tree
+            and checked("rev-parse", held + "^@", cwd=root).decode() == tip)
+    if not same:
+        raise Refused("origin already has a branch %s holding other commands: open a pull request from it, or delete "
+                      "the branch, then re-run; nothing written" % BRANCH)
+    os.chdir(root)
+    try:
+        if github.open_pulls("number,url", head=BRANCH):
+            print("a pull request from %s already records these commands" % BRANCH, file=sys.stderr)
+            return None
+    except (github.NoAnswer, ValueError) as unread:
+        raise Refused("cannot tell whether a pull request from %s is open" % BRANCH) from unread
+    return open_pull(default)
+
+
+def open_pull(default):
+    try:
+        return github.gh_pr_create(BRANCH, default, TITLE, BODY)
+    except github.NoAnswer as refused:
+        raise Refused("pushed %s, but no pull request was opened: %s; re-run with the same commands to open it"
+                      % (BRANCH, refused.detail.strip())) from refused
 
 
 def record(fast, full, root, one_file=None):
@@ -117,11 +155,7 @@ def record(fast, full, root, one_file=None):
     default = git.default_branch(cwd=root)
     if not default:
         raise Refused("the default branch cannot be told")
-    listed = git.network("ls-remote", "--heads", "origin", "refs/heads/" + BRANCH, cwd=root)
-    if listed.returncode != 0:
-        raise Refused(listed.stderr.strip() or "git ls-remote origin failed")
-    if listed.stdout.strip():
-        raise Refused("origin already has a branch %s: an earlier pull request may await review; nothing written" % BRANCH)
+    held = remote_branch(root)
     tip = tip_of(root, default)
     shown = git.git("show", "%s:CLAUDE.md" % tip, cwd=root, capture_output=True)
     text = shown.stdout if shown.returncode == 0 else b""
@@ -132,15 +166,15 @@ def record(fast, full, root, one_file=None):
     why = unreadable(text, new, wanted)
     if why:
         raise Refused(why)
-    sha = commit(root, tip, new)
+    tree = tree_of(root, tip, new)
+    if held:
+        return resume(root, default, held, tip, tree)
+    sha = checked("commit-tree", tree, "-p", tip, "-m", MESSAGE, cwd=root).decode()
     pushed = git.network("push", "-q", "origin", "%s:refs/heads/%s" % (sha, BRANCH), cwd=root)
     if pushed.returncode != 0:
         raise Refused(pushed.stderr.strip() or "git push origin %s failed" % BRANCH)
     os.chdir(root)
-    try:
-        return github.gh_pr_create(BRANCH, default, TITLE, BODY)
-    except github.NoAnswer as refused:
-        raise Refused("pushed %s, but no pull request was opened: %s" % (BRANCH, refused.detail.strip())) from refused
+    return open_pull(default)
 
 
 def main(argv):
