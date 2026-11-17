@@ -56,3 +56,11 @@ def test_issue_1895_audit_skips_a_non_empty_run_state_directory_under_skills(tmp
     monkeypatch.setattr(sys.modules[__name__], "SKILLS", tmp_path)
 
     test_every_directory_directly_under_skills_contains_a_skill_md()
+
+
+def test_vish_holds_a_skill_md_named_vish_beside_its_requirements_and_graded_files_4201():
+    vish = SKILLS / "vish"
+    front = (vish / "SKILL.md").read_text().split("---")[1].splitlines()
+
+    assert ("name: vish" in front, (vish / "REQUIREMENTS.md").is_file(), (vish / "GRADED").is_file()) == (
+        True, True, True)
