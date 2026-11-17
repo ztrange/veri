@@ -1,4 +1,5 @@
-"""test-quality.sh's record verb, run in-process: the develop-test-quality leaf's FINDING: lines, checked and recorded.
+"""test-quality.sh, run in-process: the test files a run's range touched (files), and the develop-test-quality leaf's
+FINDING: lines, checked and recorded (record).
 
 Named quality_findings, not test_quality: a module named test_*.py would read as a test file (case_reader.is_test_path).
 """
@@ -7,10 +8,11 @@ import os
 import sys
 
 import entry
-from case_reader import file_defines, strip_param_suffix
+from case_reader import file_defines, is_test_path, strip_param_suffix
+from git import GitFailed, out
 from report import report_values
 
-USAGE = "usage: test-quality.sh record <n> < <leaf-report>"
+USAGE = "usage: test-quality.sh files <branch-base> | record <n> < <leaf-report>"
 KINDS = ("weak-assertion", "redundant", "implementation-coupled")
 
 
@@ -40,7 +42,21 @@ def record(issue, report):
     return 0, "".join(" | ".join(field.strip() for field in value.split("|", 2)) + "\n" for value in values)
 
 
+def files(base):
+    """The test files `git diff --name-only <base>..HEAD` names that still exist, one per line; exit 3 for none."""
+    try:
+        named = out("diff", "--name-only", f"{base}..HEAD").splitlines()
+    except GitFailed as failed:
+        print(f"test-quality.sh: {failed}", file=sys.stderr)
+        return 2
+    found = [path for path in named if is_test_path(path) and os.path.isfile(path)]
+    sys.stdout.write("".join(path + "\n" for path in found))
+    return 0 if found else 3
+
+
 def main(argv):
+    if len(argv) == 2 and argv[0] == "files" and argv[1]:
+        return files(argv[1])
     if len(argv) != 2 or argv[0] != "record" or entry.whole_number(argv[1], 1) is None:
         print(USAGE, file=sys.stderr)
         return 2
