@@ -40,6 +40,7 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `push-failed` | `error` text, or empty; `attempts` whole | Pushing the branch failed after `attempts` tries: the git error. |
 | `push-rejected` | `remote_sha` sha, or empty; `error` text, or empty | The remote refused the push: the remote tip sha and the git error. |
 | `rebase-refresh-retry` | — | A merge rebase was retried after a ref refresh. |
+| `red-setup` | `count` whole; `what` text, or empty | `red-setup.sh record` read a verified Red's `SETUP:` line: the number of stubs, fakes, spies and fixtures the step's case needed beyond the code under test, and what they are; the step is the run context's `step`. `red-setup.sh worst` reads the latest per step. |
 | `refactor` | `transforms` whole; `budget` whole; `stopped` one of nothing-left, budget, malformed, nothing-structural, structural-owed; `pass` whole | A refactor leaf finished: transforms applied, the `VERI_REFACTOR_BUDGET`, why it stopped, and which pass of the step's refactor this is (`1` for the first). |
 | `relaunch` | `cause` one of tree-change, no-verdict | A verifier was launched again: `tree-change` (the tree moved under it) or `no-verdict` (it finished without a `VERDICT:` line). |
 | `report-missing` | `name` text; `missing` one of SUITE | A suite's output left no report line: the suite's name and the missing line (`SUITE`). |

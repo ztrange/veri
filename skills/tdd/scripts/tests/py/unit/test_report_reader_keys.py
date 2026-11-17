@@ -25,6 +25,7 @@ READERS = {
     "exhausted_outcome": ("develop-exhausted", "develop-over-budget"),
     "pin_target": ("develop-red", "develop-red-missing"),
     "red_divergence": ("develop-red", "develop-revise"),
+    "red_setup": ("develop-red",),
     "refactor_owed": ("develop-refactor", "develop-cover"),
     "seam_outcome": ("develop-seam",),
     "structural_predicate": ("develop-predicate",),
