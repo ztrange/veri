@@ -485,6 +485,7 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `refactor-owed.sh`: append, render and list refactor-owed items.
 - `refactor-touched.sh`: the files a refactor leaf touched.
 - `refactor-triage.sh`: read a refactor leaf's candidates.
+- `seam-outcome.sh`: read a develop-seam leaf's report on stdin.
 - `report_formats`: the terminal report formats a develop prompt declares, parsed from its text.
 - `structural-predicate.sh`: read a predicate leaf's report on stdin.
 - `suite-reported.sh`: read a suite's reported result.

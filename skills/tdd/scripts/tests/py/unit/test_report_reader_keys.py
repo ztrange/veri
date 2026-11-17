@@ -26,6 +26,7 @@ READERS = {
     "pin_target": ("develop-red", "develop-red-missing"),
     "red_divergence": ("develop-red", "develop-revise"),
     "refactor_owed": ("develop-refactor", "develop-cover"),
+    "seam_outcome": ("develop-seam",),
     "structural_predicate": ("develop-predicate",),
     "unreplaced_cases": ("develop-red", "develop-replaces-report"),
     "wrong_test_route": ("develop-green", "develop-revise", "_develop-wrong-test-format"),
