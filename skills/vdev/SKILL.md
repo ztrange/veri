@@ -230,6 +230,34 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
 After routing a `dispatch.sh` line, and launching any held resume the freed slot now takes, start
 `dispatch.sh` again as one background command. Then take the slot decision.
 
+## A red stack
+
+Where the target repository's `CLAUDE.md` names a stack branch, a red CI answer on its tip
+freezes every join, so every lane waits on it. The stack is fixed by hand, never by a new veri run,
+in one bounded attempt; this is veri's own procedure, and an operator may run it with any
+test-first hand method.
+
+- **The culprit.** Run `$S/stack-culprit.sh <red-sha>` and keep what it prints as the *culprit
+  file*. On its exit 0, brief one hand-fix subagent, as *Running the sibling skills* says, with
+  the culprit file: in a *fix worktree* (a detached worktree under the target repository's
+  `.tdd/`, cut from `origin/<stack>`'s tip) it fixes exactly the cases the culprit file names,
+  each watched red before the fix and green after, and commits without pushing.
+- **The bounds.** The fix edits no test file. Each of its commits has a subject ending `(#<n>)`,
+  naming the culprit's issue `<n>`, and a `Stack-fix: <red-sha>` trailer. It is pushed only by
+  `$S/stack-fix.sh <n> <red-sha> <culprit-file>`, which you run, never the fix agent.
+- **The review.** Before `stack-fix.sh` runs, one independent read-only review subagent, which
+  did not write the fix, reads `git diff origin/<stack>..HEAD` in the fix worktree and answers OK
+  or not OK. Only an OK runs `stack-fix.sh`.
+- **CI is the gate.** After `stack-fix.sh` pushes, wait on `$S/stack-red.sh` until the newest
+  completed run is on the fix's commit or a later one: exit 3 is the stack back to normal (the
+  freeze lifts and joins resume); exit 0 is the fix failing.
+- **One attempt.** A review that is not OK, a `stack-fix.sh` exit 1, or a red CI answer on the
+  fix's tip is answered by `$S/stack-revert.sh <n>`, which reverts the fix, when it was pushed,
+  with the culprit. No second fix is briefed.
+- **No culprit.** On a `stack-culprit.sh` exit 3, re-run the red workflow run's failed jobs once
+  (`gh run rerun <run-id> --failed`). Green, the freeze lifts; red again, the freeze stays and the
+  human is told. Nothing is reverted without a culprit.
+
 ## Running the sibling skills
 
 The harness may report this skill's base dir as a symlink. Resolve it first, with
