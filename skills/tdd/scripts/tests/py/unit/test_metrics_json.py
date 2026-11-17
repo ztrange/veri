@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from test_metrics import table
 from test_metrics_page import build_rich_root
 
 
@@ -45,3 +46,27 @@ def test_json_prints_one_object_with_the_five_top_level_keys_and_the_markdown_re
 
     assert sorted(printed) == ["conductor", "phases", "run", "steps", "total"]
     assert (code, again) == (0, markdown)
+
+
+PHASE_KEYS = {"attempts": "attempts", "pass": "PASS", "reject": "REJECT", "kills": "kills", "wall_seconds": "wall s",
+              "api_seconds": "API s", "turns": "turns", "input_tokens": "input", "output_tokens": "output",
+              "cache_read_input_tokens": "cache read", "cache_creation_input_tokens": "cache creation", "cost_usd": "$"}
+
+
+def shown(value, column):
+    """A JSON figure as the markdown report prints it in <column>."""
+    return "unknown" if value is None else "%.2f" % value if column == "$" else "%d" % value
+
+
+def markdown_rows(metrics, heading):
+    return table(metrics.report("108", ".tdd/events.jsonl", ".tdd/issue-108.md"), heading)
+
+
+def test_phases_hold_one_entry_per_phase_keyed_by_name_each_equal_to_its_by_phase_row(rich, capsys, metrics):
+    phases = as_json(metrics, capsys)["phases"]
+    rows = markdown_rows(metrics, "#### By phase")
+
+    assert list(phases) == [row["phase"] for row in rows] == ["red", "green", "refactor", "pin", "cover"]
+    assert [sorted(entry) for entry in phases.values()] == [sorted(PHASE_KEYS)] * len(rows)
+    assert ({name: {key: shown(entry[key], column) for key, column in PHASE_KEYS.items()} for name, entry in phases.items()}
+            == {row["phase"]: {key: row[column] for key, column in PHASE_KEYS.items()} for row in rows})

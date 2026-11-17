@@ -1020,9 +1020,20 @@ def rendered(issue):
     return 0, report(issue, ".tdd/events.jsonl", run_dir.ledger(".", issue)), ""
 
 
+JSON_KEYS = {"attempts": "attempts", "PASS": "pass", "REJECT": "reject", "kills": "kills", WALL: "wall_seconds",
+             API: "api_seconds", "retries": "retries", "no-verdict": "no_verdict",
+             **{heading: field for heading, field in COSTS}, "turns": "turns", DOLLARS: "cost_usd"}
+
+
+def json_row(row_counts, columns):
+    """A table row's `columns` under their JSON key names."""
+    return {JSON_KEYS[column]: row_counts[column] for column in columns}
+
+
 def as_json(f):
     """The run's figures as one JSON-ready object, read off a `Fold` alone (PRD 035.1)."""
-    return {"run": {}, "phases": {}, "steps": [], "conductor": {}, "total": {}}
+    return {"run": {}, "phases": {phase: json_row(row_counts, PHASE_COLUMNS) for phase, row_counts in f.phases.items()},
+            "steps": [], "conductor": {}, "total": {}}
 
 
 def print_json(issue, path, ledger):
