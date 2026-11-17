@@ -15,6 +15,8 @@ from report import report_read
 
 USAGE = ("usage: red-setup.sh record <n> < <red-report>\n"
          "       red-setup.sh worst <n> <owed-file>")
+REASON = "testability"
+OWN_ROW = refactor_owed.NOT_DONE_MARK + REASON + " | "
 SETUP = re.compile(r"\s*([0-9]+)\s*\|\s*(.*?)\s*")
 
 
@@ -54,7 +56,27 @@ def worst(n, owed):
     step, (count, what) = max(latest.items(), key=lambda item: item[1][0])
     if count <= 3:
         return 3
-    return refactor_owed.not_done(owed, "%s: %d stubs and setup (%s)" % (step, count, what), "testability")
+    try:
+        drop_own_row(owed)
+    except OSError as error:
+        sys.stderr.write("red-setup: cannot rewrite %s: %s\n" % (owed, error.strerror))
+        return 2
+    # not_done's 1 is a failed write, which it names on stderr: no answer, not a clean negative.
+    return 2 if refactor_owed.not_done(owed, "%s: %d stubs and setup (%s)" % (step, count, what), REASON) else 0
+
+
+def drop_own_row(owed):
+    """Remove from <owed> the testability row an earlier `worst` recorded, so a resume replaces it rather than adding a
+    second; an absent file is left absent."""
+    try:
+        with open(owed, errors="surrogateescape") as file:
+            lines = file.readlines()
+    except FileNotFoundError:
+        return
+    kept = [line for line in lines if not line.startswith(OWN_ROW)]
+    if kept != lines:
+        with open(owed, "w", errors="surrogateescape") as file:
+            file.write("".join(kept))
 
 
 def main(argv):
