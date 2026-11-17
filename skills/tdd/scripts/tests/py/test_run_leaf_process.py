@@ -1558,8 +1558,8 @@ def test_cli_a_leaf_can_still_kill_a_pid_it_started_and_recorded(tmp_path, monke
     code, _, _ = run_cli(run_leaf, ["prompt.txt"],
                          env={"CLAUDE_BIN": str(stub), "VERI_TEST_OWN_DIR": str(tmp_path)})
 
-    assert (code, [(tmp_path / name).read_text().strip() for name in ("kill-exit", "wait-exit")]) == (
-        0, ["0", "143"])
+    assert (code, [(tmp_path / name).read_text().strip() for name in ("kill-exit", "wait-exit", "kill-err")]) == (
+        0, ["0", "143", ""])
 
 
 def _prompt_workspace(tmp_path, monkeypatch, prompt):
