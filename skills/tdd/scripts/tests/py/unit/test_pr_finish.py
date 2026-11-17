@@ -202,6 +202,52 @@ def test_4033_it_writes_no_bail_and_handles_no_refusal_and_leaves_the_title_and_
     assert not [c for c in fake.made("git") if c[1][:1] in (("reset",), ("push",))]
 
 
+def _pid(finish, text):
+    (finish.wt / ".tdd" / "conductor.pid").write_text(text)
+
+
+def test_4033_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line_before_the_render(finish):
+    code, out, err, fake = finish(answers={("wait-ci.sh", None): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on wait-ci.sh")
+    assert "refactor-owed.sh" not in fake.names()
+
+
+def test_4033_called_again_after_an_exit_3_it_only_waits_again_with_no_second_mark_commit_tick_or_push(finish):
+    _pid(finish, "111\nTue Nov 17 07:00:00 2026\n")
+    first = finish(fake=Fake(answers={("wait-ci.sh", None): (3, ""), ("metrics.sh", None): (2, "")}))[0]
+    code, out, err, fake = finish()
+
+    assert (first, code) == (3, 0)
+    assert [(c[0], c[1]) for c in fake.calls] == [("git", ("rev-parse", "HEAD")), ("wait-ci.sh", (URL, "540", "", HEAD)),
+                                                  ("refactor-owed.sh", ("render", ".tdd/issue-12-refactor-owed.md"))]
+    assert out.splitlines()[-3:] == ["pr_url=" + URL, "metrics=2", "refactor_owed_render=" + RENDER]
+    assert not (finish.wt / ".tdd" / "issue-12-pr-finish-wait").exists()
+
+
+def test_4033_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(finish):
+    import json
+    _pid(finish, "111\nTue Nov 17 07:00:00 2026\n")
+    finish(answers={("wait-ci.sh", None): (3, "")})
+
+    record = json.loads((finish.wt / ".tdd" / "issue-12-pr-finish-wait").read_text())
+    assert record["conductor"] == {"pid": "111", "started": "Tue Nov 17 07:00:00 2026"}
+
+
+@pytest.mark.parametrize("second", ["222\nTue Nov 17 07:00:00 2026\n", "111\nTue Nov 17 08:00:00 2026\n", None],
+                         ids=["another pid", "another start time", "no pid file"])
+def test_4033_called_under_another_conductor_it_discards_the_record_and_starts_from_its_first_call(finish, second):
+    _pid(finish, "111\nTue Nov 17 07:00:00 2026\n")
+    finish(answers={("wait-ci.sh", None): (3, "")})
+    if second is None:
+        (finish.wt / ".tdd" / "conductor.pid").unlink()
+    else:
+        _pid(finish, second)
+    code, out, err, fake = finish()
+
+    assert (code, fake.names()[:2], [c[1][0] for c in fake.made("event.sh")]) == (0, ["git", "gh"], ["done"])
+
+
 def test_4033_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr(finish):
     class Marked(Fake):
         def __call__(self, name, *args, **kw):

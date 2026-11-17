@@ -31,6 +31,18 @@ def run(n):
     if given is None:
         return 2
     _, wt = given
+    resumed = fused.load_wait(wt, n, NAME)
+    values = resumed[1] if resumed is not None else close(wt, n)
+    pr_ready_wait.ci_wait(wt, n, NAME, values["pr_url"])
+    render(wt, n)
+    lines = ["pr_url=" + values["pr_url"]] + (["metrics=%d" % values["metrics"]] if values["metrics"] else [])
+    return fused.settle(wt, n, NAME, lines + ["refactor_owed_render=" + RENDER % n])
+
+
+def close(wt, n):
+    """Everything before the second wait, made once (MC7): the PR url, the ⟦full-suite⟧ ticks, the done mark and the
+    metrics, the tree check (MC5, D10) and the push (MC4), then the wait record naming this conductor (FC6, FC7):
+    {"pr_url", "metrics"}."""
     url = pr_ready_wait.pr_url(wt)
     tick_full_suite(wt, n)
     values = {"pr_url": url, "metrics": record(wt, n, url)}
@@ -38,10 +50,7 @@ def run(n):
         raise fused.Stop(WHERE, "tree-check", 1)
     fused.checked(WHERE, fused.script("push-branch.sh"), cwd=wt)
     fused.save_wait(wt, n, NAME, pr_ready_wait.WAIT, values)
-    pr_ready_wait.ci_wait(wt, n, NAME, url)
-    render(wt, n)
-    lines = ["pr_url=" + url] + (["metrics=%d" % values["metrics"]] if values["metrics"] else [])
-    return fused.settle(wt, n, NAME, lines + ["refactor_owed_render=" + RENDER % n])
+    return values
 
 
 def record(wt, n, url):
