@@ -591,6 +591,7 @@
 |---|---|---|
 | SN1 | The prompt tells the leaf to write cases that drive the step's region only through its named seam, that pass on the unmodified code, and to edit no production file. | A characterization test pins what the code does now, from outside it (PRD 031, D9). |
 | SN2 | The prompt says a case that starts a process carries the target suite's slow-tier mark when that suite declares one (in veri `@pytest.mark.process`), and that where the suite declares none no mark is owed. | The tests are permanent and slow (PRD 031, D3), and veri reads no tier declaration from a foreign repo. |
+| SN3 | The prompt tells the leaf to report one `MUTANT: <file> \| <old> \| <new>` line per mutant of the region it proposes, each a literal replacement its cases should catch. | The developer proposes the region's mutant table (PRD 031, D4). |
 
 ## skills/tdd/scripts/prompts/develop-cover-new.md
 
