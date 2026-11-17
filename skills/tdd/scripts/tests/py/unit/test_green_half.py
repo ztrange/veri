@@ -411,7 +411,8 @@ def test_4027_every_inner_call_in_the_ordered_list_is_a_script_the_green_section
     from pathlib import Path
     green_half = importlib.import_module("veri.green_half")
     skill = (Path(green_half.__file__).resolve().parents[2] / "SKILL.md").read_text()
-    section = skill[skill.index("#### Green — minimum implementation"):skill.index("#### Refactor loop — one leaf")]
+    start = skill.index("#### Green — minimum implementation")
+    section = skill[start:skill.index("\n#### ", start)]
 
     assert [name for name in green_half.CALLS if "$S/" + name not in section and name not in NAMED_ELSEWHERE] == []
 
