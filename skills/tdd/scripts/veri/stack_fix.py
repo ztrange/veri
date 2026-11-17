@@ -200,6 +200,30 @@ def _bounds(n, red, stack, onto, head):
                                                n, TRAILER, red))
 
 
+TEST_DIRS = ("test", "tests", "spec", "__tests__")
+TEST_NAME_PARTS = ("_test.", ".test.", ".spec.")
+
+
+def test_file(path, case_files):
+    """Whether <path> is a test file: one of <case_files> (the files of the cases the culprit file names), or a path
+    with a directory named test, tests, spec or __tests__, or a file name that starts `test_` or holds `_test.`,
+    `.test.` or `.spec.`."""
+    *dirs, name = path.split("/")
+    return (path in case_files or any(part in TEST_DIRS for part in dirs) or name.startswith("test_")
+            or any(part in name for part in TEST_NAME_PARTS))
+
+
+def _no_test_moved(onto, head, cases):
+    """Refused naming the first test file `git diff --name-status <onto>..<head>` lists, added, changed, deleted or
+    renamed (either side of a rename); NoAnswer from git."""
+    case_files = {case.split("::", 1)[0] for case in cases}
+    for status, *names in _changed("%s..%s" % (onto, head)):
+        for path in names:
+            if test_file(path, case_files):
+                raise Refused("the fix touches the test file %s (%s): it may edit no test file; nothing pushed" % (
+                    path, status))
+
+
 def _pushed(head, stack, onto):
     """Push <head> to <stack>, leased to <onto> and a fast-forward of it (its descent checked before): returns when
     origin's stack is <head>, read back after a push that did not answer 0 (one that timed out may have landed).
@@ -252,6 +276,7 @@ def main(argv):
         return entry.refuse("taking the merge lock failed (exit %d); nothing pushed" % code, prefix="stack-fix: ")
     try:
         stack, onto, head = _checked(n, red)
+        _no_test_moved(onto, head, cases)
         _pushed(head, stack, onto)
     except (Refused, NoAnswer, NotRed) as stopped:
         _say(str(stopped))
