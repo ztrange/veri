@@ -264,13 +264,15 @@ def append(directory, context, event, fields=(), ts=None):
 
 
 def state_labels(event, issue):
-    """Mirror a bail, a resume or a launch (start) onto issue <issue>'s labels; no issue, no call; a refusal is named, never fatal."""
+    """Mirror a bail, a stop, a resume or a launch (start) onto issue <issue>'s labels; no issue, no call; a refusal is named, never fatal."""
     if not issue:
         return
     try:
         if event == b"bail":
             github.gh_issue_add_label(issue, "bailed")
             github.gh_issue_remove_label(issue, "pr-ready")
+        elif event == b"stop":
+            github.gh_issue_add_label(issue, "stopped")
         elif event == b"resume":
             github.gh_issue_remove_label(issue, "bailed")
             opt_in = tunables.get("VERI_LABEL")

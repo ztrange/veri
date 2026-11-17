@@ -91,6 +91,18 @@ def test_a_resume_event_adds_the_lane_taken_label_and_takes_the_opt_in_label_off
     assert (code, ADD_TAKEN_MAIN in calls, delete_opt_in in calls) == (0, True, True)
 
 
+ADD_STOPPED = ("gh", "api", "repos/{owner}/{repo}/issues/42/labels", "-f", "labels[]=stopped")
+
+
+def test_issue_4081_a_stop_event_labels_the_state_label_issue_stopped(event, monkeypatch, tmp_path, fake_processes):
+    monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "42")
+    calls = fake_gh(fake_processes, lambda args: (0, "", ""))
+
+    code = event.append(clone(tmp_path), {"issue": "42"}, "stop", ["mode=now", "at=green"], ts=1700000000)
+
+    assert (code, calls) == (0, [ADD_STOPPED])
+
+
 def test_a_bail_event_gh_refuses_to_label_still_writes_its_line_exits_0_and_names_the_refusal(event, monkeypatch, tmp_path, capsys, fake_processes):
     monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "42")
     fake_gh(fake_processes, lambda args: (1, "", "HTTP 502: Bad Gateway\n"))
