@@ -530,6 +530,25 @@ def test_issue_4088_a_tier_still_running_at_waits_bound_prints_waiting_on_it_las
     assert not [argv for argv, _ in calls_in(fake, "git worktree remove") if str(tmp_path / ".tdd" / "ready-fast") in argv], fake.calls
 
 
+def test_issue_4088_a_re_run_while_a_tier_is_still_running_waits_on_that_run_and_reports_its_exit_and_wall_time(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
+    import types
+    clock = iter([1000.0, 1100.4, 1100.4, 1105.0])
+    monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=lambda: next(clock), monotonic=lambda: 0.0), raising=False)
+    fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (3, "", "")}))
+    first, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (1, "4\n", "")}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    lines = out.splitlines()
+
+    assert first == 3
+    assert not calls_in(fake, "detach-command.sh start ready-fast"), fake.calls
+    assert not [argv for argv, _ in calls_in(fake, "git worktree add") if str(tmp_path / ".tdd" / "ready-fast") in argv], fake.calls
+    assert calls_in(fake, "detach-command.sh wait ready-fast"), fake.calls
+    assert tier_run_line(lines, "fast").startswith("fail  fast tier run (100s): exit 4"), lines
+    assert tier_run_line(lines, "all") == "ok    all tier run (4s)", lines
+    assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
+
+
 def test_issue_4088_a_tier_run_that_raises_exits_2_having_removed_the_worktree_it_made(ready_check, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": OSError(7, "no detach")}))
     code, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
