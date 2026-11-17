@@ -49,15 +49,22 @@ def _launch_cause(run_dir, issue):
     return "usage-limit" if limited else None
 
 
-def run_end(run_dir):
-    """(ended, cause, standing mark) for the run at run_dir."""
+def standing_mark(events):
+    """The mark that ended the run, the last done, bail, stop or preflight-refused event no resume or step-added
+    followed; {} when none stands."""
     mark = {}
-    events = read_events(event_log.path(run_dir))
     for event in events:
         if event.get("event") in MARKS:
             mark = event
         elif event.get("event") in ("resume", "step-added"):
             mark = {}
+    return mark
+
+
+def run_end(run_dir):
+    """(ended, cause, standing mark) for the run at run_dir."""
+    events = read_events(event_log.path(run_dir))
+    mark = standing_mark(events)
     if not mark:
         issue = next((str(e["issue"]) for e in reversed(events) if "issue" in e), "")
         if live_conductor(os.fspath(run_dir)):

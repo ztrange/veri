@@ -651,10 +651,12 @@ BESIDE = "the run whose .tdd/ holds the journal"
 
 def fold(issue, path, ledger, run=BESIDE):
     """Read the journal at `path` (and the ledger and files beside it) into a `Fold`; prints nothing. `run` is the run
-    directory whose end, conductor stream log and pins are read: by default the one whose `.tdd/` holds `path`."""
+    directory whose end, conductor stream log and pins are read: by default the one whose `.tdd/` holds `path`; None
+    reads the journal alone (the ledger too may be None), whose run has ended only when a mark ends it (else `ended`
+    is None: not known) and whose conductor spend is not known."""
     if run is BESIDE:
         run, beside, roots = os.path.dirname(os.path.dirname(os.path.abspath(path))), path, pin_roots()
-    else:
+    elif run is not None:
         beside, roots = run_dir.run_file(run, "events.jsonl"), pin_roots(run)
     marks = read_events(path)
     clocked = bool(marks) and all("awake" in mark for mark in marks if "ts" in mark)
@@ -666,13 +668,17 @@ def fold(issue, path, ledger, run=BESIDE):
     passes = [{"step": step, "pass": index, "mark": mark, "verdict": spent_by["verdict"],
                "revise": spent_by["revise"], "wall": spent_by[WALL], "dollars": spent_by[DOLLARS]}
               for (step, index), (mark, spent_by) in tally.passes.items()]
-    ended, cause, ending = run_end.run_end(run)
+    if run is None:
+        ending = run_end.standing_mark(marks)
+        ended, cause = (True, run_end.MARKS[ending["event"]]) if ending else (None, None)
+    else:
+        ended, cause, ending = run_end.run_end(run)
     ending = ending or None
     wall_span, awake_span = wall_and_awake_spans(tally.opening, ending, clocked)
-    planned, full_suite = planned_steps(ledger)
-    pinned = run_pins.skip_verify(issue, *roots) or ""
+    planned, full_suite = planned_steps(ledger) if ledger is not None else (None, 0)
+    pinned = (run_pins.skip_verify(issue, *roots) or "") if run is not None else ""
     sessions, turn_rows = [], []
-    if not tally.conductor_counted:
+    if not tally.conductor_counted and run is not None:
         sessions, turn_rows = conductor_sessions(issue, beside)
     spend, model, estimated, priced, some_priced = 0.0, "", False, False, False
     if sessions:
@@ -1066,6 +1072,8 @@ def whole(text):
 def outcome(f):
     """How the run ended, in the word the report's Outcome sentence says it: running, usage-limit, killed, unknown,
     landed, stopped or bailed."""
+    if f.ended is None:
+        return None
     if not f.ended:
         return "running"
     if f.ending is None:
