@@ -1,6 +1,6 @@
 # Plan for #4207 — PRD 034.3c: stack-fix.sh pushes a reviewed hand fix on a red stack, once per culprit
 
-- [ ] stack-fix.sh pushes a fix worktree's HEAD to the stack under the merge lock when <red-sha> is the red commit and every check holds, printing the pushed sha; a <red-sha> not the commit stack-red.sh prints is exit 1 ⟦criterion 1⟧
+- [x] stack-fix.sh pushes a fix worktree's HEAD to the stack under the merge lock when <red-sha> is the red commit and every check holds, printing the pushed sha; a <red-sha> not the commit stack-red.sh prints is exit 1 ⟦criterion 1⟧
 - [ ] exits 1 when <n> or <red-sha> is not what <culprit-file> records ⟦criterion 2⟧
 - [ ] exits 1 when the stack already carries a Stack-fix commit of <n> ⟦criterion 3⟧
 - [ ] exits 3 on stack-red.sh exit 3 and 2 on no answer from stack-red.sh, git or GitHub ⟦criterion 4⟧
