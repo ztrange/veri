@@ -165,6 +165,20 @@ def test_ci_conflict_prompt_carries_rebase_as_its_route_tokens(run_cli, build_ad
     assert "Routes: rebase\n" in out
 
 
+
+def test_unreplaced_cases_prompt_carries_replaces_report_as_its_route_tokens(run_cli, build_adjudicate_prompt, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "unreplaced-cases.err"
+    stderr_file.write_text("unreplaced-cases: no readable report\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt,
+        ["7", "unreplaced-cases", "2", str(stderr_file), "unreplaced-cases.sh", "the step", ".tdd/develop-red.out"],
+        cwd=tmp_path,
+    )
+    assert (code, err) == (0, "")
+    assert "Routes: replaces-report\n" in out
+
 @pytest.mark.parametrize("cause", ["pr-ready-failed", "report-missing", "step-add-refused", "replaces-report-failed"])
 def test_a_cause_listed_with_no_route_exits_0_its_prompt_carrying_routes_none(
     run_cli, build_adjudicate_prompt, tmp_path, cause
