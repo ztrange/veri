@@ -1065,3 +1065,10 @@
 |---|---|---|
 | VOC1 | The fragment is the last thing a verify-* prompt says: it reminds the leaf that its reply must end with a `VERDICT: PASS` or `VERDICT: REJECT` line followed by a `REASON:` line, with nothing after them, and that a reply without the `VERDICT:` line counts as a system failure and is paid for again. (The whole fragment.) | #3582's verify-plan leaf drifted off-task and ended with a summary and no verdict, twice; the only statement of the contract was ~50 lines above a 21 KB prompt's end. |
 | VOC2 | The fragment states the contract in words only: it contains no `{{...}}` slot and no text taken from the developer's work, so it adds no way for the author's rationale to reach the verifier. (The whole fragment.) | The verifier is blind by construction; a closing reminder must not become an input. |
+
+## skills/tdd/scripts/prompts/develop-test-quality.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TQP1 | The prompt includes `skills/tdd/SMELLS.md`'s test-code rules and the test files it is given, and tells the leaf to change no file and make no commit. | The leaf has no verifier, so it may change nothing (PRD 032, TQ2, C4). |
+| TQP2 | The prompt asks for one `FINDING: <kind> \| <file>::<case> \| <why>` line per finding, `<kind>` one of `weak-assertion` (asserts less than its criterion's observable), `redundant` (asserts nothing another case of those files does not) and `implementation-coupled` (imports or asserts on a name private to the code under test, or computes its expected value with that code), or the one line `FINDING: none`; its `REPORT-FORMAT` line declares `FINDING:`. | Farley: trustworthy feedback, over the range's tests and not only the step's new case (PRD 032, TQ2). |
