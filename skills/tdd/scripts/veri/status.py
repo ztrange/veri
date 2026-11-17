@@ -557,23 +557,31 @@ def recover_state(role, lane=None):
         "timed-n", "override")
 
 
-def recover_questions(lane):
-    """The lane's open question files: each regular `.tdd/questions/<lane>-*.md` (`main-*` with no lane) with no
-    readable `## Answer` line. One bad entry never stops recovery: a directory or dangling link is skipped, and a
-    file that cannot be read is listed as open."""
+ASKED_LINE = re.compile(r"## Asked \S+")
+
+
+def question_state(path):
+    """Which recovery section lists the question file <path>: "Answered questions" when it has an `## Answer` line,
+    else "Questions" when it has an `## Asked <session-id>` line (asked, open) or cannot be read, else "Unasked
+    questions" (written, never asked)."""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            lines = [line.rstrip() for line in f]
+    except OSError:
+        return "Questions"
+    if "## Answer" in lines:
+        return "Answered questions"
+    return "Questions" if any(ASKED_LINE.fullmatch(line) for line in lines) else "Unasked questions"
+
+
+def recover_questions(lane, section="Questions"):
+    """The lane's question files in recovery's <section>, as `question_state` sorts them: each regular
+    `.tdd/questions/<lane>-*.md` (`main-*` with no lane), sorted by name. One bad entry never stops recovery: a
+    directory or dangling link is skipped, and a file that cannot be read is listed under Questions."""
     directory = os.path.join(run_dir.main_tree(missing=""), ".tdd", "questions")
-    lines = []
-    for path in sorted(glob.glob(os.path.join(directory, "%s-*.md" % (lane or "main")))):
-        if not os.path.isfile(path):
-            continue
-        try:
-            with open(path, encoding="utf-8", errors="replace") as f:
-                answered = any(line.rstrip() == "## Answer" for line in f)
-        except OSError:
-            answered = False
-        if not answered:
-            lines.append(os.path.join(".tdd", "questions", os.path.basename(path)))
-    return lines
+    return [os.path.join(".tdd", "questions", os.path.basename(path))
+            for path in sorted(glob.glob(os.path.join(directory, "%s-*.md" % (lane or "main"))))
+            if os.path.isfile(path) and question_state(path) == section]
 
 
 def recover(role, lane=None):
@@ -584,8 +592,8 @@ def recover(role, lane=None):
               "State": lambda: recover_state(role, lane),
               "Pending decisions": lambda: recover_items(role, lane, "decision"),
               "Pending messages": lambda: recover_items(role, lane, "message"),
-              "Questions": lambda: recover_questions(lane), "Unasked questions": lambda: [],
-              "Answered questions": lambda: []}
+              "Questions": lambda: recover_questions(lane), "Unasked questions": lambda: recover_questions(lane, "Unasked questions"),
+              "Answered questions": lambda: recover_questions(lane, "Answered questions")}
     try:
         sections = [(heading, bodies[heading]()) for heading in RECOVER_HEADINGS]
     except OSError as refused:

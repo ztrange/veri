@@ -736,8 +736,8 @@ def test_4094_recover_lists_under_questions_each_of_the_lanes_question_files_wit
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     questions = tmp_path / ".tdd" / "questions"
     questions.mkdir(parents=True)
-    (questions / "mu-12.md").write_text("#### Question\nmerge 12 first?\n#### Options\n#### Found\n#### Recommendation\n")
-    (questions / "mu-rebase-order.md").write_text("#### Question\nwhich order?\n")
+    (questions / "mu-12.md").write_text("#### Question\nmerge 12 first?\n## Asked s-12\n#### Options\n#### Found\n#### Recommendation\n")
+    (questions / "mu-rebase-order.md").write_text("#### Question\nwhich order?\n## Asked s-ro\n")
     (questions / "mu-13.md").write_text("#### Question\nhold 13?\n\n## Answer\nhold it\n")
     (questions / "main-14.md").write_text("#### Question\nanother lane's question\n")
     (questions / "mu.md").write_text("#### Question\nnot a question id of lane mu\n")
@@ -757,7 +757,7 @@ def test_4094_recover_with_no_lane_lists_only_the_main_lanes_question_files(tmp_
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     questions = tmp_path / ".tdd" / "questions"
     questions.mkdir(parents=True)
-    (questions / "main-21.md").write_text("#### Question\nopen\n")
+    (questions / "main-21.md").write_text("#### Question\nopen\n## Asked s-21\n")
     (questions / "mu-22.md").write_text("#### Question\nanother lane\n")
 
     def run(args, *a, **k):
@@ -792,7 +792,7 @@ def _recover_questions_with(tmp_path, monkeypatch, run_cli, fake_processes, make
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     questions = tmp_path / ".tdd" / "questions"
     questions.mkdir(parents=True)
-    (questions / "main-41.md").write_text("#### Question\nopen\n")
+    (questions / "main-41.md").write_text("#### Question\nopen\n## Asked s-41\n")
     make(questions)
 
     def run(args, *a, **k):
@@ -816,7 +816,47 @@ def test_4094_recover_skips_a_dangling_question_symlink_and_still_exits_0(tmp_pa
 
 def test_4094_recover_lists_a_question_file_that_is_not_utf8_as_open_and_reads_its_answer_heading(tmp_path, monkeypatch, run_cli, fake_processes):
     def make(q):
-        (q / "main-44.md").write_bytes(b"#### Question\n\xff\xfe caf\xe9\n")
+        (q / "main-44.md").write_bytes(b"#### Question\n\xff\xfe caf\xe9\n## Asked s-44\n")
         (q / "main-45.md").write_bytes(b"#### Question\n\xff\n## Answer\nyes\n")
     code, out, err = _recover_questions_with(tmp_path, monkeypatch, run_cli, fake_processes, make)
     assert (code, _questions(out)) == (0, [".tdd/questions/main-41.md", ".tdd/questions/main-44.md"]), (out, err)
+
+
+SECTIONS = ("Questions", "Unasked questions", "Answered questions")
+
+
+def test_4253_recover_lists_each_question_file_in_exactly_one_of_asked_unasked_and_answered_sorted_by_name(tmp_path, monkeypatch, run_cli, fake_processes):
+    def make(q):
+        (q / "main-50.md").write_text("#### Question\nasked\n\n## Asked 9f2c-session\n")
+        (q / "main-51.md").write_text("#### Question\nwritten, never asked\n")
+        (q / "main-52.md").write_text("#### Question\nanswered\n\n## Asked s-52\n\n## Answer\nyes\n")
+        (q / "main-53.md").write_text("#### Question\nanswered with no session line\n\n## Answer\nyes\n")
+        (q / "main-54.md").write_text("#### Question\nan Asked line with no id\n\n## Asked\n## Asked \n")
+        (q / "main-55.md").write_text("#### Question\nnot the line itself\n\n## Asked about it later\nsee ## Asked x\n")
+        (q / "main-40.md").write_text("#### Question\nsorted first\n")
+    code, out, err = _recover_questions_with(tmp_path, monkeypatch, run_cli, fake_processes, make)
+
+    assert code == 0, (out, err)
+    assert {heading: _questions(out, heading) for heading in SECTIONS} == {
+        "Questions": [".tdd/questions/main-41.md", ".tdd/questions/main-50.md"],
+        "Unasked questions": [".tdd/questions/main-40.md", ".tdd/questions/main-51.md", ".tdd/questions/main-54.md",
+                              ".tdd/questions/main-55.md"],
+        "Answered questions": [".tdd/questions/main-52.md", ".tdd/questions/main-53.md"]}
+
+
+def test_4253_recover_lists_a_question_file_it_cannot_read_under_questions_only(tmp_path, monkeypatch, run_cli, fake_processes):
+    status = importlib.import_module("veri.status")
+    real_open = open
+
+    def refusing_open(path, *a, **k):
+        if str(path).endswith("main-60.md"):
+            raise PermissionError(13, "Permission denied")
+        return real_open(path, *a, **k)
+    monkeypatch.setattr(status, "open", refusing_open, raising=False)
+
+    def make(q):
+        (q / "main-60.md").write_text("#### Question\nunreadable\n\n## Answer\nyes\n")
+    code, out, err = _recover_questions_with(tmp_path, monkeypatch, run_cli, fake_processes, make)
+
+    assert (code, [_questions(out, heading) for heading in SECTIONS]) == (
+        0, [[".tdd/questions/main-41.md", ".tdd/questions/main-60.md"], ["none"], ["none"]]), (out, err)
