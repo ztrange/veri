@@ -48,9 +48,16 @@ def run(n):
         raise fused.Stop("6", "uncovered_spec=" + uncovered, 1)
     green_sha = half.get("green_sha", [""])[0]
     pins = [line for line in checks(wt, n, green_sha).splitlines() if line.startswith("needs a look")]
-    commit(wt, n, step)
-    mirror(wt, n, step)
-    return fused.settle(wt, n, NAME, ["next=" + next_stop(wt, n)] + ["owed_pin=" + pin for pin in pins])
+    try:
+        commit(wt, n, step)
+        mirror(wt, n, step)
+        return fused.settle(wt, n, NAME, ["next=" + next_stop(wt, n)] + ["owed_pin=" + pin for pin in pins])
+    except (fused.Stop, fused.Waiting):
+        raise
+    except Exception as error:
+        # Past the checks the push may have landed: an unforeseen error names 6, so the conductor goes on from 6
+        # rather than redoing the branch from its start, which would end the stage and post step-done twice.
+        raise fused.Stop("6", "%s %s" % (type(error).__name__, error), 2)
 
 
 def ledger_text(wt, n):
