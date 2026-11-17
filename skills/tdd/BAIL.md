@@ -31,7 +31,9 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   the step's criterion cannot be pinned as a lightweight, behavior-level test → **process**
   failure (the criterion as phrased cannot be tested as behavior, not that the plumbing
   broke).
-- `step-too-big` — a split was refused for `VERI_STEP_GROWTH`, so the smaller steps are filed
+- `step-too-big` — a split was refused for the growth cap, ⌈`VERI_STEP_GROWTH_PERCENT` × P ÷ 100⌉
+  (default 50; P the steps of the verified plan, the ledger at the commit `ledger-growth.sh
+  plan-sha` prints), so the smaller steps are filed
   under `## Owed steps` rather than in the plan → **process** failure (the step was too big for
   one green; `add-ledger-step.sh` exit 1 says so, and nothing in the plumbing broke). Three
   splits lead here, because all three grow the plan and share that one budget: a Green
@@ -40,17 +42,20 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
 - `step-added-off-route` — `ledger-growth.sh` exited **1** at a ledger commit: a step line the
   plan commit did not hold has no matching record from `add-ledger-step.sh` (in the tracked
   `.tdd/issue-<n>-added.md` or its `step-added` events), lacks `⟦added⟧` when its record shows
-  no repair or `--planned` insertion, or the `⟦added⟧` lines exceed `VERI_STEP_GROWTH` →
+  no repair or `--planned` insertion, or the `⟦added⟧` lines exceed `VERI_STEP_GROWTH_PERCENT` of
+  the plan's steps →
   **process** failure (the plan grew by a route other than `add-ledger-step.sh`; stderr names
   the line). No commit is made over it. To resume, take the named line out of the uncommitted
-  ledger, or put it back in through `add-ledger-step.sh` within `VERI_STEP_GROWTH`, commit, and
+  ledger, or put it back in through `add-ledger-step.sh` within `VERI_STEP_GROWTH_PERCENT`, commit, and
   resume the run.
 - `step-add-refused` → **system** failure: `add-ledger-step.sh` exited 2 at any of its call
-  sites because the anchor matched no step or several, `VERI_STEP_GROWTH` was unreadable, or
+  sites because the anchor matched no step or several, `VERI_STEP_GROWTH_PERCENT` was unreadable or
+  the retired `VERI_STEP_GROWTH` was set (any value: the old absolute count no longer bounds
+  growth), no plan commit could be read, or
   `--criterion` was malformed (the conductor passed a call the script refused, not a
   methodology answer).
 - `prep-owed` — `add-ledger-step.sh` refused with exit **1** the step a `prep` answer asks
-  for (the insertion would exceed `VERI_STEP_GROWTH`) → **process** failure (the methodology
+  for (the insertion would exceed `VERI_STEP_GROWTH_PERCENT` of the plan's steps) → **process** failure (the methodology
   spoke: the prep step is owed and the plan has no room for it, and the plumbing did not
   break); the bail comment names the cases the step was to update.
 - `pr-ready-failed` — `pr-ready.sh` exited non-zero at the Draft PR step (GitHub refused or
