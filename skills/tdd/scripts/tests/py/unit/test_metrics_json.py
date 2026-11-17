@@ -102,7 +102,7 @@ def folded(rich, metrics):
 def test_conductor_holds_its_cost_turns_session_count_model_and_whether_it_is_estimated_and_priced(rich, capsys, metrics):
     conductor = as_json(metrics, capsys)["conductor"]
 
-    assert sorted(conductor) == ["cost_usd", "estimated", "model", "priced", "sessions", "turns"]
+    assert sorted(conductor) == ["by_phase", "cost_usd", "estimated", "model", "priced", "sessions", "turns"]
     assert (round(conductor["cost_usd"], 2), conductor["turns"], conductor["sessions"]) == (2.68, 6, 2)
     assert (conductor["model"], conductor["estimated"], conductor["priced"]) == ("opus", True, True)
 
