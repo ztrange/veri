@@ -1,6 +1,7 @@
 """In-process cases for veri/red_setup.py, the module red-setup.sh is a shim over."""
 import importlib
 import json
+import os
 
 import pytest
 
@@ -184,3 +185,13 @@ def test_veri_setup_threshold_is_a_tunables_entry_reading_a_whole_number_default
 
     assert (tunables.default("VERI_SETUP_THRESHOLD"), tunables.parses("VERI_SETUP_THRESHOLD", "0"),
             tunables.parses("VERI_SETUP_THRESHOLD", "2.5")) == ("3", True, False)
+
+
+def test_worst_records_a_row_carrying_no_local_path_of_the_run_or_the_home_directory(tmp_path, run_cli, red_setup):
+    home = os.path.expanduser("~")
+    _journal(tmp_path, ("7", "step one", "5", "a fixture at %s/f.json, a stub in %s/bin" % (tmp_path, home)))
+
+    code, _, owed = _worst(run_cli, red_setup, tmp_path)
+
+    assert (code, str(tmp_path) in owed, home in owed, owed.startswith("not-done | testability | step one: 5")) == (
+        0, False, False, True)
