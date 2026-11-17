@@ -1087,49 +1087,35 @@ that push; else the ending call's code (a bail's too).
    ```
    **One leaf for the whole step**, not one per transform. `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
    comma-separated line. Compute it **once**, right after the step's atomic green commit — `$S/refactor-touched.sh HEAD` is exactly that commit's files at that moment — adding
-   anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work on disk.
-   The template owns the rules — the leaf triages what it sees in those files into
+   anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work on disk. The template owns the rules — the leaf triages what it sees in those files into
    **structural** and **cosmetic** candidates and applies the structural ones, most valuable first, up to its budget; it runs the **suites covering the files it touched** after every
    transform and **reverts** one that turns them red rather than leave a red suite; it takes
    **no untested generality** (that comes only from **triangulation**) and **flags overfit** code as needing a triangulating test instead of hand-generalizing it. It also **commits
    its own transforms**, one commit each: `git commit -m "refactor: <what> (#<n>)"`. The atomic tick-and-commit stays on green
    (ADR-0007); it is the refactor commit that moved to the leaf. The report is in `.tdd/develop-refactor.out` and ends with `RESULT:` (one line per transform applied, or
    `nothing left to tidy`), `CANDIDATES:` (one line per leftover it still sees, each carrying its class, or `none`) and `FLAGS:` (one finding per line, each carrying its
-   class — `overfit`, `uncovered-spec` or `beyond-spec` — or `none`; 3 and 4 below route
-   them).
-2. **Check what the leaf left.** The conductor **checks** it, because verify-refactor judges
-   the **settled tree** and can see neither of the two faults below. Ask git, not the report:
+   class — `overfit`, `uncovered-spec` or `beyond-spec` — or `none`; 3 and 4 below route them).
+2. **Check what the leaf left.** The conductor **checks** it, because verify-refactor judges the **settled tree** and can see neither of the two faults below. Ask git, not the report:
    ```
    git status --porcelain                   # any output ⇒ refuse to go on, see below
    git log --format=%s <green-sha>..HEAD    # every one must be a refactor:, or refuse to go on
    git rev-list --count <green-sha>..HEAD   # the transforms that landed, narrated against the budget
    ```
-   `<green-sha>` is this step's atomic green commit — the one carrying the ledger tick — so
-   the range holds exactly what the step's refactor produced.
-   - **A dirty tree** is work no suite run and no verifier has seen: the transform a killed
-     leaf left half-applied on disk. Do **not** continue to verify-refactor over it — `git
-     reset --hard HEAD` drops it, leaving the last committed transform, which the leaf's own
-     suite run found green — and say in the narration that it was dropped.
-   - **A commit in that range whose subject is not `refactor:`** is production code carried
-     into a behaviour-preserving phase, where nothing asks whether a test earned it. Do
-     **not** continue either — `git reset --hard <green-sha>` drops every commit the leaf
-     made for this step, the well-formed ones with it, since a leaf that committed
-     production code here is not one whose other commits can be taken on trust — and the
-     step goes to verify-refactor on its green state, with what was dropped named in the
+   `<green-sha>` is this step's atomic green commit — the one carrying the ledger tick — so the range holds exactly what the step's refactor produced.
+   - **A dirty tree** is work no suite run and no verifier has seen: the transform a killed leaf left half-applied on disk. Do **not** continue to verify-refactor over it — `git
+     reset --hard HEAD` drops it, leaving the last committed transform, which the leaf's own suite run found green — and say in the narration that it was dropped.
+   - **A commit in that range whose subject is not `refactor:`** is production code carried into a behaviour-preserving phase, where nothing asks whether a test earned it. Do
+     **not** continue either — `git reset --hard <green-sha>` drops every commit the leaf made for this step, the well-formed ones with it, since a leaf that committed
+     production code here is not one whose other commits can be taken on trust — and the step goes to verify-refactor on its green state, with what was dropped named in the
      narration.
-3. **An `overfit` flag is answered inside this step.** The leaf's `FLAGS:` lines each carry
-   their class. A line whose class is **overfit** names code that passes this step's test
-   without implementing the criterion the step states, and names the case that would force
-   the general implementation. Stop the refactor loop there (its stage stays open). **When the loop has landed
-   commits since `<green-sha>`, first run 2's checks and verify-refactor (5) over them**,
-   before the triangulating red, and launch the red only after that PASS. On that PASS run
-   `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>` for the landed
-   commits; the ` ⟂ refactor pending` mark stays and **no ledger tick is committed**, both
+3. **An `overfit` flag is answered inside this step.** The leaf's `FLAGS:` lines each carry their class. A line whose class is **overfit** names code that passes this step's test
+   without implementing the criterion the step states, and names the case that would force the general implementation. Stop the refactor loop there (its stage stays open). **When the loop has landed
+   commits since `<green-sha>`, first run 2's checks and verify-refactor (5) over them**, before the triangulating red, and launch the red only after that PASS. On that PASS run
+   `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>` for the landed commits; the ` ⟂ refactor pending` mark stays and **no ledger tick is committed**, both
    left for the step's final verify-refactor PASS, so the triangulating red's
    `check-earlier` needs no `--except` for those cases. Treat `rerecord-refactored`'s exits 1 and 2 as at the final verify-refactor
    PASS below (exit 1 a bail `needs-user`, exit 2 a bail `rerecord-failed`, a system failure), and launch no triangulating red (to bail, `Read` `<base directory>/BAIL.md`). A REJECT of that early
-   verify-refactor goes the normal revise path (when a verifier answers `REJECT`, `Read`
-   `<base directory>/REVISE.md`), spends `REVISE_BUDGET`, and launches no triangulation
+   verify-refactor goes the normal revise path (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`), spends `REVISE_BUDGET`, and launches no triangulation
    until it passes. When no commit landed, no early verify-refactor runs. Then run, for
    that case, one
    triangulating **red → verify-red → green → verify-green** inside this same step, exactly
@@ -1249,7 +1235,7 @@ that push; else the ending call's code (a bail's too).
    `$touched` is the step's bounds: when all are test files, a structural candidate is
    recorded test-only — "test file" being `transform-touches-tests.sh`'s rule, which is
    `case_reader.is_test_path`'s: `tests/` directories, `*.test.*`, JS/TS `*.spec.*`, Go `*_test.go`, and Python `test_*.py` or `*_test.py` anywhere, so no transform could land it.
-   - **PASS:** run `$S/step-close.sh <n>` first (again on 3); on 0 its last lines hold `next`, `owed_pin`, else go on from the
+   - **PASS:** run `$S/step-close.sh <n>` first (again on 3); on 0 its last lines hold `next`, `owed_pin`; on 2 naming no sub-step rerun `refactor-half.sh <n>`, else go on from the
      sub-step it names. The step's cycle is complete — the step is tidied, not merely green, so **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and of
      the passing verify-refactor verdict's own `uncovered-spec` flags, then clear the refactor-pending mark and commit the grown, cleared
      ledger first**, before anything outside the repository says the step is done. The verifier's are the `FLAGS:` lines before the final `VERDICT:`/`REASON:` pair in
