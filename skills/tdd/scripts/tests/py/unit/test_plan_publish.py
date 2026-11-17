@@ -293,6 +293,52 @@ def test_4025_it_launches_no_leaf_but_through_supervise(publish):
     assert not {"run-leaf.sh", "run-verdict.sh", "claude", "supervise.sh"} & set(fake.names())
 
 
+def test_4025_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line(publish):
+    code, out, err, fake = publish(answers=WAITING)
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on verdict-plan")
+    assert not (publish.wt / ".tdd" / "issue-12-plan-publish").exists()
+
+
+def _pid(publish, text):
+    (publish.wt / ".tdd" / "conductor.pid").write_text(text)
+
+
+def test_4025_called_again_after_an_exit_3_it_only_waits_again_then_comments_and_settles(publish):
+    _pid(publish, "111\nTue Nov 17 07:00:00 2026\n")
+    first, _, _, before = publish(answers=WAITING)
+    code, out, err, fake = publish(fake=Fake(pr=PR_URL + "\n"))
+
+    assert (first, code) == (3, 0)
+    assert [(c[0], c[1]) for c in fake.calls] == [("wait-leaf.sh", ("verdict-plan",)),
+                                                   ("comment.sh", ("12", "verify-plan"))]
+    assert (publish.wt / ".tdd" / "issue-12-plan-publish").read_text().splitlines()[:4] == [
+        "plan_sha=" + PLAN_SHA, "steps=2", "pr_url=" + PR_URL, "pr_number=77"]
+    assert not (publish.wt / ".tdd" / "issue-12-plan-publish-wait").exists()
+
+
+def test_4025_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(publish):
+    _pid(publish, "111\nTue Nov 17 07:00:00 2026\n")
+    publish(answers=WAITING)
+
+    record = json.loads((publish.wt / ".tdd" / "issue-12-plan-publish-wait").read_text())
+    assert record["conductor"] == {"pid": "111", "started": "Tue Nov 17 07:00:00 2026"}
+
+
+@pytest.mark.parametrize("second", ["222\nTue Nov 17 07:00:00 2026\n", "111\nTue Nov 17 08:00:00 2026\n", None],
+                         ids=["another pid", "another start time", "no pid file"])
+def test_4025_called_under_another_conductor_it_discards_the_record_and_starts_from_its_first_call(publish, second):
+    _pid(publish, "111\nTue Nov 17 07:00:00 2026\n")
+    publish(answers=WAITING)
+    if second is None:
+        (publish.wt / ".tdd" / "conductor.pid").unlink()
+    else:
+        _pid(publish, second)
+    code, out, err, fake = publish(answers=WAITING)
+
+    assert fake.calls[0][:2] == ("scope-check.sh", (".tdd/issue-12.md", "."))
+
+
 def test_4025_the_plan_commit_ends_stage_plan_when_the_conductor_started_it(publish):
     (publish.wt / ".tdd" / "stage-plan.t").write_text("1\n")
     code, out, err, fake = publish(answers=WAITING)

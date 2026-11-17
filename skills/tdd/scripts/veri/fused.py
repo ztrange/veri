@@ -83,3 +83,13 @@ def read_settled(path):
     """{key: value} of a settled file; OSError when it cannot be read."""
     with open(path) as f:
         return dict(line.split("=", 1) for line in f.read().splitlines() if "=" in line)
+
+
+def conductor(wt):
+    """The conductor a call runs under, as <wt>'s `.tdd/conductor.pid` names it: {"pid", "started"}; None without one."""
+    try:
+        with open(os.path.join(wt, ".tdd", "conductor.pid")) as f:
+            lines = f.read().split("\n")
+    except OSError:
+        return None
+    return {"pid": lines[0].strip(), "started": (lines[1:] or [""])[0].strip()}

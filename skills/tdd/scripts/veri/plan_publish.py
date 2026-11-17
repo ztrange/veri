@@ -2,6 +2,7 @@
 step 2b, and step 2c up to its PASS branch), made in one call (PRD 027.3)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
+import json
 import math
 import os
 import sys
@@ -68,6 +69,9 @@ def fused_where(fields):
 
 def run(n, settled, title):
     wt = settled["worktree"]
+    waited = load_wait(wt, n)
+    if waited is not None:
+        return verdict(n, wt, waited)
     ledger = os.path.join(".tdd", "issue-%s.md" % n)
     plan_sha, k = commit_plan(n, wt, ledger)
     fused.checked("2.3", fused.script("push-branch.sh"), cwd=wt)
@@ -76,9 +80,37 @@ def run(n, settled, title):
     fused.checked("2.4", fused.script("comment.sh"), n, "plan", cwd=wt)
     gh("2b", "api", "repos/{owner}/{repo}/issues/%s/comments" % n, "-f", "body=" + start_comment(n, k, branch), wt=wt)
     refresh_spec(n, wt)
+    lines = ["plan_sha=" + plan_sha, "steps=%d" % k, "pr_url=" + pr_url,
+             "pr_number=" + pr_url.rstrip("/").rsplit("/", 1)[-1]]
     launch_verdict_plan(n, wt, settled)
-    return verdict(n, wt, ["plan_sha=" + plan_sha, "steps=%d" % k, "pr_url=" + pr_url,
-                           "pr_number=" + pr_url.rstrip("/").rsplit("/", 1)[-1]])
+    save_wait(wt, n, lines)
+    return verdict(n, wt, lines)
+
+
+def wait_record(wt, n):
+    return run_dir.issue_file(wt, n, "-plan-publish-wait")
+
+
+def save_wait(wt, n, lines):
+    """Record the launched leaf's wait: the conductor it runs under (FC7) and the lines settled so far, so a second
+    call only waits again (FC6)."""
+    with open(wait_record(wt, n), "w") as f:
+        json.dump({"conductor": fused.conductor(wt), "lines": lines}, f)
+
+
+def load_wait(wt, n):
+    """The settled lines a first call recorded before its wait ran out; None when there is no usable record. A record
+    another conductor wrote is removed: its leaf is a dead run's (FC7)."""
+    try:
+        with open(wait_record(wt, n)) as f:
+            record = json.load(f)
+        lines, theirs = record["lines"], record.get("conductor")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+    if theirs != fused.conductor(wt):
+        os.remove(wait_record(wt, n))
+        return None
+    return lines
 
 
 SPEC = ".tdd/issue-%s-spec.md"
@@ -110,6 +142,11 @@ def verdict(n, wt, lines):
     """Wait for verdict-plan: 0 posts the verify-plan comment and settles <lines> with verify_plan=PASS; 1 or 2
     stops it before that comment."""
     code = fused.call(fused.script("wait-leaf.sh"), LEAF, cwd=wt)[0]
+    if code == 3:
+        sys.stdout.write("waiting on %s\n" % LEAF)
+        return 3
+    with contextlib.suppress(FileNotFoundError):
+        os.remove(wait_record(wt, n))
     if code != 0:
         raise fused.Stop("2c", "wait-leaf.sh %s exit %d" % (LEAF, code), code)
     fused.checked("2c", fused.script("comment.sh"), n, "verify-plan", cwd=wt)
