@@ -325,3 +325,105 @@ def test_4027_it_writes_no_bail_and_resets_nothing_on_a_stop(green):
 
     assert not {"classify-bail.sh", "preflight-refused.sh", "event.sh", "wrong-test-route.sh"} & set(fake.names())
     assert not [c for c in fake.calls if c[0] == "git"]
+
+
+def _pid(green, text):
+    (green.wt / ".tdd" / "conductor.pid").write_text(text)
+
+
+@pytest.mark.parametrize("leaf", ["develop-green", "verdict-green"])
+def test_4027_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line(green, leaf):
+    code, out, err, fake = green(answers={("wait-leaf.sh", leaf): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on " + leaf)
+    assert "tick-ledger.sh" not in fake.names()
+
+
+@pytest.mark.parametrize("leaf, launched", [("develop-green", ["verdict-green"]), ("verdict-green", [])])
+def test_4027_called_again_after_an_exit_3_it_only_waits_again_then_goes_on_once(green, leaf, launched):
+    _pid(green, "111\nTue Nov 17 07:00:00 2026\n")
+    first = green(answers={("wait-leaf.sh", leaf): (3, "")})[0]
+    code, out, err, fake = green()
+
+    assert (first, code) == (3, 0)
+    assert fake.calls[0][:2] == ("wait-leaf.sh", (leaf,))
+    assert (fake.launched(), "build-develop-prompt.sh" in fake.names()) == (launched, False)
+    assert [c[1][1] for c in fake.calls if c[0] == "comment.sh"] == ["green", "verify-green"]
+    assert [c[1][0] for c in fake.calls if c[0] == "git" and c[1][0] == "commit"] == ["commit"]
+    assert fake.names().count("push-branch.sh") == 1
+    assert not (green.wt / ".tdd" / "issue-12-green-half-wait").exists()
+
+
+def test_4027_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(green):
+    _pid(green, "111\nTue Nov 17 07:00:00 2026\n")
+    green(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
+
+    record = json.loads((green.wt / ".tdd" / "issue-12-green-half-wait").read_text())
+    assert (record["conductor"], record["at"]) == ({"pid": "111", "started": "Tue Nov 17 07:00:00 2026"},
+                                                   "verdict-green")
+
+
+@pytest.mark.parametrize("second", ["222\nTue Nov 17 07:00:00 2026\n", "111\nTue Nov 17 08:00:00 2026\n", None],
+                         ids=["another pid", "another start time", "no pid file"])
+def test_4027_called_under_another_conductor_it_discards_the_record_and_starts_from_its_first_call(green, second):
+    _pid(green, "111\nTue Nov 17 07:00:00 2026\n")
+    green(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
+    if second is None:
+        (green.wt / ".tdd" / "conductor.pid").unlink()
+    else:
+        _pid(green, second)
+    code, out, err, fake = green()
+
+    assert (code, fake.calls[0][0]) == (0, "build-develop-prompt.sh")
+
+
+READ = ("extract-result.sh", "step-cost.sh", "step-budget.sh", "gh", "git")  # stdout read as a figure, report or sha
+
+
+def test_4027_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr(green):
+    class Marked(Fake):
+        def __call__(self, name, *args, **kw):
+            code, out, err = super().__call__(name, *args, **kw)
+            if os.path.basename(name) in READ:
+                return code, out, err
+            return code, "OUT<%d>\n" % len(self.calls) + out, "ERR<%d>\n" % len(self.calls)
+
+    code, out, err, fake = green(fake=Marked())
+
+    lines = out.splitlines()
+    assert code == 0
+    for i, c in enumerate(fake.calls, 1):
+        if c[0] in READ:
+            continue
+        assert "OUT<%d>" % i in lines and "ERR<%d>" % i in err
+        named = lines[lines.index("OUT<%d>" % i) - 1]
+        assert named.startswith(c[0]) and named.endswith(" exit %d" % (3 if c[0] == "stop-requested.sh" else 0))
+
+
+# Inner calls the Green section does not name, each by name with its reason.
+NAMED_ELSEWHERE = {
+    "step-budget.sh": "RH4: the budget *The step's cost check* weighs step-cost.sh's figure against",
+    "extract-result.sh": "FC2: *Launching a leaf* reads a leaf's report only through it",
+}
+
+
+def test_4027_every_inner_call_in_the_ordered_list_is_a_script_the_green_section_names():
+    from pathlib import Path
+    green_half = importlib.import_module("veri.green_half")
+    skill = (Path(green_half.__file__).resolve().parents[2] / "SKILL.md").read_text()
+    section = skill[skill.index("#### Green — minimum implementation"):skill.index("#### Refactor loop — one leaf")]
+
+    assert [name for name in green_half.CALLS if "$S/" + name not in section and name not in NAMED_ELSEWHERE] == []
+
+
+def test_4027_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(green):
+    green_half = importlib.import_module("veri.green_half")
+    code, out, err, fake = green()
+
+    made = [c[0] for c in fake.calls if c[0] not in ("git", "gh")]
+    made += [os.path.basename(a) for c in fake.calls if c[0] == "detach-leaf.sh" for a in c[1] if a.endswith(".sh")]
+    assert code == 0
+    assert set(made) | {"event.sh"} == set(green_half.CALLS)
+    firsts = [made.index(name) for name in green_half.CALLS if name in made and name not in (
+        "supervise.sh", "run-leaf.sh", "run-verdict.sh")]
+    assert firsts == sorted(firsts)
