@@ -33,3 +33,11 @@ def test_offending_refuses_a_base_that_is_not_a_commit_with_the_message_main_pri
 
     with pytest.raises(skill_edit_guard.Refusal, match="^skill-edit-guard.sh: base1 is not a commit$"):
         skill_edit_guard.offending("skills/foo/FOO.md", "base1", [])
+
+
+def test_offending_takes_a_heading_unit_as_its_file_allowing_edits_to_the_file_and_naming_none_4210(fake_processes, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    fake = fake_processes.answers(repo(changed="skills/foo/FOO.md\nskills/foo/REQUIREMENTS.md\nstray.py\n"))
+
+    assert skill_edit_guard.offending("skills/foo/FOO.md#Part A", "base1", []) == ["stray.py"]
+    assert ["git", "cat-file", "-e", "base1:skills/foo/FOO.md"] in fake.argvs, fake.argvs

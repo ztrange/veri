@@ -24,14 +24,16 @@ class Refusal(Exception):
 
 
 def offending(unit, base, pins=()):
-    """The paths changed since <base> (tracked diff, then untracked) beyond <unit>, its requirements list,
-    <pins> and the run's ledger files. Raises Refusal when <base> is no commit or <unit> exists nowhere."""
+    """The paths changed since <base> (tracked diff, then untracked) beyond <unit>'s file (a `file#heading` unit's
+    file is the part before `#`), its requirements list, <pins> and the run's ledger files. Raises Refusal when <base>
+    is no commit or <unit>'s file exists nowhere."""
     if not _git_ok("rev-parse", "--verify", "--quiet", base + "^{commit}"):
         raise Refusal(f"skill-edit-guard.sh: {base} is not a commit")
-    at_base = _git_ok("cat-file", "-e", f"{base}:{unit}")
-    if not at_base and not os.path.exists(unit):
-        raise Refusal(f"skill-edit-guard.sh: {unit} exists neither at {base} nor in the working tree")
-    allowed = {unit, requirements.list_path(unit), *pins}
+    file = unit.partition("#")[0]
+    at_base = _git_ok("cat-file", "-e", f"{base}:{file}")
+    if not at_base and not os.path.exists(file):
+        raise Refusal(f"skill-edit-guard.sh: {file} exists neither at {base} nor in the working tree")
+    allowed = {file, requirements.list_path(unit), *pins}
     changed = _git_lines("diff", "--name-only", "--no-renames", base) + _git_lines("ls-files", "--others", "--exclude-standard")
     return [path for path in changed if path and path not in allowed and not LEDGER.fullmatch(path)]
 
