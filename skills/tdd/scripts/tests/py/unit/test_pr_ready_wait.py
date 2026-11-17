@@ -75,6 +75,14 @@ def test_4032_a_missing_preflight_is_exit_2_before_any_inner_call_named_on_stder
     assert ".tdd/issue-12-preflight" in err
 
 
+def test_4032_a_stacked_run_is_refused_with_exit_2_before_any_inner_call(ready):
+    (ready.wt / ".tdd" / "issue-12-base").write_text("tdd/11-below\n")
+    code, out, err, fake = ready()
+
+    assert (code, fake.calls) == (2, [])
+    assert "stacked" in err and ".tdd/issue-12-base" in err
+
+
 def _flow(fake):
     return [(c[0], c[1]) for c in fake.calls if c[0] != "gh"]
 

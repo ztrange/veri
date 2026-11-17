@@ -28,6 +28,8 @@ def run(n):
     if given is None:
         return 2
     _, wt = given
+    if stacked(NAME, wt, n):
+        return 2
     resumed = fused.load_wait(wt, n, NAME)
     if resumed is not None:
         values = resumed[1]
@@ -37,6 +39,16 @@ def run(n):
     ci_wait(wt, n, NAME, values["pr_url"])
     lines = ["pr_url=" + values["pr_url"], "pr_number=" + values["pr_number"], "ci=green"]
     return fused.settle(wt, n, NAME, lines + (["no_checks=1"] if NO_CHECKS in said(wt, ".tdd/wait-ci.err") else []))
+
+
+def stacked(name, wt, n):
+    """True, named on stderr, when the worktree holds .tdd/issue-<n>-base: a stacked run's sub-step 2 runs neither of
+    its blocks (DRAFT-PR.md *A stacked run*), so neither fused call of them may run there."""
+    base = ".tdd/issue-%s-base" % n
+    if not os.path.exists(os.path.join(wt, base)):
+        return False
+    sys.stderr.write("%s.sh: a stacked run (%s exists) runs neither block of sub-step 2\n" % (name, base))
+    return True
 
 
 def ci_wait(wt, n, owner, url):
