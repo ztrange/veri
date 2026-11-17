@@ -771,7 +771,7 @@ _CREATED = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ")
 
 def workflow_runs(branch):
     """The newest 100 workflow runs GitHub lists for <branch>, one read, as [(head_sha, html_url, status, conclusion,
-    created_at)] (conclusion None until completed), kept only when the run's head repository is the repository it ran
+    created_at, run_attempt)] (conclusion None until completed; run_attempt 1, or more once re-run), kept only when the run's head repository is the repository it ran
     in: a fork's branch of the same name lists under it too. NoAnswer, its detail naming why, for a failed read or an
     answer not of the workflow-runs shape."""
     what = "the workflow runs of %s" % branch
@@ -782,18 +782,42 @@ def workflow_runs(branch):
         raise NoAnswer("", "%s: the answer is not {workflow_runs: [...]}" % what)
     found = []
     for raw in runs:
-        head, url, status, conclusion, created = (raw.get(key) for key in (
-            "head_sha", "html_url", "status", "conclusion", "created_at"))
+        head, url, status, conclusion, created, attempt = (raw.get(key) for key in (
+            "head_sha", "html_url", "status", "conclusion", "created_at", "run_attempt"))
         if not (isinstance(head, str) and re.fullmatch(r"[0-9a-f]{40}", head) and isinstance(url, str)
                 and _RUN_URL.fullmatch(url) and isinstance(status, str)
                 and (conclusion is None or isinstance(conclusion, str))
-                and isinstance(created, str) and _CREATED.fullmatch(created)):
-            raise NoAnswer("", "%s: a run without a head sha, url, status or creation time, or with a garbled one" % what)
+                and isinstance(created, str) and _CREATED.fullmatch(created) and _attempt(attempt)):
+            raise NoAnswer("", "%s: a run without a head sha, url, status, creation time or attempt, or with a garbled"
+                           " one" % what)
         repos = [(raw.get(side) or {}).get("full_name") if isinstance(raw.get(side) or {}, dict) else None
                  for side in ("repository", "head_repository")]
         if repos[0] and repos[0] == repos[1]:
-            found.append((head, url, status, conclusion, created))
+            found.append((head, url, status, conclusion, created, attempt))
     return found
+
+
+def _attempt(value):
+    """Whether <value> is a run attempt as GitHub states one: a whole number of at least 1, not a bool."""
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
+
+
+def run_attempt(run_id, attempt):
+    """(status, conclusion) of attempt <attempt> of workflow run <run_id>
+    (`repos/{owner}/{repo}/actions/runs/<run_id>/attempts/<attempt>`), conclusion None until completed. NoAnswer, its
+    detail naming why, for a <run_id> not a whole number or an <attempt> below 1 (before any call), a failed read, or an
+    answer that is not that attempt's record."""
+    if not re.fullmatch(r"[0-9]+", str(run_id)) or not _attempt(attempt):
+        raise NoAnswer("", "not a workflow run id and attempt: %r, %r" % (run_id, attempt))
+    what = "attempt %d of run %s" % (attempt, run_id)
+    answer = _json_answer(gh_api("repos/{owner}/{repo}/actions/runs/%s/attempts/%d" % (run_id, attempt),
+                                 stderr=subprocess.PIPE), "reading " + what)
+    status = answer.get("status") if isinstance(answer, dict) else None
+    conclusion = answer.get("conclusion") if isinstance(answer, dict) else None
+    if not (isinstance(status, str) and (conclusion is None or isinstance(conclusion, str))
+            and answer.get("run_attempt") == attempt):
+        raise NoAnswer("", "%s: the answer is not that attempt's record with a status" % what)
+    return status, conclusion
 
 
 def run_failed_log(run_id):

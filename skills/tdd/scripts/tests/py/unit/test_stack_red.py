@@ -12,7 +12,8 @@ def stack_red():
 
 def run(n, status="completed", conclusion="failure"):
     """Run <n>: created at second <n>, so a higher n is newer."""
-    return ("%040x" % n, "https://github.com/o/r/actions/runs/%d" % n, status, conclusion, "2026-11-16T10:00:%02dZ" % n)
+    return ("%040x" % n, "https://github.com/o/r/actions/runs/%d" % n, status, conclusion, "2026-11-16T10:00:%02dZ" % n,
+            1)
 
 
 class World:
@@ -100,10 +101,10 @@ def test_exits_2_naming_its_usage_when_given_an_argument(monkeypatch, run_cli, s
     assert (code, out, "usage: stack-red.sh" in err) == (2, "", True)
 
 
-def on(n, head, status="completed", conclusion="failure"):
-    """Run <n> (created at second <n>) on the head commit sha(<head>)."""
+def on(n, head, status="completed", conclusion="failure", attempt=1):
+    """Run <n> (created at second <n>) on the head commit sha(<head>), at its attempt <attempt>."""
     return ("%040x" % head, "https://github.com/o/r/actions/runs/%d" % n, status, conclusion,
-            "2026-11-16T10:00:%02dZ" % n)
+            "2026-11-16T10:00:%02dZ" % n, attempt)
 
 
 @pytest.mark.parametrize("runs, expected", [
@@ -121,3 +122,41 @@ def test_a_newest_run_not_completed_is_answered_by_the_newest_completed_run_on_i
 
     code_wanted, n = expected
     assert (code, out.split()[1:2]) == (code_wanted, ["https://github.com/o/r/actions/runs/%d" % n] if n else []), err
+
+
+def attempts(monkeypatch, stack_red, answers):
+    """github.run_attempt swapped for an in-process fake answering (status, conclusion) per (run id, attempt), or
+    raising what it is given; every read recorded."""
+    read = []
+
+    def run_attempt(run_id, attempt):
+        read.append((run_id, attempt))
+        answer = answers[(run_id, attempt)]
+        if isinstance(answer, BaseException):
+            raise answer
+        return answer
+
+    monkeypatch.setattr(stack_red.github, "run_attempt", run_attempt, raising=False)
+    return read
+
+
+@pytest.mark.parametrize("previous, code", [(("completed", "failure"), 0), (("completed", "success"), 3)])
+def test_a_re_run_in_progress_is_answered_by_its_own_previous_attempt_never_by_an_older_run_on_the_branch(
+        monkeypatch, run_cli, stack_red, previous, code):
+    World(monkeypatch, stack_red, [on(1, 5, conclusion="success"), on(3, 7, "in_progress", None, attempt=2)])
+    read = attempts(monkeypatch, stack_red, {("3", 1): previous})
+
+    got, out, err = run_cli(stack_red, [])
+
+    assert (got, out, read) == (code, "%040x https://github.com/o/r/actions/runs/3 failure\n" % 7 if code == 0 else "",
+                                [("3", 1)]), err
+
+
+@pytest.mark.parametrize("previous", [None, ("in_progress", None)])
+def test_a_re_runs_previous_attempt_that_cannot_be_read_is_exit_2_never_green(monkeypatch, run_cli, stack_red, previous):
+    World(monkeypatch, stack_red, [on(1, 5, conclusion="success"), on(2, 7, "in_progress", None, attempt=3)])
+    attempts(monkeypatch, stack_red, {("2", 2): previous or stack_red.github.NoAnswer("", "HTTP 502")})
+
+    code, out, err = run_cli(stack_red, [])
+
+    assert (code, out, err.count("\n"), err.startswith("stack-red: ")) == (2, "", 1, True), err

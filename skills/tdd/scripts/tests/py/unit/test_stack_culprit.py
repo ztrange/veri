@@ -44,7 +44,7 @@ class World:
             if isinstance(runs, BaseException):
                 raise runs
             return list(runs) if runs is not None else [
-                (self.red, "https://github.com/o/r/actions/runs/42", "completed", "failure", "2026-11-16T10:00:00Z")]
+                (self.red, "https://github.com/o/r/actions/runs/42", "completed", "failure", "2026-11-16T10:00:00Z", 1)]
 
         def run_failed_log(run_id):
             if isinstance(failed_log, BaseException):
@@ -293,7 +293,7 @@ def test_exits_2_with_nothing_on_stdout_when_no_answer_can_be_had(monkeypatch, r
     red = sha(9) if given == "not on the stack" else "zz" if given == "not a sha" else sha(2)
     runs = {"runs no answer": no_answer(culprit, "HTTP 502"), "no red run": [],
             "green run": [(sha(2), "https://github.com/o/r/actions/runs/42", "completed", "success",
-                           "2026-11-16T10:00:00Z")]}.get(given)
+                           "2026-11-16T10:00:00Z", 1)]}.get(given)
     failed_log = {"log no answer": no_answer(culprit, "HTTP 502"), "log garbled": "not a gh log line\n",
                   "log names none": log()}.get(given)
     span = {"fetch": culprit.stack_branch.Refused("no answer from origin (exit 128)"), "unnamed": None}.get(
