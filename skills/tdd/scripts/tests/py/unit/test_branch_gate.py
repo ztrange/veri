@@ -143,6 +143,57 @@ def test_4030_a_red_wait_ends_the_stage_with_its_code_and_stops_before_any_flake
     assert "FAILED 3" in out
 
 
+def _pid(gate, text):
+    (gate.wt / ".tdd" / "conductor.pid").write_text(text)
+
+
+def test_4030_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line_ending_no_stage(gate):
+    code, out, err, fake = gate(answers={("detach-command.sh", "wait"): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on branch-full-12")
+    assert "stage-end" not in [c[1][0] for c in fake.calls if c[0] == "event.sh"]
+    assert not (gate.wt / ".tdd" / "issue-12-branch-gate").exists()
+
+
+def test_4030_called_again_after_an_exit_3_it_only_waits_again_then_goes_on_once(gate, monkeypatch):
+    clock = iter([1000.0, 1100.0])
+    monkeypatch.setattr("time.time", lambda: next(clock))
+    _pid(gate, "111\nTue Nov 17 07:00:00 2026\n")
+    first = gate(answers={("detach-command.sh", "wait"): (3, "")})[0]
+    code, out, err, fake = gate()
+
+    assert (first, code) == (3, 0)
+    assert [(c[0], c[1]) for c in fake.calls] == [
+        ("detach-command.sh", ("wait", "branch-full-12")),
+        ("event.sh", ("stage-end", "stage=full-suite", "status=0", "secs=100")),
+        ("full-tier-time.sh", ("--record", "100", FULL))]
+    assert not (gate.wt / ".tdd" / "issue-12-branch-gate-wait").exists()
+
+
+def test_4030_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(gate):
+    _pid(gate, "111\nTue Nov 17 07:00:00 2026\n")
+    gate(answers={("detach-command.sh", "wait"): (3, "")})
+
+    record = json.loads((gate.wt / ".tdd" / "issue-12-branch-gate-wait").read_text())
+    assert (record["conductor"], record["at"]) == ({"pid": "111", "started": "Tue Nov 17 07:00:00 2026"},
+                                                   "branch-full-12")
+
+
+@pytest.mark.parametrize("second", ["222\nTue Nov 17 07:00:00 2026\n", "111\nTue Nov 17 08:00:00 2026\n", None],
+                         ids=["another pid", "another start time", "no pid file"])
+def test_4030_called_under_another_conductor_it_discards_the_record_and_starts_from_its_first_call(gate, second):
+    _pid(gate, "111\nTue Nov 17 07:00:00 2026\n")
+    gate(answers={("detach-command.sh", "wait"): (3, "")})
+    if second is None:
+        (gate.wt / ".tdd" / "conductor.pid").unlink()
+    else:
+        _pid(gate, second)
+    code, out, err, fake = gate()
+
+    assert (code, fake.calls[0][0]) == (0, "branch-suite.sh")
+    assert [c[1][0] for c in fake.calls if c[0] == "detach-command.sh"] == ["start", "wait"]
+
+
 @pytest.mark.parametrize("script, first, inner", [("branch-suite.sh", None, 2), ("detect-test-command.sh", None, 2),
                                                   ("detach-command.sh", "start", 2), ("full-tier-time.sh", None, 2),
                                                   ("event.sh", "stage-start", 2)])

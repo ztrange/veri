@@ -2,6 +2,7 @@
 full run and, under `local`, that run and its recorded time (DRAFT-PR.md's opening paragraphs), made in one call
 (PRD 027.7)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import shlex
 import sys
 import time
@@ -33,13 +34,21 @@ def run(n):
     if step is not None:
         sys.stderr.write("branch-gate.sh: an unchecked step is left, next-unchecked.sh would hand it out: %s\n" % step)
         return 2
-    mode = fused.checked(WHERE, fused.script("branch-suite.sh"), cwd=wt).strip()
-    if mode == "ci":
-        return fused.settle(wt, n, NAME, ["branch_suite=ci"])
-    if mode != "local":
-        raise fused.Stop(WHERE, "branch-suite.sh printed " + (mode or "nothing"), 2)
-    values = start(wt, n)
+    resumed = fused.load_wait(wt, n, NAME)
+    if resumed is not None:
+        values = resumed[1]
+    else:
+        mode = fused.checked(WHERE, fused.script("branch-suite.sh"), cwd=wt).strip()
+        if mode == "ci":
+            return fused.settle(wt, n, NAME, ["branch_suite=ci"])
+        if mode != "local":
+            raise fused.Stop(WHERE, "branch-suite.sh printed " + (mode or "nothing"), 2)
+        values = start(wt, n)
+        fused.save_wait(wt, n, NAME, RUN % n, values)
     code = fused.call(DETACH, "wait", RUN % n, cwd=wt)[0]
+    if code == 3:
+        raise fused.Waiting(RUN % n)
+    os.remove(fused.wait_record(wt, n, NAME))
     secs = int(time.time()) - values["began"]
     mark(wt, n, "stage-end", "stage=full-suite", "status=%d" % code, "secs=%d" % secs)
     if code != 0:
