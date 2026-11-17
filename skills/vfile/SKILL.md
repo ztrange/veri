@@ -125,7 +125,7 @@ fall back to the names below only where it names none.
   label on a refactor or a feature beyond what the repo uses.
 - **The opt-in label** (`ready-for-agent`, narrowed to `ready-for-agent:<scope>` if a scope was
   named) is added to every issue filed, unless the human said not to opt it in. A scope is named
-  by the human, or by the coordinator or `vdev` session invoking you: it names its lane when a
+  by the human, or by the `vdev` session invoking you: it names its lane when a
   run in that lane turned up the bug, and the issue is filed into that lane.
 - **A bug's cost label**, by what the bug costs each time it occurs: a repeat cost (money, time
   or tokens on every occurrence) gets the label for issues taken ahead of the rest (`priority`);
@@ -134,7 +134,7 @@ fall back to the names below only where it names none.
 
 - **The filer's lane** (`filed-by:<lane>`) is set on every issue filed, F16's included, and is
   never left off: `<lane>` is the lane of the session that invoked you — the lane word its
-  `/vcoord` or `/vdev` was started with, `main` when it had none — or `human` when the human
+  `/vdev` was started with, `main` when it had none — or `human` when the human
   invoked you outside any such session. Create it with `gh label create` if the repo lacks it.
   Unlike the opt-in label, which unlabelling replaces with `taken:<lane>` and grooming may move
   to another lane, it never changes after filing, so `label:filed-by:<lane>` always finds what
