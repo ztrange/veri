@@ -6,7 +6,7 @@
 - [x] `graded-changed.sh <base-sha>` prints a `file#heading` unit when its section text differs between the base and HEAD ⟦criterion 7⟧
 - [x] `requirements.list_path` of a `file#heading` unit whose heading holds a `/` is the list beside its file ⟦criterion 8⟧
 - [x] `grade_prose.unit_text` of a `file#heading` unit is its own text: up to the next unfenced heading of any level ⟦criterion 2⟧
-- [ ] `grade-prose.sh` and `prose-owed.sh` exit 2 naming the unit and the match count when a listed heading unit's heading matches no unfenced heading, or more than one ⟦criterion 3⟧
+- [x] `grade-prose.sh` and `prose-owed.sh` exit 2 naming the unit and the match count when a listed heading unit's heading matches no unfenced heading, or more than one ⟦criterion 3⟧
 - [ ] a whole-file unit with a listed heading unit is split, and its view is the heading lines then the frontmatter and every unclaimed section's own text ⟦criterion 4⟧
 - [ ] a split whole-file unit signs its view; an edit inside a claimed section owes only that heading unit, and removing the last heading unit unsplits it ⟦criterion 5⟧ ⟦criterion 9⟧
 - [ ] `grade-prose.sh` shows the grader a split whole-file unit's view, while `unit_text` still returns the whole file ⟦criterion 6⟧
