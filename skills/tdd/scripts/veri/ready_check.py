@@ -24,7 +24,16 @@ from session_env import strip_session_env
 from wait_ci import trigger_lines
 
 USAGE = "usage: ready-check.sh [--no-suites] [repo-root]"
-WAIT_BOUND = 590  # detach-command.sh wait's own default: one call's whole wait on the tiers, both together
+WAIT_BOUND = 590  # detach-command.sh wait's own default
+CALL_BOUND = WAIT_BOUND - 30  # one call's whole run, probe and tiers together, inside a 600 s tool call
+call_deadline = None  # time.monotonic() at which this call's waiting must end; main sets it
+
+
+def remaining(cap):
+    """Whole seconds left before call_deadline, at most <cap>; <cap> when no deadline is set."""
+    if call_deadline is None:
+        return cap
+    return max(0, min(cap, int(call_deadline - time.monotonic())))
 
 
 def default_tip():
@@ -183,7 +192,7 @@ def tier_run_rows(root):
     rows, state, waiting = [], {}, None
     tdd = os.path.join(root, ".tdd")
     made_tdd = not os.path.exists(tdd)
-    deadline = time.monotonic() + WAIT_BOUND
+    deadline = call_deadline if call_deadline is not None else time.monotonic() + CALL_BOUND
     try:
         for tier in ("fast", "all"):
             code, command = resolved_tier(tier)
@@ -411,12 +420,13 @@ def probe_bypass(scratch):
     nonce = secrets.token_hex(8)
     prompt = (f"Permission probe, nonce {nonce}. First use the Bash tool to run `printf %s {nonce} > {PROBE_FILES[0]}`. "
               f"Then use the Write tool to create {PROBE_FILES[1]} whose whole content is {nonce}. Do nothing else.")
+    limit = max(1, remaining(PROBE_TIMEOUT))
     try:
         ran = subprocess.run([tunables.claude_bin(), "-p", "--model", "haiku", "--permission-mode", "bypassPermissions",
                               "--output-format", "json", prompt], cwd=scratch, env=leaf_env(), capture_output=True,
-                             text=True, timeout=PROBE_TIMEOUT)
+                             text=True, timeout=limit)
     except subprocess.TimeoutExpired:
-        return "bypassPermissions", f"no answer was obtained (claude -p gave none within {PROBE_TIMEOUT}s)"
+        return "bypassPermissions", f"no answer was obtained (claude -p gave none within {limit}s)"
     try:
         denials = json.loads(ran.stdout).get("permission_denials") or []
     except (ValueError, AttributeError):
@@ -464,6 +474,16 @@ def rendered(name, verdict):
 
 
 def main(argv):
+    """One call, its probe and tiers bounded together by CALL_BOUND counted from here."""
+    global call_deadline
+    call_deadline = time.monotonic() + CALL_BOUND
+    try:
+        return checked(argv)
+    finally:
+        call_deadline = None
+
+
+def checked(argv):
     suites = "--no-suites" not in argv[:1]
     argv = argv[0 if suites else 1:]
     if len(argv) > 1 or any(a.startswith("-") for a in argv):
