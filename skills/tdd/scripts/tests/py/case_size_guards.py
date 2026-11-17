@@ -247,6 +247,8 @@ STARTS_GIT_IN_REPOSITORY_EXEMPT = {
         "the repository's own tracked files are the subject",
     "test_one_operator_role_process.py::test_no_tracked_file_outside_specs_adr_tdd_and_skills_tdd_names_vcoord_or_a_coordinator_4102":
         "the repository's own tracked files are the subject",
+    "test_one_role_process.py::test_no_tracked_file_under_skills_tdd_outside_its_tests_names_the_retired_coord_role_4103":
+        "the repository's own tracked files are the subject",
 }
 
 
