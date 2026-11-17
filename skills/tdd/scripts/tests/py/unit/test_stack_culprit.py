@@ -110,3 +110,18 @@ def test_runs_at_most_the_first_5_cases_the_failed_log_names_saying_on_stderr_ho
     code, _, err = run_cli(culprit, [sha(1)])
 
     assert ([target for _, target in world.alone], "3" in err and "not run" in err) == (cases[:5], True), err
+
+
+@pytest.mark.parametrize("subjects, tested, ends", [
+    (["feat: a (#1)", "feat: b (#2)", "fix: a again (#1)", "feat: c (#3)"], (), [1, 2, 3, 4]),
+    (["feat: a (#1)", "feat: b (#2)", "fix: b (#2)", "docs: names none", "feat: c (#3)", "fix: c (#3)"], (1,), [4, 6]),
+    (["feat: a (#1)", "feat: b (#2)", "fix: b (#2)", "feat: c (#3)"], (1, 3), [4]),
+    (["feat: a (#1)", "feat: b (#2)", "fix: a again (#1)", "feat: c (#3)"], (2,), [1, 2, 3, 4]),
+])
+def test_tests_each_issue_end_oldest_first_from_the_newest_tested_kt5_end_at_or_below_the_red_sha_to_the_red_sha(
+        monkeypatch, run_cli, culprit, subjects, tested, ends):
+    world = World(monkeypatch, culprit, subjects, tested={sha(n) for n in tested})
+
+    run_cli(culprit, [sha(len(subjects))])
+
+    assert [commit for commit, _ in world.alone] == [sha(n) for n in ends]
