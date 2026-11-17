@@ -83,7 +83,7 @@ by the steps below. Steps 1 to 7 stay stated here.
    `resume-clean.sh` captures `git status --porcelain` and runs `git reset --hard HEAD`, so its
    stdout is the paths that reset discarded: keep it as `$stray` for sub-step 4 to
    name (`<base directory>/RESUME.md`). When `preflight.sh` ran this call, `$stray` is the paths on
-   its `stray=` lines, and `<pre-rebase-sha>` below is its `rebased_from=` line.
+   its `stray=` lines.
    When a ledger exists, the script also reconciles it: a tick is committed with its step's green commit, so the committed ledger's ticks record which greens exist, and a working-copy `- [x]` line is kept ticked only when the committed
    ledger holds a tick of the same step text (the text without its trailing markers), so n committed ticks of a text keep at
    most n working ticks of it; every other `- [x]` line — its green commit is not on the branch — is unticked and loses its
@@ -92,7 +92,7 @@ by the steps below. Steps 1 to 7 stay stated here.
    and its ledger ticks reconciled when a ledger exists, runs
    `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
    On an exit 0 the first stdout line of `rebase-onto-default.sh` is `<pre-rebase-sha>`, the HEAD
-   the branch held before the rebase. An exit 3 — the branch already contains `origin/<default>` — goes on unchanged. An exit 1 —
+   the branch held before the rebase (`preflight.sh`'s `rebased_from=` line when it ran the rebase). An exit 3 — the branch already contains `origin/<default>` — goes on unchanged. An exit 1 —
    the rebase conflicted and was aborted, HEAD untouched — goes on from the old base and
    leaves the conflict to the Draft PR step's `develop-rebase` path.
    An exit 0 moved the branch, and is marked in the run log as its own event,
