@@ -29,7 +29,7 @@ class Fake:
                 return code, out, ""
         if base == "git" and args[:1] == ("rev-parse",):
             return 0, BASE_SHA + "\n", ""
-        if base == "git" and args == ("status", "--porcelain"):
+        if base == "git" and args[:2] == ("status", "--porcelain"):
             return 0, self.porcelain, ""
         if base == "pin-recheck.sh":
             return 0, self.pins, ""
@@ -184,7 +184,7 @@ def test_4029_immediately_before_the_clear_a_path_beyond_the_ledger_files_stops_
         assert code == 0
         return
     assert (code, out.splitlines()[-1]) == (1, "stopped at 6 tree-check")
-    assert fake.calls[-1][:2] == ("git", ("status", "--porcelain"))
+    assert fake.calls[-1][:2] == ("git", ("status", "--porcelain", "--untracked-files=all"))
     assert "clear-refactor-pending.sh" not in fake.names()
 
 
