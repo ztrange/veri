@@ -12,7 +12,7 @@ import run_dir
 import timed_n_format
 import tunables
 
-USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|session|transcript|baseline|baseline-at|refused-at|resetter> <value>"
+USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|auto|session|transcript|baseline|baseline-at|refused-at|resetter> <value>"
          " | add <decision|message|override|timed-n> <text>"
          " | drop <decision|message|override|timed-n> <id> | show | recovered | request-reset [--idle]\n")
 
@@ -204,6 +204,8 @@ def do_set(path, argv):
         return usage()
     if argv[2] == "n" and entry.whole_number(argv[3], minimum=0) is None:
         return usage()
+    if argv[2] == "auto" and argv[3] not in ("on", "off"):
+        return usage()
     append(path, "%s=%s\n" % (argv[2], argv[3]))
     return 0
 
@@ -249,7 +251,7 @@ def do_show(path, argv):
     return 0
 
 
-SET_FIELDS = ("n", "lane", "session", "transcript", "baseline", "baseline-at", "refused-at", "resetter")
+SET_FIELDS = ("n", "lane", "auto", "session", "transcript", "baseline", "baseline-at", "refused-at", "resetter")
 LISTS = ("decision", "message", "override", "timed-n")
 ITEM_KINDS = LISTS + ("dropped-decision",)
 VERBS = {"recovered": do_recovered, "request-reset": do_request_reset, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}

@@ -553,7 +553,7 @@ def recover_state(role, lane=None):
     if lines is None:
         return ["no state file"]
     state = role_state.State(lines)
-    return ["%s %s" % (key, state.field(key)) for key in ("n", "lane") if state.field(key) is not None] + state.items(
+    return ["%s %s" % (key, state.field(key)) for key in ("n", "lane", "auto") if state.field(key) is not None] + state.items(
         "timed-n", "override")
 
 
