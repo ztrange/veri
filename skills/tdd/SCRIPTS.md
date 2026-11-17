@@ -495,9 +495,11 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   reads the newest 100 workflow runs GitHub lists for the stack branch (a run whose head is a fork's branch of that
   name is not counted) and takes the newest by creation time that completed with a conclusion other than
   `cancelled`: a run still in progress, or one a newer push cancelled, is no answer yet, not a red. When the newest
-  run not cancelled is not completed (queued or in progress, a re-run included), the answer is the newest completed,
-  not-cancelled run for that run's own head commit when there is one, so re-running a red run does not lift the
-  freeze while it runs; only with none for that commit is the branch's newest one read. When that run's conclusion is not `success`, `neutral` or `skipped`, it prints one line,
+  run not cancelled is not completed and is a re-run (its `run_attempt` above 1), the answer is that run's previous
+  attempt, read from GitHub, so re-running a red run does not lift the freeze while it runs; a previous attempt that
+  cannot be read, or reads not completed, is exit **2**, never green. When it is not completed at its first attempt
+  (queued or in progress), the answer is the newest completed, not-cancelled run for that run's own head commit when
+  there is one; only with none for that commit is the branch's newest one read. When that run's conclusion is not `success`, `neutral` or `skipped`, it prints one line,
   `<head-sha> <run-url> <conclusion>`, and exits **0**: the stack is frozen. **Exit 3**, nothing printed, when it
   concluded `success`, `neutral` or `skipped`, or when none of the 100 completed with a conclusion other than
   `cancelled`; one stderr line says which of the two. **Exit 2** when GitHub gives no answer or an answer not of the
