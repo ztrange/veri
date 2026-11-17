@@ -820,6 +820,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `step-close.sh`: a step's close-out after a passing verify-refactor, in one call.
 - `branch-gate.sh`: the Draft PR step's branch suite, in one call.
 - `pr-prepare.sh`: the Draft PR step's sub-step 1 up to the structural pass's skip, in one call.
+- `pr-ready-wait.sh`: readying the run's PR and its first CI wait, in one call.
 - `reset-cost.sh`: what each recorded reset of the dev session or a run's conductor cost, and the growth knob it calls for.
 - `reset-wait.sh`: wait for a usage-limit reset.
 - `restart-conductor.sh`: stop and watch a conductor restart.
