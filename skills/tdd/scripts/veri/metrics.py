@@ -17,7 +17,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
              conductor_spend, conductor_turns, conductor_model, conductor_priced, conductor_some_priced,
-             conductor_estimated, operator_sessions
+             conductor_estimated, conductor_by_phase, operator_sessions
   raw        marks (the event log)
 A number that cannot be known is None; layout prints it as "unknown" or "?"."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
@@ -132,6 +132,7 @@ class TurnRows(list):
     def __init__(self):
         super().__init__()
         self.session_contexts = []
+        self.turns = []         # [epoch seconds or None, output tokens, dollars or None] per turn, for by_phase
         self.families = {name: [0, 0, 0.0] for name in [n for n, _ in COMMENT_FAMILIES] + [FAMILIES_TOTAL]}
 
 
@@ -164,6 +165,7 @@ def conductor_sessions(issue, path):
     open_rows = []
     open_turns, open_cost, open_priced = 0, 0.0, True
     open_contexts = []
+    open_turns_of = []
     turn_rows = TurnRows()
     seen_ids = {}
     open_turn_rows = []
@@ -188,6 +190,8 @@ def conductor_sessions(issue, path):
                                 shown += cents
                                 turn_rows[position][1] = "$%.2f" % (cents / 100)
                             turn_rows.estimated = True
+                        turn_rows.turns += closed_turns(open_turns_of, record, open_priced)
+                        open_turns_of = []
                         open_rows = []
                         open_turns, open_cost, open_priced = 0, 0.0, True
                         if open_contexts:
@@ -218,7 +222,9 @@ def conductor_sessions(issue, path):
                                                model_family, usage.get("output_tokens") or 0))
                         context = sum((usage.get(key) or 0) for key in CONTEXT_KEYS)
                         open_contexts.append(context)
+                        own_output = usage.get("output_tokens") or 0
                         if model_family is None:
+                            open_turns_of.append([moment(record.get("timestamp")), own_output, None, None])
                             open_priced = False
                             turn_rows.append([str(len(turn_rows) + 1), "unpriced", str(context)])
                             continue
@@ -227,14 +233,88 @@ def conductor_sessions(issue, path):
                         turn_dollars = usage_dollars(usage, prices)
                         open_cost += turn_dollars
                         base_dollars = turn_dollars - output_dollars
+                        open_turns_of.append([moment(record.get("timestamp")), own_output, turn_dollars, base_dollars])
                         open_rows.append((len(turn_rows), base_dollars))
                         turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % base_dollars, str(context)])
         count_families(turn_rows, open_turn_rows, None)
+        turn_rows.turns += [[at, own, dollars if open_priced else None] for at, own, dollars, _base in open_turns_of]
         if open_turns:
             sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns, "open": True})
         if open_contexts:
             turn_rows.session_contexts.append(open_contexts)
     return sessions, turn_rows
+
+
+def moment(stamp):
+    """An ISO `timestamp` as epoch seconds, a zoneless one read as UTC; None when it is missing or unreadable."""
+    try:
+        at = datetime.datetime.fromisoformat(stamp)
+    except (TypeError, ValueError):
+        return None
+    return (at if at.tzinfo else at.replace(tzinfo=datetime.timezone.utc)).timestamp()
+
+
+def closed_turns(seen, result, priced):
+    """[at, output tokens, dollars] per turn of a session its `result` record closes: `seen` holds each turn the log
+    showed as [at, own output tokens, dollars, non-output dollars]. A turn's output is the result's output split evenly
+    (its own when the result carries none) and its dollars its non-output usage plus an even share of the rest of the
+    result's cost, None when the session carries no price. A turn the result counts but no record showed is untimed,
+    with no output or cost of its own (both shared over the turns shown), or all of them when none was shown."""
+    total, output = result.get("total_cost_usd"), (result.get("usage") or {}).get("output_tokens")
+    priced = priced and isinstance(total, (int, float))
+    share = (total - sum(base for *_, base in seen)) / len(seen) if priced and seen else 0.0
+    turns = [[at, own if output is None else output // len(seen), base + share if priced else None]
+             for at, own, _dollars, base in seen]
+    unseen = result.get("num_turns") if isinstance(result.get("num_turns"), int) else 0
+    for extra in range(unseen - len(seen)):
+        alone = not seen and not extra
+        turns.append([None, (output or 0) if alone else 0, (total if alone else 0.0) if priced else None])
+    return turns
+
+
+def leaf_and_stage_windows(marks):
+    """(start, end, key) per ended window of the journal (PRD 035.6, D10): a leaf's `launch` to its `exit`, paired by
+    the leaf's `name`, or by step, phase, attempt and actor when the exit names none, keyed by leaf kind; a stage's
+    `stage-start` to its `stage-end`, keyed by stage. A window with no end (a killed leaf or stage) is none."""
+    windows, leaves, stages = [], [], {}
+    for line in marks:
+        event, at = line.get("event"), line.get("ts")
+        if not isinstance(at, (int, float)):
+            continue
+        context = tuple(line.get(key, "") for key in ("step", "phase", "attempt", "actor"))
+        if event == "launch":
+            leaves.append((at, line.get("name") or "", context))
+        elif event == "exit":
+            name = line.get("name") or ""
+            match = next((opened for opened in reversed(leaves)
+                          if (opened[1] == name if name else opened[2] == context)), None)
+            if match is not None:
+                leaves.remove(match)
+                windows.append((match[0], at, re.sub(r"-[0-9]+$", "", match[1]) if match[1] else UNNAMED))
+        elif event == "stage-start" and line.get("stage"):
+            stages[line["stage"]] = at
+        elif event == "stage-end" and line.get("stage") in stages:
+            windows.append((stages.pop(line["stage"]), at, line["stage"]))
+    return windows
+
+
+BY_PHASE_KEYS = ("turns", "output_tokens", "cost_usd")
+
+
+def conductor_by_phase(marks, turns):
+    """The conductor's turns per window (D10): each timed turn under the innermost window holding its time (the
+    latest to start), else `between`; an untimed one under `untimed`. An entry's cost is None when any of its turns
+    carries no price."""
+    windows = leaf_and_stage_windows(marks)
+    by_phase = {}
+    for at, output, dollars in turns:
+        holding = [window for window in windows if at is not None and window[0] <= at <= window[1]]
+        key = "untimed" if at is None else max(holding, key=lambda w: (w[0], -w[1]))[2] if holding else "between"
+        entry = by_phase.setdefault(key, {"turns": 0, "output_tokens": 0, "cost_usd": 0.0})
+        entry["turns"] += 1
+        entry["output_tokens"] += output
+        entry["cost_usd"] = None if dollars is None or entry["cost_usd"] is None else entry["cost_usd"] + dollars
+    return by_phase
 
 
 def span(start, end):
@@ -656,6 +736,7 @@ class Fold:
     runs: list                  # one dict per run of the issue, in order: index, ended, cause, wall_seconds,
                                 # awake_seconds, sessions, leaves, cost_usd (runs_of)
     stages: dict                # stage -> {STAGE_KEYS: number}, for each stage the journal marked (stages_of)
+    conductor_by_phase: object  # window -> {BY_PHASE_KEYS}, the conductor's turns per phase; None when no session was read
     reject_outcomes: list       # (phase, step, outcome) per REJECT verdict, in log order (reject_outcomes)
     former: dict                # step's latest text -> its earlier texts in order, for each reworded step (reworded)
 
@@ -903,7 +984,7 @@ def fold(issue, path, ledger, run=BESIDE):
                 launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing,
                 gradings=tally.gradings, first_tries=tally.first_tries(), revise_green=revise_green_outcomes(marks, models),
                 runs=runs_of(marks), stages=stages_of(marks), reject_outcomes=reject_outcomes(marks),
-                former=former)
+                former=former, conductor_by_phase=conductor_by_phase(marks, turn_rows.turns) if sessions else None)
 
 
 def known(number):
@@ -1258,7 +1339,7 @@ def conductor_json(f):
     priced = True if f.conductor_priced else "partial" if f.conductor_some_priced else False
     return {"cost_usd": f.conductor_spend if priced else None, "turns": f.conductor_turns if f.sessions else None,
             "sessions": len(f.sessions), "model": f.conductor_model or None, "estimated": f.conductor_estimated,
-            "priced": priced}
+            "priced": priced, "by_phase": f.conductor_by_phase}
 
 
 def print_json(issue, path, ledger):

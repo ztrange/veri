@@ -135,7 +135,8 @@ def _metrics_paths(value, prefix=""):
     if isinstance(value, dict):
         paths = set()
         for key, inner in value.items():
-            path = prefix + {"phases.": "<phase>", "leaves.": "<kind>", "stages.": "<stage>"}.get(prefix, key)
+            path = prefix + {"phases.": "<phase>", "leaves.": "<kind>", "stages.": "<stage>",
+                             "conductor.by_phase.": "<window>"}.get(prefix, key)
             paths |= {path} | _metrics_paths(inner, path + ".")
         return paths
     if isinstance(value, list):
