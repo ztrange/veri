@@ -490,6 +490,15 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   line says how many older issue ends were not read, when there are more than 20). **Exit 2** when GitHub gives no
   answer (a failed read, or an answer not of the check-runs shape), when `stack-branch.sh` does not exit 0, 3
   included, or when a fetch of origin gets no answer.
+- `$S/stack-red.sh` — run in the target repository's clone, no arguments: says whether CI's latest answer on the
+  stack is red, which freezes joins. It reads the newest 100 workflow runs GitHub lists for the stack branch (a run
+  whose head is a fork's branch of that name is not counted) and takes the newest by creation time that completed with
+  a conclusion other than `cancelled`: a run still in progress, or one a newer push cancelled, is no answer yet, not a
+  red. When that run's conclusion is not `success`, `neutral` or `skipped`, it prints one line,
+  `<head-sha> <run-url> <conclusion>`, and exits **0**: the stack is frozen. **Exit 3**, nothing printed, when it
+  concluded `success`, `neutral` or `skipped`, or when none of the 100 completed with a conclusion other than
+  `cancelled`; one stderr line says which of the two. **Exit 2** when GitHub gives no answer or an answer not of the
+  workflow-runs shape, when a fetch of origin gets no answer, or when `stack-branch.sh` does not exit 0, 3 included.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
