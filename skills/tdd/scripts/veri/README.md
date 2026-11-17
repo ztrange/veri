@@ -115,7 +115,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 ## fused
 What a fused script after preflight shares (PRD 027 FC1-FC4, FC10, FC14).
 - `script(name)`: `name` in this skill's own scripts directory.
-- `run_script(name, *args, cwd=None, env=None, stdin=None, out=None, err=None)`: `(code, stdout, stderr)` of one process; `out` and `err`, paths under `cwd`, take its output as a shell redirect would and come back as `""`.
+- `run_script(name, *args, cwd=None, env=None, stdin=None, out=None, err=None, run=subprocess.run)`: `(code, stdout, stderr)` of one process started by `run`; `out` and `err`, paths under `cwd`, take its output as a shell redirect would and come back as `""`.
 - `call(name, *args, **kw)`: `run_script`, printing a line naming the call and its exit code, then its stdout, and passing its stderr through. `checked(where, name, *args, ok=(0,), **kw)`: `call`, raising `Stop` on an exit outside `ok`; its stdout otherwise.
 - `Stop(where, what, code)`: the first outcome that is not clean. `stopped(stop)`: prints its `stopped at <where> <what>` line; the exit code, the inner code when neither 0 nor 3, else 1.
 - `settle(wt, n, name, lines)`: writes `.tdd/issue-<n>-<name>` and prints its lines; 0. `read_settled(path)`: its `{key: value}`; OSError when unreadable.
