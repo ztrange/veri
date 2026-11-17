@@ -71,6 +71,19 @@ since counts add up across files and rates do not. `null` means not known, and i
 that sums skips it rather than adding nothing. Its keys are those below; keys are only ever added,
 never removed or renamed, and the file carries no version key. A reader ignores a key it does not know.
 
+A `REJECT` verdict's outcome is read off the journal's later lines, pairing it with the first later
+`PASS` verdict of the same step and phase, across resumes and restarts; a `malformed` verdict is
+neither. It has exactly one of six outcomes:
+
+- **caught**: a later PASS of the same step and phase judged a different tree, so the work changed
+  before it passed.
+- **flipped**: that PASS judged the same tree, so the verifier changed its mind and nothing was fixed.
+- **overturned**: a `revise-impossible` bail of that step came first, before any such PASS.
+- **unresolved**: no later PASS, and a bail after it.
+- **pending**: no later PASS and no bail: the run may still be going.
+- **untracked**: the PASS or the REJECT carries no tree, as every line written before the tree was
+  recorded does, so a catch cannot be told from a flip.
+
 | Key | Type | May be `null` |
 |---|---|---|
 | `run` | object: the run as a whole | no |
@@ -118,6 +131,13 @@ never removed or renamed, and the file carries no version key. A reader ignores 
 | `phases.<phase>.verified_steps` | whole number, the steps with a `PASS` or `REJECT` verdict of the phase, `0` when none | no |
 | `phases.<phase>.first_try_pass` | whole number, those steps whose first such verdict was `PASS`, `0` when none | no |
 | `phases.<phase>.revise_cycles` | whole number, the phase's `revise` events, `0` when none; on a journal written before `revise` was recorded, `0` is the event's absence, not a run that needed no revise | no |
+| `phases.<phase>.rejects` | object, what the phase's `REJECT` verdicts led to: one count per outcome below, each a number and never `null`, `0` when none, the six summing to the entry's `reject` | no |
+| `phases.<phase>.rejects.caught` | whole number, the phase's REJECTs that were caught | no |
+| `phases.<phase>.rejects.flipped` | whole number, the phase's REJECTs that were flipped | no |
+| `phases.<phase>.rejects.overturned` | whole number, the phase's REJECTs that were overturned | no |
+| `phases.<phase>.rejects.unresolved` | whole number, the phase's REJECTs that were unresolved | no |
+| `phases.<phase>.rejects.pending` | whole number, the phase's REJECTs that were pending | no |
+| `phases.<phase>.rejects.untracked` | whole number, the phase's REJECTs that were untracked | no |
 | `leaves` | object keyed by leaf kind: the name a leaf was launched under less a trailing `-<digits>` (`revise-green-2` is `revise-green`), or `unnamed`; the figures of a `phases` entry less `verified_steps`, `first_try_pass` and `revise_cycles` (those three are counted per phase only), split by leaf instead of by phase, so each figure summed over `leaves` equals its sum over `phases` | no |
 | `leaves.<kind>` | object, one leaf kind's figures. A line naming its leaf counts under that name's kind; a line written before leaves were named counts under the kind of the `launch` with its step, phase, attempt and actor, and under `unnamed` when no `launch` has them | no |
 | `leaves.<kind>.attempts` | whole number, leaves launched | no |
@@ -148,6 +168,13 @@ never removed or renamed, and the file carries no version key. A reader ignores 
 | `steps[].cache_read_input_tokens` | whole number | no |
 | `steps[].cache_creation_input_tokens` | whole number | no |
 | `steps[].cost_usd` | number, dollars | no |
+| `steps[].rejects` | object, the same six counts as a phase entry's `rejects`, over the step's `REJECT` verdicts, summing to the step's `reject` | no |
+| `steps[].rejects.caught` | whole number, the step's REJECTs that were caught | no |
+| `steps[].rejects.flipped` | whole number, the step's REJECTs that were flipped | no |
+| `steps[].rejects.overturned` | whole number, the step's REJECTs that were overturned | no |
+| `steps[].rejects.unresolved` | whole number, the step's REJECTs that were unresolved | no |
+| `steps[].rejects.pending` | whole number, the step's REJECTs that were pending | no |
+| `steps[].rejects.untracked` | whole number, the step's REJECTs that were untracked | no |
 | `conductor` | object: the conductor's own spending | no |
 | `conductor.cost_usd` | number, dollars over its priced sessions | yes, when no session was read or none carries a price |
 | `conductor.turns` | whole number | yes, when no session was read |
