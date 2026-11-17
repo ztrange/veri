@@ -1883,3 +1883,57 @@ def test_add_refuses_an_empty_path_position_or_anchor_with_the_usage_line_and_ex
         code = add_ledger_step.add(*args, ["t"])
         captured = capsys.readouterr()
         assert (args, code, captured.out, captured.err) == (args, 2, "", USAGE)
+
+
+LINT_LEDGER = (
+    "# Plan for #42\n"
+    "\n"
+    "- [x] a one ⟦criterion 1⟧\n"
+    "- [x] make `ruff check .` pass: E501 line too long ⟦diff-checked⟧ ⟦lint-repair⟧ ⟦added⟧ ⟦criterion 1⟧\n"
+    "- [x] b two ⟦criterion 2⟧\n"
+).encode()
+
+
+def test_4123_a_second_lint_repair_in_one_run_exits_1_naming_the_first_and_leaves_the_ledger(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LINT_LEDGER)
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", "make `ruff check .` pass: F401 unused import ⟦diff-checked⟧ ⟦lint-repair⟧"],
+    )
+
+    assert (code, out, ledger.read_bytes()) == (1, "", LINT_LEDGER)
+    assert "this run already inserted a lint-repair step" in err and "E501 line too long" in err
+
+
+def test_4123_a_lint_repair_is_inserted_beside_a_suite_repair_this_run_and_a_suite_repair_beside_a_lint_repair(tmp_path, run_cli, add_ledger_step):
+    for earlier, text in (("fix the full-suite failure: first.test.sh ⟦suite-repair⟧", "make `ruff check .` pass: F401 ⟦diff-checked⟧ ⟦lint-repair⟧"),
+                          ("make `ruff check .` pass: E501 ⟦diff-checked⟧ ⟦lint-repair⟧ ⟦added⟧", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧")):
+        ledger = tmp_path / "issue-42.md"
+        ledger.write_bytes(("# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n"
+                            f"- [x] {earlier} ⟦criterion 1⟧\n- [x] b two ⟦criterion 2⟧\n").encode())
+
+        code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text])
+
+        assert (code, settled(err)) == (0, NOT_DURABLE), (earlier, err)
+        assert text in ledger.read_text()
+
+
+def test_4123_a_lint_repair_step_carries_added_and_is_owed_once_the_growth_budget_is_spent(tmp_path, monkeypatch, run_cli, add_ledger_step):
+    text = "make `ruff check .` pass: E501 line too long ⟦diff-checked⟧ ⟦lint-repair⟧"
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    cap_at(monkeypatch, "1")
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "a one", text])
+
+    assert (code, settled(err)) == (0, NOT_DURABLE)
+    assert f"- [ ] {text} ⟦added⟧ ⟦criterion 1⟧\n" in ledger.read_text()
+
+    spent = LEDGER + "- [x] split off ⟦added⟧ ⟦criterion 3⟧\n".encode()
+    ledger.write_bytes(spent)
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "a one", text])
+
+    assert (code, out) == (1, "")
+    assert ledger.read_bytes() == spent + f"\n## Owed steps\n\n- {text}\n".encode()

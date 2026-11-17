@@ -21,6 +21,8 @@ from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body as step_
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR)
+# The marks of which one run inserts at most one step: the second is refused (exit 1). Not REPAIR_MARKS, which only exempts.
+ONE_PER_RUN = (SUITE_REPAIR, "lint-repair")
 BYTES = "surrogateescape"
 USAGE = "usage: add-ledger-step.sh [--planned] [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)"
 
@@ -44,8 +46,8 @@ def is_repair(text):
     return has_mark(text, REPAIR_MARKS)
 
 
-def is_suite_repair(text):
-    return has_mark(text, (SUITE_REPAIR,))
+def is_suite_repair(text, mark=SUITE_REPAIR):
+    return has_mark(text, (mark,))
 
 
 def added_step(text, k, planned=False):
@@ -54,8 +56,8 @@ def added_step(text, k, planned=False):
     return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
 
 
-def repair_following(steps, anchor):
-    return next((following for line, following in zip(steps, steps[1:]) if anchor in line and is_suite_repair(following)), None)
+def repair_following(steps, anchor, mark=SUITE_REPAIR):
+    return next((following for line, following in zip(steps, steps[1:]) if anchor in line and is_suite_repair(following, mark)), None)
 
 
 class UnreadableLog(Exception):
@@ -66,7 +68,7 @@ def events_log(path):
     return os.path.join(os.path.dirname(path), "events.jsonl")
 
 
-def added_since_last_resume(path, steps):
+def added_since_last_resume(path, steps, mark=SUITE_REPAIR):
     log = events_log(path)
     try:
         events = read_events(log)
@@ -79,7 +81,7 @@ def added_since_last_resume(path, steps):
         return True
     after = events[len(names) - names[::-1].index("resume"):]
     found = (
-        repair_following(steps, str(event.get("anchor") or "\n"))
+        repair_following(steps, str(event.get("anchor") or "\n"), mark)
         for event in after
         if event.get("event") == "step-added"
     )
@@ -200,7 +202,7 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     `criterion` is the criterion number as a string (None: each step inherits the anchor's); `planned` (needs a
     criterion) inserts steps the spec already lists, outside the VERI_STEP_GROWTH_PERCENT budget.
     Returns 0 inserted; 1 clean negative (growth budget spent, the texts parked under "## Owed steps"; an
-    unreadable replaces-case step; a second suite-repair step this run); 2 refused (stderr says why) or no answer.
+    unreadable replaces-case step; a second suite-repair or lint-repair step this run); 2 refused (stderr says why) or no answer.
     Writes the ledger, its added-steps record and events.jsonl (step-added, plan); commits the amendment when a
     conductor is live. Prints refusals and notes to stderr, as the script does; an empty path, position or anchor
     is refused with the usage line (exit 2), as on the command line.
@@ -256,14 +258,15 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
         if restated:
             return entry.refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
     steps = [line for line in lines if ledger_steps(line)]
-    earlier = [line for line in steps if is_suite_repair(line) and not is_retired(line)]
-    try:
-        this_run = added_since_last_resume(path, steps) if earlier else False
-    except UnreadableLog as unreadable:
-        return entry.refuse(str(unreadable))
-    if this_run and any(is_suite_repair(text) for text in texts):
-        warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + (earlier[0] if this_run is True else this_run))
-        return 1
+    for mark in ONE_PER_RUN:
+        earlier = [line for line in steps if is_suite_repair(line, mark) and not is_retired(line)]
+        try:
+            this_run = added_since_last_resume(path, steps, mark) if earlier else False
+        except UnreadableLog as unreadable:
+            return entry.refuse(str(unreadable))
+        if this_run and any(is_suite_repair(text, mark) for text in texts):
+            warn(f"add-ledger-step.sh: this run already inserted a {mark} step: " + (earlier[0] if this_run is True else this_run))
+            return 1
     if tunables.is_set("VERI_STEP_GROWTH"):
         return entry.refuse("add-ledger-step.sh: " + ledger_growth.RETIRED)
     percent = tunables.get("VERI_STEP_GROWTH_PERCENT")
