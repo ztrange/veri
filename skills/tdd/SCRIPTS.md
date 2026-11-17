@@ -491,10 +491,13 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   answer (a failed read, or an answer not of the check-runs shape), when `stack-branch.sh` does not exit 0, 3
   included, or when a fetch of origin gets no answer.
 - `$S/stack-red.sh` — run in the target repository's clone, no arguments: says whether CI's latest answer on the
-  stack is red, which freezes joins. It reads the newest 100 workflow runs GitHub lists for the stack branch (a run
-  whose head is a fork's branch of that name is not counted) and takes the newest by creation time that completed with
-  a conclusion other than `cancelled`: a run still in progress, or one a newer push cancelled, is no answer yet, not a
-  red. When that run's conclusion is not `success`, `neutral` or `skipped`, it prints one line,
+  stack is red, which freezes joins. It reads the runs of every workflow on the branch, not one named workflow. It
+  reads the newest 100 workflow runs GitHub lists for the stack branch (a run whose head is a fork's branch of that
+  name is not counted) and takes the newest by creation time that completed with a conclusion other than
+  `cancelled`: a run still in progress, or one a newer push cancelled, is no answer yet, not a red. When the newest
+  run not cancelled is not completed (queued or in progress, a re-run included), the answer is the newest completed,
+  not-cancelled run for that run's own head commit when there is one, so re-running a red run does not lift the
+  freeze while it runs; only with none for that commit is the branch's newest one read. When that run's conclusion is not `success`, `neutral` or `skipped`, it prints one line,
   `<head-sha> <run-url> <conclusion>`, and exits **0**: the stack is frozen. **Exit 3**, nothing printed, when it
   concluded `success`, `neutral` or `skipped`, or when none of the 100 completed with a conclusion other than
   `cancelled`; one stderr line says which of the two. **Exit 2** when GitHub gives no answer or an answer not of the
@@ -510,17 +513,22 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   subject (a subject names the issues of the parenthesised group it ends with; one naming none belongs to the nearest
   earlier issue). At those commits, oldest first, it runs each case alone through the repository's
   `veri: one test file:` command in a detached worktree of its own under the tree's `.tdd/`, never in a run's worktree
-  or the main clone, and removes that worktree on every exit; a worktree it cannot add is exit **2** with nothing run.
-  A case is red at a commit when its file exists there and its alone run exits 1; exit 0, 4 or 5, or its file absent,
-  is not red. At the first issue end where a case is red it prints, one per line, `red: <red-sha>` (the full sha the
+  or the main clone, and removes that worktree on every exit (a removal that fails is said on stderr, naming its
+  path, the exit unchanged); a worktree it cannot add is exit **2** with nothing run. It tests at most 20 issue ends:
+  with more untested ends than that it exits **2** saying so, running nothing. A case is **red** at a commit when its
+  alone run exits non-zero and its output carries a failure line naming that case (`FAILED <case>`, read as
+  `ci-flake.sh` reads one); it is **absent**, not red, when its file is missing there or the output says the case was
+  not found or not collected; an exit 0 is not red; any other non-zero ending, a kill or no exit within
+  `VERI_TIMEOUT` is no answer. The exit code alone never decides: `make test TESTS="$1"` exits 2 for a failing case
+  and a missing one alike. At the first issue end where a case is red it prints, one per line, `red: <red-sha>` (the full sha the
   search was run for, so a file holding the answer is told apart from one recorded for another red), `issue: <n>`
   (each number, ascending and space-separated, when the subject names several; `none` before any subject names one),
   `commit: <sha>`, `before: <sha>` (the issue end before it, or `origin/<default>`), then one
   `case: <case><TAB><first FAIL line>` per red case, its local paths written `<worktree>` and `~`, and exits **0**.
   **Exit 3**, nothing printed, when no issue end turns a case red, `<red-sha>` included, its stderr naming the cases
   run. **Exit 2** when the log cannot be read or names no case, when `<red-sha>` is not a full sha of a commit of
-  `origin/<default>..origin/<stack>` or has no red run, when an alone run gives no answer (any other exit, or none
-  within `VERI_TIMEOUT`), when GitHub or a fetch gives no answer, when the repository declares no
+  `origin/<default>..origin/<stack>` or has no red run, when an alone run gives no answer, when more than 20 issue
+  ends are untested, when GitHub or a fetch gives no answer, when the repository declares no
   `veri: one test file:` command, or when `stack-branch.sh` does not exit 0. On exit 0 or 3 it adds one comment to the
   stack's tracking pull request holding what it printed (or, on 3, the cases run) and the red run's url, and adds none
   when a trusted comment there (an owner's, a collaborator's or the `gh` user's) already holds the same text; a
