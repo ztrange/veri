@@ -7,7 +7,7 @@ import tempfile
 
 from blocked_by import add as block, blockers
 from detect_test_command import resolved
-from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
+from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_label_exists, gh_rest_list
 from json_documents import documents
 from report import report_values
 import tunables
@@ -56,7 +56,10 @@ def main(argv):
         label = tunables.get("VERI_LABEL")
         lane = label.rsplit(":", 1)[1] if ":" in label else "main"
         try:
-            labels = (label, "filed-by:" + lane, "legacy") if mutations else ("filed-by:" + lane, "legacy")
+            legacy = ("legacy",) if gh_label_exists("legacy") else ()
+            if not legacy:
+                print("coverage-blocker: no legacy label; filed as an ordinary issue", file=sys.stderr)
+            labels = ((label,) if mutations else ()) + ("filed-by:" + lane,) + legacy
             url = gh_issue_create(title, text, *labels).rstrip("\n")
         except NoAnswer:
             return 2
