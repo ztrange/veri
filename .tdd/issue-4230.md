@@ -4,4 +4,4 @@
 - [x] `push-branch.sh` runs as stage `push`, its `stage-end` status its exit code, on a landed push and a failed one ⟦criterion 2⟧
 - [x] `pr-ready.sh` runs as stage `ready`, its `stage-end` status its exit code, on a ready PR and on no answer ⟦criterion 2⟧
 - [x] `wait-ci.sh` runs as stage `ci-wait`, its `stage-end` status its exit code, on a green and a red CI ⟦criterion 2⟧
-- [ ] `SCRIPTS.md`'s entries for the three scripts state the stage (SC428, SC429, SC430) ⟦criterion 3⟧
+- [x] `SCRIPTS.md`'s entries for the three scripts state the stage (SC428, SC429, SC430) ⟦criterion 3⟧
