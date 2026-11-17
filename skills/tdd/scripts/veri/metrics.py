@@ -1036,7 +1036,16 @@ def as_json(f):
             # a step's wall is the markdown's: its start-to-done span, not its leaves' summed seconds
             "steps": [dict(json_row(row_counts, STEP_COLUMNS), text=step, wall_seconds=f.step_walls[step])
                       for step, row_counts in f.steps.items()],
-            "conductor": {}, "total": {}}
+            "conductor": conductor_json(f), "total": {}}
+
+
+def conductor_json(f):
+    """The conductor's own spending over its sessions; `cost_usd` and `turns` are None when no session was read, and
+    `cost_usd` also when none carries a price (a partial figure is the priced sessions' sum, `priced` "partial")."""
+    priced = True if f.conductor_priced else "partial" if f.conductor_some_priced else False
+    return {"cost_usd": f.conductor_spend if priced else None, "turns": f.conductor_turns if f.sessions else None,
+            "sessions": len(f.sessions), "model": f.conductor_model or None, "estimated": f.conductor_estimated,
+            "priced": priced}
 
 
 def print_json(issue, path, ledger):
