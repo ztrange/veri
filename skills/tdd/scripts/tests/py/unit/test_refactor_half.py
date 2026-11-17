@@ -44,7 +44,7 @@ class Fake:
             return 0, self.subjects, ""
         if base == "git" and args[:1] == ("rev-list",):
             return 0, self.count, ""
-        if base == "git" and args == ("status", "--porcelain"):
+        if base == "git" and args == ("status", "--porcelain", "--untracked-files=all"):
             return 0, self.porcelain, ""
         if base in ("stop-requested.sh", "refactor-triage.sh"):
             return 3, "", ""
@@ -173,7 +173,7 @@ def test_4028_after_the_leaf_it_asks_git_for_the_tree_the_subjects_and_the_count
     code, out, err, fake = tidy()
 
     tail = [(c[0], c[1]) for c in _after(fake, "wait-leaf.sh", "develop-refactor")[:3]]
-    assert tail == [("git", ("status", "--porcelain")), ("git", ("log", "--format=%s", GREEN_SHA + "..HEAD")),
+    assert tail == [("git", ("status", "--porcelain", "--untracked-files=all")), ("git", ("log", "--format=%s", GREEN_SHA + "..HEAD")),
                     ("git", ("rev-list", "--count", GREEN_SHA + "..HEAD"))]
 
 
@@ -256,7 +256,7 @@ def test_4028_a_verdict_of_1_or_2_stops_it_before_any_comment(tidy, verdict):
 def test_4028_a_tree_dirtied_before_the_first_comment_stops_it_with_exit_1(tidy):
     class Dirtied(Fake):
         def __call__(self, name, *args, **kw):
-            if args == ("status", "--porcelain") and "wait-leaf.sh" in [c[0] for c in self.calls if
+            if args == ("status", "--porcelain", "--untracked-files=all") and "wait-leaf.sh" in [c[0] for c in self.calls if
                                                                       c[1] == ("verdict-refactor",)]:
                 self.calls.append(("git", args, kw.get("cwd"), kw.get("env"), kw))
                 return 0, " M src/a.py\n", ""
@@ -272,7 +272,7 @@ def test_4028_on_a_pass_it_posts_the_noted_refactor_and_verify_refactor_marks_th
 
     tail = [(c[0], c[1]) for c in _after(fake, "wait-leaf.sh", "verdict-refactor")]
     assert tail[-5:] == [
-        ("git", ("status", "--porcelain")),
+        ("git", ("status", "--porcelain", "--untracked-files=all")),
         ("comment.sh", ("12", "refactor", "--note-file", ".tdd/refactor-half-note.md")),
         ("comment.sh", ("12", "verify-refactor")),
         ("event.sh", ("refactor", "transforms=1", "budget=5", "stopped=nothing-structural", "pass=1")),

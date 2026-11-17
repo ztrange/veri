@@ -95,8 +95,9 @@ def conductor(wt):
     return {"pid": lines[0].strip(), "started": (lines[1:] or [""])[0].strip()}
 
 
-# What the fused halves of a step (PRD 027.4-027.6) share beyond the calls above: their inputs, their leaf launches
-# and waits (FC5-FC8), the step's cost check (RH4) and the reading of a leaf's report (FC2).
+# What the fused halves of a step (PRD 027.4-027.6) share beyond the calls above: their entry, their leaf launches
+# and waits (FC5-FC8), the reading of a leaf's report (FC2) and the tree's changed paths; their inputs and the step's
+# cost check (RH4) are in fused_step.
 
 class Waiting(Exception):
     """A leaf's wait whose slice ran out (FC5): the leaf it waits on."""
@@ -119,10 +120,6 @@ def entry(argv, name, run):
     except Waiting as waiting:
         sys.stdout.write("waiting on %s\n" % waiting.name)
         return 3
-
-
-
-
 
 
 def step_env(n, step, **more):
@@ -189,8 +186,6 @@ def wait(wt, n, owner, name):
     return code
 
 
-
-
 def report(where, wt, path, *keys, every=False):
     """{key: its last value, or None; with <every>, the list of its values} of the report extract-result.sh reads from
     <path> under the worktree (a leaf's .out, or a verifier's .log), read through report.report_values. Only the line
@@ -212,6 +207,7 @@ def report(where, wt, path, *keys, every=False):
 
 
 def changed_paths(where, wt):
-    """The paths `git status --porcelain` lists, a rename by its new path."""
-    listed = checked(where, "git", "status", "--porcelain", cwd=wt).splitlines()
+    """The paths `git status --porcelain --untracked-files=all` lists, each file in a new directory by its own path and
+    a rename by its new path."""
+    listed = checked(where, "git", "status", "--porcelain", "--untracked-files=all", cwd=wt).splitlines()
     return [line[3:].split(" -> ")[-1].strip('"') for line in listed if line.strip()]

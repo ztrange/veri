@@ -6,6 +6,7 @@ import subprocess
 
 import pytest
 
+import repo_builder
 from conftest import SCRIPTS
 
 STEP = "one thing works ⟦criterion 1⟧"
@@ -68,3 +69,33 @@ def test_4027_the_tick_and_commit_lands_the_code_and_the_ticked_ledger_in_one_co
     assert "- [x] %s ⟂ refactor pending" % STEP in git("show", "HEAD:.tdd/issue-12.md")
     assert "green_sha=" + git("rev-parse", "HEAD").strip() in out.splitlines()
     assert git("status", "--porcelain") == ""
+
+
+@pytest.mark.process("red-half's git status run by a real git in a repository built by repo_builder")
+def test_4026_a_red_whose_test_sits_in_a_new_directory_passes_the_tree_check(tmp_path, monkeypatch, run_cli):
+    fused = importlib.import_module("veri.fused")
+    red_half = importlib.import_module("veri.red_half")
+    real = fused.run_script
+    wt = repo_builder.new_repo(tmp_path / ".tdd" / "wt" / "12")
+    rule = importlib.import_module("veri.ensure_run_state_ignored").RULE
+    (wt / ".tdd").mkdir()
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [ ] %s\n" % STEP)
+    repo_builder.commit_all(wt, "plan", **{".gitignore": "".join(line + "\n" for line in rule)})
+    assert repo_builder.git(wt, "ls-files", ".tdd") == ".tdd/issue-12.md"
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("# spec\n")
+    (wt / ".tdd" / "develop-red.out").write_text("{}\n")
+    (wt / "newpkg").mkdir()
+    (wt / "newpkg" / "test_a.py").write_text("def test_a():\n    assert False\n")
+    report = "TEST_PATH: newpkg/test_a.py\nTARGET_TEST: test_a\nAGAINST_UNMODIFIED: FAILS\n"
+
+    def answer(name, *args, cwd=None, env=None, **kw):
+        if os.path.basename(name) == "git":
+            return real(name, *args, cwd=cwd, env=env, **kw)
+        return {"extract-result.sh": (0, report), "stop-requested.sh": (3, ""), "step-cost.sh": (3, ""),
+                "red-divergence.sh": (3, "")}.get(os.path.basename(name), (0, "")) + ("",)
+
+    monkeypatch.setattr(fused, "run_script", answer)
+    code, out, err = run_cli(red_half, ["12"], cwd=str(tmp_path), env=IDENTITY)
+
+    assert (code, out.splitlines()[-1]) == (0, "against_unmodified=FAILS"), out + err
