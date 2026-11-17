@@ -484,7 +484,8 @@ def zone_line():
     return window + "%s (UTC%s%s)" % (now.tm_zone, "−" if now.tm_gmtoff < 0 else "+", offset)
 
 
-RECOVER_HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages", "Questions"]
+RECOVER_HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages", "Questions",
+                    "Unasked questions", "Answered questions"]
 
 
 def recover_runs():
@@ -583,7 +584,8 @@ def recover(role, lane=None):
               "State": lambda: recover_state(role, lane),
               "Pending decisions": lambda: recover_items(role, lane, "decision"),
               "Pending messages": lambda: recover_items(role, lane, "message"),
-              "Questions": lambda: recover_questions(lane)}
+              "Questions": lambda: recover_questions(lane), "Unasked questions": lambda: [],
+              "Answered questions": lambda: []}
     try:
         sections = [(heading, bodies[heading]()) for heading in RECOVER_HEADINGS]
     except OSError as refused:
