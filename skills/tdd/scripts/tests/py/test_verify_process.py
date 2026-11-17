@@ -740,10 +740,10 @@ NO_LINE_TEXT = NO_LINE.decode()
 RELAUNCH = ["relaunch", "cause=no-verdict"]
 
 
-NO_VERDICT_MARK = ["verdict", "verdict=malformed", "reason=", "cause=no-verdict"]
+NO_VERDICT_MARK = ["verdict", "verdict=malformed", "reason=", "cause=no-verdict", "name=verify-green"]
 
 
-GREEN_MARK = ["verdict", "verdict=PASS", "reason=" + GREEN_REASON]
+GREEN_MARK = ["verdict", "verdict=PASS", "reason=" + GREEN_REASON, "name=verify-green"]
 
 
 KILLED_OUT = "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-green.log)\n"
@@ -763,7 +763,7 @@ KILLED = (2, KILLED_OUT, "", 1, [])
     pytest.param({}, [stream("VERDICT: REJECT\nREASON: Missing edge case.",
                              "VERDICT: PASS\nREASON: Revised: target and full suite green.", DELIVERED)], 0,
                  (0, "Revised: target and full suite green.\n", "", 1,
-                  [["verdict", "verdict=PASS", "reason=Revised: target and full suite green."]]), id="newest-wins"),
+                  [["verdict", "verdict=PASS", "reason=Revised: target and full suite green.", "name=verify-green"]]), id="newest-wins"),
     pytest.param({}, [WAITING, GREEN], 0,
                  (0, GREEN_REASON + "\n", NO_LINE_TEXT, 2, [RELAUNCH, GREEN_MARK]),
                  id="relaunched-second-verdict"),

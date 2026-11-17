@@ -389,7 +389,8 @@ def main(argv):
     cause = ["cause=no-verdict"] if no_verdict else []
     check = named_check(launched.stdout) if words[0] == "green" else []
     judged = ["tree=" + guard.tree] if guard.tree else []
-    marked = mark(role, "verdict", "verdict=" + word, "reason=" + reason.split("\n", 1)[0], *cause, *check, *judged)
+    marked = mark(role, "verdict", "verdict=" + word, "reason=" + reason.split("\n", 1)[0], *cause, *check, *judged,
+                  "name=" + leaf)
     if marked:
         return marked
     issue, step = tunables.read("VERI_ISSUE") or None, tunables.read("VERI_STEP") or None

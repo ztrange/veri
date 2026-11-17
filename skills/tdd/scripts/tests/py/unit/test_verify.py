@@ -34,8 +34,9 @@ def assert_prompt_rendered(directory="."):
 
 
 def record(event, *pairs, issue="", step="", phase="green"):
+    named = {"name": "verify-" + phase} if event == "verdict" else {}
     return {"issue": issue, "actor": "verifier", "phase": phase, "step": step, "event": event, "attempt": "1",
-            "skill_commit": "", **dict(pair.split("=", 1) for pair in pairs)}
+            "skill_commit": "", **dict(pair.split("=", 1) for pair in pairs), **named}
 
 
 def through_fixture(fake_processes, fake):
