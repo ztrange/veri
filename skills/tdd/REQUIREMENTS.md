@@ -2,7 +2,7 @@
 
 | ID | Requirement | Why |
 |---|---|---|
-| EV182 | In the title section (`# tdd — the veri conductor`), every sentence that sends the run into an event (a bail, phrased as "**bail**", "bails as …", "bail with cause …", "bails with cause …", "→ bail", "is a bail" or a bare "bail" instruction, bolded or not; a resume; a skill-edit step) names the file to Read for that event under `<base directory>/` (`BAIL.md`, `RESUME.md`, `SKILL-EDIT.md`). | Split from EV1. A leaf or conductor that reaches an event with no pointer improvises the procedure instead of reading it (PRD 010). |
+| EV182 | In the whole-file view (the text above the first heading and the own text of every section no heading unit claims: today the title section, *Procedure* and *3. The cycle loop*), every sentence that sends the run into an event (a bail, phrased as "**bail**", "bails as …", "bail with cause …", "bails with cause …", "→ bail", "is a bail" or a bare "bail" instruction, bolded or not; a resume; a skill-edit step) names the file to Read for that event under `<base directory>/` (`BAIL.md`, `RESUME.md`, `SKILL-EDIT.md`). | Split from EV1. A leaf or conductor that reaches an event with no pointer improvises the procedure instead of reading it (PRD 010). |
 
 ## skills/tdd/SKILL.md#The two roles, and why the verifier is blind
 
