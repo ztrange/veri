@@ -47,8 +47,13 @@ def main(argv):
     if len(argv) != 1 or not re.fullmatch(r"[1-9][0-9]*", argv[0]):
         sys.stderr.write(USAGE)
         return 2
-    return event.stage("release", lambda: release(argv[0]), "",
-                       event.context(tunables.with_values(VERI_ISSUE=argv[0])))
+    return released(argv[0])
+
+
+def released(number):
+    """release(<number>) run as stage `release` carrying the issue: the exit code release-issue.sh <number> gives."""
+    return event.stage("release", lambda: release(number), "",
+                       event.context(tunables.with_values(VERI_ISSUE=number)))
 
 
 def release(number):

@@ -46,7 +46,7 @@ def main(argv):
     if record.get("state") != "open" or "bailed" not in labels:
         sys.stderr.write("release-covered.sh: #%s is not an open bailed issue; nothing to release\n" % refactor)
         return 3
-    code = release_issue.main([refactor])
+    code = release_issue.released(refactor)
     if code == 0:
         print("released #%s" % refactor)
     return code
