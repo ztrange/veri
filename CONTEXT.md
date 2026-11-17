@@ -280,7 +280,7 @@ A ledger step marked `⟦replaces-case⟧`, whose text names a test file's path,
 included, and the case or cases it replaces by exact name; the named case need not be an
 **implementation case**. It licenses deleting exactly those cases, and only together with a
 pytest case asserting the same behaviour; its Red is that pytest case failing against the code
-before the change. The mark counts against `VERI_STEP_GROWTH` only when the step is also
+before the change. The mark counts against `VERI_STEP_GROWTH_PERCENT` only when the step is also
 `⟦added⟧`. ADR-0027.
 _Avoid_: deletion step
 
