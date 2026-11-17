@@ -36,7 +36,8 @@ def test_main_on_a_log_ending_in_a_closing_result_record_appends_one_usage_recor
         "issue": "77", "actor": "developer", "phase": "green", "step": "3", "event": "usage", "attempt": "2",
         "skill_commit": "", "duration_ms": "228265", "duration_api_ms": "84513", "num_turns": "13",
         "total_cost_usd": "0.74", "input_tokens": "41", "output_tokens": "8203",
-        "cache_read_input_tokens": "1287431", "cache_creation_input_tokens": "52890", "model": ""}])
+        "cache_read_input_tokens": "1287431", "cache_creation_input_tokens": "52890", "model": "",
+        "name": "develop-green-2"}])
 
 
 def _closing_log(tmp_path, name):
@@ -151,7 +152,7 @@ _VERIFIER = {"issue": "", "actor": "verifier", "phase": "green", "step": "", "ev
     ("verify-green", json.dumps(dict(_RECORD, usage={k: v for k, v in _RECORD["usage"].items()
                                                      if k != "output_tokens"})) + "\n", 1, None, []),
     ("verify-green", json.dumps(dict(_RECORD, num_turns=99)) + "\n" + json.dumps(_RECORD) + "\n"
-     + "harvest: the leaf exited 0\n", 0, "", [dict(_VERIFIER, **_NUMBERS)]),
+     + "harvest: the leaf exited 0\n", 0, "", [dict(_VERIFIER, **_NUMBERS, name="verify-green")]),
 ], ids=["unknown-name-no-record-3", "unknown-name-no-log-1", "no-usage-2", "no-num-turns-1",
         "no-output-tokens-1", "last-result-record-before-a-trailing-line-0"])
 def test_main_ports_harvest_usage_sh_quirks_exit_codes_closing_record_number_text_and_no_record_diagnostic(
@@ -347,7 +348,7 @@ def test_main_on_a_log_whose_assistant_records_carry_no_usage_appends_todays_usa
         "issue": "", "actor": "verifier", "phase": "green", "step": "", "event": "usage", "attempt": "1",
         "skill_commit": "", "duration_ms": "1", "duration_api_ms": "2", "num_turns": "3", "total_cost_usd": "0.5",
         "input_tokens": "4", "output_tokens": "7", "cache_read_input_tokens": "6",
-        "cache_creation_input_tokens": "5", "model": ""}])
+        "cache_creation_input_tokens": "5", "model": "", "name": "verify-green"}])
 
 
 @pytest.mark.parametrize("cost, written", [(1e-05, "0.00001"), (3.2e-07, "0.00000032"),
