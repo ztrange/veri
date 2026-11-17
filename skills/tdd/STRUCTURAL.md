@@ -13,6 +13,12 @@
    git merge-base HEAD origin/<default>                 # → <issue-base>
    $S/refactor-owed.sh list .tdd/issue-<n>-refactor-owed.md   # one candidate per line; exit 3 ⇒ no pass
    ```
+   The pass is stage `structural`. Before its first candidate:
+   ```
+   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh stage-start stage=structural; date +%s > .tdd/stage-structural.t
+   ```
+   It ends with the `stage-end` line below, after its `structural-pass` mark with status 0, or, on
+   any other way the pass ends (a bail), with the code of the call that ended it.
    A candidate recorded test-only is never listed, so it launches no predicate or
    transform leaf; `render` still shows it under `### Test-only` in the PR body.
    An out-of-scope candidate is listed like any other.
@@ -97,4 +103,5 @@
    only when `refactor-budget.sh --issue` exited 3, i.e. `transforms` equals the budget:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass transforms=<count> budget=<VERI_ISSUE_REFACTOR_BUDGET> stopped=<reason>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh stage-end stage=structural status=<exit code> secs=$(($(date +%s)-$(cat .tdd/stage-structural.t)))
    ```

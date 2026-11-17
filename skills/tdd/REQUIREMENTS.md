@@ -615,6 +615,7 @@
 | DP94 | In the transform check, `transform-touches-tests.sh <base-sha> <bound>` also gets `--touched "$($S/refactor-touched.sh --issue <issue-base>)"`; its exit 1 rejects the transform like any bound violation (DP38). | A candidate that names no file cannot be judged before the leaf, so the commits themselves must change at least one file the issue touched. |
 | DP95 | A `suite-reported.sh develop-structural` exit 2 keeps its stderr in `.tdd/suite-reported.err` and, with budget left, launches `adjudicate-report-missing` through `supervise.sh` before any `bail` event and before the transform verifier (`Read` `<base directory>/ADJUDICATE.md`); every outcome, `retry` included, then bails `report-missing` with no verifier. (The `suite-reported.sh develop-structural` paragraph.) | Every site of the cause. |
 | DP96 | An out-of-bounds skip stays unadjudicated: it keeps its transform `REJECT` and the next candidate. (The same paragraph.) | It is not an exit-2 bail today. |
+| DP238 | The structural pass is marked as stage `structural`: `event.sh stage-start stage=structural` before its first candidate, and `event.sh stage-end stage=structural status=<exit code> secs=<seconds>` on every way it ends, its status 0 after the pass's `structural-pass` mark, else the code of the call that ended it (a bail's); a run whose `refactor-owed.sh list` exits 3 runs no pass and marks no stage. | A prose stage is marked at its site, or its run time and failures go unrecorded, and a pass never run must not show as one. |
 
 ## skills/tdd/PHASED.md
 
