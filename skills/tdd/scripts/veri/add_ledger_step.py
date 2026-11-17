@@ -46,7 +46,7 @@ def is_repair(text):
     return has_mark(text, REPAIR_MARKS)
 
 
-def is_suite_repair(text, mark=SUITE_REPAIR):
+def is_one_per_run(text, mark):
     return has_mark(text, (mark,))
 
 
@@ -56,8 +56,8 @@ def added_step(text, k, planned=False):
     return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
 
 
-def repair_following(steps, anchor, mark=SUITE_REPAIR):
-    return next((following for line, following in zip(steps, steps[1:]) if anchor in line and is_suite_repair(following, mark)), None)
+def repair_following(steps, anchor, mark):
+    return next((following for line, following in zip(steps, steps[1:]) if anchor in line and is_one_per_run(following, mark)), None)
 
 
 class UnreadableLog(Exception):
@@ -68,7 +68,7 @@ def events_log(path):
     return os.path.join(os.path.dirname(path), "events.jsonl")
 
 
-def added_since_last_resume(path, steps, mark=SUITE_REPAIR):
+def added_since_last_resume(path, steps, mark):
     log = events_log(path)
     try:
         events = read_events(log)
@@ -259,12 +259,12 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
             return entry.refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
     steps = [line for line in lines if ledger_steps(line)]
     for mark in ONE_PER_RUN:
-        earlier = [line for line in steps if is_suite_repair(line, mark) and not is_retired(line)]
+        earlier = [line for line in steps if is_one_per_run(line, mark) and not is_retired(line)]
         try:
             this_run = added_since_last_resume(path, steps, mark) if earlier else False
         except UnreadableLog as unreadable:
             return entry.refuse(str(unreadable))
-        if this_run and any(is_suite_repair(text, mark) for text in texts):
+        if this_run and any(is_one_per_run(text, mark) for text in texts):
             warn(f"add-ledger-step.sh: this run already inserted a {mark} step: " + (earlier[0] if this_run is True else this_run))
             return 1
     if tunables.is_set("VERI_STEP_GROWTH"):
