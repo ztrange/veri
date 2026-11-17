@@ -121,3 +121,207 @@ def test_4027_a_replaces_case_or_ci_repair_step_is_exit_2_before_any_inner_call(
     code, out, err, fake = green(step=step)
 
     assert (code, fake.calls) == (2, [])
+
+
+def _after(fake, name, first=None):
+    at = fake.calls.index(fake.call(name, first))
+    return fake.calls[at + 1:]
+
+
+def _short(args):
+    return tuple(os.path.basename(a) if a.endswith(".sh") else a for a in args)
+
+
+def test_4027_it_builds_the_green_prompt_from_the_red_values_and_launches_develop_green(green):
+    code, out, err, fake = green(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
+
+    assert [c[0] for c in fake.calls[:4]] == ["build-develop-prompt.sh", "stop-requested.sh", "detach-leaf.sh",
+                                              "wait-leaf.sh"]
+    assert fake.calls[0][1] == ("green", ".tdd/issue-12-spec.md", STEP, "make unit", "tests/test_a.py",
+                                "tests/test_a.py::test_one", "make unit")
+    assert fake.calls[0][4]["out"] == ".tdd/develop-green.prompt"
+    launch = fake.calls[2]
+    assert _short(launch[1]) == ("supervise.sh", "develop-green", "run-leaf.sh", ".tdd/develop-green.prompt",
+                                 "--permission-mode", "bypassPermissions")
+    assert (launch[3]["VERI_TEST_CMD"], launch[3]["VERI_ISSUE"], launch[3]["VERI_STEP"]) == ("make unit", "12", STEP)
+    assert (launch[4]["out"], launch[4]["err"]) == (".tdd/develop-green.out", ".tdd/develop-green.err")
+    assert [c[0] for c in fake.calls[4:8]] == ["step-cost.sh", "step-budget.sh", "extract-result.sh",
+                                               "suite-reported.sh"]
+
+
+@pytest.mark.parametrize("leaf", [1, 2])
+def test_4027_a_develop_green_wait_exit_1_or_2_stops_it(green, leaf):
+    code, out, err, fake = green(answers={("wait-leaf.sh", "develop-green"): (leaf, "")})
+
+    assert (code, out.splitlines()[-1]) == (leaf, "stopped at 1 wait-leaf.sh develop-green exit %d" % leaf)
+
+
+def test_4027_a_cost_over_the_step_budget_stops_it_at_the_cost_check(green):
+    code, out, err, fake = green(fake=Fake(cost="13\n"))
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at cost-check spent 13 over the step budget 12")
+
+
+def test_4027_suite_reported_exit_2_stops_it_with_no_verifier(green):
+    code, out, err, fake = green(answers={("suite-reported.sh", None): (2, "")})
+
+    assert (code, fake.names()[-1], fake.launched()) == (2, "suite-reported.sh", ["develop-green"])
+    assert fake.call("suite-reported.sh")[1:] [0] == ("develop-green",)
+    assert fake.call("suite-reported.sh")[4]["err"] == ".tdd/suite-reported.err"
+
+
+@pytest.mark.parametrize("line", ["WRONG_TEST: the test asserts x", "SUPERSEDED: tests/test_b.py::test_b",
+                                  "SPLIT: smaller one", "TIDY_FIRST: extract f"])
+def test_4027_a_route_line_in_the_report_stops_it_with_exit_1_naming_it_before_any_route_or_suite_check(green, line):
+    code, out, err, fake = green(fake=Fake(report=REPORT + line + "\n"))
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 1 " + line)
+    assert fake.names()[-1] == "extract-result.sh"
+    assert "wrong-test-route.sh" not in fake.names()
+
+
+@pytest.mark.parametrize("verb", ["check", "check-earlier"])
+@pytest.mark.parametrize("frozen", [1, 2])
+def test_4027_a_frozen_test_check_exit_1_or_2_stops_it_with_no_verifier(green, verb, frozen):
+    code, out, err, fake = green(answers={("tests-frozen.sh", verb): (frozen, "")})
+
+    assert (code, fake.names()[-1], fake.launched()) == (frozen, "tests-frozen.sh", ["develop-green"])
+
+
+def test_4027_it_checks_the_frozen_tests_then_the_earlier_steps_then_launches_verdict_green(green):
+    code, out, err, fake = green()
+
+    tail = _after(fake, "suite-reported.sh")
+    assert [(c[0], c[1]) for c in tail[:2]] == [("tests-frozen.sh", ("check", "--step", STEP)),
+                                                ("tests-frozen.sh", ("check-earlier", ".tdd/issue-12.md", "--step",
+                                                                     STEP))]
+    assert [c[0] for c in tail[2:7]] == ["stop-requested.sh", "detach-leaf.sh", "wait-leaf.sh", "step-cost.sh",
+                                         "step-budget.sh"]
+    launch = tail[3]
+    assert _short(launch[1]) == ("supervise.sh", "verdict-green", "run-verdict.sh", "--step", STEP, "--fast-cmd",
+                                 "make unit", "green", ".tdd/issue-12-spec.md", "tests/test_a.py",
+                                 "tests/test_a.py::test_one")
+    assert (launch[4]["out"], launch[4]["err"]) == (".tdd/verify-green.reason", ".tdd/verify-green.err")
+
+
+@pytest.mark.parametrize("verdict", [1, 2])
+def test_4027_a_verdict_of_1_or_2_stops_it_before_any_comment_or_tick(green, verdict):
+    code, out, err, fake = green(answers={("wait-leaf.sh", "verdict-green"): (verdict, "")})
+
+    assert (code, out.splitlines()[-1]) == (verdict, "stopped at 2 wait-leaf.sh verdict-green exit %d" % verdict)
+    assert not {"comment.sh", "tick-ledger.sh"} & set(fake.names())
+
+
+def test_4027_with_green_switched_off_it_marks_the_skip_and_takes_the_pass_branch(green):
+    (green.wt / ".tdd" / "issue-12-skip-verify").write_text("green\n")
+    code, out, err, fake = green()
+
+    assert (code, fake.launched()) == (0, ["develop-green"])
+    assert fake.call("event.sh")[1] == ("verify-green-skipped", "reason=switched-off")
+    assert (green.wt / ".tdd" / "verdict-green.exit").read_text().strip() == "skipped"
+    assert [c[0] for c in _after(fake, "event.sh")][:2] == ["comment.sh", "comment.sh"]
+
+
+def test_4027_on_a_pass_it_comments_checks_graded_units_and_frozen_tests_ticks_commits_pushes_and_asks_for_a_stop(
+        green):
+    code, out, err, fake = green()
+
+    tail = [(c[0], c[1]) for c in _after(fake, "wait-leaf.sh", "verdict-green") if c[0] not in (
+        "step-cost.sh", "step-budget.sh")]
+    assert tail == [
+        ("comment.sh", ("12", "green")), ("comment.sh", ("12", "verify-green")),
+        ("git", ("log", "-1", "--format=%H", "--", ".tdd/issue-12.md")), ("graded-changed.sh", (BASE_SHA,)),
+        ("tests-frozen.sh", ("check", "--step", STEP)),
+        ("tick-ledger.sh", ("--refactor-pending", ".tdd/issue-12.md", STEP)), ("git", ("add", "-A")),
+        ("git", ("commit", "-m", "feat: one thing works (#12)")), ("git", ("rev-parse", "HEAD")),
+        ("push-branch.sh", ()), ("git", ("branch", "--show-current")),
+        ("gh", ("api", "repos/{owner}/{repo}/pulls?head={owner}:tdd/12-a-thing", "-q", ".[0].html_url // empty")),
+        ("pr-body.sh", ("77", ".tdd/green-half-pr-body.md")), ("stop-requested.sh", ())]
+    assert (green.wt / ".tdd" / "green-half-pr-body.md").read_text() == (
+        "Closes #12 — work in progress: 2 of 3 steps done. The ledger .tdd/issue-12.md is the source of truth.\n")
+    expected = ["step=" + STEP, "green_sha=" + GREEN_SHA, "test_path=tests/test_a.py"]
+    assert code == 0
+    assert (green.wt / ".tdd" / "issue-12-green-half").read_text().splitlines() == expected
+    assert out.splitlines()[-len(expected):] == expected
+    assert "- [x] %s ⟂ refactor pending" % STEP in (green.wt / ".tdd" / "issue-12.md").read_text()
+
+
+def test_4027_a_bug_runs_subject_is_fix(green):
+    code, out, err, fake = green(spec="# spec\n\n## Bug\n\nit breaks\n")
+
+    assert fake.call("git", "commit")[1] == ("commit", "-m", "fix: one thing works (#12)")
+
+
+@pytest.mark.parametrize("graded", [1, 2])
+def test_4027_a_graded_change_stops_it_with_nothing_ticked(green, graded):
+    code, out, err, fake = green(answers={("graded-changed.sh", None): (graded, "")})
+
+    assert (code, fake.names()[-1], "tick-ledger.sh" in fake.names()) == (graded, "graded-changed.sh", False)
+    assert out.splitlines()[-1].startswith("stopped at 3 graded-changed.sh")
+
+
+class _Changed(Fake):
+    """tests-frozen.sh check answers 0 the first time and <code> the second."""
+    second = 1
+
+    def __call__(self, name, *args, **kw):
+        if os.path.basename(name) == "tests-frozen.sh" and args[:1] == ("check",):
+            seen = [c for c in self.calls if c[0] == "tests-frozen.sh" and c[1][:1] == ("check",)]
+            if seen:
+                self.calls.append(("tests-frozen.sh", args, kw.get("cwd"), kw.get("env"), kw))
+                return self.second, "tests/test_a.py\n", ""
+        return super().__call__(name, *args, **kw)
+
+
+@pytest.mark.parametrize("second", [1, 2, 3])
+def test_4027_a_frozen_test_changed_before_the_tick_stops_it_with_nothing_ticked(green, second):
+    fake = _Changed()
+    fake.second = second
+    code, out, err, fake = green(fake=fake)
+
+    assert (code, fake.names()[-1], "tick-ledger.sh" in fake.names()) == (
+        1 if second == 3 else second, "tests-frozen.sh", False)
+
+
+@pytest.mark.parametrize("pushed", [1, 2])
+def test_4027_a_push_exit_1_or_2_stops_it_after_the_commit(green, pushed):
+    code, out, err, fake = green(answers={("push-branch.sh", None): (pushed, "")})
+
+    assert (code, fake.names()[-1]) == (pushed, "push-branch.sh")
+    assert out.splitlines()[-1] == "stopped at 3 push-branch.sh exit %d" % pushed
+
+
+def test_4027_no_pr_for_the_branch_stops_it_with_exit_2_before_the_pr_body(green):
+    code, out, err, fake = green(answers={("gh", None): (0, "")})
+
+    assert (code, fake.names()[-1], out.splitlines()[-1]) == (2, "gh", "stopped at 3 no PR for tdd/12-a-thing")
+
+
+@pytest.mark.parametrize("code, mode, exit", [(0, "at-ledger\n", 1), (0, "now\n", 1), (2, "", 2)])
+def test_4027_a_stop_asked_after_the_push_stops_it_unsettled(green, code, mode, exit):
+    class Asked(Fake):
+        def __call__(self, name, *args, **kw):
+            if os.path.basename(name) == "stop-requested.sh" and "push-branch.sh" in self.names():
+                self.calls.append(("stop-requested.sh", args, kw.get("cwd"), kw.get("env"), kw))
+                return code, mode, ""
+            return super().__call__(name, *args, **kw)
+
+    got, out, err, fake = green(fake=Asked())
+
+    assert (got, fake.names()[-1]) == (exit, "stop-requested.sh")
+    assert out.splitlines()[-1].startswith("stopped at 3 stop-requested.sh exit %d" % code)
+    assert not (green.wt / ".tdd" / "issue-12-green-half").exists()
+
+
+def test_4027_it_launches_no_leaf_but_through_supervise(green):
+    code, out, err, fake = green()
+
+    assert not {"run-leaf.sh", "run-verdict.sh", "claude", "supervise.sh"} & set(fake.names())
+    assert fake.launched() == ["develop-green", "verdict-green"]
+
+
+def test_4027_it_writes_no_bail_and_resets_nothing_on_a_stop(green):
+    code, out, err, fake = green(answers={("wait-leaf.sh", "verdict-green"): (1, "")})
+
+    assert not {"classify-bail.sh", "preflight-refused.sh", "event.sh", "wrong-test-route.sh"} & set(fake.names())
+    assert not [c for c in fake.calls if c[0] == "git"]
