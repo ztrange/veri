@@ -5,5 +5,5 @@
 - [x] a tree listing anything but `.gitignore` before the commit stops it at `1.4 tree-check` ⟦criterion 3⟧
 - [x] on a resume it runs `plan-reverify.sh` and prints `verify_plan=` ⟦criterion 2⟧
 - [x] exit 0 writes and prints `.tdd/issue-<n>-run-start`; no comment on either path ⟦criterion 4⟧ ⟦criterion 5⟧
-- [ ] a guard fails when an inner call is a `$S/` script `SKILL.md` step 1 does not name ⟦criterion 10⟧
+- [x] a guard fails when an inner call is a `$S/` script `SKILL.md` step 1 does not name ⟦criterion 10⟧
 - [ ] docs: `SKILL.md` step 1, `SCRIPTS.md`, rows and grades ⟦criterion 11⟧ ⟦criterion 12⟧
