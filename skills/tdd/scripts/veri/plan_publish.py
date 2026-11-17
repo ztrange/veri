@@ -16,6 +16,11 @@ import tunables
 
 USAGE = "usage: plan-publish.sh <n> <title-file>"
 
+# The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_plan_publish.py fails
+# when one is a script SKILL.md steps 2, 2b and 2c do not name, save two it exempts by name (FC19).
+CALLS = ("scope-check.sh", "ledger-steps.sh", "push-branch.sh", "stack-branch.sh", "event.sh", "comment.sh",
+         "refresh-spec.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh", "run-verdict.sh", "wait-leaf.sh")
+
 
 def inputs(n, title_file):
     """(settled preflight values, title) once every input file is readable; else None, each missing one named on
