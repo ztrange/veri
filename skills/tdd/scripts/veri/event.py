@@ -334,8 +334,9 @@ def mark(directory, context, event, fields=(), ts=None):
 def stage(name, body, directory="", run_context=None):
     """Run `body()`, which returns an exit code, as stage `name` (D13): `stage-start stage=<name>` before it and
     `stage-end stage=<name> status=<code> secs=<whole seconds>` after it, on every exit; a body that raises ends its
-    stage with status 2 and its error is raised on. Each line goes through `mark`, so a line that cannot be written is
-    one stderr line and never changes what the body returns: telemetry never bails a run."""
+    stage with status 2 and its error is raised on, and so does a code outside the four exit codes (a script's 4, git's
+    128): no answer could be obtained, the code itself returned unchanged. Each line goes through `mark`, so a line that
+    cannot be written is one stderr line and never changes what the body returns: telemetry never bails a run."""
     run_context = context(os.environ) if run_context is None else run_context
     mark(directory, run_context, "stage-start", ["stage=" + name])
     began = time.monotonic()
@@ -345,7 +346,8 @@ def stage(name, body, directory="", run_context=None):
         return status
     finally:
         mark(directory, run_context, "stage-end",
-             ["stage=" + name, "status=%d" % status, "secs=%d" % (time.monotonic() - began)])
+             ["stage=" + name, "status=%d" % (status if status in (0, 1, 2, 3) else 2),
+              "secs=%d" % (time.monotonic() - began)])
 
 
 def main(argv):

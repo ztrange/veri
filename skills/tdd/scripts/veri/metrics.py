@@ -725,7 +725,7 @@ STAGE_KEYS = ("runs", "ok", "failed", "no_answer", "nothing", "unended", "wall_s
 
 def stages_of(marks):
     """Per stage a journal marked (PRD 035.5a, D13): its `stage-start` lines (`runs`), its `stage-end` lines by exit code
-    (`ok`, `failed`, `no_answer`, `nothing` for 0 to 3), its starts with no end of that stage before its next start
+    (`ok`, `failed`, `no_answer`, `nothing` for 0 to 3, any other status `no_answer`), its starts with no end of that stage before its next start
     or the journal's end (`unended`: killed), and its ends' seconds summed. A stage no line names is absent, never
     zero; a line naming no stage is skipped."""
     stages, open_starts = {}, {}
@@ -740,8 +740,8 @@ def stages_of(marks):
             open_starts[name] = True
             continue
         open_starts[name] = False
-        if line.get("status") in STAGE_ENDS:
-            counts[STAGE_ENDS[line["status"]]] += 1
+        # a status outside the four exit codes (a line written before event.stage folded it) is no answer, as 2 is
+        counts[STAGE_ENDS.get(line.get("status"), "no_answer")] += 1
         counts["wall_seconds"] += whole(line.get("secs")) or 0
     for name, unended in open_starts.items():
         stages[name]["unended"] += unended

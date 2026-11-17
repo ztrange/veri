@@ -97,7 +97,7 @@ never removed or renamed, and the file carries no version key. A reader ignores 
 | `stages.<stage>.runs` | whole number, the stage's `stage-start` lines | no |
 | `stages.<stage>.ok` | whole number, its `stage-end` lines with `status` 0 (passed) | no |
 | `stages.<stage>.failed` | whole number, its `stage-end` lines with `status` 1 (failed: a clean negative) | no |
-| `stages.<stage>.no_answer` | whole number, its `stage-end` lines with `status` 2 (no answer could be obtained) | no |
+| `stages.<stage>.no_answer` | whole number, its `stage-end` lines with `status` 2 (no answer could be obtained), or with any status outside 0 to 3 | no |
 | `stages.<stage>.nothing` | whole number, its `stage-end` lines with `status` 3 (nothing to do, or still waiting) | no |
 | `stages.<stage>.unended` | whole number, its starts with no `stage-end` of that stage before its next start or the journal's end: a stage killed before it could end, never counted as passed | no |
 | `stages.<stage>.wall_seconds` | whole number, its `stage-end` lines' `secs` summed | no |
