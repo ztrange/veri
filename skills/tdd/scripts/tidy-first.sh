@@ -10,8 +10,9 @@
 # stdout:  the `⟦diff-checked⟧` step the line asks for: the refactoring, the file and symbol, and that
 #          the step changes no behaviour and no test file. Never the <why>: the text reaches the blind
 #          diff verifier, and the why is the developer's rationale.
-# exit:    0 printed · 3 the report has no `TIDY_FIRST:` line · 2 (stdout empty, one stderr line naming
-#          the offending line) two or more such lines, a line not of that form, a refactoring SMELLS.md
-#          does not list, or a file absent from the working tree.
+# exit:    0 printed · 3 the report has no `TIDY_FIRST:` line · 1 the leaf answered wrongly (stdout empty,
+#          one stderr line naming the offending line): two or more such lines, a line not of that form, a
+#          refactoring SMELLS.md does not list, an absolute path, or a file absent from the working tree ·
+#          2 no answer could be read: an argument, or SMELLS.md unreadable.
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/tidy_first.py" "$@"

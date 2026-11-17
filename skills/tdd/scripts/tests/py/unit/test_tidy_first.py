@@ -49,18 +49,33 @@ def test_4118_a_report_with_no_tidy_first_line_exits_3_printing_nothing(tree, ru
     ("TIDY_FIRST: Smell | lib/route.py::answer | a", "names a refactoring SMELLS.md does not list"),
     ("TIDY_FIRST: Extract Function | lib/gone.py::answer | a", "names a file absent from the working tree"),
     ("TIDY_FIRST: Extract Function | lib::answer | a", "names a file absent from the working tree"),
-    ("TIDY_FIRST: Extract Function | /etc/hosts::answer | a", "names a file absent from the working tree"),
+    ("TIDY_FIRST: Extract Function | /etc/hosts::answer | a", "names an absolute path, not one relative to the working tree"),
     ("TIDY_FIRST: Extract Function | ../outside.py::answer | a", "names a file absent from the working tree"),
     ("TIDY_FIRST: Extract Function | lib/route.py | a", "is not <refactoring> | <file>::<symbol> | <why>"),
     ("TIDY_FIRST: Extract Function | lib/route.py::an swer | a", "is not <refactoring> | <file>::<symbol> | <why>"),
     ("TIDY_FIRST: Extract Function | lib/route.py::answer", "is not <refactoring> | <file>::<symbol> | <why>"),
 ])
-def test_4118_a_bad_answer_exits_2_stdout_empty_and_one_stderr_line_naming_the_offending_line(tree, run_cli, tidy_first, line, why):
+def test_4118_a_wrong_answer_exits_1_stdout_empty_and_one_stderr_line_naming_the_offending_line(tree, run_cli, tidy_first, line, why):
     (tree.parent / "outside.py").write_text("x = 1\n")
     code, out, err = run_cli(tidy_first, [], stdin="reasoning\n" + line + "\n")
 
     offending = line.split("\n")[-1]
-    assert (code, out, err) == (2, "", f"tidy-first.sh: {why}: {offending}\n")
+    assert (code, out, err) == (1, "", f"tidy-first.sh: {why}: {offending}\n")
+
+
+def test_4118_an_absolute_path_inside_the_working_tree_exits_1_and_never_reaches_the_step(tree, run_cli, tidy_first):
+    line = f"TIDY_FIRST: Extract Function | {tree}/lib/route.py::answer | a"
+
+    assert run_cli(tidy_first, [], stdin=line + "\n") == (
+        1, "", f"tidy-first.sh: names an absolute path, not one relative to the working tree: {line}\n")
+
+
+def test_4118_an_unreadable_catalogue_exits_2_printing_nothing_on_stdout(tree, monkeypatch, run_cli, tidy_first):
+    monkeypatch.setattr(tidy_first, "SMELLS", str(tree / "no-such-SMELLS.md"))
+
+    code, out, err = run_cli(tidy_first, [], stdin=REPORT)
+
+    assert (code, out, err.startswith("tidy-first.sh: cannot read the smell catalogue")) == (2, "", True)
 
 
 def test_4118_an_argument_is_refused_with_exit_2_and_the_usage_line(tree, run_cli, tidy_first):
