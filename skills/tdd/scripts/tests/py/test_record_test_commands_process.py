@@ -319,3 +319,22 @@ def test_a_veri_install_holding_other_commands_is_exit_3_while_its_pr_is_open(tm
 
     assert (code, out, len(pulls)) == (3, "", 1)
     assert URL in err
+
+
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+def test_a_veri_install_created_by_someone_else_after_the_check_is_refused_not_fast_forwarded(
+        tmp_path, run_cli, record, pulls, monkeypatch):
+    origin, work = project(tmp_path)
+    tip = git(origin, "rev-parse", "main")
+    fetch_tip = record.tip_of
+
+    def racing(root, default):
+        git(origin, "branch", "veri-install", "main")
+        return fetch_tip(root, default)
+
+    monkeypatch.setattr(record, "tip_of", racing)
+
+    code, out, err = run_cli(record, ["make unit", "make test"], cwd=work)
+
+    assert (code, out, pulls) == (2, "", [])
+    assert git(origin, "rev-parse", "veri-install") == tip
