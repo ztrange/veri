@@ -570,6 +570,23 @@ def test_issue_4088_both_tiers_share_one_wait_bound_per_call_the_second_waiting_
     assert [argv[3:] for argv, _ in calls_in(fake, "detach-command.sh wait ready-all")] == [["190"]], fake.calls
 
 
+def test_issue_4088_a_tiers_wall_time_ends_when_its_command_recorded_its_exit_not_when_a_later_call_read_it(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
+    import types
+    clock = iter([1000.0, 5000.0])
+    monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=lambda: next(clock, 5004.0), monotonic=lambda: 0.0), raising=False)
+
+    def recorded_at_1030(line, cwd=None, **kwargs):
+        exit_file = os.path.join(cwd, ".tdd", "ready-fast.exit")
+        with open(exit_file, "w") as f:
+            f.write("0\n")
+        os.utime(exit_file, (1030.0, 1030.0))
+        return 0, "", ""
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **TIERS, **{"detach-command.sh wait ready-fast": recorded_at_1030})
+
+    assert tier_run_line(lines, "fast") == "ok    fast tier run (30s)", lines
+    assert tier_run_line(lines, "all") == "ok    all tier run (4s)", lines
+
+
 def test_issue_4088_a_tier_run_that_raises_exits_2_having_removed_the_worktree_it_made(ready_check, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": OSError(7, "no detach")}))
     code, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
