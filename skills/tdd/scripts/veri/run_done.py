@@ -7,6 +7,7 @@ import fused
 import fused_step
 
 NAME = "run-done"
+USAGE = "usage: run-done.sh <n>"
 WHERE = "4"
 
 # The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_run_done.py fails when one is

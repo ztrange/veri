@@ -9,6 +9,7 @@ import fused_step
 import plan_publish
 
 NAME = "pr-ready-wait"
+USAGE = "usage: pr-ready-wait.sh <n>"
 WHERE = "2"
 NO_CHECKS = "has no checks"
 WAIT = "wait-ci.sh"  # the `waiting on` name of the CI wait

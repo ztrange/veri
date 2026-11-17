@@ -15,6 +15,7 @@ import run_dir
 import tunables
 
 NAME = "pr-finish"
+USAGE = "usage: pr-finish.sh <n>"
 LEDGER = run_dir.ledger("", "%s")
 WHERE = "2"
 FULL_SUITE = "⟦full-suite⟧"
