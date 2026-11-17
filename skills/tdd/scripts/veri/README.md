@@ -482,6 +482,7 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `cover-outcome.sh`: read a cover leaf's report on stdin.
 - `pin-target.sh`: read a pin leaf's target from its report.
 - `red-divergence.sh`: read a red leaf's report on stdin.
+- `red-setup.sh`: record a verified Red's `SETUP:` count; name the run's worst step as a `testability` candidate.
 - `refactor-owed.sh`: append, render and list refactor-owed items.
 - `refactor-touched.sh`: the files a refactor leaf touched.
 - `refactor-triage.sh`: read a refactor leaf's candidates.

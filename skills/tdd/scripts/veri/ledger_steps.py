@@ -32,10 +32,15 @@ def answer(record):
     return say(None if record is None else record.text)
 
 
-def current(records):
+def current_record(records):
+    """The current step: the first done step whose refactor is pending, else the first open step; None when none."""
     pending = [r for r in records if r.state == "done" and r.pending == "1"]
     open_steps = [r for r in records if handed_out(r)]
-    return answer(next(iter(pending + open_steps), None))
+    return next(iter(pending + open_steps), None)
+
+
+def current(records):
+    return answer(current_record(records))
 
 
 def last_done(records):

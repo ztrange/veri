@@ -64,6 +64,7 @@ EVENTS = {
     "push-failed": "error:text,empty attempts:whole",
     "push-rejected": "remote_sha:sha,empty error:text,empty",
     "rebase-refresh-retry": "",
+    "red-setup": "count:whole what:text,empty",
     "refactor": "transforms:whole budget:whole"
                 " stopped:(nothing-left|budget|malformed|nothing-structural|structural-owed) pass:whole",
     "relaunch": "cause:(tree-change|no-verdict)",
