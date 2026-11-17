@@ -12,7 +12,15 @@ class Fake:
     def __init__(self, answers=None, porcelain=" M .gitignore\n"):
         self.answers, self.calls, self.porcelain = dict(answers or {}), [], porcelain
 
-    def __call__(self, name, *args, cwd=None, env=None):
+    def __call__(self, name, *args, cwd=None, env=None, out=None, **_):
+        code, text, err = self.answer(name, *args, cwd=cwd, env=env)
+        if out is not None:
+            with open(os.path.join(cwd, out), "w") as f:
+                f.write(text)
+            text = ""
+        return code, text, err
+
+    def answer(self, name, *args, cwd=None, env=None):
         base = os.path.basename(name)
         self.calls.append((base, args, cwd, env))
         for (script, first), (code, out) in self.answers.items():
@@ -89,8 +97,8 @@ def test_4024_already_present_commits_nothing(start):
 def test_4024_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_stderr_and_the_spec_goes_to_its_file(
         start):
     class Marked(Fake):
-        def __call__(self, name, *args, cwd=None, env=None):
-            code, out, err = super().__call__(name, *args, cwd=cwd, env=env)
+        def __call__(self, name, *args, **kw):
+            code, out, err = super().__call__(name, *args, **kw)
             return code, out, "ERR<%s>\n" % os.path.basename(name)
 
     code, out, err, fake = start(fake=Marked())
