@@ -291,6 +291,17 @@ into its cases. No other veri module holds either answer; one that needs it asks
 PRD 017.1.
 _Avoid_: test parser, case finder
 
+**Region**:
+Code a legacy step names, as a file and a symbol or line range, which no test covers and which
+is treated as opaque: it is surrounded with tests before it is refactored. PRD 031.
+_Avoid_: legacy code (unqualified), hotspot
+
+**Seam**:
+A command or callable a test can drive from outside a **region** without editing it: an
+entry-point CLI, an exported function, an HTTP handler. The plan step names it; veri detects
+none per language. PRD 031.
+_Avoid_: hook, entry point (unqualified)
+
 ## Scope ladder
 
 The framework grows in three rungs, each wrapping the previous — never a rewrite. Issue
