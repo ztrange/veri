@@ -32,23 +32,36 @@ repository stacks finished runs on a standing branch and, if so, under what bran
 
 ## Recording the test commands
 
-After `install-links.sh` exits 0, read the target repository's `CLAUDE.md`. When it already holds
-both a `veri: fast tests:` and a `veri: all tests:` line, ask nothing about test commands and skip
-the rest of this section. When it lacks either line:
+After `install-links.sh` exits 0, read the target repository's `CLAUDE.md`. When it holds a
+`veri: fast tests:`, a `veri: all tests:` and a `veri: one test file:` line, ask nothing about
+test commands and skip the rest of this section. Otherwise:
 
-1. Run `$S/detect-test-command.sh --tier fast [repo-root]` and
-   `$S/detect-test-command.sh --tier all [repo-root]`. Exit 0 printed the tier's proposed command;
-   exit 3 means none found, and that tier is shown as none found. Show the operator both, each
-   beside where it came from: the `CLAUDE.md` line, or the manifest file and key inference read
-   (`package.json`'s `scripts.test`, the `Makefile`'s `test` target, the pytest section of
-   `pytest.ini`, `pyproject.toml` or `setup.cfg`, `go.mod`, `Cargo.toml`, `tests/test_*.py`). Run
-   no install, no test and no network command to find a command.
-2. Ask the operator to confirm or replace each command. `record-test-commands.sh` runs only with
-   the two commands the operator confirmed or gave. Without a confirmed command for each tier,
-   nothing is written: say so and leave this section.
-3. Run `$S/record-test-commands.sh '<fast-cmd>' '<all-cmd>' [repo-root]`, each command one
-   argument. It pushes a `veri-install` branch whose one commit records both lines in `CLAUDE.md`,
-   and opens a pull request for it.
+1. **The tier commands.** When `CLAUDE.md` already holds both a `veri: fast tests:` and a
+   `veri: all tests:` line, ask nothing about them: run
+   `$S/detect-test-command.sh --tier fast [repo-root]` and `--tier all [repo-root]` and pass the
+   two commands they print, which are those lines' commands, unchanged to step 3. When it lacks
+   either line:
+   - Run `$S/detect-test-command.sh --tier fast [repo-root]` and
+     `$S/detect-test-command.sh --tier all [repo-root]`. Exit 0 printed the tier's proposed command;
+     exit 3 means none found, and that tier is shown as none found. Show the operator both, each
+     beside where it came from: the `CLAUDE.md` line, or the manifest file and key inference read
+     (`package.json`'s `scripts.test`, the `Makefile`'s `test` target, the pytest section of
+     `pytest.ini`, `pyproject.toml` or `setup.cfg`, `go.mod`, `Cargo.toml`, `tests/test_*.py`). Run
+     no install, no test and no network command to find a command.
+   - Ask the operator to confirm or replace each command. `record-test-commands.sh` runs only with
+     the two commands the operator confirmed or gave. Without a confirmed command for each tier,
+     nothing is written: say so and leave this section.
+2. **The one-test-file command.** When `CLAUDE.md` lacks a `veri: one test file:` line, ask the
+   operator for the command that runs one test file, taking the file as `"$1"`, and propose none:
+   veri cannot infer it. The form recorded is one shell command, run as
+   `sh -c '<command>' sh <test file>` and read by its exit code alone (0 the file passes, 1 it
+   fails), a `make` command by make's last `*** Error` line; for example `pytest -q "$1"` or
+   `make test TESTS="$1"`. Pass the answer with `--one-file`. With no answer, record the tier lines
+   alone (when both are already in `CLAUDE.md`, there is then nothing to record: leave this
+   section), and say that a run's preflight stops without the line.
+3. Run `$S/record-test-commands.sh [--one-file '<one-file-cmd>'] '<fast-cmd>' '<all-cmd>' [repo-root]`,
+   each command one argument. It pushes a `veri-install` branch whose one commit records the lines
+   in `CLAUDE.md`, and opens a pull request for it.
    - Exit 0: report the pull request's URL it printed, and say that runs infer the test commands
      until that pull request merges, and that `/vinstall` never merges it: merging is the
      repository owner's.
