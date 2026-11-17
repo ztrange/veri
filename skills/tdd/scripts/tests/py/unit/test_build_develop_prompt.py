@@ -740,6 +740,7 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
     for tpl in (SCRIPTS / "prompts").glob("*.md"):
         if tpl.name not in ("_develop-green-suite-repair.md", "_verify-green-suite-repair.md"):
             (unmodified / "prompts" / tpl.name).write_bytes(tpl.read_bytes().replace(b"{{SUITE_REPAIR}}", b""))
+    (tmp_path / "SMELLS.md").write_bytes((SCRIPTS.parent / "SMELLS.md").read_bytes())  # develop-green's ../../SMELLS.md (#4118)
 
     def load(name):
         loader = importlib.util.spec_from_file_location(f"{name}_unmodified", unmodified / "veri" / f"{name}.py")
