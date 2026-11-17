@@ -29,8 +29,22 @@
    - exit 2, no readable answer: **bail** as a system failure (`no-verdict`) (`Read`
      `<base directory>/BAIL.md`).
 
-   **Surround is owed.** The Surround phase does not exist yet (PRD 031.1b). Once every legacy
-   step's next phase is `surround`, **bail with cause `surround-owed`**, a process failure: the
-   `### ⛔ Bailed` note lists each step's region and its confirmed seam, read from the ledger.
-   The ledger, the branch and the draft PR stay, so `release-issue.sh <n>` and a resume carry on
-   from the ledger (`Read` `<base directory>/BAIL.md`).
+   **Surround.** Once every legacy step's seam is confirmed, the run goes on to Surround. For each
+   step whose next phase is `surround`, record `git rev-parse HEAD` as its base sha and launch one
+   `develop-surround` leaf through `supervise.sh`, its prompt built by
+   `$S/build-develop-prompt.sh surround <spec-file> "<STEP>" '<test-cmd>'`: it commits
+   characterization tests that drive the region only through the seam, and edits no production
+   file. After its wait exits 0, `$S/suite-reported.sh develop-surround` runs as `PHASED.md` sets
+   out for a phase leaf. Then launch one `verify-surround` leaf through `supervise.sh`, named
+   `verdict-surround` as *Launching a leaf* sets out:
+   `run-verdict.sh --step "<STEP>" surround .tdd/issue-<n>-spec.md <test-path>`, `<test-path>` being
+   the leaf's `TEST_PATH:`. The blind verifier takes the `pin` phase's inputs and never the
+   developer's report. `VERI_SKIP_VERIFY` never skips `surround`: a run naming it exits 2 at
+   launch.
+   - PASS: record it with `$S/tick-ledger.sh --phase surround .tdd/issue-<n>.md "<STEP>"` and
+     commit the ledger; `next-phase` then exits 3, so the step reads as done.
+   - REJECT: revise under `REVISE_BUDGET` like any other reject, `surround` being the phase
+     revised (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
+   - No verdict: `verify.sh` relaunches the leaf up to `VERI_NO_VERDICT_RETRIES` times; once
+     spent, **bail** as a system failure (`no-verdict`) (`Read` `<base directory>/BAIL.md`).
+   Surround adds no budget of its own.
