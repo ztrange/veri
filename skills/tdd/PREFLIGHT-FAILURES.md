@@ -68,8 +68,11 @@ Each of these is a preflight stop before any leaf is launched:
 - `refactor-budget.sh 0`: exit 2 (`VERI_REFACTOR_BUDGET` not a whole number ≥ 0) stops the run,
   reporting its stderr verbatim.
 - `refactor-budget.sh --issue 0`: exit 2 is the same stop.
-- `VERI_STEP_GROWTH` set-but-empty, or any other value that is not a whole number ≥ 0, is an exit-2
-  stop, reporting the value verbatim.
+- `VERI_STEP_GROWTH_PERCENT` set-but-empty, or any other value that is not a whole number ≥ 0, is
+  an exit-2 stop (`stopped at 5 VERI_STEP_GROWTH_PERCENT`), reporting the value verbatim. A
+  `VERI_STEP_GROWTH` set to any value, empty included, is the same stop (`stopped at 5
+  VERI_STEP_GROWTH`): it is retired, and the output reports its value verbatim and names
+  `VERI_STEP_GROWTH_PERCENT`, the budget that replaced it.
 - `VERI_MISSING_REROUTE_BUDGET` failing its check (false) is an exit-2 stop that reports the value
   verbatim.
 - `adjudicate.sh --check-budget` exit 2 (`VERI_ADJUDICATE_BUDGET` not a whole number ≥ 0) is an exit-2
