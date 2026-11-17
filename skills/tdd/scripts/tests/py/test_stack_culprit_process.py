@@ -14,7 +14,7 @@ SHIM = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", "sta
 GH = """here="$(dirname "$0")"
 case "$*" in
   *actions/runs?branch=stack*) cat "$here/runs" ;;
-  "run view 42 --log-failed") cat "$here/log" ;;
+  "run view 42 --log-failed"*) cat "$here/log" ;;
   *check-runs*) echo '{"total_count": 1, "check_runs": [{"status": "completed", "conclusion": "failure"}]}' ;;
   *pulls*) echo '[]' ;;
   *) exit 1 ;;
@@ -78,7 +78,7 @@ def test_on_veris_own_one_test_file_command_a_failing_case_is_red_a_passing_one_
         said[name] = (code, culprit._verdict(code, output, case))
 
     assert (command, said) == ('make test TESTS="$1"', {"test_red": (2, True), "test_green": (0, False),
-                                                        "test_nope": (2, False)}), said
+                                                        "test_nope": (2, culprit.ABSENT)}), said
 
 
 @pytest.mark.process("stack-culprit.sh run as its /bin/sh shim in a clone of a local bare origin holding a stack, with a stub gh on PATH, adding and removing a real worktree")
