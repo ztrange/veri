@@ -5,7 +5,7 @@
 # restructuring of code already committed answers one line,
 # `TIDY_FIRST: <refactoring> | <file>::<symbol> | <why>`, the refactoring a name skills/tdd/SMELLS.md lists.
 #
-# usage: tidy-first.sh < <green-report>
+# usage: tidy-first.sh < green-report.txt
 #
 # stdout:  the `⟦diff-checked⟧` step the line asks for: the refactoring, the file and symbol, and that
 #          the step changes no behaviour and no test file. Never the <why>: the text reaches the blind

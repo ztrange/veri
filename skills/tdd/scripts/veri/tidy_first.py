@@ -14,7 +14,7 @@ import run_records
 from entry import no_arguments
 from report import report_values
 
-USAGE = "usage: tidy-first.sh < <green-report>"
+USAGE = "usage: tidy-first.sh < green-report.txt"
 SMELLS = os.path.join(os.path.dirname(paths.scripts_of(__file__)), "SMELLS.md")
 ANSWER_RE = re.compile(r"(?P<refactoring>[^|]+?) *\| *(?P<file>[\w./-]+)::(?P<symbol>[A-Za-z_][\w.]*) *\| *(?P<why>\S[^|]*)")
 
