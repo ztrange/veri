@@ -1196,6 +1196,7 @@
 | SC390 | The `unwired.sh` entry says a path the `--accepted` record lists is not printed, and a missing record lists none. | The resumed run's acceptance is a script behaviour a conductor can look up (PRD 032, WN4). |
 | SC391 | The `refactor-owed.sh` entry names `clear <file> <reason>`, which drops the `coupling` row and refuses (exit 2) any other reason. | The conductor's exit-3 call is in the catalogue (PRD 032, CU3). |
 | SC392 | The `release-issue.sh` entry says a release appends the run's `issue-<n>-unwired-pending` record, when there is one, to its `issue-<n>-unwired-accepted` record and removes it. | Acceptance of unwired files is a release's effect, looked up where release is (PRD 032, WN5). |
+| SC448 | The catalogue has a `$S/surround-mutants.sh <report-file>… -- <command…>` entry: it runs every `MUTANT: <file> \| <old> \| <new>` line of the reports through `mutation-probe.sh`, prints one line per row ending `red`, `survived` or `no-answer`, and exits 0 when every row is red and there are at least `VERI_SURROUND_MUTANTS` (default 5) rows, 1 on a survivor or a short table (last line `short <k> of <N>`), 2 when no answer could be obtained. | The catalogue is where a conductor looks a script and its knobs up. |
 
 ## skills/tdd/SKILL-EDIT.md
 
