@@ -6,12 +6,15 @@ import sys
 
 import case_reader
 import fused
+import fused_step
 import replaces_case
+import run_dir
 from ledger import handed_out
 
 NAME = "red-half"
+USAGE = "usage: red-half.sh <n>"
 SPEC = ".tdd/issue-%s-spec.md"
-LEDGER = ".tdd/issue-%s.md"
+LEDGER = run_dir.ledger("", "%s")
 # The step kinds whose Red is not this one (RH1): they run from their own files or need a route's --except.
 REFUSED = ("⟦diff-checked⟧", "⟦phases:", "⟦skill-edit⟧", "⟦fixture-repair⟧")
 
@@ -27,11 +30,11 @@ def main(argv):
 
 
 def run(n):
-    given = fused.inputs(NAME + ".sh", n, LEDGER, SPEC)
+    given = fused_step.inputs(NAME + ".sh", n, LEDGER, SPEC)
     if given is None:
         return 2
     settled, wt = given
-    step = fused.first_step(wt, n, handed_out)
+    step = fused_step.first_step(wt, n, handed_out)
     if step is None or any(kind in step for kind in REFUSED):
         sys.stderr.write("red-half.sh: %s\n" % ("no open step" if step is None else "a step its prose runs: " + step))
         return 2
@@ -62,7 +65,7 @@ def verify(n, wt, settled, step, values):
         excepted = (replaces_case.parse(step) or ([], ""))[0]
     fused.checked("2", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step,
                   *[arg for case in excepted for arg in ("--except", case)], cwd=wt)
-    if fused.verify_switched_off(wt, n, "red"):
+    if fused_step.verify_switched_off(wt, n, "red"):
         fused.mark("2", wt, n, step, "verify-red-skipped", "reason=switched-off")
         with open(os.path.join(wt, ".tdd", "verdict-red.exit"), "w") as f:
             f.write("skipped\n")
@@ -111,7 +114,7 @@ def waited(wt, n, where, name, step):
     code = fused.wait(wt, n, NAME, name)
     if code != 0:
         raise fused.Stop(where, "wait-leaf.sh %s exit %d" % (name, code), code)
-    fused.cost_check(wt, step)
+    fused_step.cost_check(wt, step)
 
 
 def develop(n, wt, settled, step):

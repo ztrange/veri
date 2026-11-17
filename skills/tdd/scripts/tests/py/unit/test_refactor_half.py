@@ -182,7 +182,7 @@ def test_4028_after_the_leaf_it_asks_git_for_the_tree_the_subjects_and_the_count
 def test_4028_a_dirty_tree_or_an_off_route_subject_stops_it_with_exit_1_resetting_nothing(tidy, fake_args):
     code, out, err, fake = tidy(fake=Fake(**fake_args))
 
-    assert (code, out.splitlines()[-1].startswith("stopped at 2 ")) == (1, True)
+    assert (code, out.splitlines()[-1].split(" ")[:3] == ["stopped", "at", "2"]) == (1, True)
     assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("reset",), ("clean",))]
     assert "comment.sh" not in fake.names()
 
