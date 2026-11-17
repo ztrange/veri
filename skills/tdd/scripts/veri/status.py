@@ -425,7 +425,8 @@ def waiting_lines():
             lines.append("%s PR %s ready to merge" % (name, pr))
     for record in decision_log.read(run_dir.main_tree(missing="")):
         if decision_log.epoch(record) > since:
-            lines.append("decided: %(question)s → %(decision)s (rule: %(rule)s)" % record)
+            lines.append(("owner decided" if record["by"] == "owner" else "decided")
+                         + ": %(question)s → %(decision)s (rule: %(rule)s)" % record)
     return "\n".join(lines) or "none"
 
 
