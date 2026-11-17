@@ -1,7 +1,9 @@
 """`<issue>.metrics.json`, the published metrics file `event.sh` keeps beside each issue's journal (PRD 035.2, MF1 to
 MF6)."""
+import errno
 import importlib
 import json
+import os
 
 import pytest
 
@@ -67,3 +69,24 @@ def test_an_event_of_any_other_name_leaves_the_files_absence_and_its_bytes_uncha
 
     assert (launched, absent, later) == (0, False, [0, 0, 0])
     assert metrics_file(tmp_path).read_bytes() == before
+
+
+def test_the_file_is_renamed_into_place_from_its_own_directory_so_a_failed_rename_leaves_the_previous_one_whole(
+        tmp_path, event, monkeypatch):
+    clone = clone_at(tmp_path)
+    leaf_exit(event, clone)
+    before = metrics_file(tmp_path).read_bytes()
+    renames = []
+
+    def refuse(source, target):
+        renames.append((os.path.dirname(source), os.path.basename(source) != os.path.basename(target), target))
+        raise OSError(errno.EIO, "rename refused")
+
+    monkeypatch.setattr(os, "replace", refuse)
+    monkeypatch.setattr(os, "rename", refuse)
+    event.mark(str(clone), LEAF, "exit", ["status=2", "secs=30"], ts=1700000200)
+
+    directory = metrics_file(tmp_path).parent
+    assert renames == [(str(directory), True, str(metrics_file(tmp_path)))]
+    assert metrics_file(tmp_path).read_bytes() == before
+    assert sorted(path.name for path in directory.iterdir()) == ["42.jsonl", "42.metrics.json"]

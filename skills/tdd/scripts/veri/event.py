@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 import entry
@@ -216,8 +217,20 @@ def write_metrics(top, issue, journal):
     import run_dir
     target = journal.removesuffix(".jsonl") + ".metrics.json"
     figures = metrics.as_json(metrics.fold(issue, journal, run_dir.ledger(top, issue), run=top))
-    with open(target, "w", encoding="utf-8") as handle:
-        handle.write(json.dumps(figures, indent=2) + "\n")
+    replace_whole(target, json.dumps(figures, indent=2) + "\n")
+
+
+def replace_whole(path, text):
+    """Write `text` to a temporary file beside `path` and rename it over `path`, so a reader sees the old file or the
+    new one, never part of one; the temporary file is removed when anything fails."""
+    descriptor, temporary = tempfile.mkstemp(dir=os.path.dirname(path), prefix="." + os.path.basename(path) + ".")
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        os.replace(temporary, path)
+    except BaseException:
+        os.remove(temporary)
+        raise
 
 
 def strict_refusal(args, context=None):
