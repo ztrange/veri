@@ -100,6 +100,20 @@ never removed or renamed, and the file carries no version key. A reader ignores 
 | `phases.<phase>.verified_steps` | whole number, the steps with a `PASS` or `REJECT` verdict of the phase, `0` when none | no |
 | `phases.<phase>.first_try_pass` | whole number, those steps whose first such verdict was `PASS`, `0` when none | no |
 | `phases.<phase>.revise_cycles` | whole number, the phase's `revise` events, `0` when none; on a journal written before `revise` was recorded, `0` is the event's absence, not a run that needed no revise | no |
+| `leaves` | object keyed by leaf kind: the name a leaf was launched under less a trailing `-<digits>` (`revise-green-2` is `revise-green`), or `unnamed`; the same figures as `phases`, split by leaf instead of by phase, so each figure summed over `leaves` equals its sum over `phases` | no |
+| `leaves.<kind>` | object, one leaf kind's figures. A line naming its leaf counts under that name's kind; a line written before leaves were named counts under the kind of the `launch` with its step, phase, attempt and actor, and under `unnamed` when no `launch` has them | no |
+| `leaves.<kind>.attempts` | whole number, leaves launched | no |
+| `leaves.<kind>.pass` | whole number, `PASS` verdicts | no |
+| `leaves.<kind>.reject` | whole number, `REJECT` verdicts | no |
+| `leaves.<kind>.kills` | whole number, leaves that exited 2 | no |
+| `leaves.<kind>.wall_seconds` | whole number, the leaves' seconds summed | no |
+| `leaves.<kind>.api_seconds` | whole number, the leaves' API seconds summed | no |
+| `leaves.<kind>.turns` | whole number | no |
+| `leaves.<kind>.input_tokens` | whole number | no |
+| `leaves.<kind>.output_tokens` | whole number | no |
+| `leaves.<kind>.cache_read_input_tokens` | whole number | no |
+| `leaves.<kind>.cache_creation_input_tokens` | whole number | no |
+| `leaves.<kind>.cost_usd` | number, dollars | no |
 | `steps` | list of objects, one per ledger step a leaf ran for, in the order `metrics.sh`'s By step table lists them | no |
 | `steps[].text` | string, the step's ledger text | no |
 | `steps[].attempts` | whole number | no |

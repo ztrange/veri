@@ -49,7 +49,7 @@ def test_json_prints_one_object_with_the_five_top_level_keys_and_the_markdown_re
     code = metrics.main(["108"])
     again, _ = capsys.readouterr()
 
-    assert sorted(printed) == ["conductor", "phases", "run", "steps", "total"]
+    assert sorted(printed) == ["conductor", "leaves", "phases", "run", "steps", "total"]
     assert (code, again) == (0, markdown)
 
 
@@ -297,3 +297,29 @@ def test_4223_a_journal_with_no_revise_event_folds_with_every_revise_cycles_0(tm
     phases = as_json(metrics, capsys)["phases"]
 
     assert {phase: entry["revise_cycles"] for phase, entry in phases.items()} == {"red": 0, "green": 0}
+
+
+def leaf(ts, event, step, actor, attempt="1", **fields):
+    return mark(ts, event, "green", step, actor=actor, attempt=attempt, **fields)
+
+
+def test_4224_leaves_are_keyed_by_leaf_kind_a_named_line_under_its_name_an_unnamed_one_under_its_launch_else_unnamed(
+        tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [leaf(100, "launch", "one", "developer", name="develop-green", cmd="c", model=""),
+                         leaf(110, "exit", "one", "developer", status="0", secs="10"),
+                         leaf(120, "launch", "one", "verifier", name="verify-green", cmd="c", model=""),
+                         leaf(130, "verdict", "one", "verifier", verdict="PASS", reason="", name="verify-green"),
+                         leaf(140, "usage", "one", "developer", attempt="2", name="revise-green-2", num_turns="2",
+                              total_cost_usd="0.50"),
+                         leaf(150, "exit", "two", "developer", status="2", secs="7")])
+    monkeypatch.chdir(tmp_path)
+
+    leaves = as_json(metrics, capsys)["leaves"]
+
+    assert {kind: {key: entry[key] for key in ("attempts", "pass", "kills", "wall_seconds", "turns", "cost_usd")}
+            for kind, entry in leaves.items()} == {
+        "develop-green": {"attempts": 1, "pass": 0, "kills": 0, "wall_seconds": 10, "turns": 0, "cost_usd": 0},
+        "verify-green": {"attempts": 1, "pass": 1, "kills": 0, "wall_seconds": 0, "turns": 0, "cost_usd": 0},
+        "revise-green": {"attempts": 0, "pass": 0, "kills": 0, "wall_seconds": 0, "turns": 2, "cost_usd": 0.5},
+        "unnamed": {"attempts": 0, "pass": 0, "kills": 1, "wall_seconds": 7, "turns": 0, "cost_usd": 0}}
+    assert [sorted(entry) for entry in leaves.values()] == [sorted(PHASE_KEYS)] * 4

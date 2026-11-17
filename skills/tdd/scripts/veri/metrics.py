@@ -10,7 +10,7 @@ A Fold holds plain data. Tables are {key: {column: number}} dicts (phases, by_mo
 one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_COLUMNS. Fields:
   header     issue, clocked, issue_wall, asleep, steps_done, planned, ended, cause, ending, lane, flaked,
              pinned, model_knobs, models
-  tables     phases, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
+  tables     phases, leaves, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
              adjudications, switched_off, switched_off_by, total, green_rejects (+ green_reject_routes, green_reject_checks),
              launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
@@ -110,6 +110,8 @@ STEP_COLUMNS = STEP_COUNTS + TIMES + COST_COLUMNS
 ROLES = ("developer", "verifier", "adjudicator")
 
 FIRST_TRY_KEYS = ("verified_steps", "first_try_pass", "revise_cycles")
+
+UNNAMED = "unnamed"
 
 UNKNOWN = "unknown"
 
@@ -308,6 +310,8 @@ class _Tally:
         self.launch_cost_missing = 0
         self.gradings = {"count": 0, "PASS": 0, "REJECT": 0, DOLLARS: 0.0, "efforts": set()}
         self.first_verdicts = {}
+        self.leaves = {}
+        self.launch_names = {}
         self.revise_cycles = collections.Counter()
 
     def step_mark(self, step):
@@ -334,10 +338,18 @@ class _Tally:
         attempt = (line.get("step", ""), line.get("phase", ""), line.get("attempt", ""), actor)
         return self.row_in(self.by_model, (actor, self.models.get(attempt, "")), PHASE_COLUMNS)
 
+    def leaf_kind(self, line):
+        """The kind of the leaf a line is about: its own `name`, else the name of the `launch` sharing its step, phase,
+        attempt and actor, less a trailing -<digits>; "unnamed" when neither names one."""
+        name = line.get("name") or self.launch_names.get(
+            (line.get("step", ""), line.get("phase", ""), line.get("attempt", ""), line.get("actor")))
+        return re.sub(r"-[0-9]+$", "", name) if name else UNNAMED
+
     def rows_for(self, phase, step, line):
         rows = [r for r in [self.model_row(line)] if r is not None]
         if phase:
             rows.append(self.row_in(self.counts, phase, PHASE_COLUMNS))
+            rows.append(self.row_in(self.leaves, self.leaf_kind(line), PHASE_COLUMNS))
         if step:
             rows.append(self.row_in(self.steps, step, STEP_COLUMNS))
         return rows
@@ -405,6 +417,7 @@ class _Tally:
         attempt = self.attempt_in(phase, step, attempt_no)
         if event == "launch":
             self.launched[(step, phase, attempt_no)] = line
+            self.launch_names[(step, phase, attempt_no, line.get("actor"))] = line.get("name", "")
             self.step_mark(step).setdefault("leaf phases", set()).add(phase)
         if event == "exit":
             awake = span(reading(self.launched.get((step, phase, attempt_no)), "awake", self.clocked),
@@ -495,6 +508,7 @@ class _Tally:
             return
         if phase and count in COUNTS:
             self.tally(self.counts, phase, PHASE_COLUMNS, count)
+            self.tally(self.leaves, self.leaf_kind(line), PHASE_COLUMNS, count)
         model = self.model_row(line) if count in COUNTS else None
         if model is not None:
             model[count] += 1
@@ -585,6 +599,7 @@ class Fold:
     clocked: bool               # whether every timed event carries an awake-clock reading
     models: dict                # (step, phase, attempt, actor) -> the model(s) that answered
     phases: dict                # phase -> {PHASE_COLUMNS: number}
+    leaves: dict                # leaf kind (launch name less a trailing -<digits>, or "unnamed") -> {PHASE_COLUMNS: number}
     by_model: dict              # (role, model) -> {PHASE_COLUMNS: number}
     lost: dict                  # phase -> {LOST_COLUMNS: number}
     steps: dict                 # step -> {STEP_COLUMNS: number}
@@ -752,7 +767,7 @@ def fold(issue, path, ledger, run=BESIDE):
                                   ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE",
                                    "VERI_MODEL_REVISE_GREEN"]},
                                  VERI_EFFORT_VERIFIER=launched_efforts(marks)),
-                phases=tally.counts, by_model=tally.by_model, lost=tally.lost(),
+                phases=tally.counts, leaves=tally.leaves, by_model=tally.by_model, lost=tally.lost(),
                 steps=tally.steps, step_marks=tally.spent, passes=passes, tier_runs=tally.tier_runs,
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
                 switched_off_by=tally.switched_off_by,
@@ -1081,6 +1096,7 @@ def as_json(f):
             "phases": {phase: dict(json_row(row_counts, PHASE_COLUMNS),
                                    **f.first_tries.get(phase, dict.fromkeys(FIRST_TRY_KEYS, 0)))
                        for phase, row_counts in f.phases.items()},
+            "leaves": {kind: json_row(row_counts, PHASE_COLUMNS) for kind, row_counts in f.leaves.items()},
             # a step's wall is the markdown's: its start-to-done span, not its leaves' summed seconds
             "steps": [dict(json_row(row_counts, STEP_COLUMNS), text=step, wall_seconds=f.step_walls[step])
                       for step, row_counts in f.steps.items()],
