@@ -431,3 +431,41 @@ def test_4226_record_rewrite_writes_no_step_reworded_when_the_step_counts_differ
     code = run_cli(ledger_growth, ["record-rewrite", str(pre), str(ledger)])
 
     assert (code, reworded_lines(run)) == ((0, "", ""), [])
+
+
+SCOPED = "# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦criterion 2⟧\n"
+
+
+def split_history(fake_processes, scoped=SCOPED):
+    """git answers for `split`: the ledger's history holds two `plan: scope` commits and a rewrite; only the oldest
+    scope commit's ledger may be read."""
+    log = ("bbb plan: rewrite #42 after verify-plan (#42)\nddd green: a cog (#42)\n"
+           "eee plan: scope #42 into 9 steps (#42)\nccc plan: scope #42 into 2 steps (#42)\n")
+    return fake_processes.answers({"git log": (0, log, ""), "git show ccc:./issue-42.md": (0, scoped, "")})
+
+
+def test_4251_split_exits_0_naming_the_growth_past_the_bound_counted_from_the_oldest_scope_commit(
+        tmp_path, run_cli, ledger_growth, fake_processes):
+    split_history(fake_processes)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n"
+        "- [ ] a wheel turns, rewritten ⟦criterion 2⟧\n- [ ] a gear meshes ⟦added⟧ ⟦criterion 2⟧\n"
+        "- [ ] a third part ⟦criterion 2⟧\n"
+        "- [ ] fix the full-suite failure: x — FAIL - y ⟦suite-repair⟧\n- [ ] fix the CI failure: z ⟦ci-repair⟧\n")
+
+    code, out, err = run_cli(ledger_growth, ["split", str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": "50"})
+
+    assert (code, out.split("\n")[0], err) == (
+        0, "plan grew from 2 to 4 steps, past the growth bound of 1 (VERI_STEP_GROWTH_PERCENT 50% of 2, rounded up)", "")
+
+
+def test_4251_split_exits_3_printing_nothing_when_the_growth_equals_the_bound(
+        tmp_path, run_cli, ledger_growth, fake_processes):
+    split_history(fake_processes)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦criterion 2⟧\n"
+        "- [ ] a gear meshes ⟦added⟧ ⟦criterion 2⟧\n- [ ] fix the CI failure: z ⟦ci-repair⟧\n")
+
+    assert run_cli(ledger_growth, ["split", str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": "50"}) == (3, "", "")
