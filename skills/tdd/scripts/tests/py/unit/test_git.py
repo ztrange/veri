@@ -135,6 +135,15 @@ def test_default_branch_is_none_when_git_is_missing(git, runs, tmp_path):
     assert git.default_branch(cwd=tmp_path) is None
 
 
+def test_default_branch_is_none_when_the_remote_never_answers_within_the_network_bound(git, runs, tmp_path, monkeypatch):
+    import process_fakes
+    monkeypatch.setenv("VERI_GIT_NETWORK_TIMEOUT", "1")
+    fake = runs({REMOTE: process_fakes.HANGS})
+    monkeypatch.setattr(git.os, "killpg", lambda pid, sig: fake.popens[-1].send_signal(sig))
+
+    assert git.default_branch(cwd=tmp_path) is None
+
+
 def test_default_branch_local_only_never_asks_the_remote(git, runs, tmp_path):
     fake = runs({REMOTE: (0, "ref: refs/heads/dev\tHEAD\n", "")})
     assert git.default_branch(cwd=tmp_path, remote=False) is None
