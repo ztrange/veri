@@ -339,6 +339,69 @@ def test_4025_called_under_another_conductor_it_discards_the_record_and_starts_f
     assert fake.calls[0][:2] == ("scope-check.sh", (".tdd/issue-12.md", "."))
 
 
+# Inner calls steps 2, 2b and 2c do not name, each by name with its reason.
+NAMED_ELSEWHERE = {
+    "stop-requested.sh": "FC8: the stop check *Launching a leaf* states before every leaf, which 2c defers to",
+    "ledger-steps.sh": "PT2: <k> in step 2.2's subject is the step lines ledger-steps.sh prints",
+}
+
+
+def test_4025_every_inner_call_in_the_ordered_list_is_a_script_skill_md_steps_2_2b_and_2c_name():
+    from pathlib import Path
+    plan_publish = importlib.import_module("veri.plan_publish")
+    skill = (Path(plan_publish.__file__).resolve().parents[2] / "SKILL.md").read_text()
+    steps = skill[skill.index("### 2. Scope & plan"):skill.index("### 3. The cycle loop")]
+
+    assert [name for name in plan_publish.CALLS if "$S/" + name not in steps and name not in NAMED_ELSEWHERE] == []
+
+
+def test_4025_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(publish):
+    plan_publish = importlib.import_module("veri.plan_publish")
+    code, out, err, fake = publish()
+
+    made = [c[0] for c in fake.calls if c[0] not in ("git", "gh")]
+    made += [os.path.basename(a) for c in fake.calls if c[0] == "detach-leaf.sh" for a in c[1] if a.endswith(".sh")]
+    assert code == 0
+    assert set(made) == set(plan_publish.CALLS)
+    firsts = [made.index(name) for name in plan_publish.CALLS if name not in ("supervise.sh", "run-verdict.sh")]
+    assert firsts == sorted(firsts)
+
+
+def test_4025_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr(publish):
+    fused = importlib.import_module("veri.fused")
+
+    class Marked(Fake):
+        def __call__(self, name, *args, **kw):
+            code, out, err = super().__call__(name, *args, **kw)
+            return code, out, "ERR<%d>\n" % len(self.calls)
+
+    code, out, err, fake = publish(fake=Marked())
+
+    lines = out.splitlines()
+    wanted = [fused.shown(c[0], *c[1], **c[4]) + " exit %d" % (3 if c[0] in ("stack-branch.sh", "stop-requested.sh") else 0)
+              for c in fake.calls]
+    assert [line for line in wanted if line not in lines] == []
+    heads = [lines.index(line) for line in wanted]
+    assert code == 0
+    assert heads == sorted(heads)
+    assert all("ERR<%d>" % i in err for i in range(1, len(fake.calls) + 1))
+    assert lines[heads[0] + 1:heads[1]] == []
+
+
+def test_4025_a_stop_handles_no_refusal_resets_nothing_and_spends_no_budget(publish):
+    code, out, err, fake = publish(answers={("wait-leaf.sh", None): (1, "")})
+
+    assert code == 1
+    assert not {"classify-bail.sh", "preflight-refused.sh", "add-ledger-step.sh", "ledger-growth.sh"} & set(fake.names())
+    assert not [c for c in fake.calls if c[0] == "event.sh" and c[1][:1] == ("bail",)]
+    assert not [c for c in fake.calls if c[0] == "comment.sh" and c[1][1:2] in (("bail",), ("park",))]
+    assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("reset",), ("checkout",))]
+    assert [c[1] for c in fake.calls if c[0] == "detach-leaf.sh"][0][1] == "verdict-plan"
+    assert len([c for c in fake.calls if c[0] == "detach-leaf.sh"]) == 1
+    assert not any(k.startswith(("REVISE_BUDGET", "VERI_STUCK", "VERI_REFACTOR", "VERI_STEP_GROWTH"))
+                   for c in fake.calls if c[3] for k in set(c[3]) - set(os.environ))
+
+
 def test_4025_the_plan_commit_ends_stage_plan_when_the_conductor_started_it(publish):
     (publish.wt / ".tdd" / "stage-plan.t").write_text("1\n")
     code, out, err, fake = publish(answers=WAITING)
