@@ -7,4 +7,4 @@
 - [x] a merge where no stack is named makes no stack-red.sh call ⟦criterion 5⟧
 - [x] the code this issue adds names no repository, issue, branch, label or person ⟦criterion 6⟧
 - [x] SCRIPTS.md's queued-merge.sh entry states the freeze (SC251), graded ⟦criterion 7⟧
-- [ ] skills/vmerge/SKILL.md says a frozen join is retried once the stack is green and stack-culprit.sh <sha> is the next step (M35), graded ⟦criterion 8⟧
+- [x] skills/vmerge/SKILL.md says a frozen join is retried once the stack is green and stack-culprit.sh <sha> is the next step (M35), graded ⟦criterion 8⟧
