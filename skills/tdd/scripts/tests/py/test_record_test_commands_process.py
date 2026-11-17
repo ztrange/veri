@@ -28,6 +28,7 @@ def pulls(monkeypatch):
 
     class Opened(list):
         refusals = 0
+        fork_heads = ()
 
     opened = Opened()
 
@@ -39,8 +40,10 @@ def pulls(monkeypatch):
         return URL
 
     def listed(fields, state="open", head=None, limit=10000, repo=None):
-        return [github.Pull(number=1, url=URL, html_url=URL, draft=False, head_ref=h, head_sha=None, body=b,
-                            state="OPEN", labels=()) for h, _, _, b in opened if head in (None, h)]
+        """The PRs opened here (head in this repository), and `opened.fork_heads`' PRs from forks."""
+        own = [(h, False) for h, _, _, _ in opened] + [(h, True) for h in opened.fork_heads]
+        return [github.Pull(number=1, url=URL, html_url=URL, draft=False, head_ref=h, head_sha=None, body="",
+                            state="OPEN", labels=(), cross_repository=fork) for h, fork in own if head in (None, h)]
 
     monkeypatch.setattr(github, "gh_pr_create", create, raising=False)
     monkeypatch.setattr(github, "open_pulls", listed)
@@ -213,6 +216,19 @@ def test_a_pr_refused_after_the_push_says_to_re_run_and_a_re_run_opens_it_leavin
     assert again[:2] == (0, URL + "\n"), again[2]
     assert git(origin, "rev-parse", "veri-install") == pushed
     assert [head for head, _, _, _ in pulls] == ["veri-install"]
+
+
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+def test_a_forks_open_pr_from_a_branch_named_veri_install_does_not_count_and_the_re_run_opens_its_own(
+        tmp_path, run_cli, record, pulls):
+    origin, work = project(tmp_path)
+    pulls.refusals = 1
+    run_cli(record, ["make unit", "make test"], cwd=work)
+    pulls.fork_heads = ("veri-install",)
+
+    code, out, err = run_cli(record, ["make unit", "make test"], cwd=work)
+
+    assert (code, out, [head for head, _, _, _ in pulls]) == (0, URL + "\n", ["veri-install"]), err
 
 
 @pytest.mark.process("git clone, commit-tree and push to a bare origin")
