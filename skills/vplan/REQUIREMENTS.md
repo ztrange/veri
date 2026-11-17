@@ -2,7 +2,7 @@
 
 | ID | Requirement | Why |
 |---|---|---|
-| VPL1 | Invoked as `/vplan <idea>`, or `/vplan`; the idea may instead be an existing issue to redefine. | Same short alias form as `/vcoord`. |
+| VPL1 | Invoked as `/vplan <idea>`, or `/vplan`; the idea may instead be an existing issue to redefine. | Same short alias form as `/vdev`. |
 | VPL2 | Near its top, the skill says it obeys `operator/PRINCIPLES.md` and reads it first. | Without it no principle reaches the skill. |
 | VPL3 | It names no project fact: where PRDs live and which labels apply are read from the target repo's CLAUDE.md, and where that is silent, a spec goes to `specs/prd-<nnn>.md` (P12). | Skills serve foreign repos. |
 | VPL4 | Before its first question to the human, it gathers the facts: what exists that the idea touches, a measurement of whatever the idea claims to improve, the next free PRD number, and the open PRDs it overlaps. | A measurement decided the order of PRD 014, and PRD 013's number was nearly reused. |
@@ -15,7 +15,7 @@
 | VPL11 | Redefining an existing issue keeps its old text in a comment on that issue, and the plan says what happened to each of its decisions: carried, overturned with the reason, or open. | Edit history is a poor home for decisions a spec cites by number. |
 | VPL12 | A plan is finished when a fresh session could file from it: the issue points at a spec on the default branch, or holds the rows itself. A spec still on an unmerged PR is reported as unfinished, and the PR merges only when the human says so. | PRD 014's issue first pointed at a file only on an unmerged branch. |
 | VPL13 | A PRD issue that is not itself the work carries no opt-in label. | An epic was once taken as an ordinary issue. |
-| VPL14 | It files only the children the human names, each through `/vfile`, and titles them `PRD <nnn>.<k>: …`. It never starts a run. | The operator chose to file only 014.1. Starting runs belongs to `/vdev` and `/vcoord`. |
+| VPL14 | It files only the children the human names, each through `/vfile`, and titles them `PRD <nnn>.<k>: …`. It never starts a run. | The operator chose to file only 014.1. Starting runs belongs to `/vdev`. |
 | VPL15 | Every subagent brief it writes asks for a return of at most 10 lines (P6), and says that all writes stay in the project repo and that a fix belonging elsewhere is reported, not made (P11, in its words). | Earlier skills' prose omitted both. |
 | VPL16 | A sub-PRD holds at most one capability the human can use. | The README promises sub-PRDs sized for a single `/tdd` run, and clarion2's 001.1 held five deliveries. One sub-PRD meant one wait for five results. Row count did not predict how much a run took, so the cap is capabilities. |
 | VPL17 | A sub-PRD holding more than one capability is split, or states in the sub-PRD why it cannot be. | A limit with no consequence changes nothing, and a real exception should be visible to whoever files it. |
