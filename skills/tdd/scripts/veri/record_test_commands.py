@@ -19,6 +19,13 @@ TITLE = "Record the test commands veri runs"
 BODY = ("Adds or updates the `veri: fast tests:` and `veri: all tests:` lines of `CLAUDE.md`: the commands veri runs for "
         "this repository's fast and full test tiers, read ahead of any inference. Until this pull request merges, veri's "
         "runs infer the commands. `/vinstall` opened it and never merges it.")
+ONE_FILE_BODY = (" It also adds or updates the `veri: one test file:` line: the command that runs one test file, taking "
+                 "it as `\"$1\"`, without which a run's preflight stops.")
+
+
+def body(one_file):
+    """The pull request's body: BODY, naming the one-test-file line too when <one_file> is recorded."""
+    return BODY + (ONE_FILE_BODY if one_file is not None else "")
 
 
 class Refused(Exception):
@@ -140,7 +147,7 @@ def remote_branch(root):
     return listed.stdout.split()[0]
 
 
-def resume(root, default, held, tip, tree):
+def resume(root, default, held, tip, tree, one_file=None):
     """Open the pull request from origin's BRANCH when it holds exactly the commit this run would push (<tree> on
     <tip>) and none is open from it; None (nothing to do) when one is."""
     same = (checked("rev-parse", held + "^{tree}", cwd=root).decode() == tree
@@ -155,12 +162,12 @@ def resume(root, default, held, tip, tree):
             return None
     except (github.NoAnswer, ValueError) as unread:
         raise Refused("cannot tell whether a pull request from %s is open" % BRANCH) from unread
-    return open_pull(default)
+    return open_pull(default, one_file)
 
 
-def open_pull(default):
+def open_pull(default, one_file=None):
     try:
-        return github.gh_pr_create(BRANCH, default, TITLE, BODY)
+        return github.gh_pr_create(BRANCH, default, TITLE, body(one_file))
     except github.NoAnswer as refused:
         raise Refused("pushed %s, but no pull request was opened: %s; re-run with the same commands to open it"
                       % (BRANCH, refused.detail.strip())) from refused
@@ -185,13 +192,13 @@ def record(fast, full, root, one_file=None):
         raise Refused(why)
     tree = tree_of(root, tip, new, mode)
     if held:
-        return resume(root, default, held, tip, tree)
+        return resume(root, default, held, tip, tree, one_file)
     sha = checked("commit-tree", tree, "-p", tip, "-m", MESSAGE, cwd=root).decode()
     pushed = git.network("push", "-q", "origin", "%s:refs/heads/%s" % (sha, BRANCH), cwd=root)
     if pushed.returncode != 0:
         raise Refused(pushed.stderr.strip() or "git push origin %s failed" % BRANCH)
     os.chdir(root)
-    return open_pull(default)
+    return open_pull(default, one_file)
 
 
 def main(argv):

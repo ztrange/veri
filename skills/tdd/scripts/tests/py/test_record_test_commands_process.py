@@ -252,3 +252,14 @@ def test_a_claude_md_that_is_a_symlink_is_exit_2_not_a_regular_file_with_nothing
 
     assert (code, out, branches(origin), pulls) == (2, "", ["refs/heads/main"], [])
     assert "CLAUDE.md is not a regular file" in err
+
+
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+def test_the_pr_body_names_the_one_test_file_line_only_when_one_file_adds_it(tmp_path, run_cli, record, pulls):
+    _, with_one = project(tmp_path / "with")
+    _, without = project(tmp_path / "without")
+
+    run_cli(record, ["--one-file", 'pytest -q "$1"', "make unit", "make test"], cwd=with_one)
+    run_cli(record, ["make unit", "make test"], cwd=without)
+
+    assert ["veri: one test file:" in body for _, _, _, body in pulls] == [True, False]
