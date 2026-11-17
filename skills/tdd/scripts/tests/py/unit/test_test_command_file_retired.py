@@ -30,6 +30,17 @@ def namers(root, tracked):
     return found
 
 
+def test_the_guard_names_a_mention_under_skills_by_file_and_line_and_none_under_specs_or_tdd(tmp_path):
+    for name in ("skills/tdd/x.sh", "specs/prd.md", ".tdd/issue-1.md", "skills/a/.tdd/issue-2.md"):
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / name).write_text("first\nreads " + RETIRED + "\n")
+    tracked = ["skills/tdd/x.sh", "specs/prd.md", ".tdd/issue-1.md", "skills/a/.tdd/issue-2.md"]
+
+    assert namers(tmp_path, tracked) == ["skills/tdd/x.sh:2"]
+    (tmp_path / "skills/tdd/x.sh").write_text("first\n")
+    assert namers(tmp_path, tracked) == []
+
+
 @pytest.mark.process("git ls-files over the repository")
 @pytest.mark.tree_audit("a walk of every tracked file outside specs/ and .tdd/")
 def test_no_tracked_file_outside_specs_tdd_and_the_tf1_cases_names_the_retired_file(monkeypatch, request):
