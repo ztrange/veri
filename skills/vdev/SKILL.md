@@ -29,9 +29,10 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
   `claude --strict-mcp-config --mcp-config '{"mcpServers":{}}'`. Change no setting yourself.
 - **Writing in another repository:** when the user's instructions in this session forbid
   writing in a repository other than the session's, ask the human once whether veri may
-  fast-forward its own clone before each new run, and record the answer with
-  `$S/update-veri.sh --consent yes|no`. Ask only when no record exists; never edit the user's
-  instructions.
+  fast-forward its own clone before each new run, as *When to stop and ask* puts a question (a
+  question session where the session has `start_session`, else in full in the transcript), and
+  record the answer with `$S/update-veri.sh --consent yes|no`. Ask only when no record exists;
+  never edit the user's instructions.
 - **Merging is always granted** for the runs this session finishes, in the project repo only.
   A run is merged after its review is OK; never one in another repo.
 - **`--resume <file>`** is read only in a session without the app's `start_session` tool (a
@@ -408,12 +409,17 @@ Apply the priority label the target repo's CLAUDE.md names yourself, once `vjudg
 as *Running the sibling skills* says), to an issue whose landing makes future runs cheaper (a
 slower suite made faster, a leaf cost cut, a recurring bail cause removed) or gives the human
 something usable, or feedback on a plan, sooner (P16). `$S/solvable-issues.sh` ranks `priority`
-issues ahead, so the label is the order.
+issues ahead, so the label is the order. A priority call `vjudge` surfaces instead of clearing
+becomes a question as *When to stop and ask* puts one, and the label waits on its answer.
 
 ## When to stop and ask
 
 Stop and ask the human only for: red CI you cannot fix, a ⟦human-owed⟧ step, a conflict you
-cannot resolve, or a decision a ledger step asks for. Each such case first goes through `vjudge`,
+cannot resolve, a decision a ledger step asks for, a review caveat `vjudge` does not settle
+(*Routing an exit*), a veri fault found while veri's repository is not the project repo, a split
+or criteria rewrite `vfile` proposes that `vjudge` surfaces (*Out of scope*), a priority call
+`vjudge` surfaces (*Priority*), or whether veri may fast-forward its own clone (*Starting*). Each
+such case first goes through `vjudge`,
 run as *Running the sibling skills* says: what the judge settles is acted on and never asked, and
 only what it surfaces reaches the human, as P21 says, stated in full (P4). Everything else you
 decide and keep going; a turn never ends while a slot can be filled (P5).
