@@ -327,6 +327,25 @@ def test_the_fast_tier_and_prose_owed_run_at_head_in_the_fix_worktree(monkeypatc
     assert (("make unit", None) in world.runs, ("prose-owed.sh", TOP) in world.scripts) == (True, True)
 
 
+@pytest.mark.parametrize("given", [
+    {"red_now": sha(7)}, {"red_code": 2}, {"fixes": []}, {"changed": (("M", "tests/a.py"),)},
+    {"alone": (1, "FAILED %s\n" % CASE)}, {"alone": (None, "")}, {"fast": (1, "")}, {"owed": 1},
+    {"push": 1, "moved": sha(20)}, {"push": 1}, {"log_fails": True},
+])
+def test_every_exit_1_or_2_after_the_lock_pushes_nothing_frees_the_lock_and_keeps_the_fix_worktree_and_its_commits(
+        monkeypatch, run_cli, fix, tmp_path, given):
+    world = World(monkeypatch, fix, tmp_path, **given)
+    git_calls = []
+    monkeypatch.setattr(fix.git, "git", lambda *args, **kwargs: git_calls.append(args))
+    monkeypatch.setattr(fix.git, "network", lambda *args, **kwargs: git_calls.append(args))
+
+    code, _, err = run_cli(fix, world.argv())
+
+    landed = [push for push in world.pushed if given.get("push") is None]
+    assert (code in (1, 2), landed, world.scripts[0][:2], world.scripts[-1][:2], git_calls) == (
+        True, [], ("merge-lock.sh", "take"), ("merge-lock.sh", "release"), []), err
+
+
 @pytest.mark.parametrize("push, origin_after, code", [
     (1, sha(20), 1),
     (1, ONTO, 2),
