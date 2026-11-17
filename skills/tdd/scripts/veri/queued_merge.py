@@ -658,17 +658,23 @@ def _join(pid, repo, pr, worktree, branch, stack, window):
     if code:
         return code
     tracked, said = _track(worktree)
-    if tracked:
-        # The join has already succeeded: a tracking pull request not (re)opened is said, never the join's failure.
+    said = " ".join(said.split())[:200] or "it said nothing"
+    # The join has already succeeded: a tracking pull request not (re)opened is said, never the join's failure.
+    if tracked == 3:
+        _say("joined, but stack-pr.sh exit 3 says the stack is not ahead of the default branch right after the push"
+             " (%s); no tracking pull request opened" % said)
+    elif tracked:
         _say("joined, but stack-pr.sh failed, exit %d (%s); the stack's tracking pull request may be missing" % (
-            tracked, " ".join(said.split())[:200] or "it said nothing"))
+            tracked, said))
     return _join_cleanup(worktree, branch, released)
 
 
 def _track(worktree):
     """stack-pr.sh run in <worktree>, so the first join after a landing reopens the tracking pull request:
-    (exit code, its stderr)."""
-    run = _start("stack-pr.sh", cwd=worktree, capture=True)
+    (exit code, its stderr). Bounded like the join's git network calls: after VERI_GIT_NETWORK_TIMEOUT seconds its
+    whole process group is killed and the call answers 2, its stderr naming the limit."""
+    run = _bounded([os.path.join(SCRIPTS, "stack-pr.sh")], NETWORK, cwd=worktree, stdout=subprocess.PIPE,
+                   stderr=subprocess.PIPE, text=True)
     return run.returncode, run.stderr or ""
 
 
