@@ -1004,3 +1004,11 @@ def test_issue_4092_preflight_runs_ready_check_no_suites_after_step_2s_checks_an
     assert names.index("leaf-launchable.sh") < names.index("ready-check.sh") < names.index("issue-worktree.sh"), names
     assert [args for n, args, _ in calls if n == "ready-check.sh"] == [("--no-suites",)], calls
     assert "ready-check.sh --no-suites exit 0" in out.splitlines(), out
+
+
+@pytest.mark.parametrize("failing", ["leaf-launchable.sh", "gh", "claude"])
+def test_issue_4092_a_failing_step_2_check_stops_preflight_before_ready_check_runs(monkeypatch, run_cli, tmp_path, failing):
+    calls, code, out = _front(monkeypatch, run_cli, tmp_path, {failing: (1, "", "")})
+
+    assert code == 1 and out.splitlines()[-1].startswith("stopped at 2 "), out
+    assert "ready-check.sh" not in [n for n, _, _ in calls], calls
