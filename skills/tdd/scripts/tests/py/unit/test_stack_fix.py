@@ -127,3 +127,39 @@ def test_a_red_sha_that_is_not_the_commit_stack_red_prints_is_exit_1_naming_the_
     code, _, err = run_cli(fix, world.argv())
 
     assert (code, world.pushed, sha(7) in err, world.lock_held) == (1, [], True, False), err
+
+
+@pytest.mark.parametrize("n, text", [
+    ("13", culprit_text()),
+    ("12", culprit_text(issue="none")),
+    ("12", culprit_text(red=sha(5))),
+    ("1", culprit_text(issue="11 12")),
+])
+def test_exits_1_pushing_nothing_when_n_is_not_the_issue_the_culprit_file_names_for_the_red_sha(
+        monkeypatch, run_cli, fix, tmp_path, n, text):
+    world = World(monkeypatch, fix, tmp_path, culprit=text)
+
+    code, _, err = run_cli(fix, world.argv(n=n))
+
+    assert (code, world.pushed, world.lock_held) == (1, [], False), err
+
+
+@pytest.mark.parametrize("text", ["", "issue: 12\ncase: %s\tFAILED\n" % CASE, "red: %s\ncase: %s\tx\n" % (RED, CASE),
+                                  "red: %s\nissue: 12\n" % RED])
+def test_a_culprit_file_without_its_red_issue_or_case_lines_is_exit_2_pushing_nothing(
+        monkeypatch, run_cli, fix, tmp_path, text):
+    world = World(monkeypatch, fix, tmp_path, culprit=text)
+
+    code, _, err = run_cli(fix, world.argv())
+
+    assert (code, world.pushed) == (2, []), err
+
+
+@pytest.mark.parametrize("argv", [["x12", RED, "f"], ["12", RED[:12], "f"], ["12", RED, "/no/such/file"], ["12", RED]])
+def test_bad_arguments_or_an_unreadable_culprit_file_are_exit_2_before_the_lock(monkeypatch, run_cli, fix, tmp_path,
+                                                                                 argv):
+    world = World(monkeypatch, fix, tmp_path)
+
+    code, _, err = run_cli(fix, argv)
+
+    assert (code, world.pushed, world.scripts) == (2, [], []), err

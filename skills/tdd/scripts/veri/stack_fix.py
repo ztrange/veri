@@ -168,10 +168,36 @@ def _checked(n, red):
     return stack, onto, head
 
 
+def culprit_answer(text):
+    """(red, issues, cases) a stack-culprit.sh answer records: the sha of its `red:` line, the issue numbers of its
+    `issue:` line (none for `none`), and the case of each `case:` line, in order. None when it lacks any of them."""
+    red = re.search(r"^red: ([0-9a-f]{40})$", text, re.M)
+    issues = re.search(r"^issue: (.+)$", text, re.M)
+    cases = re.findall(r"^case: ([^\t\n]+)", text, re.M)
+    if not (red and issues and cases):
+        return None
+    return red.group(1), set(issues.group(1).split()) - {"none"}, cases
+
+
 def main(argv):
     if len(argv) != 3:
         return entry.refuse(usage=USAGE)
     n, red, culprit = argv
+    if not re.fullmatch(r"[1-9][0-9]*", n) or not re.fullmatch(r"[0-9a-f]{40}", red):
+        return entry.refuse("<n> must be an issue number and <red-sha> a full 40-hex sha", usage=USAGE)
+    try:
+        with open(culprit, encoding="utf-8", errors="replace") as f:
+            answer = culprit_answer(f.read())
+    except OSError as error:
+        return entry.refuse("the culprit file cannot be read: %s" % error.strerror, prefix="stack-fix: ")
+    if answer is None:
+        return entry.refuse("the culprit file is not stack-culprit.sh's answer: it lacks its red:, issue: or case:"
+                            " lines; nothing pushed", prefix="stack-fix: ")
+    recorded, issues, cases = answer
+    if recorded != red or n not in issues:
+        _say("the culprit file names issue %s for %s, not issue %s for %s; nothing pushed" % (
+            " ".join(sorted(issues, key=int)) or "none", recorded, n, red))
+        return 1
     pid = str(os.getpid())
     code, _ = _script("merge-lock.sh", "take", "--pid", pid)
     if code:
