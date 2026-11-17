@@ -6,7 +6,7 @@ module as a plugin (PYTEST_PLUGINS, so its workers load it too) and makes a `Wat
 the hooks below record, in the leg, each worker it started (by pid) and the time and node id of the last case that
 started or reported; in a worker, where no Watch is current, they do nothing. The Watch's thread, once the leg has been
 idle for the window, writes the stacks of all the leg's threads, sends each worker SIGUSR1 (on which this plugin has the
-worker write all its threads' stacks), ends the workers (TERM, then KILL by pid after GRACE seconds), runs the leg's
+worker write all its threads' stacks), ends the workers (TERM, then KILL by pid after GRACE seconds, reaping the killed ones within GRACE more), runs the leg's
 cleanups, prints one line and exits 2. `end` is also what
 the leg's TERM and HUP handler calls, so a signalled leg never waits on xdist's worker teardown.
 
@@ -108,17 +108,23 @@ class Watch:
             pass
 
     def end_workers(self):
-        """TERM to each worker this leg started, KILL by pid to any still alive GRACE seconds later; their pids."""
+        """TERM to each worker this leg started, KILL by pid to any still alive GRACE seconds later, then wait up to GRACE
+        more until each is gone, reaped (#4278: a killed worker is still dying or a zombie until then, and would outlive
+        the leg's exit); their pids."""
         workers = [pid for pid in self.workers if pid > 1 and pid != os.getpid()]
         for pid in workers:
             self.signal(pid, signal.SIGTERM)
-        deadline = self.clock() + GRACE
-        while any(not self.gone(pid) for pid in workers) and self.clock() < deadline:
-            self.sleep(0.1)
+        self.wait_gone(workers)
         for pid in workers:
             if not self.gone(pid):
                 self.signal(pid, signal.SIGKILL)
+        self.wait_gone(workers)
         return workers
+
+    def wait_gone(self, workers):
+        deadline = self.clock() + GRACE
+        while any(not self.gone(pid) for pid in workers) and self.clock() < deadline:
+            self.sleep(0.1)
 
     def signal(self, pid, signum):
         try:
