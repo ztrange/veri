@@ -282,7 +282,7 @@ def test_the_pr_body_names_the_one_test_file_line_only_when_one_file_adds_it(tmp
 
 
 @pytest.mark.process("git clone, commit-tree and push to a bare origin")
-def test_a_veri_install_with_the_same_commands_cut_from_an_older_default_tip_is_exit_2_saying_so(
+def test_a_veri_install_with_the_same_commands_cut_from_an_older_default_tip_is_exit_3_while_its_pr_is_open(
         tmp_path, run_cli, record, pulls):
     origin, work = project(tmp_path)
     run_cli(record, ["make unit", "make test"], cwd=work)
@@ -291,5 +291,31 @@ def test_a_veri_install_with_the_same_commands_cut_from_an_older_default_tip_is_
 
     code, out, err = run_cli(record, ["make unit", "make test"], cwd=work)
 
-    assert (code, out) == (2, "")
+    assert (code, out, len(pulls)) == (3, "", 1)
+    assert URL in err
+
+
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+def test_a_veri_install_with_the_same_commands_cut_from_an_older_default_tip_and_no_pr_is_exit_2_saying_so(
+        tmp_path, run_cli, record, pulls):
+    origin, work = project(tmp_path)
+    pulls.refusals = 1
+    run_cli(record, ["make unit", "make test"], cwd=work)
+    commit_all(work, "later", **{"NEWS.md": "moved on\n"})
+    git(work, "push", "-q", "origin", "HEAD:main")
+
+    code, out, err = run_cli(record, ["make unit", "make test"], cwd=work)
+
+    assert (code, out, pulls) == (2, "", [])
     assert "older tip" in err and "other commands" not in err
+
+
+@pytest.mark.process("git clone, commit-tree and push to a bare origin")
+def test_a_veri_install_holding_other_commands_is_exit_3_while_its_pr_is_open(tmp_path, run_cli, record, pulls):
+    origin, work = project(tmp_path)
+    run_cli(record, ["make unit", "make test"], cwd=work)
+
+    code, out, err = run_cli(record, ["make unit", "make all"], cwd=work)
+
+    assert (code, out, len(pulls)) == (3, "", 1)
+    assert URL in err
