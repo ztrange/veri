@@ -229,6 +229,32 @@ def test_exits_1_pushing_nothing_unless_each_fix_commit_ends_its_subject_n_and_c
     assert (got, len(world.pushed), world.lock_held) == (code, 1 if code == 0 else 0, False), err
 
 
+@pytest.mark.parametrize("changed, named", [
+    (("A", "tests/helpers.py"), "tests/helpers.py"),
+    (("M", "pkg/test/data.json"), "pkg/test/data.json"),
+    (("D", "spec/a_spec.rb"), "spec/a_spec.rb"),
+    (("M", "web/__tests__/b.js"), "web/__tests__/b.js"),
+    (("M", "src/test_util.py"), "src/test_util.py"),
+    (("M", "src/util_test.go"), "src/util_test.go"),
+    (("A", "src/util.test.js"), "src/util.test.js"),
+    (("M", "src/util.spec.ts"), "src/util.spec.ts"),
+    (("R100", "src/a.py", "tests/a.py"), "tests/a.py"),
+    (("R087", "tests/a.py", "src/a.py"), "tests/a.py"),
+    (("M", "chk/a_check.py"), "chk/a_check.py"),
+    (("M", "src/contest.py"), None),
+    (("M", "latest/testing.py"), None),
+    (("R100", "src/a.py", "src/b.py"), None),
+])
+def test_a_test_file_the_diff_adds_changes_deletes_or_renames_is_exit_1_naming_it_and_so_is_a_named_cases_file(
+        monkeypatch, run_cli, fix, tmp_path, changed, named):
+    text = culprit_text(cases=("chk/a_check.py::test_c",))
+    world = World(monkeypatch, fix, tmp_path, changed=(("M", "src/b.py"), changed), culprit=text)
+
+    code, _, err = run_cli(fix, world.argv())
+
+    assert (code, len(world.pushed), named is None or named in err) == ((1, 0, True) if named else (0, 1, True)), err
+
+
 @pytest.mark.parametrize("push, origin_after, code", [
     (1, sha(20), 1),
     (1, ONTO, 2),
