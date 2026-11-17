@@ -251,6 +251,25 @@ def _cases_pass(top, cases):
                 % code))
 
 
+def tier_and_prose(top, say):
+    """The fast tier and prose-owed.sh, run at HEAD in <top>: Refused on a red fast tier (any non-zero exit) or
+    prose-owed.sh exit 1 (a unit owes a grade); NoAnswer when no fast tier command is found, the fast tier gives no
+    exit within VERI_TIMEOUT, or prose-owed.sh exits otherwise. <say> ends each message."""
+    fast = _fast_command(top)
+    if not fast:
+        raise NoAnswer("no fast tier command is found (detect-test-command.sh --tier fast); %s" % say)
+    code, _ = _run(fast)
+    if code is None:
+        raise NoAnswer("the fast tier (%s) gave no exit within VERI_TIMEOUT; %s" % (fast, say))
+    if code:
+        raise Refused("the fast tier (%s) is red at HEAD, exit %d; %s" % (fast, code, say))
+    owed, _ = _script("prose-owed.sh", top)
+    if owed == 1:
+        raise Refused("prose-owed.sh exits 1 at HEAD: a unit owes a grade; %s" % say)
+    if owed:
+        raise NoAnswer("prose-owed.sh exited %d at HEAD; %s" % (owed, say))
+
+
 def _pushed(head, stack, onto):
     """Push <head> to <stack>, leased to <onto> and a fast-forward of it (its descent checked before): returns when
     origin's stack is <head>, read back after a push that did not answer 0 (one that timed out may have landed).
@@ -307,7 +326,12 @@ def main(argv):
         if _dirty().strip():
             raise Refused("the fix worktree has uncommitted changes, so a run there would not test HEAD; nothing"
                           " pushed")
-        _cases_pass(_top(), cases)
+        top = _top()
+        _cases_pass(top, cases)
+        tier_and_prose(top, "nothing pushed")
+        if _rev("HEAD") != head or _dirty().strip():
+            raise NoAnswer("the alone runs, the fast tier or prose-owed.sh changed the fix worktree (HEAD or its files)"
+                           " since %s was checked; nothing pushed" % head)
         _pushed(head, stack, onto)
     except (Refused, NoAnswer, NotRed) as stopped:
         _say(str(stopped))

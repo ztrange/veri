@@ -301,6 +301,32 @@ def test_no_one_file_command_is_exit_2_and_uncommitted_changes_exit_1_since_the_
     assert (code, world.pushed, world.runs) == ({"dirty": 1}.get(given, 2), [], []), err
 
 
+@pytest.mark.parametrize("given, code", [
+    ({"fast": (1, "")}, 1),
+    ({"fast": (2, "")}, 1),
+    ({"fast": (None, "")}, 2),
+    ({"fast_command": None}, 2),
+    ({"owed": 1}, 1),
+    ({"owed": 2}, 2),
+    ({"head_after": sha(30)}, 2),
+])
+def test_a_red_fast_tier_or_a_unit_owing_a_grade_at_head_is_exit_1_and_no_answer_from_either_exit_2(
+        monkeypatch, run_cli, fix, tmp_path, given, code):
+    world = World(monkeypatch, fix, tmp_path, **given)
+
+    got, _, err = run_cli(fix, world.argv())
+
+    assert (got, world.pushed, world.lock_held) == (code, [], False), err
+
+
+def test_the_fast_tier_and_prose_owed_run_at_head_in_the_fix_worktree(monkeypatch, run_cli, fix, tmp_path):
+    world = World(monkeypatch, fix, tmp_path)
+
+    run_cli(fix, world.argv())
+
+    assert (("make unit", None) in world.runs, ("prose-owed.sh", TOP) in world.scripts) == (True, True)
+
+
 @pytest.mark.parametrize("push, origin_after, code", [
     (1, sha(20), 1),
     (1, ONTO, 2),
