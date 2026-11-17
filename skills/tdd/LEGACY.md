@@ -34,7 +34,9 @@
    `develop-surround` leaf through `supervise.sh`, its prompt built by
    `$S/build-develop-prompt.sh surround <spec-file> "<STEP>" '<test-cmd>'`: it commits
    characterization tests that drive the region only through the seam, and edits no production
-   file. After its wait exits 0, `$S/suite-reported.sh develop-surround` runs as `PHASED.md` sets
+   file. Each `MUTATION:` criterion of the spec, the criteria `coverage-blocker.sh` writes into the
+   legacy issue a refusing refactor files, is a row `develop-surround` owes in its step's mutant
+   table, beside the rows it proposes. After its wait exits 0, `$S/suite-reported.sh develop-surround` runs as `PHASED.md` sets
    out for a phase leaf. Then launch one `verify-surround` leaf through `supervise.sh`, named
    `verdict-surround` as *Launching a leaf* sets out:
    `run-verdict.sh --step "<STEP>" surround .tdd/issue-<n>-spec.md <test-path>`, `<test-path>` being
