@@ -1,6 +1,6 @@
 # Plan for #4091 — PRD 016.6c: /vready proves leaves may bypass permission prompts
 
-- [ ] a `bypassPermissions` row runs `claude -p --model haiku --permission-mode bypassPermissions --output-format json` in a scratch directory under `.tdd/`, ok when both nonce files hold the nonce and no denial is listed, starting no process but `claude` ⟦criterion 1⟧ ⟦criterion 6⟧
+- [x] a `bypassPermissions` row runs `claude -p --model haiku --permission-mode bypassPermissions --output-format json` in a scratch directory under `.tdd/`, ok when both nonce files hold the nonce and no denial is listed, starting no process but `claude` ⟦criterion 1⟧ ⟦criterion 6⟧
 - [ ] an exit 0 with `is_error` false but a nonce file missing or not holding the nonce fails the row ⟦criterion 2⟧
 - [ ] a listed permission denial fails the row though both files hold the nonce ⟦criterion 2⟧
 - [ ] a failing row quotes the denied tools and names both managed-settings files and the user and project `permissions.deny` ⟦criterion 3⟧

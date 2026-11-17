@@ -7,6 +7,7 @@ import subprocess
 import pytest
 
 from conftest import SCRIPTS
+from stub_script import write_stub
 
 
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess outside a git repository")
@@ -59,8 +60,19 @@ def build_ready_repo(tmp_path):
     gh = bin_dir / "gh"
     gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api -i user") printf \'HTTP/2.0 200 OK\\r\\nX-Oauth-Scopes: repo\\r\\n\\r\\n{}\\n\' ;;\n  *label*) echo \'[{"name":"veri"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     gh.chmod(0o755)
-    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "VERI_LABEL": "veri", "VERI_POLL": "0.05"}
+    claude = write_stub(str(bin_dir / "claude-probe"), CLAUDE_PROBE)
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "VERI_LABEL": "veri", "VERI_POLL": "0.05",
+           "CLAUDE_BIN": claude}
     return repo, env
+
+
+CLAUDE_PROBE = """for arg; do prompt=$arg; done
+nonce=$(printf '%s' "$prompt" | sed -n 's/.*nonce \\([0-9a-f]*\\).*/\\1/p')
+printf '%s' "$nonce" > bash-probe.txt
+printf '%s' "$nonce" > write-probe.txt
+echo '{"type":"result","is_error":false,"permission_denials":[]}'
+"""
+"""A `claude` that does what the bypassPermissions probe asks, as a model allowed both tools would."""
 
 
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess inside a repository where every row holds")
