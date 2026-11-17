@@ -83,6 +83,10 @@ earlier install left to `vready`, `vreport`, `vstatus` or `vstop` is removed, re
 `/vready`, the readiness check `/vinstall` runs after an install that changed a link, makes one
 paid Haiku call, about $0.004, to prove a leaf may bypass permission prompts: a `claude -p`
 started the way a leaf is must write two files with Bash and Write under `bypassPermissions`.
+A run's preflight runs the same permission rows once per clone, recording them in
+`.tdd/permissions-checked` (never committed), and again only when the gh login, `origin`'s URL or
+the check changes, or when `VERI_RECHECK_PERMISSIONS=1` asks for it; each re-check makes that paid
+Haiku call.
 
 The skill locates its own scripts from the base directory Claude Code reports when it
 loads, so nothing is copied into a target repo. On the first run against a repo the
