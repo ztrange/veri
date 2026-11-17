@@ -16,18 +16,13 @@ LIMIT = 2000  # characters of the question kept, and of an answer accepted
 def under(text, heading, level):
     """The text under the first unfenced line that is <heading>, up to the next unfenced heading of <level> `#` or
     fewer, stripped; None when no such line exists."""
-    lines = text.splitlines()
-    fenced = markdown_sections.fenced_lines(text)
-    starts = [i for i, line in enumerate(lines) if not fenced[i] and line.rstrip() == heading]
+    lines, unfenced = text.splitlines(), markdown_sections.unfenced(text)
+    starts = [i for i, line in unfenced if line.rstrip() == heading]
     if not starts:
         return None
     end = re.compile(r"#{1,%d} " % level)
-    body = []
-    for line, f in zip(lines[starts[0] + 1:], fenced[starts[0] + 1:]):
-        if not f and end.match(line):
-            break
-        body.append(line)
-    return "\n".join(body).strip()
+    stop = next((i for i, line in unfenced if i > starts[0] and end.match(line)), len(lines))
+    return "\n".join(lines[starts[0] + 1:stop]).strip()
 
 
 def read(path):

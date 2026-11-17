@@ -132,6 +132,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 
 ## markdown_sections
 - `fenced_lines(text)`: a list of bools, True for each line inside a code fence (fence lines included).
+- `unfenced(text)`: `[(index, line)]` for each line outside a code fence; the question-file readers (`record_answer`, `status`) find their headings with it.
 
 ## paths
 - `SCRIPTS`: the scripts directory of the veri modules, defined once here.

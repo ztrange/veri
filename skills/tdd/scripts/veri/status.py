@@ -22,6 +22,7 @@ from ledger import ledger_steps
 import run_dir
 import tunables
 import role_state
+import markdown_sections
 import decision_log
 from solvable_issues import priority_label, solvable
 
@@ -563,37 +564,45 @@ ASKED_LINE = re.compile(r"## Asked \S+")
 def question_state(path):
     """Which recovery section lists the question file <path>: "Answered questions" when it has an `## Answer` line,
     else "Questions" when it has an `## Asked <session-id>` line (asked, open) or cannot be read, else "Unasked
-    questions" (written, never asked)."""
+    questions" (written, never asked). The file is read once, and a line inside a code fence is no heading
+    (`markdown_sections.unfenced`, the rule record-answer.sh reads the file by)."""
     try:
         with open(path, encoding="utf-8", errors="replace") as f:
-            lines = [line.rstrip() for line in f]
+            text = f.read()
     except OSError:
         return "Questions"
+    lines = [line.rstrip() for _, line in markdown_sections.unfenced(text)]
     if "## Answer" in lines:
         return "Answered questions"
     return "Questions" if any(ASKED_LINE.fullmatch(line) for line in lines) else "Unasked questions"
 
 
-def recover_questions(lane, section="Questions"):
-    """The lane's question files in recovery's <section>, as `question_state` sorts them: each regular
-    `.tdd/questions/<lane>-*.md` (`main-*` with no lane), sorted by name. One bad entry never stops recovery: a
-    directory or dangling link is skipped, and a file that cannot be read is listed under Questions."""
+QUESTION_SECTIONS = ("Questions", "Unasked questions", "Answered questions")
+
+
+def recover_questions(lane):
+    """{section: paths}: the lane's question files sorted into recovery's three question sections, each file judged
+    once by `question_state`, so it is in exactly one: each regular `.tdd/questions/<lane>-*.md` (`main-*` with no
+    lane), by its `.tdd/questions/<name>` path, sorted by name. One bad entry never stops recovery: a directory or
+    dangling link is skipped, and a file that cannot be read is listed under Questions."""
     directory = os.path.join(run_dir.main_tree(missing=""), ".tdd", "questions")
-    return [os.path.join(".tdd", "questions", os.path.basename(path))
-            for path in sorted(glob.glob(os.path.join(directory, "%s-*.md" % (lane or "main"))))
-            if os.path.isfile(path) and question_state(path) == section]
+    sections = {section: [] for section in QUESTION_SECTIONS}
+    for path in sorted(glob.glob(os.path.join(directory, "%s-*.md" % (lane or "main")))):
+        if os.path.isfile(path):
+            sections[question_state(path)].append(os.path.join(".tdd", "questions", os.path.basename(path)))
+    return sections
 
 
 def recover(role, lane=None):
     if role != "dev":
         print("usage: status.sh --recover dev [--lane <lane>]", file=sys.stderr)
         return 2
+    questions = recover_questions(lane)
     bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock,
               "State": lambda: recover_state(role, lane),
               "Pending decisions": lambda: recover_items(role, lane, "decision"),
               "Pending messages": lambda: recover_items(role, lane, "message"),
-              "Questions": lambda: recover_questions(lane), "Unasked questions": lambda: recover_questions(lane, "Unasked questions"),
-              "Answered questions": lambda: recover_questions(lane, "Answered questions")}
+              **{section: lambda section=section: questions[section] for section in QUESTION_SECTIONS}}
     try:
         sections = [(heading, bodies[heading]()) for heading in RECOVER_HEADINGS]
     except OSError as refused:

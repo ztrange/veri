@@ -20,3 +20,9 @@ def fenced_lines(text):
             opener = None
     return flags
 
+
+
+def unfenced(text):
+    """[(index, line)] for each line of <text> (`str.splitlines`) outside a code fence: the one reading of a heading's
+    lines that `record_answer` and `status` share, so a heading quoted in a fence is never one."""
+    return [(i, line) for i, (line, fenced) in enumerate(zip(text.splitlines(), fenced_lines(text))) if not fenced]
