@@ -130,3 +130,6 @@ until the human answers. A decision goes out once, as plain text (P4), and only 
 everything else goes on. It is not repeated on routine turns. When the human's next message
 arrives, whatever it is about, the role answers it and then restates every pending decision in
 full, a third case beyond the two P4 names.
+
+**Every question passes the judge first (P22).** An operator role passes each question through
+`vjudge` before it reaches the human; only what the judge surfaces reaches the human.
