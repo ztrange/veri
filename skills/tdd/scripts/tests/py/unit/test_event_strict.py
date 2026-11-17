@@ -130,3 +130,10 @@ def test_4224_strict_writes_an_exit_retry_usage_and_verdict_line_naming_its_leaf
     codes = [event.mark(str(clone), {"issue": "7"}, name, fields + ["name=verify-green-2"]) for name, fields in lines]
 
     assert codes == [0, 0, 0, 0]
+
+
+def test_4226_strict_writes_a_step_reworded_line_naming_both_texts_and_refuses_one_without_its_new_text(clone):
+    written = event.mark(str(clone), {"issue": "7"}, "step-reworded", ["from=old text", "to=new text"])
+    refused = event.mark(str(clone), {"issue": "7"}, "step-reworded", ["from=old text"])
+
+    assert (written, refused) == (0, 2)

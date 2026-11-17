@@ -79,6 +79,7 @@ EVENTS = {
     "step-escalated": "anchor:text at?:(over-budget)",
     "step-over-budget": "spent:decimal budget:decimal",
     "step-split": "anchor:text added:whole at?:(over-budget|exhausted)",
+    "step-reworded": "from:text to:text",
     "step-start": "",
     "stop": "mode:(at-ledger|at-leaf|now) at:(unplanned|planned|green|step-done|unsettled)",
     "structural-pass": "transforms?:whole budget?:whole stopped:(candidates-done|budget-spent|nothing-structural)",
