@@ -1059,6 +1059,8 @@ def test_the_skill_edit_step_insert_appends_for_a_graded_pinned_red_amends_the_l
     (repo / ".tdd").mkdir()
     ledger = repo / ".tdd" / "issue-7.md"
     ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n")
+    git(repo, "add", "-f", ".tdd/issue-7.md")
+    git(repo, "commit", "-q", "-m", "plan: scope #7 into 1 steps (#7)")
     (repo / ".tdd" / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
     (tmp_path / "red").write_text("test_prd_015_prose_signed.py — FAIL unit.md synopsis\n")
     cap = tmp_path / "cap"
