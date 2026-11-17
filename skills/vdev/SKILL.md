@@ -46,7 +46,9 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
 decision but `$S/github-outage.sh status` (*Local mode*, below). An `N` on the invocation wins over the file's and is written to it (see *Role state*).
 Recovery re-asks each pending decision once in a session without `start_session` (in a session
 with it, each is restated only in its own question session, *Speaking*), re-asks none of the question files its `Questions`
-section lists (*When to stop and ask*), re-sends or checks each pending message, and ends
+section lists, runs *When to stop and ask*'s step 3 once for each file its `Unasked questions`
+section lists, acts on each file its `Answered questions` section lists as *Answers* says,
+re-sends or checks each pending message, and ends
 with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. Recovery then
 ends by sending the resetter `ack`. With no state file for this role and lane, start fresh.
 
@@ -71,8 +73,9 @@ and ask*), so the transcript carries neither.
 
 A **notice** — a refused reset, `role-growth.sh`'s exit 2, `request-reset`'s exit 1, the MCP
 launch line of *Starting*, a missing `delegate` skill, `github-outage.sh hold`'s exit 2, a red
-stack that stays frozen after its failed jobs' re-run, `record-answer.sh`'s exit 2 (*Answers*),
-each line `voutage` tells the human — is
+stack that stays frozen after its failed jobs' re-run, `record-answer.sh`'s exit 2 (*Answers*), a
+question session's failed start (*When to stop and ask*, step 3), each line `voutage` tells the
+human — is
 sent once: as one `PushNotification`
 where the session has that tool, else as one line in its transcript.
 
@@ -414,18 +417,27 @@ settle is asked in full in your own transcript, once (P4).
 being `main` with no lane word. A lane word holds no `-` and is not `main`, so no two lanes share a
 question-file prefix.
 
-1. Before briefing `vjudge` on a case, look for its question file. When it exists, the question
-   was already asked: run no `vjudge` on the case again, open no second session for it and send no
-   notification; an `## Answer` in it is acted on as *Answers* says.
+1. Before briefing `vjudge` on a case, look for its question file. When it exists, run no `vjudge`
+   on the case again. With an `## Asked` line the question was asked: open no second session for
+   it and send no notification. With neither an `## Asked` nor an `## Answer` line it was written
+   but never asked: run step 3 for it now. An `## Answer` in it is acted on as *Answers* says.
 2. Otherwise your brief to `vjudge` names that path. The judge writes there a case it does not
    settle, under `#### Question`, `#### Options`, `#### Found` and `#### Recommendation`, and
    returns the path.
 3. When `vjudge` returns the path, call `start_session` once, with a brief naming the file's path,
    your own session id and the *Question session* section of this skill as the procedure to
-   follow, and nothing else of the question. Send one `PushNotification` naming the question by
-   its `<id>`.
+   follow, and nothing else of the question. When `start_session` returns the new session's id,
+   append one line, `## Asked <session-id>`, to the question file, and only then send one
+   `PushNotification` naming the question by its `<id>`. When the start fails, append nothing,
+   send no `PushNotification`, and send the failure once as a notice (*Speaking*): the file stays
+   unasked, and recovery lists it under `Unasked questions`.
 4. Do not wait for that session to start or to answer: on the same turn, carry on with every run
    the question does not block.
+
+The `## Asked <session-id>` line is the only line you write to a question file. It is not part of
+the question, which only `vjudge` writes (as the answer is the question session's), but the record
+that you opened its session; it is appended after `vjudge` parked the issue with the file, so the
+park comment never holds it.
 
 The issue of an issue-bound question is parked by `vjudge` (its *The procedure* step 5) with
 `$S/park-issue.sh --question-file` naming the question file, so the park comment is that file
@@ -441,9 +453,11 @@ answer to its park. Act only on its exit 0 (posted) or 3 (already there); on exi
 nor delete the file, and send its stderr line once as a notice (*Speaking*). You post an answer on
 an issue by no other route. Delete the question file only after you observe your own action on
 the answer in state (the label gone, the run resumed, the merge landed) and, for a question tied
-to an issue, after `record-answer.sh` exited 0 or 3 for it, and say so nowhere. After a
-reset, each of your lane's question files without an `## Answer` heading (recovery's `Questions`
-section) is open and already asked: re-ask none of them.
+to an issue, after `record-answer.sh` exited 0 or 3 for it, and say so nowhere. After a reset,
+recovery sorts each of your lane's question files into one of three sections: re-ask none of the
+files its `Questions` section lists (asked, not yet answered); run step 3 once for each file its
+`Unasked questions` section lists (written, never asked); and act on each file its `Answered
+questions` section lists as this paragraph says (record, act, observe, delete).
 
 ## Question session
 
