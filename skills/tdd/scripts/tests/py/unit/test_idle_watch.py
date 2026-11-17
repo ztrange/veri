@@ -130,6 +130,18 @@ def test_4254_a_stopped_watch_never_ends_its_leg(idle_watch, stderr_pipe):
     assert (world.codes, world.signals) == ([], [])
 
 
+def test_4254_a_leg_whose_passes_return_while_its_watch_writes_the_stacks_is_never_ended(idle_watch, stderr_pipe):
+    out, written = stderr_pipe
+    world = World()
+    watch = watch_in(idle_watch, world, 1, out)
+    watch.workers[:] = [4451]
+    watch.sleep = lambda seconds: watch.stop()  # the leg's passes return during the wait for the workers' stacks
+
+    watch.watch()
+
+    assert (world.codes, world.signals) == ([], [])
+
+
 def test_4254_the_leg_ends_only_workers_it_recorded_never_itself_nor_a_pid_of_1_or_less(idle_watch, stderr_pipe):
     out, written = stderr_pipe
     world = World(obey_term=True)
