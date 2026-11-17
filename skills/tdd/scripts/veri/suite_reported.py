@@ -34,7 +34,7 @@ def _exempt_keys(leaf):
         return None
     except ValueError:
         return []
-    return [f["keys"] for f in declared if f["suite"] == "exempt"]
+    return [[key for key in f["keys"] if key not in f.get("optional", ())] for f in declared if f["suite"] == "exempt"]
 
 
 def main(argv):
