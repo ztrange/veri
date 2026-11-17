@@ -5,6 +5,6 @@
 - [x] a newer run in progress, or one concluded cancelled, is skipped for an older completed one ⟦criterion 1⟧
 - [x] a success, neutral or skipped answer, or no completed not-cancelled run among the 100 (none, all in progress, all cancelled), is exit 3 with nothing on stdout and stderr saying which ⟦criterion 3⟧
 - [x] GitHub giving no answer or a garbled one, a fetch with no answer, and stack-branch.sh not exiting 0 (3 included) are exit 2 ⟦criterion 4⟧
-- [ ] stack-red.sh is a /bin/sh shim over veri/stack_red.py; veri/README.md indexes it; a process case runs the shim ⟦criterion 5⟧
+- [x] stack-red.sh is a /bin/sh shim over veri/stack_red.py; veri/README.md indexes it; a process case runs the shim ⟦criterion 5⟧
 - [ ] the module names no repository, issue, branch, label, person or CI job ⟦criterion 6⟧
 - [ ] SCRIPTS.md lists stack-red.sh (SC250), graded ⟦criterion 7⟧
