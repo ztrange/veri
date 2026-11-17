@@ -204,6 +204,7 @@ CWD_OUTSIDE_REPOSITORY = {
     "test_rebase_onto_default_process.py",
     "test_refactor_touched.py",
     "test_refactor_touched_process.py",
+    "test_release_issue.py",
     "test_solvable_issues.py",
     "test_solvable_issues_process.py",
     "test_status.py",
