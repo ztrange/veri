@@ -298,13 +298,36 @@ def test_it_adds_removes_or_changes_no_label_and_writes_nothing_else(monkeypatch
     assert (code, writes, len(world.edited), len(world.posted)) == (0, [], 1, 2), err
 
 
-def test_an_issue_already_reverted_on_the_stack_is_exit_3_never_a_revert_of_its_revert(monkeypatch, run_cli, revert):
+def test_an_issue_whose_newest_commit_on_the_stack_is_its_revert_is_exit_3_never_a_revert_of_its_revert(
+        monkeypatch, run_cli, revert):
+    stack = STACK + [(sha(6), revert.SUBJECT % ("12", "12"), [])]
+    world = World(monkeypatch, revert, stack=stack, pulls=[])
+
+    code, _, err = run_cli(revert, ["12"])
+
+    assert (code, world.reverts, world.pushed, sha(6) in err, world.posted) == (3, [], [], True, []), err
+
+
+def test_an_already_reverted_issue_still_has_its_closes_lines_reworded_so_a_rerun_after_a_failed_edit_lifts_the_claim(
+        monkeypatch, run_cli, revert):
     stack = STACK + [(sha(6), revert.SUBJECT % ("12", "12"), [])]
     world = World(monkeypatch, revert, stack=stack)
 
     code, _, err = run_cli(revert, ["12"])
 
-    assert (code, world.reverts, world.pushed, sha(6) in err) == (3, [], [], True), err
+    assert (code, world.edited, world.pushed) == (3, [(41, "Run.\n\nReverted from stack by %s\n" % sha(6))], []), err
+
+
+def test_an_issue_rejoined_after_its_revert_has_only_its_commits_after_that_revert_reverted(
+        monkeypatch, run_cli, revert):
+    stack = STACK + [(sha(6), revert.SUBJECT % ("12", "12"), []), (sha(7), "feat: c again (#13)", []),
+                     (sha(8), "feat: b again (#12)", []), (sha(9), "docs: names none", [])]
+    world = World(monkeypatch, revert, stack=stack)
+
+    code, _, err = run_cli(revert, ["12"])
+
+    assert (code, world.reverts, len(world.pushed)) == (0, [[sha(9), sha(8)]], 1), err
+    assert all(sha(5) not in body for _, body in world.posted), world.posted
 
 
 def test_the_module_names_no_repository_issue_branch_label_person_or_ci_job(revert):
