@@ -2,6 +2,7 @@
 posted on the issue as one comment, read back by issue_decisions and park_decision, with gh faked at
 github.issue_comments and github.gh_comment_post."""
 import importlib
+import os
 
 import pytest
 
@@ -153,6 +154,38 @@ def test_issue_4252_no_answer_from_gh_exits_2_naming_the_call(world, run_cli, mo
     assert run_cli(record_answer, ["42", write_file(QUESTION + "\n## Answer\n\nTake 3.\n")]) == (
         2, "", "record-answer.sh: no answer from gh %s issue #42\n" % why)
     assert posted == []
+
+
+def local_names():
+    """(home, host, account) as this machine names them, as run_records learns them."""
+    run_records = importlib.import_module("veri.run_records")
+    return (os.path.expanduser("~"), sorted(run_records._host_forms(), key=len)[-1],
+            sorted(run_records._account_names(), key=len)[-1])
+
+
+def test_issue_4252_the_posted_body_carries_no_local_path_host_or_account_name_nor_a_token(world, run_cli, tmp_path):
+    record_answer, comments, posted, write_file = world
+    home, host, account = local_names()
+    token = "ghp_" + "a1" * 18
+    path = write_file("#### Question\n\nSee %s/notes.txt and %s/x on %s.\n\n#### Options\n\n## Answer\n\n"
+                      "Yes, %s may (%s).\n" % (home, tmp_path, host, account, token))
+
+    code, out, err = run_cli(record_answer, ["42", path], cwd=str(tmp_path))
+
+    assert (code, err) == (0, "")
+    body = posted[0][1]
+    assert "~/notes.txt" in body and "[redacted]" in body
+    assert not [leak for leak in (home, str(tmp_path), host, account, token) if leak.casefold() in body.casefold()]
+
+
+def test_issue_4252_a_long_question_is_redacted_before_it_is_cut_so_no_part_of_a_path_survives(world, run_cli):
+    record_answer, comments, posted, write_file = world
+    home = os.path.expanduser("~")
+    question = "q" * (2000 - len(home) // 2) + home + "/x"
+
+    assert run_cli(record_answer, ["42", write_file("#### Question\n\n%s\n\n## Answer\n\nYes.\n" % question)])[0] == 0
+    assert home[:len(home) // 2] not in posted[0][1]
+    assert posted[0][1].startswith("Question: " + "q" * (2000 - len(home) // 2) + "~/x\n")
 
 
 @pytest.mark.parametrize("answer", [None, {"body": "x"}, [{"no": "body"}], ["text"]])
