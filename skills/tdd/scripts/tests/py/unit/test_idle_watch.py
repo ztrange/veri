@@ -226,3 +226,42 @@ def test_4254_in_a_worker_the_plugin_has_sigusr1_write_all_its_threads_stacks_to
 
     assert [(signum, kwargs["all_threads"], kwargs["file"]) for signum, kwargs in registered] == [
         (signal.SIGUSR1, True, idle_watch.STDERR)]
+
+
+@pytest.mark.parametrize("sig", [signal.SIGTERM, signal.SIGHUP], ids=["TERM", "HUP"])
+def test_4254_a_leg_sent_term_or_hup_ends_its_workers_removes_its_entry_releases_the_lock_and_exits_128_plus_the_signal(monkeypatch, tmp_path, sig):
+    pytest_leg = importlib.import_module("pytest_leg")
+    idle_watch = importlib.import_module("idle_watch")
+    lock = importlib.import_module("veri.full_run_lock")
+    legs = tmp_path / "legs"
+    for name, value in {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
+                        "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs), "PYTEST_PLUGINS": ""}.items():
+        monkeypatch.setenv(name, value)
+    for name in ("VERI_PYTEST_WORKERS", "PYTEST_XDIST_WORKER", "PYTEST_LEG_FULL_LOCK_HOLDER", "PYTEST_LEG_LOCK_WAIT_MARKER"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.setattr(pytest_leg, "worker_count", lambda requested: 2)
+    world = World(obey_term=True)
+    at_exit = {}
+
+    def spy(args):
+        if "code" in at_exit:
+            return pytest.ExitCode.NO_TESTS_COLLECTED
+        watch = idle_watch.CURRENT[0]
+        at_exit["registered"] = os.listdir(legs)
+
+        def record(code):
+            at_exit.update(code=code, entries=os.listdir(legs), lock=open(lock.path()).read(), signals=list(world.signals))
+            raise Ended()
+
+        watch.exit, watch.kill, watch.gone, watch.sleep = record, world.kill, world.gone, world.sleep
+        watch.workers[:] = [4801]
+        with pytest.raises(Ended):
+            os.kill(os.getpid(), sig)
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    pytest_leg.main(["some/dir"])
+
+    assert at_exit == {"registered": [str(os.getpid())], "code": 128 + sig, "entries": [], "lock": "",
+                       "signals": [(4801, signal.SIGTERM)]}
