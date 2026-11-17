@@ -1,6 +1,6 @@
 # Plan for #4105 — PRD 031.4: affected-suite selection works in a repo that is not veri
 
-- [ ] outside veri's own tree, a changed test path that exists prints itself ⟦criterion 1⟧
+- [x] outside veri's own tree, a changed test path that exists prints itself ⟦criterion 1⟧
 - [ ] outside veri's own tree, a changed non-test path selects every non-ignored test file naming its stem as a whole word, `-` and `_` alike, skipping `.git`, `.tdd`, `.venv` and `node_modules` ⟦criterion 2⟧
 - [ ] outside veri's own tree, a `.tdd/` path selects nothing and a range of only such paths exits 3 ⟦criterion 3⟧
 - [ ] outside veri's own tree, a non-test path no test names widens to every test file with one stderr line; no test file at all exits 3 with that line ⟦criterion 4⟧
