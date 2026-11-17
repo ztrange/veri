@@ -201,6 +201,98 @@ def test_4025_a_tree_listing_anything_but_the_ledger_before_the_plan_commit_stop
     assert fake.calls[-1][:2] == ("git", ("status", "--porcelain"))
 
 
+LAUNCH_TAIL = ("supervise.sh", "verdict-plan", "run-verdict.sh", "plan", ".tdd/issue-12-spec.md", ".tdd/issue-12.md")
+
+
+def _after_comments(fake):
+    names = fake.names()
+    return fake.calls[names.index("comment.sh") + 2:]
+
+
+def test_4025_it_refreshes_the_spec_checks_for_a_stop_launches_verdict_plan_waits_and_comments_on_a_pass(publish):
+    (publish.wt / ".tdd" / "verdict-plan.exit").write_text("1\n")
+    (publish.wt / ".tdd" / "verdict-plan.pid").write_text("99\n")
+    code, out, err, fake = publish()
+
+    tail = _after_comments(fake)
+    assert code == 0
+    assert [(c[0], c[1]) for c in tail[:2]] == [("refresh-spec.sh", ("12", ".tdd/issue-12-spec.md")),
+                                                ("stop-requested.sh", ())]
+    launch = tail[2]
+    assert launch[0] == "detach-leaf.sh"
+    assert tuple(os.path.basename(a) if a.endswith(".sh") else a for a in launch[1]) == LAUNCH_TAIL
+    assert all(os.path.isabs(a) for a in launch[1] if a.endswith(".sh"))
+    assert (launch[3]["VERI_TEST_CMD"], launch[3]["VERI_ISSUE"]) == ("make unit", "12")
+    assert "VERI_STEP" not in launch[3]
+    assert (launch[4]["out"], launch[4]["err"]) == (".tdd/verify-plan.reason", ".tdd/verify-plan.err")
+    assert [(c[0], c[1]) for c in tail[3:]] == [("wait-leaf.sh", ("verdict-plan",)), ("comment.sh", ("12", "verify-plan"))]
+    assert not (publish.wt / ".tdd" / "verdict-plan.exit").exists()
+    assert not (publish.wt / ".tdd" / "verdict-plan.pid").exists()
+
+
+@pytest.mark.parametrize("refresh", [2, 3])
+def test_4025_refresh_spec_exits_2_and_3_go_on(publish, refresh):
+    code, out, err, fake = publish(answers={("refresh-spec.sh", None): (refresh, "")})
+
+    assert (code, "detach-leaf.sh" in fake.names()) == (0, True)
+
+
+def test_4025_refresh_spec_exit_1_stops_it_before_any_launch(publish):
+    code, out, err, fake = publish(answers={("refresh-spec.sh", None): (1, "")})
+
+    assert (code, fake.names()[-1], out.splitlines()[-1]) == (
+        1, "refresh-spec.sh", "stopped at 2c refresh-spec.sh 12 .tdd/issue-12-spec.md exit 1")
+
+
+@pytest.mark.parametrize("code, mode, launches", [(3, "", True), (0, "at-ledger\n", True), (0, "at-leaf\n", False),
+                                                  (0, "now\n", False), (2, "", False)])
+def test_4025_the_stop_check_before_the_launch(publish, code, mode, launches):
+    got, out, err, fake = publish(answers={("stop-requested.sh", None): (code, mode)})
+
+    assert ("detach-leaf.sh" in fake.names()) == launches
+    if not launches:
+        assert (got, fake.names()[-1]) == (2 if code == 2 else 1, "stop-requested.sh")
+        assert out.splitlines()[-1].startswith("stopped at 2c stop-requested.sh")
+
+
+@pytest.mark.parametrize("verdict", [1, 2])
+def test_4025_a_reject_or_no_verdict_stops_it_before_the_verify_plan_comment(publish, verdict):
+    code, out, err, fake = publish(answers={("wait-leaf.sh", None): (verdict, "")})
+
+    assert (code, fake.names()[-1]) == (verdict, "wait-leaf.sh")
+    assert out.splitlines()[-1] == "stopped at 2c wait-leaf.sh verdict-plan exit %d" % verdict
+    assert not (publish.wt / ".tdd" / "issue-12-plan-publish").exists()
+
+
+def test_4025_a_failed_launch_stops_it_with_its_code(publish):
+    code, out, err, fake = publish(answers={("detach-leaf.sh", None): (2, "")})
+
+    assert (code, fake.names()[-1]) == (2, "detach-leaf.sh")
+
+
+def test_4025_exit_0_settles_the_plan_sha_steps_pr_and_verdict_and_prints_them_last(publish):
+    code, out, err, fake = publish()
+
+    expected = ["plan_sha=" + PLAN_SHA, "steps=2", "pr_url=" + PR_URL, "pr_number=77", "verify_plan=PASS"]
+    assert code == 0
+    assert (publish.wt / ".tdd" / "issue-12-plan-publish").read_text().splitlines() == expected
+    assert out.splitlines()[-len(expected):] == expected
+
+
+def test_4025_the_settled_file_is_run_state_the_ignore_rule_keeps_out_of_every_commit():
+    import fnmatch
+    rule = importlib.import_module("veri.ensure_run_state_ignored").RULE
+
+    for name in (".tdd/issue-12-plan-publish", ".tdd/issue-12-plan-publish-wait"):
+        assert fnmatch.fnmatch(name, rule[0]) and not fnmatch.fnmatch(name, rule[1].lstrip("!"))
+
+
+def test_4025_it_launches_no_leaf_but_through_supervise(publish):
+    code, out, err, fake = publish()
+
+    assert not {"run-leaf.sh", "run-verdict.sh", "claude", "supervise.sh"} & set(fake.names())
+
+
 def test_4025_the_plan_commit_ends_stage_plan_when_the_conductor_started_it(publish):
     (publish.wt / ".tdd" / "stage-plan.t").write_text("1\n")
     code, out, err, fake = publish(answers=WAITING)
