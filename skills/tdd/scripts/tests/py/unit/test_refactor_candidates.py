@@ -239,3 +239,26 @@ def test_a_non_numeric_issue_number_prints_usage_and_exits_2_making_no_github_ca
 
     assert (code, out, calls) == (2, "", [])
     assert err.startswith("usage:") and "refactor-candidates.sh" in err
+
+
+@pytest.mark.parametrize("existing", [False, True])
+def test_the_body_it_files_or_edits_carries_no_local_path_of_the_run_or_the_home_directory_4117(
+        tmp_path, monkeypatch, github, run_cli, existing):
+    import json
+    import os
+    bodies = []
+    home = os.path.expanduser("~")
+    monkeypatch.setattr(github, "gh_issue_create", lambda title, body: bodies.append(body) or "https://x/issues/77\n")
+    monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: None)
+    monkeypatch.setattr(github, "gh_issue_edit", lambda number, body_file: bodies.append(open(body_file).read()))
+    listed = [{"number": 5, "title": "Refactor candidates left by #42", "url": "https://x/issues/5"}] if existing else []
+    monkeypatch.setattr(github, "gh_issue_list", lambda *args: json.dumps(listed))
+    owed = tmp_path / "owed.md"
+    owed.write_text("- out-of-bounds | rename helper in %s/lib/util.py\n"
+                    "not-done | budget-spent | split parse() in %s/src/parse.py\n" % (tmp_path, home))
+    refactor_candidates = importlib.import_module("veri.refactor_candidates")
+
+    code, _, _ = run_cli(refactor_candidates, ["42", str(owed)], cwd=tmp_path)
+
+    assert (code, len(bodies), any(str(tmp_path) in b or home in b for b in bodies),
+            "rename helper in" in "".join(bodies)) == (0, 1, False, True)
