@@ -64,6 +64,10 @@ def selects_subset(command, root):
     return False
 
 
+# The tiers a repo declares only in its CLAUDE.md, as `veri: <tier>: <command>`: never inferred, never from the issue.
+DECLARED_ONLY = ("one test file", "lint")
+
+
 def decide(tier, issue, root):
     def at(name):
         return root + "/" + name
@@ -71,16 +75,16 @@ def decide(tier, issue, root):
     def has(name):
         return os.path.isfile(at(name))
 
-    if tier not in ("fast", "one test file", "lint") and issue and os.path.isfile(issue):
+    if tier != "fast" and tier not in DECLARED_ONLY and issue and os.path.isfile(issue):
         try:
             answer_from_file(issue, b"Test command:")
         except Answer as found:
             if found.command != resolved("fast", issue, root) and not selects_subset(found.command, root):
                 raise
     if tier and has("CLAUDE.md"):
-        suffix = b":" if tier in ("one test file", "lint") else b" tests:"
+        suffix = b":" if tier in DECLARED_ONLY else b" tests:"
         answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + suffix)
-    if tier in ("one test file", "lint"):
+    if tier in DECLARED_ONLY:
         return
     if has("package.json") and re.search(rb'"scripts":\{[^}]*"test":', bytes(b for b in read(at("package.json")) if b not in SPACE)):
         if has("pnpm-lock.yaml"):
