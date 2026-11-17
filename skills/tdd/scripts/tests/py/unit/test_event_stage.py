@@ -42,3 +42,14 @@ def test_4228_a_body_that_raises_ends_its_stage_with_status_2_and_its_error_goes
 
     assert stage_lines(run)[-1] == {"event": "stage-end", "stage": "preflight", "status": "2", "secs": "7",
                                     "issue": "7"}
+
+
+@pytest.mark.parametrize("code", [0, 1, 3])
+def test_4228_with_the_journal_directory_unwritable_a_stage_returns_its_bodys_exit_code_unchanged(run, code, capfd):
+    (run / ".tdd").write_text("a file where the run's event directory should be\n")
+
+    returned = event.stage("baseline", lambda: code, str(run), {"issue": "7"})
+
+    assert returned == code
+    assert (run / ".tdd").read_text() == "a file where the run's event directory should be\n"
+    assert capfd.readouterr().err != ""
