@@ -28,8 +28,8 @@ CONTEXT = ("issue:whole,empty actor:text,empty phase:text,empty step:text,empty 
            " skill_commit:text,empty")
 
 EVENTS = {
-    "adjudicated": "cause:(ci-timeout|ci-conflict|pr-ready-failed|report-missing|step-add-refused)"
-                   " outcome:(retry|route|bail|unparsed) reason:text,empty",
+    "adjudicated": "cause:(ci-timeout|ci-conflict|pr-ready-failed|report-missing|step-add-refused"
+                   "|replaces-report-failed) outcome:(retry|route|bail|unparsed) reason:text,empty",
     "already-holds-step": "step:text reason:text",
     "bail": "cause:(killed-stuck|killed-external|report-missing|no-verdict|reconcile-failed|ci-timeout|ci-conflict"
             "|step-add-refused|replaces-report-failed|criterion-unreadable|setup-failed|preflight-refused|pr-ready-failed"
