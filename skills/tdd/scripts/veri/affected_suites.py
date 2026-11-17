@@ -12,6 +12,7 @@ import entry
 from git import git
 
 import markdown_sections
+import stem_walk
 
 USAGE = "usage: affected-suites.sh <base>..<head>"
 SCRIPTS = "skills/tdd/scripts"
@@ -232,7 +233,13 @@ def untracked(*args):
 
 def foreign(files):
     """The selection outside veri's own tree (no `skills/tdd/scripts/tests/py` directory): exit code, suites printed."""
+    files = [f for f in files if not f.startswith(".tdd/")]
     placed = [f for f in files if case_reader.is_test_path(f) and os.path.isfile(f)]
+    sources = [f for f in files if not case_reader.is_test_path(f)]
+    if sources:
+        tests = [p for p in stem_walk.tree_files() if case_reader.is_test_path(p)]
+        for f in sources:
+            placed += stem_walk.naming(stem_walk.stem(f), tests)
     if not placed:
         return 3
     sys.stdout.write("".join(s + "\n" for s in sorted(set(placed))))
