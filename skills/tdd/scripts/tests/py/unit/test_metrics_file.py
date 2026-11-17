@@ -44,3 +44,26 @@ def test_after_a_leafs_exit_the_metrics_file_beside_the_journal_holds_the_json_o
     assert codes == (0, 0)
     assert published == metrics.as_json(metrics.fold("42", str(journal), str(clone / ".tdd" / "issue-42.md"), run=str(clone)))
     assert (published["phases"]["red"]["attempts"], published["phases"]["red"]["kills"]) == (1, 1)
+
+
+USAGE = ["duration_ms=1000", "duration_api_ms=900", "num_turns=4", "total_cost_usd=1.50", "input_tokens=10",
+         "output_tokens=20", "cache_read_input_tokens=30", "cache_creation_input_tokens=40", "model=claude-sonnet-4"]
+
+
+def metrics_file(root, issue="42"):
+    return root / "runs" / "acme-widgets" / ("%s.metrics.json" % issue)
+
+
+def test_an_event_of_any_other_name_leaves_the_files_absence_and_its_bytes_unchanged(tmp_path, event):
+    clone = clone_at(tmp_path)
+
+    launched = event.append(str(clone), LEAF, "launch", ["name=develop-red", "cmd=run-leaf.sh", "model="], ts=1700000000)
+    absent = metrics_file(tmp_path).exists()
+    event.append(str(clone), LEAF, "exit", ["status=0", "secs=30"], ts=1700000030)
+    before = metrics_file(tmp_path).read_bytes()
+    later = [event.append(str(clone), LEAF, "usage", USAGE, ts=1700000031),
+             event.append(str(clone), LEAF, "verdict", ["verdict=PASS", "reason="], ts=1700000032),
+             event.append(str(clone), dict(LEAF, step="two"), "step-start", [], ts=1700000033)]
+
+    assert (launched, absent, later) == (0, False, [0, 0, 0])
+    assert metrics_file(tmp_path).read_bytes() == before
