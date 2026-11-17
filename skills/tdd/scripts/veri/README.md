@@ -815,6 +815,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `green-half.sh`: a step's Green half on the PASS path, in one call.
 - `refactor-half.sh`: a step's first refactor pass, in one call.
 - `step-close.sh`: a step's close-out after a passing verify-refactor, in one call.
+- `branch-gate.sh`: the Draft PR step's branch suite, in one call.
 - `reset-cost.sh`: what each recorded reset of the dev session or a run's conductor cost, and the growth knob it calls for.
 - `reset-wait.sh`: wait for a usage-limit reset.
 - `restart-conductor.sh`: stop and watch a conductor restart.
