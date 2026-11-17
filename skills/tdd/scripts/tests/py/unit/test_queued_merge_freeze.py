@@ -1,5 +1,7 @@
 """veri/queued_merge.py refusing a join while CI's latest answer on the stack is red (PRD 034.3a, D12), in-process: the
 join's world is test_queued_merge_join's, and the stack-red.sh call is queued_merge._stack_red, spied in-process."""
+import pytest
+
 from test_queued_merge_join import World, join, pushed, released
 from veri import queued_merge
 
@@ -46,3 +48,14 @@ def test_a_refusal_by_the_freeze_is_one_stderr_line_naming_the_red_commit_its_ru
     added = [line for line in err.splitlines() if line not in quiet.splitlines()]
 
     assert (len(added), RED in added[0], URL in added[0], "stack-culprit.sh %s" % RED in added[0]) == (1, True, True, True), err
+
+
+@pytest.mark.parametrize("answer", [(2, ""), (1, ""), (124, ""), (-9, "")])
+def test_a_stack_red_exit_2_or_any_exit_but_0_and_3_is_the_joins_exit_2_nothing_pushed_and_the_lock_freed(
+        tmp_path, fake_processes, monkeypatch, run_cli, answer):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+    spy_stack_red(monkeypatch, world, answer)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, pushed(world), len(released(world)), "stack-red.sh" in err) == (2, [], 1, True), err

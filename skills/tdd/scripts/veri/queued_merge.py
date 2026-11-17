@@ -553,6 +553,9 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             _say("the stack is frozen: CI's latest answer on origin/%s is red at %s (%s); nothing rebased or pushed, the"
                  " run kept to join once the stack is green. Next: stack-culprit.sh %s" % (stack, red[0], red[1], red[0]))
             return 1
+        if frozen != 3:
+            _say("stack-red.sh exited %d, so whether the stack is red is not known; nothing rebased or pushed" % frozen)
+            return 2
         if _rev(worktree, "refs/remotes/origin/" + branch) != lease:
             _say("origin/%s is not the run's tip %s (a commit the worktree lacks, or none pushed); nothing pushed"
                  % (branch, lease))
