@@ -307,6 +307,25 @@ def test_3224_recover_prints_under_state_the_roles_n_and_lane_read_from_its_stat
     assert code == 0 and "7" in words and "default" in words, (code, state)
 
 
+def test_4100_recover_prints_under_state_the_last_recorded_auto_value_and_no_auto_line_when_none_was_recorded(tmp_path, monkeypatch, run_cli, fake_processes):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev-mu.state").write_text("n=2\nauto=on\nauto=off\n")
+    (tmp_path / ".tdd" / "role-dev.state").write_text("n=1\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
+
+    def state(argv):
+        lines = [line.strip() for line in run_cli(status, argv)[1].splitlines() if line.strip()]
+        return lines[lines.index("State") + 1:lines.index("Pending decisions")]
+
+    assert (state(["--recover", "dev", "--lane", "mu"]), state(["--recover", "dev"])) == (["n 2", "auto off"], ["n 1"])
+
+
 def test_3224_recover_prints_under_state_each_timed_n_change_from_the_roles_state_file_with_its_id_and_time(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))

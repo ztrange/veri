@@ -51,6 +51,25 @@ def test_issue_3752_add_numbers_the_first_item_1_when_only_a_spaced_coordinator_
     assert (code, out) == (0, "1\n")
 
 
+def test_issue_4100_set_auto_on_and_off_are_recorded_in_order_and_exit_0(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+
+    codes = [run_cli(role_state, ["dev", "--lane", "mu", "set", "auto", value])[0] for value in ("on", "off", "on")]
+
+    state = (tmp_path / ".tdd" / "role-dev-mu.state").read_text()
+    assert (codes, state) == ([0, 0, 0], "auto=on\nauto=off\nauto=on\n")
+
+
+def test_issue_4100_set_auto_with_a_value_other_than_on_or_off_exits_2_writing_nothing(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+
+    results = [run_cli(role_state, ["dev", "set", "auto", value]) for value in ("yes", "", "ON", "on ")]
+
+    assert (results, (tmp_path / ".tdd" / "role-dev.state").exists()) == ([(2, "", role_state.USAGE)] * 4, False)
+
+
 def test_issue_3241_set_accepts_each_growth_field_appending_it_to_the_state_file_and_exiting_0(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
     monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
