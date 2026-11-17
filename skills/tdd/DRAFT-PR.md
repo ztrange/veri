@@ -38,7 +38,9 @@ this order, none reading a variable another line set. Any exit not named here **
 4. `git add .tdd/issue-<n>-metrics.md && git commit -m "metrics: what solving #<n> cost (#<n>)"`: exit 0, go on.
 5. `$S/push-branch.sh`: exit 0, go on.
 6. `$S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md`: exit 0, its output is the body's `## Refactor owed`
-   section; exit 3, the body has no such section.
+   section; exit 3, the body has no such section. Then, in a Bash call of its own,
+   `$S/ledger-growth.sh split .tdd/issue-<n>.md`: its output and exit make the body's `## Plan growth` section as in
+   sub-step 2's second block, and no exit of it bails.
 7. `gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"`: exit 0,
    go on. It drops the `WIP:` prefix and leaves the pull request a draft: a title PATCH never readies one.
 8. Write `.tdd/issue-<n>-pr-body.md` with the body sub-step 2's second block writes.
@@ -364,12 +366,15 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ "$graded" = 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || { $S/adjudicate.sh left <n> && { echo "adjudicate ci-conflict"; exit 0; }; VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"; }
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"
+   $S/ledger-growth.sh split .tdd/issue-<n>.md > .tdd/issue-<n>-growth.md; growth=$?
    cat > .tdd/issue-<n>-pr-body.md <<'EOF'
-   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section>
+   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by, when $growth is 0, a ## Plan growth section holding .tdd/issue-<n>-growth.md and saying the owner is strongly advised to split the work after the criterion it names (when $growth is 2, the section holds the one line 'plan growth could not be measured: ledger-growth.sh split exited 2'; when 3, there is no such section), followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section>
    EOF
    $S/pr-body.sh <pr-number> .tdd/issue-<n>-pr-body.md
    ```
    **`add-ledger-step.sh` exit 2** on the `⟦ci-repair⟧` insertion, its stderr kept in `.tdd/add-ledger-step.err`: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh`, before any `bail` event (`Read` `<base directory>/ADJUDICATE.md`); then, whatever the answer (`retry` included), or on `adjudicate.sh left` exit 3 or 2, **bail** with cause `step-add-refused` by running, alone in a Bash call of its own, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=step-add-refused classification="$($S/classify-bail.sh step-add-refused)"`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
+   No exit of `ledger-growth.sh split` bails the run, holds the PR back or asks for anything: a plan that grew past
+   the bound went ahead, and `## Plan growth` only reports it.
    The title is set by `gh api -X PATCH`, the body by `$S/pr-body.sh <pr-number> <body-file>`, never a whole-body `-f body=…` replacement: `pr-body.sh` keeps every section the run did not author, so a `## Review notes` section appended after the body survives a resumed run's next write.
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
    rollup is never a pass, and a completed check whose conclusion is anything other than
