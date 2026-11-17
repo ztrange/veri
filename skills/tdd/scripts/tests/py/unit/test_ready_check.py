@@ -564,13 +564,31 @@ def test_issue_4088_a_tier_whose_run_died_without_recording_an_exit_fails_its_ro
 def test_issue_4088_both_tiers_share_one_wait_bound_per_call_the_second_waiting_only_what_the_first_left(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
     import types
     import time
-    ticks = iter([0.0, 0.0, 400.0])
+    ticks = iter([0.0, 0.0, 0.0])
     monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=time.time, monotonic=lambda: next(ticks, 400.0)), raising=False)
     fake = fake_processes.answers(holding(**TIERS))
     run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
 
-    assert [argv[3:] for argv, _ in calls_in(fake, "detach-command.sh wait ready-fast")] == [["590"]], fake.calls
-    assert [argv[3:] for argv, _ in calls_in(fake, "detach-command.sh wait ready-all")] == [["190"]], fake.calls
+    assert [argv[3:] for argv, _ in calls_in(fake, "detach-command.sh wait ready-fast")] == [["560"]], fake.calls
+    assert [argv[3:] for argv, _ in calls_in(fake, "detach-command.sh wait ready-all")] == [["160"]], fake.calls
+
+
+def test_issue_4088_one_deadline_from_the_calls_start_bounds_the_permission_probe_and_both_tiers(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
+    import types
+    import time
+    ticks = iter([0.0])
+    monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=time.time, monotonic=lambda: next(ticks, 400.0)), raising=False)
+    timeouts = []
+
+    def probe(line, **kwargs):
+        timeouts.append(kwargs.get("timeout"))
+        return probe_answer()(line, **kwargs)
+    fake = fake_processes.answers(holding(**TIERS, **{PROBE: probe}))
+    run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+
+    assert timeouts == [160], timeouts
+    assert [argv[3:] for argv, _ in calls_in(fake, "detach-command.sh wait ready-fast")] == [["160"]], fake.calls
+    assert [argv[3:] for argv, _ in calls_in(fake, "detach-command.sh wait ready-all")] == [["160"]], fake.calls
 
 
 def test_issue_4088_a_tiers_wall_time_ends_when_its_command_recorded_its_exit_not_when_a_later_call_read_it(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
