@@ -564,3 +564,17 @@ def test_main_exits_2_naming_both_when_the_recorded_base_is_not_the_named_stack_
 
     assert (code, [c for c in calls if c.startswith("git rebase")], "older-stack" in captured.err, "stack" in captured.err) == (
         2, [], True, True)
+
+
+@pytest.mark.parametrize("fetch, code", [((0, ""), 0), ((1, ""), 2)], ids=["rebased", "unfetchable origin"])
+def test_4232_rebase_onto_default_runs_as_stage_rebase_carrying_the_runs_issue_ending_with_its_exit_code(
+        monkeypatch, tmp_path, cli, fake_processes, events, fetch, code):
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "12")
+    git_answers(fake_processes, **{"git fetch -q origin": fetch})
+
+    returned = cli.main([])
+
+    stages = [(r["event"], r["stage"], r.get("status"), r["issue"]) for r in events.records(tmp_path)]
+    assert (returned, stages) == (code, [("stage-start", "rebase", None, "12"), ("stage-end", "rebase", str(code), "12")])

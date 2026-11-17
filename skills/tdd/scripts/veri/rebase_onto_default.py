@@ -7,6 +7,7 @@ import subprocess
 import sys
 
 import entry
+import event
 import stack_branch
 from git import git
 
@@ -49,6 +50,10 @@ def union_graded(path):
 
 
 def main(argv):
+    return event.stage("rebase", lambda: rebase(argv))
+
+
+def rebase(argv):
     graded_only = "--graded-only" in argv
     try:
         default = stack_branch.run_base()[0] or ""
