@@ -634,6 +634,16 @@
 | PL64 | After a refactor-kind step's transform leaf's wait exits 0 and before the transform verifier is launched, the conductor runs `$S/suite-reported.sh develop-transform`: exit 2 means the report carries no `SUITE:` line, so no verifier is launched and the run bails as a system failure with cause `report-missing`. (The Cover → Transform → Verify passage.) | A transform with no reported suite result cannot be judged. |
 | PL65 | A `suite-reported.sh develop-transform` exit 2 keeps its stderr in `.tdd/suite-reported.err` and, with budget left, launches `adjudicate-report-missing` through `supervise.sh` before any `bail` event and before the transform verifier (`Read` `<base directory>/ADJUDICATE.md`); every outcome, `retry` included, then bails `report-missing` with no verifier. (The `suite-reported.sh develop-transform` sub-step.) | Every site of the cause. |
 
+## skills/tdd/LEGACY.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| LY1 | The file states the legacy kind's phases in order, Seam → Surround → Verify, and that each plan step names one region (a file and a symbol or line range) and one seam (a command or callable outside the region that drives it: an entry-point CLI, an exported function, an HTTP handler), and lists `⟦phases: seam,surround⟧`. | The seam is what makes the test black-box, and the phase list written at plan time is what a resume reads. |
+| LY2 | The file says it, not `PHASED.md`, runs a legacy step, and that a legacy step is never run through a fused call of PRD 027: its leaves are launched by the conductor through `supervise.sh`. | Stuck detection lives only in the supervisor, and a fused call would run the wrong kind's phases. |
+| LY3 | The file says each step's Seam phase launches one `develop-seam` leaf through `supervise.sh`, whose report a script reads: `REACHES: no` bails with cause `no-seam`, carrying the leaf's reason; a non-empty `git status --porcelain` once the leaf exits stops the run, as after a cover leaf. | A region nothing drives without an edit cannot be surrounded, and the seam leaf must leave the tree as it found it. |
+| LY4 | The file says `REACHES: yes` is recorded with `$S/tick-ledger.sh --phase seam`, so a resumed run does not confirm a seam twice. | Resume reads the committed ledger. |
+| LY5 | The file says that once every legacy step's next phase (`$S/ledger-steps.sh next-phase`) is `surround`, the run bails with cause `surround-owed`, its `### ⛔ Bailed` note listing each step's region and confirmed seam read from the ledger; ledger, branch and draft PR stay, so `release-issue.sh` and a resume carry on from the ledger. | A run with no test written has no product for a PR (PRD 031, O1). |
+
 ## skills/tdd/BAIL.md
 
 | ID | Requirement | Why |
