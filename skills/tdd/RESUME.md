@@ -41,9 +41,11 @@ default branch, whatever the previous bail's cause — saves the branch-red list
    refactor one. No verifier has seen any of it and none of it may reach the PR, so it is
    thrown away **before** the ask, not under one of its answers: preflight step 3's
    `resume-clean.sh` already captured `git status --porcelain` and ran `git reset --hard HEAD`,
-   ahead of the resume rebase; its stdout is `$stray`. Do not capture again here — the tree is clean, so a second capture
+   ahead of the resume rebase; its stdout is `$stray`: the paths on the `stray=` lines of `$S/preflight.sh`'s
+   output (its last lines on exit 0, the lines before its `stopped at` line on a stop), not a capture
+   you make or hold. Do not capture again here — the tree is clean, so a second capture
    would empty `$stray`.
-   `$stray`, that script's stdout, holds the paths that reset discarded, and sub-step 4 is what does the naming:
+   `$stray` holds the paths that reset discarded, and sub-step 4 is what does the naming:
    a killed leaf's stray work is real work — the run that prompted this left a 235-line
    untracked test file behind — and it has to go loudly, not in silence.
    Then `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` prints the first checked step whose
