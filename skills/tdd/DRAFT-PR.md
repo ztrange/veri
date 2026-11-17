@@ -12,7 +12,11 @@ Under `VERI_BRANCH_SUITE=ci` the branch gets no local full run here and no `full
 comes back here after that step's cycle makes no local full run either. Under `VERI_BRANCH_SUITE=local` the two sentences that follow apply. The full suite
 must be green before this step: each time the run enters this step, run `$S/detect-test-command.sh --tier all`'s command via `detach-command.sh` once,
 in the same start-then-wait shape as the preflight baseline — the branch's own full-suite gate, since every leaf runs the fast
-command, the affected suites, or both. A run that comes back here after a repair step's cycle runs it again. That nothing is left uncommitted and no step is still only
+command, the affected suites, or both. A run that comes back here after a repair step's cycle runs it again. Each such run is
+stage `full-suite`: `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh stage-start stage=full-suite` just before it starts, and
+once its result is in, whatever it is, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh stage-end stage=full-suite status=<exit code> secs=<seconds>`,
+`<exit code>` the run's own (never a wait's 3) and `<seconds>` the whole seconds from that start to the result. Under
+`VERI_BRANCH_SUITE=ci` no run is made here, so neither line is written. That nothing is left uncommitted and no step is still only
 green is not taken on trust here — sub-step 1 asks. Like every step since 1.2, this one runs
 **from inside the worktree** — every command below is issued there, so each sees the issue
 branch and its commits without any switching.
