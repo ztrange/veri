@@ -43,8 +43,8 @@ and label it with `$S/classify-bail.sh <cause>`; check its answer against the le
 - `step-too-big`: the step-growth budget;
 - `revise-exhausted`: revise-exhausted (`REVISE_BUDGET`, or a ⟦skill-edit⟧ step's budget);
 - `needs-user` with `classification` `process`: a ledger question. Quote it from that run's
-  `### ⛔ Bailed — <phase> (process failure)` comment and take it to the coordinator or the
-  human (see Budgets and ledger);
+  `### ⛔ Bailed — <phase> (process failure)` comment and take it to `vdev` or the human
+  (see Budgets and ledger);
 - `needs-user` with no `classification` field: the conductor stopped unmarked (a red baseline
   or any other preflight stop, with the issue comment `needs-user: the conductor stopped
   without a verdict.`). No source tells these apart, so ask the human which;
@@ -88,7 +88,7 @@ again until the blocker closes.
 
 ## Budgets and ledger
 
-Raise a budget or amend the ledger only on the coordinator's or the human's word, never on
+Raise a budget or amend the ledger only on the human's word, never on
 your own. The change applies to that one resume and is not kept.
 
 To add or replace a step in the committed ledger, on that word, run
