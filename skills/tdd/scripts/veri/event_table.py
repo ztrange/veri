@@ -92,7 +92,7 @@ EVENTS = {
              " output_tokens:whole cache_read_input_tokens:whole cache_creation_input_tokens:whole model:text,empty"
              " model_usage?:json first_turn_cache_creation_input_tokens?:whole first_turn_cache_read_input_tokens?:whole"
              " first_turn_input_tokens?:whole",
-    "verdict": "verdict:(PASS|REJECT|malformed) reason:text,empty cause?:(no-verdict) check?:(1|2|3|4|5)",
+    "verdict": "verdict:(PASS|REJECT|malformed) reason:text,empty cause?:(no-verdict) check?:(1|2|3|4|5) tree?:sha",
     "verify-diff-skipped": "reason:(switched-off)",
     "verify-green-skipped": "reason:(switched-off)",
     "verify-pin-skipped": "reason:(switched-off)",
