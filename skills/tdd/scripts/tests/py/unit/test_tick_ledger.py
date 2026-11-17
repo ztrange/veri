@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-USAGE = b"usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher> (--unpinnable and --already-holds drop every mutation record whose named test is absent from the tree)\n"
+USAGE = b"usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --surround-short | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher> (--unpinnable and --already-holds drop every mutation record whose named test is absent from the tree)\n"
 
 
 @pytest.fixture
@@ -1298,3 +1298,24 @@ def test_main_with_phase_surround_marks_surround_done_after_seam_done_after_whic
 
     assert (code, ledger.read_text(), next_code, capsysbinary.readouterr()[0]) == (
         0, "# Plan for #4107\n\n- [ ] " + step + " ⟂ surround done\n", 3, b"")
+
+
+def test_main_with_surround_short_records_the_one_free_relaunch_on_the_step_and_a_resumed_run_that_spent_it_gets_exit_1_4108(
+        tmp_path, monkeypatch, capsysbinary, tick_ledger):
+    ledger_steps = importlib.import_module("veri.ledger_steps")
+    step = "wrap parse() in src/parse.py:10-80 through bin/parse ⟦phases: seam,surround⟧ ⟦criterion 1⟧ ⟂ seam done"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(("# Plan for #4108\n\n- [ ] " + step + "\n").encode())
+
+    first = tick_ledger.main(["--surround-short", str(ledger), "wrap parse() in src/parse.py:10-80"])
+    capsysbinary.readouterr()
+    recorded = ledger.read_text()
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(ledger.read_bytes())))
+    next_code = ledger_steps.main(["next-phase"])
+    next_out = capsysbinary.readouterr()[0]
+    resumed = tick_ledger.main(["--surround-short", str(ledger), "wrap parse() in src/parse.py:10-80"])
+    resumed_err = capsysbinary.readouterr()[1]
+
+    assert (first, recorded, next_code, next_out) == (
+        0, "# Plan for #4108\n\n- [ ] " + step + " ⟂ surround short\n", 0, b"surround\n")
+    assert (resumed, ledger.read_text(), b"surround-short" in resumed_err) == (1, recorded, True)

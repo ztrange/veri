@@ -352,6 +352,27 @@ def ledger_mark_phase(text, matcher, phase, owed=False):
     )
 
 
+SURROUND_SHORT_MARK = mark("surround", "short")
+
+
+def ledger_mark_surround_short(text, matcher):
+    """(True, text with the first open step holding matcher marked ⟂ surround short), (None, text) when that step
+    already carries the mark (its one free relaunch is spent), or (False, text) when no open step holds matcher.
+
+    ValueError when surround is not that step's next phase.
+    """
+    spent = []
+
+    def rewrite(match, line):
+        if line.endswith(SURROUND_SHORT_MARK) or SURROUND_SHORT_MARK + " " in line:
+            spent.append(line)
+            return line
+        return _with_phase_mark(line, "surround", "short")
+
+    found, new = _rewrite_first_step(text, _open_holding(matcher), rewrite)
+    return (None, text) if spent else (found, new)
+
+
 def ledger_clear_pending(text, matcher):
     """(True, text with the first line holding matcher cleared of the mark), or (False, text)."""
     return _rewrite_first_step(
