@@ -18,6 +18,8 @@ def log_path(main=None):
 
 
 KEYS = ("question", "decision", "rule", "by", "at")
+# Who may decide: an operator role (role-state.sh's roles), or the owner, whose own answer or override is recorded too.
+BY = ("coord", "dev", "owner")
 
 
 class Malformed(Exception):
@@ -35,7 +37,8 @@ def _record(text):
         record = json.loads(text)
     except ValueError:
         return None
-    if not (isinstance(record, dict) and all(isinstance(record.get(key), str) and record[key].strip() for key in KEYS)):
+    if not (isinstance(record, dict) and all(isinstance(record.get(key), str) and record[key].strip() for key in KEYS)
+            and record["by"] in BY):
         return None
     try:
         at = datetime.datetime.fromisoformat(record["at"])
@@ -81,7 +84,7 @@ def record(question, decision, rule, by):
 
 
 def main(argv):
-    if argv[:1] != ["record"] or len(argv) != 5 or not all(a.strip() for a in argv[1:]):
+    if argv[:1] != ["record"] or len(argv) != 5 or not all(a.strip() for a in argv[1:]) or argv[4] not in BY:
         sys.stderr.write(USAGE)
         return 2
     record(*argv[1:])

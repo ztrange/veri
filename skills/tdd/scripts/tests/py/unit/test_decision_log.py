@@ -59,3 +59,18 @@ def test_issue_4072_record_writes_a_token_shape_or_a_listed_variables_value_as_r
     record = json.loads(text)
     assert (code, token in text, "hunter2-correct-horse" in text, record["question"], record["decision"]) == (
         0, False, False, "Use token [redacted]?", "no; [redacted] stays local")
+
+
+@pytest.mark.parametrize("by", ["judge", "Owner", "vdev", "mario"])
+def test_issue_4072_record_by_anything_but_a_role_name_or_owner_exits_2_and_writes_nothing(
+        decision_log, tmp_path, run_cli, by):
+    code, out, err = run_cli(decision_log, ["record", "Raise N to 4?", "kept N at 3", "use plan capacity", by])
+
+    assert (code, out, err, (tmp_path / ".tdd" / "decisions.jsonl").exists()) == (2, "", decision_log.USAGE, False)
+
+
+@pytest.mark.parametrize("by", ["coord", "dev", "owner"])
+def test_issue_4072_record_by_a_role_name_or_owner_is_recorded_with_that_by(decision_log, tmp_path, run_cli, by):
+    code, _, _ = run_cli(decision_log, ["record", "Raise N to 4?", "N=4", "the owner's answer", by])
+
+    assert (code, json.loads((tmp_path / ".tdd" / "decisions.jsonl").read_text())["by"]) == (0, by)
