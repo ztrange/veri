@@ -1543,21 +1543,40 @@ def test_cli_refuses_a_leafs_kill_of_a_pgrep_substitution_naming_the_rule_while_
             "-g 0" in ran, (tmp_path / "suite-exit").read_text().strip()) == (0, [], [], True, "0")
 
 
+SLEEP_START_POLLS = 200  # 0.05 s apart: about 10 s, well inside the process case's own timeout
+
+
 @pytest.mark.process("a real stub claude killing a real sleep it started and recorded the pid of")
 def test_cli_a_leaf_can_still_kill_a_pid_it_started_and_recorded(tmp_path, monkeypatch, run_cli):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
     _write_prompt(work, "do the step\n")
+    # Before it kills, the stub waits (at most SLEEP_START_POLLS polls) until its background process is the running
+    # sleep itself, alive: a sleep slow to start is waited for, and one that never starts is recorded with its exit
+    # code in never-started rather than surfacing as a kill error (#4243).
     stub = _leaf_stub(tmp_path,
                       "bash -c 'sleep 30 & pid=$!\n"
+                      "n=0\n"
+                      "until ps -o args= -p \"$pid\" | grep -q \"^[^ ]*sleep 30\\$\"; do\n"
+                      "  if ! kill -0 \"$pid\" 2> /dev/null || [ \"$n\" -ge %d ]; then\n"
+                      "    kill \"$pid\" 2> /dev/null; wait \"$pid\"\n"
+                      "    printf \"%%s\\n\" \"$?\" > \"$VERI_TEST_OWN_DIR/never-started\"; exit 0\n"
+                      "  fi\n"
+                      "  n=$((n + 1)); /bin/sleep 0.05\n"
+                      "done\n"
                       "env kill \"$pid\" 2> \"$VERI_TEST_OWN_DIR/kill-err\"; status=$?\n"
-                      "printf \"%s\\n\" \"$status\" > \"$VERI_TEST_OWN_DIR/kill-exit\"\n"
+                      "printf \"%%s\\n\" \"$status\" > \"$VERI_TEST_OWN_DIR/kill-exit\"\n"
                       "[ \"$status\" = 0 ] || /bin/kill \"$pid\"\n"
-                      "wait \"$pid\"; printf \"%s\\n\" \"$?\" > \"$VERI_TEST_OWN_DIR/wait-exit\"'\n")
+                      "wait \"$pid\"; printf \"%%s\\n\" \"$?\" > \"$VERI_TEST_OWN_DIR/wait-exit\"'\n" % SLEEP_START_POLLS)
 
     code, _, _ = run_cli(run_leaf, ["prompt.txt"],
                          env={"CLAUDE_BIN": str(stub), "VERI_TEST_OWN_DIR": str(tmp_path)})
 
+    never_started = tmp_path / "never-started"
+    if never_started.exists():
+        pytest.fail("the stub's background `sleep 30` never became a running sleep in %d polls: it exited %s "
+                    "before it could be killed" % (SLEEP_START_POLLS, never_started.read_text().strip()),
+                    pytrace=False)
     assert (code, [(tmp_path / name).read_text().strip() for name in ("kill-exit", "wait-exit", "kill-err")]) == (
         0, ["0", "143", ""])
 
