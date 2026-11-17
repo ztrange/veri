@@ -75,10 +75,11 @@ ln -s "$(pwd)/skills/vinstall" ~/.claude/skills/vinstall
 ln -s "$(pwd)/skills/vish" ~/.claude/skills/vish
 ```
 
-`/vinstall` links six skills: `vcoord`, `vdev`, `vfile`, `vgroom`, `vhandoff` and `vplan`. The
+`/vinstall` links five skills, the ones `LINKED` holds in
+`skills/tdd/scripts/veri/install_links.py`: `vdev`, `vfile`, `vgroom`, `vhandoff` and `vplan`. The
 rest are not linked: the operator skills read them by path when they need them, and a link an
-earlier install left to `vready`, `vreport`, `vstatus` or `vstop` is removed, reported as
-`removed <name>`. To type one of the rest yourself, link it by hand.
+earlier install left to `vcoord`, `vready`, `vreport`, `vstatus` or `vstop` is removed, reported
+as `removed <name>`. To type one of the rest yourself, link it by hand.
 
 `/vready`, the readiness check `/vinstall` runs after an install that changed a link, makes one
 paid Haiku call, about $0.004, to prove a leaf may bypass permission prompts: a `claude -p`
