@@ -135,10 +135,18 @@ def main(argv):
     if number in (blocker or []):
         sys.stderr.write("park-issue.sh: an issue cannot be blocked by itself\n")
         return 2
+    try:
+        labelled = github.gh_label_exists("parked")
+    except github.NoAnswer:
+        sys.stderr.write("park-issue.sh: no answer from gh reading the parked label\n")
+        return 2
+    if not labelled:
+        sys.stderr.write("park-issue.sh: the repository has no `parked` label: create it (ready-check.sh reports it)\n")
+        return 2
     pr = "PR: %s\n" % argv[3] if len(argv) == 4 else ""
     writes = [("Blocked by write", lambda: block_on(number, blocker))] if blocker else []
     writes += [
-        ("label", lambda: (github.gh_label_ensure("parked"), github.gh_issue_add_label(number, "parked"),
+        ("label", lambda: (github.gh_issue_add_label(number, "parked"),
                            github.gh_issue_remove_label(number, "bailed"))),
         ("comment", lambda: github.gh_issue_comment(number, fit(github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n%s" % (cause, pr, unblock, "Blocked by: %s\n" % ", ".join("#" + b for b in blocker) if blocker else ""), question))),
     ]

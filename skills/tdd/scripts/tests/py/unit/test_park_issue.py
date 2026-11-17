@@ -22,7 +22,7 @@ def park(monkeypatch):
 
     monkeypatch.setattr(github, "gh_issue_view", lambda number, field: calls.append(("view", number, field)) or BODY)
     monkeypatch.setattr(github, "gh_issue_edit", edit)
-    monkeypatch.setattr(github, "gh_label_ensure", lambda label: calls.append(("ensure", label)))
+    monkeypatch.setattr(github, "gh_label_exists", lambda label: True)
     monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: calls.append(("label", number, label)))
     monkeypatch.setattr(github, "gh_issue_remove_label", lambda number, label: calls.append(("unlabel", number, label)))
     monkeypatch.setattr(github, "gh_issue_comment", lambda number, body: calls.append(("comment", number)))
@@ -241,35 +241,6 @@ def test_park_issue_comment_carries_a_pr_line_only_when_given_a_pr(tmp_path, par
     assert "PR:" not in park("7", "held for review", "a human merges")
 
 
-def test_park_issue_creates_the_parked_label_when_the_repository_lacks_it_then_labels_the_issue_and_exits_0(
-        tmp_path, park_issue, run_cli, fake_processes):
-    created, labelled = [], []
-
-    def label_state(line, **kwargs):
-        args = fake.argvs[-1][1:]
-        for arg in args:
-            if fnmatch.fnmatchcase(arg, "*/issues/*/labels"):
-                if not created:
-                    return 1, "", "label parked not found\n"
-                labelled.append(arg)
-                return 0, "{}\n", ""
-            if fnmatch.fnmatchcase(arg, "*/labels/parked"):
-                return (0, "{}\n", "") if created else (1, "", "HTTP 404: Not Found\n")
-        for arg in args:
-            if arg == "label" or fnmatch.fnmatchcase(arg, "*/labels"):
-                created.append(arg)
-                return 0, "{}\n", ""
-        return 0, "{}\n", ""
-
-    fake = fake_processes.answers({"gh": label_state})
-
-    code, out, err = run_cli(park_issue, ["7", "held for review", "a human merges"], cwd=tmp_path)
-
-    assert created, "no call created the parked label:\n" + gh_log(fake)
-    assert labelled, "the issue was never labelled parked:\n" + gh_log(fake)
-    assert code == 0, err
-
-
 def test_park_issue_with_a_bad_argument_exits_2_naming_which_argument_and_calls_no_gh(
         tmp_path, park_issue, run_cli, fake_processes):
     fake = gh_stub(fake_processes)
@@ -379,17 +350,18 @@ def test_park_issue_labels_comments_and_exits_0_when_gh_answers_the_label_creati
     assert code == 0, err
 
 
-def test_park_issue_exits_2_naming_the_label_write_when_gh_fails_to_create_the_missing_label_2343(
+def test_issue_4081_park_issue_exits_2_naming_the_parked_label_and_writes_nothing_when_reading_it_gets_no_answer(
         tmp_path, park_issue, run_cli, fake_processes):
     fake = gh_stub(fake_processes,
                    ("*/issues/*/comments", (0, "{}\n", "")),
                    ("*/issues/*/labels", (0, "{}\n", "")),
-                   ("*/labels", (1, "", "gh: Resource not accessible by integration (HTTP 403)\n")))
+                   ("*/labels/parked", (1, "", "gh: Resource not accessible by integration (HTTP 403)\n")))
 
     code, out, err = run_cli(park_issue, ["7", "held for review", "a human merges"], cwd=tmp_path)
 
     assert code == 2, (code, err, gh_log(fake))
-    assert "label" in err, err
+    assert "parked label" in err, err
+    assert "/issues/" not in gh_log(fake), gh_log(fake)
 
 
 def test_park_issue_with_a_pr_that_is_neither_a_number_nor_a_pr_url_exits_2_with_usage_naming_both_and_calls_no_gh_2429(
