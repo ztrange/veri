@@ -824,18 +824,19 @@ def print_outcome(f):
               "so time the machine spent asleep is counted in them.")
     print("Steps done: %s of %s planned."
           % (known(f.steps_done), known(f.planned)))
-    if not f.ended:
+    said = outcome(f)
+    if said == "running":
         print("Outcome: none yet — the run is still going.")
-    elif ending is None and f.cause == "usage-limit":
+    elif said == "usage-limit":
         print("Outcome: the run hit a usage limit.")
-    elif ending is None and f.cause == "killed":
+    elif said == "killed":
         print("Outcome: the run was killed — its conductor's latest launch left no result.")
-    elif ending is None:
+    elif said == UNKNOWN:
         print("Outcome: %s — the log carries no mark ending the run." % UNKNOWN)
-    elif ending.get("event") == "done":
+    elif said == "landed":
         print("Outcome: the run landed — its draft PR is %s."
               % (ending.get("pr") or UNKNOWN))
-    elif ending.get("event") == "stop":
+    elif said == "stopped":
         print("Outcome: the run was stopped — mode %s, at %s."
               % (ending.get("mode") or UNKNOWN, ending.get("at") or UNKNOWN))
     else:
