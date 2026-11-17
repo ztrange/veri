@@ -99,3 +99,38 @@ def test_4026_a_red_whose_test_sits_in_a_new_directory_passes_the_tree_check(tmp
     code, out, err = run_cli(red_half, ["12"], cwd=str(tmp_path), env=IDENTITY)
 
     assert (code, out.splitlines()[-1]) == (0, "against_unmodified=FAILS"), out + err
+
+
+@pytest.mark.process("refactor-half's git log, status and rev-list run by a real git in a repository built by repo_builder")
+def test_4028_the_green_commit_the_tree_the_subjects_and_the_count_are_read_from_a_real_repository(
+        tmp_path, monkeypatch, run_cli):
+    fused = importlib.import_module("veri.fused")
+    refactor_half = importlib.import_module("veri.refactor_half")
+    real = fused.run_script
+    wt = repo_builder.new_repo(tmp_path / ".tdd" / "wt" / "12")
+    rule = importlib.import_module("veri.ensure_run_state_ignored").RULE
+    (wt / ".tdd").mkdir()
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] %s ⟂ refactor pending\n" % STEP)
+    green_sha = repo_builder.commit_all(wt, "feat: one thing works (#12)", src__a_py="x = 1\n",
+                                        **{".gitignore": "".join(line + "\n" for line in rule)})
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("# spec\n")
+    (wt / ".tdd" / "issue-12-red-half").write_text("step=%s\ntest_path=tests/test_a.py\n" % STEP)
+    (wt / ".tdd" / "develop-refactor.out").write_text("{}\n")
+    (wt / ".tdd" / "verify-refactor.log").write_text("{}\n")
+
+    def answer(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        if base == "git":
+            return real(name, *args, cwd=cwd, env=env, **kw)
+        if base == "detach-leaf.sh" and args[1] == "develop-refactor":
+            repo_builder.commit_all(wt, "refactor: extract f (#12)", src__a_py="X = 1\nx = X\n")
+        return {"refactor-budget.sh": (0, "refactor 0/5\n"), "refactor-touched.sh": (0, "src/a.py\n"),
+                "extract-result.sh": (0, "RESULT: extract f\n"), "stop-requested.sh": (3, ""),
+                "refactor-triage.sh": (3, "")}.get(base, (0, "")) + ("",)
+
+    monkeypatch.setattr(fused, "run_script", answer)
+    code, out, err = run_cli(refactor_half, ["12"], cwd=str(tmp_path), env=IDENTITY)
+
+    assert code == 0, out + err
+    assert {"green_sha=" + green_sha, "count=1", "stopped=nothing-structural"} <= set(out.splitlines())
