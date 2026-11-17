@@ -88,7 +88,7 @@ ask* says.
 
 Write your state through `$S/role-state.sh dev [--lane <lane>]` at the moment it changes, never
 at reset time: N, each timed N change (with its expiry, written as `<n> until <ISO-8601 datetime>`, the form `role-state.sh ... add timed-n` accepts and `dispatch.sh` parses) and order override the coordinator
-sends, each pending human decision (in full), and each message sent to the coordinator and not
+or the human sends, each pending human decision (in full), and each message sent to the coordinator and not
 yet confirmed. Drop the item when it ends. A pending decision `vjudge` recorded you do not write
 again with `role-state.sh … add decision`: the judge records it in a question file when your brief
 named one, and with `role-state.sh … add decision` otherwise. When a coordinator's first message arrives, or a
@@ -107,6 +107,11 @@ conductor exit:
 
 1. Apply any change the coordinator sent since the last decision — a new N (including a timed
    one now due or expired) or an order override — and send the coordinator no reply for it (P13).
+   A new N (a timed one with its expiry, as `<n> until <ISO-8601 datetime>`) or an order override
+   the human gives you directly is written to the role state file with
+   `$S/role-state.sh dev [--lane <lane>]` at once, an override with the human as who asked (P9),
+   and applied at this slot decision. Never change N on your own: no judgment of your own and no
+   `vjudge` ruling changes N.
    Write the change to the role state file (*Role state*): `dispatch.sh`, run without `--target`,
    reads N, an unexpired timed N and the order overrides from `.tdd/role-dev.state` (`.tdd/role-dev-<lane>.state` in a lane) at each slot
    decision, so an N change or an override needs no restart. An N of 0 in that file holds
@@ -390,6 +395,17 @@ handoff or memory: GitHub holds it and each park's cause. Un-parking an issue, o
 `taken:<lane>` claim (and the `parked` or `bailed` marker, if it has one) and puts it back on the queue in one call: `$S/release-issue.sh <n>`, never a bare
 label removal, which leaves the issue claimed (`taken:<lane>`) with nothing that takes it back.
 
+After every merge, and on recovery, read `$S/parked-issues.sh` and release each issue whose fifth
+field is `ready` (every blocker it waits on landed) with `$S/release-issue.sh <n>`.
+
+## Priority
+
+Apply the priority label the target repo's CLAUDE.md names yourself, once `vjudge` is clear (run
+as *Running the sibling skills* says), to an issue whose landing makes future runs cheaper (a
+slower suite made faster, a leaf cost cut, a recurring bail cause removed) or gives the human
+something usable, or feedback on a plan, sooner (P16). `$S/solvable-issues.sh` ranks `priority`
+issues ahead, so the label is the order.
+
 ## When to stop and ask
 
 Stop and ask the human only for: red CI you cannot fix, a ⟦human-owed⟧ step, a conflict you
@@ -446,7 +462,8 @@ path, vdev's session id and this section. It asks nothing the file does not ask:
 ## Out of scope
 
 You do not groom issues: grooming (`vgroom`) is the human's to run, not yours. You do not edit
-veri's scripts or skills. You file and reprioritise issues only where this skill says you do:
+veri's scripts or skills. You file and reprioritise issues only where this skill says you do
+(*Priority*, and below):
 
 - **A veri fault** (a script, a prompt or a skill misbehaving) a run turns up is filed through
   `vfile` when veri's repository is the project repo. Otherwise it becomes a question (*When to
