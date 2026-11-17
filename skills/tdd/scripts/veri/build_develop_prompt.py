@@ -162,6 +162,8 @@ def fragments(phase, revised_phase, step, has_bug):
     marked = {}
     freeze = []
     repair = False
+    if "diff" in (phase, revised_phase) and carries_mark(markers, "test-quality"):
+        marked["TEST_QUALITY"] = "_develop-diff-test-quality.md"
     if phase == "red" and carries_mark(markers, "ci-repair"):
         marked["CI_REPAIR"] = "_develop-red-ci-repair.md"
     if "green" in (phase, revised_phase):
@@ -227,7 +229,7 @@ def render(parsed, chosen):
         if not os.access(path, os.R_OK):
             return Refusal(f"build-develop-prompt: cannot read '{path}'", usage=False)
     prompts_b = os.fsencode(prompts)
-    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "FIXTURE_REPAIR", "CI_REPAIR", "STEP",
+    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "FIXTURE_REPAIR", "CI_REPAIR", "TEST_QUALITY", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES", "ISSUE_NUMBER", "STEP_ARGUMENT",
