@@ -146,3 +146,41 @@ def test_worst_exits_2_when_the_row_cannot_be_appended(tmp_path, run_cli, red_se
     monkeypatch.setattr(red_setup.refactor_owed, "write", lambda file, text: 1)
 
     assert _worst(run_cli, red_setup, tmp_path)[0] == 2
+
+
+def test_the_candidates_issue_lists_the_testability_row_worst_records_and_refactor_owed_list_never_prints_it(
+        tmp_path, run_cli, red_setup):
+    _journal(tmp_path, ("7", "step one", "5", "five fakes"))
+    owed = tmp_path / ".tdd" / "issue-7-refactor-owed.md"
+    owed.write_text("### step one\n- extract the shared partial\n")
+    _worst(run_cli, red_setup, tmp_path)
+    candidates = importlib.import_module("veri.refactor_candidates")
+    refactor_owed = importlib.import_module("veri.refactor_owed")
+
+    listed, out, _ = run_cli(refactor_owed, ["list", str(owed)])
+
+    assert (candidates.grouped(owed.read_text()), listed, out) == (
+        "## unsorted\n- testability | step one: 5 stubs and setup (five fakes)", 0, "extract the shared partial\n")
+
+
+def test_worst_reads_its_threshold_from_veri_setup_threshold(tmp_path, run_cli, red_setup):
+    _journal(tmp_path, ("7", "step one", "5", "five fakes"), ("7", "step two", "2", "a spy, a stub"))
+
+    assert [_worst(run_cli, red_setup, tmp_path, env={"VERI_SETUP_THRESHOLD": value})[0] for value in ("5", "1")] == [3, 0]
+
+
+@pytest.mark.parametrize("value", ["three", "-1", "2.5", " 3"])
+def test_worst_exits_2_with_one_stderr_line_naming_the_knob_on_a_threshold_that_is_not_a_whole_number(
+        tmp_path, run_cli, red_setup, value):
+    _journal(tmp_path, ("7", "step one", "5", "five fakes"))
+
+    code, err, owed = _worst(run_cli, red_setup, tmp_path, env={"VERI_SETUP_THRESHOLD": value})
+
+    assert (code, len(err.splitlines()), "VERI_SETUP_THRESHOLD" in err, owed) == (2, 1, True, None)
+
+
+def test_veri_setup_threshold_is_a_tunables_entry_reading_a_whole_number_default_3():
+    tunables = importlib.import_module("veri.tunables")
+
+    assert (tunables.default("VERI_SETUP_THRESHOLD"), tunables.parses("VERI_SETUP_THRESHOLD", "0"),
+            tunables.parses("VERI_SETUP_THRESHOLD", "2.5")) == ("3", True, False)

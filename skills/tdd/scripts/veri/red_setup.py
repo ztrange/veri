@@ -46,7 +46,13 @@ def record(n):
 
 def worst(n, owed):
     """Record the run's worst Red, the step whose latest `red-setup` count is highest, as one `testability` not-done row
-    of <owed> when that count exceeds the threshold: 0 recorded, 3 none over it."""
+    of <owed> when that count exceeds VERI_SETUP_THRESHOLD: 0 recorded, 3 none over it, 2 a threshold that is not a
+    whole number or an owed file it cannot write."""
+    threshold = entry.whole_number(tunables.get("VERI_SETUP_THRESHOLD", unless_empty=True), 0)
+    if threshold is None:
+        sys.stderr.write("red-setup: VERI_SETUP_THRESHOLD must be a whole number, got '%s'\n"
+                         % tunables.get("VERI_SETUP_THRESHOLD"))
+        return 2
     latest = {}
     for mark in event_log.events(".", "red-setup"):
         if str(mark.get("issue")) == n and entry.whole_number(str(mark.get("count")), 0) is not None:
@@ -54,7 +60,7 @@ def worst(n, owed):
     if not latest:
         return 3
     step, (count, what) = max(latest.items(), key=lambda item: item[1][0])
-    if count <= 3:
+    if count <= threshold:
         return 3
     try:
         drop_own_row(owed)
