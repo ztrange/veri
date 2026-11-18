@@ -166,11 +166,13 @@ def main(argv):
             except OSError as e:
                 print(f"restart-conductor.sh: cannot read conductor-{run}.log: {e}", file=sys.stderr)
                 return 2
-            if not asked and g is not None and g >= 0.85 * int(knob):
-                restart_marker.claim(_run_dir(run), os.getpid())
-                stop_run("at-ledger", run)
-                asked = True
-                mark = _stop_mark(run)
+            if not asked and not foreign and g is not None and g >= 0.85 * int(knob):
+                foreign = _stop_mark(run) is not None
+                if not foreign:
+                    restart_marker.claim(_run_dir(run), os.getpid())
+                    stop_run("at-ledger", run)
+                    asked = True
+                    mark = _stop_mark(run)
             sleep(5)
         for reason in reasons:
             print(f"restart-conductor.sh: conductor read not-live: {reason}")

@@ -1,0 +1,1 @@
+- [x] a stop request already pending when growth crosses the threshold is neither overwritten nor followed by a relaunch: the restarter writes no stop and ends the watch with `restarts 7 0` ⟦added⟧ ⟦criterion 1⟧
