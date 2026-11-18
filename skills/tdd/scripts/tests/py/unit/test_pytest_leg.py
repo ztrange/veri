@@ -1109,3 +1109,34 @@ def test_4310_a_leg_waiting_for_a_free_core_writes_one_stderr_line_however_many_
     code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))
 
     assert (code, len(polls), [(str(holder) in line, "16" in line) for line in err.splitlines()]) == (0, 3, [(True, True)])
+
+
+def test_4310_a_leg_waiting_for_a_free_core_holds_the_lock_wait_marker_so_lock_waiting_reports_it_and_the_marker_is_gone_once_pytest_starts(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import supervise
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    blocker = legs / str(os.getppid())
+    blocker.write_text("16\n")
+    marker = tmp_path / "marker"
+    waiting_while_polling = []
+    marker_at_start = []
+
+    def death_during_the_poll_sleep(seconds):
+        waiting_while_polling.append(supervise.lock_waiting(str(marker)))
+        blocker.unlink(missing_ok=True)
+
+    def spy(args):
+        marker_at_start.append(marker.exists())
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    monkeypatch.setattr(pytest_leg.time, "sleep", death_during_the_poll_sleep)
+    env = leg_env(VERI_PYTEST_LEGS=str(legs), PYTEST_LEG_LOCK_WAIT_MARKER=str(marker))
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0]
+
+    assert (code, waiting_while_polling, marker_at_start[:1], marker.exists()) == (0, [True], [False], False)
