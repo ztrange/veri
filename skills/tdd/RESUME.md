@@ -26,6 +26,11 @@ exit 1 refuses as it always has, and exit 0 — every branch-red suite is green 
 default branch, whatever the previous bail's cause — saves the branch-red list to `.tdd/resume-suite-red` and goes on. The **resume check** then finds an existing
 `.tdd/issue-<n>.md`. When it does:
 
+Run `$S/resume-start.sh <n>` first, again on exit 3. On exit 0 it made sub-steps 1–4's fixed calls and the owed
+verify-plan: take **STEP**, `<pr-url>` and the verdict from its last lines `step=`, `pr_url=` and `verify_plan=`
+(`PASS` or `skip`), commit an `insert`'s ledger as sub-step 4 says, and run the cycle loop. On exit 1 or 2 go on by
+the sub-step its `stopped at` line names.
+
 1. Do **not** re-plan — the ledger is the source of truth — except that the amended
    criteria are planned with `--planned` in sub-step 3. Re-write only the blind spec
    file (`.tdd/issue-<n>-spec.md`) since it is run scratch, not committed.
