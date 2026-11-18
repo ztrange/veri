@@ -80,13 +80,13 @@ def main(argv):
     else:
         start = max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
     out = ""
-    for stage in order[start:]:
+    for stage, script in list(zip(order, CALLS))[start:]:
         anchor, unhandled = STAGES[stage]
         if stage in hand:
             return seam(wt, n, step, stage, 1, anchor, "hand")
         if any(mark in step for mark in unhandled):
             return seam(wt, n, step, stage, 1, anchor, "unmodelled")
-        code, out, _ = fused.call(fused.script(CALLS[order.index(stage)]), n)
+        code, out, _ = fused.call(fused.script(script), n)
         if code != 0:
             said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
             if code == 1 and said:
