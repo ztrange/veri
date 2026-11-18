@@ -11,6 +11,12 @@ import tunables
 
 USAGE = "usage: resume-start.sh <n>"
 
+# The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_resume_start.py fails
+# when one is a script RESUME.md and SKILL.md do not name (FC19).
+CALLS = ("ledger-growth.sh", "next-pending-refactor.sh", "next-unchecked.sh", "ledger-steps.sh", "event.sh",
+         "comment.sh", "suite-red-resume.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh", "run-verdict.sh",
+         "wait-leaf.sh")
+
 
 def inputs(n):
     """(preflight lines, run-start values) once every input file is readable; else None, each missing one named on
