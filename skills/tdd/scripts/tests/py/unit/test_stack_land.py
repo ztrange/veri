@@ -144,3 +144,17 @@ def test_a_cut_fewer_than_veri_slice_commits_ahead_with_no_pull_request_onto_the
 
     assert (code, out, "7 commits" in err, "#4318" in err, "#90" in err, world.scripts) == (
         3, "", True, True, False, [("stack-red.sh",), ("stack-green.sh",)]), err
+
+
+@pytest.mark.parametrize("size, ahead", [(None, 100), (None, 250), ("5", 5)])
+def test_a_cut_veri_slice_commits_or_more_ahead_goes_on_to_take_the_merge_lock_though_a_pull_request_is_open_onto_the_stack(
+        monkeypatch, run_cli, stack_land, size, ahead):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/77"
+    live = {"number": 77, "html_url": url, "head": {"ref": "issue-77"}, "base": {"ref": "stack"}}
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
+                                         "merge-lock.sh": (2, "")}, ahead=ahead, onto=[live])
+
+    code, out, err = run_cli(stack_land, [], env={} if size is None else {"VERI_SLICE_COMMITS": size})
+
+    assert [ran[:3] for ran in world.scripts] == [
+        ("stack-red.sh",), ("stack-green.sh",), ("merge-lock.sh", "take", "--pid")], err
