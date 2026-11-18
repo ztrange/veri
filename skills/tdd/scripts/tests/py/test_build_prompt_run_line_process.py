@@ -7,6 +7,7 @@ import pytest
 
 from conftest import SCRIPTS
 from repo_builder import commit_all, git, new_repo
+from stub_script import write_stub
 
 TIMED = str(SCRIPTS / "timed-test-run.sh")
 BASE_MD = 'veri: all tests: pytest\nveri: one test file: pytest "$1"\n'
@@ -99,8 +100,7 @@ def test_outside_veri_verify_red_reads_its_run_lines_at_the_merge_base_with_orig
     spec = tmp_path / "spec.md"
     spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
     claude = tmp_path / "claude-pass"
-    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
-    claude.chmod(0o755)
+    write_stub(claude, "printf 'VERDICT: PASS\\nREASON: fine.'\n")
     env = {"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
     base = commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n"})
     git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
@@ -128,8 +128,7 @@ def test_inside_veris_own_tree_verify_red_with_an_origin_remote_but_no_origin_he
     spec = tmp_path / "spec.md"
     spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
     claude = tmp_path / "claude-pass"
-    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
-    claude.chmod(0o755)
+    write_stub(claude, "printf 'VERDICT: PASS\\nREASON: fine.'\n")
     commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n",
                                 "skills__tdd__scripts__tests__py__conftest.py": ""})
     git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
