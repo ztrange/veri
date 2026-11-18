@@ -320,3 +320,13 @@ def test_4337_a_recorded_entry_that_is_not_green_answers_run(tmp_path, run_cli, 
     code, out, err = _green_4337(run_cli, baseline_full_tier, "--green", tmp_path)
 
     assert (code, out.strip()) == (0, "run")
+
+
+def test_4337_an_empty_tree_records_nothing_and_answers_run(tmp_path, run_cli, baseline_full_tier):
+    (tmp_path / ".git").mkdir()
+
+    recorded = _green_4337(run_cli, baseline_full_tier, "--record-green", tmp_path, tree="")
+    code, out, err = _green_4337(run_cli, baseline_full_tier, "--green", tmp_path, tree="")
+
+    assert recorded[0] == 0
+    assert (code, out.strip()) == (0, "run")
