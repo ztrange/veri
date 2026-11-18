@@ -85,3 +85,22 @@ def test_4031_a_branch_behind_main_is_rebased_and_pushed_under_the_lease_pinned_
     assert tip != pre and git("rev-parse", "tdd/12-x", cwd=origin).strip() == tip
     assert git("merge-base", "--is-ancestor", git("rev-parse", "main", cwd=origin).strip(), tip, cwd=wt) == ""
     assert git("status", "--porcelain", cwd=wt) == ""
+
+
+@pytest.mark.process("pr_prepare.BLOCK run by a real sh over a stub grade-prose.sh")
+@pytest.mark.parametrize("codes, highest", [({}, 0), ({"a/U.md": 1}, 1), ({"b/V.md": 2, "a/U.md": 1}, 2),
+                                            ({"--convert": 2, "a/U.md": 1}, 2), ({"a/U.md": 2, "--convert": 1}, 2)],
+                         ids=["all pass", "one reject", "the highest of two", "convert highest", "convert lower"])
+def test_4390_the_detached_regrade_block_grades_each_unit_then_converts_and_exits_its_highest_code(
+        tmp_path, codes, highest):
+    pr_prepare = importlib.import_module("veri.pr_prepare")
+    stub = tmp_path / "grade-prose.sh"
+    stub.write_text('#!/bin/sh\necho "$*" >> "%s"\ncase "$*" in\n%s\nesac\nexit 0\n' % (
+        tmp_path / "graded", "\n".join('  *"%s") exit %d ;;' % (k, v) for k, v in codes.items())))
+    stub.chmod(0o755)
+    ran = subprocess.run(["sh", "-c", pr_prepare.BLOCK, "sh", str(tmp_path), "a/REQUIREMENTS.md", "a/U.md",
+                          "b/REQUIREMENTS.md", "b/V.md"], cwd=tmp_path, stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True, timeout=60)
+
+    assert ran.returncode == highest, ran.stderr
+    assert (tmp_path / "graded").read_text() == "a/REQUIREMENTS.md a/U.md\nb/REQUIREMENTS.md b/V.md\n--convert\n"

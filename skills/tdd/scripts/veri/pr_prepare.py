@@ -15,13 +15,15 @@ import tunables
 NAME = "pr-prepare"
 USAGE = "usage: pr-prepare.sh <n>"
 LEDGER = run_dir.ledger("", "%s")
+REGRADE = "regrade-%s"  # the regrade block's detach-command.sh name
 RUN = "rebased-full-%s"  # the rebased tip's detach-command.sh name: .tdd/rebased-full-<n>.out and .exit
 DETACH = fused.script("detach-command.sh")
 
-# The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_pr_prepare.py fails when one
-# is a script DRAFT-PR.md's sub-step 1 does not name (FC19).
-CALLS = ("next-pending-refactor.sh", "rebase-onto-default.sh", "grade-prose.sh", "rebased-tip-suite.sh",
-         "detect-test-command.sh", "detach-command.sh", "push-branch.sh", "refactor-owed.sh", "event.sh")
+# The $S/ scripts this call makes, in the order each is first made (git aside, and grade-prose.sh, which only the
+# detached regrade block runs); unit/test_pr_prepare.py fails when one is a script DRAFT-PR.md's sub-step 1 does not
+# name (FC19).
+CALLS = ("next-pending-refactor.sh", "rebase-onto-default.sh", "detach-command.sh", "rebased-tip-suite.sh",
+         "detect-test-command.sh", "push-branch.sh", "refactor-owed.sh", "event.sh")
 
 
 def main(argv):
@@ -34,10 +36,12 @@ def run(n):
         return 2
     _, wt = given
     resumed = fused.load_wait(wt, n, NAME)
-    if resumed is not None:
-        values = resumed[1]
+    if resumed is None:
+        at, values = REGRADE % n, rebase(wt, n)
     else:
-        values = rebase(wt, n)
+        at, values = resumed
+    if at == REGRADE % n:
+        values = regraded(wt, n, values)
     if values["rebased"] == "1":
         if values["rebased_tip_suite"] == "local":
             code = fused.call(DETACH, "wait", RUN % n, cwd=wt)[0]
@@ -53,16 +57,36 @@ def run(n):
 
 
 def rebase(wt, n):
-    """The two questions, the rebase, the regrade block and, after a rebase, the rebased tip's suite started (RB1-RB4):
-    the values settled so far, the local run's wait recorded so a second call only waits again (FC6)."""
+    """The two questions, the rebase and the regrade block started detached (RB1-RB3): the values settled so far, the
+    regrade's wait recorded so a second call only waits again (FC6)."""
     questions(wt, n)
     code, said, _ = fused.call(fused.script("rebase-onto-default.sh"), cwd=wt)
     if code not in (0, 3):
         raise fused.Stop("1", "rebase-onto-default.sh exit %d" % code, code)
-    values = {"rebased": "0", "rebased_from": "", "rebased_tip_suite": "none", "regraded": regrade(wt)}
+    values = {"rebased": "0", "rebased_from": "", "rebased_tip_suite": "none", "before": regrade(wt, n)}
     if code == 0:
-        values.update(rebased="1", rebased_from=(said.splitlines() or [""])[0].strip(), rebased_tip_suite=tip_suite(
-            wt, n))
+        values.update(rebased="1", rebased_from=(said.splitlines() or [""])[0].strip())
+    fused.save_wait(wt, n, NAME, REGRADE % n, values)
+    return values
+
+
+def regraded(wt, n, values):
+    """The regrade block's wait and, after a rebase, the rebased tip's suite started (RB3-RB4); the block's highest
+    exit 1 or 2 stops it. The local run's wait recorded so a second call only waits again (FC6)."""
+    code, said, _ = fused.call(DETACH, "wait", REGRADE % n, cwd=wt)
+    if code == 3:
+        raise fused.Waiting(REGRADE % n)
+    os.remove(fused.wait_record(wt, n, NAME))
+    if code == 1:
+        highest = int((said.split() or ["1"])[-1])
+        raise fused.Stop("1", "regrade block exit %d" % highest, highest)
+    if code != 0:
+        raise fused.Stop("1", "detach-command.sh wait %s exit %d" % (REGRADE % n, code), 2)
+    before = set(values.pop("before"))
+    values["regraded"] = [line[3:] for line in porcelain(wt) if line not in before and line[:2] in (" M", "M ")
+                          and os.path.basename(line[3:]) == "GRADED"]
+    if values["rebased"] == "1":
+        values["rebased_tip_suite"] = tip_suite(wt, n)
         if values["rebased_tip_suite"] == "local":
             fused.save_wait(wt, n, NAME, RUN % n, values)
     return values
@@ -74,26 +98,27 @@ def default_branch(wt):
     return git.default_branch(cwd=wt, remote=False)
 
 
-def regrade(wt):
-    """Sub-step 1's regrade block (RB3): every unit the branch signed since its merge base with origin/<default>, then
-    `grade-prose.sh --convert`; the block's highest exit 1 or 2 stops it once the block has run. A failing git call is
-    no answer (exit 2), never git's own code. Returns the GRADED files the block modified: each listed modified by the
-    porcelain after it and not listed alike before it, the only paths the tree check before the push lets by."""
+# The regrade block as one detached command: `sh -c BLOCK sh <$S> <requirements> <unit> …`, the highest exit of its
+# grade-prose.sh calls its own (RB3).
+BLOCK = ('S=$1; shift; rc=0; while [ "$#" -gt 1 ]; do "$S/grade-prose.sh" "$1" "$2" </dev/null || '
+         '{ r=$?; [ "$r" -gt "$rc" ] && rc=$r; }; shift 2; done; '
+         '"$S/grade-prose.sh" --convert </dev/null || { r=$?; [ "$r" -gt "$rc" ] && rc=$r; }; exit "$rc"')
+
+
+def regrade(wt, n):
+    """Sub-step 1's regrade block (RB3) started detached as `regrade-<n>`: every unit the branch signed since its merge
+    base with origin/<default>, then `grade-prose.sh --convert`. A failing git call is no answer (exit 2), never git's
+    own code. Returns the porcelain before the block, against which the files it modified are read."""
     default = default_branch(wt)
     if not default:
         raise fused.Stop("1", "no default branch for the regrade block", 2)
     base = answered("git", "merge-base", "HEAD", "origin/" + default, cwd=wt).strip()
     diff = answered("git", "diff", base, "HEAD", "-U0", "--", ":(glob)**/GRADED", cwd=wt)
-    before = set(porcelain(wt))
+    before = porcelain(wt)
     units = [m.group(1) for m in (re.match(r"^\+([^+][^ ]*) ", line) for line in diff.splitlines()) if m]
-    highest = 0
-    for args in [(os.path.join(os.path.dirname(unit) or ".", "REQUIREMENTS.md"), unit) for unit in units] + [
-            ("--convert",)]:
-        highest = max(highest, fused.call(fused.script("grade-prose.sh"), *args, cwd=wt, stdin="")[0])
-    if highest:
-        raise fused.Stop("1", "regrade block exit %d" % highest, highest)
-    return [line[3:] for line in porcelain(wt) if line not in before and line[:2] in (" M", "M ")
-            and os.path.basename(line[3:]) == "GRADED"]
+    pairs = [arg for unit in units for arg in (os.path.join(os.path.dirname(unit) or ".", "REQUIREMENTS.md"), unit)]
+    fused.checked("1", DETACH, "start", REGRADE % n, "sh", "-c", BLOCK, "sh", fused.SCRIPTS, *pairs, cwd=wt)
+    return before
 
 
 def answered(*args, **kw):
