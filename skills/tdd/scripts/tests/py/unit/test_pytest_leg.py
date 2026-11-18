@@ -865,6 +865,15 @@ def test_2195_after_a_full_run_releases_the_lock_the_lock_file_names_no_pid(pyte
     assert "pid" not in open(importlib.import_module("veri.full_run_lock").path()).read()
 
 
+def test_4261_main_leaves_sys_path_as_it_found_it_once_it_returns(pytest_leg, monkeypatch):
+    in_process_leg(pytest_leg, monkeypatch, lambda args: pytest.ExitCode.OK)
+    before = list(sys.path)
+
+    assert pytest_leg.main(["some/dir"]) == 0
+
+    assert sys.path == before
+
+
 def test_2386_on_macos_with_no_worker_count_the_budget_is_the_physical_core_count_less_the_live_legs_workers_and_at_least_1(pytest_leg, monkeypatch, tmp_path, fake_processes):
     fake_processes.answers({"sysctl -n hw.physicalcpu": (0, "8\n", "")}, exact=True)
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
