@@ -384,6 +384,13 @@ def refuse_below_floor(floor, numbers, subject, version):
 
 
 def main(argv):
+    saved_path = list(sys.path)
+    code = _main(argv)
+    sys.path[:] = saved_path
+    return code
+
+
+def _main(argv):
     PASSES_RED[0] = False
     floor = launch_floor.python_floor()
     version = tunables.read("VERI_PYTHON_VERSION") or platform.python_version()
