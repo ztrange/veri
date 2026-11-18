@@ -59,3 +59,16 @@ def test_outside_veri_branch_base_with_no_one_test_file_line_renders_the_base_co
 
     fallback = ([TIMED + " affected '<the suites you ran>' pytest"], ["`pytest`"])
     assert [(code, run_lines_of(out), err) for code, out, err in (uncommitted, committed)] == [(0, fallback, "")] * 2
+
+
+@pytest.mark.process("git init and commit run for real in a scratch repository, then build-verify-prompt in it")
+def test_outside_veri_a_branch_base_naming_no_commit_is_refused_with_exit_2_and_one_stderr_line_4263(tmp_path, run_cli):
+    verify = importlib.import_module("veri.build_verify_prompt")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    commit_all(repo, "base", **{"CLAUDE.md": BASE_MD})
+
+    code, out, err = run_cli(verify, ["--branch-base", "0000000", "red", str(spec), "tests/test_x.py"], cwd=repo)
+
+    assert (code, out, err) == (2, "", "build-verify-prompt: --branch-base '0000000' names no commit git can resolve\n")

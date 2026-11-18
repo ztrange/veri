@@ -15,6 +15,8 @@ Interface:
                           With <branch_base> (a hex commit name), the `veri: one test file:`, `veri: fast tests:` and
                           `veri: all tests:` lines are read from CLAUDE.md as it stood at that commit, never from the
                           working tree's.
+                          Raises BaseUnresolved when <root> is a git tree in which <branch_base> names no commit; a
+                          commit holding no CLAUDE.md reads as one declaring nothing.
 
 Blindness: the only inputs are <root>'s files, as detect-test-command.sh reads them (its CLAUDE.md lines first), and
 the CLAUDE.md git holds at <branch_base>, a commit name build-verify-prompt.sh already takes and hex-checks. No other
@@ -46,13 +48,17 @@ def quiet_prefix(root="."):
     return None
 
 
+class BaseUnresolved(Exception):
+    """<branch_base> names no commit git can resolve in <root>."""
+
+
 def _claude_md_at(branch_base, root):
     if not branch_base or not os.path.exists(os.path.join(root, ".git")):
         return None
-    try:
-        return os.fsencode(git.out("show", f"{branch_base}:./CLAUDE.md", cwd=root))
-    except git.GitFailed:
-        return b""
+    if not git.ok("rev-parse", "--verify", "--quiet", f"{branch_base}^{{commit}}", cwd=root):
+        raise BaseUnresolved(branch_base)
+    shown = git.git("show", f"{branch_base}:./CLAUDE.md", cwd=root, capture_output=True)
+    return shown.stdout if shown.returncode == 0 else b""
 
 
 def run_lines(root=".", branch_base=""):
