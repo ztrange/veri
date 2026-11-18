@@ -454,23 +454,32 @@ def stopping(step, *args):
         return stopped(s.step, s.what, s.code)
 
 
+def fresh_setup(n, slug, detect):
+    """A launch with no waiting preflight to resume: the environment and readiness checks, then the worktree's set-up;
+    the exit code preflight stops with, else (worktree, fast tier command, issue body file)."""
+    answered = {}
+    stop = check_environment(answered)
+    if stop is not None:
+        return stop
+    stop = check_readiness(answered.get("user", ""))
+    if stop is not None:
+        return stop
+    return set_up(n, slug, detect)
+
+
 def run(argv, wt):
     n, slug = argv
     env = tunables.with_values(VERI_ISSUE=n)
     detect = script("detect-test-command.sh")
     saved = load_pending(wt, n)
+    fast = body_file = None
     if saved is None:
-        answered = {}
-        stop = check_environment(answered)
-        if stop is not None:
-            return stop
-        stop = check_readiness(answered.get("user", ""))
-        if stop is not None:
-            return stop
-        wt, fast, body_file = set_up(n, slug, detect)
+        ready = fresh_setup(n, slug, detect)
+        if isinstance(ready, int):
+            return ready
+        wt, fast, body_file = ready
     got = {}
-    code = event.stage("baseline", lambda: stopping(baseline_suite, n, wt, saved, fast if saved is None else None,
-                                                    body_file if saved is None else None, detect, env, got),
+    code = event.stage("baseline", lambda: stopping(baseline_suite, n, wt, saved, fast, body_file, detect, env, got),
                        wt, event.context(env))
     if code != 0:
         return code
