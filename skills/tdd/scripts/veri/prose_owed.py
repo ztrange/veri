@@ -7,10 +7,17 @@ import sys
 
 import event
 import git
-from grade_prose import owed_listed
+from grade_prose import listed_pairs, owed_listed
 from ledger import OPEN_STEP, carries_mark
 
 USAGE = "usage: prose-owed.sh <repo-root>"
+PROMPTS = "skills/tdd/scripts/prompts"
+
+
+def rowless():
+    """Each file under the prompts directory that no tracked REQUIREMENTS.md lists as a unit (#4384)."""
+    units = set(listed_pairs("REQUIREMENTS.md")[1])
+    return [p for p in (PROMPTS + "/" + f for f in sorted(os.listdir(PROMPTS))) if p not in units]
 
 
 def waive(ledger, owed):
@@ -47,6 +54,7 @@ def main(argv):
     os.chdir(argv[0])
     try:
         owed, gone = owed_listed()
+        unrowed = rowless()
     except ValueError as e:
         print("prose-owed.sh: " + str(e), file=sys.stderr)
         return 2
@@ -55,7 +63,9 @@ def main(argv):
         print(unit)
     for unit in gone:
         print(unit, "(orphan)")
-    return 1 if owed or gone else 0
+    for path in unrowed:
+        print(path, "(no rows)")
+    return 1 if owed or gone or unrowed else 0
 
 
 if __name__ == "__main__":
