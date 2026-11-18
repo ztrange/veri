@@ -53,6 +53,8 @@ Recovery re-asks each pending decision once in a session without `start_session`
 with it, each is restated only in its own question session, *Speaking*), re-asks none of the question files its `Questions`
 section lists, runs *When to stop and ask*'s step 3 once for each file its `Unasked questions`
 section lists, acts on each file its `Answered questions` section lists as *Answers* says,
+treats a pending decision it restores for a held landing (*Routing an exit*), a question file or a
+role-state entry, as keeping every landing and every join onto that stack held until it is gone,
 re-sends or checks each pending message, and ends
 with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. Recovery then
 ends by sending the resetter `ack`. With no state file for this role and lane, start fresh.
@@ -201,7 +203,8 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   (the target repository's `CLAUDE.md` names a stack branch) the route is the same, the outage hold
   still in front of it: on the review's OK and the hold's exit 3, `vmerge` joins the run to the
   stack rather than merging it, as its *Joining a stack* says. A run that ended with an open
-  question for the human is never merged, and never joined.
+  question for the human is never merged, and never joined; nor is any reviewed run joined onto a
+  stack whose landing is held (*Landing a slice*, below).
 
   **Briefing a review, hand-fix or merge subagent here:** the brief also carries the rules in
   the block under "Running the sibling skills" that opens "Every brief for a review, hand-fix or
@@ -283,9 +286,13 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   1 is reported as a notice with its stderr. Exit 2 can mean the carry-over is still owed
   (`$S/stack-carry.sh <cut>`, named on its stderr), which leaves the stack for the human: it holds
   every later landing and every join onto that stack, a reviewed run's join included, and goes to
-  *When to stop and ask*; the hold lifts only on the human's answer, never on a later join or a
-  rerun. Where a stack is named, the standing merge permission in the project repo (*Starting*)
-  covers `$S/stack-land.sh` for the stack's slices, and a pull request based on the default branch
+  *When to stop and ask*. A landing is held while the question that exit 2 raised is pending:
+  while its question file exists, or, where no question session exists, while its pending decision
+  is recorded with `$S/role-state.sh dev [--lane <lane>] add decision` (*Role state*), the records
+  *Recovery* restores. `vjudge` never settles or lifts it: the hold lifts only once you act on the
+  human's answer and that file or entry is gone, never on a later join, a rerun or a judgment.
+  Where a stack is named, the standing merge permission in the project repo (*Starting*) covers
+  `$S/stack-land.sh` for the stack's slices, and a pull request based on the default branch
   is still merged through `vmerge` as before; nothing else reaches the default branch: no other
   push, merge or rebase onto it. `--now` is run only when the human asks for it.
   You never rebase a live run's branch across a landing: the run carries itself at its own join,
@@ -466,8 +473,9 @@ or criteria rewrite `vfile` proposes that `vjudge` surfaces (*Out of scope*), a 
 `vjudge` surfaces (*Priority*), a held landing (*Routing an exit*), or whether veri may fast-forward its own clone (*Starting*). Each
 such case first goes through `vjudge`,
 run as *Running the sibling skills* says: what the judge settles is acted on and never asked, and
-only what it surfaces reaches the human, as P21 says, stated in full (P4). Everything else you
-decide and keep going; a turn never ends while a slot can be filled (P5).
+only what it surfaces reaches the human, as P21 says, stated in full (P4). A held landing is the
+human's: `vjudge` surfaces it and never settles it, so it always reaches the human. Everything
+else you decide and keep going; a turn never ends while a slot can be filled (P5).
 
 **In a session without the app's `start_session` tool** (a terminal), your brief to `vjudge` names
 no question-file path and nothing is written under `.tdd/questions/`: a case the judge does not
