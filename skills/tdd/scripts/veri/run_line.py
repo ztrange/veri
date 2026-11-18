@@ -2,6 +2,10 @@
 
 Interface:
   own_tree(root=".")      whether <root> is veri's own tree: `skills/tdd/scripts/tests/py` is a directory there.
+  own_tree_at(commit, root=".")
+                          whether <commit> (a commit git resolves in <root>) is veri's own tree: it holds
+                          `skills/tdd/scripts/tests/py` as a directory. What a script a verifier runs decides by, so a
+                          working tree that adds the directory gains nothing.
   quiet_prefix(root=".", claude_md=None)
                           the argv prefix `["sh", "-c", '<quiet> "$@"', "sh"]` running the command <root>'s CLAUDE.md
                           declares as `veri: quiet test files: <quiet>` over the paths appended to it, or None when it
@@ -68,8 +72,12 @@ def _at_base(branch_base, root):
     if not git.ok("rev-parse", "--verify", "--quiet", f"{branch_base}^{{commit}}", cwd=root):
         raise BaseUnresolved(branch_base)
     shown = git.git("show", f"{branch_base}:./CLAUDE.md", cwd=root, capture_output=True)
-    kind = git.git("cat-file", "-t", f"{branch_base}:{PYTEST_DIR}", cwd=root, capture_output=True)
-    return shown.stdout if shown.returncode == 0 else b"", kind.stdout.strip() == b"tree"
+    return shown.stdout if shown.returncode == 0 else b"", own_tree_at(branch_base, root)
+
+
+def own_tree_at(commit, root="."):
+    kind = git.git("cat-file", "-t", f"{commit}:{PYTEST_DIR}", cwd=root, capture_output=True)
+    return kind.stdout.strip() == b"tree"
 
 
 def run_lines(root=".", branch_base=""):

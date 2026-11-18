@@ -250,7 +250,8 @@ def is_test_file(path):
 
 
 def foreign(files):
-    """The selection outside veri's own tree (no `skills/tdd/scripts/tests/py` directory): exit code, suites printed."""
+    """The selection outside veri's own tree (no `skills/tdd/scripts/tests/py` directory at the base commit, whatever
+    the working tree holds): exit code, suites printed."""
     files = [f for f in files if not f.startswith(".tdd/")]
     placed = [f for f in files if case_reader.is_test_path(f) and os.path.isfile(f)]
     sources = [f for f in files if not case_reader.is_test_path(f)]
@@ -280,6 +281,7 @@ def main(argv):
         if git("rev-parse", "--verify", "--quiet", rev + "^{commit}", stdout=subprocess.DEVNULL).returncode != 0:
             return entry.refuse("affected-suites: cannot resolve revision '%s'" % rev, usage=USAGE)
 
+    base = revisions.split("..", 1)[0]
     working_tree = ".." not in revisions
     if not working_tree:
         revisions = revisions.replace("..", "...", 1)
@@ -292,7 +294,7 @@ def main(argv):
     if not files:
         return 3
 
-    if not run_line.own_tree():
+    if not run_line.own_tree_at(base):
         return foreign([unquoted(f) for f in files.split("\n")])
 
     placed, unplaced = [], []
