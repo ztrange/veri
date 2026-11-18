@@ -724,6 +724,15 @@ def _join_offline(pid, worktree, branch, stack):
 
 
 def _joined_offline(worktree, branch, stack):
+    listed = _git(worktree, "worktree", "list", "--porcelain")
+    holder = None
+    for entry_ in listed.stdout.split("\n\n"):
+        lines = entry_.splitlines()
+        if "branch refs/heads/" + stack in lines:
+            holder = lines[0].removeprefix("worktree ")
+    if holder:
+        _say("the local %s is checked out in %s, a second writer; nothing joined" % (stack, holder))
+        return 2
     fetched = _rev(worktree, "refs/remotes/origin/" + stack)
     onto = _rev(worktree, "refs/heads/" + stack)
     if not onto:
