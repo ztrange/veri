@@ -89,3 +89,19 @@ def test_a_run_with_no_branch_base_stops_with_exit_2_never_reading_the_working_t
     commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n", ".tdd__issue-12.md": "- [x] step\n"})
 
     assert set_up_in(repo, monkeypatch) == (2, None)
+
+
+@pytest.mark.process("git init, commit, checkout, update-ref and symbolic-ref run for real in a scratch repository, then"
+                     " preflight.set_up's git and detect-test-command.sh calls in it")
+def test_a_fresh_launch_records_the_merge_base_of_head_and_origin_head_and_reads_its_fast_command_there_4374(
+        tmp_path, monkeypatch):
+    repo = new_repo(tmp_path / "repo")
+    base = commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n"})
+    origin_head_at(repo)
+    git(repo, "checkout", "-q", "-b", "issue-12")
+    commit_all(repo, "an edited fast line", **{"CLAUDE.md": "veri: fast tests: true\n"})
+    record = repo / ".tdd" / "issue-12-branch-base"
+
+    answer = set_up_in(repo, monkeypatch)
+
+    assert (answer, record.read_text() if record.exists() else None) == ((0, "pytest -q"), base + "\n")

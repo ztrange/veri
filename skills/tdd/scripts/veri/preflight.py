@@ -16,6 +16,7 @@ import event
 import fused
 import ready_check
 import run_dir
+import run_pins
 import tunables
 
 USAGE = "usage: preflight.sh <n> <slug>"
@@ -322,8 +323,11 @@ def set_up(n, slug, detect):
     checked(3, script("requirements-preflight.sh"), body_file, *([ledger] if resume else []), cwd=wt)
     # The fast command every leaf and verifier is handed is read at the branch base, the merge base of HEAD and
     # origin/HEAD a verifier reads its run lines at, so a CLAUDE.md a leaf committed on a resumed branch never sets
-    # it; with no base, detect-test-command.sh refuses (exit 2), never reading the working tree (#4263).
+    # it; with no base, detect-test-command.sh refuses (exit 2), never reading the working tree (#4263). A fresh run
+    # records it in the main working tree once the branch is cut (#4374).
     base = call("git", "merge-base", "HEAD", "origin/HEAD", cwd=wt)[1].strip()
+    if not resume:
+        run_pins.write_branch_base(run_dir.main_tree_from_files(wt), n, base)
     fast = checked(3, detect, "--tier", "fast", "--issue", body_file, "--at", base, wt, cwd=wt).strip()
     return wt, fast, body_file
 

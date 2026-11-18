@@ -71,7 +71,7 @@ def test_baseline_full_tier_round_trips_the_mode_and_answers_none_when_unpinned(
 def test_gitignore_seed_is_the_literal_bytes_runs_were_seeded_with(run_pins):
     assert run_pins.gitignore_seed() == (
         ".gitignore\nissue-*-skill-commit\nissue-*-skip-verify\nissue-*-baseline-full-tier\n"
-        "issue-*-conductor-model\nissue-*-launch-env\nissue-*-snapshot-digest\nconductor-*.log\nwt/\n")
+        "issue-*-conductor-model\nissue-*-launch-env\nissue-*-snapshot-digest\nissue-*-branch-base\nconductor-*.log\nwt/\n")
 
 
 def test_gitignore_seed_lists_every_pin_suffix_the_module_names(run_pins):
