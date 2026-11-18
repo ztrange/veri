@@ -426,3 +426,21 @@ def test_4390_the_regrade_block_runs_detached_its_slice_running_out_is_exit_3_an
     assert not {"next-pending-refactor.sh", "rebase-onto-default.sh"} & set(fake.names())
     assert ("detach-command.sh", "start", "regrade-12") not in [(c[0],) + c[1][:2] for c in fake.calls]
     assert fake.names().count("push-branch.sh") == 1
+
+
+SUBJECT = "docs: regrade the prose the branch signed (#12)"
+
+
+@pytest.mark.parametrize("before, after, committed", [
+    ("", " M skills/tdd/GRADED\nM  GRADED\n", ["skills/tdd/GRADED", "GRADED"]),
+    (" M docs/GRADED\n", " M docs/GRADED\n M GRADED\n", ["GRADED"]),
+    ("", "", None)],
+    ids=["the files the block modified", "not a GRADED modified before the block", "none modified, no commit"])
+def test_4390_with_no_rebase_it_commits_exactly_the_graded_files_the_regrade_block_modified_under_the_fixed_subject(
+        prep, before, after, committed):
+    code, out, err, fake = prep(fake=Fake(answers={("rebase-onto-default.sh", None): (3, "")},
+                                          porcelain=("", before, after)))
+
+    assert code == 0, out + err
+    commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
+    assert commits == ([] if committed is None else [("commit", "-q", "-m", SUBJECT, "--", *committed)])
