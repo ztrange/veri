@@ -766,6 +766,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `stack-pr.sh`: print the one open pull request tracking the stack branch, opening it when none is.
 - `stack-red.sh`: print CI's latest answer on the stack branch when it is red, which freezes joins.
 - `stack-revert.sh`: revert an issue's commits on the stack, its hand fix included, as one commit on the tip in a worktree of its own, and lift its join claim from the merged pull requests' bodies.
+- `stack-tag.sh`: cut the tags of a landed slice, one annotated `vN.M` per issue whose commits in it include a `feat` or `fix`, on that issue's last commit on the default branch.
 - `unwired.sh`: the non-test files a range adds that no other non-test file names, the gate before a pull request is readied.
 - `wait-ci.sh`: wait for a pull request's CI.
 - `worktree-setup.sh`: set up a worktree.
