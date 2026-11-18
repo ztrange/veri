@@ -204,3 +204,14 @@ def test_a_local_stack_checked_out_in_a_worktree_is_exit_2_naming_that_worktree_
 
     rebased = [c for c in world.calls if " rebase " in c]
     assert (code, rebased, world.local, "/elsewhere/tree" in err) == (2, [], LOCAL_STACK, True), err
+
+
+def test_a_stack_the_last_fetched_origin_head_names_as_the_default_branch_is_exit_2_asking_origin_nothing(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, default="stack").install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    rebased = [c for c in world.calls if " rebase " in c]
+    assert (code, rebased, world.networked(), world.pulls) == (2, [], [], []), err
+    assert err.startswith("queued-merge: ") and "default branch" in err, err
