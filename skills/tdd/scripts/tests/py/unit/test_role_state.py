@@ -73,12 +73,12 @@ def test_issue_4100_set_auto_with_a_value_other_than_on_or_off_exits_2_writing_n
 def test_issue_3241_set_accepts_each_growth_field_appending_it_to_the_state_file_and_exiting_0(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
     monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    fields = ["session", "transcript", "baseline", "baseline-at", "refused-at", "resetter"]
+    fields = ["session", "transcript", "baseline", "baseline-at", "refused-at", "refused-now-at", "resetter"]
 
     codes = [run_cli(role_state, ["dev", "set", f, "v-" + f])[0] for f in fields]
 
     state = (tmp_path / ".tdd" / "role-dev.state").read_text().splitlines()
-    assert (codes, state) == ([0] * 6, ["%s=v-%s" % (f, f) for f in fields])
+    assert (codes, state) == ([0] * 7, ["%s=v-%s" % (f, f) for f in fields])
 
 
 def test_issue_3241_dev_request_reset_after_a_launch_since_recovery_records_the_time_and_writes_the_marker(tmp_path, monkeypatch, run_cli):
@@ -307,14 +307,14 @@ def test_issue_3241_dev_recovered_removes_the_roles_reset_marker_and_keeps_a_lan
     assert (code, sorted(p.name for p in tdd.glob("reset-request-*"))) == (0, ["reset-request-dev-mu"])
 
 
-def test_issue_3241_dev_recovered_clears_refused_at_from_the_state_file_and_keeps_its_other_lines(tmp_path, monkeypatch, run_cli):
+def test_issue_3241_dev_recovered_clears_refused_at_and_refused_now_at_from_the_state_file_and_keeps_its_other_lines(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
     monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     state = tdd / "role-dev.state"
-    state.write_text("baseline=1000\nrefused-at=2026-11-12T09:30:00\n")
+    state.write_text("baseline=1000\nrefused-at=2026-11-12T09:30:00\nrefused-now-at=2026-11-12T09:40:00\n")
 
     code, _, _ = run_cli(role_state, ["dev", "recovered"], env={"CLAUDE_CODE_SESSION_ID": "sess-1"})
 
