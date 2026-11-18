@@ -97,6 +97,7 @@
 | CM165 | The *Commands* table has a `make ready-check` row saying it reports whether veri can run in this repository, through `ready-check.sh`. (Commands table, the `make ready-check` row.) | Seven of nine targets were missing from the table. |
 | CM230 | *Invariants worth not breaking* names the legacy kind: an issue labelled `legacy` runs Seam → Surround → Verify under `skills/tdd/LEGACY.md`, never also `refactor`. | Docs change with the behaviour. |
 | CM231 | A `make test` leg waiting for a free core writes the same wait marker a full-run lock waiter writes, so a supervised leaf's hard timeout and silence window are frozen while it waits (a marker it cannot write is one stderr line and the wait goes on unmarked, one already gone is no error, and TERM or HUP mid-wait removes it); a full run takes the lock before it waits for cores, and the wait is recorded as a `core-wait` event with its seconds. (Testing idiom, where the core wait is stated.) | A queued test is not a stuck leaf, and 036.3 reads the wait as a load signal. |
+| CM305 | An invariant says a run's branch base is the conductor's record, `.tdd/issue-<n>-branch-base` in the main working tree, written at the cut and by the conductor's own rebase, read back on resume, and never recomputed from a remote-tracking ref. | A leaf can rewrite refs; the base must come from a record the conductor wrote. |
 
 ## README.md
 

@@ -58,6 +58,9 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
   `VERI_NEW_SKILL=1`, or the `.tdd/issue-<n>-released` marker a successful `release-issue.sh <n>` leaves and the
   next launch consumes, re-pins (a `skill-repin` event). The snapshot is read-only, and a run stops (exit 2) when it
   changed since extraction: `supervise.sh` refuses the next launch, `run-conductor.sh` its exit.
+- **A run's branch base is the conductor's record**, `.tdd/issue-<n>-branch-base` in the main working tree: written
+  at the cut (`preflight.sh`) and by its own `rebase-onto-default.sh`, carried on `refs/veri/runs/<n>`, read back on
+  a resume and never recomputed from a remote-tracking ref (exit 2 when missing or invalid). A leaf can rewrite refs.
 - **Every leaf is launched through `supervise.sh`**, never `run-leaf.sh` or `claude` directly:
   stuck detection lives only there.
 - **The verifier is blind by construction.** No input of `build-verify-prompt.sh` can carry the
