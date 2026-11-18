@@ -115,7 +115,7 @@ def queued_merges():
             continue
         script = os.path.realpath(words[1])
         if script == mine or (script == py_mine and os.path.basename(words[0]).startswith("python")):
-            if "/".join(words[2].split("/")[-4:-2]) == repo:
+            if "/".join(words[2].split("/")[-4:-2]).casefold() == repo.casefold():
                 urls.append(words[2])
     return urls
 
