@@ -541,3 +541,28 @@ def test_after_recovered_clears_refused_now_at_a_later_leak_past_twice_the_knob_
     code, out, _ = run_cli(role_growth, ["dev"], env=env)
 
     assert (code, "past the reset-now line" in out, "page the operator, do not retry" in out) == (0, True, True)
+
+
+def test_just_below_twice_the_knob_with_a_refusal_and_none_recorded_arms_the_refusal_not_the_reset_now_line(tmp_path, monkeypatch, run_cli):
+    role_growth, state, _, env = _leak(tmp_path, monkeypatch, 2999,
+        "recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\n")
+
+    code, out, _ = run_cli(role_growth, ["dev"], env=env)
+
+    lines = state.read_text().splitlines()
+    arm = [l for l in lines if l.startswith("refused-at=") and len(l) > len("refused-at=")]
+    now = [l for l in lines if l.startswith("refused-now-at=")]
+    assert (code, out, len(arm), len(now)) == (0,
+        "request-reset refused: nothing launched, merged or decided since the last recovery: report it to the operator, do not retry\n", 1, 0)
+
+
+def test_at_exactly_twice_the_knob_with_a_refusal_and_none_recorded_prints_the_reset_now_refusal_and_records_refused_now_at(tmp_path, monkeypatch, run_cli):
+    role_growth, state, _, env = _leak(tmp_path, monkeypatch, 3000,
+        "recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\n")
+
+    code, out, _ = run_cli(role_growth, ["dev"], env=env)
+
+    lines = state.read_text().splitlines()
+    arm = [l for l in lines if l.startswith("refused-at=")]
+    now = [l for l in lines if l.startswith("refused-now-at=") and len(l) > len("refused-now-at=")]
+    assert (code, "past the reset-now line" in out, len(arm), len(now)) == (0, True, 0, 1)
