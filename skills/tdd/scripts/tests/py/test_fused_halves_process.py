@@ -115,7 +115,7 @@ def test_4028_the_green_commit_the_tree_the_subjects_and_the_count_are_read_from
                                         **{".gitignore": "".join(line + "\n" for line in rule)})
     (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
     (wt / ".tdd" / "issue-12-spec.md").write_text("# spec\n")
-    (wt / ".tdd" / "issue-12-red-half").write_text("step=%s\ntest_path=tests/test_a.py\n" % STEP)
+    (wt / ".tdd" / "issue-12-green-half").write_text("step=%s\ntest_path=tests/test_a.py\n" % STEP)
     (wt / ".tdd" / "develop-refactor.out").write_text("{}\n")
     (wt / ".tdd" / "verify-refactor.log").write_text("{}\n")
 
