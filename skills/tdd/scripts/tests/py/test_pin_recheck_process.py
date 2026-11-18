@@ -301,7 +301,7 @@ def test_2814_a_record_through_a_vanished_timed_test_run_path_is_replayed_and_no
     (tmp_path / ".tdd").mkdir()
     gone = tmp_path / "gone-scratch" / "scripts" / "timed-test-run.sh"
     record(tmp_path / ".tdd" / "issue-2814-mutations.md", file="guard.txt", old="if guard", new="if (true)",
-           command=f"{gone} unit guard sh -c \"echo result; grep -q 'if guard' guard.txt\"")
+           command=f"{gone} fast guard sh -c \"echo result; grep -q 'if guard' guard.txt\"")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
@@ -327,7 +327,7 @@ def test_2814_a_record_through_a_timed_test_run_path_that_still_exists_is_replay
     kept.write_text(f'#!/bin/sh\necho used >> {tmp_path}/marker\nshift 2\nexec "$@"\n')
     kept.chmod(0o755)
     record(tmp_path / ".tdd" / "issue-2814-mutations.md", file="guard.txt", old="if guard", new="if (true)",
-           command=f"{kept} unit guard sh -c \"echo result; grep -q 'if guard' guard.txt\"")
+           command=f"{kept} fast guard sh -c \"echo result; grep -q 'if guard' guard.txt\"")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
@@ -351,7 +351,7 @@ def test_2814_a_record_through_a_vanished_timed_test_run_path_whose_command_stil
     (tmp_path / ".tdd").mkdir()
     gone = tmp_path / "gone-scratch" / "scripts" / "timed-test-run.sh"
     record(tmp_path / ".tdd" / "issue-2814-mutations.md", file="guard.txt", old="if guard", new="if (true)",
-           command=f"{gone} unit guard grep -q absent-text guard.txt")
+           command=f"{gone} fast guard grep -q absent-text guard.txt")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
@@ -740,7 +740,7 @@ def test_2877_a_probe_through_timed_test_run_records_the_test_command_alone_and_
     record_path = tmp_path / ".tdd" / "issue-2877-mutations.md"
     probed = subprocess.run(
         ["sh", str(SCRIPTS / "mutation-probe.sh"), "guard.txt", "if guard", "if (true)", "--",
-         str(SCRIPTS / "timed-test-run.sh"), "affected", "runner", "sh", "runner.sh"],
+         str(SCRIPTS / "timed-test-run.sh"), "changed", "runner", "sh", "runner.sh"],
         cwd=tmp_path, capture_output=True, text=True, timeout=20, env={**os.environ, "VERI_MUTATION_RECORD": str(record_path)})
     assert probed.returncode == 0, probed.stderr
     git("add", "-A")
@@ -774,7 +774,7 @@ def test_2919_a_probe_through_a_symlinked_scripts_directory_records_the_test_com
     record_path = repo / ".tdd" / "issue-2919-mutations.md"
     probed = subprocess.run(
         ["sh", str(SCRIPTS / "mutation-probe.sh"), "guard.txt", "if guard", "if (true)", "--",
-         str(link / "timed-test-run.sh"), "affected", "runner", "sh", "runner.sh"],
+         str(link / "timed-test-run.sh"), "changed", "runner", "sh", "runner.sh"],
         cwd=repo, capture_output=True, text=True, timeout=20, env={**os.environ, "VERI_MUTATION_RECORD": str(record_path)})
     assert probed.returncode == 0, probed.stderr
     git("add", "-A")
