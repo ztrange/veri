@@ -384,6 +384,13 @@ def subject_log(ref):
                           capture_output=True, text=True)
 
 
+def stack_absent(stack):
+    """Whether origin holds no branch <stack> as the main tree last fetched it: `git rev-parse --verify` of its
+    remote-tracking ref says it is absent (exit 1), not that it could not be read."""
+    return subprocess.run(["git", "-C", run_dir.main_tree(missing=""), "rev-parse", "--verify", "--quiet",
+                           "refs/remotes/origin/" + stack], capture_output=True, text=True).returncode == 1
+
+
 def stack_span(root):
     """stack_branch.ahead(<root>): (stack, default, commits of origin/<default>..origin/<stack>), None when <root> is
     no main tree or its CLAUDE.md names no stack; stack_branch.Refused when the stack cannot be read."""
@@ -400,7 +407,7 @@ def waiting_lines(stack=None, unread=None):
     subjects = main_subjects()
     if stack and unread is None:
         log = subject_log("origin/" + stack)
-        if log.returncode:
+        if log.returncode and not stack_absent(stack):
             unread = "git log origin/%s failed (exit %d)" % (stack, log.returncode)
         subjects += log.stdout.splitlines()
     for path, events in journals():

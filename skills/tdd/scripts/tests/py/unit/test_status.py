@@ -229,3 +229,23 @@ def test_report_lists_a_done_run_as_merge_state_unknown_when_the_stack_subjects_
 
     waiting = [line for line in section(out, "Waiting") if line.startswith("#")]
     assert (code, [line.split(":")[0] for line in waiting]) == (0, ["#2750 PR 99 merge state unknown"]), (out, err)
+
+
+def test_report_lists_a_done_run_as_ready_to_merge_when_the_named_stack_is_not_yet_on_origin_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {"2750": [{"ts": 1793600050, "awake": 50, "event": "done", "pr": 99}]})
+    monkeypatch.setattr(status, "stack_span", lambda root: ("stacky", "main", []))
+    log = logs_answer({"main": "fix: elsewhere (#1)\n"})
+
+    def answer(line, **kw):
+        if "origin/stacky" in line.split():
+            return 128, "", "fatal: ambiguous argument 'origin/stacky': unknown revision\n"
+        if "rev-parse" in line.split():
+            return 1, "", ""
+        return log(line, **kw)
+    fake_processes.answers({"": answer})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, [line for line in section(out, "Waiting") if line.startswith("#")]) == (
+        0, ["#2750 PR 99 ready to merge"]), err
