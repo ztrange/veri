@@ -1,5 +1,6 @@
 """In-process cases for veri/issue_worktree.py in a repository whose CLAUDE.md names a stack branch (PRD 034.1b)."""
 import importlib
+import os
 
 import pytest
 
@@ -28,9 +29,11 @@ class Origin:
         self.created_meanwhile = created_meanwhile
 
 
-def stacked_world(fake_processes, tmp_path, origin, stack_line="veri: stack branch: stack\n"):
+def stacked_world(fake_processes, tmp_path, origin, stack_line="veri: stack branch: stack\n",
+                  stack_sha=(0, STACK_TIP + "\n", "")):
     """A main clone at <tmp_path>/repo whose CLAUDE.md holds <stack_line>, origin/HEAD naming trunk, no branch for
-    issue 7 anywhere, and <origin> answering the stack's ls-remote, push and fetch. Returns (fake, worktree path)."""
+    issue 7 anywhere, <origin> answering the stack's ls-remote, push and fetch, and `git rev-parse` of origin/stack
+    answering <stack_sha>. Returns (fake, worktree path)."""
     main_tree = tmp_path / "repo"
     main_tree.mkdir()
     (main_tree / "CLAUDE.md").write_text(stack_line)
@@ -68,6 +71,7 @@ def stacked_world(fake_processes, tmp_path, origin, stack_line="veri: stack bran
         "git fetch -q origin +refs/heads/stack:refs/remotes/origin/stack": lambda line, **_: origin.fetch,
         "git worktree add": (0, "", ""),
         "git fetch -q origin trunk": (0, "", ""),
+        "git rev-parse --verify --quiet refs/remotes/origin/stack^{commit}": stack_sha,
     })
     return fake, path
 
@@ -122,7 +126,8 @@ def test_a_push_refused_because_another_machine_created_the_stack_fetches_it_and
 
     code = issue_worktree.main(["7", "slug"])
 
-    after_push = fake.calls[fake.calls.index("git push origin refs/remotes/origin/trunk:refs/heads/stack") + 1:]
+    after_push = [c for c in fake.calls[fake.calls.index("git push origin refs/remotes/origin/trunk:refs/heads/stack") + 1:]
+                  if c.startswith(("git fetch", "git worktree add"))]
     assert (code, capsys.readouterr().out, after_push[-2:]) == (0, path + "\n", [
         "git fetch -q origin +refs/heads/stack:refs/remotes/origin/stack",
         "git worktree add -q --no-track -b tdd/7-slug %s origin/stack" % path])
@@ -163,3 +168,30 @@ def test_a_stacked_cut_records_the_base_it_cut_from_in_the_runs_own_state(
 
     with open(path + "/.tdd/issue-7-base") as recorded:
         assert (code, recorded.read()) == (0, "stack\n")
+
+
+def test_a_stacked_cut_records_origin_stacks_sha_as_read_for_the_cut_beside_the_unchanged_base_name(
+        fake_processes, tmp_path, capsys, issue_worktree):
+    fake, path = stacked_world(fake_processes, tmp_path, Origin(stack=True))
+
+    code = issue_worktree.main(["7", "slug"])
+
+    with open(path + "/.tdd/issue-7-base-sha") as sha, open(path + "/.tdd/issue-7-base") as name:
+        assert (code, sha.read(), name.read()) == (0, STACK_TIP + "\n", "stack\n")
+
+
+def test_an_unstacked_cut_records_no_base_sha(fake_processes, tmp_path, capsys, issue_worktree):
+    fake, path = stacked_world(fake_processes, tmp_path, Origin(stack=False), stack_line="# no stack named here\n")
+
+    code = issue_worktree.main(["7", "slug"])
+
+    assert (code, os.path.exists(path + "/.tdd/issue-7-base-sha")) == (0, False)
+
+
+def test_a_stacked_cut_whose_read_of_origin_stack_gets_no_answer_exits_2_with_no_worktree(
+        fake_processes, tmp_path, capsys, issue_worktree):
+    fake, path = stacked_world(fake_processes, tmp_path, Origin(stack=True), stack_sha=(128, "", "fatal: broken\n"))
+
+    code = issue_worktree.main(["7", "slug"])
+
+    assert (code, added(fake), os.path.exists(path)) == (2, [], False)

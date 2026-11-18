@@ -290,20 +290,29 @@ def stack_cut(path, branch, stack):
     if fetched.returncode != 0:
         return entry.refuse("git fetch origin %s got no answer (%s) — refusing to cut %s from a stale origin/%s"
                             % (stack, " ".join((fetched.stderr or "").split()), branch, stack), prefix=PREFIX)
+    read = git_module.git("rev-parse", "--verify", "--quiet", "refs/remotes/origin/%s^{commit}" % stack,
+                          capture_output=True, text=True)
+    base_sha = read.stdout.strip() if read.returncode == 0 else ""
+    if not base_sha:
+        return entry.refuse("git rev-parse origin/%s got no answer (exit %d) — no branch and no worktree made"
+                            % (stack, read.returncode), prefix=PREFIX)
     code = worktree_add("--no-track", "-b", branch, path, "origin/" + stack)
     if code == 0:
-        record_base(path, issue_of(branch), stack)
+        record_base(path, issue_of(branch), stack, base_sha)
     return code
 
 
-def record_base(path, issue, stack):
-    """Record in the run's own state the base its branch was cut from: `.tdd/issue-<n>-base`, written once at the cut,
-    never rewritten, read by stack_branch.run_base."""
+def record_base(path, issue, stack, base_sha):
+    """Record in the run's own state the base its branch was cut from: `.tdd/issue-<n>-base`, the stack's name, written
+    once at the cut, never rewritten, read by stack_branch.run_base; and `.tdd/issue-<n>-base-sha`, origin/<stack>'s sha
+    as read for the cut, the `<old-base>` a join's `git rebase --onto` starts from (D27), rewritten by the join."""
     record = run_dir.issue_file(path, issue, "-base")
     os.makedirs(os.path.dirname(record), exist_ok=True)
     if not os.path.exists(record):
         with open(record, "w") as f:
             f.write(stack + "\n")
+    with open(run_dir.issue_file(path, issue, "-base-sha"), "w") as f:
+        f.write(base_sha + "\n")
 
 
 def cut(path, branch, take_over=False, root="."):
