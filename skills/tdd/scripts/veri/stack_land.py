@@ -46,9 +46,14 @@ def _live(stack):
 
 def _closes(stack, default, cut):
     """The slice body's `Closes #<n>` lines: one per issue a subject in origin/<default>..<cut> ends with `(#<n>)` for,
-    in the range's order, kept only when a pull request merged into <stack> carries `Closes #<n>`."""
+    in the range's order, kept only when a pull request merged into <stack> carries `Closes #<n>`; an issue named only by
+    subjects is said on stderr."""
     joined = github.joined_issues(stack)
     named = re.findall(r"\(#(\d+)\)$", git.out("log", "--format=%s", "origin/%s..%s" % (default, cut)), re.M)
+    only = [n for n in dict.fromkeys(named) if int(n) not in joined]
+    if only:
+        print("stack-land: issues named only by commit subjects in origin/%s..%s, given no Closes line: %s"
+              % (default, cut, " ".join("#" + n for n in only)), file=sys.stderr)
     return "".join("Closes #%s\n" % n for n in dict.fromkeys(named) if int(n) in joined)
 
 

@@ -368,3 +368,16 @@ def test_a_merged_pull_request_whose_body_reads_reverted_from_the_stack_by_gives
 
     assert [[line for line in body.splitlines() if line.startswith("Closes")] for body in world.bodies] == [
         ["Closes #11"]], err
+
+
+def test_an_issue_named_only_by_commit_subjects_in_the_slices_range_gets_no_closes_line_and_is_named_on_stderr(
+        monkeypatch, run_cli, stack_land):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  subjects="feat: one (#11)\nfix: pushed straight to the stack (#14)\n",
+                  merged=[(101, "Closes #11\n\nthe first")])
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert ([[line for line in body.splitlines() if line.startswith("Closes")] for body in world.bodies],
+            [line for line in err.splitlines() if "#14" in line] != [], "#11" in err) == ([["Closes #11"]], True, False), err
