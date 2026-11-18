@@ -12,6 +12,7 @@ import github
 import stack_branch
 import stack_fix
 import status
+import tunables
 
 USAGE = "usage: stack-land.sh [--now]"
 
@@ -82,7 +83,7 @@ def _freed(line):
 def main(argv):
     if argv not in ([], ["--now"]):
         return entry.refuse(usage=USAGE)
-    size = os.environ.get("VERI_SLICE_COMMITS", "100")
+    size = tunables.get("VERI_SLICE_COMMITS")
     if not (size.isascii() and size.isdigit() and int(size) >= 1):
         return entry.refuse("VERI_SLICE_COMMITS must be a whole number of 1 or more: %r" % size, prefix="stack-land: ")
     try:

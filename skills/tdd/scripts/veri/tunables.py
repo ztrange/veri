@@ -165,6 +165,7 @@ TUNABLES = {
     "VERI_FETCH_RETRY_SLEEP": Tunable(text, "1"),
     "VERI_MERGE_SETTLE_READS": Tunable(text, "10"),
     "VERI_MERGE_SETTLE_SLEEP": Tunable(text, "3"),
+    "VERI_SLICE_COMMITS": Tunable(text, "100"),
     "VERI_CI_RETRY_BACKOFF": Tunable(text, "1"),
     "VERI_CI_NO_RUN_WAIT": Tunable(text, "600"),
     "VERI_CI_HEAD_WAIT": Tunable(text, "600"),

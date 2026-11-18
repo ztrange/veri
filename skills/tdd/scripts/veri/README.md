@@ -277,6 +277,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_SKILL_EDIT_BUDGET` | `3` | its readers' own words |
 | `VERI_SKIP_VERIFY` | "" | its readers' own words |
 | `VERI_SLEEP_GAP` | `900` | its readers' own words |
+| `VERI_SLICE_COMMITS` | `100` | its readers' own words |
 | `VERI_SNAPSHOT_MAX_AGE` | `60` | its readers' own words |
 | `VERI_STEP_BUDGET` | `12` | its readers' own words |
 | `VERI_STEP_GROWTH_PERCENT` | `50` | its readers' own words |
