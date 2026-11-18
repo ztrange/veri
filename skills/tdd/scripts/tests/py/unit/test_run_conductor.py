@@ -158,7 +158,7 @@ def test_cli_a_claim_whose_ps_gives_no_start_time_writes_the_pid_alone_on_one_li
     run_conductor = importlib.import_module("veri.run_conductor")
     claimed = []
 
-    def read_the_claim(argv):
+    def read_the_claim(argv, *_):
         claimed.append(pathlib.Path(run_conductor.pid_file_path(argv[0])).read_bytes())
         return 0
 
@@ -178,7 +178,7 @@ def test_main_ending_by_any_exit_code_or_an_exception_removes_its_own_claim_and_
     (tmp_path / ".tdd").mkdir()
     claimed = []
 
-    def ending_the_run(argv):
+    def ending_the_run(argv, *_):
         claimed.append(pathlib.Path(run_conductor.pid_file_path(argv[0])).is_file())
         if ending == "raises":
             raise RuntimeError("preflight broke")
