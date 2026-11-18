@@ -429,6 +429,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/refactor-owed.sh clear .tdd/issue-<n>-refactor-owed.md coupling
    git add -f .tdd/issue-<n>-refactor-owed.md; git diff --cached --quiet || git commit -m "chore: drop the run's stale coupling candidate (#<n>)"
    ```
+   When `pr-checks.sh` stopped at coupling with `red-setup.sh worst <n> .tdd/issue-<n>-refactor-owed.md changed the
+   owed file`, coupling found no pair but the `red-setup.sh worst` row is not committed yet: commit it, then run
+   `pr-checks.sh` again:
+   ```
+   git add -f .tdd/issue-<n>-refactor-owed.md; git diff --cached --quiet || git commit -m "chore: drop the run's stale coupling candidate (#<n>)"
+   ```
    Exit **2** (the base did
    not resolve) is a system failure: **bail** with cause `no-verdict` (`Read`
    `<base directory>/BAIL.md`). Only mutual references are reported; upward imports are not.
