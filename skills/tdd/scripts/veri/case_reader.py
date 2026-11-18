@@ -93,6 +93,12 @@ def _call_end(text, opening):
     return None if closed is False else closed or _plain_call_end(text, opening)
 
 
+def _divides(text, opening, slash):
+    # A "/" right after an operand (a name, a number, a closing paren or bracket) is a division; else a regex opens.
+    before = text[opening:slash].rstrip()
+    return before[-1:].isalnum() or before[-1:] in "_$)]"
+
+
 def _literal_call_end(text, opening):
     depth, braces, quote, escaped, i = 0, 0, None, False, opening
     while i < len(text):
@@ -110,7 +116,7 @@ def _literal_call_end(text, opening):
             if i < 0:
                 return None
             i += 1
-        elif text[i] == "/":
+        elif text[i] == "/" and not _divides(text, opening, i):
             i = text.find("/", i + 1)
             if i < 0:
                 return None

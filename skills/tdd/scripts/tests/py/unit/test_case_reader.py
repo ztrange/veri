@@ -1,6 +1,8 @@
 """In-process cases for veri/case_reader.py."""
 import importlib
 
+import pytest
+
 
 def test_strip_param_suffix_strips_a_trailing_bracket_and_leaves_a_plain_name_unchanged():
     case_reader = importlib.import_module("veri.case_reader")
@@ -41,3 +43,14 @@ def test_cut_cases_cuts_a_case_holding_a_regex_literal_with_a_paren_at_its_own_c
 
     assert cases == [("b", "it('b', () => {\n  const r = /\\(/;\n  expect(r.test('(')).toBe(true);\n})"),
                      ("c", "it('c', () => {\n  expect(1).toBe(1);\n})")]
+
+
+@pytest.mark.parametrize("division", ["a / b", "f(x) / 2", "arr[0] / 2", "a$ / 2"])
+def test_cut_cases_still_cuts_a_case_holding_a_division_and_a_line_comment_as_before_4294(division):
+    case_reader = importlib.import_module("veri.case_reader")
+    first = "it('d', () => {\n  const q = %s;\n  // ) closes nothing\n  expect(q).toBe(q);\n})" % division
+    second = "it('e', () => {\n  expect(1).toBe(1);\n})"
+
+    cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
+
+    assert cases == [("d", first), ("e", second)]
