@@ -39,10 +39,13 @@ def green_key(issue, tree, fast, full):
 
 
 def read_green(path):
-    if not os.path.exists(path):
+    """The recorded {key: verdict}; {} when the record is absent or is not such a mapping (fail closed)."""
+    try:
+        with open(path) as f:
+            record = json.load(f)
+    except (OSError, ValueError):
         return {}
-    with open(path) as f:
-        return json.load(f)
+    return record if isinstance(record, dict) else {}
 
 
 def green(argv):

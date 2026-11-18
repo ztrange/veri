@@ -284,3 +284,26 @@ def test_4337_a_change_to_any_key_part_after_a_recorded_green_answers_run(
     code, out, err = _green_4337(run_cli, baseline_full_tier, "--green", tmp_path, **args)
 
     assert (code, out.strip()) == (0, "run")
+
+
+@pytest.mark.parametrize("corrupt", ["not json", "keys as a list", "absent"])
+def test_4337_a_corrupt_or_absent_record_answers_run_and_a_green_recorded_over_it_counts(
+        tmp_path, run_cli, baseline_full_tier, corrupt):
+    import json
+    (tmp_path / ".git").mkdir()
+    record = tmp_path / ".tdd" / "baseline-green.json"
+    assert _green_4337(run_cli, baseline_full_tier, "--record-green", tmp_path)[0] == 0
+    if corrupt == "not json":
+        record.write_text("{not json")
+    elif corrupt == "keys as a list":
+        record.write_text(json.dumps(list(json.loads(record.read_text()))))
+    else:
+        record.unlink()
+
+    answered = _green_4337(run_cli, baseline_full_tier, "--green", tmp_path)
+    recorded = _green_4337(run_cli, baseline_full_tier, "--record-green", tmp_path)
+    after = _green_4337(run_cli, baseline_full_tier, "--green", tmp_path)
+
+    assert (answered[0], answered[1].strip()) == (0, "run")
+    assert recorded[0] == 0
+    assert (after[0], after[1].strip()) == (0, "skip")
