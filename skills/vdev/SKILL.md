@@ -274,6 +274,12 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   other exit 1 (a conflict, a red fast tier, a unit owing a grade) is reported to the human as a
   notice (*Speaking*), with its stderr, and the run is left as it is. An exit 2 is reported the
   same way and never retried blind.
+- **Landing a slice.** After each join, and after each `$S/stack-red.sh` exit 3, run
+  `$S/stack-land.sh` without `--now`, in the target repository's main working tree: whether a
+  slice lands now (100 commits or an idle stack) is the script's to decide, not yours. Exit 0 is
+  reported as a notice (*Speaking*) with the slice's pull request url and the issues it landed.
+  Exit 3, nothing to land, is the common case and is not reported. Exit 1 and exit 2 are reported
+  as a notice with their stderr.
 
 After routing a `dispatch.sh` line, and launching any held resume the freed slot now takes, start
 `dispatch.sh` again as one background command. Then take the slot decision.
