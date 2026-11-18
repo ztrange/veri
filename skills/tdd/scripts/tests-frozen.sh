@@ -28,6 +28,8 @@
 # Exit: 0 recorded, the path printed, or every recorded file is byte-identical (nothing on stdout),
 #       1 with one path per line on stdout for each recorded file edited or deleted,
 #       2 bad arguments (a missing ledger or --step for check-earlier, an empty step text included) or an unreadable record/file;
+#         for check-earlier also a ledger that is not the run's .tdd/issue-<n>.md when the issue is known (VERI_ISSUE,
+#         else a tdd/<n>- branch), named on stderr with no pass marker written;
 #         for rerecord-earlier also a ledger no commit touches (no step base), a git show of a recorded file that
 #         fails, or a record that cannot be written,
 #       3 rerecord-earlier given a step that is not ⟦diff-checked⟧.

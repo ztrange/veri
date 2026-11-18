@@ -1365,6 +1365,7 @@
 | SC568 | The synopsis line of the `$S/comment.sh` entry lists `[--pr]` after `[--note-file <path>]`. | A reader of the synopsis learns every argument the script takes; `--pr` was named only inside the `bailed` kind's description. |
 | SC569 | The `$S/pin-reject-route.sh` entry gives the script's second form, `$S/pin-reject-route.sh --recheck <reason-file> <ledger-file> <matcher>`, as a synopsis beside the first. | The `--recheck` form was described in prose only, so the shim's usage header could not name it. |
 | SC570 | The synopsis line of the `$S/status.sh` entry lists `--recover dev [--lane <lane>]` as an alternative beside `--report`. | `--recover` was described in prose only; recovery reads one command and its invocation belongs in the synopsis. |
+| SC571 | The `tests-frozen.sh` entry says that `check-earlier` exits 2, writing no pass marker and naming both files, when the run's issue is known (`VERI_ISSUE`, else a `tdd/<n>-` branch) and the ledger it is given is not that run's `.tdd/issue-<n>.md`. |
 
 ## skills/tdd/SKILL-EDIT.md
 
