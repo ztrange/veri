@@ -590,19 +590,9 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             _say("the leased push of %s failed (exit %d): %s; nothing pushed to %s" % (
                 branch, pushed.returncode, pushed.stderr.strip(), stack))
             return 2
-        found = _start("detect-test-command.sh", "--tier", "fast", cwd=worktree, capture=True)
-        fast = found.stdout.strip()
-        if found.returncode or not fast:
-            _say("no fast-tier command for the rebased tip (detect-test-command.sh exited %d); nothing pushed to %s" % (
-                found.returncode, stack))
-            return 2
-        if subprocess.run(["sh", "-c", fast], cwd=worktree).returncode:
-            _say("the fast tier (%s) is red on the rebased tip; nothing pushed to %s" % (fast, stack))
-            return 1
-        owed = _start("prose-owed.sh", worktree, cwd=worktree).returncode
-        if owed:
-            _say("prose-owed.sh exited %d on the rebased tip; nothing pushed to %s" % (owed, stack))
-            return 1 if owed == 1 else 2
+        code = _tip_checks(worktree, stack)
+        if code:
+            return code
         head, status = _rev(worktree, "HEAD"), _git(worktree, "status", "--porcelain")
         if head != checked or status.returncode or status.stdout.strip():
             _say("the fast tier or prose-owed.sh changed the worktree: HEAD is %s, the checked tip %s%s; nothing pushed to"
@@ -704,6 +694,63 @@ def _join_cleanup(worktree, branch, released):
     return 0
 
 
+def _outage(worktree):
+    """True when `.tdd/github-outage` exists in the main working tree <worktree> belongs to, read with no process."""
+    clone = _main_clone(worktree)
+    return bool(clone) and os.path.exists(os.path.join(clone, ".tdd", "github-outage"))
+
+
+def _offline_stack(worktree):
+    """The stack to join offline while the outage file exists: the stack the worktree's CLAUDE.md names, read with no
+    call to origin; None to go on as online."""
+    return stack_branch.named(worktree, remote=False)
+
+
+def _join_offline(pid, worktree, branch, stack):
+    """The offline join (PRD 033.2a): onto the local <stack> under the merge lock, released on every exit path, with no
+    call to GitHub. Returns an exit code."""
+    code = _script("merge-lock.sh", "take", "--pid", pid)
+    if code:
+        _say("taking the merge lock failed (exit %d)" % code)
+        return code
+    try:
+        return _joined_offline(worktree, branch, stack)
+    finally:
+        _release(pid)
+
+
+def _joined_offline(worktree, branch, stack):
+    onto = _rev(worktree, "refs/heads/" + stack)
+    rebase = _git(worktree, "rebase", stack)
+    if rebase.returncode:
+        return 1
+    checked = _rev(worktree, "HEAD")
+    code = _tip_checks(worktree, stack)
+    if code:
+        return code
+    _git(worktree, "update-ref", "refs/heads/" + stack, checked, onto)
+    return 0
+
+
+def _tip_checks(worktree, stack):
+    """The fast tier and prose-owed.sh on the rebased tip in <worktree>: 0 green, 1 red or a unit owing a grade, 2 no
+    answer."""
+    found = _start("detect-test-command.sh", "--tier", "fast", cwd=worktree, capture=True)
+    fast = found.stdout.strip()
+    if found.returncode or not fast:
+        _say("no fast-tier command for the rebased tip (detect-test-command.sh exited %d); nothing pushed to %s" % (
+            found.returncode, stack))
+        return 2
+    if subprocess.run(["sh", "-c", fast], cwd=worktree).returncode:
+        _say("the fast tier (%s) is red on the rebased tip; nothing pushed to %s" % (fast, stack))
+        return 1
+    owed = _start("prose-owed.sh", worktree, cwd=worktree).returncode
+    if owed:
+        _say("prose-owed.sh exited %d on the rebased tip; nothing pushed to %s" % (owed, stack))
+        return 1 if owed == 1 else 2
+    return 0
+
+
 def _stack_base(repo, pr, worktree, branch=None):
     """(stack, None) when the worktree's CLAUDE.md names a stack and <pr> reads as based on it, to join; (None, None) to
     merge as before; (None, (message, code)) to refuse before the lock. Raises stack_branch.Refused for a name that
@@ -782,6 +829,10 @@ def _merge(pr, worktree, branch, message):
             return 2
     repo = _repo(pr)
     pid = str(os.getpid())
+    if _outage(worktree):
+        stack = _offline_stack(worktree)
+        if stack:
+            return _join_offline(pid, worktree, branch, stack)
     stack, refusal = _stack_base(repo, pr, worktree, branch)
     if refusal:
         _say(refusal[0])
