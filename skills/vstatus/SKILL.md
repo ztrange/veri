@@ -33,11 +33,16 @@ When `status.sh --report` exits 2, report that and stop, printing no figures of 
 
 ## The report
 
-Four sections, always all four and in this order. An empty one keeps its heading and says
+Four sections, always all four and in this order, and a fifth, **Stack**, between Landed and
+Running only where the repository names a stack branch. An empty one keeps its heading and says
 "none".
 
 **Landed** — one line per PR merged since the last ask: PR url, tag, and the capability in the
 tag's message.
+
+**Stack** — the stack's joined, tested and landed counts, the tracking pull request while it is
+open, and a freeze, as `status.sh --report`'s **Stack** section prints them. A `?` there is a
+figure that could not be read, not a zero: never report it as nothing joined, tested or landed.
 
 **Running** — one block per live run, as `status.sh --report`'s **Running** section defines it:
 awake wall time, steps k/n, phase, cost and model split. Each block ends with its refactor
