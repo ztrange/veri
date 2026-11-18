@@ -1327,3 +1327,57 @@ def test_3712_cleaning_up_an_unstopped_exit_returns_without_raising_and_leaves_t
     result = restart_conductor._clean_up_unstopped_exit("7", restart_conductor._stop_mark("7"))
 
     assert (result, (run_tdd / "stop").exists()) == (None, False)
+
+
+def _growth_stop_setup(tmp_path, monkeypatch, alive_script, on_sleep):
+    """A run whose conductor log is over 85% of the default knob, watched from the main tree at tmp_path, with the
+    restarter's real at-ledger stop wrapper; `on_sleep(n)` acts on the run's stop file at the watch's n-th wait."""
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    (tmp_path / ".tdd" / "wt" / "7" / ".tdd").mkdir(parents=True)
+    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    alive = iter(alive_script)
+    launches = []
+    naps = []
+
+    def nap(seconds):
+        naps.append(seconds)
+        on_sleep(len(naps))
+
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "stopped", raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: launches.append(run), raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
+    return restart_conductor, launches
+
+
+def _operator_stop(run_tdd):
+    """An operator's `stop-run.sh` request, written through stop_run's own writer, dated a second after the stop
+    file it replaces, as a request made later than the restarter's would be."""
+    stop = run_tdd / "stop"
+    before = stop.stat().st_mtime_ns if stop.exists() else 0
+    importlib.import_module("veri.stop_run").stop_run(str(run_tdd.parent), "at-ledger")
+    os.utime(stop, ns=(before + 1_000_000_000, before + 1_000_000_000))
+
+
+def _restart_events(run_tdd):
+    events = run_tdd / "events.jsonl"
+    lines = [json.loads(l) for l in events.read_text().splitlines()] if events.exists() else []
+    return [e for e in lines if e.get("event") == "conductor-restart"]
+
+
+def test_4331_an_operators_stop_written_after_the_restarters_own_ask_and_consumed_by_the_conductor_ends_the_watch_with_restarts_7_0_and_no_relaunch(tmp_path, run_cli, monkeypatch):
+    run_tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+
+    def on_sleep(n):
+        if n == 1:  # after the restarter's own ask: the operator's stop-run.sh
+            _operator_stop(run_tdd)
+        if n == 2:  # the conductor honours the stop and clears it before exiting
+            (run_tdd / "stop").unlink()
+
+    restart_conductor, launches = _growth_stop_setup(tmp_path, monkeypatch, [True, True, True, False], on_sleep)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out.splitlines()[-1:], launches, _restart_events(run_tdd)) == (0, ["restarts 7 0"], [], [])

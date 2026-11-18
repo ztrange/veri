@@ -145,6 +145,7 @@ def main(argv):
     offset = 0
     while True:
         asked = False
+        foreign = False
         misses = 0
         reasons = []
         while misses < 3:
@@ -168,10 +169,12 @@ def main(argv):
                 stop_run("at-ledger", run)
                 asked = True
                 mark = _stop_mark(run)
+            elif asked and _stop_mark(run) not in (None, mark):
+                foreign = True
             sleep(5)
         for reason in reasons:
             print(f"restart-conductor.sh: conductor read not-live: {reason}")
-        unstopped = not asked or run_state(run) != "stopped"
+        unstopped = not asked or foreign or run_state(run) != "stopped"
         if asked and unstopped:
             _clean_up_unstopped_exit(run, mark)
         if unstopped:
