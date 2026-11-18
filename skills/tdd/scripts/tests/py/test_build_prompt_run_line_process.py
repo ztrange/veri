@@ -299,3 +299,22 @@ def test_inside_veris_own_tree_a_branch_base_holding_its_test_directory_renders_
     code, out, err = run_cli(build, ["--branch-base", base, "red", str(spec), "tests/test_x.py"], cwd=repo)
 
     assert (code, run_lines_of(out), err) == (0, OWN_LINES, "")
+
+
+@pytest.mark.process("git init and commit run for real in a scratch repository, then build-verify-prompt in it")
+def test_outside_veri_the_quiet_test_files_line_is_read_at_the_branch_base_never_from_the_working_tree_4263(
+        tmp_path, run_cli):
+    build = importlib.import_module("veri.build_verify_prompt")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    plain = commit_all(repo, "base", **{"CLAUDE.md": BASE_MD})
+    quiet = commit_all(repo, "declare a quiet line", **{"CLAUDE.md": BASE_MD + "veri: quiet test files: pytest -q\n"})
+    (repo / "CLAUDE.md").write_text(BASE_MD + "veri: quiet test files: true\n")
+
+    added = run_cli(build, ["--branch-base", plain, "red", str(spec), "tests/test_x.py"], cwd=repo)
+    declared = run_cli(build, ["--branch-base", quiet, "red", str(spec), "tests/test_x.py"], cwd=repo)
+
+    assert [(code, run_lines_of(out)[0], err) for code, out, err in (added, declared)] == [
+        (0, BASE_LINES[0], ""),
+        (0, [TIMED + " changed '<the test files you ran>' sh -c 'pytest -q \"$@\"' sh <those paths>"], "")]
