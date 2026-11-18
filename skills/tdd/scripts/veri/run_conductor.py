@@ -511,7 +511,7 @@ def conduct(text, issue, env):
         paragraphs = [p for p in result.split("\n\n") if p.strip()]
         quoted = "\n".join("> " + line for line in (paragraphs[-1] if paragraphs else "").strip().splitlines())
         try:
-            github.gh_issue_comment(issue, "needs-user: the conductor stopped without a verdict.\n\n" + quoted)
+            github.gh_issue_comment(issue, github.published("needs-user: the conductor stopped without a verdict.\n\n" + quoted))
         except github.NoAnswer:
             sys.stderr.write("run-conductor: needs-user comment on issue #%s was refused by GitHub\n" % issue)
     return 141 if code == 0 and unread else code

@@ -5393,6 +5393,25 @@ def test_cli_a_needs_user_comment_that_github_refuses_is_reported_on_stderr_nami
     assert (code, "needs-user comment" in stderr and "4242" in stderr) == (0, True), stderr
 
 
+def test_cli_a_needs_user_comment_posts_the_conductors_last_paragraph_with_no_absolute_local_path_4270(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    monkeypatch.setenv("HOME", "/Users/someone-else")
+    run_conductor = importlib.import_module("veri.run_conductor")
+    github = run_conductor.github
+    conductor_that_prints(monkeypatch, tmp_path, ["phase-start"],
+                          result_record("Earlier words.\n\nzulu leak: see /Users/someone/x.py and /tmp/y"))
+    posted = []
+    monkeypatch.setattr(github, "gh_issue_comment", lambda number, body: posted.append(body))
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    body = posted[0] if posted else ""
+    assert (code, len(posted), [p for p in ("/Users/someone/x.py", "/tmp/y") if p in body]) == (0, 1, []), stderr + body
+    assert "zulu leak" in body
+
+
 def test_cli_a_conductor_exiting_0_over_an_open_log_whose_issue_thread_already_carries_a_done_comment_gets_no_needs_user_bail_and_no_comment_2070(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
