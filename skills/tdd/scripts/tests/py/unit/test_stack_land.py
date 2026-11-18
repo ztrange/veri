@@ -18,14 +18,14 @@ class World:
     """What stack_branch.named answers, and every sibling script run; <answers> maps a script's name to its (exit code,
     stdout), (0, "") for one it does not name. git (git.out) names <default> as origin's default branch and answers
     <ahead> to `rev-list --count`; GitHub (github.gh_api) lists <onto>, the open pull requests as REST records, and
-    reads every pull request as merged. origin
+    reads every pull request as merged and every issue as closed, save those numbered in <open_issues>. origin
 (git.network, its calls kept in <network>) fetches and pushes, and its heads are <heads>, a branch name to its commit.
 GitHub opens a pull request (github.pr_open, each kept in <opened> as (head, base), its body in <bodies>) at <opens>, its
 url; every other gh command (github.run_gh) is kept in <gh>, each answering 0. `git log` of a range from origin/<default> answers <subjects>; the pull requests merged into a base (github.merged_pulls) are <merged>,
 (number, body) pairs from this repository."""
 
     def __init__(self, monkeypatch, named, answers=None, default="trunk", ahead=0, onto=(), heads=None,
-                 opens="https://github.com/owner/repo/pull/90", subjects="", merged=()):
+                 opens="https://github.com/owner/repo/pull/90", subjects="", merged=(), open_issues=()):
         self.scripts, self.network, self.opened, self.bodies, self.gh = [], [], [], [], []
         heads = heads or {}
         answers = answers or {}
@@ -42,6 +42,10 @@ url; every other gh command (github.run_gh) is kept in <gh>, each answering 0. `
             raise git.GitFailed(args, 128, "not faked")
 
         def gh_api(path, stderr=None):
+            issue = re.fullmatch(r"repos/[^/]+/[^/]+/issues/(\d+)", path)
+            if issue:
+                said = {"state": "open" if int(issue[1]) in open_issues else "closed"}
+                return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(said), "")
             said = {"state": "closed", "merged": True} if re.fullmatch(r"repos/[^/]+/[^/]+/pulls/\d+", path) else list(onto)
             return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(said), "")
 
@@ -567,3 +571,30 @@ def test_on_a_landing_exits_0_printing_the_slice_pull_requests_url_the_merge_com
             [ran[:2] for ran in world.scripts[-2:]]) == (
         0, ["pull request: " + url, "merge commit: " + landed, "issues closed: #11 #12"], True,
         [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
+def test_an_issue_of_the_slice_bodys_closes_lines_still_open_after_the_settle_window_exits_2_naming_each_such_issue_the_landing_left_as_done(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    landed = "0a1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url, subjects="feat: one (#11)\nfeat: two (#12)\nfeat: three (#13)\n",
+                  merged=[(101, "Closes #11\n"), (102, "Closes #12\n"), (103, "Closes #13\n")], open_issues=(11, 13))
+    github = importlib.import_module("veri.github")
+    listing = github.gh_api
+
+    def gh_api(path, stderr=None):
+        if path != "repos/owner/repo/pulls/90":
+            return listing(path, stderr=stderr)
+        said = {"state": "closed", "merged": True, "merge_commit_sha": landed, "body": world.bodies[-1]}
+        return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(said), "")
+
+    monkeypatch.setattr(github, "gh_api", gh_api)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    named = [line for line in err.splitlines() if "still open" in line]
+    assert (code, out.splitlines(), len(named), [n in "".join(named) for n in ("#11", "#12", "#13")], len(world.gh),
+            "Traceback" in err, [ran[:2] for ran in world.scripts[-2:]]) == (
+        2, ["pull request: " + url, "merge commit: " + landed, "issues closed: #11 #12 #13"], 1, [True, False, True], 1,
+        False, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err

@@ -179,6 +179,11 @@ def main(argv):
                   % (pr, answers[-1].get("merge_commit_sha"), " ".join("#" + n for n in closed)))
             print("stack-land: the carry-over of %s onto origin/%s is 034.4b's; nothing of the stack rebased, no tag"
                   " made" % (stack, default), file=sys.stderr)
+            still = [n for n in closed if json.loads(github.gh_api("repos/%s/issues/%s" % (repo, n),
+                                                                   stderr=subprocess.PIPE).stdout).get("state") == "open"]
+            if still:
+                return entry.refuse("%s landed, but its Closes issues still open after the settle window: %s; the landing"
+                                    " left as done" % (pr, " ".join("#" + n for n in still)), prefix="stack-land: ")
             return 0
         last = answers[-1] or {}
         return _freed("%s did not read merged by the end of the settle window after the merge call exited %d (last read:"
