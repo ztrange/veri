@@ -51,6 +51,12 @@ one report line; none is skipped or left unlabelled without its reason.
 
 The report ends with the tally: labelled ready, rewritten, split, closed, left for the human.
 
+**An issue already opted in is groomed too.** Triage re-checks it like any other: `gone`,
+`duplicate`, stale rows (`$S/stale-rows.sh <issue>`, read by its exits as `## Before labelling
+ready` says) and whether its body still meets `../vfile/SKILL.md`'s `## The issue body`. The groom
+removes its opt-in label only with the reason stated in that issue's report line, and never
+otherwise; a `ready` one keeps the label it has.
+
 ## Triage
 
 The raw reads go to **one read-only subagent** (P6), on the cheapest model that can do the
