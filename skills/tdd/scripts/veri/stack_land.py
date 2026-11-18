@@ -211,10 +211,19 @@ def main(argv):
             except _Conflict as conflict:
                 return _declined("the rebase of the slice branch %s onto origin/%s conflicts: %s"
                                  % (slice_branch, default, " ".join(str(conflict).split())), pr)
-            git.network("push", "--force-with-lease=%s:%s" % (slice_branch, cut), "origin",
-                        "%s:refs/heads/%s" % (head, slice_branch), cwd=".")
-            if merge_common.ci_wait(lambda: stack_fix.script("wait-ci.sh", pr, "540", "", head)[0]) == 1:
+            leased = git.network("push", "--force-with-lease=%s:%s" % (slice_branch, cut), "origin",
+                                 "%s:refs/heads/%s" % (head, slice_branch), cwd=".")
+            if leased.returncode:
+                return _freed("the leased push of the rebased head %s to the slice branch %s failed (exit %d): %s; the"
+                              " merge lock freed, nothing merged, the slice branch and %s kept"
+                              % (head, slice_branch, leased.returncode, " ".join(leased.stderr.split()), pr))
+            ci = merge_common.ci_wait(lambda: stack_fix.script("wait-ci.sh", pr, "540", "", head)[0])
+            if ci == 1:
                 return _declined("CI is red on the rebased head %s of the slice branch %s" % (head, slice_branch), pr)
+            if ci != 0:
+                return _freed("wait-ci.sh exits %d: no answer on CI at the rebased head %s of the slice branch %s; the"
+                              " merge lock freed, nothing merged, the slice branch and %s kept"
+                              % (ci, head, slice_branch, pr))
         code = merge_common.merge(gate, pr, repo, number, head, driver="graphql")
         if re.search(RULES, said[-1]):
             return _freed("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock freed,"
