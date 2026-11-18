@@ -203,3 +203,25 @@ def test_now_with_veri_wall_clock_unset_and_mtime_of_an_existing_and_a_missing_f
     supervise.mtime_of(str(tmp_path / "missing.log"))
 
     assert fake.calls == []
+
+
+def test_a_red_leafs_edit_to_the_pytest_leg_is_restored_with_a_production_file_restored_event_like_a_veri_module_in_veris_own_tree_4262(
+        monkeypatch, tmp_path, supervise, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "skills/tdd/scripts/tests/py").mkdir(parents=True)
+    leg, module = "skills/tdd/scripts/tests/leg/pytest_leg.py", "skills/tdd/scripts/veri/full_run_lock.py"
+    for path in (leg, module):
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / path).write_bytes(b"before\n")
+    fake_processes.answers({"git ls-files -m -z": (0, f"{leg}\0{module}\0", "")})
+    events = []
+    monkeypatch.setattr(supervise, "mark", lambda role, env, *fields: events.append(fields))
+
+    before = supervise.production_files()
+    for path in (leg, module):
+        (tmp_path / path).write_bytes(b"the red leaf's edit\n")
+    supervise.restore_production_files(before, "phase=develop-red", {}, "develop-red-1")
+
+    assert [(tmp_path / path).read_bytes() for path in (leg, module)] == [b"before\n", b"before\n"]
+    assert events == [("production-file-restored", "name=develop-red-1", f"file={leg}"),
+                      ("production-file-restored", "name=develop-red-1", f"file={module}")]
