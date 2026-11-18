@@ -127,3 +127,13 @@ def test_4392_a_clean_run_settles_the_candidates_url_and_launches_appends_commit
     assert FORBIDDEN & set(fake.names()) == set()
     assert [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] in (("commit",), ("push",), ("add",))] == []
     assert (checks.wt / ".tdd" / "issue-12.md").read_text() == LEDGER
+
+
+def test_4392_touched_test_files_stop_it_with_exit_1_at_test_quality_before_the_leaf_launch(checks):
+    code, out, err, fake = checks(answers={("test-quality.sh", ("files",)): (0, "")})
+
+    assert code == 1
+    assert out.splitlines()[-1] == ("stopped at test-quality test-quality.sh files %s > .tdd/test-quality-files exit 0"
+                                    % BASE)
+    assert fake.names()[-1] == "test-quality.sh"
+    assert not (checks.wt / ".tdd" / "issue-12-test-quality").exists()
