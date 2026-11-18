@@ -1,7 +1,7 @@
 # Plan for #4319 — PRD 034.4c: stack-tag.sh tags the issues a landed slice changed
 
 - [x] stack-tag.sh, a /bin/sh shim over veri/stack_tag.py, exits 2 with its usage line `usage: stack-tag.sh <slice-pr-url> [--message <n>=<text>]...` on no argument, a second url, or a --message not of the form <n>=<text> (process case for the shim, unit cases in tests/py/unit/test_stack_tag.py, no process) ⟦criterion 1⟧
-- [ ] stack_tag exits 2, nothing tagged and no lock taken, when the pull request does not read merged, when its base is not the default branch, and when GitHub gives no answer on the pull request or its commits (unit case, no process) ⟦criterion 2⟧
+- [x] stack_tag exits 2, nothing tagged and no lock taken, when the pull request does not read merged, when its base is not the default branch, and when GitHub gives no answer on the pull request or its commits (unit case, no process) ⟦criterion 2⟧
 - [ ] stack_tag exits 3, no lock taken, when every commit of every issue the subjects name is docs, test, refactor, chore or plan (unit case, no process) ⟦criterion 4⟧
 - [ ] a commit of an unknown type, or of no type, makes stack_tag exit 2 naming its subject, nothing tagged and no lock taken (unit case, no process; the go-red for KL35) ⟦criterion 4⟧
 - [ ] for an issue with a feat or fix commit, stack_tag takes the merge lock, fetches tags, cuts an annotated tag named the next vN.M after `git tag --sort=-v:refname`'s first (v0.10 over v0.9) on the last commit of the landed range whose subject names the issue, pushes it, frees the lock and exits 0 (unit case, no process) ⟦criterion 3⟧ ⟦criterion 5⟧

@@ -1,10 +1,14 @@
 """stack-tag.sh's logic, run in-process: cuts the tags of a landed slice, one per issue that changed behaviour (PRD
 034.4c)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
 import re
+import subprocess
 import sys
 
 import entry
+import git
+import github
 
 USAGE = "usage: stack-tag.sh <slice-pr-url> [--message <n>=<text>]..."
 
@@ -23,10 +27,50 @@ def arguments(argv):
     return argv[0], messages
 
 
+class _Unanswered(Exception):
+    """A read got no answer; the message names the read."""
+
+
+def _json(path, what):
+    """GitHub's JSON answer on <path>; _Unanswered naming <what> when gh fails or the answer is not JSON."""
+    run = github.gh_api(path, stderr=subprocess.PIPE)
+    try:
+        if run.returncode:
+            raise ValueError(" ".join((run.stderr or "").split()))
+        return json.loads(run.stdout)
+    except ValueError as error:
+        raise _Unanswered("%s got no answer: %s" % (what, error)) from None
+
+
+def _subjects(repo, number):
+    """The subjects of pull request <number>'s commits, oldest first, every page read."""
+    subjects, page = [], 1
+    while True:
+        listed = _json("repos/%s/pulls/%s/commits?per_page=100&page=%d" % (repo, number, page),
+                       "reading the commits of pull request %s" % number)
+        if not listed:
+            return subjects
+        subjects += [commit["commit"]["message"].split("\n", 1)[0] for commit in listed]
+        page += 1
+
+
 def main(argv):
     parsed = arguments(argv)
     if parsed is None:
         return entry.refuse(usage=USAGE)
+    pr, messages = parsed
+    repo, number = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)
+    default = git.default_branch(cwd=".")
+    try:
+        pull = _json("repos/%s/pulls/%s" % (repo, number), "reading pull request " + pr)
+        base = (pull.get("base") or {}).get("ref")
+        if pull.get("merged") is not True or base != default:
+            return entry.refuse("%s is %s; nothing tagged" % (
+                pr, "not merged" if pull.get("merged") is not True else "merged into %s, not %s" % (base, default)),
+                prefix="stack-tag: ")
+        subjects = _subjects(repo, number)
+    except _Unanswered as unanswered:
+        return entry.refuse("%s; nothing tagged" % unanswered, prefix="stack-tag: ")
     return 0
 
 
