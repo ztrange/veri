@@ -374,3 +374,10 @@ def test_step_at_takes_the_text_rule_as_a_parameter():
     found = ledger.step_at(steps_of(ledger), "two cogs", text_matches=lambda reference, text: text.startswith(reference))
 
     assert found.number == "2"
+
+
+def test_unit_of_returns_a_heading_unit_whose_heading_holds_backticks_whole():
+    ledger = importlib.import_module("veri.ledger")
+    unit = "skills/tdd/SKILL.md#Before the Red of a `⟦suite-repair⟧` step — is the suite still red?"
+
+    assert ledger.unit_of(f"edit `{unit}` ⟦skill-edit⟧") == unit
