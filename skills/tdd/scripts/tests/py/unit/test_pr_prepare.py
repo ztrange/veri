@@ -15,7 +15,7 @@ GRADED_DIFF = ("+++ b/skills/tdd/GRADED\n+skills/tdd/SKILL.md 1234 2026-11-17 x 
 
 class Fake:
     """A run_script stand-in: records (basename, args, cwd, env, kw) and answers from <answers>, keyed by
-    (basename, first argument or None) -> (code, stdout)."""
+    (basename, first argument, a tuple of leading arguments, or None) -> (code, stdout)."""
 
     def __init__(self, answers=None, porcelain=("", ""), mode="local"):
         self.answers, self.calls, self.mode = dict(answers or {}), [], mode
@@ -25,7 +25,8 @@ class Fake:
         base = os.path.basename(name)
         self.calls.append((base, args, cwd, env, kw))
         for (script, first), (code, out) in self.answers.items():
-            if base == script and (first is None or args[:1] == (first,)):
+            lead = first if isinstance(first, tuple) else (first,)
+            if base == script and (first is None or args[:len(lead)] == lead):
                 return code, out, ""
         if base == "git" and args[:2] == ("status", "--porcelain"):
             return 0, self.porcelain.pop(0) if self.porcelain else "", ""
@@ -124,6 +125,7 @@ def _calls(fake):
 
 def test_4031_a_clean_rebase_regrades_runs_the_local_suite_checks_the_tree_pushes_under_the_lease_and_skips_the_pass(
         prep):
+    pr_prepare = importlib.import_module("veri.pr_prepare")
     code, out, err, fake = prep()
 
     assert code == 0, out + err
@@ -133,9 +135,9 @@ def test_4031_a_clean_rebase_regrades_runs_the_local_suite_checks_the_tree_pushe
         ("git", ("merge-base", "HEAD", "origin/main")),
         ("git", ("diff", BASE, "HEAD", "-U0", "--", ":(glob)**/GRADED")),
         ("git", ("status", "--porcelain", "--untracked-files=all")),
-        ("grade-prose.sh", ("skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md")),
-        ("grade-prose.sh", ("./REQUIREMENTS.md", "README.md")),
-        ("grade-prose.sh", ("--convert",)),
+        ("detach-command.sh", ("start", "regrade-12", "sh", "-c", pr_prepare.BLOCK, "sh", pr_prepare.fused.SCRIPTS,
+                               "skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md", "./REQUIREMENTS.md", "README.md")),
+        ("detach-command.sh", ("wait", "regrade-12")),
         ("git", ("status", "--porcelain", "--untracked-files=all")),
         ("rebased-tip-suite.sh", ()), ("detect-test-command.sh", ("--tier", "all")),
         ("detach-command.sh", ("start", "rebased-full-12", "make", "test")),
@@ -156,7 +158,9 @@ def test_4031_under_ci_the_rebased_tip_gets_no_local_run_and_is_pushed(prep):
     code, out, err, fake = prep(fake=Fake(mode="ci"))
 
     assert code == 0
-    assert "detach-command.sh" not in fake.names() and "push-branch.sh" in fake.names()
+    assert [c[1][:2] for c in fake.calls if c[0] == "detach-command.sh"] == [("start", "regrade-12"),
+                                                                           ("wait", "regrade-12")]
+    assert "push-branch.sh" in fake.names()
     assert out.splitlines()[-1] == "rebased_tip_suite=ci"
 
 
@@ -164,8 +168,9 @@ def test_4031_no_rebase_regrades_then_goes_to_the_refactor_owed_list_pushing_not
     code, out, err, fake = prep(answers={("rebase-onto-default.sh", None): (3, "")})
 
     assert code == 0
-    assert not {"rebased-tip-suite.sh", "detach-command.sh", "push-branch.sh"} & set(fake.names())
-    assert [c[1][-1] for c in fake.calls if c[0] == "grade-prose.sh"][-1] == "--convert"
+    assert not {"rebased-tip-suite.sh", "push-branch.sh"} & set(fake.names())
+    assert [c[1][:2] for c in fake.calls if c[0] == "detach-command.sh"] == [("start", "regrade-12"),
+                                                                           ("wait", "regrade-12")]
     assert out.endswith("rebased=0\nrebased_from=\nrebased_tip_suite=none\n")
 
 
@@ -177,26 +182,25 @@ def test_4031_a_conflicted_or_refused_rebase_stops_it_with_its_code(prep, inner)
     assert out.splitlines()[-1] == "stopped at 1 rebase-onto-default.sh exit %d" % inner
 
 
-@pytest.mark.parametrize("graded, inner", [(("skills/tdd/SKILL.md",), 1), (("skills/tdd/SKILL.md",), 2),
-                                           (("--convert",), 1)])
-def test_4031_a_regrade_block_whose_highest_exit_is_1_or_2_stops_it_after_the_block(prep, graded, inner):
-    class Grading(Fake):
-        def __call__(self, name, *args, **kw):
-            if os.path.basename(name) == "grade-prose.sh" and args[-1] in graded:
-                self.calls.append((os.path.basename(name), args, kw.get("cwd"), kw.get("env"), kw))
-                return inner, "", ""
-            return super().__call__(name, *args, **kw)
-
-    code, out, err, fake = prep(fake=Grading())
+@pytest.mark.parametrize("inner", [1, 2])
+def test_4031_a_regrade_block_whose_highest_exit_is_1_or_2_stops_it_after_the_block(prep, inner):
+    code, out, err, fake = prep(answers={("detach-command.sh", ("wait", "regrade-12")): (1, "%d\n" % inner)})
 
     assert code == inner
-    assert fake.names()[-1] == "grade-prose.sh" and fake.calls[-1][1] == ("--convert",)
+    assert fake.calls[-1][:2] == ("detach-command.sh", ("wait", "regrade-12"))
     assert out.splitlines()[-1] == "stopped at 1 regrade block exit %d" % inner
+
+
+def test_4390_a_regrade_block_that_died_with_no_code_stops_it_with_exit_2(prep):
+    code, out, err, fake = prep(answers={("detach-command.sh", ("wait", "regrade-12")): (2, "")})
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at 1 detach-command.sh wait regrade-12 exit 2")
+    assert not {"rebased-tip-suite.sh", "push-branch.sh"} & set(fake.names())
 
 
 @pytest.mark.parametrize("inner", [1, 2])
 def test_4031_a_red_rebased_tip_stops_it_with_the_waits_code_before_any_resume_or_push(prep, inner):
-    code, out, err, fake = prep(answers={("detach-command.sh", "wait"): (inner, "FAILED 2\n")})
+    code, out, err, fake = prep(answers={("detach-command.sh", ("wait", "rebased-full-12")): (inner, "FAILED 2\n")})
 
     assert (code, out.splitlines()[-1]) == (inner, "stopped at 1 detach-command.sh wait rebased-full-12 exit %d" % inner)
     assert not {"suite-red-resume.sh", "push-branch.sh", "refactor-owed.sh"} & set(fake.names())
@@ -335,7 +339,7 @@ def _pid(prep, text):
 
 
 def test_4031_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line(prep):
-    code, out, err, fake = prep(answers={("detach-command.sh", "wait"): (3, "")})
+    code, out, err, fake = prep(answers={("detach-command.sh", ("wait", "rebased-full-12")): (3, "")})
 
     assert (code, out.splitlines()[-1]) == (3, "waiting on rebased-full-12")
     assert "push-branch.sh" not in fake.names()
@@ -343,7 +347,7 @@ def test_4031_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line(prep):
 
 def test_4031_called_again_after_an_exit_3_it_only_waits_again_then_pushes_and_marks_once(prep):
     _pid(prep, "111\nTue Nov 17 07:00:00 2026\n")
-    first = prep(answers={("detach-command.sh", "wait"): (3, "")})[0]
+    first = prep(answers={("detach-command.sh", ("wait", "rebased-full-12")): (3, "")})[0]
     code, out, err, fake = prep()
 
     assert (first, code) == (3, 0)
@@ -357,7 +361,7 @@ def test_4031_called_again_after_an_exit_3_it_only_waits_again_then_pushes_and_m
 
 def test_4031_a_resumed_call_keeps_the_files_the_regrade_modified_exempt_at_the_push(prep):
     _pid(prep, "111\nTue Nov 17 07:00:00 2026\n")
-    prep(fake=Fake(answers={("detach-command.sh", "wait"): (3, "")}, porcelain=("", "", " M GRADED\n")))
+    prep(fake=Fake(answers={("detach-command.sh", ("wait", "rebased-full-12")): (3, "")}, porcelain=("", "", " M GRADED\n")))
     code, out, err, fake = prep(fake=Fake(porcelain=(" M GRADED\n",)))
 
     assert code == 0 and "push-branch.sh" in fake.names()
@@ -365,7 +369,7 @@ def test_4031_a_resumed_call_keeps_the_files_the_regrade_modified_exempt_at_the_
 
 def test_4031_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(prep):
     _pid(prep, "111\nTue Nov 17 07:00:00 2026\n")
-    prep(answers={("detach-command.sh", "wait"): (3, "")})
+    prep(answers={("detach-command.sh", ("wait", "rebased-full-12")): (3, "")})
 
     record = json.loads((prep.wt / ".tdd" / "issue-12-pr-prepare-wait").read_text())
     assert (record["conductor"], record["at"]) == ({"pid": "111", "started": "Tue Nov 17 07:00:00 2026"},
@@ -376,7 +380,7 @@ def test_4031_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_
                          ids=["another pid", "another start time", "no pid file"])
 def test_4031_called_under_another_conductor_it_discards_the_record_and_starts_from_its_first_call(prep, second):
     _pid(prep, "111\nTue Nov 17 07:00:00 2026\n")
-    prep(answers={("detach-command.sh", "wait"): (3, "")})
+    prep(answers={("detach-command.sh", ("wait", "rebased-full-12")): (3, "")})
     if second is None:
         (prep.wt / ".tdd" / "conductor.pid").unlink()
     else:
@@ -385,3 +389,40 @@ def test_4031_called_under_another_conductor_it_discards_the_record_and_starts_f
 
     assert (code, fake.calls[0][1]) == (0, ("status", "--porcelain", "--untracked-files=all"))
     assert not (prep.wt / ".tdd" / "issue-12-pr-prepare-wait").exists()
+
+
+class SlowRegrade(Fake):
+    """A Fake whose wait on the detached regrade block answers <regrade_waits> in turn, then 0."""
+
+    def __init__(self, regrade_waits=(), **kw):
+        super().__init__(**kw)
+        self.regrade_waits = list(regrade_waits)
+
+    def __call__(self, name, *args, **kw):
+        if os.path.basename(name) == "detach-command.sh" and args[:2] == ("wait", "regrade-12"):
+            self.calls.append(("detach-command.sh", args, kw.get("cwd"), kw.get("env"), kw))
+            code, out = self.regrade_waits.pop(0) if self.regrade_waits else (0, "")
+            return code, out, ""
+        return super().__call__(name, *args, **kw)
+
+
+def test_4390_the_regrade_block_runs_detached_its_slice_running_out_is_exit_3_and_a_second_call_only_waits_again(
+        prep):
+    _pid(prep, "111\nTue Nov 17 07:00:00 2026\n")
+    code, out, err, fake = prep(fake=SlowRegrade(regrade_waits=[(3, "")]))
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on regrade-12")
+    start = fake.call("detach-command.sh", "start")[1]
+    assert start[:2] == ("start", "regrade-12") and "grade-prose.sh" not in fake.names()
+    assert [a for a in start if a.endswith(("REQUIREMENTS.md", "SKILL.md", "README.md"))] == [
+        "skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md", "./REQUIREMENTS.md", "README.md"]
+    assert json.loads((prep.wt / ".tdd" / "issue-12-pr-prepare-wait").read_text())["at"] == "regrade-12"
+    assert not {"rebased-tip-suite.sh", "push-branch.sh", "event.sh"} & set(fake.names())
+
+    code, out, err, fake = prep(fake=SlowRegrade())
+
+    assert code == 0, out + err
+    assert fake.calls[0][:2] == ("detach-command.sh", ("wait", "regrade-12"))
+    assert not {"next-pending-refactor.sh", "rebase-onto-default.sh"} & set(fake.names())
+    assert ("detach-command.sh", "start", "regrade-12") not in [(c[0],) + c[1][:2] for c in fake.calls]
+    assert fake.names().count("push-branch.sh") == 1
