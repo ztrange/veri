@@ -11,6 +11,7 @@ import case_identity
 import ledger
 import renamed_case
 import replaces_case
+import run_dir
 import tunables
 import entry
 from frozen_record import (body_digest, body_line, body_record, helper_records,
@@ -217,7 +218,7 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
         return 2
     os.chdir(root)
     issue = _issue()
-    run_ledger = ".tdd/issue-%s.md" % issue
+    run_ledger = run_dir.ledger("", issue)
     if issue and given != os.path.realpath(run_ledger):
         remove_pass_marker(step)
         write(sys.stderr, "tests-frozen.sh: %s is not the run's ledger %s" % (ledger, run_ledger))
