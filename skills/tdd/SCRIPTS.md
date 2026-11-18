@@ -625,6 +625,13 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   from git, GitHub, `stack-red.sh` or the lock, when origin moved on every attempt, or on bad arguments; and, the
   revert left pushed, when the merged pull requests cannot be read or a body cannot be edited, naming the pull
   request.
+- `$S/stack-land.sh [--now]` — run in the target repository's clone: lands a slice of the stack on the default branch.
+  A module, `skills/tdd/scripts/veri/stack_land.py`, behind a `/bin/sh` shim. It refuses (**exit 2**) when
+  `stack-branch.sh` does not exit 0, and refuses (**exit 1**) a red stack (`stack-red.sh` exit 0). It cuts only at the
+  commit `stack-green.sh` prints, never at another. It lands when that cut is `VERI_SLICE_COMMITS` (default 100) or
+  more commits ahead of the default branch, or when the stack is idle; it merges with
+  `gh pr merge --rebase --match-head-commit` and no bypass flag. `--now` skips the size-or-idle rule and no other.
+  **Exit 0** landed, **1** a clean refusal, **2** no answer, **3** nothing to land.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"|lint] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
