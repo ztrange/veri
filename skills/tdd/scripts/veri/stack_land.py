@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -41,6 +42,14 @@ def _live(stack):
         return "open pull requests onto %s: %s" % (stack, " ".join(pulls))
     conductors = _living_conductors()
     return "living conductors: %s" % " ".join(conductors) if conductors else None
+
+
+def _closes(stack, default, cut):
+    """The slice body's `Closes #<n>` lines: one per issue a subject in origin/<default>..<cut> ends with `(#<n>)` for,
+    in the range's order, kept only when a pull request merged into <stack> carries `Closes #<n>`."""
+    joined = github.joined_issues(stack)
+    named = re.findall(r"\(#(\d+)\)$", git.out("log", "--format=%s", "origin/%s..%s" % (default, cut)), re.M)
+    return "".join("Closes #%s\n" % n for n in dict.fromkeys(named) if int(n) in joined)
 
 
 def _freed(line):
@@ -104,7 +113,7 @@ def main(argv):
         return _freed("git push of the slice branch %s failed (exit %d): %s; the merge lock freed, nothing opened or"
                       " merged" % (slice_branch, push.returncode, push.stderr.strip()))
     if not github.stack_pulls(slice_branch, default):
-        github.pr_open(slice_branch, default, "Land %s at %s" % (stack, cut[:10]), "")
+        github.pr_open(slice_branch, default, "Land %s at %s" % (stack, cut[:10]), _closes(stack, default, cut))
 
 
 if __name__ == "__main__":

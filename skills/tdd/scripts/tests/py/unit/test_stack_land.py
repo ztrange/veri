@@ -18,11 +18,13 @@ class World:
     stdout), (0, "") for one it does not name. git (git.out) names <default> as origin's default branch and answers
     <ahead> to `rev-list --count`; GitHub (github.gh_api) lists <onto>, the open pull requests as REST records. origin
 (git.network, its calls kept in <network>) fetches and pushes, and its heads are <heads>, a branch name to its commit.
-GitHub opens a pull request (github.pr_open, each kept in <opened> as (head, base)) at <opens>, its url."""
+GitHub opens a pull request (github.pr_open, each kept in <opened> as (head, base), its body in <bodies>) at <opens>, its
+url. `git log` of a range from origin/<default> answers <subjects>; the pull requests merged into a base (github.merged_pulls) are <merged>,
+(number, body) pairs from this repository."""
 
     def __init__(self, monkeypatch, named, answers=None, default="trunk", ahead=0, onto=(), heads=None,
-                 opens="https://github.com/owner/repo/pull/90"):
-        self.scripts, self.network, self.opened = [], [], []
+                 opens="https://github.com/owner/repo/pull/90", subjects="", merged=()):
+        self.scripts, self.network, self.opened, self.bodies = [], [], [], []
         heads = heads or {}
         answers = answers or {}
         stack_branch = importlib.import_module("veri.stack_branch")
@@ -33,6 +35,8 @@ GitHub opens a pull request (github.pr_open, each kept in <opened> as (head, bas
                 return "origin/" + default
             if args[:2] == ("rev-list", "--count"):
                 return str(ahead)
+            if args[:1] == ("log",) and any(arg.startswith("origin/%s.." % default) for arg in args):
+                return subjects
             raise git.GitFailed(args, 128, "not faked")
 
         def gh_api(path, stderr=None):
@@ -50,10 +54,14 @@ GitHub opens a pull request (github.pr_open, each kept in <opened> as (head, bas
         monkeypatch.setattr(git, "network", network)
         def pr_open(head, base, title, body):
             self.opened.append((head, base))
+            self.bodies.append(body)
             return opens
 
         monkeypatch.setattr(github, "gh_api", gh_api)
         monkeypatch.setattr(github, "pr_open", pr_open)
+        monkeypatch.setattr(github, "merged_pulls", lambda base, repo=None: [github._pull(
+            {"number": number, "body": body, "state": "MERGED", "baseRefName": base, "isCrossRepository": False})
+            for number, body in merged])
 
         def answer(root):
             if isinstance(named, BaseException):
@@ -334,3 +342,16 @@ def test_when_a_pull_request_of_the_slice_branchs_head_is_already_open_reuses_it
     code, out, err = run_cli(stack_land, ["--now"])
 
     assert (code != 2, world.opened) == (True, []), err
+
+
+def test_the_slice_pull_requests_body_has_one_closes_line_per_issue_whose_pull_request_merged_into_the_stack_in_the_slices_range_carries_closes(
+        monkeypatch, run_cli, stack_land):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  subjects="feat: one (#11)\nrefactor: one tidied (#11)\nfeat: two (#12)\n",
+                  merged=[(101, "Closes #11\n\nthe first"), (102, "Closes #12"), (103, "Closes #13, merged after the cut")])
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert [[line for line in body.splitlines() if line.startswith("Closes")] for body in world.bodies] == [
+        ["Closes #11", "Closes #12"]], err
