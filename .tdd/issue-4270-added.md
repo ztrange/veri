@@ -1,4 +1,4 @@
 - [x] a parked comment whose question is dense with local paths is cut on its redacted text, so the posted body stays within COMMENT_LIMIT − MARGIN characters and BYTE_LIMIT − MARGIN bytes ⟦added⟧ ⟦criterion 1⟧
 - [ ] where the temp dir is `/tmp` and the home `/home/<account>` (Linux), a URL or repo-relative path holding a `/tmp` or `/home/<account>` segment (`https://example.com/a/tmp/x`, `src/tmp/y.py`) comes through a comment unchanged: this machine's spelled paths are matched only at a path start, in both redaction layers ⟦added⟧ ⟦criterion 2⟧
 - [x] record-answer.sh does not post an answer again when a trusted comment already holds its published form (a question naming a local path) ⟦added⟧ ⟦criterion 3⟧
-- [ ] stack-culprit does not post its comment again when a trusted comment on the tracking PR already holds its published form (a body naming a local path) ⟦added⟧ ⟦criterion 3⟧
+- [x] stack-culprit does not post its comment again when a trusted comment on the tracking PR already holds its published form (a body naming a local path) ⟦added⟧ ⟦criterion 3⟧

@@ -8,4 +8,4 @@
 - [x] the local-path pattern stops at a path boundary: `/tmpfile` and `/homepage` come through unchanged and `path=/tmp/x,` keeps its comma, while URLs, repo-relative paths and `.tdd/…` come through unchanged ⟦criterion 2⟧
 - [x] a unit audit fails when a module under `veri/` posts an issue or PR comment whose body does not pass through the choke point ⟦criterion 3⟧
 - [x] record-answer.sh does not post an answer again when a trusted comment already holds its published form (a question naming a local path) ⟦added⟧ ⟦criterion 3⟧
-- [ ] stack-culprit does not post its comment again when a trusted comment on the tracking PR already holds its published form (a body naming a local path) ⟦added⟧ ⟦criterion 3⟧
+- [x] stack-culprit does not post its comment again when a trusted comment on the tracking PR already holds its published form (a body naming a local path) ⟦added⟧ ⟦criterion 3⟧

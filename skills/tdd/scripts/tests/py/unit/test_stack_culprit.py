@@ -385,3 +385,16 @@ def test_reads_the_failed_log_of_the_attempt_that_answered_not_of_the_re_run_sti
     code, _, _ = run_cli(culprit, [sha(2)])
 
     assert (code, world.logs) == (0, [("42", 1)])
+
+
+def test_a_trusted_comment_holding_the_published_form_of_a_path_naming_answer_adds_no_comment_4270(
+        monkeypatch, run_cli, culprit):
+    monkeypatch.setenv("HOME", "/Users/someone-else")
+    alone = (2, "collected 1\nFAILED %s - /Users/someone/x.py missing\n" % X)
+    first = World(monkeypatch, culprit, ["feat: a (#1)"], alone=alone)
+    run_cli(culprit, [sha(1)])
+    second = World(monkeypatch, culprit, ["feat: a (#1)"], alone=alone, comments=(first.posted[0][1],))
+
+    code, _, err = run_cli(culprit, [sha(1)])
+
+    assert ("<path> missing" in first.posted[0][1], code, second.posted) == (True, 0, []), err
