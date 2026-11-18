@@ -612,13 +612,13 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `trigger_lines(text)`: generator of the lines of a workflow's `on:` block.
 
 ## detect_test_command
-- `resolved(tier, issue, root)`: the test command for a tier, `None` when none is found.
+- `resolved(tier, issue, root, claude_md=None)`: the test command for a tier, `None` when none is found; `claude_md`, when given, is the CLAUDE.md text read instead of `root`'s file.
 - `Answer(command)`: the exception that carries a found command out of the search; `answer_from_file(path, marker)` raises it from a file's lines.
 - `unwrapped(text)`, `SPACE`: the command a marker's rest names (a leading backtick span unwrapped), and the whitespace stripped before it; `answer_from(line, marker)`: raises `Answer` with the command one line declares after `marker`. `record_test_commands` reads a CLAUDE.md line as the detector does.
 
 ## run_line
 - `own_tree(root=".")`: whether `root` is veri's own tree (`skills/tdd/scripts/tests/py` is a directory there).
-- `run_lines(root=".")`: `(changed, one)` as bytes, the commands a leaf prompt gives for the test files `affected-suites.sh` printed and for a single test file: today's `make test TESTS="…"` text in veri's own tree, elsewhere the repo's `veri: one test file:` command once per path through `sh -c`, or its fast command when it declares none, its all-tier command only when it declares neither; a declared `veri: quiet test files:` command replaces the changed one, run once over every path. Read from the tree's files alone.
+- `run_lines(root=".", branch_base="")`: `(changed, one)` as bytes, the commands a leaf prompt gives for the test files `affected-suites.sh` printed and for a single test file: today's `make test TESTS="…"` text in veri's own tree, elsewhere the repo's `veri: one test file:` command once per path through `sh -c`, or its fast command when it declares none, its all-tier command only when it declares neither; a declared `veri: quiet test files:` command replaces the changed one, run once over every path. With `branch_base` (a hex commit name) and a `.git` in `root`, the CLAUDE.md lines are read as that commit holds them, never from the working tree (#4263); `BaseUnresolved` when git resolves no such commit.
 - `quiet_prefix(root=".")`: the argv prefix `["sh", "-c", '<quiet> "$@"', "sh"]` running the command the tree's `CLAUDE.md` declares as `veri: quiet test files: <quiet>` over the paths appended to it; `None` when it declares none (never the inferred default) or in veri's own tree.
 
 ## rerun_alone
