@@ -1,6 +1,6 @@
 # Plan for #4317 — PRD 034.4a: stack-land.sh lands the stack's tested slice on the default branch
 
-- [ ] `skills/tdd/SCRIPTS.md` lists stack-land.sh [--now] with its exits and rules, row SC564, graded ⟦skill-edit⟧ ⟦criterion 1⟧
+- [x] `skills/tdd/SCRIPTS.md` lists stack-land.sh [--now] with its exits and rules, row SC564, graded ⟦skill-edit⟧ ⟦criterion 1⟧
 - [ ] skills/tdd/scripts/stack-land.sh is a /bin/sh shim over the module skills/tdd/scripts/veri/stack_land.py by the status.sh convention, indexed in skills/tdd/scripts/veri/README.md; given any argument other than --now (a commit name included) it exits 2 with its usage line `usage: stack-land.sh [--now]` on stderr, reading nothing (KL4's case; its one case is the entry-point contract case in skills/tdd/scripts/tests/py/test_stack_land_process.py, a process case) ⟦criterion 1⟧
 - [ ] stack_land.main exits 2 naming stack-branch.sh's exit and its stderr line when stack-branch.sh exits 3 or 2, calling nothing after it (unit case in skills/tdd/scripts/tests/py/unit/test_stack_land.py, no process, stack-branch.sh injected) ⟦criterion 2⟧
 - [ ] with a stack named, stack_land runs stack-red.sh first and on its exit 0 exits 1 naming the red commit and its run's url, cutting and merging nothing (unit case, no process, stack-red.sh injected) ⟦criterion 2⟧
