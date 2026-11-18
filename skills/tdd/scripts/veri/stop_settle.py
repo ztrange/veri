@@ -33,22 +33,15 @@ def main(argv):
 
 
 def run(n, mode, wt, drop=False):
+    """STOPPING.md steps 1-6 in order; 0 once the request is cleared."""
     for name in live_leaves(wt):
         fused.save_wait(wt, n, NAME, name, {})
         fused.wait(wt, n, NAME, name)
-    note = []
     interrupted = interrupted_by(wt)
     if interrupted:
-        note.append("The tree holds an interrupted %s, left as it is: a human finishes it with %s." % interrupted)
+        note = ["The tree holds an interrupted %s, left as it is: a human finishes it with %s." % interrupted]
     else:
-        dirty = [line for line in fused.checked("2", "git", "status", "--porcelain", cwd=wt).splitlines() if line]
-        if dirty and not drop:
-            raise fused.Stop("2", "tree-check", 1)
-        fused.checked("2", "git", "reset", "--hard", "HEAD", cwd=wt)
-        note.extend(dropped(dirty))
-        pushed, _, said = fused.call(fused.script("push-branch.sh"), cwd=wt)
-        if pushed != 0:
-            note.append("push=rejected sha=" + remote_sha(said))
+        note = settle_tree(wt, drop) + pushed(wt)
     text = committed_ledger(n, wt)
     steps = ledger_steps(text or "")
     step = current_or_last_done_record(steps)
@@ -57,6 +50,22 @@ def run(n, mode, wt, drop=False):
     fused.checked("5", fused.script("comment.sh"), n, "stopped", *noted(wt, note), cwd=wt)
     fused.checked("6", fused.script("stop-requested.sh"), "--clear", cwd=wt)
     return 0
+
+
+def settle_tree(wt, drop):
+    """Step 2 on a tree with no interrupted rebase or merge: a dirty one stops it unless <drop>, then the reset; the
+    comment's lines on what it dropped."""
+    dirty = [line for line in fused.checked("2", "git", "status", "--porcelain", cwd=wt).splitlines() if line]
+    if dirty and not drop:
+        raise fused.Stop("2", "tree-check", 1)
+    fused.checked("2", "git", "reset", "--hard", "HEAD", cwd=wt)
+    return dropped(dirty)
+
+
+def pushed(wt):
+    """Step 3: push-branch.sh, its exit 1 or 2 recorded, never fixed; the comment's `push=rejected` line, if any."""
+    code, _, said = fused.call(fused.script("push-branch.sh"), cwd=wt)
+    return [] if code == 0 else ["push=rejected sha=" + remote_sha(said)]
 
 
 def dropped(dirty):
