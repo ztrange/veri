@@ -211,3 +211,14 @@ def test_an_issue_whose_commit_already_carries_a_tag_is_skipped_and_all_tagged_e
     said = run_cli(stack_tag, [PR])
 
     assert (said[0], world.cut, world.lock_calls[-1][:2]) == (code, cut, ("merge-lock.sh", "release")), said[2]
+
+
+def test_a_failed_tag_push_exits_2_naming_the_issue_deleting_that_local_tag_keeping_the_pushed_ones(
+        monkeypatch, run_cli, stack_tag):
+    world = World(monkeypatch, commits=["feat: a (#7)", "fix: b (#8)", "feat: c (#9)"],
+                  titles={"7": "Seven", "8": "Eight", "9": "Nine"}, push_fails={"v0.3"})
+
+    code, out, err = run_cli(stack_tag, [PR])
+
+    assert (code, "#8" in err, world.pushed, world.deleted, world.lock_calls[-1][:2]) == (
+        2, True, ["v0.2", "v0.3"], ["v0.3"], ("merge-lock.sh", "release")), err

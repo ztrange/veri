@@ -146,7 +146,12 @@ def _tag(merge, subjects, owed, titles):
     for issue in untagged:
         name = _next(git.out("tag", "--sort=-v:refname", cwd=".").split())
         git.out("tag", "-a", name, "-m", titles[issue], commit[issue], cwd=".")
-        git.network("push", "origin", "refs/tags/" + name, cwd=".")
+        pushed = git.network("push", "origin", "refs/tags/" + name, cwd=".")
+        if pushed.returncode:
+            git.out("tag", "-d", name, cwd=".")
+            return entry.refuse("the push of tag %s for #%s failed (exit %d): %s; that local tag deleted, the tags pushed"
+                                " before it kept" % (name, issue, pushed.returncode, " ".join(pushed.stderr.split())),
+                                prefix="stack-tag: ")
         print("%s #%s %s" % (name, issue, commit[issue]))
     return 0
 
