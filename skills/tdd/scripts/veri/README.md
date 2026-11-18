@@ -414,7 +414,6 @@ The ledger of a run: reading its steps and finding the next one to do, growing, 
 - `reorder-ledger-steps.sh`: move a ledger step.
 - `replaces-case-survivors.sh`: replaced cases that still exist.
 - `resume-clean.sh`: discard a resumed run's uncommitted changes.
-- `scope-check.sh`: checks of a plan's scope.
 - `unreplaced-cases.sh`: bash cases a replaces-case step names with no pytest replacement.
 
 ## add_ledger_step
@@ -784,6 +783,7 @@ Graded prose: the Requirements rows of a unit, grading them with a leaf, the pro
 - `graded-changed.sh`: whether graded prose changed in a range.
 - `prose-owed.sh`: the graded prose still owed grading.
 - `requirements-preflight.sh`: check an issue's requirements rows.
+- `scope-check.sh`: checks of a plan's scope. It sits here, not in Ledger and plan, because its row-move check reads `GRADED` through `grade_prose`.
 - `skill-drift.sh`: block when the skill drifted from the pinned snapshot.
 - `skill-edit-guard.sh`: what a skill-edit author may change (`main(argv)`: 2 on a bad base or a missing unit).
 - `skill-edit-step.sh`: run a skill-edit step's author.
@@ -791,7 +791,7 @@ Graded prose: the Requirements rows of a unit, grading them with a leaf, the pro
 
 ## grade_prose
 - `grade_unit(path, unit, read=None)`: grades a prose unit, its file's text answered by its `read` argument (None: the working tree; `stale_rows` passes the default branch's), for `stale_rows` and `skill_edit_step`. Returns a `Grading` named tuple whose `code` is 0 PASS, 1 REJECT, 2 no answer; `verdict`, `failing` row ids, `lines`, `cost`, `grading_id`; its property `out` is what `grade-prose.sh` prints; on PASS it also signs `GRADED` and journals a `grading` event. The script itself takes `--owed` and `--convert` as modes and exits 2 on bad arguments.
-- The `GRADED` file's line grammar (fields split on a single space: unit, signature, date, grading id, grader-template prefix; the unit field with each `%` as `%25` and each space as `%20`, so a `file#heading` unit is one field) is read and written in this module alone, by graded_fields and graded_line (inverses), graded_lines and record_graded; `graded_changed` reads `GRADED` through `graded_lines(graded)`, which yields each line's decoded fields; `skill_edit_step` decodes a line's unit field with `graded_fields`, splitting the line itself on any whitespace.
+- The `GRADED` file's line grammar (fields split on a single space: unit, signature, date, grading id, grader-template prefix; the unit field with each `%` as `%25` and each space as `%20`, so a `file#heading` unit is one field) is read and written in this module alone, by graded_fields and graded_line (inverses), graded_lines and record_graded; `graded_changed` and `scope_check` read `GRADED` through `graded_lines(graded)` (`scope_check` finding the file with `graded_path`), which yields each line's decoded fields; `skill_edit_step` decodes a line's unit field with `graded_fields`, splitting the line itself on any whitespace.
 - `signature(path, unit, text=None, units=None)`: the sha256 that stamps a graded unit, over `text` when given (the text a grade was made on) and the working tree's otherwise (a split whole-file unit's view of it; `units`, the listed units when the caller has read them), its rows and the grader model, plus the effort level when `grader.conf` has an `effort=` line; the model is the `model=` line's value wherever it sits in `grader.conf`. `unit_text(unit, reader=None)`, `graded_path(unit)`: the unit's text (read through `reader`, the working tree when `None`), its `GRADED` file path. A `file#heading` unit's text is its own text, up to the next unfenced heading line of any level; a heading matching no unfenced heading line, or several, raises ValueError naming the unit and the count. `claimed_headings(file, units=None)`: the headings of the listed `file#heading` units. `signed_text(unit, text, units=None)`: what a unit signs and the grader is shown, a split whole-file unit's view (its heading lines, then the text above the first heading and every unclaimed section's own text) or else `text`.
 - `owed_listed(path="REQUIREMENTS.md")`: `(owed, orphans)`, with `owed` the `(list, unit)` pairs whose graded signature is stale; `prose_owed` imports it (`suite_red_resume` reads it as `prose_owed.owed_listed`). It lives here so `prose_owed` builds on `grade_prose` and not the reverse: `signer()` runs the tree's own `grade_prose.py` for the formula, so the stamp's functions stay in that one file.
 - `modern_python_dir()`: the PATH directory holding a Python 3.12+ `python3` plus a trailing separator, `""` when none.
