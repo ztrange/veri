@@ -1,0 +1,22 @@
+file 20
+skills/vdev/SKILL.md
+old-b64 120
+VGhlIGRldiBzZXNzaW9uIHJlc2V0cyBvbmx5IG9uIHRoZSBhcm0gb3IgcmVzZXQtbm93IGxpbmUsIG5ldmVyIGJlY2F1c2UgaXQgaGFzIGJlZW4gaWRsZS4=
+new-b64 120
+QWZ0ZXIgcmVjb3ZlcnksIGFybSBgJFMvcmVzZXQtd2FpdC5zaCBpZGxlIGRldiBbLS1sYW5lIDxsYW5lPl1gIGFzIGEgYmFja2dyb3VuZCBjb21tYW5kLg==
+context-b64 120
+VGhlIGRldiBzZXNzaW9uIHJlc2V0cyBvbmx5IG9uIHRoZSBhcm0gb3IgcmVzZXQtbm93IGxpbmUsIG5ldmVyIGJlY2F1c2UgaXQgaGFzIGJlZW4gaWRsZS4=
+command 101
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_no_idle_reset_sweep.py VERI_PYCACHE=.tdd/pyc-m4
+
+file 20
+skills/vdev/SKILL.md
+old-b64 120
+VGhlIGRldiBzZXNzaW9uIHJlc2V0cyBvbmx5IG9uIHRoZSBhcm0gb3IgcmVzZXQtbm93IGxpbmUsIG5ldmVyIGJlY2F1c2UgaXQgaGFzIGJlZW4gaWRsZS4=
+new-b64 84
+V2hlbiBpdCByZXR1cm5zLCBydW4gYHJlcXVlc3QtcmVzZXQgLS1pZGxlYCBhbmQgY2xlYXIgeW91cnNlbGYu
+context-b64 120
+VGhlIGRldiBzZXNzaW9uIHJlc2V0cyBvbmx5IG9uIHRoZSBhcm0gb3IgcmVzZXQtbm93IGxpbmUsIG5ldmVyIGJlY2F1c2UgaXQgaGFzIGJlZW4gaWRsZS4=
+command 101
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_no_idle_reset_sweep.py VERI_PYCACHE=.tdd/pyc-m5
+
