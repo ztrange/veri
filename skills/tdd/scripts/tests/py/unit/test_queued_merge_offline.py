@@ -280,3 +280,26 @@ def test_the_offline_cleanup_removes_the_worktree_and_local_branch_and_leaves_th
     cleaned = [c for c in world.calls if " worktree remove " in c or " branch -D " in c or "--delete" in c]
     assert (code, cleaned) == (0, ["git -C %s worktree remove %s" % (world.wt, world.wt),
                                    "git -C %s branch -D %s" % (world.clone, BRANCH)]), err
+
+
+def test_the_rebased_tip_is_amended_with_one_veri_joined_trailer_before_the_stack_moves_and_exit_0_prints_the_amended_sha(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path).install(fake_processes, monkeypatch)
+
+    code, out, err = join(run_cli, world)
+
+    wt = "git -C %s " % world.wt
+    amended = [argv for argv in world.fake.argvs if argv[3:5] == ["commit", "--amend"]]
+    moved = [c for c in world.calls if c.startswith(wt + "update-ref")]
+    assert (code, out, world.local) == (0, "joined offline, no tag %s\n" % AMENDED, AMENDED), err
+    assert amended == [["git", "-C", world.wt, "commit", "--amend", "--no-edit", "--no-verify", "--allow-empty",
+                        "--trailer", "Veri-Joined: %s %s" % (PR, BRANCH)]], err
+    assert moved == [wt + "update-ref refs/heads/stack %s %s" % (AMENDED, LOCAL_STACK)], err
+
+
+def test_an_amend_git_refuses_is_exit_2_with_the_stack_unmoved(tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, amend=128).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, world.local) == (2, LOCAL_STACK), err
