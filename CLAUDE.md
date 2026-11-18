@@ -165,7 +165,8 @@ marker a full-run lock waiter writes (below), so a supervised leaf's hard timeou
 cannot write is one stderr line and the wait goes on unmarked; one already gone when the wait ends is no error; TERM or HUP mid-wait removes it), and records
 the wait as a `core-wait` event with its seconds; a full run takes the lock before it waits for cores. Each leg registers its pid, count and
 start time under `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and an entry holds a share only while its pid runs under that start time: a dead
-or reused pid, an entry with no start time (an older leg's) and a malformed one hold none, and one whose pid is gone or reused is removed.
+or reused pid, an entry with no start time (an older leg's), a malformed one and one whose start time ps cannot read hold none, and only one whose pid is gone or
+proven reused is removed.
 `VERI_PYTEST_WORKERS=<n>` overrides both, used as given, never waiting; `1` runs serially (#2053). Three refusals, exit 2 before any
 suite: pytest or pytest_timeout not importable (stderr names `make install-dev`), or Python
 older than the 3.12 floor. Any other error escaping the leg (registering it, taking the full-run lock, checking or recording
