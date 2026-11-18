@@ -63,6 +63,8 @@ def main(argv):
         if quiet and command[:len(quiet)] == quiet:
             sys.stdout.buffer.write(log.read())
             sys.stdout.flush()
+            if code == 2:
+                sys.stdout.write("timed-test-run.sh: the quiet test command broke the run (exit 2): no test answer\n")
         else:
             sys.stdout.write(report(tier, code, ended - started, log.read(), path))
     event.mark("", event.context(tunables.environment()), "test-run", [f"tier={tier}", f"suites={suites}",

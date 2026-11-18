@@ -8,6 +8,6 @@
 - [x] `record-test-commands.sh --quiet '<cmd>' <fast> <all>` writes the `veri: quiet test files: <cmd>` line to `CLAUDE.md` where it stands, else appended, and an empty `--quiet` is refused with exit 2 ⟦criterion 1⟧
 - [x] In a foreign tree whose `CLAUDE.md` declares `veri: quiet test files: <cmd>`, every leaf prompt that times a changed run gives `<cmd>` run over the changed files' tests as that run's command ⟦criterion 1⟧ ⟦criterion 2⟧
 - [x] `timed-test-run.sh` running the declared quiet command hands its output to the caller unchanged and returns its exit status ⟦criterion 1⟧
-- [ ] `timed-test-run.sh` reports a quiet command's exit 2 as a broken run, never as a test failure ⟦criterion 1⟧
+- [x] `timed-test-run.sh` reports a quiet command's exit 2 as a broken run, never as a test failure ⟦criterion 1⟧
 - [ ] Outside veri's own tree, a `changed` run that is not the declared quiet command prints only the exit code, at most the output's last 20 lines and the saved file's path, the whole output saved under `.tdd/test-runs/` ⟦criterion 1⟧ ⟦criterion 2⟧
 - [ ] `/vinstall`'s `## Recording the test commands`, the prompt fragment `_timed-test-run.md`, root `CLAUDE.md` (its `veri: quiet test files:` line and Testing idiom) and `skills/tdd/SCRIPTS.md` state the quiet command and the 20-line fallback; their requirement rows amended and regraded

@@ -376,3 +376,33 @@ def test_issue_4335_main_hands_the_declared_quiet_commands_output_to_the_caller_
     assert (code, out, err) == (1, output.decode(), "")
     assert [p.read_bytes() for p in saved] == [output]
     assert [(r["tier"], r["status"]) for r in events.records()] == [("changed", "1")]
+
+
+def test_issue_4335_main_follows_a_quiet_commands_exit_2_with_one_line_calling_it_a_broken_run_never_a_test_failure(
+        tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: quiet test files: pytest -q --no-header -rf\n")
+    monkeypatch.chdir(tmp_path)
+    output = b"ERROR: file or directory not found: t.py\n"
+
+    def run(line, **kwargs):
+        handle = kwargs.get("stdout")
+        if hasattr(handle, "write"):
+            handle.write(output)
+            handle.flush()
+        else:
+            os.write(1, output)
+        return (2, "", "")
+
+    fake_processes.answers({"sh": run})
+    events.refuse_event_sh()
+
+    code = timed_test_run.main(["changed", "t.py", "sh", "-c", 'pytest -q --no-header -rf "$@"', "sh", "t.py"])
+
+    out, err = capfd.readouterr()
+    assert (code, err) == (2, "")
+    assert out.startswith(output.decode())
+    added = out[len(output.decode()):].splitlines()
+    assert len(added) == 1
+    assert added[0].startswith("timed-test-run.sh:")
+    assert "broke the run" in added[0] and "exit 2" in added[0] and "no test answer" in added[0]
+    assert "fail" not in added[0].lower()
