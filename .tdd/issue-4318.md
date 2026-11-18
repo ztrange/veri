@@ -5,7 +5,7 @@
 - [x] stack_carry exits 2, the lock freed, when <old-cut> is not an ancestor of the old tip origin/<stack>, and when a git read of either gives no answer (never read as "absent") (unit case, no process) ⟦criterion 2⟧
 - [x] stack_carry exits 2, the lock freed, when origin/<default> has not landed <old-cut> (unit case, no process) ⟦criterion 2⟧
 - [x] stack_carry exits 3, the lock freed, nothing rebased, when <old-cut> is the old tip (unit case, no process) ⟦criterion 2⟧
-- [ ] stack_carry rebases with `git rebase --onto origin/<default> <old-cut> <old-tip>` in a detached worktree of its own under .tdd/, removed after, then pushes the new tip to <stack> with `--force-with-lease=<stack>:<old-tip>` and exits 0, the lock freed (unit case, no process) ⟦criterion 3⟧
+- [x] stack_carry rebases with `git rebase --onto origin/<default> <old-cut> <old-tip>` in a detached worktree of its own under .tdd/, removed after, then pushes the new tip to <stack> with `--force-with-lease=<stack>:<old-tip>` and exits 0, the lock freed (unit case, no process) ⟦criterion 3⟧
 - [ ] a rebase conflict makes stack_carry exit 1 naming the conflicting file, the rebase aborted, its worktree removed, nothing pushed, the lock freed (unit case, no process) ⟦criterion 4⟧
 - [ ] stack_carry pushes nothing and exits 1 naming both trees unless `git merge-tree --write-tree --merge-base=<old-cut> origin/<default> <old-tip>` exits 0 printing the new tip's tree; a merge-tree that exits 1 is exit 1 too (unit case, no process) ⟦criterion 5⟧
 - [ ] a leased push refused because origin's stack moved since the fetch makes stack_carry exit 1, nothing else pushed, the lock freed (unit case, no process) ⟦criterion 6⟧
