@@ -1,0 +1,89 @@
+"""pr-checks.sh's computation, run in-process: DRAFT-PR.md sub-step 1's checks after pr-prepare.sh (the lint run, the
+test-quality check, red-setup.sh worst, coupling.sh, refactor-candidates.sh, unwired.sh), made in one call, stopping
+at each judgement (PRD 038.8)."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
+import sys
+
+import fused
+import fused_step
+import run_dir
+import tunables
+
+NAME = "pr-checks"
+USAGE = "usage: pr-checks.sh <n>"
+LEDGER = run_dir.ledger("", "%s")
+DETACH = fused.script("detach-command.sh")
+
+
+def main(argv):
+    return fused.entry(argv, NAME + ".sh", run)
+
+
+def run(n):
+    given = fused_step.inputs(NAME + ".sh", n, LEDGER)
+    if given is None:
+        return 2
+    _, wt = given
+    base = branch_base(wt)
+    lint(wt, n)
+    owed = ".tdd/issue-%s-refactor-owed.md" % n
+    quality(wt, n, base)
+    fused.call(fused.script("red-setup.sh"), "worst", n, owed, cwd=wt)
+    fused.call(fused.script("coupling.sh"), base, cwd=wt, out=".tdd/coupling.out")
+    fused.call(fused.script("refactor-owed.sh"), "clear", owed, "coupling", cwd=wt)
+    fused.call(fused.script("refactor-candidates.sh"), n, owed, cwd=wt)
+    fused.call(fused.script("unwired.sh"), "--accepted", ".tdd/issue-%s-unwired-accepted" % n, base, cwd=wt,
+               out=".tdd/unwired.out")
+    return 0
+
+
+def default_branch(wt):
+    """The default branch `origin/<default>` names, read without the network."""
+    import git
+    return git.default_branch(cwd=wt, remote=False)
+
+
+def branch_base(wt):
+    """`git merge-base HEAD origin/<default>`."""
+    return fused.call("git", "merge-base", "HEAD", "origin/" + default_branch(wt), cwd=wt)[1].strip()
+
+
+def path(wt, name):
+    return os.path.join(wt, name)
+
+
+def write(wt, name, text):
+    with open(path(wt, name), "w") as f:
+        f.write(text)
+
+
+def said(wt, name):
+    with open(path(wt, name), encoding="utf-8", errors="replace") as f:
+        return f.read()
+
+
+def lint(wt, n):
+    """The lint run: the repo's declared lint command started detached, waited on within VERI_LINT_TIMEOUT, its
+    `lint` event and its `### Lint` section."""
+    section = ".tdd/issue-%s-lint.md" % n
+    write(wt, section, "")
+    command = fused.call(fused.script("detect-test-command.sh"), "--tier", "lint", cwd=wt)[1].strip()
+    fused.call(DETACH, "start", "lint", "sh", "-c", command, cwd=wt)
+    fused.call(DETACH, "wait", "lint", "--total", tunables.get("VERI_LINT_TIMEOUT", unless_empty=True), cwd=wt,
+               out="/dev/null", err=".tdd/lint.wait.err")
+    code = said(wt, ".tdd/lint.exit").strip()
+    fused.call(fused.script("event.sh"), "lint", "exit=" + code, cwd=wt,
+               env=tunables.with_values(VERI_ISSUE=n, VERI_ACTOR="conductor"))
+    write(wt, section, "### Lint\n\n`%s` passed.\n" % command)
+
+
+def quality(wt, n, base):
+    """The test-quality check: the test files the range touched; none writes the record empty."""
+    fused.call(fused.script("test-quality.sh"), "files", base, cwd=wt, out=".tdd/test-quality-files")
+    write(wt, ".tdd/issue-%s-test-quality" % n, "")
+
+
+if __name__ == "__main__":
+    import entry
+    entry.run(main, sys.argv[1:])
