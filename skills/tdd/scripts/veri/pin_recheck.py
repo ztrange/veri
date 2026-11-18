@@ -19,7 +19,8 @@ import mutation_record
 import run_dir
 from event_log import run_keeping_journal
 
-USAGE = "usage: pin-recheck.sh <base-sha> [--ledger <file>]"
+USAGE = "usage: pin-recheck.sh --branch-base <sha> <base-sha> [--ledger <file>]"
+BRANCH_BASE_REFUSAL = "pin-recheck.sh: --branch-base must name the run's branch base, a sha matching ^[0-9a-f]{7,40}$"
 
 
 def current_wrapper(command):
@@ -306,6 +307,9 @@ def replay(pin, ledger, looks):
 
 
 def recheck(argv, looks):
+    if argv[:1] != ["--branch-base"] or len(argv) < 2 or not re.fullmatch(r"[0-9a-f]{7,40}", argv[1]):
+        return entry.refuse(BRANCH_BASE_REFUSAL, usage=USAGE)
+    argv = argv[2:]
     if not argv or argv[1:] and (argv[1] != "--ledger" or len(argv) != 3):
         return entry.refuse(usage=USAGE)
     touched = set(git_out("diff", "--name-only", f"{argv[0]}..HEAD").split())
