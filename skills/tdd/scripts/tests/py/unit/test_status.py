@@ -311,3 +311,20 @@ def test_report_has_no_stack_section_and_reads_no_stack_where_no_stack_branch_is
 
     assert (code, [line for line in out.splitlines() if line in ("Landed", "Stack", "Running")]) == (
         0, ["Landed", "Running"]), (out, err)
+
+
+@pytest.mark.parametrize("unread", ["figures", "stack"])
+def test_report_stack_section_prints_a_figure_it_could_not_read_as_a_question_mark_and_keeps_its_exit_code_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status, unread):
+    report_tree(tmp_path, monkeypatch, status, {})
+    lost = status.github.NoAnswer("", "HTTP 502")
+    stack_reads(monkeypatch, status, scripts={"stack-green.sh": (2, ""), "stack-red.sh": (2, "")}, tracking=lost,
+                landed=lost, **({"span": status.stack_branch.Refused("git fetch origin got no answer")}
+                                if unread == "stack" else {}))
+    fake_processes.answers({"": logs_answer({})})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, section(out, "Stack")) == (0, [
+        ("stacky: joined 3" if unread == "figures" else "?: joined ?") + ", tested ?, landed ? in 24h",
+        "tracking: ?", "frozen: ?"]), (out, err)
