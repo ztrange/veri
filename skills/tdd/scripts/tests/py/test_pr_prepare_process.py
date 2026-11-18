@@ -89,8 +89,9 @@ def test_4031_a_branch_behind_main_is_rebased_and_pushed_under_the_lease_pinned_
 
 @pytest.mark.process("pr_prepare.BLOCK run by a real sh over a stub grade-prose.sh")
 @pytest.mark.parametrize("codes, highest", [({}, 0), ({"a/U.md": 1}, 1), ({"b/V.md": 2, "a/U.md": 1}, 2),
+                                            ({"a/U.md": 2, "b/V.md": 1}, 2),
                                             ({"--convert": 2, "a/U.md": 1}, 2), ({"a/U.md": 2, "--convert": 1}, 2)],
-                         ids=["all pass", "one reject", "the highest of two", "convert highest", "convert lower"])
+                         ids=["all pass", "one reject", "the highest of two", "the highest first", "convert highest", "convert lower"])
 def test_4390_the_detached_regrade_block_grades_each_unit_then_converts_and_exits_its_highest_code(
         tmp_path, codes, highest):
     pr_prepare = importlib.import_module("veri.pr_prepare")
