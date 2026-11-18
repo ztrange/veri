@@ -106,9 +106,12 @@ recovery restores it: `$S/status.sh --recover dev [--lane <lane>]` prints the re
 
 ## Live conductors and the slot decision
 
-A conductor is **live** when `.tdd/wt/<n>/.tdd/conductor.pid` exists and its pid answers
-`kill -0`. Count them fresh at every slot decision (P1); `$S/status.sh --json` gives the same
-runs with their step k/n and phase.
+`.tdd/wt/<n>/.tdd/conductor.pid` holds two lines: the conductor's pid, then that pid's start time. A
+conductor is **live** only when the file exists, its first-line pid answers `kill -0`, and that
+pid's start time matches the second line: a pid alone fails on the two-line file (`illegal pid`)
+and passes for a recycled pid. Do not hand-roll the check: `$S/status.sh --json` applies the
+rule and gives the live runs with their step k/n and phase. Count them fresh at every slot
+decision (P1).
 
 **The slot decision**, taken at the start and again after every merge, every park and every
 conductor exit:
@@ -245,8 +248,8 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   repository's main working tree:
   `$S/detach-leaf.sh $S/run-conductor.sh <n> >> .tdd/conductor-<n>.log 2>&1 < /dev/null`
   (then the restart line from *Launching*). The resume takes a slot like any launch: it runs only
-  when the live conductors, counted fresh with `kill -0`, number fewer than N (an unexpired timed
-  N included); otherwise it is held, and the next freed slot goes to it ahead of the solvable
+  when the live conductors, counted fresh as *Live conductors and the slot decision* defines,
+  number fewer than N (an unexpired timed N included); otherwise it is held, and the next freed slot goes to it ahead of the solvable
   queue: `dispatch.sh` fills a freed slot only from that queue and never sees a held resume, so
   launch the held resume before restarting `dispatch.sh`. It also runs only when no process is
   inside the run's worktree: run `lsof +D <absolute path of .tdd/wt/<n>>` from the main working
