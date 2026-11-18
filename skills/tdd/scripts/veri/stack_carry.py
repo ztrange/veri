@@ -118,6 +118,20 @@ def _refused(stack, tip, new, push):
                    % (stack, " ".join((listed.stderr or "").split())[:200])))
 
 
+def _agrees(default, cut, tip, new, new_tree):
+    """The guard on the work (D26): the old cut's changes up to the old tip, merged onto origin/<default> with the old
+    cut as base, must be exactly the rebased tip <new>'s tree <new_tree>; _Stop(1) naming both trees otherwise, _Stop(2)
+    when git gives no answer. "The tree is unchanged" is false whenever the default branch moved."""
+    check = _git("merge-tree", "--write-tree", "--merge-base=" + cut, "origin/" + default, tip)
+    if check.returncode not in (0, 1):
+        raise _unanswered("git merge-tree --write-tree --merge-base=%s origin/%s %s" % (cut, default, tip), check)
+    merged = check.stdout.split("\n", 1)[0].strip()
+    if check.returncode or merged != new_tree:
+        raise _Stop(1, "git merge-tree --write-tree --merge-base=%s origin/%s %s %s the tree %s, the rebased tip %s has"
+                    " the tree %s; nothing pushed" % (cut, default, tip, "conflicts, printing" if check.returncode
+                                                      else "prints", merged, new, new_tree))
+
+
 def _carry(stack, name):
     """Carry <stack> with the merge lock held, never releasing it: the exit code, or _Stop."""
     fetch = git.network("fetch", "--prune", "origin", cwd=".")
@@ -136,16 +150,7 @@ def _carry(stack, name):
     if cut == tip:
         raise _Stop(3, "the old cut %s is origin/%s's tip: nothing to carry" % (cut, stack))
     new, new_tree = _rebased(default, cut, tip)
-    # The guard on the work (D26): the old cut's changes up to the old tip, merged onto origin/<default> with the old cut
-    # as base, must be exactly the new tip's tree. "The tree is unchanged" is false whenever the default branch moved.
-    check = _git("merge-tree", "--write-tree", "--merge-base=" + cut, "origin/" + default, tip)
-    if check.returncode not in (0, 1):
-        raise _unanswered("git merge-tree --write-tree --merge-base=%s origin/%s %s" % (cut, default, tip), check)
-    merged = check.stdout.split("\n", 1)[0].strip()
-    if check.returncode or merged != new_tree:
-        raise _Stop(1, "git merge-tree --write-tree --merge-base=%s origin/%s %s %s the tree %s, the rebased tip %s has"
-                    " the tree %s; nothing pushed" % (cut, default, tip, "conflicts, printing" if check.returncode
-                                                      else "prints", merged, new, new_tree))
+    _agrees(default, cut, tip, new, new_tree)
     push = git.network("push", "--force-with-lease=%s:%s" % (stack, tip), "origin", "%s:refs/heads/%s" % (new, stack),
                        cwd=".")
     if push.returncode:
