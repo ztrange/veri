@@ -100,7 +100,7 @@ def test_4027_no_argument_prints_the_usage_and_exits_2_with_no_inner_call(green)
 
 
 @pytest.mark.parametrize("missing, named", [("preflight", ".tdd/issue-12-preflight"), ("ledger", ".tdd/issue-12.md"),
-                                            ("spec", ".tdd/issue-12-spec.md"), ("red-half", ".tdd/issue-12-red-half")])
+                                            ("spec", ".tdd/issue-12-spec.md")])
 def test_4027_a_missing_input_is_exit_2_before_any_inner_call_named_on_stderr(green, missing, named):
     code, out, err, fake = green(missing=(missing,))
 
@@ -108,11 +108,15 @@ def test_4027_a_missing_input_is_exit_2_before_any_inner_call_named_on_stderr(gr
     assert named in err
 
 
-def test_4027_a_red_half_file_naming_another_step_is_exit_2_before_any_inner_call(green):
-    code, out, err, fake = green(red_step="zero ⟦criterion 1⟧")
+@pytest.mark.parametrize("given", [{"missing": ("red-half",)}, {"red_step": "zero ⟦criterion 1⟧"}])
+def test_a_missing_red_half_record_or_one_naming_another_step_is_exit_1_on_the_seam_line_before_any_call_4342(
+        green, given):
+    """SC4, replacing #4027's exit 2: a stale or missing record is a designed hand-off, never an exit 2 (S1)."""
+    code, out, err, fake = green(**given)
 
-    assert (code, fake.calls) == (2, [])
-    assert "red-half" in err
+    assert (code, fake.calls) == (1, [])
+    assert out.splitlines()[-1] == ("seam=green-half code=1 reason=record next=seam-settle.sh 12 red-half test_path=… "
+                                    "target_test=…")
 
 
 @pytest.mark.parametrize("step", ["port: replaces 'a' in tests/py/test_x.py ⟦replaces-case⟧ ⟦criterion 1⟧",
