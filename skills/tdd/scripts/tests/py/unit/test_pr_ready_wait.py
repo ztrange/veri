@@ -133,14 +133,14 @@ def test_4032_it_reads_the_pr_url_readies_the_pr_waits_on_ci_and_settles_green(r
     assert [c[1] for c in fake.made("gh")] == [("api", "repos/{owner}/{repo}/pulls?head={owner}:tdd/12-thing", "-q",
                                                ".[0].html_url // empty")]
     assert _flow(fake) == [("git", ("branch", "--show-current")), ("branch-suite.sh", ()),
-                           ("event.sh", ("done", "pr=" + URL)), ("metrics.sh", ("12",)),
+                           ("event.sh", ("metrics-cut", "pr=" + URL)), ("metrics.sh", ("12",)),
                            ("git", ("add", ".tdd/issue-12-metrics.md")),
                            ("git", ("commit", "-m", "metrics: what solving #12 cost (#12)")),
                            ("git", ("status", "--porcelain", "--untracked-files=all")), ("push-branch.sh", ()),
                            ("git", ("rev-parse", "HEAD")), ("pr-ready.sh", ("42", HEAD)),
                            ("git", ("rev-parse", "HEAD")), ("wait-ci.sh", (URL, "540", "", HEAD))]
-    done = fake.made("event.sh")[0][3]
-    assert (done["VERI_ISSUE"], done["VERI_ACTOR"]) == ("12", "conductor")
+    cut = fake.made("event.sh")[0][3]
+    assert (cut["VERI_ISSUE"], cut["VERI_ACTOR"]) == ("12", "conductor")
     assert fake.made("metrics.sh")[0][4]["out"] == ".tdd/issue-12-metrics.md"
     assert fake.made("pr-ready.sh")[0][4]["err"] == ".tdd/pr-ready.err"
     waited = fake.made("wait-ci.sh")[0][4]
@@ -219,14 +219,14 @@ def test_4032_a_green_wait_after_a_flake_re_run_stops_it_so_the_block_writes_the
     assert not (ready.wt / ".tdd" / "issue-12-pr-ready-wait").exists()
 
 
-def test_4032_it_writes_only_the_done_event_commits_only_the_metrics_and_handles_no_refusal(ready):
+def test_4332_it_writes_only_the_metrics_cut_event_never_done_commits_only_the_metrics_and_handles_no_refusal(ready):
     ready(answers={("pr-ready.sh", None): (2, "")})
     code, out, err, fake = ready()
 
     assert code == 0
     assert not {"classify-bail.sh", "preflight-refused.sh", "adjudicate.sh", "comment.sh", "detach-leaf.sh",
                 "add-ledger-step.sh", "rebase-onto-default.sh"} & set(fake.names())
-    assert [c[1][0] for c in fake.made("event.sh")] == ["done"]
+    assert [c[1][0] for c in fake.made("event.sh")] == ["metrics-cut"]
     assert [c[1][2] for c in fake.made("git") if c[1][:1] == ("commit",)] == ["metrics: what solving #12 cost (#12)"]
     assert not [c for c in fake.made("git") if c[1][:1] in (("push",), ("reset",))]
 

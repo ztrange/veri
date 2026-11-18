@@ -206,14 +206,17 @@ def test_4332_pr_ready_wait_commits_the_metrics_then_pushes_them_then_readies_th
     assert (code, made) == (0, ["metrics: what solving #12 cost (#12)", "push-branch.sh", "pr-ready.sh"])
 
 
-def test_4332_pr_finish_reads_the_pr_url_renders_and_settles_with_no_mark_commit_push_or_wait(finish):
+def test_4332_pr_finish_reads_the_pr_url_writes_the_done_mark_renders_and_settles_with_no_commit_push_or_wait(finish):
     code, out, err, fake = finish(fake=Fake(mode="local"))
 
     assert (code, out.splitlines()[-2:]) == (0, ["pr_url=" + URL, "refactor_owed_render=" + RENDER])
     assert (finish.wt / ".tdd" / "issue-12-pr-finish").read_text() == "pr_url=%s\nrefactor_owed_render=%s\n" % (URL,
                                                                                                               RENDER)
     assert [(c[0], c[1]) for c in fake.calls if c[0] != "gh"] == [
-        ("git", ("branch", "--show-current")), ("refactor-owed.sh", ("render", ".tdd/issue-12-refactor-owed.md"))]
+        ("git", ("branch", "--show-current")), ("event.sh", ("done", "pr=" + URL)),
+        ("refactor-owed.sh", ("render", ".tdd/issue-12-refactor-owed.md"))]
+    done = fake.made("event.sh")[0][3]
+    assert (done["VERI_ISSUE"], done["VERI_ACTOR"]) == ("12", "conductor")
     assert (finish.wt / RENDER).read_text() == "## Refactor owed\n\n- extract it\n"
     assert all(c[2] == str(finish.wt) for c in fake.calls)
 
@@ -267,7 +270,8 @@ def test_4033_a_dirty_tree_just_before_the_push_stops_it_with_exit_1(finish):
 
 @pytest.mark.parametrize("script, inner, last, module", [
     ("push-branch.sh", 1, "push-branch.sh exit 1", "pr_ready_wait"),
-    ("event.sh", 2, "event.sh done pr=%s exit 2" % URL, "pr_ready_wait"),
+    ("event.sh", 2, "event.sh metrics-cut pr=%s exit 2" % URL, "pr_ready_wait"),
+    ("event.sh", 2, "event.sh done pr=%s exit 2" % URL, "pr_finish"),
     ("refactor-owed.sh", 2, "refactor-owed.sh render .tdd/issue-12-refactor-owed.md exit 2", "pr_finish"),
     ("tick-issue-criterion.sh", 2, "tick-issue-criterion.sh 12 two exit 2", "pr_ready_wait")])
 def test_4033_an_inner_call_that_fails_stops_it_with_its_code_and_runs_nothing_later(finish, script, inner, last,
@@ -285,7 +289,8 @@ def test_4033_it_writes_no_bail_and_handles_no_refusal_and_leaves_the_title_and_
     assert code == 0
     assert not {"classify-bail.sh", "preflight-refused.sh", "adjudicate.sh", "comment.sh", "detach-leaf.sh",
                 "add-ledger-step.sh", "rebase-onto-default.sh", "pr-body.sh", "ledger-growth.sh", "ci-flake.sh",
-                "event.sh", "metrics.sh", "push-branch.sh", "wait-ci.sh"} & set(fake.names())
+                "metrics.sh", "push-branch.sh", "wait-ci.sh"} & set(fake.names())
+    assert [c[1] for c in fake.made("event.sh")] == [("done", "pr=" + URL)]
     assert not [c for c in fake.made("gh") if "PATCH" in c[1]]
     assert [c[1][0] for c in fake.made("git")] == ["branch"]
 

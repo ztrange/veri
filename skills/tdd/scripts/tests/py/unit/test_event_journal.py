@@ -258,6 +258,26 @@ def test_done_records_pr_and_wall_seconds_capped_by_the_awake_span_counted_from_
         0, "https://x/pull/1", "40", "40")
 
 
+def test_4332_a_metrics_cut_records_the_pr_wall_awake_and_lane_as_done_does(tmp_path, monkeypatch):
+    import importlib
+    import json
+    event = importlib.import_module("veri.event")
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".tdd").mkdir()
+    (clone / ".tdd" / "events.jsonl").write_text(
+        '{"ts": 1000, "awake": 100, "event": "conductor-start"}\n'
+        '{"ts": 2000, "awake": 500, "event": "resume"}\n')
+    monkeypatch.setattr(event, "awake_reading", lambda: b"540")
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent")
+
+    code = event.append(str(clone), {"issue": "42"}, "metrics-cut", ["pr=https://x/pull/1"], ts=2100)
+
+    cut = json.loads((clone / ".tdd" / "events.jsonl").read_text().splitlines()[-1])
+    assert (code, cut.get("event"), cut.get("pr"), cut.get("wall_seconds"), cut.get("awake_seconds"),
+            cut.get("lane")) == (0, "metrics-cut", "https://x/pull/1", "40", "40", "ready-for-agent")
+
+
 def test_done_without_a_resume_skips_unparseable_lines_and_leaves_out_awake_seconds_when_a_mark_lacks_an_awake_reading(
         tmp_path, monkeypatch):
     import importlib

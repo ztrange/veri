@@ -64,6 +64,31 @@ def test_4332_under_the_total_table_the_report_says_it_leaves_out_the_ci_wait_an
                                         "this report is committed."]
 
 
+CUT = {"event": "metrics-cut", "issue": "108", "pr": "https://github.com/o/r/pull/7", "ts": 400, "wall_seconds": "300"}
+
+
+@pytest.mark.parametrize("after, outcome, wall", [  # the JSON figures read the done mark alone, as before #4332
+    ([], "Outcome: the run landed — its draft PR is https://github.com/o/r/pull/7.", "300"),
+    ([{"event": "step-added", "issue": "108", "ts": 500}], "Outcome: none yet — the run is still going.", "unknown"),
+    ([{"event": "done", "issue": "108", "pr": "https://github.com/o/r/pull/8", "ts": 900, "wall_seconds": "800"}],
+     "Outcome: the run landed — its draft PR is https://github.com/o/r/pull/8.", "800")],
+    ids=["the cut stands", "a step-added after it", "the done mark after it"])
+def test_4332_a_standing_metrics_cut_ends_the_report_in_place_of_done_and_a_later_mark_overrides_it(
+        tmp_path, monkeypatch, capsys, metrics, after, outcome, wall):
+    import conftest
+    write_log(tmp_path, ONE_STEP + [CUT] + after)
+    conftest.live_conductor(monkeypatch, tmp_path / ".tdd", "108")
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+    figures = json.loads(render(metrics, capsys, ("108", "--json")))
+
+    assert outcome + "\n" in out
+    assert "Wall time for the issue: %s s," % wall in out
+    assert (figures["run"]["outcome"], figures["run"]["wall_seconds"]) == (
+        ("landed", 800) if after and after[0]["event"] == "done" else ("running", None))
+
+
 def table(out, heading):
     """The rows under <heading>, one dict per row keyed by the header cells."""
     lines = out.split("\n")
