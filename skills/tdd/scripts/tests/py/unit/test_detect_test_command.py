@@ -566,3 +566,11 @@ def test_issue_4335_tier_quiet_test_files_without_a_quiet_line_proposes_quiet_py
     (repo / "pyproject.toml").write_text("[project]\nname = \"x\"\n\n[tool.pytest.ini_options]\ntestpaths = [\"tests\"]\n")
 
     assert cli(run_cli, detect, "--tier", "quiet test files", str(repo)) == (0, "pytest -q --no-header -rf\n", "")
+
+
+def test_issue_4335_tier_quiet_test_files_without_a_quiet_line_proposes_silent_jest_for_a_jest_package_json(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "package.json").write_text('{\n  "name": "x",\n  "scripts": {\n    "test": "jest --ci"\n  }\n}\n')
+
+    assert cli(run_cli, detect, "--tier", "quiet test files", str(repo)) == (0, "npx jest --silent\n", "")
