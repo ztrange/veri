@@ -85,3 +85,13 @@ def test_4343_called_again_it_resumes_at_the_seam_recorded_in_the_step_file_neve
 
     assert ("stage=green-half" in recorded.splitlines(), code) == (True, 0), err
     assert stages.names() == ["green-half.sh", "refactor-half.sh", "step-close.sh"]
+
+
+PENDING = "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] two ⟦criterion 2⟧\n" % STEP
+
+
+def test_4343_a_refactor_pending_step_with_no_seam_record_starts_at_refactor_half_not_the_next_steps_red(step):
+    code, out, err, stages = step(ledger=PENDING)
+
+    assert code == 0, err
+    assert stages.names() == ["refactor-half.sh", "step-close.sh"]

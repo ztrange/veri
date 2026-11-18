@@ -3,7 +3,7 @@
 - [x] run-step.sh <n> runs red-half.sh, green-half.sh, refactor-half.sh and step-close.sh in that order through fused.script(), prints step-close's next= line last and exits 0 ⟦criterion 1⟧
 - [x] at the first stage exiting 1, 2 or 3 it stops, prints seam=<stage> code=<c> next=<anchor or command> and exits c ⟦criterion 2⟧
 - [x] called again with no options it resumes at the seam recorded in .tdd/issue-<n>-step, not calling the stages before it ⟦criterion 3⟧
-- [ ] with a refactor-pending step and no seam record naming it, it starts at refactor-half on that step, never red-half on the next
+- [x] with a refactor-pending step and no seam record naming it, it starts at refactor-half on that step, never red-half on the next
 - [ ] --from <stage> starts at that stage, and an unknown stage name exits 2 ⟦criterion 4⟧
 - [ ] --hand <stage>, repeatable, stops before that stage with seam=<stage> code=1 reason=hand next=<anchor> without calling it ⟦criterion 5⟧
 - [ ] a ⟦ci-repair⟧ or ⟦replaces-case⟧ step stops before green-half with seam=green-half code=1 reason=unmodelled next=<anchor>, from one kinds table ⟦criterion 6⟧
