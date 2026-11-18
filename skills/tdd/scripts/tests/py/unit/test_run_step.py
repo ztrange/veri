@@ -112,3 +112,16 @@ def test_4343_from_starts_at_the_named_stage_and_an_unknown_stage_or_bad_argumen
 
     assert (code_, stages.names()) == (code, called), err
     assert ("usage: run-step.sh <n> [--from <stage>] [--hand <stage>]…" in err) == (code == 2)
+
+
+@pytest.mark.parametrize("argv, called, last", [
+    (("12", "--hand", "green-half", "--hand", "step-close"), ["red-half.sh"],
+     "seam=green-half code=1 reason=hand next=" + GREEN),
+    (("12", "--hand", "step-close", "--from", "refactor-half", "--hand", "green-half"), ["refactor-half.sh"],
+     "seam=step-close code=1 reason=hand next=" + REFACTOR),
+    (("12", "--hand", "red-half"), [], "seam=red-half code=1 reason=hand next=" + RED),
+])
+def test_4343_hand_repeated_stops_before_each_named_stage_without_calling_it_exit_1(step, argv, called, last):
+    code, out, err, stages = step(argv=argv)
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (1, called, last), err
