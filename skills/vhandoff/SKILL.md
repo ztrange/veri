@@ -46,7 +46,8 @@ It carries, and only this:
 - pending decisions;
 - whether `.tdd/github-outage` exists in the main working tree, read from the file
   when the handoff is written, and, when it does, each PR url it lists, in the file's order:
-  the `mode on|off` and `held <url>` lines `$S/github-outage.sh status` prints;
+  the `mode on|off` and `held <url>` lines `$S/github-outage.sh status` prints; and, when it
+  exists, that where a stack is named a reviewed Done run is joined offline, not held;
 - the **Stack** section's lines exactly as `$S/status.sh --report` prints them (counts, the
   tracking pull request, a freeze, any `?`), or, where it prints no Stack section, that no stack
   is named.
