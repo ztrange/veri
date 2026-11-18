@@ -1166,3 +1166,15 @@
 | ID | Requirement | Why |
 |---|---|---|
 | FO1 | The fragment completes the overfit flag shape whose opening `overfit \| <the` the including text writes (`develop-refactor.md`, `verify-refactor.md`): `code>`, then ` \| `, then `<the case that would force the general implementation>`. (The whole fragment.) | An overfit flag must name the overfit code and the case that would force the general implementation, so that case can be written. |
+## skills/tdd/scripts/prompts/_verify-interface-phase-lead.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| IL1 | The fragment opens by saying a developer agent has finished this phase of an interface change, the code around `{{TEST_PATH}}`, and that behaviour does not change. (First paragraph.) | The verifier must know which code the phase touched and that no behaviour may change there. |
+| IL2 | It says the phase started at `{{BASE_SHA}}` and tells the verifier to review what it changed with `git diff {{BASE_SHA}}..HEAD`. (Second paragraph.) | The verifier judges the range's diff, which carries no author rationale. |
+| IL3 | It tells the verifier not to read the range's commit messages, saying `git log` and `git show` on the range carry the author's rationale. (Second paragraph.) | The verifier is blind by construction; a commit message would leak the developer's rationale. |
+| IL4 | It asks for one verdict on the settled result. (Second paragraph, last sentence.) | One verdict per phase, on what the phase left. |
+| IL5 | The `{{STEP}}` slot comes right before the heading `### The issue's behavior spec`, which is followed by the `{{ISSUE_SPEC}}` slot. (The spec block.) | The verifier judges the phase against the step and the issue's spec. |
+| IL6 | Under `### Your checks`, check 1, **Still green**, tells the verifier to run the fast command `{{FAST_CMD}}` (which `detect-test-command.sh --tier fast` prints), then the test files covering the files the range touched, as `affected-suites.sh` prints them, itself, and says both must be **green**. (Numbered list, item 1.) | A phase that changes no behaviour leaves the fast tier and the touched files' suites green. |
+| IL7 | Check 1 says each of those two runs goes through the wrapper, the included `_timed-test-run-tier.md` completing that sentence before a colon, and the included `_timed-test-run-fast-affected.md` giving the two command lines. (Numbered list, item 1, the two include lines.) | Both runs are recorded and bounded by the wrapper, each under its tier. |
+| IL8 | Check 1 ends with the included `_exit-status-back.md` fragment followed by "so a red run stays red", and is the only check the fragment holds: the including template numbers its own checks from 2. (Last line.) | The wrapper's exit status must reach the verifier, and every interface-phase template continues the list after check 1 (VN4). |
