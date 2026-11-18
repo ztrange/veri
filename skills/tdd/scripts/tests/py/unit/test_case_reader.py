@@ -149,3 +149,20 @@ def test_cut_cases_resumes_the_scan_after_a_regex_literals_closing_slash_4294():
     cases = case_reader.cut_cases(case + ";\n")
 
     assert cases == [("v", case)]
+
+
+def test_file_defines_4305_accepts_a_definition_and_a_whole_title_and_rejects_a_cut_name_and_an_undefined_name(tmp_path):
+    case_reader = importlib.import_module("veri.case_reader")
+    (tmp_path / "test_ledger.py").write_text("def test_main_returns_zero():\n    pass\n")
+    (tmp_path / "foo_test.go").write_text("func TestFoo(t *testing.T) {}\n")
+    (tmp_path / "foo.test.ts").write_text("it('rejects an empty name with a clear message', () => {});\n")
+
+    answers = {(file, case): case_reader.file_defines(str(tmp_path / file), case) for file, case in (
+        ("test_ledger.py", "test_main_returns_zero"), ("foo_test.go", "TestFoo"),
+        ("foo.test.ts", "rejects an empty name with a clear message"), ("foo.test.ts", "rejects an empty n…"),
+        ("foo.test.ts", "accepts a name"), ("test_ledger.py", "test_main_returns_one"))}
+
+    assert answers == {("test_ledger.py", "test_main_returns_zero"): True, ("foo_test.go", "TestFoo"): True,
+                       ("foo.test.ts", "rejects an empty name with a clear message"): True,
+                       ("foo.test.ts", "rejects an empty n…"): False, ("foo.test.ts", "accepts a name"): False,
+                       ("test_ledger.py", "test_main_returns_one"): False}
