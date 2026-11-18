@@ -15,7 +15,8 @@ import paths
 import event_log
 import run_end
 import pid_file
-from pid_file import live_conductor
+from pid_file import conductor_alive, live_conductor
+from event import journals, run_name
 from run_activity import activity
 from event_log import read_events, usage_totals
 from ledger import ledger_steps
@@ -318,35 +319,6 @@ def git_tags(root, fmt):
 
 def tags_created_since(root, since):
     return {l.split()[1] for l in git_tags(root, "%(creatordate:unix) %(refname:short)") if int(l.split()[0]) >= since}
-
-
-def journals():
-    import event
-    sample = event.journal_path(run_dir.main_tree(missing=""), "0")
-    for path in sorted(glob.glob(os.path.join(os.path.dirname(sample), "*.jsonl"))) if sample else []:
-        events = []
-        with open(path) as f:
-            for n, l in enumerate(f, 1):
-                if not l.strip():
-                    continue
-                try:
-                    events.append(json.loads(l))
-                except ValueError:
-                    print(f"status.sh: skipped torn line {path}:{n}", file=sys.stderr)
-        yield path, events
-
-
-def run_name(path):
-    return "#" + os.path.basename(path)[:-len(".jsonl")]
-
-
-def conductor_alive(start):
-    pid = int(start["pid"])
-    try:
-        os.kill(pid, 0)
-    except OSError:
-        return False
-    return bool(start["started"]) and pid_file.same_start(start["started"], pid)
 
 
 def sum_since(events, since, value=lambda e: 1):

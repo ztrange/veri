@@ -158,13 +158,13 @@ def test_a_cut_fewer_than_veri_slice_commits_ahead_with_no_pull_request_onto_the
         monkeypatch, run_cli, stack_land):
     cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
     world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7)
-    status = importlib.import_module("veri.status")
+    event, pid_file = importlib.import_module("veri.event"), importlib.import_module("veri.pid_file")
     dead, alive = {"event": "conductor-start", "pid": "111"}, {"event": "conductor-start", "pid": "4242"}
-    monkeypatch.setattr(status, "journals", lambda: iter([
+    monkeypatch.setattr(event, "journals", lambda who="status.sh": iter([
         ("/journals/90.jsonl", [dead]),
         ("/journals/4318.jsonl", [dead, {"event": "launch"}, alive, {"event": "launch"}]),
     ]))
-    monkeypatch.setattr(status, "conductor_alive", lambda start: start["pid"] == "4242")
+    monkeypatch.setattr(pid_file, "conductor_alive", lambda start: start["pid"] == "4242")
 
     code, out, err = run_cli(stack_land, [])
 
@@ -191,10 +191,10 @@ def test_a_cut_fewer_than_veri_slice_commits_ahead_on_an_idle_stack_goes_on_to_t
     cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
     world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
                                          "merge-lock.sh": (2, "")}, ahead=7)
-    status = importlib.import_module("veri.status")
+    event, pid_file = importlib.import_module("veri.event"), importlib.import_module("veri.pid_file")
     dead = {"event": "conductor-start", "pid": "111"}
-    monkeypatch.setattr(status, "journals", lambda: iter([("/journals/90.jsonl", [dead, {"event": "launch"}])]))
-    monkeypatch.setattr(status, "conductor_alive", lambda start: False)
+    monkeypatch.setattr(event, "journals", lambda who="status.sh": iter([("/journals/90.jsonl", [dead, {"event": "launch"}])]))
+    monkeypatch.setattr(pid_file, "conductor_alive", lambda start: False)
 
     code, out, err = run_cli(stack_land, [])
 

@@ -190,6 +190,16 @@ def same_start(started, pid):
     return caller.returncode == 0 and started == caller.stdout.strip()
 
 
+def conductor_alive(start):
+    """Whether the conductor a `conductor-start` event names (its `pid` and `started`) is still that process: the pid
+    answers kill 0 and its start time is `started` (same_start)."""
+    pid = int(start["pid"])
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return bool(start["started"]) and same_start(start["started"], pid)
+
 def start_matches(file, pid):
     started = start_recorded(file)
     return not started or same_start(started, pid)

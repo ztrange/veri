@@ -7,11 +7,12 @@ import subprocess
 import sys
 
 import entry
+import event
 import git
 import github
+import pid_file
 import stack_branch
 import stack_fix
-import status
 import tunables
 
 USAGE = "usage: stack-land.sh [--now]"
@@ -28,10 +29,10 @@ def _living_conductors():
     """The runs (`#<n>`) whose journal's last conductor-start names a living conductor, as status.sh's Running section
     reads them."""
     lives = []
-    for path, events in status.journals():
+    for path, events in event.journals("stack-land.sh"):
         starts = [e for e in events if e.get("event") == "conductor-start"]
-        if starts and status.conductor_alive(starts[-1]):
-            lives.append(status.run_name(path))
+        if starts and pid_file.conductor_alive(starts[-1]):
+            lives.append(event.run_name(path))
     return lives
 
 
