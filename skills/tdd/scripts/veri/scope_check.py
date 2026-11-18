@@ -59,7 +59,8 @@ def signed_rows(root, unit):
 
 def row_move_refusal(steps, root):
     """A plain step naming a row of a signed unit a later skill-edit step regrades is red by construction (#3302):
-    the unit owes a grade from that plain step until the skill-edit step signs it."""
+    the unit owes a grade from that plain step until the skill-edit step signs it. So is a plain step naming a file
+    not yet in the repo that a later skill-edit step names as its unit: that step creates an unsigned unit."""
     texts = [record[-1] for record in steps]
     for later, step in enumerate(texts):
         if not ledger.is_skill_edit(step):
@@ -73,6 +74,13 @@ def row_move_refusal(steps, root):
                 if not ledger.is_skill_edit(plain) and named.search(plain):
                     return (f"step names row {row_id} of signed unit {unit}, which a later skill-edit step signs: "
                             f"{plain}")
+        new_file = unit.partition("#")[0]
+        if os.path.exists(os.path.join(root, new_file)):
+            continue
+        named = re.compile(r"(?<![\w./-])" + re.escape(new_file) + r"(?![\w/-])")
+        for plain in texts[:later]:
+            if not ledger.is_skill_edit(plain) and named.search(plain):
+                return f"step creates {new_file}, the unit {unit} a later skill-edit step signs: {plain}"
     return None
 
 

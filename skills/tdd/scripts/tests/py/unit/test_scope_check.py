@@ -338,3 +338,23 @@ def test_3302_a_plain_step_naming_a_row_of_a_unit_no_skill_edit_step_signs_passe
     code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
 
     assert (code, err) == (0, "")
+
+
+def test_3302_a_plain_step_naming_a_new_file_a_later_skill_edit_step_signs_as_its_unit_is_refused_with_exit_1_naming_the_step_and_the_unit(
+    tmp_path, run_cli, scope_check
+):
+    tdd = _signed_units_repo(tmp_path)
+    ledger = tdd / "issue-3302.md"
+    plain = "move the pin rows into a new `skills/tdd/NEW.md` ⟦criterion 1⟧"
+    ledger.write_text(
+        f"- [ ] {plain}\n"
+        "- [ ] ⟦skill-edit⟧ sign `skills/tdd/NEW.md` ⟦added⟧\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert code == 1
+    assert plain in err
+    assert "skills/tdd/NEW.md" in err
+    assert not (tdd / "events.jsonl").exists()
