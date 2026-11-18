@@ -511,3 +511,21 @@ def test_dev_request_reset_with_an_empty_veri_reset_max_per_hour_reads_it_as_emp
     code, _, err = run_cli(role_state, ["dev", "request-reset"])
 
     assert (code, "ValueError" in err, state.read_text()) == (2, True, before)
+
+
+def test_issue_3890_dev_request_reset_with_the_idle_flag_exits_2_with_a_usage_line_free_of_it_writing_no_marker_or_reset_at(
+        tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    state = tdd / "role-dev.state"
+    state.write_text("recovered-at=2026-11-12T09:00:00\n")
+    (tdd / "events.jsonl").write_text('{"ts": 4102444800, "event": "conductor-start", "issue": "7"}\n')
+    flag = "--" + "idle"
+
+    code, out, err = run_cli(role_state, ["dev", "request-reset", flag])
+
+    assert (code, out, err, "request-reset" in err, "[%s]" % flag in err, (tdd / "reset-request-dev").exists(),
+            state.read_text()) == (2, "", role_state.USAGE, True, False, False, "recovered-at=2026-11-12T09:00:00\n")
