@@ -20,6 +20,7 @@ import preserve_attempt
 import renamed_case
 import replaces_case_survivors
 import run_dir
+import run_line
 import tunables
 
 from case_reader import is_js_test_file
@@ -300,6 +301,12 @@ def main(argv):
         base = leaf_tree_guard.git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
         if not base:
             write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; a %s needs the real before-state" % words[0])
+            return 2
+    elif not run_line.own_tree() and os.path.exists(".git"):
+        base = leaf_tree_guard.git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
+        if not base and leaf_tree_guard.git("config", "--get", "remote.origin.url").returncode == 0:
+            write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; the %s verifier reads its run lines"
+                  " from CLAUDE.md there" % words[0])
             return 2
     issue = tunables.read("VERI_ISSUE")
     ledger = run_dir.ledger(".", issue) if issue else ""

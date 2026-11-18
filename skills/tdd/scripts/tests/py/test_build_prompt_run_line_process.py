@@ -72,3 +72,32 @@ def test_outside_veri_a_branch_base_naming_no_commit_is_refused_with_exit_2_and_
     code, out, err = run_cli(verify, ["--branch-base", "0000000", "red", str(spec), "tests/test_x.py"], cwd=repo)
 
     assert (code, out, err) == (2, "", "build-verify-prompt: --branch-base '0000000' names no commit git can resolve\n")
+
+
+@pytest.mark.process("git init, commit, update-ref and symbolic-ref run for real in a scratch repository, then verify.sh's"
+                     " module in it, launching a real supervise.sh around a stub claude")
+def test_outside_veri_verify_red_reads_its_run_lines_at_the_merge_base_with_origin_head_and_exits_2_naming_a_missing_one_4263(
+        tmp_path, run_cli):
+    verify = importlib.import_module("veri.verify")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    claude = tmp_path / "claude-pass"
+    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
+    claude.chmod(0o755)
+    env = {"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+    base = commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n"})
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "update-ref", "refs/remotes/origin/main", base)
+    git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+    git(repo, "checkout", "-q", "-b", "feature")
+    commit_all(repo, "edit the run line", **{"CLAUDE.md": EDITED_MD})
+    argv = ["red", str(spec), "tests/test_x.py", "test_x"]
+
+    run_cli(verify, argv, env=env, cwd=repo)
+    prompt = (repo / ".tdd" / "verify-red.prompt").read_text()
+    git(repo, "symbolic-ref", "--delete", "refs/remotes/origin/HEAD")
+    refused = run_cli(verify, argv, env=env, cwd=repo)
+
+    assert (run_lines_of(prompt), refused) == (BASE_LINES, (
+        2, "", "verify: no merge-base of HEAD and origin/HEAD; the red verifier reads its run lines from CLAUDE.md there\n"))
