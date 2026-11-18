@@ -23,12 +23,13 @@ class World:
 GitHub opens a pull request (github.pr_open, each kept in <opened> as (head, base), its body in <bodies>) at <opens>, its
 url; every other gh command (github.run_gh) is kept in <gh>, each answering 0. `git log` of a range from origin/<default> answers <subjects>; the pull requests merged into a base (github.merged_pulls) are <merged>,
 (number, body) pairs from this repository. origin/<default> is an ancestor of the cut (`merge-base --is-ancestor`) when
-<ancestor>; a worktree added, its rebase, and `rev-parse HEAD` in it answer, the last <rebased>. Every git, script and gh
+<ancestor>; a worktree added, its rebase, and `rev-parse HEAD` in it answer, the last <rebased>, save that the rebase onto
+origin/<default> fails with a conflict when <rebase_conflict>. Every git, script and gh
 call is also kept, in order, in <log>: ("git", *args), (script, *args) and ("gh", *args)."""
 
     def __init__(self, monkeypatch, named, answers=None, default="trunk", ahead=0, onto=(), heads=None,
                  opens="https://github.com/owner/repo/pull/90", subjects="", merged=(), open_issues=(), ancestor=True,
-                 rebased=None):
+                 rebased=None, rebase_conflict=False):
         self.scripts, self.network, self.opened, self.bodies, self.gh, self.log = [], [], [], [], [], []
         heads = heads or {}
         answers = answers or {}
@@ -41,6 +42,8 @@ call is also kept, in order, in <log>: ("git", *args), (script, *args) and ("gh"
                 if ancestor:
                     return ""
                 raise git.GitFailed(args, 1, "")
+            if rebase_conflict and args[-2:] == ("rebase", "origin/" + default):
+                raise git.GitFailed(args, 1, "CONFLICT (content): Merge conflict in a.txt\n")
             if "worktree" in args or "rebase" in args:
                 return ""
             if args[-2:] == ("rev-parse", "HEAD"):
@@ -687,3 +690,24 @@ def test_with_origin_default_an_ancestor_of_the_cut_rebases_nothing_pushes_nothi
     waited = [argv for argv in world.log if argv[:1] == ("wait-ci.sh",)]
     assert (code, rebased, leased, waited, world.gh) == (
         0, [], [], [], [("gh", "pr", "merge", url, "--rebase", "--match-head-commit", cut)]), (world.log, err)
+
+
+def test_a_rebase_conflict_exits_1_naming_it_nothing_merged_the_rebase_aborted_its_worktree_removed_the_lock_freed_the_slice_branch_and_its_pull_request_kept(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    slice_branch = "stack-slice-3f2a9c1d0b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url, ancestor=False, rebase_conflict=True)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    rebase = [i for i, argv in enumerate(world.log) if argv[:1] == ("git",) and argv[-2:] == ("rebase", "origin/trunk")]
+    after = world.log[rebase[0] + 1:] if rebase else []
+    tree = world.log[rebase[0]][2] if rebase else None
+    pushes = [argv for argv in world.network if argv[:1] == ("push",)]
+    assert (code, out, "conflict" in err.lower(), slice_branch in err, url in err, "Traceback" in err) == (
+        1, "", True, True, True, False), (world.log, err)
+    assert (world.gh, pushes, ("git", "-C", tree, "rebase", "--abort") in after,
+            ("git", "worktree", "remove", "--force", tree) in after, [ran[:2] for ran in world.scripts[-2:]]) == (
+        [], [("push", "origin", "%s:refs/heads/%s" % (cut, slice_branch))], True, True,
+        [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), (world.log, err)
