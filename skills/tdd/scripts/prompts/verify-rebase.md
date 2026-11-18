@@ -13,13 +13,13 @@ branch at `HEAD`.
 
 ### Your checks
 
-1. **The full test command is green on HEAD.** Run the project's full test command
-   (`detect-test-command.sh` prints it) yourself, on `HEAD`, not the fast tier: a resolution
+1. **The full test command is green on HEAD.** Run the project's full test command, `{{FULL_CMD}}`
+   (its `veri: all tests:` line at the branch base), yourself, on `HEAD`, not the fast tier: a resolution
    can break a suite no single file's change would name. Make that run through the wrapper
    {{INCLUDE:_timed-test-run-tier.md}} —
    `all`, since the whole test command is what runs:
 
-       {{TIMED_TEST_RUN}} all '' <the full test command>
+       {{TIMED_TEST_RUN}} all '' {{FULL_CMD}}
 
    {{INCLUDE:_exit-status-back.md}} so a red run stays red.
    A red run is a REJECT.
