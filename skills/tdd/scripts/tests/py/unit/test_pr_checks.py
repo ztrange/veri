@@ -111,3 +111,19 @@ def test_4392_a_clean_run_makes_the_checks_in_order_with_draft_pr_s_arguments_on
     assert "LINT-OUTPUT-MARKER" not in out
     named = [line for line in out.splitlines() if line.split(" ", 1)[0] in set(fake.names())]
     assert len(named) == len(fake.calls) and all(" exit " in line for line in named)
+
+
+FORBIDDEN = {"detach-leaf.sh", "supervise.sh", "run-leaf.sh", "wait-leaf.sh", "add-ledger-step.sh", "lint-repair.sh",
+             "push-branch.sh", "pr-ready.sh", "pr-ready-wait.sh", "metrics.sh"}
+
+
+def test_4392_a_clean_run_settles_the_candidates_url_and_launches_appends_commits_pushes_readies_and_renders_nothing(
+        checks):
+    code, out, err, fake = checks(answers={("refactor-candidates.sh", None): (0, URL + "\n")})
+
+    assert code == 0, out + err
+    assert out.endswith("candidates=%s\n" % URL)
+    assert (checks.wt / ".tdd" / "issue-12-pr-checks").read_text() == "candidates=%s\n" % URL
+    assert FORBIDDEN & set(fake.names()) == set()
+    assert [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] in (("commit",), ("push",), ("add",))] == []
+    assert (checks.wt / ".tdd" / "issue-12.md").read_text() == LEDGER
