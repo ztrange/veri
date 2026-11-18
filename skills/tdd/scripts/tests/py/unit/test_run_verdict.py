@@ -397,3 +397,29 @@ def test_main_takes_diff_as_the_phase_past_a_supersede_base_pair_3104(tmp_path, 
 
     assert ((run / ".tdd" / "verify-diff.reason").read_text(),
             sorted(p.name for p in (run / ".tdd").glob("*.stderr"))) == ("", ["verify-diff.stderr"])
+
+
+def test_main_takes_red_as_the_phase_past_a_branch_base_pair_and_hands_the_pair_on_to_verify_4375(tmp_path, monkeypatch):
+    import signal
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_module(scripts)
+    (scripts / "verify.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (scripts / "verify.sh").chmod(0o755)
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "verify-red.reason").write_text("an earlier step's reason\n")
+    monkeypatch.chdir(run)
+    spare = os.open(os.devnull, os.O_WRONLY)
+    real_dup2 = os.dup2
+    monkeypatch.setattr(os, "dup2", lambda fd, fd2, inheritable=True: real_dup2(fd, spare, inheritable))
+    execs = []
+    monkeypatch.setattr(os, "execv", lambda path, args: execs.append(args[1:]))
+    monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
+    argv = ["--step", "t", "--branch-base", "abc1234", "red", "spec.md", "tests/test_x.py", "test_x"]
+
+    run_verdict.main(argv)
+    os.write(spare, b"this verdict's stderr\n")
+    os.close(spare)
+
+    assert ((run / ".tdd" / "verify-red.reason").read_text(),
+            sorted(p.name for p in (run / ".tdd").glob("*.stderr")), execs) == ("", ["verify-red.stderr"], [argv])
