@@ -9,6 +9,7 @@ import fused
 import fused_step
 import ledger
 import run_dir
+from next_pending_refactor import refactor_pending
 
 NAME = "run-step"
 USAGE = "usage: run-step.sh <n> [--from <stage>] [--hand <stage>]…"
@@ -31,12 +32,13 @@ def main(argv):
     if given is None:
         return 2
     wt = given[1]
-    step = fused_step.first_step(wt, n, ledger.handed_out)
+    pending = fused_step.first_step(wt, n, refactor_pending)
+    step = pending if pending is not None else fused_step.first_step(wt, n, ledger.handed_out)
     if step is None:
         sys.stderr.write("run-step.sh: no open step in %s\n" % (LEDGER % n))
         return 3
     order = list(STAGES)
-    start = resumed(wt, n, step, order)
+    start = max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
     out = ""
     for stage in order[start:]:
         code, out, _ = fused.call(fused.script(stage + ".sh"), n)
