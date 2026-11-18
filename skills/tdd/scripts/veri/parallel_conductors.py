@@ -171,6 +171,8 @@ USAGE = "usage: parallel-conductors.sh [--repo owner/name] [--continue-on-bail]"
 
 
 def main(argv):
+    if argv not in ([], ["--continue-on-bail"]):
+        return entry.refuse(usage=USAGE)
     if _inside_own_scripts():
         print("parallel-conductors: type this from the target repo's primary checkout,"
               " not from the skill's own scripts directory", file=sys.stderr)
@@ -187,7 +189,7 @@ def main(argv):
             and (max_issues is None or _whole_number("VERI_MAX_ISSUES", max_issues, 1))):
         return _finish(2)
     rc_dir = tempfile.mkdtemp()
-    code = _run(argv[:1] == ["--continue-on-bail"], int(parallel), max_issues or "0")
+    code = _run(argv == ["--continue-on-bail"], int(parallel), max_issues or "0")
     try:
         shutil.rmtree(rc_dir)
     except OSError:
