@@ -1,7 +1,9 @@
 """stack-carry.sh's logic, run in-process: carries the stack onto the new default branch after a slice landed (PRD 034.4b)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import shutil
 import sys
+import tempfile
 
 import entry
 import git
@@ -66,6 +68,37 @@ def _landed(default, cut):
     return run.returncode == 0 and run.stdout.split("\n", 1)[0].strip() == _tree_of("origin/" + default)
 
 
+def _top():
+    """The working tree stack-carry.sh runs in; _Stop(2) when git gives no answer."""
+    run = _git("rev-parse", "--show-toplevel")
+    if run.returncode or not run.stdout.strip():
+        raise _unanswered("git rev-parse --show-toplevel", run)
+    return run.stdout.strip()
+
+
+def _rebased(default, cut, tip):
+    """<tip> rebased with `git rebase --onto origin/<default> <cut> <tip>` in a detached worktree of its own under
+    .tdd/, removed after on every exit: the new tip."""
+    state = os.path.join(_top(), ".tdd")
+    os.makedirs(state, exist_ok=True)
+    parent = tempfile.mkdtemp(prefix="stack-carry-", dir=state)
+    tree = os.path.join(parent, "stack")
+    try:
+        added = _git("worktree", "add", "--detach", tree, tip)
+        if added.returncode:
+            raise _unanswered("git worktree add --detach " + tree, added)
+        rebase = _git("rebase", "--onto", "origin/" + default, cut, tip, cwd=tree)
+        if rebase.returncode:
+            raise _unanswered("git rebase --onto origin/%s %s %s" % (default, cut, tip), rebase)
+        head = _git("rev-parse", "HEAD", "HEAD^{tree}", cwd=tree)
+        if head.returncode or len(head.stdout.split()) != 2:
+            raise _unanswered("reading the rebased tip", head)
+        return head.stdout.split()[0]
+    finally:
+        _git("worktree", "remove", "--force", tree)
+        shutil.rmtree(parent, ignore_errors=True)
+
+
 def _carry(stack, name):
     """Carry <stack> with the merge lock held, never releasing it: the exit code, or _Stop."""
     fetch = git.network("fetch", "--prune", "origin", cwd=".")
@@ -83,6 +116,9 @@ def _carry(stack, name):
         raise _Stop(2, "origin/%s has not landed the old cut %s; nothing rebased or pushed" % (default, cut))
     if cut == tip:
         raise _Stop(3, "the old cut %s is origin/%s's tip: nothing to carry" % (cut, stack))
+    new = _rebased(default, cut, tip)
+    git.network("push", "--force-with-lease=%s:%s" % (stack, tip), "origin", "%s:refs/heads/%s" % (new, stack), cwd=".")
+    print(new)
     return 0
 
 

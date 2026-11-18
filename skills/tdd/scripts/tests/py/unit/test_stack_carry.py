@@ -162,3 +162,27 @@ def test_an_old_cut_that_is_the_old_tip_exits_3_nothing_to_carry_rebasing_nothin
     code, out, err = run_cli(stack_carry, ["cut"])
 
     assert (code, out, "nothing to carry" in err, released(world), worktrees(world)) == (3, "", True, True, []), err
+
+
+def rebases(world):
+    return [call for call in world.calls("git") if "rebase" in call]
+
+
+def pushes(world):
+    return [call for call in world.calls("net") if call[1] == "push"]
+
+
+def test_carries_the_stack_by_rebase_onto_in_a_detached_worktree_under_tdd_removed_after_pushing_under_a_pinned_lease(
+        monkeypatch, tmp_path, run_cli, stack_carry):
+    world = World(monkeypatch, tmp_path)
+
+    code, out, err = run_cli(stack_carry, ["cut"])
+
+    added = [call for call in worktrees(world) if "add" in call]
+    tree = added[0][-2] if added else ""
+    assert (code, out.split(), released(world)) == (0, [NEW], True), err
+    assert (added, os.path.dirname(os.path.dirname(tree)), os.path.exists(tree)) == (
+        [("git", ".", "worktree", "add", "--detach", tree, TIP)], os.path.join(str(tmp_path), ".tdd"), False)
+    assert rebases(world) == [("git", tree, "rebase", "--onto", "origin/trunk", CUT, TIP)]
+    assert ("git", ".", "worktree", "remove", "--force", tree) in world.log
+    assert pushes(world) == [("net", "push", "--force-with-lease=stack:" + TIP, "origin", NEW + ":refs/heads/stack")]
