@@ -87,7 +87,7 @@ def _plain_call_end(text, opening):
 
 def _call_end(text, opening):
     # Literal-aware scan first; when it runs off the end of the text inside a string or comment (a regex
-    # literal can hold a quote it cannot read), fall back to the plain paren count. A scan that reaches the
+    # literal it reads as a division can hold a quote), fall back to the plain paren count. A scan that reaches the
     # enclosing block's "}" first (False) found a call that never closes: no fallback may cut it at a later ")".
     closed = _literal_call_end(text, opening)
     return None if closed is False else closed or _plain_call_end(text, opening)
