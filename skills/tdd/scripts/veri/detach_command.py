@@ -15,7 +15,7 @@ import rerun_alone
 import tunables
 
 WRAPPER = '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"'
-USAGE = "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]"
+USAGE = "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds] [--total <seconds>]"
 
 
 def _read(path):
@@ -123,9 +123,10 @@ def _refused(argv):
 
 def main(argv):
     total = None
-    if argv[:1] == ["wait"] and "--total" in argv[2:-1]:
+    if argv[:1] == ["wait"] and "--total" in argv[2:]:
         at = argv.index("--total", 2)
-        total, argv = entry.whole_number(argv[at + 1], minimum=0), argv[:at] + argv[at + 2:]
+        total = entry.whole_number(argv[at + 1], minimum=0) if at + 1 < len(argv) else None
+        argv = argv[:at] + argv[at + 2:]
         if total is None:
             print(USAGE, file=sys.stderr)
             return 2
