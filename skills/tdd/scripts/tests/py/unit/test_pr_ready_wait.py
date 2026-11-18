@@ -6,6 +6,8 @@ import pytest
 
 URL = "https://github.com/o/r/pull/42"
 HEAD = "a" * 40
+PLAN = "# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n"
+TICKED = PLAN + "- [x] the full suite is green ⟦full-suite⟧ ⟦criterion 2⟧\n"
 
 
 class Fake:
@@ -41,17 +43,17 @@ class Fake:
 
 @pytest.fixture
 def ready(monkeypatch, run_cli, tmp_path):
-    """ready(answers=None, fake=None, missing=(), argv=None) runs pr-ready-wait for issue 12 from the main tree, the
-    run's worktree at .tdd/wt/12; returns (code, stdout, stderr, fake)."""
+    """ready(answers=None, fake=None, missing=(), argv=None, ledger=PLAN) runs pr-ready-wait for issue 12 from the main
+    tree, the run's worktree at .tdd/wt/12; returns (code, stdout, stderr, fake)."""
     fused = importlib.import_module("veri.fused")
     pr_ready_wait = importlib.import_module("veri.pr_ready_wait")
     wt = tmp_path / ".tdd" / "wt" / "12"
     (wt / ".tdd").mkdir(parents=True)
 
-    def go(answers=None, fake=None, missing=(), argv=None):
+    def go(answers=None, fake=None, missing=(), argv=None, ledger=None):
         if "preflight" not in missing:
             (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
-        (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n")
+        (wt / ".tdd" / "issue-12.md").write_text(PLAN if ledger is None else ledger)
         fake = fake or Fake(answers)
         monkeypatch.setattr(fused, "run_script", fake)
         code, out, err = run_cli(pr_ready_wait, list(argv if argv is not None else ("12",)), cwd=str(tmp_path))
@@ -242,6 +244,18 @@ def test_4032_called_again_after_an_exit_3_it_only_waits_again_and_never_readies
                                                   ("wait-ci.sh", (URL, "540", "", HEAD))]
     assert out.splitlines()[-3:] == ["pr_url=" + URL, "pr_number=42", "ci=green"]
     assert not (ready.wt / ".tdd" / "issue-12-pr-ready-wait-wait").exists()
+
+
+def test_4332_a_resumed_call_with_every_full_suite_line_ticked_still_waits_on_the_head_and_closes_nothing_again(ready):
+    _pid(ready, "111\nTue Nov 17 07:00:00 2026\n")
+    ci = {("branch-suite.sh", None): (0, "ci\n")}
+    first = ready(answers={**ci, ("wait-ci.sh", None): (3, "")}, ledger=TICKED)[0]
+    assert (ready.wt / ".tdd" / "issue-12-pr-ready-wait-wait").exists()
+    code, out, err, fake = ready(answers=ci, ledger=TICKED)
+
+    assert (first, code) == (3, 0)
+    assert [(c[0], c[1]) for c in fake.calls] == [("git", ("rev-parse", "HEAD")),
+                                                  ("wait-ci.sh", (URL, "540", "", HEAD))]
 
 
 def test_4032_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(ready):

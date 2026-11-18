@@ -185,6 +185,16 @@ def test_4332_under_ci_with_no_wait_ci_err_pr_ready_wait_ticks_the_line_and_comm
                                                          "metrics: what solving #12 cost (#12)", "pr-ready.sh"])
 
 
+def test_4332_with_every_full_suite_line_ticked_a_red_first_wait_stops_pr_ready_wait_with_exit_1_after_the_push(finish):
+    code, out, err, fake = finish(answers={("wait-ci.sh", None): (1, "")}, ledger=LEDGER.replace("- [ ]", "- [x]"),
+                                  module="pr_ready_wait")
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 2 wait-ci.sh %s 540  %s > .tdd/wait-ci.out 2> "
+                                            ".tdd/wait-ci.err exit 1" % (URL, HEAD))
+    assert [n for n in fake.names() if n in ("tick-ledger.sh", "push-branch.sh", "pr-ready.sh", "wait-ci.sh")] == [
+        "push-branch.sh", "pr-ready.sh", "wait-ci.sh"]
+
+
 RENDER = ".tdd/issue-12-refactor-owed-render"
 
 
