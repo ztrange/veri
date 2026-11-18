@@ -2,7 +2,7 @@
 
 Interface:
   own_tree(root=".")      whether <root> is veri's own tree: `skills/tdd/scripts/tests/py` is a directory there.
-  run_lines(root=".")     (affected, one) as bytes: the command running the suites affected-suites.sh printed, and the
+  run_lines(root=".")     (changed, one) as bytes: the command running the test files affected-suites.sh printed, and the
                           one invocation for a single suite. In veri's own tree today's `make test TESTS="…"` text;
                           elsewhere the repo's `veri: one test file:` command run once per path through `sh -c`, `"$1"`
                           being that path, or, when the repo declares none, its fast command once for both, so a

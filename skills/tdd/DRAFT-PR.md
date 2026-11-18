@@ -16,7 +16,7 @@ Under `VERI_BRANCH_SUITE=ci` the branch gets no local full run here and no `full
 comes back here after that step's cycle makes no local full run either. Under `VERI_BRANCH_SUITE=local` the two sentences that follow apply. The full suite
 must be green before this step: each time the run enters this step, run `$S/detect-test-command.sh --tier all`'s command via `$S/detach-command.sh` once,
 in the same start-then-wait shape as the preflight baseline — the branch's own full-suite gate, since every leaf runs the fast
-command, the affected suites, or both. A run that comes back here after a repair step's cycle runs it again. Each such run is
+command, the test files covering the files its step changed, or both, and none runs a broader tier. A run that comes back here after a repair step's cycle runs it again. Each such run is
 stage `full-suite`: `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh stage-start stage=full-suite` just before it starts, and
 once its result is in, whatever it is, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh stage-end stage=full-suite status=<exit code> secs=<seconds>`,
 `<exit code>` the run's own (never a wait's 3) and `<seconds>` the whole seconds from that start to the result. Under

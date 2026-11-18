@@ -44,7 +44,7 @@
    0, `$S/suite-reported.sh develop-break` runs as `PHASED.md` sets out for a phase leaf. No test
    exists to move, so `$S/transform-touches-tests.sh <base-sha>` exit 1 on the break commit
    rejects it before any verifier is launched, and exit 2 is no answer; the existing suite is the only net, so the fast tier and
-   the affected suites must stay green. Then launch one `verify-break` leaf through
+   the test files covering the files the break changed must stay green. Then launch one `verify-break` leaf through
    `supervise.sh`, named `verdict-break` as *Launching a leaf* sets out:
    `run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' break .tdd/issue-<n>-spec.md <region-file> <base-sha>`.
    The blind verifier reads `git diff <base-sha>..HEAD`, never the developer's report.
