@@ -80,3 +80,24 @@ def verdict_log(wt):
             return hashlib.sha256(f.read()).hexdigest()
     except FileNotFoundError:
         return "none"
+
+
+def refresh(wt, n, record, facts):
+    """Records are caches (PRD 038.1 SC1): rewrite `.tdd/issue-<n>-<record>` so each key of <facts> holds the value its
+    committed source gave, the key's first line replaced, or one added; a record that already agrees is not written."""
+    path = os.path.join(wt, ".tdd", "issue-%s-%s" % (n, record))
+    with open(path, encoding="utf-8", errors="surrogateescape") as f:
+        lines = f.read().splitlines()
+    changed = False
+    for key, value in facts.items():
+        at = next((i for i, line in enumerate(lines) if line.split("=", 1)[0] == key), None)
+        if at is not None and lines[at] == key + "=" + value:
+            continue
+        if at is None:
+            lines.append(key + "=" + value)
+        else:
+            lines[at] = key + "=" + value
+        changed = True
+    if changed:
+        with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
+            f.write("".join(line + "\n" for line in lines))
