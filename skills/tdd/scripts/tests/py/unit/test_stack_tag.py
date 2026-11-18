@@ -25,6 +25,7 @@ def stack_tag():
     [PR, "--message", "seven=text"],
     [PR, "--message", "7"],
     ["--message", "7=text"],
+    ["--message", "--message", "7=text"],
 ])
 def test_any_argument_list_but_one_url_and_message_pairs_exits_2_with_the_usage_line(run_cli, stack_tag, argv):
     code, out, err = run_cli(stack_tag, argv)
@@ -274,3 +275,11 @@ def test_stack_tag_and_its_shim_name_no_repository_issue_branch_label_or_person(
                       if NAMED.search(line)]
 
     assert named == []
+
+
+def test_a_commit_naming_no_issue_is_no_issues_and_its_type_is_not_read(monkeypatch, run_cli, stack_tag):
+    world = World(monkeypatch, commits=["Merge the side branch", "feat: a (#7)"], titles={"7": "Seven"})
+
+    code, out, err = run_cli(stack_tag, [PR])
+
+    assert (code, world.cut) == (0, [("v0.2", "c1", "Seven")]), err
