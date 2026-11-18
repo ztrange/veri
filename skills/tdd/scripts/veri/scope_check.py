@@ -68,20 +68,23 @@ def row_move_refusal(steps, root):
         unit = ledger.unit_of(step)
         if unit is None:
             continue
+        earlier_plain = [plain for plain in texts[:later] if not ledger.is_skill_edit(plain)]
         for row_id in signed_rows(root, unit):
-            named = re.compile(r"(?<!\w)" + re.escape(row_id) + r"(?!\w)")
-            for plain in texts[:later]:
-                if not ledger.is_skill_edit(plain) and named.search(plain):
-                    return (f"step names row {row_id} of signed unit {unit}, which a later skill-edit step signs: "
-                            f"{plain}")
+            plain = first_naming(earlier_plain, r"(?<!\w)" + re.escape(row_id) + r"(?!\w)")
+            if plain:
+                return f"step names row {row_id} of signed unit {unit}, which a later skill-edit step signs: {plain}"
         new_file = unit.partition("#")[0]
         if os.path.exists(os.path.join(root, new_file)):
             continue
-        named = re.compile(r"(?<![\w./-])" + re.escape(new_file) + r"(?![\w/-])")
-        for plain in texts[:later]:
-            if not ledger.is_skill_edit(plain) and named.search(plain):
-                return f"step creates {new_file}, the unit {unit} a later skill-edit step signs: {plain}"
+        plain = first_naming(earlier_plain, r"(?<![\w./-])" + re.escape(new_file) + r"(?![\w/-])")
+        if plain:
+            return f"step creates {new_file}, the unit {unit} a later skill-edit step signs: {plain}"
     return None
+
+
+def first_naming(texts, pattern):
+    """The first of texts in which pattern occurs, or None."""
+    return next((text for text in texts if re.search(pattern, text)), None)
 
 
 def main(argv):
