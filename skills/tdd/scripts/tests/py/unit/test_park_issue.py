@@ -511,3 +511,20 @@ def test_issue_4076_a_heading_only_inside_a_code_fence_or_in_another_case_or_wit
 
     assert (code, calls, edited) == (2, [], [])
     assert "#### Found" in err
+
+
+def test_the_parked_comment_publishes_cause_unblock_and_question_with_no_absolute_local_path_4270(
+        park, run_cli, monkeypatch, tmp_path):
+    park_issue, calls, edited = park
+    comments = []
+    monkeypatch.setattr(park_issue.github, "gh_issue_comment", lambda number, body: comments.append(body))
+    monkeypatch.setenv("HOME", "/Users/someone-else")
+    question = tmp_path / "question.md"
+    question.write_text(QUESTION.replace("Keep it.\n", "Keep it: zulu leak in /Users/someone/x.py and /tmp/y\n"))
+
+    code, out, err = run_cli(park_issue, ["42", "cause zulu at /Users/someone/x.py", "unblock zulu by /tmp/y",
+                                          "--question-file", str(question)], cwd=tmp_path)
+
+    [comment] = comments
+    assert (code, [p for p in ("/Users/someone", "/tmp/y") if p in comment]) == (0, []), err
+    assert comment.count("zulu") == 3
