@@ -66,6 +66,11 @@ def summary(step):
     return text[:len(text) - len(ledger.trailing_markers(text))].rstrip()
 
 
+def red_test_id(test_path, target):
+    """The Red case's id: <target> when it names its file (`::`), else <test_path>::<target>."""
+    return target if "::" in target else test_path + "::" + target
+
+
 def verdict_log(wt):
     """The sha256 of `.tdd/verify-refactor.log` as it now stands, or `none` without one: which verify-refactor verdict
     a refactor-half file was settled after, so step-close can refuse one a later verdict has superseded."""
