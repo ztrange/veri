@@ -1191,3 +1191,10 @@
 | ID | Requirement | Why |
 |---|---|---|
 | CL1 | The fragment opens the comment check with, in bold, "Only the two allowed comments.", then starts the sentence "A comment the", which the including template completes with the word naming what is judged (`change` in `verify-green.md`, `range` in `verify-refactor.md`) and the included `_verify-comments-allowed.md`. (The whole fragment.) | One comment rule, stated once, opens the check in both the green and the refactor verifier. |
+## skills/tdd/scripts/prompts/_develop-run-affected.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RU1 | The fragment tells the leaf to run the test files covering the files it touched, as `affected-suites.sh` prints them, through the wrapper, the included `_timed-test-run.md` completing that sentence before a colon. (First sentence.) | The leaf runs the `changed` tier itself, recorded and bounded by the wrapper. |
+| RU2 | The command line is the included `_timed-test-run-affected.md`, indented inside the list item. (The include line.) | The run is recorded under the `changed` tier with the files it ran. |
+| RU3 | It ends "They must stay green." (Last line.) | A red `changed` run means the leaf's work is not done. |
