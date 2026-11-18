@@ -640,7 +640,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   tag per owing issue on that issue's last commit of the landed range, the next `vN.M` from
   `git tag --sort=-v:refname`, pushing each before the next. The message is the issue's title, or the `--message`
   text given for that issue. An issue whose commit already carries a tag is skipped.
-  **Exit 0** every owed tag cut or already there, **1** a clean refusal, **2** no answer (a pull request not merged into
+  **Exit 0** every owed tag cut or already there, **1** reserved: no path returns it yet, **2** no answer (a pull request not merged into
   the default branch, a commit of an unknown type or none, a failed push, its local tag then deleted), **3** no issue of
   the slice owes a tag, or every owed tag is already there.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"|"quiet test files"|lint] [--issue <body-file>] [repo-root]` — print the one command that
