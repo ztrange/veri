@@ -123,12 +123,15 @@ def _freed(line):
     return entry.refuse(line, prefix="stack-land: ")
 
 
+def _kept(line, pr):
+    """<line>, adding that nothing merged and the slice branch and its pull request <pr> are kept."""
+    return "%s; nothing merged, the merge lock freed, the slice branch and %s kept" % (line, pr)
+
+
 def _declined(line, pr):
-    """Free the merge lock this process holds, then say <line> on stderr, adding that nothing merged and the slice branch
-    and its pull request <pr> are kept: a clean negative (exit 1)."""
+    """Free the merge lock this process holds, then say _kept(<line>, <pr>) on stderr: a clean negative (exit 1)."""
     stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
-    print("stack-land: %s; nothing merged, the merge lock freed, the slice branch and %s kept" % (line, pr),
-          file=sys.stderr)
+    print("stack-land: " + _kept(line, pr), file=sys.stderr)
     return 1
 
 
@@ -214,16 +217,14 @@ def main(argv):
             leased = git.network("push", "--force-with-lease=%s:%s" % (slice_branch, cut), "origin",
                                  "%s:refs/heads/%s" % (head, slice_branch), cwd=".")
             if leased.returncode:
-                return _freed("the leased push of the rebased head %s to the slice branch %s failed (exit %d): %s; the"
-                              " merge lock freed, nothing merged, the slice branch and %s kept"
-                              % (head, slice_branch, leased.returncode, " ".join(leased.stderr.split()), pr))
+                return _freed(_kept("the leased push of the rebased head %s to the slice branch %s failed (exit %d): %s"
+                                    % (head, slice_branch, leased.returncode, " ".join(leased.stderr.split())), pr))
             ci = merge_common.ci_wait(lambda: stack_fix.script("wait-ci.sh", pr, "540", "", head)[0])
             if ci == 1:
                 return _declined("CI is red on the rebased head %s of the slice branch %s" % (head, slice_branch), pr)
             if ci != 0:
-                return _freed("wait-ci.sh exits %d: no answer on CI at the rebased head %s of the slice branch %s; the"
-                              " merge lock freed, nothing merged, the slice branch and %s kept"
-                              % (ci, head, slice_branch, pr))
+                return _freed(_kept("wait-ci.sh exits %d: no answer on CI at the rebased head %s of the slice branch %s"
+                                    % (ci, head, slice_branch), pr))
         code = merge_common.merge(gate, pr, repo, number, head, driver="graphql")
         if re.search(RULES, said[-1]):
             return _freed("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock freed,"
