@@ -41,7 +41,13 @@ def control_run(path, original, command):
 
 
 def output_lines(run):
-    return set(run.stdout.splitlines()) | set(run.stderr.splitlines())
+    """The run's lines, plus those of the output timed-test-run.sh saved in place of printing it (its `full output:` line)."""
+    lines = set(run.stdout.splitlines()) | set(run.stderr.splitlines())
+    for line in run.stdout.splitlines():
+        saved = Path(line.removeprefix("full output: "))
+        if line.startswith("full output: ") and saved.is_file():
+            lines |= set(saved.read_text(errors="replace").splitlines())
+    return lines
 
 
 def is_go_test_failure(run):

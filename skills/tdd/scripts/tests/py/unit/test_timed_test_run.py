@@ -1,6 +1,8 @@
 """In-process cases for veri/timed_test_run.py, the module timed-test-run.sh is a shim over."""
 import importlib
 import json
+import os
+import pathlib
 import re
 import pytest
 
@@ -62,7 +64,7 @@ def test_main_refuses_every_short_or_empty_argument_shape_and_passes_a_7_through
                         "skill_commit": "", "tier": "fast", "suites": "", "status": "7"}]
 
 
-def test_main_runs_the_command_inheriting_everything_then_records_whole_second_seconds_and_status_in_a_test_run_event(tmp_path, monkeypatch, calls, events, timed_test_run):
+def test_main_runs_the_command_inheriting_its_stdin_environment_and_directory_then_records_whole_second_seconds_and_status_in_a_test_run_event(tmp_path, monkeypatch, calls, events, timed_test_run):
     log = []
     readings = [100.9, 102.1]
 
@@ -75,7 +77,7 @@ def test_main_runs_the_command_inheriting_everything_then_records_whole_second_s
     monkeypatch.setattr(timed_test_run.time, "time", clock)
     events.refuse_event_sh()
 
-    inherited = {"stdin", "stdout", "stderr", "env", "cwd", "shell", "executable", "close_fds", "pass_fds"}
+    inherited = {"stdin", "env", "cwd", "shell", "executable", "close_fds", "pass_fds"}
     for tier, suites in (("target", "a=b\ny"), ("fast", "")):
         log.clear()
         (tmp_path / tier).mkdir()
@@ -207,6 +209,51 @@ def test_issue_4333_main_refuses_a_tier_outside_fast_changed_all_target_with_exi
     lines = err.splitlines()
     assert (code, out, len(lines), calls, events.records()) == (2, "", 1, [], []), err
     assert all(word in lines[0] for word in (repr(tier), "fast", "changed", "all", "target")), err
+
+
+def test_issue_4333_main_saves_the_whole_output_under_dot_tdd_test_runs_and_prints_a_bounded_report_of_counts_ten_failing_cases_the_cut_and_the_path(
+        tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run):
+    monkeypatch.chdir(tmp_path)
+    readings = [100.9, 102.1]
+    monkeypatch.setattr(timed_test_run.time, "time", lambda: readings.pop(0))
+    traceback = ["Traceback (most recent call last):"]
+    traceback += [f'  File "deep.py", line {n}, in frame_{n}\n    descend()' for n in range(200)]
+    traceback += ["E   AssertionError: boom"]
+    failing = [f"FAILED tests/test_x.py::test_case_{n:02d} - AssertionError: boom {n:02d}" for n in range(14)]
+    failing[0] += " " + "x" * 1000
+    failing += ["ERROR tests/test_y.py::test_err - fixture 'db' not found"]
+    output = "\n".join(["=" * 30 + " test session starts " + "=" * 30, "collected 25 items", "",
+                        "=" * 35 + " FAILURES " + "=" * 35, "_" * 20 + " test_case_00 " + "_" * 20, *traceback,
+                        "=" * 27 + " short test summary info " + "=" * 27, *failing,
+                        "=" * 20 + " 14 failed, 10 passed, 1 error in 2.10s " + "=" * 20, ""]).encode()
+
+    def run(line, **kwargs):
+        handle = kwargs.get("stdout")
+        if hasattr(handle, "write"):
+            handle.write(output)
+            handle.flush()
+        else:
+            os.write(1, output)
+        return (1, "", "")
+
+    fake_processes.answers({"make": run})
+    events.refuse_event_sh()
+
+    code = timed_test_run.main(["fast", "", "make", "unit"])
+
+    out, err = capfd.readouterr()
+    saved = list((tmp_path / ".tdd" / "test-runs").iterdir())
+    assert (code, err, len(saved)) == (1, "", 1), out
+    assert saved[0].read_bytes() == output
+    assert out.splitlines() == [
+        "timed-test-run.sh: tier fast, exit 1, 2s, 10 passed, 14 failed, 1 error",
+        failing[0][:300],
+        *failing[1:10],
+        "\u2026 5 more failing cases cut",
+        f"full output: {pathlib.Path.cwd() / '.tdd' / 'test-runs' / saved[0].name}",
+    ]
+    assert not any(word in out for word in ("Traceback", "frame_", "descend", "E   ")), out
+    assert [(r["tier"], r["status"]) for r in events.records()] == [("fast", "1")]
 
 
 def _read_events(directory):
