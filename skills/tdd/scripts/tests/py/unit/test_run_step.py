@@ -95,3 +95,20 @@ def test_4343_a_refactor_pending_step_with_no_seam_record_starts_at_refactor_hal
 
     assert code == 0, err
     assert stages.names() == ["refactor-half.sh", "step-close.sh"]
+
+
+@pytest.mark.parametrize("argv, code, called", [
+    (("12", "--from", "refactor-half"), 0, ["refactor-half.sh", "step-close.sh"]),
+    (("12", "--from", "green-half"), 0, ["green-half.sh", "refactor-half.sh", "step-close.sh"]),
+    (("12", "--from", "blue-half"), 2, []),
+    (("12", "--from"), 2, []),
+    (("12", "--from", "red-half", "--from", "green-half"), 2, []),
+    (("12", "--sideways"), 2, []),
+    (("x",), 2, []),
+])
+def test_4343_from_starts_at_the_named_stage_and_an_unknown_stage_or_bad_argument_is_exit_2_with_no_call(
+        step, argv, code, called):
+    code_, out, err, stages = step(argv=argv)
+
+    assert (code_, stages.names()) == (code, called), err
+    assert ("usage: run-step.sh <n> [--from <stage>] [--hand <stage>]…" in err) == (code == 2)
