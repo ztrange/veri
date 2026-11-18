@@ -154,6 +154,30 @@ def test_4032_a_pr_with_no_checks_is_settled_with_no_checks_1(ready):
     assert (code, out.splitlines()[-1]) == (0, "no_checks=1")
 
 
+class Ticking(Fake):
+    """Fake under `ci`: tick-ledger.sh exits 0 once, then 3."""
+
+    def __init__(self, answers=None):
+        super().__init__({("branch-suite.sh", None): (0, "ci\n"), **dict(answers or {})})
+        self.ticks = 1
+
+    def __call__(self, name, *args, **kw):
+        if os.path.basename(name) == "tick-ledger.sh":
+            self.calls.append(("tick-ledger.sh", args, kw.get("cwd"), kw.get("env"), kw))
+            self.ticks -= 1
+            return (0 if self.ticks >= 0 else 3), "", ""
+        return super().__call__(name, *args, **kw)
+
+
+def test_4332_a_has_no_checks_wait_after_the_pre_readying_ticks_still_settles_no_checks_1(ready):
+    fake = Ticking({("wait-ci.sh", None): (0, "", {".tdd/wait-ci.err": "PR 42 has no checks\n"})})
+    code, out, err, fake = ready(fake=fake, ledger=PLAN + "- [ ] the full suite is green ⟦full-suite⟧ ⟦criterion 2⟧\n")
+
+    commits = [c[1][2] for c in fake.made("git") if c[1][:1] == ("commit",)]
+    assert (code, out.splitlines()[-1], commits[0]) == (0, "no_checks=1", "plan: the full suite is owed to CI (#12)")
+    assert fake.names().index("tick-ledger.sh") < fake.names().index("pr-ready.sh")
+
+
 def test_4032_no_pr_for_the_branch_exits_2_before_readying(ready):
     code, out, err, fake = ready(answers={("gh", None): (0, "\n")})
 
