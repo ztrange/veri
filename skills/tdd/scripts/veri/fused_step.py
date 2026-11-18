@@ -109,6 +109,23 @@ def refresh(stage, wt, n, record, facts):
             f.write("".join(line + "\n" for line in lines))
 
 
+def gain(stage, wt, n, record, key, values, step):
+    """Records are caches for a key a record may hold more than once (PRD 038.1 SC1, #4029): add one `<key>=<value>`
+    line to `.tdd/issue-<n>-<record>` for each of <values> it lacks, each one `record-refreshed` event of <stage> with
+    an empty old value; a record that already holds them all is not written. A refused event stops it with exit 2."""
+    path = os.path.join(wt, ".tdd", "issue-%s-%s" % (n, record))
+    with open(path, encoding="utf-8", errors="surrogateescape") as f:
+        lines = f.read().splitlines()
+    added = [value for value in dict.fromkeys(values) if key + "=" + value not in lines]
+    for value in added:
+        if event.mark(wt, {"issue": n, "actor": "conductor", "step": step}, "record-refreshed",
+                      ["stage=" + stage, "key=" + key, "old=", "new=" + value]):
+            raise Stop(stage, "record-refreshed event refused", 2)
+    if added:
+        with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
+            f.write("".join(line + "\n" for line in lines + [key + "=" + value for value in added]))
+
+
 def record(stage, wt, n, step, facts=()):
     """The {key: value} of the record <stage> reads (seam_contract.READS), its step and each of <facts> (key, value)
     refreshed from their committed sources; None, the seam line printed, when the record is missing or names another

@@ -393,3 +393,45 @@ def test_a_record_lacking_a_key_with_a_committed_source_gains_it_with_an_empty_o
     assert (code, (close.wt / ".tdd" / "issue-12-refactor-half").read_text()) == (0, lacking + "verdict_log=" + verdict + "\n")
     events = [json.loads(line) for line in (close.wt / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["key"], e["old"]) for e in events if e["event"] == "record-refreshed"] == [("verdict_log", "")]
+
+
+def test_4029_a_revised_pass_whose_log_flags_uncovered_spec_stops_it_though_the_record_lacks_the_line_4342(close):
+    """#4029's case, restored under S1: the record is a cache, so the log's `uncovered-spec` FLAGS (their committed
+    source) are written into it, and a revised PASS's uncovered behaviour is never skipped."""
+    (close.wt / ".tdd" / "verify-refactor.log").write_text("FLAGS: uncovered-spec | a later verdict's flag\nVERDICT: PASS\n")
+    code, out, err, fake = close()
+
+    record = (close.wt / ".tdd" / "issue-12-refactor-half").read_text()
+    assert (code, fake.calls) == (1, [])
+    assert out.splitlines()[-1] == "stopped at 6 uncovered_spec=a later verdict's flag"
+    assert record.endswith("uncovered_spec=a later verdict's flag\n")
+    events = [json.loads(line) for line in (close.wt / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["key"], e["old"], e["new"]) for e in events if e["event"] == "record-refreshed"][-1] == (
+        "uncovered_spec", "", "a later verdict's flag")
+
+
+def test_log_flags_the_record_was_settled_after_add_nothing_to_it_4342(close):
+    """#4029's rule reads the log's flags only for a verdict the record was not settled after: a log an earlier step
+    left behind, which refactor-half saw and wrote no `uncovered_spec=` for, does not stop the close."""
+    left = "FLAGS: uncovered-spec | an earlier step's flag\nVERDICT: PASS\n"
+    (close.wt / ".tdd" / "verify-refactor.log").write_text(left)
+    settled = REFACTOR_HALF.replace(hashlib.sha256(VERDICT_LOG.encode()).hexdigest(),
+                                    hashlib.sha256(left.encode()).hexdigest()) % STEP
+    code, out, err, fake = close(half=settled)
+
+    assert (code, (close.wt / ".tdd" / "issue-12-refactor-half").read_text()) == (0, settled)
+
+
+def test_a_refused_record_refreshed_event_for_a_gained_uncovered_spec_line_stops_it_with_exit_2_4342(close, monkeypatch):
+    """SC2 for #4029's flags: a gained `uncovered_spec=` line whose event is refused stops the stage (exit 2), the
+    line not written."""
+    event = importlib.import_module("veri.step_close").fused_step.event
+    mark = event.mark
+    monkeypatch.setattr(event, "mark", lambda wt, context, name, fields=(), **kw: 2 if "key=uncovered_spec" in fields
+                        else mark(wt, context, name, fields, **kw))
+    (close.wt / ".tdd" / "verify-refactor.log").write_text("FLAGS: uncovered-spec | a later verdict's flag\nVERDICT: PASS\n")
+    code, out, err, fake = close()
+
+    assert (code, fake.calls) == (2, [])
+    assert out.splitlines()[-1] == "stopped at step-close record-refreshed event refused"
+    assert "uncovered_spec=" not in (close.wt / ".tdd" / "issue-12-refactor-half").read_text()
