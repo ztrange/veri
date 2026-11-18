@@ -86,3 +86,33 @@ def test_4389_a_missing_input_is_exit_2_before_any_inner_call_named_on_stderr(re
 
     assert (code, fake.calls) == (2, [])
     assert named in err
+
+
+def _seq(fake):
+    return [(c[0], c[1][:2]) for c in fake.calls]
+
+
+def test_4389_a_clean_resume_asks_for_a_pending_refactor_then_the_step_marks_and_comments_and_reads_the_pr(resume):
+    code, out, err, fake = resume(stray=("tests/t.py", "x.py"))
+
+    assert _seq(fake) == [
+        ("next-pending-refactor.sh", ()), ("next-unchecked.sh", ()), ("ledger-steps.sh", ("current-or-last-done",)),
+        ("event.sh", ("resume",)), ("comment.sh", ("12", "resuming")), ("git", ("branch", "--show-current")),
+        ("gh", ("api", "repos/{owner}/{repo}/pulls?head={owner}:tdd/12-a-thing"))]
+    assert {c[4].get("stdin") for c in fake.calls[:3]} == {LEDGER}
+    assert {c[2] for c in fake.calls} == {str(resume.wt)}
+    mark = fake.call("event.sh")[3]
+    assert (mark["VERI_ISSUE"], mark["VERI_ACTOR"], mark["VERI_STEP"]) == ("12", "conductor", "two ⟦criterion 2⟧")
+    comment = fake.call("comment.sh")[1]
+    assert comment[2] == "--note-file"
+    note = (resume.wt / comment[3]).read_text()
+    assert ("two ⟦criterion 2⟧" in note, "`tests/t.py`" in note, "`x.py`" in note) == (True, True, True)
+    assert fake.call("gh")[1][2:] == ("-q", ".[0].html_url // empty")
+    assert code == 0
+
+
+def test_4389_a_resume_with_no_stray_path_names_none_in_its_note(resume):
+    code, out, err, fake = resume()
+
+    comment = fake.call("comment.sh")[1]
+    assert "discarded" not in (resume.wt / comment[3]).read_text()
