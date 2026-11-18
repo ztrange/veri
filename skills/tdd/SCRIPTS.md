@@ -634,8 +634,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   commit `stack-green.sh` prints, never at another. It lands when that cut is `VERI_SLICE_COMMITS` (default 100) or
   more commits ahead of the default branch, or when the stack is idle; it merges with
   `gh pr merge --rebase --match-head-commit` and no bypass flag. `--now` skips the size-or-idle rule and no other.
-  After a landing it made, it frees the merge lock and runs `stack-carry.sh <cut>`; an exit other than 0 is **exit 2**
-  naming the landed slice and `stack-carry.sh <cut>` as the command owed, the stack left as it was.
+  After a landing it made, it frees the merge lock, runs `stack-carry.sh <cut>`, then `stack-tag.sh <slice-pr-url>`,
+  then reads the slice's `Closes` issues; each runs whatever the one before answered. The carry-over and the tagging
+  take the merge lock themselves and run under no bound of `stack-land.sh`'s, since each bounds its own network calls
+  and a bound that killed one would leave the lock held. A carry-over exit other than 0 or 3 (3: nothing to carry) names
+  the landed slice and `stack-carry.sh <cut>` as the command owed, the stack left as it was; a tagging exit other than 0
+  or 3 names `stack-tag.sh <slice-pr-url>`; a `Closes` issue still open is named. Any of them is **exit 2**.
   **Exit 0** landed, **1** a clean refusal, **2** no answer, **3** nothing to land.
 - `$S/stack-carry.sh <old-cut>` — run in the target repository's clone after a slice landed: carries the stack onto
   the new default branch. `<old-cut>` is the stack commit the landed slice ended at, as it was on `origin/<stack>`
