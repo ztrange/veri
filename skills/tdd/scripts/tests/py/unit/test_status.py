@@ -397,6 +397,42 @@ def test_report_counts_tested_as_0_when_stack_green_finds_no_tested_issue_end_is
     assert (code, section(out, "Stack")[0]) == (0, "stacky: joined 3, tested 0, landed 2 in 24h"), (out, err)
 
 
+@pytest.mark.parametrize("mode", ["--report", "--json"])
+def test_stack_figures_read_unknown_not_zero_or_unfrozen_when_a_stack_script_is_killed_at_its_bound_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status, mode):
+    report_tree(tmp_path, monkeypatch, status, {})
+    script = status.stack_script
+    stack_reads(monkeypatch, status)
+    monkeypatch.setattr(status, "stack_script", script)
+    monkeypatch.setattr(status.github, "bounded_group", lambda argv, **kw: status.github.TimedOut(argv, 124, "", "said"))
+    fake_processes.answers({"": logs_answer({})})
+
+    code, out, err = run_cli(status, [mode])
+
+    if mode == "--report":
+        assert (code, section(out, "Stack")[0], section(out, "Stack")[-1]) == (
+            0, "stacky: joined 3, tested ?, landed 2 in 24h", "frozen: ?"), (out, err)
+    else:
+        stack = json.loads(out)["stack"]
+        assert (stack["tested"], stack["frozen"]) == (None, None), (out, err)
+
+
+@pytest.mark.parametrize("mode", ["--report", "--json"])
+def test_no_stack_section_nor_key_where_the_cwd_is_no_main_tree_though_its_claude_md_names_a_stack_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status, mode):
+    report_tree(tmp_path, monkeypatch, status, {})
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: "")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / "CLAUDE.md").write_text("%s`stacky`\n" % status.stack_branch.MARKER)
+    monkeypatch.chdir(elsewhere)
+    fake_processes.answers({"": logs_answer({})})
+
+    code, out, err = run_cli(status, [mode])
+
+    assert "Stack" not in out.splitlines() and '"stack"' not in out, (code, out, err)
+
+
 def test_report_prints_the_tracking_pull_request_as_unknown_when_two_are_open_issue_4320(
         tmp_path, monkeypatch, fake_processes, run_cli, status):
     report_tree(tmp_path, monkeypatch, status, {})
