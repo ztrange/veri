@@ -76,3 +76,22 @@ def test_production_frozen_range_only_go_js_python_test_files_changed_exit_0_pri
         commit_all(repo, f"test: {path}")
 
         assert frozen(repo, base) == (0, ""), path
+
+
+@pytest.mark.process("production-frozen.sh run against a real git range")
+def test_production_frozen_range_only_the_pytest_leg_changed_in_veri_tree_exit_1_naming_it_4262(tmp_path):
+    root = tmp_path / "veri-tree"
+    leg = "skills/tdd/scripts/tests/leg/pytest_leg.py"
+    for name in (leg, "skills/tdd/scripts/tests/py/test_x.py"):
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text("one\n")
+    git(root, "init", "-q", "-b", "main")
+    commit_all(root, "feat: leg")
+    base = git(root, "rev-parse", "HEAD")
+    (root / leg).write_text("two\n")
+    commit_all(root, "chore: touch the leg")
+
+    code, out = frozen(root, base)
+
+    assert code == 1
+    assert leg in out
