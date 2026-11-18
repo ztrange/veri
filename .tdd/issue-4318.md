@@ -10,11 +10,11 @@
 - [x] stack_carry pushes nothing and exits 1 naming both trees unless `git merge-tree --write-tree --merge-base=<old-cut> origin/<default> <old-tip>` exits 0 printing the new tip's tree; a merge-tree that exits 1 is exit 1 too (unit case, no process) ⟦criterion 5⟧
 - [x] a leased push refused because origin's stack moved since the fetch makes stack_carry exit 1, nothing else pushed, the lock freed (unit case, no process) ⟦criterion 6⟧
 - [x] after the push stack_carry calls stack-pr.sh; its push names only refs/heads/<stack> (unit case, no process) ⟦criterion 7⟧
-- [ ] stack_carry touches no ref but <stack>: no run's branch is rebased, moved or deleted, and the main clone's HEAD and index are untouched ⟦diff-checked⟧ ⟦criterion 8⟧
+- [x] stack_carry touches no ref but <stack>: no run's branch is rebased, moved or deleted, and the main clone's HEAD and index are untouched ⟦diff-checked⟧ ⟦criterion 8⟧
 - [x] stack_land calls stack-carry.sh <cut> after a landing it made; an exit other than 0 is exit 2 from the land naming the landed slice and `stack-carry.sh <cut>` as the command owed (unit case, no process) ⟦criterion 9⟧
 - [x] at a stacked run's cut issue-worktree.sh writes .tdd/issue-<n>-base-sha holding origin/<stack>'s sha as read for the cut, .tdd/issue-<n>-base unchanged, and none at an unstacked cut (unit/process case per the module's existing tier) ⟦criterion 10⟧
 - [x] queued-merge.sh's join rebases with `git rebase --onto origin/<stack> <base-sha>` when .tdd/issue-<n>-base-sha exists, as before when absent, and rewrites the file with the sha it rebased onto ⟦criterion 11⟧
 - [x] a process case with real git reproduces the four measured scenarios on a 10-commit stack cut at the 6th commit: three exit 0 with a pushed tip KL21 equals and runs cut at three positions rebase with KL27's command to their own commits only; the conflict scenario exits 1 with origin/<stack> unchanged (go-red for KL20/KL21) ⟦criterion 12⟧
 - [x] `skills/tdd/SCRIPTS.md` lists stack-carry.sh <old-cut> with its exits and rules (row SC565), states the base-sha file in issue-worktree.sh's entry (SC566) and the --onto join in queued-merge.sh's entry (SC567), graded ⟦skill-edit⟧ ⟦criterion 1⟧ ⟦criterion 14⟧
 - [x] `skills/vmerge/SKILL.md` says a landing's stack is carried by $S/stack-carry.sh <cut>, which stack-land.sh runs itself, that exit 1 leaves the stack as it was for the human, and that a run is never rebased by hand across a landing (row M39), graded ⟦skill-edit⟧ ⟦criterion 13⟧
-- [ ] no script or skill touched names a repository, issue, branch, label or person ⟦diff-checked⟧ ⟦criterion 15⟧
+- [x] no script or skill touched names a repository, issue, branch, label or person ⟦diff-checked⟧ ⟦criterion 15⟧
