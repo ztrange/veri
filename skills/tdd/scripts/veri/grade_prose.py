@@ -201,6 +201,9 @@ def signer():
     own = os.path.join("skills", "tdd", "scripts", "veri", "grade_prose.py")
     if not os.path.isfile(own):
         return sys.modules[__name__]
+    with open(own, "rb") as tree, open(__file__, "rb") as running:
+        if tree.read() == running.read():
+            return sys.modules[__name__]
     import importlib.util
     spec = importlib.util.spec_from_file_location("tree_grade_prose", own)
     tree = importlib.util.module_from_spec(spec)
@@ -334,7 +337,7 @@ def convert(path):
                 print("grade-prose.sh: signature-formula-disagreement: %s: the tree's formula gave none (%s)" % (unit, e),
                       file=sys.stderr)
                 return 2
-            own = signature(p, unit, units=units)
+            own = tree if formula is sys.modules[__name__] else signature(p, unit, units=units)
             if own != tree:
                 resign(unit, own, tree)
 
