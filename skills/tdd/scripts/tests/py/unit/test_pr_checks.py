@@ -274,9 +274,11 @@ def test_4392_a_red_setup_row_with_no_coupling_pair_stops_it_at_coupling_for_the
     (("git", ("merge-base",)), 128), (("detach-command.sh", ("start",)), 1), (("event.sh", None), 1),
     (("stop-requested.sh", None), 2), (("test-quality.sh", ("files",)), 2), (("red-setup.sh", None), 2),
     (("red-setup.sh", None), 1), (("coupling.sh", None), 2), (("refactor-owed.sh", ("clear",)), 1),
-    (("refactor-candidates.sh", None), 2), (("unwired.sh", None), 2)],
+    (("coupling.sh", None), 1), (("refactor-candidates.sh", None), 2), (("unwired.sh", None), 2),
+    (("unwired.sh", None), 4), (("unwired.sh", None), 127)],
     ids=["merge-base", "lint start", "lint event", "stop-requested", "test-quality files", "red-setup 2",
-         "red-setup 1", "coupling", "refactor-owed clear", "refactor-candidates", "unwired"])
+         "red-setup 1", "coupling", "refactor-owed clear", "coupling 1", "refactor-candidates", "unwired", "unwired 4",
+         "unwired 127"])
 def test_4392_an_inner_call_that_obtains_no_answer_stops_it_with_exit_2_at_that_call(checks, failing, inner):
     answers = {failing: (inner, "")}
     if failing[0] == "stop-requested.sh":
