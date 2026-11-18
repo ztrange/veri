@@ -164,3 +164,14 @@ def test_4392_a_coupling_pair_writes_the_coupling_section_then_stops_it_at_coupl
     assert (code, out.splitlines()[-1]) == (1, "stopped at coupling coupling.sh %s > .tdd/coupling.out exit 0" % BASE)
     assert fake.names()[-1] == "coupling.sh"
     assert (checks.wt / ".tdd" / "issue-12-coupling.md").read_text() == "### Coupling\n\n" + pair
+
+
+def test_4392_an_unwired_finding_stops_it_at_unwired_writing_no_pending_record_and_no_bail(checks):
+    code, out, err, fake = checks(answers={("unwired.sh", None): (1, "")},
+                                  files={("unwired.sh", ()): {".tdd/unwired.out": "src/lonely.py\n"}})
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at unwired unwired.sh --accepted .tdd/issue-12-unwired-accepted "
+                                               "%s > .tdd/unwired.out exit 1" % BASE)
+    assert fake.names()[-1] == "unwired.sh"
+    assert not (checks.wt / ".tdd" / "issue-12-unwired-pending").exists()
+    assert not (checks.wt / ".tdd" / "issue-12-pr-checks").exists()

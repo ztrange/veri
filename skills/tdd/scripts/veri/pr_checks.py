@@ -32,8 +32,8 @@ def run(n):
     fused.call(fused.script("red-setup.sh"), "worst", n, owed, cwd=wt)
     coupling(wt, n, base, owed)
     code, said_url, _ = fused.call(fused.script("refactor-candidates.sh"), n, owed, cwd=wt)
-    fused.call(fused.script("unwired.sh"), "--accepted", ".tdd/issue-%s-unwired-accepted" % n, base, cwd=wt,
-               out=".tdd/unwired.out")
+    fused.checked("unwired", fused.script("unwired.sh"), "--accepted", ".tdd/issue-%s-unwired-accepted" % n, base,
+                  ok=(0, 3), cwd=wt, out=".tdd/unwired.out")
     return fused.settle(wt, n, NAME, ["candidates=" + (said_url.strip() if code == 0 else "")])
 
 
