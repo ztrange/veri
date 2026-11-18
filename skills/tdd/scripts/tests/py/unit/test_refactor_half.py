@@ -13,6 +13,10 @@ RED_HALF = ("step=%s\ntest_path=tests/test_a.py\ntarget_test=tests/test_a.py::te
 GREEN_SHA = "d" * 40
 GREEN_HALF = "step=%s\ngreen_sha=" + GREEN_SHA + "\ntest_path=tests/test_a.py\n"
 TOUCHED = "src/a.py,tests/test_a.py"
+# Records naming a test path of their own, so a case can tell which record was read (SC8).
+HAND_RED_HALF = ("step=%s\ntest_path=checks/red_check.py\ntarget_test=checks/red_check.py::red_case\n"
+                 "red_test_id=checks/red_check.py::red_case\nagainst_unmodified=FAILS\n")
+HAND_GREEN_HALF = "step=%s\ngreen_sha=" + GREEN_SHA + "\ntest_path=checks/green_check.py\n"
 REPORT = ("RESULT: extract f\nCANDIDATES: structural | src/a.py | split g\nCANDIDATES: cosmetic | src/a.py | rename h\n"
           "CANDIDATES: structural | src/a.py | inline k\nFLAGS: beyond-spec | negative sizes\n"
           "FLAGS: uncovered-spec | empty input returns 0\n")
@@ -460,21 +464,21 @@ def test_it_takes_green_sha_from_git_and_rewrites_a_stale_one_in_green_halfs_rec
 def test_a_green_not_finished_by_green_half_falls_back_to_red_halfs_record_4342(tidy, green):
     """SC8: a Green green-half.sh did not finish (a revise-green loop, a ⟦replaces-case⟧ or ⟦ci-repair⟧ step, a stop
     at Green 3) leaves no green-half record for the step, so refactor-half reads red-half's, as before PRD 038.1."""
-    (tidy.wt / ".tdd" / "issue-12-red-half").write_text(RED_HALF.replace("tests/test_a.py", "tests/test_r.py") % STEP)
+    (tidy.wt / ".tdd" / "issue-12-red-half").write_text(HAND_RED_HALF % STEP)
     if green is not None:
         (tidy.wt / ".tdd" / "issue-12-green-half").write_text(GREEN_HALF % green)
     code, out, err, fake = tidy(missing=("green-half",))
 
     launch = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
-    assert (code, _short(launch[1])[-2:]) == (0, ("tests/test_r.py", GREEN_SHA))
+    assert (code, _short(launch[1])[-2:]) == (0, ("checks/red_check.py", GREEN_SHA))
     assert "green_sha=" not in (tidy.wt / ".tdd" / "issue-12-red-half").read_text()
 
 
 def test_green_halfs_record_for_the_step_wins_over_red_halfs_4342(tidy):
     """SC8: when green-half.sh (or seam-settle.sh green-half) left a record for this step, its values are read."""
-    (tidy.wt / ".tdd" / "issue-12-red-half").write_text(RED_HALF.replace("tests/test_a.py", "tests/test_r.py") % STEP)
-    (tidy.wt / ".tdd" / "issue-12-green-half").write_text(GREEN_HALF.replace("tests/test_a.py", "tests/test_g.py") % STEP)
+    (tidy.wt / ".tdd" / "issue-12-red-half").write_text(HAND_RED_HALF % STEP)
+    (tidy.wt / ".tdd" / "issue-12-green-half").write_text(HAND_GREEN_HALF % STEP)
     code, out, err, fake = tidy()
 
     launch = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
-    assert (code, _short(launch[1])[-2:]) == (0, ("tests/test_g.py", GREEN_SHA))
+    assert (code, _short(launch[1])[-2:]) == (0, ("checks/green_check.py", GREEN_SHA))
