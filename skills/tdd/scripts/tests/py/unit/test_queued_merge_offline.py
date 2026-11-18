@@ -171,3 +171,15 @@ def test_with_the_outage_file_but_no_recorded_base_the_join_reads_the_pull_reque
     code, _, err = join(run_cli, world)
 
     assert (code, world.pulls, world.local) == (2, [PR], LOCAL_STACK), err
+
+
+def test_an_absent_local_stack_is_created_at_origins_stack_as_last_fetched_and_the_join_lands_on_it(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, local=None).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    wt = "git -C %s " % world.wt
+    made = [c for c in world.calls if c.startswith((wt + "branch ", wt + "update-ref"))]
+    assert (code, made) == (0, [wt + "branch stack " + ORIGIN_STACK,
+                                wt + "update-ref refs/heads/stack %s %s" % (world.head[-1], ORIGIN_STACK)]), err

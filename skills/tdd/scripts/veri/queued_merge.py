@@ -725,6 +725,9 @@ def _join_offline(pid, worktree, branch, stack):
 
 def _joined_offline(worktree, branch, stack):
     onto = _rev(worktree, "refs/heads/" + stack)
+    if not onto:
+        onto = _rev(worktree, "refs/remotes/origin/" + stack)
+        _git(worktree, "branch", stack, onto)
     base = _base_sha(worktree, branch)
     rebase = _git(worktree, "rebase", *(["--onto", stack, base] if base else [stack]))
     if rebase.returncode:
