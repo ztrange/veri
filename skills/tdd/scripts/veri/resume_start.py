@@ -83,7 +83,8 @@ OWNER = "resume-start"
 def verify_plan(n, wt, settled, ledger, lines):
     """Step 2c's verify-plan, launched as plan-publish.sh launches it; 0 posts the verify-plan comment and settles
     <lines> with verify_plan=PASS."""
-    fused.launch("4", wt, LEAF, "run-verdict.sh", "plan", ".tdd/issue-%s-spec.md" % n, ledger,
+    fused.launch("4", wt, LEAF, "run-verdict.sh", "--branch-base", fused.branch_base("4", wt, n), "plan",
+                 ".tdd/issue-%s-spec.md" % n, ledger,
                  env=tunables.with_values(VERI_TEST_CMD=settled["fast_cmd"], VERI_ISSUE=n),
                  out=".tdd/verify-plan.reason", err=".tdd/verify-plan.err")
     fused.save_wait(wt, n, OWNER, "4", lines)

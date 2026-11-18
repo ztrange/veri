@@ -148,7 +148,8 @@ def launch_verdict_plan(n, wt, settled):
         with contextlib.suppress(FileNotFoundError):
             os.remove(run_dir.run_file(wt, name))
     fused.checked("2c", fused.script("detach-leaf.sh"), fused.script("supervise.sh"), LEAF,
-                  fused.script("run-verdict.sh"), "plan", SPEC % n, os.path.relpath(run_dir.ledger(".", n)), cwd=wt,
+                  fused.script("run-verdict.sh"), "--branch-base", fused.branch_base("2c", wt, n), "plan", SPEC % n,
+                  os.path.relpath(run_dir.ledger(".", n)), cwd=wt,
                   env=tunables.with_values(VERI_TEST_CMD=settled["fast_cmd"], VERI_ISSUE=n),
                   out=".tdd/verify-plan.reason", err=".tdd/verify-plan.err")
 

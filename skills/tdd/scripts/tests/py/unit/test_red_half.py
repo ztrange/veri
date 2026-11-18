@@ -46,6 +46,9 @@ class Fake:
         return [c[1][1] for c in self.calls if c[0] == "detach-leaf.sh"]
 
 
+BRANCH_BASE = "abc1234"  # the run's recorded branch base (#4375)
+
+
 @pytest.fixture
 def red(monkeypatch, run_cli, tmp_path):
     """red(answers=None, fake=None, missing=(), step=STEP, argv=None) runs red-half for issue 12 from the main tree,
@@ -56,7 +59,8 @@ def red(monkeypatch, run_cli, tmp_path):
     (wt / ".tdd").mkdir(parents=True)
 
     def go(answers=None, fake=None, missing=(), step=STEP, argv=None):
-        files = {"preflight": (wt / ".tdd" / "issue-12-preflight", "worktree=%s\nfast_cmd=make unit\n" % wt),
+        files = {"branch_base": (wt / ".tdd" / "issue-12-branch-base", BRANCH_BASE + "\n"), 
+                 "preflight": (wt / ".tdd" / "issue-12-preflight", "worktree=%s\nfast_cmd=make unit\n" % wt),
                  "ledger": (wt / ".tdd" / "issue-12.md", LEDGER % step),
                  "spec": (wt / ".tdd" / "issue-12-spec.md", "# spec\n"),
                  "out": (wt / ".tdd" / "develop-red.out", "{}\n")}
@@ -286,12 +290,20 @@ def test_4026_it_launches_verdict_red_with_red_2s_arguments_only(red):
 
     launch = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
     assert tuple(os.path.basename(a) if a.endswith(".sh") else a for a in launch[1]) == (
-        "supervise.sh", "verdict-red", "run-verdict.sh", "--step", STEP, "--fast-cmd", "make unit", "red",
+        "supervise.sh", "verdict-red", "run-verdict.sh", "--step", STEP, "--fast-cmd", "make unit",
+        "--branch-base", BRANCH_BASE, "red",
         ".tdd/issue-12-spec.md", "tests/test_a.py", "tests/test_a.py::test_one")
     assert (launch[3]["VERI_TEST_CMD"], launch[3]["VERI_STEP"]) == ("make unit", STEP)
     assert (launch[4]["out"], launch[4]["err"]) == (".tdd/verify-red.reason", ".tdd/verify-red.err")
     assert [c[0] for c in _after(fake, "tests-frozen.sh", "check-earlier")[:4]] == [
         "stop-requested.sh", "detach-leaf.sh", "wait-leaf.sh", "step-cost.sh"]
+
+
+def test_4375_a_missing_branch_base_record_stops_it_with_exit_2_naming_the_record_and_launches_no_verdict(red):
+    code, out, err, fake = red(missing=("branch_base",))
+
+    assert (code, out.splitlines()[-1], fake.launched()) == (
+        2, "stopped at 2 branch-base record of issue 12", ["develop-red"])
 
 
 @pytest.mark.parametrize("verdict", [1, 2])

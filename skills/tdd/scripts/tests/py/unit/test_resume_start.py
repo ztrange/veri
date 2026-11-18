@@ -50,6 +50,9 @@ class Fake:
         return next(c for c in self.calls if c[0] == base and (first is None or c[1][:1] == (first,)))
 
 
+BRANCH_BASE = "abc1234"  # the run's recorded branch base (#4375)
+
+
 @pytest.fixture
 def resume(monkeypatch, run_cli, tmp_path):
     """resume(answers=None, fake=None, missing=(), verify_plan="skip", argv=None) runs resume-start for issue 12 from
@@ -60,7 +63,8 @@ def resume(monkeypatch, run_cli, tmp_path):
     (wt / ".tdd").mkdir(parents=True)
 
     def go(answers=None, fake=None, missing=(), verify_plan="skip", argv=None, stray=()):
-        files = {"preflight": (wt / ".tdd" / "issue-12-preflight",
+        files = {"branch_base": (wt / ".tdd" / "issue-12-branch-base", BRANCH_BASE + "\n"), 
+                 "preflight": (wt / ".tdd" / "issue-12-preflight",
                                "worktree=%s\nfast_cmd=make unit\ndefault_branch=main\nrun=resume\n" % wt
                                + "".join("stray=%s\n" % path for path in stray)),
                  "ledger": (wt / ".tdd" / "issue-12.md", LEDGER),
@@ -187,7 +191,8 @@ def test_4389_every_step_checked_settles_an_empty_step(resume):
     assert (code, (resume.wt / ".tdd" / "issue-12-resume-start").read_text().splitlines()[0]) == (0, "step=")
 
 
-LAUNCH_TAIL = ("supervise.sh", "verdict-plan", "run-verdict.sh", "plan", ".tdd/issue-12-spec.md", ".tdd/issue-12.md")
+LAUNCH_TAIL = ("supervise.sh", "verdict-plan", "run-verdict.sh", "--branch-base", BRANCH_BASE, "plan",
+               ".tdd/issue-12-spec.md", ".tdd/issue-12.md")
 
 
 def _after_pr(fake):
