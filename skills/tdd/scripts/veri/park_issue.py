@@ -9,7 +9,6 @@ import tempfile
 import blocked_by
 import github
 import markdown_sections
-import redaction
 
 USAGE = ("usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>] [--blocked-by <n>[,<n>…]]"
          " [--question-file <path>]\n")
