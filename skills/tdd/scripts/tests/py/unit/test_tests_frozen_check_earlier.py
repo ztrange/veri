@@ -961,3 +961,16 @@ def test_check_earlier_exits_1_naming_an_edited_case_a_replaces_case_marker_nami
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
 
     assert (code, out) == (1, "test_unnamed_3624 (%s)\n" % earlier)
+
+
+def test_check_earlier_exits_2_naming_both_ledgers_and_leaves_no_pass_marker_for_a_ledger_that_is_not_the_runs_4295(
+        tmp_path, run_cli, tests_frozen, based, monkeypatch):
+    monkeypatch.setenv("VERI_ISSUE", "5")
+    step = "step two adds another"
+    (tmp_path / ".tdd/issue-5.md").write_text("- [ ] %s\n" % step)
+    (tmp_path / ".tdd/plan-ledger.md").write_text("- [ ] %s\n" % step)
+
+    code, _, err = run_cli(tests_frozen, ["check-earlier", ".tdd/plan-ledger.md", "--step", step], cwd=tmp_path)
+
+    assert (code, ".tdd/plan-ledger.md" in err, ".tdd/issue-5.md" in err,
+            list((tmp_path / ".tdd").glob("check-earlier-*.pass"))) == (2, True, True, [])
