@@ -14,7 +14,7 @@ Interface:
                           A declared quiet command (quiet_prefix) replaces the changed one, run once over every path.
                           With <branch_base> (a hex commit name), the `veri: one test file:`, `veri: fast tests:` and
                           `veri: all tests:` lines are read from CLAUDE.md as it stood at that commit, never from the
-                          working tree's.
+                          working tree's, and only a line it declares counts: no tier is inferred from other files.
                           Raises BaseUnresolved when <root> is a git tree in which <branch_base> names no commit; a
                           commit holding no CLAUDE.md reads as one declaring nothing.
 
