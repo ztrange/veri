@@ -20,22 +20,21 @@ def green_path():
     return os.path.join(run_dir.main_tree_from_files(os.getcwd()), ".tdd", "baseline-green.json")
 
 
-def text_of(path):
-    """The file's text, or None when it is absent."""
+def digest_of(path):
+    """The sha256 of the file's bytes, or None when it is absent."""
     if not os.path.exists(path):
         return None
     with open(path, "rb") as f:
-        return f.read().decode(errors="replace")
+        return hashlib.sha256(f.read()).hexdigest()
 
 
 def green_key(issue, tree, fast, full):
     """What a green baseline is recorded under: the tested tree, both commands, the run's skill commit pin and a hash of
     the dev venv lock, the last two read from the main checkout."""
     main = run_dir.main_tree_from_files(os.getcwd())
-    pin = text_of(run_dir.issue_file(main, issue, "-skill-commit"))
-    lock = text_of(os.path.join(main, "requirements-dev.txt"))
-    lock_hash = None if lock is None else hashlib.sha256(lock.encode()).hexdigest()
-    return hashlib.sha256(json.dumps([tree, fast, full, pin, lock_hash]).encode()).hexdigest()
+    pin = digest_of(run_dir.issue_file(main, issue, "-skill-commit"))
+    lock = digest_of(os.path.join(main, "requirements-dev.txt"))
+    return hashlib.sha256(json.dumps([tree, fast, full, pin, lock]).encode()).hexdigest()
 
 
 def read_green(path):
