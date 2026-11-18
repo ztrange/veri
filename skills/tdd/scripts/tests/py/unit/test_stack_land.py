@@ -16,10 +16,12 @@ def stack_land():
 class World:
     """What stack_branch.named answers, and every sibling script run; <answers> maps a script's name to its (exit code,
     stdout), (0, "") for one it does not name. git (git.out) names <default> as origin's default branch and answers
-    <ahead> to `rev-list --count`; GitHub (github.gh_api) lists <onto>, the open pull requests as REST records."""
+    <ahead> to `rev-list --count`; GitHub (github.gh_api) lists <onto>, the open pull requests as REST records. origin
+(git.network, its calls kept in <network>) fetches and pushes, and its heads are <heads>, a branch name to its commit."""
 
-    def __init__(self, monkeypatch, named, answers=None, default="trunk", ahead=0, onto=()):
-        self.scripts = []
+    def __init__(self, monkeypatch, named, answers=None, default="trunk", ahead=0, onto=(), heads=None):
+        self.scripts, self.network = [], []
+        heads = heads or {}
         answers = answers or {}
         stack_branch = importlib.import_module("veri.stack_branch")
         git, github = importlib.import_module("veri.git"), importlib.import_module("veri.github")
@@ -34,7 +36,16 @@ class World:
         def gh_api(path, stderr=None):
             return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(list(onto)), "")
 
+        def network(*args, cwd=None):
+            self.network.append(args)
+            said = ""
+            if args[:1] == ("ls-remote",):
+                said = "".join("%s\trefs/heads/%s\n" % (sha, name) for name, sha in heads.items()
+                               if "refs/heads/" + name in args)
+            return subprocess.CompletedProcess(["git", *args], 0, said, "")
+
         monkeypatch.setattr(git, "out", out)
+        monkeypatch.setattr(git, "network", network)
         monkeypatch.setattr(github, "gh_api", gh_api)
 
         def answer(root):
@@ -241,3 +252,17 @@ def test_after_the_fetch_creates_the_slice_branch_named_after_the_first_10_chara
     assert [("origin" in args, cut + ":refs/heads/stack-slice-3f2a9c1d0b" in args) for args in pushes] == [
         (True, True)], (calls, err)
     assert calls.index(pushes[0]) > calls.index(("fetch", "--prune", "origin")), calls
+
+
+def test_a_branch_of_the_slice_name_already_on_origin_at_another_commit_exits_2_naming_it_nothing_pushed_the_lock_freed(
+        monkeypatch, run_cli, stack_land):
+    cut, other = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  heads={"stack-slice-3f2a9c1d0b": other})
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    pushes = [args for args in world.network if args[:1] == ("push",)]
+    assert (code, out, "stack-slice-3f2a9c1d0b" in err, other in err, pushes,
+            [ran[:2] for ran in world.scripts[-2:]]) == (
+        2, "", True, True, [], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
