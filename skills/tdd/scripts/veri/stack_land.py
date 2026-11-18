@@ -50,11 +50,12 @@ def _closes(stack, default, cut):
     subjects is said on stderr."""
     joined = github.joined_issues(stack)
     named = re.findall(r"\(#(\d+)\)$", git.out("log", "--format=%s", "origin/%s..%s" % (default, cut)), re.M)
-    only = [n for n in dict.fromkeys(named) if int(n) not in joined]
+    issues = list(dict.fromkeys(named))
+    only = [n for n in issues if int(n) not in joined]
     if only:
         print("stack-land: issues named only by commit subjects in origin/%s..%s, given no Closes line: %s"
               % (default, cut, " ".join("#" + n for n in only)), file=sys.stderr)
-    return "".join("Closes #%s\n" % n for n in dict.fromkeys(named) if int(n) in joined)
+    return "".join("Closes #%s\n" % n for n in issues if int(n) in joined)
 
 
 def _freed(line):
