@@ -1003,3 +1003,16 @@ def test_check_earlier_with_veri_issue_accepts_the_runs_own_ledger_by_its_absolu
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=tmp_path / "tests")
 
     assert (code, out, len(list((tmp_path / ".tdd").glob("check-earlier-*.pass")))) == (0, "", 1)
+
+
+def test_check_earlier_given_a_ledger_that_is_not_the_runs_removes_the_pass_marker_the_runs_ledger_left_for_that_step_4295(
+        tmp_path, run_cli, tests_frozen, based, monkeypatch):
+    monkeypatch.setenv("VERI_ISSUE", "5")
+    step = "step two adds another"
+    (tmp_path / ".tdd/issue-5.md").write_text("- [ ] %s\n" % step)
+    (tmp_path / ".tdd/plan-ledger.md").write_text("- [ ] %s\n" % step)
+    passed = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-5.md", "--step", step], cwd=tmp_path)[0]
+
+    code = run_cli(tests_frozen, ["check-earlier", ".tdd/plan-ledger.md", "--step", step], cwd=tmp_path)[0]
+
+    assert (passed, code, list((tmp_path / ".tdd").glob("check-earlier-*.pass"))) == (0, 2, [])
