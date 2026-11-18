@@ -79,8 +79,12 @@ def lint(wt, n):
 
 
 def quality(wt, n, base):
-    """The test-quality check: the test files the range touched; none writes the record empty."""
-    fused.call(fused.script("test-quality.sh"), "files", base, cwd=wt, out=".tdd/test-quality-files")
+    """The test-quality check: the test files the range touched; none writes the record empty, and any stops it
+    with exit 1 before the develop-test-quality launch, which is the conductor's."""
+    files = (fused.script("test-quality.sh"), "files", base)
+    code = fused.call(*files, cwd=wt, out=".tdd/test-quality-files")[0]
+    if code == 0:
+        raise fused.Stop("test-quality", fused.shown(*files, out=".tdd/test-quality-files") + " exit 0", 1)
     write(wt, ".tdd/issue-%s-test-quality" % n, "")
 
 
