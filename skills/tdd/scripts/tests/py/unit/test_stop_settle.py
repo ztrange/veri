@@ -74,3 +74,23 @@ def test_4388_a_missing_preflight_file_is_exit_2_before_any_call_named_on_stderr
 
     assert (code, fake.calls) == (2, [])
     assert ".tdd/issue-12-preflight" in err
+
+
+def _seq(fake):
+    return [(c[0],) + c[1] for c in fake.calls]
+
+
+def test_4388_on_a_clean_tree_it_settles_resets_pushes_marks_comments_and_clears_in_order(stop):
+    code, out, err, fake = stop(argv=("12", "now"))
+
+    assert code == 0, err
+    assert _seq(fake) == [
+        ("git", "rev-parse", "--git-path", "rebase-merge"), ("git", "rev-parse", "--git-path", "rebase-apply"),
+        ("git", "rev-parse", "-q", "--verify", "MERGE_HEAD"), ("git", "status", "--porcelain"),
+        ("git", "reset", "--hard", "HEAD"), ("push-branch.sh",), ("git", "show", "HEAD:.tdd/issue-12.md"),
+        ("event.sh", "stop", "mode=now", "at=planned"), ("comment.sh", "12", "stopped"),
+        ("stop-requested.sh", "--clear")]
+    mark = fake.call("event.sh")
+    assert (mark[3]["VERI_ISSUE"], mark[3]["VERI_ACTOR"], mark[3]["VERI_STEP"]) == ("12", "conductor",
+                                                                                   "one ⟦criterion 1⟧")
+    assert {c[2] for c in fake.calls} == {str(stop.wt)}
