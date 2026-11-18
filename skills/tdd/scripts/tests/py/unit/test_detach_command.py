@@ -684,11 +684,12 @@ def test_wait_total_stops_the_process_group_of_a_command_still_running_past_the_
 
 
 def test_wait_total_counts_from_the_start_the_pid_file_records_so_a_wait_called_past_the_bound_exits_2_at_once_4264(
-        tmp_path, monkeypatch, capsys, detach_command):
+        tmp_path, monkeypatch, capsys, detach_command, fake_processes):
     monkeypatch.chdir(tmp_path)
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     (tdd / "x.pid").write_text("4242\nWed Nov 11 09:00:00 2026\n")
+    fake_processes.answers({"ps ": (0, "Wed Nov 11 09:00:00 2026\n", "")})
     monkeypatch.setenv("VERI_POLL", "1")
     monkeypatch.setenv("VERI_STOP_KILL_GRACE", "0")
     group = {"alive": True, "signals": []}
@@ -732,3 +733,28 @@ def test_wait_refuses_a_total_that_is_not_a_whole_number_with_the_usage_line_and
     for total in ("abc", "1.5", "-1", " 5", ""):
         code = detach_command.main(["wait", "x", "--total", total])
         assert (total, code, capsys.readouterr()) == (total, 2, ("", USAGE))
+
+
+def test_wait_total_signals_no_process_group_when_the_live_pid_started_at_another_time_than_recorded_and_exits_2_4264(
+        tmp_path, monkeypatch, capsys, detach_command, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\nWed Nov 11 09:00:00 2026\n")
+    monkeypatch.setenv("VERI_POLL", "1")
+    monkeypatch.setenv("VERI_STOP_KILL_GRACE", "0")
+    fake_processes.answers({"ps ": (0, "Thu Nov 12 10:00:00 2026\n", "")})
+    signals = []
+    now = [calendar.timegm((2026, 11, 11, 9, 0, 10, 0, 0, 0))]
+
+    def fake_sleep(seconds):
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(os, "kill", lambda pid, signum: None)
+    monkeypatch.setattr(os, "killpg", lambda pgid, signum: signals.append((pgid, signum)))
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+
+    code = detach_command.main(["wait", "x", "--total", "5"])
+
+    assert (code, signals) == (2, [])
