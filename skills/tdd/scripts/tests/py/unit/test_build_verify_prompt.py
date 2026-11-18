@@ -458,7 +458,7 @@ def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_e
     real_timed = f"{build_verify_prompt.HERE}/timed-test-run.sh".encode()
     assert (code, err, b"git diff 0123abc..HEAD" in out, b"git diff 4567def..HEAD" in out,
             b"       " + real_timed + b" fast '' make unit && a/b\n"
-            b"       " + real_timed + b" affected '<the suites you ran>' make test TESTS=\"<those paths>\"\n"
+            b"       " + real_timed + b" changed '<the test files you ran>' make test TESTS=\"<those paths>\"\n"
             in out) == (0, b"", True, True, True)
 
 
@@ -664,7 +664,7 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
                        b"the target test" in dp[1], dp_ambient == dp[1],
                        dp_other.replace(b"fedcba9876", b"0123abcdef") == dp[1]),
         "diff step base": (ds[0], b"git diff 0123abcdef..HEAD" in ds[1]),
-        "diff fast-cmd": (df[0], bool(found), b"affected '<the suites you ran>'" in after_fast),
+        "diff fast-cmd": (df[0], bool(found), b"changed '<the test files you ran>'" in after_fast),
     } == {
         "refactor file scope": True,
         "plan ledger refusals": ((2, b""), (2, b"")),
@@ -790,7 +790,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "suite-repair": (0, True, False),
         "replaces-case unreadable": (2, b"", True, [0]),
         "suite-repair unreadable": (2, b"", True, [0, 0]),
-        "#671 byte-identity": [(0, "3637152564 10460"), (0, "1715154301 10184")],
+        "#671 byte-identity": [(0, "8763797 10834"), (0, "3122815925 10558")],
         "#703 include": (0, f"before outer inner judges {testpath} end after\n".encode(), b"", True),
         "#703 missing partial": (2, b"", True),
         "#703 self-including partial": (2, b"", True),

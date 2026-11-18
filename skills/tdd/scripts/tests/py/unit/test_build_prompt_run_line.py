@@ -33,7 +33,7 @@ def rendered(run_cli, builders, cwd):
     red = run_cli(develop, ["red", spec, "a step", TEST_CMD], cwd=cwd)
     verify_red = run_cli(verify, ["red", spec, TEST_PATH], cwd=cwd)
     return [(code, err) for code, _, err in (red, verify_red)], [
-        (lines_with(out, "timed-test-run.sh affected"), re.findall(r"(`[^`]*`) — the repo's runner for one test file", out))
+        (lines_with(out, "timed-test-run.sh changed"), re.findall(r"(`[^`]*`) — the repo's runner for one test file", out))
         for _, out, _ in (red, verify_red)]
 
 
@@ -42,7 +42,7 @@ def test_outside_veri_both_builders_render_the_repos_one_test_file_command_once_
     cwd = foreign_tree(tmp_path, 'veri: fast tests: `npm test`\nveri: all tests: `npm test`\n'
                                  'veri: one test file: `npx jest "$1"`\n')
     ends, lines = rendered(run_cli, builders, cwd)
-    affected = [TIMED + " affected '<the suites you ran>' " + LOOP]
+    affected = [TIMED + " changed '<the test files you ran>' " + LOOP]
     assert (ends, lines) == (
         [(0, ""), (0, "")],
         [(affected, ["`sh -c 'npx jest \"$1\"' sh \"<test file>\"`"])] * 2)
@@ -54,7 +54,7 @@ def test_outside_veri_with_no_one_test_file_line_both_builders_render_the_all_ti
     ends, lines = rendered(run_cli, builders, cwd)
     assert (ends, lines) == (
         [(0, ""), (0, "")],
-        [([TIMED + " affected '<the suites you ran>' npm test"], ["`npm test`"])] * 2)
+        [([TIMED + " changed '<the test files you ran>' npm test"], ["`npm test`"])] * 2)
 
 
 def test_the_run_line_reaches_the_prompt_from_claude_md_alone_and_no_tdd_file_does(tmp_path, run_cli, builders):

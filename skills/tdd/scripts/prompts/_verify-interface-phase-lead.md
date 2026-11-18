@@ -13,8 +13,8 @@ result.
 ### Your checks
 
 1. **Still green.** Run the fast command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast`
-   prints it), then run the suites `affected-suites.sh` prints for the files the range
-   touched yourself; both must be **green**. Make each of those two runs through the wrapper
+   prints it), then run the test files covering the files the range
+   touched, as `affected-suites.sh` prints them, yourself; both must be **green**. Make each of those two runs through the wrapper
    {{INCLUDE:_timed-test-run-tier.md}}:
 
 {{INCLUDE:_timed-test-run-fast-affected.md}}

@@ -28,8 +28,8 @@ not contain. Your job is to make the push land without losing anyone's commits.
      run's own earlier history): rebase onto the remote with
      `git rebase {{REMOTE_SHA}}`, confirm the test command is still green, then
      `git push origin HEAD:{{BRANCH}}`.
-     Make that green check through the wrapper `{{TIMED_TEST_RUN}}`, which records what the
-     run cost and names the tier it belongs to — `all`, since the whole test command is what
+     Make that green check through the wrapper {{INCLUDE:_timed-test-run.md}}
+     and names the tier it belongs to — `all`, since the whole test command is what
      runs:
 
          {{TIMED_TEST_RUN}} all '' {{TEST_CMD}}

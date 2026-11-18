@@ -14,7 +14,7 @@ callable outside it, and to pin what the unmodified code does now. Judge whether
 ### Your checks
 
 1. **Every case passes on the unmodified code.** Run the cases at `{{TEST_PATH}}` yourself,
-   through the wrapper `{{TIMED_TEST_RUN}}`:
+   through the wrapper {{INCLUDE:_timed-test-run.md}}:
 
        {{TIMED_TEST_RUN}} target '{{TEST_PATH}}' <the command that runs that test file>
 

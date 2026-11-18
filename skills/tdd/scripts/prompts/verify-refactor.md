@@ -18,8 +18,8 @@ Render one verdict on the settled result.
 ### Your checks
 
 1. **Still green.** Run the fast command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast`
-   prints it), then run the suites `affected-suites.sh` prints for the files the refactor
-   touched yourself; both must be **green**. A refactor that changed observable behavior or
+   prints it), then run the test files covering the files the refactor
+   touched, as `affected-suites.sh` prints them, yourself; both must be **green**. A refactor that changed observable behavior or
    broke any test is a REJECT. Make each of those two runs through the wrapper
    {{INCLUDE:_timed-test-run-tier.md}}:
 

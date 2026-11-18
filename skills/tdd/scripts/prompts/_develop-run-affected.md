@@ -1,4 +1,5 @@
-Run the suites covering the files you touched, through the wrapper `{{TIMED_TEST_RUN}}`:
+Run the test files covering the files you touched, as `affected-suites.sh` prints them, through the wrapper
+   {{INCLUDE:_timed-test-run.md}}:
 
        {{INCLUDE:_timed-test-run-affected.md}}
 

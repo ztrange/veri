@@ -41,8 +41,8 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
    away is a REJECT whose reason says both: "the real before-state stays green" and "the
    guard mutation stays green".
    Make both of those runs — the one in check 1 and the one after the mutation — through
-   the wrapper `{{TIMED_TEST_RUN}}`, which records what each run cost and names the tier it
-   belongs to:
+   the wrapper {{INCLUDE:_timed-test-run.md}}
+   and names the tier each belongs to:
 
        {{TIMED_TEST_RUN}} target '{{TEST_PATH}}' <the command that runs the target test>
 

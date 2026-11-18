@@ -13,8 +13,8 @@ the author's rationale.
 
 {{ISSUE_SPEC}}
 
-Run the fast command, `{{FAST_CMD}}`, then the suites `affected-suites.sh` prints for the
-files the diff touched, each through the wrapper {{INCLUDE:_timed-test-run-tier.md}}:
+Run the fast command, `{{FAST_CMD}}`, then the test files covering the files the
+diff touched, as `affected-suites.sh` prints them, each through the wrapper {{INCLUDE:_timed-test-run-tier.md}}:
 
 {{INCLUDE:_timed-test-run-fast-affected.md}}
 
@@ -23,7 +23,7 @@ files the diff touched, each through the wrapper {{INCLUDE:_timed-test-run-tier.
 {{INCLUDE:_verify-coverage-probe.md}}
 
 {{LINT_REPAIR}}PASS if the diff satisfies the step's criterion. REJECT, naming where the diff falls short,
-otherwise. REJECT, too, if the fast command or the affected suites are red. REJECT, too,
+otherwise. REJECT, too, if the fast command or those test files are red. REJECT, too,
 if the step's own commits add a test — those in
 `git diff {{STEP_BASE_SHA}}..HEAD`, never a test an earlier step of the run added: a criterion
 judged against the diff is never also pinned by a case left behind. When the step is a

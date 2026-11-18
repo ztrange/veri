@@ -43,7 +43,7 @@ other case, and all production code, untouched.
    and the shape of the message the suite will print. It is formed from the test and the code,
    never from the output: a prediction written after the run is a transcription of it, and
    answers nothing.
-3. Run the suites {{INCLUDE:_affected-suites-working-tree.md}} — not the full suite, and not one suite picked by hand — against the **unmodified** production code, and record whether
+3. Run the test files {{INCLUDE:_affected-suites-working-tree.md}} — not the full suite, and not one suite picked by hand — against the **unmodified** production code, and record whether
    the updated cases FAIL or PASS. The only question this phase asks is whether they
    fail; the suites holding them are among those it prints, and the others read the
    same files, and must stay green. Run one suite through
@@ -52,7 +52,7 @@ other case, and all production code, untouched.
    Make that run through the wrapper {{INCLUDE:_timed-test-run.md}}
    and names the tier it belongs to:
 
-       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
+       {{TIMED_TEST_RUN}} changed '<the test files affected-suites.sh printed>' <the command that runs them>
 
    {{INCLUDE:_exit-status-back.md}} so a red run stays red —
    and red is the answer this phase is after.

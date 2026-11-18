@@ -511,7 +511,7 @@ def test_main_substitutes_every_placeholder_sequentially_globally_and_literally_
         at = next((i for i, line in enumerate(lines) if b"timed-test-run.sh fast" in line), len(lines))
         results[key] = (code, lines[at:at + 2], err)
         expected[key] = (0, [b"       " + here + b"/timed-test-run.sh fast '' " + fast.encode(),
-                             b"       " + here + b"/timed-test-run.sh affected '<the suites you ran>' make test TESTS=\"<those paths>\""], b"")
+                             b"       " + here + b"/timed-test-run.sh changed '<the test files you ran>' make test TESTS=\"<those paths>\""], b"")
 
     assert results == expected
 
@@ -942,7 +942,7 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
 
     def runs_fast_then_affected(prompt):
         return (prompt is not None and fast_line in prompt
-                and timed + b" affected " in prompt[prompt.index(fast_line) + len(fast_line):])
+                and timed + b" changed " in prompt[prompt.index(fast_line) + len(fast_line):])
 
     ddf = rendered(["diff", s, dd_step, cmd, dd_fast])
     rdf = rendered(["revise", "diff", s, dd_step, cmd, r, dd_fast])
@@ -2091,7 +2091,7 @@ def test_main_renders_a_dual_stub_prompt_that_runs_the_affected_suites_and_repor
     prompt = re.sub(rb"\s+", b" ", out)
 
     assert (code, err) == (0, b""), err
-    assert (b"affected '<the suites you ran>'" in prompt,
+    assert (b"changed '<the test files you ran>'" in prompt,
             b"They must stay green" in prompt,
             b"TRANSFORM: <the refactoring applied" in prompt,
             b"SUITE: GREEN | RED" in prompt) == (True, True, True, True), out

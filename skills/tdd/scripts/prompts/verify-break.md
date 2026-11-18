@@ -32,8 +32,8 @@ The range may apply exactly one of these edits, and nothing else:
    at `{{BASE_SHA}}`: the same signatures, arguments, return values, output, errors and side
    effects. Code moved by a `sprout` is moved unchanged. A range that changes any behaviour
    observable at the region's existing callers is a REJECT, naming the caller and the change.
-3. **Still green.** Run the fast command, `{{FAST_CMD}}`, then the suites `affected-suites.sh`
-   prints for the files the range touched, each through the wrapper
+3. **Still green.** Run the fast command, `{{FAST_CMD}}`, then the test files covering
+   the files the range touched, as `affected-suites.sh` prints them, each through the wrapper
    {{INCLUDE:_timed-test-run-tier.md}}:
 
 {{INCLUDE:_timed-test-run-fast-affected.md}}
