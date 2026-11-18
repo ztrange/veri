@@ -3,6 +3,7 @@ stack-branch.sh names (stack_branch.named) and the sibling scripts it runs (stac
 so no case starts a process."""
 import importlib
 import json
+import os
 import re
 import subprocess
 
@@ -776,3 +777,20 @@ def test_a_wait_ci_sh_exit_2_on_the_rebased_head_exits_2_naming_it_nothing_merge
              ("push", "--force-with-lease=%s:%s" % (slice_branch, cut), "origin",
               "%s:refs/heads/%s" % (rebased, slice_branch))],
         [("wait-ci.sh", url), ("merge-lock.sh", "release")]), (world.log, err)
+
+
+NAMED = re.compile(r"ztrange|mario|ferreira|github\.com/\w|#[0-9]+|[\"'/](main|master)\b|[\"']stack[\"']"
+                   r"|ready-for-agent|refactor-owed|author-read|[\"'](priority|bug|legacy|refactor)[\"']|gates",
+                   re.IGNORECASE)
+
+
+def test_stack_land_merge_common_and_the_shim_name_no_repository_issue_branch_label_or_person(stack_land):
+    module = importlib.import_module("veri.merge_common")
+    shim = os.path.join(os.path.dirname(os.path.dirname(stack_land.__file__)), "stack-land.sh")
+    named = []
+    for path in (stack_land.__file__, module.__file__, shim):
+        with open(path, encoding="utf-8") as f:
+            named += ["%s:%d: %s" % (os.path.basename(path), n, line) for n, line in enumerate(f, 1)
+                      if NAMED.search(line)]
+
+    assert named == []
