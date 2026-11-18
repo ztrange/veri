@@ -840,6 +840,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `run-start.sh`: SKILL.md step 1's fixed calls after preflight, in one call.
 - `resume-start.sh`: RESUME.md sub-steps 1-4's fixed calls and the owed verify-plan launch, in one call.
 - `fused_step`: the step helpers the fused halves share above `fused`.
+- `seam_contract`: per record-writing stage, the keys the next stage reads that no committed fact holds.
 - `red-half.sh`: a step's Red half on the FAILS path, in one call.
 - `green-half.sh`: a step's Green half on the PASS path, in one call.
 - `refactor-half.sh`: a step's first refactor pass, in one call.
