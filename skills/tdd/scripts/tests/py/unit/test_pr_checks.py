@@ -211,3 +211,29 @@ def test_4392_a_recorded_finding_the_fix_budget_still_owes_a_step_stops_it_at_te
     if code:
         assert out.splitlines()[-1] == "stopped at test-quality .tdd/issue-12-test-quality owes a fix step"
         assert fake.names()[-1] == "event.sh"
+
+
+NO_LINT = {("stop-requested.sh", None): (3, "")}
+WAIT_2 = {("detach-command.sh", ("wait",)): (2, ""), **NO_LINT}
+PAST = {("detach-command.sh", ("wait",)): {".tdd/lint.wait.err": "lint: still running past --total 1800\n"}}
+
+
+@pytest.mark.parametrize("answers, files, section, code", [
+    ({("detect-test-command.sh", None): (3, "")}, None, "", 0),
+    ({("detect-test-command.sh", None): (2, "")}, None,
+     "### Lint\n\nThe lint command could not be read: detect-test-command.sh --tier lint exited 2.\n", 0),
+    (WAIT_2, PAST, "### Lint\n\n`make lint` did not finish within VERI_LINT_TIMEOUT (1800 seconds) and was stopped.\n", 0),
+    (WAIT_2, None, "### Lint\n\n`make lint` could not be run: no exit code was recorded.\n", 0),
+    ({**WAIT_2, ("stop-requested.sh", None): (0, "now\n")}, None, "", 1)],
+    ids=["no lint line", "lint line unreadable", "past the bound", "no exit recorded", "stop requested now"])
+def test_4392_a_lint_with_no_exit_code_writes_its_sentence_and_goes_on_unless_a_stop_is_now(checks, answers, files,
+                                                                                            section, code):
+    code_, out, err, fake = checks(answers=answers, files=files)
+
+    assert code_ == code, out + err
+    assert "event.sh" not in fake.names()
+    assert (checks.wt / ".tdd" / "issue-12-lint.md").read_text() == section
+    if code:
+        assert out.splitlines()[-1] == "stopped at lint stop-requested.sh exit 0 now"
+    if answers.get(("detect-test-command.sh", None)):
+        assert "detach-command.sh" not in fake.names()

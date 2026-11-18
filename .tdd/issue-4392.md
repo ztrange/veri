@@ -9,7 +9,7 @@
 - [x] an unwired.sh finding stops it with exit 1 at unwired, writing no pending record and no bail ⟦criterion 2⟧
 - [x] a lint wait whose slice runs out exits 3 with .tdd/issue-<n>-pr-checks-wait, and a second call by the same conductor only waits again, starting no second lint ⟦criterion 3⟧
 - [x] a record holding a weak-assertion or implementation-coupled finding the VERI_TEST_QUALITY_FIXES budget still owes a step stops it with exit 1 at test-quality
-- [ ] no `veri: lint:` line skips the lint; a lint command that cannot be read, one stopped past VERI_LINT_TIMEOUT and one that recorded no exit each write their `### Lint` sentence and go on, and a stop request of `now` stops it at lint
+- [x] no `veri: lint:` line skips the lint; a lint command that cannot be read, one stopped past VERI_LINT_TIMEOUT and one that recorded no exit each write their `### Lint` sentence and go on, and a stop request of `now` stops it at lint
 - [ ] coupling.sh exit 3 that drops a stale coupling row stops it with exit 1 at coupling, leaving the commit to the conductor
 - [ ] every inner call that obtains no answer (the default branch, git merge-base, test-quality.sh files, red-setup.sh worst, coupling.sh, refactor-candidates.sh, unwired.sh, event.sh) stops it with exit 2
 - [ ] the pr-checks.sh shim runs the module: its usage and exit 2 with no argument, and exit 2 naming a missing preflight

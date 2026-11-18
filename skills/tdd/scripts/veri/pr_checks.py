@@ -57,29 +57,47 @@ def write(wt, name, text):
         f.write(text)
 
 
-def said(wt, name):
-    with open(path(wt, name), encoding="utf-8", errors="replace") as f:
-        return f.read()
+def said(wt, name, absent=None):
+    """The text of <name> under the worktree; <absent>, when given, for a file that cannot be read."""
+    try:
+        with open(path(wt, name), encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except OSError:
+        if absent is None:
+            raise
+        return absent
 
 
 def lint(wt, n):
     """The lint run: the repo's declared lint command started detached, waited on within VERI_LINT_TIMEOUT, its
-    `lint` event and its `### Lint` section."""
+    `lint` event and its `### Lint` section. No `veri: lint:` line runs nothing; a command that cannot be read, or
+    that records no exit code, writes its sentence and goes on, unless a stop is `now`."""
     section = ".tdd/issue-%s-lint.md" % n
     resumed = fused.load_wait(wt, n, NAME)
     if resumed is not None:
         command = resumed[1]["lint"]
     else:
         write(wt, section, "")
-        command = fused.call(fused.script("detect-test-command.sh"), "--tier", "lint", cwd=wt)[1].strip()
+        found, command, _ = fused.call(fused.script("detect-test-command.sh"), "--tier", "lint", cwd=wt)
+        command = command.strip()
+        if found == 3:
+            return
+        if found != 0:
+            write(wt, section, "### Lint\n\nThe lint command could not be read: detect-test-command.sh --tier lint "
+                  "exited %d.\n" % found)
+            return
         fused.call(DETACH, "start", "lint", "sh", "-c", command, cwd=wt)
         fused.save_wait(wt, n, NAME, "lint", {"lint": command})
-    waited = (DETACH, "wait", "lint", "--total", tunables.get("VERI_LINT_TIMEOUT", unless_empty=True))
+    bound = tunables.get("VERI_LINT_TIMEOUT", unless_empty=True)
+    waited = (DETACH, "wait", "lint", "--total", bound)
     files = {"out": "/dev/null", "err": ".tdd/lint.wait.err"}
     waited_code = fused.call(*waited, cwd=wt, **files)[0]
     if waited_code == 3:
         raise fused.Waiting("lint")
     os.remove(fused.wait_record(wt, n, NAME))
+    if waited_code not in (0, 1):
+        unrecorded(wt, section, command, bound)
+        return
     code = said(wt, ".tdd/lint.exit").strip()
     fused.call(fused.script("event.sh"), "lint", "exit=" + code, cwd=wt,
                env=tunables.with_values(VERI_ISSUE=n, VERI_ACTOR="conductor"))
@@ -90,6 +108,19 @@ def lint(wt, n):
     write(wt, section, "### Lint\n\n`%s` exited %s. The last 20 lines of its output:\n\n~~~text\n%s~~~\n"
           % (command, code, tail))
     raise fused.Stop("lint", fused.shown(*waited, **files) + " exit %d" % waited_code, 1)
+
+
+def unrecorded(wt, section, command, bound):
+    """A lint wait with no exit code recorded: a stop of `now` stops it at lint; else the section says the command was
+    stopped past VERI_LINT_TIMEOUT or could not be run, and no event is written."""
+    code, mode, _ = fused.call(fused.script("stop-requested.sh"), cwd=wt)
+    if code == 0 and mode.strip() == "now":
+        raise fused.Stop("lint", "stop-requested.sh exit 0 now", 1)
+    if "still running past --total" in said(wt, ".tdd/lint.wait.err", ""):
+        why = "did not finish within VERI_LINT_TIMEOUT (%s seconds) and was stopped" % bound
+    else:
+        why = "could not be run: no exit code was recorded"
+    write(wt, section, "### Lint\n\n`%s` %s.\n" % (command, why))
 
 
 def coupling(wt, n, base, owed):
