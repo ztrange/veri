@@ -314,7 +314,9 @@ def test_outside_veri_the_quiet_test_files_line_is_read_at_the_branch_base_never
 
     added = run_cli(build, ["--branch-base", plain, "red", str(spec), "tests/test_x.py"], cwd=repo)
     declared = run_cli(build, ["--branch-base", quiet, "red", str(spec), "tests/test_x.py"], cwd=repo)
+    (repo / "CLAUDE.md").unlink()
+    removed = run_cli(build, ["--branch-base", quiet, "red", str(spec), "tests/test_x.py"], cwd=repo)
 
-    assert [(code, run_lines_of(out)[0], err) for code, out, err in (added, declared)] == [
-        (0, BASE_LINES[0], ""),
-        (0, [TIMED + " changed '<the test files you ran>' sh -c 'pytest -q \"$@\"' sh <those paths>"], "")]
+    quiet_line = (0, [TIMED + " changed '<the test files you ran>' sh -c 'pytest -q \"$@\"' sh <those paths>"], "")
+    assert [(code, run_lines_of(out)[0], err) for code, out, err in (added, declared, removed)] == [
+        (0, BASE_LINES[0], ""), quiet_line, quiet_line]
