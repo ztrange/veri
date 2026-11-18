@@ -177,6 +177,8 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
     tail = calls[names.index("unlabel-issue.sh") + 1:]
     alone_calls = [c for c in tail if c[0] == "detect-test-command.sh" and c[1][:2] == ("--tier", "one test file")]
     tail = [c for c in tail if c not in alone_calls]
+    # The CI read (#4337) before the fast tier is pinned by its own cases.
+    tail = [c for c in tail if c[1][:2] not in (("rev-parse", "HEAD"), ("run", "list"))]
     body = tail[2][1][0] if len(tail) > 2 and tail[2][1] else None
     assert [(c[0], c[1][:1] if c[0] == "gh" else c[1][:2] if c[0] == "detect-test-command.sh" else c[1][:1]) for c in tail[:3]] == [
         ("worktree-setup.sh", ("12",)),
@@ -1361,3 +1363,52 @@ def test_4228_a_preflight_called_again_after_a_wait_marks_both_stages_again_and_
 
     assert (code, lines) == (0, [("stage-start", "preflight", None), ("stage-start", "baseline", None),
                                  ("stage-end", "baseline", "0"), ("stage-end", "preflight", "0")])
+
+
+SHA_4337 = "c" * 40
+
+
+def _ci_answer_4337(**run):
+    import json
+    return json.dumps([dict({"headSha": SHA_4337, "status": "completed", "conclusion": "success"}, **run)]) + "\n"
+
+
+def _ci_run_4337(monkeypatch, run_cli, tmp_path, ci=None, gh_code=0):
+    """Preflight for issue 12 with `gh run list` answering <ci> (exit <gh_code>) and HEAD at SHA_4337:
+    (exit code, stdout, the detach-command.sh starts, every call)."""
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "git" and args == ("rev-parse", "HEAD"):
+            return 0, SHA_4337 + "\n", ""
+        if base == "gh" and args[:2] == ("run", "list"):
+            return gh_code, ci if ci is not None else _ci_answer_4337(), ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "reuse 55\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+    starts = [a for b, a in calls if b == "detach-command.sh" and a[0] == "start"]
+    return code, out, starts, calls
+
+
+def test_4337_a_base_commit_whose_ci_run_concluded_success_starts_no_baseline_run_and_goes_on(
+        monkeypatch, run_cli, tmp_path):
+    code, out, starts, calls = _ci_run_4337(monkeypatch, run_cli, tmp_path)
+
+    gh = [a for b, a in calls if b == "gh" and a[:2] == ("run", "list")]
+    assert gh and "--commit" in gh[0] and gh[0][gh[0].index("--commit") + 1] == SHA_4337
+    assert gh[0][gh[0].index("--workflow") + 1] == "CI"
+    assert starts == []
+    assert calls[-1][0] == "leaf-timeout.sh" and calls[-1][1][1:] == ("--full", "55")
+    assert code == 0
