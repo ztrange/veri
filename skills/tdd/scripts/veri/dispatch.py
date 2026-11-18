@@ -103,6 +103,11 @@ def target_repo():
     return workqueue.origin_slug()
 
 
+def owner_repo(pr_url):
+    """The <owner>/<repo> of a https://github.com/<owner>/<repo>/pull/<n> url."""
+    return "/".join(pr_url.split("/")[-4:-2])
+
+
 def queued_merges():
     """The PR urls of this clone's queued merges for the target repo; one clone serves several repos (#3877)."""
     urls = []
@@ -115,14 +120,13 @@ def queued_merges():
             continue
         script = os.path.realpath(words[1])
         if script == mine or (script == py_mine and os.path.basename(words[0]).startswith("python")):
-            if "/".join(words[2].split("/")[-4:-2]).casefold() == repo.casefold():
+            if owner_repo(words[2]).casefold() == repo.casefold():
                 urls.append(words[2])
     return urls
 
 
 def pr_state(pr_url):
-    owner, repo, number = pr_url.split("/")[-4], pr_url.split("/")[-3], pr_url.split("/")[-1]
-    path = f"repos/{owner}/{repo}/pulls/{number}"
+    path = f"repos/{owner_repo(pr_url)}/pulls/{pr_url.split('/')[-1]}"
     read = _read_after_rate_limit(github.gh_api, path)
     pull = json.loads(read.stdout)
     if "merged" not in pull:
