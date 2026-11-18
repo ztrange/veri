@@ -252,3 +252,20 @@ def test_a_lock_wait_marker_its_waiter_removes_after_the_read_reads_as_not_waiti
 
 def test_a_lock_wait_marker_removed_before_the_read_reads_as_not_waiting_4415(monkeypatch, tmp_path, supervise):
     assert marker_judged(monkeypatch, supervise, tmp_path / "wait", started="Mon Nov 16 10:00:00 2026") is False
+
+
+def test_a_lock_wait_marker_rewritten_after_the_read_is_judged_by_the_pid_that_was_read_4415(monkeypatch, tmp_path, supervise):
+    marker = tmp_path / "wait"
+    marker.write_text("4343\nMon Nov 16 10:00:00 2026\n")
+    real_open = open
+
+    def open_then_rewrite(file, *args, **kwargs):
+        """The reader's one open, after which another marker naming pid 0 is renamed over it."""
+        handle = real_open(file, *args, **kwargs)
+        (tmp_path / "next").write_text("0\n")
+        os.replace(tmp_path / "next", marker)
+        return handle
+
+    monkeypatch.setattr(supervise, "open", open_then_rewrite, raising=False)
+
+    assert marker_judged(monkeypatch, supervise, marker, started="Mon Nov 16 10:00:00 2026") is True
