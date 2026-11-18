@@ -53,8 +53,8 @@ Recovery re-asks each pending decision once in a session without `start_session`
 with it, each is restated only in its own question session, *Speaking*), re-asks none of the question files its `Questions`
 section lists, runs *When to stop and ask*'s step 3 once for each file its `Unasked questions`
 section lists, acts on each file its `Answered questions` section lists as *Answers* says,
-treats a pending decision it restores for a held landing (*Routing an exit*), a question file or a
-role-state entry, as keeping every landing and every join onto that stack held until it is gone,
+treats a restored pending decision whose text starts `landing held: <stack>` (*Routing an exit*)
+as keeping every landing and every join onto that stack held until the human answers,
 re-sends or checks each pending message, and ends
 with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. Recovery then
 ends by sending the resetter `ack`. With no state file for this role and lane, start fresh.
@@ -99,7 +99,8 @@ at reset time: N, each timed N change (with its expiry, written as `<n> until <I
 gives you, each pending human decision (in full) not held in a question file, and each message you
 sent another session and have not yet confirmed. Drop the item when it ends. A pending decision `vjudge` recorded you do not write
 again with `role-state.sh … add decision`: the judge records it in a question file when your brief
-named one, and with `role-state.sh … add decision` otherwise.
+named one, and with `role-state.sh … add decision` otherwise. A held landing (*Routing an exit*)
+is the one pending decision you record yourself, in every session, and `vjudge` never records it.
 
 `--auto` is written with `$S/role-state.sh dev [--lane <lane>] set auto on|off` (*Starting*), and
 recovery restores it: `$S/status.sh --recover dev [--lane <lane>]` prints the recorded value as
@@ -286,11 +287,12 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   1 is reported as a notice with its stderr. Exit 2 can mean the carry-over is still owed
   (`$S/stack-carry.sh <cut>`, named on its stderr), which leaves the stack for the human: it holds
   every later landing and every join onto that stack, a reviewed run's join included, and goes to
-  *When to stop and ask*. A landing is held while the question that exit 2 raised is pending:
-  while its question file exists, or, where no question session exists, while its pending decision
-  is recorded with `$S/role-state.sh dev [--lane <lane>] add decision` (*Role state*), the records
-  *Recovery* restores. `vjudge` never settles or lifts it: the hold lifts only once you act on the
-  human's answer and that file or entry is gone, never on a later join, a rerun or a judgment.
+  *When to stop and ask*, never through `vjudge`. At once, record it yourself with
+  `$S/role-state.sh dev [--lane <lane>] add decision "landing held: <stack> — <the exit 2 line>"`
+  (*Role state*), then ask the human as *When to stop and ask* does. The landing stays held while
+  that decision is recorded; once you have acted on the human's answer, drop it with
+  `$S/role-state.sh dev [--lane <lane>] drop decision <id>`. Nothing else lifts the hold: no later
+  join, rerun or judgment.
   Where a stack is named, the standing merge permission in the project repo (*Starting*) covers
   `$S/stack-land.sh` for the stack's slices, and a pull request based on the default branch
   is still merged through `vmerge` as before; nothing else reaches the default branch: no other
@@ -471,11 +473,14 @@ cannot resolve, a decision a ledger step asks for, a review caveat `vjudge` does
 (*Routing an exit*), a veri fault found while veri's repository is not the project repo, a split
 or criteria rewrite `vfile` proposes that `vjudge` surfaces (*Out of scope*), a priority call
 `vjudge` surfaces (*Priority*), a held landing (*Routing an exit*), or whether veri may fast-forward its own clone (*Starting*). Each
-such case first goes through `vjudge`,
+such case but a held landing first goes through `vjudge`,
 run as *Running the sibling skills* says: what the judge settles is acted on and never asked, and
-only what it surfaces reaches the human, as P21 says, stated in full (P4). A held landing is the
-human's: `vjudge` surfaces it and never settles it, so it always reaches the human. Everything
-else you decide and keep going; a turn never ends while a slot can be filled (P5).
+only what it surfaces reaches the human, as P21 says, stated in full (P4). A held landing is asked
+without `vjudge`: you record it (*Routing an exit*) and ask the human yourself, in full in your
+transcript in a session without `start_session`, and in a session with it by writing its question
+file yourself under step 2's four headings and running step 3, so no judge settles it and it
+always reaches the human. Everything else you decide and keep going; a turn never ends while a
+slot can be filled (P5).
 
 **In a session without the app's `start_session` tool** (a terminal), your brief to `vjudge` names
 no question-file path and nothing is written under `.tdd/questions/`: a case the judge does not
@@ -503,8 +508,9 @@ question-file prefix.
 4. Do not wait for that session to start or to answer: on the same turn, carry on with every run
    the question does not block.
 
-The `## Asked <session-id>` line is the only line you write to a question file. It is not part of
-the question, which only `vjudge` writes (as the answer is the question session's), but the record
+The `## Asked <session-id>` line is the only line you write to a question file, save a held
+landing's, which you write whole. It is not part of the question, which otherwise only `vjudge`
+writes (as the answer is the question session's), but the record
 that you opened its session; it is appended after `vjudge` parked the issue with the file, so the
 park comment never holds it.
 
