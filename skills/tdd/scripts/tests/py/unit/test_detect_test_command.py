@@ -574,3 +574,17 @@ def test_issue_4335_tier_quiet_test_files_without_a_quiet_line_proposes_silent_j
     (repo / "package.json").write_text('{\n  "name": "x",\n  "scripts": {\n    "test": "jest --ci"\n  }\n}\n')
 
     assert cli(run_cli, detect, "--tier", "quiet test files", str(repo)) == (0, "npx jest --silent\n", "")
+
+
+@pytest.mark.parametrize("name, text", [
+    ("Makefile", "test:\n\ttrue\n"),
+    ("package.json", '{\n  "scripts": {\n    "test": "mocha"\n  }\n}\n'),
+    ("go.mod", "module example.com/x\n\ngo 1.22\n"),
+])
+def test_issue_4335_tier_quiet_test_files_exits_3_printing_nothing_for_a_runner_it_cannot_recognise(tmp_path, run_cli, detect, name, text):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: all tests: `make test`\n")
+    (repo / name).write_text(text)
+
+    assert cli(run_cli, detect, "--tier", "quiet test files", str(repo)) == (3, "", "")
