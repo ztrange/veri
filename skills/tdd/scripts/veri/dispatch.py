@@ -20,6 +20,7 @@ from role_state import state_path
 import role_state
 import tunables
 import watch_runs
+import workqueue
 
 USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)"
 
@@ -97,8 +98,15 @@ def last_comment(issue):
     return bodies[-1] if bodies else ""
 
 
+def target_repo():
+    """The owner/repo this dispatch serves: the main working tree's origin."""
+    return workqueue.origin_slug()
+
+
 def queued_merges():
+    """The PR urls of this clone's queued merges for the target repo; one clone serves several repos (#3877)."""
     urls = []
+    repo = target_repo()
     mine = os.path.realpath(os.path.join(paths.scripts_of(__file__), "queued-merge.sh"))
     py_mine = os.path.realpath(os.path.join(paths.scripts_of(__file__), "veri", "queued_merge.py"))
     for line in pid_file.argument_lines().splitlines():
@@ -107,7 +115,8 @@ def queued_merges():
             continue
         script = os.path.realpath(words[1])
         if script == mine or (script == py_mine and os.path.basename(words[0]).startswith("python")):
-            urls.append(words[2])
+            if "/".join(words[2].split("/")[-4:-2]) == repo:
+                urls.append(words[2])
     return urls
 
 
