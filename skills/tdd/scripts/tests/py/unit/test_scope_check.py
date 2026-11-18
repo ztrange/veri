@@ -375,3 +375,59 @@ def test_3302_a_row_move_and_new_unit_file_named_only_inside_the_signing_skill_e
     code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
 
     assert (code, err) == (0, "")
+
+
+def test_3302_a_plain_step_naming_a_row_of_an_unsigned_unit_a_later_skill_edit_step_regrades_passes(
+    tmp_path, run_cli, scope_check
+):
+    tdd = _signed_units_repo(tmp_path)
+    tdd_skill = tmp_path / "skills" / "tdd"
+    with (tdd_skill / "REQUIREMENTS.md").open("a", encoding="utf-8") as listing:
+        listing.write(
+            "\n## skills/tdd/UNSIGNED.md\n\n"
+            "| ID | Requirement | Why |\n|---|---|---|\n"
+            "| UNS1 | says an unsigned thing | so it is said |\n"
+        )
+    (tdd_skill / "UNSIGNED.md").write_text("unsigned prose\n", encoding="utf-8")
+    ledger = tdd / "issue-3302.md"
+    ledger.write_text(
+        "- [ ] move row UNS1 out into `skills/tdd/scripts/x.py` ⟦criterion 1⟧\n"
+        "- [ ] ⟦skill-edit⟧ regrade `skills/tdd/UNSIGNED.md` ⟦added⟧\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")
+
+
+def test_3302_a_plain_step_naming_a_row_of_a_signed_unit_after_the_skill_edit_step_that_signs_it_passes(
+    tmp_path, run_cli, scope_check
+):
+    tdd = _signed_units_repo(tmp_path)
+    ledger = tdd / "issue-3302.md"
+    ledger.write_text(
+        "- [ ] ⟦skill-edit⟧ regrade `skills/tdd/PIN.md` ⟦added⟧\n"
+        f"- [ ] {PLAIN_ROW_MOVE}\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")
+
+
+def test_3302_a_plain_step_naming_a_token_that_ends_in_a_signed_row_id_passes(
+    tmp_path, run_cli, scope_check
+):
+    tdd = _signed_units_repo(tmp_path)
+    ledger = tdd / "issue-3302.md"
+    ledger.write_text(
+        "- [ ] move row XPIN1 out into `skills/tdd/scripts/x.py` ⟦criterion 1⟧\n"
+        "- [ ] ⟦skill-edit⟧ regrade `skills/tdd/PIN.md` ⟦added⟧\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")
