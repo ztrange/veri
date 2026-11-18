@@ -54,8 +54,8 @@ def run(n):
     resuming(n, wt, text, step, [line[len("stray="):] for line in lines if line.startswith("stray=")])
     if os.path.exists(os.path.join(wt, SUITE_RED)):
         fused.checked("4", fused.script("suite-red-resume.sh"), "insert", ledger, SUITE_RED, cwd=wt)
-    pr_url(wt)
-    return 0
+    url = pr_url(wt)
+    return fused.settle(wt, n, "resume-start", ["step=" + step, "pr_url=" + url, "verify_plan=" + values["verify_plan"]])
 
 
 NOTE = ".tdd/resume-note.md"
