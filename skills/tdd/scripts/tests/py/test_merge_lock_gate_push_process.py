@@ -58,7 +58,7 @@ def test_3431_a_rebased_push_through_merge_lock_gate_is_accepted_exactly_as_the_
                             capture_output=True, text=True, timeout=30)
     pid = str(os.getpid())
     shim = ["/bin/sh", str(SCRIPTS / "merge-lock.sh")]
-    taken = subprocess.run([*shim, "take", "--pid", pid], cwd=gated_clone, stdin=subprocess.DEVNULL,
+    taken = subprocess.run([*shim, "take", "--pid", pid, "--owner", "tok"], cwd=gated_clone, stdin=subprocess.DEVNULL,
                            capture_output=True, text=True, timeout=10)
     gated = subprocess.run([*shim, "gate", "--keep", "--pid", pid, "--owner", "tok", "--", *cmd(gated_sha)],
                            cwd=gated_clone, stdin=subprocess.DEVNULL, capture_output=True, text=True,
