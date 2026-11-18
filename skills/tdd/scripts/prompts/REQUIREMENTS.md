@@ -1210,3 +1210,10 @@
 | ID | Requirement | Why |
 |---|---|---|
 | WN1 | The fragment tells the leaf, in bold, to leave the test files as they are, because this phase has no test of its own to redo. (The whole fragment; `build_develop_prompt.py` picks it as `develop-revise.md`'s `{{TEST_REWRITE}}` when the revised phase is none of `red`, `contract-a` and `surround`.) | A revise leaf redoing a phase that writes no test must not edit one. |
+
+## skills/tdd/scripts/prompts/_develop-test-rewrite-surround.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| WS1 | The fragment tells the leaf, in bold, to rewrite the characterization cases this step wrote, and only those. (First sentence; `build_develop_prompt.py` picks it as `develop-revise.md`'s `{{TEST_REWRITE}}` when the revised phase is `surround`.) | A revised surround may redo only its own characterization cases. |
+| WS2 | It says each case still drives the region only through the step's seam and passes on the unmodified code, and that no production file is edited. (Rest of the fragment.) | Characterization tests pin today's behaviour through the seam; a production edit would change what they pin. |
