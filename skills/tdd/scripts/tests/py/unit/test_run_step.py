@@ -61,3 +61,17 @@ def test_4343_a_cycle_step_runs_the_four_stages_in_order_and_ends_on_step_closes
     assert [os.path.dirname(c[3]) for c in stages.calls] == [os.path.normpath(os.path.join(scripts, ".."))] * 4
     assert [c[1] for c in stages.calls] == [("12",)] * 4
     assert out.splitlines()[-1] == "next=cycle"
+
+
+RED = "SKILL.md#Red — one failing test (developer leaf), then verify-red (blind)"
+GREEN = "SKILL.md#Green — minimum implementation (developer leaf), then verify-green (blind)"
+REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
+
+
+@pytest.mark.parametrize("code, next_", [(1, GREEN), (2, GREEN), (3, "run-step.sh 12")])
+def test_4343_the_first_stage_exiting_nonzero_stops_it_on_a_seam_line_with_that_code(step, code, next_):
+    code_, out, err, stages = step(answers={"green-half.sh": (code, "stopped at 2 something\n")})
+
+    assert stages.names() == ["red-half.sh", "green-half.sh"]
+    assert out.splitlines()[-1] == "seam=green-half code=%d next=%s" % (code, next_)
+    assert code_ == code
