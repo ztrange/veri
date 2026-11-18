@@ -437,3 +437,59 @@ def test_issue_4335_main_prints_a_foreign_trees_changed_run_as_its_exit_code_las
         *lines[-20:],
         f"full output: {pathlib.Path.cwd() / '.tdd' / 'test-runs' / saved[0].name}",
     ]
+
+
+@pytest.mark.parametrize("command", [["sh", "-c", "other", "sh", "a", "b"], ["npm", "test", "--", "a", "b"]])
+def test_issue_4335_main_gives_a_changed_run_of_another_command_the_20_line_tail_in_a_tree_declaring_a_quiet_command(
+        command, tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: quiet test files: pytest -q --no-header -rf\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(timed_test_run.time, "time", lambda: 100.5)
+    lines = [f"line {n:02d}" for n in range(25)]
+    output = ("\n".join(lines) + "\n").encode()
+
+    def run(line, **kwargs):
+        kwargs["stdout"].write(output)
+        kwargs["stdout"].flush()
+        return (1, "", "")
+
+    fake_processes.answers({command[0]: run})
+    events.refuse_event_sh()
+
+    code = timed_test_run.main(["changed", "a b", *command])
+
+    out, err = capfd.readouterr()
+    saved = list((tmp_path / ".tdd" / "test-runs").iterdir())
+    assert (code, err) == (1, "")
+    assert out.splitlines() == [
+        "timed-test-run.sh: tier changed, exit 1, 0s",
+        *lines[-20:],
+        f"full output: {pathlib.Path.cwd() / '.tdd' / 'test-runs' / saved[0].name}",
+    ]
+
+
+def test_issue_4335_main_gives_a_changed_run_in_veris_own_tree_the_bounded_report_not_the_tail(
+        tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run):
+    (tmp_path / "skills" / "tdd" / "scripts" / "tests" / "py").mkdir(parents=True)
+    output = b"FAILED t.py::test_x - boom\n= 1 failed, 3 passed in 0.20s =\n"
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(timed_test_run.time, "time", lambda: 100.5)
+
+    def run(line, **kwargs):
+        kwargs["stdout"].write(output)
+        kwargs["stdout"].flush()
+        return (1, "", "")
+
+    fake_processes.answers({"make": run})
+    events.refuse_event_sh()
+
+    code = timed_test_run.main(["changed", "t.py", "make", "test", "TESTS=t.py"])
+
+    out, err = capfd.readouterr()
+    saved = list((tmp_path / ".tdd" / "test-runs").iterdir())
+    assert (code, err) == (1, "")
+    assert out.splitlines() == [
+        "timed-test-run.sh: tier changed, exit 1, 0s, 3 passed, 1 failed, 0 error",
+        "FAILED t.py::test_x - boom",
+        f"full output: {pathlib.Path.cwd() / '.tdd' / 'test-runs' / saved[0].name}",
+    ]
