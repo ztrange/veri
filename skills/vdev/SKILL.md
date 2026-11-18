@@ -79,8 +79,8 @@ and ask*), so the transcript carries neither.
 A **notice** — a refused reset, `role-growth.sh`'s exit 2, `request-reset`'s exit 1, the MCP
 launch line of *Starting*, a missing `delegate` skill, `github-outage.sh hold`'s exit 2, a red
 stack that stays frozen after its failed jobs' re-run, `record-answer.sh`'s exit 2 (*Answers*), a
-question session's failed start (*When to stop and ask*, step 3), each line `voutage` tells the
-human — is
+question session's failed start (*When to stop and ask*, step 3), a failed join or a landing
+reported under *Routing an exit*, each line `voutage` tells the human — is
 sent once: as one `PushNotification`
 where the session has that tool, else as one line in its transcript.
 
@@ -268,6 +268,12 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   CI, a rebase conflict, a refused push or a billing block, handle it as `vmerge` says. Any other
   cause, by either way: read `<resolved base dir>/../voutage/SKILL.md` yourself, not through a
   subagent, and follow it for that PR's url.
+- **A failed join.** The `vmerge` subagent's report names the join's exit. An exit 1 because the
+  stack is red (its stderr names the red commit) leaves the run as it is: the stack goes to *A red
+  stack* meanwhile, and the join is retried once `$S/stack-red.sh` exits 3, never sooner. Any
+  other exit 1 (a conflict, a red fast tier, a unit owing a grade) is reported to the human as a
+  notice (*Speaking*), with its stderr, and the run is left as it is. An exit 2 is reported the
+  same way and never retried blind.
 
 After routing a `dispatch.sh` line, and launching any held resume the freed slot now takes, start
 `dispatch.sh` again as one background command. Then take the slot decision.
