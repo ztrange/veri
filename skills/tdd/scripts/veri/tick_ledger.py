@@ -72,7 +72,6 @@ def run_case(case):
     """Run the test case `case` through the repository's one-test-file command (`make test TESTS=<case>` when it
     declares none). Returns `(answer, command, code)`: the answer (0 passes, 1 fails, 2 never ran), the command line
     run, and the process exit code."""
-    global LAST_COMMAND, LAST_CODE
     detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
     found = subprocess.run([detect, "--tier", "one test file"], capture_output=True, text=True)
     command = found.stdout.strip()
