@@ -36,9 +36,10 @@ def run(n, mode, wt):
     fused.checked("2", "git", "status", "--porcelain", cwd=wt)
     fused.checked("2", "git", "reset", "--hard", "HEAD", cwd=wt)
     fused.call(fused.script("push-branch.sh"), cwd=wt)
-    steps = ledger_steps(committed_ledger(n, wt))
+    text = committed_ledger(n, wt)
+    steps = ledger_steps(text or "")
     step = current_or_last_done_record(steps)
-    fused.mark("4", wt, n, step.text if step else "", "stop", "mode=" + mode, "at=planned")
+    fused.mark("4", wt, n, step.text if step else "", "stop", "mode=" + mode, "at=" + boundary(text, steps))
     fused.checked("5", fused.script("comment.sh"), n, "stopped", cwd=wt)
     fused.checked("6", fused.script("stop-requested.sh"), "--clear", cwd=wt)
     return 0
@@ -57,11 +58,22 @@ def live(path, name):
 
 
 def committed_ledger(n, wt):
-    """The ledger HEAD holds; "" when HEAD holds none. Only the line naming the call is printed, never the ledger."""
+    """The ledger HEAD holds; None when HEAD holds none. Only the line naming the call is printed, never the ledger."""
     path = ".tdd/issue-%s.md" % n
     code, out, _ = fused.run_script("git", "show", "HEAD:" + path, cwd=wt)
     sys.stdout.write(fused.label("git", "show", "HEAD:" + path) + " exit %d\n" % code)
-    return out if code == 0 else ""
+    return out if code == 0 else None
+
+
+def boundary(text, steps):
+    """Step 4's `at` for a tree it settled: `unplanned` with no committed ledger, `planned` with no step ticked,
+    `green` while a ticked step still carries its refactor-pending mark, else `step-done`."""
+    if text is None:
+        return "unplanned"
+    done = [s for s in steps if s.state == "done"]
+    if not done:
+        return "planned"
+    return "green" if any(s.pending == "1" for s in done) else "step-done"
 
 
 if __name__ == "__main__":

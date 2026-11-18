@@ -113,3 +113,15 @@ def test_4388_it_waits_on_each_leaf_still_supervised_before_the_tree_check_and_o
     assert code == 0, err
     assert _seq(fake)[:2] == [("wait-leaf.sh", "develop-red"), ("git", "rev-parse", "--git-path", "rebase-merge")]
     assert [c for c in fake.calls if c[0] == "wait-leaf.sh"] == [fake.calls[0]]
+
+
+@pytest.mark.parametrize("ledger, at", [
+    (None, "unplanned"), (LEDGER, "planned"),
+    ("# Plan\n\n- [x] one ⟦criterion 1⟧ ⟂ refactor pending\n- [ ] two ⟦criterion 2⟧\n", "green"),
+    ("# Plan\n\n- [x] one ⟦criterion 1⟧\n- [ ] two ⟦criterion 2⟧\n", "step-done")])
+def test_4388_at_is_read_off_the_committed_ledger(stop, ledger, at):
+    fake = Fake(ledger=ledger)
+    code, out, err, fake = stop(fake=fake)
+
+    assert code == 0, err
+    assert fake.call("event.sh")[1] == ("stop", "mode=at-ledger", "at=" + at)
