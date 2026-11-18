@@ -13,6 +13,7 @@ import stack_green
 
 USAGE = "usage: stack-tag.sh <slice-pr-url> [--message <n>=<text>]..."
 TAGGED = ("feat", "fix")  # a commit type that changes behaviour: its issue owes a tag
+UNTAGGED = ("docs", "test", "refactor", "chore", "plan")  # a commit type that changes no behaviour
 _TYPE = re.compile(r"(\w+)(?:\([^()]*\))?!?:")
 
 
@@ -45,12 +46,19 @@ def _json(path, what):
         raise _Unanswered("%s got no answer: %s" % (what, error)) from None
 
 
+class UnknownType(Exception):
+    """A commit of an issue whose type is neither TAGGED nor UNTAGGED; the message is its subject."""
+
+
 def owing(subjects):
     """The issues <subjects> name (stack_green.named's rule), in the order of their last commit, that owe a tag: any of
-    their commits has a type in TAGGED."""
+    their commits has a type in TAGGED. UnknownType naming the first commit of an issue whose type is in neither
+    TAGGED nor UNTAGGED, or that has none."""
     last, owes = {}, set()
     for at, subject in enumerate(subjects):
         kind = _TYPE.match(subject)
+        if stack_green.named(subject) and not (kind and kind[1] in TAGGED + UNTAGGED):
+            raise UnknownType(subject)
         for issue in stack_green.named(subject):
             last[issue] = at
             if kind and kind[1] in TAGGED:
@@ -87,7 +95,12 @@ def main(argv):
         subjects = _subjects(repo, number)
     except _Unanswered as unanswered:
         return entry.refuse("%s; nothing tagged" % unanswered, prefix="stack-tag: ")
-    if not owing(subjects):
+    try:
+        owed = owing(subjects)
+    except UnknownType as unknown:
+        return entry.refuse("the commit '%s' of %s has a type that is neither %s nor %s; nothing tagged"
+                            % (unknown, pr, ", ".join(TAGGED), ", ".join(UNTAGGED)), prefix="stack-tag: ")
+    if not owed:
         print("stack-tag: no issue of %s owes a tag: none has a commit of type %s" % (pr, " or ".join(TAGGED)),
               file=sys.stderr)
         return 3

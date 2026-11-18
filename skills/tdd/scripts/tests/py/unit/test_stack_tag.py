@@ -151,3 +151,13 @@ def test_a_slice_whose_every_commit_is_docs_test_refactor_chore_or_plan_exits_3_
     code, out, err = run_cli(stack_tag, [PR])
 
     assert (code, out, "no issue" in err, world.lock_calls, world.cut) == (3, "", True, [], []), err
+
+
+@pytest.mark.parametrize("odd", ["perf: speed a (#8)", "Revert \"feat: a\" (#8)"])
+def test_a_commit_of_an_unknown_type_or_none_exits_2_naming_it_nothing_tagged_and_no_lock_taken(
+        monkeypatch, run_cli, stack_tag, odd):
+    world = World(monkeypatch, commits=["feat: a (#7)", odd, "docs: b (#8)"], titles={"7": "A", "8": "B"})
+
+    code, out, err = run_cli(stack_tag, [PR])
+
+    assert (code, out, odd in err, world.lock_calls, world.cut) == (2, "", True, [], []), err
