@@ -166,3 +166,17 @@ def test_4389_no_saved_branch_red_list_inserts_nothing(resume):
     code, out, err, fake = resume()
 
     assert "suite-red-resume.sh" not in fake.names()
+
+
+def test_4389_exit_0_settles_the_step_the_pr_and_the_verdict_and_prints_them_last(resume):
+    code, out, err, fake = resume()
+
+    settled = "step=two ⟦criterion 2⟧\npr_url=%s\nverify_plan=skip\n" % PR_URL
+    assert (code, (resume.wt / ".tdd" / "issue-12-resume-start").read_text(), out.endswith(settled)) == (
+        0, settled, True)
+
+
+def test_4389_every_step_checked_settles_an_empty_step(resume):
+    code, out, err, fake = resume(answers={("next-unchecked.sh", None): (3, "")})
+
+    assert (code, (resume.wt / ".tdd" / "issue-12-resume-start").read_text().splitlines()[0]) == (0, "step=")
