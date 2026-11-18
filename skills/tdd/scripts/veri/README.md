@@ -618,7 +618,8 @@ Choosing and running the suites of the project veri works on: finding its test c
 
 ## run_line
 - `own_tree(root=".")`: whether `root` is veri's own tree (`skills/tdd/scripts/tests/py` is a directory there).
-- `run_lines(root=".")`: `(changed, one)` as bytes, the commands a leaf prompt gives for the test files `affected-suites.sh` printed and for a single test file: today's `make test TESTS="…"` text in veri's own tree, elsewhere the repo's `veri: one test file:` command once per path through `sh -c`, or its fast command when it declares none, its all-tier command only when it declares neither. Read from the tree's files alone.
+- `run_lines(root=".")`: `(changed, one)` as bytes, the commands a leaf prompt gives for the test files `affected-suites.sh` printed and for a single test file: today's `make test TESTS="…"` text in veri's own tree, elsewhere the repo's `veri: one test file:` command once per path through `sh -c`, or its fast command when it declares none, its all-tier command only when it declares neither; a declared `veri: quiet test files:` command replaces the changed one, run once over every path. Read from the tree's files alone.
+- `quiet_prefix(root=".")`: the argv prefix `["sh", "-c", '<quiet> "$@"', "sh"]` running the command the tree's `CLAUDE.md` declares as `veri: quiet test files: <quiet>` over the paths appended to it; `None` when it declares none (never the inferred default) or in veri's own tree.
 
 ## rerun_alone
 - `named_targets(text)`: the test targets a red run's output names, in order, each once.
