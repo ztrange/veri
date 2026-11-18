@@ -1,6 +1,6 @@
 # Plan for #4315 — PRD 033.2a: during an outage a reviewed run joins the local stack, gated by the full suite, with the push deferred
 
-- [ ] while `.tdd/github-outage` exists and the stack is named, `queued-merge.sh` joins onto the local stack under the merge lock (rebase, fast tier, `prose-owed.sh`, fast-forward) with no fetch, push, `gh`, `curl`, PR read, `stack-pr.sh` or `stack-red.sh` ⟦criterion 1⟧
+- [x] while `.tdd/github-outage` exists and the stack is named, `queued-merge.sh` joins onto the local stack under the merge lock (rebase, fast tier, `prose-owed.sh`, fast-forward) with no fetch, push, `gh`, `curl`, PR read, `stack-pr.sh` or `stack-red.sh` ⟦criterion 1⟧
 - [ ] the offline join rebases `--onto <stack> <sha>` when `.tdd/issue-<n>-base-sha` exists ⟦criterion 1⟧
 - [ ] with the outage file present but `.tdd/issue-<n>-base` absent, the join reads the pull request as before ⟦criterion 1⟧
 - [ ] an absent local `<stack>` is created at `origin/<stack>` as last fetched ⟦criterion 2⟧

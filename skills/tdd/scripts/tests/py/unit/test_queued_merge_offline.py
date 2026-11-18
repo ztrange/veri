@@ -1,0 +1,154 @@
+"""veri/queued_merge.py joining a run to the local stack branch while `.tdd/github-outage` exists (PRD 033.2a), in-process:
+git, merge-lock.sh, detect-test-command.sh, prose-owed.sh and sh faked as processes; the pull request read through
+queued_merge._pull, spied in-process, so a read of it shows."""
+import os
+
+from veri import queued_merge
+
+PR = "https://github.com/o/r/pull/7"
+BRANCH = "tdd/7-slug"
+PID = str(os.getpid())
+RUN_TIP = "1111111"
+ORIGIN_STACK = "2222222"
+LOCAL_STACK = "3333333"
+REBASED = "4444444"
+AMENDED = "5555555"
+BASE_SHA = "6666666"
+TREE = "7777777"
+NETWORK = ("fetch", "push", "ls-remote", "pull", "remote")
+
+
+class Offline:
+    """An outage's world: the main clone holding `.tdd/github-outage`, a run's worktree under it whose CLAUDE.md names the
+    stack and whose cut recorded it, origin's stack as last fetched and the local stack, and every call made."""
+
+    def __init__(self, tmp_path, outage=True, base="stack\n", base_sha=None, local=LOCAL_STACK, rebase=0, fast=0,
+                 owed=0, full=0, all_tier="make test\n", checked_out=None, default="trunk", ancestor=True, amend=0):
+        self.clone = str(tmp_path / "clone")
+        self.wt = os.path.join(self.clone, ".tdd", "wt", "7")
+        admin = os.path.join(self.clone, ".git", "worktrees", "7")
+        os.makedirs(admin)
+        os.makedirs(self.wt + "/.tdd")
+        with open(os.path.join(admin, "commondir"), "w") as f:
+            f.write("../..\n")
+        with open(self.wt + "/.git", "w") as f:
+            f.write("gitdir: %s\n" % admin)
+        with open(self.wt + "/CLAUDE.md", "w") as f:
+            f.write("veri: stack branch: stack\n")
+        with open(self.wt + "/.tdd/issue-7.md", "w") as f:
+            f.write("# Plan for #7\n\n- [x] a step ⟦criterion 1⟧\n")
+        if base is not None:
+            with open(self.wt + "/.tdd/issue-7-base", "w") as f:
+                f.write(base)
+        if base_sha is not None:
+            with open(self.wt + "/.tdd/issue-7-base-sha", "w") as f:
+                f.write(base_sha + "\n")
+        if outage:
+            with open(os.path.join(self.clone, ".tdd", "github-outage"), "w") as f:
+                f.write("")
+        self.local, self.rebase, self.fast, self.owed, self.full = local, rebase, fast, owed, full
+        self.all_tier, self.checked_out, self.default, self.ancestor, self.amend = (
+            all_tier, checked_out, default, ancestor, amend)
+        self.head = [RUN_TIP]
+        self.pulls = []
+
+    def install(self, fake_processes, monkeypatch):
+        def pull(repo, pr):
+            self.pulls.append(pr)
+            return None
+
+        monkeypatch.setattr(queued_merge, "_pull", pull)
+        self.fake = fake_processes.answers({}, default=self.answer)
+        return self
+
+    def answer(self, line, **_):
+        wt = "git -C %s " % self.wt
+        if line == "git symbolic-ref --quiet --short refs/remotes/origin/HEAD":
+            return (0, "origin/%s\n" % self.default, "") if self.default else (1, "", "")
+        if line.startswith("git check-ref-format"):
+            return 0, "", ""
+        if line == wt + "rev-parse --verify refs/remotes/origin/stack":
+            return 0, ORIGIN_STACK + "\n", ""
+        if line == wt + "rev-parse --verify refs/heads/stack":
+            return (0, self.local + "\n", "") if self.local else (128, "", "fatal: Needed a single revision\n")
+        if line.startswith(wt + "branch stack "):
+            self.local = line.split()[-1]
+            return 0, "", ""
+        if line == wt + "worktree list --porcelain":
+            listed = "worktree %s\nHEAD %s\nbranch refs/heads/main\n\nworktree %s\nHEAD %s\nbranch refs/heads/%s\n" % (
+                self.clone, "8" * 7, self.wt, self.head[-1], BRANCH)
+            if self.checked_out:
+                listed += "\nworktree %s\nHEAD %s\nbranch refs/heads/stack\n" % (self.checked_out, self.local)
+            return 0, listed, ""
+        if line.startswith(wt + "merge-base --is-ancestor %s " % ORIGIN_STACK):
+            return (0 if self.ancestor else 1), "", ""
+        if line.startswith(wt + "merge-base --is-ancestor"):
+            return 0, "", ""
+        if line.startswith(wt + "rev-list --merges"):
+            return 0, "", ""
+        if line == wt + "rev-parse --git-path rebase-merge":
+            return 0, (str(self.wt) + "/stopped\n" if self.rebase else ""), ""
+        if line.startswith(wt + "rebase ") and "--abort" not in line:
+            if self.rebase:
+                os.makedirs(self.wt + "/stopped", exist_ok=True)
+                return 1, "", "CONFLICT (content): Merge conflict in a.py\n"
+            self.head.append(REBASED)
+            return 0, "", ""
+        if " merge-tree --write-tree " in line or line.endswith("rev-parse --verify HEAD^{tree}"):
+            return 0, TREE + "\n", ""
+        if line == wt + "rev-parse --verify HEAD":
+            return 0, self.head[-1] + "\n", ""
+        if line == wt + "status --porcelain":
+            return 0, "", ""
+        if line.startswith("detect-test-command.sh --tier fast"):
+            return 0, "make unit\n", ""
+        if line.startswith("detect-test-command.sh --tier all"):
+            return (0, self.all_tier, "") if self.all_tier else (3, "", "")
+        if line == "sh -c make unit":
+            return self.fast, "", ""
+        if line == "sh -c make test":
+            return self.full, "", ""
+        if line.startswith("prose-owed.sh"):
+            return self.owed, "", ""
+        if line.startswith(wt + "commit --amend"):
+            if self.amend:
+                return self.amend, "", "fatal: amend refused\n"
+            self.head.append(AMENDED)
+            return 0, "", ""
+        if line.startswith(wt + "update-ref refs/heads/stack "):
+            self.local = line.split()[-2]
+            return 0, "", ""
+        if line.startswith("merge-lock.sh"):
+            return 0, "", ""
+        if line.endswith("--git-common-dir"):
+            return 0, self.clone + "/.git\n", ""
+        return 0, "", ""
+
+    @property
+    def calls(self):
+        return self.fake.calls
+
+    def networked(self):
+        """Every call that talks to GitHub: a git network verb, gh, curl, stack-pr.sh or stack-red.sh."""
+        return [c for c in self.calls if (c.startswith("git ") and set(c.split()[1:4]) & set(NETWORK))
+                or c.startswith(("gh ", "curl ", "stack-pr.sh", "stack-red.sh"))]
+
+
+def join(run_cli, world):
+    return run_cli(queued_merge, [PR, world.wt, BRANCH, "-"])
+
+
+def test_while_the_outage_file_exists_a_stacked_run_joins_the_local_stack_with_no_network_call_and_no_pr_read(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    wt = "git -C %s " % world.wt
+    order = [c for c in world.calls if c.startswith(("merge-lock.sh", wt + "rebase", "sh -c", "prose-owed.sh",
+                                                     wt + "update-ref"))]
+    assert (code, world.networked(), world.pulls) == (0, [], []), err
+    assert order[:4] == ["merge-lock.sh take --pid %s" % PID, wt + "rebase stack", "sh -c make unit",
+                         "prose-owed.sh " + world.wt], err
+    assert (world.local, order[-2:]) == (world.head[-1], [
+        wt + "update-ref refs/heads/stack %s %s" % (world.head[-1], LOCAL_STACK), "merge-lock.sh release --pid %s" % PID]), err

@@ -43,16 +43,18 @@ def stated_lines(path):
     return stated
 
 
-def default_names(root):
-    """The default branch as origin states it (`git ls-remote --symref origin HEAD`, bounded by VERI_GIT_NETWORK_TIMEOUT)
-    and as refs/remotes/origin/HEAD records it: the set of names either gives, empty when neither does."""
-    asked = git.network("ls-remote", "--symref", "origin", "HEAD", cwd=root)
-    remote = git.symref_default(asked.stdout) if asked.returncode == 0 else None
+def default_names(root, remote=True):
+    """The default branch as origin states it (`git ls-remote --symref origin HEAD`, bounded by VERI_GIT_NETWORK_TIMEOUT,
+    asked only when <remote>) and as refs/remotes/origin/HEAD records it: the set of names either gives, empty when
+    neither does."""
+    asked = git.network("ls-remote", "--symref", "origin", "HEAD", cwd=root) if remote else None
+    remote = git.symref_default(asked.stdout) if asked and asked.returncode == 0 else None
     return {name for name in (remote, git.default_branch(cwd=root, remote=False)) if name}
 
 
-def named(root):
-    """The stack branch <root>'s CLAUDE.md names, or None when it names none; Refused when the name cannot be a stack."""
+def named(root, remote=True):
+    """The stack branch <root>'s CLAUDE.md names, or None when it names none; Refused when the name cannot be a stack.
+    With <remote> False the default branch is read from refs/remotes/origin/HEAD alone, asking origin nothing."""
     path = os.path.join(root, "CLAUDE.md")
     stated = stated_lines(path)
     if not stated:
@@ -69,7 +71,7 @@ def named(root):
         raise Refused("%s: the line '%s' names a ref or a remote-tracking spelling; name the branch alone" % (path, line))
     if git.git("check-ref-format", "--branch", name, cwd=root, capture_output=True, text=True).returncode != 0:
         raise Refused("%s: the line '%s' names a branch git check-ref-format --branch refuses" % (path, line))
-    told = default_names(root)
+    told = default_names(root, remote)
     if not told:
         raise Refused("%s: the line '%s' names a stack, but the default branch cannot be told (no refs/remotes/origin/HEAD,"
                       " and origin gave no answer) — refusing, since the stack may be the default branch" % (path, line))
