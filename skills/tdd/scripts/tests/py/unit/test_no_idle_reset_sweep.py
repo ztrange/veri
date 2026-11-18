@@ -26,6 +26,6 @@ def test_no_file_under_skills_names_the_idle_wait_or_the_idle_reset_request():
 def test_the_sweep_finds_a_retired_invocation_in_a_file_that_is_not_markdown(tmp_path):
     script = tmp_path / "skills" / "vdev" / "scripts" / "wait.sh"
     script.parent.mkdir(parents=True)
-    script.write_text("#!/bin/sh\n$S/role-state.sh dev request-reset" + " --idle\n")
+    script.write_text("$S/role-state.sh dev request-reset" + " --idle\n")
 
-    assert _hits(tmp_path) == ["skills/vdev/scripts/wait.sh:2: $S/role-state.sh dev request-reset" + " --idle"]
+    assert _hits(tmp_path) == ["skills/vdev/scripts/wait.sh:1: $S/role-state.sh dev request-reset" + " --idle"]
