@@ -320,3 +320,21 @@ def test_outside_veri_the_quiet_test_files_line_is_read_at_the_branch_base_never
     quiet_line = (0, [TIMED + " changed '<the test files you ran>' sh -c 'pytest -q \"$@\"' sh <those paths>"], "")
     assert [(code, run_lines_of(out)[0], err) for code, out, err in (added, declared, removed)] == [
         (0, BASE_LINES[0], ""), quiet_line, quiet_line]
+
+
+@pytest.mark.process("git init and commit run for real in a scratch repository, then build-verify-prompt in it")
+def test_outside_veri_a_lint_repair_diff_prompt_names_the_branch_base_lint_command_never_the_working_trees_4263(
+        tmp_path, run_cli):
+    build = importlib.import_module("veri.build_verify_prompt")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    base = commit_all(repo, "base", **{"CLAUDE.md": BASE_MD + "veri: lint: `ruff check --quiet .`\n"})
+    (repo / "CLAUDE.md").write_text(BASE_MD + "veri: lint: `true`\n")
+    step = "make `ruff check .` pass ⟦diff-checked⟧ ⟦lint-repair⟧ ⟦added⟧ ⟦criterion 1⟧"
+
+    code, out, err = run_cli(build, ["--step", step, "--fast-cmd", "pytest", "--branch-base", base, "diff", str(spec),
+                                     base, base], cwd=repo)
+
+    words = " ".join(out.split())
+    assert (code, err, "lint command, `ruff check --quiet .`," in words, "`true`" in words) == (0, "", True, False)
