@@ -431,3 +431,142 @@ def test_3302_a_plain_step_naming_a_token_that_ends_in_a_signed_row_id_passes(
     code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
 
     assert (code, err) == (0, "")
+
+
+def _check(tmp_path, run_cli, scope_check, *steps, cwd=None):
+    """Run scope-check over a ledger of steps in tmp_path's repo; return (code, err)."""
+    ledger = tmp_path / ".tdd" / "issue-3302.md"
+    ledger.write_text("".join(f"- [ ] {step}\n" for step in steps), encoding="utf-8")
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)], cwd=cwd)
+    return code, err
+
+
+SIGN_PIN = "⟦skill-edit⟧ regrade `skills/tdd/PIN.md` ⟦added⟧"
+SIGN_NEW = "⟦skill-edit⟧ sign `skills/tdd/NEW.md` ⟦added⟧"
+
+
+def test_3302_a_plain_step_naming_a_longer_row_id_that_starts_with_a_signed_row_id_passes(
+    tmp_path, run_cli, scope_check
+):
+    _signed_units_repo(tmp_path)
+
+    result = _check(tmp_path, run_cli, scope_check, "move row PIN10 out ⟦criterion 1⟧", SIGN_PIN)
+
+    assert result == (0, "")
+
+
+def test_3302_a_row_id_is_matched_literally_not_as_a_pattern(tmp_path, run_cli, scope_check):
+    _signed_units_repo(tmp_path)
+    listing = tmp_path / "skills" / "tdd" / "REQUIREMENTS.md"
+    listing.write_text(listing.read_text(encoding="utf-8").replace("PIN1", "P.1"), encoding="utf-8")
+
+    result = _check(tmp_path, run_cli, scope_check, "move row PX1 out ⟦criterion 1⟧", SIGN_PIN)
+
+    assert result == (0, "")
+
+
+def test_3302_a_later_plain_step_backticking_a_signed_unit_does_not_count_as_signing_it(
+    tmp_path, run_cli, scope_check
+):
+    _signed_units_repo(tmp_path)
+
+    result = _check(tmp_path, run_cli, scope_check,
+                    PLAIN_ROW_MOVE, "tidy `skills/tdd/PIN.md` wording ⟦criterion 2⟧")
+
+    assert result == (0, "")
+
+
+def test_3302_skill_edit_steps_with_no_unit_or_an_existing_unit_do_not_stop_a_later_one_being_checked(
+    tmp_path, run_cli, scope_check
+):
+    tdd = _signed_units_repo(tmp_path)
+    (tmp_path / "skills" / "tdd" / "OTHER.md").write_text("other prose\n", encoding="utf-8")
+
+    result = _check(tmp_path, run_cli, scope_check,
+                    "⟦skill-edit⟧ tighten `unit_of` wording ⟦added⟧",
+                    "⟦skill-edit⟧ regrade `skills/tdd/OTHER.md` ⟦added⟧",
+                    PLAIN_ROW_MOVE, SIGN_PIN, cwd=tdd)
+
+    assert result == (1, "scope-check.sh: step names row PIN1 of signed unit skills/tdd/PIN.md, "
+                         f"which a later skill-edit step signs: {PLAIN_ROW_MOVE}\n")
+
+
+def test_3302_a_plain_step_naming_a_file_already_in_the_repo_that_a_later_skill_edit_step_regrades_passes(
+    tmp_path, run_cli, scope_check
+):
+    tdd = _signed_units_repo(tmp_path)
+    (tmp_path / "skills" / "tdd" / "EXISTING.md").write_text("prose\n", encoding="utf-8")
+
+    result = _check(tmp_path, run_cli, scope_check,
+                    "reword `skills/tdd/EXISTING.md` ⟦criterion 1⟧",
+                    "⟦skill-edit⟧ regrade `skills/tdd/EXISTING.md` ⟦added⟧", cwd=tdd)
+
+    assert result == (0, "")
+
+
+@pytest.mark.parametrize("token", [
+    "oldskills/tdd/NEW.md", ".skills/tdd/NEW.md", "docs/skills/tdd/NEW.md", "old-skills/tdd/NEW.md",
+    "skills/tdd/NEW.mdx", "skills/tdd/NEW.md/part", "skills/tdd/NEW.md-old", "skills/tdd/NEWxmd",
+])
+def test_3302_a_plain_step_naming_a_longer_path_or_a_lookalike_of_a_new_unit_file_passes(
+    tmp_path, run_cli, scope_check, token
+):
+    _signed_units_repo(tmp_path)
+
+    result = _check(tmp_path, run_cli, scope_check, f"write `{token}` ⟦criterion 1⟧", SIGN_NEW)
+
+    assert result == (0, "")
+
+
+def test_3302_a_plain_step_creating_the_file_of_a_heading_unit_a_later_skill_edit_step_signs_is_refused(
+    tmp_path, run_cli, scope_check
+):
+    _signed_units_repo(tmp_path)
+    plain = "write `skills/tdd/NEW.md` ⟦criterion 1⟧"
+
+    result = _check(tmp_path, run_cli, scope_check, plain, "⟦skill-edit⟧ sign `skills/tdd/NEW.md#Intro` ⟦added⟧")
+
+    assert result == (1, "scope-check.sh: step creates skills/tdd/NEW.md, the unit skills/tdd/NEW.md#Intro "
+                         f"a later skill-edit step signs: {plain}\n")
+
+
+@pytest.mark.parametrize("listing", [
+    None,
+    "## skills/tdd/sub/DEEP.md\n\n| ID | Requirement |\n|---|---|\n| D1 | lacks its Why column |\n",
+])
+def test_3302_a_signed_unit_with_no_readable_rows_beside_it_refuses_no_plain_step(
+    tmp_path, run_cli, scope_check, listing
+):
+    _signed_units_repo(tmp_path)
+    sub = tmp_path / "skills" / "tdd" / "sub"
+    sub.mkdir()
+    (sub / "DEEP.md").write_text("deep prose\n", encoding="utf-8")
+    if listing is not None:
+        (sub / "REQUIREMENTS.md").write_text(listing, encoding="utf-8")
+    with (tmp_path / "skills" / "tdd" / "GRADED").open("a", encoding="utf-8") as graded:
+        graded.write("skills/tdd/sub/DEEP.md cccc 2026-11-17 g3 p3\n")
+
+    result = _check(tmp_path, run_cli, scope_check,
+                    "move row D1 out ⟦criterion 1⟧", "⟦skill-edit⟧ regrade `skills/tdd/sub/DEEP.md` ⟦added⟧")
+
+    assert result == (0, "")
+
+
+def test_3302_of_two_plain_steps_naming_a_signed_row_the_refusal_names_the_first(tmp_path, run_cli, scope_check):
+    _signed_units_repo(tmp_path)
+    second = "drop row PIN1 later ⟦criterion 2⟧"
+
+    code, err = _check(tmp_path, run_cli, scope_check, PLAIN_ROW_MOVE, second, SIGN_PIN)
+
+    assert (code, PLAIN_ROW_MOVE in err, second in err) == (1, True, False)
+
+
+def test_3302_a_ledger_breaking_both_the_tag_and_the_row_move_rules_is_refused_for_its_tags_first(
+    tmp_path, run_cli, scope_check
+):
+    _signed_units_repo(tmp_path)
+
+    code, err = _check(tmp_path, run_cli, scope_check,
+                       "move row PIN1 out ⟦criterion 1⟧ ⟦criterion 2⟧", SIGN_PIN)
+
+    assert (code, "more than one criterion tag" in err, "signed unit" in err) == (1, True, False)
