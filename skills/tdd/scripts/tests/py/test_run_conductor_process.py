@@ -3218,6 +3218,40 @@ def test_cli_a_conductor_that_exits_before_recording_its_pid_leaves_another_live
             pid_file_module.live_conductor(str(worktree))) == (0, written[0], str(other))
 
 
+def test_cli_a_conductor_pid_file_the_launched_conductor_recorded_is_never_removed_as_the_launchers_claim_even_reading_back_the_launchers_own_bytes_4304(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    answer, in_child = subprocess.run, []
+    launcher = "%d\nTue Oct 27 13:40:12 2026\n" % os.getpid()
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    pid_file = cwd / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid"
+
+    def recording_then_rewriting_the_launchers_bytes(args, *rest, **kwargs):
+        if list(args)[:1] == ["ps"] and "lstart=" in list(args):
+            start = "Tue Oct 27 13:40:15 2026" if in_child else "Tue Oct 27 13:40:12 2026"
+            return subprocess.CompletedProcess(args, 0, stdout=start + "\n", stderr="")
+        if list(args)[:1] == ["fake-claude"]:
+            if kwargs.get("preexec_fn") is not None:
+                in_child.append(True)
+                try:
+                    kwargs["preexec_fn"]()
+                finally:
+                    in_child.clear()
+            pid_file.write_text(launcher)
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", recording_then_rewriting_the_launchers_bytes)
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, pid_file.read_text() if pid_file.exists() else None) == (0, launcher)
+
+
 def test_cli_a_second_launch_while_the_first_is_still_in_preflight_exits_2_naming_the_first_launchs_pid_and_runs_no_preflight_3774(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
