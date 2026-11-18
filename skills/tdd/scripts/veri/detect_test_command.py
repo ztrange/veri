@@ -4,6 +4,9 @@ import glob
 import os
 import re
 import sys
+import tempfile
+
+import git
 
 SPACE = b" \t\n\v\f\r"
 
@@ -139,7 +142,34 @@ def option(args, flag):
     return args[1], args[2:]
 
 
-USAGE = 'usage: detect-test-command.sh [--tier fast|all|"one test file"|"quiet test files"|lint] [--issue <body-file>] [repo-root]'
+USAGE = ('usage: detect-test-command.sh [--tier fast|all|"one test file"|"quiet test files"|lint] [--issue <body-file>]'
+         ' [--at <commit>] [repo-root]')
+# Every file decide() reads at a root, besides the tests/ directory's test_*.py files.
+READ_AT = ("CLAUDE.md", "package.json", "pnpm-lock.yaml", "yarn.lock", "Makefile", "pytest.ini", "pyproject.toml",
+           "setup.cfg", "go.mod", "Cargo.toml")
+
+
+class Unresolved(Exception):
+    """<commit> names no commit git resolves in <root>."""
+
+
+def at_commit(tier, issue, root, commit):
+    """resolved(), its every repo file read from the tree <commit> holds in <root>'s repository, never from <root>'s
+    working tree (#4263): the files decide() reads are copied out of <commit> into a scratch directory, which stands in
+    for <root>. Raises Unresolved when git resolves no such commit there."""
+    if not git.ok("rev-parse", "--verify", "--quiet", commit + "^{commit}", cwd=root):
+        raise Unresolved(commit)
+    with tempfile.TemporaryDirectory() as snapshot:
+        os.mkdir(os.path.join(snapshot, "tests"))
+        listed = git.git("ls-tree", "-z", commit, "--", *READ_AT, "tests/", cwd=root, capture_output=True).stdout
+        for entry in filter(None, listed.split(b"\0")):
+            meta, path = entry.split(b"\t", 1)
+            _, kind, blob = meta.split()
+            if kind != b"blob":
+                continue
+            with open(os.path.join(snapshot, os.fsdecode(path)), "wb") as f:
+                f.write(git.git("cat-file", "blob", os.fsdecode(blob), cwd=root, capture_output=True).stdout)
+        return resolved(tier, issue, snapshot)
 
 
 def main(argv):
@@ -149,8 +179,20 @@ def main(argv):
     issue, args = option(args, "--issue")
     if issue is None:
         return 2
+    pinned = args[:1] == ["--at"]
+    commit, args = option(args, "--at")
+    if commit is None:
+        return 2
     root = args[0] if args and args[0] else "."
-    command = resolved(tier, issue, root)
+    if pinned:
+        try:
+            command = at_commit(tier, issue, root, commit)
+        except Unresolved:
+            print("detect-test-command.sh: --at %r names no commit git can resolve in %s" % (commit, root),
+                  file=sys.stderr)
+            return 2
+    else:
+        command = resolved(tier, issue, root)
     if command is None:
         return 3
     sys.stdout.buffer.write(command + b"\n")
