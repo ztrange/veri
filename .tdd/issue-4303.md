@@ -1,6 +1,6 @@
 # Plan for #4303 — supervise tracks the launching leaf and held signal in a named holder, not a sentinel list
 
-- [ ] a signal after a failed launch exits 2 at once, killing nothing
+- [x] a signal after a failed launch exits 2 at once, killing nothing
 - [ ] a signal during a retry's launch is held, then kills only the new leaf
 - [ ] attempt_once and trap share a named launch holder: no started list sentinels ⟦diff-checked⟧ ⟦criterion 1⟧
 - [ ] on_signal tells launching from a live leaf with no isinstance test on the holder ⟦diff-checked⟧ ⟦criterion 2⟧
