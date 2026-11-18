@@ -381,3 +381,42 @@ def test_an_issue_named_only_by_commit_subjects_in_the_slices_range_gets_no_clos
 
     assert ([[line for line in body.splitlines() if line.startswith("Closes")] for body in world.bodies],
             [line for line in err.splitlines() if "#14" in line] != [], "#11" in err) == ([["Closes #11"]], True, False), err
+
+
+@pytest.mark.parametrize("failing, words", [
+    ("stack_pulls", "open pull requests from stack-slice-3f2a9c1d0b"),
+    ("pr_open", "opening the pull request from stack-slice-3f2a9c1d0b"),
+    ("merged_pulls", "pull requests merged into stack"),
+    ("merged_pulls not JSON", "pull requests merged into stack"),
+    ("git log", "git log"),
+])
+def test_after_the_lock_is_taken_a_github_read_that_gets_no_answer_or_a_failed_git_read_exits_2_naming_it_the_merge_lock_freed_no_traceback(
+        monkeypatch, run_cli, stack_land, failing, words):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  subjects="feat: one (#11)\n")
+    git, github = importlib.import_module("veri.git"), importlib.import_module("veri.github")
+    faked = git.out
+
+    def no_answer(*args, **kwargs):
+        raise github.NoAnswer("", "HTTP 502 Bad Gateway")
+
+    def not_json(*args, **kwargs):
+        raise ValueError("Expecting value: line 1 column 1 (char 0)")
+
+    def out(*args, **kwargs):
+        if args[:1] == ("log",):
+            raise git.GitFailed(args, 128, "fatal: bad revision")
+        return faked(*args, **kwargs)
+
+    if failing == "git log":
+        monkeypatch.setattr(git, "out", out)
+    elif failing == "merged_pulls not JSON":
+        monkeypatch.setattr(github, "merged_pulls", not_json)
+    else:
+        monkeypatch.setattr(github, failing, no_answer)
+
+    code, out_, err = run_cli(stack_land, ["--now"])
+
+    assert (code, out_, words in err, "Traceback" in err, [ran[:2] for ran in world.scripts[-2:]]) == (
+        2, "", True, False, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err

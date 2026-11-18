@@ -48,14 +48,29 @@ def _closes(stack, default, cut):
     """The slice body's `Closes #<n>` lines: one per issue a subject in origin/<default>..<cut> ends with `(#<n>)` for,
     in the range's order, kept only when a pull request merged into <stack> carries `Closes #<n>`; an issue named only by
     subjects is said on stderr."""
-    joined = github.joined_issues(stack)
-    named = re.findall(r"\(#(\d+)\)$", git.out("log", "--format=%s", "origin/%s..%s" % (default, cut)), re.M)
+    joined = _read("reading the pull requests merged into %s" % stack, github.joined_issues, stack)
+    span = "origin/%s..%s" % (default, cut)
+    named = re.findall(r"\(#(\d+)\)$", _read("git log of " + span, git.out, "log", "--format=%s", span), re.M)
     issues = list(dict.fromkeys(named))
     only = [n for n in issues if int(n) not in joined]
     if only:
         print("stack-land: issues named only by commit subjects in origin/%s..%s, given no Closes line: %s"
               % (default, cut, " ".join("#" + n for n in only)), file=sys.stderr)
     return "".join("Closes #%s\n" % n for n in issues if int(n) in joined)
+
+
+class _Unanswered(Exception):
+    """A read after the merge lock was taken got no answer; the message names the read."""
+
+
+def _read(what, call, *args):
+    """<call>(*<args>)'s answer; _Unanswered naming <what> when GitHub gave none (NoAnswer, or an answer that is not
+    JSON) or git failed."""
+    try:
+        return call(*args)
+    except (github.NoAnswer, ValueError, git.GitFailed) as failed:
+        detail = failed.detail if isinstance(failed, github.NoAnswer) else str(failed)
+        raise _Unanswered("%s got no answer: %s" % (what, " ".join(detail.split()))) from None
 
 
 def _freed(line):
@@ -105,21 +120,25 @@ def main(argv):
     if code != 0:
         return entry.refuse("merge-lock.sh take exits %d: the merge lock not taken; nothing fetched, pushed or opened"
                             % code, prefix="stack-land: ")
-    fetch = git.network("fetch", "--prune", "origin", cwd=".")
-    if fetch.returncode:
-        return _freed("git fetch origin failed (exit %d): %s; the merge lock freed, nothing pushed or opened"
-                      % (fetch.returncode, fetch.stderr.strip()))
-    slice_branch = "%s-slice-%s" % (stack, cut[:10])
-    listed = git.network("ls-remote", "--heads", "origin", "refs/heads/%s" % slice_branch, cwd=".").stdout.split()
-    if listed and listed[0] != cut:
-        return _freed("the slice branch %s is already on origin at another commit, %s; the merge lock freed, nothing"
-                      " pushed" % (slice_branch, listed[0]))
-    push = git.network("push", "origin", "%s:refs/heads/%s" % (cut, slice_branch), cwd=".")
-    if push.returncode:
-        return _freed("git push of the slice branch %s failed (exit %d): %s; the merge lock freed, nothing opened or"
-                      " merged" % (slice_branch, push.returncode, push.stderr.strip()))
-    if not github.stack_pulls(slice_branch, default):
-        github.pr_open(slice_branch, default, "Land %s at %s" % (stack, cut[:10]), _closes(stack, default, cut))
+    try:
+        fetch = git.network("fetch", "--prune", "origin", cwd=".")
+        if fetch.returncode:
+            return _freed("git fetch origin failed (exit %d): %s; the merge lock freed, nothing pushed or opened"
+                          % (fetch.returncode, fetch.stderr.strip()))
+        slice_branch = "%s-slice-%s" % (stack, cut[:10])
+        listed = git.network("ls-remote", "--heads", "origin", "refs/heads/%s" % slice_branch, cwd=".").stdout.split()
+        if listed and listed[0] != cut:
+            return _freed("the slice branch %s is already on origin at another commit, %s; the merge lock freed,"
+                          " nothing pushed" % (slice_branch, listed[0]))
+        push = git.network("push", "origin", "%s:refs/heads/%s" % (cut, slice_branch), cwd=".")
+        if push.returncode:
+            return _freed("git push of the slice branch %s failed (exit %d): %s; the merge lock freed, nothing opened"
+                          " or merged" % (slice_branch, push.returncode, push.stderr.strip()))
+        if not _read("listing the open pull requests from " + slice_branch, github.stack_pulls, slice_branch, default):
+            _read("opening the pull request from %s to %s" % (slice_branch, default), github.pr_open, slice_branch,
+                  default, "Land %s at %s" % (stack, cut[:10]), _closes(stack, default, cut))
+    except _Unanswered as unanswered:
+        return _freed("%s; the merge lock freed, nothing merged" % unanswered)
 
 
 if __name__ == "__main__":
