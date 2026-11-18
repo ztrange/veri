@@ -126,8 +126,8 @@ def _literal_call_end(text, opening):
             if i < 0:
                 return None
             i += 1
-        elif text[i] == "/" and not _divides(text, opening, i) and _regex_end(text, i) >= 0:
-            i = _regex_end(text, i)
+        elif text[i] == "/" and not _divides(text, opening, i) and (end := _regex_end(text, i)) >= 0:
+            i = end
         elif text[i] in "'\"`":
             quote = text[i]
         elif text[i] == "(":
