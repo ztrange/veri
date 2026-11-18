@@ -13,6 +13,7 @@ import time
 import entry
 import event
 import git
+import merge_common
 import paths
 import run_dir
 import run_records
@@ -378,31 +379,13 @@ def _to_merge(pid, repo, pr, worktree, branch):
     head = _rev(worktree, "HEAD")
     if not head:
         return "", _refused("the pushed head does not resolve")
-    code = 3
-    while code == 3:
-        code = _gate(pid, os.path.join(SCRIPTS, "wait-ci.sh"), pr, "540", "", head)
+    code = merge_common.ci_wait(lambda: _gate(pid, os.path.join(SCRIPTS, "wait-ci.sh"), pr, "540", "", head))
     if code:
         return "", (code, LEAVE)
     refusal = _before_merge(pid, pr, worktree, branch, before, head)
     if refusal:
         return "", _refused(*refusal)
     return head, None
-
-
-def _settle_window():
-    """(reads, sleep) for the settle window from VERI_MERGE_SETTLE_READS (a whole number >= 1) and
-    VERI_MERGE_SETTLE_SLEEP (a non-negative number of seconds); a refusal message instead when either is unusable."""
-    reads = tunables.get("VERI_MERGE_SETTLE_READS", unless_empty=True)
-    sleep = tunables.get("VERI_MERGE_SETTLE_SLEEP", unless_empty=True)
-    if entry.whole_number(reads) is None:
-        return None, "VERI_MERGE_SETTLE_READS is '%s': expected a whole number of at least 1" % reads
-    try:
-        seconds = float(sleep)
-    except ValueError:
-        seconds = -1.0
-    if not seconds >= 0 or seconds == float("inf"):
-        return None, "VERI_MERGE_SETTLE_SLEEP is '%s': expected a non-negative number of seconds" % sleep
-    return (entry.whole_number(reads), seconds), None
 
 
 def _locked(pid, repo, pr, worktree, branch, message, window):
@@ -434,10 +417,6 @@ def _locked(pid, repo, pr, worktree, branch, message, window):
         return 2, RELEASE
     if stop:
         return stop
-    gh_merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
-    rest_merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, _number(pr)),
-                  "-f", "merge_method=rebase", "-f", "sha=%s" % head)
-    driver = tunables.get("VERI_GH_DRIVER")
     # The merge call keeps the lock even when it errors: an errored call may have landed, and the
     # settle window below re-reads the PR while still holding it, so a landed merge reaches _cleanup
     # with the lock its release expects, and no other merge takes the lock mid-window. A call killed at VERI_GH_TIMEOUT
@@ -445,24 +424,10 @@ def _locked(pid, repo, pr, worktree, branch, message, window):
     def merge(*cmd):
         return _network_gate(pid, *cmd, keep=True, limit="VERI_GH_TIMEOUT").returncode
 
-    if driver == "graphql":
-        code = merge(*gh_merge)
-    elif driver == "auto":
-        code = merge(*gh_merge)
-        if code:
-            code = merge(*rest_merge)
-    else:
-        code = merge(*rest_merge)
-    pull, answered = None, False
-    reads, sleep = window
-    for attempt in range(reads):
-        if code or attempt:
-            time.sleep(sleep)
-        read = _pull(repo, pr)
-        answered = answered or read is not None
-        if read and read.get("merged") is True:
-            pull = read
-            break
+    code = merge_common.merge(merge, pr, repo, _number(pr), head)
+    answers = merge_common.settle(lambda: _pull(repo, pr), window, wait_first=bool(code))
+    pull = answers[-1] if merge_common.merged(answers[-1]) else None
+    answered = any(read is not None for read in answers)
     if pull is None and not answered:
         call = "exited %d" % code if code else "succeeded"
         return _refused("the merge call %s and the state of %s could not be read; nothing tagged or cleaned up" % (call, pr))
@@ -640,16 +605,11 @@ def _state(pull):
 
 def _confirmed(repo, pr, stack, window):
     """0 when a read of <pr> over the settle window answers merged: true; 2 naming the last state read otherwise."""
-    reads, sleep = window
-    last = None
-    for attempt in range(reads):
-        if attempt:
-            time.sleep(sleep)
-        last = _pull(repo, pr)
-        if last and last.get("merged") is True:
-            return 0
+    answers = merge_common.settle(lambda: _pull(repo, pr), window)
+    if merge_common.merged(answers[-1]):
+        return 0
     _say("%s did not read merged after the push to %s (last read: %s); the stack is left as pushed" % (
-        pr, stack, _state(last)))
+        pr, stack, _state(answers[-1])))
     return 2
 
 
@@ -780,7 +740,7 @@ def _merge(pr, worktree, branch, message):
     if driver not in ("auto", "rest", "graphql"):
         print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
         return 2
-    window, refusal = _settle_window()
+    window, refusal = merge_common.settle_window()
     if refusal:
         print(refusal, file=sys.stderr)
         return 2

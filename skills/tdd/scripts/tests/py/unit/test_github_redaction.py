@@ -282,7 +282,7 @@ GH_SITES = {
     ("preflight.py", "issue_body"): "a read of the issue body",
     ("preflight.py", "check_environment"): "gh api user, a read",
     ("preflight.py", "finish"): "a read of the default branch",
-    ("queued_merge.py", "_locked"): "the merge call, which names a pull request and a sha only",
+    ("merge_common.py", "merge"): "the merge call, which names a pull request and a sha only",
 }
 
 
