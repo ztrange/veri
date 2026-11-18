@@ -81,12 +81,22 @@ def _issue_state(repo, number):
     return json.loads(github.gh_api("repos/%s/issues/%s" % (repo, number), stderr=subprocess.PIPE).stdout).get("state")
 
 
+class _Conflict(Exception):
+    """The rebase of the cut onto origin/<default> failed; the message is git's stderr."""
+
+
 def _rebased(cut, default):
-    """<cut> rebased onto origin/<default> in a detached worktree of its own, removed after: the rebased head."""
+    """<cut> rebased onto origin/<default> in a detached worktree of its own, removed after: the rebased head. A rebase
+    that fails is aborted and its worktree removed, then raised as _Conflict."""
     with tempfile.TemporaryDirectory() as parent:
         tree = os.path.join(parent, "slice")
         git.out("worktree", "add", "--detach", tree, cut, cwd=".")
-        git.out("-C", tree, "rebase", "origin/" + default)
+        try:
+            git.out("-C", tree, "rebase", "origin/" + default)
+        except git.GitFailed as failed:
+            git.ok("-C", tree, "rebase", "--abort")
+            git.out("worktree", "remove", "--force", tree, cwd=".")
+            raise _Conflict(failed.stderr) from None
         head = git.out("-C", tree, "rev-parse", "HEAD")
         git.out("worktree", "remove", "--force", tree, cwd=".")
     return head
@@ -186,7 +196,15 @@ def main(argv):
 
         head = cut
         if not git.ok("merge-base", "--is-ancestor", "origin/" + default, cut, cwd="."):
-            head = _rebased(cut, default)
+            try:
+                head = _rebased(cut, default)
+            except _Conflict as conflict:
+                stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
+                print("stack-land: the rebase of the slice branch %s onto origin/%s conflicts: %s; nothing merged, the"
+                      " merge lock freed, the slice branch and %s kept" % (slice_branch, default,
+                                                                          " ".join(str(conflict).split()), pr),
+                      file=sys.stderr)
+                return 1
             git.network("push", "--force-with-lease=%s:%s" % (slice_branch, cut), "origin",
                         "%s:refs/heads/%s" % (head, slice_branch), cwd=".")
             merge_common.ci_wait(lambda: stack_fix.script("wait-ci.sh", pr, "540", "", head)[0])
