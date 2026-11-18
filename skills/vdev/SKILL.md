@@ -385,6 +385,14 @@ The resetter is a Haiku session started by the dev session and briefed with this
 4. With no `ack` within `VERI_RESET_ACK_TIMEOUT`, run `$S/reset-wait.sh recovered dev [--lane <lane>]`,
    re-send at most twice, then notify the operator. After an `ack`, wait for the next marker.
 
+When the dev session runs in a lane, every `$S/reset-wait.sh` call (`marker`, `recovered`) carries
+`--lane <lane>`; the form without it is for a dev session with no lane only.
+
+When a send to the dev session by its session name fails (the name does not resolve, or
+`ListAgents` does not list it), look the dev session up in the linked-session list, or use the
+session id the resetter was started from, and send by that id. Only when that send also fails,
+notify the operator.
+
 The resetter never clears itself, and ends as few turns as it can.
 
 ## Parked issues
