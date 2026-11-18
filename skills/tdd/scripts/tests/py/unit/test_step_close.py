@@ -382,3 +382,14 @@ def test_4029_it_writes_no_bail_classifies_nothing_resets_nothing_and_grows_no_p
         assert not [c for c in fake.calls if c[0] == "event.sh" and c[1][:1] in (("bail",), ("step-added",))]
         assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("reset",), ("clean",), ("checkout",))]
         assert not [c for c in fake.calls if c[0] == "comment.sh" and c[1][1:2] in (("bail",), ("park",))]
+
+
+def test_a_record_lacking_a_key_with_a_committed_source_gains_it_with_an_empty_old_value_4342(close):
+    """SC1, SC2: the source's value is written into a record that lacks the key; the event's old value is empty."""
+    lacking = "".join(line + "\n" for line in (REFACTOR_HALF % STEP).splitlines() if not line.startswith("verdict_log="))
+    code, out, err, fake = close(half=lacking)
+
+    verdict = hashlib.sha256(VERDICT_LOG.encode()).hexdigest()
+    assert (code, (close.wt / ".tdd" / "issue-12-refactor-half").read_text()) == (0, lacking + "verdict_log=" + verdict + "\n")
+    events = [json.loads(line) for line in (close.wt / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["key"], e["old"]) for e in events if e["event"] == "record-refreshed"] == [("verdict_log", "")]
