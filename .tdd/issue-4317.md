@@ -33,9 +33,9 @@
 - [ ] when origin/<default> is an ancestor of the cut, stack_land rebases nothing and makes no wait-ci.sh call (unit case, no process) ⟦criterion 8⟧
 - [ ] a rebase conflict makes stack_land exit 1, nothing merged, the lock freed, the slice branch and its pull request kept (unit case, no process) ⟦criterion 9⟧
 - [ ] a red CI answer from wait-ci.sh on the rebased head makes stack_land exit 1, nothing merged, the lock freed, the slice branch and its pull request kept (unit case, no process) ⟦criterion 9⟧
+- [ ] `skills/tdd/SCRIPTS.md` lists stack-land.sh [--now] with its exits and rules, row SC564, graded ⟦skill-edit⟧ ⟦criterion 1⟧
 - [ ] skills/tdd/scripts/stack-land.sh is a /bin/sh shim over veri/stack_land.py by the status.sh convention, indexed in skills/tdd/scripts/veri/README.md, with its entry-point contract case in skills/tdd/scripts/tests/py/test_stack_land_process.py (a process case) ⟦criterion 1⟧
 - [ ] a case in test_stack_land.py sweeps stack_land.py, merge_common.py and stack-land.sh for a repository, issue number, branch, label or person name and finds none (P12) ⟦criterion 15⟧
 - [ ] Go-red check in skills/tdd/scripts/tests/py/unit/test_stack_land.py: with `--admin` added to the merge argv, the exact-argv case fails, named; restored, it passes ⟦criterion 16⟧
 - [ ] Go-red check in skills/tdd/scripts/tests/py/unit/test_stack_land.py: with the red-stack refusal removed (stack-red.sh exit 0 no longer exit 1), its case fails, named; restored, it passes ⟦criterion 16⟧
-- [ ] `skills/tdd/SCRIPTS.md` lists stack-land.sh [--now] with its exits and rules, row SC564, graded ⟦skill-edit⟧ ⟦criterion 1⟧
 - [ ] `skills/vmerge/SKILL.md` says in Joining a stack that a slice is landed by $S/stack-land.sh, never queued-merge.sh, when it lands, that a red stack refuses it, and that exits 1, 2 and 3 are reported, never retried blind, row M38, graded ⟦skill-edit⟧ ⟦criterion 14⟧
