@@ -14,6 +14,13 @@ def record(path, **fields):
     path.write_text("".join(f"{name} {len(value)}\n{value}\n" for name, value in fields.items()) + "\n")
 
 
+def branch_base(cwd):
+    """The branch base a case set as origin/main (its merge-base with HEAD), else a hex sha naming no commit."""
+    found = subprocess.run(["git", "merge-base", "refs/remotes/origin/main", "HEAD"], cwd=cwd, capture_output=True,
+                           text=True, timeout=20)
+    return found.stdout.strip() if found.returncode == 0 else "0" * 40
+
+
 def main_disarmed_on_base(git, repo):
     (repo / "marker.txt").write_text("main\n")
     git("add", "marker.txt")
@@ -39,7 +46,8 @@ def test_2506_a_record_naming_a_file_the_range_does_not_touch_exits_3_and_runs_n
     (tmp_path / "other.txt").write_text("two\n")
     git("commit", "-q", "-am", "touch only other.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran.witness").exists()) == (3, False), ran.stderr
 
@@ -49,7 +57,8 @@ def test_3363_no_argument_exits_2_prints_nothing_on_stdout_and_its_usage_line_na
     ran = subprocess.run(["sh", RECHECK], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, ran.stderr) == (
-        2, "", "usage: pin-recheck.sh <base-sha> [--ledger <file>]\n")
+        2, "", "pin-recheck.sh: --branch-base must name the run's branch base, a sha matching ^[0-9a-f]{7,40}$\n"
+        "usage: pin-recheck.sh --branch-base <sha> <base-sha> [--ledger <file>]\n")
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a range that touches the recorded file")
@@ -68,7 +77,8 @@ def test_2506_a_record_whose_command_passes_unmutated_and_fails_mutated_exits_0_
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "guard.txt").read_bytes()) == (0, b"if guard\nmore\n"), ran.stderr
 
@@ -92,7 +102,8 @@ def test_3290_a_mutation_pin_red_under_its_mutation_at_head_with_an_origin_main_
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "stale" in ran.stdout + ran.stderr) == (0, False), ran.stdout + ran.stderr
 
@@ -117,7 +128,8 @@ def test_2506_a_record_whose_command_stays_green_under_its_mutation_exits_1_nami
     (tmp_path / "guard.txt").write_text("if guard\nthrows\nsafe\n")
     git("commit", "-q", "-am", "later commit makes the test pass with the guard reverted")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "guard.txt" in ran.stdout + ran.stderr, (tmp_path / "guard.txt").read_bytes()) == (
         1, True, b"if guard\nthrows\nsafe\n"), ran.stderr
@@ -142,7 +154,8 @@ def test_3290_a_mutation_pin_green_under_its_mutation_at_head_but_red_at_the_bas
     (tmp_path / "guard.txt").write_text("if guard\nsafe\n")
     git("commit", "-q", "-am", "later commit makes the test pass with the guard reverted")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin stayed green under its mutation: guard.txt\n" in ran.stderr, "stale:" in ran.stdout) == (
         1, True, False), ran.stdout + ran.stderr
@@ -169,7 +182,8 @@ def test_3290_a_mutation_pin_green_under_its_mutation_at_head_and_at_the_base_pr
     (tmp_path / "guard.txt").write_text("if guard\nthrows\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     mutated_at = witness.read_text().split() if witness.exists() else []
     assert (ran.returncode != 1, "stale: .tdd/issue-835-mutations.md guard.txt\n" in ran.stdout, main in mutated_at) == (
@@ -201,7 +215,8 @@ def test_3290_a_failing_base_run_of_the_mutation_leaves_the_files_byte_identical
     git("commit", "-q", "-am", "later commit")
     before = {p.name: p.read_bytes() for p in (repo / "guard.txt", repo / ".tdd" / "issue-835-mutations.md")}
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=repo, capture_output=True, text=True, timeout=20,
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(repo), base],
+                         cwd=repo, capture_output=True, text=True, timeout=20,
                          env={**os.environ, "TMPDIR": str(scratch)})
 
     after = {p.name: p.read_bytes() for p in (repo / "guard.txt", repo / ".tdd" / "issue-835-mutations.md")}
@@ -226,7 +241,8 @@ def test_2506_a_record_whose_old_text_is_gone_prints_the_pin_as_needing_a_look_a
     (tmp_path / "guard.txt").write_text("if safeguard\nthrows\n".replace("safeguard", "checked"))
     git("commit", "-q", "-am", "later commit rewrites the guard line")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "guard.txt" in ran.stdout, "stayed green" in ran.stderr) == (0, True, False), ran.stderr
 
@@ -247,7 +263,8 @@ def test_2506_a_record_whose_command_fails_unmutated_prints_the_pin_as_needing_a
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "guard.txt" in ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
         0, True, b"if guard\nmore\n"), ran.stderr
@@ -266,7 +283,8 @@ def test_2506_a_base_sha_that_does_not_resolve_exits_2_with_nothing_on_stdout(tm
     git("add", "-A")
     git("commit", "-q", "-m", "base")
 
-    ran = subprocess.run(["sh", RECHECK, "0" * 40], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), "0" * 40],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists()) == (2, "", False), ran.stderr
 
@@ -286,7 +304,8 @@ def test_2506_a_mutations_record_that_cannot_be_parsed_exits_2_with_nothing_on_s
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout) == (2, ""), ran.stderr
 
@@ -308,7 +327,8 @@ def test_2814_a_record_through_a_vanished_timed_test_run_path_is_replayed_and_no
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=60)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=60)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
         0, "", b"if guard\nmore\n"), ran.stderr
@@ -334,7 +354,8 @@ def test_2814_a_record_through_a_timed_test_run_path_that_still_exists_is_replay
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=60)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=60)
 
     marker = tmp_path / "marker"
     assert (ran.returncode, ran.stdout, marker.read_text() if marker.exists() else "") == (
@@ -358,7 +379,8 @@ def test_2814_a_record_through_a_vanished_timed_test_run_path_whose_command_stil
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=60)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=60)
 
     assert (ran.returncode, ran.stdout.startswith("needs a look: guard.txt"), len(ran.stdout.splitlines()),
             (tmp_path / "guard.txt").read_bytes()) == (0, True, 1, b"if guard\nmore\n"), ran.stderr
@@ -380,7 +402,8 @@ def test_2827_a_mutated_run_that_exits_non_zero_and_still_prints_the_unmutated_r
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
         0, "", b"if guard\nmore\n"), ran.stderr
@@ -402,7 +425,8 @@ def test_2827_a_mutated_run_that_exits_non_zero_and_prints_none_of_the_unmutated
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
         1, "needs a look: guard.txt (mutation did not build)\n", b"if guard\nmore\n"), ran.stderr
@@ -424,7 +448,8 @@ def test_2827_a_result_line_printed_only_on_stderr_still_tells_a_build_failure_f
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
         1, "needs a look: guard.txt (mutation did not build)\n", b"if guard\nmore\n"), ran.stderr
@@ -446,7 +471,8 @@ def test_2843_a_mutated_run_that_exits_non_zero_after_a_silent_unmutated_run_nee
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout.startswith("needs a look: guard.txt"), (tmp_path / "guard.txt").read_bytes()) == (
         1, True, b"if guard\nmore\n"), ran.stdout + ran.stderr
@@ -469,7 +495,8 @@ def test_2843_a_mutation_that_did_not_build_writes_the_last_40_lines_of_the_muta
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     lines = ran.stderr.splitlines()
     assert (ran.returncode, len(lines), "err 30" in lines, "out 1" in lines) == (1, 40, True, False), ran.stdout + ran.stderr
@@ -491,7 +518,8 @@ def test_2843_an_unmutated_run_that_exits_non_zero_writes_the_last_40_lines_of_i
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     lines = ran.stderr.splitlines()
     assert (ran.stdout.startswith("needs a look: guard.txt"), len(lines), "err 30" in lines, "out 1" in lines) == (
@@ -514,7 +542,8 @@ def test_2843_a_silent_unmutated_run_and_a_mutated_build_failure_writes_the_muta
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout.startswith("needs a look: guard.txt"), ran.stderr) == (
         1, True, "error: build failed\n"), ran.stdout
@@ -537,7 +566,8 @@ def test_2875_a_go_test_failure_on_the_mutated_run_counts_as_red_and_exits_0_and
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
         0, "", b"if guard\nmore\n"), ran.stdout + ran.stderr
@@ -560,7 +590,8 @@ def test_2875_a_go_build_failure_on_the_mutated_run_still_needs_a_look_and_exits
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
         1, "needs a look: guard.txt (mutation did not build)\n", b"if guard\nmore\n"), ran.stdout + ran.stderr
@@ -582,7 +613,8 @@ def test_2876_a_bash_c_command_with_its_script_unquoted_runs_no_test_and_needs_a
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout.startswith("needs a look: guard.txt"), len(ran.stdout.splitlines()),
             (tmp_path / "guard.txt").read_bytes()) == (0, True, 1, b"if guard\nmore\n"), ran.stdout + ran.stderr
@@ -604,7 +636,8 @@ def test_2876_a_command_that_runs_its_test_passing_clean_and_failing_mutated_rep
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, ran.stderr, (tmp_path / "guard.txt").read_bytes()) == (
         0, "", "", b"if guard\nmore\n")
@@ -630,7 +663,8 @@ def test_2876_a_command_that_reads_its_file_and_passes_clean_and_mutated_still_r
     (tmp_path / "guard.txt").write_text("if guard\nthrows\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, ran.stderr, (tmp_path / "guard.txt").read_bytes()) == (
         1, "", "pin stayed green under its mutation: guard.txt\n", b"if guard\nthrows\nmore\n")
@@ -653,7 +687,8 @@ def test_2876_after_the_control_run_of_a_command_that_runs_no_test_the_pinned_fi
     (tmp_path / "guard.txt").write_bytes(original)
     git("commit", "-q", "-am", "touch guard.txt")
 
-    subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                   cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (tmp_path / "guard.txt").read_bytes() == original
 
@@ -674,7 +709,8 @@ def test_2876_a_mutated_run_that_fails_makes_no_control_run_so_the_command_never
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path.parent / "runs.log").read_bytes()) == (0, b"if guar\nif (tru\n")
 
@@ -695,7 +731,8 @@ def test_2876_a_command_that_is_not_bash_c_and_runs_no_test_needs_a_look_and_exi
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout.startswith("needs a look: guard.txt"), len(ran.stdout.splitlines()),
             (tmp_path / "guard.txt").read_bytes()) == (0, True, 1, b"if guard\nmore\n"), ran.stdout + ran.stderr
@@ -723,7 +760,8 @@ def test_2877_a_recorded_pin_whose_title_has_an_apostrophe_and_spaces_is_replaye
     git("commit", "-q", "-am", "touch guard.txt")
     (tmp_path / "seen.txt").unlink()
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "seen.txt").read_text()) == (0, "", f"1:{title}"), ran.stderr
 
@@ -751,7 +789,8 @@ def test_2877_a_probe_through_timed_test_run_records_the_test_command_alone_and_
     other = tmp_path / "other"
     git("clone", "-q", ".", "other")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=other, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(other), base],
+                         cwd=other, capture_output=True, text=True, timeout=20)
 
     recorded = record_path.read_text()
     assert (ran.returncode, ran.stdout, "command 12\nsh runner.sh\n" in recorded, "timed-test-run" in recorded) == (
@@ -785,7 +824,8 @@ def test_2919_a_probe_through_a_symlinked_scripts_directory_records_the_test_com
     other = tmp_path / "other"
     git("clone", "-q", str(repo), str(other), cwd=tmp_path)
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=other, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(other), base],
+                         cwd=other, capture_output=True, text=True, timeout=20)
 
     recorded = record_path.read_text()
     assert (ran.returncode, ran.stdout, "command 12\nsh runner.sh\n" in recorded, "timed-test-run" in recorded) == (
@@ -810,7 +850,8 @@ def test_2959_a_before_keep_record_whose_command_is_red_on_the_restored_files_ex
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
            command="grep -q fixed src.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "KeyError" in ran.stderr, (tmp_path / "src.txt").read_bytes()) == (
         0, False, b"fixed behaviour\n"), ran.stderr
@@ -837,7 +878,8 @@ def test_2959_a_before_keep_record_leaves_the_keep_path_and_tdd_files_at_their_c
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
            command="! { grep -q 'pin v1' pin.txt && grep -q 'ledger v1' .tdd/notes.md; }")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stderr) == (0, ""), ran.stderr
 
@@ -863,7 +905,8 @@ def test_2959_a_before_keep_record_whose_command_is_green_on_the_current_keep_pa
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
            command="grep -q 'pin v1' pin.txt && grep -q 'ledger v1' .tdd/notes.md && test ! -e marker.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert ran.returncode == 1, ran.stderr
 
@@ -888,7 +931,8 @@ def test_2959_a_before_keep_record_whose_command_is_green_on_the_restored_files_
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
            command="grep -q old src.txt && test ! -e marker.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin.txt" in ran.stderr, "KeyError" in ran.stderr) == (1, True, False), ran.stderr
 
@@ -917,7 +961,8 @@ def test_2959_a_green_before_keep_record_beside_an_old_format_record_is_reported
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
            command="sh -c \"echo result; grep -q 'if guard' guard.txt\"")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin.txt" in ran.stderr, "guard.txt" in ran.stdout + ran.stderr, "KeyError" in ran.stderr,
             (tmp_path / "guard.txt").read_bytes()) == (1, True, False, False, b"if guard\nmore\n"), ran.stderr
@@ -938,7 +983,8 @@ def test_2959_a_record_with_neither_file_nor_before_exits_2_naming_the_record_an
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", keep="pin.txt", command="touch ran.witness")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, "issue-2959-mutations.md" in ran.stderr, "KeyError" in ran.stderr,
             (tmp_path / "ran.witness").exists()) == (2, "", True, False, False), ran.stderr
@@ -965,7 +1011,8 @@ def test_2959_a_red_before_keep_replay_leaves_every_restored_file_a_file_absent_
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
            command="grep -q fixed src.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "src.txt").read_bytes(), (tmp_path / "pin.txt").read_bytes(),
             (tmp_path / "z_new.txt").read_bytes() if (tmp_path / "z_new.txt").exists() else None) == (
@@ -993,7 +1040,8 @@ def test_2959_a_before_keep_replay_removes_a_file_absent_at_the_before_sha_while
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
            command="test ! -e z_new.txt && test ! -e marker.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin.txt" in ran.stderr, (tmp_path / "z_new.txt").read_bytes()) == (
         1, True, b"added later\n"), ran.stderr
@@ -1021,7 +1069,8 @@ def test_2959_a_green_before_keep_replay_leaves_every_restored_file_a_file_absen
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
            command="grep -q old src.txt && test ! -e marker.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "src.txt").read_bytes(), (tmp_path / "pin.txt").read_bytes(),
             (tmp_path / "z_new.txt").read_bytes() if (tmp_path / "z_new.txt").exists() else None) == (
@@ -1047,7 +1096,8 @@ def test_2974_a_before_keep_replay_restores_a_file_the_branch_deleted_and_exits_
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2974-mutations.md", before=base, keep="pin.txt", command="test -e gone.txt && test ! -e marker.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "gone.txt").exists()) == (1, False), ran.stderr
 
@@ -1072,7 +1122,8 @@ def test_2974_a_before_keep_record_on_a_branch_that_deleted_a_tracked_file_repla
     record(tmp_path / ".tdd" / "issue-2974-mutations.md", before=base, keep="pin.txt",
            command="test -f gone.txt && ! grep -q fixed src.txt && false || ! { test -f gone.txt && grep -q old src.txt; }")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "gone.txt").exists(), (tmp_path / "src.txt").read_bytes(),
             (tmp_path / "pin.txt").read_bytes()) == (0, False, b"fixed behaviour\n", b"pin v1\n"), ran.stderr
@@ -1100,7 +1151,8 @@ def test_2974_a_before_keep_record_with_a_green_commit_replays_without_touching_
     record(tmp_path / ".tdd" / "issue-2974-mutations.md", before=base, keep="pin.txt", green=green,
            command="cp other.txt seen.out; ! grep -q old src.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "seen.out").read_bytes(), (tmp_path / "other.txt").read_bytes()) == (
         0, b"other v1\n", b"other v1\n"), ran.stderr
@@ -1130,7 +1182,8 @@ def test_3016_a_before_keep_record_whose_green_precedes_the_tick_commit_replays_
     record(tmp_path / ".tdd" / "issue-3016-mutations.md", before=base, keep="pin.txt", green=plan,
            command="! grep -q old src.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "src.txt").read_bytes()) == (0, b"fixed behaviour\n"), ran.stderr
 
@@ -1158,7 +1211,8 @@ def test_2919_pin_recheck_replays_the_record_from_the_directory_it_is_run_in_not
     (repo / "where.txt").write_text("repo\n")
     (other / "where.txt").write_text("other\n")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=other, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(other), base],
+                         cwd=other, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout) == (0, ""), ran.stderr
 
@@ -1183,7 +1237,8 @@ def test_3016_a_before_keep_record_whose_range_replays_no_file_exits_2_naming_be
     git("commit", "-q", "-am", "touch the keep file after the green")
     record(tmp_path / ".tdd" / "issue-3016-mutations.md", before=base, keep="pin.txt", green=plan, command="true")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, base in ran.stderr, plan in ran.stderr, "stayed green" in ran.stderr) == (
         2, True, True, False), ran.stderr
@@ -1208,7 +1263,8 @@ def test_3017_a_before_keep_record_whose_keep_file_the_range_does_not_touch_is_n
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=first, keep="pin.txt", command="touch ran.witness")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran.witness").exists()) == (3, False), ran.stderr
 
@@ -1232,7 +1288,8 @@ def test_3017_a_before_keep_record_whose_keep_file_the_range_touches_is_replayed
     record(tmp_path / ".tdd" / "issue-3017-mutations.md", before=base, keep="pin.txt",
            command="grep -q old src.txt && test ! -e marker.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin.txt" in ran.stderr) == (1, True), ran.stderr
 
@@ -1264,7 +1321,8 @@ def test_3046_a_before_replay_leaves_an_executable_file_100755_and_a_plain_one_1
     record(tmp_path / ".tdd" / "issue-3046-mutations.md", before=base, keep="pin.txt", command="true && test ! -e marker.txt")
     before = state()
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, state()) == (1, before), ran.stderr
 
@@ -1287,7 +1345,8 @@ def test_2972_an_exit_0_or_3_leaves_a_receipt_holding_the_head_sha(tmp_path):
     git("commit", "-q", "-am", "touch only other.txt")
     receipt = tmp_path / ".tdd" / "pin-recheck-ok"
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, receipt.read_text() if receipt.exists() else None) == (3, git("rev-parse", "HEAD") + "\n"), ran.stderr
 
@@ -1309,7 +1368,8 @@ def test_2972_an_exit_2_removes_a_receipt_an_earlier_run_left(tmp_path):
     (tmp_path / "other.txt").write_text("two\n")
     git("commit", "-q", "-am", "touch only other.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, receipt.read_text() if receipt.exists() else None) == (2, None), ran.stderr
 
@@ -1336,7 +1396,8 @@ def test_2972_an_exit_1_removes_a_receipt_an_earlier_run_left_and_writes_none(tm
     (tmp_path / "guard.txt").write_text("if guard\nthrows\nsafe\n")
     git("commit", "-q", "-am", "later commit makes the test pass with the guard reverted")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, receipt.exists()) == (1, False), ran.stderr
 
@@ -1375,7 +1436,8 @@ def test_2967_a_before_replay_that_swaps_files_leaves_every_file_byte_identical_
     record(tmp_path / ".tdd" / "issue-2967-mutations.md", before=base, keep="pin.txt", green=green, command="true && test ! -e marker.txt")
     before = tree()
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, tree()) == (1, before), ran.stderr
 
@@ -1396,7 +1458,8 @@ def test_3124_a_record_whose_command_is_not_found_exits_2_naming_the_pin_file_an
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, "issue-3124-mutations.md" in ran.stderr, "no-such-runner-3124 ./..." in ran.stderr,
             (tmp_path / "guard.txt").read_bytes()) == (2, "", True, True, b"if guard\nmore\n"), ran.stdout + ran.stderr
@@ -1418,7 +1481,8 @@ def test_3124_a_record_whose_make_command_finds_no_makefile_exits_2_naming_the_p
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, "issue-3124-mutations.md" in ran.stderr, "make" in ran.stderr,
             (tmp_path / "guard.txt").read_bytes()) == (2, "", True, True, b"if guard\nmore\n"), ran.stdout + ran.stderr
@@ -1441,7 +1505,8 @@ def test_3124_a_record_whose_make_command_has_a_makefile_but_a_failing_target_pr
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "needs a look" in ran.stdout and "guard.txt" in ran.stdout,
             (tmp_path / "guard.txt").read_bytes()) == (0, True, b"if guard\nmore\n"), ran.stdout + ran.stderr
@@ -1466,7 +1531,8 @@ def test_3151_a_pin_whose_named_test_the_range_deletes_is_retired_exits_3_and_ru
     git("rm", "-q", "tests/test_guard.py")
     git("commit", "-q", "-am", "edit guard.txt and delete its test")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     retired = [line for line in ran.stdout.splitlines() if line.startswith("retired:")]
     assert (ran.returncode, len(retired) == 1 and all(
@@ -1502,7 +1568,8 @@ def test_3151_a_retired_pin_beside_a_live_pin_that_stays_green_exits_1_the_live_
     git("rm", "-q", "tests/test_guard.py")
     git("commit", "-q", "-am", "edit both files and delete one pin's test")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     retired = [line for line in ran.stdout.splitlines() if line.startswith("retired:")]
     assert (ran.returncode, len(retired) == 1 and "tests/test_guard.py" in retired[0],
@@ -1533,7 +1600,8 @@ def test_3151_a_retired_pin_beside_a_live_pin_that_goes_red_exits_0_the_live_pin
     git("rm", "-q", "tests/test_guard.py")
     git("commit", "-q", "-am", "edit both files and delete one pin's test")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     retired = [line for line in ran.stdout.splitlines() if line.startswith("retired:")]
     assert (ran.returncode, len(retired) == 1 and "tests/test_guard.py" in retired[0],
@@ -1570,7 +1638,8 @@ def test_3151_a_pin_whose_named_test_is_missing_at_head_but_not_deleted_by_the_r
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "edit the pinned file; the named test is missing here")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "tests/test_guard.py" in ran.stderr, "retired:" in ran.stdout,
             (tmp_path / "ran.witness").exists()) == (2, True, False, False), ran.stdout + ran.stderr
@@ -1597,7 +1666,8 @@ def test_3151_a_pin_naming_several_test_files_some_deleted_by_the_range_is_repla
     git("rm", "-q", "tests/test_gone.py")
     git("commit", "-q", "-am", "edit the pinned file and delete one of its two tests")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     args = (tmp_path / "ran.args").read_text().strip() if (tmp_path / "ran.args").exists() else None
     assert (ran.returncode, "retired:" in ran.stdout, args) == (0, False, "TESTS=tests/test_kept.py"), \
@@ -1625,7 +1695,8 @@ def test_3151_a_deleted_test_path_that_prefixes_a_kept_one_leaves_the_kept_argum
     git("rm", "-q", "tests/test_a.py")
     git("commit", "-q", "-am", "edit the pinned file and delete the shorter-named test")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     args = (tmp_path / "ran.args").read_text().strip() if (tmp_path / "ran.args").exists() else None
     assert (ran.returncode, args) == (0, "TESTS=tests/test_a.py2"), ran.stdout + ran.stderr
@@ -1654,7 +1725,8 @@ def test_3151_a_before_replay_over_a_file_added_after_before_and_deleted_by_head
     record(tmp_path / ".tdd" / "issue-3128-mutations.md", before=base, keep="pin.txt", green=green,
            command="grep -q fixed src.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "z_new.txt").exists()) == (0, False), ran.stdout + ran.stderr
 
@@ -1693,7 +1765,7 @@ def test_3151_a_before_replay_whose_command_raises_mid_run_restores_every_file_b
 
     monkeypatch.setattr(pin_recheck, "run_captured", interrupted)
     with pytest.raises(KeyboardInterrupt):
-        run_cli(pin_recheck, [base], cwd=tmp_path)
+        run_cli(pin_recheck, ["--branch-base", branch_base(tmp_path), base], cwd=tmp_path)
 
     assert tree() == before
 
@@ -1716,7 +1788,8 @@ def test_3151_a_before_record_whose_named_test_the_range_deletes_is_retired_and_
     ledger = tmp_path / ".tdd" / "issue-3151-mutations.md"
     record(ledger, before=base, keep="pin.txt", command="touch ran.witness; echo TESTS=t_gone.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists()) == (
         3, "retired: .tdd/issue-3151-mutations.md pin.txt t_gone.txt\n", False), ran.stderr
@@ -1741,7 +1814,8 @@ def test_3168_a_pin_naming_a_pytest_node_id_whose_file_exists_is_rechecked_by_it
     (tmp_path / "tests" / "test_guard.py").write_text("# v1\n")
     git("commit", "-q", "-am", "touch the pinned file and the test file")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode != 2, "named test missing" in ran.stderr) == (True, False), ran.stdout + ran.stderr
 
@@ -1766,7 +1840,8 @@ def test_3181_a_pin_whose_command_quotes_its_tests_node_id_is_rechecked_by_its_f
     (tmp_path / "tests" / "test_guard.py").write_text("# v1\n")
     git("commit", "-q", "-am", "touch the pinned file and the test file")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode != 2, "named test missing" in ran.stderr) == (True, False), ran.stdout + ran.stderr
 
@@ -1795,7 +1870,8 @@ def test_3181_a_record_quoting_a_deleted_tests_node_id_is_retired_and_not_exit_2
     record(tmp_path / ".tdd" / "issue-3181-mutations.md", before=base, keep="pin.txt",
            command="touch ran.witness; bash -c 'make test TESTS=\"t_gone.py::test_a_case\"'")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists()) == (
         3, "retired: .tdd/issue-3181-mutations.md pin.txt t_gone.py::test_a_case\n", False), ran.stderr
@@ -1807,7 +1883,8 @@ def test_3181_a_quoted_deleted_test_beside_a_kept_one_is_dropped_from_the_replay
     record(tmp_path / ".tdd" / "issue-3181-mutations.md", before=base, keep="pin.txt",
            command="echo X TESTS=\"t_gone.py::test_a_case\" TESTS=\"t_keep.py::test_b_case\" > args.witness; false")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     witness = (tmp_path / "args.witness").read_text() if (tmp_path / "args.witness").exists() else None
     assert (ran.returncode != 2, witness is not None and "t_gone" not in witness and "t_keep" in witness) == (
@@ -1837,7 +1914,8 @@ def test_3160_a_before_state_pin_green_on_its_before_state_at_head_and_on_the_ba
     record(repo / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="sh -c \"grep -q old src.txt\" TESTS=src.txt")
     before = (git("worktree", "list"), git("status", "--porcelain"))
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=repo, capture_output=True, text=True, timeout=20,
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(repo), base],
+                         cwd=repo, capture_output=True, text=True, timeout=20,
                          env={**os.environ, "TMPDIR": str(scratch)})
 
     assert (ran.returncode, ran.stdout, "pin stayed green" in ran.stderr, (repo / ".tdd" / "pin-recheck-ok").exists(),
@@ -1866,7 +1944,8 @@ def test_3160_a_before_state_pin_red_on_the_base_and_green_at_head_beside_a_stal
     record(tmp_path / ".tdd" / "issue-3160-b-mutations.md", before=base, keep="pin.txt",
            command="grep -q old src.txt && test ! -e marker.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin stayed green on the before-state: pin.txt" in ran.stderr,
             "stayed green on the before-state: stale.txt" in ran.stderr, ran.stdout,
@@ -1895,7 +1974,8 @@ def test_3160_a_stale_before_state_pin_beside_an_old_format_pin_that_goes_red_un
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
            command="sh -c \"echo result; grep -q 'if guard' guard.txt\"")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, "pin stayed green" in ran.stderr,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
@@ -1925,7 +2005,8 @@ def test_3160_a_stale_before_state_pin_beside_an_old_format_pin_that_stays_green
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
            command="grep -q throws guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "stale: .tdd/issue-3160-mutations.md src.txt\n" in ran.stdout,
             "pin stayed green" in ran.stderr and "pin.txt" in ran.stderr, "guard.txt" in ran.stdout + ran.stderr,
@@ -1948,7 +2029,8 @@ def test_3160_a_green_before_state_pin_in_a_repository_with_no_origin_main_exits
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="grep -q old src.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "origin/main" in ran.stderr, "Traceback" in ran.stderr, "stale:" in ran.stdout,
             "pin stayed green" in ran.stderr) == (2, True, False, False, False), ran.stderr
@@ -1972,7 +2054,8 @@ def test_3160_a_green_before_state_pin_whose_base_worktree_cannot_be_created_exi
     record(tmp_path / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="grep -q old src.txt")
     (tmp_path / ".git" / "worktrees").write_text("not a directory\n")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "worktree" in ran.stderr, "CalledProcessError" in ran.stderr, "stale:" in ran.stdout,
             "pin stayed green" in ran.stderr, (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
@@ -1996,7 +2079,8 @@ def test_3160_a_stale_before_state_pin_whose_command_names_no_tests_value_names_
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="grep -q old src.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout) == (0, "stale: .tdd/issue-3160-mutations.md pin.txt\n"), ran.stderr
 
@@ -2018,7 +2102,8 @@ def test_3160_a_pin_whose_named_test_is_missing_at_head_and_on_the_base_and_not_
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "edit the pinned file; the named test is missing everywhere")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout.startswith("stale: .tdd/issue-835-mutations.md"),
             "named test missing" in ran.stderr, (tmp_path / "ran.witness").exists()) == (
@@ -2052,7 +2137,8 @@ def test_3160_a_base_replay_that_fails_exits_2_and_still_removes_the_base_worktr
     scratch.mkdir()
     listed = git("worktree", "list")
 
-    ran = subprocess.run(["sh", RECHECK, git("merge-base", "origin/main", "HEAD")], cwd=tmp_path,
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), git("merge-base", "origin/main", "HEAD")],
+                         cwd=tmp_path,
                          capture_output=True, text=True, timeout=20, env={**os.environ, "TMPDIR": str(scratch)})
 
     assert (ran.returncode, git("worktree", "list"), list(scratch.iterdir())) == (2, listed, []), ran.stderr
@@ -2074,7 +2160,8 @@ def test_3204_a_pin_whose_old_text_is_gone_prints_old_text_gone_as_its_reason_an
     (tmp_path / "guard.txt").write_text("if checked\nthrows\n")
     git("commit", "-q", "-am", "later commit rewrites the guard line")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout.splitlines(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         0, ["needs a look: guard.txt (old text gone)"], True), ran.stderr
@@ -2096,7 +2183,8 @@ def test_3204_a_base_run_that_fails_prints_needs_a_look_with_its_reason_and_stil
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "needs a look: guard.txt (base run failed)" in ran.stdout.splitlines(),
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, True), ran.stdout + ran.stderr
@@ -2118,7 +2206,8 @@ def test_3204_a_pin_whose_mutated_and_control_runs_both_pass_names_that_reason_a
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         0, "needs a look: guard.txt (mutation and control green)\n", True), ran.stdout + ran.stderr
@@ -2144,7 +2233,8 @@ def test_3204_pins_sharing_a_file_and_a_reason_print_one_line_with_a_count_and_a
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, sorted(ran.stdout.splitlines()), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         0, ["needs a look: guard.txt (base run failed)", "needs a look: guard.txt (old text gone) ×2"], True), ran.stderr
@@ -2176,7 +2266,8 @@ def test_3204_a_pin_whose_make_command_make_rejects_as_a_usage_error_exits_2_nam
                                  "exit 2\n")
     (bindir / "make").chmod(0o755)
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20,
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20,
                          env={**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}"})
 
     assert (ran.returncode, "issue-3204-mutations.md" in ran.stderr, command in ran.stderr,
@@ -2207,7 +2298,8 @@ def test_3204_a_make_command_that_exits_1_printing_invalid_option_stays_a_base_r
                                  "exit 1\n")
     (bindir / "make").chmod(0o755)
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20,
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20,
                          env={**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}"})
 
     assert (ran.returncode, ran.stdout.splitlines(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
@@ -2240,7 +2332,8 @@ def test_3204_a_make_exit_2_printing_only_invalid_option_or_only_its_usage_still
         (bindir / "make").write_text(f"#!/bin/sh\necho '{stderr_line}' >&2\nexit 2\n")
         (bindir / "make").chmod(0o755)
 
-        ran = subprocess.run(["sh", RECHECK, base], cwd=repo, capture_output=True, text=True, timeout=20,
+        ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(repo), base],
+                             cwd=repo, capture_output=True, text=True, timeout=20,
                              env={**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}"})
         outcomes[name] = (ran.returncode, "issue-3204-mutations.md" in ran.stderr,
                           "make test TESTS=./x -run TestFoo" in ran.stderr)
@@ -2268,7 +2361,8 @@ def test_3290_a_mutation_pin_green_under_its_mutation_whose_file_is_absent_on_th
     git("add", "-A")
     git("commit", "-q", "-m", "range adds guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin stayed green under its mutation: guard.txt\n" in ran.stderr, "Traceback" in ran.stderr,
             "stale:" in ran.stdout) == (1, True, False, False), ran.stdout + ran.stderr
@@ -2293,7 +2387,8 @@ def test_3290_a_mutation_pin_green_under_its_mutation_whose_base_worktree_cannot
     git("commit", "-q", "-am", "range touches guard.txt")
     (tmp_path / ".git" / "worktrees").write_text("not a directory\n")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "worktree" in ran.stderr, "pin stayed green" in ran.stderr, "stale:" in ran.stdout,
             "Traceback" in ran.stderr) == (2, True, False, False, False), ran.stdout + ran.stderr
@@ -2325,7 +2420,8 @@ def test_3289_a_pin_dropped_by_an_unpinnable_retire_is_not_reported_as_base_run_
                               "tests/test_thing.py::test_other", str(ledger), "a one"],
                              cwd=tmp_path, capture_output=True, text=True, timeout=20, env={**os.environ, "VERI_ISSUE": "42"})
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (retired.returncode, "base run failed" in ran.stdout + ran.stderr) == (0, False), retired.stderr + ran.stderr
 
@@ -2351,7 +2447,8 @@ def test_3323_a_pin_whose_test_survives_and_a_ledger_step_declares_retired_is_no
     git("add", "-A")
     git("commit", "-q", "-m", "edit guard.txt and declare its pin retired")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     retired = [line for line in ran.stdout.splitlines() if line.startswith("retired:")]
     assert (ran.returncode, retired, (tmp_path / ".tdd" / "pin-recheck-ok").exists(),
@@ -2383,7 +2480,8 @@ def test_3323_a_retired_pin_gains_a_retired_line_with_the_reason_that_the_record
     git("add", "-A")
     git("commit", "-q", "-m", "edit guard.txt and declare its pin retired")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, records(mutations.read_text())) == (
         3, [{**fields, "retired": "a later design adds it on purpose"}]), ran.stderr
@@ -2418,7 +2516,8 @@ def test_3323_retiring_a_pin_in_one_record_file_leaves_the_other_record_file_unt
     git("add", "-A")
     git("commit", "-q", "-m", "edit guard.txt and declare its pin retired")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, records(first.read_text()), second.read_text()) == (
         3, [{**mine, "retired": "a later design adds it on purpose"}], untouched), ran.stderr
@@ -2447,7 +2546,8 @@ def test_3323_retiring_a_declared_pin_writes_exactly_one_pin_retired_event_carry
     git("add", "-A")
     git("commit", "-q", "-m", "edit guard.txt and declare its pin retired")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     log = tmp_path / ".tdd" / "events.jsonl"
     events = [json.loads(line) for line in log.read_text().splitlines()] if log.is_file() else []
@@ -2479,9 +2579,11 @@ def test_3323_a_second_run_after_a_pin_was_retired_neither_replays_it_nor_writes
     git("add", "-A")
     git("commit", "-q", "-m", "edit guard.txt and declare its pin retired")
 
-    first = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    first = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                           cwd=tmp_path, capture_output=True, text=True, timeout=20)
     after_first = mutations.read_text()
-    second = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    second = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     log = tmp_path / ".tdd" / "events.jsonl"
     events = [json.loads(line) for line in log.read_text().splitlines()] if log.is_file() else []
@@ -2518,7 +2620,8 @@ def test_3323_a_pin_not_declared_retired_beside_a_retired_one_is_still_replayed_
     git("add", "-A")
     git("commit", "-q", "-m", "edit both files and declare the guard pin retired")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin stayed green under its mutation: other.txt" in ran.stderr, (tmp_path / "ran.witness").exists(),
             (tmp_path / "other.txt").read_bytes()) == (
@@ -2548,7 +2651,8 @@ def test_3323_a_retire_pin_declaration_with_an_empty_reason_exits_2_and_retires_
     git("add", "-A")
     git("commit", "-q", "-m", "edit guard.txt and declare its pin retired with no reason")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     log = tmp_path / ".tdd" / "events.jsonl"
     events = [json.loads(line) for line in log.read_text().splitlines()] if log.is_file() else []
@@ -2580,7 +2684,8 @@ def test_3323_a_retire_pin_declaration_naming_a_file_that_holds_no_pin_exits_2_a
     git("add", "-A")
     git("commit", "-q", "-m", "edit guard.txt and declare a pin retired that does not exist")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     log = tmp_path / ".tdd" / "events.jsonl"
     events = [json.loads(line) for line in log.read_text().splitlines()] if log.is_file() else []
@@ -2620,7 +2725,8 @@ def test_3383_a_replayed_mutant_dropping_o_append_from_event_py_leaves_the_live_
     before = "".join(json.dumps({"ts": 1794156370 + n, "event": "step", "note": "x" * 200}) + "\n" for n in range(3))
     journal.write_text(before)
 
-    subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=60)
+    subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                   cwd=tmp_path, capture_output=True, text=True, timeout=60)
 
     after = journal.read_text()
     assert (after.startswith(before), after[len(before):] == "" or after.endswith("\n")) == (True, True), after
@@ -2646,7 +2752,8 @@ def test_3363_without_a_ledger_flag_every_touched_record_of_every_ledger_is_repl
     (tmp_path / "guard-b.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch both")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran-a.witness").exists(), (tmp_path / "ran-b.witness").exists()) == (0, True, True), ran.stderr
 
@@ -2671,7 +2778,8 @@ def test_3363_with_a_ledger_flag_only_that_ledgers_touched_records_are_replayed(
     (tmp_path / "guard-b.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch both")
 
-    ran = subprocess.run(["sh", RECHECK, base, "--ledger", ".tdd/issue-835-mutations.md"], cwd=tmp_path,
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base, "--ledger", ".tdd/issue-835-mutations.md"],
+                         cwd=tmp_path,
                          capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran-a.witness").exists(), (tmp_path / "ran-b.witness").exists()) == (0, True, False), ran.stderr
@@ -2693,7 +2801,8 @@ def test_3363_a_ledger_flag_with_no_file_after_it_exits_2_and_replays_nothing(tm
     (tmp_path / "guard-a.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard-a")
 
-    ran = subprocess.run(["sh", RECHECK, base, "--ledger"], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base, "--ledger"],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran-a.witness").exists()) == (2, False), ran.stderr
 
@@ -2717,18 +2826,20 @@ def test_3363_a_ledger_flag_whose_ledger_has_no_touched_record_exits_3_and_repla
     (tmp_path / "guard-b.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard-b only")
 
-    ran = subprocess.run(["sh", RECHECK, base, "--ledger", ".tdd/issue-835-mutations.md"], cwd=tmp_path,
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base, "--ledger", ".tdd/issue-835-mutations.md"],
+                         cwd=tmp_path,
                          capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran-a.witness").exists(), (tmp_path / "ran-b.witness").exists()) == (3, False, False), ran.stderr
 
 
-USAGE_3363 = "usage: pin-recheck.sh <base-sha> [--ledger <file>]\n"
+USAGE_3363 = "usage: pin-recheck.sh --branch-base <sha> <base-sha> [--ledger <file>]\n"
 
 
 @pytest.mark.process("pin-recheck.sh run with --ledger and no file")
 def test_3363_a_bare_ledger_flag_exits_2_with_the_usage_on_stderr_and_no_traceback(tmp_path):
-    ran = subprocess.run(["sh", RECHECK, "HEAD", "--ledger"], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), "HEAD", "--ledger"],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, ran.stderr) == (2, "", USAGE_3363)
 
@@ -2736,7 +2847,8 @@ def test_3363_a_bare_ledger_flag_exits_2_with_the_usage_on_stderr_and_no_traceba
 @pytest.mark.process("pin-recheck.sh run with an unknown option after the base sha")
 @pytest.mark.parametrize("extra", [["--ledgr", "x"], ["stray"], ["--ledger", "a", "stray"]])
 def test_3363_an_argument_after_the_base_sha_other_than_ledger_and_its_file_exits_2_with_the_usage(tmp_path, extra):
-    ran = subprocess.run(["sh", RECHECK, "HEAD", *extra], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), "HEAD", *extra],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, ran.stderr) == (2, "", USAGE_3363)
 
@@ -2766,7 +2878,8 @@ def test_3471_an_encoded_record_whose_command_stays_green_under_its_mutation_exi
     (tmp_path / "guard.txt").write_text("if guard\nthrows\nsafe\n")
     git("commit", "-q", "-am", "later commit makes the test pass with the guard reverted")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin stayed green under its mutation" in ran.stdout + ran.stderr,
             (tmp_path / "guard.txt").read_bytes()) == (1, True, b"if guard\nthrows\nsafe\n"), ran.stderr
@@ -2794,7 +2907,8 @@ def test_3471_an_encoded_record_whose_command_goes_red_under_its_mutation_exits_
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     out = ran.stdout + ran.stderr
     assert (ran.returncode, "pin stayed green" in out, "needs a look" in out) == (0, False, False), out
@@ -2820,7 +2934,8 @@ def test_3471_a_plain_text_record_whose_command_stays_green_under_its_mutation_i
     (tmp_path / "guard.txt").write_text("if guard\nthrows\nsafe\n")
     git("commit", "-q", "-am", "later commit makes the test pass with the guard reverted")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin stayed green under its mutation" in ran.stdout + ran.stderr,
             (tmp_path / "guard.txt").read_bytes()) == (1, True, b"if guard\nthrows\nsafe\n"), ran.stderr
@@ -2861,9 +2976,11 @@ def test_3471_a_retire_rewrite_leaves_the_surviving_encoded_records_encoded_and_
     git("add", "-A")
     git("commit", "-q", "-m", "retire the gone.txt pin")
 
-    first = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    first = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                           cwd=tmp_path, capture_output=True, text=True, timeout=20)
     rewritten = ledger.read_text()
-    second = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    second = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     plain_fields = [line for line in rewritten.splitlines() if line.startswith(("old ", "new ", "context "))]
     assert ("MARKEROLD3471" in rewritten, "MARKERNEW3471" in rewritten, plain_fields, "old-b64 " in rewritten,
@@ -2898,7 +3015,8 @@ def test_3469_a_pin_disarmed_by_a_sibling_file_then_repinned_to_assert_its_own_f
     (tmp_path / "case.sh").write_text("grep -q 'the diff' skills/review/SKILL.md && ! grep -q control skills/*/SKILL.md\n")
     git("commit", "-q", "-am", "re-pin: the case asserts its own file")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert ran.returncode == 0, (ran.stdout, ran.stderr)
 
@@ -2944,7 +3062,8 @@ def test_3696_a_before_pin_whose_replay_path_and_its_directory_left_before_the_r
     record(tmp_path / ".tdd" / "issue-3265-mutations.md", before=before, keep="pin.txt", green=green,
            command="sh -c 'touch ran.witness; ! grep -q old src.txt'")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists(), (tmp_path / "dash").exists(),
             (tmp_path / "src.txt").read_bytes()) == (0, "", True, False, b"fixed behaviour\n"), ran.stderr
@@ -2956,7 +3075,8 @@ def test_3696_a_before_pin_whose_replay_path_left_before_the_range_and_which_thi
     record(tmp_path / ".tdd" / "issue-3265-mutations.md", before=before, keep="pin.txt", green=green,
            command="sh -c 'grep -q old src.txt && test ! -e marker.txt'")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, "pin stayed green on the before-state: pin.txt" in ran.stderr,
             (tmp_path / "dash").exists()) == (1, "", True, False), ran.stderr
@@ -2969,7 +3089,8 @@ def test_3696_a_before_pin_whose_tests_exist_and_whose_replay_path_left_its_surv
     record(tmp_path / ".tdd" / "issue-3223-mutations.md", before=before, keep="pin.txt", green=green,
            command="sh -c 'touch ran.witness; test -f tests/kept.py && ! grep -q old src.txt'")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists(),
             (tmp_path / "tests" / "old_case.py").exists(), (tmp_path / "src.txt").read_bytes()) == (
@@ -2992,7 +3113,8 @@ def test_3696_a_mutation_pin_whose_mutated_file_the_range_deletes_is_retired_and
     git("rm", "-q", "guard.txt")
     git("commit", "-q", "-m", "delete guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists(), (tmp_path / "guard.txt").exists()) == (
         3, "retired: .tdd/issue-3696-mutations.md guard.txt guard.txt\n", False, False), ran.stderr
@@ -3017,7 +3139,8 @@ def test_3713_a_record_holding_file_and_keep_is_selected_by_its_file_value_and_n
     (tmp_path / "keep_b.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch a's file and b's keep")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran_a.witness").exists(), (tmp_path / "ran_b.witness").exists()) == (
         0, True, False), ran.stderr
@@ -3039,7 +3162,8 @@ def test_3713_a_record_holding_only_a_file_value_is_selected_when_that_file_is_t
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran.witness").exists()) == (0, True), ran.stderr
 
@@ -3062,7 +3186,8 @@ def test_3713_a_record_holding_only_a_keep_value_is_selected_when_that_file_is_t
     record(tmp_path / ".tdd" / "issue-3713d-mutations.md", before=base, keep="pin.txt",
            command="sh -c \"touch ran.witness; grep -q fixed src.txt\"")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran.witness").exists()) == (0, True), ran.stderr
 
@@ -3087,7 +3212,8 @@ def test_3707_a_mutation_record_already_red_at_an_unchanged_tree_is_not_replayed
     git("commit", "-q", "-am", "touch guard.txt")
 
     def recheck():
-        ran = subprocess.run(["sh", RECHECK, base], cwd=repo, capture_output=True, text=True, timeout=20)
+        ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(repo), base],
+                             cwd=repo, capture_output=True, text=True, timeout=20)
         runs = len(counter.read_text().splitlines()) if counter.exists() else 0
         return ran.returncode, runs
 
@@ -3124,7 +3250,8 @@ def test_3707_a_sigterm_mid_mutation_replay_leaves_the_mutated_file_as_it_was_be
     git("commit", "-q", "-am", "touch guard.txt")
     sleeper = repo / "sleeper.pid"
 
-    proc = subprocess.Popen(["sh", RECHECK, base], cwd=repo, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    proc = subprocess.Popen(["sh", RECHECK, "--branch-base", branch_base(repo), base],
+                            cwd=repo, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         deadline = time.monotonic() + 15
         while not sleeper.exists() and time.monotonic() < deadline:
@@ -3166,7 +3293,8 @@ def test_3707_a_sigint_mid_mutation_replay_leaves_the_mutated_file_as_it_was_bef
     git("commit", "-q", "-am", "touch guard.txt")
     sleeper = repo / "sleeper.pid"
 
-    proc = subprocess.Popen(["sh", RECHECK, base], cwd=repo, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    proc = subprocess.Popen(["sh", RECHECK, "--branch-base", branch_base(repo), base],
+                            cwd=repo, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         deadline = time.monotonic() + 15
         while not sleeper.exists() and time.monotonic() < deadline:
@@ -3203,7 +3331,8 @@ def test_3740_a_mutation_record_whose_file_is_absent_and_not_deleted_in_the_rang
     git("commit", "-q", "-am", "touch guard.txt")
     (tmp_path / "guard.txt").unlink()
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode != 2, "FileNotFoundError" in ran.stderr, ran.stdout, (tmp_path / "ran.witness").exists()) == (
         True, False, "stale: .tdd/issue-3740-mutations.md guard.txt\n", False), ran.stderr
@@ -3234,7 +3363,8 @@ def test_3740_a_pin_green_under_its_mutation_beside_a_record_whose_file_is_absen
     git("commit", "-q", "-am", "touch both files")
     (tmp_path / "gone.txt").unlink()
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "live.txt" in ran.stderr, (tmp_path / "live.txt").read_bytes()) == (
         1, True, b"if guard\nthrows\nsafe\n"), ran.stderr
