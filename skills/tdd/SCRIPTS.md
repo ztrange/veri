@@ -304,6 +304,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/classify-bail.sh <cause>` — deterministically classify a bail cause
   (`killed-stuck`/`no-verdict` → `system`, `revise-exhausted`/`missing-reroutes-exhausted`/`repair-reroutes-exhausted` → `process`; unknown → exit
   non-zero). Used in the bail step in `<base directory>/BAIL.md` so the classification is consistent, not ad-hoc.
+- `$S/bail.sh <n> <cause> <phase> --note-file <path> [--attempt <k>]` — `BAIL.md` sub-steps 1–7 in one call, with sub-step 8's report as its last lines. A call that fails (a snapshot, the metrics render, the push, the skill-drift read or the comment) is named in the output and gone past, never a refusal. **Exit 0** the bail done; **exit 2** an unknown cause or bad arguments, before any call.
 - `$S/stop-requested.sh [--clear]` — **has an operator asked this run to stop, and how?**
   Run from the worktree, it reads `.tdd/stop`. **Exit 0** = a stop was requested: the mode —
   `at-ledger`, `at-leaf` or `now` — is printed on stdout and nothing else, so capture it and
