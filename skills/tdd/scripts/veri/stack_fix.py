@@ -375,7 +375,7 @@ def comment(stack, default, issue, body, name):
         targets.append(pulls[0].number)
     for number in targets + [int(issue)]:
         try:
-            github.gh_comment_post(number, body)
+            github.gh_comment_post(number, github.published(body))
         except github.NoAnswer as no:
             print("%s: the comment on #%s failed (%s); the push stands" % (
                 name, number, " ".join(str(no.detail or no.answer).split())[:200]), file=sys.stderr)

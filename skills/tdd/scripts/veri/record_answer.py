@@ -100,7 +100,7 @@ def main(argv):
         sys.stderr.write("record-answer.sh: issue #%s already has this answer\n" % number)
         return 3
     try:
-        github.gh_comment_post(number, body)
+        github.gh_comment_post(number, github.published(body))
     except github.NoAnswer:
         sys.stderr.write("record-answer.sh: no answer from gh posting the answer on issue #%s\n" % number)
         return 2

@@ -93,7 +93,7 @@ def run(n, settled, title):
     branch = fused.checked("2.3", "git", "branch", "--show-current", cwd=wt).strip()
     pr_url = draft_pr(n, wt, settled, title, k, branch)
     fused.checked("2.4", fused.script("comment.sh"), n, "plan", cwd=wt)
-    gh("2b", "api", "repos/{owner}/{repo}/issues/%s/comments" % n, "-f", "body=" + start_comment(n, k, branch), wt=wt)
+    gh("2b", "api", "repos/{owner}/{repo}/issues/%s/comments" % n, "-f", "body=" + github.published(start_comment(n, k, branch)), wt=wt)
     refresh_spec(n, wt)
     lines = ["plan_sha=" + plan_sha, "steps=%d" % k, "pr_url=" + pr_url,
              "pr_number=" + pr_url.rstrip("/").rsplit("/", 1)[-1]]

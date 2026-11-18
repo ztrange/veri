@@ -88,9 +88,9 @@ def write(issue, pushed_at=None):
                 if (c.get("body") or "").startswith(HEADING) and (c.get("user") or {}).get("login") == login]
         body = render(issue, pushed_at or last_push(held[0]["body"] if held else ""))
         if held:
-            github.gh_comment_edit(held[0]["id"], body)
+            github.gh_comment_edit(held[0]["id"], github.published(body))
         else:
-            github.gh_comment_post(issue, body)
+            github.gh_comment_post(issue, github.published(body))
     except github.NoAnswer as failed:
         said = " ".join(failed.detail.split())
         sys.stderr.write("pointer-comment: no answer from gh writing #%s's pointer comment%s\n"
