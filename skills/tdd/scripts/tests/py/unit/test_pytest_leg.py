@@ -1363,6 +1363,73 @@ def test_4310_a_malformed_unreadable_or_non_pid_entry_holds_no_share_and_none_cr
     assert (code, waited, handed[:1], sorted(p.name for p in legs.iterdir())) == (0, [], ["16"], sorted(["1", "notapid", str(os.getppid())]))
 
 
+def test_4310_a_live_pids_entry_whose_start_time_reads_differ_once_and_then_fail_holds_no_share_and_is_kept(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_16_cores(monkeypatch)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    live = legs / str(os.getppid())
+    registered(live, 16)
+    started(extra={"ps -o lstart= -p %d" % os.getppid(): (1, "", "")})
+    real_field = pytest_leg.pid_file.ps_field
+    monkeypatch.setattr(pytest_leg.pid_file, "ps_field", lambda field, pid: (
+        "Mon Jan  5 00:00:00 2015" if (field, int(pid)) == ("lstart", os.getppid()) else real_field(field, pid)))
+    waited, handed = [], []
+    monkeypatch.setattr(pytest, "main", handed_workers(handed))
+    monkeypatch.setattr(pytest_leg.time, "sleep", polls(waited))
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
+
+    assert (code, waited, handed[:1], live.read_text()) == (0, [], ["16"], "16\n%s\n" % PARENT_STARTED)
+
+
+def test_4310_an_entry_whose_pid_is_gone_holds_no_share_and_is_removed(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_16_cores(monkeypatch)
+    gone = 2**22 + 12345
+    real_kill = os.kill
+
+    def kill(pid, sig):
+        if pid == gone:
+            raise ProcessLookupError(pid)
+        return real_kill(pid, sig)
+
+    monkeypatch.setattr(os, "kill", kill)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    registered(legs / str(gone), 16, "Mon Jan  5 00:00:00 2015")
+    waited, handed = [], []
+    monkeypatch.setattr(pytest, "main", handed_workers(handed))
+    monkeypatch.setattr(pytest_leg.time, "sleep", polls(waited))
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
+
+    assert (code, waited, handed[:1], sorted(p.name for p in legs.iterdir())) == (0, [], ["16"], [])
+
+
+def test_4310_an_entry_whose_kill_0_fails_otherwise_or_overflows_holds_no_share_and_is_kept(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    import errno
+
+    on_16_cores(monkeypatch)
+    failing, huge = 2**22 + 777, 10**25
+    real_kill = os.kill
+
+    def kill(pid, sig):
+        if pid == failing:
+            raise OSError(errno.EINVAL, "invalid")
+        if pid == huge:
+            raise OverflowError(pid)
+        return real_kill(pid, sig)
+
+    monkeypatch.setattr(os, "kill", kill)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    registered(legs / str(failing), 16, "Mon Jan  5 00:00:00 2015")
+    registered(legs / str(huge), 16, "Mon Jan  5 00:00:00 2015")
+    waited, handed = [], []
+    monkeypatch.setattr(pytest, "main", handed_workers(handed))
+    monkeypatch.setattr(pytest_leg.time, "sleep", polls(waited))
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
+
+    assert (code, waited, handed[:1], sorted(p.name for p in legs.iterdir())) == (0, [], ["16"], sorted([str(failing), str(huge)]))
+
+
 def test_4310_a_leg_registers_its_worker_count_on_line_1_and_its_own_start_time_on_line_2(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     on_16_cores(monkeypatch)
     legs = tmp_path / "legs"

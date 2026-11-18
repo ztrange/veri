@@ -201,10 +201,11 @@ def registration(count):
 
 
 def leg_state(pid, started):
-    """"alive" when <pid> answers `kill 0` (a PermissionError included) under the start time <started>
-    (pid_file.same_start, the rule the lock-wait marker's reader keeps); "stale" when it is proven not that leg: the pid
-    is gone, or it runs under another start time (a reused pid); "unknown" when neither can be shown: no start time
-    recorded (an older leg's entry), or one ps cannot read now."""
+    """"alive" when <pid> answers `kill 0` (a PermissionError included) under the start time <started>, read as
+    pid_file.same_start reads it (the rule the lock-wait marker's reader keeps); "stale" when it is proven not that leg:
+    the pid is gone, or both start-time reads succeed and each differs from <started> (a reused pid); "unknown" when
+    neither can be shown: no start time recorded (an older leg's entry), or any read that fails or prints nothing. Only
+    "stale" removes an entry, so a read failing under load never deletes a live leg's."""
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -213,9 +214,15 @@ def leg_state(pid, started):
         pass
     except (OSError, OverflowError):
         return "unknown"
-    if not started or not pid_file.ps_field("lstart", pid):
+    pinned = pid_file.ps_field("lstart", pid)
+    if not started or not pinned:
         return "unknown"
-    return "alive" if pid_file.same_start(started, pid) else "stale"
+    if pinned == started:
+        return "alive"
+    caller = pid_file.caller_start(pid)
+    if not caller:
+        return "unknown"
+    return "alive" if caller == started else "stale"
 
 
 def registered_legs(legs):

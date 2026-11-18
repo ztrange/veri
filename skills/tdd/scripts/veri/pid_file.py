@@ -182,12 +182,17 @@ def same_start(started, pid):
     under the caller's own (the text an older snapshot recorded before the read was pinned)."""
     if started == ps_field("lstart", pid):
         return True
+    return started == caller_start(pid)
+
+
+def caller_start(pid):
+    """<pid>'s start time as `ps -o lstart=` prints it under the caller's own environment, or None when ps cannot read it."""
     try:
         caller = subprocess.run(["ps", "-o", "lstart=", "-p", str(int(pid))], stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL, text=True)
     except OSError:
-        return False
-    return caller.returncode == 0 and started == caller.stdout.strip()
+        return None
+    return caller.stdout.strip() if caller.returncode == 0 else None
 
 
 def conductor_alive(start):
