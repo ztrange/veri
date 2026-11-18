@@ -14,6 +14,7 @@ import tunables
 TIERS = ("fast", "changed", "all", "target")
 USAGE = "usage: timed-test-run.sh <tier> <suites> <cmd> [args …]\n"
 CASES = 10
+TAIL = 20
 WIDTH = 300
 SUMMARY = re.compile(r"^=* ?(.*\d+ (?:passed|failed|errors?)\b.*) in [0-9.]+s\b.*$")
 
@@ -32,6 +33,13 @@ def report(tier, code, seconds, output, path):
     text = [f"timed-test-run.sh: tier {tier}, exit {code}, {seconds}s, {counts}", *failing[:CASES]]
     if len(failing) > CASES:
         text.append(f"\u2026 {len(failing) - CASES} more failing cases cut")
+    return "\n".join(text + [f"full output: {os.path.abspath(path)}"]) + "\n"
+
+
+def tail(tier, code, seconds, output, path):
+    """A foreign tree's changed run: one header line, at most the output's last TAIL lines, the path."""
+    lines = output.decode(errors="replace").splitlines()[-TAIL:]
+    text = [f"timed-test-run.sh: tier {tier}, exit {code}, {seconds}s", *lines]
     return "\n".join(text + [f"full output: {os.path.abspath(path)}"]) + "\n"
 
 
@@ -65,6 +73,8 @@ def main(argv):
             sys.stdout.flush()
             if code == 2:
                 sys.stdout.write("timed-test-run.sh: the quiet test command broke the run (exit 2): no test answer\n")
+        elif tier == "changed" and not run_line.own_tree(top or "."):
+            sys.stdout.write(tail(tier, code, ended - started, log.read(), path))
         else:
             sys.stdout.write(report(tier, code, ended - started, log.read(), path))
     event.mark("", event.context(tunables.environment()), "test-run", [f"tier={tier}", f"suites={suites}",
