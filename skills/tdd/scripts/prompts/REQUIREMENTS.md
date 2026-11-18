@@ -1217,3 +1217,11 @@
 |---|---|---|
 | WS1 | The fragment tells the leaf, in bold, to rewrite the characterization cases this step wrote, and only those. (First sentence; `build_develop_prompt.py` picks it as `develop-revise.md`'s `{{TEST_REWRITE}}` when the revised phase is `surround`.) | A revised surround may redo only its own characterization cases. |
 | WS2 | It says each case still drives the region only through the step's seam and passes on the unmodified code, and that no production file is edited. (Rest of the fragment.) | Characterization tests pin today's behaviour through the seam; a production edit would change what they pin. |
+
+## skills/tdd/scripts/prompts/_develop-wrong-test-format.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| WF1 | The fragment holds the line `REPORT-FORMAT revise-wrong-test` with keys `WRONG_TEST:` and `SUPERSEDED:`, suite exempt because the test is wrong, so nothing was changed and no suite ran. (First format line.) | The conductor reads a superseded-test report by its keys; a report that changed nothing owes no suite. |
+| WF2 | It then holds the line `REPORT-FORMAT revise-wrong-test-contradicts` with keys `WRONG_TEST:` and `CONTRADICTS:`, with the same exemption. (Second format line.) | The conductor reads a contradicting-test report by its keys; it changed nothing either. |
+| WF3 | Each format line follows a blank line, so the fragment, spliced onto the end of `develop-revise.md`'s `revise-split` format line through `{{WRONG_TEST_FORMAT}}`, adds its formats as lines of their own. (The whole fragment; `build_develop_prompt.py` fills that slot with it only when the revised phase is `green`.) | Each format must be a line of its own, and only a revise-green leaf may report the test wrong. |
