@@ -1,5 +1,7 @@
 """baseline-full-tier.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import hashlib
+import json
 import os
 import sys
 
@@ -8,13 +10,49 @@ import run_dir
 import run_pins
 import tunables
 
-USAGE = "usage: baseline-full-tier.sh <issue> <full-tier-command>"
+USAGE = ("usage: baseline-full-tier.sh <issue> <full-tier-command>\n"
+         "       baseline-full-tier.sh --green <issue> <tree> <fast-command> <full-command>\n"
+         "       baseline-full-tier.sh --record-green <issue> <tree> <fast-command> <full-command>")
+
+
+def green_path():
+    """The record of green baselines on this machine, in the main working tree's `.tdd/`."""
+    return os.path.join(run_dir.main_tree_from_files(os.getcwd()), ".tdd", "baseline-green.json")
+
+
+def green_key(tree, fast, full):
+    return hashlib.sha256(json.dumps([tree, fast, full]).encode()).hexdigest()
+
+
+def read_green(path):
+    if not os.path.exists(path):
+        return {}
+    with open(path) as f:
+        return json.load(f)
+
+
+def green(argv):
+    """`--green` prints skip when a green baseline is recorded for the key, else run; `--record-green` records one."""
+    path, key = green_path(), green_key(*argv[2:5])
+    record = read_green(path)
+    if argv[0] == "--green":
+        print("skip" if key in record else "run")
+        return 0
+    record[key] = "green"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    full_tier_time.write_times(path, record)
+    return 0
 
 
 def main(argv):
     if len(argv) < 2:
         print(USAGE, file=sys.stderr)
         return 2
+    if argv[0] in ("--green", "--record-green"):
+        if len(argv) != 5:
+            print(USAGE, file=sys.stderr)
+            return 2
+        return green(argv)
     mode = run_pins.baseline_full_tier(argv[0], run_dir.main_tree_from_files(os.getcwd()))
     if mode is None:
         mode = tunables.get("VERI_BASELINE_FULL_TIER")

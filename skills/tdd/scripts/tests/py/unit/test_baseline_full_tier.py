@@ -222,3 +222,40 @@ def test_4017_reuse_reuses_a_time_recorded_at_most_the_max_age_ago_and_times_an_
     else:
         assert (len(err.splitlines()), "'make test'" in err, "%s days" % days in err,
                 "VERI_FULL_TIER_MAX_AGE_DAYS=%s" % (knob or "7") in err) == (1, True, True, True)
+
+
+TREE_4337 = "e" * 40
+
+
+def _green_4337(run_cli, module, flag, root, tree=TREE_4337, fast="make unit", full="make test"):
+    return run_cli(module, [flag, "4337", tree, fast, full], cwd=root)
+
+
+def test_4337_a_green_recorded_for_the_tree_commands_pin_and_lock_answers_skip_and_none_recorded_answers_run(
+        tmp_path, run_cli, baseline_full_tier):
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-4337-skill-commit").write_text("f" * 40 + "\n")
+    (tmp_path / "requirements-dev.txt").write_text("pytest==8 --hash=sha256:00\n")
+
+    before = _green_4337(run_cli, baseline_full_tier, "--green", tmp_path)
+    recorded = _green_4337(run_cli, baseline_full_tier, "--record-green", tmp_path)
+    after = _green_4337(run_cli, baseline_full_tier, "--green", tmp_path)
+
+    assert (before[0], before[1].strip()) == (0, "run")
+    assert recorded[0] == 0
+    assert (after[0], after[1].strip()) == (0, "skip")
+
+
+@pytest.mark.parametrize("flag", ["--green", "--record-green"])
+@pytest.mark.parametrize("count", [4, 6])
+def test_4337_green_flags_with_a_wrong_argument_count_exit_2_with_the_usage_and_record_nothing(
+        tmp_path, run_cli, baseline_full_tier, flag, count):
+    (tmp_path / ".git").mkdir()
+
+    code, out, err = run_cli(baseline_full_tier, [flag, "4337", TREE_4337, "make unit", "make test", "x"][:count],
+                             cwd=tmp_path)
+
+    assert (code, out) == (2, "")
+    assert "--record-green" in err
+    assert not (tmp_path / ".tdd" / "baseline-green.json").exists()
