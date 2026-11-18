@@ -2,7 +2,10 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
+import fused
 import fused_step
+from ledger import ledger_steps
+from ledger_steps import current_or_last_done_record
 
 NAME = "stop-settle"
 USAGE = "usage: stop-settle.sh <n> <mode> [--drop]"
@@ -16,7 +19,33 @@ def main(argv):
     given = fused_step.inputs(NAME + ".sh", argv[0])
     if given is None:
         return 2
+    try:
+        return run(argv[0], argv[1], given[1])
+    except fused.Stop as stop:
+        return fused.stopped(stop)
+
+
+def run(n, mode, wt):
+    for name in ("rebase-merge", "rebase-apply"):
+        fused.call("git", "rev-parse", "--git-path", name, cwd=wt)
+    fused.call("git", "rev-parse", "-q", "--verify", "MERGE_HEAD", cwd=wt)
+    fused.checked("2", "git", "status", "--porcelain", cwd=wt)
+    fused.checked("2", "git", "reset", "--hard", "HEAD", cwd=wt)
+    fused.call(fused.script("push-branch.sh"), cwd=wt)
+    steps = ledger_steps(committed_ledger(n, wt))
+    step = current_or_last_done_record(steps)
+    fused.mark("4", wt, n, step.text if step else "", "stop", "mode=" + mode, "at=planned")
+    fused.checked("5", fused.script("comment.sh"), n, "stopped", cwd=wt)
+    fused.checked("6", fused.script("stop-requested.sh"), "--clear", cwd=wt)
     return 0
+
+
+def committed_ledger(n, wt):
+    """The ledger HEAD holds; "" when HEAD holds none. Only the line naming the call is printed, never the ledger."""
+    path = ".tdd/issue-%s.md" % n
+    code, out, _ = fused.run_script("git", "show", "HEAD:" + path, cwd=wt)
+    sys.stdout.write(fused.label("git", "show", "HEAD:" + path) + " exit %d\n" % code)
+    return out if code == 0 else ""
 
 
 if __name__ == "__main__":
