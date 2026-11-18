@@ -4,11 +4,12 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import sys
 
 import entry
+import event_log
 import fused
 import fused_step
 import run_dir
 import seam_contract
-from ledger import handed_out
+from ledger import handed_out, same_step
 from next_pending_refactor import refactor_pending
 
 USAGE = "usage: seam-settle.sh <n> <stage> key=value…"
@@ -30,7 +31,7 @@ def main(argv):
     step = fused_step.first_step(wt, n, handed_out if stage == "red-half" else refactor_pending)
     if step is None:
         return entry.refuse("seam-settle.sh: no open step for %s in %s" % (stage, LEDGER % n))
-    return fused.settle(wt, n, stage, ["step=" + step] + RECORDS[stage](wt, n, values))
+    return fused.settle(wt, n, stage, ["step=" + step] + RECORDS[stage](wt, n, values, step))
 
 
 def refused(stage, pairs, values):
@@ -53,21 +54,31 @@ def refused(stage, pairs, values):
     return "missing key %s for %s" % (missing[0], stage) if missing else None
 
 
-def red_half(wt, n, values):
+def red_half(wt, n, values, step):
     target = values["target_test"]
     return ["test_path=" + values["test_path"], "target_test=" + target,
             "red_test_id=" + fused_step.red_test_id(values["test_path"], target), "against_unmodified=FAILS"]
 
 
-def green_half(wt, n, values):
+def green_half(wt, n, values, step):
     return ["green_sha=" + green_sha(wt, n), "test_path=" + values["test_path"]]
 
 
-def refactor_half(wt, n, values):
-    """The verdict as the automatic path's record names it: the log's hash and its `uncovered-spec` flags (#4029)."""
+def refactor_half(wt, n, values, step):
+    """The verdict as the automatic path's record names it: the log's hash and its `uncovered-spec` flags (#4029),
+    the flags left out when the step's verify was skipped, as refactor-half.sh leaves them out: the log is then an
+    earlier step's."""
     verdict_log, uncovered = fused_step.verdict(wt)
     return (["green_sha=" + green_sha(wt, n), "verdict_log=" + verdict_log]
-            + ["uncovered_spec=" + flag for flag in uncovered])
+            + ["uncovered_spec=" + flag for flag in uncovered if not verify_skipped(wt, step)])
+
+
+def verify_skipped(wt, step):
+    """True when the step's last verify-refactor event in the journal is `verify-refactor-skipped` (SKILL.md Refactor
+    5) rather than a refactor `verdict`: no verifier ran for it since, so no log is its."""
+    found = [e for e in event_log.events(wt, "verify-refactor-skipped", "verdict", skip_unreadable=True)
+             if (e.get("event") != "verdict" or e.get("phase") == "refactor") and same_step(e.get("step", ""), step)]
+    return bool(found) and found[-1].get("event") == "verify-refactor-skipped"
 
 
 def green_sha(wt, n):

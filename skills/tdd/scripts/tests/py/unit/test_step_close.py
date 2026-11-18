@@ -472,3 +472,38 @@ def test_a_hand_revised_pass_settled_by_seam_settle_plans_its_uncovered_spec_fla
 
     assert (code, fake.calls) == (1, [])
     assert out.splitlines()[-1] == "stopped at 6 uncovered_spec=a revised verdict's flag"
+
+
+
+EARLIER_PASS = {"event": "verdict", "phase": "refactor", "step": "an earlier step", "verdict": "PASS"}
+
+
+@pytest.mark.parametrize("journal, flagged", [
+    ([EARLIER_PASS, {"event": "verify-refactor-skipped", "step": STEP, "reason": "nothing-landed"}], False),
+    ([{"event": "verify-refactor-skipped", "step": STEP, "reason": "switched-off"}, EARLIER_PASS], False),
+    ([{"event": "verify-refactor-skipped", "step": STEP, "reason": "nothing-landed"},
+      {"event": "verdict", "phase": "refactor", "step": STEP, "verdict": "PASS"}], True),
+    ([{"event": "verify-refactor-skipped", "step": STEP, "reason": "nothing-landed"},
+      {"event": "verdict", "phase": "green", "step": STEP, "verdict": "PASS"}], False),
+], ids=["nothing-landed", "switched-off", "verified-after-the-skip", "a-green-verdict-after-the-skip"])
+def test_a_hand_refactor_whose_verify_was_skipped_settles_no_flag_of_an_earlier_steps_log_and_closes_4342(
+        close, run_cli, tmp_path, journal, flagged):
+    """A hand refactor that skipped its verify (the `verify-refactor-skipped` event for the open step, SKILL.md
+    Refactor 5, with no refactor `verdict` for the step after it) leaves `.tdd/verify-refactor.log` an earlier step's:
+    `seam-settle.sh <n> refactor-half` names its hash but records none of its `uncovered_spec=` flags, as
+    refactor-half.sh's own skip does, so step-close closes the step rather than stopping on another step's flag. A
+    refactor verdict for the step after the skip makes the log the step's, its flags recorded and stopping the close."""
+    left = "FLAGS: uncovered-spec | the log's flag\nVERDICT: PASS\n"
+    (close.wt / ".tdd" / "verify-refactor.log").write_text(left)
+    (close.wt / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in journal))
+    code, out, err, fake = close(missing=("refactor-half",))
+    assert (code, out.splitlines()[-1]) == (1, "seam=step-close code=1 reason=record next=seam-settle.sh 12 refactor-half")
+
+    settled = run_cli(importlib.import_module("veri.seam_settle"), ["12", "refactor-half"], cwd=str(tmp_path))
+    record = (close.wt / ".tdd" / "issue-12-refactor-half").read_text()
+    assert (settled[0], "uncovered_spec=the log's flag\n" in record) == (0, flagged)
+    assert "verdict_log=%s\n" % hashlib.sha256(left.encode()).hexdigest() in record
+
+    code, out, err, fake = close()
+
+    assert (code, out.splitlines()[-1] == "stopped at 6 uncovered_spec=the log's flag") == (int(flagged), flagged)
