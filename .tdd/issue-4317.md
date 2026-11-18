@@ -34,7 +34,7 @@
 - [x] an issue of the slice body's `Closes` lines still open after the settle window makes stack_land exit 2 naming each such issue, the landing left as done (unit case, no process) ⟦criterion 13⟧
 - [x] a landing makes no tag and pushes or rebases nothing of the stack branch (unit case, no process) ⟦criterion 13⟧
 - [x] when origin/<default> is not an ancestor of the cut, stack_land rebases the slice branch onto origin/<default>, pushes it under `--force-with-lease=<slice>:<old value>`, calls wait-ci.sh on the new head and merges that head (unit case, no process) ⟦criterion 9⟧
-- [ ] when origin/<default> is an ancestor of the cut, stack_land rebases nothing and makes no wait-ci.sh call (unit case, no process) ⟦criterion 8⟧
+- [x] when origin/<default> is an ancestor of the cut, stack_land rebases nothing and makes no wait-ci.sh call (unit case, no process) ⟦criterion 8⟧
 - [ ] a rebase conflict makes stack_land exit 1, nothing merged, the lock freed, the slice branch and its pull request kept (unit case, no process) ⟦criterion 9⟧
 - [ ] a red CI answer from wait-ci.sh on the rebased head makes stack_land exit 1, nothing merged, the lock freed, the slice branch and its pull request kept (unit case, no process) ⟦criterion 9⟧
 - [ ] a case in test_stack_land.py sweeps stack_land.py, merge_common.py and stack-land.sh for a repository, issue number, branch, label or person name and finds none (P12) ⟦criterion 15⟧

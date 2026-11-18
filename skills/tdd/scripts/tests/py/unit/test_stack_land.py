@@ -671,3 +671,19 @@ def test_with_origin_default_not_an_ancestor_of_the_cut_rebases_the_slice_branch
     assert (code, len(rebase), len(push), len(wait), len(merge), world.gh) == (
         0, 1, 1, 1, 1, [("gh", "pr", "merge", url, "--rebase", "--match-head-commit", rebased)]), (world.log, err)
     assert rebase[0] < push[0] < wait[0] < merge[0], world.log
+
+
+def test_with_origin_default_an_ancestor_of_the_cut_rebases_nothing_pushes_nothing_leased_waits_on_no_ci_and_merges_the_cut(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url, ancestor=True, rebased="7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b")
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    rebased = [argv for argv in world.log if argv[:1] == ("git",) and ("rebase" in argv or "worktree" in argv)]
+    leased = [argv for argv in world.log if argv[:2] == ("git", "push") and any(
+        arg.startswith("--force") or arg.startswith("+") for arg in argv)]
+    waited = [argv for argv in world.log if argv[:1] == ("wait-ci.sh",)]
+    assert (code, rebased, leased, waited, world.gh) == (
+        0, [], [], [], [("gh", "pr", "merge", url, "--rebase", "--match-head-commit", cut)]), (world.log, err)
