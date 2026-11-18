@@ -179,13 +179,14 @@ def launched_since(path, recovered):
 
 
 def refusal(path, lines, stamp):
-    recovered = [l.split("=", 1)[1] for l in lines if l.startswith("recovered-at=")]
+    state = State(lines)
+    recovered = state.values("recovered-at")
     if recovered:
         decided = any(l.split()[2] > recovered[-1] for l in lines if l.startswith(("decision ", "dropped-decision ")))
         if not decided and not launched_since(path, recovered[-1]):
             return "request-reset refused: nothing launched, merged or decided since the last recovery"
     hour_ago = epoch(stamp) - 3600
-    recent = [l for l in lines if l.startswith("reset-at=") and epoch(l.split("=", 1)[1]) > hour_ago]
+    recent = [at for at in state.values("reset-at") if epoch(at) > hour_ago]
     if len(recent) >= int(tunables.get("VERI_RESET_MAX_PER_HOUR")):
         return "request-reset refused: %d resets in the last hour" % len(recent)
     return None
