@@ -2,4 +2,4 @@
 
 - [x] A case in skills/tdd/scripts/tests/py/unit/test_pytest_leg.py calling pytest_leg.main in-process with pytest.main swapped for a spy that returns, without restoring sys.path itself, finds sys.path equal to what it was before the call once main returns ⟦guard-subject: skills/tdd/scripts/tests/leg/pytest_leg.py⟧ ⟦criterion 1⟧
 - [x] A case in skills/tdd/scripts/tests/py/unit/test_pytest_leg.py calling pytest_leg.main in-process with pytest.main swapped for a spy that raises, without restoring sys.path itself, finds sys.path equal to what it was before the call once main raises ⟦guard-subject: skills/tdd/scripts/tests/leg/pytest_leg.py⟧ ⟦criterion 1⟧
-- [ ] The two cases named in Steps to reproduce (test_pytest_leg.py's test_2100 two-legs case, then test_conftest.py's search-path case), run in that order in one worker with VERI_PYTEST_WORKERS=1, both pass ⟦full-suite⟧ ⟦criterion 2⟧
+- [x] The two cases named in Steps to reproduce (test_pytest_leg.py's test_2100 two-legs case, then test_conftest.py's search-path case), run in that order in one worker with VERI_PYTEST_WORKERS=1, both pass ⟦full-suite⟧ ⟦criterion 2⟧
