@@ -18,11 +18,11 @@ needed, and name none from memory.
 
 `/vgroom [<issue>...|--refactor-owed]`
 
-- No argument — **the sweep** (below): every open issue that does not carry the opt-in label
-  (bare or scoped), except PRD trackers (titled `PRD <nnn>: …`). Every other label, the bug
-  label included, leaves an issue in scope, save one: the sweep leaves out every issue carrying a
-  `taken:` label (any lane), which a run holds in place of the opt-in label, and reports none of
-  them.
+- No argument — **the sweep** (below): every open issue, whatever its labels — issues without
+  the opt-in label (bare or scoped), issues already carrying it, refactor-owed items and PRD
+  trackers (titled `PRD <nnn>: …`) — save one kind: the sweep leaves out every issue carrying a
+  `taken:` label (any lane), which a run holds in place of the opt-in label, and reports each one
+  as skipped, naming why: grooming under a live run would race it.
 - `<issue>...` — groom exactly those issues.
 - `--refactor-owed` — consolidate the refactor-owed items (see below).
 
@@ -31,8 +31,11 @@ opt-in label to every issue the sweep ends ready.
 
 ## The sweep
 
-Every issue in scope ends the run with exactly one outcome and one report line; none is skipped
-or left unlabelled without its reason.
+The sweep's scope is every open issue but the `taken:` ones (*Invocation*): issues without the
+opt-in label (bare or scoped), issues already opted in, the refactor-owed items, which go through
+the `--refactor-owed` consolidation (below) as part of the sweep, and PRD trackers, which go
+through `### Missing PRD parents`. Every issue in scope ends the run with exactly one outcome and
+one report line; none is skipped or left unlabelled without its reason.
 
 1. **Triage** each issue (below).
 2. **`needs-rewrite`**: a subagent rewrites the body into the issue body `../vfile/SKILL.md`
