@@ -455,3 +455,14 @@ def test_4390_after_a_rebase_the_regrade_is_committed_before_the_pinned_lease_pu
     made = _calls(fake)
     commit = made.index(("git", ("commit", "-q", "-m", SUBJECT, "--", "GRADED")))
     assert commit < fake.names().index("push-branch.sh")
+
+
+@pytest.mark.parametrize("answers", [{("rebase-onto-default.sh", None): (3, "")},
+                                     {("detach-command.sh", ("wait", "regrade-12")): (1, "1\n")}],
+                         ids=["no rebase, exit 0", "a regrade block that stopped it"])
+def test_4390_once_the_regrade_wait_answered_no_record_is_left_so_the_next_call_starts_from_its_first_call(
+        prep, answers):
+    _pid(prep, "111\nTue Nov 17 07:00:00 2026\n")
+    prep(answers=answers)
+
+    assert not (prep.wt / ".tdd" / "issue-12-pr-prepare-wait").exists()
