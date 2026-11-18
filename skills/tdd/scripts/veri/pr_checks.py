@@ -34,8 +34,12 @@ def run(n):
     owed = ".tdd/issue-%s-refactor-owed.md" % n
     lint(wt, n)
     quality(wt, n, base)
-    answered("red-setup", fused.script("red-setup.sh"), "worst", n, owed, ok=(0, 3), cwd=wt)
+    initial = said(wt, owed, "")
+    worst = (fused.script("red-setup.sh"), "worst", n, owed)
+    answered("red-setup", *worst, ok=(0, 3), cwd=wt)
     coupling(wt, n, base, owed)
+    if said(wt, owed, "") != initial:
+        raise fused.Stop("coupling", fused.label(*worst) + " changed the owed file", 1)
     url = answered("refactor-candidates", fused.script("refactor-candidates.sh"), n, owed, ok=(0, 3), cwd=wt)
     unwired(wt, n, base)
     return fused.settle(wt, n, NAME, ["candidates=" + url.strip()])
@@ -151,7 +155,8 @@ def unrecorded(wt, section, command, bound):
 def coupling(wt, n, base, owed):
     """coupling.sh over the range: a pair writes the `### Coupling` section and stops it with exit 1, the row and its
     commit being the conductor's; none clears an earlier entry's row, and a row it drops stops it with exit 1 for the
-    conductor's commit."""
+    conductor's commit. Without a pair, run() then stops it at coupling with exit 1 when red-setup.sh changed the owed
+    file, since no prose but the coupling block's commits that file."""
     section = ".tdd/issue-%s-coupling.md" % n
     write(wt, section, "")
     pairs = (fused.script("coupling.sh"), base)

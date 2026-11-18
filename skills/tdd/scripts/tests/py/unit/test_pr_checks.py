@@ -250,6 +250,26 @@ def test_4392_a_clear_that_drops_a_stale_coupling_row_stops_it_at_coupling_for_t
     assert [c[1][:1] for c in fake.calls if c[0] == "git"] == [("merge-base",)]
 
 
+ROW = "| testability | red setup of step 2: 5 lines | not-done |\n"
+
+
+@pytest.mark.parametrize("before, code", [("", 1), (ROW, 0)], ids=["row written", "row unchanged"])
+def test_4392_a_red_setup_row_with_no_coupling_pair_stops_it_at_coupling_for_the_conductor_s_commit(checks, before,
+                                                                                                  code):
+    owed = checks.wt / ".tdd" / "issue-12-refactor-owed.md"
+    owed.write_text(before)
+    code_, out, err, fake = checks(answers={("red-setup.sh", None): (0, "")},
+                                   files={("red-setup.sh", ("worst",)): {".tdd/issue-12-refactor-owed.md": ROW}})
+
+    assert code_ == code, out + err
+    assert [c[1][:1] for c in fake.calls if c[0] == "git"] == [("merge-base",)]
+    if code:
+        assert out.splitlines()[-1] == ("stopped at coupling red-setup.sh worst 12 .tdd/issue-12-refactor-owed.md "
+                                        "changed the owed file")
+        assert fake.names()[-1] == "refactor-owed.sh"
+        assert owed.read_text() == ROW
+
+
 @pytest.mark.parametrize("failing, inner", [
     (("git", ("merge-base",)), 128), (("detach-command.sh", ("start",)), 1), (("event.sh", None), 1),
     (("stop-requested.sh", None), 2), (("test-quality.sh", ("files",)), 2), (("red-setup.sh", None), 2),
