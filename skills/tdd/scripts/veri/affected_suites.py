@@ -303,9 +303,9 @@ def main(argv):
             unplaced.append(f)
 
     if unplaced:
-        print("affected-suites: no rule places %s; widening to every suite" % ",".join(unplaced), file=sys.stderr)
-        placed = [p for p, _ in pytest_texts()]
-    elif not placed:
+        print("affected-suites: no rule places %s; no test file covers them, so the full suite at the PR runs them"
+              % ",".join(unplaced), file=sys.stderr)
+    if not placed:
         return 3
     sys.stdout.write("".join(s + "\n" for s in sorted(set(placed))))
     return 0

@@ -92,7 +92,7 @@ def test_main_widens_to_every_suite_file_but_not_a_directory_named_like_one(tmp_
         "")
 
 
-def test_main_widens_a_file_no_rule_handles_to_every_bash_suite_file_and_not_a_directory_named_like_one_1812(
+def test_main_exits_3_naming_a_file_no_rule_handles_and_never_widens_to_every_suite_4333(
         tmp_path, monkeypatch, capsys, affected, fake_processes):
     _install(fake_processes, fake_git(["docs/notes.md"]))
     monkeypatch.chdir(tmp_path)
@@ -101,13 +101,10 @@ def test_main_widens_a_file_no_rule_handles_to_every_bash_suite_file_and_not_a_d
     (tests / "py/unit/test_other.py").write_text("")
     (tests / "py/test_top.py").write_text("")
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
-        0,
-        "skills/tdd/scripts/tests/py/test_top.py\n"
-        "skills/tdd/scripts/tests/py/unit/test_other.py\n",
-        "affected-suites: no rule places docs/notes.md; widening to every suite\n")
+        3, "", "affected-suites: no rule places docs/notes.md; no test file covers them, so the full suite at the PR runs them\n")
 
 
-def test_main_widens_a_file_under_a_projects_directory_like_any_file_no_rule_places_and_prints_none_of_its_tests(
+def test_main_treats_a_file_under_a_projects_directory_like_any_file_no_rule_places_and_prints_none_of_its_tests(
         tmp_path, monkeypatch, capsys, affected, fake_processes):
     _install(fake_processes, fake_git(["projects/other/serve.py"]))
     monkeypatch.chdir(tmp_path)
@@ -119,10 +116,7 @@ def test_main_widens_a_file_under_a_projects_directory_like_any_file_no_rule_pla
     project.mkdir(parents=True)
     (project / "test_serve_get_root.py").write_text("")
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
-        0,
-        "skills/tdd/scripts/tests/py/test_top.py\n"
-        "skills/tdd/scripts/tests/py/unit/test_other.py\n",
-        "affected-suites: no rule places projects/other/serve.py; widening to every suite\n")
+        3, "", "affected-suites: no rule places projects/other/serve.py; no test file covers them, so the full suite at the PR runs them\n")
 
 
 def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_suite_names_1572(
@@ -757,24 +751,23 @@ def test_empty_diff_exits_3_and_prints_nothing(fake_processes, run_cli, affected
     assert affected_by(fake_processes, run_cli, affected, tmp_path, [], {}) == (3, "", "")
 
 
-def test_rule_5_a_rule_1_file_plus_a_file_no_rule_matches_prints_every_suite(
+def test_a_placed_file_plus_a_file_no_rule_places_prints_only_the_placed_files_suites_and_names_the_other_4333(
         fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
         fake_processes, run_cli, affected, tmp_path, [SCRIPTS_REL + "foo.sh", "docs/notes.md"],
         {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "baz.sh": "baz\n",
          "docs/notes.md": "# notes\n",
          SCRIPTS_REL + "tests/py/test_foo.py": "", SCRIPTS_REL + "tests/py/unit/test_baz.py": ""},
-    ) == (0, SCRIPTS_REL + "tests/py/test_foo.py\n" + SCRIPTS_REL + "tests/py/unit/test_baz.py\n",
-          "affected-suites: no rule places docs/notes.md; widening to every suite\n")
+    ) == (0, SCRIPTS_REL + "tests/py/test_foo.py\n",
+          "affected-suites: no rule places docs/notes.md; no test file covers them, so the full suite at the PR runs them\n")
 
 
-def test_a_widening_caused_by_two_unplaced_files_names_both_on_stderr(fake_processes, run_cli, affected, tmp_path):
+def test_two_unplaced_files_alone_exit_3_naming_both_on_stderr(fake_processes, run_cli, affected, tmp_path):
     code, out, err = affected_by(
         fake_processes, run_cli, affected, tmp_path, ["notes.md", "memo.md"],
         {"notes.md": "# notes\n", "memo.md": "# memo\n", SCRIPTS_REL + "foo.sh": "foo\n",
          SCRIPTS_REL + "tests/py/test_foo.py": ""})
-    assert (code, out, "notes.md" in err, "memo.md" in err) == (
-        0, SCRIPTS_REL + "tests/py/test_foo.py\n", True, True)
+    assert (code, out, "notes.md" in err, "memo.md" in err) == (3, "", True, True)
 
 
 def test_run_state_alone_exits_3_and_prints_nothing(fake_processes, run_cli, affected, tmp_path):
@@ -785,15 +778,14 @@ def test_run_state_alone_exits_3_and_prints_nothing(fake_processes, run_cli, aff
     ) == (3, "", "")
 
 
-def test_fail_closed_run_state_alongside_a_file_no_rule_places_still_prints_every_suite(
+def test_run_state_alongside_a_file_no_rule_places_exits_3_naming_that_file(
         fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
         fake_processes, run_cli, affected, tmp_path, [".tdd/issue-416.md", "notes.md"],
         {".tdd/issue-416.md": "- [x] step one\n", "notes.md": "# notes\n",
          SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
          SCRIPTS_REL + "tests/py/test_foo.py": "", SCRIPTS_REL + "tests/py/unit/test_bar.py": ""},
-    ) == (0, SCRIPTS_REL + "tests/py/test_foo.py\n" + SCRIPTS_REL + "tests/py/unit/test_bar.py\n",
-          "affected-suites: no rule places notes.md; widening to every suite\n")
+    ) == (3, "", "affected-suites: no rule places notes.md; no test file covers them, so the full suite at the PR runs them\n")
 
 
 SKILL = "skills/tdd/SKILL.md"
