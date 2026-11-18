@@ -66,6 +66,9 @@ class Fake:
         return [c[1][1] for c in self.calls if c[0] == "detach-leaf.sh"]
 
 
+BRANCH_BASE = "abc1234"  # the run's recorded branch base (#4375)
+
+
 @pytest.fixture
 def tidy(monkeypatch, run_cli, tmp_path):
     """tidy(answers=None, fake=None, missing=(), step=STEP, red_step=None, argv=None) runs refactor-half for issue
@@ -76,7 +79,8 @@ def tidy(monkeypatch, run_cli, tmp_path):
     (wt / ".tdd").mkdir(parents=True)
 
     def go(answers=None, fake=None, missing=(), step=STEP, red_step=None, argv=None):
-        files = {"preflight": (wt / ".tdd" / "issue-12-preflight", "worktree=%s\nfast_cmd=make unit\n" % wt),
+        files = {"branch_base": (wt / ".tdd" / "issue-12-branch-base", BRANCH_BASE + "\n"), 
+                 "preflight": (wt / ".tdd" / "issue-12-preflight", "worktree=%s\nfast_cmd=make unit\n" % wt),
                  "ledger": (wt / ".tdd" / "issue-12.md", LEDGER % step),
                  "spec": (wt / ".tdd" / "issue-12-spec.md", "# spec\n"),
                  "red-half": (wt / ".tdd" / "issue-12-red-half", RED_HALF % (red_step or step)),
@@ -274,7 +278,8 @@ def test_4028_otherwise_it_launches_verdict_refactor_with_refactor_5s_arguments(
 
     launch = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
     assert _short(launch[1]) == ("supervise.sh", "verdict-refactor", "run-verdict.sh", "--step", STEP, "--fast-cmd",
-                                 "make unit", "refactor", ".tdd/issue-12-spec.md", "tests/test_a.py", GREEN_SHA)
+                                 "make unit", "--branch-base", BRANCH_BASE, "refactor", ".tdd/issue-12-spec.md",
+                                 "tests/test_a.py", GREEN_SHA)
     assert (launch[3]["VERI_TEST_CMD"], launch[3]["VERI_STEP"]) == ("make unit", STEP)
     assert (launch[4]["out"], launch[4]["err"]) == (".tdd/verify-refactor.reason", ".tdd/verify-refactor.err")
 
