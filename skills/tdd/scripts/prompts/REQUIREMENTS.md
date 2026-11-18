@@ -1178,3 +1178,10 @@
 | IL6 | Under `### Your checks`, check 1, **Still green**, tells the verifier to run the fast command `{{FAST_CMD}}` (which `detect-test-command.sh --tier fast` prints), then the test files covering the files the range touched, as `affected-suites.sh` prints them, itself, and says both must be **green**. (Numbered list, item 1.) | A phase that changes no behaviour leaves the fast tier and the touched files' suites green. |
 | IL7 | Check 1 says each of those two runs goes through the wrapper, the included `_timed-test-run-tier.md` completing that sentence before a colon, and the included `_timed-test-run-fast-affected.md` giving the two command lines. (Numbered list, item 1, the two include lines.) | Both runs are recorded and bounded by the wrapper, each under its tier. |
 | IL8 | Check 1 ends with the included `_exit-status-back.md` fragment followed by "so a red run stays red", and is the only check the fragment holds: the including template numbers its own checks from 2. (Last line.) | The wrapper's exit status must reach the verifier, and every interface-phase template continues the list after check 1 (VN4). |
+
+## skills/tdd/scripts/prompts/_verify-tests-frozen.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TZ1 | The fragment says, in bold, "Test files stay frozen.", and that a range that touches a test file is a REJECT. (The whole fragment.) | The phases that include it (`verify-expand.md`, `verify-beside.md`, `verify-contract-b.md`, `verify-migrate.md`) change production only; a test edit there would change what pins the behaviour. |
+| TZ2 | The fragment carries no list number of its own: the including template numbers the check and appends its `{{LAST_PHASE_CHECK}}` slot right after it. (The whole fragment.) | Each template places the rule at its own position in its check list. |
