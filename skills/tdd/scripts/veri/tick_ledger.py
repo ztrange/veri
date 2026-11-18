@@ -26,10 +26,6 @@ def case_env(make=False):
     return {**env, "LC_ALL": "C"} if make else env
 
 
-LAST_COMMAND = ""
-LAST_CODE = 0
-
-
 def no_answer(code):
     """Whether a case command's code says it never ran: not executable or not found (126, 127), killed by a signal
     (128 and above under a shell, negative when Python saw the signal itself)."""
@@ -78,21 +74,21 @@ def run_case(case):
     path = case.split("::", 1)[0]
     is_make = not command or os.path.basename((command.split() or [""])[0]) == "make"
     if command:
-        LAST_COMMAND = f"{command} {path}"
+        ran = f"{command} {path}"
         done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env(is_make))
     else:
-        LAST_COMMAND = f"make test TESTS={case}"
+        ran = f"make test TESTS={case}"
         done = subprocess.run(["make", "test", f"TESTS={case}"], capture_output=True, text=True, env=case_env(True))
         if "::" not in case and "/" not in path:
             path = "."
-    LAST_CODE = done.returncode
-    answer = make_answer(done.stderr or "") if is_make and LAST_CODE > 0 else LAST_CODE
+    code = done.returncode
+    answer = make_answer(done.stderr or "") if is_make and code > 0 else code
     if no_answer(answer) or answer == 2:
-        return 2, LAST_COMMAND, LAST_CODE
+        return 2, ran, code
     if answer and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items",
                                                          f"{done.stdout}{done.stderr}", re.I)):
-        return 2, LAST_COMMAND, LAST_CODE
-    return answer, LAST_COMMAND, LAST_CODE
+        return 2, ran, code
+    return answer, ran, code
 
 
 def changed_index(text, new):
