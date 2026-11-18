@@ -278,3 +278,26 @@ def test_a_branch_of_the_slice_name_already_on_origin_at_the_cut_itself_is_kept_
 
     assert (code != 2, "already on origin" in err, [ran[:2] for ran in world.scripts if ran[0] == "merge-lock.sh"]) == (
         True, False, [("merge-lock.sh", "take")]), err
+
+
+def test_a_failed_push_of_the_slice_branch_exits_2_naming_the_branch_nothing_opened_or_merged_the_lock_freed(
+        monkeypatch, run_cli, stack_land):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7)
+    git, github = importlib.import_module("veri.git"), importlib.import_module("veri.github")
+    faked, writes = git.network, []
+
+    def network(*args, **kwargs):
+        if args[:1] == ("push",):
+            world.network.append(args)
+            return subprocess.CompletedProcess(["git", *args], 1, "", "error: failed to push some refs\n")
+        return faked(*args, **kwargs)
+
+    monkeypatch.setattr(git, "network", network)
+    for name in ("run_gh", "pr_open", "gh_pr_create"):
+        monkeypatch.setattr(github, name, lambda *args, _name=name, **kwargs: writes.append((_name,) + args))
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert (code, out, "stack-slice-3f2a9c1d0b" in err, writes, [ran[:2] for ran in world.scripts[-2:]]) == (
+        2, "", True, [], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
