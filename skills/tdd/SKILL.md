@@ -754,9 +754,9 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
-Unless the step carries `⟦diff-checked⟧`, `⟦phases:`, `⟦skill-edit⟧` or `⟦fixture-repair⟧`, run
-`$S/red-half.sh <n>` first, again on exit 3; on 0 its last lines hold `test_path`, `target_test`,
-`red_test_id`; else go on from the sub-step it names.
+For a cycle step run `$S/run-step.sh <n>` once, again on exit 3: it runs Red, Green and the Refactor loop to 6's
+PASS branch and ends on `step-close.sh`'s `next=`. A `seam=<stage>` last line is where the prose takes over, from the
+sub-step its `stopped at` line names (`--hand <stage>` keeps a stage, `--from <stage>` hands one back).
 Red by hand ends `$S/seam-settle.sh <n> red-half test_path=<path> target_test=<id>`.
 
 1. **Develop.** Before the prompt is built, run `$S/refresh-spec.sh <n> .tdd/issue-<n>-spec.md`.
@@ -907,9 +907,7 @@ Red by hand ends `$S/seam-settle.sh <n> red-half test_path=<path> target_test=<i
 
 #### Green — minimum implementation (developer leaf), then verify-green (blind)
 
-After a clean `red-half.sh`, unless the step carries `⟦replaces-case⟧` or `⟦ci-repair⟧`, run
-`$S/green-half.sh <n>` first, again on exit 3; on 0 its last lines hold `step`, `green_sha`,
-`test_path`, else go on from the sub-step it names.
+Green is taken by hand at `run-step.sh`'s `seam=green-half` stop, from the sub-step it names, else 1.
 Green by hand ends `$S/seam-settle.sh <n> green-half test_path=<path>`.
 
 1. **Develop.** Build the prompt from the `green` template — the **minimum** production
@@ -1068,9 +1066,8 @@ Green by hand ends `$S/seam-settle.sh <n> green-half test_path=<path>`.
 
 #### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)
 
-On the step's first pass run `$S/refactor-half.sh <n>` first, again on exit 3;
-on 0 its last lines hold `count`, `budget`, `stopped`, `touched`, `uncovered_spec`, else go on from the
-sub-step it names.
+The loop, and 6's PASS branch, are taken by hand at `run-step.sh`'s `seam=refactor-half` and `seam=step-close` stops,
+from the sub-step it names, else 1 and that branch.
 The loop by hand ends `$S/seam-settle.sh <n> refactor-half`, with the keys `$S/script-help.sh seam-settle.sh` lists.
 
 The loop is stage `refactor-loop`, one end per start: entering it, unless `refactor-half.sh` got past its exit-2 refusals or 3 resumes it (it stays open through a triangulation), `VERI_ISSUE=<n> $S/event.sh stage-start stage=refactor-loop; date +%s > .tdd/stage-rl.t`,
@@ -1209,8 +1206,7 @@ that push; else the ending call's code (a bail's too).
    `$touched` is the step's bounds: when all are test files, a structural candidate is
    recorded test-only — "test file" being `transform-touches-tests.sh`'s rule, which is
    `case_reader.is_test_path`'s: `tests/` directories, `*.test.*`, JS/TS `*.spec.*`, Go `*_test.go`, and Python `test_*.py` or `*_test.py` anywhere, so no transform could land it.
-   - **PASS:** run `$S/step-close.sh <n>` first (again on 3); on 0 its last lines hold `next`, `owed_pin`; on 2 naming no sub-step, follow the rest of this branch by its prose, else go on from the
-     sub-step it names. The step's cycle is complete — the step is tidied, not merely green, so **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and of
+   - **PASS:** The step's cycle is complete — the step is tidied, not merely green, so **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and of
      the passing verify-refactor verdict's own `uncovered-spec` flags, then clear the refactor-pending mark and commit the grown, cleared
      ledger first**, before anything outside the repository says the step is done. The verifier's are the `FLAGS:` lines before the final `VERDICT:`/`REASON:` pair in
      `.tdd/verify-refactor.log` — the unhandled edge case it reports rather than REJECTs for, carrying the same three classes as the leaf's. Only its `uncovered-spec` lines go
