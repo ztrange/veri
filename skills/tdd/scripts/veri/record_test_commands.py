@@ -26,10 +26,11 @@ QUIET_BODY = (" It also adds or updates the `veri: quiet test files:` line: the 
               "after it with little output.")
 
 
-def body(one_file, quiet=None):
-    """The pull request's body: BODY, naming the one-test-file and quiet lines too when <one_file> and <quiet> are
-    recorded."""
-    return BODY + (ONE_FILE_BODY if one_file is not None else "") + (QUIET_BODY if quiet is not None else "")
+def body(wanted):
+    """The pull request's body: BODY, naming the one-test-file and quiet lines too when <wanted>, the (marker,
+    command) pairs recorded, holds them."""
+    markers = {marker for marker, _ in wanted}
+    return BODY + (ONE_FILE_BODY if ONE_FILE in markers else "") + (QUIET_BODY if QUIET in markers else "")
 
 
 class Refused(Exception):
@@ -153,7 +154,7 @@ def remote_branch(root):
     return listed.stdout.split()[0]
 
 
-def resume(root, default, held, tip, tree, wanted, one_file=None, quiet=None):
+def resume(root, default, held, tip, tree, wanted):
     """For an origin BRANCH that exists: None (nothing to do) when a pull request from it in this repository is open,
     whatever it holds; else open one when the branch holds exactly the commit this run would push (<tree> on <tip>);
     else Refused, saying whether it holds these commands cut from an older tip or other commands."""
@@ -176,12 +177,12 @@ def resume(root, default, held, tip, tree, wanted, one_file=None, quiet=None):
                           "branch, or open a pull request from it, then re-run; nothing written" % (BRANCH, default))
         raise Refused("origin already has a branch %s holding other commands: open a pull request from it, or delete "
                       "the branch, then re-run; nothing written" % BRANCH)
-    return open_pull(default, one_file, quiet)
+    return open_pull(default, wanted)
 
 
-def open_pull(default, one_file=None, quiet=None):
+def open_pull(default, wanted):
     try:
-        return github.gh_pr_create(BRANCH, default, TITLE, body(one_file, quiet))
+        return github.gh_pr_create(BRANCH, default, TITLE, body(wanted))
     except github.NoAnswer as refused:
         raise Refused("pushed %s, but no pull request was opened: %s; re-run with the same commands to open it"
                       % (BRANCH, refused.detail.strip())) from refused
@@ -207,7 +208,7 @@ def record(fast, full, root, one_file=None, quiet=None):
         raise Refused(why)
     tree = tree_of(root, tip, new, mode)
     if held:
-        return resume(root, default, held, tip, tree, wanted, one_file, quiet)
+        return resume(root, default, held, tip, tree, wanted)
     sha = checked("commit-tree", tree, "-p", tip, "-m", MESSAGE, cwd=root).decode()
     # Create-only: the lease expects the branch absent, so one created since the check is refused, never moved.
     pushed = git.network("push", "-q", "--force-with-lease=refs/heads/%s:" % BRANCH, "origin",
@@ -215,7 +216,7 @@ def record(fast, full, root, one_file=None, quiet=None):
     if pushed.returncode != 0:
         raise Refused(pushed.stderr.strip() or "git push origin %s failed" % BRANCH)
     os.chdir(root)
-    return open_pull(default, one_file, quiet)
+    return open_pull(default, wanted)
 
 
 def main(argv):
