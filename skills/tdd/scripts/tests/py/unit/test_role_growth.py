@@ -349,6 +349,23 @@ def test_a_state_file_holding_a_line_that_is_not_a_field_exits_2_with_one_stderr
     assert (code, len(err.splitlines()), "role-dev.state" in err) == (2, 1, True)
 
 
+def test_a_state_file_holding_a_line_that_is_neither_a_field_nor_an_item_exits_2_saying_malformed_state_file_and_its_path_and_writes_nothing(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text("")
+    state = tmp_path / ".tdd" / "role-dev-mu.state"
+    state.parent.mkdir()
+    before = "n=2\ndecision 1 2026-11-13T09:00:00 x\nnot a field\n"
+    state.write_text(before)
+
+    code, out, err = run_cli(role_growth, ["dev", "--lane", "mu"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    assert (code, out, err, state.read_text()) == (2, "", "malformed state file %s\n" % state, before)
+
+
 def test_a_state_file_holding_message_override_and_timed_n_list_lines_is_not_malformed_and_exits_0(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
     monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
