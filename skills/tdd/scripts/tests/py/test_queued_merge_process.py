@@ -11,6 +11,9 @@ from pathlib import Path
 
 import pytest
 
+from repo_builder import git
+from stub_script import write_stub
+
 SCRIPTS = Path(__file__).resolve().parents[2]
 
 FAKE_GH = """#!/bin/sh
@@ -702,3 +705,65 @@ def test_queued_merge_on_a_non_tdd_branch_whose_ledger_diff_fails_exits_2_naming
     run, put_merge = queued_merge_on_a_non_tdd_branch(tmp_path, "Closes #999", failing_diff=True)
 
     assert (run.returncode, "git diff" in run.stderr, len(put_merge)) == (2, True, 0), run.stderr
+
+
+HAND_GH = """echo "$*" >> "$(dirname "$0")/calls"
+case "$*" in
+  *actions/runs?branch=stack*) echo '{"total_count": 0, "workflow_runs": []}' ;;
+  *pulls?state=open*) echo '[{"number": 9, "draft": false, "head": {"ref": "stack"}, "base": {"ref": "trunk"}}]' ;;
+  *pulls/7*)
+    head="$(git --git-dir="$ORIGIN" rev-parse refs/heads/hand/12-x)"
+    merged=false
+    git --git-dir="$ORIGIN" merge-base --is-ancestor "$head" refs/heads/stack && merged=true
+    printf '{"state": "open", "merged": %s, "base": {"ref": "stack", "repo": {"default_branch": "trunk"}}, "head": {"ref": "hand/12-x", "sha": "%s"}}\\n' "$merged" "$head" ;;
+  *) exit 1 ;;
+esac
+"""
+
+
+@pytest.mark.process("queued-merge.sh run as its /bin/sh shim on a real linked worktree of a clone of a local bare origin holding a stack, with a stub gh on PATH, pushing to that origin")
+def test_queued_merge_joins_a_hand_pull_request_with_no_ledger_and_no_run_state_to_the_stack_and_exits_0(tmp_path):
+    origin, seed, work = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "work"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "trunk", str(origin)], cwd=str(tmp_path), check=True)
+    subprocess.run(["git", "init", "-q", "-b", "trunk", str(seed)], cwd=str(tmp_path), check=True)
+    (seed / "CLAUDE.md").write_text("veri: stack branch: stack\nveri: fast tests: true\n")
+    (seed / ".gitignore").write_text(".tdd/\n")
+    git(seed, "add", "-A")
+    git(seed, "commit", "-q", "-m", "docs: name the stack (#10)")
+    git(seed, "remote", "add", "origin", str(origin))
+    git(seed, "push", "-q", "origin", "trunk")
+    subprocess.run(["git", "clone", "-q", str(origin), str(work)], cwd=str(tmp_path), check=True)
+    git(work, "checkout", "-q", "-b", "stack")
+    (work / "a").write_text("a")
+    git(work, "add", "-A")
+    git(work, "commit", "-q", "-m", "feat: a (#11)")
+    git(work, "push", "-q", "origin", "stack")
+    hand = work / ".tdd" / "wt" / "12"
+    git(work, "worktree", "add", "-q", "-b", "hand/12-x", str(hand), "origin/stack")
+    (hand / "x").write_text("x")
+    git(hand, "add", "-A")
+    git(hand, "commit", "-q", "-m", "fix: x (#12)")
+    git(hand, "push", "-q", "origin", "hand/12-x")
+    (work / "c").write_text("c")
+    git(work, "add", "-A")
+    git(work, "commit", "-q", "-m", "feat: c (#13)")
+    git(work, "push", "-q", "origin", "stack")
+    git(work, "checkout", "-q", "trunk")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    write_stub(str(bin_dir / "gh"), HAND_GH)
+    env = {**os.environ, "PATH": "%s:%s" % (bin_dir, os.environ["PATH"]), "ORIGIN": str(origin),
+           "VERI_GH_DRIVER": "graphql", "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0",
+           "GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
+           "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test"}
+
+    run = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(hand),
+                          "hand/12-x", "-"], cwd=str(work), env=env, stdin=subprocess.DEVNULL, capture_output=True,
+                         text=True, timeout=60)
+
+    git(work, "fetch", "-q", "--prune", "origin")
+    remotes = git(work, "for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/").split()
+    assert (run.returncode, git(work, "log", "--format=%s", "origin/trunk..origin/stack").splitlines(), remotes,
+            os.path.isdir(hand), os.path.isdir(work / ".tdd" / "merge.lock")) == (
+        0, ["fix: x (#12)", "feat: c (#13)", "feat: a (#11)"], ["origin", "origin/stack", "origin/trunk"],
+        False, False), run.stderr
