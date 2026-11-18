@@ -99,7 +99,10 @@ def main(argv):
     if listed and listed[0] != cut:
         return _freed("the slice branch %s is already on origin at another commit, %s; the merge lock freed, nothing"
                       " pushed" % (slice_branch, listed[0]))
-    git.network("push", "origin", "%s:refs/heads/%s" % (cut, slice_branch), cwd=".")
+    push = git.network("push", "origin", "%s:refs/heads/%s" % (cut, slice_branch), cwd=".")
+    if push.returncode:
+        return _freed("git push of the slice branch %s failed (exit %d): %s; the merge lock freed, nothing opened or"
+                      " merged" % (slice_branch, push.returncode, push.stderr.strip()))
 
 
 if __name__ == "__main__":
