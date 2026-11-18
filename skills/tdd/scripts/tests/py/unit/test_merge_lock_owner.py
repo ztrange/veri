@@ -307,7 +307,7 @@ def test_3793_second_release_by_the_previous_owner_leaves_the_token_of_the_holde
                          ids=["dead", "reused"])
 def test_4372_take_on_a_dead_or_reused_holder_removes_only_the_token_file_holding_that_holders_owner(
         tmp_path, monkeypatch, holder_pid, alive, recorded):
-    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t" if pid == str(os.getpid()) else "")
     monkeypatch.setattr(merge_lock, "_lstart", lambda pid, env=None: "t")
     me = str(os.getpid())
     monkeypatch.setattr(merge_lock, "_alive", lambda pid: str(pid) == me or alive)
