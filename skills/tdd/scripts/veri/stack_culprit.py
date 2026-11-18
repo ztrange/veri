@@ -190,7 +190,7 @@ def _comment(stack, default, body):
     number = pulls[0].number
     if any(comment.get("body") == body and github.trusted_comment(comment) for comment in github.issue_comments(number)):
         return
-    github.gh_comment_post(number, body)
+    github.gh_comment_post(number, github.published(body))
 
 
 def main(argv):
