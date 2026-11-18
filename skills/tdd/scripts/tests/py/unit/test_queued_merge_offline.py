@@ -105,6 +105,8 @@ class Offline:
         if line.startswith("detect-test-command.sh --tier fast"):
             return 0, "make unit\n", ""
         if line.startswith("detect-test-command.sh --tier all"):
+            if isinstance(self.all_tier, int):
+                return self.all_tier, "", "detect-test-command: no answer\n"
             return (0, self.all_tier, "") if self.all_tier else (3, "", "")
         if line == "sh -c make unit":
             return self.fast, "", ""
@@ -244,3 +246,26 @@ def test_the_all_tier_command_gates_the_rebased_tip_before_the_stack_moves_and_a
     seen = [c for c in world.calls if c.startswith((wt + "rebase", "sh -c make test", wt + "update-ref"))]
     assert (code, seen[:2], world.local == LOCAL_STACK) == (full, [wt + "rebase stack", "sh -c make test"], bool(full)), err
     assert [c for c in world.calls if c.startswith("merge-lock.sh")][-1] == "merge-lock.sh release --pid %s" % PID, err
+
+
+def test_with_no_all_tier_command_the_offline_join_is_not_gated_and_says_so_in_one_stderr_line(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    quiet = Offline(tmp_path / "gated").install(fake_processes, monkeypatch)
+    _, _, said = join(run_cli, quiet)
+    world = Offline(tmp_path, all_tier="").install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    added = [line for line in err.splitlines() if line not in said.splitlines()]
+    gated = [c for c in world.calls if c.startswith("sh -c") and c != "sh -c make unit"]
+    assert (code, gated, world.local == world.head[-1], len(added)) == (0, [], True, 1), err
+    assert "not gated" in added[0], err
+
+
+def test_an_all_tier_command_that_cannot_be_read_is_exit_2_with_the_stack_unmoved(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, all_tier=2).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, world.local) == (2, LOCAL_STACK), err
