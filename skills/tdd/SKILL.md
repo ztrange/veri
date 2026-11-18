@@ -757,6 +757,8 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 For a cycle step run `$S/run-step.sh <n>` once, again on exit 3: it runs Red, Green and the Refactor loop to 6's
 PASS branch and ends on `step-close.sh`'s `next=`. A `seam=<stage>` last line is where the prose takes over, from the
 sub-step its `stopped at` line names (`--hand <stage>` keeps a stage, `--from <stage>` hands one back).
+Red, Green or the loop by hand, a revise's PASS too, ends with its `seam-settle.sh`, then
+`$S/run-step.sh <n> --from <next stage>`, never a bare re-call.
 Red by hand ends `$S/seam-settle.sh <n> red-half test_path=<path> target_test=<id>`.
 
 1. **Develop.** Before the prompt is built, run `$S/refresh-spec.sh <n> .tdd/issue-<n>-spec.md`.
@@ -1206,7 +1208,7 @@ that push; else the ending call's code (a bail's too).
    `$touched` is the step's bounds: when all are test files, a structural candidate is
    recorded test-only — "test file" being `transform-touches-tests.sh`'s rule, which is
    `case_reader.is_test_path`'s: `tests/` directories, `*.test.*`, JS/TS `*.spec.*`, Go `*_test.go`, and Python `test_*.py` or `*_test.py` anywhere, so no transform could land it.
-   - **PASS:** The step's cycle is complete — the step is tidied, not merely green, so **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and of
+   - **PASS:** after a hand loop's `seam-settle.sh`, run `$S/run-step.sh <n> --from step-close`; only at its `seam=step-close` stop go on here. The step's cycle is complete — the step is tidied, not merely green, so **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and of
      the passing verify-refactor verdict's own `uncovered-spec` flags, then clear the refactor-pending mark and commit the grown, cleared
      ledger first**, before anything outside the repository says the step is done. The verifier's are the `FLAGS:` lines before the final `VERDICT:`/`REASON:` pair in
      `.tdd/verify-refactor.log` — the unhandled edge case it reports rather than REJECTs for, carrying the same three classes as the leaf's. Only its `uncovered-spec` lines go

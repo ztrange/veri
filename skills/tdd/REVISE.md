@@ -127,7 +127,9 @@ For attempt `k = 1 … REVISE_BUDGET`:
    -f`s matter in this loop: every attempt re-verifies the **same** phase, so the previous
    attempt's completion files would otherwise be read as this one's answer.
    - **PASS (exit 0):** the step is recovered. Post `### 🔎 verify-<phase> (revised) — PASS`
-     with the reason by running `$S/comment.sh <n> verify-revised <phase>`, and resume the cycle from where that phase's PASS would continue.
+     with the reason by running `$S/comment.sh <n> verify-revised <phase>`, and resume the cycle from where that phase's PASS would continue:
+     on a cycle step, through that stage's `seam-settle.sh`, then `$S/run-step.sh <n> --from` `green-half` (red),
+     `refactor-half` (green) or `step-close` (refactor), never a bare re-call.
      When `<phase>` is red, first run `$S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" --red-case '<red-test-id>' <test-path>` — a revised red's PASS records the step's test files to the step's own record, as the Red section's does; tests-frozen exit 1 (the step's own Red case is gone: it names the deleted case on stdout and writes no record) is a verify-red REJECT that spends `REVISE_BUDGET`, its stdout written to `.tdd/verify-red.reason`; tests-frozen exit 2 is a bail.
      Then run `$S/red-setup.sh record <n> < .tdd/revise-red-<k>.out` once, on the revise leaf's report, whose case is now the step's: exit 0, 2 or 3 alike goes on, the Red not redone.
    - **REJECT (exit 1):** if attempts remain, loop; otherwise fall through to the bail below.
