@@ -72,16 +72,26 @@ def red_test_id(test_path, target):
     return target if "::" in target else test_path + "::" + target
 
 
-def verdict_log(wt):
-    """The sha256 of `.tdd/verify-refactor.log` as it now stands, or `none` without one: which verify-refactor verdict
-    a refactor-half file was settled after. It is the record's committed source: step-close rewrites a record settled
-    after another verdict with it, and adds that log's uncovered-spec flags (#4029)."""
+def verdict(wt):
+    """(hash, flags) of `.tdd/verify-refactor.log` as it now stands, from one read: its sha256, or `none` without one,
+    which verify-refactor verdict a refactor-half record was settled after; and the `uncovered-spec` FLAGS of that
+    verdict, each as refactor-half.sh writes its `uncovered_spec=` value, none without the log. Every record that names
+    `verdict_log=` takes both from here, so a record never names a verdict without that verdict's flags (#4029): a
+    refactor-half record (a skipped verify's leaves the flags out), seam-settle.sh's after a hand refactor, and
+    step-close's rewrite of a record settled after another verdict."""
     import hashlib
+    import extract_result
+    import refactor_half
+    from report import report_values
     try:
         with open(os.path.join(wt, ".tdd", "verify-refactor.log"), "rb") as f:
-            return hashlib.sha256(f.read()).hexdigest()
+            raw = f.read()
     except FileNotFoundError:
-        return "none"
+        return "none", []
+    flags = report_values(extract_result.extract(raw.decode("utf-8", errors="replace")), "FLAGS", splitlines=True,
+                          strip=True)
+    return (hashlib.sha256(raw).hexdigest(),
+            [refactor_half.detail(line) for line in flags if refactor_half.kind(line) == "uncovered-spec"])
 
 
 def refresh(stage, wt, n, record, facts):

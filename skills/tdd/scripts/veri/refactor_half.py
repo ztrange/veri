@@ -159,10 +159,14 @@ def finish(n, wt, step, values):
                "stopped=" + values["stopped"], "pass=1", VERI_PHASE="refactor")
     fused.checked("6", fused.script("refactor-owed.sh"), "append", ".tdd/issue-%s-refactor-owed.md" % n, step,
                   values["touched"], cwd=wt, stdin=read(wt, ".tdd/develop-refactor.out") if values["ran"] else "")
-    uncovered = [detail(line) for line in values["flags"] + verdict_flags if kind(line) == "uncovered-spec"]
+    # The verdict's flags and the hash it is named by come from one read of the log (#4029); a skipped verify's log
+    # is an earlier step's, so its flags are not this step's.
+    verdict_log, verdict_uncovered = fused_step.verdict(wt)
+    uncovered = [detail(line) for line in values["flags"] if kind(line) == "uncovered-spec"]
+    uncovered += verdict_uncovered if "verdict_flags" in values else []
     return fused.settle(wt, n, NAME, ["step=" + step, "green_sha=" + values["green_sha"], "count=%d" % values["count"],
                                       "budget=%d" % values["budget"], "stopped=" + values["stopped"],
-                                      "touched=" + values["touched"], "verdict_log=" + fused_step.verdict_log(wt)]
+                                      "touched=" + values["touched"], "verdict_log=" + verdict_log]
                       + ["uncovered_spec=" + u for u in uncovered])
 
 
