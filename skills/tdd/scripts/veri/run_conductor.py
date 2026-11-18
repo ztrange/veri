@@ -42,9 +42,44 @@ from leaf_log import result_text
 from session_env import strip_session_env
 
 USAGE = "usage: run-conductor.sh <issue>"
-CLAIM_DIRS = []
-CLAIM = []
 HELD_REF_LOCK = ("cannot lock ref", "reference already exists")
+
+
+class Claim:
+    """conductor.pid taken for this process on entry, with the directories made to hold it; on exit the file, then
+    those directories deepest first, are removed only while the file still holds this claim's own bytes."""
+
+    def __init__(self, path):
+        self.path, self.made, self.held = path, [], None
+
+    def __enter__(self):
+        directory = os.path.dirname(os.path.abspath(self.path))
+        while not os.path.isdir(directory):
+            self.made.insert(0, directory)
+            directory = os.path.dirname(directory)
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        self.held = pids.record(self.path, os.getpid()).encode()
+        return self
+
+    def keep_directories(self):
+        """The launch is under way: the run's directories outlive the claim, so its exit removes none of them."""
+        self.made = []
+
+    def hand_off(self):
+        """The launched conductor recorded its own pid: the file is no longer this claim's to remove."""
+        self.held = None
+
+    def __exit__(self, *_):
+        try:
+            with open(self.path, "rb") as handle:
+                mine = self.held is not None and handle.read() == self.held
+        except FileNotFoundError:
+            mine = False
+        if mine:
+            os.remove(self.path)
+            for directory in reversed(self.made):
+                with contextlib.suppress(OSError):
+                    os.rmdir(directory)
 
 
 def main(argv):
@@ -65,34 +100,15 @@ def main(argv):
     if live:
         sys.stderr.write("run-conductor: a conductor for issue %s is already live (pid %s)\n" % (argv[0], live))
         return 2
-    claim = pid_file_path(argv[0])
-    del CLAIM_DIRS[:]
-    made, directory = CLAIM_DIRS, os.path.dirname(os.path.abspath(claim))
-    while not os.path.isdir(directory):
-        made.insert(0, directory)
-        directory = os.path.dirname(directory)
-    os.makedirs(os.path.dirname(claim), exist_ok=True)
-    CLAIM[:] = [pids.record(claim, os.getpid()).encode()]
-    try:
-        return preflight_and_launch(argv)
-    finally:
-        try:
-            with open(claim, "rb") as handle:
-                mine = CLAIM == [handle.read()]
-        except FileNotFoundError:
-            mine = False
-        if mine:
-            os.remove(claim)
-            for directory in reversed(made):
-                with contextlib.suppress(OSError):
-                    os.rmdir(directory)
+    with Claim(pid_file_path(argv[0])) as claim:
+        return preflight_and_launch(argv, claim)
 
 
 def pid_file_path(issue):
     return run_dir.run_file(run_worktree(issue), "conductor.pid")
 
 
-def preflight_and_launch(argv):
+def preflight_and_launch(argv, claim=None):
     raw_minimum = tunables.get("VERI_MIN_FREE_GB")
     minimum = entry.whole_number(raw_minimum, 0)
     if minimum is None:
@@ -196,7 +212,7 @@ def preflight_and_launch(argv):
             extracted = pinned_scripts.snapshot_digest(snapshot)
             run_pins.write_snapshot_digest(event.toplevel(), argv[0], pinned_scripts.digest_text(extracted))
             keep_pinned_scripts(snapshot, argv[0])
-            code = launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
+            code = launch(snapshot, argv[0], commit, claim=claim, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
             changed = snapshot_change(snapshot, argv[0], extracted)
             if changed is None:
                 return code
@@ -212,7 +228,7 @@ def preflight_and_launch(argv):
             finally:
                 pinned_scripts.remove_tree(snapshot)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
-    return launch(base, argv[0], None, VERI_SKILL_UNPINNED="1")
+    return launch(base, argv[0], None, claim=claim, VERI_SKILL_UNPINNED="1")
 
 
 Snapshot = collections.namedtuple("Snapshot", "kind commit why message code")
@@ -379,7 +395,7 @@ def conductor_model():
     return tunables.get("VERI_MODEL_CONDUCTOR", unless_empty=True)
 
 
-def launch(base, issue, commit, **exports):
+def launch(base, issue, commit, claim=None, **exports):
     try:
         with contextlib.redirect_stderr(io.StringIO()):
             body = github.gh_issue_view(issue, "body")
@@ -403,7 +419,7 @@ def launch(base, issue, commit, **exports):
         run_pins.write_conductor_model(event.toplevel(), issue, conductor_model())
         run_pins.write_launch_env(event.toplevel(), issue, tunables.environment())
         exports["VERI_STATE_LABEL_ISSUE"] = issue
-        return conduct(text, issue, dict(os.environ, **exports, TMPDIR=run_tmp))
+        return conduct(text, issue, dict(os.environ, **exports, TMPDIR=run_tmp), claim)
     finally:
         shutil.rmtree(run_tmp, ignore_errors=True)
 
@@ -427,7 +443,7 @@ def sweep_dead_runs(run_state):
                 shutil.rmtree(directory, ignore_errors=True)
 
 
-def conduct(text, issue, env):
+def conduct(text, issue, env, claim=None):
     strip_session_env(env)
     env.pop("VERI_NEW_SKILL", None)
     env.pop("FORCE_PROMPT_CACHING_5M", None)
@@ -455,7 +471,8 @@ def conduct(text, issue, env):
         try:
             pid_file = pid_file_path(issue)
             os.makedirs(os.path.dirname(pid_file), exist_ok=True)
-            del CLAIM_DIRS[:]
+            if claim is not None:
+                claim.keep_directories()
 
             def record_pid():
                 recorded = pids.record(pid_file, os.getpid())
@@ -471,8 +488,8 @@ def conduct(text, issue, env):
             os.close(recorded_write)
             with os.fdopen(recorded_read, "rb") as recorded:
                 ours = recorded.read()
-            if ours:
-                del CLAIM[:]
+            if ours and claim is not None:
+                claim.hand_off()
             try:
                 with open(pid_file, "rb") as handle:
                     if handle.read() == ours:
