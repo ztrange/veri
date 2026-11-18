@@ -53,6 +53,16 @@ def test_without_one_file_no_one_test_file_line_is_added_and_an_existing_one_is_
         b"# P\nveri: one test file: `old \"$1\"`\nveri: fast tests: f\nveri: all tests: a\n")
 
 
+def test_issue_4335_a_quiet_command_is_written_to_the_quiet_test_files_line_where_it_stands_else_appended(record):
+    held = b"# P\nveri: quiet test files: `old -q`\nmid\nveri: fast tests: f\nveri: all tests: a\nend\n"
+    bare = b"# P\n"
+
+    assert (record.recorded(held, b"f", b"a", quiet=b"pytest -q --no-header -rf"),
+            record.recorded(bare, b"f", b"a", quiet=b"npx jest --silent")) == (
+        b"# P\nveri: quiet test files: pytest -q --no-header -rf\nmid\nveri: fast tests: f\nveri: all tests: a\nend\n",
+        b"# P\nveri: fast tests: f\nveri: all tests: a\nveri: quiet test files: npx jest --silent\n")
+
+
 @pytest.mark.parametrize("argv",[[], ["make unit"], ["", "make test"], ["make unit", ""], ["make unit", "", "."]])
 def test_a_missing_or_empty_command_is_exit_2_naming_the_usage_before_any_process_starts(
         record, run_cli, fake_processes, argv):

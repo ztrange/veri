@@ -9,8 +9,9 @@ import entry
 import git
 import github
 
-USAGE = "usage: record-test-commands.sh [--one-file <cmd>] <fast-cmd> <all-cmd> [repo-root]"
+USAGE = "usage: record-test-commands.sh [--one-file <cmd>] [--quiet <cmd>] <fast-cmd> <all-cmd> [repo-root]"
 FAST, ALL, ONE_FILE = b"veri: fast tests:", b"veri: all tests:", b"veri: one test file:"
+QUIET = b"veri: quiet test files:"
 # The one-test-file command takes the file as "$1" anywhere in it, or as a $1 word of its own.
 PLACEHOLDER = re.compile(r'"\$1"|(?:^|\s)\$1(?:\s|$)')
 BRANCH = "veri-install"
@@ -21,11 +22,14 @@ BODY = ("Adds or updates the `veri: fast tests:` and `veri: all tests:` lines of
         "runs infer the commands. `/vinstall` opened it and never merges it.")
 ONE_FILE_BODY = (" It also adds or updates the `veri: one test file:` line: the command that runs one test file, taking "
                  "it as `\"$1\"`, without which a run's preflight stops.")
+QUIET_BODY = (" It also adds or updates the `veri: quiet test files:` line: the command that runs the test files named "
+              "after it with little output.")
 
 
-def body(one_file):
-    """The pull request's body: BODY, naming the one-test-file line too when <one_file> is recorded."""
-    return BODY + (ONE_FILE_BODY if one_file is not None else "")
+def body(one_file, quiet=None):
+    """The pull request's body: BODY, naming the one-test-file and quiet lines too when <one_file> and <quiet> are
+    recorded."""
+    return BODY + (ONE_FILE_BODY if one_file is not None else "") + (QUIET_BODY if quiet is not None else "")
 
 
 class Refused(Exception):
@@ -61,7 +65,7 @@ def unreadable(old, new, wanted):
     """Why <new>, the CLAUDE.md written over <old>, would not read back as asked, or None: every marker in <wanted>
     must read back exactly its command, and every other marker as it read in <old>."""
     asked = dict(wanted)
-    for marker in (FAST, ALL, ONE_FILE):
+    for marker in (FAST, ALL, ONE_FILE, QUIET):
         expected = asked.get(marker, declared(old, marker))
         got = declared(new, marker)
         if got != expected:
@@ -71,20 +75,22 @@ def unreadable(old, new, wanted):
     return None
 
 
-def declarations(fast, full, one_file=None):
-    """The (marker, command) pairs to record: both tiers, and the one-test-file line when <one_file> is given."""
-    return [(FAST, fast), (ALL, full)] + ([(ONE_FILE, one_file)] if one_file is not None else [])
+def declarations(fast, full, one_file=None, quiet=None):
+    """The (marker, command) pairs to record: both tiers, the one-test-file line when <one_file> is given and the
+    quiet line when <quiet> is."""
+    return ([(FAST, fast), (ALL, full)] + ([(ONE_FILE, one_file)] if one_file is not None else [])
+            + ([(QUIET, quiet)] if quiet is not None else []))
 
 
-def recorded(text, fast, full, one_file=None):
-    """<text>, a CLAUDE.md's bytes, declaring <fast> and <full> as the fast and all tiers' commands, and <one_file> as
-    the one-test-file command when given: the line the detector reads each from rewritten from its marker on, where it
-    stands; a declaration no line holds appended."""
+def recorded(text, fast, full, one_file=None, quiet=None):
+    """<text>, a CLAUDE.md's bytes, declaring <fast> and <full> as the fast and all tiers' commands, <one_file> as
+    the one-test-file command and <quiet> as the quiet test files command when given: the line the detector reads each
+    from rewritten from its marker on, where it stands; a declaration no line holds appended."""
     lines = text.split(b"\n")
     crlf = lines[0].endswith(b"\r") and len(lines) > 1
     end = b"\r" if crlf else b""
     missing = []
-    for marker, command in declarations(fast, full, one_file):
+    for marker, command in declarations(fast, full, one_file, quiet):
         # The detector keeps a line's trailing \r, so a CRLF file's command is backticked to read back exactly.
         stated = marker + (b" `" + command + b"`" if crlf else b" " + command) + end
         for i, line in enumerate(lines):
@@ -147,7 +153,7 @@ def remote_branch(root):
     return listed.stdout.split()[0]
 
 
-def resume(root, default, held, tip, tree, wanted, one_file=None):
+def resume(root, default, held, tip, tree, wanted, one_file=None, quiet=None):
     """For an origin BRANCH that exists: None (nothing to do) when a pull request from it in this repository is open,
     whatever it holds; else open one when the branch holds exactly the commit this run would push (<tree> on <tip>);
     else Refused, saying whether it holds these commands cut from an older tip or other commands."""
@@ -170,18 +176,18 @@ def resume(root, default, held, tip, tree, wanted, one_file=None):
                           "branch, or open a pull request from it, then re-run; nothing written" % (BRANCH, default))
         raise Refused("origin already has a branch %s holding other commands: open a pull request from it, or delete "
                       "the branch, then re-run; nothing written" % BRANCH)
-    return open_pull(default, one_file)
+    return open_pull(default, one_file, quiet)
 
 
-def open_pull(default, one_file=None):
+def open_pull(default, one_file=None, quiet=None):
     try:
-        return github.gh_pr_create(BRANCH, default, TITLE, body(one_file))
+        return github.gh_pr_create(BRANCH, default, TITLE, body(one_file, quiet))
     except github.NoAnswer as refused:
         raise Refused("pushed %s, but no pull request was opened: %s; re-run with the same commands to open it"
                       % (BRANCH, refused.detail.strip())) from refused
 
 
-def record(fast, full, root, one_file=None):
+def record(fast, full, root, one_file=None, quiet=None):
     root = os.path.abspath(root)
     checked("rev-parse", "--show-toplevel", cwd=root)
     default = git.default_branch(cwd=root)
@@ -192,16 +198,16 @@ def record(fast, full, root, one_file=None):
     mode = claude_md_mode(root, tip)
     shown = git.git("show", "%s:CLAUDE.md" % tip, cwd=root, capture_output=True)
     text = shown.stdout if shown.returncode == 0 else b""
-    wanted = declarations(fast, full, one_file)
+    wanted = declarations(fast, full, one_file, quiet)
     if all(declared(text, marker) == command for marker, command in wanted):
         return None
-    new = recorded(text, fast, full, one_file)
+    new = recorded(text, fast, full, one_file, quiet)
     why = unreadable(text, new, wanted)
     if why:
         raise Refused(why)
     tree = tree_of(root, tip, new, mode)
     if held:
-        return resume(root, default, held, tip, tree, wanted, one_file)
+        return resume(root, default, held, tip, tree, wanted, one_file, quiet)
     sha = checked("commit-tree", tree, "-p", tip, "-m", MESSAGE, cwd=root).decode()
     # Create-only: the lease expects the branch absent, so one created since the check is refused, never moved.
     pushed = git.network("push", "-q", "--force-with-lease=refs/heads/%s:" % BRANCH, "origin",
@@ -209,23 +215,25 @@ def record(fast, full, root, one_file=None):
     if pushed.returncode != 0:
         raise Refused(pushed.stderr.strip() or "git push origin %s failed" % BRANCH)
     os.chdir(root)
-    return open_pull(default, one_file)
+    return open_pull(default, one_file, quiet)
 
 
 def main(argv):
     args = list(argv)
-    one_file = None
-    if args[:1] == ["--one-file"]:
-        one_file, args = (args[1:2] or [""])[0], args[2:]
+    options = {"--one-file": None, "--quiet": None}
+    while args[:1] and args[0] in options and options[args[0]] is None:
+        options[args[0]], args = (args[1:2] or [""])[0], args[2:]
+    one_file, quiet = options["--one-file"], options["--quiet"]
     fast, full = (args + ["", ""])[:2]
-    if not fast or not full or one_file == "":
+    if not fast or not full or one_file == "" or quiet == "":
         return entry.refuse("record-test-commands.sh: a command is missing or empty", usage=USAGE)
     if one_file is not None and not PLACEHOLDER.search(one_file):
         return entry.refuse('record-test-commands.sh: the --one-file command must take the test file as "$1" '
                             '(anywhere in it) or as a $1 word of its own: %s' % one_file, usage=USAGE)
     root = args[2] if len(args) > 2 and args[2] else "."
     try:
-        url = record(os.fsencode(fast), os.fsencode(full), root, None if one_file is None else os.fsencode(one_file))
+        url = record(os.fsencode(fast), os.fsencode(full), root, None if one_file is None else os.fsencode(one_file),
+                     None if quiet is None else os.fsencode(quiet))
     except Refused as refused:
         return entry.refuse(str(refused))
     if url is None:
