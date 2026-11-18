@@ -29,6 +29,7 @@ INTERFACE_PHASES = ("expand", "cover-new", "migrate", "contract-a", "contract-b"
 MARK_DELIMITER = " ⟂ "
 PHASES_RE = re.compile(r"⟦phases: ([^⟧]*)⟧")
 TRAILING_RUN_RE = re.compile(r"((?:(?:^| |(?<=⟧))⟦[^⟦⟧]*⟧)+)(?: ⟂ [^⟦⟧⟂]*)*$")
+HEADING_UNIT_RE = re.compile(r"(?:[^`]*`[^`]*`)*?[^`]*(?=`(?!\S))")
 
 
 # A clause (cut at , ; . or a newline) that names the before-state and says green or pass, and says
@@ -161,12 +162,13 @@ def unphased(text):
 def unit_of(text):
     """The unit a skill-edit step names: its first path-shaped backticked span, or None.
 
-    A heading unit (`<file>#<heading>`) runs to the step's last backtick, so a heading holding backticks stays whole.
+    A heading unit (`<file>#<heading>`) runs past pairs of inner backticks to the first backtick followed by
+    whitespace or the end of the step, so a heading holding backticks stays whole and a later span stays out.
     """
     for match in re.finditer(r"`([^`]+)`", text):
         span = match.group(1)
         if "/" in span or span.endswith(".md"):
-            return text[match.start(1):text.rindex("`")] if "#" in span else span
+            return HEADING_UNIT_RE.match(text, match.start(1)).group() if "#" in span else span
     return None
 
 
