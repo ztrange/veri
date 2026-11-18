@@ -266,3 +266,15 @@ def test_a_branch_of_the_slice_name_already_on_origin_at_another_commit_exits_2_
     assert (code, out, "stack-slice-3f2a9c1d0b" in err, other in err, pushes,
             [ran[:2] for ran in world.scripts[-2:]]) == (
         2, "", True, True, [], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
+def test_a_branch_of_the_slice_name_already_on_origin_at_the_cut_itself_is_kept_and_stack_land_goes_on_not_a_refusal(
+        monkeypatch, run_cli, stack_land):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  heads={"stack-slice-3f2a9c1d0b": cut})
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert (code != 2, "already on origin" in err, [ran[:2] for ran in world.scripts if ran[0] == "merge-lock.sh"]) == (
+        True, False, [("merge-lock.sh", "take")]), err
