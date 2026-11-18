@@ -31,6 +31,9 @@ def main(argv):
     if code == 3:
         print("stack-land: stack-green.sh exits 3: no tested issue end to cut at; nothing to land", file=sys.stderr)
         return 3
+    if code == 2:
+        return entry.refuse("stack-green.sh exits 2: no answer on the stack's tested cut; nothing cut or merged",
+                            prefix="stack-land: ")
 
 
 if __name__ == "__main__":
