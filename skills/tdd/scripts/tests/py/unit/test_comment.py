@@ -1582,6 +1582,48 @@ def test_bailed_publishes_a_leafs_reason_with_no_absolute_local_path_4106(monkey
     assert f"Bailed `{cause}`" in body and "~/notes.md" in body
 
 
+_LEAKY = "zulu leak: see /Users/someone/x.py and /tmp/y\n"
+_LEDGER = "# Plan for #7\n\n- [x] first step alpha\n- [ ] second step bravo\n"
+_NOTED = {
+    "red": {"develop-red.out": "TEST_PATH: t.py\nTARGET_TEST: test_a\nFAIL_OUTPUT: boom\nPREDICTED_FAILURE: boom\n"},
+    "green": {"develop-green.out": "IMPL_PATH: a.py\nSUITE: GREEN 1 passed\n"},
+    "refactor": {"develop-refactor.out": "RESULT: nothing left to tidy\n"},
+    "resuming": {"issue-7.md": _LEDGER},
+    "stopped": {"events.jsonl": json.dumps({"event": "stop", "mode": "graceful", "at": "step-1"}) + "\n"},
+    "step-done": {"issue-7.md": _LEDGER},
+}
+
+
+@pytest.mark.parametrize("argv, files", [
+    *[([kind, "--note-file"], files) for kind, files in _NOTED.items()],
+    *[([f"verify-{phase}"], {f"verdict-{phase}.exit": "0\n", f"verify-{phase}.reason": _LEAKY})
+      for phase in ("red", "green", "refactor")],
+    (["verify-revised", "green"], {"verify-green.reason": _LEAKY}),
+], ids=lambda value: value[0] if isinstance(value, list) else "files")
+def test_every_comment_verb_publishes_its_note_or_reason_with_no_absolute_local_path_4270(
+        monkeypatch, run_cli, tmp_path, argv, files):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-60")
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "", ""))
+    monkeypatch.setenv("HOME", "/Users/someone-else")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    for name, text in files.items():
+        (tmp_path / ".tdd" / name).write_text(text)
+    note = tmp_path / "note.txt"
+    note.write_text(_LEAKY)
+    if argv[-1] == "--note-file":
+        argv = argv + [str(note)]
+
+    code, _, err = run_cli(comment, ["7", *argv], cwd=tmp_path)
+
+    body = posted[0] if posted else ""
+    assert (code, [p for p in ("/Users/someone", "/tmp/y") if p in body]) == (0, []), err
+    assert "zulu leak" in body
+
+
 def test_bailed_exits_2_naming_the_missing_bail_event_and_posts_nothing_when_the_journal_has_none(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")
@@ -1757,8 +1799,10 @@ def test_stopped_carries_the_branch_the_worktree_path_and_the_resume_command(mon
     assert code == 0, err
     body = posted[0][1]
     assert "tdd/7-the-branch" in body
-    assert str(tmp_path) in body or str(tmp_path.resolve()) in body
-    assert f"{SCRIPTS}/run-conductor.sh 7" in body
+    lines = body.splitlines()
+    assert any(line.startswith("worktree=") for line in lines)
+    assert str(tmp_path) not in body and str(tmp_path.resolve()) not in body
+    assert any(line.endswith("/run-conductor.sh 7") for line in lines)
 
 
 def test_stopped_carries_the_failed_render_line_in_place_of_the_metrics_block_and_still_posts_the_rest(

@@ -43,7 +43,7 @@ def read_steps(issue):
 
 
 def post_and_record(issue, kind, body, strip_url=False, target=None):
-    url = github.gh_issue_comment(target or issue, body)
+    url = github.gh_issue_comment(target or issue, github.published(body))
     if strip_url:
         url = url.rstrip("\n")
     return event.append("", {}, "comment", [f"kind={kind}", f"url={url}"])
