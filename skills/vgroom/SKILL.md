@@ -16,15 +16,17 @@ needed, and name none from memory.
 
 ## Invocation
 
-`/vgroom [<issue>...|--refactor-owed]`
+`/vgroom [<issue>...|<range>...|--refactor-owed]`
+
+With no argument the groom is the sweep over every open issue; each argument form narrows it.
 
 - No argument — **the sweep** (below): every open issue, whatever its labels — issues without
   the opt-in label (bare or scoped), issues already carrying it, refactor-owed items and PRD
   trackers (titled `PRD <nnn>: …`) — save one kind: the sweep leaves out every issue carrying a
   `taken:` label (any lane), which a run holds in place of the opt-in label, and reports each one
   as skipped, naming why: grooming under a live run would race it.
-- `<issue>...` — groom exactly those issues.
-- `--refactor-owed` — consolidate the refactor-owed items (see below).
+- `<issue>...` and `<range>...` — narrow the groom to exactly those issues.
+- `--refactor-owed` — narrow the groom to the refactor-owed consolidation alone (see below).
 
 `/vgroom` typed with no argument is the human's "go" for the run, and their say-so to add the
 opt-in label to every issue the sweep ends ready.
