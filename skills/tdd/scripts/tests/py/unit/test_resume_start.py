@@ -180,3 +180,41 @@ def test_4389_every_step_checked_settles_an_empty_step(resume):
     code, out, err, fake = resume(answers={("next-unchecked.sh", None): (3, "")})
 
     assert (code, (resume.wt / ".tdd" / "issue-12-resume-start").read_text().splitlines()[0]) == (0, "step=")
+
+
+LAUNCH_TAIL = ("supervise.sh", "verdict-plan", "run-verdict.sh", "plan", ".tdd/issue-12-spec.md", ".tdd/issue-12.md")
+
+
+def _after_pr(fake):
+    return fake.calls[fake.names().index("gh") + 1:]
+
+
+def test_4389_an_owed_verify_plan_checks_for_a_stop_launches_verdict_plan_waits_and_comments_on_a_pass(resume):
+    (resume.wt / ".tdd" / "verdict-plan.exit").write_text("1\n")
+    (resume.wt / ".tdd" / "verdict-plan.pid").write_text("99\n")
+    code, out, err, fake = resume(verify_plan="owed")
+
+    tail = _after_pr(fake)
+    assert [c[0] for c in tail] == ["stop-requested.sh", "detach-leaf.sh", "wait-leaf.sh", "comment.sh"]
+    launch = tail[1]
+    assert tuple(os.path.basename(a) if a.endswith(".sh") else a for a in launch[1]) == LAUNCH_TAIL
+    assert all(os.path.isabs(a) for a in launch[1] if a.endswith(".sh"))
+    assert (launch[3]["VERI_TEST_CMD"], launch[3]["VERI_ISSUE"]) == ("make unit", "12")
+    assert (launch[4]["out"], launch[4]["err"]) == (".tdd/verify-plan.reason", ".tdd/verify-plan.err")
+    assert (tail[2][1], tail[3][1]) == (("verdict-plan",), ("12", "verify-plan"))
+    assert not (resume.wt / ".tdd" / "verdict-plan.exit").exists()
+    assert not (resume.wt / ".tdd" / "verdict-plan.pid").exists()
+    assert (code, out.splitlines()[-1]) == (0, "verify_plan=PASS")
+
+
+def test_4389_a_skipped_verify_plan_launches_nothing(resume):
+    code, out, err, fake = resume(verify_plan="skip")
+
+    assert (code, _after_pr(fake)) == (0, [])
+
+
+def test_4389_it_never_opens_the_event_log(resume):
+    (resume.wt / ".tdd" / "events.jsonl").mkdir()
+    code, out, err, fake = resume(verify_plan="owed")
+
+    assert (code, out.splitlines()[-1]) == (0, "verify_plan=PASS")
