@@ -13,6 +13,7 @@ development Mac", live in [operator/MAINTAINING.md](operator/MAINTAINING.md).
 veri: fast tests: `make unit`
 veri: all tests: `make test`
 veri: one test file: `make test TESTS="$1"`
+veri: quiet test files: `"${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3" skills/tdd/scripts/tests/leg/pytest_leg.py --subset -q --no-header -rfE --tb=no`
 
 | | |
 |---|---|
@@ -197,9 +198,14 @@ fast tier plus that `changed` run; a revise leaf runs the tiers of the phase it 
 than the fast tier plus the `changed` run (the `affected` tier is gone), save the rebased-tip leaves
 (`develop-rebase`, `develop-reconcile`, `verify-rebase`) and the suite-repair verifier, which run the full suite.
 `affected-suites.sh` never widens: a changed file no rule places adds nothing and is named on stderr, left to the
-full suite. Each run goes through `timed-test-run.sh`, which saves
-the whole output under the worktree's `.tdd/test-runs/` and hands the leaf a bounded report in its place: the
-counts, at most 10 failing cases each with its first failure line, how many it cut, and the saved file's path. `make test`, the
+full suite. Each run goes through `timed-test-run.sh`, which saves the whole output under the worktree's
+`.tdd/test-runs/` and never hands a leaf the runner's raw stream. A project that declares `veri: quiet test files:`
+gets that command, over the paths, as the `changed` run's command, its output reaching the leaf unchanged (its exit 2
+reported as a broken run, never a test failure); without the line the leaf gets the exit code, at most the last 20
+lines and the saved file's path. veri's own tree keeps `make test TESTS="<those paths>"`, since its leg needs make's
+offline environment, and a bounded report: the counts, at most 10 failing cases each with its first failure line,
+how many it cut, and the saved file's path; its own quiet line is what `detect-test-command.sh` and `/vinstall` read.
+`make test`, the
 **full suite**, runs once per PR before the PR is readied, again per repair step a red result
 appends (#539), and on the rebased tip if the Draft PR step rebased (#1026) — unless
 `rebased-tip-suite.sh` prints `ci`, the default where a workflow triggers on pull requests, which

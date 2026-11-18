@@ -384,7 +384,7 @@
 | ID | Requirement | Why |
 |---|---|---|
 | TW1 | The fragment names the wrapper `{{TIMED_TEST_RUN}}` and says it records what the run cost. | The run's cost is recorded. |
-| TW2 | The fragment says the wrapper hands back a bounded report in place of the runner's raw output: the passed, failed and error counts, at most 10 failing cases each with its first failure line, how many more were cut, and the file under `.tdd/test-runs/` holding the full output. | A run of only the changed files' test files must still not feed a huge test output into a leaf's context (#4333). |
+| TW2 | The fragment says the wrapper hands back, in place of the runner's raw output, the project's quiet test command's own output when it declares one, else a bounded report: outside veri's own tree the exit code and at most the last 20 lines; in veri's own tree the passed, failed and error counts, at most 10 failing cases each with its first failure line, and how many more were cut; and in either case the file under `.tdd/test-runs/` holding the full output. | A run of only the changed files' test files must still not feed a huge test output into a leaf's context (#4333), and the project, not veri, owns the command that keeps it quiet (#4335). |
 | TW3 | The fragment ends mid-sentence, inside the sentence of the prompt that includes it, so that sentence continues after it. | Every including prompt completes the sentence with the tier or a colon. |
 
 ## skills/tdd/scripts/prompts/_run-suite-lead.md

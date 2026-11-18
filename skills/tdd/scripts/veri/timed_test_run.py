@@ -1,4 +1,7 @@
-"""timed-test-run.sh's command run, its bounded report and its one test-run event, run in-process."""
+"""timed-test-run.sh's command run, its report in place of the raw output and its one test-run event, run in-process.
+
+The report is a declared quiet command's own output, a foreign tree's changed run's last TAIL lines, else the bounded
+report."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import re

@@ -632,7 +632,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   more commits ahead of the default branch, or when the stack is idle; it merges with
   `gh pr merge --rebase --match-head-commit` and no bypass flag. `--now` skips the size-or-idle rule and no other.
   **Exit 0** landed, **1** a clean refusal, **2** no answer, **3** nothing to land.
-- `$S/detect-test-command.sh [--tier fast|all|"one test file"|lint] [--issue <body-file>] [repo-root]` — print the one command that
+- `$S/detect-test-command.sh [--tier fast|all|"one test file"|"quiet test files"|lint] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
   wins: for `--tier all` only, the issue body's own `Test command:` line, unless it equals the
@@ -643,7 +643,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   inference, and **exit 3** when the line is absent. `--tier lint` has one source too: the repo's
   CLAUDE.md line `veri: lint: <command>`, whose command it prints, **exit 0**; with no such line it
   prints nothing and exits **3**, reading no other source (not the issue's line, not a `Makefile` or
-  any other inference), so veri never guesses a lint command. A bad argument is **exit 2**.
+  any other inference), so veri never guesses a lint command. `--tier "quiet test files"` prints the repo's CLAUDE.md
+  line `veri: quiet test files: <command>`, else a default for a runner it recognises (`pytest -q --no-header -rf` for
+  a pytest section in `pytest.ini`, `pyproject.toml` or `setup.cfg`; `npx jest --silent` for a `package.json` whose
+  `scripts.test` runs jest), else **exit 3**; it never reads the issue's line. A bad argument is **exit 2**.
 - `$S/affected-suites.sh <range>` — print, one per line, sorted and each once, the suites a change affects, so a leaf
   runs a narrow slice instead of the full suite. `<range>` is `<base>..<head>`, or one revision compared with the
   working tree, untracked files included. In veri's own tree (one where `skills/tdd/scripts/tests/py` is a directory)
@@ -657,20 +660,25 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   nothing to run (an empty range, run state alone, no test file at all, or no changed file any rule or test places);
   **exit 2** a malformed or unresolvable range, or a failed listing of the tree's files.
   What it prints is a leaf's `changed` run, the only run beyond the fast command: the leaves run it with the repo's
+  declared `veri: quiet test files:` command once over every path (`sh -c '<quiet> "$@"' sh <paths>`), else its
   `veri: one test file:` command once per path, or its fast command once when the repo declares none, its all-tier
-  command only when it declares neither (`make test TESTS="<those paths>"` in veri's own tree), each through
-  `timed-test-run.sh changed`. `timed-test-run.sh` saves the run's whole output to `.tdd/test-runs/<…>.log` under the
-  worktree's toplevel and prints, in its place, a bounded report, never the runner's raw output: the passed, failed and
-  error counts, at most 10 failing cases, each as its `FAILED`/`ERROR` line (the case and its first failure line) cut
-  to 300 characters, how many more it cut, and the saved file's path; it exits with the command's own status.
-- `$S/record-test-commands.sh [--one-file <cmd>] <fast-cmd> <all-cmd> [repo-root]` — `/vinstall`'s writer of the
+  command only when it declares neither (`make test TESTS="<those paths>"` in veri's own tree, whatever it declares),
+  each through `timed-test-run.sh changed`. `timed-test-run.sh` saves the run's whole output to
+  `.tdd/test-runs/<…>.log` under the worktree's toplevel and prints one of three reports, never a runner's raw stream:
+  the declared quiet command's output unchanged (its exit 2 followed by the line `timed-test-run.sh: the quiet test
+  command broke the run (exit 2): no test answer`); outside veri's own tree, any other `changed` run as one line with
+  the tier, exit status and seconds, at most the output's last 20 lines and `full output: <path>`; else a bounded
+  report: the passed, failed and error counts, at most 10 failing cases, each as its `FAILED`/`ERROR` line (the case
+  and its first failure line) cut to 300 characters, how many more it cut, and the saved file's path. It exits with
+  the command's own status.
+- `$S/record-test-commands.sh [--one-file <cmd>] [--quiet <cmd>] <fast-cmd> <all-cmd> [repo-root]` — `/vinstall`'s writer of the
   target repo's test commands (default: the current repository): on the default branch's tip as freshly fetched, it
-  writes the `veri: fast tests:` and `veri: all tests:` lines of the root `CLAUDE.md` (and with `--one-file` the
-  `veri: one test file:` line), each replaced where it stands or appended, in one commit on a new branch
+  writes the `veri: fast tests:` and `veri: all tests:` lines of the root `CLAUDE.md` (with `--one-file` the
+  `veri: one test file:` line, with `--quiet` the `veri: quiet test files:` line), each replaced where it stands or appended, in one commit on a new branch
   `veri-install`, pushes that branch and opens a pull request from it against the default branch, printing its URL:
   **exit 0**. It never touches the checkout it runs from (branch, index, working tree), never forces a push, never
   pushes the default branch and never merges. **Exit 3** when the tip already declares every given command exactly.
-  **Exit 2**, nothing pushed, for a missing or empty command; a `--one-file` command that does not take the test file
+  **Exit 2**, nothing pushed, for a missing or empty command (`--quiet`'s included); a `--one-file` command that does not take the test file
   as `"$1"` (anywhere in it) or as a `$1` word of its own; a `repo-root` outside a git repository; a root `CLAUDE.md`
   on the tip that is not a regular file (a symlink, say: "CLAUDE.md is not a regular file"); a `CLAUDE.md` that
   would not read back, through `detect-test-command.sh`'s own reader, exactly the command given for each tier written
