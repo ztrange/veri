@@ -384,3 +384,118 @@ def test_report_landed_count_names_only_this_repositorys_slices_merged_into_the_
     code, out, err = run_cli(status, ["--report"])
 
     assert (code, section(out, "Stack")[0]) == (0, "stacky: joined 3, tested 2, landed 2 in 24h"), (out, err)
+
+
+def test_report_counts_tested_as_0_when_stack_green_finds_no_tested_issue_end_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {})
+    stack_reads(monkeypatch, status, scripts={"stack-green.sh": (3, "")})
+    fake_processes.answers({"": logs_answer({})})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, section(out, "Stack")[0]) == (0, "stacky: joined 3, tested 0, landed 2 in 24h"), (out, err)
+
+
+def test_report_prints_the_tracking_pull_request_as_unknown_when_two_are_open_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {})
+    read = status.tracking_pull
+    stack_reads(monkeypatch, status)
+    monkeypatch.setattr(status, "tracking_pull", read)
+    pulls = [status.github._pull({"html_url": "https://github.com/acme/widgets/pull/%d" % n}) for n in (500, 501)]
+    monkeypatch.setattr(status.github, "stack_pulls", lambda stack, default: pulls)
+    fake_processes.answers({"": logs_answer({})})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, section(out, "Stack")[1], "2 open pull requests track stacky" in err) == (0, "tracking: ?", True), (
+        out, err)
+
+
+def test_report_lists_a_done_run_as_merge_state_unknown_when_rev_parse_cannot_tell_the_stack_branch_absent_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {"2750": [{"ts": 1793600050, "awake": 50, "event": "done", "pr": 99}]})
+    stack_reads(monkeypatch, status, span=("stacky", "main", []))
+    log = logs_answer({"main": "fix: elsewhere (#1)\n"})
+
+    def answer(line, **kw):
+        if "origin/stacky" in line.split():
+            return 128, "", "fatal: bad object\n"
+        if "rev-parse" in line.split():
+            return 128, "", "fatal: not a git repository\n"
+        return log(line, **kw)
+    fake_processes.answers({"": answer})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, [line.split(":")[0] for line in section(out, "Waiting") if line.startswith("#")]) == (
+        0, ["#2750 PR 99 merge state unknown"]), err
+
+
+def test_report_names_on_stderr_why_the_stack_could_not_be_read_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {})
+    stack_reads(monkeypatch, status, span=status.stack_branch.Refused("git fetch origin got no answer (exit 128)"))
+    fake_processes.answers({"": logs_answer({})})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, "the stack could not be read: git fetch origin got no answer (exit 128)" in err) == (0, True), err
+
+
+def test_report_prints_landed_as_unknown_when_the_slices_run_past_the_pages_it_reads_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {})
+    read = status.landed_slices
+    stack_reads(monkeypatch, status)
+    monkeypatch.setattr(status, "landed_slices", read)
+    monkeypatch.setattr(status.github, "PULL_PAGES", 1)
+    monkeypatch.setattr(status.time, "time", lambda: 1793600000)
+    page = [pull_record(n, "stacky-slice-%d" % n, "2026-11-02T09:00:00Z", "2026-11-02T09:00:00Z") for n in range(100)]
+    log = logs_answer({})
+    fake_processes.answers({"": lambda line, **kw: (0, json.dumps(page), "") if line.startswith("gh api")
+                            else log(line, **kw)})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, section(out, "Stack")[0]) == (0, "stacky: joined 3, tested 2, landed ? in 24h"), (out, err)
+
+
+def test_status_json_under_watch_reads_no_stack_issue_4320(tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {})
+    unasked = AssertionError("a stack read under --watch")
+    stack_reads(monkeypatch, status, span=unasked, scripts={"stack-green.sh": unasked, "stack-red.sh": unasked},
+                tracking=unasked, landed=unasked)
+    fake_processes.answers({"": logs_answer({})})
+
+    def sleep(seconds):
+        raise SystemExit(0)
+    monkeypatch.setattr(time, "sleep", sleep)
+
+    code, out, err = run_cli(status, ["--watch", "0", "--json"])
+
+    assert (code, json.loads(out.replace("\033[H\033[2J", ""))) == (0, {"runs": [], "scope": None}), err
+
+
+def test_report_passes_on_a_stack_scripts_reason_when_it_gives_no_answer_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {})
+    read = status.stack_script
+    stack_reads(monkeypatch, status)
+    monkeypatch.setattr(status, "stack_script", read)
+    log = logs_answer({})
+
+    def answer(line, **kw):
+        name = line.split()[0].rsplit("/", 1)[-1]
+        if name == "stack-green.sh":
+            return 2, "", "stack-green: the check runs of a1: HTTP 502\n"
+        if name == "stack-red.sh":
+            return 3, "", "stack-red: not red\n"
+        return log(line, **kw)
+    fake_processes.answers({"": answer})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, section(out, "Stack")[0], "HTTP 502" in err, "not red" in err) == (
+        0, "stacky: joined 3, tested ?, landed 2 in 24h", True, False), (out, err)
