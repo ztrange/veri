@@ -330,3 +330,25 @@ def test_4337_an_empty_tree_records_nothing_and_answers_run(tmp_path, run_cli, b
 
     assert recorded[0] == 0
     assert (code, out.strip()) == (0, "run")
+
+
+def test_4337_record_green_under_an_empty_tree_writes_no_record(tmp_path, run_cli, baseline_full_tier):
+    (tmp_path / ".git").mkdir()
+
+    code, out, err = _green_4337(run_cli, baseline_full_tier, "--record-green", tmp_path, tree="")
+
+    assert code == 0
+    assert not (tmp_path / ".tdd" / "baseline-green.json").exists()
+
+
+def test_4337_a_green_entry_under_an_empty_tree_still_answers_run(tmp_path, run_cli, baseline_full_tier, monkeypatch):
+    import json
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.chdir(tmp_path)
+    key = baseline_full_tier.green_key("4337", "", "make unit", "make test")
+    (tmp_path / ".tdd" / "baseline-green.json").write_text(json.dumps({key: "green"}))
+
+    code, out, err = _green_4337(run_cli, baseline_full_tier, "--green", tmp_path, tree="")
+
+    assert (code, out.strip()) == (0, "run")
