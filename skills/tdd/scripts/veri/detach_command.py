@@ -90,12 +90,7 @@ def _wait(exit_file, pid_file, text, alone=None, total=None):
         if _stopping_now():
             return 2
         if total is not None and int(time.time()) - _started(pid_file, start) >= total:
-            pid = int(_pid(pid_file))
-            if not pid_file_module.start_matches(pid_file, pid):
-                return 2
-            _stop_group(pid)
-            print(f"detach-command.sh: still running past --total {total} seconds; stopped its process group",
-                  file=sys.stderr)
+            _stop(pid_file, total)
             return 2
         limit = _limit(text)
         if limit is not None and int(time.time()) - start >= limit:
@@ -103,14 +98,19 @@ def _wait(exit_file, pid_file, text, alone=None, total=None):
         time.sleep(float(poll))
 
 
-def _stop_group(group):
-    """As a `now` stop ends a detached command: TERM its process group, then KILL after VERI_STOP_KILL_GRACE."""
+def _stop(pid_file, total):
+    """As a `now` stop ends a detached command: TERM its process group, then KILL after VERI_STOP_KILL_GRACE, and say
+    so naming <total>; nothing when the live pid is not the process the pid file recorded (a recycled pid)."""
+    group = int(_pid(pid_file))
+    if not pid_file_module.start_matches(pid_file, group):
+        return
     try:
         os.killpg(group, signal.SIGTERM)
         time.sleep(float(tunables.get("VERI_STOP_KILL_GRACE", unless_empty=True)))
         os.killpg(group, signal.SIGKILL)
     except ProcessLookupError:
         pass
+    print(f"detach-command.sh: still running past --total {total} seconds; stopped its process group", file=sys.stderr)
 
 
 def _refused(argv):
