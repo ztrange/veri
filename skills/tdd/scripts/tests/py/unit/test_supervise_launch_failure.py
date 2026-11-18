@@ -1,23 +1,8 @@
-"""A leaf that cannot be launched leaves no placeholder in the supervisor's started list (#3771)."""
+"""A signal reaching the supervisor while a leaf launches is held until the leaf exists; one after a launch that
+failed is not (#3771, #4303)."""
 import pytest
 
 from veri import supervise
-
-
-def test_a_failing_popen_raises_and_leaves_started_empty(tmp_path, monkeypatch, fake_processes):
-    monkeypatch.setattr(supervise, "now", lambda: "1000")
-    monkeypatch.setattr(supervise, "awake_seconds", lambda: 1000.0)
-
-    fake_processes.answers({"": FileNotFoundError("no sh")})
-    started = []
-    leaf_env = {"PYTEST_LEG_LOCK_WAIT_MARKER": str(tmp_path / "wait")}
-    watch = (False, 1, 1, 1, 1, None)
-
-    with pytest.raises(FileNotFoundError):
-        supervise.attempt_once(started, "exp-leaf", ["true"], str(tmp_path / "log"), str(tmp_path / "rc"),
-                               leaf_env, None, watch)
-
-    assert started == []
 
 
 def test_signals_arriving_during_launch_are_held_then_kill_the_leaf_and_exit_2(tmp_path, monkeypatch, fake_processes):
@@ -45,12 +30,12 @@ def test_signals_arriving_during_launch_are_held_then_kill_the_leaf_and_exit_2(t
 
     launched = fake_processes.answers({"": launching})
     exitfile = tmp_path / "exit"
-    started = []
+    holder = supervise.LeafHolder()
     saved = {sig: signal.getsignal(sig) for sig in supervise.TRAPPED}
     try:
-        supervise.trap(started, str(exitfile), 1, set())
+        supervise.trap(holder, str(exitfile), 1, set())
         with pytest.raises(Exited) as raised:
-            supervise.attempt_once(started, "exp-leaf", ["true"], str(tmp_path / "log"), str(tmp_path / "rc"),
+            supervise.attempt_once(holder, "exp-leaf", ["true"], str(tmp_path / "log"), str(tmp_path / "rc"),
                                    {"PYTEST_LEG_LOCK_WAIT_MARKER": str(tmp_path / "wait")}, None,
                                    (False, 1, 1, 1, 1, None))
     finally:
@@ -88,12 +73,12 @@ def test_a_signal_after_a_failed_launch_exits_2_at_once_killing_nothing(tmp_path
     killed = trapped_exits(monkeypatch)
     fake_processes.answers({"": FileNotFoundError("no sh")})
     exitfile = tmp_path / "exit"
-    started = []
+    holder = supervise.LeafHolder()
     saved = {sig: signal.getsignal(sig) for sig in supervise.TRAPPED}
     try:
-        supervise.trap(started, str(exitfile), 1, set())
+        supervise.trap(holder, str(exitfile), 1, set())
         with pytest.raises(FileNotFoundError):
-            supervise.attempt_once(started, "exp-leaf", ["true"], str(tmp_path / "log"), str(tmp_path / "rc"),
+            supervise.attempt_once(holder, "exp-leaf", ["true"], str(tmp_path / "log"), str(tmp_path / "rc"),
                                    {"PYTEST_LEG_LOCK_WAIT_MARKER": str(tmp_path / "wait")}, None,
                                    supervise.Watch(False, "1000", "180", "1", 0.0))
         with pytest.raises(Exited) as raised:
@@ -120,16 +105,16 @@ def test_a_signal_during_a_retrys_launch_is_held_then_kills_only_the_new_leaf(tm
 
     launched = fake_processes.answers({"": launching})
     exitfile = tmp_path / "exit"
-    started = []
+    holder = supervise.LeafHolder()
     watch = supervise.Watch(False, "1000", "180", "1", 0.0)
     args = ("exp-leaf", ["true"], str(tmp_path / "log"), str(tmp_path / "rc"),
             {"PYTEST_LEG_LOCK_WAIT_MARKER": str(tmp_path / "wait")}, None, watch)
     saved = {sig: signal.getsignal(sig) for sig in supervise.TRAPPED}
     try:
-        supervise.trap(started, str(exitfile), 1, set())
-        first = supervise.attempt_once(started, *args)
+        supervise.trap(holder, str(exitfile), 1, set())
+        first = supervise.attempt_once(holder, *args)
         with pytest.raises(Exited) as raised:
-            supervise.attempt_once(started, *args)
+            supervise.attempt_once(holder, *args)
     finally:
         for sig, handler in saved.items():
             signal.signal(sig, handler)

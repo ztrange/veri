@@ -50,6 +50,16 @@ class Watch(NamedTuple):
     tool_idle: str = "600"
 
 
+class LeafHolder:
+    """What the trap reads to answer a signal: the leaf last started, whether one is being started now, and the
+    signal that arrived while it was, raised once the leaf exists so the trap can kill it."""
+
+    def __init__(self):
+        self.leaf = None
+        self.launching = False
+        self.held = None
+
+
 def write_line(path, value):
     with open(path, "w") as f:
         f.write(f"{value}\n")
@@ -392,7 +402,7 @@ def lock_waiting(marker):
     return bool(start_recorded(marker)) and start_matches(marker, pid)
 
 
-def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
+def attempt_once(holder, name, cmd, log, rcfile, leaf_env, preexec, watch):
     watched, timeout, heartbeat, poll, kill_poll, _ = watch
     tolerated(name, "remove", rcfile, discard, rcfile)
     tolerated(name, "truncate", log, truncate, log)
@@ -400,16 +410,17 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
     t0 = now()
     a0 = awake_seconds()
     prev_t, prev_a = int(t0), a0
-    started.append(None)
+    holder.launching, holder.held = True, None
     try:
         leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc.tmp" && mv "$rc.tmp" "$rc"',
                                  "sh", log, rcfile, *cmd], process_group=0, env=leaf_env,
                                 restore_signals=False, preexec_fn=preexec)
     except BaseException:
-        started.pop()
+        holder.launching, holder.held = False, None
         raise
-    started.append(leaf)
-    held = started.pop(-2)
+    holder.leaf = leaf
+    holder.launching = False
+    held, holder.held = holder.held, None
     if held is not None:
         signal.raise_signal(held)
     waitfile = leaf_env["PYTEST_LEG_LOCK_WAIT_MARKER"]
@@ -467,13 +478,13 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
     return status, reason, rc, a0
 
 
-def trap(started, exitfile, kill_poll, ignored):
+def trap(holder, exitfile, kill_poll, ignored):
     def on_signal(signum, _frame):
-        if started and (started[-1] is None or isinstance(started[-1], int)):
-            started[-1] = signum
+        if holder.launching:
+            holder.held = signum
             return
-        if started:
-            kill_tree(started[-1], kill_poll)
+        if holder.leaf is not None:
+            kill_tree(holder.leaf, kill_poll)
         write_line(exitfile, 2)
         os._exit(2)
 
@@ -702,12 +713,12 @@ def main(argv):
     discard(exitfile)
     records = mutation_records() if name.startswith(("develop-", "revise-")) else None
     production = production_files() if name.startswith(("develop-red", "revise-red")) else None
-    started = []
+    holder = LeafHolder()
     preexec = leaf_dispositions(ignored)
-    trap(started, exitfile, kill_poll, ignored)
+    trap(holder, exitfile, kill_poll, ignored)
     tries = 0
     while True:
-        status, reason, rc, a0 = attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch)
+        status, reason, rc, a0 = attempt_once(holder, name, cmd, log, rcfile, leaf_env, preexec, watch)
         if status != "killed-stuck":
             break
         preserve_killed_attempt(name, tries + 1, leaf_env)
