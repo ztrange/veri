@@ -185,3 +185,15 @@ def test_owing_issues_are_tagged_in_the_order_of_their_last_commit_each_pushed_b
     steps = [entry[1:3] for entry in world.log if entry[:2] in (("git", "tag"), ("git", "push"))]
     assert (code, world.cut) == (0, [("v0.2", "c1", "Seven"), ("v0.3", "c2", "Eight")]), err
     assert steps.index(("push", "origin")) < steps.index(("tag", "-a"), steps.index(("tag", "-a")) + 1), steps
+
+
+def test_the_message_is_the_issues_title_or_its_message_argument_and_an_unread_title_exits_2_taking_no_lock(
+        monkeypatch, run_cli, stack_tag):
+    world = World(monkeypatch, commits=["feat: a (#7)", "fix: b (#8)"], titles={"7": "Seven's title"})
+
+    code, out, err = run_cli(stack_tag, [PR, "--message", "8=Eight, reworded"])
+    unread = World(monkeypatch, commits=["feat: a (#7)", "fix: b (#8)"], titles={"7": "Seven's title"})
+    second = run_cli(stack_tag, [PR])
+
+    assert (code, [message for _, _, message in world.cut]) == (0, ["Seven's title", "Eight, reworded"]), err
+    assert (second[0], "#8" in second[2], unread.lock_calls, unread.cut) == (2, True, [], []), second[2]
