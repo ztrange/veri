@@ -21,6 +21,30 @@ def without_selection(args):
     return importlib.import_module("pytest_leg").split_marks(args)[0]
 
 
+SELF_STARTED = "Wed Nov 18 08:00:00 2026"
+PARENT_STARTED = "Wed Nov 18 07:00:00 2026"
+
+
+@pytest.fixture
+def started(fake_processes):
+    """Answers `ps -o lstart= -p <pid>` with this process's and its parent's start times, plus `more` ({pid: text});
+    any other process, a ps for a pid not in the table included, exits 1 with no output, as ps does for an unknown pid.
+    Returns the setter, so a case adds pids (and other answers, `extra`) after the fixture installed the defaults."""
+    def answer(more=None, extra=None):
+        table = {os.getpid(): SELF_STARTED, os.getppid(): PARENT_STARTED, **(more or {})}
+        answers = {"ps -o lstart= -p %d" % pid: (0, text + "\n", "") for pid, text in table.items()}
+        return fake_processes.answers({**answers, **(extra or {})}, default=(1, "", ""), exact=True)
+    answer()
+    return answer
+
+
+def registered(path, count, started_text=None):
+    """Writes a registry entry as a live leg does: its worker count, then its pid's start time."""
+    pid = int(path.name)
+    started_text = started_text or {os.getpid(): SELF_STARTED, os.getppid(): PARENT_STARTED}[pid]
+    path.write_text("%d\n%s\n" % (count, started_text))
+
+
 def test_the_leg_and_its_four_plugins_live_under_tests_leg_while_the_modules_launches_share_stay_in_veri_4051(pytest_leg):
     """PRD 025.16 PL1: veri/ holds no test-runner code; the leg is loaded from skills/tdd/scripts/tests/leg/."""
     scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -155,7 +179,7 @@ def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available
     assert unset_serial == empty_serial == single == single_serial == ["-q", "some/dir"]
 
 
-def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_only_the_cores_they_leave_free_and_at_least_1(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_only_the_cores_they_leave_free_and_at_least_1(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     import os
 
     calls = []
@@ -170,11 +194,11 @@ def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_o
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
     monkeypatch.setattr(sys, "platform", "linux")
     live = [os.getpid(), os.getppid()]
-    for registered in ((15,), (8, 7)):
-        legs = tmp_path / ("legs-%d" % len(registered))
+    for counts in ((15,), (8, 7)):
+        legs = tmp_path / ("legs-%d" % len(counts))
         legs.mkdir()
-        for pid, count in zip(live, registered):
-            (legs / str(pid)).write_text("%d\n" % count)
+        for pid, count in zip(live, counts):
+            registered(legs / str(pid), count)
         env = leg_env(VERI_PYTEST_LEGS=str(legs))
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     beside_one, _, beside_two, _ = [without_selection(c) for c in calls]
@@ -246,7 +270,7 @@ def test_2100_a_registry_entry_whose_pid_no_longer_answers_kill_0_holds_no_share
     assert calls[0][:2] == ["-n", "16"] or "-n16" in calls[0]
 
 
-def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_still_holds_its_share_so_a_leg_beside_only_such_a_16_worker_entry_takes_1(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_still_holds_its_share_so_a_leg_beside_only_such_a_16_worker_entry_takes_1(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     import os
 
     calls = []
@@ -271,13 +295,14 @@ def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_stil
     monkeypatch.setattr(sys, "platform", "linux")
     legs = tmp_path / "legs"
     legs.mkdir()
-    (legs / str(foreign)).write_text("16\n")
+    registered(legs / str(foreign), 16, "Tue Nov 17 06:00:00 2026")
+    started({foreign: "Tue Nov 17 06:00:00 2026"})
     env = leg_env(VERI_PYTEST_LEGS=str(legs))
     assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     assert "-n" not in calls[0] and not any(a.startswith("-n") for a in calls[0])
 
 
-def test_2100_a_set_worker_count_is_used_as_given_even_beside_a_live_16_worker_entry_on_16_cores(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_2100_a_set_worker_count_is_used_as_given_even_beside_a_live_16_worker_entry_on_16_cores(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     import os
 
     calls = []
@@ -293,14 +318,14 @@ def test_2100_a_set_worker_count_is_used_as_given_even_beside_a_live_16_worker_e
     monkeypatch.setattr(sys, "platform", "linux")
     legs = tmp_path / "legs"
     legs.mkdir()
-    (legs / str(os.getpid())).write_text("16\n")
+    registered(legs / str(os.getpid()), 16)
     env = leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WORKERS="3")
     assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     parallel = without_selection(calls[0])
     assert parallel[parallel.index("-n") + 1] == "3" if "-n" in parallel else "-n3" in parallel or "--numprocesses=3" in parallel
 
 
-def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_register_at_most_16_workers_on_16_cores_the_second_getting_only_what_the_first_left(pytest_leg, monkeypatch, tmp_path):
+def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_register_at_most_16_workers_on_16_cores_the_second_getting_only_what_the_first_left(pytest_leg, monkeypatch, tmp_path, started):
     import os
     import threading
 
@@ -358,7 +383,7 @@ def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_regis
     assert (handed.get("MainThread"), handed.get("second")) == (16, 1)
 
 
-def test_2100_with_no_worker_count_a_leg_registers_its_worker_count_in_the_legs_registry_while_pytest_runs_and_removes_it_after_whatever_the_status(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_2100_with_no_worker_count_a_leg_registers_its_worker_count_in_the_legs_registry_while_pytest_runs_and_removes_it_after_whatever_the_status(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     import os
 
     legs = tmp_path / "legs"
@@ -366,7 +391,7 @@ def test_2100_with_no_worker_count_a_leg_registers_its_worker_count_in_the_legs_
     statuses = iter([pytest.ExitCode.TESTS_FAILED, pytest.ExitCode.TESTS_FAILED, pytest.ExitCode.OK, pytest.ExitCode.OK])
 
     def spy(args):
-        during.append(sorted(p.read_text().strip() for p in legs.iterdir()) if legs.is_dir() else None)
+        during.append(sorted(p.read_text().split("\n")[0] for p in legs.iterdir()) if legs.is_dir() else None)
         handed.append(without_selection(args))
         return next(statuses)
 
@@ -859,8 +884,8 @@ def test_4261_main_leaves_sys_path_as_it_found_it_once_it_raises(pytest_leg, mon
     assert sys.path == before
 
 
-def test_2386_on_macos_with_no_worker_count_the_budget_is_the_physical_core_count_less_the_live_legs_workers_and_at_least_1(pytest_leg, monkeypatch, tmp_path, fake_processes):
-    fake_processes.answers({"sysctl -n hw.physicalcpu": (0, "8\n", "")}, exact=True)
+def test_2386_on_macos_with_no_worker_count_the_budget_is_the_physical_core_count_less_the_live_legs_workers_and_at_least_1(pytest_leg, monkeypatch, tmp_path, started):
+    started(extra={"sysctl -n hw.physicalcpu": (0, "8\n", "")})
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
@@ -871,13 +896,13 @@ def test_2386_on_macos_with_no_worker_count_the_budget_is_the_physical_core_coun
     legs.mkdir()
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
     alone = pytest_leg.worker_count(None)
-    (legs / str(os.getpid())).write_text("6\n")
+    registered(legs / str(os.getpid()), 6)
     beside_six = pytest_leg.worker_count(None)
     assert (alone, beside_six) == (8, 2)
 
 
-def test_2386_off_macos_with_no_worker_count_the_budget_is_the_cpu_affinity_count_less_the_live_legs_workers_never_the_physical_core_count(pytest_leg, monkeypatch, tmp_path, fake_processes):
-    fake_processes.answers({"sysctl": (0, "4\n", "")})
+def test_2386_off_macos_with_no_worker_count_the_budget_is_the_cpu_affinity_count_less_the_live_legs_workers_never_the_physical_core_count(pytest_leg, monkeypatch, tmp_path, started):
+    started(extra={"sysctl -n hw.physicalcpu": (0, "4\n", "")})
     monkeypatch.setattr(os, "cpu_count", lambda: 12)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 12, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(12)), raising=False)
@@ -888,7 +913,7 @@ def test_2386_off_macos_with_no_worker_count_the_budget_is_the_cpu_affinity_coun
     legs.mkdir()
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
     alone = pytest_leg.worker_count(None)
-    (legs / str(os.getpid())).write_text("5\n")
+    registered(legs / str(os.getpid()), 5)
     beside_five = pytest_leg.worker_count(None)
     assert (alone, beside_five) == (12, 7)
 
@@ -1060,7 +1085,7 @@ def test_3985_a_teardown_that_raises_after_the_passes_is_one_line_and_keeps_a_re
     assert (got, err.count("\n"), "OSError: [Errno 16] Resource busy" in err, "Traceback" in err) == (code, 1, True, False)
 
 
-def test_4310_a_leg_with_no_worker_count_that_finds_the_registered_workers_at_the_cores_starts_pytest_only_after_a_registered_leg_is_gone(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_4310_a_leg_with_no_worker_count_that_finds_the_registered_workers_at_the_cores_starts_pytest_only_after_a_registered_leg_is_gone(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
@@ -1069,7 +1094,7 @@ def test_4310_a_leg_with_no_worker_count_that_finds_the_registered_workers_at_th
     legs = tmp_path / "legs"
     legs.mkdir()
     blocker = legs / str(os.getppid())
-    blocker.write_text("16\n")
+    registered(blocker, 16)
     started_with_blocker = []
 
     def spy(args):
@@ -1086,7 +1111,7 @@ def test_4310_a_leg_with_no_worker_count_that_finds_the_registered_workers_at_th
     assert started_with_blocker == [False, False]
 
 
-def test_4310_a_leg_waiting_for_a_free_core_writes_one_stderr_line_however_many_polls_naming_the_cores_in_use_and_the_holding_pids(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_4310_a_leg_waiting_for_a_free_core_writes_one_stderr_line_however_many_polls_naming_the_cores_in_use_and_the_holding_pids(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
@@ -1096,7 +1121,7 @@ def test_4310_a_leg_waiting_for_a_free_core_writes_one_stderr_line_however_many_
     legs.mkdir()
     holder = os.getppid()
     blocker = legs / str(holder)
-    blocker.write_text("16\n")
+    registered(blocker, 16)
     polls = []
 
     def death_on_the_third_poll(seconds):
@@ -1111,7 +1136,7 @@ def test_4310_a_leg_waiting_for_a_free_core_writes_one_stderr_line_however_many_
     assert (code, len(polls), [(str(holder) in line, "16" in line) for line in err.splitlines()]) == (0, 3, [(True, True)])
 
 
-def test_4310_a_leg_waiting_for_a_free_core_holds_the_lock_wait_marker_so_lock_waiting_reports_it_and_the_marker_is_gone_once_pytest_starts(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_4310_a_leg_waiting_for_a_free_core_holds_the_lock_wait_marker_so_lock_waiting_reports_it_and_the_marker_is_gone_once_pytest_starts(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     import supervise
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
@@ -1121,7 +1146,7 @@ def test_4310_a_leg_waiting_for_a_free_core_holds_the_lock_wait_marker_so_lock_w
     legs = tmp_path / "legs"
     legs.mkdir()
     blocker = legs / str(os.getppid())
-    blocker.write_text("16\n")
+    registered(blocker, 16)
     marker = tmp_path / "marker"
     waiting_while_polling = []
     marker_at_start = []
@@ -1142,7 +1167,7 @@ def test_4310_a_leg_waiting_for_a_free_core_holds_the_lock_wait_marker_so_lock_w
     assert (code, waiting_while_polling, marker_at_start[:1], marker.exists()) == (0, [True], [False], False)
 
 
-def test_4310_a_leg_whose_wait_ends_as_4_of_16_cores_free_hands_pytest_4_workers_and_registers_4_while_pytest_runs(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_4310_a_leg_whose_wait_ends_as_4_of_16_cores_free_hands_pytest_4_workers_and_registers_4_while_pytest_runs(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
@@ -1150,14 +1175,15 @@ def test_4310_a_leg_whose_wait_ends_as_4_of_16_cores_free_hands_pytest_4_workers
     monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
     legs = tmp_path / "legs"
     legs.mkdir()
-    (legs / "1").write_text("12\n")
+    registered(legs / "1", 12, "Thu Nov 12 05:00:00 2026")
+    started({1: "Thu Nov 12 05:00:00 2026"})
     leaving = legs / str(os.getppid())
-    leaving.write_text("4\n")
+    registered(leaving, 4)
     started = []
 
     def spy(args):
         if not started:
-            started.append((args[args.index("-n") + 1] if "-n" in args else "1", (legs / str(os.getpid())).read_text()))
+            started.append((args[args.index("-n") + 1] if "-n" in args else "1", (legs / str(os.getpid())).read_text().split("\n")[0]))
         return pytest.ExitCode.OK
 
     monkeypatch.setattr(pytest, "main", spy)
@@ -1167,7 +1193,7 @@ def test_4310_a_leg_whose_wait_ends_as_4_of_16_cores_free_hands_pytest_4_workers
     assert (code, started) == (0, [("4", "4")])
 
 
-def test_4310_a_leg_that_waited_7_seconds_for_a_free_core_writes_one_core_wait_event_carrying_seconds_7(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_4310_a_leg_that_waited_7_seconds_for_a_free_core_writes_one_core_wait_event_carrying_seconds_7(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     import json
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
@@ -1179,7 +1205,7 @@ def test_4310_a_leg_that_waited_7_seconds_for_a_free_core_writes_one_core_wait_e
     legs = tmp_path / "legs"
     legs.mkdir()
     blocker = legs / str(os.getppid())
-    blocker.write_text("16\n")
+    registered(blocker, 16)
     clock = [1000.0]
 
     def seven_seconds_then_death(seconds):
@@ -1196,7 +1222,7 @@ def test_4310_a_leg_that_waited_7_seconds_for_a_free_core_writes_one_core_wait_e
     assert (code, [line.get("seconds") for line in lines if line["event"] == "core-wait"]) == (0, ["7"])
 
 
-def test_4310_a_leg_that_finds_a_core_free_starts_without_writing_a_core_wait_event(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_4310_a_leg_that_finds_a_core_free_starts_without_writing_a_core_wait_event(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
@@ -1206,7 +1232,7 @@ def test_4310_a_leg_that_finds_a_core_free_starts_without_writing_a_core_wait_ev
     (tree / ".git").mkdir(parents=True)
     legs = tmp_path / "legs"
     legs.mkdir()
-    (legs / str(os.getppid())).write_text("15\n")
+    registered(legs / str(os.getppid()), 15)
     monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)), cwd=str(tree))[0]
     journal = tree / ".tdd" / "events.jsonl"
@@ -1214,7 +1240,7 @@ def test_4310_a_leg_that_finds_a_core_free_starts_without_writing_a_core_wait_ev
     assert (code, "core-wait" in (journal.read_text() if journal.exists() else "")) == (0, False)
 
 
-def test_4310_a_full_run_that_must_wait_for_a_free_core_already_holds_the_full_run_lock_when_its_wait_begins(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_4310_a_full_run_that_must_wait_for_a_free_core_already_holds_the_full_run_lock_when_its_wait_begins(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
@@ -1224,7 +1250,7 @@ def test_4310_a_full_run_that_must_wait_for_a_free_core_already_holds_the_full_r
     legs = tmp_path / "legs"
     legs.mkdir()
     blocker = legs / str(os.getppid())
-    blocker.write_text("16\n")
+    registered(blocker, 16)
     lock = tmp_path / "legs-full.lock"
     held_at_wait = []
 
@@ -1239,7 +1265,7 @@ def test_4310_a_full_run_that_must_wait_for_a_free_core_already_holds_the_full_r
     assert (code, held_at_wait) == (0, [True])
 
 
-def test_4310_a_leg_with_veri_pytest_workers_set_reads_neither_the_core_count_nor_the_registry_beside_a_full_registry(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_4310_a_leg_with_veri_pytest_workers_set_reads_neither_the_core_count_nor_the_registry_beside_a_full_registry(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     reads = []
 
     def read(name, value):
@@ -1256,10 +1282,163 @@ def test_4310_a_leg_with_veri_pytest_workers_set_reads_neither_the_core_count_no
     monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
     legs = tmp_path / "legs"
     legs.mkdir()
-    (legs / str(os.getppid())).write_text("16\n")
+    registered(legs / str(os.getppid()), 16)
     handed = []
     monkeypatch.setattr(pytest, "main", lambda args: handed.append(args[args.index("-n") + 1] if "-n" in args else "1") or pytest.ExitCode.OK)
     monkeypatch.setattr(pytest_leg.time, "sleep", lambda seconds: reads.append("waited"))
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WORKERS="3"))[0]
 
     assert (code, reads, handed[:1]) == (0, [], ["3"])
+
+
+def on_16_cores(monkeypatch):
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+
+
+class NeverFreed(Exception):
+    """Raised by a poll a case caps, so a leg that would wait forever fails the case instead of hanging it."""
+
+
+def polls(seen, limit=3, also=lambda: None):
+    def sleep(seconds):
+        seen.append(seconds)
+        also()
+        if len(seen) >= limit:
+            raise NeverFreed("still waiting after %d polls" % len(seen))
+    return sleep
+
+
+def handed_workers(handed):
+    def spy(args):
+        handed.append(args[args.index("-n") + 1] if "-n" in args else "1")
+        return pytest.ExitCode.OK
+    return spy
+
+
+def test_4310_a_registry_entry_whose_pid_now_runs_under_another_start_time_holds_no_share_and_is_removed_while_a_live_legs_entry_keeps_its_share(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_16_cores(monkeypatch)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    registered(legs / "1", 16, "Mon Jan  5 00:00:00 2015")
+    registered(legs / str(os.getppid()), 10)
+    started({1: "Thu Nov 12 05:00:00 2026"})
+    waited, handed = [], []
+    monkeypatch.setattr(pytest, "main", handed_workers(handed))
+    monkeypatch.setattr(pytest_leg.time, "sleep", polls(waited))
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
+
+    assert (code, waited, handed[:1], sorted(p.name for p in legs.iterdir())) == (0, [], ["6"], [str(os.getppid())])
+
+
+def test_4310_an_entry_with_no_start_time_an_older_legs_holds_no_share_even_for_a_live_pid_and_stays_while_that_pid_lives(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_16_cores(monkeypatch)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    older = legs / str(os.getppid())
+    older.write_text("16\n")
+    waited, handed = [], []
+    monkeypatch.setattr(pytest, "main", handed_workers(handed))
+    monkeypatch.setattr(pytest_leg.time, "sleep", polls(waited))
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
+
+    assert (code, waited, handed[:1], older.read_text()) == (0, [], ["16"], "16\n")
+
+
+def test_4310_a_malformed_unreadable_or_non_pid_entry_holds_no_share_and_none_crashes_the_leg_or_is_removed(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_16_cores(monkeypatch)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    (legs / str(os.getppid())).write_text("sixteen\n%s\n" % PARENT_STARTED)
+    (legs / "notapid").write_text("16\n")
+    (legs / "1").mkdir()
+    waited, handed = [], []
+    monkeypatch.setattr(pytest, "main", handed_workers(handed))
+    monkeypatch.setattr(pytest_leg.time, "sleep", polls(waited))
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
+
+    assert (code, waited, handed[:1], sorted(p.name for p in legs.iterdir())) == (0, [], ["16"], sorted(["1", "notapid", str(os.getppid())]))
+
+
+def test_4310_a_leg_registers_its_worker_count_on_line_1_and_its_own_start_time_on_line_2(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_16_cores(monkeypatch)
+    legs = tmp_path / "legs"
+    during = []
+    monkeypatch.setattr(pytest, "main", lambda args: during.append((legs / str(os.getpid())).read_text()) or pytest.ExitCode.OK)
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
+
+    assert (code, during[:1]) == (0, ["16\n%s\n" % SELF_STARTED])
+
+
+def test_4310_a_core_wait_whose_marker_another_leg_removed_meanwhile_still_starts_pytest_and_exits_0(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_16_cores(monkeypatch)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    blocker = legs / str(os.getppid())
+    registered(blocker, 16)
+    marker = tmp_path / "marker"
+    waited, handed = [], []
+
+    def the_other_leg_finishes():
+        marker.unlink(missing_ok=True)
+        blocker.unlink(missing_ok=True)
+
+    monkeypatch.setattr(pytest, "main", handed_workers(handed))
+    monkeypatch.setattr(pytest_leg.time, "sleep", polls(waited, also=the_other_leg_finishes))
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), PYTEST_LEG_LOCK_WAIT_MARKER=str(marker)))
+
+    assert (code, len(waited), handed[:1], "Error" in err) == (0, 1, ["16"], False)
+
+
+def test_4310_a_core_wait_whose_marker_cannot_be_written_waits_unmarked_saying_so_once_and_exits_0(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_16_cores(monkeypatch)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    blocker = legs / str(os.getppid())
+    registered(blocker, 16)
+    marker = tmp_path / "no-such-directory" / "marker"
+    waited, handed = [], []
+
+    def freed_on_the_second_poll():
+        if len(waited) == 2:
+            blocker.unlink()
+
+    monkeypatch.setattr(pytest, "main", handed_workers(handed))
+    monkeypatch.setattr(pytest_leg.time, "sleep", polls(waited, also=freed_on_the_second_poll))
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), PYTEST_LEG_LOCK_WAIT_MARKER=str(marker)))
+    unmarked = [line for line in err.splitlines() if line.startswith("cannot mark the core wait")]
+
+    assert (code, len(waited), handed[:1], len(unmarked), str(marker) in "".join(unmarked)) == (0, 2, ["16"], 1, True)
+
+
+def test_4310_a_leg_ended_by_term_while_it_waits_for_a_core_has_removed_its_wait_marker_by_the_time_it_exits(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    import signal
+    import idle_watch
+    on_16_cores(monkeypatch)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    registered(legs / str(os.getppid()), 16)
+    marker = tmp_path / "marker"
+    marked_at_exit = []
+
+    def exit(code):
+        marked_at_exit.append(marker.exists())
+        raise SystemExit(code)
+
+    class Watch(idle_watch.Watch):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, exit=exit, **kwargs)
+
+    def term(seconds):
+        assert marker.exists()
+        signal.getsignal(signal.SIGTERM)(signal.SIGTERM, None)
+
+    monkeypatch.setattr(idle_watch, "Watch", Watch)
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", term)
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), PYTEST_LEG_LOCK_WAIT_MARKER=str(marker)))[0]
+
+    assert (code, marked_at_exit) == (128 + signal.SIGTERM, [False])
