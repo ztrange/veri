@@ -578,3 +578,21 @@ def test_4232_rebase_onto_default_runs_as_stage_rebase_carrying_the_runs_issue_e
 
     stages = [(r["event"], r["stage"], r.get("status"), r["issue"]) for r in events.records(tmp_path)]
     assert (returned, stages) == (code, [("stage-start", "rebase", None, "12"), ("stage-end", "rebase", str(code), "12")])
+
+
+@pytest.mark.parametrize("case", ["rebased", "up to date", "not a run branch", "record unwritable"])
+def test_a_rebase_of_a_run_branch_re_records_its_branch_base_as_the_onto_sha_and_nothing_else_does_4374(
+        cli, fake_processes, tmp_path, case):
+    """The record lands in the main working tree, here <tmp_path> (no `.git` above it)."""
+    record = tmp_path / ".tdd" / "issue-12-branch-base"
+    if case == "record unwritable":
+        record.mkdir(parents=True)
+    git_fake(fake_processes, **{
+        "git symbolic-ref --quiet --short HEAD": (0, ("main" if case == "not a run branch" else "tdd/12-slug") + "\n"),
+        **({f"git merge-base --is-ancestor {ONTO} HEAD": (0, "")} if case == "up to date" else {})})
+
+    code, out, err = cli.run_cli(cli.module, [], cwd=str(tmp_path))
+
+    expected = {"rebased": (0, ONTO + "\n", False), "up to date": (3, None, False),
+                "not a run branch": (0, None, False), "record unwritable": (2, None, True)}[case]
+    assert (code, record.read_text() if record.is_file() else None, str(record) in err) == expected
