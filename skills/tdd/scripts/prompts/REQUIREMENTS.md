@@ -1141,3 +1141,10 @@
 | VN9 | Check 5 says the probe's exit 2 gives no verdict, and exit 1 means the cases stayed green and is never a PASS. (Numbered list, item 5.) | Exit codes are the API: no answer is not a verdict, and a clean negative is a REJECT. |
 | VN10 | Check 5 ends with the `{{LAST_PHASE_CHECK}}` slot. (Numbered list, item 5, last line.) | The conductor appends the last-phase check there. |
 | VN11 | The closing paragraph says PASS if the suites are green, the new interface has cases of its own, no production file changed, the cases pass at the base and go red under the verifier's mutation, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
+
+## skills/tdd/scripts/prompts/_timed-test-run-tier.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TR1 | The fragment is the included `_timed-test-run.md` followed by "and names the tier it belongs to", so the wrapper sentence also says each run names its tier. (The whole fragment.) | A run's recorded cost is attributed to its tier. |
+| TR2 | The fragment ends mid-sentence; the including text completes it, with a colon before the run lines. (The whole fragment.) | Every including prompt continues the sentence with the command lines. |
