@@ -544,4 +544,16 @@ def test_cli_tier_lint_without_a_claude_md_lint_line_exits_3_printing_nothing_wh
 def test_cli_help_prints_a_usage_line_listing_the_lint_tier_4122(run_cli, detect):
     code, out, err = cli(run_cli, detect, "--help")
 
-    assert (code, "--tier fast|all|\"one test file\"|lint]" in out, err) == (0, True, "")
+    assert (code, "--tier fast|all|\"one test file\"|\"quiet test files\"|lint]" in out, err) == (0, True, "")
+
+
+def test_issue_4335_tier_quiet_test_files_prints_the_command_of_the_claude_md_quiet_line(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: all tests: `make test`\n"
+                                    "veri: one test file: `make test TESTS=\"$1\"`\n"
+                                    "veri: quiet test files: `bin/quiet-run --dots`\n")
+    (repo / "Makefile").write_text("test:\n\ttrue\n")
+    (repo / "pytest.ini").write_text("[pytest]\n")
+
+    assert cli(run_cli, detect, "--tier", "quiet test files", str(repo)) == (0, "bin/quiet-run --dots\n", "")

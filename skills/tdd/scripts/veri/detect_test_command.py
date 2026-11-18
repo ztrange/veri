@@ -66,6 +66,8 @@ def selects_subset(command, root):
 
 # The tiers a repo declares only in its CLAUDE.md, as `veri: <tier>: <command>`: never inferred, never from the issue.
 DECLARED_ONLY = ("one test file", "lint")
+# The tiers whose CLAUDE.md marker ends in a bare colon, `veri: <tier>: <command>`, not ` tests:`.
+COLON_MARKED = DECLARED_ONLY + ("quiet test files",)
 
 
 def decide(tier, issue, root):
@@ -82,7 +84,7 @@ def decide(tier, issue, root):
             if found.command != resolved("fast", issue, root) and not selects_subset(found.command, root):
                 raise
     if tier and has("CLAUDE.md"):
-        suffix = b":" if tier in DECLARED_ONLY else b" tests:"
+        suffix = b":" if tier in COLON_MARKED else b" tests:"
         answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + suffix)
     if tier in DECLARED_ONLY:
         return
@@ -122,7 +124,7 @@ def option(args, flag):
     return args[1], args[2:]
 
 
-USAGE = 'usage: detect-test-command.sh [--tier fast|all|"one test file"|lint] [--issue <body-file>] [repo-root]'
+USAGE = 'usage: detect-test-command.sh [--tier fast|all|"one test file"|"quiet test files"|lint] [--issue <body-file>] [repo-root]'
 
 
 def main(argv):

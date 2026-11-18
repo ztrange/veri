@@ -7,7 +7,7 @@
 # /vinstall records; `veri: one test file:` and `veri: lint:` for those two tiers, which nothing else answers), then
 # inference from the repo's files.
 #
-# usage:   detect-test-command.sh [--tier fast|all|"one test file"|lint] [--issue <body-file>] [repo-root]
+# usage:   detect-test-command.sh [--tier fast|all|"one test file"|"quiet test files"|lint] [--issue <body-file>] [repo-root]
 #          (repo-root defaults to the current directory)
 # Exit:    0 a command printed on stdout; 2 --tier or --issue with no value; 3 cannot decide, nothing printed (for "one test file" or lint: no CLAUDE.md line)
 . "$(dirname "$0")/lib/shim-python.sh"
