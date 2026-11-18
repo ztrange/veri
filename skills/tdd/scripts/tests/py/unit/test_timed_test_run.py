@@ -154,12 +154,12 @@ def test_main_returns_the_command_status_when_the_event_cannot_be_appended(tmp_p
     assert (code, events.records()) == (3, [])
 
 
-def test_issue_1702_main_refuses_an_affected_tier_bare_make_test_with_exit_2_naming_it_running_nothing_and_recording_no_event(
+def test_issue_1702_main_refuses_a_changed_tier_bare_make_test_with_exit_2_naming_it_running_nothing_and_recording_no_event(
         tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
     monkeypatch.chdir(tmp_path)
     events.refuse_event_sh()
 
-    code = timed_test_run.main(["affected", "ledger-steps", "make", "test"])
+    code = timed_test_run.main(["changed", "ledger-steps", "make", "test"])
 
     err = capfd.readouterr().err
     assert (code, "make test" in err, calls, events.records()) == (2, True, [], [])
@@ -183,16 +183,30 @@ def test_issue_1702_main_runs_and_records_a_bare_make_test_on_the_fast_target_an
     ["make", "TESTS=a", "test"],
     ["bash", "t.test.sh"],
 ])
-def test_issue_1702_main_runs_and_records_an_affected_tier_command_that_names_its_suites_or_is_not_make_test(
+def test_issue_1702_main_runs_and_records_a_changed_tier_command_that_names_its_suites_or_is_not_make_test(
         command, tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
     monkeypatch.chdir(tmp_path)
     events.refuse_event_sh()
 
-    code = timed_test_run.main(["affected", "a b", *command])
+    code = timed_test_run.main(["changed", "a b", *command])
 
     err = capfd.readouterr().err
     assert (code, err, calls, [(r["tier"], r["status"]) for r in events.records()]) == (
-        7, "", [command], [("affected", "7")])
+        7, "", [command], [("changed", "7")])
+
+
+@pytest.mark.parametrize("tier", ["affected", "full", "Fast"])
+def test_issue_4333_main_refuses_a_tier_outside_fast_changed_all_target_with_exit_2_naming_it_and_the_four_running_nothing_and_recording_no_event(
+        tier, tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
+    monkeypatch.chdir(tmp_path)
+    events.refuse_event_sh()
+
+    code = timed_test_run.main([tier, "a b", "make", "test", "TESTS=a b"])
+
+    out, err = capfd.readouterr()
+    lines = err.splitlines()
+    assert (code, out, len(lines), calls, events.records()) == (2, "", 1, [], []), err
+    assert all(word in lines[0] for word in (repr(tier), "fast", "changed", "all", "target")), err
 
 
 def _read_events(directory):

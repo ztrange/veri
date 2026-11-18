@@ -495,7 +495,7 @@ def test_issue_3383_probe_dropping_o_append_from_event_py_leaves_the_live_journa
     journal.write_text(before)
 
     subprocess.run([str(PROBE), str(scripts / "veri" / "event.py"), "os.O_WRONLY | os.O_APPEND | os.O_CREAT", "os.O_WRONLY | os.O_CREAT",
-                    "--", str(scripts / "timed-test-run.sh"), "affected", "suite", "true"],
+                    "--", str(scripts / "timed-test-run.sh"), "changed", "suite", "true"],
                    cwd=tmp_path, capture_output=True, text=True, timeout=60,
                    env={**os.environ, "VERI_MUTATION_RECORD": str(tmp_path.parent / (tmp_path.name + "-mutations.md"))})
 
