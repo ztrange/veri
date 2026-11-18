@@ -188,9 +188,13 @@ def worker_count(requested):
 
 
 def registered_workers(legs):
+    return sum(count for _, count in registered_legs(legs))
+
+
+def registered_legs(legs):
     if not legs or not os.path.isdir(legs):
-        return 0
-    total = 0
+        return []
+    holders = []
     for name in os.listdir(legs):
         try:
             if name.isdigit():
@@ -198,15 +202,16 @@ def registered_workers(legs):
                     os.kill(int(name), 0)
                 except PermissionError:
                     pass
-            total += int(open(os.path.join(legs, name)).read())
+            holders.append((name, int(open(os.path.join(legs, name)).read())))
         except (ValueError, OSError):
             continue
-    return total
+    return holders
 
 
 def claim():
     legs = legs_dir()
     os.makedirs(legs, exist_ok=True)
+    said = False
     while True:
         with open(legs.rstrip("/") + ".lock", "w") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
@@ -216,6 +221,12 @@ def claim():
                 with open(entry, "w") as f:
                     f.write(str(count))
                 return count, entry
+            if not said:
+                holders = registered_legs(legs)
+                sys.stderr.write("waiting for a free core: %d cores in use by the registered legs with pids %s\n" % (
+                    sum(count for _, count in holders), ", ".join(name for name, _ in holders)))
+                sys.stderr.flush()
+                said = True
         time.sleep(1)
 
 

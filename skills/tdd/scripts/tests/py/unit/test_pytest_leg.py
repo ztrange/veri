@@ -1084,3 +1084,28 @@ def test_4310_a_leg_with_no_worker_count_that_finds_the_registered_workers_at_th
     env = leg_env(VERI_PYTEST_LEGS=str(legs))
     assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     assert started_with_blocker == [False, False]
+
+
+def test_4310_a_leg_waiting_for_a_free_core_writes_one_stderr_line_however_many_polls_naming_the_cores_in_use_and_the_holding_pids(pytest_leg, run_cli, monkeypatch, tmp_path):
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    holder = os.getppid()
+    blocker = legs / str(holder)
+    blocker.write_text("16\n")
+    polls = []
+
+    def death_on_the_third_poll(seconds):
+        polls.append(seconds)
+        if len(polls) == 3:
+            blocker.unlink()
+
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", death_on_the_third_poll)
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))
+
+    assert (code, len(polls), [(str(holder) in line, "16" in line) for line in err.splitlines()]) == (0, 3, [(True, True)])
