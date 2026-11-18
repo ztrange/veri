@@ -632,6 +632,17 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   more commits ahead of the default branch, or when the stack is idle; it merges with
   `gh pr merge --rebase --match-head-commit` and no bypass flag. `--now` skips the size-or-idle rule and no other.
   **Exit 0** landed, **1** a clean refusal, **2** no answer, **3** nothing to land.
+- `$S/stack-tag.sh <slice-pr-url> [--message <n>=<text>]...` — run in the target repository's clone: cuts the tags of a
+  landed slice. A module, `skills/tdd/scripts/veri/stack_tag.py`, behind a `/bin/sh` shim; `stack-land.sh` runs it on
+  the slice after a landing. The issues are those the subjects of the pull request's commits name, in the order of
+  their last commit. An issue owes a tag when any of its commits in the slice is `feat` or `fix`, and none when every
+  one is `docs`, `test`, `refactor`, `chore` or `plan`. Under the merge lock it fetches tags, then cuts one annotated
+  tag per owing issue on that issue's last commit of the landed range, the next `vN.M` from
+  `git tag --sort=-v:refname`, pushing each before the next. The message is the issue's title, or the `--message`
+  text given for that issue. An issue whose commit already carries a tag is skipped.
+  **Exit 0** every owed tag cut or already there, **1** a clean refusal, **2** no answer (a pull request not merged into
+  the default branch, a commit of an unknown type or none, a failed push, its local tag then deleted), **3** no issue of
+  the slice owes a tag, or every owed tag is already there.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"|"quiet test files"|lint] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
