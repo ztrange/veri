@@ -4,7 +4,7 @@
 - [x] skills/tdd/scripts/stack-land.sh is a /bin/sh shim over the module skills/tdd/scripts/veri/stack_land.py by the status.sh convention, indexed in skills/tdd/scripts/veri/README.md; given any argument other than --now (a commit name included) it exits 2 with its usage line `usage: stack-land.sh [--now]` on stderr, reading nothing (KL4's case; its one case is the entry-point contract case in skills/tdd/scripts/tests/py/test_stack_land_process.py, a process case) ⟦criterion 1⟧
 - [x] stack_land.main exits 2 naming stack-branch.sh's exit and its stderr line when stack-branch.sh exits 3 or 2, calling nothing after it (unit case in skills/tdd/scripts/tests/py/unit/test_stack_land.py, no process, stack-branch.sh injected) ⟦criterion 2⟧
 - [x] with a stack named, stack_land runs stack-red.sh first and on its exit 0 exits 1 naming the red commit and its run's url, cutting and merging nothing (unit case, no process, stack-red.sh injected) ⟦criterion 2⟧
-- [ ] stack-red.sh exiting 2 makes stack_land exit 2, cutting and merging nothing (unit case, no process) ⟦criterion 2⟧
+- [x] stack-red.sh exiting 2 makes stack_land exit 2, cutting and merging nothing (unit case, no process) ⟦criterion 2⟧
 - [ ] on stack-red.sh exit 3, stack-green.sh exiting 3 makes stack_land exit 3, nothing to land (unit case, no process, stack-green.sh injected) ⟦criterion 3⟧
 - [ ] on stack-red.sh exit 3, stack-green.sh exiting 2 makes stack_land exit 2 (unit case, no process) ⟦criterion 3⟧
 - [ ] a VERI_SLICE_COMMITS that is not a whole number of 1 or more makes stack_land exit 2 naming the value, before any lock or write (unit case, no process) ⟦criterion 4⟧
