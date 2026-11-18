@@ -366,16 +366,15 @@ else. Act on what it prints:
 - **Arm line** (growth since recovery ≥ 0.85 × `VERI_RESET_GROWTH_DEV`, default 70000 tokens):
   reset at the next quiet point — no launch half done, no merge in flight.
 - **Reset-now line** (2 × the knob): reset at once, even mid-task.
-- **A refused reset:** send the reason once as a notice (*Speaking*) and do not retry it.
+- **A refused reset:** send the reason once as a notice (*Speaking*) and do not retry it. When it is
+  refused on the reset-now line, the notice says so and is also sent as one `PushNotification`.
 - **Exit 2:** send it once as a notice (*Speaking*), and the turn goes on.
 
 A reset is `$S/role-state.sh dev [--lane <lane>] request-reset` followed by the app's clear of the
 dev session's own session. Nothing else is written at reset time (*Role state*). When
-`request-reset` exits 1, send the reason once as a notice (*Speaking*) and do not retry it.
+`request-reset` exits 1, treat it as a refused reset.
 
-After recovery, arm `$S/reset-wait.sh idle dev [--lane <lane>]` as a background command. When it
-returns, run `request-reset --idle` and clear yourself; the resetter recovers you at once, as after
-any other reset.
+The dev session resets only on the arm or reset-now line, never because it has been idle.
 
 ## Resetter
 
