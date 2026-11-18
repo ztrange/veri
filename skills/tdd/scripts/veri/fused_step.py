@@ -4,6 +4,7 @@ import os
 import sys
 from decimal import Decimal, InvalidOperation
 
+import event
 import event_log
 import run_dir
 import run_pins
@@ -82,9 +83,10 @@ def verdict_log(wt):
         return "none"
 
 
-def refresh(wt, n, record, facts):
-    """Records are caches (PRD 038.1 SC1): rewrite `.tdd/issue-<n>-<record>` so each key of <facts> holds the value its
-    committed source gave, the key's first line replaced, or one added; a record that already agrees is not written."""
+def refresh(stage, wt, n, record, facts):
+    """Records are caches (PRD 038.1 SC1, SC2): rewrite `.tdd/issue-<n>-<record>` so each key of <facts> holds the value
+    its committed source gave, the key's first line replaced, or one added, each rewrite one `record-refreshed` event of
+    <stage>; a record that already agrees is not written. A refused event stops it with exit 2."""
     path = os.path.join(wt, ".tdd", "issue-%s-%s" % (n, record))
     with open(path, encoding="utf-8", errors="surrogateescape") as f:
         lines = f.read().splitlines()
@@ -93,11 +95,15 @@ def refresh(wt, n, record, facts):
         at = next((i for i, line in enumerate(lines) if line.split("=", 1)[0] == key), None)
         if at is not None and lines[at] == key + "=" + value:
             continue
+        old = lines[at].split("=", 1)[1] if at is not None else ""
         if at is None:
             lines.append(key + "=" + value)
         else:
             lines[at] = key + "=" + value
         changed = True
+        if event.mark(wt, {"issue": n, "actor": "conductor", "step": facts.get("step", "")}, "record-refreshed",
+                      ["stage=" + stage, "key=" + key, "old=" + old, "new=" + value]):
+            raise Stop(stage, "record-refreshed event refused", 2)
     if changed:
         with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
             f.write("".join(line + "\n" for line in lines))
