@@ -338,3 +338,25 @@ def test_outside_veri_a_lint_repair_diff_prompt_names_the_branch_base_lint_comma
 
     words = " ".join(out.split())
     assert (code, err, "lint command, `ruff check --quiet .`," in words, "`true`" in words) == (0, "", True, False)
+
+
+@pytest.mark.process("git init and commit run for real in a scratch repository, then build-verify-prompt in it")
+def test_outside_veri_the_rebase_and_suite_repair_verifiers_are_given_the_branch_base_all_tier_command_never_the_working_trees_4263(
+        tmp_path, run_cli):
+    build = importlib.import_module("veri.build_verify_prompt")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    base = commit_all(repo, "base", **{"CLAUDE.md": "veri: all tests: `pytest -q`\n"})
+    (repo / "CLAUDE.md").write_text("veri: all tests: `true`\n")
+
+    rebase = run_cli(build, ["--branch-base", base, "rebase", str(spec), base, base], cwd=repo)
+    repair = run_cli(build, ["--step", "s ⟦suite-repair⟧", "--fast-cmd", "m", "--branch-base", base, "green", str(spec),
+                             "tests/test_x.py"], cwd=repo)
+
+    def told(out):
+        words = " ".join(out.split())
+        return ("full test command, `pytest -q`," in words, "timed-test-run.sh all '' pytest -q" in words,
+                "`true`" in words)
+    assert [(code, err, told(out)) for code, out, err in (rebase, repair)] == [
+        (0, "", (True, True, False)), (0, "", (True, False, False))]
