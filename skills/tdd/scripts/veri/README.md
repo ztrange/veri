@@ -96,7 +96,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 - `defined_name(case, text, py_file, go_file)`: the def a case name resolves to, `None` if none. `defines_helper(name, text, py_file, go_file)`: bool.
 - `live_titles(case, text)`: the titles in `text` that match a JS case, ignoring comments. `js_title_pattern(case)`: that compiled pattern.
 - `cut_prefix(case)`: the case with its trailing `…`/`...` cut, `None` when it has none. `strip_param_suffix(name)`: the name without `[param]`.
-- `file_defines(path, case, classes=())`: whether the test file at `path` defines `case` (a Python or Go def, a live JS title, a `.test.sh` `name=`); with `classes`, only a Python file whose class chain defines it (bool).
+- `file_defines(path, case, classes=(), any_title=False)`: whether the test file at `path` defines `case` (a Python or Go def, a live JS title, a `.test.sh` `name=`); with `classes`, only a Python file whose class chain defines it; with `any_title`, any live JS title `case`'s pattern matches, so a name cut at `…` resolves to the longer title (bool).
 
 ## detach
 - `start(argv, stdin, stdout, stderr, xfsz=SIG_IGN)`: starts `argv` as leader of a new session and returns its pid without waiting.

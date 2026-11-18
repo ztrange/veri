@@ -124,12 +124,7 @@ def _defined_anywhere(name):
 
 
 def _resolves(name):
-    for root, file, py_file, go_file, js_file in _test_files():
-        with open(os.path.join(root, file), encoding="utf-8", errors="replace") as handle:
-            text = handle.read()
-        if defined_name(name, text, py_file, go_file) or js_file and live_titles(name, text):
-            return True
-    return False
+    return any(file_defines(os.path.join(root, file), name, any_title=True) for root, file, *_ in _test_files())
 
 
 def _seen_as_title(name):

@@ -236,9 +236,11 @@ def _class_defines(text, classes, case):
     return any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == case for node in body)
 
 
-def file_defines(path, case, classes=()):
+def file_defines(path, case, classes=(), any_title=False):
     """True when the test file at path defines case, by the rules wrong-test-route.sh searches with; with
-    classes, only a Python test file whose class chain defines case does (class_defines)."""
+    classes, only a Python test file whose class chain defines case does (class_defines). A JS title must be
+    case itself, unless any_title, where any live title case's pattern matches counts: a name cut at … or ...
+    then resolves to the longer title it is a prefix of."""
     root, name = os.path.split(path)
     py_file, go_file, js_file = is_test_file(name), is_go_test_file(name), is_js_test_file(name, root)
     if not (py_file or go_file or js_file):
@@ -247,4 +249,5 @@ def file_defines(path, case, classes=()):
         text = handle.read()
     if classes:
         return py_file and _class_defines(text, classes, case)
-    return bool(defined_name(case, text, py_file, go_file) or js_file and case in live_titles(case, text))
+    titles = live_titles(case, text) if js_file else []
+    return bool(defined_name(case, text, py_file, go_file) or (titles if any_title else case in titles))
