@@ -1,2 +1,3 @@
 - [x] a stack named but not yet on origin reads as nothing joined, so a done run is listed as ready to merge, not as merge state unknown ⟦added⟧ ⟦criterion 4⟧
 - [x] the landed count names the issues of only the slice pull requests of this repository merged into the default branch in the last 24 hours, reading pages until one ends before the window ⟦added⟧ ⟦criterion 1⟧
+- [ ] the mutation sweep's survivors are pinned: tested 0 on stack-green.sh exit 3, two tracking pull requests read as ?, a git rev-parse error as unknown, the read's reason on stderr, pages past the bound as ?, and no stack read under --watch ⟦added⟧ ⟦criterion 2⟧
