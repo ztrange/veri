@@ -166,3 +166,15 @@ def test_file_defines_4305_accepts_a_definition_and_a_whole_title_and_rejects_a_
                        ("foo.test.ts", "rejects an empty name with a clear message"): True,
                        ("foo.test.ts", "rejects an empty n…"): False, ("foo.test.ts", "accepts a name"): False,
                        ("test_ledger.py", "test_main_returns_one"): False}
+
+
+@pytest.mark.parametrize("any_title", [False, True])
+def test_file_defines_4305_ignores_js_looking_text_in_a_python_or_go_test_file(tmp_path, any_title):
+    case_reader = importlib.import_module("veri.case_reader")
+    (tmp_path / "test_ledger.py").write_text("x = \"it('foo', () => {})\"\n")
+    (tmp_path / "foo_test.go").write_text("var x = `it('foo', () => {})`\n")
+
+    answers = [case_reader.file_defines(str(tmp_path / file), "foo", any_title=any_title)
+               for file in ("test_ledger.py", "foo_test.go")]
+
+    assert answers == [False, False]
