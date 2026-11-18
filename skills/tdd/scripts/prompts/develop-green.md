@@ -3,7 +3,7 @@
 ## Phase: develop-green
 
 Write the **minimum** production code that makes the one failing test pass, and keep the
-fast command and the affected suites green.
+fast command and the test files covering the files you changed green.
 
 ### The step (this cycle's criterion)
 
@@ -57,7 +57,7 @@ The conductor lands that refactoring as a step of its own, then starts this step
    restore with `mv <file>.orig <file>`. Leave no `.orig` file behind either way.
 3. Exactly once, immediately before you write the `SUITE:` report line, run the fast
    command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast` prints it), then run
-   the suites that {{INCLUDE:_affected-suites-working-tree.md}} — and confirm both runs are green. Make each of those two runs through the wrapper
+   the test files that {{INCLUDE:_affected-suites-working-tree.md}} — and confirm both runs are green. Make each of those two runs through the wrapper
    {{INCLUDE:_timed-test-run-tier.md}}:
 
 {{INCLUDE:_timed-test-run-fast-affected.md}}

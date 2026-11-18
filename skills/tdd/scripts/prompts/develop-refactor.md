@@ -81,24 +81,25 @@ before.
    what a leaf per transform used to buy, and it is what has to survive several transforms
    sharing this one. Name the refactoring applied by its catalogue name in each `refactor:`
    commit, in its subject or its body.
-3. Run the suites `affected-suites.sh` prints for the files `refactor-touched.sh` printed —
+3. Run the test files covering the files `refactor-touched.sh` printed, as `affected-suites.sh` prints them —
    the ones listed above — after each transform, not the full suite: they answer what one transform could plausibly break, and answer it in a fraction of the
-   time. Those suites must stay green; revert a transform that turns them red rather than
+   time. Those test files must stay green; revert a transform that turns them red rather than
    leave a red suite behind, and carry on with the next candidate. Run one suite through
    {{INCLUDE:_run-suite-lead.md}} suite, {{INCLUDE:_develop-run-suite-same-way.md}} the test
    command above and say so in your report.
-   Make each of those runs through the wrapper `{{TIMED_TEST_RUN}}`, which records what the
-   run cost and names the tier it belongs to:
+   Make each of those runs through the wrapper
+   {{INCLUDE:_timed-test-run.md}}
+   and names the tier it belongs to:
 
        {{INCLUDE:_timed-test-run-affected.md}}
 
    {{INCLUDE:_exit-status-back.md}} so a suite a transform
    turned red still reads as red. When a transform reached the one file outside that list
-   the exception above allows, its suites run too: the suites follow every file the
-   transform touched, so the one suite that could catch the break it did cause is never the
+   the exception above allows, its test files run too: the test files follow every file the
+   transform touched, so the one test file that could catch the break it did cause is never the
    one it skipped.
 4. The full suite runs once per PR, before it is readied. The trade is that a break outside
-   the affected set surfaces at that one full run, as the repair step a red result appends,
+   those test files surfaces at that one full run, as the repair step a red result appends,
    rather than at the transform that caused it.
 5. **No untested generality.** Generality is earned by triangulation — another test
    demanding it — never hand-written here. Do not add options, flags, parameters or

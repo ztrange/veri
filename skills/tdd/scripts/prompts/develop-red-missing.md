@@ -48,7 +48,7 @@ which passes just as well when the code does nothing at all.
    and the shape of the message the suite will print. It is formed from the test and the code,
    never from the output: a prediction written after the run is a transcription of it, and
    answers nothing.
-3. Run the suites {{INCLUDE:_affected-suites-working-tree.md}} — not the full suite, and not one suite picked by hand — against the **unmodified** production code, and record whether
+3. Run the test files {{INCLUDE:_affected-suites-working-tree.md}} — not the full suite, and not one suite picked by hand — against the **unmodified** production code, and record whether
    the new case FAILS or PASSES. The only question this phase asks is whether that one case
    fails; the suite holding the new case is among those it prints, and the others read the
    same files, and must stay green. Run one suite through

@@ -50,7 +50,7 @@ def build(problems, builder, *argv):
 
 
 def runs_affected(problems, label, prompt):
-    named = "\n".join(lines_matching(r"affected-suites\.sh|timed-test-run\.sh affected", plain(prompt)))
+    named = "\n".join(lines_matching(r"affected-suites\.sh|timed-test-run\.sh changed", plain(prompt)))
     if not has_line(r"\brun", named):
         problems.append("%s's prompt never tells its leaf to run the suites affected-suites.sh prints" % label)
 
@@ -147,10 +147,10 @@ def test_develop_green_and_verify_green_name_the_fast_command_plus_the_affected_
 
 
 @pytest.mark.process(BOUNDARY)
-def test_develop_green_runs_the_fast_command_and_the_affected_suites_through_timed_test_run_under_tiers_fast_and_affected(spec):
+def test_develop_green_runs_the_fast_command_and_the_affected_suites_through_timed_test_run_under_tiers_fast_and_changed(spec):
     problems = []
     green = build(problems, DEVELOP, "green", spec, "QWIXTLE step", "make test", "tests/zorblat.test.sh", "zorblat case", "make unit")
-    timed_through(problems, "develop-green", green, "fast", "affected")
+    timed_through(problems, "develop-green", green, "fast", "changed")
     assert problems == []
 
 
@@ -160,42 +160,42 @@ def test_develop_red_refactor_and_reconcile_run_their_test_commands_through_time
     red = build(problems, DEVELOP, "red", spec, "QWIXTLE step", "make test")
     refactor = build(problems, DEVELOP, "refactor", spec, "QWIXTLE step", "make test", "src/zorblat.sh")
     reconcile = build(problems, DEVELOP, "reconcile", spec, "QWIXTLE step", "make test", "tdd/1-zorblat", "abc1234")
-    timed_through(problems, "develop-red", red, "affected")
-    timed_through(problems, "develop-refactor", refactor, "affected")
+    timed_through(problems, "develop-red", red, "changed")
+    timed_through(problems, "develop-refactor", refactor, "changed")
     timed_through(problems, "develop-reconcile", reconcile, "all")
     assert problems == []
 
 
 @pytest.mark.process(BOUNDARY)
-def test_develop_revise_redoing_red_runs_affected_suites_through_timed_test_run_under_tier_affected_and_names_no_all_run(spec, reason):
+def test_develop_revise_redoing_red_runs_affected_suites_through_timed_test_run_under_tier_changed_and_names_no_all_run(spec, reason):
     problems = []
     revise = build(problems, DEVELOP, "revise", "red", spec, "QWIXTLE step", "make test", reason)
     runs_affected(problems, "develop-revise red", revise)
-    timed_through(problems, "develop-revise red", revise, "affected")
+    timed_through(problems, "develop-revise red", revise, "changed")
     never_timed_under(problems, "develop-revise red", revise, "all")
     assert problems == []
 
 
 @pytest.mark.process(BOUNDARY)
-def test_develop_revise_redoing_refactor_runs_affected_suites_through_timed_test_run_under_tier_affected_and_names_no_all_run(spec, reason):
+def test_develop_revise_redoing_refactor_runs_affected_suites_through_timed_test_run_under_tier_changed_and_names_no_all_run(spec, reason):
     problems = []
     revise_refactor = build(problems, DEVELOP, "revise", "refactor", spec, "QWIXTLE step", "make test", reason)
     runs_affected(problems, "develop-revise refactor", revise_refactor)
-    timed_through(problems, "develop-revise refactor", revise_refactor, "affected")
+    timed_through(problems, "develop-revise refactor", revise_refactor, "changed")
     never_timed_under(problems, "develop-revise refactor", revise_refactor, "all")
     assert problems == []
 
 
 @pytest.mark.process(BOUNDARY)
-def test_develop_revise_redoing_green_runs_the_fast_command_and_affected_suites_through_timed_test_run_under_tiers_fast_then_affected_and_names_no_all_run(spec, reason):
+def test_develop_revise_redoing_green_runs_the_fast_command_and_affected_suites_through_timed_test_run_under_tiers_fast_then_changed_and_names_no_all_run(spec, reason):
     problems = []
     revise_green = build(problems, DEVELOP, "revise", "green", spec, "QWIXTLE step", "make test", reason)
-    timed_through(problems, "develop-revise green", revise_green, "fast", "affected")
+    timed_through(problems, "develop-revise green", revise_green, "fast", "changed")
     folded = plain(revise_green).split("\n")
     fast_at = next((i for i, line in enumerate(folded, 1) if re.search(r"timed-test-run\.sh fast( |$)", line)), None)
-    affected_at = next((i for i, line in enumerate(folded, 1) if re.search(r"timed-test-run\.sh affected( |$)", line)), None)
+    affected_at = next((i for i, line in enumerate(folded, 1) if re.search(r"timed-test-run\.sh changed( |$)", line)), None)
     if fast_at and affected_at and fast_at > affected_at:
-        problems.append("develop-revise green's prompt names the affected run before the fast one")
+        problems.append("develop-revise green's prompt names the changed run before the fast one")
     never_timed_under(problems, "develop-revise green", revise_green, "all")
     assert problems == []
 
@@ -203,7 +203,7 @@ def test_develop_revise_redoing_green_runs_the_fast_command_and_affected_suites_
 @pytest.mark.process(BOUNDARY)
 def test_develop_revise_runs_the_tiers_of_the_phase_it_redoes_and_no_all_run_for_each_of_the_three(spec, reason):
     problems = []
-    for phase, tiers in (("red", ["affected"]), ("green", ["fast", "affected"]), ("refactor", ["affected"])):
+    for phase, tiers in (("red", ["changed"]), ("green", ["fast", "changed"]), ("refactor", ["changed"])):
         redo = build(problems, DEVELOP, "revise", phase, spec, "QWIXTLE step", "make test", reason)
         timed_through(problems, "develop-revise " + phase, redo, *tiers)
         never_timed_under(problems, "develop-revise " + phase, redo, "all")
@@ -232,9 +232,9 @@ def test_verify_red_green_refactor_and_pin_run_their_test_commands_through_timed
     verify_green = build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")
     verify_refactor = build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")
     verify_pin = build(problems, VERIFY, "--branch-base", "abc1234", "pin", spec, "tests/zorblat.test.sh", "zorblat case")
-    timed_through(problems, "verify-red", verify_red, "affected")
-    timed_through(problems, "verify-green", verify_green, "fast", "affected")
-    timed_through(problems, "verify-refactor", verify_refactor, "fast", "affected")
+    timed_through(problems, "verify-red", verify_red, "changed")
+    timed_through(problems, "verify-green", verify_green, "fast", "changed")
+    timed_through(problems, "verify-refactor", verify_refactor, "fast", "changed")
     timed_through(problems, "verify-pin", verify_pin, "target")
     assert problems == []
 
@@ -269,7 +269,7 @@ def test_the_develop_red_and_develop_revise_red_prompts_name_a_run_output_file_t
 
 
 @pytest.mark.process(BOUNDARY)
-def test_1702_every_affected_tier_prompt_gives_make_test_with_tests_naming_the_suites_not_a_placeholder_for_the_command(spec):
+def test_1702_every_changed_tier_prompt_gives_make_test_with_tests_naming_the_suites_not_a_placeholder_for_the_command(spec):
     problems = []
     step = "the zorblat is frobbed ⟦diff-checked⟧ ⟦criterion 1⟧"
     roster = [
@@ -282,7 +282,7 @@ def test_1702_every_affected_tier_prompt_gives_make_test_with_tests_naming_the_s
     for label, prompt in roster:
         folded = plain(prompt)
         if "<the command that runs them>" in folded:
-            problems.append("%s's prompt still leaves the affected run's command as a placeholder" % label)
-        if not has_line(r"timed-test-run\.sh affected .*make test tests=\"", folded):
-            problems.append("%s's prompt never gives make test TESTS=\"<the suites>\" as the affected run's command" % label)
+            problems.append("%s's prompt still leaves the changed run's command as a placeholder" % label)
+        if not has_line(r"timed-test-run\.sh changed .*make test tests=\"", folded):
+            problems.append("%s's prompt never gives make test TESTS=\"<the suites>\" as the changed run's command" % label)
     assert problems == []

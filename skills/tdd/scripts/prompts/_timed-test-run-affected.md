@@ -1,1 +1,1 @@
-{{TIMED_TEST_RUN}} affected '<the suites you ran>' {{AFFECTED_RUN_LINE}}
+{{TIMED_TEST_RUN}} changed '<the test files you ran>' {{AFFECTED_RUN_LINE}}

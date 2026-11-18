@@ -1,1 +1,1 @@
-`{{TIMED_TEST_RUN}}`, which records what the run cost
+`{{TIMED_TEST_RUN}}`, which records what the run cost and hands back a bounded report in place of the runner's raw output (the passed, failed and error counts, at most 10 failing cases each with its first failure line, how many more were cut, and the file under `.tdd/test-runs/` holding the full output)

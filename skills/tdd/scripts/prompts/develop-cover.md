@@ -18,7 +18,8 @@ some existing test goes red when that behaviour breaks. Write **NO** production 
 2. Copy the file first — `cp <file> <file>.orig` — then **break its behaviour by hand**
    with a minimal edit to that production code — remove a
    guard, invert a condition, drop a branch.
-3. Run the suites that cover that code, through the wrapper `{{TIMED_TEST_RUN}}`:
+3. Run the test files that cover that code, as `affected-suites.sh` prints them, through the wrapper
+   {{INCLUDE:_timed-test-run.md}}:
 
        {{INCLUDE:_timed-test-run-affected.md}}
 

@@ -18,9 +18,9 @@ A developer agent has written the implementation intended to make the target tes
        {{TIMED_TEST_RUN}} target '{{TEST_PATH}}' <the command that runs the target test>
 
    {{INCLUDE:_exit-status-back.md}} so a red run stays red.
-2. **The fast command and the affected suites are green.** Run the fast command,
-   `{{FAST_CMD}}` (`detect-test-command.sh --tier fast` prints it), then run the suites `affected-suites.sh`
-   prints for the change yourself, not just the target test. There must be **no
+2. **The fast command and the test files covering the change are green.** Run the fast command,
+   `{{FAST_CMD}}` (`detect-test-command.sh --tier fast` prints it), then run the test files covering the files
+   the change touched, as `affected-suites.sh` prints them, yourself, not just the target test. There must be **no
    regressions** — every test that passed before must still pass. A new pass bought with a
    broken sibling test is a REJECT. This is not the project's full test suite: the
    conductor runs that once, before it readies the PR. Make each of those two runs through
@@ -48,8 +48,8 @@ A developer agent has written the implementation intended to make the target tes
    step's criterion is rejected by asking for its removal, never by offering a test for it,
    and is not named on a `MISSING_TEST:` line. Establish each the way verify-pin
    establishes a mutation: remove the code through
-   `{{MUTATION_PROBE}} <file> <old> <new> -- <one command running {{FAST_CMD}} and the suites affected-suites.sh prints, together>`,
-   never the affected suites or one test file alone, so a branch only a fast-tier case
+   `{{MUTATION_PROBE}} <file> <old> <new> -- <one command running {{FAST_CMD}} and the test files affected-suites.sh prints, together>`,
+   never those test files or one test file alone, so a branch only a fast-tier case
    requires is not judged required by no test. It edits, runs the
    command and restores the file; if it exits 1 (the suites stay green) nothing
    required the code, and an exit of 2 gives no verdict. If that probe exits 2 and its
@@ -72,5 +72,5 @@ that step's text from the list, before the `VERDICT:` line.
 On a REJECT, put one `CHECK: <n>` line before the `VERDICT:` line, `<n>` the number of the
 lowest-numbered of the checks above that failed.
 
-PASS only if the target test, the fast command and the affected suites are green and the pass genuinely reflects
+PASS only if the target test, the fast command and those test files are green and the pass genuinely reflects
 the behavior the spec requires.

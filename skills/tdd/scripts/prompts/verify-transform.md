@@ -16,8 +16,8 @@ the range carry the author's rationale. Render one verdict on the settled result
 ### Your checks
 
 1. **The predicate holds.** Run the command in `{{TEST_PATH}}` yourself; it must succeed.
-2. **Behaviour unchanged.** Run the suites covering the files the range touched, through
-   the wrapper `{{TIMED_TEST_RUN}}`; they must be **green**:
+2. **Behaviour unchanged.** Run the test files covering the files the range touched, as
+   `affected-suites.sh` prints them, through the wrapper {{INCLUDE:_timed-test-run.md}}; they must be **green**:
 
        {{INCLUDE:_timed-test-run-affected.md}}
 

@@ -26,8 +26,8 @@ outside it.
 5. A case that starts a process (runs a CLI, a server, a subprocess) carries the target suite's
    slow-tier mark when that suite declares one: in veri, `@pytest.mark.process("<boundary>")`.
    Where the suite declares no such mark, none is owed.
-6. Run the new test file, and the suites that cover the files you touched, through the wrapper
-   `{{TIMED_TEST_RUN}}`:
+6. Run the new test file, and the test files that cover the files you touched, as `affected-suites.sh` prints
+   them, through the wrapper {{INCLUDE:_timed-test-run.md}}:
 
        {{INCLUDE:_timed-test-run-affected.md}}
 
