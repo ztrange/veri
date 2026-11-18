@@ -21,7 +21,7 @@ def main(argv):
     values = dict(pair.split("=", 1) for pair in pairs)
     step = fused_step.first_step(wt, n, handed_out)
     target = values["target_test"]
-    red_test_id = target if "::" in target else values["test_path"] + "::" + target
+    red_test_id = fused_step.red_test_id(values["test_path"], target)
     return fused.settle(wt, n, stage, ["step=" + step, "test_path=" + values["test_path"], "target_test=" + target,
                                        "red_test_id=" + red_test_id, "against_unmodified=FAILS"])
 

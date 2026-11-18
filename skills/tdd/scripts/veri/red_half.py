@@ -82,7 +82,7 @@ def finish(n, wt, step, values):
     """Red 2's record and Red 3's comments on the PASS path (RH9-RH12): the frozen tests recorded with the Red case,
     red-setup.sh's record, the tree checked, the Red and verify-red comments, and the settled file."""
     target = values["target_test"]
-    red_test_id = target if "::" in target else values["test_path"] + "::" + target
+    red_test_id = fused_step.red_test_id(values["test_path"], target)
     fused.checked("2", fused.script("tests-frozen.sh"), "record", "--step", step, "--red-case", red_test_id,
                   values["test_path"], cwd=wt, out=".tdd/verify-red.reason")
     fused.checked("2", fused.script("red-setup.sh"), "record", n, cwd=wt, ok=(0, 2, 3),
