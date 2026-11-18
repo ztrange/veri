@@ -52,3 +52,21 @@ def test_in_a_foreign_repo_a_test_selects_itself_a_source_selects_the_tests_nami
         (0, "tests/test_foo.py\n", ""),
         (0, "tests/test_foo.py\n", ""),
         (3, "", "affected-suites: no test names src/bar.py; no test file covers them, so the full suite at the PR runs them\n")]
+
+
+@pytest.mark.process("the affected-suites.sh shim over real git in a scratch foreign repo")
+def test_in_a_foreign_repo_an_empty_veri_tests_directory_in_the_working_tree_does_not_make_it_veris_own_tree_4263(
+        tmp_path):
+    repo = new_repo(tmp_path / "repo")
+    write(repo, {"CLAUDE.md": CLAUDE_MD, "src/x.py": "x = 1\n", "tests/test_x.py": "from src.x import x\n"})
+    commit_all(repo, "base")
+    write(repo, {"src/x.py": "x = 2\n"})
+
+    def affected():
+        done = subprocess.run(["/bin/sh", str(SCRIPTS / "affected-suites.sh"), "HEAD"], cwd=repo,
+                              capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        return done.returncode, done.stdout, done.stderr
+
+    normal = affected()
+    (repo / "skills/tdd/scripts/tests/py").mkdir(parents=True)
+    assert (normal, affected()) == ((0, "tests/test_x.py\n", ""), (0, "tests/test_x.py\n", ""))
