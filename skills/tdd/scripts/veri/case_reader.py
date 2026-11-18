@@ -11,14 +11,14 @@ JS_EXT = r"\.(?:jsx?|tsx?|mjs|cjs)$"
 _TEST_PATTERN = r"(^|/)tests/|\.test\.|\.spec\.(?:jsx?|tsx?|mjs|cjs)$|_test\.go$|(^|/)test_[^/]*\.py$|_test\.py$"
 _TEST_FILE = re.compile(_TEST_PATTERN)
 _TEST_FILE_BYTES = re.compile(_TEST_PATTERN.encode())
-
-
+# In veri's own tree the pytest leg is the code `make test` runs to decide a suite passed, not a test (#4262).
 _PYTEST_LEG_DIR = "skills/tdd/scripts/tests/leg/"
+_VERI_PY_TESTS = "skills/tdd/scripts/tests/py"
 
 
 def is_test_path(path):
     leg = _PYTEST_LEG_DIR.encode() if isinstance(path, bytes) else _PYTEST_LEG_DIR
-    if path.startswith(leg) and os.path.isdir("skills/tdd/scripts/tests/py"):
+    if path.startswith(leg) and os.path.isdir(_VERI_PY_TESTS):
         return False
     pattern = _TEST_FILE_BYTES if isinstance(path, bytes) else _TEST_FILE
     return bool(pattern.search(path))
