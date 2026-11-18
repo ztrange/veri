@@ -3,9 +3,11 @@ would have written, so the next stage runs as after a clean call (PRD 038.1 SC6,
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
+import entry
 import fused
 import fused_step
 import run_dir
+import seam_contract
 from ledger import handed_out
 from next_pending_refactor import refactor_pending
 
@@ -14,14 +16,41 @@ LEDGER = run_dir.ledger("", "%s")
 
 
 def main(argv):
+    if len(argv) < 2 or not argv[0].isdigit():
+        return entry.refuse(usage=USAGE)
     n, stage, pairs = argv[0], argv[1], argv[2:]
+    values = {}
+    refusal = refused(stage, pairs, values)
+    if refusal:
+        return entry.refuse("seam-settle.sh: " + refusal, usage=USAGE)
     given = fused_step.inputs("seam-settle.sh", n, LEDGER)
     if given is None:
         return 2
     _, wt = given
-    values = dict(pair.split("=", 1) for pair in pairs)
     step = fused_step.first_step(wt, n, handed_out if stage == "red-half" else refactor_pending)
+    if step is None:
+        return entry.refuse("seam-settle.sh: no open step for %s in %s" % (stage, LEDGER % n))
     return fused.settle(wt, n, stage, ["step=" + step] + RECORDS[stage](wt, n, values))
+
+
+def refused(stage, pairs, values):
+    """Why <pairs> do not settle <stage> under its seam contract, or None, <values> filled with them (SC6)."""
+    if stage not in seam_contract.CONTRACTS:
+        return "unknown stage %s (one of %s)" % (stage, ", ".join(seam_contract.CONTRACTS))
+    owed = seam_contract.CONTRACTS[stage]
+    for pair in pairs:
+        key, _, value = pair.partition("=")
+        if key not in owed:
+            return "unknown key %s for %s (its contract: %s)" % (key, stage, " ".join(owed) or "no key")
+        if key in values:
+            return "repeated key " + key
+        if not value:
+            return "empty key " + key
+        if "\n" in value or "\r" in value:
+            return "newline in key " + key
+        values[key] = value
+    missing = [key for key in owed if key not in values]
+    return "missing key %s for %s" % (missing[0], stage) if missing else None
 
 
 def red_half(wt, n, values):
