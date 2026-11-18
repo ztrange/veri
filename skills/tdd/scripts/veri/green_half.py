@@ -16,7 +16,6 @@ NAME = "green-half"
 USAGE = "usage: green-half.sh <n>"
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
-RED_HALF = ".tdd/issue-%s-red-half"
 
 # The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_green_half.py fails
 # when one is a script SKILL.md's Green section does not name, save two it exempts by name (FC19).
@@ -31,16 +30,17 @@ def main(argv):
 
 
 def run(n):
-    given = fused_step.inputs(NAME + ".sh", n, LEDGER, SPEC, RED_HALF)
+    given = fused_step.inputs(NAME + ".sh", n, LEDGER, SPEC)
     if given is None:
         return 2
     settled, wt = given
-    red = fused.read_settled(os.path.join(wt, RED_HALF % n))
     step = fused_step.first_step(wt, n, handed_out)
-    if step is None or not ledger.same_step(red.get("step", ""), step):
-        sys.stderr.write("green-half.sh: .tdd/issue-%s-red-half names another step than the open one\n" % n)
+    if step is None:
+        sys.stderr.write("green-half.sh: no open step in %s\n" % (LEDGER % n))
         return 2
-    fused_step.refresh(NAME, wt, n, "red-half", {"step": step})
+    red = fused_step.record(NAME, wt, n, step)
+    if red is None:
+        return 1
     if replaces_case.is_replaces_case_step(step) or "⟦ci-repair⟧" in step:
         sys.stderr.write("green-half.sh: a step its prose runs: %s\n" % step)
         return 2

@@ -107,3 +107,22 @@ def refresh(stage, wt, n, record, facts):
     if changed:
         with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
             f.write("".join(line + "\n" for line in lines))
+
+
+def record(stage, wt, n, step, facts=()):
+    """The {key: value} of the record <stage> reads (seam_contract.READS), its step and each of <facts> (key, value)
+    refreshed from their committed sources; None, the seam line printed, when the record is missing or names another
+    step than <step> by ledger.same_step (PRD 038.1 SC3, SC4). A record that exists but cannot be read raises OSError."""
+    import seam_contract
+    writer = seam_contract.READS[stage]
+    path = os.path.join(wt, ".tdd", "issue-%s-%s" % (n, writer))
+    try:
+        values = read_settled(path)
+    except FileNotFoundError:
+        values = None
+    if values is None or not ledger.same_step(values.get("step", ""), step):
+        sys.stdout.write("seam=%s code=1 reason=record next=seam-settle.sh %s %s%s\n" % (
+            stage, n, writer, "".join(" %s=…" % key for key in seam_contract.CONTRACTS[writer])))
+        return None
+    refresh(stage, wt, n, writer, dict((("step", step),) + tuple(facts)))
+    return read_settled(path)
