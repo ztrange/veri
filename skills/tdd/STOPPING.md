@@ -4,6 +4,11 @@ A **stop** is not a bail. A bail ends an issue; a stop pauses one, at an operato
 `stop-requested.sh` printed a mode (`at-ledger`, `at-leaf` or `now`) at a checkpoint — and
 leaves the run resumable. Run this sequence in order.
 
+Run `$S/stop-settle.sh <n> <mode>` first, which runs steps 1–6 in one call, and again on an exit 3.
+Add `--drop` only once you have judged a dirty tree the run's to settle (step 2). On an exit 1 or 2,
+go on by the step its last line, `stopped at <step> <what>`, names; the steps below stay the
+whole sequence.
+
 1. **Settle the leaves before you touch the tree.** A live leaf owns the working tree
    (#170), so reset nothing while any `.tdd/<name>.pid` names a process still running
    `supervise.sh <name> …`. For each one that does, call `$S/wait-leaf.sh <name>` — again on

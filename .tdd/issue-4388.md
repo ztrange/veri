@@ -11,4 +11,4 @@
 - [x] it writes no `bail` event, calls no `classify-bail.sh`, writes no metrics file, makes no commit, and leaves `.tdd/conductor.pid` in place ⟦criterion 6⟧
 - [x] it prints one line per call with its exit code and never a leaf's or a suite's output file ⟦criterion 7⟧
 - [x] a leaf wait whose slice runs out exits 3 with the wait record `.tdd/issue-<n>-stop-settle-wait`; called again by the same conductor it only waits again ⟦criterion 7⟧
-- [ ] `STOPPING.md` opens with the call line (SP24) and `SCRIPTS.md` lists the script (SC584), both graded; `SKILL.md` unchanged ⟦criterion 8⟧
+- [x] `STOPPING.md` opens with the call line (SP24) and `SCRIPTS.md` lists the script (SC584), both graded; `SKILL.md` unchanged ⟦criterion 8⟧
