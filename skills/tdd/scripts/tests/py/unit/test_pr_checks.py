@@ -274,3 +274,18 @@ def test_4392_no_default_branch_stops_it_with_exit_2_before_any_call(checks, mon
     code, out, err, fake = checks()
 
     assert (code, fake.calls, out.splitlines()[-1]) == (2, [], "stopped at branch-base no default branch")
+
+
+def test_4392_draft_pr_sub_step_1_names_pr_checks_and_every_script_of_its_ordered_list(checks):
+    from pathlib import Path
+    pr_checks = importlib.import_module("veri.pr_checks")
+    draft = (Path(pr_checks.__file__).resolve().parents[2] / "DRAFT-PR.md").read_text()
+    sub_step = draft[draft.index("\n1. Run `$S/pr-prepare.sh"):draft.index("\n2. **Mark the PR ready")]
+
+    assert "$S/pr-checks.sh <n>" in sub_step
+    assert [name for name in pr_checks.CALLS if "$S/" + name not in sub_step] == []
+    code, out, err, fake = checks()
+    made = [name for name in fake.names() if name != "git"]
+    assert set(pr_checks.CALLS) - set(made) == {"stop-requested.sh"} and set(made) <= set(pr_checks.CALLS)
+    firsts = [made.index(name) for name in pr_checks.CALLS if name in made]
+    assert firsts == sorted(firsts)
