@@ -22,7 +22,7 @@ class _Stop(Exception):
         self.code = code
 
 
-def _git(*args, cwd="."):
+def _run(*args, cwd="."):
     """`git <args>` in <cwd>, text captured: its CompletedProcess."""
     return git.git(*args, cwd=cwd, capture_output=True, text=True)
 
@@ -35,7 +35,7 @@ def _unanswered(what, run):
 
 def _rev(name, what):
     """The commit <name> (said as <what>) resolves to; _Stop(2) when it resolves to none, or git gives no answer."""
-    run = _git("rev-parse", "--verify", "--quiet", "--end-of-options", name + "^{commit}")
+    run = _run("rev-parse", "--verify", "--quiet", "--end-of-options", name + "^{commit}")
     if run.returncode == 1:
         raise _Stop(2, "%s does not resolve to a commit; nothing rebased or pushed" % what)
     if run.returncode or not run.stdout.strip():
@@ -45,7 +45,7 @@ def _rev(name, what):
 
 def _ancestor(older, newer):
     """Whether <older> is an ancestor of <newer>; _Stop(2) when git gives no answer, never read as "no"."""
-    run = _git("merge-base", "--is-ancestor", older, newer)
+    run = _run("merge-base", "--is-ancestor", older, newer)
     if run.returncode not in (0, 1):
         raise _unanswered("git merge-base --is-ancestor %s %s" % (older, newer), run)
     return run.returncode == 0
@@ -53,7 +53,7 @@ def _ancestor(older, newer):
 
 def _tree_of(name):
     """The tree <name> names; _Stop(2) when git gives no answer."""
-    run = _git("rev-parse", "--verify", "--end-of-options", name + "^{tree}")
+    run = _run("rev-parse", "--verify", "--end-of-options", name + "^{tree}")
     if run.returncode or not run.stdout.strip():
         raise _unanswered("reading the tree of " + name, run)
     return run.stdout.strip()
@@ -62,7 +62,7 @@ def _tree_of(name):
 def _landed(default, cut):
     """Whether origin/<default> has landed <cut>: merging <cut> into it changes nothing (a content check, since a
     rebase-merge rewrites every sha); _Stop(2) when git gives no answer."""
-    run = _git("merge-tree", "--write-tree", "origin/" + default, cut)
+    run = _run("merge-tree", "--write-tree", "origin/" + default, cut)
     if run.returncode not in (0, 1):
         raise _unanswered("git merge-tree --write-tree origin/%s %s" % (default, cut), run)
     return run.returncode == 0 and run.stdout.split("\n", 1)[0].strip() == _tree_of("origin/" + default)
@@ -70,7 +70,7 @@ def _landed(default, cut):
 
 def _top():
     """The working tree stack-carry.sh runs in; _Stop(2) when git gives no answer."""
-    run = _git("rev-parse", "--show-toplevel")
+    run = _run("rev-parse", "--show-toplevel")
     if run.returncode or not run.stdout.strip():
         raise _unanswered("git rev-parse --show-toplevel", run)
     return run.stdout.strip()
@@ -84,23 +84,23 @@ def _rebased(default, cut, tip):
     parent = tempfile.mkdtemp(prefix="stack-carry-", dir=state)
     tree = os.path.join(parent, "stack")
     try:
-        added = _git("worktree", "add", "--detach", tree, tip)
+        added = _run("worktree", "add", "--detach", tree, tip)
         if added.returncode:
             raise _unanswered("git worktree add --detach " + tree, added)
-        rebase = _git("rebase", "--onto", "origin/" + default, cut, tip, cwd=tree)
+        rebase = _run("rebase", "--onto", "origin/" + default, cut, tip, cwd=tree)
         if rebase.returncode:
-            unmerged = _git("diff", "--name-only", "--diff-filter=U", cwd=tree).stdout.split()
-            _git("rebase", "--abort", cwd=tree)
+            unmerged = _run("diff", "--name-only", "--diff-filter=U", cwd=tree).stdout.split()
+            _run("rebase", "--abort", cwd=tree)
             if unmerged:
                 raise _Stop(1, "the rebase of %s..%s onto origin/%s conflicts in %s; aborted, nothing pushed or"
                             " rewritten" % (cut, tip, default, " ".join(unmerged[:5])))
             raise _unanswered("git rebase --onto origin/%s %s %s" % (default, cut, tip), rebase)
-        head = _git("rev-parse", "HEAD", "HEAD^{tree}", cwd=tree)
+        head = _run("rev-parse", "HEAD", "HEAD^{tree}", cwd=tree)
         if head.returncode or len(head.stdout.split()) != 2:
             raise _unanswered("reading the rebased tip", head)
         return tuple(head.stdout.split())
     finally:
-        _git("worktree", "remove", "--force", tree)
+        _run("worktree", "remove", "--force", tree)
         shutil.rmtree(parent, ignore_errors=True)
 
 
@@ -122,7 +122,7 @@ def _agrees(default, cut, tip, new, new_tree):
     """The guard on the work (D26): the old cut's changes up to the old tip, merged onto origin/<default> with the old
     cut as base, must be exactly the rebased tip <new>'s tree <new_tree>; _Stop(1) naming both trees otherwise, _Stop(2)
     when git gives no answer. "The tree is unchanged" is false whenever the default branch moved."""
-    check = _git("merge-tree", "--write-tree", "--merge-base=" + cut, "origin/" + default, tip)
+    check = _run("merge-tree", "--write-tree", "--merge-base=" + cut, "origin/" + default, tip)
     if check.returncode not in (0, 1):
         raise _unanswered("git merge-tree --write-tree --merge-base=%s origin/%s %s" % (cut, default, tip), check)
     merged = check.stdout.split("\n", 1)[0].strip()
