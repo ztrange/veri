@@ -18,6 +18,7 @@ LEDGER = run_dir.ledger("", "%s")
 REGRADE = "regrade-%s"  # the regrade block's detach-command.sh name
 RUN = "rebased-full-%s"  # the rebased tip's detach-command.sh name: .tdd/rebased-full-<n>.out and .exit
 DETACH = fused.script("detach-command.sh")
+SUBJECT = "docs: regrade the prose the branch signed (#%s)"  # the regrade commit's one subject (PRG1)
 
 # The $S/ scripts this call makes, in the order each is first made (git aside, and grade-prose.sh, which only the
 # detached regrade block runs); unit/test_pr_prepare.py fails when one is a script DRAFT-PR.md's sub-step 1 does not
@@ -51,6 +52,8 @@ def run(n):
             if code != 0:
                 raise fused.Stop("1", "detach-command.sh wait %s exit %d" % (RUN % n, code), code)
         push(wt, values["rebased_from"], values.get("regraded", []))
+    else:
+        commit(wt, n, values["regraded"])
     skip(wt, n)
     return fused.settle(wt, n, NAME, ["%s=%s" % (key, values[key]) for key in
                                       ("rebased", "rebased_from", "rebased_tip_suite")])
@@ -145,6 +148,13 @@ def tip_suite(wt, n):
         full = fused.checked("1", fused.script("detect-test-command.sh"), "--tier", "all", cwd=wt).strip()
         fused.checked("1", DETACH, "start", RUN % n, *shlex.split(full), cwd=wt)
     return mode
+
+
+def commit(wt, n, regraded):
+    """The GRADED files the regrade block modified, and only those, committed under the one subject (PRG1); none,
+    no commit. A failing commit is no answer (exit 2)."""
+    if regraded:
+        answered("git", "commit", "-q", "-m", SUBJECT % n, "--", *regraded, cwd=wt)
 
 
 def push(wt, pre, regraded):
