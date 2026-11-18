@@ -51,6 +51,22 @@ def union_graded(path):
     git("add", path, text=True)
 
 
+def record_branch_base(onto, done):
+    """Re-record a run branch's base as <onto>, the record a resume reads its fast command at (#4374).
+
+    Returns `done`, or the refusal when the write fails; a branch that is no run's records nothing."""
+    issue = run_dir.branch_issue(output("symbolic-ref", "--quiet", "--short", "HEAD"))
+    if issue:
+        main = run_dir.main_tree_from_files()
+        record = run_dir.issue_file(main, issue, run_pins.BRANCH_BASE)
+        try:
+            run_pins.write_branch_base(main, issue, onto)
+        except OSError as error:
+            return refuse(f"{'up to date with' if done == 3 else 'rebased onto'} {onto}, but could not re-record"
+                          f" the branch base {record}: {error.strerror}")
+    return done
+
+
 def main(argv):
     return event.stage("rebase", lambda: rebase(argv))
 
@@ -80,7 +96,8 @@ def rebase(argv):
                           f" {saved_files(saved)}")
         saved.unlink()
     if git("merge-base", "--is-ancestor", onto, "HEAD", text=True).returncode == 0:
-        return 3
+        # Up to date still re-records: a rebase whose record write failed must not leave the old base behind.
+        return record_branch_base(onto, 3)
     pre = output("rev-parse", "HEAD")
     callers = rebase_in_progress()
     changed = [line[3:] for line in output("status", "--porcelain", "--untracked-files=no").splitlines()]
@@ -131,15 +148,9 @@ def rebase(argv):
                       f" {' '.join(str(p) for p in kept_files())}")
     if outcome:
         return outcome
-    # A run's branch now sits on <onto>: re-record its branch base, the record a resume reads its fast command at (#4374).
-    issue = run_dir.branch_issue(output("symbolic-ref", "--quiet", "--short", "HEAD"))
-    if issue:
-        main = run_dir.main_tree_from_files()
-        record = run_dir.issue_file(main, issue, run_pins.BRANCH_BASE)
-        try:
-            run_pins.write_branch_base(main, issue, onto)
-        except OSError as error:
-            return refuse(f"rebased onto {onto}, but could not re-record the branch base {record}: {error.strerror}")
+    # A run's branch now sits on <onto>: re-record its branch base.
+    if record_branch_base(onto, 0):
+        return 2
     sys.stdout.write(f"{pre}\n{onto}\n")
     return 0
 
