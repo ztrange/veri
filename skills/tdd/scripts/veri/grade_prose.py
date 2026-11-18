@@ -319,15 +319,18 @@ def resign(unit, own, tree):
 
 
 def convert(path):
-    for listed in requirements.lists(path):
-        for unit in requirements.listed_units(listed):
+    with requirements.parsed_once():
+        listed = [(p, u) for p in requirements.lists(path) for u in requirements.listed_units(p)]
+        units = [u for _, u in listed]
+        formula = signer()
+        for p, unit in listed:
             try:
-                tree = signer().signature(listed, unit)
+                tree = formula.signature(p, unit, units=units)
             except Exception as e:
                 print("grade-prose.sh: signature-formula-disagreement: %s: the tree's formula gave none (%s)" % (unit, e),
                       file=sys.stderr)
                 return 2
-            resign(unit, signature(listed, unit), tree)
+            resign(unit, signature(p, unit, units=units), tree)
 
 
 def main(argv):
