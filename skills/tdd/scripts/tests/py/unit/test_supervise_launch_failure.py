@@ -103,3 +103,37 @@ def test_a_signal_after_a_failed_launch_exits_2_at_once_killing_nothing(tmp_path
             signal.signal(sig, handler)
 
     assert (killed, raised.value.args, exitfile.read_text().strip()) == ([], (2,), "2")
+
+
+def test_a_signal_during_a_retrys_launch_is_held_then_kills_only_the_new_leaf(tmp_path, monkeypatch, fake_processes):
+    import signal
+
+    killed = trapped_exits(monkeypatch)
+    launches = []
+
+    def launching(_line, **_kwargs):
+        launches.append(list(killed))
+        if len(launches) == 2:
+            signal.getsignal(signal.SIGTERM)(signal.SIGTERM, None)
+            launches.append(list(killed))
+        return 0, "", ""
+
+    launched = fake_processes.answers({"": launching})
+    exitfile = tmp_path / "exit"
+    started = []
+    watch = supervise.Watch(False, "1000", "180", "1", 0.0)
+    args = ("exp-leaf", ["true"], str(tmp_path / "log"), str(tmp_path / "rc"),
+            {"PYTEST_LEG_LOCK_WAIT_MARKER": str(tmp_path / "wait")}, None, watch)
+    saved = {sig: signal.getsignal(sig) for sig in supervise.TRAPPED}
+    try:
+        supervise.trap(started, str(exitfile), 1, set())
+        first = supervise.attempt_once(started, *args)
+        with pytest.raises(Exited) as raised:
+            supervise.attempt_once(started, *args)
+    finally:
+        for sig, handler in saved.items():
+            signal.signal(sig, handler)
+
+    assert (first[0], launches, len(launched.popens)) == ("killed-external", [[], [], []], 2)
+    assert killed == [launched.popens[1]]
+    assert (raised.value.args, exitfile.read_text().strip()) == ((2,), "2")
