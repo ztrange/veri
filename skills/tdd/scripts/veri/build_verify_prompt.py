@@ -303,6 +303,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
                                (b"STEP_BASE_SHA", os.fsencode(slots["STEP_BASE_SHA"])),
                                (b"BRANCH_BASE", os.fsencode(branch_base)),
                                (b"FAST_CMD", os.fsencode(fast_cmd)),
+                               (b"FULL_CMD", lambda: run_line.full_line(root, branch_base)),
                                (b"ONTO_SHA", os.fsencode(slots["ONTO_SHA"])),
                                (b"PRE_REBASE_SHA", os.fsencode(slots["PRE_REBASE_SHA"])),
                                (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh")),

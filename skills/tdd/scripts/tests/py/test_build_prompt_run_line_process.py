@@ -356,7 +356,7 @@ def test_outside_veri_the_rebase_and_suite_repair_verifiers_are_given_the_branch
 
     def told(out):
         words = " ".join(out.split())
-        return ("full test command, `pytest -q`," in words, "timed-test-run.sh all '' pytest -q" in words,
+        return ("full test command, `pytest -q`" in words, "timed-test-run.sh all '' pytest -q" in words,
                 "`true`" in words)
     assert [(code, err, told(out)) for code, out, err in (rebase, repair)] == [
         (0, "", (True, True, False)), (0, "", (True, False, False))]
