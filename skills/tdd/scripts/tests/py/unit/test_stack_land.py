@@ -84,3 +84,15 @@ def test_on_stack_red_sh_exit_3_stack_green_sh_exiting_2_exits_2_running_nothing
     code, out, err = run_cli(stack_land, [])
 
     assert (code, out, world.scripts) == (2, "", [("stack-red.sh",), ("stack-green.sh",)]), err
+
+
+@pytest.mark.parametrize("value", ["0", "-3", "ten", "2.5"])
+def test_a_veri_slice_commits_that_is_not_a_whole_number_of_1_or_more_exits_2_naming_it_before_any_lock_or_write(
+        monkeypatch, run_cli, stack_land, value):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")})
+
+    code, out, err = run_cli(stack_land, ["--now"], env={"VERI_SLICE_COMMITS": value})
+
+    past_the_reads = [ran for ran in world.scripts if ran[0] not in ("stack-red.sh", "stack-green.sh")]
+    assert (code, out, "VERI_SLICE_COMMITS" in err, value in err, past_the_reads) == (2, "", True, True, []), err
