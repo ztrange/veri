@@ -996,7 +996,7 @@ def test_the_open_pr_list_is_read_through_gh_json_a_no_answer_at_the_report_retu
 
 
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
-def test_a_finished_sweep_in_launch_order_restarts_past_a_stop_prints_parked_alone_stops_at_the_first_bail_or_kill_and_honours_continue_on_bail_only_as_argv_0(
+def test_a_finished_sweep_in_launch_order_restarts_past_a_stop_prints_parked_alone_stops_at_the_first_bail_or_kill(
         capsys, monkeypatch, tmp_path, parallel_conductors):
     step_done = (b'{"type":"assistant","message":{"content":[{"type":"tool_use","input":{"command":'
                  b'"skills/tdd/scripts/event.sh step-done 3"}}],"usage":{"cache_creation_input_tokens":1,'
@@ -1068,10 +1068,6 @@ def test_a_finished_sweep_in_launch_order_restarts_past_a_stop_prints_parked_alo
         "#5 — killed after 14400s",
         "#6 — bailed https://github.com/o/r/pull/106",
         "stopped: #5 killed",
-    ])
-    assert run("continue-not-first", ["--repo", "o/r", "--continue-on-bail"], {}, "6\n9\n", {"6": 0}) == (1, ["6"], [
-        "#6 — bailed https://github.com/o/r/pull/106",
-        "stopped: #6 bailed",
     ])
 
 
@@ -1187,6 +1183,29 @@ def test_a_stopped_conductor_s_context_is_no_longer_watched_and_the_conductor_be
 
 
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_any_argument_list_but_none_or_the_single_continue_on_bail_is_exit_2_with_the_usage_line_alone_on_stderr_and_no_conductor_launched(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    work = tmp_path / "repo"
+    work.mkdir()
+    launched = []
+
+    def on_launch(sup):
+        launched.append(sup.args[-1])
+        sup.exit(0)
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None)
+    refused = [["--repo", "o/r", "--continue-on-bail"], ["--repo", "o/r"], ["--continue-on-bail", "--continue-on-bail"],
+               ["--continue-on-bail", "x"], ["foo"], ["--continue-on-bail=1"], [""]]
+    seen = []
+    for argv in refused:
+        code, out, err = run_cli(parallel_conductors, argv, env={"VERI_GH_JSON": str(gh)}, cwd=work)
+        seen.append((argv, code, out, err, list(launched)))
+    assert seen == [(argv, 2, "", parallel_conductors.USAGE + "\n", []) for argv in refused]
+
+
 def test_a_bad_veri_parallel_veri_max_issues_or_veri_conductor_ctx_budget_is_exit_2_naming_it_and_the_value_with_no_conductor_launched(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
     gh = tmp_path / "gh"
