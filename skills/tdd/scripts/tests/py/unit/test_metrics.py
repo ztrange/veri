@@ -70,9 +70,10 @@ CUT = {"event": "metrics-cut", "issue": "108", "pr": "https://github.com/o/r/pul
 @pytest.mark.parametrize("after, outcome, wall", [  # the JSON figures read the done mark alone, as before #4332
     ([], "Outcome: the run landed — its draft PR is https://github.com/o/r/pull/7.", "300"),
     ([{"event": "step-added", "issue": "108", "ts": 500}], "Outcome: none yet — the run is still going.", "unknown"),
+    ([{"event": "resume", "issue": "108", "ts": 500}], "Outcome: none yet — the run is still going.", "unknown"),
     ([{"event": "done", "issue": "108", "pr": "https://github.com/o/r/pull/8", "ts": 900, "wall_seconds": "800"}],
      "Outcome: the run landed — its draft PR is https://github.com/o/r/pull/8.", "800")],
-    ids=["the cut stands", "a step-added after it", "the done mark after it"])
+    ids=["the cut stands", "a step-added after it", "a resume after it", "the done mark after it"])
 def test_4332_a_standing_metrics_cut_ends_the_report_in_place_of_done_and_a_later_mark_overrides_it(
         tmp_path, monkeypatch, capsys, metrics, after, outcome, wall):
     import conftest
