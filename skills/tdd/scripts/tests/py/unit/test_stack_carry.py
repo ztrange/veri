@@ -200,3 +200,17 @@ def test_a_rebase_conflict_exits_1_naming_the_file_the_rebase_aborted_its_worktr
     assert (code, out, "conflict" in err, "lib/a.txt" in err, released(world)) == (1, "", True, True, True), err
     assert (rebases(world)[-1], pushes(world), os.path.exists(tree)) == (("git", tree, "rebase", "--abort"), [], False)
     assert ("git", ".", "worktree", "remove", "--force", tree) in world.log
+
+
+@pytest.mark.parametrize("said, code", [((0, "b" * 40 + "\n", ""), 1), ((1, "b" * 40 + "\n", ""), 1),
+                                        ((128, "", "fatal: merge-tree broke\n"), 2)])
+def test_nothing_is_pushed_unless_merge_tree_with_the_old_cut_as_base_prints_the_new_tips_tree(
+        monkeypatch, tmp_path, run_cli, stack_carry, said, code):
+    world = World(monkeypatch, tmp_path, answers={("merge-tree", "--write-tree", "--merge-base=" + CUT): said})
+
+    exit_code, out, err = run_cli(stack_carry, ["cut"])
+
+    named = ("b" * 40 in err and NEW_TREE in err) if code == 1 else "merge-tree broke" in err
+    checked = ("git", ".", "merge-tree", "--write-tree", "--merge-base=" + CUT, "origin/trunk", TIP)
+    assert (exit_code, out, named, checked in world.log, pushes(world), released(world)) == (
+        code, "", True, True, [], True), err
