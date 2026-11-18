@@ -228,3 +228,14 @@ def test_a_leased_push_refused_because_origin_moved_exits_1_and_one_with_no_answ
     exit_code, out, err = run_cli(stack_carry, ["cut"])
 
     assert (exit_code, out, said in err, len(pushes(world)), released(world)) == (code, "", True, 1, True), err
+
+
+@pytest.mark.parametrize("answer, code", [((0, "https://github.com/owner/repo/pull/7\n"), 0), ((3, ""), 0), ((2, ""), 2)])
+def test_after_the_push_it_calls_stack_pr_sh_and_one_with_no_answer_exits_2_naming_it_as_owed(
+        monkeypatch, tmp_path, run_cli, stack_carry, answer, code):
+    world = World(monkeypatch, tmp_path, scripts={"stack-pr.sh": answer})
+
+    exit_code, out, err = run_cli(stack_carry, ["cut"])
+
+    after = world.log[world.log.index(pushes(world)[0]) + 1:]
+    assert (exit_code, after[:1], code == 0 or "run stack-pr.sh" in err) == (code, [("stack-pr.sh",)], True), err
