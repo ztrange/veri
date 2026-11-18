@@ -34,7 +34,7 @@ opt-in label to every issue the sweep ends ready.
 The sweep's scope is every open issue but the `taken:` ones (*Invocation*): issues without the
 opt-in label (bare or scoped), issues already opted in, the refactor-owed items, which go through
 the `--refactor-owed` consolidation (below) as part of the sweep, and PRD trackers, which go
-through `### Missing PRD parents`. Every issue in scope ends the run with exactly one outcome and
+through `### Missing PRD parents` and `### PRD trackers`. Every issue in scope ends the run with exactly one outcome and
 one report line; none is skipped or left unlabelled without its reason.
 
 1. **Triage** each issue (below).
@@ -82,6 +82,16 @@ API (`gh api`). Report each one set, in one line.
 
 - An issue whose parent is a different issue is **reported and left** as it is.
 - A PRD number with no issue titled `PRD <nnn>: …` is **reported**, and nothing is set.
+
+### PRD trackers
+
+The sweep grooms every PRD tracker (`PRD <nnn>: …`): its missing-parent check as above, then its
+slices, the `PRD <nnn>.<k>: …` issues it plans.
+
+- **Every planned slice filed and closed, and no slice waiting on a decision or data** — close
+  the tracker with that reason.
+- **A planned slice not filed yet** — report the tracker with each unfiled slice named, and leave
+  it open.
 
 ## Before labelling ready
 
