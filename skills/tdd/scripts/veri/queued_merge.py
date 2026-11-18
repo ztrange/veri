@@ -593,11 +593,9 @@ def _joined(pid, repo, pr, worktree, branch, stack):
         code = _tip_checks(worktree, stack)
         if code:
             return code
-        head, status = _rev(worktree, "HEAD"), _git(worktree, "status", "--porcelain")
-        if head != checked or status.returncode or status.stdout.strip():
-            _say("the fast tier or prose-owed.sh changed the worktree: HEAD is %s, the checked tip %s%s; nothing pushed to"
-                 " %s" % (head or "unresolvable", checked, "; uncommitted: " + " ".join(status.stdout.split()[1::2][:5])
-                          if status.stdout.strip() else "", stack))
+        changed = _changed(worktree, checked)
+        if changed:
+            _say("the fast tier or prose-owed.sh changed the worktree: %s; nothing pushed to %s" % (changed, stack))
             return 2
         head = checked
         if not head or _git(worktree, "merge-base", "--is-ancestor", onto, head).returncode:
@@ -800,11 +798,10 @@ def _joined_offline(pr, worktree, branch, stack):
     code = _full_gate(worktree, stack)
     if code:
         return code
-    head, status = _rev(worktree, "HEAD"), _git(worktree, "status", "--porcelain")
-    if head != checked or status.returncode or status.stdout.strip():
-        _say("the fast tier, prose-owed.sh or the full suite changed the worktree: HEAD is %s, the checked tip %s%s;"
-             " the local %s not moved" % (head or "unresolvable", checked, "; uncommitted: " + " ".join(
-                 status.stdout.split()[1::2][:5]) if status.stdout.strip() else "", stack))
+    changed = _changed(worktree, checked)
+    if changed:
+        _say("the fast tier, prose-owed.sh or the full suite changed the worktree: %s; the local %s not moved" % (
+            changed, stack))
         return 2
     amend = _git(worktree, "commit", "--amend", "--no-edit", "--no-verify", "--allow-empty",
                  "--trailer", "Veri-Joined: %s %s" % (pr, branch))
@@ -838,6 +835,15 @@ def _full_gate(worktree, stack):
         _say("the full suite (%s) is red on the rebased tip; the local %s not moved" % (full, stack))
         return 1
     return 0
+
+
+def _changed(worktree, checked):
+    """None when <worktree>'s HEAD is still the <checked> tip and nothing is uncommitted; else what changed, said."""
+    head, status = _rev(worktree, "HEAD"), _git(worktree, "status", "--porcelain")
+    if head == checked and not status.returncode and not status.stdout.strip():
+        return None
+    return "HEAD is %s, the checked tip %s%s" % (head or "unresolvable", checked, "; uncommitted: " + " ".join(
+        status.stdout.split()[1::2][:5]) if status.stdout.strip() else "")
 
 
 def _tip_checks(worktree, stack):
