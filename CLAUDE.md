@@ -159,9 +159,12 @@ write unless it has the sticky bit (as `/tmp` does), created with mode `0700` wh
 modules from source and says why on stderr (#3965). A `PYTHONPYCACHEPREFIX` the caller exported is honoured by the interpreter for the
 standard library before that check can run, so the check covers veri's own modules and `make`'s guard covers a `make` run. Cases run across pytest-xdist
 workers: `make unit` 4 (each worker pays its own start-up); `make test` the cores other running
-legs leave free (physical cores on macOS, the CPU-affinity count elsewhere), at least 1 (#2100): each leg registers its pid and count under
+legs leave free (physical cores on macOS, the CPU-affinity count elsewhere) (#2100), and a `make test` leg that finds none free waits for one
+instead of starting with 1 (PRD 036.1): it says so once on stderr, naming the cores in use and the pids holding them, writes the same wait
+marker a full-run lock waiter writes (below), so a supervised leaf's hard timeout and silence window are frozen while it waits, and records
+the wait as a `core-wait` event with its seconds; a full run takes the lock before it waits for cores. Each leg registers its pid and count under
 `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and a dead pid holds no share.
-`VERI_PYTEST_WORKERS=<n>` overrides both, used as given; `1` runs serially (#2053). Three refusals, exit 2 before any
+`VERI_PYTEST_WORKERS=<n>` overrides both, used as given, never waiting; `1` runs serially (#2053). Three refusals, exit 2 before any
 suite: pytest or pytest_timeout not importable (stderr names `make install-dev`), or Python
 older than the 3.12 floor. Any other error escaping the leg (registering it, taking the full-run lock, checking or recording
 the bytecode cache) is one stderr line naming it, never a traceback, and exit 2, except that a failing run keeps its exit 1.
@@ -169,7 +172,7 @@ the bytecode cache) is one stderr line naming it, never a traceback, and exit 2,
 At most one full `make test` runs per machine (#2195): a second waits, naming the holder's pid and working tree on stderr,
 before its suites start, so the wait counts toward no per-case timeout. The lock is an `flock` held for the whole run, so a dead
 holder's lock is taken over; a run nested under the holder (`PYTEST_LEG_FULL_LOCK_HOLDER`) skips it, and neither `make unit` nor a
-`make test TESTS=…` subset (`--subset`) ever waits. Release empties the lock file, so it names a pid only while held. By that rule a live holder that never releases blocks the waiter
+`make test TESTS=…` subset (`--subset`) ever waits on it. Release empties the lock file, so it names a pid only while held. By that rule a live holder that never releases blocks the waiter
 without bound: the wait counts toward no timeout that could bail it, a supervised leaf's hard timeout and silence window included (#2380).
 A waiting leg marks its wait with a file naming its pid and start time; a supervisor ignores a marker whose waiter is no longer
 alive under that start time, so its hard timeout and silence window run, while an empty marker (an older leg's) still freezes them (#3989).
