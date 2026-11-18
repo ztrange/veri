@@ -233,6 +233,9 @@ def _gate(lock, record, args):
         print("usage: merge-lock.sh gate [--keep] --pid <pid> [--owner <token>] -- <cmd>", file=sys.stderr)
         return 2
     _owner(head)
+    if not os.path.isdir(lock):
+        print(f"merge-lock.sh: gate refused: no merge lock is held; {args[args.index('--') + 1]} not run", file=sys.stderr)
+        return 2
     code = subprocess.run(args[args.index("--") + 1:]).returncode
     if code in (0, 3):
         return code
