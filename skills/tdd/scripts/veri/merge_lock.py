@@ -140,9 +140,6 @@ def _take(lock, record, args):
             if not os.path.isdir(lock):
                 try:
                     os.rename(staged, lock)
-                    for path in _token_files(lock):
-                        if _read(path).strip() != owner:
-                            os.remove(path)
                     return 0
                 except OSError:
                     if not os.path.isdir(staged):

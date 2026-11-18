@@ -222,33 +222,18 @@ def test_3579_release_by_a_different_owner_token_leaves_the_holders_token_file_u
     assert (refused, os.path.isdir(lock), token_file.read_text()) == (1, True, "token-a\n")
 
 
-def test_3579_take_removes_a_leftover_token_file_whose_token_the_new_holder_record_does_not_name(tmp_path, monkeypatch):
+def test_4372_a_successful_take_leaves_the_token_file_of_a_merge_still_waiting_on_the_lock(tmp_path, monkeypatch):
     monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
     me = str(os.getpid())
     lock = str(tmp_path / ".tdd" / "merge.lock")
     record = os.path.join(lock, "holder")
     mine = tmp_path / ".git" / "veri-merge-42.token"
-    leftover = tmp_path / ".git" / "veri-merge-43.token"
+    waiting = tmp_path / ".git" / "veri-merge-43.token"
     mine.parent.mkdir()
     mine.write_text("token-a\n")
-    leftover.write_text("token-b\n")
+    waiting.write_text("token-b\n")
     taken = merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
-    assert (taken, mine.exists(), leftover.exists()) == (0, True, False)
-
-
-def test_3579_take_keeps_an_old_token_file_the_live_holder_names_and_removes_a_fresh_one_naming_another_owner(tmp_path, monkeypatch):
-    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
-    me = str(os.getpid())
-    lock = str(tmp_path / ".tdd" / "merge.lock")
-    record = os.path.join(lock, "holder")
-    old_live = tmp_path / ".git" / "veri-merge-42.token"
-    fresh_other = tmp_path / ".git" / "veri-merge-43.token"
-    old_live.parent.mkdir()
-    old_live.write_text("token-a\n")
-    fresh_other.write_text("token-b\n")
-    os.utime(old_live, (1, 1))
-    taken = merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
-    assert (taken, old_live.exists(), fresh_other.exists()) == (0, True, False)
+    assert (taken, mine.read_text(), waiting.read_text()) == (0, "token-a\n", "token-b\n")
 
 
 def test_3793_release_with_no_other_holder_removes_every_token_of_its_owner_and_frees_the_lock(tmp_path, monkeypatch):
