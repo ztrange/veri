@@ -226,7 +226,8 @@ def test_issue_4089_the_actions_read_row_reads_skipped_with_no_workflows_at_the_
     assert verdict is ready_check.SKIPPED
 
 
-RUN_STATE_RULE = ".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n"
+RUN_STATE_RULE = (".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-*.md\n!.tdd/issue-*-added.md\n!.tdd/issue-*-mutations.md\n"
+                  "!.tdd/issue-*-refactor-owed.md\n!.tdd/issue-*-metrics.md\n")
 
 
 def unwritable(monkeypatch, denied):
@@ -263,7 +264,7 @@ def test_issue_4089_the_run_state_ignore_row_fails_naming_a_file_that_carries_th
     (common / "info").mkdir(parents=True)
     (common / "info" / "exclude").write_text(RUN_STATE_RULE)
     gitignore = tmp_path / ".gitignore"
-    gitignore.write_text(".tdd/issue-*-spec.md\n")
+    gitignore.write_text("!.tdd/issue-*-metrics.md\n")
     fake_processes.answers({"git rev-parse --git-common-dir": (0, str(common) + "\n", "")}, exact=True)
 
     name, fix = ready_check.run_state_ignore_row()
@@ -273,7 +274,7 @@ def test_issue_4089_the_run_state_ignore_row_fails_naming_a_file_that_carries_th
 
 def test_issue_4089_the_run_state_ignore_row_writes_nothing_to_stderr_for_a_partial_rule(ready_check, fake_processes, tmp_path, capsys):
     (tmp_path / "common.git" / "info").mkdir(parents=True)
-    (tmp_path / ".gitignore").write_text(".tdd/issue-*-spec.md\n")
+    (tmp_path / ".gitignore").write_text("!.tdd/issue-*-metrics.md\n")
     fake_processes.answers({"git rev-parse --git-common-dir": (0, str(tmp_path / "common.git") + "\n", "")}, exact=True)
 
     name, fix = ready_check.run_state_ignore_row()
@@ -326,7 +327,7 @@ def test_issue_4089_the_new_rows_failing_make_only_rest_reads_through_gh_and_git
         assert not any(flag in argv for flag in WRITING_FLAGS), argv
         methods = [argv[i + 1] for i, arg in enumerate(argv[:-1]) if arg in ("-X", "--method")]
         assert set(methods) <= {"GET"}, argv
-    (repo / ".gitignore").write_text(".tdd/issue-*-spec.md\n")
+    (repo / ".gitignore").write_text("!.tdd/issue-*-metrics.md\n")
     partial = tree_state(tmp_path)
     rows.append(ready_check.run_state_ignore_row())
     assert tree_state(tmp_path) == partial

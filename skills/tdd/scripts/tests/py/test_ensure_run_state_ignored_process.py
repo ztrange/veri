@@ -9,6 +9,7 @@ import pytest
 from repo_builder import new_repo
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
+GITIGNORE = SCRIPTS.parents[2] / ".gitignore"
 
 
 @pytest.fixture
@@ -45,6 +46,18 @@ def test_an_unrelated_gitignore_keeps_every_existing_line_and_reports_added(tmp_
     assert (code, out) == (0, "added\n")
     assert (ignored(repo, "node_modules/x"), ignored(repo, "debug.log"), ignored(repo, ".tdd/develop-red.log"),
             ignored(repo, ".tdd/issue-7.md")) == (0, 0, 0, 1)
+
+
+@pytest.mark.process("git: rev-parse in a real scratch repository whose .gitignore is veri's own")
+def test_4338_a_gitignore_holding_the_4048_rule_block_reports_already_present_and_stays_byte_identical(
+        tmp_path, run_cli, ensure_run_state_ignored):
+    repo = new_repo(tmp_path / "holds-4048")
+    (repo / ".gitignore").write_bytes(GITIGNORE.read_bytes())
+
+    code, out, err = run_cli(ensure_run_state_ignored, [str(repo)])
+
+    assert (code, out) == (0, "already present\n")
+    assert (repo / ".gitignore").read_bytes() == GITIGNORE.read_bytes()
 
 
 @pytest.mark.process("git: the caller's checkout and a linked worktree under .tdd/wt/1, both real")

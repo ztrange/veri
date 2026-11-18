@@ -7,7 +7,8 @@ import pytest
 
 from conftest import SCRIPTS
 
-RULE = ".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n"
+RULE = (".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-*.md\n!.tdd/issue-*-added.md\n!.tdd/issue-*-mutations.md\n"
+        "!.tdd/issue-*-refactor-owed.md\n!.tdd/issue-*-metrics.md\n")
 
 
 @pytest.fixture
@@ -47,7 +48,7 @@ def test_main_adds_the_rule_to_both_files_and_returns_2_when_rev_parse_fails(tmp
     assert not (broken / ".git" / "info" / "exclude").exists()
 
 
-def test_main_does_not_refuse_a_gitignore_holding_other_lines_but_not_the_spec_line(tmp_path, monkeypatch, capsys,
+def test_main_does_not_refuse_a_gitignore_holding_other_lines_but_not_the_rules_last_line(tmp_path, monkeypatch, capsys,
                                                                                      ensure_run_state_ignored, fake_processes):
     fake_rev_parse(fake_processes, 0, ".git\n")
     for name, original in (("node_modules", b"node_modules/\n"), ("non_utf8", b"\xff\xfe\n")):
@@ -61,10 +62,10 @@ def test_main_does_not_refuse_a_gitignore_holding_other_lines_but_not_the_spec_l
         assert (root / ".gitignore").read_bytes() == original + RULE.encode()
 
 
-def test_main_refuses_a_gitignore_holding_only_the_spec_line(tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
+def test_main_refuses_a_gitignore_holding_only_the_rules_last_line(tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     root = tmp_path / "repo"
     (root / ".git" / "info").mkdir(parents=True)
-    (root / ".gitignore").write_bytes(b".tdd/issue-*-spec.md\n")
+    (root / ".gitignore").write_bytes(b"!.tdd/issue-*-metrics.md\n")
     (root / ".git" / "info" / "exclude").write_bytes(b"")
     fake_rev_parse(fake_processes, 0, ".git\n")
 
@@ -73,7 +74,7 @@ def test_main_refuses_a_gitignore_holding_only_the_spec_line(tmp_path, monkeypat
     assert (code, capsys.readouterr()[:]) == (2, ("", "ensure-run-state-ignored: %s/.gitignore carries veri's run-state "
                                                       "rule only in part, or with its lines out of order — fix it by "
                                                       "hand\n" % root))
-    assert (root / ".gitignore").read_bytes() == b".tdd/issue-*-spec.md\n"
+    assert (root / ".gitignore").read_bytes() == b"!.tdd/issue-*-metrics.md\n"
     assert (root / ".git" / "info" / "exclude").read_bytes() == b""
 
 
@@ -108,14 +109,13 @@ def test_main_appends_after_a_newline_only_where_one_is_missing_and_refuses_a_mi
     fake_rev_parse(fake_processes, 0, ".git\n")
     appended = (
         ("newline_terminated", b"node_modules/\n", b"node_modules/\n"),
-        ("misordered", b".tdd/*\n.tdd/issue-*-spec.md\n!.tdd/issue-*.md\n", None),
+        ("misordered", b".tdd/*\n!.tdd/issue-*-metrics.md\n!.tdd/issue-*.md\n.tdd/issue-*-*.md\n!.tdd/issue-*-added.md\n"
+                       b"!.tdd/issue-*-mutations.md\n!.tdd/issue-*-refactor-owed.md\n", None),
         ("no_trailing_newline", b"node_modules/", b"node_modules/\n"),
         ("crlf", b"node_modules/\r\n", b"node_modules/\r\n"),
         ("empty", b"", b""),
-        ("trailing_space", b".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md \n",
-         b".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md \n"),
-        ("trailing_cr", b".tdd/*\r\n!.tdd/issue-*.md\r\n.tdd/issue-*-spec.md\r\n",
-         b".tdd/*\r\n!.tdd/issue-*.md\r\n.tdd/issue-*-spec.md\r\n"),
+        ("trailing_space", RULE.encode()[:-1] + b" \n", RULE.encode()[:-1] + b" \n"),
+        ("trailing_cr", RULE.replace("\n", "\r\n").encode(), RULE.replace("\n", "\r\n").encode()),
         ("ignore_all_only", b".tdd/*\n", b".tdd/*\n"),
     )
     for name, original, before_rule in appended:
@@ -152,7 +152,7 @@ def test_main_builds_paths_by_concatenation_checks_gitignore_then_exclude_and_wr
     monkeypatch.chdir(tmp_path)
     common = tmp_path / "common"
     (common / "info").mkdir(parents=True)
-    (common / "info" / "exclude").write_bytes(b".tdd/issue-*-spec.md\n")
+    (common / "info" / "exclude").write_bytes(b"!.tdd/issue-*-metrics.md\n")
     pathlib.Path("a").mkdir()
     answer(str(common) + "\n")
     assert (ensure_run_state_ignored.main(["a"]), capsys.readouterr()[:]) == (2, ("", refusal % (str(common) +
@@ -161,15 +161,15 @@ def test_main_builds_paths_by_concatenation_checks_gitignore_then_exclude_and_wr
 
     pathlib.Path("r/sub").mkdir(parents=True)
     pathlib.Path("r/.git/info").mkdir(parents=True)
-    pathlib.Path("r/.git/info/exclude").write_bytes(b".tdd/issue-*-spec.md\n")
-    pathlib.Path("r/.gitignore").write_bytes(b".tdd/issue-*-spec.md\n")
+    pathlib.Path("r/.git/info/exclude").write_bytes(b"!.tdd/issue-*-metrics.md\n")
+    pathlib.Path("r/.gitignore").write_bytes(b"!.tdd/issue-*-metrics.md\n")
     answer(".git\n")
     assert (ensure_run_state_ignored.main(["r/"]), capsys.readouterr()[:]) == (2, ("", refusal % "r//.gitignore"))
     answer("../.git\n")
     assert (ensure_run_state_ignored.main(["r/sub", "--bogus", "x"]), capsys.readouterr()[:]) == (
         2, ("", refusal % "r/sub/../.git/info/exclude"))
     assert not pathlib.Path("r/sub/.gitignore").exists()
-    assert pathlib.Path("r/.git/info/exclude").read_bytes() == b".tdd/issue-*-spec.md\n"
+    assert pathlib.Path("r/.git/info/exclude").read_bytes() == b"!.tdd/issue-*-metrics.md\n"
 
     monkeypatch.chdir(tmp_path / "r")
     answer(".git\n")
@@ -243,7 +243,7 @@ def test_main_leaves_a_gitignore_already_carrying_the_rule_byte_identical_when_t
         tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     root = tmp_path / "repo"
     (root / ".git" / "info" / "exclude").mkdir(parents=True)
-    carried = b"node_modules/\n.tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n"
+    carried = b"node_modules/\n" + RULE.encode()
     (root / ".gitignore").write_bytes(carried)
     fake_rev_parse(fake_processes, 0, ".git\n")
 
