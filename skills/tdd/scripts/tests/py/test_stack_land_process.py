@@ -57,7 +57,7 @@ def test_4318_a_carry_over_whose_fetch_hangs_past_the_network_bound_leaves_no_me
         (0, "") if name == "stack-tag.sh" else real(name, *args, **kwargs)))
     url = "https://github.com/owner/repo/pull/90"
 
-    code = importlib.import_module("veri.stack_land")._after(url, cut, [])
+    code = importlib.import_module("veri.stack_land")._after(url, cut, "owner/repo", [])
 
     lock = str(SCRIPTS / "merge-lock.sh")
     holder = subprocess.run([lock, "holder"], cwd=work, stdin=subprocess.DEVNULL, capture_output=True, text=True,
