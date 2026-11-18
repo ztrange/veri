@@ -23,11 +23,25 @@ REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, t
 STAGES = {"red-half": RED, "green-half": GREEN, "refactor-half": REFACTOR, "step-close": REFACTOR}
 
 
+def parse(argv):
+    """(n, the --from stage or None); None for arguments it does not take."""
+    if not argv or not argv[0].isdigit():
+        return None
+    start, rest = None, list(argv[1:])
+    while rest:
+        option, value = rest.pop(0), rest.pop(0) if rest else None
+        if option != "--from" or value not in STAGES or start is not None:
+            return None
+        start = value
+    return argv[0], start
+
+
 def main(argv):
-    if len(argv) != 1 or not argv[0].isdigit():
+    parsed = parse(argv)
+    if parsed is None:
         sys.stderr.write(USAGE + "\n")
         return 2
-    n = argv[0]
+    n, start_at = parsed
     given = fused_step.inputs(NAME + ".sh", n, LEDGER)
     if given is None:
         return 2
@@ -38,7 +52,10 @@ def main(argv):
         sys.stderr.write("run-step.sh: no open step in %s\n" % (LEDGER % n))
         return 3
     order = list(STAGES)
-    start = max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
+    if start_at is not None:
+        start = order.index(start_at)
+    else:
+        start = max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
     out = ""
     for stage in order[start:]:
         code, out, _ = fused.call(fused.script(stage + ".sh"), n)
