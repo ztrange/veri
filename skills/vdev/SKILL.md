@@ -270,18 +270,24 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   subagent, and follow it for that PR's url.
 - **A failed join.** The `vmerge` subagent's report names the join's exit. An exit 1 because the
   stack is red (its stderr names the red commit) leaves the run as it is: the stack goes to *A red
-  stack* meanwhile, and the join is retried once `$S/stack-red.sh` exits 3, never sooner. Any
-  other exit 1 (a conflict, a red fast tier, a unit owing a grade) is reported to the human as a
-  notice (*Speaking*), with its stderr, and the run is left as it is. An exit 2 is reported the
-  same way and never retried blind.
+  stack* meanwhile, and the join is retried once `$S/stack-red.sh` exits 3, never sooner. An exit
+  1 for a conflict you cannot resolve goes to *When to stop and ask*. Any other exit 1 (a red fast
+  tier, a unit owing a grade) is reported to the human as a notice (*Speaking*), with its stderr.
+  Each leaves the run as it is. An exit 2 is reported as a notice with its stderr and never
+  retried blind. An exit 3, the pull request already merged into the stack, is nothing to do.
 - **Landing a slice.** After each join, and after each `$S/stack-red.sh` exit 3, run
-  `$S/stack-land.sh` without `--now`, in the target repository's main working tree: whether a
-  slice lands now (100 commits or an idle stack) is the script's to decide, not yours. Exit 0 is
-  reported as a notice (*Speaking*) with the slice's pull request url and the issues it landed.
-  Exit 3, nothing to land, is the common case and is not reported. Exit 1 and exit 2 are reported
-  as a notice with their stderr. Where a stack is named, the standing merge permission in the
-  project repo (*Starting*) covers `$S/stack-land.sh` and nothing else that reaches the default
-  branch: no other push, merge or rebase onto it. `--now` is run only when the human asks for it.
+  `$S/stack-land.sh` without `--now`, in the target repository's main working tree, unless a
+  landing is held: whether a slice lands now (100 commits or an idle stack) is the script's to
+  decide, not yours. Exit 0 is reported as a notice (*Speaking*) with the slice's pull request url
+  and the issues it landed. Exit 3, nothing to land, is the common case and is not reported. Exit
+  1 is reported as a notice with its stderr. Exit 2 can mean the carry-over is still owed
+  (`$S/stack-carry.sh <cut>`, named on its stderr), which leaves the stack for the human: it holds
+  every later landing and every join onto that stack, a reviewed run's join included, and goes to
+  *When to stop and ask*; the hold lifts only on the human's answer, never on a later join or a
+  rerun. Where a stack is named, the standing merge permission in the project repo (*Starting*)
+  covers `$S/stack-land.sh` for the stack's slices, and a pull request based on the default branch
+  is still merged through `vmerge` as before; nothing else reaches the default branch: no other
+  push, merge or rebase onto it. `--now` is run only when the human asks for it.
   You never rebase a live run's branch across a landing: the run carries itself at its own join,
   whose rebase onto the stack is the run's, so its branch keeps one writer.
 
@@ -457,7 +463,7 @@ Stop and ask the human only for: red CI you cannot fix, a ⟦human-owed⟧ step,
 cannot resolve, a decision a ledger step asks for, a review caveat `vjudge` does not settle
 (*Routing an exit*), a veri fault found while veri's repository is not the project repo, a split
 or criteria rewrite `vfile` proposes that `vjudge` surfaces (*Out of scope*), a priority call
-`vjudge` surfaces (*Priority*), or whether veri may fast-forward its own clone (*Starting*). Each
+`vjudge` surfaces (*Priority*), a held landing (*Routing an exit*), or whether veri may fast-forward its own clone (*Starting*). Each
 such case first goes through `vjudge`,
 run as *Running the sibling skills* says: what the judge settles is acted on and never asked, and
 only what it surfaces reaches the human, as P21 says, stated in full (P4). Everything else you
