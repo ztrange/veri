@@ -18,3 +18,21 @@ def test_no_argument_prints_a_usage_line_naming_bail_md_sub_step_1_on_stderr_and
     assert (code, out, fake.calls) == (2, "", [])
     assert err.strip() != "" and "usage" in err.splitlines()[0]
     assert "BAIL.md sub-step 1" in err.splitlines()[-1]
+
+
+def test_other_bad_arguments_exit_2_with_no_call_the_last_line_naming_bail_md_sub_step_1(
+        run_cli, fake_processes, bail):
+    bad = {
+        "non-numeric n": ["abc", "tests-red", "red", "--note-file", "n.md"],
+        "missing cause": ["7"],
+        "missing phase": ["7", "tests-red", "--note-file", "n.md"],
+        "no note file": ["7", "tests-red", "red"],
+        "non-numeric attempt": ["7", "tests-red", "red", "--note-file", "n.md", "--attempt", "x"],
+    }
+    for label, argv in bad.items():
+        fake = fake_processes.answers({})
+
+        code, out, err = run_cli(bail, argv)
+
+        assert (label, code, out, fake.calls) == (label, 2, "", [])
+        assert "BAIL.md sub-step 1" in err.splitlines()[-1], label
