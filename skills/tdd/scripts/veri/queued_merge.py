@@ -739,25 +739,50 @@ def _offline_cleanup(worktree, branch, released):
     return 0
 
 
-def _joined_offline(pr, worktree, branch, stack):
+def _holder(worktree, stack):
+    """The worktree <stack> is checked out in, "" when none is; None when `git worktree list` fails."""
     listed = _git(worktree, "worktree", "list", "--porcelain")
-    holder = None
-    for entry_ in listed.stdout.split("\n\n"):
-        lines = entry_.splitlines()
-        if "branch refs/heads/" + stack in lines:
-            holder = lines[0].removeprefix("worktree ")
+    if listed.returncode:
+        return None
+    for block in listed.stdout.split("\n\n"):
+        lines = block.splitlines()
+        if lines and "branch refs/heads/" + stack in lines:
+            return lines[0].removeprefix("worktree ")
+    return ""
+
+
+def _local_stack(worktree, stack):
+    """The local <stack>'s sha, created at origin/<stack> as last fetched when absent: (sha, None), or ("", refusal)."""
+    holder = _holder(worktree, stack)
+    if holder is None:
+        return "", "git worktree list failed, so whether %s is checked out is not known" % stack
     if holder:
-        _say("the local %s is checked out in %s, a second writer; nothing joined" % (stack, holder))
-        return 2
+        return "", "the local %s is checked out in %s, a second writer" % (stack, holder)
     fetched = _rev(worktree, "refs/remotes/origin/" + stack)
+    if not fetched:
+        return "", "origin/%s does not resolve as last fetched" % stack
     onto = _rev(worktree, "refs/heads/" + stack)
     if not onto:
-        onto = fetched
-        _git(worktree, "branch", stack, onto)
-    elif _git(worktree, "merge-base", "--is-ancestor", fetched, onto).returncode:
-        _say("the local %s at %s does not descend from origin/%s at %s; nothing joined" % (stack, onto, stack, fetched))
+        made = _git(worktree, "branch", stack, fetched)
+        if made.returncode:
+            return "", "creating the local %s at origin/%s %s failed (exit %d): %s" % (
+                stack, stack, fetched, made.returncode, " ".join(made.stderr.split())[:200])
+        return fetched, None
+    if _git(worktree, "merge-base", "--is-ancestor", fetched, onto).returncode:
+        return "", "the local %s at %s does not descend from origin/%s at %s" % (stack, onto, stack, fetched)
+    return onto, None
+
+
+def _joined_offline(pr, worktree, branch, stack):
+    onto, refusal = _local_stack(worktree, stack)
+    if refusal:
+        _say(refusal + "; nothing joined")
         return 2
-    base = _base_sha(worktree, branch)
+    try:
+        base = _base_sha(worktree, branch)
+    except _Garbled as garbled:
+        _say(str(garbled))
+        return 2
     rebase = _git(worktree, "rebase", *(["--onto", stack, base] if base else [stack]))
     if rebase.returncode and not _rebasing(worktree):
         _say("git rebase onto the local %s was refused without a conflict (exit %d); nothing joined" % (

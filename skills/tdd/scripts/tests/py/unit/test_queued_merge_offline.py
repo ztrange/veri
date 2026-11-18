@@ -26,7 +26,7 @@ class Offline:
 
     def __init__(self, tmp_path, outage=True, base="stack\n", base_sha=None, local=LOCAL_STACK, rebase=0, fast=0,
                  owed=0, full=0, all_tier="make test\n", checked_out=None, default="trunk", ancestor=True, amend=0,
-                 gate_commits=False, move=0):
+                 gate_commits=False, move=0, fail=()):
         self.clone = str(tmp_path / "clone")
         self.wt = os.path.join(self.clone, ".tdd", "wt", "7")
         admin = os.path.join(self.clone, ".git", "worktrees", "7")
@@ -52,7 +52,7 @@ class Offline:
         self.local, self.rebase, self.fast, self.owed, self.full = local, rebase, fast, owed, full
         self.all_tier, self.checked_out, self.default, self.ancestor, self.amend = (
             all_tier, checked_out, default, ancestor, amend)
-        self.gate_commits, self.move = gate_commits, move
+        self.gate_commits, self.move, self.fail = gate_commits, move, fail
         self.head = [RUN_TIP]
         self.pulls = []
 
@@ -67,6 +67,8 @@ class Offline:
 
     def answer(self, line, **_):
         wt = "git -C %s " % self.wt
+        if any(line.startswith(wt + failing) for failing in self.fail):
+            return 128, "", "fatal: injected\n"
         if line == "git symbolic-ref --quiet --short refs/remotes/origin/HEAD":
             return (0, "origin/%s\n" % self.default, "") if self.default else (1, "", "")
         if line.startswith("git check-ref-format"):
@@ -327,3 +329,22 @@ def test_a_stack_move_git_refuses_is_exit_2_and_prints_no_joined_line(tmp_path, 
     code, out, err = join(run_cli, world)
 
     assert (code, out, world.local) == (2, "", LOCAL_STACK), err
+
+
+@pytest.mark.parametrize("failing, local, base_sha", [
+    ("worktree list", LOCAL_STACK, None),
+    ("rev-parse --verify refs/remotes/origin/stack", LOCAL_STACK, None),
+    ("rev-parse --verify refs/remotes/origin/stack", None, None),
+    ("branch stack", None, None),
+    ("rev-parse --verify HEAD", LOCAL_STACK, None),
+    ("never", LOCAL_STACK, "not a sha"),
+])
+def test_a_git_call_the_offline_join_needs_that_fails_is_exit_2_with_nothing_joined(
+        tmp_path, fake_processes, monkeypatch, run_cli, failing, local, base_sha):
+    world = Offline(tmp_path, local=local, base_sha=base_sha, fail=(failing,)).install(fake_processes, monkeypatch)
+
+    code, out, err = join(run_cli, world)
+
+    moved = [c for c in world.calls if " update-ref " in c]
+    assert (code, out, moved, err.startswith("queued-merge: ")) == (2, "", [], True), err
+    assert [c for c in world.calls if c.startswith("merge-lock.sh")][-1] == "merge-lock.sh release --pid %s" % PID, err
