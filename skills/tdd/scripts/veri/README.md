@@ -42,7 +42,7 @@ Directions the tree obeys (checked by the same test; every group states what it 
 - Ledger and plan imports only: Foundations; Run state and journal
 - Leaf launch and supervision imports only: Foundations; Run state and journal; Ledger and plan; Target suites and tiers; Veri's own test runner; Frozen tests and case history
 - Prompts and leaf reports imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Target suites and tiers
-- Verdicts and verification imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Prompts and leaf reports
+- Verdicts and verification imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Prompts and leaf reports; Target suites and tiers
 - Veri's own test runner imports only: Foundations; Run state and journal
 - Target suites and tiers imports only: Foundations; Run state and journal
 - Budgets and cost imports only: Foundations; Run state and journal
@@ -536,7 +536,7 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 
 # Verdicts and verification
 
-The verifier and adjudicator legs: run the blind verifier, parse its verdict, compare rejects, adjudicate an exit 2. Builds on Prompts and leaf reports, Leaf launch and supervision, Ledger and plan, Run state and journal and Foundations.
+The verifier and adjudicator legs: run the blind verifier, parse its verdict, compare rejects, adjudicate an exit 2. Builds on Prompts and leaf reports, Leaf launch and supervision, Ledger and plan, Run state and journal, Target suites and tiers (whether the tree is veri's own, `run_line`) and Foundations.
 
 - `adjudicate.sh`: budget and record commands of the exit-2 adjudication.
 - `exhausted-outcome.sh`: transform a develop-exhausted leaf's outcome.
