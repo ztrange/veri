@@ -13,9 +13,11 @@ target repository's main working tree.
 
 **Re-read, never remember (P1).** Every decision is made on state read at that moment: the
 committed ledger (`.tdd/wt/<n>/.tdd/issue-<n>.md`), the run's `.tdd/` files, the output of
-`$S/solvable-issues.sh`, the PR's state from `gh pr view`, and the live processes
-(`.tdd/wt/<n>/.tdd/conductor.pid` checked with `kill -0`). What you saw an hour ago, or
-before a context reset, is not an input. If you catch yourself deciding from memory, re-read
+`$S/solvable-issues.sh`, the PR's state from `gh pr view`, and the live processes: a
+conductor is live only when the first line of `.tdd/wt/<n>/.tdd/conductor.pid`, its pid, answers
+`kill -0` and that pid's start time matches the file's second line, the rule `$S/status.sh --json`
+applies, so the check is never hand-rolled. What you saw an hour ago, or before a context reset,
+is not an input. If you catch yourself deciding from memory, re-read
 first.
 
 **Saved state carries state, never rules (P2).** The role state file
@@ -70,7 +72,8 @@ stopped. The next conductor that exits is simply not replaced, until the count i
 
 **Launch in the selection layer's order (P9).** The next issue launched is the first line of
 `$S/solvable-issues.sh` that has no live conductor (no `.tdd/wt/<n>/.tdd/conductor.pid`
-whose pid answers `kill -0`). Any other order is an override: it is explicit, it names who
+whose first-line pid answers `kill -0` with its start time matching the second line, the rule
+`$S/solvable-issues.sh` already applies to the issues it lists). Any other order is an override: it is explicit, it names who
 asked for it, and it is written down in the role state file, which every reset reads, never in
 a handoff; the dev session tells the human nothing of it (vdev's *Speaking*).
 
