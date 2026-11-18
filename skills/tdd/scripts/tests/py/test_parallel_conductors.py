@@ -1183,6 +1183,10 @@ def test_a_stopped_conductor_s_context_is_no_longer_watched_and_the_conductor_be
 
 
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_help_prints_a_usage_line_naming_continue_on_bail_as_its_one_argument_and_no_repo(parallel_conductors, run_cli):
+    assert run_cli(parallel_conductors, ["--help"]) == (0, "usage: parallel-conductors.sh [--continue-on-bail]\n", "")
+
+
 def test_any_argument_list_but_none_or_the_single_continue_on_bail_is_exit_2_with_the_usage_line_alone_on_stderr_and_no_conductor_launched(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
     gh = tmp_path / "gh"

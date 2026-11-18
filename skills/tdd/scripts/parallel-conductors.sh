@@ -7,6 +7,6 @@
 # word, set-but-empty — is a misconfigured run, not a decision: a diagnostic on stderr and
 # exit 2 before anything is launched, never a guess at how much to spend.
 #
-# Usage:   parallel-conductors.sh [--repo owner/name] [--continue-on-bail]
+# Usage:   parallel-conductors.sh [--continue-on-bail]
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/parallel_conductors.py" "$@"
