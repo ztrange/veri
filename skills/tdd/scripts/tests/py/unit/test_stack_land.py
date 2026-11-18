@@ -66,3 +66,12 @@ def test_stack_red_sh_exiting_2_exits_2_running_nothing_after_it(monkeypatch, ru
     code, out, err = run_cli(stack_land, [])
 
     assert (code, out, world.scripts) == (2, "", [("stack-red.sh",)]), err
+
+
+def test_on_stack_red_sh_exit_3_stack_green_sh_exiting_3_exits_3_nothing_to_land_running_nothing_after_it(
+        monkeypatch, run_cli, stack_land):
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (3, "")})
+
+    code, out, err = run_cli(stack_land, [])
+
+    assert (code, out, world.scripts) == (3, "", [("stack-red.sh",), ("stack-green.sh",)]), err
