@@ -1194,3 +1194,21 @@ def test_4310_a_leg_that_waited_7_seconds_for_a_free_core_writes_one_core_wait_e
     lines = [json.loads(line) for line in journal.read_text().splitlines()] if journal.exists() else []
 
     assert (code, [line.get("seconds") for line in lines if line["event"] == "core-wait"]) == (0, ["7"])
+
+
+def test_4310_a_leg_that_finds_a_core_free_starts_without_writing_a_core_wait_event(pytest_leg, run_cli, monkeypatch, tmp_path):
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    (legs / str(os.getppid())).write_text("15\n")
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)), cwd=str(tree))[0]
+    journal = tree / ".tdd" / "events.jsonl"
+
+    assert (code, "core-wait" in (journal.read_text() if journal.exists() else "")) == (0, False)
