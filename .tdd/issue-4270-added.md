@@ -1,1 +1,2 @@
 - [x] a parked comment whose question is dense with local paths is cut on its redacted text, so the posted body stays within COMMENT_LIMIT − MARGIN characters and BYTE_LIMIT − MARGIN bytes ⟦added⟧ ⟦criterion 1⟧
+- [ ] where the temp dir is `/tmp` and the home `/home/<account>` (Linux), a URL or repo-relative path holding a `/tmp` or `/home/<account>` segment (`https://example.com/a/tmp/x`, `src/tmp/y.py`) comes through a comment unchanged: this machine's spelled paths are matched only at a path start, in both redaction layers ⟦added⟧ ⟦criterion 2⟧
