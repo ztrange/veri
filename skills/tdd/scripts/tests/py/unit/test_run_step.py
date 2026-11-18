@@ -223,3 +223,36 @@ def test_4343_a_step_close_exit_0_with_no_next_line_is_exit_2_named_on_stderr(st
 
     assert (code, err) == (2, "run-step.sh: step-close.sh exited 0 with no next= line\n")
     assert "stage=step-close" in (step.wt / ".tdd" / "issue-12-step").read_text().splitlines()
+
+
+def test_4343_a_ledger_with_no_open_or_refactor_pending_step_exits_3_with_no_call(step):
+    code, out, err, stages = step(ledger="# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+
+    assert (code, stages.names(), out) == (3, [], "")
+    assert err == "run-step.sh: no open step in .tdd/issue-12.md\n"
+
+
+def test_4343_a_clean_run_from_a_seam_removes_the_seam_record(step):
+    (step.wt / ".tdd" / "issue-12-step").write_text("stage=green-half\nstep=%s\n" % STEP)
+
+    code, out, err, stages = step()
+
+    assert (code, stages.names()[0]) == (0, "green-half.sh"), err
+    assert not (step.wt / ".tdd" / "issue-12-step").exists()
+
+
+def test_4343_a_missing_preflight_file_is_exit_2_before_any_call(step, tmp_path):
+    (tmp_path / ".tdd" / "issue-12-preflight").unlink()
+
+    code, out, err, stages = step()
+
+    assert (code, stages.names()) == (2, [])
+    assert ".tdd/issue-12-preflight" in err
+
+
+def test_4343_a_seam_record_naming_another_step_is_not_resumed(step):
+    (step.wt / ".tdd" / "issue-12-step").write_text("stage=step-close\nstep=zero ⟦criterion 1⟧\n")
+
+    code, out, err, stages = step()
+
+    assert (code, stages.names()) == (0, list(STAGES)), err
