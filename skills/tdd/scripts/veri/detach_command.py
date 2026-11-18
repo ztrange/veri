@@ -122,7 +122,10 @@ def main(argv):
     total = None
     if argv[:1] == ["wait"] and "--total" in argv[2:-1]:
         at = argv.index("--total", 2)
-        total, argv = int(argv[at + 1]), argv[:at] + argv[at + 2:]
+        total, argv = entry.whole_number(argv[at + 1], minimum=0), argv[:at] + argv[at + 2:]
+        if total is None:
+            print(USAGE, file=sys.stderr)
+            return 2
     alone = None
     if argv[:1] == ["wait"] and len(argv) >= 4 and argv[-2] == "--alone":
         alone, argv = argv[-1], argv[:-2]
