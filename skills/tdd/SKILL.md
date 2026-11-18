@@ -1320,8 +1320,8 @@ In that step, after the structural pass (or its `nothing-structural` skip) and b
 ## Detecting the test command
 
 Do not pick it by hand. Run `$S/detect-test-command.sh --tier fast --issue <body-file> --at <base>`
-once, from the target repo's root, with the issue body preflight step 0.3 saved and `<base>` from
-`git merge-base HEAD origin/HEAD`: it prints
+once, from the target repo's root, with the issue body preflight step 0.3 saved and `<base>` the run's
+recorded branch base, `.tdd/issue-<n>-branch-base` in the main working tree (PREFLIGHT.md step 3): it prints
 the one test command of that tier on stdout and exits 0. On **exit 3** it prints nothing — no
 marker it trusts matched — so **bail** with cause `needs-user`, asking the user for the command in the bail comment rather than guessing (`Read` `<base directory>/BAIL.md`).
 
