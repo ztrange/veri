@@ -26,6 +26,7 @@ import role_state
 import markdown_sections
 import decision_log
 from solvable_issues import priority_label, solvable
+import stack_branch
 
 ISO_UTC = "%Y-%m-%dT%H:%M:%SZ"
 
@@ -373,15 +374,23 @@ def running_lines():
     return "\n".join(blocks) or "none"
 
 
-def main_subjects():
-    return subprocess.run(["git", "-C", run_dir.main_tree(missing=""), "log", "main", "--format=%s"],
+def main_subjects(ref="main"):
+    return subprocess.run(["git", "-C", run_dir.main_tree(missing=""), "log", ref, "--format=%s"],
                           capture_output=True, text=True).stdout.splitlines()
 
 
-def waiting_lines():
+def stack_span(root):
+    """stack_branch.ahead(<root>): (stack, default, commits of origin/<default>..origin/<stack>), None when <root> is
+    no main tree or its CLAUDE.md names no stack; stack_branch.Refused when the stack cannot be read."""
+    return stack_branch.ahead(root) if root else None
+
+
+def waiting_lines(stack=None):
+    """Waiting: the bails since status-last, each run whose done pull request has no `(#n)` subject on local main nor,
+    with <stack> named, on origin/<stack> (a joined run is not waiting for a merge), and the decisions since."""
     since = status_last_time() or 0
     lines = []
-    subjects = main_subjects()
+    subjects = main_subjects() + (main_subjects("origin/" + stack) if stack else [])
     for path, events in journals():
         for e in events:
             if e.get("event") == "bail" and e["ts"] > since:
@@ -596,8 +605,9 @@ def main(argv):
         # The window's next start is taken before the decision log is read, and written floored to the second, which
         # the decisions are compared against with >=: one recorded at a boundary may be listed twice, never zero times.
         read_at = time.time()
+        span = stack_span(run_dir.main_tree(missing=""))
         try:
-            waiting = waiting_lines()
+            waiting = waiting_lines(span[0] if span else None)
         except decision_log.Malformed as bad:
             print("status.sh: %s is not a decision record" % bad.where, file=sys.stderr)
             return 2

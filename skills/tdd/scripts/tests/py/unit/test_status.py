@@ -164,3 +164,48 @@ def test_no_case_in_this_suite_calls_a_function_of_veri_status_other_than_main()
                     and node.func.attr != "main"})
 
     assert calls == []
+
+
+def report_tree(tmp_path, monkeypatch, status, journals):
+    """A main tree at <tmp_path> for --report, its runs' journals {issue: [event, ...]}, each opened by a
+    conductor-start."""
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
+    runs = tmp_path / "home" / "runs" / "acme-widgets"
+    runs.mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+    for issue, events in journals.items():
+        start = {"ts": 1793600000, "awake": 0, "event": "conductor-start", "pid": 2 ** 22 + 7, "started": "x"}
+        write_events(runs / ("%s.jsonl" % issue), [start] + events)
+
+
+def logs_answer(logs):
+    """A fake_processes answer: `git ... log <ref> ...` reads logs[<ref>] ("" for a ref it does not name); any other
+    command reads nothing."""
+    def answer(line, **_):
+        words = line.split()
+        if line.startswith("git ") and "log" in words:
+            return 0, next((text for ref, text in logs.items() if ref in words), ""), ""
+        return 0, "", ""
+    return answer
+
+
+def section(out, name):
+    """The lines of the --report section headed <name>, up to the blank line that ends it."""
+    lines = out.splitlines()
+    start = lines.index(name) + 1
+    return lines[start:lines.index("", start)] if "" in lines[start:] else lines[start:]
+
+
+def test_report_lists_no_run_as_ready_to_merge_whose_done_pr_subject_is_on_the_stack_branch_only_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {"2750": [{"ts": 1793600050, "awake": 50, "event": "done", "pr": 99}]})
+    monkeypatch.setattr(status, "stack_span", lambda root: ("stacky", "main", []), raising=False)
+    fake_processes.answers({"": logs_answer({"main": "fix: elsewhere (#1)\n",
+                                             "origin/stacky": "feat: joined (#2750)\nfix: elsewhere (#1)\n"})})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, [line for line in section(out, "Waiting") if line.startswith("#")]) == (0, []), err
