@@ -208,3 +208,11 @@ def test_4343_every_next_value_run_step_can_print_is_a_script_or_an_anchor_namin
 
     assert (sorted(run_step.KINDS), missing) == (sorted(importlib.import_module("veri.red_half").REFUSED), [])
     assert all(os.path.isfile(os.path.join(skill, "scripts", s)) for s in run_step.NEXT_SCRIPTS)
+
+
+def test_4343_its_calls_are_the_four_stage_scripts_and_never_a_leaf_launcher(step):
+    run_step = importlib.import_module("veri.run_step")
+    _, _, _, stages = step()
+
+    assert run_step.CALLS == STAGES == tuple(stages.names())
+    assert not {"run-leaf.sh", "detach-leaf.sh", "supervise.sh"} & set(run_step.CALLS)

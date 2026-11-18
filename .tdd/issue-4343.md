@@ -11,5 +11,5 @@
 - [x] a stage's record seam is a designed stop: run-step.sh ends on seam=<stage> code=1 reason=record and exits 1, as every designed stop does ⟦criterion 8⟧
 - [x] it prints each stage's call line with its exit code and never the contents of a leaf's or suite's output file ⟦criterion 9⟧
 - [x] every next= anchor it can print names a heading in its file, watched go red against a renamed heading ⟦criterion 10⟧
-- [ ] its CALLS tuple names the four stage scripts and no run-leaf.sh, detach-leaf.sh or supervise.sh ⟦criterion 12⟧
+- [x] its CALLS tuple names the four stage scripts and no run-leaf.sh, detach-leaf.sh or supervise.sh ⟦criterion 12⟧
 - [ ] `skills/tdd/SKILL.md#Red — one failing test (developer leaf), then verify-red (blind)`, `#Green — …` and `#Refactor loop — …` call run-step.sh once for a cycle step in place of the four fused-call lines, SKILL.md no larger ⟦skill-edit⟧ ⟦criterion 11⟧
