@@ -275,6 +275,8 @@ Inconsistent mark: stopped=budget-spent, but transforms=1 is below budget=3
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | total | 50 | 588 | 880 | 1172 | 1464 | 6.62 (estimate) |
 
+Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
+
 Green rejects by route: none
 """
 
