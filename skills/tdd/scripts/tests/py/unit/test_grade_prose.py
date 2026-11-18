@@ -1944,3 +1944,37 @@ def test_a_pass_through_a_non_default_reader_in_a_tree_whose_signature_takes_no_
     err = capsys.readouterr().err
     named = ("signature-formula-disagreement" in err, "unit.md" in err)
     assert (grading.code, grading.out, named, (tmp_path / "GRADED").exists()) == (2, "", (True, True), False), err
+
+
+def test_4336_convert_reads_each_requirements_md_once_per_call_and_writes_the_signatures_signature_gives(
+        tmp_path, monkeypatch, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.chdir(tmp_path)
+    colours = {"a.md": "blue", "b.md": "red", "c.md": "green"}
+    for unit, colour in colours.items():
+        (tmp_path / unit).write_text("The widget is painted a deep %s.\n" % colour)
+    (tmp_path / "REQUIREMENTS.md").write_text("".join(
+        "## %s\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is %s. | because |\n\n" % (unit, colour)
+        for unit, colour in colours.items()))
+    signatures = {unit: grade_prose.signature("REQUIREMENTS.md", unit) for unit in colours}
+    (tmp_path / "GRADED").write_text("".join(
+        "%s %s 2026-11-18 grading-id 0123456789ab\n" % (unit, sig) for unit, sig in signatures.items()))
+    reads = []
+    read_lines = grade_prose.requirements.read_lines
+
+    def counted(path):
+        reads.append(path)
+        return read_lines(path)
+
+    monkeypatch.setattr(grade_prose.requirements, "read_lines", counted)
+
+    grade_prose.convert("REQUIREMENTS.md")
+
+    written = {line.split(" ")[0]: line.split(" ")[1] for line in (tmp_path / "GRADED").read_text().splitlines()}
+    literal = {"a.md": "f361d178d1bf7ebb72a81b0081587b3f694b6e7676453da140311f85bba28073",
+               "b.md": "bd3a689ff880c6005450fa5f777a1a7ef89c1c534bdc489060f986d6577743e8",
+               "c.md": "a8f7db1812d4fa5debc7f7f069a3664c4a2ac29e448f084ef7444045f7135729"}
+    assert (reads.count("REQUIREMENTS.md"), written == signatures, written == literal) == (1, True, True), (
+        reads, written, signatures)

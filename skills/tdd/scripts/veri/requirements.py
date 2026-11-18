@@ -1,5 +1,6 @@
 """requirements.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
 import glob
 import os
 import re
@@ -81,9 +82,34 @@ def fence_flags(lines):
     return fenced_lines(text)
 
 
-def headings(path):
+_parsed = None
+
+
+def parsed(path):
+    """`path`'s lines and their fence flags, read and parsed once per path inside a `parsed_once` block."""
+    if _parsed is not None and path in _parsed:
+        return _parsed[path]
     lines = read_lines(path)
-    fenced = fence_flags(lines)
+    found = lines, fence_flags(lines)
+    if _parsed is not None:
+        _parsed[path] = found
+    return found
+
+
+@contextlib.contextmanager
+def parsed_once():
+    """Within the block every list is read and parsed once, so a caller signing many units of one list pays for one
+    parse; the memo ends with the block, so no later call sees a stale list."""
+    global _parsed
+    _parsed = {}
+    try:
+        yield
+    finally:
+        _parsed = None
+
+
+def headings(path):
+    lines, fenced = parsed(path)
     return [l[3:] for l, f in zip(lines, fenced) if l.startswith("## ") and not f]
 
 
@@ -140,8 +166,8 @@ def claims(path, unit):
     seen = set()
     inunit = intable = skip = done = tabled = False
     head = 0
-    lines = read_lines(path)
-    fenced = fence_flags(lines) + [False]
+    lines, fenced = parsed(path)
+    fenced = fenced + [False]
     for number, line in enumerate(lines, 1):
         if fenced[number - 1]:
             if inunit and intable:
