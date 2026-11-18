@@ -599,3 +599,11 @@ def test_issue_4335_tier_quiet_test_files_never_answers_with_the_issues_test_com
     body.write_text("## Notes\n\nTest command: bin/docs-suite --strict\n")
 
     assert cli(run_cli, detect, "--tier", "quiet test files", "--issue", str(body), str(repo)) == (0, "bin/quiet-run --dots\n", "")
+
+
+def test_issue_4335_tier_quiet_test_files_exits_3_when_jest_runs_under_a_script_other_than_test(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "package.json").write_text('{\n  "scripts": {\n    "test": "mocha",\n    "lint": "jest"\n  }\n}\n')
+
+    assert cli(run_cli, detect, "--tier", "quiet test files", str(repo)) == (3, "", "")
