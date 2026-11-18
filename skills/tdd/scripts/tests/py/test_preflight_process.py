@@ -90,8 +90,9 @@ def test_a_fresh_run_with_no_branch_base_stops_with_exit_2_never_reading_the_wor
         tmp_path, monkeypatch):
     repo = new_repo(tmp_path / "repo")
     commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n"})
+    record = repo / ".tdd" / "issue-12-branch-base"
 
-    assert set_up_in(repo, monkeypatch) == (2, None)
+    assert (set_up_in(repo, monkeypatch), record.exists()) == ((2, None), False)
 
 
 @pytest.mark.process("git init, commit, checkout, update-ref and symbolic-ref run for real in a scratch repository, then"
@@ -108,6 +109,27 @@ def test_a_fresh_launch_records_the_merge_base_of_head_and_origin_head_and_reads
     answer = set_up_in(repo, monkeypatch)
 
     assert (answer, record.read_text() if record.exists() else None) == ((0, "pytest -q"), base + "\n")
+
+
+@pytest.mark.process("git init, commit, checkout, update-ref and symbolic-ref run for real in a scratch repository, then"
+                     " preflight.set_up's git and detect-test-command.sh calls in it")
+def test_a_fresh_stacked_launch_records_the_merge_base_with_the_stack_it_was_cut_from_as_a_rebase_does_4374(
+        tmp_path, monkeypatch):
+    repo = new_repo(tmp_path / "repo")
+    claude = "veri: fast tests: pytest -q\nveri: stack branch: stack\n"
+    commit_all(repo, "base", **{"CLAUDE.md": claude})
+    origin_head_at(repo)
+    stack = commit_all(repo, "the stack's work", **{"stacked.txt": "joined\n"})
+    git(repo, "update-ref", "refs/remotes/origin/stack", stack)
+    git(repo, "checkout", "-q", "-b", "issue-12")
+    commit_all(repo, "an edited fast line", **{"CLAUDE.md": claude.replace("pytest -q", "true")})
+    (repo / ".tdd").mkdir(exist_ok=True)
+    (repo / ".tdd" / "issue-12-base").write_text("stack\n")
+    record = repo / ".tdd" / "issue-12-branch-base"
+
+    answer = set_up_in(repo, monkeypatch)
+
+    assert (answer, record.read_text() if record.exists() else None) == ((0, "pytest -q"), stack + "\n")
 
 
 @pytest.mark.process("git init, commit, checkout, update-ref and symbolic-ref run for real in a scratch repository, then"
