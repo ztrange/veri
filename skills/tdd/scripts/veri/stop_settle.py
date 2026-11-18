@@ -35,7 +35,7 @@ def main(argv):
 
 def run(n, mode, wt, drop=False):
     """STOPPING.md steps 1-6 in order; 0 once the request is cleared."""
-    for name in live_leaves(wt):
+    for name in leaves(wt, n):
         fused.save_wait(wt, n, NAME, name, {})
         fused.wait(wt, n, NAME, name)
     interrupted = interrupted_by(wt)
@@ -47,19 +47,37 @@ def run(n, mode, wt, drop=False):
     steps = ledger_steps(text or "")
     step = current_or_last_done_record(steps)
     at = "unsettled" if interrupted else boundary(text, steps)
-    fused.mark("4", wt, n, step.text if step else "", "stop", "mode=" + mode, "at=" + at)
-    fused.checked("5", fused.script("comment.sh"), n, "stopped", *noted(wt, note), cwd=wt)
-    fused.checked("6", fused.script("stop-requested.sh"), "--clear", cwd=wt)
+    answered("4", fused.script("event.sh"), "stop", "mode=" + mode, "at=" + at, cwd=wt,
+             env=fused.step_env(n, step.text if step else "", VERI_ACTOR="conductor"))
+    answered("5", fused.script("comment.sh"), n, "stopped", *noted(wt, note), cwd=wt)
+    answered("6", fused.script("stop-requested.sh"), "--clear", cwd=wt)
     return 0
+
+
+def answered(where, *args, **kw):
+    """fused.checked, a nonzero exit stopping it with exit 2: a call that fails gave no answer, never a clean negative
+    (pr_finish.answered's rule)."""
+    try:
+        return fused.checked(where, *args, **kw)
+    except fused.Stop as stop:
+        raise fused.Stop(stop.where, stop.what, 2)
+
+
+def leaves(wt, n):
+    """Step 1's leaves: the one a wait record by this conductor names first, though its process may have ended since
+    that wait ran out, then each still supervised (live_leaves); a record another conductor wrote is removed (FC7)."""
+    resumed = fused.load_wait(wt, n, NAME)
+    live = live_leaves(wt)
+    return ([resumed[0]] if resumed and resumed[0] not in live else []) + live
 
 
 def settle_tree(wt, drop):
     """Step 2 on a tree with no interrupted rebase or merge: a dirty one stops it unless <drop>, then the reset; the
     comment's lines on what it dropped."""
-    dirty = [line for line in fused.checked("2", "git", "status", "--porcelain", cwd=wt).splitlines() if line]
+    dirty = [line for line in answered("2", "git", "status", "--porcelain", cwd=wt).splitlines() if line]
     if dirty and not drop:
         raise fused.Stop("2", "tree-check", 1)
-    fused.checked("2", "git", "reset", "--hard", "HEAD", cwd=wt)
+    answered("2", "git", "reset", "--hard", "HEAD", cwd=wt)
     return dropped(dirty)
 
 
@@ -85,14 +103,21 @@ def remote_sha(said):
 
 
 def interrupted_by(wt):
-    """Step 2's check: (what, how a human finishes it) for an interrupted rebase or merge, else None."""
+    """Step 2's check: (what, how a human finishes it) for an interrupted rebase or merge, else None. Each is read off
+    the path `git rev-parse --git-path` names, so a git that fails is exit 2, never read as no rebase or merge."""
     for name in ("rebase-merge", "rebase-apply"):
-        path = fused.call("git", "rev-parse", "--git-path", name, cwd=wt)[1].strip()
-        if path and os.path.isdir(os.path.join(wt, path)):
+        if os.path.isdir(git_path(wt, name)):
             return "rebase", "`git rebase --continue` or `git rebase --abort`"
-    if fused.call("git", "rev-parse", "-q", "--verify", "MERGE_HEAD", cwd=wt)[0] == 0:
+    if os.path.isfile(git_path(wt, "MERGE_HEAD")):
         return "merge", "`git merge --continue` or `git merge --abort`"
     return None
+
+
+def git_path(wt, name):
+    path = answered("2", "git", "rev-parse", "--git-path", name, cwd=wt).strip()
+    if not path:
+        raise fused.Stop("2", "git rev-parse --git-path %s printed nothing" % name, 2)
+    return os.path.join(wt, path)
 
 
 def noted(wt, note):
@@ -117,11 +142,16 @@ def live(path, name):
 
 
 def committed_ledger(n, wt):
-    """The ledger HEAD holds; None when HEAD holds none. Only the line naming the call is printed, never the ledger."""
+    """The ledger HEAD holds; None when `git ls-tree` finds none there. A git that fails is exit 2, never read as no
+    ledger. Only the line naming the `git show` is printed, never the ledger."""
     path = run_dir.ledger("", n)
+    if not answered("4", "git", "ls-tree", "--name-only", "HEAD", "--", path, cwd=wt).strip():
+        return None
     code, out, _ = fused.run_script("git", "show", "HEAD:" + path, cwd=wt)
     sys.stdout.write(fused.label("git", "show", "HEAD:" + path) + " exit %d\n" % code)
-    return out if code == 0 else None
+    if code != 0:
+        raise fused.Stop("4", "git show HEAD:%s exit %d" % (path, code), 2)
+    return out
 
 
 def boundary(text, steps):
