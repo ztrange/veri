@@ -222,3 +222,17 @@ def test_a_failed_tag_push_exits_2_naming_the_issue_deleting_that_local_tag_keep
 
     assert (code, "#8" in err, world.pushed, world.deleted, world.lock_calls[-1][:2]) == (
         2, True, ["v0.2", "v0.3"], ["v0.3"], ("merge-lock.sh", "release")), err
+
+
+@pytest.mark.parametrize("lock, fetch_fails, said, calls", [
+    (2, False, "merge-lock.sh take exits 2", [("merge-lock.sh", "take")]),
+    (0, True, "unable to access origin", [("merge-lock.sh", "take"), ("git", "fetch"), ("merge-lock.sh", "release")]),
+])
+def test_a_failed_lock_take_fetches_nothing_and_a_failed_tag_fetch_frees_the_lock_each_exiting_2(
+        monkeypatch, run_cli, stack_tag, lock, fetch_fails, said, calls):
+    world = World(monkeypatch, commits=["feat: a (#7)"], titles={"7": "Seven"}, lock=lock, fetch_fails=fetch_fails)
+
+    code, out, err = run_cli(stack_tag, [PR])
+
+    steps = [entry[:2] for entry in world.log if entry[0] == "merge-lock.sh" or entry[1] in ("fetch", "tag", "push")]
+    assert (code, said in err, steps) == (2, True, calls), err
