@@ -46,8 +46,8 @@ def gh_answers(body_file):
 
 
 class Run:
-    """A run's worktree at .tdd/wt/12 on branch `work`, its ledger committed and pushed to a bare remote, the first
-    wait's .tdd/wait-ci.err left empty, and a stub gh; run(answer=None, module="pr_finish") runs pr-finish (or the veri
+    """A run's worktree at .tdd/wt/12 on branch `work`, its ledger committed and pushed to a bare remote, no
+    .tdd/wait-ci.err, and a stub gh; run(answer=None, module="pr_finish") runs pr-finish (or the veri
     <module> named) for issue 12, <answer> standing in for fused.run_script, and returns (code, stdout, stderr)."""
 
     def __init__(self, tmp_path, run_cli):
@@ -65,7 +65,6 @@ class Run:
         self.git("remote", "add", "origin", str(self.remote))
         self.git("push", "-q", "origin", "work")
         (self.wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % self.wt)
-        (self.wt / ".tdd" / "wait-ci.err").write_text("")
         self.body = tmp_path / "body"
         self.body.write_text(BODY)
         bin_dir = tmp_path / "bin"
@@ -113,7 +112,7 @@ def test_4033_the_tick_mark_metrics_commit_push_and_wait_are_made_for_real(tmp_p
 
     assert code == 0, out + err + run.calls.read_text()
     assert git("log", "--format=%s").splitlines()[:2] == ["metrics: what solving #12 cost (#12)",
-                                                          "plan: the full suite is green on CI (#12)"]
+                                                          "plan: the full suite is owed to CI (#12)"]
     assert git("rev-parse", "work", cwd=run.remote) == git("rev-parse", "HEAD")
     assert "- [x] the full suite is green ⟦full-suite⟧" in (wt / ".tdd" / "issue-12.md").read_text()
     assert "- [x] the full suite is green" in run.body.read_text()
