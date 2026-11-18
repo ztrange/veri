@@ -41,8 +41,11 @@ def no_unfaked_process_listing(monkeypatch, dispatch):
 
 @pytest.fixture(autouse=True)
 def target_repo_o_r(monkeypatch, dispatch):
-    """The dispatch's target repo is o/r, the owner/repo every case's PR urls name unless it says otherwise (#3877)."""
-    monkeypatch.setattr(dispatch, "target_repo", lambda: "o/r", raising=False)
+    """The dispatch's target repo is o/r, the owner/repo every case's PR urls name unless it says otherwise (#3877).
+    Returns the real target_repo, for the case that pins where it reads the repo."""
+    real = dispatch.target_repo
+    monkeypatch.setattr(dispatch, "target_repo", lambda: "o/r")
+    return real
 
 
 @pytest.fixture(autouse=True)
@@ -1675,6 +1678,29 @@ def test_queued_merges_still_returns_a_target_repo_pr_whose_url_spells_owner_and
     monkeypatch.setattr(dispatch.subprocess, "run", ps)
 
     assert dispatch.queued_merges() == [url]
+
+
+def test_queued_merges_takes_the_target_repo_from_the_origin_remote_issue_3877(monkeypatch, dispatch, target_repo_o_r, tmp_path):
+    import subprocess
+
+    monkeypatch.setattr(dispatch, "target_repo", target_repo_o_r)
+    monkeypatch.chdir(tmp_path)  # git, though faked, may not be aimed at the repository the tests live in
+    target_url = "https://github.com/acme/widgets/pull/7"
+    other_url = "https://github.com/o/r/pull/9"
+    mine = dispatch.paths.scripts_of(dispatch.__file__)
+    listing = (f"sh {mine}/queued-merge.sh {target_url} /wt branch -\n"
+               f"sh {mine}/queued-merge.sh {other_url} /wt2 branch -\n")
+
+    def run(argv, **kw):
+        if list(argv) == ["git", "remote", "get-url", "origin"]:
+            return subprocess.CompletedProcess(argv, 0, stdout="git@github.com:acme/widgets.git\n", stderr="")
+        if list(argv) == ["ps", "-axo", "args="]:
+            return subprocess.CompletedProcess(argv, 0, stdout=listing, stderr="")
+        raise AssertionError(f"unexpected process {argv}")
+
+    monkeypatch.setattr(dispatch.subprocess, "run", run)
+
+    assert dispatch.queued_merges() == [target_url]
 
 
 def test_main_does_not_report_stalled_when_events_are_older_than_the_stall_window_but_the_conductor_log_is_newer_issue_3360(

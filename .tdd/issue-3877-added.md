@@ -1,0 +1,1 @@
+- [x] queued_merges() reads the target repo from the main working tree's origin remote ⟦added⟧
