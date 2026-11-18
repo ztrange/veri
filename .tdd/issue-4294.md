@@ -5,4 +5,4 @@
 - [x] `cut_cases` returns every case when one holds a quote-bearing regex (`/'/`) returned by `return`, followed in the same case by a string holding `}` (`'a}'`), while an identifier merely ending in `return` still divides ⟦criterion 2⟧
 - [x] `cut_cases` reads an escaped slash inside a regex literal (`/\/(/`) as part of the regex, not its end
 - [x] `cut_cases` reads a slash inside a regex character class (`/[/(]/`) as part of the regex, not its end
-- [ ] `cut_cases` reads a `/` with no closing slash on its own line (`n++ / 2`) as a division, not a regex
+- [x] `cut_cases` reads a `/` with no closing slash on its own line (`n++ / 2`) as a division, not a regex
