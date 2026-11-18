@@ -193,20 +193,55 @@ def registered_workers(legs):
     return sum(count for _, count in registered_legs(legs))
 
 
+def registration(count):
+    """A registry entry's text: the worker count on line 1, this process's start time on line 2 (pid_file.ps_field's
+    `lstart`), or the count alone when ps cannot read it, which then holds no share in another leg's eyes."""
+    started = pid_file.ps_field("lstart", os.getpid())
+    return "%d\n%s\n" % (count, started) if started else "%d\n" % count
+
+
+def leg_state(pid, started):
+    """"alive" when <pid> answers `kill 0` (a PermissionError included) under the start time <started>
+    (pid_file.same_start, the rule the lock-wait marker's reader keeps); "stale" when it is proven not that leg: the pid
+    is gone, or it runs under another start time (a reused pid); "unknown" when neither can be shown: no start time
+    recorded (an older leg's entry), or one ps cannot read now."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return "stale"
+    except PermissionError:
+        pass
+    except (OSError, OverflowError):
+        return "unknown"
+    if not started or not pid_file.ps_field("lstart", pid):
+        return "unknown"
+    return "alive" if pid_file.same_start(started, pid) else "stale"
+
+
 def registered_legs(legs):
+    """The (pid, workers) of each registered leg proven alive under the start time its entry records (leg_state).
+
+    Any other entry holds no share and never fails the read: one whose name is not a pid, an unreadable or malformed one,
+    one with no start time (an older leg's), or one whose pid's start time cannot be read now. An entry proven stale is
+    removed; the others stay. The caller holds the claim lock, so no entry is read half-written."""
     if not legs or not os.path.isdir(legs):
         return []
     holders = []
-    for name in os.listdir(legs):
-        try:
-            if name.isdigit():
-                try:
-                    os.kill(int(name), 0)
-                except PermissionError:
-                    pass
-            holders.append((name, int(open(os.path.join(legs, name)).read())))
-        except (ValueError, OSError):
+    for name in sorted(os.listdir(legs)):
+        if not (name.isascii() and name.isdigit()):
             continue
+        path = os.path.join(legs, name)
+        try:
+            with open(path) as f:
+                lines = f.read().split("\n")
+        except (OSError, ValueError):
+            continue
+        count = lines[0].strip()
+        state = leg_state(int(name), lines[1].strip() if len(lines) > 1 else "")
+        if state == "stale":
+            unregister(path)
+        elif state == "alive" and count.isascii() and count.isdigit():
+            holders.append((name, int(count)))
     return holders
 
 
@@ -223,7 +258,7 @@ def claim():
                 if count >= 1:
                     entry = os.path.join(legs, str(os.getpid()))
                     with open(entry, "w") as f:
-                        f.write(str(count))
+                        f.write(registration(count))
                     if said:
                         event.mark("", event.context(tunables.environment()), "core-wait",
                                    ["seconds=%d" % round(time.monotonic() - began)])
