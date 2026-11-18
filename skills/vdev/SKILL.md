@@ -197,8 +197,11 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
 - **Last comment ✅ Done.** Review it, and on OK run `$S/github-outage.sh hold <pr-url>` first:
   exit 3 (`.tdd/github-outage` does not exist) merges it through `vmerge`; exit 0 holds it
   instead, since a GitHub outage holds merges, and it is then handled as `voutage` says; exit 2
-  is sent once as a notice (*Speaking*) and nothing is merged. A run that ended with an open question for the human
-  is never merged.
+  is sent once as a notice (*Speaking*) and nothing is merged. Where `$S/stack-branch.sh` exits 0
+  (the target repository's `CLAUDE.md` names a stack branch) the route is the same, the outage hold
+  still in front of it: on the review's OK and the hold's exit 3, `vmerge` joins the run to the
+  stack rather than merging it, as its *Joining a stack* says. A run that ended with an open
+  question for the human is never merged, and never joined.
 
   **Briefing a review, hand-fix or merge subagent here:** the brief also carries the rules in
   the block under "Running the sibling skills" that opens "Every brief for a review, hand-fix or
