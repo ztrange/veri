@@ -236,3 +236,66 @@ def test_outside_veri_verify_diff_reads_its_run_lines_at_the_branch_base_sha_it_
             env={"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}, cwd=repo)
 
     assert run_lines_of((repo / ".tdd" / "verify-diff.prompt").read_text()) == BASE_LINES
+
+
+OWN_LINES = ([TIMED + " changed '<the test files you ran>' make test TESTS=\"<those paths>\""],
+             ['`make test TESTS="<pytest file or node id>"`'])
+
+
+@pytest.mark.process("git init, commit, update-ref and symbolic-ref run for real in a scratch repository, then verify.sh's"
+                     " module in it, launching a real supervise.sh around a stub claude")
+def test_outside_veri_a_branch_that_adds_veris_test_directory_and_a_passing_makefile_still_gets_the_base_commits_run_lines_4263(
+        tmp_path, run_cli):
+    verify = importlib.import_module("veri.verify")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    claude = tmp_path / "claude-pass"
+    write_stub(claude, "printf 'VERDICT: PASS\\nREASON: fine.'\n")
+    commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n"})
+    origin_head_at(repo)
+    git(repo, "checkout", "-q", "-b", "feature")
+    commit_all(repo, "pose as veri's own tree", **{"Makefile": "test:\n\ttrue\n",
+                                                   "skills__tdd__scripts__tests__py__conftest.py": ""})
+    argv = ["red", str(spec), "tests/test_x.py", "test_x"]
+    env = {"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+
+    run_cli(verify, argv, env=env, cwd=repo)
+    committed = run_lines_of((repo / ".tdd" / "verify-red.prompt").read_text())
+    git(repo, "reset", "-q", "--hard", "HEAD~1")
+    (repo / "skills" / "tdd" / "scripts" / "tests" / "py").mkdir(parents=True)
+    (repo / "Makefile").write_text("test:\n\ttrue\n")
+    run_cli(verify, argv, env=env, cwd=repo)
+    uncommitted = run_lines_of((repo / ".tdd" / "verify-red.prompt").read_text())
+
+    assert (committed, uncommitted) == (BASE_LINES, BASE_LINES)
+
+
+@pytest.mark.process("git init and commit run for real in a scratch repository, then build-verify-prompt in it")
+def test_outside_veri_build_verify_prompt_gives_a_branch_base_without_veris_test_directory_its_declared_lines_over_one_the_working_tree_adds_4263(
+        tmp_path, run_cli):
+    build = importlib.import_module("veri.build_verify_prompt")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    base = commit_all(repo, "base", **{"CLAUDE.md": BASE_MD})
+    (repo / "skills" / "tdd" / "scripts" / "tests" / "py").mkdir(parents=True)
+
+    code, out, err = run_cli(build, ["--branch-base", base, "red", str(spec), "tests/test_x.py"], cwd=repo)
+
+    assert (code, run_lines_of(out), err) == (0, BASE_LINES, "")
+
+
+@pytest.mark.process("git init and commit run for real in a scratch repository laid out as veri's own tree, then"
+                     " build-verify-prompt in it")
+def test_inside_veris_own_tree_a_branch_base_holding_its_test_directory_renders_make_test_whatever_claude_md_declares_4263(
+        tmp_path, run_cli):
+    build = importlib.import_module("veri.build_verify_prompt")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    base = commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, "skills__tdd__scripts__tests__py__conftest.py": ""})
+
+    code, out, err = run_cli(build, ["--branch-base", base, "red", str(spec), "tests/test_x.py"], cwd=repo)
+
+    assert (code, run_lines_of(out), err) == (0, OWN_LINES, "")
