@@ -239,3 +239,21 @@ def test_4388_it_prints_one_line_per_call_with_its_exit_code_and_never_a_leaf_or
     assert [line.split(" ")[0] for line in named] == fake.names()
     assert all(line.rsplit(" exit ", 1)[1].isdigit() for line in named)
     assert not {"LEAF-OUT-MARKER", "SUITE-OUT-MARKER", "LEDGER-MARKER"} & (set(out.split()) | set(err.split()))
+
+
+def test_4388_a_leaf_wait_whose_slice_ran_out_exits_3_with_a_wait_record_and_a_second_call_only_waits_again(
+        stop, monkeypatch):
+    _leaves(stop, monkeypatch, live=("develop-red",))
+    (stop.wt / ".tdd" / "conductor.pid").write_text("4242\nThu Nov 18 10:00:00 2026\n")
+    record = stop.wt / ".tdd" / "issue-12-stop-settle-wait"
+    code, out, err, fake = stop(answers={("wait-leaf.sh", None): (3, "", "")})
+
+    assert (code, out.splitlines()[-1], fake.names()) == (3, "waiting on develop-red", ["wait-leaf.sh"])
+    assert json.loads(record.read_text())["conductor"] == {"pid": "4242", "started": "Thu Nov 18 10:00:00 2026"}
+
+    code, out, err, fake = stop()
+
+    assert code == 0, err
+    assert _seq(fake)[0] == ("wait-leaf.sh", "develop-red")
+    assert [c for c in fake.calls if c[0] == "wait-leaf.sh"] == [fake.calls[0]]
+    assert not record.exists()
