@@ -1356,6 +1356,7 @@
 | SC480 | The `metrics.sh` entry says the report holds a `#### Conductor by phase` table, its heading saying the figures are estimated, one row per phase with the conductor's turns and cost, `unknown` for a cost that cannot be priced, and no such table when no conductor log was read. | The catalogue is where a script's output is looked up, and an estimate must say so. |
 | SC498 | The catalogue has a `$S/release-covered.sh <issue-number>` entry: when the issue's title is `Cover the behaviour #<m> refactors` and #<m> is open and labelled `bailed`, it runs `release-issue.sh <m>` and prints `released #<m>`, exit 0; exit 3 when the title has another shape or #<m> is closed or not `bailed`; exit 2 when `gh` gives no answer or `release-issue.sh` exits 2. | The catalogue is where a conductor looks a script up. |
 | SC538 | The `$S/comment.sh` entry says `plan` exits 2 when no fast-tier command is found, with one stderr line naming the missing fast-tier command and nothing posted. | A missing test command is an absent input, not a clean negative; the catalogue must say the script refuses rather than posting a plan with no command. |
+| SC561 | The `detach-command.sh` entry says `wait` takes an optional total bound in seconds, counted from the command's `start`, and that a command still running past it is stopped with its process group and `wait` exits 2 naming the bound, never 3. | The catalogue states every answer the conductor branches on. |
 
 ## skills/tdd/SKILL-EDIT.md
 
