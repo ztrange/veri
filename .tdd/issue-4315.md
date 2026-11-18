@@ -3,7 +3,7 @@
 - [x] while `.tdd/github-outage` exists and the stack is named, `queued-merge.sh` joins onto the local stack under the merge lock (rebase, fast tier, `prose-owed.sh`, fast-forward) with no fetch, push, `gh`, `curl`, PR read, `stack-pr.sh` or `stack-red.sh` ⟦criterion 1⟧
 - [x] the offline join rebases `--onto <stack> <sha>` when `.tdd/issue-<n>-base-sha` exists ⟦criterion 1⟧
 - [x] with the outage file present but `.tdd/issue-<n>-base` absent, the join reads the pull request as before ⟦criterion 1⟧
-- [ ] an absent local `<stack>` is created at `origin/<stack>` as last fetched ⟦criterion 2⟧
+- [x] an absent local `<stack>` is created at `origin/<stack>` as last fetched ⟦criterion 2⟧
 - [ ] a local `<stack>` that `origin/<stack>` is not an ancestor of is exit 2 naming both shas ⟦criterion 2⟧
 - [ ] a local `<stack>` checked out in a worktree is exit 2 naming the worktree ⟦criterion 2⟧
 - [ ] a `<stack>` that `refs/remotes/origin/HEAD` names as the default branch is exit 2, with no `ls-remote` ⟦criterion 2⟧
