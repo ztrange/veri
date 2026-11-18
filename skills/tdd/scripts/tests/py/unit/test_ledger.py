@@ -413,6 +413,7 @@ def test_unit_of_ends_a_heading_unit_at_a_punctuation_closed_backtick_when_a_lat
     ("edit `a/b `c` d` x", "a/b "),
     ("edit `a/b.md#H `\t per `foo` x", "a/b.md#H "),
     ("edit `a/b.md#H `` y` z", "a/b.md#H `` y"),
+    ("edit `a/b.md#Use `foo`` x", "a/b.md#Use `foo`"),
 ])
 def test_unit_of_opens_an_inner_pair_only_at_a_whitespace_preceded_backtick_of_a_closed_heading_unit(text, unit):
     ledger = importlib.import_module("veri.ledger")
