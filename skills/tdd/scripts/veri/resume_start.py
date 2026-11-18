@@ -45,16 +45,53 @@ def run(n):
     settled = fused.read_lines(lines)
     wt = settled["worktree"]
     ledger = os.path.relpath(run_dir.ledger(".", n))
+    if not os.path.exists(os.path.join(wt, added(n))) and grown(wt, ledger):
+        record_existing(n, wt, ledger)
     with open(os.path.join(wt, ledger)) as f:
         text = f.read()
     fused.checked("2", fused.script("next-pending-refactor.sh"), cwd=wt, stdin=text, ok=(3,))
     step = fused.checked("3", fused.script("next-unchecked.sh"), cwd=wt, stdin=text, ok=(0, 3)).strip()
     resuming(n, wt, text, step, [line[len("stray="):] for line in lines if line.startswith("stray=")])
+    if os.path.exists(os.path.join(wt, SUITE_RED)):
+        fused.checked("4", fused.script("suite-red-resume.sh"), "insert", ledger, SUITE_RED, cwd=wt)
     pr_url(wt)
     return 0
 
 
 NOTE = ".tdd/resume-note.md"
+SUITE_RED = ".tdd/resume-suite-red"
+
+
+def quiet(where, *args, wt):
+    """One git call printed as its line and exit, never its output; its stdout, or a Stop at <where>."""
+    code, out, _ = fused.run_script("git", *args, cwd=wt)
+    sys.stdout.write(fused.shown("git", *args) + " exit %d\n" % code)
+    if code != 0:
+        raise fused.Stop(where, fused.shown("git", *args) + " exit %d" % code, code)
+    return out
+
+
+def added(n):
+    return os.path.relpath(run_dir.issue_file(".", n, "-added.md"))
+
+
+def grown(wt, ledger):
+    """Whether the ledger holds step lines its newest plan commit did not."""
+    import ledger_growth
+    sha = ledger_growth.plan_sha(quiet("1", "log", "-E", "--grep=^plan: (scope|rewrite)", "--format=%H %s", wt=wt))
+    if sha is None:
+        raise fused.Stop("1", "no plan commit", 2)
+    planned = set(ledger_growth.step_texts(quiet("1", "show", "%s:%s" % (sha, ledger), wt=wt)))
+    with open(os.path.join(wt, ledger)) as f:
+        return any(step not in planned for step in ledger_growth.step_texts(f.read()))
+
+
+def record_existing(n, wt, ledger):
+    """Sub-step 1's record of the steps the ledger grew before records existed, committed alone."""
+    fused.checked("1", fused.script("ledger-growth.sh"), "record-existing", ledger, cwd=wt)
+    fused.checked("1", "git", "add", added(n), cwd=wt)
+    fused.checked("1", "git", "commit", "-m", "chore: record the steps the ledger grew before its record (#%s)" % n,
+                  cwd=wt)
 
 
 def resuming(n, wt, text, step, stray):
