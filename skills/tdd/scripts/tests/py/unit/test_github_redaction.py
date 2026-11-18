@@ -347,3 +347,17 @@ def test_every_gh_command_line_a_veri_module_names_goes_through_github_bounded_o
              if (file, name) not in GH_SITES] + shell_gh_sites(veri_modules_index)
 
     assert stray == [], "a gh call outside github.bounded would post unredacted: " + ", ".join(stray)
+
+
+def test_published_redacts_a_local_path_only_at_a_path_boundary_and_keeps_its_trailing_punctuation_4270(
+        github, monkeypatch, tmp_path):
+    # Another account's home, and this run's temp directory pinned under tmp_path: only the pattern is under test.
+    monkeypatch.setenv("HOME", "/Users/someone-else")
+    monkeypatch.setenv("TMPDIR", str(tmp_path))
+    monkeypatch.setattr("tempfile.tempdir", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    kept = ("/tmpfile /homepage https://example.com/home/tmp/x skills/tdd/scripts/veri/github.py "
+            ".tdd/wt/7/.tdd/issue-7.md 1/2")
+    text = kept + " path=/tmp/x, /Users/someone/x.py, /home/someone/y.py; /Users/someone/z.md: /home/someone/w.py."
+
+    assert github.published(text) == kept + " path=<tmp>/x, <path>, <path>; <path>: <path>."
