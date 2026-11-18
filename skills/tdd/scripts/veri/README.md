@@ -393,7 +393,7 @@ A run's records on origin's `refs/veri/runs/<n>`: a commit with no parent holdin
 - `redact_local(text, run, also=())`: `text` with the same two layers applied line by line for the run at `run`, each path in `also` written `<repo>` too (a line still leaking after the first is `<redacted>` whole, the other lines kept); `pr_body` passes every PR body it writes through it, and `comment` every bail comment it posts.
 
 ## run_end
-- `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events. `standing_mark(events)`: the mark that ended the run, `{}` when none stands; `MARKS`: the ending events, each to its cause.
+- `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events. `standing_mark(events, ends=MARKS)`: the mark that ended the run, the last of `ends` no `resume` or `step-added` followed, `{}` when none stands; `MARKS`: the ending events, each to its cause.
 - `latest_result(path)`: `(launched, latest result record or None)` of a conductor log. `conductor_log(run_dir, issue)`: its path.
 
 ## stop_modes
@@ -847,7 +847,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `verdict_log(wt)`: the sha256 of `.tdd/verify-refactor.log`, `none` without one: the verdict a refactor-half file was settled after.
 
 ## pr_finish
-- `close(wt, n, url)`: the run's record closed for PR `url` before it is readied: the `⟦full-suite⟧` ticks under `ci`, the `done` mark, the metrics commit, the tree check and the push; `metrics.sh`'s exit code. `LEDGER`, `METRICS`: the ledger and metrics paths, `%s` for the issue.
+- `close(wt, n, url)`: the run's record closed for PR `url` before it is readied: the `⟦full-suite⟧` ticks under `ci`, the `metrics-cut` mark (never `done`, which `pr-finish.sh` writes once CI's first wait is green), the metrics commit, the tree check and the push; `metrics.sh`'s exit code. `mark(wt, n, event, url)`: `event.sh <event> pr=<url>` as the conductor of issue `n`. `LEDGER`, `METRICS`: the ledger and metrics paths, `%s` for the issue.
 - `pr_url(wt)`: the PR url read as `DRAFT-PR.md` sub-step 2 reads it, an empty answer a stop with exit 2. `stacked(name, wt, n)`: the run is stacked (`.tdd/issue-<n>-base`), named on stderr.
 - `answered(where, ...)`: a git call whose failure is a stop with exit 2 (no answer). `dirty(where, wt, left=())`: the changed paths but `left`, a failing `git status` exit 2.
 

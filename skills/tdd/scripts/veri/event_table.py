@@ -53,6 +53,7 @@ EVENTS = {
     "launch-refused": "name:text reason:text",
     "lint": "exit:whole",
     "merged": "pr:url tag:text,empty message:text,empty",
+    "metrics-cut": "pr:url wall_seconds?:whole awake_seconds?:whole lane?:text",
     "mutation-record-restored": "name:text file:text",
     "pin": "",
     "pin-retired": "reason:text",

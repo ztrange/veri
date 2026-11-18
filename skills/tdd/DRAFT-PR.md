@@ -453,11 +453,14 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    again when one is not. Exits **0** (every such file is named or accepted) and **3** (the range
    adds none) go on. Exit **2** (the base did not resolve, or no work tree) is a system
    failure: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`).
-2. **Mark the PR ready for review only once the run's log is closed with the PR's URL and the
-   metrics are rendered, committed and pushed; then read its CI and rewrite the PR into its final form** — one
+2. **Mark the PR ready for review only once the run's metrics are cut with the PR's URL, rendered, committed and
+   pushed; then read its CI, close the run's log with the PR's URL, and rewrite the PR into its final form** — one
    sub-step, in this order, from inside the worktree. Every commit the run's record owes (the `⟦full-suite⟧` ticks owed to
    CI, the `metrics:` commit) is pushed before `pr-ready.sh`, so no records-only push follows the readied PR: the
-   `ready_for_review` run is the one `gates` run, unless a code change (a `⟦ci-repair⟧` step, a rebase) starts another. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
+   `ready_for_review` run is the one `gates` run, unless a code change (a `⟦ci-repair⟧` step, a rebase) starts another.
+   The `done` mark, which every reader of a run's end (`run-finished.sh`, the run's activity, the conductor's needs-user
+   check) takes as the run finished, is still written only once CI's first wait is green, and it is never committed or
+   pushed. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
    there is nothing left here for a PR-creating `gh api` call to do: a second one against a branch that
    already has an open PR is either a refusal that ends the run at its last step, or a second
    PR for the same branch — and then the claim another machine reads and the page a human is
@@ -474,7 +477,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    # $S/tick-issue-criterion.sh as the ⟦full-suite⟧ paragraph above describes, owed to CI (no CI wait has spoken yet, and none is read), then
    #   git add .tdd/issue-<n>.md && git commit -m "plan: the full suite is owed to CI (#<n>)"
    # In every other case skip this: the lines were ticked after a green local run, or none is left.
-   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh metrics-cut pr=<pr-url>
    $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md; metrics=$?
    if [ "$metrics" = 0 ]; then
      git add .tdd/issue-<n>-metrics.md
@@ -518,16 +521,18 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=pr-ready-failed classification="$($S/classify-bail.sh pr-ready-failed)"`,
    and no later line of the block runs. So when no adjudicated `retry` of it exits 0, the block writes its
    `adjudicated` events, then the `pr-ready-failed` bail, and nothing else: no `wait-ci.sh` call follows (in the first call `blocked` makes the wait line skip it and leave `ci` at 0), so no CI deadline is started, no `ci-timeout`, `ci-conflict` or `ci-red` bail follows, no `step-added` event, `⟦ci-repair⟧` ledger line or `plan: repair the red CI check` commit is made and no `gh run view` is asked for. The run **bails** as a **system** failure (`pr-ready-failed`, classified by `classify-bail.sh`) with the PR left a draft, the bail comment carrying the text of `.tdd/pr-ready.err` as its last reason (`Read` `<base directory>/BAIL.md`).
-   A `pr-ready-failed`, `ci-timeout`, `ci-conflict` or `ci-red` bail ends the step there: the `done` mark and the
-   `metrics:` commit came before readying, so the bail is written after them, as the log's last ending, and neither the
-   second block nor sub-step 4's done comment follows it (`Read` `<base directory>/BAIL.md`). Once the first `wait-ci.sh` exited 0, before
+   A `pr-ready-failed`, `ci-timeout`, `ci-conflict` or `ci-red` bail ends the step there, and neither the `done` mark nor
+   the second block nor sub-step 4's done comment follows it: the `metrics-cut` mark and the `metrics:` commit came
+   before readying, and the bail is written after them, as the log's last ending (`Read` `<base directory>/BAIL.md`). Once the first `wait-ci.sh` exited 0, before
    the second block, run `$S/pr-finish.sh <n>`; it makes no wait, so it never exits 3. On exit 0 take
    `.tdd/issue-<n>-refactor-owed-render`, the body's render, from its last lines, and go on at the block's title
    `gh api -X PATCH` line; on any other exit go on by the second block from the point its last line names. It only reads
-   the PR's url and renders: it makes no commit, no push and no CI wait, so the PR stays on the head CI just read. The
+   the PR's url, writes the `done` mark and renders: it makes no commit, no push and no CI wait, so the PR stays on the
+   head CI just read. The
    PR's title and body stay the conductor's. A stacked run never calls it either (exit 2 with `.tdd/issue-<n>-base`
    present); a failing `git` or `gh` call is its exit 2. Otherwise:
    ```
+   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>    # CI's first wait is green: only now is the run read as done
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"
    $S/ledger-growth.sh split .tdd/issue-<n>.md > .tdd/issue-<n>-growth.md; growth=$?
@@ -555,9 +560,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    A failed check does not bail: read its run's log with `gh run view <run-id> --log-failed`,
    append a repair step to the ledger whose text quotes the failing suite and its `FAIL -`
    line — or the error line, when the suite died before writing one — commit the ledger, and
-   return to step 3, *The cycle loop*: the quoted line is that step's red evidence, the same way a red full run's
-   repair step is, and the step's `step-added` event follows the `done` mark written before readying, so the run is no
-   longer read as ended.
+   return to step 3, *The cycle loop*, without the `done` mark: the quoted line is that step's red evidence, the same way
+   a red full run's repair step is, and the step's `step-added` event follows the `metrics-cut` mark written before
+   readying, so the next pass's report is cut afresh.
    A second red CI result after a CI repair step does **bail**, with cause `ci-red`, the way
    a second red full run does — the repair step is one more cycle, not a loop (`Read` `<base directory>/BAIL.md`).
    **CI flakes.** At every `wait-ci.sh` exit 1 — after `pr-ready.sh`, after a CI-conflict rebase or an
@@ -631,8 +636,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    run: a `⟦ci-repair⟧` step's cycle, whose next pass through this step pushes its commits before `pr-ready.sh` and waits
    on the new head with the same block, or a rebase: the conflict rebase above, whose new head the same `wait-ci.sh`
    line reads, or the `merge` skill's before it merges, which reads CI on the head it merges.
-   The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
-   and the issue's wall time: a report rendered before it exists says `unknown` for both. The
+   The `metrics-cut` mark comes before the render because `metrics.sh` reads it, in place of the `done` mark that
+   only CI's green verdict writes, for both the Outcome and the issue's wall time: a report rendered before either
+   exists says the run is still going and gives no wall time. No other reader takes the cut as the run's end, so
+   `run-finished.sh`, the run's activity and the conductor's needs-user check read a run whose first CI wait is pending,
+   or whose conductor died in it, as not done. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
    branch does not yet carry. Since that commit is made before readying, the report counts neither the CI wait after
    readying nor `pr-finish.sh`: its `#### Total` says so in a line of its own, which the body, quoting the report whole,

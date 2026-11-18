@@ -49,12 +49,12 @@ def _launch_cause(run_dir, issue):
     return "usage-limit" if limited else None
 
 
-def standing_mark(events):
-    """The mark that ended the run, the last done, bail, stop or preflight-refused event no resume or step-added
-    followed; {} when none stands."""
+def standing_mark(events, ends=MARKS):
+    """The mark that ended the run, the last event named in <ends> (by default done, bail, stop or preflight-refused)
+    no resume or step-added followed; {} when none stands."""
     mark = {}
     for event in events:
-        if event.get("event") in MARKS:
+        if event.get("event") in ends:
             mark = event
         elif event.get("event") in ("resume", "step-added"):
             mark = {}

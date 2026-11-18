@@ -784,6 +784,19 @@ def launched_efforts(marks):
 
 
 RUN_ENDINGS = ("done", "bail", "stop")
+CUT = "metrics-cut"
+
+
+def cut_as_done(marks):
+    """(the journal, None), or, when a `metrics-cut` line stands (no later done, bail, stop, preflight-refused, resume
+    or step-added line follows it), (the journal with that line read as a `done` line, that line) (#4332): the report
+    committed before the PR is readied ends where the cut was written, while the `done` mark waits for CI's green
+    verdict."""
+    cut = run_end.standing_mark(marks, (*run_end.MARKS, CUT))
+    if cut.get("event") != CUT:
+        return marks, None
+    done = dict(cut, event="done")
+    return [done if line is cut else line for line in marks], done
 
 
 def runs_of(marks):
@@ -908,16 +921,18 @@ def rejects_json(outcomes, wanted):
 BESIDE = "the run whose .tdd/ holds the journal"
 
 
-def fold(issue, path, ledger, run=BESIDE):
+def fold(issue, path, ledger, run=BESIDE, cut=False):
     """Read the journal at `path` (and the ledger and files beside it) into a `Fold`; prints nothing. `run` is the run
     directory whose end, conductor stream log and pins are read: by default the one whose `.tdd/` holds `path`; None
     reads the journal alone (the ledger too may be None), whose run has ended only when a mark ends it (else `ended`
-    is None: not known) and whose conductor spend is not known."""
+    is None: not known) and whose conductor spend is not known. `cut` reads a standing `metrics-cut` line as the
+    run's `done` (cut_as_done): the markdown report takes it, the JSON figures never do."""
     if run is BESIDE:
         run, beside, roots = os.path.dirname(os.path.dirname(os.path.abspath(path))), path, pin_roots()
     elif run is not None:
         beside, roots = run_dir.run_file(run, "events.jsonl"), pin_roots(run)
     marks, former = reworded(read_events(path))
+    marks, cut = cut_as_done(marks) if cut else (marks, None)
     clocked = bool(marks) and all("awake" in mark for mark in marks if "ts" in mark)
     models = {(mark.get("step", ""), mark.get("phase", ""), mark.get("attempt", ""), mark.get("actor")):
               mark["model"] for mark in marks if mark.get("event") == "usage" and "model" in mark}
@@ -932,6 +947,8 @@ def fold(issue, path, ledger, run=BESIDE):
         ended, cause = (True, run_end.MARKS[ending["event"]]) if ending else (None, None)
     else:
         ended, cause, ending = run_end.run_end(run)
+        if cut is not None and not ending:  # the run's own end is read off its events file, which a cut never ends
+            ended, cause, ending = True, run_end.MARKS["done"], cut
     ending = ending or None
     wall_span, awake_span = wall_and_awake_spans(tally.opening, ending, clocked)
     planned, full_suite = planned_steps(ledger) if ledger is not None else (None, 0)
@@ -1283,8 +1300,9 @@ def layout(f):
 
 
 def render(issue, path, ledger):
-    """Print the report of `issue`: the journal at `path` and the ledger at `ledger`, folded then laid out."""
-    layout(fold(issue, path, ledger))
+    """Print the report of `issue`: the journal at `path` and the ledger at `ledger`, folded then laid out, a standing
+    `metrics-cut` line read as the run's end (#4332)."""
+    layout(fold(issue, path, ledger, cut=True))
 
 
 def usage_dollars(usage, prices):
