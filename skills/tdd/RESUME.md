@@ -29,7 +29,12 @@ default branch, whatever the previous bail's cause — saves the branch-red list
 Run `$S/resume-start.sh <n>` first, again on exit 3. On exit 0 it made sub-steps 1–4's fixed calls and the owed
 verify-plan: take **STEP**, `<pr-url>` and the verdict from its last lines `step=`, `pr_url=` and `verify_plan=`
 (`PASS` or `skip`), commit an `insert`'s ledger as sub-step 4 says, and run the cycle loop. On exit 1 or 2 go on by
-the sub-step its `stopped at` line names.
+the sub-step its `stopped at` line names. It asks sub-step 2's pending refactor before sub-step 1's record: only when
+`next-pending-refactor.sh` exits 3 does it make that record, committed alone as
+`chore: record the steps the ledger grew before its record (#<n>)`; a pending refactor stops it at 2 with no record
+made, so no commit lands between that step's green commit and its refactor. A stop at 4 after its
+`comment.sh <n> resuming` line exited 0 has already marked the resume and posted the Resuming comment: do not repeat
+them.
 
 1. Do **not** re-plan — the ledger is the source of truth — except that the amended
    criteria are planned with `--planned` in sub-step 3. Re-write only the blind spec
@@ -38,6 +43,8 @@ the sub-step its `stopped at` line names.
    committed ledger holds step lines beyond its plan commit and there is no
    `.tdd/issue-<n>-added.md`, run `$S/ledger-growth.sh record-existing .tdd/issue-<n>.md` once, before
    the resume's first ledger commit, and stage `.tdd/issue-<n>-added.md` in that same commit with the ledger.
+   `resume-start.sh` makes this record only when no refactor is pending, as its own commit; after its stop at 2
+   the record is still owed here, staged with sub-step 2's cleared-ledger commit.
    A passed `⟦skill-edit⟧` step that a post-review change must redo is reopened with
    `$S/ledger-growth.sh reopen .tdd/issue-<n>.md <needle> <change>`, which records the step itself (exit 3: no ticked step matches; exit 2: ambiguous needle or not a `⟦skill-edit⟧` step).
 2. **Use the reset preflight already made, then ask for a pending refactor.** Whatever killed
