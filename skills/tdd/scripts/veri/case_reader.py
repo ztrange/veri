@@ -94,9 +94,10 @@ def _call_end(text, opening):
 
 
 def _divides(text, opening, slash):
-    # A "/" right after an operand (a name, a number, a closing paren or bracket) is a division; else a regex opens.
+    # A "/" right after an operand (a name, a number, a closing paren or bracket) is a division; else, or right
+    # after the keyword return, a regex opens.
     before = text[opening:slash].rstrip()
-    return before[-1:].isalnum() or before[-1:] in "_$)]"
+    return (before[-1:].isalnum() or before[-1:] in "_$)]") and not re.search(r"\breturn\Z", before)
 
 
 def _literal_call_end(text, opening):
