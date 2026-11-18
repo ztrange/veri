@@ -110,6 +110,10 @@ def _literal_call_end(text, opening):
             if i < 0:
                 return None
             i += 1
+        elif text[i] == "/":
+            i = text.find("/", i + 1)
+            if i < 0:
+                return None
         elif text[i] in "'\"`":
             quote = text[i]
         elif text[i] == "(":
