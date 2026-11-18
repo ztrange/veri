@@ -1,6 +1,7 @@
 """Cases for pr-finish.sh (PRD 027.11, #4033) that start a real process: the shim's usage, and the ⟦full-suite⟧ tick,
-the done mark, the metrics commit and the push to a real remote that pr-ready-wait.sh makes before readying (#4332),
-made by the real scripts, against a stub gh."""
+the metrics-cut mark, the metrics commit and the push to a real remote that pr-ready-wait.sh makes before readying,
+and the done mark pr-finish.sh writes once CI's first wait is green (#4332), made by the real scripts, against a stub
+gh."""
 import importlib
 import json
 import os
@@ -117,11 +118,16 @@ def test_4033_the_tick_mark_metrics_commit_push_and_wait_are_made_for_real(tmp_p
     assert "- [x] the full suite is green ⟦full-suite⟧" in (wt / ".tdd" / "issue-12.md").read_text()
     assert "- [x] the full suite is green" in run.body.read_text()
     marks = [json.loads(line) for line in (wt / ".tdd" / "events.jsonl").read_text().splitlines()]
-    assert [(m["event"], m.get("pr")) for m in marks if m["event"] == "done"] == [("done", URL)]
+    assert [(m["event"], m.get("pr")) for m in marks if m["event"] in ("done", "metrics-cut")] == [("metrics-cut", URL)]
     head = git("rev-parse", "HEAD")
     code, out, err = run.run(monkeypatch)
     assert (code, out.splitlines()[-1]) == (0, "refactor_owed_render=.tdd/issue-12-refactor-owed-render"), out + err
     assert (git("rev-parse", "HEAD"), git("rev-parse", "work", cwd=run.remote)) == (head, head)
+    marks = [json.loads(line) for line in (wt / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(m["event"], m.get("pr")) for m in marks if m["event"] in ("done", "metrics-cut")] == [
+        ("metrics-cut", URL), ("done", URL)]
+    readied = [line for line in run.calls.read_text().splitlines() if line.startswith("ready at: ")]
+    assert readied == ["ready at: metrics: what solving #12 cost (#12)"]
 
 
 @pytest.mark.process("git with a bare remote and every inner script real but metrics.sh, a stub that writes its file "
@@ -165,3 +171,34 @@ def test_4033_4034_the_file_a_failed_metrics_render_left_does_not_stop_run_done_
     assert code == 0, out + err
     assert out.splitlines()[-2:] == ["stop_requested=3", "cleared=0"]
     assert "issues/12/comments" in run.calls.read_text()
+
+
+@pytest.mark.process("pr-ready-wait.sh with git, a bare remote and every inner script real but wait-ci.sh, a stand-in "
+                     "whose slice ran out, then the run's readers: run_end, run_activity, run_conductor.closed and "
+                     "run-finished.sh, against a stub gh")
+@pytest.mark.parametrize("alive", [True, False], ids=["conductor still waiting", "conductor died in the wait"])
+def test_4332_while_the_first_ci_wait_is_pending_no_reader_takes_the_run_as_done(tmp_path, run_cli, monkeypatch,
+                                                                                  alive):
+    import conftest
+    fused = importlib.import_module("veri.fused")
+    run_end, run_activity = importlib.import_module("run_end"), importlib.import_module("run_activity")
+    run_conductor, run_finished = importlib.import_module("run_conductor"), importlib.import_module("veri.run_finished")
+    run = Run(tmp_path, run_cli)
+    real = fused.run_script
+
+    def answer(name, *args, **kw):
+        return (3, "", "") if os.path.basename(name) == "wait-ci.sh" else real(name, *args, **kw)
+
+    code, out, err = run.run(monkeypatch, answer, module="pr_ready_wait")
+    assert (code, out.splitlines()[-1]) == (3, "waiting on wait-ci.sh"), out + err
+    if alive:
+        conftest.live_conductor(monkeypatch, run.wt / ".tdd", "12")
+    monkeypatch.setattr(run_conductor, "run_worktree", lambda issue: str(run.wt))
+    monkeypatch.setattr(run_finished.layout, "main_tree", lambda **_: str(tmp_path))
+
+    marks = [json.loads(line) for line in (run.wt / ".tdd" / "events.jsonl").read_text().splitlines()]
+    finished = run_cli(run_finished, ["12"], cwd=str(tmp_path), env={"PATH": run.path, "CALLS": str(run.calls)})
+    assert (run_end.run_end(str(run.wt))[2], run_conductor.closed("12")) == ({}, False)
+    assert run_activity.activity(str(run.wt)).state == ("running" if alive else "stale")
+    assert finished[0] == 1 and finished[1].startswith("not-done "), finished
+    assert [m["event"] for m in marks if m["event"] in ("done", "metrics-cut")] == ["metrics-cut"]
