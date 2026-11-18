@@ -327,10 +327,13 @@ def set_up(n, slug, detect):
 def ci_green(wt):
     """Whether CI's `CI` workflow concluded `success` on the commit under test."""
     sha = call("git", "rev-parse", "HEAD", cwd=wt)[1].strip()
-    out = call("gh", "run", "list", "--workflow", "CI", "--commit", sha, "--limit", "1",
-                 "--json", "headSha,status,conclusion", cwd=wt)[1]
+    code, out, _ = call("gh", "run", "list", "--workflow", "CI", "--commit", sha, "--limit", "1",
+                        "--json", "headSha,status,conclusion", cwd=wt)
+    if code != 0:
+        return False
     try:
-        return json.loads(out)[0]["conclusion"] == "success"
+        latest = json.loads(out)[0]
+        return (latest["headSha"], latest["status"], latest["conclusion"]) == (sha, "completed", "success")
     except (ValueError, LookupError, TypeError):
         return False
 
