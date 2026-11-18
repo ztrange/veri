@@ -199,6 +199,11 @@ def fails_at_head(gate, output):
         shutil.rmtree(scratch, ignore_errors=True)
 
 
+def merge_base():
+    """The merge base of HEAD and origin/HEAD, or "" when git names none."""
+    return leaf_tree_guard.git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
+
+
 def red_gate_failure():
     for gate in (g.strip() for g in tunables.read("VERI_TEST_CMD").split("&&")[:-1]):
         passed, output = passes_in(gate, ".")
@@ -298,12 +303,12 @@ def main(argv):
         return entry.to_contract(build_verify_prompt.refuse("build-verify-prompt: too many arguments"))
     base = ""
     if words[0] in ("pin", "surround"):
-        base = leaf_tree_guard.git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
+        base = merge_base()
         if not base:
             write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; a %s needs the real before-state" % words[0])
             return 2
     elif not run_line.own_tree() and os.path.exists(".git"):
-        base = leaf_tree_guard.git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
+        base = merge_base()
         if not base and leaf_tree_guard.git("config", "--get", "remote.origin.url").returncode == 0:
             write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; the %s verifier reads its run lines"
                   " from CLAUDE.md there" % words[0])
