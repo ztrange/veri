@@ -991,3 +991,15 @@ def test_check_earlier_on_a_tdd_branch_without_veri_issue_exits_2_for_a_ledger_t
     code, _, err = run_cli(tests_frozen, ["check-earlier", ".tdd/plan-ledger.md", "--step", step], cwd=tmp_path)
 
     assert (code, ".tdd/issue-5.md" in err, list((tmp_path / ".tdd").glob("check-earlier-*.pass"))) == (2, True, [])
+
+
+def test_check_earlier_with_veri_issue_accepts_the_runs_own_ledger_by_its_absolute_path_and_writes_its_pass_marker_4295(
+        tmp_path, run_cli, tests_frozen, based, monkeypatch):
+    monkeypatch.setenv("VERI_ISSUE", "5")
+    step = "step two adds another"
+    ledger = tmp_path / ".tdd/issue-5.md"
+    ledger.write_text("- [ ] %s\n" % step)
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=tmp_path / "tests")
+
+    assert (code, out, len(list((tmp_path / ".tdd").glob("check-earlier-*.pass")))) == (0, "", 1)
