@@ -757,6 +757,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 Unless the step carries `⟦diff-checked⟧`, `⟦phases:`, `⟦skill-edit⟧` or `⟦fixture-repair⟧`, run
 `$S/red-half.sh <n>` first, again on exit 3; on 0 its last lines hold `test_path`, `target_test`,
 `red_test_id`; else go on from the sub-step it names.
+Red by hand ends `$S/seam-settle.sh <n> red-half test_path=<path> target_test=<id>`.
 
 1. **Develop.** Before the prompt is built, run `$S/refresh-spec.sh <n> .tdd/issue-<n>-spec.md`.
    Exit 0 and exit 3 go on, and exit 0 is named in the step's `### 🔴 Red` comment as a
@@ -785,7 +786,7 @@ Unless the step carries `⟦diff-checked⟧`, `⟦phases:`, `⟦skill-edit⟧` o
    self-contained (never runs another suite, whole or sliced, and never re-runs its own). A
    criterion that cannot be pinned within those rules is not weakened into one that can —
    the leaf reports it untestable instead (below).
-   You supply only those variables; the template's instructions are the same every run. The leaf's report is in `.tdd/develop-red.out`, and ends with the lines you branch on — `TEST_PATH:`, `TARGET_TEST:`,
+   The leaf's report is in `.tdd/develop-red.out`, and ends with the lines you branch on — `TEST_PATH:`, `TARGET_TEST:`,
    `AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE`, `WHY:`, `FAIL_OUTPUT:` — so take the
    **test path** and **target test id** from the first two and read the third for the next
    sub-step.
@@ -909,6 +910,7 @@ Unless the step carries `⟦diff-checked⟧`, `⟦phases:`, `⟦skill-edit⟧` o
 After a clean `red-half.sh`, unless the step carries `⟦replaces-case⟧` or `⟦ci-repair⟧`, run
 `$S/green-half.sh <n>` first, again on exit 3; on 0 its last lines hold `step`, `green_sha`,
 `test_path`, else go on from the sub-step it names.
+Green by hand ends `$S/seam-settle.sh <n> green-half test_path=<path>`.
 
 1. **Develop.** Build the prompt from the `green` template — the **minimum** production
    code, no generality the test does not demand, the **test itself untouched**, the
@@ -921,7 +923,7 @@ After a clean `red-half.sh`, unless the step carries `⟦replaces-case⟧` or `�
    $S/wait-leaf.sh develop-green  # foreground; again on exit 3
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
-   The test path and target test id come from Red's report. The leaf's report is
+   The test path and target test id come from Red's report.    The leaf's report is
    in `.tdd/develop-green.out`, and ends with `IMPL_PATH:` (the production files it created
    or changed) and `SUITE: GREEN | RED` plus the suite's final summary line; both go into the
    narration below.
@@ -1069,6 +1071,7 @@ After a clean `red-half.sh`, unless the step carries `⟦replaces-case⟧` or `�
 On the step's first pass run `$S/refactor-half.sh <n>` first, again on exit 3;
 on 0 its last lines hold `count`, `budget`, `stopped`, `touched`, `uncovered_spec`, else go on from the
 sub-step it names.
+The loop by hand ends `$S/seam-settle.sh <n> refactor-half`, with the keys `$S/script-help.sh seam-settle.sh` lists.
 
 The loop is stage `refactor-loop`, one end per start: entering it, unless `refactor-half.sh` got past its exit-2 refusals or 3 resumes it (it stays open through a triangulation), `VERI_ISSUE=<n> $S/event.sh stage-start stage=refactor-loop; date +%s > .tdd/stage-rl.t`,
 and when it ends `VERI_ISSUE=<n> $S/event.sh stage-end stage=refactor-loop status=<exit code> secs=$(($(date +%s)-$(cat .tdd/stage-rl.t)))`:
@@ -1126,10 +1129,9 @@ that push; else the ending call's code (a bail's too).
    verify-refactor then judges only what the resumed loop landed.
    **A step's triangulation runs at most once.** The loop resumed there is another refactor leaf reading the files the triangulation just generalized,
    so it can raise an `overfit` flag about that same code a second time. So a flag raised inside a triangulation's own refactor loop about the same
-   code is **narrated** in the `### 🛠️ Refactor` comment at 6 as a follow-up, not triangulated again: the step keeps what the second leaf saw on the
-   record and spends nothing more on it.
+   code is **narrated** in the `### 🛠️ Refactor` comment at 6 as a follow-up, not triangulated again.
 4. **An `uncovered-spec` flag is the one class that grows the plan.** A `FLAGS:` line whose class is **uncovered-spec** names a behaviour the issue's
-   spec requires that **no ledger step covers** — the gap *Scope & plan* above asks the planner to catch, found late by a leaf reading the code. That
+   spec requires that **no ledger step covers**. That
    is the **only** flag class a plan amendment is made from: its behaviour is carried, verbatim as a criterion, into the `add-ledger-step.sh
    --criterion <k> … after "<STEP>"` call for the criterion it serves at 6's PASS branch, one call per criterion, beside the verdict's own
    `uncovered-spec` flags, so the missing step is planned and built like any other. No other class amends the plan — an **overfit** flag is answered
