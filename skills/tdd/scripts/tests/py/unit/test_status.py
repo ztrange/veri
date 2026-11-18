@@ -202,7 +202,7 @@ def section(out, name):
 def test_report_lists_no_run_as_ready_to_merge_whose_done_pr_subject_is_on_the_stack_branch_only_issue_4320(
         tmp_path, monkeypatch, fake_processes, run_cli, status):
     report_tree(tmp_path, monkeypatch, status, {"2750": [{"ts": 1793600050, "awake": 50, "event": "done", "pr": 99}]})
-    monkeypatch.setattr(status, "stack_span", lambda root: ("stacky", "main", []), raising=False)
+    stack_reads(monkeypatch, status, span=("stacky", "main", []))
     fake_processes.answers({"": logs_answer({"main": "fix: elsewhere (#1)\n",
                                              "origin/stacky": "feat: joined (#2750)\nfix: elsewhere (#1)\n"})})
 
@@ -216,11 +216,8 @@ def test_report_lists_a_done_run_as_merge_state_unknown_when_the_stack_subjects_
         tmp_path, monkeypatch, fake_processes, run_cli, status, failure):
     report_tree(tmp_path, monkeypatch, status, {"2750": [{"ts": 1793600050, "awake": 50, "event": "done", "pr": 99}]})
 
-    def span(root):
-        if failure == "span":
-            raise status.stack_branch.Refused("git fetch origin got no answer (exit 128)")
-        return "stacky", "main", []
-    monkeypatch.setattr(status, "stack_span", span)
+    stack_reads(monkeypatch, status, span=status.stack_branch.Refused("git fetch origin got no answer (exit 128)")
+                if failure == "span" else ("stacky", "main", []))
     log = logs_answer({"main": "fix: elsewhere (#1)\n"})
     fake_processes.answers({"": lambda line, **kw: (128, "", "fatal: bad object\n") if "origin/stacky" in line.split()
                             else log(line, **kw)})
@@ -234,7 +231,7 @@ def test_report_lists_a_done_run_as_merge_state_unknown_when_the_stack_subjects_
 def test_report_lists_a_done_run_as_ready_to_merge_when_the_named_stack_is_not_yet_on_origin_issue_4320(
         tmp_path, monkeypatch, fake_processes, run_cli, status):
     report_tree(tmp_path, monkeypatch, status, {"2750": [{"ts": 1793600050, "awake": 50, "event": "done", "pr": 99}]})
-    monkeypatch.setattr(status, "stack_span", lambda root: ("stacky", "main", []))
+    stack_reads(monkeypatch, status, span=("stacky", "main", []))
     log = logs_answer({"main": "fix: elsewhere (#1)\n"})
 
     def answer(line, **kw):
@@ -249,3 +246,39 @@ def test_report_lists_a_done_run_as_ready_to_merge_when_the_named_stack_is_not_y
 
     assert (code, [line for line in section(out, "Waiting") if line.startswith("#")]) == (
         0, ["#2750 PR 99 ready to merge"]), err
+
+
+STACK = [("a1" * 20, "feat: one (#11)"), ("a2" * 20, "test: one more (#11)"), ("b1" * 20, "feat: two (#12)"),
+         ("c1" * 20, "feat: three (#13)")]
+
+
+def stack_reads(monkeypatch, status, span=("stacky", "main", STACK), scripts=None, tracking=None, landed=("7", "8")):
+    """Injects the stack's three reads: git (stack_span answers <span>), the scripts (stack_script answers
+    scripts[<name>], by default stack-green.sh at the third commit and stack-red.sh exit 3) and GitHub (tracking_pull
+    answers <tracking>, landed_slices <landed>); a value that is an exception is raised instead."""
+    scripts = {"stack-green.sh": (0, STACK[2][0] + "\n"), "stack-red.sh": (3, ""), **(scripts or {})}
+
+    def answering(value):
+        def read(*args):
+            if isinstance(value, Exception):
+                raise value
+            return value
+        return read
+    monkeypatch.setattr(status, "stack_span", answering(span), raising=False)
+    monkeypatch.setattr(status, "stack_script", lambda root, name: answering(scripts[name])(), raising=False)
+    monkeypatch.setattr(status, "tracking_pull", answering(tracking), raising=False)
+    monkeypatch.setattr(status, "landed_slices", answering(set(landed) if isinstance(landed, tuple) else landed),
+                        raising=False)
+
+
+def test_report_prints_a_stack_section_between_landed_and_running_with_its_joined_tested_and_landed_counts_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {})
+    stack_reads(monkeypatch, status)
+    fake_processes.answers({"": logs_answer({})})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    heads = [line for line in out.splitlines() if line in ("Landed", "Stack", "Running")]
+    assert (code, heads, section(out, "Stack")) == (
+        0, ["Landed", "Stack", "Running"], ["stacky: joined 3, tested 2, landed 2 in 24h"]), (out, err)

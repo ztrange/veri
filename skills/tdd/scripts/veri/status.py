@@ -27,6 +27,7 @@ import markdown_sections
 import decision_log
 from solvable_issues import priority_label, solvable
 import stack_branch
+import stack_green
 
 ISO_UTC = "%Y-%m-%dT%H:%M:%SZ"
 
@@ -384,6 +385,76 @@ def subject_log(ref):
                           capture_output=True, text=True)
 
 
+SLICE_WINDOW = 24 * 3600  # the landed count's window: slices merged in the last 24 hours
+
+
+def stack_script(root, name):
+    """(exit code, stdout) of the sibling script <name> run in <root>, bounded by VERI_GIT_NETWORK_TIMEOUT (exit 2
+    when it is killed there); its stderr is passed on when it exits 2, so a figure it leaves unread says why."""
+    ran = github.bounded_group([os.path.join(paths.SCRIPTS, name)], limit_name="VERI_GIT_NETWORK_TIMEOUT", cwd=root,
+                               stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    code = 2 if isinstance(ran, github.TimedOut) else ran.returncode
+    if code == 2:
+        sys.stderr.write(ran.stderr or "status.sh: %s gave no answer\n" % name)
+    return code, ran.stdout or ""
+
+
+def tracking_pull(stack, default):
+    """The url of the one open pull request from <stack> to <default>, None when none is open; github.NoAnswer when
+    GitHub gave none or two or more are open. Read only: unlike stack-pr.sh, it never opens one."""
+    pulls = github.stack_pulls(stack, default)
+    if len(pulls) > 1:
+        raise github.NoAnswer("", "%d open pull requests track %s" % (len(pulls), stack))
+    return pulls[0].html_url if pulls else None
+
+
+def landed_slices(stack, default, since):
+    """The issue numbers (strings) named by `Closes #<n>` in the slice pull requests (head `<stack>-slice-*`, in this
+    repository) merged into <default> at or after epoch <since>: the closed pull requests onto <default>, newest
+    updated first, read 100 to a page until a page ends updated before <since> (a merge updates its pull request, so
+    none after it merged later), at most github.PULL_PAGES pages. github.NoAnswer for a failed read, an answer not a
+    list of pull requests, or pages past the bound."""
+    found = set()
+    for page in range(1, github.PULL_PAGES + 1):
+        run = github.gh_api("repos/{owner}/{repo}/pulls?state=closed&base=%s&sort=updated&direction=desc"
+                            "&per_page=100&page=%d" % (default, page), stderr=subprocess.PIPE)
+        if run.returncode:
+            raise github.NoAnswer("", "reading the slices merged into %s: %s" % (
+                default, " ".join((run.stderr or "").split())[:200] or "exit %d" % run.returncode))
+        try:
+            items = json.loads(run.stdout or "")
+        except ValueError:
+            items = None
+        if not isinstance(items, list) or not all(isinstance(raw, dict) for raw in items):
+            raise github.NoAnswer("", "the slices merged into %s: the answer is not a list of pull requests" % default)
+        for raw in items:
+            head, base = raw.get("head") or {}, raw.get("base") or {}
+            merged = raw.get("merged_at")
+            if (isinstance(head, dict) and isinstance(base, dict) and base.get("ref") == default
+                    and str(head.get("ref") or "").startswith(stack + "-slice-")
+                    and ((head.get("repo") or {}).get("full_name") or None) == ((base.get("repo") or {}).get("full_name") or 0)
+                    and isinstance(merged, str) and calendar.timegm(time.strptime(merged, ISO_UTC)) >= since):
+                found.update(github.closed_issues(raw.get("body") or ""))
+        updated = [raw.get("updated_at") for raw in items]
+        if len(items) < 100 or any(isinstance(u, str) and calendar.timegm(time.strptime(u, ISO_UTC)) < since
+                                   for u in updated[-1:]):
+            return found
+    raise github.NoAnswer("", "the slices merged into %s ran past %d pages of 100" % (default, github.PULL_PAGES))
+
+
+def stack_lines(root, span):
+    """The Stack section's lines for <span> (stack_span's answer)."""
+    stack, default, commits = span
+    issues = [stack_green.named(subject) for _, subject in commits]
+    joined = len(set().union(*issues))
+    code, said = stack_script(root, "stack-green.sh")
+    shas = [sha for sha, _ in commits]
+    cut = said.split()[0] if code == 0 and said.split() else None
+    tested = len(set().union(*issues[:shas.index(cut) + 1])) if cut in shas else 0
+    landed = len(landed_slices(stack, default, time.time() - SLICE_WINDOW))
+    return ["%s: joined %d, tested %d, landed %d in 24h" % (stack, joined, tested, landed)]
+
+
 def stack_absent(stack):
     """Whether origin holds no branch <stack> as the main tree last fetched it: `git rev-parse --verify` of its
     remote-tracking ref says it is absent (exit 1), not that it could not be read."""
@@ -638,7 +709,8 @@ def main(argv):
         except decision_log.Unreadable as bad:
             print("status.sh: cannot read the decision log %s: %s" % (bad.path, bad.reason), file=sys.stderr)
             return 2
-        print("%s\nLanded\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (zone_line(), landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting) + unjournaled_notes())
+        stack = "\n\nStack\n" + "\n".join(stack_lines(run_dir.main_tree(missing=""), span)) if span else ""
+        print("%s\nLanded\n%s%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (zone_line(), landed_lines(), stack, running_lines(), snapshot_line(), queue_counts(), waiting) + unjournaled_notes())
         queue = {}
         try:
             label, _issues, opted_in = opted_in_issues()
