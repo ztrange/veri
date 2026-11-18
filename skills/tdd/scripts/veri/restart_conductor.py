@@ -149,6 +149,8 @@ def main(argv):
         misses = 0
         reasons = []
         while misses < 3:
+            if asked and _stop_mark(run) not in (None, mark):
+                foreign = True
             if not conductor_alive(run):
                 misses += 1
                 reasons.append(pid_file.not_live_reason(_run_dir(run)))
@@ -169,8 +171,6 @@ def main(argv):
                 stop_run("at-ledger", run)
                 asked = True
                 mark = _stop_mark(run)
-            elif asked and _stop_mark(run) not in (None, mark):
-                foreign = True
             sleep(5)
         for reason in reasons:
             print(f"restart-conductor.sh: conductor read not-live: {reason}")
