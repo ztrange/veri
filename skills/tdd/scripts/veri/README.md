@@ -393,6 +393,7 @@ A run's records on origin's `refs/veri/runs/<n>`: a commit with no parent holdin
 - `after_push()`: pushes the records of the issue the current branch `tdd/<n>-<slug>` names, replacing the ref; nothing on another branch; a failure is one stderr line, never raised.
 - `read(issue, name, cwd)`: the text of `.tdd/<name>` in origin's ref, fetched into the clone at `cwd` under the same ref; `None` when origin, the ref or the file is missing.
 - `redact_local(text, run, also=())`: `text` with the same two layers applied line by line for the run at `run`, each path in `also` written `<repo>` too (a line still leaking after the first is `<redacted>` whole, the other lines kept); `pr_body` passes every PR body it writes through it, and `github.published` every comment body veri posts.
+- `PATH_START`, `PATH_END`: regular-expression sources for the boundary before and after a local path, so `/tmpfile` is no `/tmp`; `github.published` builds its pattern on them.
 
 ## run_end
 - `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events. `standing_mark(events, ends=MARKS)`: the mark that ended the run, the last of `ends` no `resume` or `step-added` followed, `{}` when none stands; `MARKS`: the ending events, each to its cause.
