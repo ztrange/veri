@@ -172,6 +172,7 @@ What a fused script after preflight shares (PRD 027 FC1-FC4, FC10, FC14).
 - `lists(path="REQUIREMENTS.md")`: the REQUIREMENTS.md files that exist. `tracked(name)`: git-tracked files of that name; RuntimeError when `git ls-files` fails.
 - `listed_units(path)`, `claims(path, unit)`: the units a list names; a unit's rows as `<id>\t<requirement>` lines (ValueError `path:line: reason` on a malformed table).
 - `read_lines(path)`, `requirements_lines(lines)`: a file's lines; `(heading, line)` pairs of its `## Requirements` section.
+- `parsed_once()`: a context manager inside which each list is read and fence-parsed once (`headings` and `claims` share it); the memo ends with the block. Not reentrant.
 - `split_cells(line)`, `table_cells(line)`: a table row's cells. `well_formed_row_id(row_id)`: bool. `malformed_row_id(lines)`: the first bad id, `None` when fine.
 - `list_path(unit)`: the `REQUIREMENTS.md` beside a unit.
 
