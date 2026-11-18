@@ -410,6 +410,25 @@ def test_4029_a_revised_pass_whose_log_flags_uncovered_spec_stops_it_though_the_
         "uncovered_spec", "", "a later verdict's flag")
 
 
+def test_a_refactor_half_record_that_exists_but_cannot_be_read_is_exit_2_not_the_seam_4342(close):
+    """SC4's split: only a missing record is the exit-1 seam; one that cannot be read (here a directory) is no answer."""
+    (close.wt / ".tdd" / "issue-12-refactor-half").mkdir()
+    code, out, err, fake = close()
+
+    assert (code, fake.calls, "seam=" in out) == (2, [], False)
+
+
+def test_a_refused_record_refreshed_event_stops_it_with_exit_2_and_leaves_the_record_4342(close, monkeypatch):
+    """SC2: a rewrite whose event is refused stops the stage (exit 2) before the record is written."""
+    monkeypatch.setattr(importlib.import_module("veri.step_close").fused_step.event, "mark", lambda *a, **k: 2)
+    stale = REFACTOR_HALF % "one thing works ⟦added⟧ ⟦criterion 1⟧"
+    code, out, err, fake = close(half=stale)
+
+    assert (code, fake.calls) == (2, [])
+    assert out.splitlines()[-1] == "stopped at step-close record-refreshed event refused"
+    assert (close.wt / ".tdd" / "issue-12-refactor-half").read_text() == stale
+
+
 def test_log_flags_the_record_was_settled_after_add_nothing_to_it_4342(close):
     """#4029's rule reads the log's flags only for a verdict the record was not settled after: a log an earlier step
     left behind, which refactor-half saw and wrote no `uncovered_spec=` for, does not stop the close."""

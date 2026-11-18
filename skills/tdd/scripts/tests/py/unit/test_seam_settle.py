@@ -55,6 +55,7 @@ def test_it_writes_green_halfs_and_refactor_halfs_records_the_step_from_the_ledg
     (("green-half", "test_path"), "empty key test_path"),
     (("green-half", "test_path=a", "test_path=b"), "repeated key test_path"),
     (("green-half", "test_path=a\nstep=other"), "newline in key test_path"),
+    (("green-half", "test_path=a\rstep=other"), "newline in key test_path"),
     (("refactor-half", "green_sha=" + GREEN_SHA), "unknown key green_sha"),
     ((), "usage: seam-settle.sh <n> <stage> key=value…"),
 ])
@@ -71,3 +72,14 @@ def test_no_open_step_for_the_stage_is_exit_2_named_on_stderr_and_no_record_4342
     code, out, err, record = settle(stage, *argv, ledger="# Plan for #12\n\n- [x] done ⟦criterion 1⟧\n")
 
     assert (code, "no open step" in err, record) == (2, True, None)
+
+
+@pytest.mark.parametrize("answer", [(128, "", "fatal: not a git repository"), (0, "\n", "")],
+                         ids=["git fails", "no commit changed the ledger"])
+@pytest.mark.parametrize("stage, argv", [("green-half", ("test_path=a",)), ("refactor-half", ())])
+def test_no_green_commit_from_git_is_exit_2_and_no_record_4342(settle, monkeypatch, answer, stage, argv):
+    """green_sha's committed source gave no answer: no record is written with an empty or made-up green_sha."""
+    monkeypatch.setattr(importlib.import_module("veri.fused"), "run_script", lambda *a, **k: answer)
+    code, out, err, record = settle(stage, *argv)
+
+    assert (code, "git log -1" in err, record) == (2, True, None)
