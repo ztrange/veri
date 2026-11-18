@@ -7,6 +7,7 @@ import sys
 import fused
 import fused_step
 import pid_file
+import run_dir
 from ledger import ledger_steps
 from ledger_steps import current_or_last_done_record
 
@@ -117,7 +118,7 @@ def live(path, name):
 
 def committed_ledger(n, wt):
     """The ledger HEAD holds; None when HEAD holds none. Only the line naming the call is printed, never the ledger."""
-    path = ".tdd/issue-%s.md" % n
+    path = run_dir.ledger("", n)
     code, out, _ = fused.run_script("git", "show", "HEAD:" + path, cwd=wt)
     sys.stdout.write(fused.label("git", "show", "HEAD:" + path) + " exit %d\n" % code)
     return out if code == 0 else None
