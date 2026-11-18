@@ -17,6 +17,9 @@ import stack_fix
 import tunables
 
 USAGE = "usage: stack-land.sh [--now]"
+# A merge refusal naming the repository's rules: gh's own, for a pull request its base branch's rules block, and
+# GitHub's, for a merge a ruleset refuses.
+RULES = r"base branch policy|Repository rule violations"
 
 
 def _pulls_onto(stack):
@@ -147,7 +150,17 @@ def main(argv):
             pr = _read("opening the pull request from %s to %s" % (slice_branch, default), github.pr_open, slice_branch,
                        default, "Land %s at %s" % (stack, cut[:10]), _closes(stack, default, cut))
         repo, number = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)
-        merge_common.merge(lambda gh, *args: github.run_gh(*args).returncode, pr, repo, number, cut, driver="graphql")
+        said = []
+
+        def gate(gh, *args):
+            run = github.run_gh(*args, stderr=subprocess.PIPE)
+            said.append(run.stderr or "")
+            return run.returncode
+
+        code = merge_common.merge(gate, pr, repo, number, cut, driver="graphql")
+        if re.search(RULES, said[-1]):
+            return _freed("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock freed,"
+                          " nothing retried" % (pr, code, " ".join(said[-1].split())))
     except _Unanswered as unanswered:
         return _freed("%s; the merge lock freed, nothing merged" % unanswered)
 
