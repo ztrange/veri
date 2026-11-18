@@ -123,6 +123,15 @@ def _freed(line):
     return entry.refuse(line, prefix="stack-land: ")
 
 
+def _declined(line, pr):
+    """Free the merge lock this process holds, then say <line> on stderr, adding that nothing merged and the slice branch
+    and its pull request <pr> are kept: a clean negative (exit 1)."""
+    stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
+    print("stack-land: %s; nothing merged, the merge lock freed, the slice branch and %s kept" % (line, pr),
+          file=sys.stderr)
+    return 1
+
+
 def main(argv):
     if argv not in ([], ["--now"]):
         return entry.refuse(usage=USAGE)
@@ -200,19 +209,12 @@ def main(argv):
             try:
                 head = _rebased(cut, default)
             except _Conflict as conflict:
-                stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
-                print("stack-land: the rebase of the slice branch %s onto origin/%s conflicts: %s; nothing merged, the"
-                      " merge lock freed, the slice branch and %s kept" % (slice_branch, default,
-                                                                          " ".join(str(conflict).split()), pr),
-                      file=sys.stderr)
-                return 1
+                return _declined("the rebase of the slice branch %s onto origin/%s conflicts: %s"
+                                 % (slice_branch, default, " ".join(str(conflict).split())), pr)
             git.network("push", "--force-with-lease=%s:%s" % (slice_branch, cut), "origin",
                         "%s:refs/heads/%s" % (head, slice_branch), cwd=".")
             if merge_common.ci_wait(lambda: stack_fix.script("wait-ci.sh", pr, "540", "", head)[0]) == 1:
-                stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
-                print("stack-land: CI is red on the rebased head %s of the slice branch %s; nothing merged, the merge"
-                      " lock freed, the slice branch and %s kept" % (head, slice_branch, pr), file=sys.stderr)
-                return 1
+                return _declined("CI is red on the rebased head %s of the slice branch %s" % (head, slice_branch), pr)
         code = merge_common.merge(gate, pr, repo, number, head, driver="graphql")
         if re.search(RULES, said[-1]):
             return _freed("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock freed,"
