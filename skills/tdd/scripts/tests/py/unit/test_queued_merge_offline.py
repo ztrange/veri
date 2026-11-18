@@ -348,3 +348,13 @@ def test_a_git_call_the_offline_join_needs_that_fails_is_exit_2_with_nothing_joi
     moved = [c for c in world.calls if " update-ref " in c]
     assert (code, out, moved, err.startswith("queued-merge: ")) == (2, "", [], True), err
     assert [c for c in world.calls if c.startswith("merge-lock.sh")][-1] == "merge-lock.sh release --pid %s" % PID, err
+
+
+def test_with_the_outage_file_and_a_recorded_base_naming_another_branch_nothing_joins_offline_and_the_join_refuses_as_before(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, base="trunk\n").install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    rebased = [c for c in world.calls if " rebase " in c]
+    assert (code, rebased, world.local, "records the base" in err) == (2, [], LOCAL_STACK, True), err
