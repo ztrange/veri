@@ -245,6 +245,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    exit "$rc"; }
    ```
    After the units the run signed, the block runs `$S/grade-prose.sh --convert` on the tree, so a unit the default branch signed under a formula the branch replaces is re-signed under the tree's before the rebased tip's full suite; its exit is folded into the block's highest exit code.
+   Right after the block, with or without a rebase, commit the `GRADED` files the block modified, and only those (a `GRADED` file modified before the block stays out), as `docs: regrade the prose the branch signed (#<n>)`; when it modified none, commit nothing.
 
    Run `$S/refactor-owed.sh list .tdd/issue-<n>-refactor-owed.md` once, before the PR is readied.
    When it prints a candidate (exit 0), then and not before, run the issue's one structural pass:
