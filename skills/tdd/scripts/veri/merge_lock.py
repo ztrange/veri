@@ -165,6 +165,10 @@ def _take(lock, record, args):
                 return 2
             missing = 0
             if _reused(text, holder):
+                for dead_owner in text.split()[3:4]:
+                    for path in _token_files(lock):
+                        if _read(path).strip() == dead_owner:
+                            os.remove(path)
                 print(f"stale lock: {text.strip()}; clear it with merge-lock.sh release --force", file=sys.stderr)
                 return 2
             if _clock() - started >= limit:

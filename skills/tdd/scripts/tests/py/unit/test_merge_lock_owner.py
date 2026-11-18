@@ -1,6 +1,8 @@
 """take, release and holder of veri/merge_lock.py under an --owner token."""
 import os
 
+import pytest
+
 from veri import merge_lock
 
 
@@ -299,3 +301,23 @@ def test_3793_second_release_by_the_previous_owner_leaves_the_token_of_the_holde
     merge_lock._release(lock, record, ["--pid", me, "--owner", "A"])
     again = merge_lock._release(lock, record, ["--pid", me, "--owner", "A"])
     assert (again, os.path.isdir(lock), (git_dir / "veri-merge-2.token").read_text()) == (1, True, "B\n")
+
+
+@pytest.mark.parametrize("holder_pid, alive, recorded", [("99999", False, "t"), (str(os.getpid()), True, "earlier")],
+                         ids=["dead", "reused"])
+def test_4372_take_on_a_dead_or_reused_holder_removes_only_the_token_file_holding_that_holders_owner(
+        tmp_path, monkeypatch, holder_pid, alive, recorded):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    monkeypatch.setattr(merge_lock, "_lstart", lambda pid, env=None: "t")
+    me = str(os.getpid())
+    monkeypatch.setattr(merge_lock, "_alive", lambda pid: str(pid) == me or alive)
+    lock = tmp_path / ".tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    (lock / "holder").write_text(f"{holder_pid} host {recorded} token-a\n")
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    (git_dir / "veri-merge-42.token").write_text("token-a\n")
+    (git_dir / "veri-merge-43.token").write_text("token-b\n")
+    code = merge_lock._take(str(lock), str(lock / "holder"), ["--pid", me, "--owner", "token-c"])
+    left = sorted(p.name for p in git_dir.glob("veri-merge-*.token"))
+    assert (code, left) == (2, ["veri-merge-43.token"])
