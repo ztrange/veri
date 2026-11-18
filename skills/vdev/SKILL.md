@@ -282,6 +282,8 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   as a notice with their stderr. Where a stack is named, the standing merge permission in the
   project repo (*Starting*) covers `$S/stack-land.sh` and nothing else that reaches the default
   branch: no other push, merge or rebase onto it. `--now` is run only when the human asks for it.
+  You never rebase a live run's branch across a landing: the run carries itself at its own join,
+  whose rebase onto the stack is the run's, so its branch keeps one writer.
 
 After routing a `dispatch.sh` line, and launching any held resume the freed slot now takes, start
 `dispatch.sh` again as one background command. Then take the slot decision.
