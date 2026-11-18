@@ -3,6 +3,7 @@ git.network), GitHub (github.gh_api) and the merge lock (stack_fix.script) are i
 process."""
 import importlib
 import json
+import os
 import re
 import subprocess
 
@@ -256,3 +257,20 @@ def test_a_repository_with_no_version_tag_to_bump_from_exits_2_saying_so_nothing
 
     assert (code, "no vN.M tag" in err, world.cut, world.lock_calls[-1][:2]) == (
         2, True, [], ("merge-lock.sh", "release")), err
+
+
+# "refactor" is a commit type stack_tag classifies, not a label, so unlike stack_land's list it is not refused here.
+NAMED = re.compile(r"ztrange|mario|ferreira|github\.com/\w|#[0-9]+|[\"'/](main|master)\b|[\"']stack[\"']"
+                   r"|ready-for-agent|refactor-owed|author-read|[\"'](priority|bug|legacy)[\"']|gates",
+                   re.IGNORECASE)
+
+
+def test_stack_tag_and_its_shim_name_no_repository_issue_branch_label_or_person(stack_tag):
+    shim = os.path.join(os.path.dirname(os.path.dirname(stack_tag.__file__)), "stack-tag.sh")
+    named = []
+    for path in (stack_tag.__file__, shim):
+        with open(path, encoding="utf-8") as f:
+            named += ["%s:%d: %s" % (os.path.basename(path), n, line) for n, line in enumerate(f, 1)
+                      if NAMED.search(line)]
+
+    assert named == []
