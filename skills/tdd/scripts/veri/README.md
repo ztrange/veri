@@ -748,7 +748,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `issue-worktree.sh`: create or reuse the worktree of an issue's run.
 - `lint-repair.sh`: compose the redacted repair step a red lint gets.
 - `merge-lock.sh`: take, release and gate on the merge lock.
-- `merge_common`: the merge call, the settle-window read (`VERI_MERGE_SETTLE_READS`, `VERI_MERGE_SETTLE_SLEEP`) and the CI wait a landing makes, each taking the call it makes so the caller keeps its own process seam.
+- `merge_common`: the merge call, the settle-window read (`VERI_MERGE_SETTLE_READS`, `VERI_MERGE_SETTLE_SLEEP`) and the CI wait a landing makes, each taking the call it makes so the caller keeps its own process seam; the merge call's optional `driver` is used instead of `VERI_GH_DRIVER`, so a caller can demand `gh pr merge <pr> --rebase --match-head-commit <head>`.
 - `pr-body.sh`: write a pull request's body.
 - `pr-ready.sh`: mark a pull request ready.
 - `push-branch.sh`: push the run's branch.
