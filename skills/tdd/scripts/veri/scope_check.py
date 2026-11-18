@@ -1,10 +1,11 @@
-"""scope-check.sh's plan checks, run in-process: pytest basename collisions, multi-tag steps, skill-edit units with no Requirements heading or no path-shaped unit."""
+"""scope-check.sh's plan checks, run in-process: pytest basename collisions, multi-tag steps, plain steps naming a row of a unit a later skill-edit step signs, skill-edit units with no Requirements heading or no path-shaped unit."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import re
 import sys
 
 import event
+import grade_prose
 import ledger
 import requirements
 import tunables
@@ -41,6 +42,40 @@ def skill_edit_refused(steps, spec_text):
     return False
 
 
+def signed_rows(root, unit):
+    """The row IDs `unit` lists in the REQUIREMENTS.md beside its file, when its GRADED file signs it; else none."""
+    graded = os.path.join(root, grade_prose.graded_path(unit))
+    if not any(fields[0] == unit for fields in grade_prose.graded_lines(graded)):
+        return []
+    listing = os.path.join(root, requirements.list_path(unit))
+    if not os.path.exists(listing):
+        return []
+    try:
+        rows = requirements.claims(listing, unit)
+    except ValueError:
+        return []
+    return [row.split("\t")[0] for row in rows.splitlines()]
+
+
+def row_move_refusal(steps, root):
+    """A plain step naming a row of a signed unit a later skill-edit step regrades is red by construction (#3302):
+    the unit owes a grade from that plain step until the skill-edit step signs it."""
+    texts = [record[-1] for record in steps]
+    for later, step in enumerate(texts):
+        if not ledger.is_skill_edit(step):
+            continue
+        unit = ledger.unit_of(step)
+        if unit is None:
+            continue
+        for row_id in signed_rows(root, unit):
+            named = re.compile(r"(?<!\w)" + re.escape(row_id) + r"(?!\w)")
+            for plain in texts[:later]:
+                if not ledger.is_skill_edit(plain) and named.search(plain):
+                    return (f"step names row {row_id} of signed unit {unit}, which a later skill-edit step signs: "
+                            f"{plain}")
+    return None
+
+
 def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
@@ -50,7 +85,7 @@ def main(argv):
     with open(path, encoding="utf-8") as lines:
         text = lines.read()
     steps = ledger.ledger_steps(text)
-    refusal = ledger.multi_tag_refusal(steps)
+    refusal = ledger.multi_tag_refusal(steps) or row_move_refusal(steps, root)
     if refusal:
         print("scope-check.sh: " + refusal, file=sys.stderr)
         return 1
