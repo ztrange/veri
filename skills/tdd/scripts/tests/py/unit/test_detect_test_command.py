@@ -588,3 +588,14 @@ def test_issue_4335_tier_quiet_test_files_exits_3_printing_nothing_for_a_runner_
     (repo / name).write_text(text)
 
     assert cli(run_cli, detect, "--tier", "quiet test files", str(repo)) == (3, "", "")
+
+
+def test_issue_4335_tier_quiet_test_files_never_answers_with_the_issues_test_command(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: quiet test files: `bin/quiet-run --dots`\n")
+    (repo / "Makefile").write_text("test:\n\ttrue\n")
+    body = tmp_path / "body.md"
+    body.write_text("## Notes\n\nTest command: bin/docs-suite --strict\n")
+
+    assert cli(run_cli, detect, "--tier", "quiet test files", "--issue", str(body), str(repo)) == (0, "bin/quiet-run --dots\n", "")
