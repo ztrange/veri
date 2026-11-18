@@ -4,7 +4,7 @@
 - [x] a clean run makes, in order, the lint run (its `lint` event and `### Lint` section), the test-quality check (the empty record on test-quality.sh files exit 3), red-setup.sh worst, coupling.sh, refactor-candidates.sh and unwired.sh with DRAFT-PR.md's arguments, one line per call with its exit code and never .tdd/lint.out's text ⟦criterion 1⟧
 - [x] a clean run settles .tdd/issue-<n>-pr-checks with the candidates url, launching no leaf, appending no ledger step, committing, pushing and readying nothing and running no metrics.sh ⟦criterion 4⟧
 - [x] test-quality.sh files exit 0 stops it with exit 1 at test-quality before the develop-test-quality launch ⟦criterion 2⟧
-- [ ] a non-zero lint writes its event and its `### Lint` section with the output's last 20 lines cut at 300 characters, then stops it with exit 1 at lint, appending no repair step ⟦criterion 2⟧
+- [x] a non-zero lint writes its event and its `### Lint` section with the output's last 20 lines cut at 300 characters, then stops it with exit 1 at lint, appending no repair step ⟦criterion 2⟧
 - [ ] a coupling.sh pair writes the `### Coupling` section, then stops it with exit 1 at coupling, recording no row ⟦criterion 2⟧
 - [ ] an unwired.sh finding stops it with exit 1 at unwired, writing no pending record and no bail ⟦criterion 2⟧
 - [ ] a lint wait whose slice runs out exits 3 with .tdd/issue-<n>-pr-checks-wait, and a second call by the same conductor only waits again, starting no second lint ⟦criterion 3⟧
