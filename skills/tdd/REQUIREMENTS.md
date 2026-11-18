@@ -1410,6 +1410,7 @@
 | SC601 | `pin-recheck.sh` takes `--branch-base <sha>` (`^[0-9a-f]{7,40}$`, exit 2 when missing or malformed) and reads no remote-tracking ref for its base. | The recheck's base decides which pins count as disarmed. |
 | SC596 | The `stack-red.sh` entry says that while `.tdd/github-outage` exists it makes no GitHub call: it prints `<sha> <path> local` and exits 0 when `.tdd/stack-local-red` exists, and exits 3 when it does not. | PRD 033.2b, OL10, D17. |
 | SC599 | The `queued-merge.sh` entry lists `--skip-suite <model-id> <reason>` (only offline, only an id naming `opus` or `fable`, else exit 2), the `Veri-Suite:` trailer line the offline join writes, `.tdd/stack-local-red` written by a red gate over a skipped join, and `--local-green` (exit 0 green and the file removed, 1 red, 2 outside an outage). | PRD 033.2b, OL6, OL9, OL18, OL20. |
+| SC588 | The catalogue lists `$S/bail.sh <n> <cause> <phase> --note-file <path> [--attempt <k>]`: `BAIL.md` sub-steps 1–7 in one call and sub-step 8's report as its last lines; a failing snapshot, metrics render, push, skill-drift read or comment named and gone past, never a refusal; exit 0 the bail done, 2 an unknown cause or bad arguments before any call. | A reader of the catalogue finds the one-call bail and that it never refuses (PRD 038.12). |
 
 ## skills/tdd/SKILL-EDIT.md
 
