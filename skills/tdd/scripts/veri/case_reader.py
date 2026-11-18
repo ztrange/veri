@@ -106,7 +106,7 @@ def _regex_end(text, slash):
         if text[i] in "[]":
             in_class = text[i] == "["
         i += 2 if text[i] == "\\" else 1
-    return i if text[i:i + 1] == "/" else -1
+    return i if text[i:i + 1] == "/" else None
 
 
 def _literal_call_end(text, opening):
@@ -126,7 +126,7 @@ def _literal_call_end(text, opening):
             if i < 0:
                 return None
             i += 1
-        elif text[i] == "/" and not _divides(text, opening, i) and (end := _regex_end(text, i)) >= 0:
+        elif text[i] == "/" and not _divides(text, opening, i) and (end := _regex_end(text, i)) is not None:
             i = end
         elif text[i] in "'\"`":
             quote = text[i]
