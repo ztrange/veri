@@ -139,3 +139,4 @@ skills/tdd/SKILL.md#2.%20Scope%20&%20plan%20→%20the%20ledger cec238a0268d0ce98
 skills/tdd/SKILL.md#Refactor%20loop%20—%20one%20leaf%20applies%20the%20step's%20transforms,%20then%20verify-refactor%20(blind,%20once) 04e6fa2ea6c2076c2198125878ab61117f5d62710d75746df298e06840b92351 2026-11-17 34d63ed5544a45e8aafd49256b054424 748391c71624
 skills/tdd/DRAFT-PR.md fb9f10ffdeb3665894463b5d1ce93a3bd9312c8ad17d17ce790a6c6ccbeae2ed 2026-11-17 3b665559e9724b3c8515545d2a70d2d3 748391c71624
 skills/tdd/SCRIPTS.md ed5971512e508a0beb0508b7c4090604f0ebe97a22d48f5d8aea31dbf93ca736 2026-11-17 7ec8d2b278e6498889ce73daf954eba7 748391c71624
+skills/tdd/scripts/prompts/verify-cover-new.md 3eacdc2c46e8b5695eefafbed3cacda6c390a1a9c48f3456b69689754a62f79e 2026-11-17 7d0977bd24e04dd8aa8bf8a3d9cf5c9e 748391c71624
