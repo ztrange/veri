@@ -448,3 +448,14 @@ def test_after_seam_settle_red_half_green_half_launches_develop_green_with_the_s
     assert fake.call("build-develop-prompt.sh")[1] == ("green", ".tdd/issue-12-spec.md", STEP, "make unit",
                                                        "tests/test_h.py", "test_hand", "make unit")
     assert fake.launched() == ["develop-green", "verdict-green"]
+
+
+def test_it_compares_its_records_step_with_the_open_one_through_ledger_same_step_4342(green, monkeypatch):
+    """SC3: the stage reads a step through ledger.same_step and no rule of its own."""
+    asked = []
+    monkeypatch.setattr(importlib.import_module("veri.ledger"), "same_step",
+                        lambda one, other: asked.append((one, other)) or True)
+    code, out, err, fake = green(answers={("wait-leaf.sh", "develop-green"): (3, "")}, red_step="another step")
+
+    assert (code, fake.launched()) == (3, ["develop-green"])
+    assert sorted(asked[0]) == sorted(("another step", STEP))
