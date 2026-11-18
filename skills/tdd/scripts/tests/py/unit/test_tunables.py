@@ -271,7 +271,6 @@ DEFAULTED = {
     "VERI_MIN_FREE_GB": ("20", "20", None),
     "VERI_SKIP_VERIFY": ("", "x", None),
     "VERI_RESET_ACK_TIMEOUT": ("300", "300", None),
-    "VERI_RESET_IDLE": ("3000", "3000", None),
     "VERI_RESET_MAX_PER_HOUR": ("2", "2", None),
     "VERI_STOP_KILL_GRACE": ("5", "5", None),
     "VERI_CALLER_DIR": (".", ".", None),

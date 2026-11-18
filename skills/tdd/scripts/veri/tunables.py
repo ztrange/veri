@@ -179,7 +179,6 @@ TUNABLES = {
     "VERI_MIN_FREE_GB": Tunable(text, "20"),
     "VERI_SKIP_VERIFY": Tunable(text, ""),
     "VERI_RESET_ACK_TIMEOUT": Tunable(text, "300"),
-    "VERI_RESET_IDLE": Tunable(text, "3000"),
     "VERI_RESET_MAX_PER_HOUR": Tunable(text, "2"),
     "VERI_STOP_KILL_GRACE": Tunable(text, "5"),
     # Read by DRAFT-PR.md's prose only, as the bound it hands `detach-command.sh wait lint --total`.
