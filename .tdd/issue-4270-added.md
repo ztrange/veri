@@ -1,0 +1,1 @@
+- [ ] a parked comment whose question is dense with local paths is cut on its redacted text, so the posted body stays within COMMENT_LIMIT − MARGIN characters and BYTE_LIMIT − MARGIN bytes ⟦added⟧ ⟦criterion 1⟧
