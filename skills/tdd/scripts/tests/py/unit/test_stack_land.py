@@ -58,3 +58,11 @@ def test_a_red_stack_exits_1_naming_the_red_commit_and_its_runs_url_running_noth
     code, out, err = run_cli(stack_land, [])
 
     assert (code, out, red in err, url in err, world.scripts) == (1, "", True, True, [("stack-red.sh",)]), err
+
+
+def test_stack_red_sh_exiting_2_exits_2_running_nothing_after_it(monkeypatch, run_cli, stack_land):
+    world = World(monkeypatch, "stack", {"stack-red.sh": (2, "")})
+
+    code, out, err = run_cli(stack_land, [])
+
+    assert (code, out, world.scripts) == (2, "", [("stack-red.sh",)]), err

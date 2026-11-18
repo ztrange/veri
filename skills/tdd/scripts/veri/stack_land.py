@@ -24,6 +24,9 @@ def main(argv):
         red, url = (said.split() + ["", ""])[:2]
         print("stack-land: the stack is red: CI failed on %s (%s); nothing cut or merged" % (red, url), file=sys.stderr)
         return 1
+    if code == 2:
+        return entry.refuse("stack-red.sh exits 2: no answer on the stack's CI; nothing cut or merged",
+                            prefix="stack-land: ")
 
 
 if __name__ == "__main__":
