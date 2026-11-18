@@ -125,7 +125,8 @@ def unrecorded(wt, section, command, bound):
 
 def coupling(wt, n, base, owed):
     """coupling.sh over the range: a pair writes the `### Coupling` section and stops it with exit 1, the row and its
-    commit being the conductor's; none clears an earlier entry's row."""
+    commit being the conductor's; none clears an earlier entry's row, and a row it drops stops it with exit 1 for the
+    conductor's commit."""
     section = ".tdd/issue-%s-coupling.md" % n
     write(wt, section, "")
     pairs = (fused.script("coupling.sh"), base)
@@ -133,7 +134,11 @@ def coupling(wt, n, base, owed):
     if code == 0:
         write(wt, section, "### Coupling\n\n" + said(wt, ".tdd/coupling.out"))
         raise fused.Stop("coupling", fused.shown(*pairs, out=".tdd/coupling.out") + " exit 0", 1)
-    fused.call(fused.script("refactor-owed.sh"), "clear", owed, "coupling", cwd=wt)
+    before = said(wt, owed, "")
+    cleared = (fused.script("refactor-owed.sh"), "clear", owed, "coupling")
+    fused.call(*cleared, cwd=wt)
+    if said(wt, owed, "") != before:
+        raise fused.Stop("coupling", fused.label(*cleared) + " dropped a stale row", 1)
 
 
 def quality(wt, n, base):
