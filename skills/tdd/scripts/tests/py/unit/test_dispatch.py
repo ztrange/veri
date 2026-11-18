@@ -1643,6 +1643,24 @@ def test_queued_merges_omits_this_clones_queued_merge_sh_running_for_a_pr_of_ano
     assert dispatch.queued_merges() == [target_url]
 
 
+def test_queued_merges_omits_this_clones_post_exec_queued_merge_py_running_for_a_pr_of_another_repo_issue_3877(
+        monkeypatch, dispatch):
+    import subprocess
+
+    target_url = "https://github.com/o/r/pull/7"
+    other_url = "https://github.com/other/s/pull/9"
+    mine = dispatch.paths.scripts_of(dispatch.__file__)
+    listing = (f"/usr/bin/python3 {mine}/veri/queued_merge.py {other_url} /wt2 branch -\n"
+               f"/usr/bin/python3 {mine}/veri/queued_merge.py {target_url} /wt branch -\n")
+
+    def ps(argv, **kw):
+        return subprocess.CompletedProcess(argv, 0, stdout=listing, stderr="")
+
+    monkeypatch.setattr(dispatch.subprocess, "run", ps)
+
+    assert dispatch.queued_merges() == [target_url]
+
+
 def test_main_does_not_report_stalled_when_events_are_older_than_the_stall_window_but_the_conductor_log_is_newer_issue_3360(
         monkeypatch, capsys, tmp_path, dispatch):
     import os
