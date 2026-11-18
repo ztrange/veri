@@ -271,7 +271,7 @@ def append(directory, context, event, fields=(), ts=None):
     awake = awake_reading()
     if isinstance(awake, int):
         return awake
-    if args[0] == b"done":
+    if args[0] in (b"done", b"metrics-cut"):
         args += done_fields(tdd + "/events.jsonl", ts, awake.decode())
     text = line(args, context, ts, awake)
     append_once(tdd + "/events.jsonl", text)

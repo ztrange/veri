@@ -1,8 +1,8 @@
 """pr-finish.sh's computation, run in-process: DRAFT-PR.md sub-step 2's second block up to the refactor-owed render on
-its clean path, after the first wait-ci.sh exited 0, made in one call (PRD 027.11): the PR url and the render. The run's
-record (the ⟦full-suite⟧ ticks, the done mark, the metrics commit and their push) is closed by `close`, which
-pr-ready-wait.sh calls before readying, so no records-only push follows the ready PR (#4332). The PR's title and body
-stay the conductor's."""
+its clean path, after the first wait-ci.sh exited 0, made in one call (PRD 027.11): the PR url, the done mark and the
+render. The run's record (the ⟦full-suite⟧ ticks, the metrics-cut mark, the metrics commit and their push) is closed by
+`close`, which pr-ready-wait.sh calls before readying, so no records-only push follows the ready PR, while the done
+mark still waits for CI's green verdict (#4332). The PR's title and body stay the conductor's."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import re
@@ -26,7 +26,7 @@ METRICS = ".tdd/issue-%s-metrics.md"
 
 # The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_pr_finish.py fails
 # when one is a script DRAFT-PR.md sub-step 2's second block does not name (FC19).
-CALLS = ("refactor-owed.sh",)
+CALLS = ("event.sh", "refactor-owed.sh")
 
 
 def main(argv):
@@ -41,13 +41,14 @@ def run(n):
     if stacked(NAME, wt, n):
         return 2
     url = pr_url(wt)
+    mark(wt, n, "done", url)
     render(wt, n)
     return fused.settle(wt, n, NAME, ["pr_url=" + url, "refactor_owed_render=" + RENDER % n])
 
 
 def close(wt, n, url):
-    """The run's record, closed for PR <url> before it is readied: the ⟦full-suite⟧ ticks, the done mark and the
-    metrics, the tree check (MC5, D10) and the push (MC4); metrics.sh's exit code."""
+    """The run's record, closed for PR <url> before it is readied: the ⟦full-suite⟧ ticks, the metrics-cut mark and
+    the metrics, the tree check (MC5, D10) and the push (MC4); metrics.sh's exit code."""
     tick_full_suite(wt, n)
     metrics = record(wt, n, url)
     # A failed render may leave its file behind, half written or over the one an earlier call committed: that file is
@@ -60,16 +61,22 @@ def close(wt, n, url):
 
 
 def record(wt, n, url):
-    """MC2, MC3: the `done` mark, then metrics.sh into .tdd/issue-<n>-metrics.md, committed as `metrics:` on exit 0;
+    """MC2, MC3: the `metrics-cut` mark, which metrics.sh reads as the run's end in place of the `done` mark written
+    only after CI's green verdict, then metrics.sh into .tdd/issue-<n>-metrics.md, committed as `metrics:` on exit 0;
     metrics.sh's exit code, which any other exit carries rather than stops on."""
-    fused.checked(WHERE, fused.script("event.sh"), "done", "pr=" + url, cwd=wt,
-                  env=tunables.with_values(VERI_ISSUE=n, VERI_ACTOR="conductor"))
+    mark(wt, n, "metrics-cut", url)
     metrics = METRICS % n
     code = fused.call(fused.script("metrics.sh"), n, cwd=wt, out=metrics)[0]
     if code == 0:
         answered(WHERE, "git", "add", metrics, cwd=wt)
         answered(WHERE, "git", "commit", "-m", "metrics: what solving #%s cost (#%s)" % (n, n), cwd=wt)
     return code
+
+
+def mark(wt, n, event, url):
+    """`event.sh <event> pr=<url>` as the conductor of issue <n>; a failing exit stops it with that code."""
+    fused.checked(WHERE, fused.script("event.sh"), event, "pr=" + url, cwd=wt,
+                  env=tunables.with_values(VERI_ISSUE=n, VERI_ACTOR="conductor"))
 
 
 def render(wt, n):
