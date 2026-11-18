@@ -1257,6 +1257,8 @@ def layout(f):
     tier_section("#### Test-command seconds, by tier", "tier", f.tier_runs)
     print_stages(f)
     section("#### Total", "run", COST_COLUMNS, {"total": f.total}, estimate=f.conductor_estimated)
+    print()
+    print("Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.")
     if f.green_rejects:
         table_head("#### Green rejects", "step", ["attempt", "route", "check", "reason"], ["---:", "---", "---:", "---"])
         for step, attempt, route, check, reason in f.green_rejects:

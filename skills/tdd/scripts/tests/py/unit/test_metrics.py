@@ -52,6 +52,18 @@ def render(metrics, capsys, argv=("108",)):
     return out
 
 
+def test_4332_under_the_total_table_the_report_says_it_leaves_out_the_ci_wait_and_pr_finish_sh(tmp_path, monkeypatch,
+                                                                                              capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    monkeypatch.chdir(tmp_path)
+
+    lines = render(metrics, capsys).split("\n")
+    at = lines.index("#### Total")
+
+    assert lines[at + 5:at + 7] == ["", "Not counted: the CI wait after readying and `pr-finish.sh`, which run after "
+                                        "this report is committed."]
+
+
 def table(out, heading):
     """The rows under <heading>, one dict per row keyed by the header cells."""
     lines = out.split("\n")
@@ -1424,6 +1436,8 @@ Cost is every leaf of the run, and the conductor own spending is not in it: this
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | total | 33 | 800 | 1600 | 2400 | 3200 | 2.45 |
+
+Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
 Green rejects by route: none"""
 
