@@ -11,7 +11,6 @@ STOP = re.compile(r"(Exit|Exits|Env)\b|exit:", re.I)
 # Pairs whose texts differ and that cannot be made to agree without editing graded prose (skills/tdd/SCRIPTS.md audits
 # each shim header against its synopsis). A ratchet: the dict may shrink, never grow; an entry that now agrees fails.
 EXEMPT = {
-    "comment.sh": "the module takes [--pr] (bailed only); SCRIPTS.md's synopsis does not list it, so the shim header cannot yet",
     "pin-reject-route.sh": "the module takes `--recheck <reason-file> <ledger-file> <matcher>`; SCRIPTS.md's synopsis does not list"
                            " --recheck (it is in prose), and test_skill_reference_usage fails a shim flag the synopsis lacks",
     "role-state.sh":"the module lists every `set` field and `request-reset [--idle]`; SCRIPTS.md's synopsis"
