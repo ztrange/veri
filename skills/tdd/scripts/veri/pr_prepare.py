@@ -119,7 +119,8 @@ def regrade(wt, n):
     before = porcelain(wt)
     units = [m.group(1) for m in (re.match(r"^\+([^+][^ ]*) ", line) for line in diff.splitlines()) if m]
     pairs = [arg for unit in units for arg in (os.path.join(os.path.dirname(unit) or ".", "REQUIREMENTS.md"), unit)]
-    fused.checked("1", DETACH, "start", REGRADE % n, "sh", "-c", BLOCK, "sh", os.path.dirname(fused.script("grade-prose.sh")), *pairs, cwd=wt)
+    scripts = os.path.dirname(fused.script("grade-prose.sh"))
+    fused.checked("1", DETACH, "start", REGRADE % n, "sh", "-c", BLOCK, "sh", scripts, *pairs, cwd=wt)
     return before
 
 
