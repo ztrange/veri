@@ -20,9 +20,12 @@ USAGE = "usage: stack-land.sh [--now]"
 
 def _pulls_onto(stack):
     """The urls of the open pull requests whose base is <stack>, kept only when the answer itself names <stack> as the
-    base ref."""
+    base ref and the pull request's head is in this repository (Pull.cross_repository): a fork's, which anyone can open,
+    keeps nothing live."""
     run = github.gh_api("repos/{owner}/{repo}/pulls?state=open&base=%s&per_page=100" % stack, stderr=subprocess.PIPE)
-    return [raw.get("html_url") for raw in json.loads(run.stdout) if (raw.get("base") or {}).get("ref") == stack]
+    raws = json.loads(run.stdout)
+    return [pr.html_url for raw, pr in zip(raws, github.pulls_in(run.stdout))
+            if (raw.get("base") or {}).get("ref") == stack and not pr.cross_repository]
 
 
 def _living_conductors():
