@@ -11,6 +11,7 @@ LEDGER = "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] two ⟦criterio
 RED_HALF = ("step=%s\ntest_path=tests/test_a.py\ntarget_test=tests/test_a.py::test_one\n"
             "red_test_id=tests/test_a.py::test_one\nagainst_unmodified=FAILS\n")
 GREEN_SHA = "d" * 40
+GREEN_HALF = "step=%s\ngreen_sha=" + GREEN_SHA + "\ntest_path=tests/test_a.py\n"
 TOUCHED = "src/a.py,tests/test_a.py"
 REPORT = ("RESULT: extract f\nCANDIDATES: structural | src/a.py | split g\nCANDIDATES: cosmetic | src/a.py | rename h\n"
           "CANDIDATES: structural | src/a.py | inline k\nFLAGS: beyond-spec | negative sizes\n"
@@ -75,6 +76,7 @@ def tidy(monkeypatch, run_cli, tmp_path):
                  "ledger": (wt / ".tdd" / "issue-12.md", LEDGER % step),
                  "spec": (wt / ".tdd" / "issue-12-spec.md", "# spec\n"),
                  "red-half": (wt / ".tdd" / "issue-12-red-half", RED_HALF % (red_step or step)),
+                 "green-half": (wt / ".tdd" / "issue-12-green-half", GREEN_HALF % (red_step or step)),
                  "out": (wt / ".tdd" / "develop-refactor.out", "{\"report\": 1}\n"),
                  "log": (wt / ".tdd" / "verify-refactor.log", "{\"VERDICT\": 1}\n")}
         for key, (path, text) in files.items():
@@ -98,7 +100,7 @@ def test_4028_no_argument_prints_the_usage_and_exits_2_with_no_inner_call(tidy):
 
 
 @pytest.mark.parametrize("missing, named", [("preflight", ".tdd/issue-12-preflight"), ("ledger", ".tdd/issue-12.md"),
-                                            ("spec", ".tdd/issue-12-spec.md"), ("red-half", ".tdd/issue-12-red-half")])
+                                            ("spec", ".tdd/issue-12-spec.md")])
 def test_4028_a_missing_input_is_exit_2_before_any_inner_call_named_on_stderr(tidy, missing, named):
     code, out, err, fake = tidy(missing=(missing,))
 
@@ -106,10 +108,23 @@ def test_4028_a_missing_input_is_exit_2_before_any_inner_call_named_on_stderr(ti
     assert named in err
 
 
-def test_4028_a_red_half_file_naming_another_step_is_exit_2_before_any_inner_call(tidy):
-    code, out, err, fake = tidy(red_step="zero ⟦criterion 1⟧")
+@pytest.mark.parametrize("given", [{"missing": ("green-half",)}, {"red_step": "zero ⟦criterion 1⟧"}])
+def test_a_missing_green_half_record_or_one_naming_another_step_is_exit_1_on_the_seam_line_before_any_call_4342(
+        tidy, given):
+    """SC4, replacing #4028's exit 2: refactor-half reads green-half's record, and a stale or missing one is a
+    designed hand-off (S1)."""
+    code, out, err, fake = tidy(**given)
 
-    assert (code, fake.calls) == (2, [])
+    assert (code, fake.calls) == (1, [])
+    assert out.splitlines()[-1] == "seam=refactor-half code=1 reason=record next=seam-settle.sh 12 green-half test_path=…"
+
+
+def test_it_runs_after_a_plan_rewrite_that_changed_only_the_open_steps_marks_4310_4342(tidy):
+    """SC8, #4310: a `plan: rewrite` changed only the open step's marks after its record was written."""
+    code, out, err, fake = tidy(answers={("wait-leaf.sh", "develop-refactor"): (3, "")},
+                                red_step="one thing works ⟦added⟧ ⟦criterion 1⟧")
+
+    assert (code, fake.launched()) == (3, ["develop-refactor"])
 
 
 def test_4028_no_refactor_pending_step_is_exit_2_before_any_inner_call(tidy):

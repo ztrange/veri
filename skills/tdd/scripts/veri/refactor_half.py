@@ -16,7 +16,6 @@ NAME = "refactor-half"
 USAGE = "usage: refactor-half.sh <n>"
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
-RED_HALF = ".tdd/issue-%s-red-half"
 
 # The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_refactor_half.py fails when
 # one is a script SKILL.md's Refactor loop section does not name, save one it exempts by name (FC19).
@@ -30,18 +29,19 @@ def main(argv):
 
 
 def run(n):
-    given = fused_step.inputs(NAME + ".sh", n, LEDGER, SPEC, RED_HALF)
+    given = fused_step.inputs(NAME + ".sh", n, LEDGER, SPEC)
     if given is None:
         return 2
     settled, wt = given
-    red = fused.read_settled(os.path.join(wt, RED_HALF % n))
     step = fused_step.first_step(wt, n, refactor_pending)
-    if step is None or red.get("step") != step:
-        sys.stderr.write("refactor-half.sh: %s\n" % ("no refactor-pending step" if step is None else
-                                                     ".tdd/issue-%s-red-half names another step" % n))
+    if step is None:
+        sys.stderr.write("refactor-half.sh: no refactor-pending step\n")
         return 2
+    green = fused_step.record(NAME, wt, n, step)
+    if green is None:
+        return 1
     resumed = fused.load_wait(wt, n, NAME)
-    at, values = resumed if resumed is not None else develop(n, wt, settled, step, red["test_path"])
+    at, values = resumed if resumed is not None else develop(n, wt, settled, step, green["test_path"])
     if at == "develop-refactor":
         code = fused.wait(wt, n, NAME, "develop-refactor")
         if code != 0:
