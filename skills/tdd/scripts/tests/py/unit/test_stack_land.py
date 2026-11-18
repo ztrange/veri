@@ -541,3 +541,29 @@ def test_an_unusable_settle_window_tunable_exits_2_naming_it_before_any_script_r
     code, out, err = run_cli(stack_land, ["--now"], env={name: value})
 
     assert (code, out, name in err, value in err, world.scripts) == (2, "", True, True, []), err
+
+
+def test_on_a_landing_exits_0_printing_the_slice_pull_requests_url_the_merge_commit_and_the_issues_closed_and_says_on_stderr_the_carry_over_is_034_4bs(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    landed = "0a1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url, subjects="feat: one (#11)\nfeat: two (#12)\n",
+                  merged=[(101, "Closes #11\n\nthe first"), (102, "Closes #12\n\nthe second")])
+    github = importlib.import_module("veri.github")
+    listing = github.gh_api
+
+    def gh_api(path, stderr=None):
+        if path != "repos/owner/repo/pulls/90":
+            return listing(path, stderr=stderr)
+        said = {"state": "closed", "merged": True, "merge_commit_sha": landed, "body": world.bodies[-1]}
+        return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(said), "")
+
+    monkeypatch.setattr(github, "gh_api", gh_api)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert (code, out.splitlines(), [line for line in err.splitlines() if "carry-over" in line and "034.4b" in line] != [],
+            [ran[:2] for ran in world.scripts[-2:]]) == (
+        0, ["pull request: " + url, "merge commit: " + landed, "issues closed: #11 #12"], True,
+        [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
