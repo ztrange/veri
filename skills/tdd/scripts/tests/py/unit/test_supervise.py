@@ -248,3 +248,7 @@ def test_a_lock_wait_marker_its_waiter_removes_after_the_read_reads_as_not_waiti
     marker.write_text("4343\nMon Nov 16 10:00:00 2026\n")
 
     assert marker_judged(monkeypatch, supervise, marker, on_kill=lambda: marker.unlink()) is False
+
+
+def test_a_lock_wait_marker_removed_before_the_read_reads_as_not_waiting_4415(monkeypatch, tmp_path, supervise):
+    assert marker_judged(monkeypatch, supervise, tmp_path / "wait", started="Mon Nov 16 10:00:00 2026") is False
