@@ -151,6 +151,10 @@ def _carry(stack, name):
     if push.returncode:
         _refused(stack, tip, new, push)
     print(new)
+    # The tracking pull request is reopened after a landing, so CI runs on the new tip (KT3).
+    tracked, _ = stack_fix.script("stack-pr.sh", limit=stack_fix.NETWORK)
+    if tracked not in (0, 3):
+        raise _Stop(2, "origin's %s carried to %s, but stack-pr.sh exits %d: run stack-pr.sh" % (stack, new, tracked))
     return 0
 
 
