@@ -291,3 +291,16 @@ def test_4336_a_list_read_inside_parsed_once_is_read_once_there_and_fresh_after_
         inside = requirements.headings(str(path))
     after = requirements.headings(str(path))
     assert (first, inside, after) == (["a.md"], ["a.md"], ["b.md"])
+
+
+def test_4336_two_lists_read_inside_one_parsed_once_block_each_answer_their_own_headings_and_claims(tmp_path, monkeypatch):
+    requirements = importlib.import_module("veri.requirements")
+    monkeypatch.setattr(requirements, "_parsed", None)
+    first, second = tmp_path / "REQUIREMENTS.md", tmp_path / "docs" / "REQUIREMENTS.md"
+    second.parent.mkdir()
+    first.write_text("## a.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | Says blue. | because |\n")
+    second.write_text("## docs/b.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| B1 | Says red. | because |\n")
+    with requirements.parsed_once():
+        seen = [(requirements.headings(str(p)), requirements.claims(str(p), u))
+                for p, u in [(first, "a.md"), (second, "docs/b.md"), (first, "a.md")]]
+    assert seen == [(["a.md"], "A1\tSays blue.\n"), (["docs/b.md"], "B1\tSays red.\n"), (["a.md"], "A1\tSays blue.\n")]
