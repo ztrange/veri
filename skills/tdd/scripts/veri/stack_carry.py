@@ -49,6 +49,23 @@ def _ancestor(older, newer):
     return run.returncode == 0
 
 
+def _tree_of(name):
+    """The tree <name> names; _Stop(2) when git gives no answer."""
+    run = _git("rev-parse", "--verify", "--end-of-options", name + "^{tree}")
+    if run.returncode or not run.stdout.strip():
+        raise _unanswered("reading the tree of " + name, run)
+    return run.stdout.strip()
+
+
+def _landed(default, cut):
+    """Whether origin/<default> has landed <cut>: merging <cut> into it changes nothing (a content check, since a
+    rebase-merge rewrites every sha); _Stop(2) when git gives no answer."""
+    run = _git("merge-tree", "--write-tree", "origin/" + default, cut)
+    if run.returncode not in (0, 1):
+        raise _unanswered("git merge-tree --write-tree origin/%s %s" % (default, cut), run)
+    return run.returncode == 0 and run.stdout.split("\n", 1)[0].strip() == _tree_of("origin/" + default)
+
+
 def _carry(stack, name):
     """Carry <stack> with the merge lock held, never releasing it: the exit code, or _Stop."""
     fetch = git.network("fetch", "--prune", "origin", cwd=".")
@@ -59,6 +76,11 @@ def _carry(stack, name):
     cut = _rev(name, name)
     if not _ancestor(cut, tip):
         raise _Stop(2, "the old cut %s is not an ancestor of origin/%s at %s; nothing rebased or pushed" % (cut, stack, tip))
+    default = git.default_branch(cwd=".")
+    if not default:
+        raise _Stop(2, "origin's default branch cannot be told; nothing rebased or pushed")
+    if not _landed(default, cut):
+        raise _Stop(2, "origin/%s has not landed the old cut %s; nothing rebased or pushed" % (default, cut))
     return 0
 
 

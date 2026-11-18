@@ -135,3 +135,21 @@ def test_an_old_cut_off_the_old_tip_or_a_git_read_with_no_answer_exits_2_rebasin
     code, out, err = run_cli(stack_carry, ["cut"])
 
     assert (code, out, said in err, released(world), worktrees(world)) == (2, "", True, True, []), err
+
+
+@pytest.mark.parametrize("answers, said", [
+    ({("merge-tree", "--write-tree", "origin/trunk", CUT): (0, "b" * 40 + "\n", "")},
+     "origin/trunk has not landed the old cut %s" % CUT),
+    ({("merge-tree", "--write-tree", "origin/trunk", CUT): (1, "b" * 40 + "\n", "")},
+     "origin/trunk has not landed the old cut %s" % CUT),
+    ({("merge-tree", "--write-tree", "origin/trunk", CUT): (128, "", "fatal: merge-tree broke\n")},
+     "merge-tree broke"),
+    ({("origin/trunk^{tree}",): (128, "", "fatal: no tree read\n")}, "no tree read"),
+])
+def test_an_old_cut_origin_default_has_not_landed_exits_2_rebasing_nothing_and_freeing_the_lock(
+        monkeypatch, tmp_path, run_cli, stack_carry, answers, said):
+    world = World(monkeypatch, tmp_path, answers=answers)
+
+    code, out, err = run_cli(stack_carry, ["cut"])
+
+    assert (code, out, said in err, released(world), worktrees(world)) == (2, "", True, True, []), err
