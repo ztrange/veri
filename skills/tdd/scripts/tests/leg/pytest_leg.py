@@ -245,11 +245,26 @@ def registered_legs(legs):
     return holders
 
 
-def claim():
+def unmark(waitfile):
+    """Removes the core wait's marker; one already gone (a leg sharing it finished first) or unremovable is left be."""
+    try:
+        os.remove(waitfile)
+    except OSError:
+        pass
+
+
+def claim(cleanups=None):
+    """Registers this leg once a core is free, waiting for one meanwhile: returns (workers, its entry's path).
+
+    While it waits, the PYTEST_LEG_LOCK_WAIT_MARKER file names it, and `cleanups` (the idle watch's) holds the marker's
+    removal, so a leg ended by TERM or HUP mid-wait leaves no marker; one it cannot write is one stderr line, and the
+    wait goes on unmarked."""
     legs = legs_dir()
     os.makedirs(legs, exist_ok=True)
     said = False
     waitfile = ""
+    cleanups = [] if cleanups is None else cleanups
+    removal = lambda: unmark(waitfile)
     try:
         while True:
             with open(legs.rstrip("/") + ".lock", "w") as lock:
@@ -272,11 +287,19 @@ def claim():
                     began = time.monotonic()
                     waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
                     if waitfile:
-                        pid_file.record(waitfile, os.getpid(), atomic=True)
+                        try:
+                            pid_file.record(waitfile, os.getpid(), atomic=True)
+                            cleanups.append(removal)
+                        except OSError as error:
+                            sys.stderr.write("cannot mark the core wait, so it counts toward the leaf's timeout: %s\n" % error)
+                            sys.stderr.flush()
+                            waitfile = ""
             time.sleep(1)
     finally:
+        if removal in cleanups:
+            cleanups.remove(removal)
         if waitfile:
-            os.remove(waitfile)
+            unmark(waitfile)
 
 
 def unregister(entry):
@@ -542,7 +565,7 @@ def _main(argv):
             if workers:
                 count = worker_count(workers)
             else:
-                count, entry = claim()
+                count, entry = claim(watch.cleanups)
             parallel = ["-n", str(count), "--dist", "worksteal"] if count >= 2 else []
             idle_watch.CURRENT[0] = watch
             watch.start()
