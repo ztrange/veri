@@ -181,6 +181,8 @@ TUNABLES = {
     "VERI_RESET_IDLE": Tunable(text, "3000"),
     "VERI_RESET_MAX_PER_HOUR": Tunable(text, "2"),
     "VERI_STOP_KILL_GRACE": Tunable(text, "5"),
+    # Read by DRAFT-PR.md's prose only, as the bound it hands `detach-command.sh wait lint --total`.
+    "VERI_LINT_TIMEOUT": Tunable(text, "1800"),
     "VERI_CALLER_DIR": Tunable(text, "."),
     "VERI_SLEEP_GAP": Tunable(text, "900"),
     "VERI_SNAPSHOT_MAX_AGE": Tunable(text, "60"),
