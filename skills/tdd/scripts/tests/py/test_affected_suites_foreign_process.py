@@ -30,7 +30,7 @@ def test_in_a_foreign_repo_a_changed_non_ascii_source_and_test_are_read_unquoted
 
 
 @pytest.mark.process("the affected-suites.sh shim over real git in a scratch foreign repo")
-def test_in_a_foreign_repo_a_test_selects_itself_a_source_selects_the_tests_naming_it_and_an_unnamed_one_widens(
+def test_in_a_foreign_repo_a_test_selects_itself_a_source_selects_the_tests_naming_it_and_an_unnamed_one_exits_3(
         tmp_path):
     repo = new_repo(tmp_path / "repo")
     write(repo, {"CLAUDE.md": CLAUDE_MD, "src/foo.py": "def foo():\n    return 1\n",
@@ -51,5 +51,4 @@ def test_in_a_foreign_repo_a_test_selects_itself_a_source_selects_the_tests_nami
             affected({"src/bar.py": "def bar():\n    return 4\n"})] == [
         (0, "tests/test_foo.py\n", ""),
         (0, "tests/test_foo.py\n", ""),
-        (0, "tests/test_foo.py\ntests/test_other.py\n",
-         "affected-suites: no test names src/bar.py; widening to every test file\n")]
+        (3, "", "affected-suites: no test names src/bar.py; no test file covers them, so the full suite at the PR runs them\n")]

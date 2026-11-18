@@ -77,7 +77,7 @@ def test_main_selects_a_changed_pytest_file_in_the_fast_tier_as_itself(tmp_path,
         0, "skills/tdd/scripts/tests/py/unit/test_bar.py\n", "")
 
 
-def test_main_widens_to_every_suite_file_but_not_a_directory_named_like_one(tmp_path, monkeypatch, capsys, affected, fake_processes):
+def test_main_maps_a_readme_edit_to_the_suite_files_naming_it_and_not_a_directory_named_like_one(tmp_path, monkeypatch, capsys, affected, fake_processes):
     _install(fake_processes, fake_git(["README.md"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"

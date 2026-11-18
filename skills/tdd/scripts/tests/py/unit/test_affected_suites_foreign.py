@@ -73,7 +73,7 @@ def test_a_range_changing_only_run_state_under_tdd_exits_3_even_when_a_test_name
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (3, "", "")
 
 
-def test_the_walk_and_the_widening_print_only_files_that_are_themselves_test_files_never_helpers_data_or_snapshots(
+def test_the_walk_prints_only_files_that_are_themselves_test_files_and_an_unnamed_source_adds_none_of_them(
         tmp_path, monkeypatch, capsys, affected, fake_processes):
     named = "foo = 1\n"
     tree = {"src/foo.py": "", "src/bar.py": "", "tests/test_uses.py": named, "tests/conftest.py": named,
@@ -84,11 +84,11 @@ def test_the_walk_and_the_widening_print_only_files_that_are_themselves_test_fil
     foreign_git(fake_processes, ["src/foo.py"], list(tree))
     walked = (affected.main(["base..head"]),) + tuple(capsys.readouterr())
     foreign_git(fake_processes, ["src/bar.py"], list(tree))
-    widened = (affected.main(["base..head"]),) + tuple(capsys.readouterr())
+    unnamed = (affected.main(["base..head"]),) + tuple(capsys.readouterr())
     tests = "pkg/foo_test.go\ntests/test_uses.py\nweb/x.test.js\n"
-    assert (walked, widened) == (
+    assert (walked, unnamed) == (
         (0, tests, ""),
-        (0, tests, "affected-suites: no test names src/bar.py; widening to every test file\n"))
+        (3, "", "affected-suites: no test names src/bar.py; no test file covers them, so the full suite at the PR runs them\n"))
 
 
 def test_a_changed_path_git_quotes_for_its_non_ascii_bytes_is_read_unquoted(
@@ -129,20 +129,20 @@ def test_a_repo_whose_tests_no_file_name_rule_knows_falls_back_to_every_path_und
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (0, "tests/foo_spec.rb\n", "")
 
 
-def test_a_changed_source_file_no_test_names_widens_to_every_test_file_and_with_none_exits_3_saying_so(
+def test_a_named_source_plus_unnamed_ones_prints_only_the_named_sources_test_files_and_with_none_exits_3_saying_so_4333(
         tmp_path, monkeypatch, capsys, affected, fake_processes):
     write(tmp_path, {"src/foo.py": "", "src/bar.py": "", "src/baz.py": "", "tests/test_baz.py": "import baz\n",
                      "tests/test_other.py": "", "web/a.spec.ts": "", "tests/test_ignored.py": ""})
     foreign_git(fake_processes, ["src/foo.py", "src/bar.py", "src/baz.py"],
                 ["src/foo.py", "src/bar.py", "src/baz.py", "tests/test_baz.py", "tests/test_other.py", "web/a.spec.ts"])
     monkeypatch.chdir(tmp_path)
-    widened = (affected.main(["base..head"]),) + tuple(capsys.readouterr())
+    named = (affected.main(["base..head"]),) + tuple(capsys.readouterr())
     empty = tmp_path / "empty"
     write(empty, {"src/foo.py": ""})
     foreign_git(fake_processes, ["src/foo.py"], ["src/foo.py"])
     monkeypatch.chdir(empty)
     none = (affected.main(["base..head"]),) + tuple(capsys.readouterr())
-    line = "affected-suites: no test names %s; widening to every test file\n"
-    assert (widened, none) == (
-        (0, "tests/test_baz.py\ntests/test_other.py\nweb/a.spec.ts\n", line % "src/foo.py,src/bar.py"),
+    line = "affected-suites: no test names %s; no test file covers them, so the full suite at the PR runs them\n"
+    assert (named, none) == (
+        (0, "tests/test_baz.py\n", line % "src/foo.py,src/bar.py"),
         (3, "", line % "src/foo.py"))
