@@ -588,7 +588,7 @@ def test_an_unusable_settle_window_tunable_exits_2_naming_it_before_any_script_r
     assert (code, out, name in err, value in err, world.scripts) == (2, "", True, True, []), err
 
 
-def test_on_a_landing_exits_0_printing_the_slice_pull_requests_url_the_merge_commit_and_the_issues_closed_and_says_on_stderr_the_carry_over_is_034_4bs(
+def test_on_a_landing_exits_0_printing_the_slice_pull_requests_url_the_merge_commit_and_the_issues_closed_then_carries_the_stack_with_stack_carry_sh_at_the_cut_the_lock_freed_first(
         monkeypatch, run_cli, stack_land):
     cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
     landed = "0a1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3"
@@ -608,10 +608,9 @@ def test_on_a_landing_exits_0_printing_the_slice_pull_requests_url_the_merge_com
 
     code, out, err = run_cli(stack_land, ["--now"])
 
-    assert (code, out.splitlines(), [line for line in err.splitlines() if "carry-over" in line and "034.4b" in line] != [],
-            [ran[:2] for ran in world.scripts[-3:]]) == (
-        0, ["pull request: " + url, "merge commit: " + landed, "issues closed: #11 #12"], True,
-        [("merge-lock.sh", "take"), ("merge-lock.sh", "release"), ("stack-tag.sh", url)]), err
+    assert (code, out.splitlines(), [ran[:2] for ran in world.scripts[-4:]]) == (
+        0, ["pull request: " + url, "merge commit: " + landed, "issues closed: #11 #12"],
+        [("merge-lock.sh", "take"), ("merge-lock.sh", "release"), ("stack-carry.sh", cut), ("stack-tag.sh", url)]), err
 
 
 @pytest.mark.parametrize("tagged, code", [((0, "v0.2 #11 c1\n"), 0), ((3, ""), 0), ((2, ""), 2), ((1, ""), 2)])
@@ -635,8 +634,8 @@ def test_after_a_landing_stack_tag_sh_runs_on_the_slice_and_an_exit_but_0_or_3_i
     said, out, err = run_cli(stack_land, ["--now"])
 
     owed = [line for line in err.splitlines() if "stack-tag.sh %s" % url in line and "landed" in line]
-    assert (said, len(owed), tagged[1] in out, world.scripts[-1], world.scripts[-2][:2]) == (
-        code, 1 if code else 0, True, ("stack-tag.sh", url), ("merge-lock.sh", "release")), err
+    assert (said, len(owed), tagged[1] in out, world.scripts[-1], world.scripts[-2]) == (
+        code, 1 if code else 0, True, ("stack-tag.sh", url), ("stack-carry.sh", cut)), err
 
 
 def test_an_issue_of_the_slice_bodys_closes_lines_still_open_after_the_settle_window_exits_2_naming_each_such_issue_the_landing_left_as_done(
@@ -661,9 +660,22 @@ def test_an_issue_of_the_slice_bodys_closes_lines_still_open_after_the_settle_wi
 
     named = [line for line in err.splitlines() if "still open" in line]
     assert (code, out.splitlines(), len(named), [n in "".join(named) for n in ("#11", "#12", "#13")], len(world.gh),
-            "Traceback" in err, [ran[:2] for ran in [ran for ran in world.scripts if ran[0] == "merge-lock.sh"][-2:]]) == (
+            "Traceback" in err, [ran[:2] for ran in world.scripts[-3:]]) == (
         2, ["pull request: " + url, "merge commit: " + landed, "issues closed: #11 #12 #13"], 1, [True, False, True], 1,
-        False, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+        False, [("merge-lock.sh", "release"), ("stack-carry.sh", cut), ("stack-tag.sh", url)]), err
+
+
+@pytest.mark.parametrize("carried", [1, 2, 3])
+def test_a_stack_carry_sh_exit_other_than_0_after_a_landing_exits_2_naming_the_landed_slice_and_the_command_owed(
+        monkeypatch, run_cli, stack_land, carried):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
+                                         "stack-carry.sh": (carried, "")}, ahead=7, opens=url)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    owed = [line for line in err.splitlines() if url in line and "stack-carry.sh %s" % cut in line]
+    assert (code, len(owed), world.scripts[-1]) == (2, 1, ("stack-carry.sh", cut)), err
 
 
 def test_a_landing_makes_no_tag_and_pushes_rebases_or_resets_nothing_of_the_stack_branch_only_the_slice_branch(

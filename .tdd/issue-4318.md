@@ -11,7 +11,7 @@
 - [x] a leased push refused because origin's stack moved since the fetch makes stack_carry exit 1, nothing else pushed, the lock freed (unit case, no process) ⟦criterion 6⟧
 - [x] after the push stack_carry calls stack-pr.sh; its push names only refs/heads/<stack> (unit case, no process) ⟦criterion 7⟧
 - [ ] stack_carry touches no ref but <stack>: no run's branch is rebased, moved or deleted, and the main clone's HEAD and index are untouched ⟦diff-checked⟧ ⟦criterion 8⟧
-- [ ] stack_land calls stack-carry.sh <cut> after a landing it made; an exit other than 0 is exit 2 from the land naming the landed slice and `stack-carry.sh <cut>` as the command owed (unit case, no process) ⟦criterion 9⟧
+- [x] stack_land calls stack-carry.sh <cut> after a landing it made; an exit other than 0 is exit 2 from the land naming the landed slice and `stack-carry.sh <cut>` as the command owed (unit case, no process) ⟦criterion 9⟧
 - [ ] at a stacked run's cut issue-worktree.sh writes .tdd/issue-<n>-base-sha holding origin/<stack>'s sha as read for the cut, .tdd/issue-<n>-base unchanged, and none at an unstacked cut (unit/process case per the module's existing tier) ⟦criterion 10⟧
 - [ ] queued-merge.sh's join rebases with `git rebase --onto origin/<stack> <base-sha>` when .tdd/issue-<n>-base-sha exists, as before when absent, and rewrites the file with the sha it rebased onto ⟦criterion 11⟧
 - [ ] a process case with real git reproduces the four measured scenarios on a 10-commit stack cut at the 6th commit: three exit 0 with a pushed tip KL21 equals and runs cut at three positions rebase with KL27's command to their own commits only; the conflict scenario exits 1 with origin/<stack> unchanged (go-red for KL20/KL21) ⟦criterion 12⟧
