@@ -593,7 +593,8 @@ def test_2195_a_full_run_started_under_the_full_run_holding_the_lock_skips_the_l
     for directory in (home, marks):
         directory.mkdir()
     env = {k: v for k, v in os.environ.items() if k != "VERI_PYTEST_LEGS"}
-    env.update(HOME=str(home), VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1")
+    env.update(HOME=str(home), VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1",
+               VERI_PYTEST_WORKERS="1")  # the holder registers no core, so the nested leg finds one free on any machine
     outer = subprocess.run([sys.executable, str(child), "outer", str(marks)], cwd=tmp_path, env=env,
                            stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=45)
 
@@ -625,7 +626,7 @@ def test_2195_a_full_run_started_with_veri_test_lock_0_starts_its_suites_at_once
         while not done() and time.monotonic() < deadline:
             time.sleep(0.05)
 
-    first = launch("A", {})
+    first = launch("A", {"VERI_PYTEST_WORKERS": "1"})  # the holder registers no core, so B finds one free on any machine
     until(lambda: (marks / "A-started").exists())
     second = launch("B", {"VERI_TEST_LOCK": "0"})
     until(lambda: (marks / "B-started").exists() or (tmp_path / "B.err").stat().st_size > 0)
@@ -690,8 +691,10 @@ def test_2195_a_fast_tier_run_starts_its_suites_at_once_beside_a_live_full_run_h
 
     def launch(name):
         err = open(tmp_path / (name + ".err"), "w")
+        # the holder registers no core, so B finds one free on any machine
+        extra = {"VERI_PYTEST_WORKERS": "1"} if name == "A" else {}
         return subprocess.Popen([sys.executable, "-c", fast_child, name, str(marks), str(release)],
-                                cwd=tmp_path / ("tree" + name), env=env, stdout=subprocess.DEVNULL, stderr=err)
+                                cwd=tmp_path / ("tree" + name), env=dict(env, **extra), stdout=subprocess.DEVNULL, stderr=err)
 
     def until(done):
         deadline = time.monotonic() + 15
