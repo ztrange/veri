@@ -12,7 +12,7 @@ import run_dir
 import timed_n_format
 import tunables
 
-USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|auto|session|transcript|baseline|baseline-at|refused-at|resetter> <value>"
+USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|auto|session|transcript|baseline|baseline-at|refused-at|refused-now-at|resetter> <value>"
          " | add <decision|message|override|timed-n> <text>"
          " | drop <decision|message|override|timed-n> <id> | show | recovered | request-reset\n")
 
@@ -178,7 +178,7 @@ def do_recovered(path, argv):
     session = os.environ.get("CLAUDE_CODE_SESSION_ID")
     if not session:
         return usage()
-    kept = [l for l in (read(path) or "").splitlines(True) if not l.startswith("refused-at=")]
+    kept = [l for l in (read(path) or "").splitlines(True) if not l.startswith(("refused-at=", "refused-now-at="))]
     replace(path, "".join(kept) + "recovered-at=%s\nsession-id=%s\n" % (now(), session))
     try:
         os.remove(marker_path(path))
@@ -275,7 +275,7 @@ def do_show(path, argv):
     return 0
 
 
-SET_FIELDS = ("n", "lane", "auto", "session", "transcript", "baseline", "baseline-at", "refused-at", "resetter")
+SET_FIELDS = ("n", "lane", "auto", "session", "transcript", "baseline", "baseline-at", "refused-at", "refused-now-at", "resetter")
 LISTS = ("decision", "message", "override", "timed-n")
 ITEM_KINDS = LISTS + ("dropped-decision",)
 VERBS = {"recovered": do_recovered, "request-reset": do_request_reset, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}

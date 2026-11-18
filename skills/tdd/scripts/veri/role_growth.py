@@ -42,6 +42,11 @@ def _growth_line(path, lines, fields, transcript, knob):
         advice = "reset now, even mid-task" if grown >= 2 * knob else "reset at the next quiet point"
         print("context grew %d against the knob %d: %s" % (grown, knob, advice))
         return ""
+    if grown >= 2 * knob:
+        if fields.get("refused-now-at"):
+            return ""
+        print("context grew %d against the knob %d, past the reset-now line; %s: page the operator, do not retry" % (grown, knob, reason))
+        return "refused-now-at=%s\n" % role_state.now()
     if fields.get("refused-at"):
         return ""
     print("%s: report it to the operator, do not retry" % reason)
