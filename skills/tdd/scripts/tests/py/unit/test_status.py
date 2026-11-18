@@ -297,3 +297,17 @@ def test_report_stack_section_names_the_open_tracking_pull_request_and_a_freeze_
     assert (code, section(out, "Stack")) == (0, [
         "stacky: joined 3, tested 2, landed 2 in 24h", "tracking: https://github.com/acme/widgets/pull/500",
         "frozen: %s https://github.com/acme/widgets/actions/runs/9" % red]), (out, err)
+
+
+def test_report_has_no_stack_section_and_reads_no_stack_where_no_stack_branch_is_named_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {})
+    unasked = AssertionError("a stack read with no stack named")
+    stack_reads(monkeypatch, status, span=None, scripts={"stack-green.sh": unasked, "stack-red.sh": unasked},
+                tracking=unasked, landed=unasked)
+    fake_processes.answers({"": logs_answer({})})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, [line for line in out.splitlines() if line in ("Landed", "Stack", "Running")]) == (
+        0, ["Landed", "Running"]), (out, err)
