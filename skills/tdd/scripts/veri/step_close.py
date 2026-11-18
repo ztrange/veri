@@ -39,10 +39,13 @@ def run(n):
         sys.stderr.write("step-close.sh: no refactor-pending step\n")
         return 2
     settled_after = settled_verdict(wt, n)
-    if fused_step.record(NAME, wt, n, step, (("verdict_log", fused_step.verdict_log(wt)),)) is None:
+    verdict_log, uncovered = fused_step.verdict(wt)
+    if fused_step.record(NAME, wt, n, step, (("verdict_log", verdict_log),)) is None:
         return 1
-    if settled_after != fused_step.verdict_log(wt):
-        fused_step.gain(NAME, wt, n, "refactor-half", "uncovered_spec", uncovered_flags(wt), step)
+    if settled_after != verdict_log:
+        # The log is the flags' committed source: a record settled after another verdict (or none) gains them, so a
+        # revised PASS's uncovered behaviour is never skipped (#4029); a log the record was settled after adds nothing.
+        fused_step.gain(NAME, wt, n, "refactor-half", "uncovered_spec", uncovered, step)
     for uncovered in read_half(wt, n).get("uncovered_spec", []):
         raise fused.Stop("6", "uncovered_spec=" + uncovered, 1)
     green_sha = fused.checked("6", "git", "log", "-1", "--format=%H", "--", LEDGER % n, cwd=wt).strip()
@@ -142,23 +145,6 @@ def settled_verdict(wt, n):
         return fused.read_settled(os.path.join(wt, REFACTOR_HALF % n)).get("verdict_log")
     except OSError:
         return None
-
-
-def uncovered_flags(wt):
-    """The `uncovered-spec` FLAGS of `.tdd/verify-refactor.log` as it now stands, each as refactor-half.sh writes its
-    `uncovered_spec=` value; none without the log. The log is their committed source, read when the record was settled
-    after another verdict (or none), so a revised PASS's uncovered behaviour is never skipped (#4029), while a log an
-    earlier step left behind, which the record was settled after, adds nothing."""
-    import extract_result
-    import refactor_half
-    from report import report_values
-    try:
-        with open(os.path.join(wt, ".tdd", "verify-refactor.log"), encoding="utf-8", errors="replace") as f:
-            log = f.read()
-    except FileNotFoundError:
-        return []
-    flags = report_values(extract_result.extract(log), "FLAGS", splitlines=True, strip=True)
-    return [refactor_half.detail(line) for line in flags if refactor_half.kind(line) == "uncovered-spec"]
 
 
 def read_half(wt, n):

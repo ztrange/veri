@@ -82,7 +82,7 @@ def tidy(monkeypatch, run_cli, tmp_path):
                  "red-half": (wt / ".tdd" / "issue-12-red-half", RED_HALF % (red_step or step)),
                  "green-half": (wt / ".tdd" / "issue-12-green-half", GREEN_HALF % (red_step or step)),
                  "out": (wt / ".tdd" / "develop-refactor.out", "{\"report\": 1}\n"),
-                 "log": (wt / ".tdd" / "verify-refactor.log", "{\"VERDICT\": 1}\n")}
+                 "log": (wt / ".tdd" / "verify-refactor.log", VERDICT)}
         for key, (path, text) in files.items():
             if key not in missing and not path.exists():
                 path.write_text(text)
@@ -305,7 +305,7 @@ def test_4028_on_a_pass_it_posts_the_noted_refactor_and_verify_refactor_marks_th
         assert part in note
     assert "overrun" not in note
     expected = ["step=" + STEP, "green_sha=" + GREEN_SHA, "count=1", "budget=5", "stopped=nothing-structural",
-                "touched=" + TOUCHED, "verdict_log=" + hashlib.sha256(b"{\"VERDICT\": 1}\n").hexdigest(),
+                "touched=" + TOUCHED, "verdict_log=" + hashlib.sha256(VERDICT.encode()).hexdigest(),
                 "uncovered_spec=empty input returns 0", "uncovered_spec=a tab separates too"]
     assert (tidy.wt / ".tdd" / "issue-12-refactor-half").read_text().splitlines() == expected
     assert out.splitlines()[-len(expected):] == expected

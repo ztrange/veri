@@ -64,7 +64,10 @@ def green_half(wt, n, values):
 
 
 def refactor_half(wt, n, values):
-    return ["green_sha=" + green_sha(wt, n), "verdict_log=" + fused_step.verdict_log(wt)]
+    """The verdict as the automatic path's record names it: the log's hash and its `uncovered-spec` flags (#4029)."""
+    verdict_log, uncovered = fused_step.verdict(wt)
+    return (["green_sha=" + green_sha(wt, n), "verdict_log=" + verdict_log]
+            + ["uncovered_spec=" + flag for flag in uncovered])
 
 
 def green_sha(wt, n):
