@@ -7,6 +7,7 @@ import pytest
 
 from conftest import SCRIPTS
 from repo_builder import git
+from stub_script import write_stub
 
 
 @pytest.mark.process("stack-land.sh's /bin/sh shim exec'd on the interpreter with a commit name for an argument")
@@ -36,11 +37,9 @@ def _landed_world(tmp_path):
     git(author, "remote", "add", "origin", str(origin))
     git(author, "push", "-q", "origin", "stack", "stack~1:refs/heads/trunk")
     subprocess.run(["git", "clone", "-q", str(origin), str(work)], cwd=tmp_path, check=True)
-    pack = tmp_path / "upload-pack"
-    pack.write_text('#!/bin/sh\nserved="$(dirname "$0")/served"\n[ -e "$served" ] && sleep 30\n: > "$served"\n'
-                    'exec git-upload-pack "$@"\n')
-    pack.chmod(0o755)
-    git(work, "config", "remote.origin.uploadpack", str(pack))
+    pack = write_stub(str(tmp_path / "upload-pack"), 'served="$(dirname "$0")/served"\n[ -e "$served" ] && sleep 30\n'
+                      ': > "$served"\nexec git-upload-pack "$@"\n')
+    git(work, "config", "remote.origin.uploadpack", pack)
     return work, git(work, "rev-parse", "origin/stack~1")
 
 
