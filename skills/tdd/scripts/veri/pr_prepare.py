@@ -52,8 +52,6 @@ def run(n):
             if code != 0:
                 raise fused.Stop("1", "detach-command.sh wait %s exit %d" % (RUN % n, code), code)
         push(wt, values["rebased_from"], values.get("regraded", []))
-    else:
-        commit(wt, n, values["regraded"])
     skip(wt, n)
     return fused.settle(wt, n, NAME, ["%s=%s" % (key, values[key]) for key in
                                       ("rebased", "rebased_from", "rebased_tip_suite")])
@@ -74,8 +72,8 @@ def rebase(wt, n):
 
 
 def regraded(wt, n, values):
-    """The regrade block's wait and, after a rebase, the rebased tip's suite started (RB3-RB4); the block's highest
-    exit 1 or 2 stops it. The local run's wait recorded so a second call only waits again (FC6)."""
+    """The regrade block's wait, its commit (PRG1, PRG2) and, after a rebase, the rebased tip's suite started (RB3-RB4);
+    the block's highest exit 1 or 2 stops it. The local run's wait recorded so a second call only waits again (FC6)."""
     code, said, _ = fused.call(DETACH, "wait", REGRADE % n, cwd=wt)
     if code == 3:
         raise fused.Waiting(REGRADE % n)
@@ -88,6 +86,7 @@ def regraded(wt, n, values):
     before = set(values.pop("before"))
     values["regraded"] = [line[3:] for line in porcelain(wt) if line not in before and line[:2] in (" M", "M ")
                           and os.path.basename(line[3:]) == "GRADED"]
+    commit(wt, n, values["regraded"])
     if values["rebased"] == "1":
         values["rebased_tip_suite"] = tip_suite(wt, n)
         if values["rebased_tip_suite"] == "local":
