@@ -54,10 +54,13 @@ def run(n):
     with open(os.path.join(wt, ledger)) as f:
         text = f.read()
     fused.checked("2", fused.script("next-pending-refactor.sh"), cwd=wt, stdin=text, ok=(3,))
+    unserved(n, wt, text)
     step = fused.checked("3", fused.script("next-unchecked.sh"), cwd=wt, stdin=text, ok=(0, 3)).strip()
     resuming(n, wt, text, step, [line[len("stray="):] for line in lines if line.startswith("stray=")])
     if os.path.exists(os.path.join(wt, SUITE_RED)):
-        fused.checked("4", fused.script("suite-red-resume.sh"), "insert", ledger, SUITE_RED, cwd=wt)
+        code = fused.call(fused.script("suite-red-resume.sh"), "insert", ledger, SUITE_RED, cwd=wt)[0]
+        if code != 0:
+            raise fused.Stop("4", "suite-red-resume.sh insert exit %d" % code, 1)
     lines = ["step=" + step, "pr_url=" + pr_url(wt)]
     if values["verify_plan"] == "owed":
         return verify_plan(n, wt, settled, ledger, lines)
@@ -136,12 +139,31 @@ def resuming(n, wt, text, step, stray):
     fused.checked("4", fused.script("comment.sh"), n, "resuming", "--note-file", NOTE, cwd=wt)
 
 
+def unserved(n, wt, text):
+    """Sub-step 3's judgement: an acceptance criterion unticked in the spec that no ledger step's ⟦criterion k⟧
+    serves stops it, since planning it is the conductor's."""
+    import issue_body
+    import ledger as ledger_module
+    try:
+        with open(os.path.join(wt, ".tdd", "issue-%s-spec.md" % n)) as f:
+            spec = f.read()
+    except OSError:
+        raise fused.Stop("3", "no .tdd/issue-%s-spec.md" % n, 2)
+    served = {step.criterion for step in ledger_module.ledger_steps(text)}
+    for k, (_, line) in enumerate(issue_body.criteria(spec), 1):
+        if ledger_module.STEP_RE.fullmatch(line).group(2) == " " and str(k) not in served:
+            raise fused.Stop("3", "criterion %d no ledger step serves" % k, 1)
+
+
 def pr_url(wt):
     """The open PR the branch already has, read off the branch, never remembered."""
     branch = fused.checked("4", "git", "branch", "--show-current", cwd=wt).strip()
     import plan_publish
-    return plan_publish.gh("4", "api", "repos/{owner}/{repo}/pulls?head={owner}:%s" % branch, "-q",
-                           ".[0].html_url // empty", wt=wt).strip()
+    url = plan_publish.gh("4", "api", "repos/{owner}/{repo}/pulls?head={owner}:%s" % branch, "-q",
+                          ".[0].html_url // empty", wt=wt).strip()
+    if not url:
+        raise fused.Stop("4", "no open PR for " + branch, 1)
+    return url
 
 
 if __name__ == "__main__":
