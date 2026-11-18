@@ -1,5 +1,6 @@
 """In-process cases for veri/affected_suites.py, the module affected-suites.sh is a shim over."""
 import importlib
+import os
 import subprocess
 
 import pytest
@@ -15,9 +16,15 @@ def affected():
 
 
 def _install(fake_processes, fake_run):
-    """Answers every git call through <fake_run>(args, **kwargs), which returns a CompletedProcess, and records it."""
+    """Answers every git call through <fake_run>(args, **kwargs), which returns a CompletedProcess, and records it; the
+    base commit is veri's own tree (`git cat-file -t <base>:skills/tdd/scripts/tests/py` is `tree`) when the working
+    directory holds that directory, as the commit the case's tree stands for would."""
     def answer(line, **kwargs):
-        done = fake_run(fake.argvs[-1], **kwargs)
+        args = fake.argvs[-1]
+        if list(args[:3]) == ["git", "cat-file", "-t"]:
+            own = args[3].endswith(":skills/tdd/scripts/tests/py") and os.path.isdir("skills/tdd/scripts/tests/py")
+            return (0, b"tree\n", b"") if own else (128, b"", b"fatal: not a valid object name\n")
+        done = fake_run(args, **kwargs)
         return done.returncode, done.stdout, done.stderr
 
     fake = fake_processes.answers({"git": answer})

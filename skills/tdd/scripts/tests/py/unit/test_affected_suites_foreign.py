@@ -18,6 +18,8 @@ def foreign_git(fake_processes, touched, tracked=()):
         args = fake.argvs[-1]
         if list(args[:2]) == ["git", "rev-parse"]:
             return 0, "abc\n", ""
+        if list(args[:3]) == ["git", "cat-file", "-t"]:
+            return 128, b"", b"fatal: not a valid object name\n"
         if list(args[:3]) == ["git", "diff", "--name-only"]:
             return 0, "".join(f + "\n" for f in touched), ""
         if list(args[:2]) == ["git", "ls-files"]:
@@ -113,6 +115,8 @@ def test_a_failed_tree_listing_is_no_answer_exit_2_never_a_selection(tmp_path, r
             return 0, "src/foo.py\n", ""
         if list(args[:2]) == ["git", "ls-files"]:
             return 128, "", "fatal: index file corrupt\n"
+        if list(args[:3]) == ["git", "cat-file", "-t"]:
+            return 128, b"", b"fatal: not a valid object name\n"
         raise AssertionError("unexpected command: %r" % (args,))
 
     fake = fake_processes.answers({"git": answer})
