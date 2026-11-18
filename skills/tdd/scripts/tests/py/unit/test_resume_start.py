@@ -242,3 +242,32 @@ def test_4389_called_under_another_conductor_it_discards_the_record_and_starts_f
     code, out, err, fake = resume(verify_plan="owed")
 
     assert (code, _scripts(fake)[0]) == (0, "next-pending-refactor.sh")
+
+
+@pytest.mark.parametrize("answers, pr, where, last", [
+    ({("next-pending-refactor.sh", None): (0, "one\n")}, PR_URL, "2", "next-pending-refactor.sh"),
+    ({("suite-red-resume.sh", None): (1, "")}, PR_URL, "4", "suite-red-resume.sh"),
+    ({("suite-red-resume.sh", None): (2, "")}, PR_URL, "4", "suite-red-resume.sh"),
+    ({}, "", "4", "gh"),
+    ({("wait-leaf.sh", None): (1, "")}, PR_URL, "4", "wait-leaf.sh")])
+def test_4389_each_judgement_stops_it_with_exit_1_naming_the_sub_step_and_makes_no_later_call(
+        resume, answers, pr, where, last):
+    (resume.wt / ".tdd" / "resume-suite-red").write_text("tests/py/test_a.py\n")
+    code, out, err, fake = resume(fake=Fake(answers, pr=pr), verify_plan="owed")
+
+    assert (code, out.splitlines()[-1].startswith("stopped at %s " % where), fake.names()[-1]) == (1, True, last)
+
+
+def test_4389_an_unticked_criterion_no_ledger_step_serves_stops_it_at_3_before_the_pick(resume):
+    (resume.wt / ".tdd" / "issue-12-spec.md").write_text(SPEC + "- [ ] third\n")
+    code, out, err, fake = resume()
+
+    assert (code, out.splitlines()[-1], "next-unchecked.sh" in fake.names()) == (
+        1, "stopped at 3 criterion 3 no ledger step serves", False)
+
+
+def test_4389_a_ticked_criterion_no_ledger_step_serves_does_not_stop_it(resume):
+    (resume.wt / ".tdd" / "issue-12-spec.md").write_text(SPEC + "- [x] third\n")
+    code, out, err, fake = resume()
+
+    assert code == 0
