@@ -762,7 +762,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `queued-merge.sh`: merge a pull request in turn and clean up.
 - `record-test-commands.sh`: commit a project's test commands to its CLAUDE.md on the branch `veri-install` and open its pull request.
 - `ready-check.sh`: the checks before a pull request is readied.
-- `rebase-onto-default.sh`: rebase the branch onto the default branch; on a run's branch, re-record its branch base as the sha it rebased onto.
+- `rebase-onto-default.sh`: rebase the branch onto the default branch; on a run's branch, re-record its branch base as the onto sha, already up to date included.
 - `stack-carry.sh`: carry the stack onto the new default branch after a slice landed, by `rebase --onto` in a worktree of its own, pushed under a pinned lease only when a merge-tree check agrees with the new tip.
 - `stack-culprit.sh`: name the issue whose end turned the stack red, and the cases it broke, by running them alone at each issue end in a worktree of its own.
 - `stack-fix.sh`: push a fix worktree's reviewed hand fix on top of a red stack, once per culprit, after checking its bounds and running the named cases, the fast tier and `prose-owed.sh` at its HEAD.
