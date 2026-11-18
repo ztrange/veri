@@ -83,6 +83,10 @@ class State:
         """The value of the last `<name>=<value>` line, `None` when there is none."""
         return self.fields().get(name)
 
+    def values(self, name):
+        """The value of every `<name>=<value>` line, in file order."""
+        return [value for key, sep, value in (line.partition("=") for line in self.lines) if sep and key == name]
+
     def items(self, *kinds):
         """The raw lines of the given item kinds, in file order."""
         return [line for line in self.lines if line.startswith(tuple(kind + " " for kind in kinds))]

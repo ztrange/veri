@@ -451,6 +451,12 @@ def test_state_field_is_the_last_value_of_a_key_line_or_none():
     assert (state.field("coordinator"), state.field("lane"), state.field("decision 1 2026-11-07T10:00:00 x")) == ("b", None, "y")
 
 
+def test_state_values_are_every_value_of_a_key_line_in_file_order():
+    state = _state(["reset-at=a", "reset-at-old=x", "recovered-at=b", "reset-at", "decision 1 t reset-at=y", "reset-at=c=d"])
+
+    assert (state.values("reset-at"), state.values("n")) == (["a", "c=d"], [])
+
+
 def test_state_items_are_the_raw_lines_of_the_named_kinds_in_file_order():
     lines = ["n=1", "timed-n 1 t 3 until x", "override 2 t y", "message 3 t z", "decision 4 t w"]
     state = _state(lines)
