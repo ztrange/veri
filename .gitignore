@@ -18,3 +18,6 @@ __pycache__/
 !.tdd/issue-*-refactor-owed.md
 !.tdd/issue-*-metrics.md
 */**/.tdd/
+.tdd/*
+!.tdd/issue-*.md
+.tdd/issue-*-spec.md
