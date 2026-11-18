@@ -70,6 +70,13 @@ def runs_issue_number(monkeypatch):
     monkeypatch.setenv("VERI_ISSUE", "3123")
 
 
+@pytest.fixture(autouse=True)
+def branch_base_is_veris_own_tree(monkeypatch):
+    """git refuses in this tier: the verify-pin's --branch-base reads as a commit of veri's own tree (#4263)."""
+    monkeypatch.setattr(importlib.import_module("veri.build_verify_prompt").run_line, "_at_base",
+                        lambda branch_base, root: (b"", True) if branch_base else None)
+
+
 @pytest.fixture
 def build_develop_prompt():
     return importlib.import_module("veri.build_develop_prompt")
