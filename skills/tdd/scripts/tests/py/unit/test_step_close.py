@@ -1,6 +1,7 @@
 """In-process cases for veri/step_close.py, the module step-close.sh is a shim over (PRD 027.8, #4029)."""
 import hashlib
 import importlib
+import json
 import os
 
 import pytest
@@ -30,6 +31,8 @@ class Fake:
         for (script, first), (code, out) in self.answers.items():
             if base == script and (first is None or args[:1] == (first,)):
                 return code, out, ""
+        if base == "git" and args[:2] == ("log", "-1"):
+            return 0, GREEN_SHA + "\n", ""
         if base == "git" and args[:1] == ("rev-parse",):
             return 0, BASE_SHA + "\n", ""
         if base == "git" and args[:2] == ("status", "--porcelain"):
@@ -90,8 +93,7 @@ def test_4029_no_argument_prints_the_usage_and_exits_2_with_no_inner_call(close)
     assert os.path.exists(os.path.join(here, "..", "step-close.sh"))
 
 
-@pytest.mark.parametrize("missing, named", [("preflight", ".tdd/issue-12-preflight"), ("ledger", ".tdd/issue-12.md"),
-                                            ("refactor-half", ".tdd/issue-12-refactor-half")])
+@pytest.mark.parametrize("missing, named", [("preflight", ".tdd/issue-12-preflight"), ("ledger", ".tdd/issue-12.md")])
 def test_4029_a_missing_input_is_exit_2_before_any_inner_call_named_on_stderr(close, missing, named):
     code, out, err, fake = close(missing=(missing,))
 
@@ -99,11 +101,14 @@ def test_4029_a_missing_input_is_exit_2_before_any_inner_call_named_on_stderr(cl
     assert named in err
 
 
-def test_4029_a_refactor_half_file_naming_another_step_is_exit_2_before_any_inner_call(close):
-    code, out, err, fake = close(half=REFACTOR_HALF % "zero ⟦criterion 1⟧")
+@pytest.mark.parametrize("given", [{"missing": ("refactor-half",)}, {"half": REFACTOR_HALF % "zero ⟦criterion 1⟧"}])
+def test_a_missing_refactor_half_record_or_one_naming_another_step_is_exit_1_on_the_seam_line_before_any_call_4342(
+        close, given):
+    """SC4, replacing #4029's exit 2: a stale or missing record is a designed hand-off (S1)."""
+    code, out, err, fake = close(**given)
 
-    assert (code, fake.calls) == (2, [])
-    assert "another step" in err
+    assert (code, fake.calls) == (1, [])
+    assert out.splitlines()[-1] == "seam=step-close code=1 reason=record next=seam-settle.sh 12 refactor-half"
 
 
 def test_4029_no_refactor_pending_step_is_exit_2_before_any_inner_call(close):
@@ -119,15 +124,19 @@ def test_4029_an_uncovered_spec_line_stops_it_with_exit_1_before_any_inner_call(
     assert out.splitlines()[-1] == "stopped at 6 uncovered_spec=empty input returns 0"
 
 
-@pytest.mark.parametrize("log", ["FLAGS: uncovered-spec | a later verdict's flag\nVERDICT: PASS\n", None],
-                         ids=["a later verdict", "no verdict log"])
-def test_4029_a_refactor_half_file_from_an_earlier_verdict_is_exit_2_before_any_inner_call(close, log):
-    if log is not None:
-        (close.wt / ".tdd" / "verify-refactor.log").write_text(log)
-    code, out, err, fake = close(missing=("verdict",) if log is None else ())
+def test_it_takes_the_step_green_sha_and_verdict_from_their_sources_and_rewrites_a_stale_record_4342(close):
+    """SC1, replacing #4029's exit 2 on an earlier verdict: the ledger, git and .tdd/verify-refactor.log win."""
+    later = "FLAGS: none\nVERDICT: PASS after a revise\n"
+    (close.wt / ".tdd" / "verify-refactor.log").write_text(later)
+    stale = REFACTOR_HALF.replace(GREEN_SHA, "e" * 40) % "one thing works ⟦added⟧ ⟦criterion 3⟧"
+    code, out, err, fake = close(half=stale)
 
-    assert (code, fake.calls) == (2, [])
-    assert "another verdict" in err
+    record = (close.wt / ".tdd" / "issue-12-refactor-half").read_text()
+    assert (code, fake.call("graded-changed.sh")[1]) == (0, (GREEN_SHA,))
+    assert record == REFACTOR_HALF.replace(hashlib.sha256(VERDICT_LOG.encode()).hexdigest(),
+                                           hashlib.sha256(later.encode()).hexdigest()) % STEP
+    events = [json.loads(line) for line in (close.wt / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [e["key"] for e in events if e["event"] == "record-refreshed"] == ["step", "verdict_log", "green_sha"]
 
 
 def test_4029_a_refactor_half_file_from_a_skipped_verify_names_no_verdict_log(close):
@@ -145,8 +154,8 @@ def _named(fake):
 def test_4029_it_checks_graded_units_and_pins_rerecords_checks_the_tree_clears_commits_and_pushes_in_order(close):
     code, out, err, fake = close()
 
-    assert _named(fake)[:11] == [
-        ("graded-changed.sh", (GREEN_SHA,)), ("git", ("rev-parse",)), ("pin-recheck.sh", (BASE_SHA,)),
+    assert _named(fake)[:12] == [
+        ("git", ("log",)), ("graded-changed.sh", (GREEN_SHA,)), ("git", ("rev-parse",)), ("pin-recheck.sh", (BASE_SHA,)),
         ("tests-frozen.sh", ("rerecord-refactored",)), ("git", ("status",)),
         ("clear-refactor-pending.sh", (".tdd/issue-12.md",)), ("git", ("add",)), ("git", ("commit",)),
         ("push-branch.sh", ()), ("event.sh", ("stage-end",)), ("stop-requested.sh", ())]

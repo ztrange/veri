@@ -13,7 +13,7 @@
 - [x] refactor-half.sh runs after a plan rewrite that changed only the open step's ⟦…⟧ marks (#4310) ⟦criterion 8⟧
 - [x] refactor-half.sh reads green-half's record and takes green_sha from git, rewriting a stale one ⟦criterion 1⟧
 - [x] refactor-half.sh exits 1 with the seam line naming green-half when its record is missing ⟦criterion 4⟧
-- [ ] step-close.sh takes the step, green_sha and verdict from their sources and rewrites a stale record ⟦criterion 1⟧
-- [ ] step-close.sh exits 1 with the seam line naming refactor-half when its record is missing ⟦criterion 4⟧
+- [x] step-close.sh takes the step, green_sha and verdict from their sources and rewrites a stale record ⟦criterion 1⟧
+- [x] step-close.sh exits 1 with the seam line naming refactor-half when its record is missing ⟦criterion 4⟧
 - [ ] SKILL.md's Red, Green and Refactor hand paths end with their seam-settle.sh call, within the size ceiling ⟦criterion 9⟧
 - [ ] no value seam-settle.sh writes reaches build-verify-prompt.sh, whose inputs and guard cases are unchanged ⟦criterion 10⟧
