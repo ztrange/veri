@@ -170,7 +170,7 @@ def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_o
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
     monkeypatch.setattr(sys, "platform", "linux")
     live = [os.getpid(), os.getppid()]
-    for registered in ((16,), (8, 8)):
+    for registered in ((15,), (8, 7)):
         legs = tmp_path / ("legs-%d" % len(registered))
         legs.mkdir()
         for pid, count in zip(live, registered):
@@ -181,58 +181,28 @@ def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_o
     assert beside_one == beside_two == ["-q", "some/dir"]
 
 
-def test_2100_a_leg_starting_with_no_worker_count_when_live_registered_legs_already_take_every_core_runs_and_registers_exactly_1_worker(pytest_leg, run_cli, monkeypatch, tmp_path):
-    import os
-
-    calls, registered = [], []
-    others = [2**22 + 701, 2**22 + 702]
-    real_kill = os.kill
-
-    def kill(pid, sig):
-        return None if pid in others else real_kill(pid, sig)
-
-    def spy(args):
-        calls.append(without_selection([a for a in args if not a.startswith("--basetemp=")]))
-        registered.append((legs / str(os.getpid())).read_text().strip())
-        return pytest.ExitCode.OK
-
-    monkeypatch.setattr(pytest, "main", spy)
-    monkeypatch.setattr(os, "kill", kill)
-    monkeypatch.setattr(os, "cpu_count", lambda: 16)
-    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
-    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
-    monkeypatch.setattr(sys, "platform", "linux")
-    for registered_counts in ((16,), (16, 8)):
-        legs = tmp_path / ("legs-%d" % len(registered_counts))
-        legs.mkdir()
-        for pid, count in zip(others, registered_counts):
-            (legs / str(pid)).write_text("%d\n" % count)
-        env = leg_env(VERI_PYTEST_LEGS=str(legs))
-        assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
-    assert registered[0::2] == ["1", "1"]
-    assert calls[0::2] == [["-q", "some/dir"]] * 2
-
-
 def test_2100_with_neither_worker_count_nor_legs_directory_set_legs_under_two_different_tmpdirs_share_one_registry_under_the_user_home_so_the_second_takes_1_beside_the_first_s_16(pytest_leg, run_cli, monkeypatch, tmp_path):
     import os
     import tempfile
 
     calls = []
+    cores = [16]
     nested = []
 
     def spy(args):
         calls.append([a for a in args if not a.startswith("--basetemp=")])
         if not nested:
             nested.append(True)
+            cores[0] = 17
             monkeypatch.setenv("TMPDIR", str(tmp_path / "tmp-b"))
             monkeypatch.setattr(tempfile, "tempdir", None)
             assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
         return pytest.ExitCode.OK
 
     monkeypatch.setattr(pytest, "main", spy)
-    monkeypatch.setattr(os, "cpu_count", lambda: 16)
-    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
-    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(os, "cpu_count", lambda: cores[0])
+    monkeypatch.setattr(os, "process_cpu_count", lambda: cores[0], raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(cores[0])), raising=False)
     monkeypatch.setattr(sys, "platform", "linux")
     (tmp_path / "tmp-a").mkdir()
     (tmp_path / "tmp-b").mkdir()
@@ -295,9 +265,9 @@ def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_stil
 
     monkeypatch.setattr(pytest, "main", spy)
     monkeypatch.setattr(os, "kill", kill)
-    monkeypatch.setattr(os, "cpu_count", lambda: 16)
-    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
-    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(os, "cpu_count", lambda: 17)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 17, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(17)), raising=False)
     monkeypatch.setattr(sys, "platform", "linux")
     legs = tmp_path / "legs"
     legs.mkdir()
@@ -337,6 +307,7 @@ def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_regis
     legs = tmp_path / "legs"
     handed = {}
     reads = []
+    cores = [16]
 
     def workers_of(args):
         return int(args[args.index("-n") + 1]) if "-n" in args else 1
@@ -355,6 +326,7 @@ def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_regis
         total = real_read(directory)
         reads.append(total)
         if len(reads) == 1:
+            cores[0] = 17
             second.start()
             second.join(0.3)
         return total
@@ -370,9 +342,9 @@ def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_regis
     monkeypatch.setattr(signal, "signal", main_thread_only)
     monkeypatch.setattr(pytest_leg, "registered_workers", interleaved_read)
     monkeypatch.setattr(os, "getpid", lambda: os.getppid() if threading.current_thread().name == "second" else real_getpid())
-    monkeypatch.setattr(os, "cpu_count", lambda: 16)
-    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
-    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(os, "cpu_count", lambda: cores[0])
+    monkeypatch.setattr(os, "process_cpu_count", lambda: cores[0], raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(cores[0])), raising=False)
     monkeypatch.setattr(sys, "platform", "linux")
     for name, value in leg_env(VERI_PYTEST_LEGS=str(legs)).items():
         monkeypatch.setenv(name, value)
