@@ -779,6 +779,80 @@ def test_a_wait_ci_sh_exit_2_on_the_rebased_head_exits_2_naming_it_nothing_merge
         [("wait-ci.sh", url), ("merge-lock.sh", "release")]), (world.log, err)
 
 
+@pytest.mark.parametrize("answers, code", [((None, {"state": "closed", "merged": True}), 0), ((None, None), 2)])
+def test_a_read_of_the_pull_request_with_no_answer_in_the_settle_window_is_read_again_and_a_window_ending_unanswered_exits_2_the_lock_freed(
+        monkeypatch, run_cli, stack_land, answers, code):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url)
+    github = importlib.import_module("veri.github")
+    monkeypatch.setattr(github, "run_gh", lambda *args, stderr=None: (
+        world.gh.append(("gh",) + args) or subprocess.CompletedProcess(["gh", *args], 1, "", "HTTP 502: Bad Gateway\n")))
+    pull, reads = "repos/owner/repo/pulls/90", []
+    listing = github.gh_api
+
+    def gh_api(path, stderr=None):
+        if path != pull:
+            return listing(path, stderr=stderr)
+        reads.append(path)
+        answer = answers[len(reads) - 1]
+        if answer is None:
+            raise github.NoAnswer("", "HTTP 502 Bad Gateway")
+        return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(answer), "")
+
+    monkeypatch.setattr(github, "gh_api", gh_api)
+    monkeypatch.setattr(importlib.import_module("veri.merge_common").time, "sleep", lambda seconds: None)
+
+    exit_code, out, err = run_cli(stack_land, ["--now"], env={"VERI_MERGE_SETTLE_READS": "2"})
+
+    assert (exit_code, "Traceback" in err, len(world.gh), reads, [ran[:2] for ran in world.scripts[-2:]]) == (
+        code, False, 1, [pull, pull], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
+def test_a_git_failure_in_the_rebase_worktree_that_is_not_a_conflict_exits_2_nothing_merged_the_lock_freed(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url, ancestor=False, rebased="7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b")
+    git = importlib.import_module("veri.git")
+    faked = git.out
+
+    def out(*args, cwd=None):
+        if args[:2] == ("worktree", "add"):
+            raise git.GitFailed(args, 128, "fatal: No space left on device\n")
+        return faked(*args, cwd=cwd)
+
+    monkeypatch.setattr(git, "out", out)
+
+    code, out_, err = run_cli(stack_land, ["--now"])
+
+    assert (code, out_, "worktree" in err, "Traceback" in err, world.gh, [ran[:2] for ran in world.scripts[-2:]]) == (
+        2, "", True, False, [], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
+def test_an_issue_state_read_with_no_answer_after_a_landing_exits_2_the_lock_freed_once(monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url, subjects="feat: one (#11)\n", merged=[(101, "Closes #11\n")])
+    github = importlib.import_module("veri.github")
+    listing = github.gh_api
+
+    def gh_api(path, stderr=None):
+        if path == "repos/owner/repo/issues/11":
+            raise github.NoAnswer("", "HTTP 502 Bad Gateway")
+        if path == "repos/owner/repo/pulls/90":
+            said = {"state": "closed", "merged": True, "merge_commit_sha": cut, "body": world.bodies[-1]}
+            return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(said), "")
+        return listing(path, stderr=stderr)
+
+    monkeypatch.setattr(github, "gh_api", gh_api)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert (code, "Traceback" in err, [ran[:2] for ran in world.scripts if ran[0] == "merge-lock.sh"]) == (
+        2, False, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
 NAMED = re.compile(r"ztrange|mario|ferreira|github\.com/\w|#[0-9]+|[\"'/](main|master)\b|[\"']stack[\"']"
                    r"|ready-for-agent|refactor-owed|author-read|[\"'](priority|bug|legacy|refactor)[\"']|gates",
                    re.IGNORECASE)

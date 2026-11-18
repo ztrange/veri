@@ -70,9 +70,12 @@ def _closes(stack, default, cut):
 
 
 def _pull(repo, number):
-    """GitHub's record of pull request <number> of <repo>, read as queued-merge.sh reads it; None when the answer is not
-    a JSON object."""
-    pull = json.loads(github.gh_api("repos/%s/pulls/%s" % (repo, number), stderr=subprocess.PIPE).stdout)
+    """GitHub's record of pull request <number> of <repo>, read as queued-merge.sh reads it; None when GitHub gave no
+    answer or the answer is not a JSON object, so the settle window reads again."""
+    try:
+        pull = json.loads(github.gh_api("repos/%s/pulls/%s" % (repo, number), stderr=subprocess.PIPE).stdout)
+    except (github.NoAnswer, ValueError):
+        return None
     return pull if isinstance(pull, dict) else None
 
 
@@ -231,13 +234,13 @@ def main(argv):
                           " nothing retried" % (pr, code, " ".join(said[-1].split())))
         answers = merge_common.settle(lambda: _pull(repo, number), window, wait_first=bool(code))
         if merge_common.merged(answers[-1]):
-            stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
             closed = re.findall(r"^Closes #(\d+)$", answers[-1].get("body") or "", re.M)
             print("pull request: %s\nmerge commit: %s\nissues closed: %s"
                   % (pr, answers[-1].get("merge_commit_sha"), " ".join("#" + n for n in closed)))
             print("stack-land: the carry-over of %s onto origin/%s is 034.4b's; nothing of the stack rebased, no tag"
                   " made" % (stack, default), file=sys.stderr)
             still = [n for n in closed if _issue_state(repo, n) == "open"]
+            stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
             if still:
                 return entry.refuse("%s landed, but its Closes issues still open after the settle window: %s; the landing"
                                     " left as done" % (pr, " ".join("#" + n for n in still)), prefix="stack-land: ")
@@ -248,6 +251,12 @@ def main(argv):
                       % (pr, code, repr(last.get("state"))[:40], repr(last.get("merged"))[:40]))
     except _Unanswered as unanswered:
         return _freed("%s; the merge lock freed, nothing merged" % unanswered)
+    except Exception:
+        # Any other error after the take (a git failure in the rebase worktree, an issue-state read with no answer)
+        # ends through entry.run's exit 2; the lock is freed first, since merge-lock.sh never takes over a dead
+        # holder's lock and a held one would block every later merge.
+        stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
+        raise
 
 
 if __name__ == "__main__":
