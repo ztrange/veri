@@ -188,7 +188,7 @@ def _comment(stack, default, body):
         print("stack-culprit: %d open pull requests track %s; no comment posted" % (len(pulls), stack), file=sys.stderr)
         return
     number = pulls[0].number
-    if any(comment.get("body") == body and github.trusted_comment(comment) for comment in github.issue_comments(number)):
+    if any(comment.get("body") == github.published(body) and github.trusted_comment(comment) for comment in github.issue_comments(number)):
         return
     github.gh_comment_post(number, github.published(body))
 
