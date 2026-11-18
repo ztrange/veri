@@ -5,6 +5,8 @@ import os
 
 import pytest
 
+from veri import run_dir
+
 PRE = "a" * 40
 POST = "b" * 40
 
@@ -60,6 +62,9 @@ def drive(monkeypatch, run_cli, tmp_path):
     def go(ledger=False, handed_back=False, answers=None, fake=None, dirty=""):
         if ledger:
             (wt / ".tdd" / "issue-12.md").write_text("- [ ] a step\n")
+            # The branch base a fresh launch recorded, where preflight reads it back (#4374).
+            with open(run_dir.issue_file(run_dir.main_tree_from_files(str(wt)), 12, "-branch-base"), "w") as record:
+                record.write("c" * 40 + "\n")
         if handed_back:
             (wt / ".tdd" / "handed-back").write_text("")
         fake = fake or Fake(wt, answers, dirty)
@@ -86,6 +91,9 @@ def test_4023_a_branch_only_origin_held_whose_ledger_appears_with_issue_worktree
         def __call__(self, name, *args, cwd=None, env=None):
             if os.path.basename(name) == "issue-worktree.sh":
                 (wt / ".tdd" / "issue-12.md").write_text("- [ ] a step\n")
+                # The main working tree kept the branch base its fresh launch recorded (#4374).
+                with open(run_dir.issue_file(run_dir.main_tree_from_files(str(wt)), 12, "-branch-base"), "w") as base:
+                    base.write("c" * 40 + "\n")
             return super().__call__(name, *args, cwd=cwd, env=env)
 
     code, out, fake = drive(fake=Recreating(wt))
