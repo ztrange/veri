@@ -253,9 +253,14 @@ def orphans(units):
                 yield fields[0]
 
 
-def owed_listed(path="REQUIREMENTS.md"):
+def listed_pairs(path):
+    """Every (list, unit) pair the tracked lists name, `path` first, and the units alone."""
     listed = [(p, u) for p in requirements.lists(path) for u in requirements.listed_units(p)]
-    units = [u for _, u in listed]
+    return listed, [u for _, u in listed]
+
+
+def owed_listed(path="REQUIREMENTS.md"):
+    listed, units = listed_pairs(path)
     owed = [(p, u) for p, u in listed if graded_signature(u) != signature(p, u, units=units)]
     return owed, list(orphans(units))
 
@@ -320,8 +325,7 @@ def resign(unit, own, tree):
 
 def convert(path):
     with requirements.parsed_once():
-        listed = [(p, u) for p in requirements.lists(path) for u in requirements.listed_units(p)]
-        units = [u for _, u in listed]
+        listed, units = listed_pairs(path)
         formula = signer()
         for p, unit in listed:
             try:
