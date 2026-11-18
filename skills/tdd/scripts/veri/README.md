@@ -384,7 +384,7 @@ The pin files a launch records under `.tdd/` as `issue-<n>-<name>`; each pin's w
 - `write_launch_env(root, issue, environment)`, `launch_env(issue, root)`: the `VERI_*` environment a restart relaunches with (VERI_NEW_SKILL left out); the read is `{name: value}`, `None` when the run recorded none.
 - `write_baseline_full_tier(root, issue, mode)`, `baseline_full_tier(issue, root)`: the baseline full-tier mode, `None` when unpinned.
 - `write_snapshot_digest(root, issue, digest)`, `snapshot_digest(issue, root)`, at the suffix `SNAPSHOT_DIGEST`: the digest of the launch's skill snapshot, as written; `None` when none was recorded, other `OSError`s raised.
-- `write_branch_base(root, issue, sha)`, `branch_base(issue, root)`, at the suffix `BRANCH_BASE`: the run's branch base, `<sha>\n`, written by `preflight` in the main working tree when a fresh run's branch is cut (its `.tdd/` made when missing) and read back, stripped, on a resume; `OSError` (`FileNotFoundError` when none was recorded) raised.
+- `write_branch_base(root, issue, sha)`, `branch_base(issue, root)`, at the suffix `BRANCH_BASE`: the run's branch base, `<sha>\n`, written by `preflight` in the main working tree when a fresh run's branch is cut (its `.tdd/` made when missing) and read back, stripped, on a resume (restored from origin's `refs/veri/runs/<n>` when the main tree has none and the carried sha is hex and an ancestor of HEAD); `OSError` (`FileNotFoundError` when none was recorded) raised.
 - `gitignore_seed()`: the bytes a run's `.tdd/.gitignore` is seeded with, derived from the pin suffixes the module names.
 
 ## run_records

@@ -148,3 +148,47 @@ def test_a_resume_whose_branch_base_record_is_missing_unreadable_not_hex_or_not_
     what = set_up_in.stop.what if code[0] else None
 
     assert (code, what and str(path) in what) == ((2, None), True)
+
+
+def carry_on_origin(repo, issue, text):
+    """Give <repo> a bare origin whose refs/veri/runs/<issue> holds `.tdd/issue-<issue>-branch-base` as <text>, or
+    no such ref when <text> is None."""
+    origin = repo.parent / "origin.git"
+    subprocess.run(["git", "init", "-q", "--bare", str(origin)], cwd=repo.parent, check=True, capture_output=True)
+    git(repo, "remote", "add", "origin", str(origin))
+    if text is None:
+        return
+
+    def plumb(*args, data):
+        return subprocess.run(["git", "-C", str(repo), *args], input=data, capture_output=True, text=True,
+                              check=True).stdout.strip()
+
+    blob = plumb("hash-object", "-w", "--stdin", data=text)
+    inner = plumb("mktree", data="100644 blob %s\tissue-%s-branch-base\n" % (blob, issue))
+    outer = plumb("mktree", data="040000 tree %s\t.tdd\n" % inner)
+    records = git(repo, "commit-tree", outer, "-m", "records")
+    git(repo, "push", "-q", "origin", "%s:refs/veri/runs/%s" % (records, issue))
+
+
+@pytest.mark.process("git init, commit, checkout, update-ref, symbolic-ref and a push to a bare origin run for real in a"
+                     " scratch repository, then preflight.set_up's git, fetch and detect-test-command.sh calls in it")
+@pytest.mark.parametrize("carried", ["base", "origin/main", "off-branch", None])
+def test_a_resume_with_no_local_record_restores_the_carried_branch_base_only_when_hex_and_an_ancestor_of_head_4374(
+        tmp_path, monkeypatch, carried):
+    repo = new_repo(tmp_path / "repo")
+    base = commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n"})
+    origin_head_at(repo)
+    git(repo, "checkout", "-q", "-b", "side")
+    side = commit_all(repo, "off the branch", **{"side": "x\n"})
+    git(repo, "checkout", "-q", "-b", "issue-12", base)
+    rewritten = commit_all(repo, "a leaf's fast line", **{"CLAUDE.md": "veri: fast tests: true\n"})
+    commit_all(repo, "ledger", **{".tdd__issue-12.md": "- [x] step\n"})
+    git(repo, "update-ref", "refs/remotes/origin/main", rewritten)
+    carry_on_origin(repo, "12", None if carried is None else {"base": base, "off-branch": side}.get(carried, carried) + "\n")
+    path = repo / ".tdd" / "issue-12-branch-base"
+
+    answer = set_up_in(repo, monkeypatch)
+    named = str(path) in set_up_in.stop.what if answer[0] else None
+
+    assert (answer, named, path.read_text() if path.exists() else None) == (
+        ((0, "pytest -q"), None, base + "\n") if carried == "base" else ((2, None), True, None))

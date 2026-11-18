@@ -18,6 +18,7 @@ import fused
 import ready_check
 import run_dir
 import run_pins
+import run_records
 import tunables
 
 USAGE = "usage: preflight.sh <n> <slug>"
@@ -306,16 +307,22 @@ def leased_push(wt, pre):
 
 
 def recorded_base(n, wt, main):
-    """The branch base a fresh launch recorded under <main>; a record missing, unreadable, not a hex commit name or not
-    an ancestor of HEAD in <wt> (a git that cannot tell included) stops step 3 with exit 2 naming the record."""
+    """The branch base a fresh launch recorded under <main>, else, with no local record, the copy origin's
+    refs/veri/runs/<n> carries, written back to the record; a base missing, unreadable, not a hex commit name or not an
+    ancestor of HEAD in <wt> (a git that cannot tell included) stops step 3 with exit 2 naming the record."""
     path = run_dir.issue_file(main, n, run_pins.BRANCH_BASE)
+    carried = False
     try:
         base = run_pins.branch_base(n, main)
+    except FileNotFoundError:
+        base, carried = (run_records.read(n, os.path.basename(path), wt) or "").strip(), True
     except OSError:
         base = None
     if (base is None or not re.fullmatch(r"[0-9a-f]{7,40}", base)
             or call("git", "merge-base", "--is-ancestor", base, "HEAD", cwd=wt)[0] != 0):
         raise Stop(3, "branch-base record " + path, 2)
+    if carried:
+        run_pins.write_branch_base(main, n, base)
     return base
 
 
