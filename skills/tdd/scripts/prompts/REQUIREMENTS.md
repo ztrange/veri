@@ -1243,3 +1243,9 @@
 | ID | Requirement | Why |
 |---|---|---|
 | FL1 | The fragment is the sentence piece "You are a fresh leaf — you never saw", which the including template completes with what the leaf never saw (`develop-exhausted.md`: "those attempts"; `develop-over-budget.md`: "the attempts that spent it"). (The whole fragment.) | A redo leaf must know it carries no memory of the earlier attempts, so it works only from what the prompt gives it. |
+
+## skills/tdd/scripts/prompts/_develop-not-here.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| NH1 | The fragment is the sentence piece "You are not here to attempt", which the including template completes with "the step again" (`develop-exhausted.md`, `develop-over-budget.md`). (The whole fragment.) | An exhausted or over-budget step's leaf answers about the step and never retries it. |
