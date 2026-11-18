@@ -333,15 +333,17 @@ def recorded_green(n, wt, fast, body_file, detect):
 
 
 def ci_green(wt):
-    """Whether CI's `CI` workflow concluded `success` on the commit under test."""
+    """Whether CI's `CI` workflow concluded `success` on a `push` of the commit under test. A `pull_request` run
+    reports the PR head's sha but tests the merge commit with its base, so it never vouches for this tree."""
     sha = call("git", "rev-parse", "HEAD", cwd=wt)[1].strip()
-    code, out, _ = call("gh", "run", "list", "--workflow", "CI", "--commit", sha, "--limit", "1",
-                        "--json", "headSha,status,conclusion", cwd=wt)
+    code, out, _ = call("gh", "run", "list", "--workflow", "CI", "--event", "push", "--commit", sha, "--limit", "1",
+                        "--json", "headSha,status,conclusion,event", cwd=wt)
     if code != 0:
         return False
     try:
         latest = json.loads(out)[0]
-        return (latest["headSha"], latest["status"], latest["conclusion"]) == (sha, "completed", "success")
+        return ((latest["headSha"], latest["status"], latest["conclusion"], latest["event"])
+                == (sha, "completed", "success", "push"))
     except (ValueError, LookupError, TypeError):
         return False
 
@@ -488,18 +490,21 @@ def baseline_suite(n, wt, saved, fast, body_file, detect, env, got):
             fast = saved[1]
             fast_began = time.monotonic()
             code = wait_on("preflight-fast-" + n, wt, env)
+            CARRIED["fast_ran"] = code == 0
         elif recorded_green(n, wt, fast, body_file, detect) or ci_green(wt):
             fast_began, code = time.monotonic(), 0
-            got["skipped"] = True
         else:
             fast_began, code = start_fast(n, wt, fast, env)
+            CARRIED["fast_ran"] = code == 0
         started = start_full(n, wt, fast, body_file, fast_began, code, detect, env)
         if isinstance(started, int):
             return started
         baseline, full, alone, began, reused, code = started
     code, full_secs = full_result(n, wt, baseline, full, fast, alone, began, reused, code)
     got.update(baseline=baseline, full=full, fast=fast, alone=alone, reused=reused, full_secs=full_secs)
-    if code == 0 and not got.get("skipped"):
+    # Only a baseline whose fast tier ran green, in this call or one a wait carried over, is recorded: one skipped on
+    # CI's word or the record's never is, even once its full tier is waited on to green.
+    if code == 0 and CARRIED.get("fast_ran"):
         tree = call("git", "rev-parse", "HEAD^{tree}", cwd=wt)[1].strip()
         call(script("baseline-full-tier.sh"), "--record-green", n, tree, fast, full, cwd=wt)
     return code
