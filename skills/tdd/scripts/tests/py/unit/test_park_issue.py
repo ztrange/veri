@@ -528,3 +528,20 @@ def test_the_parked_comment_publishes_cause_unblock_and_question_with_no_absolut
     [comment] = comments
     assert (code, [p for p in ("/Users/someone", "/tmp/y") if p in comment]) == (0, []), err
     assert comment.count("zulu") == 3
+
+
+def test_a_question_dense_with_local_paths_is_cut_on_its_redacted_text_and_the_posted_body_stays_within_the_margin_4270(
+        park, run_cli, monkeypatch, tmp_path):
+    park_issue, calls, edited = park
+    comments = []
+    monkeypatch.setattr(park_issue.github, "gh_issue_comment", lambda number, body: comments.append(body))
+    question = tmp_path / "question.md"
+    question.write_text(QUESTION.replace("#### Found\n", "#### Found\n" + "/tmp " * 13000 + "\n"))
+
+    code, out, err = run_cli(park_issue, ["42", "cause", "unblock", "--question-file", str(question)], cwd=tmp_path)
+
+    assert (code, err) == (0, "")
+    [comment] = comments
+    assert (len(comment) <= park_issue.COMMENT_LIMIT - park_issue.MARGIN,
+            len(comment.encode("utf-8")) <= park_issue.BYTE_LIMIT - park_issue.MARGIN) == (True, True), len(comment)
+    assert "characters of the question file cut here" in comment
