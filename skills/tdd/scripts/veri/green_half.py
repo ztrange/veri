@@ -40,6 +40,7 @@ def run(n):
     if step is None or not ledger.same_step(red.get("step", ""), step):
         sys.stderr.write("green-half.sh: .tdd/issue-%s-red-half names another step than the open one\n" % n)
         return 2
+    fused_step.refresh(wt, n, "red-half", {"step": step})
     if replaces_case.is_replaces_case_step(step) or "⟦ci-repair⟧" in step:
         sys.stderr.write("green-half.sh: a step its prose runs: %s\n" % step)
         return 2

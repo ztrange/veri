@@ -459,3 +459,12 @@ def test_it_compares_its_records_step_with_the_open_one_through_ledger_same_step
 
     assert (code, fake.launched()) == (3, ["develop-green"])
     assert sorted(asked[0]) == sorted(("another step", STEP))
+
+
+def test_a_record_step_differing_only_by_marks_is_rewritten_with_the_ledgers_and_the_stage_uses_the_ledgers_4342(green):
+    """SC1: the open step comes from the ledger; a stale step in the record is rewritten with it."""
+    stale = "one thing works ⟦added⟧ ⟦criterion 3⟧"
+    code, out, err, fake = green(answers={("wait-leaf.sh", "develop-green"): (3, "")}, red_step=stale)
+
+    assert (code, fake.call("build-develop-prompt.sh")[1][2]) == (3, STEP)
+    assert (green.wt / ".tdd" / "issue-12-red-half").read_text() == RED_HALF % STEP
