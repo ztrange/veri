@@ -25,7 +25,7 @@ def test_4373_gate_with_no_lock_exits_2_without_running_the_command(tmp_path, ca
     lock = tmp_path / ".tdd" / "merge.lock"
     code = merge_lock._gate(str(lock), str(lock / "holder"), ["--keep", "--pid", "4242", "--owner", "tok", "--", "true"])
     err = capsys.readouterr().err
-    assert (code, fake.calls, "not run" in err, lock.exists()) == (2, [], True, False)
+    assert (code, fake.calls, "no merge lock is held; true not run" in err, lock.exists()) == (2, [], True, False)
 
 
 def test_4373_gate_with_a_lock_held_by_another_pid_or_owner_exits_2_without_running_the_command_naming_the_holder(
@@ -44,5 +44,21 @@ def test_4373_gate_with_a_lock_held_by_another_pid_or_owner_exits_2_without_runn
         code = merge_lock._gate(lock, record, ["--keep", *caller, "--", "true"])
         err = capsys.readouterr().err
         outcomes[name] = (code, f"{me} " in err and "token-a" in err, os.path.isdir(lock))
+    assert outcomes == {n: (2, True, True) for n in outcomes}
+    assert fake.calls == []
+
+
+def test_4373_gate_with_a_lock_whose_holder_record_is_missing_or_empty_exits_2_without_running_the_command(
+        tmp_path, capsys, fake_processes):
+    fake = fake_processes.answers({"true": (0, "", "")})
+    outcomes = {}
+    for name, record_text in (("missing", None), ("empty", "")):
+        lock = tmp_path / name / ".tdd" / "merge.lock"
+        lock.mkdir(parents=True)
+        if record_text is not None:
+            (lock / "holder").write_text(record_text)
+        code = merge_lock._gate(str(lock), str(lock / "holder"), ["--pid", "4242", "--", "true"])
+        err = capsys.readouterr().err
+        outcomes[name] = (code, "unreadable holder record" in err and "true not run" in err, lock.is_dir())
     assert outcomes == {n: (2, True, True) for n in outcomes}
     assert fake.calls == []
