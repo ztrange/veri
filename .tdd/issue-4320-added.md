@@ -1,1 +1,2 @@
 - [x] a stack named but not yet on origin reads as nothing joined, so a done run is listed as ready to merge, not as merge state unknown ⟦added⟧ ⟦criterion 4⟧
+- [ ] the landed count names the issues of only the slice pull requests of this repository merged into the default branch in the last 24 hours, reading pages until one ends before the window ⟦added⟧ ⟦criterion 1⟧
