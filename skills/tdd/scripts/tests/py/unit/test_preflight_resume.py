@@ -84,16 +84,17 @@ def test_4023_a_worktree_holding_a_ledger_after_issue_worktree_is_resumed_withou
     assert fake.call("requirements-preflight.sh")[1][1:] == (".tdd/issue-12.md",)
 
 
-def test_4023_a_branch_only_origin_held_whose_ledger_appears_with_issue_worktree_is_resumed(drive):
+def test_4023_a_branch_only_origin_held_whose_ledger_appears_with_issue_worktree_is_resumed(drive, monkeypatch):
     wt = drive.wt
+    # The branch base travels with origin's run records, as the branch does (#4374).
+    carried = {("12", "issue-12-branch-base"): "c" * 40 + "\n"}
+    monkeypatch.setattr(importlib.import_module("veri.run_records"), "read",
+                        lambda issue, name, cwd: carried.get((str(issue), name)))
 
     class Recreating(Fake):
         def __call__(self, name, *args, cwd=None, env=None):
             if os.path.basename(name) == "issue-worktree.sh":
                 (wt / ".tdd" / "issue-12.md").write_text("- [ ] a step\n")
-                # The main working tree kept the branch base its fresh launch recorded (#4374).
-                with open(run_dir.issue_file(run_dir.main_tree_from_files(str(wt)), 12, "-branch-base"), "w") as base:
-                    base.write("c" * 40 + "\n")
             return super().__call__(name, *args, cwd=cwd, env=env)
 
     code, out, fake = drive(fake=Recreating(wt))
