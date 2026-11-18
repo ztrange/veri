@@ -152,3 +152,13 @@ def test_while_the_outage_file_exists_a_stacked_run_joins_the_local_stack_with_n
                          "prose-owed.sh " + world.wt], err
     assert (world.local, order[-2:]) == (world.head[-1], [
         wt + "update-ref refs/heads/stack %s %s" % (world.head[-1], LOCAL_STACK), "merge-lock.sh release --pid %s" % PID]), err
+
+
+def test_an_offline_join_whose_cut_recorded_the_stack_sha_replays_only_the_runs_commits_onto_the_local_stack(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, base_sha=BASE_SHA).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    rebases = [c for c in world.calls if c.startswith("git -C %s rebase" % world.wt)]
+    assert (code, rebases) == (0, ["git -C %s rebase --onto stack %s" % (world.wt, BASE_SHA)]), err
