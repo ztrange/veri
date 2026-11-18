@@ -14,3 +14,7 @@
 - [x] its CALLS tuple names the four stage scripts and no run-leaf.sh, detach-leaf.sh or supervise.sh ⟦criterion 12⟧
 - [x] a step-close.sh exit 0 printing no next= line is exit 2 naming it on stderr, the seam kept
 - [x] `skills/tdd/SKILL.md#Red — one failing test (developer leaf), then verify-red (blind)`, `#Green — …` and `#Refactor loop — …` call run-step.sh once for a cycle step in place of the four fused-call lines, SKILL.md no larger ⟦skill-edit⟧ ⟦criterion 11⟧
+- [x] a ledger with no open or refactor-pending step exits 3, naming it on stderr, with no call
+- [x] a clean run to step-close removes the seam record, so the next call starts the next step at red-half
+- [x] a missing .tdd/issue-<n>-preflight is exit 2 before any call
+- [x] a seam record naming another step is not resumed: the open step starts at red-half
