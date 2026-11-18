@@ -3,7 +3,7 @@
 - [x] `detect-test-command.sh --tier "quiet test files"` prints the command of the repo's `CLAUDE.md` line `veri: quiet test files: <command>` ⟦criterion 1⟧
 - [x] With no `veri: quiet test files:` line, `detect-test-command.sh --tier "quiet test files"` proposes `pytest -q --no-header -rf` for a repo whose pytest configuration it recognises ⟦criterion 1⟧
 - [x] With no `veri: quiet test files:` line, `detect-test-command.sh --tier "quiet test files"` proposes `npx jest --silent` for a repo whose `package.json` test script runs jest ⟦criterion 1⟧
-- [ ] `detect-test-command.sh --tier "quiet test files"` exits 3, printing nothing, for a repo whose runner it cannot recognise (a `Makefile`, `npm test` or `go test` repo declaring no quiet line) ⟦criterion 1⟧
+- [x] `detect-test-command.sh --tier "quiet test files"` exits 3, printing nothing, for a repo whose runner it cannot recognise (a `Makefile`, `npm test` or `go test` repo declaring no quiet line) ⟦criterion 1⟧
 - [ ] `detect-test-command.sh --tier "quiet test files" --issue <body>` never answers with the issue's `Test command:` line ⟦criterion 1⟧
 - [ ] `record-test-commands.sh --quiet '<cmd>' <fast> <all>` writes the `veri: quiet test files: <cmd>` line to `CLAUDE.md` where it stands, else appended, and an empty `--quiet` is refused with exit 2 ⟦criterion 1⟧
 - [ ] In a foreign tree whose `CLAUDE.md` declares `veri: quiet test files: <cmd>`, every leaf prompt that times a changed run gives `<cmd>` run over the changed files' tests as that run's command ⟦criterion 1⟧ ⟦criterion 2⟧
