@@ -570,3 +570,21 @@ def test_3302_a_ledger_breaking_both_the_tag_and_the_row_move_rules_is_refused_f
                        "move row PIN1 out ⟦criterion 1⟧ ⟦criterion 2⟧", SIGN_PIN)
 
     assert (code, "more than one criterion tag" in err, "signed unit" in err) == (1, True, False)
+
+
+def test_4307_a_skill_edit_step_on_a_backticked_heading_unit_with_its_heading_is_not_refused(
+    tmp_path, run_cli, scope_check
+):
+    unit = "skills/tdd/SKILL.md#Before the Red of a `⟦suite-repair⟧` step — is the suite still red?"
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-4307.md"
+    ledger.write_text(f"- [ ] edit `{unit}` ⟦skill-edit⟧ ⟦criterion 1⟧\n", encoding="utf-8")
+    (tdd / "issue-4307-spec.md").write_text(
+        f"## Requirements\n\n### {unit}\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")
