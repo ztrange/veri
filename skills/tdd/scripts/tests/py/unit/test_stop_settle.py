@@ -144,3 +144,24 @@ def test_4388_an_interrupted_rebase_or_merge_is_unsettled_and_neither_reset_nor_
     comment = fake.call("comment.sh")
     assert comment[1] == ("12", "stopped", "--note-file", ".tdd/stop-settle-note.md")
     assert finish in (stop.wt / ".tdd" / "stop-settle-note.md").read_text()
+
+
+DIRTY = " M src/a.py\n?? src/b.py\n"
+
+
+def test_4388_a_dirty_tree_without_drop_stops_at_2_tree_check_with_exit_1_before_any_reset(stop):
+    code, out, err, fake = stop(fake=Fake(porcelain=DIRTY))
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 2 tree-check")
+    assert _seq(fake)[-1] == ("git", "status", "--porcelain")
+
+
+def test_4388_with_drop_a_dirty_tree_is_reset_and_what_was_dropped_is_named_in_the_comment(stop):
+    code, out, err, fake = stop(fake=Fake(porcelain=DIRTY), argv=("12", "at-leaf", "--drop"))
+
+    assert code == 0, err
+    names = [c[:2] for c in _seq(fake)]
+    assert names.index(("git", "status")) < names.index(("git", "reset")) < names.index(("push-branch.sh",))
+    assert fake.call("comment.sh")[1] == ("12", "stopped", "--note-file", ".tdd/stop-settle-note.md")
+    note = (stop.wt / ".tdd" / "stop-settle-note.md").read_text()
+    assert "src/a.py" in note and "src/b.py" in note
