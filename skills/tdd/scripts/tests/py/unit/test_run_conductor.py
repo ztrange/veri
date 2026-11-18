@@ -169,6 +169,29 @@ def test_cli_a_claim_whose_ps_gives_no_start_time_writes_the_pid_alone_on_one_li
     assert (code, claimed) == (0, [b"%d\n" % os.getpid()]), stderr
 
 
+@pytest.mark.parametrize("ending", [0, 1, 2, 3, "raises"])
+def test_main_ending_by_any_exit_code_or_an_exception_removes_its_own_claim_and_the_directories_it_made_keeping_one_that_existed_4304(
+        tmp_path, monkeypatch, run_cli, fake_processes, ending):
+    past_the_guards(monkeypatch)
+    fake_processes.answers({"ps -o lstart= -p %d" % os.getpid(): (0, "Tue Oct 27 13:40:12 2026\n", "")}, exact=True)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    (tmp_path / ".tdd").mkdir()
+    claimed = []
+
+    def ending_the_run(argv):
+        claimed.append(pathlib.Path(run_conductor.pid_file_path(argv[0])).is_file())
+        if ending == "raises":
+            raise RuntimeError("preflight broke")
+        return ending
+
+    monkeypatch.setattr(run_conductor, "preflight_and_launch", ending_the_run)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    assert (code, claimed, (tmp_path / ".tdd").is_dir(), (tmp_path / ".tdd" / "wt").exists()) == (
+        2 if ending == "raises" else ending, [True], True, False), stderr
+
+
 def test_prompt_with_revise_budget_unset_holds_no_line_naming_a_revise_budget_value_2705(tmp_path, monkeypatch):
     base = tmp_path / "s"
     base.mkdir()
