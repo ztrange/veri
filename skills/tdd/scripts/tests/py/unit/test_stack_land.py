@@ -3,6 +3,7 @@ stack-branch.sh names (stack_branch.named) and the sibling scripts it runs (stac
 so no case starts a process."""
 import importlib
 import json
+import re
 import subprocess
 
 import pytest
@@ -16,7 +17,8 @@ def stack_land():
 class World:
     """What stack_branch.named answers, and every sibling script run; <answers> maps a script's name to its (exit code,
     stdout), (0, "") for one it does not name. git (git.out) names <default> as origin's default branch and answers
-    <ahead> to `rev-list --count`; GitHub (github.gh_api) lists <onto>, the open pull requests as REST records. origin
+    <ahead> to `rev-list --count`; GitHub (github.gh_api) lists <onto>, the open pull requests as REST records, and
+    reads every pull request as merged. origin
 (git.network, its calls kept in <network>) fetches and pushes, and its heads are <heads>, a branch name to its commit.
 GitHub opens a pull request (github.pr_open, each kept in <opened> as (head, base), its body in <bodies>) at <opens>, its
 url; every other gh command (github.run_gh) is kept in <gh>, each answering 0. `git log` of a range from origin/<default> answers <subjects>; the pull requests merged into a base (github.merged_pulls) are <merged>,
@@ -40,7 +42,8 @@ url; every other gh command (github.run_gh) is kept in <gh>, each answering 0. `
             raise git.GitFailed(args, 128, "not faked")
 
         def gh_api(path, stderr=None):
-            return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(list(onto)), "")
+            said = {"state": "closed", "merged": True} if re.fullmatch(r"repos/[^/]+/[^/]+/pulls/\d+", path) else list(onto)
+            return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(said), "")
 
         def network(*args, cwd=None):
             self.network.append(args)
@@ -313,7 +316,7 @@ def test_a_branch_of_the_slice_name_already_on_origin_at_the_cut_itself_is_kept_
     code, out, err = run_cli(stack_land, ["--now"])
 
     assert (code != 2, "already on origin" in err, [ran[:2] for ran in world.scripts if ran[0] == "merge-lock.sh"]) == (
-        True, False, [("merge-lock.sh", "take")]), err
+        True, False, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
 
 
 def test_a_failed_push_of_the_slice_branch_exits_2_naming_the_branch_nothing_opened_or_merged_the_lock_freed(
@@ -498,6 +501,34 @@ def test_a_merge_call_that_errors_without_naming_the_rules_then_a_read_of_the_pu
 
     assert (code, len(world.gh), reads, [ran[:2] for ran in world.scripts[-2:]]) == (
         0, 1, [pull, pull], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
+def test_a_pull_request_not_reading_merged_by_the_end_of_the_settle_window_exits_2_naming_the_last_state_read_the_merge_called_once_the_lock_freed(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url)
+    github = importlib.import_module("veri.github")
+    monkeypatch.setattr(github, "run_gh", lambda *args, stderr=None: (
+        world.gh.append(("gh",) + args) or subprocess.CompletedProcess(["gh", *args], 1, "", "HTTP 502: Bad Gateway\n")))
+    pull, answers, reads = "repos/owner/repo/pulls/90", [{"state": "open", "merged": False},
+                                                          {"state": "closed", "merged": False}], []
+    listing = github.gh_api
+
+    def gh_api(path, stderr=None):
+        if path != pull:
+            return listing(path, stderr=stderr)
+        reads.append(path)
+        return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(answers[len(reads) - 1]), "")
+
+    monkeypatch.setattr(github, "gh_api", gh_api)
+    monkeypatch.setattr(importlib.import_module("veri.merge_common").time, "sleep", lambda seconds: None)
+
+    code, out, err = run_cli(stack_land, ["--now"], env={"VERI_MERGE_SETTLE_READS": "2"})
+
+    assert (code, out, url in err, "'closed'" in err, "'open'" in err, "Traceback" in err, len(world.gh), reads,
+            [ran[:2] for ran in world.scripts[-2:]]) == (
+        2, "", True, True, False, False, 1, [pull, pull], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
 
 
 @pytest.mark.parametrize("name, value", [("VERI_MERGE_SETTLE_READS", "0"), ("VERI_MERGE_SETTLE_READS", "ten"),

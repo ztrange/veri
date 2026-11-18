@@ -29,7 +29,7 @@
 - [x] with origin/<default> an ancestor of the cut, stack_land merges through merge_common with exactly the argv `gh pr merge <pr> --rebase --match-head-commit <head>`, no `--admin`, bypass or other flag (the case asserts the exact argv; unit case, no process) ⟦criterion 10⟧
 - [x] a merge refused naming the repository's rules makes stack_land exit 2 naming the pull request, the merge called once and never retried (unit case, no process) ⟦criterion 10⟧
 - [x] a merge call that errors without naming the rules, followed by a read of the pull request answering MERGED within the settle window, is success, merge called once (unit case, no process, sleep injected) ⟦criterion 11⟧
-- [ ] a pull request not reading MERGED by the end of the settle window makes stack_land exit 2 naming the last state read, merge not called again (unit case, no process) ⟦criterion 11⟧
+- [x] a pull request not reading MERGED by the end of the settle window makes stack_land exit 2 naming the last state read, merge not called again (unit case, no process) ⟦criterion 11⟧
 - [ ] on a landing stack_land exits 0 printing the slice pull request's url, the merge commit and the issues closed, and says on stderr that the carry-over is 034.4b's (unit case, no process) ⟦criterion 13⟧
 - [ ] an issue of the slice body's `Closes` lines still open after the settle window makes stack_land exit 2 naming each such issue, the landing left as done (unit case, no process) ⟦criterion 13⟧
 - [ ] a landing makes no tag and pushes or rebases nothing of the stack branch (unit case, no process) ⟦criterion 13⟧

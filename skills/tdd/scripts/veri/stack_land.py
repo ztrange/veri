@@ -175,6 +175,10 @@ def main(argv):
         if merge_common.merged(answers[-1]):
             stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
             return 0
+        last = answers[-1] or {}
+        return _freed("%s did not read merged by the end of the settle window after the merge call exited %d (last read:"
+                      " state %s, merged %s); the merge lock freed, nothing retried"
+                      % (pr, code, repr(last.get("state"))[:40], repr(last.get("merged"))[:40]))
     except _Unanswered as unanswered:
         return _freed("%s; the merge lock freed, nothing merged" % unanswered)
 
