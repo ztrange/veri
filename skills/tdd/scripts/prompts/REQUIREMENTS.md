@@ -1225,3 +1225,9 @@
 | WF1 | The fragment holds the line `REPORT-FORMAT revise-wrong-test` with keys `WRONG_TEST:` and `SUPERSEDED:`, suite exempt because the test is wrong, so nothing was changed and no suite ran. (First format line.) | The conductor reads a superseded-test report by its keys; a report that changed nothing owes no suite. |
 | WF2 | It then holds the line `REPORT-FORMAT revise-wrong-test-contradicts` with keys `WRONG_TEST:` and `CONTRADICTS:`, with the same exemption. (Second format line.) | The conductor reads a contradicting-test report by its keys; it changed nothing either. |
 | WF3 | Each format line follows a blank line, so the fragment, spliced onto the end of `develop-revise.md`'s `revise-split` format line through `{{WRONG_TEST_FORMAT}}`, adds its formats as lines of their own. (The whole fragment; `build_develop_prompt.py` fills that slot with it only when the revised phase is `green`.) | Each format must be a line of its own, and only a revise-green leaf may report the test wrong. |
+
+## skills/tdd/scripts/prompts/_develop-transform-report.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TT1 | The fragment holds the heading `### Report (last lines of your output)`, then the line `TRANSFORM: <the refactoring applied, in one line>`. (The whole fragment; included by `develop-transform.md` and `_develop-transform-suite-report.md`, which continue the report.) | The conductor reads the applied transform from the report's last lines. |
