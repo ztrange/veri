@@ -77,6 +77,11 @@ def decide(tier, issue, root):
     def has(name):
         return os.path.isfile(at(name))
 
+    def pytest_configured():
+        return (has("pytest.ini")
+                or declares(at("pyproject.toml"), rb"^\[tool\.pytest")
+                or declares(at("setup.cfg"), rb"^\[tool:pytest\]"))
+
     if tier != "fast" and tier not in DECLARED_ONLY and issue and os.path.isfile(issue):
         try:
             answer_from_file(issue, b"Test command:")
@@ -88,9 +93,7 @@ def decide(tier, issue, root):
         answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + suffix)
     if tier in DECLARED_ONLY:
         return
-    if tier == "quiet test files" and (has("pytest.ini")
-            or declares(at("pyproject.toml"), rb"^\[tool\.pytest")
-            or declares(at("setup.cfg"), rb"^\[tool:pytest\]")):
+    if tier == "quiet test files" and pytest_configured():
         raise Answer(b"pytest -q --no-header -rf")
     if has("package.json") and re.search(rb'"scripts":\{[^}]*"test":', bytes(b for b in read(at("package.json")) if b not in SPACE)):
         if has("pnpm-lock.yaml"):
@@ -100,9 +103,7 @@ def decide(tier, issue, root):
         raise Answer(b"npm test")
     if declares(at("Makefile"), rb"^test[ \t\v\f\r]*:"):
         raise Answer(b"make test")
-    if (has("pytest.ini")
-            or declares(at("pyproject.toml"), rb"^\[tool\.pytest")
-            or declares(at("setup.cfg"), rb"^\[tool:pytest\]")):
+    if pytest_configured():
         raise Answer(b"pytest -q")
     if has("go.mod"):
         raise Answer(b"go test ./...")
