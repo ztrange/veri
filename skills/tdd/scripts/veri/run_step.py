@@ -29,6 +29,9 @@ STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦r
 NEXT_SCRIPTS = ("run-step.sh", "seam-settle.sh")
 # The line fused_step.record prints for a stage whose record is missing or names another step (PRD 038.1 SC4).
 RECORD_SEAM = "seam=%s code=1 reason=record next="
+# The $S/ scripts this call makes, in order: the stages, each of which launches its own leaves through supervise.sh;
+# it launches none itself (RN12).
+CALLS = tuple(stage + ".sh" for stage in STAGES)
 # The kinds that are not a cycle step, red_half.REFUSED's (RN7) -> the anchor of the prose that runs them; a step of
 # one stops before any stage on `seam=none`, until a stage for that kind exists (038.3, 038.4).
 KINDS = {"⟦diff-checked⟧": "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)",
@@ -83,7 +86,7 @@ def main(argv):
             return seam(wt, n, step, stage, 1, anchor, "hand")
         if any(mark in step for mark in unhandled):
             return seam(wt, n, step, stage, 1, anchor, "unmodelled")
-        code, out, _ = fused.call(fused.script(stage + ".sh"), n)
+        code, out, _ = fused.call(fused.script(CALLS[order.index(stage)]), n)
         if code != 0:
             said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
             if code == 1 and said:
