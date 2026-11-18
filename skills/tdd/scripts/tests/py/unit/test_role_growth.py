@@ -483,3 +483,61 @@ def test_a_missing_or_empty_session_id_is_a_refusal_in_the_scripts_own_words_not
 
     assert [(code, len(err.splitlines()), "KeyError" in err, "CLAUDE_CODE_SESSION_ID is not set" in err)
             for code, _, err in answers] == [(2, 1, False, True)] * 2
+
+
+def _leak(tmp_path, monkeypatch, usage_total, state_text):
+    """A dev role whose transcript's last usage totals `usage_total`, over the state file `state_text`."""
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True, exist_ok=True)
+    transcript.write_text(
+        '{"type":"assistant","message":{"id":"m2","usage":{"input_tokens":%d,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}\n' % usage_total
+    )
+    state = tmp_path / ".tdd" / "role-dev.state"
+    state.parent.mkdir(exist_ok=True)
+    state.write_text(state_text)
+    env = {"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42", "VERI_RESET_GROWTH_DEV": "1000"}
+    return role_growth, state, transcript, env
+
+
+def test_at_exactly_twice_the_knob_with_an_arm_refusal_already_recorded_prints_the_reset_now_refusal_once_and_records_refused_now_at(tmp_path, monkeypatch, run_cli):
+    role_growth, state, _, env = _leak(tmp_path, monkeypatch, 3000,
+        "recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\nrefused-at=2026-11-13T10:30:00\n")
+
+    code, out, _ = run_cli(role_growth, ["dev"], env=env)
+
+    refused_now = [l for l in state.read_text().splitlines() if l.startswith("refused-now-at=") and len(l) > len("refused-now-at=")]
+    assert (code, out, len(refused_now)) == (0,
+        "context grew 2000 against the knob 1000, past the reset-now line; "
+        "request-reset refused: nothing launched, merged or decided since the last recovery: page the operator, do not retry\n", 1)
+
+
+def test_a_later_call_past_twice_the_knob_with_refused_now_at_recorded_prints_nothing_and_exits_0(tmp_path, monkeypatch, run_cli):
+    role_growth, _, _, env = _leak(tmp_path, monkeypatch, 5000,
+        "recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\nrefused-now-at=2026-11-13T11:00:00\n")
+
+    code, out, _ = run_cli(role_growth, ["dev"], env=env)
+
+    assert (code, out) == (0, "")
+
+
+def test_after_recovered_clears_refused_now_at_a_later_leak_past_twice_the_knob_prints_the_reset_now_refusal_again(tmp_path, monkeypatch, run_cli):
+    role_growth, state, transcript, env = _leak(tmp_path, monkeypatch, 3000,
+        "recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\n"
+        "refused-at=2026-11-13T10:30:00\nrefused-now-at=2026-11-13T11:00:00\n")
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-13T12:00:00")
+    run_cli(role_state, ["dev", "recovered"], env=env)
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-13T12:05:00")
+    run_cli(role_growth, ["dev"], env=env)
+    transcript.write_text(
+        '{"type":"assistant","message":{"id":"m3","usage":{"input_tokens":5000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}\n'
+    )
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-13T12:10:00")
+
+    code, out, _ = run_cli(role_growth, ["dev"], env=env)
+
+    assert (code, "past the reset-now line" in out, "page the operator, do not retry" in out) == (0, True, True)
