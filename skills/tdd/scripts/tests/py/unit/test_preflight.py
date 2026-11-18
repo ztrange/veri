@@ -268,6 +268,10 @@ def test_3771_j_baseline_wait_exit_3_makes_no_later_call_exits_3_and_ends_on_wai
     assert out.splitlines()[-1] == "waiting on " + start[1]
 
 
+# The call preflight's step 5 makes last before the budget checks that follow it.
+_REFACTOR_BUDGET_ISSUE = ("refactor-budget.sh", ("--issue", "0"))
+
+
 def test_3771_k_after_the_full_tier_steps_4_to_7_run_in_order_with_the_tier_seconds_and_exit_0(monkeypatch, run_cli, tmp_path):
     import types
     preflight = importlib.import_module("veri.preflight")
@@ -307,7 +311,7 @@ def test_3771_k_after_the_full_tier_steps_4_to_7_run_in_order_with_the_tier_seco
     assert tail == [
         ("gh", ("api", "repos/{owner}/{repo}", "-q", ".default_branch")),
         ("refactor-budget.sh", ("0",)),
-        ("refactor-budget.sh", ("--issue", "0")),
+        _REFACTOR_BUDGET_ISSUE,
         ("step-budget.sh", ()),
         ("adjudicate.sh", ("--check-budget",)),
         ("leaf-model.sh", ("develop-red",)),
@@ -502,7 +506,7 @@ def test_3771_p_empty_step_growth_stops_at_5_after_refactor_budget_issue_0_with_
 
     code, out, err = run_cli(preflight, ["12", "my-slug"])
 
-    assert calls[-1] == ("refactor-budget.sh", ("--issue", "0"))
+    assert calls[-1] == _REFACTOR_BUDGET_ISSUE
     assert code == 2
     assert out.splitlines()[-1] == "stopped at 5 VERI_STEP_GROWTH"
 
@@ -577,7 +581,7 @@ def test_3771_q_non_numeric_missing_reroute_budget_stops_at_5_after_refactor_bud
 
     code, out, err = run_cli(preflight, ["12", "my-slug"])
 
-    assert calls[-1] == ("refactor-budget.sh", ("--issue", "0"))
+    assert calls[-1] == _REFACTOR_BUDGET_ISSUE
     assert code == 2
     assert out.splitlines()[-1] == "stopped at 5 VERI_MISSING_REROUTE_BUDGET"
 
@@ -611,7 +615,7 @@ def test_3771_r_skip_verify_plan_stops_at_5_after_refactor_budget_issue_0_with_n
 
     code, out, err = run_cli(preflight, ["12", "my-slug"])
 
-    assert calls[-1] == ("refactor-budget.sh", ("--issue", "0"))
+    assert calls[-1] == _REFACTOR_BUDGET_ISSUE
     assert code == 2
     assert out.splitlines()[-1] == "stopped at 5 VERI_SKIP_VERIFY"
 
@@ -926,8 +930,8 @@ import pytest
     ("full-tier-time.sh", 3, 2, None, None),
     ("baseline-full-tier.sh", 3, 2, None, None),
     ("gh", 4, 1, ".default_branch", "stopped at 4 gh api repos/{owner}/{repo} -q .default_branch"),
-    ("refactor-budget.sh", 5, 2, ("0",), "stopped at 5 refactor-budget.sh 0"),
-    ("refactor-budget.sh", 5, 2, ("--issue", "0"), "stopped at 5 refactor-budget.sh --issue 0"),
+    *[("refactor-budget.sh", 5, 2, argv, "stopped at 5 refactor-budget.sh " + " ".join(argv))
+      for argv in (("0",), ("--issue", "0"))],
     ("step-budget.sh", 5, 2, None, None),
     ("adjudicate.sh", 5, 2, ("--check-budget",), "stopped at 5 adjudicate.sh --check-budget"),
     ("leaf-model.sh", 6, 2, None, None),
