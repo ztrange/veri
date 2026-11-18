@@ -613,6 +613,7 @@ Choosing and running the suites of the project veri works on: finding its test c
 
 ## detect_test_command
 - `resolved(tier, issue, root, claude_md=None)`: the test command for a tier, `None` when none is found; `claude_md`, when given, is the CLAUDE.md text read instead of `root`'s file, and only a line it declares answers (no tier is inferred from `root`'s other files).
+- `at_commit(tier, issue, root, commit)`: `resolved`, every file it reads in `root` (`CLAUDE.md` and each file an inference reads) taken as `commit` holds it, never from the working tree; raises `Unresolved` when git resolves no such commit. `detect-test-command.sh --at <commit>`, which preflight runs at the branch base for the fast command (#4263).
 - `Answer(command)`: the exception that carries a found command out of the search; `answer_from_file(path, marker)` raises it from a file's lines.
 - `unwrapped(text)`, `SPACE`: the command a marker's rest names (a leading backtick span unwrapped), and the whitespace stripped before it; `answer_from(line, marker)`: raises `Answer` with the command one line declares after `marker`. `record_test_commands` reads a CLAUDE.md line as the detector does.
 
