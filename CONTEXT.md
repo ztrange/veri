@@ -288,6 +288,9 @@ _Avoid_: deletion step
 The one module, `case_reader.py`, that decides whether a path is a test file (`test_*.py`,
 `*_test.py`, `*_test.go`, JS `.test`/`.spec` files, wherever they sit) and cuts a test source
 into its cases. No other veri module holds either answer; one that needs it asks this one.
+In veri's own tree (one holding `skills/tdd/scripts/tests/py`), a path under `skills/tdd/scripts/tests/leg/`, the
+pytest leg `make test` runs to decide a suite passed, is production, not a test file; any other repository's
+`tests/` directories stay test files (#4262).
 PRD 017.1.
 _Avoid_: test parser, case finder
 
