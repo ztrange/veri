@@ -23,12 +23,12 @@ def main(argv):
     if given is None:
         return 2
     try:
-        return run(argv[0], argv[1], given[1])
+        return run(argv[0], argv[1], given[1], drop=argv[2:] == ["--drop"])
     except fused.Stop as stop:
         return fused.stopped(stop)
 
 
-def run(n, mode, wt):
+def run(n, mode, wt, drop=False):
     for name in live_leaves(wt):
         fused.call(fused.script("wait-leaf.sh"), name, cwd=wt)
     note = []
@@ -36,8 +36,11 @@ def run(n, mode, wt):
     if interrupted:
         note.append("The tree holds an interrupted %s, left as it is: a human finishes it with %s." % interrupted)
     else:
-        fused.checked("2", "git", "status", "--porcelain", cwd=wt)
+        dirty = [line for line in fused.checked("2", "git", "status", "--porcelain", cwd=wt).splitlines() if line]
+        if dirty and not drop:
+            raise fused.Stop("2", "tree-check", 1)
         fused.checked("2", "git", "reset", "--hard", "HEAD", cwd=wt)
+        note.extend(dropped(dirty))
         fused.call(fused.script("push-branch.sh"), cwd=wt)
     text = committed_ledger(n, wt)
     steps = ledger_steps(text or "")
@@ -47,6 +50,15 @@ def run(n, mode, wt):
     fused.checked("5", fused.script("comment.sh"), n, "stopped", *noted(wt, note), cwd=wt)
     fused.checked("6", fused.script("stop-requested.sh"), "--clear", cwd=wt)
     return 0
+
+
+def dropped(dirty):
+    """What step 2's reset dropped, for the comment: each changed tracked path; an untracked one it leaves is named
+    as left (`git reset --hard HEAD` is the only reach for the tree a stop has)."""
+    tracked = [line[3:] for line in dirty if not line.startswith("??")]
+    untracked = [line[3:] for line in dirty if line.startswith("??")]
+    return (["Dropped by `git reset --hard HEAD`, the half-done step: " + ", ".join(tracked) + "."] if tracked else []) \
+        + (["Left untracked: " + ", ".join(untracked) + "."] if untracked else [])
 
 
 def interrupted_by(wt):
