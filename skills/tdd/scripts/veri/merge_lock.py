@@ -91,6 +91,12 @@ def _reused(text, pid):
     return recorded != [_start_time(str(pid))] and recorded != [_lstart(str(pid))]
 
 
+def _gone(pid):
+    """Whether the stale holder <pid> is observed gone: dead, or alive under a start time ps did read. A start time
+    ps could not read is no observation, so nothing of that holder is removed on it."""
+    return not _alive(pid) or bool(_start_time(str(pid)))
+
+
 def _needs_pid(args, force_ok):
     if "--pid" in args or (force_ok and "--force" in args):
         return False
@@ -172,8 +178,9 @@ def _take(lock, record, args):
                 return 2
             missing = 0
             if _reused(text, holder):
-                for dead_owner in text.split()[3:4]:
-                    _remove_tokens_of(lock, dead_owner)
+                if _gone(holder):
+                    for dead_owner in text.split()[3:4]:
+                        _remove_tokens_of(lock, dead_owner)
                 print(f"stale lock: {text.strip()}; clear it with merge-lock.sh release --force", file=sys.stderr)
                 return 2
             if _clock() - started >= limit:

@@ -321,3 +321,20 @@ def test_4372_take_on_a_dead_or_reused_holder_removes_only_the_token_file_holdin
     code = merge_lock._take(str(lock), str(lock / "holder"), ["--pid", me, "--owner", "token-c"])
     left = sorted(p.name for p in git_dir.glob("veri-merge-*.token"))
     assert (code, left) == (2, ["veri-merge-43.token"])
+
+
+def test_4372_take_on_a_holder_whose_start_time_cannot_be_read_removes_no_token_file(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "")
+    monkeypatch.setattr(merge_lock, "_lstart", lambda pid, env=None: "")
+    monkeypatch.setattr(merge_lock, "_alive", lambda pid: True)
+    me = str(os.getpid())
+    lock = tmp_path / ".tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    (lock / "holder").write_text(f"{me} host t token-a\n")
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    (git_dir / "veri-merge-42.token").write_text("token-a\n")
+    (git_dir / "veri-merge-43.token").write_text("token-b\n")
+    merge_lock._take(str(lock), str(lock / "holder"), ["--pid", me, "--owner", "token-c"])
+    left = sorted(p.name for p in git_dir.glob("veri-merge-*.token"))
+    assert left == ["veri-merge-42.token", "veri-merge-43.token"]
