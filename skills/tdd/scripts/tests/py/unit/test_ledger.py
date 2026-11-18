@@ -404,3 +404,17 @@ def test_unit_of_ends_a_heading_unit_at_a_punctuation_closed_backtick_when_a_lat
     ledger = importlib.import_module("veri.ledger")
 
     assert ledger.unit_of(f"edit `a/b.md#Plain heading`{after}") == "a/b.md#Plain heading"
+
+
+@pytest.mark.parametrize("text, unit", [
+    ("edit `a/b.md#H ` per `foo` x", "a/b.md#H "),
+    ("edit `a/b.md#A\t`x` y` z", "a/b.md#A\t`x` y"),
+    ("edit `a/b.md#H `x` y `z` tail", "a/b.md#H "),
+    ("edit `a/b `c` d` x", "a/b "),
+    ("edit `a/b.md#H `\t per `foo` x", "a/b.md#H "),
+    ("edit `a/b.md#H `` y` z", "a/b.md#H `` y"),
+])
+def test_unit_of_opens_an_inner_pair_only_at_a_whitespace_preceded_backtick_of_a_closed_heading_unit(text, unit):
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.unit_of(text) == unit
