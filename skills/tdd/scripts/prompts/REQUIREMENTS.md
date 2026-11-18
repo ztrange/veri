@@ -1154,3 +1154,9 @@
 | ID | Requirement | Why |
 |---|---|---|
 | TA1 | The fragment is one command line: `{{TIMED_TEST_RUN}}`, the tier `changed`, the test files the leaf ran as one quoted argument (`'<the test files you ran>'`), then the `{{AFFECTED_RUN_LINE}}` slot. (The whole fragment.) | A run of the changed files' test files is recorded under the `changed` tier, naming the files it ran. |
+
+## skills/tdd/scripts/prompts/_timed-test-run-fast-affected.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TX1 | The fragment gives two indented command lines: first `{{TIMED_TEST_RUN}} fast '' {{FAST_CMD}}`, the fast tier with an empty file argument, then the included `_timed-test-run-affected.md` line. (The whole fragment.) | The fast tier and the changed files' suites are two recorded runs, the fast one first. |
