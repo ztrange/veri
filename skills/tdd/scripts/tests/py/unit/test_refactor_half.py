@@ -108,11 +108,10 @@ def test_4028_a_missing_input_is_exit_2_before_any_inner_call_named_on_stderr(ti
     assert named in err
 
 
-@pytest.mark.parametrize("given", [{"missing": ("green-half",)}, {"red_step": "zero ⟦criterion 1⟧"}])
-def test_a_missing_green_half_record_or_one_naming_another_step_is_exit_1_on_the_seam_line_before_any_call_4342(
-        tidy, given):
-    """SC4, replacing #4028's exit 2: refactor-half reads green-half's record, and a stale or missing one is a
-    designed hand-off (S1)."""
+@pytest.mark.parametrize("given", [{"missing": ("green-half", "red-half")}, {"red_step": "zero ⟦criterion 1⟧"}])
+def test_no_green_half_or_red_half_record_for_the_step_is_exit_1_on_the_seam_line_before_any_call_4342(tidy, given):
+    """SC4, replacing #4028's exit 2: neither green-half's record nor, failing it, red-half's names the step, a
+    designed hand-off (S1); the seam line names green-half's contract."""
     code, out, err, fake = tidy(**given)
 
     assert (code, fake.calls) == (1, [])
@@ -455,3 +454,27 @@ def test_it_takes_green_sha_from_git_and_rewrites_a_stale_one_in_green_halfs_rec
     events = [json.loads(line) for line in (tidy.wt / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["stage"], e["key"], e["old"], e["new"]) for e in events if e["event"] == "record-refreshed"] == [
         ("refactor-half", "green_sha", "e" * 40, GREEN_SHA)]
+
+
+@pytest.mark.parametrize("green", [None, "zero ⟦criterion 1⟧"], ids=["no green-half record", "one for another step"])
+def test_a_green_not_finished_by_green_half_falls_back_to_red_halfs_record_4342(tidy, green):
+    """SC8: a Green green-half.sh did not finish (a revise-green loop, a ⟦replaces-case⟧ or ⟦ci-repair⟧ step, a stop
+    at Green 3) leaves no green-half record for the step, so refactor-half reads red-half's, as before PRD 038.1."""
+    (tidy.wt / ".tdd" / "issue-12-red-half").write_text(RED_HALF.replace("tests/test_a.py", "tests/test_r.py") % STEP)
+    if green is not None:
+        (tidy.wt / ".tdd" / "issue-12-green-half").write_text(GREEN_HALF % green)
+    code, out, err, fake = tidy(missing=("green-half",))
+
+    launch = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
+    assert (code, _short(launch[1])[-2:]) == (0, ("tests/test_r.py", GREEN_SHA))
+    assert "green_sha=" not in (tidy.wt / ".tdd" / "issue-12-red-half").read_text()
+
+
+def test_green_halfs_record_for_the_step_wins_over_red_halfs_4342(tidy):
+    """SC8: when green-half.sh (or seam-settle.sh green-half) left a record for this step, its values are read."""
+    (tidy.wt / ".tdd" / "issue-12-red-half").write_text(RED_HALF.replace("tests/test_a.py", "tests/test_r.py") % STEP)
+    (tidy.wt / ".tdd" / "issue-12-green-half").write_text(GREEN_HALF.replace("tests/test_a.py", "tests/test_g.py") % STEP)
+    code, out, err, fake = tidy()
+
+    launch = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
+    assert (code, _short(launch[1])[-2:]) == (0, ("tests/test_g.py", GREEN_SHA))

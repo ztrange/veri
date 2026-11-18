@@ -874,11 +874,13 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `summary(step)`: the step's ledger text without its trailing markers, as a commit subject reads it (the #431/#437 rule).
 - `red_test_id(test_path, target)`: the Red case's id, `<target>` when it holds `::`, else `<test_path>::<target>`.
 - `refresh(stage, wt, n, record, facts)`: `.tdd/issue-<n>-<record>` rewritten so each key of `facts` holds its committed source's value, one `record-refreshed` event of `stage` per rewritten key.
-- `record(stage, wt, n, step, facts=())`: the record `stage` reads (`seam_contract.READS`), its step and each `(key, value)` of `facts` refreshed from their committed sources, one `record-refreshed` event per rewritten key (PRD 038.1 SC1-SC4); `None`, the `seam=<stage> code=1 reason=record next=seam-settle.sh …` line printed, when it is missing or names another step by `ledger.same_step`.
+- `gain(stage, wt, n, record, key, values, step)`: one `<key>=<value>` line added to `.tdd/issue-<n>-<record>` per value it lacks, for a key a record may hold more than once (step-close's `uncovered_spec`, #4029), one `record-refreshed` event each.
+- `read_by(stage, wt, n, step)`: the first stage of `seam_contract.READS[stage]` whose record names `step` by `ledger.same_step`, or `None`.
+- `record(stage, wt, n, step, facts=())`: the record `read_by` names, its step and each `(key, value)` of `facts` refreshed from their committed sources, one `record-refreshed` event per rewritten key (PRD 038.1 SC1-SC4, SC8); `None`, the `seam=<stage> code=1 reason=record next=seam-settle.sh …` line printed for the first stage it reads, when no record it reads names the step. A missing record is the seam; one that cannot be read raises `OSError` (exit 2).
 - `verdict_log(wt)`: the sha256 of `.tdd/verify-refactor.log`, `none` without one: the verdict a refactor-half file was settled after.
 
 ## seam_contract
-- `CONTRACTS`: per record-writing stage (`red-half`, `green-half`, `refactor-half`), the keys of its record the next stage reads that no committed fact holds (PRD 038.1 SC5). `READS`: per reading stage (`green-half`, `refactor-half`, `step-close`), the stage whose record it reads.
+- `CONTRACTS`: per record-writing stage (`red-half`, `green-half`, `refactor-half`), the keys of its record the next stage reads that no committed fact holds (PRD 038.1 SC5). `READS`: per reading stage (`green-half`, `refactor-half`, `step-close`), the stages whose records it reads, in order (`refactor-half`: `green-half`, then `red-half` for a Green `green-half.sh` did not finish).
 - `table()`: the contracts as `script-help.sh seam-settle.sh` prints them.
 
 ## pr_finish

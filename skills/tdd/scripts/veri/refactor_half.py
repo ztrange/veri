@@ -66,7 +66,8 @@ def develop(n, wt, settled, step, test_path):
     with open(os.path.join(wt, ".tdd", "stage-rl.t"), "w") as f:
         f.write("%d\n" % int(time.time()))
     green_sha = fused.checked("1", "git", "log", "-1", "--format=%H", "--", LEDGER % n, cwd=wt).strip()
-    fused_step.refresh(NAME, wt, n, "green-half", {"green_sha": green_sha})
+    if fused_step.read_by(NAME, wt, n, step) == "green-half":
+        fused_step.refresh(NAME, wt, n, "green-half", {"green_sha": green_sha})
     code, said, _ = fused.call(fused.script("refactor-budget.sh"), "0", cwd=wt)
     if code not in (0, 3):
         raise fused.Stop("1", "refactor-budget.sh 0 exit %d" % code, code)
