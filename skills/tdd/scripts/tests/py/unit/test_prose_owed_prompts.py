@@ -30,3 +30,12 @@ def test_prose_owed_sh_prints_a_prompt_file_no_requirements_list_names_with_no_r
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert (code, out.splitlines()) == (1, [PROMPTS + "/_fragment.md (no rows)"]), (code, out, err)
+
+
+def test_prose_owed_sh_adds_nothing_for_a_repository_with_no_prompts_directory_4384(tmp_path, run_cli):
+    prose_owed = importlib.import_module("veri.prose_owed")
+    (tmp_path / "README.md").write_text("Nothing graded here.\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out) == (0, ""), (code, out, err)

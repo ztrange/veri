@@ -16,6 +16,8 @@ PROMPTS = "skills/tdd/scripts/prompts"
 
 def rowless():
     """Each file under the prompts directory that no tracked REQUIREMENTS.md lists as a unit (#4384)."""
+    if not os.path.isdir(PROMPTS):
+        return []
     units = set(listed_pairs("REQUIREMENTS.md")[1])
     return [p for p in (PROMPTS + "/" + f for f in sorted(os.listdir(PROMPTS))) if p not in units]
 
