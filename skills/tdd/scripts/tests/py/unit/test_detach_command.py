@@ -1,6 +1,7 @@
 """In-process cases for veri/detach_command.py, the module detach-command.sh is a shim over."""
 import importlib
 import os
+import signal
 import subprocess
 import time
 
@@ -642,3 +643,40 @@ def test_wait_reads_the_pid_from_line_1_of_a_pid_file_whose_line_2_holds_a_start
     code = detach_command.main(["wait", "x", "0"])
 
     assert (code, capsys.readouterr(), kills) == (3, ("", ""), [(4242, 0)])
+
+
+def test_wait_total_stops_the_process_group_of_a_command_still_running_past_the_bound_and_exits_2_naming_it_4264(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\n")
+    monkeypatch.setenv("VERI_POLL", "1")
+    monkeypatch.setenv("VERI_STOP_KILL_GRACE", "0")
+    group = {"alive": True, "signals": []}
+
+    def kill(pid, signum):
+        if not group["alive"]:
+            raise ProcessLookupError
+
+    def killpg(pgid, signum):
+        if not group["alive"]:
+            raise ProcessLookupError
+        group["signals"].append((pgid, signum))
+        group["alive"] = False
+
+    now = [1000.0]
+
+    def fake_sleep(seconds):
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(os, "kill", kill)
+    monkeypatch.setattr(os, "killpg", killpg)
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+
+    code = detach_command.main(["wait", "x", "--total", "1"])
+    err = capsys.readouterr().err
+
+    assert (code, group["signals"], group["alive"], err.count("\n"), "--total 1" in err, now[0] < 1590) == (
+        2, [(4242, signal.SIGTERM)], False, 1, True, True)

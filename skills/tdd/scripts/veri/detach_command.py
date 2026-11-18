@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -60,7 +61,7 @@ def _stopping_now():
         return False
 
 
-def _wait(exit_file, pid_file, text, alone=None):
+def _wait(exit_file, pid_file, text, alone=None, total=None):
     start = int(time.time())
     poll = tunables.read("VERI_POLL") or "1"
     if not re.fullmatch(r"[0-9]+(\.[0-9]*)?|\.[0-9]+", poll):
@@ -75,10 +76,25 @@ def _wait(exit_file, pid_file, text, alone=None):
             return 2 if code is None else code
         if _stopping_now():
             return 2
+        if total is not None and int(time.time()) - start >= total:
+            _stop_group(int(_read(pid_file).split("\n")[0]))
+            print(f"detach-command.sh: still running past --total {total} seconds; stopped its process group",
+                  file=sys.stderr)
+            return 2
         limit = _limit(text)
         if limit is not None and int(time.time()) - start >= limit:
             return 3
         time.sleep(float(poll))
+
+
+def _stop_group(group):
+    """As a `now` stop ends a detached command: TERM its process group, then KILL after VERI_STOP_KILL_GRACE."""
+    try:
+        os.killpg(group, signal.SIGTERM)
+        time.sleep(float(tunables.get("VERI_STOP_KILL_GRACE", unless_empty=True)))
+        os.killpg(group, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 def _refused(argv):
@@ -90,6 +106,10 @@ def _refused(argv):
 
 
 def main(argv):
+    total = None
+    if argv[:1] == ["wait"] and "--total" in argv[2:-1]:
+        at = argv.index("--total", 2)
+        total, argv = int(argv[at + 1]), argv[:at] + argv[at + 2:]
     alone = None
     if argv[:1] == ["wait"] and len(argv) >= 4 and argv[-2] == "--alone":
         alone, argv = argv[-1], argv[:-2]
@@ -99,7 +119,7 @@ def main(argv):
     mode, name, rest = argv[0], argv[1], argv[2:]
     exit_file, pid_file = f".tdd/{name}.exit", f".tdd/{name}.pid"
     if mode == "wait":
-        return _wait(exit_file, pid_file, rest[0] if rest and rest[0] else "590", alone)
+        return _wait(exit_file, pid_file, rest[0] if rest and rest[0] else "590", alone, total)
     try:
         os.unlink(exit_file)
     except FileNotFoundError:
