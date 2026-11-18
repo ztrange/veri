@@ -42,6 +42,7 @@ import tempfile
 import time
 
 import entry
+import event
 import full_run_lock
 import launch_floor
 import leg_tmpdir
@@ -223,6 +224,9 @@ def claim():
                     entry = os.path.join(legs, str(os.getpid()))
                     with open(entry, "w") as f:
                         f.write(str(count))
+                    if said:
+                        event.mark("", event.context(tunables.environment()), "core-wait",
+                                   ["seconds=%d" % round(time.monotonic() - began)])
                     return count, entry
                 if not said:
                     holders = registered_legs(legs)
@@ -230,6 +234,7 @@ def claim():
                         sum(count for _, count in holders), ", ".join(name for name, _ in holders)))
                     sys.stderr.flush()
                     said = True
+                    began = time.monotonic()
                     waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
                     if waitfile:
                         pid_file.record(waitfile, os.getpid(), atomic=True)

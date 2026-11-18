@@ -1165,3 +1165,32 @@ def test_4310_a_leg_whose_wait_ends_as_4_of_16_cores_free_hands_pytest_4_workers
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
 
     assert (code, started) == (0, [("4", "4")])
+
+
+def test_4310_a_leg_that_waited_7_seconds_for_a_free_core_writes_one_core_wait_event_carrying_seconds_7(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import json
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    blocker = legs / str(os.getppid())
+    blocker.write_text("16\n")
+    clock = [1000.0]
+
+    def seven_seconds_then_death(seconds):
+        clock[0] += 7
+        blocker.unlink(missing_ok=True)
+
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(pytest_leg.time, "sleep", seven_seconds_then_death)
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)), cwd=str(tree))[0]
+    journal = tree / ".tdd" / "events.jsonl"
+    lines = [json.loads(line) for line in journal.read_text().splitlines()] if journal.exists() else []
+
+    assert (code, [line.get("seconds") for line in lines if line["event"] == "core-wait"]) == (0, ["7"])

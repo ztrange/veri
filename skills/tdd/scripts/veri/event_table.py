@@ -44,6 +44,7 @@ EVENTS = {
                "|resuming|done|bailed|stopped) url:url",
     "conductor-restart": "growth:whole knob:whole",
     "conductor-start": "pid:whole started:text,empty",
+    "core-wait": "seconds:whole",
     "criterion-unticked": "matcher:text,empty",
     "diff-leaf-deviation": "leaf:text base:sha head:sha commits:whole",
     "done": "pr:url wall_seconds?:whole awake_seconds?:whole lane?:text",
