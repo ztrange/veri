@@ -8,7 +8,7 @@
 - [x] stack_carry rebases with `git rebase --onto origin/<default> <old-cut> <old-tip>` in a detached worktree of its own under .tdd/, removed after, then pushes the new tip to <stack> with `--force-with-lease=<stack>:<old-tip>` and exits 0, the lock freed (unit case, no process) ⟦criterion 3⟧
 - [x] a rebase conflict makes stack_carry exit 1 naming the conflicting file, the rebase aborted, its worktree removed, nothing pushed, the lock freed (unit case, no process) ⟦criterion 4⟧
 - [x] stack_carry pushes nothing and exits 1 naming both trees unless `git merge-tree --write-tree --merge-base=<old-cut> origin/<default> <old-tip>` exits 0 printing the new tip's tree; a merge-tree that exits 1 is exit 1 too (unit case, no process) ⟦criterion 5⟧
-- [ ] a leased push refused because origin's stack moved since the fetch makes stack_carry exit 1, nothing else pushed, the lock freed (unit case, no process) ⟦criterion 6⟧
+- [x] a leased push refused because origin's stack moved since the fetch makes stack_carry exit 1, nothing else pushed, the lock freed (unit case, no process) ⟦criterion 6⟧
 - [ ] after the push stack_carry calls stack-pr.sh; its push names only refs/heads/<stack> (unit case, no process) ⟦criterion 7⟧
 - [ ] stack_carry touches no ref but <stack>: no run's branch is rebased, moved or deleted, and the main clone's HEAD and index are untouched ⟦diff-checked⟧ ⟦criterion 8⟧
 - [ ] stack_land calls stack-carry.sh <cut> after a landing it made; an exit other than 0 is exit 2 from the land naming the landed slice and `stack-carry.sh <cut>` as the command owed (unit case, no process) ⟦criterion 9⟧
