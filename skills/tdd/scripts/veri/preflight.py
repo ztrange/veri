@@ -320,7 +320,11 @@ def set_up(n, slug, detect):
         handed_back(n, wt, ledger)
     body_file = issue_body(n, wt)
     checked(3, script("requirements-preflight.sh"), body_file, *([ledger] if resume else []), cwd=wt)
-    fast = checked(3, detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt).strip()
+    # The fast command every leaf and verifier is handed is read at the branch base, the merge base of HEAD and
+    # origin/HEAD a verifier reads its run lines at, so a CLAUDE.md a leaf committed on a resumed branch never sets
+    # it; with no base, detect-test-command.sh refuses (exit 2), never reading the working tree (#4263).
+    base = call("git", "merge-base", "HEAD", "origin/HEAD", cwd=wt)[1].strip()
+    fast = checked(3, detect, "--tier", "fast", "--issue", body_file, "--at", base, wt, cwd=wt).strip()
     return wt, fast, body_file
 
 

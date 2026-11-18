@@ -8,8 +8,11 @@
 # `veri: quiet test files:`), then inference from the repo's files (for "quiet test files" only a pytest
 # configuration, giving `pytest -q --no-header -rf`, or a jest package.json test script, giving `npx jest --silent`).
 #
-# usage:   detect-test-command.sh [--tier fast|all|"one test file"|"quiet test files"|lint] [--issue <body-file>] [repo-root]
+# With --at <commit>, every repo file is read as <commit> holds it (CLAUDE.md and each file inference reads), never from
+# repo-root's working tree: what preflight reads the fast command at, the branch base (#4263).
+#
+# usage:   detect-test-command.sh [--tier fast|all|"one test file"|"quiet test files"|lint] [--issue <body-file>] [--at <commit>] [repo-root]
 #          (repo-root defaults to the current directory)
-# Exit:    0 a command printed on stdout; 2 --tier or --issue with no value; 3 cannot decide, nothing printed (for "one test file" or lint: no CLAUDE.md line; for "quiet test files": no line and no runner recognised)
+# Exit:    0 a command printed on stdout; 2 --tier, --issue or --at with no value, or an --at naming no commit git resolves in repo-root; 3 cannot decide, nothing printed (for "one test file" or lint: no CLAUDE.md line; for "quiet test files": no line and no runner recognised)
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/detect_test_command.py" "$@"
