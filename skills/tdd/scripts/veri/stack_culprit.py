@@ -182,7 +182,7 @@ def _search(path, command, ends, before, red, cases):
 
 def _comment(stack, default, body):
     """Add <body> as a comment on the stack's one open tracking pull request, unless a trusted comment there
-    (github.trusted_comment) already holds exactly <body>: a stranger's copy never stops it. With none open, or several, nothing is posted and stderr says so. NoAnswer from GitHub passes up."""
+    (github.trusted_comment) already holds exactly <body> as github.published posts it: a stranger's copy never stops it. With none open, or several, nothing is posted and stderr says so. NoAnswer from GitHub passes up."""
     pulls = github.stack_pulls(stack, default)
     if len(pulls) != 1:
         print("stack-culprit: %d open pull requests track %s; no comment posted" % (len(pulls), stack), file=sys.stderr)
