@@ -34,9 +34,13 @@ def _recorded(exit_file, alone=None):
     return 1
 
 
+def _pid(pid_file):
+    return _read(pid_file).split("\n")[0]
+
+
 def _alive(pid_file):
     try:
-        pid = _read(pid_file).split("\n")[0]
+        pid = _pid(pid_file)
         if not re.fullmatch(r"\s*[-+]?[0-9]+\s*", pid):
             return False
         os.kill(int(pid), 0)
@@ -77,7 +81,7 @@ def _wait(exit_file, pid_file, text, alone=None, total=None):
         if _stopping_now():
             return 2
         if total is not None and int(time.time()) - start >= total:
-            _stop_group(int(_read(pid_file).split("\n")[0]))
+            _stop_group(int(_pid(pid_file)))
             print(f"detach-command.sh: still running past --total {total} seconds; stopped its process group",
                   file=sys.stderr)
             return 2
