@@ -1148,3 +1148,9 @@
 |---|---|---|
 | TR1 | The fragment is the included `_timed-test-run.md` followed by "and names the tier it belongs to", so the wrapper sentence also says each run names its tier. (The whole fragment.) | A run's recorded cost is attributed to its tier. |
 | TR2 | The fragment ends mid-sentence; the including text completes it, with a colon before the run lines. (The whole fragment.) | Every including prompt continues the sentence with the command lines. |
+
+## skills/tdd/scripts/prompts/_timed-test-run-affected.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TA1 | The fragment is one command line: `{{TIMED_TEST_RUN}}`, the tier `changed`, the test files the leaf ran as one quoted argument (`'<the test files you ran>'`), then the `{{AFFECTED_RUN_LINE}}` slot. (The whole fragment.) | A run of the changed files' test files is recorded under the `changed` tier, naming the files it ran. |
