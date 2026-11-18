@@ -140,3 +140,12 @@ def test_cut_cases_reads_the_paren_right_after_a_regex_literal_as_code_4294():
     cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
 
     assert cases == [("t", first), ("u", second)]
+
+
+def test_cut_cases_resumes_the_scan_after_a_regex_literals_closing_slash_4294():
+    case_reader = importlib.import_module("veri.case_reader")
+    case = "it('v', () => {\n  const r = /\\(/.test(x) + '/';\n  expect('(').toBe(true);\n})"
+
+    cases = case_reader.cut_cases(case + ";\n")
+
+    assert cases == [("v", case)]
