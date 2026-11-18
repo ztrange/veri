@@ -39,3 +39,13 @@ def test_prose_owed_sh_adds_nothing_for_a_repository_with_no_prompts_directory_4
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert (code, out) == (0, ""), (code, out, err)
+
+
+def test_prose_owed_sh_adds_nothing_for_the_prompts_directorys_own_requirements_list_4384(tmp_path, run_cli):
+    prose_owed = importlib.import_module("veri.prose_owed")
+    graded_repo(tmp_path, "develop-x.md")
+    (tmp_path / PROMPTS / "REQUIREMENTS.md").write_text("# Rows for the prompts\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out) == (0, ""), (code, out, err)
