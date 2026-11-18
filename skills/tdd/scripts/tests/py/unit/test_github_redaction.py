@@ -361,3 +361,12 @@ def test_published_redacts_a_local_path_only_at_a_path_boundary_and_keeps_its_tr
     text = kept + " path=/tmp/x, /Users/someone/x.py, /home/someone/y.py; /Users/someone/z.md: /home/someone/w.py."
 
     assert github.published(text) == kept + " path=<tmp>/x, <path>, <path>; <path>: <path>."
+
+
+def test_published_redacts_a_system_volumes_data_path_like_its_users_path_4270(github, monkeypatch, tmp_path):
+    monkeypatch.setenv("HOME", "/Users/someone-else")
+    monkeypatch.setenv("TMPDIR", str(tmp_path))
+    monkeypatch.setattr("tempfile.tempdir", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+
+    assert github.published("/System/Volumes/Data/Users/bob/q") == github.published("/Users/bob/q") == "<path>"
