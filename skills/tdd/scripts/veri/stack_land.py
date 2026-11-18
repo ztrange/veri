@@ -188,7 +188,11 @@ def main(argv):
             return _freed("git fetch origin failed (exit %d): %s; the merge lock freed, nothing pushed or opened"
                           % (fetch.returncode, fetch.stderr.strip()))
         slice_branch = "%s-slice-%s" % (stack, cut[:10])
-        listed = git.network("ls-remote", "--heads", "origin", "refs/heads/%s" % slice_branch, cwd=".").stdout.split()
+        read = git.network("ls-remote", "--heads", "origin", "refs/heads/%s" % slice_branch, cwd=".")
+        if read.returncode:
+            return _freed("git ls-remote of the slice branch %s failed (exit %d): %s; the merge lock freed, nothing"
+                          " pushed" % (slice_branch, read.returncode, read.stderr.strip()))
+        listed = read.stdout.split()
         if listed and listed[0] != cut:
             return _freed("the slice branch %s is already on origin at another commit, %s; the merge lock freed,"
                           " nothing pushed" % (slice_branch, listed[0]))
