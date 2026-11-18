@@ -1,0 +1,95 @@
+"""In-process cases for veri/stack_carry.py, the module stack-carry.sh is a shim over (PRD 034.4b): the stack branch
+stack-branch.sh names (stack_branch.named), git (git.git, git.network, git.default_branch) and the sibling scripts it runs
+(stack_fix.script) are injected in-process, so no case starts a process."""
+import importlib
+import os
+import subprocess
+
+import pytest
+
+TIP, CUT, NEW = "a" * 40, "c" * 40, "e" * 40
+DEFAULT_TREE, NEW_TREE = "d" * 40, "f" * 40
+LINE = "CLAUDE.md: the line 'veri: stack branch:' names no branch"
+
+
+@pytest.fixture
+def stack_carry():
+    return importlib.import_module("veri.stack_carry")
+
+
+class World:
+    """A clone whose stack branch is <named> (an exception is raised by stack_branch.named) and whose default branch is
+    `trunk`. Each git call (git.git, its cwd kept) is answered by the first key of <answers> found as a contiguous run of
+    its arguments, (exit code, stdout, stderr); by default the happy carry-over: origin/stack is TIP, the old cut CUT is
+    an ancestor of it and landed on origin/trunk (merging it there gives DEFAULT_TREE, origin/trunk's tree), the rebase
+    in its worktree gives NEW with the tree NEW_TREE, and the KL21 merge-tree prints NEW_TREE. git.network answers 0
+    unless <network> maps a first argument to (exit code, stdout, stderr). Sibling scripts answer <scripts>[name], else
+    (0, ""). Every call is kept, in order, in <log>: ("git", cwd, *args), ("net", *args) and (script, *args)."""
+
+    def __init__(self, monkeypatch, tmp_path, named="stack", answers=None, network=None, scripts=None):
+        self.log, self.top = [], str(tmp_path)
+        self.answers = dict({
+            ("rev-parse", "--show-toplevel"): (0, self.top + "\n", ""),
+            ("refs/remotes/origin/stack^{commit}",): (0, TIP + "\n", ""),
+            ("cut^{commit}",): (0, CUT + "\n", ""),
+            ("merge-base", "--is-ancestor"): (0, "", ""),
+            ("merge-tree", "--write-tree", "origin/trunk", CUT): (0, DEFAULT_TREE + "\n", ""),
+            ("origin/trunk^{tree}",): (0, DEFAULT_TREE + "\n", ""),
+            ("rev-parse", "HEAD", "HEAD^{tree}"): (0, NEW + "\n" + NEW_TREE + "\n", ""),
+            ("merge-tree", "--write-tree", "--merge-base=" + CUT): (0, NEW_TREE + "\n", ""),
+        }, **(answers or {}))
+        network, scripts = network or {}, scripts or {}
+        git = importlib.import_module("veri.git")
+
+        def run_git(*args, cwd=None, **kwargs):
+            self.log.append(("git", cwd) + args)
+            for key, said in self.answers.items():
+                if any(args[i:i + len(key)] == key for i in range(len(args) - len(key) + 1)):
+                    return subprocess.CompletedProcess(["git", *args], *said)
+            return subprocess.CompletedProcess(["git", *args], 0, "", "")
+
+        def run_network(*args, cwd=None, limit_name=None):
+            self.log.append(("net",) + args)
+            return subprocess.CompletedProcess(["git", *args], *network.get(args[0], (0, "", "")))
+
+        def answer(root):
+            if isinstance(named, BaseException):
+                raise named
+            return named
+
+        def script(name, *args, limit=None):
+            self.log.append((name,) + args)
+            return scripts.get(name, (0, ""))
+
+        monkeypatch.setattr(git, "git", run_git)
+        monkeypatch.setattr(git, "network", run_network)
+        monkeypatch.setattr(git, "default_branch", lambda cwd=None, remote=True: "trunk")
+        monkeypatch.setattr(importlib.import_module("veri.stack_branch"), "named", answer)
+        monkeypatch.setattr(importlib.import_module("veri.stack_fix"), "script", script)
+
+    def calls(self, first):
+        return [call for call in self.log if call[0] == first]
+
+
+@pytest.mark.parametrize("named, said", [
+    (None, "stack-branch.sh exits 3: the repository's CLAUDE.md names no stack branch"),
+    ("refused", "stack-branch.sh exits 2: " + LINE),
+])
+def test_exits_2_naming_stack_branch_sh_exit_and_its_line_when_it_does_not_exit_0_taking_no_lock(
+        monkeypatch, tmp_path, run_cli, stack_carry, named, said):
+    refused = importlib.import_module("veri.stack_branch").Refused(LINE) if named == "refused" else named
+    world = World(monkeypatch, tmp_path, named=refused)
+
+    code, out, err = run_cli(stack_carry, ["cut"])
+
+    assert (code, out, said in err, world.calls("merge-lock.sh")) == (2, "", True, []), err
+
+
+@pytest.mark.parametrize("argv", [[], ["cut", "more"], ["--now"]])
+def test_any_argument_list_but_one_commit_exits_2_with_the_usage_line_taking_no_lock(
+        monkeypatch, tmp_path, run_cli, stack_carry, argv):
+    world = World(monkeypatch, tmp_path)
+
+    code, out, err = run_cli(stack_carry, argv)
+
+    assert (code, out, "usage: stack-carry.sh <old-cut>" in err, world.log) == (2, "", True, []), err
