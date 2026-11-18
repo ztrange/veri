@@ -19,6 +19,7 @@ import ready_check
 import run_dir
 import run_pins
 import run_records
+import stack_branch
 import tunables
 
 USAGE = "usage: preflight.sh <n> <slug>"
@@ -326,6 +327,21 @@ def recorded_base(n, wt, main):
     return base
 
 
+def fresh_base(wt):
+    """The merge base of HEAD and the branch the run was cut from: origin/<stack> when its cut recorded a stack, as
+    rebase-onto-default.sh re-records it, else origin/HEAD. Exit 2 when it cannot be told, never an empty record (#4374)."""
+    try:
+        # run_base checks the cut's record against the named stack; with no record it would ask git for the default.
+        ref = "origin/" + stack_branch.run_base(wt)[0] if stack_branch.recorded_base(wt) else "origin/HEAD"
+    except stack_branch.Refused as refused:
+        raise Stop(3, "branch base: " + str(refused), 2)
+    # git merge-base exits 1 when there is no common ancestor, so a 0 always printed one.
+    code, out, _ = call("git", "merge-base", "HEAD", ref, cwd=wt)
+    if code != 0:
+        raise Stop(3, "git merge-base HEAD %s exit %d" % (ref, code), 2)
+    return out.strip()
+
+
 def set_up(n, slug, detect):
     """The run's worktree, made ready for its baseline suite: (worktree, fast tier command, issue body file)."""
     wt = checked(3, script("issue-worktree.sh"), n, slug).strip()
@@ -344,7 +360,7 @@ def set_up(n, slug, detect):
     body_file = issue_body(n, wt)
     checked(3, script("requirements-preflight.sh"), body_file, *([ledger] if resume else []), cwd=wt)
     # The fast command every leaf and verifier is handed is read at the branch base, the merge base of HEAD and
-    # origin/HEAD a verifier reads its run lines at, so a CLAUDE.md a leaf committed on a resumed branch never sets
+    # origin/HEAD (origin/<stack> on a stacked run) a verifier reads its run lines at, so a CLAUDE.md a leaf committed on a resumed branch never sets
     # it; with no base, detect-test-command.sh refuses (exit 2), never reading the working tree (#4263). A fresh run
     # records it in the main working tree once the branch is cut, and a resume reads it back from there, never
     # recomputing it from refs a leaf can rewrite (#4374).
@@ -352,7 +368,7 @@ def set_up(n, slug, detect):
     if resume:
         base = recorded_base(n, wt, main)
     else:
-        base = call("git", "merge-base", "HEAD", "origin/HEAD", cwd=wt)[1].strip()
+        base = fresh_base(wt)
         run_pins.write_branch_base(main, n, base)
     fast = checked(3, detect, "--tier", "fast", "--issue", body_file, "--at", base, wt, cwd=wt).strip()
     return wt, fast, body_file
