@@ -287,6 +287,12 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     if phase == "red" and is_replaces_case_step(step_arg):
         written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
     number = 5 if phase in ("expand", "cover-new", "migrate") else 4
+    try:
+        run_lines = run_line.run_lines(branch_base=branch_base)
+    except run_line.BaseUnresolved:
+        write(sys.stderr, f"build-verify-prompt: --branch-base '{branch_base}' names no commit git can resolve",
+              before=False, after=False)
+        return 2, b""
     out = fill(out, ((b"LAST_PHASE_CHECK", _last_phase_check(step_arg, phase, number)),
                                (b"RED_WRITTEN", written), (b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec)),
                                *((placeholder.encode(), value) for placeholder, value in values.items()),
@@ -299,7 +305,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
                                (b"ONTO_SHA", os.fsencode(slots["ONTO_SHA"])),
                                (b"PRE_REBASE_SHA", os.fsencode(slots["PRE_REBASE_SHA"])),
                                (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh")),
-                               *zip((b"AFFECTED_RUN_LINE", b"RUN_LINE"), run_line.run_lines(branch_base=branch_base)),
+                               *zip((b"AFFECTED_RUN_LINE", b"RUN_LINE"), run_lines),
                                (b"MUTATION_PROBE", os.fsencode(f"{HERE}/mutation-probe.sh"))))
     if phase == "diff":
         out += _author_less_block(tunables.read("VERI_ISSUE"))
