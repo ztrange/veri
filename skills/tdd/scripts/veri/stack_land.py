@@ -43,6 +43,12 @@ def _live(stack):
     return "living conductors: %s" % " ".join(conductors) if conductors else None
 
 
+def _freed(line):
+    """Free the merge lock this process holds, then refuse with <line> (exit 2)."""
+    stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
+    return entry.refuse(line, prefix="stack-land: ")
+
+
 def main(argv):
     if argv not in ([], ["--now"]):
         return entry.refuse(usage=USAGE)
@@ -86,15 +92,13 @@ def main(argv):
                             % code, prefix="stack-land: ")
     fetch = git.network("fetch", "--prune", "origin", cwd=".")
     if fetch.returncode:
-        stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
-        return entry.refuse("git fetch origin failed (exit %d): %s; the merge lock freed, nothing pushed or opened"
-                            % (fetch.returncode, fetch.stderr.strip()), prefix="stack-land: ")
+        return _freed("git fetch origin failed (exit %d): %s; the merge lock freed, nothing pushed or opened"
+                      % (fetch.returncode, fetch.stderr.strip()))
     slice_branch = "%s-slice-%s" % (stack, cut[:10])
     listed = git.network("ls-remote", "--heads", "origin", "refs/heads/%s" % slice_branch, cwd=".").stdout.split()
     if listed and listed[0] != cut:
-        stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
-        return entry.refuse("the slice branch %s is already on origin at another commit, %s; the merge lock freed,"
-                            " nothing pushed" % (slice_branch, listed[0]), prefix="stack-land: ")
+        return _freed("the slice branch %s is already on origin at another commit, %s; the merge lock freed, nothing"
+                      " pushed" % (slice_branch, listed[0]))
     git.network("push", "origin", "%s:refs/heads/%s" % (cut, slice_branch), cwd=".")
 
 
