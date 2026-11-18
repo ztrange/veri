@@ -1039,7 +1039,7 @@ def test_main_unpinnable_retire_keeps_a_mutation_record_whose_tests_names_a_clas
     mutations = tdd / "issue-7-mutations.md"
     mutations.write_text(record)
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
@@ -1058,7 +1058,7 @@ def test_main_unpinnable_retire_drops_a_mutation_record_whose_tests_names_a_file
     mutations = tdd / "issue-7-mutations.md"
     mutations.write_text(f"command {len(command)}\n{command}\n\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
@@ -1076,7 +1076,7 @@ def test_main_unpinnable_retire_over_a_malformed_mutation_record_returns_2_namin
     mutations = tdd / "issue-7-mutations.md"
     mutations.write_text("garbled\n\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
@@ -1094,7 +1094,7 @@ def test_main_unpinnable_retire_over_a_mutation_record_with_a_non_numeric_size_r
     mutations = tdd / "issue-7-mutations.md"
     mutations.write_text("name abc\n\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
@@ -1255,7 +1255,7 @@ def test_tick_retire_unpinnable_without_a_case_exits_1_naming_the_matcher_and_al
     reason.write_text("VERDICT: REJECT\nREASON: the pin already holds\n")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_ISSUE", "42")
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     no_case = tick_ledger.tick(str(ledger), "a one", retire="unpinnable", reason_file=str(reason))
     err = capsys.readouterr().err

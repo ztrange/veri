@@ -18,7 +18,7 @@ def test_main_already_holds_retires_the_step_with_an_already_holds_step_event_an
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON: already holds; rerouted to pin step 4\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
                               str(ledger), "a one"],
@@ -46,7 +46,7 @@ def test_main_unpinnable_refuses_an_already_holds_reason_file_and_leaves_ledger_
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON: already holds; rerouted to pin step 4\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds",
                               str(ledger), "a one"],
@@ -64,7 +64,7 @@ def test_main_already_holds_refuses_a_reason_file_with_no_reason_text_and_leaves
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON:   \n\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
                               str(ledger), "a one"],
@@ -82,7 +82,7 @@ def test_main_already_holds_refuses_an_empty_reason_file_and_leaves_ledger_and_e
     reason = tmp_path / "reason.txt"
     reason.write_text("")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
                               str(ledger), "a one"],
@@ -100,7 +100,7 @@ def test_main_already_holds_refuses_a_reason_file_with_text_but_no_reason_line_a
     reason = tmp_path / "reason.txt"
     reason.write_text("already holds; rerouted to pin step 4\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
                               str(ledger), "a one"],
@@ -117,7 +117,7 @@ def test_main_already_holds_event_records_the_first_reason_line_with_text_when_t
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON:   \nREASON: already holds; rerouted to pin step 4\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
                               str(ledger), "a one"],
@@ -146,7 +146,7 @@ def test_main_already_holds_drops_the_mutation_record_whose_tests_case_does_not_
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON: already holds; rerouted to pin step 4\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
@@ -170,7 +170,7 @@ def test_main_already_holds_retire_that_drops_a_mutation_record_still_appends_it
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON: already holds; rerouted to pin step 4\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
@@ -190,7 +190,7 @@ def test_main_already_holds_with_a_failing_case_exits_1_leaves_ledger_and_events
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON: already holds; rerouted to pin step 4\n")
     ran = []
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: ran.append(case) or 1, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (ran.append(case) or 1, "", 1), raising=False)
 
     code, out, err = run_cli(tick_ledger,
                              ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_gone",
@@ -210,7 +210,7 @@ def test_main_already_holds_with_a_passing_case_retires_the_step_with_one_alread
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON: already holds; rerouted to pin step 4\n")
     ran = []
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: ran.append(case) or 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (ran.append(case) or 0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger,
                              ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
@@ -247,7 +247,7 @@ def test_run_case_in_a_repo_declaring_no_one_test_file_command_runs_make_test_te
     monkeypatch.chdir(tmp_path)
     fake = fake_processes.answers({"": (0, b"", b"")})
 
-    assert tick_ledger.run_case("TestIssue99CheckExitsZero") == 0
+    assert tick_ledger.run_case("TestIssue99CheckExitsZero") == (0, "make test TESTS=TestIssue99CheckExitsZero", 0)
     assert ["make", "test", "TESTS=TestIssue99CheckExitsZero"] in fake.argvs
 
 
@@ -258,7 +258,7 @@ def test_run_case_in_a_repo_declaring_a_one_test_file_command_runs_it_with_the_c
     monkeypatch.chdir(tmp_path)
     fake = fake_processes.answers({"detect-test-command.sh": (0, './run-one "$1"\n', ""), "": (0, b"", b"")})
 
-    assert tick_ledger.run_case("pkg/check_test.go::TestIssue99CheckExitsZero") == 0
+    assert tick_ledger.run_case("pkg/check_test.go::TestIssue99CheckExitsZero") == (0, './run-one "$1" pkg/check_test.go', 0)
     launched = fake.argvs
     case_runs = [argv for argv in launched if not str(argv[0]).endswith("detect-test-command.sh")]
     assert len(case_runs) == 1

@@ -69,6 +69,9 @@ def make_answer(stderr):
 
 
 def run_case(case):
+    """Run the test case `case` through the repository's one-test-file command (`make test TESTS=<case>` when it
+    declares none). Returns `(answer, command, code)`: the answer (0 passes, 1 fails, 2 never ran), the command line
+    run, and the process exit code."""
     global LAST_COMMAND, LAST_CODE
     detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
     found = subprocess.run([detect, "--tier", "one test file"], capture_output=True, text=True)
@@ -86,11 +89,11 @@ def run_case(case):
     LAST_CODE = done.returncode
     answer = make_answer(done.stderr or "") if is_make and LAST_CODE > 0 else LAST_CODE
     if no_answer(answer) or answer == 2:
-        return 2
+        return 2, LAST_COMMAND, LAST_CODE
     if answer and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items",
                                                          f"{done.stdout}{done.stderr}", re.I)):
-        return 2
-    return answer
+        return 2, LAST_COMMAND, LAST_CODE
+    return answer, LAST_COMMAND, LAST_CODE
 
 
 def changed_index(text, new):
@@ -232,9 +235,9 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
             l.startswith("REASON:") and l[7:].strip() for l in reason_text.splitlines()
         ):
             return 1
-    ran = run_case(case) if case else 0
+    ran, ran_command, ran_code = run_case(case) if case else (0, "", 0)
     if ran == 2:
-        complain(f"{matcher}: case {case} never run ({how_ended(LAST_CODE)}): no such file path, no tests ran, or the command could not run: {LAST_COMMAND}")
+        complain(f"{matcher}: case {case} never run ({how_ended(ran_code)}): no such file path, no tests ran, or the command could not run: {ran_command}")
         return 2
     if ran:
         complain(f"{matcher}: case {case} fails")

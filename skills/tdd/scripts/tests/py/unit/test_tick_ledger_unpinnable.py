@@ -19,7 +19,7 @@ def test_main_unpinnable_retires_the_matched_step_with_an_unpinnable_step_event_
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds",
                               str(ledger), "a one"],
@@ -44,7 +44,7 @@ def test_main_unpinnable_with_any_other_reject_reason_exits_1_and_leaves_ledger_
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the test is trivial and over-coupled to the wording\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds",
                               str(ledger), "a one"],
@@ -69,7 +69,7 @@ def test_main_unpinnable_drops_the_mutation_record_whose_tests_case_does_not_exi
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
@@ -94,7 +94,7 @@ def test_main_unpinnable_keeps_the_mutation_record_whose_tests_case_exists_3289(
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
@@ -118,7 +118,7 @@ def test_main_unpinnable_retire_that_drops_a_mutation_record_still_appends_its_u
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
@@ -147,7 +147,7 @@ def test_main_unpinnable_retire_that_drops_no_mutation_record_leaves_the_mutatio
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
@@ -164,7 +164,7 @@ def test_main_unpinnable_with_a_failing_case_exits_1_leaves_ledger_and_events_an
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
     ran = []
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: ran.append(case) or 1, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (ran.append(case) or 1, "", 1), raising=False)
 
     code, out, err = run_cli(tick_ledger,
                              ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_gone",
@@ -184,7 +184,7 @@ def test_main_unpinnable_with_a_passing_case_retires_the_step_with_one_unpinnabl
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
     ran = []
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: ran.append(case) or 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (ran.append(case) or 0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger,
                              ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds",
@@ -251,7 +251,7 @@ def test_main_unpinnable_dropping_a_record_leaves_the_remaining_encoded_records_
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
@@ -268,7 +268,7 @@ def test_main_unpinnable_retires_the_step_when_the_reason_says_the_real_before_s
     reason.write_text("VERDICT: REJECT\nREASON: still passes against the real before-state; "
                       "pins nothing the branch introduced\n")
 
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
     code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds",
                               str(ledger), "a one"],

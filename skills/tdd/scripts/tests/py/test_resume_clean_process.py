@@ -274,7 +274,7 @@ def test_main_keeps_a_committed_unpinnable_retirement_ticked_and_next_unchecked_
     git(repo, "commit", "-q", "-m", "base")
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
     tick_code, _, tick_err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds",
                                                    str(ledger_file), "a one"],
                                      env={"VERI_ISSUE": "42"}, cwd=repo)
