@@ -276,15 +276,15 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
         for name, case in releg:
             write(sys.stderr, "tests-frozen.sh: %s (%s): its helpers digest was re-recorded from the legacy formula"
                   % (case, name))
-    if not changed:
+    if changed:
+        remove_pass_marker(step)
+    elif step:
         tree = work_tree_hash()
         if not tree:
             remove_pass_marker(step)
             write(sys.stderr, "tests-frozen.sh: the work-tree hash could not be computed: git add -A or git write-tree failed")
             return 2
         write_pass_marker(step, tree)
-    else:
-        remove_pass_marker(step)
     return 1 if changed else 0
 
 
