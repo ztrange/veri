@@ -39,9 +39,9 @@ VERI_COMMENT_PREFIXES = (
 
 # An absolute local path redact_local leaves (another account's home, any temp or /private path): to `<path>`, whole,
 # from its prefix at a path boundary (`/homepage` is not one) to its last character that is not `,` `.` `;` or `:`.
-_LOCAL_PATH = re.compile(r"(?<![A-Za-z0-9_.-])(?:/System/Volumes/Data)?(?:/private)?"
-                        r"/(?:Users|home|tmp|var/folders|private)(?![A-Za-z0-9_-])"
-                        r"(?:/[^\s\"'`<>()\[\]]*(?<![,.;:]))?")
+_LOCAL_PATH = re.compile(run_records.PATH_START + r"(?:/System/Volumes/Data)?(?:/private)?"
+                        r"/(?:Users|home|tmp|var/folders|private)" + run_records.PATH_END
+                        + r"(?:/[^\s\"'`<>()\[\]]*(?<![,.;:]))?")
 
 
 def published(text):
