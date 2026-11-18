@@ -272,6 +272,18 @@ def test_issue_4089_the_run_state_ignore_row_fails_naming_a_file_that_carries_th
     assert name == "run-state ignore" and fix and str(gitignore) in fix and "in part" in fix.reason, (fix, fix.reason)
 
 
+def test_4338_the_run_state_ignore_fix_for_a_partial_rule_names_the_rules_lines_without_counting_them(ready_check, fake_processes, tmp_path):
+    (tmp_path / "common.git" / "info").mkdir(parents=True)
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text("!.tdd/issue-*-metrics.md\n")
+    fake_processes.answers({"git rev-parse --git-common-dir": (0, str(tmp_path / "common.git") + "\n", "")}, exact=True)
+
+    name, fix = ready_check.run_state_ignore_row()
+
+    assert (name, fix.reason) == ("run-state ignore", f"{gitignore} carries veri's run-state rule only in part, or out of "
+                                                      "order: complete those lines, in that order, or remove them")
+
+
 def test_issue_4089_the_run_state_ignore_row_writes_nothing_to_stderr_for_a_partial_rule(ready_check, fake_processes, tmp_path, capsys):
     (tmp_path / "common.git" / "info").mkdir(parents=True)
     (tmp_path / ".gitignore").write_text("!.tdd/issue-*-metrics.md\n")

@@ -416,7 +416,7 @@ def run_state_ignore_row():
             shown = " ".join("-e " + shlex.quote(line) for line in ensure_run_state_ignored.RULE)
             return "run-state ignore", Fix(f"grep -nF {shown} {shlex.quote(path)}",
                                            f"{path} carries veri's run-state rule only in part, or out of order: complete "
-                                           "those three lines, in that order, or remove them")
+                                           "those lines, in that order, or remove them")
         if not present and not writable(path):
             return "run-state ignore", f"chmod u+w {shlex.quote(path)}"
     return "run-state ignore", None
