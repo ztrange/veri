@@ -10,7 +10,13 @@ import run_dir
 NAME = "run-step"
 USAGE = "usage: run-step.sh <n> [--from <stage>] [--hand <stage>]…"
 LEDGER = run_dir.ledger("", "%s")
-STAGES = ("red-half", "green-half", "refactor-half", "step-close")
+RED = "SKILL.md#Red — one failing test (developer leaf), then verify-red (blind)"
+GREEN = "SKILL.md#Green — minimum implementation (developer leaf), then verify-green (blind)"
+REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
+
+# The stages in the order they run -> the heading anchor (`<file>#<heading>`, under the skill's directory) of the
+# section whose prose takes over at a stop there (S4).
+STAGES = {"red-half": RED, "green-half": GREEN, "refactor-half": REFACTOR, "step-close": REFACTOR}
 
 
 def main(argv):
@@ -21,8 +27,11 @@ def main(argv):
     if fused_step.inputs(NAME + ".sh", n, LEDGER) is None:
         return 2
     out = ""
-    for stage in STAGES:
-        _, out, _ = fused.call(fused.script(stage + ".sh"), n)
+    for stage, anchor in STAGES.items():
+        code, out, _ = fused.call(fused.script(stage + ".sh"), n)
+        if code != 0:
+            sys.stdout.write("seam=%s code=%d next=%s\n" % (stage, code, "run-step.sh " + n if code == 3 else anchor))
+            return code
     sys.stdout.write([line for line in out.splitlines() if line.startswith("next=")][-1] + "\n")
     return 0
 
