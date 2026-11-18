@@ -503,25 +503,21 @@ of at scoping time.
    `Read` and run `<base directory>/LEGACY.md` for a `## Legacy` spec or, for the `## Refactor`
    section `capture-spec.sh` writes, `<base directory>/REFACTOR-KIND.md`.
 2. **Commit the ledger** as the run's starting point. Before committing, run
-   `$S/scope-check.sh .tdd/issue-<n>.md .`: it exits 1 when a step names a new `test_<x>.py` under
-   `skills/tdd/scripts/tests/py/` whose basename already exists anywhere under it (pytest refuses
-   two modules of one basename) and its stderr names both paths, so rename the step's module with
-   a `_process` or `_cli` suffix and run it again. It also exits 1 when a step line carries more than
-   one `⟦criterion k⟧` tag, naming the line on stderr: rewrite the plan so each such step serves one
-   criterion, splitting it where needed, and run the check again. It also exits 1, naming the step and
-   the unit on stderr and writing no `plan` event, when a step not marked `⟦skill-edit⟧` names, ahead of
-   a `⟦skill-edit⟧` step whose unit is U, either the ID of a row listed under `## U` in the
-   `REQUIREMENTS.md` beside U's file while U's `GRADED` file signs U (the ID as a whole word, so `SR1`
-   is not `SR10`), or U's file path while that file is not yet in the repository: that step would leave
-   U owing a grade until the later step signs it, so its suite is red by construction; fold the change
-   into the signing `⟦skill-edit⟧` step and run the check again. It exits 2, naming the unit on stderr and
-   writing no `plan` event, when a `⟦skill-edit⟧` step's unit (the step's first path-shaped backticked token: one containing a `/` or ending in `.md`) has no
-   `### <unit>` heading (or `### <unit> (new)`) in the spec's `## Requirements`, the refusal `skill-edit-step.sh`
-   would otherwise make mid-run, or when a `⟦skill-edit⟧` step carries no path-shaped backticked token at all (stderr `no path-shaped unit for skill-edit step: <step>`); the plan is not committed, and a spec with no `## Requirements` section is not
-   checked. The plan is never committed with a multi-tag step:
+   `$S/scope-check.sh .tdd/issue-<n>.md .`. It exits 1 when a step names a new `test_<x>.py` under
+   `skills/tdd/scripts/tests/py/` whose basename exists under it, stderr naming both paths:
+   rename the step's module with a `_process` or `_cli` suffix. It exits 1 when a step
+   carries more than one `⟦criterion k⟧` tag, naming the line: rewrite the plan so each such step
+   serves one criterion, splitting it where needed. It exits 1, naming the step and the unit, when a
+   step not marked `⟦skill-edit⟧` precedes the `⟦skill-edit⟧` step of a unit U and names U's file
+   while it is not yet in the repo, or, while U's `GRADED` file signs U, the ID (a whole word)
+   of a row under `## U` in the `REQUIREMENTS.md` beside U's file: its suite would be red until U is
+   signed; fold the change into U's `⟦skill-edit⟧` step. Rerun it after an exit 1. It
+   exits 2, naming the unit, when a `⟦skill-edit⟧` step's unit (its first path-shaped backticked
+   token) has no `### <unit>` or `### <unit> (new)` heading in the spec's `## Requirements`, or the step
+   has no such token (stderr `no path-shaped unit for skill-edit step: <step>`); a spec with no
+   `## Requirements` is not checked. Exit 1 or 2 writes no `plan` event and commits nothing, so a
+   multi-tag step is never committed; exit 0 commits:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
-   (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
-   while ignoring leaf logs.)
 
    **Every ledger commit after this plan commit is checked for growth.** Before it is made, run
    `$S/ledger-growth.sh <plan-ledger-file> .tdd/issue-<n>.md`, the plan-ledger being the ledger as the
