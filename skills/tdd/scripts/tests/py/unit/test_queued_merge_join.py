@@ -606,3 +606,33 @@ def test_the_merge_commit_refusal_says_what_to_do(tmp_path, fake_processes, monk
     line = next(l for l in err.splitlines() if "merge commit" in l)
     assert (code, "must be linear" in line, "Rebase the run's branch onto origin/stack" in line, "join again" in line) == (
         2, True, True, True), err
+
+
+def test_a_run_whose_cut_recorded_a_base_sha_rebases_onto_origin_stack_from_it_and_the_file_then_names_the_stack_it_rebased_onto(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+    recorded = world.wt + "/.tdd/issue-7-base-sha"
+    with open(recorded, "w") as f:
+        f.write("4444444\n")
+
+    code, _, err = join(run_cli, world)
+
+    wt = "git -C %s " % world.wt
+    rebases = [c for c in world.calls if c.startswith(wt + "rebase ")]
+    checks = [c for c in world.calls if " merge-tree " in c]
+    with open(recorded) as f:
+        assert (code, rebases, checks, f.read()) == (0, [wt + "rebase --onto origin/stack 4444444"], [
+            wt + "merge-tree --write-tree --merge-base=4444444 %s %s" % (ORIGIN_SHA, STACK_SHA)], STACK_SHA + "\n"), err
+
+
+@pytest.mark.parametrize("text", ["", "not a sha\n", "4444444\n5555555\n"])
+def test_a_base_sha_file_that_holds_no_one_sha_is_exit_2_naming_it_nothing_rebased_or_pushed_the_lock_freed(
+        tmp_path, fake_processes, monkeypatch, run_cli, text):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+    with open(world.wt + "/.tdd/issue-7-base-sha", "w") as f:
+        f.write(text)
+
+    code, _, err = join(run_cli, world)
+
+    rebases = [c for c in world.calls if c.startswith("git -C %s rebase " % world.wt)]
+    assert (code, "issue-7-base-sha" in err, rebases, pushed(world), len(released(world))) == (2, True, [], [], 1), err

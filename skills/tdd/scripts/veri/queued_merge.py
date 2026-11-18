@@ -458,11 +458,12 @@ def _unchecked_steps(worktree, branch):
     return 0
 
 
-def _content_differs(worktree, before, onto):
+def _content_differs(worktree, before, onto, base=None):
     """None when the rebased HEAD's tree equals the tree of merging <before> (the run's pre-rebase tip) with <onto> (the
-    stack as fetched): complete by construction, since it compares content, not commits. Otherwise the refusal: a
-    merge-tree that fails or reports conflicts is named as that, a differing tree names the first paths that differ."""
-    merged = _git(worktree, "merge-tree", "--write-tree", before, onto)
+    stack as fetched), from <base> (the run's recorded base sha) when given: complete by construction, since it compares
+    content, not commits. Otherwise the refusal: a merge-tree that fails or reports conflicts is named as that, a
+    differing tree names the first paths that differ."""
+    merged = _git(worktree, "merge-tree", "--write-tree", *(["--merge-base=" + base] if base else []), before, onto)
     if merged.returncode == 1:
         return "git merge-tree --write-tree %s %s reports a conflict, so the rebased tip cannot be checked" % (before, onto)
     expected = merged.stdout.split("\n", 1)[0].strip() if not merged.returncode else ""
@@ -488,6 +489,24 @@ def _put_back(worktree, before, message):
             " ".join(reset.stderr.split())[:200], worktree, before)
     _say(message + "; nothing pushed")
     return 2
+
+
+def _base_sha(worktree, branch):
+    """The sha the run's cut recorded in `.tdd/issue-<n>-base-sha` (or its last join rewrote there), None when the file is
+    absent: a run cut before it existed rebases as before."""
+    path = run_dir.issue_file(worktree, run_dir.branch_issue(branch), "-base-sha")
+    try:
+        with open(path) as f:
+            text = f.read()
+    except FileNotFoundError:
+        return None
+    if not re.fullmatch(r"[0-9a-f]{7,40}\n?", text):
+        raise _Garbled("%s holds %r, not one commit sha; nothing rebased or pushed" % (path, text[:80]))
+    return text.strip()
+
+
+class _Garbled(Exception):
+    """The run's recorded base sha is not one commit sha; the message names the file."""
 
 
 def _joined(pid, repo, pr, worktree, branch, stack):
@@ -537,7 +556,14 @@ def _joined(pid, repo, pr, worktree, branch, stack):
                  " pushed. Rebase the run's branch onto origin/%s so its history is linear, push it, and join again"
                  % (merges.stdout.split()[0], stack))
             return 2
-        rebase = _git(worktree, "rebase", "origin/" + stack)
+        # A run whose cut recorded the stack's sha replays only its own commits (D27): a landing rewrites the stack, and
+        # a plain rebase would replay the landed commits, conflicting where the default branch moved near one.
+        try:
+            base = _base_sha(worktree, branch)
+        except _Garbled as garbled:
+            _say(str(garbled))
+            return 2
+        rebase = _git(worktree, "rebase", *(["--onto", "origin/" + stack, base] if base else ["origin/" + stack]))
         if rebase.returncode and not _rebasing(worktree):
             _say("git rebase onto origin/%s was refused without a conflict (exit %d); nothing pushed" % (
                 stack, rebase.returncode))
@@ -547,7 +573,7 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             _say("rebasing %s onto origin/%s conflicted (%s); aborted, nothing pushed" % (
                 branch, stack, " ".join((rebase.stdout + rebase.stderr).split())[:400]))
             return 1
-        differs = _content_differs(worktree, before, onto)
+        differs = _content_differs(worktree, before, onto, base)
         if differs:
             return _put_back(worktree, before, differs)
         # The checked tip, saved now: it alone is pushed, to the run branch and to the stack.
@@ -556,6 +582,10 @@ def _joined(pid, repo, pr, worktree, branch, stack):
                              "origin", "%s:refs/heads/%s" % (checked, branch))
         if not pushed.returncode:
             lease = checked
+            if base:
+                # The run's commits now sit on <onto>, on origin too: the next join replays them from there.
+                with open(run_dir.issue_file(worktree, run_dir.branch_issue(branch), "-base-sha"), "w") as f:
+                    f.write(onto + "\n")
         if pushed.returncode:
             _say("the leased push of %s failed (exit %d): %s; nothing pushed to %s" % (
                 branch, pushed.returncode, pushed.stderr.strip(), stack))
