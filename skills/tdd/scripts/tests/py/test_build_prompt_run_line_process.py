@@ -216,3 +216,23 @@ def test_outside_veri_verify_red_run_from_a_subdirectory_reads_the_base_commits_
             env={"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}, cwd=repo / "pkg")
 
     assert run_lines_of((repo / ".tdd" / "verify-red.prompt").read_text()) == BASE_LINES
+
+
+@pytest.mark.process("git init, commit and checkout run for real in a scratch repository with no origin, then verify.sh's"
+                     " module in it, launching a real supervise.sh around a stub claude")
+def test_outside_veri_verify_diff_reads_its_run_lines_at_the_branch_base_sha_it_is_passed_with_no_origin_head_4263(
+        tmp_path, run_cli):
+    verify = importlib.import_module("veri.verify")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    claude = tmp_path / "claude-pass"
+    write_stub(claude, "printf 'VERDICT: PASS\\nREASON: fine.'\n")
+    base = commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n"})
+    git(repo, "checkout", "-q", "-b", "feature")
+    step_base = commit_all(repo, "edit the run line", **{"CLAUDE.md": EDITED_MD})
+
+    run_cli(verify, ["--step", "it works ⟦diff-checked⟧", "--fast-cmd", "pytest", "diff", str(spec), base, step_base],
+            env={"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}, cwd=repo)
+
+    assert run_lines_of((repo / ".tdd" / "verify-diff.prompt").read_text()) == BASE_LINES
