@@ -269,3 +269,14 @@ def test_an_all_tier_command_that_cannot_be_read_is_exit_2_with_the_stack_unmove
     code, _, err = join(run_cli, world)
 
     assert (code, world.local) == (2, LOCAL_STACK), err
+
+
+def test_the_offline_cleanup_removes_the_worktree_and_local_branch_and_leaves_the_remote_branch_and_run_records(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    cleaned = [c for c in world.calls if " worktree remove " in c or " branch -D " in c or "--delete" in c]
+    assert (code, cleaned) == (0, ["git -C %s worktree remove %s" % (world.wt, world.wt),
+                                   "git -C %s branch -D %s" % (world.clone, BRANCH)]), err

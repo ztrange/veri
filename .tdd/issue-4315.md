@@ -10,7 +10,7 @@
 - [x] a rebase conflict, a red fast tier or a unit owing a grade is exit 1, `<stack>` unmoved, lock freed ⟦criterion 3⟧
 - [x] the all-tier command runs on the rebased tip before `<stack>` moves; red is exit 1, `<stack>` unmoved, lock freed ⟦criterion 4⟧
 - [x] with no all-tier command the join is not gated and says so in one stderr line ⟦criterion 5⟧
-- [ ] the offline cleanup removes the worktree and local branch, leaving the remote branch and `refs/veri/runs/<n>` ⟦criterion 6⟧
+- [x] the offline cleanup removes the worktree and local branch, leaving the remote branch and `refs/veri/runs/<n>` ⟦criterion 6⟧
 - [ ] the tip is amended with one `Veri-Joined: <pr-url> <branch>` trailer before `<stack>` moves; exit 0 prints `joined offline, no tag` and the amended sha ⟦criterion 7⟧
 - [ ] `stack-land.sh` exits 3 with one stderr line while `.tdd/github-outage` exists, before any read and before the lock ⟦criterion 8⟧
 - [ ] the graded prose of voutage, vmerge, vdev, vhandoff and SCRIPTS.md says what VO5, VO7, M37, D69, D98, D142, D143, H10 and SC589–SC591 say, each regraded ⟦criterion 9⟧
