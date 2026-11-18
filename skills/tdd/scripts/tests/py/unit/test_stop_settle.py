@@ -1,5 +1,6 @@
 """In-process cases for veri/stop_settle.py, the module stop-settle.sh is a shim over (PRD 038.5, #4388)."""
 import importlib
+import json
 import os
 
 import pytest
@@ -165,3 +166,37 @@ def test_4388_with_drop_a_dirty_tree_is_reset_and_what_was_dropped_is_named_in_t
     assert fake.call("comment.sh")[1] == ("12", "stopped", "--note-file", ".tdd/stop-settle-note.md")
     note = (stop.wt / ".tdd" / "stop-settle-note.md").read_text()
     assert "src/a.py" in note and "src/b.py" in note
+
+
+@pytest.mark.parametrize("live", [True, False])
+def test_4388_a_live_restart_pending_pid_makes_the_comment_the_restart_variant_and_it_relaunches_nothing(
+        stop, monkeypatch, live):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/12#issuecomment-9")
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "### 📊 Metrics\n", ""))
+    (stop.wt / ".git").mkdir()
+    (stop.wt / ".git" / "HEAD").write_text("ref: refs/heads/tdd/12-x\n")
+    (stop.wt / ".tdd" / "restart-pending").write_text("%d\n" % (os.getpid() if live else 2147483646))
+    fake = Fake(porcelain=" M src/a.py\n")
+    real = Fake.__call__
+
+    def answer(self, name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        if base == "event.sh":
+            with open(os.path.join(cwd, ".tdd", "events.jsonl"), "a") as f:
+                f.write(json.dumps({"event": args[0], **dict(a.split("=", 1) for a in args[1:])}) + "\n")
+        if base == "comment.sh":
+            monkeypatch.chdir(cwd)
+            self.calls.append((base, args, cwd, env, kw))
+            return comment.main(list(args)), "", ""
+        return real(self, name, *args, cwd=cwd, env=env, **kw)
+    monkeypatch.setattr(Fake, "__call__", answer)
+    code, out, err, fake = stop(fake=fake, argv=("12", "at-ledger", "--drop"))
+
+    assert code == 0, err
+    body = posted[0]
+    assert body.splitlines()[0] == "### ⏹️ Stopped — at-ledger"
+    assert ("context growth" in body, "run-conductor.sh" in body, "operator" in body) == (live, not live, False)
+    assert not {"run-conductor.sh", "restart-conductor.sh", "detach-leaf.sh", "supervise.sh"} & set(fake.names())
