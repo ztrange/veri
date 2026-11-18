@@ -94,6 +94,32 @@ def test_4024_already_present_commits_nothing(start):
     assert (code, fake.names()) == (0, ["leaf-timeout.sh", "capture-spec.sh", "ensure-run-state-ignored.sh"])
 
 
+def test_4338_a_worktree_whose_gitignore_holds_veris_own_4048_rule_commits_nothing_at_1_4(start, fake_processes):
+    import contextlib
+    import io
+    from conftest import SCRIPTS
+    ensure_run_state_ignored = importlib.import_module("veri.ensure_run_state_ignored")
+    main_gitignore = (SCRIPTS.parents[2] / ".gitignore").read_bytes()
+    (start.wt / ".gitignore").write_bytes(main_gitignore)
+    fake_processes.answers({"git": lambda line, **kwargs: (0, ".git\n", None)})
+
+    class RealEnsure(Fake):
+        def answer(self, name, *args, cwd=None, env=None):
+            if os.path.basename(name) != "ensure-run-state-ignored.sh":
+                return super().answer(name, *args, cwd=cwd, env=env)
+            self.calls.append((os.path.basename(name), args, cwd, env))
+            out, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = ensure_run_state_ignored.main([cwd])
+            return code, out.getvalue(), err.getvalue()
+
+    code, out, err, fake = start(fake=RealEnsure())
+
+    assert (code, [c[1][0] for c in fake.calls if c[0] == "git"]) == (0, [])
+    assert "gitignore=already present" in out.splitlines()
+    assert (start.wt / ".gitignore").read_bytes() == main_gitignore
+
+
 def test_4024_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_stderr_and_the_spec_goes_to_its_file(
         start):
     class Marked(Fake):
