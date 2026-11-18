@@ -440,17 +440,17 @@ def test_after_seam_settle_red_half_green_half_launches_develop_green_with_the_s
     (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
     (wt / ".tdd" / "issue-12.md").write_text(LEDGER % STEP)
     settled = run_cli(importlib.import_module("veri.seam_settle"),
-                      ["12", "red-half", "test_path=tests/test_h.py", "target_test=test_hand"],
+                      ["12", "red-half", "test_path=checks/hand_check.py", "target_test=hand_case"],
                       cwd=str(wt.parent.parent.parent))
     code, out, err, fake = green(answers={("wait-leaf.sh", "verdict-green"): (3, "")}, missing=("red-half",))
 
     assert settled[0] == 0
     assert (wt / ".tdd" / "issue-12-red-half").read_text() == (
-        "step=%s\ntest_path=tests/test_h.py\ntarget_test=test_hand\nred_test_id=tests/test_h.py::test_hand\n"
+        "step=%s\ntest_path=checks/hand_check.py\ntarget_test=hand_case\nred_test_id=checks/hand_check.py::hand_case\n"
         "against_unmodified=FAILS\n" % STEP)
     assert code == 3
     assert fake.call("build-develop-prompt.sh")[1] == ("green", ".tdd/issue-12-spec.md", STEP, "make unit",
-                                                       "tests/test_h.py", "test_hand", "make unit")
+                                                       "checks/hand_check.py", "hand_case", "make unit")
     assert fake.launched() == ["develop-green", "verdict-green"]
 
 
