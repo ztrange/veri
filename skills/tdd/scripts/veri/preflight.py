@@ -482,6 +482,7 @@ def baseline_suite(n, wt, saved, fast, body_file, detect, env, got):
             code = wait_on("preflight-fast-" + n, wt, env)
         elif ci_green(wt):
             fast_began, code = time.monotonic(), 0
+            got["skipped"] = True
         else:
             fast_began, code = start_fast(n, wt, fast, env)
         started = start_full(n, wt, fast, body_file, fast_began, code, detect, env)
@@ -490,6 +491,9 @@ def baseline_suite(n, wt, saved, fast, body_file, detect, env, got):
         baseline, full, alone, began, reused, code = started
     code, full_secs = full_result(n, wt, baseline, full, fast, alone, began, reused, code)
     got.update(baseline=baseline, full=full, fast=fast, alone=alone, reused=reused, full_secs=full_secs)
+    if code == 0 and not got.get("skipped"):
+        tree = call("git", "rev-parse", "HEAD^{tree}", cwd=wt)[1].strip()
+        call(script("baseline-full-tier.sh"), "--record-green", n, tree, fast, full, cwd=wt)
     return code
 
 

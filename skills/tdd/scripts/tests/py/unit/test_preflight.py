@@ -300,6 +300,8 @@ def test_3771_k_after_the_full_tier_steps_4_to_7_run_in_order_with_the_tier_seco
 
     names = [c[0] for c in calls]
     tail = calls[names.index("full-tier-time.sh") + 1:]
+    # The green record (#4337) written once the baseline passed is pinned by its own cases.
+    tail = [c for c in tail if c[1][:2] != ("rev-parse", "HEAD^{tree}") and c[1][:1] != ("--record-green",)]
     assert tail == [
         ("gh", ("api", "repos/{owner}/{repo}", "-q", ".default_branch")),
         ("refactor-budget.sh", ("0",)),
@@ -1373,7 +1375,10 @@ def _ci_answer_4337(**run):
     return json.dumps([dict({"headSha": SHA_4337, "status": "completed", "conclusion": "success"}, **run)]) + "\n"
 
 
-def _ci_run_4337(monkeypatch, run_cli, tmp_path, ci=None, gh_code=0):
+TREE_4337 = "e" * 40
+
+
+def _ci_run_4337(monkeypatch, run_cli, tmp_path, ci=None, gh_code=0, fast_code=0):
     """Preflight for issue 12 with `gh run list` answering <ci> (exit <gh_code>) and HEAD at SHA_4337:
     (exit code, stdout, the detach-command.sh starts, every call)."""
     preflight = importlib.import_module("veri.preflight")
@@ -1388,6 +1393,10 @@ def _ci_run_4337(monkeypatch, run_cli, tmp_path, ci=None, gh_code=0):
             return 0, str(wt) + "\n", ""
         if base == "git" and args == ("rev-parse", "HEAD"):
             return 0, SHA_4337 + "\n", ""
+        if base == "git" and args == ("rev-parse", "HEAD^{tree}"):
+            return 0, TREE_4337 + "\n", ""
+        if base == "detach-command.sh" and args[:2] == ("wait", "preflight-fast-12"):
+            return fast_code, "", ""
         if base == "gh" and args[:2] == ("run", "list"):
             return gh_code, ci if ci is not None else _ci_answer_4337(), ""
         if base == "detect-test-command.sh":
@@ -1429,3 +1438,13 @@ def test_4337_a_ci_answer_that_is_not_success_on_the_sha_under_test_runs_the_bas
 
     assert [s[2:] for s in starts] == [("make", "unit")]
     assert code == 0
+
+
+@pytest.mark.parametrize("ci, fast_code, records", [("[]\n", 0, True), ("[]\n", 1, False), (None, 0, False)],
+                         ids=["ran-green", "ran-red", "ci-skipped"])
+def test_4337_a_baseline_that_ran_green_is_recorded_under_its_tree_and_commands_and_no_other_is(
+        monkeypatch, run_cli, tmp_path, ci, fast_code, records):
+    code, out, starts, calls = _ci_run_4337(monkeypatch, run_cli, tmp_path, ci=ci, fast_code=fast_code)
+
+    recorded = [a for b, a in calls if b == "baseline-full-tier.sh" and a[:1] == ("--record-green",)]
+    assert recorded == ([("--record-green", "12", TREE_4337, "make unit", "make test")] if records else [])
