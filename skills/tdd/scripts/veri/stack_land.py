@@ -95,10 +95,11 @@ def _rebased(cut, default):
             git.out("-C", tree, "rebase", "origin/" + default)
         except git.GitFailed as failed:
             git.ok("-C", tree, "rebase", "--abort")
-            git.out("worktree", "remove", "--force", tree, cwd=".")
             raise _Conflict(failed.stderr) from None
-        head = git.out("-C", tree, "rev-parse", "HEAD")
-        git.out("worktree", "remove", "--force", tree, cwd=".")
+        else:
+            head = git.out("-C", tree, "rev-parse", "HEAD")
+        finally:
+            git.out("worktree", "remove", "--force", tree, cwd=".")
     return head
 
 
