@@ -159,10 +159,14 @@ def unphased(text):
 
 
 def unit_of(text):
-    """The unit a skill-edit step names: its first path-shaped backticked span, or None."""
-    for span in re.findall(r"`([^`]+)`", text):
+    """The unit a skill-edit step names: its first path-shaped backticked span, or None.
+
+    A heading unit (`<file>#<heading>`) runs to the step's last backtick, so a heading holding backticks stays whole.
+    """
+    for match in re.finditer(r"`([^`]+)`", text):
+        span = match.group(1)
         if "/" in span or span.endswith(".md"):
-            return span
+            return text[match.start(1):text.rindex("`")] if "#" in span else span
     return None
 
 
