@@ -1,6 +1,6 @@
 # Plan for #4335 — A project-owned quiet test command keeps raw test output out of leaves
 
-- [ ] `detect-test-command.sh --tier "quiet test files"` prints the command of the repo's `CLAUDE.md` line `veri: quiet test files: <command>` ⟦criterion 1⟧
+- [x] `detect-test-command.sh --tier "quiet test files"` prints the command of the repo's `CLAUDE.md` line `veri: quiet test files: <command>` ⟦criterion 1⟧
 - [ ] With no `veri: quiet test files:` line, `detect-test-command.sh --tier "quiet test files"` proposes `pytest -q --no-header -rf` for a repo whose pytest configuration it recognises ⟦criterion 1⟧
 - [ ] With no `veri: quiet test files:` line, `detect-test-command.sh --tier "quiet test files"` proposes `npx jest --silent` for a repo whose `package.json` test script runs jest ⟦criterion 1⟧
 - [ ] `detect-test-command.sh --tier "quiet test files"` exits 3, printing nothing, for a repo whose runner it cannot recognise (a `Makefile`, `npm test` or `go test` repo declaring no quiet line) ⟦criterion 1⟧
