@@ -2,7 +2,7 @@
 
 | ID | Requirement | Why |
 |---|---|---|
-| GR1 | Invoked as `/vgroom [<issue>...\|--refactor-owed]`; no argument runs the sweep (GR13). | The old no-argument mode skipped unlabelled issues, so repeated grooms labelled few issues. |
+| GR1 | Invoked as `/vgroom [<issue>...\|<range>...\|--refactor-owed]`; no argument runs the sweep over every open issue (GR13); ids and ranges (GR17) and `--refactor-owed` narrow it. Stated under `## Invocation`. | The old no-argument mode skipped unlabelled issues, then opted-in ones, trackers and refactor-owed items, so each needed its own request (2026-11-17). |
 | GR2 | One read-only subagent returns one line per issue: ready / needs-rewrite / needs-split / gone / duplicate / needs-human, plus proposed labels. `ready` means the body already meets `../vfile/SKILL.md`'s issue body; `needs-rewrite` names what it lacks. | |
 | GR3 | Mechanical outcomes are applied without asking: adding or removing a label, closing an issue with a reason, and editing its `Blocked by`. Nothing else is mechanical: filing a new issue (a consolidated or split one included), rewriting criteria, and any other outcome are shown to the human first and applied only on their yes. | Grooming changes queue state cheaply and reversibly on its own; new work enters the queue only with a human's yes (PR #2118 review: filing was treated as mechanical, and the grader judged the old wording both ways). |
 | GR4 | A split or a criteria rewrite is shown to the human first unless they said "go"; `/vgroom` with no argument is a "go". | |
