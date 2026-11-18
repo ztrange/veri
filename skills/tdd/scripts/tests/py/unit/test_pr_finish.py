@@ -172,8 +172,11 @@ def test_4033_otherwise_it_ticks_and_commits_nothing_of_the_kind(finish, mode, l
     assert "plan: the full suite is owed to CI (#12)" not in _commits(fake)
 
 
-def test_4332_under_ci_with_no_wait_ci_err_pr_ready_wait_ticks_the_line_and_commits_it_as_owed_before_readying(finish):
-    assert not (finish.wt / ".tdd" / "wait-ci.err").exists()
+@pytest.mark.parametrize("stale", [None, "PR 42 has no checks\n"], ids=["no wait-ci.err", "a stale has-no-checks one"])
+def test_4332_under_ci_with_no_wait_ci_err_pr_ready_wait_ticks_the_line_and_commits_it_as_owed_before_readying(finish,
+                                                                                                             stale):
+    if stale is not None:
+        (finish.wt / ".tdd" / "wait-ci.err").write_text(stale)  # an earlier wait's, before a ⟦ci-repair⟧ loop
     code, out, err, fake = finish(module="pr_ready_wait")
 
     made = [c[1][2] if c[0] == "git" else c[0] for c in fake.calls
