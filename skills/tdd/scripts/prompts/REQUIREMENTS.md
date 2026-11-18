@@ -1160,3 +1160,9 @@
 | ID | Requirement | Why |
 |---|---|---|
 | TX1 | The fragment gives two indented command lines: first `{{TIMED_TEST_RUN}} fast '' {{FAST_CMD}}`, the fast tier with an empty file argument, then the included `_timed-test-run-affected.md` line. (The whole fragment.) | The fast tier and the changed files' suites are two recorded runs, the fast one first. |
+
+## skills/tdd/scripts/prompts/_flag-overfit.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| FO1 | The fragment completes the overfit flag shape whose opening `overfit \| <the` the including text writes (`develop-refactor.md`, `verify-refactor.md`): `code>`, then ` \| `, then `<the case that would force the general implementation>`. (The whole fragment.) | An overfit flag must name the overfit code and the case that would force the general implementation, so that case can be written. |
