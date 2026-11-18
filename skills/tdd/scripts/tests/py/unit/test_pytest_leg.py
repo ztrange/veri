@@ -1140,3 +1140,28 @@ def test_4310_a_leg_waiting_for_a_free_core_holds_the_lock_wait_marker_so_lock_w
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0]
 
     assert (code, waiting_while_polling, marker_at_start[:1], marker.exists()) == (0, [True], [False], False)
+
+
+def test_4310_a_leg_whose_wait_ends_as_4_of_16_cores_free_hands_pytest_4_workers_and_registers_4_while_pytest_runs(pytest_leg, run_cli, monkeypatch, tmp_path):
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    (legs / "1").write_text("12\n")
+    leaving = legs / str(os.getppid())
+    leaving.write_text("4\n")
+    started = []
+
+    def spy(args):
+        if not started:
+            started.append((args[args.index("-n") + 1] if "-n" in args else "1", (legs / str(os.getpid())).read_text()))
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    monkeypatch.setattr(pytest_leg.time, "sleep", lambda seconds: leaving.unlink(missing_ok=True))
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
+
+    assert (code, started) == (0, [("4", "4")])
