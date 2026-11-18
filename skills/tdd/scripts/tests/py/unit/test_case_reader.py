@@ -54,3 +54,15 @@ def test_cut_cases_still_cuts_a_case_holding_a_division_and_a_line_comment_as_be
     cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
 
     assert cases == [("d", first), ("e", second)]
+
+
+def test_cut_cases_returns_every_case_when_one_returns_a_quote_bearing_regex_before_a_string_holding_a_brace_4294():
+    case_reader = importlib.import_module("veri.case_reader")
+    first = ("it('f', () => {\n  const pick = () => { return /'/; };\n  expect(pick().test('a}')).toBe(false);\n"
+             "  expect('}}').toBe('}}');\n})")
+    divides = "it('d', () => {\n  const q = unreturn / 2;\n  // ) closes nothing\n  expect(q).toBe(q);\n})"
+    second = "it('g', () => {\n  expect(1).toBe(1);\n})"
+
+    cases = case_reader.cut_cases(first + ";\n" + divides + ";\n" + second + ";\n")
+
+    assert cases == [("f", first), ("d", divides), ("g", second)]
