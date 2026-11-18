@@ -8,6 +8,7 @@ import time
 
 import entry
 import event
+import run_line
 import tunables
 
 TIERS = ("fast", "changed", "all", "target")
@@ -43,7 +44,8 @@ def main(argv):
     if tier == "changed" and command[:2] == ["make", "test"] and not any(a.startswith("TESTS=") for a in command[2:]):
         return entry.refuse("timed-test-run.sh: changed tier refuses 'make test' naming no TESTS= suites")
     started = int(time.time())
-    runs = os.path.join(event.toplevel(), ".tdd", "test-runs")
+    top = event.toplevel()
+    runs = os.path.join(top, ".tdd", "test-runs")
     os.makedirs(runs, exist_ok=True)
     path = os.path.join(runs, f"{started}-{tier}-{os.getpid()}.log")
     with open(path, "wb") as log:
@@ -56,8 +58,13 @@ def main(argv):
     if code < 0:
         code = 128 - code
     ended = int(time.time())
+    quiet = run_line.quiet_prefix(top or ".")
     with open(path, "rb") as log:
-        sys.stdout.write(report(tier, code, ended - started, log.read(), path))
+        if quiet and command[:len(quiet)] == quiet:
+            sys.stdout.buffer.write(log.read())
+            sys.stdout.flush()
+        else:
+            sys.stdout.write(report(tier, code, ended - started, log.read(), path))
     event.mark("", event.context(tunables.environment()), "test-run", [f"tier={tier}", f"suites={suites}",
                                                            f"seconds={ended - started}", f"status={code}"], ended)
     return code
