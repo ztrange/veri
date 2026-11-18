@@ -1198,3 +1198,9 @@
 | RU1 | The fragment tells the leaf to run the test files covering the files it touched, as `affected-suites.sh` prints them, through the wrapper, the included `_timed-test-run.md` completing that sentence before a colon. (First sentence.) | The leaf runs the `changed` tier itself, recorded and bounded by the wrapper. |
 | RU2 | The command line is the included `_timed-test-run-affected.md`, indented inside the list item. (The include line.) | The run is recorded under the `changed` tier with the files it ran. |
 | RU3 | It ends "They must stay green." (Last line.) | A red `changed` run means the leaf's work is not done. |
+
+## skills/tdd/scripts/prompts/_develop-red-lead-replaces-case.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| LR1 | The fragment tells the leaf to add the replacement test cases the step names, and to write **NO** production code. (The whole fragment; `build_develop_prompt.py` picks it as `develop-red.md`'s `{{RED_LEAD}}` when the phase, or the phase revised, is Red on a replaces-case step, else `_develop-red-lead.md`.) | The Red of a replaces-case step writes tests only; production code is Green's. |
