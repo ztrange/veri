@@ -125,3 +125,12 @@ def test_4343_hand_repeated_stops_before_each_named_stage_without_calling_it_exi
     code, out, err, stages = step(argv=argv)
 
     assert (code, stages.names(), out.splitlines()[-1]) == (1, called, last), err
+
+
+@pytest.mark.parametrize("text", ["port: replaces 'a' in tests/py/test_x.py ⟦replaces-case⟧ ⟦criterion 1⟧",
+                                  "CI's job passes again ⟦ci-repair⟧"])
+def test_4343_a_step_green_half_does_not_handle_stops_before_it_unmodelled_without_calling_it(step, text):
+    code, out, err, stages = step(ledger=LEDGER % text)
+
+    assert (code, stages.names()) == (1, ["red-half.sh"]), err
+    assert out.splitlines()[-1] == "seam=green-half code=1 reason=unmodelled next=" + GREEN

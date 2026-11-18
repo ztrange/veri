@@ -18,9 +18,11 @@ RED = "SKILL.md#Red — one failing test (developer leaf), then verify-red (blin
 GREEN = "SKILL.md#Green — minimum implementation (developer leaf), then verify-green (blind)"
 REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 
-# The stages in the order they run -> the heading anchor (`<file>#<heading>`, under the skill's directory) of the
-# section whose prose takes over at a stop there (S4).
-STAGES = {"red-half": RED, "green-half": GREEN, "refactor-half": REFACTOR, "step-close": REFACTOR}
+# The stages in the order they run -> (the heading anchor, `<file>#<heading>` under the skill's directory, of the
+# section whose prose takes over at a stop there (S4); the marks of the step kinds it does not handle (S3, RN6): it
+# stops before such a stage without calling it). green-half's reason is specs/prd-027.md GH1.
+STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
+          "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ())}
 
 
 def parse(argv):
@@ -61,11 +63,14 @@ def main(argv):
         start = max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
     out = ""
     for stage in order[start:]:
+        anchor, unhandled = STAGES[stage]
         if stage in hand:
-            return seam(wt, n, step, stage, 1, STAGES[stage], "hand")
+            return seam(wt, n, step, stage, 1, anchor, "hand")
+        if any(mark in step for mark in unhandled):
+            return seam(wt, n, step, stage, 1, anchor, "unmodelled")
         code, out, _ = fused.call(fused.script(stage + ".sh"), n)
         if code != 0:
-            return seam(wt, n, step, stage, code, "run-step.sh " + n if code == 3 else STAGES[stage])
+            return seam(wt, n, step, stage, code, "run-step.sh " + n if code == 3 else anchor)
     with contextlib.suppress(FileNotFoundError):
         os.remove(fused.settled_file(wt, n, "step"))
     sys.stdout.write([line for line in out.splitlines() if line.startswith("next=")][-1] + "\n")
