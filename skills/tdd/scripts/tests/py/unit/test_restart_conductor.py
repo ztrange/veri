@@ -1410,3 +1410,20 @@ def test_4331_an_operators_stop_written_after_the_conductors_last_live_poll_and_
 
     stop = run_tdd / "stop"
     assert (code, out.splitlines()[-1:], launches, stop.read_text() if stop.exists() else None) == (0, ["restarts 7 0"], [], "at-ledger\n")
+
+
+def test_4331_an_operators_stop_already_pending_when_growth_crosses_the_threshold_is_not_overwritten_and_the_watch_ends_with_restarts_7_0_and_no_relaunch(tmp_path, run_cli, monkeypatch):
+    run_tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    seen = []
+
+    def on_sleep(n):
+        if n == 2:  # the conductor reads the pending stop, honours it and clears it before exiting
+            seen.append((run_tdd / "stop").read_text())
+            (run_tdd / "stop").unlink()
+
+    restart_conductor, launches = _growth_stop_setup(tmp_path, monkeypatch, [True, True, True, True, False], on_sleep)
+    importlib.import_module("veri.stop_run").stop_run(str(run_tdd.parent), "at-leaf")
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out.splitlines()[-1:], launches, seen) == (0, ["restarts 7 0"], [], ["at-leaf\n"])
