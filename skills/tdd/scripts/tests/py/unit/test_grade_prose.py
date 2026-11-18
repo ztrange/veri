@@ -1978,3 +1978,35 @@ def test_4336_convert_reads_each_requirements_md_once_per_call_and_writes_the_si
                "c.md": "a8f7db1812d4fa5debc7f7f069a3664c4a2ac29e448f084ef7444045f7135729"}
     assert (reads.count("REQUIREMENTS.md"), written == signatures, written == literal) == (1, True, True), (
         reads, written, signatures)
+
+
+def test_4336_a_tree_grade_prose_py_byte_equal_to_the_running_module_signs_through_it_once_per_unit_under_convert(
+        tmp_path, monkeypatch, grade_prose):
+    tree_module = tmp_path / "skills" / "tdd" / "scripts" / "veri" / "grade_prose.py"
+    tree_module.parent.mkdir(parents=True)
+    with open(grade_prose.__file__, "rb") as f:
+        tree_module.write_bytes(f.read())
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.chdir(tmp_path)
+    colours = {"a.md": "blue", "b.md": "red", "c.md": "green"}
+    for unit, colour in colours.items():
+        (tmp_path / unit).write_text("The widget is painted a deep %s.\n" % colour)
+    (tmp_path / "REQUIREMENTS.md").write_text("".join(
+        "## %s\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is %s. | because |\n\n" % (unit, colour)
+        for unit, colour in colours.items()))
+    (tmp_path / "GRADED").write_text("".join(
+        "%s %s 2026-11-18 grading-id 0123456789ab\n" % (unit, grade_prose.signature("REQUIREMENTS.md", unit))
+        for unit in colours))
+    signed = []
+    signature = grade_prose.signature
+
+    def counted(path, unit, text=None, units=None):
+        signed.append(unit)
+        return signature(path, unit, text, units)
+
+    monkeypatch.setattr(grade_prose, "signature", counted)
+
+    grade_prose.convert("REQUIREMENTS.md")
+
+    assert (grade_prose.signer() is grade_prose, sorted(signed)) == (True, ["a.md", "b.md", "c.md"]), signed
