@@ -187,3 +187,19 @@ def test_with_now_a_cut_fewer_than_veri_slice_commits_ahead_on_a_live_stack_stil
 
     assert [ran[:3] for ran in world.scripts] == [
         ("stack-red.sh",), ("stack-green.sh",), ("merge-lock.sh", "take", "--pid")], err
+
+
+def test_a_failed_merge_lock_sh_take_exits_2_with_nothing_fetched_pushed_or_opened(monkeypatch, run_cli, stack_land):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
+                                         "merge-lock.sh": (2, "")}, ahead=7)
+    writes = []
+    git, github = importlib.import_module("veri.git"), importlib.import_module("veri.github")
+    for module, name in [(git, "git"), (git, "network"), (github, "run_gh"), (github, "pr_open"),
+                         (github, "gh_pr_create")]:
+        monkeypatch.setattr(module, name, lambda *args, _name=name, **kwargs: writes.append((_name,) + args))
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert (code, out, "merge-lock.sh" in err, writes, world.scripts[-1][:2]) == (
+        2, "", True, [], ("merge-lock.sh", "take")), err

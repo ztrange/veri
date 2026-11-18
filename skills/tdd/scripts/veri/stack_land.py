@@ -80,7 +80,10 @@ def main(argv):
             print("stack-land: the cut %s is %d commits ahead of origin/%s, fewer than VERI_SLICE_COMMITS (%s), and the"
                   " stack is live: %s; nothing landed" % (cut, ahead, default, size, live), file=sys.stderr)
             return 3
-    stack_fix.script("merge-lock.sh", "take", "--pid", str(os.getpid()))
+    code, _ = stack_fix.script("merge-lock.sh", "take", "--pid", str(os.getpid()))
+    if code != 0:
+        return entry.refuse("merge-lock.sh take exits %d: the merge lock not taken; nothing fetched, pushed or opened"
+                            % code, prefix="stack-land: ")
 
 
 if __name__ == "__main__":
