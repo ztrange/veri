@@ -10,10 +10,7 @@ STOP = re.compile(r"(Exit|Exits|Env)\b|exit:", re.I)
 
 # Pairs whose texts differ and that cannot be made to agree without editing graded prose (skills/tdd/SCRIPTS.md audits
 # each shim header against its synopsis). A ratchet: the dict may shrink, never grow; an entry that now agrees fails.
-EXEMPT = {
-    "stop-reason.sh": "the module's USAGE also describes the first output line (running | done <pr> | bailed …); adding those"
-                      " words to the shim header would put verbs in it that SCRIPTS.md's synopsis does not have",
-}
+EXEMPT = {}
 
 
 def _synopsis(text, name):
