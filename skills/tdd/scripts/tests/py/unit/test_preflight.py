@@ -1412,3 +1412,20 @@ def test_4337_a_base_commit_whose_ci_run_concluded_success_starts_no_baseline_ru
     assert starts == []
     assert calls[-1][0] == "leaf-timeout.sh" and calls[-1][1][1:] == ("--full", "55")
     assert code == 0
+
+
+@pytest.mark.parametrize("ci, gh_code", [
+    (_ci_answer_4337(conclusion="failure"), 0),
+    (_ci_answer_4337(status="in_progress", conclusion=""), 0),
+    (_ci_answer_4337(status="queued", conclusion="success"), 0),
+    ("[]\n", 0),
+    ("not json\n", 0),
+    (_ci_answer_4337(), 1),
+    (_ci_answer_4337(headSha="d" * 40), 0),
+], ids=["red", "pending", "not-completed", "absent", "unparseable", "gh-failure", "another-sha"])
+def test_4337_a_ci_answer_that_is_not_success_on_the_sha_under_test_runs_the_baseline(
+        monkeypatch, run_cli, tmp_path, ci, gh_code):
+    code, out, starts, calls = _ci_run_4337(monkeypatch, run_cli, tmp_path, ci=ci, gh_code=gh_code)
+
+    assert [s[2:] for s in starts] == [("make", "unit")]
+    assert code == 0
