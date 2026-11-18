@@ -183,3 +183,14 @@ def test_an_absent_local_stack_is_created_at_origins_stack_as_last_fetched_and_t
     made = [c for c in world.calls if c.startswith((wt + "branch ", wt + "update-ref"))]
     assert (code, made) == (0, [wt + "branch stack " + ORIGIN_STACK,
                                 wt + "update-ref refs/heads/stack %s %s" % (world.head[-1], ORIGIN_STACK)]), err
+
+
+def test_a_local_stack_origins_stack_is_not_an_ancestor_of_is_exit_2_naming_both_shas_with_nothing_rebased(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, ancestor=False).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    rebased = [c for c in world.calls if " rebase " in c]
+    assert (code, rebased, world.local) == (2, [], LOCAL_STACK), err
+    assert ORIGIN_STACK in err and LOCAL_STACK in err, err
