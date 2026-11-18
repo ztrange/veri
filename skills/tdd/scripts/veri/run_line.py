@@ -12,8 +12,9 @@ Interface:
                           being that path, or, when the repo declares none, its fast command once for both, so a
                           leaf never times a broader tier; only a repo declaring neither gets its all-tier command.
                           A declared quiet command (quiet_prefix) replaces the changed one, run once over every path.
-                          With <branch_base> (a hex commit name), the `veri: one test file:` line is read from CLAUDE.md
-                          as it stood at that commit, never from the working tree's.
+                          With <branch_base> (a hex commit name), the `veri: one test file:`, `veri: fast tests:` and
+                          `veri: all tests:` lines are read from CLAUDE.md as it stood at that commit, never from the
+                          working tree's.
 
 Blindness: the only inputs are <root>'s files, as detect-test-command.sh reads them (its CLAUDE.md lines first), and
 the CLAUDE.md git holds at <branch_base>, a commit name build-verify-prompt.sh already takes and hex-checks. No other
@@ -57,10 +58,11 @@ def _claude_md_at(branch_base, root):
 def run_lines(root=".", branch_base=""):
     if own_tree(root):
         return OWN
-    one = detect_test_command.resolved("one test file", None, root, _claude_md_at(branch_base, root))
+    claude_md = _claude_md_at(branch_base, root)
+    one = detect_test_command.resolved("one test file", None, root, claude_md)
     if one is None:
-        changed = single = (detect_test_command.resolved("fast", None, root)
-                            or detect_test_command.resolved("all", None, root) or UNDECLARED)
+        changed = single = (detect_test_command.resolved("fast", None, root, claude_md)
+                            or detect_test_command.resolved("all", None, root, claude_md) or UNDECLARED)
     else:
         command = os.fsdecode(one)
         loop = 'for f; do set -- "$f"; %s || s=$?; done; exit ${s:-0}' % command

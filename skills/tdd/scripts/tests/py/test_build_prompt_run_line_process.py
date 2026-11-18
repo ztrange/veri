@@ -39,3 +39,23 @@ def test_outside_veri_branch_base_renders_the_base_commits_one_test_file_run_lin
     committed = run_cli(verify, argv, cwd=repo)
 
     assert [(code, run_lines_of(out), err) for code, out, err in (uncommitted, committed)] == [(0, BASE_LINES, "")] * 2
+
+
+@pytest.mark.process("git init, commit and checkout run for real in a scratch repository, then build-verify-prompt in it")
+def test_outside_veri_branch_base_with_no_one_test_file_line_renders_the_base_commits_all_tier_fallback_after_an_uncommitted_and_a_committed_edit_4263(
+        tmp_path, run_cli):
+    verify = importlib.import_module("veri.build_verify_prompt")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    base = commit_all(repo, "base", **{"CLAUDE.md": "veri: all tests: pytest\n"})
+    argv = ["--branch-base", base, "red", str(spec), "tests/test_x.py"]
+
+    (repo / "CLAUDE.md").write_text("veri: all tests: true\nveri: one test file: true # $1\n")
+    uncommitted = run_cli(verify, argv, cwd=repo)
+    git(repo, "checkout", "-q", "-b", "feature")
+    commit_all(repo, "add a one test file line")
+    committed = run_cli(verify, argv, cwd=repo)
+
+    fallback = ([TIMED + " affected '<the suites you ran>' pytest"], ["`pytest`"])
+    assert [(code, run_lines_of(out), err) for code, out, err in (uncommitted, committed)] == [(0, fallback, "")] * 2
