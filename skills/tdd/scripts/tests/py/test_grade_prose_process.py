@@ -1312,6 +1312,39 @@ def test_2483_convert_resigns_the_listed_unit_under_the_trees_formula_and_leaves
         (converted.returncode, converted.stderr, owed.stdout, lines)
 
 
+@pytest.mark.process("grade-prose.sh --convert against a tree whose own grade_prose.py differs only by a comment")
+@pytest.mark.tree_audit("copies the skill's scripts into a scratch tree")
+def test_4336_convert_leaves_the_graded_file_of_a_unit_both_formulas_sign_alike_untouched_bytes_and_mtime(tmp_path):
+    import shutil
+    import os
+
+    tree_scripts = tmp_path / "skills" / "tdd" / "scripts"
+    shutil.copytree(SCRIPTS, tree_scripts, ignore=shutil.ignore_patterns("tests", "__pycache__", "REQUIREMENTS.md"))
+    shutil.copy(SCRIPTS.parent / "grader.conf", tmp_path / "skills" / "tdd" / "grader.conf")
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")}
+    signed = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                            capture_output=True, text=True, timeout=25, env=env)
+    assert signed.returncode == 0, signed.stderr
+    module = tree_scripts / "veri" / "grade_prose.py"
+    module.write_text(module.read_text() + "\n# the same formula, in a file whose content differs\n")
+    graded_file = tmp_path / "guide" / "GRADED"
+    os.utime(graded_file, ns=(1_000_000_000_000_000_000, 1_000_000_000_000_000_000))
+    before = (graded_file.read_bytes(), graded_file.stat().st_mtime_ns)
+
+    converted = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--convert"], cwd=tmp_path,
+                               capture_output=True, text=True, timeout=25, env=env)
+
+    after = (graded_file.read_bytes(), graded_file.stat().st_mtime_ns)
+    assert (converted.returncode, after == before) == (0, True), (converted.returncode, converted.stderr, before, after)
+
+
 @pytest.mark.process("grade-prose.sh --convert against a listed unit whose GRADED line is stale under both formulas")
 @pytest.mark.tree_audit("copies the skill's scripts into a scratch tree")
 def test_2483_convert_leaves_a_listed_units_stale_graded_line_byte_identical_and_the_unit_owed(tmp_path):
