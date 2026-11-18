@@ -758,6 +758,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `record-test-commands.sh`: commit a project's test commands to its CLAUDE.md on the branch `veri-install` and open its pull request.
 - `ready-check.sh`: the checks before a pull request is readied.
 - `rebase-onto-default.sh`: rebase the branch onto the default branch.
+- `stack-carry.sh`: carry the stack onto the new default branch after a slice landed, by `rebase --onto` in a worktree of its own, pushed under a pinned lease only when a merge-tree check agrees with the new tip.
 - `stack-culprit.sh`: name the issue whose end turned the stack red, and the cases it broke, by running them alone at each issue end in a worktree of its own.
 - `stack-fix.sh`: push a fix worktree's reviewed hand fix on top of a red stack, once per culprit, after checking its bounds and running the named cases, the fast tier and `prose-owed.sh` at its HEAD.
 - `stack-green.sh`: print the newest stack commit that ends an issue and that CI passed, where a slice may be cut.
