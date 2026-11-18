@@ -12,7 +12,8 @@ prints the same `.tdd/wt/<n>` path and creates nothing, so the `cd` puts you bac
 worktree the previous run committed in — the branch is already checked out there, nothing is
 re-created or switched (a branch only origin holds, whose issue carries this lane's `taken:<lane>` label,
 is resumed by recreating the worktree from origin's branch tip; another lane's claim is refused, exit 2; with no exact branch the issue's one `tdd/<n>-*` branch is reused whatever slug is passed, and two or more such branches exit 2 naming each and the requested branch), and a resumed run's baseline runs on the branch head there, before
-any cycle of the resumed run starts. When that baseline is red, preflight step 3 first runs each test file the red baseline
+any cycle of the resumed run starts, unless preflight step 3 skips it as already proven green: a green baseline this
+machine recorded for the branch head's tree under the same key, or a CI `push` run concluded `success` on exactly that sha. When that baseline is red, preflight step 3 first runs each test file the red baseline
 names alone, once, with the repo's own runner (`make test TESTS="<file>"` here), and asks
 `$S/suite-red-resume.sh flake resume <red-file> <alone-red-file>`: on exit 0 — every file passed alone — the `suite-flake` event names
 the files, no `.tdd/resume-suite-red` is written, and the resume goes on as on a green baseline; on exit 1 — any file still red alone,
