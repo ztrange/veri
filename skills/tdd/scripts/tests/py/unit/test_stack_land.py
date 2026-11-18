@@ -2,6 +2,8 @@
 stack-branch.sh names (stack_branch.named) and the sibling scripts it runs (stack_fix.script) are injected in-process,
 so no case starts a process."""
 import importlib
+import json
+import subprocess
 
 import pytest
 
@@ -13,12 +15,27 @@ def stack_land():
 
 class World:
     """What stack_branch.named answers, and every sibling script run; <answers> maps a script's name to its (exit code,
-    stdout), (0, "") for one it does not name."""
+    stdout), (0, "") for one it does not name. git (git.out) names <default> as origin's default branch and answers
+    <ahead> to `rev-list --count`; GitHub (github.gh_api) lists <onto>, the open pull requests as REST records."""
 
-    def __init__(self, monkeypatch, named, answers=None):
+    def __init__(self, monkeypatch, named, answers=None, default="trunk", ahead=0, onto=()):
         self.scripts = []
         answers = answers or {}
         stack_branch = importlib.import_module("veri.stack_branch")
+        git, github = importlib.import_module("veri.git"), importlib.import_module("veri.github")
+
+        def out(*args, cwd=None):
+            if args[:1] == ("symbolic-ref",):
+                return "origin/" + default
+            if args[:2] == ("rev-list", "--count"):
+                return str(ahead)
+            raise git.GitFailed(args, 128, "not faked")
+
+        def gh_api(path, stderr=None):
+            return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(list(onto)), "")
+
+        monkeypatch.setattr(git, "out", out)
+        monkeypatch.setattr(github, "gh_api", gh_api)
 
         def answer(root):
             if isinstance(named, BaseException):
@@ -96,3 +113,16 @@ def test_a_veri_slice_commits_that_is_not_a_whole_number_of_1_or_more_exits_2_na
 
     past_the_reads = [ran for ran in world.scripts if ran[0] not in ("stack-red.sh", "stack-green.sh")]
     assert (code, out, "VERI_SLICE_COMMITS" in err, value in err, past_the_reads) == (2, "", True, True, []), err
+
+
+def test_a_cut_fewer_than_veri_slice_commits_ahead_on_a_stack_a_pull_request_is_open_onto_exits_3_saying_the_count_and_what_is_live_taking_no_lock(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/77"
+    live = {"number": 77, "html_url": url, "head": {"ref": "issue-77"}, "base": {"ref": "stack"}}
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  onto=[live])
+
+    code, out, err = run_cli(stack_land, [])
+
+    assert (code, out, "7 commits" in err, url in err, world.scripts) == (
+        3, "", True, True, [("stack-red.sh",), ("stack-green.sh",)]), err
