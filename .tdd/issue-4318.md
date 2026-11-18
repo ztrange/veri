@@ -1,7 +1,7 @@
 # Plan for #4318 — PRD 034.4b: stack-carry.sh carries the stack and every live run onto the new default branch
 
 - [x] stack_carry.main exits 2 naming stack-branch.sh's exit and its line when stack-branch.sh exits 3 or 2, and exits 2 with its usage line `usage: stack-carry.sh <old-cut>` on any argument list but one commit, taking no lock (unit case in skills/tdd/scripts/tests/py/unit/test_stack_carry.py, no process) ⟦criterion 2⟧
-- [ ] a failed merge-lock.sh take makes stack_carry exit 2 with nothing fetched; a failed fetch after the take exits 2 and frees the lock (unit case, no process) ⟦criterion 2⟧
+- [x] a failed merge-lock.sh take makes stack_carry exit 2 with nothing fetched; a failed fetch after the take exits 2 and frees the lock (unit case, no process) ⟦criterion 2⟧
 - [ ] stack_carry exits 2, the lock freed, when <old-cut> is not an ancestor of the old tip origin/<stack>, and when a git read of either gives no answer (never read as "absent") (unit case, no process) ⟦criterion 2⟧
 - [ ] stack_carry exits 2, the lock freed, when origin/<default> has not landed <old-cut> (unit case, no process) ⟦criterion 2⟧
 - [ ] stack_carry exits 3, the lock freed, nothing rebased, when <old-cut> is the old tip (unit case, no process) ⟦criterion 2⟧

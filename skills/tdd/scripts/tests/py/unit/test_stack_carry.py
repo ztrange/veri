@@ -93,3 +93,24 @@ def test_any_argument_list_but_one_commit_exits_2_with_the_usage_line_taking_no_
     code, out, err = run_cli(stack_carry, argv)
 
     assert (code, out, "usage: stack-carry.sh <old-cut>" in err, world.log) == (2, "", True, []), err
+
+
+def released(world):
+    return world.calls("merge-lock.sh")[-1:] == [("merge-lock.sh", "release", "--pid", str(os.getpid()))]
+
+
+def test_a_failed_merge_lock_take_exits_2_with_nothing_fetched(monkeypatch, tmp_path, run_cli, stack_carry):
+    world = World(monkeypatch, tmp_path, scripts={"merge-lock.sh": (2, "")})
+
+    code, out, err = run_cli(stack_carry, ["cut"])
+
+    assert (code, out, "merge-lock.sh take exits 2" in err, world.calls("net")) == (2, "", True, []), err
+
+
+def test_a_failed_fetch_after_the_take_exits_2_and_frees_the_lock(monkeypatch, tmp_path, run_cli, stack_carry):
+    world = World(monkeypatch, tmp_path, network={"fetch": (128, "", "fatal: unable to access origin\n")})
+
+    code, out, err = run_cli(stack_carry, ["cut"])
+
+    assert (code, out, "unable to access origin" in err, released(world)) == (2, "", True, True), err
+    assert not [call for call in world.log if call[0] == "net" and call[1] != "fetch"], world.log
