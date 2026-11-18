@@ -330,6 +330,28 @@ def test_a_branch_of_the_slice_name_already_on_origin_at_another_commit_exits_2_
         2, "", True, True, [], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
 
 
+def test_a_failed_ls_remote_of_the_slice_branch_exits_2_naming_the_read_nothing_pushed_the_lock_freed(
+        monkeypatch, run_cli, stack_land):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7)
+    git = importlib.import_module("veri.git")
+    faked = git.network
+
+    def network(*args, **kwargs):
+        if args[:1] == ("ls-remote",):
+            world.network.append(args)
+            return subprocess.CompletedProcess(["git", *args], 128, "", "fatal: unable to access origin\n")
+        return faked(*args, **kwargs)
+
+    monkeypatch.setattr(git, "network", network)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    pushes = [args for args in world.network if args[:1] == ("push",)]
+    assert (code, out, "ls-remote" in err, pushes, [ran[:2] for ran in world.scripts[-2:]]) == (
+        2, "", True, [], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
 def test_a_branch_of_the_slice_name_already_on_origin_at_the_cut_itself_is_kept_and_stack_land_goes_on_not_a_refusal(
         monkeypatch, run_cli, stack_land):
     cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
