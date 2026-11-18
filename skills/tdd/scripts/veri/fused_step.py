@@ -1,6 +1,7 @@
 """The step helpers the fused halves of a step share (PRD 027.4-027.6), above what `fused` holds: their inputs, the
 step they take, the step's cost check and whether the run switched a phase's verifier off."""
 import os
+import re
 import sys
 from decimal import Decimal, InvalidOperation
 
@@ -81,7 +82,6 @@ def verdict(wt):
     step-close's rewrite of a record settled after another verdict."""
     import hashlib
     import extract_result
-    import refactor_half
     from report import report_values
     try:
         with open(os.path.join(wt, ".tdd", "verify-refactor.log"), "rb") as f:
@@ -91,7 +91,18 @@ def verdict(wt):
     flags = report_values(extract_result.extract(raw.decode("utf-8", errors="replace")), "FLAGS", splitlines=True,
                           strip=True)
     return (hashlib.sha256(raw).hexdigest(),
-            [refactor_half.detail(line) for line in flags if refactor_half.kind(line) == "uncovered-spec"])
+            [detail(line) for line in flags if kind(line) == "uncovered-spec"])
+
+
+def kind(line):
+    """A FLAGS: or CANDIDATES: value's class: its first word, before ` |` or `:`."""
+    return re.split(r"\s*[|:]", line.strip(), maxsplit=1)[0].strip()
+
+
+def detail(line, last=False):
+    """What a flag or candidate names after its class: the text after the first `|` (the last with <last>)."""
+    parts = re.split(r"\s*\|\s*", line.strip())
+    return (parts[-1] if last else " | ".join(parts[1:])) if len(parts) > 1 else line.split(":", 1)[-1].strip()
 
 
 def refresh(stage, wt, n, record, facts):

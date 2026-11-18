@@ -10,6 +10,7 @@ import fused
 import fused_step
 import run_dir
 import tunables
+from fused_step import detail, kind
 from next_pending_refactor import refactor_pending
 
 NAME = "refactor-half"
@@ -191,17 +192,6 @@ def narration(values, verdict_flags):
     if follow:
         lines += ["Follow-ups:"] + ["- " + f for f in follow]
     return "".join(line + "\n" for line in lines)
-
-
-def kind(line):
-    """A FLAGS: or CANDIDATES: value's class: its first word, before ` |` or `:`."""
-    return re.split(r"\s*[|:]", line.strip(), maxsplit=1)[0].strip()
-
-
-def detail(line, last=False):
-    """What a flag or candidate names after its class: the text after the first `|` (the last with <last>)."""
-    parts = re.split(r"\s*\|\s*", line.strip())
-    return (parts[-1] if last else " | ".join(parts[1:])) if len(parts) > 1 else line.split(":", 1)[-1].strip()
 
 
 def read(wt, path):

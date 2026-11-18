@@ -877,6 +877,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `gain(stage, wt, n, record, key, values, step)`: one `<key>=<value>` line added to `.tdd/issue-<n>-<record>` per value it lacks, for a key a record may hold more than once (step-close's `uncovered_spec`, #4029), one `record-refreshed` event each.
 - `read_by(stage, wt, n, step)`: the first stage of `seam_contract.READS[stage]` whose record names `step` by `ledger.same_step`, or `None`.
 - `record(stage, wt, n, step, facts=())`: the record `read_by` names, its step and each `(key, value)` of `facts` refreshed from their committed sources, one `record-refreshed` event per rewritten key (PRD 038.1 SC1-SC4, SC8); `None`, the `seam=<stage> code=1 reason=record next=seam-settle.sh …` line printed for the first stage it reads, when no record it reads names the step. A missing record is the seam; one that cannot be read raises `OSError` (exit 2).
+- `kind(line)`: a `FLAGS:` or `CANDIDATES:` value's class, its first word. `detail(line, last=False)`: what it names after its class, the text after the first `|` (the last with `last`).
 - `verdict(wt)`: `(hash, flags)` from one read of `.tdd/verify-refactor.log`: its sha256 (`none` without one), the verdict a refactor-half file was settled after, and its `uncovered-spec` flags as `uncovered_spec=` values; every record naming `verdict_log=` takes both from it (#4029).
 
 ## seam_contract
