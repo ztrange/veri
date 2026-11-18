@@ -100,6 +100,13 @@ def _divides(text, opening, slash):
     return (before[-1:].isalnum() or before[-1:] in "_$)]") and not re.search(r"\breturn\Z", before)
 
 
+def _regex_end(text, slash):
+    i = slash + 1
+    while i < len(text) and text[i] != "/":
+        i += 2 if text[i] == "\\" else 1
+    return i if i < len(text) else -1
+
+
 def _literal_call_end(text, opening):
     depth, braces, quote, escaped, i = 0, 0, None, False, opening
     while i < len(text):
@@ -118,7 +125,7 @@ def _literal_call_end(text, opening):
                 return None
             i += 1
         elif text[i] == "/" and not _divides(text, opening, i):
-            i = text.find("/", i + 1)
+            i = _regex_end(text, i)
             if i < 0:
                 return None
         elif text[i] in "'\"`":

@@ -66,3 +66,13 @@ def test_cut_cases_returns_every_case_when_one_returns_a_quote_bearing_regex_bef
     cases = case_reader.cut_cases(first + ";\n" + divides + ";\n" + second + ";\n")
 
     assert cases == [("f", first), ("d", divides), ("g", second)]
+
+
+def test_cut_cases_reads_an_escaped_slash_inside_a_regex_literal_as_part_of_it_4294():
+    case_reader = importlib.import_module("veri.case_reader")
+    first = "it('h', () => {\n  const r = /\\/(/;\n  expect(r.test('/(')).toBe(true);\n})"
+    second = "it('i', () => {\n  expect(1).toBe(1);\n})"
+
+    cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
+
+    assert cases == [("h", first), ("i", second)]
