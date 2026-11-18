@@ -5,7 +5,7 @@
 - [x] with the outage file present but `.tdd/issue-<n>-base` absent, the join reads the pull request as before ⟦criterion 1⟧
 - [x] an absent local `<stack>` is created at `origin/<stack>` as last fetched ⟦criterion 2⟧
 - [x] a local `<stack>` that `origin/<stack>` is not an ancestor of is exit 2 naming both shas ⟦criterion 2⟧
-- [ ] a local `<stack>` checked out in a worktree is exit 2 naming the worktree ⟦criterion 2⟧
+- [x] a local `<stack>` checked out in a worktree is exit 2 naming the worktree ⟦criterion 2⟧
 - [ ] a `<stack>` that `refs/remotes/origin/HEAD` names as the default branch is exit 2, with no `ls-remote` ⟦criterion 2⟧
 - [ ] a rebase conflict, a red fast tier or a unit owing a grade is exit 1, `<stack>` unmoved, lock freed ⟦criterion 3⟧
 - [ ] the all-tier command runs on the rebased tip before `<stack>` moves; red is exit 1, `<stack>` unmoved, lock freed ⟦criterion 4⟧

@@ -194,3 +194,13 @@ def test_a_local_stack_origins_stack_is_not_an_ancestor_of_is_exit_2_naming_both
     rebased = [c for c in world.calls if " rebase " in c]
     assert (code, rebased, world.local) == (2, [], LOCAL_STACK), err
     assert ORIGIN_STACK in err and LOCAL_STACK in err, err
+
+
+def test_a_local_stack_checked_out_in_a_worktree_is_exit_2_naming_that_worktree_with_nothing_rebased(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, checked_out="/elsewhere/tree").install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    rebased = [c for c in world.calls if " rebase " in c]
+    assert (code, rebased, world.local, "/elsewhere/tree" in err) == (2, [], LOCAL_STACK, True), err
