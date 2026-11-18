@@ -101,8 +101,10 @@ def _divides(text, opening, slash):
 
 
 def _regex_end(text, slash):
-    i = slash + 1
-    while i < len(text) and text[i] != "/":
+    i, in_class = slash + 1, False
+    while i < len(text) and (in_class or text[i] != "/"):
+        if text[i] in "[]":
+            in_class = text[i] == "["
         i += 2 if text[i] == "\\" else 1
     return i if i < len(text) else -1
 

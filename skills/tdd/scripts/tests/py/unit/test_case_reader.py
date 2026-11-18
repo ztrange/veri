@@ -76,3 +76,13 @@ def test_cut_cases_reads_an_escaped_slash_inside_a_regex_literal_as_part_of_it_4
     cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
 
     assert cases == [("h", first), ("i", second)]
+
+
+def test_cut_cases_reads_a_slash_inside_a_regex_character_class_as_part_of_it_4294():
+    case_reader = importlib.import_module("veri.case_reader")
+    first = "it('j', () => {\n  const r = /[/(]/;\n  expect(r.test('(')).toBe(true);\n})"
+    second = "it('k', () => {\n  expect(1).toBe(1);\n})"
+
+    cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
+
+    assert cases == [("j", first), ("k", second)]
