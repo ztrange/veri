@@ -276,7 +276,7 @@ PHASE_GATES = {"diff": diff_gate, "rebase": rebase_gate, "red": red_gate}
 
 
 def main(argv):
-    options = {"--step": "", "--fast-cmd": "", "--supersede-base": ""}
+    options = {"--step": "", "--fast-cmd": "", "--supersede-base": "", "--branch-base": ""}
     words = list(argv)
     while words and takes_a_value(words[0]):
         if len(words) < 2 or not words[1]:
@@ -317,7 +317,7 @@ def main(argv):
             write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; a %s needs the real before-state" % words[0])
             return 2
     else:
-        base = branch_base(words)
+        base = options["--branch-base"] or branch_base(words)
         if not base and words[0] != "diff" and not run_line.own_tree():
             write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; the %s verifier reads its run lines"
                   " from CLAUDE.md there" % words[0])
