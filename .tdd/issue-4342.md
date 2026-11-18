@@ -11,7 +11,7 @@
 - [x] each record rewrite writes one record-refreshed event naming the stage, the key, and the old and new values ⟦criterion 2⟧
 - [x] green-half.sh exits 1 with the seam line when its record is missing or names another step ⟦criterion 4⟧
 - [x] refactor-half.sh runs after a plan rewrite that changed only the open step's ⟦…⟧ marks (#4310) ⟦criterion 8⟧
-- [ ] refactor-half.sh reads green-half's record and takes green_sha from git, rewriting a stale one ⟦criterion 1⟧
+- [x] refactor-half.sh reads green-half's record and takes green_sha from git, rewriting a stale one ⟦criterion 1⟧
 - [x] refactor-half.sh exits 1 with the seam line naming green-half when its record is missing ⟦criterion 4⟧
 - [ ] step-close.sh takes the step, green_sha and verdict from their sources and rewrites a stale record ⟦criterion 1⟧
 - [ ] step-close.sh exits 1 with the seam line naming refactor-half when its record is missing ⟦criterion 4⟧
