@@ -90,13 +90,12 @@ def decide(tier, issue, root, claude_md=None):
         except Answer as found:
             if found.command != resolved("fast", issue, root) and not selects_subset(found.command, root):
                 raise
+    if tier and claude_md is None and has("CLAUDE.md"):
+        claude_md = read(at("CLAUDE.md"))
     if tier and claude_md is not None:
         suffix = b":" if tier in COLON_MARKED else b" tests:"
         for line in claude_md.split(b"\n"):
             answer_from(line, b"veri: " + os.fsencode(tier) + suffix)
-    elif tier and has("CLAUDE.md"):
-        suffix = b":" if tier in COLON_MARKED else b" tests:"
-        answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + suffix)
     if tier in DECLARED_ONLY:
         return
     if tier == "quiet test files":
