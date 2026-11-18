@@ -460,7 +460,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   ends after `VERI_GIT_NETWORK_TIMEOUT` seconds; one that gets no answer exits 2 naming it. A `stack-branch.sh` exit 2
   (a name that cannot be a stack) is exit 2 here too; where it exits 3 the cut is as above and nothing is pushed. A
   stacked cut records the base it was cut from in the run's own state, `.tdd/issue-<n>-base` in the new worktree,
-  written once and never rewritten.
+  written once and never rewritten, holding the stack's name; beside it `.tdd/issue-<n>-base-sha` holds
+  `git rev-parse origin/<stack>` as read for the cut (a read that gets no answer is **exit 2** with no branch and no
+  worktree made), the sha a join's `git rebase --onto` starts from. Where `stack-branch.sh` exits 3 neither file is
+  written.
   There an open issue named by `Closes #<n>` in a pull request merged into the stack branch counts as claimed, as an
   open PR saying it does: its run has joined the stack, so a fresh cut is refused, **exit 2**, though no pull request
   for it is open (a lookup that gets no answer is exit 2 too).
@@ -631,7 +634,25 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   commit `stack-green.sh` prints, never at another. It lands when that cut is `VERI_SLICE_COMMITS` (default 100) or
   more commits ahead of the default branch, or when the stack is idle; it merges with
   `gh pr merge --rebase --match-head-commit` and no bypass flag. `--now` skips the size-or-idle rule and no other.
+  After a landing it made, it frees the merge lock and runs `stack-carry.sh <cut>`; an exit other than 0 is **exit 2**
+  naming the landed slice and `stack-carry.sh <cut>` as the command owed, the stack left as it was.
   **Exit 0** landed, **1** a clean refusal, **2** no answer, **3** nothing to land.
+- `$S/stack-carry.sh <old-cut>` — run in the target repository's clone after a slice landed: carries the stack onto
+  the new default branch. `<old-cut>` is the stack commit the landed slice ended at, as it was on `origin/<stack>`
+  before the landing. A module, `skills/tdd/scripts/veri/stack_carry.py`, behind a `/bin/sh` shim. It takes the merge
+  lock, fetches, and reads `<old-cut>` and the old tip, `origin/<stack>` as fetched, kept as the lease value. It refuses
+  (**exit 2**) when `stack-branch.sh` does not exit 0, when `<old-cut>` is not an ancestor of the old tip, when
+  `origin/<default>` has not landed it (merging it there would change the tree), or when a git read gets no answer;
+  it exits **3** when `<old-cut>` is the old tip. It rebases the stack in a detached worktree of its own under `.tdd/`
+  with `git rebase --onto origin/<default> <old-cut> <old-tip>`, never checking out a commit in a run's worktree or the
+  main clone, and removes that worktree on every exit; a conflict is **exit 1** naming the file, the rebase aborted.
+  It pushes only when `git merge-tree --write-tree --merge-base=<old-cut> origin/<default> <old-tip>` exits 0 printing
+  the new tip's tree, else **exit 1** naming both trees; it pushes with `--force-with-lease=<stack>:<old-tip>`, never
+  plain `--force`, and an origin that moved since the fetch is **exit 1**, nothing lost. It touches no ref but the
+  stack branch: no run's branch is rebased, moved or deleted, since each run carries itself at its join. After the
+  push it prints the new tip and calls `stack-pr.sh`; an exit of that other than 0 or 3 is **exit 2** naming it as
+  owed. Every exit frees the merge lock. **Exit 0** carried, **1** a clean refusal, **2** no answer, **3** nothing to
+  carry.
 - `$S/stack-tag.sh <slice-pr-url> [--message <n>=<text>]...` — run in the target repository's clone: cuts the tags of a
   landed slice. A module, `skills/tdd/scripts/veri/stack_tag.py`, behind a `/bin/sh` shim; `stack-land.sh` runs it on
   the slice after a landing. The issues are those the subjects of the pull request's commits name, in the order of
@@ -819,7 +840,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   and refuses, exit **2** with nothing pushed, when origin no longer has the stack (a join never recreates one; only a
   launch creates it) or
   when origin's run branch is not that tip (a commit the worktree lacks is never force-pushed away), rebases the run's
-  branch onto `origin/<stack>`, pushes it under `--force-with-lease=<branch>:<sha>` pinned to that tip, runs the fast
+  branch onto `origin/<stack>` — with `git rebase --onto origin/<stack> <sha in .tdd/issue-<n>-base-sha>` where the
+  worktree holds that file, its content check merging from the same sha, and as before where it is absent (a run cut
+  before the file existed); a file holding no one sha is **exit 2**, nothing rebased; once the run branch's leased push
+  lands, it rewrites the file with the `origin/<stack>` sha it rebased onto — pushes it under `--force-with-lease=<branch>:<sha>` pinned to that tip, runs the fast
   tier (`detect-test-command.sh --tier fast`) and `prose-owed.sh` on the rebased tip, and pushes that tip to `<stack>`
   as a compare-and-swap that can only fast-forward what it fetched: only when `git merge-base --is-ancestor <onto> <tip>`
   holds, under `--force-with-lease=<stack>:<onto>`, `<onto>` the stack as fetched, never a bare force and never `+`, so no
