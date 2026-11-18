@@ -163,6 +163,8 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
             return 0, str(wt) + "\n", ""
         if base == "gh" and args[:1] == ("api",) and "issues/12" in args[1]:
             return 0, "ISSUE BODY\n", ""
+        if base == "git" and args == ("merge-base", "HEAD", "origin/HEAD"):
+            return 0, "b45e\n", ""
         if base == "detect-test-command.sh":
             return 0, {"fast": "make unit\n", "all": "make test\n", "one test file": "make test TESTS=x\n"}[args[1]], ""
         if base == "baseline-full-tier.sh":
@@ -179,7 +181,9 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
     tail = [c for c in tail if c not in alone_calls]
     # The green-record and CI reads (#4337) before the fast tier are pinned by their own cases.
     early = [c for c in tail if c[0] == "detect-test-command.sh" and c[1][:2] == ("--tier", "all")][:1]
+    merge_base = [c for c in tail if c[1][:1] == ("merge-base",)]
     tail = [c for c in tail if c[1][:2] not in (("rev-parse", "HEAD"), ("run", "list"), ("rev-parse", "HEAD^{tree}"))
+            and c not in merge_base
             and c[1][:1] != ("--green",) and not any(c is e for e in early)]
     body = tail[2][1][0] if len(tail) > 2 and tail[2][1] else None
     assert [(c[0], c[1][:1] if c[0] == "gh" else c[1][:2] if c[0] == "detect-test-command.sh" else c[1][:1]) for c in tail[:3]] == [
@@ -191,7 +195,10 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
     assert body and not os.path.abspath(body).startswith(str(wt))
     assert tail[2][4] == "ISSUE BODY\n"
     assert [(c[0], c[1][:4]) for c in tail[3:4]] == [("detect-test-command.sh", ("--tier", "fast", "--issue", body))]
-    assert tail[3][1][4:] == (str(wt),)
+    # The fast command is read at the branch base, the merge base of HEAD and origin/HEAD (#4263).
+    assert [c[:3] for c in merge_base] == [["git", ("merge-base", "HEAD", "origin/HEAD"), str(wt)]]
+    assert calls.index(merge_base[0]) < calls.index(tail[3])
+    assert tail[3][1][4:] == ("--at", "b45e", str(wt))
     fast_start, fast_wait = tail[4], tail[5]
     assert fast_start[0] == "detach-command.sh" and fast_start[1][0] == "start" and fast_start[1][2:] == ("make", "unit")
     assert fast_wait[0] == "detach-command.sh" and fast_wait[1] == ("wait", fast_start[1][1])
