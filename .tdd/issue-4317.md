@@ -22,7 +22,7 @@
 - [x] stack_land opens a ready (not draft) pull request from the slice branch to the default branch when none is open for that head (unit case, no process, GitHub injected) ⟦criterion 7⟧
 - [x] when a pull request of the slice branch's head is already open, stack_land reuses it and opens none (unit case, no process) ⟦criterion 7⟧
 - [x] the slice pull request's body has one `Closes #<n>` line per issue whose pull request, merged into the stack in the slice's range (origin/<default>..cut), carries `Closes #<n>` (unit case, no process) ⟦criterion 7⟧
-- [ ] a merged pull request whose body reads `Reverted from <stack> by` gives its issue no `Closes` line in the slice body (unit case, no process) ⟦criterion 7⟧
+- [x] a merged pull request whose body reads `Reverted from <stack> by` gives its issue no `Closes` line in the slice body (unit case, no process) ⟦criterion 7⟧
 - [ ] an issue named only by commit subjects in the slice's range gets no `Closes` line and is named on stderr (unit case, no process) ⟦criterion 7⟧
 - [ ] after the lock is taken, a GitHub read that gets no answer (listing pull requests open for the slice head, opening one, or reading the stack's merged pull requests) or a git read that fails makes stack_land exit 2 naming it, the merge lock freed, no traceback (unit case, no process) ⟦added⟧ ⟦criterion 5⟧
 - [ ] the merge call, the settle-window read (VERI_MERGE_SETTLE_READS, VERI_MERGE_SETTLE_SLEEP) and the CI wait are moved out of queued_merge.py into one module `skills/tdd/scripts/veri/merge_common.py` that queued_merge.py imports; queued_merge.py keeps no copy, no behaviour changes, and its existing unit and process cases are left without an edit ⟦diff-checked⟧ ⟦criterion 12⟧

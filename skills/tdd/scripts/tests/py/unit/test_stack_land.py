@@ -355,3 +355,16 @@ def test_the_slice_pull_requests_body_has_one_closes_line_per_issue_whose_pull_r
 
     assert [[line for line in body.splitlines() if line.startswith("Closes")] for body in world.bodies] == [
         ["Closes #11", "Closes #12"]], err
+
+
+def test_a_merged_pull_request_whose_body_reads_reverted_from_the_stack_by_gives_its_issue_no_closes_line_in_the_slice_body(
+        monkeypatch, run_cli, stack_land):
+    cut, revert = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  subjects="feat: one (#11)\nfeat: two (#12)\nrevert: take issue 12's commits off the stack (#12)\n",
+                  merged=[(101, "Closes #11\n\nthe first"), (102, "Reverted from stack by %s\n\nthe second" % revert)])
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert [[line for line in body.splitlines() if line.startswith("Closes")] for body in world.bodies] == [
+        ["Closes #11"]], err
