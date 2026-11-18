@@ -134,3 +134,22 @@ def test_4343_a_step_green_half_does_not_handle_stops_before_it_unmodelled_witho
 
     assert (code, stages.names()) == (1, ["red-half.sh"]), err
     assert out.splitlines()[-1] == "seam=green-half code=1 reason=unmodelled next=" + GREEN
+
+
+DIFF = "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"
+
+
+@pytest.mark.parametrize("text, next_", [
+    ("the prompt says so ⟦diff-checked⟧ ⟦criterion 1⟧", DIFF),
+    ("lint passes ⟦lint-repair⟧ ⟦diff-checked⟧ ⟦criterion 1⟧", DIFF),
+    ("a weak test is strengthened ⟦test-quality⟧ ⟦diff-checked⟧ ⟦criterion 1⟧", DIFF),
+    ("`skills/tdd/SKILL.md#Red` says so ⟦skill-edit⟧ ⟦criterion 1⟧", "SKILL-EDIT.md#The skill-edit step"),
+    ("repairs the fixture 'f' in tests/test_a.py ⟦fixture-repair⟧ ⟦criterion 1⟧", RED),
+    ("the interface moves ⟦phases: expand, migrate⟧ ⟦criterion 1⟧",
+     "SKILL.md#A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier"),
+])
+def test_4343_a_step_that_is_not_a_cycle_step_exits_1_on_a_kind_seam_calling_no_stage(step, text, next_):
+    code, out, err, stages = step(ledger=LEDGER % text)
+
+    assert (code, stages.names(), out) == (1, [], "seam=none code=1 reason=kind next=%s\n" % next_), err
+    assert not (step.wt / ".tdd" / "issue-12-step").exists()
