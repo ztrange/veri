@@ -171,3 +171,17 @@ def test_4343_every_designed_stop_hand_unmodelled_record_kind_exits_1_never_2(st
 
     assert (code, out.splitlines()[-1]) == (1, last), err
     assert " reason=%s " % reason in last
+
+
+@pytest.mark.parametrize("answers", [{}, {"refactor-half.sh": (2, "stopped at 5 wait-leaf.sh verdict-refactor exit 2\n")}])
+def test_4343_it_prints_each_stages_call_line_with_its_exit_code_and_never_a_leaf_or_suite_output_file(step, answers):
+    for name in ("develop-red.out", "develop-green.out", "verify-refactor.log", "test-runs/make-unit.out"):
+        (step.wt / ".tdd" / name).parent.mkdir(exist_ok=True)
+        (step.wt / ".tdd" / name).write_text("MARKER-4343 leaf output\n")
+
+    code, out, err, stages = step(answers=answers)
+
+    assert "MARKER-4343" not in out + err
+    lines = out.splitlines()
+    assert [line for line in lines if line.split(" ")[0] in STAGES and " exit " in line] == ["%s 12 exit %d" % (name, (answers.get(name) or (0,))[0])
+                                                           for name in stages.names()]
