@@ -78,7 +78,7 @@ def _top():
 
 def _rebased(default, cut, tip):
     """<tip> rebased with `git rebase --onto origin/<default> <cut> <tip>` in a detached worktree of its own under
-    .tdd/, removed after on every exit: the new tip."""
+    .tdd/, removed after on every exit: (the new tip, its tree)."""
     state = os.path.join(_top(), ".tdd")
     os.makedirs(state, exist_ok=True)
     parent = tempfile.mkdtemp(prefix="stack-carry-", dir=state)
@@ -98,7 +98,7 @@ def _rebased(default, cut, tip):
         head = _git("rev-parse", "HEAD", "HEAD^{tree}", cwd=tree)
         if head.returncode or len(head.stdout.split()) != 2:
             raise _unanswered("reading the rebased tip", head)
-        return head.stdout.split()[0]
+        return tuple(head.stdout.split())
     finally:
         _git("worktree", "remove", "--force", tree)
         shutil.rmtree(parent, ignore_errors=True)
@@ -121,7 +121,17 @@ def _carry(stack, name):
         raise _Stop(2, "origin/%s has not landed the old cut %s; nothing rebased or pushed" % (default, cut))
     if cut == tip:
         raise _Stop(3, "the old cut %s is origin/%s's tip: nothing to carry" % (cut, stack))
-    new = _rebased(default, cut, tip)
+    new, new_tree = _rebased(default, cut, tip)
+    # The guard on the work (D26): the old cut's changes up to the old tip, merged onto origin/<default> with the old cut
+    # as base, must be exactly the new tip's tree. "The tree is unchanged" is false whenever the default branch moved.
+    check = _git("merge-tree", "--write-tree", "--merge-base=" + cut, "origin/" + default, tip)
+    if check.returncode not in (0, 1):
+        raise _unanswered("git merge-tree --write-tree --merge-base=%s origin/%s %s" % (cut, default, tip), check)
+    merged = check.stdout.split("\n", 1)[0].strip()
+    if check.returncode or merged != new_tree:
+        raise _Stop(1, "git merge-tree --write-tree --merge-base=%s origin/%s %s %s the tree %s, the rebased tip %s has"
+                    " the tree %s; nothing pushed" % (cut, default, tip, "conflicts, printing" if check.returncode
+                                                      else "prints", merged, new, new_tree))
     git.network("push", "--force-with-lease=%s:%s" % (stack, tip), "origin", "%s:refs/heads/%s" % (new, stack), cwd=".")
     print(new)
     return 0
