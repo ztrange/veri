@@ -90,7 +90,10 @@ def _wait(exit_file, pid_file, text, alone=None, total=None):
         if _stopping_now():
             return 2
         if total is not None and int(time.time()) - _started(pid_file, start) >= total:
-            _stop_group(int(_pid(pid_file)))
+            pid = int(_pid(pid_file))
+            if not pid_file_module.start_matches(pid_file, pid):
+                return 2
+            _stop_group(pid)
             print(f"detach-command.sh: still running past --total {total} seconds; stopped its process group",
                   file=sys.stderr)
             return 2
