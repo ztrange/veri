@@ -103,6 +103,8 @@ def main(argv):
     if push.returncode:
         return _freed("git push of the slice branch %s failed (exit %d): %s; the merge lock freed, nothing opened or"
                       " merged" % (slice_branch, push.returncode, push.stderr.strip()))
+    if not github.stack_pulls(slice_branch, default):
+        github.pr_open(slice_branch, default, "Land %s at %s" % (stack, cut[:10]), "")
 
 
 if __name__ == "__main__":
