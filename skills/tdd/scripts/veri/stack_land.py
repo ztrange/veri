@@ -27,6 +27,10 @@ def main(argv):
     if code == 2:
         return entry.refuse("stack-red.sh exits 2: no answer on the stack's CI; nothing cut or merged",
                             prefix="stack-land: ")
+    code, said = stack_fix.script("stack-green.sh", limit=stack_fix.NETWORK)
+    if code == 3:
+        print("stack-land: stack-green.sh exits 3: no tested issue end to cut at; nothing to land", file=sys.stderr)
+        return 3
 
 
 if __name__ == "__main__":
