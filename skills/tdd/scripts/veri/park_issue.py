@@ -37,10 +37,10 @@ def cut_at(head, question, cut):
 
 
 def fit(head, question):
-    """<head> + <question>, both redacted, the question cut in its middle, on a character boundary, by the fewest
-    characters that keep the whole MARGIN within COMMENT_LIMIT characters and BYTE_LIMIT UTF-8 bytes: its opening (the
-    question) and its end (the recommendation) stay."""
-    head, question = redaction.redact(head), redaction.redact(question)
+    """<head> + <question>, both as github.published posts them, the question cut in its middle, on a character boundary,
+    by the fewest characters that keep the whole MARGIN within COMMENT_LIMIT characters and BYTE_LIMIT UTF-8 bytes: its
+    opening (the question) and its end (the recommendation) stay."""
+    head, question = github.published(head), github.published(question)
     if fits(head + question):
         return head + question
     low, high = 1, len(question)
