@@ -214,3 +214,17 @@ def test_nothing_is_pushed_unless_merge_tree_with_the_old_cut_as_base_prints_the
     checked = ("git", ".", "merge-tree", "--write-tree", "--merge-base=" + CUT, "origin/trunk", TIP)
     assert (exit_code, out, named, checked in world.log, pushes(world), released(world)) == (
         code, "", True, True, [], True), err
+
+
+@pytest.mark.parametrize("listed, code, said", [
+    ((0, "b" * 40 + "\trefs/heads/stack\n", ""), 1, "origin's stack moved since the fetch, to " + "b" * 40),
+    ((0, TIP + "\trefs/heads/stack\n", ""), 2, "stale info"),
+    ((128, "", "fatal: no route\n"), 2, "no route"),
+])
+def test_a_leased_push_refused_because_origin_moved_exits_1_and_one_with_no_answer_exits_2_freeing_the_lock(
+        monkeypatch, tmp_path, run_cli, stack_carry, listed, code, said):
+    world = World(monkeypatch, tmp_path, network={"push": (1, "", "! [rejected] (stale info)\n"), "ls-remote": listed})
+
+    exit_code, out, err = run_cli(stack_carry, ["cut"])
+
+    assert (exit_code, out, said in err, len(pushes(world)), released(world)) == (code, "", True, 1, True), err

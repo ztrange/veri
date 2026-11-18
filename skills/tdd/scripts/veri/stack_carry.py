@@ -104,6 +104,20 @@ def _rebased(default, cut, tip):
         shutil.rmtree(parent, ignore_errors=True)
 
 
+def _refused(stack, tip, new, push):
+    """Raise the _Stop a failed leased <push> of <new> to <stack> ends with: 1 when origin's stack is read at a commit
+    other than the lease <tip> (it moved since the fetch, nothing lost), else 2."""
+    said = " ".join((push.stderr or "").split())[:300]
+    listed = git.network("ls-remote", "--heads", "origin", "refs/heads/" + stack, cwd=".")
+    now = listed.stdout.split()[:1] if not listed.returncode else None
+    if now is not None and now != [tip]:
+        raise _Stop(1, "the leased push of %s to %s was refused: origin's %s moved since the fetch, to %s (%s); nothing"
+                    " pushed or lost" % (new, stack, stack, now[0] if now else "no branch", said))
+    raise _Stop(2, "the leased push of %s to %s failed (exit %d): %s%s; nothing pushed"
+                % (new, stack, push.returncode, said, "" if now is not None else "; reading origin's %s got no answer: %s"
+                   % (stack, " ".join((listed.stderr or "").split())[:200])))
+
+
 def _carry(stack, name):
     """Carry <stack> with the merge lock held, never releasing it: the exit code, or _Stop."""
     fetch = git.network("fetch", "--prune", "origin", cwd=".")
@@ -132,7 +146,10 @@ def _carry(stack, name):
         raise _Stop(1, "git merge-tree --write-tree --merge-base=%s origin/%s %s %s the tree %s, the rebased tip %s has"
                     " the tree %s; nothing pushed" % (cut, default, tip, "conflicts, printing" if check.returncode
                                                       else "prints", merged, new, new_tree))
-    git.network("push", "--force-with-lease=%s:%s" % (stack, tip), "origin", "%s:refs/heads/%s" % (new, stack), cwd=".")
+    push = git.network("push", "--force-with-lease=%s:%s" % (stack, tip), "origin", "%s:refs/heads/%s" % (new, stack),
+                       cwd=".")
+    if push.returncode:
+        _refused(stack, tip, new, push)
     print(new)
     return 0
 
