@@ -32,6 +32,7 @@ call is also kept, in order, in <log>: ("git", *args), (script, *args) and ("gh"
                  opens="https://github.com/owner/repo/pull/90", subjects="", merged=(), open_issues=(), ancestor=True,
                  rebased=None, rebase_conflict=False):
         self.scripts, self.network, self.opened, self.bodies, self.gh, self.log = [], [], [], [], [], []
+        self.limits = []  # (script, the bound it ran under, None for none), one per script run
         heads = heads or {}
         answers = answers or {}
         stack_branch = importlib.import_module("veri.stack_branch")
@@ -96,6 +97,7 @@ call is also kept, in order, in <log>: ("git", *args), (script, *args) and ("gh"
             return named
 
         def script(name, *args, limit=None):
+            self.limits.append((name, limit))
             self.scripts.append((name,) + args)
             self.log.append((name,) + args)
             return answers.get(name, (0, ""))
@@ -665,17 +667,62 @@ def test_an_issue_of_the_slice_bodys_closes_lines_still_open_after_the_settle_wi
         False, [("merge-lock.sh", "release"), ("stack-carry.sh", cut), ("stack-tag.sh", url)]), err
 
 
-@pytest.mark.parametrize("carried", [1, 2, 3])
-def test_a_stack_carry_sh_exit_other_than_0_after_a_landing_exits_2_naming_the_landed_slice_and_the_command_owed(
-        monkeypatch, run_cli, stack_land, carried):
+@pytest.mark.parametrize("carried, code", [(0, 0), (1, 2), (2, 2), (3, 0)])
+def test_after_a_landing_a_stack_carry_sh_exit_but_0_or_3_exits_2_naming_the_landed_slice_and_the_command_owed_and_runs_it_under_no_bound(
+        monkeypatch, run_cli, stack_land, carried, code):
     cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
     world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
                                          "stack-carry.sh": (carried, "")}, ahead=7, opens=url)
 
+    said, out, err = run_cli(stack_land, ["--now"])
+
+    owed = [line for line in err.splitlines() if url in line and "owed: stack-carry.sh %s" % cut in line]
+    assert (said, len(owed), ("stack-carry.sh", None) in world.limits) == (code, 1 if code else 0, True), err
+
+
+def test_a_failed_carry_over_still_runs_stack_tag_sh_and_the_closes_check_naming_each_command_or_issue_owed(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
+                                         "stack-carry.sh": (1, ""), "stack-tag.sh": (2, "")}, ahead=7, opens=url,
+                  subjects="feat: one (#11)\n", merged=[(101, "Closes #11\n")], open_issues=(11,))
+    github = importlib.import_module("veri.github")
+    listing = github.gh_api
+
+    def gh_api(path, stderr=None):
+        if path != "repos/owner/repo/pulls/90":
+            return listing(path, stderr=stderr)
+        said = {"state": "closed", "merged": True, "merge_commit_sha": cut, "body": world.bodies[-1]}
+        return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(said), "")
+
+    monkeypatch.setattr(github, "gh_api", gh_api)
+
     code, out, err = run_cli(stack_land, ["--now"])
 
-    owed = [line for line in err.splitlines() if url in line and "stack-carry.sh %s" % cut in line]
-    assert (code, len(owed), world.scripts[-1]) == (2, 1, ("stack-carry.sh", cut)), err
+    landed = [line for line in err.splitlines() if line.startswith("stack-land: %s landed, but " % url)]
+    assert (code, [ran[:2] for ran in world.scripts[-2:]], len(landed),
+            ["owed: stack-carry.sh " + cut in "".join(landed), "run stack-tag.sh " + url in "".join(landed),
+             "still open" in "".join(landed) and "#11" in "".join(landed)]) == (
+        2, [("stack-carry.sh", cut), ("stack-tag.sh", url)], 3, [True, True, True]), err
+
+
+@pytest.mark.parametrize("interrupt", [KeyboardInterrupt, SystemExit])
+def test_an_interrupt_after_the_merge_lock_was_taken_frees_the_lock_before_it_ends_the_land(
+        monkeypatch, run_cli, stack_land, interrupt):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7)
+    git = importlib.import_module("veri.git")
+
+    def interrupted(*args, cwd=None):
+        raise interrupt()
+
+    monkeypatch.setattr(git, "network", interrupted)
+
+    with pytest.raises(interrupt):
+        stack_land.main(["--now"])
+
+    assert [ran[:2] for ran in world.scripts if ran[0] == "merge-lock.sh"] == [
+        ("merge-lock.sh", "take"), ("merge-lock.sh", "release")]
 
 
 def test_a_landing_makes_no_tag_and_pushes_rebases_or_resets_nothing_of_the_stack_branch_only_the_slice_branch(

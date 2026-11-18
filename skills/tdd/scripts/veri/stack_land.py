@@ -138,6 +138,29 @@ def _declined(line, pr):
     return 1
 
 
+def _after(pr, cut, still):
+    """After the landing of <pr> at <cut>, the merge lock freed: carry the stack, then cut the slice's tags (KL40), then
+    report the Closes issues <still> open. Each runs whatever the one before answered; every one that failed is named on
+    stderr with the command owed, and any is exit 2. stack-carry.sh and stack-tag.sh take the merge lock themselves and
+    run under no bound of ours: their own network calls are bounded, and a bound that killed them would kill them
+    holding the lock, which merge-lock.sh never takes over."""
+    owed = []
+    carried, _ = stack_fix.script("stack-carry.sh", cut)
+    if carried not in (0, 3):
+        owed.append("stack-carry.sh %s exits %d: the stack is left as it was; owed: stack-carry.sh %s"
+                    % (cut, carried, cut))
+    tagged, said = stack_fix.script("stack-tag.sh", pr)
+    sys.stdout.write(said)
+    if tagged not in (0, 3):
+        owed.append("stack-tag.sh exits %d: the slice's tags are owed; run stack-tag.sh %s" % (tagged, pr))
+    if still:
+        owed.append("its Closes issues still open after the settle window: %s; the landing left as done"
+                    % " ".join("#" + n for n in still))
+    for line in owed:
+        print("stack-land: %s landed, but %s" % (pr, line), file=sys.stderr)
+    return 2 if owed else 0
+
+
 def main(argv):
     if argv not in ([], ["--now"]):
         return entry.refuse(usage=USAGE)
@@ -243,30 +266,17 @@ def main(argv):
                   % (pr, answers[-1].get("merge_commit_sha"), " ".join("#" + n for n in closed)))
             still = [n for n in closed if _issue_state(repo, n) == "open"]
             stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
-            # The carry-over takes the merge lock itself, so it runs after the release.
-            carried, _ = stack_fix.script("stack-carry.sh", cut, limit=stack_fix.NETWORK)
-            if carried != 0:
-                return entry.refuse("%s landed, but stack-carry.sh %s exits %d: the stack is left as it was; owed:"
-                                    " stack-carry.sh %s" % (pr, cut, carried, cut), prefix="stack-land: ")
-            tagged, said = stack_fix.script("stack-tag.sh", pr)
-            sys.stdout.write(said)
-            if tagged not in (0, 3):
-                return entry.refuse("%s landed, but stack-tag.sh exits %d: the slice's tags are owed; run stack-tag.sh %s"
-                                    % (pr, tagged, pr), prefix="stack-land: ")
-            if still:
-                return entry.refuse("%s landed, but its Closes issues still open after the settle window: %s; the landing"
-                                    " left as done" % (pr, " ".join("#" + n for n in still)), prefix="stack-land: ")
-            return 0
+            return _after(pr, cut, still)
         last = answers[-1] or {}
         return _freed("%s did not read merged by the end of the settle window after the merge call exited %d (last read:"
                       " state %s, merged %s); the merge lock freed, nothing retried"
                       % (pr, code, repr(last.get("state"))[:40], repr(last.get("merged"))[:40]))
     except _Unanswered as unanswered:
         return _freed("%s; the merge lock freed, nothing merged" % unanswered)
-    except Exception:
-        # Any other error after the take (a git failure in the rebase worktree, an issue-state read with no answer)
-        # ends through entry.run's exit 2; the lock is freed first, since merge-lock.sh never takes over a dead
-        # holder's lock and a held one would block every later merge.
+    except BaseException:
+        # Any other error after the take (a git failure in the rebase worktree, an issue-state read with no answer, a
+        # KeyboardInterrupt) ends through entry.run's exit 2 or the interrupt; the lock is freed first, since
+        # merge-lock.sh never takes over a dead holder's lock and a held one would block every later merge.
         stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
         raise
 
