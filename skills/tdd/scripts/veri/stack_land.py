@@ -75,6 +75,11 @@ def _pull(repo, number):
     return pull if isinstance(pull, dict) else None
 
 
+def _issue_state(repo, number):
+    """The state GitHub's record of issue <number> of <repo> reads, as parked_issues.py reads a blocker's."""
+    return json.loads(github.gh_api("repos/%s/issues/%s" % (repo, number), stderr=subprocess.PIPE).stdout).get("state")
+
+
 class _Unanswered(Exception):
     """A read after the merge lock was taken got no answer; the message names the read."""
 
@@ -179,8 +184,7 @@ def main(argv):
                   % (pr, answers[-1].get("merge_commit_sha"), " ".join("#" + n for n in closed)))
             print("stack-land: the carry-over of %s onto origin/%s is 034.4b's; nothing of the stack rebased, no tag"
                   " made" % (stack, default), file=sys.stderr)
-            still = [n for n in closed if json.loads(github.gh_api("repos/%s/issues/%s" % (repo, n),
-                                                                   stderr=subprocess.PIPE).stdout).get("state") == "open"]
+            still = [n for n in closed if _issue_state(repo, n) == "open"]
             if still:
                 return entry.refuse("%s landed, but its Closes issues still open after the settle window: %s; the landing"
                                     " left as done" % (pr, " ".join("#" + n for n in still)), prefix="stack-land: ")
