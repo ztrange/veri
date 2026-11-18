@@ -12,6 +12,7 @@ import time
 import pytest
 
 from conftest import ROOT, SCRIPTS
+from repo_builder import origin_head_at
 
 SKILL = ROOT / "skills" / "tdd" / "SKILL.md"
 SKILL_MD = "skills/tdd/SKILL.md"
@@ -116,6 +117,7 @@ def write_check_earlier_pass(directory, step):
     subprocess.run(["git", "init", "-q"], cwd=directory, check=True)
     (directory / ".git" / "info" / "exclude").write_text("*\n")
     subprocess.run(["git", *identity, "commit", "-q", "--allow-empty", "-m", "probe"], cwd=directory, check=True)
+    origin_head_at(directory)
     here = os.getcwd()
     os.chdir(directory)
     try:
@@ -125,16 +127,11 @@ def write_check_earlier_pass(directory, step):
         os.chdir(here)
 
 
-def plant_repository(directory):
-    """A run's working tree is a git repository: the plan verifier lists the test files git tracks (#3919). Every
-    file is ignored, as a run's .tdd/ is, so the verifier's own files read as no change to the repository."""
-    identity = ["-c", "user.name=probe", "-c", "user.email=probe@example.com"]
-    subprocess.run(["git", "init", "-q"], cwd=directory, check=True)
-    (directory / ".git" / "info" / "exclude").write_text("*\n")
-    subprocess.run(["git", *identity, "commit", "-q", "--allow-empty", "-m", "probe"], cwd=directory, check=True)
-
-
 def plant_origin_head(directory):
+    """A run's working tree is a git repository whose origin/HEAD it branched from: the plan verifier lists the test
+    files git tracks (#3919), a pin verifier needs the before-state, and outside veri's own tree every verifier reads its
+    run lines at that merge base (#4263). Every file is ignored, as a run's .tdd/ is, so the verifier's own files read as
+    no change to the repository."""
     identity = ["-c", "user.name=probe", "-c", "user.email=probe@example.com"]
     subprocess.run(["git", "init", "-q"], cwd=directory, check=True)
     (directory / ".git" / "info" / "exclude").write_text("*\n")
@@ -158,10 +155,8 @@ def launched_test_cmd(probe, lineno, line, leaf, launch, *files, scripts=SCRIPTS
             (directory / name).write_text(f"the {name} this launch names, which the stub never reads\n")
     if leaf in ("verify-red", "verify-green"):
         write_check_earlier_pass(directory, SENTINEL_STEP)
-    if leaf == "verify-pin":
+    if leaf in ("verify-pin", "verify-plan", "verify-refactor"):
         plant_origin_head(directory)
-    if leaf == "verify-plan":
-        plant_repository(directory)
     env = {name: value for name, value in os.environ.items() if name not in ("VERI_TEST_CMD", "VERI_ISSUE", "VERI_STEP")}
     env.update(S=str(scripts), CLAUDE_BIN=str(probe.stub / "claude"), VERI_TEST_SEEN=str(directory / "seen"),
                VERI_STUCK_RETRIES="0", VERI_NO_VERDICT_RETRIES="0", VERI_HEARTBEAT="30", VERI_TIMEOUT="60", VERI_POLL="0.2")

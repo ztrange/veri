@@ -15,6 +15,7 @@ import re
 import signal
 from test_supervise_process import checked_step
 from test_supervise_process import committed_head
+from repo_builder import origin_head_at
 
 
 @pytest.mark.process("run-conductor.sh run as a real shim over veri/run_conductor.py, refusing an empty issue before any fetch")
@@ -4223,6 +4224,7 @@ def test_cli_2748_the_verify_red_leaf_given_fast_cmd_launched_alone_receives_the
     (tiers / "spec.md").write_text("spec\n")
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     step = checked_step(tiers, committed_head(tiers))
+    origin_head_at(tiers)
     stub = tmp_path / "tier-claude"
     stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$VERI_TEST_LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$VERI_TEST_LEAF_PROMPT_OUT"; shift ;; esac; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\\nREASON: ok"}\'\n')
@@ -4257,6 +4259,7 @@ def test_cli_2748_the_verify_green_leaf_given_fast_cmd_launched_alone_receives_t
     (tiers / "spec.md").write_text("spec\n")
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     step = checked_step(tiers, committed_head(tiers))
+    origin_head_at(tiers)
     stub = tmp_path / "tier-claude"
     stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$VERI_TEST_LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$VERI_TEST_LEAF_PROMPT_OUT"; shift ;; esac; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\\nREASON: ok"}\'\n')
@@ -4291,6 +4294,7 @@ def test_cli_2748_the_verify_refactor_leaf_given_fast_cmd_launched_alone_receive
     (tiers / "spec.md").write_text("spec\n")
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     step = checked_step(tiers, committed_head(tiers))
+    origin_head_at(tiers)
     stub = tmp_path / "tier-claude"
     stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$VERI_TEST_LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$VERI_TEST_LEAF_PROMPT_OUT"; shift ;; esac; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\\nREASON: ok"}\'\n')
@@ -4324,6 +4328,7 @@ def test_cli_2748_the_verify_refactor_leaf_without_fast_cmd_launched_alone_exits
     (tiers / "spec.md").write_text("spec\n")
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     step = checked_step(tiers, committed_head(tiers))
+    origin_head_at(tiers)
     stub = tmp_path / "tier-claude"
     stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$VERI_TEST_LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$VERI_TEST_LEAF_PROMPT_OUT"; shift ;; esac; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\\nREASON: ok"}\'\n')

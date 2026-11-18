@@ -1,4 +1,5 @@
-"""Throwaway git repositories for process cases: `new_repo` makes one, `commit_all` commits what it holds.
+"""Throwaway git repositories for process cases: `new_repo` makes one, `commit_all` commits what it holds,
+`origin_head_at` gives it the origin/HEAD a run's worktree has.
 
 Both run real git, so a case that calls them carries `@pytest.mark.process("git ...")`. `new_repo` sets no identity in the
 repository (a case may prove what git does without one); `commit_all` supplies its own, so it works on any repository.
@@ -57,3 +58,10 @@ def commit_all(repo, message, *, allow_empty=False, **files):
     git(repo, "add", "-A")
     git(repo, "commit", "-q", *(["--allow-empty"] if allow_empty else []), "-m", message)
     return git(repo, "rev-parse", "HEAD")
+
+
+def origin_head_at(repo, rev="HEAD"):
+    """Point <repo>'s refs/remotes/origin/main at <rev> and origin/HEAD at it, as a real run's worktree has them: outside
+    veri's own tree a verifier reads its run lines at the merge base with origin/HEAD, and refuses without one (#4263)."""
+    git(repo, "update-ref", "refs/remotes/origin/main", rev)
+    git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")

@@ -35,6 +35,7 @@ def test_cli_ends_an_over_budget_run_on_its_leafs_own_verdict_with_no_retry_and_
         return 0, b"", b""
 
     calls = fake_processes(answer)
+    monkeypatch.setattr(verify, "branch_base", lambda words: "0" * 40)  # git is faked: a run's merge base (#4263)
     usual = "1.0"
     assert run_cli(over_budget, ["unit", "40", usual], cwd=tmp_path)[0] == 0
     before = len(events.records(tmp_path))

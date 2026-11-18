@@ -78,7 +78,7 @@ def main(argv):
     if argv[0] == "surround" and options["--ledger"]:
         return refuse("build-verify-prompt: surround takes the pin phase's inputs, and --ledger is not one")
     base = options["--supersede-base"]
-    if base and not _HEX_SHA.fullmatch(base):
+    if base and not HEX_SHA.fullmatch(base):
         return refuse(f"build-verify-prompt: --supersede-base needs 7-40 lowercase hex characters, got '{base}'")
     code, out = build(options["--step"], options["--fast-cmd"], *argv, branch_base=options["--branch-base"],
                       ledger=options["--ledger"], supersede_base=options["--supersede-base"])
@@ -86,7 +86,7 @@ def main(argv):
     return code
 
 
-_HEX_SHA = re.compile(r"[0-9a-f]{7,40}")
+HEX_SHA = re.compile(r"[0-9a-f]{7,40}")
 
 
 TOUCHING_HEADING = b"### Test cases touching the files the plan names"
@@ -176,8 +176,9 @@ def _refused(message=None):
     return refuse(message), b""
 
 
-def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base="", ledger="", supersede_base=""):
-    if branch_base and not _HEX_SHA.fullmatch(branch_base):
+def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base="", ledger="", supersede_base="",
+          root="."):
+    if branch_base and not HEX_SHA.fullmatch(branch_base):
         return _refused(f"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got '{branch_base}'")
     if phase not in PHASES + INTERFACE_PHASES + VERIFY_ONLY_PHASES:
         return _refused(f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})")
@@ -207,7 +208,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         shas = ()
     slots = {"BASE_SHA": fourth, "STEP_BASE_SHA": "", "ONTO_SHA": "", "PRE_REBASE_SHA": ""}
     for label, slot, value in shas:
-        if not _HEX_SHA.fullmatch(value):
+        if not HEX_SHA.fullmatch(value):
             return _refused(f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, got '{value}'")
         slots[slot] = value
     prompts = f"{HERE}/prompts"
@@ -288,7 +289,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
     number = 5 if phase in ("expand", "cover-new", "migrate") else 4
     try:
-        run_lines = run_line.run_lines(branch_base=branch_base)
+        run_lines = run_line.run_lines(root, branch_base=branch_base)
     except run_line.BaseUnresolved:
         write(sys.stderr, f"build-verify-prompt: --branch-base '{branch_base}' names no commit git can resolve",
               before=False, after=False)
