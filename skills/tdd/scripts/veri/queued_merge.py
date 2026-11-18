@@ -702,8 +702,12 @@ def _outage(worktree):
 
 def _offline_stack(worktree):
     """The stack to join offline while the outage file exists: the stack the worktree's CLAUDE.md names, read with no
-    call to origin; None to go on as online."""
-    return stack_branch.named(worktree, remote=False)
+    call to origin, when the run's cut recorded it in `.tdd/issue-<n>-base`; None to go on as online."""
+    record = stack_branch.recorded_base(worktree)
+    if not record:
+        return None
+    stack = stack_branch.named(worktree, remote=False)
+    return stack if stack and record[1].strip() == stack else None
 
 
 def _join_offline(pid, worktree, branch, stack):

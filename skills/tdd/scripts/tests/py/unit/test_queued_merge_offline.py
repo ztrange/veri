@@ -162,3 +162,12 @@ def test_an_offline_join_whose_cut_recorded_the_stack_sha_replays_only_the_runs_
 
     rebases = [c for c in world.calls if c.startswith("git -C %s rebase" % world.wt)]
     assert (code, rebases) == (0, ["git -C %s rebase --onto stack %s" % (world.wt, BASE_SHA)]), err
+
+
+def test_with_the_outage_file_but_no_recorded_base_the_join_reads_the_pull_request_as_before_and_joins_nothing_offline(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, base=None).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, world.pulls, world.local) == (2, [PR], LOCAL_STACK), err
