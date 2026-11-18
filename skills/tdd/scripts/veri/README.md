@@ -604,7 +604,7 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `stem_walk`: the whole-word stem walk outside veri's own tree: the files git does not ignore, and which of them name a path's stem.
 - `suite-flakes.sh`: flaky targets across runs.
 - `surround-mutants.sh`: run a legacy step's mutant table through `mutation-probe.sh`.
-- `timed-test-run.sh`: run a test command, save its whole output under `.tdd/test-runs/`, print a bounded report in its place, and journal one `test-run` event.
+- `timed-test-run.sh`: run a test command, save its whole output under `.tdd/test-runs/`, print in its place a declared quiet command's own output (its exit 2 named a broken run), a foreign tree's `changed` run's exit code and last 20 lines, or else a bounded report, and journal one `test-run` event.
 
 ## ci_on_pr
 - `runs_on_pull_requests()`: True when `VERI_CI_ON_PR` is 1 or, unset, a workflow of the current directory triggers on `pull_request`; ValueError carrying the refusal on a bad value.
