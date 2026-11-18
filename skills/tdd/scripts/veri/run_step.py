@@ -8,6 +8,7 @@ import sys
 import fused
 import fused_step
 import ledger
+import red_half
 import run_dir
 from next_pending_refactor import refactor_pending
 
@@ -23,6 +24,11 @@ REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, t
 # stops before such a stage without calling it). green-half's reason is specs/prd-027.md GH1.
 STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
           "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ())}
+# The kinds that are not a cycle step, red_half.REFUSED's (RN7) -> the anchor of the prose that runs them; a step of
+# one stops before any stage on `seam=none`, until a stage for that kind exists (038.3, 038.4).
+KINDS = {"⟦diff-checked⟧": "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)",
+         "⟦phases:": "SKILL.md#A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier",
+         "⟦skill-edit⟧": "SKILL-EDIT.md#The skill-edit step", "⟦fixture-repair⟧": RED}
 
 
 def parse(argv):
@@ -56,6 +62,10 @@ def main(argv):
     if step is None:
         sys.stderr.write("run-step.sh: no open step in %s\n" % (LEDGER % n))
         return 3
+    for kind in red_half.REFUSED:
+        if kind in step:
+            sys.stdout.write("seam=none code=1 reason=kind next=%s\n" % KINDS[kind])
+            return 1
     order = list(STAGES)
     if start_at is not None:
         start = order.index(start_at)
