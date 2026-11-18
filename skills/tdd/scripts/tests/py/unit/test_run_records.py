@@ -54,6 +54,15 @@ def test_the_ref_carries_what_a_reader_restores_the_journal_lines_the_skill_pin_
     assert sorted(run_records.records(str(tmp_path), "7")) == ["events.jsonl", "issue-7-skill-commit", "issue-7-timeout"]
 
 
+def test_the_ref_carries_the_branch_base_the_main_working_tree_recorded_byte_for_byte_4374(tmp_path, run_records):
+    run = tmp_path / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    sha = "0123456789abcdef0123456789abcdef01234567"
+    (tmp_path / ".tdd" / "issue-7-branch-base").write_text(sha + "\n")
+
+    assert run_records.records(str(run), "7").get("issue-7-branch-base") == (sha + "\n").encode()
+
+
 def _a_machine(tmp_path, monkeypatch):
     """A home, a worktree inside it, a temp directory and a host name, each recognisable in a carried byte."""
     home = tmp_path / "home-of-mario"

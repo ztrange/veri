@@ -1,6 +1,6 @@
 """A run's local records carried on origin's `refs/veri/runs/<n>`: a commit on no branch holding the issue's lines of
-`.tdd/events.jsonl` (and those naming no issue), its `.tdd/issue-<n>-skill-commit` and its `.tdd/issue-<n>-timeout`,
-so another machine's metrics and resume read them; nothing else travels, since nothing else is read back. Never committed on the run's branch: rebase-merge would carry them into main's history."""
+`.tdd/events.jsonl` (and those naming no issue), its `.tdd/issue-<n>-skill-commit`, its `.tdd/issue-<n>-timeout` and its
+`.tdd/issue-<n>-branch-base`, so another machine's metrics and resume read them; nothing else travels, since nothing else is read back. Never committed on the run's branch: rebase-merge would carry them into main's history."""
 import getpass
 import json
 import os
@@ -21,7 +21,8 @@ import run_dir
 IDENTITY = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@localhost",
             "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@localhost"}
 EVENTS = ".tdd/events.jsonl"
-PINS = ("-skill-commit", "-timeout")  # what run-conductor.sh restores on a first launch
+# What a first launch restores: run-conductor.sh the skill and timeout pins, preflight the branch base.
+PINS = ("-skill-commit", "-timeout", "-branch-base")
 
 
 def ref(issue):
@@ -239,8 +240,9 @@ def _first_file(roots, issue, suffix):
 
 
 def records(run, issue):
-    """{name under .tdd/: bytes} for the run at <run>: its journal lines for <issue>, and the skill pin and the
-    timeout pin, each read from the run, else from the main tree it sits under; a file the run lacks is left out."""
+    """{name under .tdd/: bytes} for the run at <run>: its journal lines for <issue>, and the skill pin, the timeout
+    pin and the branch base, each read from the run, else from the main tree it sits under; a file the run lacks is
+    left out."""
     roots = [run] + [m for m in [run_dir.main_of_worktree(os.path.abspath(run))] if m]
     found = {}
     redactions = _redactions(run)
