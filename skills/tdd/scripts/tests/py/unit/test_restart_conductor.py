@@ -1381,3 +1381,17 @@ def test_4331_an_operators_stop_written_after_the_restarters_own_ask_and_consume
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out.splitlines()[-1:], launches, _restart_events(run_tdd)) == (0, ["restarts 7 0"], [], [])
+
+
+def test_4331_a_conductor_that_consumed_only_the_restarters_own_stop_is_relaunched_once_with_a_conductor_restart_event(tmp_path, run_cli, monkeypatch):
+    run_tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+
+    def on_sleep(n):
+        if n == 2:  # the conductor honours the restarter's own stop and clears it before exiting
+            (run_tdd / "stop").unlink()
+
+    restart_conductor, launches = _growth_stop_setup(tmp_path, monkeypatch, [True, True, True, True, False, False, False, True], on_sleep)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out.splitlines()[-1:], launches, len(_restart_events(run_tdd))) == (0, ["restarts 7 1"], ["7"], 1)
