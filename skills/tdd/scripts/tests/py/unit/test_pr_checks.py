@@ -154,3 +154,13 @@ def test_4392_a_red_lint_writes_its_event_and_section_then_stops_it_at_lint_befo
     assert (checks.wt / ".tdd" / "issue-12-lint.md").read_text() == (
         "### Lint\n\n`make lint` exited 2. The last 20 lines of its output:\n\n~~~text\n" + tail + "~~~\n")
     assert (checks.wt / ".tdd" / "issue-12.md").read_text() == LEDGER
+
+
+def test_4392_a_coupling_pair_writes_the_coupling_section_then_stops_it_at_coupling_recording_no_row(checks):
+    pair = "mutual: src/a.py src/b.py\n"
+    code, out, err, fake = checks(answers={("coupling.sh", None): (0, "")},
+                                  files={("coupling.sh", ()): {".tdd/coupling.out": pair}})
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at coupling coupling.sh %s > .tdd/coupling.out exit 0" % BASE)
+    assert fake.names()[-1] == "coupling.sh"
+    assert (checks.wt / ".tdd" / "issue-12-coupling.md").read_text() == "### Coupling\n\n" + pair
