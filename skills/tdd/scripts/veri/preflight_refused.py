@@ -37,7 +37,7 @@ def main(argv):
         body = "### ⛔ Preflight refused — %s\n" % check
         if detail is not None:
             body += "\n%s\n" % detail
-        github.gh_issue_comment(issue, body)
+        github.gh_issue_comment(issue, github.published(body))
     except github.NoAnswer:
         return 2
     return code
