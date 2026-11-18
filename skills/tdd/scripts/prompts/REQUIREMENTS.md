@@ -1263,3 +1263,9 @@
 | ID | Requirement | Why |
 |---|---|---|
 | PS1 | The fragment says this is the issue's **structural pass**: every step is green, and the structural candidates the steps recorded instead of applying are now due. The including template (`develop-structural.md`, `develop-predicate.md`) continues the paragraph after it. (The whole fragment.) | The leaf must know the steps are done and only the recorded candidates remain. |
+
+## skills/tdd/scripts/prompts/_develop-spec-cut-from.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| CF1 | The fragment holds the heading `### The issue's behavior spec (the criterion the step was cut from)` followed by the `{{ISSUE_SPEC}}` slot, then the heading `### The test command` followed by the `{{TEST_CMD}}` slot. (The whole fragment.) | An exhausted or over-budget leaf judges the step against the criterion it was cut from, and names the repo's own test command. |
