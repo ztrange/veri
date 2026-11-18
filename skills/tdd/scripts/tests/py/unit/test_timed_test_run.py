@@ -267,3 +267,84 @@ def test_cli_refuses_fewer_than_three_arguments_an_empty_tier_or_an_empty_cmd_wi
     code, out, err = run_cli(timed_test_run, argv, cwd=tmp_path)
 
     assert (code, out, err, _read_events(tmp_path)) == (2, "", USAGE, [])
+
+
+def _report_of(output, tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run):
+    """Runs a fake `make unit` that writes output and exits 1, returning (code, stdout lines, stderr)."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(timed_test_run.time, "time", lambda: 100.5)
+
+    def run(line, **kwargs):
+        kwargs["stdout"].write(output)
+        kwargs["stdout"].flush()
+        return (1, "", "")
+
+    fake_processes.answers({"make": run})
+    events.refuse_event_sh()
+    code = timed_test_run.main(["fast", "", "make", "unit"])
+    out, err = capfd.readouterr()
+    return code, out.splitlines(), err
+
+
+def test_issue_4333_main_runs_twice_in_one_tree_saving_each_output_under_its_own_name(
+        tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
+    monkeypatch.chdir(tmp_path)
+    readings = [100.2, 101.7, 200.0, 203.4]
+    monkeypatch.setattr(timed_test_run.time, "time", lambda: readings.pop(0))
+    events.refuse_event_sh()
+
+    codes = [timed_test_run.main(["fast", "", "sh", "-c", "exit 7"]) for _ in range(2)]
+
+    err = capfd.readouterr().err
+    saved = sorted(p.name for p in (tmp_path / ".tdd" / "test-runs").iterdir())
+    assert (codes, err, saved) == ([7, 7], "", [f"100-fast-{os.getpid()}.log", f"200-fast-{os.getpid()}.log"])
+    assert [r["status"] for r in events.records()] == ["7", "7"]
+
+
+def test_issue_4333_cli_exits_2_naming_test_runs_when_it_cannot_create_the_directory_running_nothing(
+        tmp_path, run_cli, calls, events, timed_test_run):
+    (tmp_path / ".tdd").write_text("a file, not a directory\n")
+    events.refuse_event_sh()
+
+    code, out, err = run_cli(timed_test_run, ["fast", "", "sh", "-c", "exit 0"], cwd=tmp_path)
+
+    assert (code, out, len(err.splitlines()), calls) == (2, "", 1, []), err
+    assert "test-runs" in err, err
+
+
+def test_issue_4333_report_prints_exactly_ten_failing_cases_with_no_cut_line(
+        tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run):
+    failing = [f"FAILED t.py::test_{n} - boom" for n in range(10)]
+    output = "\n".join([*failing, "= 10 failed in 0.50s ="]).encode()
+
+    code, lines, err = _report_of(output, tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run)
+
+    assert (code, err, lines[1:-1]) == (1, "", failing)
+
+
+def test_issue_4333_report_reads_counts_from_the_last_summary_line_only(
+        tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run):
+    output = b"= 1 passed in 0.10s =\n= 3 passed, 2 failed in 0.20s =\nlog: 9 passed earlier\n\xff\xfe\n"
+
+    code, lines, err = _report_of(output, tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run)
+
+    assert (code, err, lines[0]) == (1, "", "timed-test-run.sh: tier fast, exit 1, 0s, 3 passed, 2 failed, 0 error")
+
+
+def test_issue_4333_report_reads_a_summary_of_errors_alone(
+        tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run):
+    output = b"ERROR t.py - ImportError\n===== 2 errors in 0.30s =====\n"
+
+    code, lines, err = _report_of(output, tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run)
+
+    assert (code, err, lines[:2]) == (1, "", ["timed-test-run.sh: tier fast, exit 1, 0s, 0 passed, 0 failed, 2 error",
+                                              "ERROR t.py - ImportError"])
+
+
+def test_issue_4333_report_says_counts_not_found_when_no_pytest_summary_line_is_in_the_output(
+        tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run):
+    output = b"FAILED-LOGIN is not a case\nmake: *** [unit] Error 1\n"
+
+    code, lines, err = _report_of(output, tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run)
+
+    assert (code, err, lines[:-1]) == (1, "", ["timed-test-run.sh: tier fast, exit 1, 0s, counts not found"])
