@@ -14,6 +14,7 @@ TIERS = ("fast", "changed", "all", "target")
 USAGE = "usage: timed-test-run.sh <tier> <suites> <cmd> [args …]\n"
 CASES = 10
 WIDTH = 300
+SAVED = "full output: "
 SUMMARY = re.compile(r"^=* ?(.*\d+ (?:passed|failed|errors?)\b.*) in [0-9.]+s\b.*$")
 
 
@@ -31,7 +32,7 @@ def report(tier, code, seconds, output, path):
     text = [f"timed-test-run.sh: tier {tier}, exit {code}, {seconds}s, {counts}", *failing[:CASES]]
     if len(failing) > CASES:
         text.append(f"\u2026 {len(failing) - CASES} more failing cases cut")
-    return "\n".join(text + [f"full output: {os.path.abspath(path)}"]) + "\n"
+    return "\n".join(text + [SAVED + os.path.abspath(path)]) + "\n"
 
 
 def main(argv):
