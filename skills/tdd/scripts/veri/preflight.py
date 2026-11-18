@@ -490,25 +490,13 @@ def run(argv, wt):
 def baseline_suite(n, wt, saved, fast, body_file, detect, env, got):
     """Stage `baseline`: the fast tier, then the full tier (or its reused time), from wherever a waiting preflight left
     them; 0 with `got` filled once both passed, else the exit code preflight stops with (3: still waiting)."""
-    if saved is not None and saved[0] == "full":
-        baseline, full, fast, alone = int(saved[1]), saved[2], saved[3], saved[4]
-        began, reused = time.monotonic(), None
-        code = wait_on("preflight-full-" + n, wt, env)
+    if saved is not None:
+        tiers = resumed_tiers(n, wt, saved, detect, env)
     else:
-        if saved is not None:
-            fast = saved[1]
-            fast_began = time.monotonic()
-            code = wait_on("preflight-fast-" + n, wt, env)
-            CARRIED["fast_ran"] = code == 0
-        elif recorded_green(n, wt, fast, body_file, detect) or ci_green(wt):
-            fast_began, code = time.monotonic(), 0
-        else:
-            fast_began, code = start_fast(n, wt, fast, env)
-            CARRIED["fast_ran"] = code == 0
-        started = start_full(n, wt, fast, body_file, fast_began, code, detect, env)
-        if isinstance(started, int):
-            return started
-        baseline, full, alone, began, reused, code = started
+        tiers = fresh_tiers(n, wt, fast, body_file, detect, env)
+    if isinstance(tiers, int):
+        return tiers
+    baseline, full, fast, alone, began, reused, code = tiers
     code, full_secs = full_result(n, wt, baseline, full, fast, alone, began, reused, code)
     got.update(baseline=baseline, full=full, fast=fast, alone=alone, reused=reused, full_secs=full_secs)
     # Only a baseline whose fast tier ran green, in this call or one a wait carried over, is recorded: one skipped on
@@ -517,6 +505,40 @@ def baseline_suite(n, wt, saved, fast, body_file, detect, env, got):
         tree = call("git", "rev-parse", "HEAD^{tree}", cwd=wt)[1].strip()
         call(script("baseline-full-tier.sh"), "--record-green", n, tree, fast, full, cwd=wt)
     return code
+
+
+def resumed_tiers(n, wt, saved, detect, env):
+    """The tiers a waiting preflight saved: its full tier waited on, or its fast tier waited on and the full tier
+    started after it; (baseline, full, fast, alone, began, reused, code), else the exit code preflight stops with."""
+    if saved[0] == "full":
+        baseline, full, fast, alone = int(saved[1]), saved[2], saved[3], saved[4]
+        began = time.monotonic()
+        return baseline, full, fast, alone, began, None, wait_on("preflight-full-" + n, wt, env)
+    fast = saved[1]
+    fast_began = time.monotonic()
+    code = wait_on("preflight-fast-" + n, wt, env)
+    CARRIED["fast_ran"] = code == 0
+    return full_after(n, wt, fast, None, fast_began, code, detect, env)
+
+
+def fresh_tiers(n, wt, fast, body_file, detect, env):
+    """A fresh launch's tiers: the fast tier skipped on a recorded green or CI's word, else started, then the full tier
+    started after it; (baseline, full, fast, alone, began, reused, code), else the exit code preflight stops with."""
+    if recorded_green(n, wt, fast, body_file, detect) or ci_green(wt):
+        fast_began, code = time.monotonic(), 0
+    else:
+        fast_began, code = start_fast(n, wt, fast, env)
+        CARRIED["fast_ran"] = code == 0
+    return full_after(n, wt, fast, body_file, fast_began, code, detect, env)
+
+
+def full_after(n, wt, fast, body_file, fast_began, code, detect, env):
+    """`start_full` after the fast tier, its result carrying `fast`."""
+    started = start_full(n, wt, fast, body_file, fast_began, code, detect, env)
+    if isinstance(started, int):
+        return started
+    baseline, full, alone, began, reused, code = started
+    return baseline, full, fast, alone, began, reused, code
 
 
 if __name__ == "__main__":
