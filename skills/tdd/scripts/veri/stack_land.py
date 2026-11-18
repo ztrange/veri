@@ -4,6 +4,7 @@ import sys
 
 import entry
 import stack_branch
+import stack_fix
 
 USAGE = "usage: stack-land.sh [--now]"
 
@@ -18,6 +19,11 @@ def main(argv):
     if stack is None:
         return entry.refuse("stack-branch.sh exits 3: the repository's CLAUDE.md names no stack branch",
                             prefix="stack-land: ")
+    code, said = stack_fix.script("stack-red.sh", limit=stack_fix.NETWORK)
+    if code == 0:
+        red, url = (said.split() + ["", ""])[:2]
+        print("stack-land: the stack is red: CI failed on %s (%s); nothing cut or merged" % (red, url), file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
