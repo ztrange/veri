@@ -444,3 +444,14 @@ def test_4390_with_no_rebase_it_commits_exactly_the_graded_files_the_regrade_blo
     assert code == 0, out + err
     commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
     assert commits == ([] if committed is None else [("commit", "-q", "-m", SUBJECT, "--", *committed)])
+
+
+@pytest.mark.parametrize("mode", ["local", "ci"])
+def test_4390_after_a_rebase_the_regrade_is_committed_before_the_pinned_lease_push_and_the_tree_it_pushes_is_clean(
+        prep, mode):
+    code, out, err, fake = prep(fake=Fake(porcelain=("", "", " M GRADED\n", ""), mode=mode))
+
+    assert code == 0, out + err
+    made = _calls(fake)
+    commit = made.index(("git", ("commit", "-q", "-m", SUBJECT, "--", "GRADED")))
+    assert commit < fake.names().index("push-branch.sh")
