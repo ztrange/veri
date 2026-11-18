@@ -130,7 +130,10 @@ def _next(tags):
 def _tag(merge, subjects, owed, titles):
     """Under the merge lock: fetch tags, then cut and push one tag per issue in <owed>, in order, on its last commit
     of the landed range ending at <merge>."""
-    git.network("fetch", "--tags", "origin", cwd=".")
+    fetched = git.network("fetch", "--tags", "origin", cwd=".")
+    if fetched.returncode:
+        return entry.refuse("git fetch --tags origin failed (exit %d): %s; nothing tagged"
+                            % (fetched.returncode, " ".join(fetched.stderr.split())), prefix="stack-tag: ")
     landed = git.out("log", "--format=%H %s", "-n", str(len(subjects)), merge, cwd=".").splitlines()[::-1]
     commit = {}
     for line in landed:
