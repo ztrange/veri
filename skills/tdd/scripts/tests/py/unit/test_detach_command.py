@@ -679,8 +679,9 @@ def test_wait_total_stops_the_process_group_of_a_command_still_running_past_the_
     code = detach_command.main(["wait", "x", "--total", "1"])
     err = capsys.readouterr().err
 
-    assert (code, group["signals"], group["alive"], err.count("\n"), "--total 1" in err, now[0] < 1590) == (
-        2, [(4242, signal.SIGTERM)], False, 1, True, True)
+    assert (code, group["signals"], group["alive"], err, 1001 <= now[0] < 1590) == (
+        2, [(4242, signal.SIGTERM)], False,
+        "detach-command.sh: still running past --total 1 seconds; stopped its process group\n", True)
 
 
 def test_wait_total_counts_from_the_start_the_pid_file_records_so_a_wait_called_past_the_bound_exits_2_at_once_4264(
@@ -759,3 +760,100 @@ def test_wait_total_signals_no_process_group_when_the_live_pid_started_at_anothe
     code = detach_command.main(["wait", "x", "--total", "5"])
 
     assert (code, signals) == (2, [])
+
+
+def test_wait_total_sends_kill_only_after_the_grace_when_the_group_outlives_term_4264(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\n")
+    monkeypatch.setenv("VERI_POLL", "1")
+    monkeypatch.setenv("VERI_STOP_KILL_GRACE", "3")
+    group = {"alive": True}
+    seen = []
+
+    def kill(pid, signum):
+        if not group["alive"]:
+            raise ProcessLookupError
+
+    def killpg(pgid, signum):
+        seen.append(("killpg", pgid, signum))
+        group["alive"] = group["alive"] and signum != signal.SIGKILL
+
+    now = [1000.0]
+
+    def fake_sleep(seconds):
+        now[0] += float(seconds)
+        seen.append(("sleep", float(seconds)))
+
+    monkeypatch.setattr(os, "kill", kill)
+    monkeypatch.setattr(os, "killpg", killpg)
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+
+    code = detach_command.main(["wait", "x", "--total", "1"])
+
+    assert (code, seen[-3:], group["alive"]) == (
+        2, [("killpg", 4242, signal.SIGTERM), ("sleep", 3.0), ("killpg", 4242, signal.SIGKILL)], False)
+
+
+def test_wait_total_stops_a_command_whose_elapsed_time_equals_the_bound_without_sleeping_4264(
+        tmp_path, monkeypatch, capsys, detach_command, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\nWed Nov 11 09:00:00 2026\n")
+    fake_processes.answers({"ps ": (0, "Wed Nov 11 09:00:00 2026\n", "")})
+    monkeypatch.setenv("VERI_POLL", "1")
+    monkeypatch.setenv("VERI_STOP_KILL_GRACE", "0")
+    signals, slept = [], []
+    now = [calendar.timegm((2026, 11, 11, 9, 0, 5, 0, 0, 0))]
+
+    def fake_sleep(seconds):
+        slept.append(float(seconds))
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(os, "kill", lambda pid, signum: None)
+    monkeypatch.setattr(os, "killpg", lambda pgid, signum: signals.append(signum))
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+
+    code = detach_command.main(["wait", "x", "--total", "5"])
+
+    assert (code, signals[:1], sum(slept)) == (2, [signal.SIGTERM], 0)
+
+
+def test_wait_total_whose_pid_file_vanishes_after_the_liveness_check_exits_2_signalling_nothing_4264(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    pid_file = tdd / "x.pid"
+    pid_file.write_text("4242\nWed Nov 11 09:00:00 2026\n")
+    monkeypatch.setenv("VERI_POLL", "1")
+    signals = []
+
+    def kill(pid, signum):
+        if not pid_file.exists():
+            raise ProcessLookupError
+        pid_file.unlink()
+
+    monkeypatch.setattr(os, "kill", kill)
+    monkeypatch.setattr(os, "killpg", lambda pgid, signum: signals.append(signum))
+    monkeypatch.setattr(time, "time", lambda: 1000.0)
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+
+    code = detach_command.main(["wait", "x", "--total", "5"])
+
+    assert (code, signals, capsys.readouterr()) == (2, [], ("", ""))
+
+
+def test_start_passes_a_total_and_its_value_to_the_command_unchanged_4264(
+        tmp_path, monkeypatch, run, detach_command, fake_processes):
+    fake = fake_processes.answers({"sh ": (0, "", "")})
+    fake_start_time(monkeypatch)
+
+    code = run("start", "x", "sleep", "--total", "5")[0]
+
+    assert (code, [args[4:] for args in fake.argvs]) == (0, [["sleep", "--total", "5"]])

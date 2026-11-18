@@ -1,12 +1,18 @@
 """Cases for veri/detach_command.py that start a real process: a detached child, a signal, a symlinked entry point."""
 import importlib
 import os
+import re
+import signal
 import subprocess
+import sys
+import time
 from pathlib import Path
 
 import pytest
 
 SKILL_DIR = Path(__file__).resolve().parents[3]
+DEAF = ("import os, signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); print('ready', os.getpid(), flush=True); "
+        "time.sleep(60)")
 PIPE_SCRIPT = """exec 2> "$2"
 s="$(printf '%070000d' 0)"
 printf '%s\\n' x "$s" "$s" "$s" "$s" "$s" | { IFS= read -r _; }
@@ -117,3 +123,41 @@ def test_wait_alone_on_a_red_command_whose_named_files_each_pass_alone_exits_0_s
     text = events.read_text() if events.is_file() else ""
     assert (result, text.count("suite-flake"), "scripts/a.test.mjs" in text, "scripts/b.test.mjs" in text) == (
         (0, "", ""), 1, True, True)
+
+
+@pytest.mark.process("a real detached python3 that ignores TERM, under the sh wrapper, stopped by wait --total")
+def test_wait_total_kills_a_command_that_ignores_term_once_the_grace_passes_and_exits_2_naming_the_bound_4264(
+        tmp_path, run_cli, detach_command):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    env = {"VERI_POLL": "0.05", "VERI_STOP_KILL_GRACE": "0.2"}
+    run_cli(detach_command, ["start", "deaf", sys.executable, "-c", DEAF], env=env, cwd=tmp_path)
+    group = int((tdd / "deaf.pid").read_text().splitlines()[0])
+    try:
+        deadline = time.monotonic() + 10
+        while not (ready := re.findall(r"^ready (\d+)$", (tdd / "deaf.out").read_text(), re.M)) \
+                and time.monotonic() < deadline:
+            time.sleep(0.05)
+        deaf = int(ready[0])
+
+        result = run_cli(detach_command, ["wait", "deaf", "--total", "0"], env=env, cwd=tmp_path)
+
+        gone, deadline = False, time.monotonic() + 5
+        while not gone and time.monotonic() < deadline:
+            try:
+                os.kill(deaf, 0)
+                time.sleep(0.05)
+            except ProcessLookupError:
+                gone = True
+    finally:
+        try:
+            os.killpg(group, signal.SIGKILL)
+        except OSError:
+            pass
+        try:
+            os.waitpid(group, 0)
+        except ChildProcessError:
+            pass
+
+    assert (result, gone) == (
+        (2, "", "detach-command.sh: still running past --total 0 seconds; stopped its process group\n"), True)
