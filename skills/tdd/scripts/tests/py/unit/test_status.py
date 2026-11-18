@@ -348,3 +348,39 @@ def test_status_json_carries_the_stack_figures_null_for_an_unread_one_and_no_key
                 "unread": dict.fromkeys(["branch", "joined", "tested", "landed", "tracking_pr", "frozen"])}
     document = json.loads(out)
     assert (code, document.get("stack", "absent")) == (3, expected.get(stack, "absent")), (out, err)
+
+
+def pull_record(number, head, merged, updated, base="main", fork=False):
+    """A closed pull request as GitHub's REST list gives it, `Closes #<number>` its body."""
+    return {"number": number, "body": "Closes #%d\n" % number, "merged_at": merged, "updated_at": updated,
+            "head": {"ref": head, "repo": {"full_name": "%s/widgets" % ("stranger" if fork else "acme")}},
+            "base": {"ref": base, "repo": {"full_name": "acme/widgets"}}}
+
+
+def test_report_landed_count_names_only_this_repositorys_slices_merged_into_the_default_branch_in_24_hours_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {})
+    read = status.landed_slices
+    stack_reads(monkeypatch, status)
+    monkeypatch.setattr(status, "landed_slices", read)
+    monkeypatch.setattr(status.time, "time", lambda: 1793600000)
+    inside, before = "2026-11-02T09:00:00Z", "2026-10-31T09:00:00Z"
+    first = ([pull_record(21, "stacky-slice-a1a1a1a1a1", inside, inside),
+              pull_record(22, "stacky-slice-b1b1b1b1b1", before, inside),
+              pull_record(23, "tdd/23-other", inside, inside),
+              pull_record(24, "stacky-slice-c1c1c1c1c1", inside, inside, fork=True),
+              pull_record(25, "stacky-slice-d1d1d1d1d1", inside, inside, base="dev")]
+             + [pull_record(100 + n, "tdd/%d-filler" % n, inside, inside) for n in range(95)])
+    second = [pull_record(26, "stacky-slice-e1e1e1e1e1", inside, inside), pull_record(27, "stacky-slice-f1", None, before)]
+    pages = {"page=1": first, "page=2": second}
+    log = logs_answer({})
+
+    def answer(line, **kw):
+        if line.startswith("gh api"):
+            return 0, json.dumps(next(page for key, page in pages.items() if line.split()[2].endswith(key))), ""
+        return log(line, **kw)
+    fake_processes.answers({"": answer})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, section(out, "Stack")[0]) == (0, "stacky: joined 3, tested 2, landed 2 in 24h"), (out, err)
