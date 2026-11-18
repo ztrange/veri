@@ -756,11 +756,28 @@ def _joined_offline(worktree, branch, stack):
     code = _tip_checks(worktree, stack)
     if code:
         return code
-    full = _start("detect-test-command.sh", "--tier", "all", cwd=worktree, capture=True).stdout.strip()
+    code = _full_gate(worktree, stack)
+    if code:
+        return code
+    _git(worktree, "update-ref", "refs/heads/" + stack, checked, onto)
+    return 0
+
+
+def _full_gate(worktree, stack):
+    """The all-tier command `detect-test-command.sh --tier all` prints, run on the rebased tip in <worktree>: 0 green or
+    no command (said in one stderr line: not gated), 1 red, 2 when the command cannot be read."""
+    found = _start("detect-test-command.sh", "--tier", "all", cwd=worktree, capture=True)
+    full = found.stdout.strip()
+    if found.returncode not in (0, 3):
+        _say("detect-test-command.sh --tier all exited %d; the local %s not moved" % (found.returncode, stack))
+        return 2
+    if not full:
+        _say("no all-tier command (detect-test-command.sh --tier all printed nothing); the join onto the local %s is not"
+             " gated" % stack)
+        return 0
     if subprocess.run(["sh", "-c", full], cwd=worktree).returncode:
         _say("the full suite (%s) is red on the rebased tip; the local %s not moved" % (full, stack))
         return 1
-    _git(worktree, "update-ref", "refs/heads/" + stack, checked, onto)
     return 0
 
 
