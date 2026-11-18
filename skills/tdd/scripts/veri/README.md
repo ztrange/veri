@@ -593,7 +593,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 Choosing and running the suites of the project veri works on: finding its test commands, the suites a change affects, timed, baseline, branch and rebased-tip runs, flakes, reruns and mutation probes. Builds on Run state and journal and Foundations only.
 
 - `affected-suites.sh`: the test suites a change touches.
-- `baseline-full-tier.sh`: run and record the baseline full tier.
+- `baseline-full-tier.sh`: run and record the baseline full tier, and record or answer a green baseline preflight may skip.
 - `branch-suite.sh`: print `ci` or `local`: where the branch's full suite runs.
 - `detect-test-command.sh`: find the project's test commands.
 - `full-tier-time.sh`: how long the full tier takes, from recorded runs.
