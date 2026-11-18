@@ -724,10 +724,14 @@ def _join_offline(pid, worktree, branch, stack):
 
 
 def _joined_offline(worktree, branch, stack):
+    fetched = _rev(worktree, "refs/remotes/origin/" + stack)
     onto = _rev(worktree, "refs/heads/" + stack)
     if not onto:
-        onto = _rev(worktree, "refs/remotes/origin/" + stack)
+        onto = fetched
         _git(worktree, "branch", stack, onto)
+    elif _git(worktree, "merge-base", "--is-ancestor", fetched, onto).returncode:
+        _say("the local %s at %s does not descend from origin/%s at %s; nothing joined" % (stack, onto, stack, fetched))
+        return 2
     base = _base_sha(worktree, branch)
     rebase = _git(worktree, "rebase", *(["--onto", stack, base] if base else [stack]))
     if rebase.returncode:
