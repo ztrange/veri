@@ -937,7 +937,8 @@ def test_a_git_failure_in_the_rebase_worktree_that_is_not_a_conflict_exits_2_not
         2, "", True, False, [], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
 
 
-def test_an_issue_state_read_with_no_answer_after_a_landing_exits_2_the_lock_freed_once(monkeypatch, run_cli, stack_land):
+def test_an_issue_state_read_with_no_answer_after_a_landing_runs_last_the_carry_and_the_tag_run_and_exits_2_naming_the_closes_check_owed(
+        monkeypatch, run_cli, stack_land):
     cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
     world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
                   opens=url, subjects="feat: one (#11)\n", merged=[(101, "Closes #11\n")])
@@ -956,8 +957,12 @@ def test_an_issue_state_read_with_no_answer_after_a_landing_exits_2_the_lock_fre
 
     code, out, err = run_cli(stack_land, ["--now"])
 
-    assert (code, "Traceback" in err, [ran[:2] for ran in world.scripts if ran[0] == "merge-lock.sh"]) == (
-        2, False, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+    landed = [line for line in err.splitlines() if line.startswith("stack-land: %s landed, but " % url)]
+    assert (code, "Traceback" in err, [ran[:2] for ran in world.scripts[-3:]], len(landed),
+            "owed: check that #11 is closed" in "".join(landed), "HTTP 502 Bad Gateway" in "".join(landed),
+            [ran[:2] for ran in world.scripts if ran[0] == "merge-lock.sh"]) == (
+        2, False, [("merge-lock.sh", "release"), ("stack-carry.sh", cut), ("stack-tag.sh", url)], 1, True, True,
+        [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
 
 
 NAMED = re.compile(r"ztrange|mario|ferreira|github\.com/\w|#[0-9]+|[\"'/](main|master)\b|[\"']stack[\"']"

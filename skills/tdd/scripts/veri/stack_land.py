@@ -138,10 +138,11 @@ def _declined(line, pr):
     return 1
 
 
-def _after(pr, cut, still):
+def _after(pr, cut, repo, closed):
     """After the landing of <pr> at <cut>, the merge lock freed: carry the stack, then cut the slice's tags (KL40), then
-    report the Closes issues <still> open. Each runs whatever the one before answered; every one that failed is named on
-    stderr with the command owed, and any is exit 2. stack-carry.sh and stack-tag.sh take the merge lock themselves and
+    read the Closes issues <closed> of <repo>, last, and report those still open. Each runs whatever the one before
+    answered; every one that failed, or a Closes read that got no answer, is named on stderr with the command or check
+    owed, and any is exit 2. stack-carry.sh and stack-tag.sh take the merge lock themselves and
     run under no bound of ours: their own network calls are bounded, and a bound that killed them would kill them
     holding the lock, which merge-lock.sh never takes over."""
     owed = []
@@ -153,6 +154,13 @@ def _after(pr, cut, still):
     sys.stdout.write(said)
     if tagged not in (0, 3):
         owed.append("stack-tag.sh exits %d: the slice's tags are owed; run stack-tag.sh %s" % (tagged, pr))
+    try:
+        still = [n for n in closed if _issue_state(repo, n) == "open"]
+    except (github.NoAnswer, ValueError, AttributeError) as failed:
+        detail = failed.detail if isinstance(failed, github.NoAnswer) else str(failed)
+        still = []
+        owed.append("reading its Closes issues' state got no answer: %s; owed: check that %s is closed"
+                    % (" ".join(detail.split()), " ".join("#" + n for n in closed)))
     if still:
         owed.append("its Closes issues still open after the settle window: %s; the landing left as done"
                     % " ".join("#" + n for n in still))
@@ -264,9 +272,8 @@ def main(argv):
             closed = re.findall(r"^Closes #(\d+)$", answers[-1].get("body") or "", re.M)
             print("pull request: %s\nmerge commit: %s\nissues closed: %s"
                   % (pr, answers[-1].get("merge_commit_sha"), " ".join("#" + n for n in closed)))
-            still = [n for n in closed if _issue_state(repo, n) == "open"]
             stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
-            return _after(pr, cut, still)
+            return _after(pr, cut, repo, closed)
         last = answers[-1] or {}
         return _freed("%s did not read merged by the end of the settle window after the merge call exited %d (last read:"
                       " state %s, merged %s); the merge lock freed, nothing retried"
@@ -274,9 +281,9 @@ def main(argv):
     except _Unanswered as unanswered:
         return _freed("%s; the merge lock freed, nothing merged" % unanswered)
     except BaseException:
-        # Any other error after the take (a git failure in the rebase worktree, an issue-state read with no answer, a
-        # KeyboardInterrupt) ends through entry.run's exit 2 or the interrupt; the lock is freed first, since
-        # merge-lock.sh never takes over a dead holder's lock and a held one would block every later merge.
+        # Any other error after the take (a git failure in the rebase worktree, a KeyboardInterrupt) ends through
+        # entry.run's exit 2 or the interrupt; the lock is freed first, since merge-lock.sh never takes over a dead
+        # holder's lock and a held one would block every later merge.
         stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
         raise
 
