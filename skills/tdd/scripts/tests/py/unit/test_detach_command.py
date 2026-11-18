@@ -1,4 +1,5 @@
 """In-process cases for veri/detach_command.py, the module detach-command.sh is a shim over."""
+import calendar
 import importlib
 import os
 import signal
@@ -680,3 +681,42 @@ def test_wait_total_stops_the_process_group_of_a_command_still_running_past_the_
 
     assert (code, group["signals"], group["alive"], err.count("\n"), "--total 1" in err, now[0] < 1590) == (
         2, [(4242, signal.SIGTERM)], False, 1, True, True)
+
+
+def test_wait_total_counts_from_the_start_the_pid_file_records_so_a_wait_called_past_the_bound_exits_2_at_once_4264(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\nWed Nov 11 09:00:00 2026\n")
+    monkeypatch.setenv("VERI_POLL", "1")
+    monkeypatch.setenv("VERI_STOP_KILL_GRACE", "0")
+    group = {"alive": True, "signals": []}
+
+    def kill(pid, signum):
+        if not group["alive"]:
+            raise ProcessLookupError
+
+    def killpg(pgid, signum):
+        if not group["alive"]:
+            raise ProcessLookupError
+        group["signals"].append((pgid, signum))
+        group["alive"] = False
+
+    now = [calendar.timegm((2026, 11, 11, 9, 0, 10, 0, 0, 0))]
+    slept = []
+
+    def fake_sleep(seconds):
+        slept.append(float(seconds))
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(os, "kill", kill)
+    monkeypatch.setattr(os, "killpg", killpg)
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+
+    code = detach_command.main(["wait", "x", "--total", "5"])
+    err = capsys.readouterr().err
+
+    assert (code, group["signals"], sum(slept), err.count("\n"), "--total 5" in err) == (
+        2, [(4242, signal.SIGTERM)], 0, 1, True)

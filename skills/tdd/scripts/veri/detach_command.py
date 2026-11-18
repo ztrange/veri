@@ -1,5 +1,6 @@
 """detach-command.sh's start and wait, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import calendar
 import os
 import re
 import signal
@@ -58,6 +59,14 @@ def _limit(text):
         return None
 
 
+def _started(pid_file, fallback):
+    """The epoch second `start` recorded on the pid file's line 2 (ps lstart under TZ=UTC); <fallback> without one."""
+    try:
+        return calendar.timegm(time.strptime(pid_file_module.start_recorded(pid_file), "%a %b %d %H:%M:%S %Y"))
+    except (OSError, ValueError):
+        return fallback
+
+
 def _stopping_now():
     try:
         return _read(".tdd/stop") == "now"
@@ -80,7 +89,7 @@ def _wait(exit_file, pid_file, text, alone=None, total=None):
             return 2 if code is None else code
         if _stopping_now():
             return 2
-        if total is not None and int(time.time()) - start >= total:
+        if total is not None and int(time.time()) - _started(pid_file, start) >= total:
             _stop_group(int(_pid(pid_file)))
             print(f"detach-command.sh: still running past --total {total} seconds; stopped its process group",
                   file=sys.stderr)
