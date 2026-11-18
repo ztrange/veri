@@ -5,5 +5,5 @@
 - [x] `skills/tdd/scripts/prompts/_timed-test-run-fast-affected.md` gets its `## skills/tdd/scripts/prompts/_timed-test-run-fast-affected.md` section in `skills/tdd/scripts/prompts/REQUIREMENTS.md` with row TX1 from the issue's `## Requirements`, mirroring the fragment's current text as is (no wording change), graded PASS by `grade-prose.sh` ⟦skill-edit⟧ ⟦criterion 1⟧
 - [x] `skills/tdd/scripts/prompts/_flag-overfit.md` gets its `## skills/tdd/scripts/prompts/_flag-overfit.md` section in `skills/tdd/scripts/prompts/REQUIREMENTS.md` with row FO1 from the issue's `## Requirements`, mirroring the fragment's current text as is (no wording change), graded PASS by `grade-prose.sh` ⟦skill-edit⟧ ⟦criterion 1⟧
 - [x] `skills/tdd/GRADED` holds a line for each of the four fragments, added by the branch only through the skill-edit steps' `grade-prose.sh` PASS and no other `GRADED` line changed ⟦diff-checked⟧ ⟦criterion 2⟧
-- [ ] the branch's diff leaves the four fragments unchanged: `git diff <base>..HEAD -- <fragment>` is empty for each ⟦diff-checked⟧ ⟦criterion 3⟧
+- [x] the branch's diff leaves the four fragments unchanged: `git diff <base>..HEAD -- <fragment>` is empty for each ⟦diff-checked⟧ ⟦criterion 3⟧
 - [ ] `prose-owed.sh` exits 0 on the branch ⟦criterion 3⟧
