@@ -348,3 +348,31 @@ def test_issue_4333_report_says_counts_not_found_when_no_pytest_summary_line_is_
     code, lines, err = _report_of(output, tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run)
 
     assert (code, err, lines[:-1]) == (1, "", ["timed-test-run.sh: tier fast, exit 1, 0s, counts not found"])
+
+
+def test_issue_4335_main_hands_the_declared_quiet_commands_output_to_the_caller_unchanged_and_returns_its_status(
+        tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: quiet test files: pytest -q --no-header -rf\n")
+    monkeypatch.chdir(tmp_path)
+    output = b"FAILED t.py::x - boom\n1 failed, 3 passed\n"
+
+    def run(line, **kwargs):
+        handle = kwargs.get("stdout")
+        if hasattr(handle, "write"):
+            handle.write(output)
+            handle.flush()
+        else:
+            os.write(1, output)
+        return (1, "", "")
+
+    fake_processes.answers({"sh": run})
+    events.refuse_event_sh()
+
+    code = timed_test_run.main(["changed", "t.py u.py", "sh", "-c", 'pytest -q --no-header -rf "$@"', "sh",
+                                "t.py", "u.py"])
+
+    out, err = capfd.readouterr()
+    saved = list((tmp_path / ".tdd" / "test-runs").iterdir())
+    assert (code, out, err) == (1, output.decode(), "")
+    assert [p.read_bytes() for p in saved] == [output]
+    assert [(r["tier"], r["status"]) for r in events.records()] == [("changed", "1")]
