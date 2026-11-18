@@ -122,9 +122,12 @@ def main(argv):
 
 
 def _next(tags):
-    """The vN.M after the first of <tags> (`git tag --sort=-v:refname`'s lines) that is one."""
-    major, minor = next(VERSION.fullmatch(tag).groups() for tag in tags if VERSION.fullmatch(tag))
-    return "v%s.%d" % (major, int(minor) + 1)
+    """The vN.M after the first of <tags> (`git tag --sort=-v:refname`'s lines) that is one; None when none is."""
+    for tag in tags:
+        version = VERSION.fullmatch(tag)
+        if version:
+            return "v%s.%d" % (version[1], int(version[2]) + 1)
+    return None
 
 
 def _tag(merge, subjects, owed, titles):
@@ -151,6 +154,9 @@ def _tag(merge, subjects, owed, titles):
         return 3
     for issue in untagged:
         name = _next(git.out("tag", "--sort=-v:refname", cwd=".").split())
+        if name is None:
+            return entry.refuse("the repository has no vN.M tag to bump from; #%s and after not tagged" % issue,
+                                prefix="stack-tag: ")
         git.out("tag", "-a", name, "-m", titles[issue], commit[issue], cwd=".")
         pushed = git.network("push", "origin", "refs/tags/" + name, cwd=".")
         if pushed.returncode:

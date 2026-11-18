@@ -1,0 +1,1 @@
+- [x] a repository with no vN.M tag to bump from makes stack_tag exit 2 saying so, nothing tagged, the lock freed (unit case, no process) ⟦added⟧

@@ -247,3 +247,12 @@ def test_a_landed_range_whose_subjects_are_not_the_pull_requests_exits_2_naming_
 
     assert (code, MERGE in err, world.cut, world.lock_calls[-1][:2]) == (
         2, True, [], ("merge-lock.sh", "release")), err
+
+
+def test_a_repository_with_no_version_tag_to_bump_from_exits_2_saying_so_nothing_tagged(monkeypatch, run_cli, stack_tag):
+    world = World(monkeypatch, commits=["feat: a (#7)"], titles={"7": "Seven"}, tags=["release-1"])
+
+    code, out, err = run_cli(stack_tag, [PR])
+
+    assert (code, "no vN.M tag" in err, world.cut, world.lock_calls[-1][:2]) == (
+        2, True, [], ("merge-lock.sh", "release")), err
