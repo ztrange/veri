@@ -778,6 +778,11 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `verdict(code, output, case)`: what an alone run of a case says: `True` red (non-zero, with a failure line naming the case), `False` not red (exit 0), `ABSENT` (not found or not collected, its output matching `ABSENT_OUTPUT`), `None` no answer; the exit code alone never decides.
 - `owners(subjects)`: per subject, oldest first, the issues its commit belongs to by KT5's subject rule (those it names, else the nearest earlier subject's).
 
+## stack_fix
+- `script(name, *args, limit=None)`: runs the sibling script `name`: `(exit code, stdout)`, its stderr passed through; with `limit` (a tunable's name, such as `NETWORK`, which is `VERI_GIT_NETWORK_TIMEOUT`) its process group is killed at that bound and the call answers 2.
+- `NoAnswer`: no answer from git, GitHub or a script (exit 2). `Refused`: a bound not held (exit 1). Each one's message says why.
+- `log(rev_range)`: the commits of a range, oldest first, as `[(sha, subject, [Stack-fix trailer values])]`. `tier_and_prose(top, say)`: the fast tier and `prose-owed.sh` at HEAD in `top`, `say` ending each message. `pushed(head, stack, onto)`: pushes `head` to `stack`, leased to `onto` and a fast-forward of it, read back after a push that did not answer 0. `comment(stack, default, issue, body, name)`: adds `body` once to the stack's tracking pull request and to the issue, a failure said on stderr prefixed `name`.
+
 ## stack_green
 - `named(subject)`: the issue numbers a commit subject names in the parenthesised group or groups it ends with. `issue_ends(subjects)`: per subject, whether its commit is an issue end. `tested(runs)`: whether check runs `[(status, conclusion)]` call a commit tested. `ENDS_READ`: the newest issue ends read.
 
