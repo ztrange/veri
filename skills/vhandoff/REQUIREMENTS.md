@@ -10,6 +10,6 @@
 | H6 | It is ≤40 lines, and every item names its issue number and title. | |
 | H7 | It stops no conductor. | Conductors are detached and outlive both sessions. |
 | H8 | It prints the resume command in a fenced block. | |
-| H10 | The dev handoff also carries whether `.tdd/github-outage` exists in the main working tree, read from the file when the handoff is written, and, when it exists, each PR url it lists, in the file's order. | A handoff carries state, and a reset mid-outage must not resume merging (PRD 033, VO9; P2). |
+| H10 | The dev handoff also carries whether `.tdd/github-outage` exists in the main working tree, read from the file when the handoff is written, and, when it exists, each PR url it lists, in the file's order, and that where a stack is named a reviewed Done run is joined offline, not held. | A handoff carries state, and a reset mid-outage must not resume merging online (PRD 033, VO9; P2); PRD 033.2a OL14. |
 | H11 | In a session that has the app's `start_session` tool, `/vhandoff dev` writes nothing and says the dev session resets itself and recovers from its role state file; in a session without it, it works as the other rows say. | The desktop dev session needs no handoff (RC4); the terminal keeps `--resume`, which reads this skill's file (PRD 026, settled 2026-11-15). |
 | H12 | The dev handoff carries the `Stack` section's lines as `status.sh` prints them, and where none is printed it says no stack is named. | A fresh session must not guess the freeze. |

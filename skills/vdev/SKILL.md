@@ -61,10 +61,11 @@ ends by sending the resetter `ack`. With no state file for this role and lane, s
 
 **Local mode.** Whether the session starts fresh, recovers or resumes (`--resume`), run
 `$S/github-outage.sh status` before its first slot decision. On exit 0 `.tdd/github-outage`
-exists in the target repository's main working tree (a GitHub outage holds merges), or held
-ones are still being merged: read `<resolved base dir>/../voutage/SKILL.md` yourself and follow it (it finishes
-those merges and waits on its wait) before that decision. The file is the mode, never a handoff
-or memory.
+exists in the target repository's main working tree (a GitHub outage: no merge goes online), or
+held ones are still being merged: read `<resolved base dir>/../voutage/SKILL.md` yourself and follow it (it finishes
+those merges and waits on its wait) before that decision. While that file exists a ✅ Done run
+whose review is OK is handled as `voutage` says instead of being merged online: joined offline
+where a stack is named, held where none is. The file is the mode, never a handoff or memory.
 
 **Resetter.** On a `/vdev` turn the human typed (never a recovery turn), start one resetter
 session on Haiku, briefed with the *Resetter* section, and record its id with
@@ -197,13 +198,14 @@ On each conductor exit, read the facts — the issue's last comment only
 (`gh issue view <n> --json comments --jq '.comments[-1].body'`, never the whole comment
 thread), the committed ledger, the PR — never the exit code alone, and route:
 
-- **Last comment ✅ Done.** Review it, and on OK run `$S/github-outage.sh hold <pr-url>` first:
-  exit 3 (`.tdd/github-outage` does not exist) merges it through `vmerge`; exit 0 holds it
-  instead, since a GitHub outage holds merges, and it is then handled as `voutage` says; exit 2
-  is sent once as a notice (*Speaking*) and nothing is merged. Where `$S/stack-branch.sh` exits 0
-  (the target repository's `CLAUDE.md` names a stack branch) the route is the same, the outage hold
-  still in front of it: on the review's OK and the hold's exit 3, `vmerge` joins the run to the
-  stack rather than merging it, as its *Joining a stack* says. A run that ended with an open
+- **Last comment ✅ Done.** Where `$S/stack-branch.sh` exits 0 (the target repository's
+  `CLAUDE.md` names a stack branch), review it, and on OK hand it to `vmerge`, which joins the run
+  to the stack rather than merging it, as its *Joining a stack* says, offline while
+  `.tdd/github-outage` exists; no outage hold runs in front of it. Where it exits 3, review it, and
+  on OK run `$S/github-outage.sh hold <pr-url>` first: exit 3 (`.tdd/github-outage` does not
+  exist) merges it through `vmerge`; exit 0 holds it instead, since a GitHub outage holds merges,
+  and it is then handled as `voutage` says; exit 2 is sent once as a notice (*Speaking*) and
+  nothing is merged. A run that ended with an open
   question for the human is never merged, and never joined; nor is any reviewed run joined onto a
   stack whose landing is held (*Landing a slice*, below).
 
@@ -276,9 +278,11 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   stack is red (its stderr names the red commit) leaves the run as it is: the stack goes to *A red
   stack* meanwhile, and the join is retried once `$S/stack-red.sh` exits 3, never sooner. An exit
   1 for a conflict you cannot resolve goes to *When to stop and ask*. Any other exit 1 (a red fast
-  tier, a unit owing a grade) is reported to the human as a notice (*Speaking*), with its stderr.
-  Each leaves the run as it is. An exit 2 is reported as a notice with its stderr and never
-  retried blind. An exit 3, the pull request already merged into the stack, is nothing to do.
+  tier, a unit owing a grade, an offline join's red full suite) is reported to the human as a
+  notice (*Speaking*), with its stderr. Each leaves the run as it is. An exit 2 is reported as a
+  notice with its stderr, and then read `<resolved base dir>/../voutage/SKILL.md` yourself, not
+  through a subagent, and follow its *On a failed merge* for that PR's url, never retrying the
+  join blind. An exit 3, the pull request already merged into the stack, is nothing to do.
 - **Landing a slice.** After each join, and after each `$S/stack-red.sh` exit 3, run
   `$S/stack-land.sh` without `--now`, in the target repository's main working tree, unless a
   landing is held: whether a slice lands now (100 commits or an idle stack) is the script's to

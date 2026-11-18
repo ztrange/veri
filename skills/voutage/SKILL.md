@@ -21,8 +21,9 @@ the dev session, as one notice, as vdev's *Speaking* says (P4).
 
 ## The mode is a file
 
-*Local mode* is the file `.tdd/github-outage`: while it exists, merges are held; when it is
-gone, they are not. Re-read it (P1), never remember it, and never edit it by hand: every read
+*Local mode* is the file `.tdd/github-outage`: while it exists, no merge reaches GitHub (a
+reviewed run is held, or joined offline where a stack is named); when it is gone, merges go
+online again. Re-read it (P1), never remember it, and never edit it by hand: every read
 and change is a verb of `$S/github-outage.sh` (its `SCRIPTS.md` entry is the contract), each one
 call that works alone. `<driver>` below is `$PPID` in the Bash call, the long-lived process
 driving this session, as `vmerge` uses it. An exit 2 of any verb that is not routed below (bad
@@ -51,11 +52,19 @@ merge needs).
 
 ## While the file exists
 
-No merge starts. A run that ends ✅ Done is reviewed as usual; on a review that is OK (the
-caveats exchanged as for any merge) run `$S/github-outage.sh hold <pr-url>` instead of merging:
-exit 0, held, in the order the runs ended, and nothing is told; exit 3, local mode ended
-meanwhile, so merge it as usual; exit 2, report it once. A run whose review is not OK is handled
-as without this skill.
+No online merge starts. A run that ends ✅ Done is reviewed as usual; on a review that is OK
+(the caveats exchanged as for any merge):
+
+- **Where `$S/stack-branch.sh` exits 0** (the target repository's `CLAUDE.md` names a stack
+  branch), join it through `vmerge`'s offline join (its *Joining a stack*), never held: the join
+  lands it on the local `<stack>`, gated by the full suite, and pushes nothing.
+- **Where it exits 3**, start no merge: run `$S/github-outage.sh hold <pr-url>`, which appends the
+  run's PR url to the file on a line of its own: exit 0, held, in the order the runs ended, and
+  nothing is told; exit 3, local mode ended meanwhile, so merge it as usual; exit 2, report it
+  once.
+
+The file's PR urls, the failed PR's first, are the held merge order. A run whose review is not
+OK is handled as without this skill.
 
 ## The wait
 
@@ -93,13 +102,16 @@ while the status says `mode on`, it arms the wait.
 ## Leaving local mode
 
 Merge the held PRs in the file's order, one at a time, each through `vmerge` as a ✅ Done run is
-merged (its review was done before it was held). Each session merges one PR to completion before
+merged (its review was done before it was held): where a stack is named it is joined offline,
+since the file still exists until `take` prints `ended`. Each session merges one PR to completion before
 it takes the next, so the order holds per session; two sessions on one tree interleave.
 
 1. Run `$S/github-outage.sh take --pid <driver>`, the claim: no other session gets that PR.
    - A url: go to step 2.
    - `ended`: nothing is left held or merging and the file is removed; tell the human in one line
-     that local mode has ended. Stop.
+     that local mode has ended and, where `$S/stack-branch.sh` exits 0, the count of commits the
+     local `<stack>` holds above `origin/<stack>` (`git rev-list --count origin/<stack>..<stack>`)
+     and that landing them is by hand until PRD 033.3. Stop.
    - Exit 3, nothing printed: another session holds the rest, or the mode ended elsewhere; say
      nothing. Stop.
    - Exit 2: report it once. Stop.
