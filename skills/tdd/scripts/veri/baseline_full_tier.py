@@ -20,8 +20,22 @@ def green_path():
     return os.path.join(run_dir.main_tree_from_files(os.getcwd()), ".tdd", "baseline-green.json")
 
 
-def green_key(tree, fast, full):
-    return hashlib.sha256(json.dumps([tree, fast, full]).encode()).hexdigest()
+def text_of(path):
+    """The file's text, or None when it is absent."""
+    if not os.path.exists(path):
+        return None
+    with open(path, "rb") as f:
+        return f.read().decode(errors="replace")
+
+
+def green_key(issue, tree, fast, full):
+    """What a green baseline is recorded under: the tested tree, both commands, the run's skill commit pin and a hash of
+    the dev venv lock, the last two read from the main checkout."""
+    main = run_dir.main_tree_from_files(os.getcwd())
+    pin = text_of(run_dir.issue_file(main, issue, "-skill-commit"))
+    lock = text_of(os.path.join(main, "requirements-dev.txt"))
+    lock_hash = None if lock is None else hashlib.sha256(lock.encode()).hexdigest()
+    return hashlib.sha256(json.dumps([tree, fast, full, pin, lock_hash]).encode()).hexdigest()
 
 
 def read_green(path):
@@ -33,7 +47,7 @@ def read_green(path):
 
 def green(argv):
     """`--green` prints skip when a green baseline is recorded for the key, else run; `--record-green` records one."""
-    path, key = green_path(), green_key(*argv[2:5])
+    path, key = green_path(), green_key(*argv[1:5])
     record = read_green(path)
     if argv[0] == "--green":
         print("skip" if key in record else "run")
