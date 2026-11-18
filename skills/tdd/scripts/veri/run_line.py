@@ -16,9 +16,9 @@ Interface:
                           when nothing is read there (no <branch_base>, or <root> is no git tree). Raises BaseUnresolved
                           as run_lines does. What build-verify-prompt.sh reads the `veri: lint:` line from.
   full_line(root=".", branch_base="")
-                          the full test command a verifier runs, as bytes: `make test` in veri's own tree; elsewhere the
-                          repo's all-tier command, read as run_lines reads its lines (at <branch_base>, declared lines
-                          only, BaseUnresolved likewise), or `the test command` when it declares none.
+                          the full test command a verifier runs, as bytes: the repo's all-tier command, read as
+                          run_lines reads its lines (at <branch_base>, declared lines only, BaseUnresolved likewise),
+                          or `the test command` when it declares none. veri's own tree declares `make test`.
   run_lines(root=".", branch_base="")
                           (changed, one) as bytes: the command running the test files affected-suites.sh printed, and the
                           one invocation for a single suite. In veri's own tree today's `make test TESTS="…"` text;
@@ -94,10 +94,7 @@ def base_claude_md(root=".", branch_base=""):
 
 
 def full_line(root=".", branch_base=""):
-    at_base = _at_base(branch_base, root)
-    if own_tree(root) if at_base is None else at_base[1]:
-        return b"make test"
-    return detect_test_command.resolved("all", None, root, None if at_base is None else at_base[0]) or UNDECLARED
+    return detect_test_command.resolved("all", None, root, base_claude_md(root, branch_base)) or UNDECLARED
 
 
 def run_lines(root=".", branch_base=""):
