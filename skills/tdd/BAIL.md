@@ -137,6 +137,10 @@ pending bails as it always has — only a pending `now` turns a leaf's exit 2 in
 (see *Launching a leaf*). When exit 0 said one was waiting, the bail comment in sub-step 6
 adds that a stop was pending, naming its mode.
 
+You may run `$S/bail.sh <n> <cause> <phase> --note-file <path> [--attempt <k>]` for
+sub-steps 1–8 below. On its exit 2, or with the script unavailable, bail by the sub-steps
+below, every one of which stays.
+
 To bail:
 
 1. **Preserve the attempt first.** The tree the troubled leaf left is the evidence a reader
