@@ -847,6 +847,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `pr-ready-wait.sh`: closing and pushing the run's record, then readying its PR and its first CI wait, in one call.
 - `pr-finish.sh`: the refactor-owed render after a green first CI wait, in one call.
 - `run-done.sh`: the run's done comment, in one call.
+- `stop-settle.sh`: a stop, STOPPING.md steps 1–6, settled in one call.
 - `reset-cost.sh`: what each recorded reset of the dev session or a run's conductor cost, and the growth knob it calls for.
 - `reset-wait.sh`: wait for a usage-limit reset.
 - `restart-conductor.sh`: stop and watch a conductor restart.
