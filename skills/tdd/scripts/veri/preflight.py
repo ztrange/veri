@@ -324,6 +324,17 @@ def set_up(n, slug, detect):
     return wt, fast, body_file
 
 
+def ci_green(wt):
+    """Whether CI's `CI` workflow concluded `success` on the commit under test."""
+    sha = call("git", "rev-parse", "HEAD", cwd=wt)[1].strip()
+    out = call("gh", "run", "list", "--workflow", "CI", "--commit", sha, "--limit", "1",
+                 "--json", "headSha,status,conclusion", cwd=wt)[1]
+    try:
+        return json.loads(out)[0]["conclusion"] == "success"
+    except (ValueError, LookupError, TypeError):
+        return False
+
+
 def start_fast(n, wt, fast, env):
     fast_began = time.monotonic()
     code = detached("preflight-fast-" + n, fast, wt, env)
@@ -466,6 +477,8 @@ def baseline_suite(n, wt, saved, fast, body_file, detect, env, got):
             fast = saved[1]
             fast_began = time.monotonic()
             code = wait_on("preflight-fast-" + n, wt, env)
+        elif ci_green(wt):
+            fast_began, code = time.monotonic(), 0
         else:
             fast_began, code = start_fast(n, wt, fast, env)
         started = start_full(n, wt, fast, body_file, fast_began, code, detect, env)
