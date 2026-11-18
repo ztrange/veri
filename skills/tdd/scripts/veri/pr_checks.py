@@ -108,11 +108,27 @@ def coupling(wt, n, base, owed):
 def quality(wt, n, base):
     """The test-quality check: the test files the range touched; none writes the record empty, and any stops it
     with exit 1 before the develop-test-quality launch, which is the conductor's."""
+    record = ".tdd/issue-%s-test-quality" % n
+    if os.path.exists(path(wt, record)):
+        if owes_fix(said(wt, record), said(wt, LEDGER % n)):
+            raise fused.Stop("test-quality", record + " owes a fix step", 1)
+        return
     files = (fused.script("test-quality.sh"), "files", base)
     code = fused.call(*files, cwd=wt, out=".tdd/test-quality-files")[0]
     if code == 0:
         raise fused.Stop("test-quality", fused.shown(*files, out=".tdd/test-quality-files") + " exit 0", 1)
-    write(wt, ".tdd/issue-%s-test-quality" % n, "")
+    write(wt, record, "")
+
+
+def owes_fix(record, ledger):
+    """Whether the recorded findings still owe a ⟦test-quality⟧ step: a weak-assertion or implementation-coupled
+    finding whose <file>::<case> no such step of the ledger names, while VERI_TEST_QUALITY_FIXES exceeds the steps the
+    ledger already holds."""
+    steps = [line for line in ledger.splitlines() if "⟦test-quality⟧" in line]
+    unfixed = [fields[1] for fields in (line.split(" | ", 2) for line in record.splitlines())
+               if len(fields) == 3 and fields[0] in ("weak-assertion", "implementation-coupled")
+               and not any(fields[1] in step for step in steps)]
+    return bool(unfixed) and int(tunables.get("VERI_TEST_QUALITY_FIXES", unless_empty=True)) > len(steps)
 
 
 if __name__ == "__main__":
