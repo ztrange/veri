@@ -69,8 +69,9 @@ def test_make_test_refuses_before_any_suite_runs_when_the_bash_on_path_is_older_
     green = tmp_path / "test_ends_green.py"
     green.write_text("def test_green():\n    pass\n")
     argv = ["make", "-C", str(ROOT), "test", "TESTS=" + str(green), "UNIT_TESTS="]
-    old_code, old_out, _ = run(argv, ROOT, VERI_BASH_MAJOR="3")
-    new_code, new_out, _ = run(argv, ROOT, VERI_BASH_MAJOR="5")
+    # a set worker count never waits for a core (#4310): the run enclosing this case may hold every core
+    old_code, old_out, _ = run(argv, ROOT, VERI_BASH_MAJOR="3", VERI_PYTEST_WORKERS="1")
+    new_code, new_out, _ = run(argv, ROOT, VERI_BASH_MAJOR="5", VERI_PYTEST_WORKERS="1")
     assert old_code != 0, old_out
     assert REQUIREMENT in old_out
     assert "== pytest" not in old_out
