@@ -1,6 +1,7 @@
 """event.sh's mark, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import errno
+import glob
 import json
 import os
 import shutil
@@ -11,6 +12,7 @@ import time
 import entry
 import event_table
 import github
+import run_dir
 import tunables
 
 USAGE = "usage: event.sh <event> [key=value …]\n".encode()
@@ -154,6 +156,27 @@ def journal_path(clone, issue):
     home = tunables.read("VERI_HOME") or os.path.expanduser("~/.veri")
     return os.path.join(home, "runs", owner + "-" + repo, issue + ".jsonl")
 
+
+def journals(who="status.sh"):
+    """(path, events) of every shared journal beside the main tree's (journal_path's directory), sorted by path; a
+    torn line is skipped and said on stderr as `<who>: skipped torn line <path>:<n>`."""
+    sample = journal_path(run_dir.main_tree(missing=""), "0")
+    for path in sorted(glob.glob(os.path.join(os.path.dirname(sample), "*.jsonl"))) if sample else []:
+        events = []
+        with open(path) as f:
+            for n, l in enumerate(f, 1):
+                if not l.strip():
+                    continue
+                try:
+                    events.append(json.loads(l))
+                except ValueError:
+                    print(f"{who}: skipped torn line {path}:{n}", file=sys.stderr)
+        yield path, events
+
+
+def run_name(path):
+    """The run a shared journal's path names, `#<n>`."""
+    return "#" + os.path.basename(path)[:-len(".jsonl")]
 
 def append_once(path, data):
     fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
