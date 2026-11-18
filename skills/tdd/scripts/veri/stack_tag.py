@@ -108,8 +108,8 @@ def main(argv):
               file=sys.stderr)
         return 3
     try:
-        titles = {issue: _json("repos/%s/issues/%s" % (repo, issue), "reading issue #%s" % issue)["title"]
-                  for issue in owed}
+        titles = {issue: messages.get(issue) or _json("repos/%s/issues/%s" % (repo, issue), "reading issue #%s" % issue)
+                  ["title"] for issue in owed}
     except _Unanswered as unanswered:
         return entry.refuse("%s; nothing tagged" % unanswered, prefix="stack-tag: ")
     code, _ = stack_fix.script("merge-lock.sh", "take", "--pid", str(os.getpid()))
