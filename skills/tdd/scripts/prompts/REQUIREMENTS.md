@@ -1185,3 +1185,9 @@
 |---|---|---|
 | TZ1 | The fragment says, in bold, "Test files stay frozen.", and that a range that touches a test file is a REJECT. (The whole fragment.) | The phases that include it (`verify-expand.md`, `verify-beside.md`, `verify-contract-b.md`, `verify-migrate.md`) change production only; a test edit there would change what pins the behaviour. |
 | TZ2 | The fragment carries no list number of its own: the including template numbers the check and appends its `{{LAST_PHASE_CHECK}}` slot right after it. (The whole fragment.) | Each template places the rule at its own position in its check list. |
+
+## skills/tdd/scripts/prompts/_verify-comments-lead.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| CL1 | The fragment opens the comment check with, in bold, "Only the two allowed comments.", then starts the sentence "A comment the", which the including template completes with the word naming what is judged (`change` in `verify-green.md`, `range` in `verify-refactor.md`) and the included `_verify-comments-allowed.md`. (The whole fragment.) | One comment rule, stated once, opens the check in both the green and the refactor verifier. |
