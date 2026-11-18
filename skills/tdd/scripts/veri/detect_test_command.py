@@ -88,6 +88,10 @@ def decide(tier, issue, root):
         answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + suffix)
     if tier in DECLARED_ONLY:
         return
+    if tier == "quiet test files" and (has("pytest.ini")
+            or declares(at("pyproject.toml"), rb"^\[tool\.pytest")
+            or declares(at("setup.cfg"), rb"^\[tool:pytest\]")):
+        raise Answer(b"pytest -q --no-header -rf")
     if has("package.json") and re.search(rb'"scripts":\{[^}]*"test":', bytes(b for b in read(at("package.json")) if b not in SPACE)):
         if has("pnpm-lock.yaml"):
             raise Answer(b"pnpm test")
