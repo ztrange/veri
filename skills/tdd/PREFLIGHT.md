@@ -171,6 +171,24 @@ by the steps below. Steps 1 to 7 stay stated here.
    when `reuse` had no usable time: none, one older than that, or one with no recorded age
    (`.tdd/full-tier-time-at.json`) is not reused. A green full-tier run records its elapsed
    whole seconds and their time through `$S/full-tier-time.sh`, so a later run can reuse it.
+
+   **A baseline already proven green is skipped.** Just before the fast tier would start, two sources are
+   asked, and the baseline (the fast tier, and the full tier with it) is skipped when either says green:
+   (1) a record on this machine: `$S/baseline-full-tier.sh --green <n> <tree> <fast-cmd> <full-cmd>` prints `skip`
+   when `.tdd/baseline-green.json` in the main checkout holds a green baseline keyed by the tree under test
+   (`git rev-parse HEAD^{tree}`), both commands, the run's skill commit pin `.tdd/issue-<n>-skill-commit` and a sha256 of
+   the dev venv lock `requirements-dev.txt`; (2) CI: `gh run list --workflow CI --commit <sha>`, whose latest run
+   is `completed` with conclusion `success` on exactly the commit being baselined (`git rev-parse HEAD`, a fresh launch's
+   `origin/<default>` tip). The record is asked first, so a resume whose branch tip CI never ran is covered by it.
+   Fail closed: a CI run that is red, pending or absent, a `gh` call that fails or prints what cannot be read, a run on
+   any other sha (local commits on top, or a rebase), and a record that is absent, corrupt, not green or keyed differently
+   each leave the baseline to run. Only a baseline that ran green writes a record, through
+   `$S/baseline-full-tier.sh --record-green` with the same arguments; a red one, or one skipped on CI's word, never does.
+   A skipped baseline counts as green with `baseline` 0 seconds; `full` still comes from `baseline-full-tier.sh <n>
+   <full-tier-command>`, so a full tier with no reusable time is still run once to time it.
+   **The trade-off, accepted by the owner:** CI runs on Linux and this machine is a Mac, so a test that fails only
+   locally can slip past the CI source. It is bounded to the exact sha CI ran; a tip CI never ran gets the local record,
+   which only this machine's own green run writes, or a real baseline.
 4. **Default branch.** Capture it for the PR base:
    `gh api repos/{owner}/{repo} -q .default_branch`.
 5. **Tunables parse.** Run `$S/refactor-budget.sh 0` once. `VERI_REFACTOR_BUDGET`

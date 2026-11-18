@@ -17,7 +17,7 @@ veri: quiet test files: `"${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3" skil
 
 | | |
 |---|---|
-| `make test` | The full suite, and the baseline veri detects in its own repo: it must stay green, since a red baseline makes the conductor refuse to start. |
+| `make test` | The full suite, and the baseline veri detects in its own repo: it must stay green, since a red baseline makes the conductor refuse to start. Preflight skips the baseline when CI's `CI` run concluded `success` on the exact commit, or this machine recorded a green baseline of the same tree, commands, skill pin and venv lock (`PREFLIGHT.md` step 3); anything less runs it. |
 | `make unit` | The fast tier: `skills/tdd/scripts/tests/py/unit/` only, without the `process` and `tree_audit` cases. |
 | `make install-dev` | Once per machine: creates the shared venv at `$VERI_VENV` (default `~/.veri-tools/venv`) and installs the hash-checked lock `requirements-dev.txt` (generated from `requirements-dev.in`, installed with `--require-hashes`). Idempotent, never activated; it prints the `export PATH=…` line for scripts that run `python3` from PATH. |
 | `make profile` | Runs the suites `make test` runs and prints one line per case at or above `VERI_PROFILE_THRESHOLD` seconds, slowest first. Nothing gates on it. |
