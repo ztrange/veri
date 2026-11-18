@@ -8,8 +8,12 @@ import pytest
 
 
 @pytest.fixture
-def tests_frozen():
-    return importlib.import_module("veri.tests_frozen")
+def tests_frozen(monkeypatch):
+    """The module, on a branch that names no issue: check-earlier reads the branch (#4295), and these cases fake
+    _toplevel and the other git answers one by one rather than a whole repository."""
+    module = importlib.import_module("veri.tests_frozen")
+    monkeypatch.setattr(module.case_history, "current_branch", lambda: "main")
+    return module
 
 
 def test_path_names_a_steps_record_by_the_first_16_hex_digits_of_its_texts_sha256_whatever_its_length_or_slashes_1586(
