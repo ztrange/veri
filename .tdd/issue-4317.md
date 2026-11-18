@@ -40,5 +40,5 @@
 - [x] on the rebase path, a failed leased push of the slice branch or a wait-ci.sh exit 2 makes stack_land exit 2 naming it, nothing merged, the merge lock freed, the slice branch and its pull request kept (unit case, no process) ⟦added⟧ ⟦criterion 9⟧
 - [x] a case in test_stack_land.py sweeps stack_land.py, merge_common.py and stack-land.sh for a repository, issue number, branch, label or person name and finds none (P12) ⟦criterion 15⟧
 - [x] Go-red check in skills/tdd/scripts/tests/py/unit/test_stack_land.py: with `--admin` added to the merge argv, the exact-argv case fails, named; restored, it passes ⟦criterion 16⟧
-- [ ] Go-red check in skills/tdd/scripts/tests/py/unit/test_stack_land.py: with the red-stack refusal removed (stack-red.sh exit 0 no longer exit 1), its case fails, named; restored, it passes ⟦criterion 16⟧
+- [x] Go-red check in skills/tdd/scripts/tests/py/unit/test_stack_land.py: with the red-stack refusal removed (stack-red.sh exit 0 no longer exit 1), its case fails, named; restored, it passes ⟦criterion 16⟧
 - [ ] `skills/vmerge/SKILL.md` says in Joining a stack that a slice is landed by $S/stack-land.sh, never queued-merge.sh, when it lands, that a red stack refuses it, and that exits 1, 2 and 3 are reported, never retried blind, row M38, graded ⟦skill-edit⟧ ⟦criterion 14⟧
