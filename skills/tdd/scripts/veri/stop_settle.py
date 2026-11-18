@@ -1,6 +1,7 @@
 """stop-settle.sh's computation, run in-process: a stop (STOPPING.md steps 1-6) settled in one call (PRD 038.5)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import re
 import sys
 
 import fused
@@ -41,7 +42,9 @@ def run(n, mode, wt, drop=False):
             raise fused.Stop("2", "tree-check", 1)
         fused.checked("2", "git", "reset", "--hard", "HEAD", cwd=wt)
         note.extend(dropped(dirty))
-        fused.call(fused.script("push-branch.sh"), cwd=wt)
+        pushed, _, said = fused.call(fused.script("push-branch.sh"), cwd=wt)
+        if pushed != 0:
+            note.append("push=rejected sha=" + remote_sha(said))
     text = committed_ledger(n, wt)
     steps = ledger_steps(text or "")
     step = current_or_last_done_record(steps)
@@ -59,6 +62,12 @@ def dropped(dirty):
     untracked = [line[3:] for line in dirty if line.startswith("??")]
     return (["Dropped by `git reset --hard HEAD`, the half-done step: " + ", ".join(tracked) + "."] if tracked else []) \
         + (["Left untracked: " + ", ".join(untracked) + "."] if untracked else [])
+
+
+def remote_sha(said):
+    """The remote's sha push-branch.sh's stderr names (step 3), `unknown` when it names none."""
+    found = re.search(r" is at ([0-9a-f]{7,40})\b", said)
+    return found.group(1) if found else "unknown"
 
 
 def interrupted_by(wt):
