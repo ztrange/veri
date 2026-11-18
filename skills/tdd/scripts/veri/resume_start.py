@@ -35,6 +35,8 @@ def inputs(n):
             values = fused.read_settled(run_dir.issue_file(wt, n, "-run-start"))
         except OSError:
             missing.append(".tdd/issue-%s-run-start" % n)
+        if values is not None and values.get("verify_plan") not in ("owed", "skip"):
+            missing.append(".tdd/issue-%s-run-start verify_plan=owed or skip: run-start.sh on a resume" % n)
     for name in missing:
         sys.stderr.write("resume-start.sh: no %s\n" % name)
     return None if missing else (lines, values)

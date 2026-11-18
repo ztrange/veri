@@ -312,3 +312,10 @@ def test_4389_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(resum
     assert set(made) | {"supervise.sh", "run-verdict.sh"} == set(resume_start.CALLS)
     firsts = [made.index(name) for name in resume_start.CALLS if name not in ("supervise.sh", "run-verdict.sh")]
     assert firsts == sorted(firsts)
+
+
+@pytest.mark.parametrize("verify_plan", ["", "maybe"])
+def test_4389_a_run_start_record_with_no_resume_verdict_is_exit_2_before_any_inner_call(resume, verify_plan):
+    code, out, err, fake = resume(verify_plan=verify_plan)
+
+    assert (code, fake.calls, "verify_plan=" in err) == (2, [], True)
