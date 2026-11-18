@@ -1231,3 +1231,10 @@
 | ID | Requirement | Why |
 |---|---|---|
 | TT1 | The fragment holds the heading `### Report (last lines of your output)`, then the line `TRANSFORM: <the refactoring applied, in one line>`. (The whole fragment; included by `develop-transform.md` and `_develop-transform-suite-report.md`, which continue the report.) | The conductor reads the applied transform from the report's last lines. |
+
+## skills/tdd/scripts/prompts/_develop-transform-suite-report.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TU1 | The fragment is the included `_develop-transform-report.md` followed by the line `SUITE: GREEN \| RED — <the final summary line of that run>`. (First two lines.) | A transform reports the suite result that shows behaviour held. |
+| TU2 | It ends with the line `REPORT-FORMAT transform \| keys TRANSFORM: SUITE: \| suite required`. (Last line.) | The conductor checks the report against its declared keys, and a transform owes a suite run. |
