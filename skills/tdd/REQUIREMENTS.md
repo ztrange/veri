@@ -1369,6 +1369,7 @@
 | SC570 | The synopsis line of the `$S/status.sh` entry lists `--recover dev [--lane <lane>]` as an alternative beside `--report`. | `--recover` was described in prose only; recovery reads one command and its invocation belongs in the synopsis. |
 | SC571 | The `tests-frozen.sh` entry says that `check-earlier` exits 2, writing no pass marker and naming both files, when the run's issue is known (`VERI_ISSUE`, else a `tdd/<n>-` branch) and the ledger it is given is not that run's `.tdd/issue-<n>.md`. |
 | SC574 | `$S/stack-tag.sh <slice-pr-url> [--message <n>=<text>]...` is a module `skills/tdd/scripts/veri/stack_tag.py` behind a `/bin/sh` shim. Exit 0 every owed tag cut or already there, 1 reserved (no path returns it yet), 2 no answer (including a pull request not merged into the default branch, and a commit of an unknown type), 3 no issue of the slice owes a tag. An issue owes a tag when any of its commits in the slice is `feat` or `fix`. It cuts one annotated tag per owing issue on that issue's commit, the next `vN.M` from `git tag --sort=-v:refname`, under the merge lock, pushing each before the next. | A landed slice's issues are tagged by a script, one minor bump per issue that changed behaviour. |
+| SC575 | The `$S/merge-lock.sh` entry says a successful `take` leaves the token files of other owners that hold no lock but may still be waiting in place, and removes only a token whose owner's holder is dead or reused. | A merge waiting on the lock keeps its token (vmerge: a lost token stops the merge). |
 
 ## skills/tdd/SKILL-EDIT.md
 
