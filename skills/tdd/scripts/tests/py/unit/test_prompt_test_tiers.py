@@ -204,3 +204,18 @@ def test_the_prompt_probes_accept_a_matching_prompt_and_object_to_a_non_matching
 
 def test_numbered_item_given_runner_dot_literal_selects_the_runner_item_not_the_runnerxsh_one():
     assert numbered_item(r"runner\.sh", "1. runnerXsh\n2. runner.sh").rstrip("\n") == "2. runner.sh"
+
+
+def test_issue_4335_a_foreign_tree_declaring_a_quiet_command_gets_it_run_over_the_changed_files_tests_in_every_timed_changed_run(spec, reason, run_cli, build_develop_prompt, build_verify_prompt, tmp_path, monkeypatch):
+    (tmp_path / "CLAUDE.md").write_text(
+        "veri: one test file: pytest $1\n"
+        "veri: quiet test files: pytest -q --no-header -rf\n")
+    monkeypatch.chdir(tmp_path)
+    problems = []
+    roster = dict(roster_of(problems, spec, reason, run_cli, build_develop_prompt, build_verify_prompt))
+    quiet_run = "' sh -c 'pytest -q --no-header -rf \"$@\"' sh <those paths>"
+    for named in NAMED:
+        changed = lines_matching(r"timed-test-run\.sh changed '", plain(roster[named]))
+        if not changed or not all(quiet_run in line for line in changed):
+            problems.append("%s's prompt never gives the declared quiet command over the changed paths: %s" % (named, changed))
+    assert problems == []
