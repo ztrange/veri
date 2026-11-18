@@ -25,7 +25,11 @@ With no argument the groom is the sweep over every open issue; each argument for
   trackers (titled `PRD <nnn>: …`) — save one kind: the sweep leaves out every issue carrying a
   `taken:` label (any lane), which a run holds in place of the opt-in label, and reports each one
   as skipped, naming why: grooming under a live run would race it.
-- `<issue>...` and `<range>...` — narrow the groom to exactly those issues.
+- `<issue>...` and `<range>...` — narrow the groom to exactly those issues, whatever their
+  labels. Read them flexibly: one or more issue ids written `4261` or `#4261`, separated by spaces
+  or commas (`4261 4262`, `4261,4262`), and inclusive ranges written `4260-4270` or
+  `4260..4270`. A number in a range that is closed or does not exist is skipped, and all such
+  numbers are reported together in one line.
 - `--refactor-owed` — narrow the groom to the refactor-owed consolidation alone (see below).
 
 `/vgroom` typed with no argument is the human's "go" for the run, and their say-so to add the
