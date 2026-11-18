@@ -37,7 +37,8 @@ whole sequence.
    has: restoring a path out of some other tree is not what dropping a half-done step
    means. Say in the narration what was dropped.
 3. **Push the branch**, `$S/push-branch.sh`, so the run's commits and leaf logs live
-   somewhere a resume can reach. Exit **0** is the normal path. Exit **1** — the remote
+   somewhere a resume can reach — unless step 2 found an interrupted rebase or merge: then
+   push nothing, since that tree is a human's to finish. Exit **0** is the normal path. Exit **1** — the remote
    holds a branch this HEAD does not fast-forward — is answered here by **recording it, not
    by fixing it**: take the remote's sha from the script's stderr, record
    `push=rejected sha=<remote-sha>` and say so in the comment. A stop launches no leaves, so
