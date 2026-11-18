@@ -208,7 +208,11 @@ def main(argv):
                 return 1
             git.network("push", "--force-with-lease=%s:%s" % (slice_branch, cut), "origin",
                         "%s:refs/heads/%s" % (head, slice_branch), cwd=".")
-            merge_common.ci_wait(lambda: stack_fix.script("wait-ci.sh", pr, "540", "", head)[0])
+            if merge_common.ci_wait(lambda: stack_fix.script("wait-ci.sh", pr, "540", "", head)[0]) == 1:
+                stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
+                print("stack-land: CI is red on the rebased head %s of the slice branch %s; nothing merged, the merge"
+                      " lock freed, the slice branch and %s kept" % (head, slice_branch, pr), file=sys.stderr)
+                return 1
         code = merge_common.merge(gate, pr, repo, number, head, driver="graphql")
         if re.search(RULES, said[-1]):
             return _freed("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock freed,"
