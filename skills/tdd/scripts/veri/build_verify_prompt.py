@@ -299,7 +299,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
                                (b"ONTO_SHA", os.fsencode(slots["ONTO_SHA"])),
                                (b"PRE_REBASE_SHA", os.fsencode(slots["PRE_REBASE_SHA"])),
                                (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh")),
-                               *zip((b"AFFECTED_RUN_LINE", b"RUN_LINE"), run_line.run_lines()),
+                               *zip((b"AFFECTED_RUN_LINE", b"RUN_LINE"), run_line.run_lines(branch_base=branch_base)),
                                (b"MUTATION_PROBE", os.fsencode(f"{HERE}/mutation-probe.sh"))))
     if phase == "diff":
         out += _author_less_block(tunables.read("VERI_ISSUE"))

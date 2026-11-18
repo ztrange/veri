@@ -72,7 +72,7 @@ COLON_MARKED = DECLARED_ONLY + ("quiet test files",)
 NEVER_FROM_ISSUE = ("fast", "quiet test files") + DECLARED_ONLY
 
 
-def decide(tier, issue, root):
+def decide(tier, issue, root, claude_md=None):
     def at(name):
         return root + "/" + name
 
@@ -90,7 +90,11 @@ def decide(tier, issue, root):
         except Answer as found:
             if found.command != resolved("fast", issue, root) and not selects_subset(found.command, root):
                 raise
-    if tier and has("CLAUDE.md"):
+    if tier and claude_md is not None:
+        suffix = b":" if tier in COLON_MARKED else b" tests:"
+        for line in claude_md.split(b"\n"):
+            answer_from(line, b"veri: " + os.fsencode(tier) + suffix)
+    elif tier and has("CLAUDE.md"):
         suffix = b":" if tier in COLON_MARKED else b" tests:"
         answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + suffix)
     if tier in DECLARED_ONLY:
@@ -119,9 +123,9 @@ def decide(tier, issue, root):
         raise Answer(b"python3 -m unittest discover -q")
 
 
-def resolved(tier, issue, root):
+def resolved(tier, issue, root, claude_md=None):
     try:
-        decide(tier, issue, root)
+        decide(tier, issue, root, claude_md)
     except Answer as found:
         return found.command
     return None
