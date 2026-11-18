@@ -1249,3 +1249,11 @@
 | ID | Requirement | Why |
 |---|---|---|
 | NH1 | The fragment is the sentence piece "You are not here to attempt", which the including template completes with "the step again" (`develop-exhausted.md`, `develop-over-budget.md`). (The whole fragment.) | An exhausted or over-budget step's leaf answers about the step and never retries it. |
+
+## skills/tdd/scripts/prompts/_develop-revise-opening.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RA1 | The fragment says a previous attempt at this step was **rejected** by the blind verifier. (First sentence.) | The revise leaf must know it redoes a rejected attempt. |
+| RA2 | It says the leaf is a fresh leaf that never saw that attempt or its reasoning, so the rejection reason below is the whole of what it has to work from. (Second sentence.) | The leaf has no memory of the attempt; the reason is its only input about what went wrong. |
+| RA3 | It says the work the attempt left is on disk, and tells the leaf to read it, then fix exactly what the reason objects to. (Last sentence.) | The redo starts from the work on disk and is bounded to the objection. |
