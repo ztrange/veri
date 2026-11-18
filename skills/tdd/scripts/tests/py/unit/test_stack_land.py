@@ -22,17 +22,29 @@ class World:
 (git.network, its calls kept in <network>) fetches and pushes, and its heads are <heads>, a branch name to its commit.
 GitHub opens a pull request (github.pr_open, each kept in <opened> as (head, base), its body in <bodies>) at <opens>, its
 url; every other gh command (github.run_gh) is kept in <gh>, each answering 0. `git log` of a range from origin/<default> answers <subjects>; the pull requests merged into a base (github.merged_pulls) are <merged>,
-(number, body) pairs from this repository."""
+(number, body) pairs from this repository. origin/<default> is an ancestor of the cut (`merge-base --is-ancestor`) when
+<ancestor>; a worktree added, its rebase, and `rev-parse HEAD` in it answer, the last <rebased>. Every git, script and gh
+call is also kept, in order, in <log>: ("git", *args), (script, *args) and ("gh", *args)."""
 
     def __init__(self, monkeypatch, named, answers=None, default="trunk", ahead=0, onto=(), heads=None,
-                 opens="https://github.com/owner/repo/pull/90", subjects="", merged=(), open_issues=()):
-        self.scripts, self.network, self.opened, self.bodies, self.gh = [], [], [], [], []
+                 opens="https://github.com/owner/repo/pull/90", subjects="", merged=(), open_issues=(), ancestor=True,
+                 rebased=None):
+        self.scripts, self.network, self.opened, self.bodies, self.gh, self.log = [], [], [], [], [], []
         heads = heads or {}
         answers = answers or {}
         stack_branch = importlib.import_module("veri.stack_branch")
         git, github = importlib.import_module("veri.git"), importlib.import_module("veri.github")
 
         def out(*args, cwd=None):
+            self.log.append(("git",) + args)
+            if args[:2] == ("merge-base", "--is-ancestor"):
+                if ancestor:
+                    return ""
+                raise git.GitFailed(args, 1, "")
+            if "worktree" in args or "rebase" in args:
+                return ""
+            if args[-2:] == ("rev-parse", "HEAD"):
+                return rebased
             if args[:1] == ("symbolic-ref",):
                 return "origin/" + default
             if args[:2] == ("rev-list", "--count"):
@@ -51,6 +63,7 @@ url; every other gh command (github.run_gh) is kept in <gh>, each answering 0. `
 
         def network(*args, cwd=None):
             self.network.append(args)
+            self.log.append(("git",) + args)
             said = ""
             if args[:1] == ("ls-remote",):
                 said = "".join("%s\trefs/heads/%s\n" % (sha, name) for name, sha in heads.items()
@@ -67,7 +80,8 @@ url; every other gh command (github.run_gh) is kept in <gh>, each answering 0. `
         monkeypatch.setattr(github, "gh_api", gh_api)
         monkeypatch.setattr(github, "pr_open", pr_open)
         monkeypatch.setattr(github, "run_gh", lambda *args, stderr=None: (
-            self.gh.append(("gh",) + args) or subprocess.CompletedProcess(["gh", *args], 0, "", "")))
+            self.gh.append(("gh",) + args) or self.log.append(("gh",) + args)
+            or subprocess.CompletedProcess(["gh", *args], 0, "", "")))
         monkeypatch.setattr(github, "merged_pulls", lambda base, repo=None: [github._pull(
             {"number": number, "body": body, "state": "MERGED", "baseRefName": base, "isCrossRepository": False})
             for number, body in merged])
@@ -79,6 +93,7 @@ url; every other gh command (github.run_gh) is kept in <gh>, each answering 0. `
 
         def script(name, *args, limit=None):
             self.scripts.append((name,) + args)
+            self.log.append((name,) + args)
             return answers.get(name, (0, ""))
 
         monkeypatch.setattr(stack_branch, "named", answer)
@@ -634,3 +649,25 @@ def test_a_landing_makes_no_tag_and_pushes_rebases_or_resets_nothing_of_the_stac
     assert (code, tagged, writes, world.gh) == (
         0, [], [("push", "origin", "%s:refs/heads/stack-slice-%s" % (cut, cut[:10]))],
         [("gh", "pr", "merge", url, "--rebase", "--match-head-commit", cut)]), err
+
+
+def test_with_origin_default_not_an_ancestor_of_the_cut_rebases_the_slice_branch_onto_it_pushes_it_leased_on_the_cut_waits_on_ci_at_the_new_head_and_merges_that_head(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    rebased, slice_branch = "7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b", "stack-slice-3f2a9c1d0b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url, ancestor=False, rebased=rebased)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    def at(matches):
+        return [i for i, argv in enumerate(world.log) if matches(argv)]
+
+    rebase = at(lambda argv: argv[:1] == ("git",) and "rebase" in argv and argv[-1] == "origin/trunk")
+    push = at(lambda argv: argv[:2] == ("git", "push") and "--force-with-lease=%s:%s" % (slice_branch, cut) in argv
+              and "%s:refs/heads/%s" % (rebased, slice_branch) in argv)
+    wait = at(lambda argv: argv[:1] == ("wait-ci.sh",) and url in argv and argv[-1] == rebased)
+    merge = at(lambda argv: argv == ("gh", "pr", "merge", url, "--rebase", "--match-head-commit", rebased))
+    assert (code, len(rebase), len(push), len(wait), len(merge), world.gh) == (
+        0, 1, 1, 1, 1, [("gh", "pr", "merge", url, "--rebase", "--match-head-commit", rebased)]), (world.log, err)
+    assert rebase[0] < push[0] < wait[0] < merge[0], world.log
