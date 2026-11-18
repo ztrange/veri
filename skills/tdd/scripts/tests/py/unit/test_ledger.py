@@ -388,3 +388,10 @@ def test_unit_of_ends_a_backticked_heading_unit_at_its_own_closing_backtick_when
     unit = "skills/tdd/SKILL.md#A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"
 
     assert ledger.unit_of(f"edit `{unit}` per `foo` ⟦skill-edit⟧") == unit
+
+
+def test_unit_of_returns_a_heading_unit_whose_closing_backtick_is_followed_by_punctuation():
+    ledger = importlib.import_module("veri.ledger")
+    unit = "skills/tdd/SKILL.md#Plain heading"
+
+    assert ledger.unit_of(f"edit `{unit}`. ⟦skill-edit⟧") == unit
