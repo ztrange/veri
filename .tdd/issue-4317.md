@@ -32,7 +32,7 @@
 - [x] a pull request not reading MERGED by the end of the settle window makes stack_land exit 2 naming the last state read, merge not called again (unit case, no process) ⟦criterion 11⟧
 - [x] on a landing stack_land exits 0 printing the slice pull request's url, the merge commit and the issues closed, and says on stderr that the carry-over is 034.4b's (unit case, no process) ⟦criterion 13⟧
 - [x] an issue of the slice body's `Closes` lines still open after the settle window makes stack_land exit 2 naming each such issue, the landing left as done (unit case, no process) ⟦criterion 13⟧
-- [ ] a landing makes no tag and pushes or rebases nothing of the stack branch (unit case, no process) ⟦criterion 13⟧
+- [x] a landing makes no tag and pushes or rebases nothing of the stack branch (unit case, no process) ⟦criterion 13⟧
 - [ ] when origin/<default> is not an ancestor of the cut, stack_land rebases the slice branch onto origin/<default>, pushes it under `--force-with-lease=<slice>:<old value>`, calls wait-ci.sh on the new head and merges that head (unit case, no process) ⟦criterion 9⟧
 - [ ] when origin/<default> is an ancestor of the cut, stack_land rebases nothing and makes no wait-ci.sh call (unit case, no process) ⟦criterion 8⟧
 - [ ] a rebase conflict makes stack_land exit 1, nothing merged, the lock freed, the slice branch and its pull request kept (unit case, no process) ⟦criterion 9⟧

@@ -598,3 +598,39 @@ def test_an_issue_of_the_slice_bodys_closes_lines_still_open_after_the_settle_wi
             "Traceback" in err, [ran[:2] for ran in world.scripts[-2:]]) == (
         2, ["pull request: " + url, "merge commit: " + landed, "issues closed: #11 #12 #13"], 1, [True, False, True], 1,
         False, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
+def test_a_landing_makes_no_tag_and_pushes_rebases_or_resets_nothing_of_the_stack_branch_only_the_slice_branch(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url, subjects="feat: one (#11)\n", merged=[(101, "Closes #11\n")])
+    git, github = importlib.import_module("veri.git"), importlib.import_module("veri.github")
+    read, listing, argvs = git.out, github.gh_api, []
+
+    def out(*args, cwd=None):
+        argvs.append(("git",) + args)
+        return read(*args, cwd=cwd)
+
+    def run(*args, **kwargs):
+        argvs.append(("git",) + args)
+        return subprocess.CompletedProcess(["git", *args], 0, "", "")
+
+    def gh_api(path, stderr=None):
+        argvs.append(("gh", "api", path))
+        return listing(path, stderr=stderr)
+
+    monkeypatch.setattr(git, "out", out)
+    monkeypatch.setattr(git, "git", run)
+    monkeypatch.setattr(github, "gh_api", gh_api)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    every = argvs + [("git",) + args for args in world.network] + world.gh + world.scripts
+    tagged = [argv for argv in every if argv[:2] == ("gh", "release")
+              or any(re.search(r"\btags?\b|refs/tags/", arg) for arg in argv)]
+    writes = [argv[1:] for argv in every if argv[:1] == ("git",)
+              and argv[1] in ("push", "rebase", "reset", "tag", "update-ref", "branch", "checkout", "switch")]
+    assert (code, tagged, writes, world.gh) == (
+        0, [], [("push", "origin", "%s:refs/heads/stack-slice-%s" % (cut, cut[:10]))],
+        [("gh", "pr", "merge", url, "--rebase", "--match-head-commit", cut)]), err
