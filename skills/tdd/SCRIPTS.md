@@ -673,7 +673,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   **Exit 0** every owed tag cut or already there, **1** reserved: no path returns it yet, **2** no answer (a pull request not merged into
   the default branch, a commit of an unknown type or none, a failed push, its local tag then deleted), **3** no issue of
   the slice owes a tag, or every owed tag is already there.
-- `$S/detect-test-command.sh [--tier fast|all|"one test file"|"quiet test files"|lint] [--issue <body-file>] [repo-root]` — print the one command that
+- `$S/detect-test-command.sh [--tier fast|all|"one test file"|"quiet test files"|lint] [--issue <body-file>] [--at <commit>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
   wins: for `--tier all` only, the issue body's own `Test command:` line, unless it equals the
@@ -688,6 +688,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   line `veri: quiet test files: <command>`, else a default for a runner it recognises (`pytest -q --no-header -rf` for
   a pytest section in `pytest.ini`, `pyproject.toml` or `setup.cfg`; `npx jest --silent` for a `package.json` whose
   `scripts.test` runs jest), else **exit 3**; it never reads the issue's line. A bad argument is **exit 2**.
+  With `--at <commit>`, every file it reads in the repo (`CLAUDE.md` and each file an inference reads) is read as
+  `<commit>` holds it, never from the working tree; an `--at` naming no commit git resolves there is **exit 2**.
+  Preflight passes the branch base, `git merge-base HEAD origin/HEAD`, so the fast command every leaf and verifier is
+  handed (`{{FAST_CMD}}`, `VERI_TEST_CMD`) is never one a branch's `CLAUDE.md` declares (#4263).
 - `$S/affected-suites.sh <range>` — print, one per line, sorted and each once, the suites a change affects, so a leaf
   runs a narrow slice instead of the full suite. `<range>` is `<base>..<head>`, or one revision compared with the
   working tree, untracked files included. In veri's own tree (one where `skills/tdd/scripts/tests/py` is a directory

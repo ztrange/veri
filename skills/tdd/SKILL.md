@@ -1317,8 +1317,10 @@ In that step, after the structural pass (or its `nothing-structural` skip) and b
 
 ## Detecting the test command
 
-Do not pick it by hand. Run `$S/detect-test-command.sh --tier fast --issue <body-file> <repo-root>` (its command goes through `detach-command.sh`)
-once, from the target repo's root, with the issue body preflight step 0.3 saved: it prints
+Do not pick it by hand. Run `$S/detect-test-command.sh --tier fast --issue <body-file> --at <branch-base> <repo-root>` (its command goes through `detach-command.sh`)
+once, from the target repo's root, with the issue body preflight step 0.3 saved, `<branch-base>` being what
+`git merge-base HEAD origin/HEAD` prints, so the command is read as the branch base holds it, never from a `CLAUDE.md`
+the branch changed (#4263); with no base it exits 2, a system failure. Otherwise it prints
 the one test command of that tier on stdout and exits 0. On **exit 3** it prints nothing — no
 marker it trusts matched — so **bail** with cause `needs-user`, asking the user for the command in the bail comment rather than guessing (`Read` `<base directory>/BAIL.md`).
 
