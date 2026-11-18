@@ -27,11 +27,15 @@ def main(argv):
         return run(argv[0], argv[1], given[1], drop=argv[2:] == ["--drop"])
     except fused.Stop as stop:
         return fused.stopped(stop)
+    except fused.Waiting as waiting:
+        sys.stdout.write("waiting on %s\n" % waiting.name)
+        return 3
 
 
 def run(n, mode, wt, drop=False):
     for name in live_leaves(wt):
-        fused.call(fused.script("wait-leaf.sh"), name, cwd=wt)
+        fused.save_wait(wt, n, NAME, name, {})
+        fused.wait(wt, n, NAME, name)
     note = []
     interrupted = interrupted_by(wt)
     if interrupted:
