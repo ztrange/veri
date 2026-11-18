@@ -1,0 +1,1 @@
+- [x] a stack named but not yet on origin reads as nothing joined, so a done run is listed as ready to merge, not as merge state unknown ⟦added⟧ ⟦criterion 4⟧
