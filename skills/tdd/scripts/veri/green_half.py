@@ -37,7 +37,7 @@ def run(n):
     settled, wt = given
     red = fused.read_settled(os.path.join(wt, RED_HALF % n))
     step = fused_step.first_step(wt, n, handed_out)
-    if step is None or red.get("step") != step:
+    if step is None or not ledger.same_step(red.get("step", ""), step):
         sys.stderr.write("green-half.sh: .tdd/issue-%s-red-half names another step than the open one\n" % n)
         return 2
     if replaces_case.is_replaces_case_step(step) or "⟦ci-repair⟧" in step:
