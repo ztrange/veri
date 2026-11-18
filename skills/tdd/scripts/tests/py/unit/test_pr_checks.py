@@ -175,3 +175,19 @@ def test_4392_an_unwired_finding_stops_it_at_unwired_writing_no_pending_record_a
     assert fake.names()[-1] == "unwired.sh"
     assert not (checks.wt / ".tdd" / "issue-12-unwired-pending").exists()
     assert not (checks.wt / ".tdd" / "issue-12-pr-checks").exists()
+
+
+def test_4392_a_lint_wait_that_runs_out_exits_3_and_a_second_call_only_waits_again(checks):
+    code, out, err, fake = checks(answers={("detach-command.sh", ("wait",)): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on lint")
+    assert fake.calls[-1][:2] == ("detach-command.sh", ("wait", "lint", "--total", "1800"))
+    assert (checks.wt / ".tdd" / "issue-12-pr-checks-wait").exists()
+
+    code, out, err, again = checks()
+
+    assert code == 0, out + err
+    assert [c[1][:2] for c in again.calls if c[0] == "detach-command.sh"] == [("wait", "lint")]
+    assert "detect-test-command.sh" not in again.names()
+    assert (checks.wt / ".tdd" / "issue-12-lint.md").read_text() == "### Lint\n\n`make lint` passed.\n"
+    assert not (checks.wt / ".tdd" / "issue-12-pr-checks-wait").exists()

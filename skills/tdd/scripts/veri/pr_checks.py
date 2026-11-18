@@ -66,12 +66,20 @@ def lint(wt, n):
     """The lint run: the repo's declared lint command started detached, waited on within VERI_LINT_TIMEOUT, its
     `lint` event and its `### Lint` section."""
     section = ".tdd/issue-%s-lint.md" % n
-    write(wt, section, "")
-    command = fused.call(fused.script("detect-test-command.sh"), "--tier", "lint", cwd=wt)[1].strip()
-    fused.call(DETACH, "start", "lint", "sh", "-c", command, cwd=wt)
+    resumed = fused.load_wait(wt, n, NAME)
+    if resumed is not None:
+        command = resumed[1]["lint"]
+    else:
+        write(wt, section, "")
+        command = fused.call(fused.script("detect-test-command.sh"), "--tier", "lint", cwd=wt)[1].strip()
+        fused.call(DETACH, "start", "lint", "sh", "-c", command, cwd=wt)
+        fused.save_wait(wt, n, NAME, "lint", {"lint": command})
     waited = (DETACH, "wait", "lint", "--total", tunables.get("VERI_LINT_TIMEOUT", unless_empty=True))
     files = {"out": "/dev/null", "err": ".tdd/lint.wait.err"}
     waited_code = fused.call(*waited, cwd=wt, **files)[0]
+    if waited_code == 3:
+        raise fused.Waiting("lint")
+    os.remove(fused.wait_record(wt, n, NAME))
     code = said(wt, ".tdd/lint.exit").strip()
     fused.call(fused.script("event.sh"), "lint", "exit=" + code, cwd=wt,
                env=tunables.with_values(VERI_ISSUE=n, VERI_ACTOR="conductor"))
