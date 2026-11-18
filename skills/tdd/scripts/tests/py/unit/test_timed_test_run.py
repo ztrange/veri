@@ -406,3 +406,34 @@ def test_issue_4335_main_follows_a_quiet_commands_exit_2_with_one_line_calling_i
     assert added[0].startswith("timed-test-run.sh:")
     assert "broke the run" in added[0] and "exit 2" in added[0] and "no test answer" in added[0]
     assert "fail" not in added[0].lower()
+
+
+def test_issue_4335_main_prints_a_foreign_trees_changed_run_as_its_exit_code_last_20_lines_and_saved_path(
+        tmp_path, monkeypatch, capfd, fake_processes, events, timed_test_run):
+    monkeypatch.chdir(tmp_path)
+    readings = [100.9, 102.1]
+    monkeypatch.setattr(timed_test_run.time, "time", lambda: readings.pop(0))
+    lines = [f"line {n:02d}" for n in range(25)]
+    lines[0] = "FAILED tests/test_x.py::test_early - AssertionError: boom"
+    lines[1] = "ERROR tests/test_y.py::test_err - fixture 'db' not found"
+    lines[2] = "===== 1 failed, 3 passed, 1 error in 0.40s ====="
+    output = ("\n".join(lines) + "\n").encode()
+
+    def run(line, **kwargs):
+        kwargs["stdout"].write(output)
+        kwargs["stdout"].flush()
+        return (1, "", "")
+
+    fake_processes.answers({"npm": run})
+    events.refuse_event_sh()
+
+    code = timed_test_run.main(["changed", "a.test.js", "npm", "test", "--", "a.test.js"])
+
+    out, err = capfd.readouterr()
+    saved = list((tmp_path / ".tdd" / "test-runs").iterdir())
+    assert (code, err, [p.read_bytes() for p in saved]) == (1, "", [output])
+    assert out.splitlines() == [
+        "timed-test-run.sh: tier changed, exit 1, 2s",
+        *lines[-20:],
+        f"full output: {pathlib.Path.cwd() / '.tdd' / 'test-runs' / saved[0].name}",
+    ]
