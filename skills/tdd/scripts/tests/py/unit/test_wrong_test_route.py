@@ -4214,3 +4214,20 @@ def test_main_3917_exits_2_naming_the_case_and_both_files_for_a_contradicted_cas
     assert (code, stdout, len(lines)) == (2, "", 1), stderr
     assert all(s in lines[0] for s in ("test_a", "tests/py/test_aaa.py", "tests/py/test_zzz.py")), stderr
     assert "TypeError" not in stderr
+
+
+def test_resolves_4305_accepts_a_definition_a_whole_title_and_a_cut_name_of_a_longer_title_and_rejects_an_undefined_name(
+        monkeypatch, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "test_ledger.py").write_text("def test_main_returns_zero():\n    pass\n")
+    (tmp_path / "foo_test.go").write_text("func TestFoo(t *testing.T) {}\n")
+    (tmp_path / "foo.test.ts").write_text("it('rejects an empty name with a clear message', () => {});\n")
+    monkeypatch.chdir(tmp_path)
+
+    answers = {name: wrong_test_route._resolves(name) for name in (
+        "test_main_returns_zero", "TestFoo", "rejects an empty name with a clear message",
+        "rejects an empty n…", "accepts a name")}
+
+    assert answers == {"test_main_returns_zero": True, "TestFoo": True,
+                       "rejects an empty name with a clear message": True,
+                       "rejects an empty n…": True, "accepts a name": False}
