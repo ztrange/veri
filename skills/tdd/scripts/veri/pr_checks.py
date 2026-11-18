@@ -30,8 +30,7 @@ def run(n):
     owed = ".tdd/issue-%s-refactor-owed.md" % n
     quality(wt, n, base)
     fused.call(fused.script("red-setup.sh"), "worst", n, owed, cwd=wt)
-    fused.call(fused.script("coupling.sh"), base, cwd=wt, out=".tdd/coupling.out")
-    fused.call(fused.script("refactor-owed.sh"), "clear", owed, "coupling", cwd=wt)
+    coupling(wt, n, base, owed)
     code, said_url, _ = fused.call(fused.script("refactor-candidates.sh"), n, owed, cwd=wt)
     fused.call(fused.script("unwired.sh"), "--accepted", ".tdd/issue-%s-unwired-accepted" % n, base, cwd=wt,
                out=".tdd/unwired.out")
@@ -83,6 +82,19 @@ def lint(wt, n):
     write(wt, section, "### Lint\n\n`%s` exited %s. The last 20 lines of its output:\n\n~~~text\n%s~~~\n"
           % (command, code, tail))
     raise fused.Stop("lint", fused.shown(*waited, **files) + " exit %d" % waited_code, 1)
+
+
+def coupling(wt, n, base, owed):
+    """coupling.sh over the range: a pair writes the `### Coupling` section and stops it with exit 1, the row and its
+    commit being the conductor's; none clears an earlier entry's row."""
+    section = ".tdd/issue-%s-coupling.md" % n
+    write(wt, section, "")
+    pairs = (fused.script("coupling.sh"), base)
+    code = fused.call(*pairs, cwd=wt, out=".tdd/coupling.out")[0]
+    if code == 0:
+        write(wt, section, "### Coupling\n\n" + said(wt, ".tdd/coupling.out"))
+        raise fused.Stop("coupling", fused.shown(*pairs, out=".tdd/coupling.out") + " exit 0", 1)
+    fused.call(fused.script("refactor-owed.sh"), "clear", owed, "coupling", cwd=wt)
 
 
 def quality(wt, n, base):
