@@ -14,5 +14,5 @@
 - [x] a repository with no vN.M tag to bump from makes stack_tag exit 2 saying so, nothing tagged, the lock freed (unit case, no process) ⟦added⟧
 - [x] stack_land calls stack-tag.sh <slice-pr-url> after a landing it made; an exit other than 0 or 3 is exit 2 from the land naming the landed slice and the command owed (unit case, no process) ⟦criterion 9⟧
 - [x] `skills/tdd/SCRIPTS.md` lists stack-tag.sh with its exits and rules (row SC574), the veri README indexes it, graded ⟦skill-edit⟧ ⟦criterion 1⟧
-- [ ] `skills/vmerge/SKILL.md` says a slice's tags are cut by $S/stack-tag.sh <slice-pr-url>, which stack-land.sh runs, by each issue's commit types, the operator rewording a failure-phrased title with --message (row M40), graded ⟦skill-edit⟧ ⟦criterion 10⟧
+- [x] `skills/vmerge/SKILL.md` says a slice's tags are cut by $S/stack-tag.sh <slice-pr-url>, which stack-land.sh runs, by each issue's commit types, the operator rewording a failure-phrased title with --message (row M40), graded ⟦skill-edit⟧ ⟦criterion 10⟧
 - [ ] no script or skill touched names a repository, issue, branch, label or person ⟦diff-checked⟧ ⟦criterion 11⟧
