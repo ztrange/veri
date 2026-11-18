@@ -144,7 +144,8 @@ def test_a_veri_slice_commits_that_is_not_a_whole_number_of_1_or_more_exits_2_na
 def test_a_cut_fewer_than_veri_slice_commits_ahead_on_a_stack_a_pull_request_is_open_onto_exits_3_saying_the_count_and_what_is_live_taking_no_lock(
         monkeypatch, run_cli, stack_land):
     cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/77"
-    live = {"number": 77, "html_url": url, "head": {"ref": "issue-77"}, "base": {"ref": "stack"}}
+    repo = {"full_name": "owner/repo"}
+    live = {"number": 77, "html_url": url, "head": {"ref": "issue-77", "repo": repo}, "base": {"ref": "stack", "repo": repo}}
     world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
                   onto=[live])
 
@@ -152,6 +153,22 @@ def test_a_cut_fewer_than_veri_slice_commits_ahead_on_a_stack_a_pull_request_is_
 
     assert (code, out, "7 commits" in err, url in err, world.scripts) == (
         3, "", True, True, [("stack-red.sh",), ("stack-green.sh",)]), err
+
+
+@pytest.mark.parametrize("head_repo", [{"full_name": "someone/fork"}, None])
+def test_a_pull_request_onto_the_stack_from_another_repository_keeps_nothing_live_and_an_idle_stack_takes_the_merge_lock(
+        monkeypatch, run_cli, stack_land, head_repo):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/77"
+    fork = {"number": 77, "html_url": url, "head": {"ref": "issue-77", "repo": head_repo},
+            "base": {"ref": "stack", "repo": {"full_name": "owner/repo"}}}
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
+                                         "merge-lock.sh": (2, "")}, ahead=7, onto=[fork])
+    monkeypatch.setattr(importlib.import_module("veri.event"), "journals", lambda who="status.sh": iter([]))
+
+    code, out, err = run_cli(stack_land, [])
+
+    assert ([ran[:3] for ran in world.scripts], url in err) == (
+        [("stack-red.sh",), ("stack-green.sh",), ("merge-lock.sh", "take", "--pid")], False), err
 
 
 def test_a_cut_fewer_than_veri_slice_commits_ahead_with_no_pull_request_onto_the_stack_and_a_journal_naming_a_living_conductor_exits_3_saying_the_count_and_that_conductor_taking_no_lock(
@@ -176,7 +193,8 @@ def test_a_cut_fewer_than_veri_slice_commits_ahead_with_no_pull_request_onto_the
 def test_a_cut_veri_slice_commits_or_more_ahead_goes_on_to_take_the_merge_lock_though_a_pull_request_is_open_onto_the_stack(
         monkeypatch, run_cli, stack_land, size, ahead):
     cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/77"
-    live = {"number": 77, "html_url": url, "head": {"ref": "issue-77"}, "base": {"ref": "stack"}}
+    repo = {"full_name": "owner/repo"}
+    live = {"number": 77, "html_url": url, "head": {"ref": "issue-77", "repo": repo}, "base": {"ref": "stack", "repo": repo}}
     world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
                                          "merge-lock.sh": (2, "")}, ahead=ahead, onto=[live])
 
@@ -205,7 +223,8 @@ def test_a_cut_fewer_than_veri_slice_commits_ahead_on_an_idle_stack_goes_on_to_t
 def test_with_now_a_cut_fewer_than_veri_slice_commits_ahead_on_a_live_stack_still_goes_on_to_take_the_merge_lock(
         monkeypatch, run_cli, stack_land):
     cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/77"
-    live = {"number": 77, "html_url": url, "head": {"ref": "issue-77"}, "base": {"ref": "stack"}}
+    repo = {"full_name": "owner/repo"}
+    live = {"number": 77, "html_url": url, "head": {"ref": "issue-77", "repo": repo}, "base": {"ref": "stack", "repo": repo}}
     world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
                                          "merge-lock.sh": (2, "")}, ahead=7, onto=[live])
 
