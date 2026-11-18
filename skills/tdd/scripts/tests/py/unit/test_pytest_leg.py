@@ -874,6 +874,19 @@ def test_4261_main_leaves_sys_path_as_it_found_it_once_it_returns(pytest_leg, mo
     assert sys.path == before
 
 
+def test_4261_main_leaves_sys_path_as_it_found_it_once_it_raises(pytest_leg, monkeypatch):
+    def spy(args):
+        raise RuntimeError("the pass broke")
+
+    in_process_leg(pytest_leg, monkeypatch, spy)
+    before = list(sys.path)
+
+    with pytest.raises(RuntimeError, match="the pass broke"):
+        pytest_leg.main(["some/dir"])
+
+    assert sys.path == before
+
+
 def test_2386_on_macos_with_no_worker_count_the_budget_is_the_physical_core_count_less_the_live_legs_workers_and_at_least_1(pytest_leg, monkeypatch, tmp_path, fake_processes):
     fake_processes.answers({"sysctl -n hw.physicalcpu": (0, "8\n", "")}, exact=True)
     monkeypatch.setattr(os, "cpu_count", lambda: 16)

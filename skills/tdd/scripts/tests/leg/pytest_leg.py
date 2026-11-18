@@ -385,9 +385,10 @@ def refuse_below_floor(floor, numbers, subject, version):
 
 def main(argv):
     saved_path = list(sys.path)
-    code = _main(argv)
-    sys.path[:] = saved_path
-    return code
+    try:
+        return _main(argv)
+    finally:
+        sys.path[:] = saved_path
 
 
 def _main(argv):
