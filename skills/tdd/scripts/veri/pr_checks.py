@@ -32,10 +32,10 @@ def run(n):
     fused.call(fused.script("red-setup.sh"), "worst", n, owed, cwd=wt)
     fused.call(fused.script("coupling.sh"), base, cwd=wt, out=".tdd/coupling.out")
     fused.call(fused.script("refactor-owed.sh"), "clear", owed, "coupling", cwd=wt)
-    fused.call(fused.script("refactor-candidates.sh"), n, owed, cwd=wt)
+    code, said_url, _ = fused.call(fused.script("refactor-candidates.sh"), n, owed, cwd=wt)
     fused.call(fused.script("unwired.sh"), "--accepted", ".tdd/issue-%s-unwired-accepted" % n, base, cwd=wt,
                out=".tdd/unwired.out")
-    return 0
+    return fused.settle(wt, n, NAME, ["candidates=" + (said_url.strip() if code == 0 else "")])
 
 
 def default_branch(wt):
