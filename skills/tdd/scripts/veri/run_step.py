@@ -62,24 +62,23 @@ def main(argv):
     out = ""
     for stage in order[start:]:
         if stage in hand:
-            record(wt, n, stage, step)
-            sys.stdout.write("seam=%s code=1 reason=hand next=%s\n" % (stage, STAGES[stage]))
-            return 1
+            return seam(wt, n, step, stage, 1, STAGES[stage], "hand")
         code, out, _ = fused.call(fused.script(stage + ".sh"), n)
         if code != 0:
-            record(wt, n, stage, step)
-            sys.stdout.write("seam=%s code=%d next=%s\n" % (stage, code, "run-step.sh " + n if code == 3 else STAGES[stage]))
-            return code
+            return seam(wt, n, step, stage, code, "run-step.sh " + n if code == 3 else STAGES[stage])
     with contextlib.suppress(FileNotFoundError):
         os.remove(fused.settled_file(wt, n, "step"))
     sys.stdout.write([line for line in out.splitlines() if line.startswith("next=")][-1] + "\n")
     return 0
 
 
-def record(wt, n, stage, step):
-    """The seam it stopped at, in .tdd/issue-<n>-step (RN3)."""
+def seam(wt, n, step, stage, code, next_, reason=None):
+    """A stop at <stage>: the seam recorded in .tdd/issue-<n>-step (RN3), then the last line,
+    `seam=<stage> code=<code> [reason=<reason>] next=<next_>`; <code>, the exit."""
     with open(fused.settled_file(wt, n, "step"), "w", encoding="utf-8", errors="surrogateescape") as f:
         f.write("stage=%s\nstep=%s\n" % (stage, step))
+    sys.stdout.write("seam=%s code=%d%s next=%s\n" % (stage, code, " reason=" + reason if reason else "", next_))
+    return code
 
 
 def resumed(wt, n, step, order):
