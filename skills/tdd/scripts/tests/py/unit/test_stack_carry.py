@@ -37,7 +37,8 @@ class World:
             ("origin/trunk^{tree}",): (0, DEFAULT_TREE + "\n", ""),
             ("rev-parse", "HEAD", "HEAD^{tree}"): (0, NEW + "\n" + NEW_TREE + "\n", ""),
             ("merge-tree", "--write-tree", "--merge-base=" + CUT): (0, NEW_TREE + "\n", ""),
-        }, **(answers or {}))
+        })
+        self.answers.update(answers or {})
         network, scripts = network or {}, scripts or {}
         git = importlib.import_module("veri.git")
 
@@ -114,3 +115,23 @@ def test_a_failed_fetch_after_the_take_exits_2_and_frees_the_lock(monkeypatch, t
 
     assert (code, out, "unable to access origin" in err, released(world)) == (2, "", True, True), err
     assert not [call for call in world.log if call[0] == "net" and call[1] != "fetch"], world.log
+
+
+def worktrees(world):
+    return [call for call in world.calls("git") if "worktree" in call]
+
+
+@pytest.mark.parametrize("answers, said", [
+    ({("merge-base", "--is-ancestor"): (1, "", "")}, "%s is not an ancestor of origin/stack at %s" % (CUT, TIP)),
+    ({("merge-base", "--is-ancestor"): (128, "", "fatal: bad object\n")}, "fatal: bad object"),
+    ({("refs/remotes/origin/stack^{commit}",): (1, "", "")}, "origin/stack does not resolve"),
+    ({("refs/remotes/origin/stack^{commit}",): (128, "", "fatal: not a git repository\n")}, "not a git repository"),
+    ({("cut^{commit}",): (1, "", "")}, "cut does not resolve"),
+])
+def test_an_old_cut_off_the_old_tip_or_a_git_read_with_no_answer_exits_2_rebasing_nothing_and_freeing_the_lock(
+        monkeypatch, tmp_path, run_cli, stack_carry, answers, said):
+    world = World(monkeypatch, tmp_path, answers=answers)
+
+    code, out, err = run_cli(stack_carry, ["cut"])
+
+    assert (code, out, said in err, released(world), worktrees(world)) == (2, "", True, True, []), err
