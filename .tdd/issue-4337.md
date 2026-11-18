@@ -7,5 +7,5 @@
 - [x] A corrupt or absent record answers `run` ⟦criterion 5⟧
 - [x] A recorded entry that is not green answers `run` ⟦criterion 4⟧
 - [x] A preflight whose baseline ran green records it with `--record-green`, and one whose baseline ran red records nothing ⟦criterion 4⟧
-- [ ] A resume whose recorded green matches skips the baseline run and goes on ⟦criterion 2⟧
+- [x] A resume whose recorded green matches skips the baseline run and goes on ⟦criterion 2⟧
 - [ ] ⟦skill-edit⟧ `skills/tdd/PREFLIGHT.md`: step 3 states the two sources, the fail-closed rule and the accepted trade-off (PF70, PF71); `CLAUDE.md`, `RESUME.md` and `SCRIPTS.md` follow ⟦criterion 8⟧

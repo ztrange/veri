@@ -324,6 +324,14 @@ def set_up(n, slug, detect):
     return wt, fast, body_file
 
 
+def recorded_green(n, wt, fast, body_file, detect):
+    """Whether this machine records a green baseline of the tree under test with these commands."""
+    tree = call("git", "rev-parse", "HEAD^{tree}", cwd=wt)[1].strip()
+    full = checked(3, detect, "--tier", "all", "--issue", body_file, wt, cwd=wt).strip()
+    out = call(script("baseline-full-tier.sh"), "--green", n, tree, fast, full, cwd=wt)[1]
+    return out.strip() == "skip"
+
+
 def ci_green(wt):
     """Whether CI's `CI` workflow concluded `success` on the commit under test."""
     sha = call("git", "rev-parse", "HEAD", cwd=wt)[1].strip()
@@ -480,7 +488,7 @@ def baseline_suite(n, wt, saved, fast, body_file, detect, env, got):
             fast = saved[1]
             fast_began = time.monotonic()
             code = wait_on("preflight-fast-" + n, wt, env)
-        elif ci_green(wt):
+        elif recorded_green(n, wt, fast, body_file, detect) or ci_green(wt):
             fast_began, code = time.monotonic(), 0
             got["skipped"] = True
         else:

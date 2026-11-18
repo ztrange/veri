@@ -153,7 +153,7 @@ def test_4023_a_moved_branch_is_pushed_with_the_pinned_lease_after_the_green_fas
 
     seq = [(c[0], c[1][:2]) for c in fake.calls]
     fast_wait = seq.index(("detach-command.sh", ("wait", "preflight-fast-12")))
-    full_detect = seq.index(("detect-test-command.sh", ("--tier", "all")))
+    full_detect = len(seq) - 1 - seq[::-1].index(("detect-test-command.sh", ("--tier", "all")))
     assert code == 0
     assert seq[fast_wait + 1:full_detect] == [("git", ("status", "--porcelain")),
                                               ("git", ("rev-parse", "--abbrev-ref")), ("push-branch.sh", (LEASE,))]
@@ -421,3 +421,38 @@ def test_4023_a_worktree_not_handed_back_runs_none_of_the_handed_back_calls(driv
     code, out, fake = drive(ledger=True)
 
     assert _handed_back_calls(fake) == []
+
+
+TREE_4337 = "e" * 40
+
+
+class Recorded(Fake):
+    """A Fake whose HEAD^{tree} is TREE_4337 and whose green record answers <green> for `--green`."""
+
+    def __init__(self, wt, green):
+        super().__init__(wt)
+        self.green = green
+
+    def __call__(self, name, *args, cwd=None, env=None):
+        base = os.path.basename(name)
+        if base == "git" and args == ("rev-parse", "HEAD^{tree}"):
+            self.calls.append((base, args, cwd, env))
+            return 0, TREE_4337 + "\n", ""
+        if base == "baseline-full-tier.sh":
+            self.calls.append((base, args, cwd, env))
+            return 0, self.green if args[:1] == ("--green",) else "reuse 55\n", ""
+        return super().__call__(name, *args, cwd=cwd, env=env)
+
+
+@pytest.mark.parametrize("green, runs", [("skip\n", False), ("run\n", True), ("", True)])
+def test_4337_a_resume_whose_tree_commands_pin_and_lock_match_a_recorded_green_skips_the_baseline_run(
+        drive, green, runs):
+    fake = Recorded(drive.wt, green)
+
+    code, out, _ = drive(ledger=True, fake=fake)
+
+    asked = [c[1] for c in fake.calls if c[0] == "baseline-full-tier.sh" and c[1][:1] == ("--green",)]
+    starts = [c[1] for c in fake.calls if c[0] == "detach-command.sh" and c[1][:1] == ("start",)]
+    assert asked == [("--green", "12", TREE_4337, "make unit", "make test")]
+    assert bool(starts) is runs
+    assert code == 0
