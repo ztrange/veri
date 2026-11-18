@@ -30,23 +30,20 @@ def main(argv):
 
 
 def run(n):
-    given = fused_step.inputs(NAME + ".sh", n, LEDGER, REFACTOR_HALF)
+    given = fused_step.inputs(NAME + ".sh", n, LEDGER)
     if given is None:
         return 2
     _, wt = given
     step = fused_step.first_step(wt, n, refactor_pending)
-    half = read_half(wt, n)
-    if step is None or half.get("step", [None])[0] != step:
-        sys.stderr.write("step-close.sh: %s\n" % ("no refactor-pending step" if step is None else
-                                                 ".tdd/issue-%s-refactor-half names another step" % n))
+    if step is None:
+        sys.stderr.write("step-close.sh: no refactor-pending step\n")
         return 2
-    if half.get("verdict_log", [None])[0] != fused_step.verdict_log(wt):
-        sys.stderr.write("step-close.sh: .tdd/issue-%s-refactor-half was settled after another verdict than "
-                         ".tdd/verify-refactor.log holds\n" % n)
-        return 2
-    for uncovered in half.get("uncovered_spec", []):
+    if fused_step.record(NAME, wt, n, step, (("verdict_log", fused_step.verdict_log(wt)),)) is None:
+        return 1
+    for uncovered in read_half(wt, n).get("uncovered_spec", []):
         raise fused.Stop("6", "uncovered_spec=" + uncovered, 1)
-    green_sha = half.get("green_sha", [""])[0]
+    green_sha = fused.checked("6", "git", "log", "-1", "--format=%H", "--", LEDGER % n, cwd=wt).strip()
+    fused_step.refresh(NAME, wt, n, "refactor-half", {"green_sha": green_sha})
     pins = [line for line in checks(wt, n, green_sha).splitlines() if line.startswith("needs a look")]
     try:
         commit(wt, n, step)
