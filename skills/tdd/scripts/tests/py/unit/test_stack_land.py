@@ -17,10 +17,12 @@ class World:
     """What stack_branch.named answers, and every sibling script run; <answers> maps a script's name to its (exit code,
     stdout), (0, "") for one it does not name. git (git.out) names <default> as origin's default branch and answers
     <ahead> to `rev-list --count`; GitHub (github.gh_api) lists <onto>, the open pull requests as REST records. origin
-(git.network, its calls kept in <network>) fetches and pushes, and its heads are <heads>, a branch name to its commit."""
+(git.network, its calls kept in <network>) fetches and pushes, and its heads are <heads>, a branch name to its commit.
+GitHub opens a pull request (github.pr_open, each kept in <opened> as (head, base)) at <opens>, its url."""
 
-    def __init__(self, monkeypatch, named, answers=None, default="trunk", ahead=0, onto=(), heads=None):
-        self.scripts, self.network = [], []
+    def __init__(self, monkeypatch, named, answers=None, default="trunk", ahead=0, onto=(), heads=None,
+                 opens="https://github.com/owner/repo/pull/90"):
+        self.scripts, self.network, self.opened = [], [], []
         heads = heads or {}
         answers = answers or {}
         stack_branch = importlib.import_module("veri.stack_branch")
@@ -46,7 +48,12 @@ class World:
 
         monkeypatch.setattr(git, "out", out)
         monkeypatch.setattr(git, "network", network)
+        def pr_open(head, base, title, body):
+            self.opened.append((head, base))
+            return opens
+
         monkeypatch.setattr(github, "gh_api", gh_api)
+        monkeypatch.setattr(github, "pr_open", pr_open)
 
         def answer(root):
             if isinstance(named, BaseException):
@@ -301,3 +308,13 @@ def test_a_failed_push_of_the_slice_branch_exits_2_naming_the_branch_nothing_ope
 
     assert (code, out, "stack-slice-3f2a9c1d0b" in err, writes, [ran[:2] for ran in world.scripts[-2:]]) == (
         2, "", True, [], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
+def test_opens_a_ready_not_draft_pull_request_from_the_slice_branch_to_the_default_branch_when_none_is_open_for_that_head(
+        monkeypatch, run_cli, stack_land):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert world.opened == [("stack-slice-3f2a9c1d0b", "trunk")], err
