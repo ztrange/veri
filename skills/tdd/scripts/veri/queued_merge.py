@@ -775,6 +775,12 @@ def _joined_offline(pr, worktree, branch, stack):
     code = _full_gate(worktree, stack)
     if code:
         return code
+    head, status = _rev(worktree, "HEAD"), _git(worktree, "status", "--porcelain")
+    if head != checked or status.returncode or status.stdout.strip():
+        _say("the fast tier, prose-owed.sh or the full suite changed the worktree: HEAD is %s, the checked tip %s%s;"
+             " the local %s not moved" % (head or "unresolvable", checked, "; uncommitted: " + " ".join(
+                 status.stdout.split()[1::2][:5]) if status.stdout.strip() else "", stack))
+        return 2
     amend = _git(worktree, "commit", "--amend", "--no-edit", "--no-verify", "--allow-empty",
                  "--trailer", "Veri-Joined: %s %s" % (pr, branch))
     joined = _rev(worktree, "HEAD")

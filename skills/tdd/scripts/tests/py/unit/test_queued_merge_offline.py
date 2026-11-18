@@ -25,7 +25,8 @@ class Offline:
     stack and whose cut recorded it, origin's stack as last fetched and the local stack, and every call made."""
 
     def __init__(self, tmp_path, outage=True, base="stack\n", base_sha=None, local=LOCAL_STACK, rebase=0, fast=0,
-                 owed=0, full=0, all_tier="make test\n", checked_out=None, default="trunk", ancestor=True, amend=0):
+                 owed=0, full=0, all_tier="make test\n", checked_out=None, default="trunk", ancestor=True, amend=0,
+                 gate_commits=False, move=0):
         self.clone = str(tmp_path / "clone")
         self.wt = os.path.join(self.clone, ".tdd", "wt", "7")
         admin = os.path.join(self.clone, ".git", "worktrees", "7")
@@ -51,6 +52,7 @@ class Offline:
         self.local, self.rebase, self.fast, self.owed, self.full = local, rebase, fast, owed, full
         self.all_tier, self.checked_out, self.default, self.ancestor, self.amend = (
             all_tier, checked_out, default, ancestor, amend)
+        self.gate_commits, self.move = gate_commits, move
         self.head = [RUN_TIP]
         self.pulls = []
 
@@ -111,6 +113,8 @@ class Offline:
         if line == "sh -c make unit":
             return self.fast, "", ""
         if line == "sh -c make test":
+            if self.gate_commits:
+                self.head.append("9999999")
             return self.full, "", ""
         if line.startswith("prose-owed.sh"):
             return self.owed, "", ""
@@ -120,6 +124,8 @@ class Offline:
             self.head.append(AMENDED)
             return 0, "", ""
         if line.startswith(wt + "update-ref refs/heads/stack "):
+            if self.move:
+                return self.move, "", "fatal: cannot lock ref 'refs/heads/stack'\n"
             self.local = line.split()[-2]
             return 0, "", ""
         if line.startswith("merge-lock.sh"):
@@ -303,3 +309,21 @@ def test_an_amend_git_refuses_is_exit_2_with_the_stack_unmoved(tmp_path, fake_pr
     code, _, err = join(run_cli, world)
 
     assert (code, world.local) == (2, LOCAL_STACK), err
+
+
+def test_a_suite_that_commits_on_the_rebased_tip_is_exit_2_with_nothing_amended_and_the_stack_unmoved(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, gate_commits=True).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    amended = [c for c in world.calls if " commit --amend " in c]
+    assert (code, amended, world.local) == (2, [], LOCAL_STACK), err
+
+
+def test_a_stack_move_git_refuses_is_exit_2_and_prints_no_joined_line(tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, move=1).install(fake_processes, monkeypatch)
+
+    code, out, err = join(run_cli, world)
+
+    assert (code, out, world.local) == (2, "", LOCAL_STACK), err
