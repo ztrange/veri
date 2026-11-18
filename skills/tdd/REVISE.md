@@ -25,9 +25,9 @@ The route runs with `VERI_STEP` set to the current step and its exit 0 writes a 
 git reset --hard HEAD
 git clean -f -- <test-path>
 ```
-Then insert one step before the stuck step with `$S/add-ledger-step.sh .tdd/issue-<n>.md before "<stuck step>" '<text>'`, whose text carries the stuck step's `⟦criterion k⟧` tag and the mark `⟦diff-checked⟧`, names every case `prep` printed, and says they are updated to hold both before and after the stuck step's change, with no production code edited. Commit the ledger in a `plan:` commit, and write `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<stuck step>" $S/event.sh reroute kind=prep case=<cases>` naming the cases. The inserted step runs as any `⟦diff-checked⟧` step does, so the blind `diff` verifier judges the edit (a reported case that is a real regression is not waved through); once it is ticked, the stuck step starts again from Red.
+Then insert one step before the stuck step with `$S/add-ledger-step.sh .tdd/issue-<n>.md before "<stuck step>" '<text>' 2> .tdd/add-ledger-step.err`, whose text carries the stuck step's `⟦criterion k⟧` tag and the mark `⟦diff-checked⟧`, names every case `prep` printed, and says they are updated to hold both before and after the stuck step's change, with no production code edited. Commit the ledger in a `plan:` commit, and write `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<stuck step>" $S/event.sh reroute kind=prep case=<cases>` naming the cases. The inserted step runs as any `⟦diff-checked⟧` step does, so the blind `diff` verifier judges the edit (a reported case that is a real regression is not waved through); once it is ticked, the stuck step starts again from Red.
 
-The inserted step counts toward `VERI_STEP_GROWTH_PERCENT`: `add-ledger-step.sh` exit 1 **bails** with cause `prep-owed`, naming the cases; exit 2 bails `step-add-refused` (see `<base directory>/BAIL.md`). When the insertion succeeds, write no bail event.
+The inserted step counts toward `VERI_STEP_GROWTH_PERCENT`: `add-ledger-step.sh` exit 1 **bails** with cause `prep-owed`, naming the cases; **`add-ledger-step.sh` exit 2**, its stderr kept in `.tdd/add-ledger-step.err`: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh`, before any `bail` event (`Read` `<base directory>/ADJUDICATE.md`); then, whatever the answer (`retry` included), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more (see `<base directory>/BAIL.md`). When the insertion succeeds, write no bail event.
 
 For attempt `k = 1 … REVISE_BUDGET`:
 
@@ -225,7 +225,7 @@ answer. Each is a branch of its own:
   - **its exit 0 — a step ahead.** `.tdd/exhausted-answer.txt` holds one `prep <file>::<case> …`
     line: act on it as *The `prep` answer* paragraph above says — discard the stuck step's
     uncommitted work, insert one `⟦diff-checked⟧ ⟦added⟧` step before the stuck step, commit
-    the ledger, and bail `prep-owed` or `step-add-refused` on `add-ledger-step.sh` exit 1 or 2 —
+    the ledger, and on `add-ledger-step.sh` exit 1 bail `prep-owed`, on exit 2 judge, then bail, `step-add-refused` —
     writing the `reroute` event with `at=exhausted`:
     ```
     VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<stuck step>" $S/event.sh reroute kind=prep case=<cases> at=exhausted
