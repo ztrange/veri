@@ -12,9 +12,8 @@ class Fake:
     """A run_script stand-in: records (basename, args, cwd, env, kw) and answers from <answers>, keyed by
     (basename, first argument or None) -> (code, stdout, stderr)."""
 
-    def __init__(self, answers=None, porcelain="", ledger=LEDGER, merging=False):
+    def __init__(self, answers=None, porcelain="", ledger=LEDGER):
         self.answers, self.calls, self.porcelain, self.ledger = dict(answers or {}), [], porcelain, ledger
-        self.merging = merging
 
     def __call__(self, name, *args, cwd=None, env=None, **kw):
         base = os.path.basename(name)
@@ -26,8 +25,8 @@ class Fake:
             return 0, self.porcelain, ""
         if base == "git" and args[:2] == ("rev-parse", "--git-path"):
             return 0, ".git/" + args[2] + "\n", ""
-        if base == "git" and args[:2] == ("rev-parse", "-q"):
-            return (0, "abc1234\n", "") if self.merging else (1, "", "")
+        if base == "git" and args[:1] == ("ls-tree",):
+            return 0, (args[-1] + "\n" if self.ledger is not None else ""), ""
         if base == "git" and args[:1] == ("show",):
             return (0, self.ledger, "") if self.ledger is not None else (128, "", "fatal: no such path\n")
         return 0, "", ""
@@ -88,8 +87,9 @@ def test_4388_on_a_clean_tree_it_settles_resets_pushes_marks_comments_and_clears
     assert code == 0, err
     assert _seq(fake) == [
         ("git", "rev-parse", "--git-path", "rebase-merge"), ("git", "rev-parse", "--git-path", "rebase-apply"),
-        ("git", "rev-parse", "-q", "--verify", "MERGE_HEAD"), ("git", "status", "--porcelain"),
-        ("git", "reset", "--hard", "HEAD"), ("push-branch.sh",), ("git", "show", "HEAD:.tdd/issue-12.md"),
+        ("git", "rev-parse", "--git-path", "MERGE_HEAD"), ("git", "status", "--porcelain"),
+        ("git", "reset", "--hard", "HEAD"), ("push-branch.sh",),
+        ("git", "ls-tree", "--name-only", "HEAD", "--", ".tdd/issue-12.md"), ("git", "show", "HEAD:.tdd/issue-12.md"),
         ("event.sh", "stop", "mode=now", "at=planned"), ("comment.sh", "12", "stopped"),
         ("stop-requested.sh", "--clear")]
     mark = fake.call("event.sh")
@@ -133,9 +133,12 @@ def test_4388_at_is_read_off_the_committed_ledger(stop, ledger, at):
                                            ("rebase-apply", "git rebase --continue"),
                                            ("MERGE_HEAD", "git merge --abort")])
 def test_4388_an_interrupted_rebase_or_merge_is_unsettled_and_neither_reset_nor_pushed(stop, where, finish):
-    fake = Fake(ledger="# Plan\n\n- [x] one ⟦criterion 1⟧\n", merging=where == "MERGE_HEAD")
-    if where != "MERGE_HEAD":
-        (stop.wt / ".git" / where).mkdir(parents=True)
+    fake = Fake(ledger="# Plan\n\n- [x] one ⟦criterion 1⟧\n")
+    (stop.wt / ".git").mkdir()
+    if where == "MERGE_HEAD":
+        (stop.wt / ".git" / where).write_text("abc1234\n")
+    else:
+        (stop.wt / ".git" / where).mkdir()
     code, out, err, fake = stop(fake=fake)
 
     assert code == 0, err
@@ -164,8 +167,8 @@ def test_4388_with_drop_a_dirty_tree_is_reset_and_what_was_dropped_is_named_in_t
     names = [c[:2] for c in _seq(fake)]
     assert names.index(("git", "status")) < names.index(("git", "reset")) < names.index(("push-branch.sh",))
     assert fake.call("comment.sh")[1] == ("12", "stopped", "--note-file", ".tdd/stop-settle-note.md")
-    note = (stop.wt / ".tdd" / "stop-settle-note.md").read_text()
-    assert "src/a.py" in note and "src/b.py" in note
+    assert (stop.wt / ".tdd" / "stop-settle-note.md").read_text().splitlines() == [
+        "Dropped by `git reset --hard HEAD`, the half-done step: src/a.py.", "Left untracked: src/b.py."]
 
 
 @pytest.mark.parametrize("live", [True, False])
@@ -257,3 +260,46 @@ def test_4388_a_leaf_wait_whose_slice_ran_out_exits_3_with_a_wait_record_and_a_s
     assert _seq(fake)[0] == ("wait-leaf.sh", "develop-red")
     assert [c for c in fake.calls if c[0] == "wait-leaf.sh"] == [fake.calls[0]]
     assert not record.exists()
+
+
+def test_4388_a_same_conductors_wait_record_is_waited_on_again_though_its_leaf_has_ended(stop, monkeypatch):
+    _leaves(stop, monkeypatch, live=())
+    (stop.wt / ".tdd" / "conductor.pid").write_text("4242\nThu Nov 18 10:00:00 2026\n")
+    record = stop.wt / ".tdd" / "issue-12-stop-settle-wait"
+    record.write_text(json.dumps({"conductor": {"pid": "4242", "started": "Thu Nov 18 10:00:00 2026"},
+                                  "at": "develop-red", "values": {}}))
+    code, out, err, fake = stop()
+
+    assert code == 0, err
+    assert _seq(fake)[0] == ("wait-leaf.sh", "develop-red")
+    assert not record.exists()
+
+
+def test_4388_another_conductors_wait_record_is_removed_and_its_leaf_not_waited_on(stop, monkeypatch):
+    _leaves(stop, monkeypatch, live=())
+    (stop.wt / ".tdd" / "conductor.pid").write_text("4242\nThu Nov 18 10:00:00 2026\n")
+    record = stop.wt / ".tdd" / "issue-12-stop-settle-wait"
+    record.write_text(json.dumps({"conductor": {"pid": "1", "started": "Wed Nov 17 10:00:00 2026"},
+                                  "at": "develop-red", "values": {}}))
+    code, out, err, fake = stop()
+
+    assert code == 0, err
+    assert "wait-leaf.sh" not in fake.names()
+    assert not record.exists()
+
+
+@pytest.mark.parametrize("answers, last", [
+    ({("git", "rev-parse"): (128, "", "fatal\n")}, "stopped at 2 git rev-parse --git-path rebase-merge exit 128"),
+    ({("git", "rev-parse"): (0, "", "")}, "stopped at 2 git rev-parse --git-path rebase-merge printed nothing"),
+    ({("git", "status"): (1, "", "")}, "stopped at 2 git status --porcelain exit 1"),
+    ({("git", "status"): (128, "", "")}, "stopped at 2 git status --porcelain exit 128"),
+    ({("git", "reset"): (1, "", "")}, "stopped at 2 git reset --hard HEAD exit 1"),
+    ({("git", "ls-tree"): (128, "", "")}, "stopped at 4 git ls-tree --name-only HEAD -- .tdd/issue-12.md exit 128"),
+    ({("git", "show"): (128, "", "")}, "stopped at 4 git show HEAD:.tdd/issue-12.md exit 128"),
+    ({("event.sh", None): (1, "", "")}, "stopped at 4 event.sh stop mode=at-ledger at=planned exit 1"),
+    ({("comment.sh", None): (128, "", "")}, "stopped at 5 comment.sh 12 stopped exit 128"),
+    ({("stop-requested.sh", None): (1, "", "")}, "stopped at 6 stop-requested.sh --clear exit 1")])
+def test_4388_a_failing_call_is_exit_2_naming_the_call_never_its_own_code(stop, answers, last):
+    code, out, err, fake = stop(answers=answers)
+
+    assert (code, out.splitlines()[-1]) == (2, last)
