@@ -48,8 +48,8 @@ def run(n):
     given = inputs(n)
     if given is None:
         return 2
-    lines, values = given
-    settled = fused.read_lines(lines)
+    preflight, values = given
+    settled = fused.read_lines(preflight)
     wt = settled["worktree"]
     waited = fused.load_wait(wt, n, OWNER)
     if waited is not None:
@@ -62,7 +62,7 @@ def run(n):
     fused.checked("2", fused.script("next-pending-refactor.sh"), cwd=wt, stdin=text, ok=(3,))
     unserved(n, wt, text)
     step = fused.checked("3", fused.script("next-unchecked.sh"), cwd=wt, stdin=text, ok=(0, 3)).strip()
-    resuming(n, wt, text, step, [line[len("stray="):] for line in lines if line.startswith("stray=")])
+    resuming(n, wt, text, step, [line[len("stray="):] for line in preflight if line.startswith("stray=")])
     if os.path.exists(os.path.join(wt, SUITE_RED)):
         code = fused.call(fused.script("suite-red-resume.sh"), "insert", ledger, SUITE_RED, cwd=wt)[0]
         if code != 0:
