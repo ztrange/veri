@@ -84,6 +84,11 @@ def main(argv):
     if code != 0:
         return entry.refuse("merge-lock.sh take exits %d: the merge lock not taken; nothing fetched, pushed or opened"
                             % code, prefix="stack-land: ")
+    fetch = git.network("fetch", "--prune", "origin", cwd=".")
+    if fetch.returncode:
+        stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
+        return entry.refuse("git fetch origin failed (exit %d): %s; the merge lock freed, nothing pushed or opened"
+                            % (fetch.returncode, fetch.stderr.strip()), prefix="stack-land: ")
 
 
 if __name__ == "__main__":

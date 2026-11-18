@@ -203,3 +203,21 @@ def test_a_failed_merge_lock_sh_take_exits_2_with_nothing_fetched_pushed_or_open
 
     assert (code, out, "merge-lock.sh" in err, writes, world.scripts[-1][:2]) == (
         2, "", True, [], ("merge-lock.sh", "take")), err
+
+
+def test_after_the_lock_is_taken_a_failed_fetch_exits_2_and_frees_the_merge_lock(monkeypatch, run_cli, stack_land):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7)
+    git = importlib.import_module("veri.git")
+
+    def network(*args, **kwargs):
+        if "fetch" in args:
+            return subprocess.CompletedProcess(["git", *args], 128, "", "fatal: unable to access origin\n")
+        raise AssertionError("network call after the failed fetch: %r" % (args,))
+
+    monkeypatch.setattr(git, "network", network)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert (code, out, "fetch" in err, [ran[:2] for ran in world.scripts[-2:]]) == (
+        2, "", True, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err

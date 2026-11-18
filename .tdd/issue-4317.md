@@ -14,7 +14,7 @@
 - [x] when the cut is fewer than VERI_SLICE_COMMITS commits ahead but the stack is idle (no pull request open with the stack as base and no journal's last conductor-start naming a living conductor), stack_land goes on to take the merge lock (unit case, no process) ⟦criterion 4⟧
 - [x] with --now, a cut fewer than VERI_SLICE_COMMITS commits ahead on a live stack still goes on to take the merge lock (unit case, no process) ⟦criterion 4⟧
 - [x] a failed merge-lock.sh take makes stack_land exit 2 with nothing fetched, pushed or opened (unit case, no process) ⟦criterion 5⟧
-- [ ] after the lock is taken, a failed fetch makes stack_land exit 2 and frees the merge lock (unit case, no process) ⟦criterion 5⟧
+- [x] after the lock is taken, a failed fetch makes stack_land exit 2 and frees the merge lock (unit case, no process) ⟦criterion 5⟧
 - [ ] after the fetch, stack_land creates the branch `<stack>-slice-<first 10 characters of the cut>` at the cut and pushes it to origin (unit case, no process, git injected) ⟦criterion 6⟧
 - [ ] a branch of that slice name already on origin at another commit makes stack_land exit 2 naming it, nothing pushed, the lock freed (unit case, no process) ⟦criterion 6⟧
 - [ ] a branch of that slice name already on origin at the cut itself is kept and stack_land goes on, not a refusal (unit case, no process) ⟦criterion 6⟧
