@@ -711,3 +711,22 @@ def test_a_rebase_conflict_exits_1_naming_it_nothing_merged_the_rebase_aborted_i
             ("git", "worktree", "remove", "--force", tree) in after, [ran[:2] for ran in world.scripts[-2:]]) == (
         [], [("push", "origin", "%s:refs/heads/%s" % (cut, slice_branch))], True, True,
         [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), (world.log, err)
+
+
+def test_a_red_ci_answer_from_wait_ci_sh_on_the_rebased_head_exits_1_naming_it_nothing_merged_the_lock_freed_the_slice_branch_and_its_pull_request_kept(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    rebased, slice_branch = "7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b", "stack-slice-3f2a9c1d0b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
+                                         "wait-ci.sh": (1, "")}, ahead=7, opens=url, ancestor=False, rebased=rebased)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    pushes = [argv for argv in world.network if argv[:1] == ("push",)]
+    assert (code, out, "ci" in err.lower(), rebased in err, slice_branch in err, url in err, "Traceback" in err) == (
+        1, "", True, True, True, True, False), (world.log, err)
+    assert (world.gh, pushes, [ran[:2] for ran in world.scripts[-2:]]) == (
+        [], [("push", "origin", "%s:refs/heads/%s" % (cut, slice_branch)),
+             ("push", "--force-with-lease=%s:%s" % (slice_branch, cut), "origin",
+              "%s:refs/heads/%s" % (rebased, slice_branch))],
+        [("wait-ci.sh", url), ("merge-lock.sh", "release")]), (world.log, err)
