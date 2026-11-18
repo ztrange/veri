@@ -710,7 +710,7 @@ def _offline_stack(worktree):
     return stack if stack and record[1].strip() == stack else None
 
 
-def _join_offline(pid, worktree, branch, stack):
+def _join_offline(pid, pr, worktree, branch, stack):
     """The offline join (PRD 033.2a): onto the local <stack> under the merge lock, released on every exit path, with no
     call to GitHub. Returns an exit code."""
     code = _script("merge-lock.sh", "take", "--pid", pid)
@@ -718,7 +718,7 @@ def _join_offline(pid, worktree, branch, stack):
         _say("taking the merge lock failed (exit %d)" % code)
         return code
     try:
-        code = _joined_offline(worktree, branch, stack)
+        code = _joined_offline(pr, worktree, branch, stack)
     finally:
         released = _release(pid)
     if code:
@@ -739,7 +739,7 @@ def _offline_cleanup(worktree, branch, released):
     return 0
 
 
-def _joined_offline(worktree, branch, stack):
+def _joined_offline(pr, worktree, branch, stack):
     listed = _git(worktree, "worktree", "list", "--porcelain")
     holder = None
     for entry_ in listed.stdout.split("\n\n"):
@@ -775,7 +775,19 @@ def _joined_offline(worktree, branch, stack):
     code = _full_gate(worktree, stack)
     if code:
         return code
-    _git(worktree, "update-ref", "refs/heads/" + stack, checked, onto)
+    amend = _git(worktree, "commit", "--amend", "--no-edit", "--no-verify", "--allow-empty",
+                 "--trailer", "Veri-Joined: %s %s" % (pr, branch))
+    joined = _rev(worktree, "HEAD")
+    if amend.returncode or not joined:
+        _say("amending the rebased tip with its Veri-Joined trailer failed (exit %d): %s; the local %s not moved" % (
+            amend.returncode, " ".join(amend.stderr.split())[:200], stack))
+        return 2
+    moved = _git(worktree, "update-ref", "refs/heads/" + stack, joined, onto)
+    if moved.returncode:
+        _say("moving the local %s from %s to %s failed (exit %d): %s" % (
+            stack, onto, joined, moved.returncode, " ".join(moved.stderr.split())[:200]))
+        return 2
+    print("joined offline, no tag %s" % joined)
     return 0
 
 
@@ -901,7 +913,7 @@ def _merge(pr, worktree, branch, message):
             _say("%s; nothing joined" % refused)
             return 2
         if stack:
-            return _join_offline(pid, worktree, branch, stack)
+            return _join_offline(pid, pr, worktree, branch, stack)
     stack, refusal = _stack_base(repo, pr, worktree, branch)
     if refusal:
         _say(refusal[0])
