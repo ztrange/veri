@@ -191,3 +191,23 @@ def test_4392_a_lint_wait_that_runs_out_exits_3_and_a_second_call_only_waits_aga
     assert "detect-test-command.sh" not in again.names()
     assert (checks.wt / ".tdd" / "issue-12-lint.md").read_text() == "### Lint\n\n`make lint` passed.\n"
     assert not (checks.wt / ".tdd" / "issue-12-pr-checks-wait").exists()
+
+
+WEAK = "weak-assertion | tests/test_a.py::test_one | asserts only truthiness\n"
+FIXED = "- [ ] fix the weak-assertion case tests/test_a.py::test_one: why ⟦test-quality⟧ ⟦diff-checked⟧\n"
+OTHER = "- [ ] fix the weak-assertion case tests/test_b.py::test_two: why ⟦test-quality⟧ ⟦diff-checked⟧\n"
+
+
+@pytest.mark.parametrize("record, more, code", [
+    (WEAK, "", 1), (WEAK.replace("weak-assertion", "implementation-coupled"), "", 1),
+    (WEAK.replace("weak-assertion", "redundant"), "", 0), (WEAK, FIXED, 0), (WEAK, OTHER, 0), ("", "", 0)],
+    ids=["weak owed", "coupled owed", "redundant gets no step", "already a step", "budget spent", "empty record"])
+def test_4392_a_recorded_finding_the_fix_budget_still_owes_a_step_stops_it_at_test_quality(checks, record, more, code):
+    (checks.wt / ".tdd" / "issue-12-test-quality").write_text(record)
+    code_, out, err, fake = checks(ledger=LEDGER + more)
+
+    assert code_ == code, out + err
+    assert "test-quality.sh" not in fake.names()
+    if code:
+        assert out.splitlines()[-1] == "stopped at test-quality .tdd/issue-12-test-quality owes a fix step"
+        assert fake.names()[-1] == "event.sh"
