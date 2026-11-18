@@ -14,7 +14,7 @@ import tunables
 
 USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|auto|session|transcript|baseline|baseline-at|refused-at|resetter> <value>"
          " | add <decision|message|override|timed-n> <text>"
-         " | drop <decision|message|override|timed-n> <id> | show | recovered | request-reset [--idle]\n")
+         " | drop <decision|message|override|timed-n> <id> | show | recovered | request-reset\n")
 
 
 def state_path(tree, role, lane=None):
@@ -210,6 +210,8 @@ def refusal(path, lines, stamp):
 
 
 def do_request_reset(path, argv):
+    if argv[2:]:
+        return usage()
     lines = (read(path) or "").splitlines()
     stamp = now()
     reason = refusal(path, lines, stamp)
@@ -217,7 +219,7 @@ def do_request_reset(path, argv):
         sys.stderr.write(reason + "\n")
         return 1
     append(path, "reset-at=%s\n" % stamp)
-    replace(marker_path(path), stamp + ("\nidle\n" if argv[2:] == ["--idle"] else "\n"))
+    replace(marker_path(path), stamp + "\n")
     return 0
 
 
