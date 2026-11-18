@@ -75,7 +75,10 @@ def test_cli_from_another_working_directory_answers_as_in_place_with_its_one_tes
     in_place = run_cli(timed_test_run, argv, env=env, cwd=here)
     from_afar = run_cli(timed_test_run, argv, env=env, cwd=far)
 
-    assert in_place == from_afar == (5, "out\n", "err\n")
+    for directory, (code, out, err) in ((here, in_place), (far, from_afar)):
+        saved = list((directory / ".tdd" / "test-runs").iterdir())
+        assert (code, err, len(saved), saved[0].read_text()) == (5, "", 1, "out\nerr\n"), out
+        assert out.splitlines()[-1] == f"full output: {directory.resolve() / '.tdd' / 'test-runs' / saved[0].name}", out
     records = _read_events(far)
     assert [(r["event"], r["status"]) for r in records] == [("test-run", "5")]
     assert sorted(p.name for p in tmp_path.iterdir()) == ["far", "here"]
