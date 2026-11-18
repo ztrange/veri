@@ -89,6 +89,8 @@ def main(argv):
         stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
         return entry.refuse("git fetch origin failed (exit %d): %s; the merge lock freed, nothing pushed or opened"
                             % (fetch.returncode, fetch.stderr.strip()), prefix="stack-land: ")
+    slice_branch = "%s-slice-%s" % (stack, cut[:10])
+    git.network("push", "origin", "%s:refs/heads/%s" % (cut, slice_branch), cwd=".")
 
 
 if __name__ == "__main__":

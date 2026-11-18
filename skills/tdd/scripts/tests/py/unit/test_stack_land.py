@@ -221,3 +221,23 @@ def test_after_the_lock_is_taken_a_failed_fetch_exits_2_and_frees_the_merge_lock
 
     assert (code, out, "fetch" in err, [ran[:2] for ran in world.scripts[-2:]]) == (
         2, "", True, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
+def test_after_the_fetch_creates_the_slice_branch_named_after_the_first_10_characters_of_the_cut_at_the_cut_on_origin(
+        monkeypatch, run_cli, stack_land):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7)
+    git, calls = importlib.import_module("veri.git"), []
+
+    def network(*args, **kwargs):
+        calls.append(args)
+        return subprocess.CompletedProcess(["git", *args], 0, "", "")
+
+    monkeypatch.setattr(git, "network", network)
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    pushes = [args for args in calls if args[:1] == ("push",)]
+    assert [("origin" in args, cut + ":refs/heads/stack-slice-3f2a9c1d0b" in args) for args in pushes] == [
+        (True, True)], (calls, err)
+    assert calls.index(pushes[0]) > calls.index(("fetch", "--prune", "origin")), calls
