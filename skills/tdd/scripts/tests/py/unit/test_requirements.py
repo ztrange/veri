@@ -274,3 +274,20 @@ def test_units_lists_a_unit_once_when_a_fenced_block_holds_its_heading_line_1978
     path = tmp_path / "r.md"
     path.write_text(table(ROW) + "\n" + fence + "\n" + H + " " + UNIT + "\n" + fence + "\n")
     assert run("units", str(path)) == (0, UNIT + "\n", "")
+
+
+def test_4336_a_list_read_inside_parsed_once_is_read_once_there_and_fresh_after_the_block_ends(tmp_path, monkeypatch):
+    requirements = importlib.import_module("veri.requirements")
+    monkeypatch.setattr(requirements, "_parsed", None)
+    path = tmp_path / "REQUIREMENTS.md"
+
+    def listing(unit):
+        path.write_text("## %s\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | Says blue. | because |\n" % unit)
+
+    listing("a.md")
+    with requirements.parsed_once():
+        first = requirements.headings(str(path))
+        listing("b.md")
+        inside = requirements.headings(str(path))
+    after = requirements.headings(str(path))
+    assert (first, inside, after) == (["a.md"], ["a.md"], ["b.md"])
