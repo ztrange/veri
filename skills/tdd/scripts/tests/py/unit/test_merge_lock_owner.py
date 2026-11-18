@@ -38,7 +38,7 @@ def test_3134_release_without_an_owner_of_a_lock_taken_under_one_is_refused(tmp_
     assert (refused, os.path.isdir(lock)) == (1, True)
 
 
-def test_3134_failed_gate_under_another_owner_token_of_the_same_pid_leaves_the_lock_held(tmp_path, monkeypatch, fake_processes):
+def test_3134_gate_under_another_owner_token_of_the_same_pid_is_refused_and_leaves_the_lock_held(tmp_path, monkeypatch, fake_processes):
     monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
     fake_processes.answers({"false": (1, "", "")})
     me = str(os.getpid())
@@ -46,7 +46,7 @@ def test_3134_failed_gate_under_another_owner_token_of_the_same_pid_leaves_the_l
     record = os.path.join(lock, "holder")
     merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
     code = merge_lock._gate(lock, record, ["--pid", me, "--owner", "token-b", "--", "false"])
-    assert (code, os.path.isdir(lock), merge_lock._holder(lock, record, [])) == (1, True, 0)
+    assert (code, os.path.isdir(lock), merge_lock._holder(lock, record, [])) == (2, True, 0)
 
 
 def test_3134_take_under_another_owner_token_of_the_same_pid_keeps_waiting_with_the_lock_held(tmp_path, monkeypatch):

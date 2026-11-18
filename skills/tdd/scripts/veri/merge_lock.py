@@ -232,9 +232,19 @@ def _gate(lock, record, args):
     if not (value and value[0].isdigit() and int(value[0]) > 0) or "--" not in args or args.index("--") == len(args) - 1:
         print("usage: merge-lock.sh gate [--keep] --pid <pid> [--owner <token>] -- <cmd>", file=sys.stderr)
         return 2
-    _owner(head)
+    owner = _owner(head)
+    command = args[args.index("--") + 1]
     if not os.path.isdir(lock):
-        print(f"merge-lock.sh: gate refused: no merge lock is held; {args[args.index('--') + 1]} not run", file=sys.stderr)
+        print(f"merge-lock.sh: gate refused: no merge lock is held; {command} not run", file=sys.stderr)
+        return 2
+    try:
+        text = _read(record)
+    except OSError:
+        text = ""
+    fields = text.split()
+    if fields[:1] != value or fields[3:4] != ([owner] if owner else []):
+        print(f"merge-lock.sh: gate refused: the lock is held by {text.strip() or 'an unreadable holder record'}, "
+              f"not --pid {value[0]}" + (f" --owner {owner}" if owner else "") + f"; {command} not run", file=sys.stderr)
         return 2
     code = subprocess.run(args[args.index("--") + 1:]).returncode
     if code in (0, 3):
