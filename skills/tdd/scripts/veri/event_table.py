@@ -58,6 +58,7 @@ EVENTS = {
     "mutation-record-restored": "name:text file:text",
     "pin": "",
     "pin-retired": "reason:text",
+    "record-refreshed": "stage:(green-half|refactor-half|step-close) key:text old:text,empty new:text",
     "plan": "steps:whole",
     "prediction-diverged": "",
     "preflight-refused": "check:text cause:(preflight-refused) classification:(system) detail?:text",

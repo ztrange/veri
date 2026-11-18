@@ -468,3 +468,14 @@ def test_a_record_step_differing_only_by_marks_is_rewritten_with_the_ledgers_and
 
     assert (code, fake.call("build-develop-prompt.sh")[1][2]) == (3, STEP)
     assert (green.wt / ".tdd" / "issue-12-red-half").read_text() == RED_HALF % STEP
+
+
+def test_each_record_rewrite_writes_one_record_refreshed_event_naming_stage_key_old_and_new_4342(green):
+    """SC2, under the VERI_EVENT_STRICT=1 the hermetic fixture sets."""
+    stale = "one thing works ⟦added⟧ ⟦criterion 3⟧"
+    green(answers={("wait-leaf.sh", "develop-green"): (3, "")}, red_step=stale)
+
+    events = [json.loads(line) for line in (green.wt / ".tdd" / "events.jsonl").read_text().splitlines()]
+    refreshed = [e for e in events if e["event"] == "record-refreshed"]
+    assert [(e["stage"], e["key"], e["old"], e["new"], e["issue"]) for e in refreshed] == [
+        ("green-half", "step", stale, STEP, "12")]
