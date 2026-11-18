@@ -374,3 +374,26 @@ def test_outside_veri_a_branch_base_declaring_no_all_tier_line_gives_the_rebase_
     code, out, err = run_cli(build, ["--branch-base", base, "rebase", str(spec), base, base], cwd=repo)
 
     assert (code, err, "full test command, `the test command`" in " ".join(out.split())) == (0, "", True)
+
+
+@pytest.mark.process("git init, commit, update-ref and symbolic-ref run for real in a scratch repository, then verify.sh's"
+                     " module in it, launching a real supervise.sh around a stub claude")
+def test_outside_veri_verify_red_reads_its_run_lines_at_the_recorded_branch_base_not_at_a_rewritten_origin_main_4375(
+        tmp_path, run_cli):
+    verify = importlib.import_module("veri.verify")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    claude = tmp_path / "claude-pass"
+    write_stub(claude, "printf 'VERDICT: PASS\\nREASON: fine.'\n")
+    weaker = commit_all(repo, "weaker", **{"CLAUDE.md": EDITED_MD, ".gitignore": ".tdd/\n"})
+    base = commit_all(repo, "base", **{"CLAUDE.md": BASE_MD})
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "update-ref", "refs/remotes/origin/main", weaker)
+    git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+    git(repo, "checkout", "-q", "-b", "feature")
+
+    run_cli(verify, ["--branch-base", base, "red", str(spec), "tests/test_x.py", "test_x"],
+            env={"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}, cwd=repo)
+
+    assert run_lines_of((repo / ".tdd" / "verify-red.prompt").read_text()) == BASE_LINES
