@@ -153,3 +153,21 @@ def test_4343_a_step_that_is_not_a_cycle_step_exits_1_on_a_kind_seam_calling_no_
 
     assert (code, stages.names(), out) == (1, [], "seam=none code=1 reason=kind next=%s\n" % next_), err
     assert not (step.wt / ".tdd" / "issue-12-step").exists()
+
+
+RECORD = "seam=green-half code=1 reason=record next=seam-settle.sh 12 red-half test_path=… target_test=…"
+
+
+@pytest.mark.parametrize("reason, kw, last", [
+    ("hand", {"argv": ("12", "--hand", "refactor-half")}, "seam=refactor-half code=1 reason=hand next=" + REFACTOR),
+    ("unmodelled", {"ledger": LEDGER % "CI passes ⟦ci-repair⟧"},
+     "seam=green-half code=1 reason=unmodelled next=" + GREEN),
+    ("record", {"answers": {"green-half.sh": (1, RECORD + "\n")}}, RECORD),
+    ("kind", {"ledger": LEDGER % "says so ⟦skill-edit⟧"},
+     "seam=none code=1 reason=kind next=SKILL-EDIT.md#The skill-edit step"),
+])
+def test_4343_every_designed_stop_hand_unmodelled_record_kind_exits_1_never_2(step, reason, kw, last):
+    code, out, err, stages = step(**kw)
+
+    assert (code, out.splitlines()[-1]) == (1, last), err
+    assert " reason=%s " % reason in last

@@ -24,6 +24,8 @@ REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, t
 # stops before such a stage without calling it). green-half's reason is specs/prd-027.md GH1.
 STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
           "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ())}
+# The line fused_step.record prints for a stage whose record is missing or names another step (PRD 038.1 SC4).
+RECORD_SEAM = "seam=%s code=1 reason=record next="
 # The kinds that are not a cycle step, red_half.REFUSED's (RN7) -> the anchor of the prose that runs them; a step of
 # one stops before any stage on `seam=none`, until a stage for that kind exists (038.3, 038.4).
 KINDS = {"⟦diff-checked⟧": "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)",
@@ -80,6 +82,9 @@ def main(argv):
             return seam(wt, n, step, stage, 1, anchor, "unmodelled")
         code, out, _ = fused.call(fused.script(stage + ".sh"), n)
         if code != 0:
+            said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
+            if code == 1 and said:
+                return seam(wt, n, step, stage, code, None, line=said[-1])
             return seam(wt, n, step, stage, code, "run-step.sh " + n if code == 3 else anchor)
     with contextlib.suppress(FileNotFoundError):
         os.remove(fused.settled_file(wt, n, "step"))
@@ -87,12 +92,14 @@ def main(argv):
     return 0
 
 
-def seam(wt, n, step, stage, code, next_, reason=None):
-    """A stop at <stage>: the seam recorded in .tdd/issue-<n>-step (RN3), then the last line,
-    `seam=<stage> code=<code> [reason=<reason>] next=<next_>`; <code>, the exit."""
+def seam(wt, n, step, stage, code, next_, reason=None, line=None):
+    """A stop at <stage>: the seam recorded in .tdd/issue-<n>-step (RN3), then the last line, <line> when given (a
+    stage's own record seam), else `seam=<stage> code=<code> [reason=<reason>] next=<next_>`; <code>, the exit."""
     with open(fused.settled_file(wt, n, "step"), "w", encoding="utf-8", errors="surrogateescape") as f:
         f.write("stage=%s\nstep=%s\n" % (stage, step))
-    sys.stdout.write("seam=%s code=%d%s next=%s\n" % (stage, code, " reason=" + reason if reason else "", next_))
+    if line is None:
+        line = "seam=%s code=%d%s next=%s" % (stage, code, " reason=" + reason if reason else "", next_)
+    sys.stdout.write(line + "\n")
     return code
 
 
