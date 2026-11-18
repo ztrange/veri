@@ -238,3 +238,14 @@ def test_issue_4252_a_comments_answer_that_is_not_comment_records_exits_2(world,
     assert run_cli(record_answer, ["42", write_file(QUESTION + "\n## Answer\n\nTake 3.\n")]) == (
         2, "", "record-answer.sh: no answer from gh reading the comments of issue #42\n")
     assert posted == []
+
+def test_a_trusted_comment_holding_the_published_form_of_a_path_naming_answer_posts_nothing_and_exits_3_4270(
+        world, run_cli, monkeypatch, tmp_path):
+    record_answer, comments, posted, write_file = world
+    monkeypatch.setenv("HOME", "/Users/someone-else")
+    comments.append({**ME, "body": "Question: See <path> first?\n\nOwner's answer: Yes."})
+    path = write_file("#### Question\n\nSee /Users/someone/x.py first?\n\n## Answer\n\nYes.\n")
+
+    code, out, err = run_cli(record_answer, ["42", path], cwd=str(tmp_path))
+
+    assert (code, out, posted) == (3, "", [])

@@ -96,7 +96,7 @@ def main(argv):
     if comments is None:
         sys.stderr.write("record-answer.sh: no answer from gh reading the comments of issue #%s\n" % number)
         return 2
-    if any(github.trusted_comment(c) and c["body"].strip() == body.strip() for c in comments):
+    if any(github.trusted_comment(c) and c["body"].strip() == github.published(body).strip() for c in comments):
         sys.stderr.write("record-answer.sh: issue #%s already has this answer\n" % number)
         return 3
     try:
