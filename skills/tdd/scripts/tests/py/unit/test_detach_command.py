@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-USAGE = "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]\n"
+USAGE = "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds] [--total <seconds>]\n"
 STARTED = "Thu Nov 11 09:00:00 2026"
 
 
@@ -730,9 +730,10 @@ def test_wait_refuses_a_total_that_is_not_a_whole_number_with_the_usage_line_and
     tdd.mkdir()
     (tdd / "x.exit").write_text("0\n")
 
-    for total in ("abc", "1.5", "-1", " 5", ""):
-        code = detach_command.main(["wait", "x", "--total", total])
-        assert (total, code, capsys.readouterr()) == (total, 2, ("", USAGE))
+    for argv in (*(["wait", "x", "--total", total] for total in ("abc", "1.5", "-1", " 5", "")),
+                 ["wait", "x", "--total"], ["wait", "x", "30", "--total"]):
+        code = detach_command.main(argv)
+        assert (argv, code, capsys.readouterr()) == (argv, 2, ("", USAGE))
 
 
 def test_wait_total_signals_no_process_group_when_the_live_pid_started_at_another_time_than_recorded_and_exits_2_4264(
