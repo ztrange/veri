@@ -62,3 +62,44 @@ def test_signals_arriving_during_launch_are_held_then_kill_the_leaf_and_exit_2(t
     assert len(launched.popens) == 1
     assert raised.value.args == (2,)
     assert exitfile.read_text().strip() == "2"
+
+
+class Exited(BaseException):
+    pass
+
+
+def trapped_exits(monkeypatch):
+    """The trap's kills recorded and its os._exit raised as Exited, with the wall and awake clocks frozen."""
+    monkeypatch.setattr(supervise, "now", lambda: "1000")
+    monkeypatch.setattr(supervise, "awake_seconds", lambda: 1000.0)
+    killed = []
+    monkeypatch.setattr(supervise, "kill_tree", lambda leaf, _poll: killed.append(leaf))
+
+    def fake_exit(code):
+        raise Exited(code)
+
+    monkeypatch.setattr(supervise.os, "_exit", fake_exit)
+    return killed
+
+
+def test_a_signal_after_a_failed_launch_exits_2_at_once_killing_nothing(tmp_path, monkeypatch, fake_processes):
+    import signal
+
+    killed = trapped_exits(monkeypatch)
+    fake_processes.answers({"": FileNotFoundError("no sh")})
+    exitfile = tmp_path / "exit"
+    started = []
+    saved = {sig: signal.getsignal(sig) for sig in supervise.TRAPPED}
+    try:
+        supervise.trap(started, str(exitfile), 1, set())
+        with pytest.raises(FileNotFoundError):
+            supervise.attempt_once(started, "exp-leaf", ["true"], str(tmp_path / "log"), str(tmp_path / "rc"),
+                                   {"PYTEST_LEG_LOCK_WAIT_MARKER": str(tmp_path / "wait")}, None,
+                                   supervise.Watch(False, "1000", "180", "1", 0.0))
+        with pytest.raises(Exited) as raised:
+            signal.getsignal(signal.SIGTERM)(signal.SIGTERM, None)
+    finally:
+        for sig, handler in saved.items():
+            signal.signal(sig, handler)
+
+    assert (killed, raised.value.args, exitfile.read_text().strip()) == ([], (2,), "2")
