@@ -1,6 +1,6 @@
 # Plan for #4343 — PRD 038.2: run-step.sh runs a cycle step in one call, stopping at seams
 
-- [ ] run-step.sh <n> runs red-half.sh, green-half.sh, refactor-half.sh and step-close.sh in that order through fused.script(), prints step-close's next= line last and exits 0 ⟦criterion 1⟧
+- [x] run-step.sh <n> runs red-half.sh, green-half.sh, refactor-half.sh and step-close.sh in that order through fused.script(), prints step-close's next= line last and exits 0 ⟦criterion 1⟧
 - [ ] at the first stage exiting 1, 2 or 3 it stops, prints seam=<stage> code=<c> next=<anchor or command> and exits c ⟦criterion 2⟧
 - [ ] called again with no options it resumes at the seam recorded in .tdd/issue-<n>-step, not calling the stages before it ⟦criterion 3⟧
 - [ ] --from <stage> starts at that stage, and an unknown stage name exits 2 ⟦criterion 4⟧
