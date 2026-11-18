@@ -206,13 +206,7 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
         remove_pass_marker(step)
         write(sys.stderr, "tests-frozen.sh: not inside a git repository\n%s" % USAGE)
         return 2
-    issue = tunables.read("VERI_ISSUE")
-    run_ledger = ".tdd/issue-%s.md" % issue
-    if issue and os.path.realpath(ledger) != os.path.realpath(os.path.join(root, run_ledger)):
-        os.chdir(root)
-        remove_pass_marker(step)
-        write(sys.stderr, "tests-frozen.sh: %s is not the run's ledger %s" % (ledger, run_ledger))
-        return 2
+    given = os.path.realpath(ledger)
     try:
         with open(ledger, encoding="utf-8") as handle:
             lines = handle.read().splitlines()
@@ -222,6 +216,12 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
         write(sys.stderr, "tests-frozen.sh: %s\n%s" % (error, USAGE))
         return 2
     os.chdir(root)
+    issue = _issue()
+    run_ledger = ".tdd/issue-%s.md" % issue
+    if issue and given != os.path.realpath(run_ledger):
+        remove_pass_marker(step)
+        write(sys.stderr, "tests-frozen.sh: %s is not the run's ledger %s" % (ledger, run_ledger))
+        return 2
     parsed = _parse_replaces(step)
     exempt = list(exempt) + (parsed[0] if parsed else [])
     fixture = _FIXTURE_FILE.search(step) if carries_mark(trailing_markers(step), "fixture-repair") else None

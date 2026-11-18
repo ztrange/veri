@@ -974,3 +974,20 @@ def test_check_earlier_exits_2_naming_both_ledgers_and_leaves_no_pass_marker_for
 
     assert (code, ".tdd/plan-ledger.md" in err, ".tdd/issue-5.md" in err,
             list((tmp_path / ".tdd").glob("check-earlier-*.pass"))) == (2, True, True, [])
+
+
+def test_check_earlier_on_a_tdd_branch_without_veri_issue_exits_2_for_a_ledger_that_is_not_the_branch_issues_4295(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / SUITE.split("/")[0]).mkdir()
+    (tmp_path / SUITE).write_text(OLDER)
+    repo = fed_commits(branch="tdd/5-x")
+    repo.add("tests")
+    repo.commit("base")
+    step = "step two adds another"
+    (tmp_path / ".tdd/issue-5.md").write_text("- [ ] %s\n" % step)
+    (tmp_path / ".tdd/plan-ledger.md").write_text("- [ ] %s\n" % step)
+
+    code, _, err = run_cli(tests_frozen, ["check-earlier", ".tdd/plan-ledger.md", "--step", step], cwd=tmp_path)
+
+    assert (code, ".tdd/issue-5.md" in err, list((tmp_path / ".tdd").glob("check-earlier-*.pass"))) == (2, True, [])
