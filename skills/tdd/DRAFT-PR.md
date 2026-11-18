@@ -256,6 +256,10 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass stopped=nothing-structural
    ```
+   After `pr-prepare.sh`, run `$S/pr-checks.sh <n>`, and again on exit 3: it makes this sub-step's checks from the lint
+   run to `unwired.sh` below in one call. On exit 0 take `candidates=` (the candidates issue's url, empty for none) from
+   its last line and go on to sub-step 2; on exit 1 or 2 go on by the check its last line, `stopped at <check> <what>`,
+   names, from that check's prose below.
    After the structural pass (or this skip) and before `refactor-candidates.sh`, each time the run
    enters this step, run the repo's declared lint command once, at the worktree root (the
    conductor's working directory), through `detach-command.sh`. The command is the one

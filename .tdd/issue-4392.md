@@ -13,4 +13,4 @@
 - [x] coupling.sh exit 3 that drops a stale coupling row stops it with exit 1 at coupling, leaving the commit to the conductor
 - [x] every inner call that obtains no answer (the default branch, git merge-base, test-quality.sh files, red-setup.sh worst, coupling.sh, refactor-candidates.sh, unwired.sh, event.sh) stops it with exit 2
 - [x] the pr-checks.sh shim runs the module: its usage and exit 2 with no argument, and exit 2 naming a missing preflight
-- [ ] DRAFT-PR.md sub-step 1 names $S/pr-checks.sh <n> after pr-prepare.sh, SCRIPTS.md and veri/README.md list it, and a guard fails when pr_checks.CALLS names a script sub-step 1 does not ⟦criterion 6⟧
+- [x] DRAFT-PR.md sub-step 1 names $S/pr-checks.sh <n> after pr-prepare.sh, SCRIPTS.md and veri/README.md list it, and a guard fails when pr_checks.CALLS names a script sub-step 1 does not ⟦criterion 6⟧

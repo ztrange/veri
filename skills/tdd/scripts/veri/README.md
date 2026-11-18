@@ -845,6 +845,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `step-close.sh`: a step's close-out after a passing verify-refactor, in one call.
 - `branch-gate.sh`: the Draft PR step's branch suite, in one call.
 - `pr-prepare.sh`: the Draft PR step's sub-step 1 up to the structural pass's skip, in one call.
+- `pr-checks.sh`: the Draft PR step's sub-step 1 checks after `pr-prepare.sh`, in one call.
 - `pr-ready-wait.sh`: closing and pushing the run's record, then readying its PR and its first CI wait, in one call.
 - `pr-finish.sh`: the refactor-owed render after a green first CI wait, in one call.
 - `run-done.sh`: the run's done comment, in one call.

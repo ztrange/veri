@@ -15,6 +15,11 @@ USAGE = "usage: pr-checks.sh <n>"
 LEDGER = run_dir.ledger("", "%s")
 DETACH = fused.script("detach-command.sh")
 
+# The $S/ scripts this call makes, in the order each is first made (git aside; stop-requested.sh only when the lint
+# recorded no exit code); unit/test_pr_checks.py fails when one is a script DRAFT-PR.md's sub-step 1 does not name.
+CALLS = ("detect-test-command.sh", "detach-command.sh", "stop-requested.sh", "event.sh", "test-quality.sh",
+         "red-setup.sh", "coupling.sh", "refactor-owed.sh", "refactor-candidates.sh", "unwired.sh")
+
 
 def main(argv):
     return fused.entry(argv, NAME + ".sh", run)
