@@ -25,14 +25,14 @@ def settle_window():
     return (entry.whole_number(reads), seconds), None
 
 
-def merge(gate, pr, repo, number, head):
+def merge(gate, pr, repo, number, head, driver=None):
     """The exit code of merging <pr> (pull request <number> of <repo>) at <head> by rebase, each command run as
-    gate(*argv): `gh pr merge` under VERI_GH_DRIVER=graphql, it then one REST PUT when it fails under auto, else the
-    REST PUT alone."""
+    gate(*argv): `gh pr merge` under the graphql driver, it then one REST PUT when it fails under auto, else the REST
+    PUT alone. The driver is <driver> when given, else VERI_GH_DRIVER."""
     gh_merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
     rest_merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, number),
                   "-f", "merge_method=rebase", "-f", "sha=%s" % head)
-    driver = tunables.get("VERI_GH_DRIVER")
+    driver = tunables.get("VERI_GH_DRIVER") if driver is None else driver
     if driver == "graphql":
         return gate(*gh_merge)
     if driver == "auto":
