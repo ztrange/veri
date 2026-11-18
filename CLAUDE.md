@@ -259,5 +259,7 @@ and the own text of every section no heading unit claims. So an edit inside a cl
 only that section's unit, and an edit to a heading line still owes the whole-file unit.
 
 `prose-owed.sh`, run by `make unit` and `make test`, exits 1 listing each unit that owes a grade
-and each orphan `GRADED` line (one whose unit has no rows any more). A `⟦skill-edit⟧` step
+and each orphan `GRADED` line (one whose unit has no rows any more). It also lists, ending
+` (no rows)`, each file under `skills/tdd/scripts/prompts/`, `REQUIREMENTS.md` excepted, that no
+`REQUIREMENTS.md` lists as a unit, so a prompt file cannot land without rows. A `⟦skill-edit⟧` step
 regrades a unit.
