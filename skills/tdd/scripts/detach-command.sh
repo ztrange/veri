@@ -1,16 +1,17 @@
 #!/bin/sh
 # detach-command.sh — run a long command in a session of its own, then wait on it: a shim over veri/detach_command.py.
 #
-# usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]
+# usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds] [--total <seconds>]
 #
 # start  returns 0 at once; the command's output goes to .tdd/<name>.out and its exit code
 #        to .tdd/<name>.exit when it ends.
 # wait   polls every VERI_POLL seconds (default 1) for at most max-seconds (default 590).
+#        --total bounds the command in total, counted from its start: past it, wait stops its process group.
 #
 # Exit codes (wait):
 #   0  the command finished and recorded 0
 #   1  the command finished and recorded a non-zero code; that code is printed on stdout
-#   2  the command died without recording a code, bad arguments, or .tdd/stop holds `now` (a stop is being carried out) and the command has not finished
+#   2  the command died without recording a code, bad arguments, .tdd/stop holds `now` (a stop is being carried out) and the command has not finished, or the command ran past --total and was stopped
 #   3  no completion file yet — call again
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/detach_command.py" "$@"
