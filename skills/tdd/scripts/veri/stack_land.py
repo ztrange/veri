@@ -1,13 +1,24 @@
 """stack-land.sh's logic, run in-process: lands the stack's tested cut on the default branch (PRD 034.4a)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
 import os
+import subprocess
 import sys
 
 import entry
+import git
+import github
 import stack_branch
 import stack_fix
 
 USAGE = "usage: stack-land.sh [--now]"
+
+
+def _pulls_onto(stack):
+    """The urls of the open pull requests whose base is <stack>, kept only when the answer itself names <stack> as the
+    base ref."""
+    run = github.gh_api("repos/{owner}/{repo}/pulls?state=open&base=%s&per_page=100" % stack, stderr=subprocess.PIPE)
+    return [raw.get("html_url") for raw in json.loads(run.stdout) if (raw.get("base") or {}).get("ref") == stack]
 
 
 def main(argv):
@@ -38,6 +49,16 @@ def main(argv):
     if code == 2:
         return entry.refuse("stack-green.sh exits 2: no answer on the stack's tested cut; nothing cut or merged",
                             prefix="stack-land: ")
+    cut = said.split()[0]
+    default = git.default_branch(cwd=".")
+    ahead = int(git.out("rev-list", "--count", "origin/%s..%s" % (default, cut)))
+    if argv != ["--now"] and ahead < int(size):
+        live = _pulls_onto(stack)
+        if live:
+            print("stack-land: the cut %s is %d commits ahead of origin/%s, fewer than VERI_SLICE_COMMITS (%s), and the"
+                  " stack is live: open pull requests onto %s: %s; nothing landed"
+                  % (cut, ahead, default, size, stack, " ".join(live)), file=sys.stderr)
+            return 3
 
 
 if __name__ == "__main__":
