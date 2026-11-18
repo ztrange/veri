@@ -218,3 +218,27 @@ def test_4389_it_never_opens_the_event_log(resume):
     code, out, err, fake = resume(verify_plan="owed")
 
     assert (code, out.splitlines()[-1]) == (0, "verify_plan=PASS")
+
+
+def test_4389_a_wait_whose_slice_ran_out_exits_3_on_a_waiting_on_line_and_keeps_a_record(resume):
+    code, out, err, fake = resume(verify_plan="owed", answers={("wait-leaf.sh", None): (3, "")})
+
+    assert (code, out.splitlines()[-1], "comment.sh" in fake.names()[-1:]) == (3, "waiting on verdict-plan", False)
+    assert (resume.wt / ".tdd" / "issue-12-resume-start-wait").exists()
+
+
+def test_4389_called_again_after_an_exit_3_it_only_waits_again_then_comments_and_settles(resume):
+    resume(verify_plan="owed", answers={("wait-leaf.sh", None): (3, "")})
+    code, out, err, fake = resume(verify_plan="owed")
+
+    assert [(c[0], c[1]) for c in fake.calls] == [("wait-leaf.sh", ("verdict-plan",)), ("comment.sh", ("12", "verify-plan"))]
+    assert (code, out.splitlines()[-3:]) == (0, ["step=two ⟦criterion 2⟧", "pr_url=" + PR_URL, "verify_plan=PASS"])
+    assert not (resume.wt / ".tdd" / "issue-12-resume-start-wait").exists()
+
+
+def test_4389_called_under_another_conductor_it_discards_the_record_and_starts_from_its_first_call(resume):
+    resume(verify_plan="owed", answers={("wait-leaf.sh", None): (3, "")})
+    (resume.wt / ".tdd" / "conductor.pid").write_text("4242\nThu Nov 19 10:00:00 2026\n")
+    code, out, err, fake = resume(verify_plan="owed")
+
+    assert (code, _scripts(fake)[0]) == (0, "next-pending-refactor.sh")
