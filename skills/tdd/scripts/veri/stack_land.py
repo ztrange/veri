@@ -241,10 +241,13 @@ def main(argv):
             closed = re.findall(r"^Closes #(\d+)$", answers[-1].get("body") or "", re.M)
             print("pull request: %s\nmerge commit: %s\nissues closed: %s"
                   % (pr, answers[-1].get("merge_commit_sha"), " ".join("#" + n for n in closed)))
-            print("stack-land: the carry-over of %s onto origin/%s is 034.4b's; nothing of the stack rebased"
-                  % (stack, default), file=sys.stderr)
             still = [n for n in closed if _issue_state(repo, n) == "open"]
             stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
+            # The carry-over takes the merge lock itself, so it runs after the release.
+            carried, _ = stack_fix.script("stack-carry.sh", cut, limit=stack_fix.NETWORK)
+            if carried != 0:
+                return entry.refuse("%s landed, but stack-carry.sh %s exits %d: the stack is left as it was; owed:"
+                                    " stack-carry.sh %s" % (pr, cut, carried, cut), prefix="stack-land: ")
             tagged, said = stack_fix.script("stack-tag.sh", pr)
             sys.stdout.write(said)
             if tagged not in (0, 3):
