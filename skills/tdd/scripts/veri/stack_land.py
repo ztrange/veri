@@ -13,9 +13,9 @@ USAGE = "usage: stack-land.sh [--now]"
 def main(argv):
     if argv not in ([], ["--now"]):
         return entry.refuse(usage=USAGE)
-    slice = os.environ.get("VERI_SLICE_COMMITS", "100")
-    if not (slice.isascii() and slice.isdigit() and int(slice) >= 1):
-        return entry.refuse("VERI_SLICE_COMMITS must be a whole number of 1 or more: %r" % slice, prefix="stack-land: ")
+    size = os.environ.get("VERI_SLICE_COMMITS", "100")
+    if not (size.isascii() and size.isdigit() and int(size) >= 1):
+        return entry.refuse("VERI_SLICE_COMMITS must be a whole number of 1 or more: %r" % size, prefix="stack-land: ")
     try:
         stack = stack_branch.named(".")
     except stack_branch.Refused as refused:
