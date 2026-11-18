@@ -13,7 +13,13 @@ _TEST_FILE = re.compile(_TEST_PATTERN)
 _TEST_FILE_BYTES = re.compile(_TEST_PATTERN.encode())
 
 
+_PYTEST_LEG_DIR = "skills/tdd/scripts/tests/leg/"
+
+
 def is_test_path(path):
+    leg = _PYTEST_LEG_DIR.encode() if isinstance(path, bytes) else _PYTEST_LEG_DIR
+    if path.startswith(leg) and os.path.isdir("skills/tdd/scripts/tests/py"):
+        return False
     pattern = _TEST_FILE_BYTES if isinstance(path, bytes) else _TEST_FILE
     return bool(pattern.search(path))
 

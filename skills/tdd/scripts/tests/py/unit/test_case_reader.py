@@ -178,3 +178,16 @@ def test_file_defines_4305_ignores_js_looking_text_in_a_python_or_go_test_file(t
                for file in ("test_ledger.py", "foo_test.go")]
 
     assert answers == [False, False]
+
+
+def test_is_test_path_reads_the_pytest_leg_as_production_only_where_the_veri_test_tree_exists_4262(tmp_path, monkeypatch):
+    case_reader = importlib.import_module("veri.case_reader")
+    leg = "skills/tdd/scripts/tests/leg/pytest_leg.py"
+    monkeypatch.chdir(tmp_path)
+
+    outside = (case_reader.is_test_path("tests/leg/helper.py"), case_reader.is_test_path(leg))
+    (tmp_path / "skills/tdd/scripts/tests/py").mkdir(parents=True)
+    inside = (case_reader.is_test_path("tests/leg/helper.py"), case_reader.is_test_path(leg))
+
+    assert outside == (True, True)
+    assert inside == (True, False)
