@@ -237,3 +237,14 @@ def test_4392_a_lint_with_no_exit_code_writes_its_sentence_and_goes_on_unless_a_
         assert out.splitlines()[-1] == "stopped at lint stop-requested.sh exit 0 now"
     if answers.get(("detect-test-command.sh", None)):
         assert "detach-command.sh" not in fake.names()
+
+
+def test_4392_a_clear_that_drops_a_stale_coupling_row_stops_it_at_coupling_for_the_conductor_s_commit(checks):
+    owed = checks.wt / ".tdd" / "issue-12-refactor-owed.md"
+    owed.write_text("| coupling | mutual reference: a b | not-done |\n")
+    code, out, err, fake = checks(files={("refactor-owed.sh", ("clear",)): {".tdd/issue-12-refactor-owed.md": ""}})
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at coupling refactor-owed.sh clear "
+                                               ".tdd/issue-12-refactor-owed.md coupling dropped a stale row")
+    assert fake.names()[-1] == "refactor-owed.sh"
+    assert [c[1][:1] for c in fake.calls if c[0] == "git"] == [("merge-base",)]
