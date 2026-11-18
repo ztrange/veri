@@ -112,6 +112,13 @@ def _token_files(lock):
     return glob.glob(os.path.join(git_dir, "veri-merge-*.token"))
 
 
+def _remove_tokens_of(lock, owner):
+    """Removes each veri-merge-*.token in the git common dir that holds <owner>."""
+    for path in _token_files(lock):
+        if _read(path).strip() == owner:
+            os.remove(path)
+
+
 @_usage_guarded
 def _take(lock, record, args):
     if _needs_pid(args, False):
@@ -166,9 +173,7 @@ def _take(lock, record, args):
             missing = 0
             if _reused(text, holder):
                 for dead_owner in text.split()[3:4]:
-                    for path in _token_files(lock):
-                        if _read(path).strip() == dead_owner:
-                            os.remove(path)
+                    _remove_tokens_of(lock, dead_owner)
                 print(f"stale lock: {text.strip()}; clear it with merge-lock.sh release --force", file=sys.stderr)
                 return 2
             if _clock() - started >= limit:
@@ -198,9 +203,7 @@ def _release(lock, record, args):
     if os.path.isfile(record):
         owner = (_read(record).split()[3:4] or [""])[0]
     shutil.rmtree(lock)
-    for path in _token_files(lock):
-        if _read(path).strip() == owner:
-            os.remove(path)
+    _remove_tokens_of(lock, owner)
     return 0
 
 
