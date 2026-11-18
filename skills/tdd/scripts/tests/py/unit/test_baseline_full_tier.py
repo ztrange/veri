@@ -259,3 +259,28 @@ def test_4337_green_flags_with_a_wrong_argument_count_exit_2_with_the_usage_and_
     assert (code, out) == (2, "")
     assert "--record-green" in err
     assert not (tmp_path / ".tdd" / "baseline-green.json").exists()
+
+
+@pytest.mark.parametrize("part", ["tree", "fast", "full", "pin", "lock", "lock-removed"])
+def test_4337_a_change_to_any_key_part_after_a_recorded_green_answers_run(
+        tmp_path, run_cli, baseline_full_tier, part):
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    pin = tmp_path / ".tdd" / "issue-4337-skill-commit"
+    lock = tmp_path / "requirements-dev.txt"
+    pin.write_text("f" * 40 + "\n")
+    lock.write_text("pytest==8 --hash=sha256:00\n")
+    assert _green_4337(run_cli, baseline_full_tier, "--record-green", tmp_path)[0] == 0
+    args = {"tree": TREE_4337, "fast": "make unit", "full": "make test"}
+    if part in args:
+        args[part] = "changed"
+    elif part == "pin":
+        pin.write_text("0" * 40 + "\n")
+    elif part == "lock":
+        lock.write_text("pytest==9 --hash=sha256:11\n")
+    else:
+        lock.unlink()
+
+    code, out, err = _green_4337(run_cli, baseline_full_tier, "--green", tmp_path, **args)
+
+    assert (code, out.strip()) == (0, "run")
