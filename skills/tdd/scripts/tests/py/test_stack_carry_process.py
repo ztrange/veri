@@ -83,7 +83,9 @@ def gh_on_path(tmp_path):
     bin_dir.mkdir()
     write_stub(str(bin_dir / "gh"), GH)
     (bin_dir / "list.out").write_text(json.dumps([TRACKING]))
-    return {**os.environ, "PATH": "%s:%s" % (bin_dir, os.environ["PATH"])}
+    # The rebase re-creates commits, so git needs a committer, which a CI runner's clone does not configure.
+    return {**os.environ, "PATH": "%s:%s" % (bin_dir, os.environ["PATH"]), "GIT_COMMITTER_NAME": "carrier",
+            "GIT_COMMITTER_EMAIL": "carrier@example.test"}
 
 
 def remote(work, ref):
