@@ -11,7 +11,7 @@ import sys
 import fused
 import fused_step
 import ledger
-import pr_ready_wait
+import plan_publish
 import run_dir
 import tunables
 
@@ -38,9 +38,9 @@ def run(n):
     if given is None:
         return 2
     _, wt = given
-    if pr_ready_wait.stacked(NAME, wt, n):
+    if stacked(NAME, wt, n):
         return 2
-    url = pr_ready_wait.pr_url(wt)
+    url = pr_url(wt)
     render(wt, n)
     return fused.settle(wt, n, NAME, ["pr_url=" + url, "refactor_owed_render=" + RENDER % n])
 
@@ -53,7 +53,7 @@ def close(wt, n, url):
     # A failed render may leave its file behind, half written or over the one an earlier call committed: that file is
     # carried as metrics=<code>, not committed, so it is no dirt; every other path still is.
     left = {METRICS % n} if metrics else set()
-    if pr_ready_wait.dirty(WHERE, wt, left):
+    if dirty(WHERE, wt, left):
         raise fused.Stop(WHERE, "tree-check", 1)
     fused.checked(WHERE, fused.script("push-branch.sh"), cwd=wt)
     return metrics
@@ -67,8 +67,8 @@ def record(wt, n, url):
     metrics = METRICS % n
     code = fused.call(fused.script("metrics.sh"), n, cwd=wt, out=metrics)[0]
     if code == 0:
-        pr_ready_wait.answered(WHERE, "git", "add", metrics, cwd=wt)
-        pr_ready_wait.answered(WHERE, "git", "commit", "-m", "metrics: what solving #%s cost (#%s)" % (n, n), cwd=wt)
+        answered(WHERE, "git", "add", metrics, cwd=wt)
+        answered(WHERE, "git", "commit", "-m", "metrics: what solving #%s cost (#%s)" % (n, n), cwd=wt)
     return code
 
 
@@ -96,11 +96,57 @@ def tick_full_suite(wt, n):
         if code != 0:
             raise fused.Stop(WHERE, fused.shown(*tick) + " exit %d" % code, code)
     for k in [k for line in lines for k in re.findall(r"⟦criterion (\d+)⟧", line)]:
-        body = pr_ready_wait.gh_answered(WHERE, "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", wt=wt)
+        body = gh_answered(WHERE, "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", wt=wt)
         criterion = fused.checked(WHERE, fused.script("ledger-steps.sh"), "criterion", k, cwd=wt, stdin=body).strip()
         fused.checked(WHERE, fused.script("tick-issue-criterion.sh"), n, criterion, cwd=wt, ok=(0, 3))
-    pr_ready_wait.answered(WHERE, "git", "add", LEDGER % n, cwd=wt)
-    pr_ready_wait.answered(WHERE, "git", "commit", "-m", "plan: the full suite is owed to CI (#%s)" % n, cwd=wt)
+    answered(WHERE, "git", "add", LEDGER % n, cwd=wt)
+    answered(WHERE, "git", "commit", "-m", "plan: the full suite is owed to CI (#%s)" % n, cwd=wt)
+
+
+def stacked(name, wt, n):
+    """True, named on stderr, when the worktree holds .tdd/issue-<n>-base: a stacked run's sub-step 2 runs neither of
+    its blocks (DRAFT-PR.md *A stacked run*), so neither fused call of them may run there."""
+    base = ".tdd/issue-%s-base" % n
+    if not os.path.exists(os.path.join(wt, base)):
+        return False
+    sys.stderr.write("%s.sh: a stacked run (%s exists) runs neither block of sub-step 2\n" % (name, base))
+    return True
+
+
+def pr_url(wt):
+    """The PR url read as sub-step 2 reads it (RC1); an empty answer stops it with exit 2."""
+    branch = answered(WHERE, "git", "branch", "--show-current", cwd=wt).strip()
+    url = gh_answered(WHERE, "api", "repos/{owner}/{repo}/pulls?head={owner}:%s" % branch, "-q",
+                      ".[0].html_url // empty", wt=wt).strip()
+    if not url:
+        raise fused.Stop(WHERE, "no PR for " + branch, 2)
+    return url
+
+
+def answered(where, *args, **kw):
+    """fused.checked, a nonzero exit stopping it with exit 2: a git call that fails gave no answer, never a clean
+    negative (pr_prepare.answered's rule)."""
+    try:
+        return fused.checked(where, *args, **kw)
+    except fused.Stop as stop:
+        raise fused.Stop(stop.where, stop.what, 2)
+
+
+def gh_answered(where, *args, wt):
+    """plan_publish.gh, any failing exit (1, 4, a timeout's 124) stopping it with exit 2: GitHub gave no answer."""
+    try:
+        return plan_publish.gh(where, *args, wt=wt)
+    except fused.Stop as stop:
+        raise fused.Stop(stop.where, stop.what, 2)
+
+
+def dirty(where, wt, left=()):
+    """The paths `git status --porcelain --untracked-files=all` lists but <left>; a failing status is exit 2."""
+    try:
+        listed = fused.changed_paths(where, wt)
+    except fused.Stop as stop:
+        raise fused.Stop(stop.where, stop.what, 2)
+    return set(listed) - set(left)
 
 
 if __name__ == "__main__":

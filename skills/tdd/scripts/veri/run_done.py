@@ -29,7 +29,7 @@ def run(n):
         return 2
     _, wt = given
     asked = fused.call(fused.script("stop-requested.sh"), cwd=wt)[0]
-    if pr_ready_wait.dirty(WHERE, wt, render_left(wt, n)):
+    if pr_finish.dirty(WHERE, wt, render_left(wt, n)):
         raise fused.Stop(WHERE, "tree-check", 1)
     fused.checked(WHERE, fused.script("comment.sh"), n, "done", cwd=wt)
     cleared = asked in (0, 2)
