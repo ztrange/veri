@@ -45,6 +45,7 @@ import entry
 import full_run_lock
 import launch_floor
 import leg_tmpdir
+import pid_file
 import tunables
 from full_run_lock import legs_dir
 
@@ -212,22 +213,30 @@ def claim():
     legs = legs_dir()
     os.makedirs(legs, exist_ok=True)
     said = False
-    while True:
-        with open(legs.rstrip("/") + ".lock", "w") as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX)
-            count = worker_count(None)
-            if count >= 1:
-                entry = os.path.join(legs, str(os.getpid()))
-                with open(entry, "w") as f:
-                    f.write(str(count))
-                return count, entry
-            if not said:
-                holders = registered_legs(legs)
-                sys.stderr.write("waiting for a free core: %d cores in use by the registered legs with pids %s\n" % (
-                    sum(count for _, count in holders), ", ".join(name for name, _ in holders)))
-                sys.stderr.flush()
-                said = True
-        time.sleep(1)
+    waitfile = ""
+    try:
+        while True:
+            with open(legs.rstrip("/") + ".lock", "w") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                count = worker_count(None)
+                if count >= 1:
+                    entry = os.path.join(legs, str(os.getpid()))
+                    with open(entry, "w") as f:
+                        f.write(str(count))
+                    return count, entry
+                if not said:
+                    holders = registered_legs(legs)
+                    sys.stderr.write("waiting for a free core: %d cores in use by the registered legs with pids %s\n" % (
+                        sum(count for _, count in holders), ", ".join(name for name, _ in holders)))
+                    sys.stderr.flush()
+                    said = True
+                    waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
+                    if waitfile:
+                        pid_file.record(waitfile, os.getpid(), atomic=True)
+            time.sleep(1)
+    finally:
+        if waitfile:
+            os.remove(waitfile)
 
 
 def unregister(entry):
