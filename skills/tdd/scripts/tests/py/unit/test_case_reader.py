@@ -96,3 +96,47 @@ def test_cut_cases_reads_a_slash_with_no_closing_slash_on_its_line_as_a_division
     cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
 
     assert cases == [("l", first), ("m", second)]
+
+
+@pytest.mark.parametrize("division", [
+    "f(a / 2) / 2", "f(4 / 2) / 2", "f(a_ / 2) / 2", "f(a$ / 2) / 2", "f((a) / 2) / 2", "f(a[0] / 2) / 2",
+    "f(unreturn / 2) / 2", "(n++ / 2)"])
+def test_cut_cases_reads_each_slash_of_a_line_holding_two_after_an_operand_as_a_division_4294(division):
+    case_reader = importlib.import_module("veri.case_reader")
+    first = "it('n', () => {\n  const q = %s;\n  // ) closes nothing\n  expect(q).toBe(q);\n})" % division
+    second = "it('o', () => {\n  expect(1).toBe(1);\n})"
+
+    cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
+
+    assert cases == [("n", first), ("o", second)]
+
+
+def test_cut_cases_reads_a_division_after_a_returned_operand_as_a_division_4294():
+    case_reader = importlib.import_module("veri.case_reader")
+    first = ("it('p', () => {\n  const half = (a) => { return f(a / 2) / 2; };\n  // ) closes nothing\n"
+             "  expect(half(4)).toBe(1);\n})")
+    second = "it('q', () => {\n  expect(1).toBe(1);\n})"
+
+    cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
+
+    assert cases == [("p", first), ("q", second)]
+
+
+def test_cut_cases_ends_a_regex_character_class_at_its_closing_bracket_4294():
+    case_reader = importlib.import_module("veri.case_reader")
+    first = "it('r', () => {\n  const r = /[(/]/;\n  expect(r.test('(')).toBe(true);\n})"
+    second = "it('s', () => {\n  expect(1).toBe(1);\n})"
+
+    cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
+
+    assert cases == [("r", first), ("s", second)]
+
+
+def test_cut_cases_reads_the_paren_right_after_a_regex_literal_as_code_4294():
+    case_reader = importlib.import_module("veri.case_reader")
+    first = "it('t', () => {\n  expect('(').toMatch(/\\(/);\n})"
+    second = "it('u', () => {\n  expect(1).toBe(1);\n})"
+
+    cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
+
+    assert cases == [("t", first), ("u", second)]
