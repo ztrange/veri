@@ -199,3 +199,9 @@ def test_the_make_test_fallback_reads_makes_error_1_line_as_a_case_that_ran_and_
     assert ["make", "test", f"TESTS={CASE}"] in fake.argvs
     assert (code, text, events) == (1, ORIGINAL, False), err
     assert f"case {CASE} fails" in err and "never run" not in err
+
+
+def test_run_case_returns_the_command_it_ran_and_the_process_exit_code_with_its_answer_4298(tick_ledger, fake_processes):
+    fake_processes.answers({"detect-test-command.sh": (0, './run-one "$1"\n', ""), "": (127, "", "")})
+
+    assert tick_ledger.run_case(CASE) == (2, './run-one "$1" tests/test_x.py', 127)

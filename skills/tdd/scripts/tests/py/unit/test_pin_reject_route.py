@@ -21,7 +21,7 @@ TARGET = "tests/py/test_x.py::test_holds"
 
 @pytest.fixture(autouse=True)
 def passing_case(pin_reject_route, monkeypatch):
-    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: 0)
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0))
 
 
 def test_main_stays_green_reject_retires_the_step_unpinnable_with_no_revise_event_3300(
@@ -228,7 +228,7 @@ def test_main_missing_reroute_every_before_state_green_wording_routes_unpinnable
 def test_main_stays_green_reject_with_failing_target_test_prints_revise_and_leaves_line_unticked_3305(
         tmp_path, run_cli, pin_reject_route, monkeypatch):
     ran = []
-    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: ran.append(case) or 1)
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: (ran.append(case) or 1, "", 1))
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
@@ -246,7 +246,7 @@ def test_main_stays_green_reject_with_failing_target_test_prints_revise_and_leav
 def test_main_missing_reroute_already_holds_fallback_runs_the_target_test_and_retires_the_step_3305(
         tmp_path, run_cli, pin_reject_route, monkeypatch):
     ran = []
-    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: ran.append(case) or 0)
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: (ran.append(case) or 0, "", 0))
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
