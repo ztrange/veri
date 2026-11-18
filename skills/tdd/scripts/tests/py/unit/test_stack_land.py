@@ -318,3 +318,19 @@ def test_opens_a_ready_not_draft_pull_request_from_the_slice_branch_to_the_defau
     code, out, err = run_cli(stack_land, ["--now"])
 
     assert world.opened == [("stack-slice-3f2a9c1d0b", "trunk")], err
+
+
+def test_when_a_pull_request_of_the_slice_branchs_head_is_already_open_reuses_it_and_opens_none(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/88"
+    repo = {"full_name": "owner/repo"}
+    already = {"number": 88, "html_url": url, "state": "open", "draft": False, "title": "Land stack at 3f2a9c1d0b",
+               "head": {"ref": "stack-slice-3f2a9c1d0b", "label": "owner:stack-slice-3f2a9c1d0b", "repo": repo,
+                        "sha": cut},
+               "base": {"ref": "trunk", "repo": repo}}
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  onto=[already])
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert (code != 2, world.opened) == (True, []), err
