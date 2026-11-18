@@ -6,7 +6,7 @@ import re
 import pytest
 
 from conftest import SCRIPTS
-from repo_builder import commit_all, git, new_repo
+from repo_builder import commit_all, git, new_repo, origin_head_at
 from stub_script import write_stub
 
 TIMED = str(SCRIPTS / "timed-test-run.sh")
@@ -195,3 +195,24 @@ def test_outside_veri_branch_base_with_no_claude_md_renders_the_undeclared_text_
 
     assert (code, run_lines_of(out), err) == (
         0, ([TIMED + " changed '<the test files you ran>' the test command"], ["`the test command`"]), "")
+
+
+@pytest.mark.process("git init, commit, update-ref and symbolic-ref run for real in a scratch repository, then verify.sh's"
+                     " module in a subdirectory of it, launching a real supervise.sh around a stub claude")
+def test_outside_veri_verify_red_run_from_a_subdirectory_reads_the_base_commits_root_claude_md_not_one_the_leaf_put_there_4263(
+        tmp_path, run_cli):
+    verify = importlib.import_module("veri.verify")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    claude = tmp_path / "claude-pass"
+    write_stub(claude, "printf 'VERDICT: PASS\\nREASON: fine.'\n")
+    commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n", "pkg__keep": ""})
+    origin_head_at(repo)
+    git(repo, "checkout", "-q", "-b", "feature")
+    (repo / "pkg" / "CLAUDE.md").write_text(EDITED_MD)
+
+    run_cli(verify, ["red", str(spec), "tests/test_x.py", "test_x"],
+            env={"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}, cwd=repo / "pkg")
+
+    assert run_lines_of((repo / ".tdd" / "verify-red.prompt").read_text()) == BASE_LINES
