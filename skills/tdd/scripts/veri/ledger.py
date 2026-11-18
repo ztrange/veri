@@ -275,6 +275,14 @@ def ledger_steps(text):
     return records
 
 
+def same_step(one, other):
+    """True when two step texts name one step: equal once each drops its ⟦…⟧ marks and its trailing ⟂ suffix, the one
+    comparison a fused stage makes of its record's step and the open one (PRD 038.1 SC3, #4310)."""
+    def key(text):
+        return " ".join(re.sub(r"⟦[^⟦⟧]*⟧", " ", body(text)).split())
+    return key(one) == key(other)
+
+
 def same_text(reference, text):
     """step_at's default text rule: the reference is the step's whole text."""
     return reference == text

@@ -1,6 +1,6 @@
 # Plan for #4342 — PRD 038.1: records are caches, and a stage done by hand hands back through seam-settle.sh
 
-- [ ] ledger.same_step reads two step texts as one step when they differ only by ⟦…⟧ marks and a trailing ⟂ suffix ⟦criterion 3⟧
+- [x] ledger.same_step reads two step texts as one step when they differ only by ⟦…⟧ marks and a trailing ⟂ suffix ⟦criterion 3⟧
 - [ ] seam_contract names, per record-writing stage, the keys the next stage reads that have no committed source ⟦criterion 5⟧
 - [ ] after seam-settle.sh red-half test_path=… target_test=…, green-half.sh launches develop-green with those values ⟦criterion 7⟧
 - [ ] seam-settle.sh writes green-half's and refactor-half's records in their formats, the step from the ledger and green_sha from git ⟦criterion 6⟧

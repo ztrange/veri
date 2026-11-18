@@ -419,3 +419,16 @@ def test_unit_of_opens_an_inner_pair_only_at_a_whitespace_preceded_backtick_of_a
     ledger = importlib.import_module("veri.ledger")
 
     assert ledger.unit_of(text) == unit
+
+
+def test_same_step_reads_texts_differing_only_by_marks_and_a_trailing_suffix_as_one_step_4342():
+    ledger = importlib.import_module("veri.ledger")
+    step = "a cog turns ⟦criterion 2⟧"
+    assert [ledger.same_step(step, other) for other in (
+        "a cog turns ⟦added⟧ ⟦criterion 3⟧",
+        "a cog turns",
+        "a cog turns ⟦criterion 2⟧ ⟂ refactor pending",
+        "a cog turns ⟦full-suite⟧ ⟦criterion 2⟧ ⟂ expand done",
+        "a cog spins ⟦criterion 2⟧",
+        "a cog turns twice ⟦criterion 2⟧",
+    )] == [True, True, True, True, False, False]
