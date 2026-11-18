@@ -18,6 +18,7 @@
 - [x] after the fetch, stack_land creates the branch `<stack>-slice-<first 10 characters of the cut>` at the cut and pushes it to origin (unit case, no process, git injected) ⟦criterion 6⟧
 - [ ] a branch of that slice name already on origin at another commit makes stack_land exit 2 naming it, nothing pushed, the lock freed (unit case, no process) ⟦criterion 6⟧
 - [ ] a branch of that slice name already on origin at the cut itself is kept and stack_land goes on, not a refusal (unit case, no process) ⟦criterion 6⟧
+- [ ] a failed push of the slice branch makes stack_land exit 2 naming the branch, nothing opened or merged, the merge lock freed (unit case, no process) ⟦added⟧ ⟦criterion 5⟧
 - [ ] stack_land opens a ready (not draft) pull request from the slice branch to the default branch when none is open for that head (unit case, no process, GitHub injected) ⟦criterion 7⟧
 - [ ] when a pull request of the slice branch's head is already open, stack_land reuses it and opens none (unit case, no process) ⟦criterion 7⟧
 - [ ] the slice pull request's body has one `Closes #<n>` line per issue whose pull request, merged into the stack in the slice's range (origin/<default>..cut), carries `Closes #<n>` (unit case, no process) ⟦criterion 7⟧
