@@ -12,6 +12,7 @@ from ledger_steps import current_or_last_done_record
 NAME = "stop-settle"
 USAGE = "usage: stop-settle.sh <n> <mode> [--drop]"
 MODES = ("at-ledger", "at-leaf", "now")
+NOTE = ".tdd/stop-settle-note.md"
 
 
 def main(argv):
@@ -30,19 +31,42 @@ def main(argv):
 def run(n, mode, wt):
     for name in live_leaves(wt):
         fused.call(fused.script("wait-leaf.sh"), name, cwd=wt)
-    for name in ("rebase-merge", "rebase-apply"):
-        fused.call("git", "rev-parse", "--git-path", name, cwd=wt)
-    fused.call("git", "rev-parse", "-q", "--verify", "MERGE_HEAD", cwd=wt)
-    fused.checked("2", "git", "status", "--porcelain", cwd=wt)
-    fused.checked("2", "git", "reset", "--hard", "HEAD", cwd=wt)
-    fused.call(fused.script("push-branch.sh"), cwd=wt)
+    note = []
+    interrupted = interrupted_by(wt)
+    if interrupted:
+        note.append("The tree holds an interrupted %s, left as it is: a human finishes it with %s." % interrupted)
+    else:
+        fused.checked("2", "git", "status", "--porcelain", cwd=wt)
+        fused.checked("2", "git", "reset", "--hard", "HEAD", cwd=wt)
+        fused.call(fused.script("push-branch.sh"), cwd=wt)
     text = committed_ledger(n, wt)
     steps = ledger_steps(text or "")
     step = current_or_last_done_record(steps)
-    fused.mark("4", wt, n, step.text if step else "", "stop", "mode=" + mode, "at=" + boundary(text, steps))
-    fused.checked("5", fused.script("comment.sh"), n, "stopped", cwd=wt)
+    at = "unsettled" if interrupted else boundary(text, steps)
+    fused.mark("4", wt, n, step.text if step else "", "stop", "mode=" + mode, "at=" + at)
+    fused.checked("5", fused.script("comment.sh"), n, "stopped", *noted(wt, note), cwd=wt)
     fused.checked("6", fused.script("stop-requested.sh"), "--clear", cwd=wt)
     return 0
+
+
+def interrupted_by(wt):
+    """Step 2's check: (what, how a human finishes it) for an interrupted rebase or merge, else None."""
+    for name in ("rebase-merge", "rebase-apply"):
+        path = fused.call("git", "rev-parse", "--git-path", name, cwd=wt)[1].strip()
+        if path and os.path.isdir(os.path.join(wt, path)):
+            return "rebase", "`git rebase --continue` or `git rebase --abort`"
+    if fused.call("git", "rev-parse", "-q", "--verify", "MERGE_HEAD", cwd=wt)[0] == 0:
+        return "merge", "`git merge --continue` or `git merge --abort`"
+    return None
+
+
+def noted(wt, note):
+    """The comment's `--note-file` arguments, the note written to it; none for an empty note."""
+    if not note:
+        return ()
+    with open(os.path.join(wt, NOTE), "w") as f:
+        f.write("".join(line + "\n" for line in note))
+    return "--note-file", NOTE
 
 
 def live_leaves(wt):

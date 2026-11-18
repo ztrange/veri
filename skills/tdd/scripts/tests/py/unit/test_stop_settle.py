@@ -11,8 +11,9 @@ class Fake:
     """A run_script stand-in: records (basename, args, cwd, env, kw) and answers from <answers>, keyed by
     (basename, first argument or None) -> (code, stdout, stderr)."""
 
-    def __init__(self, answers=None, porcelain="", ledger=LEDGER):
+    def __init__(self, answers=None, porcelain="", ledger=LEDGER, merging=False):
         self.answers, self.calls, self.porcelain, self.ledger = dict(answers or {}), [], porcelain, ledger
+        self.merging = merging
 
     def __call__(self, name, *args, cwd=None, env=None, **kw):
         base = os.path.basename(name)
@@ -25,7 +26,7 @@ class Fake:
         if base == "git" and args[:2] == ("rev-parse", "--git-path"):
             return 0, ".git/" + args[2] + "\n", ""
         if base == "git" and args[:2] == ("rev-parse", "-q"):
-            return 1, "", ""
+            return (0, "abc1234\n", "") if self.merging else (1, "", "")
         if base == "git" and args[:1] == ("show",):
             return (0, self.ledger, "") if self.ledger is not None else (128, "", "fatal: no such path\n")
         return 0, "", ""
@@ -125,3 +126,21 @@ def test_4388_at_is_read_off_the_committed_ledger(stop, ledger, at):
 
     assert code == 0, err
     assert fake.call("event.sh")[1] == ("stop", "mode=at-ledger", "at=" + at)
+
+
+@pytest.mark.parametrize("where, finish", [("rebase-merge", "git rebase --continue"),
+                                           ("rebase-apply", "git rebase --continue"),
+                                           ("MERGE_HEAD", "git merge --abort")])
+def test_4388_an_interrupted_rebase_or_merge_is_unsettled_and_neither_reset_nor_pushed(stop, where, finish):
+    fake = Fake(ledger="# Plan\n\n- [x] one ⟦criterion 1⟧\n", merging=where == "MERGE_HEAD")
+    if where != "MERGE_HEAD":
+        (stop.wt / ".git" / where).mkdir(parents=True)
+    code, out, err, fake = stop(fake=fake)
+
+    assert code == 0, err
+    names = [c[:2] for c in _seq(fake)]
+    assert not {("git", "status"), ("git", "reset"), ("push-branch.sh",)} & set(names)
+    assert fake.call("event.sh")[1] == ("stop", "mode=at-ledger", "at=unsettled")
+    comment = fake.call("comment.sh")
+    assert comment[1] == ("12", "stopped", "--note-file", ".tdd/stop-settle-note.md")
+    assert finish in (stop.wt / ".tdd" / "stop-settle-note.md").read_text()
