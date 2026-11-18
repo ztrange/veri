@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import glob
 import os
+import re
 import sys
 
 import entry
@@ -114,7 +115,9 @@ def ahead(root="."):
 def recorded_base(root):
     """(path, text) of the one `.tdd/issue-<n>-base` file under <root>, the base issue-worktree.sh recorded when it cut a
     stacked run there; None when there is none. Refused when there are several."""
-    found = sorted(glob.glob(os.path.join(glob.escape(root), ".tdd", "issue-*-base")))
+    # issue-<n>-base only: issue-<n>-branch-base, the branch base preflight records, matches the glob too (#4374).
+    found = sorted(path for path in glob.glob(os.path.join(glob.escape(root), ".tdd", "issue-*-base"))
+                   if re.fullmatch(r"issue-\d+-base", os.path.basename(path)))
     if len(found) > 1:
         raise Refused("several recorded bases, cannot tell which is this run's: %s (the named stack branch is %r)"
                       % (", ".join(found), named(root)))

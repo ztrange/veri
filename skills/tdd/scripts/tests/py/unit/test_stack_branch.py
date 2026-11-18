@@ -117,6 +117,19 @@ def test_run_base_is_the_stack_only_for_a_branch_whose_cut_recorded_it_and_the_d
     assert stack_branch.run_base(str(tmp_path)) == answer
 
 
+@pytest.mark.parametrize("stacked, answer", [(False, ("trunk", False)), (True, ("stack", True))])
+def test_run_base_never_reads_a_runs_branch_base_record_as_a_stack_record_4374(
+        tmp_path, fake_processes, stack_branch, stacked, answer):
+    git_world(fake_processes, default="trunk")
+    (tmp_path / "CLAUDE.md").write_text("veri: stack branch: stack\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7-branch-base").write_text("0123456789abcdef0123456789abcdef01234567\n")
+    if stacked:
+        (tmp_path / ".tdd" / "issue-7-base").write_text("stack\n")
+
+    assert stack_branch.run_base(str(tmp_path)) == answer
+
+
 @pytest.mark.parametrize("records", [{"issue-7-base": "other\n"}, {"issue-7-base": ""}, {"issue-7-base": "stack\nmore\n"},
                                      {"issue-7-base": "stack\n", "issue-8-base": "stack\n"}])
 def test_run_base_refuses_a_recorded_base_that_is_garbled_or_no_longer_the_named_stack_naming_both_4171(
