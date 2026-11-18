@@ -102,11 +102,11 @@ def _divides(text, opening, slash):
 
 def _regex_end(text, slash):
     i, in_class = slash + 1, False
-    while i < len(text) and (in_class or text[i] != "/"):
+    while i < len(text) and text[i] != "\n" and (in_class or text[i] != "/"):
         if text[i] in "[]":
             in_class = text[i] == "["
         i += 2 if text[i] == "\\" else 1
-    return i if i < len(text) else -1
+    return i if text[i:i + 1] == "/" else -1
 
 
 def _literal_call_end(text, opening):
@@ -126,10 +126,8 @@ def _literal_call_end(text, opening):
             if i < 0:
                 return None
             i += 1
-        elif text[i] == "/" and not _divides(text, opening, i):
+        elif text[i] == "/" and not _divides(text, opening, i) and _regex_end(text, i) >= 0:
             i = _regex_end(text, i)
-            if i < 0:
-                return None
         elif text[i] in "'\"`":
             quote = text[i]
         elif text[i] == "(":

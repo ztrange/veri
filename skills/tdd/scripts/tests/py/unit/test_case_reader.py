@@ -86,3 +86,13 @@ def test_cut_cases_reads_a_slash_inside_a_regex_character_class_as_part_of_it_42
     cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
 
     assert cases == [("j", first), ("k", second)]
+
+
+def test_cut_cases_reads_a_slash_with_no_closing_slash_on_its_line_as_a_division_4294():
+    case_reader = importlib.import_module("veri.case_reader")
+    first = "it('l', () => {\n  let n = 1;\n  const q = n++ / 2;\n  // ) closes nothing\n  expect(q).toBe(0.5);\n})"
+    second = "it('m', () => {\n  expect(1).toBe(1);\n})"
+
+    cases = case_reader.cut_cases(first + ";\n" + second + ";\n")
+
+    assert cases == [("l", first), ("m", second)]
