@@ -44,7 +44,9 @@ them.
    `.tdd/issue-<n>-added.md`, run `$S/ledger-growth.sh record-existing .tdd/issue-<n>.md` once, before
    the resume's first ledger commit, and stage `.tdd/issue-<n>-added.md` in that same commit with the ledger.
    `resume-start.sh` makes this record only when no refactor is pending, as its own commit; after its stop at 2
-   the record is still owed here, staged with sub-step 2's cleared-ledger commit.
+   with a refactor pending the record is still owed here, and the conductor runs `record-existing` after
+   verify-refactor's PASS, immediately before sub-step 2's cleared-ledger commit, and stages it in that commit
+   (made earlier, the untracked file would make the Refactor loop's step-2 `git status --porcelain` check refuse the dirty tree).
    A passed `⟦skill-edit⟧` step that a post-review change must redo is reopened with
    `$S/ledger-growth.sh reopen .tdd/issue-<n>.md <needle> <change>`, which records the step itself (exit 3: no ticked step matches; exit 2: ambiguous needle or not a `⟦skill-edit⟧` step).
 2. **Use the reset preflight already made, then ask for a pending refactor.** Whatever killed
