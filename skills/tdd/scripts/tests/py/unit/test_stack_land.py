@@ -174,3 +174,16 @@ def test_a_cut_fewer_than_veri_slice_commits_ahead_on_an_idle_stack_goes_on_to_t
 
     assert [ran[:3] for ran in world.scripts] == [
         ("stack-red.sh",), ("stack-green.sh",), ("merge-lock.sh", "take", "--pid")], err
+
+
+def test_with_now_a_cut_fewer_than_veri_slice_commits_ahead_on_a_live_stack_still_goes_on_to_take_the_merge_lock(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/77"
+    live = {"number": 77, "html_url": url, "head": {"ref": "issue-77"}, "base": {"ref": "stack"}}
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
+                                         "merge-lock.sh": (2, "")}, ahead=7, onto=[live])
+
+    code, out, err = run_cli(stack_land, ["--now"])
+
+    assert [ran[:3] for ran in world.scripts] == [
+        ("stack-red.sh",), ("stack-green.sh",), ("merge-lock.sh", "take", "--pid")], err
