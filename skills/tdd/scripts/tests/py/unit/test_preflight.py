@@ -177,8 +177,10 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
     tail = calls[names.index("unlabel-issue.sh") + 1:]
     alone_calls = [c for c in tail if c[0] == "detect-test-command.sh" and c[1][:2] == ("--tier", "one test file")]
     tail = [c for c in tail if c not in alone_calls]
-    # The CI read (#4337) before the fast tier is pinned by its own cases.
-    tail = [c for c in tail if c[1][:2] not in (("rev-parse", "HEAD"), ("run", "list"))]
+    # The green-record and CI reads (#4337) before the fast tier are pinned by their own cases.
+    early = [c for c in tail if c[0] == "detect-test-command.sh" and c[1][:2] == ("--tier", "all")][:1]
+    tail = [c for c in tail if c[1][:2] not in (("rev-parse", "HEAD"), ("run", "list"), ("rev-parse", "HEAD^{tree}"))
+            and c[1][:1] != ("--green",) and not any(c is e for e in early)]
     body = tail[2][1][0] if len(tail) > 2 and tail[2][1] else None
     assert [(c[0], c[1][:1] if c[0] == "gh" else c[1][:2] if c[0] == "detect-test-command.sh" else c[1][:1]) for c in tail[:3]] == [
         ("worktree-setup.sh", ("12",)),
@@ -234,7 +236,7 @@ def test_3771_i_red_baseline_wait_exit_1_stops_at_3_with_no_later_call_no_flake_
     assert out.splitlines()[-1] == "stopped at 3 detach-command.sh wait"
     assert calls[-1][0] == "detach-command.sh" and calls[-1][1][0] == "wait"
     assert [c for c in calls if c[0] == "detach-command.sh"].__len__() == 2
-    assert "baseline-full-tier.sh" not in [n for n, _ in calls]
+    assert "baseline-full-tier.sh" not in [n for n, a in calls if a[:1] != ("--green",)]
     assert "event.sh" not in [n for n, _ in calls]
     assert all("--alone" not in a for _, a in calls)
 
@@ -382,6 +384,7 @@ def test_3771_m_resumed_baseline_wait_exit_0_refetches_the_issue_body_runs_the_f
 
     first, _, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
     calls.clear()
+    seen_body.clear()
     second, _, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
 
     names = [b for b, _ in calls]
