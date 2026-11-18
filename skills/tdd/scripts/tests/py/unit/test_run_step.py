@@ -256,3 +256,13 @@ def test_4343_a_seam_record_naming_another_step_is_not_resumed(step):
     code, out, err, stages = step()
 
     assert (code, stages.names()) == (0, list(STAGES)), err
+
+
+@pytest.mark.parametrize("raw", [127, -9, 4])
+def test_4343_a_stage_exit_outside_0_to_3_is_exit_2_naming_the_stage_and_its_code_on_stderr(step, raw):
+    code, out, err, stages = step(answers={"green-half.sh": (raw, "")})
+
+    assert stages.names() == ["red-half.sh", "green-half.sh"]
+    assert (code, err) == (2, "run-step.sh: green-half.sh exited %d\n" % raw)
+    assert out.splitlines()[-1] == "seam=green-half code=2 next=%s" % GREEN
+    assert "stage=green-half" in (step.wt / ".tdd" / "issue-12-step").read_text().splitlines()

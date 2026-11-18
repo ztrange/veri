@@ -87,6 +87,10 @@ def main(argv):
         if any(mark in step for mark in unhandled):
             return seam(wt, n, step, stage, 1, anchor, "unmodelled")
         code, out, _ = fused.call(fused.script(script), n)
+        if code not in (0, 1, 2, 3):
+            # The exit-code API has four codes: a 127, a signal's negative code or any other is no answer (2).
+            sys.stderr.write("run-step.sh: %s exited %d\n" % (script, code))
+            code = 2
         if code != 0:
             said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
             if code == 1 and said:
