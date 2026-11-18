@@ -271,3 +271,44 @@ def test_4389_a_ticked_criterion_no_ledger_step_serves_does_not_stop_it(resume):
     code, out, err, fake = resume()
 
     assert code == 0
+
+
+def test_4389_every_inner_call_prints_one_line_with_its_exit_and_never_the_leafs_report(resume):
+    (resume.wt / ".tdd" / "verify-plan.reason").write_text("LEAF-REPORT\n")
+    code, out, err, fake = resume(verify_plan="owed")
+
+    lines = out.splitlines()
+    for base, args, *_ in fake.calls:
+        assert [line for line in lines if line.startswith(base + " ") and " exit " in line], base
+    assert "LEAF-REPORT" not in out
+
+
+@pytest.mark.parametrize("answers", [{("next-pending-refactor.sh", None): (0, "one\n")},
+                                     {("wait-leaf.sh", None): (1, "")}, {("comment.sh", None): (2, "")}])
+def test_4389_a_stop_writes_no_bail_event_and_classifies_no_bail(resume, answers):
+    code, out, err, fake = resume(verify_plan="owed", answers=answers)
+
+    assert code != 0
+    assert ("classify-bail.sh" in fake.names(), [c for c in fake.calls if c[0] == "event.sh" and "bail" in c[1]]) == (
+        False, [])
+
+
+def test_4389_every_inner_call_in_the_ordered_list_is_a_script_resume_md_or_skill_md_step_2c_names():
+    resume_start = importlib.import_module("veri.resume_start")
+    here = os.path.join(os.path.dirname(resume_start.__file__), "..", "..")
+    with open(os.path.join(here, "RESUME.md")) as f, open(os.path.join(here, "SKILL.md")) as g:
+        prose = f.read() + g.read()
+
+    assert [name for name in resume_start.CALLS if "$S/" + name not in prose] == []
+
+
+def test_4389_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(resume):
+    resume_start = importlib.import_module("veri.resume_start")
+    (resume.wt / ".tdd" / "resume-suite-red").write_text("tests/py/test_a.py\n")
+    code, out, err, fake = resume(fake=Fake(planned="# Plan for #12\n"), verify_plan="owed")
+
+    made = [name for name in fake.names() if name not in ("git", "gh")]
+    assert code == 0
+    assert set(made) | {"supervise.sh", "run-verdict.sh"} == set(resume_start.CALLS)
+    firsts = [made.index(name) for name in resume_start.CALLS if name not in ("supervise.sh", "run-verdict.sh")]
+    assert firsts == sorted(firsts)
