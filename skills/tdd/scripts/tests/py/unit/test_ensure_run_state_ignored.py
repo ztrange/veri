@@ -62,6 +62,21 @@ def test_main_does_not_refuse_a_gitignore_holding_other_lines_but_not_the_rules_
         assert (root / ".gitignore").read_bytes() == original + RULE.encode()
 
 
+def test_4338_an_unrelated_gitignore_gains_exactly_the_run_state_lines_veris_own_gitignore_carries(
+        tmp_path, capsys, ensure_run_state_ignored, fake_processes):
+    main_lines = [line for line in (SCRIPTS.parents[2] / ".gitignore").read_text().splitlines()
+                  if line.startswith((".tdd/", "!.tdd/"))]
+    root = tmp_path / "repo"
+    (root / ".git").mkdir(parents=True)
+    (root / ".gitignore").write_bytes(b"node_modules/\n")
+    fake_rev_parse(fake_processes, 0, ".git\n")
+
+    code = ensure_run_state_ignored.main([str(root)])
+
+    assert (code, capsys.readouterr().out) == (0, "added\n")
+    assert (root / ".gitignore").read_text().splitlines() == ["node_modules/", *main_lines]
+
+
 def test_main_refuses_a_gitignore_holding_only_the_rules_last_line(tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     root = tmp_path / "repo"
     (root / ".git" / "info").mkdir(parents=True)
