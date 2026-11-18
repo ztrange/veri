@@ -89,6 +89,11 @@ def _rebased(default, cut, tip):
             raise _unanswered("git worktree add --detach " + tree, added)
         rebase = _git("rebase", "--onto", "origin/" + default, cut, tip, cwd=tree)
         if rebase.returncode:
+            unmerged = _git("diff", "--name-only", "--diff-filter=U", cwd=tree).stdout.split()
+            _git("rebase", "--abort", cwd=tree)
+            if unmerged:
+                raise _Stop(1, "the rebase of %s..%s onto origin/%s conflicts in %s; aborted, nothing pushed or"
+                            " rewritten" % (cut, tip, default, " ".join(unmerged[:5])))
             raise _unanswered("git rebase --onto origin/%s %s %s" % (default, cut, tip), rebase)
         head = _git("rev-parse", "HEAD", "HEAD^{tree}", cwd=tree)
         if head.returncode or len(head.stdout.split()) != 2:

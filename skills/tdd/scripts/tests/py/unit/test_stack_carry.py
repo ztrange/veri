@@ -186,3 +186,17 @@ def test_carries_the_stack_by_rebase_onto_in_a_detached_worktree_under_tdd_remov
     assert rebases(world) == [("git", tree, "rebase", "--onto", "origin/trunk", CUT, TIP)]
     assert ("git", ".", "worktree", "remove", "--force", tree) in world.log
     assert pushes(world) == [("net", "push", "--force-with-lease=stack:" + TIP, "origin", NEW + ":refs/heads/stack")]
+
+
+def test_a_rebase_conflict_exits_1_naming_the_file_the_rebase_aborted_its_worktree_removed_nothing_pushed(
+        monkeypatch, tmp_path, run_cli, stack_carry):
+    world = World(monkeypatch, tmp_path, answers={
+        ("rebase", "--onto"): (1, "", "CONFLICT (content): Merge conflict in lib/a.txt\n"),
+        ("diff", "--name-only", "--diff-filter=U"): (0, "lib/a.txt\n", "")})
+
+    code, out, err = run_cli(stack_carry, ["cut"])
+
+    tree = [call for call in worktrees(world) if "add" in call][0][-2]
+    assert (code, out, "conflict" in err, "lib/a.txt" in err, released(world)) == (1, "", True, True, True), err
+    assert (rebases(world)[-1], pushes(world), os.path.exists(tree)) == (("git", tree, "rebase", "--abort"), [], False)
+    assert ("git", ".", "worktree", "remove", "--force", tree) in world.log
