@@ -10,6 +10,7 @@ import git
 import github
 import stack_branch
 import stack_fix
+import status
 
 USAGE = "usage: stack-land.sh [--now]"
 
@@ -19,6 +20,17 @@ def _pulls_onto(stack):
     base ref."""
     run = github.gh_api("repos/{owner}/{repo}/pulls?state=open&base=%s&per_page=100" % stack, stderr=subprocess.PIPE)
     return [raw.get("html_url") for raw in json.loads(run.stdout) if (raw.get("base") or {}).get("ref") == stack]
+
+
+def _living_conductors():
+    """The runs (`#<n>`) whose journal's last conductor-start names a living conductor, as status.sh's Running section
+    reads them."""
+    lives = []
+    for path, events in status.journals():
+        starts = [e for e in events if e.get("event") == "conductor-start"]
+        if starts and status.conductor_alive(starts[-1]):
+            lives.append(status.run_name(path))
+    return lives
 
 
 def main(argv):
@@ -58,6 +70,12 @@ def main(argv):
             print("stack-land: the cut %s is %d commits ahead of origin/%s, fewer than VERI_SLICE_COMMITS (%s), and the"
                   " stack is live: open pull requests onto %s: %s; nothing landed"
                   % (cut, ahead, default, size, stack, " ".join(live)), file=sys.stderr)
+            return 3
+        conductors = _living_conductors()
+        if conductors:
+            print("stack-land: the cut %s is %d commits ahead of origin/%s, fewer than VERI_SLICE_COMMITS (%s), and the"
+                  " stack is live: living conductors: %s; nothing landed"
+                  % (cut, ahead, default, size, " ".join(conductors)), file=sys.stderr)
             return 3
 
 
