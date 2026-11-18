@@ -1269,3 +1269,10 @@
 | ID | Requirement | Why |
 |---|---|---|
 | CF1 | The fragment holds the heading `### The issue's behavior spec (the criterion the step was cut from)` followed by the `{{ISSUE_SPEC}}` slot, then the heading `### The test command` followed by the `{{TEST_CMD}}` slot. (The whole fragment.) | An exhausted or over-budget leaf judges the step against the criterion it was cut from, and names the repo's own test command. |
+
+## skills/tdd/scripts/prompts/_develop-spec-context-only.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| CX1 | The fragment holds the heading `### The issue's behavior spec (context only)` followed by the `{{ISSUE_SPEC}}` slot. (First block.) | The spec is context; the step, not the spec, sets what the leaf does. |
+| CX2 | It then holds the heading `### The test command` followed by the `{{TEST_CMD}}` slot, and ends with the heading `### What to do`, under which the including template writes the leaf's instructions. (Last two blocks.) | The leaf runs the repo's own test command, and every including prompt puts its instructions under the same heading. |
