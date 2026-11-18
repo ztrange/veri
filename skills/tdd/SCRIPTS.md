@@ -639,7 +639,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   take the merge lock themselves and run under no bound of `stack-land.sh`'s, since each bounds its own network calls
   and a bound that killed one would leave the lock held. A carry-over exit other than 0 or 3 (3: nothing to carry) names
   the landed slice and `stack-carry.sh <cut>` as the command owed, the stack left as it was; a tagging exit other than 0
-  or 3 names `stack-tag.sh <slice-pr-url>`; a `Closes` issue still open is named. Any of them is **exit 2**.
+  or 3 names `stack-tag.sh <slice-pr-url>`; a `Closes` issue still open is named, and a `Closes` read that gets no
+  answer names the issues whose closing is owed a check, the carry-over and the tagging having run. Any of them is
+  **exit 2**.
   **Exit 0** landed, **1** a clean refusal, **2** no answer, **3** nothing to land.
 - `$S/stack-carry.sh <old-cut>` — run in the target repository's clone after a slice landed: carries the stack onto
   the new default branch. `<old-cut>` is the stack commit the landed slice ended at, as it was on `origin/<stack>`
