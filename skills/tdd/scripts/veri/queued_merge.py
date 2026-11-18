@@ -756,6 +756,10 @@ def _joined_offline(worktree, branch, stack):
     code = _tip_checks(worktree, stack)
     if code:
         return code
+    full = _start("detect-test-command.sh", "--tier", "all", cwd=worktree, capture=True).stdout.strip()
+    if subprocess.run(["sh", "-c", full], cwd=worktree).returncode:
+        _say("the full suite (%s) is red on the rebased tip; the local %s not moved" % (full, stack))
+        return 1
     _git(worktree, "update-ref", "refs/heads/" + stack, checked, onto)
     return 0
 

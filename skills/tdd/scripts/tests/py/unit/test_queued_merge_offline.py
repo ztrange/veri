@@ -231,3 +231,16 @@ def test_a_rebase_conflict_a_red_fast_tier_or_a_unit_owing_a_grade_is_exit_1_wit
     moved = [c for c in world.calls if c.startswith(wt + "update-ref")]
     assert (code, world.local, moved, aborted) == (1, LOCAL_STACK, [], kind == "rebase"), err
     assert [c for c in world.calls if c.startswith("merge-lock.sh")][-1] == "merge-lock.sh release --pid %s" % PID, err
+
+
+@pytest.mark.parametrize("full", [0, 1])
+def test_the_all_tier_command_gates_the_rebased_tip_before_the_stack_moves_and_a_red_one_is_exit_1_stack_unmoved(
+        tmp_path, fake_processes, monkeypatch, run_cli, full):
+    world = Offline(tmp_path, full=full).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    wt = "git -C %s " % world.wt
+    seen = [c for c in world.calls if c.startswith((wt + "rebase", "sh -c make test", wt + "update-ref"))]
+    assert (code, seen[:2], world.local == LOCAL_STACK) == (full, [wt + "rebase stack", "sh -c make test"], bool(full)), err
+    assert [c for c in world.calls if c.startswith("merge-lock.sh")][-1] == "merge-lock.sh release --pid %s" % PID, err
