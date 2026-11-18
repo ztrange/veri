@@ -1212,3 +1212,28 @@ def test_4310_a_leg_that_finds_a_core_free_starts_without_writing_a_core_wait_ev
     journal = tree / ".tdd" / "events.jsonl"
 
     assert (code, "core-wait" in (journal.read_text() if journal.exists() else "")) == (0, False)
+
+
+def test_4310_a_full_run_that_must_wait_for_a_free_core_already_holds_the_full_run_lock_when_its_wait_begins(pytest_leg, run_cli, monkeypatch, tmp_path):
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    monkeypatch.delenv("PYTEST_LEG_FULL_LOCK_HOLDER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    blocker = legs / str(os.getppid())
+    blocker.write_text("16\n")
+    lock = tmp_path / "legs-full.lock"
+    held_at_wait = []
+
+    def poll(seconds):
+        held_at_wait.append(lock.exists() and lock.read_text().startswith("pid %d\t" % os.getpid()))
+        blocker.unlink(missing_ok=True)
+
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", poll)
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_TEST_LOCK="1"))[0]
+
+    assert (code, held_at_wait) == (0, [True])
