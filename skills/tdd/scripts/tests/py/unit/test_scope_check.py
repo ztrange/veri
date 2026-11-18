@@ -358,3 +358,20 @@ def test_3302_a_plain_step_naming_a_new_file_a_later_skill_edit_step_signs_as_it
     assert plain in err
     assert "skills/tdd/NEW.md" in err
     assert not (tdd / "events.jsonl").exists()
+
+
+def test_3302_a_row_move_and_new_unit_file_named_only_inside_the_signing_skill_edit_steps_pass(
+    tmp_path, run_cli, scope_check
+):
+    tdd = _signed_units_repo(tmp_path)
+    ledger = tdd / "issue-3302.md"
+    ledger.write_text(
+        "- [ ] tighten the plan check ⟦criterion 1⟧\n"
+        "- [ ] ⟦skill-edit⟧ create `skills/tdd/NEW.md` holding row PIN1 moved from `skills/tdd/PIN.md` ⟦added⟧\n"
+        "- [ ] ⟦skill-edit⟧ drop row PIN1 from `skills/tdd/PIN.md` ⟦added⟧\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")
