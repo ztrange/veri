@@ -136,7 +136,9 @@ def test_main_leaves_head_the_tree_and_the_rebase_state_untouched_when_up_to_dat
         assert (err == "") == (want_code == 3)
         assert sorted(out.split()) == want_out
         assert git(clone, "rev-parse", "HEAD") == pre
-        assert git(clone, "status", "--porcelain=v1", "--untracked-files=all") == ""
+        # The branch-base record is the run's own, ignored in a real run's .tdd/ (#4374).
+        assert git(clone, "status", "--porcelain=v1", "--untracked-files=all", "--",
+                   ".", ":!.tdd/issue-1-branch-base") == ""
         for d in ("rebase-merge", "rebase-apply"):
             assert not os.path.exists(git(clone, "rev-parse", "--path-format=absolute", "--git-path", d))
 
