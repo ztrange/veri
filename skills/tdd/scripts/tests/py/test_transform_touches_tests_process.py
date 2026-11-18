@@ -272,3 +272,15 @@ def test_3280_touched_option_with_a_trailing_comma_in_the_list_exits_2_like_the_
     code, out, err = run_cli(transform_touches_tests, [base, "", "--touched", "nonexistent.py,"], cwd=repo)
 
     assert (code, out) == (2, "")
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch veri tree whose range changes only the pytest leg")
+def test_a_range_changing_only_the_pytest_leg_in_veris_own_tree_exits_0_4262(tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "veri-tree")
+    leg = "skills/tdd/scripts/tests/leg/pytest_leg.py"
+    commit_all(repo, "feat: leg", **{leg.replace("/", "__"): "one\n",
+                                     "skills__tdd__scripts__tests__py__test_x.py": "def test_x(): pass\n"})
+    base = git(repo, "rev-parse", "HEAD")
+    commit_all(repo, "refactor: touch the leg", **{leg.replace("/", "__"): "two\n"})
+
+    assert run_cli(transform_touches_tests, [base], cwd=repo) == (0, "", "")
