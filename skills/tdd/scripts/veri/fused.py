@@ -82,7 +82,12 @@ def settle(wt, n, name, lines):
 def read_settled(path):
     """{key: value} of a settled file; OSError when it cannot be read."""
     with open(path) as f:
-        return dict(line.split("=", 1) for line in f.read().splitlines() if "=" in line)
+        return read_lines(f.read().splitlines())
+
+
+def read_lines(lines):
+    """{key: value} of a settled file's lines, the last value of a key repeated."""
+    return dict(line.split("=", 1) for line in lines if "=" in line)
 
 
 def conductor(wt):
