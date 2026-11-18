@@ -236,3 +236,14 @@ def test_a_failed_lock_take_fetches_nothing_and_a_failed_tag_fetch_frees_the_loc
 
     steps = [entry[:2] for entry in world.log if entry[0] == "merge-lock.sh" or entry[1] in ("fetch", "tag", "push")]
     assert (code, said in err, steps) == (2, True, calls), err
+
+
+def test_a_landed_range_whose_subjects_are_not_the_pull_requests_exits_2_naming_the_merge_commit_nothing_tagged(
+        monkeypatch, run_cli, stack_tag):
+    world = World(monkeypatch, commits=["docs: a (#6)", "feat: b (#7)"], titles={"7": "Seven"},
+                  landed=["feat: b (#7)", "feat: b (#7)"])
+
+    code, out, err = run_cli(stack_tag, [PR])
+
+    assert (code, MERGE in err, world.cut, world.lock_calls[-1][:2]) == (
+        2, True, [], ("merge-lock.sh", "release")), err

@@ -10,7 +10,7 @@
 - [x] an owing issue whose commit already carries a tag is skipped, and a run that finds every owed issue tagged exits 3 (unit case, no process) ⟦criterion 7⟧
 - [x] a failed tag push exits 2 naming the issue, the local tag deleted, tags already pushed kept, the lock freed (unit case, no process) ⟦criterion 8⟧
 - [x] a failed merge-lock take exits 2 with nothing fetched; a failed tag fetch exits 2 with the lock freed (unit case, no process)
-- [ ] the landed range on the default branch, the last <k> commits up to the merge commit, must carry the pull request's <k> subjects in order, else exit 2 naming the merge commit, nothing tagged, the lock freed (unit case, no process)
+- [x] the landed range on the default branch, the last <k> commits up to the merge commit, must carry the pull request's <k> subjects in order, else exit 2 naming the merge commit, nothing tagged, the lock freed (unit case, no process)
 - [ ] stack_land calls stack-tag.sh <slice-pr-url> after a landing it made; an exit other than 0 or 3 is exit 2 from the land naming the landed slice and the command owed (unit case, no process) ⟦criterion 9⟧
 - [ ] `skills/tdd/SCRIPTS.md` lists stack-tag.sh with its exits and rules (row SC574), the veri README indexes it, graded ⟦skill-edit⟧ ⟦criterion 1⟧
 - [ ] `skills/vmerge/SKILL.md` says a slice's tags are cut by $S/stack-tag.sh <slice-pr-url>, which stack-land.sh runs, by each issue's commit types, the operator rewording a failure-phrased title with --message (row M40), graded ⟦skill-edit⟧ ⟦criterion 10⟧
