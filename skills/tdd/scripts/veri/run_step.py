@@ -92,21 +92,31 @@ def main(argv):
             if code == 1 and said:
                 return seam(wt, n, step, stage, code, None, line=said[-1])
             return seam(wt, n, step, stage, code, NEXT_SCRIPTS[0] + " " + n if code == 3 else anchor)
+    said = [line for line in out.splitlines() if line.startswith("next=")]
+    if not said:
+        record(wt, n, "step-close", step)
+        sys.stderr.write("run-step.sh: step-close.sh exited 0 with no next= line\n")
+        return 2
     with contextlib.suppress(FileNotFoundError):
         os.remove(fused.settled_file(wt, n, "step"))
-    sys.stdout.write([line for line in out.splitlines() if line.startswith("next=")][-1] + "\n")
+    sys.stdout.write(said[-1] + "\n")
     return 0
 
 
 def seam(wt, n, step, stage, code, next_, reason=None, line=None):
     """A stop at <stage>: the seam recorded in .tdd/issue-<n>-step (RN3), then the last line, <line> when given (a
     stage's own record seam), else `seam=<stage> code=<code> [reason=<reason>] next=<next_>`; <code>, the exit."""
-    with open(fused.settled_file(wt, n, "step"), "w", encoding="utf-8", errors="surrogateescape") as f:
-        f.write("stage=%s\nstep=%s\n" % (stage, step))
+    record(wt, n, stage, step)
     if line is None:
         line = "seam=%s code=%d%s next=%s" % (stage, code, " reason=" + reason if reason else "", next_)
     sys.stdout.write(line + "\n")
     return code
+
+
+def record(wt, n, stage, step):
+    """The seam at <stage> of <step>, in .tdd/issue-<n>-step (RN3)."""
+    with open(fused.settled_file(wt, n, "step"), "w", encoding="utf-8", errors="surrogateescape") as f:
+        f.write("stage=%s\nstep=%s\n" % (stage, step))
 
 
 def resumed(wt, n, step, order):
