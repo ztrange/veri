@@ -68,6 +68,8 @@ def selects_subset(command, root):
 DECLARED_ONLY = ("one test file", "lint")
 # The tiers whose CLAUDE.md marker ends in a bare colon, `veri: <tier>: <command>`, not ` tests:`.
 COLON_MARKED = DECLARED_ONLY + ("quiet test files",)
+# The tiers an issue's `Test command:` never answers.
+NEVER_FROM_ISSUE = ("fast", "quiet test files") + DECLARED_ONLY
 
 
 def decide(tier, issue, root):
@@ -82,7 +84,7 @@ def decide(tier, issue, root):
                 or declares(at("pyproject.toml"), rb"^\[tool\.pytest")
                 or declares(at("setup.cfg"), rb"^\[tool:pytest\]"))
 
-    if tier not in ("fast", "quiet test files") and tier not in DECLARED_ONLY and issue and os.path.isfile(issue):
+    if tier not in NEVER_FROM_ISSUE and issue and os.path.isfile(issue):
         try:
             answer_from_file(issue, b"Test command:")
         except Answer as found:
