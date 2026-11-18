@@ -200,3 +200,15 @@ def test_4388_a_live_restart_pending_pid_makes_the_comment_the_restart_variant_a
     assert body.splitlines()[0] == "### ⏹️ Stopped — at-ledger"
     assert ("context growth" in body, "run-conductor.sh" in body, "operator" in body) == (live, not live, False)
     assert not {"run-conductor.sh", "restart-conductor.sh", "detach-leaf.sh", "supervise.sh"} & set(fake.names())
+
+
+@pytest.mark.parametrize("pushed, said, sha", [
+    (1, "push rejected (non-fast-forward): origin/tdd/12-x is at abc1234def\n", "abc1234def"),
+    (2, "push-branch.sh: push failed after 4 attempts; the branch is not on the remote\n", "unknown")])
+def test_4388_a_push_exit_1_or_2_is_carried_into_the_comment_and_it_goes_on_to_exit_0(stop, pushed, said, sha):
+    code, out, err, fake = stop(answers={("push-branch.sh", None): (pushed, "", said)})
+
+    assert code == 0, err
+    assert fake.names()[-2:] == ["comment.sh", "stop-requested.sh"]
+    assert fake.call("comment.sh")[1] == ("12", "stopped", "--note-file", ".tdd/stop-settle-note.md")
+    assert "push=rejected sha=" + sha in (stop.wt / ".tdd" / "stop-settle-note.md").read_text().splitlines()
