@@ -192,3 +192,21 @@ def test_a_resume_with_no_local_record_restores_the_carried_branch_base_only_whe
 
     assert (answer, named, path.read_text() if path.exists() else None) == (
         ((0, "pytest -q"), None, base + "\n") if carried == "base" else ((2, None), True, None))
+
+
+@pytest.mark.process("git init, commit, checkout, update-ref, symbolic-ref and a push to a bare origin run for real in a"
+                     " scratch repository, then preflight.set_up's git, fetch and detect-test-command.sh calls in it")
+def test_a_resume_whose_local_record_is_unreadable_stops_with_exit_2_never_restoring_the_carried_one_4374(
+        tmp_path, monkeypatch):
+    repo = new_repo(tmp_path / "repo")
+    base = commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n"})
+    origin_head_at(repo)
+    git(repo, "checkout", "-q", "-b", "issue-12")
+    commit_all(repo, "ledger", **{".tdd__issue-12.md": "- [x] step\n"})
+    carry_on_origin(repo, "12", base + "\n")
+    path = repo / ".tdd" / "issue-12-branch-base"
+    path.mkdir()
+
+    answer = set_up_in(repo, monkeypatch)
+
+    assert (answer, answer[0] and str(path) in set_up_in.stop.what, path.is_dir()) == ((2, None), True, True)
