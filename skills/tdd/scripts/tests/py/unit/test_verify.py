@@ -17,6 +17,16 @@ def no_ambient_leaf_args(monkeypatch):
     monkeypatch.delenv("VERIFY_LEAF_ARGS", raising=False)
 
 
+@pytest.fixture(autouse=True)
+def merge_base_found(monkeypatch):
+    """Every case runs where git names a merge base of HEAD and origin/HEAD, as a real run's worktree does, so a phase
+    other than `diff` reads its run lines there (#4263) instead of refusing; test_build_prompt_run_line_process.py holds
+    the cases where it names none."""
+    verify = importlib.import_module("veri.verify")
+    found = verify.branch_base
+    monkeypatch.setattr(verify, "branch_base", lambda words: found(words) if words[0] == "diff" else "0" * 40)
+
+
 USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <phase> <issue-spec-file>"
          b" <test-path> [<target-test-id>]")
 

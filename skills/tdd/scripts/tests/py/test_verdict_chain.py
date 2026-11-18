@@ -8,6 +8,7 @@ import subprocess
 import pytest
 
 from conftest import SCRIPTS
+from repo_builder import origin_head_at
 
 STUB = """#!/bin/sh
 printf '%s\\n' "$VERI_TEST_VERDICT_RESULT" | awk '{printf "{\\"type\\":\\"result\\",\\"subtype\\":\\"success\\",\\"is_error\\":false,\\"result\\":\\"%s\\"}\\n", $0}'
@@ -29,6 +30,7 @@ def launch_verdict(tmp_path, result):
     subprocess.run(["git", "-C", str(work), "init", "-q", "-b", "main"], check=True, env=git)
     subprocess.run(["git", "-C", str(work), "add", "-A"], check=True, env=git)
     subprocess.run(["git", "-C", str(work), "commit", "-q", "-m", "initial"], check=True, env=git)
+    origin_head_at(work)
     here = os.getcwd()
     os.chdir(work)
     try:

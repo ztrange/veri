@@ -12,14 +12,13 @@ from pathlib import Path
 import pytest
 
 from conftest import INTERPRETER_VENV
+from repo_builder import origin_head_at
 from test_supervise_process import checked_step, committed_head, checked_head
 
 
 def with_origin_head(work):
     head = committed_head(work)
-    subprocess.run(["git", "-C", str(work), "update-ref", "refs/remotes/origin/main", head], check=True)
-    subprocess.run(["git", "-C", str(work), "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"],
-                   check=True)
+    origin_head_at(work)
     return head
 
 SCRIPTS = Path(__file__).resolve().parents[2]
@@ -38,7 +37,7 @@ def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case
     claude.chmod(0o755)
     (tmp_path / ".gitignore").write_text(".tdd/\n")
     env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_step(tmp_path, committed_head(tmp_path))}
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_step(tmp_path, with_origin_head(tmp_path))}
 
     done = subprocess.run(
         [str(SCRIPTS / "verify.sh"), "--step", "the replacement takes over: replaces 'stale first', 'stale second'"
@@ -52,7 +51,7 @@ def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case
 @pytest.mark.process("verify.sh run as a real shim over veri/verify.py and a real supervise.sh around a stub claude,"
                      " from a subdirectory of a throwaway git repo")
 def test_verify_sh_run_from_a_subdirectory_writes_its_prompt_and_run_state_under_the_repo_root_1895(tmp_path):
-    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    with_origin_head(tmp_path)
     sub = tmp_path / "skills"
     sub.mkdir()
     (tmp_path / "spec.md").write_text("the behavior spec\n")
@@ -74,7 +73,7 @@ def test_verify_sh_run_from_a_subdirectory_writes_its_prompt_and_run_state_under
                      " VERI_TEST_CMD chains a real lint gate and a real test runner, around a stub claude")
 def test_verify_sh_red_whose_lint_gate_fails_on_its_tree_but_passes_without_it_exits_1_with_a_gate_reason_and_launches_no_verifier(
         tmp_path):
-    committed_head(tmp_path)
+    with_origin_head(tmp_path)
     identity = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
                 "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test",
                 "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
@@ -120,7 +119,7 @@ def test_verify_sh_red_whose_lint_gate_fails_on_its_tree_but_passes_without_it_e
                      " VERI_TEST_CMD chains a passing lint gate and a real test runner, around a stub claude")
 def test_verify_sh_red_whose_lint_gate_passes_and_whose_only_failure_is_the_target_test_launches_the_verifier_and_its_pass_stands(
         tmp_path):
-    head = committed_head(tmp_path)
+    head = with_origin_head(tmp_path)
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/\n")
     (tmp_path / "lint.sh").write_text("echo 'lint: all clean'\n")
@@ -145,7 +144,7 @@ def test_verify_sh_red_whose_lint_gate_passes_and_whose_only_failure_is_the_targ
                      " VERI_TEST_CMD chains a passing lint gate, an empty segment and a real test runner, around a stub claude")
 def test_verify_sh_red_whose_test_command_has_an_empty_gate_segment_runs_and_reports_no_empty_gate_and_launches_the_verifier(
         tmp_path):
-    head = committed_head(tmp_path)
+    head = with_origin_head(tmp_path)
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/\n")
     (tmp_path / "lint.sh").write_text("echo 'lint: all clean'\n")
@@ -170,7 +169,7 @@ def test_verify_sh_red_whose_test_command_has_an_empty_gate_segment_runs_and_rep
                      " VERI_TEST_CMD chains a real lint gate and a real test runner, around a stub claude")
 def test_verify_sh_red_whose_lint_gate_written_with_surrounding_whitespace_fails_exits_1_with_a_gate_reason_naming_the_trimmed_command(
         tmp_path):
-    committed_head(tmp_path)
+    with_origin_head(tmp_path)
     identity = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
                 "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test",
                 "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
@@ -215,7 +214,7 @@ def test_verify_sh_red_whose_lint_gate_written_with_surrounding_whitespace_fails
                      " VERI_TEST_CMD chains a failing lint gate printing a padded line and a real test runner, around a stub claude")
 def test_verify_sh_red_whose_failing_lint_gate_prints_its_offending_line_padded_with_whitespace_exits_1_with_that_line_trimmed(
         tmp_path):
-    head = committed_head(tmp_path)
+    head = with_origin_head(tmp_path)
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/\n")
     (tmp_path / "lint.sh").write_text(
@@ -243,7 +242,7 @@ def test_verify_sh_red_whose_failing_lint_gate_prints_its_offending_line_padded_
                      " VERI_TEST_CMD chains a failing lint gate and a real test runner, around a stub claude")
 def test_verify_sh_green_with_the_same_test_command_whose_lint_gate_fails_is_not_refused_with_a_gate_reason_and_launches_the_verifier(
         tmp_path):
-    head = committed_head(tmp_path)
+    head = with_origin_head(tmp_path)
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/\n")
     (tmp_path / "lint.sh").write_text("echo \"tests/test_slugify.py:3: F841 local variable 'unused' is never used\"; exit 1\n")
@@ -268,7 +267,7 @@ def test_verify_sh_green_with_the_same_test_command_whose_lint_gate_fails_is_not
                      " VERI_TEST_CMD chains a lint gate red on both trees and a real test runner, around a stub claude")
 def test_verify_sh_red_whose_lint_gate_fails_on_the_tree_without_the_red_too_exits_2_naming_the_gate_as_red_before_the_red_and_launches_no_verifier(
         tmp_path):
-    committed_head(tmp_path)
+    with_origin_head(tmp_path)
     identity = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
                 "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test",
                 "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
@@ -311,7 +310,7 @@ def test_verify_sh_red_whose_lint_gate_fails_on_the_tree_without_the_red_too_exi
                      " VERI_TEST_CMD is a single test runner whose only failure names the target test, around a stub claude")
 def test_verify_sh_red_whose_test_command_is_a_single_runner_with_no_lint_gate_launches_the_verifier_and_is_not_rejected_with_a_gate_reason(
         tmp_path):
-    head = committed_head(tmp_path)
+    head = with_origin_head(tmp_path)
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/\n")
     (tmp_path / "tests").mkdir()
@@ -362,7 +361,7 @@ def test_verify_sh_pin_launches_its_verifier_with_the_mutation_record_set_to_the
 @pytest.mark.process("verify.sh green run as a real shim over veri/verify.py in a throwaway git repo, around a stub"
                      " claude that records whether VERI_MUTATION_RECORD is set in the environment it was launched with")
 def test_verify_sh_green_with_an_issue_launches_its_verifier_without_the_mutation_record_set_2506(tmp_path):
-    head = committed_head(tmp_path)
+    head = with_origin_head(tmp_path)
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/\n")
     seen = tmp_path / ".tdd" / "seen-record"
@@ -385,7 +384,7 @@ def test_verify_sh_green_with_an_issue_launches_its_verifier_without_the_mutatio
 @pytest.mark.process("verify.sh green run as a real shim over veri/verify.py in a throwaway git repo, around a stub"
                      " claude that records whether VERI_MUTATION_RECORD is set in the environment it was launched with")
 def test_verify_sh_green_launches_its_verifier_without_an_ambient_mutation_record_2506(tmp_path):
-    head = committed_head(tmp_path)
+    head = with_origin_head(tmp_path)
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/\n")
     seen = tmp_path / ".tdd" / "seen-record"
@@ -701,7 +700,7 @@ def test_verify_sh_passes_the_blind_prompt_carrying_the_spec_to_the_leaf_and_a_h
         env.update(CLAUDE_BIN=str(claude), VERI_STUCK_RETRIES="0", VERI_TIMEOUT="0",
                    VERI_POLL="0.02", VERI_KILL_POLL="0.01")
         (tmp_path / ".gitignore").write_text(".tdd/\n")
-        env.update(checked_step(tmp_path, committed_head(tmp_path)))
+        env.update(checked_step(tmp_path, with_origin_head(tmp_path)))
 
     code, out, err = run_cli(verify, argv, env=env, cwd=tmp_path)
 
@@ -801,6 +800,7 @@ def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches
     through_fixture(fake_processes, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
+    monkeypatch.setattr(verify, "branch_base", lambda words: "0" * 40)  # git is faked: a run's merge base (#4263)
 
     code, out, err = run_cli(verify, [*FAST, "green", "spec.md", "tests/test_slugify.py", "test_lowercases"],
                              env={"HOME": str(tmp_path), **env}, cwd=tmp_path)
@@ -2181,6 +2181,7 @@ def test_main_saves_the_content_diff_of_a_verifier_that_modified_a_tracked_file_
     git("init", "-q")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
+    origin_head_at(repo)
     expected = []
     verify = importlib.import_module("veri.verify")
     real_start = verify.leaf_tree_guard.start
@@ -2227,6 +2228,7 @@ def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_18
     git("config", "core.fileMode", "true")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
+    origin_head_at(repo)
     launches = []
     verify = importlib.import_module("veri.verify")
     real_start = verify.leaf_tree_guard.start
@@ -2269,6 +2271,7 @@ def test_main_saves_a_binary_change_of_a_verifier_in_a_diff_that_applies_with_bi
     git("init", "-q")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
+    origin_head_at(repo)
     verify = importlib.import_module("veri.verify")
     real_start = verify.leaf_tree_guard.start
 
@@ -2315,6 +2318,7 @@ def test_main_still_refuses_with_2_and_resets_the_tree_saying_the_diff_could_not
     git("init", "-q")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
+    origin_head_at(repo)
     verify = importlib.import_module("veri.verify")
     real_start = verify.leaf_tree_guard.start
 
@@ -2359,6 +2363,7 @@ def test_main_still_refuses_with_2_saying_the_diff_could_not_be_saved_and_writes
     git("init", "-q")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
+    origin_head_at(repo)
     verify = importlib.import_module("veri.verify")
     real_start = verify.leaf_tree_guard.start
 
@@ -2400,6 +2405,7 @@ def test_main_removes_an_earlier_refusals_diff_when_this_refusals_diff_could_not
     git("init", "-q")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
+    origin_head_at(repo)
     (repo / ".tdd").mkdir(exist_ok=True)
     (repo / ".tdd" / "verify-green.diff").write_text("an earlier refusal's diff\n")
     verify = importlib.import_module("veri.verify")
@@ -2442,6 +2448,7 @@ def test_main_saves_a_diff_that_passes_git_apply_check_whatever_the_users_prefix
     git("init", "-q")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
+    origin_head_at(repo)
     verify = importlib.import_module("veri.verify")
     real_start = verify.leaf_tree_guard.start
 
@@ -2485,6 +2492,7 @@ def test_verify_sh_rebase_exits_1_without_launching_the_leaf_naming_the_commit_a
     (repo / "docs").mkdir()
     (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 2 |\n")
     onto = commit("onto")
+    origin_head_at(repo)
     (repo / "docs" / "backend.md").write_text(
         "| a | b |\n|---|---|\n<<<<<<< HEAD\n| 1 | 2 |\n=======\n| 1 | 3 |\n>>>>>>> topic\n")
     marked = commit("rebase resolution keeping the markers")
@@ -2526,6 +2534,7 @@ def test_verify_sh_rebase_exits_1_without_launching_the_leaf_when_a_commit_added
     (repo / "docs").mkdir()
     (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 2 |\n")
     onto = commit("onto")
+    origin_head_at(repo)
     (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 2 |\n>>>>>>> topic\n")
     marked = commit("rebase resolution keeping a closing marker")
     (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 3 |\n")
@@ -2563,6 +2572,7 @@ def test_verify_sh_rebase_launches_the_leaf_and_returns_its_verdict_when_no_comm
     (repo / "docs").mkdir()
     (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 2 |\n")
     onto = commit("onto")
+    origin_head_at(repo)
     (repo / "docs" / "backend.md").write_text("Title\n=======\n| a | b |\n|---|---|\n| 1 | 3 |\n")
     commit("a clean resolution with a setext heading")
     (repo / "notes.txt").write_text("unrelated\n")

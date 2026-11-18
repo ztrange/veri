@@ -204,6 +204,15 @@ def merge_base():
     return leaf_tree_guard.git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
 
 
+def branch_base(words):
+    """The commit a verifier outside veri's own tree reads its run lines at (#4263): the `<branch-base-sha>` a `diff`
+    call names ("" when it is not a hex commit name, which the builder refuses), else the merge base of HEAD and
+    origin/HEAD ("" when git names none, which verify refuses)."""
+    if words[0] == "diff":
+        return words[2] if build_verify_prompt.HEX_SHA.fullmatch(words[2]) else ""
+    return merge_base()
+
+
 def red_gate_failure():
     for gate in (g.strip() for g in tunables.read("VERI_TEST_CMD").split("&&")[:-1]):
         passed, output = passes_in(gate, ".")
@@ -307,15 +316,16 @@ def main(argv):
         if not base:
             write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; a %s needs the real before-state" % words[0])
             return 2
-    elif not run_line.own_tree() and os.path.exists(".git"):
-        base = merge_base()
-        if not base and leaf_tree_guard.git("config", "--get", "remote.origin.url").returncode == 0:
+    elif not run_line.own_tree():
+        base = branch_base(words)
+        if not base and words[0] != "diff":
             write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; the %s verifier reads its run lines"
                   " from CLAUDE.md there" % words[0])
             return 2
     issue = tunables.read("VERI_ISSUE")
     ledger = run_dir.ledger(".", issue) if issue else ""
     code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base,
+                                            root=event.toplevel() or ".",
                                             ledger=ledger, supersede_base=options["--supersede-base"])
     if code:
         return entry.to_contract(code)
