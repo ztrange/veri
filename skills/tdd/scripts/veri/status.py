@@ -452,7 +452,14 @@ def stack_lines(root, span):
     cut = said.split()[0] if code == 0 and said.split() else None
     tested = len(set().union(*issues[:shas.index(cut) + 1])) if cut in shas else 0
     landed = len(landed_slices(stack, default, time.time() - SLICE_WINDOW))
-    return ["%s: joined %d, tested %d, landed %d in 24h" % (stack, joined, tested, landed)]
+    lines = ["%s: joined %d, tested %d, landed %d in 24h" % (stack, joined, tested, landed)]
+    tracking = tracking_pull(stack, default)
+    if tracking:
+        lines.append("tracking: " + tracking)
+    code, said = stack_script(root, "stack-red.sh")
+    if code == 0:
+        lines.append("frozen: " + " ".join(said.split()[:2]))
+    return lines
 
 
 def stack_absent(stack):

@@ -282,3 +282,18 @@ def test_report_prints_a_stack_section_between_landed_and_running_with_its_joine
     heads = [line for line in out.splitlines() if line in ("Landed", "Stack", "Running")]
     assert (code, heads, section(out, "Stack")) == (
         0, ["Landed", "Stack", "Running"], ["stacky: joined 3, tested 2, landed 2 in 24h"]), (out, err)
+
+
+def test_report_stack_section_names_the_open_tracking_pull_request_and_a_freeze_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    report_tree(tmp_path, monkeypatch, status, {})
+    red = "d4" * 20
+    stack_reads(monkeypatch, status, tracking="https://github.com/acme/widgets/pull/500",
+                scripts={"stack-red.sh": (0, "%s https://github.com/acme/widgets/actions/runs/9 failure\n" % red)})
+    fake_processes.answers({"": logs_answer({})})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, section(out, "Stack")) == (0, [
+        "stacky: joined 3, tested 2, landed 2 in 24h", "tracking: https://github.com/acme/widgets/pull/500",
+        "frozen: %s https://github.com/acme/widgets/actions/runs/9" % red]), (out, err)
