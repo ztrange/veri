@@ -82,19 +82,14 @@ def render(wt, n):
 
 
 def tick_full_suite(wt, n):
-    """MC1: under `ci`, with an unchecked ⟦full-suite⟧ line and a first wait that did not say `has no checks`, each
-    such line ticked with tick-ledger.sh until it exits 3, each line's issue criterion ticked, and the ledger
-    committed as `plan: the full suite is green on CI`; nothing otherwise."""
+    """MC1: under `ci`, with an unchecked ⟦full-suite⟧ line, each such line ticked with tick-ledger.sh until it exits
+    3, each line's issue criterion ticked, and the ledger committed as `plan: the full suite is owed to CI`; nothing
+    otherwise. It runs before readying, so no CI wait has spoken yet and none is read (#4332)."""
     if fused.checked(WHERE, fused.script("branch-suite.sh"), cwd=wt).strip() != "ci":
         return
     lines = [r.text for r in ledger.ledger_steps(ledger.read_ledger(run_dir.ledger(wt, n)))
              if r.state == "open" and FULL_SUITE in r.text]
     if not lines:
-        return
-    first_wait = pr_ready_wait.said(wt, ".tdd/wait-ci.err", absent=None)
-    if first_wait is None:  # no record of what the first wait said is no proof CI ran
-        raise fused.Stop(WHERE, "no .tdd/wait-ci.err", 2)
-    if pr_ready_wait.NO_CHECKS in first_wait:
         return
     tick = (fused.script("tick-ledger.sh"), LEDGER % n, FULL_SUITE)
     while (code := fused.call(*tick, cwd=wt)[0]) != 3:
@@ -105,7 +100,7 @@ def tick_full_suite(wt, n):
         criterion = fused.checked(WHERE, fused.script("ledger-steps.sh"), "criterion", k, cwd=wt, stdin=body).strip()
         fused.checked(WHERE, fused.script("tick-issue-criterion.sh"), n, criterion, cwd=wt, ok=(0, 3))
     pr_ready_wait.answered(WHERE, "git", "add", LEDGER % n, cwd=wt)
-    pr_ready_wait.answered(WHERE, "git", "commit", "-m", "plan: the full suite is green on CI (#%s)" % n, cwd=wt)
+    pr_ready_wait.answered(WHERE, "git", "commit", "-m", "plan: the full suite is owed to CI (#%s)" % n, cwd=wt)
 
 
 if __name__ == "__main__":

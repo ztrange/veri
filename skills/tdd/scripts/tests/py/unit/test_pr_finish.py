@@ -72,8 +72,6 @@ def finish(monkeypatch, run_cli, tmp_path):
         for key, (path, text) in files.items():
             if key not in missing:
                 path.write_text(text)
-        if "wait-ci.err" not in missing and not (wt / ".tdd" / "wait-ci.err").exists():
-            (wt / ".tdd" / "wait-ci.err").write_text("")  # the first wait's, which pr-ready-wait.sh leaves
         fake = fake or Fake(answers)
         monkeypatch.setattr(fused, "run_script", fake)
         code, out, err = run_cli(importlib.import_module("veri." + module), list(argv if argv is not None else ("12",)),
@@ -161,26 +159,27 @@ def test_4033_under_ci_it_ticks_each_full_suite_line_and_its_criterion_and_commi
     assert all(c[4]["stdin"] == BODY for c in fake.made("ledger-steps.sh", "criterion"))
     assert [c[1] for c in fake.made("tick-issue-criterion.sh")] == [("12", "two"), ("12", "three")]
     assert [c[1] for c in fake.made("git", "add")][0] == ("add", ".tdd/issue-12.md")
-    assert _commits(fake)[0] == "plan: the full suite is green on CI (#12)"
+    assert _commits(fake)[0] == "plan: the full suite is owed to CI (#12)"
 
 
-@pytest.mark.parametrize("mode, ledger, err_text", [
-    ("local", LEDGER, ""), ("ci", "# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n", ""),
-    ("ci", LEDGER.replace("- [ ]", "- [x]"), ""), ("ci", LEDGER, "PR 42 has no checks\n")],
-    ids=["local", "no full-suite line", "every full-suite line ticked", "has no checks"])
-def test_4033_otherwise_it_ticks_and_commits_nothing_of_the_kind(finish, mode, ledger, err_text):
-    (finish.wt / ".tdd" / "wait-ci.err").write_text(err_text)
+@pytest.mark.parametrize("mode, ledger", [
+    ("local", LEDGER), ("ci", "# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n"), ("ci", LEDGER.replace("- [ ]", "- [x]"))],
+    ids=["local", "no full-suite line", "every full-suite line ticked"])
+def test_4033_otherwise_it_ticks_and_commits_nothing_of_the_kind(finish, mode, ledger):
     code, out, err, fake = finish(fake=Fake(mode=mode), ledger=ledger, module="pr_ready_wait")
 
     assert not {"tick-ledger.sh", "tick-issue-criterion.sh"} & set(fake.names())
-    assert "plan: the full suite is green on CI (#12)" not in _commits(fake)
+    assert "plan: the full suite is owed to CI (#12)" not in _commits(fake)
 
 
-def test_4033_no_wait_ci_err_under_ci_with_a_line_to_tick_stops_it_with_exit_2_before_any_tick(finish):
-    code, out, err, fake = finish(missing=("wait-ci.err",), module="pr_ready_wait")
+def test_4332_under_ci_with_no_wait_ci_err_pr_ready_wait_ticks_the_line_and_commits_it_as_owed_before_readying(finish):
+    assert not (finish.wt / ".tdd" / "wait-ci.err").exists()
+    code, out, err, fake = finish(module="pr_ready_wait")
 
-    assert (code, out.splitlines()[-1]) == (2, "stopped at 2 no .tdd/wait-ci.err")
-    assert not {"tick-ledger.sh", "event.sh"} & set(fake.names())
+    made = [c[1][2] if c[0] == "git" else c[0] for c in fake.calls
+            if c[0] in ("tick-ledger.sh", "pr-ready.sh") or (c[0], c[1][:1]) == ("git", ("commit",))]
+    assert (code, made) == (0, ["tick-ledger.sh"] * 3 + ["plan: the full suite is owed to CI (#12)",
+                                                         "metrics: what solving #12 cost (#12)", "pr-ready.sh"])
 
 
 RENDER = ".tdd/issue-12-refactor-owed-render"
