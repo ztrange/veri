@@ -237,6 +237,24 @@ def test_issue_3241_dev_request_reset_refuses_when_only_a_message_was_dropped_si
     assert (refused, accepted) == ((1, False), (0, True))
 
 
+def test_dev_request_reset_judges_a_decision_against_the_last_of_several_recoveries(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    state = tdd / "role-dev.state"
+    before = ("recovered-at=2026-11-12T09:00:00\n"
+              "decision 1 2026-11-12T09:30:00 use the bus\n"
+              "recovered-at=2026-11-12T09:45:00\n")
+    state.write_text(before)
+
+    code, _, err = run_cli(role_state, ["dev", "request-reset"])
+
+    assert (code, err, state.read_text(), sorted(p.name for p in tdd.glob("reset-request-*"))) == (
+        1, "request-reset refused: nothing launched, merged or decided since the last recovery\n", before, [])
+
+
 def test_issue_3241_dev_request_reset_with_two_resets_in_the_last_hour_exits_1_writing_nothing_even_after_a_later_launch(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
     monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
