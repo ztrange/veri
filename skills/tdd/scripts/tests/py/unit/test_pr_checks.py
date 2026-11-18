@@ -248,3 +248,29 @@ def test_4392_a_clear_that_drops_a_stale_coupling_row_stops_it_at_coupling_for_t
                                                ".tdd/issue-12-refactor-owed.md coupling dropped a stale row")
     assert fake.names()[-1] == "refactor-owed.sh"
     assert [c[1][:1] for c in fake.calls if c[0] == "git"] == [("merge-base",)]
+
+
+@pytest.mark.parametrize("failing, inner", [
+    (("git", ("merge-base",)), 128), (("detach-command.sh", ("start",)), 1), (("event.sh", None), 1),
+    (("stop-requested.sh", None), 2), (("test-quality.sh", ("files",)), 2), (("red-setup.sh", None), 2),
+    (("red-setup.sh", None), 1), (("coupling.sh", None), 2), (("refactor-owed.sh", ("clear",)), 1),
+    (("refactor-candidates.sh", None), 2), (("unwired.sh", None), 2)],
+    ids=["merge-base", "lint start", "lint event", "stop-requested", "test-quality files", "red-setup 2",
+         "red-setup 1", "coupling", "refactor-owed clear", "refactor-candidates", "unwired"])
+def test_4392_an_inner_call_that_obtains_no_answer_stops_it_with_exit_2_at_that_call(checks, failing, inner):
+    answers = {failing: (inner, "")}
+    if failing[0] == "stop-requested.sh":
+        answers[("detach-command.sh", ("wait",))] = (2, "")
+    code, out, err, fake = checks(answers=answers)
+
+    assert code == 2, out + err
+    assert fake.names()[-1] == failing[0]
+    assert out.splitlines()[-1].startswith("stopped at ")
+    assert out.splitlines()[-1].endswith(" exit %d" % inner)
+
+
+def test_4392_no_default_branch_stops_it_with_exit_2_before_any_call(checks, monkeypatch):
+    monkeypatch.setattr(importlib.import_module("veri.pr_checks"), "default_branch", lambda wt: "")
+    code, out, err, fake = checks()
+
+    assert (code, fake.calls, out.splitlines()[-1]) == (2, [], "stopped at branch-base no default branch")

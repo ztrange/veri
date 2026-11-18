@@ -29,12 +29,15 @@ def run(n):
     lint(wt, n)
     owed = ".tdd/issue-%s-refactor-owed.md" % n
     quality(wt, n, base)
-    fused.call(fused.script("red-setup.sh"), "worst", n, owed, cwd=wt)
+    answered("red-setup", fused.script("red-setup.sh"), "worst", n, owed, ok=(0, 3), cwd=wt)
     coupling(wt, n, base, owed)
-    code, said_url, _ = fused.call(fused.script("refactor-candidates.sh"), n, owed, cwd=wt)
-    fused.checked("unwired", fused.script("unwired.sh"), "--accepted", ".tdd/issue-%s-unwired-accepted" % n, base,
-                  ok=(0, 3), cwd=wt, out=".tdd/unwired.out")
-    return fused.settle(wt, n, NAME, ["candidates=" + (said_url.strip() if code == 0 else "")])
+    url = answered("refactor-candidates", fused.script("refactor-candidates.sh"), n, owed, ok=(0, 3), cwd=wt)
+    unwired = (fused.script("unwired.sh"), "--accepted", ".tdd/issue-%s-unwired-accepted" % n, base)
+    try:
+        fused.checked("unwired", *unwired, ok=(0, 3), cwd=wt, out=".tdd/unwired.out")
+    except fused.Stop as stop:
+        raise fused.Stop(stop.where, stop.what, 1 if stop.code == 1 else 2)
+    return fused.settle(wt, n, NAME, ["candidates=" + url.strip()])
 
 
 def default_branch(wt):
@@ -44,8 +47,19 @@ def default_branch(wt):
 
 
 def branch_base(wt):
-    """`git merge-base HEAD origin/<default>`."""
-    return fused.call("git", "merge-base", "HEAD", "origin/" + default_branch(wt), cwd=wt)[1].strip()
+    """`git merge-base HEAD origin/<default>`; no default branch, or a failing git call, is exit 2."""
+    default = default_branch(wt)
+    if not default:
+        raise fused.Stop("branch-base", "no default branch", 2)
+    return answered("branch-base", "git", "merge-base", "HEAD", "origin/" + default, cwd=wt).strip()
+
+
+def answered(where, *args, **kw):
+    """fused.checked at <where>, an exit outside its <ok> stopping it with exit 2 (no answer could be obtained)."""
+    try:
+        return fused.checked(where, *args, **kw)
+    except fused.Stop as stop:
+        raise fused.Stop(stop.where, stop.what, 2)
 
 
 def path(wt, name):
@@ -86,7 +100,7 @@ def lint(wt, n):
             write(wt, section, "### Lint\n\nThe lint command could not be read: detect-test-command.sh --tier lint "
                   "exited %d.\n" % found)
             return
-        fused.call(DETACH, "start", "lint", "sh", "-c", command, cwd=wt)
+        answered("lint", DETACH, "start", "lint", "sh", "-c", command, cwd=wt)
         fused.save_wait(wt, n, NAME, "lint", {"lint": command})
     bound = tunables.get("VERI_LINT_TIMEOUT", unless_empty=True)
     waited = (DETACH, "wait", "lint", "--total", bound)
@@ -99,8 +113,8 @@ def lint(wt, n):
         unrecorded(wt, section, command, bound)
         return
     code = said(wt, ".tdd/lint.exit").strip()
-    fused.call(fused.script("event.sh"), "lint", "exit=" + code, cwd=wt,
-               env=tunables.with_values(VERI_ISSUE=n, VERI_ACTOR="conductor"))
+    answered("lint", fused.script("event.sh"), "lint", "exit=" + code, cwd=wt,
+             env=tunables.with_values(VERI_ISSUE=n, VERI_ACTOR="conductor"))
     if code == "0":
         write(wt, section, "### Lint\n\n`%s` passed.\n" % command)
         return
@@ -113,8 +127,8 @@ def lint(wt, n):
 def unrecorded(wt, section, command, bound):
     """A lint wait with no exit code recorded: a stop of `now` stops it at lint; else the section says the command was
     stopped past VERI_LINT_TIMEOUT or could not be run, and no event is written."""
-    code, mode, _ = fused.call(fused.script("stop-requested.sh"), cwd=wt)
-    if code == 0 and mode.strip() == "now":
+    mode = answered("lint", fused.script("stop-requested.sh"), ok=(0, 3), cwd=wt)
+    if mode.strip() == "now":
         raise fused.Stop("lint", "stop-requested.sh exit 0 now", 1)
     if "still running past --total" in said(wt, ".tdd/lint.wait.err", ""):
         why = "did not finish within VERI_LINT_TIMEOUT (%s seconds) and was stopped" % bound
@@ -131,12 +145,14 @@ def coupling(wt, n, base, owed):
     write(wt, section, "")
     pairs = (fused.script("coupling.sh"), base)
     code = fused.call(*pairs, cwd=wt, out=".tdd/coupling.out")[0]
+    if code not in (0, 3):
+        raise fused.Stop("coupling", fused.shown(*pairs, out=".tdd/coupling.out") + " exit %d" % code, 2)
     if code == 0:
         write(wt, section, "### Coupling\n\n" + said(wt, ".tdd/coupling.out"))
         raise fused.Stop("coupling", fused.shown(*pairs, out=".tdd/coupling.out") + " exit 0", 1)
     before = said(wt, owed, "")
     cleared = (fused.script("refactor-owed.sh"), "clear", owed, "coupling")
-    fused.call(*cleared, cwd=wt)
+    answered("coupling", *cleared, cwd=wt)
     if said(wt, owed, "") != before:
         raise fused.Stop("coupling", fused.label(*cleared) + " dropped a stale row", 1)
 
@@ -151,6 +167,8 @@ def quality(wt, n, base):
         return
     files = (fused.script("test-quality.sh"), "files", base)
     code = fused.call(*files, cwd=wt, out=".tdd/test-quality-files")[0]
+    if code not in (0, 3):
+        raise fused.Stop("test-quality", fused.shown(*files, out=".tdd/test-quality-files") + " exit %d" % code, 2)
     if code == 0:
         raise fused.Stop("test-quality", fused.shown(*files, out=".tdd/test-quality-files") + " exit 0", 1)
     write(wt, record, "")
