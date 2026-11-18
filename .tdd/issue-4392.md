@@ -7,7 +7,7 @@
 - [x] a non-zero lint writes its event and its `### Lint` section with the output's last 20 lines cut at 300 characters, then stops it with exit 1 at lint, appending no repair step ⟦criterion 2⟧
 - [x] a coupling.sh pair writes the `### Coupling` section, then stops it with exit 1 at coupling, recording no row ⟦criterion 2⟧
 - [x] an unwired.sh finding stops it with exit 1 at unwired, writing no pending record and no bail ⟦criterion 2⟧
-- [ ] a lint wait whose slice runs out exits 3 with .tdd/issue-<n>-pr-checks-wait, and a second call by the same conductor only waits again, starting no second lint ⟦criterion 3⟧
+- [x] a lint wait whose slice runs out exits 3 with .tdd/issue-<n>-pr-checks-wait, and a second call by the same conductor only waits again, starting no second lint ⟦criterion 3⟧
 - [ ] a record holding a weak-assertion or implementation-coupled finding the VERI_TEST_QUALITY_FIXES budget still owes a step stops it with exit 1 at test-quality
 - [ ] no `veri: lint:` line skips the lint; a lint command that cannot be read, one stopped past VERI_LINT_TIMEOUT and one that recorded no exit each write their `### Lint` sentence and go on, and a stop request of `now` stops it at lint
 - [ ] coupling.sh exit 3 that drops a stale coupling row stops it with exit 1 at coupling, leaving the commit to the conductor
