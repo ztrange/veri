@@ -101,3 +101,24 @@ def test_outside_veri_verify_red_reads_its_run_lines_at_the_merge_base_with_orig
 
     assert (run_lines_of(prompt), refused) == (BASE_LINES, (
         2, "", "verify: no merge-base of HEAD and origin/HEAD; the red verifier reads its run lines from CLAUDE.md there\n"))
+
+
+@pytest.mark.process("git init, commit and remote add run for real in a scratch repository laid out as veri's own tree,"
+                     " then verify.sh's module in it, launching a real supervise.sh around a stub claude")
+def test_inside_veris_own_tree_verify_red_with_an_origin_remote_but_no_origin_head_writes_its_prompt_and_refuses_nothing_4263(
+        tmp_path, run_cli):
+    verify = importlib.import_module("veri.verify")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    claude = tmp_path / "claude-pass"
+    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
+    claude.chmod(0o755)
+    commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n",
+                                "skills__tdd__scripts__tests__py__conftest.py": ""})
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+
+    code, out, err = run_cli(verify, ["red", str(spec), "tests/test_x.py", "test_x"],
+                             env={"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}, cwd=repo)
+
+    assert ("no merge-base" in err, (repo / ".tdd" / "verify-red.prompt").exists()) == (False, True), (code, out, err)
