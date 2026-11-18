@@ -720,3 +720,15 @@ def test_wait_total_counts_from_the_start_the_pid_file_records_so_a_wait_called_
 
     assert (code, group["signals"], sum(slept), err.count("\n"), "--total 5" in err) == (
         2, [(4242, signal.SIGTERM)], 0, 1, True)
+
+
+def test_wait_refuses_a_total_that_is_not_a_whole_number_with_the_usage_line_and_exit_2_4264(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.exit").write_text("0\n")
+
+    for total in ("abc", "1.5", "-1", " 5", ""):
+        code = detach_command.main(["wait", "x", "--total", total])
+        assert (total, code, capsys.readouterr()) == (total, 2, ("", USAGE))
