@@ -1058,3 +1058,29 @@ def test_3985_a_teardown_that_raises_after_the_passes_is_one_line_and_keeps_a_re
     err = capfd.readouterr().err
 
     assert (got, err.count("\n"), "OSError: [Errno 16] Resource busy" in err, "Traceback" in err) == (code, 1, True, False)
+
+
+def test_4310_a_leg_with_no_worker_count_that_finds_the_registered_workers_at_the_cores_starts_pytest_only_after_a_registered_leg_is_gone(pytest_leg, run_cli, monkeypatch, tmp_path):
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    blocker = legs / str(os.getppid())
+    blocker.write_text("16\n")
+    started_with_blocker = []
+
+    def spy(args):
+        started_with_blocker.append(blocker.exists())
+        return pytest.ExitCode.OK
+
+    def death_during_the_poll_sleep(seconds):
+        blocker.unlink(missing_ok=True)
+
+    monkeypatch.setattr(pytest, "main", spy)
+    monkeypatch.setattr(pytest_leg.time, "sleep", death_during_the_poll_sleep)
+    env = leg_env(VERI_PYTEST_LEGS=str(legs))
+    assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
+    assert started_with_blocker == [False, False]

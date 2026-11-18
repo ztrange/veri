@@ -184,7 +184,7 @@ def worker_count(requested):
             cores = affinity
     else:
         cores = affinity
-    return max(1, cores - registered_workers(legs_dir()))
+    return cores - registered_workers(legs_dir())
 
 
 def registered_workers(legs):
@@ -207,13 +207,16 @@ def registered_workers(legs):
 def claim():
     legs = legs_dir()
     os.makedirs(legs, exist_ok=True)
-    with open(legs.rstrip("/") + ".lock", "w") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        count = worker_count(None)
-        entry = os.path.join(legs, str(os.getpid()))
-        with open(entry, "w") as f:
-            f.write(str(count))
-    return count, entry
+    while True:
+        with open(legs.rstrip("/") + ".lock", "w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            count = worker_count(None)
+            if count >= 1:
+                entry = os.path.join(legs, str(os.getpid()))
+                with open(entry, "w") as f:
+                    f.write(str(count))
+                return count, entry
+        time.sleep(1)
 
 
 def unregister(entry):
