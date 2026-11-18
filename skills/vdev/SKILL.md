@@ -279,7 +279,9 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   slice lands now (100 commits or an idle stack) is the script's to decide, not yours. Exit 0 is
   reported as a notice (*Speaking*) with the slice's pull request url and the issues it landed.
   Exit 3, nothing to land, is the common case and is not reported. Exit 1 and exit 2 are reported
-  as a notice with their stderr.
+  as a notice with their stderr. Where a stack is named, the standing merge permission in the
+  project repo (*Starting*) covers `$S/stack-land.sh` and nothing else that reaches the default
+  branch: no other push, merge or rebase onto it. `--now` is run only when the human asks for it.
 
 After routing a `dispatch.sh` line, and launching any held resume the freed slot now takes, start
 `dispatch.sh` again as one background command. Then take the slot decision.
