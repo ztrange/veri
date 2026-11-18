@@ -224,3 +224,18 @@ def test_4388_it_writes_no_bail_classifies_nothing_writes_no_metrics_file_commit
     assert not [p for p in (stop.wt / ".tdd").iterdir() if "metrics" in p.name]
     assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("commit",), ("add",))]
     assert (stop.wt / ".tdd" / "conductor.pid").read_text() == "4242\nThu Nov 18 10:00:00 2026\n"
+
+
+def test_4388_it_prints_one_line_per_call_with_its_exit_code_and_never_a_leaf_or_suite_output_file(stop, monkeypatch):
+    _leaves(stop, monkeypatch, live=("develop-red",))
+    (stop.wt / ".tdd" / "develop-red.out").write_text("LEAF-OUT-MARKER\n")
+    (stop.wt / ".tdd" / "test-runs").mkdir()
+    (stop.wt / ".tdd" / "test-runs" / "run.txt").write_text("SUITE-OUT-MARKER\n")
+    code, out, err, fake = stop(fake=Fake(ledger=LEDGER + "LEDGER-MARKER\n"))
+
+    assert code == 0, err
+    named = [line for line in out.splitlines() if " exit " in line]
+    assert len(named) == len(fake.calls)
+    assert [line.split(" ")[0] for line in named] == fake.names()
+    assert all(line.rsplit(" exit ", 1)[1].isdigit() for line in named)
+    assert not {"LEAF-OUT-MARKER", "SUITE-OUT-MARKER", "LEDGER-MARKER"} & (set(out.split()) | set(err.split()))
