@@ -8,7 +8,7 @@ import entry
 import run_dir
 import tunables
 
-USAGE = "usage: reset-wait.sh marker|recovered|idle dev [--lane <lane>] [<seconds>]"
+USAGE = "usage: reset-wait.sh marker|recovered dev [--lane <lane>] [<seconds>]"
 
 
 def poll():
@@ -25,7 +25,7 @@ def role_key(role, lane=None):
 
 def parse(argv):
     """(verb, role, key, seconds) for a well-formed argv, else None. Nothing touches a file before this."""
-    if len(argv) < 2 or argv[0] not in ("marker", "recovered", "idle") or argv[1] != "dev":
+    if len(argv) < 2 or argv[0] not in ("marker", "recovered") or argv[1] != "dev":
         return None
     rest, lane, seconds = argv[2:], None, None
     if rest[:1] == ["--lane"]:
@@ -68,34 +68,20 @@ def main(argv):
         with open(path) as f:
             print("reset-request %s %s" % (role, f.read().strip()))
         return 0
-    if verb == "recovered":
-        try:
-            with open(marker_path(tdd, key)) as f:
-                since = f.read().strip()
-        except FileNotFoundError:
-            return 3
-        deadline = time.monotonic() + float(seconds or tunables.get("VERI_RESET_ACK_TIMEOUT"))
-        while time.monotonic() < deadline:
-            poll()
-            at = state_field(tdd, key, "recovered-at")
-            if at and at > since:
-                print("recovered %s %s" % (role, at))
-                return 0
-        print("not-recovered %s" % role)
-        return 1
-    transcript = state_field(tdd, key, "transcript")
-    if not transcript:
-        print("reset-wait.sh: no transcript recorded for %s" % role, file=sys.stderr)
-        return 2
-    seconds = seconds or tunables.get("VERI_RESET_IDLE")
     try:
-        while time.time() - os.path.getmtime(transcript) < float(seconds):
-            poll()
+        with open(marker_path(tdd, key)) as f:
+            since = f.read().strip()
     except FileNotFoundError:
-        print("reset-wait.sh: recorded transcript %s is missing" % transcript, file=sys.stderr)
-        return 2
-    print("idle %s %s" % (role, seconds))
-    return 0
+        return 3
+    deadline = time.monotonic() + float(seconds or tunables.get("VERI_RESET_ACK_TIMEOUT"))
+    while time.monotonic() < deadline:
+        poll()
+        at = state_field(tdd, key, "recovered-at")
+        if at and at > since:
+            print("recovered %s %s" % (role, at))
+            return 0
+    print("not-recovered %s" % role)
+    return 1
 
 
 if __name__ == "__main__":

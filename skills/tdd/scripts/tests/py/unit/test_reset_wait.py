@@ -484,3 +484,21 @@ def test_recovered_with_an_empty_veri_reset_ack_timeout_reads_it_as_empty_and_fa
     code, out, err = run_cli(reset_wait, ["recovered", "dev"], env={"VERI_POLL": "1", "VERI_RESET_ACK_TIMEOUT": ""})
 
     assert (code, out, "ValueError" in err, clock["now"]) == (2, "", True, 1_000_000.0)
+
+
+def test_issue_3890_the_idle_verb_exits_2_with_a_usage_line_naming_only_marker_and_recovered_and_reads_no_file(
+        tmp_path, monkeypatch, run_cli):
+    def no_wait(*args, **kwargs):
+        raise AssertionError("reset_wait slept")
+
+    reads = []
+    monkeypatch.setattr(time, "sleep", no_wait)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files",
+                        lambda cwd: reads.append(cwd) or str(tmp_path / "absent"))
+
+    code, out, err = run_cli(reset_wait, ["idle", "dev"])
+
+    first = (err.splitlines() or [""])[0]
+    assert (code, out, first.startswith("usage: reset-wait.sh marker|recovered dev "), "idle" in err, reads) == (
+        2, "", True, False, [])

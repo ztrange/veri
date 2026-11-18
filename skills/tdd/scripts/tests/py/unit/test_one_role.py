@@ -6,7 +6,7 @@ import pytest
 
 DEV_ONLY = {
     "role_state": "usage: role-state.sh dev ",
-    "reset_wait": "usage: reset-wait.sh marker|recovered|idle dev ",
+    "reset_wait": "usage: reset-wait.sh marker|recovered dev",
     "role_growth": "usage: role-growth.sh dev ",
 }
 
