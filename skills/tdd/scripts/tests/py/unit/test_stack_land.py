@@ -158,3 +158,19 @@ def test_a_cut_veri_slice_commits_or_more_ahead_goes_on_to_take_the_merge_lock_t
 
     assert [ran[:3] for ran in world.scripts] == [
         ("stack-red.sh",), ("stack-green.sh",), ("merge-lock.sh", "take", "--pid")], err
+
+
+def test_a_cut_fewer_than_veri_slice_commits_ahead_on_an_idle_stack_goes_on_to_take_the_merge_lock(
+        monkeypatch, run_cli, stack_land):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
+                                         "merge-lock.sh": (2, "")}, ahead=7)
+    status = importlib.import_module("veri.status")
+    dead = {"event": "conductor-start", "pid": "111"}
+    monkeypatch.setattr(status, "journals", lambda: iter([("/journals/90.jsonl", [dead, {"event": "launch"}])]))
+    monkeypatch.setattr(status, "conductor_alive", lambda start: False)
+
+    code, out, err = run_cli(stack_land, [])
+
+    assert [ran[:3] for ran in world.scripts] == [
+        ("stack-red.sh",), ("stack-green.sh",), ("merge-lock.sh", "take", "--pid")], err
