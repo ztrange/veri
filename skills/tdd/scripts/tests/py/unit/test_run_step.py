@@ -216,3 +216,10 @@ def test_4343_its_calls_are_the_four_stage_scripts_and_never_a_leaf_launcher(ste
 
     assert run_step.CALLS == STAGES == tuple(stages.names())
     assert not {"run-leaf.sh", "detach-leaf.sh", "supervise.sh"} & set(run_step.CALLS)
+
+
+def test_4343_a_step_close_exit_0_with_no_next_line_is_exit_2_named_on_stderr(step):
+    code, out, err, stages = step(answers={"step-close.sh": (0, "owed_pin=none\n")})
+
+    assert (code, err) == (2, "run-step.sh: step-close.sh exited 0 with no next= line\n")
+    assert "stage=step-close" in (step.wt / ".tdd" / "issue-12-step").read_text().splitlines()
