@@ -126,3 +126,21 @@ def test_a_cut_fewer_than_veri_slice_commits_ahead_on_a_stack_a_pull_request_is_
 
     assert (code, out, "7 commits" in err, url in err, world.scripts) == (
         3, "", True, True, [("stack-red.sh",), ("stack-green.sh",)]), err
+
+
+def test_a_cut_fewer_than_veri_slice_commits_ahead_with_no_pull_request_onto_the_stack_and_a_journal_naming_a_living_conductor_exits_3_saying_the_count_and_that_conductor_taking_no_lock(
+        monkeypatch, run_cli, stack_land):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7)
+    status = importlib.import_module("veri.status")
+    dead, alive = {"event": "conductor-start", "pid": "111"}, {"event": "conductor-start", "pid": "4242"}
+    monkeypatch.setattr(status, "journals", lambda: iter([
+        ("/journals/90.jsonl", [dead]),
+        ("/journals/4318.jsonl", [dead, {"event": "launch"}, alive, {"event": "launch"}]),
+    ]))
+    monkeypatch.setattr(status, "conductor_alive", lambda start: start["pid"] == "4242")
+
+    code, out, err = run_cli(stack_land, [])
+
+    assert (code, out, "7 commits" in err, "#4318" in err, "#90" in err, world.scripts) == (
+        3, "", True, True, False, [("stack-red.sh",), ("stack-green.sh",)]), err
