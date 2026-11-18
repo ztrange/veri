@@ -163,12 +163,14 @@ def unit_of(text):
     """The unit a skill-edit step names: its first path-shaped backticked span, or None.
 
     A heading unit (`<file>#<heading>`) runs past pairs of inner backticks to the first backtick followed by
-    whitespace or the end of the step, so a heading holding backticks stays whole and a later span stays out.
+    whitespace or the end of the step, so a heading holding backticks stays whole and a later span stays out;
+    with no such backtick (one followed by punctuation) it is the plain backticked span.
     """
     for match in re.finditer(r"`([^`]+)`", text):
         span = match.group(1)
         if "/" in span or span.endswith(".md"):
-            return HEADING_UNIT_RE.match(text, match.start(1)).group() if "#" in span else span
+            heading = HEADING_UNIT_RE.match(text, match.start(1)) if "#" in span else None
+            return heading.group() if heading else span
     return None
 
 
