@@ -19,7 +19,8 @@ def rowless():
     if not os.path.isdir(PROMPTS):
         return []
     units = set(listed_pairs("REQUIREMENTS.md")[1])
-    return [p for p in (PROMPTS + "/" + f for f in sorted(os.listdir(PROMPTS)) if f != "REQUIREMENTS.md") if p not in units]
+    paths = [PROMPTS + "/" + f for f in sorted(os.listdir(PROMPTS)) if f != "REQUIREMENTS.md"]
+    return [p for p in paths if p not in units]
 
 
 def waive(ledger, owed):
