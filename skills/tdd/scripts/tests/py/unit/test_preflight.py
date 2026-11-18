@@ -1375,7 +1375,7 @@ SHA_4337 = "c" * 40
 
 def _ci_answer_4337(**run):
     import json
-    return json.dumps([dict({"headSha": SHA_4337, "status": "completed", "conclusion": "success"}, **run)]) + "\n"
+    return json.dumps([dict({"headSha": SHA_4337, "status": "completed", "conclusion": "success", "event": "push"}, **run)]) + "\n"
 
 
 TREE_4337 = "e" * 40
@@ -1434,7 +1434,8 @@ def test_4337_a_base_commit_whose_ci_run_concluded_success_starts_no_baseline_ru
     ("not json\n", 0),
     (_ci_answer_4337(), 1),
     (_ci_answer_4337(headSha="d" * 40), 0),
-], ids=["red", "pending", "not-completed", "absent", "unparseable", "gh-failure", "another-sha"])
+    (_ci_answer_4337(event="pull_request"), 0),
+], ids=["red", "pending", "not-completed", "absent", "unparseable", "gh-failure", "another-sha", "pull-request"])
 def test_4337_a_ci_answer_that_is_not_success_on_the_sha_under_test_runs_the_baseline(
         monkeypatch, run_cli, tmp_path, ci, gh_code):
     code, out, starts, calls = _ci_run_4337(monkeypatch, run_cli, tmp_path, ci=ci, gh_code=gh_code)
@@ -1451,3 +1452,75 @@ def test_4337_a_baseline_that_ran_green_is_recorded_under_its_tree_and_commands_
 
     recorded = [a for b, a in calls if b == "baseline-full-tier.sh" and a[:1] == ("--record-green",)]
     assert recorded == ([("--record-green", "12", TREE_4337, "make unit", "make test")] if records else [])
+
+
+def test_4337_a_baseline_skipped_on_cis_word_whose_full_tier_was_waited_on_writes_no_record(
+        monkeypatch, run_cli, tmp_path):
+    """A skipped fast tier, then a full tier still running when the first call returns: the second call, which finds
+    it green, must not record a baseline that never ran its fast tier."""
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+    full_waits = iter([3, 0])
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "git" and args == ("rev-parse", "HEAD"):
+            return 0, SHA_4337 + "\n", ""
+        if base == "git" and args == ("rev-parse", "HEAD^{tree}"):
+            return 0, TREE_4337 + "\n", ""
+        if base == "detach-command.sh" and args[:2] == ("wait", "preflight-full-12"):
+            return next(full_waits), "", ""
+        if base == "gh" and args[:2] == ("run", "list"):
+            return 0, _ci_answer_4337(), ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+    first = run_cli(preflight, ["12", "my-slug"], cwd=tmp_path)
+    second = run_cli(preflight, ["12", "my-slug"], cwd=tmp_path)
+
+    assert (first[0], first[1].splitlines()[-1], second[0]) == (3, "waiting on preflight-full-12", 0)
+    assert [a for b, a in calls if b == "detach-command.sh" and a[:2] == ("start", "preflight-fast-12")] == []
+    assert [a for b, a in calls if b == "baseline-full-tier.sh" and a[:1] == ("--record-green",)] == []
+
+
+def test_4337_a_fast_tier_that_ran_and_was_waited_on_to_green_is_recorded(monkeypatch, run_cli, tmp_path):
+    """A fast tier still running when the first call returns, found green by the second call: it ran, so it records."""
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+    fast_waits = iter([3, 0])
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "git" and args == ("rev-parse", "HEAD^{tree}"):
+            return 0, TREE_4337 + "\n", ""
+        if base == "detach-command.sh" and args[:2] == ("wait", "preflight-fast-12"):
+            return next(fast_waits), "", ""
+        if base == "gh" and args[:2] == ("run", "list"):
+            return 0, "[]\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "reuse 55\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+    first = run_cli(preflight, ["12", "my-slug"], cwd=tmp_path)
+    second = run_cli(preflight, ["12", "my-slug"], cwd=tmp_path)
+
+    assert (first[0], first[1].splitlines()[-1], second[0]) == (3, "waiting on preflight-fast-12", 0)
+    assert [a for b, a in calls if b == "baseline-full-tier.sh" and a[:1] == ("--record-green",)] == [
+        ("--record-green", "12", TREE_4337, "make unit", "make test")]
