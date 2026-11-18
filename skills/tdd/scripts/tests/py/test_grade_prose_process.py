@@ -1182,7 +1182,8 @@ def test_2483_a_unit_graded_on_a_tree_carrying_its_own_signature_formula_is_stil
     import shutil
 
     tree_scripts = tmp_path / "skills" / "tdd" / "scripts"
-    shutil.copytree(SCRIPTS, tree_scripts, ignore=shutil.ignore_patterns("tests", "__pycache__", "REQUIREMENTS.md"))
+    # prompts/ stays out: copied without its REQUIREMENTS.md, each prompt file would print `(no rows)` (#4384).
+    shutil.copytree(SCRIPTS, tree_scripts, ignore=shutil.ignore_patterns("tests", "__pycache__", "REQUIREMENTS.md", "prompts"))
     shutil.copy(SCRIPTS.parent / "grader.conf", tmp_path / "skills" / "tdd" / "grader.conf")
     module = tree_scripts / "veri" / "grade_prose.py"
     source = module.read_text()
