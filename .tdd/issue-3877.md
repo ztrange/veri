@@ -3,3 +3,4 @@
 - [x] queued_merges() omits this clone's queued-merge.sh running for a PR in another owner/repo than the dispatch's target repo ⟦criterion 1⟧
 - [x] queued_merges() omits this clone's post-exec veri/queued_merge.py running for a PR in another owner/repo ⟦criterion 2⟧
 - [x] queued_merges() still counts a target-repo PR whose URL spells the owner/repo in another letter case than origin's remote
+- [ ] queued_merges() reads the target repo from the main working tree's origin remote ⟦added⟧
