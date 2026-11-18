@@ -225,3 +225,26 @@ def test_a_red_leafs_edit_to_the_pytest_leg_is_restored_with_a_production_file_r
     assert [(tmp_path / path).read_bytes() for path in (leg, module)] == [b"before\n", b"before\n"]
     assert events == [("production-file-restored", "name=develop-red-1", f"file={leg}"),
                       ("production-file-restored", "name=develop-red-1", f"file={module}")]
+
+
+def marker_judged(monkeypatch, supervise, marker, on_kill=lambda: None, started=None):
+    """lock_waiting(<marker>) with pid 4343 answering `kill 0` (after `on_kill` runs) and `ps -o lstart=` printing
+    `started` for it in both the pinned and the caller's locale, or failing when `started` is None."""
+    pid_file = importlib.import_module("veri.pid_file")
+
+    def kill(pid, sig):
+        assert (pid, sig) == (4343, 0), "only kill 0 on the marker's pid is expected"
+        on_kill()
+
+    monkeypatch.setattr(os, "kill", kill)
+    monkeypatch.setattr(pid_file, "ps_field", lambda field, pid: started if (field, int(pid)) == ("lstart", 4343) else None)
+    monkeypatch.setattr(pid_file, "caller_start", lambda pid: started if int(pid) == 4343 else None)
+    return supervise.lock_waiting(str(marker))
+
+
+def test_a_lock_wait_marker_its_waiter_removes_after_the_read_reads_as_not_waiting_never_raising_4415(
+        monkeypatch, tmp_path, supervise):
+    marker = tmp_path / "wait"
+    marker.write_text("4343\nMon Nov 16 10:00:00 2026\n")
+
+    assert marker_judged(monkeypatch, supervise, marker, on_kill=lambda: marker.unlink()) is False
