@@ -205,9 +205,9 @@ def merge_base():
 
 
 def branch_base(words):
-    """The commit a verifier outside veri's own tree reads its run lines at (#4263): the `<branch-base-sha>` a `diff`
-    call names ("" when it is not a hex commit name, which the builder refuses), else the merge base of HEAD and
-    origin/HEAD ("" when git names none, which verify refuses)."""
+    """The commit a verifier reads its run lines, and whether it is veri's own tree, at (#4263): the `<branch-base-sha>`
+    a `diff` call names ("" when it is not a hex commit name, which the builder refuses), else the merge base of HEAD
+    and origin/HEAD ("" when git names none, which verify refuses outside a working tree laid out as veri's own)."""
     if words[0] == "diff":
         return words[2] if build_verify_prompt.HEX_SHA.fullmatch(words[2]) else ""
     return merge_base()
@@ -316,9 +316,9 @@ def main(argv):
         if not base:
             write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; a %s needs the real before-state" % words[0])
             return 2
-    elif not run_line.own_tree():
+    else:
         base = branch_base(words)
-        if not base and words[0] != "diff":
+        if not base and words[0] != "diff" and not run_line.own_tree():
             write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; the %s verifier reads its run lines"
                   " from CLAUDE.md there" % words[0])
             return 2
