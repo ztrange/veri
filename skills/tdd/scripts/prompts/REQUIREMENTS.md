@@ -1257,3 +1257,9 @@
 | RA1 | The fragment says a previous attempt at this step was **rejected** by the blind verifier. (First sentence.) | The revise leaf must know it redoes a rejected attempt. |
 | RA2 | It says the leaf is a fresh leaf that never saw that attempt or its reasoning, so the rejection reason below is the whole of what it has to work from. (Second sentence.) | The leaf has no memory of the attempt; the reason is its only input about what went wrong. |
 | RA3 | It says the work the attempt left is on disk, and tells the leaf to read it, then fix exactly what the reason objects to. (Last sentence.) | The redo starts from the work on disk and is bounded to the objection. |
+
+## skills/tdd/scripts/prompts/_develop-structural-pass.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| PS1 | The fragment says this is the issue's **structural pass**: every step is green, and the structural candidates the steps recorded instead of applying are now due. The including template (`develop-structural.md`, `develop-predicate.md`) continues the paragraph after it. (The whole fragment.) | The leaf must know the steps are done and only the recorded candidates remain. |
