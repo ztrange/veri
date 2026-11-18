@@ -1,7 +1,7 @@
 # Plan for #4320 — PRD 034.5a: the status report shows the stack and no longer lists a joined run as ready to merge
 
 - [x] a run whose done event's `(#n)` subject is on origin/<stack> only gives no `ready to merge` line under Waiting ⟦criterion 4⟧
-- [ ] a run whose landing cannot be told because the stack's subjects could not be read is listed as merge state unknown, never as ready to merge and never hidden ⟦criterion 4⟧
+- [x] a run whose landing cannot be told because the stack's subjects could not be read is listed as merge state unknown, never as ready to merge and never hidden ⟦criterion 4⟧
 - [ ] `--report` prints a Stack section between Landed and Running: `<stack>: joined <j>, tested <t>, landed <l> in 24h` ⟦criterion 1⟧
 - [ ] the Stack section adds the open tracking pull request's url and, when stack-red.sh exits 0, `frozen: <sha> <run-url>` ⟦criterion 1⟧
 - [ ] where no stack branch is named the report has no Stack section and reads no stack ⟦criterion 1⟧

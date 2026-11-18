@@ -209,3 +209,23 @@ def test_report_lists_no_run_as_ready_to_merge_whose_done_pr_subject_is_on_the_s
     code, out, err = run_cli(status, ["--report"])
 
     assert (code, [line for line in section(out, "Waiting") if line.startswith("#")]) == (0, []), err
+
+
+@pytest.mark.parametrize("failure", ["span", "log"])
+def test_report_lists_a_done_run_as_merge_state_unknown_when_the_stack_subjects_cannot_be_read_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status, failure):
+    report_tree(tmp_path, monkeypatch, status, {"2750": [{"ts": 1793600050, "awake": 50, "event": "done", "pr": 99}]})
+
+    def span(root):
+        if failure == "span":
+            raise status.stack_branch.Refused("git fetch origin got no answer (exit 128)")
+        return "stacky", "main", []
+    monkeypatch.setattr(status, "stack_span", span)
+    log = logs_answer({"main": "fix: elsewhere (#1)\n"})
+    fake_processes.answers({"": lambda line, **kw: (128, "", "fatal: bad object\n") if "origin/stacky" in line.split()
+                            else log(line, **kw)})
+
+    code, out, err = run_cli(status, ["--report"])
+
+    waiting = [line for line in section(out, "Waiting") if line.startswith("#")]
+    assert (code, [line.split(":")[0] for line in waiting]) == (0, ["#2750 PR 99 merge state unknown"]), (out, err)

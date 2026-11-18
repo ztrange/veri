@@ -375,8 +375,13 @@ def running_lines():
 
 
 def main_subjects(ref="main"):
+    return subject_log(ref).stdout.splitlines()
+
+
+def subject_log(ref):
+    """`git log <ref> --format=%s` in the main tree, as the CompletedProcess."""
     return subprocess.run(["git", "-C", run_dir.main_tree(missing=""), "log", ref, "--format=%s"],
-                          capture_output=True, text=True).stdout.splitlines()
+                          capture_output=True, text=True)
 
 
 def stack_span(root):
@@ -385,12 +390,19 @@ def stack_span(root):
     return stack_branch.ahead(root) if root else None
 
 
-def waiting_lines(stack=None):
+def waiting_lines(stack=None, unread=None):
     """Waiting: the bails since status-last, each run whose done pull request has no `(#n)` subject on local main nor,
-    with <stack> named, on origin/<stack> (a joined run is not waiting for a merge), and the decisions since."""
+    with <stack> named, on origin/<stack> (a joined run is not waiting for a merge), and the decisions since. Where the
+    stack's subjects could not be read (<unread> says why, or its git log fails), such a run is listed as merge state
+    unknown, never as ready to merge and never left out."""
     since = status_last_time() or 0
     lines = []
-    subjects = main_subjects() + (main_subjects("origin/" + stack) if stack else [])
+    subjects = main_subjects()
+    if stack and unread is None:
+        log = subject_log("origin/" + stack)
+        if log.returncode:
+            unread = "git log origin/%s failed (exit %d)" % (stack, log.returncode)
+        subjects += log.stdout.splitlines()
     for path, events in journals():
         for e in events:
             if e.get("event") == "bail" and e["ts"] > since:
@@ -404,7 +416,8 @@ def waiting_lines(stack=None):
         name = run_name(path)
         numbers = {name, "#" + str(pr).rsplit("/", 1)[-1]}
         if pr is not None and not any(t.endswith("(%s)" % n) for t in subjects for n in numbers):
-            lines.append("%s PR %s ready to merge" % (name, pr))
+            lines.append("%s PR %s merge state unknown: %s" % (name, pr, unread) if unread
+                         else "%s PR %s ready to merge" % (name, pr))
     for record in decision_log.read(run_dir.main_tree(missing="")):
         if decision_log.epoch(record) >= since:
             shown = {key: printed_field(record[key]) for key in ("question", "decision", "rule")}
@@ -605,9 +618,13 @@ def main(argv):
         # The window's next start is taken before the decision log is read, and written floored to the second, which
         # the decisions are compared against with >=: one recorded at a boundary may be listed twice, never zero times.
         read_at = time.time()
-        span = stack_span(run_dir.main_tree(missing=""))
+        span, unread = None, None
         try:
-            waiting = waiting_lines(span[0] if span else None)
+            span = stack_span(run_dir.main_tree(missing=""))
+        except stack_branch.Refused as refused:
+            unread = "the stack could not be read: %s" % refused
+        try:
+            waiting = waiting_lines(span[0] if span else None, unread)
         except decision_log.Malformed as bad:
             print("status.sh: %s is not a decision record" % bad.where, file=sys.stderr)
             return 2
