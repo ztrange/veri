@@ -93,10 +93,11 @@ def decide(tier, issue, root):
         answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + suffix)
     if tier in DECLARED_ONLY:
         return
-    if tier == "quiet test files" and pytest_configured():
-        raise Answer(b"pytest -q --no-header -rf")
-    if tier == "quiet test files" and declares(at("package.json"), rb'"scripts"\s*:\s*\{[^}]*"test"\s*:\s*"[^"]*\bjest\b'):
-        raise Answer(b"npx jest --silent")
+    if tier == "quiet test files":
+        if pytest_configured():
+            raise Answer(b"pytest -q --no-header -rf")
+        if declares(at("package.json"), rb'"scripts"\s*:\s*\{[^}]*"test"\s*:\s*"[^"]*\bjest\b'):
+            raise Answer(b"npx jest --silent")
     if has("package.json") and re.search(rb'"scripts":\{[^}]*"test":', bytes(b for b in read(at("package.json")) if b not in SPACE)):
         if has("pnpm-lock.yaml"):
             raise Answer(b"pnpm test")
