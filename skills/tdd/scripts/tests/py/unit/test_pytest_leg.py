@@ -1363,22 +1363,27 @@ def test_4310_a_malformed_unreadable_or_non_pid_entry_holds_no_share_and_none_cr
     assert (code, waited, handed[:1], sorted(p.name for p in legs.iterdir())) == (0, [], ["16"], sorted(["1", "notapid", str(os.getppid())]))
 
 
-def test_4310_a_live_pids_entry_whose_start_time_reads_differ_once_and_then_fail_holds_no_share_and_is_kept(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+@pytest.mark.parametrize("reads, share", [
+    (["", "Mon Jan  5 00:00:00 2015"], "16"),
+    (["Mon Jan  5 00:00:00 2015", ""], "16"),
+    (["Mon Jan  5 00:00:00 2015", PARENT_STARTED], "6"),
+], ids=["first-read-fails", "second-read-fails", "second-read-matches-the-record"])
+def test_4310_a_live_pids_entry_is_removed_only_when_two_pinned_start_time_reads_both_succeed_and_differ_from_its_record_else_it_stays(pytest_leg, run_cli, monkeypatch, tmp_path, started, reads, share):
     on_16_cores(monkeypatch)
     legs = tmp_path / "legs"
     legs.mkdir()
     live = legs / str(os.getppid())
-    registered(live, 16)
-    started(extra={"ps -o lstart= -p %d" % os.getppid(): (1, "", "")})
+    registered(live, 10)
+    answers = iter(reads)
     real_field = pytest_leg.pid_file.ps_field
     monkeypatch.setattr(pytest_leg.pid_file, "ps_field", lambda field, pid: (
-        "Mon Jan  5 00:00:00 2015" if (field, int(pid)) == ("lstart", os.getppid()) else real_field(field, pid)))
+        next(answers, "") if (field, int(pid)) == ("lstart", os.getppid()) else real_field(field, pid)))
     waited, handed = [], []
     monkeypatch.setattr(pytest, "main", handed_workers(handed))
     monkeypatch.setattr(pytest_leg.time, "sleep", polls(waited))
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
 
-    assert (code, waited, handed[:1], live.read_text()) == (0, [], ["16"], "16\n%s\n" % PARENT_STARTED)
+    assert (code, waited, handed[:1], live.read_text()) == (0, [], [share], "10\n%s\n" % PARENT_STARTED)
 
 
 def test_4310_an_entry_whose_pid_is_gone_holds_no_share_and_is_removed(pytest_leg, run_cli, monkeypatch, tmp_path, started):
