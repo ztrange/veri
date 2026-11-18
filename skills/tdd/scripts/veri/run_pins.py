@@ -9,6 +9,7 @@ already read, so they never change. (The hard-timeout pin is owned by leaf_timeo
     issue-<n>-launch-env          the VERI_* environment a restarted conductor is relaunched with
     issue-<n>-baseline-full-tier  the VERI_BASELINE_FULL_TIER mode the run was launched with
     issue-<n>-snapshot-digest     the digest of the skill snapshot the launch extracted (pinned_scripts.snapshot_digest)
+    issue-<n>-branch-base         the run's branch base sha, in the main working tree, written by preflight at the cut
 
 A new pin's suffix is a constant below and joins IGNORED, which derives the `.tdd/.gitignore` seed.
 """
@@ -23,9 +24,10 @@ LAUNCH_ENV = "-launch-env"
 BASELINE_FULL_TIER = "-baseline-full-tier"
 SKILL_COMMIT = "-skill-commit"  # written by run_conductor, read by pinned_scripts
 SNAPSHOT_DIGEST = "-snapshot-digest"
+BRANCH_BASE = "-branch-base"
 
 # Seed order is part of the bytes older runs were seeded with.
-IGNORED = (SKILL_COMMIT, SKIP_VERIFY, BASELINE_FULL_TIER, CONDUCTOR_MODEL, LAUNCH_ENV, SNAPSHOT_DIGEST)
+IGNORED = (SKILL_COMMIT, SKIP_VERIFY, BASELINE_FULL_TIER, CONDUCTOR_MODEL, LAUNCH_ENV, SNAPSHOT_DIGEST, BRANCH_BASE)
 
 
 def gitignore_seed():
@@ -113,3 +115,11 @@ def snapshot_digest(issue, root):
             return record.read()
     except FileNotFoundError:
         return None
+
+
+def write_branch_base(root, issue, sha):
+    """Record the run's branch base: `<sha>\\n`, the `.tdd/` made when `root` has none."""
+    path = run_dir.issue_file(root, issue, BRANCH_BASE)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as record:
+        record.write(sha + "\n")
