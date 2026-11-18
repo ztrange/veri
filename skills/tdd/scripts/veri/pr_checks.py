@@ -31,18 +31,24 @@ def run(n):
         return 2
     _, wt = given
     base = branch_base(wt)
-    lint(wt, n)
     owed = ".tdd/issue-%s-refactor-owed.md" % n
+    lint(wt, n)
     quality(wt, n, base)
     answered("red-setup", fused.script("red-setup.sh"), "worst", n, owed, ok=(0, 3), cwd=wt)
     coupling(wt, n, base, owed)
     url = answered("refactor-candidates", fused.script("refactor-candidates.sh"), n, owed, ok=(0, 3), cwd=wt)
-    unwired = (fused.script("unwired.sh"), "--accepted", ".tdd/issue-%s-unwired-accepted" % n, base)
+    unwired(wt, n, base)
+    return fused.settle(wt, n, NAME, ["candidates=" + url.strip()])
+
+
+def unwired(wt, n, base):
+    """unwired.sh over the range: a finding stops it with exit 1, the pending record and the bail being the
+    conductor's; any exit but 0, 1 or 3 is exit 2."""
     try:
-        fused.checked("unwired", *unwired, ok=(0, 3), cwd=wt, out=".tdd/unwired.out")
+        fused.checked("unwired", fused.script("unwired.sh"), "--accepted", ".tdd/issue-%s-unwired-accepted" % n, base,
+                      ok=(0, 3), cwd=wt, out=".tdd/unwired.out")
     except fused.Stop as stop:
         raise fused.Stop(stop.where, stop.what, 1 if stop.code == 1 else 2)
-    return fused.settle(wt, n, NAME, ["candidates=" + url.strip()])
 
 
 def default_branch(wt):
