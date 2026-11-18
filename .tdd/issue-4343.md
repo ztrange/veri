@@ -5,7 +5,7 @@
 - [x] called again with no options it resumes at the seam recorded in .tdd/issue-<n>-step, not calling the stages before it ⟦criterion 3⟧
 - [x] with a refactor-pending step and no seam record naming it, it starts at refactor-half on that step, never red-half on the next
 - [x] --from <stage> starts at that stage, and an unknown stage name exits 2 ⟦criterion 4⟧
-- [ ] --hand <stage>, repeatable, stops before that stage with seam=<stage> code=1 reason=hand next=<anchor> without calling it ⟦criterion 5⟧
+- [x] --hand <stage>, repeatable, stops before that stage with seam=<stage> code=1 reason=hand next=<anchor> without calling it ⟦criterion 5⟧
 - [ ] a ⟦ci-repair⟧ or ⟦replaces-case⟧ step stops before green-half with seam=green-half code=1 reason=unmodelled next=<anchor>, from one kinds table ⟦criterion 6⟧
 - [ ] an open step of a kind red_half.REFUSED holds exits 1 with seam=none code=1 reason=kind next=<anchor>, calling no stage ⟦criterion 7⟧
 - [ ] a stage's record seam is a designed stop: run-step.sh ends on seam=<stage> code=1 reason=record and exits 1, as every designed stop does ⟦criterion 8⟧

@@ -24,16 +24,19 @@ STAGES = {"red-half": RED, "green-half": GREEN, "refactor-half": REFACTOR, "step
 
 
 def parse(argv):
-    """(n, the --from stage or None); None for arguments it does not take."""
+    """(n, the --from stage or None, the --hand stages); None for arguments it does not take."""
     if not argv or not argv[0].isdigit():
         return None
-    start, rest = None, list(argv[1:])
+    start, hand, rest = None, set(), list(argv[1:])
     while rest:
         option, value = rest.pop(0), rest.pop(0) if rest else None
-        if option != "--from" or value not in STAGES or start is not None:
+        if option not in ("--from", "--hand") or value not in STAGES or option == "--from" and start is not None:
             return None
-        start = value
-    return argv[0], start
+        if option == "--hand":
+            hand.add(value)
+        else:
+            start = value
+    return argv[0], start, hand
 
 
 def main(argv):
@@ -41,7 +44,7 @@ def main(argv):
     if parsed is None:
         sys.stderr.write(USAGE + "\n")
         return 2
-    n, start_at = parsed
+    n, start_at, hand = parsed
     given = fused_step.inputs(NAME + ".sh", n, LEDGER)
     if given is None:
         return 2
@@ -58,6 +61,10 @@ def main(argv):
         start = max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
     out = ""
     for stage in order[start:]:
+        if stage in hand:
+            record(wt, n, stage, step)
+            sys.stdout.write("seam=%s code=1 reason=hand next=%s\n" % (stage, STAGES[stage]))
+            return 1
         code, out, _ = fused.call(fused.script(stage + ".sh"), n)
         if code != 0:
             record(wt, n, stage, step)
