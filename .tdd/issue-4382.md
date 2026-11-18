@@ -9,4 +9,4 @@
 - [x] `skills/tdd/scripts/prompts/_develop-interface-change.md` gets its `## skills/tdd/scripts/prompts/_develop-interface-change.md` section in `skills/tdd/scripts/prompts/REQUIREMENTS.md` with row IC1 from the issue's `## Requirements`, mirroring the fragment's current text as is (no wording change), graded PASS by `grade-prose.sh` ⟦skill-edit⟧ ⟦criterion 1⟧
 - [x] `skills/tdd/GRADED` holds a line for each of the seven fragments, added by the branch only through the skill-edit steps' `grade-prose.sh` PASS and no other `GRADED` line changed ⟦diff-checked⟧ ⟦criterion 2⟧
 - [x] the branch's diff leaves the seven fragments unchanged: `git diff <base>..HEAD -- <fragment>` is empty for each ⟦diff-checked⟧ ⟦criterion 3⟧
-- [ ] `prose-owed.sh` exits 0 on the branch ⟦criterion 3⟧
+- [x] `prose-owed.sh` exits 0 on the branch ⟦criterion 3⟧
