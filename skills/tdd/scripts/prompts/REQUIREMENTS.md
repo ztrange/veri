@@ -1116,3 +1116,19 @@
 |---|---|---|
 | TQF1 | The fragment tells the leaf to fix only the test case the step names, changing no production code, and to commit the fix as a `test:` commit. | Fowler's two hats: a test change is a `test:` commit, never inside a refactor range (PRD 032, TX3; PRD 017). |
 | TQF2 | The fragment asks for one `FLIP: <test file> '<old>→<new>'` report line, `<old>` a literal of the fixed case's expected value and `<new>` a different value, which the conductor flips to show the case goes red. | Each fix is proven live by a script (PRD 032, TX3, C6). |
+
+## skills/tdd/scripts/prompts/verify-cover-new.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VN1 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-cover-new`. (First lines.) | The blind verifier's shared rules come first, and the phase heading names which interface phase is judged. |
+| VN2 | The opening paragraph says this is **cover-new**: it adds cases that call the new interface directly, and production stays frozen. (Opening paragraph, before the include line.) | The verifier must know what the phase adds and that no production file may change. |
+| VN3 | The included `_verify-interface-phase-lead.md` fragment follows the opening paragraph. (The `{{INCLUDE:_verify-interface-phase-lead.md}}` line.) | Check 1 (still green) lives in the shared lead, stated once for every interface phase. |
+| VN4 | The template's own checks are numbered 2 to 5, continuing the list the included `_verify-interface-phase-lead.md` fragment opens with check 1. (Numbered list.) | The numbering must follow the shared lead's check 1. |
+| VN5 | Check 2, "The new interface has cases of its own", says the range adds cases that call the new interface directly, not through the old interface or its proxy. (Numbered list, item 2.) | A case that reaches the new interface through the old one does not cover it. |
+| VN6 | Check 3, "Production stays frozen", says a range that touches a production file is a REJECT. (Numbered list, item 3.) | cover-new adds tests only; a production change is a different kind of change. |
+| VN7 | Check 4, "The new cases pass at the base", tells the verifier to check out `{{BASE_SHA}}` in a throwaway worktree with `git worktree add --detach <scratch> {{BASE_SHA}}`, put the range's new test cases there and run them, each must pass against the expand commit, else REJECT. (Numbered list, item 4.) | A new case that fails against the expand commit pins behaviour the interface never had. |
+| VN8 | Check 5, "The new cases catch a broken interface", tells the verifier to mutate the new interface's behaviour through `{{MUTATION_PROBE}} <file> <old> <new> -- <command that runs the new cases>`, which restores the file; each new case must go red under a mutation of the behaviour it covers, and a case that stays green is a REJECT. (Numbered list, item 5.) | A case that cannot fail covers nothing. |
+| VN9 | Check 5 says the probe's exit 2 gives no verdict, and exit 1 means the cases stayed green and is never a PASS. (Numbered list, item 5.) | Exit codes are the API: no answer is not a verdict, and a clean negative is a REJECT. |
+| VN10 | Check 5 ends with the `{{LAST_PHASE_CHECK}}` slot. (Numbered list, item 5, last line.) | The conductor appends the last-phase check there. |
+| VN11 | The closing paragraph says PASS if the suites are green, the new interface has cases of its own, no production file changed, the cases pass at the base and go red under the verifier's mutation, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
