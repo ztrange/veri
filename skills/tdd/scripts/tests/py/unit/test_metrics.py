@@ -89,6 +89,13 @@ def test_4332_a_standing_metrics_cut_ends_the_report_in_place_of_done_and_a_late
         ("landed", 800) if after and after[0]["event"] == "done" else ("running", None))
 
 
+@pytest.mark.parametrize("later", ["done", "bail", "stop", "preflight-refused"])
+def test_4332_a_metrics_cut_an_ending_mark_follows_no_longer_stands(metrics, later):
+    marks = [dict(ONE_STEP[0]), dict(CUT), {"event": later, "issue": "108", "ts": 900}]
+
+    assert metrics.cut_as_done(marks) == (marks, None)
+
+
 def table(out, heading):
     """The rows under <heading>, one dict per row keyed by the header cells."""
     lines = out.split("\n")
