@@ -116,13 +116,15 @@ def added(n):
 
 def grown(wt, ledger):
     """Whether the ledger holds step lines its newest plan commit did not."""
-    import ledger_growth
-    sha = ledger_growth.plan_sha(quiet("1", "log", "-E", "--grep=^plan: (scope|rewrite)", "--format=%H %s", wt=wt))
-    if sha is None:
-        raise fused.Stop("1", "no plan commit", 2)
-    planned = set(ledger_growth.step_texts(quiet("1", "show", "%s:%s" % (sha, ledger), wt=wt)))
+    import ledger as ledger_module
+    log = quiet("1", "log", "-E", "--grep=^plan: (scope|rewrite)", "--format=%H %s", wt=wt)
+    sha = fused.checked("1", fused.script("ledger-growth.sh"), "plan-sha", cwd=wt, stdin=log).strip()
+
+    def texts(text):
+        return [ledger_module.body(step.text) for step in ledger_module.ledger_steps(text)]
+    planned = set(texts(quiet("1", "show", "%s:%s" % (sha, ledger), wt=wt)))
     with open(os.path.join(wt, ledger)) as f:
-        return any(step not in planned for step in ledger_growth.step_texts(f.read()))
+        return any(step not in planned for step in texts(f.read()))
 
 
 def record_existing(n, wt, ledger):
