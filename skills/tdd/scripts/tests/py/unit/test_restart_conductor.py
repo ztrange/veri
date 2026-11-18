@@ -1395,3 +1395,18 @@ def test_4331_a_conductor_that_consumed_only_the_restarters_own_stop_is_relaunch
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out.splitlines()[-1:], launches, len(_restart_events(run_tdd))) == (0, ["restarts 7 1"], ["7"], 1)
+
+
+def test_4331_an_operators_stop_written_after_the_conductors_last_live_poll_and_still_in_place_at_its_exit_ends_the_watch_with_restarts_7_0_and_no_relaunch(tmp_path, run_cli, monkeypatch):
+    run_tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+
+    def on_sleep(n):
+        if n == 1:  # after the restarter's own ask, the operator's stop-run.sh; no live poll follows it
+            _operator_stop(run_tdd)
+
+    restart_conductor, launches = _growth_stop_setup(tmp_path, monkeypatch, [True, True, False], on_sleep)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    stop = run_tdd / "stop"
+    assert (code, out.splitlines()[-1:], launches, stop.read_text() if stop.exists() else None) == (0, ["restarts 7 0"], [], "at-ledger\n")
