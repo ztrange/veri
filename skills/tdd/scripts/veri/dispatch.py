@@ -109,7 +109,7 @@ def owner_repo(pr_url):
 
 
 def queued_merges():
-    """The PR urls of this clone's queued merges for the target repo; one clone serves several repos (#3877)."""
+    """The PR urls of this clone's queued merges for the target repo; one clone serves several repos (#3877); with no readable origin it counts them all, a merge never goes unseen."""
     urls = []
     repo = target_repo()
     mine = os.path.realpath(os.path.join(paths.scripts_of(__file__), "queued-merge.sh"))
@@ -120,7 +120,7 @@ def queued_merges():
             continue
         script = os.path.realpath(words[1])
         if script == mine or (script == py_mine and os.path.basename(words[0]).startswith("python")):
-            if owner_repo(words[2]).casefold() == repo.casefold():
+            if not repo or owner_repo(words[2]).casefold() == repo.casefold():
                 urls.append(words[2])
     return urls
 

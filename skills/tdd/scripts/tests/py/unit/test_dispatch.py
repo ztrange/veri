@@ -1703,6 +1703,30 @@ def test_queued_merges_takes_the_target_repo_from_the_origin_remote_issue_3877(m
     assert dispatch.queued_merges() == [target_url]
 
 
+def test_queued_merges_counts_every_queued_merge_when_the_origin_remote_cannot_be_read_issue_3877(
+        monkeypatch, dispatch, target_repo_o_r, tmp_path):
+    import subprocess
+
+    monkeypatch.setattr(dispatch, "target_repo", target_repo_o_r)
+    monkeypatch.chdir(tmp_path)
+    first = "https://github.com/acme/widgets/pull/7"
+    second = "https://github.com/o/r/pull/9"
+    mine = dispatch.paths.scripts_of(dispatch.__file__)
+    listing = (f"sh {mine}/queued-merge.sh {first} /wt branch -\n"
+               f"sh {mine}/queued-merge.sh {second} /wt2 branch -\n")
+
+    def run(argv, **kw):
+        if list(argv) == ["git", "remote", "get-url", "origin"]:
+            return subprocess.CompletedProcess(argv, 2, stdout="", stderr="fatal: No such remote 'origin'")
+        if list(argv) == ["ps", "-axo", "args="]:
+            return subprocess.CompletedProcess(argv, 0, stdout=listing, stderr="")
+        raise AssertionError(f"unexpected process {argv}")
+
+    monkeypatch.setattr(dispatch.subprocess, "run", run)
+
+    assert dispatch.queued_merges() == [first, second]
+
+
 def test_main_does_not_report_stalled_when_events_are_older_than_the_stall_window_but_the_conductor_log_is_newer_issue_3360(
         monkeypatch, capsys, tmp_path, dispatch):
     import os
