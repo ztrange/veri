@@ -36,3 +36,19 @@ def test_other_bad_arguments_exit_2_with_no_call_the_last_line_naming_bail_md_su
 
         assert (label, code, out, fake.calls) == (label, 2, "", [])
         assert "BAIL.md sub-step 1" in err.splitlines()[-1], label
+
+
+def test_a_stray_argument_after_note_file_or_a_valueless_or_trailing_attempt_exits_2_with_no_call(
+        run_cli, fake_processes, bail):
+    bad = {
+        "other flag after note file": ["7", "tests-red", "red", "--note-file", "n.md", "--force"],
+        "attempt with no value": ["7", "tests-red", "red", "--note-file", "n.md", "--attempt"],
+        "more arguments after attempt": ["7", "tests-red", "red", "--note-file", "n.md", "--attempt", "2", "extra"],
+    }
+    for label, argv in bad.items():
+        fake = fake_processes.answers({})
+
+        code, out, err = run_cli(bail, argv)
+
+        assert (label, code, out, fake.calls) == (label, 2, "", [])
+        assert "BAIL.md sub-step 1" in err.splitlines()[-1], label
