@@ -454,3 +454,21 @@ def test_a_refused_record_refreshed_event_for_a_gained_uncovered_spec_line_stops
     assert (code, fake.calls) == (2, [])
     assert out.splitlines()[-1] == "stopped at step-close record-refreshed event refused"
     assert "uncovered_spec=" not in (close.wt / ".tdd" / "issue-12-refactor-half").read_text()
+
+
+def test_a_hand_revised_pass_settled_by_seam_settle_plans_its_uncovered_spec_flags_before_any_close_4342(
+        close, run_cli, tmp_path):
+    """#4029's hand path (RF74): verify-refactor REJECT, a revise, then a PASS whose log flags uncovered-spec, all by
+    hand. step-close stops at the seam, `seam-settle.sh <n> refactor-half` writes the record from the log as it stands,
+    and the re-run step-close stops on that flag (exit 1) as the automatic path's record makes it, never ticking the
+    step done with the flag unplanned."""
+    (close.wt / ".tdd" / "verify-refactor.log").write_text("FLAGS: uncovered-spec | a revised verdict's flag\nVERDICT: PASS\n")
+    code, out, err, fake = close(missing=("refactor-half",))
+    assert (code, out.splitlines()[-1]) == (1, "seam=step-close code=1 reason=record next=seam-settle.sh 12 refactor-half")
+
+    settled = run_cli(importlib.import_module("veri.seam_settle"), ["12", "refactor-half"], cwd=str(tmp_path))
+    assert settled[0] == 0
+    code, out, err, fake = close()
+
+    assert (code, fake.calls) == (1, [])
+    assert out.splitlines()[-1] == "stopped at 6 uncovered_spec=a revised verdict's flag"
