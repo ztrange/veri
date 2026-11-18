@@ -74,7 +74,8 @@ def red_test_id(test_path, target):
 
 def verdict_log(wt):
     """The sha256 of `.tdd/verify-refactor.log` as it now stands, or `none` without one: which verify-refactor verdict
-    a refactor-half file was settled after, so step-close can refuse one a later verdict has superseded."""
+    a refactor-half file was settled after. It is the record's committed source: step-close rewrites a record settled
+    after another verdict with it, and adds that log's uncovered-spec flags (#4029)."""
     import hashlib
     try:
         with open(os.path.join(wt, ".tdd", "verify-refactor.log"), "rb") as f:
@@ -126,20 +127,31 @@ def gain(stage, wt, n, record, key, values, step):
             f.write("".join(line + "\n" for line in lines + [key + "=" + value for value in added]))
 
 
-def record(stage, wt, n, step, facts=()):
-    """The {key: value} of the record <stage> reads (seam_contract.READS), its step and each of <facts> (key, value)
-    refreshed from their committed sources; None, the seam line printed, when the record is missing or names another
-    step than <step> by ledger.same_step (PRD 038.1 SC3, SC4). A record that exists but cannot be read raises OSError."""
+def read_by(stage, wt, n, step):
+    """The first stage of seam_contract.READS[<stage>] whose record names <step> by ledger.same_step, or None; a record
+    that exists but cannot be read raises OSError."""
     import seam_contract
-    writer = seam_contract.READS[stage]
-    path = os.path.join(wt, ".tdd", "issue-%s-%s" % (n, writer))
-    try:
-        values = read_settled(path)
-    except FileNotFoundError:
-        values = None
-    if values is None or not ledger.same_step(values.get("step", ""), step):
+    for writer in seam_contract.READS[stage]:
+        try:
+            values = read_settled(os.path.join(wt, ".tdd", "issue-%s-%s" % (n, writer)))
+        except FileNotFoundError:
+            continue
+        if ledger.same_step(values.get("step", ""), step):
+            return writer
+    return None
+
+
+def record(stage, wt, n, step, facts=()):
+    """The {key: value} of the record <stage> reads (read_by), its step and each of <facts> (key, value) refreshed from
+    their committed sources; None, the seam line naming the first stage it reads printed, when no record it reads
+    names <step> (PRD 038.1 SC3, SC4, SC8). A record that exists but cannot be read raises OSError."""
+    import seam_contract
+    writer = read_by(stage, wt, n, step)
+    if writer is None:
+        owed = seam_contract.READS[stage][0]
         sys.stdout.write("seam=%s code=1 reason=record next=seam-settle.sh %s %s%s\n" % (
-            stage, n, writer, "".join(" %s=…" % key for key in seam_contract.CONTRACTS[writer])))
+            stage, n, owed, "".join(" %s=…" % key for key in seam_contract.CONTRACTS[owed])))
         return None
+    path = os.path.join(wt, ".tdd", "issue-%s-%s" % (n, writer))
     refresh(stage, wt, n, writer, dict((("step", step),) + tuple(facts)))
     return read_settled(path)
