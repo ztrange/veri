@@ -137,7 +137,13 @@ def _tag(merge, subjects, owed, titles):
         sha, subject = line.split(" ", 1)
         for issue in stack_green.named(subject):
             commit[issue] = sha
-    for issue in owed:
+    untagged = [issue for issue in owed if not git.out("tag", "--points-at", commit[issue], cwd=".")]
+    for issue in sorted(set(owed) - set(untagged), key=owed.index):
+        print("stack-tag: #%s skipped: its commit %s already carries a tag" % (issue, commit[issue]), file=sys.stderr)
+    if not untagged:
+        print("stack-tag: every owed tag is already there; nothing tagged", file=sys.stderr)
+        return 3
+    for issue in untagged:
         name = _next(git.out("tag", "--sort=-v:refname", cwd=".").split())
         git.out("tag", "-a", name, "-m", titles[issue], commit[issue], cwd=".")
         git.network("push", "origin", "refs/tags/" + name, cwd=".")
