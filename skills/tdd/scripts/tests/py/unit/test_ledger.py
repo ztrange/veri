@@ -3,6 +3,8 @@ import errno
 import importlib
 import os
 
+import pytest
+
 
 def test_ledger_steps_returns_the_records_lib_ledger_sh_prints():
     text = (
@@ -395,3 +397,10 @@ def test_unit_of_returns_a_heading_unit_whose_closing_backtick_is_followed_by_pu
     unit = "skills/tdd/SKILL.md#Plain heading"
 
     assert ledger.unit_of(f"edit `{unit}`. ⟦skill-edit⟧") == unit
+
+
+@pytest.mark.parametrize("after", [", then `foo` here", ". See `foo` now", ": `foo` x"])
+def test_unit_of_ends_a_heading_unit_at_a_punctuation_closed_backtick_when_a_later_span_follows(after):
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.unit_of(f"edit `a/b.md#Plain heading`{after}") == "a/b.md#Plain heading"
