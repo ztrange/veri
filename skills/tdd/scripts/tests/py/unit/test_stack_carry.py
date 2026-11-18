@@ -239,3 +239,21 @@ def test_after_the_push_it_calls_stack_pr_sh_and_one_with_no_answer_exits_2_nami
 
     after = world.log[world.log.index(pushes(world)[0]) + 1:]
     assert (exit_code, after[:1], code == 0 or "run stack-pr.sh" in err) == (code, [("stack-pr.sh",)], True), err
+
+
+def test_a_merge_of_the_old_cut_into_origin_default_that_conflicts_is_not_landed_whatever_tree_it_prints(
+        monkeypatch, tmp_path, run_cli, stack_carry):
+    world = World(monkeypatch, tmp_path, answers={
+        ("merge-tree", "--write-tree", "origin/trunk", CUT): (1, DEFAULT_TREE + "\n", "")})
+
+    code, out, err = run_cli(stack_carry, ["cut"])
+
+    assert (code, "has not landed" in err, worktrees(world), released(world)) == (2, True, [], True), err
+
+
+def test_a_rebase_refused_with_no_conflicted_file_exits_2_not_1_nothing_pushed(monkeypatch, tmp_path, run_cli, stack_carry):
+    world = World(monkeypatch, tmp_path, answers={("rebase", "--onto"): (128, "", "fatal: invalid upstream\n")})
+
+    code, out, err = run_cli(stack_carry, ["cut"])
+
+    assert (code, "invalid upstream" in err, pushes(world), released(world)) == (2, True, [], True), err
