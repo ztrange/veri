@@ -37,6 +37,7 @@
 - [x] when origin/<default> is an ancestor of the cut, stack_land rebases nothing and makes no wait-ci.sh call (unit case, no process) ⟦criterion 8⟧
 - [x] a rebase conflict makes stack_land exit 1, nothing merged, the lock freed, the slice branch and its pull request kept (unit case, no process) ⟦criterion 9⟧
 - [x] a red CI answer from wait-ci.sh on the rebased head makes stack_land exit 1, nothing merged, the lock freed, the slice branch and its pull request kept (unit case, no process) ⟦criterion 9⟧
+- [ ] on the rebase path, a failed leased push of the slice branch or a wait-ci.sh exit 2 makes stack_land exit 2 naming it, nothing merged, the merge lock freed, the slice branch and its pull request kept (unit case, no process) ⟦added⟧ ⟦criterion 9⟧
 - [ ] a case in test_stack_land.py sweeps stack_land.py, merge_common.py and stack-land.sh for a repository, issue number, branch, label or person name and finds none (P12) ⟦criterion 15⟧
 - [ ] Go-red check in skills/tdd/scripts/tests/py/unit/test_stack_land.py: with `--admin` added to the merge argv, the exact-argv case fails, named; restored, it passes ⟦criterion 16⟧
 - [ ] Go-red check in skills/tdd/scripts/tests/py/unit/test_stack_land.py: with the red-stack refusal removed (stack-red.sh exit 0 no longer exit 1), its case fails, named; restored, it passes ⟦criterion 16⟧
