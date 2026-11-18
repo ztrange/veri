@@ -40,6 +40,8 @@ Merge only when all of these hold; otherwise stop and tell the human which one f
 - The run did not end with an open question for the human. Merging would answer it for them, so hand the question back instead.
 - No process has a file open or its working directory inside the run's worktree: run `lsof +D <worktree>` from outside the worktree (the call starts in another directory and names the worktree by its absolute path), and read its output, not its exit code (`lsof` can exit 1 while printing lines): any process line it prints is a foreign process. A process still there (a review, a hand fix, another merge) is a failed precondition: stop, do not wait.
 
+A **hand pull request**, one whose base is the stack branch and whose head branch is not a run's (`tdd/<n>-…`), has no run behind it, so the `✅ Done` and committed-ledger bullets do not apply to it. In their place its body has the line `Closes #<n>`, and the review's OK is the gate. The human-owed, open-question and `lsof` bullets still apply.
+
 An unticked ⟦human-owed⟧ line gets one read-only review subagent (it may read, never write). If it answers OK, tick the line; if NOT OK, the line goes to the human and nothing merges.
 
 ## The merge lock
