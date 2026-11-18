@@ -24,6 +24,9 @@ REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, t
 # stops before such a stage without calling it). green-half's reason is specs/prd-027.md GH1.
 STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
           "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ())}
+# The scripts a `next=` it prints may name, every other `next=` being an anchor above (S4, RN10): itself, called again
+# on a stage's 3, and seam-settle.sh, which a stage's own record seam names.
+NEXT_SCRIPTS = ("run-step.sh", "seam-settle.sh")
 # The line fused_step.record prints for a stage whose record is missing or names another step (PRD 038.1 SC4).
 RECORD_SEAM = "seam=%s code=1 reason=record next="
 # The kinds that are not a cycle step, red_half.REFUSED's (RN7) -> the anchor of the prose that runs them; a step of
@@ -85,7 +88,7 @@ def main(argv):
             said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
             if code == 1 and said:
                 return seam(wt, n, step, stage, code, None, line=said[-1])
-            return seam(wt, n, step, stage, code, "run-step.sh " + n if code == 3 else anchor)
+            return seam(wt, n, step, stage, code, NEXT_SCRIPTS[0] + " " + n if code == 3 else anchor)
     with contextlib.suppress(FileNotFoundError):
         os.remove(fused.settled_file(wt, n, "step"))
     sys.stdout.write([line for line in out.splitlines() if line.startswith("next=")][-1] + "\n")

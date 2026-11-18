@@ -185,3 +185,26 @@ def test_4343_it_prints_each_stages_call_line_with_its_exit_code_and_never_a_lea
     lines = out.splitlines()
     assert [line for line in lines if line.split(" ")[0] in STAGES and " exit " in line] == ["%s 12 exit %d" % (name, (answers.get(name) or (0,))[0])
                                                            for name in stages.names()]
+
+
+def headings(path):
+    """The text of each heading line of <path>, after its #s, fenced blocks skipped."""
+    found, fenced = set(), False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("```"):
+            fenced = not fenced
+        elif not fenced and line.startswith("#"):
+            found.add(line.lstrip("#").strip())
+    return found
+
+
+def test_4343_every_next_value_run_step_can_print_is_a_script_or_an_anchor_naming_a_heading_in_its_file():
+    run_step = importlib.import_module("veri.run_step")
+    skill = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(run_step.__file__)), "..", ".."))
+    anchors = [anchor for anchor, _ in run_step.STAGES.values()] + [run_step.KINDS[k] for k in run_step.KINDS]
+    from pathlib import Path
+
+    missing = [a for a in anchors if a.split("#", 1)[1] not in headings(Path(skill, a.split("#", 1)[0]))]
+
+    assert (sorted(run_step.KINDS), missing) == (sorted(importlib.import_module("veri.red_half").REFUSED), [])
+    assert all(os.path.isfile(os.path.join(skill, "scripts", s)) for s in run_step.NEXT_SCRIPTS)
