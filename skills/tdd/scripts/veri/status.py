@@ -441,17 +441,9 @@ def landed_slices(stack, default, since):
             items = None
         if not isinstance(items, list) or not all(isinstance(raw, dict) for raw in items):
             raise github.NoAnswer("", "the slices merged into %s: the answer is not a list of pull requests" % default)
-        for raw in items:
-            head, base = raw.get("head") or {}, raw.get("base") or {}
-            merged = raw.get("merged_at")
-            if (isinstance(head, dict) and isinstance(base, dict) and base.get("ref") == default
-                    and str(head.get("ref") or "").startswith(stack + "-slice-")
-                    and ((head.get("repo") or {}).get("full_name") or None) == ((base.get("repo") or {}).get("full_name") or 0)
-                    and isinstance(merged, str) and calendar.timegm(time.strptime(merged, ISO_UTC)) >= since):
-                found.update(github.closed_issues(raw.get("body") or ""))
-        updated = [raw.get("updated_at") for raw in items]
-        if len(items) < 100 or any(isinstance(u, str) and calendar.timegm(time.strptime(u, ISO_UTC)) < since
-                                   for u in updated[-1:]):
+        found.update(n for raw in items if landed_slice(raw, stack, default, since)
+                     for n in github.closed_issues(raw.get("body") or ""))
+        if len(items) < 100 or (items and epoch_of(items[-1].get("updated_at"), since) < since):
             return found
     raise github.NoAnswer("", "the slices merged into %s ran past %d pages of 100" % (default, github.PULL_PAGES))
 
@@ -484,6 +476,22 @@ def stack_figures(root, span):
     red = said.split()
     figures["frozen"] = {"sha": red[0], "run_url": red[1]} if code == 0 and len(red) > 1 else False if code == 3 else None
     return figures
+
+
+def landed_slice(raw, stack, default, since):
+    """Whether pull request record <raw> is a slice of <stack> (head `<stack>-slice-*` in the base repository) merged
+    into <default> at or after epoch <since>."""
+    head, base = raw.get("head") or {}, raw.get("base") or {}
+    if not (isinstance(head, dict) and isinstance(base, dict)):
+        return False
+    return (base.get("ref") == default and str(head.get("ref") or "").startswith(stack + "-slice-")
+            and ((head.get("repo") or {}).get("full_name") or None) == ((base.get("repo") or {}).get("full_name") or 0)
+            and epoch_of(raw.get("merged_at"), since - 1) >= since)
+
+
+def epoch_of(stamp, otherwise):
+    """The epoch of GitHub's UTC time <stamp>, <otherwise> when it is not a string."""
+    return calendar.timegm(time.strptime(stamp, ISO_UTC)) if isinstance(stamp, str) else otherwise
 
 
 def stack_lines(figures):
