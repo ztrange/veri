@@ -880,3 +880,22 @@ def test_rerecord_refactored_exits_1_for_a_same_named_case_in_another_suite_than
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
     assert (code, _skip_lines(err, "test_a.py test_one"), _skip_lines(err, "test_b.py test_one")) == (1, 0, 1)
+
+
+def test_rerecord_refactored_exit_0_leaves_no_check_earlier_pass_marker_it_did_not_find_4296(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite = tmp_path / ROOT_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    suite.write_text("\n\n".join([CASE % ("base", 0), "def test_one():\n    x = 1\n    assert x == 1\n"]))
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], ROOT_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done", B="pending")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later", 9))
+    green = repo.commit("B green", all=True)
+    suite.write_text(suite.read_text().replace("assert x == 1\n", "assert x==1\n"))
+    repo.commit("B refactor", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
+
+    assert (code, sorted((tmp_path / ".tdd").glob("check-earlier-*.pass"))) == (0, [])
