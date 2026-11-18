@@ -56,7 +56,7 @@ this order, none reading a variable another line set. Any exit not named here **
 
 So a stacked run runs no `pr-ready.sh` and no `wait-ci.sh`, before or after the `metrics:` push: CI on the stack's tip
 is the full suite. It ticks no `⟦full-suite⟧` line, whatever full run it made, makes no `plan: the full suite is
-green on CI` commit and adds no `⟦ci-repair⟧` step, and it ends ✅ Done with its pull request a draft. Every other part
+owed to CI` commit and adds no `⟦ci-repair⟧` step, and it ends ✅ Done with its pull request a draft. Every other part
 of the step runs as for a run that is not stacked.
 
 **Before any red full-run result takes its repair step or its `rebased-tip-red` bail** — the branch's own run here, and the rebased tip's run in sub-step 1 and after `verify-rebase` — run each test file the red output names alone, once, with the repo's own runner (`make test TESTS="<file>"` on veri). A red output that names no file takes today's path, unchanged. When every file passes alone, the red was a flake: write a `suite-flake` event naming the files, treat the run as green, and name the files in the PR body. When any file stays red alone, the red result stands as it is and takes its repair step or its bail.
@@ -115,14 +115,20 @@ run before the PR is readied is green: the rebased tip's run when sub-step 1 reb
 branch under `VERI_REBASED_TIP_SUITE=local`, this step's own run under `VERI_BRANCH_SUITE=local` otherwise, including under `VERI_REBASED_TIP_SUITE=ci`
 (a tick pushed on its own after CI would be a new head, cancelling the CI run being waited on). Under `VERI_BRANCH_SUITE=ci`, when no local
 full run was made on the head being readied (the branch's own is not run, and sub-step 1 either did not rebase or ran under
-`VERI_REBASED_TIP_SUITE=ci`), no `⟦full-suite⟧` line is ticked before `pr-ready.sh`: tick them, and each line's issue criterion, in the
-way described next once sub-step 2's first `wait-ci.sh` exits 0, and commit the ledger before the `metrics:` commit, so the push and the
-second `wait-ci.sh` that follow that commit carry the tick. A CI that is red, timed out or unread ticks nothing, and neither does a `wait-ci.sh` exit 0 whose `.tdd/wait-ci.err` says the PR `has no checks`: no run proved anything, so the line stays unchecked. A local rebased-tip run made after the PR was readied (the conflict rebase of sub-step 2 under `VERI_REBASED_TIP_SUITE=local`) changes nothing here: the tick still waits for the next `wait-ci.sh` exit 0. Tick each with `tick-ledger.sh`, handed the literal
+`VERI_REBASED_TIP_SUITE=ci`), every unchecked `⟦full-suite⟧` line, and each line's issue criterion, is ticked before `pr-ready.sh`, as
+owed to CI, in the way described next, and the ledger is committed as `plan: the full suite is owed to CI (#<n>)` before the `metrics:`
+commit, so the one push before readying carries both and no records-only push follows the readied PR. That tick waits for no CI run and
+reads no `.tdd/wait-ci.err`, and it is never CI's verdict: CI's verdict on the head stays the proof. A red CI still appends the
+`⟦ci-repair⟧` step (or bails `ci-red`), a resumed run still waits on CI for the head, a `wait-ci.sh` exit 0 whose `.tdd/wait-ci.err`
+says the PR `has no checks` proves nothing (the PR body says so, as sub-step 2's second block gives), and the merge reads CI on the head
+it merges, never the tick. A rebase after the PR was readied (the conflict rebase of sub-step 2) moves no tick: CI on the rebased head is
+read as on any head. Tick each with `tick-ledger.sh`, handed the literal
 matcher `'⟦full-suite⟧'` and called again until it exits 3, and without `--refactor-pending`,
 so the line carries no refactor-pending mark (it has no refactor loop to clear one); for each
 line's `⟦criterion k⟧` tick the issue criterion it finishes (`$S/tick-issue-criterion.sh <n>
 "$(gh api repos/{owner}/{repo}/issues/<n> -q .body | $S/ledger-steps.sh criterion <k>)"`),
-and commit the ledger before sub-step 2 (under `VERI_BRANCH_SUITE=ci` with no local full run before readying, before the `metrics:` commit instead, as said above). A red run ticks nothing: never tick a `⟦full-suite⟧` line after a
+and commit the ledger before sub-step 2 (under `VERI_BRANCH_SUITE=ci` with no local full run before readying, inside sub-step 2's
+first block, before the `metrics:` commit, as said above). A red local run ticks nothing: never tick a `⟦full-suite⟧` line after a
 red full-suite run, whatever an earlier run said.
 
 With a stop request pending, this step is **not interrupted** and runs to completion: once
@@ -447,24 +453,27 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    again when one is not. Exits **0** (every such file is named or accepted) and **3** (the range
    adds none) go on. Exit **2** (the base did not resolve, or no work tree) is a system
    failure: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`).
-2. **Mark the PR ready for review and read its CI, then close the run's log with the PR's
-   URL, render the metrics, commit them, and rewrite the PR into its final form** — one
-   sub-step, in this order, from inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
+2. **Mark the PR ready for review only once the run's log is closed with the PR's URL and the
+   metrics are rendered, committed and pushed; then read its CI and rewrite the PR into its final form** — one
+   sub-step, in this order, from inside the worktree. Every commit the run's record owes (the `⟦full-suite⟧` ticks owed to
+   CI, the `metrics:` commit) is pushed before `pr-ready.sh`, so no records-only push follows the readied PR: the
+   `ready_for_review` run is the one `gates` run, unless a code change (a `⟦ci-repair⟧` step, a rebase) starts another. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
    there is nothing left here for a PR-creating `gh api` call to do: a second one against a branch that
    already has an open PR is either a refusal that ends the run at its last step, or a second
    PR for the same branch — and then the claim another machine reads and the page a human is
    asked to merge are two different pages. Before the first block, run `$S/pr-ready-wait.sh <n>`, and again on exit 3; on
-   exit 0 take `pr_url`, `pr_number`, `ci=` and `no_checks=` from its last lines (the PR is readied and its first
-   `wait-ci.sh` exited 0: go on after the first block); on any other exit go on by the first block from the point its
-   last line names, the `pr-ready-failed` bail included. A stacked run never calls it (it refuses one with exit 2,
-   `.tdd/issue-<n>-base` present), and a `git` or `gh` call that fails inside it is its exit 2. Read the existing PR's URL rather than assuming the
+   exit 0 take `pr_url`, `pr_number`, `ci=`, `metrics=` (there only when the render failed, holding `metrics.sh`'s exit)
+   and `no_checks=` from its last lines (the record is committed and pushed, the PR readied and its first `wait-ci.sh`
+   exited 0: go on after the first block); on any other exit go on by the first block from the point its last line
+   names, the `pr-ready-failed` bail included. A stacked run never calls it (it refuses one with exit 2,
+   `.tdd/issue-<n>-base` present), and a missing ledger or a `git` or `gh` call that fails inside it is its exit 2. Read the existing PR's URL rather than assuming the
    run remembers it, so a resumed run edits the PR its branch already has:
    ```
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
-   # Only under VERI_BRANCH_SUITE=ci (the mode $S/branch-suite.sh printed) when no ⟦full-suite⟧ line was ticked before pr-ready.sh, and only when .tdd/wait-ci.err does not say `has no checks`
-   # (CI's green run is the proof): tick each ⟦full-suite⟧ line with $S/tick-ledger.sh and its issue criterion with $S/tick-issue-criterion.sh as the ⟦full-suite⟧ paragraph above describes, then
-   #   git add .tdd/issue-<n>.md && git commit -m "plan: the full suite is green on CI (#<n>)"      # only when a line was ticked: with none there is nothing to commit
-   # In every other case skip this: the lines were ticked before readying, or nothing proved them.
+   # Only under VERI_BRANCH_SUITE=ci (the mode $S/branch-suite.sh printed) with a ⟦full-suite⟧ line still unchecked: tick each such line with $S/tick-ledger.sh and its issue criterion with
+   # $S/tick-issue-criterion.sh as the ⟦full-suite⟧ paragraph above describes, owed to CI (no CI wait has spoken yet, and none is read), then
+   #   git add .tdd/issue-<n>.md && git commit -m "plan: the full suite is owed to CI (#<n>)"
+   # In every other case skip this: the lines were ticked after a green local run, or none is left.
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
    $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md; metrics=$?
    if [ "$metrics" = 0 ]; then
@@ -509,20 +518,21 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=pr-ready-failed classification="$($S/classify-bail.sh pr-ready-failed)"`,
    and no later line of the block runs. So when no adjudicated `retry` of it exits 0, the block writes its
    `adjudicated` events, then the `pr-ready-failed` bail, and nothing else: no `wait-ci.sh` call follows (in the first call `blocked` makes the wait line skip it and leave `ci` at 0), so no CI deadline is started, no `ci-timeout`, `ci-conflict` or `ci-red` bail follows, no `step-added` event, `⟦ci-repair⟧` ledger line or `plan: repair the red CI check` commit is made and no `gh run view` is asked for. The run **bails** as a **system** failure (`pr-ready-failed`, classified by `classify-bail.sh`) with the PR left a draft, the bail comment carrying the text of `.tdd/pr-ready.err` as its last reason (`Read` `<base directory>/BAIL.md`).
-   A `pr-ready-failed`, `ci-timeout`, `ci-conflict` or `ci-red` bail ends the step there, and neither the `done` mark nor the
-   `metrics:` commit below follows it (`Read` `<base directory>/BAIL.md`). Once the first `wait-ci.sh` exited 0, before
-   the second block, run `$S/pr-finish.sh <n>`, and again on exit 3; on exit 0 take `metrics=` (there only when the
-   render failed, holding `metrics.sh`'s exit) and `.tdd/issue-<n>-refactor-owed-render`, the body's render, from its
-   last lines, and go on at the block's title `gh api -X PATCH` line; on any other exit go on by the second block from
-   the point its last line names. The PR's title and body stay the conductor's. A stacked run never calls it either
-   (exit 2 with `.tdd/issue-<n>-base` present); a failing `git` or `gh` call, or no `.tdd/wait-ci.err` when a
-   `⟦full-suite⟧` line is left to tick, is its exit 2. Otherwise:
+   A `pr-ready-failed`, `ci-timeout`, `ci-conflict` or `ci-red` bail ends the step there: the `done` mark and the
+   `metrics:` commit came before readying, so the bail is written after them, as the log's last ending, and neither the
+   second block nor sub-step 4's done comment follows it (`Read` `<base directory>/BAIL.md`). Once the first `wait-ci.sh` exited 0, before
+   the second block, run `$S/pr-finish.sh <n>`; it makes no wait, so it never exits 3. On exit 0 take
+   `.tdd/issue-<n>-refactor-owed-render`, the body's render, from its last lines, and go on at the block's title
+   `gh api -X PATCH` line; on any other exit go on by the second block from the point its last line names. It only reads
+   the PR's url and renders: it makes no commit, no push and no CI wait, so the PR stays on the head CI just read. The
+   PR's title and body stay the conductor's. A stacked run never calls it either (exit 2 with `.tdd/issue-<n>-base`
+   present); a failing `git` or `gh` call is its exit 2. Otherwise:
    ```
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"
    $S/ledger-growth.sh split .tdd/issue-<n>.md > .tdd/issue-<n>-growth.md; growth=$?
    cat > .tdd/issue-<n>-pr-body.md <<'EOF'
-   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by, when $growth is 0, a ## Plan growth section holding .tdd/issue-<n>-growth.md and saying the owner is strongly advised to split the work after the criterion it names (when $growth is 2, the section holds the one line 'plan growth could not be measured: ledger-growth.sh split exited 2'; when 3, there is no such section), followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section; and, when .tdd/issue-<n>-coupling.md is non-empty, its contents, the ### Coupling section; and the ### Test quality section: one bullet per line of .tdd/issue-<n>-test-quality giving its kind, its <file>::<case> and its why, marked 'fixed' with the subject of the test: commit its ⟦test-quality⟧ step made, or 'not fixed' with why: 'redundant', 'budget' (past VERI_TEST_QUALITY_FIXES), 'step growth' (its step filed under ## Owed steps) or 'no anchor' (test-quality.sh anchor exited 3), or, when the file is empty, the line 'No weak-assertion, redundant or implementation-coupled case was found.'>
+   <Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by, when $growth is 0, a ## Plan growth section holding .tdd/issue-<n>-growth.md and saying the owner is strongly advised to split the work after the criterion it names (when $growth is 2, the section holds the one line 'plan growth could not be measured: ledger-growth.sh split exited 2'; when 3, there is no such section), followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; when .tdd/ci-flakes.txt is non-empty, the line 'CI flakes, green on a re-run: <its targets, comma-joined>'; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'; and, when $S/pr-ready-wait.sh printed no_checks=1, the line '⚠️ CI ran no checks on the readied head: the ⟦full-suite⟧ ticks were owed to CI and nothing proved them.'; and, when .tdd/issue-<n>-lint.md is non-empty, its contents, the ### Lint section; and, when .tdd/issue-<n>-coupling.md is non-empty, its contents, the ### Coupling section; and the ### Test quality section: one bullet per line of .tdd/issue-<n>-test-quality giving its kind, its <file>::<case> and its why, marked 'fixed' with the subject of the test: commit its ⟦test-quality⟧ step made, or 'not fixed' with why: 'redundant', 'budget' (past VERI_TEST_QUALITY_FIXES), 'step growth' (its step filed under ## Owed steps) or 'no anchor' (test-quality.sh anchor exited 3), or, when the file is empty, the line 'No weak-assertion, redundant or implementation-coupled case was found.'>
    EOF
    $S/pr-body.sh <pr-number> .tdd/issue-<n>-pr-body.md
    ```
@@ -545,12 +555,13 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    A failed check does not bail: read its run's log with `gh run view <run-id> --log-failed`,
    append a repair step to the ledger whose text quotes the failing suite and its `FAIL -`
    line — or the error line, when the suite died before writing one — commit the ledger, and
-   return to step 3, *The cycle loop*, without the `done` mark: the quoted line is that
-   step's red evidence, the same way a red full run's repair step is.
+   return to step 3, *The cycle loop*: the quoted line is that step's red evidence, the same way a red full run's
+   repair step is, and the step's `step-added` event follows the `done` mark written before readying, so the run is no
+   longer read as ended.
    A second red CI result after a CI repair step does **bail**, with cause `ci-red`, the way
    a second red full run does — the repair step is one more cycle, not a loop (`Read` `<base directory>/BAIL.md`).
-   **CI flakes.** At every `wait-ci.sh` exit 1 — after `pr-ready.sh`, after the `metrics:` push, after a CI-conflict
-   rebase or an adjudicated `retry`, each of which runs a block's `wait-ci.sh` line and the lines after it — before the
+   **CI flakes.** At every `wait-ci.sh` exit 1 — after `pr-ready.sh`, after a CI-conflict rebase or an
+   adjudicated `retry`, each of which runs the block's `wait-ci.sh` line and the lines after it — before the
    red takes its `⟦ci-repair⟧` step or its `ci-red` bail, the block's flake line first empties `.tdd/ci-flake.out`, so a
    file left by an earlier attempt never labels a later green a flake. It takes `<run-id>` from
    `gh run list --commit <head-sha> --status failure --json databaseId -q '.[].databaseId'` into `.tdd/ci-flake-run`
@@ -566,7 +577,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    that re-run is a flake: the block's next line writes `$S/event.sh ci-flake head=<sha> run=<run-id> files=<targets>`,
    `<run-id>` read back from `.tdd/ci-flake-run`, and keeps the
    targets in `.tdd/ci-flakes.txt` for the PR body; no `⟦ci-repair⟧` step is appended, and the run goes on as after any
-   green wait, row DP101's `⟦full-suite⟧` tick under `VERI_BRANCH_SUITE=ci` included. That wait's exit 1 is a real red:
+   green wait. That wait's exit 1 is a real red:
    the flake line's `ci-flake.sh` exits 3 (the head was re-run) and the red takes the `⟦ci-repair⟧` step or the
    `ci-red` bail above; its exit 2 and 3 are handled as at any wait. A re-run is counted only by
    `VERI_CI_FLAKE_RERUNS`, never by `REVISE_BUDGET`, `VERI_ADJUDICATE_BUDGET` or the `⟦ci-repair⟧` count, and neither
@@ -592,7 +603,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    to `<pre-rebase-sha>` — then wait for CI again with the same `wait-ci.sh` line; with it present,
    the conflict is adjudicated first and **bails** with cause `ci-conflict` unless the adjudicator
    answers `retry` or `route rebase` (`Read` `<base directory>/BAIL.md`).
-   That adjudication, at both `ci-conflict` sites (the first CI wait and the wait after the `metrics:` push), runs before any
+   That adjudication, at the `ci-conflict` site (the CI wait after `pr-ready.sh`, the block's one wait), runs before any
    `bail` event, in the order `ADJUDICATE.md`'s *Procedure* gives (`Read` `<base directory>/ADJUDICATE.md`): the block's `$S/adjudicate.sh left <n>`
    runs first, and its exit 3 or 2 writes the bail on that same line; on its exit 0 that line writes nothing and ends the Bash call (`exit 0`, printing `adjudicate ci-conflict`), so no later line of the block runs; then, in Bash calls of their own, run `$S/build-adjudicate-prompt.sh <n> ci-conflict 2 .tdd/wait-ci.err wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/adjudicate-ci-conflict.prompt`,
    the `adjudicate-ci-conflict` leaf launched through `supervise.sh` and waited on, then
@@ -614,19 +625,18 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    There too `rebase-onto-default.sh`'s exit code decides the next action, so nothing after it — the
    rebased tip's full test run in particular — is started until it has returned, and never in the
    same message as the rebase. Sub-step 1's own rebase takes no flag and does not change.
-   The `metrics:` push starts a CI run of its own on the readied PR, so it is read the same
-   way, by `wait-ci.sh` after the push; a red there (exit 1) is a CI-only failure on code
-   that was already green, so it appends one `⟦ci-repair⟧` step to the ledger with the same
-   `step-added` event a conductor-added step gets, through the same three lines and ledger
-   commit as a failed check above, and returns to step 3, *The cycle loop*, to repair it as a
-   red full suite is repaired; it bails with cause `ci-red` only when the ledger already holds
-   a `⟦ci-repair⟧` step, and exit 2 bails with cause `ci-timeout` (`Read` `<base directory>/BAIL.md`).
-   A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and then the same `wait-ci.sh` line once more, its exits handled as at the first wait; any other outcome runs `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"` alone in a Bash call of its own, and a spent budget or an unreadable event log writes that bail on the block's `adjudicate.sh left` line, whose exit 0 ends the call, as the comment in each block says.
-   A `wait-ci.sh` exit 2 after the `metrics:` push whose stderr names a conflict takes the same one-rebase path as a conflict at the first CI wait, and on a second the same adjudication before it bails with cause `ci-conflict`, so the run never waits into `ci-timeout` on it (`Read` `<base directory>/BAIL.md`).
+   No push follows the readied PR's CI read on the clean path: the `⟦full-suite⟧` ticks owed to CI and the `metrics:` commit
+   were pushed before `pr-ready.sh`, and `pr-finish.sh`, the title PATCH and the body write commit nothing, so the
+   `ready_for_review` run is the one `gates` run and no second `wait-ci.sh` is made. Only a code change starts another
+   run: a `⟦ci-repair⟧` step's cycle, whose next pass through this step pushes its commits before `pr-ready.sh` and waits
+   on the new head with the same block, or a rebase: the conflict rebase above, whose new head the same `wait-ci.sh`
+   line reads, or the `merge` skill's before it merges, which reads CI on the head it merges.
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
-   branch does not yet carry. The title drops the `WIP:` prefix step 2.3 opened it with, and
+   branch does not yet carry. Since that commit is made before readying, the report counts neither the CI wait after
+   readying nor `pr-finish.sh`: its `#### Total` says so in a line of its own, which the body, quoting the report whole,
+   carries. The title drops the `WIP:` prefix step 2.3 opened it with, and
    `gh_pr_ready` (in `veri/github.py`, behind `pr-ready.sh`, never sourced into the conductor's shell) is what turns the run's claim into a review request: a finished run that left
    a draft behind asks nobody to look.
    `<type>` is **`fix`** on a bug run — the issue carries the `bug` label, so the title
