@@ -718,9 +718,25 @@ def _join_offline(pid, worktree, branch, stack):
         _say("taking the merge lock failed (exit %d)" % code)
         return code
     try:
-        return _joined_offline(worktree, branch, stack)
+        code = _joined_offline(worktree, branch, stack)
     finally:
-        _release(pid)
+        released = _release(pid)
+    if code:
+        return code
+    return _offline_cleanup(worktree, branch, released)
+
+
+def _offline_cleanup(worktree, branch, released):
+    """After an offline join, the lock already released: remove the run's worktree and its local branch, and leave its
+    remote branch and run records for the recovery, which needs GitHub. 0, or 2 naming each step that failed."""
+    failed = ["release"] if released else []
+    clone = _main_clone(worktree)
+    _step(failed, "worktree remove", worktree, "worktree", "remove", worktree)
+    _step(failed, "local branch delete", clone, "branch", "-D", branch)
+    if failed:
+        _say("joined offline, but cleanup failed: %s" % ", ".join(failed))
+        return 2
+    return 0
 
 
 def _joined_offline(worktree, branch, stack):
