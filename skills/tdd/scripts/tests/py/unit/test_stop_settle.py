@@ -212,3 +212,15 @@ def test_4388_a_push_exit_1_or_2_is_carried_into_the_comment_and_it_goes_on_to_e
     assert fake.names()[-2:] == ["comment.sh", "stop-requested.sh"]
     assert fake.call("comment.sh")[1] == ("12", "stopped", "--note-file", ".tdd/stop-settle-note.md")
     assert "push=rejected sha=" + sha in (stop.wt / ".tdd" / "stop-settle-note.md").read_text().splitlines()
+
+
+def test_4388_it_writes_no_bail_classifies_nothing_writes_no_metrics_file_commits_nothing_and_keeps_the_pid_file(stop):
+    (stop.wt / ".tdd" / "conductor.pid").write_text("4242\nThu Nov 18 10:00:00 2026\n")
+    code, out, err, fake = stop(fake=Fake(porcelain=DIRTY), argv=("12", "now", "--drop"))
+
+    assert code == 0, err
+    assert [c[1][0] for c in fake.calls if c[0] == "event.sh"] == ["stop"]
+    assert "classify-bail.sh" not in fake.names()
+    assert not [p for p in (stop.wt / ".tdd").iterdir() if "metrics" in p.name]
+    assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("commit",), ("add",))]
+    assert (stop.wt / ".tdd" / "conductor.pid").read_text() == "4242\nThu Nov 18 10:00:00 2026\n"
