@@ -851,7 +851,11 @@ def _merge(pr, worktree, branch, message):
     repo = _repo(pr)
     pid = str(os.getpid())
     if _outage(worktree):
-        stack = _offline_stack(worktree)
+        try:
+            stack = _offline_stack(worktree)
+        except stack_branch.Refused as refused:
+            _say("%s; nothing joined" % refused)
+            return 2
         if stack:
             return _join_offline(pid, worktree, branch, stack)
     stack, refusal = _stack_base(repo, pr, worktree, branch)
