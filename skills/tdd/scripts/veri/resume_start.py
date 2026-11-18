@@ -5,6 +5,7 @@ import os
 import sys
 
 import fused
+import pr_finish
 import run_dir
 import run_start
 import tunables
@@ -13,7 +14,7 @@ USAGE = "usage: resume-start.sh <n>"
 
 # The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_resume_start.py fails
 # when one is a script RESUME.md and SKILL.md do not name (FC19).
-CALLS = ("ledger-growth.sh", "next-pending-refactor.sh", "next-unchecked.sh", "ledger-steps.sh", "event.sh",
+CALLS = ("next-pending-refactor.sh", "ledger-growth.sh", "next-unchecked.sh", "ledger-steps.sh", "event.sh",
          "comment.sh", "suite-red-resume.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh", "run-verdict.sh",
          "wait-leaf.sh")
 
@@ -57,11 +58,11 @@ def run(n):
     if waited is not None:
         return verdict(n, wt, waited[1])
     ledger = os.path.relpath(run_dir.ledger(".", n))
-    if not os.path.exists(os.path.join(wt, added(n))) and grown(wt, ledger):
-        record_existing(n, wt, ledger)
     with open(os.path.join(wt, ledger)) as f:
         text = f.read()
     fused.checked("2", fused.script("next-pending-refactor.sh"), cwd=wt, stdin=text, ok=(3,))
+    if not os.path.exists(os.path.join(wt, added(n))) and grown(wt, ledger):
+        record_existing(n, wt, ledger)
     unserved(n, wt, text)
     step = fused.checked("3", fused.script("next-unchecked.sh"), cwd=wt, stdin=text, ok=(0, 3)).strip()
     resuming(n, wt, text, step, [line[len("stray="):] for line in preflight if line.startswith("stray=")])
@@ -102,11 +103,12 @@ SUITE_RED = ".tdd/resume-suite-red"
 
 
 def quiet(where, *args, wt):
-    """One git call printed as its line and exit, never its output; its stdout, or a Stop at <where>."""
+    """One git call printed as its line and exit, never its output; its stdout, or a Stop at <where> with exit 2: a
+    failing git call gave no answer."""
     code, out, _ = fused.run_script("git", *args, cwd=wt)
     sys.stdout.write(fused.shown("git", *args) + " exit %d\n" % code)
     if code != 0:
-        raise fused.Stop(where, fused.shown("git", *args) + " exit %d" % code, code)
+        raise fused.Stop(where, fused.shown("git", *args) + " exit %d" % code, 2)
     return out
 
 
@@ -128,10 +130,12 @@ def grown(wt, ledger):
 
 
 def record_existing(n, wt, ledger):
-    """Sub-step 1's record of the steps the ledger grew before records existed, committed alone."""
+    """Sub-step 1's record of the steps the ledger grew before records existed, committed alone. Made only once
+    sub-step 2 found no pending refactor: a commit between a step's green commit and its refactor would stop the
+    refactor half (`subject chore: …`) and put the record in verify-refactor's diff."""
     fused.checked("1", fused.script("ledger-growth.sh"), "record-existing", ledger, cwd=wt)
-    fused.checked("1", "git", "add", added(n), cwd=wt)
-    fused.checked("1", "git", "commit", "-m", "chore: record the steps the ledger grew before its record (#%s)" % n,
+    pr_finish.answered("1", "git", "add", added(n), cwd=wt)
+    pr_finish.answered("1", "git", "commit", "-m", "chore: record the steps the ledger grew before its record (#%s)" % n,
                   cwd=wt)
 
 
@@ -167,9 +171,8 @@ def unserved(n, wt, text):
 
 def pr_url(wt):
     """The open PR the branch already has, read off the branch, never remembered."""
-    branch = fused.checked("4", "git", "branch", "--show-current", cwd=wt).strip()
-    import plan_publish
-    url = plan_publish.gh("4", "api", "repos/{owner}/{repo}/pulls?head={owner}:%s" % branch, "-q",
+    branch = pr_finish.answered("4", "git", "branch", "--show-current", cwd=wt).strip()
+    url = pr_finish.gh_answered("4", "api", "repos/{owner}/{repo}/pulls?head={owner}:%s" % branch, "-q",
                           ".[0].html_url // empty", wt=wt).strip()
     if not url:
         raise fused.Stop("4", "no open PR for " + branch, 1)
