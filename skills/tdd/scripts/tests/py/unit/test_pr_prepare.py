@@ -208,14 +208,14 @@ def test_4031_a_red_rebased_tip_stops_it_with_the_waits_code_before_any_resume_o
 
 
 @pytest.mark.parametrize("before, after, pushed, clean", [
-    ("", " M skills/tdd/GRADED\nM  GRADED\n", " M skills/tdd/GRADED\nM  GRADED\n", True),
+    ("", " M skills/tdd/GRADED\nM  GRADED\n", "", True),
     ("", "", " D skills/tdd/x.py\n", False),
     ("", " M skills/tdd/GRADED.bak\n", " M skills/tdd/GRADED.bak\n", False),
     (" D docs/GRADED\n", " D docs/GRADED\n", " D docs/GRADED\n", False),
     (" M docs/GRADED\n", " M docs/GRADED\n", " M docs/GRADED\n", False),
     ("", " D docs/GRADED\n", " D docs/GRADED\n", False),
     ("", "", " M docs/GRADED\n", False)],
-    ids=["regraded files", "another path", "a GRADED lookalike", "a GRADED the rebase left deleted",
+    ids=["regraded files committed", "another path", "a GRADED lookalike", "a GRADED the rebase left deleted",
          "a GRADED modified before the regrade", "a GRADED the regrade deleted", "a GRADED changed after the regrade"])
 def test_4031_immediately_before_the_push_a_path_beyond_the_files_the_regrade_modified_stops_it_with_exit_1(
         prep, before, after, pushed, clean):
@@ -360,12 +360,21 @@ def test_4031_called_again_after_an_exit_3_it_only_waits_again_then_pushes_and_m
     assert not (prep.wt / ".tdd" / "issue-12-pr-prepare-wait").exists()
 
 
-def test_4031_a_resumed_call_keeps_the_files_the_regrade_modified_exempt_at_the_push(prep):
-    _pid(prep, "111\nTue Nov 17 07:00:00 2026\n")
-    prep(fake=Fake(answers={("detach-command.sh", ("wait", "rebased-full-12")): (3, "")}, porcelain=("", "", " M GRADED\n")))
-    code, out, err, fake = prep(fake=Fake(porcelain=(" M GRADED\n",)))
+def test_4390_a_git_commit_of_the_regrade_that_fails_is_exit_2_naming_it_not_gits_own_code(prep):
+    code, out, err, fake = prep(fake=Fake(answers={("git", "commit"): (1, "")}, porcelain=("", "", " M GRADED\n")))
 
-    assert code == 0 and "push-branch.sh" in fake.names()
+    assert code == 2 and "push-branch.sh" not in fake.names()
+    assert out.splitlines()[-1].startswith("stopped at 1 git commit")
+
+
+@pytest.mark.parametrize("after", ["?? skills/tdd/GRADED\n", "?? skills/tdd/GRADED\n M GRADED\n"],
+                         ids=["only untracked", "beside a modified one"])
+def test_4390_a_graded_file_the_block_left_untracked_is_not_committed(prep, after):
+    code, out, err, fake = prep(fake=Fake(porcelain=("", "", after)))
+
+    committed = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
+    assert all("skills/tdd/GRADED" not in args for args in committed)
+    assert committed == ([] if after.count("\n") == 1 else [("commit", "-q", "-m", "docs: regrade the prose the branch signed (#12)", "--", "GRADED")])
 
 
 def test_4031_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_pid_file_held(prep):

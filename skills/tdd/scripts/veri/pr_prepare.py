@@ -51,7 +51,7 @@ def run(n):
             os.remove(fused.wait_record(wt, n, NAME))
             if code != 0:
                 raise fused.Stop("1", "detach-command.sh wait %s exit %d" % (RUN % n, code), code)
-        push(wt, values["rebased_from"], values.get("regraded", []))
+        push(wt, values["rebased_from"])
     skip(wt, n)
     return fused.settle(wt, n, NAME, ["%s=%s" % (key, values[key]) for key in
                                       ("rebased", "rebased_from", "rebased_tip_suite")])
@@ -84,9 +84,9 @@ def regraded(wt, n, values):
     if code != 0:
         raise fused.Stop("1", "detach-command.sh wait %s exit %d" % (REGRADE % n, code), 2)
     before = set(values.pop("before"))
-    values["regraded"] = [line[3:] for line in porcelain(wt) if line not in before and line[:2] in (" M", "M ")
-                          and os.path.basename(line[3:]) == "GRADED"]
-    commit(wt, n, values["regraded"])
+    regraded = [line[3:] for line in porcelain(wt) if line not in before and line[:2] in (" M", "M ")
+                and os.path.basename(line[3:]) == "GRADED"]
+    commit(wt, n, regraded)
     if values["rebased"] == "1":
         values["rebased_tip_suite"] = tip_suite(wt, n)
         if values["rebased_tip_suite"] == "local":
@@ -157,10 +157,10 @@ def commit(wt, n, regraded):
         answered("git", "commit", "-q", "-m", SUBJECT % n, "--", *regraded, cwd=wt)
 
 
-def push(wt, pre, regraded):
-    """The tree check immediately before the push (RB6, D10), every path but a GRADED file the regrade block modified
-    (<regraded>) refusing it, then the push under the lease pinned to the pre-rebase sha (RB5)."""
-    if [line for line in porcelain(wt) if not (line[:2] in (" M", "M ") and line[3:] in regraded)]:
+def push(wt, pre):
+    """The tree check immediately before the push (RB6, D10), any path at all refusing it (the regrade commit left its
+    GRADED files clean), then the push under the lease pinned to the pre-rebase sha (RB5)."""
+    if porcelain(wt):
         raise fused.Stop("1", "tree-check", 1)
     branch = answered("git", "branch", "--show-current", cwd=wt).strip()
     fused.checked("1", fused.script("push-branch.sh"), "--force-with-lease=%s:%s" % (branch, pre), cwd=wt)
