@@ -129,14 +129,16 @@ def test_4389_a_resume_with_no_stray_path_names_none_in_its_note(resume):
     assert "discarded" not in (resume.wt / comment[3]).read_text()
 
 
-def test_4389_a_ledger_grown_beyond_its_plan_commit_with_no_record_is_recorded_and_committed_first(resume):
+def test_4389_a_ledger_grown_beyond_its_plan_commit_with_no_record_is_recorded_and_committed_after_no_pending_refactor(
+        resume):
     code, out, err, fake = resume(fake=Fake(planned="# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n"))
 
     assert fake.call("ledger-growth.sh", "plan-sha")[4]["stdin"] == PLAN_SHA + " plan: scope #12 into 2 steps (#12)\n"
     assert fake.call("git", "show")[1] == ("show", PLAN_SHA + ":.tdd/issue-12.md")
-    assert [c for c in _seq(fake) if c[0] != "git" or c[1][:1] in (("add",), ("commit",))][1:5] == [
+    assert [c for c in _seq(fake) if c[0] != "git" or c[1][:1] in (("add",), ("commit",))][:6] == [
+        ("next-pending-refactor.sh", ()), ("ledger-growth.sh", ("plan-sha",)),
         ("ledger-growth.sh", ("record-existing", ".tdd/issue-12.md")), ("git", ("add", ".tdd/issue-12-added.md")),
-        ("git", ("commit", "-m")), ("next-pending-refactor.sh", ())]
+        ("git", ("commit", "-m")), ("next-unchecked.sh", ())]
     assert fake.call("git", "commit")[1][2] == "chore: record the steps the ledger grew before its record (#12)"
     assert code == 0
 
@@ -244,7 +246,7 @@ def test_4389_called_under_another_conductor_it_discards_the_record_and_starts_f
     (resume.wt / ".tdd" / "conductor.pid").write_text("4242\nThu Nov 19 10:00:00 2026\n")
     code, out, err, fake = resume(verify_plan="owed")
 
-    assert (code, _scripts(fake)[:2]) == (0, ["ledger-growth.sh", "next-pending-refactor.sh"])
+    assert (code, _scripts(fake)[:2]) == (0, ["next-pending-refactor.sh", "ledger-growth.sh"])
 
 
 @pytest.mark.parametrize("answers, pr, where, last", [
@@ -322,3 +324,44 @@ def test_4389_a_run_start_record_with_no_resume_verdict_is_exit_2_before_any_inn
     code, out, err, fake = resume(verify_plan=verify_plan)
 
     assert (code, fake.calls, "verify_plan=" in err) == (2, [], True)
+
+
+def test_4389_a_grown_ledger_with_no_record_and_a_pending_refactor_stops_at_2_with_no_record_and_no_commit(resume):
+    code, out, err, fake = resume(fake=Fake({("next-pending-refactor.sh", None): (0, "one ⟦criterion 1⟧\n")},
+                                            planned="# Plan for #12\n"))
+
+    assert (code, out.splitlines()[-1].startswith("stopped at 2 "), fake.names()) == (
+        1, True, ["next-pending-refactor.sh"])
+    assert not (resume.wt / ".tdd" / "issue-12-added.md").exists()
+
+
+def test_4389_a_verify_plan_with_no_answer_is_exit_2_posting_no_verify_plan_comment_and_settling_nothing(resume):
+    code, out, err, fake = resume(verify_plan="owed", answers={("wait-leaf.sh", None): (2, "")})
+
+    assert (code, out.splitlines()[-1], fake.names()[-1]) == (2, "stopped at 4 wait-leaf.sh verdict-plan exit 2",
+                                                              "wait-leaf.sh")
+    assert (("12", "verify-plan") in [c[1][:2] for c in fake.calls if c[0] == "comment.sh"],
+            (resume.wt / ".tdd" / "issue-12-resume-start").exists()) == (False, False)
+
+
+def test_4389_a_stop_requested_with_no_answer_before_verify_plan_is_exit_2_and_launches_nothing(resume):
+    code, out, err, fake = resume(verify_plan="owed", answers={("stop-requested.sh", None): (2, "")})
+
+    assert (code, fake.names()[-1], "detach-leaf.sh" in fake.names()) == (2, "stop-requested.sh", False)
+
+
+def test_4389_a_missing_spec_is_exit_2_at_3_before_the_pick(resume):
+    code, out, err, fake = resume(missing=("spec",))
+
+    assert (code, out.splitlines()[-1], "next-unchecked.sh" in fake.names()) == (
+        2, "stopped at 3 no .tdd/issue-12-spec.md", False)
+
+
+@pytest.mark.parametrize("failing, code_given, where", [
+    (("git", "log"), 128, "1"), (("git", "show"), 128, "1"), (("git", "add"), 128, "1"), (("git", "commit"), 1, "1"),
+    (("git", "branch"), 128, "4"), (("gh", None), 1, "4"), (("gh", None), 4, "4")])
+def test_4389_a_failing_git_or_gh_call_is_exit_2_never_its_own_code(resume, failing, code_given, where):
+    code, out, err, fake = resume(fake=Fake({failing: (code_given, "")}, planned="# Plan for #12\n"))
+
+    assert (code, out.splitlines()[-1].startswith("stopped at %s %s " % (where, failing[0])),
+            fake.names()[-1]) == (2, True, failing[0])
