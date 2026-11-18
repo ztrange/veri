@@ -9,8 +9,11 @@ import sys
 import entry
 import git
 import github
+import stack_green
 
 USAGE = "usage: stack-tag.sh <slice-pr-url> [--message <n>=<text>]..."
+TAGGED = ("feat", "fix")  # a commit type that changes behaviour: its issue owes a tag
+_TYPE = re.compile(r"(\w+)(?:\([^()]*\))?!?:")
 
 
 def arguments(argv):
@@ -42,6 +45,19 @@ def _json(path, what):
         raise _Unanswered("%s got no answer: %s" % (what, error)) from None
 
 
+def owing(subjects):
+    """The issues <subjects> name (stack_green.named's rule), in the order of their last commit, that owe a tag: any of
+    their commits has a type in TAGGED."""
+    last, owes = {}, set()
+    for at, subject in enumerate(subjects):
+        kind = _TYPE.match(subject)
+        for issue in stack_green.named(subject):
+            last[issue] = at
+            if kind and kind[1] in TAGGED:
+                owes.add(issue)
+    return [issue for issue in sorted(last, key=last.get) if issue in owes]
+
+
 def _subjects(repo, number):
     """The subjects of pull request <number>'s commits, oldest first, every page read."""
     subjects, page = [], 1
@@ -71,6 +87,10 @@ def main(argv):
         subjects = _subjects(repo, number)
     except _Unanswered as unanswered:
         return entry.refuse("%s; nothing tagged" % unanswered, prefix="stack-tag: ")
+    if not owing(subjects):
+        print("stack-tag: no issue of %s owes a tag: none has a commit of type %s" % (pr, " or ".join(TAGGED)),
+              file=sys.stderr)
+        return 3
     return 0
 
 

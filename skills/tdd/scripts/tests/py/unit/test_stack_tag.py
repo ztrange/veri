@@ -141,3 +141,13 @@ def test_a_pull_request_not_merged_into_the_default_branch_or_unread_exits_2_tak
     code, out, err = run_cli(stack_tag, [PR])
 
     assert (code, out, said in err, world.lock_calls, world.cut) == (2, "", True, [], []), err
+
+
+def test_a_slice_whose_every_commit_is_docs_test_refactor_chore_or_plan_exits_3_taking_no_lock(
+        monkeypatch, run_cli, stack_tag):
+    world = World(monkeypatch, commits=["plan: scope (#7)", "test: pin a (#7)", "docs: say a (#7)",
+                                        "refactor(stack): name b (#8)", "chore: tidy (#8)"])
+
+    code, out, err = run_cli(stack_tag, [PR])
+
+    assert (code, out, "no issue" in err, world.lock_calls, world.cut) == (3, "", True, [], []), err
