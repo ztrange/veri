@@ -277,3 +277,64 @@ def test_3710_a_step_without_the_skill_edit_tag_is_not_refused_though_its_unit_h
     code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
 
     assert (code, err) == (0, "")
+
+
+def _signed_units_repo(tmp_path):
+    """A repo whose skills/tdd/REQUIREMENTS.md lists two units, each with a GRADED line beside it."""
+    tdd_skill = tmp_path / "skills" / "tdd"
+    tdd_skill.mkdir(parents=True)
+    (tdd_skill / "REQUIREMENTS.md").write_text(
+        "## skills/tdd/PIN.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PIN1 | pins a thing | so it stays |\n\n"
+        "## skills/tdd/OTHER.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| OTH1 | says another thing | so it is said |\n",
+        encoding="utf-8",
+    )
+    (tdd_skill / "GRADED").write_text(
+        "skills/tdd/PIN.md aaaa 2026-11-17 g1 p1\n"
+        "skills/tdd/OTHER.md bbbb 2026-11-17 g2 p2\n",
+        encoding="utf-8",
+    )
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    return tdd
+
+
+PLAIN_ROW_MOVE = "move row PIN1 out into `skills/tdd/scripts/x.py` ⟦criterion 1⟧"
+
+
+def test_3302_a_plain_step_naming_a_row_of_a_unit_a_later_skill_edit_step_signs_is_refused_with_exit_1_naming_the_step_and_the_unit(
+    tmp_path, run_cli, scope_check
+):
+    tdd = _signed_units_repo(tmp_path)
+    ledger = tdd / "issue-3302.md"
+    ledger.write_text(
+        f"- [ ] {PLAIN_ROW_MOVE}\n"
+        "- [ ] ⟦skill-edit⟧ regrade `skills/tdd/PIN.md` ⟦added⟧\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert code == 1
+    assert PLAIN_ROW_MOVE in err
+    assert "skills/tdd/PIN.md" in err
+    assert not (tdd / "events.jsonl").exists()
+
+
+def test_3302_a_plain_step_naming_a_row_of_a_unit_no_skill_edit_step_signs_passes_while_another_unit_is_signed(
+    tmp_path, run_cli, scope_check
+):
+    tdd = _signed_units_repo(tmp_path)
+    ledger = tdd / "issue-3302.md"
+    ledger.write_text(
+        f"- [ ] {PLAIN_ROW_MOVE}\n"
+        "- [ ] ⟦skill-edit⟧ regrade `skills/tdd/OTHER.md` ⟦added⟧\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")
