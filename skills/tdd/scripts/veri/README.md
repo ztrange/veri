@@ -873,6 +873,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `cost_check(wt, step)`: *The step's cost check*, stopping at `cost-check`. `verify_switched_off(wt, n, phase)`: the run's pinned `VERI_SKIP_VERIFY` names the phase.
 - `summary(step)`: the step's ledger text without its trailing markers, as a commit subject reads it (the #431/#437 rule).
 - `red_test_id(test_path, target)`: the Red case's id, `<target>` when it holds `::`, else `<test_path>::<target>`.
+- `refresh(stage, wt, n, record, facts)`: `.tdd/issue-<n>-<record>` rewritten so each key of `facts` holds its committed source's value, one `record-refreshed` event of `stage` per rewritten key.
 - `record(stage, wt, n, step, facts=())`: the record `stage` reads (`seam_contract.READS`), its step and each `(key, value)` of `facts` refreshed from their committed sources, one `record-refreshed` event per rewritten key (PRD 038.1 SC1-SC4); `None`, the `seam=<stage> code=1 reason=record next=seam-settle.sh …` line printed, when it is missing or names another step by `ledger.same_step`.
 - `verdict_log(wt)`: the sha256 of `.tdd/verify-refactor.log`, `none` without one: the verdict a refactor-half file was settled after.
 

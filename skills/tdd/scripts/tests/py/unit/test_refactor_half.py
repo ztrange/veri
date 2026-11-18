@@ -442,3 +442,16 @@ def test_4028_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(tidy)
     firsts = [made.index(name) for name in refactor_half.CALLS if name not in (
         "supervise.sh", "run-leaf.sh", "run-verdict.sh")]
     assert firsts == sorted(firsts)
+
+
+def test_it_takes_green_sha_from_git_and_rewrites_a_stale_one_in_green_halfs_record_4342(tidy):
+    """SC1: green_sha comes from git, the last commit that changed the ledger; the record's stale one is rewritten."""
+    record = tidy.wt / ".tdd" / "issue-12-green-half"
+    record.write_text("step=%s\ngreen_sha=%s\ntest_path=tests/test_a.py\n" % (STEP, "e" * 40))
+    code, out, err, fake = tidy(answers={("wait-leaf.sh", "develop-refactor"): (3, "")})
+
+    assert code == 3
+    assert record.read_text() == GREEN_HALF % STEP
+    events = [json.loads(line) for line in (tidy.wt / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["stage"], e["key"], e["old"], e["new"]) for e in events if e["event"] == "record-refreshed"] == [
+        ("refactor-half", "green_sha", "e" * 40, GREEN_SHA)]
