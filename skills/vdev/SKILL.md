@@ -376,7 +376,8 @@ A reset is `$S/role-state.sh dev [--lane <lane>] request-reset` followed by the 
 dev session's own session. Nothing else is written at reset time (*Role state*). When
 `request-reset` exits 1, treat it as a refused reset.
 
-The dev session resets only on the arm or reset-now line, never because it has been idle.
+The dev session resets only on the arm or reset-now line, never because it has been idle: it arms
+no idle wait of `reset-wait.sh` and never passes `--idle` to `request-reset`.
 
 ## Resetter
 
