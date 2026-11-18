@@ -45,3 +45,29 @@ def test_it_writes_green_halfs_and_refactor_halfs_records_the_step_from_the_ledg
     assert green == (0, green[1], "", "step=%s\ngreen_sha=%s\ntest_path=tests/test_h.py\n" % (STEP, GREEN_SHA))
     assert refactor == (0, refactor[1], "", "step=%s\ngreen_sha=%s\nverdict_log=%s\n" % (STEP, GREEN_SHA, verdict))
     assert ("git", ("log", "-1", "--format=%H", "--", ".tdd/issue-12.md")) in settle.calls
+
+
+@pytest.mark.parametrize("argv, named", [
+    (("blue-half", "test_path=a"), "unknown stage blue-half"),
+    (("red-half", "test_path=tests/test_h.py"), "missing key target_test"),
+    (("green-half", "test_path=a", "colour=red"), "unknown key colour"),
+    (("green-half", "test_path="), "empty key test_path"),
+    (("green-half", "test_path"), "empty key test_path"),
+    (("green-half", "test_path=a", "test_path=b"), "repeated key test_path"),
+    (("green-half", "test_path=a\nstep=other"), "newline in key test_path"),
+    (("refactor-half", "green_sha=" + GREEN_SHA), "unknown key green_sha"),
+    ((), "usage: seam-settle.sh <n> <stage> key=value…"),
+])
+def test_an_unknown_stage_or_a_missing_unknown_or_empty_key_is_exit_2_named_on_stderr_and_no_record_4342(
+        settle, argv, named):
+    code, out, err, record = settle(*argv)
+
+    assert (code, named in err, record) == (2, True, None)
+
+
+@pytest.mark.parametrize("stage, argv", [("red-half", ("test_path=a", "target_test=b")),
+                                         ("green-half", ("test_path=a",))])
+def test_no_open_step_for_the_stage_is_exit_2_named_on_stderr_and_no_record_4342(settle, stage, argv):
+    code, out, err, record = settle(stage, *argv, ledger="# Plan for #12\n\n- [x] done ⟦criterion 1⟧\n")
+
+    assert (code, "no open step" in err, record) == (2, True, None)
