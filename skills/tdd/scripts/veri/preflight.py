@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -304,6 +305,20 @@ def leased_push(wt, pre):
     checked(3, script("push-branch.sh"), "--force-with-lease=%s:%s" % (branch, pre), cwd=wt)
 
 
+def recorded_base(n, wt, main):
+    """The branch base a fresh launch recorded under <main>; a record missing, unreadable, not a hex commit name or not
+    an ancestor of HEAD in <wt> (a git that cannot tell included) stops step 3 with exit 2 naming the record."""
+    path = run_dir.issue_file(main, n, run_pins.BRANCH_BASE)
+    try:
+        base = run_pins.branch_base(n, main)
+    except OSError:
+        base = None
+    if (base is None or not re.fullmatch(r"[0-9a-f]{7,40}", base)
+            or call("git", "merge-base", "--is-ancestor", base, "HEAD", cwd=wt)[0] != 0):
+        raise Stop(3, "branch-base record " + path, 2)
+    return base
+
+
 def set_up(n, slug, detect):
     """The run's worktree, made ready for its baseline suite: (worktree, fast tier command, issue body file)."""
     wt = checked(3, script("issue-worktree.sh"), n, slug).strip()
@@ -328,7 +343,7 @@ def set_up(n, slug, detect):
     # recomputing it from refs a leaf can rewrite (#4374).
     main = run_dir.main_tree_from_files(wt)
     if resume:
-        base = run_pins.branch_base(n, main)
+        base = recorded_base(n, wt, main)
     else:
         base = call("git", "merge-base", "HEAD", "origin/HEAD", cwd=wt)[1].strip()
         run_pins.write_branch_base(main, n, base)

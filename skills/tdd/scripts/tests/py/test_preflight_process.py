@@ -65,6 +65,7 @@ def set_up_in(repo, monkeypatch):
     try:
         return 0, preflight.set_up("12", "slug", str(SCRIPTS / "detect-test-command.sh"))[1]
     except preflight.Stop as stop:
+        set_up_in.stop = stop
         return stop.code, None
 
 
@@ -123,3 +124,27 @@ def test_a_resume_reads_its_fast_command_at_the_recorded_base_never_at_the_merge
     git(repo, "update-ref", "refs/remotes/origin/main", rewritten)
 
     assert set_up_in(repo, monkeypatch) == (0, "pytest -q")
+
+
+@pytest.mark.process("git init, commit, checkout, update-ref and symbolic-ref run for real in a scratch repository, then"
+                     " preflight.set_up's git and detect-test-command.sh calls in it")
+@pytest.mark.parametrize("record", ["missing", "unreadable", "origin/main", "off-branch", "deadbeef"])
+def test_a_resume_whose_branch_base_record_is_missing_unreadable_not_hex_or_not_an_ancestor_stops_with_exit_2_naming_it_4374(
+        tmp_path, monkeypatch, record):
+    repo = new_repo(tmp_path / "repo")
+    base = commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n"})
+    origin_head_at(repo)
+    git(repo, "checkout", "-q", "-b", "side")
+    side = commit_all(repo, "off the branch", **{"side": "x\n"})
+    git(repo, "checkout", "-q", "-b", "issue-12", base)
+    commit_all(repo, "ledger", **{".tdd__issue-12.md": "- [x] step\n"})
+    path = repo / ".tdd" / "issue-12-branch-base"
+    if record == "unreadable":
+        path.mkdir()
+    elif record != "missing":
+        path.write_text((side if record == "off-branch" else record) + "\n")
+
+    code = set_up_in(repo, monkeypatch)
+    what = set_up_in.stop.what if code[0] else None
+
+    assert (code, what and str(path) in what) == ((2, None), True)
