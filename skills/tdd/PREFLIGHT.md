@@ -162,8 +162,8 @@ by the steps below. Steps 1 to 7 stay stated here.
    test target (a failing pytest node id, else a test file) passes when run alone (`--alone`), as for the baseline, it is a flake: a
    `suite-flake` event names the targets, and preflight goes on.
 
-   `VERI_BASELINE_FULL_TIER` takes `reuse`, the default, or `run`. The fast-tier baseline
-   runs in both modes. Settle the mode by running
+   `VERI_BASELINE_FULL_TIER` takes `reuse`, the default, or `run`. In both modes the fast-tier
+   baseline runs, unless it is skipped as already proven green (below). Settle the mode by running
    `$S/baseline-full-tier.sh <n> <full-tier-command>` and follow its output: `reuse <seconds>`
    means `full` is that many seconds (taken from `$S/full-tier-time.sh`, which holds a time for
    this run's full-tier command recorded no more than `VERI_FULL_TIER_MAX_AGE_DAYS` days ago,
@@ -177,13 +177,15 @@ by the steps below. Steps 1 to 7 stay stated here.
    (1) a record on this machine: `$S/baseline-full-tier.sh --green <n> <tree> <fast-cmd> <full-cmd>` prints `skip`
    when `.tdd/baseline-green.json` in the main checkout holds a green baseline keyed by the tree under test
    (`git rev-parse HEAD^{tree}`), both commands, the run's skill commit pin `.tdd/issue-<n>-skill-commit` and a sha256 of
-   the dev venv lock `requirements-dev.txt`; (2) CI: `gh run list --workflow CI --commit <sha>`, whose latest run
-   is `completed` with conclusion `success` on exactly the commit being baselined (`git rev-parse HEAD`, a fresh launch's
-   `origin/<default>` tip). The record is asked first, so a resume whose branch tip CI never ran is covered by it.
-   Fail closed: a CI run that is red, pending or absent, a `gh` call that fails or prints what cannot be read, a run on
+   the dev venv lock `requirements-dev.txt`; (2) CI: `gh run list --workflow CI --event push --commit <sha>`, whose latest run
+   is a `push` run, `completed` with conclusion `success` on exactly the commit being baselined (`git rev-parse HEAD`, a fresh launch's
+   `origin/<default>` tip). A `pull_request` run never counts: it reports the PR head's sha but tests the merge commit
+   with its base, so a resumed PR whose base moved would skip on a tree CI never ran. The record is asked first, so a resume whose branch tip CI never ran is covered by it.
+   Fail closed: a CI run that is red, pending, absent or not a `push` run, a `gh` call that fails or prints what cannot be read, a run on
    any other sha (local commits on top, or a rebase), and a record that is absent, corrupt, not green or keyed differently
    each leave the baseline to run. Only a baseline that ran green writes a record, through
-   `$S/baseline-full-tier.sh --record-green` with the same arguments; a red one, or one skipped on CI's word, never does.
+   `$S/baseline-full-tier.sh --record-green` with the same arguments; a red one, or one skipped on either source's word, never does, even
+   when a later call waits its full tier to green: the record needs a fast tier this preflight ran green.
    A skipped baseline counts as green with `baseline` 0 seconds; `full` still comes from `baseline-full-tier.sh <n>
    <full-tier-command>`, so a full tier with no reusable time is still run once to time it.
    **The trade-off, accepted by the owner:** CI runs on Linux and this machine is a Mac, so a test that fails only
