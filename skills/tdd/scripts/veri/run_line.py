@@ -11,6 +11,10 @@ Interface:
                           declares as `veri: quiet test files: <quiet>` over the paths appended to it, or None when it
                           declares none (never the inferred default) or <root> is veri's own tree. With <claude_md>
                           (bytes, a branch base's CLAUDE.md) that text is read in place of the file.
+  base_claude_md(root=".", branch_base="")
+                          CLAUDE.md's bytes as they stood at <branch_base> (b"" when that commit holds none), or None
+                          when nothing is read there (no <branch_base>, or <root> is no git tree). Raises BaseUnresolved
+                          as run_lines does. What build-verify-prompt.sh reads the `veri: lint:` line from.
   run_lines(root=".", branch_base="")
                           (changed, one) as bytes: the command running the test files affected-suites.sh printed, and the
                           one invocation for a single suite. In veri's own tree today's `make test TESTS="…"` text;
@@ -78,6 +82,11 @@ def _at_base(branch_base, root):
 def own_tree_at(commit, root="."):
     kind = git.git("cat-file", "-t", f"{commit}:{PYTEST_DIR}", cwd=root, capture_output=True)
     return kind.stdout.strip() == b"tree"
+
+
+def base_claude_md(root=".", branch_base=""):
+    at_base = _at_base(branch_base, root)
+    return None if at_base is None else at_base[0]
 
 
 def run_lines(root=".", branch_base=""):
