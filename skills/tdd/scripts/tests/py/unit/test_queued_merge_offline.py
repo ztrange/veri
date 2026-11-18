@@ -3,6 +3,8 @@ git, merge-lock.sh, detect-test-command.sh, prose-owed.sh and sh faked as proces
 queued_merge._pull, spied in-process, so a read of it shows."""
 import os
 
+import pytest
+
 from veri import queued_merge
 
 PR = "https://github.com/o/r/pull/7"
@@ -215,3 +217,17 @@ def test_a_stack_the_last_fetched_origin_head_names_as_the_default_branch_is_exi
     rebased = [c for c in world.calls if " rebase " in c]
     assert (code, rebased, world.networked(), world.pulls) == (2, [], [], []), err
     assert err.startswith("queued-merge: ") and "default branch" in err, err
+
+
+@pytest.mark.parametrize("kind", ["rebase", "fast", "owed"])
+def test_a_rebase_conflict_a_red_fast_tier_or_a_unit_owing_a_grade_is_exit_1_with_the_stack_unmoved_and_the_lock_freed(
+        tmp_path, fake_processes, monkeypatch, run_cli, kind):
+    world = Offline(tmp_path, **{kind: 1}).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    wt = "git -C %s " % world.wt
+    aborted = wt + "rebase --abort" in world.calls
+    moved = [c for c in world.calls if c.startswith(wt + "update-ref")]
+    assert (code, world.local, moved, aborted) == (1, LOCAL_STACK, [], kind == "rebase"), err
+    assert [c for c in world.calls if c.startswith("merge-lock.sh")][-1] == "merge-lock.sh release --pid %s" % PID, err

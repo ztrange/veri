@@ -743,7 +743,14 @@ def _joined_offline(worktree, branch, stack):
         return 2
     base = _base_sha(worktree, branch)
     rebase = _git(worktree, "rebase", *(["--onto", stack, base] if base else [stack]))
+    if rebase.returncode and not _rebasing(worktree):
+        _say("git rebase onto the local %s was refused without a conflict (exit %d); nothing joined" % (
+            stack, rebase.returncode))
+        return 2
     if rebase.returncode:
+        _git(worktree, "rebase", "--abort")
+        _say("rebasing %s onto the local %s conflicted (%s); aborted, nothing joined" % (
+            branch, stack, " ".join((rebase.stdout + rebase.stderr).split())[:400]))
         return 1
     checked = _rev(worktree, "HEAD")
     code = _tip_checks(worktree, stack)
