@@ -2,9 +2,11 @@
 
 Interface:
   own_tree(root=".")      whether <root> is veri's own tree: `skills/tdd/scripts/tests/py` is a directory there.
-  quiet_prefix(root=".")  the argv prefix `["sh", "-c", '<quiet> "$@"', "sh"]` running the command <root>'s CLAUDE.md
+  quiet_prefix(root=".", claude_md=None)
+                          the argv prefix `["sh", "-c", '<quiet> "$@"', "sh"]` running the command <root>'s CLAUDE.md
                           declares as `veri: quiet test files: <quiet>` over the paths appended to it, or None when it
-                          declares none (never the inferred default) or <root> is veri's own tree.
+                          declares none (never the inferred default) or <root> is veri's own tree. With <claude_md>
+                          (bytes, a branch base's CLAUDE.md) that text is read in place of the file.
   run_lines(root=".", branch_base="")
                           (changed, one) as bytes: the command running the test files affected-suites.sh printed, and the
                           one invocation for a single suite. In veri's own tree today's `make test TESTS="…"` text;
@@ -12,9 +14,10 @@ Interface:
                           being that path, or, when the repo declares none, its fast command once for both, so a
                           leaf never times a broader tier; only a repo declaring neither gets its all-tier command.
                           A declared quiet command (quiet_prefix) replaces the changed one, run once over every path.
-                          With <branch_base> (a hex commit name), the `veri: one test file:`, `veri: fast tests:` and
-                          `veri: all tests:` lines are read from CLAUDE.md as it stood at that commit, never from the
-                          working tree's, and only a line it declares counts: no tier is inferred from other files.
+                          With <branch_base> (a hex commit name), the `veri: one test file:`, `veri: fast tests:`,
+                          `veri: all tests:` and `veri: quiet test files:` lines are read from CLAUDE.md as it stood at
+                          that commit, never from the working tree's, and only a line it declares counts: no tier is
+                          inferred from other files.
                           Whether <root> is veri's own tree is then read at <branch_base> too (the directory is in
                           that commit), so a branch that adds it gains nothing. Raises BaseUnresolved when <root> is a
                           git tree in which <branch_base> names no commit; a commit holding no CLAUDE.md reads as one
@@ -39,12 +42,15 @@ def own_tree(root="."):
     return os.path.isdir(os.path.join(root, PYTEST_DIR))
 
 
-def quiet_prefix(root="."):
+def quiet_prefix(root=".", claude_md=None):
     claude = os.path.join(root, "CLAUDE.md")
-    if own_tree(root) or not os.path.isfile(claude):
+    if claude_md is None and (own_tree(root) or not os.path.isfile(claude)):
         return None
     try:
-        detect_test_command.answer_from_file(claude, b"veri: quiet test files:")
+        if claude_md is None:
+            detect_test_command.answer_from_file(claude, b"veri: quiet test files:")
+        for line in (claude_md or b"").split(b"\n"):
+            detect_test_command.answer_from(line, b"veri: quiet test files:")
     except detect_test_command.Answer as found:
         return ["sh", "-c", '%s "$@"' % os.fsdecode(found.command), "sh"]
     return None
@@ -80,7 +86,7 @@ def run_lines(root=".", branch_base=""):
         loop = 'for f; do set -- "$f"; %s || s=$?; done; exit ${s:-0}' % command
         changed = os.fsencode("sh -c %s sh <those paths>" % shlex.quote(loop))
         single = os.fsencode('sh -c %s sh "<test file>"' % shlex.quote(command))
-    quiet = quiet_prefix(root)
+    quiet = quiet_prefix(root, claude_md)
     if quiet:
         changed = os.fsencode("%s <those paths>" % shlex.join(quiet))
     return changed, single
