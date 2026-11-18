@@ -90,6 +90,11 @@ def main(argv):
         return entry.refuse("git fetch origin failed (exit %d): %s; the merge lock freed, nothing pushed or opened"
                             % (fetch.returncode, fetch.stderr.strip()), prefix="stack-land: ")
     slice_branch = "%s-slice-%s" % (stack, cut[:10])
+    listed = git.network("ls-remote", "--heads", "origin", "refs/heads/%s" % slice_branch, cwd=".").stdout.split()
+    if listed and listed[0] != cut:
+        stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
+        return entry.refuse("the slice branch %s is already on origin at another commit, %s; the merge lock freed,"
+                            " nothing pushed" % (slice_branch, listed[0]), prefix="stack-land: ")
     git.network("push", "origin", "%s:refs/heads/%s" % (cut, slice_branch), cwd=".")
 
 
