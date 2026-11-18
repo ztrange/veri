@@ -23,6 +23,7 @@ from typing import NamedTuple, Optional
 
 import entry
 import json_documents
+import run_records
 import tunables
 from redaction import redact
 
@@ -35,6 +36,16 @@ VERI_COMMENT_PREFIXES = (
     "### ⏹️ Stopped", "### ⛔ Preflight refused", "### 🔴 Red", "### 🟢 Green", "### 🛠️ Refactor", "### 🔎 ",
     "### 🗺️ ", "### 📊 Metrics", "needs-user: the conductor stopped without a verdict.",
 )
+
+# An absolute local path redact_local leaves (another account's home, any temp or /private path): to `<path>`, whole.
+_LOCAL_PATH = re.compile(r"(?<![A-Za-z0-9_.-])(?:/System/Volumes/Data)?(?:/private)?"
+                        r"/(?:Users|home|tmp|var/folders|private)(?:/[^\s\"'`<>()\[\]]*)?")
+
+
+def published(text):
+    """<text> as a comment veri posts publishes it: this machine's paths, host and account names redacted as a PR body's
+    are (`~` for the home directory), then any other absolute local path replaced by `<path>`."""
+    return _LOCAL_PATH.sub("<path>", run_records.redact_local(text, os.getcwd()))
 
 
 class NoAnswer(Exception):
