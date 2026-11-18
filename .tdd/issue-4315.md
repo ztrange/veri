@@ -7,7 +7,7 @@
 - [x] a local `<stack>` that `origin/<stack>` is not an ancestor of is exit 2 naming both shas ⟦criterion 2⟧
 - [x] a local `<stack>` checked out in a worktree is exit 2 naming the worktree ⟦criterion 2⟧
 - [x] a `<stack>` that `refs/remotes/origin/HEAD` names as the default branch is exit 2, with no `ls-remote` ⟦criterion 2⟧
-- [ ] a rebase conflict, a red fast tier or a unit owing a grade is exit 1, `<stack>` unmoved, lock freed ⟦criterion 3⟧
+- [x] a rebase conflict, a red fast tier or a unit owing a grade is exit 1, `<stack>` unmoved, lock freed ⟦criterion 3⟧
 - [ ] the all-tier command runs on the rebased tip before `<stack>` moves; red is exit 1, `<stack>` unmoved, lock freed ⟦criterion 4⟧
 - [ ] with no all-tier command the join is not gated and says so in one stderr line ⟦criterion 5⟧
 - [ ] the offline cleanup removes the worktree and local branch, leaving the remote branch and `refs/veri/runs/<n>` ⟦criterion 6⟧
