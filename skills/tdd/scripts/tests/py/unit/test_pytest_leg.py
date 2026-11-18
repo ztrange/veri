@@ -1237,3 +1237,29 @@ def test_4310_a_full_run_that_must_wait_for_a_free_core_already_holds_the_full_r
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_TEST_LOCK="1"))[0]
 
     assert (code, held_at_wait) == (0, [True])
+
+
+def test_4310_a_leg_with_veri_pytest_workers_set_reads_neither_the_core_count_nor_the_registry_beside_a_full_registry(pytest_leg, run_cli, monkeypatch, tmp_path):
+    reads = []
+
+    def read(name, value):
+        def reader(*args):
+            reads.append(name)
+            return value
+        return reader
+
+    monkeypatch.setattr(os, "cpu_count", read("cpu_count", 16))
+    monkeypatch.setattr(os, "process_cpu_count", read("process_cpu_count", 16), raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", read("sched_getaffinity", set(range(16))), raising=False)
+    monkeypatch.setattr(pytest_leg, "registered_legs", read("registered_legs", [(str(os.getppid()), 16)]))
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    (legs / str(os.getppid())).write_text("16\n")
+    handed = []
+    monkeypatch.setattr(pytest, "main", lambda args: handed.append(args[args.index("-n") + 1] if "-n" in args else "1") or pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", lambda seconds: reads.append("waited"))
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WORKERS="3"))[0]
+
+    assert (code, reads, handed[:1]) == (0, [], ["3"])
