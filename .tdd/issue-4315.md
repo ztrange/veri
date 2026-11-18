@@ -14,6 +14,6 @@
 - [x] the tip is amended with one `Veri-Joined: <pr-url> <branch>` trailer before `<stack>` moves; exit 0 prints `joined offline, no tag` and the amended sha ⟦criterion 7⟧
 - [x] a fast tier or full suite that moves or dirties the rebased tip is exit 2 with nothing amended and `<stack>` unmoved
 - [x] a git call the offline join needs that fails (or a garbled base sha) is exit 2 with nothing joined and the lock freed
-- [ ] `stack-land.sh` exits 3 with one stderr line while `.tdd/github-outage` exists, before any read and before the lock ⟦criterion 8⟧
+- [x] `stack-land.sh` exits 3 with one stderr line while `.tdd/github-outage` exists, before any read and before the lock ⟦criterion 8⟧
 - [ ] the graded prose of voutage, vmerge, vdev, vhandoff and SCRIPTS.md says what VO5, VO7, M37, D69, D98, D142, D143, H10 and SC589–SC591 say, each regraded ⟦criterion 9⟧
 - [ ] the logic lives in `queued_merge.py` and `stack_land.py` behind their shims and names no repository, issue, branch, label or person ⟦criterion 10⟧

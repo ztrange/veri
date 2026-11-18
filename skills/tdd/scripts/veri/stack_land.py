@@ -13,6 +13,7 @@ import git
 import github
 import merge_common
 import pid_file
+import run_dir
 import stack_branch
 import stack_fix
 import tunables
@@ -172,6 +173,15 @@ def _after(pr, cut, repo, closed):
 def main(argv):
     if argv not in ([], ["--now"]):
         return entry.refuse(usage=USAGE)
+    try:
+        outage = os.path.exists(os.path.join(run_dir.main_tree_from_files(), ".tdd", "github-outage"))
+    except OSError as error:
+        return entry.refuse("the main working tree cannot be read (%s), so whether GitHub is out is not known"
+                            % error, prefix="stack-land: ")
+    if outage:
+        print("stack-land: .tdd/github-outage exists, so a landing waits for the GitHub outage to end; nothing read,"
+              " locked or landed", file=sys.stderr)
+        return 3
     size = tunables.get("VERI_SLICE_COMMITS")
     if not (size.isascii() and size.isdigit() and int(size) >= 1):
         return entry.refuse("VERI_SLICE_COMMITS must be a whole number of 1 or more: %r" % size, prefix="stack-land: ")

@@ -980,3 +980,16 @@ def test_stack_land_merge_common_and_the_shim_name_no_repository_issue_branch_la
                       if NAMED.search(line)]
 
     assert named == []
+
+
+def test_while_the_outage_file_exists_it_exits_3_in_one_stderr_line_before_any_read_and_before_the_lock(
+        tmp_path, monkeypatch, run_cli, stack_land):
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "github-outage").write_text("")
+    world = World(monkeypatch, AssertionError("stack-branch.sh was read"))
+
+    code, out, err = run_cli(stack_land, [], cwd=tmp_path)
+
+    assert (code, out, err.count("\n"), world.log, world.scripts) == (3, "", 1, [], []), err
+    assert "outage" in err and err.startswith("stack-land: "), err
