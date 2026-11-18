@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 import entry
 import event
@@ -78,6 +79,17 @@ def _pull(repo, number):
 def _issue_state(repo, number):
     """The state GitHub's record of issue <number> of <repo> reads, as parked_issues.py reads a blocker's."""
     return json.loads(github.gh_api("repos/%s/issues/%s" % (repo, number), stderr=subprocess.PIPE).stdout).get("state")
+
+
+def _rebased(cut, default):
+    """<cut> rebased onto origin/<default> in a detached worktree of its own, removed after: the rebased head."""
+    with tempfile.TemporaryDirectory() as parent:
+        tree = os.path.join(parent, "slice")
+        git.out("worktree", "add", "--detach", tree, cut, cwd=".")
+        git.out("-C", tree, "rebase", "origin/" + default)
+        head = git.out("-C", tree, "rev-parse", "HEAD")
+        git.out("worktree", "remove", "--force", tree, cwd=".")
+    return head
 
 
 class _Unanswered(Exception):
@@ -172,7 +184,13 @@ def main(argv):
             said.append(run.stderr or "")
             return run.returncode
 
-        code = merge_common.merge(gate, pr, repo, number, cut, driver="graphql")
+        head = cut
+        if not git.ok("merge-base", "--is-ancestor", "origin/" + default, cut, cwd="."):
+            head = _rebased(cut, default)
+            git.network("push", "--force-with-lease=%s:%s" % (slice_branch, cut), "origin",
+                        "%s:refs/heads/%s" % (head, slice_branch), cwd=".")
+            merge_common.ci_wait(lambda: stack_fix.script("wait-ci.sh", pr, "540", "", head)[0])
+        code = merge_common.merge(gate, pr, repo, number, head, driver="graphql")
         if re.search(RULES, said[-1]):
             return _freed("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock freed,"
                           " nothing retried" % (pr, code, " ".join(said[-1].split())))
