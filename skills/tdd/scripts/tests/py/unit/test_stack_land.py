@@ -19,12 +19,12 @@ class World:
     <ahead> to `rev-list --count`; GitHub (github.gh_api) lists <onto>, the open pull requests as REST records. origin
 (git.network, its calls kept in <network>) fetches and pushes, and its heads are <heads>, a branch name to its commit.
 GitHub opens a pull request (github.pr_open, each kept in <opened> as (head, base), its body in <bodies>) at <opens>, its
-url. `git log` of a range from origin/<default> answers <subjects>; the pull requests merged into a base (github.merged_pulls) are <merged>,
+url; every other gh command (github.run_gh) is kept in <gh>, each answering 0. `git log` of a range from origin/<default> answers <subjects>; the pull requests merged into a base (github.merged_pulls) are <merged>,
 (number, body) pairs from this repository."""
 
     def __init__(self, monkeypatch, named, answers=None, default="trunk", ahead=0, onto=(), heads=None,
                  opens="https://github.com/owner/repo/pull/90", subjects="", merged=()):
-        self.scripts, self.network, self.opened, self.bodies = [], [], [], []
+        self.scripts, self.network, self.opened, self.bodies, self.gh = [], [], [], [], []
         heads = heads or {}
         answers = answers or {}
         stack_branch = importlib.import_module("veri.stack_branch")
@@ -59,6 +59,8 @@ url. `git log` of a range from origin/<default> answers <subjects>; the pull req
 
         monkeypatch.setattr(github, "gh_api", gh_api)
         monkeypatch.setattr(github, "pr_open", pr_open)
+        monkeypatch.setattr(github, "run_gh", lambda *args, stderr=None: (
+            self.gh.append(("gh",) + args) or subprocess.CompletedProcess(["gh", *args], 0, "", "")))
         monkeypatch.setattr(github, "merged_pulls", lambda base, repo=None: [github._pull(
             {"number": number, "body": body, "state": "MERGED", "baseRefName": base, "isCrossRepository": False})
             for number, body in merged])
@@ -439,3 +441,14 @@ def test_after_the_lock_is_taken_a_github_read_that_gets_no_answer_or_a_failed_g
 
     assert (code, out_, words in err, "Traceback" in err, [ran[:2] for ran in world.scripts[-2:]]) == (
         2, "", True, False, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
+def test_with_origin_default_an_ancestor_of_the_cut_merges_the_slice_pull_request_with_exactly_gh_pr_merge_rebase_match_head_commit_and_no_other_flag(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url)
+
+    code, out, err = run_cli(stack_land, ["--now"], env={"VERI_GH_DRIVER": "rest"})
+
+    assert world.gh == [("gh", "pr", "merge", url, "--rebase", "--match-head-commit", cut)], err
