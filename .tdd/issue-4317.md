@@ -1,7 +1,8 @@
 # Plan for #4317 — PRD 034.4a: stack-land.sh lands the stack's tested slice on the default branch
 
+- [ ] `skills/tdd/SCRIPTS.md` lists stack-land.sh [--now] with its exits and rules, row SC564, graded ⟦skill-edit⟧ ⟦criterion 1⟧
+- [ ] skills/tdd/scripts/stack-land.sh is a /bin/sh shim over the module skills/tdd/scripts/veri/stack_land.py by the status.sh convention, indexed in skills/tdd/scripts/veri/README.md; given any argument other than --now (a commit name included) it exits 2 with its usage line `usage: stack-land.sh [--now]` on stderr, reading nothing (KL4's case; its one case is the entry-point contract case in skills/tdd/scripts/tests/py/test_stack_land_process.py, a process case) ⟦criterion 1⟧
 - [ ] stack_land.main exits 2 naming stack-branch.sh's exit and its stderr line when stack-branch.sh exits 3 or 2, calling nothing after it (unit case in skills/tdd/scripts/tests/py/unit/test_stack_land.py, no process, stack-branch.sh injected) ⟦criterion 2⟧
-- [ ] stack_land.main given any argument other than --now (a commit name included) exits 2 with its usage line `usage: stack-land.sh [--now]` on stderr, reading nothing (unit case, no process) ⟦criterion 3⟧
 - [ ] with a stack named, stack_land runs stack-red.sh first and on its exit 0 exits 1 naming the red commit and its run's url, cutting and merging nothing (unit case, no process, stack-red.sh injected) ⟦criterion 2⟧
 - [ ] stack-red.sh exiting 2 makes stack_land exit 2, cutting and merging nothing (unit case, no process) ⟦criterion 2⟧
 - [ ] on stack-red.sh exit 3, stack-green.sh exiting 3 makes stack_land exit 3, nothing to land (unit case, no process, stack-green.sh injected) ⟦criterion 3⟧
@@ -33,8 +34,6 @@
 - [ ] when origin/<default> is an ancestor of the cut, stack_land rebases nothing and makes no wait-ci.sh call (unit case, no process) ⟦criterion 8⟧
 - [ ] a rebase conflict makes stack_land exit 1, nothing merged, the lock freed, the slice branch and its pull request kept (unit case, no process) ⟦criterion 9⟧
 - [ ] a red CI answer from wait-ci.sh on the rebased head makes stack_land exit 1, nothing merged, the lock freed, the slice branch and its pull request kept (unit case, no process) ⟦criterion 9⟧
-- [ ] `skills/tdd/SCRIPTS.md` lists stack-land.sh [--now] with its exits and rules, row SC564, graded ⟦skill-edit⟧ ⟦criterion 1⟧
-- [ ] skills/tdd/scripts/stack-land.sh is a /bin/sh shim over veri/stack_land.py by the status.sh convention, indexed in skills/tdd/scripts/veri/README.md, with its entry-point contract case in skills/tdd/scripts/tests/py/test_stack_land_process.py (a process case) ⟦criterion 1⟧
 - [ ] a case in test_stack_land.py sweeps stack_land.py, merge_common.py and stack-land.sh for a repository, issue number, branch, label or person name and finds none (P12) ⟦criterion 15⟧
 - [ ] Go-red check in skills/tdd/scripts/tests/py/unit/test_stack_land.py: with `--admin` added to the merge argv, the exact-argv case fails, named; restored, it passes ⟦criterion 16⟧
 - [ ] Go-red check in skills/tdd/scripts/tests/py/unit/test_stack_land.py: with the red-stack refusal removed (stack-red.sh exit 0 no longer exit 1), its case fails, named; restored, it passes ⟦criterion 16⟧
