@@ -1,4 +1,8 @@
-"""stop-reason.sh's report, run in-process."""
+"""stop-reason.sh's report, run in-process.
+
+Its first line: running | done <pr> | bailed <phase> <classification> | stopped <mode> | refused <check> |
+killed-external <leaf> | usage-limit [<reset text>] | outage [<text>] | killed [<text>] | unknown [<text>].
+"""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import sys
@@ -9,10 +13,7 @@ import run_dir
 import run_end
 import tunables
 
-USAGE = ("usage: stop-reason.sh <issue>\n"
-         "first line: running | done <pr> | bailed <phase> <classification> | stopped <mode> | "
-         "refused <check> | killed-external <leaf> | usage-limit [<reset text>] | outage [<text>] | "
-         "killed [<text>] | unknown [<text>]\n")
+USAGE = "usage: stop-reason.sh <issue>\n"
 
 
 def killed_external(events):
