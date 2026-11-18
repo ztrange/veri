@@ -360,3 +360,17 @@ def test_outside_veri_the_rebase_and_suite_repair_verifiers_are_given_the_branch
                 "`true`" in words)
     assert [(code, err, told(out)) for code, out, err in (rebase, repair)] == [
         (0, "", (True, True, False)), (0, "", (True, False, False))]
+
+
+@pytest.mark.process("git init and commit run for real in a scratch repository, then build-verify-prompt in it")
+def test_outside_veri_a_branch_base_declaring_no_all_tier_line_gives_the_rebase_verifier_the_undeclared_text_4263(
+        tmp_path, run_cli):
+    build = importlib.import_module("veri.build_verify_prompt")
+    repo = new_repo(tmp_path / "repo")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
+    base = commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n", "Makefile": "test:\n\ttrue\n"})
+
+    code, out, err = run_cli(build, ["--branch-base", base, "rebase", str(spec), base, base], cwd=repo)
+
+    assert (code, err, "full test command, `the test command`" in " ".join(out.split())) == (0, "", True)
