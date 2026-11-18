@@ -2,6 +2,7 @@
 034.4c)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
+import os
 import re
 import subprocess
 import sys
@@ -9,11 +10,13 @@ import sys
 import entry
 import git
 import github
+import stack_fix
 import stack_green
 
 USAGE = "usage: stack-tag.sh <slice-pr-url> [--message <n>=<text>]..."
 TAGGED = ("feat", "fix")  # a commit type that changes behaviour: its issue owes a tag
 UNTAGGED = ("docs", "test", "refactor", "chore", "plan")  # a commit type that changes no behaviour
+VERSION = re.compile(r"v([0-9]+)\.([0-9]+)")
 _TYPE = re.compile(r"(\w+)(?:\([^()]*\))?!?:")
 
 
@@ -104,6 +107,41 @@ def main(argv):
         print("stack-tag: no issue of %s owes a tag: none has a commit of type %s" % (pr, " or ".join(TAGGED)),
               file=sys.stderr)
         return 3
+    try:
+        titles = {issue: _json("repos/%s/issues/%s" % (repo, issue), "reading issue #%s" % issue)["title"]
+                  for issue in owed}
+    except _Unanswered as unanswered:
+        return entry.refuse("%s; nothing tagged" % unanswered, prefix="stack-tag: ")
+    code, _ = stack_fix.script("merge-lock.sh", "take", "--pid", str(os.getpid()))
+    if code:
+        return entry.refuse("merge-lock.sh take exits %d: nothing fetched or tagged" % code, prefix="stack-tag: ")
+    try:
+        return _tag(pull["merge_commit_sha"], subjects, owed, titles)
+    finally:
+        stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
+
+
+def _next(tags):
+    """The vN.M after the first of <tags> (`git tag --sort=-v:refname`'s lines) that is one."""
+    major, minor = next(VERSION.fullmatch(tag).groups() for tag in tags if VERSION.fullmatch(tag))
+    return "v%s.%d" % (major, int(minor) + 1)
+
+
+def _tag(merge, subjects, owed, titles):
+    """Under the merge lock: fetch tags, then cut and push one tag per issue in <owed>, in order, on its last commit
+    of the landed range ending at <merge>."""
+    git.network("fetch", "--tags", "origin", cwd=".")
+    landed = git.out("log", "--format=%H %s", "-n", str(len(subjects)), merge, cwd=".").splitlines()[::-1]
+    commit = {}
+    for line in landed:
+        sha, subject = line.split(" ", 1)
+        for issue in stack_green.named(subject):
+            commit[issue] = sha
+    for issue in owed:
+        name = _next(git.out("tag", "--sort=-v:refname", cwd=".").split())
+        git.out("tag", "-a", name, "-m", titles[issue], commit[issue], cwd=".")
+        git.network("push", "origin", "refs/tags/" + name, cwd=".")
+        print("%s #%s %s" % (name, issue, commit[issue]))
     return 0
 
 

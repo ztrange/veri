@@ -161,3 +161,16 @@ def test_a_commit_of_an_unknown_type_or_none_exits_2_naming_it_nothing_tagged_an
     code, out, err = run_cli(stack_tag, [PR])
 
     assert (code, out, odd in err, world.lock_calls, world.cut) == (2, "", True, [], []), err
+
+
+def test_an_owing_issue_gets_the_next_version_tag_by_v_refname_on_its_last_landed_commit_under_the_lock(
+        monkeypatch, run_cli, stack_tag):
+    world = World(monkeypatch, commits=["feat: a (#7)", "test: b (#7)", "docs: c (#8)"], tags=["v0.9", "v0.10"],
+                  titles={"7": "A capability", "8": "B"})
+
+    code, out, err = run_cli(stack_tag, [PR])
+
+    steps = [entry[:2] for entry in world.log if entry[0] == "merge-lock.sh" or entry[1] in ("fetch", "tag", "push")]
+    assert (code, world.cut, world.pushed, "v0.11" in out) == (0, [("v0.11", "c1", "A capability")], ["v0.11"], True), err
+    assert steps[0] == ("merge-lock.sh", "take") and steps[1] == ("git", "fetch") and steps[-1] == (
+        "merge-lock.sh", "release") and steps.index(("git", "push")) > steps.index(("git", "tag")), steps
