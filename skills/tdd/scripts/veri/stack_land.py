@@ -241,10 +241,15 @@ def main(argv):
             closed = re.findall(r"^Closes #(\d+)$", answers[-1].get("body") or "", re.M)
             print("pull request: %s\nmerge commit: %s\nissues closed: %s"
                   % (pr, answers[-1].get("merge_commit_sha"), " ".join("#" + n for n in closed)))
-            print("stack-land: the carry-over of %s onto origin/%s is 034.4b's; nothing of the stack rebased, no tag"
-                  " made" % (stack, default), file=sys.stderr)
+            print("stack-land: the carry-over of %s onto origin/%s is 034.4b's; nothing of the stack rebased"
+                  % (stack, default), file=sys.stderr)
             still = [n for n in closed if _issue_state(repo, n) == "open"]
             stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
+            tagged, said = stack_fix.script("stack-tag.sh", pr)
+            sys.stdout.write(said)
+            if tagged not in (0, 3):
+                return entry.refuse("%s landed, but stack-tag.sh exits %d: the slice's tags are owed; run stack-tag.sh %s"
+                                    % (pr, tagged, pr), prefix="stack-land: ")
             if still:
                 return entry.refuse("%s landed, but its Closes issues still open after the settle window: %s; the landing"
                                     " left as done" % (pr, " ".join("#" + n for n in still)), prefix="stack-land: ")
