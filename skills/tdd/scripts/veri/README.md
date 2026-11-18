@@ -756,6 +756,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `stack-culprit.sh`: name the issue whose end turned the stack red, and the cases it broke, by running them alone at each issue end in a worktree of its own.
 - `stack-fix.sh`: push a fix worktree's reviewed hand fix on top of a red stack, once per culprit, after checking its bounds and running the named cases, the fast tier and `prose-owed.sh` at its HEAD.
 - `stack-green.sh`: print the newest stack commit that ends an issue and that CI passed, where a slice may be cut.
+- `stack-land.sh`: land the stack's tested cut on the default branch; any argument other than `--now` is exit 2 with its usage line.
 - `stack-pr.sh`: print the one open pull request tracking the stack branch, opening it when none is.
 - `stack-red.sh`: print CI's latest answer on the stack branch when it is red, which freezes joins.
 - `stack-revert.sh`: revert an issue's commits on the stack, its hand fix included, as one commit on the tip in a worktree of its own, and lift its join claim from the merged pull requests' bodies.
