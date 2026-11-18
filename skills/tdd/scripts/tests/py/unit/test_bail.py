@@ -52,3 +52,14 @@ def test_a_stray_argument_after_note_file_or_a_valueless_or_trailing_attempt_exi
 
         assert (label, code, out, fake.calls) == (label, 2, "", [])
         assert "BAIL.md sub-step 1" in err.splitlines()[-1], label
+
+
+def test_an_unknown_cause_exits_2_after_classify_bail_alone_with_no_reset_event_or_later_call(
+        run_cli, fake_processes, bail):
+    fake = fake_processes.answers(
+        {"classify-bail.sh unknown-cause": (2, "", "classify-bail: unknown cause\n")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "unknown-cause", "red", "--note-file", "n.md"])
+
+    assert (code, fake.calls) == (2, ["classify-bail.sh unknown-cause"])
+    assert "BAIL.md sub-step 1" in err.splitlines()[-1]
