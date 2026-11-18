@@ -307,3 +307,16 @@ def test_4337_a_corrupt_or_absent_record_answers_run_and_a_green_recorded_over_i
     assert (answered[0], answered[1].strip()) == (0, "run")
     assert recorded[0] == 0
     assert (after[0], after[1].strip()) == (0, "skip")
+
+
+@pytest.mark.parametrize("verdict", ["red", "", None, True])
+def test_4337_a_recorded_entry_that_is_not_green_answers_run(tmp_path, run_cli, baseline_full_tier, verdict):
+    import json
+    (tmp_path / ".git").mkdir()
+    record = tmp_path / ".tdd" / "baseline-green.json"
+    assert _green_4337(run_cli, baseline_full_tier, "--record-green", tmp_path)[0] == 0
+    record.write_text(json.dumps({key: verdict for key in json.loads(record.read_text())}))
+
+    code, out, err = _green_4337(run_cli, baseline_full_tier, "--green", tmp_path)
+
+    assert (code, out.strip()) == (0, "run")

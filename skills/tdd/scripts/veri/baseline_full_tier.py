@@ -53,7 +53,7 @@ def green(argv):
     path, key = green_path(), green_key(*argv[1:5])
     record = read_green(path)
     if argv[0] == "--green":
-        print("skip" if key in record else "run")
+        print("skip" if record.get(key) == "green" else "run")
         return 0
     record[key] = "green"
     os.makedirs(os.path.dirname(path), exist_ok=True)
