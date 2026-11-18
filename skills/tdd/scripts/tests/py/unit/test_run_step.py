@@ -75,3 +75,13 @@ def test_4343_the_first_stage_exiting_nonzero_stops_it_on_a_seam_line_with_that_
     assert stages.names() == ["red-half.sh", "green-half.sh"]
     assert out.splitlines()[-1] == "seam=green-half code=%d next=%s" % (code, next_)
     assert code_ == code
+
+
+def test_4343_called_again_it_resumes_at_the_seam_recorded_in_the_step_file_never_rerunning_red_half(step):
+    step(answers={"green-half.sh": (1, "stopped at 2 REJECT\n")})
+    recorded = (step.wt / ".tdd" / "issue-12-step").read_text()
+
+    code, out, err, stages = step()
+
+    assert ("stage=green-half" in recorded.splitlines(), code) == (True, 0), err
+    assert stages.names() == ["green-half.sh", "refactor-half.sh", "step-close.sh"]
