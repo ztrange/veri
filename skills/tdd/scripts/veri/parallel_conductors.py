@@ -167,7 +167,7 @@ def _inside_own_scripts():
     return here == scripts or here.startswith(scripts + os.sep)
 
 
-USAGE = "usage: parallel-conductors.sh [--repo owner/name] [--continue-on-bail]"
+USAGE = "usage: parallel-conductors.sh [--continue-on-bail]"
 
 
 def main(argv):
