@@ -75,3 +75,17 @@ def test_the_run_line_reaches_the_prompt_from_claude_md_alone_and_no_tdd_file_do
     outs = [run_cli(develop, ["red", spec, "a step", TEST_CMD], cwd=cwd),
             run_cli(verify, ["red", spec, TEST_PATH], cwd=cwd)]
     assert [(code, "npx jest" in out, "zq7_marker_4105" in out) for code, out, _ in outs] == [(0, True, False)] * 2
+
+
+def test_issue_4335_veris_own_tree_declaring_a_quiet_line_gets_no_quiet_prefix_and_keeps_its_make_test_line(tmp_path):
+    run_line = importlib.import_module("veri.run_line")
+    foreign = tmp_path / "foreign"
+    own = tmp_path / "own"
+    for tree in (foreign, own):
+        tree.mkdir()
+        (tree / "CLAUDE.md").write_text('veri: one test file: `make test TESTS="$1"`\n'
+                                        "veri: quiet test files: `pytest -q`\n")
+    (own / run_line.PYTEST_DIR).mkdir(parents=True)
+
+    assert (run_line.quiet_prefix(str(own)), run_line.run_lines(str(own))[0], run_line.quiet_prefix(str(foreign))) == (
+        None, b'make test TESTS="<those paths>"', ["sh", "-c", 'pytest -q "$@"', "sh"])
