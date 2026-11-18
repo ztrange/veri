@@ -174,3 +174,14 @@ def test_an_owing_issue_gets_the_next_version_tag_by_v_refname_on_its_last_lande
     assert (code, world.cut, world.pushed, "v0.11" in out) == (0, [("v0.11", "c1", "A capability")], ["v0.11"], True), err
     assert steps[0] == ("merge-lock.sh", "take") and steps[1] == ("git", "fetch") and steps[-1] == (
         "merge-lock.sh", "release") and steps.index(("git", "push")) > steps.index(("git", "tag")), steps
+
+
+def test_owing_issues_are_tagged_in_the_order_of_their_last_commit_each_pushed_before_the_next_is_numbered(
+        monkeypatch, run_cli, stack_tag):
+    world = World(monkeypatch, commits=["feat: a (#8)", "fix: b (#7)", "test: c (#8)"], titles={"7": "Seven", "8": "Eight"})
+
+    code, out, err = run_cli(stack_tag, [PR])
+
+    steps = [entry[1:3] for entry in world.log if entry[:2] in (("git", "tag"), ("git", "push"))]
+    assert (code, world.cut) == (0, [("v0.2", "c1", "Seven"), ("v0.3", "c2", "Eight")]), err
+    assert steps.index(("push", "origin")) < steps.index(("tag", "-a"), steps.index(("tag", "-a")) + 1), steps
