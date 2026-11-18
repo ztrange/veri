@@ -131,6 +131,23 @@ class State:
         return found
 
 
+class BadStateFile(Exception):
+    """A state file `State.check` refuses; its text, `malformed state file <path>`, is the whole message."""
+
+    def __init__(self, path):
+        super().__init__("malformed state file %s\n" % path)
+
+
+def checked(path):
+    """The State of the file at `path` (no lines when it is missing), once `check` passes; raises BadStateFile naming `path` otherwise."""
+    state = State((read(path) or "").splitlines())
+    try:
+        state.check()
+    except Malformed:
+        raise BadStateFile(path)
+    return state
+
+
 def append(path, text):
     replace(path, (read(path) or "") + text)
 

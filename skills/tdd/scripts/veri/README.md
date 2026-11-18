@@ -876,6 +876,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `state_path(tree, role, lane=None)`: `.tdd/role-<role>[-<lane>].state` under `tree`. `read(path)`: text, `None` when missing.
 - `read_lines(role, lane=None)`: the role's state lines in the main tree, `None` when missing.
 - `State(lines)`: the grammar of the state file. `fields()` (every `key=value` line as a dict), `field(name)` (last `name=` value, `None`), `values(name)` (every `name=` value, in file order), `items(*kinds)` (raw item lines), `last_n()`, `timed_ns()` (`(value, expiry)` pairs), `override_numbers()`, `check()`. A bad line raises `Malformed(kind, line)` (`kind` one of `n-missing`, `n`, `timed-n`, `override`, `state`); each caller words it.
+- `checked(path)`: the file's `State` (no lines when missing) once `check()` passes, else `BadStateFile`, whose text is `malformed state file <path>`; role_growth reports it as is.
 - `append(path, text)`, `now()`, `epoch(stamp)`, `STAMP`: append (written through a temp file and renamed); the stamp; a stamp's epoch seconds, read as local time; the stamp's strftime format. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
 
 ## plan_publish

@@ -59,7 +59,7 @@ def _knob(name):
 def main(argv):
     try:
         return _main(argv)
-    except Failure as e:
+    except (Failure, role_state.BadStateFile) as e:
         sys.stderr.write(str(e))
         return 2
 
@@ -82,12 +82,8 @@ def _main(argv):
     transcript = found[0]
     path = role_state.state_path(run_dir.main_tree_from_files(os.getcwd()), argv[0], lane)
     text = "session=%s\ntranscript=%s\n" % (session, transcript)
-    lines = (role_state.read(path) or "").splitlines()
-    state = role_state.State(lines)
-    try:
-        state.check()
-    except role_state.Malformed:
-        raise Failure("malformed state file %s\n" % path)
+    state = role_state.checked(path)
+    lines = state.lines
     fields = state.fields()
     recovered = fields.get("recovered-at")
     if "baseline-at" not in fields or (recovered and recovered > fields["baseline-at"]):
