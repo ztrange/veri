@@ -14,8 +14,6 @@ HEADING = "## 4. Draft PR"
 MARKERS = (HEADING, "gh_pr_ready", "rebased-tip-red")
 
 ALLOWED = {
-    "test_skill_ci_conflict.py::test_a_green_ci_wait_in_either_ci_block_bails_no_ci_red_and_appends_no_ci_repair_step_with_or_without_one_in_the_ledger":
-        "runs both CI blocks under bash against stubs",
     "unit/test_skill_draft_pr.py::test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no_push_of_its_own":
         "absence: no line of the unit runs git push",
     "test_affected_suites_process.py::test_a_one_section_edit_to_the_real_skill_md_selects_the_pytest_files_that_read_that_section_2980":

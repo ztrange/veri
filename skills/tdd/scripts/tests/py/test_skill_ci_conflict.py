@@ -44,6 +44,8 @@ def _block(step):
             continue
         if after and re.search(r"\$S/refactor-owed\.sh render", line):
             break
+        if on and line.strip() == "```":
+            break  # the block's closing fence: the prose after it is not run (#4332)
         if after and re.search(r"\$S/wait-ci\.sh", line):
             on = True
         if on:
@@ -103,10 +105,11 @@ def _first_block(step):
 
 
 @pytest.mark.process("the two CI blocks SKILL.md prescribes run under bash -c in a git repo, against stub scripts")
-def test_a_green_ci_wait_in_either_ci_block_bails_no_ci_red_and_appends_no_ci_repair_step_with_or_without_one_in_the_ledger(tmp_path):
+def test_a_green_ci_wait_in_the_one_ci_block_bails_no_ci_red_and_appends_no_ci_repair_step_with_or_without_one_in_the_ledger(tmp_path):
     step = _ci_step()
     assert step.strip(), NO_STEP
-    blocks = {"first CI wait": _first_block(step), "post-metrics CI wait": _block(step)}
+    # Sub-step 2 holds one CI wait block since the record is pushed before readying (#4332); no second block to run.
+    blocks = {"CI wait": _first_block(step)}
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     stubs = {"pr-ready.sh": "#!/bin/sh\nexit 0\n",
