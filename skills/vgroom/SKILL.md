@@ -143,13 +143,17 @@ subagents; never lift the limit.
 
 - adding or removing a label from the target repo's triage label set;
 - closing an issue with a reason (`gone`, or `duplicate` naming the survivor);
-- adding or removing a `Blocked by` line in an issue's `## Blocked by` section.
+- adding or removing a `Blocked by` line in an issue's `## Blocked by` section;
+- filing a consolidated refactor issue (`--refactor-owed`, alone or as part of the sweep) and
+  closing its sources, unless it is **big-impact**: it changes a script's entry-point contract
+  (arguments, exit codes, output lines or events), edits graded prose, or touches files in more
+  than one module. A big-impact one is shown to the human first and filed only on their yes.
 
 **Nothing else is mechanical.** Any other outcome is shown to the human first, in full: what
 is proposed, the options in words, what each costs (P4).
 
-- **Filing a new issue** is never mechanical: it is applied only on the human's yes (for a split or
-  a criteria rewrite, a "go" for this run is that yes).
+- **Filing any other new issue** (a split one included) is never mechanical: it is applied only
+  on the human's yes (for a split or a criteria rewrite, a "go" for this run is that yes).
 - A **split** (new issues carved from one) and a **criteria rewrite** are shown to the human
   first, unless the human has said "go" for this run — then they are applied and reported. The
   sweep (no argument) is a "go".
@@ -171,12 +175,14 @@ calls it):
 Then, in the project repo:
 
 1. Group the LIVE items by module.
-2. Show the human, in full, **one consolidated issue per module** listing every source item,
-   each with its location and the refactor owed. A module whose items hold more than one
-   deliverable gets one issue per deliverable, whatever the extra runs cost (P16). Filing an
-   issue is not mechanical: file each only on the human's yes.
+2. Write **one consolidated issue per module** listing every source item, each with its
+   location and the refactor owed. A module whose items hold more than one deliverable gets one
+   issue per deliverable, whatever the extra runs cost (P16). File each at once, unless it is
+   big-impact (`## Applying outcomes`): show a big-impact one to the human in full and file it
+   only on their yes.
 3. Close every source — GONE and FOLDS-INTO-OTHER with their reason at once, LIVE with a
    pointer to the consolidated issue once that issue is filed.
 
-Closing is mechanical; filing the consolidated issues is not, and a consolidation that would
-also rewrite a source's criteria is shown to the human first, as a criteria rewrite.
+Closing is mechanical, and so is filing a consolidated issue that is not big-impact; a
+consolidation that would also rewrite a source's criteria is shown to the human first, as a
+criteria rewrite.
