@@ -68,6 +68,13 @@ def _closes(stack, default, cut):
     return "".join("Closes #%s\n" % n for n in issues if int(n) in joined)
 
 
+def _pull(repo, number):
+    """GitHub's record of pull request <number> of <repo>, read as queued-merge.sh reads it; None when the answer is not
+    a JSON object."""
+    pull = json.loads(github.gh_api("repos/%s/pulls/%s" % (repo, number), stderr=subprocess.PIPE).stdout)
+    return pull if isinstance(pull, dict) else None
+
+
 class _Unanswered(Exception):
     """A read after the merge lock was taken got no answer; the message names the read."""
 
@@ -94,6 +101,9 @@ def main(argv):
     size = tunables.get("VERI_SLICE_COMMITS")
     if not (size.isascii() and size.isdigit() and int(size) >= 1):
         return entry.refuse("VERI_SLICE_COMMITS must be a whole number of 1 or more: %r" % size, prefix="stack-land: ")
+    window, refusal = merge_common.settle_window()
+    if refusal:
+        return entry.refuse(refusal, prefix="stack-land: ")
     try:
         stack = stack_branch.named(".")
     except stack_branch.Refused as refused:
@@ -161,6 +171,10 @@ def main(argv):
         if re.search(RULES, said[-1]):
             return _freed("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock freed,"
                           " nothing retried" % (pr, code, " ".join(said[-1].split())))
+        answers = merge_common.settle(lambda: _pull(repo, number), window, wait_first=bool(code))
+        if merge_common.merged(answers[-1]):
+            stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
+            return 0
     except _Unanswered as unanswered:
         return _freed("%s; the merge lock freed, nothing merged" % unanswered)
 

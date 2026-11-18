@@ -471,3 +471,42 @@ def test_a_merge_refused_naming_the_repositorys_rules_exits_2_naming_the_pull_re
 
     assert (code, out, url in err, "Traceback" in err, len(world.gh), [ran[:2] for ran in world.scripts[-2:]]) == (
         2, "", True, False, 1, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
+def test_a_merge_call_that_errors_without_naming_the_rules_then_a_read_of_the_pull_request_answering_merged_within_the_settle_window_is_success_the_merge_called_once(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url)
+    github = importlib.import_module("veri.github")
+    monkeypatch.setattr(github, "run_gh", lambda *args, stderr=None: (
+        world.gh.append(("gh",) + args) or subprocess.CompletedProcess(["gh", *args], 1, "", "HTTP 502: Bad Gateway\n")))
+    pull, answers, reads = "repos/owner/repo/pulls/90", [{"state": "open", "merged": False},
+                                                          {"state": "closed", "merged": True}], []
+    listing = github.gh_api
+
+    def gh_api(path, stderr=None):
+        if path != pull:
+            return listing(path, stderr=stderr)
+        reads.append(path)
+        return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(answers[len(reads) - 1]), "")
+
+    monkeypatch.setattr(github, "gh_api", gh_api)
+    monkeypatch.setattr(importlib.import_module("veri.merge_common").time, "sleep", lambda seconds: None)
+
+    code, out, err = run_cli(stack_land, ["--now"], env={"VERI_MERGE_SETTLE_READS": "3"})
+
+    assert (code, len(world.gh), reads, [ran[:2] for ran in world.scripts[-2:]]) == (
+        0, 1, [pull, pull], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
+@pytest.mark.parametrize("name, value", [("VERI_MERGE_SETTLE_READS", "0"), ("VERI_MERGE_SETTLE_READS", "ten"),
+                                         ("VERI_MERGE_SETTLE_SLEEP", "-1"), ("VERI_MERGE_SETTLE_SLEEP", "soon")])
+def test_an_unusable_settle_window_tunable_exits_2_naming_it_before_any_script_runs(
+        monkeypatch, run_cli, stack_land, name, value):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7)
+
+    code, out, err = run_cli(stack_land, ["--now"], env={name: value})
+
+    assert (code, out, name in err, value in err, world.scripts) == (2, "", True, True, []), err
