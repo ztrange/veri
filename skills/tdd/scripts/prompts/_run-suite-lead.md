@@ -1,2 +1,2 @@
-`{{RUN_LINE}}` — the repo's runner for one test file (its `veri: one test file:` command with the file as `"$1"`, its all-tier command when it declares none, `make test TESTS="<pytest file or node id>"` in veri's own tree), the one invocation for a single
+`{{RUN_LINE}}` — the repo's runner for one test file (its `veri: one test file:` command with the file as `"$1"`, its fast command when it declares none, its all-tier command when it declares neither, `the test command` when it declares no tier, `make test TESTS="<pytest file or node id>"` in veri's own tree), the one invocation for a single
    

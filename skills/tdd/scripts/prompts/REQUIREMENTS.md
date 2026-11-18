@@ -391,7 +391,7 @@
 
 | ID | Requirement | Why |
 |---|---|---|
-| UL1 | The fragment names, through the run-line placeholder, the one invocation for a single suite: in veri's own tree `make test TESTS="<pytest file or node id>"`, elsewhere the repo's `veri: one test file:` command with the file as `"$1"` (the all-tier command when the repo declares none). Its text stops at "the one invocation for a single", and the including text supplies the next word. (The whole fragment.) | Every leaf runs one suite with the repo's own runner, never a `make` target the repo lacks. |
+| UL1 | The fragment names, through the run-line placeholder, the one invocation for a single suite: in veri's own tree `make test TESTS="<pytest file or node id>"`, elsewhere the repo's `veri: one test file:` command with the file as `"$1"` (its fast command when the repo declares none, its all-tier command when it declares neither, and `the test command` when it declares no tier). Its text stops at "the one invocation for a single", and the including text supplies the next word. (The whole fragment.) | Every leaf runs one suite with the repo's own runner, never a `make` target the repo lacks. |
 
 ## skills/tdd/scripts/prompts/_run-suite-same-way.md
 
