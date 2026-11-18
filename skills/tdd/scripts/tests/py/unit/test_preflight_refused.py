@@ -249,3 +249,21 @@ def test_the_exit_2_usage_line_names_the_optional_cause_argument_issue_3763(tmp_
 
     assert (code, out) == (2, "")
     assert err == "usage: preflight-refused.sh <issue-number> <check> [<cause>]\n"
+
+
+def test_the_preflight_refused_comment_publishes_its_detail_with_no_absolute_local_path_4270(
+        tmp_path, monkeypatch, run_cli):
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body))
+    monkeypatch.setenv("HOME", "/Users/someone-else")
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+
+    code, out, err = run_cli(preflight_refused, ["7", "baseline", "zulu red at /Users/someone/x.py and /tmp/y"],
+                             cwd=main)
+
+    [comment] = posted
+    assert (code, [p for p in ("/Users/someone", "/tmp/y") if p in comment]) == (0, []), err
+    assert "zulu" in comment
