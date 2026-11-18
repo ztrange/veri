@@ -8,6 +8,7 @@ import subprocess
 import pytest
 
 from conftest import SCRIPTS
+from stub_script import write_stub
 
 IDENTITY = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com", "GIT_COMMITTER_NAME": "t",
             "GIT_COMMITTER_EMAIL": "t@example.com"}
@@ -95,10 +96,8 @@ def test_4031_a_branch_behind_main_is_rebased_and_pushed_under_the_lease_pinned_
 def test_4390_the_detached_regrade_block_grades_each_unit_then_converts_and_exits_its_highest_code(
         tmp_path, codes, highest):
     pr_prepare = importlib.import_module("veri.pr_prepare")
-    stub = tmp_path / "grade-prose.sh"
-    stub.write_text('#!/bin/sh\necho "$*" >> "%s"\ncase "$*" in\n%s\nesac\nexit 0\n' % (
+    write_stub(tmp_path / "grade-prose.sh", 'echo "$*" >> "%s"\ncase "$*" in\n%s\nesac\nexit 0\n' % (
         tmp_path / "graded", "\n".join('  *"%s") exit %d ;;' % (k, v) for k, v in codes.items())))
-    stub.chmod(0o755)
     ran = subprocess.run(["sh", "-c", pr_prepare.BLOCK, "sh", str(tmp_path), "a/REQUIREMENTS.md", "a/U.md",
                           "b/REQUIREMENTS.md", "b/V.md"], cwd=tmp_path, stdin=subprocess.DEVNULL,
                          capture_output=True, text=True, timeout=60)
