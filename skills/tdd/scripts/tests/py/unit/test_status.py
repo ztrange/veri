@@ -328,3 +328,23 @@ def test_report_stack_section_prints_a_figure_it_could_not_read_as_a_question_ma
     assert (code, section(out, "Stack")) == (0, [
         ("stacky: joined 3" if unread == "figures" else "?: joined ?") + ", tested ?, landed ? in 24h",
         "tracking: ?", "frozen: ?"]), (out, err)
+
+
+@pytest.mark.parametrize("stack", ["named", "unread", "none"])
+def test_status_json_carries_the_stack_figures_null_for_an_unread_one_and_no_key_where_no_stack_is_named_issue_4320(
+        tmp_path, monkeypatch, fake_processes, run_cli, status, stack):
+    report_tree(tmp_path, monkeypatch, status, {})
+    red, run = "d4" * 20, "https://github.com/acme/widgets/actions/runs/9"
+    span = {"named": ("stacky", "main", STACK), "unread": status.stack_branch.Refused("git fetch origin got no answer"),
+            "none": None}[stack]
+    stack_reads(monkeypatch, status, span=span, tracking="https://github.com/acme/widgets/pull/500",
+                scripts={"stack-red.sh": (0, "%s %s failure\n" % (red, run))})
+    fake_processes.answers({"": logs_answer({})})
+
+    code, out, err = run_cli(status, ["--json"])
+
+    expected = {"named": {"branch": "stacky", "joined": 3, "tested": 2, "landed": 2,
+                          "tracking_pr": "https://github.com/acme/widgets/pull/500", "frozen": {"sha": red, "run_url": run}},
+                "unread": dict.fromkeys(["branch", "joined", "tested", "landed", "tracking_pr", "frozen"])}
+    document = json.loads(out)
+    assert (code, document.get("stack", "absent")) == (3, expected.get(stack, "absent")), (out, err)

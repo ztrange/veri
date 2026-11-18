@@ -140,11 +140,14 @@ def parse_args(argv):
     return as_json, scope, watch
 
 
-def render(as_json, scope, read_states=True):
+def render(as_json, scope, read_states=True, stack=False):
+    """Print every run (and, with <stack> and <as_json>, the stack's figures under a `stack` key where a stack is
+    named); the exit code."""
     main_tree = run_dir.main_tree(missing="")
+    member = stack_member(main_tree) if stack and as_json else ""
     runs = sorted(glob.glob(os.path.join(run_dir.worktrees(main_tree), "*", ""))) if main_tree else []
     if not runs:
-        print('{"runs": [], "scope": null}' if as_json else "no runs")
+        print('{"runs": [], "scope": null%s}' % member if as_json else "no runs")
         return 3
     events, run_objects, bare = [], [], 0
     states = issue_states() if read_states else {}
@@ -195,10 +198,21 @@ def render(as_json, scope, read_states=True):
     if scope:
         scope_line = scope_totals(scope, solvable_count(scope), events, as_json, bare)
     if as_json:
-        print('{"runs": [%s], "scope": %s}' % (",".join(run_objects), scope_line or "null"))
+        print('{"runs": [%s], "scope": %s%s}' % (",".join(run_objects), scope_line or "null", member))
     elif scope_line is not None:
         print(scope_line)
     return 0
+
+
+def stack_member(root):
+    """`, "stack": {...}`, the stack's figures as --json carries them, every one null when the stack could not be read
+    (the reason on stderr); "" where no stack is named."""
+    try:
+        span = stack_span(root)
+    except stack_branch.Refused as refused:
+        print("status.sh: the stack could not be read: %s" % refused, file=sys.stderr)
+        return ', "stack": ' + json.dumps(stack_figures(root, None))
+    return ', "stack": ' + json.dumps(stack_figures(root, span)) if span else ""
 
 
 def json_document(scope=None, read_states=True):
@@ -770,7 +784,7 @@ def main(argv):
     as_json, scope, watch = parsed
     if watch is not None:
         watch_loop(watch, as_json, scope)
-    return render(as_json, scope)
+    return render(as_json, scope, stack=True)
 
 
 if __name__ == "__main__":
