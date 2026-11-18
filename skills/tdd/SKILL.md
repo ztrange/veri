@@ -508,7 +508,13 @@ of at scoping time.
    two modules of one basename) and its stderr names both paths, so rename the step's module with
    a `_process` or `_cli` suffix and run it again. It also exits 1 when a step line carries more than
    one `⟦criterion k⟧` tag, naming the line on stderr: rewrite the plan so each such step serves one
-   criterion, splitting it where needed, and run the check again. It exits 2, naming the unit on stderr and
+   criterion, splitting it where needed, and run the check again. It also exits 1, naming the step and
+   the unit on stderr and writing no `plan` event, when a step not marked `⟦skill-edit⟧` names, ahead of
+   a `⟦skill-edit⟧` step whose unit is U, either the ID of a row listed under `## U` in the
+   `REQUIREMENTS.md` beside U's file while U's `GRADED` file signs U (the ID as a whole word, so `SR1`
+   is not `SR10`), or U's file path while that file is not yet in the repository: that step would leave
+   U owing a grade until the later step signs it, so its suite is red by construction; fold the change
+   into the signing `⟦skill-edit⟧` step and run the check again. It exits 2, naming the unit on stderr and
    writing no `plan` event, when a `⟦skill-edit⟧` step's unit (the step's first path-shaped backticked token: one containing a `/` or ending in `.md`) has no
    `### <unit>` heading (or `### <unit> (new)`) in the spec's `## Requirements`, the refusal `skill-edit-step.sh`
    would otherwise make mid-run, or when a `⟦skill-edit⟧` step carries no path-shaped backticked token at all (stderr `no path-shaped unit for skill-edit step: <step>`); the plan is not committed, and a spec with no `## Requirements` section is not
