@@ -33,6 +33,16 @@ def _living_conductors():
     return lives
 
 
+def _live(stack):
+    """What keeps <stack> live, said in a few words: the open pull requests onto it, else the living conductors; None
+    when it is idle."""
+    pulls = _pulls_onto(stack)
+    if pulls:
+        return "open pull requests onto %s: %s" % (stack, " ".join(pulls))
+    conductors = _living_conductors()
+    return "living conductors: %s" % " ".join(conductors) if conductors else None
+
+
 def main(argv):
     if argv not in ([], ["--now"]):
         return entry.refuse(usage=USAGE)
@@ -65,17 +75,10 @@ def main(argv):
     default = git.default_branch(cwd=".")
     ahead = int(git.out("rev-list", "--count", "origin/%s..%s" % (default, cut)))
     if argv != ["--now"] and ahead < int(size):
-        live = _pulls_onto(stack)
+        live = _live(stack)
         if live:
             print("stack-land: the cut %s is %d commits ahead of origin/%s, fewer than VERI_SLICE_COMMITS (%s), and the"
-                  " stack is live: open pull requests onto %s: %s; nothing landed"
-                  % (cut, ahead, default, size, stack, " ".join(live)), file=sys.stderr)
-            return 3
-        conductors = _living_conductors()
-        if conductors:
-            print("stack-land: the cut %s is %d commits ahead of origin/%s, fewer than VERI_SLICE_COMMITS (%s), and the"
-                  " stack is live: living conductors: %s; nothing landed"
-                  % (cut, ahead, default, size, " ".join(conductors)), file=sys.stderr)
+                  " stack is live: %s; nothing landed" % (cut, ahead, default, size, live), file=sys.stderr)
             return 3
 
 
