@@ -264,8 +264,8 @@ def foreign(files):
             if not naming:
                 unnamed.append(f)
         if unnamed:
-            print("affected-suites: no test names %s; widening to every test file" % ",".join(unnamed), file=sys.stderr)
-            placed += tests
+            print("affected-suites: no test names %s; no test file covers them, so the full suite at the PR runs them"
+                  % ",".join(unnamed), file=sys.stderr)
     if not placed:
         return 3
     sys.stdout.write("".join(s + "\n" for s in sorted(set(placed))))
