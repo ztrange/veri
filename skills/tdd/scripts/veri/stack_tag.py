@@ -135,6 +135,9 @@ def _tag(merge, subjects, owed, titles):
         return entry.refuse("git fetch --tags origin failed (exit %d): %s; nothing tagged"
                             % (fetched.returncode, " ".join(fetched.stderr.split())), prefix="stack-tag: ")
     landed = git.out("log", "--format=%H %s", "-n", str(len(subjects)), merge, cwd=".").splitlines()[::-1]
+    if [line.split(" ", 1)[-1] for line in landed] != subjects:
+        return entry.refuse("the %d commits ending at the merge commit %s are not the pull request's %d subjects in order;"
+                            " nothing tagged" % (len(landed), merge, len(subjects)), prefix="stack-tag: ")
     commit = {}
     for line in landed:
         sha, subject = line.split(" ", 1)
