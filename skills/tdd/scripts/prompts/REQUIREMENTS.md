@@ -1276,3 +1276,9 @@
 |---|---|---|
 | CX1 | The fragment holds the heading `### The issue's behavior spec (context only)` followed by the `{{ISSUE_SPEC}}` slot. (First block.) | The spec is context; the step, not the spec, sets what the leaf does. |
 | CX2 | It then holds the heading `### The test command` followed by the `{{TEST_CMD}}` slot, and ends with the heading `### What to do`, under which the including template writes the leaf's instructions. (Last two blocks.) | The leaf runs the repo's own test command, and every including prompt puts its instructions under the same heading. |
+
+## skills/tdd/scripts/prompts/_develop-interface-change.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| IC1 | The fragment holds the heading `### The interface change` followed by the `{{STEP}}` slot, then the included `_develop-spec-context-only.md`. (The whole fragment.) | An interface-phase developer reads the change first and the spec only as context. |
