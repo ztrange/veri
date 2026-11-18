@@ -70,12 +70,19 @@ def lint(wt, n):
     write(wt, section, "")
     command = fused.call(fused.script("detect-test-command.sh"), "--tier", "lint", cwd=wt)[1].strip()
     fused.call(DETACH, "start", "lint", "sh", "-c", command, cwd=wt)
-    fused.call(DETACH, "wait", "lint", "--total", tunables.get("VERI_LINT_TIMEOUT", unless_empty=True), cwd=wt,
-               out="/dev/null", err=".tdd/lint.wait.err")
+    waited = (DETACH, "wait", "lint", "--total", tunables.get("VERI_LINT_TIMEOUT", unless_empty=True))
+    files = {"out": "/dev/null", "err": ".tdd/lint.wait.err"}
+    waited_code = fused.call(*waited, cwd=wt, **files)[0]
     code = said(wt, ".tdd/lint.exit").strip()
     fused.call(fused.script("event.sh"), "lint", "exit=" + code, cwd=wt,
                env=tunables.with_values(VERI_ISSUE=n, VERI_ACTOR="conductor"))
-    write(wt, section, "### Lint\n\n`%s` passed.\n" % command)
+    if code == "0":
+        write(wt, section, "### Lint\n\n`%s` passed.\n" % command)
+        return
+    tail = "".join(line[:300] + "\n" for line in said(wt, ".tdd/lint.out").splitlines()[-20:])
+    write(wt, section, "### Lint\n\n`%s` exited %s. The last 20 lines of its output:\n\n~~~text\n%s~~~\n"
+          % (command, code, tail))
+    raise fused.Stop("lint", fused.shown(*waited, **files) + " exit %d" % waited_code, 1)
 
 
 def quality(wt, n, base):

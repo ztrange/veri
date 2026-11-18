@@ -137,3 +137,20 @@ def test_4392_touched_test_files_stop_it_with_exit_1_at_test_quality_before_the_
                                     % BASE)
     assert fake.names()[-1] == "test-quality.sh"
     assert not (checks.wt / ".tdd" / "issue-12-test-quality").exists()
+
+
+WAITED = "detach-command.sh wait lint --total 1800 > /dev/null 2> .tdd/lint.wait.err"
+
+
+def test_4392_a_red_lint_writes_its_event_and_section_then_stops_it_at_lint_before_any_repair_step(checks):
+    lines = ["line %d" % i for i in range(25)] + ["x" * 400]
+    (checks.wt / ".tdd" / "lint.out").write_text("\n".join(lines) + "\n")
+    code, out, err, fake = checks(answers={("detach-command.sh", ("wait",)): (1, "2\n")},
+                                  files={("detach-command.sh", ("wait",)): {".tdd/lint.exit": "2\n"}})
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at lint %s exit 1" % WAITED)
+    assert (fake.calls[-1][0], fake.calls[-1][1]) == ("event.sh", ("lint", "exit=2"))
+    tail = "".join(line[:300] + "\n" for line in lines[-20:])
+    assert (checks.wt / ".tdd" / "issue-12-lint.md").read_text() == (
+        "### Lint\n\n`make lint` exited 2. The last 20 lines of its output:\n\n~~~text\n" + tail + "~~~\n")
+    assert (checks.wt / ".tdd" / "issue-12.md").read_text() == LEDGER
