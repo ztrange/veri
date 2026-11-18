@@ -299,214 +299,7 @@ def test_issue_3242_recovered_dev_with_no_reset_marker_for_the_role_exits_3_with
     assert (code, out) == (3, "")
 
 
-def test_issue_3242_idle_dev_with_the_recorded_transcript_last_written_the_seconds_before_now_prints_idle_dev_and_the_seconds_and_exits_0(
-        tmp_path, monkeypatch, run_cli):
-    import os
-
-    tdd = tmp_path / ".tdd"
-    tdd.mkdir()
-    transcript = tmp_path / "dev.jsonl"
-    transcript.write_text("{}\n")
-    os.utime(transcript, (1_000_000.0 - 600, 1_000_000.0 - 600))
-    (tdd / "role-dev.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
-    naps = []
-    monkeypatch.setattr(time, "sleep", lambda seconds: naps.append(seconds))
-    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
-    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
-    reset_wait = importlib.import_module("veri.reset_wait")
-    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-
-    code, out, _ = run_cli(reset_wait, ["idle", "dev", "600"], env={"VERI_POLL": "1"})
-
-    assert (code, out) == (0, "idle dev 600\n")
-    assert len(naps) <= 1
-
-
-def test_issue_3242_idle_dev_returns_only_once_the_transcript_has_gone_the_seconds_unwritten_and_a_write_during_the_wait_restarts_the_window(
-        tmp_path, monkeypatch, run_cli):
-    import os
-
-    start = 1_000_000.0
-    clock = [start]
-    tdd = tmp_path / ".tdd"
-    tdd.mkdir()
-    transcript = tmp_path / "dev.jsonl"
-    transcript.write_text("{}\n")
-    os.utime(transcript, (start - 250, start - 250))
-    (tdd / "role-dev.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
-    naps = []
-    written = []
-
-    def nap(seconds):
-        naps.append(seconds)
-        clock[0] += seconds
-        if len(naps) == 2:
-            written.append(clock[0])
-            os.utime(transcript, (clock[0], clock[0]))
-
-    monkeypatch.setattr(time, "sleep", nap)
-    monkeypatch.setattr(time, "time", lambda: clock[0])
-    monkeypatch.setattr(time, "monotonic", lambda: clock[0])
-    reset_wait = importlib.import_module("veri.reset_wait")
-    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-
-    code, out, _ = run_cli(reset_wait, ["idle", "dev", "600"], env={"VERI_POLL": "100"})
-
-    assert (code, out) == (0, "idle dev 600\n")
-    assert written and clock[0] >= written[0] + 600
-
-
-def test_issue_3242_idle_dev_with_lane_reads_the_transcript_recorded_in_the_lane_state_not_the_plain_roles(
-        tmp_path, monkeypatch, run_cli):
-    import os
-
-    tdd = tmp_path / ".tdd"
-    tdd.mkdir()
-    fresh = tmp_path / "plain.jsonl"
-    fresh.write_text("{}\n")
-    os.utime(fresh, (1_000_000.0, 1_000_000.0))
-    old = tmp_path / "lane.jsonl"
-    old.write_text("{}\n")
-    os.utime(old, (1_000_000.0 - 600, 1_000_000.0 - 600))
-    (tdd / "role-dev.state").write_text("transcript=%s\n" % fresh)
-    (tdd / "role-dev-a.state").write_text("transcript=%s\n" % old)
-    naps = []
-    monkeypatch.setattr(time, "sleep", lambda seconds: naps.append(seconds))
-    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
-    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
-    reset_wait = importlib.import_module("veri.reset_wait")
-    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-
-    code, out, _ = run_cli(reset_wait, ["idle", "dev", "--lane", "a", "600"], env={"VERI_POLL": "1"})
-
-    assert (code, out) == (0, "idle dev 600\n")
-    assert naps == []
-
-
-def test_issue_3242_idle_dev_with_a_transcript_write_at_the_third_injected_sleep_returns_within_one_poll_of_the_seconds_after_that_write(
-        tmp_path, monkeypatch, run_cli):
-    import os
-
-    start = 1_000_000.0
-    clock = [start]
-    tdd = tmp_path / ".tdd"
-    tdd.mkdir()
-    transcript = tmp_path / "dev.jsonl"
-    transcript.write_text("{}\n")
-    os.utime(transcript, (start, start))
-    (tdd / "role-dev.state").write_text("transcript=%s\n" % transcript)
-    naps = []
-    written = []
-
-    def nap(seconds):
-        naps.append(seconds)
-        if len(naps) > 100:
-            raise AssertionError("idle never returned")
-        clock[0] += seconds
-        if len(naps) == 3:
-            written.append(clock[0])
-            os.utime(transcript, (clock[0], clock[0]))
-
-    monkeypatch.setattr(time, "sleep", nap)
-    monkeypatch.setattr(time, "time", lambda: clock[0])
-    monkeypatch.setattr(time, "monotonic", lambda: clock[0])
-    reset_wait = importlib.import_module("veri.reset_wait")
-    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-
-    code, out, _ = run_cli(reset_wait, ["idle", "dev", "50"], env={"VERI_POLL": "10"})
-
-    assert (code, out) == (0, "idle dev 50\n")
-    assert written[0] + 50 <= clock[0] < written[0] + 50 + 10
-
-
-def test_issue_3242_idle_dev_with_no_seconds_and_veri_reset_idle_60_returns_once_the_transcript_has_gone_60_injected_seconds_unwritten_printing_idle_dev_60_and_exits_0(
-        tmp_path, monkeypatch, run_cli):
-    import os
-
-    start = 1_000_000.0
-    clock = [start]
-    tdd = tmp_path / ".tdd"
-    tdd.mkdir()
-    transcript = tmp_path / "dev.jsonl"
-    transcript.write_text("{}\n")
-    os.utime(transcript, (start, start))
-    (tdd / "role-dev.state").write_text("transcript=%s\n" % transcript)
-    naps = []
-
-    def nap(seconds):
-        naps.append(seconds)
-        if len(naps) > 100:
-            raise AssertionError("idle never returned")
-        clock[0] += seconds
-
-    monkeypatch.setattr(time, "sleep", nap)
-    monkeypatch.setattr(time, "time", lambda: clock[0])
-    monkeypatch.setattr(time, "monotonic", lambda: clock[0])
-    reset_wait = importlib.import_module("veri.reset_wait")
-    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-
-    code, out, _ = run_cli(reset_wait, ["idle", "dev"],
-                           env={"VERI_RESET_IDLE": "60", "VERI_POLL": "20"})
-
-    assert (code, out) == (0, "idle dev 60\n")
-    assert 60 <= clock[0] - start < 80
-
-
-def test_issue_3242_idle_dev_with_no_seconds_and_veri_reset_idle_unset_is_still_waiting_at_2999_unwritten_seconds_and_returns_idle_dev_3000_at_3000_exit_0(
-        tmp_path, monkeypatch, run_cli):
-    import os
-
-    start = 1_000_000.0
-    clock = [start]
-    tdd = tmp_path / ".tdd"
-    tdd.mkdir()
-    transcript = tmp_path / "dev.jsonl"
-    transcript.write_text("{}\n")
-    os.utime(transcript, (start, start))
-    (tdd / "role-dev.state").write_text("transcript=%s\n" % transcript)
-    naps = []
-
-    def nap(seconds):
-        naps.append(seconds)
-        if len(naps) > 4000:
-            raise AssertionError("idle never returned")
-        clock[0] += seconds
-
-    monkeypatch.setattr(time, "sleep", nap)
-    monkeypatch.setattr(time, "time", lambda: clock[0])
-    monkeypatch.setattr(time, "monotonic", lambda: clock[0])
-    monkeypatch.delenv("VERI_RESET_IDLE", raising=False)
-    reset_wait = importlib.import_module("veri.reset_wait")
-    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-
-    code, out, _ = run_cli(reset_wait, ["idle", "dev"], env={"VERI_POLL": "1"})
-
-    assert (code, out) == (0, "idle dev 3000\n")
-    assert clock[0] - start == 3000.0
-
-
-def test_issue_3242_idle_dev_with_no_transcript_recorded_in_the_state_file_exits_2_with_one_stderr_line_naming_the_transcript_without_sleeping(
-        tmp_path, monkeypatch, run_cli):
-    def no_wait(*args, **kwargs):
-        raise AssertionError("reset_wait slept")
-
-    tdd = tmp_path / ".tdd"
-    tdd.mkdir()
-    (tdd / "role-dev.state").write_text("session-id=s1\n")
-    monkeypatch.setattr(time, "sleep", no_wait)
-    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
-    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
-    reset_wait = importlib.import_module("veri.reset_wait")
-    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-
-    code, out, err = run_cli(reset_wait, ["idle", "dev", "600"], env={"VERI_POLL": "1"})
-
-    assert (code, out) == (2, "")
-    assert len(err.splitlines()) == 1
-    assert "transcript" in err
-
-
-def test_issue_3242_a_verb_other_than_marker_recovered_or_idle_exits_2_with_the_usage_line_on_stderr_without_sleeping(
+def test_issue_3242_a_verb_other_than_marker_or_recovered_exits_2_with_the_usage_line_on_stderr_without_sleeping(
         tmp_path, monkeypatch, run_cli):
     def no_wait(*args, **kwargs):
         raise AssertionError("reset_wait slept")
@@ -520,7 +313,7 @@ def test_issue_3242_a_verb_other_than_marker_recovered_or_idle_exits_2_with_the_
     code, out, err = run_cli(reset_wait, ["frobnicate", "dev"], env={"VERI_POLL": "1"})
 
     assert (code, out) == (2, "")
-    assert err.startswith("usage:") and "marker|recovered|idle" in err
+    assert err.startswith("usage:") and "marker|recovered" in err
 
 
 def test_issue_3242_marker_with_a_role_other_than_dev_or_dev_exits_2_with_the_usage_line_on_stderr_without_sleeping(
@@ -538,7 +331,7 @@ def test_issue_3242_marker_with_a_role_other_than_dev_or_dev_exits_2_with_the_us
     code, out, err = run_cli(reset_wait, ["marker", "admin"], env={"VERI_POLL": "1"})
 
     assert (code, out) == (2, "")
-    assert err.startswith("usage:") and "marker|recovered|idle" in err
+    assert err.startswith("usage:") and "marker|recovered" in err
     assert naps == []
 
 
@@ -557,7 +350,7 @@ def test_issue_3242_marker_dev_with_lane_given_no_value_exits_2_with_the_usage_l
     code, out, err = run_cli(reset_wait, ["marker", "dev", "--lane"], env={"VERI_POLL": "1"})
 
     assert (code, out) == (2, "")
-    assert err.startswith("usage:") and "marker|recovered|idle" in err
+    assert err.startswith("usage:") and "marker|recovered" in err
     assert naps == []
 
 
@@ -576,7 +369,7 @@ def test_issue_3242_recovered_dev_with_seconds_abc_exits_2_with_the_usage_line_o
     code, out, err = run_cli(reset_wait, ["recovered", "dev", "abc"], env={"VERI_POLL": "1"})
 
     assert (code, out) == (2, "")
-    assert err.startswith("usage:") and "marker|recovered|idle" in err
+    assert err.startswith("usage:") and "marker|recovered" in err
     assert naps == []
 
 
@@ -600,7 +393,7 @@ def test_issue_3242_recovered_dev_with_seconds_0_or_a_non_ascii_digit_string_exi
     results = {}
     for bad in ("0", "٣"):
         code, out, err = run_cli(reset_wait, ["recovered", "dev", bad], env={"VERI_POLL": "1"})
-        results[bad] = (code, out, err.startswith("usage:") and "marker|recovered|idle" in err)
+        results[bad] = (code, out, err.startswith("usage:") and "marker|recovered" in err)
 
     assert results == {"0": (2, "", True), "٣": (2, "", True)}
     assert naps == []
@@ -622,24 +415,9 @@ def test_issue_3242_bad_role_exits_2_with_the_usage_for_every_verb_before_touchi
     reset_wait = importlib.import_module("veri.reset_wait")
     monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path / "absent"))
 
-    results = [run_cli(reset_wait, [verb, "foo"])[0] for verb in ("marker", "recovered", "idle")]
+    results = [run_cli(reset_wait, [verb, "foo"])[0] for verb in ("marker", "recovered")]
 
-    assert results == [2, 2, 2]
-
-
-def test_issue_3242_idle_with_a_recorded_transcript_that_is_gone_exits_2_naming_it(
-        tmp_path, monkeypatch, run_cli):
-    tdd = tmp_path / ".tdd"
-    tdd.mkdir()
-    (tdd / "role-dev.state").write_text("transcript=%s\n" % (tmp_path / "gone.jsonl"))
-    monkeypatch.setattr(time, "sleep", lambda seconds: None)
-    reset_wait = importlib.import_module("veri.reset_wait")
-    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-
-    code, out, err = run_cli(reset_wait, ["idle", "dev", "600"])
-
-    assert (code, out) == (2, "")
-    assert "gone.jsonl" in err
+    assert results == [2, 2]
 
 
 def test_issue_3242_recovered_dev_with_two_recovered_at_lines_answers_from_the_latest_not_the_stale_first(
@@ -669,40 +447,6 @@ def test_issue_3242_recovered_dev_with_two_recovered_at_lines_answers_from_the_l
     assert (code, out) == (0, "recovered dev 2026-11-12T10:02:30\n")
 
 
-def test_issue_3242_idle_dev_with_two_transcript_lines_reads_the_latest_recorded_not_the_first(
-        tmp_path, monkeypatch, run_cli):
-    import os
-
-    tdd = tmp_path / ".tdd"
-    tdd.mkdir()
-    fresh = tmp_path / "first.jsonl"
-    fresh.write_text("{}\n")
-    os.utime(fresh, (1_000_000.0, 1_000_000.0))
-    old = tmp_path / "latest.jsonl"
-    old.write_text("{}\n")
-    os.utime(old, (1_000_000.0 - 600, 1_000_000.0 - 600))
-    (tdd / "role-dev.state").write_text("transcript=%s\ntranscript=%s\n" % (fresh, old))
-    now = [1_000_000.0]
-    naps = []
-
-    def nap(seconds):
-        naps.append(seconds)
-        if len(naps) > 700:
-            raise AssertionError("idle never returned")
-        now[0] += seconds
-
-    monkeypatch.setattr(time, "sleep", nap)
-    monkeypatch.setattr(time, "time", lambda: now[0])
-    monkeypatch.setattr(time, "monotonic", lambda: now[0])
-    reset_wait = importlib.import_module("veri.reset_wait")
-    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-
-    code, out, _ = run_cli(reset_wait, ["idle", "dev", "600"], env={"VERI_POLL": "1"})
-
-    assert (code, out) == (0, "idle dev 600\n")
-    assert naps == []
-
-
 def test_issue_3242_marker_dev_with_lane_given_an_empty_value_exits_2_with_the_usage_line_on_stderr_without_sleeping(
         tmp_path, monkeypatch, run_cli):
     naps = []
@@ -718,7 +462,7 @@ def test_issue_3242_marker_dev_with_lane_given_an_empty_value_exits_2_with_the_u
     code, out, err = run_cli(reset_wait, ["marker", "dev", "--lane", ""], env={"VERI_POLL": "1"})
 
     assert (code, out) == (2, "")
-    assert err.startswith("usage:") and "marker|recovered|idle" in err
+    assert err.startswith("usage:") and "marker|recovered" in err
     assert naps == []
 
 
@@ -740,28 +484,3 @@ def test_recovered_with_an_empty_veri_reset_ack_timeout_reads_it_as_empty_and_fa
     code, out, err = run_cli(reset_wait, ["recovered", "dev"], env={"VERI_POLL": "1", "VERI_RESET_ACK_TIMEOUT": ""})
 
     assert (code, out, "ValueError" in err, clock["now"]) == (2, "", True, 1_000_000.0)
-
-
-def test_idle_with_an_empty_veri_reset_idle_reads_it_as_empty_and_fails_not_as_the_default_3000(
-        tmp_path, monkeypatch, run_cli):
-    import os
-
-    tdd = tmp_path / ".tdd"
-    tdd.mkdir()
-    transcript = tmp_path / "dev.jsonl"
-    transcript.write_text("{}\n")
-    os.utime(transcript, (1_000_000.0, 1_000_000.0))
-    (tdd / "role-dev.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
-    clock = {"now": 1_000_600.0}
-
-    def nap(seconds):
-        clock["now"] += 1000
-
-    monkeypatch.setattr(time, "sleep", nap)
-    monkeypatch.setattr(time, "time", lambda: clock["now"])
-    reset_wait = importlib.import_module("veri.reset_wait")
-    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-
-    code, out, err = run_cli(reset_wait, ["idle", "dev"], env={"VERI_POLL": "1", "VERI_RESET_IDLE": ""})
-
-    assert (code, out, "ValueError" in err) == (2, "", True)
