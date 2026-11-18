@@ -1,6 +1,6 @@
 # Plan for #4383 — PRD 037.5: the _develop-* rule and report prompt fragments have rows and a grade
 
-- [ ] `skills/tdd/scripts/prompts/_develop-run-affected.md` has rows RU1-RU3 in prompts/REQUIREMENTS.md and a GRADED line its grade wrote ⟦skill-edit⟧ ⟦criterion 1⟧
+- [x] `skills/tdd/scripts/prompts/_develop-run-affected.md` has rows RU1-RU3 in prompts/REQUIREMENTS.md and a GRADED line its grade wrote ⟦skill-edit⟧ ⟦criterion 1⟧
 - [ ] `skills/tdd/scripts/prompts/_develop-red-lead-replaces-case.md` has row LR1 in prompts/REQUIREMENTS.md and a GRADED line its grade wrote ⟦skill-edit⟧ ⟦criterion 1⟧
 - [ ] `skills/tdd/scripts/prompts/_develop-test-rewrite-none.md` has row WN1 in prompts/REQUIREMENTS.md and a GRADED line its grade wrote ⟦skill-edit⟧ ⟦criterion 1⟧
 - [ ] `skills/tdd/scripts/prompts/_develop-test-rewrite-surround.md` has rows WS1-WS2 in prompts/REQUIREMENTS.md and a GRADED line its grade wrote ⟦skill-edit⟧ ⟦criterion 1⟧
