@@ -17,7 +17,6 @@ import entry
 import event
 import mutation_record
 import run_dir
-import timed_test_run
 from event_log import run_keeping_journal
 
 USAGE = "usage: pin-recheck.sh <base-sha> [--ledger <file>]"
@@ -45,8 +44,8 @@ def output_lines(run):
     """The run's lines, plus those of the output timed-test-run.sh saved in place of printing it (its `full output:` line)."""
     lines = set(run.stdout.splitlines()) | set(run.stderr.splitlines())
     for line in run.stdout.splitlines():
-        saved = Path(line.removeprefix(timed_test_run.SAVED))
-        if line.startswith(timed_test_run.SAVED) and saved.is_file():
+        saved = Path(line.removeprefix("full output: "))
+        if line.startswith("full output: ") and saved.is_file():
             lines |= set(saved.read_text(errors="replace").splitlines())
     return lines
 
