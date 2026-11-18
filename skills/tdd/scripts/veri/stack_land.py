@@ -10,6 +10,7 @@ import entry
 import event
 import git
 import github
+import merge_common
 import pid_file
 import stack_branch
 import stack_fix
@@ -139,9 +140,14 @@ def main(argv):
         if push.returncode:
             return _freed("git push of the slice branch %s failed (exit %d): %s; the merge lock freed, nothing opened"
                           " or merged" % (slice_branch, push.returncode, push.stderr.strip()))
-        if not _read("listing the open pull requests from " + slice_branch, github.stack_pulls, slice_branch, default):
-            _read("opening the pull request from %s to %s" % (slice_branch, default), github.pr_open, slice_branch,
-                  default, "Land %s at %s" % (stack, cut[:10]), _closes(stack, default, cut))
+        reused = _read("listing the open pull requests from " + slice_branch, github.stack_pulls, slice_branch, default)
+        if reused:
+            pr = reused[0].html_url
+        else:
+            pr = _read("opening the pull request from %s to %s" % (slice_branch, default), github.pr_open, slice_branch,
+                       default, "Land %s at %s" % (stack, cut[:10]), _closes(stack, default, cut))
+        repo, number = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)
+        merge_common.merge(lambda gh, *args: github.run_gh(*args).returncode, pr, repo, number, cut, driver="graphql")
     except _Unanswered as unanswered:
         return _freed("%s; the merge lock freed, nothing merged" % unanswered)
 
