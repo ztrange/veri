@@ -26,6 +26,16 @@ def main(argv):
     if classified.returncode != 0:
         sys.stderr.write("bail: unknown cause %s; bail by BAIL.md sub-step 1\n" % argv[1])
         return 2
+    classification = classified.stdout.strip()
+    step = subprocess.run([os.path.join(here, "ledger-steps.sh"), "current-or-last-done"],
+                          capture_output=True, text=True).stdout.strip()
+    attempt = argv[6] if len(argv) == 7 else "1"
+    subprocess.run([os.path.join(here, "preserve-attempt.sh"), argv[0], step, argv[2], attempt, "bail"],
+                   capture_output=True, text=True)
+    subprocess.run(["git", "reset", "--hard", "HEAD"], capture_output=True, text=True)
+    env = dict(os.environ, VERI_PHASE=argv[2])
+    subprocess.run([os.path.join(here, "event.sh"), "bail", "cause=" + argv[1], "classification=" + classification],
+                   env=env, capture_output=True, text=True)
     return 0
 
 

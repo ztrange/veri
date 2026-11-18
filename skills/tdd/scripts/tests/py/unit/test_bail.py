@@ -1,5 +1,6 @@
 """In-process cases for veri/bail.py, the module bail.sh is a shim over."""
 import importlib
+import os
 
 import pytest
 
@@ -63,3 +64,30 @@ def test_an_unknown_cause_exits_2_after_classify_bail_alone_with_no_reset_event_
 
     assert (code, fake.calls) == (2, ["classify-bail.sh unknown-cause"])
     assert "BAIL.md sub-step 1" in err.splitlines()[-1]
+
+
+def test_a_known_cause_snapshots_resets_then_writes_the_bail_event_with_the_phase_and_classification_in_order(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", "")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md", "--attempt", "2"], cwd=tmp_path)
+
+    ordered = [line for line in fake.calls
+               if line.startswith(("preserve-attempt.sh", "git reset", "event.sh"))]
+    assert ordered == ["preserve-attempt.sh 7 3 red 2 bail", "git reset --hard HEAD",
+                       "event.sh bail cause=tests-red classification=process"]
+    event_env = [kwargs.get("env") or {} for argv, kwargs in fake.seen if os.path.basename(argv[0]) == "event.sh"][0]
+    assert event_env.get("VERI_PHASE") == "red"
+
+
+def test_without_attempt_the_snapshot_is_taken_as_attempt_1(run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", "")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    assert code == 0
+    assert [c for c in fake.calls if c.startswith("preserve-attempt.sh")] == ["preserve-attempt.sh 7 3 red 1 bail"]
