@@ -21,3 +21,5 @@ The refusal holds only for the rest: an added step bringing rows new to an alrea
 The step's own text never reaches the author or the grader.
 
 When a skill-edit step's text names a change to the prose, a sentence to delete or reword, run `$S/skill-edit-step.sh` with `--change` and that change, so an author runs even on a unit that already grades PASS.
+
+A skill-edit step's unit may be a heading unit, `<file>#<heading>`: a section of a file that a `REQUIREMENTS.md` claims with a `## <file>#<heading>` heading. The issue's `## Requirements` then names that unit under `### <file>#<heading>`, never under the whole-file `### <file>`, and the step's unit you pass to `$S/skill-edit-step.sh` is that `<file>#<heading>`.
