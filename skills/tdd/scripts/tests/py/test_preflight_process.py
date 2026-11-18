@@ -47,8 +47,9 @@ def test_a_tier_command_that_fails_comes_back_non_zero_from_the_real_detach_comm
 
 
 def set_up_in(repo, monkeypatch):
-    """preflight.set_up on a resume in <repo>: git and detect-test-command.sh really run there, every other script
-    answers 0 (issue-worktree.sh with <repo>, gh with an empty issue body); returns (exit code, fast command)."""
+    """preflight.set_up in <repo>, a resume when its ledger is committed: git and detect-test-command.sh really run there,
+    every other script answers 0 (issue-worktree.sh with <repo>, gh with an empty issue body); returns (exit code, fast
+    command)."""
     preflight = importlib.import_module("veri.preflight")
 
     def run_script(name, *args, cwd=None, env=None):
@@ -72,21 +73,22 @@ def set_up_in(repo, monkeypatch):
 def test_a_resumed_run_reads_its_fast_command_at_the_branch_base_never_a_claude_md_the_branch_committed_4263(
         tmp_path, monkeypatch):
     repo = new_repo(tmp_path / "repo")
-    commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n"})
+    base = commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n"})
     origin_head_at(repo)
     git(repo, "checkout", "-q", "-b", "issue-12")
     commit_all(repo, "ledger and an edited fast line", **{".tdd__issue-12.md": "- [x] step\n",
                                                           "CLAUDE.md": "veri: fast tests: true\n"})
+    (repo / ".tdd" / "issue-12-branch-base").write_text(base + "\n")
 
     assert set_up_in(repo, monkeypatch) == (0, "pytest -q")
 
 
-@pytest.mark.process("git init, commit and checkout run for real in a scratch repository with no origin/HEAD, then"
+@pytest.mark.process("git init and commit run for real in a scratch repository with no origin/HEAD, then"
                      " preflight.set_up's git and detect-test-command.sh calls in it")
-def test_a_run_with_no_branch_base_stops_with_exit_2_never_reading_the_working_trees_fast_command_4263(
+def test_a_fresh_run_with_no_branch_base_stops_with_exit_2_never_reading_the_working_trees_fast_command_4263(
         tmp_path, monkeypatch):
     repo = new_repo(tmp_path / "repo")
-    commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n", ".tdd__issue-12.md": "- [x] step\n"})
+    commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n"})
 
     assert set_up_in(repo, monkeypatch) == (2, None)
 
@@ -105,3 +107,19 @@ def test_a_fresh_launch_records_the_merge_base_of_head_and_origin_head_and_reads
     answer = set_up_in(repo, monkeypatch)
 
     assert (answer, record.read_text() if record.exists() else None) == ((0, "pytest -q"), base + "\n")
+
+
+@pytest.mark.process("git init, commit, checkout, update-ref and symbolic-ref run for real in a scratch repository, then"
+                     " preflight.set_up's git and detect-test-command.sh calls in it")
+def test_a_resume_reads_its_fast_command_at_the_recorded_base_never_at_the_merge_base_of_a_rewritten_origin_head_4374(
+        tmp_path, monkeypatch):
+    repo = new_repo(tmp_path / "repo")
+    base = commit_all(repo, "base", **{"CLAUDE.md": "veri: fast tests: pytest -q\n"})
+    origin_head_at(repo)
+    git(repo, "checkout", "-q", "-b", "issue-12")
+    rewritten = commit_all(repo, "a leaf's fast line", **{"CLAUDE.md": "veri: fast tests: true\n"})
+    commit_all(repo, "ledger", **{".tdd__issue-12.md": "- [x] step\n"})
+    (repo / ".tdd" / "issue-12-branch-base").write_text(base + "\n")
+    git(repo, "update-ref", "refs/remotes/origin/main", rewritten)
+
+    assert set_up_in(repo, monkeypatch) == (0, "pytest -q")

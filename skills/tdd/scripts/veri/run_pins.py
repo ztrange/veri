@@ -123,3 +123,9 @@ def write_branch_base(root, issue, sha):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as record:
         record.write(sha + "\n")
+
+
+def branch_base(issue, root):
+    """The stripped sha the run recorded under `root`. OSError propagates, FileNotFoundError when it recorded none."""
+    with open(run_dir.issue_file(root, issue, BRANCH_BASE)) as record:
+        return record.read().strip()
