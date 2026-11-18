@@ -1,9 +1,11 @@
 """stop-settle.sh's computation, run in-process: a stop (STOPPING.md steps 1-6) settled in one call (PRD 038.5)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
 
 import fused
 import fused_step
+import pid_file
 from ledger import ledger_steps
 from ledger_steps import current_or_last_done_record
 
@@ -26,6 +28,8 @@ def main(argv):
 
 
 def run(n, mode, wt):
+    for name in live_leaves(wt):
+        fused.call(fused.script("wait-leaf.sh"), name, cwd=wt)
     for name in ("rebase-merge", "rebase-apply"):
         fused.call("git", "rev-parse", "--git-path", name, cwd=wt)
     fused.call("git", "rev-parse", "-q", "--verify", "MERGE_HEAD", cwd=wt)
@@ -38,6 +42,18 @@ def run(n, mode, wt):
     fused.checked("5", fused.script("comment.sh"), n, "stopped", cwd=wt)
     fused.checked("6", fused.script("stop-requested.sh"), "--clear", cwd=wt)
     return 0
+
+
+def live_leaves(wt):
+    """The names of the `.tdd/<name>.pid` files whose process still runs `supervise.sh <name>` (step 1)."""
+    tdd = os.path.join(wt, ".tdd")
+    names = sorted(f[:-len(".pid")] for f in os.listdir(tdd) if f.endswith(".pid") and f != "conductor.pid")
+    return [name for name in names if live(os.path.join(tdd, name + ".pid"), name)]
+
+
+def live(path, name):
+    pid = pid_file.number_in(path)
+    return pid is not None and pid_file.supervising(pid, name)
 
 
 def committed_ledger(n, wt):

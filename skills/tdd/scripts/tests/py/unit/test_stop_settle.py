@@ -94,3 +94,22 @@ def test_4388_on_a_clean_tree_it_settles_resets_pushes_marks_comments_and_clears
     assert (mark[3]["VERI_ISSUE"], mark[3]["VERI_ACTOR"], mark[3]["VERI_STEP"]) == ("12", "conductor",
                                                                                    "one ⟦criterion 1⟧")
     assert {c[2] for c in fake.calls} == {str(stop.wt)}
+
+
+def _leaves(stop, monkeypatch, live):
+    """Seed .tdd/<name>.pid files, pid 100 + i each; <live> the names whose process still runs supervise.sh <name>."""
+    names = ["develop-red", "verdict-red", "conductor"]
+    for i, name in enumerate(names):
+        (stop.wt / ".tdd" / (name + ".pid")).write_text("%d\n" % (100 + i))
+    pid_file = importlib.import_module("veri.pid_file")
+    monkeypatch.setattr(pid_file, "supervising", lambda pid, name: name in live and pid == str(100 + names.index(name)))
+
+
+@pytest.mark.parametrize("leaf", [0, 1, 2])
+def test_4388_it_waits_on_each_leaf_still_supervised_before_the_tree_check_and_on_no_other(stop, monkeypatch, leaf):
+    _leaves(stop, monkeypatch, live=("develop-red", "conductor"))
+    code, out, err, fake = stop(answers={("wait-leaf.sh", None): (leaf, "", "")})
+
+    assert code == 0, err
+    assert _seq(fake)[:2] == [("wait-leaf.sh", "develop-red"), ("git", "rev-parse", "--git-path", "rebase-merge")]
+    assert [c for c in fake.calls if c[0] == "wait-leaf.sh"] == [fake.calls[0]]
