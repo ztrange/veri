@@ -105,3 +105,60 @@ def test_a_repo_root_outside_a_git_repository_is_exit_2_saying_so_with_nothing_w
     assert (code, out) == (2, "")
     assert "not a git repository" in err
     assert [call.split()[1] for call in fake.calls] == ["rev-parse"]
+
+
+def test_issue_4335_the_pull_request_body_names_the_quiet_line_only_when_a_quiet_command_is_recorded(record):
+    named = "`veri: quiet test files:`"
+
+    assert (named in record.body(record.declarations(b"f", b"a", quiet=b"pytest -q")),
+            named in record.body(record.declarations(b"f", b"a"))) == (True, False)
+
+
+@pytest.mark.parametrize("quiet", [b"`pytest -q`", b"  pytest  "])
+def test_issue_4335_a_quiet_command_that_would_not_read_back_exactly_is_refused_naming_the_quiet_line(record, quiet):
+    wanted = record.declarations(b"f", b"a", quiet=quiet)
+
+    why = record.unreadable(b"", record.recorded(b"", b"f", b"a", quiet=quiet), wanted)
+
+    assert why is not None and why.startswith("veri: quiet test files: would read back"), why
+
+
+@pytest.fixture
+def record_spy(record, monkeypatch):
+    """record.record replaced by a spy: each call's (fast, full, root, one_file, quiet), answering a pull request URL."""
+    seen = []
+
+    def spy(fast, full, root, one_file=None, quiet=None):
+        seen.append((fast, full, root, one_file, quiet))
+        return "https://example.invalid/pull/1"
+
+    monkeypatch.setattr(record, "record", spy)
+    return seen
+
+
+@pytest.mark.parametrize("argv", [
+    ["--quiet", "pytest -q", "--one-file", 'pytest "$1"', "make unit", "make test"],
+    ["--one-file", 'pytest "$1"', "--quiet", "pytest -q", "make unit", "make test"],
+])
+def test_issue_4335_main_hands_record_the_quiet_command_whichever_option_comes_first(record, run_cli, record_spy, argv):
+    code, out, err = run_cli(record, argv)
+
+    assert (code, out, err) == (0, "https://example.invalid/pull/1\n", "")
+    assert record_spy == [(b"make unit", b"make test", ".", b'pytest "$1"', b"pytest -q")]
+
+
+@pytest.mark.parametrize("argv", [["--quiet", "", "make unit", "make test"], ["--quiet"],
+                                  ["--quiet", "make unit", "make test"]])
+def test_issue_4335_main_refuses_an_empty_or_missing_quiet_command_with_exit_2_naming_the_usage(
+        record, run_cli, record_spy, argv):
+    code, out, err = run_cli(record, argv)
+
+    assert (code, out, record_spy) == (2, "", [])
+    assert record.USAGE in err
+
+
+def test_issue_4335_main_reads_a_second_quiet_option_as_the_first_positional_argument(record, run_cli, record_spy):
+    code, out, err = run_cli(record, ["--quiet", "A", "--quiet", "B", "make unit"])
+
+    assert (code, err) == (0, "")
+    assert record_spy == [(b"--quiet", b"B", "make unit", None, b"A")]
