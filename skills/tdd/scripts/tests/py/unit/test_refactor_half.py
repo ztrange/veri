@@ -254,6 +254,21 @@ def test_4028_with_refactor_switched_off_it_marks_the_skip_writes_skipped_and_po
     assert comments == [("verify-refactor",), ("refactor", "--note-file", ".tdd/refactor-half-note.md")]
 
 
+@pytest.mark.parametrize("given", [{"fake_kw": {"count": "0\n", "subjects": ""}}, {"switched_off": True}],
+                         ids=["nothing landed", "switched off"])
+def test_a_skipped_verify_records_the_leftover_logs_hash_but_none_of_its_uncovered_spec_flags_4342(tidy, given):
+    """#4029's flags come with the hash from one read of the log, but a skipped verify's log is an earlier step's:
+    its `uncovered-spec` flags are not this step's, so only the leaf's are recorded."""
+    if given.get("switched_off"):
+        (tidy.wt / ".tdd" / "issue-12-skip-verify").write_text("refactor\n")
+    code, out, err, fake = tidy(fake=Fake(**given.get("fake_kw", {})))
+
+    record = (tidy.wt / ".tdd" / "issue-12-refactor-half").read_text().splitlines()
+    assert (code, fake.launched()) == (0, ["develop-refactor"])
+    assert "verdict_log=" + hashlib.sha256(VERDICT.encode()).hexdigest() in record
+    assert [line for line in record if line.startswith("uncovered_spec=")] == ["uncovered_spec=empty input returns 0"]
+
+
 def test_4028_otherwise_it_launches_verdict_refactor_with_refactor_5s_arguments(tidy):
     code, out, err, fake = tidy()
 
