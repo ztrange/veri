@@ -1,6 +1,6 @@
 """Cases for pr-finish.sh (PRD 027.11, #4033) that start a real process: the shim's usage, and the ⟦full-suite⟧ tick,
-the done mark, the metrics commit, the push to a real remote and the second CI wait made by the real scripts, against a
-stub gh."""
+the done mark, the metrics commit and the push to a real remote that pr-ready-wait.sh makes before readying (#4332),
+made by the real scripts, against a stub gh."""
 import importlib
 import json
 import os
@@ -27,14 +27,16 @@ def test_4033_the_shim_with_no_argument_prints_its_usage_and_exits_2(tmp_path):
 
 def gh_answers(body_file):
     """A stub gh's body: the PR url for the branch, the issue body held in <body_file> (an edit rewrites it), the PR at
-    the remote branch's head, and one green check run on the first page of check runs; every call appended to
-    $CALLS."""
+    the remote branch's head, `gh pr ready` (appending `ready at: <the remote branch head's subject>`), and one green
+    check run on the first page of check runs; every call appended to $CALLS."""
     pull = '{"number":42,"state":"open","draft":false,"mergeable":true,"head":{"sha":"%s","ref":"work"}}'
     return ('echo "$*" >> "$CALLS"\nhead=$(git --git-dir="$REMOTE" rev-parse work 2>/dev/null)\ncase "$*" in\n'
             '  *"pulls?head="*) echo %s ;;\n'
             '  *"-X PATCH"*issues/12*body=@*) for a; do case $a in body=@*) cp "${a#body=@}" %s ;; esac; done ;;\n'
             '  *issues/12/comments*) echo https://github.com/o/r/issues/12#issuecomment-1 ;;\n'
             '  *issues/12*|"issue view 12"*) cat %s ;;\n'
+            '  "pr ready 42") git --git-dir="$REMOTE" log -1 --format="ready at: %%s" work >> "$CALLS" ;;\n'
+            '  *"pulls/42 --jq .head.sha"*) echo "$head" ;;\n'
             "  *check-runs?page=1) echo '{\"total_count\":1,\"check_runs\":[{\"name\":\"ci\",\"status\":\"completed\","
             "\"conclusion\":\"success\"}]}' ;;\n"
             "  *check-runs*) echo '{\"total_count\":1,\"check_runs\":[]}' ;;\n"
@@ -45,8 +47,8 @@ def gh_answers(body_file):
 
 class Run:
     """A run's worktree at .tdd/wt/12 on branch `work`, its ledger committed and pushed to a bare remote, the first
-    wait's .tdd/wait-ci.err left empty, and a stub gh; run(answer=None) runs pr-finish for issue 12, <answer> standing
-    in for fused.run_script, and returns (code, stdout, stderr)."""
+    wait's .tdd/wait-ci.err left empty, and a stub gh; run(answer=None, module="pr_finish") runs pr-finish (or the veri
+    <module> named) for issue 12, <answer> standing in for fused.run_script, and returns (code, stdout, stderr)."""
 
     def __init__(self, tmp_path, run_cli):
         self.tmp, self.run_cli = tmp_path, run_cli
@@ -77,23 +79,37 @@ class Run:
         return subprocess.run(["git", *args], cwd=cwd or self.wt, capture_output=True, text=True, check=True,
                               timeout=60, env=self.env).stdout.strip()
 
-    def run(self, monkeypatch, answer=None):
-        pr_finish = importlib.import_module("veri.pr_finish")
+    def environ(self):
+        return {"PATH": self.path, "CALLS": str(self.calls), "REMOTE": str(self.remote), "VERI_GH_DRIVER": "auto",
+                "VERI_POLL": "0", "VERI_BRANCH_SUITE": "ci", "VERI_CI_HEAD_WAIT": "0", "GIT_AUTHOR_NAME": "t",
+                "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    def run(self, monkeypatch, answer=None, module="pr_finish"):
         if answer is not None:
             monkeypatch.setattr(importlib.import_module("veri.fused"), "run_script", answer)
-        return self.run_cli(pr_finish, ["12"], cwd=str(self.tmp), env={
-            "PATH": self.path, "CALLS": str(self.calls), "REMOTE": str(self.remote), "VERI_GH_DRIVER": "auto",
-            "VERI_POLL": "0", "VERI_BRANCH_SUITE": "ci", "VERI_CI_HEAD_WAIT": "0", "GIT_AUTHOR_NAME": "t",
-            "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"})
+        return self.run_cli(importlib.import_module("veri." + module), ["12"], cwd=str(self.tmp), env=self.environ())
+
+
+@pytest.mark.process("pr-ready-wait.sh's /bin/sh shim, with git, a bare remote and every inner script real, against a "
+                     "stub gh")
+def test_4332_the_shim_pushes_the_metrics_commit_before_it_readies_the_pr(tmp_path, run_cli):
+    run = Run(tmp_path, run_cli)
+
+    ran = subprocess.run([str(SCRIPTS / "pr-ready-wait.sh"), "12"], cwd=tmp_path, stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True, timeout=60, env=dict(os.environ, **run.environ()))
+
+    readied = [line for line in run.calls.read_text().splitlines() if line.startswith("ready at: ")]
+    assert (ran.returncode, readied) == (0, ["ready at: metrics: what solving #12 cost (#12)"]), ran.stdout + ran.stderr
 
 
 @pytest.mark.process("git with a bare remote, branch-suite.sh, tick-ledger.sh, tick-issue-criterion.sh, event.sh, "
-                     "metrics.sh, push-branch.sh, wait-ci.sh and refactor-owed.sh, all real, against a stub gh")
+                     "metrics.sh, push-branch.sh, pr-ready.sh, wait-ci.sh and refactor-owed.sh, all real, against a "
+                     "stub gh")
 def test_4033_the_tick_mark_metrics_commit_push_and_wait_are_made_for_real(tmp_path, run_cli, monkeypatch):
     run = Run(tmp_path, run_cli)
     wt, git = run.wt, run.git
 
-    code, out, err = run.run(monkeypatch)
+    code, out, err = run.run(monkeypatch, module="pr_ready_wait")
 
     assert code == 0, out + err + run.calls.read_text()
     assert git("log", "--format=%s").splitlines()[:2] == ["metrics: what solving #12 cost (#12)",
@@ -103,7 +119,10 @@ def test_4033_the_tick_mark_metrics_commit_push_and_wait_are_made_for_real(tmp_p
     assert "- [x] the full suite is green" in run.body.read_text()
     marks = [json.loads(line) for line in (wt / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(m["event"], m.get("pr")) for m in marks if m["event"] == "done"] == [("done", URL)]
-    assert out.splitlines()[-1] == "refactor_owed_render=.tdd/issue-12-refactor-owed-render"
+    head = git("rev-parse", "HEAD")
+    code, out, err = run.run(monkeypatch)
+    assert (code, out.splitlines()[-1]) == (0, "refactor_owed_render=.tdd/issue-12-refactor-owed-render"), out + err
+    assert (git("rev-parse", "HEAD"), git("rev-parse", "work", cwd=run.remote)) == (head, head)
 
 
 @pytest.mark.process("git with a bare remote and every inner script real but metrics.sh, a stub that writes its file "
@@ -118,7 +137,7 @@ def test_4033_a_failed_metrics_render_that_left_its_file_commits_nothing_and_goe
     def answer(name, *args, **kw):
         return real(str(stub) if os.path.basename(name) == "metrics.sh" else name, *args, **kw)
 
-    code, out, err = run.run(monkeypatch, answer)
+    code, out, err = run.run(monkeypatch, answer, module="pr_ready_wait")
 
     assert code == 0, out + err
     assert "metrics=1" in out.splitlines()[-3:]
@@ -126,8 +145,8 @@ def test_4033_a_failed_metrics_render_that_left_its_file_commits_nothing_and_goe
     assert run.git("rev-parse", "work", cwd=run.remote) == run.git("rev-parse", "HEAD")
 
 
-@pytest.mark.process("pr-finish.sh with metrics.sh a stub that writes its file and exits 1, then run-done.sh with the "
-                     "real stop-requested.sh and comment.sh, against a stub gh")
+@pytest.mark.process("pr-ready-wait.sh with metrics.sh a stub that writes its file and exits 1, then pr-finish.sh, "
+                     "then run-done.sh with the real stop-requested.sh and comment.sh, against a stub gh")
 def test_4033_4034_the_file_a_failed_metrics_render_left_does_not_stop_run_done_for_real(tmp_path, run_cli,
                                                                                        monkeypatch):
     fused = importlib.import_module("veri.fused")
@@ -139,7 +158,8 @@ def test_4033_4034_the_file_a_failed_metrics_render_left_does_not_stop_run_done_
     def answer(name, *args, **kw):
         return real(str(stub) if os.path.basename(name) == "metrics.sh" else name, *args, **kw)
 
-    assert run.run(monkeypatch, answer)[0] == 0
+    assert run.run(monkeypatch, answer, module="pr_ready_wait")[0] == 0
+    assert run.run(monkeypatch)[0] == 0
     code, out, err = run_cli(run_done, ["12"], cwd=str(tmp_path), env={
         "PATH": run.path, "CALLS": str(run.calls), "REMOTE": str(run.remote), "VERI_GH_DRIVER": "auto"})
 

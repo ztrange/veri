@@ -1,5 +1,6 @@
 """pr-ready-wait.sh's computation, run in-process: DRAFT-PR.md sub-step 2's first block on its clean path, the PR
-url read, readying the PR and its first CI wait, made in one call (PRD 027.10)."""
+url read, the run's record closed and pushed (pr_finish.close, #4332), readying the PR and its first CI wait, made in
+one call (PRD 027.10)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import sys
@@ -7,6 +8,7 @@ import sys
 import fused
 import fused_step
 import plan_publish
+import pr_finish
 
 NAME = "pr-ready-wait"
 USAGE = "usage: pr-ready-wait.sh <n>"
@@ -16,7 +18,8 @@ WAIT = "wait-ci.sh"  # the `waiting on` name of the CI wait
 
 # The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_pr_ready_wait.py fails
 # when one is a script DRAFT-PR.md sub-step 2's first block does not name (FC19).
-CALLS = ("pr-ready.sh", "wait-ci.sh")
+CALLS = ("branch-suite.sh", "tick-ledger.sh", "ledger-steps.sh", "tick-issue-criterion.sh", "event.sh", "metrics.sh",
+         "push-branch.sh", "pr-ready.sh", "wait-ci.sh")
 
 
 def main(argv):
@@ -24,7 +27,7 @@ def main(argv):
 
 
 def run(n):
-    given = fused_step.inputs(NAME + ".sh", n)
+    given = fused_step.inputs(NAME + ".sh", n, pr_finish.LEDGER)
     if given is None:
         return 2
     _, wt = given
@@ -34,10 +37,11 @@ def run(n):
     if resumed is not None:
         values = resumed[1]
     else:
-        values = ready(wt)
+        values = ready(wt, n)
         fused.save_wait(wt, n, NAME, WAIT, values)
     ci_wait(wt, n, NAME, values["pr_url"])
     lines = ["pr_url=" + values["pr_url"], "pr_number=" + values["pr_number"], "ci=green"]
+    lines += ["metrics=%d" % values["metrics"]] if values["metrics"] else []
     return fused.settle(wt, n, NAME, lines + (["no_checks=1"] if NO_CHECKS in said(wt, ".tdd/wait-ci.err") else []))
 
 
@@ -78,15 +82,15 @@ def pr_url(wt):
     return url
 
 
-def ready(wt):
-    """The PR url (RC1), the tree check (RC4, D10), then pr-ready.sh on the head (RC2): {"pr_url", "pr_number"}."""
+def ready(wt, n):
+    """The PR url (RC1), the run's record closed and pushed with its tree check (pr_finish.close; RC4, D10), then
+    pr-ready.sh on the head (RC2): {"pr_url", "pr_number", "metrics"}."""
     url = pr_url(wt)
-    if dirty(WHERE, wt):
-        raise fused.Stop(WHERE, "tree-check", 1)
+    metrics = pr_finish.close(wt, n, url)
     number = url.rstrip("/").rsplit("/", 1)[-1]
     head = answered(WHERE, "git", "rev-parse", "HEAD", cwd=wt).strip()
     fused.checked(WHERE, fused.script("pr-ready.sh"), number, head, cwd=wt, err=".tdd/pr-ready.err")
-    return {"pr_url": url, "pr_number": number}
+    return {"pr_url": url, "pr_number": number, "metrics": metrics}
 
 
 def answered(where, *args, **kw):

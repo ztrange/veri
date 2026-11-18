@@ -39,10 +39,10 @@ def run(n):
 
 
 def render_left(wt, n):
-    """{the metrics file} when .tdd/issue-<n>-pr-finish holds a non-zero `metrics=`: a failed render may leave that file
-    behind, carried rather than committed, so it is no dirt here either; else nothing."""
+    """{the metrics file} when .tdd/issue-<n>-pr-ready-wait holds a non-zero `metrics=`: a failed render may leave that
+    file behind, carried rather than committed, so it is no dirt here either; else nothing."""
     try:
-        failed = fused.read_settled(fused.settled_file(wt, n, pr_finish.NAME)).get("metrics", "0") != "0"
+        failed = fused.read_settled(fused.settled_file(wt, n, pr_ready_wait.NAME)).get("metrics", "0") != "0"
     except OSError:
         failed = False
     return {pr_finish.METRICS % n} if failed else set()

@@ -461,6 +461,17 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    run remembers it, so a resumed run edits the PR its branch already has:
    ```
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
+   # Only under VERI_BRANCH_SUITE=ci (the mode $S/branch-suite.sh printed) when no ⟦full-suite⟧ line was ticked before pr-ready.sh, and only when .tdd/wait-ci.err does not say `has no checks`
+   # (CI's green run is the proof): tick each ⟦full-suite⟧ line with $S/tick-ledger.sh and its issue criterion with $S/tick-issue-criterion.sh as the ⟦full-suite⟧ paragraph above describes, then
+   #   git add .tdd/issue-<n>.md && git commit -m "plan: the full suite is green on CI (#<n>)"      # only when a line was ticked: with none there is nothing to commit
+   # In every other case skip this: the lines were ticked before readying, or nothing proved them.
+   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
+   $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md; metrics=$?
+   if [ "$metrics" = 0 ]; then
+     git add .tdd/issue-<n>-metrics.md
+     git commit -m "metrics: what solving #<n> cost (#<n>)"
+   fi
+   $S/push-branch.sh
    blocked=; $S/pr-ready.sh <pr-number> "$(git rev-parse HEAD)" 2> .tdd/pr-ready.err || blocked=1
    # On `pr-ready.sh` exit 2 the next line writes the bail only when `adjudicate.sh left` exits non-zero (3, no budget left; 2, the event log unreadable); with budget left it writes nothing and ends the call (`exit 0`, printing `adjudicate pr-ready-failed`), and the exit is adjudicated before any event and any `wait-ci.sh` call, as the `pr-ready.sh` paragraph after this block says (`Read` `<base directory>/ADJUDICATE.md`).
    [ -z "$blocked" ] || { $S/adjudicate.sh left <n> && { echo "adjudicate pr-ready-failed"; exit 0; }; VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=pr-ready-failed classification="$($S/classify-bail.sh pr-ready-failed)"; }
@@ -507,32 +518,6 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    (exit 2 with `.tdd/issue-<n>-base` present); a failing `git` or `gh` call, or no `.tdd/wait-ci.err` when a
    `⟦full-suite⟧` line is left to tick, is its exit 2. Otherwise:
    ```
-   # Only under VERI_BRANCH_SUITE=ci (the mode $S/branch-suite.sh printed) when no ⟦full-suite⟧ line was ticked before pr-ready.sh, and only when .tdd/wait-ci.err does not say `has no checks`
-   # (CI's green run is the proof): tick each ⟦full-suite⟧ line with $S/tick-ledger.sh and its issue criterion with $S/tick-issue-criterion.sh as the ⟦full-suite⟧ paragraph above describes, then
-   #   git add .tdd/issue-<n>.md && git commit -m "plan: the full suite is green on CI (#<n>)"      # only when a line was ticked: with none there is nothing to commit
-   # In every other case skip this: the lines were ticked before readying, or nothing proved them.
-   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
-   $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md; metrics=$?
-   if [ "$metrics" = 0 ]; then
-     git add .tdd/issue-<n>-metrics.md
-     git commit -m "metrics: what solving #<n> cost (#<n>)"
-   fi
-   $S/push-branch.sh
-   $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/wait-ci.out 2> .tdd/wait-ci.err; ci=$?; [ "$ci" != 3 ] || exit 0    # exit 3 ends the call → run this line and every line after it again, in a new Bash call
-   # The same flake check as at the first wait, its exits routed the same way.
-   [ "$ci" != 1 ] || { : > .tdd/ci-flake.out; perl -e 'alarm shift; exec @ARGV' "${VERI_GH_TIMEOUT:-300}" gh run list --commit "$(git rev-parse HEAD)" --status failure --json databaseId -q '.[].databaseId' > .tdd/ci-flake-run && [ "$(grep -c . .tdd/ci-flake-run)" = 1 ] && perl -e 'alarm shift; exec @ARGV' "${VERI_GH_TIMEOUT:-300}" gh run view "$(cat .tdd/ci-flake-run)" --log-failed > .tdd/ci-failed.log && alone="$($S/detect-test-command.sh --tier "one test file")" && $S/ci-flake.sh <n> "$(git rev-parse HEAD)" "$(cat .tdd/ci-flake-run)" "$alone" .tdd/ci-failed.log > .tdd/ci-flake.out && { echo "ci-flake re-run"; exit 0; }; }
-   [ "$ci" != 0 ] || [ ! -s .tdd/ci-flake.out ] || { VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh ci-flake head="$(git rev-parse HEAD)" run="$(cat .tdd/ci-flake-run)" files="$(paste -sd , .tdd/ci-flake.out)" && cat .tdd/ci-flake.out >> .tdd/ci-flakes.txt && : > .tdd/ci-flake.out; }
-   [ "$ci" != 1 ] || ! $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
-   [ "$ci" = 0 ] || [ "$ci" = 2 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
-   [ "$no_repair" = 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
-   [ "$no_repair" = 0 ] || $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧' 2> .tdd/add-ledger-step.err
-   [ "$no_repair" = 0 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red CI check (#<n>)"; }
-   grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
-   # A `wait-ci.sh` exit 2 naming no conflict is adjudicated first, before the `ci-timeout` bail event (`Read` `<base directory>/ADJUDICATE.md`): the next line writes that bail only when `adjudicate.sh left` exits non-zero (3, no budget left; 2, the event log unreadable). With budget left it writes nothing and ends the call (`exit 0`, printing `adjudicate ci-timeout`), so no later line of it runs; run the adjudication, then a `retry` runs `$S/wait-ci.sh --fresh-window "$(git rev-parse HEAD)"` and, in one new Bash call, the `wait-ci.sh` line above and every line after it, its exits handled as at the first wait; any other outcome runs, alone in a Bash call of its own, `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"`, and no later line of this block runs.
-   [ "$ci" != 2 ] || [ "$conflict" = 0 ] || { $S/adjudicate.sh left <n> && { echo "adjudicate ci-timeout"; exit 0; }; VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"; }
-   graded=1; [ "$ci" != 2 ] || [ "$conflict" != 0 ] || { $S/rebase-onto-default.sh --graded-only > .tdd/graded-rebase.out; graded=$?; }
-   # A second conflict is adjudicated first, before the `ci-conflict` bail event: the next line writes that bail only when `adjudicate.sh left` exits non-zero (3, no budget left; 2, the event log unreadable). With budget left it writes nothing and ends the call (`exit 0`, printing `adjudicate ci-conflict`), so no later line of it runs; run the adjudication the conflict paragraph after this block gives, with `.tdd/wait-ci.err` as the stderr file (`Read` `<base directory>/ADJUDICATE.md`); that paragraph names the command each outcome runs.
-   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ "$graded" = 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || { $S/adjudicate.sh left <n> && { echo "adjudicate ci-conflict"; exit 0; }; VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"; }
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)"
    $S/ledger-growth.sh split .tdd/issue-<n>.md > .tdd/issue-<n>-growth.md; growth=$?
@@ -671,7 +656,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
 4. Run `$S/run-done.sh <n>` first; it never exits 3. On exit 0 take `stop_requested=` (the first ask's exit) and
    `cleared=` from its last lines: the done comment is posted and a reported stop request cleared. On any other exit
    go on by this sub-step from the point its last line names. Its tree check before the comment leaves out
-   `.tdd/issue-<n>-metrics.md` when `.tdd/issue-<n>-pr-finish` holds a non-zero `metrics=`: a failed render's leftover.
+   `.tdd/issue-<n>-metrics.md` when `.tdd/issue-<n>-pr-ready-wait` holds a non-zero `metrics=`: a failed render's leftover.
    Before posting it, run `$S/stop-requested.sh`. Then post the final done comment by running
    `$S/comment.sh <n> done`, composing none of it: it posts `### ✅ Done — <pr-url>` (the url from
    the `done` mark sub-step 2 wrote) with the same `### 📊 Metrics` block under it, verbatim from

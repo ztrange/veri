@@ -51,6 +51,7 @@ def ready(monkeypatch, run_cli, tmp_path):
     def go(answers=None, fake=None, missing=(), argv=None):
         if "preflight" not in missing:
             (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+        (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n")
         fake = fake or Fake(answers)
         monkeypatch.setattr(fused, "run_script", fake)
         code, out, err = run_cli(pr_ready_wait, list(argv if argv is not None else ("12",)), cwd=str(tmp_path))
@@ -129,10 +130,16 @@ def test_4032_it_reads_the_pr_url_readies_the_pr_waits_on_ci_and_settles_green(r
     assert (ready.wt / ".tdd" / "issue-12-pr-ready-wait").read_text() == "pr_url=%s\npr_number=42\nci=green\n" % URL
     assert [c[1] for c in fake.made("gh")] == [("api", "repos/{owner}/{repo}/pulls?head={owner}:tdd/12-thing", "-q",
                                                ".[0].html_url // empty")]
-    assert _flow(fake) == [("git", ("branch", "--show-current")),
-                           ("git", ("status", "--porcelain", "--untracked-files=all")),
+    assert _flow(fake) == [("git", ("branch", "--show-current")), ("branch-suite.sh", ()),
+                           ("event.sh", ("done", "pr=" + URL)), ("metrics.sh", ("12",)),
+                           ("git", ("add", ".tdd/issue-12-metrics.md")),
+                           ("git", ("commit", "-m", "metrics: what solving #12 cost (#12)")),
+                           ("git", ("status", "--porcelain", "--untracked-files=all")), ("push-branch.sh", ()),
                            ("git", ("rev-parse", "HEAD")), ("pr-ready.sh", ("42", HEAD)),
                            ("git", ("rev-parse", "HEAD")), ("wait-ci.sh", (URL, "540", "", HEAD))]
+    done = fake.made("event.sh")[0][3]
+    assert (done["VERI_ISSUE"], done["VERI_ACTOR"]) == ("12", "conductor")
+    assert fake.made("metrics.sh")[0][4]["out"] == ".tdd/issue-12-metrics.md"
     assert fake.made("pr-ready.sh")[0][4]["err"] == ".tdd/pr-ready.err"
     waited = fake.made("wait-ci.sh")[0][4]
     assert (waited["out"], waited["err"]) == (".tdd/wait-ci.out", ".tdd/wait-ci.err")
@@ -186,14 +193,16 @@ def test_4032_a_green_wait_after_a_flake_re_run_stops_it_so_the_block_writes_the
     assert not (ready.wt / ".tdd" / "issue-12-pr-ready-wait").exists()
 
 
-def test_4032_it_writes_no_event_commits_nothing_and_handles_no_refusal(ready):
+def test_4032_it_writes_only_the_done_event_commits_only_the_metrics_and_handles_no_refusal(ready):
     ready(answers={("pr-ready.sh", None): (2, "")})
     code, out, err, fake = ready()
 
     assert code == 0
-    assert not {"event.sh", "classify-bail.sh", "preflight-refused.sh", "adjudicate.sh", "comment.sh",
-                "detach-leaf.sh", "add-ledger-step.sh", "push-branch.sh", "rebase-onto-default.sh"} & set(fake.names())
-    assert not [c for c in fake.made("git") if c[1][:1] in (("add",), ("commit",), ("push",), ("reset",))]
+    assert not {"classify-bail.sh", "preflight-refused.sh", "adjudicate.sh", "comment.sh", "detach-leaf.sh",
+                "add-ledger-step.sh", "rebase-onto-default.sh"} & set(fake.names())
+    assert [c[1][0] for c in fake.made("event.sh")] == ["done"]
+    assert [c[1][2] for c in fake.made("git") if c[1][:1] == ("commit",)] == ["metrics: what solving #12 cost (#12)"]
+    assert not [c for c in fake.made("git") if c[1][:1] in (("push",), ("reset",))]
 
 
 def first_block():
@@ -210,14 +219,6 @@ def test_4032_every_inner_call_in_the_ordered_list_is_a_script_sub_step_2s_first
     pr_ready_wait = importlib.import_module("veri.pr_ready_wait")
 
     assert [name for name in pr_ready_wait.CALLS if "$S/" + name not in first_block()] == []
-
-
-def test_4032_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(ready):
-    pr_ready_wait = importlib.import_module("veri.pr_ready_wait")
-    code, out, err, fake = ready()
-
-    made = [name for name in fake.names() if name not in ("git", "gh")]
-    assert code == 0 and made == list(pr_ready_wait.CALLS)
 
 
 def _pid(ready, text):
@@ -250,7 +251,7 @@ def test_4032_the_wait_record_names_the_conductor_by_the_pid_and_start_time_its_
 
     record = json.loads((ready.wt / ".tdd" / "issue-12-pr-ready-wait-wait").read_text())
     assert (record["conductor"], record["values"]) == ({"pid": "111", "started": "Tue Nov 17 07:00:00 2026"},
-                                                       {"pr_url": URL, "pr_number": "42"})
+                                                       {"pr_url": URL, "pr_number": "42", "metrics": 0})
 
 
 @pytest.mark.parametrize("second", ["222\nTue Nov 17 07:00:00 2026\n", "111\nTue Nov 17 08:00:00 2026\n", None],

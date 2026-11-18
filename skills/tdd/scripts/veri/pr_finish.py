@@ -1,6 +1,8 @@
 """pr-finish.sh's computation, run in-process: DRAFT-PR.md sub-step 2's second block up to the refactor-owed render on
-its clean path, after the first wait-ci.sh exited 0, made in one call (PRD 027.11). The PR's title and body stay the
-conductor's."""
+its clean path, after the first wait-ci.sh exited 0, made in one call (PRD 027.11): the PR url and the render. The run's
+record (the ⟦full-suite⟧ ticks, the done mark, the metrics commit and their push) is closed by `close`, which
+pr-ready-wait.sh calls before readying, so no records-only push follows the ready PR (#4332). The PR's title and body
+stay the conductor's."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import re
@@ -24,8 +26,7 @@ METRICS = ".tdd/issue-%s-metrics.md"
 
 # The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_pr_finish.py fails
 # when one is a script DRAFT-PR.md sub-step 2's second block does not name (FC19).
-CALLS = ("branch-suite.sh", "tick-ledger.sh", "ledger-steps.sh", "tick-issue-criterion.sh", "event.sh", "metrics.sh",
-         "push-branch.sh", "wait-ci.sh", "refactor-owed.sh")
+CALLS = ("refactor-owed.sh",)
 
 
 def main(argv):
@@ -33,35 +34,29 @@ def main(argv):
 
 
 def run(n):
-    given = fused_step.inputs(NAME + ".sh", n, LEDGER)
+    given = fused_step.inputs(NAME + ".sh", n)
     if given is None:
         return 2
     _, wt = given
     if pr_ready_wait.stacked(NAME, wt, n):
         return 2
-    resumed = fused.load_wait(wt, n, NAME)
-    values = resumed[1] if resumed is not None else close(wt, n)
-    pr_ready_wait.ci_wait(wt, n, NAME, values["pr_url"])
-    render(wt, n)
-    lines = ["pr_url=" + values["pr_url"]] + (["metrics=%d" % values["metrics"]] if values["metrics"] else [])
-    return fused.settle(wt, n, NAME, lines + ["refactor_owed_render=" + RENDER % n])
-
-
-def close(wt, n):
-    """Everything before the second wait, made once (MC7): the PR url, the ⟦full-suite⟧ ticks, the done mark and the
-    metrics, the tree check (MC5, D10) and the push (MC4), then the wait record naming this conductor (FC6, FC7):
-    {"pr_url", "metrics"}."""
     url = pr_ready_wait.pr_url(wt)
+    render(wt, n)
+    return fused.settle(wt, n, NAME, ["pr_url=" + url, "refactor_owed_render=" + RENDER % n])
+
+
+def close(wt, n, url):
+    """The run's record, closed for PR <url> before it is readied: the ⟦full-suite⟧ ticks, the done mark and the
+    metrics, the tree check (MC5, D10) and the push (MC4); metrics.sh's exit code."""
     tick_full_suite(wt, n)
-    values = {"pr_url": url, "metrics": record(wt, n, url)}
+    metrics = record(wt, n, url)
     # A failed render may leave its file behind, half written or over the one an earlier call committed: that file is
     # carried as metrics=<code>, not committed, so it is no dirt; every other path still is.
-    left = {METRICS % n} if values["metrics"] else set()
+    left = {METRICS % n} if metrics else set()
     if pr_ready_wait.dirty(WHERE, wt, left):
         raise fused.Stop(WHERE, "tree-check", 1)
     fused.checked(WHERE, fused.script("push-branch.sh"), cwd=wt)
-    fused.save_wait(wt, n, NAME, pr_ready_wait.WAIT, values)
-    return values
+    return metrics
 
 
 def record(wt, n, url):
