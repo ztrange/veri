@@ -82,7 +82,7 @@ def decide(tier, issue, root):
                 or declares(at("pyproject.toml"), rb"^\[tool\.pytest")
                 or declares(at("setup.cfg"), rb"^\[tool:pytest\]"))
 
-    if tier != "fast" and tier not in DECLARED_ONLY and issue and os.path.isfile(issue):
+    if tier not in ("fast", "quiet test files") and tier not in DECLARED_ONLY and issue and os.path.isfile(issue):
         try:
             answer_from_file(issue, b"Test command:")
         except Answer as found:
