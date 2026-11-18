@@ -1364,6 +1364,7 @@
 | SC564 | `$S/stack-land.sh [--now]` is a module `skills/tdd/scripts/veri/stack_land.py` behind a `/bin/sh` shim, run in the target repository's clone. Exit 0 landed, 1 a clean refusal, 2 no answer, 3 nothing to land. It refuses (exit 2) when `stack-branch.sh` does not exit 0, refuses (exit 1) a red stack, cuts only at `stack-green.sh`'s commit, lands when the cut is `VERI_SLICE_COMMITS` (default 100) or more commits ahead of the default branch or the stack is idle, and merges with `gh pr merge --rebase --match-head-commit` and no bypass flag. `--now` skips the size-or-idle rule and no other. | The stack lands by a script and not by hand, always at the tested commit and under the repository's rules. |
 | SC564 | The synopsis line of the `$S/comment.sh` entry lists `[--pr]` after `[--note-file <path>]`. | A reader of the synopsis learns every argument the script takes; `--pr` was named only inside the `bailed` kind's description. |
 | SC565 | The `$S/pin-reject-route.sh` entry gives the script's second form, `$S/pin-reject-route.sh --recheck <reason-file> <ledger-file> <matcher>`, as a synopsis beside the first. | The `--recheck` form was described in prose only, so the shim's usage header could not name it. |
+| SC566 | The synopsis line of the `$S/status.sh` entry lists `--recover dev [--lane <lane>]` as an alternative beside `--report`. | `--recover` was described in prose only; recovery reads one command and its invocation belongs in the synopsis. |
 
 ## skills/tdd/SKILL-EDIT.md
 

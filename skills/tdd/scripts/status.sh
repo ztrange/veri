@@ -5,6 +5,8 @@
 # was called from.
 #
 # Usage:   status.sh [--json] [--scope <name>] [--watch [seconds]]   (no --scope: VERI_LABEL, when set, names the scope)
+#          status.sh --report
+#          status.sh --recover dev [--lane <lane>]
 #          --json prints the same runs and scope totals as one JSON document.
 #          --watch redraws in place every <seconds> (default 2), each render recomputed from disk.
 #          --report (alone) prints the /vstatus report from local files only, with no gh:
