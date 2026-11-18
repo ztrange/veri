@@ -4,6 +4,7 @@ import os
 
 import pytest
 
+PLAN_SHA = "c" * 40
 PR_URL = "https://github.com/o/r/pull/77"
 LEDGER = "# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n- [ ] two ⟦criterion 2⟧\n"
 SPEC = "## Problem\n\nA thing.\n\n## Acceptance criteria\n\n- [x] first\n- [ ] second\n"
@@ -13,8 +14,8 @@ class Fake:
     """A run_script stand-in: records (basename, args, cwd, env, kw) and answers from <answers>, keyed by
     (basename, first argument or None) -> (code, stdout)."""
 
-    def __init__(self, answers=None, pr=PR_URL + "\n"):
-        self.answers, self.calls, self.pr = dict(answers or {}), [], pr
+    def __init__(self, answers=None, pr=PR_URL + "\n", planned=LEDGER):
+        self.answers, self.calls, self.pr, self.planned = dict(answers or {}), [], pr, planned
 
     def __call__(self, name, *args, cwd=None, env=None, **kw):
         base = os.path.basename(name)
@@ -28,6 +29,10 @@ class Fake:
             return 0, "two ⟦criterion 2⟧\n", ""
         if base == "ledger-steps.sh":
             return 0, "two ⟦criterion 2⟧\n", ""
+        if base == "git" and args[:1] == ("log",):
+            return 0, PLAN_SHA + " plan: scope #12 into 2 steps (#12)\n", ""
+        if base == "git" and args[:1] == ("show",):
+            return 0, self.planned, ""
         if base == "git" and args == ("branch", "--show-current"):
             return 0, "tdd/12-a-thing\n", ""
         if base == "gh":
@@ -92,14 +97,18 @@ def _seq(fake):
     return [(c[0], c[1][:2]) for c in fake.calls]
 
 
+def _scripts(fake):
+    return [c[0] for c in fake.calls if c[0] not in ("git", "gh")]
+
+
 def test_4389_a_clean_resume_asks_for_a_pending_refactor_then_the_step_marks_and_comments_and_reads_the_pr(resume):
     code, out, err, fake = resume(stray=("tests/t.py", "x.py"))
 
-    assert _seq(fake) == [
+    assert [c for c in _seq(fake) if c[1][:1] not in (("log",), ("show",))] == [
         ("next-pending-refactor.sh", ()), ("next-unchecked.sh", ()), ("ledger-steps.sh", ("current-or-last-done",)),
         ("event.sh", ("resume",)), ("comment.sh", ("12", "resuming")), ("git", ("branch", "--show-current")),
         ("gh", ("api", "repos/{owner}/{repo}/pulls?head={owner}:tdd/12-a-thing"))]
-    assert {c[4].get("stdin") for c in fake.calls[:3]} == {LEDGER}
+    assert {c[4].get("stdin") for c in fake.calls if c[0] != "git"} - {None} == {LEDGER}
     assert {c[2] for c in fake.calls} == {str(resume.wt)}
     mark = fake.call("event.sh")[3]
     assert (mark["VERI_ISSUE"], mark["VERI_ACTOR"], mark["VERI_STEP"]) == ("12", "conductor", "two ⟦criterion 2⟧")
@@ -116,3 +125,44 @@ def test_4389_a_resume_with_no_stray_path_names_none_in_its_note(resume):
 
     comment = fake.call("comment.sh")[1]
     assert "discarded" not in (resume.wt / comment[3]).read_text()
+
+
+def test_4389_a_ledger_grown_beyond_its_plan_commit_with_no_record_is_recorded_and_committed_first(resume):
+    code, out, err, fake = resume(fake=Fake(planned="# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n"))
+
+    assert fake.call("git", "show")[1] == ("show", PLAN_SHA + ":.tdd/issue-12.md")
+    assert [c for c in _seq(fake) if c[0] != "git" or c[1][:1] in (("add",), ("commit",))][:4] == [
+        ("ledger-growth.sh", ("record-existing", ".tdd/issue-12.md")), ("git", ("add", ".tdd/issue-12-added.md")),
+        ("git", ("commit", "-m")), ("next-pending-refactor.sh", ())]
+    assert fake.call("git", "commit")[1][2] == "chore: record the steps the ledger grew before its record (#12)"
+    assert code == 0
+
+
+def test_4389_a_ledger_no_larger_than_its_plan_commit_is_not_recorded(resume):
+    code, out, err, fake = resume()
+
+    assert ("ledger-growth.sh" in fake.names(), "commit" in [c[1][0] for c in fake.calls if c[0] == "git"]) == (
+        False, False)
+
+
+def test_4389_a_ledger_whose_record_exists_is_neither_read_at_its_plan_commit_nor_recorded(resume):
+    (resume.wt / ".tdd" / "issue-12-added.md").write_text("- [ ] two ⟦criterion 2⟧\n")
+    code, out, err, fake = resume(fake=Fake(planned="# Plan for #12\n"))
+
+    assert ("ledger-growth.sh" in fake.names(), [c for c in fake.calls if c[0] == "git" and c[1][0] != "branch"]) == (
+        False, [])
+
+
+def test_4389_a_saved_branch_red_list_inserts_the_repair_step_after_the_resuming_comment(resume):
+    (resume.wt / ".tdd" / "resume-suite-red").write_text("tests/py/test_a.py\n")
+    code, out, err, fake = resume()
+
+    assert _scripts(fake)[-2:] == ["comment.sh", "suite-red-resume.sh"]
+    assert fake.call("suite-red-resume.sh")[1] == ("insert", ".tdd/issue-12.md", ".tdd/resume-suite-red")
+    assert code == 0
+
+
+def test_4389_no_saved_branch_red_list_inserts_nothing(resume):
+    code, out, err, fake = resume()
+
+    assert "suite-red-resume.sh" not in fake.names()
