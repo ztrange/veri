@@ -443,23 +443,47 @@ def landed_slices(stack, default, since):
 
 
 def stack_lines(root, span):
-    """The Stack section's lines for <span> (stack_span's answer)."""
+    """The Stack section's lines for <span> (stack_span's answer, None when the stack could not be read): a figure that
+    could not be read prints `?`, never 0."""
+    if span is None:
+        return ["?: joined ?, tested ?, landed ? in 24h", "tracking: ?", "frozen: ?"]
     stack, default, commits = span
     issues = [stack_green.named(subject) for _, subject in commits]
     joined = len(set().union(*issues))
     code, said = stack_script(root, "stack-green.sh")
     shas = [sha for sha, _ in commits]
     cut = said.split()[0] if code == 0 and said.split() else None
-    tested = len(set().union(*issues[:shas.index(cut) + 1])) if cut in shas else 0
-    landed = len(landed_slices(stack, default, time.time() - SLICE_WINDOW))
-    lines = ["%s: joined %d, tested %d, landed %d in 24h" % (stack, joined, tested, landed)]
-    tracking = tracking_pull(stack, default)
+    tested = 0 if code == 3 else len(set().union(*issues[:shas.index(cut) + 1])) if cut in shas else None
+    try:
+        landed = len(landed_slices(stack, default, time.time() - SLICE_WINDOW))
+    except (github.NoAnswer, ValueError) as no:
+        landed = unread_figure("landed", no)
+    lines = ["%s: joined %d, tested %s, landed %s in 24h" % (stack, joined, shown(tested), shown(landed))]
+    try:
+        tracking = tracking_pull(stack, default)
+    except github.NoAnswer as no:
+        tracking = unread_figure("tracking", no) or "?"
     if tracking:
         lines.append("tracking: " + tracking)
     code, said = stack_script(root, "stack-red.sh")
     if code == 0:
         lines.append("frozen: " + " ".join(said.split()[:2]))
+    elif code != 3:
+        lines.append("frozen: ?")
     return lines
+
+
+def shown(figure):
+    """A stack figure as the report prints it: `?` for one that could not be read (None)."""
+    return "?" if figure is None else str(figure)
+
+
+def unread_figure(what, no):
+    """None, the stack figure <what> that could not be read, said on stderr with GitHub's reason (<no>)."""
+    detail = no.detail or no.answer if isinstance(no, github.NoAnswer) else str(no)
+    print("status.sh: the stack's %s figure could not be read: %s" % (what, " ".join(str(detail).split())[:200]),
+          file=sys.stderr)
+    return None
 
 
 def stack_absent(stack):
@@ -716,7 +740,9 @@ def main(argv):
         except decision_log.Unreadable as bad:
             print("status.sh: cannot read the decision log %s: %s" % (bad.path, bad.reason), file=sys.stderr)
             return 2
-        stack = "\n\nStack\n" + "\n".join(stack_lines(run_dir.main_tree(missing=""), span)) if span else ""
+        if unread:
+            print("status.sh: " + unread, file=sys.stderr)
+        stack = "\n\nStack\n" + "\n".join(stack_lines(run_dir.main_tree(missing=""), span)) if span or unread else ""
         print("%s\nLanded\n%s%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (zone_line(), landed_lines(), stack, running_lines(), snapshot_line(), queue_counts(), waiting) + unjournaled_notes())
         queue = {}
         try:
