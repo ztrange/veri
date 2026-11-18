@@ -1204,3 +1204,9 @@
 | ID | Requirement | Why |
 |---|---|---|
 | LR1 | The fragment tells the leaf to add the replacement test cases the step names, and to write **NO** production code. (The whole fragment; `build_develop_prompt.py` picks it as `develop-red.md`'s `{{RED_LEAD}}` when the phase, or the phase revised, is Red on a replaces-case step, else `_develop-red-lead.md`.) | The Red of a replaces-case step writes tests only; production code is Green's. |
+
+## skills/tdd/scripts/prompts/_develop-test-rewrite-none.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| WN1 | The fragment tells the leaf, in bold, to leave the test files as they are, because this phase has no test of its own to redo. (The whole fragment; `build_develop_prompt.py` picks it as `develop-revise.md`'s `{{TEST_REWRITE}}` when the revised phase is none of `red`, `contract-a` and `surround`.) | A revise leaf redoing a phase that writes no test must not edit one. |
