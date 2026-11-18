@@ -6,5 +6,4 @@
 - [x] a parked comment whose question is dense with local paths is cut on its redacted text, so the posted body stays within COMMENT_LIMIT − MARGIN characters and BYTE_LIMIT − MARGIN bytes ⟦added⟧ ⟦criterion 1⟧
 - [x] the preflight-refused comment posts its detail through the choke point, with neither `/Users/someone/x.py` nor `/tmp/y` in the posted body ⟦criterion 1⟧
 - [x] the local-path pattern stops at a path boundary: `/tmpfile` and `/homepage` come through unchanged and `path=/tmp/x,` keeps its comma, while URLs, repo-relative paths and `.tdd/…` come through unchanged ⟦criterion 2⟧
-- [ ] where the temp dir is `/tmp` and the home `/home/<account>` (Linux), a URL or repo-relative path holding a `/tmp` or `/home/<account>` segment (`https://example.com/a/tmp/x`, `src/tmp/y.py`) comes through a comment unchanged: this machine's spelled paths are matched only at a path start, in both redaction layers ⟦added⟧ ⟦criterion 2⟧
 - [ ] a unit audit fails when a module under `veri/` posts an issue or PR comment whose body does not pass through the choke point ⟦criterion 3⟧
