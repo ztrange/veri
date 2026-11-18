@@ -774,6 +774,11 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 ## ci_flake
 - `ANSI`: the pattern of the terminal colour codes a runner's text carries, stripped before a line is read. `runner_text(log)`: the runner's own text of a `gh run view --log-failed` log, gh's job and step prefixes and timestamps removed.
 
+## merge_common
+- `merge(gate, pr, repo, number, head, driver=None)`: the exit code of merging `pr` at `head` by rebase, each command run as `gate(*argv)`: `gh pr merge <pr> --rebase --match-head-commit <head>` under the `graphql` driver, the REST PUT under `rest`, the REST PUT after a failed `gh pr merge` under `auto`; `driver` overrides `VERI_GH_DRIVER`.
+- `settle_window()`: `((reads, sleep), None)` from `VERI_MERGE_SETTLE_READS` and `VERI_MERGE_SETTLE_SLEEP`, or `(None, refusal)` when either is unusable. `settle(read, window, wait_first=False)`: the answers of `read()` over the window, ending at the first that `merged(pull)` (its `merged` is `True`).
+- `ci_wait(wait)`: `wait()`'s exit code once it answers other than 3, calling it again on a 3.
+
 ## stack_culprit
 - `verdict(code, output, case)`: what an alone run of a case says: `True` red (non-zero, with a failure line naming the case), `False` not red (exit 0), `ABSENT` (not found or not collected, its output matching `ABSENT_OUTPUT`), `None` no answer; the exit code alone never decides.
 - `owners(subjects)`: per subject, oldest first, the issues its commit belongs to by KT5's subject rule (those it names, else the nearest earlier subject's).
