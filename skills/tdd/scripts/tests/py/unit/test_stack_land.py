@@ -544,7 +544,7 @@ def test_a_merge_call_that_errors_without_naming_the_rules_then_a_read_of_the_pu
 
     code, out, err = run_cli(stack_land, ["--now"], env={"VERI_MERGE_SETTLE_READS": "3"})
 
-    assert (code, len(world.gh), reads, [ran[:2] for ran in world.scripts[-2:]]) == (
+    assert (code, len(world.gh), reads, [ran[:2] for ran in [ran for ran in world.scripts if ran[0] == "merge-lock.sh"][-2:]]) == (
         0, 1, [pull, pull], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
 
 
@@ -609,9 +609,34 @@ def test_on_a_landing_exits_0_printing_the_slice_pull_requests_url_the_merge_com
     code, out, err = run_cli(stack_land, ["--now"])
 
     assert (code, out.splitlines(), [line for line in err.splitlines() if "carry-over" in line and "034.4b" in line] != [],
-            [ran[:2] for ran in world.scripts[-2:]]) == (
+            [ran[:2] for ran in world.scripts[-3:]]) == (
         0, ["pull request: " + url, "merge commit: " + landed, "issues closed: #11 #12"], True,
-        [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+        [("merge-lock.sh", "take"), ("merge-lock.sh", "release"), ("stack-tag.sh", url)]), err
+
+
+@pytest.mark.parametrize("tagged, code", [((0, "v0.2 #11 c1\n"), 0), ((3, ""), 0), ((2, ""), 2), ((1, ""), 2)])
+def test_after_a_landing_stack_tag_sh_runs_on_the_slice_and_an_exit_but_0_or_3_is_exit_2_naming_the_command_owed(
+        monkeypatch, run_cli, stack_land, tagged, code):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n"),
+                                         "stack-tag.sh": tagged}, ahead=7, opens=url, subjects="feat: one (#11)\n",
+                  merged=[(101, "Closes #11\n")])
+    github = importlib.import_module("veri.github")
+    listing = github.gh_api
+
+    def gh_api(path, stderr=None):
+        if path != "repos/owner/repo/pulls/90":
+            return listing(path, stderr=stderr)
+        said = {"state": "closed", "merged": True, "merge_commit_sha": cut, "body": world.bodies[-1]}
+        return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(said), "")
+
+    monkeypatch.setattr(github, "gh_api", gh_api)
+
+    said, out, err = run_cli(stack_land, ["--now"])
+
+    owed = [line for line in err.splitlines() if "stack-tag.sh %s" % url in line and "landed" in line]
+    assert (said, len(owed), tagged[1] in out, world.scripts[-1], world.scripts[-2][:2]) == (
+        code, 1 if code else 0, True, ("stack-tag.sh", url), ("merge-lock.sh", "release")), err
 
 
 def test_an_issue_of_the_slice_bodys_closes_lines_still_open_after_the_settle_window_exits_2_naming_each_such_issue_the_landing_left_as_done(
@@ -636,7 +661,7 @@ def test_an_issue_of_the_slice_bodys_closes_lines_still_open_after_the_settle_wi
 
     named = [line for line in err.splitlines() if "still open" in line]
     assert (code, out.splitlines(), len(named), [n in "".join(named) for n in ("#11", "#12", "#13")], len(world.gh),
-            "Traceback" in err, [ran[:2] for ran in world.scripts[-2:]]) == (
+            "Traceback" in err, [ran[:2] for ran in [ran for ran in world.scripts if ran[0] == "merge-lock.sh"][-2:]]) == (
         2, ["pull request: " + url, "merge commit: " + landed, "issues closed: #11 #12 #13"], 1, [True, False, True], 1,
         False, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
 
@@ -667,7 +692,8 @@ def test_a_landing_makes_no_tag_and_pushes_rebases_or_resets_nothing_of_the_stac
 
     code, out, err = run_cli(stack_land, ["--now"])
 
-    every = argvs + [("git",) + args for args in world.network] + world.gh + world.scripts
+    every = argvs + [("git",) + args for args in world.network] + world.gh + [
+        ran for ran in world.scripts if ran[0] != "stack-tag.sh"]
     tagged = [argv for argv in every if argv[:2] == ("gh", "release")
               or any(re.search(r"\btags?\b|refs/tags/", arg) for arg in argv)]
     writes = [argv[1:] for argv in every if argv[:1] == ("git",)
@@ -827,7 +853,7 @@ def test_a_read_of_the_pull_request_with_no_answer_in_the_settle_window_is_read_
 
     exit_code, out, err = run_cli(stack_land, ["--now"], env={"VERI_MERGE_SETTLE_READS": "2"})
 
-    assert (exit_code, "Traceback" in err, len(world.gh), reads, [ran[:2] for ran in world.scripts[-2:]]) == (
+    assert (exit_code, "Traceback" in err, len(world.gh), reads, [ran[:2] for ran in [ran for ran in world.scripts if ran[0] == "merge-lock.sh"][-2:]]) == (
         code, False, 1, [pull, pull], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
 
 
