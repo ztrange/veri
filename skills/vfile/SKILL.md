@@ -69,6 +69,9 @@ reads the plan out of these headings.
   a `## Requirements` section, placed after `## Blocked by`. Each unit sits under a
   **`### <path>` heading** (the bare path), or `### <path> (new)` only for a file that does not
   exist yet; a `##` heading is not read as a unit. For example: `### skills/vfile/SKILL.md`.
+  An issue editing prose in a section that is its own heading unit (a `REQUIREMENTS.md` claims
+  it with a `## <file>#<heading>` heading) puts that section's rows under **`### <file>#<heading>`**,
+  never under the whole-file `### <file>`, for example `### skills/tdd/SKILL.md#Inputs`.
   Each unit's rows sit under the table header **`| ID | Requirement | Why |`** followed by
   **`|---|---|---|`**; any other header (such as `Rationale`) is refused by
   `skill-edit-step.sh` (exit 2).
