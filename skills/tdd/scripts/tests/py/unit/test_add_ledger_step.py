@@ -1560,6 +1560,28 @@ def test_main_accepts_an_added_skill_edit_step_whose_spec_requirements_reword_on
     assert (code, len(inserted), "⟦added⟧" in inserted[0] if inserted else None) == (0, 1, True), err
 
 
+def test_4307_accepts_an_added_skill_edit_step_on_a_backticked_heading_unit_whose_unit_file_exists_inserting_it_marked_added(tmp_path, run_cli, add_ledger_step):
+    heading = "Before the Red of a `⟦suite-repair⟧` step — is the suite still red?"
+    unit = f"skills/foo/SKILL.md#{heading}"
+    (tmp_path / "skills/foo").mkdir(parents=True)
+    (tmp_path / "skills/foo/SKILL.md").write_text(f"#### {heading}\n\nThe widget is blue.\n")
+    (tmp_path / "skills/foo/REQUIREMENTS.md").write_text(
+        f"## {unit}\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "issue-42-spec.md").write_text(
+        f"## Problem\n\nText.\n\n## Requirements\n\n### {unit}\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n")
+    step = f"⟦skill-edit⟧ regrade `{unit}` against A1"
+
+    code, _, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", step], cwd=tmp_path)
+
+    inserted = [line for line in ledger.read_text().splitlines() if f"regrade `{unit}`" in line]
+    assert (code, len(inserted), "⟦added⟧" in inserted[0] if inserted else None) == (0, 1, True), err
+
+
 def test_main_refuses_a_text_already_holding_a_criterion_tag_naming_it_and_inserting_none_of_the_batch_2713(tmp_path, run_cli, add_ledger_step):
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
