@@ -48,9 +48,18 @@ def test_outside_veri_both_builders_render_the_repos_one_test_file_command_once_
         [(affected, ["`sh -c 'npx jest \"$1\"' sh \"<test file>\"`"])] * 2)
 
 
-def test_outside_veri_with_no_one_test_file_line_both_builders_render_the_all_tier_command_once(
+def test_outside_veri_with_no_one_test_file_line_both_builders_render_the_fast_command_never_the_all_tier_one(
         tmp_path, run_cli, builders):
     cwd = foreign_tree(tmp_path, 'veri: fast tests: `npm run unit`\nveri: all tests: `npm test`\n')
+    ends, lines = rendered(run_cli, builders, cwd)
+    assert (ends, lines) == (
+        [(0, ""), (0, "")],
+        [([TIMED + " changed '<the test files you ran>' npm run unit"], ["`npm run unit`"])] * 2)
+
+
+def test_outside_veri_declaring_neither_a_one_test_file_nor_a_fast_line_both_builders_render_the_all_tier_command_once(
+        tmp_path, run_cli, builders):
+    cwd = foreign_tree(tmp_path, 'veri: all tests: `npm test`\n')
     ends, lines = rendered(run_cli, builders, cwd)
     assert (ends, lines) == (
         [(0, ""), (0, "")],
