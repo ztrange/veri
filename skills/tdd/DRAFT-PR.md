@@ -264,9 +264,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    body section: go on to `refactor-candidates.sh`. Its exit **2** (no answer could be obtained)
    runs nothing and writes no event either, and the section says so: write
    `### Lint` followed by `The lint command could not be read: detect-test-command.sh --tier lint
-   exited 2.` to `.tdd/issue-<n>-lint.md`. On exit **0**, wait on the run in the foreground:
+   exited 2.` to `.tdd/issue-<n>-lint.md`. On exit **0**, wait on the run in the foreground, the
+   whole wait bounded by `VERI_LINT_TIMEOUT` (default 1800 seconds), counted from the lint's
+   `start`, so calling `wait` again never extends it:
    ```
-   $S/detach-command.sh wait lint > /dev/null; waited=$?; [ "$waited" != 3 ] || exit 0    # exit 3: still running → run this line and every line after it again, in a new Bash call
+   $S/detach-command.sh wait lint --total "${VERI_LINT_TIMEOUT:-1800}" > /dev/null 2> .tdd/lint.wait.err; waited=$?; [ "$waited" != 3 ] || exit 0    # exit 3: still running → run this line and every line after it again, in a new Bash call
    [ "$waited" = 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh lint exit="$(cat .tdd/lint.exit)"
    ```
    `wait` exit **0** (the command exited 0) or **1** (it exited non-zero) writes
@@ -283,11 +285,15 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    limit and a long line cannot make `pr-body.sh` fail. The file holds the output as the command
    printed it; `pr-body.sh` redacts it on the way out (below). `wait` exit **2** means no exit code was recorded:
    first run `$S/stop-requested.sh`: on `now` the run goes to *Stopping* (`Read` and run
-   `<base directory>/STOPPING.md`) and does not bail. Otherwise the command could not be run (it died
+   `<base directory>/STOPPING.md`) and does not bail. Otherwise, when `.tdd/lint.wait.err` holds
+   `still running past --total`, the bound expired: `wait` stopped the command with its process
+   group, no event is written, and the section is `### Lint` followed by
+   `` `<command>` did not finish within VERI_LINT_TIMEOUT (<seconds> seconds) and was stopped. ``
+   Otherwise the command could not be run (it died
    before recording an exit), so no event is written and the section is `### Lint` followed by
-   `` `<command>` could not be run: no exit code was recorded. `` — reported as neither a pass nor a
-   failure of the lint. A lint that could not be run or read neither bails the run nor holds the
-   PR: the section reports it and the step goes on. Sub-step 2 puts the
+   `` `<command>` could not be run: no exit code was recorded. `` — each reported as neither a pass nor a
+   failure of the lint. A lint that could not be run or read, or was stopped at the bound, neither
+   bails the run nor holds the PR: the section reports it and the step goes on. Sub-step 2 puts the
    file's contents, when it is non-empty, in the PR body. `pr-body.sh` redacts every line of the
    body it writes: each local path (the worktree, the main clone, a temp directory, the home
    directory), the host name and the account name, then the tokens and secrets `comment.sh`'s rule
