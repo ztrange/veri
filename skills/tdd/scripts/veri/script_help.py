@@ -25,6 +25,9 @@ def main(argv):
     if entry_text is None:
         return 3
     print(entry_text)
+    if argv[0] == "seam-settle.sh":
+        import seam_contract
+        print("\n" + seam_contract.table(), end="")
     return 0
 
 

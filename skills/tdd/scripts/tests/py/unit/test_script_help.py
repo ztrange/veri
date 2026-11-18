@@ -58,3 +58,12 @@ def test_main_with_a_name_prints_one_column_0_bullet_naming_that_script_and_no_o
     bullets = [line for line in out.splitlines() if line[:1] not in (" ", "")]
     assert code == 0
     assert len(bullets) == 1 and bullets[0].startswith("- `$S/pin-recheck.sh")
+
+
+def test_seam_settle_sh_prints_its_entry_then_the_seam_contract_table_4342(run_cli, script_help):
+    code, out, err = run_cli(script_help, ["seam-settle.sh"])
+
+    entry, _, table = out.partition("\n\n")
+    assert (code, entry.startswith("- `$S/seam-settle.sh <n> <stage> key=value…`")) == (0, True)
+    assert table == ("Seam contracts (stage: the keys seam-settle.sh takes for it):\n"
+                     "red-half: test_path target_test\ngreen-half: test_path\nrefactor-half: (none)\n")

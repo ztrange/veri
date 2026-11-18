@@ -5,7 +5,7 @@
 - [x] after seam-settle.sh red-half test_path=… target_test=…, green-half.sh launches develop-green with those values ⟦criterion 7⟧
 - [x] seam-settle.sh writes green-half's and refactor-half's records in their formats, the step from the ledger and green_sha from git ⟦criterion 6⟧
 - [x] seam-settle.sh exits 2 naming an unknown stage, or a missing, unknown or empty key ⟦criterion 6⟧
-- [ ] script-help.sh seam-settle.sh prints the seam-contract table ⟦criterion 5⟧
+- [x] script-help.sh seam-settle.sh prints the seam-contract table ⟦criterion 5⟧
 - [ ] green-half.sh compares its record's step with the open step through ledger.same_step ⟦criterion 3⟧
 - [ ] green-half.sh takes the open step from the ledger and rewrites a stale step in its record ⟦criterion 1⟧
 - [ ] each record rewrite writes one record-refreshed event naming the stage, the key, and the old and new values ⟦criterion 2⟧

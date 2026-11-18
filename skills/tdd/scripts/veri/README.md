@@ -875,6 +875,10 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `red_test_id(test_path, target)`: the Red case's id, `<target>` when it holds `::`, else `<test_path>::<target>`.
 - `verdict_log(wt)`: the sha256 of `.tdd/verify-refactor.log`, `none` without one: the verdict a refactor-half file was settled after.
 
+## seam_contract
+- `CONTRACTS`: per record-writing stage (`red-half`, `green-half`, `refactor-half`), the keys of its record the next stage reads that no committed fact holds (PRD 038.1 SC5).
+- `table()`: the contracts as `script-help.sh seam-settle.sh` prints them.
+
 ## pr_finish
 - `close(wt, n, url)`: the run's record closed for PR `url` before it is readied: the `⟦full-suite⟧` ticks under `ci`, the `metrics-cut` mark (never `done`, which `pr-finish.sh` writes once CI's first wait is green), the metrics commit, the tree check and the push; `metrics.sh`'s exit code. `LEDGER`, `METRICS`: the ledger and metrics paths, `%s` for the issue.
 - `pr_url(wt)`: the PR url read as `DRAFT-PR.md` sub-step 2 reads it, an empty answer a stop with exit 2. `stacked(name, wt, n)`: the run is stacked (`.tdd/issue-<n>-base`), named on stderr.
