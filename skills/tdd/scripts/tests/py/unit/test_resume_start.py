@@ -330,8 +330,8 @@ def test_4389_a_grown_ledger_with_no_record_and_a_pending_refactor_stops_at_2_wi
     code, out, err, fake = resume(fake=Fake({("next-pending-refactor.sh", None): (0, "one ⟦criterion 1⟧\n")},
                                             planned="# Plan for #12\n"))
 
-    assert (code, out.splitlines()[-1].startswith("stopped at 2 "), fake.names()) == (
-        1, True, ["next-pending-refactor.sh"])
+    assert (code, out.splitlines()[-1].split(" ")[:3], fake.names()) == (
+        1, ["stopped", "at", "2"], ["next-pending-refactor.sh"])
     assert not (resume.wt / ".tdd" / "issue-12-added.md").exists()
 
 
