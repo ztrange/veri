@@ -6,7 +6,7 @@
 - [x] with a stack named, stack_land runs stack-red.sh first and on its exit 0 exits 1 naming the red commit and its run's url, cutting and merging nothing (unit case, no process, stack-red.sh injected) ⟦criterion 2⟧
 - [x] stack-red.sh exiting 2 makes stack_land exit 2, cutting and merging nothing (unit case, no process) ⟦criterion 2⟧
 - [x] on stack-red.sh exit 3, stack-green.sh exiting 3 makes stack_land exit 3, nothing to land (unit case, no process, stack-green.sh injected) ⟦criterion 3⟧
-- [ ] on stack-red.sh exit 3, stack-green.sh exiting 2 makes stack_land exit 2 (unit case, no process) ⟦criterion 3⟧
+- [x] on stack-red.sh exit 3, stack-green.sh exiting 2 makes stack_land exit 2 (unit case, no process) ⟦criterion 3⟧
 - [ ] a VERI_SLICE_COMMITS that is not a whole number of 1 or more makes stack_land exit 2 naming the value, before any lock or write (unit case, no process) ⟦criterion 4⟧
 - [ ] when the cut (stack-green.sh's commit) is fewer than VERI_SLICE_COMMITS commits ahead of origin/<default> and the stack is live (a pull request open with the stack branch as base, or a journal's last conductor-start naming a living conductor), stack_land exits 3 saying the count and what is live, taking no lock (unit case, no process, git and GitHub injected) ⟦criterion 4⟧
 - [ ] when the cut is VERI_SLICE_COMMITS (default 100) or more commits ahead of origin/<default>, stack_land goes on to take the merge lock (merge-lock.sh take) though the stack is live (unit case, no process) ⟦criterion 4⟧
