@@ -428,3 +428,23 @@ def test_4027_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(green
     firsts = [made.index(name) for name in green_half.CALLS if name in made and name not in (
         "supervise.sh", "run-leaf.sh", "run-verdict.sh")]
     assert firsts == sorted(firsts)
+
+
+def test_after_seam_settle_red_half_green_half_launches_develop_green_with_the_settled_values_4342(green, run_cli):
+    """SC7: a Red done by hand hands back through seam-settle.sh, and green-half runs as after a clean red-half.sh."""
+    wt = green.wt
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(LEDGER % STEP)
+    settled = run_cli(importlib.import_module("veri.seam_settle"),
+                      ["12", "red-half", "test_path=tests/test_h.py", "target_test=test_hand"],
+                      cwd=str(wt.parent.parent.parent))
+    code, out, err, fake = green(answers={("wait-leaf.sh", "verdict-green"): (3, "")}, missing=("red-half",))
+
+    assert settled[0] == 0
+    assert (wt / ".tdd" / "issue-12-red-half").read_text() == (
+        "step=%s\ntest_path=tests/test_h.py\ntarget_test=test_hand\nred_test_id=tests/test_h.py::test_hand\n"
+        "against_unmodified=FAILS\n" % STEP)
+    assert code == 3
+    assert fake.call("build-develop-prompt.sh")[1] == ("green", ".tdd/issue-12-spec.md", STEP, "make unit",
+                                                       "tests/test_h.py", "test_hand", "make unit")
+    assert fake.launched() == ["develop-green", "verdict-green"]

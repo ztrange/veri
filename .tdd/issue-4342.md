@@ -2,7 +2,7 @@
 
 - [x] ledger.same_step reads two step texts as one step when they differ only by ⟦…⟧ marks and a trailing ⟂ suffix ⟦criterion 3⟧
 - [x] seam_contract names, per record-writing stage, the keys the next stage reads that have no committed source ⟦criterion 5⟧
-- [ ] after seam-settle.sh red-half test_path=… target_test=…, green-half.sh launches develop-green with those values ⟦criterion 7⟧
+- [x] after seam-settle.sh red-half test_path=… target_test=…, green-half.sh launches develop-green with those values ⟦criterion 7⟧
 - [ ] seam-settle.sh writes green-half's and refactor-half's records in their formats, the step from the ledger and green_sha from git ⟦criterion 6⟧
 - [ ] seam-settle.sh exits 2 naming an unknown stage, or a missing, unknown or empty key ⟦criterion 6⟧
 - [ ] script-help.sh seam-settle.sh prints the seam-contract table ⟦criterion 5⟧
