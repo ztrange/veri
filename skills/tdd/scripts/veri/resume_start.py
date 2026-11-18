@@ -45,6 +45,9 @@ def run(n):
     lines, values = given
     settled = fused.read_lines(lines)
     wt = settled["worktree"]
+    waited = fused.load_wait(wt, n, OWNER)
+    if waited is not None:
+        return verdict(n, wt, waited[1])
     ledger = os.path.relpath(run_dir.ledger(".", n))
     if not os.path.exists(os.path.join(wt, added(n))) and grown(wt, ledger):
         record_existing(n, wt, ledger)
@@ -62,6 +65,7 @@ def run(n):
 
 
 LEAF = "verdict-plan"
+OWNER = "resume-start"
 
 
 def verify_plan(n, wt, settled, ledger, lines):
@@ -70,11 +74,12 @@ def verify_plan(n, wt, settled, ledger, lines):
     fused.launch("4", wt, LEAF, "run-verdict.sh", "plan", ".tdd/issue-%s-spec.md" % n, ledger,
                  env=tunables.with_values(VERI_TEST_CMD=settled["fast_cmd"], VERI_ISSUE=n),
                  out=".tdd/verify-plan.reason", err=".tdd/verify-plan.err")
+    fused.save_wait(wt, n, OWNER, "4", lines)
     return verdict(n, wt, lines)
 
 
 def verdict(n, wt, lines):
-    code = fused.wait(wt, n, "resume-start", LEAF)
+    code = fused.wait(wt, n, OWNER, LEAF)
     if code != 0:
         raise fused.Stop("4", "wait-leaf.sh %s exit %d" % (LEAF, code), code)
     fused.checked("4", fused.script("comment.sh"), n, "verify-plan", cwd=wt)
