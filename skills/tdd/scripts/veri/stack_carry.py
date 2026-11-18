@@ -81,6 +81,8 @@ def _carry(stack, name):
         raise _Stop(2, "origin's default branch cannot be told; nothing rebased or pushed")
     if not _landed(default, cut):
         raise _Stop(2, "origin/%s has not landed the old cut %s; nothing rebased or pushed" % (default, cut))
+    if cut == tip:
+        raise _Stop(3, "the old cut %s is origin/%s's tip: nothing to carry" % (cut, stack))
     return 0
 
 

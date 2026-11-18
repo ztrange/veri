@@ -153,3 +153,12 @@ def test_an_old_cut_origin_default_has_not_landed_exits_2_rebasing_nothing_and_f
     code, out, err = run_cli(stack_carry, ["cut"])
 
     assert (code, out, said in err, released(world), worktrees(world)) == (2, "", True, True, []), err
+
+
+def test_an_old_cut_that_is_the_old_tip_exits_3_nothing_to_carry_rebasing_nothing_and_freeing_the_lock(
+        monkeypatch, tmp_path, run_cli, stack_carry):
+    world = World(monkeypatch, tmp_path, answers={("refs/remotes/origin/stack^{commit}",): (0, CUT + "\n", "")})
+
+    code, out, err = run_cli(stack_carry, ["cut"])
+
+    assert (code, out, "nothing to carry" in err, released(world), worktrees(world)) == (3, "", True, True, []), err
