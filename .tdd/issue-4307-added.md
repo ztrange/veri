@@ -1,0 +1,1 @@
+- [x] `ledger.unit_of` still returns a heading unit whose closing backtick is followed by punctuation rather than raising ⟦added⟧
