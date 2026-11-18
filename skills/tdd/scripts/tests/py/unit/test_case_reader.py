@@ -30,3 +30,14 @@ def test_cut_cases_4050_reads_no_name_line_as_a_case():
     case_reader = importlib.import_module("veri.case_reader")
 
     assert case_reader.cut_cases('name="a bash case"\n') == []
+
+
+def test_cut_cases_cuts_a_case_holding_a_regex_literal_with_a_paren_at_its_own_closing_call_4294():
+    case_reader = importlib.import_module("veri.case_reader")
+    text = ("it('b', () => {\n  const r = /\\(/;\n  expect(r.test('(')).toBe(true);\n});\n"
+            "it('c', () => {\n  expect(1).toBe(1);\n});\n")
+
+    cases = case_reader.cut_cases(text)
+
+    assert cases == [("b", "it('b', () => {\n  const r = /\\(/;\n  expect(r.test('(')).toBe(true);\n})"),
+                     ("c", "it('c', () => {\n  expect(1).toBe(1);\n})")]
