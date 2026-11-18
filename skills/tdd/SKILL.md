@@ -923,7 +923,7 @@ Green by hand ends `$S/seam-settle.sh <n> green-half test_path=<path>`.
    $S/wait-leaf.sh develop-green  # foreground; again on exit 3
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
-   The test path and target test id come from Red's report.    The leaf's report is
+   The test path and target test id come from Red's report. The leaf's report is
    in `.tdd/develop-green.out`, and ends with `IMPL_PATH:` (the production files it created
    or changed) and `SUITE: GREEN | RED` plus the suite's final summary line; both go into the
    narration below.
