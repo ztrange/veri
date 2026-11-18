@@ -7,6 +7,7 @@ import sys
 import fused
 import run_dir
 import run_start
+import tunables
 
 USAGE = "usage: resume-start.sh <n>"
 
@@ -54,8 +55,30 @@ def run(n):
     resuming(n, wt, text, step, [line[len("stray="):] for line in lines if line.startswith("stray=")])
     if os.path.exists(os.path.join(wt, SUITE_RED)):
         fused.checked("4", fused.script("suite-red-resume.sh"), "insert", ledger, SUITE_RED, cwd=wt)
-    url = pr_url(wt)
-    return fused.settle(wt, n, "resume-start", ["step=" + step, "pr_url=" + url, "verify_plan=" + values["verify_plan"]])
+    lines = ["step=" + step, "pr_url=" + pr_url(wt)]
+    if values["verify_plan"] == "owed":
+        return verify_plan(n, wt, settled, ledger, lines)
+    return fused.settle(wt, n, "resume-start", lines + ["verify_plan=skip"])
+
+
+LEAF = "verdict-plan"
+
+
+def verify_plan(n, wt, settled, ledger, lines):
+    """Step 2c's verify-plan, launched as plan-publish.sh launches it; 0 posts the verify-plan comment and settles
+    <lines> with verify_plan=PASS."""
+    fused.launch("4", wt, LEAF, "run-verdict.sh", "plan", ".tdd/issue-%s-spec.md" % n, ledger,
+                 env=tunables.with_values(VERI_TEST_CMD=settled["fast_cmd"], VERI_ISSUE=n),
+                 out=".tdd/verify-plan.reason", err=".tdd/verify-plan.err")
+    return verdict(n, wt, lines)
+
+
+def verdict(n, wt, lines):
+    code = fused.wait(wt, n, "resume-start", LEAF)
+    if code != 0:
+        raise fused.Stop("4", "wait-leaf.sh %s exit %d" % (LEAF, code), code)
+    fused.checked("4", fused.script("comment.sh"), n, "verify-plan", cwd=wt)
+    return fused.settle(wt, n, "resume-start", lines + ["verify_plan=PASS"])
 
 
 NOTE = ".tdd/resume-note.md"
