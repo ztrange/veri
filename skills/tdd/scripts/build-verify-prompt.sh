@@ -17,7 +17,7 @@
 #     --step = the ledger's own line for the step under judgement: it scopes the
 #              verdict to that criterion, and carries the conductor's words, not the leaf's
 #     --fast-cmd = the fast tier's test command, required for green, refactor and diff:
-#              verify-green and verify-refactor run it plus the affected suites, and a verifier in a target repository has
+#              verify-green and verify-refactor run it plus the test files covering the files the step changed, and a verifier in a target repository has
 #              no detect-test-command.sh of its own to ask. It is a command the conductor
 #              detected, never anything the developer leaf wrote.
 #

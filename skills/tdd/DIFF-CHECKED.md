@@ -9,9 +9,9 @@ runs. On a fresh step, `git rev-parse HEAD` taken before the `develop-diff` leaf
 that same commit, since every step ends in a ledger commit; on a resume it may not. That leaf, built by `build-develop-prompt.sh diff <spec-file>
 "<STEP>" '<test-cmd>' '<fast-cmd>'`, makes the change the criterion names — or makes no
 commit, when the criterion is that something stays unchanged — and keeps the fast tier and
-then the affected suites green before it reports. Then the blind `diff` verifier,
-`run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' diff <spec-file> <branch-base-sha> <step-base-sha>`, runs the fast tier and then the affected suites, rejecting the step when
-either is red, and judges it against the run's branch point, `git merge-base HEAD
+then the test files covering the changed files green before it reports, never running the `affected` tier. Then the
+blind `diff` verifier, `run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' diff <spec-file> <branch-base-sha> <step-base-sha>`, runs the fast tier and then the test files covering the changed files, never the `affected`
+tier, rejecting the step when either is red, and judges it against the run's branch point, `git merge-base HEAD
 origin/<default>`, and its own diff from the step base sha. Both are launched through the supervisor and waited on as
 *Launching a leaf* sets out, the leaf as `develop-diff` and the verifier as `verdict-diff`.
 **Switched off:** with `diff` in `.tdd/issue-<n>-skip-verify`, no verifier launches: record

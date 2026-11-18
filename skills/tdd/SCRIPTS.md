@@ -641,12 +641,18 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   no declaration: a changed test file (by `case_reader.is_test_path`) that exists selects itself; any other changed
   file selects every test file git does not ignore whose text holds the file's stem (its basename without its last
   extension) as a whole word, `-` and `_` counted alike, the walk skipping `.git`, `.tdd`, `.venv` and `node_modules`;
-  a `.tdd/` path selects nothing. A changed file no test names widens to every test file, with one stderr line
-  `affected-suites: no test names <paths>; widening to every test file` (veri's own tree: `no rule places <paths>;
-  widening to every suite`). **Exit 0** always prints at least one suite; **exit 3** means nothing to run (an empty
-  range, run state alone, or no test file at all); **exit 2** a malformed or unresolvable range, or a failed listing of the tree's files.
-  The leaves run what it prints with the repo's `veri: one test file:` command once per path, or its all-tier command
-  once when the repo declares none (`make test TESTS="<those paths>"` in veri's own tree).
+  a `.tdd/` path selects nothing. It never widens: a changed file no test names adds nothing, named on one stderr line
+  `affected-suites: no test names <paths>; no test file covers them, so the full suite at the PR runs them` (veri's own
+  tree: `no rule places <paths>; …`, the same tail). **Exit 0** always prints at least one suite; **exit 3** means
+  nothing to run (an empty range, run state alone, no test file at all, or no changed file any rule or test places);
+  **exit 2** a malformed or unresolvable range, or a failed listing of the tree's files.
+  What it prints is a leaf's `changed` run, the only run beyond the fast command: the leaves run it with the repo's
+  `veri: one test file:` command once per path, or its fast command once when the repo declares none, its all-tier
+  command only when it declares neither (`make test TESTS="<those paths>"` in veri's own tree), each through
+  `timed-test-run.sh changed`. `timed-test-run.sh` saves the run's whole output to `.tdd/test-runs/<…>.log` under the
+  worktree's toplevel and prints, in its place, a bounded report, never the runner's raw output: the passed, failed and
+  error counts, at most 10 failing cases, each as its `FAILED`/`ERROR` line (the case and its first failure line) cut
+  to 300 characters, how many more it cut, and the saved file's path; it exits with the command's own status.
 - `$S/record-test-commands.sh [--one-file <cmd>] <fast-cmd> <all-cmd> [repo-root]` — `/vinstall`'s writer of the
   target repo's test commands (default: the current repository): on the default branch's tip as freshly fetched, it
   writes the `veri: fast tests:` and `veri: all tests:` lines of the root `CLAUDE.md` (and with `--one-file` the

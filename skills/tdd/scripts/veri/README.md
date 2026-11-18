@@ -600,7 +600,7 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `stem_walk`: the whole-word stem walk outside veri's own tree: the files git does not ignore, and which of them name a path's stem.
 - `suite-flakes.sh`: flaky targets across runs.
 - `surround-mutants.sh`: run a legacy step's mutant table through `mutation-probe.sh`.
-- `timed-test-run.sh`: run a test command and journal one `test-run` event.
+- `timed-test-run.sh`: run a test command, save its whole output under `.tdd/test-runs/`, print a bounded report in its place, and journal one `test-run` event.
 
 ## ci_on_pr
 - `runs_on_pull_requests()`: True when `VERI_CI_ON_PR` is 1 or, unset, a workflow of the current directory triggers on `pull_request`; ValueError carrying the refusal on a bad value.
@@ -614,7 +614,7 @@ Choosing and running the suites of the project veri works on: finding its test c
 
 ## run_line
 - `own_tree(root=".")`: whether `root` is veri's own tree (`skills/tdd/scripts/tests/py` is a directory there).
-- `run_lines(root=".")`: `(affected, one)` as bytes, the commands a leaf prompt gives for the suites `affected-suites.sh` printed and for a single suite: today's `make test TESTS="…"` text in veri's own tree, elsewhere the repo's `veri: one test file:` command once per path through `sh -c`, or its all-tier command when it declares none. Read from the tree's files alone.
+- `run_lines(root=".")`: `(changed, one)` as bytes, the commands a leaf prompt gives for the test files `affected-suites.sh` printed and for a single test file: today's `make test TESTS="…"` text in veri's own tree, elsewhere the repo's `veri: one test file:` command once per path through `sh -c`, or its fast command when it declares none, its all-tier command only when it declares neither. Read from the tree's files alone.
 
 ## rerun_alone
 - `named_targets(text)`: the test targets a red run's output names, in order, each once.

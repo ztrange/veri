@@ -26,7 +26,7 @@ module or a conftest fixture has no bullet below, or a bullet names one that doe
 - **A file lives in `unit/` only if `tests/py/fast_tier_guard.py` names none of its calls** (a process start, a real wait),
   enforced both ways by `test_fast_tier_guard.py`. So `make unit` runs `tests/py/unit/` only, and placement is judged per FILE:
   one case that calls `subprocess` (or sleeps) keeps every small case beside it out of `make unit`, and they run only in
-  `make test` and as affected suites. So a file with a process case is split: its small cases move to `unit/test_<name>.py`,
+  `make test` and in a leaf's `changed` run. So a file with a process case is split: its small cases move to `unit/test_<name>.py`,
   its process cases to `test_<name>_process.py`. Measured 2026-11-15 with `-m "not process and not tree_audit"`: the 22 files
   directly under `tests/py/` that are not `*_process.py` hold 121 small cases that `make unit` does not run. Left unsplit on
   purpose: `test_profile.py` (audits its own location), `test_detach_leaf.py` (its small cases all install a fake `Popen`),

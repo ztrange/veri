@@ -190,9 +190,16 @@ source (no heredoc, no `python3 -c`). Its tests live in `tests/py/unit/test_<mod
 when the guard names it), faking only process boundaries; its entry-point contract cases sit in
 `tests/py/test_<module>_process.py`.
 
-Per step, the red and refactor leaves run the
-affected suites; `develop-green`, verify-green and verify-refactor run the fast tier plus the
-affected suites; a revise leaf runs the tiers of the phase it redoes. `make test`, the
+Per step, the red and refactor leaves run the test files covering the files the step changed, as
+`affected-suites.sh` prints them, with the `veri: one test file:` command (`make test TESTS="<those paths>"` here):
+the `changed` tier. `develop-green`, verify-green, verify-refactor and the diff phase's leaf and verifier run the
+fast tier plus that `changed` run; a revise leaf runs the tiers of the phase it redoes. No leaf or verifier runs more
+than the fast tier plus the `changed` run (the `affected` tier is gone), save the rebased-tip leaves
+(`develop-rebase`, `develop-reconcile`, `verify-rebase`) and the suite-repair verifier, which run the full suite.
+`affected-suites.sh` never widens: a changed file no rule places adds nothing and is named on stderr, left to the
+full suite. Each run goes through `timed-test-run.sh`, which saves
+the whole output under the worktree's `.tdd/test-runs/` and hands the leaf a bounded report in its place: the
+counts, at most 10 failing cases each with its first failure line, how many it cut, and the saved file's path. `make test`, the
 **full suite**, runs once per PR before the PR is readied, again per repair step a red result
 appends (#539), and on the rebased tip if the Draft PR step rebased (#1026) — unless
 `rebased-tip-suite.sh` prints `ci`, the default where a workflow triggers on pull requests, which
