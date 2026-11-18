@@ -3576,7 +3576,7 @@ def leaf_model_chain(monkeypatch, tmp_path, supervise, run_cli, name, extra=(), 
     run_leaf = importlib.import_module("veri.run_leaf")
     started = []
 
-    def attempt_once(_started, _name, cmd, log, rcfile, leaf_env, preexec, watch):
+    def attempt_once(_holder, _name, cmd, log, rcfile, leaf_env, preexec, watch):
         started.append((cmd, leaf_env))
         return "success", "", "0", 0
 
@@ -4897,7 +4897,7 @@ def test_a_leaf_whose_log_gains_only_heartbeats_while_its_descendants_gain_no_cp
 
     try:
         status, reason, _rc, _a0 = supervise.attempt_once(
-            [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None, watch)
+            supervise.LeafHolder(), "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None, watch)
     except AssertionError as error:
         status, reason = str(error), ""
 
@@ -4936,7 +4936,7 @@ def test_an_empty_veri_tool_idle_leaves_a_heartbeat_only_leaf_alive_until_the_60
     watch = supervise.Watch(True, "100000", "180", "1", 0.0)
 
     status, reason, _rc, _a0 = supervise.attempt_once(
-        [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None, watch)
+        supervise.LeafHolder(), "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None, watch)
 
     assert (status, "VERI_TOOL_IDLE" in reason, [1570 < k <= 1630 for k in kills]) == ("killed-stuck", True, [True]), (status, reason, kills)
 
@@ -4975,7 +4975,7 @@ def test_a_leaf_whose_log_gains_only_heartbeats_while_its_descendants_keep_gaini
     watch = supervise.Watch(True, "100000", "180", "1", 0.0)
 
     status, reason, _rc, _a0 = supervise.attempt_once(
-        [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None, watch)
+        supervise.LeafHolder(), "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None, watch)
 
     assert (status, reason, kills) == ("success", "", []), (status, reason, kills)
 
@@ -5021,7 +5021,7 @@ def test_a_heartbeat_only_cpu_idle_leaf_is_not_killed_stuck_for_time_spent_with_
     watch = supervise.Watch(True, "100000", "180", "1", 0.0)
 
     status, reason, _rc, _a0 = supervise.attempt_once(
-        [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None, watch)
+        supervise.LeafHolder(), "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None, watch)
 
     assert (status, reason, kills) == ("success", "", []), (status, reason, kills)
 
@@ -5066,7 +5066,7 @@ def test_a_cpu_idle_leaf_whose_log_gains_lines_other_than_tool_progress_heartbea
         monkeypatch.setattr(supervise, "recover_finished_leaf", lambda *_: None)
         env = {"PYTEST_LEG_LOCK_WAIT_MARKER": str(tmp_path / "wait")}
         status, reason, _rc, _a0 = supervise.attempt_once(
-            [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None,
+            supervise.LeafHolder(), "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None,
             supervise.Watch(True, "100000", "180", "1", 0.0))
         return status, "VERI_TOOL_IDLE" in reason, kills
 
@@ -5116,7 +5116,7 @@ def tool_idle_attempt(monkeypatch, tmp_path, supervise, cpu, write, finish_at=25
     env = {"PYTEST_LEG_LOCK_WAIT_MARKER": str(tmp_path / "wait")}
     rcfile.unlink(missing_ok=True)
     status, reason, _rc, _a0 = supervise.attempt_once(
-        [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None,
+        supervise.LeafHolder(), "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None,
         supervise.Watch(True, "100000", "180", "1", 0.0))
     return status, "VERI_TOOL_IDLE" in reason, kills
 
@@ -5388,7 +5388,7 @@ def outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, marker_text,
     monkeypatch.setattr(supervise.subprocess, "run", ps_in_callers_locale)
     watch = supervise.Watch(False, LOCK_WAIT_TIMEOUT, "180", "1", 0.0)
     status, reason, _rc, _a0 = supervise.attempt_once(
-        [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc",
+        supervise.LeafHolder(), "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc",
         {"PYTEST_LEG_LOCK_WAIT_MARKER": str(wait)}, None, watch)
     return status, reason
 
