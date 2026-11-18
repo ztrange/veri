@@ -557,3 +557,12 @@ def test_issue_4335_tier_quiet_test_files_prints_the_command_of_the_claude_md_qu
     (repo / "pytest.ini").write_text("[pytest]\n")
 
     assert cli(run_cli, detect, "--tier", "quiet test files", str(repo)) == (0, "bin/quiet-run --dots\n", "")
+
+
+def test_issue_4335_tier_quiet_test_files_without_a_quiet_line_proposes_quiet_pytest_for_a_pytest_configured_repo(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: all tests: `pytest`\n")
+    (repo / "pyproject.toml").write_text("[project]\nname = \"x\"\n\n[tool.pytest.ini_options]\ntestpaths = [\"tests\"]\n")
+
+    assert cli(run_cli, detect, "--tier", "quiet test files", str(repo)) == (0, "pytest -q --no-header -rf\n", "")
