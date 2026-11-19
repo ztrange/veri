@@ -2,6 +2,7 @@
 in one call (PRD 038.3 DST6): the tick, its commit and push, the stop ask, and step-close.sh's mirror and next stop,
 reused by import."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
 
 import fused
@@ -13,6 +14,8 @@ from step_close import mirror, next_stop
 NAME = "step-tick"
 USAGE = "usage: step-tick.sh <n>"
 LEDGER = run_dir.ledger("", "%s")
+# The receipt pin-recheck.sh leaves on its 0 or 3, without which tick-ledger.sh refuses a ⟦diff-checked⟧ tick.
+RECEIPT = ".tdd/pin-recheck-ok"
 # The subject a ⟦diff-checked⟧ tick commits under, the one runs use (PRD 038.3 S14).
 SUBJECT = "chore: diff-checked — %s (#%s)"
 
@@ -30,6 +33,9 @@ def run(n):
     if given is None:
         return 2
     _, wt = given
+    if not os.path.isfile(os.path.join(wt, RECEIPT)):
+        sys.stderr.write("step-tick.sh: no %s: run pin-recheck.sh first\n" % RECEIPT)
+        return 2
     step = fused_step.first_step(wt, n, handed_out)
     if step is None:
         sys.stderr.write("step-tick.sh: no open step in %s\n" % (LEDGER % n))
