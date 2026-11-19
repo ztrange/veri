@@ -48,3 +48,21 @@ skills/tdd/scripts/tests/py/unit/test_run_pr.py
 command 174
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4432_an_unknown_option_before_a_stage_name_or_a_bad_pair_after_a_good_one_is_exit_2_with_no_stage_called
 
+before 40
+768cde2665c900808aa2b2f44a707284015d6d6c
+keep 47
+skills/tdd/scripts/tests/py/unit/test_run_pr.py
+command 175
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4432_every_next_it_prints_is_run_pr_or_the_draft_pr_anchor_and_that_anchor_names_a_heading_in_draft_pr_md
+
+file 22
+skills/tdd/DRAFT-PR.md
+old-b64 20
+IyMgNC4gRHJhZnQgUFI=
+new-b64 24
+IyMgNC4gRHJhZnQgUHVsbA==
+context-b64 20
+IyMgNC4gRHJhZnQgUFI=
+command 175
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4432_every_next_it_prints_is_run_pr_or_the_draft_pr_anchor_and_that_anchor_names_a_heading_in_draft_pr_md
+
