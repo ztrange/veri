@@ -34,6 +34,8 @@ class Fake:
             return 0, self.cost, ""
         if base == "step-budget.sh":
             return 0, "12\n120\n", ""
+        if base == "same-reject.sh":
+            return 1, "", ""
         return 0, "", ""
 
     def names(self):
@@ -151,3 +153,23 @@ def test_on_a_revised_pass_it_posts_verify_revised_resaves_green_halfs_wait_at_v
         "verdict-green", {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"})
     assert not rejected.exists()
     assert not (revise.wt / ".tdd" / "issue-12-revise-wait").exists()
+
+
+@pytest.mark.parametrize("same", [1, 0])
+def test_a_reverify_reject_spends_attempt_k_and_goes_on_to_k_plus_1_unless_same_reject_says_it_repeats(revise, same):
+    """PRD 038.9 criteria 4 and 6: REVISE.md sub-step 1 for attempt 2; same-reject.sh exit 0 stops with exit 1."""
+    code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (1, ""),
+                                           ("wait-leaf.sh", "revise-green-2"): (3, ""),
+                                           ("same-reject.sh", None): (same, "")})
+
+    assert fake.call("same-reject.sh")[1] == (".tdd/verify-green-1.reason", ".tdd/verify-green.reason")
+    comments = [c[1] for c in fake.calls if c[0] == "comment.sh"]
+    if same:
+        assert (code, out.splitlines()[-1]) == (3, "waiting on revise-green-2")
+        assert comments == [("12", "revise", "green", "1"), ("12", "revise", "green", "2")]
+        assert [c[3]["VERI_ATTEMPT"] for c in fake.calls if c[0] == "event.sh"] == ["1", "2"]
+        assert fake.launched() == ["revise-green-1", "verdict-green", "revise-green-2"]
+    else:
+        assert (code, out.splitlines()[-1]) == (
+            1, "stopped at 1 same-reject.sh .tdd/verify-green-1.reason .tdd/verify-green.reason exit 0")
+        assert (comments, fake.launched()) == ([("12", "revise", "green", "1")], ["revise-green-1", "verdict-green"])
