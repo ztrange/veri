@@ -147,3 +147,25 @@ def test_a_load_timeout_at_2_workers_is_exit_1_no_ceiling_of_at_least_2(make, ru
     assert [(workers, tests) for workers, tests, _ in make.calls] == [(2, []), (1, [SLOW])]
     assert "no ceiling of at least 2" in err
     assert "ceiling:" not in out
+
+
+@pytest.mark.parametrize("exit_code", [1, 2])
+def test_a_suite_run_exiting_non_zero_with_no_failed_case_recorded_is_exit_2_naming_its_code(make, run_cli, exit_code):
+    make.given(lambda workers, tests: exit_code if workers == 4 else [])
+
+    code, out, err = run_cli(ceiling, [])
+
+    assert code == 2
+    assert [workers for workers, _, _ in make.calls] == [2, 4]
+    assert "make test exited %d at 4 workers" % exit_code in err
+    assert "ceiling:" not in out
+
+
+def test_a_re_run_alone_exiting_non_zero_with_no_failed_case_recorded_is_exit_2_naming_it(make, run_cli):
+    make.given(lambda workers, tests: 2 if tests else [(SLOW, TIMEOUT)] if workers == 4 else [])
+
+    code, out, err = run_cli(ceiling, [])
+
+    assert code == 2
+    assert "make test exited 2 running %s alone" % SLOW in err
+    assert "ceiling:" not in out
