@@ -24,16 +24,17 @@ class World:
     branch is <named> (stack_branch.named; an exception is raised). Its refs are <refs> (a ref name to a sha), by default
     the local stack at TIP and origin's at BASE, plus origin's run branches <branches> (a name to a sha). A sha is an
     ancestor of another when the pair is in <ancestors> (by default BASE of TIP), or the two are equal. `git log` of a
-    range answers <commits>, oldest first; `git show` of a commit's Veri-Joined trailer answers <trailers>' entry, else
+    range answers <commits>, newest first as git does, oldest first with --reverse, and fails when <log_fails>; `git show` of a commit's Veri-Joined trailer answers <trailers>' entry, else
     nothing. origin (git.network) fetches with <fetch>, an (exit code, stderr) pair, and answers every push with
     <pushes>' entry for the ref it writes (`refs/heads/<name>`, or the name a delete names), else (0, ""). GitHub reads
-    each pull request of <pulls> (its number to its record), every other one as merged. The sibling scripts answer
+    each pull request of <pulls> (its number to its record, or to a list of raw answers given in turn), every other one
+    as merged. The sibling scripts answer
     <answers>' entry, (exit code, stdout): merge-lock.sh (0, ""), stack-pr.sh (0, URL), any other (0, ""). Every git,
     script and GitHub call is kept, in order, in <log>: ("git", *args), (script, *args) and ("gh", path); the pushes,
     deletes among them, in <pushed>, and the scripts in <scripts>."""
 
     def __init__(self, monkeypatch, tmp_path, named="stack", refs=None, branches=None, ancestors=((BASE, TIP),),
-                 commits=(), trailers=None, fetch=(0, ""), pushes=None, pulls=None, answers=None):
+                 commits=(), trailers=None, fetch=(0, ""), pushes=None, pulls=None, answers=None, log_fails=False):
         (tmp_path / ".git").mkdir(exist_ok=True)
         monkeypatch.chdir(tmp_path)
         self.log, self.pushed, self.scripts = [], [], []
@@ -54,7 +55,9 @@ class World:
                     return ""
                 raise git.GitFailed(args, 1, "")
             if args[:1] == ("log",):
-                return "\n".join(commits)
+                if log_fails:
+                    raise git.GitFailed(args, 128, "fatal: bad revision")
+                return "\n".join(commits if "--reverse" in args else reversed(commits))
             if args[:1] == ("show",):
                 return trailers.get(args[-1], "")
             raise git.GitFailed(args, 128, "not faked")
@@ -75,7 +78,8 @@ class World:
             self.log.append(("gh", path))
             number = re.fullmatch(r"repos/[^/]+/[^/]+/pulls/(\d+)", path)
             said = pulls.get(int(number[1]), {"state": "closed", "merged": True}) if number else {}
-            return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(said), "")
+            raw = said.pop(0) if isinstance(said, list) else json.dumps(said)
+            return subprocess.CompletedProcess(["gh", "api", path], 0, raw, "")
 
         def answer(root):
             if isinstance(named, BaseException):
@@ -309,7 +313,8 @@ def test_stack_recover_and_its_shim_name_no_repository_issue_branch_label_or_per
     assert named == []
 
 
-@pytest.mark.parametrize("trailer", ["https://example.test/pull/11 tdd/11-a", PR11 + " tdd/11-a extra", PR11])
+@pytest.mark.parametrize("trailer", ["https://example.test/pull/11 tdd/11-a", PR11 + " tdd/11-a extra", PR11,
+                                     PR11 + " tdd/11-a\n" + PR12 + " tdd/12-b"])
 def test_a_trailer_whose_url_is_no_repositorys_pull_request_or_that_is_not_two_words_exits_1_naming_the_commit_nothing_pushed(
         monkeypatch, tmp_path, run_cli, stack_recover, trailer):
     world = joined_world(monkeypatch, tmp_path, trailers=dict(JOINED, **{A: trailer + "\n"}))
@@ -336,3 +341,38 @@ def test_an_unusable_settle_window_tunable_exits_2_naming_it_before_any_read_or_
     code, out, err = run_cli(stack_recover, [], env={"VERI_MERGE_SETTLE_READS": "zero"})
 
     assert (code, out, err.count("\n"), "VERI_MERGE_SETTLE_READS" in err, world.log) == (2, "", 1, True, []), err
+
+
+def test_a_failed_read_of_the_joined_range_exits_2_naming_it_nothing_pushed_the_lock_freed(
+        monkeypatch, tmp_path, run_cli, stack_recover):
+    world = joined_world(monkeypatch, tmp_path, log_fails=True)
+
+    code, out, err = run_cli(stack_recover, [])
+
+    assert (code, out, err.count("\n"), "origin/stack..stack" in err and "nothing pushed" in err, world.pushed,
+            world.scripts[-1][:2]) == (2, "", 1, True, [], ("merge-lock.sh", "release")), err
+
+
+@pytest.mark.parametrize("interrupt", [KeyboardInterrupt, SystemExit])
+def test_an_interrupt_after_the_merge_lock_was_taken_frees_the_lock_before_it_ends_the_recovery(
+        monkeypatch, tmp_path, stack_recover, interrupt):
+    world = joined_world(monkeypatch, tmp_path)
+
+    def interrupted(*args, cwd=None):
+        raise interrupt()
+
+    monkeypatch.setattr(importlib.import_module("veri.git"), "network", interrupted)
+
+    with pytest.raises(interrupt):
+        stack_recover.main([])
+
+    assert [ran[:2] for ran in world.scripts] == [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]
+
+
+def test_a_pull_request_read_answering_no_json_or_no_json_object_is_read_again_within_the_settle_window(
+        monkeypatch, tmp_path, run_cli, stack_recover):
+    world = joined_world(monkeypatch, tmp_path, pulls={11: ["not json", "[1]", json.dumps({"merged": True})]})
+
+    code, out, err = run_cli(stack_recover, [], env={"VERI_MERGE_SETTLE_READS": "3", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    assert (code, out) == (0, "%s %s\n" % (TIP, URL)), err
