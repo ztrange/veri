@@ -424,3 +424,20 @@ def test_it_prints_one_line_per_call_and_never_a_calls_output_or_the_reason_file
     assert not [line for line in lines if "OUT<" in line or "REJECT" in line or "hardcodes" in line]
     assert len(lines) == len(fake.calls)
     assert all(line.rsplit(" exit ", 1)[-1].isdigit() for line in lines)
+
+
+# Inner calls REVISE.md does not name, each by name with its reason.
+NAMED_ELSEWHERE = {
+    "stop-requested.sh": "FC8: the stop check *Launching a leaf* states before every leaf, which REVISE.md defers to",
+    "step-budget.sh": "RH4: the budget *The step's cost check* weighs step-cost.sh's figure against",
+    "extract-result.sh": "FC2: *Launching a leaf* reads a leaf's report only through it",
+}
+
+
+def test_every_inner_call_in_the_ordered_list_is_a_script_revise_md_names():
+    """FC19 for revise.sh (PRD 038.9 RVS15): the prose stays the fallback, so it names every script the call makes."""
+    from pathlib import Path
+    revise_module = importlib.import_module("veri.revise")
+    prose = (Path(revise_module.__file__).resolve().parents[2] / "REVISE.md").read_text()
+
+    assert [name for name in revise_module.CALLS if "$S/" + name not in prose and name not in NAMED_ELSEWHERE] == []

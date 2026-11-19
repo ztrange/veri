@@ -1,5 +1,7 @@
 ## Revising on a REJECT
 
+At a REJECT of red, green or refactor `$S/run-step.sh` has already run `$S/revise.sh <n> <phase>`; by hand (`--hand revise`, or a stop it names) go on by the sub-step its last line names.
+
 A `REJECT` (verify.sh exit **1**) does **not** stop the run. The conductor gets a bounded
 **attempt budget** — `REVISE_BUDGET` revise attempts, **default 2** — to satisfy the blind
 verifier before bailing the step. The rejection **reason is the carry-forward signal**:

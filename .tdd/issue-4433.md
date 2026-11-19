@@ -18,4 +18,4 @@
 - [x] it prints one line per call and never a leaf's output, a suite's output or the reason file ⟦criterion 14⟧
 - [x] `run-step.sh` calls `revise.sh` when a half stops with `.tdd/verdict-<phase>.exit` holding 1, re-calls the stage after exit 0, and any other exit is `seam=revise code=<c> next=REVISE.md#Revising on a REJECT` ⟦criterion 9⟧
 - [x] `run-step.sh --hand revise` stops at that REJECT with `seam=revise code=1 reason=hand`, never calling `revise.sh`; `revise` is in `STAGES` but not in the series ⟦criterion 10⟧
-- [ ] `REVISE.md` opens with the one call line, `SCRIPTS.md` lists `revise.sh`, with their `REQUIREMENTS.md` rows and regrades; `SKILL.md` nets ≤ 0 B ⟦criterion 15⟧
+- [x] `REVISE.md` opens with the one call line, `SCRIPTS.md` lists `revise.sh`, with their `REQUIREMENTS.md` rows and regrades; `SKILL.md` nets ≤ 0 B ⟦criterion 15⟧
