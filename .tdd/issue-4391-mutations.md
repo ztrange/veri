@@ -80,3 +80,10 @@ skills/tdd/scripts/tests/py/unit/test_bail.py
 command 190
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_bail.py::test_a_non_zero_issue_comment_exit_is_named_on_its_call_line_and_the_pr_comment_still_runs_ending_exit_0_with_the_event_written
 
+before 40
+eb03807ec3af17171b59c5af6ebb236369b4ec96
+keep 45
+skills/tdd/scripts/tests/py/unit/test_bail.py
+command 143
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_bail.py::test_the_report_prints_the_current_git_branch_after_the_phase_and_classification
+
