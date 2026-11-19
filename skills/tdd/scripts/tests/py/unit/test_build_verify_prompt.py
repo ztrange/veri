@@ -167,7 +167,7 @@ def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_a
     refused = {tuple(argv): run(argv) for argv in (
         ["--fast-cmd", "m", "refactor", s, "t", "0123ABC"],
         ["--fast-cmd", "m", "refactor", s, "t", "0123abc\n"],
-        ["transform", s, "t", "012345"],
+        ["--fast-cmd", "m", "transform", s, "t", "012345"],
         ["--fast-cmd", "m", "--branch-base", "0123abc", "diff", s, "zz"],
         ["--step", "s", "--fast-cmd", "m", "--branch-base", "0123abc", "diff", s, "0123abG"],
         ["--step", "s", "--fast-cmd", "m", "--branch-base", "xyz", "diff", s, "0123abc"],
@@ -176,11 +176,12 @@ def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_a
         ["rebase", s, "0123abc"],
         ["--step", "s", "--branch-base", "0123abc", "diff", s, "bad"],
         ["--branch-base", "0123abc", "diff", s, "bad"],
+        ["transform", s, "t", "0123abc"],
     )}
     assert refused == {
         ("--fast-cmd", "m", "refactor", s, "t", "0123ABC"): bad_sha(b"refactor", b"<base-sha>", b"0123ABC"),
         ("--fast-cmd", "m", "refactor", s, "t", "0123abc\n"): bad_sha(b"refactor", b"<base-sha>", b"0123abc\n"),
-        ("transform", s, "t", "012345"): bad_sha(b"transform", b"<base-sha>", b"012345"),
+        ("--fast-cmd", "m", "transform", s, "t", "012345"): bad_sha(b"transform", b"<base-sha>", b"012345"),
         ("--fast-cmd", "m", "--branch-base", "0123abc", "diff", s, "zz"): refusal(b"build-verify-prompt: diff needs --step '<STEP>'"),
         ("--step", "s", "--fast-cmd", "m", "--branch-base", "0123abc", "diff", s, "0123abG"): bad_sha(
             b"diff", b"<step-base-sha>", b"0123abG"),
@@ -193,11 +194,13 @@ def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_a
             b"build-verify-prompt: diff needs --fast-cmd '<fast-tier test command>'"),
         ("--branch-base", "0123abc", "diff", s, "bad"): refusal(
             b"build-verify-prompt: diff needs --fast-cmd '<fast-tier test command>'"),
+        ("transform", s, "t", "0123abc"): refusal(
+            b"build-verify-prompt: transform needs --fast-cmd '<fast-tier test command>'"),
     }
 
     admitted = [run(argv)[::2] for argv in (
         ["--fast-cmd", "m", "refactor", s, "t", "0123456789abcdef0123456789abcdef01234567"],
-        ["transform", s, "t", "0123abc"],
+        ["--fast-cmd", "m", "transform", s, "t", "0123abc"],
         ["rebase", s, "0123abc", "0123abd"],
         ["--step", "s", "--fast-cmd", "m", "--branch-base", "0123abc", "diff", s, "0123abd"],
     )]
@@ -251,7 +254,7 @@ def test_main_checks_readability_before_any_output_in_the_order_template_shared_
     (prompts / "_verify-plan-refactor.md").write_bytes(b"refactor plan\n")
     assert run(plan) == unreadable(ledger)
 
-    transform = run(["transform", str(spec), str(missing), "0123abc"])
+    transform = run(["--fast-cmd", "m", "transform", str(spec), str(missing), "0123abc"])
     assert (transform[0], transform[2], split_closing(transform[1])) == (0, b"", (b"verify-transform.md\n", True))
 
     with pytest.raises(IsADirectoryError):
@@ -360,7 +363,7 @@ def test_main_resolves_includes_recursively_before_substitution_in_the_template_
         run(["plan", str(refactor_spec), str(ledger)]),
         run(["--branch-base", "3f9a1c0", "pin", str(spec), "t"]),
         run(["rebase", str(spec), "0123abc", "0123abd"]),
-        run(["transform", str(spec), "rec", "0123abc"]),
+        run(["--fast-cmd", "m", "transform", str(spec), "rec", "0123abc"]),
     ] == [
         (0, b"shared b=tid\n### The step under judgement\n\nstep {{INCLUDE:_b.md}}\n\n"
             b"Your verdict is about this criterion only: the spec below is the whole issue, and its other\n"
@@ -637,8 +640,8 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
         ("onto with text", [f"{rb_onto} because it merged", rb_pre]),
         ("short pre-rebase", [rb_onto, "abc123"]), ("uppercase pre-rebase", [rb_onto, "278252A1B9F3"]),
         ("pre-rebase with text", [rb_onto, f"{rb_pre} because it was green"]))}
-    transform = run(["transform", s, str(predicate), "0123abcdef"])
-    transform_bad_base = run(["transform", s, str(predicate), "tidied the helper"])[0]
+    transform = run(["--fast-cmd", "m", "transform", s, str(predicate), "0123abcdef"])
+    transform_bad_base = run(["--fast-cmd", "m", "transform", s, str(predicate), "tidied the helper"])[0]
     transforms = run(["transforms", s, str(predicate), "0123abcdef"])[0]
     dp = diff("0123abcdef", "0123abcdef")
     monkeypatch.setenv("VERI_STEP", "I tidied the helper because it was ugly")
@@ -814,7 +817,7 @@ def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_f
         "pin": ["--branch-base", "3f9a1c0", "pin", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
         "plan": ["plan", s, str(ledger)],
         "rebase": ["rebase", s, sha, "4567def"],
-        "transform": ["transform", s, str(tmp_path / "predicate.md"), sha],
+        "transform": ["--fast-cmd", "m", "transform", s, str(tmp_path / "predicate.md"), sha],
         "diff": ["--step", "zorblat frobs a nitz", *fast, "--branch-base", sha, "diff", s, "4567def"],
     }
 
@@ -1676,7 +1679,7 @@ def test_main_ends_every_phases_verify_prompt_with_the_output_contract_fragment_
         "pin": ["--branch-base", "3f9a1c0", "pin", s, test, "zorblat frobs a nitz"],
         "plan": ["plan", s, str(ledger)],
         "rebase": ["rebase", s, sha, "4567def"],
-        "transform": ["transform", s, str(tmp_path / "predicate.md"), sha],
+        "transform": ["--fast-cmd", "m", "transform", s, str(tmp_path / "predicate.md"), sha],
         "diff": ["--step", "zorblat frobs a nitz", *fast, "--branch-base", sha, "diff", s, "4567def"],
         **{phase: [*fast, phase, s, test, sha]
            for phase in ("expand", "cover-new", "migrate", "contract-a", "contract-b", "beside", "dual-stub")},
