@@ -473,6 +473,8 @@ def test_2195_a_second_full_run_waits_for_the_first_saying_once_who_holds_the_lo
     home, marks, release = tmp_path / "home", tmp_path / "marks", tmp_path / "release"
     for directory in (home, marks, tmp_path / "treeA", tmp_path / "treeB"):
         directory.mkdir()
+    with open(os.environ["VERI_TEST_CEILING_FILE"], "w") as f:
+        f.write("8\n")  # a measured budget, so the only stderr line is the lock wait's, not the core fallback's
     env = dict(os.environ, HOME=str(home), VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1")
 
     def launch(name):
