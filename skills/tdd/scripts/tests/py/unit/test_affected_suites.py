@@ -1071,3 +1071,21 @@ def test_a_changed_leg_module_under_tests_leg_selects_what_it_selected_under_ver
 
     assert selected == affected.suite_of("skills/tdd/scripts/veri/%s.py" % name) == [
         "skills/tdd/scripts/tests/py/test_%s.py" % name, "skills/tdd/scripts/tests/py/unit/test_%s.py" % name]
+
+
+def plant(tmp_path, files):
+    for path, text in files.items():
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / path).write_text(text)
+
+
+PY = "skills/tdd/scripts/tests/py/"
+
+
+def test_a_changed_module_lists_its_process_test_file_beside_its_other_test_files_4425(affected, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    plant(tmp_path, {PY + "test_foo.py": "", PY + "unit/test_foo.py": "", PY + "test_foo_process.py": "",
+                     PY + "unit/test_foo_process.py": ""})
+
+    assert sorted(affected.suite_of("skills/tdd/scripts/veri/foo.py")) == [
+        PY + "test_foo.py", PY + "test_foo_process.py", PY + "unit/test_foo.py"]
