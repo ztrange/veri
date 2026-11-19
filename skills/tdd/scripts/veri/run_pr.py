@@ -10,7 +10,9 @@ import run_dir
 
 USAGE = "usage: run-pr.sh <n>"
 ANCHOR = "DRAFT-PR.md#4. Draft PR"
+TITLE = "seam=pr-ready-wait code=1 reason=title next=%s\n" % ANCHOR
 STACKED = "seam=pr-ready-wait code=1 reason=stacked next=%s\n" % ANCHOR
+BODY = "seam=done code=1 reason=body next=%s\n" % ANCHOR
 EARLY = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
 LATE = ("pr-ready-wait.sh", "pr-finish.sh")
 CALLS = EARLY + LATE
@@ -34,7 +36,7 @@ def run_late(n, wt, first):
     sys.stdout.write("".join(out.splitlines(True)[-2:]))
     with open(fused.settled_file(wt, n, "run-pr"), "w") as f:
         f.write("seam=body\nsha=%s\n" % ledger_sha(wt, n))
-    sys.stdout.write("seam=done code=1 reason=body next=%s\n" % ANCHOR)
+    sys.stdout.write(BODY)
     return 1
 
 
@@ -54,7 +56,7 @@ def run_early(n, wt, first, hands):
             return code
     with open(fused.settled_file(wt, n, "run-pr"), "w") as f:
         f.write("seam=title\nsha=%s\n" % ledger_sha(wt, n))
-    sys.stdout.write(STACKED if stacked(wt, n) else "seam=pr-ready-wait code=1 reason=title next=%s\n" % ANCHOR)
+    sys.stdout.write(STACKED if stacked(wt, n) else TITLE)
     return 1
 
 
