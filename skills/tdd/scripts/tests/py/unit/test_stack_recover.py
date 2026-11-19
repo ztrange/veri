@@ -105,3 +105,15 @@ def test_an_argument_exits_2_with_the_usage_line_and_the_shim_execs_the_module(m
         text = f.read()
     assert (code, out, err, world.log) == (2, "", "usage: stack-recover.sh\n", []), err
     assert text.startswith("#!/bin/sh\n") and '"$(dirname "$0")/veri/stack_recover.py"' in text, text
+
+
+def test_while_the_outage_file_exists_it_exits_2_in_one_stderr_line_before_any_read_or_lock(
+        monkeypatch, tmp_path, run_cli, stack_recover):
+    world = World(monkeypatch, tmp_path, named=AssertionError("stack-branch.sh was read"))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "github-outage").write_text("")
+
+    code, out, err = run_cli(stack_recover, [])
+
+    assert (code, out, err.count("\n"), world.log) == (2, "", 1, []), err
+    assert "outage" in err and err.startswith("stack-recover: "), err
