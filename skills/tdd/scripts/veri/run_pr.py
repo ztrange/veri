@@ -31,7 +31,8 @@ def stacked(wt, n):
 
 def run_late(n, wt, first):
     for stage in LATE[LATE.index(first) if first else 0:]:
-        _, out, _ = fused.call(fused.script(stage), n)
+        code, out, _ = fused.call(fused.script(stage), n)
+        sys.stdout.write("%s %s exit %d\n" % (stage, n, code))
     sys.stdout.write("".join(out.splitlines(True)[-2:]))
     with open(fused.settled_file(wt, n, "run-pr"), "w") as f:
         f.write("seam=body\nsha=%s\n" % ledger_sha(wt, n))
@@ -45,6 +46,7 @@ def run_early(n, wt, first, hands):
             sys.stdout.write("seam=%s code=1 reason=hand next=%s\n" % (stage[:-3], ANCHOR))
             return 1
         code, out, _ = fused.call(fused.script(stage), n)
+        sys.stdout.write("%s %s exit %d\n" % (stage, n, code))
         if code not in (0, 1, 2, 3):
             sys.stderr.write("run-pr.sh: %s exited %d\n" % (stage[:-3], code))
             return 2
