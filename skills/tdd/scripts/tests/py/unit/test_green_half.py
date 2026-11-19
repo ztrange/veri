@@ -501,9 +501,9 @@ def test_a_verdict_reject_keeps_the_stage_wait_record_as_its_rejected_record_and
     assert (code, (green.wt / ".tdd" / "issue-12-green-half-wait").exists(), rejected.exists()) == (verdict, False, kept)
     if kept:
         record = json.loads(rejected.read_text())
-        assert (record["conductor"], record["at"], record["values"]) == (
+        assert (record["conductor"], record["at"], record["values"], record["step"]) == (
             {"pid": "111", "started": "Tue Nov 17 07:00:00 2026"}, "verdict-green",
-            {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"})
+            {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"}, STEP)
 
 
 @pytest.mark.parametrize("at", ["verdict-green", "skipped"])

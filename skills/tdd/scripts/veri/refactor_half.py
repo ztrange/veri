@@ -52,7 +52,7 @@ def run(n):
         values.update(check(wt, values))
         at = verify(n, wt, settled, step, values)
     if at == "verdict-refactor":
-        code = fused.wait(wt, n, NAME, "verdict-refactor")
+        code = fused.wait(wt, n, NAME, "verdict-refactor", rejected_step=step)
         if code != 0:
             raise fused.Stop("5", "wait-leaf.sh verdict-refactor exit %d" % code, code)
         values["verdict_flags"] = fused.report("5", wt, ".tdd/verify-refactor.log", "FLAGS", every=True)["FLAGS"]

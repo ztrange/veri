@@ -92,7 +92,7 @@ def main(argv):
             return seam(wt, n, step, stage, 1, anchor, "hand")
         if any(mark in step for mark in unhandled):
             return seam(wt, n, step, stage, 1, anchor, "unmodelled")
-        if stage in PHASES and os.path.exists(fused.wait_record(wt, n, stage + "-rejected")):
+        if stage in PHASES and fused_step.rejected(wt, n, stage, step) is not None:
             # A revise under way (its 3 called run-step.sh again): back to it, never to the half.
             code = revise(wt, n, step, stage, hand)
             if code is not None:

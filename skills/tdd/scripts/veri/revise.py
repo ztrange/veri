@@ -74,11 +74,11 @@ def run(n, phase):
                 fused_step.cost_check(wt, step)
             at = checks(n, wt, settled, step, values)
         if at is not None:
-            code = 0 if at == SKIPPED else fused.wait(wt, n, NAME, at, keep_rejected=False)
+            code = 0 if at == SKIPPED else fused.wait(wt, n, NAME, at)
             if code not in (0, 1):
                 raise fused.Stop("5", "wait-leaf.sh %s exit %d" % (at, code), code)
             if code == 0 and recorded(n, wt, step, values):
-                return finish(n, wt, values, at)
+                return finish(n, wt, step, values, at)
         values = dict(values, k=values["k"] + 1)
         at = attempt(n, wt, settled, step, values)
 
@@ -95,7 +95,7 @@ def start(n, wt, step, phase, k):
     if red is None:
         return None
     if phase == "refactor":
-        rejected = fused.load_wait(wt, n, STAGES[phase] + "-rejected")
+        rejected = fused_step.rejected(wt, n, STAGES[phase], step)
         if rejected is None:
             raise fused.Stop("1", "no " + os.path.relpath(fused.wait_record(wt, n, STAGES[phase] + "-rejected"), wt), 2)
         return rejected[1]
@@ -239,7 +239,7 @@ def recorded(n, wt, step, values):
     return True
 
 
-def finish(n, wt, values, at):
+def finish(n, wt, step, values, at):
     """REVISE.md sub-step 5 on a PASS: the revised verdict's comment, then the phase stage's wait record re-saved at
     <at>, so the stage called again finishes as after its own PASS: at its verdict, or at SKIPPED past a switched-off
     one with its verify comment `posted`, which no stage step names, so the stage goes straight to its finish. The
@@ -248,7 +248,7 @@ def finish(n, wt, values, at):
     phase = values["phase"]
     stage = STAGES[phase]
     fused.checked("5", fused.script("comment.sh"), n, "verify-revised", phase, cwd=wt)
-    rejected = fused.load_wait(wt, n, stage + "-rejected")
+    rejected = fused_step.rejected(wt, n, stage, step)
     kept = dict(rejected[1] if rejected else {})
     if phase != "refactor":
         kept.update(test_path=values["test_path"], target_test=values["target_test"])
