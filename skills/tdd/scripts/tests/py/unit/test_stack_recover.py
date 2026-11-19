@@ -165,3 +165,18 @@ def test_a_local_stack_absent_at_origin_or_behind_it_exits_3_in_one_line_nothing
 
     assert (code, out, err.count("\n"), "nothing to push" in err, world.pushed, world.scripts[-1][:2]) == (
         3, "", 1, True, [], ("merge-lock.sh", "release")), err
+
+
+@pytest.mark.parametrize("moved", ["diverged", "deleted"])
+def test_origin_stack_not_an_ancestor_of_the_local_stack_or_gone_exits_1_naming_it_nothing_pushed_the_lock_freed(
+        monkeypatch, tmp_path, run_cli, stack_recover, moved):
+    if moved == "diverged":
+        world = World(monkeypatch, tmp_path, ancestors=())
+    else:
+        world = World(monkeypatch, tmp_path, refs={"refs/heads/stack": TIP})
+
+    code, out, err = run_cli(stack_recover, [])
+
+    named = [TIP in err, BASE in err] if moved == "diverged" else [TIP in err, "origin/stack" in err]
+    assert (code, out, err.count("\n"), named, world.pushed, world.scripts[-1][:2]) == (
+        1, "", 1, [True, True], [], ("merge-lock.sh", "release")), err

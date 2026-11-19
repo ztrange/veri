@@ -42,6 +42,14 @@ def _held(stack):
         print("stack-recover: the local %s is absent, at origin/%s or behind it: nothing joined offline, nothing to"
               " push" % (stack, stack), file=sys.stderr)
         return 3
+    if fetched is None:
+        print("stack-recover: origin/%s is gone after the fetch, while the local %s is at %s: the stack moved on GitHub,"
+              " so what to push is the human's call; nothing pushed" % (stack, stack, local), file=sys.stderr)
+        return 1
+    if not _ancestor(fetched, local):
+        print("stack-recover: origin/%s at %s is not an ancestor of the local %s at %s: the stack moved on GitHub, and"
+              " rebasing it is the human's call; nothing pushed" % (stack, fetched, stack, local), file=sys.stderr)
+        return 1
     return 3
 
 
