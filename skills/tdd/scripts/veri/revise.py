@@ -31,7 +31,8 @@ LEDGER = run_dir.ledger("", "%s")
 # The $S/ scripts this call makes, in the order each is first made.
 CALLS = ("build-develop-prompt.sh", "comment.sh", "event.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh",
          "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "tests-frozen.sh", "run-verdict.sh",
-         "same-reject.sh", "restore-production.sh", "extract-result.sh", "red-divergence.sh", "red-setup.sh")
+         "same-reject.sh", "restore-production.sh", "extract-result.sh", "red-divergence.sh", "preserve-attempt.sh",
+         "red-setup.sh")
 
 
 def main(argv):
@@ -178,7 +179,8 @@ UNMATCHED = {1: "REASON: prediction not written before the run\n",
 
 def red_checks(n, wt, settled, step, values):
     """Red's sub-step 4: the revised report's test, then its prediction gated; exit 3 (matched) re-verifies, any
-    other exit spends the attempt."""
+    other exit spends the attempt, exit 0 or 2 (a divergence, or no readable prediction) marked `prediction-diverged`
+    with its tree preserved, best-effort (RVS4)."""
     out = ".tdd/revise-red-%d.out" % values["k"]
     values.update(judged(wt, out))
     gate = fused.call(fused.script("red-divergence.sh"), ".tdd/red-prediction.md", ".tdd/red-run-output.txt", cwd=wt,
@@ -188,6 +190,10 @@ def red_checks(n, wt, settled, step, values):
     if gate in UNMATCHED:
         with open(os.path.join(wt, ".tdd", "verify-red.reason"), "w") as f:
             f.write(UNMATCHED[gate])
+    if gate in (0, 2):
+        fused.mark("4", wt, n, step, "prediction-diverged")
+        fused.call(fused.script("preserve-attempt.sh"), n, step, "revise-red", str(values["k"]),
+                   "prediction-diverged", cwd=wt)
     return None
 
 
