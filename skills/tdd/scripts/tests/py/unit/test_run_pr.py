@@ -505,3 +505,23 @@ def test_4432_the_resumed_late_run_prints_a_call_line_with_its_exit_code_for_pr_
     assert [ln for ln in out.splitlines() if ln.split(" ")[0] in stages and " exit " in ln] == [
         "%s 12 exit 0" % s for s in stages]
     assert code == 1, err
+
+
+def test_4432_a_missing_preflight_file_is_exit_2_naming_it_on_stderr_before_any_stage_is_called(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    calls = []
+
+    def spy(name, *args, **kw):
+        calls.append(os.path.basename(name))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert calls == []
+    assert code == 2, err
+    assert ".tdd/issue-12-preflight" in err
