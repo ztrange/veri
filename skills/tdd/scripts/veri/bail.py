@@ -37,6 +37,14 @@ def _commit_metrics(here, issue):
     return metrics
 
 
+def _write_note(note_file, drift, metrics):
+    with open(note_file, "a") as f:
+        f.write("\n" + (drift.stdout if drift.returncode == 0
+                        else "Skill drift: unavailable — skill-drift.sh exited %d\n" % drift.returncode))
+        f.write("\n" + (metrics.stdout if metrics.returncode == 0
+                        else "metrics could not be rendered: metrics.sh exited %d\n" % metrics.returncode))
+
+
 def main(argv):
     if not _valid(argv):
         return _bad_arguments()
@@ -58,11 +66,7 @@ def main(argv):
     metrics = _commit_metrics(here, issue)
     _run("push-branch.sh", [os.path.join(here, "push-branch.sh")])
     drift = _run("skill-drift.sh", [os.path.join(here, "skill-drift.sh")])
-    with open(note_file, "a") as f:
-        f.write("\n" + (drift.stdout if drift.returncode == 0
-                        else "Skill drift: unavailable — skill-drift.sh exited %d\n" % drift.returncode))
-        f.write("\n" + (metrics.stdout if metrics.returncode == 0
-                        else "metrics could not be rendered: metrics.sh exited %d\n" % metrics.returncode))
+    _write_note(note_file, drift, metrics)
     _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--note-file", note_file])
     _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--pr", "--note-file", note_file])
     print("phase: %s\nclassification: %s" % (phase, classification))
