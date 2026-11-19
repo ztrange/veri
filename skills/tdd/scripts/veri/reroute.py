@@ -22,6 +22,10 @@ CALLS = ("wrong-test-route.sh", "event.sh", "build-develop-prompt.sh", "stop-req
 # The answers this stage runs (S12) -> the rerouted red's prompt phase, its leaf being `develop-<phase>`.
 RUNS = {"red": "red-contradicted", "repair": "red-repair", "supersede": "red-supersede", "missing": "red-missing"}
 
+# The answers it stops on with exit 1, naming them (RRT4, S11, S12): plan growth (`prep`, `later`, `fixture`), the
+# `diff` verifier over a stash snapshot (`supersede-diff`), and the two exhaustions, whose bail is the conductor's.
+STOPS = ("prep", "later", "fixture", "supersede-diff", "missing-exhausted", "repair-exhausted")
+
 
 def main(argv):
     if len(argv) != 2 or not argv[0].isdigit():
@@ -86,6 +90,11 @@ def waited(wt, n, where, name):
 def edited(wt, values):
     """The rerouted red's report: the case it edited, to verify, and every test path the re-record covers."""
     got = fused.report("leaf", wt, ".tdd/%s.out" % values["leaf"], "TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED")
+    if got["AGAINST_UNMODIFIED"] in ("PASSES", "UNTESTABLE"):  # a pin is verify-pin's, by hand (PIN.md)
+        raise fused.Stop("leaf", "AGAINST_UNMODIFIED: " + got["AGAINST_UNMODIFIED"], 1)
+    for key in ("TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED"):
+        if not got[key] or key == "AGAINST_UNMODIFIED" and got[key] != "FAILS":
+            raise fused.Stop("leaf", "no %s: line" % key, 2)
     if values["kind"] == "supersede":  # one report for every named case: no single case is its target
         cases = [[case.partition("::")[0], case] for case in values["cases"]]
     else:
@@ -116,6 +125,8 @@ def launch(n, wt, settled, step, report, own, own_path):
     code, said, _ = fused.call(fused.script("wrong-test-route.sh"), "--spec", SPEC % n, report, own, cwd=wt,
                                env=fused.step_env(n, step))
     kind, _, rest = said.strip().partition(" ")
+    if code in (0, 1) and kind in STOPS:
+        raise fused.Stop("route", said.strip(), 1)
     if code != 0 or kind not in RUNS:
         raise fused.Stop("route", shown + " exit %d" % code, 2)
     fused.mark("route", wt, n, step, "reroute", "kind=" + kind, "case=" + rest)
