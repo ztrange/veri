@@ -276,8 +276,8 @@ def test_red_restores_production_gates_the_prediction_and_on_pass_records_and_re
                     ("red-setup.sh", ("record", "12")), ("comment.sh", ("12", "verify-revised", "red"))]
     assert fake.call("red-setup.sh")[4]["stdin"] == "the revise-red-1.out report\n"
     record = json.loads((revise.wt / ".tdd" / "issue-12-red-half-wait").read_text())
-    assert (record["at"], record["values"]) == ("verdict-red", dict(
-        RED_VALUES, test_path="tests/test_b.py", target_test="tests/test_b.py::test_two", revised=True))
+    assert (record["at"], record["values"]) == ("verdict-red", {
+        **RED_VALUES, "test_path": "tests/test_b.py", "target_test": "tests/test_b.py::test_two", "revised": True})
     assert not (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").exists()
 
 
