@@ -18,5 +18,5 @@
 - [x] every next= run-pr.sh can print is run-pr.sh <n> or the anchor DRAFT-PR.md#4. Draft PR, and a unit case checks that anchor names a heading in skills/tdd/DRAFT-PR.md, watched go red against a renamed heading ⟦criterion 9⟧
 - [x] it prints each stage's call line with its exit code and never the contents of a suite's output file ⟦criterion 10⟧
 - [x] a missing .tdd/issue-<n>-preflight is exit 2 before any stage is called
-- [ ] Go-red guard: the stacked-run refusal is broken on purpose, its stacked case run and seen red, then restored ⟦criterion 12⟧
+- [x] Go-red guard: the stacked-run refusal is broken on purpose, its stacked case run and seen red, then restored ⟦criterion 12⟧
 - [ ] the branch's diff leaves the title PATCH and the body to the conductor: run-pr.sh's module holds no gh api -X PATCH and no pr-body.sh call, DRAFT-PR.md keeps its title PATCH and pr-body.sh lines, and seam_contract.py and the record-refreshed enum in veri/event_table.py are unchanged ⟦diff-checked⟧ ⟦criterion 8⟧
