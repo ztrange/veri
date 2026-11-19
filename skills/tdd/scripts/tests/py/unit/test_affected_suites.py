@@ -1148,3 +1148,17 @@ def test_a_changed_module_a_process_file_names_lists_no_process_file_of_its_impo
     plant(tmp_path, {**HOP, PY + "test_names_helper_process.py": 'importlib.import_module("veri.helper")\n'})
 
     assert sorted(set(affected.suite_of("skills/tdd/scripts/veri/helper.py"))) == [PY + "test_names_helper_process.py"]
+
+
+def test_a_changed_module_lists_the_process_files_running_a_shim_of_another_name_that_execs_it_4425(
+        affected, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    plant(tmp_path, {
+        "skills/tdd/scripts/veri/prd_tally.py": "def main():\n    pass\n",
+        "skills/tdd/scripts/tally.sh": '#!/bin/sh\n# tally.sh: a shim\nexec "$py" "$(dirname "$0")/veri/prd_tally.py" "$@"\n',
+        "skills/tdd/scripts/mentions-tally.sh": '#!/bin/sh\n# reads what veri/prd_tally.py writes\nexec "$py" "$(dirname "$0")/veri/other.py"\n',
+        PY + "test_tally_process.py": 'subprocess.run([str(SCRIPTS / "tally.sh")])\n',
+        PY + "test_mentions_tally_process.py": 'subprocess.run([str(SCRIPTS / "mentions-tally.sh")])\n',
+    })
+
+    assert sorted(set(affected.suite_of("skills/tdd/scripts/veri/prd_tally.py"))) == [PY + "test_tally_process.py"]
