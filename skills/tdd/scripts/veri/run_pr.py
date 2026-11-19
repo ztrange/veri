@@ -12,6 +12,8 @@ USAGE = "usage: run-pr.sh <n>"
 ANCHOR = "DRAFT-PR.md#4. Draft PR"
 TITLE = "seam=pr-ready-wait code=1 reason=title next=%s\n" % ANCHOR
 BODY = "seam=done code=1 reason=body next=%s\n" % ANCHOR
+EARLY = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
+LATE = ("pr-ready-wait.sh", "pr-finish.sh")
 
 
 def ledger_sha(wt, n):
@@ -21,19 +23,18 @@ def ledger_sha(wt, n):
         return ""
 
 
-def run_late(n, wt, record, first, late):
-    for stage in late[late.index(first) if first else 0:]:
+def run_late(n, wt, first):
+    for stage in LATE[LATE.index(first) if first else 0:]:
         _, out, _ = fused.call(fused.script(stage), n)
     sys.stdout.write("".join(out.splitlines(True)[-2:]))
-    with open(record, "w") as f:
+    with open(fused.settled_file(wt, n, "run-pr"), "w") as f:
         f.write("seam=body\nsha=%s\n" % ledger_sha(wt, n))
     sys.stdout.write(BODY)
     return 1
 
 
-def run_early(n, wt, record, first, hands):
-    early = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
-    for stage in early[early.index(first) if first else 0:]:
+def run_early(n, wt, first, hands):
+    for stage in EARLY[EARLY.index(first) if first else 0:]:
         if stage in hands:
             sys.stdout.write("seam=%s code=1 reason=hand next=%s\n" % (stage[:-3], ANCHOR))
             return 1
@@ -45,7 +46,7 @@ def run_early(n, wt, record, first, hands):
             sys.stdout.write(out)
             sys.stdout.write("seam=%s code=%d next=%s\n" % (stage[:-3], code, "run-pr.sh %s" % n if code == 3 else ANCHOR))
             return code
-    with open(record, "w") as f:
+    with open(fused.settled_file(wt, n, "run-pr"), "w") as f:
         f.write("seam=title\nsha=%s\n" % ledger_sha(wt, n))
     sys.stdout.write(TITLE)
     return 1
@@ -63,10 +64,9 @@ def main(argv):
     held = open(record).read() if os.path.exists(record) else ""
     if first is None and "sha=%s\n" % ledger_sha(wt, n) in held and "seam=body\n" in held:
         return 0
-    late = ("pr-ready-wait.sh", "pr-finish.sh")
-    if first in late or (first is None and "sha=%s\n" % ledger_sha(wt, n) in held):
-        return run_late(n, wt, record, first, late)
-    return run_early(n, wt, record, first, hands)
+    if first in LATE or (first is None and "sha=%s\n" % ledger_sha(wt, n) in held):
+        return run_late(n, wt, first)
+    return run_early(n, wt, first, hands)
 
 
 if __name__ == "__main__":
