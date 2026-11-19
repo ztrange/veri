@@ -29,9 +29,10 @@ DIFF = "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verif
 # stops before such a stage without calling it). green-half's reason is specs/prd-027.md GH1.
 STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
           "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ()), "revise": (REVISE, ()),
-          "diff-step": (DIFF, ())}
-# The stages run in series; revise runs only on a half's REJECT, and is a stage only so `--hand revise` can name it.
-SERIES = tuple(stage for stage in STAGES if stage not in ("revise", "diff-step"))
+          "diff-step": (DIFF, ()), "reroute": (GREEN, ())}
+# The stages run in series; revise runs only on a half's REJECT and reroute only on a Green route, each a stage only
+# so `--hand` can name it; diff-step runs a kind's step in place of the series.
+SERIES = tuple(stage for stage in STAGES if stage not in ("revise", "diff-step", "reroute"))
 # The phase stages -> the phase a verifier judges: a REJECT there (`.tdd/verdict-<phase>.exit` holding 1) is revise.sh's.
 PHASES = {"red-half": "red", "green-half": "green", "refactor-half": "refactor", "diff-step": "diff"}
 # A green-half stop on a report line wrong-test-route.sh answers (two of green_half.ROUTES; SPLIT and TIDY_FIRST keep
@@ -169,7 +170,12 @@ def main(argv):
 def reroute(wt, n, step, hand, report):
     """reroute.sh <n> <report> for a Green route (PRD 038.10 RRT8): the next action, green-half again on its 0 (the
     answered REJECT's exit file and green-half's rejected record cleared, so the relaunched green is not read as a
-    second REJECT), revise.sh <n> green on its `route=revise phase=green`; else the seam's exit."""
+    second REJECT), revise.sh <n> green on its `route=revise phase=green`; with `reroute` handed, the hand seam and 1,
+    never calling it; else the seam's exit."""
+    if "reroute" in hand:
+        record(wt, n, "green-half", step)
+        sys.stdout.write("seam=reroute code=1 reason=hand next=%s\n" % GREEN)
+        return 1
     code, out = run_stage("reroute.sh", n, report)
     said = (out.splitlines() or [""])[-1]
     if code == 0:
