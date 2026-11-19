@@ -27,6 +27,7 @@ def main(argv):
         return 2
     n = argv[0]
     first = argv[argv.index("--from") + 1] + ".sh" if "--from" in argv else None
+    hands = [argv[i + 1] + ".sh" for i, a in enumerate(argv) if a == "--hand"]
     wt = fused_step.inputs("run-pr.sh", n)[1]
     record = fused.settled_file(wt, n, "run-pr")
     held = open(record).read() if os.path.exists(record) else ""
@@ -43,6 +44,9 @@ def main(argv):
         return 1
     early = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
     for stage in early[early.index(first) if first else 0:]:
+        if stage in hands:
+            sys.stdout.write("seam=%s code=1 reason=hand next=%s\n" % (stage[:-3], ANCHOR))
+            return 1
         code, out, _ = fused.call(fused.script(stage), argv[0])
         if code not in (0, 1, 2, 3):
             sys.stderr.write("run-pr.sh: %s exited %d\n" % (stage[:-3], code))
