@@ -352,3 +352,18 @@ def test_refactor_switched_off_resaves_refactor_halfs_wait_past_its_verify_with_
     assert (code, fake.launched()) == (0, ["revise-refactor-1"])
     record = json.loads((revise.wt / ".tdd" / "issue-12-refactor-half-wait").read_text())
     assert (record["at"], record["values"]) == ("skipped", dict(REF_VALUES, posted=True))
+
+
+@pytest.mark.parametrize("answer, last", [
+    (("build-develop-prompt.sh", None), "build-develop-prompt.sh"),
+    (("detach-leaf.sh", None), "detach-leaf.sh"),
+    (("wait-leaf.sh", "revise-green-1"), "wait-leaf.sh"),
+    (("wait-leaf.sh", "verdict-green"), "wait-leaf.sh")],
+    ids=["prompt", "launch", "supervisor", "verifier"])
+def test_a_prompt_supervisor_or_verifier_exit_2_is_exit_2_with_nothing_after_it(revise, answer, last):
+    """PRD 038.9 criterion 8: no answer could be obtained; a prompt's 2 posts no comment, writes no mark."""
+    code, out, err, fake = revise(answers={answer: (2, "")})
+
+    assert (code, fake.names()[-1]) == (2, last)
+    if answer[0] == "build-develop-prompt.sh":
+        assert not {"comment.sh", "event.sh", "detach-leaf.sh"} & set(fake.names())
