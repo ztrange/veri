@@ -1,0 +1,21 @@
+# Plan for #4433 — PRD 038.9: a revise stage runs REVISE.md through the runner
+
+- [ ] a phase stage whose verifier REJECTs keeps its wait values as `.tdd/issue-<n>-<stage>-rejected-wait`, so a revise can hand them back ⟦criterion 5⟧
+- [ ] `comment.sh <n> revise <phase> <k>` posts `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` with `.tdd/verify-<phase>.reason` verbatim ⟦criterion 1⟧
+- [ ] `revise.sh <n> green` attempt 1 builds the revise prompt, posts the Revise comment, writes the `revise` mark and launches `revise-green-1` with the phase's `VERI_TEST_CMD`, exiting 3 with a wait record; a bad phase or missing preflight is exit 2 ⟦criterion 1⟧ ⟦criterion 3⟧ ⟦criterion 12⟧
+- [ ] called again, `revise.sh <n> green` only waits, then runs `step-cost.sh` and `tests-frozen.sh check` and launches `verdict-green` with green-half's `run-verdict.sh` arguments and the recorded branch base, exiting 3 ⟦criterion 1⟧ ⟦criterion 3⟧ ⟦criterion 13⟧
+- [ ] on a revised PASS, `revise.sh` posts `verify-revised <phase>`, re-saves the phase stage's wait record at `verdict-<phase>` and exits 0 ⟦criterion 5⟧
+- [ ] a re-verify REJECT spends attempt k and goes on to k+1, whose `same-reject.sh` exit 0 stops with exit 1 naming sub-step 1 ⟦criterion 4⟧ ⟦criterion 6⟧
+- [ ] once `REVISE_BUDGET` (read through tunables) attempts are spent it stops with exit 1 naming the budget ⟦criterion 6⟧ ⟦criterion 12⟧
+- [ ] the attempt is read from the open step's `revise` events for the phase, so a resumed call goes on at the next attempt ⟦criterion 2⟧
+- [ ] a `tests-frozen.sh check` exit 1 spends the attempt without a verifier; its exit 2 is exit 2 ⟦criterion 4⟧ ⟦criterion 8⟧
+- [ ] with the phase in `.tdd/issue-<n>-skip-verify` it writes `verify-<phase>-skipped reason=switched-off`, `skipped` to the exit file, and goes on as on a PASS ⟦criterion 4⟧
+- [ ] `revise.sh <n> red` restores production before the leaf, gates the prediction (`red-divergence.sh` 3 re-verifies, 0/1/2 spend the attempt), and on PASS records frozen tests and red-setup, re-saving red-half's wait with the revised report's values ⟦criterion 1⟧ ⟦criterion 4⟧ ⟦criterion 5⟧
+- [ ] it stops with exit 1 naming the report line on `IMPOSSIBLE`, a revise-green `WRONG_TEST:`/`SUPERSEDED:`, and a revised red's `AGAINST_UNMODIFIED: PASSES` ⟦criterion 7⟧
+- [ ] `revise.sh <n> refactor` runs no step-cost, re-verifies with refactor-half's `green_sha`, and on PASS re-saves refactor-half's wait record ⟦criterion 1⟧ ⟦criterion 5⟧
+- [ ] a `build-develop-prompt.sh`, supervisor or verifier exit 2 is exit 2 ⟦criterion 8⟧
+- [ ] green and refactor read `test_path`/`target_test` from red-half's record through `fused_step.record`; `READS` gains `revise`, the `record-refreshed` enum gains `revise`; a missing record is the record seam, exit 1 ⟦criterion 11⟧
+- [ ] it prints one line per call and never a leaf's output, a suite's output or the reason file ⟦criterion 14⟧
+- [ ] `run-step.sh` calls `revise.sh` when a half stops with `.tdd/verdict-<phase>.exit` holding 1, re-calls the stage after exit 0, and any other exit is `seam=revise code=<c> next=REVISE.md#Revising on a REJECT` ⟦criterion 9⟧
+- [ ] `run-step.sh --hand revise` stops at that REJECT with `seam=revise code=1 reason=hand`, never calling `revise.sh`; `revise` is in `STAGES` but not in the series ⟦criterion 10⟧
+- [ ] `REVISE.md` opens with the one call line, `SCRIPTS.md` lists `revise.sh`, with their `REQUIREMENTS.md` rows and regrades; `SKILL.md` nets ≤ 0 B ⟦criterion 15⟧
