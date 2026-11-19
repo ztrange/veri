@@ -5,7 +5,7 @@
 - [x] run-pr.sh <n> runs branch-gate.sh, pr-prepare.sh and pr-checks.sh in that order, each through fused.script(), and after pr-checks.sh exits 0 prints seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR last and exits 1 (unit cases, in-process spy on fused.call, no process); as the step adding the script it also owes the script's no-argument usage line and exit 2 and its veri/README.md index line ⟦criterion 1⟧
 - [x] called again after the title seam, which it records in .tdd/issue-<n>-run-pr with the sha of the ledger's last commit, it runs pr-ready-wait.sh then pr-finish.sh, never the three stages before them, and after pr-finish.sh exits 0 prints pr-finish.sh's last lines then seam=done code=1 reason=body next=DRAFT-PR.md#4. Draft PR and exits 1 ⟦criterion 2⟧
 - [x] a seam record whose sha is not the ledger's last committed one is not resumed: called with no options it starts at branch-gate ⟦criterion 4⟧
-- [x] called again after the body seam it calls no stage and exits 0 ⟦criterion 2⟧ ⟂ refactor pending
+- [x] called again after the body seam it calls no stage and exits 0 ⟦criterion 2⟧
 - [ ] at the first stage exiting 1 or 2 it stops, prints seam=<stage> code=<c> next=DRAFT-PR.md#4. Draft PR after that stage's own output (its stopped at line), calls no later stage and exits c ⟦criterion 3⟧
 - [ ] a stage's exit 3 ends on seam=<stage> code=3 next=run-pr.sh <n> and exits 3 ⟦criterion 3⟧
 - [ ] a stage's exit code outside 0-3 is exit 2, the stage and its code named on stderr ⟦criterion 3⟧
