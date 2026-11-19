@@ -640,7 +640,8 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
         ("onto with text", [f"{rb_onto} because it merged", rb_pre]),
         ("short pre-rebase", [rb_onto, "abc123"]), ("uppercase pre-rebase", [rb_onto, "278252A1B9F3"]),
         ("pre-rebase with text", [rb_onto, f"{rb_pre} because it was green"]))}
-    transform = run(["--fast-cmd", "m", "transform", s, str(predicate), "0123abcdef"])
+    transform = run(["--fast-cmd", diff_fast, "transform", s, str(predicate), "0123abcdef"])
+    _, transform_fast, transform_after_fast = transform[1].partition(f"timed-test-run.sh fast '' {diff_fast}".encode())
     transform_bad_base = run(["--fast-cmd", "m", "transform", s, str(predicate), "tidied the helper"])[0]
     transforms = run(["transforms", s, str(predicate), "0123abcdef"])[0]
     dp = diff("0123abcdef", "0123abcdef")
@@ -662,6 +663,7 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
         "rebase sha refusals": rebase_refusals,
         "transform": (transform[0], b'slugify("Hello & World/Foo")' in transform[1],
                       b"git diff 0123abcdef..HEAD" in transform[1],
+                      bool(transform_fast), b"changed '<the test files you ran>'" in transform_after_fast,
                       transform_bad_base, transforms),
         "diff rendering": (dp[0], diff_step.encode() in dp[1], b"git diff 0123abcdef..HEAD" in dp[1]),
         "diff blind": (b"{{" in dp[1],
@@ -674,7 +676,7 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
         "plan ledger refusals": ((2, b""), (2, b"")),
         "rebase": (0, True, True, True, False),
         "rebase sha refusals": {label: (2, b"") for label in rebase_refusals},
-        "transform": (0, True, True, 2, 2),
+        "transform": (0, True, True, True, True, 2, 2),
         "diff rendering": (0, True, True),
         "diff blind": (False, False, True, True),
         "diff step base": (0, True),

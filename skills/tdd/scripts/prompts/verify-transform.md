@@ -16,9 +16,11 @@ the range carry the author's rationale. Render one verdict on the settled result
 ### Your checks
 
 1. **The predicate holds.** Run the command in `{{TEST_PATH}}` yourself; it must succeed.
-2. **Behaviour unchanged.** Run the test files covering the files the range touched, as
-   `affected-suites.sh` prints them, through the wrapper {{INCLUDE:_timed-test-run.md}}; they must be **green**:
+2. **Behaviour unchanged.** Run the fast command, `{{FAST_CMD}}`, then the test files covering
+   the files the range touched, as `affected-suites.sh` prints them, each through the wrapper
+   {{INCLUDE:_timed-test-run-tier.md}}; both must be **green**:
 
+       {{TIMED_TEST_RUN}} fast '' {{FAST_CMD}}
        {{INCLUDE:_timed-test-run-affected.md}}
 
 3. **One refactoring.** The range applies the refactoring the step names and nothing else.
