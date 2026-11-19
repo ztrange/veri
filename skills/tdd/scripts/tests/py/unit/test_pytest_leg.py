@@ -1577,3 +1577,40 @@ def test_4311_a_cap_that_is_not_a_whole_number_of_at_least_1_exits_2_in_one_line
     code, _, err = run_cli(pytest_leg, [cap, "-q", "some/dir"], env=leg_env())
 
     assert (code, ran, err.count("\n"), cap in err) == (2, [], 1, True)
+
+
+def test_4311_a_cap_4_leg_finding_no_free_core_waits_with_one_stderr_line_the_wait_marker_and_one_core_wait_event_carrying_its_seconds(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    import json
+    import supervise
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    holder = os.getppid()
+    blocker = legs / str(holder)
+    registered(blocker, 16)
+    marker = tmp_path / "marker"
+    clock = [1000.0]
+    polls = []
+
+    def five_seconds_a_poll_then_death_on_the_second(seconds):
+        polls.append(supervise.lock_waiting(str(marker)))
+        clock[0] += 5
+        if len(polls) == 2:
+            blocker.unlink()
+
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(pytest_leg.time, "sleep", five_seconds_a_poll_then_death_on_the_second)
+    argv = ["--cap=4", "--timeout=30", "-m", "not process and not tree_audit", "some/dir"]
+    env = leg_env(VERI_PYTEST_LEGS=str(legs), PYTEST_LEG_LOCK_WAIT_MARKER=str(marker))
+    code, _, err = run_cli(pytest_leg, argv, env=env, cwd=str(tree))
+    journal = tree / ".tdd" / "events.jsonl"
+    waits = [line.get("seconds") for line in map(json.loads, journal.read_text().splitlines() if journal.exists() else []) if line["event"] == "core-wait"]
+
+    assert (code, [str(holder) in line for line in err.splitlines()], polls, marker.exists(), waits) == (0, [True], [True, True], False, ["10"])
