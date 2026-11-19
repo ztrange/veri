@@ -66,3 +66,10 @@ skills/tdd/scripts/tests/py/unit/test_bail.py
 command 201
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_bail.py::test_a_non_zero_preserve_attempt_exit_is_named_on_its_call_line_and_the_reset_event_metrics_push_and_both_comments_still_run_ending_exit_0
 
+before 40
+eb03807ec3af17171b59c5af6ebb236369b4ec96
+keep 45
+skills/tdd/scripts/tests/py/unit/test_bail.py
+command 186
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_bail.py::test_a_non_zero_push_branch_exit_is_named_on_its_call_line_and_both_comments_still_run_ending_exit_0_with_the_event_written
+
