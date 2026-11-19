@@ -2018,11 +2018,13 @@ SIG = " %s 2026-11-19 id prefix\n"
 def test_4429_signed_units_decodes_a_heading_unit_and_finds_its_requirements_beside_the_file_named_before_the_hash(
         grade_prose):
     head = {"skills/tdd/GRADED": "skills/tdd/SKILL.md#Two%20words" + SIG % ("a" * 64)
-            + "skills/tdd/SKILL.md#100%25%20a/b" + SIG % ("b" * 64)}
+            + "skills/tdd/SKILL.md#100%25%20a/b" + SIG % ("b" * 64)
+            + "skills/tdd/SKILL.md#a%2520b" + SIG % ("c" * 64)}
 
     assert grade_prose.signed_units({}, head) == [
         ("skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md#Two words"),
-        ("skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md#100% a/b")]
+        ("skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md#100% a/b"),
+        ("skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md#a%20b")]
 
 
 def test_4429_signed_units_lists_a_root_unit_beside_the_root_requirements_and_a_prompt_beside_its_own(grade_prose):
@@ -2050,3 +2052,9 @@ def test_4429_signed_without_exactly_one_base_exits_2_with_its_usage_starting_no
     code, out, err = run_cli(grade_prose, argv)
 
     assert (code, out, "--signed <base>" in err, fake.argvs) == (2, "", True, []), err
+
+
+def test_4429_signed_units_lists_no_unit_for_a_blank_line_in_a_graded_file(grade_prose):
+    head = {"skills/tdd/GRADED": "\n" + "skills/tdd/SKILL.md" + SIG % "h" + "\n"}
+
+    assert grade_prose.signed_units({}, head) == [("skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md")]
