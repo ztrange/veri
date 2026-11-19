@@ -12,4 +12,4 @@
 - [x] on exit 0 the record at `VERI_TEST_CEILING_FILE` (default `~/.veri-test-ceiling`) is replaced whole through a temporary file: the ceiling, the date, the commit, the load average at start, one `<workers> <seconds> <timeouts>` line per step; an in-process case ⟦criterion 4⟧
 - [x] exit 1 and exit 2 leave an earlier record unchanged; in-process cases ⟦criterion 4⟧
 - [x] the `ceiling` `.PHONY` target runs `test-ceiling.sh` and is its one entry point: no `test`/`unit` recipe, CI workflow, procedure file or prompt names it, and `unreachable.sh` does not list it; a tree-audit case ⟦criterion 5⟧
-- [ ] CLAUDE.md's Commands table gains the `make ceiling` row and its opening paragraph names `test-ceiling.sh`; SCRIPTS.md, `veri/README.md` and the CM306/CM307 rows land with it, regraded ⟦skill-edit⟧ ⟦criterion 7⟧
+- [x] CLAUDE.md's Commands table gains the `make ceiling` row and its opening paragraph names `test-ceiling.sh`; SCRIPTS.md, `veri/README.md` and the CM306/CM307 rows land with it, regraded ⟦skill-edit⟧ ⟦criterion 7⟧
