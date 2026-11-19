@@ -232,3 +232,61 @@ def test_with_the_phase_switched_off_it_marks_the_skip_writes_skipped_and_goes_o
     record = json.loads((revise.wt / ".tdd" / "issue-12-green-half-wait").read_text())
     assert (record["at"], record["values"]) == (
         None, {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"})
+
+
+RED_REPORT = "TEST_PATH: tests/test_b.py\nTARGET_TEST: tests/test_b.py::test_two\nAGAINST_UNMODIFIED: FAILS\n" \
+             "OUTCOME: REWRITTEN\n"
+RED_VALUES = {"refresh": 0, "test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"}
+
+
+def _red(revise):
+    """The files a rejected red leaves: red-half's rejected record, the reports and the reason."""
+    (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").write_text(
+        json.dumps({"conductor": None, "at": "verdict-red", "values": RED_VALUES}))
+    for name in ("develop-red.out", "revise-red-1.out"):
+        (revise.wt / ".tdd" / name).write_text("the %s report\n" % name)
+    (revise.wt / ".tdd" / "verify-red.reason").write_text(REASON)
+
+
+def test_red_restores_production_gates_the_prediction_and_on_pass_records_and_resaves_red_halfs_wait(revise):
+    """PRD 038.9 criteria 1, 4, 5: REVISE.md sub-steps 3-5 for red, red-half's record not needed."""
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, "")}, report=RED_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    names = fake.names()
+    assert code == 0, out
+    assert fake.call("restore-production.sh")[1] == ("tests/test_b.py",)
+    assert names.index("restore-production.sh") < names.index("detach-leaf.sh")
+    gate = fake.call("red-divergence.sh")
+    assert (gate[1], gate[4]["stdin"], gate[4]["out"]) == (
+        (".tdd/red-prediction.md", ".tdd/red-run-output.txt"), "the revise-red-1.out report\n",
+        ".tdd/verify-red.reason")
+    assert fake.launched() == ["revise-red-1", "verdict-red"]
+    verdict = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
+    assert _short(verdict[1])[-4:] == ("red", ".tdd/issue-12-spec.md", "tests/test_b.py", "tests/test_b.py::test_two")
+    tail = [(c[0], c[1]) for c in fake.calls[names.index("wait-leaf.sh", names.index("red-divergence.sh")) + 1:]]
+    assert tail == [("tests-frozen.sh", ("record", "--step", STEP, "--red-case", "tests/test_b.py::test_two",
+                                         "tests/test_b.py")),
+                    ("red-setup.sh", ("record", "12")), ("comment.sh", ("12", "verify-revised", "red"))]
+    assert fake.call("red-setup.sh")[4]["stdin"] == "the revise-red-1.out report\n"
+    record = json.loads((revise.wt / ".tdd" / "issue-12-red-half-wait").read_text())
+    assert (record["at"], record["values"]) == ("verdict-red", dict(
+        RED_VALUES, test_path="tests/test_b.py", target_test="tests/test_b.py::test_two"))
+    assert not (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").exists()
+
+
+@pytest.mark.parametrize("gate", [0, 1, 2])
+def test_a_red_prediction_gate_exit_0_1_or_2_spends_the_attempt_without_a_verifier(revise, gate):
+    """PRD 038.9 criterion 4: REVISE.md sub-step 4; only exit 3 (matched) re-verifies."""
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (gate, ""),
+                                             ("wait-leaf.sh", "revise-red-2"): (3, "")}, report=RED_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (3, ["revise-red-1", "revise-red-2"])
+    reason = (revise.wt / ".tdd" / "verify-red.reason").read_text()
+    if gate == 1:
+        assert reason == "REASON: prediction not written before the run\n"
+    if gate == 2:
+        assert reason == "REASON: the revised red carries no readable PREDICTION: line\n"

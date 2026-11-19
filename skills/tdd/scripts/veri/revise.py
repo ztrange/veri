@@ -10,6 +10,8 @@ import event_log
 import fused
 import fused_step
 import green_half
+import red_half
+import refactor_half
 import ledger
 import run_dir
 import tunables
@@ -18,6 +20,8 @@ from ledger import handed_out
 NAME = "revise"
 USAGE = "usage: revise.sh <n> <phase>  (phase: red, green or refactor)"
 PHASES = ("red", "green", "refactor")
+LAUNCH = {"red": red_half.launch_verdict, "green": green_half.launch_verdict,
+          "refactor": refactor_half.launch_verdict}
 SKIPPED = "skipped"  # a re-verify the run switched off
 STAGES = {"red": "red-half", "green": "green-half", "refactor": "refactor-half"}
 SPEC = ".tdd/issue-%s-spec.md"
@@ -26,7 +30,7 @@ LEDGER = run_dir.ledger("", "%s")
 # The $S/ scripts this call makes, in the order each is first made.
 CALLS = ("build-develop-prompt.sh", "comment.sh", "event.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh",
          "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "tests-frozen.sh", "run-verdict.sh",
-         "same-reject.sh")
+         "same-reject.sh", "restore-production.sh", "extract-result.sh", "red-divergence.sh", "red-setup.sh")
 
 
 def main(argv):
@@ -48,13 +52,13 @@ def run(n, phase):
         return 2
     settled, wt = given
     step = fused_step.first_step(wt, n, handed_out)
-    red = fused_step.record(NAME, wt, n, step)
-    if red is None:
-        return 1
     resumed = fused.load_wait(wt, n, NAME)
     if resumed is None:
-        values = {"phase": phase, "k": spent(wt, step, phase) + 1, "test_path": red["test_path"],
-                  "target_test": red["target_test"]}
+        k = spent(wt, step, phase) + 1
+        judged = start(n, wt, step, phase, k)
+        if judged is None:
+            return 1
+        values = dict(judged, phase=phase, k=k)
         at = attempt(n, wt, settled, step, values)
     else:
         at, values = resumed
@@ -65,17 +69,30 @@ def run(n, phase):
                 raise fused.Stop("3", "wait-leaf.sh %s exit %d" % (at, code), code)
             fused_step.cost_check(wt, step)
             at = checks(n, wt, settled, step, values)
-        if at == SKIPPED:
-            return finish(n, wt, values, None)
         if at is not None:
-            code = fused.wait(wt, n, NAME, at, keep_rejected=False)
-            if code != 1:
-                break
+            code = 0 if at == SKIPPED else fused.wait(wt, n, NAME, at, keep_rejected=False)
+            if code not in (0, 1):
+                raise fused.Stop("5", "wait-leaf.sh %s exit %d" % (at, code), code)
+            if code == 0 and recorded(n, wt, step, values):
+                return finish(n, wt, values, None if at == SKIPPED else at)
         values = dict(values, k=values["k"] + 1)
         at = attempt(n, wt, settled, step, values)
-    if code != 0:
-        raise fused.Stop("5", "wait-leaf.sh %s exit %d" % (at, code), code)
-    return finish(n, wt, values, "verdict-" + values["phase"])
+
+
+def start(n, wt, step, phase, k):
+    """The values the rejected verifier judged: red's from the report it judged (`.tdd/develop-red.out` at attempt 1,
+    else the previous revise's), since red-half writes its record only after a PASS; green's from red-half's record
+    (None, the seam line printed, without one)."""
+    if phase == "red":
+        report = ".tdd/develop-red.out" if k == 1 else ".tdd/revise-red-%d.out" % (k - 1)
+        return judged(wt, report)
+    red = fused_step.record(NAME, wt, n, step)
+    return None if red is None else {"test_path": red["test_path"], "target_test": red["target_test"]}
+
+
+def judged(wt, report):
+    got = fused.report("1", wt, report, "TEST_PATH", "TARGET_TEST")
+    return {"test_path": got["TEST_PATH"], "target_test": got["TARGET_TEST"]}
 
 
 def spent(wt, step, phase):
@@ -103,6 +120,8 @@ def attempt(n, wt, settled, step, values):
     fused.checked("2", fused.script("comment.sh"), n, "revise", phase, str(k), cwd=wt)
     fused.mark("2", wt, n, step, "revise", "budget=" + budget,
                VERI_PHASE=phase, VERI_ATTEMPT=str(k))
+    if phase == "red":
+        fused.checked("3", fused.script("restore-production.sh"), values["test_path"], cwd=wt)
     fused.launch("3", wt, leaf, "run-leaf.sh", ".tdd/%s.prompt" % leaf, "--permission-mode", "bypassPermissions",
                  env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/%s.out" % leaf, err=".tdd/%s.err" % leaf,
                  clear=(".tdd/red-prediction.md", ".tdd/red-run-output.txt"))
@@ -111,8 +130,11 @@ def attempt(n, wt, settled, step, values):
 
 
 def checks(n, wt, settled, step, values):
-    """REVISE.md sub-step 4 for green: tests-frozen.sh check before any verifier; its exit 1 spends attempt k as a
-    REJECT does, its stdout the reason, and launches no verifier (None); 0 launches the re-verify (its leaf)."""
+    """REVISE.md sub-step 4: red's prediction gate, green's tests-frozen.sh check, before any verifier. A check that
+    spends attempt k as a REJECT does leaves its reason in the reason file and launches no verifier (None); otherwise
+    the re-verify is launched (its leaf, or SKIPPED)."""
+    if values["phase"] == "red":
+        return red_checks(n, wt, settled, step, values)
     code, said, _ = fused.call(fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
     if code not in (0, 1):
         raise fused.Stop("4", fused.label("tests-frozen.sh", "check", "--step", step) + " exit %d" % code, code)
@@ -121,6 +143,31 @@ def checks(n, wt, settled, step, values):
             f.write("REASON: the revise changed a frozen test file: %s\n" % " ".join(said.split()))
         return None
     return verify(n, wt, settled, step, values)
+
+
+# Red's prediction gate (red-divergence.sh): the reason the exits that are not a match leave; exit 0's is the script's.
+UNMATCHED = {1: "REASON: prediction not written before the run\n",
+             2: "REASON: the revised red carries no readable PREDICTION: line\n"}
+
+
+def red_checks(n, wt, settled, step, values):
+    """Red's sub-step 4: the revised report's test, then its prediction gated; exit 3 (matched) re-verifies, any
+    other exit spends the attempt."""
+    out = ".tdd/revise-red-%d.out" % values["k"]
+    values.update(judged(wt, out))
+    gate = fused.call(fused.script("red-divergence.sh"), ".tdd/red-prediction.md", ".tdd/red-run-output.txt", cwd=wt,
+                      stdin=read(wt, out), out=".tdd/verify-red.reason")[0]
+    if gate == 3:
+        return verify(n, wt, settled, step, values)
+    if gate in UNMATCHED:
+        with open(os.path.join(wt, ".tdd", "verify-red.reason"), "w") as f:
+            f.write(UNMATCHED[gate])
+    return None
+
+
+def read(wt, path):
+    with open(os.path.join(wt, path), encoding="utf-8", errors="replace") as f:
+        return f.read()
 
 
 def verify(n, wt, settled, step, values):
@@ -133,9 +180,28 @@ def verify(n, wt, settled, step, values):
         with open(os.path.join(wt, ".tdd", "verdict-%s.exit" % phase), "w") as f:
             f.write("skipped\n")
         return SKIPPED
-    green_half.launch_verdict("5", n, wt, settled, step, values)
+    LAUNCH[phase]("5", n, wt, settled, step, values)
     fused.save_wait(wt, n, NAME, "verdict-" + values["phase"], values)
     return "verdict-" + values["phase"]
+
+
+def recorded(n, wt, step, values):
+    """A revised red's PASS records the step's frozen tests and red-setup (REVISE.md sub-step 5); tests-frozen.sh exit
+    1 is a REJECT that spends the attempt, its stdout the reason (False). True for every other phase."""
+    if values["phase"] != "red":
+        return True
+    red_test_id = fused_step.red_test_id(values["test_path"], values["target_test"])
+    code, said, _ = fused.call(fused.script("tests-frozen.sh"), "record", "--step", step, "--red-case", red_test_id,
+                               values["test_path"], cwd=wt)
+    if code == 1:
+        with open(os.path.join(wt, ".tdd", "verify-red.reason"), "w") as f:
+            f.write(said)
+        return False
+    if code != 0:
+        raise fused.Stop("5", fused.label("tests-frozen.sh", "record", "--step", step) + " exit %d" % code, code)
+    fused.checked("5", fused.script("red-setup.sh"), "record", n, cwd=wt, ok=(0, 2, 3),
+                  stdin=read(wt, ".tdd/revise-red-%d.out" % values["k"]))
+    return True
 
 
 def finish(n, wt, values, at):
@@ -145,8 +211,9 @@ def finish(n, wt, values, at):
     phase = values["phase"]
     stage = STAGES[phase]
     fused.checked("5", fused.script("comment.sh"), n, "verify-revised", phase, cwd=wt)
-    fused.save_wait(wt, n, stage, at,
-                    {"test_path": values["test_path"], "target_test": values["target_test"]})
+    rejected = fused.load_wait(wt, n, stage + "-rejected")
+    fused.save_wait(wt, n, stage, at, dict(rejected[1] if rejected else {}, test_path=values["test_path"],
+                                           target_test=values["target_test"]))
     with contextlib.suppress(FileNotFoundError):
         os.remove(fused.wait_record(wt, n, stage + "-rejected"))
     return 0
