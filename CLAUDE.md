@@ -2,8 +2,8 @@
 
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
 product is `skills/tdd/`: a procedure (`SKILL.md`) Claude follows, plus the scripts it calls,
-which are Python modules behind `/bin/sh` shims. `invisible-work.sh` (#197) and
-`unreachable.sh` (#498) are maintenance utilities the procedure never calls. `CONTEXT.md` is the glossary; its terms (conductor, leaf,
+which are Python modules behind `/bin/sh` shims. `invisible-work.sh` (#197),
+`unreachable.sh` (#498) and `test-ceiling.sh` (#4418) are maintenance utilities the procedure never calls. `CONTEXT.md` is the glossary; its terms (conductor, leaf,
 supervisor, verdict, ledger, bail) are used precisely everywhere.
 Two sections no leaf reads, "Versions are tags, and nothing else" and "`make test` on the
 development Mac", live in [operator/MAINTAINING.md](operator/MAINTAINING.md).
@@ -23,6 +23,7 @@ veri: quiet test files: `"${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3" skil
 | `make profile` | Runs the suites `make test` runs and prints one line per case at or above `VERI_PROFILE_THRESHOLD` seconds, slowest first. Nothing gates on it. |
 | `make unreachable` | Lists the scripts no declared entry point reaches, through `unreachable.sh`. |
 | `make report` | Prints the `/vreport` figures, through `report.sh`. |
+| `make ceiling` | Ramps `make test`'s workers (2, 4, 6, … up to the logical cores, or `MAX=<n>`), one full suite per step, through `test-ceiling.sh`, to find the highest count with no case timeout, and records it in `~/.veri-test-ceiling` (`VERI_TEST_CEILING_FILE`). Hours on an idle machine; never in CI, and nothing gates on it. |
 | `make watch` | Reruns `make unit` whenever a tracked file changes. Nothing gates on it. |
 | `make run-finished ISSUE=<n>` | Says whether run `<n>` is safe to merge, through `run-finished.sh`. |
 | `make ready-check` | Reports whether veri can run in this repository, through `ready-check.sh`. |
