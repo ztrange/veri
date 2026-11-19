@@ -16,6 +16,7 @@ import ledger
 import run_dir
 import tunables
 from ledger import handed_out
+from next_pending_refactor import refactor_pending
 
 NAME = "revise"
 USAGE = "usage: revise.sh <n> <phase>  (phase: red, green or refactor)"
@@ -51,7 +52,7 @@ def run(n, phase):
     if given is None:
         return 2
     settled, wt = given
-    step = fused_step.first_step(wt, n, handed_out)
+    step = fused_step.first_step(wt, n, refactor_pending if phase == "refactor" else handed_out)
     resumed = fused.load_wait(wt, n, NAME)
     if resumed is None:
         k = spent(wt, step, phase) + 1
@@ -67,14 +68,15 @@ def run(n, phase):
             code = fused.wait(wt, n, NAME, at)
             if code != 0:
                 raise fused.Stop("3", "wait-leaf.sh %s exit %d" % (at, code), code)
-            fused_step.cost_check(wt, step)
+            if values["phase"] != "refactor":
+                fused_step.cost_check(wt, step)
             at = checks(n, wt, settled, step, values)
         if at is not None:
             code = 0 if at == SKIPPED else fused.wait(wt, n, NAME, at, keep_rejected=False)
             if code not in (0, 1):
                 raise fused.Stop("5", "wait-leaf.sh %s exit %d" % (at, code), code)
             if code == 0 and recorded(n, wt, step, values):
-                return finish(n, wt, values, None if at == SKIPPED else at)
+                return finish(n, wt, values, at)
         values = dict(values, k=values["k"] + 1)
         at = attempt(n, wt, settled, step, values)
 
@@ -82,7 +84,13 @@ def run(n, phase):
 def start(n, wt, step, phase, k):
     """The values the rejected verifier judged: red's from the report it judged (`.tdd/develop-red.out` at attempt 1,
     else the previous revise's), since red-half writes its record only after a PASS; green's from red-half's record
-    (None, the seam line printed, without one)."""
+    (None, the seam line printed, without one); refactor's from refactor-half's rejected record, the only place its
+    wait values survive (exit 2 without one)."""
+    if phase == "refactor":
+        rejected = fused.load_wait(wt, n, STAGES[phase] + "-rejected")
+        if rejected is None:
+            raise fused.Stop("1", "no " + os.path.relpath(fused.wait_record(wt, n, STAGES[phase] + "-rejected"), wt), 2)
+        return rejected[1]
     if phase == "red":
         report = ".tdd/develop-red.out" if k == 1 else ".tdd/revise-red-%d.out" % (k - 1)
         return judged(wt, report)
@@ -136,6 +144,8 @@ def checks(n, wt, settled, step, values):
     routed(wt, values)
     if values["phase"] == "red":
         return red_checks(n, wt, settled, step, values)
+    if values["phase"] == "refactor":
+        return verify(n, wt, settled, step, values)
     code, said, _ = fused.call(fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
     if code not in (0, 1):
         raise fused.Stop("4", fused.label("tests-frozen.sh", "check", "--step", step) + " exit %d" % code, code)
@@ -222,14 +232,20 @@ def recorded(n, wt, step, values):
 
 def finish(n, wt, values, at):
     """REVISE.md sub-step 5 on a PASS: the revised verdict's comment, then the phase stage's wait record re-saved at
-    <at> (its verdict, or None past a switched-off one), so the stage called again finishes as after its own PASS;
-    its rejected record is removed."""
+    <at>, so the stage called again finishes as after its own PASS: at its verdict, or at SKIPPED past a switched-off
+    one with its verify comment `posted`, which no stage step names, so the stage goes straight to its finish. The
+    values are the stage's rejected record's, red's and green's test replaced by the revised one; the rejected record
+    is removed."""
     phase = values["phase"]
     stage = STAGES[phase]
     fused.checked("5", fused.script("comment.sh"), n, "verify-revised", phase, cwd=wt)
     rejected = fused.load_wait(wt, n, stage + "-rejected")
-    fused.save_wait(wt, n, stage, at, dict(rejected[1] if rejected else {}, test_path=values["test_path"],
-                                           target_test=values["target_test"]))
+    kept = dict(rejected[1] if rejected else {})
+    if phase != "refactor":
+        kept.update(test_path=values["test_path"], target_test=values["target_test"])
+    if at == SKIPPED:
+        kept["posted"] = True
+    fused.save_wait(wt, n, stage, at, kept)
     with contextlib.suppress(FileNotFoundError):
         os.remove(fused.wait_record(wt, n, stage + "-rejected"))
     return 0

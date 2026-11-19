@@ -222,8 +222,9 @@ def test_a_tests_frozen_check_exit_1_spends_the_attempt_without_a_verifier_and_i
 
 
 def test_with_the_phase_switched_off_it_marks_the_skip_writes_skipped_and_goes_on_as_on_a_pass(revise):
-    """PRD 038.9 criterion 4 (ADR-0033): no verifier; the stage's record is re-saved past its verdict (at None), since
-    wait-leaf.sh reads a `skipped` exit file as 2 and the stage's own switched-off branch waits on nothing."""
+    """PRD 038.9 criterion 4 (ADR-0033): no verifier; the stage's record is re-saved past its verdict (at `skipped`,
+    its verify comment `posted`), since wait-leaf.sh reads a `skipped` exit file as 2 and the stage's own switched-off
+    branch waits on nothing."""
     (revise.wt / ".tdd" / "issue-12-skip-verify").write_text("green\n")
     code, out, err, fake = revise()
 
@@ -233,7 +234,7 @@ def test_with_the_phase_switched_off_it_marks_the_skip_writes_skipped_and_goes_o
     assert (fake.calls[-1][0], fake.calls[-1][1]) == ("comment.sh", ("12", "verify-revised", "green"))
     record = json.loads((revise.wt / ".tdd" / "issue-12-green-half-wait").read_text())
     assert (record["at"], record["values"]) == (
-        None, {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"})
+        "skipped", {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one", "posted": True})
 
 
 RED_REPORT = "TEST_PATH: tests/test_b.py\nTARGET_TEST: tests/test_b.py::test_two\nAGAINST_UNMODIFIED: FAILS\n" \
@@ -307,3 +308,47 @@ def test_it_stops_with_exit_1_naming_the_report_line_that_routes_the_revise_else
 
     assert (code, out.splitlines()[-1]) == (1, "stopped at 3 " + line)
     assert fake.launched() == ["revise-%s-1" % phase]
+
+
+GREEN_SHA = "c" * 40
+REF_VALUES = {"green_sha": GREEN_SHA, "budget": 3, "touched": "src/a.py", "test_path": "tests/test_a.py",
+              "ran": True, "count": 1, "stopped": "nothing-left", "candidates": [], "flags": []}
+
+
+def _refactor(revise):
+    """The files a rejected refactor leaves: the step refactor-pending, refactor-half's rejected record, the report
+    and the reason."""
+    (revise.wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] %s ⟂ refactor pending\n"
+                                                    "- [ ] two ⟦criterion 2⟧\n" % STEP)
+    (revise.wt / ".tdd" / "issue-12-refactor-half-rejected-wait").write_text(
+        json.dumps({"conductor": None, "at": "verdict-refactor", "values": REF_VALUES}))
+    (revise.wt / ".tdd" / "revise-refactor-1.out").write_text("the revise-refactor-1 report\n")
+    (revise.wt / ".tdd" / "verify-refactor.reason").write_text(REASON)
+
+
+def test_refactor_runs_no_step_cost_reverifies_with_refactor_halfs_green_sha_and_on_pass_resaves_its_wait(revise):
+    """PRD 038.9 criteria 1 and 5: refactor-half's values come back from its rejected record (D1)."""
+    _refactor(revise)
+    code, out, err, fake = revise(argv=("12", "refactor"), missing=("red-half",))
+
+    assert code == 0, out
+    assert not {"step-cost.sh", "tests-frozen.sh"} & set(fake.names())
+    assert fake.call("build-develop-prompt.sh")[1][:4] == ("revise", "refactor", ".tdd/issue-12-spec.md", STEP)
+    verdict = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
+    assert _short(verdict[1])[-4:] == ("refactor", ".tdd/issue-12-spec.md", "tests/test_a.py", GREEN_SHA)
+    assert (fake.calls[-1][0], fake.calls[-1][1]) == ("comment.sh", ("12", "verify-revised", "refactor"))
+    record = json.loads((revise.wt / ".tdd" / "issue-12-refactor-half-wait").read_text())
+    assert (record["at"], record["values"]) == ("verdict-refactor", REF_VALUES)
+    assert not (revise.wt / ".tdd" / "issue-12-refactor-half-rejected-wait").exists()
+
+
+def test_refactor_switched_off_resaves_refactor_halfs_wait_past_its_verify_with_the_comment_posted(revise):
+    """PRD 038.9 criterion 4: refactor-half re-entered at `skipped` goes straight to its finish, posting no second
+    verify-refactor comment (`posted`) and rerunning no check."""
+    _refactor(revise)
+    (revise.wt / ".tdd" / "issue-12-skip-verify").write_text("refactor\n")
+    code, out, err, fake = revise(argv=("12", "refactor"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (0, ["revise-refactor-1"])
+    record = json.loads((revise.wt / ".tdd" / "issue-12-refactor-half-wait").read_text())
+    assert (record["at"], record["values"]) == ("skipped", dict(REF_VALUES, posted=True))
