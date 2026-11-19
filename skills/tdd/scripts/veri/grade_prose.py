@@ -21,7 +21,7 @@ from paths import SCRIPTS
 
 import leaf
 
-USAGE = "usage: grade-prose.sh <requirements-file> <unit> | --signed <base> | --owed | --convert"
+USAGE = "usage: grade-prose.sh <requirements-file> <unit> | --owed | --convert | --signed <base>"
 GRADE_KEY = r"^(?!VERDICT|REASON:)\S+: "
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
 BAD_GRADE = re.compile(GRADE_KEY + r"(?!PASS\b|FAIL\b)\S", re.M)
