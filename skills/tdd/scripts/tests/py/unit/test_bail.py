@@ -45,6 +45,10 @@ def test_a_stray_argument_after_note_file_or_a_valueless_or_trailing_attempt_exi
         "other flag after note file": ["7", "tests-red", "red", "--note-file", "n.md", "--force"],
         "attempt with no value": ["7", "tests-red", "red", "--note-file", "n.md", "--attempt"],
         "more arguments after attempt": ["7", "tests-red", "red", "--note-file", "n.md", "--attempt", "2", "extra"],
+        "other flag in place of note file": ["7", "tests-red", "red", "--nope", "n.md"],
+        "other flag in place of attempt": ["7", "tests-red", "red", "--note-file", "n.md", "--tries", "2"],
+        "non-ascii digit n": ["٣", "tests-red", "red", "--note-file", "n.md"],
+        "non-ascii digit attempt": ["7", "tests-red", "red", "--note-file", "n.md", "--attempt", "٣"],
     }
     for label, argv in bad.items():
         fake = fake_processes.answers({})
