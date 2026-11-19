@@ -21,7 +21,8 @@ import stack_branch
 import tunables
 from github import TimedOut, bounded_group, gh_api, gh_probe
 
-USAGE = "usage: queued-merge.sh [--skip-suite <model-id> <reason>] <pr-url> <worktree> <branch> <tag-message|->"
+USAGE = ("usage: queued-merge.sh [--skip-suite <model-id> <reason>] <pr-url> <worktree> <branch> <tag-message|->\n"
+         "       queued-merge.sh --local-green")
 SKIPPER = re.compile(r"opus|fable", re.IGNORECASE)
 FETCH_ATTEMPTS = 5
 JOIN_ATTEMPTS = 5
@@ -1030,7 +1031,91 @@ def _skip_suite(argv):
     return "%s %s" % (model, reason), argv[3:], None
 
 
+def _local_green(argv):
+    """--local-green (PRD 033.2b, OL20), run in the target repository's clone during an outage: under the merge lock, the
+    all-tier command on the local stack's tip in a worktree added there and removed after; green removes
+    `.tdd/stack-local-red` (0), red keeps it (1). 2 outside an outage, with no stack named or on no answer; 3 when no
+    `.tdd/stack-local-red` exists, nothing locked or run."""
+    if argv:
+        print(USAGE, file=sys.stderr)
+        return 2
+    try:
+        clone = run_dir.main_tree_from_files()
+    except OSError as error:
+        _say("the main working tree cannot be read (%s); nothing run" % error)
+        return 2
+    if not os.path.exists(os.path.join(clone, ".tdd", "github-outage")):
+        _say("--local-green runs only during a GitHub outage (.tdd/github-outage exists); online, CI's answer on the stack"
+             " lifts a freeze; nothing run")
+        return 2
+    try:
+        stack = stack_branch.named(clone, remote=False)
+    except stack_branch.Refused as refused:
+        _say("%s; nothing run" % refused)
+        return 2
+    if not stack:
+        _say("the repository's CLAUDE.md names no stack branch, so there is no local stack to run; nothing run")
+        return 2
+    red = os.path.join(clone, ".tdd", "stack-local-red")
+    if not os.path.exists(red):
+        _say("%s does not exist, so the local %s is not frozen; nothing run" % (red, stack))
+        return 3
+    pid = str(os.getpid())
+    code = _script("merge-lock.sh", "take", "--pid", pid)
+    if code:
+        _say("taking the merge lock failed (exit %d)" % code)
+        return code
+    try:
+        code = _green_tip(clone, stack, red, pid)
+    finally:
+        released = _release(pid)
+    return 2 if released else code
+
+
+def _green_tip(clone, stack, red, pid):
+    """The all-tier command on the local <stack>'s tip, in a worktree added at it and removed after, with the lock held:
+    0 green and <red> removed, 1 red and <red> kept, 2 on no answer (a failed worktree removal included)."""
+    tip = _rev(clone, "refs/heads/" + stack)
+    if not tip:
+        _say("the local %s does not resolve; %s kept" % (stack, red))
+        return 2
+    worktree = os.path.join(clone, ".tdd", "local-green-" + pid)
+    added = _git(clone, "worktree", "add", "--detach", worktree, tip)
+    if added.returncode:
+        _say("git worktree add --detach %s %s failed (exit %d): %s; %s kept" % (
+            worktree, tip, added.returncode, " ".join(added.stderr.split())[:200], red))
+        return 2
+    code = _green_run(worktree, stack, tip, red)
+    removed = _git(clone, "worktree", "remove", "--force", worktree)
+    if removed.returncode:
+        _say("git worktree remove --force %s failed (exit %d): %s" % (
+            worktree, removed.returncode, " ".join(removed.stderr.split())[:200]))
+        return 2
+    return code
+
+
+def _green_run(worktree, stack, tip, red):
+    found = _start("detect-test-command.sh", "--tier", "all", cwd=worktree, capture=True)
+    full = found.stdout.strip()
+    if found.returncode not in (0, 3) or not full:
+        _say("no all-tier command for the local %s's tip (detect-test-command.sh --tier all exited %d%s), so no green run"
+             " can lift the freeze; %s kept" % (stack, found.returncode, "" if full else ", printing nothing", red))
+        return 2
+    if subprocess.run(["sh", "-c", full], cwd=worktree).returncode:
+        _say("the full suite (%s) is red on the local %s's tip %s; %s kept" % (full, stack, tip, red))
+        return 1
+    try:
+        os.remove(red)
+    except OSError as error:
+        _say("the full suite is green on the local %s's tip %s, but removing %s failed (%s)" % (stack, tip, red, error))
+        return 2
+    _say("the full suite is green on the local %s's tip %s; removed %s, so joins go on" % (stack, tip, red))
+    return 0
+
+
 def main(argv):
+    if argv[:1] == ["--local-green"]:
+        return _local_green(argv[1:])
     skip, argv, refused = _skip_suite(argv)
     if refused is not None:
         return refused
