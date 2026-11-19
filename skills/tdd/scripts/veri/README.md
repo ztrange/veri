@@ -858,6 +858,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `revise.sh`: REVISE.md's revise loop for one phase a verifier rejected, sliced like a fused half.
 - `diff-step.sh`: a ⟦diff-checked⟧ step's clean path in one sliced call, ending on `step-tick.sh`.
 - `step-tick.sh`: the close of a step no cycle closes, in one call.
+- `reroute.sh`: `wrong-test-route.sh`'s answer for the open step through the rerouted red, verify-red and the frozen-test re-record, sliced like a fused half.
 - `branch-gate.sh`: the Draft PR step's branch suite, in one call.
 - `pr-prepare.sh`: the Draft PR step's sub-step 1 up to the structural pass's skip, in one call.
 - `pr-checks.sh`: the Draft PR step's sub-step 1 checks after `pr-prepare.sh`, in one call.
@@ -896,10 +897,10 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 
 ## red_half
 - `REFUSED`: the step kinds whose Red is not red-half's (RH1), each stopping `run-step.sh` before any stage on `seam=none`.
-- `launch_verdict(where, n, wt, settled, step, values)`: verdict-red's launch, the one set of `run-verdict.sh` arguments red-half.sh and `revise.sh`'s re-verify share (PRD 038.9 RVS13).
+- `launch_verdict(where, n, wt, settled, step, values)`: verdict-red's launch, the one set of `run-verdict.sh` arguments red-half.sh, `revise.sh`'s re-verify and `reroute.sh`'s verify-red share (PRD 038.9 RVS13, PRD 038.10 RRT10).
 
 ## seam_contract
-- `CONTRACTS`: per record-writing stage (`red-half`, `green-half`, `refactor-half`), the keys of its record the next stage reads that no committed fact holds (PRD 038.1 SC5). `READS`: per reading stage (`green-half`, `revise`, `refactor-half`, `step-close`), the stages whose records it reads, in order (`refactor-half`: `green-half`, then `red-half` for a Green `green-half.sh` did not finish).
+- `CONTRACTS`: per record-writing stage (`red-half`, `green-half`, `refactor-half`), the keys of its record the next stage reads that no committed fact holds (PRD 038.1 SC5). `READS`: per reading stage (`green-half`, `revise`, `reroute`, `refactor-half`, `step-close`), the stages whose records it reads, in order (`refactor-half`: `green-half`, then `red-half` for a Green `green-half.sh` did not finish).
 - `table()`: the contracts as `script-help.sh seam-settle.sh` prints them.
 
 ## pr_finish

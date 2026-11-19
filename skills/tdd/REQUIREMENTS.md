@@ -335,6 +335,7 @@
 | CY403 | The develop-green leaf and verify-green run the fast tier and the test files covering the files the step changed, never the `affected` tier or any broader one. | A leaf's suite runs were 52% of run #4316's wall time. |
 | CY407 | The Green section, right after its opening paragraph about `run-step.sh`'s `seam=green-half` stop, holds one line ending the hand path (Green done by the conductor itself): `$S/seam-settle.sh <n> green-half test_path=<path>`. | `refactor-half.sh` reads `test_path` from a record only `green-half.sh` writes, falling back to red-half's only when none names the step; the hand path hands back through the one script that writes it in that format (PRD 038.1, SC9). |
 | CY412 | Each verifier call, a `diff` one included, passes `--branch-base <recorded sha>`, the conductor's record. | A verifier that derives its own base can be steered by a leaf. |
+| CY413 | The Green section keeps every `wrong-test-route.sh` route bullet, and its opening line names `run-step.sh`'s `seam=reroute` stop and `--hand reroute` as the hand path for the answers `reroute.sh` runs. | The prose stays the fallback (PRD 038.10 RRT12, S8). |
 
 ## skills/tdd/SKILL.md#Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)
 
@@ -1422,6 +1423,7 @@
 | SC606 | The catalogue lists `$S/revise.sh <n> <phase>`: `REVISE.md` sub-steps 1-5 for `red`, `green`, `refactor` and `diff` up to `REVISE_BUDGET`, its stops (same reason, budget spent, a routed report line), its re-save of the phase stage's wait record on a PASS, and its exit codes 0, 1, 2 and 3. (The `revise.sh` entry, after `run-step.sh`'s.) | A reader of the catalogue finds the one-call revise loop and where it stops (PRD 038.9). |
 | SC607 | The `$S/comment.sh` entry lists the `revise <phase> <k>` kind: `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>`, the budget read through `tunables`, then `.tdd/verify-<phase>.reason` verbatim. | A reader of the catalogue finds the comment `revise.sh` posts per attempt (PRD 038.9). |
 | SC609 | The catalogue lists `$S/diff-step.sh <n>` (a ⟦diff-checked⟧ step's clean path in one call, its flip check, its REJECT hand-off to `revise.sh <n> diff`) and `$S/step-tick.sh <n>` (the close of a non-cycle step), with their stops and exit codes 0, 1, 2 and 3. | A reader of the catalogue finds the one-call diff step and its close (PRD 038.3). |
+| SC610 | The catalogue lists `$S/reroute.sh <n> <report>`: `wrong-test-route.sh`'s `red`, `repair`, `supersede` and `missing` answers through the rerouted red leaf, verify-red and the frozen-test re-record, its stops (`prep`, `later`, `fixture`, `supersede-diff`, a pin report, the two exhaustions), `route=revise` as exit 1, and its exit codes 0, 1, 2 and 3. (The `reroute.sh` entry, after `revise.sh`'s.) | A reader of the catalogue finds the one-call reroute and where it stops (PRD 038.10). |
 
 ## skills/tdd/SKILL-EDIT.md
 
