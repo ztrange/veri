@@ -40,7 +40,8 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     try:
-        return run(*argv)
+        with fused.quiet():
+            return run(*argv)
     except fused.Stop as stop:
         return fused.stopped(stop)
     except fused.Waiting as waiting:
