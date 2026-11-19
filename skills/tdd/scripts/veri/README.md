@@ -840,7 +840,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `plan-publish.sh`: SKILL.md step 2's fixed tail once the plan is written, in one call.
 - `run-start.sh`: SKILL.md step 1's fixed calls after preflight, in one call.
 - `resume-start.sh`: RESUME.md sub-steps 1-4's fixed calls and the owed verify-plan launch, in one call.
-- `fused_step`: the step helpers the fused halves share above `fused`. `branch_base(where, wt, n)`: the run's branch base as the conductor recorded it in the main working tree above `wt` (`run_pins`), each verdict launch's `--branch-base`; a record missing or unreadable is a `Stop` with exit 2 naming it (#4375).
+- `fused_step`: the step helpers the fused halves share above `fused`.
 - `seam_contract`: per record-writing stage, the keys the next stage reads that no committed fact holds.
 - `red-half.sh`: a step's Red half on the FAILS path, in one call.
 - `green-half.sh`: a step's Green half on the PASS path, in one call.
@@ -874,6 +874,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `inputs(name, n, *files)`: the settled preflight values and worktree once every input exists, else `None`, each missing one on stderr (FC15). `first_step(wt, n, chosen)`: the first ledger step a predicate takes.
 - `cost_check(wt, step)`: *The step's cost check*, stopping at `cost-check`. `verify_switched_off(wt, n, phase)`: the run's pinned `VERI_SKIP_VERIFY` names the phase.
 - `summary(step)`: the step's ledger text without its trailing markers, as a commit subject reads it (the #431/#437 rule).
+- `branch_base(where, wt, n)`: the run's branch base as the conductor recorded it in the main working tree above `wt` (`run_pins`), each verdict launch's `--branch-base`; a record missing or unreadable is a `Stop` with exit 2 naming it (#4375).
 - `red_test_id(test_path, target)`: the Red case's id, `<target>` when it holds `::`, else `<test_path>::<target>`.
 - `refresh(stage, wt, n, record, facts)`: `.tdd/issue-<n>-<record>` rewritten so each key of `facts` holds its committed source's value, one `record-refreshed` event of `stage` per rewritten key.
 - `gain(stage, wt, n, record, key, values, step)`: one `<key>=<value>` line added to `.tdd/issue-<n>-<record>` per value it lacks, for a key a record may hold more than once (step-close's `uncovered_spec`, #4029), one `record-refreshed` event each.
