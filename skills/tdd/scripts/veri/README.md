@@ -639,6 +639,8 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `stem(path)`: the path's basename without its last extension, `-` read as `_`.
 - `tree_files()`: every file git does not ignore that exists, outside `.git`, `.tdd`, `.venv` and `node_modules`; raises `git.GitFailed` when the listing fails.
 - `naming(stem_, paths)`: the paths among `paths` whose text holds `stem_` as a whole word, `-` and `_` alike; an unreadable file names nothing.
+- `texts(paths)`: each readable path with its text, `-` read as `_`, so a caller matching many stems reads each file once.
+- `naming_in(stems, texts_)`: the paths among `texts_` whose text holds any of `stems` as a whole word.
 
 # Frozen tests and case history
 
