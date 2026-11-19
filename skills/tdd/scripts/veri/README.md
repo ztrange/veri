@@ -301,6 +301,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 
 Where a run lives on disk, its journal of events and its pin files and mutation record, whether it is live, stuck or ended, and how it is stopped. Builds on Foundations only.
 
+- `bail.sh`: bail a run in one call, `BAIL.md` sub-steps 1–7, printing sub-step 8's report.
 - `classify-bail.sh`: label a bail as a process or a system failure.
 - `ensure-run-state-ignored.sh`: keep the run's `.tdd/` state git-ignored.
 - `event.sh`: append one event to a run's journal.

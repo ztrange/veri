@@ -4,6 +4,10 @@ import os
 import subprocess
 import sys
 
+import entry
+import git
+import tunables
+
 USAGE = "usage: bail.sh <n> <cause> <phase> --note-file <path> [--attempt <k>]"
 
 
@@ -31,9 +35,9 @@ def _commit_metrics(here, issue):
         os.makedirs(".tdd", exist_ok=True)
         with open(path, "w") as f:
             f.write(metrics.stdout)
-        subprocess.run(["git", "add", "-f", path], capture_output=True, text=True)
-        subprocess.run(["git", "commit", "-m", "metrics: what bailing on #%s cost (#%s)" % (issue, issue), "--", path],
-                       capture_output=True, text=True)
+        git.git("add", "-f", path, capture_output=True, text=True)
+        git.git("commit", "-m", "metrics: what bailing on #%s cost (#%s)" % (issue, issue), "--", path,
+                capture_output=True, text=True)
     return metrics
 
 
@@ -46,8 +50,8 @@ def _write_note(note_file, drift, metrics):
 
 
 def _print_report(phase, classification):
-    branch = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True).stdout.strip()
-    tree = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
+    branch = git.git("branch", "--show-current", capture_output=True, text=True).stdout.strip()
+    tree = git.git("rev-parse", "--show-toplevel", capture_output=True, text=True).stdout.strip()
     print("phase: %s\nclassification: %s\nbranch: %s\nworktree: %s" % (phase, classification, branch, tree))
 
 
@@ -55,7 +59,7 @@ def main(argv):
     if not _valid(argv):
         return _bad_arguments()
     issue, cause, phase, note_file = argv[0], argv[1], argv[2], argv[4]
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    here = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     classified = _run("classify-bail.sh", [os.path.join(here, "classify-bail.sh"), cause])
     if classified.returncode != 0:
         sys.stderr.write("bail: unknown cause %s; bail by BAIL.md sub-step 1\n" % cause)
@@ -65,8 +69,8 @@ def main(argv):
                           capture_output=True, text=True).stdout.strip()
     attempt = argv[6] if len(argv) == 7 else "1"
     _run("preserve-attempt.sh", [os.path.join(here, "preserve-attempt.sh"), issue, step, phase, attempt, "bail"])
-    subprocess.run(["git", "reset", "--hard", "HEAD"], capture_output=True, text=True)
-    env = dict(os.environ, VERI_PHASE=phase)
+    git.git("reset", "--hard", "HEAD", capture_output=True, text=True)
+    env = tunables.with_values(VERI_PHASE=phase)
     subprocess.run([os.path.join(here, "event.sh"), "bail", "cause=" + cause, "classification=" + classification],
                    env=env, capture_output=True, text=True)
     metrics = _commit_metrics(here, issue)
@@ -80,4 +84,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    entry.run(main, sys.argv[1:])
