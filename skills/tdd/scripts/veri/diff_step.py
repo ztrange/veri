@@ -1,6 +1,7 @@
 """diff-step.sh's computation, run in-process: a ⟦diff-checked⟧ step's clean path (DIFF-CHECKED.md), sliced like the
 fused halves of a step, ending on step-tick.sh (PRD 038.3)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
 
 import fused
@@ -64,11 +65,16 @@ def develop(n, wt, settled, step):
 
 def verify(n, wt, settled, step, values):
     """The leaf's checks, then the verifier: suite-reported.sh (its 2, no SUITE: line, stops for the conductor's
-    adjudication), diff-leaf-deviation.sh (0 a deviation recorded, 3 none, both going on), then verdict-diff."""
+    adjudication), diff-leaf-deviation.sh (0 a deviation recorded, 3 none, both going on), then verdict-diff, or its recorded skip with `diff` switched off (ADR-0033): the leaf launched, or None."""
     leaf = values["leaf"]
     fused.checked("develop", fused.script("suite-reported.sh"), leaf, cwd=wt, err=".tdd/suite-reported.err")
     fused.checked("develop", fused.script("diff-leaf-deviation.sh"), leaf, values["step_base"], LEDGER % n, cwd=wt,
                   ok=(0, 3))
+    if fused_step.verify_switched_off(wt, n, "diff"):
+        fused.mark("verify", wt, n, step, "verify-diff-skipped", "reason=switched-off")
+        with open(os.path.join(wt, ".tdd", "verdict-diff.exit"), "w") as f:
+            f.write("skipped\n")
+        return None
     launch_verdict("verify", n, wt, settled, step, values)
     fused.save_wait(wt, n, NAME, "verdict-diff", values)
     return "verdict-diff"

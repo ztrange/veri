@@ -133,3 +133,19 @@ def test_4435_a_diff_checked_step_runs_its_clean_path_in_order_over_three_sliced
     for _, out, _, fake in (first, second, third):
         assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("reset",), ("commit",), ("rebase",))]
         assert "MARKER-4435" not in out
+
+
+def test_4435_with_diff_switched_off_it_launches_no_verifier_marks_the_skip_writes_skipped_and_goes_on(diff):
+    """DST4: ADR-0033's skip, then pin-recheck.sh and the tick in the same call."""
+    diff(skip="diff", answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(skip="diff")
+
+    assert code == 0, err
+    assert fake.launched() == []
+    mark = fake.call("event.sh")
+    assert (mark[1], mark[3]["VERI_ACTOR"], mark[3]["VERI_STEP"]) == (
+        ("verify-diff-skipped", "reason=switched-off"), "conductor", STEP)
+    assert (diff.wt / ".tdd" / "verdict-diff.exit").read_text() == "skipped\n"
+    names = fake.names()
+    assert names.index("diff-leaf-deviation.sh") < names.index("event.sh") < names.index("pin-recheck.sh") < names.index(
+        "step-tick.sh")
