@@ -39,13 +39,14 @@ RECORD_SEAM = "seam=%s code=1 reason=record next="
 # The $S/ scripts this call makes, in order: the stages, each of which launches its own leaves through supervise.sh;
 # it launches none itself (RN12).
 CALLS = tuple(stage + ".sh" for stage in SERIES)
-# The kinds that are not a cycle step, red_half.REFUSED's (RN7) -> the anchor of the prose that runs them; a step of
-# one stops before any stage on `seam=none`, until a stage for that kind exists (038.3, 038.4).
-KINDS = {"⟦diff-checked⟧": DIFF,
-         "⟦phases:": "SKILL.md#A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier",
-         "⟦skill-edit⟧": "SKILL-EDIT.md#The skill-edit step", "⟦fixture-repair⟧": RED}
-# The kinds a stage of their own runs, in place of the series (PRD 038.3 DST8): that stage is the step's one stage.
-RUNS = {"⟦diff-checked⟧": "diff-step"}
+# The kinds that are not a cycle step, red_half.REFUSED's (RN7) -> (the anchor of the prose that runs them, the stage
+# that runs them as the step's one stage in place of the series, or None): a step of a kind no stage runs stops before
+# any stage on `seam=none` (038.3 DST8; 038.4 adds ⟦skill-edit⟧'s).
+KINDS = {"⟦diff-checked⟧": (DIFF, "diff-step"),
+         "⟦phases:": ("SKILL.md#A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier", None),
+         "⟦skill-edit⟧": ("SKILL-EDIT.md#The skill-edit step", None), "⟦fixture-repair⟧": (RED, None)}
+# The stages a kind runs in place of the series.
+KIND_STAGES = tuple(stage for _, stage in KINDS.values() if stage)
 
 
 def parse(argv):
@@ -56,7 +57,7 @@ def parse(argv):
     while rest:
         option, value = rest.pop(0), rest.pop(0) if rest else None
         if option not in ("--from", "--hand") or value not in STAGES or option == "--from" and (
-                start is not None or value not in SERIES):
+                start is not None or value not in SERIES + KIND_STAGES):
             return None
         if option == "--hand":
             hand.add(value)
@@ -82,10 +83,10 @@ def main(argv):
         return 3
     kinds = [kind for kind in red_half.REFUSED if kind in step]
     for kind in kinds:
-        if kind not in RUNS:
-            sys.stdout.write("seam=none code=1 reason=kind next=%s\n" % KINDS[kind])
+        if KINDS[kind][1] is None:
+            sys.stdout.write("seam=none code=1 reason=kind next=%s\n" % KINDS[kind][0])
             return 1
-    order = [RUNS[kinds[0]]] if kinds else list(SERIES)
+    order = [KINDS[kinds[0]][1]] if kinds else list(SERIES)
     if start_at is not None and start_at not in order:
         sys.stderr.write("run-step.sh: --from %s: not a stage of this step\n" % start_at)
         return 2
@@ -109,7 +110,7 @@ def main(argv):
             if code is not None:
                 return code
         code, out = run_stage(script, n)
-        if code == 1 and stage in PHASES and (verdict(wt, PHASES[stage]) == "1" or stage in RUNS.values() and
+        if code == 1 and stage in PHASES and (verdict(wt, PHASES[stage]) == "1" or stage in KIND_STAGES and
                                               fused_step.rejected(wt, n, stage, step) is not None):
             # diff-step's flip and pin-recheck REJECTs leave its rejected record with the verifier's PASS in place.
             code = revise(wt, n, step, stage, hand)

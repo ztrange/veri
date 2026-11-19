@@ -31,6 +31,8 @@ class Fake:
             return 0, LEDGER_ROWS, ""
         if base == "gh":
             return 0, BODY, ""
+        if base == "git" and args[:1] == ("status",):
+            return 0, "", ""
         if base == "stop-requested.sh":
             return 3, "", ""
         return 0, "", ""
@@ -72,7 +74,8 @@ def test_4435_it_ticks_commits_under_the_diff_checked_subject_pushes_asks_the_st
     code, out, err, fake = tick()
 
     assert code == 0, err
-    assert [(c[0], c[1]) for c in fake.calls[:5]] == [
+    assert [(c[0], c[1]) for c in fake.calls[:6]] == [
+        ("git", ("status", "--porcelain", "--untracked-files=all")),
         ("tick-ledger.sh", (".tdd/issue-12.md", STEP)),
         ("git", ("add", "-A")),
         ("git", ("commit", "-m", "chore: diff-checked — the prompt says so (#12)")),
@@ -102,3 +105,42 @@ def test_4435_a_missing_receipt_preflight_or_ledger_or_a_bad_argument_is_exit_2_
 
     assert (code, fake.calls) == (2, [])
     assert named in err
+
+
+@pytest.mark.parametrize("stop", [(0, "at-ledger\n"), (2, "")])
+def test_4435_a_stop_ask_that_is_not_exit_3_stops_after_the_push_with_no_mirror(tick, stop):
+    code, out, err, fake = tick(answers={("stop-requested.sh", None): stop})
+
+    assert code == (1 if stop[0] == 0 else 2), err
+    assert out.splitlines()[-1].startswith("stopped at tick stop-requested.sh exit %d" % stop[0])
+    assert "push-branch.sh" in fake.names() and "comment.sh" not in fake.names()
+
+
+def test_4435_an_unforeseen_error_after_the_commit_is_exit_2_never_1(tick, monkeypatch):
+    """The push may have landed, so no answer (2), never a designed stop the conductor would redo the tick on."""
+    step_tick = importlib.import_module("veri.step_tick")
+
+    def broken(*_):
+        raise RuntimeError("mirror broke")
+
+    monkeypatch.setattr(step_tick, "mirror", broken)
+    code, out, err, fake = tick()
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at tick RuntimeError mirror broke")
+
+
+def test_4435_a_change_outside_tdd_stops_on_the_tree_check_before_the_tick_and_commit(tick):
+    """PRD 027 D10: the tree is checked before the irreversible act, so no unverified change rides the tick."""
+    code, out, err, fake = tick(answers={("git", "status"): (0, " M src/a.py\n?? .tdd/scratch\n")})
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at tick tree-check src/a.py")
+    assert not {"tick-ledger.sh", "push-branch.sh"} & set(fake.names())
+    assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("add",), ("commit",))]
+
+
+def test_4435_a_cycle_step_is_exit_2_before_any_call(tick):
+    """step-tick.sh closes only a step no cycle closes: a cycle step's close is step-close.sh's."""
+    code, out, err, fake = tick(ledger=LEDGER % "one thing works ⟦criterion 1⟧")
+
+    assert (code, fake.calls) == (2, [])
+    assert "not a ⟦diff-checked⟧ step" in err

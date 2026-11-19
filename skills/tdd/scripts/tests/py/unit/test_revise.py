@@ -561,3 +561,15 @@ def test_4435_diff_with_no_rejected_record_is_exit_2(revise):
 
     assert (code, fake.launched()) == (2, [])
     assert out.splitlines()[-1] == "stopped at 1 no .tdd/issue-12-diff-step-rejected-wait"
+
+
+def test_4435_diff_a_revise_report_of_outcome_impossible_stops_exit_1_before_any_check_or_re_verify(revise):
+    """DST7: the diff phase's route, as refactor's: the leaf says the step cannot be met as stated."""
+    _diff_files(revise)
+    revise(argv=("12", "diff"), missing=("red-half",), answers={("wait-leaf.sh", "revise-diff-1"): (3, "")})
+    code, out, err, fake = revise(argv=("12", "diff"), missing=("red-half",),
+                                  fake=Fake(report="OUTCOME: IMPOSSIBLE\n"))
+
+    assert code == 1, err
+    assert out.splitlines()[-1] == "stopped at 3 OUTCOME: IMPOSSIBLE"
+    assert (fake.launched(), "suite-reported.sh" in fake.names()) == ([], False)

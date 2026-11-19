@@ -198,7 +198,7 @@ def headings(path):
 def test_4343_every_next_value_run_step_can_print_is_a_script_or_an_anchor_naming_a_heading_in_its_file():
     run_step = importlib.import_module("veri.run_step")
     skill = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(run_step.__file__)), "..", ".."))
-    anchors = [anchor for anchor, _ in run_step.STAGES.values()] + [run_step.KINDS[k] for k in run_step.KINDS]
+    anchors = [anchor for anchor, _ in run_step.STAGES.values()] + [run_step.KINDS[k][0] for k in run_step.KINDS]
     from pathlib import Path
 
     missing = [a for a in anchors if a.split("#", 1)[1] not in headings(Path(skill, a.split("#", 1)[0]))]
@@ -411,3 +411,11 @@ def test_4435_from_a_cycle_stage_on_a_diff_checked_step_is_exit_2_calling_nothin
     code, out, err, stages = step(ledger=LEDGER % DIFF_STEPS[0], argv=("12", "--from", "green-half"))
 
     assert (code, stages.names(), err) == (2, [], "run-step.sh: --from green-half: not a stage of this step\n")
+
+
+@pytest.mark.parametrize("text, code_, names", [(DIFF_STEPS[0], 0, ["diff-step.sh"]), (STEP, 2, [])])
+def test_4435_from_diff_step_runs_it_on_a_diff_checked_step_and_is_exit_2_on_a_cycle_step(step, text, code_, names):
+    code, out, err, stages = step(ledger=LEDGER % text, argv=("12", "--from", "diff-step"),
+                                  answers={"diff-step.sh": (0, "next=cycle\n")})
+
+    assert (code, stages.names()) == (code_, names), err
