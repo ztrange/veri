@@ -55,6 +55,26 @@ def _print_report(phase, classification):
     print("phase: %s\nclassification: %s\nbranch: %s\nworktree: %s" % (phase, classification, branch, tree))
 
 
+def _snapshot_and_record(here, argv, classification):
+    issue, cause, phase = argv[0], argv[1], argv[2]
+    attempt = argv[6] if len(argv) == 7 else "1"
+    step = subprocess.run([os.path.join(here, "ledger-steps.sh"), "current-or-last-done"],
+                          capture_output=True, text=True).stdout.strip()
+    _run("preserve-attempt.sh", [os.path.join(here, "preserve-attempt.sh"), issue, step, phase, attempt, "bail"])
+    git.git("reset", "--hard", "HEAD", capture_output=True, text=True)
+    env = tunables.with_values(VERI_PHASE=phase)
+    subprocess.run([os.path.join(here, "event.sh"), "bail", "cause=" + cause, "classification=" + classification],
+                   env=env, capture_output=True, text=True)
+
+
+def _publish(here, issue, note_file, metrics):
+    _run("push-branch.sh", [os.path.join(here, "push-branch.sh")])
+    drift = _run("skill-drift.sh", [os.path.join(here, "skill-drift.sh")])
+    _write_note(note_file, drift, metrics)
+    _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--note-file", note_file])
+    _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--pr", "--note-file", note_file])
+
+
 def main(argv):
     if not _valid(argv):
         return _bad_arguments()
@@ -65,20 +85,9 @@ def main(argv):
         sys.stderr.write("bail: unknown cause %s; bail by BAIL.md sub-step 1\n" % cause)
         return 2
     classification = classified.stdout.strip()
-    step = subprocess.run([os.path.join(here, "ledger-steps.sh"), "current-or-last-done"],
-                          capture_output=True, text=True).stdout.strip()
-    attempt = argv[6] if len(argv) == 7 else "1"
-    _run("preserve-attempt.sh", [os.path.join(here, "preserve-attempt.sh"), issue, step, phase, attempt, "bail"])
-    git.git("reset", "--hard", "HEAD", capture_output=True, text=True)
-    env = tunables.with_values(VERI_PHASE=phase)
-    subprocess.run([os.path.join(here, "event.sh"), "bail", "cause=" + cause, "classification=" + classification],
-                   env=env, capture_output=True, text=True)
+    _snapshot_and_record(here, argv, classification)
     metrics = _commit_metrics(here, issue)
-    _run("push-branch.sh", [os.path.join(here, "push-branch.sh")])
-    drift = _run("skill-drift.sh", [os.path.join(here, "skill-drift.sh")])
-    _write_note(note_file, drift, metrics)
-    _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--note-file", note_file])
-    _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--pr", "--note-file", note_file])
+    _publish(here, issue, note_file, metrics)
     _print_report(phase, classification)
     return 0
 
