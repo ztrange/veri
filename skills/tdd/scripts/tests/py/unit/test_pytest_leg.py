@@ -1514,3 +1514,34 @@ def test_4310_a_leg_ended_by_term_while_it_waits_for_a_core_has_removed_its_wait
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), PYTEST_LEG_LOCK_WAIT_MARKER=str(marker)))[0]
 
     assert (code, marked_at_exit) == (128 + signal.SIGTERM, [False])
+
+
+def test_4311_a_case_waiting_for_a_core_under_the_fixtures_own_working_directory_appends_no_core_wait_event_to_the_real_trees_journal(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    from conftest import ROOT
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    blocker = legs / str(os.getppid())
+    registered(blocker, 16)
+    clock = [1000.0]
+
+    def a_distinct_wait_then_death(seconds):
+        clock[0] += 4311
+        blocker.unlink(missing_ok=True)
+
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(pytest_leg.time, "sleep", a_distinct_wait_then_death)
+    journal = ROOT / ".tdd" / "events.jsonl"
+
+    def distinct_waits():
+        return [line for line in (journal.read_text().splitlines() if journal.exists() else []) if '"event": "core-wait"' in line and '"seconds": "4311"' in line]
+
+    before = distinct_waits()
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
+
+    assert (code, distinct_waits()) == (0, before)
