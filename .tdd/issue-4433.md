@@ -3,7 +3,7 @@
 - [x] a phase stage whose verifier REJECTs keeps its wait values as `.tdd/issue-<n>-<stage>-rejected-wait`, so a revise can hand them back ⟦criterion 5⟧
 - [x] `comment.sh <n> revise <phase> <k>` posts `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` with `.tdd/verify-<phase>.reason` verbatim ⟦criterion 1⟧
 - [x] `revise.sh <n> green` attempt 1 builds the revise prompt, posts the Revise comment, writes the `revise` mark and launches `revise-green-1` with the phase's `VERI_TEST_CMD`, exiting 3 with a wait record; a bad phase or missing preflight is exit 2 ⟦criterion 1⟧ ⟦criterion 3⟧ ⟦criterion 12⟧
-- [ ] called again, `revise.sh <n> green` only waits, then runs `step-cost.sh` and `tests-frozen.sh check` and launches `verdict-green` with green-half's `run-verdict.sh` arguments and the recorded branch base, exiting 3 ⟦criterion 1⟧ ⟦criterion 3⟧ ⟦criterion 13⟧
+- [x] called again, `revise.sh <n> green` only waits, then runs `step-cost.sh` and `tests-frozen.sh check` and launches `verdict-green` with green-half's `run-verdict.sh` arguments and the recorded branch base, exiting 3 ⟦criterion 1⟧ ⟦criterion 3⟧ ⟦criterion 13⟧
 - [ ] on a revised PASS, `revise.sh` posts `verify-revised <phase>`, re-saves the phase stage's wait record at `verdict-<phase>` and exits 0 ⟦criterion 5⟧
 - [ ] a re-verify REJECT spends attempt k and goes on to k+1, whose `same-reject.sh` exit 0 stops with exit 1 naming sub-step 1 ⟦criterion 4⟧ ⟦criterion 6⟧
 - [ ] once `REVISE_BUDGET` (read through tunables) attempts are spent it stops with exit 1 naming the budget ⟦criterion 6⟧ ⟦criterion 12⟧

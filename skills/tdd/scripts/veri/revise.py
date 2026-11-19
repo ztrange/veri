@@ -19,7 +19,7 @@ LEDGER = run_dir.ledger("", "%s")
 
 # The $S/ scripts this call makes, in the order each is first made.
 CALLS = ("build-develop-prompt.sh", "comment.sh", "event.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh",
-         "run-leaf.sh", "wait-leaf.sh")
+         "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "tests-frozen.sh", "run-verdict.sh")
 
 
 def main(argv):
@@ -44,8 +44,19 @@ def run(n, phase):
     red = fused_step.record(NAME, wt, n, step)
     if red is None:
         return 1
-    values = {"phase": phase, "k": 1, "test_path": red["test_path"], "target_test": red["target_test"]}
-    at = attempt(n, wt, settled, step, values)
+    resumed = fused.load_wait(wt, n, NAME)
+    if resumed is None:
+        values = {"phase": phase, "k": 1, "test_path": red["test_path"], "target_test": red["target_test"]}
+        at = attempt(n, wt, settled, step, values)
+    else:
+        at, values = resumed
+    if at.startswith("revise-"):
+        code = fused.wait(wt, n, NAME, at)
+        if code != 0:
+            raise fused.Stop("3", "wait-leaf.sh %s exit %d" % (at, code), code)
+        fused_step.cost_check(wt, step)
+        fused.checked("4", fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
+        at = verify(n, wt, settled, step, values)
     fused.wait(wt, n, NAME, at)
 
 
@@ -67,6 +78,18 @@ def attempt(n, wt, settled, step, values):
                  clear=(".tdd/red-prediction.md", ".tdd/red-run-output.txt"))
     fused.save_wait(wt, n, NAME, leaf, values)
     return leaf
+
+
+def verify(n, wt, settled, step, values):
+    """REVISE.md sub-step 5's re-verify: verdict-<phase> with exactly the phase stage's run-verdict.sh arguments and
+    the run's recorded branch base. The leaf launched."""
+    phase, fast = values["phase"], settled["fast_cmd"]
+    fused.launch("5", wt, "verdict-" + phase, "run-verdict.sh", "--step", step, "--fast-cmd", fast,
+                 "--branch-base", fused_step.branch_base("5", wt, n), phase, SPEC % n,
+                 values["test_path"], values["target_test"], env=fused.step_env(n, step, VERI_TEST_CMD=fast),
+                 out=".tdd/verify-%s.reason" % phase, err=".tdd/verify-%s.err" % phase)
+    fused.save_wait(wt, n, NAME, "verdict-" + phase, values)
+    return "verdict-" + phase
 
 
 if __name__ == "__main__":
