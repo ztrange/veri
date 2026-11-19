@@ -227,3 +227,17 @@ def test_then_the_stack_is_pushed_leased_on_origin_stack_as_fetched_never_forced
     assert (pushes[-1], [arg for args in pushes for arg in args if arg in ("--force", "-f")]) == (stack, []), err
     if code:
         assert (got, out, err.count("\n"), "stack" in err, len(pushes)) == (code, "", 1, True, 3), err
+
+
+def test_a_joined_pull_request_not_reading_merged_over_the_settle_window_exits_2_naming_it_and_its_last_state_the_stack_left_as_pushed(
+        monkeypatch, tmp_path, run_cli, stack_recover):
+    world = joined_world(monkeypatch, tmp_path, pulls={12: {"state": "open", "merged": False}})
+
+    code, out, err = run_cli(stack_recover, [], env={"VERI_MERGE_SETTLE_READS": "2", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    reads = [call for call in world.log if call[0] == "gh"]
+    assert (code, out, err.count("\n"), PR12 in err, "'open'" in err, reads) == (
+        2, "", 1, True, True, [("gh", "repos/owner/repo/pulls/11"), ("gh", "repos/owner/repo/pulls/12"),
+                               ("gh", "repos/owner/repo/pulls/12")]), err
+    assert ([args for args in world.pushed if "--delete" in args], world.pushed[-1][-1], world.scripts[-1][:2]) == (
+        [], TIP + ":refs/heads/stack", ("merge-lock.sh", "release")), err
