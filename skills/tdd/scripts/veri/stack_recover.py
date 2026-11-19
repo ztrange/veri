@@ -138,14 +138,26 @@ def _held(stack, window):
 
 def _cleaned(tip, joins):
     """After the pushes, the merge lock freed: delete each joined run's remote branch, leased on the commit pushed to it,
-    and its records ref, then run stack-pr.sh and print the stack's pushed <tip> and its tracking pull request."""
+    and its records ref, then run stack-pr.sh and print the stack's pushed <tip> and its tracking pull request. A ref
+    origin no longer has counts as deleted; a delete that failed is named, stack-pr.sh still runs, and the exit is 2."""
+    failed = []
     for sha, _, branch in joins:
-        git.network("push", "--force-with-lease=%s:%s" % (branch, sha), "origin", "--delete", branch, cwd=".")
-        git.network("push", "origin", "--delete", run_records.ref(run_dir.branch_issue(branch)), cwd=".")
+        for ref, lease in ((branch, ["--force-with-lease=%s:%s" % (branch, sha)]),
+                           (run_records.ref(run_dir.branch_issue(branch)), [])):
+            run = git.network("push", *lease, "origin", "--delete", ref, cwd=".")
+            if run.returncode and "remote ref does not exist" not in (run.stderr or ""):
+                failed.append("the delete of origin's %s failed (exit %d): %s" % (
+                    ref, run.returncode, " ".join((run.stderr or "").split())))
     code, said = stack_fix.script("stack-pr.sh", limit=stack_fix.NETWORK)
+    for line in failed:
+        print("stack-recover: the stack and the joined branches are pushed, but %s; owed: delete it" % line,
+              file=sys.stderr)
     if code:
-        return _refuse("stack-pr.sh exits %d: the stack and the joined branches are pushed and cleaned up, but no tracking"
-                       " pull request url is known, so CI on the tip %s cannot be waited for" % (code, tip))
+        return _refuse("stack-pr.sh exits %d: the stack and the joined branches are pushed%s, but no tracking pull"
+                       " request url is known, so CI on the tip %s cannot be waited for"
+                       % (code, "" if failed else " and cleaned up", tip))
+    if failed:
+        return 2
     print("%s %s" % (tip, said.strip()))
     return 0
 
