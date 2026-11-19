@@ -46,7 +46,7 @@
    rejects it before any verifier is launched, and exit 2 is no answer; the existing suite is the only net, so the fast tier and
    the test files covering the files the break changed must stay green. Then launch one `verify-break` leaf through
    `supervise.sh`, named `verdict-break` as *Launching a leaf* sets out:
-   `run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' break .tdd/issue-<n>-spec.md <region-file> <base-sha>`.
+   `run-verdict.sh --branch-base <base> --step "<STEP>" --fast-cmd '<fast-cmd>' break .tdd/issue-<n>-spec.md <region-file> <base-sha>`.
    The blind verifier reads `git diff <base-sha>..HEAD`, never the developer's report.
    - PASS: launch `develop-seam` again, as **Seam** says.
    - REJECT, or `transform-touches-tests.sh` exit 1: revise under `REVISE_BUDGET` like any other
@@ -65,7 +65,7 @@
    table, beside the rows it proposes. After its wait exits 0, `$S/suite-reported.sh develop-surround` runs as `PHASED.md` sets
    out for a phase leaf. Then launch one `verify-surround` leaf through `supervise.sh`, named
    `verdict-surround` as *Launching a leaf* sets out:
-   `run-verdict.sh --step "<STEP>" surround .tdd/issue-<n>-spec.md <test-path>`, `<test-path>` being
+   `run-verdict.sh --branch-base <base> --step "<STEP>" surround .tdd/issue-<n>-spec.md <test-path>`, `<test-path>` being
    the leaf's `TEST_PATH:`. The blind verifier takes the `pin` phase's inputs and never the
    developer's report. `VERI_SKIP_VERIFY` never skips `surround`: a run naming it exits 2 at
    launch.

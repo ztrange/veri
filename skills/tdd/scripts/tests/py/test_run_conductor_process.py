@@ -4223,7 +4223,8 @@ def test_cli_2748_the_verify_red_leaf_given_fast_cmd_launched_alone_receives_the
     tiers.mkdir()
     (tiers / "spec.md").write_text("spec\n")
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
-    step = checked_step(tiers, committed_head(tiers))
+    head = committed_head(tiers)
+    step = checked_step(tiers, head)
     origin_head_at(tiers)
     stub = tmp_path / "tier-claude"
     stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$VERI_TEST_LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$VERI_TEST_LEAF_PROMPT_OUT"; shift ;; esac; }\n'
@@ -4235,7 +4236,7 @@ def test_cli_2748_the_verify_red_leaf_given_fast_cmd_launched_alone_receives_the
         if list(args)[:1] != ["fake-claude"]:
             return run(args, *a, **kwargs)
         env = dict(os.environ, CLAUDE_BIN=str(stub), VERI_TEST_LEAF_PROMPT_OUT=str(tiers / "verify-red.received"), VERI_POLL="0.02", **step)
-        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--step", "the step", "--fast-cmd", fast, "red", "spec.md", "t.test.sh", "the case"],
+        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--branch-base", head, "--step", "the step", "--fast-cmd", fast, "red", "spec.md", "t.test.sh", "the case"],
                                cwd=tiers, env=env, capture_output=True).returncode
         return subprocess.CompletedProcess(args, 0, None, None)
 
@@ -4258,7 +4259,8 @@ def test_cli_2748_the_verify_green_leaf_given_fast_cmd_launched_alone_receives_t
     tiers.mkdir()
     (tiers / "spec.md").write_text("spec\n")
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
-    step = checked_step(tiers, committed_head(tiers))
+    head = committed_head(tiers)
+    step = checked_step(tiers, head)
     origin_head_at(tiers)
     stub = tmp_path / "tier-claude"
     stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$VERI_TEST_LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$VERI_TEST_LEAF_PROMPT_OUT"; shift ;; esac; }\n'
@@ -4270,7 +4272,7 @@ def test_cli_2748_the_verify_green_leaf_given_fast_cmd_launched_alone_receives_t
         if list(args)[:1] != ["fake-claude"]:
             return run(args, *a, **kwargs)
         env = dict(os.environ, CLAUDE_BIN=str(stub), VERI_TEST_LEAF_PROMPT_OUT=str(tiers / "verify-green.received"), VERI_POLL="0.02", **step)
-        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--step", "the step", "--fast-cmd", fast, "green", "spec.md", "t.test.sh", "the case"],
+        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--branch-base", head, "--step", "the step", "--fast-cmd", fast, "green", "spec.md", "t.test.sh", "the case"],
                                cwd=tiers, env=env, capture_output=True).returncode
         return subprocess.CompletedProcess(args, 0, None, None)
 
@@ -4293,7 +4295,8 @@ def test_cli_2748_the_verify_refactor_leaf_given_fast_cmd_launched_alone_receive
     tiers.mkdir()
     (tiers / "spec.md").write_text("spec\n")
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
-    step = checked_step(tiers, committed_head(tiers))
+    head = committed_head(tiers)
+    step = checked_step(tiers, head)
     origin_head_at(tiers)
     stub = tmp_path / "tier-claude"
     stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$VERI_TEST_LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$VERI_TEST_LEAF_PROMPT_OUT"; shift ;; esac; }\n'
@@ -4305,7 +4308,7 @@ def test_cli_2748_the_verify_refactor_leaf_given_fast_cmd_launched_alone_receive
         if list(args)[:1] != ["fake-claude"]:
             return run(args, *a, **kwargs)
         env = dict(os.environ, CLAUDE_BIN=str(stub), VERI_TEST_LEAF_PROMPT_OUT=str(tiers / "verify-refactor.received"), VERI_POLL="0.02", **step)
-        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--step", "the step", "--fast-cmd", fast, "refactor", "spec.md", "t.test.sh", "abc1234"],
+        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--branch-base", head, "--step", "the step", "--fast-cmd", fast, "refactor", "spec.md", "t.test.sh", "abc1234"],
                                cwd=tiers, env=env, capture_output=True).returncode
         return subprocess.CompletedProcess(args, 0, None, None)
 
@@ -4327,7 +4330,8 @@ def test_cli_2748_the_verify_refactor_leaf_without_fast_cmd_launched_alone_exits
     tiers.mkdir()
     (tiers / "spec.md").write_text("spec\n")
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
-    step = checked_step(tiers, committed_head(tiers))
+    head = committed_head(tiers)
+    step = checked_step(tiers, head)
     origin_head_at(tiers)
     stub = tmp_path / "tier-claude"
     stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$VERI_TEST_LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$VERI_TEST_LEAF_PROMPT_OUT"; shift ;; esac; }\n'
@@ -4339,7 +4343,7 @@ def test_cli_2748_the_verify_refactor_leaf_without_fast_cmd_launched_alone_exits
         if list(args)[:1] != ["fake-claude"]:
             return run(args, *a, **kwargs)
         env = dict(os.environ, CLAUDE_BIN=str(stub), VERI_TEST_LEAF_PROMPT_OUT=str(tiers / "verify-refactor-bare.received"), VERI_POLL="0.02", **step)
-        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--step", "the step", "refactor", "spec.md", "t.test.sh", "abc1234"],
+        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--branch-base", head, "--step", "the step", "refactor", "spec.md", "t.test.sh", "abc1234"],
                                cwd=tiers, env=env, capture_output=True).returncode
         return subprocess.CompletedProcess(args, 0, None, None)
 

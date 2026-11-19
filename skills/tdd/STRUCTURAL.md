@@ -78,7 +78,7 @@
    candidate `transform-rejected` with `refactor-owed.sh not-done`, and moves on to the next candidate.
    ```
    rm -f .tdd/verdict-transform.exit .tdd/verdict-transform.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-transform $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" transform .tdd/issue-<n>-spec.md .tdd/issue-<n>-predicate <base-sha> > .tdd/verify-transform.reason 2> .tdd/verify-transform.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-transform $S/run-verdict.sh --branch-base <base> --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" transform .tdd/issue-<n>-spec.md .tdd/issue-<n>-predicate <base-sha> > .tdd/verify-transform.reason 2> .tdd/verify-transform.err
    $S/wait-leaf.sh verdict-transform   # foreground; on exit 3 call it again
    ```
    A `PASS` records the candidate as applied, with the commit that applied it, so `render`

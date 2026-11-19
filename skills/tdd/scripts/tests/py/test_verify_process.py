@@ -24,6 +24,13 @@ def with_origin_head(work):
 SCRIPTS = Path(__file__).resolve().parents[2]
 
 
+def based(repo):
+    """`--branch-base` and <repo>'s HEAD, the recorded base every phase but `diff` takes (#4375); a hex sha naming no
+    commit outside a git repository, where the verifier reads nothing at it."""
+    head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    return ["--branch-base", head or "0000000"]
+
+
 @pytest.mark.process("verify.sh run as a real shim over veri/verify.py, a real supervise.sh and run-leaf.sh"
                      " around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case_its_suite_still_holds_1507(
@@ -40,7 +47,7 @@ def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_step(tmp_path, with_origin_head(tmp_path))}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "--step", "the replacement takes over: replaces 'stale first', 'stale second'"
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "--step", "the replacement takes over: replaces 'stale first', 'stale second'"
          " in tests/demo.py ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md",
          "tests/x.test.sh"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True)
@@ -63,7 +70,7 @@ def test_verify_sh_run_from_a_subdirectory_writes_its_prompt_and_run_state_under
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", "PYTHONDONTWRITEBYTECODE": "1"}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "--fast-cmd", "make unit", "green", "../spec.md", "../x_test.py", "x_test.py::test_x"],
+        [str(SCRIPTS / "verify.sh"), *based(sub), "--fast-cmd", "make unit", "green", "../spec.md", "../x_test.py", "x_test.py::test_x"],
         cwd=sub, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert ((tmp_path / ".tdd" / "verify-green.prompt").exists(), (sub / ".tdd").exists()) == (True, False), done.stderr
@@ -107,7 +114,7 @@ def test_verify_sh_red_whose_lint_gate_fails_on_its_tree_but_passes_without_it_e
            **checked_step(tmp_path, head)}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     first = done.stdout.splitlines()[0] if done.stdout else ""
@@ -134,7 +141,7 @@ def test_verify_sh_red_whose_lint_gate_passes_and_whose_only_failure_is_the_targ
            **checked_step(tmp_path, head)}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (done.returncode, "GATE:" in done.stdout, launched.exists()) == (0, False, True), done.stdout + done.stderr
@@ -159,7 +166,7 @@ def test_verify_sh_red_whose_test_command_has_an_empty_gate_segment_runs_and_rep
            **checked_step(tmp_path, head)}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (done.returncode, "GATE:" in done.stdout, launched.exists()) == (0, False, True), done.stdout + done.stderr
@@ -203,7 +210,7 @@ def test_verify_sh_red_whose_lint_gate_written_with_surrounding_whitespace_fails
            **checked_step(tmp_path, head)}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     first = done.stdout.splitlines()[0] if done.stdout else ""
@@ -229,7 +236,7 @@ def test_verify_sh_red_whose_failing_lint_gate_prints_its_offending_line_padded_
            **checked_step(tmp_path, head)}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     first = done.stdout.splitlines()[0] if done.stdout else ""
@@ -257,7 +264,7 @@ def test_verify_sh_green_with_the_same_test_command_whose_lint_gate_fails_is_not
            **checked_step(tmp_path, head)}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "--fast-cmd", "make unit", "green", "spec.md", "tests/test_slugify.py"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "--fast-cmd", "make unit", "green", "spec.md", "tests/test_slugify.py"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (done.returncode, "GATE:" in done.stdout, launched.exists()) == (0, False, True), done.stdout + done.stderr
@@ -298,7 +305,7 @@ def test_verify_sh_red_whose_lint_gate_fails_on_the_tree_without_the_red_too_exi
            **checked_step(tmp_path, head)}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (done.returncode, "GATE:" in done.stdout, "sh lint.sh" in done.stderr,
@@ -328,7 +335,7 @@ def test_verify_sh_red_whose_test_command_is_a_single_runner_with_no_lint_gate_l
            **checked_step(tmp_path, head)}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (done.returncode, "GATE:" in done.stdout, launched.exists()) == (0, False, True), done.stdout + done.stderr
@@ -351,7 +358,7 @@ def test_verify_sh_pin_launches_its_verifier_with_the_mutation_record_set_to_the
            **checked_step(tmp_path, head, issue="2506")}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "--fast-cmd", "make unit", "pin", "spec.md", "tests/test_x.py"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "--fast-cmd", "make unit", "pin", "spec.md", "tests/test_x.py"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     got = seen.read_text() if seen.exists() else None
@@ -374,7 +381,7 @@ def test_verify_sh_green_with_an_issue_launches_its_verifier_without_the_mutatio
            **checked_step(tmp_path, head, issue="2506")}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "--fast-cmd", "make unit", "green", "spec.md", "tests/test_x.py"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "--fast-cmd", "make unit", "green", "spec.md", "tests/test_x.py"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     got = seen.read_text() if seen.exists() else None
@@ -398,7 +405,7 @@ def test_verify_sh_green_launches_its_verifier_without_an_ambient_mutation_recor
            **checked_step(tmp_path, head, issue="2506")}
 
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "--fast-cmd", "make unit", "green", "spec.md", "tests/test_x.py"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "--fast-cmd", "make unit", "green", "spec.md", "tests/test_x.py"],
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     got = seen.read_text() if seen.exists() else None
@@ -424,7 +431,7 @@ def run_verify_writing(tmp_path, phase, writes, then="", cwd=None, recorded=None
         (tmp_path / cwd).mkdir()
     up = "../" if cwd else ""
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "--fast-cmd", "make unit", phase, up + "spec.md", up + "tests/test_x.py"],
+        [str(SCRIPTS / "verify.sh"), *based(tmp_path), "--fast-cmd", "make unit", phase, up + "spec.md", up + "tests/test_x.py"],
         cwd=tmp_path / (cwd or ""), env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
     return done, record
 
@@ -669,7 +676,7 @@ def test_verify_sh_red_with_a_suite_command_failing_only_on_the_target_test_stil
     env = {"HOME": str(tmp_path),
            "VERI_TEST_CMD": "echo 'FAILED tests/test_slugify.py::test_lowercases - assert 1 == 2'; exit 1"}
 
-    code, out, _ = run_cli(verify, ["red", str(tmp_path / "spec.md"), "tests/test_slugify.py", "test_lowercases"],
+    code, out, _ = run_cli(verify, [*based(tmp_path), "red", str(tmp_path / "spec.md"), "tests/test_slugify.py", "test_lowercases"],
                            env=env, cwd=tmp_path)
 
     assert (code, [phase for phase, _ in launches], out.startswith("ok")) == (0, ["verify-red"], True)
@@ -702,7 +709,7 @@ def test_verify_sh_passes_the_blind_prompt_carrying_the_spec_to_the_leaf_and_a_h
         (tmp_path / ".gitignore").write_text(".tdd/\n")
         env.update(checked_step(tmp_path, with_origin_head(tmp_path)))
 
-    code, out, err = run_cli(verify, argv, env=env, cwd=tmp_path)
+    code, out, err = run_cli(verify, [*based(tmp_path), *argv], env=env, cwd=tmp_path)
 
     if leaf == "answers":
         assert (code, len(launches), SPEC in launches[0][1]) == (0, 1, True)
@@ -800,9 +807,8 @@ def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches
     through_fixture(fake_processes, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
-    monkeypatch.setattr(verify, "branch_base", lambda words: "0" * 40)  # git is faked: a run's merge base (#4263)
 
-    code, out, err = run_cli(verify, [*FAST, "green", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+    code, out, err = run_cli(verify, [*based(tmp_path), *FAST, "green", "spec.md", "tests/test_slugify.py", "test_lowercases"],
                              env={"HOME": str(tmp_path), **env}, cwd=tmp_path)
 
     assert (code, out, err, len(stuck_seen), events.records(tmp_path)) == (
@@ -868,7 +874,7 @@ def test_verify_sh_refuses_a_verifier_leaf_that_changed_the_tree_or_head_with_ex
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, named in out, git_state(repo)) == (expected_code, True, before)
@@ -890,7 +896,7 @@ def test_verify_sh_accepts_a_pass_from_a_verifier_leaf_that_changed_only_a_track
     env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
 
-    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, _, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                   "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, (repo / "tool.sh").stat().st_mode & 0o777) == (0, 0o755)
@@ -906,7 +912,7 @@ def test_verify_sh_accepts_a_pass_from_a_verifier_leaf_that_made_a_committed_100
     env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
 
-    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, _, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                   "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True, text=True).stdout
@@ -926,7 +932,7 @@ def test_verify_sh_restores_the_mode_of_a_tracked_file_with_a_non_ascii_name_and
     env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
 
-    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, _, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                   "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True, text=True).stdout
@@ -946,7 +952,7 @@ def test_verify_sh_still_refuses_a_verifier_leaf_that_turned_a_tracked_file_into
     env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "tool.sh" in out, "full suite are green" in out) == (2, True, False)
@@ -969,7 +975,7 @@ def test_verify_sh_exits_2_naming_the_cause_when_restoring_a_mode_raises_3087(ru
 
     monkeypatch.setattr(verify.os, "chmod", broken_chmod)
 
-    code, out, err = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, out, err = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                       "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "chmod refused for the test" in err, "full suite are green" in out) == (2, True, False)
@@ -989,7 +995,7 @@ def test_verify_sh_still_refuses_a_verifier_leaf_that_changed_both_the_mode_and_
     env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "tool.sh" in out, "full suite are green" in out) == (2, True, False)
@@ -1005,7 +1011,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_verifier_leaf_that_left_an_unre
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
@@ -1021,7 +1027,7 @@ def test_verify_sh_restores_a_tracked_file_the_leaf_edited_when_it_refuses_for_a
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
-    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, _, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                   "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, (repo / "src.txt").read_text()) == (2, "the developer committed this\n")
@@ -1037,7 +1043,7 @@ def test_verify_sh_names_the_unreadable_file_on_stderr_when_it_refuses_for_one_t
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
-    code, _, err = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, _, err = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "hidden.txt" in err) == (2, True)
@@ -1053,7 +1059,7 @@ def test_verify_sh_removes_a_file_the_leaf_added_when_it_refuses_for_an_unreadab
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
-    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, _, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                   "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, (repo / "added.txt").exists()) == (2, False)
@@ -1070,26 +1076,10 @@ def test_verify_sh_keeps_an_untracked_file_that_predates_the_leaf_when_it_refuse
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
-    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, _, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                   "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, (repo / "notes.txt").read_text()) == (2, "the developer has not committed this yet\n")
-
-
-@pytest.mark.process("a real git scratch repository with no origin, whose pin verifier leaf answers VERDICT: PASS")
-def test_verify_sh_pin_in_a_repository_with_no_origin_refuses_with_exit_2_naming_origin_head_and_launches_no_verifier_2900(
-        run_cli, tmp_path, monkeypatch):
-    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n", {}, origin=False)
-    launch_mark = tmp_path / "leaf-launched"
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": f'touch "{launch_mark}"',
-           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
-           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
-    verify = importlib.import_module("veri.verify")
-
-    code, out, err = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
-                                      "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
-
-    assert (code, "origin/HEAD" in err, launch_mark.exists()) == (2, True, False), out + err
 
 
 @pytest.mark.process("a real git scratch repository whose pin verifier leaf rewrites its mutation record and makes it unreadable")
@@ -1104,7 +1094,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_rewrote_
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
@@ -1123,7 +1113,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_left_a_r
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
@@ -1140,7 +1130,7 @@ def test_verify_sh_accepts_a_pass_from_a_pin_verifier_leaf_that_created_the_muta
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo, issue="2764")}
     verify = importlib.import_module("veri.verify")
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (0, True)
@@ -1160,7 +1150,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo, issue="2772")}
     verify = importlib.import_module("veri.verify")
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
@@ -1185,7 +1175,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_verifier_leaf_that_left_an_unre
            "PATH": "%s:%s" % (wrapper, os.environ["PATH"]), **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
@@ -1206,7 +1196,7 @@ def test_verify_sh_saves_the_same_refusal_diff_whatever_the_global_git_config_sa
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
-    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, _, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                   "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     saved = list((repo / ".tdd").glob("*.diff"))
@@ -1243,7 +1233,7 @@ def test_verify_sh_under_the_repos_own_gitignore_accepts_nested_run_state_and_re
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (ignored, code, [n for n in named if n not in out], "modified the repository" in out) == (
@@ -1262,7 +1252,7 @@ def test_verify_sh_relaunches_a_verifier_that_left_an_untracked_file_and_returns
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
 
-    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, _, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                   "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     saved = list((repo / ".tdd").glob("*.diff"))
@@ -1287,7 +1277,7 @@ def test_verify_sh_relaunches_a_verifier_that_edited_a_tracked_file_and_returns_
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
 
-    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, _, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                   "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     log_events = repo / ".tdd" / "events.jsonl"
@@ -1310,7 +1300,7 @@ def test_verify_sh_relaunches_a_verifier_that_moved_head_and_restores_head_and_t
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
 
-    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, _, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                   "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     log_events = repo / ".tdd" / "events.jsonl"
@@ -1330,7 +1320,7 @@ def test_verify_sh_refuses_a_verifier_that_left_an_untracked_file_without_a_rela
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     launches = (repo / ".tdd" / "launches").read_text().splitlines()
@@ -1350,7 +1340,7 @@ def test_verify_sh_writes_one_tree_change_relaunch_then_refuses_when_every_launc
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     log_events = repo / ".tdd" / "events.jsonl"
@@ -1430,7 +1420,7 @@ def test_verify_sh_preserves_a_rejected_or_no_verdict_attempt_under_its_ref_and_
         env.update(VERI_STUCK_RETRIES="0", VERI_TIMEOUT="0")
     verify = importlib.import_module("veri.verify")
 
-    code, out, err = run_cli(verify, [*(FAST if phase == "green" else []), phase, str(tmp_path / "spec.md"),
+    code, out, err = run_cli(verify, [*based(repo), *(FAST if phase == "green" else []), phase, str(tmp_path / "spec.md"),
                                       "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     refs, shown, copies, paired, events = attempts_trace(repo, phase)
@@ -2067,7 +2057,7 @@ def test_verify_sh_green_exits_2_when_the_named_cases_check_cannot_read_the_suit
     monkeypatch.setattr(verify.replaces_case_survivors, "survivors", lambda step: (2, "", ""))
 
     code, out, _ = run_cli(
-        verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.py"
+        verify, [*based(tmp_path), "--step", "the replacement takes over: replaces 'stale first' in tests/demo.py"
                  " ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
         env={"HOME": str(tmp_path)},
         cwd=tmp_path)
@@ -2083,7 +2073,7 @@ def test_verify_sh_green_returns_the_leafs_pass_unchanged_on_a_step_without_repl
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.py"
+        verify, [*based(tmp_path), "--step", "the replacement takes over: replaces 'stale first' in tests/demo.py"
                  " ⟦criterion 2⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
         env={"HOME": str(tmp_path)},
         cwd=tmp_path)
@@ -2099,7 +2089,7 @@ def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_s
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the replacement takes over: replaces 'stale first', 'stale second' in tests/demo.py"
+        verify, [*based(tmp_path), "--step", "the replacement takes over: replaces 'stale first', 'stale second' in tests/demo.py"
                  " ⟦replaces-case⟧ ⟦criterion 2⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
         env={"HOME": str(tmp_path)},
         cwd=tmp_path)
@@ -2114,7 +2104,7 @@ def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_step_naming_the
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the Red prompt describes the \u27e6replaces-case\u27e7 mark \u27e6criterion 1\u27e7",
+        verify, [*based(tmp_path), "--step", "the Red prompt describes the \u27e6replaces-case\u27e7 mark \u27e6criterion 1\u27e7",
                  "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
         env={"HOME": str(tmp_path)},
         cwd=tmp_path)
@@ -2129,7 +2119,7 @@ def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_s
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the Red prompt says replaces 'stale first' \u27e6replaces-case\u27e7 \u27e6criterion 4\u27e7",
+        verify, [*based(tmp_path), "--step", "the Red prompt says replaces 'stale first' \u27e6replaces-case\u27e7 \u27e6criterion 4\u27e7",
                  "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
         env={"HOME": str(tmp_path)},
         cwd=tmp_path)
@@ -2152,7 +2142,7 @@ def test_verify_sh_green_returns_the_leafs_reject_with_exit_1_and_its_own_reason
         monkeypatch.setattr(verify.replaces_case_survivors, "survivors", lambda step: (check, "", ""))
 
     code, out, _ = run_cli(
-        verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.py"
+        verify, [*based(tmp_path), "--step", "the replacement takes over: replaces 'stale first' in tests/demo.py"
                  " ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
         env={"HOME": str(tmp_path)},
         cwd=tmp_path)
@@ -2195,7 +2185,7 @@ def test_main_saves_the_content_diff_of_a_verifier_that_modified_a_tracked_file_
 
     monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*based("."), "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     out = capfd.readouterr().out
     named = [m for m in re.findall(r"\.tdd/verify-green[\w.-]*", out)
@@ -2242,7 +2232,7 @@ def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_18
 
     monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*based("."), "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     capfd.readouterr()
     assert (code, len(launches), (repo / "tracked.sh").stat().st_mode & 0o777) == (0, 1, 0o755)
@@ -2283,7 +2273,7 @@ def test_main_saves_a_binary_change_of_a_verifier_in_a_diff_that_applies_with_bi
 
     monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*based("."), "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     out = capfd.readouterr().out
     named = [m for m in re.findall(r"\.tdd/verify-green[\w.-]*", out)
@@ -2332,7 +2322,7 @@ def test_main_still_refuses_with_2_and_resets_the_tree_saying_the_diff_could_not
     monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
     try:
-        code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+        code = verify.main([*based("."), "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     except OSError as error:
         code = repr(error)
 
@@ -2376,7 +2366,7 @@ def test_main_still_refuses_with_2_saying_the_diff_could_not_be_saved_and_writes
 
     monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*based("."), "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     out = capfd.readouterr().out
     assert (code, "verifier leaf modified the repository" in out,
@@ -2420,7 +2410,7 @@ def test_main_removes_an_earlier_refusals_diff_when_this_refusals_diff_could_not
 
     monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*based("."), "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     out = capfd.readouterr().out
     assert (code, bool(re.search(r"diff could not be saved to \.tdd/verify-green\.diff", out)),
@@ -2463,7 +2453,7 @@ def test_main_saves_a_diff_that_passes_git_apply_check_whatever_the_users_prefix
 
     monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*based("."), "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     capfd.readouterr()
     saved = list((repo / ".tdd").glob("*.diff"))
@@ -2509,7 +2499,7 @@ def test_verify_sh_rebase_exits_1_without_launching_the_leaf_naming_the_commit_a
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["rebase", str(tmp_path / "spec.md"), onto, pre_rebase],
+        verify, [*based(repo), "rebase", str(tmp_path / "spec.md"), onto, pre_rebase],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -2547,7 +2537,7 @@ def test_verify_sh_rebase_exits_1_without_launching_the_leaf_when_a_commit_added
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["rebase", str(tmp_path / "spec.md"), onto, onto],
+        verify, [*based(repo), "rebase", str(tmp_path / "spec.md"), onto, onto],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -2585,7 +2575,7 @@ def test_verify_sh_rebase_launches_the_leaf_and_returns_its_verdict_when_no_comm
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["rebase", str(tmp_path / "spec.md"), onto, onto],
+        verify, [*based(repo), "rebase", str(tmp_path / "spec.md"), onto, onto],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -2604,7 +2594,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo, issue="2772")}
     verify = importlib.import_module("veri.verify")
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
@@ -2621,13 +2611,13 @@ def test_verify_sh_still_accepts_a_pass_from_a_pin_verifier_leaf_that_created_a_
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo, issue="2772")}
     verify = importlib.import_module("veri.verify")
 
-    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+    code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (0, True)
 
 
-def test_2900_verify_sh_pin_renders_the_prompt_with_branch_base_filled_by_the_merge_base_of_head_and_the_default_branch(
+def test_4375_verify_sh_pin_renders_the_prompt_with_branch_base_filled_by_its_branch_base_flag_never_a_merge_base(
         run_cli, tmp_path, monkeypatch, fake_processes):
     base = "3f9a1c0d5e7b"
     (tmp_path / "spec.md").write_text(SPEC)
@@ -2637,40 +2627,18 @@ def test_2900_verify_sh_pin_renders_the_prompt_with_branch_base_filled_by_the_me
     def fake(args, *rest, **kwargs):
         words = [str(a) for a in args]
         if os.path.basename(words[0]) == "git" and "merge-base" in words and "HEAD" in words:
-            return subprocess.CompletedProcess(args, 0, (base + "\n").encode(), b"")
+            return subprocess.CompletedProcess(args, 0, b"0123abcdef01\n", b"")
         return fallback(args, *rest, **kwargs)
 
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+    code, _, _ = run_cli(verify, ["--branch-base", base, "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
                                   "tests/test_slugify.py", "test_lowercases"],
                          env={"HOME": str(tmp_path)}, cwd=tmp_path)
 
     prompt = launched[0][1] if launched else ""
     assert (code, f"--before {base} --keep" in prompt, "{{BRANCH_BASE}}" in prompt) == (0, True, False)
-
-
-def test_2945_verify_sh_pin_whose_faked_git_answers_merge_base_with_nothing_exits_2_naming_origin_head_and_launches_no_leaf(
-        run_cli, tmp_path, monkeypatch, fake_processes):
-    (tmp_path / "spec.md").write_text(SPEC)
-    launched = answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine")
-    leaf_fake = subprocess.run
-
-    def fake(args, *rest, **kwargs):
-        words = [str(a) for a in args]
-        if os.path.basename(words[0]) == "git" and "merge-base" in words:
-            return subprocess.CompletedProcess(args, 1, b"", b"")
-        return leaf_fake(args, *rest, **kwargs)
-
-    through_fixture(fake_processes, fake)
-    verify = importlib.import_module("veri.verify")
-
-    code, out, err = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
-                                      "tests/test_slugify.py", "test_lowercases"],
-                             env={"HOME": str(tmp_path)}, cwd=tmp_path)
-
-    assert (code, "origin/HEAD" in err, launched, "0" * 40 in out + err) == (2, True, [], False), out + err
 
 
 def test_2916_verify_green_with_veri_issue_hands_the_runs_ledger_to_the_builder_so_the_prompt_lists_its_later_unchecked_steps(
@@ -2682,7 +2650,7 @@ def test_2916_verify_green_with_veri_issue_hands_the_runs_ledger_to_the_builder_
     launched = answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine")
     verify = importlib.import_module("veri.verify")
 
-    code, _, _ = run_cli(verify, ["--step", "first criterion", "--fast-cmd", "make unit", "green", "spec.md",
+    code, _, _ = run_cli(verify, [*based(tmp_path), "--step", "first criterion", "--fast-cmd", "make unit", "green", "spec.md",
                                   "tests/test_slugify.py"],
                          env={"HOME": str(tmp_path), "VERI_ISSUE": "2916"}, cwd=tmp_path)
 

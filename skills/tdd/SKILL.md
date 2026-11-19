@@ -191,7 +191,7 @@ second shell ever parses it —
 
 ```
 rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" <phase> … > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --branch-base <base> --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" <phase> … > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
 $S/wait-leaf.sh verdict-<phase>
 ```
 
@@ -615,7 +615,7 @@ counts in the bail comment, before the verifier launches (`Read` `<base director
 
 ```
 rm -f .tdd/verdict-plan.exit .tdd/verdict-plan.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> $S/detach-leaf.sh $S/supervise.sh verdict-plan $S/run-verdict.sh plan .tdd/issue-<n>-spec.md .tdd/issue-<n>.md > .tdd/verify-plan.reason 2> .tdd/verify-plan.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> $S/detach-leaf.sh $S/supervise.sh verdict-plan $S/run-verdict.sh --branch-base <base> plan .tdd/issue-<n>-spec.md .tdd/issue-<n>.md > .tdd/verify-plan.reason 2> .tdd/verify-plan.err
 $S/wait-leaf.sh verdict-plan     # foreground; on exit 3 call it again
 ```
 
@@ -852,7 +852,7 @@ Red by hand ends `$S/seam-settle.sh <n> red-half test_path=<path> target_test=<i
    reason) to a file** — the revise step takes the reason as a *path*:
    ```
    rm -f .tdd/verdict-red.exit .tdd/verdict-red.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --branch-base <base> --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
    $S/wait-leaf.sh verdict-red  # foreground; again on exit 3
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
@@ -870,7 +870,7 @@ Red by hand ends `$S/seam-settle.sh <n> red-half test_path=<path> target_test=<i
    instead and continue at the pin (when a Red reports `AGAINST_UNMODIFIED: PASSES`, `Read` `<base directory>/PIN.md`):
    ```
    rm -f .tdd/verdict-pin.exit .tdd/verdict-pin.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-pin $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-pin $S/run-verdict.sh --branch-base <base> --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err
    $S/wait-leaf.sh verdict-pin  # foreground; again on exit 3
    ```
    A `⟦ci-repair⟧` step is the one exception to `PASSES`: its test failed on CI and may pass
@@ -989,27 +989,26 @@ Green by hand ends `$S/seam-settle.sh <n> green-half test_path=<path>`.
    **`add-ledger-step.sh` exit 2**: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, on any answer (`retry` too), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
 
    **A `TIDY_FIRST:` line in place of `SPLIT:` lines:** `Read` `<base directory>/TIDY-FIRST.md`.
-2. **Verify (blind)** — the verifier shape again; the wait's code is again the verdict.
+2. **Verify (blind)** — the verifier shape, `<base>` the recorded branch base; its wait's code is the verdict.
    Neither verify-green nor the develop leaf runs more than the fast tier and the changed files' tests: a
    break outside them surfaces at the one full-suite run in *4. Draft PR*.
    The `⟦replaces-case⟧` unreplaced-cases check already ran in *Red*, before verify-red; not rerun.
-   Run `$S/replaces-case-survivors.sh "<step text>"` before the launch below, on a ⟦replaces-case⟧ step only; its exit 1 means survivors (see below).
+   A ⟦replaces-case⟧ step only: run `$S/replaces-case-survivors.sh "<step text>"` before launch.
    **Switched off:** with `green` in `.tdd/issue-<n>-skip-verify`, launch no verify-green: record
    `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-green-skipped reason=switched-off`,
    write `skipped` to `.tdd/verdict-green.exit`; the checks before launch and `mutation-parity.sh` still run first,
    then post 3's two comments (`verify-green` says SKIPPED) and take its PASS branch. Otherwise:
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --branch-base <base> --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
    $S/wait-leaf.sh verdict-green  # foreground; again on exit 3
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
    On a `⟦replaces-case⟧` step, a PASS is accepted only once the conductor's own run of
    `$S/mutation-parity.sh <pairs-table>` on that step's pairs table exits 0; exit 1 is a
-   REJECT, exit 2 a bail (see `<base directory>/BAIL.md`). The PR body's pairs table is that run's report, and each row it
-   reports owed goes into the PR body under `## Owed by a human`. Before that verify-green
-   launches, the conductor runs `$S/replaces-case-survivors.sh "<step text>"`; exit 1 prints
-   the named cases the suite still holds, and the conductor then relaunches the green leaf
+   REJECT, exit 2 a bail (`<base directory>/BAIL.md`). The PR body's pairs table is that run's report, and each row it
+   reports owed goes into the PR body under `## Owed by a human`. The survivors run's exit 1
+   prints the named cases the suite still holds, and the conductor relaunches the green leaf
    naming those survivors, records the relaunch as an event (`$S/event.sh`), and launches no
    verifier on that green. Each such relaunch spends one `REVISE_BUDGET` attempt, the verdict
    axis, since a surviving named case is a mechanical rejection of the green; when the budget
@@ -1151,7 +1150,7 @@ that push; else the ending call's code (a bail's too).
    branch, `pin-recheck.sh` and the pending-mark clear included. Otherwise:
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --branch-base <base> --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
    $S/wait-leaf.sh verdict-refactor  # foreground; again on exit 3
    ```
    — one verdict on the final state (the **fast tier** plus only the touched files' tests still green — neither

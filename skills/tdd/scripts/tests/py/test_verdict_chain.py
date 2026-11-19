@@ -46,7 +46,7 @@ def launch_verdict(tmp_path, result):
     env = {name: value for name, value in os.environ.items() if not name.startswith("VERI_")}
     env.update(S=str(SCRIPTS), CLAUDE_BIN=str(stub), HOME=str(home), VERI_TEST_VERDICT_RESULT=result,
                VERI_ISSUE="2206", VERI_STEP="1", VERI_STUCK_RETRIES="0", VERI_NO_VERDICT_RETRIES="0", VERI_HEARTBEAT="30", VERI_TIMEOUT="60", VERI_POLL="0.2")
-    launch = ('$S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh red spec.md probe.test.sh probe-target'
+    launch = ('$S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --branch-base "$(git rev-parse HEAD)" red spec.md probe.test.sh probe-target'
               ' > .tdd/verify-red.reason && $S/wait-leaf.sh verdict-red 60')
     done = subprocess.run(["bash", "-c", launch], cwd=work, env=env, stdin=subprocess.DEVNULL,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=90)

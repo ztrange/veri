@@ -8,8 +8,9 @@ RESUME_MD = SKILL.with_name("RESUME.md")
 
 FLAG = '--step "<STEP>"'
 FAST_FLAG = "--fast-cmd '<fast-cmd>'"
-CALL_RE = rf"verify\.sh {FLAG}( {FAST_FLAG})? (red|green|refactor|pin|<phase>)"
-GREEN_RE = rf"verify\.sh {FLAG}( {FAST_FLAG})? (green|<phase>) "
+BASE_FLAG = "--branch-base <base>"  # the recorded branch base, ahead of every other flag (#4375)
+CALL_RE = rf"verify\.sh {BASE_FLAG} {FLAG}( {FAST_FLAG})? (red|green|refactor|pin|<phase>)"
+GREEN_RE = rf"verify\.sh {BASE_FLAG} {FLAG}( {FAST_FLAG})? (green|<phase>) "
 
 
 def verify_calls():
@@ -34,6 +35,6 @@ def test_skill_md_passes_fast_cmd_on_every_verify_sh_call_that_can_judge_green()
     problems = [
         f"skills/tdd/SKILL.md:{n} can judge green but does not pass {FAST_FLAG}: {line}"
         for n, line in verify_calls()
-        if re.search(GREEN_RE, line) and f"verify.sh {FLAG} {FAST_FLAG} " not in line
+        if re.search(GREEN_RE, line) and f"verify.sh {BASE_FLAG} {FLAG} {FAST_FLAG} " not in line
     ]
     assert not problems, "\n".join(problems)

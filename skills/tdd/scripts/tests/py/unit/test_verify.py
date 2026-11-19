@@ -17,18 +17,9 @@ def no_ambient_leaf_args(monkeypatch):
     monkeypatch.delenv("VERIFY_LEAF_ARGS", raising=False)
 
 
-@pytest.fixture(autouse=True)
-def merge_base_found(monkeypatch):
-    """Every case runs where git names a merge base of HEAD and origin/HEAD, as a real run's worktree does, so a phase
-    other than `diff` reads its run lines there (#4263) instead of refusing; test_build_prompt_run_line_process.py holds
-    the cases where it names none."""
-    verify = importlib.import_module("veri.verify")
-    found = verify.branch_base
-    monkeypatch.setattr(verify, "branch_base", lambda words: found(words) if words[0] == "diff" else "0" * 40)
-
-
-USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <phase> <issue-spec-file>"
-         b" <test-path> [<target-test-id>]")
+BRANCH = ["--branch-base", "0123abc"]  # the run's recorded branch base every phase but diff takes (#4375)
+USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] --branch-base <sha> <phase>"
+         b" <issue-spec-file> <test-path> [<target-test-id>]")
 
 
 def write_inputs(directory):
@@ -74,7 +65,7 @@ def test_main_with_fewer_than_three_positionals_returns_2_with_the_usage_line_al
     code = verify.main(list(argv))
 
     captured = capfdbinary.readouterr()
-    assert len(USAGE) == 137
+    assert len(USAGE) == 157
     assert (code, captured.out, captured.err, calls) == (2, b"", USAGE + b"\n", [])
 
 
@@ -91,6 +82,23 @@ def test_main_with_a_flag_missing_its_value_returns_2_naming_the_flag_then_the_u
     captured = capfdbinary.readouterr()
     assert (code, captured.out, captured.err, calls) == (
         2, b"", b"verify: " + flag + b" needs a value\n" + USAGE + b"\n", [])
+
+
+@pytest.mark.parametrize("phase", ["red", "green", "refactor", "pin", "surround", "plan", "rebase"])
+@pytest.mark.parametrize("flag, got", [([], b""), (["--branch-base", "not-a-sha"], b"not-a-sha"),
+                                       (["--branch-base", "ABC1234"], b"ABC1234"), (["--branch-base", "abc123"], b"abc123")])
+def test_main_with_branch_base_missing_or_not_hex_returns_2_naming_the_flag_then_the_usage_line_and_starts_no_process_4375(
+        phase, flag, got, tmp_path, monkeypatch, capfdbinary, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    calls = fake_processes()
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main([*flag, phase, "spec.md", "tests/test_x.py"])
+
+    captured = capfdbinary.readouterr()
+    assert (code, captured.out, captured.err, calls) == (
+        2, b"", b"verify: %s needs --branch-base <sha> as 7-40 lowercase hex characters, got '%s'\n" % (
+            phase.encode(), got) + USAGE + b"\n", [])
 
 
 @pytest.mark.parametrize("argv, stderr", [
@@ -110,7 +118,7 @@ def test_main_returns_the_builders_refusal_mapped_into_the_contract_with_its_std
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", *argv])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", *argv])
 
     captured = capfdbinary.readouterr()
     assert (code, captured.out, stderr in captured.err, launched,
@@ -136,7 +144,7 @@ def test_main_calls_the_builder_beside_the_shim_as_called_with_the_consumed_pair
     before = set(sys.modules)
     try:
         verify = importlib.import_module("veri.verify")
-        argv = ["--step", "--fast-cmd", "--fast-cmd", "make unit",
+        argv = [*BRANCH, "--step", "--fast-cmd", "--fast-cmd", "make unit",
                 "green", "spec.md", "tests/x.test.sh", "--step"]
         (work / "spec.md").write_text("an earlier, longer spec that must not survive in the prompt\n")
         verify.main(list(argv))
@@ -182,7 +190,7 @@ def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flag
     verify = importlib.import_module("veri.verify")
     scripts = os.path.dirname(os.path.dirname(os.path.abspath(verify.__file__)))
 
-    verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     supervised = [call for call in started if os.path.basename(call[0][0]) == "supervise.sh"]
@@ -213,7 +221,7 @@ def test_main_reads_the_verdict_from_supervises_stdout_and_prints_the_whole_reas
     answering_leaf(monkeypatch, fake_processes, leaf_out)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", phase, "spec.md", "tests/x.test.sh",
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", phase, "spec.md", "tests/x.test.sh",
                            *(["0123abc"] if phase == "refactor" else [])])
 
     assert (code, capfdbinary.readouterr().out) == expected
@@ -228,7 +236,7 @@ def test_main_drops_nul_bytes_from_the_leafs_output_so_a_verdict_carrying_them_i
     answering_leaf(monkeypatch, fake_processes, "VER\x00DICT: REJ\x00ECT\nthe \x00whole\nreason\x00")
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     assert (code, capfdbinary.readouterr().out) == (1, b"the whole\nreason\n")
@@ -251,7 +259,7 @@ def test_main_appends_one_verdict_record_with_the_verdict_word_and_the_reasons_f
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    verify.main(["--fast-cmd", "make unit", phase, "spec.md", "tests/x.test.sh",
+    verify.main([*BRANCH, "--fast-cmd", "make unit", phase, "spec.md", "tests/x.test.sh",
                            *(["0123abc"] if phase == "refactor" else [])])
 
     assert events.records() == [
@@ -279,7 +287,7 @@ def test_main_puts_a_check_from_1_to_5_on_a_green_verdict_event_and_none_for_an_
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    returned = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    returned = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     reason = "" if word == "malformed" else "the pass is not genuine"
     assert (returned, events.records()) == (code, [
@@ -300,7 +308,7 @@ def test_main_prints_a_green_reason_holding_no_check_line_wherever_the_verifier_
     answering_leaf(monkeypatch, fake_processes, leaf_out)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     assert (code, capfdbinary.readouterr().out) == (1, b"the pass is not genuine\nsee the diff\n")
 
@@ -318,7 +326,7 @@ def test_main_launches_the_leaf_with_verify_leaf_args_words_split_on_whitespace_
     verify = importlib.import_module("veri.verify")
     scripts = os.path.dirname(os.path.dirname(os.path.abspath(verify.__file__)))
 
-    verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     assert supervised == [[os.path.join(scripts, "supervise.sh"), "verify-green",
@@ -363,7 +371,7 @@ def test_main_refuses_a_literal_model_word_in_verify_leaf_args_beside_a_resolved
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     if launches:
         assert_prompt_rendered()
     else:
@@ -387,7 +395,7 @@ def test_4013_a_veri_effort_verifier_outside_the_five_levels_exits_2_naming_the_
     answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine", supervised=supervised)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     err = capfdbinary.readouterr().err.decode("utf-8")
     assert (code, supervised, "VERI_EFFORT_VERIFIER" in err,
@@ -404,7 +412,7 @@ def test_main_lets_a_literal_model_word_in_verify_leaf_args_stand_when_no_model_
     answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine", supervised=supervised)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -427,7 +435,7 @@ def test_4013_a_verifier_leaf_carries_effort_and_veri_effort_verifiers_value_onl
     answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine", supervised=supervised)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     efforts = [words[words.index("--effort"):words.index("--effort") + 2] if "--effort" in words else []
                for words in supervised]
@@ -455,7 +463,7 @@ def test_4013_verify_leaf_args_carrying_effort_beside_a_set_veri_effort_verifier
     answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine", supervised=supervised)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     err = capfdbinary.readouterr().err.decode("utf-8")
     if refused:
@@ -480,7 +488,7 @@ def test_main_still_refuses_a_literal_model_word_in_verify_leaf_args_when_veri_m
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "green", "spec.md", "tests/x.test.sh"])
 
     captured = capfdbinary.readouterr()
     assert (code, captured.err.decode("utf-8"), captured.out, started) == (2, CLASH % "opus", b"", [])
@@ -516,7 +524,7 @@ def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_pre
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -555,7 +563,7 @@ def test_2206_a_verify_green_supervise_refuses_to_launch_exits_2_naming_the_refu
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     captured = capfdbinary.readouterr()
     out, err = captured.out.decode("utf-8"), captured.err.decode("utf-8")
@@ -595,7 +603,7 @@ def test_main_relaunches_a_leaf_with_no_verdict_line_up_to_the_no_verdict_budget
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     assert (code, len(supervised), events.records(), capfdbinary.readouterr().err) == (
@@ -612,7 +620,7 @@ def test_main_returns_2_when_the_relaunch_record_cannot_be_appended_and_makes_no
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     assert (code, len(supervised), capfdbinary.readouterr().out) == (2, 1, b"")
@@ -645,7 +653,7 @@ def test_main_returns_2_when_the_verdict_record_cannot_be_appended_with_no_prese
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     assert (code, preserved, capfdbinary.readouterr().out) == (2, [], b"")
@@ -661,7 +669,7 @@ def test_main_reads_an_empty_no_verdict_budget_as_1_and_a_leading_zero_as_decima
     supervised = answering_leaf(monkeypatch, fake_processes, NO_VERDICT)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     assert (code, len(supervised)) == (2, launches)
@@ -687,7 +695,7 @@ def test_main_copies_parse_verdicts_stderr_to_its_own_stderr_after_every_launch_
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     assert (code, capfdbinary.readouterr().err) == (
@@ -705,7 +713,7 @@ def test_main_refuses_a_no_verdict_budget_that_is_not_a_non_negative_integer_aft
     launched = answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine\n")
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -766,7 +774,7 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -819,7 +827,7 @@ def test_main_takes_a_git_call_that_fails_as_no_snapshot_or_no_change_whatever_i
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -868,7 +876,7 @@ def test_main_restores_a_modified_tree_through_a_fresh_temporary_index_and_a_mov
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     capfdbinary.readouterr()
@@ -917,7 +925,7 @@ def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relau
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -967,7 +975,7 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1000,7 +1008,7 @@ def test_4221_main_names_on_the_verdict_event_the_tree_the_guard_took_before_the
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
     assert (code, events.records()) == (
         0, [record("verdict", "verdict=PASS", "reason=fine", "tree=" + "c" * 40, issue="7", step="2")])
@@ -1039,7 +1047,7 @@ def test_main_in_a_repository_with_no_commit_reports_a_leaf_that_commits_as_head
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1082,7 +1090,7 @@ def test_main_returns_2_with_no_traceback_when_the_update_ref_restoring_head_fai
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1123,7 +1131,7 @@ def test_main_returns_2_not_1_when_the_update_ref_restoring_head_exits_1_1183(
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1166,7 +1174,7 @@ def test_main_returns_2_with_no_traceback_when_git_cannot_be_started_to_restore_
 
     raised = None
     try:
-        code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+        code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     except OSError as error:
         code, raised = None, type(error).__name__
 
@@ -1214,7 +1222,7 @@ def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_d
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1263,7 +1271,7 @@ def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1294,7 +1302,7 @@ def test_main_returns_2_before_any_leaf_launches_when_reading_home_gitconfig_a_r
     monkeypatch.setattr("builtins.open", unreadable)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1323,7 +1331,7 @@ def test_main_returning_2_because_reading_home_gitconfig_raised_oserror_names_th
     monkeypatch.setattr("builtins.open", unreadable)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1344,7 +1352,7 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_without_launching_a_leaf
     launched = answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine\n")
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1381,7 +1389,7 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_a_
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1425,7 +1433,7 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_un
     monkeypatch.setattr("builtins.open", unreadable_after_the_leaf)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1481,7 +1489,7 @@ def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_under_its_attem
     through_fixture(fake_processes, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
@@ -1522,7 +1530,7 @@ def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_a
             scoped.setattr(sys, "stdout", io.TextIOWrapper(stdout, encoding="ascii", write_through=True))
             scoped.setattr(sys, "stderr", io.TextIOWrapper(stderr, encoding="ascii", write_through=True))
             try:
-                status = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+                status = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
             except Exception as error:
                 status = type(error).__name__
             return status, stdout.getvalue(), stderr.getvalue()
@@ -1606,7 +1614,7 @@ def test_verify_sh_hands_every_launch_the_builders_own_prompt_for_its_arguments_
         flags, phase, fourth, leaf_out, expected_code, launches, present, absent, run_cli, tmp_path, monkeypatch, fake_processes):
     monkeypatch.setenv("VERI_STEP", AMBIENT_STEP)
     (tmp_path / "spec.md").write_text(SPEC)
-    argv = [*flags, phase, str(tmp_path / "spec.md"), "tests/test_slugify.py", fourth]
+    argv = [*BRANCH, *flags, phase, str(tmp_path / "spec.md"), "tests/test_slugify.py", fourth]
     launched = answering_leaf(monkeypatch, fake_processes, leaf_out)
     verify = importlib.import_module("veri.verify")
 
@@ -1654,7 +1662,7 @@ DIFF_STEP = "DIFF-STEP the old cases are gone"
 DIFF = ["--step", DIFF_STEP, *FAST, "diff", "{spec}", "0123abc", "0123abc"]
 
 
-REBASE = ["rebase", "{spec}", "0123abc", "4567def"]
+REBASE = [*BRANCH, "rebase", "{spec}", "0123abc", "4567def"]
 
 
 NO_STEP = "build-verify-prompt: diff needs --step '<STEP>'"
@@ -1687,7 +1695,7 @@ STEP_VALUE = "verify: --step needs a value"
           ("no-step", [*FAST, "diff", "{spec}", "0123abc", "0123abc"], NO_STEP),
           ("non-hex", ["--step", DIFF_STEP, *FAST, "diff", "{spec}", "not-a-sha", "0123abc"], NON_HEX),
           ("extra", [*DIFF, "extra"], TOO_MANY))],
-    pytest.param("verify", ["--step", "", "red", "{spec}", "tests/test_slugify.py", "test_lowercases"], GREEN,
+    pytest.param("verify", ["--step", "", *BRANCH, "red", "{spec}", "tests/test_slugify.py", "test_lowercases"], GREEN,
                  (2, STEP_VALUE, [], []), id="empty-step"),
     pytest.param("verify", ["--step"], GREEN, (2, STEP_VALUE, [], []), id="trailing-step"),
 ])

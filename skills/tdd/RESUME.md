@@ -89,7 +89,7 @@ them.
    `refactor-budget.sh 0` then skips the leaf — the step is tidied as far as it was funded
    to be. Run its **verify-refactor** after it, unless the run pinned it off (below) — the check the interruption skipped — with
    `$green` as the cycle loop's `<green-sha>`:
-   `verify.sh --step "<STEP>" --fast-cmd '<fast-cmd>' refactor <spec-file> <test-path> "$green"`, launched as there. Its
+   `verify.sh --branch-base <base> --step "<STEP>" --fast-cmd '<fast-cmd>' refactor <spec-file> <test-path> "$green"`, launched as there. Its
    PASS clears the mark and commits the cleared ledger exactly as in the cycle loop; then
    come back here and ask sub-step 2 again.
    **Unless `refactor` is listed in `.tdd/issue-<n>-skip-verify`:** then no verify-refactor
