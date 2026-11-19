@@ -6,6 +6,7 @@ import sys
 
 import entry
 import run_dir
+import stack_branch
 
 USAGE = "usage: stack-recover.sh"
 
@@ -25,6 +26,14 @@ def main(argv):
     if outage:
         return _refuse(".tdd/github-outage exists, so recovery waits for the GitHub outage to end; nothing read, locked"
                        " or pushed")
+    try:
+        stack = stack_branch.named(".")
+    except stack_branch.Refused as refused:
+        return _refuse("stack-branch.sh exits 2: %s" % refused)
+    if stack is None:
+        print("stack-recover: stack-branch.sh exits 3: the repository's CLAUDE.md names no stack branch, so nothing was"
+              " joined offline", file=sys.stderr)
+        return 3
     return 3
 
 

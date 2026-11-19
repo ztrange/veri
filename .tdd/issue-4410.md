@@ -2,7 +2,7 @@
 
 - [x] stack-recover.sh is a /bin/sh shim over veri/stack_recover.py; an argument is exit 2 with its usage ⟦criterion 1⟧
 - [x] stack-recover.sh exits 2 while .tdd/github-outage exists, before any read ⟦criterion 2⟧
-- [ ] stack-recover.sh exits 3 when stack-branch.sh exits 3, and 2 when it exits 2 ⟦criterion 2⟧
+- [x] stack-recover.sh exits 3 when stack-branch.sh exits 3, and 2 when it exits 2 ⟦criterion 2⟧
 - [ ] stack-recover.sh takes the merge lock and fetches; a failed take or fetch is exit 2, the lock freed ⟦criterion 3⟧
 - [ ] stack-recover.sh exits 3 when the local stack is absent, is origin/<stack>, or is behind it, the lock freed ⟦criterion 3⟧
 - [ ] stack-recover.sh exits 1 naming both shas when origin/<stack> is not an ancestor of the local stack, nothing pushed ⟦criterion 4⟧
