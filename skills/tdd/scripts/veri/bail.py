@@ -51,6 +51,8 @@ def main(argv):
         subprocess.run(["git", "commit", "-m", "metrics: what bailing on #%s cost (#%s)" % (argv[0], argv[0]), "--", path],
                        capture_output=True, text=True)
     _run("push-branch.sh", [os.path.join(here, "push-branch.sh")])
+    with open(argv[4], "a") as f:
+        f.write("\n" + metrics.stdout)
     _run("comment.sh", [os.path.join(here, "comment.sh"), argv[0], "bailed", "--note-file", argv[4]])
     _run("comment.sh", [os.path.join(here, "comment.sh"), argv[0], "bailed", "--pr", "--note-file", argv[4]])
     return 0
