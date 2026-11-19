@@ -61,7 +61,7 @@ clock = time.monotonic
 
 
 def record_path():
-    return tunables.read("VERI_TEST_CEILING_FILE") or os.path.join(os.path.expanduser("~"), ".veri-test-ceiling")
+    return tunables.get("VERI_TEST_CEILING_FILE") or os.path.join(os.path.expanduser("~"), ".veri-test-ceiling")
 
 
 def write_record(lines):

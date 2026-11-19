@@ -260,6 +260,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_PYCACHE` | "" | its readers' own words |
 | `VERI_PYTEST_IDLE` | `1200` | its readers' own words |
 | `VERI_PYTEST_LEGS` | "" | its readers' own words |
+| `VERI_TEST_CEILING_FILE` | "" | its readers' own words |
 | `VERI_PYTEST_WORKERS` | "" | its readers' own words |
 | `VERI_REBASED_TIP_SUITE` | `local` | local or ci |
 | `VERI_RECHECK_PERMISSIONS` | `0` | its readers' own words |
@@ -578,6 +579,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `failed_cases`: the pytest leg's record plugin: keeps, in this process, the cases each session collected and how each one reported.
 - `full_run_lock`: the one-full-run lock: at most one full `make test` runs per machine, and a waiter names the holder.
 - `leg_tmpdir`: `PINNED_TMPDIR`, the TMPDIR the pytest leg pins before it starts; run-conductor's free-space check reads it too, so a run never imports the leg.
+- `ceiling`: test-ceiling.sh's ramp: the highest test-worker count `make test` runs at with no case timeout, recorded in `~/.veri-test-ceiling`.
 - `profile.sh`: per-case timing of suites.
 - `pycache_prefix`: sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import.
 
