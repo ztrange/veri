@@ -3,6 +3,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
 import os
+import re
 import sys
 
 import fused
@@ -31,6 +32,10 @@ STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦r
 SERIES = tuple(stage for stage in STAGES if stage not in ("revise", "diff-step"))
 # The phase stages -> the phase a verifier judges: a REJECT there (`.tdd/verdict-<phase>.exit` holding 1) is revise.sh's.
 PHASES = {"red-half": "red", "green-half": "green", "refactor-half": "refactor", "diff-step": "diff"}
+# A green-half stop on a report line wrong-test-route.sh answers (two of green_half.ROUTES; SPLIT and TIDY_FIRST keep
+# their seam), and the green report reroute.sh is then handed (PRD 038.10 RRT8).
+ROUTED = re.compile(r"stopped at \d+ (WRONG_TEST|SUPERSEDED): ")
+GREEN_REPORT = ".tdd/develop-green.out"
 # The scripts a `next=` it prints may name, every other `next=` being an anchor above (S4, RN10): itself, called again
 # on a stage's 3, and seam-settle.sh, which a stage's own record seam names.
 NEXT_SCRIPTS = ("run-step.sh", "seam-settle.sh")
@@ -96,32 +101,49 @@ def main(argv):
         start = 0
     else:
         start = max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
-    out = ""
-    for stage in order[start:]:
+    out, i, action = "", start, None
+    while i < len(order):
+        stage = order[i]
         script = stage + ".sh"
         anchor, unhandled = STAGES[stage]
-        if stage in hand:
-            return seam(wt, n, step, stage, 1, anchor, "hand")
-        if any(mark in step for mark in unhandled):
-            return seam(wt, n, step, stage, 1, anchor, "unmodelled")
-        if stage in PHASES and fused_step.rejected(wt, n, stage, step) is not None:
-            # A revise under way (its 3 called run-step.sh again): back to it, never to the half.
+        if action is None:
+            if stage in hand:
+                return seam(wt, n, step, stage, 1, anchor, "hand")
+            if any(mark in step for mark in unhandled):
+                return seam(wt, n, step, stage, 1, anchor, "unmodelled")
+            if stage in PHASES and fused_step.rejected(wt, n, stage, step) is not None:
+                # A revise under way (its 3 called run-step.sh again): back to it, never to the half.
+                action = ("revise",)
+            else:
+                action = ("stage",)
+        (kind, *given), action = action, None
+        if kind == "reroute":
+            got = reroute(wt, n, step, hand, *given)
+            if isinstance(got, int):
+                return got
+            action = ("stage",)
+            continue
+        if kind == "revise":
             code = revise(wt, n, step, stage, hand)
             if code is not None:
                 return code
+            action = ("stage",)
+            continue
         code, out = run_stage(script, n)
+        if code == 1 and stage == "green-half" and ROUTED.match((out.splitlines() or [""])[-1]):
+            action = ("reroute", GREEN_REPORT)
+            continue
         if code == 1 and stage in PHASES and (verdict(wt, PHASES[stage]) == "1" or stage in KIND_STAGES and
                                               fused_step.rejected(wt, n, stage, step) is not None):
             # diff-step's flip and pin-recheck REJECTs leave its rejected record with the verifier's PASS in place.
-            code = revise(wt, n, step, stage, hand)
-            if code is not None:
-                return code
-            code, out = run_stage(script, n)
+            action = ("revise",)
+            continue
         if code != 0:
             said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
             if code == 1 and said:
                 return seam(wt, n, step, stage, code, None, line=said[-1])
             return seam(wt, n, step, stage, code, NEXT_SCRIPTS[0] + " " + n if code == 3 else anchor)
+        i += 1
     said = [line for line in out.splitlines() if line.startswith("next=")]
     if not said:
         record(wt, n, order[-1], step)
@@ -131,6 +153,17 @@ def main(argv):
         os.remove(fused.settled_file(wt, n, "step"))
     sys.stdout.write(said[-1] + "\n")
     return 0
+
+
+def reroute(wt, n, step, hand, report):
+    """reroute.sh <n> <report> for a Green route (PRD 038.10 RRT8): None on its 0, green-half to be called again; else
+    the seam's exit."""
+    code = run_stage("reroute.sh", n, report)[0]
+    if code == 0:
+        return None
+    record(wt, n, "green-half", step)
+    sys.stdout.write("seam=reroute code=%d next=%s\n" % (code, NEXT_SCRIPTS[0] + " " + n if code == 3 else GREEN))
+    return code
 
 
 def run_stage(script, n, *more):
