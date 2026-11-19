@@ -324,6 +324,12 @@ def _later(report, behaviour, spec):
         after = _open_after()
     except OSError:
         return None
+    return later_owner(behaviour, spec, after)
+
+
+def later_owner(behaviour, spec, after):
+    """The first of the step names <after> whose criterion text in <spec> contains <behaviour> or is contained in it,
+    compared case-insensitively; None for none."""
     wanted = behaviour.lower()
     for name in after:
         text = (_criterion(spec, name) or "").lower()
