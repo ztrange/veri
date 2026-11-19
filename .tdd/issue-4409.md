@@ -1,6 +1,6 @@
 # Plan for #4409 — PRD 033.2b: an Opus session may skip the local gate, and a red gate over a skipped join freezes the local stack
 
-- [ ] `--skip-suite <model-id> <reason>` with an id naming neither `opus` nor `fable`, or no reason, is exit 2 before the lock, nothing happening ⟦criterion 1⟧
+- [x] `--skip-suite <model-id> <reason>` with an id naming neither `opus` nor `fable`, or no reason, is exit 2 before the lock, nothing happening ⟦criterion 1⟧
 - [ ] `--skip-suite` with `.tdd/github-outage` absent, or a join that is not offline, is exit 2 before the lock, nothing happening ⟦criterion 1⟧
 - [ ] `--skip-suite` on an offline join runs no gate and the amend writes `Veri-Suite: skipped <model-id> <reason>` ⟦criterion 1⟧ ⟦criterion 2⟧
 - [ ] the offline join's amend writes `Veri-Suite: passed` after a green gate and `Veri-Suite: not gated` with no all-tier command ⟦criterion 2⟧
