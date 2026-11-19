@@ -136,3 +136,14 @@ def test_the_recorder_writes_only_a_failed_report_and_only_outside_an_xdist_work
     ceiling_record.pytest_runtest_logreport(report("a::failed", True))
 
     assert ceiling.failures(str(record)) == {"a::failed": True}
+
+
+def test_a_load_timeout_at_2_workers_is_exit_1_no_ceiling_of_at_least_2(make, run_cli):
+    make.given(lambda workers, tests: [(SLOW, TIMEOUT)] if workers == 2 and not tests else [])
+
+    code, out, err = run_cli(ceiling, [])
+
+    assert code == 1, err
+    assert [(workers, tests) for workers, tests, _ in make.calls] == [(2, []), (1, [SLOW])]
+    assert "no ceiling of at least 2" in err
+    assert "ceiling:" not in out
