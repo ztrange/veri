@@ -79,7 +79,7 @@ def test_4432_the_title_seam_record_holds_the_sha_of_the_ledgers_last_commit(mon
     code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
 
     assert code == 1, err
-    assert "abc1234deadbeef" in open(fused.settled_file(str(wt), "12", "run-pr")).read()
+    assert (wt / ".tdd" / "issue-12-run-pr").read_text() == "seam=title\nsha=abc1234deadbeef\n"
 
 
 def test_4432_a_seam_record_whose_sha_is_not_the_ledgers_last_commit_is_not_resumed_and_the_call_starts_at_branch_gate(
