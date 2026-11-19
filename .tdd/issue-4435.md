@@ -1,6 +1,6 @@
 # Plan for #4435 — PRD 038.3: step-tick.sh and a diff-step stage
 
-- [ ] step-tick.sh closes an open ⟦diff-checked⟧ step: tick-ledger.sh without --refactor-pending, the `chore: diff-checked — <summary> (#<n>)` commit, push, stop ask, step-done comment, criterion tick, step-done mark, last line next= ⟦criterion 6⟧
+- [x] step-tick.sh closes an open ⟦diff-checked⟧ step: tick-ledger.sh without --refactor-pending, the `chore: diff-checked — <summary> (#<n>)` commit, push, stop ask, step-done comment, criterion tick, step-done mark, last line next= ⟦criterion 6⟧
 - [ ] step-tick.sh exits 2 before any commit on a missing pin-recheck receipt, preflight or ledger, or bad arguments ⟦criterion 11⟧ ⟦criterion 15⟧
 - [ ] diff-step.sh runs a ⟦diff-checked⟧ step's clean path in order, each leaf wait sliced, printing call lines only and never passing FLIP to the verifier ⟦criterion 1⟧ ⟦criterion 5⟧ ⟦criterion 12⟧ ⟦criterion 13⟧
 - [ ] diff-step.sh with diff switched off launches no verifier, marks the skip, writes skipped and goes on ⟦criterion 4⟧
