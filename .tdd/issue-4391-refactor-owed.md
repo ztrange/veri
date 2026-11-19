@@ -1,3 +1,5 @@
 ### a non-zero `metrics.sh` makes no metrics commit, and every later call (push, both comments) still runs, ending exit 0 with the `bail` event written; an in-process case with call spies ⟦criterion 2⟧
 - Long Function: Extract Function — `main` in bail.py has a 32-line body, so extract the metrics-commit block (lines 40-47) into its own function. It is not duplication removal, so it is reported and not applied.
 - Duplicated Code: Extract Function — every call repeats `subprocess.run([...], capture_output=True, text=True)`. No 3 consecutive lines repeat, so the Duplicated Code threshold is not met. A `_run(*cmd, env=None)` helper would still tidy it.
+### after the metrics, bail.sh makes, in order, `push-branch.sh`, `comment.sh <n> bailed --note-file <note>` and `comment.sh <n> bailed --pr --note-file <note>`, and exits 0; an in-process case with call spies checks the order ⟦criterion 1⟧
+- Long Function: Extract Function — split `main` in `skills/tdd/scripts/veri/bail.py` (32 body lines) into helpers, e.g. one for the metrics render-and-commit and one for the push and comments
