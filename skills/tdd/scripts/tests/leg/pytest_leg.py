@@ -325,8 +325,9 @@ def claim(cleanups=None, cap=None):
                     return count, entry
                 if not said:
                     holders = registered_legs(legs)
-                    sys.stderr.write("waiting for a free core: %d cores in use by the registered legs with pids %s\n" % (
-                        sum(count for _, count in holders), ", ".join(name for name, _ in holders)))
+                    sys.stderr.write("waiting for %d free test workers of T=%d (%s): %d in use by the registered legs with pids %s\n" % (
+                        FLOOR, total, source or "the core fallback", sum(count for _, count in holders),
+                        ", ".join(name for name, _ in holders)))
                     sys.stderr.flush()
                     said = True
                     began = time.monotonic()
