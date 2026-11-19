@@ -6,7 +6,7 @@
 - [x] called again, `revise.sh <n> green` only waits, then runs `step-cost.sh` and `tests-frozen.sh check` and launches `verdict-green` with green-half's `run-verdict.sh` arguments and the recorded branch base, exiting 3 ⟦criterion 1⟧ ⟦criterion 3⟧ ⟦criterion 13⟧
 - [x] on a revised PASS, `revise.sh` posts `verify-revised <phase>`, re-saves the phase stage's wait record at `verdict-<phase>` and exits 0 ⟦criterion 5⟧
 - [x] a re-verify REJECT spends attempt k and goes on to k+1, whose `same-reject.sh` exit 0 stops with exit 1 naming sub-step 1 ⟦criterion 4⟧ ⟦criterion 6⟧
-- [ ] once `REVISE_BUDGET` (read through tunables) attempts are spent it stops with exit 1 naming the budget ⟦criterion 6⟧ ⟦criterion 12⟧
+- [x] once `REVISE_BUDGET` (read through tunables) attempts are spent it stops with exit 1 naming the budget ⟦criterion 6⟧ ⟦criterion 12⟧
 - [ ] the attempt is read from the open step's `revise` events for the phase, so a resumed call goes on at the next attempt ⟦criterion 2⟧
 - [ ] a `tests-frozen.sh check` exit 1 spends the attempt without a verifier; its exit 2 is exit 2 ⟦criterion 4⟧ ⟦criterion 8⟧
 - [ ] with the phase in `.tdd/issue-<n>-skip-verify` it writes `verify-<phase>-skipped reason=switched-off`, `skipped` to the exit file, and goes on as on a PASS ⟦criterion 4⟧

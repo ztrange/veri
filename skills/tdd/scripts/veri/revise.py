@@ -81,12 +81,15 @@ def attempt(n, wt, settled, step, values):
     if k > 1:
         fused.checked("1", fused.script("same-reject.sh"), ".tdd/verify-%s-%d.reason" % (phase, k - 1),
                       ".tdd/verify-%s.reason" % phase, cwd=wt, ok=(1, 2))
+    budget = tunables.get("REVISE_BUDGET", unless_empty=True)
+    if k > int(budget):
+        raise fused.Stop("budget", "REVISE_BUDGET=%s attempts spent" % budget, 1)
     fast = settled["fast_cmd"]
     leaf = "revise-%s-%d" % (phase, k)
     fused.checked("2", fused.script("build-develop-prompt.sh"), "revise", phase, SPEC % n, step, fast,
                   ".tdd/verify-%s.reason" % phase, fast, cwd=wt, out=".tdd/%s.prompt" % leaf)
     fused.checked("2", fused.script("comment.sh"), n, "revise", phase, str(k), cwd=wt)
-    fused.mark("2", wt, n, step, "revise", "budget=" + tunables.get("REVISE_BUDGET", unless_empty=True),
+    fused.mark("2", wt, n, step, "revise", "budget=" + budget,
                VERI_PHASE=phase, VERI_ATTEMPT=str(k))
     fused.launch("3", wt, leaf, "run-leaf.sh", ".tdd/%s.prompt" % leaf, "--permission-mode", "bypassPermissions",
                  env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/%s.out" % leaf, err=".tdd/%s.err" % leaf,
