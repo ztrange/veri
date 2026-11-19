@@ -1424,6 +1424,7 @@
 | SC607 | The `$S/comment.sh` entry lists the `revise <phase> <k>` kind: `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>`, the budget read through `tunables`, then `.tdd/verify-<phase>.reason` verbatim. | A reader of the catalogue finds the comment `revise.sh` posts per attempt (PRD 038.9). |
 | SC609 | The catalogue lists `$S/diff-step.sh <n>` (a ⟦diff-checked⟧ step's clean path in one call, its flip check, its REJECT hand-off to `revise.sh <n> diff`) and `$S/step-tick.sh <n>` (the close of a non-cycle step), with their stops and exit codes 0, 1, 2 and 3. | A reader of the catalogue finds the one-call diff step and its close (PRD 038.3). |
 | SC610 | The catalogue lists `$S/reroute.sh <n> <report>`: `wrong-test-route.sh`'s `red`, `repair`, `supersede` and `missing` answers through the rerouted red leaf, verify-red and the frozen-test re-record, its stops (`prep`, `later`, `fixture`, `supersede-diff`, a pin report, the two exhaustions), `route=revise` as exit 1, and its exit codes 0, 1, 2 and 3. (The `reroute.sh` entry, after `revise.sh`'s.) | A reader of the catalogue finds the one-call reroute and where it stops (PRD 038.10). |
+| SC611 | The catalogue lists `$S/run-pr.sh <n>`: the Draft PR step's five stages in series, its `title` and `body` seams and the stacked stop, that it writes neither the title nor the body and launches no leaf, and its exit codes 0, 1, 2 and 3. | A reader of the catalogue finds the one-call Draft PR step and where it stops (PRD 038.11). |
 
 ## skills/tdd/SKILL-EDIT.md
 
