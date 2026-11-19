@@ -11,7 +11,7 @@
 - [x] a `tests-frozen.sh check` exit 1 spends the attempt without a verifier; its exit 2 is exit 2 ⟦criterion 4⟧ ⟦criterion 8⟧
 - [x] with the phase in `.tdd/issue-<n>-skip-verify` it writes `verify-<phase>-skipped reason=switched-off`, `skipped` to the exit file, and goes on as on a PASS ⟦criterion 4⟧
 - [x] `revise.sh <n> red` restores production before the leaf, gates the prediction (`red-divergence.sh` 3 re-verifies, 0/1/2 spend the attempt), and on PASS records frozen tests and red-setup, re-saving red-half's wait with the revised report's values ⟦criterion 1⟧ ⟦criterion 4⟧ ⟦criterion 5⟧
-- [ ] it stops with exit 1 naming the report line on `IMPOSSIBLE`, a revise-green `WRONG_TEST:`/`SUPERSEDED:`, and a revised red's `AGAINST_UNMODIFIED: PASSES` ⟦criterion 7⟧
+- [x] it stops with exit 1 naming the report line on `IMPOSSIBLE`, a revise-green `WRONG_TEST:`/`SUPERSEDED:`, and a revised red's `AGAINST_UNMODIFIED: PASSES` ⟦criterion 7⟧
 - [ ] `revise.sh <n> refactor` runs no step-cost, re-verifies with refactor-half's `green_sha`, and on PASS re-saves refactor-half's wait record ⟦criterion 1⟧ ⟦criterion 5⟧
 - [ ] a `build-develop-prompt.sh`, supervisor or verifier exit 2 is exit 2 ⟦criterion 8⟧
 - [ ] green and refactor read `test_path`/`target_test` from red-half's record through `fused_step.record`; `READS` gains `revise`, the `record-refreshed` enum gains `revise`; a missing record is the record seam, exit 1 ⟦criterion 11⟧

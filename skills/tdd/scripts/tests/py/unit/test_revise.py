@@ -63,7 +63,9 @@ def revise(monkeypatch, run_cli, tmp_path):
                  "ledger": (wt / ".tdd" / "issue-12.md", LEDGER % STEP),
                  "spec": (wt / ".tdd" / "issue-12-spec.md", "# spec\n"),
                  "red-half": (wt / ".tdd" / "issue-12-red-half", RED_HALF % STEP),
-                 "reason": (wt / ".tdd" / "verify-green.reason", REASON)}
+                 "reason": (wt / ".tdd" / "verify-green.reason", REASON),
+                 "revised": (wt / ".tdd" / "revise-green-1.out", "the revise-green-1 report\n"),
+                 "revised-2": (wt / ".tdd" / "revise-green-2.out", "the revise-green-2 report\n")}
         for key, (path, text) in files.items():
             if key not in missing and not path.exists():
                 path.write_text(text)
@@ -123,7 +125,7 @@ def test_called_again_it_only_waits_then_checks_cost_and_frozen_tests_and_launch
     code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
 
     assert (first, code, out.splitlines()[-1]) == (3, 3, "waiting on verdict-green")
-    assert [(c[0], c[1]) for c in fake.calls[:4]] == [
+    assert [(c[0], c[1]) for c in fake.calls if c[0] != "extract-result.sh"][:4] == [
         ("wait-leaf.sh", ("revise-green-1",)), ("step-cost.sh", (STEP,)), ("step-budget.sh", ()),
         ("tests-frozen.sh", ("check", "--step", STEP))]
     assert fake.launched() == ["verdict-green"]
@@ -290,3 +292,18 @@ def test_a_red_prediction_gate_exit_0_1_or_2_spends_the_attempt_without_a_verifi
         assert reason == "REASON: prediction not written before the run\n"
     if gate == 2:
         assert reason == "REASON: the revised red carries no readable PREDICTION: line\n"
+
+
+@pytest.mark.parametrize("phase, line", [("green", "OUTCOME: IMPOSSIBLE"), ("red", "OUTCOME: IMPOSSIBLE"),
+                                         ("green", "WRONG_TEST: the test asserts x"),
+                                         ("green", "SUPERSEDED: tests/test_c.py::test_c"),
+                                         ("red", "AGAINST_UNMODIFIED: PASSES")])
+def test_it_stops_with_exit_1_naming_the_report_line_that_routes_the_revise_elsewhere(revise, phase, line):
+    """PRD 038.9 criterion 7 (RVS7): those answers are the conductor's routes, never another attempt or verifier."""
+    _red(revise)
+    report = (RED_REPORT if phase == "red" else "OUTCOME: REWRITTEN\nAGAINST_UNMODIFIED: N/A\n") + line + "\n"
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, "")}, report=report),
+                                  argv=("12", phase))
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 3 " + line)
+    assert fake.launched() == ["revise-%s-1" % phase]
