@@ -7,9 +7,14 @@ if __name__ == "__main__":
     __import__("sys").path[0] = VERI
     __import__("runpy").run_path(VERI + "/pycache_prefix.py")
 # Usage:   pytest_leg.py [--subset] [--cap=<n>] [pytest-args...]
-#          --subset: the caller named the suites to run (`make test TESTS=…`), so no full-run lock is taken
-#          --cap=<n>: with VERI_PYTEST_WORKERS unset, take at most <n> of the free cores (`make unit` passes 4); the leg
-#            still registers what it takes and waits while no core is free
+#          With VERI_PYTEST_WORKERS unset, the leg's workers come out of T, the budget every registered leg on the machine
+#            shares: line 1 of ~/.veri-test-ceiling (VERI_TEST_CEILING_FILE, `make ceiling`'s record) when it is a whole
+#            number of at least 2, else the physical cores (the affinity count off macOS), never below 2, said in one
+#            stderr line naming the file and `make ceiling`. It starts only once 2 of T are free, waiting meanwhile
+#            (PRD 036.4), takes every free worker, and registers what it takes
+#          --subset: the caller named the suites to run (`make test TESTS=…`), so no full-run lock is taken, and the leg
+#            takes at most 4 of the free workers
+#          --cap=<n>: take at most <n> of the free workers (`make unit` passes 4); it wins over --subset's 4
 #          Cases run in two pytest passes, non-`serial` then `serial`; when both run, the output ends with one line
 #          `<named> named, <run> run, <passed> passed, <failed> failed across both passes`.
 # Exit:    0 pytest passed, 1 any other pytest status, or a --subset run handed -m left a named target (file, directory
