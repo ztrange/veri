@@ -76,6 +76,21 @@ def _pull(pr):
     return pull if isinstance(pull, dict) else None
 
 
+def _leased(sha, branch, lease, kept):
+    """Push <sha> to origin's <branch> under a lease on <lease>, its sha as fetched ("" for none): None once pushed, else
+    the exit code, said on stderr with <kept>: 1 for a refused lease, 2 for any other failure."""
+    push = git.network("push", "--force-with-lease=%s:%s" % (branch, lease), "origin",
+                       "%s:refs/heads/%s" % (sha, branch), cwd=".")
+    said = " ".join((push.stderr or "").split())
+    if push.returncode and LEASE.search(said):
+        print("stack-recover: the leased push of %s to %s was refused: origin's %s is not %s as fetched (%s); %s"
+              % (sha, branch, branch, lease or "absent", said, kept), file=sys.stderr)
+        return 1
+    if push.returncode:
+        return _refuse("the push of %s to %s failed (exit %d): %s; %s" % (sha, branch, push.returncode, said, kept))
+    return None
+
+
 def _held(stack, window):
     """The pushes of <stack>'s offline joins and of <stack>, with the merge lock held, never releasing it: an exit code
     when they stop short, else (the stack's pushed tip, the joins) once every joined pull request reads merged."""
@@ -106,26 +121,13 @@ def _held(stack, window):
     # Each lease is origin's branch as fetched, read before anything is pushed.
     leases = [_rev("refs/remotes/origin/" + branch) or "" for _, _, branch in joins]
     for (sha, _, branch), lease in zip(joins, leases):
-        push = git.network("push", "--force-with-lease=%s:%s" % (branch, lease), "origin",
-                           "%s:refs/heads/%s" % (sha, branch), cwd=".")
-        if push.returncode and LEASE.search(push.stderr or ""):
-            print("stack-recover: the leased push of %s to %s was refused: origin's %s is not %s as fetched (%s); the"
-                  " stack not pushed" % (sha, branch, branch, lease or "absent", " ".join(push.stderr.split())),
-                  file=sys.stderr)
-            return 1
-        if push.returncode:
-            return _refuse("the push of %s to %s failed (exit %d): %s; the stack not pushed" % (
-                sha, branch, push.returncode, " ".join((push.stderr or "").split())))
+        code = _leased(sha, branch, lease, "the stack not pushed")
+        if code:
+            return code
     # A compare-and-swap, never --force: the lease is origin's stack as fetched, and the local stack descends from it.
-    push = git.network("push", "--force-with-lease=%s:%s" % (stack, fetched), "origin",
-                       "%s:refs/heads/%s" % (local, stack), cwd=".")
-    if push.returncode and LEASE.search(push.stderr or ""):
-        print("stack-recover: the leased push of %s to %s was refused: origin's %s is not %s as fetched (%s); the joined"
-              " branches are pushed" % (local, stack, stack, fetched, " ".join(push.stderr.split())), file=sys.stderr)
-        return 1
-    if push.returncode:
-        return _refuse("the push of %s to %s failed (exit %d): %s; the joined branches are pushed" % (
-            local, stack, push.returncode, " ".join((push.stderr or "").split())))
+    code = _leased(local, stack, fetched, "the joined branches are pushed")
+    if code:
+        return code
     for _, pr, _ in joins:
         answers = merge_common.settle(lambda: _pull(pr), window)
         if not merge_common.merged(answers[-1]):
