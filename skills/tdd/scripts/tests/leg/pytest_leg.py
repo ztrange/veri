@@ -283,6 +283,10 @@ def unmark(waitfile):
         pass
 
 
+# No test run gets fewer workers than this (PRD 036 D18): a leg starts only when this many of T are free.
+FLOOR = 2
+
+
 def claim(cleanups=None, cap=None):
     """Registers this leg once a core is free, waiting for one meanwhile: returns (workers, its entry's path), the
     workers the free cores, at most <cap> when given.
@@ -296,16 +300,18 @@ def claim(cleanups=None, cap=None):
     waitfile = ""
     cleanups = [] if cleanups is None else cleanups
     removal = lambda: unmark(waitfile)
-    if not os.environ.get("PYTEST_XDIST_WORKER") and budget()[1] is None:
+    nested = os.environ.get("PYTEST_XDIST_WORKER")
+    total, source = budget()
+    if not nested and source is None:
         sys.stderr.write("no test-worker ceiling in %s, so the budget is the %d cores; `make ceiling` measures one\n" % (
-            record_path(), budget()[0]))
+            record_path(), total))
         sys.stderr.flush()
     try:
         while True:
             with open(legs.rstrip("/") + ".lock", "w") as lock:
                 fcntl.flock(lock, fcntl.LOCK_EX)
-                count = worker_count(None)
-                if count >= 1:
+                count = 1 if nested else total - registered_workers(legs)
+                if count >= (1 if nested else FLOOR):
                     count = min(count, cap) if cap else count
                     entry = os.path.join(legs, str(os.getpid()))
                     with open(entry, "w") as f:
