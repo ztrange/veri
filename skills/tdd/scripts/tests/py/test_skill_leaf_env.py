@@ -42,6 +42,7 @@ PLACEHOLDERS = (
     ("<fast-cmd>", "make probe-fast"), ("<onto-sha>", "0123abc"), ("<pre-rebase-sha>", "4567def"),
     ("<base-sha>", "89abcde"), ("<conflicting-files>", "probe.txt"), ("[target]", "probe-target"),
     ("<base>", "$(git log -1 --format=%H)"),  # the scratch tree's one commit: a recorded base (#4375)
+    ("<branch-base>", "$(git log -1 --format=%H)"),  # 2c's spelling of the same recorded base (#4375)
 )
 
 
