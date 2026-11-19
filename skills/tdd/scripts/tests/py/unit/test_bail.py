@@ -231,3 +231,28 @@ def test_the_note_both_bailed_comments_are_handed_carries_the_conductors_note_te
     assert code == 0 and len(handed) == 2
     for note in handed:
         assert "CONDUCTOR-NOTE-TEXT" in note and "METRICS-BLOCK-TEXT" in note
+
+
+def test_a_non_zero_metrics_exit_puts_metrics_could_not_be_rendered_with_its_code_in_the_note_in_place_of_the_block(
+        run_cli, fake_processes, bail, tmp_path):
+    (tmp_path / "n.md").write_text("CONDUCTOR-NOTE-TEXT\n")
+    handed = []
+
+    def comment(line, **kwargs):
+        argv = fake.argvs[-1]
+        with open(argv[argv.index("--note-file") + 1]) as f:
+            handed.append(f.read())
+        return (0, "", "")
+
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "metrics.sh 7": (3, "PARTIAL-METRICS-TEXT\n", "boom\n"),
+         "comment.sh": comment}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    assert code == 0 and len(handed) == 2
+    for note in handed:
+        assert "metrics could not be rendered: metrics.sh exited 3" in note
+        assert "PARTIAL-METRICS-TEXT" not in note

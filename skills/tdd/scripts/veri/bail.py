@@ -52,7 +52,8 @@ def main(argv):
                        capture_output=True, text=True)
     _run("push-branch.sh", [os.path.join(here, "push-branch.sh")])
     with open(argv[4], "a") as f:
-        f.write("\n" + metrics.stdout)
+        f.write("\n" + (metrics.stdout if metrics.returncode == 0
+                        else "metrics could not be rendered: metrics.sh exited %d\n" % metrics.returncode))
     _run("comment.sh", [os.path.join(here, "comment.sh"), argv[0], "bailed", "--note-file", argv[4]])
     _run("comment.sh", [os.path.join(here, "comment.sh"), argv[0], "bailed", "--pr", "--note-file", argv[4]])
     return 0
