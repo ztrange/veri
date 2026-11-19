@@ -183,6 +183,22 @@ def is_skill_edit(step):
     return step.startswith("⟦skill-edit⟧") or carries_mark(trailing_markers(step), "skill-edit")
 
 
+GO_RED_MARK = "⟦go-red⟧"
+GO_RED_PROBE_RE = re.compile(r"probe `([^`]+)` `([^`]+)` → `([^`]*)` on `([^`]+)`")
+
+
+def is_go_red(step):
+    """True when step's trailing markers carry ⟦go-red⟧: a guard proven by a mutation probe on its named case."""
+    return carries_mark(trailing_markers(step), "go-red")
+
+
+def go_red_probe(step):
+    """(file, old, new, case) a ⟦go-red⟧ step's ``probe `<file>` `<old>` → `<new>` on `<case>` `` names; None when
+    the step names no such probe."""
+    match = GO_RED_PROBE_RE.search(step)
+    return match.groups() if match else None
+
+
 def is_human_owed(step):
     step = step.strip()
     return step.startswith("⟦human-owed⟧") or carries_mark(trailing_markers(step), "human-owed")

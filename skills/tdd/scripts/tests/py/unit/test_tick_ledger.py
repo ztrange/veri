@@ -1319,3 +1319,49 @@ def test_main_with_surround_short_records_the_one_free_relaunch_on_the_step_and_
     assert (first, recorded, next_code, next_out) == (
         0, "# Plan for #4108\n\n- [ ] " + step + " ⟂ surround short\n", 0, b"surround\n")
     assert (resumed, ledger.read_text(), b"surround-short" in resumed_err) == (1, recorded, True)
+
+
+GO_RED_STEP = ("- [ ] Go-red guard: the stacked refusal, probe `src/run.py` `if stacked:` → `if False:` on "
+               "`tests/test_run.py::test_refuses_stacked` ⟦go-red⟧ ⟦criterion 3⟧\n")
+
+
+def test_main_refuses_a_tick_of_a_go_red_step_whose_mutation_record_holds_no_entry_for_its_probed_file_leaving_the_ledger_untouched_4443(
+        tmp_path, capsys, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    seed = ("# Plan for #7\n\n" + GO_RED_STEP).encode()
+    ledger.write_bytes(seed)
+    (tmp_path / "issue-7-mutations.md").write_text(
+        "file 12\nsrc/other.py\nold 3\nabc\nnew 3\nxyz\ncommand 6\npytest\n\n")
+
+    code = tick_ledger.main([str(ledger), "Go-red guard"])
+    err = capsys.readouterr().err
+
+    assert (code, "issue-7-mutations.md" in err, ledger.read_bytes()) == (2, True, seed)
+
+
+def test_main_ticks_a_go_red_step_once_the_mutation_record_holds_an_entry_for_its_probed_file_4443(tmp_path, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n" + GO_RED_STEP)
+    (tmp_path / "issue-7-mutations.md").write_text(
+        "file 10\nsrc/run.py\nold 3\nabc\nnew 3\nxyz\ncommand 6\npytest\n\n")
+
+    code = tick_ledger.main([str(ledger), "Go-red guard"])
+
+    assert (code, "- [x] Go-red guard" in ledger.read_text()) == (0, True)
+
+
+def test_main_refuses_a_tick_of_a_go_red_step_with_no_mutation_record_or_no_parseable_probe_leaving_the_ledger_untouched_4443(
+        tmp_path, capsys, tick_ledger):
+    results = []
+    for step in (GO_RED_STEP, "- [ ] Go-red guard: the stacked refusal, probe `src/run.py` ⟦go-red⟧ ⟦criterion 3⟧\n"):
+        ledger = tmp_path / "issue-7.md"
+        seed = ("# Plan for #7\n\n" + step).encode()
+        ledger.write_bytes(seed)
+        record = tmp_path / "issue-7-mutations.md"
+        record.unlink(missing_ok=True)
+        if "on `" not in step:
+            record.write_text("file 10\nsrc/run.py\nold 3\nabc\nnew 3\nxyz\ncommand 6\npytest\n\n")
+        code = tick_ledger.main([str(ledger), "Go-red guard"])
+        results.append((code, "issue-7-mutations.md" in capsys.readouterr().err, ledger.read_bytes() == seed))
+
+    assert results == [(2, True, True), (2, True, True)]
