@@ -336,6 +336,11 @@ test-first hand method.
   notice is sent (*Speaking*). Nothing is reverted without a culprit.
 - **No answer.** A `stack-fix.sh` exit 2, or a `stack-revert.sh` exit 2 or exit 3, is never taken
   as fixed or reverted: the stack stays frozen, and it goes to *When to stop and ask*.
+- **Offline.** While `.tdd/github-outage` exists, a stack frozen by `.tdd/stack-local-red`
+  (`$S/stack-red.sh` prints `local`) gets no culprit search, revert or hand fix through GitHub,
+  all of which read it: send it once as a notice (*Speaking*) and take it to *When to stop and
+  ask*. Once the human has acted, run `$S/queued-merge.sh --local-green`: exit 0 lifts the freeze
+  and joins resume, exit 1 keeps it, and exit 2 is reported.
 
 ## Running the sibling skills
 
