@@ -1110,8 +1110,10 @@ that push; else the ending call's code (a bail's too).
    - **A commit in that range whose subject is not `refactor:`** is production code carried into a behaviour-preserving phase, where nothing asks whether a test earned it. Do
      **not** continue either — `git reset --hard <green-sha>` drops every commit the leaf made for this step, the well-formed ones with it, since a leaf that committed
      production code here is not one whose other commits can be taken on trust — and the step goes to verify-refactor on its green state, with what was dropped named in the narration.
-3. **An `overfit` flag is answered inside this step.** The leaf's `FLAGS:` lines each carry their class. A line whose class is **overfit** names code that passes this step's test
-   without implementing the criterion the step states, and names the case that would force the general implementation. Stop the refactor loop there (its stage stays open). **When the loop has landed
+3. **An `overfit` flag is answered inside this step.** A `FLAGS:` line whose class is **overfit** names code that passes this step's test
+   without implementing the criterion the step states, and names the case that would force the general implementation. **One whose case is a later unchecked step's
+   criterion** (matched as Green's `later` route matches, by the spec file's criterion text) **gets no triangulating red**, narrated in the `### 🛠️ Refactor`
+   comment at 6 and the PR body as owed by that step, and the loop goes on to 5. For any other, stop the refactor loop there (its stage stays open). **When the loop has landed
    commits since `<green-sha>`, first run 2's checks and verify-refactor (5) over them**, before the triangulating red, and launch the red only after that PASS. On that PASS run
    `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>` for the landed commits; the ` ⟂ refactor pending` mark stays and **no ledger tick is committed**, both
    left for the step's final verify-refactor PASS, so the triangulating red's
@@ -1125,8 +1127,7 @@ that push; else the ending call's code (a bail's too).
    above still reads exactly what the step's refactor produced. Then **resume this step's refactor loop** at 1 with the **budget it had left**, asking
    `$S/refactor-budget.sh <count>` with the transforms already landed as `<count>`, so an overfit flag costs the step a triangulation and never a second budget. The step's final
    verify-refactor then judges only what the resumed loop landed.
-   **A step's triangulation runs at most once.** The loop resumed there is another refactor leaf reading the files the triangulation just generalized,
-   so it can raise an `overfit` flag about that same code a second time. So a flag raised inside a triangulation's own refactor loop about the same
+   **A step's triangulation runs at most once:** a flag raised inside a triangulation's own refactor loop about the same
    code is **narrated** in the `### 🛠️ Refactor` comment at 6 as a follow-up, not triangulated again.
 4. **An `uncovered-spec` flag is the one class that grows the plan.** A `FLAGS:` line whose class is **uncovered-spec** names a behaviour the issue's
    spec requires that **no ledger step covers**. That
@@ -1166,7 +1167,7 @@ that push; else the ending call's code (a bail's too).
    `CANDIDATES:` lines and filed in **two separate lists** — the **structural** leftovers, which a follow-up owes, and the **cosmetic** ones, which
    nobody owes. A **test-only** candidate, and an **out-of-scope** one the rule below leaves to the structural pass, is in neither list: it is
    recorded through `refactor-owed.sh`, below and at the Draft PR, and is not narrated as a backlog. Each list says **how many candidates** it holds
-   and then **lists** them, one per line. A count with no items, or the two classes run together, is a backlog nobody can size.
+   and then **lists** them, one per line.
 
    An **out-of-scope** candidate is routed by whether its transform changes a file in `<touched-files>`. One that changes **at least one** is done in
    the step, and the refactor leaf reports it as a `CANDIDATES: in-step | <files> | <transform>` line: a cover leaf (`build-develop-prompt.sh cover`,
