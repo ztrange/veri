@@ -6,6 +6,6 @@
 - [x] diff-step.sh with diff switched off launches no verifier, marks the skip, writes skipped and goes on ⟦criterion 4⟧
 - [x] diff-step.sh on a ⟦test-quality⟧ step probes the FLIP line before pin-recheck; probe 1 or no FLIP is a REJECT, probe or detect 2 is exit 2 ⟦criterion 2⟧ ⟦criterion 3⟧ ⟦criterion 15⟧
 - [x] diff-step.sh's verify, flip and pin-recheck REJECTs leave the step's rejected record and exit 1 ⟦criterion 8⟧
-- [ ] revise.sh takes phase diff: no cost or prediction check, suite-reported and diff-leaf-deviation, re-verify on the original bases, a renamed-and-changed REJECT a stop ⟦criterion 8⟧
+- [x] revise.sh takes phase diff: no cost or prediction check, suite-reported and diff-leaf-deviation, re-verify on the original bases, a renamed-and-changed REJECT a stop ⟦criterion 8⟧
 - [ ] run-step.sh runs diff-step as a ⟦diff-checked⟧ step's one stage, --hand diff-step stops before it, other kinds stay reason=kind ⟦criterion 9⟧ ⟦criterion 10⟧
 - [ ] DIFF-CHECKED.md opens with the call line and names the tick subject; SCRIPTS.md, REQUIREMENTS.md rows and regrades ⟦criterion 7⟧ ⟦criterion 14⟧

@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 
+import diff_step
 import event_log
 import fused
 import fused_step
@@ -19,12 +20,14 @@ from ledger import handed_out
 from next_pending_refactor import refactor_pending
 
 NAME = "revise"
-USAGE = "usage: revise.sh <n> <phase>  (phase: red, green or refactor)"
-PHASES = ("red", "green", "refactor")
+USAGE = "usage: revise.sh <n> <phase>  (phase: red, green, refactor or diff)"
+PHASES = ("red", "green", "refactor", "diff")
 LAUNCH = {"red": red_half.launch_verdict, "green": green_half.launch_verdict,
-          "refactor": refactor_half.launch_verdict}
+          "refactor": refactor_half.launch_verdict, "diff": diff_step.launch_verdict}
 SKIPPED = "skipped"  # a re-verify the run switched off
-STAGES = {"red": "red-half", "green": "green-half", "refactor": "refactor-half"}
+STAGES = {"red": "red-half", "green": "green-half", "refactor": "refactor-half", "diff": "diff-step"}
+# The verifier line naming a case renamed and changed (#2594): the plan split is the conductor's, never an attempt.
+RENAMED = "step renamed and changed test cases, so the step must be split"
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
 
@@ -70,7 +73,7 @@ def run(n, phase):
             code = fused.wait(wt, n, NAME, at)
             if code != 0:
                 raise fused.Stop("3", "wait-leaf.sh %s exit %d" % (at, code), code)
-            if values["phase"] != "refactor":
+            if values["phase"] not in ("refactor", "diff"):  # REVISE.md *The diff phase*: no step-cost line
                 fused_step.cost_check(wt, step)
             at = checks(n, wt, settled, step, values)
         if at is not None:
@@ -91,15 +94,23 @@ def start(n, wt, step, phase, k):
     if phase == "red":
         report = ".tdd/develop-red.out" if k == 1 else ".tdd/revise-red-%d.out" % (k - 1)
         return judged(wt, report)
+    if phase == "diff":
+        return rejected_values(wt, n, phase, step)
     red = fused_step.record(NAME, wt, n, step)
     if red is None:
         return None
     if phase == "refactor":
-        rejected = fused_step.rejected(wt, n, STAGES[phase], step)
-        if rejected is None:
-            raise fused.Stop("1", "no " + os.path.relpath(fused.wait_record(wt, n, STAGES[phase] + "-rejected"), wt), 2)
-        return rejected[1]
+        return rejected_values(wt, n, phase, step)
     return {"test_path": red["test_path"], "target_test": red["target_test"]}
+
+
+def rejected_values(wt, n, phase, step):
+    """The values the phase stage saved before its verifier's REJECT, from its rejected record naming <step>: the only
+    place refactor's wait values and diff's step base survive; exit 2 without one."""
+    rejected = fused_step.rejected(wt, n, STAGES[phase], step)
+    if rejected is None:
+        raise fused.Stop("1", "no " + os.path.relpath(fused.wait_record(wt, n, STAGES[phase] + "-rejected"), wt), 2)
+    return rejected[1]
 
 
 def judged(wt, report):
@@ -117,6 +128,8 @@ def attempt(n, wt, settled, step, values):
     """REVISE.md sub-steps 2 and 3 for attempt k: the reason kept as `.tdd/verify-<phase>-<k>.reason`, the revise
     prompt, the Revise comment, the `revise` mark and the revise leaf's launch. The leaf launched."""
     phase, k = values["phase"], values["k"]
+    if phase == "diff" and RENAMED in read(wt, ".tdd/verify-diff.reason"):
+        raise fused.Stop("1", RENAMED, 1)
     shutil.copyfile(os.path.join(wt, ".tdd", "verify-%s.reason" % phase),
                     os.path.join(wt, ".tdd", "verify-%s-%d.reason" % (phase, k)))
     if k > 1:
@@ -150,6 +163,8 @@ def checks(n, wt, settled, step, values):
         return red_checks(n, wt, settled, step, values)
     if values["phase"] == "refactor":
         return verify(n, wt, settled, step, values)
+    if values["phase"] == "diff":
+        return diff_checks(n, wt, settled, step, values)
     code, said, _ = fused.call(fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
     if code not in (0, 1):
         raise fused.Stop("4", fused.label("tests-frozen.sh", "check", "--step", step) + " exit %d" % code, code)
@@ -160,10 +175,20 @@ def checks(n, wt, settled, step, values):
     return verify(n, wt, settled, step, values)
 
 
+def diff_checks(n, wt, settled, step, values):
+    """The diff phase's sub-step 4 (REVISE.md *The diff phase*): the revise leaf's SUITE: line (exit 2 stops for the
+    conductor's adjudication) and its deviation recorded (0 or 3 go on), then the re-verify."""
+    leaf = "revise-diff-%d" % values["k"]
+    fused.checked("4", fused.script("suite-reported.sh"), leaf, cwd=wt, err=".tdd/suite-reported.err")
+    fused.checked("4", fused.script("diff-leaf-deviation.sh"), leaf, values["step_base"], LEDGER % n, cwd=wt,
+                  ok=(0, 3))
+    return verify(n, wt, settled, step, values)
+
+
 # The revise report's answers that route it elsewhere (RVS7), per phase: the conductor's routes, never an attempt.
 ROUTES = {"red": (("OUTCOME", "IMPOSSIBLE"), ("AGAINST_UNMODIFIED", "PASSES")),
           "green": (("OUTCOME", "IMPOSSIBLE"), ("WRONG_TEST", None), ("SUPERSEDED", None)),
-          "refactor": (("OUTCOME", "IMPOSSIBLE"),)}
+          "refactor": (("OUTCOME", "IMPOSSIBLE"),), "diff": (("OUTCOME", "IMPOSSIBLE"),)}
 
 
 def routed(wt, values):
@@ -250,7 +275,9 @@ def finish(n, wt, step, values, at):
     fused.checked("5", fused.script("comment.sh"), n, "verify-revised", phase, cwd=wt)
     rejected = fused_step.rejected(wt, n, stage, step)
     kept = dict(rejected[1] if rejected else {})
-    if phase != "refactor":
+    if phase == "diff":
+        kept["leaf"] = "revise-diff-%d" % values["k"]  # the leaf that made the step's last commit, for the flip
+    elif phase != "refactor":
         kept.update(test_path=values["test_path"], target_test=values["target_test"])
     kept["revised"] = True
     if at == SKIPPED:

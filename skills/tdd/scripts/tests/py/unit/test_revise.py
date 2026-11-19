@@ -476,3 +476,88 @@ def test_a_tests_frozen_record_exit_1_on_a_revised_red_pass_spends_the_attempt_w
 
     assert (code, fake.launched()) == (3, ["revise-red-1", "verdict-red", "revise-red-2"])
     assert (revise.wt / ".tdd" / "verify-red-2.reason").read_text() == "tests/test_b.py::test_two gone\n"
+
+
+DSTEP = "the prompt says so ⟦diff-checked⟧ ⟦criterion 1⟧"
+STEP_BASE = "c" * 40
+RENAMED = ("step renamed and changed test cases, so the step must be split: "
+           "tests/test_a.py::test_old -> test_new\n")
+
+
+def _diff_files(revise, reason=REASON, rejected=True):
+    """A ⟦diff-checked⟧ step diff-step.sh rejected: its ledger, its reason and its rejected record."""
+    tdd = revise.wt / ".tdd"
+    (tdd / "issue-12.md").write_text(LEDGER % DSTEP)
+    (tdd / "verify-diff.reason").write_text(reason)
+    (tdd / "revise-diff-1.out").write_text("OUTCOME: REWRITTEN\nSUITE: ok\n")
+    if rejected:
+        (tdd / "issue-12-diff-step-rejected-wait").write_text(json.dumps(
+            {"conductor": None, "at": "verdict-diff", "step": DSTEP,
+             "values": {"step_base": STEP_BASE, "leaf": "develop-diff"}}))
+
+
+def test_4435_diff_attempt_1_launches_revise_diff_1_from_the_diff_reason_with_no_red_half_record(revise):
+    """DST7: the diff phase joins revise.sh (S10); a diff step has no Red, so no red-half record is read."""
+    _diff_files(revise)
+    code, out, err, fake = revise(argv=("12", "diff"), missing=("red-half",),
+                                  answers={("wait-leaf.sh", "revise-diff-1"): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on revise-diff-1"), err
+    assert fake.call("build-develop-prompt.sh")[1] == ("revise", "diff", ".tdd/issue-12-spec.md", DSTEP, "make unit",
+                                                       ".tdd/verify-diff.reason", "make unit")
+    assert fake.launched() == ["revise-diff-1"]
+    assert (revise.wt / ".tdd" / "verify-diff-1.reason").read_text() == REASON
+
+
+def test_4435_diff_after_its_leaf_it_runs_no_cost_check_and_re_verifies_against_the_original_step_base(revise):
+    """DST7: suite-reported.sh and diff-leaf-deviation.sh for revise-diff-<k>, then verdict-diff on the step base the
+    rejection was about; no step-cost line, no prediction check."""
+    _diff_files(revise)
+    revise(argv=("12", "diff"), missing=("red-half",), answers={("wait-leaf.sh", "revise-diff-1"): (3, "")})
+    code, out, err, fake = revise(argv=("12", "diff"), missing=("red-half",),
+                                  answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on verdict-diff"), err
+    names = fake.names()
+    assert not {"step-cost.sh", "red-divergence.sh", "tests-frozen.sh"} & set(names)
+    assert [(c[0], c[1]) for c in fake.calls if c[0] in ("suite-reported.sh", "diff-leaf-deviation.sh")] == [
+        ("suite-reported.sh", ("revise-diff-1",)),
+        ("diff-leaf-deviation.sh", ("revise-diff-1", STEP_BASE, ".tdd/issue-12.md"))]
+    launch = fake.call("detach-leaf.sh")
+    assert _short(launch[1]) == ("supervise.sh", "verdict-diff", "run-verdict.sh", "--step", DSTEP, "--fast-cmd",
+                                 "make unit", "--branch-base", BRANCH_BASE, "diff", ".tdd/issue-12-spec.md",
+                                 STEP_BASE)
+
+
+def test_4435_diff_a_revised_pass_re_saves_diff_steps_wait_naming_the_revise_leaf(revise):
+    """DST7, S15: diff-step.sh called again goes on from its verdict to the flip check, pin-recheck.sh and the tick,
+    reading the FLIP: line of the revise leaf that made the last commit."""
+    _diff_files(revise)
+    revise(argv=("12", "diff"), missing=("red-half",), answers={("wait-leaf.sh", "revise-diff-1"): (3, "")})
+    revise(argv=("12", "diff"), missing=("red-half",), answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    code, out, err, fake = revise(argv=("12", "diff"), missing=("red-half",))
+
+    assert code == 0, err
+    record = json.loads((revise.wt / ".tdd" / "issue-12-diff-step-wait").read_text())
+    assert (record["at"], record["values"]["step_base"], record["values"]["leaf"]) == (
+        "verdict-diff", STEP_BASE, "revise-diff-1")
+    assert not (revise.wt / ".tdd" / "issue-12-diff-step-rejected-wait").exists()
+    assert fake.call("comment.sh", "12")[1] == ("12", "verify-revised", "diff")
+
+
+def test_4435_diff_a_reject_naming_a_case_renamed_and_changed_stops_exit_1_with_no_leaf(revise):
+    """DST7, #2594: the plan split is the conductor's, so no revise leaf runs and no attempt is spent."""
+    _diff_files(revise, reason=RENAMED)
+    code, out, err, fake = revise(argv=("12", "diff"), missing=("red-half",))
+
+    assert code == 1, err
+    assert (fake.launched(), [c for c in fake.calls if c[0] == "event.sh"]) == ([], [])
+    assert "renamed and changed" in out.splitlines()[-1]
+
+
+def test_4435_diff_with_no_rejected_record_is_exit_2(revise):
+    _diff_files(revise, rejected=False)
+    code, out, err, fake = revise(argv=("12", "diff"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (2, [])
+    assert out.splitlines()[-1] == "stopped at 1 no .tdd/issue-12-diff-step-rejected-wait"
