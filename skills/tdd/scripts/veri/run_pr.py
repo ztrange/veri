@@ -11,6 +11,7 @@ import run_dir
 USAGE = "usage: run-pr.sh <n>"
 ANCHOR = "DRAFT-PR.md#4. Draft PR"
 TITLE = "seam=pr-ready-wait code=1 reason=title next=%s\n" % ANCHOR
+STACKED = "seam=pr-ready-wait code=1 reason=stacked next=%s\n" % ANCHOR
 BODY = "seam=done code=1 reason=body next=%s\n" % ANCHOR
 EARLY = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
 LATE = ("pr-ready-wait.sh", "pr-finish.sh")
@@ -21,6 +22,10 @@ def ledger_sha(wt, n):
         return fused.run_script("git", "log", "-1", "--format=%H", "--", run_dir.ledger("", "%s") % n, cwd=wt)[1].strip()
     except Exception:
         return ""
+
+
+def stacked(wt, n):
+    return os.path.exists(os.path.join(wt, ".tdd", "issue-%s-base" % n))
 
 
 def run_late(n, wt, first):
@@ -48,7 +53,7 @@ def run_early(n, wt, first, hands):
             return code
     with open(fused.settled_file(wt, n, "run-pr"), "w") as f:
         f.write("seam=title\nsha=%s\n" % ledger_sha(wt, n))
-    sys.stdout.write(TITLE)
+    sys.stdout.write(STACKED if stacked(wt, n) else TITLE)
     return 1
 
 
@@ -71,7 +76,7 @@ def main(argv):
     held = open(record).read() if os.path.exists(record) else ""
     if first is None and "sha=%s\n" % ledger_sha(wt, n) in held and "seam=body\n" in held:
         return 0
-    if first in LATE or (first is None and "sha=%s\n" % ledger_sha(wt, n) in held):
+    if not stacked(wt, n) and (first in LATE or (first is None and "sha=%s\n" % ledger_sha(wt, n) in held)):
         return run_late(n, wt, first)
     return run_early(n, wt, first, hands)
 
