@@ -23,12 +23,13 @@ unit: PY_TESTS = $(strip $(call py_tests,$(UNIT_TESTS_NAMED),$(UNIT_TESTS),$(PY_
 PY_REFUSED = $(call py_refused,$(TESTS_NAMED),$(TESTS))
 PY_TESTS := $(strip $(call py_tests,$(TESTS_NAMED),$(TESTS),$(PY_ALL)))
 unit: PY_SELECT = -m "not process and not tree_audit"
-# The fast tier's default worker count: each xdist worker pays its own start-up and collection, so
-# one per core is slower than 4 on `make unit` (16.1 s against 11.4 s on the 16-core development
-# Mac, #2053). `make test` keeps pytest_leg.py's own default: the cores other running legs leave
-# free, at least 1, read from the registry under ~/.veri-pytest-legs (VERI_PYTEST_LEGS; #2100).
-# VERI_PYTEST_WORKERS overrides both, used as given.
-unit: PY_WORKERS = 4
+# The fast tier's worker cap: each xdist worker pays its own start-up and collection, so one per core is
+# slower than 4 on `make unit` (16.1 s against 11.4 s on the 16-core development Mac, #2053). Both targets
+# join the core budget in pytest_leg.py: a leg takes the cores other running legs leave free, read from the
+# registry under ~/.veri-pytest-legs (VERI_PYTEST_LEGS; #2100), registers them there, and waits for a core
+# when none is free (PRD 036.1); `make unit` passes --cap=4, so it takes min(4, the free cores) (PRD 036.3).
+# VERI_PYTEST_WORKERS exported by the caller overrides both, used as given, never waiting or registering.
+unit: PY_CAP = 4
 
 # Every case runs offline. gh and curl are refused by the plugin pytest_leg.py loads; `git` on
 # PATH is a plain symlink straight to the real binary (the recipe's git_bin directory), and
@@ -130,7 +131,7 @@ test unit:
 	if [ -n "$(PY_TESTS)" ]; then \
 	  py_bin="$(VENV_PY)" || exit 2; \
 	  printf '== pytest\n'; \
-	  PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) $(if $(PY_WORKERS),VERI_PYTEST_WORKERS="$${VERI_PYTEST_WORKERS:-$(PY_WORKERS)}") "$$py_bin" skills/tdd/scripts/tests/leg/pytest_leg.py $(if $(TESTS_NAMED),--subset) --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
+	  PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" skills/tdd/scripts/tests/leg/pytest_leg.py $(if $(TESTS_NAMED),--subset) $(if $(PY_CAP),--cap=$(PY_CAP)) --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
 	fi; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
