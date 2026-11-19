@@ -112,3 +112,25 @@ def test_a_bad_phase_or_argument_or_a_missing_preflight_is_exit_2_before_any_inn
 
     assert (code, fake.calls) == (2, [])
     assert ("usage: revise.sh <n> <phase>" in err) == (missing == ())
+
+
+def test_called_again_it_only_waits_then_checks_cost_and_frozen_tests_and_launches_verdict_green_exiting_3(revise):
+    """PRD 038.9 criteria 1, 3, 13: REVISE.md sub-steps 3-5 up to the re-verify, with green-half's run-verdict.sh
+    arguments and the run's recorded branch base."""
+    first = revise(answers={("wait-leaf.sh", "revise-green-1"): (3, "")})[0]
+    code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
+
+    assert (first, code, out.splitlines()[-1]) == (3, 3, "waiting on verdict-green")
+    assert [(c[0], c[1]) for c in fake.calls[:4]] == [
+        ("wait-leaf.sh", ("revise-green-1",)), ("step-cost.sh", (STEP,)), ("step-budget.sh", ()),
+        ("tests-frozen.sh", ("check", "--step", STEP))]
+    assert fake.launched() == ["verdict-green"]
+    launch = fake.call("detach-leaf.sh")
+    assert _short(launch[1]) == ("supervise.sh", "verdict-green", "run-verdict.sh", "--step", STEP, "--fast-cmd",
+                                 "make unit", "--branch-base", BRANCH_BASE, "green", ".tdd/issue-12-spec.md",
+                                 "tests/test_a.py", "tests/test_a.py::test_one")
+    assert (launch[3]["VERI_TEST_CMD"], launch[4]["out"], launch[4]["err"]) == (
+        "make unit", ".tdd/verify-green.reason", ".tdd/verify-green.err")
+    assert fake.calls[-1][:2] == ("wait-leaf.sh", ("verdict-green",))
+    record = json.loads((revise.wt / ".tdd" / "issue-12-revise-wait").read_text())
+    assert (record["at"], record["values"]["k"]) == ("verdict-green", 1)
