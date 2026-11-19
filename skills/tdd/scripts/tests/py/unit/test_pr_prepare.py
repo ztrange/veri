@@ -9,8 +9,7 @@ LEDGER = "# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n- [ ] the full suite is
 PRE = "a" * 40
 BASE = "b" * 40
 FULL = "make test"
-GRADED_DIFF = ("+++ b/skills/tdd/GRADED\n+skills/tdd/SKILL.md 1234 2026-11-17 x y\n"
-               "+++ b/GRADED\n+README.md 99 2026-11-17 x y\n")
+SIGNED = "skills/tdd/REQUIREMENTS.md\tskills/tdd/SKILL.md#Two words\nREQUIREMENTS.md\tREADME.md\n"
 
 
 class Fake:
@@ -32,8 +31,8 @@ class Fake:
             return 0, self.porcelain.pop(0) if self.porcelain else "", ""
         if base == "git" and args[:1] == ("merge-base",):
             return 0, BASE + "\n", ""
-        if base == "git" and args[:1] == ("diff",):
-            return 0, GRADED_DIFF, ""
+        if base == "grade-prose.sh" and args[:1] == ("--signed",):
+            return 0, SIGNED, ""
         if base == "git" and args[:1] == ("branch",):
             return 0, "tdd/12-x\n", ""
         if base == "next-pending-refactor.sh":
@@ -133,11 +132,12 @@ def test_4031_a_clean_rebase_regrades_runs_the_local_suite_checks_the_tree_pushe
         ("git", ("status", "--porcelain", "--untracked-files=all")), ("next-pending-refactor.sh", ()),
         ("rebase-onto-default.sh", ()),
         ("git", ("merge-base", "HEAD", "origin/main")),
-        ("git", ("diff", BASE, "HEAD", "-U0", "--", ":(glob)**/GRADED")),
+        ("grade-prose.sh", ("--signed", BASE)),
         ("git", ("status", "--porcelain", "--untracked-files=all")),
         ("detach-command.sh", ("start", "regrade-12", "sh", "-c", pr_prepare.BLOCK, "sh",
                                os.path.dirname(pr_prepare.fused.script("grade-prose.sh")),
-                               "skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md", "./REQUIREMENTS.md", "README.md")),
+                               "skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md#Two words", "REQUIREMENTS.md",
+                               "README.md")),
         ("detach-command.sh", ("wait", "regrade-12")),
         ("git", ("status", "--porcelain", "--untracked-files=all")),
         ("rebased-tip-suite.sh", ()), ("detect-test-command.sh", ("--tier", "all")),
@@ -249,12 +249,19 @@ def test_4031_a_git_read_that_fails_is_exit_2_not_gits_own_code(prep, failing):
     assert out.splitlines()[-1].startswith("stopped at 1 git " + failing[0])
 
 
-@pytest.mark.parametrize("args", [("merge-base",), ("diff",)])
-def test_4031_a_git_call_of_the_regrade_block_that_fails_is_exit_2_not_gits_own_code(prep, args):
-    code, out, err, fake = prep(answers={("git", args[0]): (128, "")})
+def test_4031_a_git_call_of_the_regrade_block_that_fails_is_exit_2_not_gits_own_code(prep):
+    code, out, err, fake = prep(answers={("git", "merge-base"): (128, "")})
 
     assert code == 2 and "grade-prose.sh" not in fake.names()
-    assert out.splitlines()[-1].startswith("stopped at 1 git " + args[0])
+    assert out.splitlines()[-1].startswith("stopped at 1 git merge-base")
+
+
+@pytest.mark.parametrize("inner", [1, 2, 3])
+def test_4429_a_signed_listing_that_fails_stops_it_with_exit_2_before_the_regrade_block_starts(prep, inner):
+    code, out, err, fake = prep(answers={("grade-prose.sh", "--signed"): (inner, "")})
+
+    assert code == 2 and "detach-command.sh" not in fake.names()
+    assert out.splitlines()[-1].startswith("stopped at 1 grade-prose.sh --signed")
 
 
 @pytest.mark.parametrize("script, first, inner", [("push-branch.sh", None, 1), ("push-branch.sh", None, 2),
@@ -423,9 +430,10 @@ def test_4390_the_regrade_block_runs_detached_its_slice_running_out_is_exit_3_an
 
     assert (code, out.splitlines()[-1]) == (3, "waiting on regrade-12")
     start = fake.call("detach-command.sh", "start")[1]
-    assert start[:2] == ("start", "regrade-12") and "grade-prose.sh" not in fake.names()
-    assert [a for a in start if a.endswith(("REQUIREMENTS.md", "SKILL.md", "README.md"))] == [
-        "skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md", "./REQUIREMENTS.md", "README.md"]
+    assert start[:2] == ("start", "regrade-12")
+    assert [c[1] for c in fake.calls if c[0] == "grade-prose.sh"] == [("--signed", BASE)]
+    assert [a for a in start if a.endswith(("REQUIREMENTS.md", "SKILL.md#Two words", "README.md"))] == [
+        "skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md#Two words", "REQUIREMENTS.md", "README.md"]
     assert json.loads((prep.wt / ".tdd" / "issue-12-pr-prepare-wait").read_text())["at"] == "regrade-12"
     assert not {"rebased-tip-suite.sh", "push-branch.sh", "event.sh"} & set(fake.names())
 

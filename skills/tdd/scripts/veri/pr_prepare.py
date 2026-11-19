@@ -3,7 +3,6 @@ two questions, the rebase, the regrade block, the rebased tip's suite when owed,
 refactor-owed list), made in one call (PRD 027.9, amended: it stops after RB7)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
-import re
 import shlex
 import sys
 
@@ -20,11 +19,11 @@ RUN = "rebased-full-%s"  # the rebased tip's detach-command.sh name: .tdd/rebase
 DETACH = fused.script("detach-command.sh")
 SUBJECT = "docs: regrade the prose the branch signed (#%s)"  # the regrade commit's one subject (PRG1)
 
-# The $S/ scripts this call makes, in the order each is first made (git aside, and grade-prose.sh, which only the
-# detached regrade block runs); unit/test_pr_prepare.py fails when one is a script DRAFT-PR.md's sub-step 1 does not
-# name (FC19).
-CALLS = ("next-pending-refactor.sh", "rebase-onto-default.sh", "detach-command.sh", "rebased-tip-suite.sh",
-         "detect-test-command.sh", "push-branch.sh", "refactor-owed.sh", "event.sh")
+# The $S/ scripts this call makes, in the order each is first made (git aside; grade-prose.sh here is only its
+# `--signed` listing, the grading being the detached regrade block's); unit/test_pr_prepare.py fails when one is a
+# script DRAFT-PR.md's sub-step 1 does not name (FC19).
+CALLS = ("next-pending-refactor.sh", "rebase-onto-default.sh", "grade-prose.sh", "detach-command.sh",
+         "rebased-tip-suite.sh", "detect-test-command.sh", "push-branch.sh", "refactor-owed.sh", "event.sh")
 
 
 def main(argv):
@@ -109,16 +108,16 @@ BLOCK = ('S=$1; shift; rc=0; while [ "$#" -gt 1 ]; do "$S/grade-prose.sh" "$1" "
 
 def regrade(wt, n):
     """Sub-step 1's regrade block (RB3) started detached as `regrade-<n>`: every unit the branch signed since its merge
-    base with origin/<default>, then `grade-prose.sh --convert`. A failing git call is no answer (exit 2), never git's
-    own code. Returns the porcelain before the block, against which the files it modified are read."""
+    base with origin/<default>, as `grade-prose.sh --signed` lists it (decoded, beside its REQUIREMENTS.md), then
+    `grade-prose.sh --convert`. A failing git call or listing is no answer (exit 2), never its own code.
+    Returns the porcelain before the block, against which the files it modified are read."""
     default = default_branch(wt)
     if not default:
         raise fused.Stop("1", "no default branch for the regrade block", 2)
     base = answered("git", "merge-base", "HEAD", "origin/" + default, cwd=wt).strip()
-    diff = answered("git", "diff", base, "HEAD", "-U0", "--", ":(glob)**/GRADED", cwd=wt)
+    listed = answered(fused.script("grade-prose.sh"), "--signed", base, cwd=wt)
     before = porcelain(wt)
-    units = [m.group(1) for m in (re.match(r"^\+([^+][^ ]*) ", line) for line in diff.splitlines()) if m]
-    pairs = [arg for unit in units for arg in (os.path.join(os.path.dirname(unit) or ".", "REQUIREMENTS.md"), unit)]
+    pairs = [arg for line in listed.splitlines() if line for arg in line.split("\t", 1)]
     scripts = os.path.dirname(fused.script("grade-prose.sh"))
     fused.checked("1", DETACH, "start", REGRADE % n, "sh", "-c", BLOCK, "sh", scripts, *pairs, cwd=wt)
     return before
