@@ -1,6 +1,6 @@
 # Plan for #4410 — PRD 033.3: on recovery the outage's offline joins reach GitHub and the stack lands
 
-- [ ] stack-recover.sh is a /bin/sh shim over veri/stack_recover.py; an argument is exit 2 with its usage ⟦criterion 1⟧
+- [x] stack-recover.sh is a /bin/sh shim over veri/stack_recover.py; an argument is exit 2 with its usage ⟦criterion 1⟧
 - [ ] stack-recover.sh exits 2 while .tdd/github-outage exists, before any read ⟦criterion 2⟧
 - [ ] stack-recover.sh exits 3 when stack-branch.sh exits 3, and 2 when it exits 2 ⟦criterion 2⟧
 - [ ] stack-recover.sh takes the merge lock and fetches; a failed take or fetch is exit 2, the lock freed ⟦criterion 3⟧
