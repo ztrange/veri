@@ -220,23 +220,75 @@ def test_4028_an_overfit_flag_or_an_in_step_candidate_stops_it_with_exit_1(tidy,
 
 
 CRITERIA = "# spec\n\n## Acceptance criteria\n\n- [ ] one thing works\n- [ ] a stage exiting 1 stops the run\n"
+LATER = "two ⟦criterion 2⟧"
+WHAT = "src/a.py ignores exit codes"
 
 
-@pytest.mark.parametrize("case, owed", [("a stage exiting 1 stops the run", True), ("one thing works", False),
-                                        ("an empty list sums to 0", False)],
-                         ids=["a later unchecked step's criterion", "this step's own criterion", "no step's criterion"])
-def test_4438_an_overfit_flag_whose_case_a_later_unchecked_step_owns_is_narrated_as_owed_and_does_not_stop_it(
-        tidy, case, owed):
-    (tidy.wt / ".tdd" / "issue-12-spec.md").write_text(CRITERIA)
-    line = "FLAGS: overfit | src/a.py ignores exit codes | " + case
-    code, out, err, fake = tidy(fake=Fake(report=REPORT + line + "\n"))
+def _flagged(tidy, case, ledger=None, step=STEP, criteria=CRITERIA):
+    (tidy.wt / ".tdd" / "issue-12-spec.md").write_text(criteria)
+    if ledger is not None:
+        (tidy.wt / ".tdd" / "issue-12.md").write_text(ledger)
+    line = "FLAGS: overfit | %s | %s" % (WHAT, case)
+    code, out, err, fake = tidy(fake=Fake(report=REPORT + line + "\n"), step=step)
+    return code, out, line
 
-    if owed:
-        assert code == 0
-        note = (tidy.wt / ".tdd" / "refactor-half-note.md").read_text()
-        assert "- overfit | src/a.py ignores exit codes | %s (owed by two ⟦criterion 2⟧)\n" % case in note
-    else:
-        assert (code, out.splitlines()[-1]) == (1, "stopped at 3 " + line)
+
+@pytest.mark.parametrize("case, ledger", [
+    ("one thing works", None),
+    ("an empty list sums to 0", None),
+    ("a stage exiting 1 stops the run", "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [x] %s\n" % (STEP, LATER)),
+    ("a stage exiting 1 stops the run", "# Plan for #12\n\n- [ ] %s\n- [x] %s ⟂ refactor pending\n" % (LATER, STEP)),
+    ("", None),
+    ("   ", None)],
+    ids=["this step's own criterion", "no step's criterion", "a later step already checked",
+         "an earlier unchecked step", "an empty case", "a whitespace-only case"])
+def test_4438_an_overfit_flag_no_later_unchecked_step_owns_still_stops_at_3(tidy, case, ledger):
+    code, out, line = _flagged(tidy, case, ledger)
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 3 " + line.rstrip())
+
+
+def test_4438_an_overfit_flag_whose_case_a_later_unchecked_step_owns_is_narrated_as_owed_and_does_not_stop_it(tidy):
+    code, out, line = _flagged(tidy, "a stage exiting 1 stops the run")
+
+    assert code == 0
+    note = (tidy.wt / ".tdd" / "refactor-half-note.md").read_text()
+    assert "- overfit | %s | a stage exiting 1 stops the run (owed by %s)\n" % (WHAT, LATER) in note
+
+
+# Run #4432's step 3, its later steps and its spec, as its ledger and spec held them, cut to the criteria they name.
+RUN_STEP = ("run-pr.sh <n> runs branch-gate.sh, pr-prepare.sh and pr-checks.sh in that order, each through "
+            "fused.script(), and after pr-checks.sh exits 0 prints seam=pr-ready-wait code=1 reason=title and exits 1 "
+            "⟦criterion 1⟧")
+RUN_OWNER = ("at the first stage exiting 1 or 2 it stops, prints seam=<stage> code=<c> next=DRAFT-PR.md#4. Draft PR "
+             "after that stage's own output (its stopped at line), calls no later stage and exits c ⟦criterion 3⟧")
+RUN_LEDGER = ("# Plan for #12\n\n- [x] %s ⟂ refactor pending\n"
+              "- [ ] called again after the body seam it calls no stage and exits 0 ⟦criterion 2⟧\n- [ ] %s\n"
+              % (RUN_STEP, RUN_OWNER))
+RUN_SPEC = ("# spec\n\n## Acceptance criteria\n\n"
+            "- [x] RPR1: `run-pr.sh <n>` runs `branch-gate.sh`, `pr-prepare.sh` and `pr-checks.sh` in that order.\n"
+            "- [ ] RPR2: called again after the `title` seam, it runs `pr-ready-wait.sh`, then `pr-finish.sh`.\n"
+            "- [ ] RPR3: at the first stage that exits non-zero it stops, prints `seam=<stage> code=<c> next=<anchor or "
+            "run-pr.sh <n>>` after that stage's own `stopped at` line, and exits with `c`.\n")
+RUN_CASE = "a case where a stage exits non-zero and the run must stop with `seam=<stage> code=<c>` (RPR3)"
+
+
+@pytest.mark.parametrize("case", [RUN_CASE, "a stage exits non-zero and stops (criterion 3)",
+                                  "a stage exits non-zero and stops ⟦criterion 3⟧"],
+                         ids=["a requirement id", "criterion k", "the criterion mark"])
+def test_4438_an_overfit_flag_naming_a_later_unchecked_steps_identifier_is_owed_by_it_as_in_run_4432(tidy, case):
+    code, out, line = _flagged(tidy, case, RUN_LEDGER, step=RUN_STEP, criteria=RUN_SPEC)
+
+    assert code == 0
+    note = (tidy.wt / ".tdd" / "refactor-half-note.md").read_text()
+    assert "- overfit | %s | %s (owed by %s)\n" % (WHAT, case, RUN_OWNER) in note
+
+
+def test_4438_an_identifier_no_later_unchecked_step_carries_still_stops_at_3(tidy):
+    code, out, line = _flagged(tidy, "a stage exits non-zero and stops (RPR30, criterion 7)", RUN_LEDGER,
+                               step=RUN_STEP, criteria=RUN_SPEC)
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 3 " + line)
 
 
 @pytest.mark.parametrize("budget, count, result, triage, stopped", [

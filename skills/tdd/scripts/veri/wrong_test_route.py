@@ -338,6 +338,26 @@ def later_owner(behaviour, spec, after):
     return None
 
 
+IDENTIFIER = re.compile(r"⟦criterion (\d+)⟧|\bcriterion (\d+)\b|\b([A-Z]+\d+)\b")
+
+
+def later_owner_by_id(behaviour, spec, after):
+    """The first of the step names <after> that <behaviour> names by an identifier: `criterion <k>` or `⟦criterion k⟧`
+    naming the step's own ⟦criterion k⟧, or a requirement id (letters then digits, such as RPR3) the step's text or its
+    criterion text in <spec> carries as a whole word; None for none (#4438)."""
+    found = IDENTIFIER.findall(behaviour)
+    numbers = {k or j for k, j, _ in found if k or j}
+    ids = [i for _, _, i in found if i]
+    for name in after:
+        marker = re.search(r"⟦criterion (\d+)⟧", name)
+        if marker and marker.group(1) in numbers:
+            return name
+        text = name + "\n" + (_criterion(spec, name) or "")
+        if any(re.search(r"\b%s\b" % i, text) for i in ids):
+            return name
+    return None
+
+
 def main(argv):
     if len(argv) != 4 or argv[0] != "--spec" or not all(argv[1:]):
         write(sys.stderr, USAGE)
