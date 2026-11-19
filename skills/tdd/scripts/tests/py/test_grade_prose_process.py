@@ -1479,3 +1479,35 @@ def test_a_pass_on_a_root_unit_listed_in_the_root_requirements_writes_its_signat
     expected = grade_prose.signature("./REQUIREMENTS.md", "CLAUDE.md")
     assert [done.returncode, len(fields) >= 4 and fields[0], len(fields) >= 4 and fields[1] == expected] \
         == [0, "CLAUDE.md", True], (done.stderr, lines)
+
+
+@pytest.mark.process("grade-prose.sh --signed reading a real git repository's GRADED files at HEAD and its merge base")
+def test_4429_signed_prints_each_unit_the_branch_signed_decoded_beside_its_requirements_and_exits_2_on_an_unreadable_base(
+        tmp_path):
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    def git(*argv):
+        return subprocess.run(["git", *argv], cwd=tmp_path, env=env, check=True, capture_output=True, text=True).stdout
+
+    kept = "skills/tdd/SKILL.md#Kept%20heading " + "e" * 64 + " 2026-11-19 id prefix\n"
+    (tmp_path / "skills" / "tdd").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "GRADED").write_text(kept)
+    git("init", "-q", "-b", "main")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / "skills" / "tdd" / "GRADED").write_text(
+        kept + "skills/tdd/SKILL.md#Two%20words " + "a" * 64 + " 2026-11-19 id prefix\n" + kept)
+    (tmp_path / "GRADED").write_text("README.md %s 2026-11-19 id prefix\n" % ("c" * 64))
+    git("add", ".")
+    git("commit", "-q", "-m", "branch")
+
+    signed = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--signed", base], cwd=tmp_path, env=env,
+                            capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    bad = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--signed", "0" * 40], cwd=tmp_path, env=env,
+                         capture_output=True, text=True, stdin=subprocess.DEVNULL)
+
+    assert (signed.returncode, signed.stdout) == (
+        0, "REQUIREMENTS.md\tREADME.md\nskills/tdd/REQUIREMENTS.md\tskills/tdd/SKILL.md#Two words\n"), signed.stderr
+    assert (bad.returncode, bad.stdout, "0" * 40 in bad.stderr) == (2, "", True), bad.stderr
