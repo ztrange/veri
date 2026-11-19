@@ -1,2 +1,4 @@
 ### called again after the title seam, which it records in .tdd/issue-<n>-run-pr with the sha of the ledger's last commit, it runs pr-ready-wait.sh then pr-finish.sh, never the three stages before them, and after pr-finish.sh exits 0 prints pr-finish.sh's last lines then seam=done code=1 reason=body next=DRAFT-PR.md#4. Draft PR and exits 1 ⟦criterion 2⟧
 - test-only | `test_run_pr.py` repeats the worktree and preflight fixture setup (4 lines) across 4 cases. I left it because the cases are frozen and the assertions must not move.
+### a seam record whose sha is not the ledger's last committed one is not resumed: called with no options it starts at branch-gate ⟦criterion 4⟧
+- Leaky Scope: Move Statements into Function — `USAGE`, `TITLE` and `BODY` in `run_pr.py` are each used by `main` only. This is not duplication removal, so I did not apply it.
