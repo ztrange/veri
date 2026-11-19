@@ -269,6 +269,7 @@ def test_4343_a_stage_exit_outside_0_to_3_is_exit_2_naming_the_stage_and_its_cod
 
 
 REVISE = "REVISE.md#Revising on a REJECT"
+REJECTED = '{"conductor": null, "at": "verdict-green", "values": {}, "step": "%s"}' % STEP
 
 
 @pytest.mark.parametrize("revised, names, last", [
@@ -306,10 +307,10 @@ def test_a_revise_exit_3_is_called_again_through_run_step_which_resumes_at_revis
     """revise.sh is sliced: its 3 means call again, and run-step.sh called again goes back to it, not to the half
     (whose wait record fused.wait moved to `<stage>-rejected`)."""
     (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
-    (step.wt / ".tdd" / "issue-12-green-half-rejected-wait").write_text("{}")
+    (step.wt / ".tdd" / "issue-12-green-half-rejected-wait").write_text(REJECTED)
     first = step(answers={"green-half.sh": (1, "stopped at 2 wait-leaf.sh verdict-green exit 1\n"),
                           "revise.sh": (3, "waiting on revise-green-1\n")})
-    (step.wt / ".tdd" / "issue-12-green-half-rejected-wait").write_text("{}")
+    (step.wt / ".tdd" / "issue-12-green-half-rejected-wait").write_text(REJECTED)
     code, out, err, stages = step(answers={"revise.sh": (3, "waiting on verdict-green\n")})
 
     assert (first[0], first[1].splitlines()[-1]) == (3, "seam=revise code=3 next=run-step.sh 12")
@@ -327,3 +328,16 @@ def test_hand_revise_stops_at_the_reject_never_calling_revise_and_revise_is_a_st
         1, ["red-half.sh", "green-half.sh"], "seam=revise code=1 reason=hand next=" + REVISE)
     assert ("revise" in run_step.STAGES, run_step.CALLS) == (True, STAGES)
     assert step(argv=("12", "--from", "revise"))[0] == 2
+
+
+def test_a_rejected_record_naming_another_step_sends_no_call_to_revise_and_is_dropped_4433(step):
+    """Records are caches (S1): a `<stage>-rejected` record a revise that stopped left behind names its step, so on a
+    later step the half runs, not revise.sh, and the stale record is removed."""
+    stale = step.wt / ".tdd" / "issue-12-green-half-rejected-wait"
+    stale.write_text('{"conductor": null, "at": "verdict-green", "values": {}, "step": "%s"}' % STEP)
+    ledger = "# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n- [x] %s\n- [ ] two ⟦criterion 2⟧\n" % STEP
+
+    code, out, err, stages = step(ledger=ledger)
+
+    assert (code, stages.names()) == (0, list(STAGES)), err
+    assert not stale.exists()

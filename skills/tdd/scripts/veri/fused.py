@@ -194,19 +194,23 @@ def launch(where, wt, name, command, *args, env, out, err, clear=()):
             out=out, err=err)
 
 
-def wait(wt, n, owner, name, keep_rejected=True):
+def wait(wt, n, owner, name, rejected_step=None):
     """wait-leaf.sh <name>: raises Waiting on 3, the record kept; else removes <owner>'s wait record and returns the
-    leaf's code. With <keep_rejected>, a verifier's REJECT (`verdict-<phase>` exit 1) moves the record to owner
-    `<owner>-rejected` instead, so revise.sh can hand a phase stage's values back to it (PRD 038.9); revise.sh's own
-    wait passes False, since its REJECT goes on to its next attempt."""
+    leaf's code. With <rejected_step>, a verifier's REJECT (`verdict-<phase>` exit 1) moves the record to owner
+    `<owner>-rejected` instead, naming that step, so revise.sh can hand a phase stage's values back to it (PRD 038.9)
+    and a record another step left is known stale (S1); revise.sh's own wait passes none, since its REJECT goes on to
+    its next attempt."""
+    import json
     code = call(script("wait-leaf.sh"), name, cwd=wt)[0]
     if code == 3:
         raise Waiting(name)
     with contextlib.suppress(FileNotFoundError):
-        if keep_rejected and code == 1 and name.startswith("verdict-"):
-            os.replace(wait_record(wt, n, owner), wait_record(wt, n, owner + "-rejected"))
-        else:
-            os.remove(wait_record(wt, n, owner))
+        if rejected_step is not None and code == 1 and name.startswith("verdict-"):
+            with open(wait_record(wt, n, owner)) as f:
+                record = dict(json.load(f), step=rejected_step)
+            with open(wait_record(wt, n, owner + "-rejected"), "w") as f:
+                json.dump(record, f)
+        os.remove(wait_record(wt, n, owner))
     return code
 
 

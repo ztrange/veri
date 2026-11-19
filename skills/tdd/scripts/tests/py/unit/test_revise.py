@@ -145,7 +145,7 @@ def test_on_a_revised_pass_it_posts_verify_revised_resaves_green_halfs_wait_at_v
     rejected = revise.wt / ".tdd" / "issue-12-green-half-rejected-wait"
     rejected.write_text(json.dumps({"conductor": None, "at": "verdict-green",
                                     "values": {"test_path": "tests/test_a.py",
-                                               "target_test": "tests/test_a.py::test_one"}}))
+                                               "target_test": "tests/test_a.py::test_one"}, "step": STEP}))
     code, out, err, fake = revise()
 
     assert code == 0
@@ -247,7 +247,7 @@ RED_VALUES = {"refresh": 0, "test_path": "tests/test_a.py", "target_test": "test
 def _red(revise):
     """The files a rejected red leaves: red-half's rejected record, the reports and the reason."""
     (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").write_text(
-        json.dumps({"conductor": None, "at": "verdict-red", "values": RED_VALUES}))
+        json.dumps({"conductor": None, "at": "verdict-red", "values": RED_VALUES, "step": STEP}))
     for name in ("develop-red.out", "revise-red-1.out"):
         (revise.wt / ".tdd" / name).write_text("the %s report\n" % name)
     (revise.wt / ".tdd" / "verify-red.reason").write_text(REASON)
@@ -323,7 +323,7 @@ def _refactor(revise):
     (revise.wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] %s ⟂ refactor pending\n"
                                                     "- [ ] two ⟦criterion 2⟧\n" % STEP)
     (revise.wt / ".tdd" / "issue-12-refactor-half-rejected-wait").write_text(
-        json.dumps({"conductor": None, "at": "verdict-refactor", "values": REF_VALUES}))
+        json.dumps({"conductor": None, "at": "verdict-refactor", "values": REF_VALUES, "step": STEP}))
     (revise.wt / ".tdd" / "revise-refactor-1.out").write_text("the revise-refactor-1 report\n")
     (revise.wt / ".tdd" / "verify-refactor.reason").write_text(REASON)
 

@@ -62,7 +62,7 @@ def run(n):
 def waited(wt, n, where, name, step):
     """A leaf's wait, then the step's cost check (RH4); a leaf's 1 or 2 stops it at <where> before that check, which
     the conductor's prose then makes."""
-    code = fused.wait(wt, n, NAME, name)
+    code = fused.wait(wt, n, NAME, name, rejected_step=step)
     if code != 0:
         raise fused.Stop(where, "wait-leaf.sh %s exit %d" % (name, code), code)
     fused_step.cost_check(wt, step)

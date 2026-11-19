@@ -178,6 +178,26 @@ def record(stage, wt, n, step, facts=()):
     return read_settled(path)
 
 
+def rejected(wt, n, stage, step):
+    """(at, values) of <stage>'s rejected record (fused.wait's, PRD 038.9) when it names <step> by ledger.same_step;
+    else None. Records are caches (S1): one naming another step, or none, is a REJECT a stopped revise left behind,
+    and is removed."""
+    import contextlib
+    import json
+    import fused
+    path = fused.wait_record(wt, n, stage + "-rejected")
+    try:
+        with open(path) as f:
+            theirs = json.load(f).get("step")
+    except (OSError, ValueError, AttributeError):
+        theirs = None
+    if theirs is None or not ledger.same_step(theirs, step):
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(path)
+        return None
+    return fused.load_wait(wt, n, stage + "-rejected")
+
+
 def branch_base(where, wt, n):
     """The run's branch base as the conductor recorded it in the main working tree above <wt> (run_pins), handed to
     each verifier as `--branch-base`; a record missing or unreadable stops <where> with exit 2 naming it (#4375)."""
