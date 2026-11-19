@@ -6,9 +6,11 @@ import os
 import shutil
 import sys
 
+import event_log
 import fused
 import fused_step
 import green_half
+import ledger
 import run_dir
 import tunables
 from ledger import handed_out
@@ -50,7 +52,8 @@ def run(n, phase):
         return 1
     resumed = fused.load_wait(wt, n, NAME)
     if resumed is None:
-        values = {"phase": phase, "k": 1, "test_path": red["test_path"], "target_test": red["target_test"]}
+        values = {"phase": phase, "k": spent(wt, step, phase) + 1, "test_path": red["test_path"],
+                  "target_test": red["target_test"]}
         at = attempt(n, wt, settled, step, values)
     else:
         at, values = resumed
@@ -70,6 +73,12 @@ def run(n, phase):
     if code != 0:
         raise fused.Stop("5", "wait-leaf.sh %s exit %d" % (at, code), code)
     return finish(n, wt, values)
+
+
+def spent(wt, step, phase):
+    """The attempts already spent on <phase> in the open step: the conductor's `revise` marks naming both."""
+    return len([e for e in event_log.events(wt, "revise", skip_unreadable=True) if e.get("actor") == "conductor"
+                and e.get("phase") == phase and ledger.same_step(e.get("step", ""), step)])
 
 
 def attempt(n, wt, settled, step, values):
