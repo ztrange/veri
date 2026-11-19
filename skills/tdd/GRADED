@@ -161,4 +161,4 @@ skills/tdd/SKILL.md#Red%20—%20one%20failing%20test%20(developer%20leaf),%20the
 skills/tdd/SKILL.md#Green%20—%20minimum%20implementation%20(developer%20leaf),%20then%20verify-green%20(blind) f927b4f8032a3a048101356600de01db38b3df8636643c32646b1ce420ddb424 2026-11-18 dee3ea5c998e407982ae592f493a4ef4 748391c71624
 skills/tdd/SKILL.md#Refactor%20loop%20—%20one%20leaf%20applies%20the%20step's%20transforms,%20then%20verify-refactor%20(blind,%20once) 8b9ca815f7f2cfce79e4b6bf998d4f8ce44d9692c5ab09dba69c7cce33cd4a74 2026-11-18 43c41c7718204f509fedd2f1dc587bcd 748391c71624
 skills/tdd/REVISE.md 20644f0a6b66e8f765f2a144c271ccecd0550bfcdd913fd036d17fadb953216b 2026-11-18 05abe588e2c94bfea34be854b3fbb857 748391c71624
-skills/tdd/SCRIPTS.md f6cff27de3ba4b50b5fdcf5bfd60f581e5dd98d3a8cd328e9e33da88b50a14db 2026-11-18 bc69c7a7d0e64ec48d44ca662b3c7f71 748391c71624
+skills/tdd/SCRIPTS.md b3e5dd60ef2d96d2610807b49d94b2ea02d060069f3e81775eeaf28393a08226 2026-11-18 27adc43ec5df4ee28d22095353375d91 748391c71624
