@@ -65,6 +65,7 @@ def main(argv):
                         else "metrics could not be rendered: metrics.sh exited %d\n" % metrics.returncode))
     _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--note-file", note_file])
     _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--pr", "--note-file", note_file])
+    print("phase: %s\nclassification: %s" % (phase, classification))
     return 0
 
 

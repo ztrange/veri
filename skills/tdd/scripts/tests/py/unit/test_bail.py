@@ -363,3 +363,21 @@ def test_a_non_zero_issue_comment_exit_is_named_on_its_call_line_and_the_pr_comm
     later = [c for c in fake.calls if c.startswith(("event.sh", "comment.sh"))]
     assert later == ["event.sh bail cause=tests-red classification=process",
                      "comment.sh 7 bailed --note-file n.md", "comment.sh 7 bailed --pr --note-file n.md"]
+
+
+def test_a_non_zero_pr_comment_exit_is_named_on_its_call_line_and_bail_still_ends_exit_0_with_the_event_written_and_its_report_printed(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "comment.sh 7 bailed --pr --note-file n.md": (9, "", "no pr\n")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    assert code == 0
+    comment_lines = [line for line in out.splitlines() if "comment.sh" in line]
+    assert len(comment_lines) == 2
+    assert "9" not in comment_lines[0] and "9" in comment_lines[1]
+    assert "event.sh bail cause=tests-red classification=process" in fake.calls
+    report = out.splitlines()[-4:]
+    assert any("red" in line for line in report) and any("process" in line for line in report)
