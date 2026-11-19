@@ -1,15 +1,19 @@
 ### 📊 Metrics — issue 4432
 
-Wall time for the issue: 1812 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1220 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: unknown of 20 planned.
-Outcome: the run bailed — revise-impossible, a process failure.
+Steps done: 2 of 20 planned.
+Outcome: the run bailed — untestable-criterion, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $4.50 over 76 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $14.70 over 262 turns, in 6 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 86835 tokens, largest 156842 tokens
-Conductor context: first turn 86793 tokens, largest 158620 tokens
+Conductor context: first turn 86793 tokens, largest 159754 tokens
+Conductor context: first turn 87423 tokens, largest 152556 tokens
+Conductor context: first turn 87424 tokens, largest 160278 tokens
+Conductor context: first turn 87422 tokens, largest 153334 tokens
+Conductor context: first turn 87423 tokens, largest 127343 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -46,51 +50,232 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 28 | $0.06 | 155802 |
 | 29 | $0.04 | 156265 |
 | 30 | $0.05 | 156842 |
-| 31 | $0.56 | 86793 |
-| 32 | $0.03 | 88898 |
-| 33 | $0.02 | 89220 |
-| 34 | $0.02 | 89888 |
-| 35 | $0.04 | 93180 |
-| 36 | $0.06 | 98764 |
-| 37 | $0.03 | 100119 |
-| 38 | $0.03 | 101258 |
-| 39 | $0.04 | 103453 |
+| 31 | $0.57 | 86793 |
+| 32 | $0.04 | 88898 |
+| 33 | $0.03 | 89220 |
+| 34 | $0.03 | 89888 |
+| 35 | $0.06 | 93180 |
+| 36 | $0.07 | 98764 |
+| 37 | $0.04 | 100119 |
+| 38 | $0.04 | 101258 |
+| 39 | $0.05 | 103453 |
 | 40 | $0.03 | 104177 |
-| 41 | $0.02 | 104549 |
-| 42 | $0.02 | 104780 |
-| 43 | $0.02 | 105151 |
-| 44 | $0.03 | 105811 |
+| 41 | $0.03 | 104549 |
+| 42 | $0.04 | 104780 |
+| 43 | $0.03 | 105151 |
+| 44 | $0.04 | 105811 |
 | 45 | $0.03 | 106358 |
-| 46 | $0.03 | 106974 |
+| 46 | $0.04 | 106974 |
 | 47 | $0.04 | 108740 |
-| 48 | $0.03 | 109246 |
-| 49 | $0.02 | 109631 |
-| 50 | $0.12 | 122308 |
-| 51 | $0.12 | 133849 |
-| 52 | $0.03 | 134446 |
-| 53 | $0.03 | 135095 |
-| 54 | $0.04 | 136314 |
-| 55 | $0.03 | 136502 |
-| 56 | $0.03 | 136953 |
-| 57 | $0.03 | 137540 |
-| 58 | $0.03 | 138405 |
-| 59 | $0.03 | 139295 |
-| 60 | $0.03 | 139758 |
-| 61 | $0.03 | 140594 |
-| 62 | $0.03 | 141215 |
-| 63 | $0.04 | 142098 |
-| 64 | $0.03 | 142629 |
-| 65 | $0.04 | 143747 |
-| 66 | $0.04 | 145024 |
-| 67 | $0.03 | 145543 |
+| 48 | $0.04 | 109246 |
+| 49 | $0.03 | 109631 |
+| 50 | $0.13 | 122308 |
+| 51 | $0.13 | 133849 |
+| 52 | $0.04 | 134446 |
+| 53 | $0.04 | 135095 |
+| 54 | $0.05 | 136314 |
+| 55 | $0.04 | 136502 |
+| 56 | $0.04 | 136953 |
+| 57 | $0.04 | 137540 |
+| 58 | $0.04 | 138405 |
+| 59 | $0.05 | 139295 |
+| 60 | $0.04 | 139758 |
+| 61 | $0.04 | 140594 |
+| 62 | $0.04 | 141215 |
+| 63 | $0.05 | 142098 |
+| 64 | $0.04 | 142629 |
+| 65 | $0.05 | 143747 |
+| 66 | $0.05 | 145024 |
+| 67 | $0.04 | 145543 |
 | 68 | $0.04 | 146439 |
-| 69 | $0.04 | 148182 |
-| 70 | $0.04 | 149552 |
-| 71 | $0.03 | 150084 |
+| 69 | $0.06 | 148182 |
+| 70 | $0.05 | 149552 |
+| 71 | $0.04 | 150084 |
 | 72 | $0.04 | 150757 |
-| 73 | $0.04 | 152318 |
+| 73 | $0.06 | 152318 |
 | 74 | $0.04 | 153353 |
-| 75 | $0.07 | 158620 |
+| 75 | $0.09 | 158620 |
+| 76 | $0.05 | 159754 |
+| 77 | $0.56 | 87423 |
+| 78 | $0.05 | 89720 |
+| 79 | $0.03 | 90350 |
+| 80 | $0.05 | 94062 |
+| 81 | $0.13 | 106396 |
+| 82 | $0.03 | 106942 |
+| 83 | $0.04 | 108304 |
+| 84 | $0.04 | 109426 |
+| 85 | $0.04 | 110187 |
+| 86 | $0.04 | 111339 |
+| 87 | $0.04 | 112266 |
+| 88 | $0.03 | 112593 |
+| 89 | $0.05 | 115523 |
+| 90 | $0.04 | 116200 |
+| 91 | $0.04 | 116748 |
+| 92 | $0.03 | 117448 |
+| 93 | $0.04 | 117884 |
+| 94 | $0.03 | 118372 |
+| 95 | $0.06 | 121422 |
+| 96 | $0.04 | 122403 |
+| 97 | $0.06 | 125694 |
+| 98 | $0.04 | 126149 |
+| 99 | $0.08 | 132855 |
+| 100 | $0.08 | 137733 |
+| 101 | $0.04 | 138240 |
+| 102 | $0.04 | 139495 |
+| 103 | $0.04 | 139719 |
+| 104 | $0.04 | 140063 |
+| 105 | $0.04 | 141016 |
+| 106 | $0.05 | 142010 |
+| 107 | $0.04 | 142671 |
+| 108 | $0.04 | 143402 |
+| 109 | $0.05 | 144339 |
+| 110 | $0.04 | 145119 |
+| 111 | $0.04 | 145880 |
+| 112 | $0.05 | 146894 |
+| 113 | $0.05 | 148198 |
+| 114 | $0.04 | 149219 |
+| 115 | $0.06 | 151841 |
+| 116 | $0.05 | 152556 |
+| 117 | $0.56 | 87424 |
+| 118 | $0.05 | 89723 |
+| 119 | $0.03 | 90151 |
+| 120 | $0.06 | 94920 |
+| 121 | $0.08 | 100987 |
+| 122 | $0.03 | 101343 |
+| 123 | $0.07 | 105733 |
+| 124 | $0.05 | 108402 |
+| 125 | $0.04 | 109330 |
+| 126 | $0.03 | 110097 |
+| 127 | $0.04 | 110388 |
+| 128 | $0.05 | 112618 |
+| 129 | $0.03 | 113128 |
+| 130 | $0.04 | 114006 |
+| 131 | $0.04 | 114863 |
+| 132 | $0.05 | 117074 |
+| 133 | $0.04 | 118465 |
+| 134 | $0.04 | 119528 |
+| 135 | $0.04 | 120271 |
+| 136 | $0.04 | 121178 |
+| 137 | $0.04 | 122217 |
+| 138 | $0.04 | 122843 |
+| 139 | $0.04 | 123233 |
+| 140 | $0.04 | 123691 |
+| 141 | $0.03 | 124052 |
+| 142 | $0.04 | 124561 |
+| 143 | $0.04 | 125275 |
+| 144 | $0.04 | 125943 |
+| 145 | $0.04 | 127044 |
+| 146 | $0.04 | 127689 |
+| 147 | $0.04 | 128139 |
+| 148 | $0.04 | 128847 |
+| 149 | $0.04 | 129207 |
+| 150 | $0.04 | 129651 |
+| 151 | $0.05 | 132365 |
+| 152 | $0.05 | 133602 |
+| 153 | $0.04 | 134069 |
+| 154 | $0.05 | 136218 |
+| 155 | $0.05 | 137815 |
+| 156 | $0.04 | 138718 |
+| 157 | $0.05 | 139991 |
+| 158 | $0.04 | 140943 |
+| 159 | $0.05 | 141977 |
+| 160 | $0.10 | 149501 |
+| 161 | $0.04 | 150259 |
+| 162 | $0.04 | 150483 |
+| 163 | $0.05 | 151331 |
+| 164 | $0.05 | 152558 |
+| 165 | $0.05 | 153794 |
+| 166 | $0.05 | 154839 |
+| 167 | $0.04 | 155586 |
+| 168 | $0.05 | 157012 |
+| 169 | $0.06 | 159591 |
+| 170 | $0.05 | 160278 |
+| 171 | $0.56 | 87422 |
+| 172 | $0.03 | 87611 |
+| 173 | $0.03 | 88245 |
+| 174 | $0.09 | 96363 |
+| 175 | $0.03 | 97220 |
+| 176 | $0.04 | 98262 |
+| 177 | $0.06 | 102965 |
+| 178 | $0.05 | 106244 |
+| 179 | $0.04 | 107090 |
+| 180 | $0.04 | 108680 |
+| 181 | $0.03 | 109235 |
+| 182 | $0.04 | 110068 |
+| 183 | $0.03 | 110644 |
+| 184 | $0.03 | 110806 |
+| 185 | $0.04 | 111427 |
+| 186 | $0.03 | 112297 |
+| 187 | $0.04 | 112459 |
+| 188 | $0.03 | 113048 |
+| 189 | $0.03 | 113700 |
+| 190 | $0.04 | 113931 |
+| 191 | $0.08 | 120469 |
+| 192 | $0.03 | 121084 |
+| 193 | $0.04 | 121326 |
+| 194 | $0.03 | 121481 |
+| 195 | $0.03 | 121683 |
+| 196 | $0.04 | 121865 |
+| 197 | $0.03 | 122009 |
+| 198 | $0.04 | 122733 |
+| 199 | $0.03 | 123229 |
+| 200 | $0.04 | 124184 |
+| 201 | $0.04 | 124521 |
+| 202 | $0.04 | 125311 |
+| 203 | $0.03 | 125780 |
+| 204 | $0.04 | 126506 |
+| 205 | $0.04 | 127805 |
+| 206 | $0.04 | 128658 |
+| 207 | $0.04 | 128988 |
+| 208 | $0.03 | 129433 |
+| 209 | $0.04 | 130291 |
+| 210 | $0.04 | 130796 |
+| 211 | $0.04 | 131617 |
+| 212 | $0.04 | 132046 |
+| 213 | $0.04 | 132711 |
+| 214 | $0.03 | 133252 |
+| 215 | $0.04 | 133993 |
+| 216 | $0.04 | 134739 |
+| 217 | $0.05 | 136107 |
+| 218 | $0.04 | 136647 |
+| 219 | $0.04 | 137971 |
+| 220 | $0.05 | 139490 |
+| 221 | $0.04 | 140505 |
+| 222 | $0.04 | 141199 |
+| 223 | $0.05 | 142149 |
+| 224 | $0.04 | 142584 |
+| 225 | $0.04 | 143896 |
+| 226 | $0.07 | 148488 |
+| 227 | $0.05 | 149372 |
+| 228 | $0.04 | 149823 |
+| 229 | $0.04 | 150135 |
+| 230 | $0.06 | 152688 |
+| 231 | $0.04 | 153334 |
+| 232 | $0.55 | 87423 |
+| 233 | $0.04 | 89744 |
+| 234 | $0.02 | 90356 |
+| 235 | $0.09 | 99262 |
+| 236 | $0.03 | 100224 |
+| 237 | $0.03 | 101857 |
+| 238 | $0.03 | 102824 |
+| 239 | $0.02 | 103347 |
+| 240 | $0.03 | 104182 |
+| 241 | $0.03 | 105200 |
+| 242 | $0.03 | 106082 |
+| 243 | $0.03 | 107471 |
+| 244 | $0.04 | 110155 |
+| 245 | $0.03 | 110761 |
+| 246 | $0.06 | 115149 |
+| 247 | $0.03 | 115840 |
+| 248 | $0.03 | 116140 |
+| 249 | $0.03 | 116791 |
+| 250 | $0.03 | 118113 |
+| 251 | $0.03 | 118350 |
+| 252 | $0.03 | 118585 |
+| 253 | $0.03 | 119002 |
+| 254 | $0.03 | 119485 |
+| 255 | $0.03 | 120221 |
+| 256 | $0.08 | 127343 |
 
 #### Conductor comments, by family
 
@@ -98,7 +283,7 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | --- | ---: | ---: | ---: |
 | ✅ Step done | 0 | 0 | $0.00 |
 | ✅ Done | 0 | 0 | $0.00 |
-| 🔴 Red | 1 | 3 | $0.00 |
+| 🔴 Red | 1 | 468 | $0.01 |
 | 🟢 Green | 0 | 0 | $0.00 |
 | 🛠️ Refactor | 0 | 0 | $0.00 |
 | 🔎 verify-green | 0 | 0 | $0.00 |
@@ -109,16 +294,20 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | ▶️ Resuming | 0 | 0 | $0.00 |
 | ⛔ Bailed | 0 | 0 | $0.00 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 1 | 3 | $0.00 |
+| Total | 1 | 468 | $0.01 |
 
 #### Conductor by phase (estimated: each turn placed by its timestamp)
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 72 | 4.36 |
+| between | 191 | 11.98 |
 | plan | 2 | 0.11 |
-| untimed | 1 | 0.00 |
-| grade-prose | 1 | 0.02 |
+| untimed | 6 | 0.00 |
+| grade-prose | 1 | 0.03 |
+| refactor-loop | 59 | 2.46 |
+| verify-green | 1 | 0.04 |
+| develop-cover | 1 | 0.03 |
+| develop-structural | 1 | 0.04 |
 
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset, VERI_MODEL_REVISE_GREEN unset, VERI_EFFORT_VERIFIER unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
@@ -126,86 +315,108 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 3 | 1 | 2 | 0 | 63 | 54 | 8 | 16 | 5713 | 232859 | 138301 | 0.43 |
+| plan | 8 | 6 | 2 | 0 | 146 | 124 | 14 | 28 | 14253 | 295785 | 346017 | 1.04 |
 | prose | 11 | 0 | 0 | 0 | 407 | 377 | 11 | 22 | 59638 | 206881 | 743559 | 2.48 |
 | skill-edit | 3 | 0 | 0 | 0 | 64 | 55 | 13 | 26 | 5062 | 1304010 | 345871 | 1.05 |
-| red | 4 | 1 | 1 | 0 | 160 | 67 | 16 | 32 | 6323 | 343563 | 97732 | 0.45 |
-| green | 6 | 1 | 2 | 0 | 699 | 101 | 27 | 52 | 9785 | 589182 | 124169 | 0.56 |
-| red-missing | 1 | 0 | 0 | 0 | 25 | 13 | 4 | 6 | 1535 | 57686 | 21637 | 0.08 |
-| pin | 1 | 1 | 0 | 0 | 42 | 21 | 5 | 10 | 1580 | 107147 | 20955 | 0.08 |
-| refactor | 1 | 0 | 0 | 0 | 8 | 4 | 3 | 4 | 299 | 31820 | 20655 | 0.06 |
+| red | 34 | 14 | 1 | 0 | 2156 | 607 | 149 | 294 | 57198 | 3319366 | 834950 | 3.10 |
+| green | 44 | 14 | 8 | 0 | 6642 | 747 | 218 | 416 | 69233 | 4894762 | 980951 | 4.00 |
+| red-missing | 5 | 0 | 0 | 0 | 164 | 89 | 21 | 40 | 10662 | 433638 | 119725 | 0.45 |
+| pin | 7 | 7 | 0 | 0 | 281 | 143 | 38 | 76 | 11940 | 854472 | 155808 | 0.59 |
+| refactor | 24 | 3 | 3 | 0 | 1050 | 235 | 81 | 150 | 19595 | 1464998 | 541237 | 2.00 |
 | red-tri | 1 | 0 | 0 | 0 | 25 | 17 | 4 | 8 | 1985 | 84645 | 22477 | 0.08 |
+| cover | 2 | 0 | 0 | 0 | 43 | 20 | 6 | 12 | 2064 | 105183 | 37775 | 0.13 |
+| transform | 1 | 0 | 0 | 0 | 28 | 17 | 7 | 12 | 1730 | 125272 | 19865 | 0.08 |
+| structural | 1 | 0 | 0 | 0 | 26 | 14 | 4 | 8 | 1637 | 80772 | 20472 | 0.08 |
 
 #### REJECT outcomes
 
 | phase | REJECT | caught | flipped | overturned | unresolved | pending | untracked |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
-| red | 1 | 0 | 0 | 0 | 1 | 0 | 0 |
-| green | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| red | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| green | 8 | 8 | 0 | 0 | 0 | 0 | 0 |
+| refactor | 3 | 3 | 0 | 0 | 0 | 0 | 0 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 9 | 4 | 5 | 0 | 652 | 156 | 33 | 66 | 14753 | 786881 | 248562 | 0.85 |
-| developer | claude-opus-5-5 | 2 | 0 | 0 | 0 | 61 | 43 | 10 | 20 | 4162 | 234280 | 58618 | 0.32 |
-| developer | claude-sonnet-5-5 | 6 | 0 | 0 | 0 | 309 | 78 | 24 | 42 | 8305 | 425741 | 138746 | 0.56 |
+| verifier | claude-sonnet-5-5 | 58 | 44 | 14 | 0 | 6305 | 875 | 230 | 440 | 79519 | 4740365 | 1385322 | 4.73 |
+| developer | claude-sonnet-5-5 | 68 | 0 | 0 | 0 | 4146 | 1119 | 307 | 594 | 108557 | 6808626 | 1672074 | 6.63 |
+| developer | claude-opus-5-5 | 1 | 0 | 0 | 0 | 110 | 19 | 5 | 10 | 2221 | 109902 | 21881 | 0.18 |
 
 #### Revise-green, by model
 
 | model | leaves | PASS | REJECT |
 | --- | ---: | ---: | ---: |
-| claude-sonnet-5-5 | 1 | 0 | 1 |
+| claude-sonnet-5-5 | 3 | 0 | 3 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| prose | 0 | 0.00 | 407 | 2.48 |
-| skill-edit | 0 | 0.00 | 64 | 1.05 |
-| red | 0 | 0.00 | 160 | 0.45 |
-| green | 0 | 0.00 | 699 | 0.56 |
-| red-missing | 0 | 0.00 | 25 | 0.08 |
-| pin | 0 | 0.00 | 42 | 0.08 |
-| refactor | 0 | 0.00 | 8 | 0.06 |
-| red-tri | 0 | 0.00 | 25 | 0.08 |
+| prose | 0 | 0.00 | 0 | 0.00 |
+| skill-edit | 0 | 0.00 | 0 | 0.00 |
+| red | 1197 | 1.72 | 0 | 0.00 |
+| green | 26568 | 15.99 | 0 | 0.00 |
+| red-missing | 0 | 0.00 | 0 | 0.00 |
+| pin | 0 | 0.00 | 0 | 0.00 |
+| refactor | 1527 | 2.90 | 0 | 0.00 |
+| red-tri | 0 | 0.00 | 0 | 0.00 |
+| cover | 0 | 0.00 | 0 | 0.00 |
+| transform | 0 | 0.00 | 0 | 0.00 |
+| structural | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
 | step | attempts | PASS | REJECT | kills | retries | no-verdict | API s | turns | input | output | cache read | cache creation | $ | wall s | revise | refactor | stopped | crossed at | split | kind |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
-| run-pr.sh <n> runs branch-gate.sh, pr-prepare.sh and pr-checks.sh in that order, each through fused.script(), and after pr-checks.sh exits 0 prints seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR last and exits 1 (unit cases, in-process spy on fused.call, no process); as the step adding the script it also owes the script's no-argument usage line and exit 2 and its veri/README.md index line ⟦criterion 1⟧ | 19 | 3 | 3 | 0 | 0 | 0 | 434 | 68 | 130 | 53420 | 2207540 | 1034957 | 3.54 | unknown | green 1/2, red 1/2 | unknown | unknown |  |  | already-satisfied |
-| `skills/tdd/DRAFT-PR.md`'s opening line names `$S/run-pr.sh <n>` in place of branch-gate.sh's: run it, again on exit 3, at the title seam set the title and call it again, at the body seam write the body and go on to sub-step 3, on any other stop go on by the point its last line names; every stage's call line stays and SKILL.md is unchanged ; as the script's declared caller it lands before the script exists, so the unreachable audit holds from the step that adds it ⟦skill-edit⟧ ⟦criterion 11⟧ | 9 | 0 | 0 | 0 | 0 | 0 | 221 | 15 | 30 | 32787 | 517394 | 362098 | 1.28 | unknown | unknown | unknown | unknown |  |  | full |
+| with the option --hand <stage>, repeatable, it stops before that stage with seam=<stage> code=1 reason=hand next=DRAFT-PR.md#4. Draft PR without calling it, exit 1 ⟦criterion 5⟧ | 72 | 21 | 7 | 0 | 0 | 0 | 1157 | 280 | 544 | 121794 | 6631469 | 2257640 | 7.92 | 11168 | green 1/2, red 1/2, refactor 2/2 | 0/5 | nothing-left |  |  | already-satisfied |
+| with the option --from <stage> it starts at that stage, for each of the five stage names ⟦criterion 5⟧ | 61 | 17 | 5 | 0 | 0 | 0 | 1164 | 272 | 520 | 118950 | 6242530 | 1565050 | 6.11 | 10477 | green 2/2, refactor 1/2 | 0/5 | nothing-left |  |  | pin |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER, VERI_MODEL_REVISE and VERI_MODEL_REVISE_GREEN.
 
+#### By refactor pass
+
+| step | pass | refactor | stopped | verdict | revise | wall s | $ |
+| --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
+| with the option --hand <stage>, repeatable, it stops before that stage with seam=<stage> code=1 reason=hand next=DRAFT-PR.md#4. Draft PR without calling it, exit 1 ⟦criterion 5⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 29 | 0.19 |
+| with the option --from <stage> it starts at that stage, for each of the five stage names ⟦criterion 5⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 19 | 0.12 |
+
+#### Refactor totals
+
+| step | passes | transforms | landed nothing | stopped |
+| --- | ---: | ---: | ---: | --- |
+| with the option --hand <stage>, repeatable, it stops before that stage with seam=<stage> code=1 reason=hand next=DRAFT-PR.md#4. Draft PR without calling it, exit 1 ⟦criterion 5⟧ | 1 | 0 | 1 | nothing-left 1 |
+| with the option --from <stage> it starts at that stage, for each of the five stage names ⟦criterion 5⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 2 | 0 | 2 | nothing-left 2 |
+
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| changed | 6 | 4 | 5 | 5 | 6 | 4 | 4 | 6 | 5 | 5 |
-| fast | 60 | 64 | 65 | 65 | 60 | 64 |  |  |  |  |
-| target | 4 | 5 | 4 | 5 |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| changed | 6 | 4 | 5 | 5 | 6 | 4 | 4 | 6 | 5 | 5 | 0 | 4 | 6 | 4 | 6 | 7 | 6 | 6 | 8 | 36 | 7 | 8 | 7 | 6 | 6 | 5 | 5 | 4 | 5 | 21 | 5 | 5 | 5 | 7 | 8 | 5 | 7 | 9 | 5 | 4 | 5 | 6 | 5 | 5 | 9 | 5 | 6 | 7 | 7 | 5 | 5 | 5 | 4 | 4 | 6 | 5 | 8 | 7 | 6 | 5 | 7 | 7 | 7 | 7 | 10 | 5 | 6 | 5 | 8 | 6 | 6 | 12 | 5 | 5 | 7 | 9 | 0 | 6 | 4 | 6 | 5 | 5 | 5 | 10 | 7 | 6 | 5 | 8 | 7 | 5 | 5 | 6 |
+| fast | 60 | 64 | 65 | 65 | 60 | 64 | 64 | 61 | 69 | 66 | 60 | 83 | 87 | 100 | 88 | 68 | 72 | 92 | 96 | 70 | 68 | 94 | 97 | 100 | 94 | 98 | 99 | 85 | 78 | 81 | 65 | 72 | 79 | 94 | 92 | 95 | 79 | 94 | 98 | 80 | 68 | 98 | 81 | 97 | 74 | 128 | 59 | 65 | 63 | 103 | 102 | 94 | 93 | 60 | 67 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 4 | 5 | 4 | 5 | 4 | 4 | 5 | 6 | 5 | 5 | 5 | 7 | 5 | 4 | 7 | 4 | 4 | 7 | 5 | 5 | 5 | 5 | 7 | 4 | 11 | 6 | 5 | 4 | 5 | 4 | 5 | 5 | 5 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Stages
 
 | stage | runs | ok | failed | no answer | nothing | unended | wall s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| preflight | 2 | 2 | 0 | 0 | 0 | 0 | 288 |
-| baseline | 2 | 2 | 0 | 0 | 0 | 0 | 188 |
+| preflight | 6 | 6 | 0 | 0 | 0 | 0 | 1043 |
+| baseline | 6 | 6 | 0 | 0 | 0 | 0 | 595 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 10 |
-| push | 8 | 8 | 0 | 0 | 0 | 0 | 17 |
+| push | 42 | 42 | 0 | 0 | 0 | 0 | 84 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
-| rebase | 1 | 0 | 0 | 0 | 1 | 0 | 1 |
-| refactor-loop | 1 | 0 | 0 | 0 | 0 | 1 | 0 |
+| rebase | 5 | 0 | 2 | 0 | 3 | 0 | 9 |
+| refactor-loop | 15 | 14 | 0 | 0 | 0 | 1 | 2273 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 91 | 176 | 91920 | 2957793 | 1535356 | 9.76 (estimate) |
+| total | 566 | 1092 | 254997 | 13169784 | 4168707 | 29.76 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
@@ -213,20 +424,26 @@ Not counted: the CI wait after readying and `pr-finish.sh`, which run after this
 
 | step | attempt | route | check | reason |
 | --- | ---: | --- | ---: | --- |
-| run-pr.sh <n> runs branch-gate.sh, pr-prepare.sh and pr-checks.sh in that order, each through fused.script(), and after pr-checks.sh exits 0 prints seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR last and exits 1 (unit cases, in-process spy on fused.call, no process); as the step adding the script it also owes the script's no-argument usage line and exit 2 and its veri/README.md index line ⟦criterion 1⟧ | 1 | revise | 4 | Target, `make unit` (9415 passed) and the changed-file run are green, but the usage guard's `or not argv[0].isdigit()` and `len(argv) != 1` can each be removed or neutralised with every probed suite staying green, so no test requires them. Remove them or add a case for a non-numeric or extra argument. |
-| run-pr.sh <n> runs branch-gate.sh, pr-prepare.sh and pr-checks.sh in that order, each through fused.script(), and after pr-checks.sh exits 0 prints seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR last and exits 1 (unit cases, in-process spy on fused.call, no process); as the step adding the script it also owes the script's no-argument usage line and exit 2 and its veri/README.md index line ⟦criterion 1⟧ | 1 | missing | 4 | MISSING_TEST: run-pr.sh with no argument prints its usage line "usage: run-pr.sh <n>" on stderr, not only exit 2 |
+| with the option --hand <stage>, repeatable, it stops before that stage with seam=<stage> code=1 reason=hand next=DRAFT-PR.md#4. Draft PR without calling it, exit 1 ⟦criterion 5⟧ | 1 | revise | 4 | Target, `make unit` (9415 passed) and the changed-file run are green, but the usage guard's `or not argv[0].isdigit()` and `len(argv) != 1` can each be removed or neutralised with every probed suite staying green, so no test requires them. Remove them or add a case for a non-numeric or extra argument. |
+| with the option --hand <stage>, repeatable, it stops before that stage with seam=<stage> code=1 reason=hand next=DRAFT-PR.md#4. Draft PR without calling it, exit 1 ⟦criterion 5⟧ | 1 | missing | 4 | MISSING_TEST: run-pr.sh with no argument prints its usage line "usage: run-pr.sh <n>" on stderr, not only exit 2 |
+| with the option --from <stage> it starts at that stage, for each of the five stage names ⟦criterion 5⟧ | 1 | revise | 4 | The target test, `make unit` and `test_run_pr.py` are green, but three pieces of `run_pr.py` are untested: the `code == 0` guard in `ledger_sha`, the `else "."` fallback for `wt`, and the sha-equality resume check (criterion 4's behaviour, not this step's). Each can be removed with every test still green. |
+| with the option --from <stage> it starts at that stage, for each of the five stage names ⟦criterion 5⟧ | 1 | missing | 4 | MISSING_TEST: the `.tdd/issue-<n>-run-pr` record written at the title seam contains the sha of the ledger's last commit |
+| with the option --hand <stage>, repeatable, it stops before that stage with seam=<stage> code=1 reason=hand next=DRAFT-PR.md#4. Draft PR without calling it, exit 1 ⟦criterion 5⟧ | 1 | missing | 4 | MISSING_TEST: a stage exiting 2 stops the run, prints its output then `seam=<stage> code=2 next=DRAFT-PR.md#4. Draft PR`, calls no later stage and exits 2 |
+| with the option --from <stage> it starts at that stage, for each of the five stage names ⟦criterion 5⟧ | 1 | revise | 4 | The target test, `make unit` (9427 passed) and `test_run_pr.py` (13 passed) are all green, and the validation does implement exit 2 for an unknown option or a non-stage value. Check 4 fails: the guard `or len(rest) < 2` in `skills/tdd/scripts/veri/run_pr.py` is not required by any test. `mutation-probe.sh` removed it and the suites stayed green (exit 1). Either remove the guard, or add a case for a trailing `--from` with no value, since without the guard that input raises IndexError instead of exiting 2. The probe left `git diff` unchanged. |
+| with the option --from <stage> it starts at that stage, for each of the five stage names ⟦criterion 5⟧ | 1 | missing | 4 | MISSING_TEST: an unknown option followed by a valid stage name (`--bogus pr-prepare`) is exit 2 with no stage called, and a valid `--from` or `--hand` pair followed by an invalid one is exit 2. |
+| with the option --hand <stage>, repeatable, it stops before that stage with seam=<stage> code=1 reason=hand next=DRAFT-PR.md#4. Draft PR without calling it, exit 1 ⟦criterion 5⟧ | 1 | missing | 4 | MISSING_TEST: run-pr.sh prints a `<stage> <n> exit <code>` call line for pr-ready-wait.sh and pr-finish.sh in the late (title-seam-resumed) run |
 
-Green rejects by route: missing 1, revise 1
-Green rejects by check: 4 2, unnamed 0
+Green rejects by route: missing 5, revise 3
+Green rejects by check: 4 8, unnamed 0
 
 #### Launch cost, by role
 
 | role | model | leaves | first-turn cache creation | first-turn cache read | first-turn input |
 | --- | --- | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 9 | 221193 | 61652 | 18 |
+| verifier | claude-sonnet-5-5 | 58 | 1216466 | 382203 | 116 |
 | grader | claude-sonnet-5-5 | 11 | 743559 | 206881 | 22 |
 | author | claude-sonnet-5-5 | 3 | 334482 | 17976 | 6 |
-| developer | claude-sonnet-5-5 | 6 | 114855 | 35952 | 12 |
-| developer | claude-opus-5-5 | 2 | 49868 | 0 | 4 |
+| developer | claude-sonnet-5-5 | 62 | 1188704 | 364526 | 124 |
+| developer | claude-opus-5-5 | 7 | 166580 | 5943 | 14 |
 
 Gradings: 5, PASS 2, REJECT 3, cost $1.95, efforts default
