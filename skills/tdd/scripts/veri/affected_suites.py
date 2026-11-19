@@ -175,8 +175,17 @@ def pytest_skill_readers():
 
 
 def pytest_files_of(name):
+    """The test files of module <name>: test_<name>.py, unit/test_<name>.py, test_<name>_process.py, and every process
+    test file naming the module (#4425)."""
     return [s for d in PYTEST_DIRS for s in existing("%s/test_%s.py" % (d, name))] + existing(
-        "%s/test_%s_process.py" % (PYTEST_DIRS[0], name))
+        "%s/test_%s_process.py" % (PYTEST_DIRS[0], name)) + process_files_naming(name)
+
+
+def process_files_naming(name):
+    """The tests/py/test_*_process.py files that import or run module <name> (`-` read as `_`) by name: `veri.<name>`,
+    `<name>.py` or `<name>.sh` as a whole word."""
+    processes = suites(PYTEST_DIRS[0] + "/test_*_process.py")
+    return [p for needle in ("veri." + name, name + ".py", name + ".sh") for p in stem_walk.naming(needle, processes)]
 
 
 def suite_of(f, revisions=None):
@@ -213,8 +222,7 @@ def suite_of(f, revisions=None):
         name = basename(f, ".py")
         return pytest_files_of(name)
     if match(SCRIPTS + "/*.sh"):
-        name = basename(f, ".sh")
-        return pytest_files_of(name.replace("-", "_"))
+        return pytest_files_of(basename(f, ".sh").replace("-", "_"))
     if match(".tdd/*"):
         return []
     raise Unplaced(f)
