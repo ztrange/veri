@@ -10,6 +10,7 @@ STEP = "one thing works ⟦criterion 1⟧"
 LEDGER = "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] two ⟦criterion 2⟧\n"
 GREEN_SHA = "d" * 40
 BASE_SHA = "c" * 40
+BRANCH_BASE = "b" * 40
 VERDICT_LOG = "FLAGS: none\nVERDICT: PASS\n"
 REFACTOR_HALF = ("step=%s\ngreen_sha=" + GREEN_SHA + "\ncount=1\nbudget=5\nstopped=nothing-left\n"
                  "verdict_log=" + hashlib.sha256(VERDICT_LOG.encode()).hexdigest() + "\n"
@@ -61,18 +62,21 @@ class Fake:
 @pytest.fixture
 def close(monkeypatch, run_cli, tmp_path):
     """close(answers=None, fake=None, missing=(), step=STEP, half=None, argv=None) runs step-close for issue 12 from
-    the main tree, the run's worktree at .tdd/wt/12; returns (code, stdout, stderr, fake)."""
+    the main tree, the run's worktree at .tdd/wt/12 and its branch-base record in the main tree's .tdd/; returns
+    (code, stdout, stderr, fake)."""
     fused = importlib.import_module("veri.fused")
     step_close = importlib.import_module("veri.step_close")
     wt = tmp_path / ".tdd" / "wt" / "12"
     (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
 
     def go(answers=None, fake=None, missing=(), step=STEP, half=None, argv=None, ledger=None):
         files = {"preflight": (wt / ".tdd" / "issue-12-preflight", "worktree=%s\nfast_cmd=make unit\n" % wt),
                  "ledger": (wt / ".tdd" / "issue-12.md", ledger or LEDGER % step),
                  "refactor-half": (wt / ".tdd" / "issue-12-refactor-half", half or REFACTOR_HALF % step),
                  "stage": (wt / ".tdd" / "stage-rl.t", "100\n"),
-                 "verdict": (wt / ".tdd" / "verify-refactor.log", VERDICT_LOG)}
+                 "verdict": (wt / ".tdd" / "verify-refactor.log", VERDICT_LOG),
+                 "branch-base": (wt.parent.parent / "issue-12-branch-base", BRANCH_BASE + "\n")}
         for key, (path, text) in files.items():
             if key not in missing and not path.exists():
                 path.write_text(text)
@@ -155,17 +159,29 @@ def test_4029_it_checks_graded_units_and_pins_rerecords_checks_the_tree_clears_c
     code, out, err, fake = close()
 
     assert _named(fake)[:12] == [
-        ("git", ("log",)), ("graded-changed.sh", (GREEN_SHA,)), ("git", ("rev-parse",)), ("pin-recheck.sh", (BASE_SHA,)),
+        ("git", ("log",)), ("graded-changed.sh", (GREEN_SHA,)), ("git", ("rev-parse",)), ("pin-recheck.sh", ("--branch-base",)),
         ("tests-frozen.sh", ("rerecord-refactored",)), ("git", ("status",)),
         ("clear-refactor-pending.sh", (".tdd/issue-12.md",)), ("git", ("add",)), ("git", ("commit",)),
         ("push-branch.sh", ()), ("event.sh", ("stage-end",)), ("stop-requested.sh", ())]
     assert fake.call("git", "rev-parse")[1] == ("rev-parse", GREEN_SHA + "~1")
-    assert fake.call("pin-recheck.sh")[1] == (BASE_SHA,)
+    assert fake.call("pin-recheck.sh")[1] == ("--branch-base", BRANCH_BASE, BASE_SHA)
     assert fake.call("tests-frozen.sh")[1] == ("rerecord-refactored", ".tdd/issue-12.md", GREEN_SHA)
     assert fake.call("clear-refactor-pending.sh")[1] == (".tdd/issue-12.md", STEP)
     assert fake.call("git", "add")[1] == ("add", "-A")
     assert fake.call("git", "commit")[1] == ("commit", "-m", "chore: refactor verified for one thing works (#12)")
     assert all(c[2] == str(close.wt) for c in fake.calls)
+
+
+@pytest.mark.parametrize("record", [None, "", "HEAD\n", "abc12\n", BRANCH_BASE.upper() + "\n", "b" * 41 + "\n"])
+def test_4376_a_branch_base_record_missing_or_not_hex_stops_it_at_6_with_exit_2_naming_the_record_and_runs_no_pin_recheck(
+        close, record):
+    path = close.wt.parent.parent / "issue-12-branch-base"
+    if record is not None:
+        path.write_text(record)
+    code, out, err, fake = close(missing=("branch-base",))
+
+    assert (code, out.splitlines()[-1], "pin-recheck.sh" in fake.names()) == (
+        2, "stopped at 6 branch-base record %s" % path, False)
 
 
 def test_4029_the_stage_ends_with_status_0_after_the_push_and_before_the_stop_ask(close, monkeypatch):
