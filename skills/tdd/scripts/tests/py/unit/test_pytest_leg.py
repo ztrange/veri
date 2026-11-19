@@ -1764,3 +1764,25 @@ def test_4419_the_wait_line_names_t_and_its_source_beside_the_workers_in_use_and
 
     assert (code, len(waits), "T=%s" % t in waits[0], source in waits[0], " %s in use" % in_use in waits[0], str(holder) in waits[0]) == (
         0, 1, True, True, True, True), waits
+
+
+def test_4419_an_exported_worker_count_is_used_as_given_beside_a_registry_holding_all_of_t_never_waiting_registering_or_reading_the_record(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 16)
+    measured(8)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    registered(legs / str(os.getppid()), 8)
+    reads, sleeps, seen = [], [], []
+    real_open = open
+
+    def watching_open(path, *args, **kwargs):
+        if str(path) == os.environ["VERI_TEST_CEILING_FILE"]:
+            reads.append(path)
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", watching_open)
+    monkeypatch.setattr(pytest_leg.time, "sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(pytest, "main", lambda args: seen.append((args, sorted(os.listdir(legs)))) or pytest.ExitCode.OK)
+    code, _, err = run_cli(pytest_leg, ["--subset", "-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WORKERS="3"))
+
+    assert (code, workers_handed([seen[0][0]]), seen[0][1], sleeps, reads, err) == (0, "3", [str(os.getppid())], [], [], "")
