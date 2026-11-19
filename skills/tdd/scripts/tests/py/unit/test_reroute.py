@@ -307,3 +307,20 @@ def test_a_tests_frozen_record_exit_1_is_exit_1_route_revise_red_its_stdout_the_
     assert (code, out.splitlines()[-1]) == (1, "route=revise phase=red")
     assert fake.call("tests-frozen.sh")[4]["out"] == ".tdd/verify-red.reason"
     assert _red_revise_left(reroute)
+
+
+@pytest.mark.parametrize("answers, last", [
+    ({("wrong-test-route.sh", None): (2, "")},
+     "stopped at route wrong-test-route.sh --spec .tdd/issue-12-spec.md .tdd/develop-green.out %s exit 2" % OWN),
+    ({**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (2, "")},
+     "stopped at leaf wait-leaf.sh develop-red-contradicted exit 2"),
+    ({**ROUTE_RED, ("detach-leaf.sh", None): (2, "")}, None),
+    ({**ROUTE_RED, ("wait-leaf.sh", "verdict-red"): (2, "")}, "stopped at verify wait-leaf.sh verdict-red exit 2"),
+    ({**ROUTE_RED, ("tests-frozen.sh", "record"): (2, "")},
+     "stopped at record tests-frozen.sh record --step %s exit 2" % STEP)])
+def test_a_route_supervisor_verifier_or_tests_frozen_exit_2_is_exit_2_4434(reroute, answers, last):
+    """PRD 038.10 RRT6: no answer could be obtained, kept apart from the designed stops' 1."""
+    code, out, err, fake = reroute(answers=answers, files={"develop-red-contradicted.out": REROUTED})
+
+    assert code == 2, out + err
+    assert last is None or out.splitlines()[-1] == last
