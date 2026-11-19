@@ -622,3 +622,20 @@ def test_4435_only_the_outcome_route_takes_the_dash_form(revise):
 
     assert not out.splitlines()[-1].startswith("stopped at 3"), out
     assert "verdict-red" in fake.launched()
+
+
+def test_4435_diff_a_one_commit_revise_leaf_deviation_exit_3_goes_on_to_the_re_verify(revise):
+    """diff-leaf-deviation.sh exit 3 (the one-commit flow) is the normal case, never a stop."""
+    _diff_files(revise)
+    revise(argv=("12", "diff"), missing=("red-half",), answers={("wait-leaf.sh", "revise-diff-1"): (3, "")})
+    code, out, err, fake = revise(argv=("12", "diff"), missing=("red-half",), answers={
+        ("diff-leaf-deviation.sh", None): (3, ""), ("wait-leaf.sh", "verdict-diff"): (3, "")})
+
+    assert (code, out.splitlines()[-1], fake.launched()) == (3, "waiting on verdict-diff", ["verdict-diff"]), err
+
+
+def test_4435_an_outcome_impossible_line_with_no_dash_routes_nothing(revise):
+    code, out, err, fake = revise(fake=Fake(report="OUTCOME: REWRITTEN\nOUTCOME: IMPOSSIBLE foo\n"))
+
+    assert not out.splitlines()[-1].startswith("stopped at 3"), out
+    assert "verdict-green" in fake.launched()

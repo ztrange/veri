@@ -300,3 +300,13 @@ def test_4435_a_malformed_flip_line_is_a_reject_and_nothing_is_probed(diff, line
     assert code == 1, err
     assert not {"mutation-probe.sh", "pin-recheck.sh"} & set(fake.names())
     assert (diff.wt / ".tdd" / "verify-diff.reason").read_text().startswith("REJECT: the report of develop-diff")
+
+
+def test_4435_a_develop_diff_leaf_with_no_suite_line_stops_exit_2_with_no_verifier(diff):
+    """DST1, CY92: suite-reported.sh exit 2 launches no verifier; the adjudication is the conductor's."""
+    diff(answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(answers={("suite-reported.sh", None): (2, "")})
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at develop suite-reported.sh develop-diff 2> "
+                                                ".tdd/suite-reported.err exit 2")
+    assert (fake.launched(), "diff-leaf-deviation.sh" in fake.names()) == ([], False)
