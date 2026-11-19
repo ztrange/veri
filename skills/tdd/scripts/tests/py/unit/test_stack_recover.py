@@ -180,3 +180,34 @@ def test_origin_stack_not_an_ancestor_of_the_local_stack_or_gone_exits_1_naming_
     named = [TIP in err, BASE in err] if moved == "diverged" else [TIP in err, "origin/stack" in err]
     assert (code, out, err.count("\n"), named, world.pushed, world.scripts[-1][:2]) == (
         1, "", 1, [True, True], [], ("merge-lock.sh", "release")), err
+
+
+A, B, C = "a" * 40, "b" * 40, "c" * 40  # origin/<stack>..<stack>, oldest first: A and C joined offline, B not
+OA = "0" * 40  # origin/tdd/11-a as fetched; origin has no tdd/12-b
+PR11, PR12 = "https://github.com/owner/repo/pull/11", "https://github.com/owner/repo/pull/12"
+JOINED = {A: PR11 + " tdd/11-a\n", C: PR12 + " tdd/12-b\n"}
+
+
+def joined_world(monkeypatch, tmp_path, trailers=JOINED, **kwargs):
+    """A local stack three commits above origin's, A, B and C, two of them joined offline: A for tdd/11-a, on origin at
+    OA, and C for tdd/12-b, which origin lacks."""
+    return World(monkeypatch, tmp_path, commits=(A, B, C), trailers=trailers, branches={"tdd/11-a": OA}, **kwargs)
+
+
+@pytest.mark.parametrize("case", ["pushed", "refused", "garbled"])
+def test_each_joined_commit_is_pushed_to_its_branch_oldest_first_leased_on_origin_as_fetched_and_a_refused_lease_or_a_garbled_trailer_exits_1_the_stack_not_pushed(
+        monkeypatch, tmp_path, run_cli, stack_recover, case):
+    trailers = dict(JOINED, **{B: "not-a-url tdd/13-c\n"}) if case == "garbled" else JOINED
+    pushes = {"refs/heads/tdd/11-a": (1, " ! [rejected]  a -> tdd/11-a (stale info)\n")} if case == "refused" else None
+    world = joined_world(monkeypatch, tmp_path, trailers=trailers, pushes=pushes)
+
+    code, out, err = run_cli(stack_recover, [])
+
+    first = ("push", "--force-with-lease=tdd/11-a:" + OA, "origin", A + ":refs/heads/tdd/11-a")
+    second = ("push", "--force-with-lease=tdd/12-b:", "origin", C + ":refs/heads/tdd/12-b")
+    if case == "pushed":
+        assert world.pushed[:2] == [first, second], err
+    else:
+        named = "tdd/11-a" if case == "refused" else B
+        assert (code, out, err.count("\n"), named in err, world.pushed, world.scripts[-1][:2]) == (
+            1, "", 1, True, [first] if case == "refused" else [], ("merge-lock.sh", "release")), err
