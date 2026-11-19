@@ -25,12 +25,13 @@ GitHub opens a pull request (github.pr_open, each kept in <opened> as (head, bas
 url; every other gh command (github.run_gh) is kept in <gh>, each answering 0. `git log` of a range from origin/<default> answers <subjects>; the pull requests merged into a base (github.merged_pulls) are <merged>,
 (number, body) pairs from this repository. origin/<default> is an ancestor of the cut (`merge-base --is-ancestor`) when
 <ancestor>; a worktree added, its rebase, and `rev-parse HEAD` in it answer, the last <rebased>, save that the rebase onto
-origin/<default> fails with a conflict when <rebase_conflict>. Every git, script and gh
+origin/<default> fails with a conflict when <rebase_conflict>. `git log` of that range asking for the Veri-Suite trailer
+answers <suites>. Every git, script and gh
 call is also kept, in order, in <log>: ("git", *args), (script, *args) and ("gh", *args)."""
 
     def __init__(self, monkeypatch, named, answers=None, default="trunk", ahead=0, onto=(), heads=None,
                  opens="https://github.com/owner/repo/pull/90", subjects="", merged=(), open_issues=(), ancestor=True,
-                 rebased=None, rebase_conflict=False):
+                 rebased=None, rebase_conflict=False, suites=""):
         self.scripts, self.network, self.opened, self.bodies, self.gh, self.log = [], [], [], [], [], []
         self.limits = []  # (script, the bound it ran under, None for none), one per script run
         heads = heads or {}
@@ -54,6 +55,8 @@ call is also kept, in order, in <log>: ("git", *args), (script, *args) and ("gh"
                 return "origin/" + default
             if args[:2] == ("rev-list", "--count"):
                 return str(ahead)
+            if args[:1] == ("log",) and any("Veri-Suite" in arg for arg in args):
+                return suites
             if args[:1] == ("log",) and any(arg.startswith("origin/%s.." % default) for arg in args):
                 return subjects
             raise git.GitFailed(args, 128, "not faked")
@@ -993,3 +996,24 @@ def test_while_the_outage_file_exists_it_exits_3_in_one_stderr_line_before_any_r
 
     assert (code, out, err.count("\n"), world.log, world.scripts) == (3, "", 1, [], []), err
     assert "outage" in err and err.startswith("stack-land: "), err
+
+
+@pytest.mark.parametrize("case", ["skipped", "red", "neither"])
+def test_the_slice_body_gains_a_line_per_veri_suite_skipped_commit_in_its_range_and_one_naming_stack_local_red_when_it_exists(
+        tmp_path, monkeypatch, run_cli, stack_land, case):
+    cut = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b"
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    if case == "red":
+        (tmp_path / ".tdd" / "stack-local-red").write_text("abc1234 tests/test_a.py::test_one\nmore\n")
+    suites = ("1a2b3c4\x1ffeat: one\x1fpassed\n5d6e7f8\x1ffeat: two\x1fskipped opus the hardware is busy\n"
+              "9a8b7c6\x1ffix: three\x1f\n") if case == "skipped" else ""
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  suites=suites)
+
+    code, out, err = run_cli(stack_land, ["--now"], cwd=tmp_path)
+
+    expected = {"skipped": ["Suite skipped on 5d6e7f8 feat: two: skipped opus the hardware is busy"],
+                "red": [".tdd/stack-local-red exists: a local full run was red: abc1234 tests/test_a.py::test_one"],
+                "neither": []}[case]
+    assert world.bodies == ["".join(line + "\n" for line in expected)], err
