@@ -769,6 +769,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `stack-green.sh`: print the newest stack commit that ends an issue and that CI passed, where a slice may be cut.
 - `stack-land.sh`: land the stack's tested cut on the default branch; any argument other than `--now` is exit 2 with its usage line.
 - `stack-pr.sh`: print the one open pull request tracking the stack branch, opening it when none is.
+- `stack-recover.sh`: after a GitHub outage, push each offline join's branch (its `Veri-Joined:` trailer) and then the stack under leases, confirm each joined pull request reads merged, delete the joined runs' remote branches and run records, and print the pushed tip and the tracking pull request.
 - `stack-red.sh`: print CI's latest answer on the stack branch when it is red, which freezes joins.
 - `stack-revert.sh`: revert an issue's commits on the stack, its hand fix included, as one commit on the tip in a worktree of its own, and lift its join claim from the merged pull requests' bodies.
 - `stack-tag.sh`: cut the tags of a landed slice, one annotated `vN.M` per issue whose commits in it include a `feat` or `fix`, on that issue's last commit on the default branch.
