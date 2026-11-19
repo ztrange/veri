@@ -525,3 +525,126 @@ def test_4432_a_missing_preflight_file_is_exit_2_naming_it_on_stderr_before_any_
     assert calls == []
     assert code == 2, err
     assert ".tdd/issue-12-preflight" in err
+
+
+def _late_run(monkeypatch, run_cli, tmp_path, codes, ledger=True):
+    """A worktree whose first call stopped at the title seam; <codes> maps a stage script to its exit code (0 for the
+    rest). Returns (run, calls): run(argv) is (code, out, err) of one call, calls the stage scripts called by it."""
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    if ledger:
+        (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+
+    def spy(name, *args, **kw):
+        stage = os.path.basename(name)
+        calls.append(stage)
+        return codes.get(stage, 0), "%s stopped at here\n" % stage, ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
+
+    def run(argv=()):
+        del calls[:]
+        return run_cli(run_pr, ["12", *argv], cwd=str(tmp_path))
+
+    return run, calls
+
+
+def test_4432_a_late_stage_exiting_3_stops_there_with_next_run_pr_and_the_next_call_resumes_at_that_stage(
+        monkeypatch, run_cli, tmp_path):
+    for stage, before in (("pr-ready-wait.sh", []), ("pr-finish.sh", ["pr-ready-wait.sh"])):
+        codes = {}
+        run, calls = _late_run(monkeypatch, run_cli, tmp_path / stage, codes)
+        run()
+        codes[stage] = 3
+
+        code, out, err = run()
+
+        assert calls == before + [stage]
+        assert out.splitlines()[-2:] == ["%s stopped at here" % stage, "seam=%s code=3 next=run-pr.sh 12" % stage[:-3]]
+        assert code == 3, err
+        del codes[stage]
+        code, out, err = run()
+        assert calls == LATE_FROM[stage]
+        assert out.splitlines()[-1] == "seam=done code=1 reason=body next=DRAFT-PR.md#4. Draft PR"
+        assert code == 1, err
+
+
+LATE_FROM = {"pr-ready-wait.sh": ["pr-ready-wait.sh", "pr-finish.sh"], "pr-finish.sh": ["pr-finish.sh"]}
+
+
+def test_4432_a_late_stage_exiting_1_or_2_stops_there_with_the_anchor_and_nothing_past_it_runs(
+        monkeypatch, run_cli, tmp_path):
+    for stage, c in (("pr-ready-wait.sh", 1), ("pr-ready-wait.sh", 2), ("pr-finish.sh", 1), ("pr-finish.sh", 2)):
+        codes = {}
+        run, calls = _late_run(monkeypatch, run_cli, tmp_path / ("%s-%d" % (stage, c)), codes)
+        run()
+        codes[stage] = c
+
+        code, out, err = run()
+
+        assert calls[-1] == stage
+        assert "pr-finish.sh" not in calls or stage == "pr-finish.sh"
+        assert out.splitlines()[-1] == "seam=%s code=%d next=DRAFT-PR.md#4. Draft PR" % (stage[:-3], c)
+        assert "reason=body" not in out
+        assert code == c, err
+        assert run()[0] != 0
+
+
+def test_4432_a_late_stage_exiting_outside_0_to_3_is_exit_2_naming_it_and_never_the_body_seam(
+        monkeypatch, run_cli, tmp_path):
+    for stage in ("pr-ready-wait.sh", "pr-finish.sh"):
+        codes = {}
+        run, calls = _late_run(monkeypatch, run_cli, tmp_path / stage, codes)
+        run()
+        codes[stage] = 7
+
+        code, out, err = run()
+
+        assert calls[-1] == stage
+        assert "reason=body" not in out
+        assert code == 2
+        assert "%s exited 7" % stage[:-3] in err
+
+
+def test_4432_hand_pr_ready_wait_or_pr_finish_is_honoured_past_the_title_seam(monkeypatch, run_cli, tmp_path):
+    for stage, before in (("pr-ready-wait.sh", []), ("pr-finish.sh", ["pr-ready-wait.sh"])):
+        run, calls = _late_run(monkeypatch, run_cli, tmp_path / stage, {})
+        run()
+
+        code, out, err = run(["--hand", stage[:-3]])
+
+        assert calls == before
+        assert out.splitlines()[-1] == "seam=%s code=1 reason=hand next=DRAFT-PR.md#4. Draft PR" % stage[:-3]
+        assert code == 1, err
+
+
+def test_4432_a_missing_ledger_is_exit_2_naming_it_on_stderr_before_any_stage_is_called(
+        monkeypatch, run_cli, tmp_path):
+    run, calls = _late_run(monkeypatch, run_cli, tmp_path, {}, ledger=False)
+
+    code, out, err = run()
+
+    assert calls == []
+    assert code == 2
+    assert ".tdd/issue-12.md" in err
+
+
+def test_4432_the_usage_names_from_and_hand_and_the_shim_header_lists_every_exit_code(run_cli):
+    run_pr = importlib.import_module("veri.run_pr")
+    shim = os.path.join(os.path.dirname(os.path.dirname(run_pr.__file__)), "run-pr.sh")
+
+    code, out, err = run_cli(run_pr, [])
+
+    assert "usage: run-pr.sh <n> [--from <stage>] [--hand <stage>]" in err
+    header = open(shim, encoding="utf-8").read()
+    assert "# Usage:   run-pr.sh <n> [--from <stage>] [--hand <stage>]" in header
+    lines = header.splitlines()
+    start = next(i for i, l in enumerate(lines) if l.startswith("# Exit:"))
+    block = [lines[start]] + [l for l in lines[start + 1:] if l.startswith("#    ")][:3]
+    for c in ("Exit:    0 ", "; 1 ", "2 bad arguments", "; 3 "):
+        assert c in " ".join(block)
