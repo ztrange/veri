@@ -7,7 +7,7 @@
 - [x] a case failing other than by its per-case timeout is exit 2 naming it, with no re-run; an in-process case driving the recorder plugin with a plain failure ⟦criterion 2⟧ ⟦criterion 6⟧
 - [x] a load timeout at w = 2 is exit 1 printing "no ceiling of at least 2"; an in-process case ⟦criterion 2⟧
 - [x] a suite run that exits non-zero with no failed case recorded (a refusal, a red `prose-owed.sh`) is exit 2 naming its exit code and the workers; an in-process case ⟦added⟧ ⟦criterion 2⟧
-- [ ] each step registers its workers under the legs registry (`VERI_PYTEST_LEGS`) for the step's duration, re-runs included, and removes the entry after it; an in-process case ⟦criterion 3⟧
+- [x] each step registers its workers under the legs registry (`VERI_PYTEST_LEGS`) for the step's duration, re-runs included, and removes the entry after it; an in-process case ⟦criterion 3⟧
 - [ ] a step waits before starting, with one stderr line naming the other legs' pids and workers, while any other live leg is registered; an in-process case ⟦criterion 3⟧
 - [ ] on exit 0 the record at `VERI_TEST_CEILING_FILE` (default `~/.veri-test-ceiling`) is replaced whole through a temporary file: the ceiling, the date, the commit, the load average at start, one `<workers> <seconds> <timeouts>` line per step; an in-process case ⟦criterion 4⟧
 - [ ] exit 1 and exit 2 leave an earlier record unchanged; in-process cases ⟦criterion 4⟧
