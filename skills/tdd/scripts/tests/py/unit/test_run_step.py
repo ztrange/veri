@@ -512,3 +512,33 @@ def test_any_other_reroute_exit_is_its_seam_recorded_at_green_half_4434(step, co
     assert (code_, stages.names()) == (code, ["red-half.sh", "green-half.sh", "reroute.sh"])
     assert out.splitlines()[-1] == "seam=reroute code=%d next=%s" % (code, "run-step.sh 12" if code == 3 else GREEN)
     assert "stage=green-half" in (step.wt / ".tdd" / "issue-12-step").read_text().splitlines()
+
+
+@pytest.mark.parametrize("line", ["stopped at 3 WRONG_TEST: still the old rule", "stopped at 3 SUPERSEDED: t::x"])
+def test_a_revise_green_stop_on_a_revise_green_route_calls_reroute_on_that_attempts_report_4434(step, line):
+    """PRD 038.10 RRT8, PRD 038.9 RVS7: the report is `.tdd/revise-green-<k>.out`, k the step's green revise marks."""
+    import json
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+    marks = [{"event": "revise", "actor": "conductor", "step": STEP, "phase": "green", "attempt": str(k),
+              "budget": "2"} for k in (1, 2)]
+    other = {"event": "revise", "actor": "conductor", "step": STEP, "phase": "red", "attempt": "1", "budget": "2"}
+    (step.wt / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in marks + [other]))
+    stages = Sequenced({"revise.sh": (1, line + "\n")},
+                       sequence={"green-half.sh": [(1, REJECTED_GREEN), (0, "green-half settled\n")],
+                                 "reroute.sh": [(1, "route=revise phase=green\n"), (0, "")]})
+    code, out, err, stages = step(stages=stages)
+
+    assert (code, out.splitlines()[-1]) == (0, "next=cycle"), err
+    assert stages.names() == ["red-half.sh", "green-half.sh", "reroute.sh", "revise.sh", "reroute.sh",
+                              "green-half.sh", "refactor-half.sh", "step-close.sh"]
+    assert stages.calls[4][1] == ("12", ".tdd/revise-green-2.out")
+
+
+def test_a_revise_green_stop_on_impossible_keeps_the_revise_seam_with_no_reroute_4434(step):
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+    code, out, err, stages = step(answers={"green-half.sh": (1, REJECTED_GREEN),
+                                           "reroute.sh": (1, "route=revise phase=green\n"),
+                                           "revise.sh": (1, "stopped at 3 OUTCOME: IMPOSSIBLE\n")})
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (
+        1, ["red-half.sh", "green-half.sh", "reroute.sh", "revise.sh"], "seam=revise code=1 next=" + REVISE)
