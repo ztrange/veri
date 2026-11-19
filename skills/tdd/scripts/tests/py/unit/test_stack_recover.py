@@ -134,3 +134,19 @@ def test_stack_branch_sh_exiting_3_exits_3_and_exiting_2_exits_2_naming_it_locki
     got, out, err = run_cli(stack_recover, [])
 
     assert (got, out, err.count("\n"), said in err, world.log) == (code, "", 1, True, []), err
+
+
+@pytest.mark.parametrize("failing", ["take", "fetch"])
+def test_takes_the_merge_lock_then_fetches_and_a_failed_take_or_fetch_exits_2_naming_it_the_lock_freed(
+        monkeypatch, tmp_path, run_cli, stack_recover, failing):
+    pid = str(os.getpid())
+    world = World(monkeypatch, tmp_path, answers={"merge-lock.sh": (2, "")} if failing == "take" else None,
+                  fetch=(128, "fatal: unable to access origin") if failing == "fetch" else (0, ""))
+
+    code, out, err = run_cli(stack_recover, [])
+
+    take, fetch, release = ("merge-lock.sh", "take", "--pid", pid), ("git", "fetch", "--prune", "origin"), (
+        "merge-lock.sh", "release", "--pid", pid)
+    assert (code, out, err.count("\n"), world.log) == (
+        2, "", 1, [take] if failing == "take" else [take, fetch, release]), err
+    assert ("merge-lock.sh take" if failing == "take" else "unable to access origin") in err, err
