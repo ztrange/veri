@@ -573,3 +573,42 @@ def test_4435_diff_a_revise_report_of_outcome_impossible_stops_exit_1_before_any
     assert code == 1, err
     assert out.splitlines()[-1] == "stopped at 3 OUTCOME: IMPOSSIBLE"
     assert (fake.launched(), "suite-reported.sh" in fake.names()) == ([], False)
+
+
+WHY = "OUTCOME: IMPOSSIBLE — the step asks for two behaviours"
+
+
+def _phase(revise, phase):
+    """The files a REJECT of <phase> leaves; the fixture's keyword arguments for its call."""
+    if phase == "red":
+        _red(revise)
+    elif phase == "refactor":
+        _refactor(revise)
+    elif phase == "diff":
+        _diff_files(revise)
+        return {"missing": ("red-half",)}
+    return {}
+
+
+@pytest.mark.parametrize("phase", ["red", "green", "refactor", "diff"])
+@pytest.mark.parametrize("line", ["OUTCOME: IMPOSSIBLE", WHY])
+def test_4435_both_forms_of_outcome_impossible_the_revise_prompts_ask_for_stop_every_phase_exit_1(revise, phase, line):
+    """`OUTCOME: REWRITTEN | IMPOSSIBLE — <why>` (develop-revise.md, develop-revise-diff.md) is routed, as is the bare
+    `OUTCOME: IMPOSSIBLE` develop-revise.md asks for with a MISSING_TEST: line: neither is another attempt."""
+    kw = _phase(revise, phase)
+    report = (RED_REPORT if phase == "red" else "OUTCOME: REWRITTEN\n") + line + "\n"
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, "")}, report=report),
+                                  argv=("12", phase), **kw)
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 3 " + line), err
+    assert fake.launched() == ["revise-%s-1" % phase]
+
+
+@pytest.mark.parametrize("line", ["OUTCOME: IMPOSSIBLE—no spaces round the dash", "OUTCOME: IMPOSSIBLEX",
+                                  "OUTCOME: REWRITTEN — IMPOSSIBLE was not the answer"])
+def test_4435_an_outcome_line_of_neither_form_routes_nothing(revise, line):
+    """The match is the prompts' two forms exactly, no looser."""
+    code, out, err, fake = revise(fake=Fake(report="OUTCOME: REWRITTEN\n" + line + "\n"))
+
+    assert not out.splitlines()[-1].startswith("stopped at 3"), out
+    assert "verdict-green" in fake.launched()

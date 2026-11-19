@@ -191,12 +191,19 @@ ROUTES = {"red": (("OUTCOME", "IMPOSSIBLE"), ("AGAINST_UNMODIFIED", "PASSES")),
           "refactor": (("OUTCOME", "IMPOSSIBLE"),), "diff": (("OUTCOME", "IMPOSSIBLE"),)}
 
 
+# The revise prompts ask for `OUTCOME: REWRITTEN | IMPOSSIBLE — <why>` (develop-revise.md,
+# develop-revise-diff.md) and, with a MISSING_TEST: line, the bare `OUTCOME: IMPOSSIBLE`: an OUTCOME route
+# matches its value alone or followed by this.
+WHY = " — "
+
+
 def routed(wt, values):
     """REVISE.md sub-step 3's answers that end the loop: stop with exit 1 naming the report line."""
     routes = ROUTES[values["phase"]]
     got = fused.report("3", wt, ".tdd/revise-%s-%d.out" % (values["phase"], values["k"]), *dict(routes))
     for key, value in routes:
-        if got[key] is not None and value in (None, got[key]):
+        if got[key] is not None and (value in (None, got[key])
+                                     or key == "OUTCOME" and got[key].startswith(value + WHY)):
             raise fused.Stop("3", "%s: %s" % (key, got[key]), 1)
 
 
