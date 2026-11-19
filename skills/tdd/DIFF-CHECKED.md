@@ -1,5 +1,8 @@
 ## A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)
 
+Run `$S/run-step.sh <n>`, again on exit 3, and on 1 or 2 go on by the paragraph its last line names: it
+runs `diff-step.sh`, this section in one call. `diff-step` by hand ends `$S/step-tick.sh <n>`.
+
 A `⟦diff-checked⟧` step runs no Red leaf, and no Green or Refactor phase either: its
 criterion is a property of the branch's own diff, so there is no failing test to write and
 its step adds none. On a fresh run and on a resume alike, the step base sha is the last
@@ -55,7 +58,7 @@ The verifier's verdict closes the `⟦diff-checked⟧` step:
 - **PASS (exit 0):** first run `$S/pin-recheck.sh --branch-base <base> <step-base-sha>` against the step base sha, `<base>` the recorded branch base,
   its work being committed by now, and read its exit as the Refactor loop's PASS reads it, a
   pin that stayed green, or a before-state pin this range disarmed (a stale one, green on the base too, is printed `stale: <record file> <test path>`, or `<mutated file>` for a mutation pin, and is no REJECT), being a REJECT of this step that spends `REVISE_BUDGET`; a pin whose own tested file is gone (a before record included, whose named test file the range deletes) or whose mutated file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired); a before-state pin's replay path gone before the range is skipped and the pin still runs. The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
-  `--refactor-pending`, since no refactor loop follows — commit the ledger and push it as
+  `--refactor-pending`, since no refactor loop follows — commit the ledger as `chore: diff-checked — <step summary> (#<n>)` and push it as
   Green does, post `### ✅ Step done` by running `$S/comment.sh <n> step-done`, composing none of it, then tick its criterion in the issue body with `tick-issue-criterion.sh` on
   `criterion-finished.sh` exit 0, ticking nothing on exit 3, exactly as a Refactor loop's
   PASS does.
