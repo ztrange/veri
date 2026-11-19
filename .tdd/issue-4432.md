@@ -1,0 +1,22 @@
+# Plan for #4432 — PRD 038.11: run-pr.sh runs the Draft PR step's stages in one call
+
+- [ ] run-pr.sh <n> runs branch-gate.sh, pr-prepare.sh and pr-checks.sh in that order, each through fused.script(), and after pr-checks.sh exits 0 prints seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR last and exits 1; the step also gives the new script its no-argument usage line and exit 2, a veri/README.md index line and its run_cli no-argument case (unit cases, in-process spy on fused.call, no process) ⟦criterion 1⟧
+- [ ] called again after the title seam, which it records in .tdd/issue-<n>-run-pr with the sha of the ledger's last commit, it runs pr-ready-wait.sh then pr-finish.sh, never the three stages before them, and after pr-finish.sh exits 0 prints pr-finish.sh's last lines then seam=done code=1 reason=body next=DRAFT-PR.md#4. Draft PR and exits 1 ⟦criterion 2⟧
+- [ ] a seam record whose sha is not the ledger's last committed one is not resumed: called with no options it starts at branch-gate ⟦criterion 4⟧
+- [ ] called again after the body seam it calls no stage and exits 0 ⟦criterion 2⟧
+- [ ] at the first stage exiting 1 or 2 it stops, prints seam=<stage> code=<c> next=DRAFT-PR.md#4. Draft PR after that stage's own output (its stopped at line), calls no later stage and exits c ⟦criterion 3⟧
+- [ ] a stage's exit 3 ends on seam=<stage> code=3 next=run-pr.sh <n> and exits 3 ⟦criterion 3⟧
+- [ ] a stage's exit code outside 0-3 is exit 2, the stage and its code named on stderr ⟦criterion 3⟧
+- [ ] --from <stage> starts at that stage, for each of the five stage names ⟦criterion 5⟧
+- [ ] --hand <stage>, repeatable, stops before that stage with seam=<stage> code=1 reason=hand next=DRAFT-PR.md#4. Draft PR without calling it, exit 1 ⟦criterion 5⟧
+- [ ] a --from or --hand value that is not one of the five stage names, or an unknown option, is exit 2 with no stage called ⟦criterion 5⟧
+- [ ] in a stacked run (.tdd/issue-<n>-base present in the worktree) after pr-checks.sh exits 0 it stops with seam=pr-ready-wait code=1 reason=stacked next=DRAFT-PR.md#4. Draft PR and exits 1, never calling pr-ready-wait.sh or pr-finish.sh ⟦criterion 6⟧
+- [ ] in a stacked run every later call, a resume at the stacked seam and --from pr-ready-wait or --from pr-finish included, stops again with reason=stacked, exit 1, never calling pr-ready-wait.sh or pr-finish.sh ⟦criterion 6⟧
+- [ ] its CALLS tuple names exactly the five stage scripts, and a whole run to the body seam calls fused.call only with those scripts, never pr-body.sh or gh ⟦criterion 7⟧
+- [ ] every next= run-pr.sh can print is run-pr.sh <n> or the anchor DRAFT-PR.md#4. Draft PR, and a unit case checks that anchor names a heading in skills/tdd/DRAFT-PR.md, watched go red against a renamed heading ⟦criterion 9⟧
+- [ ] it prints each stage's call line with its exit code and never the contents of a suite's output file ⟦criterion 10⟧
+- [ ] a missing .tdd/issue-<n>-preflight is exit 2 before any stage is called
+- [ ] Go-red guard: the stacked-run refusal is broken on purpose, its stacked case run and seen red, then restored ⟦criterion 12⟧
+- [ ] the branch's diff leaves the title PATCH and the body to the conductor: run-pr.sh's module holds no gh api -X PATCH and no pr-body.sh call, DRAFT-PR.md keeps its title PATCH and pr-body.sh lines, and seam_contract.py and the record-refreshed enum in veri/event_table.py are unchanged ⟦diff-checked⟧ ⟦criterion 8⟧
+- [ ] `skills/tdd/SCRIPTS.md` lists `$S/run-pr.sh <n>`: the Draft PR step's five stages in series, its title and body seams and the stacked stop, that it writes neither the title nor the body and launches no leaf, and its exit codes 0, 1, 2 and 3 ⟦skill-edit⟧
+- [ ] `skills/tdd/DRAFT-PR.md`'s opening line names `$S/run-pr.sh <n>` in place of branch-gate.sh's: run it, again on exit 3, at the title seam set the title and call it again, at the body seam write the body and go on to sub-step 3, on any other stop go on by the point its last line names; every stage's call line stays and SKILL.md is unchanged ⟦skill-edit⟧ ⟦criterion 11⟧
