@@ -71,7 +71,7 @@ def verify(n, wt, settled, step, values):
             f.write("skipped\n")
         return None
     fused.launch("2", wt, "verdict-red", "run-verdict.sh", "--step", step, "--fast-cmd", settled["fast_cmd"],
-                 "--branch-base", fused.branch_base("2", wt, n), "red",
+                 "--branch-base", fused_step.branch_base("2", wt, n), "red",
                  SPEC % n, values["test_path"], values["target_test"],
                  env=fused.step_env(n, step, VERI_TEST_CMD=settled["fast_cmd"]), out=".tdd/verify-red.reason",
                  err=".tdd/verify-red.err")

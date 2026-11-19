@@ -138,7 +138,7 @@ def verify(n, wt, settled, step, values):
         return None
     fast = settled["fast_cmd"]
     fused.launch("5", wt, "verdict-refactor", "run-verdict.sh", "--step", step, "--fast-cmd", fast,
-                 "--branch-base", fused.branch_base("5", wt, n), "refactor",
+                 "--branch-base", fused_step.branch_base("5", wt, n), "refactor",
                  SPEC % n, values["test_path"], values["green_sha"], env=fused.step_env(n, step, VERI_TEST_CMD=fast),
                  out=".tdd/verify-refactor.reason", err=".tdd/verify-refactor.err")
     fused.save_wait(wt, n, NAME, "verdict-refactor", values)

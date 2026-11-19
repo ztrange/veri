@@ -121,7 +121,7 @@ What a fused script after preflight shares (PRD 027 FC1-FC4, FC10, FC14).
 - `Stop(where, what, code)`: the first outcome that is not clean. `stopped(stop)`: prints its `stopped at <where> <what>` line; the exit code, the inner code when neither 0 nor 3, else 1.
 - `conductor(wt)`: `{"pid", "started"}` as `<wt>/.tdd/conductor.pid` names them, `None` without one: the conductor a wait record is written for (FC7).
 - `settle(wt, n, name, lines)`: writes `.tdd/issue-<n>-<name>` and prints its lines; 0. `read_settled(path)`: its `{key: value}`; OSError when unreadable. `read_lines(lines)`: the `{key: value}` of a settled file's lines. `settled_file(wt, n, name)`: that file's path.
-- The fused halves of a step (PRD 027.4-027.6): `entry(argv, name, run)`, their main (usage and 2, the `stopped at` line on a `Stop`, `waiting on <name>` and 3 on a `Waiting(name)`, a wait whose slice ran out); `step_env(n, step, **more)` and `mark(where, wt, n, step, *fields, **more)`, the run context and a conductor mark. `branch_base(where, wt, n)`: the run's branch base as the conductor recorded it in the main working tree above `wt` (`run_pins`), each verdict launch's `--branch-base`; a record missing or unreadable is a `Stop` with exit 2 naming it.
+- The fused halves of a step (PRD 027.4-027.6): `entry(argv, name, run)`, their main (usage and 2, the `stopped at` line on a `Stop`, `waiting on <name>` and 3 on a `Waiting(name)`, a wait whose slice ran out); `step_env(n, step, **more)` and `mark(where, wt, n, step, *fields, **more)`, the run context and a conductor mark.
 - `launch(where, wt, name, command, *args, env, out, err, clear=())`: a leaf under *Launching a leaf* (FC8). `wait(wt, n, owner, name)`: `wait-leaf.sh`, raising on 3, else the leaf's code with the wait record removed. `save_wait`/`load_wait(wt, n, owner, …)`: the wait record `.tdd/issue-<n>-<owner>-wait` (`wait_record(wt, n, owner)` its path), discarded under another conductor (FC5-FC7).
 - `report(where, wt, path, *keys, every=False)`: a leaf's report lines through `extract-result.sh`, printing none of it (FC2). `changed_paths(where, wt)`: each changed or untracked file, one by one (`git status --porcelain --untracked-files=all`), a rename by its new path.
 
@@ -840,7 +840,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `plan-publish.sh`: SKILL.md step 2's fixed tail once the plan is written, in one call.
 - `run-start.sh`: SKILL.md step 1's fixed calls after preflight, in one call.
 - `resume-start.sh`: RESUME.md sub-steps 1-4's fixed calls and the owed verify-plan launch, in one call.
-- `fused_step`: the step helpers the fused halves share above `fused`.
+- `fused_step`: the step helpers the fused halves share above `fused`. `branch_base(where, wt, n)`: the run's branch base as the conductor recorded it in the main working tree above `wt` (`run_pins`), each verdict launch's `--branch-base`; a record missing or unreadable is a `Stop` with exit 2 naming it (#4375).
 - `seam_contract`: per record-writing stage, the keys the next stage reads that no committed fact holds.
 - `red-half.sh`: a step's Red half on the FAILS path, in one call.
 - `green-half.sh`: a step's Green half on the PASS path, in one call.
