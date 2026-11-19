@@ -17,7 +17,7 @@ import run_pins
 from ledger import handed_out, ledger_steps
 from report import report_values
 
-USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>] [--pr]  (kinds include bailed, stopped; --pr only with bailed)"
+USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>] [--pr]  (kinds include bailed, stopped, revise <phase> <k>; --pr only with bailed)"
 
 
 def read_or_empty(path):
@@ -173,6 +173,14 @@ def post_revised(issue, phase):
     return post_and_record(issue, "verify-revised", f"### 🔎 verify-{phase} (revised) — {verdict}\n\n{reason}")
 
 
+def post_revise(issue, phase, attempt):
+    """REVISE.md sub-step 2's mirror of attempt <attempt>: the rejection reason verbatim (PRD 038.9)."""
+    import tunables
+    budget = tunables.get("REVISE_BUDGET", unless_empty=True)
+    return post_and_record(issue, "revise", f"### ♻️ Revise {phase} — attempt {attempt}/{budget}\n\n"
+                           + read_or_empty(run_dir.run_file(".", f"verify-{phase}.reason")))
+
+
 def post_verify_skipped(issue):
     return post_and_record(issue, "verify-refactor", "### 🔎 verify-refactor — SKIPPED (nothing landed)")
 
@@ -284,6 +292,8 @@ def main(argv):
         return post_plan(argv[0])
     if argv[1:] == ["verify-refactor", "--skipped"]:
         return post_verify_skipped(argv[0])
+    if len(argv) == 4 and argv[1] == "revise":
+        return post_revise(argv[0], argv[2], argv[3])
     if len(argv) == 3 and argv[1] == "verify-revised":
         return post_revised(argv[0], argv[2])
     noted = {"green": post_green, "red": post_red, "refactor": post_refactor, "resuming": post_resuming,
