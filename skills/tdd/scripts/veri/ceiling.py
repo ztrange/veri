@@ -74,6 +74,9 @@ def main(argv):
         if timed_out:
             break
         ceiling = workers
+    if ceiling is None:
+        sys.stderr.write("no ceiling of at least 2: a case timed out under load at 2 workers and passed alone\n")
+        return 1
     sys.stdout.write("ceiling: %d workers\n" % ceiling)
     return 0
 
