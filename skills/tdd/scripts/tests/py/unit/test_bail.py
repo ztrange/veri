@@ -166,3 +166,19 @@ def test_a_non_zero_metrics_exit_makes_no_metrics_commit_and_the_push_and_both_c
     comments = [c for c in calls if c.startswith("comment.sh")]
     assert all(c.startswith("comment.sh 7 bailed") for c in comments)
     assert "--pr" in comments[1].split()
+
+
+def test_after_the_metrics_the_push_then_the_issue_comment_then_the_pr_comment_are_made_each_with_the_note_file_ending_exit_0(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "metrics.sh 7": (0, "the cost block\n", "")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    after_metrics = fake.calls[[c.split()[0] for c in fake.calls].index("metrics.sh"):]
+    tail = [c for c in after_metrics if c.startswith(("push-branch.sh", "comment.sh"))]
+    assert code == 0
+    assert tail == ["push-branch.sh", "comment.sh 7 bailed --note-file n.md",
+                    "comment.sh 7 bailed --pr --note-file n.md"]
