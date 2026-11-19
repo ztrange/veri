@@ -9,9 +9,13 @@ import unreachable
 from conftest import ROOT
 
 SHIM = "test-ceiling.sh"
-# The files that may name the shim: itself, the module behind it, its catalogue entries and rows, and its tests.
+# The files that may name the shim: itself, the module behind it, its recorder plugin, its catalogue entries and rows, and
+# its tests.
 DESCRIBES = {"skills/tdd/scripts/test-ceiling.sh", "skills/tdd/scripts/veri/ceiling.py", "skills/tdd/SCRIPTS.md",
-             "skills/tdd/REQUIREMENTS.md", "skills/tdd/scripts/veri/README.md"}
+             "skills/tdd/REQUIREMENTS.md", "skills/tdd/scripts/veri/README.md",
+             "skills/tdd/scripts/tests/leg/ceiling_record.py"}
+# A recipe line that starts `make ceiling`, through $(MAKE), ${MAKE} or a bare make.
+SUB_MAKE = re.compile(r"(?:\$[({]MAKE[)}]|\bmake\b)[^\n]*?(?<![\w-])ceiling(?![\w-])")
 
 
 def recipes(makefile):
@@ -31,9 +35,22 @@ def recipes(makefile):
     return targets
 
 
+def prerequisites(makefile):
+    """Each rule's targets mapped to the prerequisites its rule line lists (variable assignments and .PHONY left out)."""
+    rules = {}
+    for line in makefile.splitlines():
+        rule = re.match(r"^([\w.-]+(?: [\w.-]+)*):(?![=:])(.*)$", line)
+        if rule and rule.group(1) != ".PHONY" and "=" not in rule.group(2):
+            rules[rule.group(1)] = rule.group(2).split()
+    return rules
+
+
 def namers(top, skip):
+    """The files under <top> naming the shim, but those in <skip>; of a tests/ directory only the pytest leg, tests/leg/,
+    which is production (CLAUDE.md, *Testing idiom*)."""
     for parent, dirs, files in os.walk(top):
-        dirs[:] = [d for d in dirs if d not in ("__pycache__", ".git", ".tdd", "tests")]
+        dirs[:] = [d for d in dirs if d not in ("__pycache__", ".git", ".tdd")
+                   and not (os.path.basename(parent) == "tests" and d != "leg")]
         for name in files:
             path = os.path.join(parent, name)
             rel = os.path.relpath(path, ROOT)
@@ -52,6 +69,8 @@ def test_make_ceiling_is_the_one_entry_point_of_test_ceiling_sh():
     assert any("ceiling" in line.split() for line in re.findall(r"^\.PHONY:(.*)$", makefile, flags=re.M))
     assert "skills/tdd/scripts/test-ceiling.sh" in targets["ceiling"]
     assert [name for name, recipe in targets.items() if SHIM in recipe] == ["ceiling"]
+    assert [rule for rule, needs in prerequisites(makefile).items() if "ceiling" in needs] == []
+    assert [line for line in "".join(targets.values()).splitlines() if SUB_MAKE.search(line)] == []
     assert list(namers(str(ROOT / ".github"), set())) == []
     assert sorted(namers(str(ROOT / "skills"), DESCRIBES)) == []
 
