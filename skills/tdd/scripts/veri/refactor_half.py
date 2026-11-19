@@ -11,7 +11,9 @@ import fused_step
 import run_dir
 import tunables
 from fused_step import detail, kind
+from ledger import ledger_steps, read_ledger
 from next_pending_refactor import refactor_pending
+from wrong_test_route import later_owner
 
 NAME = "refactor-half"
 USAGE = "usage: refactor-half.sh <n>"
@@ -49,7 +51,7 @@ def run(n):
             raise fused.Stop("1", "wait-leaf.sh develop-refactor exit %d" % code, code)
         at = None
     if at is None:
-        values.update(check(wt, values))
+        values.update(check(wt, dict(values, n=n, after=open_after(wt, n, step))))
         at = verify(n, wt, settled, step, values)
     if at == "verdict-refactor":
         code = fused.wait(wt, n, NAME, "verdict-refactor", rejected_step=step)
@@ -105,9 +107,13 @@ def check(wt, values):
     got = {"RESULT": [], "CANDIDATES": [], "FLAGS": []}
     if values["ran"]:
         got = fused.report("2", wt, ".tdd/develop-refactor.out", "RESULT", "CANDIDATES", "FLAGS", every=True)
+    owed = []
     for line in got["FLAGS"]:
         if kind(line) == "overfit":
-            raise fused.Stop("3", "FLAGS: " + line, 1)
+            owner = later_owner(detail(line, last=True), os.path.join(wt, SPEC % values["n"]), values["after"])
+            if owner is None:
+                raise fused.Stop("3", "FLAGS: " + line, 1)
+            owed.append("%s (owed by %s)" % (line, owner))
     for line in got["CANDIDATES"]:
         if kind(line) == "in-step":
             raise fused.Stop("6", "CANDIDATES: " + line, 1)
@@ -118,7 +124,14 @@ def check(wt, values):
     else:
         triage = fused.call(fused.script("refactor-triage.sh"), cwd=wt, stdin=read(wt, ".tdd/develop-refactor.out"))[0]
         stopped = {0: "structural-owed", 3: "nothing-structural"}.get(triage, "malformed")
-    return {"count": count, "stopped": stopped, "candidates": got["CANDIDATES"], "flags": got["FLAGS"]}
+    return {"count": count, "stopped": stopped, "candidates": got["CANDIDATES"], "flags": got["FLAGS"], "owed": owed}
+
+
+def open_after(wt, n, step):
+    """The unchecked ledger steps after <step>, whose criteria an overfit flag's case may be (#4438)."""
+    steps = ledger_steps(read_ledger(run_dir.ledger(wt, n)))
+    names = [s.text for s in steps]
+    return [s.text for s in steps[names.index(step) + 1:] if s.state == "open"] if step in names else []
 
 
 def verify(n, wt, settled, step, values):
@@ -194,7 +207,7 @@ def narration(values, verdict_flags):
     for title, cls in (("Structural", "structural"), ("Cosmetic", "cosmetic")):
         items = [detail(c, last=True) for c in values["candidates"] if kind(c) == cls]
         lines += ["%s (%d):" % (title, len(items))] + ["- " + item for item in items]
-    follow = [f for f in values["flags"] if kind(f) == "beyond-spec"]
+    follow = [f for f in values["flags"] if kind(f) == "beyond-spec"] + values.get("owed", [])
     follow += [f for f in verdict_flags if kind(f) in ("overfit", "beyond-spec")]
     if follow:
         lines += ["Follow-ups:"] + ["- " + f for f in follow]

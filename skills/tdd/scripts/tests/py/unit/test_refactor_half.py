@@ -219,6 +219,26 @@ def test_4028_an_overfit_flag_or_an_in_step_candidate_stops_it_with_exit_1(tidy,
     assert "verdict-refactor" not in fake.launched()
 
 
+CRITERIA = "# spec\n\n## Acceptance criteria\n\n- [ ] one thing works\n- [ ] a stage exiting 1 stops the run\n"
+
+
+@pytest.mark.parametrize("case, owed", [("a stage exiting 1 stops the run", True), ("one thing works", False),
+                                        ("an empty list sums to 0", False)],
+                         ids=["a later unchecked step's criterion", "this step's own criterion", "no step's criterion"])
+def test_4438_an_overfit_flag_whose_case_a_later_unchecked_step_owns_is_narrated_as_owed_and_does_not_stop_it(
+        tidy, case, owed):
+    (tidy.wt / ".tdd" / "issue-12-spec.md").write_text(CRITERIA)
+    line = "FLAGS: overfit | src/a.py ignores exit codes | " + case
+    code, out, err, fake = tidy(fake=Fake(report=REPORT + line + "\n"))
+
+    if owed:
+        assert code == 0
+        note = (tidy.wt / ".tdd" / "refactor-half-note.md").read_text()
+        assert "- overfit | src/a.py ignores exit codes | %s (owed by two ⟦criterion 2⟧)\n" % case in note
+    else:
+        assert (code, out.splitlines()[-1]) == (1, "stopped at 3 " + line)
+
+
 @pytest.mark.parametrize("budget, count, result, triage, stopped", [
     ("refactor 0/1", "1\n", "RESULT: extract f\n", 0, "budget"),
     ("refactor 0/5", "1\n", "RESULT: nothing left to tidy\n", 0, "nothing-left"),
