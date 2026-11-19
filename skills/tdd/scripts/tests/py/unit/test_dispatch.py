@@ -3451,3 +3451,23 @@ def test_exit_line_reads_every_page_so_the_newest_trusted_outcome_on_page_2_deci
 
     assert dispatch.exit_line("3969") == "done 3969 https://github.com/o/r/pull/77"
     assert sorted(set(read)) == [1, 2, 3]
+
+
+@pytest.mark.parametrize("repo", ["o/r", ""])
+def test_queued_merges_reports_a_skip_suite_line_by_its_pr_url_and_counts_no_local_green_line_issue_4409(
+        monkeypatch, dispatch, repo):
+    import subprocess
+
+    scripts = dispatch.paths.scripts_of(dispatch.__file__)
+    url = "https://github.com/o/r/pull/7"
+    listing = (f"sh {scripts}/queued-merge.sh --skip-suite claude-opus-5-5 slow {url} /w tdd/7-x -\n"
+               f"sh {scripts}/queued-merge.sh --local-green\n"
+               f"sh {scripts}/queued-merge.sh --local-green extra words\n")
+
+    def ps(argv, **kw):
+        return subprocess.CompletedProcess(argv, 0, stdout=listing, stderr="")
+
+    monkeypatch.setattr(dispatch.subprocess, "run", ps)
+    monkeypatch.setattr(dispatch, "target_repo", lambda: repo)
+
+    assert dispatch.queued_merges() == [url]
