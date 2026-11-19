@@ -504,3 +504,15 @@ def test_with_no_all_tier_command_the_amend_writes_veri_suite_not_gated(tmp_path
     code, _, err = join(run_cli, world)
 
     assert (code, trailers(world)) == (0, ["Veri-Joined: %s %s" % (PR, BRANCH), "Veri-Suite: not gated"]), err
+
+
+@pytest.mark.parametrize("model", ["claude-opus-5-5", "Claude-Fable-1"])
+def test_skip_suite_on_an_offline_join_runs_no_gate_and_the_amend_writes_veri_suite_skipped_with_the_id_and_reason(
+        tmp_path, fake_processes, monkeypatch, run_cli, model):
+    world = Offline(tmp_path, full=1).install(fake_processes, monkeypatch)
+
+    code, out, err = skip(run_cli, world, model, "the  hardware\nis slow")
+
+    gated = [c for c in world.calls if c.startswith(("sh -c", "detect-test-command.sh --tier all"))]
+    assert (code, out, gated, world.local) == (0, "joined offline, no tag %s\n" % AMENDED, ["sh -c make unit"], AMENDED), err
+    assert trailers(world) == ["Veri-Joined: %s %s" % (PR, BRANCH), "Veri-Suite: skipped %s the hardware is slow" % model], err
