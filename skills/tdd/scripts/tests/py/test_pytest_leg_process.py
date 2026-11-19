@@ -616,6 +616,8 @@ def test_2195_a_full_run_started_with_veri_test_lock_0_starts_its_suites_at_once
     home, marks, release = tmp_path / "home", tmp_path / "marks", tmp_path / "release"
     for directory in (home, marks, tmp_path / "treeA", tmp_path / "treeB"):
         directory.mkdir()
+    with open(os.environ["VERI_TEST_CEILING_FILE"], "w") as f:
+        f.write("8\n")  # a measured budget, so B's first stderr byte is a wait, not the core fallback's line
     env = dict(os.environ, HOME=str(home), VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1")
 
     def launch(name, extra):
@@ -689,6 +691,8 @@ def test_2195_a_fast_tier_run_starts_its_suites_at_once_beside_a_live_full_run_h
     home, marks, release = tmp_path / "home", tmp_path / "marks", tmp_path / "release"
     for directory in (home, marks, tmp_path / "treeA", tmp_path / "treeB"):
         directory.mkdir()
+    with open(os.environ["VERI_TEST_CEILING_FILE"], "w") as f:
+        f.write("8\n")  # a measured budget, so B's first stderr byte is a wait, not the core fallback's line
     env = dict(os.environ, HOME=str(home), VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1")
 
     def launch(name):
