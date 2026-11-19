@@ -391,7 +391,7 @@ def test_main_takes_diff_as_the_phase_past_a_supersede_base_pair_3104(tmp_path, 
     monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
 
     run_verdict.main(["--step", "t", "--fast-cmd", "make unit", "--supersede-base", "abc1234",
-                      "diff", "spec.md", "base", "step-base"])
+                      "--branch-base", "base", "diff", "spec.md", "step-base"])
     os.write(spare, b"this verdict's stderr\n")
     os.close(spare)
 

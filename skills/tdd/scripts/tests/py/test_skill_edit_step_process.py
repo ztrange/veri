@@ -1142,7 +1142,8 @@ def test_a_unit_whose_prose_and_requirements_are_already_present_exits_3_and_the
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
-    built = subprocess.run([str(BUILD), "--step", "s", "--fast-cmd", "make unit", "diff", str(spec), "0123abc", "4567def"],
+    built = subprocess.run([str(BUILD), "--step", "s", "--fast-cmd", "make unit", "--branch-base", git(repo, "rev-parse", "HEAD"), "diff",
+                            str(spec), "4567def"],
                            cwd=repo, capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL)
 
     prompt = " ".join(built.stdout.split())

@@ -106,20 +106,20 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   structural), this one by what it **must** carry — the same instructions on every run of a
   phase, with only the variables changing. **Build every developer prompt with it**; a
   phase's instructions live in its template, not in prose you improvise per cycle.
-- `$S/build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <red|green|refactor|pin|plan|rebase|transform|diff> <spec-file> <test-path> [target]` —
+- `$S/build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--branch-base <sha>] <red|green|refactor|pin|plan|rebase|transform|diff> <spec-file> <test-path> [target]` —
   assemble the blind verifier prompt. `--supersede-base <sha>` (hex, 7-40 chars; `diff` phase) points the verifier at `git diff <sha>` for a supersede edit. The `plan` phase (`plan <spec-file> <ledger>`) adds, after the ledger, a `### Test cases touching the files the plan names` section listing the names, never the bodies, of the committed test cases touching the files the plan's steps name, computed from the ledger and the files git tracks under the current directory (`git ls-files`; a failing one is **exit 2**), none under `.git`, `.tdd`, `.venv` or `node_modules` and no symbolic link: a step names a file when a word of its text is a path or a basename of a tracked file, and a test file touches it when its text holds that file's stem as a whole word, `-` and `_` counted alike. Files touching a path a step gives in full come first, then those with more hits, then alphabetically. A touching test file whose cases cannot be read (unreadable, a call that never closes, a language the reader does not read) gets one `<file>: cases not readable` line, and the section then never says that no case touches a named file. The list is capped at `VERI_PLAN_TOUCHING_CASES` entries, a case name or such a line each (default `100`; past it, one `<file>: <m> more cases` line per test file left over, and one count of the unreadable ones; a value that is not a whole number is **exit 2**). The run lines (`{{AFFECTED_RUN_LINE}}`, `{{RUN_LINE}}`) are read from the `veri: one test file:`, `veri: fast tests:`, `veri: all tests:` and `veri: quiet test files:` lines of `CLAUDE.md` as it stood at the branch base (`--branch-base <sha>`, which `verify.sh` passes), never from the working tree, and whether the repository is veri's own tree (`skills/tdd/scripts/tests/py` a directory, so `make test TESTS="…"`) is decided at that commit too; a branch base that names no commit git can resolve is **exit 2**. Read at that commit the same way: a `⟦lint-repair⟧` `diff` step's `veri: lint:` line, and `{{FULL_CMD}}`, the full test command the `rebase` verifier and a `⟦suite-repair⟧` `green` verifier are given (its `veri: all tests:` line, `the test command` when it declares none). Used by `verify.sh`; you rarely call it directly.
-- `$S/verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] --branch-base <sha> <red|green|refactor|pin|plan> <spec-file> <test-path> [target] | diff <spec-file> <branch-base-sha> <step-base-sha>` — the **verify
+- `$S/verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] --branch-base <sha> <red|green|refactor|pin|plan> <spec-file> <test-path> [target] | --branch-base <sha> diff <spec-file> <step-base-sha>` — the **verify
   verb**: build the blind prompt → launch the verifier leaf **through the supervisor** →
   parse the verdict. Prints the verifier's **reason** on stdout; **exit 0 = PASS, 1 =
   REJECT, 2 = malformed or killed-stuck**. The `pin` phase is the *already satisfied*
   check: the verifier confirms the test passes now, **fails** under a behaviour-removing
   mutation it applies and then reverts itself, and is behaviour-level — the same trivial
   / over-coupled / too-complex bar as `red`.
-  Every phase but `diff` takes `--branch-base <sha>`, the run's branch base the conductor recorded
+  Every phase, `diff` included, takes `--branch-base <sha>`, the run's branch base the conductor recorded
   (`.tdd/issue-<n>-branch-base`), and exits 2 naming the flag when it is missing or not `^[0-9a-f]{7,40}$`: its
-  verifier's run lines are read from `CLAUDE.md` as it stood at that sha (a `diff` call reads them at its
-  `<branch-base-sha>`), from the lines it declares alone, never from the working tree, and a `pin` or `surround`
-  verifier takes its before-state there. No phase reads a remote-tracking ref for its base: a leaf can rewrite one.
+  verifier's run lines are read from `CLAUDE.md` as it stood at that sha, from the lines it declares alone, never
+  from the working tree, and a `pin` or `surround` verifier takes its before-state there. No phase reads a
+  remote-tracking ref for its base: a leaf can rewrite one.
   A verifier leaf is launched with the developer's `--tools` list and no `--disallowedTools`; its
   `--settings` carry a `PreToolUse` hook matching `Write|Edit|MultiEdit|NotebookEdit` that blocks
   such a call (exit 2, saying the verifier may not modify files). A verifier that changes the tree

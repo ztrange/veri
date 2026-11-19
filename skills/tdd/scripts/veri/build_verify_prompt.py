@@ -198,7 +198,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     if phase == "diff":
         if not step_arg:
             return _refused("build-verify-prompt: diff needs --step '<STEP>'")
-        shas = (("<step-base-sha>", "STEP_BASE_SHA", fourth), ("<base-sha>", "BASE_SHA", test_path))
+        shas = (("<step-base-sha>", "STEP_BASE_SHA", test_path), ("--branch-base", "BASE_SHA", branch_base))
     elif "base-sha" in NEEDS.get(phase, ()):
         shas = (("<base-sha>", "BASE_SHA", fourth),)
     elif phase == "rebase":

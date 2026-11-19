@@ -82,7 +82,7 @@ def test_main_refuses_a_missing_argument_an_option_with_no_value_an_unknown_phas
     results = {}
     for argv in ([], ["red", "", "t"], ["--fast-cmd"], ["bogus", str(spec), "t"],
                  ["green", str(spec), "t", "x"],
-                 ["--step", "s", "diff", str(spec), "0123abc", "0123abc"]):
+                 ["--step", "s", "--branch-base", "0123abc", "diff", str(spec), "0123abc"]):
         code = build_verify_prompt.main(argv)
         results[tuple(argv)] = (code, *capsysbinary.readouterr())
 
@@ -95,7 +95,7 @@ def test_main_refuses_a_missing_argument_an_option_with_no_value_an_unknown_phas
                                     + USAGE),
         ("green", str(spec), "t", "x"): (
             2, b"", b"build-verify-prompt: green needs --fast-cmd '<fast-tier test command>'\n" + USAGE),
-        ("--step", "s", "diff", str(spec), "0123abc", "0123abc"): (
+        ("--step", "s", "--branch-base", "0123abc", "diff", str(spec), "0123abc"): (
             2, b"", b"build-verify-prompt: diff needs --fast-cmd '<fast-tier test command>'\n" + USAGE),
     }
 
@@ -168,29 +168,30 @@ def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_a
         ["--fast-cmd", "m", "refactor", s, "t", "0123ABC"],
         ["--fast-cmd", "m", "refactor", s, "t", "0123abc\n"],
         ["transform", s, "t", "012345"],
-        ["--fast-cmd", "m", "diff", s, "zz", "zz"],
-        ["--step", "s", "--fast-cmd", "m", "diff", s, "xyz", "0123abG"],
-        ["--step", "s", "--fast-cmd", "m", "diff", s, "xyz", "0123abc"],
+        ["--fast-cmd", "m", "--branch-base", "0123abc", "diff", s, "zz"],
+        ["--step", "s", "--fast-cmd", "m", "--branch-base", "0123abc", "diff", s, "0123abG"],
+        ["--step", "s", "--fast-cmd", "m", "--branch-base", "xyz", "diff", s, "0123abc"],
         ["rebase", s, "nothex", "0123abc"],
         ["rebase", s, "0123abc", "bad"],
         ["rebase", s, "0123abc"],
-        ["--step", "s", "diff", s, "bad", "bad"],
-        ["diff", s, "bad", "bad"],
+        ["--step", "s", "--branch-base", "0123abc", "diff", s, "bad"],
+        ["--branch-base", "0123abc", "diff", s, "bad"],
     )}
     assert refused == {
         ("--fast-cmd", "m", "refactor", s, "t", "0123ABC"): bad_sha(b"refactor", b"<base-sha>", b"0123ABC"),
         ("--fast-cmd", "m", "refactor", s, "t", "0123abc\n"): bad_sha(b"refactor", b"<base-sha>", b"0123abc\n"),
         ("transform", s, "t", "012345"): bad_sha(b"transform", b"<base-sha>", b"012345"),
-        ("--fast-cmd", "m", "diff", s, "zz", "zz"): refusal(b"build-verify-prompt: diff needs --step '<STEP>'"),
-        ("--step", "s", "--fast-cmd", "m", "diff", s, "xyz", "0123abG"): bad_sha(
+        ("--fast-cmd", "m", "--branch-base", "0123abc", "diff", s, "zz"): refusal(b"build-verify-prompt: diff needs --step '<STEP>'"),
+        ("--step", "s", "--fast-cmd", "m", "--branch-base", "0123abc", "diff", s, "0123abG"): bad_sha(
             b"diff", b"<step-base-sha>", b"0123abG"),
-        ("--step", "s", "--fast-cmd", "m", "diff", s, "xyz", "0123abc"): bad_sha(b"diff", b"<base-sha>", b"xyz"),
+        ("--step", "s", "--fast-cmd", "m", "--branch-base", "xyz", "diff", s, "0123abc"): refusal(
+            b"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got 'xyz'"),
         ("rebase", s, "nothex", "0123abc"): bad_sha(b"rebase", b"<onto-sha> <pre-rebase-sha>", b"nothex"),
         ("rebase", s, "0123abc", "bad"): bad_sha(b"rebase", b"<onto-sha> <pre-rebase-sha>", b"bad"),
         ("rebase", s, "0123abc"): bad_sha(b"rebase", b"<onto-sha> <pre-rebase-sha>", b""),
-        ("--step", "s", "diff", s, "bad", "bad"): refusal(
+        ("--step", "s", "--branch-base", "0123abc", "diff", s, "bad"): refusal(
             b"build-verify-prompt: diff needs --fast-cmd '<fast-tier test command>'"),
-        ("diff", s, "bad", "bad"): refusal(
+        ("--branch-base", "0123abc", "diff", s, "bad"): refusal(
             b"build-verify-prompt: diff needs --fast-cmd '<fast-tier test command>'"),
     }
 
@@ -198,7 +199,7 @@ def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_a
         ["--fast-cmd", "m", "refactor", s, "t", "0123456789abcdef0123456789abcdef01234567"],
         ["transform", s, "t", "0123abc"],
         ["rebase", s, "0123abc", "0123abd"],
-        ["--step", "s", "--fast-cmd", "m", "diff", s, "0123abc", "0123abd"],
+        ["--step", "s", "--fast-cmd", "m", "--branch-base", "0123abc", "diff", s, "0123abd"],
     )]
     assert admitted == [(0, b"")] * 4
 
@@ -434,14 +435,14 @@ def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_e
         return b"|".join(fields) + b"|" + timed + b"\n"
 
     assert [
-        run(module.main, ["--step", "st & \\0", "--fast-cmd", "a & b \\1 /x", "diff", str(spec), "0123abc", "4567def"]),
+        run(module.main, ["--step", "st & \\0", "--fast-cmd", "a & b \\1 /x", "--branch-base", "0123abc", "diff", str(spec), "4567def"]),
         run(module.main, ["rebase", str(spec), "89abcde", "fedcba9"]),
         run(module.main, ["plan", str(spec), str(ledger)]),
         run(module.main, ["red", str(spec), "tp"]),
         run(module.main, ["--step", "⟦replaces-case⟧", "--fast-cmd", "m", "green", str(spec), "tp", "tid"]),
     ] == [
-        (0, rendered(b"sh", block(b"st & \\0"), b"spec 0123abc {{STEP}} {{SHARED}} 0123abc & \\1", b"", b"", b"", b"",
-                     b"", b"0123abc", b"4567def", b"0123abc", b"4567def", b"a & b \\1 /x", b"", b""), b""),
+        (0, rendered(b"sh", block(b"st & \\0"), b"spec 4567def {{STEP}} {{SHARED}} 0123abc & \\1", b"", b"", b"", b"",
+                     b"", b"4567def", b"the target test", b"0123abc", b"4567def", b"a & b \\1 /x", b"", b""), b""),
         (0, rendered(b"sh", b"", b"spec 89abcde {{STEP}} {{SHARED}} fedcba9 & \\1", b"", b"", b"", b"",
                      b"", b"89abcde", b"fedcba9", b"fedcba9", b"", b"", b"89abcde", b"fedcba9"), b""),
         (0, rendered(b"sh", b"", b"spec " + str(ledger).encode() + b" {{STEP}} {{SHARED}}  & \\1", b"", b"", b"", b"",
@@ -453,8 +454,8 @@ def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_e
     ]
     assert closed == [True] * 5
 
-    code, out, err = run(build_verify_prompt.main, ["--step", "s", "--fast-cmd", "make unit && a/b", "diff",
-                                                    str(spec), "0123abc", "4567def"])
+    code, out, err = run(build_verify_prompt.main, ["--step", "s", "--fast-cmd", "make unit && a/b", "--branch-base", "0123abc", "diff",
+                                                    str(spec), "4567def"])
     real_timed = f"{build_verify_prompt.HERE}/timed-test-run.sh".encode()
     assert (code, err, b"git diff 0123abc..HEAD" in out, b"git diff 4567def..HEAD" in out,
             b"       " + real_timed + b" fast '' make unit && a/b\n"
@@ -622,7 +623,7 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
         return (code, *capsysbinary.readouterr())
 
     def diff(base, step_base, fast="make unit"):
-        return run(["--step", diff_step, "--fast-cmd", fast, "diff", s, base, step_base])
+        return run(["--step", diff_step, "--fast-cmd", fast, "--branch-base", base, "diff", s, step_base])
 
     monkeypatch.delenv("VERI_STEP", raising=False)
     monkeypatch.delenv("VERI_RATIONALE", raising=False)
@@ -729,7 +730,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         return (refused[0], refused[1], paragraph.encode() in refused[2],
                 [run(module.main, argv)[0] for argv in unmarked])
 
-    diff_no_fast = run(build_verify_prompt.main, ["--step", "s", "diff", s, "0123abcdef", "4567abcdef"])
+    diff_no_fast = run(build_verify_prompt.main, ["--step", "s", "--branch-base", "0123abcdef", "diff", s, "4567abcdef"])
     plan = run(build_verify_prompt.main, ["plan", s, str(ledger)])[1]
     rf_plan = run(build_verify_prompt.main, ["plan", rs, str(ledger)])
     green = run(build_verify_prompt.main, green_args)[1]
@@ -814,7 +815,7 @@ def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_f
         "plan": ["plan", s, str(ledger)],
         "rebase": ["rebase", s, sha, "4567def"],
         "transform": ["transform", s, str(tmp_path / "predicate.md"), sha],
-        "diff": ["--step", "zorblat frobs a nitz", *fast, "diff", s, sha, "4567def"],
+        "diff": ["--step", "zorblat frobs a nitz", *fast, "--branch-base", sha, "diff", s, "4567def"],
     }
 
     def flat(data):
@@ -1257,18 +1258,19 @@ def test_995_diff_with_fast_cmd_refuses_a_non_hex_base_a_missing_step_and_a_bad_
     step = ["--step", DIFF_STEP]
     problems = []
     for label, want, argv in (
-            ("diff with a non-hex base", hex_message("<base-sha>", "tidied the helper"),
-             [*step, *fc, "diff", spec, "tidied the helper", DIFF_BASE]),
+            ("diff with a non-hex base",
+             "build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got 'tidied the helper'",
+             [*step, *fc, "--branch-base", "tidied the helper", "diff", spec, STEP_BASE]),
             ("diff with no --step", "build-verify-prompt: diff needs --step '<STEP>'",
-             [*fc, "diff", spec, DIFF_BASE, DIFF_BASE]),
-            ("diff with no step base", hex_message("<step-base-sha>", ""),
-             [*step, *fc, "diff", spec, DIFF_BASE]),
+             [*fc, "--branch-base", DIFF_BASE, "diff", spec, DIFF_BASE]),
+            ("diff with no step base", USAGE.decode().rstrip("\n"),
+             [*step, *fc, "--branch-base", DIFF_BASE, "diff", spec]),
             ("diff with a non-hex step base", hex_message("<step-base-sha>", "tidied the helper"),
-             [*step, *fc, "diff", spec, DIFF_BASE, "tidied the helper"]),
+             [*step, *fc, "--branch-base", DIFF_BASE, "diff", spec, "tidied the helper"]),
             ("diff with an uppercase step base", hex_message("<step-base-sha>", "4567ABCDEF"),
-             [*step, *fc, "diff", spec, DIFF_BASE, "4567ABCDEF"]),
+             [*step, *fc, "--branch-base", DIFF_BASE, "diff", spec, "4567ABCDEF"]),
             ("diff with a 6-character step base", hex_message("<step-base-sha>", "4567ab"),
-             [*step, *fc, "diff", spec, DIFF_BASE, "4567ab"])):
+             [*step, *fc, "--branch-base", DIFF_BASE, "diff", spec, "4567ab"])):
         problems += diff_refusal_problems(run_cli, build_verify_prompt, label, want, argv)
 
     assert problems == []
@@ -1279,7 +1281,8 @@ def test_1041_diff_with_fast_cmd_refuses_an_extra_positional_argument_with_exit_
 
     problems = diff_refusal_problems(
         run_cli, build_verify_prompt, "diff with an extra positional", "build-verify-prompt: too many arguments",
-        ["--step", DIFF_STEP, "--fast-cmd", "make unit", "diff", spec, DIFF_BASE, DIFF_BASE, "extra"])
+        ["--step", DIFF_STEP, "--fast-cmd", "make unit", "--branch-base", DIFF_BASE, "diff", spec, DIFF_BASE, DIFF_BASE,
+         "extra"])
 
     assert problems == []
 
@@ -1346,8 +1349,8 @@ def test_the_refactor_and_diff_prompts_each_require_a_coverage_judgement_to_run_
     spec.write_bytes(b"# spec\n")
     probe = " ".join((SCRIPTS / "prompts" / "_verify-coverage-probe.md").read_text().replace("{{FAST_CMD}}", "make unit").split())
     found = {}
-    for phase, rest in (("refactor", ["t", "0123abc"]), ("diff", ["0123abc", "0123abc"])):
-        assert build_verify_prompt.main(["--fast-cmd", "make unit", "--step", "s", phase, str(spec), *rest]) == 0
+    for phase, flags, rest in (("refactor", [], ["t", "0123abc"]), ("diff", ["--branch-base", "0123abc"], ["0123abc"])):
+        assert build_verify_prompt.main(["--fast-cmd", "make unit", "--step", "s", *flags, phase, str(spec), *rest]) == 0
         found[phase] = probe in " ".join(capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape").split())
 
     assert found == {"refactor": True, "diff": True}
@@ -1548,7 +1551,7 @@ def test_3104_supersede_base_that_is_not_lowercase_hex_exits_2_and_prints_no_pro
     for value in ("zz", "0123ABC", "012345", "0123abc\nrationale", "0123abc" + "0" * 34):
         code, out, err = run_cli(build_verify_prompt, [
             "--step", "s", "--fast-cmd", "m", "--supersede-base", value,
-            "diff", str(spec), "0123abc", "0123abd"])
+            "--branch-base", "0123abc", "diff", str(spec), "0123abd"])
 
         assert (code, out) == (2, "")
         assert "--supersede-base" in err
@@ -1563,7 +1566,7 @@ def test_3104_supersede_base_diff_prompt_judges_git_diff_of_that_sha_and_keeps_o
 
     code, out, _ = run_cli(build_verify_prompt, [
         "--step", "s", "--fast-cmd", "m", "--supersede-base", sha,
-        "diff", str(spec), "0123abc", "0123abd"])
+        "--branch-base", "0123abc", "diff", str(spec), "0123abd"])
     flat = " ".join(out.split())
 
     assert code == 0
@@ -1581,7 +1584,7 @@ def test_main_renders_a_diff_prompt_naming_a_unit_whose_skill_edit_step_ran_auth
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_ISSUE", "3404")
 
-    code = build_verify_prompt.main(["--step", "s", "--fast-cmd", "make unit", "diff", str(spec), "0123abc", "4567def"])
+    code = build_verify_prompt.main(["--step", "s", "--fast-cmd", "make unit", "--branch-base", "0123abc", "diff", str(spec), "4567def"])
     out, _ = capsysbinary.readouterr()
     prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
 
@@ -1609,7 +1612,7 @@ def test_main_lists_only_this_issues_named_author_less_units_sorted_past_an_unre
         out, _ = capsysbinary.readouterr()
         return code, re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
 
-    code, diff = rendered("diff", str(spec), "0123abc", "4567def")
+    code, diff = rendered("--branch-base", "0123abc", "diff", str(spec), "4567def")
     green_code, green = rendered("green", str(spec), "tests/py/test_x.py", "test_x")
 
     assert (code, green_code) == (0, 0)
@@ -1632,7 +1635,7 @@ def test_main_renders_a_diff_prompt_without_the_author_less_block_when_the_log_h
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_ISSUE", "3404")
 
-    code = build_verify_prompt.main(["--step", "s", "--fast-cmd", "make unit", "diff", str(spec), "0123abc", "4567def"])
+    code = build_verify_prompt.main(["--step", "s", "--fast-cmd", "make unit", "--branch-base", "0123abc", "diff", str(spec), "4567def"])
     out, _ = capsysbinary.readouterr()
     prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
 
@@ -1653,7 +1656,7 @@ def test_main_keeps_leaf_output_and_reason_files_out_of_a_diff_prompt_that_carri
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_ISSUE", "3404")
 
-    code = build_verify_prompt.main(["--step", "s", "--fast-cmd", "make unit", "diff", str(spec), "0123abc", "4567def"])
+    code = build_verify_prompt.main(["--step", "s", "--fast-cmd", "make unit", "--branch-base", "0123abc", "diff", str(spec), "4567def"])
     out, _ = capsysbinary.readouterr()
     prompt = out.decode("utf-8", "surrogateescape")
 
@@ -1674,7 +1677,7 @@ def test_main_ends_every_phases_verify_prompt_with_the_output_contract_fragment_
         "plan": ["plan", s, str(ledger)],
         "rebase": ["rebase", s, sha, "4567def"],
         "transform": ["transform", s, str(tmp_path / "predicate.md"), sha],
-        "diff": ["--step", "zorblat frobs a nitz", *fast, "diff", s, sha, "4567def"],
+        "diff": ["--step", "zorblat frobs a nitz", *fast, "--branch-base", sha, "diff", s, "4567def"],
         **{phase: [*fast, phase, s, test, sha]
            for phase in ("expand", "cover-new", "migrate", "contract-a", "contract-b", "beside", "dual-stub")},
     }
@@ -1981,7 +1984,7 @@ def lint_render(tmp_path, monkeypatch, run_cli, build_verify_prompt, step, claud
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"the spec\n")
     monkeypatch.chdir(repo)
-    return run_cli(build_verify_prompt, ["--step", step, "--fast-cmd", "make unit", "diff", str(spec), "0123abc", "4567def"],
+    return run_cli(build_verify_prompt, ["--step", step, "--fast-cmd", "make unit", "--branch-base", "0123abc", "diff", str(spec), "4567def"],
                    env=env)
 
 
@@ -2023,7 +2026,7 @@ def test_4123_build_verify_prompt_keeps_its_usage_line_and_options_and_reads_the
     ambient = {name: "echo injected" for name in ("VERI_LINT", "VERI_LINT_CMD", "LINT", "LINT_CMD", "VERI_LINT_COMMAND")}
     _, with_env, _ = lint_render(tmp_path, monkeypatch, run_cli, build_verify_prompt, LINT_STEP, env=ambient)
     code, out, err = run_cli(build_verify_prompt, ["--lint", "echo injected", "--step", LINT_STEP, "--fast-cmd", "m",
-                                                   "diff", str(tmp_path / "spec.md"), "0123abc", "4567def"])
+                                                   "--branch-base", "0123abc", "diff", str(tmp_path / "spec.md"), "4567def"])
 
     assert (with_env == plain, "injected" in with_env, code, out) == (True, False, 2, "")
 

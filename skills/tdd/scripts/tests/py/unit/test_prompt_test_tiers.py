@@ -72,9 +72,16 @@ def runs_issue_number(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def branch_base_is_veris_own_tree(monkeypatch):
-    """git refuses in this tier: the verify-pin's --branch-base reads as a commit of veri's own tree (#4263)."""
-    monkeypatch.setattr(importlib.import_module("veri.build_verify_prompt").run_line, "_at_base",
-                        lambda branch_base, root: (b"", True) if branch_base else None)
+    """git refuses in this tier: a verify-pin's or verify-diff's --branch-base reads as a commit holding the working
+    tree's own CLAUDE.md and layout (#4263, #4376)."""
+    run_line = importlib.import_module("veri.build_verify_prompt").run_line
+
+    def at_base(branch_base, root):
+        claude = os.path.join(root, "CLAUDE.md")
+        held = open(claude, "rb").read() if os.path.isfile(claude) else b""
+        return (held, run_line.own_tree(root)) if branch_base else None
+
+    monkeypatch.setattr(run_line, "_at_base", at_base)
 
 
 @pytest.fixture
@@ -143,7 +150,7 @@ def roster_of(problems, spec, reason, run_cli, build_develop_prompt, build_verif
         ("verify-refactor", verify("--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", sha)),
         ("verify-pin", verify("--branch-base", "abc1234", "pin", spec, "tests/zorblat.test.sh", "zorblat case")),
         ("verify-transform", verify("transform", spec, "tests/zorblat.test.sh", sha)),
-        ("verify-diff", verify("--step", step, "--fast-cmd", "make unit", "diff", spec, sha, "4567def")),
+        ("verify-diff", verify("--step", step, "--fast-cmd", "make unit", "--branch-base", sha, "diff", spec, "4567def")),
     ]
     for phase in ("expand", "migrate", "contract-a", "contract-b"):
         roster.append(("verify-" + phase, verify("--fast-cmd", "make unit", phase, spec, "tests/zorblat.test.sh", sha)))
