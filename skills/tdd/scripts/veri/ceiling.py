@@ -127,27 +127,33 @@ def step(workers, scratch):
     return len(failed)
 
 
+def ramp(top, scratch):
+    """Steps w = 2, 4, … up to <top>, stopping at the first with a load timeout; returns the ceiling (None when that
+    was the first step) and one `<workers> <seconds> <timeouts>` line per step run."""
+    ceiling, steps = None, []
+    for workers in range(2, top + 1, 2):
+        entry = register(workers)
+        began = clock()
+        try:
+            timeouts = step(workers, scratch)
+        finally:
+            pytest_leg.unregister(entry)
+        steps.append("%d %d %d" % (workers, round(clock() - began), timeouts))
+        if timeouts:
+            break
+        ceiling = workers
+    return ceiling, steps
+
+
 def main(argv):
     top = bound(argv)
     if top is None:
         sys.stderr.write(USAGE)
         return 2
-    ceiling = None
-    scratch = tempfile.mkdtemp(prefix="veri-ceiling-")
     header = [time.strftime("%Y-%m-%d %H:%M:%S %z"), commit(), "%.2f %.2f %.2f" % os.getloadavg()]
-    steps = []
     try:
-        for workers in range(2, top + 1, 2):
-            entry = register(workers)
-            began = clock()
-            try:
-                timeouts = step(workers, scratch)
-            finally:
-                pytest_leg.unregister(entry)
-            steps.append("%d %d %d" % (workers, round(clock() - began), timeouts))
-            if timeouts:
-                break
-            ceiling = workers
+        with tempfile.TemporaryDirectory(prefix="veri-ceiling-") as scratch:
+            ceiling, steps = ramp(top, scratch)
     except NoAnswer as error:
         sys.stderr.write("%s\n" % error)
         return 2
@@ -157,7 +163,6 @@ def main(argv):
     path = write_record([str(ceiling)] + header + steps)
     sys.stdout.write("ceiling: %d workers (recorded in %s)\n" % (ceiling, path))
     return 0
-
 
 if __name__ == "__main__":
     import entry
