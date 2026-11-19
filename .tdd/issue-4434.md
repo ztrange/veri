@@ -1,0 +1,21 @@
+# Plan for #4434 — PRD 038.10: a reroute stage runs wrong-test-route answers through the runner
+
+- [ ] `reroute.sh <n> <report>` runs `wrong-test-route.sh --spec .tdd/issue-<n>-spec.md <report> '<red-test-id>'` with `VERI_STEP` the open step, reading `test_path` and `target_test` from red-half's record; bad arguments or a missing preflight are exit 2 ⟦criterion 1⟧ ⟦criterion 9⟧
+- [ ] on `red <case>` it writes the `reroute` event with `kind=red case=<case>` before launching `develop-red-contradicted` through `detach-leaf.sh supervise.sh`, exiting 3 with a wait record ⟦criterion 2⟧ ⟦criterion 6⟧
+- [ ] called again it waits on the rerouted red, launches `verdict-red` with red-half's `run-verdict.sh` arguments over the edited case, and on PASS re-records the frozen tests over both test paths with the step's own `--red-case`, exiting 0 ⟦criterion 2⟧ ⟦criterion 10⟧
+- [ ] `repair`, `supersede` and `missing` launch `develop-red-repair`, `develop-red-supersede` and `develop-red-missing` with their own prompt arguments, and `supersede` verifies each named case in turn ⟦criterion 2⟧
+- [ ] it writes no `revise` mark and reads no budget: a broken `REVISE_BUDGET` or `VERI_MISSING_REROUTE_BUDGET` does not change its answer ⟦criterion 3⟧
+- [ ] it stops with exit 1 naming the answer on `prep`, `later`, `fixture`, `supersede-diff`, `missing-exhausted`, `repair-exhausted` and a rerouted red reporting `AGAINST_UNMODIFIED: PASSES`, launching nothing ⟦criterion 4⟧
+- [ ] `wrong-test-route.sh` exit 3 is exit 1 printing `route=revise phase=green`, never 3 ⟦criterion 5⟧
+- [ ] a verify-red REJECT of a rerouted case, or `tests-frozen.sh record` exit 1, leaves `.tdd/verify-red.reason` and red-half's rejected record and is exit 1 printing `route=revise phase=red` ⟦criterion 5⟧
+- [ ] a `wrong-test-route.sh`, `tests-frozen.sh`, supervisor or verifier exit 2 is exit 2 ⟦criterion 6⟧
+- [ ] with `red` switched off no reroute launches verify-red, writing `verify-red-skipped reason=switched-off` and `skipped`; with `green` switched off `.tdd/verify-green.reason` is never routed ⟦criterion 7⟧
+- [ ] it prints one line per call with its exit code and never a leaf's or a suite's output file ⟦criterion 11⟧
+- [ ] `run-step.sh` calls `reroute.sh .tdd/develop-green.out` when `green-half` stops on a `WRONG_TEST` or `SUPERSEDED` line, then `green-half` again on its 0 ⟦criterion 8⟧
+- [ ] `run-step.sh` calls `reroute.sh .tdd/verify-green.reason` on a verify-green REJECT before `revise.sh`, and `revise.sh <n> green` on its `route=revise phase=green` ⟦criterion 5⟧ ⟦criterion 8⟧
+- [ ] `run-step.sh` calls `reroute.sh .tdd/revise-green-<k>.out` when `revise.sh green` stops on a revise-green route ⟦criterion 8⟧
+- [ ] `run-step.sh` sends a reroute's `route=revise phase=red` to `revise.sh <n> red` through red-half's rejected record, and goes back to `reroute.sh` on its exit 3 ⟦criterion 5⟧ ⟦criterion 8⟧
+- [ ] `run-step.sh --hand reroute` stops there with `seam=reroute code=1 reason=hand next=<the Green anchor>` ⟦criterion 8⟧
+- [ ] the `record-refreshed` `stage` enum gains `reroute` ⟦criterion 9⟧
+- [ ] SKILL.md's Green section names `run-step.sh --hand reroute`, every route bullet kept, netting <= 0 B; SCRIPTS.md, JOURNAL.md and REQUIREMENTS.md list the stage ⟦criterion 12⟧
+- [ ] breaking the `revise` answer's exit 1 (3 turned into the exit) turns its case red ⟦criterion 13⟧
