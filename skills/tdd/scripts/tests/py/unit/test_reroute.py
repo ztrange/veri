@@ -137,3 +137,37 @@ def test_on_red_it_writes_the_reroute_event_then_launches_red_contradicted_throu
     record = json.loads((reroute.wt / ".tdd" / "issue-12-reroute-wait").read_text())
     assert (record["at"], record["values"]["kind"], record["values"]["report"]) == (
         "develop-red-contradicted", "red", GREEN)
+
+
+def test_called_again_it_waits_launches_verdict_red_with_red_halfs_arguments_over_the_edited_case_exiting_3_4434(
+        reroute):
+    """PRD 038.10 RRT2, RRT10: the reroute's verify-red takes the red phase's run-verdict.sh arguments."""
+    first = reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})[0]
+    code, out, err, fake = reroute(answers={("wait-leaf.sh", "verdict-red"): (3, "")},
+                                   files={"develop-red-contradicted.out": REROUTED})
+
+    assert (first, code, out.splitlines()[-1]) == (3, 3, "waiting on verdict-red")
+    assert fake.all("wrong-test-route.sh") == []
+    assert [c[1] for c in fake.calls[:3]] == [("develop-red-contradicted",), (STEP,), ()]
+    assert fake.launched() == ["verdict-red"]
+    launch = fake.call("detach-leaf.sh")
+    assert _short(launch[1]) == ("supervise.sh", "verdict-red", "run-verdict.sh", "--step", STEP, "--fast-cmd",
+                                 "make unit", "--branch-base", BRANCH_BASE, "red", ".tdd/issue-12-spec.md",
+                                 "tests/test_b.py", "tests/test_b.py::test_two")
+    assert (launch[4]["out"], launch[4]["err"]) == (".tdd/verify-red.reason", ".tdd/verify-red.err")
+    record = json.loads((reroute.wt / ".tdd" / "issue-12-reroute-wait").read_text())
+    assert record["at"] == "verdict-red"
+
+
+def test_on_a_verify_red_pass_it_rerecords_the_frozen_tests_over_both_test_paths_and_exits_0_4434(reroute):
+    """PRD 038.10 RRT2: `tests-frozen.sh record --step … --red-case '<red-test-id>' <test-path>…`, the step's own case."""
+    reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
+    reroute(answers={("wait-leaf.sh", "verdict-red"): (3, "")}, files={"develop-red-contradicted.out": REROUTED})
+    code, out, err, fake = reroute()
+
+    assert code == 0, out + err
+    record = fake.call("tests-frozen.sh")
+    assert record[1] == ("record", "--step", STEP, "--red-case", OWN, "tests/test_a.py", "tests/test_b.py")
+    assert record[4]["out"] == ".tdd/verify-red.reason"
+    assert fake.names()[-1] == "tests-frozen.sh"
+    assert not (reroute.wt / ".tdd" / "issue-12-reroute-wait").exists()
