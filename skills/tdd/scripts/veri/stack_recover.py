@@ -140,12 +140,15 @@ def _held(stack, window):
 
 def _cleaned(tip, joins):
     """After the pushes, the merge lock freed: delete each joined run's remote branch, leased on the commit pushed to it,
-    and its records ref, then run stack-pr.sh and print the stack's pushed <tip> and its tracking pull request. A ref
-    origin no longer has counts as deleted; a delete that failed is named, stack-pr.sh still runs, and the exit is 2."""
+    and its records ref (a branch naming no run has none), then run stack-pr.sh and print the stack's pushed <tip> and
+    its tracking pull request. A ref origin no longer has counts as deleted; a delete that failed is named, stack-pr.sh
+    still runs, and the exit is 2."""
     failed = []
     for sha, _, branch in joins:
-        for ref, lease in ((branch, ["--force-with-lease=%s:%s" % (branch, sha)]),
-                           (run_records.ref(run_dir.branch_issue(branch)), [])):
+        run_issue = run_dir.branch_issue(branch)
+        refs = [(branch, ["--force-with-lease=%s:%s" % (branch, sha)])]
+        refs += [(run_records.ref(run_issue), [])] if run_issue else []
+        for ref, lease in refs:
             run = git.network("push", *lease, "origin", "--delete", ref, cwd=".")
             if run.returncode and "remote ref does not exist" not in (run.stderr or ""):
                 failed.append("the delete of origin's %s failed (exit %d): %s" % (

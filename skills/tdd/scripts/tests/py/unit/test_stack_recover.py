@@ -317,3 +317,13 @@ def test_a_trailer_whose_url_is_no_repositorys_pull_request_or_that_is_not_two_w
     code, out, err = run_cli(stack_recover, [])
 
     assert (code, out, err.count("\n"), A in err, world.pushed) == (1, "", 1, True, []), err
+
+
+def test_a_joined_branch_naming_no_run_has_its_branch_deleted_and_no_records_ref(
+        monkeypatch, tmp_path, run_cli, stack_recover):
+    world = World(monkeypatch, tmp_path, commits=(A,), trailers={A: PR11 + " feature-a\n"})
+
+    code, out, err = run_cli(stack_recover, [])
+
+    assert (code, [args for args in world.pushed if "--delete" in args]) == (
+        0, [("push", "--force-with-lease=feature-a:" + A, "origin", "--delete", "feature-a")]), err
