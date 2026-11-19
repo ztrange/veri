@@ -249,3 +249,32 @@ def test_a_rerouted_red_report_missing_a_line_is_exit_2_4434(reroute):
 
     assert (code, out.splitlines()[-1]) == (2, "stopped at leaf no TARGET_TEST: line")
     assert fake.launched() == []
+
+
+@pytest.mark.parametrize("report", [GREEN, ".tdd/revise-green-1.out"])
+def test_a_revise_answer_is_exit_1_printing_route_revise_never_3_and_leaves_revise_sh_a_reason_and_green_halfs_record(
+        reroute, report):
+    """PRD 038.10 RRT5: wrong-test-route.sh's 3 means "go revise", an answer, not "call again". The green report is
+    the reason revise.sh's attempt copies, and green-half's rejected record sends a sliced revise back to revise.sh."""
+    code, out, err, fake = reroute(answers={("wrong-test-route.sh", None): (3, "revise\n")}, argv=("12", report),
+                                   files={"revise-green-1.out": "WRONG_TEST: still the old rule\n"})
+
+    assert (code, out.splitlines()[-1]) == (1, "route=revise phase=green")
+    assert (fake.launched(), fake.all("event.sh")) == ([], [])
+    assert (reroute.wt / ".tdd" / "verify-green.reason").read_text() == (reroute.wt / report).read_text()
+    record = json.loads((reroute.wt / ".tdd" / "issue-12-green-half-rejected-wait").read_text())
+    assert (record["step"], record["at"], record["values"]) == (
+        STEP, "verdict-green", {"test_path": "tests/test_a.py", "target_test": OWN})
+
+
+def test_a_revise_answer_on_verify_greens_reason_keeps_the_reason_and_green_halfs_own_rejected_record_4434(reroute):
+    kept = {"conductor": None, "at": "verdict-green", "values": {"test_path": "tests/test_a.py", "x": "1"},
+            "step": STEP}
+    code, out, err, fake = reroute(answers={("wrong-test-route.sh", None): (3, "revise\n")},
+                                   argv=("12", ".tdd/verify-green.reason"),
+                                   files={"verify-green.reason": "VERDICT: REJECT\nno\n",
+                                          "issue-12-green-half-rejected-wait": json.dumps(kept)})
+
+    assert (code, out.splitlines()[-1]) == (1, "route=revise phase=green")
+    assert (reroute.wt / ".tdd" / "verify-green.reason").read_text() == "VERDICT: REJECT\nno\n"
+    assert json.loads((reroute.wt / ".tdd" / "issue-12-green-half-rejected-wait").read_text()) == kept
