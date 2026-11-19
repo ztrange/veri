@@ -57,6 +57,13 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     n = argv[0]
+    stages = EARLY + LATE
+    rest = argv[1:]
+    while rest:
+        if rest[0] not in ("--from", "--hand") or "".join(rest[1:2]) + ".sh" not in stages:
+            sys.stderr.write(USAGE + "\n")
+            return 2
+        rest = rest[2:]
     first = argv[argv.index("--from") + 1] + ".sh" if "--from" in argv else None
     hands = [argv[i + 1] + ".sh" for i, a in enumerate(argv) if a == "--hand"]
     wt = fused_step.inputs("run-pr.sh", n)[1]
