@@ -18,4 +18,4 @@
 - [x] `run-step.sh --hand reroute` stops there with `seam=reroute code=1 reason=hand next=<the Green anchor>` ⟦criterion 8⟧
 - [x] the `record-refreshed` `stage` enum gains `reroute` ⟦criterion 9⟧
 - [x] SKILL.md's Green section names `run-step.sh --hand reroute`, every route bullet kept, netting <= 0 B; SCRIPTS.md, JOURNAL.md and REQUIREMENTS.md list the stage ⟦criterion 12⟧
-- [ ] breaking the `revise` answer's exit 1 (3 turned into the exit) turns its case red ⟦criterion 13⟧
+- [x] breaking the `revise` answer's exit 1 (3 turned into the exit) turns its case red ⟦criterion 13⟧
