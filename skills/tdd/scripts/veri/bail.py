@@ -45,6 +45,12 @@ def _write_note(note_file, drift, metrics):
                         else "metrics could not be rendered: metrics.sh exited %d\n" % metrics.returncode))
 
 
+def _print_report(phase, classification):
+    branch = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True).stdout.strip()
+    tree = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
+    print("phase: %s\nclassification: %s\nbranch: %s\nworktree: %s" % (phase, classification, branch, tree))
+
+
 def main(argv):
     if not _valid(argv):
         return _bad_arguments()
@@ -69,9 +75,7 @@ def main(argv):
     _write_note(note_file, drift, metrics)
     _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--note-file", note_file])
     _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--pr", "--note-file", note_file])
-    branch = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True).stdout.strip()
-    tree = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
-    print("phase: %s\nclassification: %s\nbranch: %s\nworktree: %s" % (phase, classification, branch, tree))
+    _print_report(phase, classification)
     return 0
 
 
