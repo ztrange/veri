@@ -52,7 +52,11 @@ def main(argv):
     for workers in range(2, top + 1, 2):
         _, timed_out = run_suite(workers, os.path.join(scratch, "record-%d" % workers))
         for nodeid in timed_out:
-            run_suite(1, os.path.join(scratch, "alone-%d" % workers), [nodeid])
+            _, alone = run_suite(1, os.path.join(scratch, "alone-%d" % workers), [nodeid])
+            if nodeid in alone:
+                sys.stderr.write("%s timed out at %d workers and again alone with 1 worker: a hung case, not load\n"
+                                 % (nodeid, workers))
+                return 2
         if timed_out:
             break
         ceiling = workers

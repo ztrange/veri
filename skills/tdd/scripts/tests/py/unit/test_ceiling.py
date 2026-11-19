@@ -87,3 +87,14 @@ def test_a_case_that_times_out_under_load_and_passes_alone_stops_the_ramp_at_the
     assert code == 0, err
     assert [(workers, tests) for workers, tests, _ in make.calls] == [(2, []), (4, []), (1, [SLOW])]
     assert "ceiling: 2 workers" in out
+
+
+def test_a_case_that_times_out_alone_too_is_exit_2_naming_it_as_hung(make, run_cli):
+    make.given(lambda workers, tests: [(SLOW, TIMEOUT)] if workers == 4 or tests else [])
+
+    code, out, err = run_cli(ceiling, [])
+
+    assert code == 2
+    assert [(workers, tests) for workers, tests, _ in make.calls] == [(2, []), (4, []), (1, [SLOW])]
+    assert "hung" in err and SLOW in err
+    assert "ceiling:" not in out
