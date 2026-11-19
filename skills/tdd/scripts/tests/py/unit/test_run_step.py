@@ -419,3 +419,42 @@ def test_4435_from_diff_step_runs_it_on_a_diff_checked_step_and_is_exit_2_on_a_c
                                   answers={"diff-step.sh": (0, "next=cycle\n")})
 
     assert (code, stages.names()) == (code_, names), err
+
+
+class Sequenced(Stages):
+    """Stages whose <script> answers come from a list, one per call, the last repeated; others as Stages."""
+
+    def __init__(self, answers=None, sequence=None):
+        super().__init__(answers)
+        self.sequence = {k: list(v) for k, v in (sequence or {}).items()}
+
+    def __call__(self, name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        if base in self.sequence:
+            self.calls.append((base, args, cwd, name))
+            got = self.sequence[base]
+            code, out = got.pop(0) if len(got) > 1 else got[0]
+            return code, out, ""
+        return super().__call__(name, *args, cwd=cwd, env=env, **kw)
+
+
+@pytest.mark.parametrize("line", ["stopped at 1 WRONG_TEST: the case asserts the old rule",
+                                  "stopped at 1 SUPERSEDED: tests/test_c.py::test_x"])
+def test_a_green_half_stop_on_a_wrong_test_or_superseded_line_calls_reroute_on_the_green_report_then_green_half_4434(
+        step, line):
+    """PRD 038.10 RRT8: two of green_half.ROUTES; after reroute's 0, green-half relaunches develop-green."""
+    stages = Sequenced(sequence={"green-half.sh": [(1, line + "\n"), (0, "green-half settled\n")]})
+    code, out, err, stages = step(stages=stages)
+
+    assert (code, out.splitlines()[-1]) == (0, "next=cycle"), err
+    assert stages.names() == ["red-half.sh", "green-half.sh", "reroute.sh", "green-half.sh", "refactor-half.sh",
+                              "step-close.sh"]
+    assert stages.calls[2][1] == ("12", ".tdd/develop-green.out")
+
+
+@pytest.mark.parametrize("line", ["stopped at 1 SPLIT: two steps", "stopped at 1 TIDY_FIRST: a seam first"])
+def test_a_green_half_stop_on_split_or_tidy_first_keeps_its_existing_seam_with_no_reroute_4434(step, line):
+    code, out, err, stages = step(answers={"green-half.sh": (1, line + "\n")})
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (
+        1, ["red-half.sh", "green-half.sh"], "seam=green-half code=1 next=" + GREEN)
