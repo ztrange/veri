@@ -345,3 +345,21 @@ def test_a_non_zero_push_branch_exit_is_named_on_its_call_line_and_both_comments
     assert len(push_lines) == 1 and "6" in push_lines[0]
     later = [c.split()[0] for c in fake.calls if c.startswith(("event.sh", "push-branch.sh", "comment.sh"))]
     assert later == ["event.sh", "push-branch.sh", "comment.sh", "comment.sh"]
+
+
+def test_a_non_zero_issue_comment_exit_is_named_on_its_call_line_and_the_pr_comment_still_runs_ending_exit_0_with_the_event_written(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "comment.sh 7 bailed --note-file n.md": (7, "", "denied\n")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    assert code == 0
+    comment_lines = [line for line in out.splitlines() if "comment.sh" in line]
+    assert len(comment_lines) == 2
+    assert "7" in comment_lines[0] and "0" in comment_lines[1] and "7" not in comment_lines[1]
+    later = [c for c in fake.calls if c.startswith(("event.sh", "comment.sh"))]
+    assert later == ["event.sh bail cause=tests-red classification=process",
+                     "comment.sh 7 bailed --note-file n.md", "comment.sh 7 bailed --pr --note-file n.md"]
