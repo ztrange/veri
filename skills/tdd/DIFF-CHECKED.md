@@ -10,9 +10,9 @@ that same commit, since every step ends in a ledger commit; on a resume it may n
 "<STEP>" '<test-cmd>' '<fast-cmd>'`, makes the change the criterion names — or makes no
 commit, when the criterion is that something stays unchanged — and keeps the fast tier and
 then the test files covering the changed files green before it reports, never running the `affected` tier. Then the
-blind `diff` verifier, `run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' diff <spec-file> <branch-base-sha> <step-base-sha>`, runs the fast tier and then the test files covering the changed files, never the `affected`
-tier, rejecting the step when either is red, and judges it against the run's branch point, `git merge-base HEAD
-origin/<default>`, and its own diff from the step base sha. Both are launched through the supervisor and waited on as
+blind `diff` verifier, `run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' --branch-base <base> diff <spec-file> <step-base-sha>`, runs the fast tier and then the test files covering the changed files, never the `affected`
+tier, rejecting the step when either is red, and judges it against the run's recorded branch base `<base>`
+(`.tdd/issue-<n>-branch-base` in the main working tree, never a remote-tracking ref, which a leaf can rewrite) and its own diff from the step base sha. Both are launched through the supervisor and waited on as
 *Launching a leaf* sets out, the leaf as `develop-diff` and the verifier as `verdict-diff`.
 **Switched off:** with `diff` in `.tdd/issue-<n>-skip-verify`, no verifier launches: record
 `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-diff-skipped reason=switched-off`,
@@ -52,7 +52,7 @@ The verifier's verdict closes the `⟦diff-checked⟧` step:
   to `.tdd/verify-diff.reason` (`Read` `<base directory>/REVISE.md`); a report with no `FLIP:` line is a
   REJECT the same way, its reason saying the line is missing. Exit **2**, or a `detect-test-command.sh` exit 2, bails `no-verdict`, a
   system failure (`Read` `<base directory>/BAIL.md`).
-- **PASS (exit 0):** first run `$S/pin-recheck.sh <step-base-sha>` against the step base sha,
+- **PASS (exit 0):** first run `$S/pin-recheck.sh --branch-base <base> <step-base-sha>` against the step base sha, `<base>` the recorded branch base,
   its work being committed by now, and read its exit as the Refactor loop's PASS reads it, a
   pin that stayed green, or a before-state pin this range disarmed (a stale one, green on the base too, is printed `stale: <record file> <test path>`, or `<mutated file>` for a mutation pin, and is no REJECT), being a REJECT of this step that spends `REVISE_BUDGET`; a pin whose own tested file is gone (a before record included, whose named test file the range deletes) or whose mutated file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired); a before-state pin's replay path gone before the range is skipped and the pin still runs. The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
   `--refactor-pending`, since no refactor loop follows — commit the ledger and push it as

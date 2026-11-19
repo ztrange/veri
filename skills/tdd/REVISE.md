@@ -148,9 +148,9 @@ with a test path. The revise leaf is built as:
 VERI_ISSUE=<n> $S/build-develop-prompt.sh revise diff .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" '<test-cmd>' .tdd/verify-diff.reason '<fast-cmd>' > .tdd/revise-diff-<k>.prompt
 ```
 and launched as `revise-diff-<k>` like any revise leaf. The re-verify is `run-verdict.sh
---step "<STEP>" --fast-cmd '<fast-cmd>' diff <spec-file> <branch-base-sha> <step-base-sha>`, launched as `verdict-diff`
-with its stdout overwriting `.tdd/verify-diff.reason`, and each `<base-sha>` is the same base sha
-the original verify-diff verdict ran against — the run's branch point, and the step base sha
+--step "<STEP>" --fast-cmd '<fast-cmd>' --branch-base <base> diff <spec-file> <step-base-sha>`, launched as `verdict-diff`
+with its stdout overwriting `.tdd/verify-diff.reason`, and each base is the same base sha
+the original verify-diff verdict ran against — `<base>` the run's recorded branch base, and the step base sha
 recorded before the step's develop-diff leaf ran, not one recorded before the revise leaf — so
 the revised work is judged against the diff the rejection was about. The `diff` revise leaf
 commits its change, and the conductor keeps that commit as made — no `git reset --soft`, squash
