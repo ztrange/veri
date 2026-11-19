@@ -9,6 +9,8 @@ import git
 import tunables
 
 USAGE = "usage: bail.sh <n> <cause> <phase> --note-file <path> [--attempt <k>]"
+NOTE_FILE_FLAG = "--note-file"
+BAILED_KIND = "bailed"
 
 
 def _bad_arguments():
@@ -17,7 +19,7 @@ def _bad_arguments():
 
 
 def _valid(argv):
-    if len(argv) not in (5, 7) or not argv[0].isdigit() or argv[3] != "--note-file":
+    if len(argv) not in (5, 7) or not argv[0].isdigit() or argv[3] != NOTE_FILE_FLAG:
         return False
     return len(argv) == 5 or (argv[5] == "--attempt" and argv[6].isdigit())
 
@@ -71,8 +73,8 @@ def _publish(here, issue, note_file, metrics):
     _run("push-branch.sh", [os.path.join(here, "push-branch.sh")])
     drift = _run("skill-drift.sh", [os.path.join(here, "skill-drift.sh")])
     _write_note(note_file, drift, metrics)
-    _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--note-file", note_file])
-    _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--pr", "--note-file", note_file])
+    _run("comment.sh", [os.path.join(here, "comment.sh"), issue, BAILED_KIND, NOTE_FILE_FLAG, note_file])
+    _run("comment.sh", [os.path.join(here, "comment.sh"), issue, BAILED_KIND, "--pr", NOTE_FILE_FLAG, note_file])
 
 
 def main(argv):
