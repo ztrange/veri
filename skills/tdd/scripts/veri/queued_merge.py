@@ -773,7 +773,8 @@ def _local_stack(worktree, stack):
 
 
 def _joined_offline(pr, worktree, branch, stack, skip=None):
-    """The offline join with the lock held: the online join's guards that need no network (an unticked ledger step, an
+    """The offline join with the lock held: the online join's guards that need no network (an unticked ledger step, the
+    freeze stack-red.sh reads from `.tdd/stack-local-red` (exit 1 while it exits 0, 2 on any exit but 0 and 3), an
     unresolvable HEAD, a merge commit in the run's history, a rebased tip whose content is not the merge), then the
     rebase onto the local <stack>, the fast tier, prose-owed.sh and the full suite, the Veri-Joined amend and a
     fast-forward of the local <stack>. <skip> ("<model-id> <reason>") skips the full suite, recorded as Veri-Suite:
@@ -782,6 +783,14 @@ def _joined_offline(pr, worktree, branch, stack, skip=None):
     code = _unchecked_steps(worktree, branch)
     if code:
         return code
+    frozen, said = _stack_red(worktree)
+    if frozen == 0:
+        _say("the local %s is frozen: stack-red.sh says %s; nothing joined, the run kept to join once a green full run on"
+             " the stack's tip lifts it. Next: queued-merge.sh --local-green" % (stack, " ".join(said.split())[:300]))
+        return 1
+    if frozen != 3:
+        _say("stack-red.sh exited %d, so whether the local %s is frozen is not known; nothing joined" % (frozen, stack))
+        return 2
     before = _rev(worktree, "HEAD")
     if not before:
         _say("the worktree's HEAD does not resolve; nothing joined")
