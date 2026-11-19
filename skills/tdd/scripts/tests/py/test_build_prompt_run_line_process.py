@@ -6,7 +6,7 @@ import re
 import pytest
 
 from conftest import SCRIPTS
-from repo_builder import commit_all, git, new_repo, origin_head_at
+from repo_builder import commit_all, git, new_repo
 from stub_script import write_stub
 
 TIMED = str(SCRIPTS / "timed-test-run.sh")
@@ -91,76 +91,6 @@ def test_outside_veri_a_branch_base_naming_no_commit_is_refused_with_exit_2_and_
     assert (code, out, err) == (2, "", "build-verify-prompt: --branch-base '0000000' names no commit git can resolve\n")
 
 
-@pytest.mark.process("git init, commit, update-ref and symbolic-ref run for real in a scratch repository, then verify.sh's"
-                     " module in it, launching a real supervise.sh around a stub claude")
-def test_outside_veri_verify_red_reads_its_run_lines_at_the_merge_base_with_origin_head_and_exits_2_naming_a_missing_one_4263(
-        tmp_path, run_cli):
-    verify = importlib.import_module("veri.verify")
-    repo = new_repo(tmp_path / "repo")
-    spec = tmp_path / "spec.md"
-    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
-    claude = tmp_path / "claude-pass"
-    write_stub(claude, "printf 'VERDICT: PASS\\nREASON: fine.'\n")
-    env = {"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
-    base = commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n"})
-    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
-    git(repo, "update-ref", "refs/remotes/origin/main", base)
-    git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
-    git(repo, "checkout", "-q", "-b", "feature")
-    commit_all(repo, "edit the run line", **{"CLAUDE.md": EDITED_MD})
-    argv = ["red", str(spec), "tests/test_x.py", "test_x"]
-
-    run_cli(verify, argv, env=env, cwd=repo)
-    prompt = (repo / ".tdd" / "verify-red.prompt").read_text()
-    git(repo, "symbolic-ref", "--delete", "refs/remotes/origin/HEAD")
-    refused = run_cli(verify, argv, env=env, cwd=repo)
-
-    assert (run_lines_of(prompt), refused) == (BASE_LINES, (
-        2, "", "verify: no merge-base of HEAD and origin/HEAD; the red verifier reads its run lines from CLAUDE.md there\n"))
-
-
-@pytest.mark.process("git init, commit and remote add run for real in a scratch repository laid out as veri's own tree,"
-                     " then verify.sh's module in it, launching a real supervise.sh around a stub claude")
-def test_inside_veris_own_tree_verify_red_with_an_origin_remote_but_no_origin_head_writes_its_prompt_and_refuses_nothing_4263(
-        tmp_path, run_cli):
-    verify = importlib.import_module("veri.verify")
-    repo = new_repo(tmp_path / "repo")
-    spec = tmp_path / "spec.md"
-    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
-    claude = tmp_path / "claude-pass"
-    write_stub(claude, "printf 'VERDICT: PASS\\nREASON: fine.'\n")
-    commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n",
-                                "skills__tdd__scripts__tests__py__conftest.py": ""})
-    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
-
-    code, out, err = run_cli(verify, ["red", str(spec), "tests/test_x.py", "test_x"],
-                             env={"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}, cwd=repo)
-
-    assert ("no merge-base" in err, (repo / ".tdd" / "verify-red.prompt").exists()) == (False, True), (code, out, err)
-
-
-@pytest.mark.process("git init, commit and checkout run for real in a scratch repository, then verify.sh's module in it,"
-                     " launching a real supervise.sh around a stub claude")
-def test_outside_veri_verify_red_in_a_repository_with_no_origin_remote_exits_2_and_writes_no_prompt_4263(
-        tmp_path, run_cli):
-    verify = importlib.import_module("veri.verify")
-    repo = new_repo(tmp_path / "repo")
-    spec = tmp_path / "spec.md"
-    spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
-    claude = tmp_path / "claude-pass"
-    write_stub(claude, "printf 'VERDICT: PASS\\nREASON: fine.'\n")
-    commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n"})
-    git(repo, "checkout", "-q", "-b", "feature")
-    commit_all(repo, "edit the run line", **{"CLAUDE.md": EDITED_MD})
-
-    refused = run_cli(verify, ["red", str(spec), "tests/test_x.py", "test_x"],
-                      env={"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}, cwd=repo)
-
-    assert (refused, (repo / ".tdd" / "verify-red.prompt").exists()) == ((
-        2, "", "verify: no merge-base of HEAD and origin/HEAD; the red verifier reads its run lines from CLAUDE.md there\n"),
-        False)
-
-
 @pytest.mark.process("git init, commit and checkout run for real in a scratch repository, then build-verify-prompt in it")
 def test_outside_veri_branch_base_declaring_only_an_all_tier_line_renders_it_over_a_test_script_the_branch_adds_4263(
         tmp_path, run_cli):
@@ -207,12 +137,11 @@ def test_outside_veri_verify_red_run_from_a_subdirectory_reads_the_base_commits_
     spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
     claude = tmp_path / "claude-pass"
     write_stub(claude, "printf 'VERDICT: PASS\\nREASON: fine.'\n")
-    commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n", "pkg__keep": ""})
-    origin_head_at(repo)
+    base = commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n", "pkg__keep": ""})
     git(repo, "checkout", "-q", "-b", "feature")
     (repo / "pkg" / "CLAUDE.md").write_text(EDITED_MD)
 
-    run_cli(verify, ["red", str(spec), "tests/test_x.py", "test_x"],
+    run_cli(verify, ["--branch-base", base, "red", str(spec), "tests/test_x.py", "test_x"],
             env={"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}, cwd=repo / "pkg")
 
     assert run_lines_of((repo / ".tdd" / "verify-red.prompt").read_text()) == BASE_LINES
@@ -252,12 +181,11 @@ def test_outside_veri_a_branch_that_adds_veris_test_directory_and_a_passing_make
     spec.write_text("## Acceptance criteria\n\n- [ ] it works\n")
     claude = tmp_path / "claude-pass"
     write_stub(claude, "printf 'VERDICT: PASS\\nREASON: fine.'\n")
-    commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n"})
-    origin_head_at(repo)
+    base = commit_all(repo, "base", **{"CLAUDE.md": BASE_MD, ".gitignore": ".tdd/\n"})
     git(repo, "checkout", "-q", "-b", "feature")
     commit_all(repo, "pose as veri's own tree", **{"Makefile": "test:\n\ttrue\n",
                                                    "skills__tdd__scripts__tests__py__conftest.py": ""})
-    argv = ["red", str(spec), "tests/test_x.py", "test_x"]
+    argv = ["--branch-base", base, "red", str(spec), "tests/test_x.py", "test_x"]
     env = {"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
 
     run_cli(verify, argv, env=env, cwd=repo)

@@ -2,7 +2,7 @@ A step listing `⟦phases: …⟧` runs no Red, Green or Refactor phase: it runs
 lists, in order, one at a time. `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` names the
 next one, <phase>; record `git rev-parse HEAD` as that phase's base sha. Its developer leaf,
 built by `build-develop-prompt.sh <phase> <spec-file> "<STEP>" '<test-cmd>'`, makes that
-phase's change and commits it, which the phase's freeze check below must accept; then the blind verifier, `run-verdict.sh --step "<STEP>"
+phase's change and commits it, which the phase's freeze check below must accept; then the blind verifier, `run-verdict.sh --branch-base <base> --step "<STEP>"
 --fast-cmd '<fast-cmd>' <phase> <spec-file> <test-path> <base-sha>`, judges the diff from
 that base sha. Both are launched through the supervisor and waited on as *Launching a leaf*
 sets out, the leaf as `develop-<phase>` and the verifier as `verdict-<phase>`. On PASS, mark

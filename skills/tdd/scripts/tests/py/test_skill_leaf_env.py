@@ -41,6 +41,7 @@ PLACEHOLDERS = (
     ("<test-path>", "probe.test.sh"), ("<target-test-id>", "probe-target"), ("<green-sha>", "0123abc"),
     ("<fast-cmd>", "make probe-fast"), ("<onto-sha>", "0123abc"), ("<pre-rebase-sha>", "4567def"),
     ("<base-sha>", "89abcde"), ("<conflicting-files>", "probe.txt"), ("[target]", "probe-target"),
+    ("<base>", "$(git rev-parse HEAD)"),
 )
 
 
@@ -208,7 +209,7 @@ def check_developer_launch(probe, lineno, line, launch):
 
 
 def check_verifier_launch(probe, lineno, line, launch):
-    clean = re.sub(r" --(step|fast-cmd) ('[^']*'|\"[^\"]*\")", "", launch)
+    clean = re.sub(r" --(step|fast-cmd) ('[^']*'|\"[^\"]*\")| --branch-base (\$\([^)]*\)|\S+)", "", launch)
     words = clean.split("run-verdict.sh ", 1)[1].split()
     words += [""] * (3 - len(words))
     phase, spec, subject = words[:3]
@@ -744,7 +745,7 @@ def scan_revise_last_done(probe):
         "mark": r"\$S/event\.sh revise budget=",
         "prompt": r"\$S/build-develop-prompt\.sh revise <phase> .*> \.tdd/revise-<phase>-<k>\.prompt",
         "leaf": r"\$S/detach-leaf\.sh .*\$S/supervise\.sh revise-<phase>-<k> \$S/run-leaf\.sh",
-        "re-verify": r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --step .* --fast-cmd ",
+        "re-verify": r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --branch-base <base> --step .* --fast-cmd ",
     }
     for which, pattern in patterns.items():
         lineno, line = first_line(pattern, REVISE_MD)
@@ -900,8 +901,8 @@ def scan_transform_verifier_last_done(probe):
 def scan_phase_verifiers_last_done(probe):
     title = EXPANDING_STEP
     patterns = {
-        "general": r"\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --step .* <phase> … >",
-        "revise": r"\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --step .* --fast-cmd .<fast-cmd>. <phase> ",
+        "general": r"\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --branch-base <base> --step .* <phase> … >",
+        "revise": r"\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --branch-base <base> --step .* --fast-cmd .<fast-cmd>. <phase> ",
     }
     for which, pattern in patterns.items():
         lineno, line = first_line(r"\$S/detach-leaf\.sh .*" + pattern, REVISE_MD if which == "revise" else None)

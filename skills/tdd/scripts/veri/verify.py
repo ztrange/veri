@@ -20,7 +20,6 @@ import preserve_attempt
 import renamed_case
 import replaces_case_survivors
 import run_dir
-import run_line
 import tunables
 
 from case_reader import is_js_test_file
@@ -43,7 +42,7 @@ WRITE_BAN = {"PreToolUse": [{"matcher": "Write|Edit|MultiEdit|NotebookEdit", "ho
      "command": write_ban_command(sys.executable, os.path.join(SCRIPTS, "veri", "verifier_write_ban.py"))}]}]}
 LEAF_ARGS = ["--permission-mode", "bypassPermissions", "--settings", json.dumps({"hooks": WRITE_BAN})]
 USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>']"
-         " [--supersede-base <sha>] <phase> <issue-spec-file>"
+         " [--supersede-base <sha>] --branch-base <sha> <phase> <issue-spec-file>"
          " <test-path> [<target-test-id>]")
 
 
@@ -199,18 +198,13 @@ def fails_at_head(gate, output):
         shutil.rmtree(scratch, ignore_errors=True)
 
 
-def merge_base():
-    """The merge base of HEAD and origin/HEAD, or "" when git names none."""
-    return leaf_tree_guard.git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
-
-
-def branch_base(words):
+def branch_base(words, options):
     """The commit a verifier reads its run lines, and whether it is veri's own tree, at (#4263): the `<branch-base-sha>`
-    a `diff` call names ("" when it is not a hex commit name, which the builder refuses), else the merge base of HEAD
-    and origin/HEAD ("" when git names none, which verify refuses outside a working tree laid out as veri's own)."""
+    a `diff` call names ("" when it is not a hex commit name, which the builder refuses), else the `--branch-base` the
+    conductor recorded (#4375), never a merge base with a remote-tracking ref a leaf could rewrite."""
     if words[0] == "diff":
         return words[2] if build_verify_prompt.HEX_SHA.fullmatch(words[2]) else ""
-    return merge_base()
+    return options["--branch-base"]
 
 
 def red_gate_failure():
@@ -285,6 +279,9 @@ def main(argv):
         words = words[2:]
     if len(words) < 3:
         return entry.refuse(usage=USAGE)
+    if words[0] != "diff" and not build_verify_prompt.HEX_SHA.fullmatch(options["--branch-base"]):
+        return entry.refuse("verify: %s needs --branch-base <sha> as 7-40 lowercase hex characters, got '%s'"
+                            % (words[0], options["--branch-base"]), usage=USAGE)
     leaf = "verify-" + words[0]
     leaf_words = os.environ.get("VERIFY_LEAF_ARGS")
     effort = tunables.get("VERI_EFFORT_VERIFIER")
@@ -310,18 +307,7 @@ def main(argv):
         return entry.to_contract(build_verify_prompt.refuse())
     if len(words) > 4:
         return entry.to_contract(build_verify_prompt.refuse("build-verify-prompt: too many arguments"))
-    base = ""
-    if words[0] in ("pin", "surround"):
-        base = merge_base()
-        if not base:
-            write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; a %s needs the real before-state" % words[0])
-            return 2
-    else:
-        base = options["--branch-base"] or branch_base(words)
-        if not base and words[0] != "diff" and not run_line.own_tree():
-            write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; the %s verifier reads its run lines"
-                  " from CLAUDE.md there" % words[0])
-            return 2
+    base = branch_base(words, options)
     issue = tunables.read("VERI_ISSUE")
     ledger = run_dir.ledger(".", issue) if issue else ""
     code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base,
