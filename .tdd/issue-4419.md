@@ -7,4 +7,4 @@
 - [x] HW20: the wait's stderr line names T and its source (the ceiling record, or the core fallback) beside the workers in use and the pids holding them. Pinned by a small in-process case ⟦criterion 4⟧
 - [x] HW7: `VERI_PYTEST_WORKERS` exported by the caller is used as given beside a full registry, never waiting, never registering, never reading the record. Pinned by a small in-process case ⟦criterion 5⟧
 - [x] Go-red guard: the floor guard is broken on purpose (a start at 1 free worker allowed), HW18's case is run and seen red, and the leg is restored ⟦criterion 6⟧
-- [ ] CLAUDE.md's Testing idiom states T, its source and the admission rule (rows CM308, CM56 of this issue's `## Requirements`), with veri/README.md, SCRIPTS.md and the leg's usage header where they state the budget, regraded ⟦skill-edit⟧ ⟦criterion 7⟧
+- [x] CLAUDE.md's Testing idiom states T, its source and the admission rule (rows CM308, CM56 of this issue's `## Requirements`), with veri/README.md, SCRIPTS.md and the leg's usage header where they state the budget, regraded ⟦skill-edit⟧ ⟦criterion 7⟧
