@@ -211,7 +211,11 @@ fast tier plus that `changed` run; a revise leaf runs the tiers of the phase it 
 than the fast tier plus the `changed` run (the `affected` tier is gone), save the rebased-tip leaves
 (`develop-rebase`, `develop-reconcile`, `verify-rebase`) and the suite-repair verifier, which run the full suite.
 `affected-suites.sh` never widens: a changed file no rule places adds nothing and is named on stderr, left to the
-full suite. Each run goes through `timed-test-run.sh`, which saves the whole output under the worktree's
+full suite. A changed `veri/<m>.py` (or `tests/leg/<m>.py`, or its `<m>.sh` shim, `-` read as `_`) lists
+`tests/py/test_<m>.py`, `unit/test_<m>.py` and `tests/py/test_<m>_process.py` where they exist, and every `tests/py/test_*_process.py`
+that imports or runs it by name (`veri.<m>`, `<m>.py` or `<m>.sh` as a whole word), so a process file needs no name map;
+when no process file names it, it lists those naming a module that imports it directly, one hop and no further (#4425).
+Each run goes through `timed-test-run.sh`, which saves the whole output under the worktree's
 `.tdd/test-runs/` and never hands a leaf the runner's raw stream. A project that declares `veri: quiet test files:`
 gets that command, over the paths, as the `changed` run's command, its output reaching the leaf unchanged (its exit 2
 reported as a broken run, never a test failure); without the line the leaf gets the exit code, at most the last 20
