@@ -441,3 +441,38 @@ def test_every_inner_call_in_the_ordered_list_is_a_script_revise_md_names():
     prose = (Path(revise_module.__file__).resolve().parents[2] / "REVISE.md").read_text()
 
     assert [name for name in revise_module.CALLS if "$S/" + name not in prose and name not in NAMED_ELSEWHERE] == []
+
+
+def test_a_missing_refactor_half_rejected_record_is_exit_2_before_any_call_4433(revise):
+    """Review of #4437: refactor's values live only in refactor-half's rejected record, so without it no answer can be
+    had (2), never a designed stop (1)."""
+    _refactor(revise)
+    (revise.wt / ".tdd" / "issue-12-refactor-half-rejected-wait").unlink()
+    code, out, err, fake = revise(argv=("12", "refactor"))
+
+    assert (code, fake.launched()) == (2, [])
+    assert out.splitlines()[-1] == "stopped at 1 no .tdd/issue-12-refactor-half-rejected-wait"
+
+
+def test_a_tests_frozen_record_exit_2_on_a_revised_red_pass_is_exit_2_4433(revise):
+    """Review of #4437 (RVS8): the record could not answer, so the PASS is not recorded and no comment posts."""
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, ""), ("tests-frozen.sh", "record"): (2, "")},
+                                            report=RED_REPORT), argv=("12", "red"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (2, ["revise-red-1", "verdict-red"])
+    assert "comment.sh" not in fake.names()[fake.names().index("tests-frozen.sh"):]
+    assert not (revise.wt / ".tdd" / "issue-12-red-half-wait").exists()
+
+
+def test_a_tests_frozen_record_exit_1_on_a_revised_red_pass_spends_the_attempt_with_its_stdout_the_reason_4433(revise):
+    """Review of #4437 (REVISE.md sub-step 5): the step's own Red case is gone, a verify-red REJECT that spends
+    REVISE_BUDGET, so attempt 2 launches on that reason."""
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, ""),
+                                             ("tests-frozen.sh", "record"): (1, "tests/test_b.py::test_two gone\n"),
+                                             ("wait-leaf.sh", "revise-red-2"): (3, "")}, report=RED_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (3, ["revise-red-1", "verdict-red", "revise-red-2"])
+    assert (revise.wt / ".tdd" / "verify-red-2.reason").read_text() == "tests/test_b.py::test_two gone\n"
