@@ -367,3 +367,24 @@ def test_a_prompt_supervisor_or_verifier_exit_2_is_exit_2_with_nothing_after_it(
     assert (code, fake.names()[-1]) == (2, last)
     if answer[0] == "build-develop-prompt.sh":
         assert not {"comment.sh", "event.sh", "detach-leaf.sh"} & set(fake.names())
+
+
+@pytest.mark.parametrize("gate, marked", [(0, True), (1, False), (2, True)])
+def test_a_diverged_or_unreadable_red_prediction_writes_the_mark_and_preserves_the_attempt_best_effort(
+        revise, gate, marked):
+    """PRD 038.9 RVS4: REVISE.md sub-step 4's exit 0 or 2 (a PREDICTION: DIVERGED report gates 0) is marked
+    `prediction-diverged` and its tree preserved; preserve-attempt.sh's failure goes on."""
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (gate, ""),
+                                             ("preserve-attempt.sh", None): (1, ""),
+                                             ("wait-leaf.sh", "revise-red-2"): (3, "")}, report=RED_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    marks = [c for c in fake.calls if c[0] == "event.sh" and c[1][:1] == ("prediction-diverged",)]
+    preserved = [c[1] for c in fake.calls if c[0] == "preserve-attempt.sh"]
+    assert (code, fake.launched()) == (3, ["revise-red-1", "revise-red-2"])
+    assert (len(marks), preserved) == ((1, [("12", STEP, "revise-red", "1", "prediction-diverged")]) if marked
+                                       else (0, []))
+    if marked:
+        assert (marks[0][1], marks[0][3]["VERI_ACTOR"], marks[0][3]["VERI_STEP"]) == (
+            ("prediction-diverged",), "conductor", STEP)
