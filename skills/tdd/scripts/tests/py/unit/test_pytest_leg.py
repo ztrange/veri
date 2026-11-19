@@ -1744,3 +1744,23 @@ def test_4419_a_unit_or_subset_leg_takes_min_4_and_the_free_workers_of_t_and_a_f
     code = run_cli(pytest_leg, argv + ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
 
     assert (code, workers_handed([seen[0][0]]), seen[0][1]) == (0, workers, workers)
+
+
+@pytest.mark.parametrize("record, source", [(True, "the ceiling record"), (False, "the core fallback")], ids=["record", "fallback"])
+def test_4419_the_wait_line_names_t_and_its_source_beside_the_workers_in_use_and_the_holding_pids(pytest_leg, run_cli, monkeypatch, tmp_path, started, record, source):
+    on_cores(monkeypatch, 12)
+    if record:
+        measured(8)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    holder = os.getppid()
+    blocker = legs / str(holder)
+    registered(blocker, 7 if record else 11)
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", lambda seconds: blocker.unlink())
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))
+    waits = [line for line in err.splitlines() if line.startswith("waiting")]
+    t, in_use = ("8", "7") if record else ("12", "11")
+
+    assert (code, len(waits), "T=%s" % t in waits[0], source in waits[0], " %s in use" % in_use in waits[0], str(holder) in waits[0]) == (
+        0, 1, True, True, True, True), waits
