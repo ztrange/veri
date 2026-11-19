@@ -207,3 +207,14 @@ def test_supersede_verifies_each_named_case_in_turn_then_rerecords_over_every_te
     assert targets == [["tests/test_c.py::test_x"], ["tests/test_d.py::test_y"]]
     assert fake.call("tests-frozen.sh")[1] == ("record", "--step", STEP, "--red-case", OWN, "tests/test_a.py",
                                                "tests/test_c.py", "tests/test_d.py")
+
+
+def test_it_writes_no_revise_mark_and_reads_no_budget_so_broken_budgets_leave_the_reroute_unchanged_4434(
+        reroute, monkeypatch):
+    """PRD 038.10 RRT3: whether the reroute is free is wrong-test-route.sh's answer; the stage reads neither budget."""
+    monkeypatch.setenv("REVISE_BUDGET", "not-a-number")
+    monkeypatch.setenv("VERI_MISSING_REROUTE_BUDGET", "")
+    code, out, err, fake = reroute(answers=ROUTE_RED, files={"develop-red-contradicted.out": REROUTED})
+
+    assert code == 0, out + err
+    assert [c[1][0] for c in fake.all("event.sh")] == ["reroute"]
