@@ -18,12 +18,30 @@ def _refuse(line):
     return entry.refuse(line, prefix="stack-recover: ")
 
 
+def _rev(ref):
+    """The commit <ref> names, or None when it names none."""
+    try:
+        return git.out("rev-parse", "--verify", "--quiet", ref, cwd=".")
+    except git.GitFailed:
+        return None
+
+
+def _ancestor(older, newer):
+    """Whether commit <older> is <newer> or one of its ancestors."""
+    return git.ok("merge-base", "--is-ancestor", older, newer, cwd=".")
+
+
 def _held(stack):
     """The recovery of <stack> with the merge lock held, never releasing it: an exit code."""
     fetch = git.network("fetch", "--prune", "origin", cwd=".")
     if fetch.returncode:
         return _refuse("git fetch origin failed (exit %d): %s; nothing pushed" % (
             fetch.returncode, " ".join(fetch.stderr.split())))
+    local, fetched = _rev("refs/heads/" + stack), _rev("refs/remotes/origin/" + stack)
+    if local is None or (fetched and _ancestor(local, fetched)):
+        print("stack-recover: the local %s is absent, at origin/%s or behind it: nothing joined offline, nothing to"
+              " push" % (stack, stack), file=sys.stderr)
+        return 3
     return 3
 
 
