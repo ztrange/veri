@@ -839,6 +839,8 @@ def _joined_offline(pr, worktree, branch, stack, skip=None):
         code, suite = 0, "skipped " + skip
     else:
         code, suite = _full_gate(worktree, stack)
+    if code == 1:
+        return _freeze(worktree, stack, checked, suite)
     if code:
         return code
     changed = _changed(worktree, checked)
@@ -890,8 +892,8 @@ def _rejoined(pr, worktree, branch, stack, before, onto):
 
 def _full_gate(worktree, stack):
     """The all-tier command `detect-test-command.sh --tier all` prints, run on the rebased tip in <worktree>: (code, the
-    Veri-Suite trailer's value): 0 "passed" green, 0 "not gated" with no command (said in one stderr line), 1 red, 2 when
-    the command cannot be read."""
+    Veri-Suite trailer's value, or on red the failed cases): 0 "passed" green, 0 "not gated" with no command (said in one
+    stderr line), 1 red, 2 when the command cannot be read. The run's output is captured, then written out as it came."""
     found = _start("detect-test-command.sh", "--tier", "all", cwd=worktree, capture=True)
     full = found.stdout.strip()
     if found.returncode not in (0, 3):
@@ -901,10 +903,47 @@ def _full_gate(worktree, stack):
         _say("no all-tier command (detect-test-command.sh --tier all printed nothing); the join onto the local %s is not"
              " gated" % stack)
         return 0, "not gated"
-    if subprocess.run(["sh", "-c", full], cwd=worktree).returncode:
+    run = subprocess.run(["sh", "-c", full], cwd=worktree, capture_output=True, text=True)
+    sys.stdout.write(run.stdout or "")
+    sys.stderr.write(run.stderr or "")
+    if run.returncode:
         _say("the full suite (%s) is red on the rebased tip; the local %s not moved" % (full, stack))
-        return 1, None
+        return 1, _failed_cases(run)
     return 0, "passed"
+
+
+def _failed_cases(run):
+    """The cases a red full run names, one per pytest `FAILED <case>` or `ERROR <case>` line of its output; when it names
+    none, one line saying so with its exit code."""
+    cases = [line.split()[1] for line in ((run.stdout or "") + (run.stderr or "")).splitlines()
+             if line.startswith(("FAILED ", "ERROR ")) and len(line.split()) > 1]
+    return cases or ["(no FAILED or ERROR line in the full suite's output; exit %d)" % run.returncode]
+
+
+def _freeze(worktree, stack, checked, cases):
+    """After a red gate on <checked>: when a commit of origin/<stack>..<stack> carries `Veri-Suite: skipped`, write
+    `.tdd/stack-local-red` in the main working tree (<checked>, then one line per failed case), since the red may then be
+    a skipped join's and not the candidate's own (PRD 033.2b, OL9). 1 (the gate's red) once written or with no skipped
+    commit, 2 when the range cannot be read or the file cannot be written."""
+    span = "refs/remotes/origin/%s..refs/heads/%s" % (stack, stack)
+    logged = _git(worktree, "log", "--format=%(trailers:key=Veri-Suite,valueonly,unfold)", span)
+    if logged.returncode:
+        _say("the full suite is red, but git log of %s failed (exit %d), so whether a Veri-Suite: skipped join sits on the"
+             " local %s is not known; nothing frozen" % (span, logged.returncode, stack))
+        return 2
+    if not any(line.strip().startswith("skipped") for line in logged.stdout.splitlines()):
+        return 1
+    path = os.path.join(_main_clone(worktree), ".tdd", "stack-local-red")  # resolved already: _outage needed it
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("".join(line + "\n" for line in [checked] + cases))
+    except OSError as error:
+        _say("the full suite is red over a Veri-Suite: skipped join, but writing %s failed (%s); nothing frozen" % (
+            path, error))
+        return 2
+    _say("a Veri-Suite: skipped join sits on the local %s, so the red may not be this run's: wrote %s, which freezes"
+         " joins until queued-merge.sh --local-green runs green" % (stack, path))
+    return 1
 
 
 def _changed(worktree, checked):
