@@ -6,3 +6,4 @@
 ### the note bail.sh hands both `comment.sh bailed` calls carries the conductor's `--note-file` text and the metrics block `metrics.sh` rendered; an in-process case with call spies ⟦criterion 1⟧
 - Long Function: Extract Function — `main` in `bail.py` has a 31-line body, so pull the metrics render-and-commit block and the two `comment.sh` calls out into helpers
 - Magic Literal: Replace Magic Literal — `"bailed"` and `"--note-file"` are each written out in 3 or more places in `bail.py`, counting the comment calls and the argument check
+applied | 6143286484116f80fc2cc841b81efb11aec61608 | Long Function: Extract Function — `main` in bail.py has a 32-line body, so extract the metrics-commit block (lines 40-47) into its own function. It is not duplication removal, so it is reported and not applied.	fix: bail.py meets the repo audits on the rebased tip, and GRADED keeps main's lines (#4391)
