@@ -100,7 +100,7 @@ def finish(n, wt, step, values):
         raise fused.Stop("3", "tree-check", 1)
     note = ".tdd/red-half-note.md"
     with open(os.path.join(wt, note), "w") as f:
-        f.write(REFRESHED.get(values["refresh"], "") + "Prediction matched: verify-red judged the test.\n")
+        f.write(REFRESHED.get(values.get("refresh"), "") + "Prediction matched: verify-red judged the test.\n")
     fused.checked("3", fused.script("comment.sh"), n, "red", "--note-file", note, cwd=wt)
     if not revised:
         fused.checked("3", fused.script("comment.sh"), n, "verify-red", cwd=wt)

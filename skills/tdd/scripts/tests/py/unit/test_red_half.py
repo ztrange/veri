@@ -531,3 +531,15 @@ def test_re_entered_after_a_revised_pass_it_finishes_once_without_a_second_verif
     assert [c[1][1] for c in fake.calls if c[0] == "comment.sh"] == ["red"]
     assert not {"tests-frozen.sh", "red-setup.sh"} & set(fake.names())
     assert (red.wt / ".tdd" / "issue-12-red-half").read_text().splitlines()[0] == "step=" + STEP
+
+
+def test_re_entered_with_no_refresh_value_it_still_finishes_4433(red):
+    """Review of #4437: a revise whose rejected record was dropped (another conductor's, FC7) re-saves red-half's wait
+    without the `refresh` its own develop wrote, and finish still posts the Red comment, with no refresh note."""
+    (red.wt / ".tdd" / "issue-12-red-half-wait").write_text(json.dumps({
+        "conductor": None, "at": "verdict-red",
+        "values": {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one", "revised": True}}))
+    code, out, err, fake = red()
+
+    assert (code, [c[1][1] for c in fake.calls if c[0] == "comment.sh"]) == (0, ["red"]), out
+    assert (red.wt / ".tdd" / "red-half-note.md").read_text() == "Prediction matched: verify-red judged the test.\n"
