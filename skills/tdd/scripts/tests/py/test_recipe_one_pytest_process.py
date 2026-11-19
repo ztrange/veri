@@ -40,6 +40,18 @@ def test_small():
     with open(os.environ["PLANTED_RAN_LOG"], "a") as log:
         log.write("workers %s\\n" % os.environ.get("PYTEST_XDIST_WORKER_COUNT", "1"))
 '''
+BUDGET_CASE = '''import os
+
+
+def test_small():
+    legs = os.environ["VERI_PYTEST_LEGS"]
+    entries = sorted(open(os.path.join(legs, name)).read().split("\\n")[0] for name in os.listdir(legs)
+                     if name.isdigit() and name != os.environ["PLANTED_HOLDER"])
+    lock = legs.rstrip("/") + "-full.lock"
+    held = os.path.exists(lock) and open(lock).read() != ""
+    with open(os.environ["PLANTED_RAN_LOG"], "a") as log:
+        log.write("workers %s registered %s lock held %s\\n" % (os.environ.get("PYTEST_XDIST_WORKER_COUNT", "1"), entries, held))
+'''
 BASH_TRIPWIRE = '#!/bin/sh\nprintf "bash suite\\n" >> "$PLANTED_RAN_LOG"\necho "1 passed, 0 failed"\n'
 
 
@@ -162,7 +174,7 @@ def test_make_test_with_two_workers_passes_and_fails_the_same_cases_as_serial_an
 
 @pytest.mark.timeout(120)
 @pytest.mark.process("make unit and make test started for real with VERI_PYTEST_WORKERS unset, over a planted tree whose small case notes its worker count")
-def test_with_no_worker_count_set_make_unit_runs_four_workers_and_make_test_one_per_available_core(tmp_path, monkeypatch):
+def test_with_no_worker_count_set_make_unit_runs_min_4_and_the_available_cores_and_make_test_one_per_available_core(tmp_path, monkeypatch):
     import pytest_leg
     tree, log = planted_tree(tmp_path, small=WORKER_COUNT_CASE), tmp_path / "ran.log"
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "legs"))
@@ -171,7 +183,7 @@ def test_with_no_worker_count_set_make_unit_runs_four_workers_and_make_test_one_
     env = {k: v for k, v in os.environ.items() if not k.startswith(("VERI_", "PYTEST_XDIST_"))}
     env["PLANTED_RAN_LOG"] = str(log)
     env["VERI_PYTEST_LEGS"] = str(tmp_path / "legs")
-    for target, workers in (("unit", 4), ("test", cores)):
+    for target, workers in (("unit", min(4, cores)), ("test", cores)):
         log.write_text("")
         ran = subprocess.run(["make", "-C", str(tree), target], env=env, stdin=subprocess.DEVNULL,
                              capture_output=True, text=True)
@@ -458,3 +470,29 @@ def test_3966_a_closed_prefix_whose_parent_is_writable_by_all_with_the_sticky_bi
     tree, log, cache = planted_tree(tmp_path), tmp_path / "ran.log", closed_cache_under(tmp_path, 0o1777)
     code, ran, output = make(tree, log, "unit", VERI_PYCACHE=str(cache))
     assert (code, ran) == (0, ["pytest small"]), output
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit started for real twice over a planted tree whose small case notes its worker count, the registry and the full-run lock, beside a live leg holding all cores but one")
+def test_4311_make_unit_with_no_worker_count_takes_the_one_free_core_and_registers_it_without_the_full_run_lock_and_an_exported_count_is_used_as_given_unregistered(tmp_path, monkeypatch):
+    import pytest_leg
+    tree, log = planted_tree(tmp_path, small=BUDGET_CASE), tmp_path / "ran.log"
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    cores = pytest_leg.worker_count(None)
+    (legs / str(os.getpid())).write_text(pytest_leg.registration(max(cores - 1, 0)))
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("VERI_", "PYTEST_XDIST_", "PYTEST_LEG_"))}
+    env.update(PLANTED_RAN_LOG=str(log), PLANTED_HOLDER=str(os.getpid()), VERI_PYTEST_LEGS=str(legs))
+    noted = []
+    for exported in ({}, {"VERI_PYTEST_WORKERS": "3"}):
+        log.write_text("")
+        ran = subprocess.run(["make", "-C", str(tree), "unit"], env={**env, **exported}, stdin=subprocess.DEVNULL,
+                             capture_output=True, text=True, timeout=NESTED_MAKE_BOUND)
+        noted.append((ran.returncode, log.read_text().splitlines(), ran.stdout + ran.stderr))
+
+    assert [(code, lines) for code, lines, _ in noted] == [
+        (0, ["workers 1 registered ['1'] lock held False"]),
+        (0, ["workers 3 registered [] lock held False"]),
+    ], [output for _, _, output in noted]
