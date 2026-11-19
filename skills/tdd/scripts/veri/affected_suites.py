@@ -178,7 +178,7 @@ def pytest_files_of(name):
     """The test files of module <name>: test_<name>.py, unit/test_<name>.py, test_<name>_process.py, and every process
     test file naming the module (#4425)."""
     return [s for d in PYTEST_DIRS for s in existing("%s/test_%s.py" % (d, name))] + existing(
-        "%s/test_%s_process.py" % (PYTEST_DIRS[0], name)) + process_files_naming(name)
+        "%s/test_%s_process.py" % (PYTEST_DIRS[0], name)) + process_files_of(name)
 
 
 def process_files_naming(name):
@@ -186,6 +186,20 @@ def process_files_naming(name):
     `<name>.py` or `<name>.sh` as a whole word."""
     processes = suites(PYTEST_DIRS[0] + "/test_*_process.py")
     return [p for needle in ("veri." + name, name + ".py", name + ".sh") for p in stem_walk.naming(needle, processes)]
+
+
+def importers(name):
+    """The modules under veri/ and tests/leg/ whose own line imports module <name> (`import <name>` or
+    `from <name> import`)."""
+    line = re.compile(rb"^[ \t]*(import|from)[ \t]+" + re.escape(name.encode()) + rb"\b", re.M)
+    return [basename(p, ".py") for p in suites(SCRIPTS + "/veri/*.py") + suites(SCRIPTS + "/tests/leg/*.py")
+            if basename(p, ".py") != name and line.search(read(p) or b"")]
+
+
+def process_files_of(name):
+    """The process test files of module <name>: those naming it, or, when none does, those naming a module that imports
+    it directly, one hop and no further, so a helper with no process file of its own is still run (#4425)."""
+    return process_files_naming(name) or [p for user in importers(name) for p in process_files_naming(user)]
 
 
 def suite_of(f, revisions=None):
