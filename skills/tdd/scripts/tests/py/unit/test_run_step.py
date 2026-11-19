@@ -266,3 +266,51 @@ def test_4343_a_stage_exit_outside_0_to_3_is_exit_2_naming_the_stage_and_its_cod
     assert (code, err) == (2, "run-step.sh: green-half.sh exited %d\n" % raw)
     assert out.splitlines()[-1] == "seam=green-half code=2 next=%s" % GREEN
     assert "stage=green-half" in (step.wt / ".tdd" / "issue-12-step").read_text().splitlines()
+
+
+REVISE = "REVISE.md#Revising on a REJECT"
+
+
+@pytest.mark.parametrize("revised, names, last", [
+    (0, ["red-half.sh", "green-half.sh", "revise.sh", "green-half.sh", "refactor-half.sh", "step-close.sh"],
+     "next=cycle"),
+    (1, ["red-half.sh", "green-half.sh", "revise.sh"], "seam=revise code=1 next=" + REVISE),
+    (2, ["red-half.sh", "green-half.sh", "revise.sh"], "seam=revise code=2 next=" + REVISE)])
+def test_a_half_stopped_by_a_verdict_reject_calls_revise_then_the_stage_again_on_its_0_4433(step, revised, names, last):
+    """PRD 038.9 criterion 9: `.tdd/verdict-<phase>.exit` holding 1 is a REJECT revise.sh takes."""
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+
+    class Rejected(Stages):
+        def __call__(self, name, *args, **kw):
+            code, out, err = super().__call__(name, *args, **kw)
+            if os.path.basename(name) == "green-half.sh" and self.names().count("green-half.sh") == 1:
+                return 1, "stopped at 2 wait-leaf.sh verdict-green exit 1\n", ""
+            return code, out, err
+
+    code, out, err, stages = step(stages=Rejected({"revise.sh": (revised, "")}))
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (revised, names, last)
+    assert stages.calls[2][1] == ("12", "green")
+
+
+def test_a_half_stopping_with_1_without_a_verdict_reject_calls_no_revise_4433(step):
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("0\n")
+    code, out, err, stages = step(answers={"green-half.sh": (1, "stopped at 1 tree-check\n")})
+
+    assert (code, stages.names()) == (1, ["red-half.sh", "green-half.sh"])
+    assert out.splitlines()[-1] == "seam=green-half code=1 next=" + GREEN
+
+
+def test_a_revise_exit_3_is_called_again_through_run_step_which_resumes_at_revise_while_the_rejected_record_stands_4433(
+        step):
+    """revise.sh is sliced: its 3 means call again, and run-step.sh called again goes back to it, not to the half
+    (whose wait record fused.wait moved to `<stage>-rejected`)."""
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+    (step.wt / ".tdd" / "issue-12-green-half-rejected-wait").write_text("{}")
+    first = step(answers={"green-half.sh": (1, "stopped at 2 wait-leaf.sh verdict-green exit 1\n"),
+                          "revise.sh": (3, "waiting on revise-green-1\n")})
+    (step.wt / ".tdd" / "issue-12-green-half-rejected-wait").write_text("{}")
+    code, out, err, stages = step(answers={"revise.sh": (3, "waiting on verdict-green\n")})
+
+    assert (first[0], first[1].splitlines()[-1]) == (3, "seam=revise code=3 next=run-step.sh 12")
+    assert (code, stages.names(), out.splitlines()[-1]) == (3, ["revise.sh"], "seam=revise code=3 next=run-step.sh 12")

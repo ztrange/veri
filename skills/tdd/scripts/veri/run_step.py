@@ -17,6 +17,7 @@ USAGE = "usage: run-step.sh <n> [--from <stage>] [--hand <stage>]…"
 LEDGER = run_dir.ledger("", "%s")
 RED = "SKILL.md#Red — one failing test (developer leaf), then verify-red (blind)"
 GREEN = "SKILL.md#Green — minimum implementation (developer leaf), then verify-green (blind)"
+REVISE = "REVISE.md#Revising on a REJECT"
 REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 
 # The stages in the order they run -> (the heading anchor, `<file>#<heading>` under the skill's directory, of the
@@ -24,6 +25,8 @@ REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, t
 # stops before such a stage without calling it). green-half's reason is specs/prd-027.md GH1.
 STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
           "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ())}
+# The phase stages -> the phase a verifier judges: a REJECT there (`.tdd/verdict-<phase>.exit` holding 1) is revise.sh's.
+PHASES = {"red-half": "red", "green-half": "green", "refactor-half": "refactor"}
 # The scripts a `next=` it prints may name, every other `next=` being an anchor above (S4, RN10): itself, called again
 # on a stage's 3, and seam-settle.sh, which a stage's own record seam names.
 NEXT_SCRIPTS = ("run-step.sh", "seam-settle.sh")
@@ -86,11 +89,17 @@ def main(argv):
             return seam(wt, n, step, stage, 1, anchor, "hand")
         if any(mark in step for mark in unhandled):
             return seam(wt, n, step, stage, 1, anchor, "unmodelled")
-        code, out, _ = fused.call(fused.script(script), n)
-        if code not in (0, 1, 2, 3):
-            # The exit-code API has four codes: a 127, a signal's negative code or any other is no answer (2).
-            sys.stderr.write("run-step.sh: %s exited %d\n" % (script, code))
-            code = 2
+        if stage in PHASES and os.path.exists(fused.wait_record(wt, n, stage + "-rejected")):
+            # A revise under way (its 3 called run-step.sh again): back to it, never to the half.
+            code = revise(wt, n, step, stage)
+            if code is not None:
+                return code
+        code, out = run_stage(script, n)
+        if code == 1 and stage in PHASES and verdict(wt, PHASES[stage]) == "1":
+            code = revise(wt, n, step, stage)
+            if code is not None:
+                return code
+            code, out = run_stage(script, n)
         if code != 0:
             said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
             if code == 1 and said:
@@ -105,6 +114,37 @@ def main(argv):
         os.remove(fused.settled_file(wt, n, "step"))
     sys.stdout.write(said[-1] + "\n")
     return 0
+
+
+def run_stage(script, n, *more):
+    """(code, stdout) of one stage call; a code outside the API's four is no answer (2), named on stderr."""
+    code, out, _ = fused.call(fused.script(script), n, *more)
+    if code not in (0, 1, 2, 3):
+        # The exit-code API has four codes: a 127, a signal's negative code or any other is no answer (2).
+        sys.stderr.write("run-step.sh: %s exited %d\n" % (script, code))
+        code = 2
+    return code, out
+
+
+def verdict(wt, phase):
+    """What `.tdd/verdict-<phase>.exit` holds, stripped; "" without one."""
+    try:
+        with open(os.path.join(wt, ".tdd", "verdict-%s.exit" % phase)) as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def revise(wt, n, step, stage):
+    """revise.sh <n> <phase> for a REJECT of <stage> (PRD 038.9 criterion 9): None on its 0, the stage to be called
+    again; else the seam's exit, `next=run-step.sh <n>` on its 3 (the seam recorded at <stage>, whose rejected record
+    sends the next call back here), REVISE.md's anchor on any other code."""
+    code = run_stage("revise.sh", n, PHASES[stage])[0]
+    if code == 0:
+        return None
+    record(wt, n, stage, step)
+    sys.stdout.write("seam=revise code=%d next=%s\n" % (code, NEXT_SCRIPTS[0] + " " + n if code == 3 else REVISE))
+    return code
 
 
 def seam(wt, n, step, stage, code, next_, reason=None, line=None):
