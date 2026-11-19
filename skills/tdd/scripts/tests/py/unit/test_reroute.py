@@ -421,3 +421,34 @@ def test_a_revised_rerouted_red_keeps_the_steps_own_case_and_every_test_path_in_
     record = json.loads((reroute.wt / ".tdd" / "issue-12-red-half-wait").read_text())
     assert (record["at"], record["values"]["test_path"], record["values"]["target_test"]) == (
         "verdict-red", "tests/test_a.py", OWN)
+
+
+@pytest.mark.parametrize("said, report, paths", [
+    ("red tests/test_b.py::test_two\n", REROUTED, ("tests/test_a.py", "tests/test_b.py")),
+    ("supersede tests/test_c.py::test_x tests/test_d.py::test_y\n",
+     "TEST_PATH: tests/test_c.py\nTARGET_TEST: NONE — updated together\nAGAINST_UNMODIFIED: FAILS\n",
+     ("tests/test_a.py", "tests/test_c.py", "tests/test_d.py"))])
+def test_a_revise_of_a_rerouted_red_restores_production_keeping_every_rerouted_test_path_4434(
+        reroute, run_cli, monkeypatch, said, report, paths):
+    """`restore-production.sh` keeps only the paths it is handed: a revise of a rerouted case hands it every path the
+    reroute edited, so neither the rerouted edit nor a case verify-red already passed is reverted. Drives reroute.py,
+    then revise.py, through one fake."""
+    leaf = "develop-red-supersede" if said.startswith("supersede") else "develop-red-contradicted"
+    reroute(answers={("wrong-test-route.sh", None): (0, said), ("wait-leaf.sh", leaf): (3, "")})
+    code = reroute(answers={("wait-leaf.sh", "verdict-red"): (1, "")},
+                   files={leaf + ".out": report, "develop-red.out": OWN_RED,
+                          "verify-red.reason": "VERDICT: REJECT\nthe rerouted case asserts nothing\n"})[0]
+    fake = Fake({("wait-leaf.sh", "revise-red-1"): (3, "")})
+    monkeypatch.setattr(importlib.import_module("veri.fused"), "run_script", fake)
+    revised = run_cli(importlib.import_module("veri.revise"), ["12", "red"], cwd=str(reroute.wt.parents[2]))
+
+    assert (code, revised[0]) == (1, 3), revised[1] + revised[2]
+    assert fake.call("restore-production.sh")[1] == paths
+
+
+def test_a_rerouted_red_reporting_an_unknown_against_unmodified_value_is_exit_2_4434(reroute):
+    reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
+    code, out, err, fake = reroute(files={"develop-red-contradicted.out": REROUTED.replace("FAILS", "MAYBE")})
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at leaf no AGAINST_UNMODIFIED: line")
+    assert fake.launched() == []
