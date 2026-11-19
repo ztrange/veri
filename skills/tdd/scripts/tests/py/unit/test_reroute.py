@@ -110,3 +110,30 @@ def test_with_no_red_half_record_naming_the_step_it_prints_the_record_seam_and_e
     assert (code, fake.calls) == (1, [])
     assert out.splitlines()[-1] == ("seam=reroute code=1 reason=record next=seam-settle.sh 12 red-half "
                                     "test_path=… target_test=…")
+
+
+ROUTE_RED = {("wrong-test-route.sh", None): (0, "red tests/test_b.py::test_two\n")}
+
+
+def test_on_red_it_writes_the_reroute_event_then_launches_red_contradicted_through_supervise_exiting_3_4434(reroute):
+    """PRD 038.10 RRT2, RRT6: the event before the launch, the leaf through detach-leaf.sh supervise.sh, a wait record."""
+    code, out, err, fake = reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on develop-red-contradicted")
+    names = fake.names()
+    assert names.index("event.sh") < names.index("detach-leaf.sh")
+    mark = fake.call("event.sh")
+    assert mark[1] == ("reroute", "kind=red", "case=tests/test_b.py::test_two")
+    assert (mark[3]["VERI_ACTOR"], mark[3]["VERI_STEP"], mark[3]["VERI_ISSUE"]) == ("conductor", STEP, "12")
+    prompt = fake.call("build-develop-prompt.sh")
+    assert prompt[1] == ("red-contradicted", ".tdd/issue-12-spec.md", STEP, "make unit", "tests/test_b.py::test_two")
+    assert prompt[4]["out"] == ".tdd/develop-red-contradicted.prompt"
+    launch = fake.call("detach-leaf.sh")
+    assert _short(launch[1]) == ("supervise.sh", "develop-red-contradicted", "run-leaf.sh",
+                                 ".tdd/develop-red-contradicted.prompt", "--permission-mode", "bypassPermissions")
+    assert (launch[3]["VERI_TEST_CMD"], launch[3]["VERI_STEP"]) == ("make unit", STEP)
+    assert (launch[4]["out"], launch[4]["err"]) == (".tdd/develop-red-contradicted.out",
+                                                    ".tdd/develop-red-contradicted.err")
+    record = json.loads((reroute.wt / ".tdd" / "issue-12-reroute-wait").read_text())
+    assert (record["at"], record["values"]["kind"], record["values"]["report"]) == (
+        "develop-red-contradicted", "red", GREEN)
