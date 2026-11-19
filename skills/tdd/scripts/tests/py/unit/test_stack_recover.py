@@ -117,3 +117,20 @@ def test_while_the_outage_file_exists_it_exits_2_in_one_stderr_line_before_any_r
 
     assert (code, out, err.count("\n"), world.log) == (2, "", 1, []), err
     assert "outage" in err and err.startswith("stack-recover: "), err
+
+
+LINE = "CLAUDE.md: the line 'veri: stack branch:' names no branch"
+
+
+@pytest.mark.parametrize("refused, code, said", [
+    (False, 3, "stack-branch.sh exits 3"),
+    (True, 2, "stack-branch.sh exits 2: " + LINE),
+])
+def test_stack_branch_sh_exiting_3_exits_3_and_exiting_2_exits_2_naming_it_locking_nothing(
+        monkeypatch, tmp_path, run_cli, stack_recover, refused, code, said):
+    named = importlib.import_module("veri.stack_branch").Refused(LINE) if refused else None
+    world = World(monkeypatch, tmp_path, named=named)
+
+    got, out, err = run_cli(stack_recover, [])
+
+    assert (got, out, err.count("\n"), said in err, world.log) == (code, "", 1, True, []), err
