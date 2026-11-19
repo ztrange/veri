@@ -114,7 +114,8 @@ def test_local_green_that_cannot_get_an_answer_is_exit_2_keeping_stack_local_red
 
     ran = [c for c in world.calls if c == "sh -c make test"]
     assert (code, os.path.exists(world.red) or kind == "remove", ran == [] or kind == "remove") == (2, True, True), err
-    assert world.released() or kind in ("argument", "unnamed"), err
+    locked = [c for c in world.calls if c.startswith("merge-lock.sh")]
+    assert (locked == []) if kind in ("argument", "unnamed") else world.released(), err
 
 
 def test_a_failed_lock_take_exits_with_its_code_running_nothing(tmp_path, fake_processes, run_cli):
