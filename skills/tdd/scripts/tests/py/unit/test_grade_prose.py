@@ -2010,3 +2010,33 @@ def test_4336_a_tree_grade_prose_py_byte_equal_to_the_running_module_signs_throu
     grade_prose.convert("REQUIREMENTS.md")
 
     assert (grade_prose.signer() is grade_prose, sorted(signed)) == (True, ["a.md", "b.md", "c.md"]), signed
+
+
+SIG = " %s 2026-11-19 id prefix\n"
+
+
+def test_4429_signed_units_decodes_a_heading_unit_and_finds_its_requirements_beside_the_file_named_before_the_hash(
+        grade_prose):
+    head = {"skills/tdd/GRADED": "skills/tdd/SKILL.md#Two%20words" + SIG % ("a" * 64)
+            + "skills/tdd/SKILL.md#100%25%20a/b" + SIG % ("b" * 64)}
+
+    assert grade_prose.signed_units({}, head) == [
+        ("skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md#Two words"),
+        ("skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md#100% a/b")]
+
+
+def test_4429_signed_units_lists_a_root_unit_beside_the_root_requirements_and_a_prompt_beside_its_own(grade_prose):
+    head = {"GRADED": "README.md" + SIG % "c",
+            "skills/tdd/GRADED": "skills/tdd/scripts/prompts/x.md" + SIG % "d"}
+
+    assert grade_prose.signed_units({}, head) == [
+        ("REQUIREMENTS.md", "README.md"), ("skills/tdd/scripts/prompts/REQUIREMENTS.md", "skills/tdd/scripts/prompts/x.md")]
+
+
+def test_4429_signed_units_leaves_out_a_line_the_merge_base_holds_even_duplicated_but_lists_a_re_signed_one_once(
+        grade_prose):
+    main = "skills/tdd/SKILL.md#Kept%20heading" + SIG % "e"
+    base = {"skills/tdd/GRADED": main + "skills/tdd/SKILL.md" + SIG % "f"}
+    head = {"skills/tdd/GRADED": main + "skills/tdd/SKILL.md" + SIG % "g" + main + "skills/tdd/SKILL.md" + SIG % "g"}
+
+    assert grade_prose.signed_units(base, head) == [("skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md")]

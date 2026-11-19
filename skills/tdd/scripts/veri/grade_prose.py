@@ -233,6 +233,25 @@ def graded_line(fields):
     return " ".join([fields[0].replace("%", "%25").replace(" ", "%20"), *fields[1:]])
 
 
+def requirements_beside(unit):
+    """The REQUIREMENTS.md beside the file `unit` names before its `#`, so a `/` in a heading never moves it."""
+    return os.path.join(os.path.dirname(unit.partition("#")[0]), "REQUIREMENTS.md")
+
+
+def signed_units(base, head):
+    """The units a branch signed, as `(requirements file, unit)` pairs, from two `{GRADED path: text}` maps (the merge
+    base's and HEAD's): each unit, decoded by graded_fields and listed once, whose line at head its file at base lacks,
+    so a line a conflict resolution duplicated from the default branch is not the branch's."""
+    listed = []
+    for path in sorted(head):
+        held = set(base.get(path, "").splitlines())
+        for line in head[path].splitlines():
+            unit = graded_fields(line)[0]
+            if line not in held and (requirements_beside(unit), unit) not in listed:
+                listed.append((requirements_beside(unit), unit))
+    return listed
+
+
 def graded_lines(graded):
     if not os.path.exists(graded):
         return
