@@ -41,7 +41,7 @@ PLACEHOLDERS = (
     ("<test-path>", "probe.test.sh"), ("<target-test-id>", "probe-target"), ("<green-sha>", "0123abc"),
     ("<fast-cmd>", "make probe-fast"), ("<onto-sha>", "0123abc"), ("<pre-rebase-sha>", "4567def"),
     ("<base-sha>", "89abcde"), ("<conflicting-files>", "probe.txt"), ("[target]", "probe-target"),
-    ("<base>", "$(git rev-parse HEAD)"),
+    ("<base>", "$(git log -1 --format=%H)"),  # the scratch tree's one commit: a recorded base (#4375)
 )
 
 
