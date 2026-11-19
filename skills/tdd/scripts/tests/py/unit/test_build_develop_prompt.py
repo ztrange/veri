@@ -910,7 +910,7 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
     rk_predicate = tmp_path / "rk-predicate.md"
     rk_predicate.write_bytes(rk_step.encode() + b"\n")
     rk_dev = rendered(["transform", s, rk_step, cmd])
-    rk_ver_code, rk_ver, _ = answer(build_verify_prompt, ["--step", rk_step, "transform", s, str(rk_predicate),
+    rk_ver_code, rk_ver, _ = answer(build_verify_prompt, ["--step", rk_step, "--fast-cmd", "make unit", "transform", s, str(rk_predicate),
                                                           "0123abcdef"])
     rk_ver = rk_ver if rk_ver_code == 0 else None
 
