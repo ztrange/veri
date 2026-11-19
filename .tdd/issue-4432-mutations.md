@@ -84,3 +84,10 @@ ICAgICAgICBzeXMuc3Rkb3V0LndyaXRlKCIlcyAlcyBleGl0ICVkXG4iICUgKHN0YWdlLCBuLCBjb2Rl
 command 196
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4432_the_resumed_late_run_prints_a_call_line_with_its_exit_code_for_pr_ready_wait_and_pr_finish_and_never_a_suites_output_file
 
+before 40
+768cde2665c900808aa2b2f44a707284015d6d6c
+keep 47
+skills/tdd/scripts/tests/py/unit/test_run_pr.py
+command 156
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4432_a_missing_preflight_file_is_exit_2_naming_it_on_stderr_before_any_stage_is_called
+
