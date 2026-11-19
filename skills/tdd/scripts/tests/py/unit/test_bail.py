@@ -423,3 +423,55 @@ def test_needs_user_is_taken_as_given_and_the_bail_event_carries_cause_needs_use
     assert [c for c in fake.calls if c.startswith("classify-bail.sh")] == ["classify-bail.sh needs-user"]
     assert [c for c in fake.calls if c.startswith("event.sh")] == [
         "event.sh bail cause=needs-user classification=process"]
+
+
+def test_an_unopenable_note_path_is_named_on_a_line_with_its_failure_and_both_comments_still_run_ending_exit_0(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", "")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "gone/n.md"], cwd=tmp_path)
+
+    assert code == 0
+    note_lines = [line for line in out.splitlines() if "gone/n.md" in line]
+    assert len(note_lines) == 1 and "failed" in note_lines[0]
+    assert [c.split()[0] for c in fake.calls if c.startswith(("event.sh", "comment.sh"))] == [
+        "event.sh", "comment.sh", "comment.sh"]
+    assert out.splitlines()[-4].startswith("phase: ")
+
+
+def test_ledger_steps_git_reset_event_git_add_and_git_commit_each_print_a_call_line_with_their_exit_code(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "metrics.sh 7": (0, "the cost block\n", ""),
+         "git reset": (7, "", ""),
+         "event.sh": (8, "", "boom\n"),
+         "git add": (9, "", ""),
+         "git commit": (11, "", "")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    assert code == 0
+    lines = out.splitlines()
+    for name, exit_code in (("ledger-steps.sh", 0), ("git reset", 7), ("event.sh", 8), ("git add", 9),
+                            ("git commit", 11)):
+        named = [line for line in lines if line.startswith(name)]
+        assert named == ["%s exit %d" % (name, exit_code)], name
+    assert [c.split()[0] for c in fake.calls if c.startswith(("metrics.sh", "push-branch.sh", "comment.sh"))] == [
+        "metrics.sh", "push-branch.sh", "comment.sh", "comment.sh"]
+
+
+def test_ledger_steps_is_handed_the_ledger_on_stdin(run_cli, fake_processes, bail, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("THE-LEDGER-TEXT\n")
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", "")}, default=(0, "", ""))
+
+    run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    handed = [kwargs.get("input") for argv, kwargs in fake.seen if os.path.basename(argv[0]) == "ledger-steps.sh"]
+    assert handed == ["THE-LEDGER-TEXT\n"]
