@@ -340,7 +340,7 @@ test-first hand method.
   (`$S/stack-red.sh` prints `local`) gets no culprit search, revert or hand fix through GitHub,
   all of which read it: send it once as a notice (*Speaking*) and take it to *When to stop and
   ask*. Once the human has acted, run `$S/queued-merge.sh --local-green`: exit 0 lifts the freeze
-  and joins resume, exit 1 keeps it, and exit 2 is reported.
+  and joins resume, exit 3 says it was already lifted, exit 1 keeps it, and exit 2 is reported.
 
 ## Running the sibling skills
 
