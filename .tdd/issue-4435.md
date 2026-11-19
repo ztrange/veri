@@ -2,7 +2,7 @@
 
 - [x] step-tick.sh closes an open ⟦diff-checked⟧ step: tick-ledger.sh without --refactor-pending, the `chore: diff-checked — <summary> (#<n>)` commit, push, stop ask, step-done comment, criterion tick, step-done mark, last line next= ⟦criterion 6⟧
 - [x] step-tick.sh exits 2 before any commit on a missing pin-recheck receipt, preflight or ledger, or bad arguments ⟦criterion 11⟧ ⟦criterion 15⟧
-- [ ] diff-step.sh runs a ⟦diff-checked⟧ step's clean path in order, each leaf wait sliced, printing call lines only and never passing FLIP to the verifier ⟦criterion 1⟧ ⟦criterion 5⟧ ⟦criterion 12⟧ ⟦criterion 13⟧
+- [x] diff-step.sh runs a ⟦diff-checked⟧ step's clean path in order, each leaf wait sliced, printing call lines only and never passing FLIP to the verifier ⟦criterion 1⟧ ⟦criterion 5⟧ ⟦criterion 12⟧ ⟦criterion 13⟧
 - [ ] diff-step.sh with diff switched off launches no verifier, marks the skip, writes skipped and goes on ⟦criterion 4⟧
 - [ ] diff-step.sh on a ⟦test-quality⟧ step probes the FLIP line before pin-recheck; probe 1 or no FLIP is a REJECT, probe or detect 2 is exit 2 ⟦criterion 2⟧ ⟦criterion 3⟧ ⟦criterion 15⟧
 - [ ] diff-step.sh's verify, flip and pin-recheck REJECTs leave the step's rejected record and exit 1 ⟦criterion 8⟧
