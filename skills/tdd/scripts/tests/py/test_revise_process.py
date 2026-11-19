@@ -12,4 +12,4 @@ def test_the_shim_with_no_argument_prints_its_usage_and_exits_2_4433(tmp_path):
                          text=True, timeout=60)
 
     assert (ran.returncode, ran.stdout, ran.stderr) == (
-        2, "", "usage: revise.sh <n> <phase>  (phase: red, green or refactor)\n")
+        2, "", "usage: revise.sh <n> <phase>  (phase: red, green, refactor or diff)\n")
