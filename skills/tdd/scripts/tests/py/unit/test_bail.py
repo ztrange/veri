@@ -91,3 +91,58 @@ def test_without_attempt_the_snapshot_is_taken_as_attempt_1(run_cli, fake_proces
 
     assert code == 0
     assert [c for c in fake.calls if c.startswith("preserve-attempt.sh")] == ["preserve-attempt.sh 7 3 red 1 bail"]
+
+
+def test_after_the_bail_event_metrics_renders_into_the_issue_file_and_on_its_exit_0_the_metrics_commit_is_made(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "metrics.sh 7": (0, "the cost block\n", "")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    ordered = [line for line in fake.calls
+               if line.startswith(("event.sh", "metrics.sh"))
+               or ("git" in line.split()[0] and "commit" in line and "metrics: what bailing on #7 cost (#7)" in line)]
+    assert [line.split()[0] for line in ordered] == ["event.sh", "metrics.sh", "git"]
+    assert (tmp_path / ".tdd" / "issue-7-metrics.md").read_text() == "the cost block\n"
+
+
+def test_the_metrics_file_is_force_staged_before_the_metrics_commit_is_made(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "metrics.sh 7": (0, "the cost block\n", "")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    git = [line.split() for line in fake.calls if line.split()[0] == "git"]
+    adds = [i for i, argv in enumerate(git) if argv[1] == "add" and "-f" in argv
+            and any(a.endswith("issue-7-metrics.md") for a in argv)]
+    commits = [i for i, argv in enumerate(git) if argv[1] == "commit"
+               and "metrics: what bailing on #7 cost (#7)" in " ".join(argv)]
+    assert len(adds) == 1 and len(commits) == 1 and adds[0] < commits[0]
+
+
+def test_a_non_zero_metrics_exit_writes_no_metrics_file_and_makes_no_metrics_commit_where_exit_0_commits_the_file_alone(
+        run_cli, fake_processes, bail, tmp_path):
+    runs = {}
+    for label, code_of_metrics in (("ok", 0), ("failed", 3)):
+        cwd = tmp_path / label
+        cwd.mkdir()
+        fake = fake_processes.answers(
+            {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+             "classify-bail.sh tests-red": (0, "process\n", ""),
+             "metrics.sh 7": (code_of_metrics, "the cost block\n", "")}, default=(0, "", ""))
+
+        code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=cwd)
+
+        commits = [c for c in fake.calls if c.startswith("git commit")
+                   and "metrics: what bailing on #7 cost (#7)" in c]
+        runs[label] = (code, commits, (cwd / ".tdd" / "issue-7-metrics.md").exists())
+
+    assert runs["ok"][0] == 0 and runs["ok"][2] is True
+    assert len(runs["ok"][1]) == 1 and runs["ok"][1][0].endswith("-- .tdd/issue-7-metrics.md")
+    assert runs["failed"] == (0, [], False)
