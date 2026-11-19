@@ -314,3 +314,16 @@ def test_a_revise_exit_3_is_called_again_through_run_step_which_resumes_at_revis
 
     assert (first[0], first[1].splitlines()[-1]) == (3, "seam=revise code=3 next=run-step.sh 12")
     assert (code, stages.names(), out.splitlines()[-1]) == (3, ["revise.sh"], "seam=revise code=3 next=run-step.sh 12")
+
+
+def test_hand_revise_stops_at_the_reject_never_calling_revise_and_revise_is_a_stage_outside_the_series_4433(step):
+    """PRD 038.9 criterion 10: `--hand revise` leaves the REJECT to REVISE.md's prose; `--from revise` is no start."""
+    run_step = importlib.import_module("veri.run_step")
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+    code, out, err, stages = step(answers={"green-half.sh": (1, "stopped at 2 wait-leaf.sh verdict-green exit 1\n")},
+                                  argv=("12", "--hand", "revise"))
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (
+        1, ["red-half.sh", "green-half.sh"], "seam=revise code=1 reason=hand next=" + REVISE)
+    assert ("revise" in run_step.STAGES, run_step.CALLS) == (True, STAGES)
+    assert step(argv=("12", "--from", "revise"))[0] == 2

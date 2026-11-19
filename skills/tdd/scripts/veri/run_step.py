@@ -24,7 +24,9 @@ REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, t
 # section whose prose takes over at a stop there (S4); the marks of the step kinds it does not handle (S3, RN6): it
 # stops before such a stage without calling it). green-half's reason is specs/prd-027.md GH1.
 STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
-          "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ())}
+          "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ()), "revise": (REVISE, ())}
+# The stages run in series; revise runs only on a half's REJECT, and is a stage only so `--hand revise` can name it.
+SERIES = tuple(stage for stage in STAGES if stage != "revise")
 # The phase stages -> the phase a verifier judges: a REJECT there (`.tdd/verdict-<phase>.exit` holding 1) is revise.sh's.
 PHASES = {"red-half": "red", "green-half": "green", "refactor-half": "refactor"}
 # The scripts a `next=` it prints may name, every other `next=` being an anchor above (S4, RN10): itself, called again
@@ -34,7 +36,7 @@ NEXT_SCRIPTS = ("run-step.sh", "seam-settle.sh")
 RECORD_SEAM = "seam=%s code=1 reason=record next="
 # The $S/ scripts this call makes, in order: the stages, each of which launches its own leaves through supervise.sh;
 # it launches none itself (RN12).
-CALLS = tuple(stage + ".sh" for stage in STAGES)
+CALLS = tuple(stage + ".sh" for stage in SERIES)
 # The kinds that are not a cycle step, red_half.REFUSED's (RN7) -> the anchor of the prose that runs them; a step of
 # one stops before any stage on `seam=none`, until a stage for that kind exists (038.3, 038.4).
 KINDS = {"⟦diff-checked⟧": "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)",
@@ -49,7 +51,8 @@ def parse(argv):
     start, hand, rest = None, set(), list(argv[1:])
     while rest:
         option, value = rest.pop(0), rest.pop(0) if rest else None
-        if option not in ("--from", "--hand") or value not in STAGES or option == "--from" and start is not None:
+        if option not in ("--from", "--hand") or value not in STAGES or option == "--from" and (
+                start is not None or value not in SERIES):
             return None
         if option == "--hand":
             hand.add(value)
@@ -77,7 +80,7 @@ def main(argv):
         if kind in step:
             sys.stdout.write("seam=none code=1 reason=kind next=%s\n" % KINDS[kind])
             return 1
-    order = list(STAGES)
+    order = list(SERIES)
     if start_at is not None:
         start = order.index(start_at)
     else:
@@ -91,12 +94,12 @@ def main(argv):
             return seam(wt, n, step, stage, 1, anchor, "unmodelled")
         if stage in PHASES and os.path.exists(fused.wait_record(wt, n, stage + "-rejected")):
             # A revise under way (its 3 called run-step.sh again): back to it, never to the half.
-            code = revise(wt, n, step, stage)
+            code = revise(wt, n, step, stage, hand)
             if code is not None:
                 return code
         code, out = run_stage(script, n)
         if code == 1 and stage in PHASES and verdict(wt, PHASES[stage]) == "1":
-            code = revise(wt, n, step, stage)
+            code = revise(wt, n, step, stage, hand)
             if code is not None:
                 return code
             code, out = run_stage(script, n)
@@ -135,10 +138,14 @@ def verdict(wt, phase):
         return ""
 
 
-def revise(wt, n, step, stage):
+def revise(wt, n, step, stage, hand):
     """revise.sh <n> <phase> for a REJECT of <stage> (PRD 038.9 criterion 9): None on its 0, the stage to be called
-    again; else the seam's exit, `next=run-step.sh <n>` on its 3 (the seam recorded at <stage>, whose rejected record
+    again; with `revise` handed, the hand seam and 1, never calling it; else the seam's exit, `next=run-step.sh <n>` on its 3 (the seam recorded at <stage>, whose rejected record
     sends the next call back here), REVISE.md's anchor on any other code."""
+    if "revise" in hand:
+        record(wt, n, stage, step)
+        sys.stdout.write("seam=revise code=1 reason=hand next=%s\n" % REVISE)
+        return 1
     code = run_stage("revise.sh", n, PHASES[stage])[0]
     if code == 0:
         return None
