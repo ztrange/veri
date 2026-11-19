@@ -21,7 +21,7 @@ from paths import SCRIPTS
 
 import leaf
 
-USAGE = "usage: grade-prose.sh <requirements-file> <unit>"
+USAGE = "usage: grade-prose.sh <requirements-file> <unit> | --signed <base> | --owed | --convert"
 GRADE_KEY = r"^(?!VERDICT|REASON:)\S+: "
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
 BAD_GRADE = re.compile(GRADE_KEY + r"(?!PASS\b|FAIL\b)\S", re.M)
@@ -252,6 +252,26 @@ def signed_units(base, head):
     return listed
 
 
+def graded_at(rev):
+    """{GRADED path: text} for every GRADED file of the tree at `rev`, read with git (GitFailed when it cannot)."""
+    import git
+    paths = [p for p in git.out("ls-tree", "-r", "-z", "--name-only", rev).split("\0") if os.path.basename(p) == "GRADED"]
+    return {p: git.out("show", "%s:%s" % (rev, p)) for p in paths}
+
+
+def signed(base):
+    """`grade-prose.sh --signed <base>`: one `<requirements file>\t<unit>` line per unit signed_units lists between
+    `<base>` and HEAD; exit 0, an empty list included, or 2 when git cannot read either tree."""
+    import git
+    try:
+        pairs = signed_units(graded_at(base), graded_at("HEAD"))
+    except git.GitFailed as e:
+        print("grade-prose.sh: --signed %s: %s" % (base, e), file=sys.stderr)
+        return 2
+    sys.stdout.write("".join("%s\t%s\n" % pair for pair in pairs))
+    return 0
+
+
 def graded_lines(graded):
     if not os.path.exists(graded):
         return
@@ -367,6 +387,8 @@ def main(argv):
         return max([printed(grade_unit(p, unit)) for p, unit in owed_listed(path)[0]], default=0)
     if argv == ["--convert"]:
         return convert("REQUIREMENTS.md")
+    if argv[:1] == ["--signed"] and len(argv) == 2:
+        return signed(argv[1])
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
         return 2

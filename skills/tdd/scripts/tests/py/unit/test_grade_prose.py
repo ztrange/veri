@@ -2040,3 +2040,13 @@ def test_4429_signed_units_leaves_out_a_line_the_merge_base_holds_even_duplicate
     head = {"skills/tdd/GRADED": main + "skills/tdd/SKILL.md" + SIG % "g" + main + "skills/tdd/SKILL.md" + SIG % "g"}
 
     assert grade_prose.signed_units(base, head) == [("skills/tdd/REQUIREMENTS.md", "skills/tdd/SKILL.md")]
+
+
+@pytest.mark.parametrize("argv", [["--signed"], ["--signed", "a", "b"]])
+def test_4429_signed_without_exactly_one_base_exits_2_with_its_usage_starting_nothing(run_cli, grade_prose, fake_processes,
+                                                                                      argv):
+    fake = fake_processes.answers({})
+
+    code, out, err = run_cli(grade_prose, argv)
+
+    assert (code, out, "--signed <base>" in err, fake.argvs) == (2, "", True, []), err
