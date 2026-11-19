@@ -90,17 +90,20 @@ def finish(n, wt, step, values):
     red-setup.sh's record, the tree checked, the Red and verify-red comments, and the settled file."""
     target = values["target_test"]
     red_test_id = fused_step.red_test_id(values["test_path"], target)
-    fused.checked("2", fused.script("tests-frozen.sh"), "record", "--step", step, "--red-case", red_test_id,
-                  values["test_path"], cwd=wt, out=".tdd/verify-red.reason")
-    fused.checked("2", fused.script("red-setup.sh"), "record", n, cwd=wt, ok=(0, 2, 3),
-                  stdin=read(wt, ".tdd/develop-red.out"))
+    revised = values.get("revised")  # revise.sh recorded both on the revised report and posted verify-revised
+    if not revised:
+        fused.checked("2", fused.script("tests-frozen.sh"), "record", "--step", step, "--red-case", red_test_id,
+                      values["test_path"], cwd=wt, out=".tdd/verify-red.reason")
+        fused.checked("2", fused.script("red-setup.sh"), "record", n, cwd=wt, ok=(0, 2, 3),
+                      stdin=read(wt, ".tdd/develop-red.out"))
     if [p for p in fused.changed_paths("3", wt) if not p.startswith(".tdd/") and not case_reader.is_test_path(p)]:
         raise fused.Stop("3", "tree-check", 1)
     note = ".tdd/red-half-note.md"
     with open(os.path.join(wt, note), "w") as f:
         f.write(REFRESHED.get(values["refresh"], "") + "Prediction matched: verify-red judged the test.\n")
     fused.checked("3", fused.script("comment.sh"), n, "red", "--note-file", note, cwd=wt)
-    fused.checked("3", fused.script("comment.sh"), n, "verify-red", cwd=wt)
+    if not revised:
+        fused.checked("3", fused.script("comment.sh"), n, "verify-red", cwd=wt)
     return fused.settle(wt, n, NAME, ["step=" + step, "test_path=" + values["test_path"], "target_test=" + target,
                                       "red_test_id=" + red_test_id, "against_unmodified=FAILS"])
 

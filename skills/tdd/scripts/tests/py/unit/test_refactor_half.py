@@ -502,3 +502,19 @@ def test_green_halfs_record_for_the_step_wins_over_red_halfs_4342(tidy):
 
     launch = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
     assert (code, _short(launch[1])[-2:]) == (0, ("checks/green_check.py", GREEN_SHA))
+
+
+@pytest.mark.parametrize("at", ["verdict-refactor", "skipped"])
+def test_re_entered_after_a_revised_pass_it_finishes_once_without_a_second_verify_comment_4433(tidy, at):
+    """PRD 038.9 RVS5: revise.sh posted verify-revised before re-saving the wait (`revised`)."""
+    values = {"green_sha": GREEN_SHA, "budget": 5, "touched": TOUCHED, "test_path": "tests/test_a.py", "ran": True,
+              "count": 1, "stopped": "nothing-left", "candidates": [], "flags": [], "revised": True}
+    if at == "skipped":
+        values["posted"] = True
+    (tidy.wt / ".tdd" / "issue-12-refactor-half-wait").write_text(json.dumps({"conductor": None, "at": at,
+                                                                               "values": values}))
+    code, out, err, fake = tidy()
+
+    assert (code, fake.launched()) == (0, [])
+    assert [c[1][1] for c in fake.calls if c[0] == "comment.sh"] == ["refactor"]
+    assert "refactor-budget.sh" not in fake.names()
