@@ -110,7 +110,7 @@ def check(wt, values):
     owed = []
     for line in got["FLAGS"]:
         if kind(line) == "overfit":
-            case, spec = detail(line, last=True).strip(), os.path.join(wt, SPEC % values["n"])
+            case, spec = detail(line, last=True), os.path.join(wt, SPEC % values["n"])
             owner = case and (later_owner(case, spec, values["after"]) or later_owner_by_id(case, spec, values["after"]))
             if not owner:
                 raise fused.Stop("3", "FLAGS: " + line, 1)
