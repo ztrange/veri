@@ -55,3 +55,22 @@ def test_every_step_green_ramps_make_test_at_2_4_6_up_to_the_logical_cores_and_p
     assert [workers for workers, _, _ in make.calls] == [2, 4, 6]
     assert all(tests == [] and argv[0] == "make" and argv[-1] == "test" for _, tests, argv in make.calls)
     assert "ceiling: 6 workers" in out
+
+
+@pytest.mark.parametrize("bound, steps", [("5", [2, 4]), ("2", [2]), ("8", [2, 4, 6, 8])])
+def test_max_ends_the_ramp_at_the_highest_even_step_not_above_it(make, run_cli, bound, steps):
+    code, out, err = run_cli(ceiling, ["--max", bound])
+
+    assert code == 0, err
+    assert [workers for workers, _, _ in make.calls] == steps
+    assert "ceiling: %d workers" % steps[-1] in out
+
+
+@pytest.mark.parametrize("argv", [["--max"], ["--max", "x"], ["--max", "1"], ["--max", "0"], ["--fast"],
+                                  ["--max", "4", "extra"]])
+def test_a_bad_argument_is_exit_2_with_the_usage_line_and_runs_no_suite(make, run_cli, argv):
+    code, out, err = run_cli(ceiling, argv)
+
+    assert code == 2
+    assert "usage: test-ceiling.sh [--max <n>]" in err
+    assert make.calls == []

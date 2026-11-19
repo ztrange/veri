@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 
+USAGE = "usage: test-ceiling.sh [--max <n>]\n"
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))))
 
 
@@ -18,8 +19,20 @@ def run_suite(workers, record):
                           stdin=subprocess.DEVNULL).returncode
 
 
+def bound(argv):
+    """The ramp's top: `--max <n>` when given, else the logical cores; None for any other argument or an n below 2."""
+    if not argv:
+        return os.cpu_count() or 1
+    if len(argv) == 2 and argv[0] == "--max" and argv[1].isascii() and argv[1].isdigit() and int(argv[1]) >= 2:
+        return int(argv[1])
+    return None
+
+
 def main(argv):
-    top = os.cpu_count() or 1
+    top = bound(argv)
+    if top is None:
+        sys.stderr.write(USAGE)
+        return 2
     ceiling = None
     scratch = tempfile.mkdtemp(prefix="veri-ceiling-")
     for workers in range(2, top + 1, 2):
