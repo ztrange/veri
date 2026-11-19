@@ -606,3 +606,13 @@ def test_hand_reroute_stops_where_reroute_would_run_never_calling_it_and_reroute
     assert "stage=green-half" in (step.wt / ".tdd" / "issue-12-step").read_text().splitlines()
     assert ("reroute" in run_step.STAGES, run_step.CALLS) == (True, STAGES)
     assert step(argv=("12", "--from", "reroute"))[0] == 2
+
+
+@pytest.mark.parametrize("said", ["route=revise phase=green", "route=revise phase=red"])
+def test_a_route_revise_line_with_an_exit_other_than_1_is_the_reroute_seam_never_a_revise_4434(step, said):
+    """Exit codes are the API: only reroute.sh's 1 carries a route; its 2 is no answer, whatever its last line."""
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+    code, out, err, stages = step(answers={"green-half.sh": (1, REJECTED_GREEN), "reroute.sh": (2, said + "\n")})
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (
+        2, ["red-half.sh", "green-half.sh", "reroute.sh"], "seam=reroute code=2 next=" + GREEN)
