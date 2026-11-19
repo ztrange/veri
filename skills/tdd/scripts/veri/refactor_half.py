@@ -136,13 +136,19 @@ def verify(n, wt, settled, step, values):
                       *(("--skipped",) if reason == "nothing-landed" else ()), cwd=wt)
         values["posted"] = True
         return None
-    fast = settled["fast_cmd"]
-    fused.launch("5", wt, "verdict-refactor", "run-verdict.sh", "--step", step, "--fast-cmd", fast,
-                 "--branch-base", fused_step.branch_base("5", wt, n), "refactor",
-                 SPEC % n, values["test_path"], values["green_sha"], env=fused.step_env(n, step, VERI_TEST_CMD=fast),
-                 out=".tdd/verify-refactor.reason", err=".tdd/verify-refactor.err")
+    launch_verdict("5", n, wt, settled, step, values)
     fused.save_wait(wt, n, NAME, "verdict-refactor", values)
     return "verdict-refactor"
+
+
+def launch_verdict(where, n, wt, settled, step, values):
+    """verdict-refactor's launch, stopping at <where>: the one set of run-verdict.sh arguments refactor-half.sh and
+    revise.sh's re-verify share (PRD 038.9 RVS13)."""
+    fast = settled["fast_cmd"]
+    fused.launch(where, wt, "verdict-refactor", "run-verdict.sh", "--step", step, "--fast-cmd", fast,
+                 "--branch-base", fused_step.branch_base(where, wt, n), "refactor",
+                 SPEC % n, values["test_path"], values["green_sha"], env=fused.step_env(n, step, VERI_TEST_CMD=fast),
+                 out=".tdd/verify-refactor.reason", err=".tdd/verify-refactor.err")
 
 
 def finish(n, wt, step, values):
