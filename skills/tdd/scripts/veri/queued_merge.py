@@ -772,9 +772,30 @@ def _local_stack(worktree, stack):
 
 
 def _joined_offline(pr, worktree, branch, stack):
+    """The offline join with the lock held: the online join's guards that need no network (an unticked ledger step, an
+    unresolvable HEAD, a merge commit in the run's history, a rebased tip whose content is not the merge), then the
+    rebase onto the local <stack>, the fast tier, prose-owed.sh and the full suite, the Veri-Joined amend and a
+    fast-forward of the local <stack>. A rebased tip that is the stack's own tip is exit 3 when that tip carries this
+    run's trailer (joined before), else exit 2: amending it would rewrite the stack. Returns an exit code."""
+    code = _unchecked_steps(worktree, branch)
+    if code:
+        return code
+    before = _rev(worktree, "HEAD")
+    if not before:
+        _say("the worktree's HEAD does not resolve; nothing joined")
+        return 2
     onto, refusal = _local_stack(worktree, stack)
     if refusal:
         _say(refusal + "; nothing joined")
+        return 2
+    merges = _git(worktree, "rev-list", "--merges", "%s..%s" % (onto, before))
+    if merges.returncode:
+        _say("git rev-list --merges %s..%s failed (exit %d); nothing joined" % (onto, before, merges.returncode))
+        return 2
+    if merges.stdout.strip():
+        _say("the run's history holds a merge commit (%s) and must be linear: a rebase would flatten it; nothing"
+             " joined. Rebase the run's branch onto the local %s so its history is linear, and join again"
+             % (merges.stdout.split()[0], stack))
         return 2
     try:
         base = _base_sha(worktree, branch)
@@ -792,6 +813,13 @@ def _joined_offline(pr, worktree, branch, stack):
             branch, stack, " ".join((rebase.stdout + rebase.stderr).split())[:400]))
         return 1
     checked = _rev(worktree, "HEAD")
+    if not checked:
+        return _put_back(worktree, before, "git rev-parse HEAD failed on the rebased tip")
+    if checked == onto:
+        return _rejoined(pr, worktree, branch, stack, before, onto)
+    differs = _content_differs(worktree, before, onto, base)
+    if differs:
+        return _put_back(worktree, before, differs)
     code = _tip_checks(worktree, stack)
     if code:
         return code
@@ -810,6 +838,11 @@ def _joined_offline(pr, worktree, branch, stack):
         _say("amending the rebased tip with its Veri-Joined trailer failed (exit %d): %s; the local %s not moved" % (
             amend.returncode, " ".join(amend.stderr.split())[:200], stack))
         return 2
+    # Only a fast-forward moves the local stack: the amended tip must descend from the stack it was rebased onto.
+    if _git(worktree, "merge-base", "--is-ancestor", onto, joined).returncode:
+        _say("the joined tip %s does not descend from the local %s at %s; the local %s not moved" % (
+            joined, stack, onto, stack))
+        return 2
     moved = _git(worktree, "update-ref", "refs/heads/" + stack, joined, onto)
     if moved.returncode:
         _say("moving the local %s from %s to %s failed (exit %d): %s" % (
@@ -817,6 +850,27 @@ def _joined_offline(pr, worktree, branch, stack):
         return 2
     print("joined offline, no tag %s" % joined)
     return 0
+
+
+def _rejoined(pr, worktree, branch, stack, before, onto):
+    """The rebased tip is the local <stack>'s own tip <onto>: the run adds no commit to it. Exit 3 when <onto> carries this
+    run's `Veri-Joined: <pr> <branch>` trailer (a retry after an offline join whose cleanup failed), the branch put back
+    to <before>; exit 2 otherwise. Either way nothing is amended and the stack does not move."""
+    shown = _git(worktree, "show", "-s", "--format=%(trailers:key=Veri-Joined,valueonly,unfold)", onto)
+    if shown.returncode:
+        return _put_back(worktree, before, "git show %s failed (exit %d), so whether the run joined it is not known" % (
+            onto, shown.returncode))
+    if "%s %s" % (pr, branch) not in [line.strip() for line in shown.stdout.splitlines()]:
+        return _put_back(worktree, before, "the rebased tip is the local %s's own tip %s, which carries no Veri-Joined"
+                         " trailer of %s %s: the run adds no commit, and amending it would rewrite the stack" % (
+                             stack, onto, pr, branch))
+    if before != onto and git.git("-C", worktree, "reset", "--hard", before, capture_output=True, text=True).returncode:
+        _say("the local %s at %s already carries this run's Veri-Joined trailer, but putting the branch back failed: run"
+             " git -C %s reset --hard %s; nothing joined again" % (stack, onto, worktree, before))
+        return 2
+    _say("the local %s at %s already carries this run's Veri-Joined trailer: joined before; nothing joined again" % (
+        stack, onto))
+    return 3
 
 
 def _full_gate(worktree, stack):

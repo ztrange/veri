@@ -767,3 +767,51 @@ def test_queued_merge_joins_a_hand_pull_request_with_no_ledger_and_no_run_state_
             os.path.isdir(hand), os.path.isdir(work / ".tdd" / "merge.lock")) == (
         0, ["fix: x (#12)", "feat: c (#13)", "feat: a (#11)"], ["origin", "origin/stack", "origin/trunk"],
         False, False), run.stderr
+
+
+@pytest.mark.process("queued-merge.sh run twice as its /bin/sh shim on a real linked worktree of a clone of a local bare origin, offline: the outage file set, a gh that fails on PATH")
+def test_an_offline_join_retried_after_its_cleanup_failed_is_exit_3_leaving_the_local_stack_and_its_one_trailer_as_joined(
+        tmp_path):
+    origin, clone = tmp_path / "origin.git", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], cwd=str(tmp_path), check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(clone)], cwd=str(tmp_path), check=True)
+    (clone / "CLAUDE.md").write_text("veri: stack branch: stack\nveri: fast tests: `true`\nveri: all tests: `true`\n")
+    (clone / ".gitignore").write_text(".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-*.md\n")
+    (clone / "f.txt").write_text("base\n")
+    git(clone, "add", "-A")
+    git(clone, "commit", "-q", "-m", "init")
+    git(clone, "remote", "add", "origin", str(origin))
+    git(clone, "push", "-q", "origin", "main", "main:stack")
+    git(clone, "fetch", "-q", "origin")
+    git(clone, "remote", "set-head", "origin", "main")
+    wt = clone / ".tdd" / "wt" / "7"
+    git(clone, "worktree", "add", "-q", "-b", "tdd/7-slug", str(wt), "origin/stack")
+    (wt / ".tdd").mkdir()
+    (wt / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] a step\n")
+    (wt / "f.txt").write_text("base\nrun\n")
+    git(wt, "add", "-A")
+    git(wt, "commit", "-q", "-m", "feat: run 7")
+    (wt / ".tdd" / "issue-7-base").write_text("stack\n")
+    (wt / ".tdd" / "issue-7-base-sha").write_text(git(clone, "rev-parse", "origin/stack").strip() + "\n")
+    (clone / ".tdd" / "github-outage").write_text("")
+    git(clone, "worktree", "lock", str(wt))
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    write_stub(str(bin_dir / "gh"), "#!/bin/sh\nexit 1\n")
+    env = {**os.environ, "PATH": "%s:%s" % (bin_dir, os.environ["PATH"]), "VERI_MERGE_LOCK_POLL": "0.05",
+           "GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
+           "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test"}
+    pr, argv = "https://github.com/o/r/pull/7", ["/bin/sh", str(SCRIPTS / "queued-merge.sh"),
+                                                 "https://github.com/o/r/pull/7", str(wt), "tdd/7-slug", "-"]
+
+    first = subprocess.run(argv, cwd=str(clone), env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                           timeout=60)
+    joined = git(clone, "rev-parse", "stack").strip()
+    retry = subprocess.run(argv, cwd=str(clone), env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                           timeout=60)
+
+    trailers = git(clone, "log", "--format=%(trailers:key=Veri-Joined,valueonly)", "origin/stack..stack").split("\n")
+    assert (first.returncode, "cleanup failed" in first.stderr) == (2, True), first.stderr
+    assert (retry.returncode, git(clone, "rev-parse", "stack").strip(), [t for t in trailers if t]) == (
+        3, joined, ["%s tdd/7-slug" % pr]), retry.stderr
+    assert git(clone, "log", "--format=%s", "origin/stack..stack").splitlines() == ["feat: run 7"], retry.stderr
