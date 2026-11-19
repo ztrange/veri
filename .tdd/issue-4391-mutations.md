@@ -87,3 +87,21 @@ skills/tdd/scripts/tests/py/unit/test_bail.py
 command 143
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_bail.py::test_the_report_prints_the_current_git_branch_after_the_phase_and_classification
 
+before 40
+eb03807ec3af17171b59c5af6ebb236369b4ec96
+keep 45
+skills/tdd/scripts/tests/py/unit/test_bail.py
+command 140
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_bail.py::test_needs_user_is_taken_as_given_and_the_bail_event_carries_cause_needs_user
+
+file 31
+skills/tdd/scripts/veri/bail.py
+old-b64 24
+ImNhdXNlPSIgKyBjYXVzZQ==
+new-b64 20
+ImNhdXNlPXByb2Nlc3Mi
+context-b64 152
+ICAgIHN1YnByb2Nlc3MucnVuKFtvcy5wYXRoLmpvaW4oaGVyZSwgImV2ZW50LnNoIiksICJiYWlsIiwgImNhdXNlPSIgKyBjYXVzZSwgImNsYXNzaWZpY2F0aW9uPSIgKyBjbGFzc2lmaWNhdGlvbl0s
+command 140
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_bail.py::test_needs_user_is_taken_as_given_and_the_bail_event_carries_cause_needs_user
+

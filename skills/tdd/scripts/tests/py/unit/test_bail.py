@@ -404,3 +404,17 @@ def test_the_last_four_stdout_lines_are_the_phase_the_classification_the_branch_
     report = out.splitlines()[-4:]
     assert report[:3] == ["phase: red", "classification: process", "branch: tdd/7-the-branch"]
     assert report[3] in ("worktree: /wt/four", "worktree: %s" % tmp_path)
+
+
+def test_needs_user_is_taken_as_given_and_the_bail_event_carries_cause_needs_user(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh needs-user": (0, "process\n", "")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "needs-user", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    assert code == 0
+    assert [c for c in fake.calls if c.startswith("classify-bail.sh")] == ["classify-bail.sh needs-user"]
+    assert [c for c in fake.calls if c.startswith("event.sh")] == [
+        "event.sh bail cause=needs-user classification=process"]
