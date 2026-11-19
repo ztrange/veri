@@ -7,6 +7,7 @@ import sys
 
 import fused
 import fused_step
+import green_half
 import run_dir
 import tunables
 from ledger import handed_out
@@ -81,15 +82,11 @@ def attempt(n, wt, settled, step, values):
 
 
 def verify(n, wt, settled, step, values):
-    """REVISE.md sub-step 5's re-verify: verdict-<phase> with exactly the phase stage's run-verdict.sh arguments and
-    the run's recorded branch base. The leaf launched."""
-    phase, fast = values["phase"], settled["fast_cmd"]
-    fused.launch("5", wt, "verdict-" + phase, "run-verdict.sh", "--step", step, "--fast-cmd", fast,
-                 "--branch-base", fused_step.branch_base("5", wt, n), phase, SPEC % n,
-                 values["test_path"], values["target_test"], env=fused.step_env(n, step, VERI_TEST_CMD=fast),
-                 out=".tdd/verify-%s.reason" % phase, err=".tdd/verify-%s.err" % phase)
-    fused.save_wait(wt, n, NAME, "verdict-" + phase, values)
-    return "verdict-" + phase
+    """REVISE.md sub-step 5's re-verify: verdict-<phase> launched by the phase stage's own launch, so it takes exactly
+    that stage's run-verdict.sh arguments and the run's recorded branch base (RVS13). The leaf launched."""
+    green_half.launch_verdict("5", n, wt, settled, step, values)
+    fused.save_wait(wt, n, NAME, "verdict-" + values["phase"], values)
+    return "verdict-" + values["phase"]
 
 
 if __name__ == "__main__":

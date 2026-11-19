@@ -95,13 +95,19 @@ def verify(n, wt, settled, step, values):
         with open(os.path.join(wt, ".tdd", "verdict-green.exit"), "w") as f:
             f.write("skipped\n")
         return None
-    fast = settled["fast_cmd"]
-    fused.launch("2", wt, "verdict-green", "run-verdict.sh", "--step", step, "--fast-cmd", fast,
-                 "--branch-base", fused_step.branch_base("2", wt, n), "green", SPEC % n,
-                 values["test_path"], values["target_test"], env=fused.step_env(n, step, VERI_TEST_CMD=fast),
-                 out=".tdd/verify-green.reason", err=".tdd/verify-green.err")
+    launch_verdict("2", n, wt, settled, step, values)
     fused.save_wait(wt, n, NAME, "verdict-green", values)
     return "verdict-green"
+
+
+def launch_verdict(where, n, wt, settled, step, values):
+    """verdict-green's launch, stopping at <where>: the one set of run-verdict.sh arguments green-half.sh and
+    revise.sh's re-verify share (PRD 038.9 RVS13)."""
+    fast = settled["fast_cmd"]
+    fused.launch(where, wt, "verdict-green", "run-verdict.sh", "--step", step, "--fast-cmd", fast,
+                 "--branch-base", fused_step.branch_base(where, wt, n), "green", SPEC % n,
+                 values["test_path"], values["target_test"], env=fused.step_env(n, step, VERI_TEST_CMD=fast),
+                 out=".tdd/verify-green.reason", err=".tdd/verify-green.err")
 
 
 def finish(n, wt, step, values):
