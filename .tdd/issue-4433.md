@@ -1,6 +1,6 @@
 # Plan for #4433 — PRD 038.9: a revise stage runs REVISE.md through the runner
 
-- [ ] a phase stage whose verifier REJECTs keeps its wait values as `.tdd/issue-<n>-<stage>-rejected-wait`, so a revise can hand them back ⟦criterion 5⟧
+- [x] a phase stage whose verifier REJECTs keeps its wait values as `.tdd/issue-<n>-<stage>-rejected-wait`, so a revise can hand them back ⟦criterion 5⟧
 - [ ] `comment.sh <n> revise <phase> <k>` posts `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` with `.tdd/verify-<phase>.reason` verbatim ⟦criterion 1⟧
 - [ ] `revise.sh <n> green` attempt 1 builds the revise prompt, posts the Revise comment, writes the `revise` mark and launches `revise-green-1` with the phase's `VERI_TEST_CMD`, exiting 3 with a wait record; a bad phase or missing preflight is exit 2 ⟦criterion 1⟧ ⟦criterion 3⟧ ⟦criterion 12⟧
 - [ ] called again, `revise.sh <n> green` only waits, then runs `step-cost.sh` and `tests-frozen.sh check` and launches `verdict-green` with green-half's `run-verdict.sh` arguments and the recorded branch base, exiting 3 ⟦criterion 1⟧ ⟦criterion 3⟧ ⟦criterion 13⟧
