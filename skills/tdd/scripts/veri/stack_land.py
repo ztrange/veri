@@ -70,6 +70,26 @@ def _closes(stack, default, cut):
     return "".join("Closes #%s\n" % n for n in issues if int(n) in joined)
 
 
+def _unproven(default, cut):
+    """The slice body's lines naming what no suite proved: one per commit of origin/<default>..<cut> whose Veri-Suite
+    trailer reads skipped, in the range's order, then one naming .tdd/stack-local-red in the main working tree when it
+    exists, with its first line. A range with neither gives none."""
+    span = "origin/%s..%s" % (default, cut)
+    said = _read("git log of " + span, git.out, "log", "--reverse",
+                 "--format=%h%x1f%s%x1f%(trailers:key=Veri-Suite,valueonly,unfold,separator=%x20)", span)
+    lines = []
+    for record in said.splitlines():
+        short, subject, suite = (record.split("\x1f") + ["", ""])[:3]
+        if suite.startswith("skipped"):
+            lines.append("Suite skipped on %s %s: %s\n" % (short, subject, suite.strip()))
+    red = os.path.join(run_dir.main_tree_from_files(), ".tdd", "stack-local-red")
+    if os.path.exists(red):
+        with open(red, encoding="utf-8", errors="replace") as f:
+            first = f.readline().strip()
+        lines.append(".tdd/stack-local-red exists: a local full run was red: %s\n" % first)
+    return "".join(lines)
+
+
 def _pull(repo, number):
     """GitHub's record of pull request <number> of <repo>, read as queued-merge.sh reads it; None when GitHub gave no
     answer or the answer is not a JSON object, so the settle window reads again."""
@@ -246,7 +266,8 @@ def main(argv):
             pr = reused[0].html_url
         else:
             pr = _read("opening the pull request from %s to %s" % (slice_branch, default), github.pr_open, slice_branch,
-                       default, "Land %s at %s" % (stack, cut[:10]), _closes(stack, default, cut))
+                       default, "Land %s at %s" % (stack, cut[:10]),
+                       _closes(stack, default, cut) + _unproven(default, cut))
         repo, number = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)
         said = []
 

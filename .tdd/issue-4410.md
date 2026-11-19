@@ -12,6 +12,6 @@
 - [x] stack-recover.sh deletes each joined run's remote branch and refs/veri/runs/<n>, runs stack-pr.sh and on exit 0 prints <tip-sha> <tracking-pr-url> ⟦criterion 8⟧
 - [x] stack-recover.sh exits 2 when stack-pr.sh exits 2 or 3, naming it, the push and cleanup kept
 - [x] a real-git process case recovers two offline joins end to end against a bare origin
-- [ ] stack-land.sh's slice PR body gains one line per Veri-Suite: skipped commit in its range and one naming .tdd/stack-local-red when it exists ⟦criterion 9⟧
+- [x] stack-land.sh's slice PR body gains one line per Veri-Suite: skipped commit in its range and one naming .tdd/stack-local-red when it exists ⟦criterion 9⟧
 - [ ] voutage SKILL.md and SCRIPTS.md say what VO10, VO7 and SC598 say, graded ⟦criterion 10⟧
 - [ ] nothing touched names a repository, issue, branch, label or person ⟦criterion 11⟧
