@@ -21,4 +21,4 @@
 - [x] a non-zero `comment.sh <n> bailed --pr` is named on its call line and bail.sh still ends exit 0 with the `bail` event written and its report printed; an in-process case with call spies ⟦criterion 2⟧
 - [x] bail.sh's last stdout lines are the phase, the classification, the branch and the worktree path, sub-step 8's report; an in-process case with call spies ⟦criterion 5⟧
 - [x] bail.sh takes `<cause>` as given and derives none: passed `needs-user`, the `bail` event carries `cause=needs-user`; an in-process case with call spies ⟦criterion 4⟧
-- [ ] no `Read <base directory>/BAIL.md` site outside `skills/tdd/BAIL.md` changes, and `skills/tdd/SKILL.md` is unchanged ⟦diff-checked⟧ ⟦criterion 6⟧
+- [x] no `Read <base directory>/BAIL.md` site outside `skills/tdd/BAIL.md` changes, and `skills/tdd/SKILL.md` is unchanged ⟦diff-checked⟧ ⟦criterion 6⟧
