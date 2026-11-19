@@ -169,3 +169,33 @@ def test_a_re_run_alone_exiting_non_zero_with_no_failed_case_recorded_is_exit_2_
     assert code == 2
     assert "make test exited 2 running %s alone" % SLOW in err
     assert "ceiling:" not in out
+
+
+def registry(legs):
+    return {path.name: path.read_text() for path in legs.iterdir()} if legs.is_dir() else {}
+
+
+def test_each_step_registers_its_workers_in_the_legs_registry_for_its_duration_re_runs_included(make, run_cli,
+                                                                                                tmp_path, monkeypatch):
+    legs = tmp_path / "legs"
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+    seen = []
+    make.given(lambda workers, tests: seen.append(registry(legs)) or ([(SLOW, TIMEOUT)] if workers == 4 and not tests else []))
+
+    code, out, err = run_cli(ceiling, [])
+
+    assert code == 0, err
+    me = str(ceiling.os.getpid())
+    assert seen == [{me: "2\n%s\n" % STARTED}, {me: "4\n%s\n" % STARTED}, {me: "4\n%s\n" % STARTED}]
+    assert registry(legs) == {}
+
+
+def test_a_step_with_no_answer_still_removes_its_registry_entry(make, run_cli, tmp_path, monkeypatch):
+    legs = tmp_path / "legs"
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+    make.given(lambda workers, tests: [(RED, "E   assert 1 == 2")])
+
+    code, _, _ = run_cli(ceiling, [])
+
+    assert code == 2
+    assert registry(legs) == {}

@@ -1,10 +1,17 @@
 """test-ceiling.sh's ramp, run in-process: the highest test-worker count `make test` runs at with no case timeout."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import fcntl
 import json
 import os
 import subprocess
 import sys
 import tempfile
+
+from full_run_lock import legs_dir
+
+# The leg's registry (registration, unregister) lives in the pytest leg, tests/leg/, beside its plugins.
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "tests", "leg"))
+import pytest_leg  # noqa: E402
 
 USAGE = "usage: test-ceiling.sh [--max <n>]\n"
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))))
@@ -47,6 +54,18 @@ def bound(argv):
     return None
 
 
+def register(workers):
+    """Registers <workers> under this process's pid in the legs registry, as a leg would; returns the entry's path."""
+    legs = legs_dir()
+    os.makedirs(legs, exist_ok=True)
+    with open(legs.rstrip("/") + ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        entry = os.path.join(legs, str(os.getpid()))
+        with open(entry, "w") as f:
+            f.write(pytest_leg.registration(workers))
+    return entry
+
+
 class NoAnswer(Exception):
     """A step that says nothing about load: exit 2, the message naming why."""
 
@@ -82,7 +101,12 @@ def main(argv):
     scratch = tempfile.mkdtemp(prefix="veri-ceiling-")
     try:
         for workers in range(2, top + 1, 2):
-            if step(workers, scratch):
+            entry = register(workers)
+            try:
+                timeouts = step(workers, scratch)
+            finally:
+                pytest_leg.unregister(entry)
+            if timeouts:
                 break
             ceiling = workers
     except NoAnswer as error:
