@@ -57,9 +57,10 @@ def main(argv):
                    env=env, capture_output=True, text=True)
     metrics = _commit_metrics(here, issue)
     _run("push-branch.sh", [os.path.join(here, "push-branch.sh")])
-    drift = subprocess.run([os.path.join(here, "skill-drift.sh")], capture_output=True, text=True)
+    drift = _run("skill-drift.sh", [os.path.join(here, "skill-drift.sh")])
     with open(note_file, "a") as f:
-        f.write("\n" + drift.stdout)
+        f.write("\n" + (drift.stdout if drift.returncode == 0
+                        else "Skill drift: unavailable — skill-drift.sh exited %d\n" % drift.returncode))
         f.write("\n" + (metrics.stdout if metrics.returncode == 0
                         else "metrics could not be rendered: metrics.sh exited %d\n" % metrics.returncode))
     _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--note-file", note_file])

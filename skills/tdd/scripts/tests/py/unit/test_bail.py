@@ -281,3 +281,33 @@ def test_the_note_both_bailed_comments_are_handed_carries_skill_drift_sh_s_stdou
     assert code == 0 and len(handed) == 2
     for note in handed:
         assert "DRIFT-BLOCK-TEXT" in note
+
+
+def test_a_non_zero_skill_drift_exit_is_named_on_its_call_line_and_puts_skill_drift_unavailable_in_the_note_while_both_comments_still_run(
+        run_cli, fake_processes, bail, tmp_path):
+    (tmp_path / "n.md").write_text("CONDUCTOR-NOTE-TEXT\n")
+    handed = []
+
+    def comment(line, **kwargs):
+        argv = fake.argvs[-1]
+        with open(argv[argv.index("--note-file") + 1]) as f:
+            handed.append(f.read())
+        return (0, "", "")
+
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "metrics.sh 7": (0, "METRICS-BLOCK-TEXT\n", ""),
+         "skill-drift.sh": (4, "PARTIAL-DRIFT-TEXT\n", "boom\n"),
+         "comment.sh": comment}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    assert code == 0 and len(handed) == 2
+    for note in handed:
+        assert "Skill drift: unavailable — skill-drift.sh exited 4" in note
+        assert "PARTIAL-DRIFT-TEXT" not in note
+    drift_lines = [line for line in out.splitlines() if "skill-drift.sh" in line]
+    assert len(drift_lines) == 1 and "4" in drift_lines[0]
+    assert [c.split()[0] for c in fake.calls if c.startswith(("event.sh", "comment.sh"))] == [
+        "event.sh", "comment.sh", "comment.sh"]
