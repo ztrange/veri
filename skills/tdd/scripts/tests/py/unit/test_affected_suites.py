@@ -1155,9 +1155,9 @@ def test_a_changed_module_lists_the_process_files_running_a_shim_of_another_name
     monkeypatch.chdir(tmp_path)
     plant(tmp_path, {
         "skills/tdd/scripts/veri/prd_tally.py": "def main():\n    pass\n",
-        "skills/tdd/scripts/tally.sh": '#!/bin/sh\n# tally.sh: a shim\nexec "$py" "$(dirname "$0")/veri/prd_tally.py" "$@"\n',
+        "skills/tdd/scripts/tally-up.sh": '#!/bin/sh\n# tally-up.sh: a shim\nexec "$py" "$(dirname "$0")/veri/prd_tally.py" "$@"\n',
         "skills/tdd/scripts/mentions-tally.sh": '#!/bin/sh\n# reads what veri/prd_tally.py writes\nexec "$py" "$(dirname "$0")/veri/other.py"\n',
-        PY + "test_tally_process.py": 'subprocess.run([str(SCRIPTS / "tally.sh")])\n',
+        PY + "test_tally_process.py": 'subprocess.run([str(SCRIPTS / "tally-up.sh")])\n',
         PY + "test_mentions_tally_process.py": 'subprocess.run([str(SCRIPTS / "mentions-tally.sh")])\n',
     })
 
