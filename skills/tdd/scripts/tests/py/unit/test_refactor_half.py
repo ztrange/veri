@@ -308,6 +308,24 @@ def test_4438_an_id_that_names_no_later_step_whole_or_names_the_current_step_sti
     assert (code, out.splitlines()[-1]) == (1, "stopped at 3 " + line)
 
 
+def test_4438_an_id_only_a_later_unchecked_steps_ledger_text_carries_defers_to_it(tidy):
+    later = "two, as RPR7 requires ⟦criterion 2⟧"
+    code, out, line = _flagged(tidy, "a stage exits non-zero and stops (RPR7)", ID_LEDGER % (STEP, later),
+                               criteria=ID_SPEC % ("RPR0", "RPR2"))
+
+    assert code == 0
+    note = (tidy.wt / ".tdd" / "refactor-half-note.md").read_text()
+    assert "(owed by %s)\n" % later in note
+
+
+def test_4438_an_id_only_the_current_steps_ledger_text_carries_still_stops_at_3(tidy):
+    step = "one thing works, as RPR7 requires ⟦criterion 1⟧"
+    code, out, line = _flagged(tidy, "a stage exits non-zero and stops (RPR7)", ID_LEDGER % (step, LATER), step=step,
+                               criteria=ID_SPEC % ("RPR0", "RPR7"))
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 3 " + line)
+
+
 @pytest.mark.parametrize("budget, count, result, triage, stopped", [
     ("refactor 0/1", "1\n", "RESULT: extract f\n", 0, "budget"),
     ("refactor 0/5", "1\n", "RESULT: nothing left to tidy\n", 0, "nothing-left"),
