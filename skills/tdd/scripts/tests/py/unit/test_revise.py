@@ -173,3 +173,15 @@ def test_a_reverify_reject_spends_attempt_k_and_goes_on_to_k_plus_1_unless_same_
         assert (code, out.splitlines()[-1]) == (
             1, "stopped at 1 same-reject.sh .tdd/verify-green-1.reason .tdd/verify-green.reason exit 0")
         assert (comments, fake.launched()) == ([("12", "revise", "green", "1")], ["revise-green-1", "verdict-green"])
+
+
+def test_once_revise_budget_attempts_are_spent_it_stops_with_exit_1_naming_the_budget_launching_nothing_more(
+        revise, monkeypatch):
+    """PRD 038.9 criteria 6 and 12: REVISE_BUDGET read through tunables; never a develop-exhausted leaf."""
+    monkeypatch.setenv("REVISE_BUDGET", "1")
+    code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (1, "")})
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at budget REVISE_BUDGET=1 attempts spent")
+    assert [c[1] for c in fake.calls if c[0] == "comment.sh"] == [("12", "revise", "green", "1")]
+    assert fake.launched() == ["revise-green-1", "verdict-green"]
+    assert [c[1] for c in fake.calls if c[0] == "build-develop-prompt.sh"][1:] == []
