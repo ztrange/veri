@@ -20,7 +20,7 @@ CALLS = ("wrong-test-route.sh", "event.sh", "build-develop-prompt.sh", "stop-req
          "supervise.sh", "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "extract-result.sh",
          "run-verdict.sh", "tests-frozen.sh")
 # The answers this stage runs (S12) -> the rerouted red's prompt phase, its leaf being `develop-<phase>`.
-RUNS = {"red": "red-contradicted"}
+RUNS = {"red": "red-contradicted", "repair": "red-repair", "supersede": "red-supersede", "missing": "red-missing"}
 
 
 def main(argv):
@@ -57,9 +57,23 @@ def run(n, report):
         fused_step.cost_check(wt, step)
         values.update(edited(wt, values))
         at = verify(n, wt, settled, step, values)
-    if at == "verdict-red":
+    while at == "verdict-red":
         waited(wt, n, "verify", at)
+        values["verify"] = values["verify"][1:]
+        at = verify(n, wt, settled, step, values) if values["verify"] else None
     return finish(wt, step, values)
+
+
+def prompt(kind, cases, report):
+    """build-develop-prompt.sh's arguments after <test-cmd> for the answer's red: `red <case>`, `repair <case>
+    <superseded>…`, `supersede <case>…` and `missing <behaviour>`, the report being the brief of the last three."""
+    if kind == "red":
+        return cases[:1]
+    if kind == "repair":
+        return [cases[0], report] + cases[1:]
+    if kind == "supersede":
+        return [report] + cases
+    return [report]
 
 
 def waited(wt, n, where, name):
@@ -72,8 +86,12 @@ def waited(wt, n, where, name):
 def edited(wt, values):
     """The rerouted red's report: the case it edited, to verify, and every test path the re-record covers."""
     got = fused.report("leaf", wt, ".tdd/%s.out" % values["leaf"], "TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED")
-    paths = [values["own_path"]] + [got["TEST_PATH"]]
-    return {"verify": [[got["TEST_PATH"], got["TARGET_TEST"]]], "paths": list(dict.fromkeys(paths))}
+    if values["kind"] == "supersede":  # one report for every named case: no single case is its target
+        cases = [[case.partition("::")[0], case] for case in values["cases"]]
+    else:
+        cases = [[got["TEST_PATH"], got["TARGET_TEST"]]]
+    paths = [values["own_path"]] + [path for path, _ in cases]
+    return {"verify": cases, "paths": list(dict.fromkeys(paths))}
 
 
 def verify(n, wt, settled, step, values):
@@ -104,8 +122,8 @@ def launch(n, wt, settled, step, report, own, own_path):
     phase = RUNS[kind]
     leaf = "develop-" + phase
     fast = settled["fast_cmd"]
-    fused.checked("launch", fused.script("build-develop-prompt.sh"), phase, SPEC % n, step, fast, *rest.split(),
-                  cwd=wt, out=".tdd/%s.prompt" % leaf)
+    fused.checked("launch", fused.script("build-develop-prompt.sh"), phase, SPEC % n, step, fast,
+                  *prompt(kind, rest.split(), report), cwd=wt, out=".tdd/%s.prompt" % leaf)
     fused.launch("launch", wt, leaf, "run-leaf.sh", ".tdd/%s.prompt" % leaf, "--permission-mode", "bypassPermissions",
                  env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/%s.out" % leaf, err=".tdd/%s.err" % leaf)
     values = {"kind": kind, "cases": rest.split(), "report": report, "own": own, "own_path": own_path, "leaf": leaf}

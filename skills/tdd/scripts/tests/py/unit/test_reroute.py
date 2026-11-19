@@ -19,12 +19,14 @@ class Fake:
     """A run_script stand-in: records (basename, args, cwd, env, kw) and answers from <answers>, keyed by
     (basename, first argument or None) -> (code, stdout); extract-result.sh echoes the report it is fed."""
 
-    def __init__(self, answers=None):
-        self.answers, self.calls = dict(answers or {}), []
+    def __init__(self, answers=None, waits=None):
+        self.answers, self.calls, self.waits = dict(answers or {}), [], dict(waits or {})
 
     def __call__(self, name, *args, cwd=None, env=None, **kw):
         base = os.path.basename(name)
         self.calls.append((base, args, cwd, env, kw))
+        if base == "wait-leaf.sh" and self.waits.get(args[0]):
+            return self.waits[args[0]].pop(0), "", ""
         for (script, first), (code, out) in self.answers.items():
             if base == script and (first is None or args[:1] == (first,)):
                 return code, out, ""
@@ -171,3 +173,37 @@ def test_on_a_verify_red_pass_it_rerecords_the_frozen_tests_over_both_test_paths
     assert record[4]["out"] == ".tdd/verify-red.reason"
     assert fake.names()[-1] == "tests-frozen.sh"
     assert not (reroute.wt / ".tdd" / "issue-12-reroute-wait").exists()
+
+
+@pytest.mark.parametrize("said, kind, phase, args", [
+    ("repair tests/test_a.py::test_one tests/test_c.py::test_old", "repair", "red-repair",
+     ("tests/test_a.py::test_one", GREEN, "tests/test_c.py::test_old")),
+    ("supersede tests/test_c.py::test_x tests/test_d.py::test_y", "supersede", "red-supersede",
+     (GREEN, "tests/test_c.py::test_x", "tests/test_d.py::test_y")),
+    ("missing the empty list is rejected", "missing", "red-missing", (GREEN,))])
+def test_repair_supersede_and_missing_launch_their_own_red_with_their_prompt_arguments_4434(
+        reroute, said, kind, phase, args):
+    """PRD 038.10 RRT2: `red-repair`, `red-supersede` and `red-missing`, each with its event before the launch."""
+    code, out, err, fake = reroute(answers={("wrong-test-route.sh", None): (0, said + "\n"),
+                                            ("wait-leaf.sh", None): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on develop-" + phase)
+    assert fake.call("event.sh")[1] == ("reroute", "kind=" + kind, "case=" + said.split(" ", 1)[1])
+    assert fake.call("build-develop-prompt.sh")[1] == (phase, ".tdd/issue-12-spec.md", STEP, "make unit") + args
+    assert fake.launched() == ["develop-" + phase]
+
+
+def test_supersede_verifies_each_named_case_in_turn_then_rerecords_over_every_test_path_4434(reroute):
+    """PRD 038.10 RRT2: `supersede` names two or more cases, and each edited one goes through verify-red."""
+    said = "supersede tests/test_c.py::test_x tests/test_d.py::test_y\n"
+    reroute(answers={("wrong-test-route.sh", None): (0, said), ("wait-leaf.sh", "develop-red-supersede"): (3, "")})
+    report = "TEST_PATH: tests/test_c.py\nTARGET_TEST: NONE — updated together\nAGAINST_UNMODIFIED: FAILS\n"
+    first = reroute(answers={("wait-leaf.sh", "verdict-red"): (3, "")}, files={"develop-red-supersede.out": report})
+    second = reroute(fake=Fake(waits={"verdict-red": [0, 3]}))
+    code, out, err, fake = reroute()
+
+    targets = [[a for a in c[1] if "::" in a] for f in (first, second) for c in f[3].calls if c[0] == "detach-leaf.sh"]
+    assert (first[0], second[0], code) == (3, 3, 0), out + err
+    assert targets == [["tests/test_c.py::test_x"], ["tests/test_d.py::test_y"]]
+    assert fake.call("tests-frozen.sh")[1] == ("record", "--step", STEP, "--red-case", OWN, "tests/test_a.py",
+                                               "tests/test_c.py", "tests/test_d.py")
