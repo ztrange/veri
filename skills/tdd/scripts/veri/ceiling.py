@@ -29,8 +29,10 @@ def run_suite(workers, record, tests=()):
     """Runs `make test` at <workers> workers, over <tests> when named (else its full selection), the recorder plugin
     appending each failing case to <record>; returns make's exit code and the failing cases, each node id mapped to
     whether it failed by its per-case timeout."""
+    # PYTEST_PLUGINS names the recorder alone (the leg appends its own plugins): a caller's extra plugins would run in
+    # every step and skew what the ramp measures.
     env = tunables.with_values(VERI_PYTEST_WORKERS=str(workers), VERI_CEILING_RECORD=record,
-                               PYTEST_PLUGINS=",".join(filter(None, [tunables.read("PYTEST_PLUGINS"), "ceiling_record"])))
+                               PYTEST_PLUGINS="ceiling_record")
     argv = ["make", "--no-print-directory", "-C", ROOT, "test"] + (["TESTS=" + " ".join(tests)] if tests else [])
     code = subprocess.run(argv, env=env, stdin=subprocess.DEVNULL).returncode
     return code, failures(record)
