@@ -130,8 +130,7 @@ def replay_before(pin, ledger, root=Path("."), span=None):
 
 
 @contextlib.contextmanager
-def base_worktree():
-    base = git_out("merge-base", "origin/main", "HEAD").strip()
+def base_worktree(base):
     scratch = tempfile.mkdtemp()
     tree = Path(scratch) / "base"
     try:
@@ -146,13 +145,13 @@ def base_worktree():
         shutil.rmtree(scratch, ignore_errors=True)
 
 
-def replay_on_base(pin, ledger, span=None):
-    with base_worktree() as tree:
+def replay_on_base(pin, ledger, branch_base, span=None):
+    with base_worktree(branch_base) as tree:
         return None if tree is None else replay_before(pin, ledger, tree, span)
 
 
-def mutation_green_on_base(pin):
-    with base_worktree() as tree:
+def mutation_green_on_base(pin, branch_base):
+    with base_worktree(branch_base) as tree:
         if tree is None:
             return None
         target = tree / pin["file"]
@@ -225,7 +224,7 @@ def classify(ledger, pin, deleted, declared):
     return Outcome(kind, named, gone, command=command)
 
 
-def replay_before_state(pin, ledger, named, base):
+def replay_before_state(pin, ledger, named, base, branch_base):
     """Replay a before-pin on the range, then on the base; 0 nothing to count, 1 a red status, 2 no answer."""
     green, names = replay_names(pin, ledger)
     span = (green, present_in_range(names, base))
@@ -233,7 +232,7 @@ def replay_before_state(pin, ledger, named, base):
     if replayed is None:
         return 2
     if replayed == 0:
-        on_base = replay_on_base(pin, ledger, span)
+        on_base = replay_on_base(pin, ledger, branch_base, span)
         if on_base is None:
             return 2
         if on_base == 0:
@@ -244,7 +243,7 @@ def replay_before_state(pin, ledger, named, base):
     return 0
 
 
-def replay(pin, ledger, looks):
+def replay(pin, ledger, looks, branch_base):
     """Replay a mutation pin: the mutation, then a control run; 0 nothing to count, 1 a red status, 2 no answer."""
     path = Path(pin["file"])
     if not path.exists():
@@ -293,7 +292,7 @@ def replay(pin, ledger, looks):
         if control.returncode == 0:
             needs_a_look(looks, pin["file"], "mutation and control green")
             return 0
-        on_base = mutation_green_on_base(pin)
+        on_base = mutation_green_on_base(pin, branch_base)
         if on_base is None:
             return 2
         if on_base:
@@ -309,7 +308,7 @@ def replay(pin, ledger, looks):
 def recheck(argv, looks):
     if argv[:1] != ["--branch-base"] or len(argv) < 2 or not re.fullmatch(r"[0-9a-f]{7,40}", argv[1]):
         return entry.refuse(BRANCH_BASE_REFUSAL, usage=USAGE)
-    argv = argv[2:]
+    branch_base, argv = argv[1], argv[2:]
     if not argv or argv[1:] and (argv[1] != "--ledger" or len(argv) != 3):
         return entry.refuse(usage=USAGE)
     touched = set(git_out("diff", "--name-only", f"{argv[0]}..HEAD").split())
@@ -356,7 +355,7 @@ def recheck(argv, looks):
         missing = [n for n in outcome.named if not Path(n.split("::")[0]).exists()]
         if missing:
             for n in missing:
-                if subprocess.run(["git", "cat-file", "-e", f"origin/main:{n.split('::')[0]}"],
+                if subprocess.run(["git", "cat-file", "-e", f"{branch_base}:{n.split('::')[0]}"],
                                   capture_output=True).returncode == 0:
                     sys.stderr.write(f"named test missing at HEAD: {n} (pin file {ledger})\n")
                     return 2
@@ -367,9 +366,9 @@ def recheck(argv, looks):
             retired += 1
             continue
         if outcome.kind is Kind.REPLAY_BEFORE:
-            code = replay_before_state(pin, ledger, outcome.named, argv[0])
+            code = replay_before_state(pin, ledger, outcome.named, argv[0], branch_base)
         else:
-            code = replay(pin, ledger, looks)
+            code = replay(pin, ledger, looks, branch_base)
         if code == 2:
             return 2
         status = status or code
