@@ -9,9 +9,9 @@ import unreachable
 from conftest import ROOT
 
 SHIM = "test-ceiling.sh"
-# The files that may name the shim: itself, the module behind it, its catalogue entries and its tests.
+# The files that may name the shim: itself, the module behind it, its catalogue entries and rows, and its tests.
 DESCRIBES = {"skills/tdd/scripts/test-ceiling.sh", "skills/tdd/scripts/veri/ceiling.py", "skills/tdd/SCRIPTS.md",
-             "skills/tdd/scripts/veri/README.md"}
+             "skills/tdd/REQUIREMENTS.md", "skills/tdd/scripts/veri/README.md"}
 
 
 def recipes(makefile):
