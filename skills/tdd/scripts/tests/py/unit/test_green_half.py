@@ -504,3 +504,18 @@ def test_a_verdict_reject_keeps_the_stage_wait_record_as_its_rejected_record_and
         assert (record["conductor"], record["at"], record["values"]) == (
             {"pid": "111", "started": "Tue Nov 17 07:00:00 2026"}, "verdict-green",
             {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"})
+
+
+@pytest.mark.parametrize("at", ["verdict-green", "skipped"])
+def test_re_entered_after_a_revised_pass_it_finishes_once_without_a_second_verify_comment_4433(green, at):
+    """PRD 038.9 RVS5: revise.sh posted verify-revised before re-saving the wait (`revised`)."""
+    values = {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one", "revised": True}
+    if at == "skipped":
+        values["posted"] = True
+    (green.wt / ".tdd" / "issue-12-green-half-wait").write_text(json.dumps({"conductor": None, "at": at,
+                                                                             "values": values}))
+    code, out, err, fake = green()
+
+    assert (code, fake.launched()) == (0, [])
+    assert [c[1][1] for c in fake.calls if c[0] == "comment.sh"] == ["green"]
+    assert [c[1][0] for c in fake.calls if c[0] == "git" and c[1][0] == "commit"] == ["commit"]

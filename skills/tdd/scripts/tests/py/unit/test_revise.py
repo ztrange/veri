@@ -152,7 +152,8 @@ def test_on_a_revised_pass_it_posts_verify_revised_resaves_green_halfs_wait_at_v
     assert (fake.calls[-1][0], fake.calls[-1][1]) == ("comment.sh", ("12", "verify-revised", "green"))
     record = json.loads((revise.wt / ".tdd" / "issue-12-green-half-wait").read_text())
     assert (record["at"], record["values"]) == (
-        "verdict-green", {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"})
+        "verdict-green", {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one",
+                          "revised": True})
     assert not rejected.exists()
     assert not (revise.wt / ".tdd" / "issue-12-revise-wait").exists()
 
@@ -234,7 +235,8 @@ def test_with_the_phase_switched_off_it_marks_the_skip_writes_skipped_and_goes_o
     assert (fake.calls[-1][0], fake.calls[-1][1]) == ("comment.sh", ("12", "verify-revised", "green"))
     record = json.loads((revise.wt / ".tdd" / "issue-12-green-half-wait").read_text())
     assert (record["at"], record["values"]) == (
-        "skipped", {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one", "posted": True})
+        "skipped", {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one", "posted": True,
+                    "revised": True})
 
 
 RED_REPORT = "TEST_PATH: tests/test_b.py\nTARGET_TEST: tests/test_b.py::test_two\nAGAINST_UNMODIFIED: FAILS\n" \
@@ -275,7 +277,7 @@ def test_red_restores_production_gates_the_prediction_and_on_pass_records_and_re
     assert fake.call("red-setup.sh")[4]["stdin"] == "the revise-red-1.out report\n"
     record = json.loads((revise.wt / ".tdd" / "issue-12-red-half-wait").read_text())
     assert (record["at"], record["values"]) == ("verdict-red", dict(
-        RED_VALUES, test_path="tests/test_b.py", target_test="tests/test_b.py::test_two"))
+        RED_VALUES, test_path="tests/test_b.py", target_test="tests/test_b.py::test_two", revised=True))
     assert not (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").exists()
 
 
@@ -338,7 +340,7 @@ def test_refactor_runs_no_step_cost_reverifies_with_refactor_halfs_green_sha_and
     assert _short(verdict[1])[-4:] == ("refactor", ".tdd/issue-12-spec.md", "tests/test_a.py", GREEN_SHA)
     assert (fake.calls[-1][0], fake.calls[-1][1]) == ("comment.sh", ("12", "verify-revised", "refactor"))
     record = json.loads((revise.wt / ".tdd" / "issue-12-refactor-half-wait").read_text())
-    assert (record["at"], record["values"]) == ("verdict-refactor", REF_VALUES)
+    assert (record["at"], record["values"]) == ("verdict-refactor", dict(REF_VALUES, revised=True))
     assert not (revise.wt / ".tdd" / "issue-12-refactor-half-rejected-wait").exists()
 
 
@@ -351,7 +353,7 @@ def test_refactor_switched_off_resaves_refactor_halfs_wait_past_its_verify_with_
 
     assert (code, fake.launched()) == (0, ["revise-refactor-1"])
     record = json.loads((revise.wt / ".tdd" / "issue-12-refactor-half-wait").read_text())
-    assert (record["at"], record["values"]) == ("skipped", dict(REF_VALUES, posted=True))
+    assert (record["at"], record["values"]) == ("skipped", dict(REF_VALUES, posted=True, revised=True))
 
 
 @pytest.mark.parametrize("answer, last", [

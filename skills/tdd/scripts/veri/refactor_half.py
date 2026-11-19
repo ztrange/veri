@@ -161,7 +161,7 @@ def finish(n, wt, step, values):
     with open(os.path.join(wt, note), "w") as f:
         f.write(narration(values, verdict_flags))
     fused.checked("6", fused.script("comment.sh"), n, "refactor", "--note-file", note, cwd=wt)
-    if not values.get("posted"):
+    if not values.get("posted") and not values.get("revised"):  # revise.sh posted verify-revised in its place
         fused.checked("6", fused.script("comment.sh"), n, "verify-refactor", cwd=wt)
     fused.mark("6", wt, n, step, "refactor", "transforms=%d" % values["count"], "budget=%d" % values["budget"],
                "stopped=" + values["stopped"], "pass=1", VERI_PHASE="refactor")

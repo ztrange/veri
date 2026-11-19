@@ -249,6 +249,7 @@ def finish(n, wt, values, at):
     kept = dict(rejected[1] if rejected else {})
     if phase != "refactor":
         kept.update(test_path=values["test_path"], target_test=values["target_test"])
+    kept["revised"] = True
     if at == SKIPPED:
         kept["posted"] = True
     fused.save_wait(wt, n, stage, at, kept)

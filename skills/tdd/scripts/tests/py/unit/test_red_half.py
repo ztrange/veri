@@ -513,3 +513,21 @@ def test_4026_a_clean_run_makes_the_calls_of_the_ordered_list_in_its_order(red):
     firsts = [made.index(name) for name in red_half.CALLS if name in made and name not in (
         "supervise.sh", "run-leaf.sh", "run-verdict.sh")]
     assert firsts == sorted(firsts)
+
+
+@pytest.mark.parametrize("at", ["verdict-red", "skipped"])
+def test_re_entered_after_a_revised_pass_it_finishes_once_without_a_second_verify_comment_or_record_4433(red, at):
+    """PRD 038.9 RVS5: revise.sh re-saved the wait (`revised`) after posting verify-revised and recording the frozen
+    tests and red-setup on the revised report, so red-half's finish posts no verify-red and records neither again."""
+    values = {"refresh": 0, "test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one",
+              "revised": True}
+    if at == "skipped":
+        values["posted"] = True
+    (red.wt / ".tdd" / "issue-12-red-half-wait").write_text(json.dumps({"conductor": None, "at": at,
+                                                                         "values": values}))
+    code, out, err, fake = red()
+
+    assert (code, fake.launched()) == (0, [])
+    assert [c[1][1] for c in fake.calls if c[0] == "comment.sh"] == ["red"]
+    assert not {"tests-frozen.sh", "red-setup.sh"} & set(fake.names())
+    assert (red.wt / ".tdd" / "issue-12-red-half").read_text().splitlines()[0] == "step=" + STEP

@@ -45,7 +45,12 @@ def run(n):
         sys.stderr.write("green-half.sh: a step its prose runs: %s\n" % step)
         return 2
     values = {"test_path": red["test_path"], "target_test": red["target_test"]}
-    at = (fused.load_wait(wt, n, NAME) or (develop(n, wt, settled, step, values), None))[0]
+    resumed = fused.load_wait(wt, n, NAME)
+    if resumed is None:
+        at = develop(n, wt, settled, step, values)
+    else:
+        at = resumed[0]
+        values.update(resumed[1])  # a revise.sh re-save carries `revised` (PRD 038.9 RVS5)
     if at == "develop-green":
         waited(wt, n, "1", "develop-green", step)
         at = verify(n, wt, settled, step, values)
@@ -114,7 +119,8 @@ def finish(n, wt, step, values):
     """Green 3 on a PASS (GH7-GH12): both comments, the graded check, the frozen tests once more, the atomic
     tick-and-commit (ADR-0007), the push, the PR body, the stop ask, and the settled file."""
     fused.checked("3", fused.script("comment.sh"), n, "green", cwd=wt)
-    fused.checked("3", fused.script("comment.sh"), n, "verify-green", cwd=wt)
+    if not values.get("revised"):  # revise.sh posted verify-revised in its place
+        fused.checked("3", fused.script("comment.sh"), n, "verify-green", cwd=wt)
     base = fused.checked("3", "git", "log", "-1", "--format=%H", "--", LEDGER % n, cwd=wt).strip()
     fused.checked("3", fused.script("graded-changed.sh"), base, cwd=wt)
     fused.checked("3", fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
