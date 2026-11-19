@@ -175,7 +175,8 @@ def pytest_skill_readers():
 
 
 def pytest_files_of(name):
-    return [s for d in PYTEST_DIRS for s in existing("%s/test_%s.py" % (d, name))]
+    return [s for d in PYTEST_DIRS for s in existing("%s/test_%s.py" % (d, name))] + existing(
+        "%s/test_%s_process.py" % (PYTEST_DIRS[0], name))
 
 
 def suite_of(f, revisions=None):
