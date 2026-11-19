@@ -8,6 +8,7 @@ import sys
 import tempfile
 import time
 
+import tunables
 from full_run_lock import legs_dir
 
 # The leg's registry (registration, unregister) lives in the pytest leg, tests/leg/, beside its plugins.
@@ -56,6 +57,25 @@ def bound(argv):
 
 
 sleep = time.sleep
+clock = time.monotonic
+
+
+def record_path():
+    return tunables.read("VERI_TEST_CEILING_FILE") or os.path.join(os.path.expanduser("~"), ".veri-test-ceiling")
+
+
+def write_record(lines):
+    """Replaces the record whole through a temporary file beside it, so a reader never sees it half-written."""
+    path = record_path()
+    fd, temporary = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(path)), prefix=os.path.basename(path) + ".")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write("".join(line + "\n" for line in lines))
+        os.replace(temporary, path)
+    except BaseException:
+        os.unlink(temporary)
+        raise
+    return path
 
 
 def register(workers):
@@ -114,13 +134,17 @@ def main(argv):
         return 2
     ceiling = None
     scratch = tempfile.mkdtemp(prefix="veri-ceiling-")
+    header = [time.strftime("%Y-%m-%d %H:%M:%S %z"), commit(), "%.2f %.2f %.2f" % os.getloadavg()]
+    steps = []
     try:
         for workers in range(2, top + 1, 2):
             entry = register(workers)
+            began = clock()
             try:
                 timeouts = step(workers, scratch)
             finally:
                 pytest_leg.unregister(entry)
+            steps.append("%d %d %d" % (workers, round(clock() - began), timeouts))
             if timeouts:
                 break
             ceiling = workers
@@ -130,7 +154,8 @@ def main(argv):
     if ceiling is None:
         sys.stderr.write("no ceiling of at least 2: a case timed out under load at 2 workers and passed alone\n")
         return 1
-    sys.stdout.write("ceiling: %d workers\n" % ceiling)
+    path = write_record([str(ceiling)] + header + steps)
+    sys.stdout.write("ceiling: %d workers (recorded in %s)\n" % (ceiling, path))
     return 0
 
 
