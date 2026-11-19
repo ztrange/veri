@@ -19,9 +19,9 @@ def _bad_arguments():
 
 
 def _valid(argv):
-    if len(argv) not in (5, 7) or not argv[0].isdigit() or argv[3] != NOTE_FILE_FLAG:
+    if len(argv) not in (5, 7) or entry.whole_number(argv[0]) is None or argv[3] != NOTE_FILE_FLAG:
         return False
-    return len(argv) == 5 or (argv[5] == "--attempt" and argv[6].isdigit())
+    return len(argv) == 5 or (argv[5] == "--attempt" and entry.whole_number(argv[6]) is not None)
 
 
 def _run(label, cmd, **kw):
