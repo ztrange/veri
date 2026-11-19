@@ -86,7 +86,8 @@ def test_main_with_a_flag_missing_its_value_returns_2_naming_the_flag_then_the_u
 
 @pytest.mark.parametrize("phase", ["red", "green", "refactor", "pin", "surround", "plan", "rebase"])
 @pytest.mark.parametrize("flag, got", [([], b""), (["--branch-base", "not-a-sha"], b"not-a-sha"),
-                                       (["--branch-base", "ABC1234"], b"ABC1234"), (["--branch-base", "abc123"], b"abc123")])
+                                       (["--branch-base", "ABC1234"], b"ABC1234"), (["--branch-base", "abc123"], b"abc123"),
+                                       (["--branch-base", "abc1234z"], b"abc1234z")])
 def test_main_with_branch_base_missing_or_not_hex_returns_2_naming_the_flag_then_the_usage_line_and_starts_no_process_4375(
         phase, flag, got, tmp_path, monkeypatch, capfdbinary, fake_processes):
     monkeypatch.chdir(tmp_path)
