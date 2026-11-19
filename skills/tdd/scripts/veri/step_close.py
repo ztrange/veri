@@ -10,6 +10,7 @@ import fused
 import fused_step
 import plan_publish
 import run_dir
+import run_pins
 import tunables
 from next_pending_refactor import refactor_pending
 
@@ -106,9 +107,24 @@ def checks(wt, n, green_sha):
     The `needs a look` pins pin-recheck.sh printed."""
     fused.checked("6", fused.script("graded-changed.sh"), green_sha, cwd=wt)
     base = fused.checked("6", "git", "rev-parse", green_sha + "~1", cwd=wt).strip()
-    said = fused.checked("6", fused.script("pin-recheck.sh"), base, cwd=wt, ok=(0, 3))
+    said = fused.checked("6", fused.script("pin-recheck.sh"), "--branch-base", branch_base(wt, n), base, cwd=wt,
+                         ok=(0, 3))
     fused.checked("6", fused.script("tests-frozen.sh"), "rerecord-refactored", LEDGER % n, green_sha, cwd=wt)
     return said
+
+
+def branch_base(wt, n):
+    """The run's recorded branch base in the main tree's .tdd/; missing, unreadable or not hex stops it at 6, exit 2."""
+    path = None
+    try:
+        main = run_dir.main_tree_from_files(wt)
+        path = run_dir.issue_file(main, n, run_pins.BRANCH_BASE)
+        sha = run_pins.branch_base(n, main)
+    except OSError:
+        sha = ""
+    if not re.fullmatch(r"[0-9a-f]{7,40}", sha):
+        raise fused.Stop("6", "branch-base record %s" % path, 2)
+    return sha
 
 
 def commit(wt, n, step):
