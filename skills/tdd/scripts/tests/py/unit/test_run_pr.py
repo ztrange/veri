@@ -367,3 +367,32 @@ def test_4432_in_a_stacked_run_it_stops_after_pr_checks_with_the_stacked_seam_on
     assert [c for c in calls if c in ("pr-ready-wait.sh", "pr-finish.sh")] == []
     assert [(r[0], r[1].splitlines()[-1]) for r in results] == [
         (1, "seam=pr-ready-wait code=1 reason=stacked next=DRAFT-PR.md#4. Draft PR")] * 2
+
+
+def test_4432_in_a_stacked_run_from_pr_ready_wait_or_pr_finish_stops_again_with_the_stacked_seam_and_never_calls_them(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    (wt / ".tdd" / "issue-12-base").write_text("main\n")
+    calls = []
+
+    def spy(name, *args, **kw):
+        calls.append(os.path.basename(name))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
+    run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    results = {}
+    for stage in ("pr-ready-wait", "pr-finish"):
+        res = run_cli(run_pr, ["12", "--from", stage], cwd=str(tmp_path))
+        results[stage] = (res[0], res[1].splitlines()[-1:])
+
+    assert [c for c in calls if c in ("pr-ready-wait.sh", "pr-finish.sh")] == []
+    assert results == {s: (1, ["seam=pr-ready-wait code=1 reason=stacked next=DRAFT-PR.md#4. Draft PR"])
+                       for s in ("pr-ready-wait", "pr-finish")}

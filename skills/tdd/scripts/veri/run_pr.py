@@ -39,7 +39,7 @@ def run_late(n, wt, first):
 
 
 def run_early(n, wt, first, hands):
-    for stage in EARLY[EARLY.index(first) if first else 0:]:
+    for stage in () if first in LATE else EARLY[EARLY.index(first) if first else 0:]:
         if stage in hands:
             sys.stdout.write("seam=%s code=1 reason=hand next=%s\n" % (stage[:-3], ANCHOR))
             return 1
