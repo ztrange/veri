@@ -26,7 +26,8 @@ class Offline:
 
     def __init__(self, tmp_path, outage=True, base="stack\n", base_sha=None, local=LOCAL_STACK, rebase=0, fast=0,
                  owed=0, full=0, all_tier="make test\n", checked_out=None, default="trunk", ancestor=True, amend=0,
-                 gate_commits=False, move=0, fail=()):
+                 gate_commits=False, move=0, fail=(), step="- [x] a step ⟦criterion 1⟧", rebased=REBASED, trailers="",
+                 descends=True, merges="", differs=False):
         self.clone = str(tmp_path / "clone")
         self.wt = os.path.join(self.clone, ".tdd", "wt", "7")
         admin = os.path.join(self.clone, ".git", "worktrees", "7")
@@ -39,7 +40,7 @@ class Offline:
         with open(self.wt + "/CLAUDE.md", "w") as f:
             f.write("veri: stack branch: stack\n")
         with open(self.wt + "/.tdd/issue-7.md", "w") as f:
-            f.write("# Plan for #7\n\n- [x] a step ⟦criterion 1⟧\n")
+            f.write("# Plan for #7\n\n%s\n" % step)
         if base is not None:
             with open(self.wt + "/.tdd/issue-7-base", "w") as f:
                 f.write(base)
@@ -53,6 +54,8 @@ class Offline:
         self.all_tier, self.checked_out, self.default, self.ancestor, self.amend = (
             all_tier, checked_out, default, ancestor, amend)
         self.gate_commits, self.move, self.fail = gate_commits, move, fail
+        self.rebased, self.trailers, self.descends, self.merges, self.differs = (
+            rebased, trailers, descends, merges, differs)
         self.head = [RUN_TIP]
         self.pulls = []
 
@@ -88,9 +91,16 @@ class Offline:
             return 0, listed, ""
         if line.startswith(wt + "merge-base --is-ancestor %s " % ORIGIN_STACK):
             return (0 if self.ancestor else 1), "", ""
+        if line == wt + "merge-base --is-ancestor %s %s" % (LOCAL_STACK, AMENDED):
+            return (0 if self.descends else 1), "", ""
         if line.startswith(wt + "merge-base --is-ancestor"):
             return 0, "", ""
         if line.startswith(wt + "rev-list --merges"):
+            return 0, self.merges, ""
+        if line.startswith(wt + "show -s --format=%(trailers:key=Veri-Joined"):
+            return 0, self.trailers, ""
+        if line.startswith(wt + "reset --hard "):
+            self.head.append(line.split()[-1])
             return 0, "", ""
         if line == wt + "rev-parse --git-path rebase-merge":
             return 0, (str(self.wt) + "/stopped\n" if self.rebase else ""), ""
@@ -98,8 +108,10 @@ class Offline:
             if self.rebase:
                 os.makedirs(self.wt + "/stopped", exist_ok=True)
                 return 1, "", "CONFLICT (content): Merge conflict in a.py\n"
-            self.head.append(REBASED)
+            self.head.append(self.rebased)
             return 0, "", ""
+        if line.endswith("rev-parse --verify HEAD^{tree}") and self.differs:
+            return 0, "8888888\n", ""
         if " merge-tree --write-tree " in line or line.endswith("rev-parse --verify HEAD^{tree}"):
             return 0, TREE + "\n", ""
         if line == wt + "rev-parse --verify HEAD":
@@ -358,3 +370,80 @@ def test_with_the_outage_file_and_a_recorded_base_naming_another_branch_nothing_
 
     rebased = [c for c in world.calls if " rebase " in c]
     assert (code, rebased, world.local, "records the base" in err) == (2, [], LOCAL_STACK, True), err
+
+
+def moves(world):
+    return [c for c in world.calls if " commit --amend " in c or " update-ref " in c]
+
+
+def test_a_retry_whose_rebased_tip_is_the_local_stacks_tip_carrying_this_runs_trailer_is_exit_3_with_nothing_amended(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, rebased=LOCAL_STACK, trailers="%s %s\n" % (PR, BRANCH)).install(fake_processes, monkeypatch)
+
+    code, out, err = join(run_cli, world)
+
+    assert (code, out, moves(world), world.local) == (3, "", [], LOCAL_STACK), err
+    assert "already" in err and [c for c in world.calls if c.startswith("merge-lock.sh")][-1] == (
+        "merge-lock.sh release --pid %s" % PID), err
+
+
+@pytest.mark.parametrize("trailers", ["", "%s tdd/8-other\n" % PR])
+def test_a_rebased_tip_that_is_the_local_stacks_tip_without_this_runs_trailer_is_exit_2_branch_put_back_nothing_amended(
+        tmp_path, fake_processes, monkeypatch, run_cli, trailers):
+    world = Offline(tmp_path, rebased=LOCAL_STACK, trailers=trailers).install(fake_processes, monkeypatch)
+
+    code, out, err = join(run_cli, world)
+
+    assert (code, out, moves(world), world.local, world.head[-1]) == (2, "", [], LOCAL_STACK, RUN_TIP), err
+
+
+def test_an_amended_tip_that_does_not_descend_from_the_local_stack_is_exit_2_with_the_stack_unmoved(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, descends=False).install(fake_processes, monkeypatch)
+
+    code, out, err = join(run_cli, world)
+
+    moved = [c for c in world.calls if " update-ref " in c]
+    assert (code, out, moved, world.local) == (2, "", [], LOCAL_STACK), err
+    assert AMENDED in err and LOCAL_STACK in err, err
+
+
+def test_an_offline_join_whose_ledger_has_an_unchecked_step_is_exit_1_with_nothing_rebased(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, step="- [ ] a step ⟦criterion 1⟧").install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    rebased = [c for c in world.calls if " rebase " in c]
+    assert (code, rebased, world.local, "unchecked step" in err) == (1, [], LOCAL_STACK, True), err
+
+
+def test_an_offline_join_whose_worktree_head_does_not_resolve_is_exit_2_with_nothing_rebased(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, fail=("rev-parse --verify HEAD",)).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    rebased = [c for c in world.calls if " rebase " in c]
+    assert (code, rebased, world.local, "HEAD does not resolve" in err) == (2, [], LOCAL_STACK, True), err
+
+
+def test_an_offline_join_whose_history_holds_a_merge_commit_is_exit_2_with_nothing_rebased(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, merges="abcdef0\n").install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    rebased = [c for c in world.calls if " rebase " in c]
+    assert (code, rebased, world.local, "merge commit (abcdef0)" in err) == (2, [], LOCAL_STACK, True), err
+
+
+def test_an_offline_rebased_tip_whose_content_is_not_the_merge_is_exit_2_branch_put_back_stack_unmoved(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, differs=True).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    gated = [c for c in world.calls if c.startswith("sh -c")]
+    assert (code, moves(world), gated, world.local, world.head[-1]) == (2, [], [], LOCAL_STACK, RUN_TIP), err
+    assert "not the merge" in err, err
