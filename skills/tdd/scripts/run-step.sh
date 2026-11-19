@@ -7,5 +7,7 @@
 #          (named on stderr), or step-close.sh's 0 with no next= line; 3 a stage's 3, call it again (or no open step)
 #          A half stopped by its verifier's REJECT (.tdd/verdict-<phase>.exit holding 1) is handed to
 #          revise.sh <n> <phase>, the half called again on its 0; its other codes stop on seam=revise (3: call again)
+#          A Green route (a WRONG_TEST:/SUPERSEDED: stop, or verify-green's REJECT before any revise) goes to
+#          reroute.sh <n> <report> first; its other codes stop on seam=reroute (3: call again)
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/run_step.py" "$@"
