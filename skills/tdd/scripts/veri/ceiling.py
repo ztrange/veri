@@ -16,7 +16,8 @@ def commit():
 
 def run_suite(workers, record, tests=()):
     """Runs `make test` at <workers> workers, over <tests> when named (else its full selection), the recorder plugin
-    appending each failing case to <record>; returns make's exit code and the failing cases' node ids."""
+    appending each failing case to <record>; returns make's exit code and the failing cases, each node id mapped to
+    whether it failed by its per-case timeout."""
     env = dict(os.environ, VERI_PYTEST_WORKERS=str(workers), VERI_CEILING_RECORD=record,
                PYTEST_PLUGINS=",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "ceiling_record"])))
     argv = ["make", "--no-print-directory", "-C", ROOT, "test"] + (["TESTS=" + " ".join(tests)] if tests else [])
@@ -29,8 +30,12 @@ def failures(record):
         with open(record) as f:
             lines = f.read().splitlines()
     except FileNotFoundError:
-        return []
-    return list(dict.fromkeys(json.loads(line)["nodeid"] for line in lines if line))
+        return {}
+    failed = {}
+    for line in filter(None, lines):
+        report = json.loads(line)
+        failed[report["nodeid"]] = failed.get(report["nodeid"], False) or report["timeout"]
+    return failed
 
 
 def bound(argv):
@@ -50,11 +55,20 @@ def main(argv):
     ceiling = None
     scratch = tempfile.mkdtemp(prefix="veri-ceiling-")
     for workers in range(2, top + 1, 2):
-        _, timed_out = run_suite(workers, os.path.join(scratch, "record-%d" % workers))
+        _, failed = run_suite(workers, os.path.join(scratch, "record-%d" % workers))
+        red = [nodeid for nodeid, timeout in failed.items() if not timeout]
+        if red:
+            sys.stderr.write("failing other than by its timeout at %d workers: %s\n" % (workers, " ".join(red)))
+            return 2
+        timed_out = list(failed)
         for nodeid in timed_out:
             _, alone = run_suite(1, os.path.join(scratch, "alone-%d" % workers), [nodeid])
-            if nodeid in alone:
+            if alone.get(nodeid):
                 sys.stderr.write("%s timed out at %d workers and again alone with 1 worker: a hung case, not load\n"
+                                 % (nodeid, workers))
+                return 2
+            if nodeid in alone:
+                sys.stderr.write("%s timed out at %d workers and failed alone with 1 worker other than by its timeout\n"
                                  % (nodeid, workers))
                 return 2
         if timed_out:
