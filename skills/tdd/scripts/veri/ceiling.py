@@ -12,9 +12,9 @@ import git
 import tunables
 from full_run_lock import legs_dir
 
-# The leg's registry (registration, unregister) lives in the pytest leg, tests/leg/, beside its plugins.
-sys.path.insert(1, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "tests", "leg"))
-import pytest_leg  # noqa: E402
+# The leg's registry (registered_legs, registration, unregister) lives in the pytest leg, tests/leg/, beside its plugins;
+# main puts that directory on sys.path, so importing this module never changes it.
+LEG = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "tests", "leg")
 
 USAGE = "usage: test-ceiling.sh [--max <n>]\n"
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))))
@@ -85,6 +85,7 @@ def write_record(lines):
 def register(workers):
     """Registers <workers> under this process's pid in the legs registry, as a leg would, once no other live leg is
     registered, waiting meanwhile with one stderr line naming them; returns the entry's path."""
+    import pytest_leg
     legs = legs_dir()
     os.makedirs(legs, exist_ok=True)
     said = False
@@ -134,6 +135,7 @@ def step(workers, scratch):
 def ramp(top, scratch):
     """Steps w = 2, 4, … up to <top>, stopping at the first with a load timeout; returns the ceiling (None when that
     was the first step) and one `<workers> <seconds> <timeouts>` line per step run."""
+    import pytest_leg
     ceiling, steps = None, []
     for workers in range(2, top + 1, 2):
         entry = register(workers)
@@ -150,6 +152,8 @@ def ramp(top, scratch):
 
 
 def main(argv):
+    if LEG not in sys.path:
+        sys.path.append(LEG)
     top = bound(argv)
     if top is None:
         sys.stderr.write(USAGE)
