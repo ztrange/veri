@@ -264,3 +264,39 @@ def test_4435_a_pin_recheck_exit_2_is_exit_2_with_no_rejected_record(diff):
     code, out, err, fake = diff(answers={("pin-recheck.sh", None): (2, "")})
 
     assert (code, _rejected(diff)) == (2, None)
+
+
+def test_4435_a_cycle_step_with_no_diff_checked_mark_is_exit_2_before_any_call(diff):
+    """A cycle step must never get a develop-diff leaf."""
+    code, out, err, fake = diff(step="one thing works ⟦criterion 1⟧")
+
+    assert (code, fake.calls) == (2, [])
+    assert "no open ⟦diff-checked⟧ step" in err
+
+
+@pytest.mark.parametrize("answers, last", [
+    ({("wait-leaf.sh", "develop-diff"): (2, "")}, "stopped at develop wait-leaf.sh develop-diff exit 2"),
+    ({("diff-leaf-deviation.sh", None): (2, "")}, None),
+])
+def test_4435_a_killed_develop_diff_leaf_or_a_deviation_check_exit_2_is_exit_2_with_no_verifier(diff, answers, last):
+    """DIFF-CHECKED.md: a supervisor exit 2 on the leaf is killed-stuck, and diff-leaf-deviation.sh exit 2 bails;
+    neither reaches the verifier."""
+    diff(answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(answers=answers)
+
+    assert (code, fake.launched()) == (2, [])
+    assert "step-tick.sh" not in fake.names()
+    if last:
+        assert out.splitlines()[-1] == last
+        assert "suite-reported.sh" not in fake.names()
+
+
+@pytest.mark.parametrize("line", ["FLIP: tests/test_a.py assert x == 1→assert x == 2\n",
+                                  "FLIP: tests/test_a.py 'assert x == 1→assert x == 2\n",
+                                  "FLIP: tests/test_a.py 'assert x == 1'\n"])
+def test_4435_a_malformed_flip_line_is_a_reject_and_nothing_is_probed(diff, line):
+    code, out, err, fake = _verified(diff, report=line)
+
+    assert code == 1, err
+    assert not {"mutation-probe.sh", "pin-recheck.sh"} & set(fake.names())
+    assert (diff.wt / ".tdd" / "verify-diff.reason").read_text().startswith("REJECT: the report of develop-diff")
