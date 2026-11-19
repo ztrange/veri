@@ -1112,8 +1112,8 @@ that push; else the ending call's code (a bail's too).
      production code here is not one whose other commits can be taken on trust — and the step goes to verify-refactor on its green state, with what was dropped named in the narration.
 3. **An `overfit` flag is answered inside this step.** A `FLAGS:` line whose class is **overfit** names code that passes this step's test
    without implementing the criterion the step states, and names the case that would force the general implementation. **One whose case is a later unchecked step's
-   criterion** (matched as Green's `later` route matches, by the spec file's criterion text) **gets no triangulating red**, narrated in the `### 🛠️ Refactor`
-   comment at 6 and the PR body as owed by that step, and the loop goes on to 5. For any other, stop the refactor loop there (its stage stays open). **When the loop has landed
+   criterion** (as `refactor-half.sh` matches it) **gets no triangulating red**, narrated in the `### 🛠️ Refactor`
+   comment at 6 as owed by that step, and the loop goes on to 5. For any other, stop the refactor loop there (its stage stays open). **When the loop has landed
    commits since `<green-sha>`, first run 2's checks and verify-refactor (5) over them**, before the triangulating red, and launch the red only after that PASS. On that PASS run
    `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>` for the landed commits; the ` ⟂ refactor pending` mark stays and **no ledger tick is committed**, both
    left for the step's final verify-refactor PASS, so the triangulating red's
