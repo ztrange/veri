@@ -55,14 +55,20 @@ def main(argv):
     ceiling = None
     scratch = tempfile.mkdtemp(prefix="veri-ceiling-")
     for workers in range(2, top + 1, 2):
-        _, failed = run_suite(workers, os.path.join(scratch, "record-%d" % workers))
+        code, failed = run_suite(workers, os.path.join(scratch, "record-%d" % workers))
+        if code and not failed:
+            sys.stderr.write("make test exited %d at %d workers with no failed case recorded\n" % (code, workers))
+            return 2
         red = [nodeid for nodeid, timeout in failed.items() if not timeout]
         if red:
             sys.stderr.write("failing other than by its timeout at %d workers: %s\n" % (workers, " ".join(red)))
             return 2
         timed_out = list(failed)
         for nodeid in timed_out:
-            _, alone = run_suite(1, os.path.join(scratch, "alone-%d" % workers), [nodeid])
+            code, alone = run_suite(1, os.path.join(scratch, "alone-%d" % workers), [nodeid])
+            if code and not alone:
+                sys.stderr.write("make test exited %d running %s alone with no failed case recorded\n" % (code, nodeid))
+                return 2
             if alone.get(nodeid):
                 sys.stderr.write("%s timed out at %d workers and again alone with 1 worker: a hung case, not load\n"
                                  % (nodeid, workers))
