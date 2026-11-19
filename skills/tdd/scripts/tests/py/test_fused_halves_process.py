@@ -38,6 +38,7 @@ def test_4027_the_tick_and_commit_lands_the_code_and_the_ticked_ledger_in_one_co
     for args in (["init", "-q"], ["add", "-A"], ["add", "-f", ".tdd/issue-12.md"], ["commit", "-q", "-m", "plan"]):
         subprocess.run(["git", *args], cwd=wt, env=env, capture_output=True, check=True, timeout=60)
     (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-branch-base").write_text("abc1234\n")  # the verdict launch's --branch-base (#4375)
     (wt / ".tdd" / "issue-12-spec.md").write_text("# spec\n\n## Bug\n\nit breaks\n")
     (wt / ".tdd" / "issue-12-red-half").write_text("step=%s\ntest_path=t.py\ntarget_test=t.py::test_a\n" % STEP)
     (wt / ".tdd" / "develop-green.out").write_text("{}\n")
@@ -83,6 +84,7 @@ def test_4026_a_red_whose_test_sits_in_a_new_directory_passes_the_tree_check(tmp
     repo_builder.commit_all(wt, "plan", **{".gitignore": "".join(line + "\n" for line in rule)})
     assert repo_builder.git(wt, "ls-files", ".tdd") == ".tdd/issue-12.md"
     (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-branch-base").write_text("abc1234\n")  # the verdict launch's --branch-base (#4375)
     (wt / ".tdd" / "issue-12-spec.md").write_text("# spec\n")
     (wt / ".tdd" / "develop-red.out").write_text("{}\n")
     (wt / "newpkg").mkdir()
@@ -114,6 +116,7 @@ def test_4028_the_green_commit_the_tree_the_subjects_and_the_count_are_read_from
     green_sha = repo_builder.commit_all(wt, "feat: one thing works (#12)", src__a_py="x = 1\n",
                                         **{".gitignore": "".join(line + "\n" for line in rule)})
     (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-branch-base").write_text("abc1234\n")  # the verdict launch's --branch-base (#4375)
     (wt / ".tdd" / "issue-12-spec.md").write_text("# spec\n")
     (wt / ".tdd" / "issue-12-green-half").write_text("step=%s\ntest_path=tests/test_a.py\n" % STEP)
     (wt / ".tdd" / "develop-refactor.out").write_text("{}\n")
