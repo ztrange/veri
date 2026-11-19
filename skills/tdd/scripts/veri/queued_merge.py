@@ -717,7 +717,7 @@ def _join_offline(pid, pr, worktree, branch, stack, skip=None):
         _say("taking the merge lock failed (exit %d)" % code)
         return code
     try:
-        code = _joined_offline(pr, worktree, branch, stack)
+        code = _joined_offline(pr, worktree, branch, stack, skip)
     finally:
         released = _release(pid)
     if code:
@@ -772,11 +772,12 @@ def _local_stack(worktree, stack):
     return onto, None
 
 
-def _joined_offline(pr, worktree, branch, stack):
+def _joined_offline(pr, worktree, branch, stack, skip=None):
     """The offline join with the lock held: the online join's guards that need no network (an unticked ledger step, an
     unresolvable HEAD, a merge commit in the run's history, a rebased tip whose content is not the merge), then the
     rebase onto the local <stack>, the fast tier, prose-owed.sh and the full suite, the Veri-Joined amend and a
-    fast-forward of the local <stack>. A rebased tip that is the stack's own tip is exit 3 when that tip carries this
+    fast-forward of the local <stack>. <skip> ("<model-id> <reason>") skips the full suite, recorded as Veri-Suite:
+    skipped. A rebased tip that is the stack's own tip is exit 3 when that tip carries this
     run's trailer (joined before), else exit 2: amending it would rewrite the stack. Returns an exit code."""
     code = _unchecked_steps(worktree, branch)
     if code:
@@ -824,7 +825,11 @@ def _joined_offline(pr, worktree, branch, stack):
     code = _tip_checks(worktree, stack)
     if code:
         return code
-    code, suite = _full_gate(worktree, stack)
+    if skip:
+        _say("the full suite skipped on the rebased tip by --skip-suite %s" % skip)
+        code, suite = 0, "skipped " + skip
+    else:
+        code, suite = _full_gate(worktree, stack)
     if code:
         return code
     changed = _changed(worktree, checked)
