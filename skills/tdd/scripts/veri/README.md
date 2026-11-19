@@ -863,6 +863,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `pr-prepare.sh`: the Draft PR step's sub-step 1 up to the structural pass's skip, in one call.
 - `pr-checks.sh`: the Draft PR step's sub-step 1 checks after `pr-prepare.sh`, in one call.
 - `pr-ready-wait.sh`: closing and pushing the run's record, then readying its PR and its first CI wait, in one call.
+- `run-pr.sh`: the Draft PR step's stages in one call, stopping at the title seam (`veri/run_pr.py`).
 - `pr-finish.sh`: the refactor-owed render after a green first CI wait, in one call.
 - `run-done.sh`: the run's done comment, in one call.
 - `stop-settle.sh`: a stop, STOPPING.md steps 1–6, settled in one call.
