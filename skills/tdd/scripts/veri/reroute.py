@@ -2,6 +2,9 @@
 red leaf, verify-red and the frozen-test re-record (SKILL.md *Green*), sliced like the fused halves of a step
 (PRD 038.10)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
+import os
+import shutil
 import sys
 
 import fused
@@ -27,6 +30,14 @@ RUNS = {"red": "red-contradicted", "repair": "red-repair", "supersede": "red-sup
 STOPS = ("prep", "later", "fixture", "supersede-diff", "missing-exhausted", "repair-exhausted")
 
 
+class Revise(Exception):
+    """The answer is a revise of <phase> (RRT5): exit 1, never 3, which means "call again"."""
+
+    def __init__(self, phase):
+        super().__init__(phase)
+        self.phase = phase
+
+
 def main(argv):
     if len(argv) != 2 or not argv[0].isdigit():
         sys.stderr.write(USAGE + "\n")
@@ -36,6 +47,9 @@ def main(argv):
             return run(*argv)
     except fused.Stop as stop:
         return fused.stopped(stop)
+    except Revise as revise:
+        sys.stdout.write("route=revise phase=%s\n" % revise.phase)
+        return 1
     except fused.Waiting as waiting:
         sys.stdout.write("waiting on %s\n" % waiting.name)
         return 3
@@ -53,7 +67,7 @@ def run(n, report):
     own = fused_step.red_test_id(red["test_path"], red["target_test"])
     resumed = fused.load_wait(wt, n, NAME)
     if resumed is None:
-        at, values = launch(n, wt, settled, step, report, own, red["test_path"])
+        at, values = launch(n, wt, settled, step, report, own, red)
     else:
         at, values = resumed
     if at == values["leaf"]:
@@ -66,6 +80,27 @@ def run(n, report):
         values["verify"] = values["verify"][1:]
         at = verify(n, wt, settled, step, values) if values["verify"] else None
     return finish(wt, step, values)
+
+
+def revise_green(wt, n, step, report, red):
+    """wrong-test-route.sh's `revise` (exit 3): the attempt's outcome is a verify-green REJECT (SKILL.md *Green*), so
+    revise.sh <n> green gets its reason, the green report when that is what was routed, and green-half's rejected
+    record naming the step, which sends a sliced revise back to revise.sh; one already naming the step is kept."""
+    reason = os.path.join(wt, ".tdd", "verify-green.reason")
+    if os.path.normpath(os.path.join(wt, report)) != reason:
+        shutil.copyfile(os.path.join(wt, report), reason)
+    reject(wt, n, step, "green-half", "verdict-green", red)
+    raise Revise("green")
+
+
+def reject(wt, n, step, stage, at, red):
+    """<stage>'s rejected record (fused.wait's on a verifier REJECT, PRD 038.9) naming <step>, written with red-half's
+    values unless one already names the step."""
+    if fused_step.rejected(wt, n, stage, step) is not None:
+        return
+    with open(fused.wait_record(wt, n, stage + "-rejected"), "w") as f:
+        json.dump({"conductor": fused.conductor(wt), "at": at, "step": step,
+                   "values": {"test_path": red["test_path"], "target_test": red["target_test"]}}, f)
 
 
 def prompt(kind, cases, report):
@@ -119,12 +154,14 @@ def finish(wt, step, values):
     return 0
 
 
-def launch(n, wt, settled, step, report, own, own_path):
+def launch(n, wt, settled, step, report, own, red):
     """The route, then the rerouted red: the `reroute` event, its prompt and its leaf launched (RRT2). (at, values)."""
     shown = fused.label("wrong-test-route.sh", "--spec", SPEC % n, report, own)
     code, said, _ = fused.call(fused.script("wrong-test-route.sh"), "--spec", SPEC % n, report, own, cwd=wt,
                                env=fused.step_env(n, step))
     kind, _, rest = said.strip().partition(" ")
+    if code == 3:
+        revise_green(wt, n, step, report, red)
     if code in (0, 1) and kind in STOPS:
         raise fused.Stop("route", said.strip(), 1)
     if code != 0 or kind not in RUNS:
@@ -137,7 +174,8 @@ def launch(n, wt, settled, step, report, own, own_path):
                   *prompt(kind, rest.split(), report), cwd=wt, out=".tdd/%s.prompt" % leaf)
     fused.launch("launch", wt, leaf, "run-leaf.sh", ".tdd/%s.prompt" % leaf, "--permission-mode", "bypassPermissions",
                  env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/%s.out" % leaf, err=".tdd/%s.err" % leaf)
-    values = {"kind": kind, "cases": rest.split(), "report": report, "own": own, "own_path": own_path, "leaf": leaf}
+    values = {"kind": kind, "cases": rest.split(), "report": report, "own": own, "own_path": red["test_path"],
+              "leaf": leaf}
     fused.save_wait(wt, n, NAME, leaf, values)
     return leaf, values
 
