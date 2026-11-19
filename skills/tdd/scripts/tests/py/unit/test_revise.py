@@ -134,3 +134,20 @@ def test_called_again_it_only_waits_then_checks_cost_and_frozen_tests_and_launch
     assert fake.calls[-1][:2] == ("wait-leaf.sh", ("verdict-green",))
     record = json.loads((revise.wt / ".tdd" / "issue-12-revise-wait").read_text())
     assert (record["at"], record["values"]["k"]) == ("verdict-green", 1)
+
+
+def test_on_a_revised_pass_it_posts_verify_revised_resaves_green_halfs_wait_at_verdict_green_and_exits_0(revise):
+    """PRD 038.9 criterion 5: the stage, called again, finishes as after its own PASS."""
+    rejected = revise.wt / ".tdd" / "issue-12-green-half-rejected-wait"
+    rejected.write_text(json.dumps({"conductor": None, "at": "verdict-green",
+                                    "values": {"test_path": "tests/test_a.py",
+                                               "target_test": "tests/test_a.py::test_one"}}))
+    code, out, err, fake = revise()
+
+    assert code == 0
+    assert (fake.calls[-1][0], fake.calls[-1][1]) == ("comment.sh", ("12", "verify-revised", "green"))
+    record = json.loads((revise.wt / ".tdd" / "issue-12-green-half-wait").read_text())
+    assert (record["at"], record["values"]) == (
+        "verdict-green", {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"})
+    assert not rejected.exists()
+    assert not (revise.wt / ".tdd" / "issue-12-revise-wait").exists()
