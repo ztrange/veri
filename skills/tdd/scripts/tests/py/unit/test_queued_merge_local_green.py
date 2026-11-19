@@ -1,6 +1,8 @@
 """veri/queued_merge.py's --local-green (PRD 033.2b, OL20), in-process: run in an outage's main working tree, git,
 merge-lock.sh, detect-test-command.sh and sh faked as processes."""
+import inspect
 import os
+import re
 
 import pytest
 
@@ -146,3 +148,29 @@ def test_a_green_run_whose_freeze_file_cannot_be_removed_is_exit_2_naming_it(tmp
     code, _, err = green(run_cli, world)
 
     assert (code, os.path.exists(world.red), world.released(), "stack-local-red" in err) == (2, True, True, True), err
+
+
+NAMED = re.compile(r"ztrange|mario|ferreira|github\.com/\w|#[0-9]+|[\"'/](main|master)\b|[\"']stack[\"']"
+                   r"|ready-for-agent|refactor-owed|author-read|[\"'](priority|bug|legacy|refactor)[\"']|gates",
+                   re.IGNORECASE)
+
+
+def test_the_skip_freeze_and_local_green_code_and_stack_red_name_no_repository_issue_branch_label_or_person():
+    from veri import stack_red
+
+    sources = {name: inspect.getsource(getattr(queued_merge, name)) for name in (
+        "_skip_suite", "_freeze", "_failed_cases", "_local_green", "_green_tip", "_green_run")}
+    for module in (stack_red,):
+        with open(module.__file__, encoding="utf-8") as f:
+            sources[os.path.basename(module.__file__)] = f.read()
+    shims = os.path.dirname(os.path.dirname(queued_merge.__file__))
+    with open(os.path.join(shims, "stack-red.sh"), encoding="utf-8") as f:
+        sources["stack-red.sh"] = f.read()
+    with open(os.path.join(shims, "queued-merge.sh"), encoding="utf-8") as f:
+        # The shim's online-merge lines predate this and name the default branch; only the lines of this change count.
+        sources["queued-merge.sh"] = "\n".join(line for line in f.read().splitlines() if re.search(
+            r"skip-suite|local-green|Veri-Suite|stack-local-red|outage", line))
+
+    named = ["%s:%d: %s" % (where, n, line) for where, text in sources.items()
+             for n, line in enumerate(text.splitlines(), 1) if NAMED.search(line)]
+    assert named == []
