@@ -1614,3 +1614,33 @@ def test_4311_a_cap_4_leg_finding_no_free_core_waits_with_one_stderr_line_the_wa
     waits = [line.get("seconds") for line in map(json.loads, journal.read_text().splitlines() if journal.exists() else []) if line["event"] == "core-wait"]
 
     assert (code, [str(holder) in line for line in err.splitlines()], polls, marker.exists(), waits) == (0, [True], [True, True], False, ["10"])
+
+
+def on_cores(monkeypatch, n, platform="linux"):
+    """Fakes a machine of <n> cores (affinity and cpu_count alike) on <platform>, outside any xdist worker."""
+    monkeypatch.setattr(os, "cpu_count", lambda: n)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: n, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(n)), raising=False)
+    monkeypatch.setattr(sys, "platform", platform)
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+
+
+def workers_handed(calls):
+    """The -n value of the first pytest pass the spy saw, "1" when it ran serially."""
+    first = calls[0]
+    return first[first.index("-n") + 1] if "-n" in first else "1"
+
+
+def test_4419_a_full_leg_alone_beside_a_ceiling_record_of_6_on_16_cores_takes_6_and_says_nothing_about_make_ceiling(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 16)
+    record = tmp_path / "ceiling"
+    record.write_text("6\n2026-11-18\nabc123\n1.5\n2 100 0\n4 60 0\n6 50 0\n8 48 1\n")
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(args) or pytest.ExitCode.OK)
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_TEST_CEILING_FILE=str(record)))
+
+    assert (code, workers_handed(calls), "make ceiling" in err) == (0, "6", False)
+
+
+def test_4419_the_hermetic_fixture_points_the_ceiling_record_into_the_cases_own_tmp_path(tmp_path):
+    assert os.environ["VERI_TEST_CEILING_FILE"].startswith(str(tmp_path) + os.sep)
