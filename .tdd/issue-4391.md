@@ -22,3 +22,4 @@
 - [x] bail.sh's last stdout lines are the phase, the classification, the branch and the worktree path, sub-step 8's report; an in-process case with call spies ⟦criterion 5⟧
 - [x] bail.sh takes `<cause>` as given and derives none: passed `needs-user`, the `bail` event carries `cause=needs-user`; an in-process case with call spies ⟦criterion 4⟧
 - [x] no `Read <base directory>/BAIL.md` site outside `skills/tdd/BAIL.md` changes, and `skills/tdd/SKILL.md` is unchanged ⟦diff-checked⟧ ⟦criterion 6⟧
+- [ ] fix the weak-assertion case skills/tdd/scripts/tests/py/unit/test_bail.py::test_a_non_zero_pr_comment_exit_is_named_on_its_call_line_and_bail_still_ends_exit_0_with_the_event_written_and_its_report_printed: its report check is any("red" in line) and any("process" in line) over the last 4 lines, never checking the four lines' order or content; edit only that case, no production code ⟦test-quality⟧ ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 6⟧
