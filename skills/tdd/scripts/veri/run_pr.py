@@ -9,10 +9,11 @@ import fused_step
 import run_dir
 
 USAGE = "usage: run-pr.sh <n>"
-TITLE = "seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR\n"
+ANCHOR = "DRAFT-PR.md#4. Draft PR"
+TITLE = "seam=pr-ready-wait code=1 reason=title next=%s\n" % ANCHOR
 
 
-BODY = "seam=done code=1 reason=body next=DRAFT-PR.md#4. Draft PR\n"
+BODY = "seam=done code=1 reason=body next=%s\n" % ANCHOR
 
 
 def ledger_sha(wt, n):
@@ -44,7 +45,7 @@ def main(argv):
         code, out, _ = fused.call(fused.script(stage), argv[0])
         if code in (1, 2):
             sys.stdout.write(out)
-            sys.stdout.write("seam=%s code=%d next=DRAFT-PR.md#4. Draft PR\n" % (stage[:-3], code))
+            sys.stdout.write("seam=%s code=%d next=%s\n" % (stage[:-3], code, ANCHOR))
             return code
     with open(record, "w") as f:
         f.write("seam=title\nsha=%s\n" % ledger_sha(wt, n))
