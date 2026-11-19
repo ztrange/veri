@@ -447,3 +447,33 @@ def test_an_offline_rebased_tip_whose_content_is_not_the_merge_is_exit_2_branch_
     gated = [c for c in world.calls if c.startswith("sh -c")]
     assert (code, moves(world), gated, world.local, world.head[-1]) == (2, [], [], LOCAL_STACK, RUN_TIP), err
     assert "not the merge" in err, err
+
+
+def skip(run_cli, world, model="claude-opus-5-5", reason="the hardware is slow"):
+    return run_cli(queued_merge, ["--skip-suite", model, reason, PR, world.wt, BRANCH, "-"])
+
+
+@pytest.mark.parametrize("model, reason", [
+    ("claude-sonnet-4-6", "the hardware is slow"),
+    ("claude-haiku-4-5", "the hardware is slow"),
+    ("", "the hardware is slow"),
+    ("claude-opus-5-5", ""),
+    ("claude-fable-1", "  "),
+])
+def test_skip_suite_with_an_id_naming_neither_opus_nor_fable_or_no_reason_is_exit_2_before_any_call(
+        tmp_path, fake_processes, monkeypatch, run_cli, model, reason):
+    world = Offline(tmp_path).install(fake_processes, monkeypatch)
+
+    code, out, err = skip(run_cli, world, model, reason)
+
+    assert (code, out, world.calls, world.pulls, world.local) == (2, "", [], [], LOCAL_STACK), err
+    assert err.startswith("queued-merge: ") and "--skip-suite" in err, err
+
+
+def test_skip_suite_missing_its_reason_and_the_run_arguments_is_exit_2_with_the_usage_before_any_call(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path).install(fake_processes, monkeypatch)
+
+    code, _, err = run_cli(queued_merge, ["--skip-suite", "claude-opus-5-5", PR, world.wt, BRANCH, "-"])
+
+    assert (code, world.calls, "usage:" in err) == (2, [], True), err
