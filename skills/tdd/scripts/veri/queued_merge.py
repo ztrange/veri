@@ -21,7 +21,8 @@ import stack_branch
 import tunables
 from github import TimedOut, bounded_group, gh_api, gh_probe
 
-USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
+USAGE = "usage: queued-merge.sh [--skip-suite <model-id> <reason>] <pr-url> <worktree> <branch> <tag-message|->"
+SKIPPER = re.compile(r"opus|fable", re.IGNORECASE)
 FETCH_ATTEMPTS = 5
 JOIN_ATTEMPTS = 5
 REFRESH_RETRIES = 10
@@ -956,7 +957,29 @@ def _stack_base(repo, pr, worktree, branch=None):
     return stack, None
 
 
+def _skip_suite(argv):
+    """(skip, rest, None) from argv: skip is "<model-id> <reason>" when argv starts with --skip-suite, else None;
+    (None, None, code) refusing an id naming neither opus nor fable, or a blank reason (PRD 033.2b, OL6)."""
+    if argv[:1] != ["--skip-suite"]:
+        return None, argv, None
+    if len(argv) != 7:
+        print(USAGE, file=sys.stderr)
+        return None, None, 2
+    model, reason = argv[1], " ".join(argv[2].split())
+    if not SKIPPER.search(model):
+        _say("--skip-suite takes a model id naming opus or fable, not %r: a model below Opus never skips the gate;"
+             " nothing done" % model[:80])
+        return None, None, 2
+    if not reason:
+        _say("--skip-suite needs a reason after the model id; nothing done")
+        return None, None, 2
+    return "%s %s" % (model, reason), argv[3:], None
+
+
 def main(argv):
+    skip, argv, refused = _skip_suite(argv)
+    if refused is not None:
+        return refused
     if len(argv) != 4:
         print(USAGE, file=sys.stderr)
         return 2
