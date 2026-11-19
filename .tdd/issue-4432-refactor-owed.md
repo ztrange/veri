@@ -2,4 +2,4 @@
 - test-only | `test_run_pr.py` repeats the worktree and preflight fixture setup (4 lines) across 4 cases. I left it because the cases are frozen and the assertions must not move.
 ### a seam record whose sha is not the ledger's last committed one is not resumed: called with no options it starts at branch-gate ⟦criterion 4⟧
 - Leaky Scope: Move Statements into Function — `USAGE`, `TITLE` and `BODY` in `run_pr.py` are each used by `main` only. This is not duplication removal, so I did not apply it.
-applied | 2285cd97f67ebceaddb2ba27ed8563d626f8d33b | Leaky Scope: Move Statements into Function — `USAGE`, `TITLE` and `BODY` in `run_pr.py` are each used by `main` only. This is not duplication removal, so I did not apply it.	refactor: move USAGE, TITLE and BODY into the functions that use them, Move Statements into Function (#4432)
+not-done | transform-rejected | Leaky Scope: Move Statements into Function — `USAGE`, `TITLE` and `BODY` in `run_pr.py` are each used by `main` only. This is not duplication removal, so I did not apply it.
