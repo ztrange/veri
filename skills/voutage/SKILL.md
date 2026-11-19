@@ -137,7 +137,9 @@ a lease, confirms each run's PR reads merged, deletes the joined runs' remote br
 records, and runs `$S/stack-pr.sh`.
 
 - Exit 0: it printed `<tip-sha> <tracking-pr-url>`. Wait for CI on that tip with
-  `$S/wait-ci.sh <tracking-pr-url> 540 "" <tip-sha>`, called again on exit 3. When it ends with 0
+  `$S/wait-ci.sh <tracking-pr-url> <slice> <total> <tip-sha>`, called again on exit 3: the url and
+  the sha are the two values `stack-recover.sh` printed, and `<slice> <total>` are `540 ""`, as
+  `vmerge` waits. When it ends with 0
   (green) or 1 (red), CI has answered: run `$S/stack-red.sh`. Its exit 3 (not red): run
   `$S/stack-land.sh` as vdev's *Landing a slice* says. Its exit 0 (red): go to vdev's *A red
   stack*. Its exit 2, or `wait-ci.sh`'s exit 2, is told to the human in one line. Stop.
