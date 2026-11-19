@@ -311,3 +311,21 @@ def test_a_non_zero_skill_drift_exit_is_named_on_its_call_line_and_puts_skill_dr
     assert len(drift_lines) == 1 and "4" in drift_lines[0]
     assert [c.split()[0] for c in fake.calls if c.startswith(("event.sh", "comment.sh"))] == [
         "event.sh", "comment.sh", "comment.sh"]
+
+
+def test_a_non_zero_preserve_attempt_exit_is_named_on_its_call_line_and_the_reset_event_metrics_push_and_both_comments_still_run_ending_exit_0(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "preserve-attempt.sh": (5, "", "boom\n")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    assert code == 0
+    preserve_lines = [line for line in out.splitlines() if "preserve-attempt.sh" in line]
+    assert len(preserve_lines) == 1 and "5" in preserve_lines[0]
+    later = [c.split()[0] + (" " + c.split()[1] if c.startswith("git") else "")
+             for c in fake.calls
+             if c.startswith(("git reset", "event.sh", "metrics.sh", "push-branch.sh", "comment.sh"))]
+    assert later == ["git reset", "event.sh", "metrics.sh", "push-branch.sh", "comment.sh", "comment.sh"]

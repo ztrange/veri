@@ -15,7 +15,7 @@
 - [x] when `metrics.sh` exits non-zero the note carries `metrics could not be rendered: metrics.sh exited <code>` in place of the metrics block; an in-process case with call spies ⟦criterion 1⟧
 - [x] the note bail.sh hands both `comment.sh bailed` calls carries `skill-drift.sh`'s stdout; an in-process case with call spies ⟦criterion 1⟧
 - [x] a non-zero `skill-drift.sh` puts `Skill drift: unavailable — skill-drift.sh exited <code>` in the note in place of its block, is named on its call line, and every later call still runs, ending exit 0 with the `bail` event written; an in-process case with call spies ⟦criterion 2⟧
-- [ ] a non-zero `preserve-attempt.sh` is named on its call line and every later call (the reset, the event, metrics, push, both comments) still runs, ending exit 0 with the `bail` event written; an in-process case with call spies ⟦criterion 2⟧
+- [x] a non-zero `preserve-attempt.sh` is named on its call line and every later call (the reset, the event, metrics, push, both comments) still runs, ending exit 0 with the `bail` event written; an in-process case with call spies ⟦criterion 2⟧
 - [ ] a non-zero `push-branch.sh` is named on its call line and both comments still run, ending exit 0 with the `bail` event written; an in-process case with call spies ⟦criterion 2⟧
 - [ ] a non-zero `comment.sh <n> bailed` on the issue is named on its call line and the `--pr` comment still runs, ending exit 0 with the `bail` event written; an in-process case with call spies ⟦criterion 2⟧
 - [ ] a non-zero `comment.sh <n> bailed --pr` is named on its call line and bail.sh still ends exit 0 with the `bail` event written and its report printed; an in-process case with call spies ⟦criterion 2⟧
