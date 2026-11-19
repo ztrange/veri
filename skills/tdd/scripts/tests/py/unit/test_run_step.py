@@ -591,3 +591,18 @@ def test_a_reroute_wait_record_naming_another_step_is_not_resumed_4434(step):
     code, out, err, stages = step()
 
     assert (code, stages.names()) == (0, ["green-half.sh", "refactor-half.sh", "step-close.sh"]), err
+
+
+@pytest.mark.parametrize("line", ["stopped at 1 WRONG_TEST: the case asserts the old rule", REJECTED_GREEN.strip()])
+def test_hand_reroute_stops_where_reroute_would_run_never_calling_it_and_reroute_is_outside_the_series_4434(
+        step, line):
+    """PRD 038.10 RRT8, S2: `--hand reroute` keeps SKILL.md's Green prose path."""
+    run_step = importlib.import_module("veri.run_step")
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+    code, out, err, stages = step(answers={"green-half.sh": (1, line + "\n")}, argv=("12", "--hand", "reroute"))
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (
+        1, ["red-half.sh", "green-half.sh"], "seam=reroute code=1 reason=hand next=" + GREEN)
+    assert "stage=green-half" in (step.wt / ".tdd" / "issue-12-step").read_text().splitlines()
+    assert ("reroute" in run_step.STAGES, run_step.CALLS) == (True, STAGES)
+    assert step(argv=("12", "--from", "reroute"))[0] == 2
