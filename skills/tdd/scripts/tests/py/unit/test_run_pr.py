@@ -460,3 +460,48 @@ def test_4432_every_next_it_prints_is_run_pr_or_the_draft_pr_anchor_and_that_anc
     skill = os.path.join(os.path.dirname(run_pr.__file__), "..", "..", "DRAFT-PR.md")
     headings = [ln.strip() for ln in open(skill, encoding="utf-8") if ln.startswith("#")]
     assert any(h.lstrip("#").strip() == "4. Draft PR" for h in headings)
+
+
+def test_4432_it_prints_each_stages_call_line_with_its_exit_code_and_never_the_contents_of_a_suites_output_file(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd" / "test-runs").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    (wt / ".tdd" / "test-runs" / "make-test.out").write_text("MARKER-4432 suite output\n")
+    stages = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
+
+    monkeypatch.setattr(fused, "call", lambda name, *a, **kw: (0, "", ""))
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert "MARKER-4432" not in out + err
+    assert [ln for ln in out.splitlines() if ln.split(" ")[0] in stages and " exit " in ln] == [
+        "%s 12 exit 0" % s for s in stages]
+    assert code == 1, err
+
+
+def test_4432_the_resumed_late_run_prints_a_call_line_with_its_exit_code_for_pr_ready_wait_and_pr_finish_and_never_a_suites_output_file(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd" / "test-runs").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    (wt / ".tdd" / "test-runs" / "make-test.out").write_text("MARKER-4432 suite output\n")
+    stages = ("pr-ready-wait.sh", "pr-finish.sh")
+
+    monkeypatch.setattr(fused, "call", lambda name, *a, **kw: (0, "", ""))
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
+    run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert "MARKER-4432" not in out + err
+    assert [ln for ln in out.splitlines() if ln.split(" ")[0] in stages and " exit " in ln] == [
+        "%s 12 exit 0" % s for s in stages]
+    assert code == 1, err

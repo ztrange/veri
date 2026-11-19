@@ -66,3 +66,21 @@ IyMgNC4gRHJhZnQgUFI=
 command 175
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4432_every_next_it_prints_is_run_pr_or_the_draft_pr_anchor_and_that_anchor_names_a_heading_in_draft_pr_md
 
+before 40
+768cde2665c900808aa2b2f44a707284015d6d6c
+keep 47
+skills/tdd/scripts/tests/py/unit/test_run_pr.py
+command 196
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4432_the_resumed_late_run_prints_a_call_line_with_its_exit_code_for_pr_ready_wait_and_pr_finish_and_never_a_suites_output_file
+
+file 33
+skills/tdd/scripts/veri/run_pr.py
+old-b64 124
+ICAgICAgICBzeXMuc3Rkb3V0LndyaXRlKCIlcyAlcyBleGl0ICVkXG4iICUgKHN0YWdlLCBuLCBjb2RlKSkKICAgIHN5cy5zdGRvdXQud3JpdGUoIiIuam9pbg==
+new-b64 56
+ICAgICAgICBwYXNzCiAgICBzeXMuc3Rkb3V0LndyaXRlKCIiLmpvaW4=
+context-b64 84
+ICAgICAgICBzeXMuc3Rkb3V0LndyaXRlKCIlcyAlcyBleGl0ICVkXG4iICUgKHN0YWdlLCBuLCBjb2RlKSk=
+command 196
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4432_the_resumed_late_run_prints_a_call_line_with_its_exit_code_for_pr_ready_wait_and_pr_finish_and_never_a_suites_output_file
+
