@@ -1,6 +1,7 @@
 """revise.sh's computation, run in-process: REVISE.md's revise loop for one rejected phase (sub-steps 1-5), sliced
 like the fused halves of a step (PRD 038.9)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
 import os
 import shutil
 import sys
@@ -15,6 +16,7 @@ from ledger import handed_out
 NAME = "revise"
 USAGE = "usage: revise.sh <n> <phase>  (phase: red, green or refactor)"
 PHASES = ("red", "green", "refactor")
+STAGES = {"red": "red-half", "green": "green-half", "refactor": "refactor-half"}
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
 
@@ -58,7 +60,10 @@ def run(n, phase):
         fused_step.cost_check(wt, step)
         fused.checked("4", fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
         at = verify(n, wt, settled, step, values)
-    fused.wait(wt, n, NAME, at)
+    code = fused.wait(wt, n, NAME, at)
+    if code != 0:
+        raise fused.Stop("5", "wait-leaf.sh %s exit %d" % (at, code), code)
+    return finish(n, wt, values)
 
 
 def attempt(n, wt, settled, step, values):
@@ -87,6 +92,19 @@ def verify(n, wt, settled, step, values):
     green_half.launch_verdict("5", n, wt, settled, step, values)
     fused.save_wait(wt, n, NAME, "verdict-" + values["phase"], values)
     return "verdict-" + values["phase"]
+
+
+def finish(n, wt, values):
+    """REVISE.md sub-step 5 on a PASS: the revised verdict's comment, then the phase stage's wait record re-saved at
+    its verdict, so the stage called again finishes as after its own PASS; its rejected record is removed."""
+    phase = values["phase"]
+    stage = STAGES[phase]
+    fused.checked("5", fused.script("comment.sh"), n, "verify-revised", phase, cwd=wt)
+    fused.save_wait(wt, n, stage, "verdict-" + phase,
+                    {"test_path": values["test_path"], "target_test": values["target_test"]})
+    with contextlib.suppress(FileNotFoundError):
+        os.remove(fused.wait_record(wt, n, stage + "-rejected"))
+    return 0
 
 
 if __name__ == "__main__":
