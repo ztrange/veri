@@ -19,16 +19,18 @@ RED = "SKILL.md#Red — one failing test (developer leaf), then verify-red (blin
 GREEN = "SKILL.md#Green — minimum implementation (developer leaf), then verify-green (blind)"
 REVISE = "REVISE.md#Revising on a REJECT"
 REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
+DIFF = "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"
 
 # The stages in the order they run -> (the heading anchor, `<file>#<heading>` under the skill's directory, of the
 # section whose prose takes over at a stop there (S4); the marks of the step kinds it does not handle (S3, RN6): it
 # stops before such a stage without calling it). green-half's reason is specs/prd-027.md GH1.
 STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
-          "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ()), "revise": (REVISE, ())}
+          "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ()), "revise": (REVISE, ()),
+          "diff-step": (DIFF, ())}
 # The stages run in series; revise runs only on a half's REJECT, and is a stage only so `--hand revise` can name it.
-SERIES = tuple(stage for stage in STAGES if stage != "revise")
+SERIES = tuple(stage for stage in STAGES if stage not in ("revise", "diff-step"))
 # The phase stages -> the phase a verifier judges: a REJECT there (`.tdd/verdict-<phase>.exit` holding 1) is revise.sh's.
-PHASES = {"red-half": "red", "green-half": "green", "refactor-half": "refactor"}
+PHASES = {"red-half": "red", "green-half": "green", "refactor-half": "refactor", "diff-step": "diff"}
 # The scripts a `next=` it prints may name, every other `next=` being an anchor above (S4, RN10): itself, called again
 # on a stage's 3, and seam-settle.sh, which a stage's own record seam names.
 NEXT_SCRIPTS = ("run-step.sh", "seam-settle.sh")
@@ -39,9 +41,11 @@ RECORD_SEAM = "seam=%s code=1 reason=record next="
 CALLS = tuple(stage + ".sh" for stage in SERIES)
 # The kinds that are not a cycle step, red_half.REFUSED's (RN7) -> the anchor of the prose that runs them; a step of
 # one stops before any stage on `seam=none`, until a stage for that kind exists (038.3, 038.4).
-KINDS = {"⟦diff-checked⟧": "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)",
+KINDS = {"⟦diff-checked⟧": DIFF,
          "⟦phases:": "SKILL.md#A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier",
          "⟦skill-edit⟧": "SKILL-EDIT.md#The skill-edit step", "⟦fixture-repair⟧": RED}
+# The kinds a stage of their own runs, in place of the series (PRD 038.3 DST8): that stage is the step's one stage.
+RUNS = {"⟦diff-checked⟧": "diff-step"}
 
 
 def parse(argv):
@@ -76,17 +80,24 @@ def main(argv):
     if step is None:
         sys.stderr.write("run-step.sh: no open step in %s\n" % (LEDGER % n))
         return 3
-    for kind in red_half.REFUSED:
-        if kind in step:
+    kinds = [kind for kind in red_half.REFUSED if kind in step]
+    for kind in kinds:
+        if kind not in RUNS:
             sys.stdout.write("seam=none code=1 reason=kind next=%s\n" % KINDS[kind])
             return 1
-    order = list(SERIES)
+    order = [RUNS[kinds[0]]] if kinds else list(SERIES)
+    if start_at is not None and start_at not in order:
+        sys.stderr.write("run-step.sh: --from %s: not a stage of this step\n" % start_at)
+        return 2
     if start_at is not None:
         start = order.index(start_at)
+    elif kinds:
+        start = 0
     else:
         start = max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
     out = ""
-    for stage, script in list(zip(order, CALLS))[start:]:
+    for stage in order[start:]:
+        script = stage + ".sh"
         anchor, unhandled = STAGES[stage]
         if stage in hand:
             return seam(wt, n, step, stage, 1, anchor, "hand")
@@ -98,7 +109,9 @@ def main(argv):
             if code is not None:
                 return code
         code, out = run_stage(script, n)
-        if code == 1 and stage in PHASES and verdict(wt, PHASES[stage]) == "1":
+        if code == 1 and stage in PHASES and (verdict(wt, PHASES[stage]) == "1" or stage in RUNS.values() and
+                                              fused_step.rejected(wt, n, stage, step) is not None):
+            # diff-step's flip and pin-recheck REJECTs leave its rejected record with the verifier's PASS in place.
             code = revise(wt, n, step, stage, hand)
             if code is not None:
                 return code
@@ -110,8 +123,8 @@ def main(argv):
             return seam(wt, n, step, stage, code, NEXT_SCRIPTS[0] + " " + n if code == 3 else anchor)
     said = [line for line in out.splitlines() if line.startswith("next=")]
     if not said:
-        record(wt, n, "step-close", step)
-        sys.stderr.write("run-step.sh: step-close.sh exited 0 with no next= line\n")
+        record(wt, n, order[-1], step)
+        sys.stderr.write("run-step.sh: %s.sh exited 0 with no next= line\n" % order[-1])
         return 2
     with contextlib.suppress(FileNotFoundError):
         os.remove(fused.settled_file(wt, n, "step"))
