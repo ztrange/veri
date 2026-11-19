@@ -108,7 +108,7 @@ def test_an_argument_exits_2_with_the_usage_line_and_the_shim_execs_the_module(m
     with open(shim, encoding="utf-8") as f:
         text = f.read()
     assert (code, out, err, world.log) == (2, "", "usage: stack-recover.sh\n", []), err
-    assert text.startswith("#!/bin/sh\n") and '"$(dirname "$0")/veri/stack_recover.py"' in text, text
+    assert text.split("\n", 1)[0] == "#!" + "/bin/sh" and '"$(dirname "$0")/veri/stack_recover.py"' in text, text
 
 
 def test_while_the_outage_file_exists_it_exits_2_in_one_stderr_line_before_any_read_or_lock(
