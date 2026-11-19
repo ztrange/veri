@@ -199,3 +199,30 @@ def test_a_step_with_no_answer_still_removes_its_registry_entry(make, run_cli, t
 
     assert code == 2
     assert registry(legs) == {}
+
+
+def test_a_step_waits_with_one_stderr_line_naming_the_other_live_legs_until_none_is_registered(make, run_cli,
+                                                                                                 tmp_path, monkeypatch):
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    other = legs / str(ceiling.os.getppid())
+    other.write_text("3\n%s\n" % STARTED)
+    naps = []
+
+    def nap(seconds):
+        naps.append(seconds)
+        if len(naps) == 2:
+            other.unlink()
+
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+    monkeypatch.setattr(ceiling, "sleep", nap)
+    seen = []
+    make.given(lambda workers, tests: seen.append(sorted(registry(legs))) or [])
+
+    code, out, err = run_cli(ceiling, ["--max", "2"])
+
+    assert code == 0, err
+    assert len(naps) == 2
+    assert seen == [[str(ceiling.os.getpid())]]
+    waits = [line for line in err.splitlines() if "waiting" in line]
+    assert len(waits) == 1 and str(ceiling.os.getppid()) in waits[0] and "3 workers" in waits[0]

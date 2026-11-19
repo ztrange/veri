@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 
 from full_run_lock import legs_dir
 
@@ -54,16 +55,30 @@ def bound(argv):
     return None
 
 
+sleep = time.sleep
+
+
 def register(workers):
-    """Registers <workers> under this process's pid in the legs registry, as a leg would; returns the entry's path."""
+    """Registers <workers> under this process's pid in the legs registry, as a leg would, once no other live leg is
+    registered, waiting meanwhile with one stderr line naming them; returns the entry's path."""
     legs = legs_dir()
     os.makedirs(legs, exist_ok=True)
-    with open(legs.rstrip("/") + ".lock", "w") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        entry = os.path.join(legs, str(os.getpid()))
-        with open(entry, "w") as f:
-            f.write(pytest_leg.registration(workers))
-    return entry
+    said = False
+    while True:
+        with open(legs.rstrip("/") + ".lock", "w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            others = pytest_leg.registered_legs(legs)
+            if not others:
+                entry = os.path.join(legs, str(os.getpid()))
+                with open(entry, "w") as f:
+                    f.write(pytest_leg.registration(workers))
+                return entry
+            if not said:
+                sys.stderr.write("waiting to measure %d workers until no other leg is registered: %s\n" % (
+                    workers, ", ".join("pid %s with %d workers" % holder for holder in others)))
+                sys.stderr.flush()
+                said = True
+        sleep(1)
 
 
 class NoAnswer(Exception):
