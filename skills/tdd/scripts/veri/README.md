@@ -761,7 +761,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `pr-body.sh`: write a pull request's body.
 - `pr-ready.sh`: mark a pull request ready.
 - `push-branch.sh`: push the run's branch.
-- `queued-merge.sh`: merge a pull request in turn and clean up.
+- `queued-merge.sh`: merge a pull request in turn and clean up; during an outage join offline (`--skip-suite` skips its gate), and `--local-green` lifts the local freeze.
 - `record-test-commands.sh`: commit a project's test commands to its CLAUDE.md on the branch `veri-install` and open its pull request.
 - `ready-check.sh`: the checks before a pull request is readied.
 - `rebase-onto-default.sh`: rebase the branch onto the default branch; on a run's branch, re-record its branch base as the onto sha, already up to date included.
@@ -772,7 +772,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `stack-land.sh`: land the stack's tested cut on the default branch; any argument other than `--now` is exit 2 with its usage line.
 - `stack-pr.sh`: print the one open pull request tracking the stack branch, opening it when none is.
 - `stack-recover.sh`: after a GitHub outage, push each offline join's branch (its `Veri-Joined:` trailer) and then the stack under leases, confirm each joined pull request reads merged, delete the joined runs' remote branches and run records, and print the pushed tip and the tracking pull request.
-- `stack-red.sh`: print CI's latest answer on the stack branch when it is red, which freezes joins.
+- `stack-red.sh`: print CI's latest answer on the stack branch when it is red, which freezes joins; during an outage, `.tdd/stack-local-red` instead.
 - `stack-revert.sh`: revert an issue's commits on the stack, its hand fix included, as one commit on the tip in a worktree of its own, and lift its join claim from the merged pull requests' bodies.
 - `stack-tag.sh`: cut the tags of a landed slice, one annotated `vN.M` per issue whose commits in it include a `feat` or `fix`, on that issue's last commit on the default branch.
 - `unwired.sh`: the non-test files a range adds that no other non-test file names, the gate before a pull request is readied.

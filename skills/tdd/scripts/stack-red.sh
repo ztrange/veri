@@ -12,5 +12,7 @@
 #          one gave no answer (an earlier attempt that cannot be read or reads not completed), GitHub gave no answer
 #          or one not of the workflow-runs shape, a fetch of origin got no answer, stack-branch.sh did not exit 0
 #          (3 included), or bad arguments
+# During an outage (.tdd/github-outage in the main working tree) no GitHub call: 0 printing `<sha> <path> local` while
+# .tdd/stack-local-red exists, 3 while it does not, 2 with no stack named or a file whose first line is not a sha.
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/stack_red.py" "$@"
