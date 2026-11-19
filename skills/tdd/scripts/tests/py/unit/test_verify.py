@@ -17,7 +17,7 @@ def no_ambient_leaf_args(monkeypatch):
     monkeypatch.delenv("VERIFY_LEAF_ARGS", raising=False)
 
 
-BRANCH = ["--branch-base", "0123abc"]  # the run's recorded branch base every phase but diff takes (#4375)
+BRANCH = ["--branch-base", "0123abc"]  # the run's recorded branch base every phase takes (#4375, #4376)
 USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] --branch-base <sha> <phase>"
          b" <issue-spec-file> <test-path> [<target-test-id>]")
 
@@ -1633,7 +1633,7 @@ def test_3104_verify_sh_hands_supersede_base_to_the_diff_prompt_so_the_leaf_judg
     (tmp_path / "spec.md").write_text(SPEC)
     sha = "abcdef1234567"
     argv = ["--step", FLAG_STEP, "--fast-cmd", "make unit", "--supersede-base", sha,
-            "diff", str(tmp_path / "spec.md"), "0123abc", "0123abd"]
+            "--branch-base", "0123abc", "diff", str(tmp_path / "spec.md"), "0123abd"]
     launched = answering_leaf(monkeypatch, fake_processes, GREEN)
     verify = importlib.import_module("veri.verify")
 
@@ -1648,7 +1648,7 @@ def test_3104_verify_sh_hands_supersede_base_to_the_diff_prompt_so_the_leaf_judg
 def test_3104_verify_sh_names_the_leaf_verify_diff_when_supersede_base_precedes_the_diff_phase(
         run_cli, tmp_path, monkeypatch, fake_processes):
     (tmp_path / "spec.md").write_text(SPEC)
-    argv = ["--step", FLAG_STEP, "--fast-cmd", "make unit", "--supersede-base", "abcdef1234567", "diff", str(tmp_path / "spec.md"), "0123abc", "0123abd"]
+    argv = ["--step", FLAG_STEP, "--fast-cmd", "make unit", "--supersede-base", "abcdef1234567", "--branch-base", "0123abc", "diff", str(tmp_path / "spec.md"), "0123abd"]
     launched = answering_leaf(monkeypatch, fake_processes, GREEN)
     verify = importlib.import_module("veri.verify")
 
@@ -1660,7 +1660,7 @@ def test_3104_verify_sh_names_the_leaf_verify_diff_when_supersede_base_precedes_
 DIFF_STEP = "DIFF-STEP the old cases are gone"
 
 
-DIFF = ["--step", DIFF_STEP, *FAST, "diff", "{spec}", "0123abc", "0123abc"]
+DIFF = ["--step", DIFF_STEP, *FAST, "--branch-base", "0123abc", "diff", "{spec}", "0123abc"]
 
 
 REBASE = [*BRANCH, "rebase", "{spec}", "0123abc", "4567def"]
@@ -1669,7 +1669,7 @@ REBASE = [*BRANCH, "rebase", "{spec}", "0123abc", "4567def"]
 NO_STEP = "build-verify-prompt: diff needs --step '<STEP>'"
 
 
-NON_HEX = "build-verify-prompt: diff needs <base-sha> as 7-40 lowercase hex characters, got 'not-a-sha'"
+NON_HEX = "build-verify-prompt: diff needs <step-base-sha> as 7-40 lowercase hex characters, got 'not-a-sha'"
 
 
 TOO_MANY = "build-verify-prompt: too many arguments"
@@ -1693,9 +1693,9 @@ STEP_VALUE = "verify: --step needs a value"
     *[pytest.param(entry, argv, GREEN, (2, message, [], []), id="%s-%s" % (label, entry))
       for entry in ("verify", "run_verdict")
       for label, argv, message in (
-          ("no-step", [*FAST, "diff", "{spec}", "0123abc", "0123abc"], NO_STEP),
-          ("non-hex", ["--step", DIFF_STEP, *FAST, "diff", "{spec}", "not-a-sha", "0123abc"], NON_HEX),
-          ("extra", [*DIFF, "extra"], TOO_MANY))],
+          ("no-step", [*FAST, "--branch-base", "0123abc", "diff", "{spec}", "0123abc"], NO_STEP),
+          ("non-hex", ["--step", DIFF_STEP, *FAST, "--branch-base", "0123abc", "diff", "{spec}", "not-a-sha"], NON_HEX),
+          ("extra", [*DIFF, "extra", "extra"], TOO_MANY))],
     pytest.param("verify", ["--step", "", *BRANCH, "red", "{spec}", "tests/test_slugify.py", "test_lowercases"], GREEN,
                  (2, STEP_VALUE, [], []), id="empty-step"),
     pytest.param("verify", ["--step"], GREEN, (2, STEP_VALUE, [], []), id="trailing-step"),

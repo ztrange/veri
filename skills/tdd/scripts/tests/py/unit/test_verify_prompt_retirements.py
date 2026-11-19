@@ -27,7 +27,7 @@ def test_each_verify_phase_renders_with_exit_0_its_issue_spec_text_and_no_unfill
         "plan": ["plan", str(spec), str(ledger)],
         "rebase": ["rebase", str(spec), "0123abc", "0123abd"],
         "transform": [*step, "transform", str(spec), "rec", "0123abc"],
-        "diff": [*step, "diff", str(spec), "0123abc", "0123abd"],
+        "diff": [*step, "--branch-base", "0123abc", "diff", str(spec), "0123abd"],
     }
 
     results = {}

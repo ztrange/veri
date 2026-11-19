@@ -274,7 +274,8 @@ def test_the_develop_red_and_develop_revise_red_prompts_name_a_run_output_file_t
 
 
 @pytest.mark.process(BOUNDARY)
-def test_1702_every_changed_tier_prompt_gives_make_test_with_tests_naming_the_suites_not_a_placeholder_for_the_command(spec):
+def test_1702_every_changed_tier_prompt_gives_make_test_with_tests_naming_the_suites_not_a_placeholder_for_the_command(
+        spec, tmp_path, monkeypatch):
     problems = []
     step = "the zorblat is frobbed ⟦diff-checked⟧ ⟦criterion 1⟧"
     roster = [
@@ -282,8 +283,12 @@ def test_1702_every_changed_tier_prompt_gives_make_test_with_tests_naming_the_su
         ("develop-diff", build(problems, DEVELOP, "diff", spec, step, "make test", "make unit")),
         ("verify-green", build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
         ("verify-refactor", build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")),
-        ("verify-diff", build(problems, VERIFY, "--step", step, "--fast-cmd", "make unit", "diff", spec, "0123abc", "4567def")),
     ]
+    own = new_repo(tmp_path / "own")  # the diff's --branch-base read needs a real commit of a tree laid out as veri's (#4376)
+    base = commit_all(own, "base", **{"skills__tdd__scripts__tests__py__conftest.py": ""})
+    monkeypatch.chdir(own)
+    roster.append(("verify-diff", build(problems, VERIFY, "--step", step, "--fast-cmd", "make unit", "--branch-base", base,
+                                        "diff", spec, base)))
     for label, prompt in roster:
         folded = plain(prompt)
         if "<the command that runs them>" in folded:

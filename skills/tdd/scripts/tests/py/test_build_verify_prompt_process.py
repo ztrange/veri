@@ -40,6 +40,6 @@ def test_red_green_and_diff_calls_through_a_symlink_to_the_scripts_directory_ans
     same_through_link("red", ["red", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"])
     same_through_link("green", ["--fast-cmd", "make unit", "green", str(spec), "tests/test_slugify.py",
                                 "test_slugify_lowercases"])
-    same_through_link("diff", ["--step", "s", "--fast-cmd", "make unit", "diff", str(spec), "0123abc", "4567def"])
+    same_through_link("diff", ["--step", "s", "--fast-cmd", "make unit", "--branch-base", "0123abc", "diff", str(spec), "4567def"])
 
     assert problems == []

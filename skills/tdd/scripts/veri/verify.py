@@ -198,15 +198,6 @@ def fails_at_head(gate, output):
         shutil.rmtree(scratch, ignore_errors=True)
 
 
-def branch_base(words, options):
-    """The commit a verifier reads its run lines, and whether it is veri's own tree, at (#4263): the `<branch-base-sha>`
-    a `diff` call names ("" when it is not a hex commit name, which the builder refuses), else the `--branch-base` the
-    conductor recorded (#4375), never a merge base with a remote-tracking ref a leaf could rewrite."""
-    if words[0] == "diff":
-        return words[2] if build_verify_prompt.HEX_SHA.fullmatch(words[2]) else ""
-    return options["--branch-base"]
-
-
 def red_gate_failure():
     for gate in (g.strip() for g in tunables.read("VERI_TEST_CMD").split("&&")[:-1]):
         passed, output = passes_in(gate, ".")
@@ -224,12 +215,13 @@ def diff_gate(words, options):
     tip = "HEAD"
     if options["--supersede-base"]:
         tip = leaf_tree_guard.in_temp_index("write-tree")
-    deleted = deleted_cases(words[2], words[3], tip)
+    branch, step_base = options["--branch-base"], words[2]
+    deleted = deleted_cases(branch, step_base, tip)
     if deleted is None:
-        return entry.refuse("verify: cannot read the test files at %s, %s or HEAD" % (words[2], words[3]), usage=USAGE)
+        return entry.refuse("verify: cannot read the test files at %s, %s or HEAD" % (branch, step_base), usage=USAGE)
     if deleted:
-        taken = {other for _, other in pytest_cases(words[3])}
-        changed = [(case, changed_rename(case, words[3], taken, tip)) for case in deleted]
+        taken = {other for _, other in pytest_cases(step_base)}
+        changed = [(case, changed_rename(case, step_base, taken, tip)) for case in deleted]
         pairs = [(case, other) for case, other in changed if other]
         if pairs:
             write(sys.stdout, "step renamed and changed test cases, so the step must be split: "
@@ -279,7 +271,7 @@ def main(argv):
         words = words[2:]
     if len(words) < 3:
         return entry.refuse(usage=USAGE)
-    if words[0] != "diff" and not build_verify_prompt.HEX_SHA.fullmatch(options["--branch-base"]):
+    if not build_verify_prompt.HEX_SHA.fullmatch(options["--branch-base"]):
         return entry.refuse("verify: %s needs --branch-base <sha> as 7-40 lowercase hex characters, got '%s'"
                             % (words[0], options["--branch-base"]), usage=USAGE)
     leaf = "verify-" + words[0]
@@ -307,7 +299,9 @@ def main(argv):
         return entry.to_contract(build_verify_prompt.refuse())
     if len(words) > 4:
         return entry.to_contract(build_verify_prompt.refuse("build-verify-prompt: too many arguments"))
-    base = branch_base(words, options)
+    # The commit a verifier reads its run lines, and whether it is veri's own tree, at (#4263): the `--branch-base` the
+    # conductor recorded (#4375, #4376), never a merge base with a remote-tracking ref a leaf could rewrite.
+    base = options["--branch-base"]
     issue = tunables.read("VERI_ISSUE")
     ledger = run_dir.ledger(".", issue) if issue else ""
     code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base,

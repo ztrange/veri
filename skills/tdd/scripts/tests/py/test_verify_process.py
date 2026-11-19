@@ -25,7 +25,7 @@ SCRIPTS = Path(__file__).resolve().parents[2]
 
 
 def based(repo):
-    """`--branch-base` and <repo>'s HEAD, the recorded base every phase but `diff` takes (#4375); a hex sha naming no
+    """`--branch-base` and <repo>'s HEAD, the recorded base every phase takes (#4375, #4376); a hex sha naming no
     commit outside a git repository, where the verifier reads nothing at it."""
     head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     return ["--branch-base", head or "0000000"]
@@ -1469,12 +1469,65 @@ def test_verify_sh_diff_exits_1_without_launching_the_leaf_naming_the_pytest_cas
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "no test fakes X any longer ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "no test fakes X any longer ⟦diff-checked⟧", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
     assert (code, "tests/test_start.py::test_refuses_start" in out, started.exists()) == (1, True, False)
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, with origin/main rewritten"
+                     " past the branch base, and a stub claude that records any start")
+@pytest.mark.parametrize("deletes", [True, False], ids=["gate-reads-cases-at-branch-base", "prompt-diffs-from-branch-base"])
+def test_4376_verify_sh_diff_takes_its_branch_base_from_the_branch_base_flag_not_origin_main_for_both_its_gate_and_its_prompt(
+        deletes, run_cli, tmp_path):
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+
+    def commit(message):
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", message], check=True)
+        return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                              capture_output=True).stdout.decode().strip()
+
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "tests").mkdir()
+    (repo / "tests" / "test_start.py").write_text("def test_keeps():\n    pass\n")
+    branch_base = commit("branch base")
+    (repo / "tests" / "test_start.py").write_text(
+        "def test_keeps():\n    pass\n\n\ndef test_refuses_start():\n    pass\n")
+    step_base = commit("an earlier step adds test_refuses_start")
+    for ref in ("refs/remotes/origin/main", "refs/remotes/origin/HEAD"):
+        subprocess.run(["git", "-C", str(repo), "update-ref", ref, step_base], check=True)
+    if deletes:
+        (repo / "tests" / "test_start.py").write_text("def test_keeps():\n    pass\n")
+    else:
+        (repo / "tests" / "test_other.py").write_text("def test_other():\n    pass\n")
+    commit("this step")
+    started = tmp_path / "started"
+    claude = tmp_path / "claude-record"
+    claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
+    claude.chmod(0o755)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, err = run_cli(
+        verify, ["--step", "no test fakes X any longer ⟦diff-checked⟧", "--fast-cmd", "make unit",
+                 "--branch-base", branch_base, "diff", str(tmp_path / "spec.md"), step_base],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=repo)
+
+    if deletes:
+        assert (code, out.strip(), started.exists()) == (
+            1, "step deleted test cases an earlier step added: tests/test_start.py::test_refuses_start", False), err
+    else:
+        prompt = " ".join((repo / ".tdd" / "verify-diff.prompt").read_text().split())
+        assert (code, started.exists(), f"git diff {branch_base}..HEAD" in prompt,
+                f"git diff {step_base}..HEAD" in prompt, f"branched at `{branch_base}`" in prompt) == (
+            0, True, True, True, True), err
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -1511,8 +1564,8 @@ def test_verify_sh_diff_still_launches_the_leaf_for_a_pytest_case_an_earlier_ste
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "no test fakes X any longer ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "no test fakes X any longer ⟦diff-checked⟧", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -1551,8 +1604,8 @@ def test_2329_verify_sh_diff_launches_the_leaf_for_a_pytest_case_an_earlier_step
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -1594,8 +1647,8 @@ def test_2329_verify_sh_diff_exits_1_naming_a_renamed_case_whose_body_or_def_lin
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -1636,8 +1689,8 @@ def test_2329_verify_sh_diff_exits_1_naming_a_renamed_case_whose_decorator_line_
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -1677,8 +1730,8 @@ def test_2594_verify_sh_diff_exits_1_with_a_line_naming_a_case_renamed_and_chang
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -1720,8 +1773,8 @@ def test_2594_verify_sh_diff_launches_the_leaf_and_exits_0_on_its_pass_printing_
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -1760,8 +1813,8 @@ def test_2594_verify_sh_diff_exits_1_with_the_deleted_cases_line_and_no_tracebac
     verify = importlib.import_module("veri.verify")
 
     code, out, err = run_cli(
-        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -1801,8 +1854,8 @@ def test_2594_verify_sh_diff_exits_1_with_the_deleted_cases_line_alone_for_a_rem
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -1843,8 +1896,8 @@ def test_2419_verify_sh_diff_exits_1_naming_exactly_one_of_two_identical_removed
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -1887,8 +1940,8 @@ def test_2419_verify_sh_diff_exits_1_naming_exactly_the_third_of_three_identical
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -1930,8 +1983,8 @@ def test_2419_verify_sh_diff_launches_the_leaf_for_a_single_removed_case_renamed
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -1972,8 +2025,8 @@ def test_2329_verify_sh_diff_exits_1_naming_a_removed_case_whose_text_reappears_
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -2002,8 +2055,8 @@ def test_verify_sh_diff_exits_2_without_launching_the_leaf_when_the_step_base_sh
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "no test fakes X any longer ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, "0123456789abcdef0123456789abcdef01234567"],
+        verify, ["--step", "no test fakes X any longer ⟦diff-checked⟧", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), "0123456789abcdef0123456789abcdef01234567"],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -2041,8 +2094,8 @@ def test_verify_sh_diff_still_launches_the_leaf_and_returns_its_verdict_when_the
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "no test fakes X any longer ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "no test fakes X any longer ⟦diff-checked⟧", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -2690,8 +2743,8 @@ def test_2897_verify_sh_diff_exits_1_with_the_deleted_cases_line_for_a_go_test_f
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -2730,8 +2783,8 @@ def test_2897_verify_sh_diff_exits_1_with_the_deleted_cases_line_for_an_it_case_
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -2764,8 +2817,8 @@ def run_2897_diff(run_cli, tmp_path, path, base_text, added_text, final_text):
     (tmp_path / "spec.md").write_text(SPEC)
     verify = importlib.import_module("veri.verify")
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
-                 str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff",
+                 str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
     return code, out.strip(), started.exists()
@@ -2919,7 +2972,7 @@ def test_3120_verify_sh_diff_with_supersede_base_exits_1_naming_a_case_the_uncom
 
     code, out, _ = run_cli(
         verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit",
-                 "--supersede-base", snapshot, "diff", str(tmp_path / "spec.md"), branch_base, step_base],
+                 "--supersede-base", snapshot, "--branch-base", branch_base, "diff", str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -2962,7 +3015,7 @@ def test_3120_verify_sh_diff_without_supersede_base_still_compares_against_head_
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
-        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff", str(tmp_path / "spec.md"), branch_base, step_base],
+        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "--branch-base", branch_base, "diff", str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -3005,7 +3058,7 @@ def test_3120_verify_sh_diff_with_supersede_base_does_not_report_a_case_the_unco
 
     code, out, _ = run_cli(
         verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit",
-                 "--supersede-base", snapshot, "diff", str(tmp_path / "spec.md"), branch_base, step_base],
+                 "--supersede-base", snapshot, "--branch-base", branch_base, "diff", str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
@@ -3048,7 +3101,7 @@ def test_3120_verify_sh_diff_with_supersede_base_tells_the_step_to_split_when_th
 
     code, out, _ = run_cli(
         verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit",
-                 "--supersede-base", snapshot, "diff", str(tmp_path / "spec.md"), branch_base, step_base],
+                 "--supersede-base", snapshot, "--branch-base", branch_base, "diff", str(tmp_path / "spec.md"), step_base],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 

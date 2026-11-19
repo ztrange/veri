@@ -9,7 +9,7 @@
 # Usage:
 #   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #   build-verify-prompt.sh rebase <issue-spec-file> <onto-sha> <pre-rebase-sha>
-#   build-verify-prompt.sh --step '<STEP>' --fast-cmd '<CMD>' diff <issue-spec-file> <branch-base-sha> <step-base-sha>
+#   build-verify-prompt.sh --step '<STEP>' --fast-cmd '<CMD>' --branch-base <sha> diff <issue-spec-file> <step-base-sha>
 #     phase = red | green | refactor | pin | plan | rebase | transform | diff
 #              for plan the third positional names the proposed ledger, not a test;
 #              for transform it names the step's predicate record, and the fourth is the

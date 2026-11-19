@@ -161,7 +161,7 @@ def test_outside_veri_verify_diff_reads_its_run_lines_at_the_branch_base_sha_it_
     git(repo, "checkout", "-q", "-b", "feature")
     step_base = commit_all(repo, "edit the run line", **{"CLAUDE.md": EDITED_MD})
 
-    run_cli(verify, ["--step", "it works ⟦diff-checked⟧", "--fast-cmd", "pytest", "diff", str(spec), base, step_base],
+    run_cli(verify, ["--step", "it works ⟦diff-checked⟧", "--fast-cmd", "pytest", "--branch-base", base, "diff", str(spec), step_base],
             env={"CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}, cwd=repo)
 
     assert run_lines_of((repo / ".tdd" / "verify-diff.prompt").read_text()) == BASE_LINES
@@ -262,7 +262,7 @@ def test_outside_veri_a_lint_repair_diff_prompt_names_the_branch_base_lint_comma
     step = "make `ruff check .` pass ⟦diff-checked⟧ ⟦lint-repair⟧ ⟦added⟧ ⟦criterion 1⟧"
 
     code, out, err = run_cli(build, ["--step", step, "--fast-cmd", "pytest", "--branch-base", base, "diff", str(spec),
-                                     base, base], cwd=repo)
+                                     base], cwd=repo)
 
     words = " ".join(out.split())
     assert (code, err, "lint command, `ruff check --quiet .`," in words, "`true`" in words) == (0, "", True, False)
