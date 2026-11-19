@@ -133,6 +133,7 @@ def checks(n, wt, settled, step, values):
     """REVISE.md sub-step 4: red's prediction gate, green's tests-frozen.sh check, before any verifier. A check that
     spends attempt k as a REJECT does leaves its reason in the reason file and launches no verifier (None); otherwise
     the re-verify is launched (its leaf, or SKIPPED)."""
+    routed(wt, values)
     if values["phase"] == "red":
         return red_checks(n, wt, settled, step, values)
     code, said, _ = fused.call(fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
@@ -143,6 +144,21 @@ def checks(n, wt, settled, step, values):
             f.write("REASON: the revise changed a frozen test file: %s\n" % " ".join(said.split()))
         return None
     return verify(n, wt, settled, step, values)
+
+
+# The revise report's answers that route it elsewhere (RVS7), per phase: the conductor's routes, never an attempt.
+ROUTES = {"red": (("OUTCOME", "IMPOSSIBLE"), ("AGAINST_UNMODIFIED", "PASSES")),
+          "green": (("OUTCOME", "IMPOSSIBLE"), ("WRONG_TEST", None), ("SUPERSEDED", None)),
+          "refactor": (("OUTCOME", "IMPOSSIBLE"),)}
+
+
+def routed(wt, values):
+    """REVISE.md sub-step 3's answers that end the loop: stop with exit 1 naming the report line."""
+    routes = ROUTES[values["phase"]]
+    got = fused.report("3", wt, ".tdd/revise-%s-%d.out" % (values["phase"], values["k"]), *dict(routes))
+    for key, value in routes:
+        if got[key] is not None and value in (None, got[key]):
+            raise fused.Stop("3", "%s: %s" % (key, got[key]), 1)
 
 
 # Red's prediction gate (red-divergence.sh): the reason the exits that are not a match leave; exit 0's is the script's.
