@@ -14,7 +14,7 @@
 - [x] a --from or --hand value that is not one of the five stage names, or an unknown option, is exit 2 with no stage called ⟦criterion 5⟧
 - [x] in a stacked run (.tdd/issue-<n>-base present in the worktree) after pr-checks.sh exits 0 it stops with seam=pr-ready-wait code=1 reason=stacked next=DRAFT-PR.md#4. Draft PR and exits 1, never calling pr-ready-wait.sh or pr-finish.sh ⟦criterion 6⟧
 - [x] in a stacked run every later call, a resume at the stacked seam and --from pr-ready-wait or --from pr-finish included, stops again with reason=stacked, exit 1, never calling pr-ready-wait.sh or pr-finish.sh ⟦criterion 6⟧
-- [ ] its CALLS tuple names exactly the five stage scripts, and a whole run to the body seam calls fused.call only with those scripts, never pr-body.sh or gh ⟦criterion 7⟧
+- [x] its CALLS tuple names exactly the five stage scripts, and a whole run to the body seam calls fused.call only with those scripts, never pr-body.sh or gh ⟦criterion 7⟧ ⟂ refactor pending
 - [ ] every next= run-pr.sh can print is run-pr.sh <n> or the anchor DRAFT-PR.md#4. Draft PR, and a unit case checks that anchor names a heading in skills/tdd/DRAFT-PR.md, watched go red against a renamed heading ⟦criterion 9⟧
 - [ ] it prints each stage's call line with its exit code and never the contents of a suite's output file ⟦criterion 10⟧
 - [ ] a missing .tdd/issue-<n>-preflight is exit 2 before any stage is called
