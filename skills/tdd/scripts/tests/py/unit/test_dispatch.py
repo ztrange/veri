@@ -3460,7 +3460,8 @@ def test_queued_merges_reports_a_skip_suite_line_by_its_pr_url_and_counts_no_loc
 
     scripts = dispatch.paths.scripts_of(dispatch.__file__)
     url = "https://github.com/o/r/pull/7"
-    listing = (f"sh {scripts}/queued-merge.sh --skip-suite claude-opus-5-5 slow {url} /w tdd/7-x -\n"
+    listing = (f"sh {scripts}/queued-merge.sh --skip-suite claude-opus-5-5 https://github.com/o/r/issues/1 {url} /w"
+               f" tdd/7-x -\n"
                f"sh {scripts}/queued-merge.sh --local-green\n"
                f"sh {scripts}/queued-merge.sh --local-green extra words\n")
 
