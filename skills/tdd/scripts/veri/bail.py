@@ -45,6 +45,11 @@ def main(argv):
         subprocess.run(["git", "add", "-f", path], capture_output=True, text=True)
         subprocess.run(["git", "commit", "-m", "metrics: what bailing on #%s cost (#%s)" % (argv[0], argv[0]), "--", path],
                        capture_output=True, text=True)
+    subprocess.run([os.path.join(here, "push-branch.sh")], capture_output=True, text=True)
+    subprocess.run([os.path.join(here, "comment.sh"), argv[0], "bailed"],
+                   capture_output=True, text=True)
+    subprocess.run([os.path.join(here, "comment.sh"), argv[0], "bailed", "--pr"],
+                   capture_output=True, text=True)
     return 0
 
 
