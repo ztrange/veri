@@ -3,7 +3,6 @@
 Every case fakes `make test` at the process boundary: the fake reads the workers and the selection off the command and
 its environment, and reports each failing case through the recorder plugin, as the real leg's controller would."""
 import re
-import subprocess
 import types
 
 import pytest
@@ -17,27 +16,28 @@ STARTED = "Wed Nov 18 10:00:00 2026"
 
 
 @pytest.fixture
-def make(monkeypatch, tmp_path):
-    """Swaps `make test` for a fake: `outcome(workers, tests)` returns the (nodeid, failure text) of each failing case,
-    or a bare exit code. Each call is kept as (workers, tests, argv)."""
+def make(monkeypatch, tmp_path, fake_processes):
+    """Answers `make test` through fake_processes: `outcome(workers, tests)` returns the (nodeid, failure text) of each
+    failing case, or a bare exit code. Each call is kept as (workers, tests, argv)."""
     calls = []
     state = {"outcome": lambda workers, tests: []}
 
-    def run(argv, env=None, **kwargs):
+    def run(line, env=None, **kwargs):
+        argv = fake.argvs[-1]
         workers = int(env["VERI_PYTEST_WORKERS"])
         tests = [arg[len("TESTS="):] for arg in argv if arg.startswith("TESTS=")]
         calls.append((workers, tests, argv))
         outcome = state["outcome"](workers, tests)
         if isinstance(outcome, int):
-            return subprocess.CompletedProcess(argv, outcome)
+            return outcome, "", ""
         with monkeypatch.context() as patch:
             patch.setenv("VERI_CEILING_RECORD", env["VERI_CEILING_RECORD"])
             for nodeid, text in outcome:
                 ceiling_record.pytest_runtest_logreport(
                     types.SimpleNamespace(nodeid=nodeid, failed=True, when="call", longreprtext=text))
-        return subprocess.CompletedProcess(argv, 1 if outcome else 0)
+        return (1 if outcome else 0), "", ""
 
-    monkeypatch.setattr(ceiling.subprocess, "run", run)
+    fake = fake_processes.answers({"make": run})
     monkeypatch.setattr(ceiling, "commit", lambda: "0123456789abcdef0123456789abcdef01234567")
     monkeypatch.setattr(ceiling.os, "cpu_count", lambda: 6)
     monkeypatch.setattr(pid_file, "ps_field", lambda field, pid: STARTED)
