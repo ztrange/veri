@@ -477,3 +477,15 @@ def test_skip_suite_missing_its_reason_and_the_run_arguments_is_exit_2_with_the_
     code, _, err = run_cli(queued_merge, ["--skip-suite", "claude-opus-5-5", PR, world.wt, BRANCH, "-"])
 
     assert (code, world.calls, "usage:" in err) == (2, [], True), err
+
+
+@pytest.mark.parametrize("outage, base", [(False, "stack\n"), (True, None), (True, "trunk\n")])
+def test_skip_suite_outside_an_outage_or_on_a_join_that_is_not_offline_is_exit_2_with_no_lock_and_no_pr_read(
+        tmp_path, fake_processes, monkeypatch, run_cli, outage, base):
+    world = Offline(tmp_path, outage=outage, base=base).install(fake_processes, monkeypatch)
+
+    code, out, err = skip(run_cli, world)
+
+    locks = [c for c in world.calls if c.startswith("merge-lock.sh")]
+    assert (code, out, locks, world.pulls, world.local) == (2, "", [], [], LOCAL_STACK), err
+    assert "--skip-suite" in err and "offline" in err, err

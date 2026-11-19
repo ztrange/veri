@@ -709,7 +709,7 @@ def _offline_stack(worktree):
     return stack if stack and record[1].strip() == stack else None
 
 
-def _join_offline(pid, pr, worktree, branch, stack):
+def _join_offline(pid, pr, worktree, branch, stack, skip=None):
     """The offline join (PRD 033.2a): onto the local <stack> under the merge lock, released on every exit path, with no
     call to GitHub. Returns an exit code."""
     code = _script("merge-lock.sh", "take", "--pid", pid)
@@ -989,8 +989,8 @@ def main(argv):
         return 2
     clone, issue = _main_clone(worktree), run_dir.branch_issue(branch)
     if clone is None:
-        return _merge(pr, worktree, branch, message)
-    return event.stage("merge", lambda: _merge(pr, worktree, branch, message), clone,
+        return _merge(pr, worktree, branch, message, skip)
+    return event.stage("merge", lambda: _merge(pr, worktree, branch, message, skip), clone,
                        event.context(tunables.with_values(VERI_ISSUE=issue)) if issue else None)
 
 
@@ -1003,7 +1003,7 @@ def _main_clone(worktree):
         return None
 
 
-def _merge(pr, worktree, branch, message):
+def _merge(pr, worktree, branch, message, skip=None):
     driver = tunables.get("VERI_GH_DRIVER")
     if driver not in ("auto", "rest", "graphql"):
         print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
@@ -1027,7 +1027,11 @@ def _merge(pr, worktree, branch, message):
             _say("%s; nothing joined" % refused)
             return 2
         if stack:
-            return _join_offline(pid, pr, worktree, branch, stack)
+            return _join_offline(pid, pr, worktree, branch, stack, skip)
+    if skip:
+        _say("--skip-suite skips only the offline join's gate, and this join is not offline (no .tdd/github-outage, or"
+             " the run's recorded base names no stack); nothing done")
+        return 2
     stack, refusal = _stack_base(repo, pr, worktree, branch)
     if refusal:
         _say(refusal[0])
