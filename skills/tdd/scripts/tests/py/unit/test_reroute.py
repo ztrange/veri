@@ -278,3 +278,32 @@ def test_a_revise_answer_on_verify_greens_reason_keeps_the_reason_and_green_half
     assert (code, out.splitlines()[-1]) == (1, "route=revise phase=green")
     assert (reroute.wt / ".tdd" / "verify-green.reason").read_text() == "VERDICT: REJECT\nno\n"
     assert json.loads((reroute.wt / ".tdd" / "issue-12-green-half-rejected-wait").read_text()) == kept
+
+
+def _red_revise_left(reroute):
+    record = json.loads((reroute.wt / ".tdd" / "issue-12-red-half-rejected-wait").read_text())
+    return (record["step"], record["at"], record["values"]) == (
+        STEP, "verdict-red", {"test_path": "tests/test_a.py", "target_test": OWN})
+
+
+def test_a_verify_red_reject_of_the_rerouted_case_is_exit_1_route_revise_red_with_red_halfs_rejected_record_4434(
+        reroute):
+    """PRD 038.10 RRT5: the verifier's reason stays in `.tdd/verify-red.reason` for revise.sh <n> red."""
+    reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
+    code, out, err, fake = reroute(answers={("wait-leaf.sh", "verdict-red"): (1, "")},
+                                   files={"develop-red-contradicted.out": REROUTED})
+
+    assert (code, out.splitlines()[-1]) == (1, "route=revise phase=red")
+    assert fake.all("tests-frozen.sh") == []
+    assert _red_revise_left(reroute)
+    assert not (reroute.wt / ".tdd" / "issue-12-reroute-wait").exists()
+
+
+def test_a_tests_frozen_record_exit_1_is_exit_1_route_revise_red_its_stdout_the_reason_4434(reroute):
+    """PRD 038.10 RRT5: a reroute that deleted the step's own case is a verify-red REJECT."""
+    code, out, err, fake = reroute(answers={**ROUTE_RED, ("tests-frozen.sh", "record"): (1, "")},
+                                   files={"develop-red-contradicted.out": REROUTED})
+
+    assert (code, out.splitlines()[-1]) == (1, "route=revise phase=red")
+    assert fake.call("tests-frozen.sh")[4]["out"] == ".tdd/verify-red.reason"
+    assert _red_revise_left(reroute)
