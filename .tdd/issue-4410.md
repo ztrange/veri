@@ -5,7 +5,7 @@
 - [x] stack-recover.sh exits 3 when stack-branch.sh exits 3, and 2 when it exits 2 ⟦criterion 2⟧
 - [x] stack-recover.sh takes the merge lock and fetches; a failed take or fetch is exit 2, the lock freed ⟦criterion 3⟧
 - [x] stack-recover.sh exits 3 when the local stack is absent, is origin/<stack>, or is behind it, the lock freed ⟦criterion 3⟧
-- [ ] stack-recover.sh exits 1 naming both shas when origin/<stack> is not an ancestor of the local stack, nothing pushed ⟦criterion 4⟧
+- [x] stack-recover.sh exits 1 naming both shas when origin/<stack> is not an ancestor of the local stack, nothing pushed ⟦criterion 4⟧
 - [ ] stack-recover.sh pushes each Veri-Joined commit to its branch oldest first under a lease on origin/<branch> as fetched; a refused lease is exit 1 naming the branch, the stack not pushed ⟦criterion 5⟧
 - [ ] stack-recover.sh then pushes the stack under a lease on origin/<stack> as fetched, never --force ⟦criterion 6⟧
 - [ ] stack-recover.sh re-reads each joined PR over the settle window; one not reading merged is exit 2 naming it, the stack left as pushed ⟦criterion 7⟧
