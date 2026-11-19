@@ -122,3 +122,17 @@ def test_a_timed_out_case_failing_alone_other_than_by_its_timeout_is_exit_2_nami
     assert code == 2
     assert SLOW in err and "failed alone" in err
     assert "ceiling:" not in out
+
+
+def test_the_recorder_writes_only_a_failed_report_and_only_outside_an_xdist_worker(monkeypatch, tmp_path):
+    record = tmp_path / "record"
+    monkeypatch.setenv("VERI_CEILING_RECORD", str(record))
+    report = lambda nodeid, failed: types.SimpleNamespace(nodeid=nodeid, failed=failed, when="call", longreprtext=TIMEOUT)
+
+    ceiling_record.pytest_runtest_logreport(report("a::passed", False))
+    with monkeypatch.context() as patch:
+        patch.setenv("PYTEST_XDIST_WORKER", "gw0")
+        ceiling_record.pytest_runtest_logreport(report("a::in_worker", True))
+    ceiling_record.pytest_runtest_logreport(report("a::failed", True))
+
+    assert ceiling.failures(str(record)) == {"a::failed": True}
