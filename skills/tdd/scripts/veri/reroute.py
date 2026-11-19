@@ -76,10 +76,14 @@ def run(n, report):
         values.update(edited(wt, values))
         at = verify(n, wt, settled, step, values)
     while at == "verdict-red":
-        waited(wt, n, "verify", at)
+        code = fused.wait(wt, n, NAME, at)
+        if code == 1:
+            revise_red(wt, n, step, red)
+        if code != 0:
+            raise fused.Stop("verify", "wait-leaf.sh %s exit %d" % (at, code), code)
         values["verify"] = values["verify"][1:]
         at = verify(n, wt, settled, step, values) if values["verify"] else None
-    return finish(wt, step, values)
+    return finish(wt, n, step, values, red)
 
 
 def revise_green(wt, n, step, report, red):
@@ -147,11 +151,23 @@ def verify(n, wt, settled, step, values):
     return "verdict-red"
 
 
-def finish(wt, step, values):
-    """The step's frozen tests re-recorded over every test path, the step's own Red case checked (RRT2)."""
-    fused.checked("record", fused.script("tests-frozen.sh"), "record", "--step", step, "--red-case", values["own"],
-                  *values["paths"], cwd=wt, out=".tdd/verify-red.reason")
+def finish(wt, n, step, values, red):
+    """The step's frozen tests re-recorded over every test path, the step's own Red case checked (RRT2); exit 1, a
+    deleted case named in `.tdd/verify-red.reason`, is a verify-red REJECT (RRT5)."""
+    code = fused.call(fused.script("tests-frozen.sh"), "record", "--step", step, "--red-case", values["own"],
+                      *values["paths"], cwd=wt, out=".tdd/verify-red.reason")[0]
+    if code == 1:
+        revise_red(wt, n, step, red)
+    if code != 0:
+        raise fused.Stop("record", fused.label("tests-frozen.sh", "record", "--step", step) + " exit %d" % code, code)
     return 0
+
+
+def revise_red(wt, n, step, red):
+    """A verify-red REJECT of the rerouted red (RRT5): its reason left in `.tdd/verify-red.reason`, red-half's rejected
+    record naming the step, so run-step.sh sends it to revise.sh <n> red as it does red-half's own REJECT."""
+    reject(wt, n, step, "red-half", "verdict-red", red)
+    raise Revise("red")
 
 
 def launch(n, wt, settled, step, report, own, red):
