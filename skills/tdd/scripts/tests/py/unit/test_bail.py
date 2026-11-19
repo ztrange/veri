@@ -380,7 +380,8 @@ def test_a_non_zero_pr_comment_exit_is_named_on_its_call_line_and_bail_still_end
     assert "9" not in comment_lines[0] and "9" in comment_lines[1]
     assert "event.sh bail cause=tests-red classification=process" in fake.calls
     report = out.splitlines()[-4:]
-    assert any("red" in line for line in report) and any("process" in line for line in report)
+    assert report[:2] == ["phase: red", "classification: process"]
+    assert report[2].startswith("branch:") and report[3].startswith("worktree:")
 
 
 def test_the_last_four_stdout_lines_are_the_phase_the_classification_the_branch_and_the_worktree_path(
