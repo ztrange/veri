@@ -15,6 +15,7 @@ STACKED = "seam=pr-ready-wait code=1 reason=stacked next=%s\n" % ANCHOR
 BODY = "seam=done code=1 reason=body next=%s\n" % ANCHOR
 EARLY = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
 LATE = ("pr-ready-wait.sh", "pr-finish.sh")
+CALLS = EARLY + LATE
 
 
 def ledger_sha(wt, n):

@@ -396,3 +396,34 @@ def test_4432_in_a_stacked_run_from_pr_ready_wait_or_pr_finish_stops_again_with_
     assert [c for c in calls if c in ("pr-ready-wait.sh", "pr-finish.sh")] == []
     assert results == {s: (1, ["seam=pr-ready-wait code=1 reason=stacked next=DRAFT-PR.md#4. Draft PR"])
                        for s in ("pr-ready-wait", "pr-finish")}
+
+
+def test_4432_its_calls_tuple_names_exactly_the_five_stage_scripts_and_a_whole_run_to_the_body_seam_calls_only_those(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+    ran = []
+
+    def spy(name, *args, **kw):
+        calls.append(os.path.basename(name))
+        return 0, "", ""
+
+    def run_spy(name, *args, **kw):
+        ran.append(os.path.basename(name))
+        return 0, "abc1234\n", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", run_spy)
+
+    codes = [run_cli(run_pr, ["12"], cwd=str(tmp_path))[0] for _ in range(2)]
+
+    stages = {"branch-gate.sh", "pr-prepare.sh", "pr-checks.sh", "pr-ready-wait.sh", "pr-finish.sh"}
+    assert codes == [1, 1]
+    assert set(calls) == stages
+    assert "gh" not in ran and "pr-body.sh" not in ran
+    assert set(run_pr.CALLS) == stages and len(run_pr.CALLS) == 5
