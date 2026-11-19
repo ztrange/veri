@@ -140,9 +140,6 @@ DIFF = "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verif
 
 
 @pytest.mark.parametrize("text, next_", [
-    ("the prompt says so ⟦diff-checked⟧ ⟦criterion 1⟧", DIFF),
-    ("lint passes ⟦lint-repair⟧ ⟦diff-checked⟧ ⟦criterion 1⟧", DIFF),
-    ("a weak test is strengthened ⟦test-quality⟧ ⟦diff-checked⟧ ⟦criterion 1⟧", DIFF),
     ("`skills/tdd/SKILL.md#Red` says so ⟦skill-edit⟧ ⟦criterion 1⟧", "SKILL-EDIT.md#The skill-edit step"),
     ("repairs the fixture 'f' in tests/test_a.py ⟦fixture-repair⟧ ⟦criterion 1⟧", RED),
     ("the interface moves ⟦phases: expand, migrate⟧ ⟦criterion 1⟧",
@@ -354,3 +351,63 @@ def test_a_rejected_record_naming_no_step_or_unreadable_sends_no_call_to_revise_
 
     assert (code, stages.names(), err) == (0, list(STAGES), "")
     assert not stale.exists()
+
+
+DIFF_STEPS = ["the prompt says so ⟦diff-checked⟧ ⟦criterion 1⟧",
+              "lint passes ⟦lint-repair⟧ ⟦diff-checked⟧ ⟦criterion 1⟧",
+              "a weak test is strengthened ⟦test-quality⟧ ⟦diff-checked⟧ ⟦criterion 1⟧"]
+
+
+@pytest.mark.parametrize("text", DIFF_STEPS)
+def test_4435_a_diff_checked_step_runs_diff_step_as_its_one_stage_and_ends_on_its_next_line(step, text):
+    """DST8: in place of `seam=none … reason=kind`."""
+    code, out, err, stages = step(ledger=LEDGER % text, answers={"diff-step.sh": (0, "step-tick.sh 12 exit 0\nnext=cycle\n")})
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (0, ["diff-step.sh"], "next=cycle"), err
+    assert stages.calls[0][1] == ("12",)
+    scripts = os.path.dirname(os.path.dirname(os.path.realpath(importlib.import_module("veri.fused").__file__)))
+    assert stages.calls[0][3] == os.path.join(scripts, "diff-step.sh")
+
+
+def test_4435_hand_diff_step_stops_before_it_on_the_diff_checked_anchor(step):
+    """DST8: `--hand diff-step` keeps the prose path, its next= the anchor KINDS names for ⟦diff-checked⟧."""
+    code, out, err, stages = step(ledger=LEDGER % DIFF_STEPS[0], argv=("12", "--hand", "diff-step"))
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (1, [], "seam=diff-step code=1 reason=hand next=" + DIFF)
+
+
+@pytest.mark.parametrize("code_, last", [(3, "seam=diff-step code=3 next=run-step.sh 12"),
+                                         (2, "seam=diff-step code=2 next=" + DIFF)])
+def test_4435_a_diff_step_exit_other_than_0_ends_on_its_seam(step, code_, last):
+    code, out, err, stages = step(ledger=LEDGER % DIFF_STEPS[0], answers={"diff-step.sh": (code_, "")})
+
+    assert (code, out.splitlines()[-1]) == (code_, last)
+
+
+def test_4435_a_diff_step_reject_calls_revise_with_phase_diff_then_diff_step_again(step):
+    """DST7: the rejected record diff-step leaves sends its exit 1 to revise.sh <n> diff."""
+    import json
+    record = step.wt / ".tdd" / "issue-12-diff-step-rejected-wait"
+
+    class Rejecting(Stages):
+        def __call__(self, name, *args, **kw):
+            if os.path.basename(name) == "diff-step.sh" and "diff-step.sh" not in self.names():
+                self.calls.append(("diff-step.sh", args, None, name))
+                record.write_text(json.dumps({"conductor": None, "at": "verdict-diff", "values": {},
+                                              "step": DIFF_STEPS[0]}))
+                return 1, "stopped at verify wait-leaf.sh verdict-diff exit 1\n", ""
+            if os.path.basename(name) == "revise.sh":
+                record.unlink()
+            return super().__call__(name, *args, **kw)
+
+    code, out, err, stages = step(ledger=LEDGER % DIFF_STEPS[0], stages=Rejecting(
+        {"diff-step.sh": (0, "next=cycle\n")}))
+
+    assert (code, [(c[0], c[1]) for c in stages.calls]) == (0, [("diff-step.sh", ("12",)), ("revise.sh", ("12", "diff")),
+                                                                ("diff-step.sh", ("12",))]), err
+
+
+def test_4435_from_a_cycle_stage_on_a_diff_checked_step_is_exit_2_calling_nothing(step):
+    code, out, err, stages = step(ledger=LEDGER % DIFF_STEPS[0], argv=("12", "--from", "green-half"))
+
+    assert (code, stages.names(), err) == (2, [], "run-step.sh: --from green-half: not a stage of this step\n")
