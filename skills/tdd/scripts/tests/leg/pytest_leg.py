@@ -302,7 +302,7 @@ def claim(cleanups=None, cap=None):
     removal = lambda: unmark(waitfile)
     nested = os.environ.get("PYTEST_XDIST_WORKER")
     total, source = budget()
-    if not nested and source is None:
+    if source is None:
         sys.stderr.write("no test-worker ceiling in %s, so the budget is the %d cores; `make ceiling` measures one\n" % (
             record_path(), total))
         sys.stderr.flush()
