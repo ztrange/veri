@@ -1,6 +1,7 @@
 """In-process cases for veri/stack_red.py, the module stack-red.sh is a shim over (PRD 034.3a): the stack's span and
 GitHub's workflow-run read are injected in-process, so no case starts a process."""
 import importlib
+import os
 
 import pytest
 
@@ -207,3 +208,67 @@ def test_a_green_workflow_beside_one_that_gives_no_answer_is_exit_2(monkeypatch,
     code, out, err = run_cli(stack_red, [])
 
     assert (code, out, err.startswith("stack-red: ")) == (2, "", True), err
+
+
+class Outage:
+    """An outage's main working tree: `.git` a directory, `.tdd/github-outage` present, `.tdd/stack-local-red` holding
+    <red> when given; the stack the CLAUDE.md names as stack_branch.named answers it, and GitHub refusing any read."""
+
+    def __init__(self, tmp_path, monkeypatch, stack_red, red=None, named="stack"):
+        self.clone = str(tmp_path / "clone")
+        os.makedirs(os.path.join(self.clone, ".git"))
+        os.makedirs(os.path.join(self.clone, ".tdd"))
+        open(os.path.join(self.clone, ".tdd", "github-outage"), "w").close()
+        self.red = os.path.join(self.clone, ".tdd", "stack-local-red")
+        if red is not None:
+            with open(self.red, "w") as f:
+                f.write(red)
+        self.asked = []
+
+        def name(root, remote=True):
+            self.asked.append(remote)
+            if isinstance(named, BaseException):
+                raise named
+            return named
+
+        def online(*args):
+            raise AssertionError("GitHub or origin read during an outage: %r" % (args,))
+
+        monkeypatch.setattr(stack_red.stack_branch, "named", name)
+        monkeypatch.setattr(stack_red.stack_branch, "ahead", online)
+        monkeypatch.setattr(stack_red.github, "workflow_runs", online)
+
+
+def test_during_an_outage_a_stack_local_red_file_prints_its_sha_path_and_local_and_exits_0_with_no_github_call(
+        tmp_path, monkeypatch, run_cli, stack_red):
+    world = Outage(tmp_path, monkeypatch, stack_red, red="abc1234\nFAILED tests/a.py::b\n")
+
+    got = run_cli(stack_red, [], cwd=world.clone)
+
+    assert (got, world.asked) == ((0, "abc1234 %s local\n" % world.red, ""), [False])
+
+
+def test_during_an_outage_with_no_stack_local_red_file_it_exits_3_printing_nothing_with_no_github_call(
+        tmp_path, monkeypatch, run_cli, stack_red):
+    world = Outage(tmp_path, monkeypatch, stack_red)
+
+    code, out, err = run_cli(stack_red, [], cwd=world.clone)
+
+    assert (code, out, err.count("\n"), err.startswith("stack-red: "), world.asked) == (3, "", 1, True, [False]), err
+
+
+@pytest.mark.parametrize("red, named", [
+    ("", "stack"),
+    ("not a sha\n", "stack"),
+    ("abc1234\n", None),
+    ("abc1234\n", "refused"),
+])
+def test_during_an_outage_an_unreadable_stack_local_red_or_no_stack_named_is_exit_2_with_no_github_call(
+        tmp_path, monkeypatch, run_cli, stack_red, red, named):
+    if named == "refused":
+        named = stack_red.stack_branch.Refused("CLAUDE.md: the line names the default branch")
+    world = Outage(tmp_path, monkeypatch, stack_red, red=red, named=named)
+
+    code, out, err = run_cli(stack_red, [], cwd=world.clone)
+
+    assert (code, out, err.count("\n"), err.startswith("stack-red: ")) == (2, "", 1, True), err

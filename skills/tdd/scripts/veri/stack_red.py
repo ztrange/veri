@@ -1,13 +1,18 @@
 """stack-red.sh's logic, run in-process: whether CI's latest answer on the stack branch is red, which freezes joins
-(PRD 034.3a)."""
+(PRD 034.3a); during a GitHub outage, whether `.tdd/stack-local-red` freezes the local stack, read with no GitHub call
+(PRD 033.2b)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
+import re
 import sys
 
 import entry
 import github
+import run_dir
 import stack_branch
 
 USAGE = "usage: stack-red.sh"
+LOCAL_RED = os.path.join(".tdd", "stack-local-red")
 GREEN = ("success", "neutral", "skipped")
 
 
@@ -62,10 +67,43 @@ def by_workflow(runs):
     return answers
 
 
+def _local(clone):
+    """During an outage, with no GitHub call: 0 printing `<sha> <path> local` when `.tdd/stack-local-red` exists in the
+    main working tree <clone>, 3 when it does not, 2 when no stack is named or the file's first line is not a sha."""
+    try:
+        stack = stack_branch.named(".", remote=False)
+    except stack_branch.Refused as refused:
+        return entry.refuse(str(refused), prefix="stack-red: ")
+    if not stack:
+        return entry.refuse("the repository's CLAUDE.md names no stack branch (stack-branch.sh exits 3)",
+                            prefix="stack-red: ")
+    path = os.path.join(clone, LOCAL_RED)
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            first = f.readline().strip()
+    except FileNotFoundError:
+        print("stack-red: .tdd/github-outage exists and %s does not, so the local %s is not frozen; GitHub not read" % (
+            LOCAL_RED, stack), file=sys.stderr)
+        return 3
+    except OSError as error:
+        return entry.refuse("%s cannot be read (%s)" % (path, error), prefix="stack-red: ")
+    if not re.fullmatch(r"[0-9a-f]{7,40}", first):
+        return entry.refuse("%s's first line %r is not a commit sha" % (path, first[:80]), prefix="stack-red: ")
+    sys.stdout.write("%s %s local\n" % (first, path))
+    return 0
+
+
 def main(argv):
     refused = entry.no_arguments(argv, USAGE)
     if refused is not None:
         return refused
+    try:
+        clone = run_dir.main_tree_from_files()
+    except OSError as error:
+        return entry.refuse("the main working tree cannot be read (%s), so whether GitHub is out is not known" % error,
+                            prefix="stack-red: ")
+    if os.path.exists(os.path.join(clone, ".tdd", "github-outage")):
+        return _local(clone)
     try:
         span = stack_branch.ahead(".")
     except stack_branch.Refused as refused:
