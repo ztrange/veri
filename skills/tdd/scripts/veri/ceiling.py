@@ -47,6 +47,32 @@ def bound(argv):
     return None
 
 
+class NoAnswer(Exception):
+    """A step that says nothing about load: exit 2, the message naming why."""
+
+
+def step(workers, scratch):
+    """Runs the full selection at <workers>; returns how many cases timed out from load, each re-run alone with one
+    worker and passing there. Raises NoAnswer for a case red any other way, a hung case, or a run with nothing recorded."""
+    code, failed = run_suite(workers, os.path.join(scratch, "record-%d" % workers))
+    if code and not failed:
+        raise NoAnswer("make test exited %d at %d workers with no failed case recorded" % (code, workers))
+    red = [nodeid for nodeid, timeout in failed.items() if not timeout]
+    if red:
+        raise NoAnswer("failing other than by its timeout at %d workers: %s" % (workers, " ".join(red)))
+    for index, nodeid in enumerate(failed):
+        code, alone = run_suite(1, os.path.join(scratch, "alone-%d-%d" % (workers, index)), [nodeid])
+        if code and not alone:
+            raise NoAnswer("make test exited %d running %s alone with no failed case recorded" % (code, nodeid))
+        if alone.get(nodeid):
+            raise NoAnswer("%s timed out at %d workers and again alone with 1 worker: a hung case, not load"
+                           % (nodeid, workers))
+        if nodeid in alone:
+            raise NoAnswer("%s timed out at %d workers and failed alone with 1 worker other than by its timeout"
+                           % (nodeid, workers))
+    return len(failed)
+
+
 def main(argv):
     top = bound(argv)
     if top is None:
@@ -54,32 +80,14 @@ def main(argv):
         return 2
     ceiling = None
     scratch = tempfile.mkdtemp(prefix="veri-ceiling-")
-    for workers in range(2, top + 1, 2):
-        code, failed = run_suite(workers, os.path.join(scratch, "record-%d" % workers))
-        if code and not failed:
-            sys.stderr.write("make test exited %d at %d workers with no failed case recorded\n" % (code, workers))
-            return 2
-        red = [nodeid for nodeid, timeout in failed.items() if not timeout]
-        if red:
-            sys.stderr.write("failing other than by its timeout at %d workers: %s\n" % (workers, " ".join(red)))
-            return 2
-        timed_out = list(failed)
-        for nodeid in timed_out:
-            code, alone = run_suite(1, os.path.join(scratch, "alone-%d" % workers), [nodeid])
-            if code and not alone:
-                sys.stderr.write("make test exited %d running %s alone with no failed case recorded\n" % (code, nodeid))
-                return 2
-            if alone.get(nodeid):
-                sys.stderr.write("%s timed out at %d workers and again alone with 1 worker: a hung case, not load\n"
-                                 % (nodeid, workers))
-                return 2
-            if nodeid in alone:
-                sys.stderr.write("%s timed out at %d workers and failed alone with 1 worker other than by its timeout\n"
-                                 % (nodeid, workers))
-                return 2
-        if timed_out:
-            break
-        ceiling = workers
+    try:
+        for workers in range(2, top + 1, 2):
+            if step(workers, scratch):
+                break
+            ceiling = workers
+    except NoAnswer as error:
+        sys.stderr.write("%s\n" % error)
+        return 2
     if ceiling is None:
         sys.stderr.write("no ceiling of at least 2: a case timed out under load at 2 workers and passed alone\n")
         return 1
