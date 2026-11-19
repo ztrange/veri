@@ -180,18 +180,6 @@ def launch(where, wt, name, command, *args, env, out, err, clear=()):
             out=out, err=err)
 
 
-def branch_base(where, wt, n):
-    """The run's branch base as the conductor recorded it in the main working tree above <wt> (run_pins), handed to
-    each verifier as `--branch-base`; a record missing or unreadable stops <where> with exit 2 naming it (#4375)."""
-    import run_dir
-    import run_pins
-    try:
-        main = run_dir.main_tree_from_files(wt)
-        return run_pins.branch_base(n, main)
-    except OSError:
-        raise Stop(where, "branch-base record of issue %s" % n, 2) from None
-
-
 def wait(wt, n, owner, name):
     """wait-leaf.sh <name>: raises Waiting on 3, the record kept; else removes <owner>'s wait record and returns the
     leaf's code."""
