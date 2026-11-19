@@ -29,10 +29,15 @@ def main(argv):
     n = argv[0]
     wt = fused_step.inputs("run-pr.sh", n)[1]
     record = fused.settled_file(wt, n, "run-pr")
-    if os.path.exists(record) and "sha=%s\n" % ledger_sha(wt, n) in open(record).read():
+    held = open(record).read() if os.path.exists(record) else ""
+    if "sha=%s\n" % ledger_sha(wt, n) in held and "seam=body\n" in held:
+        return 0
+    if "sha=%s\n" % ledger_sha(wt, n) in held:
         for stage in ("pr-ready-wait.sh", "pr-finish.sh"):
             _, out, _ = fused.call(fused.script(stage), n)
         sys.stdout.write("".join(out.splitlines(True)[-2:]))
+        with open(record, "w") as f:
+            f.write("seam=body\nsha=%s\n" % ledger_sha(wt, n))
         sys.stdout.write(BODY)
         return 1
     for stage in ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"):
