@@ -8,6 +8,7 @@ import fused
 import fused_step
 import run_dir
 
+USAGE = "usage: run-pr.sh <n>"
 ANCHOR = "DRAFT-PR.md#4. Draft PR"
 STACKED = "seam=pr-ready-wait code=1 reason=stacked next=%s\n" % ANCHOR
 EARLY = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
@@ -58,16 +59,15 @@ def run_early(n, wt, first, hands):
 
 
 def main(argv):
-    usage = "usage: run-pr.sh <n>"
     if not argv:
-        sys.stderr.write(usage + "\n")
+        sys.stderr.write(USAGE + "\n")
         return 2
     n = argv[0]
     stages = EARLY + LATE
     rest = argv[1:]
     while rest:
         if rest[0] not in ("--from", "--hand") or "".join(rest[1:2]) + ".sh" not in stages:
-            sys.stderr.write(usage + "\n")
+            sys.stderr.write(USAGE + "\n")
             return 2
         rest = rest[2:]
     first = argv[argv.index("--from") + 1] + ".sh" if "--from" in argv else None
