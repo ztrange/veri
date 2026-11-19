@@ -35,11 +35,25 @@ def shown(name, *args, out=None, err=None, stdin=None, **_):
     return label(name, *args) + (" > " + out if out is not None else "") + (" 2> " + err if err is not None else "")
 
 
+# Whether call() prints an inner call's stdout after the line naming it; quiet() turns it off.
+ECHO = [True]
+
+
+@contextlib.contextmanager
+def quiet():
+    """Within it, call() prints only the line naming each call, never its stdout (PRD 038.9 RVS14)."""
+    ECHO.append(False)
+    try:
+        yield
+    finally:
+        ECHO.pop()
+
+
 def call(name, *args, **kw):
-    """Run one inner call (run_script's keywords) and print a line naming it and its exit code, then its stdout, and
-    pass its stderr through unchanged (FC1); what it sends to a file is not printed."""
+    """Run one inner call (run_script's keywords) and print a line naming it and its exit code, then its stdout unless
+    quiet(), and pass its stderr through unchanged (FC1); what it sends to a file is not printed."""
     code, out, err = run_script(name, *args, **kw)
-    sys.stdout.write(shown(name, *args, **kw) + " exit " + str(code) + "\n" + out)
+    sys.stdout.write(shown(name, *args, **kw) + " exit " + str(code) + "\n" + (out if ECHO[-1] else ""))
     sys.stderr.write(err)
     return code, out, err
 

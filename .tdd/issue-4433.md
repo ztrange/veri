@@ -15,7 +15,7 @@
 - [x] `revise.sh <n> refactor` runs no step-cost, re-verifies with refactor-half's `green_sha`, and on PASS re-saves refactor-half's wait record ⟦criterion 1⟧ ⟦criterion 5⟧
 - [x] a `build-develop-prompt.sh`, supervisor or verifier exit 2 is exit 2 ⟦criterion 8⟧
 - [x] green and refactor read `test_path`/`target_test` from red-half's record through `fused_step.record`; `READS` gains `revise`, the `record-refreshed` enum gains `revise`; a missing record is the record seam, exit 1 ⟦criterion 11⟧
-- [ ] it prints one line per call and never a leaf's output, a suite's output or the reason file ⟦criterion 14⟧
+- [x] it prints one line per call and never a leaf's output, a suite's output or the reason file ⟦criterion 14⟧
 - [ ] `run-step.sh` calls `revise.sh` when a half stops with `.tdd/verdict-<phase>.exit` holding 1, re-calls the stage after exit 0, and any other exit is `seam=revise code=<c> next=REVISE.md#Revising on a REJECT` ⟦criterion 9⟧
 - [ ] `run-step.sh --hand revise` stops at that REJECT with `seam=revise code=1 reason=hand`, never calling `revise.sh`; `revise` is in `STAGES` but not in the series ⟦criterion 10⟧
 - [ ] `REVISE.md` opens with the one call line, `SCRIPTS.md` lists `revise.sh`, with their `REQUIREMENTS.md` rows and regrades; `SKILL.md` nets ≤ 0 B ⟦criterion 15⟧

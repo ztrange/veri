@@ -402,3 +402,25 @@ def test_green_and_refactor_without_a_red_half_record_for_the_step_stop_on_the_r
     assert (code, fake.calls) == (1, [])
     assert out.splitlines()[-1] == ("seam=revise code=1 reason=record next=seam-settle.sh 12 red-half test_path=… "
                                     "target_test=…")
+
+
+@pytest.mark.parametrize("phase", ["green", "red"])
+def test_it_prints_one_line_per_call_and_never_a_calls_output_or_the_reason_file(revise, phase):
+    """PRD 038.9 criterion 14: the leaf's, the suite's (tests-frozen.sh's file list) and the reason file stay out."""
+    class Marked(Fake):
+        def __call__(self, name, *args, **kw):
+            code, out, err = super().__call__(name, *args, **kw)
+            if os.path.basename(name) in ("extract-result.sh", "step-cost.sh", "step-budget.sh"):
+                return code, out, err
+            return code, "OUT<%d>\n" % len(self.calls) + out, err
+
+    _red(revise)
+    fake = Marked({("red-divergence.sh", None): (3, "")}, report=RED_REPORT if phase == "red" else
+                  "OUTCOME: REWRITTEN\nAGAINST_UNMODIFIED: N/A\n")
+    code, out, err, fake = revise(fake=fake, argv=("12", phase))
+
+    lines = out.splitlines()
+    assert code == 0
+    assert not [line for line in lines if "OUT<" in line or "REJECT" in line or "hardcodes" in line]
+    assert len(lines) == len(fake.calls)
+    assert all(line.rsplit(" exit ", 1)[-1].isdigit() for line in lines)
