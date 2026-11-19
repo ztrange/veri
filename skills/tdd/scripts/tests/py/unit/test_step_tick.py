@@ -86,3 +86,19 @@ def test_4435_it_ticks_commits_under_the_diff_checked_subject_pushes_asks_the_st
     assert (mark[1], mark[3]["VERI_STEP"]) == (("step-done",), STEP)
     assert names.index("tick-issue-criterion.sh") < names.index("event.sh") < names.index("next-unchecked.sh")
     assert out.splitlines()[-1] == "next=cycle"
+
+
+@pytest.mark.parametrize("given, named", [
+    ({"missing": ("receipt",)}, ".tdd/pin-recheck-ok"),
+    ({"missing": ("preflight",)}, ".tdd/issue-12-preflight"),
+    ({"missing": ("ledger",)}, ".tdd/issue-12.md"),
+    ({"argv": ()}, "usage: step-tick.sh <n>"),
+    ({"argv": ("x",)}, "usage: step-tick.sh <n>"),
+    ({"ledger": "# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n"}, "no open step"),
+])
+def test_4435_a_missing_receipt_preflight_or_ledger_or_a_bad_argument_is_exit_2_before_any_call(tick, given, named):
+    """DST6, DST10: the refusal comes before any commit, so nothing is ticked, committed or pushed."""
+    code, out, err, fake = tick(**given)
+
+    assert (code, fake.calls) == (2, [])
+    assert named in err
