@@ -24,6 +24,19 @@ def _run(label, cmd, **kw):
     return done
 
 
+def _commit_metrics(here, issue):
+    metrics = _run("metrics.sh", [os.path.join(here, "metrics.sh"), issue])
+    if metrics.returncode == 0:
+        path = os.path.join(".tdd", "issue-%s-metrics.md" % issue)
+        os.makedirs(".tdd", exist_ok=True)
+        with open(path, "w") as f:
+            f.write(metrics.stdout)
+        subprocess.run(["git", "add", "-f", path], capture_output=True, text=True)
+        subprocess.run(["git", "commit", "-m", "metrics: what bailing on #%s cost (#%s)" % (issue, issue), "--", path],
+                       capture_output=True, text=True)
+    return metrics
+
+
 def main(argv):
     if not _valid(argv):
         return _bad_arguments()
@@ -41,15 +54,7 @@ def main(argv):
     env = dict(os.environ, VERI_PHASE=argv[2])
     subprocess.run([os.path.join(here, "event.sh"), "bail", "cause=" + argv[1], "classification=" + classification],
                    env=env, capture_output=True, text=True)
-    metrics = _run("metrics.sh", [os.path.join(here, "metrics.sh"), argv[0]])
-    if metrics.returncode == 0:
-        path = os.path.join(".tdd", "issue-%s-metrics.md" % argv[0])
-        os.makedirs(".tdd", exist_ok=True)
-        with open(path, "w") as f:
-            f.write(metrics.stdout)
-        subprocess.run(["git", "add", "-f", path], capture_output=True, text=True)
-        subprocess.run(["git", "commit", "-m", "metrics: what bailing on #%s cost (#%s)" % (argv[0], argv[0]), "--", path],
-                       capture_output=True, text=True)
+    metrics = _commit_metrics(here, argv[0])
     _run("push-branch.sh", [os.path.join(here, "push-branch.sh")])
     with open(argv[4], "a") as f:
         f.write("\n" + (metrics.stdout if metrics.returncode == 0
