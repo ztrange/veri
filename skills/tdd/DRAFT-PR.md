@@ -238,8 +238,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    The regrade runs after the run's last rebase and before the full suite runs on the rebased tip, so a `GRADED` line made stale only by the rebase never turns that suite red; with no rebase it runs here, before the PR is readied. It regrades every unit the run signed with `grade-prose.sh` (a unit whose `GRADED` line the branch adds since `git merge-base HEAD origin/<default>`, in a `GRADED` file at any depth of the tree, the repository root's included), and reads the block's exit: exit 1 (a REJECT) is handled as a red full suite is, by appending a repair step through that same block, so a refused insertion (exit 2) is followed by the `step-add-refused` bail and by no `step-added` or `step-start` event; exit 2 (no verdict could be obtained) is a system-failure bail with cause `no-verdict`, never a repair step (see `<base directory>/BAIL.md`). Once a unit's text has been REJECTed, a regrade of the same text (the same signature input) may not re-sign it: only an author run that changes the text, followed by a PASS, may. Once that repair step's cycle closes, the run comes back to this Draft PR step and, under `VERI_BRANCH_SUITE=local`, runs the full suite again, then the rebase and the regrade, as it does after a `⟦suite-repair⟧` step.
    ```
    base=$(git merge-base HEAD origin/<default>)
-   git diff "$base" HEAD -U0 -- ':(glob)**/GRADED' | sed -n 's/^+\([^+][^ ]*\) .*/\1/p' | { rc=0; while read -r unit; do
-     $S/grade-prose.sh "$(dirname "$unit")/REQUIREMENTS.md" "$unit" </dev/null || { r=$?; [ "$r" -gt "$rc" ] && rc=$r; }
+   rc=0; units=$($S/grade-prose.sh --signed "$base" </dev/null) || rc=$?
+   printf '%s\n' "$units" | { while IFS="$(printf '\t')" read -r reqs unit; do
+     [ -z "$unit" ] || $S/grade-prose.sh "$reqs" "$unit" </dev/null || { r=$?; [ "$r" -gt "$rc" ] && rc=$r; }
    done
    $S/grade-prose.sh --convert </dev/null || { r=$?; [ "$r" -gt "$rc" ] && rc=$r; }
    exit "$rc"; }
