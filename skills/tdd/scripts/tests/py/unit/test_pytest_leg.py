@@ -1725,3 +1725,22 @@ def test_4419_a_leg_finding_1_worker_of_t_free_waits_with_the_marker_and_one_lin
     code, _, err = run_cli(pytest_leg, cap + ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), PYTEST_LEG_LOCK_WAIT_MARKER=str(marker)))
 
     assert (code, polls, workers_handed([seen[0][0]]), seen[0][1], len(err.splitlines()), marker.exists()) == (0, [True, True], "2", "6", 1, False)
+
+
+@pytest.mark.parametrize("argv, held, workers", [
+    (["--subset"], 0, "4"), (["--subset"], 4, "4"), (["--subset"], 5, "3"),
+    (["--cap=4"], 0, "4"), (["--cap=4"], 5, "3"),
+    ([], 0, "8"), ([], 2, "6"),
+], ids=["subset-alone", "subset-beside-4", "subset-beside-5", "unit-alone", "unit-beside-5", "full-alone", "full-beside-2"])
+def test_4419_a_unit_or_subset_leg_takes_min_4_and_the_free_workers_of_t_and_a_full_run_every_free_worker(pytest_leg, run_cli, monkeypatch, tmp_path, started, argv, held, workers):
+    on_cores(monkeypatch, 16)
+    measured(8)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    if held:
+        registered(legs / str(os.getppid()), held)
+    seen = []
+    monkeypatch.setattr(pytest, "main", lambda args: seen.append((args, (legs / str(os.getpid())).read_text().split("\n")[0])) or pytest.ExitCode.OK)
+    code = run_cli(pytest_leg, argv + ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
+
+    assert (code, workers_handed([seen[0][0]]), seen[0][1]) == (0, workers, workers)

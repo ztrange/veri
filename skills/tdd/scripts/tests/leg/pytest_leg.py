@@ -285,6 +285,9 @@ def unmark(waitfile):
 
 # No test run gets fewer workers than this (PRD 036 D18): a leg starts only when this many of T are free.
 FLOOR = 2
+# A `make test TESTS=…` subset takes at most this many of the free workers, as `make unit` does through --cap=4, so the
+# first leg no longer takes every free worker; only the one full run does (D18).
+SUBSET_CAP = 4
 
 
 def claim(cleanups=None, cap=None):
@@ -577,7 +580,7 @@ def _main(argv):
     full_lock = None
     subset = "--subset" in argv
     argv = [arg for arg in argv if arg != "--subset"]
-    cap = int(caps[-1][len("--cap="):]) if caps else None
+    cap = int(caps[-1][len("--cap="):]) if caps else SUBSET_CAP if subset else None
     argv = [arg for arg in argv if not arg.startswith("--cap=")]
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
     held_run = None
