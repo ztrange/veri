@@ -427,3 +427,36 @@ def test_4432_its_calls_tuple_names_exactly_the_five_stage_scripts_and_a_whole_r
     assert set(calls) == stages
     assert "gh" not in ran and "pr-body.sh" not in ran
     assert set(run_pr.CALLS) == stages and len(run_pr.CALLS) == 5
+
+
+def test_4432_every_next_it_prints_is_run_pr_or_the_draft_pr_anchor_and_that_anchor_names_a_heading_in_draft_pr_md(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    exits = {}
+
+    def spy(name, *args, **kw):
+        return exits.get(os.path.basename(name), 0), "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
+    nexts = set()
+    for stage, code in (("pr-checks.sh", 0), ("branch-gate.sh", 1), ("branch-gate.sh", 3), ("pr-checks.sh", 2)):
+        exits.clear()
+        exits[stage] = code
+        for argv in (["12"], ["12", "--hand", "pr-prepare"]):
+            out = run_cli(run_pr, argv, cwd=str(tmp_path))[1]
+            nexts |= {ln.split("next=", 1)[1] for ln in out.splitlines() if ln.startswith("seam=")}
+    (wt / ".tdd" / "issue-12-base").write_text("main\n")
+    out = run_cli(run_pr, ["12"], cwd=str(tmp_path))[1]
+    nexts |= {ln.split("next=", 1)[1] for ln in out.splitlines() if ln.startswith("seam=")}
+
+    anchors = nexts - {"run-pr.sh 12"}
+    assert anchors == {"DRAFT-PR.md#4. Draft PR"}
+    skill = os.path.join(os.path.dirname(run_pr.__file__), "..", "..", "DRAFT-PR.md")
+    headings = [ln.strip() for ln in open(skill, encoding="utf-8") if ln.startswith("#")]
+    assert any(h.lstrip("#").strip() == "4. Draft PR" for h in headings)
