@@ -108,6 +108,9 @@ def owner_repo(pr_url):
     return "/".join(pr_url.split("/")[-4:-2])
 
 
+PR_URL = re.compile(r"https://github\.com/[^/\s]+/[^/\s]+/pull/\d+")
+
+
 def queued_merges():
     """The PR urls of this clone's queued merges for the target repo; one clone serves several repos (#3877); with no readable origin it counts them all, a merge never goes unseen."""
     urls = []
@@ -120,8 +123,10 @@ def queued_merges():
             continue
         script = os.path.realpath(words[1])
         if script == mine or (script == py_mine and os.path.basename(words[0]).startswith("python")):
-            if not repo or owner_repo(words[2]).casefold() == repo.casefold():
-                urls.append(words[2])
+            # The first PR url among the arguments: --skip-suite puts two words before it, --local-green has none.
+            url = next((word for word in words[2:] if PR_URL.fullmatch(word)), None)
+            if url and (not repo or owner_repo(url).casefold() == repo.casefold()):
+                urls.append(url)
     return urls
 
 
