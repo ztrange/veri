@@ -324,3 +324,28 @@ def test_a_route_supervisor_verifier_or_tests_frozen_exit_2_is_exit_2_4434(rerou
 
     assert code == 2, out + err
     assert last is None or out.splitlines()[-1] == last
+
+
+def test_with_red_switched_off_no_reroute_launches_verify_red_it_marks_the_skip_and_goes_on_as_on_a_pass_4434(
+        reroute):
+    """PRD 038.10 RRT7, ADR-0033: `verify-red-skipped reason=switched-off`, `skipped` in `.tdd/verdict-red.exit`."""
+    code, out, err, fake = reroute(answers=ROUTE_RED, files={"develop-red-contradicted.out": REROUTED,
+                                                             "issue-12-skip-verify": "red\n"})
+
+    assert code == 0, out + err
+    assert fake.launched() == ["develop-red-contradicted"]
+    assert [c[1] for c in fake.all("event.sh")][1:] == [("verify-red-skipped", "reason=switched-off")]
+    assert (reroute.wt / ".tdd" / "verdict-red.exit").read_text() == "skipped\n"
+    assert fake.names()[-1] == "tests-frozen.sh"
+
+
+def test_with_green_switched_off_verify_greens_reason_is_never_routed_but_a_green_reports_routes_still_are_4434(
+        reroute):
+    """PRD 038.10 RRT7: SKILL.md's Green, "only a verify-green reason is never routed"."""
+    off = {"issue-12-skip-verify": "green\n", "verify-green.reason": "VERDICT: REJECT\n"}
+    code, out, err, fake = reroute(answers=ROUTE_RED, files=off, argv=("12", ".tdd/verify-green.reason"))
+    routed = reroute(answers={("wrong-test-route.sh", None): (0, "later two\n")})
+
+    assert (code, out.splitlines()[-1], fake.calls) == (
+        1, "stopped at route .tdd/verify-green.reason with green switched off", [])
+    assert (routed[0], len(routed[3].all("wrong-test-route.sh"))) == (1, 1)

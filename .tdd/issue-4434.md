@@ -9,7 +9,7 @@
 - [x] `wrong-test-route.sh` exit 3 is exit 1 printing `route=revise phase=green`, never 3 ⟦criterion 5⟧
 - [x] a verify-red REJECT of a rerouted case, or `tests-frozen.sh record` exit 1, leaves `.tdd/verify-red.reason` and red-half's rejected record and is exit 1 printing `route=revise phase=red` ⟦criterion 5⟧
 - [x] a `wrong-test-route.sh`, `tests-frozen.sh`, supervisor or verifier exit 2 is exit 2 ⟦criterion 6⟧
-- [ ] with `red` switched off no reroute launches verify-red, writing `verify-red-skipped reason=switched-off` and `skipped`; with `green` switched off `.tdd/verify-green.reason` is never routed ⟦criterion 7⟧
+- [x] with `red` switched off no reroute launches verify-red, writing `verify-red-skipped reason=switched-off` and `skipped`; with `green` switched off `.tdd/verify-green.reason` is never routed ⟦criterion 7⟧
 - [ ] it prints one line per call with its exit code and never a leaf's or a suite's output file ⟦criterion 11⟧
 - [ ] `run-step.sh` calls `reroute.sh .tdd/develop-green.out` when `green-half` stops on a `WRONG_TEST` or `SUPERSEDED` line, then `green-half` again on its 0 ⟦criterion 8⟧
 - [ ] `run-step.sh` calls `reroute.sh .tdd/verify-green.reason` on a verify-green REJECT before `revise.sh`, and `revise.sh <n> green` on its `route=revise phase=green` ⟦criterion 5⟧ ⟦criterion 8⟧

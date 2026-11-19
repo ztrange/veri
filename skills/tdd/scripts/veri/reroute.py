@@ -17,6 +17,7 @@ NAME = "reroute"
 USAGE = "usage: reroute.sh <n> <report>"
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
+REASON = ".tdd/verify-%s.reason"
 
 # The $S/ scripts this call makes, in the order each is first made.
 CALLS = ("wrong-test-route.sh", "event.sh", "build-develop-prompt.sh", "stop-requested.sh", "detach-leaf.sh",
@@ -66,6 +67,8 @@ def run(n, report):
         return 1
     own = fused_step.red_test_id(red["test_path"], red["target_test"])
     resumed = fused.load_wait(wt, n, NAME)
+    if resumed is None and report == REASON % "green" and fused_step.verify_switched_off(wt, n, "green"):
+        raise fused.Stop("route", report + " with green switched off", 1)
     if resumed is None:
         at, values = launch(n, wt, settled, step, report, own, red)
     else:
@@ -144,7 +147,13 @@ def edited(wt, values):
 
 def verify(n, wt, settled, step, values):
     """verdict-red over the edited case, launched by red-half's own launch, so it takes exactly the red phase's
-    run-verdict.sh arguments (RRT10). The leaf launched."""
+    run-verdict.sh arguments (RRT10). The leaf launched; None with `red` switched off, the skip marked as Red's
+    *Switched off* marks it (RRT7, ADR-0033)."""
+    if fused_step.verify_switched_off(wt, n, "red"):
+        fused.mark("verify", wt, n, step, "verify-red-skipped", "reason=switched-off")
+        with open(os.path.join(wt, ".tdd", "verdict-red.exit"), "w") as f:
+            f.write("skipped\n")
+        return None
     path, target = values["verify"][0]
     red_half.launch_verdict("verify", n, wt, settled, step, {"test_path": path, "target_test": target})
     fused.save_wait(wt, n, NAME, "verdict-red", values)
