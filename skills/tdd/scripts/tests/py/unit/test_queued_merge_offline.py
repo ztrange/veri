@@ -27,7 +27,7 @@ class Offline:
     def __init__(self, tmp_path, outage=True, base="stack\n", base_sha=None, local=LOCAL_STACK, rebase=0, fast=0,
                  owed=0, full=0, all_tier="make test\n", checked_out=None, default="trunk", ancestor=True, amend=0,
                  gate_commits=False, move=0, fail=(), step="- [x] a step ⟦criterion 1⟧", rebased=REBASED, trailers="",
-                 descends=True, merges="", differs=False, red=(3, "")):
+                 descends=True, merges="", differs=False, red=(3, ""), suites="", full_out=""):
         self.clone = str(tmp_path / "clone")
         self.wt = os.path.join(self.clone, ".tdd", "wt", "7")
         admin = os.path.join(self.clone, ".git", "worktrees", "7")
@@ -59,6 +59,7 @@ class Offline:
         self.head = [RUN_TIP]
         self.pulls = []
         self.red, self.reds = red, []
+        self.suites, self.full_out = suites, full_out
 
     def install(self, fake_processes, monkeypatch):
         def pull(repo, pr):
@@ -135,7 +136,9 @@ class Offline:
         if line == "sh -c make test":
             if self.gate_commits:
                 self.head.append("9999999")
-            return self.full, "", ""
+            return self.full, self.full_out, ""
+        if line.startswith(wt + "log "):
+            return (0, self.suites, "") if isinstance(self.suites, str) else (self.suites, "", "fatal: injected\n")
         if line.startswith("prose-owed.sh"):
             return self.owed, "", ""
         if line.startswith(wt + "commit --amend"):
@@ -555,3 +558,65 @@ def test_an_offline_join_while_stack_red_sh_exits_neither_0_nor_3_is_exit_2_with
 
     rebased = [c for c in world.calls if " rebase " in c]
     assert (code, rebased, world.local, "stack-red.sh exited %d" % red in err) == (2, [], LOCAL_STACK, True), err
+
+
+def local_red(world):
+    path = os.path.join(world.clone, ".tdd", "stack-local-red")
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        return f.read()
+
+
+SKIPPED = "passed\nskipped claude-opus-5-5 the hardware is slow\nnot gated\n"
+FAILED = "....F.F\nFAILED tests/a.py::one - assert 1 == 2\nERROR tests/b.py::two\n2 failed, 5 passed in 3.1s\n"
+
+
+def test_a_red_gate_while_a_skipped_join_sits_above_origins_stack_writes_stack_local_red_with_the_gated_sha_and_cases(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, full=1, suites=SKIPPED, full_out=FAILED).install(fake_processes, monkeypatch)
+
+    code, out, err = join(run_cli, world)
+
+    logged = [argv for argv in world.fake.argvs if argv[3:4] == ["log"]]
+    assert (code, world.local, local_red(world)) == (1, LOCAL_STACK, "%s\ntests/a.py::one\ntests/b.py::two\n" % REBASED), err
+    assert logged == [["git", "-C", world.wt, "log", "--format=%(trailers:key=Veri-Suite,valueonly,unfold)",
+                       "refs/remotes/origin/stack..refs/heads/stack"]], err
+    assert ".tdd/stack-local-red" in err and FAILED in out, err
+
+
+@pytest.mark.parametrize("suites", ["", "passed\nnot gated\n\n"])
+def test_a_red_gate_with_no_skipped_join_above_origins_stack_writes_nothing_and_is_exit_1(
+        tmp_path, fake_processes, monkeypatch, run_cli, suites):
+    world = Offline(tmp_path, full=1, suites=suites, full_out=FAILED).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, world.local, local_red(world)) == (1, LOCAL_STACK, None), err
+
+
+def test_a_red_gate_whose_output_names_no_failed_case_writes_the_gated_sha_and_the_suites_exit(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, full=2, suites=SKIPPED, full_out="make: *** [test] Error 2\n").install(
+        fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, local_red(world).splitlines()[0], "exit 2" in local_red(world)) == (1, REBASED, True), err
+
+
+def test_a_red_gate_whose_range_read_fails_is_exit_2_writing_nothing(tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, full=1, suites=128, full_out=FAILED).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, world.local, local_red(world), "Veri-Suite" in err) == (2, LOCAL_STACK, None, True), err
+
+
+def test_a_green_gate_reads_no_range_and_writes_nothing(tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, suites=SKIPPED).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    logged = [c for c in world.calls if c.startswith("git -C %s log " % world.wt)]
+    assert (code, logged, local_red(world)) == (0, [], None), err
