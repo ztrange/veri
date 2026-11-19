@@ -40,27 +40,28 @@ def _commit_metrics(here, issue):
 def main(argv):
     if not _valid(argv):
         return _bad_arguments()
+    issue, cause, phase, note_file = argv[0], argv[1], argv[2], argv[4]
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    classified = _run("classify-bail.sh", [os.path.join(here, "classify-bail.sh"), argv[1]])
+    classified = _run("classify-bail.sh", [os.path.join(here, "classify-bail.sh"), cause])
     if classified.returncode != 0:
-        sys.stderr.write("bail: unknown cause %s; bail by BAIL.md sub-step 1\n" % argv[1])
+        sys.stderr.write("bail: unknown cause %s; bail by BAIL.md sub-step 1\n" % cause)
         return 2
     classification = classified.stdout.strip()
     step = subprocess.run([os.path.join(here, "ledger-steps.sh"), "current-or-last-done"],
                           capture_output=True, text=True).stdout.strip()
     attempt = argv[6] if len(argv) == 7 else "1"
-    _run("preserve-attempt.sh", [os.path.join(here, "preserve-attempt.sh"), argv[0], step, argv[2], attempt, "bail"])
+    _run("preserve-attempt.sh", [os.path.join(here, "preserve-attempt.sh"), issue, step, phase, attempt, "bail"])
     subprocess.run(["git", "reset", "--hard", "HEAD"], capture_output=True, text=True)
-    env = dict(os.environ, VERI_PHASE=argv[2])
-    subprocess.run([os.path.join(here, "event.sh"), "bail", "cause=" + argv[1], "classification=" + classification],
+    env = dict(os.environ, VERI_PHASE=phase)
+    subprocess.run([os.path.join(here, "event.sh"), "bail", "cause=" + cause, "classification=" + classification],
                    env=env, capture_output=True, text=True)
-    metrics = _commit_metrics(here, argv[0])
+    metrics = _commit_metrics(here, issue)
     _run("push-branch.sh", [os.path.join(here, "push-branch.sh")])
-    with open(argv[4], "a") as f:
+    with open(note_file, "a") as f:
         f.write("\n" + (metrics.stdout if metrics.returncode == 0
                         else "metrics could not be rendered: metrics.sh exited %d\n" % metrics.returncode))
-    _run("comment.sh", [os.path.join(here, "comment.sh"), argv[0], "bailed", "--note-file", argv[4]])
-    _run("comment.sh", [os.path.join(here, "comment.sh"), argv[0], "bailed", "--pr", "--note-file", argv[4]])
+    _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--note-file", note_file])
+    _run("comment.sh", [os.path.join(here, "comment.sh"), issue, "bailed", "--pr", "--note-file", note_file])
     return 0
 
 
