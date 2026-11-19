@@ -1,12 +1,16 @@
 """stack-recover.sh's logic, run in-process: once a GitHub outage ends, pushes each offline join's commit to its run's
 branch and then the stack, so each joined draft pull request reads merged (PRD 033.3)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
 import os
 import re
+import subprocess
 import sys
 
 import entry
 import git
+import github
+import merge_common
 import run_dir
 import stack_branch
 import stack_fix
@@ -16,6 +20,8 @@ USAGE = "usage: stack-recover.sh"
 TRAILER = re.compile(r"(https://\S+/pull/\d+) (\S+)")
 # A push refused because origin's ref is not what the lease expected.
 LEASE = re.compile(r"stale info|\[rejected\]")
+# A pull request url: its repository and its number.
+PULL = re.compile(r"https://[^/]+/(.+)/pull/(\d+)")
 
 
 def _refuse(line):
@@ -58,7 +64,18 @@ def _joins(stack):
     return joins
 
 
-def _held(stack):
+def _pull(pr):
+    """GitHub's record of the pull request <pr>, read as stack-land.sh reads it; None when GitHub gave no answer or the
+    answer is not a JSON object, so the settle window reads again."""
+    repo, number = PULL.fullmatch(pr).groups()
+    try:
+        pull = json.loads(github.gh_api("repos/%s/pulls/%s" % (repo, number), stderr=subprocess.PIPE).stdout)
+    except (github.NoAnswer, ValueError):
+        return None
+    return pull if isinstance(pull, dict) else None
+
+
+def _held(stack, window):
     """The recovery of <stack> with the merge lock held, never releasing it: an exit code."""
     fetch = git.network("fetch", "--prune", "origin", cwd=".")
     if fetch.returncode:
@@ -107,6 +124,13 @@ def _held(stack):
     if push.returncode:
         return _refuse("the push of %s to %s failed (exit %d): %s; the joined branches are pushed" % (
             local, stack, push.returncode, " ".join((push.stderr or "").split())))
+    for _, pr, _ in joins:
+        answers = merge_common.settle(lambda: _pull(pr), window)
+        if not merge_common.merged(answers[-1]):
+            last = answers[-1] or {}
+            return _refuse("%s did not read merged by the end of the settle window (last read: state %s, merged %s);"
+                           " the stack left as pushed, nothing deleted"
+                           % (pr, repr(last.get("state"))[:40], repr(last.get("merged"))[:40]))
     return 3
 
 
@@ -120,6 +144,9 @@ def main(argv):
     if outage:
         return _refuse(".tdd/github-outage exists, so recovery waits for the GitHub outage to end; nothing read, locked"
                        " or pushed")
+    window, refusal = merge_common.settle_window()
+    if refusal:
+        return _refuse(refusal)
     try:
         stack = stack_branch.named(".")
     except stack_branch.Refused as refused:
@@ -133,7 +160,7 @@ def main(argv):
     if code:
         return _refuse("merge-lock.sh take exits %d: the merge lock not taken; nothing fetched or pushed" % code)
     try:
-        return _held(stack)
+        return _held(stack, window)
     finally:
         # Every way out frees the lock, an interrupt among them: merge-lock.sh never takes over a dead holder's lock.
         stack_fix.script("merge-lock.sh", "release", "--pid", pid)
