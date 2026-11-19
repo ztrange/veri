@@ -22,7 +22,8 @@ LEDGER = run_dir.ledger("", "%s")
 
 # The $S/ scripts this call makes, in the order each is first made.
 CALLS = ("build-develop-prompt.sh", "comment.sh", "event.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh",
-         "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "tests-frozen.sh", "run-verdict.sh")
+         "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "tests-frozen.sh", "run-verdict.sh",
+         "same-reject.sh")
 
 
 def main(argv):
@@ -53,14 +54,19 @@ def run(n, phase):
         at = attempt(n, wt, settled, step, values)
     else:
         at, values = resumed
-    if at.startswith("revise-"):
-        code = fused.wait(wt, n, NAME, at)
-        if code != 0:
-            raise fused.Stop("3", "wait-leaf.sh %s exit %d" % (at, code), code)
-        fused_step.cost_check(wt, step)
-        fused.checked("4", fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
-        at = verify(n, wt, settled, step, values)
-    code = fused.wait(wt, n, NAME, at)
+    while True:
+        if at.startswith("revise-"):
+            code = fused.wait(wt, n, NAME, at)
+            if code != 0:
+                raise fused.Stop("3", "wait-leaf.sh %s exit %d" % (at, code), code)
+            fused_step.cost_check(wt, step)
+            fused.checked("4", fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
+            at = verify(n, wt, settled, step, values)
+        code = fused.wait(wt, n, NAME, at, keep_rejected=False)
+        if code != 1:
+            break
+        values = dict(values, k=values["k"] + 1)
+        at = attempt(n, wt, settled, step, values)
     if code != 0:
         raise fused.Stop("5", "wait-leaf.sh %s exit %d" % (at, code), code)
     return finish(n, wt, values)
@@ -72,6 +78,9 @@ def attempt(n, wt, settled, step, values):
     phase, k = values["phase"], values["k"]
     shutil.copyfile(os.path.join(wt, ".tdd", "verify-%s.reason" % phase),
                     os.path.join(wt, ".tdd", "verify-%s-%d.reason" % (phase, k)))
+    if k > 1:
+        fused.checked("1", fused.script("same-reject.sh"), ".tdd/verify-%s-%d.reason" % (phase, k - 1),
+                      ".tdd/verify-%s.reason" % phase, cwd=wt, ok=(1, 2))
     fast = settled["fast_cmd"]
     leaf = "revise-%s-%d" % (phase, k)
     fused.checked("2", fused.script("build-develop-prompt.sh"), "revise", phase, SPEC % n, step, fast,
