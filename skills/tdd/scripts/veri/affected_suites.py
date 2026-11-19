@@ -181,19 +181,36 @@ def pytest_files_of(name):
         "%s/test_%s_process.py" % (PYTEST_DIRS[0], name)) + process_files_of(name)
 
 
+IMPORT = re.compile(rb"^[ \t]*(?:import|from)[ \t]+(\w+)", re.M)
+TREES = {}
+
+
+def tree_index():
+    """Read once per working directory and run, since a range of modules asks again and again: the process test files'
+    texts (`-` read as `_`), the modules under veri/ and tests/leg/ importing each name, and the answers given so far."""
+    cwd = os.getcwd()
+    if cwd not in TREES:
+        imports = {}
+        for p in suites(SCRIPTS + "/veri/*.py") + suites(SCRIPTS + "/tests/leg/*.py"):
+            for imported in dict.fromkeys(IMPORT.findall(read(p) or b"")):
+                imports.setdefault(imported.decode(), []).append(basename(p, ".py"))
+        TREES[cwd] = (stem_walk.texts(suites(PYTEST_DIRS[0] + "/test_*_process.py")), imports, {})
+    return TREES[cwd]
+
+
 def process_files_naming(name):
     """The tests/py/test_*_process.py files that import or run module <name> (`-` read as `_`) by name: `veri.<name>`,
     `<name>.py` or `<name>.sh` as a whole word."""
-    processes = suites(PYTEST_DIRS[0] + "/test_*_process.py")
-    return [p for needle in ("veri." + name, name + ".py", name + ".sh") for p in stem_walk.naming(needle, processes)]
+    processes, _, found = tree_index()
+    if name not in found:
+        found[name] = stem_walk.naming_in(("veri." + name, name + ".py", name + ".sh"), processes)
+    return found[name]
 
 
 def importers(name):
     """The modules under veri/ and tests/leg/ whose own line imports module <name> (`import <name>` or
     `from <name> import`)."""
-    line = re.compile(rb"^[ \t]*(import|from)[ \t]+" + re.escape(name.encode()) + rb"\b", re.M)
-    return [basename(p, ".py") for p in suites(SCRIPTS + "/veri/*.py") + suites(SCRIPTS + "/tests/leg/*.py")
-            if basename(p, ".py") != name and line.search(read(p) or b"")]
+    return [user for user in tree_index()[1].get(name, []) if user != name]
 
 
 def process_files_of(name):
@@ -299,6 +316,7 @@ def foreign(files):
 def main(argv):
     if not argv or not argv[0]:
         return entry.refuse(usage=USAGE)
+    TREES.clear()
     revisions = argv[0]
     for rev in revisions.split("..", 1):
         if git("rev-parse", "--verify", "--quiet", rev + "^{commit}", stdout=subprocess.DEVNULL).returncode != 0:
