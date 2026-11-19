@@ -182,28 +182,36 @@ def pytest_files_of(name):
 
 
 IMPORT = re.compile(rb"^[ \t]*(?:import|from)[ \t]+(\w+)", re.M)
+SHIM_EXEC = re.compile(rb"^[ \t]*exec[ \t][^\n]*\bveri/(\w+)\.py\b", re.M)
 TREES = {}
 
 
 def tree_index():
     """Read once per working directory and run, since a range of modules asks again and again: the process test files'
-    texts (`-` read as `_`), the modules under veri/ and tests/leg/ importing each name, and the answers given so far."""
+    texts (`-` read as `_`), the modules under veri/ and tests/leg/ importing each name, the shims whose exec line names
+    each module, and the answers given so far."""
     cwd = os.getcwd()
     if cwd not in TREES:
         imports = {}
         for p in suites(SCRIPTS + "/veri/*.py") + suites(SCRIPTS + "/tests/leg/*.py"):
             for imported in dict.fromkeys(IMPORT.findall(read(p) or b"")):
                 imports.setdefault(imported.decode(), []).append(basename(p, ".py"))
-        TREES[cwd] = (stem_walk.texts(suites(PYTEST_DIRS[0] + "/test_*_process.py")), imports, {})
+        shims = {}
+        for p in suites(SCRIPTS + "/*.sh"):
+            for module in dict.fromkeys(SHIM_EXEC.findall(read(p) or b"")):
+                shims.setdefault(module.decode(), []).append(stem_walk.stem(p))
+        TREES[cwd] = (stem_walk.texts(suites(PYTEST_DIRS[0] + "/test_*_process.py")), imports, shims, {})
     return TREES[cwd]
 
 
 def process_files_naming(name):
     """The tests/py/test_*_process.py files that import or run module <name> (`-` read as `_`) by name: `veri.<name>`,
-    `<name>.py` or `<name>.sh` as a whole word."""
-    processes, _, found = tree_index()
+    `<name>.py`, `<name>.sh` or `<shim>.sh` for each shim whose exec line names `veri/<name>.py` (`report.sh` for
+    `prd_report`), as a whole word."""
+    processes, _, shims, found = tree_index()
     if name not in found:
-        found[name] = stem_walk.naming_in(("veri." + name, name + ".py", name + ".sh"), processes)
+        needles = ["veri." + name, name + ".py", name + ".sh"] + [shim + ".sh" for shim in shims.get(name, [])]
+        found[name] = stem_walk.naming_in(needles, processes)
     return found[name]
 
 
