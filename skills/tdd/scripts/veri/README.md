@@ -118,11 +118,12 @@ What a fused script after preflight shares (PRD 027 FC1-FC4, FC10, FC14).
 - `run_script(name, *args, cwd=None, env=None, stdin=None, out=None, err=None, run=subprocess.run)`: one process's `(code, stdout, stderr)`, printing nothing; `call` prints around it.
 - `label(name, *args)`: the call as one line, a newline inside an argument written `\n`.
 - `call(name, *args, **kw)`: one process (`stdin`, `out` and `err` redirections, a `run` such as `github.bounded`), printing a line naming the call and its exit code, then its stdout, and passing its stderr through. `checked(where, name, *args, ok=(0,), **kw)`: `call`, raising `Stop` on an exit outside `ok`; its stdout otherwise. `shown(name, *args, out=None, err=None, stdin=None, **_)`: the line naming a call, with its redirections. `run_script(name, *args, cwd=None, env=None, stdin=None, out=None, err=None, run=subprocess.run)`: `(code, stdout, stderr)` of one process, printing nothing.
+- `quiet()`: a context within which `call` prints only the line naming each call, never its stdout (`revise.sh`, PRD 038.9 RVS14).
 - `Stop(where, what, code)`: the first outcome that is not clean. `stopped(stop)`: prints its `stopped at <where> <what>` line; the exit code, the inner code when neither 0 nor 3, else 1.
 - `conductor(wt)`: `{"pid", "started"}` as `<wt>/.tdd/conductor.pid` names them, `None` without one: the conductor a wait record is written for (FC7).
 - `settle(wt, n, name, lines)`: writes `.tdd/issue-<n>-<name>` and prints its lines; 0. `read_settled(path)`: its `{key: value}`; OSError when unreadable. `read_lines(lines)`: the `{key: value}` of a settled file's lines. `settled_file(wt, n, name)`: that file's path.
 - The fused halves of a step (PRD 027.4-027.6): `entry(argv, name, run)`, their main (usage and 2, the `stopped at` line on a `Stop`, `waiting on <name>` and 3 on a `Waiting(name)`, a wait whose slice ran out); `step_env(n, step, **more)` and `mark(where, wt, n, step, *fields, **more)`, the run context and a conductor mark.
-- `launch(where, wt, name, command, *args, env, out, err, clear=())`: a leaf under *Launching a leaf* (FC8). `wait(wt, n, owner, name)`: `wait-leaf.sh`, raising on 3, else the leaf's code with the wait record removed. `save_wait`/`load_wait(wt, n, owner, …)`: the wait record `.tdd/issue-<n>-<owner>-wait` (`wait_record(wt, n, owner)` its path), discarded under another conductor (FC5-FC7).
+- `launch(where, wt, name, command, *args, env, out, err, clear=())`: a leaf under *Launching a leaf* (FC8). `wait(wt, n, owner, name, keep_rejected=True)`: `wait-leaf.sh`, raising on 3, else the leaf's code with the wait record removed, or, with `keep_rejected`, moved to owner `<owner>-rejected` on a `verdict-<phase>` exit 1, for `revise.sh` to hand back (PRD 038.9). `save_wait`/`load_wait(wt, n, owner, …)`: the wait record `.tdd/issue-<n>-<owner>-wait` (`wait_record(wt, n, owner)` its path), discarded under another conductor (FC5-FC7).
 - `report(where, wt, path, *keys, every=False)`: a leaf's report lines through `extract-result.sh`, printing none of it (FC2). `changed_paths(where, wt)`: each changed or untracked file, one by one (`git status --porcelain --untracked-files=all`), a rename by its new path.
 
 ## git
@@ -854,6 +855,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `step-close.sh`: a step's close-out after a passing verify-refactor, in one call.
 - `seam-settle.sh`: after a stage done by hand, the record its script would have written.
 - `run-step.sh`: a cycle step's four fused stages in one call, stopping at the first seam.
+- `revise.sh`: REVISE.md's revise loop for one phase a verifier rejected, sliced like a fused half.
 - `branch-gate.sh`: the Draft PR step's branch suite, in one call.
 - `pr-prepare.sh`: the Draft PR step's sub-step 1 up to the structural pass's skip, in one call.
 - `pr-checks.sh`: the Draft PR step's sub-step 1 checks after `pr-prepare.sh`, in one call.
@@ -889,8 +891,12 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `kind(line)`: a `FLAGS:` or `CANDIDATES:` value's class, its first word. `detail(line, last=False)`: what it names after its class, the text after the first `|` (the last with `last`).
 - `verdict(wt)`: `(hash, flags)` from one read of `.tdd/verify-refactor.log`: its sha256 (`none` without one), the verdict a refactor-half file was settled after, and its `uncovered-spec` flags as `uncovered_spec=` values; every record naming `verdict_log=` takes both from it (#4029).
 
+## red_half
+- `REFUSED`: the step kinds whose Red is not red-half's (RH1), each stopping `run-step.sh` before any stage on `seam=none`.
+- `launch_verdict(where, n, wt, settled, step, values)`: verdict-red's launch, the one set of `run-verdict.sh` arguments red-half.sh and `revise.sh`'s re-verify share (PRD 038.9 RVS13).
+
 ## seam_contract
-- `CONTRACTS`: per record-writing stage (`red-half`, `green-half`, `refactor-half`), the keys of its record the next stage reads that no committed fact holds (PRD 038.1 SC5). `READS`: per reading stage (`green-half`, `refactor-half`, `step-close`), the stages whose records it reads, in order (`refactor-half`: `green-half`, then `red-half` for a Green `green-half.sh` did not finish).
+- `CONTRACTS`: per record-writing stage (`red-half`, `green-half`, `refactor-half`), the keys of its record the next stage reads that no committed fact holds (PRD 038.1 SC5). `READS`: per reading stage (`green-half`, `revise`, `refactor-half`, `step-close`), the stages whose records it reads, in order (`refactor-half`: `green-half`, then `red-half` for a Green `green-half.sh` did not finish).
 - `table()`: the contracts as `script-help.sh seam-settle.sh` prints them.
 
 ## pr_finish
