@@ -369,3 +369,16 @@ def test_it_prints_one_line_per_call_with_its_exit_code_and_never_a_leafs_or_a_s
     assert not [line for line in lines if "OUT<" in line or "MARKER-4434" in line or "old rule" in line]
     assert len(lines) == len(fake.calls)
     assert all(line.rsplit(" exit ", 1)[-1].isdigit() for line in lines)
+
+
+def test_a_wait_record_naming_another_step_is_dropped_and_the_route_runs_again_4434(reroute):
+    """Records are caches (S1): a reroute wait another step left is not this step's leaf."""
+    reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
+    path = reroute.wt / ".tdd" / "issue-12-reroute-wait"
+    record = json.loads(path.read_text())
+    assert record["values"]["step"] == STEP
+    record["values"]["step"] = "zero ⟦criterion 1⟧"
+    path.write_text(json.dumps(record))
+    code, out, err, fake = reroute(answers={("wrong-test-route.sh", None): (0, "later two\n")})
+
+    assert (code, len(fake.all("wrong-test-route.sh")), fake.all("wait-leaf.sh")) == (1, 1, [])

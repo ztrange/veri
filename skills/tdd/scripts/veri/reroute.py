@@ -9,6 +9,7 @@ import sys
 
 import fused
 import fused_step
+import ledger
 import red_half
 import run_dir
 from ledger import handed_out
@@ -66,7 +67,7 @@ def run(n, report):
     if red is None:
         return 1
     own = fused_step.red_test_id(red["test_path"], red["target_test"])
-    resumed = fused.load_wait(wt, n, NAME)
+    resumed = pending(wt, n, step)
     if resumed is None and report == REASON % "green" and fused_step.verify_switched_off(wt, n, "green"):
         raise fused.Stop("route", report + " with green switched off", 1)
     if resumed is None:
@@ -179,6 +180,16 @@ def revise_red(wt, n, step, red):
     raise Revise("red")
 
 
+def pending(wt, n, step):
+    """(at, values) of this stage's wait record when it names <step> by ledger.same_step; else None, a record another
+    step left removed (S1: a record is a cache)."""
+    resumed = fused.load_wait(wt, n, NAME)
+    if resumed is not None and not ledger.same_step(resumed[1].get("step", ""), step):
+        os.remove(fused.wait_record(wt, n, NAME))
+        return None
+    return resumed
+
+
 def launch(n, wt, settled, step, report, own, red):
     """The route, then the rerouted red: the `reroute` event, its prompt and its leaf launched (RRT2). (at, values)."""
     shown = fused.label("wrong-test-route.sh", "--spec", SPEC % n, report, own)
@@ -199,7 +210,7 @@ def launch(n, wt, settled, step, report, own, red):
                   *prompt(kind, rest.split(), report), cwd=wt, out=".tdd/%s.prompt" % leaf)
     fused.launch("launch", wt, leaf, "run-leaf.sh", ".tdd/%s.prompt" % leaf, "--permission-mode", "bypassPermissions",
                  env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/%s.out" % leaf, err=".tdd/%s.err" % leaf)
-    values = {"kind": kind, "cases": rest.split(), "report": report, "own": own, "own_path": red["test_path"],
+    values = {"step": step, "kind": kind, "cases": rest.split(), "report": report, "own": own, "own_path": red["test_path"],
               "leaf": leaf}
     fused.save_wait(wt, n, NAME, leaf, values)
     return leaf, values
