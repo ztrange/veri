@@ -8,12 +8,7 @@ import fused
 import fused_step
 import run_dir
 
-USAGE = "usage: run-pr.sh <n>"
 ANCHOR = "DRAFT-PR.md#4. Draft PR"
-TITLE = "seam=pr-ready-wait code=1 reason=title next=%s\n" % ANCHOR
-
-
-BODY = "seam=done code=1 reason=body next=%s\n" % ANCHOR
 
 
 def ledger_sha(wt, n):
@@ -24,6 +19,9 @@ def ledger_sha(wt, n):
 
 
 def main(argv):
+    USAGE = "usage: run-pr.sh <n>"
+    TITLE = "seam=pr-ready-wait code=1 reason=title next=%s\n" % ANCHOR
+    BODY = "seam=done code=1 reason=body next=%s\n" % ANCHOR
     if not argv:
         sys.stderr.write(USAGE + "\n")
         return 2
