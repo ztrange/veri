@@ -217,3 +217,18 @@ def test_a_tests_frozen_check_exit_1_spends_the_attempt_without_a_verifier_and_i
             revise.wt / ".tdd" / "verify-green.reason").read_text()
     else:
         assert (code, out.splitlines()[-1]) == (2, "stopped at 4 tests-frozen.sh check --step %s exit 2" % STEP)
+
+
+def test_with_the_phase_switched_off_it_marks_the_skip_writes_skipped_and_goes_on_as_on_a_pass(revise):
+    """PRD 038.9 criterion 4 (ADR-0033): no verifier; the stage's record is re-saved past its verdict (at None), since
+    wait-leaf.sh reads a `skipped` exit file as 2 and the stage's own switched-off branch waits on nothing."""
+    (revise.wt / ".tdd" / "issue-12-skip-verify").write_text("green\n")
+    code, out, err, fake = revise()
+
+    assert (code, fake.launched()) == (0, ["revise-green-1"])
+    assert fake.call("event.sh", "verify-green-skipped")[1] == ("verify-green-skipped", "reason=switched-off")
+    assert (revise.wt / ".tdd" / "verdict-green.exit").read_text().strip() == "skipped"
+    assert (fake.calls[-1][0], fake.calls[-1][1]) == ("comment.sh", ("12", "verify-revised", "green"))
+    record = json.loads((revise.wt / ".tdd" / "issue-12-green-half-wait").read_text())
+    assert (record["at"], record["values"]) == (
+        None, {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"})

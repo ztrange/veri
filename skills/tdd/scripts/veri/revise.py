@@ -18,6 +18,7 @@ from ledger import handed_out
 NAME = "revise"
 USAGE = "usage: revise.sh <n> <phase>  (phase: red, green or refactor)"
 PHASES = ("red", "green", "refactor")
+SKIPPED = "skipped"  # a re-verify the run switched off
 STAGES = {"red": "red-half", "green": "green-half", "refactor": "refactor-half"}
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
@@ -64,6 +65,8 @@ def run(n, phase):
                 raise fused.Stop("3", "wait-leaf.sh %s exit %d" % (at, code), code)
             fused_step.cost_check(wt, step)
             at = checks(n, wt, settled, step, values)
+        if at == SKIPPED:
+            return finish(n, wt, values, None)
         if at is not None:
             code = fused.wait(wt, n, NAME, at, keep_rejected=False)
             if code != 1:
@@ -72,7 +75,7 @@ def run(n, phase):
         at = attempt(n, wt, settled, step, values)
     if code != 0:
         raise fused.Stop("5", "wait-leaf.sh %s exit %d" % (at, code), code)
-    return finish(n, wt, values)
+    return finish(n, wt, values, "verdict-" + values["phase"])
 
 
 def spent(wt, step, phase):
@@ -122,19 +125,27 @@ def checks(n, wt, settled, step, values):
 
 def verify(n, wt, settled, step, values):
     """REVISE.md sub-step 5's re-verify: verdict-<phase> launched by the phase stage's own launch, so it takes exactly
-    that stage's run-verdict.sh arguments and the run's recorded branch base (RVS13). The leaf launched."""
+    that stage's run-verdict.sh arguments and the run's recorded branch base (RVS13). The leaf launched, or SKIPPED
+    with the phase switched off (ADR-0033): its skip marked and `skipped` written to its exit file, as the stage does."""
+    phase = values["phase"]
+    if fused_step.verify_switched_off(wt, n, phase):
+        fused.mark("5", wt, n, step, "verify-%s-skipped" % phase, "reason=switched-off")
+        with open(os.path.join(wt, ".tdd", "verdict-%s.exit" % phase), "w") as f:
+            f.write("skipped\n")
+        return SKIPPED
     green_half.launch_verdict("5", n, wt, settled, step, values)
     fused.save_wait(wt, n, NAME, "verdict-" + values["phase"], values)
     return "verdict-" + values["phase"]
 
 
-def finish(n, wt, values):
+def finish(n, wt, values, at):
     """REVISE.md sub-step 5 on a PASS: the revised verdict's comment, then the phase stage's wait record re-saved at
-    its verdict, so the stage called again finishes as after its own PASS; its rejected record is removed."""
+    <at> (its verdict, or None past a switched-off one), so the stage called again finishes as after its own PASS;
+    its rejected record is removed."""
     phase = values["phase"]
     stage = STAGES[phase]
     fused.checked("5", fused.script("comment.sh"), n, "verify-revised", phase, cwd=wt)
-    fused.save_wait(wt, n, stage, "verdict-" + phase,
+    fused.save_wait(wt, n, stage, at,
                     {"test_path": values["test_path"], "target_test": values["target_test"]})
     with contextlib.suppress(FileNotFoundError):
         os.remove(fused.wait_record(wt, n, stage + "-rejected"))

@@ -9,7 +9,7 @@
 - [x] once `REVISE_BUDGET` (read through tunables) attempts are spent it stops with exit 1 naming the budget ⟦criterion 6⟧ ⟦criterion 12⟧
 - [x] the attempt is read from the open step's `revise` events for the phase, so a resumed call goes on at the next attempt ⟦criterion 2⟧
 - [x] a `tests-frozen.sh check` exit 1 spends the attempt without a verifier; its exit 2 is exit 2 ⟦criterion 4⟧ ⟦criterion 8⟧
-- [ ] with the phase in `.tdd/issue-<n>-skip-verify` it writes `verify-<phase>-skipped reason=switched-off`, `skipped` to the exit file, and goes on as on a PASS ⟦criterion 4⟧
+- [x] with the phase in `.tdd/issue-<n>-skip-verify` it writes `verify-<phase>-skipped reason=switched-off`, `skipped` to the exit file, and goes on as on a PASS ⟦criterion 4⟧
 - [ ] `revise.sh <n> red` restores production before the leaf, gates the prediction (`red-divergence.sh` 3 re-verifies, 0/1/2 spend the attempt), and on PASS records frozen tests and red-setup, re-saving red-half's wait with the revised report's values ⟦criterion 1⟧ ⟦criterion 4⟧ ⟦criterion 5⟧
 - [ ] it stops with exit 1 naming the report line on `IMPOSSIBLE`, a revise-green `WRONG_TEST:`/`SUPERSEDED:`, and a revised red's `AGAINST_UNMODIFIED: PASSES` ⟦criterion 7⟧
 - [ ] `revise.sh <n> refactor` runs no step-cost, re-verifies with refactor-half's `green_sha`, and on PASS re-saves refactor-half's wait record ⟦criterion 1⟧ ⟦criterion 5⟧
