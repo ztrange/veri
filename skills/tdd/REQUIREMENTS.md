@@ -334,7 +334,7 @@
 | CY409 | The Green section, in its opening paragraph, no longer carries its own `green-half.sh` call line, since `run-step.sh` runs it; the paragraph names `run-step.sh`'s `seam=green-half` stop as the point to take Green by hand, from the sub-step it names, else sub-step 1. | The four fused calls become one, so the Green paragraph stops duplicating the runner (PRD 038.2, RN11). |
 | CY403 | The develop-green leaf and verify-green run the fast tier and the test files covering the files the step changed, never the `affected` tier or any broader one. | A leaf's suite runs were 52% of run #4316's wall time. |
 | CY407 | The Green section, right after its opening paragraph about `run-step.sh`'s `seam=green-half` stop, holds one line ending the hand path (Green done by the conductor itself): `$S/seam-settle.sh <n> green-half test_path=<path>`. | `refactor-half.sh` reads `test_path` from a record only `green-half.sh` writes, falling back to red-half's only when none names the step; the hand path hands back through the one script that writes it in that format (PRD 038.1, SC9). |
-| CY412 | Each verifier call but a `diff` one, whose base is its `<branch-base-sha>`, passes `--branch-base <recorded sha>`, the conductor's record. | A verifier that derives its own base can be steered by a leaf. |
+| CY412 | Each verifier call, a `diff` one included, passes `--branch-base <recorded sha>`, the conductor's record. | A verifier that derives its own base can be steered by a leaf. |
 
 ## skills/tdd/SKILL.md#Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)
 
