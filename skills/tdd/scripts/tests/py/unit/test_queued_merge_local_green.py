@@ -174,3 +174,19 @@ def test_the_skip_freeze_and_local_green_code_and_stack_red_name_no_repository_i
     named = ["%s:%d: %s" % (where, n, line) for where, text in sources.items()
              for n, line in enumerate(text.splitlines(), 1) if NAMED.search(line)]
     assert named == []
+
+
+def test_an_error_raised_mid_suite_still_removes_the_worktree_it_added_and_frees_the_lock(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = LocalGreen(tmp_path).install(fake_processes)
+
+    def boom(*args):
+        raise RuntimeError("interrupted mid-suite")
+
+    monkeypatch.setattr(queued_merge, "_green_run", boom)
+
+    code, _, err = green(run_cli, world)
+
+    removed = [c for c in world.calls if " worktree remove " in c]
+    assert (code, removed, world.released(), os.path.exists(world.red)) == (
+        2, ["git -C %s worktree remove --force %s" % (world.clone, world.wt)], True, True), err
