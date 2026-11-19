@@ -381,3 +381,26 @@ def test_a_non_zero_pr_comment_exit_is_named_on_its_call_line_and_bail_still_end
     assert "event.sh bail cause=tests-red classification=process" in fake.calls
     report = out.splitlines()[-4:]
     assert any("red" in line for line in report) and any("process" in line for line in report)
+
+
+def test_the_last_four_stdout_lines_are_the_phase_the_classification_the_branch_and_the_worktree_path(
+        run_cli, fake_processes, bail, tmp_path):
+    def git(line, **kwargs):
+        argv = fake.argvs[-1]
+        if "--show-toplevel" in argv:
+            return (0, "/wt/four\n", "")
+        if "rev-parse" in argv or "--show-current" in argv:
+            return (0, "tdd/7-the-branch\n", "")
+        return (0, "", "")
+
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "git": git}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    assert code == 0
+    report = out.splitlines()[-4:]
+    assert report[:3] == ["phase: red", "classification: process", "branch: tdd/7-the-branch"]
+    assert report[3] in ("worktree: /wt/four", "worktree: %s" % tmp_path)
