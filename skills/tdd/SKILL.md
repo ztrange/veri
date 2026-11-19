@@ -195,7 +195,7 @@ VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $
 $S/wait-leaf.sh verdict-<phase>
 ```
 
-— named `verdict-<phase>`, never `verify-<phase>`, which the verifier leaf's own supervisor
+— a verifier's `<base>` is the recorded branch base; named `verdict-<phase>`, never `verify-<phase>`, which the verifier leaf's own supervisor
 already owns. `run-verdict.sh` **execs** the verify verb, so the code the supervisor sees is
 `verify.sh`'s own and the completion file it records is the verdict. `wait-leaf.sh` then returns **the verdict**: 0 PASS, 1 REJECT, 2 malformed or
 killed-stuck. The reason is read back from `.tdd/verify-<phase>.reason`, the file the revise
@@ -615,7 +615,7 @@ counts in the bail comment, before the verifier launches (`Read` `<base director
 
 ```
 rm -f .tdd/verdict-plan.exit .tdd/verdict-plan.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> $S/detach-leaf.sh $S/supervise.sh verdict-plan $S/run-verdict.sh --branch-base <base> plan .tdd/issue-<n>-spec.md .tdd/issue-<n>.md > .tdd/verify-plan.reason 2> .tdd/verify-plan.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> $S/detach-leaf.sh $S/supervise.sh verdict-plan $S/run-verdict.sh --branch-base <branch-base> plan .tdd/issue-<n>-spec.md .tdd/issue-<n>.md > .tdd/verify-plan.reason 2> .tdd/verify-plan.err
 $S/wait-leaf.sh verdict-plan     # foreground; on exit 3 call it again
 ```
 
@@ -989,7 +989,7 @@ Green by hand ends `$S/seam-settle.sh <n> green-half test_path=<path>`.
    **`add-ledger-step.sh` exit 2**: with `$S/adjudicate.sh left <n>` exit 0, first launch `adjudicate-step-add-refused` through `supervise.sh` (`Read` `<base directory>/ADJUDICATE.md`); then, on any answer (`retry` too), **bail** with cause `step-add-refused`, calling `add-ledger-step.sh` no more — see `<base directory>/BAIL.md`.
 
    **A `TIDY_FIRST:` line in place of `SPLIT:` lines:** `Read` `<base directory>/TIDY-FIRST.md`.
-2. **Verify (blind)** — the verifier shape, `<base>` the recorded branch base; its wait's code is the verdict.
+2. **Verify (blind)** — the verifier shape; its wait's code is the verdict.
    Neither verify-green nor the develop leaf runs more than the fast tier and the changed files' tests: a
    break outside them surfaces at the one full-suite run in *4. Draft PR*.
    The `⟦replaces-case⟧` unreplaced-cases check already ran in *Red*, before verify-red; not rerun.
