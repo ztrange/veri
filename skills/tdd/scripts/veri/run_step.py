@@ -10,6 +10,7 @@ import fused
 import fused_step
 import ledger
 import red_half
+import reroute as reroute_stage
 import revise as revise_stage
 import run_dir
 from next_pending_refactor import refactor_pending
@@ -40,6 +41,8 @@ GREEN_REPORT = ".tdd/develop-green.out"
 # The reason a verify-green REJECT leaves, which reroute.sh routes before any revise (PRD 038.9 RVS9).
 VERIFY_GREEN_REASON = ".tdd/verify-green.reason"
 REVISE_GREEN_REPORT = ".tdd/revise-green-%d.out"
+# reroute()'s answer that sends the step back to red-half (a verify-red REJECT of a rerouted case, PRD 038.10 RRT5).
+RESTART = ("restart",)
 # The scripts a `next=` it prints may name, every other `next=` being an anchor above (S4, RN10): itself, called again
 # on a stage's 3, and seam-settle.sh, which a stage's own record seam names.
 NEXT_SCRIPTS = ("run-step.sh", "seam-settle.sh")
@@ -115,7 +118,11 @@ def main(argv):
                 return seam(wt, n, step, stage, 1, anchor, "hand")
             if any(mark in step for mark in unhandled):
                 return seam(wt, n, step, stage, 1, anchor, "unmodelled")
-            if stage in PHASES and fused_step.rejected(wt, n, stage, step) is not None:
+            report = reroute_stage.pending(wt, n, step) if stage == "green-half" else None
+            if report is not None:
+                # A reroute under way (its 3 called run-step.sh again): back to it, on the report it was handed.
+                action = ("reroute", report[1]["report"])
+            elif stage in PHASES and fused_step.rejected(wt, n, stage, step) is not None:
                 # A revise under way (its 3 called run-step.sh again): back to it, never to the half.
                 action = ("revise",)
             else:
@@ -125,6 +132,8 @@ def main(argv):
             action = reroute(wt, n, step, hand, *given)
             if isinstance(action, int):
                 return action
+            if action is RESTART:
+                i, action = order.index("red-half"), None
             continue
         if kind == "revise":
             action = revise(wt, n, step, stage, hand)
@@ -168,6 +177,11 @@ def reroute(wt, n, step, hand, report):
         return ("stage",)
     if code == 1 and said == "route=revise phase=green":
         return ("revise",)
+    if code == 1 and said == "route=revise phase=red":
+        # A verify-red REJECT of the rerouted case: red-half's rejected record sends red-half to revise.sh <n> red,
+        # and green-half then starts afresh.
+        answered(wt, n)
+        return RESTART
     record(wt, n, "green-half", step)
     sys.stdout.write("seam=reroute code=%d next=%s\n" % (code, NEXT_SCRIPTS[0] + " " + n if code == 3 else GREEN))
     return code

@@ -542,3 +542,52 @@ def test_a_revise_green_stop_on_impossible_keeps_the_revise_seam_with_no_reroute
 
     assert (code, stages.names(), out.splitlines()[-1]) == (
         1, ["red-half.sh", "green-half.sh", "reroute.sh", "revise.sh"], "seam=revise code=1 next=" + REVISE)
+
+
+def test_a_reroutes_route_revise_red_goes_back_to_red_half_whose_rejected_record_sends_it_to_revise_red_4434(step):
+    """PRD 038.10 RRT5: a verify-red REJECT of a rerouted case is revise.sh <n> red's; its 0 finishes red-half, and
+    green-half then starts afresh, the green REJECT the reroute answered cleared."""
+    rejected = step.wt / ".tdd" / "issue-12-red-half-rejected-wait"
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+
+    class RedRevise(Sequenced):
+        def __call__(self, name, *args, **kw):
+            base = os.path.basename(name)
+            if base == "reroute.sh":
+                rejected.write_text(REJECTED.replace("verdict-green", "verdict-red"))
+            if base == "revise.sh":
+                rejected.unlink()
+            return super().__call__(name, *args, **kw)
+
+    stages = RedRevise({"reroute.sh": (1, "route=revise phase=red\n")},
+                       sequence={"green-half.sh": [(1, REJECTED_GREEN), (0, "green-half settled\n")]})
+    code, out, err, stages = step(stages=stages)
+
+    assert (code, out.splitlines()[-1]) == (0, "next=cycle"), err
+    assert stages.names() == ["red-half.sh", "green-half.sh", "reroute.sh", "revise.sh", "red-half.sh",
+                              "green-half.sh", "refactor-half.sh", "step-close.sh"]
+    assert stages.calls[3][1] == ("12", "red")
+    assert not (step.wt / ".tdd" / "verdict-green.exit").exists()
+
+
+def _reroute_wait(step, text):
+    (step.wt / ".tdd" / "issue-12-reroute-wait").write_text(
+        '{"conductor": null, "at": "verdict-red", "values": {"report": ".tdd/revise-green-1.out", "step": "%s"}}'
+        % text)
+    (step.wt / ".tdd" / "issue-12-step").write_text("stage=green-half\nstep=%s\n" % STEP)
+
+
+def test_a_reroute_exit_3_is_called_again_through_run_step_which_goes_back_to_reroute_on_the_same_report_4434(step):
+    """PRD 038.10 RRT6: reroute.sh is sliced; its wait record names the report and the step."""
+    _reroute_wait(step, STEP)
+    code, out, err, stages = step(answers={"reroute.sh": (3, "waiting on verdict-red\n")})
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (3, ["reroute.sh"], "seam=reroute code=3 next=run-step.sh 12")
+    assert stages.calls[0][1] == ("12", ".tdd/revise-green-1.out")
+
+
+def test_a_reroute_wait_record_naming_another_step_is_not_resumed_4434(step):
+    _reroute_wait(step, "zero ⟦criterion 1⟧")
+    code, out, err, stages = step()
+
+    assert (code, stages.names()) == (0, ["green-half.sh", "refactor-half.sh", "step-close.sh"]), err
