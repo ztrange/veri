@@ -620,3 +620,12 @@ def test_a_green_gate_reads_no_range_and_writes_nothing(tmp_path, fake_processes
 
     logged = [c for c in world.calls if c.startswith("git -C %s log " % world.wt)]
     assert (code, logged, local_red(world)) == (0, [], None), err
+
+
+def test_a_freeze_that_cannot_be_written_is_exit_2_naming_the_file(tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, full=1, suites=SKIPPED, full_out=FAILED).install(fake_processes, monkeypatch)
+    os.makedirs(os.path.join(world.clone, ".tdd", "stack-local-red"))
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, world.local, "stack-local-red" in err and "nothing frozen" in err) == (2, LOCAL_STACK, True), err
