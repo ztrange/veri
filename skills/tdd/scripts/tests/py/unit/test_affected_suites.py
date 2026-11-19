@@ -1119,3 +1119,32 @@ def test_a_changed_module_or_shim_lists_every_process_test_file_importing_or_run
     plant(tmp_path, NAMING)
 
     assert sorted(set(affected.suite_of(changed))) == NAMED
+
+
+HOP = {
+    "skills/tdd/scripts/veri/helper.py": "def go():\n    pass\n",
+    "skills/tdd/scripts/veri/user.py": "import os\nimport helper\n",
+    "skills/tdd/scripts/veri/other_user.py": "from helper import go\n",
+    "skills/tdd/scripts/veri/mentions.py": "# helper is not imported here\nimport os\n",
+    PY + "test_halves_process.py": 'subprocess.run([str(SCRIPTS / "user.sh")])\n',
+    PY + "test_other_halves_process.py": 'importlib.import_module("veri.other_user")\n',
+    PY + "test_mentions_process.py": 'importlib.import_module("veri.mentions")\n',
+    PY + "unit/test_user.py": 'importlib.import_module("veri.user")\n',
+}
+
+
+def test_a_changed_module_no_process_file_names_lists_the_process_files_naming_a_module_importing_it_4425(
+        affected, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    plant(tmp_path, HOP)
+
+    assert sorted(set(affected.suite_of("skills/tdd/scripts/veri/helper.py"))) == [
+        PY + "test_halves_process.py", PY + "test_other_halves_process.py"]
+
+
+def test_a_changed_module_a_process_file_names_lists_no_process_file_of_its_importers_4425(
+        affected, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    plant(tmp_path, {**HOP, PY + "test_names_helper_process.py": 'importlib.import_module("veri.helper")\n'})
+
+    assert sorted(set(affected.suite_of("skills/tdd/scripts/veri/helper.py"))) == [PY + "test_names_helper_process.py"]
