@@ -43,9 +43,9 @@ def main(argv):
         return 1
     for stage in ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"):
         code, out, _ = fused.call(fused.script(stage), argv[0])
-        if code in (1, 2):
+        if code in (1, 2, 3):
             sys.stdout.write(out)
-            sys.stdout.write("seam=%s code=%d next=%s\n" % (stage[:-3], code, ANCHOR))
+            sys.stdout.write("seam=%s code=%d next=%s\n" % (stage[:-3], code, "run-pr.sh %s" % n if code == 3 else ANCHOR))
             return code
     with open(record, "w") as f:
         f.write("seam=title\nsha=%s\n" % ledger_sha(wt, n))

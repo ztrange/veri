@@ -186,3 +186,29 @@ def test_4432_at_the_first_stage_exiting_2_it_prints_its_output_then_the_seam_li
     assert out.splitlines()[-2:] == ["pr-prepare.sh: stopped at fetch",
                                      "seam=pr-prepare code=2 next=DRAFT-PR.md#4. Draft PR"]
     assert code == 2, err
+
+
+def test_4432_at_the_first_stage_exiting_3_it_prints_its_output_then_the_seam_line_naming_run_pr_and_exits_3(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+
+    def spy(name, *args, **kw):
+        calls.append(os.path.basename(name))
+        if name.endswith("pr-prepare.sh"):
+            return 3, "pr-prepare.sh: stopped at wait\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert calls == ["branch-gate.sh", "pr-prepare.sh"]
+    assert out.splitlines()[-2:] == ["pr-prepare.sh: stopped at wait", "seam=pr-prepare code=3 next=run-pr.sh 12"]
+    assert code == 3, err

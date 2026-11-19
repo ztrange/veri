@@ -7,7 +7,7 @@
 - [x] a seam record whose sha is not the ledger's last committed one is not resumed: called with no options it starts at branch-gate ⟦criterion 4⟧
 - [x] called again after the body seam it calls no stage and exits 0 ⟦criterion 2⟧
 - [x] at the first stage exiting 1 or 2 it stops, prints seam=<stage> code=<c> next=DRAFT-PR.md#4. Draft PR after that stage's own output (its stopped at line), calls no later stage and exits c ⟦criterion 3⟧
-- [ ] a stage's exit 3 ends on seam=<stage> code=3 next=run-pr.sh <n> and exits 3 ⟦criterion 3⟧
+- [x] a stage's exit 3 ends on seam=<stage> code=3 next=run-pr.sh <n> and exits 3 ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] a stage's exit code outside 0-3 is exit 2, the stage and its code named on stderr ⟦criterion 3⟧
 - [ ] --from <stage> starts at that stage, for each of the five stage names ⟦criterion 5⟧
 - [ ] --hand <stage>, repeatable, stops before that stage with seam=<stage> code=1 reason=hand next=DRAFT-PR.md#4. Draft PR without calling it, exit 1 ⟦criterion 5⟧
