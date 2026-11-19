@@ -252,3 +252,40 @@ def test_exit_0_replaces_the_record_whole_through_a_temporary_file_with_the_ceil
     assert [dst for _, dst in replaced] == [str(record)]
     assert ceiling.os.path.dirname(replaced[0][0]) == str(tmp_path)
     assert sorted(path.name for path in tmp_path.iterdir() if "ceiling" in path.name) == ["ceiling-record"]
+
+
+EARLIER = "8\nan earlier record\n"
+
+
+@pytest.mark.parametrize("outcome, exit_code", [
+    (lambda workers, tests: [(SLOW, TIMEOUT)] if workers == 2 and not tests else [], 1),
+    (lambda workers, tests: [(RED, "E   assert 1 == 2")] if workers == 4 else [], 2),
+    (lambda workers, tests: [(SLOW, TIMEOUT)] if workers == 4 or tests else [], 2),
+])
+def test_exit_1_and_exit_2_leave_an_earlier_record_unchanged(make, run_cli, tmp_path, outcome, exit_code):
+    record = tmp_path / "ceiling-record"
+    record.write_text(EARLIER)
+    make.given(outcome)
+
+    code, _, _ = run_cli(ceiling, [])
+
+    assert code == exit_code
+    assert record.read_text() == EARLIER
+
+
+def test_a_record_that_cannot_be_renamed_into_place_leaves_the_earlier_one_and_no_temporary_file(make, run_cli,
+                                                                                                tmp_path, monkeypatch):
+    record = tmp_path / "ceiling-record"
+    record.write_text(EARLIER)
+
+    def refuse(src, dst):
+        raise OSError("refused")
+
+    monkeypatch.setattr(ceiling.os, "replace", refuse)
+
+    code, _, err = run_cli(ceiling, ["--max", "2"])
+
+    assert code == 2
+    assert "refused" in err
+    assert record.read_text() == EARLIER
+    assert sorted(path.name for path in tmp_path.iterdir() if "ceiling" in path.name) == ["ceiling-record"]
