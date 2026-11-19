@@ -45,6 +45,13 @@ def registered(path, count, started_text=None):
     path.write_text("%d\n%s\n" % (count, started_text))
 
 
+def measured(n):
+    """Writes a ceiling record of <n> where the hermetic fixture points VERI_TEST_CEILING_FILE, so the leg's budget is
+    <n> and it prints no fallback line."""
+    with open(os.environ["VERI_TEST_CEILING_FILE"], "w") as f:
+        f.write("%d\n2026-11-18\n" % n)
+
+
 def test_the_leg_and_its_four_plugins_live_under_tests_leg_while_the_modules_launches_share_stay_in_veri_4051(pytest_leg):
     """PRD 025.16 PL1: veri/ holds no test-runner code; the leg is loaded from skills/tdd/scripts/tests/leg/."""
     scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -153,7 +160,7 @@ def test_a_worker_count_of_n_at_least_2_hands_pytest_n_n_while_1_hands_it_no_wor
     assert serial_pass == single == single_serial_pass == ["-q", "some/dir"]
 
 
-def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available_core_and_runs_serially_on_a_single_core(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available_core_and_2_on_a_single_core_4419(pytest_leg, run_cli, monkeypatch, tmp_path):
     import os
 
     calls = []
@@ -176,7 +183,8 @@ def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available
     unset, unset_serial, empty, empty_serial, single, single_serial = [without_selection(c) for c in calls]
     for parallel in (unset, empty):
         assert parallel[parallel.index("-n") + 1] == "6" if "-n" in parallel else "-n6" in parallel or "--numprocesses=6" in parallel
-    assert unset_serial == empty_serial == single == single_serial == ["-q", "some/dir"]
+    assert single[:2] == ["-n", "2"]
+    assert unset_serial == empty_serial == single_serial == ["-q", "some/dir"]
 
 
 def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_only_the_cores_they_leave_free_and_at_least_1(pytest_leg, run_cli, monkeypatch, tmp_path, started):
@@ -1077,6 +1085,7 @@ def test_3985_a_teardown_that_raises_after_the_passes_is_one_line_and_keeps_a_re
     monkeypatch.delenv("PYTEST_LEG_FULL_LOCK_HOLDER", raising=False)
     for name, value in leg_env().items():
         monkeypatch.setenv(name, value)
+    measured(2)
     TEARDOWN_SITES[site](pytest_leg, monkeypatch)
 
     got = pytest_leg.launch(["-q"])
@@ -1112,6 +1121,7 @@ def test_4310_a_leg_with_no_worker_count_that_finds_the_registered_workers_at_th
 
 
 def test_4310_a_leg_waiting_for_a_free_core_writes_one_stderr_line_however_many_polls_naming_the_cores_in_use_and_the_holding_pids(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    measured(16)
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
@@ -1580,6 +1590,7 @@ def test_4311_a_cap_that_is_not_a_whole_number_of_at_least_1_exits_2_in_one_line
 
 
 def test_4311_a_cap_4_leg_finding_no_free_core_waits_with_one_stderr_line_the_wait_marker_and_one_core_wait_event_carrying_its_seconds(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    measured(16)
     import json
     import supervise
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
@@ -1644,3 +1655,49 @@ def test_4419_a_full_leg_alone_beside_a_ceiling_record_of_6_on_16_cores_takes_6_
 
 def test_4419_the_hermetic_fixture_points_the_ceiling_record_into_the_cases_own_tmp_path(tmp_path):
     assert os.environ["VERI_TEST_CEILING_FILE"].startswith(str(tmp_path) + os.sep)
+
+
+@pytest.mark.parametrize("line_1", [None, "", "six", "1", "0", "-4", "2.5", "٣", b"\xff\xfe"])
+def test_4419_with_no_record_or_one_whose_line_1_is_not_a_whole_number_of_at_least_2_a_full_leg_takes_the_cores_and_says_so_in_one_line_naming_the_file_and_make_ceiling(pytest_leg, run_cli, monkeypatch, tmp_path, started, line_1):
+    on_cores(monkeypatch, 16)
+    record = tmp_path / "ceiling"
+    if isinstance(line_1, bytes):
+        record.write_bytes(line_1 + b"\n2026-11-18\n")
+    elif line_1 is not None:
+        record.write_text(line_1 + "\n2026-11-18\n")
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(args) or pytest.ExitCode.OK)
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_TEST_CEILING_FILE=str(record)))
+    told = [line for line in err.splitlines() if "make ceiling" in line]
+
+    assert (code, workers_handed(calls), len(told), str(record) in "".join(told)) == (0, "16", 1, True)
+
+
+def test_4419_a_ceiling_record_path_that_is_a_directory_falls_back_to_the_cores_saying_so_instead_of_crashing(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 16)
+    record = tmp_path / "ceiling"
+    record.mkdir()
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(args) or pytest.ExitCode.OK)
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_TEST_CEILING_FILE=str(record)))
+
+    assert (code, workers_handed(calls), err.count("make ceiling")) == (0, "16", 1)
+
+
+def test_4419_on_a_single_core_with_no_record_the_budget_is_never_below_2_so_a_full_leg_alone_takes_2(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 1)
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(args) or pytest.ExitCode.OK)
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env())[0]
+
+    assert (code, workers_handed(calls)) == (0, "2")
+
+
+def test_4419_with_no_record_on_macos_the_budget_is_the_physical_cores_not_the_logical_ones(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 16, platform="darwin")
+    started(extra={"sysctl -n hw.physicalcpu": (0, "8\n", "")})
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(args) or pytest.ExitCode.OK)
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env())[0]
+
+    assert (code, workers_handed(calls)) == (0, "8")
