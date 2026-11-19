@@ -6,6 +6,7 @@ import sys
 
 import entry
 import git
+import run_dir
 import tunables
 
 USAGE = "usage: bail.sh <n> <cause> <phase> --note-file <path> [--attempt <k>]"
@@ -65,7 +66,7 @@ def _print_report(phase, classification):
 
 def _ledger_text(issue):
     try:
-        with open(os.path.join(".tdd", "issue-%s.md" % issue)) as f:
+        with open(run_dir.ledger(".", issue)) as f:
             return f.read()
     except OSError:
         return ""
