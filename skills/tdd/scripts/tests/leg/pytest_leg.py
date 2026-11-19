@@ -181,20 +181,22 @@ def worker_count(requested):
         return int(requested)
     if os.environ.get("PYTEST_XDIST_WORKER"):
         return 1
-    return budget() - registered_workers(legs_dir())
+    return budget()[0] - registered_workers(legs_dir())
 
 
 def budget():
-    """T, the workers every live leg on the machine shares: line 1 of the ceiling record (ceiling.record_path) when it
-    is a whole number of at least 2, else the cores."""
+    """(T, its source): T, the workers every live leg on the machine shares, is line 1 of the ceiling record
+    (ceiling.record_path) when it is a whole number of at least 2, its source naming the record; else the cores, never
+    below 2, its source None. A record that is missing, unreadable or malformed only falls back, never raises."""
+    path = record_path()
     try:
-        with open(record_path()) as f:
+        with open(path) as f:
             first = f.readline().strip()
     except (OSError, ValueError):
         first = ""
     if first.isascii() and first.isdigit() and int(first) >= 2:
-        return int(first)
-    return cores()
+        return int(first), "the ceiling record " + path
+    return max(2, cores()), None
 
 
 def cores():
@@ -294,6 +296,10 @@ def claim(cleanups=None, cap=None):
     waitfile = ""
     cleanups = [] if cleanups is None else cleanups
     removal = lambda: unmark(waitfile)
+    if not os.environ.get("PYTEST_XDIST_WORKER") and budget()[1] is None:
+        sys.stderr.write("no test-worker ceiling in %s, so the budget is the %d cores; `make ceiling` measures one\n" % (
+            record_path(), budget()[0]))
+        sys.stderr.flush()
     try:
         while True:
             with open(legs.rstrip("/") + ".lock", "w") as lock:
