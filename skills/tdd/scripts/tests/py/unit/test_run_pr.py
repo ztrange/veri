@@ -288,3 +288,57 @@ def test_4432_hand_a_stage_stops_before_it_with_the_hand_seam_line_without_calli
     assert calls == ["branch-gate.sh"]
     assert out.splitlines()[-1] == "seam=pr-prepare code=1 reason=hand next=DRAFT-PR.md#4. Draft PR"
     assert code == 1, err
+
+
+def test_4432_a_from_or_hand_value_that_is_not_a_stage_name_or_an_unknown_option_is_exit_2_with_no_stage_called(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+
+    def spy(name, *args, **kw):
+        calls.append(os.path.basename(name))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
+
+    results = {}
+    for extra in (["--bogus"], ["--from", "nowhere"], ["--hand", "nowhere"]):
+        del calls[:]
+        results[" ".join(extra)] = (run_cli(run_pr, ["12"] + extra, cwd=str(tmp_path))[0], calls[:])
+
+    assert results == {" ".join(e): (2, []) for e in (["--bogus"], ["--from", "nowhere"], ["--hand", "nowhere"])}
+
+
+def test_4432_an_unknown_option_before_a_stage_name_or_a_bad_pair_after_a_good_one_is_exit_2_with_no_stage_called(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+
+    def spy(name, *args, **kw):
+        calls.append(os.path.basename(name))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
+
+    extras = (["--bogus", "pr-prepare"],
+              ["--from", "pr-prepare", "--bogus"],
+              ["--from", "pr-prepare", "--hand", "nowhere"],
+              ["--hand", "pr-prepare", "--from", "nowhere"])
+    results = {}
+    for extra in extras:
+        del calls[:]
+        results[" ".join(extra)] = (run_cli(run_pr, ["12"] + extra, cwd=str(tmp_path))[0], calls[:])
+
+    assert results == {" ".join(e): (2, []) for e in extras}

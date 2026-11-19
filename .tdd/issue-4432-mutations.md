@@ -41,3 +41,10 @@ ICAgICAgICBpZiBjb2RlIGluICgxLCAyKTo=
 command 176
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4432_at_the_first_stage_exiting_2_it_prints_its_output_then_the_seam_line_calls_no_later_stage_and_exits_2
 
+before 40
+768cde2665c900808aa2b2f44a707284015d6d6c
+keep 47
+skills/tdd/scripts/tests/py/unit/test_run_pr.py
+command 174
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4432_an_unknown_option_before_a_stage_name_or_a_bad_pair_after_a_good_one_is_exit_2_with_no_stage_called
+
