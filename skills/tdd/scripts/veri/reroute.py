@@ -6,6 +6,7 @@ import sys
 
 import fused
 import fused_step
+import red_half
 import run_dir
 from ledger import handed_out
 
@@ -16,7 +17,8 @@ LEDGER = run_dir.ledger("", "%s")
 
 # The $S/ scripts this call makes, in the order each is first made.
 CALLS = ("wrong-test-route.sh", "event.sh", "build-develop-prompt.sh", "stop-requested.sh", "detach-leaf.sh",
-         "supervise.sh", "run-leaf.sh", "wait-leaf.sh")
+         "supervise.sh", "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "extract-result.sh",
+         "run-verdict.sh", "tests-frozen.sh")
 # The answers this stage runs (S12) -> the rerouted red's prompt phase, its leaf being `develop-<phase>`.
 RUNS = {"red": "red-contradicted"}
 
@@ -47,14 +49,50 @@ def run(n, report):
     own = fused_step.red_test_id(red["test_path"], red["target_test"])
     resumed = fused.load_wait(wt, n, NAME)
     if resumed is None:
-        at, values = launch(n, wt, settled, step, report, own)
+        at, values = launch(n, wt, settled, step, report, own, red["test_path"])
     else:
         at, values = resumed
-    fused.wait(wt, n, NAME, at)
+    if at == values["leaf"]:
+        waited(wt, n, "leaf", at)
+        fused_step.cost_check(wt, step)
+        values.update(edited(wt, values))
+        at = verify(n, wt, settled, step, values)
+    if at == "verdict-red":
+        waited(wt, n, "verify", at)
+    return finish(wt, step, values)
+
+
+def waited(wt, n, where, name):
+    """A leaf's wait; any exit but 0 stops at <where> with that code."""
+    code = fused.wait(wt, n, NAME, name)
+    if code != 0:
+        raise fused.Stop(where, "wait-leaf.sh %s exit %d" % (name, code), code)
+
+
+def edited(wt, values):
+    """The rerouted red's report: the case it edited, to verify, and every test path the re-record covers."""
+    got = fused.report("leaf", wt, ".tdd/%s.out" % values["leaf"], "TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED")
+    paths = [values["own_path"]] + [got["TEST_PATH"]]
+    return {"verify": [[got["TEST_PATH"], got["TARGET_TEST"]]], "paths": list(dict.fromkeys(paths))}
+
+
+def verify(n, wt, settled, step, values):
+    """verdict-red over the edited case, launched by red-half's own launch, so it takes exactly the red phase's
+    run-verdict.sh arguments (RRT10). The leaf launched."""
+    path, target = values["verify"][0]
+    red_half.launch_verdict("verify", n, wt, settled, step, {"test_path": path, "target_test": target})
+    fused.save_wait(wt, n, NAME, "verdict-red", values)
+    return "verdict-red"
+
+
+def finish(wt, step, values):
+    """The step's frozen tests re-recorded over every test path, the step's own Red case checked (RRT2)."""
+    fused.checked("record", fused.script("tests-frozen.sh"), "record", "--step", step, "--red-case", values["own"],
+                  *values["paths"], cwd=wt, out=".tdd/verify-red.reason")
     return 0
 
 
-def launch(n, wt, settled, step, report, own):
+def launch(n, wt, settled, step, report, own, own_path):
     """The route, then the rerouted red: the `reroute` event, its prompt and its leaf launched (RRT2). (at, values)."""
     shown = fused.label("wrong-test-route.sh", "--spec", SPEC % n, report, own)
     code, said, _ = fused.call(fused.script("wrong-test-route.sh"), "--spec", SPEC % n, report, own, cwd=wt,
@@ -70,7 +108,7 @@ def launch(n, wt, settled, step, report, own):
                   cwd=wt, out=".tdd/%s.prompt" % leaf)
     fused.launch("launch", wt, leaf, "run-leaf.sh", ".tdd/%s.prompt" % leaf, "--permission-mode", "bypassPermissions",
                  env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/%s.out" % leaf, err=".tdd/%s.err" % leaf)
-    values = {"kind": kind, "cases": rest.split(), "report": report, "own": own, "leaf": leaf}
+    values = {"kind": kind, "cases": rest.split(), "report": report, "own": own, "own_path": own_path, "leaf": leaf}
     fused.save_wait(wt, n, NAME, leaf, values)
     return leaf, values
 
