@@ -283,7 +283,8 @@ def test_a_revise_answer_on_verify_greens_reason_keeps_the_reason_and_green_half
 def _red_revise_left(reroute):
     record = json.loads((reroute.wt / ".tdd" / "issue-12-red-half-rejected-wait").read_text())
     return (record["step"], record["at"], record["values"]) == (
-        STEP, "verdict-red", {"test_path": "tests/test_a.py", "target_test": OWN})
+        STEP, "verdict-red", {"test_path": "tests/test_a.py", "target_test": OWN,
+                              "rerouted": ["tests/test_a.py", "tests/test_b.py"]})
 
 
 def test_a_verify_red_reject_of_the_rerouted_case_is_exit_1_route_revise_red_with_red_halfs_rejected_record_4434(
@@ -395,3 +396,28 @@ def test_a_red_half_record_whose_step_differs_only_by_marks_is_refreshed_with_a_
     assert code == 1, out + err
     assert [(e["stage"], e["key"], e["old"], e["new"]) for e in events if e["event"] == "record-refreshed"] == [
         ("reroute", "step", stale, STEP)]
+
+
+OWN_RED = "TEST_PATH: tests/test_a.py\nTARGET_TEST: tests/test_a.py::test_one\nAGAINST_UNMODIFIED: FAILS\n"
+
+
+def test_a_revised_rerouted_red_keeps_the_steps_own_case_and_every_test_path_in_red_halfs_record_4434(
+        reroute, run_cli, monkeypatch):
+    """A verify-red REJECT of a rerouted case goes to revise.sh <n> red (RRT5): its PASS records the frozen tests with
+    the step's own Red case over every test path, and leaves red-half's own case, not the rerouted one, in the wait
+    record red-half settles from. Drives reroute.py, then revise.py, through one fake."""
+    reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
+    code = reroute(answers={("wait-leaf.sh", "verdict-red"): (1, "")},
+                   files={"develop-red-contradicted.out": REROUTED, "develop-red.out": OWN_RED,
+                          "verify-red.reason": "VERDICT: REJECT\nthe rerouted case asserts nothing\n"})[0]
+    (reroute.wt / ".tdd" / "revise-red-1.out").write_text(REROUTED)
+    fake = Fake({("red-divergence.sh", None): (3, "")})
+    monkeypatch.setattr(importlib.import_module("veri.fused"), "run_script", fake)
+    revised = run_cli(importlib.import_module("veri.revise"), ["12", "red"], cwd=str(reroute.wt.parents[2]))
+
+    assert (code, revised[0]) == (1, 0), revised[1] + revised[2]
+    assert fake.call("tests-frozen.sh", "record")[1] == (
+        "record", "--step", STEP, "--red-case", OWN, "tests/test_a.py", "tests/test_b.py")
+    record = json.loads((reroute.wt / ".tdd" / "issue-12-red-half-wait").read_text())
+    assert (record["at"], record["values"]["test_path"], record["values"]["target_test"]) == (
+        "verdict-red", "tests/test_a.py", OWN)

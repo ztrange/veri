@@ -82,7 +82,7 @@ def run(n, report):
     while at == "verdict-red":
         code = fused.wait(wt, n, NAME, at)
         if code == 1:
-            revise_red(wt, n, step, red)
+            revise_red(wt, n, step, red, values)
         if code != 0:
             raise fused.Stop("verify", "wait-leaf.sh %s exit %d" % (at, code), code)
         values["verify"] = values["verify"][1:]
@@ -101,14 +101,14 @@ def revise_green(wt, n, step, report, red):
     raise Revise("green")
 
 
-def reject(wt, n, step, stage, at, red):
+def reject(wt, n, step, stage, at, red, **more):
     """<stage>'s rejected record (fused.wait's on a verifier REJECT, PRD 038.9) naming <step>, written with red-half's
-    values unless one already names the step."""
+    values and <more> unless one already names the step."""
     if fused_step.rejected(wt, n, stage, step) is not None:
         return
     with open(fused.wait_record(wt, n, stage + "-rejected"), "w") as f:
         json.dump({"conductor": fused.conductor(wt), "at": at, "step": step,
-                   "values": {"test_path": red["test_path"], "target_test": red["target_test"]}}, f)
+                   "values": dict({"test_path": red["test_path"], "target_test": red["target_test"]}, **more)}, f)
 
 
 def prompt(kind, cases, report):
@@ -167,16 +167,18 @@ def finish(wt, n, step, values, red):
     code = fused.call(fused.script("tests-frozen.sh"), "record", "--step", step, "--red-case", values["own"],
                       *values["paths"], cwd=wt, out=".tdd/verify-red.reason")[0]
     if code == 1:
-        revise_red(wt, n, step, red)
+        revise_red(wt, n, step, red, values)
     if code != 0:
         raise fused.Stop("record", fused.label("tests-frozen.sh", "record", "--step", step) + " exit %d" % code, code)
     return 0
 
 
-def revise_red(wt, n, step, red):
+def revise_red(wt, n, step, red, values):
     """A verify-red REJECT of the rerouted red (RRT5): its reason left in `.tdd/verify-red.reason`, red-half's rejected
-    record naming the step, so run-step.sh sends it to revise.sh <n> red as it does red-half's own REJECT."""
-    reject(wt, n, step, "red-half", "verdict-red", red)
+    record naming the step, so run-step.sh sends it to revise.sh <n> red as it does red-half's own REJECT. The record
+    carries `rerouted`, every test path the reroute's re-record covers, so the revised PASS keeps the step's own Red
+    case and records the frozen tests over every path, as a reroute PASS does."""
+    reject(wt, n, step, "red-half", "verdict-red", red, rerouted=values["paths"])
     raise Revise("red")
 
 
