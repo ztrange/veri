@@ -27,7 +27,7 @@ class Offline:
     def __init__(self, tmp_path, outage=True, base="stack\n", base_sha=None, local=LOCAL_STACK, rebase=0, fast=0,
                  owed=0, full=0, all_tier="make test\n", checked_out=None, default="trunk", ancestor=True, amend=0,
                  gate_commits=False, move=0, fail=(), step="- [x] a step ⟦criterion 1⟧", rebased=REBASED, trailers="",
-                 descends=True, merges="", differs=False):
+                 descends=True, merges="", differs=False, red=(3, "")):
         self.clone = str(tmp_path / "clone")
         self.wt = os.path.join(self.clone, ".tdd", "wt", "7")
         admin = os.path.join(self.clone, ".git", "worktrees", "7")
@@ -58,13 +58,19 @@ class Offline:
             rebased, trailers, descends, merges, differs)
         self.head = [RUN_TIP]
         self.pulls = []
+        self.red, self.reds = red, []
 
     def install(self, fake_processes, monkeypatch):
         def pull(repo, pr):
             self.pulls.append(pr)
             return None
 
+        def stack_red(worktree):
+            self.reds.append((worktree, len(self.fake.calls)))
+            return self.red
+
         monkeypatch.setattr(queued_merge, "_pull", pull)
+        monkeypatch.setattr(queued_merge, "_stack_red", stack_red)
         self.fake = fake_processes.answers({}, default=self.answer)
         return self
 
@@ -516,3 +522,36 @@ def test_skip_suite_on_an_offline_join_runs_no_gate_and_the_amend_writes_veri_su
     gated = [c for c in world.calls if c.startswith(("sh -c", "detect-test-command.sh --tier all"))]
     assert (code, out, gated, world.local) == (0, "joined offline, no tag %s\n" % AMENDED, ["sh -c make unit"], AMENDED), err
     assert trailers(world) == ["Veri-Joined: %s %s" % (PR, BRANCH), "Veri-Suite: skipped %s the hardware is slow" % model], err
+
+
+def test_the_offline_join_runs_stack_red_sh_in_the_worktree_before_its_rebase(tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    rebase = world.calls.index("git -C %s rebase stack" % world.wt)
+    assert (code, [(wt, at < rebase) for wt, at in world.reds]) == (0, [(world.wt, True)]), err
+
+
+def test_an_offline_join_while_stack_red_sh_exits_0_is_exit_1_naming_the_file_with_nothing_rebased_and_the_lock_freed(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    said = "abc1234 /clone/.tdd/stack-local-red local\n"
+    world = Offline(tmp_path, red=(0, said)).install(fake_processes, monkeypatch)
+
+    code, out, err = join(run_cli, world)
+
+    rebased = [c for c in world.calls if " rebase " in c]
+    assert (code, out, rebased, world.local) == (1, "", [], LOCAL_STACK), err
+    assert "/clone/.tdd/stack-local-red" in err and "abc1234" in err and "--local-green" in err, err
+    assert [c for c in world.calls if c.startswith("merge-lock.sh")][-1] == "merge-lock.sh release --pid %s" % PID, err
+
+
+@pytest.mark.parametrize("red", [2, 1, 127])
+def test_an_offline_join_while_stack_red_sh_exits_neither_0_nor_3_is_exit_2_with_nothing_rebased(
+        tmp_path, fake_processes, monkeypatch, run_cli, red):
+    world = Offline(tmp_path, red=(red, "")).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    rebased = [c for c in world.calls if " rebase " in c]
+    assert (code, rebased, world.local, "stack-red.sh exited %d" % red in err) == (2, [], LOCAL_STACK, True), err
