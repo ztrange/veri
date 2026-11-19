@@ -222,3 +222,45 @@ def test_4435_a_probe_or_detect_test_command_exit_2_is_exit_2(diff, answers):
     assert code == 2
     assert not {"pin-recheck.sh", "step-tick.sh"} & set(fake.names())
     assert not (diff.wt / ".tdd" / "issue-12-diff-step-rejected-wait").exists()
+
+
+def _rejected(diff):
+    path = diff.wt / ".tdd" / "issue-12-diff-step-rejected-wait"
+    return json.loads(path.read_text()) if path.exists() else None
+
+
+@pytest.mark.parametrize("step, answers, report", [
+    (STEP, {("wait-leaf.sh", "verdict-diff"): (1, "")}, None),
+    (QUALITY, {("mutation-probe.sh", None): (1, "")}, FLIP),
+    (STEP, {("pin-recheck.sh", None): (1, "kept green: tests/test_a.py\n")}, None),
+])
+def test_4435_a_verify_flip_or_pin_recheck_reject_leaves_the_steps_rejected_record_for_revise_and_exits_1(
+        diff, step, answers, report):
+    """DST7: each REJECT hands the step to revise.sh <n> diff through the rejected record, which names the step and
+    carries the original step base, so the re-verify judges the diff the rejection was about."""
+    diff(step=step, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(step=step, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    code, out, err, fake = diff(step=step, answers=answers, **({"report": report} if report else {}))
+
+    assert code == 1, err
+    record = _rejected(diff)
+    assert (record["step"], record["at"], record["values"]["step_base"]) == (step, "verdict-diff", STEP_BASE)
+    assert "step-tick.sh" not in fake.names()
+
+
+def test_4435_a_pin_recheck_reject_writes_its_report_as_the_reason(diff):
+    """DST7: the pins pin-recheck.sh printed are what the revise leaf is told."""
+    diff(answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    diff(answers={("pin-recheck.sh", None): (1, "kept green: tests/test_a.py\n")})
+
+    assert (diff.wt / ".tdd" / "verify-diff.reason").read_text() == (
+        "REJECT: pin-recheck.sh found a pin this step disarmed\nkept green: tests/test_a.py\n")
+
+
+def test_4435_a_pin_recheck_exit_2_is_exit_2_with_no_rejected_record(diff):
+    diff(answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    code, out, err, fake = diff(answers={("pin-recheck.sh", None): (2, "")})
+
+    assert (code, _rejected(diff)) == (2, None)
