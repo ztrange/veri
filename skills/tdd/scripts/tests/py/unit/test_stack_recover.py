@@ -150,3 +150,18 @@ def test_takes_the_merge_lock_then_fetches_and_a_failed_take_or_fetch_exits_2_na
     assert (code, out, err.count("\n"), world.log) == (
         2, "", 1, [take] if failing == "take" else [take, fetch, release]), err
     assert ("merge-lock.sh take" if failing == "take" else "unable to access origin") in err, err
+
+
+@pytest.mark.parametrize("refs", [
+    {"refs/remotes/origin/stack": BASE},
+    {"refs/heads/stack": BASE, "refs/remotes/origin/stack": BASE},
+    {"refs/heads/stack": BASE, "refs/remotes/origin/stack": TIP},
+], ids=["absent", "at-origin", "behind-origin"])
+def test_a_local_stack_absent_at_origin_or_behind_it_exits_3_in_one_line_nothing_pushed_the_lock_freed(
+        monkeypatch, tmp_path, run_cli, stack_recover, refs):
+    world = World(monkeypatch, tmp_path, refs=refs)
+
+    code, out, err = run_cli(stack_recover, [])
+
+    assert (code, out, err.count("\n"), "nothing to push" in err, world.pushed, world.scripts[-1][:2]) == (
+        3, "", 1, True, [], ("merge-lock.sh", "release")), err
