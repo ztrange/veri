@@ -97,6 +97,16 @@ def _held(stack):
         if push.returncode:
             return _refuse("the push of %s to %s failed (exit %d): %s; the stack not pushed" % (
                 sha, branch, push.returncode, " ".join((push.stderr or "").split())))
+    # A compare-and-swap, never --force: the lease is origin's stack as fetched, and the local stack descends from it.
+    push = git.network("push", "--force-with-lease=%s:%s" % (stack, fetched), "origin",
+                       "%s:refs/heads/%s" % (local, stack), cwd=".")
+    if push.returncode and LEASE.search(push.stderr or ""):
+        print("stack-recover: the leased push of %s to %s was refused: origin's %s is not %s as fetched (%s); the joined"
+              " branches are pushed" % (local, stack, stack, fetched, " ".join(push.stderr.split())), file=sys.stderr)
+        return 1
+    if push.returncode:
+        return _refuse("the push of %s to %s failed (exit %d): %s; the joined branches are pushed" % (
+            local, stack, push.returncode, " ".join((push.stderr or "").split())))
     return 3
 
 

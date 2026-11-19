@@ -211,3 +211,19 @@ def test_each_joined_commit_is_pushed_to_its_branch_oldest_first_leased_on_origi
         named = "tdd/11-a" if case == "refused" else B
         assert (code, out, err.count("\n"), named in err, world.pushed, world.scripts[-1][:2]) == (
             1, "", 1, True, [first] if case == "refused" else [], ("merge-lock.sh", "release")), err
+
+
+@pytest.mark.parametrize("case, code", [("pushed", None), ("no joins", None), ("refused", 1), ("failed", 2)])
+def test_then_the_stack_is_pushed_leased_on_origin_stack_as_fetched_never_forced_a_refused_lease_exit_1_another_failure_exit_2(
+        monkeypatch, tmp_path, run_cli, stack_recover, case, code):
+    said = {"refused": (1, " ! [rejected]  stack -> stack (stale info)\n"), "failed": (128, "fatal: the remote hung up\n")}
+    world = joined_world(monkeypatch, tmp_path, trailers={} if case == "no joins" else JOINED,
+                         pushes={"refs/heads/stack": said[case]} if case in said else None)
+
+    got, out, err = run_cli(stack_recover, [])
+
+    stack = ("push", "--force-with-lease=stack:" + BASE, "origin", TIP + ":refs/heads/stack")
+    pushes = [args for args in world.pushed if "--delete" not in args]
+    assert (pushes[-1], [arg for args in pushes for arg in args if arg in ("--force", "-f")]) == (stack, []), err
+    if code:
+        assert (got, out, err.count("\n"), "stack" in err, len(pushes)) == (code, "", 1, True, 3), err
