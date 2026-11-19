@@ -158,7 +158,7 @@ def test_on_a_revised_pass_it_posts_verify_revised_resaves_green_halfs_wait_at_v
     assert not (revise.wt / ".tdd" / "issue-12-revise-wait").exists()
 
 
-@pytest.mark.parametrize("same", [1, 0])
+@pytest.mark.parametrize("same", [1, 2, 0])
 def test_a_reverify_reject_spends_attempt_k_and_goes_on_to_k_plus_1_unless_same_reject_says_it_repeats(revise, same):
     """PRD 038.9 criteria 4 and 6: REVISE.md sub-step 1 for attempt 2; same-reject.sh exit 0 stops with exit 1."""
     code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (1, ""),

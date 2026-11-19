@@ -341,3 +341,16 @@ def test_a_rejected_record_naming_another_step_sends_no_call_to_revise_and_is_dr
 
     assert (code, stages.names()) == (0, list(STAGES)), err
     assert not stale.exists()
+
+
+@pytest.mark.parametrize("text", ['{"conductor": null, "at": "verdict-green", "values": {}}', '{"conductor": nu'])
+def test_a_rejected_record_naming_no_step_or_unreadable_sends_no_call_to_revise_and_is_dropped_4433(step, text):
+    """Records are caches (S1): a record with no `step` (an older one) or one that is not JSON names no open step, so
+    the half runs and the record is removed, with no traceback."""
+    stale = step.wt / ".tdd" / "issue-12-green-half-rejected-wait"
+    stale.write_text(text)
+
+    code, out, err, stages = step()
+
+    assert (code, stages.names(), err) == (0, list(STAGES), "")
+    assert not stale.exists()
