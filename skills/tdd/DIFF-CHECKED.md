@@ -51,8 +51,8 @@ The verifier's verdict closes the `⟦diff-checked⟧` step:
   `all="$($S/detect-test-command.sh --tier all)"` then `sh -c "$all"`. Exit **0** (the flipped case
   went red) goes on to the PASS branch below. The call sets no `VERI_MUTATION_RECORD`, so the probe
   writes no `.tdd/issue-<n>-mutations.md` record: the flip proves the fix once, and nothing replays it. Exit **1** (it stayed green) is a verify-diff REJECT naming the
-  case, spending `REVISE_BUDGET`: write `REJECT: flipping <old>→<new> in <test file> left <file>::<case> green`
-  to `.tdd/verify-diff.reason` (`Read` `<base directory>/REVISE.md`); a report with no `FLIP:` line is a
+  test file, spending `REVISE_BUDGET`: write `REJECT: flipping <old>→<new> in <test file> left <test file> green`
+  to `.tdd/verify-diff.reason` (`Read` `<base directory>/REVISE.md`); a report with no `FLIP:` line, or one not of that form, is a
   REJECT the same way, its reason saying the line is missing. Exit **2**, or a `detect-test-command.sh` exit 2, bails `no-verdict`, a
   system failure (`Read` `<base directory>/BAIL.md`).
 - **PASS (exit 0):** first run `$S/pin-recheck.sh --branch-base <base> <step-base-sha>` against the step base sha, `<base>` the recorded branch base,
