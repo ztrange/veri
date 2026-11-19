@@ -329,3 +329,19 @@ def test_a_non_zero_preserve_attempt_exit_is_named_on_its_call_line_and_the_rese
              for c in fake.calls
              if c.startswith(("git reset", "event.sh", "metrics.sh", "push-branch.sh", "comment.sh"))]
     assert later == ["git reset", "event.sh", "metrics.sh", "push-branch.sh", "comment.sh", "comment.sh"]
+
+
+def test_a_non_zero_push_branch_exit_is_named_on_its_call_line_and_both_comments_still_run_ending_exit_0_with_the_event_written(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "push-branch.sh": (6, "", "rejected\n")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    assert code == 0
+    push_lines = [line for line in out.splitlines() if "push-branch.sh" in line]
+    assert len(push_lines) == 1 and "6" in push_lines[0]
+    later = [c.split()[0] for c in fake.calls if c.startswith(("event.sh", "push-branch.sh", "comment.sh"))]
+    assert later == ["event.sh", "push-branch.sh", "comment.sh", "comment.sh"]
