@@ -272,3 +272,22 @@ def test_stack_pr_sh_exiting_2_or_3_exits_2_naming_it_printing_nothing_the_pushe
     removed = [("git",) + args for args in world.pushed if "--delete" in args]
     assert (code, out, err.count("\n"), "stack-pr.sh exits %d" % exit in err, removed) == (
         2, "", 1, True, deletes(11, "tdd/11-a", A) + deletes(12, "tdd/12-b", C)), err
+
+
+GONE = "error: unable to delete '%s': remote ref does not exist\n"
+
+
+@pytest.mark.parametrize("pushes, code, named", [
+    ({"tdd/11-a": (1, "error: failed to push some refs\n")}, 2, "tdd/11-a"),
+    ({"refs/veri/runs/12": (128, "fatal: the remote end hung up\n")}, 2, "refs/veri/runs/12"),
+    ({"tdd/11-a": (1, GONE % "tdd/11-a"), "refs/veri/runs/12": (1, GONE % "refs/veri/runs/12")}, 0, None),
+], ids=["branch", "records", "already-gone"])
+def test_a_failed_delete_exits_2_naming_it_printing_nothing_and_still_runs_stack_pr_sh_while_a_ref_already_gone_is_deleted(
+        monkeypatch, tmp_path, run_cli, stack_recover, pushes, code, named):
+    world = joined_world(monkeypatch, tmp_path, pushes=pushes)
+
+    got, out, err = run_cli(stack_recover, [])
+
+    assert (got, out, world.scripts[-1]) == (code, "" if code else "%s %s\n" % (TIP, URL), ("stack-pr.sh",)), err
+    if named:
+        assert [line for line in err.splitlines() if named in line] != [], err
