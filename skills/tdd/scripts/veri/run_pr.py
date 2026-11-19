@@ -69,67 +69,6 @@ def main(argv):
     return run_early(n, wt, record, first, hands)
 
 
-if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import os
-import sys
-
-import fused
-import fused_step
-import run_dir
-
-USAGE = "usage: run-pr.sh <n>"
-ANCHOR = "DRAFT-PR.md#4. Draft PR"
-TITLE = "seam=pr-ready-wait code=1 reason=title next=%s\n" % ANCHOR
-BODY = "seam=done code=1 reason=body next=%s\n" % ANCHOR
-
-
-def ledger_sha(wt, n):
-    try:
-        return fused.run_script("git", "log", "-1", "--format=%H", "--", run_dir.ledger("", "%s") % n, cwd=wt)[1].strip()
-    except Exception:
-        return ""
-
-
-def main(argv):
-    if not argv:
-        sys.stderr.write(USAGE + "\n")
-        return 2
-    n = argv[0]
-    first = argv[argv.index("--from") + 1] + ".sh" if "--from" in argv else None
-    hands = [argv[i + 1] + ".sh" for i, a in enumerate(argv) if a == "--hand"]
-    wt = fused_step.inputs("run-pr.sh", n)[1]
-    record = fused.settled_file(wt, n, "run-pr")
-    held = open(record).read() if os.path.exists(record) else ""
-    if first is None and "sha=%s\n" % ledger_sha(wt, n) in held and "seam=body\n" in held:
-        return 0
-    late = ("pr-ready-wait.sh", "pr-finish.sh")
-    if first in late or (first is None and "sha=%s\n" % ledger_sha(wt, n) in held):
-        for stage in late[late.index(first) if first else 0:]:
-            _, out, _ = fused.call(fused.script(stage), n)
-        sys.stdout.write("".join(out.splitlines(True)[-2:]))
-        with open(record, "w") as f:
-            f.write("seam=body\nsha=%s\n" % ledger_sha(wt, n))
-        sys.stdout.write(BODY)
-        return 1
-    early = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
-    for stage in early[early.index(first) if first else 0:]:
-        if stage in hands:
-            sys.stdout.write("seam=%s code=1 reason=hand next=%s\n" % (stage[:-3], ANCHOR))
-            return 1
-        code, out, _ = fused.call(fused.script(stage), argv[0])
-        if code not in (0, 1, 2, 3):
-            sys.stderr.write("run-pr.sh: %s exited %d\n" % (stage[:-3], code))
-            return 2
-        if code in (1, 2, 3):
-            sys.stdout.write(out)
-            sys.stdout.write("seam=%s code=%d next=%s\n" % (stage[:-3], code, "run-pr.sh %s" % n if code == 3 else ANCHOR))
-            return code
-    with open(record, "w") as f:
-        f.write("seam=title\nsha=%s\n" % ledger_sha(wt, n))
-    sys.stdout.write(TITLE)
-    return 1
-
-
 if __name__ == "__main__":
     import entry
     entry.run(main, sys.argv[1:])
