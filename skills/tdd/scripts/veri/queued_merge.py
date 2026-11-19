@@ -824,7 +824,7 @@ def _joined_offline(pr, worktree, branch, stack):
     code = _tip_checks(worktree, stack)
     if code:
         return code
-    code = _full_gate(worktree, stack)
+    code, suite = _full_gate(worktree, stack)
     if code:
         return code
     changed = _changed(worktree, checked)
@@ -833,7 +833,7 @@ def _joined_offline(pr, worktree, branch, stack):
             changed, stack))
         return 2
     amend = _git(worktree, "commit", "--amend", "--no-edit", "--no-verify", "--allow-empty",
-                 "--trailer", "Veri-Joined: %s %s" % (pr, branch))
+                 "--trailer", "Veri-Joined: %s %s" % (pr, branch), "--trailer", "Veri-Suite: " + suite)
     joined = _rev(worktree, "HEAD")
     if amend.returncode or not joined:
         _say("amending the rebased tip with its Veri-Joined trailer failed (exit %d): %s; the local %s not moved" % (
@@ -875,21 +875,22 @@ def _rejoined(pr, worktree, branch, stack, before, onto):
 
 
 def _full_gate(worktree, stack):
-    """The all-tier command `detect-test-command.sh --tier all` prints, run on the rebased tip in <worktree>: 0 green or
-    no command (said in one stderr line: not gated), 1 red, 2 when the command cannot be read."""
+    """The all-tier command `detect-test-command.sh --tier all` prints, run on the rebased tip in <worktree>: (code, the
+    Veri-Suite trailer's value): 0 "passed" green, 0 "not gated" with no command (said in one stderr line), 1 red, 2 when
+    the command cannot be read."""
     found = _start("detect-test-command.sh", "--tier", "all", cwd=worktree, capture=True)
     full = found.stdout.strip()
     if found.returncode not in (0, 3):
         _say("detect-test-command.sh --tier all exited %d; the local %s not moved" % (found.returncode, stack))
-        return 2
+        return 2, None
     if not full:
         _say("no all-tier command (detect-test-command.sh --tier all printed nothing); the join onto the local %s is not"
              " gated" % stack)
-        return 0
+        return 0, "not gated"
     if subprocess.run(["sh", "-c", full], cwd=worktree).returncode:
         _say("the full suite (%s) is red on the rebased tip; the local %s not moved" % (full, stack))
-        return 1
-    return 0
+        return 1, None
+    return 0, "passed"
 
 
 def _changed(worktree, checked):

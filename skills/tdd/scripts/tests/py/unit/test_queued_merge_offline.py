@@ -313,7 +313,7 @@ def test_the_rebased_tip_is_amended_with_one_veri_joined_trailer_before_the_stac
     moved = [c for c in world.calls if c.startswith(wt + "update-ref")]
     assert (code, out, world.local) == (0, "joined offline, no tag %s\n" % AMENDED, AMENDED), err
     assert amended == [["git", "-C", world.wt, "commit", "--amend", "--no-edit", "--no-verify", "--allow-empty",
-                        "--trailer", "Veri-Joined: %s %s" % (PR, BRANCH)]], err
+                        "--trailer", "Veri-Joined: %s %s" % (PR, BRANCH), "--trailer", "Veri-Suite: passed"]], err
     assert moved == [wt + "update-ref refs/heads/stack %s %s" % (AMENDED, LOCAL_STACK)], err
 
 
@@ -489,3 +489,18 @@ def test_skip_suite_outside_an_outage_or_on_a_join_that_is_not_offline_is_exit_2
     locks = [c for c in world.calls if c.startswith("merge-lock.sh")]
     assert (code, out, locks, world.pulls, world.local) == (2, "", [], [], LOCAL_STACK), err
     assert "--skip-suite" in err and "offline" in err, err
+
+
+def trailers(world):
+    """The --trailer values of the offline join's one amend."""
+    amended = [argv for argv in world.fake.argvs if argv[3:5] == ["commit", "--amend"]]
+    assert len(amended) == 1, amended
+    return [value for flag, value in zip(amended[0], amended[0][1:]) if flag == "--trailer"]
+
+
+def test_with_no_all_tier_command_the_amend_writes_veri_suite_not_gated(tmp_path, fake_processes, monkeypatch, run_cli):
+    world = Offline(tmp_path, all_tier="").install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, trailers(world)) == (0, ["Veri-Joined: %s %s" % (PR, BRANCH), "Veri-Suite: not gated"]), err
