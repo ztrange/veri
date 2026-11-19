@@ -198,6 +198,9 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     if phase == "diff":
         if not step_arg:
             return _refused("build-verify-prompt: diff needs --step '<STEP>'")
+        if fourth:
+            return _refused("build-verify-prompt: diff takes <spec-file> <step-base-sha>, and its branch base from "
+                            f"--branch-base, not a third positional ('{fourth}')")
         shas = (("<step-base-sha>", "STEP_BASE_SHA", test_path), ("--branch-base", "BASE_SHA", branch_base))
     elif "base-sha" in NEEDS.get(phase, ()):
         shas = (("<base-sha>", "BASE_SHA", fourth),)
