@@ -653,7 +653,27 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   **exit 2**.
   While `.tdd/github-outage` exists in the main working tree it exits **3** with one stderr line saying a landing
   waits for the GitHub outage to end, before any read and before taking the lock.
+  The slice pull request's body names each commit of its range whose message carries a `Veri-Suite: skipped`
+  trailer, one line each, and adds one line naming `.tdd/stack-local-red` when that file exists in the main working
+  tree, so a reader can tell the joins no full run proved; a range with neither adds nothing.
   **Exit 0** landed, **1** a clean refusal, **2** no answer, **3** nothing to land.
+- `$S/stack-recover.sh` — run in the target repository's clone after local mode ends, no arguments: brings the
+  outage's offline joins to GitHub. A module, `skills/tdd/scripts/veri/stack_recover.py`, behind a `/bin/sh` shim.
+  While `.tdd/github-outage` exists it exits **2** before any read; when `stack-branch.sh` exits 3 it exits **3**.
+  It takes the merge lock and fetches; it exits **3** when the local `<stack>` does not exist or is `origin/<stack>`
+  or behind it, and **1** naming both shas when `origin/<stack>` is not an ancestor of the local `<stack>` (or is
+  gone), nothing pushed; a `Veri-Joined:` trailer that is not a pull request url and a branch is **exit 1** naming its
+  commit, nothing pushed. For each commit of `origin/<stack>..<stack>` with a `Veri-Joined: <pr-url> <branch>` trailer, oldest first,
+  it pushes that commit to `<branch>` with `--force-with-lease=<branch>:<origin/<branch> as fetched>`, then pushes
+  `<stack>` with `--force-with-lease=<stack>:<origin/<stack> as fetched>`, never `--force`; a refused lease is
+  **exit 1** naming the branch, and a refused branch push leaves the stack unpushed. It then re-reads each joined
+  pull request over the settle window `queued-merge.sh` uses; one not reading merged is **exit 2** naming it, the
+  stack left as pushed. It then deletes each joined run's remote branch and `refs/veri/runs/<n>` and runs
+  `stack-pr.sh`; a delete that fails is **exit 2** naming it as owed, and an exit of `stack-pr.sh` other than 0 is
+  **exit 2** naming it, since no tracking pull request is known to wait for CI on. Every exit frees the merge lock it took. **Exit 0** pushed, printing `<tip-sha> <tracking-pr-url>`: the
+  stack's pushed tip and its tracking pull request, as `stack-pr.sh` prints it; **1** a refused lease or a stack
+  origin moved; **2** while `.tdd/github-outage` exists or on no answer; **3** nothing joined offline or no stack
+  named.
 - `$S/stack-carry.sh <old-cut>` — run in the target repository's clone after a slice landed: carries the stack onto
   the new default branch. `<old-cut>` is the stack commit the landed slice ended at, as it was on `origin/<stack>`
   before the landing. A module, `skills/tdd/scripts/veri/stack_carry.py`, behind a `/bin/sh` shim. It takes the merge

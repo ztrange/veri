@@ -109,9 +109,8 @@ it takes the next, so the order holds per session; two sessions on one tree inte
 1. Run `$S/github-outage.sh take --pid <driver>`, the claim: no other session gets that PR.
    - A url: go to step 2.
    - `ended`: nothing is left held or merging and the file is removed; tell the human in one line
-     that local mode has ended and, where `$S/stack-branch.sh` exits 0, the count of commits the
-     local `<stack>` holds above `origin/<stack>` (`git rev-list --count origin/<stack>..<stack>`)
-     and that landing them is by hand until PRD 033.3. Stop.
+     that local mode has ended. Where `$S/stack-branch.sh` exits 0, land the outage's joins
+     (*Landing the offline joins*, below); otherwise stop.
    - Exit 3, nothing printed: another session holds the rest, or the mode ended elsewhere; say
      nothing. Stop.
    - Exit 2: report it once. Stop.
@@ -128,3 +127,23 @@ it takes the next, so the order holds per session; two sessions on one tree inte
 
 A reset mid-way loses nothing: a PR not yet taken is still held, and one taken and not settled
 is adopted by the recovered session.
+
+## Landing the offline joins
+
+The offline joins left their commits on the local `<stack>`, unpushed, and each run's draft PR
+open. Once `take` has printed `ended` and the file is gone, run `$S/stack-recover.sh` in the target
+repository's main working tree. It pushes each joined run's branch and then the stack, each under
+a lease, confirms each run's PR reads merged, deletes the joined runs' remote branches and run
+records, and runs `$S/stack-pr.sh`.
+
+- Exit 0: it printed `<tip-sha> <tracking-pr-url>`. Wait for CI on that tip with
+  `$S/wait-ci.sh <tracking-pr-url> 540 "" <tip-sha>`, called again on exit 3. When it ends with 0
+  (green) or 1 (red), CI has answered: run `$S/stack-red.sh`. Its exit 3 (not red): run
+  `$S/stack-land.sh` as vdev's *Landing a slice* says. Its exit 0 (red): go to vdev's *A red
+  stack*. Its exit 2, or `wait-ci.sh`'s exit 2, is told to the human in one line. Stop.
+- Exit 1 or 2: tell the human in one line each, with its stderr. Stop.
+- Exit 3: nothing was joined offline; report nothing. Stop.
+
+The wait comes first because `stack-land.sh` cuts only at a commit CI has tested: run right after
+the push, it would exit 3 and say nothing. And it is run here, not left to the next join, because
+the queue may be empty and no join would come to run it.
