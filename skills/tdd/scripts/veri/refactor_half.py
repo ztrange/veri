@@ -13,7 +13,7 @@ import tunables
 from fused_step import detail, kind
 from ledger import ledger_steps, read_ledger
 from next_pending_refactor import refactor_pending
-from wrong_test_route import later_owner, later_owner_by_id
+from wrong_test_route import IDENTIFIER, later_owner, later_owner_by_id
 
 NAME = "refactor-half"
 USAGE = "usage: refactor-half.sh <n>"
@@ -51,7 +51,7 @@ def run(n):
             raise fused.Stop("1", "wait-leaf.sh develop-refactor exit %d" % code, code)
         at = None
     if at is None:
-        values.update(check(wt, dict(values, n=n, after=open_after(wt, n, step))))
+        values.update(check(wt, dict(values, n=n, step=step, after=open_after(wt, n, step))))
         at = verify(n, wt, settled, step, values)
     if at == "verdict-refactor":
         code = fused.wait(wt, n, NAME, "verdict-refactor", rejected_step=step)
@@ -110,8 +110,8 @@ def check(wt, values):
     owed = []
     for line in got["FLAGS"]:
         if kind(line) == "overfit":
-            case, spec = detail(line, last=True), os.path.join(wt, SPEC % values["n"])
-            owner = case and (later_owner(case, spec, values["after"]) or later_owner_by_id(case, spec, values["after"]))
+            owner = deferred_to(detail(line, last=True), os.path.join(wt, SPEC % values["n"]), values["step"],
+                                values["after"])
             if not owner:
                 raise fused.Stop("3", "FLAGS: " + line, 1)
             owed.append("%s (owed by %s)" % (line, owner))
@@ -126,6 +126,16 @@ def check(wt, values):
         triage = fused.call(fused.script("refactor-triage.sh"), cwd=wt, stdin=read(wt, ".tdd/develop-refactor.out"))[0]
         stopped = {0: "structural-owed", 3: "nothing-structural"}.get(triage, "malformed")
     return {"count": count, "stopped": stopped, "candidates": got["CANDIDATES"], "flags": got["FLAGS"], "owed": owed}
+
+
+def deferred_to(case, spec, step, after):
+    """The later unchecked step of <after> an overfit flag's <case> is owed by, or None when it is triangulated (#4438):
+    an empty case, or one naming an identifier the current <step> carries, is never deferred; a case that is only an
+    identifier token is matched by identifier alone, never by the text route's substring."""
+    if not case or later_owner_by_id(case, spec, [step]):
+        return None
+    by_text = None if IDENTIFIER.fullmatch(case) else later_owner(case, spec, after)
+    return by_text or later_owner_by_id(case, spec, after)
 
 
 def open_after(wt, n, step):

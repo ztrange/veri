@@ -291,6 +291,23 @@ def test_4438_an_identifier_no_later_unchecked_step_carries_still_stops_at_3(tid
     assert (code, out.splitlines()[-1]) == (1, "stopped at 3 " + line)
 
 
+ID_LEDGER = "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] %s\n"
+ID_SPEC = "# spec\n\n## Acceptance criteria\n\n- [ ] %s: one thing works\n- [ ] %s: a stage exiting 1 stops the run\n"
+
+
+@pytest.mark.parametrize("case, later, own, ledger_later", [
+    ("a stage exits non-zero and stops (RPR1)", "RPR10", "RPR0", LATER),
+    ("RPR1", "RPR10", "RPR0", LATER),
+    ("a stage exits non-zero and stops (RPR1)", "RPR2", "RPR1", "two, as RPR1 requires ⟦criterion 2⟧")],
+    ids=["an id a later step carries only as a prefix", "a case that is only an id token",
+         "an id the current step carries, a later step citing it too"])
+def test_4438_an_id_that_names_no_later_step_whole_or_names_the_current_step_still_stops_at_3(
+        tidy, case, later, own, ledger_later):
+    code, out, line = _flagged(tidy, case, ID_LEDGER % (STEP, ledger_later), criteria=ID_SPEC % (own, later))
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at 3 " + line)
+
+
 @pytest.mark.parametrize("budget, count, result, triage, stopped", [
     ("refactor 0/1", "1\n", "RESULT: extract f\n", 0, "budget"),
     ("refactor 0/5", "1\n", "RESULT: nothing left to tidy\n", 0, "nothing-left"),
