@@ -8,6 +8,7 @@ import sys
 import tempfile
 import time
 
+import git
 import tunables
 from full_run_lock import legs_dir
 
@@ -20,15 +21,16 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.d
 
 
 def commit():
-    return subprocess.run(["git", "-C", ROOT, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    """The commit measured at; git.GitFailed (exit 2 before any suite runs) when it cannot be read."""
+    return git.out("rev-parse", "HEAD", cwd=ROOT)
 
 
 def run_suite(workers, record, tests=()):
     """Runs `make test` at <workers> workers, over <tests> when named (else its full selection), the recorder plugin
     appending each failing case to <record>; returns make's exit code and the failing cases, each node id mapped to
     whether it failed by its per-case timeout."""
-    env = dict(os.environ, VERI_PYTEST_WORKERS=str(workers), VERI_CEILING_RECORD=record,
-               PYTEST_PLUGINS=",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "ceiling_record"])))
+    env = tunables.with_values(VERI_PYTEST_WORKERS=str(workers), VERI_CEILING_RECORD=record,
+                               PYTEST_PLUGINS=",".join(filter(None, [tunables.read("PYTEST_PLUGINS"), "ceiling_record"])))
     argv = ["make", "--no-print-directory", "-C", ROOT, "test"] + (["TESTS=" + " ".join(tests)] if tests else [])
     code = subprocess.run(argv, env=env, stdin=subprocess.DEVNULL).returncode
     return code, failures(record)
