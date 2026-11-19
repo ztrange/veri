@@ -182,3 +182,28 @@ def test_after_the_metrics_the_push_then_the_issue_comment_then_the_pr_comment_a
     assert code == 0
     assert tail == ["push-branch.sh", "comment.sh 7 bailed --note-file n.md",
                     "comment.sh 7 bailed --pr --note-file n.md"]
+
+
+def test_one_stdout_line_per_call_names_the_call_and_its_exit_code_a_non_zero_one_included_and_no_output_file_contents(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "preserve-attempt.sh 7 3 red 1 bail": (5, "SNAPSHOT-BODY\n", "SNAPSHOT-ERR\n"),
+         "metrics.sh 7": (3, "METRICS-BODY\n", "METRICS-ERR\n"),
+         "push-branch.sh": (4, "PUSH-BODY\n", "PUSH-ERR\n"),
+         "comment.sh 7 bailed --note-file n.md": (6, "COMMENT-BODY\n", "COMMENT-ERR\n"),
+         "comment.sh 7 bailed --pr --note-file n.md": (6, "COMMENT-BODY\n", "COMMENT-ERR\n")},
+        default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    lines = out.splitlines()
+    expected = {"preserve-attempt.sh": ["5"], "classify-bail.sh": ["0"], "metrics.sh": ["3"],
+                "push-branch.sh": ["4"], "comment.sh": ["6", "6"]}
+    for name, codes in expected.items():
+        named = [line for line in lines if name in line]
+        assert [c in line for c, line in zip(codes, named)] == [True] * len(codes), name
+        assert len(named) == len(codes), name
+    for body in ("SNAPSHOT-BODY", "METRICS-BODY", "PUSH-BODY", "COMMENT-BODY"):
+        assert body not in out
