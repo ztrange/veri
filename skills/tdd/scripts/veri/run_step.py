@@ -10,6 +10,7 @@ import fused
 import fused_step
 import ledger
 import red_half
+import revise as revise_stage
 import run_dir
 from next_pending_refactor import refactor_pending
 
@@ -38,6 +39,7 @@ ROUTED = re.compile(r"stopped at \d+ (WRONG_TEST|SUPERSEDED): ")
 GREEN_REPORT = ".tdd/develop-green.out"
 # The reason a verify-green REJECT leaves, which reroute.sh routes before any revise (PRD 038.9 RVS9).
 VERIFY_GREEN_REASON = ".tdd/verify-green.reason"
+REVISE_GREEN_REPORT = ".tdd/revise-green-%d.out"
 # The scripts a `next=` it prints may name, every other `next=` being an anchor above (S4, RN10): itself, called again
 # on a stage's 3, and seam-settle.sh, which a stage's own record seam names.
 NEXT_SCRIPTS = ("run-step.sh", "seam-settle.sh")
@@ -125,10 +127,9 @@ def main(argv):
                 return action
             continue
         if kind == "revise":
-            code = revise(wt, n, step, stage, hand)
-            if code is not None:
-                return code
-            action = ("stage",)
+            action = revise(wt, n, step, stage, hand)
+            if isinstance(action, int):
+                return action
             continue
         code, out = run_stage(script, n)
         if code == 1 and stage == "green-half" and ROUTED.match((out.splitlines() or [""])[-1]):
@@ -199,16 +200,20 @@ def verdict(wt, phase):
 
 
 def revise(wt, n, step, stage, hand):
-    """revise.sh <n> <phase> for a REJECT of <stage> (PRD 038.9 criterion 9): None on its 0, the stage to be called
-    again; with `revise` handed, the hand seam and 1, never calling it; else the seam's exit, `next=run-step.sh <n>` on its 3 (the seam recorded at <stage>, whose rejected record
-    sends the next call back here), REVISE.md's anchor on any other code."""
+    """revise.sh <n> <phase> for a REJECT of <stage> (PRD 038.9 criterion 9): the next action, the stage called
+    again on its 0, reroute.sh on a revise-green route (PRD 038.10 RRT8); with `revise` handed, the hand seam and 1,
+    never calling it; else the seam's exit, `next=run-step.sh <n>` on its 3 (the seam recorded at <stage>, whose
+    rejected record sends the next call back here), REVISE.md's anchor on any other code."""
     if "revise" in hand:
         record(wt, n, stage, step)
         sys.stdout.write("seam=revise code=1 reason=hand next=%s\n" % REVISE)
         return 1
-    code = run_stage("revise.sh", n, PHASES[stage])[0]
+    code, out = run_stage("revise.sh", n, PHASES[stage])
     if code == 0:
-        return None
+        return ("stage",)
+    if code == 1 and stage == "green-half" and ROUTED.match((out.splitlines() or [""])[-1]):
+        # A revise-green route (PRD 038.9 RVS7) is reroute.sh's, on the report of the attempt that stopped.
+        return ("reroute", REVISE_GREEN_REPORT % revise_stage.spent(wt, step, "green"))
     record(wt, n, stage, step)
     sys.stdout.write("seam=revise code=%d next=%s\n" % (code, NEXT_SCRIPTS[0] + " " + n if code == 3 else REVISE))
     return code

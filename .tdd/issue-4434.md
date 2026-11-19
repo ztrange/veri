@@ -13,7 +13,7 @@
 - [x] it prints one line per call with its exit code and never a leaf's or a suite's output file ⟦criterion 11⟧
 - [x] `run-step.sh` calls `reroute.sh .tdd/develop-green.out` when `green-half` stops on a `WRONG_TEST` or `SUPERSEDED` line, then `green-half` again on its 0 ⟦criterion 8⟧
 - [x] `run-step.sh` calls `reroute.sh .tdd/verify-green.reason` on a verify-green REJECT before `revise.sh`, and `revise.sh <n> green` on its `route=revise phase=green` ⟦criterion 5⟧ ⟦criterion 8⟧
-- [ ] `run-step.sh` calls `reroute.sh .tdd/revise-green-<k>.out` when `revise.sh green` stops on a revise-green route ⟦criterion 8⟧
+- [x] `run-step.sh` calls `reroute.sh .tdd/revise-green-<k>.out` when `revise.sh green` stops on a revise-green route ⟦criterion 8⟧
 - [ ] `run-step.sh` sends a reroute's `route=revise phase=red` to `revise.sh <n> red` through red-half's rejected record, and goes back to `reroute.sh` on its exit 3 ⟦criterion 5⟧ ⟦criterion 8⟧
 - [ ] `run-step.sh --hand reroute` stops there with `seam=reroute code=1 reason=hand next=<the Green anchor>` ⟦criterion 8⟧
 - [ ] the `record-refreshed` `stage` enum gains `reroute` ⟦criterion 9⟧
