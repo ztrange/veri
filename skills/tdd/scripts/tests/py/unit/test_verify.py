@@ -1678,6 +1678,36 @@ TOO_MANY = "build-verify-prompt: too many arguments"
 STEP_VALUE = "verify: --step needs a value"
 
 
+DIFF_NO_BASE = ["--step", DIFF_STEP, *FAST, "diff", "{spec}", "0123abc"]
+
+
+@pytest.mark.parametrize("entry", ["verify", "run_verdict"])
+@pytest.mark.parametrize("argv, named", [
+    pytest.param(DIFF_NO_BASE, "--branch-base", id="missing"),
+    pytest.param(["--branch-base", "", *DIFF_NO_BASE], "--branch-base", id="empty"),
+    *[pytest.param(["--branch-base", value, *DIFF_NO_BASE], "--branch-base", id="not-hex-" + label)
+      for label, value in (("HEAD", "HEAD"), ("short", "abc"), ("uppercase", "0123ABC"))],
+    pytest.param([*DIFF, "4567def"], "<spec-file> <step-base-sha>", id="third-positional"),
+])
+def test_4376_the_diff_verifier_with_branch_base_missing_or_malformed_or_a_third_positional_exits_2_naming_it_before_any_prompt_or_leaf(
+        entry, argv, named, run_cli, tmp_path, monkeypatch, fake_processes):
+    (tmp_path / "spec.md").write_text(SPEC)
+    argv = [word.format(spec=tmp_path / "spec.md") for word in argv]
+    verify = importlib.import_module("veri.verify")
+    launches = answering_leaf(monkeypatch, fake_processes, GREEN)
+
+    def exec_verify(path, words):
+        raise SystemExit(verify.main(list(words[1:])))
+
+    monkeypatch.setattr(os, "execv", exec_verify)
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    code, _, err = run_cli(importlib.import_module("veri." + entry), argv, env={"HOME": str(tmp_path)}, cwd=tmp_path)
+
+    first = err.splitlines()[0] if err else ""
+    assert (code, named in first, launches, sorted((tmp_path / ".tdd").glob("*.prompt"))) == (2, True, [], []), err
+
+
 @pytest.mark.parametrize("entry, argv, leaf_out, expected", [
     pytest.param("run_verdict", REBASE, "VERDICT: PASS\nREASON: both sides kept.",
                  (0, None, ["verify-rebase"], []), id="rebase-pass"),
