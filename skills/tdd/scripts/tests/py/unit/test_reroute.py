@@ -349,3 +349,23 @@ def test_with_green_switched_off_verify_greens_reason_is_never_routed_but_a_gree
     assert (code, out.splitlines()[-1], fake.calls) == (
         1, "stopped at route .tdd/verify-green.reason with green switched off", [])
     assert (routed[0], len(routed[3].all("wrong-test-route.sh"))) == (1, 1)
+
+
+def test_it_prints_one_line_per_call_with_its_exit_code_and_never_a_leafs_or_a_suites_output_4434(reroute):
+    """PRD 038.10 RRT11, PRD 027 D7: inner stdout, the rerouted red's report and the green report stay out."""
+    class Marked(Fake):
+        def __call__(self, name, *args, **kw):
+            code, out, err = super().__call__(name, *args, **kw)
+            if os.path.basename(name) in ("extract-result.sh", "step-cost.sh", "step-budget.sh",
+                                          "wrong-test-route.sh"):
+                return code, out, err
+            return code, "OUT<%d>\n" % len(self.calls) + out, err
+
+    code, out, err, fake = reroute(fake=Marked(ROUTE_RED),
+                                   files={"develop-red-contradicted.out": REROUTED + "MARKER-4434 leaf\n"})
+
+    lines = out.splitlines()
+    assert code == 0, out + err
+    assert not [line for line in lines if "OUT<" in line or "MARKER-4434" in line or "old rule" in line]
+    assert len(lines) == len(fake.calls)
+    assert all(line.rsplit(" exit ", 1)[-1].isdigit() for line in lines)
