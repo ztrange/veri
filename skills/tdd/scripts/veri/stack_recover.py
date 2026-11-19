@@ -12,6 +12,7 @@ import git
 import github
 import merge_common
 import run_dir
+import run_records
 import stack_branch
 import stack_fix
 
@@ -76,7 +77,8 @@ def _pull(pr):
 
 
 def _held(stack, window):
-    """The recovery of <stack> with the merge lock held, never releasing it: an exit code."""
+    """The pushes of <stack>'s offline joins and of <stack>, with the merge lock held, never releasing it: an exit code
+    when they stop short, else (the stack's pushed tip, the joins) once every joined pull request reads merged."""
     fetch = git.network("fetch", "--prune", "origin", cwd=".")
     if fetch.returncode:
         return _refuse("git fetch origin failed (exit %d): %s; nothing pushed" % (
@@ -131,7 +133,18 @@ def _held(stack, window):
             return _refuse("%s did not read merged by the end of the settle window (last read: state %s, merged %s);"
                            " the stack left as pushed, nothing deleted"
                            % (pr, repr(last.get("state"))[:40], repr(last.get("merged"))[:40]))
-    return 3
+    return local, joins
+
+
+def _cleaned(tip, joins):
+    """After the pushes, the merge lock freed: delete each joined run's remote branch, leased on the commit pushed to it,
+    and its records ref, then run stack-pr.sh and print the stack's pushed <tip> and its tracking pull request."""
+    for sha, _, branch in joins:
+        git.network("push", "--force-with-lease=%s:%s" % (branch, sha), "origin", "--delete", branch, cwd=".")
+        git.network("push", "origin", "--delete", run_records.ref(run_dir.branch_issue(branch)), cwd=".")
+    _, said = stack_fix.script("stack-pr.sh", limit=stack_fix.NETWORK)
+    print("%s %s" % (tip, said.strip()))
+    return 0
 
 
 def main(argv):
@@ -160,10 +173,11 @@ def main(argv):
     if code:
         return _refuse("merge-lock.sh take exits %d: the merge lock not taken; nothing fetched or pushed" % code)
     try:
-        return _held(stack, window)
+        held = _held(stack, window)
     finally:
         # Every way out frees the lock, an interrupt among them: merge-lock.sh never takes over a dead holder's lock.
         stack_fix.script("merge-lock.sh", "release", "--pid", pid)
+    return held if isinstance(held, int) else _cleaned(*held)
 
 
 if __name__ == "__main__":
