@@ -50,6 +50,7 @@ import launch_floor
 import leg_tmpdir
 import pid_file
 import tunables
+from ceiling import record_path
 from full_run_lock import legs_dir
 
 
@@ -180,6 +181,24 @@ def worker_count(requested):
         return int(requested)
     if os.environ.get("PYTEST_XDIST_WORKER"):
         return 1
+    return budget() - registered_workers(legs_dir())
+
+
+def budget():
+    """T, the workers every live leg on the machine shares: line 1 of the ceiling record (ceiling.record_path) when it
+    is a whole number of at least 2, else the cores."""
+    try:
+        with open(record_path()) as f:
+            first = f.readline().strip()
+    except (OSError, ValueError):
+        first = ""
+    if first.isascii() and first.isdigit() and int(first) >= 2:
+        return int(first)
+    return cores()
+
+
+def cores():
+    """The physical cores on macOS (the affinity count when sysctl cannot say), the CPU-affinity count elsewhere."""
     affinity = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count() or 1
     if sys.platform == "darwin":
         try:
@@ -188,7 +207,7 @@ def worker_count(requested):
             cores = affinity
     else:
         cores = affinity
-    return cores - registered_workers(legs_dir())
+    return cores
 
 
 def registered_workers(legs):
