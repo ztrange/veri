@@ -146,3 +146,23 @@ def test_a_non_zero_metrics_exit_writes_no_metrics_file_and_makes_no_metrics_com
     assert runs["ok"][0] == 0 and runs["ok"][2] is True
     assert len(runs["ok"][1]) == 1 and runs["ok"][1][0].endswith("-- .tdd/issue-7-metrics.md")
     assert runs["failed"] == (0, [], False)
+
+
+def test_a_non_zero_metrics_exit_makes_no_metrics_commit_and_the_push_and_both_comments_still_run_ending_exit_0_with_the_event_written(
+        run_cli, fake_processes, bail, tmp_path):
+    fake = fake_processes.answers(
+        {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
+         "classify-bail.sh tests-red": (0, "process\n", ""),
+         "metrics.sh 7": (3, "", "boom\n")}, default=(0, "", ""))
+
+    code, out, err = run_cli(bail, ["7", "tests-red", "red", "--note-file", "n.md"], cwd=tmp_path)
+
+    calls = fake.calls
+    assert code == 0
+    assert not [c for c in calls if c.startswith("git commit") and "metrics: what bailing" in c]
+    tail = [c.split()[0] for c in calls
+            if c.startswith(("event.sh", "metrics.sh", "push-branch.sh", "comment.sh"))]
+    assert tail == ["event.sh", "metrics.sh", "push-branch.sh", "comment.sh", "comment.sh"]
+    comments = [c for c in calls if c.startswith("comment.sh")]
+    assert all(c.startswith("comment.sh 7 bailed") for c in comments)
+    assert "--pr" in comments[1].split()
