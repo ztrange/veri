@@ -1098,3 +1098,24 @@ def test_a_changed_shim_lists_the_process_test_file_of_its_name_with_underscores
 
     assert sorted(affected.suite_of("skills/tdd/scripts/foo-bar.sh")) == [
         PY + "test_foo_bar_process.py", PY + "unit/test_foo_bar.py"]
+
+
+NAMING = {
+    PY + "test_imports_it_process.py": 'step = importlib.import_module("veri.foo_bar")\n',
+    PY + "test_runs_its_shim_process.py": 'subprocess.run([str(SCRIPTS / "foo-bar.sh")])\n',
+    PY + "test_runs_its_module_process.py": 'subprocess.run(["python3", "skills/tdd/scripts/veri/foo_bar.py"])\n',
+    PY + "test_names_neither_process.py": 'run("foo_bar")\nimportlib.import_module("veri.foo_bar_baz")\n'
+                                          'subprocess.run([str(SCRIPTS / "foo-bar-baz.sh")])\n',
+    PY + "unit/test_unit_imports_it.py": 'importlib.import_module("veri.foo_bar")\n',
+    PY + "test_imports_it.py": 'importlib.import_module("veri.foo_bar")\n',
+}
+NAMED = [PY + "test_imports_it_process.py", PY + "test_runs_its_module_process.py", PY + "test_runs_its_shim_process.py"]
+
+
+@pytest.mark.parametrize("changed", ["skills/tdd/scripts/veri/foo_bar.py", "skills/tdd/scripts/foo-bar.sh"])
+def test_a_changed_module_or_shim_lists_every_process_test_file_importing_or_running_it_by_name_and_no_other_4425(
+        affected, tmp_path, monkeypatch, changed):
+    monkeypatch.chdir(tmp_path)
+    plant(tmp_path, NAMING)
+
+    assert sorted(set(affected.suite_of(changed))) == NAMED
