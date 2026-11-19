@@ -18,10 +18,10 @@ import stack_fix
 
 USAGE = "usage: stack-recover.sh"
 # The trailer an offline join leaves on the stack commit it made: the run's pull request url and its branch.
-TRAILER = re.compile(r"(https://\S+/pull/\d+) (\S+)")
+TRAILER = re.compile(r"(https://[^/\s]+/[^\s]+/pull/\d+) (\S+)")
 # A push refused because origin's ref is not what the lease expected.
 LEASE = re.compile(r"stale info|\[rejected\]")
-# A pull request url: its repository and its number.
+# A pull request url a TRAILER matched: its repository and its number.
 PULL = re.compile(r"https://[^/]+/(.+)/pull/(\d+)")
 
 
