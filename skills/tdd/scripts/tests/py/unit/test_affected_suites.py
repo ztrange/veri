@@ -1089,3 +1089,12 @@ def test_a_changed_module_lists_its_process_test_file_beside_its_other_test_file
 
     assert sorted(affected.suite_of("skills/tdd/scripts/veri/foo.py")) == [
         PY + "test_foo.py", PY + "test_foo_process.py", PY + "unit/test_foo.py"]
+
+
+def test_a_changed_shim_lists_the_process_test_file_of_its_name_with_underscores_4425(affected, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    plant(tmp_path, {PY + "unit/test_foo_bar.py": "", PY + "test_foo_bar_process.py": "",
+                     PY + "test_foo-bar_process.py": ""})
+
+    assert sorted(affected.suite_of("skills/tdd/scripts/foo-bar.sh")) == [
+        PY + "test_foo_bar_process.py", PY + "unit/test_foo_bar.py"]
