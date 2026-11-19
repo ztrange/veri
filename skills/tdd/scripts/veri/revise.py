@@ -146,7 +146,9 @@ def attempt(n, wt, settled, step, values):
     fused.mark("2", wt, n, step, "revise", "budget=" + budget,
                VERI_PHASE=phase, VERI_ATTEMPT=str(k))
     if phase == "red":
-        fused.checked("3", fused.script("restore-production.sh"), values["test_path"], cwd=wt)
+        rerouted = rerouted_red(wt, n, step)  # a rerouted case's revise keeps every path the reroute edited
+        kept = list(dict.fromkeys((rerouted or {}).get("rerouted", []) + [values["test_path"]]))
+        fused.checked("3", fused.script("restore-production.sh"), *kept, cwd=wt)
     fused.launch("3", wt, leaf, "run-leaf.sh", ".tdd/%s.prompt" % leaf, "--permission-mode", "bypassPermissions",
                  env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/%s.out" % leaf, err=".tdd/%s.err" % leaf,
                  clear=(".tdd/red-prediction.md", ".tdd/red-run-output.txt"))
@@ -298,7 +300,6 @@ def finish(n, wt, step, values, at):
         kept["leaf"] = "revise-diff-%d" % values["k"]  # the leaf that made the step's last commit, for the flip
     elif phase != "refactor" and "rerouted" not in kept:  # a rerouted case's revise keeps the step's own Red case
         kept.update(test_path=values["test_path"], target_test=values["target_test"])
-    kept.pop("rerouted", None)
     kept["revised"] = True
     if at == SKIPPED:
         kept["posted"] = True
