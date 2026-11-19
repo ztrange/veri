@@ -36,6 +36,15 @@ def main(argv):
     env = dict(os.environ, VERI_PHASE=argv[2])
     subprocess.run([os.path.join(here, "event.sh"), "bail", "cause=" + argv[1], "classification=" + classification],
                    env=env, capture_output=True, text=True)
+    metrics = subprocess.run([os.path.join(here, "metrics.sh"), argv[0]], capture_output=True, text=True)
+    if metrics.returncode == 0:
+        path = os.path.join(".tdd", "issue-%s-metrics.md" % argv[0])
+        os.makedirs(".tdd", exist_ok=True)
+        with open(path, "w") as f:
+            f.write(metrics.stdout)
+        subprocess.run(["git", "add", "-f", path], capture_output=True, text=True)
+        subprocess.run(["git", "commit", "-m", "metrics: what bailing on #%s cost (#%s)" % (argv[0], argv[0]), "--", path],
+                       capture_output=True, text=True)
     return 0
 
 
