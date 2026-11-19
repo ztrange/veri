@@ -856,6 +856,8 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `seam-settle.sh`: after a stage done by hand, the record its script would have written.
 - `run-step.sh`: a cycle step's four fused stages in one call, stopping at the first seam.
 - `revise.sh`: REVISE.md's revise loop for one phase a verifier rejected, sliced like a fused half.
+- `diff-step.sh`: a ⟦diff-checked⟧ step's clean path in one sliced call, ending on `step-tick.sh`.
+- `step-tick.sh`: the close of a step no cycle closes, in one call.
 - `branch-gate.sh`: the Draft PR step's branch suite, in one call.
 - `pr-prepare.sh`: the Draft PR step's sub-step 1 up to the structural pass's skip, in one call.
 - `pr-checks.sh`: the Draft PR step's sub-step 1 checks after `pr-prepare.sh`, in one call.
