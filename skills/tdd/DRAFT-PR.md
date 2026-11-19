@@ -1,6 +1,9 @@
 ## 4. Draft PR
 
-On entering this step run `$S/branch-gate.sh <n>` first, again on exit 3; on exit 0 take `branch_suite` from its last lines
+On entering this step run `$S/run-pr.sh <n>` first, again on exit 3; at its `title` seam set the title and call it again; at its `body`
+seam write the body and go on to sub-step 3; on any other stop go on by the point its last line names. Each stage's call line below stays.
+
+At the first stage, run `$S/branch-gate.sh <n>` first, again on exit 3; on exit 0 take `branch_suite=` from its last lines
 (under `local` the branch's full run below is made green and its time recorded, and no `⟦full-suite⟧` line is ticked);
 on any other exit go on by the paragraphs below from the point its last line names.
 
