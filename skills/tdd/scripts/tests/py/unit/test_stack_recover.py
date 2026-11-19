@@ -307,3 +307,13 @@ def test_stack_recover_and_its_shim_name_no_repository_issue_branch_label_or_per
                       if NAMED.search(line)]
 
     assert named == []
+
+
+@pytest.mark.parametrize("trailer", ["https://example.test/pull/11 tdd/11-a", PR11 + " tdd/11-a extra", PR11])
+def test_a_trailer_whose_url_is_no_repositorys_pull_request_or_that_is_not_two_words_exits_1_naming_the_commit_nothing_pushed(
+        monkeypatch, tmp_path, run_cli, stack_recover, trailer):
+    world = joined_world(monkeypatch, tmp_path, trailers=dict(JOINED, **{A: trailer + "\n"}))
+
+    code, out, err = run_cli(stack_recover, [])
+
+    assert (code, out, err.count("\n"), A in err, world.pushed) == (1, "", 1, True, []), err
