@@ -98,3 +98,27 @@ def test_a_case_that_times_out_alone_too_is_exit_2_naming_it_as_hung(make, run_c
     assert [(workers, tests) for workers, tests, _ in make.calls] == [(2, []), (4, []), (1, [SLOW])]
     assert "hung" in err and SLOW in err
     assert "ceiling:" not in out
+
+
+RED = "skills/tdd/scripts/tests/py/test_x.py::test_red"
+
+
+def test_a_case_failing_other_than_by_its_timeout_is_exit_2_naming_it_with_no_re_run(make, run_cli):
+    make.given(lambda workers, tests: [(RED, "E   assert 1 == 2")] if workers == 4 else [])
+
+    code, out, err = run_cli(ceiling, [])
+
+    assert code == 2
+    assert [(workers, tests) for workers, tests, _ in make.calls] == [(2, []), (4, [])]
+    assert RED in err
+    assert "ceiling:" not in out
+
+
+def test_a_timed_out_case_failing_alone_other_than_by_its_timeout_is_exit_2_naming_it(make, run_cli):
+    make.given(lambda workers, tests: [(SLOW, TIMEOUT if not tests else "E   assert 1 == 2")] if workers == 4 or tests else [])
+
+    code, out, err = run_cli(ceiling, [])
+
+    assert code == 2
+    assert SLOW in err and "failed alone" in err
+    assert "ceiling:" not in out
