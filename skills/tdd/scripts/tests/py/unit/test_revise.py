@@ -185,3 +185,19 @@ def test_once_revise_budget_attempts_are_spent_it_stops_with_exit_1_naming_the_b
     assert [c[1] for c in fake.calls if c[0] == "comment.sh"] == [("12", "revise", "green", "1")]
     assert fake.launched() == ["revise-green-1", "verdict-green"]
     assert [c[1] for c in fake.calls if c[0] == "build-develop-prompt.sh"][1:] == []
+
+
+def test_the_attempt_is_read_from_the_open_steps_revise_events_for_the_phase_so_a_resumed_call_goes_on_at_the_next(
+        revise):
+    """PRD 038.9 criterion 2: one earlier `revise` mark of this step's green makes this call attempt 2; marks of
+    another phase, another step or another actor do not count."""
+    def mark(step, phase, actor="conductor"):
+        return json.dumps({"event": "revise", "actor": actor, "step": step, "phase": phase, "attempt": "1",
+                           "budget": "2"}) + "\n"
+    (revise.wt / ".tdd" / "events.jsonl").write_text(
+        mark(STEP, "green") + mark(STEP, "red") + mark("zero ⟦criterion 1⟧", "green") + mark(STEP, "green", "leaf"))
+    code, out, err, fake = revise(answers={("wait-leaf.sh", "revise-green-2"): (3, "")})
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on revise-green-2")
+    assert fake.call("comment.sh")[1] == ("12", "revise", "green", "2")
+    assert fake.call("same-reject.sh")[1] == (".tdd/verify-green-1.reason", ".tdd/verify-green.reason")
