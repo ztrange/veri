@@ -80,3 +80,30 @@ def test_4432_the_title_seam_record_holds_the_sha_of_the_ledgers_last_commit(mon
 
     assert code == 1, err
     assert "abc1234deadbeef" in open(fused.settled_file(str(wt), "12", "run-pr")).read()
+
+
+def test_4432_a_seam_record_whose_sha_is_not_the_ledgers_last_commit_is_not_resumed_and_the_call_starts_at_branch_gate(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+
+    def spy(name, *args, **kw):
+        calls.append(os.path.basename(name))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "aaaaaaa\n", ""))
+    run_cli(run_pr, ["12"], cwd=str(tmp_path))
+    del calls[:]
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "bbbbbbb\n", ""))
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert calls == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
+    assert out.splitlines()[-1] == "seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR"
+    assert code == 1, err

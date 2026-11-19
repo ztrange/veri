@@ -29,7 +29,7 @@ def main(argv):
     n = argv[0]
     wt = fused_step.inputs("run-pr.sh", n)[1]
     record = fused.settled_file(wt, n, "run-pr")
-    if os.path.exists(record):
+    if os.path.exists(record) and "sha=%s\n" % ledger_sha(wt, n) in open(record).read():
         for stage in ("pr-ready-wait.sh", "pr-finish.sh"):
             _, out, _ = fused.call(fused.script(stage), n)
         sys.stdout.write("".join(out.splitlines(True)[-2:]))
