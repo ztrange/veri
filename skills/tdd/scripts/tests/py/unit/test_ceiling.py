@@ -2,6 +2,7 @@
 
 Every case fakes `make test` at the process boundary: the fake reads the workers and the selection off the command and
 its environment, and reports each failing case through the recorder plugin, as the real leg's controller would."""
+import re
 import subprocess
 import types
 
@@ -226,3 +227,28 @@ def test_a_step_waits_with_one_stderr_line_naming_the_other_live_legs_until_none
     assert seen == [[str(ceiling.os.getpid())]]
     waits = [line for line in err.splitlines() if "waiting" in line]
     assert len(waits) == 1 and str(ceiling.os.getppid()) in waits[0] and "3 workers" in waits[0]
+
+
+def test_exit_0_replaces_the_record_whole_through_a_temporary_file_with_the_ceiling_first(make, run_cli,
+                                                                                          tmp_path, monkeypatch):
+    record = tmp_path / "ceiling-record"
+    record.write_text("8\nan earlier record\nwith more lines\nthan\nthe new\none\nwill\nhave\n")
+    ticks = iter(range(0, 10000, 100))
+    monkeypatch.setattr(ceiling, "clock", lambda: next(ticks))
+    monkeypatch.setattr(ceiling.os, "getloadavg", lambda: (1.5, 2.25, 3.0))
+    replaced = []
+    real_replace = ceiling.os.replace
+    monkeypatch.setattr(ceiling.os, "replace", lambda src, dst: replaced.append((src, dst)) or real_replace(src, dst))
+    make.given(lambda workers, tests: [(SLOW, TIMEOUT)] if workers == 6 and not tests else [])
+
+    code, out, err = run_cli(ceiling, [])
+
+    assert code == 0, err
+    assert "ceiling: 4 workers" in out
+    lines = record.read_text().splitlines()
+    assert lines[0] == "4"
+    assert re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d.*", lines[1])
+    assert lines[2:] == ["0123456789abcdef0123456789abcdef01234567", "1.50 2.25 3.00", "2 100 0", "4 100 0", "6 100 1"]
+    assert [dst for _, dst in replaced] == [str(record)]
+    assert ceiling.os.path.dirname(replaced[0][0]) == str(tmp_path)
+    assert sorted(path.name for path in tmp_path.iterdir() if "ceiling" in path.name) == ["ceiling-record"]
