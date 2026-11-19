@@ -142,7 +142,10 @@ def _cleaned(tip, joins):
     for sha, _, branch in joins:
         git.network("push", "--force-with-lease=%s:%s" % (branch, sha), "origin", "--delete", branch, cwd=".")
         git.network("push", "origin", "--delete", run_records.ref(run_dir.branch_issue(branch)), cwd=".")
-    _, said = stack_fix.script("stack-pr.sh", limit=stack_fix.NETWORK)
+    code, said = stack_fix.script("stack-pr.sh", limit=stack_fix.NETWORK)
+    if code:
+        return _refuse("stack-pr.sh exits %d: the stack and the joined branches are pushed and cleaned up, but no tracking"
+                       " pull request url is known, so CI on the tip %s cannot be waited for" % (code, tip))
     print("%s %s" % (tip, said.strip()))
     return 0
 

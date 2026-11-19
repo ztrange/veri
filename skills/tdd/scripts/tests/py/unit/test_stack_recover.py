@@ -260,3 +260,15 @@ def test_once_every_joined_pull_request_reads_merged_frees_the_lock_deletes_each
     assert (code, out, tail) == (
         0, "%s %s\n" % (TIP, URL), [release] + deletes(11, "tdd/11-a", A) + deletes(12, "tdd/12-b", C) + [
             ("stack-pr.sh",)]), err
+
+
+@pytest.mark.parametrize("exit", [2, 3])
+def test_stack_pr_sh_exiting_2_or_3_exits_2_naming_it_printing_nothing_the_pushes_and_deletes_kept(
+        monkeypatch, tmp_path, run_cli, stack_recover, exit):
+    world = joined_world(monkeypatch, tmp_path, answers={"stack-pr.sh": (exit, "")})
+
+    code, out, err = run_cli(stack_recover, [])
+
+    removed = [("git",) + args for args in world.pushed if "--delete" in args]
+    assert (code, out, err.count("\n"), "stack-pr.sh exits %d" % exit in err, removed) == (
+        2, "", 1, True, deletes(11, "tdd/11-a", A) + deletes(12, "tdd/12-b", C)), err
