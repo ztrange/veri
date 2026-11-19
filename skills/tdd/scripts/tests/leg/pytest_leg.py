@@ -6,8 +6,10 @@ if __name__ == "__main__":
     # before pycache_prefix.py runs (it compiles sys.path[0]'s modules) and before any veri import (PRD 025.16).
     __import__("sys").path[0] = VERI
     __import__("runpy").run_path(VERI + "/pycache_prefix.py")
-# Usage:   pytest_leg.py [--subset] [pytest-args...]
+# Usage:   pytest_leg.py [--subset] [--cap=<n>] [pytest-args...]
 #          --subset: the caller named the suites to run (`make test TESTS=…`), so no full-run lock is taken
+#          --cap=<n>: with VERI_PYTEST_WORKERS unset, take at most <n> of the free cores (`make unit` passes 4); the leg
+#            still registers what it takes and waits while no core is free
 #          Cases run in two pytest passes, non-`serial` then `serial`; when both run, the output ends with one line
 #          `<named> named, <run> run, <passed> passed, <failed> failed across both passes`.
 # Exit:    0 pytest passed, 1 any other pytest status, or a --subset run handed -m left a named target (file, directory
@@ -15,7 +17,7 @@ if __name__ == "__main__":
 #            `<n> unselected: named cases that neither pass ran (<targets>)`; cases the run's own -m/-k deselects from a
 #            target that ran never count
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
-#            or VERI_PYTEST_WORKERS or VERI_PYTEST_IDLE is not a whole number of at least 1, or any other exception escaped the leg (registering
+#            or VERI_PYTEST_WORKERS, VERI_PYTEST_IDLE or --cap is not a whole number of at least 1, or any other exception escaped the leg (registering
 #            it, taking the full-run lock, checking or recording the bytecode cache), one stderr line naming it in
 #            entry.refusal's form (#3985); a record that fails after failing suites leaves their 1
 #            or no case started or reported for VERI_PYTEST_IDLE seconds (default 1200): the leg ends the workers it

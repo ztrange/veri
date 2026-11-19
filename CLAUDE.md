@@ -163,16 +163,16 @@ directory, not a symlink, owned by the current user and writable by neither grou
 write unless it has the sticky bit (as `/tmp` does), created with mode `0700` when absent; otherwise it sets no prefix, compiles veri's
 modules from source and says why on stderr (#3965). A `PYTHONPYCACHEPREFIX` the caller exported is honoured by the interpreter for the
 standard library before that check can run, so the check covers veri's own modules and `make`'s guard covers a `make` run. Cases run across pytest-xdist
-workers: `make unit` 4 (each worker pays its own start-up); `make test` the cores other running
-legs leave free (physical cores on macOS, the CPU-affinity count elsewhere) (#2100), and a `make test` leg that finds none free waits for one
-instead of starting with 1 (PRD 036.1): it says so once on stderr, naming the cores in use and the pids holding them, writes the same wait
+workers: `make unit` min(4, the cores other running legs leave free) (each worker pays its own start-up; it hands the leg
+`--cap=4`); `make test` the cores other running legs leave free (physical cores on macOS, the CPU-affinity count elsewhere) (#2100),
+and a leg of either that finds none free waits for one instead of starting with 1 (PRD 036.1, 036.3): it says so once on stderr, naming the cores in use and the pids holding them, writes the same wait
 marker a full-run lock waiter writes (below), so a supervised leaf's hard timeout and silence window are frozen while it waits (a marker it
 cannot write is one stderr line and the wait goes on unmarked; one already gone when the wait ends is no error; TERM or HUP mid-wait removes it), and records
 the wait as a `core-wait` event with its seconds; a full run takes the lock before it waits for cores. Each leg registers its pid, count and
 start time under `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and an entry holds a share only while its pid runs under that start time: a dead
 or reused pid, an entry with no start time (an older leg's), a malformed one and one whose start time ps cannot read hold none, and only one whose pid is gone or
 proven reused is removed.
-`VERI_PYTEST_WORKERS=<n>` overrides both, used as given, never waiting; `1` runs serially (#2053). Three refusals, exit 2 before any
+`VERI_PYTEST_WORKERS=<n>` exported by the caller overrides both, used as given, never waiting or registering; `1` runs serially (#2053). Three refusals, exit 2 before any
 suite: pytest or pytest_timeout not importable (stderr names `make install-dev`), or Python
 older than the 3.12 floor. Any other error escaping the leg (registering it, taking the full-run lock, checking or recording
 the bytecode cache) is one stderr line naming it, never a traceback, and exit 2, except that a failing run keeps its exit 1.
