@@ -918,16 +918,24 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   makes no `git fetch`, `git push`, `gh` or `curl` call, reads no pull request, and runs neither `stack-pr.sh` nor
   `stack-red.sh`. With the file absent, or the record absent or naming another branch, the join is as above. It takes
   the merge lock, then works on the **local** `<stack>`: created at `origin/<stack>` as last fetched when it does not
-  exist, used as it is when it does. It rebases the run's branch onto it (`git rebase --onto <stack> <sha in
-  .tdd/issue-<n>-base-sha>` where that file exists, a plain `git rebase <stack>` where it does not), runs the fast
-  tier and `prose-owed.sh` on the rebased tip, then the gate: the command `detect-test-command.sh --tier all` prints,
+  exist, used as it is when it does. It keeps the online join's checks that need no network: a ledger step unticked
+  but its `⟦full-suite⟧` ones, an unresolvable HEAD and a merge commit between `<stack>` and the run's tip refuse
+  before the rebase. It rebases the run's branch onto it (`git rebase --onto <stack> <sha in
+  .tdd/issue-<n>-base-sha>` where that file exists, a plain `git rebase <stack>` where it does not); a rebased tip
+  that is `<stack>`'s own tip, or whose tree is not the merge of the run's tip with `<stack>`, refuses with the
+  branch put back. It runs the fast tier and `prose-owed.sh` on the rebased tip, then the gate: the command `detect-test-command.sh --tier all` prints,
   run on that tip in the run's worktree (when it prints nothing the join is not gated, said in one stderr line).
   Before `<stack>` moves it amends the tip's message with one trailer line `Veri-Joined: <pr-url> <branch>`
   (`git commit --amend --no-edit --no-verify`, the subject unchanged, no other commit touched), then moves the local
-  `<stack>` to the amended tip with `git update-ref`, leased to the sha it read. Its cleanup removes the run's worktree
+  `<stack>` to the amended tip with `git update-ref`, leased to the sha it read, only when the amended tip descends
+  from it. Its cleanup removes the run's worktree
   and local branch and leaves the remote branch and `refs/veri/runs/<n>` as they are, for the recovery. **Exit 0**
-  prints `joined offline, no tag <sha>`, the amended sha; **1** a rebase conflict (the rebase aborted), a red fast
-  tier, a unit owing a grade or a red gate, `<stack>` unmoved and the lock freed; **2** a `<stack>` checked out in any
+  prints `joined offline, no tag <sha>`, the amended sha; **1** an unticked ledger step, a rebase conflict (the rebase
+  aborted), a red fast tier, a unit owing a grade or a red gate, `<stack>` unmoved and the lock freed; **3** a rebased
+  tip that is `<stack>`'s own tip carrying this run's `Veri-Joined: <pr-url> <branch>` trailer (joined before, as
+  on a retry after a failed cleanup), nothing amended and `<stack>` unmoved; **2** a rebased tip that is `<stack>`'s
+  own tip without that trailer, one whose content is not the merge, an amended tip not descending from `<stack>`, an
+  unresolvable HEAD, a merge commit in the run's history, a `<stack>` checked out in any
   worktree (naming it), one `origin/<stack>` is not an ancestor of (naming both shas), one the last fetched
   `refs/remotes/origin/HEAD` names as the default branch, a `detect-test-command.sh --tier all` that exits other than 0
   or 3, a fast tier, `prose-owed.sh` or gate that moved or dirtied the tip, or any git call it needs that fails,

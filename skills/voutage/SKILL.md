@@ -39,7 +39,7 @@ merge needs).
 - **Exit 0, `entered`.** A counting incident; the file now holds the status lines and the failed
   PR. Local mode has begun: tell the human (P4) in one
   line, naming the incident from the line printed after `entered`, e.g.
-  `Local mode: GitHub incident "<name>" (<age> min); merges held`. Then arm the wait.
+  `Local mode: GitHub incident "<name>" (<age> min); merges held` (`merges held, stacked runs joined offline` where a stack is named). Then arm the wait.
 - **Exit 0, `held`.** Local mode was already on; the PR is held again, ahead of the reviewed runs'
   PRs. Nothing is told. Arm the wait.
 - **Exit 1, `unexplained`.** GitHub answered and nothing counts; nothing is written. Tell the
