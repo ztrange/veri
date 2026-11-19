@@ -8,5 +8,5 @@
 - [x] the offline join runs `stack-red.sh` before its rebase: exit 0 refuses (exit 1) naming the file, any exit but 0 and 3 is exit 2 ⟦criterion 4⟧
 - [x] a red gate while a commit of `origin/<stack>..<stack>` carries `Veri-Suite: skipped` writes `.tdd/stack-local-red` (the gated sha, the failed cases); with none it writes nothing ⟦criterion 3⟧
 - [x] `--local-green` outside an outage is exit 2; with no `.tdd/stack-local-red` exit 3; else under the merge lock it runs the all-tier command on `<stack>`'s tip in a worktree it adds and removes: green removes the file (exit 0), red keeps it (exit 1) ⟦criterion 5⟧
-- [ ] the graded prose of vdev, vmerge and SCRIPTS.md says what D152, M45, SC596 and SC599 say, each regraded ⟦criterion 6⟧
-- [ ] the logic lives in `queued_merge.py` and `stack_red.py` behind their shims and names no repository, issue, branch, label or person ⟦criterion 7⟧
+- [x] the graded prose of vdev, vmerge and SCRIPTS.md says what D152, M45, SC596 and SC599 say, each regraded ⟦criterion 6⟧
+- [x] the logic lives in `queued_merge.py` and `stack_red.py` behind their shims and names no repository, issue, branch, label or person ⟦criterion 7⟧
