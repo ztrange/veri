@@ -382,3 +382,16 @@ def test_a_wait_record_naming_another_step_is_dropped_and_the_route_runs_again_4
     code, out, err, fake = reroute(answers={("wrong-test-route.sh", None): (0, "later two\n")})
 
     assert (code, len(fake.all("wrong-test-route.sh")), fake.all("wait-leaf.sh")) == (1, 1, [])
+
+
+def test_a_red_half_record_whose_step_differs_only_by_marks_is_refreshed_with_a_reroute_record_refreshed_event_4434(
+        reroute):
+    """PRD 038.10 RRT9: the `record-refreshed` `stage` enum gains `reroute`, under the strict events the fixture sets."""
+    stale = "one thing works ⟦added⟧ ⟦criterion 3⟧"
+    code, out, err, fake = reroute(answers={("wrong-test-route.sh", None): (0, "later two\n")},
+                                   files={"issue-12-red-half": RED_HALF % stale})
+
+    events = [json.loads(line) for line in (reroute.wt / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert code == 1, out + err
+    assert [(e["stage"], e["key"], e["old"], e["new"]) for e in events if e["event"] == "record-refreshed"] == [
+        ("reroute", "step", stale, STEP)]
