@@ -241,3 +241,22 @@ def test_a_joined_pull_request_not_reading_merged_over_the_settle_window_exits_2
                                ("gh", "repos/owner/repo/pulls/12")]), err
     assert ([args for args in world.pushed if "--delete" in args], world.pushed[-1][-1], world.scripts[-1][:2]) == (
         [], TIP + ":refs/heads/stack", ("merge-lock.sh", "release")), err
+
+
+def deletes(n, branch, sha):
+    """The two deletes a joined run's cleanup pushes: its branch, leased on the commit pushed to it, and its records."""
+    return [("git", "push", "--force-with-lease=%s:%s" % (branch, sha), "origin", "--delete", branch),
+            ("git", "push", "origin", "--delete", "refs/veri/runs/%d" % n)]
+
+
+def test_once_every_joined_pull_request_reads_merged_frees_the_lock_deletes_each_runs_branch_and_records_runs_stack_pr_sh_and_prints_the_tip_and_its_url(
+        monkeypatch, tmp_path, run_cli, stack_recover):
+    world = joined_world(monkeypatch, tmp_path)
+
+    code, out, err = run_cli(stack_recover, [])
+
+    release = ("merge-lock.sh", "release", "--pid", str(os.getpid()))
+    tail = world.log[world.log.index(release):]
+    assert (code, out, tail) == (
+        0, "%s %s\n" % (TIP, URL), [release] + deletes(11, "tdd/11-a", A) + deletes(12, "tdd/12-b", C) + [
+            ("stack-pr.sh",)]), err

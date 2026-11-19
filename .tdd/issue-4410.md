@@ -9,7 +9,7 @@
 - [x] stack-recover.sh pushes each Veri-Joined commit to its branch oldest first under a lease on origin/<branch> as fetched; a refused lease is exit 1 naming the branch, the stack not pushed ⟦criterion 5⟧
 - [x] stack-recover.sh then pushes the stack under a lease on origin/<stack> as fetched, never --force ⟦criterion 6⟧
 - [x] stack-recover.sh re-reads each joined PR over the settle window; one not reading merged is exit 2 naming it, the stack left as pushed ⟦criterion 7⟧
-- [ ] stack-recover.sh deletes each joined run's remote branch and refs/veri/runs/<n>, runs stack-pr.sh and on exit 0 prints <tip-sha> <tracking-pr-url> ⟦criterion 8⟧
+- [x] stack-recover.sh deletes each joined run's remote branch and refs/veri/runs/<n>, runs stack-pr.sh and on exit 0 prints <tip-sha> <tracking-pr-url> ⟦criterion 8⟧
 - [ ] stack-recover.sh exits 2 when stack-pr.sh exits 2 or 3, naming it, the push and cleanup kept
 - [ ] a real-git process case recovers two offline joins end to end against a bare origin
 - [ ] stack-land.sh's slice PR body gains one line per Veri-Suite: skipped commit in its range and one naming .tdd/stack-local-red when it exists ⟦criterion 9⟧
