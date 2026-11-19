@@ -28,20 +28,23 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     n = argv[0]
+    first = argv[argv.index("--from") + 1] + ".sh" if "--from" in argv else None
     wt = fused_step.inputs("run-pr.sh", n)[1]
     record = fused.settled_file(wt, n, "run-pr")
     held = open(record).read() if os.path.exists(record) else ""
-    if "sha=%s\n" % ledger_sha(wt, n) in held and "seam=body\n" in held:
+    if first is None and "sha=%s\n" % ledger_sha(wt, n) in held and "seam=body\n" in held:
         return 0
-    if "sha=%s\n" % ledger_sha(wt, n) in held:
-        for stage in ("pr-ready-wait.sh", "pr-finish.sh"):
+    late = ("pr-ready-wait.sh", "pr-finish.sh")
+    if first in late or (first is None and "sha=%s\n" % ledger_sha(wt, n) in held):
+        for stage in late[late.index(first) if first else 0:]:
             _, out, _ = fused.call(fused.script(stage), n)
         sys.stdout.write("".join(out.splitlines(True)[-2:]))
         with open(record, "w") as f:
             f.write("seam=body\nsha=%s\n" % ledger_sha(wt, n))
         sys.stdout.write(BODY)
         return 1
-    for stage in ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"):
+    early = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
+    for stage in early[early.index(first) if first else 0:]:
         code, out, _ = fused.call(fused.script(stage), argv[0])
         if code not in (0, 1, 2, 3):
             sys.stderr.write("run-pr.sh: %s exited %d\n" % (stage[:-3], code))

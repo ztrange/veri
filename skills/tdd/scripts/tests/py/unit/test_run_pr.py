@@ -238,3 +238,29 @@ def test_4432_a_stage_exiting_outside_0_to_3_stops_the_call_with_exit_2_naming_t
     assert calls == ["branch-gate.sh", "pr-prepare.sh"]
     assert code == 2
     assert "pr-prepare" in err and "7" in err
+
+
+def test_4432_from_a_stage_name_starts_the_call_at_that_stage_for_each_of_the_five_stage_names(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+
+    def spy(name, *args, **kw):
+        calls.append(os.path.basename(name))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
+
+    started = {}
+    for stage in ("branch-gate", "pr-prepare", "pr-checks", "pr-ready-wait", "pr-finish"):
+        del calls[:]
+        run_cli(run_pr, ["12", "--from", stage], cwd=str(tmp_path))
+        started[stage] = calls[:1]
+
+    assert started == {s: [s + ".sh"] for s in started}
