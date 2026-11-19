@@ -2,6 +2,7 @@
 branch and then the stack, so each joined draft pull request reads merged (PRD 033.3)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import re
 import sys
 
 import entry
@@ -11,6 +12,10 @@ import stack_branch
 import stack_fix
 
 USAGE = "usage: stack-recover.sh"
+# The trailer an offline join leaves on the stack commit it made: the run's pull request url and its branch.
+TRAILER = re.compile(r"(https://\S+/pull/\d+) (\S+)")
+# A push refused because origin's ref is not what the lease expected.
+LEASE = re.compile(r"stale info|\[rejected\]")
 
 
 def _refuse(line):
@@ -29,6 +34,28 @@ def _rev(ref):
 def _ancestor(older, newer):
     """Whether commit <older> is <newer> or one of its ancestors."""
     return git.ok("merge-base", "--is-ancestor", older, newer, cwd=".")
+
+
+class _Garbled(Exception):
+    """A commit's Veri-Joined trailer is not `<pull request url> <branch>`; the message names the commit."""
+
+
+def _joins(stack):
+    """The offline joins of origin/<stack>..<stack>, oldest first: (commit, pull request url, branch) for each commit
+    carrying a Veri-Joined trailer; a commit without one is a stack commit of its own and skipped. _Garbled naming the
+    first commit whose trailer is anything else; git.GitFailed when git cannot read the range."""
+    joins = []
+    for sha in git.out("log", "--reverse", "--format=%H", "origin/%s..%s" % (stack, stack), cwd=".").split():
+        said = git.out("show", "-s", "--format=%(trailers:key=Veri-Joined,valueonly,unfold)", sha, cwd=".")
+        lines = [line.strip() for line in said.splitlines() if line.strip()]
+        if not lines:
+            continue
+        found = TRAILER.fullmatch(lines[0]) if len(lines) == 1 else None
+        if not found:
+            raise _Garbled("the commit %s carries a Veri-Joined trailer that is not '<pull request url> <branch>': %r"
+                           % (sha, " | ".join(lines)[:200]))
+        joins.append((sha, found[1], found[2]))
+    return joins
 
 
 def _held(stack):
@@ -50,6 +77,26 @@ def _held(stack):
         print("stack-recover: origin/%s at %s is not an ancestor of the local %s at %s: the stack moved on GitHub, and"
               " rebasing it is the human's call; nothing pushed" % (stack, fetched, stack, local), file=sys.stderr)
         return 1
+    try:
+        joins = _joins(stack)
+    except _Garbled as garbled:
+        print("stack-recover: %s; nothing pushed" % garbled, file=sys.stderr)
+        return 1
+    except git.GitFailed as failed:
+        return _refuse("reading origin/%s..%s failed: %s; nothing pushed" % (stack, stack, " ".join(str(failed).split())))
+    # Each lease is origin's branch as fetched, read before anything is pushed.
+    leases = [_rev("refs/remotes/origin/" + branch) or "" for _, _, branch in joins]
+    for (sha, _, branch), lease in zip(joins, leases):
+        push = git.network("push", "--force-with-lease=%s:%s" % (branch, lease), "origin",
+                           "%s:refs/heads/%s" % (sha, branch), cwd=".")
+        if push.returncode and LEASE.search(push.stderr or ""):
+            print("stack-recover: the leased push of %s to %s was refused: origin's %s is not %s as fetched (%s); the"
+                  " stack not pushed" % (sha, branch, branch, lease or "absent", " ".join(push.stderr.split())),
+                  file=sys.stderr)
+            return 1
+        if push.returncode:
+            return _refuse("the push of %s to %s failed (exit %d): %s; the stack not pushed" % (
+                sha, branch, push.returncode, " ".join((push.stderr or "").split())))
     return 3
 
 
