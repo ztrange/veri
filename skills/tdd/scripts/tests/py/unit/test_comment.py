@@ -2038,3 +2038,25 @@ def test_render_metrics_relays_the_renderers_stderr_line_and_answers_its_code_an
     monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "### 📊 Metrics\n", ""))
     assert comment.render_metrics("7") == (0, "### 📊 Metrics\n")
     assert capsys.readouterr() == ("", "")
+
+
+def test_revise_posts_the_attempt_heading_over_revise_budget_then_the_reason_verbatim_and_a_revise_comment_event_4433(
+        monkeypatch, run_cli, tmp_path):
+    """PRD 038.9 criterion 1: REVISE.md sub-step 2's `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment."""
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-96"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    monkeypatch.setenv("REVISE_BUDGET", "3")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    reason = "VERDICT: REJECT\n  the green edits a frozen test\n\ttab kept\n"
+    (tmp_path / ".tdd" / "verify-green.reason").write_text(reason)
+
+    code, out, err = run_cli(comment, ["7", "revise", "green", "2"], cwd=tmp_path)
+
+    assert (code, [number for number, _ in posted]) == (0, ["7"])
+    assert posted[0][1] == "### ♻️ Revise green — attempt 2/3\n\n" + reason
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "revise", url)]

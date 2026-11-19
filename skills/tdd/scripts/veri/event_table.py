@@ -40,7 +40,7 @@ EVENTS = {
             "|repin-failed|skill-edit-refused|prep-owed|no-seam|surround-owed|unwired|surround-short|tidy-first-owed) classification?:(process|system) suites?:text failed?:text",
     "ci-flake": "head:sha run:whole files:text",
     "ci-rerun": "head:sha run:whole files:text",
-    "comment": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|verify-revised|plan|verify-plan"
+    "comment": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|revise|verify-revised|plan|verify-plan"
                "|resuming|done|bailed|stopped) url:url",
     "conductor-restart": "growth:whole knob:whole",
     "conductor-start": "pid:whole started:text,empty",
