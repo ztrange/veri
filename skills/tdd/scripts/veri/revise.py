@@ -258,8 +258,13 @@ def recorded(n, wt, step, values):
     if values["phase"] != "red":
         return True
     red_test_id = fused_step.red_test_id(values["test_path"], values["target_test"])
+    paths = [values["test_path"]]
+    rerouted = rerouted_red(wt, n, step)
+    if rerouted is not None:  # a rerouted case's revise: the step's own Red case stays the one checked (PRD 038.10)
+        red_test_id = fused_step.red_test_id(rerouted["test_path"], rerouted["target_test"])
+        paths = list(dict.fromkeys(rerouted["rerouted"] + paths))
     code, said, _ = fused.call(fused.script("tests-frozen.sh"), "record", "--step", step, "--red-case", red_test_id,
-                               values["test_path"], cwd=wt)
+                               *paths, cwd=wt)
     if code == 1:
         with open(os.path.join(wt, ".tdd", "verify-red.reason"), "w") as f:
             f.write(said)
@@ -269,6 +274,13 @@ def recorded(n, wt, step, values):
     fused.checked("5", fused.script("red-setup.sh"), "record", n, cwd=wt, ok=(0, 2, 3),
                   stdin=read(wt, ".tdd/revise-red-%d.out" % values["k"]))
     return True
+
+
+def rerouted_red(wt, n, step):
+    """red-half's rejected record when reroute.sh left it for a REJECT of a rerouted case (its `rerouted` test paths,
+    PRD 038.10 RRT5): the step's own test_path and target_test, and those paths; else None."""
+    rejected = fused_step.rejected(wt, n, "red-half", step)
+    return rejected[1] if rejected is not None and "rerouted" in rejected[1] else None
 
 
 def finish(n, wt, step, values, at):
@@ -284,8 +296,9 @@ def finish(n, wt, step, values, at):
     kept = dict(rejected[1] if rejected else {})
     if phase == "diff":
         kept["leaf"] = "revise-diff-%d" % values["k"]  # the leaf that made the step's last commit, for the flip
-    elif phase != "refactor":
+    elif phase != "refactor" and "rerouted" not in kept:  # a rerouted case's revise keeps the step's own Red case
         kept.update(test_path=values["test_path"], target_test=values["target_test"])
+    kept.pop("rerouted", None)
     kept["revised"] = True
     if at == SKIPPED:
         kept["posted"] = True
