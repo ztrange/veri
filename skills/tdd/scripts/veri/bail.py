@@ -37,13 +37,19 @@ def _commit_metrics(here, issue):
         os.makedirs(".tdd", exist_ok=True)
         with open(path, "w") as f:
             f.write(metrics.stdout)
-        git.git("add", "-f", path, capture_output=True, text=True)
-        git.git("commit", "-m", "metrics: what bailing on #%s cost (#%s)" % (issue, issue), "--", path,
-                capture_output=True, text=True)
+        _run("git add", ["git", "add", "-f", path])
+        _run("git commit", ["git", "commit", "-m", "metrics: what bailing on #%s cost (#%s)" % (issue, issue), "--", path])
     return metrics
 
 
 def _write_note(note_file, drift, metrics):
+    try:
+        _append_note(note_file, drift, metrics)
+    except OSError as error:
+        print("note %s failed: %s" % (note_file, error.strerror or error))
+
+
+def _append_note(note_file, drift, metrics):
     with open(note_file, "a") as f:
         f.write("\n" + (drift.stdout if drift.returncode == 0
                         else "Skill drift: unavailable — skill-drift.sh exited %d\n" % drift.returncode))
@@ -57,16 +63,24 @@ def _print_report(phase, classification):
     print("phase: %s\nclassification: %s\nbranch: %s\nworktree: %s" % (phase, classification, branch, tree))
 
 
+def _ledger_text(issue):
+    try:
+        with open(os.path.join(".tdd", "issue-%s.md" % issue)) as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
 def _snapshot_and_record(here, argv, classification):
     issue, cause, phase = argv[0], argv[1], argv[2]
     attempt = argv[6] if len(argv) == 7 else "1"
-    step = subprocess.run([os.path.join(here, "ledger-steps.sh"), "current-or-last-done"],
-                          capture_output=True, text=True).stdout.strip()
+    step = _run("ledger-steps.sh", [os.path.join(here, "ledger-steps.sh"), "current-or-last-done"],
+                input=_ledger_text(issue)).stdout.strip()
     _run("preserve-attempt.sh", [os.path.join(here, "preserve-attempt.sh"), issue, step, phase, attempt, "bail"])
-    git.git("reset", "--hard", "HEAD", capture_output=True, text=True)
+    _run("git reset", ["git", "reset", "--hard", "HEAD"])
     env = tunables.with_values(VERI_PHASE=phase)
-    subprocess.run([os.path.join(here, "event.sh"), "bail", "cause=" + cause, "classification=" + classification],
-                   env=env, capture_output=True, text=True)
+    _run("event.sh", [os.path.join(here, "event.sh"), "bail", "cause=" + cause, "classification=" + classification],
+         env=env)
 
 
 def _publish(here, issue, note_file, metrics):
