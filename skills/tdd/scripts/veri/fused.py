@@ -182,12 +182,16 @@ def launch(where, wt, name, command, *args, env, out, err, clear=()):
 
 def wait(wt, n, owner, name):
     """wait-leaf.sh <name>: raises Waiting on 3, the record kept; else removes <owner>'s wait record and returns the
-    leaf's code."""
+    leaf's code. A verifier's REJECT (`verdict-<phase>` exit 1) moves the record to owner `<owner>-rejected` instead,
+    so revise.sh can hand its values back to the stage (PRD 038.9)."""
     code = call(script("wait-leaf.sh"), name, cwd=wt)[0]
     if code == 3:
         raise Waiting(name)
     with contextlib.suppress(FileNotFoundError):
-        os.remove(wait_record(wt, n, owner))
+        if code == 1 and name.startswith("verdict-"):
+            os.replace(wait_record(wt, n, owner), wait_record(wt, n, owner + "-rejected"))
+        else:
+            os.remove(wait_record(wt, n, owner))
     return code
 
 

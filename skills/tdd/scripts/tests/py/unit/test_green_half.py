@@ -488,3 +488,19 @@ def test_each_record_rewrite_writes_one_record_refreshed_event_naming_stage_key_
     refreshed = [e for e in events if e["event"] == "record-refreshed"]
     assert [(e["stage"], e["key"], e["old"], e["new"], e["issue"]) for e in refreshed] == [
         ("green-half", "step", stale, STEP, "12")]
+
+
+@pytest.mark.parametrize("verdict, kept", [(1, True), (2, False)])
+def test_a_verdict_reject_keeps_the_stage_wait_record_as_its_rejected_record_and_any_other_code_drops_it_4433(
+        green, verdict, kept):
+    """PRD 038.9 criterion 5: a REJECT hands the stage's wait values to revise.sh through `<stage>-rejected`."""
+    _pid(green, "111\nTue Nov 17 07:00:00 2026\n")
+    code, out, err, fake = green(answers={("wait-leaf.sh", "verdict-green"): (verdict, "")})
+
+    rejected = green.wt / ".tdd" / "issue-12-green-half-rejected-wait"
+    assert (code, (green.wt / ".tdd" / "issue-12-green-half-wait").exists(), rejected.exists()) == (verdict, False, kept)
+    if kept:
+        record = json.loads(rejected.read_text())
+        assert (record["conductor"], record["at"], record["values"]) == (
+            {"pid": "111", "started": "Tue Nov 17 07:00:00 2026"}, "verdict-green",
+            {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"})
