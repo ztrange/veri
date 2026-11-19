@@ -36,6 +36,8 @@ PHASES = {"red-half": "red", "green-half": "green", "refactor-half": "refactor",
 # their seam), and the green report reroute.sh is then handed (PRD 038.10 RRT8).
 ROUTED = re.compile(r"stopped at \d+ (WRONG_TEST|SUPERSEDED): ")
 GREEN_REPORT = ".tdd/develop-green.out"
+# The reason a verify-green REJECT leaves, which reroute.sh routes before any revise (PRD 038.9 RVS9).
+VERIFY_GREEN_REASON = ".tdd/verify-green.reason"
 # The scripts a `next=` it prints may name, every other `next=` being an anchor above (S4, RN10): itself, called again
 # on a stage's 3, and seam-settle.sh, which a stage's own record seam names.
 NEXT_SCRIPTS = ("run-step.sh", "seam-settle.sh")
@@ -118,10 +120,9 @@ def main(argv):
                 action = ("stage",)
         (kind, *given), action = action, None
         if kind == "reroute":
-            got = reroute(wt, n, step, hand, *given)
-            if isinstance(got, int):
-                return got
-            action = ("stage",)
+            action = reroute(wt, n, step, hand, *given)
+            if isinstance(action, int):
+                return action
             continue
         if kind == "revise":
             code = revise(wt, n, step, stage, hand)
@@ -136,7 +137,7 @@ def main(argv):
         if code == 1 and stage in PHASES and (verdict(wt, PHASES[stage]) == "1" or stage in KIND_STAGES and
                                               fused_step.rejected(wt, n, stage, step) is not None):
             # diff-step's flip and pin-recheck REJECTs leave its rejected record with the verifier's PASS in place.
-            action = ("revise",)
+            action = ("reroute", VERIFY_GREEN_REASON) if stage == "green-half" else ("revise",)
             continue
         if code != 0:
             said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
@@ -156,14 +157,26 @@ def main(argv):
 
 
 def reroute(wt, n, step, hand, report):
-    """reroute.sh <n> <report> for a Green route (PRD 038.10 RRT8): None on its 0, green-half to be called again; else
-    the seam's exit."""
-    code = run_stage("reroute.sh", n, report)[0]
+    """reroute.sh <n> <report> for a Green route (PRD 038.10 RRT8): the next action, green-half again on its 0 (the
+    answered REJECT's exit file and green-half's rejected record cleared, so the relaunched green is not read as a
+    second REJECT), revise.sh <n> green on its `route=revise phase=green`; else the seam's exit."""
+    code, out = run_stage("reroute.sh", n, report)
+    said = (out.splitlines() or [""])[-1]
     if code == 0:
-        return None
+        answered(wt, n)
+        return ("stage",)
+    if code == 1 and said == "route=revise phase=green":
+        return ("revise",)
     record(wt, n, "green-half", step)
     sys.stdout.write("seam=reroute code=%d next=%s\n" % (code, NEXT_SCRIPTS[0] + " " + n if code == 3 else GREEN))
     return code
+
+
+def answered(wt, n):
+    """A verify-green REJECT a reroute answered: `.tdd/verdict-green.exit` and green-half's rejected record removed."""
+    for path in (os.path.join(wt, ".tdd", "verdict-green.exit"), fused.wait_record(wt, n, "green-half-rejected")):
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(path)
 
 
 def run_stage(script, n, *more):

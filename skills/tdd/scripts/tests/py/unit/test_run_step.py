@@ -270,12 +270,13 @@ REJECTED = '{"conductor": null, "at": "verdict-green", "values": {}, "step": "%s
 
 
 @pytest.mark.parametrize("revised, names, last", [
-    (0, ["red-half.sh", "green-half.sh", "revise.sh", "green-half.sh", "refactor-half.sh", "step-close.sh"],
-     "next=cycle"),
-    (1, ["red-half.sh", "green-half.sh", "revise.sh"], "seam=revise code=1 next=" + REVISE),
-    (2, ["red-half.sh", "green-half.sh", "revise.sh"], "seam=revise code=2 next=" + REVISE)])
+    (0, ["red-half.sh", "green-half.sh", "reroute.sh", "revise.sh", "green-half.sh", "refactor-half.sh",
+         "step-close.sh"], "next=cycle"),
+    (1, ["red-half.sh", "green-half.sh", "reroute.sh", "revise.sh"], "seam=revise code=1 next=" + REVISE),
+    (2, ["red-half.sh", "green-half.sh", "reroute.sh", "revise.sh"], "seam=revise code=2 next=" + REVISE)])
 def test_a_half_stopped_by_a_verdict_reject_calls_revise_then_the_stage_again_on_its_0_4433(step, revised, names, last):
-    """PRD 038.9 criterion 9: `.tdd/verdict-<phase>.exit` holding 1 is a REJECT revise.sh takes."""
+    """PRD 038.9 criterion 9: `.tdd/verdict-<phase>.exit` holding 1 is a REJECT revise.sh takes; on green, after
+    reroute.sh answers `route=revise phase=green` (PRD 038.10 RRT8)."""
     (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
 
     class Rejected(Stages):
@@ -285,10 +286,11 @@ def test_a_half_stopped_by_a_verdict_reject_calls_revise_then_the_stage_again_on
                 return 1, "stopped at 2 wait-leaf.sh verdict-green exit 1\n", ""
             return code, out, err
 
-    code, out, err, stages = step(stages=Rejected({"revise.sh": (revised, "")}))
+    code, out, err, stages = step(stages=Rejected({"revise.sh": (revised, ""),
+                                                   "reroute.sh": (1, "route=revise phase=green\n")}))
 
     assert (code, stages.names(), out.splitlines()[-1]) == (revised, names, last)
-    assert stages.calls[2][1] == ("12", "green")
+    assert stages.calls[3][1] == ("12", "green")
 
 
 def test_a_half_stopping_with_1_without_a_verdict_reject_calls_no_revise_4433(step):
@@ -318,11 +320,12 @@ def test_hand_revise_stops_at_the_reject_never_calling_revise_and_revise_is_a_st
     """PRD 038.9 criterion 10: `--hand revise` leaves the REJECT to REVISE.md's prose; `--from revise` is no start."""
     run_step = importlib.import_module("veri.run_step")
     (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
-    code, out, err, stages = step(answers={"green-half.sh": (1, "stopped at 2 wait-leaf.sh verdict-green exit 1\n")},
+    code, out, err, stages = step(answers={"green-half.sh": (1, "stopped at 2 wait-leaf.sh verdict-green exit 1\n"),
+                                           "reroute.sh": (1, "route=revise phase=green\n")},
                                   argv=("12", "--hand", "revise"))
 
     assert (code, stages.names(), out.splitlines()[-1]) == (
-        1, ["red-half.sh", "green-half.sh"], "seam=revise code=1 reason=hand next=" + REVISE)
+        1, ["red-half.sh", "green-half.sh", "reroute.sh"], "seam=revise code=1 reason=hand next=" + REVISE)
     assert ("revise" in run_step.STAGES, run_step.CALLS) == (True, STAGES)
     assert step(argv=("12", "--from", "revise"))[0] == 2
 
@@ -458,3 +461,54 @@ def test_a_green_half_stop_on_split_or_tidy_first_keeps_its_existing_seam_with_n
 
     assert (code, stages.names(), out.splitlines()[-1]) == (
         1, ["red-half.sh", "green-half.sh"], "seam=green-half code=1 next=" + GREEN)
+
+
+REJECTED_GREEN = ("stopped at 2 wait-leaf.sh verdict-green exit 1\n")
+
+
+def test_a_verify_green_reject_goes_to_reroute_on_its_reason_first_and_on_its_0_green_half_runs_afresh_4434(step):
+    """PRD 038.10 RRT8, PRD 038.9 RVS9 ("on green, 038.10's reroute goes first"): the answered REJECT's exit file
+    and green-half's rejected record are cleared, so the relaunched green is not taken for a second REJECT."""
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+    rejected = step.wt / ".tdd" / "issue-12-green-half-rejected-wait"
+    stages = Sequenced(sequence={"green-half.sh": [(1, REJECTED_GREEN), (0, "green-half settled\n")]})
+
+    class Answered(Sequenced):
+        def __call__(self, name, *args, **kw):
+            if os.path.basename(name) == "green-half.sh" and not self.names().count("green-half.sh"):
+                rejected.write_text(REJECTED)
+            return super().__call__(name, *args, **kw)
+
+    stages.__class__ = Answered
+    code, out, err, stages = step(stages=stages)
+
+    assert (code, out.splitlines()[-1]) == (0, "next=cycle"), err
+    assert stages.names() == ["red-half.sh", "green-half.sh", "reroute.sh", "green-half.sh", "refactor-half.sh",
+                              "step-close.sh"]
+    assert stages.calls[2][1] == ("12", ".tdd/verify-green.reason")
+    assert not (step.wt / ".tdd" / "verdict-green.exit").exists() and not rejected.exists()
+
+
+def test_a_reroutes_route_revise_green_calls_revise_green_then_green_half_again_4434(step):
+    """PRD 038.10 RRT5: `route=revise phase=green` is exit 1, never 3, and the runner calls revise.sh <n> green."""
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+    stages = Sequenced({"reroute.sh": (1, "route=revise phase=green\n"), "revise.sh": (0, "")},
+                       sequence={"green-half.sh": [(1, REJECTED_GREEN), (0, "green-half settled\n")]})
+    code, out, err, stages = step(stages=stages)
+
+    assert (code, out.splitlines()[-1]) == (0, "next=cycle"), err
+    assert stages.names() == ["red-half.sh", "green-half.sh", "reroute.sh", "revise.sh", "green-half.sh",
+                              "refactor-half.sh", "step-close.sh"]
+    assert stages.calls[3][1] == ("12", "green")
+
+
+@pytest.mark.parametrize("code", [1, 2, 3])
+def test_any_other_reroute_exit_is_its_seam_recorded_at_green_half_4434(step, code):
+    """PRD 038.10 RRT4, RRT6: a stop naming an answer (1), no answer (2), a wait (3, call again)."""
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+    code_, out, err, stages = step(answers={"green-half.sh": (1, REJECTED_GREEN),
+                                            "reroute.sh": (code, "stopped at route later two\n")})
+
+    assert (code_, stages.names()) == (code, ["red-half.sh", "green-half.sh", "reroute.sh"])
+    assert out.splitlines()[-1] == "seam=reroute code=%d next=%s" % (code, "run-step.sh 12" if code == 3 else GREEN)
+    assert "stage=green-half" in (step.wt / ".tdd" / "issue-12-step").read_text().splitlines()
