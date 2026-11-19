@@ -1,0 +1,3 @@
+### a non-zero `metrics.sh` makes no metrics commit, and every later call (push, both comments) still runs, ending exit 0 with the `bail` event written; an in-process case with call spies ⟦criterion 2⟧
+- Long Function: Extract Function — `main` in bail.py has a 32-line body, so extract the metrics-commit block (lines 40-47) into its own function. It is not duplication removal, so it is reported and not applied.
+- Duplicated Code: Extract Function — every call repeats `subprocess.run([...], capture_output=True, text=True)`. No 3 consecutive lines repeat, so the Duplicated Code threshold is not met. A `_run(*cmd, env=None)` helper would still tidy it.
