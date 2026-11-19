@@ -1,5 +1,6 @@
 """test-ceiling.sh's ramp, run in-process: the highest test-worker count `make test` runs at with no case timeout."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
 import os
 import subprocess
 import sys
@@ -13,10 +14,23 @@ def commit():
     return subprocess.run(["git", "-C", ROOT, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
 
 
-def run_suite(workers, record):
-    env = dict(os.environ, VERI_PYTEST_WORKERS=str(workers), VERI_CEILING_RECORD=record)
-    return subprocess.run(["make", "--no-print-directory", "-C", ROOT, "test"], env=env,
-                          stdin=subprocess.DEVNULL).returncode
+def run_suite(workers, record, tests=()):
+    """Runs `make test` at <workers> workers, over <tests> when named (else its full selection), the recorder plugin
+    appending each failing case to <record>; returns make's exit code and the failing cases' node ids."""
+    env = dict(os.environ, VERI_PYTEST_WORKERS=str(workers), VERI_CEILING_RECORD=record,
+               PYTEST_PLUGINS=",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "ceiling_record"])))
+    argv = ["make", "--no-print-directory", "-C", ROOT, "test"] + (["TESTS=" + " ".join(tests)] if tests else [])
+    code = subprocess.run(argv, env=env, stdin=subprocess.DEVNULL).returncode
+    return code, failures(record)
+
+
+def failures(record):
+    try:
+        with open(record) as f:
+            lines = f.read().splitlines()
+    except FileNotFoundError:
+        return []
+    return list(dict.fromkeys(json.loads(line)["nodeid"] for line in lines if line))
 
 
 def bound(argv):
@@ -36,7 +50,11 @@ def main(argv):
     ceiling = None
     scratch = tempfile.mkdtemp(prefix="veri-ceiling-")
     for workers in range(2, top + 1, 2):
-        run_suite(workers, os.path.join(scratch, "record-%d" % workers))
+        _, timed_out = run_suite(workers, os.path.join(scratch, "record-%d" % workers))
+        for nodeid in timed_out:
+            run_suite(1, os.path.join(scratch, "alone-%d" % workers), [nodeid])
+        if timed_out:
+            break
         ceiling = workers
     sys.stdout.write("ceiling: %d workers\n" % ceiling)
     return 0

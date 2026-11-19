@@ -74,3 +74,16 @@ def test_a_bad_argument_is_exit_2_with_the_usage_line_and_runs_no_suite(make, ru
     assert code == 2
     assert "usage: test-ceiling.sh [--max <n>]" in err
     assert make.calls == []
+
+
+SLOW = "skills/tdd/scripts/tests/py/test_x.py::test_slow"
+
+
+def test_a_case_that_times_out_under_load_and_passes_alone_stops_the_ramp_at_the_last_step_with_none(make, run_cli):
+    make.given(lambda workers, tests: [(SLOW, TIMEOUT)] if workers == 4 and not tests else [])
+
+    code, out, err = run_cli(ceiling, [])
+
+    assert code == 0, err
+    assert [(workers, tests) for workers, tests, _ in make.calls] == [(2, []), (4, []), (1, [SLOW])]
+    assert "ceiling: 2 workers" in out
