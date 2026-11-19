@@ -1085,8 +1085,11 @@ def _green_tip(clone, stack, red, pid):
         _say("git worktree add --detach %s %s failed (exit %d): %s; %s kept" % (
             worktree, tip, added.returncode, " ".join(added.stderr.split())[:200], red))
         return 2
-    code = _green_run(worktree, stack, tip, red)
-    removed = _git(clone, "worktree", "remove", "--force", worktree)
+    try:
+        code = _green_run(worktree, stack, tip, red)
+    finally:
+        # An error or Ctrl-C mid-suite still removes the worktree this run added, and only it.
+        removed = _git(clone, "worktree", "remove", "--force", worktree)
     if removed.returncode:
         _say("git worktree remove --force %s failed (exit %d): %s" % (
             worktree, removed.returncode, " ".join(removed.stderr.split())[:200]))
