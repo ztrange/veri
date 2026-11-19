@@ -47,7 +47,7 @@ def run(n):
             raise fused.Stop("verify", "wait-leaf.sh verdict-diff exit %d" % code, code)
     if "⟦test-quality⟧" in step:
         flip(n, wt, step, values)
-    return finish(n, wt, values)
+    return finish(n, wt, step, values)
 
 
 def flip(n, wt, step, values):
@@ -141,11 +141,15 @@ def launch_verdict(where, n, wt, settled, step, values):
                  err=".tdd/verify-diff.err")
 
 
-def finish(n, wt, values):
+def finish(n, wt, step, values):
     """The PASS branch: pin-recheck.sh over the step's range (0 or 3 leave the receipt the tick needs), then
-    step-tick.sh, whose lines end this call's."""
-    fused.checked("pin", fused.script("pin-recheck.sh"), "--branch-base", fused_step.branch_base("pin", wt, n),
-                  values["step_base"], cwd=wt, ok=(0, 3))
+    step-tick.sh, whose lines end this call's. Its 1, a pin this step disarmed, is a verify-diff REJECT (DST7)."""
+    code, said, _ = fused.call(fused.script("pin-recheck.sh"), "--branch-base", fused_step.branch_base("pin", wt, n),
+                               values["step_base"], cwd=wt)
+    if code == 1:
+        reject(n, wt, step, values, "pin", "REJECT: pin-recheck.sh found a pin this step disarmed\n" + said)
+    if code not in (0, 3):
+        raise fused.Stop("pin", "pin-recheck.sh exit %d" % code, code)
     fused.checked("tick", fused.script("step-tick.sh"), n, cwd=wt)
     return 0
 
