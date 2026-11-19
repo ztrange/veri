@@ -3,3 +3,6 @@
 - Duplicated Code: Extract Function — every call repeats `subprocess.run([...], capture_output=True, text=True)`. No 3 consecutive lines repeat, so the Duplicated Code threshold is not met. A `_run(*cmd, env=None)` helper would still tidy it.
 ### after the metrics, bail.sh makes, in order, `push-branch.sh`, `comment.sh <n> bailed --note-file <note>` and `comment.sh <n> bailed --pr --note-file <note>`, and exits 0; an in-process case with call spies checks the order ⟦criterion 1⟧
 - Long Function: Extract Function — split `main` in `skills/tdd/scripts/veri/bail.py` (32 body lines) into helpers, e.g. one for the metrics render-and-commit and one for the push and comments
+### the note bail.sh hands both `comment.sh bailed` calls carries the conductor's `--note-file` text and the metrics block `metrics.sh` rendered; an in-process case with call spies ⟦criterion 1⟧
+- Long Function: Extract Function — `main` in `bail.py` has a 31-line body, so pull the metrics render-and-commit block and the two `comment.sh` calls out into helpers
+- Magic Literal: Replace Magic Literal — `"bailed"` and `"--note-file"` are each written out in 3 or more places in `bail.py`, counting the comment calls and the argument check
