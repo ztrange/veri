@@ -187,7 +187,7 @@ def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available
     assert unset_serial == empty_serial == single_serial == ["-q", "some/dir"]
 
 
-def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_only_the_cores_they_leave_free_and_at_least_1(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_only_the_cores_they_leave_free_and_at_least_2_4419(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     import os
 
     calls = []
@@ -202,7 +202,7 @@ def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_o
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
     monkeypatch.setattr(sys, "platform", "linux")
     live = [os.getpid(), os.getppid()]
-    for counts in ((15,), (8, 7)):
+    for counts in ((14,), (8, 6)):
         legs = tmp_path / ("legs-%d" % len(counts))
         legs.mkdir()
         for pid, count in zip(live, counts):
@@ -210,10 +210,10 @@ def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_o
         env = leg_env(VERI_PYTEST_LEGS=str(legs))
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     beside_one, _, beside_two, _ = [without_selection(c) for c in calls]
-    assert beside_one == beside_two == ["-q", "some/dir"]
+    assert beside_one == beside_two == ["-n", "2", "--dist", "worksteal", "-q", "some/dir"]
 
 
-def test_2100_with_neither_worker_count_nor_legs_directory_set_legs_under_two_different_tmpdirs_share_one_registry_under_the_user_home_so_the_second_takes_1_beside_the_first_s_16(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_2100_with_neither_worker_count_nor_legs_directory_set_legs_under_two_different_tmpdirs_share_one_registry_under_the_user_home_so_the_second_takes_2_beside_the_first_s_16(pytest_leg, run_cli, monkeypatch, tmp_path):
     import os
     import tempfile
 
@@ -225,7 +225,7 @@ def test_2100_with_neither_worker_count_nor_legs_directory_set_legs_under_two_di
         calls.append([a for a in args if not a.startswith("--basetemp=")])
         if not nested:
             nested.append(True)
-            cores[0] = 17
+            cores[0] = 18
             monkeypatch.setenv("TMPDIR", str(tmp_path / "tmp-b"))
             monkeypatch.setattr(tempfile, "tempdir", None)
             assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
@@ -244,7 +244,7 @@ def test_2100_with_neither_worker_count_nor_legs_directory_set_legs_under_two_di
     monkeypatch.delenv("VERI_PYTEST_LEGS")
     env = leg_env()
     assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
-    assert without_selection(calls[1]) == ["-q", "some/dir"]
+    assert without_selection(calls[1])[:2] == ["-n", "2"]
 
 
 def test_2100_a_registry_entry_whose_pid_no_longer_answers_kill_0_holds_no_share_so_a_leg_beside_only_a_stale_16_worker_entry_takes_all_16_cores(pytest_leg, run_cli, monkeypatch, tmp_path):
@@ -278,7 +278,7 @@ def test_2100_a_registry_entry_whose_pid_no_longer_answers_kill_0_holds_no_share
     assert calls[0][:2] == ["-n", "16"] or "-n16" in calls[0]
 
 
-def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_still_holds_its_share_so_a_leg_beside_only_such_a_16_worker_entry_takes_1(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_still_holds_its_share_so_a_leg_beside_only_such_a_16_worker_entry_on_18_cores_takes_2(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     import os
 
     calls = []
@@ -297,9 +297,9 @@ def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_stil
 
     monkeypatch.setattr(pytest, "main", spy)
     monkeypatch.setattr(os, "kill", kill)
-    monkeypatch.setattr(os, "cpu_count", lambda: 17)
-    monkeypatch.setattr(os, "process_cpu_count", lambda: 17, raising=False)
-    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(17)), raising=False)
+    monkeypatch.setattr(os, "cpu_count", lambda: 18)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 18, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(18)), raising=False)
     monkeypatch.setattr(sys, "platform", "linux")
     legs = tmp_path / "legs"
     legs.mkdir()
@@ -307,7 +307,7 @@ def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_stil
     started({foreign: "Tue Nov 17 06:00:00 2026"})
     env = leg_env(VERI_PYTEST_LEGS=str(legs))
     assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
-    assert "-n" not in calls[0] and not any(a.startswith("-n") for a in calls[0])
+    assert calls[0][:2] == ["-n", "2"]
 
 
 def test_2100_a_set_worker_count_is_used_as_given_even_beside_a_live_16_worker_entry_on_16_cores(pytest_leg, run_cli, monkeypatch, tmp_path, started):
@@ -359,7 +359,7 @@ def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_regis
         total = real_read(directory)
         reads.append(total)
         if len(reads) == 1:
-            cores[0] = 17
+            cores[0] = 18
             second.start()
             second.join(0.3)
         return total
@@ -388,7 +388,7 @@ def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_regis
     finally:
         if second.ident is not None:
             second.join(10)
-    assert (handed.get("MainThread"), handed.get("second")) == (16, 1)
+    assert (handed.get("MainThread"), handed.get("second")) == (16, 2)
 
 
 def test_2100_with_no_worker_count_a_leg_registers_its_worker_count_in_the_legs_registry_while_pytest_runs_and_removes_it_after_whatever_the_status(pytest_leg, run_cli, monkeypatch, tmp_path, started):
@@ -1242,7 +1242,7 @@ def test_4310_a_leg_that_finds_a_core_free_starts_without_writing_a_core_wait_ev
     (tree / ".git").mkdir(parents=True)
     legs = tmp_path / "legs"
     legs.mkdir()
-    registered(legs / str(os.getppid()), 15)
+    registered(legs / str(os.getppid()), 14)
     monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)), cwd=str(tree))[0]
     journal = tree / ".tdd" / "events.jsonl"
@@ -1701,3 +1701,27 @@ def test_4419_with_no_record_on_macos_the_budget_is_the_physical_cores_not_the_l
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env())[0]
 
     assert (code, workers_handed(calls)) == (0, "8")
+
+
+@pytest.mark.parametrize("cap", [[], ["--cap=4"], ["--subset"]], ids=["full", "unit", "subset"])
+def test_4419_a_leg_finding_1_worker_of_t_free_waits_with_the_marker_and_one_line_and_starts_only_once_2_are_free(pytest_leg, run_cli, monkeypatch, tmp_path, started, cap):
+    import supervise
+    on_cores(monkeypatch, 16)
+    measured(8)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    blocker = legs / str(os.getppid())
+    registered(blocker, 7)
+    marker = tmp_path / "marker"
+    polls, seen = [], []
+
+    def the_holder_drops_to_6_on_the_second_poll(seconds):
+        polls.append(supervise.lock_waiting(str(marker)))
+        if len(polls) == 2:
+            registered(blocker, 6)
+
+    monkeypatch.setattr(pytest, "main", lambda args: seen.append((args, blocker.read_text().split("\n")[0])) or pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", the_holder_drops_to_6_on_the_second_poll)
+    code, _, err = run_cli(pytest_leg, cap + ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), PYTEST_LEG_LOCK_WAIT_MARKER=str(marker)))
+
+    assert (code, polls, workers_handed([seen[0][0]]), seen[0][1], len(err.splitlines()), marker.exists()) == (0, [True, True], "2", "6", 1, False)

@@ -183,6 +183,7 @@ def test_with_no_worker_count_set_make_unit_runs_min_4_and_the_available_cores_a
     env = {k: v for k, v in os.environ.items() if not k.startswith(("VERI_", "PYTEST_XDIST_"))}
     env["PLANTED_RAN_LOG"] = str(log)
     env["VERI_PYTEST_LEGS"] = str(tmp_path / "legs")
+    env["VERI_TEST_CEILING_FILE"] = os.environ["VERI_TEST_CEILING_FILE"]  # the budget the case read, not the machine's record
     for target, workers in (("unit", min(4, cores)), ("test", cores)):
         log.write_text("")
         ran = subprocess.run(["make", "-C", str(tree), target], env=env, stdin=subprocess.DEVNULL,
@@ -473,8 +474,8 @@ def test_3966_a_closed_prefix_whose_parent_is_writable_by_all_with_the_sticky_bi
 
 
 @pytest.mark.timeout(120)
-@pytest.mark.process("make unit started for real twice over a planted tree whose small case notes its worker count, the registry and the full-run lock, beside a live leg holding all cores but one")
-def test_4311_make_unit_with_no_worker_count_takes_the_one_free_core_and_registers_it_without_the_full_run_lock_and_an_exported_count_is_used_as_given_unregistered(tmp_path, monkeypatch):
+@pytest.mark.process("make unit started for real twice over a planted tree whose small case notes its worker count, the registry and the full-run lock, beside a live leg holding all workers but two")
+def test_4311_make_unit_with_no_worker_count_takes_the_two_free_workers_and_registers_them_without_the_full_run_lock_and_an_exported_count_is_used_as_given_unregistered(tmp_path, monkeypatch):
     import pytest_leg
     tree, log = planted_tree(tmp_path, small=BUDGET_CASE), tmp_path / "ran.log"
     legs = tmp_path / "legs"
@@ -482,9 +483,10 @@ def test_4311_make_unit_with_no_worker_count_takes_the_one_free_core_and_registe
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
     monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
     cores = pytest_leg.worker_count(None)
-    (legs / str(os.getpid())).write_text(pytest_leg.registration(max(cores - 1, 0)))
+    (legs / str(os.getpid())).write_text(pytest_leg.registration(max(cores - 2, 0)))
     env = {k: v for k, v in os.environ.items() if not k.startswith(("VERI_", "PYTEST_XDIST_", "PYTEST_LEG_"))}
-    env.update(PLANTED_RAN_LOG=str(log), PLANTED_HOLDER=str(os.getpid()), VERI_PYTEST_LEGS=str(legs))
+    env.update(PLANTED_RAN_LOG=str(log), PLANTED_HOLDER=str(os.getpid()), VERI_PYTEST_LEGS=str(legs),
+               VERI_TEST_CEILING_FILE=os.environ["VERI_TEST_CEILING_FILE"])
     noted = []
     for exported in ({}, {"VERI_PYTEST_WORKERS": "3"}):
         log.write_text("")
@@ -493,6 +495,6 @@ def test_4311_make_unit_with_no_worker_count_takes_the_one_free_core_and_registe
         noted.append((ran.returncode, log.read_text().splitlines(), ran.stdout + ran.stderr))
 
     assert [(code, lines) for code, lines, _ in noted] == [
-        (0, ["workers 1 registered ['1'] lock held False"]),
+        (0, ["workers 2 registered ['2'] lock held False"]),
         (0, ["workers 3 registered [] lock held False"]),
     ], [output for _, _, output in noted]
