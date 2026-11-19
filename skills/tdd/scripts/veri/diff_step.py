@@ -45,7 +45,58 @@ def run(n):
         code = fused.wait(wt, n, NAME, "verdict-diff", rejected_step=step)
         if code != 0:
             raise fused.Stop("verify", "wait-leaf.sh verdict-diff exit %d" % code, code)
+    if "⟦test-quality⟧" in step:
+        flip(n, wt, step, values)
     return finish(n, wt, values)
+
+
+def flip(n, wt, step, values):
+    """The flip of a ⟦test-quality⟧ step (DST3): the last `FLIP: <test file> '<old>→<new>'` line of the report of the
+    leaf that made the step's last commit, probed with the `veri: one test file:` command on that file, else the
+    all-tier one. The probe's 0 goes on; its 1, or no readable FLIP: line, is a verify-diff REJECT; its 2, or a
+    detect-test-command.sh 2, no answer. The FLIP: line is read here, never handed to a verifier (DST12)."""
+    leaf = values["leaf"]
+    said = fused.report("flip", wt, ".tdd/%s.out" % leaf, "FLIP")["FLIP"]
+    parsed = parse_flip(said or "")
+    if parsed is None:
+        reject(n, wt, step, values, "flip", "REJECT: the report of %s carries no FLIP: line\n" % leaf)
+    path, old, new = parsed
+    code, alone, _ = fused.call(fused.script("detect-test-command.sh"), "--tier", "one test file", cwd=wt)
+    if code == 0:
+        command = ("sh", "-c", alone.strip(), "sh", path)
+    elif code == 3:
+        command = ("sh", "-c", fused.checked("flip", fused.script("detect-test-command.sh"), "--tier", "all",
+                                             cwd=wt).strip())
+    else:
+        raise fused.Stop("flip", "detect-test-command.sh --tier one test file exit %d" % code, 2)
+    code = fused.call(fused.script("mutation-probe.sh"), path, old, new, "--", *command, cwd=wt,
+                      out=".tdd/flip-probe.out")[0]
+    if code == 1:
+        reject(n, wt, step, values, "flip", "REJECT: flipping %s→%s in %s left %s green\n" % (old, new, path, path))
+    if code != 0:
+        raise fused.Stop("flip", "mutation-probe.sh exit %d" % code, 2)
+
+
+def parse_flip(value):
+    """(test file, old, new) of a FLIP: value `<test file> '<old>→<new>'`; None when it is not one."""
+    path, _, rest = value.strip().partition(" ")
+    rest = rest.strip()
+    if not path or len(rest) < 2 or rest[0] != "'" or rest[-1] != "'" or "→" not in rest:
+        return None
+    old, _, new = rest[1:-1].partition("→")
+    return path, old, new
+
+
+def reject(n, wt, step, values, where, reason):
+    """A verify-diff REJECT the stage itself finds (the flip, pin-recheck.sh): <reason> written to
+    .tdd/verify-diff.reason, the step's rejected record left as a verifier's REJECT leaves it, so revise.sh <n> diff
+    takes the step up; then a stop with exit 1."""
+    import json
+    with open(os.path.join(wt, ".tdd", "verify-diff.reason"), "w") as f:
+        f.write(reason)
+    with open(fused.wait_record(wt, n, NAME + "-rejected"), "w") as f:
+        json.dump({"conductor": fused.conductor(wt), "at": "verdict-diff", "values": values, "step": step}, f)
+    raise fused.Stop(where, reason.strip(), 1)
 
 
 def develop(n, wt, settled, step):

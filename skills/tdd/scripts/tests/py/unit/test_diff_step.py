@@ -149,3 +149,76 @@ def test_4435_with_diff_switched_off_it_launches_no_verifier_marks_the_skip_writ
     names = fake.names()
     assert names.index("diff-leaf-deviation.sh") < names.index("event.sh") < names.index("pin-recheck.sh") < names.index(
         "step-tick.sh")
+
+
+ONE = "make test TESTS=\"$1\"\n"
+PROBE = ("mutation-probe.sh", ("tests/test_a.py", "assert x == 1", "assert x == 2", "--", "sh", "-c", ONE.strip(), "sh",
+                               "tests/test_a.py"))
+
+
+def _verified(diff, step=QUALITY, **kw):
+    """A ⟦test-quality⟧ step's call after its verify-diff PASS; (code, stdout, stderr, fake)."""
+    diff(step=step, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(step=step, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    return diff(step=step, **kw)
+
+
+def test_4435_a_test_quality_step_probes_its_flip_line_after_the_pass_and_before_pin_recheck(diff):
+    """DST3: the last FLIP: line of the leaf's report, probed with the `veri: one test file:` command."""
+    code, out, err, fake = _verified(diff, report="SUITE: ok\n" + FLIP)
+
+    assert code == 0, err
+    names = fake.names()
+    assert fake.call("detect-test-command.sh")[1] == ("--tier", "one test file")
+    assert (fake.call("mutation-probe.sh")[0], _short(fake.call("mutation-probe.sh")[1])) == PROBE
+    assert fake.call("mutation-probe.sh")[4]["out"] == ".tdd/flip-probe.out"
+    assert "VERI_MUTATION_RECORD" not in (fake.call("mutation-probe.sh")[3] or {})
+    assert names.index("wait-leaf.sh") < names.index("mutation-probe.sh") < names.index("pin-recheck.sh")
+
+
+def test_4435_with_no_one_test_file_command_the_probe_runs_the_all_tier_command(diff):
+    """DST3: detect-test-command.sh exit 3 for the one-file tier falls back to the all tier."""
+    class NoOneFile(Fake):
+        def __call__(self, name, *args, **kw):
+            if os.path.basename(name) == "detect-test-command.sh" and args == ("--tier", "one test file"):
+                self.calls.append(("detect-test-command.sh", args, None, None, kw))
+                return 3, "", ""
+            if os.path.basename(name) == "detect-test-command.sh":
+                self.calls.append(("detect-test-command.sh", args, None, None, kw))
+                return 0, "make test\n", ""
+            return super().__call__(name, *args, **kw)
+
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(step=QUALITY, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    code, out, err, fake = diff(step=QUALITY, fake=NoOneFile(report=FLIP))
+
+    assert code == 0, err
+    assert _short(fake.call("mutation-probe.sh")[1])[3:] == ("--", "sh", "-c", "make test")
+    tiers = [c[1] for c in fake.calls if c[0] == "detect-test-command.sh"]
+    assert tiers == [("--tier", "one test file"), ("--tier", "all")]
+
+
+@pytest.mark.parametrize("report, answers, reason", [
+    (FLIP, {("mutation-probe.sh", None): (1, "")},
+     "REJECT: flipping assert x == 1→assert x == 2 in tests/test_a.py left tests/test_a.py green\n"),
+    ("SUITE: ok\n", {}, "REJECT: the report of develop-diff carries no FLIP: line\n"),
+])
+def test_4435_a_flip_that_stays_green_or_no_flip_line_is_a_verify_diff_reject_exit_1_before_pin_recheck(
+        diff, report, answers, reason):
+    """DST3: the reason written to .tdd/verify-diff.reason; no pin-recheck.sh, no tick."""
+    code, out, err, fake = _verified(diff, report=report, answers=answers)
+
+    assert code == 1, err
+    assert (diff.wt / ".tdd" / "verify-diff.reason").read_text() == reason
+    assert not {"pin-recheck.sh", "step-tick.sh"} & set(fake.names())
+
+
+@pytest.mark.parametrize("answers", [{("mutation-probe.sh", None): (2, "")},
+                                     {("detect-test-command.sh", None): (2, "")}])
+def test_4435_a_probe_or_detect_test_command_exit_2_is_exit_2(diff, answers):
+    """DST3: no answer, never a REJECT."""
+    code, out, err, fake = _verified(diff, report=FLIP, answers=answers)
+
+    assert code == 2
+    assert not {"pin-recheck.sh", "step-tick.sh"} & set(fake.names())
+    assert not (diff.wt / ".tdd" / "issue-12-diff-step-rejected-wait").exists()
