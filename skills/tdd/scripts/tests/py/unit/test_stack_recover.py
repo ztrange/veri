@@ -327,3 +327,12 @@ def test_a_joined_branch_naming_no_run_has_its_branch_deleted_and_no_records_ref
 
     assert (code, [args for args in world.pushed if "--delete" in args]) == (
         0, [("push", "--force-with-lease=feature-a:" + A, "origin", "--delete", "feature-a")]), err
+
+
+def test_an_unusable_settle_window_tunable_exits_2_naming_it_before_any_read_or_lock(
+        monkeypatch, tmp_path, run_cli, stack_recover):
+    world = World(monkeypatch, tmp_path, named=AssertionError("stack-branch.sh was read"))
+
+    code, out, err = run_cli(stack_recover, [], env={"VERI_MERGE_SETTLE_READS": "zero"})
+
+    assert (code, out, err.count("\n"), "VERI_MERGE_SETTLE_READS" in err, world.log) == (2, "", 1, True, []), err
