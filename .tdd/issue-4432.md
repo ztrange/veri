@@ -10,7 +10,7 @@
 - [x] a stage's exit 3 ends on seam=<stage> code=3 next=run-pr.sh <n> and exits 3 ⟦criterion 3⟧
 - [x] a stage's exit code outside 0-3 is exit 2, the stage and its code named on stderr ⟦criterion 3⟧
 - [x] with the option --from <stage> it starts at that stage, for each of the five stage names ⟦criterion 5⟧
-- [ ] with the option --hand <stage>, repeatable, it stops before that stage with seam=<stage> code=1 reason=hand next=DRAFT-PR.md#4. Draft PR without calling it, exit 1 ⟦criterion 5⟧
+- [x] with the option --hand <stage>, repeatable, it stops before that stage with seam=<stage> code=1 reason=hand next=DRAFT-PR.md#4. Draft PR without calling it, exit 1 ⟦criterion 5⟧ ⟂ refactor pending
 - [ ] a --from or --hand value that is not one of the five stage names, or an unknown option, is exit 2 with no stage called ⟦criterion 5⟧
 - [ ] in a stacked run (.tdd/issue-<n>-base present in the worktree) after pr-checks.sh exits 0 it stops with seam=pr-ready-wait code=1 reason=stacked next=DRAFT-PR.md#4. Draft PR and exits 1, never calling pr-ready-wait.sh or pr-finish.sh ⟦criterion 6⟧
 - [ ] in a stacked run every later call, a resume at the stacked seam and --from pr-ready-wait or --from pr-finish included, stops again with reason=stacked, exit 1, never calling pr-ready-wait.sh or pr-finish.sh ⟦criterion 6⟧
