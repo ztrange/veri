@@ -1545,3 +1545,35 @@ def test_4311_a_case_waiting_for_a_core_under_the_fixtures_own_working_directory
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
 
     assert (code, distinct_waits()) == (0, before)
+
+
+@pytest.mark.parametrize("held, workers", [(0, "4"), (14, "2")])
+def test_4311_a_leg_handed_cap_4_with_no_worker_count_takes_min_4_and_the_free_cores_and_registers_that_count_while_pytest_runs(pytest_leg, run_cli, monkeypatch, tmp_path, started, held, workers):
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    if held:
+        registered(legs / str(os.getppid()), held)
+    seen = []
+
+    def spy(args):
+        seen.append((args[args.index("-n") + 1] if "-n" in args else "1", (legs / str(os.getpid())).read_text().split("\n")[0], "--cap=4" in args))
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    code = run_cli(pytest_leg, ["--cap=4", "-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))[0]
+
+    assert (code, seen[:1]) == (0, [(workers, workers, False)])
+
+
+@pytest.mark.parametrize("cap", ["--cap=0", "--cap=", "--cap=four", "--cap=-1"])
+def test_4311_a_cap_that_is_not_a_whole_number_of_at_least_1_exits_2_in_one_line_naming_it_before_pytest_runs(pytest_leg, run_cli, monkeypatch, cap):
+    ran = []
+    monkeypatch.setattr(pytest, "main", lambda args: ran.append(args) or pytest.ExitCode.OK)
+    code, _, err = run_cli(pytest_leg, [cap, "-q", "some/dir"], env=leg_env())
+
+    assert (code, ran, err.count("\n"), cap in err) == (2, [], 1, True)

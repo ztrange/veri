@@ -260,8 +260,9 @@ def unmark(waitfile):
         pass
 
 
-def claim(cleanups=None):
-    """Registers this leg once a core is free, waiting for one meanwhile: returns (workers, its entry's path).
+def claim(cleanups=None, cap=None):
+    """Registers this leg once a core is free, waiting for one meanwhile: returns (workers, its entry's path), the
+    workers the free cores, at most <cap> when given.
 
     While it waits, the PYTEST_LEG_LOCK_WAIT_MARKER file names it, and `cleanups` (the idle watch's) holds the marker's
     removal, so a leg ended by TERM or HUP mid-wait leaves no marker; one it cannot write is one stderr line, and the
@@ -278,6 +279,7 @@ def claim(cleanups=None):
                 fcntl.flock(lock, fcntl.LOCK_EX)
                 count = worker_count(None)
                 if count >= 1:
+                    count = min(count, cap) if cap else count
                     entry = os.path.join(legs, str(os.getpid()))
                     with open(entry, "w") as f:
                         f.write(registration(count))
@@ -511,6 +513,10 @@ def _main(argv):
     if workers and not re.fullmatch("[1-9][0-9]*", workers):
         sys.stderr.write("VERI_PYTEST_WORKERS must be a whole number of at least 1; got %s.\n" % workers)
         return 2
+    caps = [arg for arg in argv if arg.startswith("--cap=")]
+    if caps and not re.fullmatch("--cap=[1-9][0-9]*", caps[-1]):
+        sys.stderr.write("--cap must be a whole number of at least 1; got %s.\n" % caps[-1])
+        return 2
     idle = tunables.get("VERI_PYTEST_IDLE")
     if not re.fullmatch("[1-9][0-9]*", idle):
         sys.stderr.write("VERI_PYTEST_IDLE must be a whole number of seconds of at least 1; got %s.\n" % (idle or "it set but empty"))
@@ -538,6 +544,8 @@ def _main(argv):
     full_lock = None
     subset = "--subset" in argv
     argv = [arg for arg in argv if arg != "--subset"]
+    cap = int(caps[-1][len("--cap="):]) if caps else None
+    argv = [arg for arg in argv if not arg.startswith("--cap=")]
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
     held_run = None
     signalled = []
@@ -572,7 +580,7 @@ def _main(argv):
             if workers:
                 count = worker_count(workers)
             else:
-                count, entry = claim(watch.cleanups)
+                count, entry = claim(watch.cleanups, cap)
             parallel = ["-n", str(count), "--dist", "worksteal"] if count >= 2 else []
             idle_watch.CURRENT[0] = watch
             watch.start()
