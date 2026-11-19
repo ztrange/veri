@@ -291,3 +291,19 @@ def test_a_failed_delete_exits_2_naming_it_printing_nothing_and_still_runs_stack
     assert (got, out, world.scripts[-1]) == (code, "" if code else "%s %s\n" % (TIP, URL), ("stack-pr.sh",)), err
     if named:
         assert [line for line in err.splitlines() if named in line] != [], err
+
+
+NAMED = re.compile(r"ztrange|mario|ferreira|github\.com/\w|#[0-9]+|[\"'/](main|master)\b|[\"']stack[\"']"
+                   r"|ready-for-agent|refactor-owed|author-read|[\"'](priority|bug|legacy|refactor)[\"']|gates",
+                   re.IGNORECASE)
+
+
+def test_stack_recover_and_its_shim_name_no_repository_issue_branch_label_or_person(stack_recover):
+    shim = os.path.join(os.path.dirname(os.path.dirname(stack_recover.__file__)), "stack-recover.sh")
+    named = []
+    for path in (stack_recover.__file__, shim):
+        with open(path, encoding="utf-8") as f:
+            named += ["%s:%d: %s" % (os.path.basename(path), n, line) for n, line in enumerate(f, 1)
+                      if NAMED.search(line)]
+
+    assert named == []

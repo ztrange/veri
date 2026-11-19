@@ -14,4 +14,4 @@
 - [x] a real-git process case recovers two offline joins end to end against a bare origin
 - [x] stack-land.sh's slice PR body gains one line per Veri-Suite: skipped commit in its range and one naming .tdd/stack-local-red when it exists ⟦criterion 9⟧
 - [ ] voutage SKILL.md and SCRIPTS.md say what VO10, VO7 and SC598 say, graded ⟦criterion 10⟧
-- [ ] nothing touched names a repository, issue, branch, label or person ⟦criterion 11⟧
+- [x] nothing touched names a repository, issue, branch, label or person ⟦criterion 11⟧
