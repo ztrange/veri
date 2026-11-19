@@ -12,7 +12,7 @@
 - [x] after the metrics, bail.sh makes, in order, `push-branch.sh`, `comment.sh <n> bailed --note-file <note>` and `comment.sh <n> bailed --pr --note-file <note>`, and exits 0; an in-process case with call spies checks the order ⟦criterion 1⟧
 - [x] bail.sh prints one stdout line per call it makes, naming the call and its exit code, a non-zero one included, and never prints the contents of a leaf's or a suite's output file; an in-process case with call spies ⟦criterion 5⟧
 - [x] the note bail.sh hands both `comment.sh bailed` calls carries the conductor's `--note-file` text and the metrics block `metrics.sh` rendered; an in-process case with call spies ⟦criterion 1⟧
-- [ ] when `metrics.sh` exits non-zero the note carries `metrics could not be rendered: metrics.sh exited <code>` in place of the metrics block; an in-process case with call spies ⟦criterion 1⟧
+- [x] when `metrics.sh` exits non-zero the note carries `metrics could not be rendered: metrics.sh exited <code>` in place of the metrics block; an in-process case with call spies ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] the note bail.sh hands both `comment.sh bailed` calls carries `skill-drift.sh`'s stdout; an in-process case with call spies ⟦criterion 1⟧
 - [ ] a non-zero `skill-drift.sh` puts `Skill drift: unavailable — skill-drift.sh exited <code>` in the note in place of its block, is named on its call line, and every later call still runs, ending exit 0 with the `bail` event written; an in-process case with call spies ⟦criterion 2⟧
 - [ ] a non-zero `preserve-attempt.sh` is named on its call line and every later call (the reset, the event, metrics, push, both comments) still runs, ending exit 0 with the `bail` event written; an in-process case with call spies ⟦criterion 2⟧
