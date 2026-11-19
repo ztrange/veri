@@ -168,6 +168,14 @@ profile:
 unreachable:
 	@skills/tdd/scripts/unreachable.sh "$(CURDIR)"
 
+# `make ceiling` ramps `make test`'s workers through test-ceiling.sh, one full suite per step at 2, 4, 6, … workers, and
+# records the highest count with no case timeout in ~/.veri-test-ceiling (VERI_TEST_CEILING_FILE; #4418, PRD 036.2).
+# Hours of local machine time on a machine left idle for it: its one entry point, not part of `test` or `unit`, never
+# run in CI, and nothing gates on it. `make ceiling MAX=<n>` ends the ramp at <n> instead of the logical cores.
+.PHONY: ceiling
+ceiling:
+	@skills/tdd/scripts/test-ceiling.sh $(if $(MAX),--max "$(MAX)")
+
 # `make report` prints the /vreport figures through report.sh.
 .PHONY: report
 report:
