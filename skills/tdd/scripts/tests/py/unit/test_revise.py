@@ -201,3 +201,19 @@ def test_the_attempt_is_read_from_the_open_steps_revise_events_for_the_phase_so_
     assert (code, out.splitlines()[-1]) == (3, "waiting on revise-green-2")
     assert fake.call("comment.sh")[1] == ("12", "revise", "green", "2")
     assert fake.call("same-reject.sh")[1] == (".tdd/verify-green-1.reason", ".tdd/verify-green.reason")
+
+
+@pytest.mark.parametrize("frozen", [1, 2])
+def test_a_tests_frozen_check_exit_1_spends_the_attempt_without_a_verifier_and_its_exit_2_is_exit_2(revise, frozen):
+    """PRD 038.9 criteria 4 and 8: REVISE.md sub-step 4's green check."""
+    code, out, err, fake = revise(answers={("tests-frozen.sh", "check"): (frozen, "tests/test_a.py\n"),
+                                           ("wait-leaf.sh", "revise-green-2"): (3, "")})
+
+    assert "verdict-green" not in fake.launched()
+    if frozen == 1:
+        assert (code, fake.launched()) == (3, ["revise-green-1", "revise-green-2"])
+        assert "tests/test_a.py" in (revise.wt / ".tdd" / "verify-green.reason").read_text()
+        assert (revise.wt / ".tdd" / "verify-green-2.reason").read_text() == (
+            revise.wt / ".tdd" / "verify-green.reason").read_text()
+    else:
+        assert (code, out.splitlines()[-1]) == (2, "stopped at 4 tests-frozen.sh check --step %s exit 2" % STEP)

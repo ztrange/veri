@@ -63,11 +63,11 @@ def run(n, phase):
             if code != 0:
                 raise fused.Stop("3", "wait-leaf.sh %s exit %d" % (at, code), code)
             fused_step.cost_check(wt, step)
-            fused.checked("4", fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
-            at = verify(n, wt, settled, step, values)
-        code = fused.wait(wt, n, NAME, at, keep_rejected=False)
-        if code != 1:
-            break
+            at = checks(n, wt, settled, step, values)
+        if at is not None:
+            code = fused.wait(wt, n, NAME, at, keep_rejected=False)
+            if code != 1:
+                break
         values = dict(values, k=values["k"] + 1)
         at = attempt(n, wt, settled, step, values)
     if code != 0:
@@ -105,6 +105,19 @@ def attempt(n, wt, settled, step, values):
                  clear=(".tdd/red-prediction.md", ".tdd/red-run-output.txt"))
     fused.save_wait(wt, n, NAME, leaf, values)
     return leaf
+
+
+def checks(n, wt, settled, step, values):
+    """REVISE.md sub-step 4 for green: tests-frozen.sh check before any verifier; its exit 1 spends attempt k as a
+    REJECT does, its stdout the reason, and launches no verifier (None); 0 launches the re-verify (its leaf)."""
+    code, said, _ = fused.call(fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
+    if code not in (0, 1):
+        raise fused.Stop("4", fused.label("tests-frozen.sh", "check", "--step", step) + " exit %d" % code, code)
+    if code == 1:
+        with open(os.path.join(wt, ".tdd", "verify-%s.reason" % values["phase"]), "w") as f:
+            f.write("REASON: the revise changed a frozen test file: %s\n" % " ".join(said.split()))
+        return None
+    return verify(n, wt, settled, step, values)
 
 
 def verify(n, wt, settled, step, values):
