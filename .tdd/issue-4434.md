@@ -1,6 +1,6 @@
 # Plan for #4434 — PRD 038.10: a reroute stage runs wrong-test-route answers through the runner
 
-- [ ] `reroute.sh <n> <report>` runs `wrong-test-route.sh --spec .tdd/issue-<n>-spec.md <report> '<red-test-id>'` with `VERI_STEP` the open step, reading `test_path` and `target_test` from red-half's record; bad arguments or a missing preflight are exit 2 ⟦criterion 1⟧ ⟦criterion 9⟧
+- [x] `reroute.sh <n> <report>` runs `wrong-test-route.sh --spec .tdd/issue-<n>-spec.md <report> '<red-test-id>'` with `VERI_STEP` the open step, reading `test_path` and `target_test` from red-half's record; bad arguments or a missing preflight are exit 2 ⟦criterion 1⟧ ⟦criterion 9⟧
 - [ ] on `red <case>` it writes the `reroute` event with `kind=red case=<case>` before launching `develop-red-contradicted` through `detach-leaf.sh supervise.sh`, exiting 3 with a wait record ⟦criterion 2⟧ ⟦criterion 6⟧
 - [ ] called again it waits on the rerouted red, launches `verdict-red` with red-half's `run-verdict.sh` arguments over the edited case, and on PASS re-records the frozen tests over both test paths with the step's own `--red-case`, exiting 0 ⟦criterion 2⟧ ⟦criterion 10⟧
 - [ ] `repair`, `supersede` and `missing` launch `develop-red-repair`, `develop-red-supersede` and `develop-red-missing` with their own prompt arguments, and `supersede` verifies each named case in turn ⟦criterion 2⟧
