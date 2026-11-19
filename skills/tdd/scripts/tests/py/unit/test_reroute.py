@@ -218,3 +218,34 @@ def test_it_writes_no_revise_mark_and_reads_no_budget_so_broken_budgets_leave_th
 
     assert code == 0, out + err
     assert [c[1][0] for c in fake.all("event.sh")] == ["reroute"]
+
+
+@pytest.mark.parametrize("route, said", [
+    (0, "prep tests/test_c.py::test_x tests/test_d.py::test_y"), (0, "later two"), (0, "fixture tests/test_a.py make"),
+    (0, "supersede-diff tests/test_c.py::test_x"), (1, "missing-exhausted the empty list is rejected"),
+    (1, "repair-exhausted test_one")])
+def test_an_answer_it_does_not_run_stops_with_exit_1_naming_the_answer_launching_nothing_4434(reroute, route, said):
+    """PRD 038.10 RRT4, S11, S12: plan growth, the diff verifier and bails stay the conductor's."""
+    code, out, err, fake = reroute(answers={("wrong-test-route.sh", None): (route, said + "\n")})
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at route " + said)
+    assert (fake.launched(), fake.all("event.sh")) == ([], [])
+
+
+@pytest.mark.parametrize("against", ["PASSES", "UNTESTABLE"])
+def test_a_rerouted_red_that_does_not_fail_stops_with_exit_1_naming_the_line_launching_no_verify_red_4434(
+        reroute, against):
+    """PRD 038.10 RRT4: a pin report is verify-pin's, `pin-target.sh` and `pin-reject-route.sh`, by hand."""
+    reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
+    code, out, err, fake = reroute(files={"develop-red-contradicted.out": REROUTED.replace("FAILS", against)})
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at leaf AGAINST_UNMODIFIED: " + against)
+    assert (fake.launched(), fake.all("tests-frozen.sh")) == ([], [])
+
+
+def test_a_rerouted_red_report_missing_a_line_is_exit_2_4434(reroute):
+    reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
+    code, out, err, fake = reroute(files={"develop-red-contradicted.out": "TEST_PATH: tests/test_b.py\n"})
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at leaf no TARGET_TEST: line")
+    assert fake.launched() == []

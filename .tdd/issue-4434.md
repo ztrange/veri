@@ -5,7 +5,7 @@
 - [x] called again it waits on the rerouted red, launches `verdict-red` with red-half's `run-verdict.sh` arguments over the edited case, and on PASS re-records the frozen tests over both test paths with the step's own `--red-case`, exiting 0 ⟦criterion 2⟧ ⟦criterion 10⟧
 - [x] `repair`, `supersede` and `missing` launch `develop-red-repair`, `develop-red-supersede` and `develop-red-missing` with their own prompt arguments, and `supersede` verifies each named case in turn ⟦criterion 2⟧
 - [x] it writes no `revise` mark and reads no budget: a broken `REVISE_BUDGET` or `VERI_MISSING_REROUTE_BUDGET` does not change its answer ⟦criterion 3⟧
-- [ ] it stops with exit 1 naming the answer on `prep`, `later`, `fixture`, `supersede-diff`, `missing-exhausted`, `repair-exhausted` and a rerouted red reporting `AGAINST_UNMODIFIED: PASSES`, launching nothing ⟦criterion 4⟧
+- [x] it stops with exit 1 naming the answer on `prep`, `later`, `fixture`, `supersede-diff`, `missing-exhausted`, `repair-exhausted` and a rerouted red reporting `AGAINST_UNMODIFIED: PASSES`, launching nothing ⟦criterion 4⟧
 - [ ] `wrong-test-route.sh` exit 3 is exit 1 printing `route=revise phase=green`, never 3 ⟦criterion 5⟧
 - [ ] a verify-red REJECT of a rerouted case, or `tests-frozen.sh record` exit 1, leaves `.tdd/verify-red.reason` and red-half's rejected record and is exit 1 printing `route=revise phase=red` ⟦criterion 5⟧
 - [ ] a `wrong-test-route.sh`, `tests-frozen.sh`, supervisor or verifier exit 2 is exit 2 ⟦criterion 6⟧
