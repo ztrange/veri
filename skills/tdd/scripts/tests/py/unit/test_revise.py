@@ -331,7 +331,7 @@ def _refactor(revise):
 def test_refactor_runs_no_step_cost_reverifies_with_refactor_halfs_green_sha_and_on_pass_resaves_its_wait(revise):
     """PRD 038.9 criteria 1 and 5: refactor-half's values come back from its rejected record (D1)."""
     _refactor(revise)
-    code, out, err, fake = revise(argv=("12", "refactor"), missing=("red-half",))
+    code, out, err, fake = revise(argv=("12", "refactor"))
 
     assert code == 0, out
     assert not {"step-cost.sh", "tests-frozen.sh"} & set(fake.names())
@@ -349,7 +349,7 @@ def test_refactor_switched_off_resaves_refactor_halfs_wait_past_its_verify_with_
     verify-refactor comment (`posted`) and rerunning no check."""
     _refactor(revise)
     (revise.wt / ".tdd" / "issue-12-skip-verify").write_text("refactor\n")
-    code, out, err, fake = revise(argv=("12", "refactor"), missing=("red-half",))
+    code, out, err, fake = revise(argv=("12", "refactor"))
 
     assert (code, fake.launched()) == (0, ["revise-refactor-1"])
     record = json.loads((revise.wt / ".tdd" / "issue-12-refactor-half-wait").read_text())
@@ -390,3 +390,15 @@ def test_a_diverged_or_unreadable_red_prediction_writes_the_mark_and_preserves_t
     if marked:
         assert (marks[0][1], marks[0][3]["VERI_ACTOR"], marks[0][3]["VERI_STEP"]) == (
             ("prediction-diverged",), "conductor", STEP)
+
+
+@pytest.mark.parametrize("phase", ["green", "refactor"])
+def test_green_and_refactor_without_a_red_half_record_for_the_step_stop_on_the_record_seam_line_with_exit_1(
+        revise, phase):
+    """PRD 038.9 criterion 11 (PRD 038.1 SC4): the record is a designed hand-off, never an exit 2."""
+    _refactor(revise) if phase == "refactor" else None
+    code, out, err, fake = revise(argv=("12", phase), missing=("red-half",))
+
+    assert (code, fake.calls) == (1, [])
+    assert out.splitlines()[-1] == ("seam=revise code=1 reason=record next=seam-settle.sh 12 red-half test_path=… "
+                                    "target_test=…")
