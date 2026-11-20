@@ -1850,3 +1850,24 @@ def test_4419_an_exported_worker_count_is_used_as_given_beside_a_registry_holdin
     code, _, err = run_cli(pytest_leg, ["--subset", "-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WORKERS="3"))
 
     assert (code, workers_handed([seen[0][0]]), seen[0][1], sleeps, reads, err) == (0, "3", [str(os.getppid())], [], [], "")
+
+
+def test_4457_an_exported_worker_count_never_opens_the_cap_file_so_a_bad_one_says_nothing(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 16)
+    measured(8)
+    cap = os.environ["VERI_TEST_CAP_FILE"]
+    with open(cap, "w") as f:
+        f.write("six\n")
+    reads, seen = [], []
+    real_open = open
+
+    def watching_open(path, *args, **kwargs):
+        if str(path) == cap:
+            reads.append(path)
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", watching_open)
+    monkeypatch.setattr(pytest, "main", lambda args: seen.append(args) or pytest.ExitCode.OK)
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_WORKERS="12"))
+
+    assert (code, workers_handed(seen), reads, err) == (0, "12", [], "")
