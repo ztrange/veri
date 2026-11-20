@@ -562,3 +562,30 @@ def test_4450_it_exits_2_before_any_call_when_the_preflight_file_or_the_ledger_i
         del calls[:]
         code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path / missing))
         assert (missing, code, calls) == (missing, 2, []), (missing, code, calls)
+
+
+def test_4450_it_never_prints_what_skill_edit_step_wrote_to_its_out_file_leaf_output_or_grader_fail_reasons(
+        monkeypatch, run_cli, tmp_path):
+    """Criterion 13: .tdd/skill-edit-<n>.out's content, a leaf's output or the grader's FAIL reasons, reaches no stream."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    secret = "LEAF-TRANSCRIPT-9d2f GRADER FAIL: row SE1 unmet"
+    (wt / ".tdd" / "skill-edit-12.out").write_text(secret + "\n")
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        if base == "gh":
+            return 0, BODY, ""
+        return (1, "1", "") if args[:1] == ("wait",) else (0, "", "")
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, out, err = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert code == 1, (code, out, err)
+    assert "LEAF-TRANSCRIPT-9d2f" not in out + err and "FAIL" not in out + err, (out, err)
