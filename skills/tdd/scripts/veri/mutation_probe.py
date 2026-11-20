@@ -59,6 +59,9 @@ def before_state(argv):
     if not restored:
         sys.stderr.write(f"mutation-probe.sh: no file differs from {sha}\n")
         return 2
+    if run_with({}, command):
+        sys.stderr.write("mutation-probe.sh: command fails on the unmutated file\n")
+        return 2
     returncode = run_with(restored, command)
     if returncode == 0:
         return 1
