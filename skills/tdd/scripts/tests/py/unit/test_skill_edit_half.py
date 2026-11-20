@@ -311,3 +311,29 @@ def test_4450_it_passes_no_test_file_span_after_the_unit_that_git_does_not_track
     start = [args for name, args in calls if name == "detach-command.sh" and args[:1] == ("start",)]
     assert len(start) == 1, calls
     assert start[0][3:] == (".tdd/issue-12-body", "skills/tdd/SKILL.md"), start
+
+
+def test_4450_when_the_detached_wait_slice_runs_out_it_exits_3_and_calls_no_step_tick(
+        monkeypatch, run_cli, tmp_path):
+    """SKH33: detach-command.sh wait exiting 3 (its slice ran out) is the stage's exit 3, before step-tick.sh."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "detach-command.sh" and args[:1] == ("wait",):
+            return 3, "", ""
+        return 0, BODY if base == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert (code, [c for c in calls if c[0] == "step-tick.sh"]) == (3, []), calls
