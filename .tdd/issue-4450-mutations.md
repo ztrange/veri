@@ -123,3 +123,21 @@ ICAgIGlmIGZ1c2VkLmNhbGwoREVUQUNILCAid2FpdCIsICJza2lsbC1lZGl0LSIgKyBuLCBjd2Q9d3Qp
 command 164
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_when_skill_edit_step_exits_3_it_calls_step_tick_as_on_exit_0_and_does_not_exit_3
 
+before 40
+ead8d4dfec49b848584f469b32a4dd70dc96ebc8
+keep 56
+skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py
+command 136
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_skill_edit_step_exit_2_stops_with_2_before_step_tick
+
+file 42
+skills/tdd/scripts/veri/skill_edit_half.py
+old-b64 24
+aWYgY29kZSBpbiAoMSwgMik6
+new-b64 24
+aWYgY29kZSBpbiAoMSwpOg==
+context-b64 32
+ICAgIGlmIGNvZGUgaW4gKDEsIDIpOg==
+command 136
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_skill_edit_step_exit_2_stops_with_2_before_step_tick
+
