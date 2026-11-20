@@ -30,7 +30,8 @@ def run(argv):
     with open(ledger.ledger_path(wt, n)) as f:
         step = next(line for line in f if line.startswith(ledger.OPEN_STEP + " "))
     body_file = os.path.join(".tdd", "issue-%s-body" % n)
-    fused.call(DETACH, "start", "skill-edit-" + n, STEP, body_file, ledger.unit_of(step), cwd=wt)
+    added = ["--added", step.rstrip("\n")] if ledger.is_added(step.rstrip("\n")) else []
+    fused.call(DETACH, "start", "skill-edit-" + n, STEP, *added, body_file, ledger.unit_of(step), cwd=wt)
     fused.call(DETACH, "wait", "skill-edit-" + n, cwd=wt)
     return fused.call(TICK, n, cwd=wt)[0]
 
