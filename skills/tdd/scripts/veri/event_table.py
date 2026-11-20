@@ -94,6 +94,7 @@ EVENTS = {
     "structural-pass": "transforms?:whole budget?:whole stopped:(candidates-done|budget-spent|nothing-structural)",
     "suite-flake": "at?:(suite-repair|resume) files:text",
     "suite-repair-retired": "",
+    "t-lowered": "old:whole new:whole cases:text",
     "test-run": "tier:(fast|changed|affected|all|target) suites:text,empty seconds:whole status:whole",
     "test-stretch": "tier:(fast|all) seconds:whole idle:whole",
     "tidy-first": "anchor:text refactoring:text",

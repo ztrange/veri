@@ -206,3 +206,22 @@ def test_a_load_timeout_past_veri_load_window_seconds_of_the_lowering_on_record_
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(), cwd=str(tree))[0]
 
     assert (code, open(os.environ["VERI_TEST_LOAD_FILE"]).read().splitlines()[:1]) == (1, ["4"])
+
+
+def test_a_lowering_prints_one_stderr_line_naming_the_windows_timed_out_cases_the_old_t_and_the_new_and_records_a_t_lowered_event(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    other_file_timed_out(seconds_ago=900)
+    with open(os.environ["VERI_TEST_TIMEOUTS_FILE"], "a") as f:
+        f.write("%d 4242 tests/py/unit/test_y.py tests/py/unit/test_y.py::test_recent 6\n" % (time.time() - 60))
+    timing_out(monkeypatch, "tests/py/unit/test_x.py::test_slow")
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(), cwd=str(tree))
+    cases = "tests/py/unit/test_y.py::test_recent,tests/py/unit/test_x.py::test_slow"
+    lines = [line for line in err.splitlines() if "test_x.py::test_slow" in line]
+    journal = tree / ".tdd" / "events.jsonl"
+    events = [(e["old"], e["new"], e["cases"]) for e in map(json.loads, journal.read_text().splitlines() if journal.exists() else [])
+              if e["event"] == "t-lowered"]
+
+    assert (code, len(lines), [all(word in line for word in (cases, " 6 ", " 4")) for line in lines],
+            "test_other" in err, events) == (1, 1, [True], False, [("6", "4", cases)])
