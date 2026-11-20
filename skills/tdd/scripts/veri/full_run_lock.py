@@ -11,6 +11,12 @@ def legs_dir():
     return tunables.get("VERI_PYTEST_LEGS") or os.path.join(os.path.expanduser("~"), ".veri-pytest-legs")
 
 
+def waiters_dir():
+    """Where a leg waiting for T registers its wait (PRD 036.9): VERI_PYTEST_WAITERS, else the legs registry's path with
+    `.waiting` appended, so a registry moved for a test moves its waiters too."""
+    return tunables.get("VERI_PYTEST_WAITERS") or legs_dir().rstrip("/") + ".waiting"
+
+
 def path():
     return legs_dir().rstrip("/") + "-full.lock"
 

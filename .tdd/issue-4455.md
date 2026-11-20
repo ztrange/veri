@@ -1,6 +1,6 @@
 # Plan for #4455 — PRD 036.9: a notice when test runs keep queueing
 
-- [ ] A leg waiting for T writes an entry under `VERI_PYTEST_WAITERS` named for its pid, holding the workers it waits for and its start time, while the workers it starts with are unchanged by it ⟦criterion 1⟧
+- [x] A leg waiting for T writes an entry under `VERI_PYTEST_WAITERS` named for its pid, holding the workers it waits for and its start time, while the workers it starts with are unchanged by it ⟦criterion 1⟧
 - [ ] A leg's waiter entry is gone once it registers and starts pytest ⟦criterion 1⟧
 - [ ] A leg ended by TERM while it waits has removed its waiter entry by the time it exits ⟦criterion 1⟧
 - [ ] A waiter entry the leg cannot write is one stderr line naming it, and the wait goes on

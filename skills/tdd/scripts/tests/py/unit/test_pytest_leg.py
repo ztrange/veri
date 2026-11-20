@@ -1891,3 +1891,24 @@ def test_4457_with_the_cap_equal_to_c0_the_wait_line_names_c0s_source_not_the_ca
 
     assert (code, len(waits), "T=8 (the ceiling record " in waits[0], cap in waits[0], "C0=" in waits[0]) == (
         0, 1, True, False, False), waits
+
+
+def test_4455_a_leg_waiting_for_t_writes_a_waiter_entry_named_for_its_pid_holding_the_workers_it_waits_for_and_its_start_time_and_starts_with_the_same_workers(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 16)
+    measured(8)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    waiters = tmp_path / "waiters"
+    blocker = legs / str(os.getppid())
+    registered(blocker, 7)
+    entries, seen = [], []
+
+    def the_holder_drops_to_4_on_the_first_poll(seconds):
+        entries.append({name: (waiters / name).read_text() for name in os.listdir(waiters)} if waiters.is_dir() else {})
+        registered(blocker, 4)
+
+    monkeypatch.setattr(pytest, "main", lambda args: seen.append(args) or pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", the_holder_drops_to_4_on_the_first_poll)
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WAITERS=str(waiters)))[0]
+
+    assert (code, entries, workers_handed(seen)) == (0, [{str(os.getpid()): "2\n%s\n" % SELF_STARTED}], "4")
