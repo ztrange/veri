@@ -280,6 +280,50 @@ def test_exit_1_and_exit_2_leave_an_earlier_record_unchanged(make, run_cli, tmp_
     assert record.read_text() == EARLIER
 
 
+LOWERED = "4\n1763539200\n"
+
+
+def test_exit_0_removes_the_load_file_a_load_timeout_lowered_t_through(make, run_cli):
+    load = ceiling.os.environ["VERI_TEST_LOAD_FILE"]
+    with open(load, "w") as f:
+        f.write(LOWERED)
+
+    code, _, err = run_cli(ceiling, [])
+
+    assert (code, ceiling.os.path.exists(load)) == (0, False), err
+
+
+def test_exit_0_with_no_load_file_is_still_exit_0(make, run_cli):
+    code, _, err = run_cli(ceiling, [])
+
+    assert (code, ceiling.os.path.exists(ceiling.os.environ["VERI_TEST_LOAD_FILE"])) == (0, False), err
+
+
+def test_a_load_file_exit_0_cannot_remove_is_one_stderr_line_naming_it(make, run_cli, monkeypatch, tmp_path):
+    load = tmp_path / "a-directory"
+    load.mkdir()
+    monkeypatch.setenv("VERI_TEST_LOAD_FILE", str(load))
+
+    code, _, err = run_cli(ceiling, [])
+
+    assert (code, len([line for line in err.splitlines() if str(load) in line]), load.is_dir()) == (0, 1, True)
+
+
+@pytest.mark.parametrize("outcome, exit_code", [
+    (lambda workers, tests: [(SLOW, TIMEOUT)] if workers == 2 and not tests else [], 1),
+    (lambda workers, tests: [(RED, "E   assert 1 == 2")] if workers == 4 else [], 2),
+])
+def test_exit_1_and_exit_2_leave_the_load_file(make, run_cli, outcome, exit_code):
+    load = ceiling.os.environ["VERI_TEST_LOAD_FILE"]
+    with open(load, "w") as f:
+        f.write(LOWERED)
+    make.given(outcome)
+
+    code, _, _ = run_cli(ceiling, [])
+
+    assert (code, open(load).read()) == (exit_code, LOWERED)
+
+
 def test_a_record_that_cannot_be_renamed_into_place_leaves_the_earlier_one_and_no_temporary_file(make, run_cli,
                                                                                                 tmp_path, monkeypatch):
     record = tmp_path / "ceiling-record"
