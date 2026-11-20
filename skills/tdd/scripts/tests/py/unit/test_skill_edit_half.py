@@ -743,3 +743,24 @@ def test_4450_a_wait_that_obtained_no_answer_exits_2_and_ticks_nothing(monkeypat
     code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
 
     assert (code, [c for c in calls if c[0] == "step-tick.sh"]) == (2, []), (code, calls)
+
+
+def test_4450_a_failing_gh_api_exits_2_keeping_the_body_file_and_starting_no_author(monkeypatch, run_cli, tmp_path):
+    """gh's own failure obtained no body: exit 2 before skill-edit-step.sh, never an empty .tdd/issue-<n>-body."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = _skill_edit_worktree(tmp_path)
+    (wt / ".tdd" / "issue-12-body").write_text(BODY)
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        return (1, "", "") if base in ("git", "gh") else (0, "", "")
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert (code, (wt / ".tdd" / "issue-12-body").read_text(), [c[0] for c in calls if c[0] != "git"]) == (
+        2, BODY, ["gh"]), calls
