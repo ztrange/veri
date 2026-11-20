@@ -1672,6 +1672,26 @@ def test_4457_a_full_leg_alone_takes_min_of_c0_and_the_cap_on_line_1_of_the_cap_
     assert (code, workers_handed(calls), left, "cap" in err) == (0, workers, cap, False), err
 
 
+@pytest.mark.parametrize("line_1", ["", "six", "1", "0", "-4", "2.5", "\u0663", b"\xff\xfe", "a directory"])
+def test_4457_a_cap_file_unreadable_or_whose_line_1_is_not_a_whole_number_of_at_least_2_sets_no_cap_and_is_one_stderr_line_naming_it(pytest_leg, run_cli, monkeypatch, tmp_path, started, line_1):
+    on_cores(monkeypatch, 16)
+    measured(8)
+    path = os.environ["VERI_TEST_CAP_FILE"]
+    if line_1 == "a directory":
+        os.mkdir(path)
+    elif isinstance(line_1, bytes):
+        with open(path, "wb") as f:
+            f.write(line_1 + b"\n")
+    else:
+        with open(path, "w") as f:
+            f.write(line_1 + "\n")
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(args) or pytest.ExitCode.OK)
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env())
+
+    assert (code, workers_handed(calls), len(err.splitlines()), path in err) == (0, "8", 1, True), err
+
+
 def test_4419_the_hermetic_fixture_points_the_ceiling_record_into_the_cases_own_tmp_path(tmp_path):
     assert os.environ["VERI_TEST_CEILING_FILE"].startswith(str(tmp_path) + os.sep)
 
