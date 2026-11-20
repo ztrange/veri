@@ -580,8 +580,10 @@ def _launch_into_a_free_slot(state, world, live):
     return None
 
 
-# The .tdd/dispatch-notified line holding the live waiter entries counted at the last polls, oldest first.
+# The .tdd/dispatch-notified lines this rule owns: the live waiter entries counted at the last polls, oldest first, and
+# the mark that the queueing line was printed for the queue those counts track. Every other line is another notice's.
 QUEUE_LINE = "queue "
+QUEUE_NOTIFIED = "queue-notified"
 
 
 def queue_polls():
@@ -591,17 +593,19 @@ def queue_polls():
 
 def _queueing(state, world):
     """queueing <k> waiting for T=<t>, <w> workers in use: ... when the last polls' waiter counts are each above 0 and
-    the newest exceeds the oldest (PRD 036.9). Advice only: it runs after the poll's launch decision and changes
-    nothing that decision used."""
+    the newest exceeds the oldest (PRD 036.9), once per queue: not again until a poll counts no waiter. Advice only:
+    it runs after the poll's launch decision and changes nothing that decision used."""
     waiting = world.waiting()
     polls = queue_polls()
     lines = world.notified()
-    kept = next((line for line in lines if line.startswith(QUEUE_LINE)), None)
-    counts = ([int(word) for word in kept.split()[1:] if word.isdigit()] if kept else [])
-    counts = (counts + [waiting])[-polls:]
-    line = " ".join([QUEUE_LINE.strip()] + [str(count) for count in counts])
-    world.record_notified([line if old == kept else old for old in lines] if kept else lines + [line])
-    if len(counts) == polls and min(counts) > 0 and counts[-1] > counts[0]:
+    kept = next((line for line in lines if line.startswith(QUEUE_LINE)), "")
+    counts = ([int(word) for word in kept.split()[1:] if word.isdigit()] + [waiting])[-polls:]
+    notified = QUEUE_NOTIFIED in lines and waiting > 0
+    growing = len(counts) == polls and min(counts) > 0 and counts[-1] > counts[0]
+    others = [line for line in lines if not line.startswith(QUEUE_LINE) and line != QUEUE_NOTIFIED]
+    queue = [QUEUE_LINE + " ".join(str(count) for count in counts)]
+    world.record_notified(others + queue + ([QUEUE_NOTIFIED] if notified or growing else []))
+    if growing and not notified:
         total, in_use = world.test_budget()
         world.say(f"queueing {waiting} waiting for T={total}, {in_use} workers in use: a lower N would shorten the wait\n")
         return 0

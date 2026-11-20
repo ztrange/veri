@@ -7,6 +7,6 @@
 - [x] `dispatch.sh` prints `queueing <k> waiting for T=<t>, <w> workers in use: a lower N would shorten the wait` and exits 0, after that poll's launch, when the last 3 polls' waiter counts are each above 0 and the newest exceeds the oldest; an equal count prints nothing ⟦criterion 2⟧ ⟦criterion 4⟧
 - [x] `VERI_QUEUE_POLLS` sets how many polls' counts the rule reads ⟦criterion 2⟧
 - [x] The counts are kept in the main working tree's `.tdd/dispatch-notified`, so a restarted `dispatch.sh` continues them ⟦criterion 2⟧
-- [ ] Once printed, the notice is not printed again until a poll counts no waiter ⟦criterion 3⟧
+- [x] Once printed, the notice is not printed again until a poll counts no waiter ⟦criterion 3⟧
 - [ ] The real count reads only live waiter entries: one whose pid is gone or runs under another start time does not count, nor do `core-wait` events or wait markers ⟦criterion 1⟧ ⟦criterion 5⟧
 - [ ] CLAUDE.md's Testing idiom, `SCRIPTS.md`'s `dispatch.sh` entry and vdev's *Speaking* notice list name the waiter entries and the `queueing` notice, with their rows graded ⟦criterion 2⟧ ⟦criterion 6⟧
