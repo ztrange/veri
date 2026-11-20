@@ -1,10 +1,13 @@
 ## The skill-edit step
 
+Run `$S/run-step.sh <n>` (on a step whose text names a prose change, `$S/skill-edit-half.sh <n> --change "<change>"` in its place), again on exit 3, and on 1 or 2 go on by the paragraph its last line names.
+skill-edit-half by hand ends `$S/step-tick.sh <n>`
+
 Read the issue body into `.tdd/issue-<n>-body` first, with `gh api repos/{owner}/{repo}/issues/<n> -q .body > .tdd/issue-<n>-body`.
 
 Then run `$S/skill-edit-step.sh` on the issue body, `.tdd/issue-<n>-body`, the step's unit, and then every pin file the step names.
 
-On exit 0 or 3, tick the step and commit the ticked ledger.
+On exit 0 or 3, tick the step and commit the ticked ledger, with the subject `chore: skill-edit — <step summary> (#<n>)`.
 
 On exit 1, bail with `cause=revise-exhausted`, as an exhausted revise.
 
