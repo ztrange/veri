@@ -29,7 +29,7 @@
 - [x] skill-edit-half.sh exits 2 before any call when the open step does not carry the skill-edit mark ⟦criterion 13⟧
 - [x] skill-edit-half.sh exits 2 before any call when ledger.unit_of finds no unit in the open skill-edit step ⟦criterion 13⟧
 - [x] skill-edit-half.sh exits 2 before any call on bad arguments: a non-numeric issue, an unknown option, or --change with no value ⟦criterion 13⟧
-- [ ] skill-edit-half.sh exits 2 before any call when `.tdd/issue-<n>-preflight` or the ledger is missing ⟦criterion 13⟧
+- [x] skill-edit-half.sh exits 2 before any call when `.tdd/issue-<n>-preflight` or the ledger is missing ⟦criterion 13⟧
 - [ ] skill-edit-half.sh never prints a leaf's output or the grader's FAIL reasons, whatever skill-edit-step.sh wrote to `.tdd/skill-edit-<n>.out` ⟦criterion 13⟧
 - [ ] skill-edit-half.sh calls neither gh api nor skill-edit-step.sh and calls step-tick.sh directly when the branch holds a commit `docs: requirements for <unit>, graded` made after the ledger's last commit; the check is the line `if graded_after_ledger(wt, n, unit):` in skills/tdd/scripts/veri/skill_edit_half.py, and its case is named test_4450_a_graded_commit_after_the_ledger_calls_step_tick_directly in skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py ⟦criterion 8⟧
 - [ ] skill-edit-half.sh runs the step from its start (gh api, then skill-edit-step.sh) when the only `docs: requirements for <unit>, graded` commit is at or before the ledger's last commit ⟦criterion 8⟧
