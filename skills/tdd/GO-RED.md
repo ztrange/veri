@@ -22,7 +22,8 @@ command naming the case), so no go-red step is ticked without its probe.
     its case cannot see, and only the human can say whether the case or the break is wrong.
   - ``stopped at probe <file> no longer holds `<old>` ``: neither a bail. The step's probe is stale,
     so rewrite it against `<file>` as it now stands, commit the rewrite as a `plan: rewrite`
-    commit, have verify-plan check it, then rerun the step.
+    commit, run step 2c's verify-plan launch (`SKILL.md`) on the ledger; a REJECT follows step 2c's
+    rewrite route. Then rerun the step.
 - **Exit 2** ticks nothing: no open `⟦go-red⟧` step, a step naming no probe, no `veri: one test file:` line,
   the case already red on the unmutated file, a probe or `detect-test-command.sh` exit 2, the file
   not restored, or any `step-tick.sh` exit but 0 (a stray file its tree check finds included):

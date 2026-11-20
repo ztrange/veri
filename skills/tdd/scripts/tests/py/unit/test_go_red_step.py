@@ -50,9 +50,11 @@ def go_red(monkeypatch, run_cli, tmp_path):
     (wt / ".tdd").mkdir(parents=True)
     (wt / "src").mkdir()
 
-    def go(answers=None, fake=None, step=STEP, argv=("12",), during_probe=None, ledger=True):
+    def go(answers=None, fake=None, step=STEP, argv=("12",), during_probe=None, ledger=True, source=True):
         files = {(wt / ".tdd" / "issue-12-preflight"): "worktree=%s\nfast_cmd=make unit\n" % wt,
                  (wt / FILE): SOURCE}
+        if not source:
+            del files[wt / FILE]
         if ledger:
             files[wt / ".tdd" / "issue-12.md"] = LEDGER % step
         for path, text in files.items():
@@ -116,6 +118,13 @@ def test_4443_a_probe_that_sees_no_red_stops_with_exit_1_and_ticks_nothing(go_re
 
     assert (code, "step-tick.sh" in fake.names()) == (1, False)
     assert out.splitlines()[-1].startswith("stopped at probe ")
+
+
+def test_4480_a_missing_named_file_is_left_to_the_probes_exit_2_and_stops_at_probe_with_exit_2(go_red):
+    code, out, err, fake = go_red(answers={("mutation-probe.sh", None): (2, "")}, source=False)
+
+    assert (code, "step-tick.sh" in fake.names(), out.splitlines()[-1]) == (
+        2, False, "stopped at probe mutation-probe.sh exit 2")
 
 
 def test_4443_a_probe_exit_2_or_a_named_file_left_unrestored_stops_with_exit_2_and_ticks_nothing(go_red):
