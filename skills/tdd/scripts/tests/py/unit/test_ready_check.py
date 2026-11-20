@@ -955,3 +955,11 @@ def test_issue_4471_ready_check_with_a_claude_md_ci_on_pr_0_line_and_the_variabl
     code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{"git ls-tree": (0, "", "")})
 
     assert "ok    pull_request" in lines, lines
+
+
+def test_issue_4471_ready_check_with_a_claude_md_ci_on_pr_line_that_is_neither_0_nor_1_and_the_variable_unset_exits_2_with_one_stderr_line_naming_the_line(ready_check, run_cli, fake_processes, tmp_path):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: maybe\n")
+    fake_processes.answers(holding())
+    code, out, err = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+
+    assert (code, "veri: ci on pr:" in err and "maybe" in err, len(err.splitlines())) == (2, True, 1), (out, err)
