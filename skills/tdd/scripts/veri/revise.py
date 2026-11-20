@@ -227,6 +227,10 @@ def red_checks(n, wt, settled, step, values):
     gate = fused.call(fused.script("red-divergence.sh"), ".tdd/red-prediction.md", ".tdd/red-run-output.txt", cwd=wt,
                       stdin=read(wt, out), out=".tdd/verify-red.reason")[0]
     if gate == 3:
+        rerouted = rerouted_red(wt, n, step)
+        if rerouted is not None:
+            fused.checked("4", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step,
+                          *[arg for case in rerouted.get("cases", []) for arg in ("--except", case)], cwd=wt)
         return verify(n, wt, settled, step, values)
     if gate in UNMATCHED:
         with open(os.path.join(wt, ".tdd", "verify-red.reason"), "w") as f:

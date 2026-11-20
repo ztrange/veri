@@ -532,6 +532,24 @@ def test_a_tests_frozen_record_exit_1_on_a_revised_red_pass_spends_the_attempt_w
     assert (revise.wt / ".tdd" / "verify-red-2.reason").read_text() == "tests/test_b.py::test_two gone\n"
 
 
+
+def test_4482_red_on_a_rerouted_step_passes_check_earlier_one_except_per_case_the_route_named_before_verdict_red(revise):
+    _red(revise)
+    record = revise.wt / ".tdd" / "issue-12-red-half-rejected-wait"
+    record.write_text(json.dumps({"conductor": None, "at": "verdict-red", "step": STEP, "values": {
+        **RED_VALUES, "rerouted": ["tests/test_a.py", "tests/test_c.py"],
+        "cases": ["tests/test_c.py::test_three", "tests/test_c.py::test_four"]}}))
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, "")}, report=RED_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    names = fake.names()
+    assert fake.launched() == ["revise-red-1", "verdict-red"]
+    assert fake.call("tests-frozen.sh", "check-earlier")[1] == (
+        "check-earlier", ".tdd/issue-12.md", "--step", STEP,
+        "--except", "tests/test_c.py::test_three", "--except", "tests/test_c.py::test_four")
+    assert names.index("tests-frozen.sh") < names.index("detach-leaf.sh", names.index("wait-leaf.sh"))
+
+
 DSTEP = "the prompt says so ⟦diff-checked⟧ ⟦criterion 1⟧"
 STEP_BASE = "c" * 40
 RENAMED = ("step renamed and changed test cases, so the step must be split: "
