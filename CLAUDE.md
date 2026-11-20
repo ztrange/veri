@@ -174,7 +174,12 @@ against the cap names the cap file (PRD 036.11). A **load timeout**, cases of tw
 `~/.veri-test-timeouts` (`VERI_TEST_TIMEOUTS_FILE`), lowers T by 2, never below 2, at most once per window, through
 `~/.veri-test-load` (`VERI_TEST_LOAD_FILE`): while it holds a whole number of at least 2, every leg's T is the lesser of
 that and its T without it, and nothing in veri raises it back but `make ceiling`'s exit 0, which removes the file, or the
-human removing it (PRD 036.7). Cases run
+human removing it (PRD 036.7). While any lane's budget entry is unexpired, T is min(the ceiling or core
+fallback, lowered by the cap and a load timeout, the sum of the live lanes' needs), never below 2, each need max(N, live conductors) ×
+`VERI_CONDUCTOR_TEST_WORKERS` (default 2), written by `dispatch.sh` at each poll and by `role-state.sh dev set n`, and kept
+under `~/.veri-test-budget` (`VERI_TEST_BUDGET_DIR`) for `VERI_TEST_BUDGET_TTL` seconds (default 3600) after the last write;
+an expired, malformed or unreadable entry adds nothing, and a wait below the ceiling names each lane and its need (PRD 036.5).
+A narrower T never ends or shrinks a running leg: it binds the next leg to start. Cases run
 across pytest-xdist workers out of T: `make unit` and a `make test TESTS=…` subset min(4, the workers of T other running legs
 leave free) (each worker pays its own start-up; `make unit` hands the leg `--cap=4`, a subset's `--subset` caps it at 4), a full
 `make test` every free worker (#2100), and a leg of any kind that finds fewer than 2 free waits instead of starting (PRD 036.1,

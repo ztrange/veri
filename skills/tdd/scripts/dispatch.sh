@@ -6,6 +6,8 @@
 # No --target: N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state
 # under a VERI_LABEL of ready-for-agent:<lane>): its last n= line,
 # overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front.
+# Each poll writes the lane's test budget entry (VERI_TEST_BUDGET_DIR): need max(N, live conductors) x
+# VERI_CONDUCTOR_TEST_WORKERS, expiring after VERI_TEST_BUDGET_TTL seconds; the pytest leg narrows T to the needs.
 # Exit:    2 bad arguments, or no --target and that role state file unreadable or an override line has fewer than 4 fields
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/dispatch.py" "$@"

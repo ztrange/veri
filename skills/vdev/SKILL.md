@@ -125,6 +125,10 @@ conductor exit:
    `$S/role-state.sh dev [--lane <lane>]` at once, an override with the human as who asked (P9),
    and applied at this slot decision. Never change N on your own: no judgment of your own and no
    `vjudge` ruling changes N.
+   A numeric N also narrows the machine's test-worker budget T to the lanes' needs, never above the ceiling:
+   `role-state.sh dev set n` writes this lane's need, max(N, live conductors) × `VERI_CONDUCTOR_TEST_WORKERS`
+   (default 2), and prints the T it leaves, beside the other lanes' needs and the ceiling, so you weigh N's test cost
+   before you apply it; `dispatch.sh` rewrites the need at each poll.
    Write the change to the role state file (*Role state*): `dispatch.sh`, run without `--target`,
    reads N, an unexpired timed N and the order overrides from `.tdd/role-dev.state` (`.tdd/role-dev-<lane>.state` in a lane) at each slot
    decision, so an N change or an override needs no restart. An N of 0 in that file holds
