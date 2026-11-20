@@ -633,8 +633,9 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `timed-test-run.sh`: run a test command, save its whole output under `.tdd/test-runs/`, print in its place a declared quiet command's own output (its exit 2 named a broken run), a foreign tree's `changed` run's exit code and last 20 lines, or else a bounded report, and journal one `test-run` event.
 
 ## ci_on_pr
-- `runs_on_pull_requests()`: True when `VERI_CI_ON_PR` is 1 or, unset, a workflow of the current directory triggers on `pull_request`; ValueError carrying the refusal on a bad value.
-- `declared()`: `VERI_CI_ON_PR` as `"0"`, `"1"` or `""`; ValueError on anything else.
+- `runs_on_pull_requests()`: True when `declared()` is `"1"` or, `""`, a workflow of the current directory triggers on `pull_request`; ValueError carrying the refusal on a bad value.
+- `declared(root=".")`: `VERI_CI_ON_PR` as `"0"` or `"1"`; when it is unset or empty, the `veri: ci on pr:` line of `root`'s `CLAUDE.md` as `"0"` or `"1"`, else `""`; ValueError naming the variable or the line on any other value. `queued_merge` passes its worktree; the other callers read the directory they run in.
+- `line_answer(root=".")`: the value of the `veri: ci on pr:` line of `root`'s `CLAUDE.md`, `""` when the file or the line is missing.
 - `trigger_lines(text)`: generator of the lines of a workflow's `on:` block.
 
 ## detect_test_command
@@ -655,7 +656,7 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `rerun(alone_cmd, red_file)`: rerun each named target alone; 0 after a `suite-flake` event when all pass, 1 when none is named or one stays red.
 
 ## suite_mode
-- `run(script, variable)`: prints `ci` or `local` and returns 0; 2 with a message on a bad knob or a bad `VERI_CI_ON_PR`.
+- `run(script, variable)`: prints `ci` or `local` and returns 0; 2 with a message on a bad knob, a bad `VERI_CI_ON_PR` or a bad `veri: ci on pr:` line.
 
 ## stem_walk
 - `stem(path)`: the path's basename without its last extension, `-` read as `_`.
