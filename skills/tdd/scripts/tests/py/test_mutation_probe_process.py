@@ -563,3 +563,24 @@ def test_issue_3396_mutate_probe_exits_0_and_appends_one_record_when_the_baselin
                        (("file", str(target)), ("old-b64", "eA=="), ("new-b64", "eQ=="), ("context-b64", "eA=="),
                         ("command", command))) + "\n"
     assert (result.returncode, record.read_text() if record.exists() else None, target.read_bytes()) == (0, expected, b"x"), result.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
+def test_issue_4445_before_state_probe_exits_2_without_a_record_when_the_command_fails_on_the_unrestored_tree(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / "quote.txt").write_text("0\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / "quote.txt").write_text("10\n")
+    (tmp_path / "test.sh").write_text("exit 1\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "feature")
+    record = tmp_path.parent / (tmp_path.name + "-mutations.md")
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20,
+                            env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
+    assert (result.returncode, "command fails on the unmutated file" in result.stderr, record.exists()) == (2, True, False), result.stderr
