@@ -19,6 +19,7 @@ CALLS = EARLY + LATE
 
 
 def ledger_sha(wt, n):
+    """The sha of the ledger's last commit; "" when git fails or names none, which no record ever matches."""
     try:
         return fused.run_script("git", "log", "-1", "--format=%H", "--", run_dir.ledger("", "%s") % n, cwd=wt)[1].strip()
     except Exception:
@@ -92,11 +93,13 @@ def main(argv):
     path = fused.settled_file(wt, n, "run-pr")
     held = open(path).read() if os.path.exists(path) else ""
     seam = next((l[5:] for l in held.splitlines() if l.startswith("seam=")), "")
-    if first is None and "sha=%s\n" % ledger_sha(wt, n) in held:
+    sha = ledger_sha(wt, n)
+    if first is None and sha and "sha=%s\n" % sha in held:
         if seam == "body":
             return 0
-        # A stage's 3 resumes at that stage; the title seam at pr-ready-wait, save in a stacked run (RPR4, RPR6).
-        first = seam + ".sh" if seam + ".sh" in CALLS else LATE[0] if seam == "title" and not stacked(wt, n) else None
+        # A stage's 3 resumes at that stage, the title seam at pr-ready-wait: in a stacked run that is the stacked stop
+        # again, no stage called (RPR4, RPR6).
+        first = seam + ".sh" if seam + ".sh" in CALLS else LATE[0] if seam == "title" else None
     if not stacked(wt, n) and first in LATE:
         return run_late(n, wt, first, hands)
     return run_early(n, wt, first, hands)
