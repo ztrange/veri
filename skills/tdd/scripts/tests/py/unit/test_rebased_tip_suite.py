@@ -59,3 +59,12 @@ def test_main_prints_an_explicit_local_or_ci_as_given_whatever_the_tree_holds_an
     assert ci[:2] == (0, "ci\n")
     assert (code, out) == (2, "")
     assert "VERI_REBASED_TIP_SUITE" in err and len(err.splitlines()) == 1
+
+
+def test_main_with_ci_on_pr_unset_prints_local_for_a_claude_md_ci_on_pr_0_line_in_a_tree_with_a_pull_request_workflow(
+        tmp_path, run_cli, rebased_tip_suite):
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows" / "test.yml").write_text("on:\n  pull_request:\n")
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: 0\n")
+
+    assert run_cli(rebased_tip_suite, [], cwd=tmp_path)[:2] == (0, "local\n")

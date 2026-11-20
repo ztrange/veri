@@ -9,3 +9,10 @@ ICAgIHJhdyA9IHR1bmFibGVzLnJlYWQoIlZFUklfQ0lfT05fUFIiKSBvciBsaW5lX2Fuc3dlcigp
 command 65
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_ci_on_pr.py
 
+before 40
+caa28aed61165020b8e4cd6dce5476ec5555a506
+keep 58
+skills/tdd/scripts/tests/py/unit/test_rebased_tip_suite.py
+command 189
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_rebased_tip_suite.py::test_main_with_ci_on_pr_unset_prints_local_for_a_claude_md_ci_on_pr_0_line_in_a_tree_with_a_pull_request_workflow
+
