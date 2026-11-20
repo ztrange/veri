@@ -177,3 +177,21 @@ ICAgIHd0ID0gZnVzZWQucmVhZF9zZXR0bGVkKHJ1bl9zdGFydC5wcmVmbGlnaHRfZmlsZShuKSlbIndv
 command 159
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_exits_2_before_any_call_when_the_preflight_file_or_the_ledger_is_missing
 
+before 40
+ead8d4dfec49b848584f469b32a4dd70dc96ebc8
+keep 56
+skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py
+command 177
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_never_prints_what_skill_edit_step_wrote_to_its_out_file_leaf_output_or_grader_fail_reasons
+
+file 42
+skills/tdd/scripts/veri/skill_edit_half.py
+old-b64 56
+ICAgIGlmIGNvZGUgaW4gKDEsIDIpOgogICAgICAgIHJldHVybiBjb2Rl
+new-b64 176
+ICAgIGlmIGNvZGUgaW4gKDEsIDIpOgogICAgICAgIHN5cy5zdGRlcnIud3JpdGUob3Blbihvcy5wYXRoLmpvaW4od3QsICIudGRkIiwgInNraWxsLWVkaXQtJXMub3V0IiAlIG4pKS5yZWFkKCkpCiAgICAgICAgcmV0dXJuIGNvZGU=
+context-b64 32
+ICAgIGlmIGNvZGUgaW4gKDEsIDIpOg==
+command 177
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_never_prints_what_skill_edit_step_wrote_to_its_out_file_leaf_output_or_grader_fail_reasons
+
