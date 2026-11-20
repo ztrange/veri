@@ -62,3 +62,10 @@ ICAgIGZ1c2VkLmNhbGwoREVUQUNILCAic3RhcnQiLCAic2tpbGwtZWRpdC0iICsgbiwgU1RFUCwgYm9k
 command 166
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_the_detached_start_is_given_skill_edit_step_then_the_body_file_then_the_steps_unit
 
+before 40
+ead8d4dfec49b848584f469b32a4dd70dc96ebc8
+keep 56
+skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py
+command 157
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_with_every_file_tracked_it_passes_only_the_test_file_spans_after_the_unit
+
