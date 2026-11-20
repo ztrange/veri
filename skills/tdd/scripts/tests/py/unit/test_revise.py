@@ -550,6 +550,18 @@ def test_4482_red_on_a_rerouted_step_passes_check_earlier_one_except_per_case_th
     assert names.index("tests-frozen.sh") < names.index("detach-leaf.sh", names.index("wait-leaf.sh"))
 
 
+def test_4482_red_on_a_plain_step_no_reroute_touched_passes_check_earlier_no_except_before_verdict_red(revise):
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, "")}, report=RED_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    names = fake.names()
+    assert fake.launched() == ["revise-red-1", "verdict-red"]
+    assert [c[1] for c in fake.calls if c[0] == "tests-frozen.sh" and c[1][:1] == ("check-earlier",)] == [
+        ("check-earlier", ".tdd/issue-12.md", "--step", STEP)]
+    assert names.index("tests-frozen.sh") < names.index("detach-leaf.sh", names.index("wait-leaf.sh"))
+
+
 DSTEP = "the prompt says so ⟦diff-checked⟧ ⟦criterion 1⟧"
 STEP_BASE = "c" * 40
 RENAMED = ("step renamed and changed test cases, so the step must be split: "
