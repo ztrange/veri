@@ -66,10 +66,19 @@ def run(argv):
     if waited == 3:
         return 3
     os.remove(fused.wait_record(wt, n, "skill-edit-half"))
-    code = int(out.strip()) if waited else 0
-    if code in (1, 2):
-        return code
+    code = author_code(waited, out)
+    if code not in (0, 3):
+        return 1 if code == 1 else 2
     return fused.call(TICK, n, cwd=wt)[0]
+
+
+def author_code(waited, out):
+    """skill-edit-step.sh's exit from detach-command.sh wait's: 0 on its 0, the printed code on its 1, else None (the
+    wait obtained no answer)."""
+    if waited == 0:
+        return 0
+    said = out.strip()
+    return int(said) if waited == 1 and said.isdigit() else None
 
 
 if __name__ == "__main__":

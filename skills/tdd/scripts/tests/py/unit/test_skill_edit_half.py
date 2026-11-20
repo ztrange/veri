@@ -718,3 +718,28 @@ def test_4450_a_finished_author_removes_the_wait_record_so_the_next_step_starts_
     starts = [c for c in calls if c[0] == "detach-command.sh" and c[1][:1] == ("start",)]
     assert (code, len(starts), (wt / ".tdd" / "issue-12-skill-edit-half-wait").exists()) == (0, 1, False), calls
 
+
+def test_4450_an_author_killed_with_137_exits_2_and_ticks_nothing(monkeypatch, run_cli, tmp_path):
+    """SKH3, SKH7: only skill-edit-step.sh's 0 or 3 ticks; a killed author (wait exit 1 printing 137) obtained no
+    answer, so the stage exits 2 before step-tick.sh."""
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    _skill_edit_worktree(tmp_path)
+    calls = []
+    _fake_calls(monkeypatch, calls, [(1, "137\n", "")])
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert (code, [c for c in calls if c[0] == "step-tick.sh"]) == (2, []), (code, calls)
+
+
+def test_4450_a_wait_that_obtained_no_answer_exits_2_and_ticks_nothing(monkeypatch, run_cli, tmp_path):
+    """SKH16: detach-command.sh wait's own exit 2 (the author died with no exit file, or a `now` stop) is the
+    stage's exit 2, before step-tick.sh."""
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    _skill_edit_worktree(tmp_path)
+    calls = []
+    _fake_calls(monkeypatch, calls, [(2, "", "")])
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert (code, [c for c in calls if c[0] == "step-tick.sh"]) == (2, []), (code, calls)
