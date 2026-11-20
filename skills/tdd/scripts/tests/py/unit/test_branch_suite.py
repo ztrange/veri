@@ -63,3 +63,11 @@ def test_main_exits_2_naming_the_variable_and_its_value_on_a_bad_branch_suite_or
 
     explicit = run_cli(branch_suite, [], env={"VERI_BRANCH_SUITE": "ci", "VERI_CI_ON_PR": "yes"}, cwd=tmp_path)
     assert explicit[:2] == (0, "ci\n")
+
+
+def test_main_with_ci_on_pr_unset_prints_local_for_a_claude_md_ci_on_pr_0_line_in_a_tree_with_a_pull_request_workflow(
+        tmp_path, run_cli, branch_suite):
+    triggered = _tree(tmp_path / "triggered", "pull_request")
+    (triggered / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: 0\n")
+
+    assert run_cli(branch_suite, [], cwd=triggered)[:2] == (0, "local\n")

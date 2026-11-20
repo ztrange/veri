@@ -1,6 +1,7 @@
 """Whether CI runs on pull requests here: the one reader of VERI_CI_ON_PR, and of the workflows in the current directory."""
 import os
 
+import detect_test_command
 import tunables
 
 WORKFLOWS = ".github/workflows"
@@ -20,9 +21,19 @@ def trigger_lines(text):
             yield line
 
 
+def line_answer():
+    try:
+        detect_test_command.answer_from_file("CLAUDE.md", b"veri: ci on pr:")
+    except FileNotFoundError:
+        return ""
+    except detect_test_command.Answer as found:
+        return found.command.decode()
+    return ""
+
+
 def declared():
     """VERI_CI_ON_PR as set: `0`, `1`, or the empty string when unset or empty; a ValueError carrying the one-line refusal on anything else."""
-    raw = tunables.read("VERI_CI_ON_PR")
+    raw = tunables.read("VERI_CI_ON_PR") or line_answer()
     if raw not in ("", "0", "1"):
         raise ValueError("VERI_CI_ON_PR '%s' is not 0 or 1" % raw)
     return raw

@@ -1,6 +1,6 @@
 # Plan for #4471 — A repo without CI can declare it in CLAUDE.md, not only through VERI_CI_ON_PR in the environment
 
-- [ ] With a `veri: ci on pr: 0` line in the working tree's CLAUDE.md and VERI_CI_ON_PR unset, `branch-suite.sh` prints `local` in a tree whose `.github/workflows/` holds a workflow triggering on `pull_request` (the line is parsed by `detect_test_command.answer_from_file` and read only in `ci_on_pr.declared()`) ⟦criterion 4⟧
+- [x] With a `veri: ci on pr: 0` line in the working tree's CLAUDE.md and VERI_CI_ON_PR unset, `branch-suite.sh` prints `local` in a tree whose `.github/workflows/` holds a workflow triggering on `pull_request` (the line is parsed by `detect_test_command.answer_from_file` and read only in `ci_on_pr.declared()`) ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] With `VERI_CI_ON_PR=1` set and a `veri: ci on pr: 0` line in the working tree's CLAUDE.md, `ci_on_pr.declared()` returns `1`: the variable wins over the line ⟦criterion 5⟧
 - [ ] With a `veri: ci on pr: 0` line in the working tree's CLAUDE.md and VERI_CI_ON_PR unset, `rebased-tip-suite.sh` prints `local` in a tree whose `.github/workflows/` holds a workflow triggering on `pull_request` ⟦criterion 4⟧
 - [ ] With a `veri: ci on pr: 1` line in the working tree's CLAUDE.md and VERI_CI_ON_PR unset, `branch-suite.sh` prints `ci` in a tree with no `.github/workflows/` directory ⟦criterion 4⟧
