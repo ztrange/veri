@@ -152,6 +152,14 @@ def test_4482_green_called_again_runs_check_earlier_with_no_except_after_check_a
         "check-earlier", ".tdd/issue-12.md", "--step", STEP)
 
 
+def test_4482_green_a_check_earlier_exit_1_is_exit_1_launching_no_verdict_green(revise):
+    revise(answers={("wait-leaf.sh", "revise-green-1"): (3, "")})
+    code, out, err, fake = revise(answers={("tests-frozen.sh", "check-earlier"): (1, "earlier test changed\n"),
+                                           ("wait-leaf.sh", "verdict-green"): (3, "")})
+
+    assert (code, fake.launched()) == (1, [])
+
+
 def test_4482_green_on_a_replaces_case_step_passes_check_earlier_one_except_per_replaced_case(revise):
     step = "port it: replaces 'case one' and 'case two' in tests/py/test_x.py ⟦replaces-case⟧ ⟦criterion 2⟧"
     (revise.wt / ".tdd" / "issue-12.md").write_text(LEDGER % step)

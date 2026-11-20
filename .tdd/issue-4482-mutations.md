@@ -41,3 +41,10 @@ ICAgIGV4Y2VwdGVkID0gKHJlcGxhY2VzX2Nhc2UucGFyc2Uoc3RlcCkgb3IgKFtdLCAiIikpWzBdIGlm
 command 164
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise.py::test_4482_green_on_a_replaces_case_step_whose_cases_cannot_be_parsed_passes_check_earlier_no_except
 
+before 40
+50a6e8b31267663864c338bdd82d44ffba6eb6f4
+keep 47
+skills/tdd/scripts/tests/py/unit/test_revise.py
+command 140
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise.py::test_4482_green_a_check_earlier_exit_1_is_exit_1_launching_no_verdict_green
+
