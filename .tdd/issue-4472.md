@@ -1,0 +1,45 @@
+# Plan for #4472 — PRD 040.1: verify-branch, a blind verifier judges the whole branch before readying
+
+- [ ] `add-ledger-step.sh` appends a `⟦diff-checked⟧ ⟦branch-repair⟧` step with no `⟦added⟧`, `branch-repair` being one of `REPAIR_MARKS` in `add_ledger_step.py` ⟦criterion 8⟧
+- [ ] `ledger.py`'s `KIND_RE` reads a `⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion k⟧` step as kind `diff-checked` ⟦criterion 9⟧
+- [ ] `ledger_growth.counted_steps` leaves out a `⟦branch-repair⟧` step, so with one in the ledger `ledger-growth.sh`'s cap on `⟦added⟧` steps is the same as without it ⟦criterion 10⟧
+- [ ] `classify-bail.sh branch-rejected` labels the cause `process` ⟦criterion 13⟧
+- [ ] Under `VERI_EVENT_STRICT=1`, `event.sh bail cause=branch-rejected` is accepted (exit 0), `event_table.py`'s bail-cause list naming `branch-rejected` ⟦criterion 13⟧
+- [ ] `run-conductor.sh` accepts `branch` in `VERI_SKIP_VERIFY` (no exit 2 naming it), `plan` still refused ⟦criterion 15⟧
+- [ ] `run-conductor.sh` with a `VERI_BRANCH_REPAIRS` that is not a whole number of at least 0 (e.g. `x`) exits 2 naming the variable before any leaf launches, `VERI_BRANCH_REPAIRS` being a tunable of `tunables.py` with default `1` ⟦criterion 12⟧
+- [ ] Metrics count a `verify-branch-skipped` event on the `Verifiers switched off:` line as `branch`, `metrics.SWITCHED_OFF_EVENTS` naming it ⟦criterion 16⟧
+- [ ] With `branch` in the run's pinned skip list, the PR body's `⚠️ Unverified phases:` line names `branch` ⟦criterion 17⟧
+- [ ] With `branch` in the run's pinned skip list, the `✅ Done` comment's `⚠️ Unverified phases:` line names `branch` ⟦criterion 17⟧
+- [ ] ⟦skill-edit⟧ `skills/tdd/scripts/prompts/verify-branch.md` exists, its rows VB1–VB5 under `## skills/tdd/scripts/prompts/verify-branch.md` in `skills/tdd/scripts/prompts/REQUIREMENTS.md`, graded so `prose-owed.sh` exits 0 ⟦criterion 25⟧
+- [ ] Test-only, no production change: the case in `skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py` that pins `build_verify_prompt.PHASES` as an exact ten-phase tuple is rewritten to assert each of those ten phases is in `PHASES`, in that order, so it passes on the code before and after a `branch` phase is added ⟦diff-checked⟧ ⟦criterion 2⟧
+- [ ] `build-verify-prompt.sh --fast-cmd '<fast-cmd>' --branch-base <sha> branch <issue-spec-file>` exits 0 printing the `verify-branch.md` prompt filled with `git diff <sha>..HEAD`, the spec file's acceptance criteria and the fast command, and no other input ⟦criterion 2⟧
+- [ ] The `branch` prompt's spec rows the issue names are read at `<branch-base>`: a row changed on the branch after the base appears in the prompt as it reads at the base ⟦criterion 2⟧
+- [ ] `build-verify-prompt.sh branch` given any argument beyond `--fast-cmd`, `--branch-base` and the spec file exits 2 ⟦criterion 3⟧
+- [ ] `build-verify-prompt.sh branch` given a `--branch-base` not matching `^[0-9a-f]{7,40}$` exits 2 ⟦criterion 3⟧
+- [ ] A case in `unit/test_build_verify_prompt.py` feeds `branch` an input that could carry a leaf's words (a leaf report path such as `.tdd/develop-green.out`, a commit message), asserts exit 2, and goes red with the refusal removed ⟦criterion 4⟧
+- [ ] Test-only, no production change: the cases in `skills/tdd/scripts/tests/py/unit/test_run_pr.py` that pin `run_pr.CALLS` as exactly five stages (the set-and-length case and the "for each of the five stage names" case) are rewritten to assert those five stages appear in `CALLS` in their order, so they pass on the code before and after a stage is added between `pr-checks.sh` and `pr-ready-wait.sh` ⟦diff-checked⟧ ⟦criterion 1⟧
+- [ ] `verify-branch.sh <n>` is a new stage (module `veri/verify_branch.py` behind a `/bin/sh` shim): with no argument it prints a usage line and exits 2, and `run-pr.sh` calls it after `pr-checks.sh` and before `pr-ready-wait.sh` ⟦criterion 1⟧
+- [ ] `verify-branch.sh <n>` launches the `verdict-branch` leaf through `fused.launch` (`detach-leaf.sh` then `supervise.sh`) running `run-verdict.sh --fast-cmd '<fast-cmd>' --branch-base <recorded branch base> branch .tdd/issue-<n>-spec.md`, never `run-leaf.sh` or `claude` directly ⟦criterion 20⟧
+- [ ] The `verify-branch` leaf's model is `VERI_MODEL_VERIFIER` when set, else `VERI_MODEL`, else sonnet, and `VERI_MODEL_DEVELOPER` does not select it ⟦criterion 18⟧
+- [ ] `verify-branch.sh <n>` called again while its `verdict-branch` leaf is still running launches no second leaf and exits 3 while `wait-leaf.sh` exits 3 ⟦criterion 20⟧
+- [ ] When the `verdict-branch` leaf's verdict is PASS, `verify-branch.sh <n>` exits 0 with no step added to the ledger, and `run-pr.sh` goes on to `pr-ready-wait.sh` ⟦criterion 5⟧
+- [ ] On a PASS, `verify-branch.sh <n>` writes the tip's `HEAD` sha to `.tdd/issue-<n>-branch-verified` ⟦criterion 19⟧
+- [ ] `verify-branch.sh <n>` with `HEAD` equal to the sha in `.tdd/issue-<n>-branch-verified` launches no leaf and exits 0 ⟦criterion 19⟧
+- [ ] `verify-branch.sh <n>` with `HEAD` differing from the sha in `.tdd/issue-<n>-branch-verified` launches the `verdict-branch` leaf ⟦criterion 19⟧
+- [ ] On a REJECT with fewer `⟦branch-repair⟧` steps in the ledger than `VERI_BRANCH_REPAIRS`, `verify-branch.sh <n>` appends one `⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion k⟧` step through `add-ledger-step.sh`, no `⟦added⟧`, its text carrying the verifier's reason from `.tdd/verify-branch.reason`, and exits 1 ⟦criterion 6⟧
+- [ ] That REJECT's appended step is committed as one `plan:` commit holding `.tdd/issue-<n>.md` and `.tdd/issue-<n>-added.md` ⟦criterion 6⟧
+- [ ] When `verify-branch.sh` exits 1 after appending a repair step, `run-pr.sh <n>` prints `seam=verify-branch code=1 reason=rejected next=DRAFT-PR.md#4. Draft PR`, exits 1 and calls no `pr-ready-wait.sh` ⟦criterion 7⟧
+- [ ] A later `run-pr.sh <n>` on the repaired ledger's new sha restarts at `branch-gate.sh`, calls `branch-gate.sh`, `pr-prepare.sh`, `pr-checks.sh` and `verify-branch.sh` again in order ⟦criterion 7⟧
+- [ ] On a REJECT with the ledger already holding `VERI_BRANCH_REPAIRS` (default 1) `⟦branch-repair⟧` steps, `verify-branch.sh <n>` appends no step, bails with cause `branch-rejected` through `bail.sh`, and exits 1 ⟦criterion 11⟧
+- [ ] With `VERI_BRANCH_REPAIRS=2` and one `⟦branch-repair⟧` step in the ledger, a REJECT appends a second repair step instead of bailing ⟦criterion 11⟧
+- [ ] When the `verdict-branch` leaf ends with no verdict (`wait-leaf.sh` exit 2 after `run-verdict.sh`'s `VERI_NO_VERDICT_RETRIES`), `verify-branch.sh <n>` exits 2, appends no step and records no `branch-rejected` bail ⟦criterion 14⟧
+- [ ] With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` launches no leaf and records `verify-branch-skipped reason=switched-off` ⟦criterion 16⟧
+- [ ] With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` writes `skipped` to `.tdd/verdict-branch.exit` and exits 0 ⟦criterion 16⟧
+- [ ] ⟦skill-edit⟧ `skills/tdd/DRAFT-PR.md` states the `verify-branch` stage: position, inputs, PASS, REJECT and its repair step, `VERI_BRANCH_REPAIRS` and the `branch-rejected` bail, the no-verdict route, the skip, the `next=` return to the cycle loop (rows DP361, DP362, DP363) ⟦criterion 21⟧
+- [ ] `skills/tdd/SKILL.md` grows by at most 0 B net: no step of the run edits it, so `git diff <branch-base>..HEAD -- skills/tdd/SKILL.md` is empty ⟦human-owed⟧ ⟦criterion 22⟧
+- [ ] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md` names the `branch` phase of `build-verify-prompt.sh` and `verify-branch.sh` among `run-pr.sh`'s stages, after `pr-checks` and before the title seam (row SC<next>) ⟦criterion 23⟧
+- [ ] ⟦skill-edit⟧ `skills/tdd/BAIL.md` lists `branch-rejected`, exit 1, a process failure (row BL179) ⟦criterion 23⟧
+- [ ] ⟦skill-edit⟧ `CLAUDE.md`'s budget invariant reads twelve budgets on twelve axes naming `VERI_BRANCH_REPAIRS`, and its blind-verifier invariant lists `branch` among the `VERI_SKIP_VERIFY` phases (rows CM310, CM311) ⟦criterion 24⟧
+- [ ] ⟦skill-edit⟧ `skills/tdd/PREFLIGHT.md` step 5 lists `VERI_BRANCH_REPAIRS` among the tunables it checks and `branch` among the `VERI_SKIP_VERIFY` phases (row PF73) ⟦criterion 24⟧
+- [ ] `docs/adr/0033-blind-verifiers-can-be-switched-off-per-phase.md`'s phase list gains `branch`, `plan` staying refused ⟦diff-checked⟧ ⟦criterion 15⟧
+- [ ] The PR body carries the cost line: one sonnet verifier leaf per run (estimated $0.3-1, measured from the first runs' `| total |` line) plus at most one repair step, on the subscription; cheaper option not taken: the operator's review alone ⟦human-owed⟧ ⟦criterion 26⟧
