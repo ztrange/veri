@@ -1770,6 +1770,33 @@ def test_4471_queued_merge_runs_the_wait_ci_gate_in_the_merge_worktree_so_wait_c
     assert (code, seen) == (0, ["/wt"]), err
 
 
+def test_4471_queued_merge_runs_the_rebased_trees_full_suite_in_the_merge_worktree_so_it_tests_that_tree_not_the_launch_directorys(
+        fake_processes, run_cli, tmp_path):
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    (worktree / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: 0\n")
+    launch = tmp_path / "launch"
+    launch.mkdir()
+    seen = []
+
+    def recording(answer):  # the scenario's worktree is /wt; this one is on disk
+        def wrapped(line, **kwargs):
+            line = line.replace(str(worktree), "/wt")
+            if "detect-test-command" in line:
+                return 0, "make test\n", ""
+            if "make test" in line:
+                seen.append(kwargs.get("cwd"))
+                return 0, "", ""
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    scenario(recording)
+
+    code, _, err = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], cwd=str(launch))
+
+    assert (code, seen) == (0, [str(worktree)]), err
+
+
 def test_4471_queued_merge_with_a_ci_on_pr_line_that_is_neither_0_nor_1_and_the_variable_unset_exits_2_with_one_stderr_line_naming_the_line(
         fake_processes, run_cli, tmp_path):
     worktree = tmp_path / "wt"
