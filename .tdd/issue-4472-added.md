@@ -1,0 +1,3 @@
+- [ ] `run-pr.sh` calls `verify-branch.sh <n>`, a new stage (module `veri/verify_branch.py` behind a `/bin/sh` shim), after `pr-checks.sh` and before `pr-ready-wait.sh` ⟦criterion 1⟧
+- [ ] `verify-branch.sh` with no argument prints a usage line on stderr and exits 2 ⟦criterion 1⟧
+- [ ] On a REJECT with fewer `⟦branch-repair⟧` steps in the ledger than `VERI_BRANCH_REPAIRS`, `verify-branch.sh <n>` appends one `⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion k⟧` step through `add-ledger-step.sh`, no `⟦added⟧`, its text carrying the verifier's reason from `.tdd/verify-branch.reason` ⟦criterion 6⟧
