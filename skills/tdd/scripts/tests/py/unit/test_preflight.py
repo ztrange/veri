@@ -1024,7 +1024,7 @@ def _ready(*fails):
 
 REFUSING = ["fail  fast tier: add a `veri: fast tests:` line to CLAUDE.md",
             "fail  all tier: add a `veri: all tests:` line to CLAUDE.md",
-            "fail  pull_request: add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR",
+            "fail  pull_request: add a workflow under .github/workflows/ that triggers on pull_request, add a `veri: ci on pr: 0|1` line to CLAUDE.md, or set VERI_CI_ON_PR",
             "fail  gh auth: run `gh auth login`",
             "fail  push access: ask for write access to the repository, or use an account that has it",
             "fail  label ready-for-agent:x: create the `ready-for-agent:x` label in the repository"]
