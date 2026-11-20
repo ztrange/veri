@@ -4,7 +4,8 @@
 #
 # Usage:   go-red-step.sh <n>
 # Exit:    0 the step ticked, step-tick.sh's next= line last; 1 the probe saw no red, nothing ticked; 2 bad
-#          arguments, a missing input, no open ⟦go-red⟧ step, a step naming no probe, the probe's 2, the named
+#          arguments, a missing input, no open ⟦go-red⟧ step, a step naming no probe, no `veri: one test file:`
+#          command (detect-test-command.sh exit 3) or its exit 2, the probe's 2, the named
 #          file not restored, or any step-tick.sh exit but 0
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/go_red_step.py" "$@"

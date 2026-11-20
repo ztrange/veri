@@ -65,14 +65,13 @@ def read_bytes(wt, path):
 
 
 def command(wt, case):
-    """The probe's command: the `veri: one test file:` command on <case>, else the all-tier one; a
-    detect-test-command.sh exit but 0 or 3 stops with exit 2."""
+    """The probe's command: the `veri: one test file:` command on <case>. Its absence (detect-test-command.sh exit 3)
+    stops with exit 2, as does any other exit but 0: the all-tier command would probe every case, not the named one."""
     code, alone, _ = fused.call(fused.script("detect-test-command.sh"), "--tier", "one test file", cwd=wt)
     if code == 0:
         return ("sh", "-c", alone.strip(), "sh", case)
     if code == 3:
-        return ("sh", "-c", fused.checked("probe", fused.script("detect-test-command.sh"), "--tier", "all",
-                                          cwd=wt).strip())
+        sys.stderr.write("go-red-step.sh: no `veri: one test file:` line, so the case %s cannot be probed alone\n" % case)
     raise fused.Stop("probe", "detect-test-command.sh --tier one test file exit %d" % code, 2)
 
 
