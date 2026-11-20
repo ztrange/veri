@@ -220,7 +220,7 @@ def test_issue_2900_before_state_probe_restores_the_working_tree_when_the_comman
     (tmp_path / "test.sh").write_text("exit 0\n")
     git("add", ".")
     git("commit", "-q", "-m", "feature")
-    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "rm", "a_gone.txt"],
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "rm", "-f", "a_gone.txt"],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
     assert (result.returncode, (tmp_path / "a_gone.txt").exists(), (tmp_path / "b_changed.txt").read_text(),
             "Traceback" in result.stderr) == (1, False, "branch-content\n", False), result.stderr
@@ -240,10 +240,13 @@ def test_issue_2900_before_state_probe_restores_a_renamed_file_as_the_new_name_r
     (tmp_path / "test.sh").write_text("exit 0\n")
     git("add", ".")
     git("commit", "-q", "-m", "feature")
-    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "-c",
-                             "test ! -e new_name.txt && grep -q 'line two' old_name.txt"],
+    log = tmp_path.parent / (tmp_path.name + "-log")
+    script = ('for f in new_name.txt old_name.txt; do if test -e "$f"; then echo "$f present"; else echo "$f absent"; fi; done >> "$1"; '
+              'if grep -q "line two" old_name.txt 2>/dev/null; then echo content-ok >> "$1"; fi')
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "-c", script, "sh", str(log)],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
-    assert (result.returncode, (tmp_path / "new_name.txt").exists(), (tmp_path / "old_name.txt").exists()) == (1, True, False), result.stderr
+    assert (result.returncode, log.read_text().endswith("new_name.txt absent\nold_name.txt present\ncontent-ok\n"),
+            (tmp_path / "new_name.txt").exists(), (tmp_path / "old_name.txt").exists()) == (1, True, True, False), result.stderr
 
 
 @pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
@@ -262,9 +265,11 @@ def test_issue_2900_before_state_probe_puts_a_restored_tracked_file_back_to_its_
     git("commit", "-q", "-m", "feature")
     dirty = b"\x00\xffuncommitted edit\r\n"
     (tmp_path / "prod.bin").write_bytes(dirty)
-    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "grep", "-q", "sha-content", "prod.bin"],
+    log = tmp_path.parent / (tmp_path.name + "-log")
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "-c",
+                             'if grep -q sha-content prod.bin; then echo restored >> "$1"; fi', "sh", str(log)],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
-    assert (result.returncode, (tmp_path / "prod.bin").read_bytes()) == (1, dirty), result.stderr
+    assert (result.returncode, log.read_text(), (tmp_path / "prod.bin").read_bytes()) == (1, "restored\n", dirty), result.stderr
 
 
 @pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
@@ -279,9 +284,12 @@ def test_issue_2900_before_state_probe_removes_again_a_file_it_brought_back_when
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD").strip()
     (tmp_path / "gone.txt").unlink()
-    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "grep", "-q", "sha-content", "gone.txt"],
+    log = tmp_path.parent / (tmp_path.name + "-log")
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "-c",
+                             'if test -e gone.txt; then echo present >> "$1"; fi', "sh", str(log)],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
-    assert (result.returncode, (tmp_path / "gone.txt").exists(), git("status", "--porcelain")) == (1, False, " D gone.txt\n"), result.stderr
+    assert (result.returncode, log.read_text(), (tmp_path / "gone.txt").exists(), git("status", "--porcelain")) == (
+        1, "present\n", False, " D gone.txt\n"), result.stderr
 
 
 @pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
@@ -366,7 +374,7 @@ def test_issue_2900_before_state_probe_exiting_0_appends_before_keep_and_command
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD").strip()
     (tmp_path / "quote.txt").write_text("10\n")
-    (tmp_path / "test.sh").write_text("exit 1\n")
+    (tmp_path / "test.sh").write_text('test "$(cat quote.txt)" = 10\n')
     git("add", ".")
     git("commit", "-q", "-m", "feature")
     green = git("rev-parse", "HEAD").strip()
@@ -389,7 +397,7 @@ def test_issue_2974_before_state_probe_exiting_0_records_the_green_commit_head_n
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD").strip()
     (tmp_path / "quote.txt").write_text("10\n")
-    (tmp_path / "test.sh").write_text("exit 1\n")
+    (tmp_path / "test.sh").write_text('test "$(cat quote.txt)" = 10\n')
     git("add", ".")
     git("commit", "-q", "-m", "feature")
     green = git("rev-parse", "HEAD").strip()
@@ -413,7 +421,7 @@ def test_issue_3357_before_state_probe_records_the_command_without_the_timed_tes
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD").strip()
     (tmp_path / "quote.txt").write_text("10\n")
-    (tmp_path / "test.sh").write_text("exit 1\n")
+    (tmp_path / "test.sh").write_text('test "$(cat quote.txt)" = 10\n')
     git("add", ".")
     git("commit", "-q", "-m", "feature")
     record = tmp_path.parent / (tmp_path.name + "-mutations.md")
@@ -462,7 +470,7 @@ def test_issue_3016_before_state_probe_at_a_plan_only_head_does_not_stamp_head_a
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD").strip()
     (tmp_path / "quote.txt").write_text("10\n")
-    (tmp_path / "test.sh").write_text("exit 1\n")
+    (tmp_path / "test.sh").write_text('test "$(cat quote.txt)" = 10\n')
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-3016.md").write_text("- [ ] 1. the step\n")
     git("add", ".")
