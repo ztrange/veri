@@ -1,6 +1,7 @@
 """go-red-step.sh's computation, run in-process: a ⟦go-red⟧ step's one stage, a mutation probe on the case the step
 names, recorded in the run's mutation record, then step-tick.sh (#4443)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
 
 import fused
@@ -38,10 +39,26 @@ def run(n):
                          % ledger.GO_RED_MARK)
         return 2
     path, old, new, case = probe
-    fused.call(fused.script("mutation-probe.sh"), path, old, new, "--", *command(wt, case), cwd=wt,
-               env=tunables.with_values(VERI_MUTATION_RECORD=RECORD % n), out=".tdd/go-red-probe.out")
+    before = read_bytes(wt, path)
+    code = fused.call(fused.script("mutation-probe.sh"), path, old, new, "--", *command(wt, case), cwd=wt,
+                      env=tunables.with_values(VERI_MUTATION_RECORD=RECORD % n), out=".tdd/go-red-probe.out")[0]
+    if code == 1:
+        raise fused.Stop("probe", "%s stayed green with %s→%s in %s" % (case, old, new, path), 1)
+    if code != 0:
+        raise fused.Stop("probe", "mutation-probe.sh exit %d" % code, 2)
+    if read_bytes(wt, path) != before:
+        raise fused.Stop("restore", "%s differs from its bytes before the probe" % path, 2)
     fused.checked("tick", fused.script("step-tick.sh"), n, cwd=wt)
     return 0
+
+
+def read_bytes(wt, path):
+    """<path>'s bytes under the worktree; None when it cannot be read."""
+    try:
+        with open(os.path.join(wt, path), "rb") as f:
+            return f.read()
+    except OSError:
+        return None
 
 
 def command(wt, case):

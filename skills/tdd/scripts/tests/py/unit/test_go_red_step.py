@@ -116,3 +116,21 @@ def test_4443_with_no_one_test_file_command_it_probes_with_the_all_tier_command_
     code, out, err, fake = go_red(answers={("detect-test-command.sh", "--tier"): (2, "")})
     assert (code, "mutation-probe.sh" in fake.names(), "step-tick.sh" in fake.names()) == (2, False, False)
     assert out.splitlines()[-1].startswith("stopped at probe")
+
+
+def test_4443_a_probe_that_sees_no_red_stops_with_exit_1_and_ticks_nothing(go_red):
+    code, out, err, fake = go_red(answers={("mutation-probe.sh", None): (1, "")})
+
+    assert (code, "step-tick.sh" in fake.names()) == (1, False)
+    assert out.splitlines()[-1].startswith("stopped at probe ")
+
+
+def test_4443_a_probe_exit_2_or_a_named_file_left_unrestored_stops_with_exit_2_and_ticks_nothing(go_red):
+    results = []
+    code, out, err, fake = go_red(answers={("mutation-probe.sh", None): (2, "")})
+    results.append((code, "step-tick.sh" in fake.names(), out.splitlines()[-1].split(" ")[:3]))
+    left = go_red.wt / FILE
+    code, out, err, fake = go_red(during_probe=lambda: left.write_text("if False:\n    raise SystemExit(2)\n"))
+    results.append((code, "step-tick.sh" in fake.names(), out.splitlines()[-1].split(" ")[:3]))
+
+    assert results == [(2, False, ["stopped", "at", "probe"]), (2, False, ["stopped", "at", "restore"])]
