@@ -118,3 +118,27 @@ def test_timeouts_from_one_test_file_only_however_many_write_no_load_file(pytest
 
     assert (code, len(open(os.environ["VERI_TEST_TIMEOUTS_FILE"]).read().splitlines()),
             os.path.exists(os.environ["VERI_TEST_LOAD_FILE"])) == (1, 6, False)
+
+
+def test_a_line_older_than_veri_load_window_seconds_does_not_count_toward_a_load_timeout(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    with open(os.environ["VERI_TEST_TIMEOUTS_FILE"], "w") as f:
+        f.write("%d 4242 tests/py/unit/test_y.py tests/py/unit/test_y.py::test_other 6\n" % (time.time() - 120))
+    timing_out(monkeypatch, "tests/py/unit/test_x.py::test_slow")
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_LOAD_WINDOW="60"), cwd=str(tree))[0]
+
+    assert (code, os.path.exists(os.environ["VERI_TEST_LOAD_FILE"])) == (1, False)
+
+
+def test_veri_load_window_defaults_to_600_seconds(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    with open(os.environ["VERI_TEST_TIMEOUTS_FILE"], "w") as f:
+        f.write("%d 4242 tests/py/unit/test_y.py tests/py/unit/test_y.py::test_old 6\n" % (time.time() - 660))
+    timing_out(monkeypatch, "tests/py/unit/test_x.py::test_slow")
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(), cwd=str(tree))[0]
+
+    assert (code, os.path.exists(os.environ["VERI_TEST_LOAD_FILE"])) == (1, False)
