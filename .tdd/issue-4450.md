@@ -15,7 +15,7 @@
 - [x] skill-edit-half.sh <n> on an open skill-edit step first reads the issue body with `gh api repos/{owner}/{repo}/issues/<n> -q .body` into `.tdd/issue-<n>-body` ⟦criterion 1⟧
 - [x] skill-edit-half.sh then runs skill-edit-step.sh on `.tdd/issue-<n>-body` and the unit ledger.unit_of reads off the step, as `detach-command.sh start skill-edit-<n>` followed by `detach-command.sh wait skill-edit-<n>` ⟦criterion 3⟧
 - [x] skill-edit-half.sh calls `step-tick.sh <n>` through fused.script() after skill-edit-step.sh exits 0, and exits 0 on its 0 ⟦criterion 1⟧
-- [x] skill-edit-half.sh prints one line per call it makes, naming the call and its exit code ⟦criterion 13⟧ ⟂ refactor pending
+- [x] skill-edit-half.sh prints one line per call it makes, naming the call and its exit code ⟦criterion 13⟧
 - [ ] skill-edit-half.sh passes `--added "<step>"` first to skill-edit-step.sh when the open step's ledger line carries ⟦added⟧ ⟦criterion 1⟧
 - [ ] skill-edit-half.sh <n> --change "<change>" passes `--change "<change>"` to skill-edit-step.sh after any --added and before the issue body file ⟦criterion 1⟧
 - [ ] skill-edit-half.sh passes, after the unit, the step's path-shaped backticked spans after its unit that name a git-tracked test file (case_reader.is_test_path), in the step's order, and takes no pin-file argument ⟦criterion 2⟧
