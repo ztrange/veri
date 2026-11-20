@@ -3,7 +3,8 @@
 Run `$S/run-step.sh <n>`, again on exit 3: it runs `go-red-step.sh`, this section in one call,
 and on 1 or 2 its last line names where it stopped.
 
-A go-red guard step names its probe as ``probe `<file>` `<old>` → `<new>` on `<case>` ``: the
+A go-red guard step carries `⟦go-red⟧` among the markers that end its line and names its probe as
+``probe `<file>` `<old>` → `<new>` on `<case>` ``: the
 guard broken on purpose (`<old>` replaced by `<new>` in `<file>`) and the existing case that must
 go red under it. It runs no Red leaf, no Green and no Refactor, and adds no test: the case is
 already pinned, and what the step owes is the evidence that it guards. `go-red-step.sh` runs
