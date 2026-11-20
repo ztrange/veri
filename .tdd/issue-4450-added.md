@@ -2,7 +2,7 @@
 - [x] skill-edit-half.sh <n> on an open skill-edit step first reads the issue body with `gh api repos/{owner}/{repo}/issues/<n> -q .body` into `.tdd/issue-<n>-body` ⟦criterion 1⟧
 - [x] skill-edit-half.sh then runs skill-edit-step.sh on `.tdd/issue-<n>-body` and the unit ledger.unit_of reads off the step, as `detach-command.sh start skill-edit-<n>` followed by `detach-command.sh wait skill-edit-<n>` ⟦criterion 3⟧
 - [x] skill-edit-half.sh calls `step-tick.sh <n>` through fused.script() after skill-edit-step.sh exits 0, and exits 0 on its 0 ⟦criterion 1⟧
-- [ ] skill-edit-half.sh prints one line per call it makes, naming the call and its exit code ⟦criterion 13⟧
+- [x] skill-edit-half.sh prints one line per call it makes, naming the call and its exit code ⟦criterion 13⟧
 - [x] run-step.sh on a skill-edit-half.sh exit 2 prints `out=.tdd/skill-edit-<n>.out refusal=no` before its seam line when that file is missing, or holds no line starting `Requirements heading names no existing unit: ` ⟦added⟧ ⟦criterion 6⟧
 - [x] run-step.sh on a skill-edit-half.sh exit 2 prints `refusal=yes` when `.tdd/skill-edit-<n>.out` holds any of the other `## Requirements` refusals skill-edit-step.sh prints: `rows for <unit> are not under ## Requirements`, `a ## Requirements row is under no ### unit heading`, `## Requirements has no ### heading for unit: `, `## Requirements table for <unit> lacks its header: ` ⟦added⟧ ⟦criterion 6⟧
 - [x] run-step.sh on a skill-edit-half.sh exit 2 prints `refusal=yes` when `.tdd/skill-edit-<n>.out` holds a `skill-edit-guard.sh: ` refusal line ⟦added⟧ ⟦criterion 6⟧

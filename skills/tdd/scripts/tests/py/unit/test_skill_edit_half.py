@@ -113,3 +113,32 @@ def test_4450_after_skill_edit_step_exits_0_it_calls_step_tick_with_n_and_exits_
     assert [c for c in calls if c[0] == "step-tick.sh"] == [("step-tick.sh", ("12",))], calls
     assert calls[-1][0] == "step-tick.sh", calls
     assert code == 0
+
+
+def test_4450_it_prints_one_line_per_call_it_makes_naming_the_call_and_its_exit_code(
+        monkeypatch, run_cli, tmp_path):
+    """Criterion 13: stdout holds one line per call, naming it and its exit code, and never a call's own output."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        if base == "gh":
+            return 0, BODY, ""
+        if base == "step-tick.sh":
+            return 7, "", ""
+        return 0, ("leaf transcript\n" if args[:1] == ("wait",) else ""), ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    _, out, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    lines = out.splitlines()
+    assert [line.rsplit(" exit ", 1)[-1] for line in lines] == ["0", "0", "0", "7"], out
+    assert [line.split(" ", 1)[0] for line in lines] == [
+        "gh", "detach-command.sh", "detach-command.sh", "step-tick.sh"], out
