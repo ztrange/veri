@@ -40,11 +40,10 @@ Invoked as `/vdev [<lane>] [N] [--auto] [--resume <file>]`.
   never edit the user's instructions.
 - **Merging is always granted** for the runs this session finishes, in the project repo only.
   A run is merged after its review is OK; never one in another repo.
-- **`--resume <file>`** is read only in a session without the app's `start_session` tool (a
-  terminal). There it reads a handoff for state only (live conductors, PRs awaiting merge, N and
-  any timed change; overrides and permissions are in the role state file); the rules are this skill's.
-  Re-read that state live before the first slot decision. In a session with that tool, read no
-  handoff file, even when one is named: recover from the role state file as *Recovery* says.
+- **`--resume <file>`** is read in every session. It reads a handoff for state only (live
+  conductors, PRs awaiting merge, N and any timed change; overrides and permissions are in the
+  role state file); the rules are this skill's. Re-read that state live before the first slot
+  decision.
 
 **Recovery.** When a state file for this role and lane exists, recover: read it through
 `$S/status.sh --recover dev [--lane <lane>]` and read nothing else before your first slot
@@ -56,8 +55,10 @@ section lists, acts on each file its `Answered questions` section lists as *Answ
 treats a restored pending decision whose text starts `landing held: <stack>` (*Routing an exit*)
 as keeping every landing and every join onto that stack held until the human answers,
 re-sends or checks each pending message, and ends
-with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. Recovery then
-ends by sending the resetter `ack`. With no state file for this role and lane, start fresh.
+with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. After a compaction of the dev session's own context, the dev
+session re-invokes `/vdev` (with the lane word when it runs in a lane) before its next slot
+decision, and that re-invocation runs this *Recovery* from the role state file. With no state
+file for this role and lane, start fresh.
 
 **Local mode.** Whether the session starts fresh, recovers or resumes (`--resume`), run
 `$S/github-outage.sh status` before its first slot decision. On exit 0 `.tdd/github-outage`
@@ -67,11 +68,6 @@ those merges and waits on its wait) before that decision. While that file exists
 whose review is OK is handled as `voutage` says instead of being merged online: joined offline
 where a stack is named, held where none is. The file is the mode, never a handoff or memory.
 
-**Resetter.** On a `/vdev` turn the human typed (never a recovery turn), start one resetter
-session on Haiku, briefed with the *Resetter* section, and record its id with
-`$S/role-state.sh dev [--lane <lane>] set resetter <id>`. Keep it until the dev session ends,
-then archive it.
-
 ## Speaking
 
 Every turn of the dev session prints `.` and nothing else, except a turn answering a question the
@@ -79,7 +75,7 @@ human typed, which answers it. A run's status is on its issue (the `taken:<lane>
 ticks, bails, merges), and a question the human must answer is in its own session (*When to stop
 and ask*), so the transcript carries neither.
 
-A **notice** — a refused reset, `role-growth.sh`'s exit 2, `request-reset`'s exit 1, the MCP
+A **notice** — the MCP
 launch line of *Starting*, a missing `delegate` skill, `github-outage.sh hold`'s exit 2, a red
 stack that stays frozen after its failed jobs' re-run, `record-answer.sh`'s exit 2 (*Answers*), a
 question session's failed start (*When to stop and ask*, step 3), a failed join or a landing
@@ -95,8 +91,7 @@ ask* says.
 
 ## Role state
 
-Write your state through `$S/role-state.sh dev [--lane <lane>]` at the moment it changes, never
-at reset time: N, each timed N change (with its expiry, written as `<n> until <ISO-8601 datetime>`, the form `role-state.sh ... add timed-n` accepts and `dispatch.sh` parses) and order override the human
+Write your state through `$S/role-state.sh dev [--lane <lane>]` at the moment it changes: N, each timed N change (with its expiry, written as `<n> until <ISO-8601 datetime>`, the form `role-state.sh ... add timed-n` accepts and `dispatch.sh` parses) and order override the human
 gives you, each pending human decision (in full) not held in a question file, and each message you
 sent another session and have not yet confirmed. Drop the item when it ends. A pending decision `vjudge` recorded you do not write
 again with `role-state.sh … add decision`: the judge records it in a question file when your brief
@@ -403,55 +398,11 @@ brief says. When `delegate` is not installed, send that once as a notice (*Speak
 - A reviewer that pushes any fix does not merge: it reports and stops, and the fix is reviewed
   afresh before the merge.
 
-Only in a session without the app's `start_session` tool (a terminal), load `vhandoff` yourself,
-by reading `<resolved base dir>/../vhandoff/SKILL.md`; in a session with it, load no `vhandoff`.
+Load `vhandoff` yourself, in every session, by reading `<resolved base dir>/../vhandoff/SKILL.md`.
 Load `voutage` yourself, at `<resolved base dir>/../voutage/SKILL.md`: it holds the session's own
 merge state.
 
-Your own reset is governed by *Resetting*, not by a context threshold you judge yourself.
-
-## Resetting
-
-Every turn of the dev session, whatever began it (the human, another session's message, a
-background command's exit), starts with `$S/role-growth.sh dev [--lane <lane>]`, before anything
-else. Act on what it prints:
-
-- **Arm line** (growth since recovery ≥ 0.85 × `VERI_RESET_GROWTH_DEV`, default 70000 tokens):
-  reset at the next quiet point — no launch half done, no merge in flight.
-- **Reset-now line** (2 × the knob): reset at once, even mid-task.
-- **A refused reset:** send the reason once as a notice (*Speaking*) and do not retry it. A refusal
-  on the reset-now line prints its own line, once, even after an arm-line refusal: `context grew
-  <growth> against the knob <knob>, past the reset-now line; <reason>: page the operator, do not
-  retry`. Its notice says so and is also sent as one `PushNotification`.
-- **Exit 2:** send it once as a notice (*Speaking*), and the turn goes on.
-
-A reset is `$S/role-state.sh dev [--lane <lane>] request-reset` followed by the app's clear of the
-dev session's own session. Nothing else is written at reset time (*Role state*). When
-`request-reset` exits 1, treat it as a refused reset.
-
-The dev session resets only on the arm or reset-now line, never because it has been idle: it arms
-no idle wait of `reset-wait.sh` and never passes `--idle` to `request-reset`.
-
-## Resetter
-
-The resetter is a Haiku session started by the dev session and briefed with this section.
-
-1. Wait in the background with `$S/reset-wait.sh marker dev [--lane <lane>]`.
-2. Then wait until the dev session is idle and its context has dropped.
-3. Only then send one sentence asking it to invoke the `vdev` skill with the Skill tool and
-   `<lane>` as the argument, never the text `/vdev <lane>`.
-4. With no `ack` within `VERI_RESET_ACK_TIMEOUT`, run `$S/reset-wait.sh recovered dev [--lane <lane>]`,
-   re-send at most twice, then notify the operator. After an `ack`, wait for the next marker.
-
-When the dev session runs in a lane, every `$S/reset-wait.sh` call (`marker`, `recovered`) carries
-`--lane <lane>`; the form without it is for a dev session with no lane only.
-
-When a send to the dev session by its session name fails (the name does not resolve, or
-`ListAgents` does not list it), look the dev session up in the linked-session list, or use the
-session id the resetter was started from, and send by that id. Only when that send also fails,
-notify the operator.
-
-The resetter never clears itself, and ends as few turns as it can.
+The dev session never compacts or clears its own context on its own judgment.
 
 ## Parked issues
 
@@ -547,8 +498,8 @@ answer to its park. Act only on its exit 0 (posted) or 3 (already there); on exi
 nor delete the file, and send its stderr line once as a notice (*Speaking*). You post an answer on
 an issue by no other route. Delete the question file only after you observe your own action on
 the answer in state (the label gone, the run resumed, the merge landed) and, for a question tied
-to an issue, after `record-answer.sh` exited 0 or 3 for it, and say so nowhere. After a reset,
-recovery sorts each of your lane's question files into one of three sections: re-ask none of the
+to an issue, after `record-answer.sh` exited 0 or 3 for it, and say so nowhere. On recovery,
+it sorts each of your lane's question files into one of three sections: re-ask none of the
 files its `Questions` section lists (asked, not yet answered); run step 3 once for each file its
 `Unasked questions` section lists (written, never asked); and act on each file its `Answered
 questions` section lists as this paragraph says (record, act, observe, delete).
