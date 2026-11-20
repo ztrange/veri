@@ -157,7 +157,11 @@ def main(argv):
             if code == 1 and said:
                 return seam(wt, n, step, stage, code, None, line=said[-1])
             if code == 2:
-                held = os.path.exists(os.path.join(wt, ".tdd", "skill-edit-%s.out" % n))
+                try:
+                    with open(os.path.join(wt, ".tdd", "skill-edit-%s.out" % n)) as f:
+                        held = any(l.startswith("Requirements heading names no existing unit: ") for l in f)
+                except FileNotFoundError:
+                    held = False
                 sys.stdout.write("out=.tdd/skill-edit-%s.out refusal=%s\n" % (n, "yes" if held else "no"))
             return seam(wt, n, step, stage, code, NEXT_SCRIPTS[0] + " " + n if code == 3 else anchor)
         i += 1

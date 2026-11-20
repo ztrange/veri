@@ -720,3 +720,14 @@ def test_4450_a_skill_edit_half_exit_2_with_no_out_file_prints_refusal_no_on_the
     assert (code, out.splitlines()[-2:]) == (
         2, ["out=.tdd/skill-edit-12.out refusal=no",
             "seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step"]), err
+
+
+def test_4450_a_skill_edit_half_exit_2_with_an_out_file_holding_no_refusal_line_prints_refusal_no(step):
+    (step.wt / ".tdd" / "skill-edit-12.out").write_text("author notes\nnot a Requirements heading names no existing unit: x\n")
+
+    code, out, err, stages = step(ledger=LEDGER % SKILL_EDIT_STEP,
+                                  answers={"skill-edit-half.sh": (2, "stopped at 2 skill-edit-step.sh exit 2\n")})
+
+    assert (code, out.splitlines()[-2:]) == (
+        2, ["out=.tdd/skill-edit-12.out refusal=no",
+            "seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step"]), err
