@@ -100,22 +100,15 @@ def test_4443_bad_arguments_a_missing_ledger_no_open_go_red_step_or_a_step_namin
     assert results == [(2, said, []) for _, said in cases]
 
 
-def test_4443_with_no_one_test_file_command_it_probes_with_the_all_tier_command_and_a_detect_2_stops_with_exit_2(
-        go_red):
-    class AllTier(Fake):
-        def __call__(self, name, *args, **kw):
-            if os.path.basename(name) == "detect-test-command.sh":
-                self.calls.append(("detect-test-command.sh", args, kw.get("cwd"), kw.get("env"), kw))
-                return (0, "make test\n", "") if args == ("--tier", "all") else (3, "", "")
-            return super().__call__(name, *args, **kw)
+def test_4443_with_no_one_test_file_command_or_a_detect_2_it_stops_with_exit_2_probing_and_ticking_nothing(go_red):
+    results = []
+    for detected in (3, 2):
+        code, out, err, fake = go_red(answers={("detect-test-command.sh", "--tier"): (detected, "")})
+        results.append((code, fake.names(), out.splitlines()[-1].split(" ")[:3]))
 
-    code, out, err, fake = go_red(fake=AllTier())
-    assert code == 0, err
-    assert fake.call("mutation-probe.sh")[1][4:] == ("sh", "-c", "make test")
-
-    code, out, err, fake = go_red(answers={("detect-test-command.sh", "--tier"): (2, "")})
-    assert (code, "mutation-probe.sh" in fake.names(), "step-tick.sh" in fake.names()) == (2, False, False)
-    assert out.splitlines()[-1].startswith("stopped at probe")
+    assert results == [(2, ["detect-test-command.sh"], ["stopped", "at", "probe"])] * 2
+    code, out, err, fake = go_red(answers={("detect-test-command.sh", "--tier"): (3, "")})
+    assert "go-red-step.sh: no `veri: one test file:` line" in err
 
 
 def test_4443_a_probe_that_sees_no_red_stops_with_exit_1_and_ticks_nothing(go_red):
