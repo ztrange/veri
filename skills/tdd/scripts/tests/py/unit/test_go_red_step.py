@@ -155,3 +155,13 @@ def test_4443_the_probes_stdout_goes_to_go_red_probe_out_under_the_worktree(go_r
 
     probe = fake.call("mutation-probe.sh")
     assert (probe[2], probe[4].get("out")) == (str(go_red.wt), ".tdd/go-red-probe.out")
+
+
+def test_4480_a_probe_whose_old_text_is_gone_is_named_as_stale_not_plumbing(go_red):
+    (go_red.wt / FILE).write_text("if not waiting and stacked_now:\n    raise SystemExit(2)\n")
+
+    code, out, err, fake = go_red(answers={("mutation-probe.sh", None): (2, "")})
+
+    assert code == 1, out
+    assert "mutation-probe.sh" not in fake.names() and "step-tick.sh" not in fake.names()
+    assert out.splitlines()[-1] == "stopped at probe src/run.py no longer holds `if stacked:`"
