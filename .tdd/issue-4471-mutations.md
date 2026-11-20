@@ -34,3 +34,10 @@ ICAgIHJhdyA9IHR1bmFibGVzLnJlYWQoIlZFUklfQ0lfT05fUFIiKSBvciBsaW5lX2Fuc3dlcigp
 command 141
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_ci_on_pr.py::test_declared_returns_the_variable_when_it_is_0_over_a_claude_md_line_of_1
 
+before 40
+caa28aed61165020b8e4cd6dce5476ec5555a506
+keep 58
+skills/tdd/scripts/tests/py/unit/test_rebased_tip_suite.py
+command 185
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_rebased_tip_suite.py::test_main_with_ci_on_pr_unset_prints_ci_for_a_claude_md_ci_on_pr_1_line_in_a_tree_with_no_workflows_directory
+
