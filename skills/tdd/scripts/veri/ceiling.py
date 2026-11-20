@@ -218,13 +218,9 @@ def main(argv):
     try:
         with tempfile.TemporaryDirectory(prefix="veri-ceiling-") as scratch:
             ceiling, steps, idle_all = ramp(top, scratch, odd_top=bool(cap))
-    except NoAnswer as error:
-        sys.stderr.write("%s\n" % error)
-        return 2
-    if ceiling is None:
-        sys.stderr.write("no ceiling of at least 2: a case timed out under load at 2 workers and passed alone\n")
-        return 1
-    try:
+        if ceiling is None:
+            sys.stderr.write("no ceiling of at least 2: a case timed out under load at 2 workers and passed alone\n")
+            return 1
         idle = ["idle all %d" % idle_all, "idle fast %d" % idle_fast(ceiling)]
     except NoAnswer as error:
         sys.stderr.write("%s\n" % error)
