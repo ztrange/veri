@@ -88,3 +88,28 @@ def test_4450_the_detached_start_is_given_skill_edit_step_then_the_body_file_the
     _, label, script, body_file, unit = start[0]
     assert (label, os.path.basename(script), body_file, unit) == (
         "skill-edit-12", "skill-edit-step.sh", ".tdd/issue-12-body", "skills/tdd/SKILL.md"), start
+
+
+def test_4450_after_skill_edit_step_exits_0_it_calls_step_tick_with_n_and_exits_0(
+        monkeypatch, run_cli, tmp_path):
+    """SKH1, criterion 1: step-tick.sh <n> is called through fused.script() after the detached wait, exit 0."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        calls.append((os.path.basename(name), args))
+        return 0, BODY if os.path.basename(name) == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert [c for c in calls if c[0] == "step-tick.sh"] == [("step-tick.sh", ("12",))], calls
+    assert calls[-1][0] == "step-tick.sh", calls
+    assert code == 0
