@@ -520,3 +520,21 @@ def test_4456_a_fast_or_all_run_past_twice_its_tiers_idle_line_writes_a_test_str
     records = events.records()
     stretches = [(r["tier"], r["seconds"], r["idle"]) for r in records if r["event"] == "test-stretch"]
     assert (code, [r["event"] for r in records][0], stretches) == (7, "test-run", [stretch] if stretch else [])
+
+
+@pytest.mark.parametrize("record", ["directory", "undecodable"])
+def test_4456_a_ceiling_record_it_cannot_read_is_no_test_stretch_event_and_the_commands_exit_code(
+        record, tmp_path, monkeypatch, calls, events, timed_test_run):
+    monkeypatch.chdir(tmp_path)
+    events.refuse_event_sh()
+    path = pathlib.Path(os.environ["VERI_TEST_CEILING_FILE"])
+    if record == "directory":
+        path.mkdir()
+    else:
+        path.write_bytes(b"4\n\xff\xfe\nidle fast 3\n")
+    readings = [100, 200]
+    monkeypatch.setattr(timed_test_run.time, "time", lambda: readings.pop(0))
+
+    code = timed_test_run.main(["fast", "a", "make", "test", "TESTS=a"])
+
+    assert (code, [r["event"] for r in events.records()]) == (7, ["test-run"])

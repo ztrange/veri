@@ -76,11 +76,11 @@ def record_path():
 
 def read_idle(tier):
     """The seconds of the record's `idle <tier> <seconds>` line, the tier's idle duration (PRD 036.10); None when the
-    record has no such line or there is no record."""
+    record has no such line, there is no record, or it cannot be read: the warning it feeds changes nothing (RW6)."""
     try:
         with open(record_path()) as f:
             lines = f.read().splitlines()
-    except FileNotFoundError:
+    except (OSError, ValueError):
         return None
     for line in lines:
         words = line.split()
