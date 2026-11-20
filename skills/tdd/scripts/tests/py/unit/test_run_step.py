@@ -691,3 +691,11 @@ def test_4450_from_skill_edit_half_on_a_skill_edit_step_starts_at_it_and_calls_i
 
     assert (code, [(c[0], c[1]) for c in stages.calls], out.splitlines()[-1]) == (
         0, [("skill-edit-half.sh", ("12",))], "next=cycle"), err
+
+
+def test_4450_a_skill_edit_half_exit_1_ends_on_its_seam_exiting_1_and_calling_no_revise(step):
+    code, out, err, stages = step(ledger=LEDGER % SKILL_EDIT_STEP,
+                                  answers={"skill-edit-half.sh": (1, "skill-edit-step.sh exit 1\n")})
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (
+        1, ["skill-edit-half.sh"], "seam=skill-edit-half code=1 next=SKILL-EDIT.md#The skill-edit step"), err

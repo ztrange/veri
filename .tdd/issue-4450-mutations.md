@@ -19,3 +19,10 @@ skills/tdd/scripts/tests/py/unit/test_run_step.py
 command 144
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_step.py::test_4450_from_skill_edit_half_on_a_skill_edit_step_starts_at_it_and_calls_it
 
+before 40
+ead8d4dfec49b848584f469b32a4dd70dc96ebc8
+keep 49
+skills/tdd/scripts/tests/py/unit/test_run_step.py
+command 150
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_step.py::test_4450_a_skill_edit_half_exit_1_ends_on_its_seam_exiting_1_and_calling_no_revise
+
