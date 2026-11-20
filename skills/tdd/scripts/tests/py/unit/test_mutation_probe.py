@@ -329,6 +329,7 @@ def test_main_before_behaves_the_same_with_the_address_domain_set_and_unset_on_a
         "git diff": (0, b"f.txt\0", ""),
         "git ls-files": (0, b"", ""),
         "git show": (0, b"old\n", ""),
+        "echo x@outside.invalid": lambda line, **kwargs: (0 if (tmp_path / "f.txt").read_bytes() == b"new\n" else 1, "", ""),
     }, default=(1, "", ""))
     args = ["--before", "abc1234", "--keep", "t.py", "--", "echo", "x@outside.invalid"]
     outcomes = []
