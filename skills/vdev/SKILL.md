@@ -498,8 +498,8 @@ answer to its park. Act only on its exit 0 (posted) or 3 (already there); on exi
 nor delete the file, and send its stderr line once as a notice (*Speaking*). You post an answer on
 an issue by no other route. Delete the question file only after you observe your own action on
 the answer in state (the label gone, the run resumed, the merge landed) and, for a question tied
-to an issue, after `record-answer.sh` exited 0 or 3 for it, and say so nowhere. On recovery,
-it sorts each of your lane's question files into one of three sections: re-ask none of the
+to an issue, after `record-answer.sh` exited 0 or 3 for it, and say so nowhere. After a reset,
+recovery sorts each of your lane's question files into one of three sections: re-ask none of the
 files its `Questions` section lists (asked, not yet answered); run step 3 once for each file its
 `Unasked questions` section lists (written, never asked); and act on each file its `Answered
 questions` section lists as this paragraph says (record, act, observe, delete).
