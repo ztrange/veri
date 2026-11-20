@@ -699,3 +699,15 @@ def test_4450_a_skill_edit_half_exit_1_ends_on_its_seam_exiting_1_and_calling_no
 
     assert (code, stages.names(), out.splitlines()[-1]) == (
         1, ["skill-edit-half.sh"], "seam=skill-edit-half code=1 next=SKILL-EDIT.md#The skill-edit step"), err
+
+
+def test_4450_a_skill_edit_half_exit_2_names_its_out_file_with_refusal_yes_on_the_line_before_its_seam(step):
+    (step.wt / ".tdd" / "skill-edit-12.out").write_text(
+        "Requirements heading names no existing unit: skills/tdd/NOPE.md\n")
+
+    code, out, err, stages = step(ledger=LEDGER % SKILL_EDIT_STEP,
+                                  answers={"skill-edit-half.sh": (2, "stopped at 2 skill-edit-step.sh exit 2\n")})
+
+    assert (code, out.splitlines()[-2:]) == (
+        2, ["out=.tdd/skill-edit-12.out refusal=yes",
+            "seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step"]), err
