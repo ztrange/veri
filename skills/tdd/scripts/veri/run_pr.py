@@ -35,40 +35,35 @@ def record(wt, n, seam):
 
 
 def run_stages(n, wt, stages, hands):
-    """Call <stages> in order, stopping before one in <hands> and at the first non-zero exit (RPR3, RPR5): (None, the
-    last stage's stdout) when every one exited 0, else (the call's exit code, ""). A 3 records its stage, so the next
-    call resumes there."""
-    out = ""
+    """Call <stages> in order, stopping before one in <hands> and at the first non-zero exit (RPR3, RPR5): None when
+    every one exited 0, else the call's exit code. A 3 records its stage, so the next call resumes there. fused.call prints each call's line and its stdout, so nothing here prints them again (RPR10)."""
     for stage in stages:
         if stage in hands:
             sys.stdout.write("seam=%s code=1 reason=hand next=%s\n" % (stage[:-3], ANCHOR))
-            return 1, ""
-        code, out, _ = fused.call(fused.script(stage), n)
-        sys.stdout.write("%s %s exit %d\n" % (stage, n, code))
+            return 1
+        code = fused.call(fused.script(stage), n)[0]
         if code not in (0, 1, 2, 3):
             sys.stderr.write("run-pr.sh: %s exited %d\n" % (stage[:-3], code))
-            return 2, ""
+            return 2
         if code:
-            sys.stdout.write(out)
-            if code == 3 and stage in LATE:
+            if code == 3:
                 record(wt, n, stage[:-3])
             sys.stdout.write("seam=%s code=%d next=%s\n" % (stage[:-3], code, "run-pr.sh %s" % n if code == 3 else ANCHOR))
-            return code, ""
-    return None, out
+            return code
+    return None
 
 
 def run_late(n, wt, first, hands):
-    code, out = run_stages(n, wt, LATE[LATE.index(first) if first else 0:], hands)
+    code = run_stages(n, wt, LATE[LATE.index(first) if first else 0:], hands)
     if code is not None:
         return code
-    sys.stdout.write("".join(out.splitlines(True)[-2:]))
     record(wt, n, "body")
     sys.stdout.write(BODY)
     return 1
 
 
 def run_early(n, wt, first, hands):
-    code, _ = run_stages(n, wt, () if first in LATE else EARLY[EARLY.index(first) if first else 0:], hands)
+    code = run_stages(n, wt, () if first in LATE else EARLY[EARLY.index(first) if first else 0:], hands)
     if code is not None:
         return code
     record(wt, n, "title")
@@ -96,11 +91,14 @@ def main(argv):
     wt = found[1]
     path = fused.settled_file(wt, n, "run-pr")
     held = open(path).read() if os.path.exists(path) else ""
-    if first is None and "sha=%s\n" % ledger_sha(wt, n) in held and "seam=body\n" in held:
-        return 0
-    if not stacked(wt, n) and (first in LATE or (first is None and "sha=%s\n" % ledger_sha(wt, n) in held)):
-        resume = next((l[5:] + ".sh" for l in held.splitlines() if l.startswith("seam=")), "")
-        return run_late(n, wt, first or (resume if resume in LATE else None), hands)
+    seam = next((l[5:] for l in held.splitlines() if l.startswith("seam=")), "")
+    if first is None and "sha=%s\n" % ledger_sha(wt, n) in held:
+        if seam == "body":
+            return 0
+        # A stage's 3 resumes at that stage; the title seam at pr-ready-wait, save in a stacked run (RPR4, RPR6).
+        first = seam + ".sh" if seam + ".sh" in CALLS else LATE[0] if seam == "title" and not stacked(wt, n) else None
+    if not stacked(wt, n) and first in LATE:
+        return run_late(n, wt, first, hands)
     return run_early(n, wt, first, hands)
 
 
