@@ -5,7 +5,7 @@
 - [x] With a `veri: ci on pr: 0` line in the working tree's CLAUDE.md and VERI_CI_ON_PR unset, `rebased-tip-suite.sh` prints `local` in a tree whose `.github/workflows/` holds a workflow triggering on `pull_request` ⟦criterion 4⟧
 - [x] With a `veri: ci on pr: 1` line in the working tree's CLAUDE.md and VERI_CI_ON_PR unset, `branch-suite.sh` prints `ci` in a tree with no `.github/workflows/` directory ⟦criterion 4⟧
 - [x] With `VERI_CI_ON_PR=0` set and a `veri: ci on pr: 1` line in the working tree's CLAUDE.md, `ci_on_pr.declared()` returns `0`: the variable wins over the line ⟦criterion 5⟧
-- [ ] With a `veri: ci on pr: 1` line in the working tree's CLAUDE.md and VERI_CI_ON_PR unset, `rebased-tip-suite.sh` prints `ci` in a tree with no `.github/workflows/` directory ⟦criterion 4⟧
+- [x] With a `veri: ci on pr: 1` line in the working tree's CLAUDE.md and VERI_CI_ON_PR unset, `rebased-tip-suite.sh` prints `ci` in a tree with no `.github/workflows/` directory ⟦criterion 4⟧
 - [ ] With a CLAUDE.md that holds other `veri:` lines but no `veri: ci on pr:` line, and VERI_CI_ON_PR unset, `ci_on_pr.declared()` returns the empty string, so the workflow detection decides as on current main ⟦criterion 7⟧
 - [ ] With a `veri: ci on pr: 0` line in the target's CLAUDE.md and VERI_CI_ON_PR unset, `ready-check.sh`'s `pull_request` row passes in a tree with no workflow triggering on `pull_request`, `ready_check.py` reading the answer through `ci_on_pr` ⟦criterion 1⟧
 - [ ] With a `veri: ci on pr: 0` line in the working tree's CLAUDE.md and VERI_CI_ON_PR unset, `wait-ci.sh` exits 0 for a PR whose head has no check runs and no commit statuses, in a tree whose workflow triggers on `pull_request`, as under `VERI_CI_ON_PR=0` ⟦criterion 2⟧
