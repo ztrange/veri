@@ -20,7 +20,7 @@ from git import git
 from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, same_step, trailing_markers, unit_of
 
 SUITE_REPAIR = "suite-repair"
-REPAIR_MARKS = ("ci-repair", SUITE_REPAIR)
+REPAIR_MARKS = ("ci-repair", SUITE_REPAIR, "branch-repair")
 # The marks of which one run inserts at most one step: the second is refused (exit 1). Not REPAIR_MARKS, which only exempts.
 ONE_PER_RUN = (SUITE_REPAIR, "lint-repair")
 BYTES = "surrogateescape"
