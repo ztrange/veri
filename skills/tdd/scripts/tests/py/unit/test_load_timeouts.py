@@ -73,3 +73,16 @@ def test_a_leg_that_claimed_its_workers_appends_epoch_pid_test_file_node_id_and_
 
     assert (code, [f[1:] for f in fields], [before <= int(f[0]) <= after for f in fields], events) == (
         1, [[str(os.getpid()), "tests/py/unit/test_x.py", nodeid, "6"]], [True], [(nodeid, "6")])
+
+
+def test_a_leg_run_with_veri_pytest_workers_exported_appends_nothing_to_the_timeouts_file_and_lowers_nothing(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    timing_out(monkeypatch, "tests/py/unit/test_x.py::test_slow", "tests/py/unit/test_y.py::test_slow")
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_WORKERS="4"), cwd=str(tree))[0]
+    journal = tree / ".tdd" / "events.jsonl"
+    events = [e["event"] for e in map(json.loads, journal.read_text().splitlines() if journal.exists() else [])]
+
+    assert (code, os.path.exists(os.environ["VERI_TEST_TIMEOUTS_FILE"]), open(os.environ["VERI_TEST_CEILING_FILE"]).read(),
+            [e for e in events if e in ("case-timeout", "t-lowered")]) == (1, False, "6\n2026-11-19\n", [])
