@@ -20,11 +20,15 @@ def make(monkeypatch, tmp_path, fake_processes):
     """Answers `make test` through fake_processes: `outcome(workers, tests)` returns the (nodeid, failure text) of each
     failing case, or a bare exit code. Each call is kept as (workers, tests, argv)."""
     calls = []
-    state = {"outcome": lambda workers, tests: []}
+    units = []
+    state = {"outcome": lambda workers, tests: [], "unit": lambda workers: 0}
 
     def run(line, env=None, **kwargs):
         argv = fake.argvs[-1]
         workers = int(env["VERI_PYTEST_WORKERS"])
+        if argv[-1] == "unit":
+            units.append(workers)
+            return state["unit"](workers), "", ""
         tests = [arg[len("TESTS="):] for arg in argv if arg.startswith("TESTS=")]
         calls.append((workers, tests, argv))
         outcome = state["outcome"](workers, tests)
@@ -46,7 +50,10 @@ def make(monkeypatch, tmp_path, fake_processes):
     def given(outcome):
         state["outcome"] = outcome
 
-    return types.SimpleNamespace(calls=calls, given=given)
+    def unit(outcome):
+        state["unit"] = outcome
+
+    return types.SimpleNamespace(calls=calls, given=given, units=units, unit=unit)
 
 
 def test_every_step_green_ramps_make_test_at_2_4_6_up_to_the_logical_cores_and_prints_the_top_step(make, run_cli):
@@ -248,7 +255,7 @@ def test_exit_0_replaces_the_record_whole_through_a_temporary_file_with_the_ceil
     lines = record.read_text().splitlines()
     assert lines[0] == "4"
     assert re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d.*", lines[1])
-    assert lines[2:] == ["0123456789abcdef0123456789abcdef01234567", "1.50 2.25 3.00", "2 100 0", "4 100 0", "6 100 1"]
+    assert lines[2:7] == ["0123456789abcdef0123456789abcdef01234567", "1.50 2.25 3.00", "2 100 0", "4 100 0", "6 100 1"]
     assert [dst for _, dst in replaced] == [str(record)]
     assert ceiling.os.path.dirname(replaced[0][0]) == str(tmp_path)
     assert sorted(path.name for path in tmp_path.iterdir() if "ceiling" in path.name) == ["ceiling-record"]
@@ -333,3 +340,21 @@ def test_4457_a_cap_file_the_ramp_cannot_use_is_one_stderr_line_naming_it_and_th
 
     assert (code, [workers for workers, _, _ in make.calls], len(err.splitlines()), path in err, "bound" in out) == (
         0, [2, 4, 6], 1, True, False), (out, err)
+
+
+def test_4456_a_ramp_that_found_a_ceiling_runs_one_registered_make_unit_after_it_and_records_both_idle_durations(
+        make, run_cli, tmp_path, monkeypatch):
+    record = tmp_path / "ceiling-record"
+    legs = tmp_path / "legs"
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+    ticks = iter([0, 300, 300, 700, 700, 1300, 1300, 1342])
+    monkeypatch.setattr(ceiling, "clock", lambda: next(ticks))
+    seen = []
+    make.unit(lambda workers: seen.append(registry(legs)) or 0)
+    make.given(lambda workers, tests: [(SLOW, TIMEOUT)] if workers == 6 and not tests else [])
+
+    code, out, err = run_cli(ceiling, [])
+
+    lines = record.read_text().splitlines()
+    assert (code, make.units, seen, lines[0], lines[-3:], registry(legs)) == (
+        0, [4], [{str(ceiling.os.getpid()): "4\n%s\n" % STARTED}], "4", ["6 600 1", "idle all 400", "idle fast 42"], {}), err

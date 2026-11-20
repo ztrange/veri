@@ -38,6 +38,12 @@ def run_suite(workers, record, tests=()):
     return code, failures(record)
 
 
+def run_unit(workers):
+    """Runs `make unit` at <workers> workers; returns make's exit code."""
+    env = tunables.with_values(VERI_PYTEST_WORKERS=str(workers))
+    return subprocess.run(["make", "--no-print-directory", "-C", ROOT, "unit"], env=env, stdin=subprocess.DEVNULL).returncode
+
+
 def failures(record):
     try:
         with open(record) as f:
@@ -156,10 +162,10 @@ def step(workers, scratch):
 
 def ramp(top, scratch, odd_top=False):
     """Steps w = 2, 4, … up to <top>, <top> itself last when it is odd and <odd_top> is set (a cap is), stopping at the
-    first with a load timeout; returns the ceiling (None when that was the first step) and one
-    `<workers> <seconds> <timeouts>` line per step run."""
+    first with a load timeout; returns the ceiling (None when that was the first step), one
+    `<workers> <seconds> <timeouts>` line per step run, and the ceiling step's seconds, the full suite's idle duration."""
     import pytest_leg
-    ceiling, steps = None, []
+    ceiling, steps, idle = None, [], None
     for workers in list(range(2, top + 1, 2)) + ([top] if odd_top and top % 2 else []):
         entry = register(workers)
         began = clock()
@@ -167,11 +173,26 @@ def ramp(top, scratch, odd_top=False):
             timeouts = step(workers, scratch)
         finally:
             pytest_leg.unregister(entry)
-        steps.append("%d %d %d" % (workers, round(clock() - began), timeouts))
+        seconds = round(clock() - began)
+        steps.append("%d %d %d" % (workers, seconds, timeouts))
         if timeouts:
             break
-        ceiling = workers
-    return ceiling, steps
+        ceiling, idle = workers, seconds
+    return ceiling, steps, idle
+
+
+def idle_fast(ceiling):
+    """The fast tier's idle duration: one `make unit` at the workers it would take on an idle machine, min(4, the
+    ceiling), registered as a step is; returns its seconds."""
+    import pytest_leg
+    workers = min(4, ceiling)
+    entry = register(workers)
+    began = clock()
+    try:
+        run_unit(workers)
+    finally:
+        pytest_leg.unregister(entry)
+    return round(clock() - began)
 
 
 def main(argv):
@@ -192,14 +213,15 @@ def main(argv):
     header = [time.strftime("%Y-%m-%d %H:%M:%S %z"), commit(), "%.2f %.2f %.2f" % os.getloadavg()]
     try:
         with tempfile.TemporaryDirectory(prefix="veri-ceiling-") as scratch:
-            ceiling, steps = ramp(top, scratch, odd_top=bool(cap))
+            ceiling, steps, idle_all = ramp(top, scratch, odd_top=bool(cap))
     except NoAnswer as error:
         sys.stderr.write("%s\n" % error)
         return 2
     if ceiling is None:
         sys.stderr.write("no ceiling of at least 2: a case timed out under load at 2 workers and passed alone\n")
         return 1
-    path = write_record([str(ceiling)] + header + steps)
+    idle = ["idle all %d" % idle_all, "idle fast %d" % idle_fast(ceiling)]
+    path = write_record([str(ceiling)] + header + steps + idle)
     stopped = "; the ramp stopped at its bound, %s" % stopper if cap and ceiling == top else ""
     sys.stdout.write("ceiling: %d workers (recorded in %s)%s\n" % (ceiling, path, stopped))
     return 0
