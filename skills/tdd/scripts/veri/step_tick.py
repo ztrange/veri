@@ -20,7 +20,8 @@ RECEIPT = ".tdd/pin-recheck-ok"
 # The kinds it closes, a step no cycle closes (038.4 adds ⟦skill-edit⟧; a cycle step's close is step-close.sh's) -> the
 # subject its tick commits under: a ⟦diff-checked⟧ one the one runs use (PRD 038.3 S14), a ⟦go-red⟧ one a test commit,
 # since its product is the proof a guard's case goes red (#4443).
-SUBJECTS = {"⟦diff-checked⟧": "chore: diff-checked — %s (#%s)", ledger.GO_RED_MARK: "test: go-red — %s (#%s)"}
+SUBJECTS = {"⟦diff-checked⟧": "chore: diff-checked — %s (#%s)", ledger.GO_RED_MARK: "test: go-red — %s (#%s)",
+            "⟦skill-edit⟧": "chore: skill-edit — %s (#%s)"}
 
 # The $S/ scripts this call makes, in the order each is first made (git and gh aside).
 CALLS = ("tick-ledger.sh", "push-branch.sh", "stop-requested.sh", "comment.sh", "criterion-finished.sh",
@@ -40,7 +41,8 @@ def run(n):
     if step is None:
         sys.stderr.write("step-tick.sh: no open step in %s\n" % (LEDGER % n))
         return 2
-    kind = ledger.GO_RED_MARK if ledger.is_go_red(step) else "⟦diff-checked⟧" if "⟦diff-checked⟧" in step else None
+    kind = (ledger.GO_RED_MARK if ledger.is_go_red(step) else "⟦skill-edit⟧" if ledger.is_skill_edit(step)
+            else "⟦diff-checked⟧" if "⟦diff-checked⟧" in step else None)
     if kind is None:
         sys.stderr.write("step-tick.sh: not a ⟦diff-checked⟧ step nor a ⟦go-red⟧ one: %s\n" % step)
         return 2

@@ -158,3 +158,14 @@ def test_4443_a_go_red_step_closes_without_a_pin_recheck_receipt_under_the_go_re
         "commit", "-m", "test: go-red — Go-red guard: the stacked refusal, probe `src/run.py` `if stacked:` → "
         "`if False:` on `t.py::c` (#12)")
     assert out.splitlines()[-1] == "next=cycle"
+
+
+SKILL_EDIT = "Edit `skills/tdd/SKILL-EDIT.md` to name the tick subject ⟦skill-edit⟧ ⟦criterion 9⟧"
+
+
+def test_4450_a_skill_edit_step_closes_without_a_pin_recheck_receipt_under_the_skill_edit_subject(tick):
+    code, out, err, fake = tick(missing=("receipt",), ledger=LEDGER % SKILL_EDIT)
+
+    assert code == 0, err
+    assert fake.call("git", "commit")[1] == (
+        "commit", "-m", "chore: skill-edit — Edit `skills/tdd/SKILL-EDIT.md` to name the tick subject (#12)")
