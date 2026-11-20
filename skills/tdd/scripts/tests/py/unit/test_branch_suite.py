@@ -78,3 +78,13 @@ def test_main_with_ci_on_pr_unset_prints_ci_for_a_claude_md_ci_on_pr_1_line_in_a
     (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: 1\n")
 
     assert run_cli(branch_suite, [], cwd=tmp_path)[:2] == (0, "ci\n")
+
+
+def test_main_with_ci_on_pr_unset_exits_2_with_one_stderr_line_naming_the_claude_md_line_for_a_value_that_is_neither_0_nor_1(
+        tmp_path, run_cli, branch_suite):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: maybe\n")
+
+    code, out, err = run_cli(branch_suite, [], cwd=tmp_path)
+
+    assert code == 2 and out == ""
+    assert "veri: ci on pr:" in err and "maybe" in err and len(err.splitlines()) == 1
