@@ -419,10 +419,10 @@ of at scoping time.
    developer leaf. Write it as one line, `- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧`, marked
    owed by a human.
 
-   A go-red guard — a guard broken on purpose, its named case watched going red, the code
-   restored — is not such a check: a leaf can do it. It is planned as a step a leaf does and
-   the run ticks with that mutation evidence (the break, the red case, the restore), and it
-   never carries `⟦human-owed⟧`.
+   A go-red guard (a guard broken, its case watched going red, the code restored) is no such
+   check: one line, ``- [ ] <criterion>, probe `<file>` `<old>` → `<new>` on `<case>` ⟦go-red⟧
+   ⟦criterion k⟧``, never `⟦human-owed⟧`. `run-step.sh` runs it by `go-red-step.sh`, never the Red
+   leaf: `mutation-probe.sh` on that case, the step ticked on its mutation record.
 
    A criterion that is a property of the branch's own diff — something removed, something
    left unchanged, a change confined to named lines — is not planned as a Red/Green step: a

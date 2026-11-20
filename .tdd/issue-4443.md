@@ -5,5 +5,5 @@
 - [x] `go-red-step.sh` stops with exit 1 and ticks nothing when the probe sees no red (its exit 1), and with exit 2 when the probe exits 2 or the named file is not restored ⟦criterion 2⟧
 - [x] `step-tick.sh` closes a `⟦go-red⟧` step without a pin-recheck receipt, under `test: go-red — <summary> (#<n>)` ⟦criterion 1⟧
 - [x] `run-step.sh` runs `go-red-step.sh` as a `⟦go-red⟧` step's one stage, and `red-half.sh` refuses a `⟦go-red⟧` step ⟦criterion 1⟧
-- [ ] SKILL.md's go-red paragraph routes the step to `go-red-step.sh` through `run-step.sh`, never the Red leaf, netting <= 80 B; the PL row added and the unit regraded ⟦skill-edit⟧ ⟦criterion 1⟧
+- [x] SKILL.md's go-red paragraph routes the step to `go-red-step.sh` through `run-step.sh`, never the Red leaf, netting <= 80 B; the PL row added and the unit regraded ⟦skill-edit⟧ ⟦criterion 1⟧
 - [ ] SCRIPTS.md, veri/README.md and GO-RED.md list `go-red-step.sh`, its probe wording and its exits
