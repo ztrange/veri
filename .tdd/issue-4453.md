@@ -1,6 +1,6 @@
 # Plan for #4453 — PRD 036.5: a fixed N narrows T to what it needs
 
-- [ ] the hermetic fixture points VERI_TEST_BUDGET_DIR at the case's tmp_path, and the process cases that hand a leg the ceiling and cap files hand it the budget directory too
+- [x] the hermetic fixture points VERI_TEST_BUDGET_DIR at the case's tmp_path, and the process cases that hand a leg the ceiling and cap files hand it the budget directory too
 - [ ] with one unexpired entry under VERI_TEST_BUDGET_DIR, the leg's T is max(2, min(C, S)); with none it is C ⟦criterion 3⟧
 - [ ] an unreadable, malformed or expired entry adds nothing and fails nothing, and an expired one is removed ⟦criterion 3⟧
 - [ ] a waiting leg reads T again on every pass of its wait loop, so a T widened while it waits lets it start ⟦criterion 4⟧

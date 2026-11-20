@@ -337,7 +337,7 @@ def child_pytest(tmp_path, probe, env, select=(), plugins=()):
 
 
 @pytest.mark.process("a child pytest session started with ambient VERI_, CLAUDE_, GH_ and GIT_ variables")
-def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_venv_and_its_own_legs_registry_ceiling_record_and_cap_file_whatever_the_shell_had(tmp_path):
+def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_venv_and_its_own_legs_registry_ceiling_record_cap_file_and_budget_directory_whatever_the_shell_had(tmp_path):
     probe = tmp_path / "test_probe.py"
     seen = tmp_path / "seen.json"
     probe.write_text(
@@ -352,7 +352,7 @@ def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_v
     ran = child_pytest(tmp_path, probe, env)
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
-    assert json.loads(seen.read_text()) == ["VERI_EVENT_STRICT", "VERI_HOME", "VERI_MIN_FREE_GB", "VERI_PYTEST_LEGS", "VERI_TEST_CAP_FILE", "VERI_TEST_CEILING_FILE", "VERI_TEST_LOAD_FILE", "VERI_TEST_TIMEOUTS_FILE", "VERI_VENV"]
+    assert json.loads(seen.read_text()) == ["VERI_EVENT_STRICT", "VERI_HOME", "VERI_MIN_FREE_GB", "VERI_PYTEST_LEGS", "VERI_TEST_BUDGET_DIR", "VERI_TEST_CAP_FILE", "VERI_TEST_CEILING_FILE", "VERI_TEST_LOAD_FILE", "VERI_TEST_TIMEOUTS_FILE", "VERI_VENV"]
 
 
 @pytest.mark.process("a child pytest session started with GIT_TEMPLATE_DIR and GIT_EXEC_PATH set beside other GIT_ variables")

@@ -185,6 +185,7 @@ def test_with_no_worker_count_set_make_unit_runs_min_4_and_the_available_cores_a
     env["VERI_PYTEST_LEGS"] = str(tmp_path / "legs")
     env["VERI_TEST_CEILING_FILE"] = os.environ["VERI_TEST_CEILING_FILE"]  # the budget the case read, not the machine's record
     env["VERI_TEST_CAP_FILE"] = os.environ["VERI_TEST_CAP_FILE"]  # nor the machine's cap
+    env["VERI_TEST_BUDGET_DIR"] = os.environ["VERI_TEST_BUDGET_DIR"]  # nor the machine's lane budgets
     for target, workers in (("unit", min(4, cores)), ("test", cores)):
         log.write_text("")
         ran = subprocess.run(["make", "-C", str(tree), target], env=env, stdin=subprocess.DEVNULL,
@@ -487,7 +488,8 @@ def test_4311_make_unit_with_no_worker_count_takes_the_two_free_workers_and_regi
     (legs / str(os.getpid())).write_text(pytest_leg.registration(max(cores - 2, 0)))
     env = {k: v for k, v in os.environ.items() if not k.startswith(("VERI_", "PYTEST_XDIST_", "PYTEST_LEG_"))}
     env.update(PLANTED_RAN_LOG=str(log), PLANTED_HOLDER=str(os.getpid()), VERI_PYTEST_LEGS=str(legs),
-               VERI_TEST_CEILING_FILE=os.environ["VERI_TEST_CEILING_FILE"], VERI_TEST_CAP_FILE=os.environ["VERI_TEST_CAP_FILE"])
+               VERI_TEST_CEILING_FILE=os.environ["VERI_TEST_CEILING_FILE"], VERI_TEST_CAP_FILE=os.environ["VERI_TEST_CAP_FILE"],
+               VERI_TEST_BUDGET_DIR=os.environ["VERI_TEST_BUDGET_DIR"])
     noted = []
     for exported in ({}, {"VERI_PYTEST_WORKERS": "3"}):
         log.write_text("")
