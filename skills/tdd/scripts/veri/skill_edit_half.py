@@ -4,8 +4,11 @@ import os
 import sys
 
 import fused
+import ledger
 import run_start
 
+DETACH = fused.script("detach-command.sh")
+STEP = fused.script("skill-edit-step.sh")
 USAGE = 'usage: skill-edit-half.sh <n> [--change "<change>"]'
 
 
@@ -18,6 +21,11 @@ def main(argv):
     _, body, _ = fused.call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt)
     with open(os.path.join(wt, ".tdd", "issue-%s-body" % n), "w") as f:
         f.write(body)
+    with open(ledger.ledger_path(wt, n)) as f:
+        step = next(line for line in f if line.startswith(ledger.OPEN_STEP + " "))
+    body_file = os.path.join(".tdd", "issue-%s-body" % n)
+    fused.call(DETACH, "start", "skill-edit-" + n, STEP, body_file, ledger.unit_of(step), cwd=wt)
+    fused.call(DETACH, "wait", "skill-edit-" + n, cwd=wt)
     return 0
 
 
