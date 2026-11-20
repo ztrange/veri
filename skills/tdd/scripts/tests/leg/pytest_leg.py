@@ -317,8 +317,8 @@ SUBSET_CAP = 4
 
 
 def claim(cleanups=None, cap=None):
-    """Registers this leg once a core is free, waiting for one meanwhile: returns (workers, its entry's path), the
-    workers the free cores, at most <cap> when given.
+    """Registers this leg once a core is free, waiting for one meanwhile: returns (workers, its entry's path, T), the
+    workers the free cores, at most <cap> when given, and T the budget they came out of.
 
     While it waits, the PYTEST_LEG_LOCK_WAIT_MARKER file names it, and `cleanups` (the idle watch's) holds the marker's
     removal, so a leg ended by TERM or HUP mid-wait leaves no marker; one it cannot write is one stderr line, and the
@@ -346,7 +346,7 @@ def claim(cleanups=None, cap=None):
                     if said:
                         event.mark("", event.context(tunables.environment()), "core-wait",
                                    ["seconds=%d" % round(time.monotonic() - began)])
-                    return count, entry
+                    return count, entry, total
                 if not said:
                     holders = registered_legs(legs)
                     sys.stderr.write("waiting for %d free test workers of T=%d (%s): %d in use by the registered legs with pids %s\n" % (
@@ -657,8 +657,8 @@ def _main(argv):
             if workers:
                 count = worker_count(workers)
             else:
-                count, entry = claim(watch.cleanups, cap)
-                load_timeouts.LEG["workers"] = count
+                count, entry, total = claim(watch.cleanups, cap)
+                load_timeouts.LEG.update(workers=count, total=total)
             parallel = ["-n", str(count), "--dist", "worksteal"] if count >= 2 else []
             idle_watch.CURRENT[0] = watch
             watch.start()

@@ -221,6 +221,7 @@ TUNABLES = {
     "VERI_PYTEST_WAITERS": Tunable(text, ""),
     "VERI_TEST_CEILING_FILE": Tunable(text, ""),
     "VERI_TEST_CAP_FILE": Tunable(text, ""),
+    "VERI_TEST_LOAD_FILE": Tunable(text, ""),
     "VERI_TEST_TIMEOUTS_FILE": Tunable(text, ""),
     "VERI_PYCACHE": Tunable(text, ""),
     "VERI_NEW_SKILL": Tunable(text, ""),

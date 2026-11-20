@@ -265,6 +265,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_QUEUE_POLLS` | `3` | its readers' own words |
 | `VERI_TEST_CEILING_FILE` | "" | its readers' own words |
 | `VERI_TEST_CAP_FILE` | "" | its readers' own words |
+| `VERI_TEST_LOAD_FILE` | "" | its readers' own words |
 | `VERI_TEST_TIMEOUTS_FILE` | "" | its readers' own words |
 | `VERI_PYTEST_WORKERS` | "" | its readers' own words |
 | `VERI_REBASED_TIP_SUITE` | `local` | local or ci |

@@ -252,6 +252,7 @@ def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "veri-pytest-legs"))
     monkeypatch.setenv("VERI_TEST_CEILING_FILE", str(tmp_path / "veri-test-ceiling"))
     monkeypatch.setenv("VERI_TEST_CAP_FILE", str(tmp_path / "veri-test-cap"))
+    monkeypatch.setenv("VERI_TEST_LOAD_FILE", str(tmp_path / "veri-test-load"))
     monkeypatch.setenv("VERI_TEST_TIMEOUTS_FILE", str(tmp_path / "veri-test-timeouts"))
     monkeypatch.setenv("VERI_MIN_FREE_GB", "0")
     if request.node.get_closest_marker("process") is not None:

@@ -2,7 +2,7 @@
 
 - [x] a leg that claimed its workers appends `<epoch> <pid> <test file> <node id> <workers>` to VERI_TEST_TIMEOUTS_FILE per case its per-case timeout fails, and records a `case-timeout` event (`nodeid`, `workers`) ⟦criterion 1⟧
 - [x] a leg run with VERI_PYTEST_WORKERS exported appends nothing to the timeouts file and lowers nothing ⟦criterion 11⟧
-- [ ] a timeout appended while the timeouts file holds a line from another test file within VERI_LOAD_WINDOW writes VERI_TEST_LOAD_FILE (through a temporary file) with T-2 on line 1 and the time on line 2 ⟦criterion 4⟧
+- [x] a timeout appended while the timeouts file holds a line from another test file within VERI_LOAD_WINDOW writes VERI_TEST_LOAD_FILE (through a temporary file) with T-2 on line 1 and the time on line 2 ⟦criterion 4⟧
 - [ ] timeouts from one test file only, however many, write no load file ⟦criterion 2⟧
 - [ ] lines older than VERI_LOAD_WINDOW (default 600) seconds do not count toward a load timeout ⟦criterion 2⟧
 - [ ] a lowering never writes a T below 2 ⟦criterion 4⟧
