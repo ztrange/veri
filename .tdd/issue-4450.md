@@ -22,7 +22,7 @@
 - [x] skill-edit-half.sh passes no path-shaped backticked span after the unit that is not a test file by case_reader.is_test_path ⟦criterion 2⟧
 - [x] skill-edit-half.sh passes no test-file span after the unit that git does not track ⟦criterion 2⟧
 - [x] skill-edit-half.sh exits 3 with a wait record, calling no step-tick.sh, when the `detach-command.sh wait skill-edit-<n>` slice runs out ⟦criterion 3⟧
-- [ ] skill-edit-half.sh called again by the conductor that wrote that wait record only waits on skill-edit-<n>, never making the gh api call or starting skill-edit-step.sh again ⟦criterion 3⟧
+- [x] skill-edit-half.sh called again by the conductor that wrote that wait record only waits on skill-edit-<n>, never making the gh api call or starting skill-edit-step.sh again ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] skill-edit-half.sh calls step-tick.sh on skill-edit-step.sh exit 3 as on its exit 0, and does not exit 3 for it ⟦criterion 4⟧
 - [ ] skill-edit-half.sh stops with exit 1 before step-tick.sh, having called skill-edit-step.sh once, when skill-edit-step.sh exits 1; the stop for its exits 1 and 2 is the one line `if code in (1, 2):` in skills/tdd/scripts/veri/skill_edit_half.py, and the case pinning the exit 1 is named test_4450_skill_edit_step_exit_1_stops_with_1_before_step_tick in skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py ⟦criterion 5⟧
 - [ ] skill-edit-half.sh stops with exit 2 before step-tick.sh, having called skill-edit-step.sh once, when skill-edit-step.sh exits 2 ⟦criterion 5⟧

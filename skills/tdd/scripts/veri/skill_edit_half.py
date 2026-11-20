@@ -33,15 +33,16 @@ def run(argv):
         return 2
     n = argv[0]
     wt = fused.read_settled(run_start.preflight_file(n))["worktree"]
-    _, body, _ = fused.call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt)
-    with open(os.path.join(wt, ".tdd", "issue-%s-body" % n), "w") as f:
-        f.write(body)
-    with open(ledger.ledger_path(wt, n)) as f:
-        step = next(line for line in f if line.startswith(ledger.OPEN_STEP + " "))
-    body_file = os.path.join(".tdd", "issue-%s-body" % n)
-    added = ["--added", step.rstrip("\n")] if ledger.is_added(step.rstrip("\n")) else []
-    change = ["--change", argv[2]] if argv[1:2] == ["--change"] else []
-    fused.call(DETACH, "start", "skill-edit-" + n, STEP, *added, *change, body_file, ledger.unit_of(step), *pins(step, wt), cwd=wt)
+    if fused.load_wait(wt, n, "skill-edit-half") is None:
+        _, body, _ = fused.call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt)
+        with open(os.path.join(wt, ".tdd", "issue-%s-body" % n), "w") as f:
+            f.write(body)
+        with open(ledger.ledger_path(wt, n)) as f:
+            step = next(line for line in f if line.startswith(ledger.OPEN_STEP + " "))
+        body_file = os.path.join(".tdd", "issue-%s-body" % n)
+        added = ["--added", step.rstrip("\n")] if ledger.is_added(step.rstrip("\n")) else []
+        change = ["--change", argv[2]] if argv[1:2] == ["--change"] else []
+        fused.call(DETACH, "start", "skill-edit-" + n, STEP, *added, *change, body_file, ledger.unit_of(step), *pins(step, wt), cwd=wt)
     if fused.call(DETACH, "wait", "skill-edit-" + n, cwd=wt)[0] == 3:
         return 3
     return fused.call(TICK, n, cwd=wt)[0]
