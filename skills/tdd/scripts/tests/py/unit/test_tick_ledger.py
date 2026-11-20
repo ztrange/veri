@@ -1339,11 +1339,15 @@ def test_main_refuses_a_tick_of_a_go_red_step_whose_mutation_record_holds_no_ent
     assert (code, "issue-7-mutations.md" in err, ledger.read_bytes()) == (2, True, seed)
 
 
-def go_red_entry(old="if stacked:", new="if False:", case="tests/test_run.py::test_refuses_stacked"):
-    """A mutation-probe.sh entry for GO_RED_STEP's file, as the probe writes it (text fields base64-encoded)."""
+def go_red_entry(old="if stacked:", new="if False:", case="tests/test_run.py::test_refuses_stacked", file="src/run.py",
+                 command=True):
+    """A mutation-probe.sh entry for GO_RED_STEP's probe, as the probe writes it (text fields base64-encoded); each
+    keyword varies one field, `command=False` leaving the command field out."""
     record = importlib.import_module("veri.mutation_record")
-    return record.format_record([("file", "src/run.py"), ("old", old), ("new", new), ("context", old),
-                                 ("command", "sh -c 'make test TESTS=\"$1\"' sh " + case)])
+    fields = [("file", file), ("old", old), ("new", new), ("context", old)]
+    if command:
+        fields.append(("command", "sh -c 'make test TESTS=\"$1\"' sh " + case))
+    return record.format_record(fields)
 
 
 def test_main_ticks_a_go_red_step_once_the_mutation_record_holds_an_entry_for_its_probed_file_4443(tmp_path, tick_ledger):
@@ -1373,10 +1377,12 @@ def test_main_refuses_a_tick_of_a_go_red_step_with_no_mutation_record_or_no_pars
     assert results == [(2, True, True), (2, True, True)]
 
 
-@pytest.mark.parametrize("entry", [go_red_entry(old="return 1", new="return 2"), go_red_entry(new="if True:"),
-                                   go_red_entry(case="tests/test_run.py::test_another_case")],
-                         ids=["other-old-new", "other-new", "other-case"])
-def test_main_refuses_a_go_red_tick_whose_record_for_its_file_has_another_old_new_or_another_case_4443(
+@pytest.mark.parametrize("entry", [go_red_entry(file="src/other.py"), go_red_entry(old="if stacked"),
+                                   go_red_entry(new="if True:"),
+                                   go_red_entry(case="tests/test_run.py::test_another_case"),
+                                   go_red_entry(command=False)],
+                         ids=["only-file", "only-old", "only-new", "only-case", "no-command"])
+def test_main_refuses_a_go_red_tick_whose_record_entry_differs_from_its_probe_in_one_field_or_has_no_command_4443(
         tmp_path, capsys, tick_ledger, entry):
     ledger = tmp_path / "issue-7.md"
     seed = ("# Plan for #7\n\n" + GO_RED_STEP).encode()
