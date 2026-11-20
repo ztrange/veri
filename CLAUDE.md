@@ -169,7 +169,12 @@ with no such record (CI, a new machine, a malformed or unreadable file) the phys
 elsewhere, never below 2, and the leg says so in one stderr line naming the file and `make ceiling` (PRD 036.4). When a cap is set,
 T is min(that value, the cap on line 1 of `~/.veri-test-cap` (`VERI_TEST_CAP_FILE`)), a file the human writes and nothing in veri
 changes; one the leg cannot use (unreadable, or line 1 not a whole number of at least 2) is one stderr line and no cap, and a wait
-against the cap names the cap file (PRD 036.11). Cases run
+against the cap names the cap file (PRD 036.11). A **load timeout**, cases of two test files timing out within
+`VERI_LOAD_WINDOW` seconds (default 600) across the machine's legs, as each leg that claimed its workers appends them to
+`~/.veri-test-timeouts` (`VERI_TEST_TIMEOUTS_FILE`), lowers T by 2, never below 2, at most once per window, through
+`~/.veri-test-load` (`VERI_TEST_LOAD_FILE`): while it holds a whole number of at least 2, every leg's T is the lesser of
+that and its T without it, and nothing in veri raises it back but `make ceiling`'s exit 0, which removes the file, or the
+human removing it (PRD 036.7). Cases run
 across pytest-xdist workers out of T: `make unit` and a `make test TESTS=…` subset min(4, the workers of T other running legs
 leave free) (each worker pays its own start-up; `make unit` hands the leg `--cap=4`, a subset's `--subset` caps it at 4), a full
 `make test` every free worker (#2100), and a leg of any kind that finds fewer than 2 free waits instead of starting (PRD 036.1,
