@@ -443,3 +443,26 @@ def test_4450_skill_edit_step_exit_2_stops_with_2_before_step_tick(
     code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
 
     assert (code, [c[0] for c in calls if c[0] in ("step-tick.sh", "skill-edit-step.sh")]) == (2, []), (code, calls)
+
+
+def test_4450_it_exits_2_before_any_call_when_the_open_step_does_not_carry_the_skill_edit_mark(
+        monkeypatch, run_cli, tmp_path):
+    """SKH42: an open step without ⟦skill-edit⟧ is refused with exit 2 before gh, skill-edit-step.sh or step-tick.sh."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦criterion 1⟧\n")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        calls.append((os.path.basename(name), args))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert (code, calls) == (2, []), (code, calls)
