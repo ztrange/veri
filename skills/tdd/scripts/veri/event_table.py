@@ -94,6 +94,7 @@ EVENTS = {
     "suite-flake": "at?:(suite-repair|resume) files:text",
     "suite-repair-retired": "",
     "test-run": "tier:(fast|changed|affected|all|target) suites:text,empty seconds:whole status:whole",
+    "test-stretch": "tier:(fast|all) seconds:whole idle:whole",
     "tidy-first": "anchor:text refactoring:text",
     "tests-frozen-refused": "exit:(1|2) reason:text,empty",
     "unpinnable-missing": "step:text",

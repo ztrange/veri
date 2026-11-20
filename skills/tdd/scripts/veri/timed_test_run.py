@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 
+import ceiling
 import entry
 import event
 import run_line
@@ -82,6 +83,11 @@ def main(argv):
             sys.stdout.write(report(tier, code, ended - started, log.read(), path))
     event.mark("", event.context(tunables.environment()), "test-run", [f"tier={tier}", f"suites={suites}",
                                                            f"seconds={ended - started}", f"status={code}"], ended)
+    if tier in ("fast", "all"):
+        idle = ceiling.read_idle(tier)
+        if idle is not None and ended - started > 2 * idle:
+            event.mark("", event.context(tunables.environment()), "test-stretch",
+                       [f"tier={tier}", f"seconds={ended - started}", f"idle={idle}"], ended)
     return code
 
 

@@ -74,6 +74,21 @@ def record_path():
     return tunables.get("VERI_TEST_CEILING_FILE") or os.path.join(os.path.expanduser("~"), ".veri-test-ceiling")
 
 
+def read_idle(tier):
+    """The seconds of the record's `idle <tier> <seconds>` line, the tier's idle duration (PRD 036.10); None when the
+    record has no such line or there is no record."""
+    try:
+        with open(record_path()) as f:
+            lines = f.read().splitlines()
+    except FileNotFoundError:
+        return None
+    for line in lines:
+        words = line.split()
+        if len(words) == 3 and words[:2] == ["idle", tier] and words[2].isascii() and words[2].isdigit():
+            return int(words[2])
+    return None
+
+
 def cap_path():
     return tunables.get("VERI_TEST_CAP_FILE") or os.path.join(os.path.expanduser("~"), ".veri-test-cap")
 
