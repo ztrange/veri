@@ -1736,6 +1736,18 @@ def test_main_exits_0_for_a_no_checks_pr_when_the_claude_md_line_says_ci_on_pr_0
     assert (code, out) == (0, "")
 
 
+def test_main_exits_2_with_one_stderr_line_naming_a_claude_md_ci_on_pr_line_that_is_neither_0_nor_1(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    (work / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: maybe\n")
+    served(fake_processes, sha_bodies([], [], "pending"))
+
+    code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, out, "veri: ci on pr:" in err and "maybe" in err, len(err.splitlines())) == (2, "", True, 1)
+
+
 def test_4332_a_no_checks_pr_under_ci_on_pr_0_exits_0_with_stderr_naming_has_no_checks_the_text_pr_ready_wait_reads(
         tmp_path, wait_ci, fake_processes, run_cli):
     pr_ready_wait = importlib.import_module("veri.pr_ready_wait")

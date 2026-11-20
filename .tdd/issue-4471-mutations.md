@@ -66,3 +66,10 @@ skills/tdd/scripts/tests/py/unit/test_rebased_tip_suite.py
 command 196
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_rebased_tip_suite.py::test_main_with_ci_on_pr_unset_exits_2_with_one_stderr_line_naming_the_claude_md_line_for_a_value_that_is_neither_0_nor_1
 
+before 40
+caa28aed61165020b8e4cd6dce5476ec5555a506
+keep 48
+skills/tdd/scripts/tests/py/unit/test_wait_ci.py
+command 161
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_exits_2_with_one_stderr_line_naming_a_claude_md_ci_on_pr_line_that_is_neither_0_nor_1
+
