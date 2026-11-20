@@ -3472,3 +3472,21 @@ def test_queued_merges_reports_a_skip_suite_line_by_its_pr_url_and_counts_no_loc
     monkeypatch.setattr(dispatch, "target_repo", lambda: repo)
 
     assert dispatch.queued_merges() == [url]
+
+
+def test_4455_a_queue_growing_over_the_last_3_polls_prints_the_queueing_line_and_exits_0_after_that_polls_launch(dispatch):
+    world = FakeWorld({"waiters": 1}, {"waiters": 2}, {"waiters": 3, "queue": ["15"], "budget": (8, 6)}, {})
+
+    code = dispatch.main(["--target", "2"], world=world)
+
+    assert (code, world.launched, world.waits, "".join(world.said)) == (
+        0, ["15"], 2, "queueing 3 waiting for T=8, 6 workers in use: a lower N would shorten the wait\n")
+
+
+@pytest.mark.parametrize("counts", [(2, 2, 2), (3, 2, 1), (0, 1, 2), (2, 0, 3)], ids=["flat", "shrinking", "a-zero-first", "a-zero-between"])
+def test_4455_a_queue_that_is_not_above_0_at_each_of_the_last_3_polls_or_not_grown_from_the_oldest_prints_nothing(dispatch, counts):
+    world = FakeWorld(*[{"waiters": k} for k in counts])
+
+    code = dispatch.main(["--target", "2"], world=world)
+
+    assert (code, world.waits, "".join(world.said)) == (None, 3, "")

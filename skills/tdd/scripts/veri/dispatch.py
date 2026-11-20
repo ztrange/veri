@@ -10,6 +10,7 @@ import time
 from datetime import datetime
 
 import event_log
+import full_run_lock
 import github
 import json_documents
 import paths
@@ -289,6 +290,16 @@ def state_file():
     return state_path(layout.main_tree(missing=""), "dev", lane())
 
 
+def _leg():
+    """The pytest leg's module, whose registry rule (registered_legs) the waiter entries share; it lives in tests/leg/,
+    which this puts on sys.path, as ceiling.py does."""
+    leg = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "tests", "leg")
+    if leg not in sys.path:
+        sys.path.append(leg)
+    import pytest_leg
+    return pytest_leg
+
+
 class World:
     """Everything dispatch's loop asks of the outside, the real adapter: the runs, the queued merges, the queue,
     the role state file, launching, output, the clock and the wait. Each method looks its helper up on this module
@@ -366,6 +377,16 @@ class World:
     def role_state_file(self):
         return state_file()
 
+    # the test queue
+    def waiting(self):
+        """The live waiter entries under VERI_PYTEST_WAITERS: legs waiting for T, alive under their recorded start time."""
+        return len(_leg().registered_legs(full_run_lock.waiters_dir()))
+
+    def test_budget(self):
+        """(T, the workers live registered legs hold)."""
+        leg = _leg()
+        return leg.budget()[0], leg.registered_workers(full_run_lock.legs_dir())
+
     # acting
     def launch(self, issue):
         """Launch <issue>'s run and append its `launched <n> <time>` line to dispatch.log."""
@@ -405,6 +426,7 @@ class State:
         self.reported = set()  # the (issue, path, PR url) skips already printed
         self.missing = {}  # issue: the clock() time its silent exit was first seen
         self.held_at = None  # the clock() time the queue last had nothing launchable
+        self.queue_counts = []  # the live waiter entries counted at the last polls, oldest first
 
 
 def _merge_failed(state, world):
@@ -534,6 +556,20 @@ def _launch_into_a_free_slot(state, world, live):
     return None
 
 
+def _queueing(state, world):
+    """queueing <k> waiting for T=<t>, <w> workers in use: ... when the last polls' waiter counts are each above 0 and
+    the newest exceeds the oldest (PRD 036.9). Advice only: it runs after the poll's launch decision and changes
+    nothing that decision used."""
+    waiting = world.waiting()
+    state.queue_counts = (state.queue_counts + [waiting])[-3:]
+    counts = state.queue_counts
+    if len(counts) == 3 and min(counts) > 0 and counts[-1] > counts[0]:
+        total, in_use = world.test_budget()
+        world.say(f"queueing {waiting} waiting for T={total}, {in_use} workers in use: a lower N would shorten the wait\n")
+        return 0
+    return None
+
+
 def step(state, world):
     """One poll: (state, exit code), the code None while dispatch keeps watching. Each line is printed through
     world.say or world.complain as it is decided, so a later failure in the same poll never swallows it."""
@@ -552,7 +588,10 @@ def step(state, world):
     state.absent = [issue for issue in state.absent if issue not in live]
     state.pending = [issue for issue in state.pending if issue not in live and issue not in state.absent]
     state.seen = live + state.absent + state.pending
-    return state, _launch_into_a_free_slot(state, world, live)
+    code = _launch_into_a_free_slot(state, world, live)
+    if code is None:
+        code = _queueing(state, world)
+    return state, code
 
 
 def main(argv, world=None):

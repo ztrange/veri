@@ -21,15 +21,18 @@ Keys a tick may carry, each with the default an empty world would answer:
     role_state    the role state file's lines                        the constructor's
     clock         seconds                                            the tick's index * 60
     reset         the rate-limit reset epoch                         0
+    waiters       live waiter entries under VERI_PYTEST_WAITERS      0
+    budget        (T, the workers live registered legs hold)         (8, 0)
 
 What it records: `said` (stdout text), `complained` (stderr text), `launched` (issues), `waits` (their count),
 `launched_at_wait` (the launches made so far, one list per wait, taken as the wait is called),
-`reads` ((tick key, tick index) of every answer asked for, in order).
+`reads` ((tick key, tick index) of every answer asked for, in order), `notified_lines` (.tdd/dispatch-notified's
+lines as last recorded; the constructor's `notified` until then).
 """
 
 
 class FakeWorld:
-    def __init__(self, *ticks, role_state=(), role_state_file="/main/.tdd/role-dev.state", unreadable=False):
+    def __init__(self, *ticks, role_state=(), role_state_file="/main/.tdd/role-dev.state", unreadable=False, notified=()):
         self.ticks = list(ticks) or [{}]
         self.index = 0
         self.role_state_lines = list(role_state)
@@ -41,6 +44,7 @@ class FakeWorld:
         self.waits = 0
         self.launched_at_wait = []
         self.reads = []
+        self.notified_lines = list(notified)
 
     def _tick(self):
         return self.ticks[min(self.index, len(self.ticks) - 1)]
@@ -110,6 +114,19 @@ class FakeWorld:
 
     def role_state_file(self):
         return self.role_state_path
+
+    # the test queue
+    def waiting(self):
+        return self._answer("waiters", 0)
+
+    def test_budget(self):
+        return self._answer("budget", (8, 0))
+
+    def notified(self):
+        return list(self.notified_lines)
+
+    def record_notified(self, lines):
+        self.notified_lines = list(lines)
 
     # acting
     def launch(self, issue):
