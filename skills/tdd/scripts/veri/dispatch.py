@@ -716,6 +716,9 @@ def main(argv, world=None):
     if not tunables.parses("VERI_QUEUE_POLLS", tunables.get("VERI_QUEUE_POLLS", unless_empty=True)):
         world.complain("dispatch.sh: VERI_QUEUE_POLLS must be a whole number of at least 2\n")
         return 2
+    if not tunables.parses("VERI_CONDUCTOR_TEST_WORKERS", tunables.get("VERI_CONDUCTOR_TEST_WORKERS")):
+        world.complain("dispatch.sh: VERI_CONDUCTOR_TEST_WORKERS must be a whole number of at least 1\n")
+        return 2
     state = State(target, follows_role_state=not argv)
     _reads.clear()
     while True:
