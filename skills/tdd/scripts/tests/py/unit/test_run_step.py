@@ -769,3 +769,13 @@ def test_4450_a_skill_edit_half_exit_2_with_an_out_file_holding_a_guard_refusal_
     assert (code, out.splitlines()[-2:]) == (
         2, ["out=.tdd/skill-edit-12.out refusal=yes",
             "seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step"]), err
+
+
+def test_4450_another_stages_exit_2_prints_no_skill_edit_out_line_before_its_seam(step):
+    """SKH18: the `out=… refusal=` line belongs to skill-edit-half's exit 2 only; a cycle stage's 2 ends on its seam."""
+    (step.wt / ".tdd" / "skill-edit-12.out").write_text("skill-edit-guard.sh: refusing to edit skills/tdd/SKILL.md\n")
+
+    code, out, err, stages = step(ledger=LEDGER % STEP, answers={"red-half.sh": (2, "stopped at 1 x exit 2\n")})
+
+    assert (code, stages.names(), [line for line in out.splitlines() if line.startswith("out=")]) == (
+        2, ["red-half.sh"], []), (out, err)

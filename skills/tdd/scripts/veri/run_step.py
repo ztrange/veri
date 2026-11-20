@@ -174,7 +174,7 @@ def main(argv):
             said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
             if code == 1 and said:
                 return seam(wt, n, step, stage, code, None, line=said[-1])
-            if code == 2:
+            if code == 2 and stage == "skill-edit-half":
                 sys.stdout.write("out=.tdd/skill-edit-%s.out refusal=%s\n" % (n, "yes" if refused(wt, n) else "no"))
             return seam(wt, n, step, stage, code, NEXT_SCRIPTS[0] + " " + n if code == 3 else anchor)
         i += 1
