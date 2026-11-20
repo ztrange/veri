@@ -1723,3 +1723,24 @@ def test_4232_queued_merge_runs_as_stage_merge_carrying_the_branchs_issue_in_the
     in_worktree = [r for r in events.records(worktree) if "stage" in r]  # the worktree a merge removes holds none
     assert (returned, stages, in_worktree) == (
         code, [("stage-start", "merge", None, "12"), ("stage-end", "merge", str(code), "12")], []), err
+
+
+def test_4471_queued_merge_with_a_ci_on_pr_0_line_and_the_variable_unset_reruns_the_full_test_command_on_the_rebased_tree(
+        fake_processes, run_cli, tmp_path):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: 0\n")
+
+    def green_full_run(answer):
+        def wrapped(line, **kwargs):
+            if "detect-test-command" in line:
+                return 0, "make test\n", ""
+            if "make test" in line:
+                return 0, "", ""
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(green_full_run)
+
+    code, _, _ = run_cli(queued_merge, ARGV, cwd=str(tmp_path))
+
+    full_runs = [c for c in calls if "make test" in c]
+    assert (code, len(full_runs)) == (0, 1)

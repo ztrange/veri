@@ -10,6 +10,7 @@ import sys
 import tempfile
 import time
 
+import ci_on_pr
 import entry
 import event
 import git
@@ -317,7 +318,7 @@ def _before_rebase(repo, pr, worktree, branch):
 
 def _before_merge(pid, pr, worktree, branch, before, head):
     """The checks between the pushed head's CI and the merge call: None to go, (message, code) to refuse."""
-    if tunables.read("VERI_CI_ON_PR") == "0" and before != head:
+    if ci_on_pr.declared() == "0" and before != head:
         found = subprocess.run([os.path.join(SCRIPTS, "detect-test-command.sh"), "--tier", "all"],
                                cwd=worktree, capture_output=True, text=True)
         full = found.stdout.strip()
