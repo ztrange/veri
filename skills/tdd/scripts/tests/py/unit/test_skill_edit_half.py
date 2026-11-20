@@ -35,7 +35,8 @@ def test_4450_on_an_open_skill_edit_step_it_first_reads_the_issue_body_into_the_
 
     run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
 
-    assert calls[:1] == [("gh", ("api", "repos/{owner}/{repo}/issues/12", "-q", ".body"))], calls
+    assert calls[:1] == [("git", ("log", "-1", "--format=%H", "--", ".tdd/issue-12.md"))], calls
+    assert calls[1:2] == [("gh", ("api", "repos/{owner}/{repo}/issues/12", "-q", ".body"))], calls
     assert (wt / ".tdd" / "issue-12-body").read_text() == BODY
 
 
@@ -139,9 +140,9 @@ def test_4450_it_prints_one_line_per_call_it_makes_naming_the_call_and_its_exit_
     _, out, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
 
     lines = out.splitlines()
-    assert [line.rsplit(" exit ", 1)[-1] for line in lines] == ["0", "0", "0", "7"], out
+    assert [line.rsplit(" exit ", 1)[-1] for line in lines] == ["0", "0", "0", "0", "7"], out
     assert [line.split(" ", 1)[0] for line in lines] == [
-        "gh", "detach-command.sh", "detach-command.sh", "step-tick.sh"], out
+        "git", "gh", "detach-command.sh", "detach-command.sh", "step-tick.sh"], out
 
 
 def test_4450_on_a_step_carrying_added_it_passes_added_and_the_step_first_to_skill_edit_step(
@@ -589,3 +590,34 @@ def test_4450_it_never_prints_what_skill_edit_step_wrote_to_its_out_file_leaf_ou
 
     assert code == 1, (code, out, err)
     assert "LEAF-TRANSCRIPT-9d2f" not in out + err and "FAIL" not in out + err, (out, err)
+
+
+def test_4450_a_graded_commit_after_the_ledger_calls_step_tick_directly(
+        monkeypatch, run_cli, tmp_path):
+    """SKH6, SKH38: a `docs: requirements for <unit>, graded` commit after the ledger's last commit skips gh and the step."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    calls = []
+    graded = "docs: requirements for skills/tdd/SKILL.md, graded"
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "git" and args[:1] == ("log",):
+            if "--" in args and ".tdd/issue-12.md" in args:
+                return 0, "aaaaaaa\n", ""
+            return 0, "bbbbbbb %s\n%s\n" % (graded, graded), ""
+        return 0, BODY if base == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    names = [c[0] for c in calls]
+    assert (code, "gh" in names, [c for c in calls if c[0] == "detach-command.sh"],
+            [c for c in calls if c[0] == "step-tick.sh"]) == (0, False, [], [("step-tick.sh", ("12",))]), calls

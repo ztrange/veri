@@ -22,6 +22,15 @@ def pins(step, wt):
             and fused.call("git", "ls-files", "--error-unmatch", "--", s, cwd=wt)[0] == 0]
 
 
+def graded_after_ledger(wt, n, unit):
+    _, last, _ = fused.call("git", "log", "-1", "--format=%H", "--", ".tdd/issue-%s.md" % n, cwd=wt)
+    last = last.strip()
+    if not last:
+        return False
+    _, subjects, _ = fused.call("git", "log", "--format=%s", last + "..HEAD", cwd=wt)
+    return "docs: requirements for %s, graded" % unit in subjects.splitlines()
+
+
 def main(argv):
     with fused.quiet():
         return run(argv)
@@ -37,9 +46,13 @@ def run(argv):
         step = next(line for line in f if line.startswith(ledger.OPEN_STEP + " "))
     if not ledger.is_skill_edit(step.rstrip("\n")):
         return 2
-    if ledger.unit_of(step) is None:
+    unit = ledger.unit_of(step)
+    if unit is None:
         return 2
-    if fused.load_wait(wt, n, "skill-edit-half") is None:
+    waiting = fused.load_wait(wt, n, "skill-edit-half") is not None
+    if not waiting and graded_after_ledger(wt, n, unit):
+        return fused.call(TICK, n, cwd=wt)[0]
+    if not waiting:
         _, body, _ = fused.call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt)
         with open(os.path.join(wt, ".tdd", "issue-%s-body" % n), "w") as f:
             f.write(body)
