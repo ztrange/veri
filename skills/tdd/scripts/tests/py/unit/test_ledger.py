@@ -432,3 +432,15 @@ def test_same_step_reads_texts_differing_only_by_marks_and_a_trailing_suffix_as_
         "a cog spins ⟦criterion 2⟧",
         "a cog turns twice ⟦criterion 2⟧",
     )] == [True, True, True, True, False, False]
+
+
+@pytest.mark.parametrize("step, expected", [
+    ("Go-red guard: probe `a.py` `x` → `y` on `t.py::c` ⟦go-red⟧ ⟦criterion 1⟧", True),
+    ("Go-red guard: probe `a.py` `x` → `y` on `t.py::c` ⟦go-red⟧", True),
+    ("SKILL.md routes a `⟦go-red⟧` step to go-red-step.sh ⟦criterion 1⟧", False),
+    ("⟦go-red⟧ Go-red guard: probe `a.py` `x` → `y` on `t.py::c` ⟦criterion 1⟧", False),
+], ids=["trailing-before-criterion", "trailing-last", "backticked-mention", "leading"])
+def test_is_go_red_counts_the_marker_only_among_the_steps_trailing_markers_4443(step, expected):
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.is_go_red(step) is expected
