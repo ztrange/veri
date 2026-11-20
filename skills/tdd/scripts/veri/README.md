@@ -262,6 +262,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_PYTEST_IDLE` | `1200` | its readers' own words |
 | `VERI_PYTEST_LEGS` | "" | its readers' own words |
 | `VERI_TEST_CEILING_FILE` | "" | its readers' own words |
+| `VERI_TEST_CAP_FILE` | "" | its readers' own words |
 | `VERI_PYTEST_WORKERS` | "" | its readers' own words |
 | `VERI_REBASED_TIP_SUITE` | `local` | local or ci |
 | `VERI_RECHECK_PERMISSIONS` | `0` | its readers' own words |
