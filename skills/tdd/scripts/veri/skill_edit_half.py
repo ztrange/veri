@@ -14,6 +14,11 @@ USAGE = 'usage: skill-edit-half.sh <n> [--change "<change>"]'
 
 
 def main(argv):
+    with fused.quiet():
+        return run(argv)
+
+
+def run(argv):
     if not argv:
         sys.stderr.write(USAGE + "\n")
         return 2
