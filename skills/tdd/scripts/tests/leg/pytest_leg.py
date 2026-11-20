@@ -603,12 +603,14 @@ def _main(argv):
     sys.path.insert(1, VERI)
     sys.path.insert(2, os.path.dirname(VERI))
     import idle_watch
+    import load_timeouts
+    leg_facts = dict(load_timeouts.LEG)
     outer = sys.modules.get("failed_cases")
     records = (outer.NODEIDS, outer.PASSED, outer.REPORTED, outer.NAMED) if outer else ()
     saved = [list(record) for record in records]
     for record in records:
         record.clear()
-    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen", "failed_cases", "idle_watch"]))
+    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen", "failed_cases", "idle_watch", "load_timeouts"]))
     def terminate(signum, frame):
         # Ends the leg here, not by raising into pytest.main: pytest would run the session-finish hooks, xdist's worker
         # teardown among them, and a hung worker held that teardown up to its own timeout (#4254).
@@ -656,6 +658,7 @@ def _main(argv):
                 count = worker_count(workers)
             else:
                 count, entry = claim(watch.cleanups, cap)
+            load_timeouts.LEG["workers"] = count
             parallel = ["-n", str(count), "--dist", "worksteal"] if count >= 2 else []
             idle_watch.CURRENT[0] = watch
             watch.start()
@@ -694,6 +697,8 @@ def _main(argv):
         if not returned:
             watch.finished.wait()  # an end claimed the leg first: it runs the cleanups and exits, never this teardown
         idle_watch.CURRENT[0] = outer_watch
+        load_timeouts.LEG.clear()
+        load_timeouts.LEG.update(leg_facts)
         os.close(watch.out)
         for record, kept in zip(records, saved):
             record.clear()
