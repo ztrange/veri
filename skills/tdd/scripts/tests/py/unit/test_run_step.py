@@ -683,3 +683,11 @@ def test_4450_hand_skill_edit_half_stops_before_it_on_a_skill_edit_step_never_ca
 
     assert (code, stages.names(), out.splitlines()[-1]) == (
         1, [], "seam=skill-edit-half code=1 reason=hand next=SKILL-EDIT.md#The skill-edit step"), err
+
+
+def test_4450_from_skill_edit_half_on_a_skill_edit_step_starts_at_it_and_calls_it(step):
+    code, out, err, stages = step(ledger=LEDGER % SKILL_EDIT_STEP, argv=("12", "--from", "skill-edit-half"),
+                                  answers={"skill-edit-half.sh": (0, "step-tick.sh 12 exit 0\nnext=cycle\n")})
+
+    assert (code, [(c[0], c[1]) for c in stages.calls], out.splitlines()[-1]) == (
+        0, [("skill-edit-half.sh", ("12",))], "next=cycle"), err
