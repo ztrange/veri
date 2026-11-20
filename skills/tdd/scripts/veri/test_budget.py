@@ -12,8 +12,13 @@ def budget_dir():
 
 
 def unexpired():
-    """[(lane, need)] for every entry whose expiry is still ahead; no directory is no entry. An entry that is unreadable or
-    malformed adds nothing and fails nothing; an expired one is removed."""
+    """[(lane, need)] for every entry whose expiry is still ahead (unexpired_entries)."""
+    return [(name.partition("@")[0], need) for name, need in unexpired_entries()]
+
+
+def unexpired_entries():
+    """[(entry name, need)] for every entry whose expiry is still ahead; no directory is no entry. An entry that is
+    unreadable or malformed adds nothing and fails nothing; an expired one is removed."""
     root = budget_dir()
     try:
         names = sorted(os.listdir(root))
@@ -29,7 +34,7 @@ def unexpired():
         except (OSError, ValueError):
             continue
         if expiry > now:
-            found.append((name.partition("@")[0], need))
+            found.append((name, need))
         else:
             try:
                 os.remove(path)
