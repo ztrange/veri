@@ -48,3 +48,10 @@ skills/tdd/scripts/tests/py/unit/test_revise.py
 command 140
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise.py::test_4482_green_a_check_earlier_exit_1_is_exit_1_launching_no_verdict_green
 
+before 40
+50a6e8b31267663864c338bdd82d44ffba6eb6f4
+keep 47
+skills/tdd/scripts/tests/py/unit/test_revise.py
+command 136
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise.py::test_4482_red_a_check_earlier_exit_1_is_exit_1_launching_no_verdict_red
+
