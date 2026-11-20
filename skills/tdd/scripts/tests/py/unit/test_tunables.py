@@ -14,6 +14,7 @@ ENTRY_POINTS = {
     "VERI_FULL_TIER_MAX_AGE_DAYS": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_CI_FLAKE_RERUNS": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_TEST_QUALITY_FIXES": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
+    "VERI_BRANCH_REPAIRS": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_COMMENT_CHUNK": ("veri.report_cache", ["refresh"], {}),
     "VERI_SURROUND_MUTANTS": ("veri.surround_mutants", ["develop-surround.out", "--", "true"], {}),
     "VERI_KILL_POLL": ("veri.supervise", ["develop-red", "true"], {"VERI_TIMEOUT": "900"}),
@@ -340,7 +341,8 @@ def test_the_refusing_table_is_exactly_the_entries_that_state_a_refusal():
         "VERI_CONDUCTOR_CTX_BUDGET", "VERI_RESET_GROWTH_CONDUCTOR",
         "VERI_KILL_POLL", "REVISE_BUDGET", "VERI_COMMENT_CHUNK", "VERI_REBASED_TIP_SUITE",
         "VERI_BRANCH_SUITE", "VERI_BASELINE_FULL_TIER", "VERI_FULL_TIER_MAX_AGE_DAYS",
-        "VERI_CI_FLAKE_RERUNS", "VERI_TEST_QUALITY_FIXES", "VERI_SURROUND_MUTANTS"}
+        "VERI_CI_FLAKE_RERUNS", "VERI_TEST_QUALITY_FIXES", "VERI_SURROUND_MUTANTS",
+        "VERI_BRANCH_REPAIRS"}
 
 
 def test_resolve_refuses_nothing_for_a_name_that_states_no_refusal_and_get_reads_it(monkeypatch):
