@@ -252,3 +252,9 @@ def test_4118_main_classifies_tidy_first_owed_as_a_process_failure_with_0(capsys
     code = classify_bail.main(["tidy-first-owed"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_4472_main_classifies_branch_rejected_as_a_process_failure_with_0(capsys, classify_bail):
+    code = classify_bail.main(["branch-rejected"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
