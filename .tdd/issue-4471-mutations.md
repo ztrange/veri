@@ -87,3 +87,10 @@ skills/tdd/scripts/tests/py/unit/test_queued_merge.py
 command 206
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_queued_merge.py::test_4471_queued_merge_with_a_ci_on_pr_line_that_is_neither_0_nor_1_and_the_variable_unset_exits_2_with_one_stderr_line_naming_the_line
 
+before 40
+caa28aed61165020b8e4cd6dce5476ec5555a506
+keep 49
+skills/tdd/scripts/tests/py/unit/test_ci_on_pr.py
+command 131
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ci_on_pr.py::test_no_module_under_veri_other_than_ci_on_pr_reads_the_variable
+
