@@ -84,7 +84,7 @@ def pytest_runtest_logreport(report):
         old, new = LEG["total"], max(2, LEG["total"] - 2)
         cases = ",".join(nodeid for _, nodeid in window_cases)
         try:
-            lower(new, now)
+            lower(new, now, old, cases)
         except OSError as error:
             complain("write the load file", load_path(), error)
             return
@@ -94,10 +94,11 @@ def pytest_runtest_logreport(report):
         event.mark("", context, "t-lowered", ["old=%d" % old, "new=%d" % new, "cases=" + cases])
 
 
-def lower(t, now):
-    """Replaces the load file whole, through a temporary file beside it: <t> on line 1, <now> on line 2."""
+def lower(t, now, old, cases):
+    """Replaces the load file whole, through a temporary file beside it: <t> on line 1, <now> on line 2, and, for
+    dispatch.sh's t-lowered notice, the T it lowered from on line 3 and the window's cases on line 4."""
     path = load_path()
     temporary = "%s.%d.tmp" % (path, os.getpid())
     with open(temporary, "w") as f:
-        f.write("%d\n%d\n" % (t, now))
+        f.write("%d\n%d\n%d\n%s\n" % (t, now, old, cases))
     os.replace(temporary, path)

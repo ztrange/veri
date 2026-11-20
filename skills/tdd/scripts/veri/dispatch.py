@@ -404,6 +404,20 @@ class World:
         except OSError:
             return []
 
+    def lowering(self):
+        """(time, old T, new T, cases) of the lowering on record in VERI_TEST_LOAD_FILE (PRD 036.7), read for the
+        t-lowered notice and never acted on; None when the file is absent, unreadable or holds less than those four."""
+        _leg()
+        import load_timeouts
+        try:
+            with open(load_timeouts.load_path()) as f:
+                lines = f.read().splitlines()
+        except (OSError, UnicodeDecodeError):
+            return None
+        if len(lines) < 4 or not all(line.isascii() and line.isdigit() for line in lines[:3]) or not lines[3]:
+            return None
+        return int(lines[1]), int(lines[2]), int(lines[0]), lines[3]
+
     def record_notified(self, lines):
         """Replaces .tdd/dispatch-notified whole through a temporary file; nothing when no main working tree can be
         named, so a relative .tdd/ under whatever the current directory is never gets one."""
@@ -635,6 +649,27 @@ def _stretched(state, world, live):
     return None
 
 
+# The .tdd/dispatch-notified line the t-lowered rule owns: the time of the last lowering it reported.
+LOWERED_LINE = "t-lowered "
+
+
+def _lowered(state, world):
+    """t-lowered <old> <new> <cases> when the lowering on record is newer than the last reported (PRD 036.7 LO8),
+    recording its time so a restarted dispatch.sh never prints it again. Advice only, like _queueing."""
+    lowering = world.lowering()
+    if lowering is None:
+        return None
+    at, old, new, cases = lowering
+    lines = world.notified()
+    reported = [int(word) for line in lines if line.startswith(LOWERED_LINE)
+                for word in line.split()[1:2] if word.isdigit()]
+    if reported and reported[0] >= at:
+        return None
+    world.record_notified([line for line in lines if not line.startswith(LOWERED_LINE)] + [LOWERED_LINE + str(at)])
+    world.say(f"t-lowered {old} {new} {cases}\n")
+    return 0
+
+
 def step(state, world):
     """One poll: (state, exit code), the code None while dispatch keeps watching. Each line is printed through
     world.say or world.complain as it is decided, so a later failure in the same poll never swallows it."""
@@ -658,6 +693,8 @@ def step(state, world):
         code = _queueing(state, world)
     if code is None:
         code = _stretched(state, world, live)
+    if code is None:
+        code = _lowered(state, world)
     return state, code
 
 
