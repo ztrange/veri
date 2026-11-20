@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SCRIPTS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # The leg and its plugin, which write and read it; veri/ceiling.py, whose exit 0 removes it; veri/dispatch.py, which
 # reads it for the t-lowered notice only; and the tunable's own declaration and its README row.
