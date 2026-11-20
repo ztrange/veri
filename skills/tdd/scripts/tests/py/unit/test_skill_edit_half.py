@@ -37,3 +37,54 @@ def test_4450_on_an_open_skill_edit_step_it_first_reads_the_issue_body_into_the_
 
     assert calls[:1] == [("gh", ("api", "repos/{owner}/{repo}/issues/12", "-q", ".body"))], calls
     assert (wt / ".tdd" / "issue-12-body").read_text() == BODY
+
+
+def test_4450_it_then_runs_skill_edit_step_detached_by_starting_then_waiting_on_skill_edit_n(
+        monkeypatch, run_cli, tmp_path):
+    """SKH2: skill-edit-step.sh runs as detach-command.sh start skill-edit-<n>, then wait skill-edit-<n>."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        calls.append((os.path.basename(name), args))
+        return 0, BODY if os.path.basename(name) == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    detached = [args[:2] for name, args in calls if name == "detach-command.sh"]
+    assert detached == [("start", "skill-edit-12"), ("wait", "skill-edit-12")], calls
+
+
+def test_4450_the_detached_start_is_given_skill_edit_step_then_the_body_file_then_the_steps_unit(
+        monkeypatch, run_cli, tmp_path):
+    """SKH2: detach-command.sh start skill-edit-<n> runs skill-edit-step.sh on the body file and the step's unit."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        calls.append((os.path.basename(name), args))
+        return 0, BODY if os.path.basename(name) == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    start = [args for name, args in calls if name == "detach-command.sh" and args[:1] == ("start",)]
+    assert len(start) == 1, calls
+    _, label, script, body_file, unit = start[0]
+    assert (label, os.path.basename(script), body_file, unit) == (
+        "skill-edit-12", "skill-edit-step.sh", ".tdd/issue-12-body", "skills/tdd/SKILL.md"), start

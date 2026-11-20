@@ -44,3 +44,21 @@ ICAgIHIifHJvd3MgZm9yIC4qIGFyZSBub3QgdW5kZXIgIyMgUmVxdWlyZW1lbnRzIg==
 command 65
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_step.py
 
+before 40
+ead8d4dfec49b848584f469b32a4dd70dc96ebc8
+keep 56
+skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py
+command 166
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_the_detached_start_is_given_skill_edit_step_then_the_body_file_then_the_steps_unit
+
+file 42
+skills/tdd/scripts/veri/skill_edit_half.py
+old-b64 52
+U1RFUCwgYm9keV9maWxlLCBsZWRnZXIudW5pdF9vZihzdGVwKQ==
+new-b64 20
+U1RFUCwgYm9keV9maWxl
+context-b64 132
+ICAgIGZ1c2VkLmNhbGwoREVUQUNILCAic3RhcnQiLCAic2tpbGwtZWRpdC0iICsgbiwgU1RFUCwgYm9keV9maWxlLCBsZWRnZXIudW5pdF9vZihzdGVwKSwgY3dkPXd0KQ==
+command 166
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_the_detached_start_is_given_skill_edit_step_then_the_body_file_then_the_steps_unit
+
