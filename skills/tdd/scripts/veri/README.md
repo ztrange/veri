@@ -44,7 +44,7 @@ Directions the tree obeys (checked by the same test; every group states what it 
 - Prompts and leaf reports imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Target suites and tiers
 - Verdicts and verification imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Prompts and leaf reports; Target suites and tiers
 - Veri's own test runner imports only: Foundations; Run state and journal
-- Target suites and tiers imports only: Foundations; Run state and journal
+- Target suites and tiers imports only: Foundations; Run state and journal; Veri's own test runner
 - Budgets and cost imports only: Foundations; Run state and journal
 - Frozen tests and case history imports only: Foundations; Run state and journal; Ledger and plan
 - GitHub and issues imports only: Foundations; Run state and journal; Ledger and plan; Target suites and tiers
@@ -596,9 +596,14 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 ## leg_tmpdir
 - `PINNED_TMPDIR`: the TMPDIR the pytest leg pins before it starts, and a directory run-conductor's free-space check reads.
 
+## ceiling
+- `record_path()`: the ceiling record, `~/.veri-test-ceiling` (`VERI_TEST_CEILING_FILE`); the pytest leg reads its line 1 as T.
+- `cap_path()`: the cap file, `~/.veri-test-cap` (`VERI_TEST_CAP_FILE`). `read_cap()`: `(cap, complaint)`, the cap the human set on its line 1, or no cap and a one-line complaint for a file it cannot use; the pytest leg lowers T to it.
+- `read_idle(tier)`: the seconds of the record's `idle <tier> <seconds>` line, the tier's idle duration, or None when there is no such line or the record cannot be read; `timed-test-run.sh` journals a `test-stretch` event past twice it (PRD 036.10).
+
 # Target suites and tiers
 
-Choosing and running the suites of the project veri works on: finding its test commands, the suites a change affects, timed, baseline, branch and rebased-tip runs, flakes, reruns and mutation probes. Builds on Run state and journal and Foundations only.
+Choosing and running the suites of the project veri works on: finding its test commands, the suites a change affects, timed, baseline, branch and rebased-tip runs, flakes, reruns and mutation probes. Builds on Run state and journal and Foundations, and on Veri's own test runner for `ceiling`'s idle durations, which a timed run compares itself against (PRD 036.10).
 
 - `affected-suites.sh`: the test suites a change touches.
 - `baseline-full-tier.sh`: run and record the baseline full tier, and record or answer a green baseline preflight may skip.
