@@ -31,7 +31,8 @@ def run(argv):
         step = next(line for line in f if line.startswith(ledger.OPEN_STEP + " "))
     body_file = os.path.join(".tdd", "issue-%s-body" % n)
     added = ["--added", step.rstrip("\n")] if ledger.is_added(step.rstrip("\n")) else []
-    fused.call(DETACH, "start", "skill-edit-" + n, STEP, *added, body_file, ledger.unit_of(step), cwd=wt)
+    change = ["--change", argv[2]] if argv[1:2] == ["--change"] else []
+    fused.call(DETACH, "start", "skill-edit-" + n, STEP, *added, *change, body_file, ledger.unit_of(step), cwd=wt)
     fused.call(DETACH, "wait", "skill-edit-" + n, cwd=wt)
     return fused.call(TICK, n, cwd=wt)[0]
 
