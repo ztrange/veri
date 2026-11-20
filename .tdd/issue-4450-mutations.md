@@ -87,3 +87,21 @@ ICAgIHJldHVybiBbcyBmb3IgcyBpbiBzcGFucyBpZiBjYXNlX3JlYWRlci5pc190ZXN0X3BhdGgocyk=
 command 153
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_passes_no_tracked_path_span_after_the_unit_that_is_not_a_test_file
 
+before 40
+ead8d4dfec49b848584f469b32a4dd70dc96ebc8
+keep 56
+skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py
+command 150
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_passes_no_test_file_span_after_the_unit_that_git_does_not_track
+
+file 42
+skills/tdd/scripts/veri/skill_edit_half.py
+old-b64 104
+YW5kIGZ1c2VkLmNhbGwoImdpdCIsICJscy1maWxlcyIsICItLWVycm9yLXVubWF0Y2giLCAiLS0iLCBzLCBjd2Q9d3QpWzBdID09IDBd
+new-b64 12
+YW5kIFRydWVd
+context-b64 120
+ICAgICAgICAgICAgYW5kIGZ1c2VkLmNhbGwoImdpdCIsICJscy1maWxlcyIsICItLWVycm9yLXVubWF0Y2giLCAiLS0iLCBzLCBjd2Q9d3QpWzBdID09IDBd
+command 150
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_passes_no_test_file_span_after_the_unit_that_git_does_not_track
+
