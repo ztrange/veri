@@ -197,7 +197,8 @@ def budget(say=True):
     to the cap the human set (ceiling.read_cap) when that is below it, the source then naming the cap file beside C0 and
     C0's source (PRD 036.11), and lowered again to a load timeout's T in the load file (load_timeouts.held) when that
     is below what remains, never below 2 (PRD 036.7); that C narrowed to max(2, min(C, S)), S the needs summed over the
-    unexpired lane entries (test_budget.unexpired, PRD 036.5), while there is one. C0 from the core fallback is one stderr line naming the record and `make ceiling`; a cap
+    unexpired lane entries (test_budget.unexpired, PRD 036.5), while there is one, the source then naming each entry's lane and need
+    beside C and its source when that narrows it. C0 from the core fallback is one stderr line naming the record and `make ceiling`; a cap
     file it cannot use is one more; with <say> false, neither is written (a wait re-reading T has said them once)."""
     total, source = c0()
     if source is None and say:
@@ -216,8 +217,10 @@ def budget(say=True):
     if held and held < total:
         total, source = max(2, held), "the load file %s, below %d from %s" % (load_timeouts.load_path(), total, source)
     needs = test_budget.unexpired()
-    if needs:
-        return max(2, min(total, sum(need for _, need in needs))), source
+    narrowed = max(2, min(total, sum(need for _, need in needs)))
+    if needs and narrowed < total:
+        return narrowed, "the lane entries %s, below C=%d from %s" % (
+            ", ".join("%s=%d" % entry for entry in needs), total, source)
     return total, source
 
 
