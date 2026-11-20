@@ -38,6 +38,13 @@ def run_with(contents, command):
                 path.write_bytes(content)
 
 
+def control_run_fails(contents, command):
+    if run_with(contents, command):
+        sys.stderr.write("mutation-probe.sh: command fails on the unmutated file\n")
+        return True
+    return False
+
+
 def before_state(argv):
     if len(argv) < 6 or argv[2] != "--keep" or argv[4] != "--":
         sys.stderr.write(BEFORE_USAGE + "\n")
@@ -59,8 +66,7 @@ def before_state(argv):
     if not restored:
         sys.stderr.write(f"mutation-probe.sh: no file differs from {sha}\n")
         return 2
-    if run_with({}, command):
-        sys.stderr.write("mutation-probe.sh: command fails on the unmutated file\n")
+    if control_run_fails({}, command):
         return 2
     returncode = run_with(restored, command)
     if returncode == 0:
@@ -102,8 +108,7 @@ def main(argv):
         sys.stderr.write("mutation-probe.sh: file not mutated\n")
         return 2
     signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(128 + signum))
-    if run_with({path: saved}, argv[4:]):
-        sys.stderr.write("mutation-probe.sh: command fails on the unmutated file\n")
+    if control_run_fails({path: saved}, argv[4:]):
         return 2
     returncode = run_with({path: mutated}, argv[4:])
     if returncode == 0:
