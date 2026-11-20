@@ -4,3 +4,4 @@
 - test-only | Duplicated Code: Extract Function — the `fake(name, *args, cwd=None, env=None, **kw)` recorder and its setup, repeated across the cases in test_skill_edit_half.py, into one fixture
 ### skill-edit-half.sh exits 2 before any call on bad arguments: a non-numeric issue, an unknown option, or --change with no value ⟦criterion 13⟧
 - test-only | Duplicated Code: Extract Function — pull the repeated worktree, preflight and ledger setup in `test_skill_edit_half.py` into one fixture
+not-done | coupling | mutual reference: skills/tdd/scripts/veri/ledger.py skills/tdd/scripts/veri/run_step.py
