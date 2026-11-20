@@ -543,3 +543,10 @@ def test_re_entered_with_no_refresh_value_it_still_finishes_4433(red):
 
     assert (code, [c[1][1] for c in fake.calls if c[0] == "comment.sh"]) == (0, ["red"]), out
     assert (red.wt / ".tdd" / "red-half-note.md").read_text() == "Prediction matched: verify-red judged the test.\n"
+
+
+def test_4443_a_go_red_step_is_exit_2_before_any_inner_call(red):
+    code, out, err, fake = red(step="Go-red guard: probe `a.py` `x` → `y` on `t.py::c` ⟦go-red⟧ ⟦criterion 1⟧")
+
+    assert (code, fake.calls) == (2, [])
+    assert "a step its prose runs" in err

@@ -16,7 +16,7 @@ USAGE = "usage: red-half.sh <n>"
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
 # The step kinds whose Red is not this one (RH1): they run from their own files or need a route's --except.
-REFUSED = ("⟦diff-checked⟧", "⟦phases:", "⟦skill-edit⟧", "⟦fixture-repair⟧")
+REFUSED = ("⟦diff-checked⟧", "⟦go-red⟧", "⟦phases:", "⟦skill-edit⟧", "⟦fixture-repair⟧")
 
 # The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_red_half.py fails when one
 # is a script SKILL.md's Red section does not name, save three it exempts by name (FC19).

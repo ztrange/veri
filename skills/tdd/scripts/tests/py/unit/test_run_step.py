@@ -616,3 +616,40 @@ def test_a_route_revise_line_with_an_exit_other_than_1_is_the_reroute_seam_never
 
     assert (code, stages.names(), out.splitlines()[-1]) == (
         2, ["red-half.sh", "green-half.sh", "reroute.sh"], "seam=reroute code=2 next=" + GREEN)
+
+
+GO_RED_STEP = "Go-red guard: probe `src/run.py` `if stacked:` → `if False:` on `t.py::c` ⟦go-red⟧ ⟦criterion 1⟧"
+
+
+def test_4443_a_go_red_step_runs_go_red_step_as_its_one_stage_and_ends_on_its_next_line(step):
+    code, out, err, stages = step(ledger=LEDGER % GO_RED_STEP,
+                                  answers={"go-red-step.sh": (0, "step-tick.sh 12 exit 0\nnext=cycle\n")})
+
+    assert (code, [(c[0], c[1]) for c in stages.calls], out.splitlines()[-1]) == (
+        0, [("go-red-step.sh", ("12",))], "next=cycle"), err
+
+
+GO_RED = "GO-RED.md#A `⟦go-red⟧` step — a mutation probe on its named case"
+
+
+@pytest.mark.parametrize("argv, text, code_, names, last", [
+    (("12", "--hand", "go-red-step"), GO_RED_STEP, 1, [], "seam=go-red-step code=1 reason=hand next=" + GO_RED),
+    (("12", "--from", "go-red-step"), GO_RED_STEP, 0, ["go-red-step.sh"], "next=cycle"),
+    (("12", "--from", "go-red-step"), STEP, 2, [], None),
+    (("12", "--from", "red-half"), GO_RED_STEP, 2, [], None),
+])
+def test_4443_hand_and_from_go_red_step_and_a_from_across_kinds_is_exit_2(step, argv, text, code_, names, last):
+    code, out, err, stages = step(ledger=LEDGER % text, argv=argv, answers={"go-red-step.sh": (0, "next=cycle\n")})
+
+    assert (code, stages.names()) == (code_, names), err
+    if last is not None:
+        assert out.splitlines()[-1] == last
+
+
+@pytest.mark.parametrize("code_, last", [(1, "seam=go-red-step code=1 next=" + GO_RED),
+                                         (2, "seam=go-red-step code=2 next=" + GO_RED),
+                                         (3, "seam=go-red-step code=3 next=run-step.sh 12")])
+def test_4443_a_go_red_step_exit_other_than_0_ends_on_its_seam_calling_no_revise(step, code_, last):
+    code, out, err, stages = step(ledger=LEDGER % GO_RED_STEP, answers={"go-red-step.sh": (code_, "")})
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (code_, ["go-red-step.sh"], last), err
