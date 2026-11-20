@@ -9,7 +9,7 @@
 - [x] while the load file holds a whole number of at least 2, budget() returns max(2, min(T without it, that number)); anything else in it is ignored ⟦criterion 4⟧
 - [x] a load timeout within VERI_LOAD_WINDOW seconds of the lowering on record (line 2) lowers nothing more ⟦criterion 5⟧
 - [x] a lowering prints one stderr line naming the window's timed-out cases, the old T and the new, and records a `t-lowered` event (`old`, `new`, `cases`) ⟦criterion 7⟧
-- [ ] a timeouts or load file the plugin cannot read or write is one stderr line naming it, and the leg's exit code stays 1 for a timed-out case ⟦criterion 9⟧
+- [x] a timeouts or load file the plugin cannot read or write is one stderr line naming it, and the leg's exit code stays 1 for a timed-out case ⟦criterion 9⟧
 - [ ] test-ceiling.sh's exit 0 removes VERI_TEST_LOAD_FILE; its exits 1 and 2 leave it ⟦criterion 6⟧
 - [ ] dispatch.sh, at a poll finding a lowering on record newer than the last it reported, prints `t-lowered <old> <new> <cases>`, exits 0 and records the lowering's time in .tdd/dispatch-notified; a restarted dispatch.sh never prints it again ⟦criterion 8⟧
 - [ ] only the leg, its plugin, veri/ceiling.py and veri/dispatch.py name VERI_TEST_LOAD_FILE ⟦criterion 10⟧
