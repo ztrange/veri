@@ -49,8 +49,8 @@ def _script(name, *args, scripts=SCRIPTS, cwd=None):
     return _start(name, *args, scripts=scripts, cwd=cwd).returncode
 
 
-def _gate(pid, *cmd, keep=False):
-    return _script("merge-lock.sh", "gate", *(["--keep"] if keep else []), "--pid", pid, "--", *cmd)
+def _gate(pid, *cmd, keep=False, cwd=None):
+    return _script("merge-lock.sh", "gate", *(["--keep"] if keep else []), "--pid", pid, "--", *cmd, cwd=cwd)
 
 
 def _bounded(argv, limit, **kwargs):
@@ -382,7 +382,8 @@ def _to_merge(pid, repo, pr, worktree, branch):
     head = _rev(worktree, "HEAD")
     if not head:
         return "", _refused("the pushed head does not resolve")
-    code = merge_common.ci_wait(lambda: _gate(pid, os.path.join(SCRIPTS, "wait-ci.sh"), pr, "540", "", head))
+    code = merge_common.ci_wait(lambda: _gate(pid, os.path.join(SCRIPTS, "wait-ci.sh"), pr, "540", "", head,
+                                                       cwd=worktree))
     if code:
         return "", (code, LEAVE)
     refusal = _before_merge(pid, pr, worktree, branch, before, head)
