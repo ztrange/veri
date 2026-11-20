@@ -195,3 +195,21 @@ ICAgIGlmIGNvZGUgaW4gKDEsIDIpOg==
 command 177
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_never_prints_what_skill_edit_step_wrote_to_its_out_file_leaf_output_or_grader_fail_reasons
 
+before 40
+ead8d4dfec49b848584f469b32a4dd70dc96ebc8
+keep 56
+skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py
+command 165
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_a_graded_commit_at_or_before_the_ledgers_last_commit_runs_the_step_from_its_start
+
+file 42
+skills/tdd/scripts/veri/skill_edit_half.py
+old-b64 20
+bGFzdCArICIuLkhFQUQi
+new-b64 8
+IkhFQUQi
+context-b64 116
+ICAgIF8sIHN1YmplY3RzLCBfID0gZnVzZWQuY2FsbCgiZ2l0IiwgImxvZyIsICItLWZvcm1hdD0lcyIsIGxhc3QgKyAiLi5IRUFEIiwgY3dkPXd0KQ==
+command 165
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_a_graded_commit_at_or_before_the_ledgers_last_commit_runs_the_step_from_its_start
+

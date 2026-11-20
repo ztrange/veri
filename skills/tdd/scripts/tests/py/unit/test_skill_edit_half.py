@@ -621,3 +621,38 @@ def test_4450_a_graded_commit_after_the_ledger_calls_step_tick_directly(
     names = [c[0] for c in calls]
     assert (code, "gh" in names, [c for c in calls if c[0] == "detach-command.sh"],
             [c for c in calls if c[0] == "step-tick.sh"]) == (0, False, [], [("step-tick.sh", ("12",))]), calls
+
+
+def test_4450_a_graded_commit_at_or_before_the_ledgers_last_commit_runs_the_step_from_its_start(
+        monkeypatch, run_cli, tmp_path):
+    """SKH6, SKH38: a graded commit not after the ledger's last commit does not skip gh and the step."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    calls = []
+    graded = "docs: requirements for skills/tdd/SKILL.md, graded"
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "git" and args[:1] == ("log",):
+            if "--" in args and ".tdd/issue-12.md" in args:
+                return 0, "aaaaaaa\n", ""
+            if any(a.startswith("aaaaaaa..") for a in args):
+                return 0, "", ""
+            return 0, "%s\n" % graded, ""
+        return 0, BODY if base == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    names = [c[0] for c in calls]
+    assert (code, "gh" in names, [c[1][:2] for c in calls if c[0] == "detach-command.sh"],
+            [c for c in calls if c[0] == "step-tick.sh"]) == (
+        0, True, [("start", "skill-edit-12"), ("wait", "skill-edit-12")],
+        [("step-tick.sh", ("12",))]), calls
