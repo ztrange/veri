@@ -1442,6 +1442,7 @@
 | LO13 | `SCRIPTS.md`'s `test-ceiling.sh` entry says its exit 0 removes `VERI_TEST_LOAD_FILE`, and its `dispatch.sh` entry names the `t-lowered` closing line. (`skills/tdd/SCRIPTS.md`, those two entries.) | Docs drift blocks. |
 | FN11 | `SCRIPTS.md`'s `dispatch.sh` and `role-state.sh` entries each name the test budget entry it writes and `VERI_CONDUCTOR_TEST_WORKERS`, `VERI_TEST_BUDGET_DIR` and `VERI_TEST_BUDGET_TTL`. (`skills/tdd/SCRIPTS.md`, those two entries.) | Docs drift blocks (PRD 036.5, #4453). |
 | SC613 | The catalogue lists `$S/skill-edit-half.sh <n> [--change "<change>"]` (a ⟦skill-edit⟧ step's clean path in one call, `skill-edit-step.sh` detached, then `step-tick.sh`), with its stops and exit codes 0, 1, 2 and 3. | A reader of the catalogue finds the one-call skill-edit stage (PRD 038.4). |
+| SC614 | The `run-step.sh` entry says that on `skill-edit-half.sh`'s exit 2, and no other stage's, the line before the `seam=skill-edit-half code=2` line is `out=.tdd/skill-edit-<n>.out refusal=yes|no`, `yes` when that file holds a line starting with one of `skill-edit-step.sh`'s refusals and `no` otherwise, a missing file included. (The `run-step.sh` entry, its `⟦skill-edit⟧` clause.) | The conductor tells a refusal bail from a no-verdict bail without reading the out file blind, and no other stage's 2 points it at a skill-edit file (SKH18). |
 
 ## skills/tdd/SKILL-EDIT.md
 
@@ -1461,6 +1462,7 @@
 | SE12 | A skill-edit step's unit may be a heading unit, `<file>#<heading>` (a section of a file that a `REQUIREMENTS.md` claims with a `## <file>#<heading>` heading). The issue's `## Requirements` then names it under `### <file>#<heading>`, never under the whole-file `### <file>`, and the conductor passes that `<file>#<heading>` as the step's unit. (Paragraph 12.) | Rows about a claimed section filed under the whole-file unit are graded against a view that no longer shows the section and FAIL (PRD 024.7b MV6, decision O2); a step must name the unit its rows are filed under. |
 | SE13 | `SKILL-EDIT.md` opens with one call line: run `$S/run-step.sh <n>` (on a step whose text names a prose change, `$S/skill-edit-half.sh <n> --change "<change>"` in its place), again on exit 3, and on 1 or 2 go on by the paragraph its last line names; the line after it reads `skill-edit-half by hand ends $S/step-tick.sh <n>`. Every paragraph stays. | The prose stays the fallback (SKH14, SKH37, SKH47, SKH48). |
 | SE14 | The tick paragraph names the ledger commit's subject for a ⟦skill-edit⟧ tick: `chore: skill-edit — <step summary> (#<n>)`. | Runs have committed five different subjects and no skill file names one (SKH28, S20). |
+| SE15 | Paragraph 5 says `$S/run-step.sh` prints `out=.tdd/skill-edit-<n>.out refusal=yes|no` on the line before its `seam=skill-edit-half code=2` line, and that `refusal=yes` means the runner printed a refusal message, held in that file. (Paragraph 5.) | The bail's cause follows from that one line, not from re-reading the runner's output (SKH18). |
 
 ## skills/tdd/PREFLIGHT-FAILURES.md
 
