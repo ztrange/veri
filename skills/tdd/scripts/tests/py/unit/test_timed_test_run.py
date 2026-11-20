@@ -493,3 +493,30 @@ def test_issue_4335_main_gives_a_changed_run_in_veris_own_tree_the_bounded_repor
         "FAILED t.py::test_x - boom",
         f"full output: {pathlib.Path.cwd() / '.tdd' / 'test-runs' / saved[0].name}",
     ]
+
+
+RECORD = "4\n2026-11-19 10:00:00 +0000\n0123456\n1.00 1.00 1.00\n2 9 0\n4 10 0\nidle all 10\nidle fast 3\n"
+
+
+@pytest.mark.parametrize("tier, seconds, record, stretch", [
+    ("fast", 7, RECORD, ("fast", "7", "3")),
+    ("fast", 6, RECORD, None),
+    ("all", 21, RECORD, ("all", "21", "10")),
+    ("all", 20, RECORD, None),
+    ("changed", 100, RECORD, None),
+    ("target", 100, RECORD, None),
+    ("fast", 100, "4\n2026-11-19 10:00:00 +0000\n0123456\n1.00 1.00 1.00\n2 9 0\n4 10 0\n", None),
+], ids=["fast-past-2x", "fast-at-2x", "all-past-2x", "all-at-2x", "changed", "target", "no-idle-lines"])
+def test_4456_a_fast_or_all_run_past_twice_its_tiers_idle_line_writes_a_test_stretch_event_after_its_test_run(
+        tier, seconds, record, stretch, tmp_path, monkeypatch, calls, events, timed_test_run):
+    monkeypatch.chdir(tmp_path)
+    events.refuse_event_sh()
+    pathlib.Path(os.environ["VERI_TEST_CEILING_FILE"]).write_text(record)
+    readings = [100, 100 + seconds]
+    monkeypatch.setattr(timed_test_run.time, "time", lambda: readings.pop(0))
+
+    code = timed_test_run.main([tier, "a", "make", "test", "TESTS=a"])
+
+    records = events.records()
+    stretches = [(r["tier"], r["seconds"], r["idle"]) for r in records if r["event"] == "test-stretch"]
+    assert (code, [r["event"] for r in records][0], stretches) == (7, "test-run", [stretch] if stretch else [])
