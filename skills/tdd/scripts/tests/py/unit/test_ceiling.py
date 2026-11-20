@@ -413,3 +413,18 @@ def test_4456_a_red_make_unit_after_the_ramp_is_exit_2_naming_it_and_leaves_the_
 
     assert (code, "make unit" in err, "exited 1" in err, record.read_text(), "ceiling:" in out) == (
         2, True, True, EARLIER, False), err
+
+
+def test_4453_a_ramp_beside_a_live_and_an_expired_lane_entry_runs_every_step_and_leaves_both_entries_as_they_were(make, run_cli):
+    import os
+    import time
+    root = os.environ["VERI_TEST_BUDGET_DIR"]
+    os.makedirs(root)
+    entries = {"main@0123456789abcdef": "2\n%d\n" % (time.time() + 3600), "mu@0123456789abcdef": "4\n%d\n" % (time.time() - 1)}
+    for name, text in entries.items():
+        with open(os.path.join(root, name), "w") as f:
+            f.write(text)
+    code, _, err = run_cli(ceiling, [])
+
+    assert (code, [workers for workers, _, _ in make.calls], {name: open(os.path.join(root, name)).read() for name in os.listdir(root)}) == (
+        0, [2, 4, 6], entries), err

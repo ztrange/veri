@@ -2073,3 +2073,17 @@ def test_4453_a_leg_waiting_under_a_t_two_lane_entries_narrow_below_c_names_each
 
     assert (code, ["T=4 (the lane entries main=2, mu=2, below C=10 from the ceiling record %s)" % os.environ["VERI_TEST_CEILING_FILE"] in line
                    for line in err.splitlines()]) == (0, [True]), err
+
+
+def test_4453_with_veri_pytest_workers_3_exported_the_leg_takes_3_beside_a_lane_entry_needing_2_and_leaves_an_expired_one_in_place(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 16)
+    measured(10)
+    entries = tmp_path / "veri-test-budget"
+    entries.mkdir()
+    (entries / "main@0123456789abcdef").write_text("2\n%d\n" % (time.time() + 3600))
+    (entries / "mu@0123456789abcdef").write_text("4\n%d\n" % (time.time() - 1))
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(args) or pytest.ExitCode.OK)
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_WORKERS="3", VERI_TEST_BUDGET_DIR=str(entries)))
+
+    assert (code, workers_handed(calls), sorted(os.listdir(entries))) == (0, "3", ["main@0123456789abcdef", "mu@0123456789abcdef"]), err
