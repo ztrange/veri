@@ -4,6 +4,7 @@ line from another test file, lowers T by 2 through VERI_TEST_LOAD_FILE, at most 
 
 PYTEST_DONT_REWRITE: the leg imports this module before pytest loads it as a plugin."""
 import os
+import sys
 import time
 
 import event
@@ -46,10 +47,10 @@ def window():
     return int(raw) if raw.isascii() and raw.isdigit() else 600
 
 
-def recent_other(line, test_file, since):
-    """Whether timeouts <line> is another test file's, appended at or after <since>."""
-    fields = line.split(" ")
-    return len(fields) >= 3 and fields[0].isdigit() and int(fields[0]) >= since and fields[2] != test_file
+def recent(lines, since):
+    """The (test file, node id) of each timeouts line appended at or after <since>."""
+    fields = [line.split(" ") for line in lines]
+    return [(f[2], f[3]) for f in fields if len(f) >= 4 and f[0].isdigit() and int(f[0]) >= since]
 
 
 def pytest_runtest_logreport(report):
@@ -58,15 +59,22 @@ def pytest_runtest_logreport(report):
     workers = LEG["workers"]
     now = time.time()
     test_file = report.nodeid.split("::")[0]
+    since = now - window()
     with open(timeouts_path(), "a+") as f:
         f.seek(0)
-        since = now - window()
-        others = [line for line in f.read().splitlines() if recent_other(line, test_file, since)]
+        window_cases = recent(f.read().splitlines(), since) + [(test_file, report.nodeid)]
         f.write("%d %d %s %s %d\n" % (now, os.getpid(), test_file, report.nodeid, workers))
+    context = event.context(tunables.environment())
+    event.mark("", context, "case-timeout", ["nodeid=" + report.nodeid, "workers=%d" % workers])
     lowered_at = record()[1]
-    if others and (lowered_at is None or lowered_at < since):
-        lower(max(2, LEG["total"] - 2), now)
-    event.mark("", event.context(tunables.environment()), "case-timeout", ["nodeid=" + report.nodeid, "workers=%d" % workers])
+    if len({file for file, _ in window_cases}) >= 2 and (lowered_at is None or lowered_at < since):
+        old, new = LEG["total"], max(2, LEG["total"] - 2)
+        cases = ",".join(nodeid for _, nodeid in window_cases)
+        lower(new, now)
+        sys.stderr.write("load timeout: %s timed out within %d s, so T is lowered from %d to %d in %s\n" % (
+            cases, window(), old, new, load_path()))
+        sys.stderr.flush()
+        event.mark("", context, "t-lowered", ["old=%d" % old, "new=%d" % new, "cases=" + cases])
 
 
 def lower(t, now):
