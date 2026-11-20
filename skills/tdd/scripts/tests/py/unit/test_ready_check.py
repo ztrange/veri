@@ -948,3 +948,10 @@ def test_issue_4093_ready_check_no_permissions_prints_no_permission_row_makes_no
               "git push", "git remote get-url --push origin", "claude")
     assert not [c for c in fake.calls if c.startswith(probes)], fake.calls
     assert not (tmp_path / ".tdd").exists()
+
+
+def test_issue_4471_ready_check_with_a_claude_md_ci_on_pr_0_line_and_the_variable_unset_prints_an_ok_pull_request_row_in_a_tree_with_no_pull_request_workflow(ready_check, run_cli, fake_processes, tmp_path):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: 0\n")
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{"git ls-tree": (0, "", "")})
+
+    assert "ok    pull_request" in lines, lines

@@ -13,6 +13,7 @@ import tempfile
 import time
 import urllib.parse
 
+import ci_on_pr
 import ensure_run_state_ignored
 import git
 import launch_floor
@@ -270,7 +271,7 @@ def one_test_file_row():
 
 
 def pull_request_row():
-    holds = bool(tunables.read("VERI_CI_ON_PR")) or triggers_on("pull_request")
+    holds = bool(ci_on_pr.declared()) or triggers_on("pull_request")
     return "pull_request", None if holds else "add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR"
 
 
