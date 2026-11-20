@@ -40,6 +40,8 @@ def run(n):
         return 2
     path, old, new, case = probe
     before = read_bytes(wt, path)
+    if old.encode() not in before:
+        raise fused.Stop("probe", "%s no longer holds `%s`" % (path, old), 1)
     code = fused.call(fused.script("mutation-probe.sh"), path, old, new, "--", *command(wt, case), cwd=wt,
                       env=tunables.with_values(VERI_MUTATION_RECORD=RECORD % n), out=".tdd/go-red-probe.out")[0]
     if code == 1:
