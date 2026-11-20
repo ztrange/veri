@@ -387,6 +387,11 @@ class World:
         leg = _leg()
         return leg.budget()[0], leg.registered_workers(full_run_lock.legs_dir())
 
+    def stretches(self, issue):
+        """(tier, seconds, idle) of each `test-stretch` event in <issue>'s run journal, in journal order; [] with none."""
+        return [(e.get("tier", ""), e.get("seconds", ""), e.get("idle", ""))
+                for e in event_log.events(run_dir(issue), "test-stretch", skip_unreadable=True)]
+
     def notified(self):
         """The lines of the main working tree's .tdd/dispatch-notified, what dispatch.sh keeps across restarts; [] when
         it is absent or unreadable, or no main working tree can be named."""
@@ -612,6 +617,24 @@ def _queueing(state, world):
     return None
 
 
+STRETCHED = "stretched "
+
+
+def _stretched(state, world, live):
+    """stretched <issue> <tier> <seconds>s, idle <idle>s for the first `test-stretch` event of a live run whose run and
+    tier .tdd/dispatch-notified does not hold yet, which it then holds (PRD 036.10): one warning per run and tier, not
+    per test run. Advice only, like _queueing: it runs after the poll's launch decision and changes nothing."""
+    lines = world.notified()
+    for issue in live:
+        for tier, seconds, idle in world.stretches(issue):
+            key = f"{STRETCHED}{issue} {tier}"
+            if key not in lines:
+                world.record_notified(lines + [key])
+                world.say(f"{key} {seconds}s, idle {idle}s\n")
+                return 0
+    return None
+
+
 def step(state, world):
     """One poll: (state, exit code), the code None while dispatch keeps watching. Each line is printed through
     world.say or world.complain as it is decided, so a later failure in the same poll never swallows it."""
@@ -633,6 +656,8 @@ def step(state, world):
     code = _launch_into_a_free_slot(state, world, live)
     if code is None:
         code = _queueing(state, world)
+    if code is None:
+        code = _stretched(state, world, live)
     return state, code
 
 
