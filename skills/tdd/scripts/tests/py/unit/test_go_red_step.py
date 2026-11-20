@@ -134,3 +134,10 @@ def test_4443_a_probe_exit_2_or_a_named_file_left_unrestored_stops_with_exit_2_a
     results.append((code, "step-tick.sh" in fake.names(), out.splitlines()[-1].split(" ")[:3]))
 
     assert results == [(2, False, ["stopped", "at", "probe"]), (2, False, ["stopped", "at", "restore"])]
+
+
+def test_4443_a_failing_step_tick_is_never_exit_0_and_leaves_the_step_unticked(go_red):
+    code, out, err, fake = go_red(answers={("step-tick.sh", None): (2, "")})
+
+    assert (code, out.splitlines()[-1].split(" ")[:3]) == (2, ["stopped", "at", "tick"])
+    assert (go_red.wt / ".tdd" / "issue-12.md").read_text() == LEDGER % STEP
