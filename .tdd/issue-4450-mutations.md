@@ -224,3 +224,14 @@ ICAgIGlmIGNvZGUgaW4gKDEsIDIpOg==
 command 152
 sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_skill_edit_step_exit_1_stops_with_1_before_step_tick
 
+file 42
+skills/tdd/scripts/veri/skill_edit_half.py
+old-b64 72
+aWYgbm90IHdhaXRpbmcgYW5kIGdyYWRlZF9hZnRlcl9sZWRnZXIod3QsIG4sIHVuaXQpOg==
+new-b64 36
+aWYgbm90IHdhaXRpbmcgYW5kIEZhbHNlOg==
+context-b64 76
+ICAgIGlmIG5vdCB3YWl0aW5nIGFuZCBncmFkZWRfYWZ0ZXJfbGVkZ2VyKHd0LCBuLCB1bml0KTo=
+command 157
+sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_a_graded_commit_after_the_ledger_calls_step_tick_directly
+
