@@ -64,6 +64,14 @@ KINDS = {"⟦diff-checked⟧": (DIFF, "diff-step"), ledger.GO_RED_MARK: (GO_RED,
 KIND_STAGES = tuple(stage for _, stage in KINDS.values() if stage)
 
 
+REFUSAL = re.compile(
+    r"Requirements heading names no existing unit: "
+    r"|rows for .* are not under ## Requirements"
+    r"|a ## Requirements row is under no ### unit heading"
+    r"|## Requirements has no ### heading for unit: "
+    r"|## Requirements table for .* lacks its header: ")
+
+
 def parse(argv):
     """(n, the --from stage or None, the --hand stages); None for arguments it does not take."""
     if not argv or not argv[0].isdigit():
@@ -159,7 +167,7 @@ def main(argv):
             if code == 2:
                 try:
                     with open(os.path.join(wt, ".tdd", "skill-edit-%s.out" % n)) as f:
-                        held = any(l.startswith("Requirements heading names no existing unit: ") for l in f)
+                        held = any(REFUSAL.match(l) for l in f)
                 except FileNotFoundError:
                     held = False
                 sys.stdout.write("out=.tdd/skill-edit-%s.out refusal=%s\n" % (n, "yes" if held else "no"))

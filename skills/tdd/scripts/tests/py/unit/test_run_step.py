@@ -731,3 +731,30 @@ def test_4450_a_skill_edit_half_exit_2_with_an_out_file_holding_no_refusal_line_
     assert (code, out.splitlines()[-2:]) == (
         2, ["out=.tdd/skill-edit-12.out refusal=no",
             "seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step"]), err
+
+
+def test_4450_a_skill_edit_half_exit_2_with_an_out_file_holding_another_requirements_refusal_prints_refusal_yes(step):
+    (step.wt / ".tdd" / "skill-edit-12.out").write_text("a ## Requirements row is under no ### unit heading\n")
+
+    code, out, err, stages = step(ledger=LEDGER % SKILL_EDIT_STEP,
+                                  answers={"skill-edit-half.sh": (2, "stopped at 2 skill-edit-step.sh exit 2\n")})
+
+    assert (code, out.splitlines()[-2:]) == (
+        2, ["out=.tdd/skill-edit-12.out refusal=yes",
+            "seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step"]), err
+
+
+@pytest.mark.parametrize("refusal", [
+    "rows for skills/tdd/SKILL.md are not under ## Requirements",
+    "## Requirements has no ### heading for unit: skills/tdd/SKILL.md",
+    "## Requirements table for skills/tdd/SKILL.md lacks its header: | ID |",
+])
+def test_4450_a_skill_edit_half_exit_2_with_an_out_file_holding_a_remaining_requirements_refusal_prints_refusal_yes(step, refusal):
+    (step.wt / ".tdd" / "skill-edit-12.out").write_text(refusal + "\n")
+
+    code, out, err, stages = step(ledger=LEDGER % SKILL_EDIT_STEP,
+                                  answers={"skill-edit-half.sh": (2, "stopped at 2 skill-edit-step.sh exit 2\n")})
+
+    assert (code, out.splitlines()[-2:]) == (
+        2, ["out=.tdd/skill-edit-12.out refusal=yes",
+            "seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step"]), err
