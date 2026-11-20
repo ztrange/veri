@@ -1809,6 +1809,27 @@ def test_4419_the_wait_line_names_t_and_its_source_beside_the_workers_in_use_and
         0, 1, True, True, True, True), waits
 
 
+@pytest.mark.parametrize("record, c0, source", [(True, "8", "the ceiling record"), (False, "12", "the core fallback")], ids=["record", "fallback"])
+def test_4457_with_the_cap_below_c0_the_wait_line_names_the_cap_file_as_ts_source_beside_c0_and_c0s_source(pytest_leg, run_cli, monkeypatch, tmp_path, started, record, c0, source):
+    on_cores(monkeypatch, 12)
+    if record:
+        measured(8)
+    cap = os.environ["VERI_TEST_CAP_FILE"]
+    with open(cap, "w") as f:
+        f.write("4\n")
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    blocker = legs / str(os.getppid())
+    registered(blocker, 3)
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", lambda seconds: blocker.unlink())
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))
+    waits = [line for line in err.splitlines() if line.startswith("waiting")]
+
+    assert (code, len(waits), "T=4 " in waits[0], cap in waits[0], "C0=%s " % c0 in waits[0], source in waits[0]) == (
+        0, 1, True, True, True, True), waits
+
+
 def test_4419_an_exported_worker_count_is_used_as_given_beside_a_registry_holding_all_of_t_never_waiting_registering_or_reading_the_record(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     on_cores(monkeypatch, 16)
     measured(8)
