@@ -676,3 +676,10 @@ def test_4450_a_skill_edit_step_runs_skill_edit_half_as_its_one_stage_never_pass
         0, [("skill-edit-half.sh", ("12",))], "next=cycle"), err
     assert "skill-edit-half" in run_step.STAGES and "skill-edit-half" not in run_step.PHASES
     assert run_step.KINDS["⟦skill-edit⟧"] == ("SKILL-EDIT.md#The skill-edit step", "skill-edit-half")
+
+
+def test_4450_hand_skill_edit_half_stops_before_it_on_a_skill_edit_step_never_calling_it(step):
+    code, out, err, stages = step(ledger=LEDGER % SKILL_EDIT_STEP, argv=("12", "--hand", "skill-edit-half"))
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (
+        1, [], "seam=skill-edit-half code=1 reason=hand next=SKILL-EDIT.md#The skill-edit step"), err
