@@ -1,6 +1,6 @@
 # Plan for #4472 — PRD 040.1: verify-branch, a blind verifier judges the whole branch before readying
 
-- [ ] `add-ledger-step.sh` appends a `⟦diff-checked⟧ ⟦branch-repair⟧` step with no `⟦added⟧`, `branch-repair` being one of `REPAIR_MARKS` in `add_ledger_step.py` ⟦criterion 8⟧
+- [x] `add-ledger-step.sh` appends a `⟦diff-checked⟧ ⟦branch-repair⟧` step with no `⟦added⟧`, `branch-repair` being one of `REPAIR_MARKS` in `add_ledger_step.py` ⟦criterion 8⟧
 - [ ] `ledger.py`'s `KIND_RE` reads a `⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion k⟧` step as kind `diff-checked` ⟦criterion 9⟧
 - [ ] `ledger_growth.counted_steps` leaves out a `⟦branch-repair⟧` step, so with one in the ledger `ledger-growth.sh`'s cap on `⟦added⟧` steps is the same as without it ⟦criterion 10⟧
 - [ ] `classify-bail.sh branch-rejected` labels the cause `process` ⟦criterion 13⟧
