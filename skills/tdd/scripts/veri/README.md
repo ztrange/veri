@@ -582,7 +582,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `failed_cases`: the pytest leg's record plugin: keeps, in this process, the cases each session collected and how each one reported.
 - `full_run_lock`: the one-full-run lock: at most one full `make test` runs per machine, and a waiter names the holder.
 - `leg_tmpdir`: `PINNED_TMPDIR`, the TMPDIR the pytest leg pins before it starts; run-conductor's free-space check reads it too, so a run never imports the leg.
-- `ceiling`: test-ceiling.sh's ramp: the highest test-worker count `make test` runs at with no case timeout, recorded in `~/.veri-test-ceiling`; `record_path()` names that file, and the pytest leg reads its line 1 as T, its worker budget.
+- `ceiling`: test-ceiling.sh's ramp: the highest test-worker count `make test` runs at with no case timeout, recorded in `~/.veri-test-ceiling`; `record_path()` names that file, and the pytest leg reads its line 1 as T, its worker budget. `cap_path()` names `~/.veri-test-cap` (`VERI_TEST_CAP_FILE`) and `read_cap()` returns its line 1 as `(cap, complaint)`: the cap the human set, which lowers T and the ramp's top, or no cap and a one-line complaint for a file it cannot use (PRD 036.11).
 - `profile.sh`: per-case timing of suites.
 - `pycache_prefix`: sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import.
 
