@@ -27,7 +27,7 @@
 - [x] skill-edit-half.sh stops with exit 1 before step-tick.sh, having called skill-edit-step.sh once, when skill-edit-step.sh exits 1; the stop for its exits 1 and 2 is the one line `if code in (1, 2):` in skills/tdd/scripts/veri/skill_edit_half.py, and the case pinning the exit 1 is named test_4450_skill_edit_step_exit_1_stops_with_1_before_step_tick in skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py ⟦criterion 5⟧
 - [x] skill-edit-half.sh stops with exit 2 before step-tick.sh, having called skill-edit-step.sh once, when skill-edit-step.sh exits 2 ⟦criterion 5⟧
 - [x] skill-edit-half.sh exits 2 before any call when the open step does not carry the skill-edit mark ⟦criterion 13⟧
-- [ ] skill-edit-half.sh exits 2 before any call when ledger.unit_of finds no unit in the open skill-edit step ⟦criterion 13⟧
+- [x] skill-edit-half.sh exits 2 before any call when ledger.unit_of finds no unit in the open skill-edit step ⟦criterion 13⟧ ⟂ refactor pending
 - [ ] skill-edit-half.sh exits 2 before any call on bad arguments: a non-numeric issue, an unknown option, or --change with no value ⟦criterion 13⟧
 - [ ] skill-edit-half.sh exits 2 before any call when `.tdd/issue-<n>-preflight` or the ledger is missing ⟦criterion 13⟧
 - [ ] skill-edit-half.sh never prints a leaf's output or the grader's FAIL reasons, whatever skill-edit-step.sh wrote to `.tdd/skill-edit-<n>.out` ⟦criterion 13⟧

@@ -37,6 +37,8 @@ def run(argv):
         step = next(line for line in f if line.startswith(ledger.OPEN_STEP + " "))
     if not ledger.is_skill_edit(step.rstrip("\n")):
         return 2
+    if ledger.unit_of(step) is None:
+        return 2
     if fused.load_wait(wt, n, "skill-edit-half") is None:
         _, body, _ = fused.call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt)
         with open(os.path.join(wt, ".tdd", "issue-%s-body" % n), "w") as f:
