@@ -1653,6 +1653,18 @@ def test_4419_a_full_leg_alone_beside_a_ceiling_record_of_6_on_16_cores_takes_6_
     assert (code, workers_handed(calls), "make ceiling" in err) == (0, "6", False)
 
 
+@pytest.mark.parametrize("idle", ["idle all 50\nidle fast 2\n", "idle all 50\nidle fast 12\n"], ids=["below", "above"])
+def test_4456_a_full_leg_beside_a_record_holding_idle_lines_takes_its_line_1_and_says_nothing_about_make_ceiling(pytest_leg, run_cli, monkeypatch, tmp_path, started, idle):
+    on_cores(monkeypatch, 16)
+    record = tmp_path / "ceiling"
+    record.write_text("6\n2026-11-18\nabc123\n1.5\n2 100 0\n4 60 0\n6 50 0\n8 48 1\n" + idle)
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(args) or pytest.ExitCode.OK)
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_TEST_CEILING_FILE=str(record)))
+
+    assert (code, workers_handed(calls), "make ceiling" in err) == (0, "6", False)
+
+
 @pytest.mark.parametrize("cap, record, workers", [
     ("4\n", 8, "4"), ("4\nhand-set on 2026-11-19\n", 8, "4"), ("12\n", 8, "8"), ("8\n", 8, "8"), (None, 8, "8"), ("4\n", None, "4"),
     ("2\n", 8, "2"),
