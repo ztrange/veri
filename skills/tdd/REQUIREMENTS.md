@@ -1440,6 +1440,7 @@
 | SC612 | The catalogue lists `$S/go-red-step.sh <n>`: the probe wording it reads from the open `⟦go-red⟧` step, `mutation-probe.sh` on the named case with the `veri: one test file:` command into `.tdd/issue-<n>-mutations.md`, the restore check, `step-tick.sh <n>`, and its exit codes 0, 1 (only the probe seeing no red) and 2 (no step, no probe, no `veri: one test file:` command, a probe 2, the file not restored, any `step-tick.sh` exit but 0), never through the Red leaf; the `step-tick.sh`, `run-step.sh` and `tick-ledger.sh` entries say how each handles a `⟦go-red⟧` step, the last that a record of another probe on the same file does not tick it. (The `go-red-step.sh` entry, after `step-tick.sh`'s.) | A reader of the catalogue finds the go-red stage and where its exits lead (#4443). |
 | QU6b | `SCRIPTS.md`'s `dispatch.sh` entry names the `queueing` closing line. (`skills/tdd/SCRIPTS.md`, the `dispatch.sh` entry.) | Docs drift blocks. |
 | RW7 | `SCRIPTS.md`, where it describes `timed-test-run.sh`, names the `test-stretch` event, and its `test-ceiling.sh` and `dispatch.sh` entries name the `idle` lines and the `stretched` closing line. (`skills/tdd/SCRIPTS.md`.) | Docs drift blocks. |
+| LO13 | `SCRIPTS.md`'s `test-ceiling.sh` entry says its exit 0 removes `VERI_TEST_LOAD_FILE`, and its `dispatch.sh` entry names the `t-lowered` closing line. (`skills/tdd/SCRIPTS.md`, those two entries.) | Docs drift blocks. |
 
 ## skills/tdd/SKILL-EDIT.md
 

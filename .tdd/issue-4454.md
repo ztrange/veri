@@ -15,4 +15,4 @@
 - [x] only the leg, its plugin, veri/ceiling.py and veri/dispatch.py name VERI_TEST_LOAD_FILE ⟦criterion 10⟧
 - [x] vdev's Speaking sends the `t-lowered` closing line as a notice, then reruns dispatch.sh (graded) ⟦criterion 8⟧
 - [x] CLAUDE.md's Testing idiom states the load timeout and its lowering (graded) ⟦criterion 12⟧
-- [ ] SCRIPTS.md's test-ceiling.sh and dispatch.sh entries name the load file removal and the `t-lowered` line (graded) ⟦criterion 13⟧
+- [x] SCRIPTS.md's test-ceiling.sh and dispatch.sh entries name the load file removal and the `t-lowered` line (graded) ⟦criterion 13⟧
