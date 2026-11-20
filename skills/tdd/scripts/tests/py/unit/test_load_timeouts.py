@@ -42,7 +42,8 @@ def leg_env(**extra):
 
 def timing_out(monkeypatch, *nodeids):
     """Fakes pytest.main: its first pass reports each of <nodeids> failed by its per-case timeout to the load_timeouts
-    plugin, when the leg named that plugin in PYTEST_PLUGINS, as pytest would dispatch the hook; it exits 1."""
+    plugin, when the leg named that plugin in PYTEST_PLUGINS, as pytest would dispatch the hook; it exits 1. Returns the
+    argument list of every pass, in order."""
     passes = []
 
     def run(args):
@@ -53,6 +54,7 @@ def timing_out(monkeypatch, *nodeids):
                 plugin.pytest_runtest_logreport(types.SimpleNamespace(nodeid=nodeid, failed=True, when="call", longreprtext=TIMEOUT))
         return pytest.ExitCode.TESTS_FAILED
     monkeypatch.setattr(pytest, "main", run)
+    return passes
 
 
 def test_a_leg_that_claimed_its_workers_appends_epoch_pid_test_file_node_id_and_workers_per_timed_out_case_and_records_a_case_timeout_event(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
@@ -73,6 +75,18 @@ def test_a_leg_that_claimed_its_workers_appends_epoch_pid_test_file_node_id_and_
 
     assert (code, [f[1:] for f in fields], [before <= int(f[0]) <= after for f in fields], events) == (
         1, [[str(os.getpid()), "tests/py/unit/test_x.py", nodeid, "6"]], [True], [(nodeid, "6")])
+
+
+def test_a_leg_whose_cases_timed_out_runs_no_later_pass_naming_a_timed_out_case(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    timed_out = ["tests/py/unit/test_x.py::test_slow", "tests/py/unit/test_y.py::test_slow"]
+    passes = timing_out(monkeypatch, *timed_out)
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(), cwd=str(tree))[0]
+
+    assert (code, len(passes) >= 1, [arg for args in passes[1:] for arg in args if any(n in arg for n in timed_out)]) == (
+        1, True, [])
 
 
 def test_a_leg_run_with_veri_pytest_workers_exported_appends_nothing_to_the_timeouts_file_and_lowers_nothing(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
