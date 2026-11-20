@@ -16,10 +16,11 @@ USAGE = "usage: step-tick.sh <n>"
 LEDGER = run_dir.ledger("", "%s")
 # The receipt pin-recheck.sh leaves on its 0 or 3, without which tick-ledger.sh refuses a ⟦diff-checked⟧ tick.
 RECEIPT = ".tdd/pin-recheck-ok"
-# The subject a ⟦diff-checked⟧ tick commits under, the one runs use (PRD 038.3 S14).
-SUBJECT = "chore: diff-checked — %s (#%s)"
+# The subject each kind's tick commits under: a ⟦diff-checked⟧ one the one runs use (PRD 038.3 S14), a ⟦go-red⟧ one
+# a test commit, since its product is the proof a guard's case goes red (#4443).
+SUBJECTS = {"⟦diff-checked⟧": "chore: diff-checked — %s (#%s)", "⟦go-red⟧": "test: go-red — %s (#%s)"}
 # The kinds it closes: a step no cycle closes (038.4 adds ⟦skill-edit⟧); a cycle step's close is step-close.sh's.
-CLOSES = ("⟦diff-checked⟧",)
+CLOSES = tuple(SUBJECTS)
 
 # The $S/ scripts this call makes, in the order each is first made (git and gh aside).
 CALLS = ("tick-ledger.sh", "push-branch.sh", "stop-requested.sh", "comment.sh", "criterion-finished.sh",
@@ -35,15 +36,16 @@ def run(n):
     if given is None:
         return 2
     _, wt = given
-    if not os.path.isfile(os.path.join(wt, RECEIPT)):
-        sys.stderr.write("step-tick.sh: no %s: run pin-recheck.sh first\n" % RECEIPT)
-        return 2
     step = fused_step.first_step(wt, n, handed_out)
     if step is None:
         sys.stderr.write("step-tick.sh: no open step in %s\n" % (LEDGER % n))
         return 2
-    if not any(kind in step for kind in CLOSES):
-        sys.stderr.write("step-tick.sh: not a ⟦diff-checked⟧ step: %s\n" % step)
+    kind = next((kind for kind in CLOSES if kind in step), None)
+    if kind is None:
+        sys.stderr.write("step-tick.sh: not a ⟦diff-checked⟧ step nor a ⟦go-red⟧ one: %s\n" % step)
+        return 2
+    if kind == "⟦diff-checked⟧" and not os.path.isfile(os.path.join(wt, RECEIPT)):
+        sys.stderr.write("step-tick.sh: no %s: run pin-recheck.sh first\n" % RECEIPT)
         return 2
     # PRD 027 D10: the tree is checked before the irreversible act, so no change outside .tdd/ rides the tick commit.
     stray = [path for path in fused.changed_paths("tick", wt) if not path.startswith(".tdd/")]
@@ -51,7 +53,7 @@ def run(n):
         raise fused.Stop("tick", "tree-check " + " ".join(stray), 1)
     fused.checked("tick", fused.script("tick-ledger.sh"), LEDGER % n, step, cwd=wt)
     fused.checked("tick", "git", "add", "-A", cwd=wt)
-    fused.checked("tick", "git", "commit", "-m", SUBJECT % (fused_step.summary(step), n), cwd=wt)
+    fused.checked("tick", "git", "commit", "-m", SUBJECTS[kind] % (fused_step.summary(step), n), cwd=wt)
     try:
         fused.checked("tick", fused.script("push-branch.sh"), cwd=wt)
         code, said, _ = fused.call(fused.script("stop-requested.sh"), cwd=wt)

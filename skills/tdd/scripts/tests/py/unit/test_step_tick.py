@@ -144,3 +144,17 @@ def test_4435_a_cycle_step_is_exit_2_before_any_call(tick):
 
     assert (code, fake.calls) == (2, [])
     assert "not a ⟦diff-checked⟧ step" in err
+
+
+GO_RED = "Go-red guard: the stacked refusal, probe `src/run.py` `if stacked:` → `if False:` on `t.py::c` ⟦go-red⟧ ⟦criterion 1⟧"
+
+
+def test_4443_a_go_red_step_closes_without_a_pin_recheck_receipt_under_the_go_red_subject(tick):
+    code, out, err, fake = tick(missing=("receipt",), ledger=LEDGER % GO_RED)
+
+    assert code == 0, err
+    assert fake.call("tick-ledger.sh")[1] == (".tdd/issue-12.md", GO_RED)
+    assert fake.call("git", "commit")[1] == (
+        "commit", "-m", "test: go-red — Go-red guard: the stacked refusal, probe `src/run.py` `if stacked:` → "
+        "`if False:` on `t.py::c` (#12)")
+    assert out.splitlines()[-1] == "next=cycle"
