@@ -59,3 +59,10 @@ skills/tdd/scripts/tests/py/unit/test_wait_ci.py
 command 208
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_exits_0_for_a_no_checks_pr_when_the_claude_md_line_says_ci_on_pr_0_and_the_variable_is_unset_and_a_workflow_triggers_on_pull_request
 
+before 40
+caa28aed61165020b8e4cd6dce5476ec5555a506
+keep 58
+skills/tdd/scripts/tests/py/unit/test_rebased_tip_suite.py
+command 196
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_rebased_tip_suite.py::test_main_with_ci_on_pr_unset_exits_2_with_one_stderr_line_naming_the_claude_md_line_for_a_value_that_is_neither_0_nor_1
+
