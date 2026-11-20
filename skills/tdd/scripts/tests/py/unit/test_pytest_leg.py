@@ -2087,3 +2087,14 @@ def test_4453_with_veri_pytest_workers_3_exported_the_leg_takes_3_beside_a_lane_
     code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_WORKERS="3", VERI_TEST_BUDGET_DIR=str(entries)))
 
     assert (code, workers_handed(calls), sorted(os.listdir(entries))) == (0, "3", ["main@0123456789abcdef", "mu@0123456789abcdef"]), err
+
+
+def test_4453_a_lone_lane_entry_needing_0_under_a_ceiling_record_of_10_narrows_t_to_its_floor_of_2(pytest_leg, monkeypatch, tmp_path):
+    on_cores(monkeypatch, 16)
+    measured(10)
+    entries = tmp_path / "veri-test-budget"
+    entries.mkdir()
+    (entries / "main@0123456789abcdef").write_text("0\n%d\n" % (time.time() + 3600))
+    monkeypatch.setenv("VERI_TEST_BUDGET_DIR", str(entries))
+
+    assert pytest_leg.budget(say=False)[0] == 2
