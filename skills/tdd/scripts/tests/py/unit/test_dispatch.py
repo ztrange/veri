@@ -3549,3 +3549,15 @@ def test_4455_the_real_world_with_no_main_working_tree_neither_reads_nor_writes_
     world.record_notified(["queue 2 3"])
 
     assert (world.notified(), relative.read_text()) == ([], "queue 5 6\n")
+
+
+def test_4455_once_printed_the_queueing_line_is_not_printed_again_by_a_restarted_dispatch_until_a_poll_counts_no_waiter(dispatch):
+    first = FakeWorld({"waiters": 1}, {"waiters": 2}, {"waiters": 3})
+    dispatch.main(["--target", "2"], world=first)
+    growing = FakeWorld({"waiters": 4}, {"waiters": 5}, notified=first.notified_lines)
+    dispatch.main(["--target", "2"], world=growing)
+    drained = FakeWorld({"waiters": 0}, {"waiters": 1}, {"waiters": 2}, {"waiters": 3}, {}, notified=growing.notified_lines)
+
+    code = dispatch.main(["--target", "2"], world=drained)
+
+    assert (len(first.said), growing.said, code, drained.waits, len(drained.said)) == (1, [], 0, 3, 1)
