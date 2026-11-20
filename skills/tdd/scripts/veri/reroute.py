@@ -155,6 +155,8 @@ def verify(n, wt, settled, step, values):
         with open(os.path.join(wt, ".tdd", "verdict-red.exit"), "w") as f:
             f.write("skipped\n")
         return None
+    fused.checked("verify", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step,
+                  *[arg for case in values["cases"] for arg in ("--except", case)], cwd=wt)
     path, target = values["verify"][0]
     red_half.launch_verdict("verify", n, wt, settled, step, {"test_path": path, "target_test": target})
     fused.save_wait(wt, n, NAME, "verdict-red", values)
