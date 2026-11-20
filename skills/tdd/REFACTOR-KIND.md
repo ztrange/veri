@@ -42,6 +42,7 @@
    conductor itself — not a leaf — reruns a `type-only` step's saved proof command in
    `.tdd/issue-<n>-proof`: a non-zero exit rejects the transform as
    `transform-touches-tests.sh` exit 1 does. The blind `transform` verifier reads
-   the diff from the same base sha. An abandoned refactor-kind step has no untracked test to
+   the diff from the same base sha and is launched with `--fast-cmd '<fast-cmd>'`, so it runs
+   the fast tier and then the `changed` run. An abandoned refactor-kind step has no untracked test to
    clean — its transform commits are the work — so it is abandoned by resetting to its base
    sha, `git reset --hard <base-sha>`.

@@ -38,3 +38,15 @@ def test_skill_md_passes_fast_cmd_on_every_verify_sh_call_that_can_judge_green()
         if re.search(GREEN_RE, line) and f"verify.sh {BASE_FLAG} {FLAG} {FAST_FLAG} " not in line
     ]
     assert not problems, "\n".join(problems)
+
+
+def test_structural_md_launches_the_transform_verifier_with_the_fast_tier_command():
+    structural = SKILL.with_name("STRUCTURAL.md")
+    launches = [(n, line) for n, line in enumerate(structural.read_text().splitlines(), 1)
+                if re.search(r"\$S/supervise\.sh verdict-transform \$S/run-verdict\.sh ", line)]
+    assert launches, "skills/tdd/STRUCTURAL.md has no verdict-transform launch into run-verdict.sh — the line this case is about could not be read"
+    problems = [
+        f"skills/tdd/STRUCTURAL.md:{n} launches the transform verifier without {FAST_FLAG} before `transform`: {line}"
+        for n, line in launches if not re.search(rf"run-verdict\.sh .*{re.escape(FAST_FLAG)} transform ", line)
+    ]
+    assert not problems, "\n".join(problems)
