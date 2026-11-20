@@ -18,8 +18,8 @@
 - [ ] `build-verify-prompt.sh branch` given a `--branch-base` not matching `^[0-9a-f]{7,40}$` exits 2 ⟦criterion 3⟧
 - [ ] A case in `unit/test_build_verify_prompt.py` feeds `branch` an input that could carry a leaf's words (a leaf report path such as `.tdd/develop-green.out`, a commit message), asserts exit 2, and goes red with the refusal removed ⟦criterion 4⟧
 - [ ] Test-only, no production change: the cases in `skills/tdd/scripts/tests/py/unit/test_run_pr.py` that pin `run_pr.CALLS` as exactly five stages (the set-and-length case and the "for each of the five stage names" case) are rewritten to assert those five stages appear in `CALLS` in their order, so they pass on the code before and after a stage is added between `pr-checks.sh` and `pr-ready-wait.sh` ⟦diff-checked⟧ ⟦criterion 1⟧
-- [ ] `run-pr.sh` calls `verify-branch.sh <n>`, a new stage (module `veri/verify_branch.py` behind a `/bin/sh` shim), after `pr-checks.sh` and before `pr-ready-wait.sh` ⟦criterion 1⟧
-- [ ] `verify-branch.sh` with no argument prints a usage line on stderr and exits 2 ⟦criterion 1⟧
+- [ ] `verify-branch.sh`, a new stage script (module `veri/verify_branch.py` behind a `/bin/sh` shim), given no argument prints a usage line on stderr and exits 2 ⟦criterion 1⟧
+- [ ] `run-pr.sh` calls `verify-branch.sh <n>` after `pr-checks.sh` and before `pr-ready-wait.sh` ⟦criterion 1⟧
 - [ ] `verify-branch.sh <n>` launches the `verdict-branch` leaf through `fused.launch` (`detach-leaf.sh` then `supervise.sh`) running `run-verdict.sh --fast-cmd '<fast-cmd>' --branch-base <recorded branch base> branch .tdd/issue-<n>-spec.md`, never `run-leaf.sh` or `claude` directly ⟦criterion 20⟧
 - [ ] The `verify-branch` leaf's model is `VERI_MODEL_VERIFIER` when set, else `VERI_MODEL`, else sonnet, and `VERI_MODEL_DEVELOPER` does not select it ⟦criterion 18⟧
 - [ ] `verify-branch.sh <n>` called again while its `verdict-branch` leaf is still running launches no second leaf and exits 3 while `wait-leaf.sh` exits 3 ⟦criterion 20⟧
