@@ -169,3 +169,12 @@ def test_4450_a_skill_edit_step_closes_without_a_pin_recheck_receipt_under_the_s
     assert code == 0, err
     assert fake.call("git", "commit")[1] == (
         "commit", "-m", "chore: skill-edit — Edit `skills/tdd/SKILL-EDIT.md` to name the tick subject (#12)")
+
+
+def test_4450_a_skill_edit_step_stops_on_the_tree_check_before_the_tick_commit_when_a_change_lies_outside_tdd(tick):
+    code, out, err, fake = tick(missing=("receipt",), ledger=LEDGER % SKILL_EDIT,
+                                answers={("git", "status"): (0, " M src/a.py\n")})
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at tick tree-check src/a.py")
+    assert not {"tick-ledger.sh", "push-branch.sh"} & set(fake.names())
+    assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("add",), ("commit",))]

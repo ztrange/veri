@@ -2,7 +2,7 @@
 
 - [x] Test-only, no production change: the two kind-seam cases in skills/tdd/scripts/tests/py/unit/test_run_step.py stop pinning a skill-edit step to reason=kind (its parametrization dropped from the not-a-cycle-step case, the designed-stop "kind" case moved to a fixture-repair step), so fixture-repair and phases steps alone still pin `seam=none code=1 reason=kind` ⟦diff-checked⟧ ⟦criterion 11⟧
 - [x] step-tick.sh closes an open skill-edit step with no pin-recheck receipt, committing the tick as `chore: skill-edit — <step summary> (#<n>)` ⟦criterion 9⟧
-- [ ] step-tick.sh on an open skill-edit step stops with exit 1 at its tree check, before the tick commit, when the tree holds a change outside .tdd/ ⟦criterion 9⟧
+- [x] step-tick.sh on an open skill-edit step stops with exit 1 at its tree check, before the tick commit, when the tree holds a change outside .tdd/ ⟦criterion 9⟧
 - [ ] run-step.sh <n> on an open skill-edit step calls `skill-edit-half.sh <n>` as its one stage, never passing --change, in place of the reason=kind seam: skill-edit-half is a key of run_step.STAGES, KINDS's skill-edit entry names it and keeps its SKILL-EDIT.md anchor, and it is not a key of run_step.PHASES ⟦criterion 10⟧
 - [ ] run-step.sh --hand skill-edit-half on an open skill-edit step stops before that stage with `seam=skill-edit-half code=1 reason=hand`, never calling it ⟦criterion 10⟧
 - [ ] run-step.sh --from skill-edit-half on an open skill-edit step starts at that stage and calls skill-edit-half.sh ⟦criterion 10⟧
