@@ -48,7 +48,7 @@ def pytest_runtest_logreport(report):
         others = [line for line in f.read().splitlines() if recent_other(line, test_file, since)]
         f.write("%d %d %s %s %d\n" % (now, os.getpid(), test_file, report.nodeid, workers))
     if others:
-        lower(LEG["total"] - 2, now)
+        lower(max(2, LEG["total"] - 2), now)
     event.mark("", event.context(tunables.environment()), "case-timeout", ["nodeid=" + report.nodeid, "workers=%d" % workers])
 
 
