@@ -569,8 +569,7 @@ def test_4482_red_a_check_earlier_exit_1_is_exit_1_launching_no_verdict_red(revi
                   report=RED_REPORT),
         argv=("12", "red"), missing=("red-half",))
 
-    assert code == 1
-    assert "verdict-red" not in fake.launched()
+    assert (code, fake.launched()) == (1, ["revise-red-1"])
 
 
 def test_4482_red_on_a_replaces_case_step_passes_check_earlier_one_except_per_replaced_case_before_verdict_red(revise):
