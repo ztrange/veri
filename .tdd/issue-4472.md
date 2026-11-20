@@ -18,7 +18,8 @@
 - [ ] `build-verify-prompt.sh branch` given a `--branch-base` not matching `^[0-9a-f]{7,40}$` exits 2 ⟦criterion 3⟧
 - [ ] A case in `unit/test_build_verify_prompt.py` feeds `branch` an input that could carry a leaf's words (a leaf report path such as `.tdd/develop-green.out`, a commit message), asserts exit 2, and goes red with the refusal removed ⟦criterion 4⟧
 - [ ] Test-only, no production change: the cases in `skills/tdd/scripts/tests/py/unit/test_run_pr.py` that pin `run_pr.CALLS` as exactly five stages (the set-and-length case and the "for each of the five stage names" case) are rewritten to assert those five stages appear in `CALLS` in their order, so they pass on the code before and after a stage is added between `pr-checks.sh` and `pr-ready-wait.sh` ⟦diff-checked⟧ ⟦criterion 1⟧
-- [ ] `verify-branch.sh <n>` is a new stage (module `veri/verify_branch.py` behind a `/bin/sh` shim): with no argument it prints a usage line and exits 2, and `run-pr.sh` calls it after `pr-checks.sh` and before `pr-ready-wait.sh` ⟦criterion 1⟧
+- [ ] `run-pr.sh` calls `verify-branch.sh <n>`, a new stage (module `veri/verify_branch.py` behind a `/bin/sh` shim), after `pr-checks.sh` and before `pr-ready-wait.sh` ⟦criterion 1⟧
+- [ ] `verify-branch.sh` with no argument prints a usage line on stderr and exits 2 ⟦criterion 1⟧
 - [ ] `verify-branch.sh <n>` launches the `verdict-branch` leaf through `fused.launch` (`detach-leaf.sh` then `supervise.sh`) running `run-verdict.sh --fast-cmd '<fast-cmd>' --branch-base <recorded branch base> branch .tdd/issue-<n>-spec.md`, never `run-leaf.sh` or `claude` directly ⟦criterion 20⟧
 - [ ] The `verify-branch` leaf's model is `VERI_MODEL_VERIFIER` when set, else `VERI_MODEL`, else sonnet, and `VERI_MODEL_DEVELOPER` does not select it ⟦criterion 18⟧
 - [ ] `verify-branch.sh <n>` called again while its `verdict-branch` leaf is still running launches no second leaf and exits 3 while `wait-leaf.sh` exits 3 ⟦criterion 20⟧
@@ -26,7 +27,7 @@
 - [ ] On a PASS, `verify-branch.sh <n>` writes the tip's `HEAD` sha to `.tdd/issue-<n>-branch-verified` ⟦criterion 19⟧
 - [ ] `verify-branch.sh <n>` with `HEAD` equal to the sha in `.tdd/issue-<n>-branch-verified` launches no leaf and exits 0 ⟦criterion 19⟧
 - [ ] `verify-branch.sh <n>` with `HEAD` differing from the sha in `.tdd/issue-<n>-branch-verified` launches the `verdict-branch` leaf ⟦criterion 19⟧
-- [ ] On a REJECT with fewer `⟦branch-repair⟧` steps in the ledger than `VERI_BRANCH_REPAIRS`, `verify-branch.sh <n>` appends one `⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion k⟧` step through `add-ledger-step.sh`, no `⟦added⟧`, its text carrying the verifier's reason from `.tdd/verify-branch.reason`, and exits 1 ⟦criterion 6⟧
+- [ ] On a REJECT with fewer `⟦branch-repair⟧` steps in the ledger than `VERI_BRANCH_REPAIRS`, `verify-branch.sh <n>` appends one `⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion k⟧` step through `add-ledger-step.sh`, no `⟦added⟧`, its text carrying the verifier's reason from `.tdd/verify-branch.reason` ⟦criterion 6⟧
 - [ ] That REJECT's appended step is committed as one `plan:` commit holding `.tdd/issue-<n>.md` and `.tdd/issue-<n>-added.md` ⟦criterion 6⟧
 - [ ] When `verify-branch.sh` exits 1 after appending a repair step, `run-pr.sh <n>` prints `seam=verify-branch code=1 reason=rejected next=DRAFT-PR.md#4. Draft PR`, exits 1 and calls no `pr-ready-wait.sh` ⟦criterion 7⟧
 - [ ] A later `run-pr.sh <n>` on the repaired ledger's new sha restarts at `branch-gate.sh`, calls `branch-gate.sh`, `pr-prepare.sh`, `pr-checks.sh` and `verify-branch.sh` again in order ⟦criterion 7⟧
