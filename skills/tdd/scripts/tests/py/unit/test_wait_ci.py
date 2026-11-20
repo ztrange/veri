@@ -1710,6 +1710,32 @@ def test_main_exits_0_on_the_first_poll_of_a_mergeable_pr_with_no_checks_when_ci
             sorted(p.name for p in kept(work / ".tdd"))) == (0, "", 1, 1, True, True, [])
 
 
+def test_main_exits_0_for_a_no_checks_pr_when_the_claude_md_line_says_ci_on_pr_0_and_the_variable_is_unset_and_a_workflow_triggers_on_pull_request(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    (work / "CLAUDE.md").write_text("veri: ci on pr: 0\n")
+    bodies = sha_bodies([], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                               "head": {"sha": FULL_SHA}})
+    workflow = "name: CI\non: pull_request\njobs: {}\n"
+
+    def workflows(line):
+        if ".github/workflows" not in line:
+            return None
+        if line.split("?")[0].endswith("ci.yml"):
+            return json.dumps({"name": "ci.yml", "type": "file", "encoding": "base64",
+                               "content": base64.b64encode(workflow.encode()).decode()})
+        return json.dumps([{"name": "ci.yml", "type": "file", "path": ".github/workflows/ci.yml"}])
+
+    served(fake_processes, bodies, workflows)
+
+    code, out, _ = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, out) == (0, "")
+
+
 def test_4332_a_no_checks_pr_under_ci_on_pr_0_exits_0_with_stderr_naming_has_no_checks_the_text_pr_ready_wait_reads(
         tmp_path, wait_ci, fake_processes, run_cli):
     pr_ready_wait = importlib.import_module("veri.pr_ready_wait")

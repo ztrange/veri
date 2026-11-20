@@ -52,3 +52,10 @@ ICAgICAgICByZXR1cm4gZm91bmQuY29tbWFuZC5kZWNvZGUoKQ==
 command 151
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_ci_on_pr.py::test_declared_returns_empty_when_claude_md_has_other_veri_lines_but_no_ci_on_pr_line
 
+before 40
+caa28aed61165020b8e4cd6dce5476ec5555a506
+keep 48
+skills/tdd/scripts/tests/py/unit/test_wait_ci.py
+command 208
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_exits_0_for_a_no_checks_pr_when_the_claude_md_line_says_ci_on_pr_0_and_the_variable_is_unset_and_a_workflow_triggers_on_pull_request
+
