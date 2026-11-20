@@ -1,7 +1,7 @@
 ---
 name: vdev
 description: >-
-  The veri dev session, reached by name: `/vdev [<lane>] [N] [--auto] [--resume <file>]` (`--resume` in a terminal only), or `/vdev`.
+  The veri dev session, reached by name: `/vdev [<lane>] [N] [--auto] [--resume <file>]`, or `/vdev`.
 ---
 
 # vdev — the dev session
