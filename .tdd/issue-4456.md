@@ -6,4 +6,4 @@
 - [x] a ceiling record timed-test-run.sh cannot read is no `test-stretch` event and leaves its exit code as the command's ⟦criterion 6⟧
 - [x] the leg's T is line 1 of a record holding `idle` lines ⟦criterion 4⟧
 - [x] dispatch.sh prints `stretched <issue> <tier> <seconds>s, idle <idle>s` for a live run's first unreported `test-stretch` event, once per run and tier kept in `.tdd/dispatch-notified`, and exits 0 ⟦criterion 5⟧
-- [ ] SCRIPTS.md, CLAUDE.md and vdev's SKILL.md name the `idle` lines, the `test-stretch` event and the `stretched` line, regraded ⟦criterion 7⟧
+- [x] SCRIPTS.md, CLAUDE.md and vdev's SKILL.md name the `idle` lines, the `test-stretch` event and the `stretched` line, regraded ⟦criterion 7⟧

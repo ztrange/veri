@@ -104,6 +104,7 @@
 | CAP8 | The Testing idiom's sentence stating T says T is min(that value, the cap on line 1 of `~/.veri-test-cap`, `VERI_TEST_CAP_FILE`) when a cap is set, which the human writes and nothing in veri changes; CLAUDE.md's `make ceiling` row says the ramp stops at the cap. (Testing idiom and Commands table.) | Docs drift blocks. |
 | QU6 | The Testing idiom says a waiting leg registers under `~/.veri-pytest-legs.waiting` (`VERI_PYTEST_WAITERS`) until it starts, holding no share, and that `dispatch.sh` turns a queue growing across `VERI_QUEUE_POLLS` polls into one `queueing` notice. (CLAUDE.md, Testing idiom, where the core wait is stated.) | Docs drift blocks. |
 | CM308 | The Testing idiom says T is the ceiling `make ceiling` records in `~/.veri-test-ceiling` (`VERI_TEST_CEILING_FILE`), the physical cores (affinity count elsewhere, never below 2) when there is none; that every `make` leg on the machine counts against it whoever ran it; and that a leg starts only with at least 2 free, taking min(4, free) for `make unit` and a subset, every free worker for a full run. (Testing idiom, third paragraph.) | Docs drift blocks. |
+| RW7b | CLAUDE.md's `make ceiling` row says the record also holds the fast and full idle durations. (CLAUDE.md, Commands table.) | Docs drift blocks. |
 
 ## README.md
 
