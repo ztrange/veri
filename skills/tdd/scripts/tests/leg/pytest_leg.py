@@ -194,7 +194,8 @@ def worker_count(requested):
 def budget():
     """(T, its source, for the wait line): T, the workers every live leg on the machine shares, is C0 (c0()), lowered
     to the cap the human set (ceiling.read_cap) when that is below it, the source then naming the cap file beside C0 and
-    C0's source (PRD 036.11). C0 from the core fallback is one stderr line naming the record and `make ceiling`; a cap
+    C0's source (PRD 036.11), and lowered again to a load timeout's T in the load file (load_timeouts.held) when that
+    is below what remains, never below 2 (PRD 036.7). C0 from the core fallback is one stderr line naming the record and `make ceiling`; a cap
     file it cannot use is one more."""
     total, source = c0()
     if source is None:
@@ -206,7 +207,11 @@ def budget():
         sys.stderr.write(complaint)
     sys.stderr.flush()
     if cap and cap < total:
-        return cap, "the cap file %s, below C0=%d from %s" % (cap_path(), total, source)
+        total, source = cap, "the cap file %s, below C0=%d from %s" % (cap_path(), total, source)
+    import load_timeouts
+    held = load_timeouts.held()
+    if held and held < total:
+        return max(2, held), "the load file %s, below %d from %s" % (load_timeouts.load_path(), total, source)
     return total, source
 
 

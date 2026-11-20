@@ -159,3 +159,23 @@ def test_a_lowering_never_writes_a_t_below_2(pytest_leg, run_cli, monkeypatch, t
     load = os.environ["VERI_TEST_LOAD_FILE"]
 
     assert (code, open(load).read().splitlines()[:1] if os.path.exists(load) else None) == (1, ["2"])
+
+
+@pytest.mark.parametrize("held, expected", [("3\n1763539200\n", 3), ("9\n1763539200\n", 6), ("2\n", 2),
+                                            ("1\n1763539200\n", 6), ("three\n", 6), ("", 6)])
+def test_while_the_load_file_holds_a_whole_number_of_at_least_2_budget_is_the_lesser_of_t_without_it_and_that_number_and_anything_else_is_ignored(pytest_leg, machine, held, expected):
+    machine(6)
+    with open(os.environ["VERI_TEST_LOAD_FILE"], "w") as f:
+        f.write(held)
+
+    assert pytest_leg.budget()[0] == expected
+
+
+def test_the_load_file_lowers_t_below_the_cap_file_too(pytest_leg, machine):
+    machine(8)
+    with open(os.environ["VERI_TEST_CAP_FILE"], "w") as f:
+        f.write("6\n")
+    with open(os.environ["VERI_TEST_LOAD_FILE"], "w") as f:
+        f.write("4\n1763539200\n")
+
+    assert pytest_leg.budget()[0] == 4
