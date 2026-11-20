@@ -3680,3 +3680,13 @@ def test_4454_the_real_worlds_lowering_is_the_load_files_time_old_t_new_t_and_ca
             f.write(held)
 
     assert dispatch.World().lowering() == expected
+
+
+@pytest.mark.parametrize("value", ["0", "two", "-3", "2.5", ""])
+def test_4453_a_veri_conductor_test_workers_not_a_whole_number_of_at_least_1_exits_2_naming_it_before_any_poll(dispatch, monkeypatch, value):
+    monkeypatch.setenv("VERI_CONDUCTOR_TEST_WORKERS", value)
+    world = FakeWorld({"queue": ["12"]})
+
+    code = dispatch.main(["--target", "2"], world=world)
+
+    assert (code, world.launched, world.reads, "VERI_CONDUCTOR_TEST_WORKERS" in "".join(world.complained)) == (2, [], [], True)

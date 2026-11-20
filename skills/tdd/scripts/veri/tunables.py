@@ -152,6 +152,7 @@ TUNABLES = {
     "VERI_TIMEOUT": Tunable(tokens, "900"),
     "VERI_DISPATCH_RETRY_SLEEP": Tunable(isdigit_seconds, "5"),
     "VERI_QUEUE_POLLS": Tunable(queue_polls, "3"),
+    "VERI_CONDUCTOR_TEST_WORKERS": Tunable(positive_tokens, "2"),
     "VERI_GH_REFUSAL_RETRIES": Tunable(tokens, "3"),
     "VERI_LABEL": Tunable(text, "ready-for-agent"),
     "VERI_TOOL_RETRY_SLEEP": Tunable(text, "15"),
