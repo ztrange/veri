@@ -19,6 +19,7 @@ import restart_marker
 import run_dir as layout
 from role_state import state_path
 import role_state
+import test_budget
 import tunables
 import watch_runs
 import workqueue
@@ -392,6 +393,13 @@ class World:
         return [(e.get("tier", ""), e.get("seconds", ""), e.get("idle", ""))
                 for e in event_log.events(run_dir(issue), "test-stretch", skip_unreadable=True)]
 
+    def write_test_budget(self, need):
+        """Replaces this lane's entry under VERI_TEST_BUDGET_DIR (test_budget.write) with <need>; nothing when no main
+        working tree can be named."""
+        main = layout.main_tree(missing="")
+        if main:
+            test_budget.write(main, lane() or "main", need)
+
     def notified(self):
         """The lines of the main working tree's .tdd/dispatch-notified, what dispatch.sh keeps across restarts; [] when
         it is absent or unreadable, or no main working tree can be named."""
@@ -679,6 +687,8 @@ def step(state, world):
         code = _exits(state, world, live)
     if code is None and state.follows_role_state:
         code = _role_state_target(state, world)
+    if code is None:
+        world.write_test_budget(max(state.target, len(live)) * int(tunables.get("VERI_CONDUCTOR_TEST_WORKERS")))
     if code is None:
         code = _stalled(state, world)
     if code is not None:
