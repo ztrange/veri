@@ -1929,3 +1929,35 @@ def test_4455_a_legs_waiter_entry_is_gone_once_it_registers_and_starts_pytest(py
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WAITERS=str(waiters)))[0]
 
     assert (code, at_start[:1]) == (0, [[]])
+
+
+def test_4455_a_leg_ended_by_term_while_it_waits_for_t_has_removed_its_waiter_entry_by_the_time_it_exits(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    import signal
+    import idle_watch
+    on_cores(monkeypatch, 16)
+    measured(8)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    registered(legs / str(os.getppid()), 8)
+    waiters = tmp_path / "waiters"
+    entry = waiters / str(os.getpid())
+    waiting_at_exit = []
+
+    def exit(code):
+        waiting_at_exit.append(entry.exists())
+        raise SystemExit(code)
+
+    class Watch(idle_watch.Watch):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, exit=exit, **kwargs)
+
+    def term(seconds):
+        assert entry.exists()
+        signal.getsignal(signal.SIGTERM)(signal.SIGTERM, None)
+
+    monkeypatch.setattr(idle_watch, "Watch", Watch)
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", term)
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WAITERS=str(waiters)))[0]
+
+    assert (code, waiting_at_exit) == (128 + signal.SIGTERM, [False])
