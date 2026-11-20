@@ -104,7 +104,7 @@ def test_a_timeout_appended_while_the_timeouts_file_holds_another_test_files_lin
     after = int(time.time())
     lines = open(load).read().splitlines() if os.path.exists(load) else []
 
-    assert (code, lines[:1], [before <= int(line) <= after for line in lines[1:]], load in replaced) == (1, ["4"], [True], True)
+    assert (code, lines[:1], [before <= int(line) <= after for line in lines[1:2]], load in replaced) == (1, ["4"], [True], True)
 
 
 def test_timeouts_from_one_test_file_only_however_many_write_no_load_file(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
@@ -260,3 +260,15 @@ def test_a_load_file_the_leg_cannot_read_is_one_stderr_line_naming_it_and_lowers
     code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_TEST_LOAD_FILE=str(unreadable)), cwd=str(tree))
 
     assert (code, len([line for line in err.splitlines() if str(unreadable) in line]), pytest_leg.budget()[0]) == (0, 1, 6)
+
+
+def test_a_lowering_writes_the_old_t_on_line_3_and_the_windows_cases_on_line_4_for_dispatch(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    other_file_timed_out()
+    timing_out(monkeypatch, "tests/py/unit/test_x.py::test_slow")
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(), cwd=str(tree))[0]
+
+    assert (code, open(os.environ["VERI_TEST_LOAD_FILE"]).read().splitlines()[2:]) == (
+        1, ["6", "tests/py/unit/test_y.py::test_other,tests/py/unit/test_x.py::test_slow"])

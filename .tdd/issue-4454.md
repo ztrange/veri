@@ -11,7 +11,7 @@
 - [x] a lowering prints one stderr line naming the window's timed-out cases, the old T and the new, and records a `t-lowered` event (`old`, `new`, `cases`) ⟦criterion 7⟧
 - [x] a timeouts or load file the plugin cannot read or write is one stderr line naming it, and the leg's exit code stays 1 for a timed-out case ⟦criterion 9⟧
 - [x] test-ceiling.sh's exit 0 removes VERI_TEST_LOAD_FILE; its exits 1 and 2 leave it ⟦criterion 6⟧
-- [ ] dispatch.sh, at a poll finding a lowering on record newer than the last it reported, prints `t-lowered <old> <new> <cases>`, exits 0 and records the lowering's time in .tdd/dispatch-notified; a restarted dispatch.sh never prints it again ⟦criterion 8⟧
+- [x] dispatch.sh, at a poll finding a lowering on record newer than the last it reported, prints `t-lowered <old> <new> <cases>`, exits 0 and records the lowering's time in .tdd/dispatch-notified; a restarted dispatch.sh never prints it again ⟦criterion 8⟧
 - [ ] only the leg, its plugin, veri/ceiling.py and veri/dispatch.py name VERI_TEST_LOAD_FILE ⟦criterion 10⟧
 - [ ] vdev's Speaking sends the `t-lowered` closing line as a notice, then reruns dispatch.sh (graded) ⟦criterion 8⟧
 - [ ] CLAUDE.md's Testing idiom states the load timeout and its lowering (graded) ⟦criterion 12⟧

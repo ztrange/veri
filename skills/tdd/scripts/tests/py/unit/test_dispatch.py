@@ -3637,3 +3637,46 @@ def test_4456_the_real_world_reads_a_runs_test_stretch_events_from_its_worktrees
                 '{"event": "test-stretch", "tier": "all", "seconds": "30", "idle": "10"}\n')
 
     assert (dispatch.World().stretches("7"), dispatch.World().stretches("8")) == ([("all", "30", "10")], [])
+
+
+LOWERING = (1700000600, 6, 4, "tests/a.py::test_x,tests/b.py::test_y")
+
+
+def test_4454_a_poll_finding_a_lowering_on_record_prints_the_t_lowered_line_exits_0_and_records_its_time(dispatch):
+    world = FakeWorld({"lowering": LOWERING, "queue": ["15"]}, notified=["queue 1"])
+
+    code = dispatch.main(["--target", "2"], world=world)
+
+    assert (code, world.launched, "".join(world.said), world.notified_lines) == (
+        0, ["15"], "t-lowered 6 4 tests/a.py::test_x,tests/b.py::test_y\n", ["queue 1 0", "t-lowered 1700000600"])
+
+
+def test_4454_a_restarted_dispatch_never_prints_a_lowering_it_already_reported(dispatch):
+    first = FakeWorld({"lowering": LOWERING})
+    dispatch.main(["--target", "2"], world=first)
+    restarted = FakeWorld({"lowering": LOWERING}, {"lowering": LOWERING}, notified=first.notified_lines)
+
+    code = dispatch.main(["--target", "2"], world=restarted)
+
+    assert (code, restarted.waits, "".join(restarted.said)) == (None, 2, "")
+
+
+def test_4454_a_lowering_newer_than_the_last_reported_is_printed(dispatch):
+    world = FakeWorld({"lowering": (1700001300, 4, 2, "tests/c.py::test_z,tests/a.py::test_x")},
+                      notified=["t-lowered 1700000600"])
+
+    code = dispatch.main(["--target", "2"], world=world)
+
+    assert (code, "".join(world.said), world.notified_lines) == (
+        0, "t-lowered 4 2 tests/c.py::test_z,tests/a.py::test_x\n", ["queue 0", "t-lowered 1700001300"])
+
+
+@pytest.mark.parametrize("held, expected", [
+    ("4\n1700000600\n6\ntests/a.py::test_x,tests/b.py::test_y\n", (1700000600, 6, 4, "tests/a.py::test_x,tests/b.py::test_y")),
+    ("4\n1700000600\n", None), ("", None), (None, None)], ids=["whole", "no-old-or-cases", "empty", "absent"])
+def test_4454_the_real_worlds_lowering_is_the_load_files_time_old_t_new_t_and_cases_or_none(dispatch, held, expected):
+    if held is not None:
+        with open(os.environ["VERI_TEST_LOAD_FILE"], "w") as f:
+            f.write(held)
+
+    assert dispatch.World().lowering() == expected
