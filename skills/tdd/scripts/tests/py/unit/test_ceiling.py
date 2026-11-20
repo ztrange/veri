@@ -289,3 +289,33 @@ def test_a_record_that_cannot_be_renamed_into_place_leaves_the_earlier_one_and_n
     assert "refused" in err
     assert record.read_text() == EARLIER
     assert sorted(path.name for path in tmp_path.iterdir() if "ceiling" in path.name) == ["ceiling-record"]
+
+
+def capped(text):
+    """Writes <text> to the cap file the hermetic fixture points VERI_TEST_CAP_FILE at; returns its path."""
+    path = ceiling.os.environ["VERI_TEST_CAP_FILE"]
+    with open(path, "w") as f:
+        f.write(text)
+    return path
+
+
+@pytest.mark.parametrize("cap, argv, steps, bound", [
+    ("4\n", [], [2, 4], "the cap file"), ("5\n", [], [2, 4, 5], "the cap file"), ("8\n", [], [2, 4, 6], "the logical cores"),
+    ("8\n", ["--max", "3"], [2, 3], "--max 3"), ("3\n", ["--max", "5"], [2, 3], "the cap file"),
+], ids=["cap-4", "cap-5-odd", "cores", "max-3-odd", "cap-below-max"])
+def test_4457_with_a_cap_the_ramp_runs_up_to_the_least_of_the_cores_max_and_the_cap_an_odd_top_included_and_names_that_bound(
+        make, run_cli, cap, argv, steps, bound):
+    path = capped(cap)
+    code, out, err = run_cli(ceiling, argv)
+
+    assert (code, [workers for workers, _, _ in make.calls], "ceiling: %d workers" % steps[-1] in out, bound in out,
+            (path in out) == (bound == "the cap file")) == (0, steps, True, True, True), (out, err)
+
+
+def test_4457_with_a_cap_a_ramp_stopped_by_a_load_timeout_names_no_bound(make, run_cli):
+    capped("6\n")
+    make.given(lambda workers, tests: [(SLOW, TIMEOUT)] if workers == 4 and not tests else [])
+    code, out, err = run_cli(ceiling, [])
+
+    assert (code, [workers for workers, _, _ in make.calls], out.splitlines()[0].startswith("ceiling: 2 workers"), "bound" in out, "stopped" in out) == (
+        0, [2, 4, 1], True, False, False), (out, err)

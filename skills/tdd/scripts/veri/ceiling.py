@@ -154,12 +154,13 @@ def step(workers, scratch):
     return len(failed)
 
 
-def ramp(top, scratch):
-    """Steps w = 2, 4, … up to <top>, stopping at the first with a load timeout; returns the ceiling (None when that
-    was the first step) and one `<workers> <seconds> <timeouts>` line per step run."""
+def ramp(top, scratch, odd_top=False):
+    """Steps w = 2, 4, … up to <top>, <top> itself last when it is odd and <odd_top> is set (a cap is), stopping at the
+    first with a load timeout; returns the ceiling (None when that was the first step) and one
+    `<workers> <seconds> <timeouts>` line per step run."""
     import pytest_leg
     ceiling, steps = None, []
-    for workers in range(2, top + 1, 2):
+    for workers in list(range(2, top + 1, 2)) + ([top] if odd_top and top % 2 else []):
         entry = register(workers)
         began = clock()
         try:
@@ -180,10 +181,18 @@ def main(argv):
     if top is None:
         sys.stderr.write(USAGE)
         return 2
+    cap, complaint = read_cap()
+    if complaint:
+        sys.stderr.write(complaint)
+    # With a cap (PRD 036.11 CAP5), the ramp's top is the least of the cores, --max and the cap, the first named winning
+    # a tie, and exit 0 names it, so a ramp its bound stopped does not read as a measured limit.
+    bounds = [(cap, "the cap file " + cap_path())] if cap else []
+    bounds.append((top, "--max %d" % top if argv else "the logical cores"))
+    top, stopper = min(bounds, key=lambda pair: pair[0])
     header = [time.strftime("%Y-%m-%d %H:%M:%S %z"), commit(), "%.2f %.2f %.2f" % os.getloadavg()]
     try:
         with tempfile.TemporaryDirectory(prefix="veri-ceiling-") as scratch:
-            ceiling, steps = ramp(top, scratch)
+            ceiling, steps = ramp(top, scratch, odd_top=bool(cap))
     except NoAnswer as error:
         sys.stderr.write("%s\n" % error)
         return 2
@@ -191,7 +200,8 @@ def main(argv):
         sys.stderr.write("no ceiling of at least 2: a case timed out under load at 2 workers and passed alone\n")
         return 1
     path = write_record([str(ceiling)] + header + steps)
-    sys.stdout.write("ceiling: %d workers (recorded in %s)\n" % (ceiling, path))
+    stopped = "; the ramp stopped at its bound, %s" % stopper if cap and ceiling == top else ""
+    sys.stdout.write("ceiling: %d workers (recorded in %s)%s\n" % (ceiling, path, stopped))
     return 0
 
 if __name__ == "__main__":
