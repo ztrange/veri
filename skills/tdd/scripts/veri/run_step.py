@@ -23,16 +23,17 @@ GREEN = "SKILL.md#Green — minimum implementation (developer leaf), then verify
 REVISE = "REVISE.md#Revising on a REJECT"
 REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 DIFF = "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"
+GO_RED = "GO-RED.md#A `⟦go-red⟧` step — a mutation probe on its named case"
 
 # The stages in the order they run -> (the heading anchor, `<file>#<heading>` under the skill's directory, of the
 # section whose prose takes over at a stop there (S4); the marks of the step kinds it does not handle (S3, RN6): it
 # stops before such a stage without calling it). green-half's reason is specs/prd-027.md GH1.
 STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
           "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ()), "revise": (REVISE, ()),
-          "diff-step": (DIFF, ()), "reroute": (GREEN, ())}
+          "diff-step": (DIFF, ()), "reroute": (GREEN, ()), "go-red-step": (GO_RED, ())}
 # The stages run in series; revise runs only on a half's REJECT and reroute only on a Green route, each a stage only
-# so `--hand` can name it; diff-step runs a kind's step in place of the series.
-SERIES = tuple(stage for stage in STAGES if stage not in ("revise", "diff-step", "reroute"))
+# so `--hand` can name it; diff-step and go-red-step each run a kind's step in place of the series.
+SERIES = tuple(stage for stage in STAGES if stage not in ("revise", "diff-step", "reroute", "go-red-step"))
 # The phase stages -> the phase a verifier judges: a REJECT there (`.tdd/verdict-<phase>.exit` holding 1) is revise.sh's.
 PHASES = {"red-half": "red", "green-half": "green", "refactor-half": "refactor", "diff-step": "diff"}
 # A green-half stop on a report line wrong-test-route.sh answers (two of green_half.ROUTES; SPLIT and TIDY_FIRST keep
@@ -55,7 +56,7 @@ CALLS = tuple(stage + ".sh" for stage in SERIES)
 # The kinds that are not a cycle step, red_half.REFUSED's (RN7) -> (the anchor of the prose that runs them, the stage
 # that runs them as the step's one stage in place of the series, or None): a step of a kind no stage runs stops before
 # any stage on `seam=none` (038.3 DST8; 038.4 adds ⟦skill-edit⟧'s).
-KINDS = {"⟦diff-checked⟧": (DIFF, "diff-step"),
+KINDS = {"⟦diff-checked⟧": (DIFF, "diff-step"), "⟦go-red⟧": (GO_RED, "go-red-step"),
          "⟦phases:": ("SKILL.md#A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier", None),
          "⟦skill-edit⟧": ("SKILL-EDIT.md#The skill-edit step", None), "⟦fixture-repair⟧": (RED, None)}
 # The stages a kind runs in place of the series.
