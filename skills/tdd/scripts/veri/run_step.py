@@ -69,7 +69,8 @@ REFUSAL = re.compile(
     r"|rows for .* are not under ## Requirements"
     r"|a ## Requirements row is under no ### unit heading"
     r"|## Requirements has no ### heading for unit: "
-    r"|## Requirements table for .* lacks its header: ")
+    r"|## Requirements table for .* lacks its header: "
+    r"|skill-edit-guard.sh: ")
 
 
 def refused(wt, n):
