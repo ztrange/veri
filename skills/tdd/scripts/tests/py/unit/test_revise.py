@@ -562,6 +562,17 @@ def test_4482_red_on_a_plain_step_no_reroute_touched_passes_check_earlier_no_exc
     assert names.index("tests-frozen.sh") < names.index("detach-leaf.sh", names.index("wait-leaf.sh"))
 
 
+def test_4482_red_a_check_earlier_exit_1_is_exit_1_launching_no_verdict_red(revise):
+    _red(revise)
+    code, out, err, fake = revise(
+        fake=Fake({("red-divergence.sh", None): (3, ""), ("tests-frozen.sh", "check-earlier"): (1, "earlier test changed\n")},
+                  report=RED_REPORT),
+        argv=("12", "red"), missing=("red-half",))
+
+    assert code == 1
+    assert "verdict-red" not in fake.launched()
+
+
 def test_4482_red_on_a_replaces_case_step_passes_check_earlier_one_except_per_replaced_case_before_verdict_red(revise):
     step = "port it: replaces 'case one' and 'case two' in tests/py/test_x.py ⟦replaces-case⟧ ⟦criterion 1⟧"
     (revise.wt / ".tdd" / "issue-12.md").write_text(LEDGER % step)
