@@ -658,7 +658,7 @@ def _main(argv):
                 count = worker_count(workers)
             else:
                 count, entry = claim(watch.cleanups, cap)
-            load_timeouts.LEG["workers"] = count
+                load_timeouts.LEG["workers"] = count
             parallel = ["-n", str(count), "--dist", "worksteal"] if count >= 2 else []
             idle_watch.CURRENT[0] = watch
             watch.start()
