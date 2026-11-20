@@ -9,7 +9,7 @@
 - [x] `run-conductor.sh` with a `VERI_BRANCH_REPAIRS` that is not a whole number of at least 0 (e.g. `x`) exits 2 naming the variable before any leaf launches, `VERI_BRANCH_REPAIRS` being a tunable of `tunables.py` with default `1` ⟦criterion 12⟧
 - [x] Metrics count a `verify-branch-skipped` event on the `Verifiers switched off:` line as `branch`, `metrics.SWITCHED_OFF_EVENTS` naming it ⟦criterion 16⟧
 - [x] With `branch` in the run's pinned skip list, the PR body's `⚠️ Unverified phases:` line names `branch` ⟦criterion 17⟧ ⟂ retired unpinnable
-- [ ] With `branch` in the run's pinned skip list, the `✅ Done` comment's `⚠️ Unverified phases:` line names `branch` ⟦criterion 17⟧
+- [x] With `branch` in the run's pinned skip list, the `✅ Done` comment's `⚠️ Unverified phases:` line names `branch` ⟦criterion 17⟧ ⟂ retired unpinnable
 - [ ] ⟦skill-edit⟧ `skills/tdd/scripts/prompts/verify-branch.md` exists, its rows VB1–VB5 under `## skills/tdd/scripts/prompts/verify-branch.md` in `skills/tdd/scripts/prompts/REQUIREMENTS.md`, graded so `prose-owed.sh` exits 0 ⟦criterion 25⟧
 - [ ] Test-only, no production change: the case in `skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py` that pins `build_verify_prompt.PHASES` as an exact ten-phase tuple is rewritten to assert each of those ten phases is in `PHASES`, in that order, so it passes on the code before and after a `branch` phase is added ⟦diff-checked⟧ ⟦criterion 2⟧
 - [ ] `build-verify-prompt.sh --fast-cmd '<fast-cmd>' --branch-base <sha> branch <issue-spec-file>` exits 0 printing the `verify-branch.md` prompt filled with `git diff <sha>..HEAD`, the spec file's acceptance criteria and the fast command, and no other input ⟦criterion 2⟧
