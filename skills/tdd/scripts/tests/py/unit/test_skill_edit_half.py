@@ -365,3 +365,29 @@ def test_4450_called_again_by_the_conductor_that_wrote_the_wait_record_it_only_w
     code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
 
     assert (code, calls) == (3, [("detach-command.sh", ("wait", "skill-edit-12"))]), (code, calls)
+
+
+def test_4450_when_skill_edit_step_exits_3_it_calls_step_tick_as_on_exit_0_and_does_not_exit_3(
+        monkeypatch, run_cli, tmp_path):
+    """SKH3: skill-edit-step.sh's exit 3 (wait reports exit 1, printing 3) is ticked as on 0, not the stage's exit 3."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "detach-command.sh" and args[:1] == ("wait",):
+            return 1, "3\n", ""
+        return 0, BODY if base == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert (code, [c for c in calls if c[0] == "step-tick.sh"]) == (0, [("step-tick.sh", ("12",))]), (code, calls)
