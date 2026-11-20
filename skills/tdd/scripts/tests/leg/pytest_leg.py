@@ -10,7 +10,9 @@ if __name__ == "__main__":
 #          With VERI_PYTEST_WORKERS unset, the leg's workers come out of T, the budget every registered leg on the machine
 #            shares: line 1 of ~/.veri-test-ceiling (VERI_TEST_CEILING_FILE, `make ceiling`'s record) when it is a whole
 #            number of at least 2, else the physical cores (the affinity count off macOS), never below 2, said in one
-#            stderr line naming the file and `make ceiling`. It starts only once 2 of T are free, waiting meanwhile
+#            stderr line naming the file and `make ceiling`; lowered to the cap on line 1 of ~/.veri-test-cap
+#            (VERI_TEST_CAP_FILE, PRD 036.11) when that is a whole number of at least 2 below it (any other content, or
+#            an unreadable file, is one stderr line and no cap; the wait line then names the cap file). It starts only once 2 of T are free, waiting meanwhile
 #            (PRD 036.4), takes every free worker, and registers what it takes
 #          --subset: the caller named the suites to run (`make test TESTS=…`), so no full-run lock is taken, and the leg
 #            takes at most 4 of the free workers

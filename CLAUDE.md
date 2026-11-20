@@ -23,7 +23,7 @@ veri: quiet test files: `"${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3" skil
 | `make profile` | Runs the suites `make test` runs and prints one line per case at or above `VERI_PROFILE_THRESHOLD` seconds, slowest first. Nothing gates on it. |
 | `make unreachable` | Lists the scripts no declared entry point reaches, through `unreachable.sh`. |
 | `make report` | Prints the `/vreport` figures, through `report.sh`. |
-| `make ceiling` | Ramps `make test`'s workers (2, 4, 6, … up to the logical cores, or `MAX=<n>`), one full suite per step, through `test-ceiling.sh`, to find the highest count with no case timeout, and records it in `~/.veri-test-ceiling` (`VERI_TEST_CEILING_FILE`). Hours on an idle machine; never in CI, and nothing gates on it. |
+| `make ceiling` | Ramps `make test`'s workers (2, 4, 6, … up to the logical cores, or `MAX=<n>`), one full suite per step, through `test-ceiling.sh`, to find the highest count with no case timeout, and records it in `~/.veri-test-ceiling` (`VERI_TEST_CEILING_FILE`). With a cap set (below), the ramp stops at the cap, an odd one included, and says which bound stopped it. Hours on an idle machine; never in CI, and nothing gates on it. |
 | `make watch` | Reruns `make unit` whenever a tracked file changes. Nothing gates on it. |
 | `make run-finished ISSUE=<n>` | Says whether run `<n>` is safe to merge, through `run-finished.sh`. |
 | `make ready-check` | Reports whether veri can run in this repository, through `ready-check.sh`. |
@@ -166,11 +166,14 @@ standard library before that check can run, so the check covers veri's own modul
 whoever ran it (a conductor's leaf, a lane, a review, a hand `make`), counts its xdist workers against one budget, T: the ceiling
 `make ceiling` records on line 1 of `~/.veri-test-ceiling` (`VERI_TEST_CEILING_FILE`) when that is a whole number of at least 2;
 with no such record (CI, a new machine, a malformed or unreadable file) the physical cores on macOS, the CPU-affinity count
-elsewhere, never below 2, and the leg says so in one stderr line naming the file and `make ceiling` (PRD 036.4). Cases run
+elsewhere, never below 2, and the leg says so in one stderr line naming the file and `make ceiling` (PRD 036.4). When a cap is set,
+T is min(that value, the cap on line 1 of `~/.veri-test-cap` (`VERI_TEST_CAP_FILE`)), a file the human writes and nothing in veri
+changes; one the leg cannot use (unreadable, or line 1 not a whole number of at least 2) is one stderr line and no cap, and a wait
+against the cap names the cap file (PRD 036.11). Cases run
 across pytest-xdist workers out of T: `make unit` and a `make test TESTS=…` subset min(4, the workers of T other running legs
 leave free) (each worker pays its own start-up; `make unit` hands the leg `--cap=4`, a subset's `--subset` caps it at 4), a full
 `make test` every free worker (#2100), and a leg of any kind that finds fewer than 2 free waits instead of starting (PRD 036.1,
-036.3, 036.4): it says so once on stderr, naming T and its source (the ceiling record or the core fallback), the workers in use
+036.3, 036.4): it says so once on stderr, naming T and its source (the ceiling record, the core fallback, or the cap file beside them), the workers in use
 and the pids holding them, writes the same wait
 marker a full-run lock waiter writes (below), so a supervised leaf's hard timeout and silence window are frozen while it waits (a marker it
 cannot write is one stderr line and the wait goes on unmarked; one already gone when the wait ends is no error; TERM or HUP mid-wait removes it), and records
@@ -178,7 +181,7 @@ the wait as a `core-wait` event with its seconds; a full run takes the lock befo
 start time under `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and an entry holds a share only while its pid runs under that start time: a dead
 or reused pid, an entry with no start time (an older leg's), a malformed one and one whose start time ps cannot read hold none, and only one whose pid is gone or
 proven reused is removed.
-`VERI_PYTEST_WORKERS=<n>` exported by the caller overrides both, used as given, never waiting, registering or reading the record; `1` runs serially (#2053). Three refusals, exit 2 before any
+`VERI_PYTEST_WORKERS=<n>` exported by the caller overrides both, used as given, never waiting, registering or reading the record or the cap; `1` runs serially (#2053). Three refusals, exit 2 before any
 suite: pytest or pytest_timeout not importable (stderr names `make install-dev`), or Python
 older than the 3.12 floor. Any other error escaping the leg (registering it, taking the full-run lock, checking or recording
 the bytecode cache) is one stderr line naming it, never a traceback, and exit 2, except that a failing run keeps its exit 1.
