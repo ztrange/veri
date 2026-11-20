@@ -72,6 +72,15 @@ REFUSAL = re.compile(
     r"|## Requirements table for .* lacks its header: ")
 
 
+def refused(wt, n):
+    """Whether .tdd/skill-edit-<n>.out holds a line starting with one of skill-edit-step.sh's refusals."""
+    try:
+        with open(os.path.join(wt, ".tdd", "skill-edit-%s.out" % n)) as f:
+            return any(REFUSAL.match(line) for line in f)
+    except FileNotFoundError:
+        return False
+
+
 def parse(argv):
     """(n, the --from stage or None, the --hand stages); None for arguments it does not take."""
     if not argv or not argv[0].isdigit():
@@ -165,12 +174,7 @@ def main(argv):
             if code == 1 and said:
                 return seam(wt, n, step, stage, code, None, line=said[-1])
             if code == 2:
-                try:
-                    with open(os.path.join(wt, ".tdd", "skill-edit-%s.out" % n)) as f:
-                        held = any(REFUSAL.match(l) for l in f)
-                except FileNotFoundError:
-                    held = False
-                sys.stdout.write("out=.tdd/skill-edit-%s.out refusal=%s\n" % (n, "yes" if held else "no"))
+                sys.stdout.write("out=.tdd/skill-edit-%s.out refusal=%s\n" % (n, "yes" if refused(wt, n) else "no"))
             return seam(wt, n, step, stage, code, NEXT_SCRIPTS[0] + " " + n if code == 3 else anchor)
         i += 1
     said = [line for line in out.splitlines() if line.startswith("next=")]
