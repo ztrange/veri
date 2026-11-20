@@ -337,3 +337,31 @@ def test_4450_when_the_detached_wait_slice_runs_out_it_exits_3_and_calls_no_step
     code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
 
     assert (code, [c for c in calls if c[0] == "step-tick.sh"]) == (3, []), calls
+
+
+def test_4450_called_again_by_the_conductor_that_wrote_the_wait_record_it_only_waits_on_skill_edit_n(
+        monkeypatch, run_cli, tmp_path):
+    """SKH34: a second call under the recording conductor makes no gh api call and starts no skill-edit-step.sh."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "conductor.pid").write_text("4242\n1700000000\n")
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    fused.save_wait(str(wt), "12", "skill-edit-half", "skill-edit-12", {})
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "detach-command.sh" and args[:1] == ("wait",):
+            return 3, "", ""
+        return 0, BODY if base == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert (code, calls) == (3, [("detach-command.sh", ("wait", "skill-edit-12"))]), (code, calls)
