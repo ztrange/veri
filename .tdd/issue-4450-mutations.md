@@ -105,3 +105,21 @@ ICAgICAgICAgICAgYW5kIGZ1c2VkLmNhbGwoImdpdCIsICJscy1maWxlcyIsICItLWVycm9yLXVubWF0
 command 150
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_passes_no_test_file_span_after_the_unit_that_git_does_not_track
 
+before 40
+ead8d4dfec49b848584f469b32a4dd70dc96ebc8
+keep 56
+skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py
+command 164
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_when_skill_edit_step_exits_3_it_calls_step_tick_as_on_exit_0_and_does_not_exit_3
+
+file 42
+skills/tdd/scripts/veri/skill_edit_half.py
+old-b64 24
+Y3dkPXd0KVswXSA9PSAzOg==
+new-b64 24
+Y3dkPXd0KVswXSAhPSAwOg==
+context-b64 92
+ICAgIGlmIGZ1c2VkLmNhbGwoREVUQUNILCAid2FpdCIsICJza2lsbC1lZGl0LSIgKyBuLCBjd2Q9d3QpWzBdID09IDM6
+command 164
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_when_skill_edit_step_exits_3_it_calls_step_tick_as_on_exit_0_and_does_not_exit_3
+
