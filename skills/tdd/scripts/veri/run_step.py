@@ -30,10 +30,11 @@ GO_RED = "GO-RED.md#A `⟦go-red⟧` step — a mutation probe on its named case
 # stops before such a stage without calling it). green-half's reason is specs/prd-027.md GH1.
 STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
           "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ()), "revise": (REVISE, ()),
-          "diff-step": (DIFF, ()), "reroute": (GREEN, ()), "go-red-step": (GO_RED, ())}
+          "diff-step": (DIFF, ()), "reroute": (GREEN, ()), "go-red-step": (GO_RED, ()),
+          "skill-edit-half": ("SKILL-EDIT.md#The skill-edit step", ())}
 # The stages run in series; revise runs only on a half's REJECT and reroute only on a Green route, each a stage only
 # so `--hand` can name it; diff-step and go-red-step each run a kind's step in place of the series.
-SERIES = tuple(stage for stage in STAGES if stage not in ("revise", "diff-step", "reroute", "go-red-step"))
+SERIES = tuple(stage for stage in STAGES if stage not in ("revise", "diff-step", "reroute", "go-red-step", "skill-edit-half"))
 # The phase stages -> the phase a verifier judges: a REJECT there (`.tdd/verdict-<phase>.exit` holding 1) is revise.sh's.
 PHASES = {"red-half": "red", "green-half": "green", "refactor-half": "refactor", "diff-step": "diff"}
 # A green-half stop on a report line wrong-test-route.sh answers (two of green_half.ROUTES; SPLIT and TIDY_FIRST keep
@@ -58,7 +59,7 @@ CALLS = tuple(stage + ".sh" for stage in SERIES)
 # any stage on `seam=none` (038.3 DST8; 038.4 adds ⟦skill-edit⟧'s).
 KINDS = {"⟦diff-checked⟧": (DIFF, "diff-step"), ledger.GO_RED_MARK: (GO_RED, "go-red-step"),
          "⟦phases:": ("SKILL.md#A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier", None),
-         "⟦skill-edit⟧": ("SKILL-EDIT.md#The skill-edit step", None), "⟦fixture-repair⟧": (RED, None)}
+         "⟦skill-edit⟧": ("SKILL-EDIT.md#The skill-edit step", "skill-edit-half"), "⟦fixture-repair⟧": (RED, None)}
 # The stages a kind runs in place of the series.
 KIND_STAGES = tuple(stage for _, stage in KINDS.values() if stage)
 
