@@ -963,3 +963,10 @@ def test_issue_4471_ready_check_with_a_claude_md_ci_on_pr_line_that_is_neither_0
     code, out, err = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
 
     assert (code, "veri: ci on pr:" in err and "maybe" in err, len(err.splitlines())) == (2, True, 1), (out, err)
+
+
+def test_issue_4471_ready_check_with_no_pull_request_workflow_no_variable_and_no_claude_md_line_fails_the_pull_request_row_naming_the_line(ready_check, run_cli, fake_processes, tmp_path):
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{"git ls-tree": (0, "", "")})
+
+    row = [line for line in lines if line.startswith("fail  pull_request:")]
+    assert len(row) == 1 and "VERI_CI_ON_PR" in row[0] and "`veri: ci on pr: 0|1`" in row[0], lines

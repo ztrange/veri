@@ -272,7 +272,7 @@ def one_test_file_row():
 
 def pull_request_row():
     holds = bool(ci_on_pr.declared()) or triggers_on("pull_request")
-    return "pull_request", None if holds else "add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR"
+    return "pull_request", None if holds else "add a workflow under .github/workflows/ that triggers on pull_request, add a `veri: ci on pr: 0|1` line to CLAUDE.md, or set VERI_CI_ON_PR"
 
 
 def push_row():
