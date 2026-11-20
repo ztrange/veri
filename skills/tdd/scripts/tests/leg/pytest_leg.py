@@ -191,9 +191,12 @@ def worker_count(requested):
 
 def budget():
     """(T, its source): T, the workers every live leg on the machine shares, is C0 (c0()), lowered to the cap the
-    human set (ceiling.read_cap) when that is below it (PRD 036.11)."""
+    human set (ceiling.read_cap) when that is below it (PRD 036.11). A cap file it cannot use is one stderr line."""
     total, source = c0()
-    cap = read_cap()
+    cap, complaint = read_cap()
+    if complaint:
+        sys.stderr.write(complaint)
+        sys.stderr.flush()
     if cap and cap < total:
         return cap, source
     return total, source

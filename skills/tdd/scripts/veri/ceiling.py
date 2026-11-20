@@ -73,14 +73,21 @@ def cap_path():
 
 
 def read_cap():
-    """The cap the human set on line 1 of the cap file (cap_path) when it is a whole number of at least 2, else None.
-    Nothing in veri writes or removes the file (PRD 036 D30)."""
+    """(cap, complaint): the cap the human set on line 1 of the cap file (cap_path) when it is a whole number of at
+    least 2. No file is no cap and no complaint; one that cannot be read, or whose line 1 is anything else, is no cap and
+    a one-line complaint naming the file, for the caller's stderr. Nothing in veri writes or removes the file (D30)."""
+    path = cap_path()
     try:
-        with open(cap_path()) as f:
+        with open(path) as f:
             first = f.readline().strip()
-    except (OSError, ValueError):
-        return None
-    return int(first) if first.isascii() and first.isdigit() and int(first) >= 2 else None
+    except FileNotFoundError:
+        return None, None
+    except (OSError, ValueError) as error:
+        return None, "cannot read the test-worker cap file %s, so there is no cap: %s\n" % (path, error)
+    if first.isascii() and first.isdigit() and int(first) >= 2:
+        return int(first), None
+    return None, "the test-worker cap file %s holds %r on line 1, not a whole number of at least 2, so there is no cap\n" % (
+        path, first)
 
 
 def write_record(lines):
