@@ -538,3 +538,17 @@ def test_4456_a_ceiling_record_it_cannot_read_is_no_test_stretch_event_and_the_c
     code = timed_test_run.main(["fast", "a", "make", "test", "TESTS=a"])
 
     assert (code, [r["event"] for r in events.records()]) == (7, ["test-run"])
+
+
+@pytest.mark.parametrize("line", ["idle fast abc", "idle fast ³"], ids=["non-digit", "non-ascii-digit"])
+def test_4456_a_malformed_idle_line_is_no_test_stretch_event_and_the_commands_exit_code(
+        line, tmp_path, monkeypatch, calls, events, timed_test_run):
+    monkeypatch.chdir(tmp_path)
+    events.refuse_event_sh()
+    pathlib.Path(os.environ["VERI_TEST_CEILING_FILE"]).write_text("4\n" + line + "\n", encoding="utf-8")
+    readings = [100, 200]
+    monkeypatch.setattr(timed_test_run.time, "time", lambda: readings.pop(0))
+
+    code = timed_test_run.main(["fast", "a", "make", "test", "TESTS=a"])
+
+    assert (code, [r["event"] for r in events.records()]) == (7, ["test-run"])
