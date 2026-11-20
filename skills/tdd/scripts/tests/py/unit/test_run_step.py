@@ -662,3 +662,17 @@ def test_4443_a_step_mentioning_go_red_without_the_trailing_marker_runs_as_a_cyc
     code, out, err, stages = step(ledger=LEDGER % text)
 
     assert (code, tuple(stages.names())) == (0, STAGES), err
+
+
+SKILL_EDIT_STEP = "Edit the unit `skills/tdd/SKILL-EDIT.md` ⟦skill-edit⟧ ⟦criterion 1⟧"
+
+
+def test_4450_a_skill_edit_step_runs_skill_edit_half_as_its_one_stage_never_passing_change(step):
+    run_step = importlib.import_module("veri.run_step")
+    code, out, err, stages = step(ledger=LEDGER % SKILL_EDIT_STEP,
+                                  answers={"skill-edit-half.sh": (0, "step-tick.sh 12 exit 0\nnext=cycle\n")})
+
+    assert (code, [(c[0], c[1]) for c in stages.calls], out.splitlines()[-1]) == (
+        0, [("skill-edit-half.sh", ("12",))], "next=cycle"), err
+    assert "skill-edit-half" in run_step.STAGES and "skill-edit-half" not in run_step.PHASES
+    assert run_step.KINDS["⟦skill-edit⟧"] == ("SKILL-EDIT.md#The skill-edit step", "skill-edit-half")
