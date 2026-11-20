@@ -255,3 +255,30 @@ def test_4450_with_every_file_tracked_it_passes_only_the_test_file_spans_after_t
     start = [args for name, args in calls if name == "detach-command.sh" and args[:1] == ("start",)]
     assert len(start) == 1, calls
     assert start[0][3:] == (".tdd/issue-12-body", "tests/test_unit.py", "tests/test_c.py", "tests/test_a.py"), start
+
+
+def test_4450_it_passes_no_tracked_path_span_after_the_unit_that_is_not_a_test_file(
+        monkeypatch, run_cli, tmp_path):
+    """Criterion 2: a tracked production path after the unit is not a pin file."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword `skills/tdd/SKILL.md`, see `skills/tdd/scripts/veri/ledger.py` "
+        "and `skills/tdd/SCRIPTS.md`, pinned by `tests/test_a.py` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        return 0, BODY if base == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    start = [args for name, args in calls if name == "detach-command.sh" and args[:1] == ("start",)]
+    assert len(start) == 1, calls
+    assert start[0][3:] == (".tdd/issue-12-body", "skills/tdd/SKILL.md", "tests/test_a.py"), start

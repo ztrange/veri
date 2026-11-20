@@ -69,3 +69,21 @@ skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py
 command 157
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_with_every_file_tracked_it_passes_only_the_test_file_spans_after_the_unit
 
+before 40
+ead8d4dfec49b848584f469b32a4dd70dc96ebc8
+keep 56
+skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py
+command 153
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_passes_no_tracked_path_span_after_the_unit_that_is_not_a_test_file
+
+file 42
+skills/tdd/scripts/veri/skill_edit_half.py
+old-b64 36
+Y2FzZV9yZWFkZXIuaXNfdGVzdF9wYXRoKHMp
+new-b64 8
+VHJ1ZQ==
+context-b64 80
+ICAgIHJldHVybiBbcyBmb3IgcyBpbiBzcGFucyBpZiBjYXNlX3JlYWRlci5pc190ZXN0X3BhdGgocyk=
+command 153
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_passes_no_tracked_path_span_after_the_unit_that_is_not_a_test_file
+
