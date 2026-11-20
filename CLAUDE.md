@@ -181,7 +181,11 @@ the wait as a `core-wait` event with its seconds; a full run takes the lock befo
 start time under `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and an entry holds a share only while its pid runs under that start time: a dead
 or reused pid, an entry with no start time (an older leg's), a malformed one and one whose start time ps cannot read hold none, and only one whose pid is gone or
 proven reused is removed.
-`VERI_PYTEST_WORKERS=<n>` exported by the caller overrides both, used as given, never waiting, registering or reading the record or the cap; `1` runs serially (#2053). Three refusals, exit 2 before any
+`VERI_PYTEST_WORKERS=<n>` exported by the caller overrides both, used as given, never waiting, registering or reading the record or the cap; `1` runs serially (#2053).
+A waiting leg also registers its wait, until it starts, under `~/.veri-pytest-legs.waiting` (`VERI_PYTEST_WAITERS`): its
+pid's start time and the workers it waits for, holding no share of T, read by the same start-time rule, and removed when it
+registers, exits or is ended by TERM or HUP. `dispatch.sh` counts those entries at every poll and turns a queue growing across
+`VERI_QUEUE_POLLS` polls (default 3) into one `queueing` notice (PRD 036.9). Three refusals, exit 2 before any
 suite: pytest or pytest_timeout not importable (stderr names `make install-dev`), or Python
 older than the 3.12 floor. Any other error escaping the leg (registering it, taking the full-run lock, checking or recording
 the bytecode cache) is one stderr line naming it, never a traceback, and exit 2, except that a failing run keeps its exit 1.

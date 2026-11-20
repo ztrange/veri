@@ -83,7 +83,7 @@ A **notice** — a refused reset, `role-growth.sh`'s exit 2, `request-reset`'s e
 launch line of *Starting*, a missing `delegate` skill, `github-outage.sh hold`'s exit 2, a red
 stack that stays frozen after its failed jobs' re-run, `record-answer.sh`'s exit 2 (*Answers*), a
 question session's failed start (*When to stop and ask*, step 3), a failed join or a landing
-reported under *Routing an exit*, each line `voutage` tells the human — is
+reported under *Routing an exit*, `dispatch.sh`'s `queueing` line, each line `voutage` tells the human — is
 sent once: as one `PushNotification`
 where the session has that tool, else as one line in its transcript.
 
@@ -188,6 +188,8 @@ and prints one line per event:
 - `merge-failed <pr-url>`
 - `stalled <n>`
 - `queue-empty`
+- `queueing <k> waiting for T=<t>, <w> workers in use: a lower N would shorten the wait`: test
+  runs keep queueing; advice only, which changes nothing
 
 You arm no other wait for conductors, ledgers or merges: no `watch-runs.sh`, no
 `until [ -f … ]`, no `while kill -0 <pid>`. `voutage`'s wait on GitHub's status page is its own.
