@@ -489,3 +489,50 @@ def test_4450_it_exits_2_before_any_call_when_ledger_unit_of_finds_no_unit_in_th
     code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
 
     assert (code, calls) == (2, []), (code, calls)
+
+
+def test_4450_it_exits_2_before_any_call_on_a_non_numeric_issue_an_unknown_option_or_change_with_no_value(
+        monkeypatch, run_cli, tmp_path):
+    """SKH42: bad arguments are refused with exit 2 before gh, skill-edit-step.sh or step-tick.sh."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    for issue in ("12", "abc"):
+        wt = tmp_path / ".tdd" / "wt" / issue
+        (wt / ".tdd").mkdir(parents=True)
+        (wt / ".tdd" / ("issue-%s-preflight" % issue)).write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+        (wt / ".tdd" / ("issue-%s.md" % issue)).write_text(
+            "# Plan for #%s\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n" % issue)
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        calls.append((os.path.basename(name), args))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    for argv in (["abc"], ["12", "--bogus"], ["12", "--change"]):
+        del calls[:]
+        code, _, _ = run_cli(skill_edit_half, argv, cwd=str(tmp_path))
+        assert (code, calls) == (2, []), (argv, code, calls)
+
+
+def test_4450_it_exits_2_before_any_call_on_an_unknown_option_given_a_value(monkeypatch, run_cli, tmp_path):
+    """SKH42: a three-argument call whose second argument is not --change is refused before any call."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        calls.append((os.path.basename(name), args))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, _, _ = run_cli(skill_edit_half, ["12", "--bogus", "x"], cwd=str(tmp_path))
+
+    assert (code, calls) == (2, []), (code, calls)
