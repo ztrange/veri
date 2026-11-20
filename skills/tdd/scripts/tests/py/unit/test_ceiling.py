@@ -319,3 +319,16 @@ def test_4457_with_a_cap_a_ramp_stopped_by_a_load_timeout_names_no_bound(make, r
 
     assert (code, [workers for workers, _, _ in make.calls], out.splitlines()[0].startswith("ceiling: 2 workers"), "bound" in out, "stopped" in out) == (
         0, [2, 4, 1], True, False, False), (out, err)
+
+
+@pytest.mark.parametrize("cap", ["six\n", "1\n", "", "a directory"])
+def test_4457_a_cap_file_the_ramp_cannot_use_is_one_stderr_line_naming_it_and_the_ramp_runs_as_with_no_cap(make, run_cli, cap):
+    path = ceiling.os.environ["VERI_TEST_CAP_FILE"]
+    if cap == "a directory":
+        ceiling.os.mkdir(path)
+    else:
+        capped(cap)
+    code, out, err = run_cli(ceiling, [])
+
+    assert (code, [workers for workers, _, _ in make.calls], len(err.splitlines()), path in err, "bound" in out) == (
+        0, [2, 4, 6], 1, True, False), (out, err)
