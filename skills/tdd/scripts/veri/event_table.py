@@ -38,6 +38,7 @@ EVENTS = {
             "|suite-red|rebased-tip-red|unreplaced-cases|needs-user|step-added-off-route|fixture-owed"
             "|missing-reroutes-exhausted|repair-reroutes-exhausted|graded-edit-outside-skill-edit|unpinnable-missing"
             "|repin-failed|skill-edit-refused|prep-owed|no-seam|surround-owed|unwired|surround-short|tidy-first-owed) classification?:(process|system) suites?:text failed?:text",
+    "case-timeout": "nodeid:text workers:whole",
     "ci-flake": "head:sha run:whole files:text",
     "ci-rerun": "head:sha run:whole files:text",
     "comment": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|revise|verify-revised|plan|verify-plan"
