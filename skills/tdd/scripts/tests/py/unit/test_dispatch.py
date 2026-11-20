@@ -2,6 +2,7 @@
 from datetime import datetime
 import importlib
 import json
+import os
 import sys
 
 import pytest
@@ -269,11 +270,12 @@ def test_launch_raises_and_starts_no_restart_conductor_when_the_run_conductor_la
 
 
 def test_main_with_target_or_more_live_conductors_launches_nothing_and_signals_no_process_while_it_keeps_waiting(
-        monkeypatch, capsys, dispatch):
+        monkeypatch, capsys, dispatch, tmp_path):
     import os
     launches = []
     waits = []
     signals = []
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))  # the queueing rule's state file (#4455)
 
     def wait():
         waits.append(1)
@@ -3510,3 +3512,40 @@ def test_4455_a_veri_queue_polls_not_a_whole_number_of_at_least_2_exits_2_naming
     code = dispatch.main(["--target", "2"], world=world)
 
     assert (code, world.launched, world.reads, "VERI_QUEUE_POLLS" in "".join(world.complained)) == (2, [], [], True)
+
+
+def test_4455_a_restarted_dispatch_continues_the_waiter_counts_dispatch_notified_holds_and_keeps_its_other_lines(dispatch):
+    quiet = FakeWorld({"waiters": 1}, {"waiters": 1}, notified=["t-lowered 1700000000"])
+    dispatch.main(["--target", "2"], world=quiet)
+    restarted = FakeWorld({"waiters": 3}, notified=quiet.notified_lines)
+
+    code = dispatch.main(["--target", "2"], world=restarted)
+
+    assert (quiet.notified_lines, code, "".join(restarted.said)) == (
+        ["t-lowered 1700000000", "queue 1 1"], 0,
+        "queueing 3 waiting for T=8, 0 workers in use: a lower N would shorten the wait\n")
+
+
+def test_4455_the_real_world_keeps_dispatch_notified_in_the_main_working_trees_tdd_and_reads_back_what_it_recorded(dispatch, monkeypatch, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
+    world = dispatch.World()
+
+    before = world.notified()
+    world.record_notified(["t-lowered 1700000000", "queue 2 3"])
+
+    assert (before, (tmp_path / ".tdd" / "dispatch-notified").read_text(), world.notified()) == (
+        [], "t-lowered 1700000000\nqueue 2 3\n", ["t-lowered 1700000000", "queue 2 3"])
+
+
+def test_4455_the_real_world_with_no_main_working_tree_neither_reads_nor_writes_a_tdd_dispatch_notified_under_the_current_directory(dispatch, monkeypatch, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    relative = tmp_path / ".tdd" / "dispatch-notified"
+    relative.write_text("queue 5 6\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: "")
+    world = dispatch.World()
+
+    world.record_notified(["queue 2 3"])
+
+    assert (world.notified(), relative.read_text()) == ([], "queue 5 6\n")
