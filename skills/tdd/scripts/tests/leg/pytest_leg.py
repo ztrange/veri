@@ -55,7 +55,7 @@ import launch_floor
 import leg_tmpdir
 import pid_file
 import tunables
-from ceiling import read_cap, record_path
+from ceiling import cap_path, read_cap, record_path
 from full_run_lock import legs_dir
 
 
@@ -190,15 +190,21 @@ def worker_count(requested):
 
 
 def budget():
-    """(T, its source): T, the workers every live leg on the machine shares, is C0 (c0()), lowered to the cap the
-    human set (ceiling.read_cap) when that is below it (PRD 036.11). A cap file it cannot use is one stderr line."""
+    """(T, its source, for the wait line): T, the workers every live leg on the machine shares, is C0 (c0()), lowered
+    to the cap the human set (ceiling.read_cap) when that is below it, the source then naming the cap file beside C0 and
+    C0's source (PRD 036.11). C0 from the core fallback is one stderr line naming the record and `make ceiling`; a cap
+    file it cannot use is one more."""
     total, source = c0()
+    if source is None:
+        sys.stderr.write("no test-worker ceiling in %s, so the budget is the %d cores; `make ceiling` measures one\n" % (
+            record_path(), total))
+        source = "the core fallback"
     cap, complaint = read_cap()
     if complaint:
         sys.stderr.write(complaint)
-        sys.stderr.flush()
+    sys.stderr.flush()
     if cap and cap < total:
-        return cap, source
+        return cap, "the cap file %s, below C0=%d from %s" % (cap_path(), total, source)
     return total, source
 
 
@@ -323,10 +329,6 @@ def claim(cleanups=None, cap=None):
     removal = lambda: unmark(waitfile)
     nested = os.environ.get("PYTEST_XDIST_WORKER")
     total, source = budget()
-    if source is None:
-        sys.stderr.write("no test-worker ceiling in %s, so the budget is the %d cores; `make ceiling` measures one\n" % (
-            record_path(), total))
-        sys.stderr.flush()
     try:
         while True:
             with open(legs.rstrip("/") + ".lock", "w") as lock:
@@ -344,7 +346,7 @@ def claim(cleanups=None, cap=None):
                 if not said:
                     holders = registered_legs(legs)
                     sys.stderr.write("waiting for %d free test workers of T=%d (%s): %d in use by the registered legs with pids %s\n" % (
-                        FLOOR, total, source or "the core fallback", sum(count for _, count in holders),
+                        FLOOR, total, source, sum(count for _, count in holders),
                         ", ".join(name for name, _ in holders)))
                     sys.stderr.flush()
                     said = True
