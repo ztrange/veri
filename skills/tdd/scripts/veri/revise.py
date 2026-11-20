@@ -228,8 +228,9 @@ def red_checks(n, wt, settled, step, values):
                       stdin=read(wt, out), out=".tdd/verify-red.reason")[0]
     if gate == 3:
         rerouted = rerouted_red(wt, n, step) or {}
+        excepted = list(dict.fromkeys(rerouted.get("cases", []) + (replaces_case.parse(step) or ([], ""))[0]))
         fused.checked("4", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step,
-                      *[arg for case in rerouted.get("cases", []) for arg in ("--except", case)], cwd=wt)
+                      *[arg for case in excepted for arg in ("--except", case)], cwd=wt)
         return verify(n, wt, settled, step, values)
     if gate in UNMATCHED:
         with open(os.path.join(wt, ".tdd", "verify-red.reason"), "w") as f:
