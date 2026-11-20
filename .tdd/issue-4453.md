@@ -6,7 +6,7 @@
 - [x] a waiting leg reads T again on every pass of its wait loop, so a T widened while it waits lets it start ⟦criterion 4⟧
 - [x] a T narrowed below what a running leg holds leaves that leg's registry entry as it was ⟦criterion 5⟧
 - [x] when S narrows T below C, the wait line names each entry's lane and need beside C and C's source ⟦criterion 6⟧
-- [ ] with VERI_PYTEST_WORKERS exported the leg reads no entry, and test-ceiling.sh neither reads nor writes one ⟦criterion 8⟧
+- [x] with VERI_PYTEST_WORKERS exported the leg reads no entry, and test-ceiling.sh neither reads nor writes one ⟦criterion 8⟧
 - [ ] dispatch.sh refuses a VERI_CONDUCTOR_TEST_WORKERS that is not a whole number of at least 1, exit 2 naming it, before any poll ⟦criterion 2⟧
 - [ ] dispatch.sh writes its lane's need, max(N, live conductors) × d, and its expiry to its lane's entry at every poll, replaced whole through a temporary file ⟦criterion 1⟧
 - [ ] role-state.sh dev set n <k> writes the lane's entry and prints N, the lane's need, the other lanes' needs, C with its source and the T a leg would read now ⟦criterion 7⟧
