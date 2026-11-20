@@ -13,6 +13,7 @@ import fused_step
 import green_half
 import red_half
 import refactor_half
+import replaces_case
 import ledger
 import run_dir
 import tunables
@@ -174,7 +175,9 @@ def checks(n, wt, settled, step, values):
         with open(os.path.join(wt, ".tdd", "verify-%s.reason" % values["phase"]), "w") as f:
             f.write("REASON: the revise changed a frozen test file: %s\n" % " ".join(said.split()))
         return None
-    fused.checked("4", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step, cwd=wt)
+    excepted = (replaces_case.parse(step) or ([], ""))[0]
+    fused.checked("4", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step,
+                  *[arg for case in excepted for arg in ("--except", case)], cwd=wt)
     return verify(n, wt, settled, step, values)
 
 

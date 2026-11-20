@@ -23,3 +23,21 @@ skills/tdd/scripts/tests/py/unit/test_revise.py
 command 168
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise.py::test_4482_green_called_again_runs_check_earlier_in_the_worktree_where_the_relative_ledger_path_resolves
 
+before 40
+50a6e8b31267663864c338bdd82d44ffba6eb6f4
+keep 47
+skills/tdd/scripts/tests/py/unit/test_revise.py
+command 164
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise.py::test_4482_green_on_a_replaces_case_step_whose_cases_cannot_be_parsed_passes_check_earlier_no_except
+
+file 33
+skills/tdd/scripts/veri/revise.py
+old-b64 56
+KHJlcGxhY2VzX2Nhc2UucGFyc2Uoc3RlcCkgb3IgKFtdLCAiIikpWzBd
+new-b64 40
+cmVwbGFjZXNfY2FzZS5wYXJzZShzdGVwKVswXQ==
+context-b64 148
+ICAgIGV4Y2VwdGVkID0gKHJlcGxhY2VzX2Nhc2UucGFyc2Uoc3RlcCkgb3IgKFtdLCAiIikpWzBdIGlmIHJlcGxhY2VzX2Nhc2UuaXNfcmVwbGFjZXNfY2FzZV9zdGVwKHN0ZXApIGVsc2UgKCk=
+command 164
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise.py::test_4482_green_on_a_replaces_case_step_whose_cases_cannot_be_parsed_passes_check_earlier_no_except
+

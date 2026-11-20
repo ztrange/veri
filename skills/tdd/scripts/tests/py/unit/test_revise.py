@@ -152,6 +152,30 @@ def test_4482_green_called_again_runs_check_earlier_with_no_except_after_check_a
         "check-earlier", ".tdd/issue-12.md", "--step", STEP)
 
 
+def test_4482_green_on_a_replaces_case_step_passes_check_earlier_one_except_per_replaced_case(revise):
+    step = "port it: replaces 'case one' and 'case two' in tests/py/test_x.py ⟦replaces-case⟧ ⟦criterion 2⟧"
+    (revise.wt / ".tdd" / "issue-12.md").write_text(LEDGER % step)
+    (revise.wt / ".tdd" / "issue-12-red-half").write_text(RED_HALF % step)
+    revise(answers={("wait-leaf.sh", "revise-green-1"): (3, "")})
+    code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
+
+    assert code == 3
+    assert fake.call("tests-frozen.sh", "check-earlier")[1] == (
+        "check-earlier", ".tdd/issue-12.md", "--step", step, "--except", "case one", "--except", "case two")
+
+
+def test_4482_green_on_a_replaces_case_step_whose_cases_cannot_be_parsed_passes_check_earlier_no_except(revise):
+    step = "port it, naming no case to replace ⟦replaces-case⟧ ⟦criterion 2⟧"
+    (revise.wt / ".tdd" / "issue-12.md").write_text(LEDGER % step)
+    (revise.wt / ".tdd" / "issue-12-red-half").write_text(RED_HALF % step)
+    revise(answers={("wait-leaf.sh", "revise-green-1"): (3, "")})
+    code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
+
+    assert code == 3
+    assert fake.call("tests-frozen.sh", "check-earlier")[1] == (
+        "check-earlier", ".tdd/issue-12.md", "--step", step)
+
+
 def test_4482_green_called_again_runs_check_earlier_in_the_worktree_where_the_relative_ledger_path_resolves(revise):
     revise(answers={("wait-leaf.sh", "revise-green-1"): (3, "")})
     code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
