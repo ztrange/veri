@@ -140,6 +140,22 @@ def drop_missing_cases(record, root):
         handle.write("".join(kept))
 
 
+def probed(record, probe):
+    """Whether the mutation record at <record> holds an entry of <probe>, a go-red step's (file, old, new, case): its
+    file, old and new equal to the probe's, and its command, when it has one, naming the case. False for no probe, no
+    record, or a malformed one."""
+    if not probe:
+        return False
+    path, old, new, case = probe
+    try:
+        with open(record, encoding="utf-8") as handle:
+            entries = mutation_record.records(handle.read())
+    except (OSError, mutation_record.MalformedRecord):
+        return False
+    return any(e.get("file") == path and e.get("old") == old and e.get("new") == new
+               and ("command" not in e or case in e["command"]) for e in entries)
+
+
 def mutations_path(ledger_path):
     return mutation_record.of_ledger(ledger_path)
 
@@ -209,9 +225,8 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
     event; it needs a `case`. `pending` and `phase` do not combine.
     Returns 0 ticked; 1 clean negative (the case fails; the reason does not qualify for `retire`; retire with no
     case); 2 no answer (case never ran, bad combination, unreadable ledger, no mutation record for the step's
-    go-red control, or for the file a ⟦go-red⟧ step's probe names, or no parseable probe on such a step, missing
-    receipt, a ledger left behind, an empty ledger_path -> usage line); 3 nothing to
-    tick. Writes the ledger (and its added-steps record) and, for a retirement, events.jsonl and the mutation
+    go-red control, or of the probe a ⟦go-red⟧ step names (file, old, new and case), or no parseable probe on
+    such a step, missing receipt, a ledger left behind, an empty ledger_path -> usage line); 3 nothing to tick. Writes the ledger (and its added-steps record) and, for a retirement, events.jsonl and the mutation
     record; stderr as the script prints it.
     """
     retired_mark, event_name = ledger.retire_mark("unpinnable"), "unpinnable-step"
@@ -282,9 +297,8 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
             return 2
     if ledger.is_go_red(step_line):
         record = mutations_path(ledger_path)
-        probe = ledger.go_red_probe(step_line)
-        if not probe or not os.path.exists(record) or probe[0] not in open(record, encoding="utf-8").read().split("\n"):
-            complain(f"{record}: no mutation record for the file the step's go-red probe names")
+        if not probed(record, ledger.go_red_probe(step_line)):
+            complain(f"{record}: no mutation record of the probe the step's go-red line names")
             return 2
     if tests_frozen.is_diff_checked(step_line):
         refusal = ledger.receipt_refusal(ledger_path)
