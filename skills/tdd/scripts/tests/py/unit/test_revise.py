@@ -140,6 +140,27 @@ def test_called_again_it_only_waits_then_checks_cost_and_frozen_tests_and_launch
     assert (record["at"], record["values"]["k"]) == ("verdict-green", 1)
 
 
+def test_4482_green_called_again_runs_check_earlier_with_no_except_after_check_and_before_launching_verdict_green(revise):
+    revise(answers={("wait-leaf.sh", "revise-green-1"): (3, "")})
+    code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
+
+    steps = [(c[0], c[1][:1]) for c in fake.calls if c[0] in ("tests-frozen.sh", "detach-leaf.sh")]
+    assert code == 3
+    assert [s[0] if s[0] == "detach-leaf.sh" else s[1][0] for s in steps] == [
+        "check", "check-earlier", "detach-leaf.sh"]
+    assert fake.call("tests-frozen.sh", "check-earlier")[1] == (
+        "check-earlier", ".tdd/issue-12.md", "--step", STEP)
+
+
+def test_4482_green_called_again_runs_check_earlier_in_the_worktree_where_the_relative_ledger_path_resolves(revise):
+    revise(answers={("wait-leaf.sh", "revise-green-1"): (3, "")})
+    code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
+
+    assert code == 3
+    assert fake.call("tests-frozen.sh", "check-earlier")[2] == str(revise.wt)
+    assert fake.call("tests-frozen.sh", "check")[2] == str(revise.wt)
+
+
 def test_on_a_revised_pass_it_posts_verify_revised_resaves_green_halfs_wait_at_verdict_green_and_exits_0(revise):
     """PRD 038.9 criterion 5: the stage, called again, finishes as after its own PASS."""
     rejected = revise.wt / ".tdd" / "issue-12-green-half-rejected-wait"

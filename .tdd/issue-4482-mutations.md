@@ -16,3 +16,10 @@ skills/tdd/scripts/tests/py/unit/test_reroute.py
 command 133
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_reroute.py::test_a_check_earlier_exit_1_is_exit_1_launching_no_verdict_red_4482
 
+before 40
+50a6e8b31267663864c338bdd82d44ffba6eb6f4
+keep 47
+skills/tdd/scripts/tests/py/unit/test_revise.py
+command 168
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise.py::test_4482_green_called_again_runs_check_earlier_in_the_worktree_where_the_relative_ledger_path_resolves
+
