@@ -90,12 +90,12 @@ def test_issue_2900_before_state_probe_runs_the_kept_file_as_it_is_and_exits_0_w
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD").strip()
     (tmp_path / "quote.txt").write_text("10\n")
-    (tmp_path / "test.sh").write_text("exit 1\n")
+    (tmp_path / "test.sh").write_text("grep -q 10 quote.txt\n")
     git("add", ".")
     git("commit", "-q", "-m", "feature")
     result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
-    assert (result.returncode, (tmp_path / "test.sh").read_text()) == (0, "exit 1\n"), result.stderr
+    assert (result.returncode, (tmp_path / "test.sh").read_text()) == (0, "grep -q 10 quote.txt\n"), result.stderr
 
 
 @pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
@@ -110,12 +110,12 @@ def test_issue_2900_before_state_probe_leaves_a_kept_file_that_differs_from_the_
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD").strip()
     (tmp_path / "quote.txt").write_text("10\n")
-    (tmp_path / "test.sh").write_text("exit 1\n")
+    (tmp_path / "test.sh").write_text("grep -q 10 quote.txt\n")
     git("add", ".")
     git("commit", "-q", "-m", "feature")
     result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
-    assert (result.returncode, (tmp_path / "test.sh").read_text()) == (0, "exit 1\n"), result.stderr
+    assert (result.returncode, (tmp_path / "test.sh").read_text()) == (0, "grep -q 10 quote.txt\n"), result.stderr
 
 
 @pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
@@ -151,13 +151,15 @@ def test_issue_2900_before_state_probe_removes_a_file_added_since_the_sha_tracke
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD").strip()
     (tmp_path / "added.txt").write_text("tracked\n")
-    (tmp_path / "test.sh").write_text("test ! -e added.txt && test ! -e fresh.txt\n")
+    (tmp_path / "test.sh").write_text(
+        'for f in added.txt fresh.txt; do if test -e "$f"; then echo "$f present"; else echo "$f absent"; fi; done >> "$1"\n')
     git("add", ".")
     git("commit", "-q", "-m", "feature")
     (tmp_path / "fresh.txt").write_text("untracked\n")
-    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
+    log = tmp_path.parent / (tmp_path.name + "-log")
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh", str(log)],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
-    assert result.returncode == 1, result.stderr
+    assert (result.returncode, log.read_text().endswith("added.txt absent\nfresh.txt absent\n")) == (1, True), result.stderr
 
 
 @pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
@@ -194,9 +196,12 @@ def test_issue_2900_before_state_probe_brings_back_a_file_deleted_since_the_sha_
     (tmp_path / "test.sh").write_text("exit 0\n")
     git("add", ".")
     git("commit", "-q", "-m", "feature")
-    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "grep", "-q", "sha-content", "gone.txt"],
+    log = tmp_path.parent / (tmp_path.name + "-log")
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "-c",
+                             'if test -e gone.txt; then cat gone.txt >> "$1"; else echo absent >> "$1"; fi', "sh", str(log)],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
-    assert (result.returncode, (tmp_path / "gone.txt").exists()) == (1, False), result.stderr
+    assert (result.returncode, log.read_text().endswith("sha-content\n"), (tmp_path / "gone.txt").exists()) == (
+        1, True, False), result.stderr
 
 
 @pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
