@@ -562,7 +562,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    the bound went ahead, and `## Plan growth` only reports it.
    The title is set by `gh api -X PATCH`, the body by `$S/pr-body.sh <pr-number> <body-file>`, never a whole-body `-f body=…` replacement: `pr-body.sh` keeps every section the run did not author, so a `## Review notes` section appended after the body survives a resumed run's next write.
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
-   rollup is never a pass, and a completed check whose conclusion is anything other than
+   rollup is a pass only where `wait-ci.sh` exits 0 on it because `VERI_CI_ON_PR=0` says no check will come or, `VERI_CI_ON_PR` unset, no workflow
+   triggers on `pull_request` (the PR body then carries the no-checks warning line), and otherwise never a pass; a completed check whose conclusion is anything other than
    `SUCCESS`, `NEUTRAL` or `SKIPPED` counts as failed. A pending check never counts as
    green, and the wait is `wait-ci.sh`, one bounded slice per Bash call, given the full 40-hex sha just
    pushed (`git rev-parse HEAD`; an abbreviated one exits 2) so a rollup still reporting the previous head reads as pending: its exit 3 means a
