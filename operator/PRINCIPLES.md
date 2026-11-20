@@ -96,16 +96,15 @@ specifics are read from the target repository's CLAUDE.md each time they are nee
 tdd scripts' own defaults stand where it is silent.
 
 **Messages between sessions are self-contained and sent by you (P13).** A message to another
-session — vdev, one of its question sessions, its resetter — names everything it
+session — vdev or one of its question sessions — names everything it
 refers to: no option letters, no "as above", no reference only you saw. You send it yourself
 with `SendMessage`. Only when delivery is held does the human get it instead: one fenced code
 block per recipient, with the recipient named on the line above it. A comm check is the
-message `ping`, answered `pong`, and runs only when a role starts or recovers from a reset. No
+message `ping`, answered `pong`, and runs only when a role starts or recovers from its role state file. No
 other message between operator sessions — an instruction, a ruling, a report (a run done, a
 review verdict, a merge, a bail, a resume) — is answered with an `ack`, in either direction. A
 message gets a reply only when the receiver has a ruling, an instruction or a correction to
-send. The one exception is a recovered role's `ack` to its resetter (PRD 012 RS3), kept by the
-operator on 2026-11-07. A sent message is confirmed by the effect it causes, read from state
+send. A sent message is confirmed by the effect it causes, read from state
 (P1) — the launch, the merge, the ledger change — never by a reply. Until that effect is
 observed, say "sent, unconfirmed", never "delivered"; a successful send is not a confirmation.
 A routine report still gets no text for the human (P4).
