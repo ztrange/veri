@@ -158,3 +158,10 @@ def test_4443_a_go_red_step_closes_without_a_pin_recheck_receipt_under_the_go_re
         "commit", "-m", "test: go-red — Go-red guard: the stacked refusal, probe `src/run.py` `if stacked:` → "
         "`if False:` on `t.py::c` (#12)")
     assert out.splitlines()[-1] == "next=cycle"
+
+
+def test_4443_a_go_red_step_with_a_leading_marker_closes_without_a_receipt_under_the_go_red_subject(tick):
+    code, out, err, fake = tick(missing=("receipt",), ledger=LEDGER % ("⟦go-red⟧ " + GO_RED.replace(" ⟦go-red⟧", "")))
+
+    assert code == 0, err
+    assert fake.call("git", "commit")[1][2].startswith("test: go-red — ")

@@ -653,3 +653,10 @@ def test_4443_a_go_red_step_exit_other_than_0_ends_on_its_seam_calling_no_revise
     code, out, err, stages = step(ledger=LEDGER % GO_RED_STEP, answers={"go-red-step.sh": (code_, "")})
 
     assert (code, stages.names(), out.splitlines()[-1]) == (code_, ["go-red-step.sh"], last), err
+
+
+def test_4443_a_go_red_step_with_a_leading_marker_runs_go_red_step(step):
+    text = "⟦go-red⟧ Go-red guard: probe `src/run.py` `if stacked:` → `if False:` on `t.py::c` ⟦criterion 1⟧"
+    code, out, err, stages = step(ledger=LEDGER % text, answers={"go-red-step.sh": (0, "next=cycle\n")})
+
+    assert (code, stages.names()) == (0, ["go-red-step.sh"]), err

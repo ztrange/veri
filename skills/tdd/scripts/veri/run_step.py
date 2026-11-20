@@ -56,7 +56,7 @@ CALLS = tuple(stage + ".sh" for stage in SERIES)
 # The kinds that are not a cycle step, red_half.REFUSED's (RN7) -> (the anchor of the prose that runs them, the stage
 # that runs them as the step's one stage in place of the series, or None): a step of a kind no stage runs stops before
 # any stage on `seam=none` (038.3 DST8; 038.4 adds ⟦skill-edit⟧'s).
-KINDS = {"⟦diff-checked⟧": (DIFF, "diff-step"), "⟦go-red⟧": (GO_RED, "go-red-step"),
+KINDS = {"⟦diff-checked⟧": (DIFF, "diff-step"), ledger.GO_RED_MARK: (GO_RED, "go-red-step"),
          "⟦phases:": ("SKILL.md#A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier", None),
          "⟦skill-edit⟧": ("SKILL-EDIT.md#The skill-edit step", None), "⟦fixture-repair⟧": (RED, None)}
 # The stages a kind runs in place of the series.
@@ -95,7 +95,7 @@ def main(argv):
     if step is None:
         sys.stderr.write("run-step.sh: no open step in %s\n" % (LEDGER % n))
         return 3
-    kinds = [kind for kind in red_half.REFUSED if kind in step]
+    kinds = red_half.refused(step)
     for kind in kinds:
         if KINDS[kind][1] is None:
             sys.stdout.write("seam=none code=1 reason=kind next=%s\n" % KINDS[kind][0])

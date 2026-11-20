@@ -7,6 +7,7 @@ import sys
 import case_reader
 import fused
 import fused_step
+import ledger
 import replaces_case
 import run_dir
 from ledger import handed_out
@@ -16,7 +17,12 @@ USAGE = "usage: red-half.sh <n>"
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
 # The step kinds whose Red is not this one (RH1): they run from their own files or need a route's --except.
-REFUSED = ("⟦diff-checked⟧", "⟦go-red⟧", "⟦phases:", "⟦skill-edit⟧", "⟦fixture-repair⟧")
+REFUSED = ("⟦diff-checked⟧", ledger.GO_RED_MARK, "⟦phases:", "⟦skill-edit⟧", "⟦fixture-repair⟧")
+
+
+def refused(step):
+    """The REFUSED kinds <step> is, in REFUSED's order; ⟦go-red⟧ by ledger.is_go_red, the others by their mark."""
+    return [kind for kind in REFUSED if (ledger.is_go_red(step) if kind == ledger.GO_RED_MARK else kind in step)]
 
 # The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_red_half.py fails when one
 # is a script SKILL.md's Red section does not name, save three it exempts by name (FC19).
@@ -35,7 +41,7 @@ def run(n):
         return 2
     settled, wt = given
     step = fused_step.first_step(wt, n, handed_out)
-    if step is None or any(kind in step for kind in REFUSED):
+    if step is None or refused(step):
         sys.stderr.write("red-half.sh: %s\n" % ("no open step" if step is None else "a step its prose runs: " + step))
         return 2
     resumed = fused.load_wait(wt, n, NAME)

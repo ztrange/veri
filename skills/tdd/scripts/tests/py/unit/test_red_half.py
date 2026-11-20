@@ -550,3 +550,9 @@ def test_4443_a_go_red_step_is_exit_2_before_any_inner_call(red):
 
     assert (code, fake.calls) == (2, [])
     assert "a step its prose runs" in err
+
+
+def test_4443_a_go_red_step_with_a_leading_marker_is_exit_2_before_any_inner_call(red):
+    code, out, err, fake = red(step="⟦go-red⟧ Go-red guard: probe `a.py` `x` → `y` on `t.py::c` ⟦criterion 1⟧")
+
+    assert (code, fake.calls) == (2, [])

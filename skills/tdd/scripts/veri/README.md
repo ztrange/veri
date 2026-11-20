@@ -899,7 +899,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `verdict(wt)`: `(hash, flags)` from one read of `.tdd/verify-refactor.log`: its sha256 (`none` without one), the verdict a refactor-half file was settled after, and its `uncovered-spec` flags as `uncovered_spec=` values; every record naming `verdict_log=` takes both from it (#4029).
 
 ## red_half
-- `REFUSED`: the step kinds whose Red is not red-half's (RH1), each stopping `run-step.sh` before any stage on `seam=none`.
+- `refused(step)`: the step kinds of `REFUSED` a step is, whose Red is not red-half's (RH1), ⟦go-red⟧ by `ledger.is_go_red`, each stopping `run-step.sh` before any stage on `seam=none`.
 - `launch_verdict(where, n, wt, settled, step, values)`: verdict-red's launch, the one set of `run-verdict.sh` arguments red-half.sh, `revise.sh`'s re-verify and `reroute.sh`'s verify-red share (PRD 038.9 RVS13, PRD 038.10 RRT10).
 
 ## seam_contract

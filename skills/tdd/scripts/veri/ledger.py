@@ -188,8 +188,9 @@ GO_RED_PROBE_RE = re.compile(r"probe `([^`]+)` `([^`]+)` → `([^`]*)` on `([^`]
 
 
 def is_go_red(step):
-    """True when step's trailing markers carry ⟦go-red⟧: a guard proven by a mutation probe on its named case."""
-    return carries_mark(trailing_markers(step), "go-red")
+    """True when step carries ⟦go-red⟧ anywhere, leading or trailing: a guard proven by a mutation probe on its named
+    case. The one go-red test every stage applies (tick-ledger, step-tick, run-step, red-half, go-red-step)."""
+    return GO_RED_MARK in step
 
 
 def go_red_probe(step):

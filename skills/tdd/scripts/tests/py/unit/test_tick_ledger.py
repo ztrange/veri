@@ -1398,3 +1398,18 @@ def test_main_refuses_a_go_red_tick_over_a_malformed_mutation_record_naming_the_
 
     assert (code, "issue-7-mutations.md: no mutation record" in capsys.readouterr().err, ledger.read_bytes()) == (
         2, True, seed)
+
+
+LEADING_GO_RED_STEP = ("- [ ] ⟦go-red⟧ Go-red guard: the stacked refusal, probe `src/run.py` `if stacked:` → `if False:` on "
+                       "`tests/test_run.py::test_refuses_stacked` ⟦criterion 3⟧\n")
+
+
+def test_main_holds_a_go_red_step_with_a_leading_marker_to_its_probes_record_4443(tmp_path, capsys, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    seed = ("# Plan for #7\n\n" + LEADING_GO_RED_STEP).encode()
+    ledger.write_bytes(seed)
+    refused = (tick_ledger.main([str(ledger), "Go-red guard"]), ledger.read_bytes() == seed)
+    (tmp_path / "issue-7-mutations.md").write_text(go_red_entry())
+    ticked = (tick_ledger.main([str(ledger), "Go-red guard"]), "- [x] ⟦go-red⟧ Go-red guard" in ledger.read_text())
+
+    assert (refused, ticked) == ((2, True), (0, True))
