@@ -34,13 +34,10 @@ def test_declared_returns_empty_when_claude_md_has_other_veri_lines_but_no_ci_on
 
 
 @pytest.mark.tree_audit("every module under skills/tdd/scripts/veri, to find a read of VERI_CI_ON_PR")
-def test_no_module_under_veri_other_than_ci_on_pr_reads_the_variable():
-    import pathlib
+def test_no_module_under_veri_other_than_ci_on_pr_reads_the_variable(veri_modules_index):
     import re
 
-    veri_dir = pathlib.Path(__file__).resolve().parents[3] / "veri"
     reader = re.compile(r"""(?:read|get|getenv)\(\s*["']VERI_CI_ON_PR["']|environ\[\s*["']VERI_CI_ON_PR["']""")
-    modules = sorted(veri_dir.glob("*.py"))
-    readers = [path.name for path in modules if reader.search(path.read_text(encoding="utf-8"))]
-    assert "ci_on_pr.py" in [path.name for path in modules]
-    assert readers == ["ci_on_pr.py"]
+    readers = [name for name in veri_modules_index.names if reader.search(veri_modules_index.text(name))]
+    assert "ci_on_pr" in veri_modules_index.names
+    assert readers == ["ci_on_pr"]
