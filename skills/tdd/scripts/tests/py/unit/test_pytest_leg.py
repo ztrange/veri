@@ -1912,3 +1912,20 @@ def test_4455_a_leg_waiting_for_t_writes_a_waiter_entry_named_for_its_pid_holdin
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WAITERS=str(waiters)))[0]
 
     assert (code, entries, workers_handed(seen)) == (0, [{str(os.getpid()): "2\n%s\n" % SELF_STARTED}], "4")
+
+
+def test_4455_a_legs_waiter_entry_is_gone_once_it_registers_and_starts_pytest(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 16)
+    measured(8)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    waiters = tmp_path / "waiters"
+    blocker = legs / str(os.getppid())
+    registered(blocker, 7)
+    at_start = []
+
+    monkeypatch.setattr(pytest, "main", lambda args: at_start.append(sorted(os.listdir(waiters))) or pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", lambda seconds: blocker.unlink())
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WAITERS=str(waiters)))[0]
+
+    assert (code, at_start[:1]) == (0, [[]])

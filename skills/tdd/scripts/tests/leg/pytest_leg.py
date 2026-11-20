@@ -327,6 +327,7 @@ def claim(cleanups=None, cap=None):
     os.makedirs(legs, exist_ok=True)
     said = False
     waitfile = ""
+    waiter = ""
     cleanups = [] if cleanups is None else cleanups
     removal = lambda: unmark(waitfile)
     nested = os.environ.get("PYTEST_XDIST_WORKER")
@@ -355,7 +356,8 @@ def claim(cleanups=None, cap=None):
                     began = time.monotonic()
                     waiters = waiters_dir()
                     os.makedirs(waiters, exist_ok=True)
-                    with open(os.path.join(waiters, str(os.getpid())), "w") as f:
+                    waiter = os.path.join(waiters, str(os.getpid()))
+                    with open(waiter, "w") as f:
                         f.write(registration(FLOOR))
                     waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
                     if waitfile:
@@ -372,6 +374,8 @@ def claim(cleanups=None, cap=None):
             cleanups.remove(removal)
         if waitfile:
             unmark(waitfile)
+        if waiter:
+            unregister(waiter)
 
 
 def unregister(entry):
