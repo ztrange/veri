@@ -41,3 +41,14 @@ skills/tdd/scripts/tests/py/unit/test_rebased_tip_suite.py
 command 185
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_rebased_tip_suite.py::test_main_with_ci_on_pr_unset_prints_ci_for_a_claude_md_ci_on_pr_1_line_in_a_tree_with_no_workflows_directory
 
+file 35
+skills/tdd/scripts/veri/ci_on_pr.py
+old-b64 68
+ICAgICAgICByZXR1cm4gZm91bmQuY29tbWFuZC5kZWNvZGUoKQogICAgcmV0dXJuICIi
+new-b64 72
+ICAgICAgICByZXR1cm4gZm91bmQuY29tbWFuZC5kZWNvZGUoKQogICAgcmV0dXJuICIwIg==
+context-b64 52
+ICAgICAgICByZXR1cm4gZm91bmQuY29tbWFuZC5kZWNvZGUoKQ==
+command 151
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ci_on_pr.py::test_declared_returns_empty_when_claude_md_has_other_veri_lines_but_no_ci_on_pr_line
+
