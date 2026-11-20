@@ -33,9 +33,14 @@ def line_answer():
 
 def declared():
     """VERI_CI_ON_PR as set: `0`, `1`, or the empty string when unset or empty; a ValueError carrying the one-line refusal on anything else."""
-    raw = tunables.read("VERI_CI_ON_PR") or line_answer()
+    raw = tunables.read("VERI_CI_ON_PR")
     if raw not in ("", "0", "1"):
         raise ValueError("VERI_CI_ON_PR '%s' is not 0 or 1" % raw)
+    if raw:
+        return raw
+    raw = line_answer()
+    if raw not in ("", "0", "1"):
+        raise ValueError("'veri: ci on pr: %s' in CLAUDE.md is not 0 or 1" % raw)
     return raw
 
 
