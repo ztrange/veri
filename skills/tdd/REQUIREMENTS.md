@@ -1441,6 +1441,7 @@
 | QU6b | `SCRIPTS.md`'s `dispatch.sh` entry names the `queueing` closing line. (`skills/tdd/SCRIPTS.md`, the `dispatch.sh` entry.) | Docs drift blocks. |
 | RW7 | `SCRIPTS.md`, where it describes `timed-test-run.sh`, names the `test-stretch` event, and its `test-ceiling.sh` and `dispatch.sh` entries name the `idle` lines and the `stretched` closing line. (`skills/tdd/SCRIPTS.md`.) | Docs drift blocks. |
 | LO13 | `SCRIPTS.md`'s `test-ceiling.sh` entry says its exit 0 removes `VERI_TEST_LOAD_FILE`, and its `dispatch.sh` entry names the `t-lowered` closing line. (`skills/tdd/SCRIPTS.md`, those two entries.) | Docs drift blocks. |
+| FN11 | `SCRIPTS.md`'s `dispatch.sh` and `role-state.sh` entries each name the test budget entry it writes and `VERI_CONDUCTOR_TEST_WORKERS`, `VERI_TEST_BUDGET_DIR` and `VERI_TEST_BUDGET_TTL`. (`skills/tdd/SCRIPTS.md`, those two entries.) | Docs drift blocks (PRD 036.5, #4453). |
 
 ## skills/tdd/SKILL-EDIT.md
 

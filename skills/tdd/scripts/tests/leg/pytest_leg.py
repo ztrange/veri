@@ -12,7 +12,9 @@ if __name__ == "__main__":
 #            number of at least 2, else the physical cores (the affinity count off macOS), never below 2, said in one
 #            stderr line naming the file and `make ceiling`; lowered to the cap on line 1 of ~/.veri-test-cap
 #            (VERI_TEST_CAP_FILE, PRD 036.11) when that is a whole number of at least 2 below it (any other content, or
-#            an unreadable file, is one stderr line and no cap; the wait line then names the cap file). It starts only once 2 of T are free, waiting meanwhile
+#            an unreadable file, is one stderr line and no cap; the wait line then names the cap file); narrowed, while any
+#            lane entry under ~/.veri-test-budget (VERI_TEST_BUDGET_DIR) is unexpired, to the sum of their needs, never
+#            below 2 (PRD 036.5; the wait line then names each lane and its need beside C). It starts only once 2 of T are free, waiting meanwhile
 #            (PRD 036.4), takes every free worker, and registers what it takes
 #          --subset: the caller named the suites to run (`make test TESTS=…`), so no full-run lock is taken, and the leg
 #            takes at most 4 of the free workers

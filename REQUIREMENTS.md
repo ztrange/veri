@@ -106,6 +106,7 @@
 | LO12 | The Testing idiom says a load timeout (cases of two test files timing out within `VERI_LOAD_WINDOW`, default 600 s, across the machine's legs) lowers T by 2, never below 2, at most once per window, through `~/.veri-test-load` (`VERI_TEST_LOAD_FILE`), and that only `make ceiling`'s exit 0 or the human removing the file raises it back. (CLAUDE.md, Testing idiom, after the sentence stating T.) | Docs drift blocks. |
 | CM308 | The Testing idiom says T is the ceiling `make ceiling` records in `~/.veri-test-ceiling` (`VERI_TEST_CEILING_FILE`), the physical cores (affinity count elsewhere, never below 2) when there is none; that every `make` leg on the machine counts against it whoever ran it; and that a leg starts only with at least 2 free, taking min(4, free) for `make unit` and a subset, every free worker for a full run. (Testing idiom, third paragraph.) | Docs drift blocks. |
 | RW7b | CLAUDE.md's `make ceiling` row says the record also holds the fast and full idle durations. (CLAUDE.md, Commands table.) | Docs drift blocks. |
+| FN10 | The Testing idiom, in the sentences stating T, says that while a lane's budget entry is unexpired T is min(the ceiling or core fallback, the sum of the live lanes' needs), never below 2, each need max(N, live conductors) × `VERI_CONDUCTOR_TEST_WORKERS` (default 2), kept under `~/.veri-test-budget` (`VERI_TEST_BUDGET_DIR`) for `VERI_TEST_BUDGET_TTL` seconds after the last write. | Docs drift blocks: a reader sizing a run must know a fixed N narrows T (PRD 036.5, #4453). |
 
 ## README.md
 
