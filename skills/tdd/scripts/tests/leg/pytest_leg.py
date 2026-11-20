@@ -55,7 +55,7 @@ import launch_floor
 import leg_tmpdir
 import pid_file
 import tunables
-from ceiling import record_path
+from ceiling import read_cap, record_path
 from full_run_lock import legs_dir
 
 
@@ -190,9 +190,19 @@ def worker_count(requested):
 
 
 def budget():
-    """(T, its source): T, the workers every live leg on the machine shares, is line 1 of the ceiling record
-    (ceiling.record_path) when it is a whole number of at least 2, its source naming the record; else the cores, never
-    below 2, its source None. A record that is missing, unreadable or malformed only falls back, never raises."""
+    """(T, its source): T, the workers every live leg on the machine shares, is C0 (c0()), lowered to the cap the
+    human set (ceiling.read_cap) when that is below it (PRD 036.11)."""
+    total, source = c0()
+    cap = read_cap()
+    if cap and cap < total:
+        return cap, source
+    return total, source
+
+
+def c0():
+    """(C0, its source): line 1 of the ceiling record (ceiling.record_path) when it is a whole number of at least 2, its
+    source naming the record; else the cores, never below 2, its source None. A record that is missing, unreadable or
+    malformed only falls back, never raises."""
     path = record_path()
     try:
         with open(path) as f:

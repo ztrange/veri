@@ -68,6 +68,21 @@ def record_path():
     return tunables.get("VERI_TEST_CEILING_FILE") or os.path.join(os.path.expanduser("~"), ".veri-test-ceiling")
 
 
+def cap_path():
+    return tunables.get("VERI_TEST_CAP_FILE") or os.path.join(os.path.expanduser("~"), ".veri-test-cap")
+
+
+def read_cap():
+    """The cap the human set on line 1 of the cap file (cap_path) when it is a whole number of at least 2, else None.
+    Nothing in veri writes or removes the file (PRD 036 D30)."""
+    try:
+        with open(cap_path()) as f:
+            first = f.readline().strip()
+    except (OSError, ValueError):
+        return None
+    return int(first) if first.isascii() and first.isdigit() and int(first) >= 2 else None
+
+
 def write_record(lines):
     """Replaces the record whole through a temporary file beside it, so a reader never sees it half-written."""
     path = record_path()
