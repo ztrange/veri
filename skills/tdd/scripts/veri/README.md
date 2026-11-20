@@ -261,6 +261,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_PYCACHE` | "" | its readers' own words |
 | `VERI_PYTEST_IDLE` | `1200` | its readers' own words |
 | `VERI_PYTEST_LEGS` | "" | its readers' own words |
+| `VERI_PYTEST_WAITERS` | "" | its readers' own words |
 | `VERI_TEST_CEILING_FILE` | "" | its readers' own words |
 | `VERI_TEST_CAP_FILE` | "" | its readers' own words |
 | `VERI_PYTEST_WORKERS` | "" | its readers' own words |
@@ -589,7 +590,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 ## full_run_lock
 - `acquire()`: take the lock (waiting for a holder, saying who holds it and marking the wait at `PYTEST_LEG_LOCK_WAIT_MARKER` with a file naming the waiter, its pid and start time in `pid_file.record`'s form; a supervisor ignores a marker whose waiter is no longer alive under that start time, while an empty one, an older leg's, still freezes its timers), record this pid and tree in the lock file and mark this process the holder in `PYTEST_LEG_FULL_LOCK_HOLDER`; returns a `Lock` whose `release()` empties the file and restores the variable.
 - `held_by_ancestor()`: True when `PYTEST_LEG_FULL_LOCK_HOLDER` names the live pid the lock file records, so a nested run skips the lock. `enabled()`: False when `VERI_TEST_LOCK` is 0.
-- `wait_marker(key)`: the path a waiting run marks its wait at. `legs_dir()`: the registry directory the lock file sits beside.
+- `wait_marker(key)`: the path a waiting run marks its wait at. `legs_dir()`: the registry directory the lock file sits beside. `waiters_dir()`: where a leg waiting for T registers its wait.
 
 ## leg_tmpdir
 - `PINNED_TMPDIR`: the TMPDIR the pytest leg pins before it starts, and a directory run-conductor's free-space check reads.

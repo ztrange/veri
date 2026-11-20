@@ -209,6 +209,7 @@ TUNABLES = {
     "VERI_PYTEST_WORKERS": Tunable(text, ""),
     "VERI_PYTEST_IDLE": Tunable(text, "1200"),
     "VERI_PYTEST_LEGS": Tunable(text, ""),
+    "VERI_PYTEST_WAITERS": Tunable(text, ""),
     "VERI_TEST_CEILING_FILE": Tunable(text, ""),
     "VERI_TEST_CAP_FILE": Tunable(text, ""),
     "VERI_PYCACHE": Tunable(text, ""),

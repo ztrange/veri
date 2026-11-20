@@ -58,7 +58,7 @@ import leg_tmpdir
 import pid_file
 import tunables
 from ceiling import cap_path, read_cap, record_path
-from full_run_lock import legs_dir
+from full_run_lock import legs_dir, waiters_dir
 
 
 MANIFEST = "veri-manifest.json"
@@ -353,6 +353,10 @@ def claim(cleanups=None, cap=None):
                     sys.stderr.flush()
                     said = True
                     began = time.monotonic()
+                    waiters = waiters_dir()
+                    os.makedirs(waiters, exist_ok=True)
+                    with open(os.path.join(waiters, str(os.getpid())), "w") as f:
+                        f.write(registration(FLOOR))
                     waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
                     if waitfile:
                         try:
