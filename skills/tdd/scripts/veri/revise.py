@@ -175,10 +175,13 @@ def checks(n, wt, settled, step, values):
         with open(os.path.join(wt, ".tdd", "verify-%s.reason" % values["phase"]), "w") as f:
             f.write("REASON: the revise changed a frozen test file: %s\n" % " ".join(said.split()))
         return None
-    excepted = (replaces_case.parse(step) or ([], ""))[0]
+    check_earlier(n, wt, step, (replaces_case.parse(step) or ([], ""))[0])
+    return verify(n, wt, settled, step, values)
+
+
+def check_earlier(n, wt, step, excepted):
     fused.checked("4", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step,
                   *[arg for case in excepted for arg in ("--except", case)], cwd=wt)
-    return verify(n, wt, settled, step, values)
 
 
 def diff_checks(n, wt, settled, step, values):
@@ -229,8 +232,7 @@ def red_checks(n, wt, settled, step, values):
     if gate == 3:
         rerouted = rerouted_red(wt, n, step) or {}
         excepted = list(dict.fromkeys(rerouted.get("cases", []) + (replaces_case.parse(step) or ([], ""))[0]))
-        fused.checked("4", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step,
-                      *[arg for case in excepted for arg in ("--except", case)], cwd=wt)
+        check_earlier(n, wt, step, excepted)
         return verify(n, wt, settled, step, values)
     if gate in UNMATCHED:
         with open(os.path.join(wt, ".tdd", "verify-red.reason"), "w") as f:
