@@ -482,6 +482,17 @@ def test_4251_split_exits_3_printing_nothing_when_the_growth_equals_the_bound(
     assert run_cli(ledger_growth, ["split", str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": "50"}) == (3, "", "")
 
 
+def test_4472_split_exits_3_when_a_branch_repair_step_is_the_only_step_past_the_bound(
+        tmp_path, run_cli, ledger_growth, fake_processes):
+    split_history(fake_processes)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦criterion 2⟧\n"
+        "- [ ] a gear meshes ⟦added⟧ ⟦criterion 2⟧\n- [ ] fix the branch: z ⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion 2⟧\n")
+
+    assert run_cli(ledger_growth, ["split", str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": "50"}) == (3, "", "")
+
+
 def split_second_line(directory, run_cli, ledger_growth, criteria):
     """The second stdout line of `split` over a ledger holding one step per entry of criteria (None: untagged), and a
     repair line that serves criterion 1; the case answers git with split_history."""
