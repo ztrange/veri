@@ -293,12 +293,8 @@ def state_file():
 
 def _leg():
     """The pytest leg's module, whose registry rule (registered_legs) the waiter entries share; it lives in tests/leg/,
-    which this puts on sys.path, as ceiling.py does."""
-    leg = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "tests", "leg")
-    if leg not in sys.path:
-        sys.path.append(leg)
-    import pytest_leg
-    return pytest_leg
+    loaded by test_budget.leg."""
+    return test_budget.leg()
 
 
 class World:

@@ -593,6 +593,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `ceiling`: test-ceiling.sh's ramp: the highest test-worker count `make test` runs at with no case timeout, recorded in `~/.veri-test-ceiling`; `record_path()` names that file, and the pytest leg reads its line 1 as T, its worker budget. `cap_path()` names `~/.veri-test-cap` (`VERI_TEST_CAP_FILE`) and `read_cap()` returns its line 1 as `(cap, complaint)`: the cap the human set, which lowers T and the ramp's top, or no cap and a one-line complaint for a file it cannot use (PRD 036.11).
 - `profile.sh`: per-case timing of suites.
 - `pycache_prefix`: sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import.
+- `test_budget`: the lane budget's entries under `~/.veri-test-budget` (PRD 036.5), each lane's need and expiry, which every leg reads to narrow T.
 
 ## full_run_lock
 - `acquire()`: take the lock (waiting for a holder, saying who holds it and marking the wait at `PYTEST_LEG_LOCK_WAIT_MARKER` with a file naming the waiter, its pid and start time in `pid_file.record`'s form; a supervisor ignores a marker whose waiter is no longer alive under that start time, while an empty one, an older leg's, still freezes its timers), record this pid and tree in the lock file and mark this process the holder in `PYTEST_LEG_FULL_LOCK_HOLDER`; returns a `Lock` whose `release()` empties the file and restores the variable.
@@ -606,6 +607,11 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `record_path()`: the ceiling record, `~/.veri-test-ceiling` (`VERI_TEST_CEILING_FILE`); the pytest leg reads its line 1 as T.
 - `cap_path()`: the cap file, `~/.veri-test-cap` (`VERI_TEST_CAP_FILE`). `read_cap()`: `(cap, complaint)`, the cap the human set on its line 1, or no cap and a one-line complaint for a file it cannot use; the pytest leg lowers T to it.
 - `read_idle(tier)`: the seconds of the record's `idle <tier> <seconds>` line, the tier's idle duration, or None when there is no such line or the record cannot be read; `timed-test-run.sh` journals a `test-stretch` event past twice it (PRD 036.10).
+
+## test_budget
+- `write(main_tree, lane, need)`: replaces the lane's entry for that main working tree whole (a temporary file renamed into place): `need` on line 1, now plus `VERI_TEST_BUDGET_TTL` seconds on line 2. `entry_name(main_tree, lane)`: `<lane>@<16 hex of the sha256 of the tree's real path>`.
+- `unexpired_entries()`: `[(entry name, need)]` of the entries whose expiry is ahead; an unreadable or malformed one adds nothing, an expired one is removed. `unexpired()`: the same as `[(lane, need)]`, which the pytest leg sums into T.
+- `leg()`: the pytest leg's module, loaded from `tests/leg/`, whose capacity and budget dispatch and role_state_cli read.
 
 # Target suites and tiers
 
@@ -887,6 +893,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `restart-conductor.sh`: stop and watch a conductor restart.
 - `role-growth.sh`: read a role session's context growth.
 - `role-state.sh`: the dev session's recorded state.
+- `role_state_cli`: role-state.sh's entry point: role_state's verbs, a written `set n` also writing the lane's test budget entry and printing the T it leaves; apart from role_state so that status never imports watch_runs.
 - `run-conductor.sh`: launch one conductor on an issue.
 - `run-finished.sh`: whether an issue's run finished.
 - `script-help.sh`: look up a script's help.
@@ -933,7 +940,13 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `read_lines(role, lane=None)`: the role's state lines in the main tree, `None` when missing.
 - `State(lines)`: the grammar of the state file. `fields()` (every `key=value` line as a dict), `field(name)` (last `name=` value, `None`), `values(name)` (every `name=` value, in file order), `items(*kinds)` (raw item lines), `last_n()`, `timed_ns()` (`(value, expiry)` pairs), `override_numbers()`, `check()`. A bad line raises `Malformed(kind, line)` (`kind` one of `n-missing`, `n`, `timed-n`, `override`, `state`); each caller words it.
 - `checked(path)`: the file's `State` (no lines when missing) once `check()` passes, else `BadStateFile`, whose text is `malformed state file <path>`; role_growth reports it as is.
+- `main(argv, after_set_n=None)`: role-state.sh's verbs; after a written `set n`, it prints the line `after_set_n(path, n)` returns (role_state_cli's lane budget line).
 - `append(path, text)`, `now()`, `epoch(stamp)`, `STAMP`: append (written through a temp file and renamed); the stamp; a stamp's epoch seconds, read as local time; the stamp's strftime format. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
+
+## watch_runs
+- `live_conductors()`: the issues whose conductor is live, running per status, starting or pid-filed; dispatch's slot count and role_state_cli's lane need read it.
+- `solvable_issues()`: the solvable issues not running, through `solvable-issues.sh --not-running`; a failed read raises `QueueUnreadable`, whose `kind` is `github.refusal_kind` of its stderr.
+- `wait()`: one poll interval's sleep.
 
 ## plan_publish
 - `gh(where, *args, wt)`: one bounded, redacted `gh` call printed as an inner call, raising `Stop` at `where` on any exit but 0; its stdout otherwise.
