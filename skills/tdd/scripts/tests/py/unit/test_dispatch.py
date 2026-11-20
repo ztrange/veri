@@ -3561,3 +3561,38 @@ def test_4455_once_printed_the_queueing_line_is_not_printed_again_by_a_restarted
     code = dispatch.main(["--target", "2"], world=drained)
 
     assert (len(first.said), growing.said, code, drained.waits, len(drained.said)) == (1, [], 0, 3, 1)
+
+
+def test_4455_the_real_world_counts_only_waiter_entries_alive_under_their_start_time_never_core_wait_events_or_wait_markers(dispatch, monkeypatch, tmp_path, fake_processes):
+    started = {os.getpid(): "Wed Nov 18 08:00:00 2026", os.getppid(): "Wed Nov 18 07:00:00 2026"}
+    fake_processes.answers({"ps -o lstart= -p %d" % pid: (0, text + "\n", "") for pid, text in started.items()}, default=(1, "", ""), exact=True)
+    waiters = tmp_path / "waiters"
+    waiters.mkdir()
+    (waiters / str(os.getppid())).write_text("2\nWed Nov 18 07:00:00 2026\n")
+    (waiters / str(os.getpid())).write_text("2\nMon Jan  5 00:00:00 2015\n")
+    (waiters / "99999999").write_text("2\nWed Nov 18 07:00:00 2026\n")
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    (tmp_path / "legs-full.lock.wait-1").write_text("%d\nWed Nov 18 08:00:00 2026\n" % os.getpid())
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text('{"event": "core-wait", "seconds": "0"}\n' * 5)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_PYTEST_WAITERS", str(waiters))
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+
+    assert (dispatch.World().waiting(), sorted(os.listdir(waiters))) == (1, [str(os.getppid())])
+
+
+def test_4455_the_real_worlds_test_budget_is_the_legs_t_and_the_workers_live_registered_legs_hold_never_a_waiters(dispatch, monkeypatch, tmp_path, fake_processes):
+    fake_processes.answers({"ps -o lstart= -p %d" % os.getppid(): (0, "Wed Nov 18 07:00:00 2026\n", "")}, default=(1, "", ""), exact=True)
+    legs, waiters = tmp_path / "legs", tmp_path / "waiters"
+    legs.mkdir()
+    waiters.mkdir()
+    (legs / str(os.getppid())).write_text("6\nWed Nov 18 07:00:00 2026\n")
+    (waiters / str(os.getppid())).write_text("2\nWed Nov 18 07:00:00 2026\n")
+    (tmp_path / "ceiling").write_text("8\n2026-11-19\n")
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+    monkeypatch.setenv("VERI_PYTEST_WAITERS", str(waiters))
+    monkeypatch.setenv("VERI_TEST_CEILING_FILE", str(tmp_path / "ceiling"))
+
+    assert dispatch.World().test_budget() == (8, 6)
