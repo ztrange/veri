@@ -183,15 +183,19 @@ def ramp(top, scratch, odd_top=False):
 
 def idle_fast(ceiling):
     """The fast tier's idle duration: one `make unit` at the workers it would take on an idle machine, min(4, the
-    ceiling), registered as a step is; returns its seconds."""
+    ceiling), registered as a step is; returns its seconds. Raises NoAnswer when it is red: a red fast tier measures
+    nothing about idle time."""
     import pytest_leg
     workers = min(4, ceiling)
     entry = register(workers)
     began = clock()
     try:
-        run_unit(workers)
+        code = run_unit(workers)
     finally:
         pytest_leg.unregister(entry)
+    if code:
+        raise NoAnswer("make unit exited %d at %d workers after the ramp: a red fast tier measures no idle time"
+                       % (code, workers))
     return round(clock() - began)
 
 
@@ -220,7 +224,11 @@ def main(argv):
     if ceiling is None:
         sys.stderr.write("no ceiling of at least 2: a case timed out under load at 2 workers and passed alone\n")
         return 1
-    idle = ["idle all %d" % idle_all, "idle fast %d" % idle_fast(ceiling)]
+    try:
+        idle = ["idle all %d" % idle_all, "idle fast %d" % idle_fast(ceiling)]
+    except NoAnswer as error:
+        sys.stderr.write("%s\n" % error)
+        return 2
     path = write_record([str(ceiling)] + header + steps + idle)
     stopped = "; the ramp stopped at its bound, %s" % stopper if cap and ceiling == top else ""
     sys.stdout.write("ceiling: %d workers (recorded in %s)%s\n" % (ceiling, path, stopped))

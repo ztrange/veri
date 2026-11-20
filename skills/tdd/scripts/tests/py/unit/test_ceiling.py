@@ -358,3 +358,14 @@ def test_4456_a_ramp_that_found_a_ceiling_runs_one_registered_make_unit_after_it
     lines = record.read_text().splitlines()
     assert (code, make.units, seen, lines[0], lines[-3:], registry(legs)) == (
         0, [4], [{str(ceiling.os.getpid()): "4\n%s\n" % STARTED}], "4", ["6 600 1", "idle all 400", "idle fast 42"], {}), err
+
+
+def test_4456_a_red_make_unit_after_the_ramp_is_exit_2_naming_it_and_leaves_the_earlier_record(make, run_cli, tmp_path):
+    record = tmp_path / "ceiling-record"
+    record.write_text(EARLIER)
+    make.unit(lambda workers: 1)
+
+    code, out, err = run_cli(ceiling, [])
+
+    assert (code, "make unit" in err, "exited 1" in err, record.read_text(), "ceiling:" in out) == (
+        2, True, True, EARLIER, False), err
