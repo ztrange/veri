@@ -754,3 +754,78 @@ def test_4432_a_missing_ledger_or_preflight_is_one_stderr_line_and_exit_2_never_
 
     assert (calls, code, out) == ([], 2, "")
     assert err.splitlines() == ["run-pr.sh: no .tdd/issue-12.md"]
+
+
+def _git_run(monkeypatch, tmp_path, git, stacked=False):
+    """A run whose stage scripts all exit 0 and whose git calls are answered by <git>(args) -> (code, stdout).
+    Returns calls, the stage scripts called."""
+    fused = importlib.import_module("veri.fused")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    if stacked:
+        (wt / ".tdd" / "issue-12-base").write_text("tdd/11-parent\n")
+    calls = []
+
+    def fake(name, *args, **kw):
+        if os.path.basename(name) == "git":
+            code, out = git(args)
+            return code, out, ""
+        calls.append(os.path.basename(name))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+    return calls
+
+
+def test_4432_the_seam_sha_is_the_ledgers_last_commit_so_a_commit_elsewhere_still_resumes(
+        monkeypatch, run_cli, tmp_path):
+    run_pr = importlib.import_module("veri.run_pr")
+    heads = iter("%07d" % i for i in range(1, 100))
+
+    def git(args):
+        # git log on the ledger's path names the ledger's last commit; without the path, a HEAD that moves each call.
+        return 0, ("aaaaaaa\n" if args[-2:] == ("--", ".tdd/issue-12.md") else next(heads) + "\n")
+
+    calls = _git_run(monkeypatch, tmp_path, git)
+    run_cli(run_pr, ["12"], cwd=str(tmp_path))
+    del calls[:]
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert calls == ["pr-ready-wait.sh", "pr-finish.sh"]
+    assert code == 1, err
+
+
+def test_4432_an_empty_ledger_sha_never_matches_a_record_and_the_call_restarts_at_branch_gate(
+        monkeypatch, run_cli, tmp_path):
+    run_pr = importlib.import_module("veri.run_pr")
+    for answer in ((128, ""), (0, "\n"), (0, "aaaaaaa\n")):
+        calls = _git_run(monkeypatch, tmp_path / str(answer[0]) / str(len(answer[1])), lambda args: answer)
+        cwd = str(tmp_path / str(answer[0]) / str(len(answer[1])))
+        run_cli(run_pr, ["12"], cwd=cwd)
+        del calls[:]
+
+        code, out, err = run_cli(run_pr, ["12"], cwd=cwd)
+
+        if answer[1].strip():
+            assert calls[0] == "pr-ready-wait.sh"
+        else:
+            assert calls == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
+            assert out.splitlines()[-1] == "seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR"
+
+
+def test_4432_a_stacked_run_called_again_with_its_seam_current_calls_no_stage_and_stops_at_the_stacked_seam(
+        monkeypatch, run_cli, tmp_path):
+    run_pr = importlib.import_module("veri.run_pr")
+    calls = _git_run(monkeypatch, tmp_path, lambda args: (0, "aaaaaaa\n"), stacked=True)
+    run_cli(run_pr, ["12"], cwd=str(tmp_path))
+    assert calls == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
+    del calls[:]
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert calls == []
+    assert out.splitlines()[-1] == "seam=pr-ready-wait code=1 reason=stacked next=DRAFT-PR.md#4. Draft PR"
+    assert code == 1, err
