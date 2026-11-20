@@ -2,6 +2,7 @@
 need on line 1 and its expiry in epoch seconds on line 2; every leg reads the unexpired ones to narrow T."""
 import hashlib
 import os
+import sys
 import time
 
 import tunables
@@ -58,3 +59,13 @@ def write(main_tree, lane, need):
     with open(temporary, "w") as f:
         f.write("%d\n%d\n" % (need, int(time.time()) + int(tunables.get("VERI_TEST_BUDGET_TTL"))))
     os.replace(temporary, path)
+
+
+def leg():
+    """The pytest leg's module, which reads these entries into T; it lives in tests/leg/, which this puts on sys.path,
+    as ceiling.py does."""
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "tests", "leg")
+    if path not in sys.path:
+        sys.path.append(path)
+    import pytest_leg
+    return pytest_leg

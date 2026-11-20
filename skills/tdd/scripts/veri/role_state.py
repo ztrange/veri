@@ -157,7 +157,9 @@ def usage():
     return 2
 
 
-def main(argv):
+def main(argv, after_set_n=None):
+    """The role-state.sh verbs; after a written `set n`, the line after_set_n(path, n) returns is printed
+    (role_state_cli passes the lane budget's, PRD 036.5)."""
     if len(argv) < 2:
         return usage()
     name = argv[0]
@@ -171,7 +173,10 @@ def main(argv):
         argv = [argv[0]] + argv[3:]
     path = state_path(run_dir.main_tree_from_files(os.getcwd()), name, lane)
     verb = VERBS.get(argv[1])
-    return verb(path, argv) if verb else usage()
+    code = verb(path, argv) if verb else usage()
+    if code == 0 and after_set_n and argv[1:3] == ["set", "n"]:
+        sys.stdout.write(after_set_n(path, int(argv[3])))
+    return code
 
 
 def do_recovered(path, argv):
@@ -231,30 +236,7 @@ def do_set(path, argv):
     if argv[2] == "auto" and argv[3] not in ("on", "off"):
         return usage()
     append(path, "%s=%s\n" % (argv[2], argv[3]))
-    if argv[2] == "n":
-        sys.stdout.write(lane_budget(path, int(argv[3])))
     return 0
-
-
-def lane_budget(path, n):
-    """Writes the lane's entry under VERI_TEST_BUDGET_DIR as dispatch.sh does (max(N, live conductors) x d, PRD 036.5)
-    and returns the line naming N, the lane's need, the other lanes' needs, C with its source and the T a leg reads now."""
-    import dispatch
-    import test_budget
-    import watch_runs
-    leg = dispatch._leg()
-    main = os.path.dirname(os.path.dirname(path))
-    match = re.fullmatch(r"role-dev-(.+)\.state", os.path.basename(path))
-    lane = match.group(1) if match else "main"
-    live = len(watch_runs.live_conductors())
-    d = int(tunables.get("VERI_CONDUCTOR_TEST_WORKERS"))
-    need = max(n, live) * d
-    test_budget.write(main, lane, need)
-    own = test_budget.entry_name(main, lane)
-    others = ", ".join("%s=%d" % (name.partition("@")[0], value) for name, value in test_budget.unexpired_entries() if name != own)
-    total, source = leg.capacity(say=False)
-    return "N=%d; lane %s needs %d (max(N, %d live conductors) x %d); other lanes: %s; C=%d from %s; T=%d\n" % (
-        n, lane, need, live, d, others or "none", total, source, leg.budget(say=False)[0])
 
 
 def do_add(path, argv):
