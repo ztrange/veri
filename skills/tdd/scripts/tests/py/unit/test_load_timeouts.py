@@ -105,3 +105,16 @@ def test_a_timeout_appended_while_the_timeouts_file_holds_another_test_files_lin
     lines = open(load).read().splitlines() if os.path.exists(load) else []
 
     assert (code, lines[:1], [before <= int(line) <= after for line in lines[1:]], load in replaced) == (1, ["4"], [True], True)
+
+
+def test_timeouts_from_one_test_file_only_however_many_write_no_load_file(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    with open(os.environ["VERI_TEST_TIMEOUTS_FILE"], "w") as f:
+        f.write("%d 4242 tests/py/unit/test_x.py tests/py/unit/test_x.py::test_other 6\n" % (time.time() - 60))
+    timing_out(monkeypatch, *["tests/py/unit/test_x.py::test_slow_%d" % n for n in range(5)])
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(), cwd=str(tree))[0]
+
+    assert (code, len(open(os.environ["VERI_TEST_TIMEOUTS_FILE"]).read().splitlines()),
+            os.path.exists(os.environ["VERI_TEST_LOAD_FILE"])) == (1, 6, False)
