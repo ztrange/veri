@@ -1961,3 +1961,26 @@ def test_4455_a_leg_ended_by_term_while_it_waits_for_t_has_removed_its_waiter_en
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WAITERS=str(waiters)))[0]
 
     assert (code, waiting_at_exit) == (128 + signal.SIGTERM, [False])
+
+
+def test_4455_a_waiter_entry_the_leg_cannot_write_is_one_stderr_line_naming_it_and_the_wait_goes_on_to_start_pytest(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 16)
+    measured(8)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    blocker = legs / str(os.getppid())
+    registered(blocker, 7)
+    (tmp_path / "a-file").write_text("")
+    waiters = tmp_path / "a-file" / "waiters"
+    waited, handed = [], []
+
+    def freed_on_the_second_poll():
+        if len(waited) == 2:
+            blocker.unlink()
+
+    monkeypatch.setattr(pytest, "main", handed_workers(handed))
+    monkeypatch.setattr(pytest_leg.time, "sleep", polls(waited, also=freed_on_the_second_poll))
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WAITERS=str(waiters)))
+    unlisted = [line for line in err.splitlines() if line.startswith("cannot register the wait")]
+
+    assert (code, len(waited), handed[:1], len(unlisted), str(waiters) in "".join(unlisted)) == (0, 2, ["8"], 1, True), err

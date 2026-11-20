@@ -356,11 +356,15 @@ def claim(cleanups=None, cap=None):
                     said = True
                     began = time.monotonic()
                     waiters = waiters_dir()
-                    os.makedirs(waiters, exist_ok=True)
                     waiter = os.path.join(waiters, str(os.getpid()))
-                    with open(waiter, "w") as f:
-                        f.write(registration(FLOOR))
-                    cleanups.append(withdrawal)
+                    try:
+                        os.makedirs(waiters, exist_ok=True)
+                        with open(waiter, "w") as f:
+                            f.write(registration(FLOOR))
+                        cleanups.append(withdrawal)
+                    except OSError as error:
+                        sys.stderr.write("cannot register the wait, so dispatch.sh does not count it: %s\n" % error)
+                        sys.stderr.flush()
                     waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
                     if waitfile:
                         try:
