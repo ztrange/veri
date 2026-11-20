@@ -29,7 +29,8 @@ Keys a tick may carry, each with the default an empty world would answer:
 What it records: `said` (stdout text), `complained` (stderr text), `launched` (issues), `waits` (their count),
 `launched_at_wait` (the launches made so far, one list per wait, taken as the wait is called),
 `reads` ((tick key, tick index) of every answer asked for, in order), `notified_lines` (.tdd/dispatch-notified's
-lines as last recorded; the constructor's `notified` until then).
+lines as last recorded; the constructor's `notified` until then), `budget_written` (the lane need of every
+test-budget write, in order).
 """
 
 
@@ -47,6 +48,7 @@ class FakeWorld:
         self.launched_at_wait = []
         self.reads = []
         self.notified_lines = list(notified)
+        self.budget_written = []
 
     def _tick(self):
         return self.ticks[min(self.index, len(self.ticks) - 1)]
@@ -129,6 +131,9 @@ class FakeWorld:
 
     def lowering(self):
         return self._answer("lowering", None)
+
+    def write_test_budget(self, need):
+        self.budget_written.append(need)
 
     def notified(self):
         return list(self.notified_lines)

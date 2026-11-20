@@ -3690,3 +3690,27 @@ def test_4453_a_veri_conductor_test_workers_not_a_whole_number_of_at_least_1_exi
     code = dispatch.main(["--target", "2"], world=world)
 
     assert (code, world.launched, world.reads, "VERI_CONDUCTOR_TEST_WORKERS" in "".join(world.complained)) == (2, [], [], True)
+
+
+@pytest.mark.parametrize("d, target, live, need", [(None, 3, ["5"], 6), ("3", 2, ["5", "6", "7", "8"], 12), (None, 0, [], 0)])
+def test_4453_dispatch_writes_its_lanes_need_max_of_n_and_its_live_conductors_times_d_at_every_poll(dispatch, monkeypatch, d, target, live, need):
+    if d:
+        monkeypatch.setenv("VERI_CONDUCTOR_TEST_WORKERS", d)
+    world = FakeWorld({"live": live, "alive": live}, {"live": live, "alive": live})
+
+    dispatch.main(["--target", str(target)], world=world)
+
+    assert world.budget_written == [need, need]
+
+
+def test_4453_the_real_worlds_test_budget_write_is_its_lanes_entry_named_for_the_main_working_tree(dispatch, monkeypatch, tmp_path):
+    import hashlib
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda missing=None: str(tmp_path))
+    monkeypatch.setattr(dispatch.test_budget.time, "time", lambda: 1000.0)
+
+    dispatch.World().write_test_budget(6)
+
+    name = "mu@" + hashlib.sha256(os.path.realpath(str(tmp_path)).encode()).hexdigest()[:16]
+    root = os.environ["VERI_TEST_BUDGET_DIR"]
+    assert {entry: open(os.path.join(root, entry)).read() for entry in os.listdir(root)} == {name: "6\n4600\n"}
