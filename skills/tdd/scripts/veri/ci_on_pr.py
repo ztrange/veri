@@ -1,4 +1,5 @@
-"""Whether CI runs on pull requests here: the one reader of VERI_CI_ON_PR, and of the workflows in the current directory."""
+"""Whether CI runs on pull requests here: the one reader of VERI_CI_ON_PR, of CLAUDE.md's `veri: ci on pr:` line,
+and of the workflows in the current directory."""
 import os
 
 import detect_test_command
@@ -21,9 +22,9 @@ def trigger_lines(text):
             yield line
 
 
-def line_answer():
+def line_answer(root="."):
     try:
-        detect_test_command.answer_from_file("CLAUDE.md", b"veri: ci on pr:")
+        detect_test_command.answer_from_file(os.path.join(root, "CLAUDE.md"), b"veri: ci on pr:")
     except FileNotFoundError:
         return ""
     except detect_test_command.Answer as found:
@@ -31,14 +32,15 @@ def line_answer():
     return ""
 
 
-def declared():
-    """VERI_CI_ON_PR as set: `0`, `1`, or the empty string when unset or empty; a ValueError carrying the one-line refusal on anything else."""
+def declared(root="."):
+    """VERI_CI_ON_PR as set, else the `veri: ci on pr:` line of root's CLAUDE.md: `0`, `1`, or the empty string when
+    neither says; a ValueError carrying the one-line refusal on anything else."""
     raw = tunables.read("VERI_CI_ON_PR")
     if raw not in ("", "0", "1"):
         raise ValueError("VERI_CI_ON_PR '%s' is not 0 or 1" % raw)
     if raw:
         return raw
-    raw = line_answer()
+    raw = line_answer(root)
     if raw not in ("", "0", "1"):
         raise ValueError("'veri: ci on pr: %s' in CLAUDE.md is not 0 or 1" % raw)
     return raw
@@ -55,6 +57,6 @@ def triggers_on_pull_request():
 
 
 def runs_on_pull_requests():
-    """True when the variable says 1 or, unset, a workflow of the current directory triggers on pull_request. ValueError as declared()."""
+    """True when declared() says 1 or, empty, a workflow of the current directory triggers on pull_request. ValueError as declared()."""
     raw = declared()
     return raw == "1" or not raw and triggers_on_pull_request()

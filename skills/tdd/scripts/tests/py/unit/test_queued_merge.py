@@ -1725,12 +1725,18 @@ def test_4232_queued_merge_runs_as_stage_merge_carrying_the_branchs_issue_in_the
         code, [("stage-start", "merge", None, "12"), ("stage-end", "merge", str(code), "12")], []), err
 
 
-def test_4471_queued_merge_with_a_ci_on_pr_0_line_and_the_variable_unset_reruns_the_full_test_command_on_the_rebased_tree(
+def test_4471_queued_merge_reads_the_ci_on_pr_line_from_the_merge_worktrees_claude_md_not_the_launch_directorys(
         fake_processes, run_cli, tmp_path):
-    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: 0\n")
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    (worktree / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: 0\n")
+    launch = tmp_path / "launch"
+    launch.mkdir()
+    (launch / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: 1\n")
 
-    def green_full_run(answer):
+    def green_full_run(answer):  # the scenario's worktree is /wt; this one is on disk
         def wrapped(line, **kwargs):
+            line = line.replace(str(worktree), "/wt")
             if "detect-test-command" in line:
                 return 0, "make test\n", ""
             if "make test" in line:
@@ -1740,17 +1746,19 @@ def test_4471_queued_merge_with_a_ci_on_pr_0_line_and_the_variable_unset_reruns_
 
     calls = scenario(green_full_run)
 
-    code, _, _ = run_cli(queued_merge, ARGV, cwd=str(tmp_path))
+    code, _, err = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], cwd=str(launch))
 
     full_runs = [c for c in calls if "make test" in c]
-    assert (code, len(full_runs)) == (0, 1)
+    assert (code, len(full_runs)) == (0, 1), err
 
 
 def test_4471_queued_merge_with_a_ci_on_pr_line_that_is_neither_0_nor_1_and_the_variable_unset_exits_2_with_one_stderr_line_naming_the_line(
         fake_processes, run_cli, tmp_path):
-    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: maybe\n")
-    scenario(fake_processes)
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    (worktree / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: maybe\n")
+    scenario(lambda answer: fake_processes(lambda line, **kwargs: answer(line.replace(str(worktree), "/wt"), **kwargs)))
 
-    code, _, err = run_cli(queued_merge, ARGV, cwd=str(tmp_path))
+    code, _, err = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], cwd=str(tmp_path))
 
     assert (code, "veri: ci on pr:" in err and "maybe" in err, len(err.strip().splitlines())) == (2, True, 1), err
