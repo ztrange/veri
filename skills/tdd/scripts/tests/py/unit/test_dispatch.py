@@ -3490,3 +3490,23 @@ def test_4455_a_queue_that_is_not_above_0_at_each_of_the_last_3_polls_or_not_gro
     code = dispatch.main(["--target", "2"], world=world)
 
     assert (code, world.waits, "".join(world.said)) == (None, 3, "")
+
+
+def test_4455_veri_queue_polls_2_prints_the_queueing_line_once_the_last_2_polls_counts_grow(dispatch, monkeypatch):
+    monkeypatch.setenv("VERI_QUEUE_POLLS", "2")
+    world = FakeWorld({"waiters": 1}, {"waiters": 2}, {})
+
+    code = dispatch.main(["--target", "2"], world=world)
+
+    assert (code, world.waits, "".join(world.said)) == (
+        0, 1, "queueing 2 waiting for T=8, 0 workers in use: a lower N would shorten the wait\n")
+
+
+@pytest.mark.parametrize("value", ["1", "0", "two", "-3"])
+def test_4455_a_veri_queue_polls_not_a_whole_number_of_at_least_2_exits_2_naming_it_before_any_poll(dispatch, monkeypatch, value):
+    monkeypatch.setenv("VERI_QUEUE_POLLS", value)
+    world = FakeWorld({"waiters": 1, "queue": ["12"]})
+
+    code = dispatch.main(["--target", "2"], world=world)
+
+    assert (code, world.launched, world.reads, "VERI_QUEUE_POLLS" in "".join(world.complained)) == (2, [], [], True)

@@ -75,6 +75,14 @@ def text(raw):
     return raw
 
 
+def queue_polls(raw):
+    """A whole number of at least 2: one poll's count can never exceed itself."""
+    value = entry.whole_number(raw, 2)
+    if value is None:
+        raise ValueError
+    return value
+
+
 def isdigit_seconds(raw):
     """str.isdigit, which accepts what int() refuses ('²'); returns the string so no int() runs here."""
     if not raw.isdigit():
@@ -143,6 +151,7 @@ TUNABLES = {
     "VERI_TOOL_IDLE": Tunable(tokens, "600"),
     "VERI_TIMEOUT": Tunable(tokens, "900"),
     "VERI_DISPATCH_RETRY_SLEEP": Tunable(isdigit_seconds, "5"),
+    "VERI_QUEUE_POLLS": Tunable(queue_polls, "3"),
     "VERI_GH_REFUSAL_RETRIES": Tunable(tokens, "3"),
     "VERI_LABEL": Tunable(text, "ready-for-agent"),
     "VERI_TOOL_RETRY_SLEEP": Tunable(text, "15"),

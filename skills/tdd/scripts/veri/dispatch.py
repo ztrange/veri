@@ -556,14 +556,20 @@ def _launch_into_a_free_slot(state, world, live):
     return None
 
 
+def queue_polls():
+    """VERI_QUEUE_POLLS: how many polls' waiter counts the queueing rule reads; main refuses a bad one before any poll."""
+    return int(tunables.get("VERI_QUEUE_POLLS", unless_empty=True))
+
+
 def _queueing(state, world):
     """queueing <k> waiting for T=<t>, <w> workers in use: ... when the last polls' waiter counts are each above 0 and
     the newest exceeds the oldest (PRD 036.9). Advice only: it runs after the poll's launch decision and changes
     nothing that decision used."""
     waiting = world.waiting()
-    state.queue_counts = (state.queue_counts + [waiting])[-3:]
+    polls = queue_polls()
+    state.queue_counts = (state.queue_counts + [waiting])[-polls:]
     counts = state.queue_counts
-    if len(counts) == 3 and min(counts) > 0 and counts[-1] > counts[0]:
+    if len(counts) == polls and min(counts) > 0 and counts[-1] > counts[0]:
         total, in_use = world.test_budget()
         world.say(f"queueing {waiting} waiting for T={total}, {in_use} workers in use: a lower N would shorten the wait\n")
         return 0
@@ -608,6 +614,9 @@ def main(argv, world=None):
         return 2
     if not tunables.parses("VERI_DISPATCH_RETRY_SLEEP", tunables.get("VERI_DISPATCH_RETRY_SLEEP")):
         world.complain("dispatch.sh: VERI_DISPATCH_RETRY_SLEEP must be a whole number of seconds\n")
+        return 2
+    if not tunables.parses("VERI_QUEUE_POLLS", tunables.get("VERI_QUEUE_POLLS", unless_empty=True)):
+        world.complain("dispatch.sh: VERI_QUEUE_POLLS must be a whole number of at least 2\n")
         return 2
     state = State(target, follows_role_state=not argv)
     _reads.clear()
