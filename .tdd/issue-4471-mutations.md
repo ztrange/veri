@@ -1,0 +1,11 @@
+file 35
+skills/tdd/scripts/veri/ci_on_pr.py
+old-b64 64
+dHVuYWJsZXMucmVhZCgiVkVSSV9DSV9PTl9QUiIpIG9yIGxpbmVfYW5zd2VyKCk=
+new-b64 64
+bGluZV9hbnN3ZXIoKSBvciB0dW5hYmxlcy5yZWFkKCJWRVJJX0NJX09OX1BSIik=
+context-b64 76
+ICAgIHJhdyA9IHR1bmFibGVzLnJlYWQoIlZFUklfQ0lfT05fUFIiKSBvciBsaW5lX2Fuc3dlcigp
+command 65
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ci_on_pr.py
+
