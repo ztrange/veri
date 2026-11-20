@@ -214,6 +214,19 @@ def idle_fast(ceiling):
     return round(clock() - began)
 
 
+def forget_lowering():
+    """Removes VERI_TEST_LOAD_FILE, the T a load timeout lowered (PRD 036.7 LO6): a fresh measurement is the only thing
+    in veri that raises it back. One it cannot remove is one stderr line naming it."""
+    import load_timeouts
+    try:
+        os.remove(load_timeouts.load_path())
+    except FileNotFoundError:
+        pass
+    except OSError as error:
+        sys.stderr.write("cannot remove the load file %s (%s), so T stays lowered until it is removed\n" % (
+            load_timeouts.load_path(), error.strerror or error))
+
+
 def main(argv):
     if LEG not in sys.path:
         sys.path.append(LEG)
@@ -241,6 +254,7 @@ def main(argv):
         sys.stderr.write("%s\n" % error)
         return 2
     path = write_record([str(ceiling)] + header + steps + idle)
+    forget_lowering()
     stopped = "; the ramp stopped at its bound, %s" % stopper if cap and ceiling == top else ""
     sys.stdout.write("ceiling: %d workers (recorded in %s)%s\n" % (ceiling, path, stopped))
     return 0
