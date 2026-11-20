@@ -11,7 +11,7 @@
 - [x] With a `veri: ci on pr: 0` line in the working tree's CLAUDE.md and VERI_CI_ON_PR unset, `wait-ci.sh` exits 0 for a PR whose head has no check runs and no commit statuses, in a tree whose workflow triggers on `pull_request`, as under `VERI_CI_ON_PR=0` ⟦criterion 2⟧
 - [x] With a `veri: ci on pr: 0` line in the merge worktree's CLAUDE.md and VERI_CI_ON_PR unset, `queued_merge.py` re-runs the local full suite on the rebased tree before merging, as under `VERI_CI_ON_PR=0`, `queued_merge.py` reading the answer through `ci_on_pr` ⟦criterion 3⟧
 - [x] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `branch-suite.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
-- [ ] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `rebased-tip-suite.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
+- [x] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `rebased-tip-suite.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
 - [ ] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `wait-ci.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
 - [ ] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `ready-check.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
 - [ ] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `queued-merge.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
