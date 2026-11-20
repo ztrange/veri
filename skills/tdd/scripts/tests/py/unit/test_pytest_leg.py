@@ -2054,3 +2054,22 @@ def test_4453_a_lane_entry_narrowing_t_to_2_while_a_full_leg_runs_on_10_leaves_i
     code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_TEST_BUDGET_DIR=str(entries)))
 
     assert (code, seen) == (0, [("10", "10")]), err
+
+
+def test_4453_a_leg_waiting_under_a_t_two_lane_entries_narrow_below_c_names_each_lane_and_need_beside_c_and_its_source(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 16)
+    measured(10)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    holder = legs / str(os.getppid())
+    registered(holder, 4)
+    entries = tmp_path / "veri-test-budget"
+    entries.mkdir()
+    (entries / "main@0123456789abcdef").write_text("2\n%d\n" % (time.time() + 3600))
+    (entries / "mu@0123456789abcdef").write_text("2\n%d\n" % (time.time() + 3600))
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", lambda seconds: holder.unlink(missing_ok=True))
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_TEST_BUDGET_DIR=str(entries)))
+
+    assert (code, ["T=4 (the lane entries main=2, mu=2, below C=10 from the ceiling record %s)" % os.environ["VERI_TEST_CEILING_FILE"] in line
+                   for line in err.splitlines()]) == (0, [True]), err
