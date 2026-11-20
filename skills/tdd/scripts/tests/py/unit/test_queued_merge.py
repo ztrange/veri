@@ -1744,3 +1744,13 @@ def test_4471_queued_merge_with_a_ci_on_pr_0_line_and_the_variable_unset_reruns_
 
     full_runs = [c for c in calls if "make test" in c]
     assert (code, len(full_runs)) == (0, 1)
+
+
+def test_4471_queued_merge_with_a_ci_on_pr_line_that_is_neither_0_nor_1_and_the_variable_unset_exits_2_with_one_stderr_line_naming_the_line(
+        fake_processes, run_cli, tmp_path):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: maybe\n")
+    scenario(fake_processes)
+
+    code, _, err = run_cli(queued_merge, ARGV, cwd=str(tmp_path))
+
+    assert (code, "veri: ci on pr:" in err and "maybe" in err, len(err.strip().splitlines())) == (2, True, 1), err

@@ -80,3 +80,10 @@ skills/tdd/scripts/tests/py/unit/test_ready_check.py
 command 220
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_ready_check.py::test_issue_4471_ready_check_with_a_claude_md_ci_on_pr_line_that_is_neither_0_nor_1_and_the_variable_unset_exits_2_with_one_stderr_line_naming_the_line
 
+before 40
+caa28aed61165020b8e4cd6dce5476ec5555a506
+keep 53
+skills/tdd/scripts/tests/py/unit/test_queued_merge.py
+command 206
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_queued_merge.py::test_4471_queued_merge_with_a_ci_on_pr_line_that_is_neither_0_nor_1_and_the_variable_unset_exits_2_with_one_stderr_line_naming_the_line
+
