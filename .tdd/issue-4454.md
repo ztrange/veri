@@ -5,7 +5,7 @@
 - [x] a timeout appended while the timeouts file holds a line from another test file within VERI_LOAD_WINDOW writes VERI_TEST_LOAD_FILE (through a temporary file) with T-2 on line 1 and the time on line 2 ⟦criterion 4⟧
 - [x] timeouts from one test file only, however many, write no load file ⟦criterion 2⟧
 - [x] lines older than VERI_LOAD_WINDOW (default 600) seconds do not count toward a load timeout ⟦criterion 2⟧
-- [ ] a lowering never writes a T below 2 ⟦criterion 4⟧
+- [x] a lowering never writes a T below 2 ⟦criterion 4⟧
 - [ ] while the load file holds a whole number of at least 2, budget() returns max(2, min(T without it, that number)); anything else in it is ignored ⟦criterion 4⟧
 - [ ] a load timeout within VERI_LOAD_WINDOW seconds of the lowering on record (line 2) lowers nothing more ⟦criterion 5⟧
 - [ ] a lowering prints one stderr line naming the window's timed-out cases, the old T and the new, and records a `t-lowered` event (`old`, `new`, `cases`) ⟦criterion 7⟧

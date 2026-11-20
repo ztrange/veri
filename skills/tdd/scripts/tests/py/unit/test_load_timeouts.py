@@ -142,3 +142,20 @@ def test_veri_load_window_defaults_to_600_seconds(pytest_leg, run_cli, monkeypat
     code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(), cwd=str(tree))[0]
 
     assert (code, os.path.exists(os.environ["VERI_TEST_LOAD_FILE"])) == (1, False)
+
+
+def other_file_timed_out(seconds_ago=60):
+    with open(os.environ["VERI_TEST_TIMEOUTS_FILE"], "a") as f:
+        f.write("%d 4242 tests/py/unit/test_y.py tests/py/unit/test_y.py::test_other 6\n" % (time.time() - seconds_ago))
+
+
+def test_a_lowering_never_writes_a_t_below_2(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(3)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    other_file_timed_out()
+    timing_out(monkeypatch, "tests/py/unit/test_x.py::test_slow")
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(), cwd=str(tree))[0]
+    load = os.environ["VERI_TEST_LOAD_FILE"]
+
+    assert (code, open(load).read().splitlines()[:1] if os.path.exists(load) else None) == (1, ["2"])
