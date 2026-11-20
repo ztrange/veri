@@ -6,6 +6,7 @@ import sys
 
 import case_reader
 import fused
+import github
 import ledger
 import run_start
 
@@ -23,7 +24,7 @@ def pins(step, wt):
 
 
 def graded_after_ledger(wt, n, unit):
-    _, last, _ = fused.call("git", "log", "-1", "--format=%H", "--", ".tdd/issue-%s.md" % n, cwd=wt)
+    _, last, _ = fused.call("git", "log", "-1", "--format=%H", "--", os.path.relpath(ledger.ledger_path(wt, n), wt), cwd=wt)
     last = last.strip()
     if not last:
         return False
@@ -53,7 +54,7 @@ def run(argv):
     if not waiting and graded_after_ledger(wt, n, unit):
         return fused.call(TICK, n, cwd=wt)[0]
     if not waiting:
-        _, body, _ = fused.call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt)
+        _, body, _ = fused.call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt, run=github.bounded)
         with open(os.path.join(wt, ".tdd", "issue-%s-body" % n), "w") as f:
             f.write(body)
         body_file = os.path.join(".tdd", "issue-%s-body" % n)

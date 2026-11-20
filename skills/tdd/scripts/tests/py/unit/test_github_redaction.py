@@ -284,6 +284,7 @@ GH_SITES = {
     ("preflight.py", "finish"): "a read of the default branch",
     ("preflight.py", "ci_green"): "gh run list, a read of CI runs on the baselined commit",
     ("merge_common.py", "merge"): "the merge call, which names a pull request and a sha only",
+    ("skill_edit_half.py", "run"): "a read of the issue body, through bounded",
 }
 
 
