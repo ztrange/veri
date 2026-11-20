@@ -326,7 +326,7 @@ def _before_merge(pid, pr, worktree, branch, before, head):
             return ("no full test command for the rebased tree (%s); not merged" % (
                 "detect-test-command.sh exited %d" % found.returncode if found.returncode
                 else "detect-test-command.sh printed nothing"), 2)
-        if _gate(pid, "sh", "-c", full, keep=True):
+        if _gate(pid, "sh", "-c", full, keep=True, cwd=worktree):
             return "the full test command (%s) is red on the rebased tree; not merged" % full, 1
     own = re.match(r"tdd/(\d+)-", branch)
     if own:
