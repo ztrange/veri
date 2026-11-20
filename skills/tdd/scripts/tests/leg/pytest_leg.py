@@ -330,6 +330,7 @@ def claim(cleanups=None, cap=None):
     waiter = ""
     cleanups = [] if cleanups is None else cleanups
     removal = lambda: unmark(waitfile)
+    withdrawal = lambda: unregister(waiter)
     nested = os.environ.get("PYTEST_XDIST_WORKER")
     total, source = budget()
     try:
@@ -359,6 +360,7 @@ def claim(cleanups=None, cap=None):
                     waiter = os.path.join(waiters, str(os.getpid()))
                     with open(waiter, "w") as f:
                         f.write(registration(FLOOR))
+                    cleanups.append(withdrawal)
                     waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
                     if waitfile:
                         try:
@@ -372,6 +374,8 @@ def claim(cleanups=None, cap=None):
     finally:
         if removal in cleanups:
             cleanups.remove(removal)
+        if withdrawal in cleanups:
+            cleanups.remove(withdrawal)
         if waitfile:
             unmark(waitfile)
         if waiter:
