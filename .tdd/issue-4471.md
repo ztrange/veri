@@ -13,7 +13,7 @@
 - [x] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `branch-suite.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
 - [x] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `rebased-tip-suite.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
 - [x] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `wait-ci.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
-- [ ] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `ready-check.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
+- [x] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `ready-check.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
 - [ ] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `queued-merge.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
 - [ ] No module under `skills/tdd/scripts/veri/` other than `ci_on_pr.py` reads `VERI_CI_ON_PR`: a source-scan case (a `tree_audit` case) enforces it, and goes red when a direct `tunables.read("VERI_CI_ON_PR")` is planted in another module ⟦criterion 8⟧
 - [ ] `skills/tdd/SCRIPTS.md` names the `veri: ci on pr:` line wherever it names `VERI_CI_ON_PR` as the CI answer, and says the variable wins (rows SC38, SC63, SC130, SC136) ⟦skill-edit⟧ ⟦criterion 9⟧

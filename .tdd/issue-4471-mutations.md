@@ -73,3 +73,10 @@ skills/tdd/scripts/tests/py/unit/test_wait_ci.py
 command 161
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_exits_2_with_one_stderr_line_naming_a_claude_md_ci_on_pr_line_that_is_neither_0_nor_1
 
+before 40
+caa28aed61165020b8e4cd6dce5476ec5555a506
+keep 52
+skills/tdd/scripts/tests/py/unit/test_ready_check.py
+command 220
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ready_check.py::test_issue_4471_ready_check_with_a_claude_md_ci_on_pr_line_that_is_neither_0_nor_1_and_the_variable_unset_exits_2_with_one_stderr_line_naming_the_line
+
