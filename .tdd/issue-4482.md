@@ -1,0 +1,11 @@
+# Plan for #4482 — revise.sh and reroute.sh launch verify-red/verify-green without check-earlier, so supervise.sh refuses the verifier
+
+- [ ] `reroute.sh`, called again after the rerouted red leaf's wait on a `red` route, runs `tests-frozen.sh check-earlier .tdd/issue-<n>.md --step <step>` with one `--except <case>` per case the route named, before it launches `verdict-red` (`unit/test_reroute.py`, a small in-process case) ⟦criterion 1⟧
+- [ ] `reroute.sh`, when that `tests-frozen.sh check-earlier` exits 1, exits 1 and launches no `verdict-red` (`unit/test_reroute.py`, a small in-process case) ⟦criterion 1⟧
+- [ ] `revise.sh <n> green`, called again after the revise leaf's wait on a plain step, runs `tests-frozen.sh check-earlier .tdd/issue-<n>.md --step <step>` with no `--except` after `tests-frozen.sh check` and before it re-launches `verdict-green` (`unit/test_revise.py`, a small in-process case) ⟦criterion 2⟧
+- [ ] `revise.sh <n> green` on a `⟦replaces-case⟧` step passes that `tests-frozen.sh check-earlier` one `--except <case>` per case the step names as replaced (`unit/test_revise.py`, a small in-process case) ⟦criterion 2⟧
+- [ ] `revise.sh <n> green`, when that `tests-frozen.sh check-earlier` exits 1, exits 1 and launches no `verdict-green` (`unit/test_revise.py`, a small in-process case) ⟦criterion 2⟧
+- [ ] `revise.sh <n> red` on a step whose red `reroute.sh` rerouted passes `tests-frozen.sh check-earlier .tdd/issue-<n>.md --step <step>` one `--except <case>` per case the reroute's route named, before it re-launches `verdict-red` (`unit/test_revise.py`, a small in-process case) ⟦criterion 3⟧
+- [ ] `revise.sh <n> red` on a plain step that no reroute touched runs `tests-frozen.sh check-earlier .tdd/issue-<n>.md --step <step>` with no `--except` before it re-launches `verdict-red` (`unit/test_revise.py`, a small in-process case) ⟦criterion 3⟧
+- [ ] `revise.sh <n> red` on a `⟦replaces-case⟧` step passes that `tests-frozen.sh check-earlier` one `--except <case>` per case the step names as replaced, as `red-half.sh` passes them (`unit/test_revise.py`, a small in-process case) ⟦criterion 3⟧
+- [ ] `revise.sh <n> red`, when that `tests-frozen.sh check-earlier` exits 1, exits 1 and launches no `verdict-red` (`unit/test_revise.py`, a small in-process case) ⟦criterion 3⟧
