@@ -170,9 +170,9 @@ SCOPE_RE = re.compile(r"[0-9a-f]+ plan: scope\b")
 
 
 def counted_steps(text):
-    """The ledger's steps that count toward its size: every step line but a ⟦suite-repair⟧ or ⟦ci-repair⟧ one."""
+    """The ledger's steps that count toward its size: every step line but a ⟦suite-repair⟧, ⟦ci-repair⟧ or ⟦branch-repair⟧ one."""
     return [step for step in ledger_steps(text)
-            if not carries_mark(step.text, "suite-repair") and not carries_mark(step.text, "ci-repair")]
+            if not any(carries_mark(step.text, mark) for mark in ("suite-repair", "ci-repair", "branch-repair"))]
 
 
 def split(ledger):
