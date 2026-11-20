@@ -48,7 +48,10 @@ def run(n):
         raise fused.Stop("probe", "mutation-probe.sh exit %d" % code, 2)
     if read_bytes(wt, path) != before:
         raise fused.Stop("restore", "%s differs from its bytes before the probe" % path, 2)
-    fused.checked("tick", fused.script("step-tick.sh"), n, cwd=wt)
+    # Exit 1 is the case staying green, the one real answer this stage gives; a tick that fails is no answer (2).
+    code = fused.call(fused.script("step-tick.sh"), n, cwd=wt)[0]
+    if code != 0:
+        raise fused.Stop("tick", "step-tick.sh %s exit %d" % (n, code), 2)
     return 0
 
 

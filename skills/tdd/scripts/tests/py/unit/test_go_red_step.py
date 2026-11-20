@@ -141,3 +141,10 @@ def test_4443_a_failing_step_tick_is_never_exit_0_and_leaves_the_step_unticked(g
 
     assert (code, out.splitlines()[-1].split(" ")[:3]) == (2, ["stopped", "at", "tick"])
     assert (go_red.wt / ".tdd" / "issue-12.md").read_text() == LEDGER % STEP
+
+
+@pytest.mark.parametrize("ticked", [1, 3])
+def test_4443_any_step_tick_exit_but_0_is_exit_2_never_1_which_only_a_green_case_answers(go_red, ticked):
+    code, out, err, fake = go_red(answers={("step-tick.sh", None): (ticked, "")})
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at tick step-tick.sh 12 exit %d" % ticked)
