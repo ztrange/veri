@@ -13,7 +13,7 @@ def test_run_with_no_argument_prints_its_usage_line_on_stderr_and_exits_2(run_cl
 
 
 BODY = "## Acceptance criteria\n\n- [ ] the prompt says so\n"
-STEP = "reword the prompt ⟦skill-edit⟧ ⟦criterion 1⟧"
+STEP = "reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧"
 
 
 def test_4450_on_an_open_skill_edit_step_it_first_reads_the_issue_body_into_the_body_file(
@@ -455,6 +455,29 @@ def test_4450_it_exits_2_before_any_call_when_the_open_step_does_not_carry_the_s
     (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
     (wt / ".tdd" / "issue-12.md").write_text(
         "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦criterion 1⟧\n")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        calls.append((os.path.basename(name), args))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert (code, calls) == (2, []), (code, calls)
+
+
+def test_4450_it_exits_2_before_any_call_when_ledger_unit_of_finds_no_unit_in_the_open_skill_edit_step(
+        monkeypatch, run_cli, tmp_path):
+    """SKH43: an open ⟦skill-edit⟧ step naming no unit is refused with exit 2 before gh, skill-edit-step.sh or step-tick.sh."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt ⟦skill-edit⟧ ⟦criterion 1⟧\n")
     calls = []
 
     def fake(name, *args, cwd=None, env=None, **kw):
