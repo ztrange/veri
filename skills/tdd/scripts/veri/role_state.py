@@ -157,7 +157,11 @@ def usage():
     return 2
 
 
-def main(argv, after_set_n=None):
+def main(argv):
+    return run_verbs(argv)
+
+
+def run_verbs(argv, after_set_n=None):
     """The role-state.sh verbs; after a written `set n`, the line after_set_n(path, n) returns is printed
     (role_state_cli passes the lane budget's, PRD 036.5)."""
     if len(argv) < 2:

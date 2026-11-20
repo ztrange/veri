@@ -12,6 +12,8 @@ import test_budget
 import tunables
 import watch_runs
 
+USAGE = role_state.USAGE
+
 
 def lane_budget(path, n):
     """Writes the lane's entry under VERI_TEST_BUDGET_DIR as dispatch.sh does (max(N, live conductors) x d) and returns
@@ -32,7 +34,7 @@ def lane_budget(path, n):
 
 
 def main(argv):
-    return role_state.main(argv, after_set_n=lane_budget)
+    return role_state.run_verbs(argv, after_set_n=lane_budget)
 
 
 if __name__ == "__main__":
