@@ -1752,6 +1752,24 @@ def test_4471_queued_merge_reads_the_ci_on_pr_line_from_the_merge_worktrees_clau
     assert (code, len(full_runs)) == (0, 1), err
 
 
+def test_4471_queued_merge_runs_the_wait_ci_gate_in_the_merge_worktree_so_wait_ci_reads_its_claude_md_not_the_launch_directorys(
+        fake_processes, run_cli, tmp_path):
+    seen = []
+
+    def recording(answer):
+        def wrapped(line, **kwargs):
+            if "wait-ci.sh" in line:
+                seen.append(kwargs.get("cwd"))
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    scenario(recording)
+
+    code, _, err = run_cli(queued_merge, ARGV, cwd=str(tmp_path))
+
+    assert (code, seen) == (0, ["/wt"]), err
+
+
 def test_4471_queued_merge_with_a_ci_on_pr_line_that_is_neither_0_nor_1_and_the_variable_unset_exits_2_with_one_stderr_line_naming_the_line(
         fake_processes, run_cli, tmp_path):
     worktree = tmp_path / "wt"
