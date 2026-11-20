@@ -6,6 +6,6 @@
 - [x] the branch's diff to `skills/vdev/SKILL.md` leaves it naming no context threshold and no autocompact setting, and saying the dev session never compacts or clears itself on its own judgment; this step makes no commit ⟦diff-checked⟧ ⟦criterion 4⟧
 - [x] the branch's diff to `skills/vdev/SKILL.md` leaves `--resume <file>` read and `vhandoff` loaded in every session, with no sentence restricting either to a session without `start_session` and no "read no handoff file"; this step makes no commit ⟦diff-checked⟧ ⟦criterion 5⟧
 - [x] `skills/vhandoff/SKILL.md` drops its branch for a session with `start_session`, so `/vhandoff dev` writes the handoff in every session, with H11 dropped and its new row, graded by its rows ⟦skill-edit⟧ ⟦criterion 6⟧
-- [ ] `operator/PRINCIPLES.md`'s P13 paragraph names no resetter among the sessions a message may go to and makes no exception for a recovered role's `ack`, graded by its reworded P2, P13, P17 and P18 rows ⟦skill-edit⟧ ⟦criterion 7⟧
+- [x] `operator/PRINCIPLES.md`'s P13 paragraph names no resetter among the sessions a message may go to and makes no exception for a recovered role's `ack`, graded by its reworded P2, P13, P17 and P18 rows ⟦skill-edit⟧ ⟦criterion 7⟧
 - [ ] the branch's diff changes no sentence of `skills/vdev/SKILL.md` about question sessions and none of rows D84–D96, D100, D150; this step makes no commit ⟦diff-checked⟧ ⟦criterion 8⟧
 - [ ] the full suite passes, `prose-owed.sh` exiting 0 with every changed unit regraded ⟦full-suite⟧ ⟦criterion 9⟧
