@@ -142,8 +142,8 @@ def drop_missing_cases(record, root):
 
 def probed(record, probe):
     """Whether the mutation record at <record> holds an entry of <probe>, a go-red step's (file, old, new, case): its
-    file, old and new equal to the probe's, and its command, when it has one, naming the case. False for no probe, no
-    record, or a malformed one."""
+    file, old and new equal to the probe's, and its command naming the case (an entry with no command proves no case).
+    False for no probe, no record, or a malformed one."""
     if not probe:
         return False
     path, old, new, case = probe
@@ -153,7 +153,7 @@ def probed(record, probe):
     except (OSError, mutation_record.MalformedRecord):
         return False
     return any(e.get("file") == path and e.get("old") == old and e.get("new") == new
-               and ("command" not in e or case in e["command"]) for e in entries)
+               and case in e.get("command", "") for e in entries)
 
 
 def mutations_path(ledger_path):
