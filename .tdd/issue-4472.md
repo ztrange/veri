@@ -4,7 +4,7 @@
 - [x] `ledger.py`'s `KIND_RE` reads a `⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion k⟧` step as kind `diff-checked` ⟦criterion 9⟧
 - [x] `ledger_growth.counted_steps` leaves out a `⟦branch-repair⟧` step, so with one in the ledger `ledger-growth.sh`'s cap on `⟦added⟧` steps is the same as without it ⟦criterion 10⟧
 - [x] `classify-bail.sh branch-rejected` labels the cause `process` ⟦criterion 13⟧
-- [ ] Under `VERI_EVENT_STRICT=1`, `event.sh bail cause=branch-rejected` is accepted (exit 0), `event_table.py`'s bail-cause list naming `branch-rejected` ⟦criterion 13⟧
+- [x] Under `VERI_EVENT_STRICT=1`, `event.sh bail cause=branch-rejected` is accepted (exit 0), `event_table.py`'s bail-cause list naming `branch-rejected` ⟦criterion 13⟧
 - [ ] `run-conductor.sh` accepts `branch` in `VERI_SKIP_VERIFY` (no exit 2 naming it), `plan` still refused ⟦criterion 15⟧
 - [ ] `run-conductor.sh` with a `VERI_BRANCH_REPAIRS` that is not a whole number of at least 0 (e.g. `x`) exits 2 naming the variable before any leaf launches, `VERI_BRANCH_REPAIRS` being a tunable of `tunables.py` with default `1` ⟦criterion 12⟧
 - [ ] Metrics count a `verify-branch-skipped` event on the `Verifiers switched off:` line as `branch`, `metrics.SWITCHED_OFF_EVENTS` naming it ⟦criterion 16⟧
