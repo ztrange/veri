@@ -2010,3 +2010,27 @@ def test_4455_a_waiter_entry_the_leg_cannot_write_is_one_stderr_line_naming_it_a
     unlisted = [line for line in err.splitlines() if line.startswith("cannot register the wait")]
 
     assert (code, len(waited), handed[:1], len(unlisted), str(waiters) in "".join(unlisted)) == (0, 2, ["8"], 1, True), err
+
+
+def test_4453_a_leg_waiting_under_a_t_narrowed_to_2_starts_with_4_once_its_lane_entry_widens_t_to_6_and_says_the_core_fallback_once(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 10)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    registered(legs / str(os.getppid()), 2)
+    entry = tmp_path / "veri-test-budget" / "main@0123456789abcdef"
+    entry.parent.mkdir()
+    entry.write_text("2\n%d\n" % (time.time() + 3600))
+    polls = []
+
+    def widened_while_it_waits(seconds):
+        polls.append(seconds)
+        if len(polls) > 3:
+            raise RuntimeError("still waiting after T was widened")
+        entry.write_text("6\n%d\n" % (time.time() + 3600))
+
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(args) or pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", widened_while_it_waits)
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs), VERI_TEST_BUDGET_DIR=str(entry.parent)))
+
+    assert (code, workers_handed(calls), len(polls), err.count("`make ceiling`")) == (0, "4", 1, 1), err
