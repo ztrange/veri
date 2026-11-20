@@ -1,0 +1,118 @@
+"""In-process cases for veri/go_red_step.py, the module go-red-step.sh is a shim over (#4443)."""
+import importlib
+import os
+
+import pytest
+
+FILE = "src/run.py"
+CASE = "tests/test_run.py::test_refuses_stacked"
+STEP = ("Go-red guard: the stacked refusal, probe `%s` `if stacked:` → `if False:` on `%s` ⟦go-red⟧ ⟦criterion 3⟧"
+        % (FILE, CASE))
+LEDGER = "# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n- [ ] %s\n- [ ] two ⟦criterion 2⟧\n"
+SOURCE = "if stacked:\n    raise SystemExit(2)\n"
+
+
+class Fake:
+    """A run_script stand-in: records (basename, args, cwd, env, kw) and answers from <answers>, keyed by
+    (basename, first argument or None) -> (code, stdout); <during_probe>, when given, runs as mutation-probe.sh."""
+
+    def __init__(self, answers=None, during_probe=None):
+        self.answers, self.calls, self.during_probe = dict(answers or {}), [], during_probe
+
+    def __call__(self, name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        self.calls.append((base, args, cwd, env, kw))
+        if base == "mutation-probe.sh" and self.during_probe:
+            self.during_probe()
+        for (script, first), (code, out) in self.answers.items():
+            if base == script and (first is None or args[:1] == (first,)):
+                return code, out, ""
+        if base == "detect-test-command.sh":
+            return 0, "make test TESTS=\"$1\"\n", ""
+        if base == "step-tick.sh":
+            return 0, "tick-ledger.sh .tdd/issue-12.md exit 0\nnext=cycle\n", ""
+        return 0, "", ""
+
+    def names(self):
+        return [c[0] for c in self.calls]
+
+    def call(self, base, first=None):
+        return next(c for c in self.calls if c[0] == base and (first is None or c[1][:1] == (first,)))
+
+
+@pytest.fixture
+def go_red(monkeypatch, run_cli, tmp_path):
+    """go_red(answers=None, fake=None, step=STEP, argv=("12",), during_probe=None) runs go-red-step for issue 12 from
+    the main tree, the run's worktree at .tdd/wt/12; returns (code, stdout, stderr, fake)."""
+    fused = importlib.import_module("veri.fused")
+    module = importlib.import_module("veri.go_red_step")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / "src").mkdir()
+
+    def go(answers=None, fake=None, step=STEP, argv=("12",), during_probe=None, ledger=True):
+        files = {(wt / ".tdd" / "issue-12-preflight"): "worktree=%s\nfast_cmd=make unit\n" % wt,
+                 (wt / FILE): SOURCE}
+        if ledger:
+            files[wt / ".tdd" / "issue-12.md"] = LEDGER % step
+        for path, text in files.items():
+            if not path.exists():
+                path.write_text(text)
+        fake = fake or Fake(answers, during_probe)
+        monkeypatch.setattr(fused, "run_script", fake)
+        code, out, err = run_cli(module, list(argv), cwd=str(tmp_path))
+        return code, out, err, fake
+
+    go.wt = wt
+    return go
+
+
+def test_4443_a_go_red_step_probes_its_named_case_into_the_runs_mutation_record_then_ticks_through_step_tick(go_red):
+    code, out, err, fake = go_red()
+
+    assert code == 0, err
+    assert fake.names() == ["detect-test-command.sh", "mutation-probe.sh", "step-tick.sh"]
+    assert fake.call("detect-test-command.sh")[1] == ("--tier", "one test file")
+    probe = fake.call("mutation-probe.sh")
+    assert probe[1] == (FILE, "if stacked:", "if False:", "--", "sh", "-c", 'make test TESTS="$1"', "sh", CASE)
+    assert probe[2] == str(go_red.wt)
+    assert probe[3]["VERI_MUTATION_RECORD"] == ".tdd/issue-12-mutations.md"
+    assert fake.call("step-tick.sh")[1] == ("12",)
+    assert out.splitlines()[-1] == "next=cycle"
+
+
+def test_4443_bad_arguments_a_missing_ledger_no_open_go_red_step_or_a_step_naming_no_probe_exit_2_probing_nothing(
+        go_red):
+    usage = "usage: go-red-step.sh <n>\n"
+    cases = [({"argv": ()}, usage), ({"argv": ("x",)}, usage),
+             ({"ledger": False}, "go-red-step.sh: no .tdd/issue-12.md\n"),
+             ({"step": STEP.replace(" ⟦go-red⟧", "")}, "go-red-step.sh: no open ⟦go-red⟧ step in .tdd/issue-12.md\n"),
+             ({"step": "Go-red guard: probe `src/run.py` on nothing ⟦go-red⟧ ⟦criterion 3⟧"},
+              "go-red-step.sh: the open ⟦go-red⟧ step names no probe `<file>` `<old>` → `<new>` on `<case>`\n")]
+    results = []
+    for kw, _ in cases:
+        ledger = go_red.wt / ".tdd" / "issue-12.md"
+        if ledger.exists():
+            ledger.unlink()
+        code, out, err, fake = go_red(**kw)
+        results.append((code, err, fake.names()))
+
+    assert results == [(2, said, []) for _, said in cases]
+
+
+def test_4443_with_no_one_test_file_command_it_probes_with_the_all_tier_command_and_a_detect_2_stops_with_exit_2(
+        go_red):
+    class AllTier(Fake):
+        def __call__(self, name, *args, **kw):
+            if os.path.basename(name) == "detect-test-command.sh":
+                self.calls.append(("detect-test-command.sh", args, kw.get("cwd"), kw.get("env"), kw))
+                return (0, "make test\n", "") if args == ("--tier", "all") else (3, "", "")
+            return super().__call__(name, *args, **kw)
+
+    code, out, err, fake = go_red(fake=AllTier())
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][4:] == ("sh", "-c", "make test")
+
+    code, out, err, fake = go_red(answers={("detect-test-command.sh", "--tier"): (2, "")})
+    assert (code, "mutation-probe.sh" in fake.names(), "step-tick.sh" in fake.names()) == (2, False, False)
+    assert out.splitlines()[-1].startswith("stopped at probe")
