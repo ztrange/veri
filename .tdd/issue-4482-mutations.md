@@ -9,3 +9,10 @@ ICAgICAgICAgICAgICAgICAgICAgICp2YWx1ZXNbInBhdGhzIl0sIGN3ZD13dCwgb3V0PSIudGRkL3Zl
 command 153
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_reroute.py::test_a_tests_frozen_record_exit_1_is_exit_1_route_revise_red_its_stdout_the_reason_4434
 
+before 40
+50a6e8b31267663864c338bdd82d44ffba6eb6f4
+keep 48
+skills/tdd/scripts/tests/py/unit/test_reroute.py
+command 133
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_reroute.py::test_a_check_earlier_exit_1_is_exit_1_launching_no_verdict_red_4482
+

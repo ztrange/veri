@@ -172,6 +172,15 @@ def test_called_again_it_runs_check_earlier_excepting_the_routed_case_before_lau
     assert fake.calls.index(earlier[0]) < fake.calls.index(fake.call("detach-leaf.sh"))
 
 
+def test_a_check_earlier_exit_1_is_exit_1_launching_no_verdict_red_4482(reroute):
+    reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
+    code, out, err, fake = reroute(answers={("tests-frozen.sh", "check-earlier"): (1, "earlier test changed\n"),
+                                            ("wait-leaf.sh", "verdict-red"): (3, "")},
+                                   files={"develop-red-contradicted.out": REROUTED})
+
+    assert (code, fake.launched()) == (1, [])
+
+
 def test_on_a_verify_red_pass_it_rerecords_the_frozen_tests_over_both_test_paths_and_exits_0_4434(reroute):
     """PRD 038.10 RRT2: `tests-frozen.sh record --step … --red-case '<red-test-id>' <test-path>…`, the step's own case."""
     reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
