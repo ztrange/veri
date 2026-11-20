@@ -161,6 +161,17 @@ def test_called_again_it_waits_launches_verdict_red_with_red_halfs_arguments_ove
     assert record["at"] == "verdict-red"
 
 
+def test_called_again_it_runs_check_earlier_excepting_the_routed_case_before_launching_verdict_red_4482(reroute):
+    reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
+    code, out, err, fake = reroute(answers={("wait-leaf.sh", "verdict-red"): (3, "")},
+                                   files={"develop-red-contradicted.out": REROUTED})
+
+    earlier = [c for c in fake.all("tests-frozen.sh") if c[1][:1] == ("check-earlier",)]
+    assert [c[1] for c in earlier] == [("check-earlier", ".tdd/issue-12.md", "--step", STEP,
+                                        "--except", "tests/test_b.py::test_two")]
+    assert fake.calls.index(earlier[0]) < fake.calls.index(fake.call("detach-leaf.sh"))
+
+
 def test_on_a_verify_red_pass_it_rerecords_the_frozen_tests_over_both_test_paths_and_exits_0_4434(reroute):
     """PRD 038.10 RRT2: `tests-frozen.sh record --step … --red-case '<red-test-id>' <test-path>…`, the step's own case."""
     reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
@@ -295,7 +306,8 @@ def test_a_verify_red_reject_of_the_rerouted_case_is_exit_1_route_revise_red_wit
                                    files={"develop-red-contradicted.out": REROUTED})
 
     assert (code, out.splitlines()[-1]) == (1, "route=revise phase=red")
-    assert fake.all("tests-frozen.sh") == []
+    assert [c[1] for c in fake.all("tests-frozen.sh")] == [
+        ("check-earlier", ".tdd/issue-12.md", "--step", STEP, "--except", "tests/test_b.py::test_two")]
     assert _red_revise_left(reroute)
     assert not (reroute.wt / ".tdd" / "issue-12-reroute-wait").exists()
 
