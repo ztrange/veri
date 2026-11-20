@@ -1657,6 +1657,10 @@ def test_4419_the_hermetic_fixture_points_the_ceiling_record_into_the_cases_own_
     assert os.environ["VERI_TEST_CEILING_FILE"].startswith(str(tmp_path) + os.sep)
 
 
+def test_4457_the_hermetic_fixture_points_the_cap_file_into_the_cases_own_tmp_path(tmp_path):
+    assert os.environ["VERI_TEST_CAP_FILE"].startswith(str(tmp_path) + os.sep)
+
+
 @pytest.mark.parametrize("line_1", [None, "", "six", "1", "0", "-4", "2.5", "٣", b"\xff\xfe"])
 def test_4419_with_no_record_or_one_whose_line_1_is_not_a_whole_number_of_at_least_2_a_full_leg_takes_the_cores_and_says_so_in_one_line_naming_the_file_and_make_ceiling(pytest_leg, run_cli, monkeypatch, tmp_path, started, line_1):
     on_cores(monkeypatch, 16)
