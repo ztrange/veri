@@ -12,7 +12,7 @@
 - [x] With a `veri: ci on pr: 0` line in the merge worktree's CLAUDE.md and VERI_CI_ON_PR unset, `queued_merge.py` re-runs the local full suite on the rebased tree before merging, as under `VERI_CI_ON_PR=0`, `queued_merge.py` reading the answer through `ci_on_pr` ⟦criterion 3⟧
 - [x] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `branch-suite.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
 - [x] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `rebased-tip-suite.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
-- [ ] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `wait-ci.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
+- [x] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `wait-ci.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
 - [ ] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `ready-check.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
 - [ ] A `veri: ci on pr:` line whose value is neither `0` nor `1`, VERI_CI_ON_PR unset, makes `queued-merge.sh` exit 2 with one stderr line naming the line ⟦criterion 6⟧
 - [ ] No module under `skills/tdd/scripts/veri/` other than `ci_on_pr.py` reads `VERI_CI_ON_PR`: a source-scan case (a `tree_audit` case) enforces it, and goes red when a direct `tunables.read("VERI_CI_ON_PR")` is planted in another module ⟦criterion 8⟧
