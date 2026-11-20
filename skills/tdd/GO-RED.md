@@ -16,11 +16,14 @@ commits it under `test: go-red — <STEP summary> (#<n>)`. `tick-ledger.sh` exit
 `⟦go-red⟧` step unless the record holds an entry of its own probe (the same file, old and new, its
 command naming the case), so no go-red step is ticked without its probe.
 
-- **Exit 1** — only `stopped at probe <case> stayed green …`: the case does not catch the break, so
-  the guard is not guarded; nothing is ticked. Bail with `cause=needs-user`
-  (`<base directory>/BAIL.md`): the plan named a break its case cannot see, and only the human
-  can say whether the case or the break is wrong.
-- **Exit 2** — no open `⟦go-red⟧` step, a step naming no probe, no `veri: one test file:` line,
+- **Exit 1** ticks nothing, and its last line says which:
+  - `stopped at probe <case> stayed green …`: the case does not catch the break, so the guard is
+    not guarded. Bail with `cause=needs-user` (`<base directory>/BAIL.md`): the plan named a break
+    its case cannot see, and only the human can say whether the case or the break is wrong.
+  - ``stopped at probe <file> no longer holds `<old>` ``: neither a bail. The step's probe is stale,
+    so rewrite it against `<file>` as it now stands, commit the rewrite as a `plan: rewrite`
+    commit, have verify-plan check it, then rerun the step.
+- **Exit 2** ticks nothing: no open `⟦go-red⟧` step, a step naming no probe, no `veri: one test file:` line,
   the case already red on the unmutated file, a probe or `detect-test-command.sh` exit 2, the file
   not restored, or any `step-tick.sh` exit but 0 (a stray file its tree check finds included):
   plumbing, never the case staying green. Bail as a system failure.
