@@ -225,3 +225,38 @@ def test_a_lowering_prints_one_stderr_line_naming_the_windows_timed_out_cases_th
 
     assert (code, len(lines), [all(word in line for word in (cases, " 6 ", " 4")) for line in lines],
             "test_other" in err, events) == (1, 1, [True], False, [("6", "4", cases)])
+
+
+def test_a_timeouts_file_the_plugin_cannot_write_is_one_stderr_line_naming_it_and_the_leg_still_exits_1(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    unwritable = str(tmp_path / "no-such-dir" / "veri-test-timeouts")
+    timing_out(monkeypatch, "tests/py/unit/test_x.py::test_slow")
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_TEST_TIMEOUTS_FILE=unwritable), cwd=str(tree))
+
+    assert (code, len([line for line in err.splitlines() if unwritable in line])) == (1, 1)
+
+
+def test_a_load_file_the_plugin_cannot_write_is_one_stderr_line_naming_it_and_the_leg_still_exits_1(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    unwritable = str(tmp_path / "no-such-dir" / "veri-test-load")
+    other_file_timed_out()
+    timing_out(monkeypatch, "tests/py/unit/test_x.py::test_slow")
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_TEST_LOAD_FILE=unwritable), cwd=str(tree))
+
+    assert (code, len([line for line in err.splitlines() if unwritable in line and "lowered" not in line])) == (1, 1)
+
+
+def test_a_load_file_the_leg_cannot_read_is_one_stderr_line_naming_it_and_lowers_nothing(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    unreadable = tmp_path / "a-directory"
+    unreadable.mkdir()
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_TEST_LOAD_FILE=str(unreadable)), cwd=str(tree))
+
+    assert (code, len([line for line in err.splitlines() if str(unreadable) in line]), pytest_leg.budget()[0]) == (0, 1, 6)

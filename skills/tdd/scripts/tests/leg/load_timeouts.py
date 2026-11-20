@@ -25,13 +25,22 @@ def load_path():
     return tunables.get("VERI_TEST_LOAD_FILE") or os.path.join(os.path.expanduser("~"), ".veri-test-load")
 
 
+def complain(what, path, error):
+    sys.stderr.write("load timeouts: cannot %s %s (%s); the run goes on\n" % (what, path, error.strerror or error))
+    sys.stderr.flush()
+
+
 def record():
-    """The load file's first two lines, stripped, as whole numbers or None each."""
+    """The load file's first two lines, stripped, as whole numbers or None each; a file it cannot read is one stderr
+    line naming it, and reads as none."""
+    lines = ["", ""]
     try:
         with open(load_path()) as f:
             lines = [f.readline().strip(), f.readline().strip()]
     except FileNotFoundError:
-        lines = ["", ""]
+        pass
+    except (OSError, UnicodeDecodeError) as error:
+        complain("read the load file", load_path(), error)
     return [int(line) if line.isascii() and line.isdigit() else None for line in lines]
 
 
@@ -60,17 +69,25 @@ def pytest_runtest_logreport(report):
     now = time.time()
     test_file = report.nodeid.split("::")[0]
     since = now - window()
-    with open(timeouts_path(), "a+") as f:
-        f.seek(0)
-        window_cases = recent(f.read().splitlines(), since) + [(test_file, report.nodeid)]
-        f.write("%d %d %s %s %d\n" % (now, os.getpid(), test_file, report.nodeid, workers))
     context = event.context(tunables.environment())
     event.mark("", context, "case-timeout", ["nodeid=" + report.nodeid, "workers=%d" % workers])
+    try:
+        with open(timeouts_path(), "a+") as f:
+            f.seek(0)
+            window_cases = recent(f.read().splitlines(), since) + [(test_file, report.nodeid)]
+            f.write("%d %d %s %s %d\n" % (now, os.getpid(), test_file, report.nodeid, workers))
+    except (OSError, UnicodeDecodeError) as error:
+        complain("record the timeout in the timeouts file", timeouts_path(), error)
+        return
     lowered_at = record()[1]
     if len({file for file, _ in window_cases}) >= 2 and (lowered_at is None or lowered_at < since):
         old, new = LEG["total"], max(2, LEG["total"] - 2)
         cases = ",".join(nodeid for _, nodeid in window_cases)
-        lower(new, now)
+        try:
+            lower(new, now)
+        except OSError as error:
+            complain("write the load file", load_path(), error)
+            return
         sys.stderr.write("load timeout: %s timed out within %d s, so T is lowered from %d to %d in %s\n" % (
             cases, window(), old, new, load_path()))
         sys.stderr.flush()
