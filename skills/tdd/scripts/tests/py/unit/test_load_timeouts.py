@@ -86,3 +86,22 @@ def test_a_leg_run_with_veri_pytest_workers_exported_appends_nothing_to_the_time
 
     assert (code, os.path.exists(os.environ["VERI_TEST_TIMEOUTS_FILE"]), open(os.environ["VERI_TEST_CEILING_FILE"]).read(),
             [e for e in events if e in ("case-timeout", "t-lowered")]) == (1, False, "6\n2026-11-19\n", [])
+
+
+def test_a_timeout_appended_while_the_timeouts_file_holds_another_test_files_line_within_the_window_writes_the_load_file_through_a_temporary_file_with_t_minus_2_and_the_time(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    with open(os.environ["VERI_TEST_TIMEOUTS_FILE"], "w") as f:
+        f.write("%d 4242 tests/py/unit/test_y.py tests/py/unit/test_y.py::test_other 6\n" % (time.time() - 60))
+    load = os.environ["VERI_TEST_LOAD_FILE"]
+    replaced = []
+    real_replace = os.replace
+    monkeypatch.setattr(os, "replace", lambda src, dst: (replaced.append(os.fspath(dst)), real_replace(src, dst))[1])
+    timing_out(monkeypatch, "tests/py/unit/test_x.py::test_slow")
+    before = int(time.time())
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(), cwd=str(tree))[0]
+    after = int(time.time())
+    lines = open(load).read().splitlines() if os.path.exists(load) else []
+
+    assert (code, lines[:1], [before <= int(line) <= after for line in lines[1:]], load in replaced) == (1, ["4"], [True], True)
