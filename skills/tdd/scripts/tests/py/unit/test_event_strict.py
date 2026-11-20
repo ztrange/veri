@@ -161,3 +161,13 @@ def test_4232_strict_writes_a_stage_start_and_end_of_each_stage_the_plan_rebase_
     ended = event.mark(str(clone), {"issue": "7"}, "stage-end", ["stage=" + stage, "status=1", "secs=3"])
 
     assert (started, ended) == (0, 0)
+
+
+@pytest.mark.parametrize("how", ["mark", "sh"])
+def test_strict_accepts_a_bail_with_cause_branch_rejected(how, clone, tmp_path, monkeypatch, run_cli, capfd):
+    monkeypatch.setenv("VERI_EVENT_STRICT", "1")
+
+    code, err = write(how, clone, monkeypatch, run_cli, "bail", ["cause=branch-rejected"])
+    err = capfd.readouterr().err if err is None else err
+
+    assert code == 0, err
