@@ -2,6 +2,17 @@
 through fused.call, so no stage script runs."""
 import importlib
 import os
+import sys
+
+
+def printing(spy):
+    """<spy> wrapped to print what the real fused.call prints: the line naming the call and its exit code, then the
+    stage's stdout; run_pr prints neither itself (RPR10)."""
+    def call(name, *args, **kw):
+        code, out, err = spy(name, *args, **kw)
+        sys.stdout.write("%s exit %d\n%s" % (" ".join((os.path.basename(name),) + args), code, out))
+        return code, out, err
+    return call
 
 
 def test_4432_the_first_call_runs_the_three_stages_then_stops_at_the_title_seam(monkeypatch, run_cli, tmp_path):
@@ -53,7 +64,7 @@ def test_4432_called_again_after_the_title_seam_it_runs_pr_ready_wait_and_pr_fin
         calls.append(os.path.basename(name))
         return 0, "finish says hello\nfinish says bye\n" if name.endswith("pr-finish.sh") else "", ""
 
-    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "call", printing(spy))
     monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
     run_cli(run_pr, ["12"], cwd=str(tmp_path))
     del calls[:]
@@ -150,7 +161,7 @@ def test_4432_at_the_first_stage_exiting_1_it_prints_its_output_then_the_seam_li
             return 1, "pr-prepare.sh: stopped at rebase\n", ""
         return 0, "", ""
 
-    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "call", printing(spy))
     monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
 
     code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
@@ -177,7 +188,7 @@ def test_4432_at_the_first_stage_exiting_2_it_prints_its_output_then_the_seam_li
             return 2, "pr-prepare.sh: stopped at fetch\n", ""
         return 0, "", ""
 
-    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "call", printing(spy))
     monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
 
     code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
@@ -204,7 +215,7 @@ def test_4432_at_the_first_stage_exiting_3_it_prints_its_output_then_the_seam_li
             return 3, "pr-prepare.sh: stopped at wait\n", ""
         return 0, "", ""
 
-    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "call", printing(spy))
     monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
 
     code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
@@ -473,7 +484,7 @@ def test_4432_it_prints_each_stages_call_line_with_its_exit_code_and_never_the_c
     (wt / ".tdd" / "test-runs" / "make-test.out").write_text("MARKER-4432 suite output\n")
     stages = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
 
-    monkeypatch.setattr(fused, "call", lambda name, *a, **kw: (0, "", ""))
+    monkeypatch.setattr(fused, "call", printing(lambda name, *a, **kw: (0, "", "")))
     monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
 
     code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
@@ -495,7 +506,7 @@ def test_4432_the_resumed_late_run_prints_a_call_line_with_its_exit_code_for_pr_
     (wt / ".tdd" / "test-runs" / "make-test.out").write_text("MARKER-4432 suite output\n")
     stages = ("pr-ready-wait.sh", "pr-finish.sh")
 
-    monkeypatch.setattr(fused, "call", lambda name, *a, **kw: (0, "", ""))
+    monkeypatch.setattr(fused, "call", printing(lambda name, *a, **kw: (0, "", "")))
     monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
     run_cli(run_pr, ["12"], cwd=str(tmp_path))
 
@@ -544,7 +555,7 @@ def _late_run(monkeypatch, run_cli, tmp_path, codes, ledger=True):
         calls.append(stage)
         return codes.get(stage, 0), "%s stopped at here\n" % stage, ""
 
-    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "call", printing(spy))
     monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "abc1234\n", ""))
 
     def run(argv=()):
@@ -648,3 +659,98 @@ def test_4432_the_usage_names_from_and_hand_and_the_shim_header_lists_every_exit
     block = [lines[start]] + [l for l in lines[start + 1:] if l.startswith("#    ")][:3]
     for c in ("Exit:    0 ", "; 1 ", "2 bad arguments", "; 3 "):
         assert c in " ".join(block)
+
+
+def _stage_run(monkeypatch, tmp_path, codes):
+    """A run whose stage scripts are faked at fused.run_script, so the real fused.call prints each call: <codes> maps a
+    stage script to a list of exit codes, one per call, 0 once it runs out. Returns (run, calls)."""
+    fused = importlib.import_module("veri.fused")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+
+    def fake(name, *args, **kw):
+        stage = os.path.basename(name)
+        if stage == "git":
+            return 0, "abc1234\n", ""
+        calls.append(stage)
+        left = codes.get(stage, [])
+        return (left.pop(0) if left else 0), "%s says hi\n" % stage, ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+    return calls
+
+
+def test_4432_with_the_real_fused_call_each_stage_call_line_and_its_output_are_printed_once(
+        monkeypatch, run_cli, tmp_path):
+    run_pr = importlib.import_module("veri.run_pr")
+    calls = _stage_run(monkeypatch, tmp_path, {})
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+    code2, out2, err2 = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    lines = out.splitlines() + out2.splitlines()
+    for stage in ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh", "pr-ready-wait.sh", "pr-finish.sh"):
+        assert [ln for ln in lines if ln.startswith(stage + " ") and " exit " in ln] == ["%s 12 exit 0" % stage]
+        assert lines.count("%s says hi" % stage) == 1
+    assert out2.splitlines()[-2:] == ["pr-finish.sh says hi", "seam=done code=1 reason=body next=DRAFT-PR.md#4. Draft PR"]
+    assert (code, code2) == (1, 1), err + err2
+
+
+def test_4432_a_stage_exiting_3_early_or_late_is_resumed_at_exactly_that_stage_with_no_stage_skipped(
+        monkeypatch, run_cli, tmp_path):
+    run_pr = importlib.import_module("veri.run_pr")
+    calls = _stage_run(monkeypatch, tmp_path, {"pr-prepare.sh": [3], "pr-finish.sh": [3]})
+    seen = []
+    for _ in range(4):
+        del calls[:]
+        code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+        seen.append((list(calls), code, out.splitlines()[-1]))
+
+    assert seen == [
+        (["branch-gate.sh", "pr-prepare.sh"], 3, "seam=pr-prepare code=3 next=run-pr.sh 12"),
+        (["pr-prepare.sh", "pr-checks.sh"], 1, "seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR"),
+        (["pr-ready-wait.sh", "pr-finish.sh"], 3, "seam=pr-finish code=3 next=run-pr.sh 12"),
+        (["pr-finish.sh"], 1, "seam=done code=1 reason=body next=DRAFT-PR.md#4. Draft PR"),
+    ]
+
+
+def test_4432_a_stage_exiting_4_or_a_signals_negative_code_is_exit_2_naming_the_stage(monkeypatch, run_cli, tmp_path):
+    run_pr = importlib.import_module("veri.run_pr")
+    for c in (4, -9):
+        calls = _stage_run(monkeypatch, tmp_path / str(c), {"pr-checks.sh": [c]})
+
+        code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path / str(c)))
+
+        assert calls == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
+        assert code == 2
+        assert "pr-checks exited %d" % c in err
+        assert "seam=" not in out
+
+
+def test_4432_two_hand_flags_each_stop_the_call_before_their_stage(monkeypatch, run_cli, tmp_path):
+    run_pr = importlib.import_module("veri.run_pr")
+    calls = _stage_run(monkeypatch, tmp_path, {})
+    hands = ["--hand", "pr-checks", "--hand", "pr-finish"]
+
+    code, out, err = run_cli(run_pr, ["12", *hands], cwd=str(tmp_path))
+    assert (calls, code, out.splitlines()[-1]) == (
+        ["branch-gate.sh", "pr-prepare.sh"], 1, "seam=pr-checks code=1 reason=hand next=DRAFT-PR.md#4. Draft PR")
+    del calls[:]
+    code, out, err = run_cli(run_pr, ["12", "--from", "pr-ready-wait", *hands], cwd=str(tmp_path))
+    assert (calls, code, out.splitlines()[-1]) == (
+        ["pr-ready-wait.sh"], 1, "seam=pr-finish code=1 reason=hand next=DRAFT-PR.md#4. Draft PR")
+
+
+def test_4432_a_missing_ledger_or_preflight_is_one_stderr_line_and_exit_2_never_a_traceback(
+        monkeypatch, run_cli, tmp_path):
+    run_pr = importlib.import_module("veri.run_pr")
+    calls = _stage_run(monkeypatch, tmp_path, {})
+    (tmp_path / ".tdd" / "wt" / "12" / ".tdd" / "issue-12.md").unlink()
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert (calls, code, out) == ([], 2, "")
+    assert err.splitlines() == ["run-pr.sh: no .tdd/issue-12.md"]
