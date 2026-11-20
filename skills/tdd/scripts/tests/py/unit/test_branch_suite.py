@@ -71,3 +71,10 @@ def test_main_with_ci_on_pr_unset_prints_local_for_a_claude_md_ci_on_pr_0_line_i
     (triggered / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: 0\n")
 
     assert run_cli(branch_suite, [], cwd=triggered)[:2] == (0, "local\n")
+
+
+def test_main_with_ci_on_pr_unset_prints_ci_for_a_claude_md_ci_on_pr_1_line_in_a_tree_with_no_workflows_directory(
+        tmp_path, run_cli, branch_suite):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: ci on pr: 1\n")
+
+    assert run_cli(branch_suite, [], cwd=tmp_path)[:2] == (0, "ci\n")
