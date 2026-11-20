@@ -121,12 +121,15 @@ def test_4443_a_probe_that_sees_no_red_stops_with_exit_1_and_ticks_nothing(go_re
 def test_4443_a_probe_exit_2_or_a_named_file_left_unrestored_stops_with_exit_2_and_ticks_nothing(go_red):
     results = []
     code, out, err, fake = go_red(answers={("mutation-probe.sh", None): (2, "")})
-    results.append((code, "step-tick.sh" in fake.names(), out.splitlines()[-1].split(" ")[:3]))
+    results.append((code, "step-tick.sh" in fake.names(), out.splitlines()[-1]))
     left = go_red.wt / FILE
     code, out, err, fake = go_red(during_probe=lambda: left.write_text("if False:\n    raise SystemExit(2)\n"))
     results.append((code, "step-tick.sh" in fake.names(), out.splitlines()[-1].split(" ")[:3]))
 
-    assert results == [(2, False, ["stopped", "at", "probe"]), (2, False, ["stopped", "at", "restore"])]
+    assert results == [
+        (2, False, "stopped at probe mutation-probe.sh exit 2"),
+        (2, False, ["stopped", "at", "restore"]),
+    ]
 
 
 def test_4443_a_failing_step_tick_is_never_exit_0_and_leaves_the_step_unticked(go_red):
