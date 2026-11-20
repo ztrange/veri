@@ -24,6 +24,16 @@ def load_path():
     return tunables.get("VERI_TEST_LOAD_FILE") or os.path.join(os.path.expanduser("~"), ".veri-test-load")
 
 
+def held():
+    """The lowered T on line 1 of the load file when it is a whole number of at least 2, else None."""
+    try:
+        with open(load_path()) as f:
+            first = f.readline().strip()
+    except FileNotFoundError:
+        return None
+    return int(first) if first.isascii() and first.isdigit() and int(first) >= 2 else None
+
+
 def window():
     """VERI_LOAD_WINDOW: the seconds a timeouts line counts toward a load timeout; 600 for anything but a whole number."""
     raw = tunables.get("VERI_LOAD_WINDOW", unless_empty=True)
