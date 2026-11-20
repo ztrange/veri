@@ -536,3 +536,29 @@ def test_4450_it_exits_2_before_any_call_on_an_unknown_option_given_a_value(monk
     code, _, _ = run_cli(skill_edit_half, ["12", "--bogus", "x"], cwd=str(tmp_path))
 
     assert (code, calls) == (2, []), (code, calls)
+
+
+def test_4450_it_exits_2_before_any_call_when_the_preflight_file_or_the_ledger_is_missing(
+        monkeypatch, run_cli, tmp_path):
+    """SKH42: a missing .tdd/issue-<n>-preflight or ledger is refused with exit 2 before any call."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        calls.append((os.path.basename(name), args))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    for missing in ("preflight", "ledger"):
+        wt = tmp_path / missing / ".tdd" / "wt" / "12"
+        (wt / ".tdd").mkdir(parents=True)
+        if missing != "preflight":
+            (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+        if missing != "ledger":
+            (wt / ".tdd" / "issue-12.md").write_text(
+                "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+        del calls[:]
+        code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path / missing))
+        assert (missing, code, calls) == (missing, 2, []), (missing, code, calls)
