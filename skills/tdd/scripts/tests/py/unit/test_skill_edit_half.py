@@ -417,7 +417,9 @@ def test_4450_skill_edit_step_exit_1_stops_with_1_before_step_tick(
 
     code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
 
-    assert (code, [c[0] for c in calls if c[0] in ("step-tick.sh", "skill-edit-step.sh")]) == (1, []), (code, calls)
+    starts = [c for c in calls if c[0] == "detach-command.sh" and c[1][:1] == ("start",)]
+    ticks = [c for c in calls if c[0] == "step-tick.sh"]
+    assert (code, len(starts), len(ticks)) == (1, 1, 0), (code, calls)
 
 
 def test_4450_skill_edit_step_exit_2_stops_with_2_before_step_tick(
