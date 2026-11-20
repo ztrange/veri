@@ -192,20 +192,21 @@ def worker_count(requested):
     return budget()[0] - registered_workers(legs_dir())
 
 
-def budget():
+def budget(say=True):
     """(T, its source, for the wait line): T, the workers every live leg on the machine shares, is C0 (c0()), lowered
     to the cap the human set (ceiling.read_cap) when that is below it, the source then naming the cap file beside C0 and
     C0's source (PRD 036.11), and lowered again to a load timeout's T in the load file (load_timeouts.held) when that
     is below what remains, never below 2 (PRD 036.7); that C narrowed to max(2, min(C, S)), S the needs summed over the
     unexpired lane entries (test_budget.unexpired, PRD 036.5), while there is one. C0 from the core fallback is one stderr line naming the record and `make ceiling`; a cap
-    file it cannot use is one more."""
+    file it cannot use is one more; with <say> false, neither is written (a wait re-reading T has said them once)."""
     total, source = c0()
-    if source is None:
+    if source is None and say:
         sys.stderr.write("no test-worker ceiling in %s, so the budget is the %d cores; `make ceiling` measures one\n" % (
             record_path(), total))
+    if source is None:
         source = "the core fallback"
     cap, complaint = read_cap()
-    if complaint:
+    if complaint and say:
         sys.stderr.write(complaint)
     sys.stderr.flush()
     if cap and cap < total:
@@ -342,9 +343,11 @@ def claim(cleanups=None, cap=None):
     removal = lambda: unmark(waitfile)
     withdrawal = lambda: unregister(waiter)
     nested = os.environ.get("PYTEST_XDIST_WORKER")
-    total, source = budget()
+    passes = 0
     try:
         while True:
+            total, source = budget(say=not passes)
+            passes += 1
             with open(legs.rstrip("/") + ".lock", "w") as lock:
                 fcntl.flock(lock, fcntl.LOCK_EX)
                 count = 1 if nested else total - registered_workers(legs)
