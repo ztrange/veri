@@ -387,6 +387,31 @@ class World:
         leg = _leg()
         return leg.budget()[0], leg.registered_workers(full_run_lock.legs_dir())
 
+    def notified(self):
+        """The lines of the main working tree's .tdd/dispatch-notified, what dispatch.sh keeps across restarts; [] when
+        it is absent or unreadable, or no main working tree can be named."""
+        main = layout.main_tree(missing="")
+        if not main:
+            return []
+        try:
+            with open(layout.main_file(main, "dispatch-notified")) as f:
+                return f.read().splitlines()
+        except OSError:
+            return []
+
+    def record_notified(self, lines):
+        """Replaces .tdd/dispatch-notified whole through a temporary file; nothing when no main working tree can be
+        named, so a relative .tdd/ under whatever the current directory is never gets one."""
+        main = layout.main_tree(missing="")
+        if not main:
+            return
+        path = layout.main_file(main, "dispatch-notified")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        temporary = "%s.%d" % (path, os.getpid())
+        with open(temporary, "w") as f:
+            f.write("".join(line + "\n" for line in lines))
+        os.replace(temporary, path)
+
     # acting
     def launch(self, issue):
         """Launch <issue>'s run and append its `launched <n> <time>` line to dispatch.log."""
@@ -426,7 +451,6 @@ class State:
         self.reported = set()  # the (issue, path, PR url) skips already printed
         self.missing = {}  # issue: the clock() time its silent exit was first seen
         self.held_at = None  # the clock() time the queue last had nothing launchable
-        self.queue_counts = []  # the live waiter entries counted at the last polls, oldest first
 
 
 def _merge_failed(state, world):
@@ -556,6 +580,10 @@ def _launch_into_a_free_slot(state, world, live):
     return None
 
 
+# The .tdd/dispatch-notified line holding the live waiter entries counted at the last polls, oldest first.
+QUEUE_LINE = "queue "
+
+
 def queue_polls():
     """VERI_QUEUE_POLLS: how many polls' waiter counts the queueing rule reads; main refuses a bad one before any poll."""
     return int(tunables.get("VERI_QUEUE_POLLS", unless_empty=True))
@@ -567,8 +595,12 @@ def _queueing(state, world):
     nothing that decision used."""
     waiting = world.waiting()
     polls = queue_polls()
-    state.queue_counts = (state.queue_counts + [waiting])[-polls:]
-    counts = state.queue_counts
+    lines = world.notified()
+    kept = next((line for line in lines if line.startswith(QUEUE_LINE)), None)
+    counts = ([int(word) for word in kept.split()[1:] if word.isdigit()] if kept else [])
+    counts = (counts + [waiting])[-polls:]
+    line = " ".join([QUEUE_LINE.strip()] + [str(count) for count in counts])
+    world.record_notified([line if old == kept else old for old in lines] if kept else lines + [line])
     if len(counts) == polls and min(counts) > 0 and counts[-1] > counts[0]:
         total, in_use = world.test_budget()
         world.say(f"queueing {waiting} waiting for T={total}, {in_use} workers in use: a lower N would shorten the wait\n")
