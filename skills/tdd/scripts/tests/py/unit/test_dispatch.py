@@ -3596,3 +3596,44 @@ def test_4455_the_real_worlds_test_budget_is_the_legs_t_and_the_workers_live_reg
     monkeypatch.setenv("VERI_TEST_CEILING_FILE", str(tmp_path / "ceiling"))
 
     assert dispatch.World().test_budget() == (8, 6)
+
+
+def test_4456_a_live_runs_test_stretch_event_prints_the_stretched_line_after_that_polls_launch_and_exits_0(dispatch):
+    world = FakeWorld({"live": ["7"], "queue": ["15"], "stretches": {"7": [("fast", "9", "3")]}}, {},
+                      notified=["queue 0"])
+
+    code = dispatch.main(["--target", "2"], world=world)
+
+    assert (code, world.launched, world.waits, "".join(world.said), world.notified_lines) == (
+        0, ["15"], 0, "stretched 7 fast 9s, idle 3s\n", ["queue 0 0", "stretched 7 fast"])
+
+
+def test_4456_a_run_and_tier_already_reported_prints_nothing_while_its_other_tier_and_another_run_each_print_once(dispatch):
+    stretches = {"7": [("fast", "9", "3"), ("fast", "12", "3"), ("all", "30", "10")], "8": [("fast", "8", "3")]}
+    notified, results = ["stretched 7 fast"], []
+    for _ in range(3):
+        world = FakeWorld({"live": ["7", "8"], "stretches": stretches}, notified=notified)
+        results.append((dispatch.main(["--target", "2"], world=world), "".join(world.said)))
+        notified = world.notified_lines
+
+    assert results == [(0, "stretched 7 all 30s, idle 10s\n"), (0, "stretched 8 fast 8s, idle 3s\n"), (None, "")]
+
+
+def test_4456_a_run_that_is_not_live_is_never_asked_for_its_stretches(dispatch):
+    world = FakeWorld({"live": ["7"], "stretches": {"8": [("fast", "9", "3")]}})
+
+    code = dispatch.main(["--target", "2"], world=world)
+
+    assert (code, "".join(world.said), [key for key in world.reads if key[0] == "stretches"]) == (
+        None, "", [("stretches", 0)])
+
+
+def test_4456_the_real_world_reads_a_runs_test_stretch_events_from_its_worktrees_journal_skipping_unreadable_lines(dispatch, monkeypatch, tmp_path):
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
+    journal = dispatch.event_log.path(dispatch.run_dir("7"))
+    os.makedirs(os.path.dirname(journal))
+    with open(journal, "w") as f:
+        f.write('{"event": "test-run", "tier": "fast"}\nnot json\n'
+                '{"event": "test-stretch", "tier": "all", "seconds": "30", "idle": "10"}\n')
+
+    assert (dispatch.World().stretches("7"), dispatch.World().stretches("8")) == ([("all", "30", "10")], [])
