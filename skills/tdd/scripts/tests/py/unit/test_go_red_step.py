@@ -143,12 +143,6 @@ def test_4443_any_step_tick_exit_but_0_is_exit_2_never_1_which_only_a_green_case
     assert (code, out.splitlines()[-1]) == (2, "stopped at tick step-tick.sh 12 exit %d" % ticked)
 
 
-def test_4443_a_go_red_step_with_a_leading_marker_is_probed_and_ticked(go_red):
-    code, out, err, fake = go_red(step="⟦go-red⟧ " + STEP.replace(" ⟦go-red⟧", ""))
-
-    assert (code, fake.names()) == (0, ["detect-test-command.sh", "mutation-probe.sh", "step-tick.sh"]), err
-
-
 def test_4443_an_empty_new_text_parses_and_is_probed_as_a_deletion(go_red):
     code, out, err, fake = go_red(step=STEP.replace("→ `if False:`", "→ ``"))
 

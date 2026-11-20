@@ -655,8 +655,11 @@ def test_4443_a_go_red_step_exit_other_than_0_ends_on_its_seam_calling_no_revise
     assert (code, stages.names(), out.splitlines()[-1]) == (code_, ["go-red-step.sh"], last), err
 
 
-def test_4443_a_go_red_step_with_a_leading_marker_runs_go_red_step(step):
-    text = "⟦go-red⟧ Go-red guard: probe `src/run.py` `if stacked:` → `if False:` on `t.py::c` ⟦criterion 1⟧"
-    code, out, err, stages = step(ledger=LEDGER % text, answers={"go-red-step.sh": (0, "next=cycle\n")})
+@pytest.mark.parametrize("text", [
+    "SKILL.md routes a `⟦go-red⟧` step to go-red-step.sh ⟦criterion 1⟧",
+    "⟦go-red⟧ Go-red guard: probe `src/run.py` `if stacked:` → `if False:` on `t.py::c` ⟦criterion 1⟧",
+], ids=["backticked-mention", "leading-marker-only"])
+def test_4443_a_step_mentioning_go_red_without_the_trailing_marker_runs_as_a_cycle_step(step, text):
+    code, out, err, stages = step(ledger=LEDGER % text)
 
-    assert (code, stages.names()) == (0, ["go-red-step.sh"]), err
+    assert (code, tuple(stages.names())) == (0, STAGES), err

@@ -1410,12 +1410,34 @@ LEADING_GO_RED_STEP = ("- [ ] ⟦go-red⟧ Go-red guard: the stacked refusal, pr
                        "`tests/test_run.py::test_refuses_stacked` ⟦criterion 3⟧\n")
 
 
-def test_main_holds_a_go_red_step_with_a_leading_marker_to_its_probes_record_4443(tmp_path, capsys, tick_ledger):
+@pytest.mark.parametrize("recorded", [False, True], ids=["no-record", "matching-record"])
+def test_main_refuses_a_leading_go_red_marker_as_misplaced_with_or_without_a_record_4443(
+        tmp_path, capsys, tick_ledger, recorded):
     ledger = tmp_path / "issue-7.md"
     seed = ("# Plan for #7\n\n" + LEADING_GO_RED_STEP).encode()
     ledger.write_bytes(seed)
-    refused = (tick_ledger.main([str(ledger), "Go-red guard"]), ledger.read_bytes() == seed)
-    (tmp_path / "issue-7-mutations.md").write_text(go_red_entry())
-    ticked = (tick_ledger.main([str(ledger), "Go-red guard"]), "- [x] ⟦go-red⟧ Go-red guard" in ledger.read_text())
+    if recorded:
+        (tmp_path / "issue-7-mutations.md").write_text(go_red_entry())
 
-    assert (refused, ticked) == ((2, True), (0, True))
+    code = tick_ledger.main([str(ledger), "Go-red guard"])
+
+    assert (code, "must trail the step" in capsys.readouterr().err, ledger.read_bytes()) == (2, True, seed)
+
+
+def test_main_ticks_a_step_mentioning_go_red_in_backticks_with_no_mutation_record_4443(tmp_path, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] `⟦go-red⟧` steps run through go-red-step.sh ⟦criterion 3⟧\n")
+
+    code = tick_ledger.main([str(ledger), "steps run through"])
+
+    assert (code, "- [x] `⟦go-red⟧` steps" in ledger.read_text()) == (0, True)
+
+
+def test_main_ticks_a_step_whose_go_red_marker_also_trails_it_on_its_probes_record_4443(tmp_path, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n" + LEADING_GO_RED_STEP.replace(" ⟦criterion 3⟧", " ⟦go-red⟧ ⟦criterion 3⟧"))
+    (tmp_path / "issue-7-mutations.md").write_text(go_red_entry())
+
+    code = tick_ledger.main([str(ledger), "Go-red guard"])
+
+    assert (code, "- [x] ⟦go-red⟧ Go-red guard" in ledger.read_text()) == (0, True)

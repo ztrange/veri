@@ -295,6 +295,12 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
                 "^(?:" + "|".join(map(re.escape, named)) + ")$", open(record, encoding="utf-8").read(), re.M):
             complain(f"{record}: no mutation record for the step's go-red control")
             return 2
+    # A step opening on a bare ⟦go-red⟧ that does not also trail it put the marker in the wrong place: refused rather
+    # than ticked as a cycle step with no probe behind it.
+    if ledger.STEP_RE.fullmatch(step_line).group(4).lstrip().startswith(ledger.GO_RED_MARK) and not ledger.is_go_red(
+            step_line):
+        complain(f"{matcher}: {ledger.GO_RED_MARK} must trail the step, after its text and before its criterion tag")
+        return 2
     if ledger.is_go_red(step_line):
         record = mutations_path(ledger_path)
         if not probed(record, ledger.go_red_probe(step_line)):
