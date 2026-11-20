@@ -302,7 +302,8 @@ def capped(text):
 @pytest.mark.parametrize("cap, argv, steps, bound", [
     ("4\n", [], [2, 4], "the cap file"), ("5\n", [], [2, 4, 5], "the cap file"), ("8\n", [], [2, 4, 6], "the logical cores"),
     ("8\n", ["--max", "3"], [2, 3], "--max 3"), ("3\n", ["--max", "5"], [2, 3], "the cap file"),
-], ids=["cap-4", "cap-5-odd", "cores", "max-3-odd", "cap-below-max"])
+    ("2\n", [], [2], "the cap file"), ("3\n", ["--max", "3"], [2, 3], "the cap file"), ("6\n", [], [2, 4, 6], "the cap file"),
+], ids=["cap-4", "cap-5-odd", "cores", "max-3-odd", "cap-below-max", "cap-2-the-least", "cap-ties-max", "cap-ties-cores"])
 def test_4457_with_a_cap_the_ramp_runs_up_to_the_least_of_the_cores_max_and_the_cap_an_odd_top_included_and_names_that_bound(
         make, run_cli, cap, argv, steps, bound):
     path = capped(cap)

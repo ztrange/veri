@@ -1655,7 +1655,8 @@ def test_4419_a_full_leg_alone_beside_a_ceiling_record_of_6_on_16_cores_takes_6_
 
 @pytest.mark.parametrize("cap, record, workers", [
     ("4\n", 8, "4"), ("4\nhand-set on 2026-11-19\n", 8, "4"), ("12\n", 8, "8"), ("8\n", 8, "8"), (None, 8, "8"), ("4\n", None, "4"),
-], ids=["below", "line-1-only", "above", "equal", "no-cap", "below-the-core-fallback"])
+    ("2\n", 8, "2"),
+], ids=["below", "line-1-only", "above", "equal", "no-cap", "below-the-core-fallback", "two-the-least-cap"])
 def test_4457_a_full_leg_alone_takes_min_of_c0_and_the_cap_on_line_1_of_the_cap_file_and_leaves_the_file_as_it_was(pytest_leg, run_cli, monkeypatch, tmp_path, started, cap, record, workers):
     on_cores(monkeypatch, 16)
     if record:
@@ -1871,3 +1872,22 @@ def test_4457_an_exported_worker_count_never_opens_the_cap_file_so_a_bad_one_say
     code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_WORKERS="12"))
 
     assert (code, workers_handed(seen), reads, err) == (0, "12", [], "")
+
+
+def test_4457_with_the_cap_equal_to_c0_the_wait_line_names_c0s_source_not_the_cap_file(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 12)
+    measured(8)
+    cap = os.environ["VERI_TEST_CAP_FILE"]
+    with open(cap, "w") as f:
+        f.write("8\n")
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    blocker = legs / str(os.getppid())
+    registered(blocker, 7)
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    monkeypatch.setattr(pytest_leg.time, "sleep", lambda seconds: blocker.unlink())
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_PYTEST_LEGS=str(legs)))
+    waits = [line for line in err.splitlines() if line.startswith("waiting")]
+
+    assert (code, len(waits), "T=8 (the ceiling record " in waits[0], cap in waits[0], "C0=" in waits[0]) == (
+        0, 1, True, False, False), waits
