@@ -940,7 +940,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `read_lines(role, lane=None)`: the role's state lines in the main tree, `None` when missing.
 - `State(lines)`: the grammar of the state file. `fields()` (every `key=value` line as a dict), `field(name)` (last `name=` value, `None`), `values(name)` (every `name=` value, in file order), `items(*kinds)` (raw item lines), `last_n()`, `timed_ns()` (`(value, expiry)` pairs), `override_numbers()`, `check()`. A bad line raises `Malformed(kind, line)` (`kind` one of `n-missing`, `n`, `timed-n`, `override`, `state`); each caller words it.
 - `checked(path)`: the file's `State` (no lines when missing) once `check()` passes, else `BadStateFile`, whose text is `malformed state file <path>`; role_growth reports it as is.
-- `main(argv, after_set_n=None)`: role-state.sh's verbs; after a written `set n`, it prints the line `after_set_n(path, n)` returns (role_state_cli's lane budget line).
+- `run_verbs(argv, after_set_n=None)`, `USAGE`: role-state.sh's verbs and its usage line; after a written `set n`, it prints the line `after_set_n(path, n)` returns (role_state_cli's lane budget line).
 - `append(path, text)`, `now()`, `epoch(stamp)`, `STAMP`: append (written through a temp file and renamed); the stamp; a stamp's epoch seconds, read as local time; the stamp's strftime format. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
 
 ## watch_runs
