@@ -212,7 +212,7 @@ when the guard names it), faking only process boundaries; its entry-point contra
 
 Per step, the red and refactor leaves run the test files covering the files the step changed, as
 `affected-suites.sh` prints them, with the `veri: one test file:` command (`make test TESTS="<those paths>"` here):
-the `changed` tier. `develop-green`, verify-green, verify-refactor and the diff phase's leaf and verifier run the
+the `changed` tier. `develop-green`, verify-green, verify-refactor, the transform verifier and the diff phase's leaf and verifier run the
 fast tier plus that `changed` run; a revise leaf runs the tiers of the phase it redoes. No leaf or verifier runs more
 than the fast tier plus the `changed` run (the `affected` tier is gone), save the rebased-tip leaves
 (`develop-rebase`, `develop-reconcile`, `verify-rebase`) and the suite-repair verifier, which run the full suite.
