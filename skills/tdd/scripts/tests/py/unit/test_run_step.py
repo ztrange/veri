@@ -140,7 +140,6 @@ DIFF = "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verif
 
 
 @pytest.mark.parametrize("text, next_", [
-    ("`skills/tdd/SKILL.md#Red` says so ⟦skill-edit⟧ ⟦criterion 1⟧", "SKILL-EDIT.md#The skill-edit step"),
     ("repairs the fixture 'f' in tests/test_a.py ⟦fixture-repair⟧ ⟦criterion 1⟧", RED),
     ("the interface moves ⟦phases: expand, migrate⟧ ⟦criterion 1⟧",
      "SKILL.md#A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier"),
@@ -160,8 +159,8 @@ RECORD = "seam=green-half code=1 reason=record next=seam-settle.sh 12 red-half t
     ("unmodelled", {"ledger": LEDGER % "CI passes ⟦ci-repair⟧"},
      "seam=green-half code=1 reason=unmodelled next=" + GREEN),
     ("record", {"answers": {"green-half.sh": (1, RECORD + "\n")}}, RECORD),
-    ("kind", {"ledger": LEDGER % "says so ⟦skill-edit⟧"},
-     "seam=none code=1 reason=kind next=SKILL-EDIT.md#The skill-edit step"),
+    ("kind", {"ledger": LEDGER % "repairs the fixture 'f' in tests/test_a.py ⟦fixture-repair⟧"},
+     "seam=none code=1 reason=kind next=" + RED),
 ])
 def test_4343_every_designed_stop_hand_unmodelled_record_kind_exits_1_never_2(step, reason, kw, last):
     code, out, err, stages = step(**kw)
