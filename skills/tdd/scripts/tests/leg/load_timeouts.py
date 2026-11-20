@@ -24,6 +24,18 @@ def load_path():
     return tunables.get("VERI_TEST_LOAD_FILE") or os.path.join(os.path.expanduser("~"), ".veri-test-load")
 
 
+def window():
+    """VERI_LOAD_WINDOW: the seconds a timeouts line counts toward a load timeout; 600 for anything but a whole number."""
+    raw = tunables.get("VERI_LOAD_WINDOW", unless_empty=True)
+    return int(raw) if raw.isascii() and raw.isdigit() else 600
+
+
+def recent_other(line, test_file, since):
+    """Whether timeouts <line> is another test file's, appended at or after <since>."""
+    fields = line.split(" ")
+    return len(fields) >= 3 and fields[0].isdigit() and int(fields[0]) >= since and fields[2] != test_file
+
+
 def pytest_runtest_logreport(report):
     if not LEG or os.environ.get("PYTEST_XDIST_WORKER") or not report.failed or not timed_out(report):
         return
@@ -32,7 +44,8 @@ def pytest_runtest_logreport(report):
     test_file = report.nodeid.split("::")[0]
     with open(timeouts_path(), "a+") as f:
         f.seek(0)
-        others = [line for line in f.read().splitlines() if line.split(" ")[2:3] != [test_file]]
+        since = now - window()
+        others = [line for line in f.read().splitlines() if recent_other(line, test_file, since)]
         f.write("%d %d %s %s %d\n" % (now, os.getpid(), test_file, report.nodeid, workers))
     if others:
         lower(LEG["total"] - 2, now)
