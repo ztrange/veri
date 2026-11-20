@@ -142,3 +142,30 @@ def test_4450_it_prints_one_line_per_call_it_makes_naming_the_call_and_its_exit_
     assert [line.rsplit(" exit ", 1)[-1] for line in lines] == ["0", "0", "0", "7"], out
     assert [line.split(" ", 1)[0] for line in lines] == [
         "gh", "detach-command.sh", "detach-command.sh", "step-tick.sh"], out
+
+
+def test_4450_on_a_step_carrying_added_it_passes_added_and_the_step_first_to_skill_edit_step(
+        monkeypatch, run_cli, tmp_path):
+    """Criterion 1: --added "<step>" is the first argument skill-edit-step.sh gets when the line carries ⟦added⟧."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦added⟧\n")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        calls.append((os.path.basename(name), args))
+        return 0, BODY if os.path.basename(name) == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    start = [args for name, args in calls if name == "detach-command.sh" and args[:1] == ("start",)]
+    assert len(start) == 1, calls
+    passed = start[0][3:]
+    assert passed[0] == "--added", start
+    assert "reword the prompt in" in passed[1], start
