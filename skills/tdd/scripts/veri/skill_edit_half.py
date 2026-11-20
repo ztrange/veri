@@ -61,9 +61,11 @@ def run(argv):
         added = ["--added", step.rstrip("\n")] if ledger.is_added(step.rstrip("\n")) else []
         change = ["--change", argv[2]] if argv[1:2] == ["--change"] else []
         fused.call(DETACH, "start", "skill-edit-" + n, STEP, *added, *change, body_file, ledger.unit_of(step), *pins(step, wt), cwd=wt)
+        fused.save_wait(wt, n, "skill-edit-half", "skill-edit-" + n, {})
     waited, out, _ = fused.call(DETACH, "wait", "skill-edit-" + n, cwd=wt)
     if waited == 3:
         return 3
+    os.remove(fused.wait_record(wt, n, "skill-edit-half"))
     code = int(out.strip()) if waited else 0
     if code in (1, 2):
         return code

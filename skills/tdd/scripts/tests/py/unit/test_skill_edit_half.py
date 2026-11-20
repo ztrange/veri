@@ -658,3 +658,63 @@ def test_4450_a_graded_commit_at_or_before_the_ledgers_last_commit_runs_the_step
             [c for c in calls if c[0] == "step-tick.sh"]) == (
         0, True, [("start", "skill-edit-12"), ("wait", "skill-edit-12")],
         [("step-tick.sh", ("12",))]), calls
+
+
+def _skill_edit_worktree(tmp_path):
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "conductor.pid").write_text("4242\n1700000000\n")
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [ ] %s\n" % STEP)
+    return wt
+
+
+def _fake_calls(monkeypatch, calls, waits):
+    """fused.run_script answering each `detach-command.sh wait` with the next of <waits>, every other call with 0."""
+    fused = importlib.import_module("veri.fused")
+    answers = iter(waits)
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "git":
+            return 1, "", ""
+        if base == "detach-command.sh" and args[:1] == ("wait",):
+            return next(answers)
+        return 0, BODY if base == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+
+def test_4450_a_run_out_slice_leaves_the_wait_record_so_the_next_call_starts_no_second_author(
+        monkeypatch, run_cli, tmp_path):
+    """SKH33, SKH34: the first call's run-out slice saves the wait record itself, so a second call by the same
+    conductor makes no gh api call and starts no second skill-edit-step.sh."""
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    _skill_edit_worktree(tmp_path)
+    calls = []
+    _fake_calls(monkeypatch, calls, [(3, "", ""), (3, "", "")])
+
+    first, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+    del calls[:]
+    second, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert (first, second, calls) == (3, 3, [("detach-command.sh", ("wait", "skill-edit-12"))]), calls
+
+
+def test_4450_a_finished_author_removes_the_wait_record_so_the_next_step_starts_its_own_author(
+        monkeypatch, run_cli, tmp_path):
+    """SKH34: the wait record lives only while the author runs; once its wait answers, the next call starts afresh."""
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = _skill_edit_worktree(tmp_path)
+    calls = []
+    _fake_calls(monkeypatch, calls, [(3, "", ""), (0, "", ""), (0, "", "")])
+
+    run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+    run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+    del calls[:]
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    starts = [c for c in calls if c[0] == "detach-command.sh" and c[1][:1] == ("start",)]
+    assert (code, len(starts), (wt / ".tdd" / "issue-12-skill-edit-half-wait").exists()) == (0, 1, False), calls
+
