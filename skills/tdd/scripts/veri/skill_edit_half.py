@@ -9,6 +9,7 @@ import run_start
 
 DETACH = fused.script("detach-command.sh")
 STEP = fused.script("skill-edit-step.sh")
+TICK = fused.script("step-tick.sh")
 USAGE = 'usage: skill-edit-half.sh <n> [--change "<change>"]'
 
 
@@ -26,7 +27,7 @@ def main(argv):
     body_file = os.path.join(".tdd", "issue-%s-body" % n)
     fused.call(DETACH, "start", "skill-edit-" + n, STEP, body_file, ledger.unit_of(step), cwd=wt)
     fused.call(DETACH, "wait", "skill-edit-" + n, cwd=wt)
-    return 0
+    return fused.call(TICK, n, cwd=wt)[0]
 
 
 if __name__ == "__main__":
