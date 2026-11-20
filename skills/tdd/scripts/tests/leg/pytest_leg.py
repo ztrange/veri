@@ -56,6 +56,7 @@ import full_run_lock
 import launch_floor
 import leg_tmpdir
 import pid_file
+import test_budget
 import tunables
 from ceiling import cap_path, read_cap, record_path
 from full_run_lock import legs_dir, waiters_dir
@@ -195,7 +196,8 @@ def budget():
     """(T, its source, for the wait line): T, the workers every live leg on the machine shares, is C0 (c0()), lowered
     to the cap the human set (ceiling.read_cap) when that is below it, the source then naming the cap file beside C0 and
     C0's source (PRD 036.11), and lowered again to a load timeout's T in the load file (load_timeouts.held) when that
-    is below what remains, never below 2 (PRD 036.7). C0 from the core fallback is one stderr line naming the record and `make ceiling`; a cap
+    is below what remains, never below 2 (PRD 036.7); that C narrowed to max(2, min(C, S)), S the needs summed over the
+    unexpired lane entries (test_budget.unexpired, PRD 036.5), while there is one. C0 from the core fallback is one stderr line naming the record and `make ceiling`; a cap
     file it cannot use is one more."""
     total, source = c0()
     if source is None:
@@ -211,7 +213,10 @@ def budget():
     import load_timeouts
     held = load_timeouts.held()
     if held and held < total:
-        return max(2, held), "the load file %s, below %d from %s" % (load_timeouts.load_path(), total, source)
+        total, source = max(2, held), "the load file %s, below %d from %s" % (load_timeouts.load_path(), total, source)
+    needs = test_budget.unexpired()
+    if needs:
+        return max(2, min(total, sum(need for _, need in needs))), source
     return total, source
 
 

@@ -2,6 +2,7 @@
 import importlib
 import os
 import sys
+import time
 
 import pytest
 
@@ -1683,6 +1684,19 @@ def test_4457_a_full_leg_alone_takes_min_of_c0_and_the_cap_on_line_1_of_the_cap_
     left = open(path).read() if os.path.exists(path) else None
 
     assert (code, workers_handed(calls), left, "cap" in err) == (0, workers, cap, False), err
+
+
+def test_4453_a_full_leg_alone_beside_one_unexpired_lane_entry_needing_4_under_a_ceiling_record_of_10_takes_4(pytest_leg, run_cli, monkeypatch, tmp_path, started):
+    on_cores(monkeypatch, 16)
+    measured(10)
+    entries = tmp_path / "veri-test-budget"
+    entries.mkdir()
+    (entries / "main@0123456789abcdef").write_text("4\n%d\n" % (time.time() + 3600))
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(args) or pytest.ExitCode.OK)
+    code, _, err = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(VERI_TEST_BUDGET_DIR=str(entries)))
+
+    assert (code, workers_handed(calls)) == (0, "4"), err
 
 
 @pytest.mark.parametrize("line_1", ["", "six", "1", "0", "-4", "2.5", "\u0663", b"\xff\xfe", "a directory"])
