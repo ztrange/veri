@@ -12,7 +12,7 @@ Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off bu
 unchecked line carrying either does not hold the run back from this step. Each time the run enters this step, first settle
 whether CI stands in for the branch's own full run: run `$S/branch-suite.sh` at the root of this run's worktree and follow its output. Unset,
 `VERI_BRANCH_SUITE` makes it print `ci` when a workflow under `.github/workflows/` triggers on pull requests and `local` otherwise
-(`VERI_CI_ON_PR`, when set, answers that in the tree's place); an explicit `ci` or `local` is printed as given. Wherever this step says
+(`VERI_CI_ON_PR`, when set, answers that in the tree's place, or when it is unset the target `CLAUDE.md`'s `veri: ci on pr:` line); an explicit `ci` or `local` is printed as given. Wherever this step says
 "under `VERI_BRANCH_SUITE=local`" or "under `VERI_BRANCH_SUITE=ci`", the mode is the one that script printed, never the environment read directly.
 Under `VERI_BRANCH_SUITE=ci` the branch gets no local full run here and no `full-tier-time.sh` record: go on to sub-step 1, and the first
 `wait-ci.sh` of sub-step 2 is the branch's full-suite verdict, its first red appending the `⟦ci-repair⟧` step as any CI red does; a run that
@@ -104,7 +104,7 @@ record replaces the earlier time for that command.
 `VERI_REBASED_TIP_SUITE` takes `ci` or `local`. Settle the mode by running
 `$S/rebased-tip-suite.sh` at the root of this run's worktree and follow its output: unset, it prints `ci` when a
 workflow under `.github/workflows/` triggers on pull requests and `local` otherwise (`VERI_CI_ON_PR`,
-when set, answers that in the tree's place), so a repository with no CI on its pull requests gets
+when set, answers that in the tree's place, or when it is unset the target `CLAUDE.md`'s `veri: ci on pr:` line), so a repository with no CI on its pull requests gets
 the local run; an explicit value is printed as given. Wherever this step says "under
 `VERI_REBASED_TIP_SUITE=local`" or "under `ci`", the mode is the one that script printed, never the
 environment read directly. Under `local` the rebased tip gets a
