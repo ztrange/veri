@@ -306,7 +306,7 @@ def test_a_tests_frozen_record_exit_1_is_exit_1_route_revise_red_its_stdout_the_
                                    files={"develop-red-contradicted.out": REROUTED})
 
     assert (code, out.splitlines()[-1]) == (1, "route=revise phase=red")
-    assert fake.call("tests-frozen.sh")[4]["out"] == ".tdd/verify-red.reason"
+    assert fake.call("tests-frozen.sh", "record")[4]["out"] == ".tdd/verify-red.reason"
     assert _red_revise_left(reroute)
 
 

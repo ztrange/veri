@@ -1,0 +1,11 @@
+file 34
+skills/tdd/scripts/veri/reroute.py
+old-b64 56
+Y3dkPXd0LCBvdXQ9Ii50ZGQvdmVyaWZ5LXJlZC5yZWFzb24iKVswXQ==
+new-b64 44
+Y3dkPXd0LCBvdXQ9Ii50ZGQveC5yZWFzb24iKVswXQ==
+context-b64 108
+ICAgICAgICAgICAgICAgICAgICAgICp2YWx1ZXNbInBhdGhzIl0sIGN3ZD13dCwgb3V0PSIudGRkL3ZlcmlmeS1yZWQucmVhc29uIilbMF0=
+command 153
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_reroute.py::test_a_tests_frozen_record_exit_1_is_exit_1_route_revise_red_its_stdout_the_reason_4434
+

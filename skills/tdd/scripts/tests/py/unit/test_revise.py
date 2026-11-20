@@ -461,7 +461,8 @@ def test_a_tests_frozen_record_exit_2_on_a_revised_red_pass_is_exit_2_4433(revis
                                             report=RED_REPORT), argv=("12", "red"), missing=("red-half",))
 
     assert (code, fake.launched()) == (2, ["revise-red-1", "verdict-red"])
-    assert "comment.sh" not in fake.names()[fake.names().index("tests-frozen.sh"):]
+    record_at = next(i for i, c in enumerate(fake.calls) if c[0] == "tests-frozen.sh" and c[1][:1] == ("record",))
+    assert "comment.sh" not in fake.names()[record_at:]
     assert not (revise.wt / ".tdd" / "issue-12-red-half-wait").exists()
 
 
