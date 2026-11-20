@@ -28,7 +28,7 @@ def main(argv):
 
 
 def run(argv):
-    if not argv:
+    if not argv or not argv[0].isdigit() or not (len(argv) == 1 or (len(argv) == 3 and argv[1] == "--change")):
         sys.stderr.write(USAGE + "\n")
         return 2
     n = argv[0]

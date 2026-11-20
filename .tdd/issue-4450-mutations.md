@@ -141,3 +141,21 @@ ICAgIGlmIGNvZGUgaW4gKDEsIDIpOg==
 command 136
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_skill_edit_step_exit_2_stops_with_2_before_step_tick
 
+before 40
+ead8d4dfec49b848584f469b32a4dd70dc96ebc8
+keep 56
+skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py
+command 145
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_exits_2_before_any_call_on_an_unknown_option_given_a_value
+
+file 42
+skills/tdd/scripts/veri/skill_edit_half.py
+old-b64 128
+b3Igbm90IGFyZ3ZbMF0uaXNkaWdpdCgpIG9yIG5vdCAobGVuKGFyZ3YpID09IDEgb3IgKGxlbihhcmd2KSA9PSAzIGFuZCBhcmd2WzFdID09ICItLWNoYW5nZSIpKQ==
+new-b64 0
+
+context-b64 148
+ICAgIGlmIG5vdCBhcmd2IG9yIG5vdCBhcmd2WzBdLmlzZGlnaXQoKSBvciBub3QgKGxlbihhcmd2KSA9PSAxIG9yIChsZW4oYXJndikgPT0gMyBhbmQgYXJndlsxXSA9PSAiLS1jaGFuZ2UiKSk6
+command 145
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_exits_2_before_any_call_on_an_unknown_option_given_a_value
+
