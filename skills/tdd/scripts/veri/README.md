@@ -879,6 +879,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `diff-step.sh`: a ⟦diff-checked⟧ step's clean path in one sliced call, ending on `step-tick.sh`.
 - `go-red-step.sh`: a ⟦go-red⟧ step's one stage, a mutation probe on its named case, ending on `step-tick.sh`.
 - `step-tick.sh`: the close of a step no cycle closes, in one call.
+- `skill-edit-half.sh`: a ⟦skill-edit⟧ step's clean path in one call.
 - `reroute.sh`: `wrong-test-route.sh`'s answer for the open step through the rerouted red, verify-red and the frozen-test re-record, sliced like a fused half.
 - `branch-gate.sh`: the Draft PR step's branch suite, in one call.
 - `pr-prepare.sh`: the Draft PR step's sub-step 1 up to the structural pass's skip, in one call.
