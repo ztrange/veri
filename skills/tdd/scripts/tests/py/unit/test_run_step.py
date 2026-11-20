@@ -758,3 +758,14 @@ def test_4450_a_skill_edit_half_exit_2_with_an_out_file_holding_a_remaining_requ
     assert (code, out.splitlines()[-2:]) == (
         2, ["out=.tdd/skill-edit-12.out refusal=yes",
             "seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step"]), err
+
+
+def test_4450_a_skill_edit_half_exit_2_with_an_out_file_holding_a_guard_refusal_line_prints_refusal_yes(step):
+    (step.wt / ".tdd" / "skill-edit-12.out").write_text("skill-edit-guard.sh: refusing to edit skills/tdd/SKILL.md\n")
+
+    code, out, err, stages = step(ledger=LEDGER % SKILL_EDIT_STEP,
+                                  answers={"skill-edit-half.sh": (2, "stopped at 2 skill-edit-step.sh exit 2\n")})
+
+    assert (code, out.splitlines()[-2:]) == (
+        2, ["out=.tdd/skill-edit-12.out refusal=yes",
+            "seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step"]), err

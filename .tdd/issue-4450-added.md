@@ -5,4 +5,4 @@
 - [ ] skill-edit-half.sh prints one line per call it makes, naming the call and its exit code ⟦criterion 13⟧
 - [x] run-step.sh on a skill-edit-half.sh exit 2 prints `out=.tdd/skill-edit-<n>.out refusal=no` before its seam line when that file is missing, or holds no line starting `Requirements heading names no existing unit: ` ⟦added⟧ ⟦criterion 6⟧
 - [x] run-step.sh on a skill-edit-half.sh exit 2 prints `refusal=yes` when `.tdd/skill-edit-<n>.out` holds any of the other `## Requirements` refusals skill-edit-step.sh prints: `rows for <unit> are not under ## Requirements`, `a ## Requirements row is under no ### unit heading`, `## Requirements has no ### heading for unit: `, `## Requirements table for <unit> lacks its header: ` ⟦added⟧ ⟦criterion 6⟧
-- [ ] run-step.sh on a skill-edit-half.sh exit 2 prints `refusal=yes` when `.tdd/skill-edit-<n>.out` holds a `skill-edit-guard.sh: ` refusal line ⟦added⟧ ⟦criterion 6⟧
+- [x] run-step.sh on a skill-edit-half.sh exit 2 prints `refusal=yes` when `.tdd/skill-edit-<n>.out` holds a `skill-edit-guard.sh: ` refusal line ⟦added⟧ ⟦criterion 6⟧
