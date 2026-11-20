@@ -179,3 +179,30 @@ def test_the_load_file_lowers_t_below_the_cap_file_too(pytest_leg, machine):
         f.write("4\n1763539200\n")
 
     assert pytest_leg.budget()[0] == 4
+
+
+def test_a_load_timeout_within_veri_load_window_seconds_of_the_lowering_on_record_lowers_nothing_more(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(6)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    record = "4\n%d\n" % (time.time() - 60)
+    with open(os.environ["VERI_TEST_LOAD_FILE"], "w") as f:
+        f.write(record)
+    other_file_timed_out()
+    timing_out(monkeypatch, "tests/py/unit/test_x.py::test_slow")
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(), cwd=str(tree))[0]
+
+    assert (code, open(os.environ["VERI_TEST_LOAD_FILE"]).read()) == (1, record)
+
+
+def test_a_load_timeout_past_veri_load_window_seconds_of_the_lowering_on_record_lowers_again(pytest_leg, run_cli, monkeypatch, tmp_path, machine):
+    machine(8)
+    tree = tmp_path / "tree"
+    (tree / ".git").mkdir(parents=True)
+    with open(os.environ["VERI_TEST_LOAD_FILE"], "w") as f:
+        f.write("6\n%d\n" % (time.time() - 700))
+    other_file_timed_out()
+    timing_out(monkeypatch, "tests/py/unit/test_x.py::test_slow")
+    code = run_cli(pytest_leg, ["-q", "some/dir"], env=leg_env(), cwd=str(tree))[0]
+
+    assert (code, open(os.environ["VERI_TEST_LOAD_FILE"]).read().splitlines()[:1]) == (1, ["4"])

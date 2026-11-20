@@ -1,6 +1,6 @@
 """The leg's load-timeout plugin (PRD 036.7): in the leg's controller, appends each case its per-case timeout fails to
 VERI_TEST_TIMEOUTS_FILE and records it as a `case-timeout` event; a load timeout, one appended while the file holds a
-line from another test file, lowers T by 2 through VERI_TEST_LOAD_FILE.
+line from another test file, lowers T by 2 through VERI_TEST_LOAD_FILE, at most once per VERI_LOAD_WINDOW.
 
 PYTEST_DONT_REWRITE: the leg imports this module before pytest loads it as a plugin."""
 import os
@@ -24,14 +24,20 @@ def load_path():
     return tunables.get("VERI_TEST_LOAD_FILE") or os.path.join(os.path.expanduser("~"), ".veri-test-load")
 
 
-def held():
-    """The lowered T on line 1 of the load file when it is a whole number of at least 2, else None."""
+def record():
+    """The load file's first two lines, stripped, as whole numbers or None each."""
     try:
         with open(load_path()) as f:
-            first = f.readline().strip()
+            lines = [f.readline().strip(), f.readline().strip()]
     except FileNotFoundError:
-        return None
-    return int(first) if first.isascii() and first.isdigit() and int(first) >= 2 else None
+        lines = ["", ""]
+    return [int(line) if line.isascii() and line.isdigit() else None for line in lines]
+
+
+def held():
+    """The lowered T on line 1 of the load file when it is a whole number of at least 2, else None."""
+    t = record()[0]
+    return t if t is not None and t >= 2 else None
 
 
 def window():
@@ -57,7 +63,8 @@ def pytest_runtest_logreport(report):
         since = now - window()
         others = [line for line in f.read().splitlines() if recent_other(line, test_file, since)]
         f.write("%d %d %s %s %d\n" % (now, os.getpid(), test_file, report.nodeid, workers))
-    if others:
+    lowered_at = record()[1]
+    if others and (lowered_at is None or lowered_at < since):
         lower(max(2, LEG["total"] - 2), now)
     event.mark("", event.context(tunables.environment()), "case-timeout", ["nodeid=" + report.nodeid, "workers=%d" % workers])
 
