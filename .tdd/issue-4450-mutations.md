@@ -213,3 +213,14 @@ ICAgIF8sIHN1YmplY3RzLCBfID0gZnVzZWQuY2FsbCgiZ2l0IiwgImxvZyIsICItLWZvcm1hdD0lcyIs
 command 165
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_a_graded_commit_at_or_before_the_ledgers_last_commit_runs_the_step_from_its_start
 
+file 42
+skills/tdd/scripts/veri/skill_edit_half.py
+old-b64 24
+aWYgY29kZSBpbiAoMSwgMik6
+new-b64 12
+aWYgRmFsc2U6
+context-b64 32
+ICAgIGlmIGNvZGUgaW4gKDEsIDIpOg==
+command 152
+sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_skill_edit_step_exit_1_stops_with_1_before_step_tick
+
