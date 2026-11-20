@@ -55,6 +55,13 @@ or `⟦human-owed⟧` line, even where check 1 alone would pass it: a Red leaf h
 only answer `UNTESTABLE`, and the run bails. Also REJECT a plan that marks a go-red guard step
 `⟦human-owed⟧`: that leaves a check an agent can do waiting on a human.
 
+A go-red guard is one line, ``- [ ] <criterion>, probe `<file>` `<old>` → `<new>` on `<case>`
+⟦go-red⟧ ⟦criterion k⟧``: the break (`<old>` replaced by `<new>` in `<file>`, none of them holding
+a backtick, `<new>` possibly empty) and the existing case it must turn red. For check 1 such a line
+delivers criterion k. REJECT a go-red guard planned as a Red/Green step instead of that line, and a
+`⟦go-red⟧` line whose probe lacks that form: a Red leaf handed the guard can only answer
+`UNTESTABLE`, and a line without the form stops the run before any probe.
+
 A third shape has no test to leave behind: a diff-property criterion, one that is a property
 of the branch's own diff — something removed, something left unchanged, a change confined to
 named lines — is one `⟦diff-checked⟧ ⟦criterion k⟧` line, judged against the diff by a blind
