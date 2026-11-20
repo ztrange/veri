@@ -5,7 +5,7 @@
 - [x] step-tick.sh on an open skill-edit step stops with exit 1 at its tree check, before the tick commit, when the tree holds a change outside .tdd/ ⟦criterion 9⟧
 - [x] run-step.sh <n> on an open skill-edit step calls `skill-edit-half.sh <n>` as its one stage, never passing --change, in place of the reason=kind seam: skill-edit-half is a key of run_step.STAGES, KINDS's skill-edit entry names it and keeps its SKILL-EDIT.md anchor, and it is not a key of run_step.PHASES ⟦criterion 10⟧
 - [x] run-step.sh --hand skill-edit-half on an open skill-edit step stops before that stage with `seam=skill-edit-half code=1 reason=hand`, never calling it ⟦criterion 10⟧
-- [ ] run-step.sh --from skill-edit-half on an open skill-edit step starts at that stage and calls skill-edit-half.sh ⟦criterion 10⟧
+- [x] run-step.sh --from skill-edit-half on an open skill-edit step starts at that stage and calls skill-edit-half.sh ⟦criterion 10⟧
 - [ ] run-step.sh on a skill-edit-half.sh exit 1 ends on `seam=skill-edit-half code=1 next=SKILL-EDIT.md#The skill-edit step`, exiting 1 and calling no revise.sh ⟦criterion 6⟧
 - [ ] run-step.sh on a skill-edit-half.sh exit 2 prints `out=.tdd/skill-edit-<n>.out refusal=yes` on the line before its `seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step` last line when that file holds a refusal message skill-edit-step.sh prints ⟦criterion 6⟧
 - [ ] run-step.sh on a skill-edit-half.sh exit 2 prints `out=.tdd/skill-edit-<n>.out refusal=no` before its seam line when that file holds no refusal message, or is missing ⟦criterion 6⟧
