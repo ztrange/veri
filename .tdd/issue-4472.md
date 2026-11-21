@@ -43,7 +43,7 @@
 - [x] ⟦skill-edit⟧ `skills/tdd/DRAFT-PR.md` states the `verify-branch` stage: position, inputs, PASS, REJECT and its repair step, `VERI_BRANCH_REPAIRS` and the `branch-rejected` bail, the no-verdict route, the skip, the `next=` return to the cycle loop (rows DP361, DP362, DP363) ⟦criterion 21⟧
 - [ ] `skills/tdd/SKILL.md` grows by at most 0 B net: no step of the run edits it, so `git diff <branch-base>..HEAD -- skills/tdd/SKILL.md` is empty ⟦human-owed⟧ ⟦criterion 22⟧
 - [x] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md` names the `branch` phase of `build-verify-prompt.sh` and `verify-branch.sh` among `run-pr.sh`'s stages, after `pr-checks` and before the title seam (row SC<next>) ⟦criterion 23⟧
-- [ ] ⟦skill-edit⟧ `skills/tdd/BAIL.md` lists `branch-rejected`, exit 1, a process failure (row BL179) ⟦criterion 23⟧
+- [x] ⟦skill-edit⟧ `skills/tdd/BAIL.md` lists `branch-rejected`, exit 1, a process failure (row BL179) ⟦criterion 23⟧
 - [ ] ⟦skill-edit⟧ `CLAUDE.md`'s budget invariant reads twelve budgets on twelve axes naming `VERI_BRANCH_REPAIRS`, and its blind-verifier invariant lists `branch` among the `VERI_SKIP_VERIFY` phases (rows CM310, CM311) ⟦criterion 24⟧
 - [ ] ⟦skill-edit⟧ `skills/tdd/PREFLIGHT.md` step 5 lists `VERI_BRANCH_REPAIRS` among the tunables it checks and `branch` among the `VERI_SKIP_VERIFY` phases (row PF73) ⟦criterion 24⟧
 - [ ] `docs/adr/0033-blind-verifiers-can-be-switched-off-per-phase.md`'s phase list gains `branch`, `plan` staying refused ⟦diff-checked⟧ ⟦criterion 15⟧
