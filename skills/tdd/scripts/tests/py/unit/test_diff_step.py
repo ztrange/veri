@@ -467,6 +467,25 @@ def test_4512_a_repin_step_whose_commits_change_no_test_file_is_a_verify_diff_re
     assert "step-tick.sh" not in fake.names()
 
 
+class MixedEditHistory(NoTestEditHistory):
+    """A re-pin step whose net diff since STEP_BASE holds the edited case of the pin beside a non-test path, the
+    mutation record it re-arms; pin-recheck.sh finds nothing from any base."""
+    changed = ".tdd/mutations/tests_test_a.py.json\ntests/test_a.py\nskills/tdd/scripts/veri/mutation_record.py\n"
+
+
+def test_4512_a_repin_step_whose_net_diff_holds_a_test_file_beside_non_test_paths_ticks(diff):
+    """One test file in a re-pin step's net diff is its deliverable: non-test paths beside it, a mutation record or
+    production, do not make it a REJECT, so the step ticks and no reason is left for revise."""
+    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    code, out, err, fake = diff(step=REPIN, fake=MixedEditHistory())
+
+    assert code == 0, err
+    assert "step-tick.sh" in fake.names()
+    assert not (diff.wt / ".tdd" / "verify-diff.reason").exists()
+    assert _rejected(diff) is None
+
+
 class FailingDiffHistory(RepinHistory):
     """A re-pin step whose `git diff --name-only` fails, exit 1: its net diff cannot be read."""
 
