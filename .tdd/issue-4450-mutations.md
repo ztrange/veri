@@ -61,6 +61,8 @@ context-b64 132
 ICAgIGZ1c2VkLmNhbGwoREVUQUNILCAic3RhcnQiLCAic2tpbGwtZWRpdC0iICsgbiwgU1RFUCwgYm9keV9maWxlLCBsZWRnZXIudW5pdF9vZihzdGVwKSwgY3dkPXd0KQ==
 command 166
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_the_detached_start_is_given_skill_edit_step_then_the_body_file_then_the_steps_unit
+retired 148
+old text gone: #4450's review-fix commits 00c02d6d39, c6ecb02526, 4c0a5e44a0 and 1c329e1e7a rewrote these lines after the record was written (#4513)
 
 before 40
 ead8d4dfec49b848584f469b32a4dd70dc96ebc8
@@ -122,6 +124,8 @@ context-b64 92
 ICAgIGlmIGZ1c2VkLmNhbGwoREVUQUNILCAid2FpdCIsICJza2lsbC1lZGl0LSIgKyBuLCBjd2Q9d3QpWzBdID09IDM6
 command 164
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_when_skill_edit_step_exits_3_it_calls_step_tick_as_on_exit_0_and_does_not_exit_3
+retired 148
+old text gone: #4450's review-fix commits 00c02d6d39, c6ecb02526, 4c0a5e44a0 and 1c329e1e7a rewrote these lines after the record was written (#4513)
 
 before 40
 ead8d4dfec49b848584f469b32a4dd70dc96ebc8
@@ -140,6 +144,8 @@ context-b64 32
 ICAgIGlmIGNvZGUgaW4gKDEsIDIpOg==
 command 136
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_skill_edit_step_exit_2_stops_with_2_before_step_tick
+retired 148
+old text gone: #4450's review-fix commits 00c02d6d39, c6ecb02526, 4c0a5e44a0 and 1c329e1e7a rewrote these lines after the record was written (#4513)
 
 before 40
 ead8d4dfec49b848584f469b32a4dd70dc96ebc8
@@ -194,6 +200,8 @@ context-b64 32
 ICAgIGlmIGNvZGUgaW4gKDEsIDIpOg==
 command 177
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_it_never_prints_what_skill_edit_step_wrote_to_its_out_file_leaf_output_or_grader_fail_reasons
+retired 148
+old text gone: #4450's review-fix commits 00c02d6d39, c6ecb02526, 4c0a5e44a0 and 1c329e1e7a rewrote these lines after the record was written (#4513)
 
 before 40
 ead8d4dfec49b848584f469b32a4dd70dc96ebc8
@@ -223,6 +231,8 @@ context-b64 32
 ICAgIGlmIGNvZGUgaW4gKDEsIDIpOg==
 command 152
 sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py::test_4450_skill_edit_step_exit_1_stops_with_1_before_step_tick
+retired 148
+old text gone: #4450's review-fix commits 00c02d6d39, c6ecb02526, 4c0a5e44a0 and 1c329e1e7a rewrote these lines after the record was written (#4513)
 
 file 42
 skills/tdd/scripts/veri/skill_edit_half.py
