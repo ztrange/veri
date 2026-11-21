@@ -3476,13 +3476,13 @@ def test_queued_merges_reports_a_skip_suite_line_by_its_pr_url_and_counts_no_loc
     assert dispatch.queued_merges() == [url]
 
 
-def test_4455_a_queue_growing_over_the_last_3_polls_prints_the_queueing_line_and_exits_0_after_that_polls_launch(dispatch):
-    world = FakeWorld({"waiters": 1}, {"waiters": 2}, {"waiters": 3, "queue": ["15"], "budget": (8, 6)}, {})
+def test_4527_a_queue_growing_over_the_last_3_polls_prints_the_queueing_line_after_that_polls_launch_and_keeps_watching(dispatch):
+    world = FakeWorld({"waiters": 1}, {"waiters": 2}, {"waiters": 3, "queue": ["15"], "budget": (8, 6)})
 
     code = dispatch.main(["--target", "2"], world=world)
 
     assert (code, world.launched, world.waits, "".join(world.said)) == (
-        0, ["15"], 2, "queueing 3 waiting for T=8, 6 workers in use: a lower N would shorten the wait\n")
+        None, ["15"], 3, "queueing 3 waiting for T=8, 6 workers in use: a lower N would shorten the wait\n")
 
 
 @pytest.mark.parametrize("counts", [(2, 2, 2), (3, 2, 1), (0, 1, 2), (2, 0, 3)], ids=["flat", "shrinking", "a-zero-first", "a-zero-between"])
@@ -3501,7 +3501,7 @@ def test_4455_veri_queue_polls_2_prints_the_queueing_line_once_the_last_2_polls_
     code = dispatch.main(["--target", "2"], world=world)
 
     assert (code, world.waits, "".join(world.said)) == (
-        0, 1, "queueing 2 waiting for T=8, 0 workers in use: a lower N would shorten the wait\n")
+        None, 3, "queueing 2 waiting for T=8, 0 workers in use: a lower N would shorten the wait\n")
 
 
 @pytest.mark.parametrize("value", ["1", "0", "two", "-3"])
@@ -3522,7 +3522,7 @@ def test_4455_a_restarted_dispatch_continues_the_waiter_counts_dispatch_notified
     code = dispatch.main(["--target", "2"], world=restarted)
 
     assert (quiet.notified_lines, code, "".join(restarted.said)) == (
-        ["t-lowered 1700000000", "queue 1 1"], 0,
+        ["t-lowered 1700000000", "queue 1 1"], None,
         "queueing 3 waiting for T=8, 0 workers in use: a lower N would shorten the wait\n")
 
 
@@ -3560,7 +3560,7 @@ def test_4455_once_printed_the_queueing_line_is_not_printed_again_by_a_restarted
 
     code = dispatch.main(["--target", "2"], world=drained)
 
-    assert (len(first.said), growing.said, code, drained.waits, len(drained.said)) == (1, [], 0, 3, 1)
+    assert (len(first.said), growing.said, code, drained.waits, len(drained.said)) == (1, [], None, 5, 1)
 
 
 def test_4455_the_real_world_counts_only_waiter_entries_alive_under_their_start_time_never_core_wait_events_or_wait_markers(dispatch, monkeypatch, tmp_path, fake_processes):

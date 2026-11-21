@@ -631,7 +631,6 @@ def _queueing(state, world):
     if growing and not notified:
         total, in_use = world.test_budget()
         world.say(f"queueing {waiting} waiting for T={total}, {in_use} workers in use: a lower N would shorten the wait\n")
-        return 0
     return None
 
 
