@@ -139,3 +139,44 @@ def test_a_green_half_wait_record_no_revise_passed_still_has_no_open_step_exit_2
                                     ledger="# Plan for #12\n\n- [ ] %s\n" % STEP)
 
     assert (code, "no open step for green-half" in err, record, calls) == (2, True, None, [])
+
+
+def revised_green_wait(wt):
+    """green-half's wait record as revise.sh's PASS re-saves it (`revised`), for issue 12."""
+    import json
+    values = {"test_path": "tests/test_h.py", "target_test": "tests/test_h.py::test_one", "revised": True}
+    (wt / ".tdd" / "issue-12-green-half-wait").write_text(json.dumps({"conductor": None, "at": "verdict-green",
+                                                                      "values": values}))
+
+
+@pytest.mark.parametrize("outcome, expected", [
+    ("stop", 4),
+    ("waiting", 3),
+])
+def test_a_revised_green_half_that_does_not_finish_hands_back_its_exit_and_writes_no_record_4551(
+        settle, monkeypatch, outcome, expected):
+    """Green 3 stopped (inner exit 4) or still waiting on its verdict (3): seam-settle returns green-half's own
+    exit, not a `no open step` 2, and writes no record."""
+    fused = importlib.import_module("veri.fused")
+    revised_green_wait(settle.wt)
+
+    def run(n):
+        if outcome == "stop":
+            raise fused.Stop("green-half.stop-requested", "stop-requested.sh exit 4", 4)
+        raise fused.Waiting("verdict-green")
+
+    monkeypatch.setattr(importlib.import_module("veri.green_half"), "run", run)
+    code, out, err, record = settle("green-half", "test_path=tests/test_h.py",
+                                    ledger="# Plan for #12\n\n- [ ] %s\n" % STEP)
+
+    assert (code, record, "no open step" in err) == (expected, None, False)
+
+
+def test_refactor_half_with_no_open_step_never_finishes_a_revised_green_half_4551(settle, monkeypatch):
+    """Only green-half's settle finishes a revised Green 3; refactor-half's still refuses with no open step."""
+    revised_green_wait(settle.wt)
+    ran = []
+    monkeypatch.setattr(importlib.import_module("veri.green_half"), "run", lambda n: ran.append(n) or 0)
+    code, out, err, record = settle("refactor-half", ledger="# Plan for #12\n\n- [ ] %s\n" % STEP)
+
+    assert (code, "no open step for refactor-half" in err, record, ran) == (2, True, None, [])
