@@ -8,7 +8,7 @@ import fused
 import fused_step
 import run_dir
 import tunables
-from ledger import STEP_RE, carries_mark, read_ledger
+from ledger import STEP_RE, added_file, carries_mark, read_ledger
 
 LEAF = "verdict-branch"
 OWNER = "verify-branch"
@@ -70,7 +70,7 @@ def repair(n, wt):
     step = "fix what verify-branch rejected: %s ⟦diff-checked⟧ ⟦branch-repair⟧" % (reason or "see .tdd/verify-branch.reason")
     code = add_ledger_step.add(ledger, "after", steps[-1], [step])
     if code == 0:
-        paths = [ledger, add_ledger_step.added_file(ledger)]
+        paths = [ledger, added_file(ledger)]
         fused.checked("1", "git", "add", "--", *paths, cwd=wt)
         fused.checked("1", "git", "commit", "-q", "-m", "plan: verify-branch repair step", "--", *paths, cwd=wt)
     return code
