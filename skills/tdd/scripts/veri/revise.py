@@ -141,7 +141,8 @@ def attempt(n, wt, settled, step, values):
     fast = settled["fast_cmd"]
     leaf = "revise-%s-%d" % (phase, k)
     fused.checked("2", fused.script("build-develop-prompt.sh"), "revise", phase, SPEC % n, step, fast,
-                  ".tdd/verify-%s.reason" % phase, fast, cwd=wt, out=".tdd/%s.prompt" % leaf)
+                  ".tdd/verify-%s.reason" % phase, fast, cwd=wt, env=fused.step_env(n, step),
+                  out=".tdd/%s.prompt" % leaf)
     fused.checked("2", fused.script("comment.sh"), n, "revise", phase, str(k), cwd=wt)
     fused.mark("2", wt, n, step, "revise", "budget=" + budget,
                VERI_PHASE=phase, VERI_ATTEMPT=str(k))
