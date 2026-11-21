@@ -56,7 +56,11 @@ def holding(**overrides):
 def check(ready_check, run_cli, fake_processes, tmp_path, **overrides):
     """ready-check.sh run over <tmp_path> under holding(**overrides): (exit code, stdout lines)."""
     fake_processes.answers(holding(**overrides))
-    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    home = tmp_path / "scratch-home"
+    home.mkdir(exist_ok=True)
+    (tmp_path / ".claude").mkdir(exist_ok=True)
+    (tmp_path / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"defaultMode": "bypassPermissions"}}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
     return code, out.splitlines()
 
 
