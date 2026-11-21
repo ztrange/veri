@@ -19,7 +19,8 @@ given and nothing otherwise. Print the script's table and its last line as it pr
 
 The script runs the fast and full test tiers on the default branch's tip, so one call can take
 up to ten minutes: give the command a 600000 ms timeout. The check also makes one paid Haiku
-call, about $0.004, to prove a leaf may bypass permission prompts.
+call, about $0.004, to prove a leaf may bypass permission prompts, including for a multi-line
+command with `$'…'` quoting and a parameter expansion, the shape the dev session's subagents run.
 A `subagent permissions` row checks that the dev session's subagents may run git, the repo's
 test command and `$S` scripts without a permission prompt; when it fails, the script prints
 the allow rules to add.
