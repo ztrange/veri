@@ -37,6 +37,21 @@ def first_step(wt, n, chosen):
     return next((r.text for r in ledger_steps(ledger.read_ledger(run_dir.ledger(wt, n))) if chosen(r)), None)
 
 
+def green_tick(stage_label, wt, n, rev):
+    """The newest ledger commit reachable from <rev> that changes a line other than a re-pin step's (one starting
+    ledger.REPIN_STEP): the green tick of the step its re-pins re-arm, the plan and tick commits of those re-pins passed
+    over (#4511, #4510). None when no commit does."""
+    log = checked(stage_label, "git", "log", "--format=%x00%H", "-p", "--unified=0", rev, "--", run_dir.ledger("", n),
+                  cwd=wt)
+    for entry in log.split("\0")[1:]:
+        sha, _, patch = entry.partition("\n")
+        changed = [line for line in patch.splitlines() if line.startswith(("+", "-"))
+                   and not line.startswith(("+++ ", "--- "))]
+        if any(ledger.REPIN_STEP not in line for line in changed):
+            return sha.strip()
+    return None
+
+
 def cost_check(wt, step):
     """*The step's cost check* after a leaf's wait (RH4): step-cost.sh exit 3 goes on and 2 stops; a figure over the
     first line step-budget.sh prints stops with exit 1 at `cost-check`, unless the journal already holds the step's
