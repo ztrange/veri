@@ -841,3 +841,27 @@ def test_4432_a_stacked_run_called_again_with_its_seam_current_calls_no_stage_an
     assert calls == []
     assert out.splitlines()[-1] == "seam=pr-ready-wait code=1 reason=stacked next=DRAFT-PR.md#4. Draft PR"
     assert code == 1, err
+
+
+def test_4472_run_pr_calls_verify_branch_after_pr_checks_and_it_prints_usage_with_no_argument(monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+
+    def spy(name, *args, **kw):
+        calls.append((os.path.basename(name), args))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+
+    run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert calls == [(s, ("12",)) for s in ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh", "verify-branch.sh")]
+    verify_branch = importlib.import_module("veri.verify_branch")
+    code, out, err = run_cli(verify_branch, [])
+    assert code == 2
+    assert "usage: verify-branch.sh <n>" in err

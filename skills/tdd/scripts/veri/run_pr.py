@@ -13,7 +13,7 @@ ANCHOR = "DRAFT-PR.md#4. Draft PR"
 TITLE = "seam=pr-ready-wait code=1 reason=title next=%s\n" % ANCHOR
 STACKED = "seam=pr-ready-wait code=1 reason=stacked next=%s\n" % ANCHOR
 BODY = "seam=done code=1 reason=body next=%s\n" % ANCHOR
-EARLY = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")
+EARLY = ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh", "verify-branch.sh")
 LATE = ("pr-ready-wait.sh", "pr-finish.sh")
 CALLS = EARLY + LATE
 
