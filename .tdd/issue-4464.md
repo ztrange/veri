@@ -8,5 +8,5 @@
 - [x] `skills/vhandoff/SKILL.md` drops its branch for a session with `start_session`, so `/vhandoff dev` writes the handoff in every session, with H11 dropped and its new row, graded by its rows ⟦skill-edit⟧ ⟦criterion 6⟧
 - [x] `operator/PRINCIPLES.md`'s P13 paragraph names no resetter among the sessions a message may go to and makes no exception for a recovered role's `ack`, graded by its reworded P2, P13, P17 and P18 rows ⟦skill-edit⟧ ⟦criterion 7⟧
 - [x] the branch's diff changes no sentence of `skills/vdev/SKILL.md` about question sessions and none of rows D84–D96, D100, D150, keeping c6f1338453's restoration of *Answers*' sentence "After a reset, recovery sorts each of your lane's question files…" unchanged ⟦diff-checked⟧ ⟦criterion 8⟧
-- [ ] `skills/vdev/SKILL.md`, its *Answers* question-session sentence restored by c6f1338453, regraded by its rows ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 9⟧
+- [x] `skills/vdev/SKILL.md`, its *Answers* question-session sentence restored by c6f1338453, regraded by its rows ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 9⟧
 - [ ] the full suite passes, `prose-owed.sh` exiting 0 with every changed unit regraded ⟦full-suite⟧ ⟦criterion 9⟧

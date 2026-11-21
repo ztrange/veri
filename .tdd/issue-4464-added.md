@@ -1,2 +1,2 @@
-- [ ] `skills/vdev/SKILL.md`, its *Answers* question-session sentence restored by c6f1338453, regraded by its rows ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 9⟧
+- [x] `skills/vdev/SKILL.md`, its *Answers* question-session sentence restored by c6f1338453, regraded by its rows ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 9⟧
 - [x] the branch's diff changes no sentence of `skills/vdev/SKILL.md` about question sessions and none of rows D84–D96, D100, D150, keeping c6f1338453's restoration of *Answers*' sentence "After a reset, recovery sorts each of your lane's question files…" unchanged ⟦diff-checked⟧ ⟦criterion 8⟧
