@@ -517,3 +517,21 @@ def test_4496_only_a_red_answer_restores_production_before_its_leaf_launches(rer
 
     assert fake.launched() == [leaf]
     assert ("restore-production.sh" in fake.names()) is restores
+
+
+def test_4496_an_answer_it_does_not_run_calls_no_restore_production_leaving_the_edit_in_the_worktree(reroute):
+    """Stopped at route, nothing launches and production is never restored: green's edit is still there at exit."""
+    prod = reroute.wt / "src_prod.py"
+    prod.write_text("green's edit\n")
+
+    class Restoring(Fake):
+        def __call__(self, name, *args, **kw):
+            if os.path.basename(name) == "restore-production.sh":
+                prod.write_text("HEAD\n")
+            return super().__call__(name, *args, **kw)
+
+    fake = Restoring({("wrong-test-route.sh", None): (0, "later two\n")})
+    code, out, err, fake = reroute(fake=fake)
+
+    assert (code, fake.launched(), "restore-production.sh" in fake.names()) == (1, [], False)
+    assert prod.read_text() == "green's edit\n"
