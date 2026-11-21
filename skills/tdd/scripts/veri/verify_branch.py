@@ -21,6 +21,10 @@ def main(argv):
     if got is None:
         return 2
     settled, wt = got
+    tip = fused.checked("1", "git", "rev-parse", "HEAD", cwd=wt).strip()
+    marker = os.path.join(wt, ".tdd/issue-%s-branch-verified" % n)
+    if os.path.exists(marker) and open(marker).read().strip() == tip:
+        return 0
     try:
         if fused.load_wait(wt, n, OWNER) is None:
             launch(n, wt, settled)
@@ -32,7 +36,7 @@ def main(argv):
         sys.stdout.write("waiting on %s\n" % waiting.name)
         return 3
     tip = fused.checked("1", "git", "rev-parse", "HEAD", cwd=wt).strip()
-    with open(os.path.join(wt, ".tdd/issue-%s-branch-verified" % n), "w") as f:
+    with open(marker, "w") as f:
         f.write(tip + "\n")
     return 0
 
