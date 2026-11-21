@@ -265,3 +265,31 @@ def test_4472_the_branch_rejected_bail_hands_bail_the_verifiers_reason_file_as_i
     args = bails[0]
     assert args[:2] == ["12", "branch-rejected"]
     assert args[args.index("--note-file") + 1:][:1] == [".tdd/verify-branch.reason"]
+
+
+def test_4472_with_veri_branch_repairs_2_and_one_branch_repair_step_in_the_ledger_a_reject_appends_a_second_repair_step_instead_of_bailing(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "- [x] a gear meshes ⟦criterion 1⟧\n"
+        "- [ ] fix the branch: z ⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion 1⟧\n")
+    monkeypatch.setenv("VERI_BRANCH_REPAIRS", "2")
+    calls = []
+
+    def call(name, *args, **kw):
+        calls.append(name.rsplit("/", 1)[-1])
+        return (1, "", "") if name.endswith("wait-leaf.sh") else (0, "", "")
+
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: None)
+    monkeypatch.setattr(fused, "call", call)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "", ""))
+    run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    ledger = (wt / ".tdd" / "issue-12.md").read_text()
+    assert (ledger.count("⟦branch-repair⟧"), "bail.sh" in calls) == (2, False)
