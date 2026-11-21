@@ -147,7 +147,7 @@ def roster_of(problems, spec, reason, run_cli, build_develop_prompt, build_verif
     roster += [
         ("verify-red", verify("red", spec, "tests/zorblat.test.sh", "zorblat case")),
         ("verify-green", verify("--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
-        ("verify-refactor", verify("--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", sha)),
+        ("verify-refactor", verify("--fast-cmd", "make unit", "--step-green", sha, "refactor", spec, "tests/zorblat.test.sh", sha)),
         ("verify-pin", verify("--branch-base", "abc1234", "pin", spec, "tests/zorblat.test.sh", "zorblat case")),
         ("verify-transform", verify("--fast-cmd", "make unit", "transform", spec, "tests/zorblat.test.sh", sha)),
         ("verify-diff", verify("--step", step, "--fast-cmd", "make unit", "--branch-base", sha, "diff", spec, "4567def")),

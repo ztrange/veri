@@ -199,7 +199,7 @@ def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_a
     }
 
     admitted = [run(argv)[::2] for argv in (
-        ["--fast-cmd", "m", "refactor", s, "t", "0123456789abcdef0123456789abcdef01234567"],
+        ["--step-green", "0123abc", "--fast-cmd", "m", "refactor", s, "t", "0123456789abcdef0123456789abcdef01234567"],
         ["--fast-cmd", "m", "transform", s, "t", "0123abc"],
         ["rebase", s, "0123abc", "0123abd"],
         ["--step", "s", "--fast-cmd", "m", "--branch-base", "0123abc", "diff", s, "0123abd"],
@@ -506,7 +506,7 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
     calls = {
         "red": ["red", s, testpath, "test_slugify_lowercases"],
         "green": ["--fast-cmd", "make unit", "green", s, testpath, "test_slugify_lowercases"],
-        "refactor": ["--fast-cmd", "make unit", "refactor", s, testpath, "0123abc"],
+        "refactor": ["--step-green", "0123abc", "--fast-cmd", "make unit", "refactor", s, testpath, "0123abc"],
         "pin": ["--branch-base", "3f9a1c0", "pin", s, testpath, "test_slugify_lowercases"],
     }
 
@@ -570,6 +570,7 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
 
     def call(phase, step_args=()):
         fast = ["--fast-cmd", "make unit"] if phase in ("green", "refactor") else []
+        fast += ["--step-green", "0123abc"] if phase == "refactor" else []
         slot4 = "0123abc" if phase == "refactor" else "test_slugify_lowercases"
         base = ["--branch-base", "3f9a1c0"] if phase == "pin" else []
         return [*step_args, *fast, *base, phase, s, testpath, slot4]
@@ -579,7 +580,7 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
 
     monkeypatch.delenv("VERI_STEP", raising=False)
     prompts = {phase: run(call(phase))[1] for phase in every}
-    with_base = run(["--fast-cmd", "make unit", "refactor", s, testpath, base_sha])
+    with_base = run(["--step-green", base_sha, "--fast-cmd", "make unit", "refactor", s, testpath, base_sha])
     refusals = {label: run(["--fast-cmd", "make unit", "refactor", s, testpath, *sha])[::2]
                 for label, sha in (("missing", []), ("short", ["abc123"]), ("uppercase", ["3F9A1C07E2B4"]),
                                    ("with-text", ["3f9a1c07e2b4 because it tidies"]),
@@ -630,7 +631,7 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
 
     monkeypatch.delenv("VERI_STEP", raising=False)
     monkeypatch.delenv("VERI_RATIONALE", raising=False)
-    with_base = run(["--fast-cmd", "make unit", "refactor", s, testpath, base_sha])[1]
+    with_base = run(["--step-green", base_sha, "--fast-cmd", "make unit", "refactor", s, testpath, base_sha])[1]
     no_ledger = run(["plan", s])[:2]
     missing_ledger = run(["plan", s, str(tmp_path / "absent-ledger.md")])[:2]
     rb_onto, rb_pre = "8d05a4410c2e", "278252a1b9f3"
@@ -815,7 +816,7 @@ def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_f
     argvs = {
         "red": ["red", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
         "green": [*fast, "green", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
-        "refactor": [*fast, "refactor", s, "tests/zorblat.test.sh", sha],
+        "refactor": [*fast, "--step-green", sha, "refactor", s, "tests/zorblat.test.sh", sha],
         "pin": ["--branch-base", "3f9a1c0", "pin", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
         "plan": ["plan", s, str(ledger)],
         "rebase": ["rebase", s, sha, "4567def"],
@@ -912,7 +913,8 @@ def test_main_renders_the_fixture_repair_paragraph_in_the_green_prompt_of_a_mark
     unmarked = "the case passes under load ⟦criterion 1⟧"
 
     def rendered(step, phase, third):
-        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", phase, str(spec),
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit",
+                                         *(["--step-green", "0123abc"] if phase == "refactor" else []), phase, str(spec),
                                          "tests/zorblat.test.sh", third])
         out, _ = capsysbinary.readouterr()
         assert code == 0
@@ -1016,7 +1018,8 @@ def test_main_admits_an_expand_migrate_contract_a_or_contract_b_base_sha_only_as
     assert refused == {(phase, value): bad_sha(phase, value)
                        for phase in phases for value in (b"0123ABC", b"012345", b"0123abc\n", b"")}
 
-    admitted = {phase: run(["--fast-cmd", "m", phase, s, "t", "0123456789abcdef0123456789abcdef01234567"])[::2]
+    admitted = {phase: run(["--fast-cmd", "m", *(["--step-green", "0123abc"] if phase == "refactor" else []),
+                            phase, s, "t", "0123456789abcdef0123456789abcdef01234567"])[::2]
                 for phase in phases}
     assert admitted == dict.fromkeys(phases, (0, b""))
 
@@ -1049,7 +1052,8 @@ def test_main_renders_a_check_that_every_case_the_step_asks_for_exists_and_passe
             "⟦phases: expand, migrate, contract-a⟧ ⟦criterion 2⟧")
 
     def rendered(phase):
-        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", phase, str(spec),
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit",
+                                         *(["--step-green", "0123abc"] if phase == "refactor" else []), phase, str(spec),
                                          "tests/py/test_zorblat.py", "0123abc"])
         out, _ = capsysbinary.readouterr()
         return code, re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
@@ -1070,7 +1074,8 @@ def test_main_renders_no_every_case_exists_check_in_the_expand_or_migrate_prompt
             "⟦phases: expand, migrate, contract-a⟧ ⟦criterion 2⟧")
 
     def rendered(phase):
-        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", phase, str(spec),
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit",
+                                         *(["--step-green", "0123abc"] if phase == "refactor" else []), phase, str(spec),
                                          "tests/py/test_zorblat.py", "0123abc"])
         out, _ = capsysbinary.readouterr()
         return code, re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
@@ -1089,7 +1094,8 @@ def test_main_renders_the_expand_migrate_contract_a_and_contract_b_verify_prompt
             "⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 2⟧")
 
     def rendered(phase):
-        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", phase, str(spec),
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit",
+                                         *(["--step-green", "0123abc"] if phase == "refactor" else []), phase, str(spec),
                                          "tests/py/test_zorblat.py", "0123abc"])
         out, err = capsysbinary.readouterr()
         return code, err, "## Phase: verify-%s" % phase in out.decode("utf-8", "surrogateescape")
@@ -1199,6 +1205,7 @@ def test_verify_plan_carries_only_the_issue_spec_and_the_ledger_and_no_cycle_pha
         problems.append("the plan prompt carries the fourth positional")
     for phase in ("red", "green", "refactor", "pin"):
         fast = ["--fast-cmd", "make unit"] if phase in ("green", "refactor") else []
+        fast += ["--step-green", "0123abc"] if phase == "refactor" else []
         fast += ["--branch-base", "3f9a1c0"] if phase == "pin" else []
         slot = "0123abc" if phase == "refactor" else "test_slugify_lowercases"
         _, cycle, _ = run_cli(build_verify_prompt, [*fast, phase, spec, str(ledger), slot])
@@ -1354,7 +1361,7 @@ def test_the_refactor_and_diff_prompts_each_require_a_coverage_judgement_to_run_
     spec.write_bytes(b"# spec\n")
     probe = " ".join((SCRIPTS / "prompts" / "_verify-coverage-probe.md").read_text().replace("{{FAST_CMD}}", "make unit").split())
     found = {}
-    for phase, flags, rest in (("refactor", [], ["t", "0123abc"]), ("diff", ["--branch-base", "0123abc"], ["0123abc"])):
+    for phase, flags, rest in (("refactor", ["--step-green", "0123abc"], ["t", "0123abc"]), ("diff", ["--branch-base", "0123abc"], ["0123abc"])):
         assert build_verify_prompt.main(["--fast-cmd", "make unit", "--step", "s", *flags, phase, str(spec), *rest]) == 0
         found[phase] = probe in " ".join(capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape").split())
 
@@ -1677,7 +1684,7 @@ def test_main_ends_every_phases_verify_prompt_with_the_output_contract_fragment_
     argvs = {
         "red": ["red", s, test, "zorblat frobs a nitz"],
         "green": [*fast, "green", s, test, "zorblat frobs a nitz"],
-        "refactor": [*fast, "refactor", s, test, sha],
+        "refactor": [*fast, "--step-green", sha, "refactor", s, test, sha],
         "pin": ["--branch-base", "3f9a1c0", "pin", s, test, "zorblat frobs a nitz"],
         "plan": ["plan", s, str(ledger)],
         "rebase": ["rebase", s, sha, "4567def"],
@@ -2054,7 +2061,7 @@ def test_4111_break_renders_verify_break_md_given_a_hex_base_sha_and_exits_2_for
     assert ("break" in build_verify_prompt.PHASES, build_verify_prompt.NEEDS.get("break")) == (True, {"fast-cmd", "base-sha"})
 
 
-def test_4544_refactor_bounds_its_files_by_step_green_and_reviews_from_base_sha_falling_back_to_base_sha_and_refuses_a_bad_or_misplaced_step_green(
+def test_4544_refactor_bounds_its_files_by_step_green_and_reviews_from_base_sha_and_refuses_a_missing_bad_or_misplaced_step_green(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"spec\n")
@@ -2065,7 +2072,7 @@ def test_4544_refactor_bounds_its_files_by_step_green_and_reviews_from_base_sha_
         return (code, *capsysbinary.readouterr())
 
     code, out, _ = run(["--step-green", step_green, "--fast-cmd", "m", "refactor", s, "t", base_sha])
-    fallback = run(["--fast-cmd", "m", "refactor", s, "t", base_sha])[1]
+    missing = run(["--fast-cmd", "m", "refactor", s, "t", base_sha])
     bad = run(["--step-green", "BBBB222", "--fast-cmd", "m", "refactor", s, "t", base_sha])
     misplaced = run(["--step-green", step_green, "--fast-cmd", "m", "green", s, "t", "test_x"])
     assert {
@@ -2074,12 +2081,12 @@ def test_4544_refactor_bounds_its_files_by_step_green_and_reviews_from_base_sha_
         "green commit": f"git diff {step_green}^ {step_green}".encode() in out,
         "reviewed range": f"git diff {base_sha}..HEAD".encode() in out,
         "no bounds from base": f"{base_sha}^".encode() in out,
-        "fallback bounds": f"git diff --name-only {base_sha}^ {base_sha}".encode() in fallback,
+        "missing": missing,
         "bad": bad,
         "misplaced": misplaced,
     } == {
         "code": 0, "bounds": True, "green commit": True, "reviewed range": True, "no bounds from base": False,
-        "fallback bounds": True,
+        "missing": (2, b"", b"build-verify-prompt: refactor needs --step-green <sha>, the step's green tick\n" + USAGE),
         "bad": (2, b"", b"build-verify-prompt: --step-green needs 7-40 lowercase hex characters, got 'BBBB222'\n" + USAGE),
         "misplaced": (2, b"", b"build-verify-prompt: --step-green is the refactor phase's alone, not green's\n" + USAGE),
     }

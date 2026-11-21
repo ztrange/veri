@@ -129,7 +129,7 @@ def test_develop_red_and_verify_red_name_affected_suites_not_one_hand_named_suit
 @pytest.mark.process(BOUNDARY)
 def test_verify_refactor_checklist_item_1_names_affected_suites_not_the_projects_full_test_suite(spec):
     problems = []
-    verify_refactor = build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")
+    verify_refactor = build(problems, VERIFY, "--fast-cmd", "make unit", "--step-green", "abc1234", "refactor", spec, "tests/zorblat.test.sh", "abc1234")
     item1 = numbered_item(r"^ 1\. still green", plain(verify_refactor))
     if not item1:
         problems.append("verify-refactor's prompt has no checklist item 1 ('1. still green')")
@@ -232,7 +232,7 @@ def test_verify_red_green_refactor_and_pin_run_their_test_commands_through_timed
     problems = []
     verify_red = build(problems, VERIFY, "red", spec, "tests/zorblat.test.sh", "zorblat case")
     verify_green = build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")
-    verify_refactor = build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")
+    verify_refactor = build(problems, VERIFY, "--fast-cmd", "make unit", "--step-green", "abc1234", "refactor", spec, "tests/zorblat.test.sh", "abc1234")
     own = new_repo(tmp_path / "own")  # the pin's --branch-base read needs a real commit of a tree laid out as veri's (#4263)
     base = commit_all(own, "base", **{"skills__tdd__scripts__tests__py__conftest.py": ""})
     monkeypatch.chdir(own)
@@ -282,7 +282,7 @@ def test_1702_every_changed_tier_prompt_gives_make_test_with_tests_naming_the_su
         ("develop-green", build(problems, DEVELOP, "green", spec, "QWIXTLE step", "make test", "tests/zorblat.test.sh", "zorblat case", "make unit")),
         ("develop-diff", build(problems, DEVELOP, "diff", spec, step, "make test", "make unit")),
         ("verify-green", build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
-        ("verify-refactor", build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")),
+        ("verify-refactor", build(problems, VERIFY, "--fast-cmd", "make unit", "--step-green", "abc1234", "refactor", spec, "tests/zorblat.test.sh", "abc1234")),
     ]
     own = new_repo(tmp_path / "own")  # the diff's --branch-base read needs a real commit of a tree laid out as veri's (#4376)
     base = commit_all(own, "base", **{"skills__tdd__scripts__tests__py__conftest.py": ""})

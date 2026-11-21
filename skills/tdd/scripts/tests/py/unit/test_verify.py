@@ -222,8 +222,8 @@ def test_main_reads_the_verdict_from_supervises_stdout_and_prints_the_whole_reas
     answering_leaf(monkeypatch, fake_processes, leaf_out)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main([*BRANCH, "--fast-cmd", "make unit", phase, "spec.md", "tests/x.test.sh",
-                           *(["0123abc"] if phase == "refactor" else [])])
+    code = verify.main([*BRANCH, "--fast-cmd", "make unit", *(["--step-green", "0123abc"] if phase == "refactor" else []),
+                        phase, "spec.md", "tests/x.test.sh", *(["0123abc"] if phase == "refactor" else [])])
 
     assert (code, capfdbinary.readouterr().out) == expected
 
@@ -260,8 +260,8 @@ def test_main_appends_one_verdict_record_with_the_verdict_word_and_the_reasons_f
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
-    verify.main([*BRANCH, "--fast-cmd", "make unit", phase, "spec.md", "tests/x.test.sh",
-                           *(["0123abc"] if phase == "refactor" else [])])
+    verify.main([*BRANCH, "--fast-cmd", "make unit", *(["--step-green", "0123abc"] if phase == "refactor" else []),
+                 phase, "spec.md", "tests/x.test.sh", *(["0123abc"] if phase == "refactor" else [])])
 
     assert events.records() == [
         record("verdict", "verdict=" + word, "reason=" + reason_line, issue="931", step="5", phase=phase)]
@@ -1604,10 +1604,11 @@ AMBIENT_STEP = "AMBIENT-STEP-must-not-appear"
 
 @pytest.mark.parametrize("flags, phase, fourth, leaf_out, expected_code, launches, present, absent", [
     pytest.param(FAST, "green", "test_lowercases", WAITING, 2, 2, [SPEC], [], id="relaunch-byte-identical"),
-    pytest.param(FAST, "refactor", "0123abc", GREEN, 0, 1, ["git diff 0123abc..HEAD"], [], id="refactor-base-sha"),
+    pytest.param([*FAST, "--step-green", "0123abc"], "refactor", "0123abc", GREEN, 0, 1, ["git diff 0123abc..HEAD"], [], id="refactor-base-sha"),
     pytest.param(["--step", FLAG_STEP, *FAST], "green", "test_lowercases", GREEN, 0, 1, [FLAG_STEP],
                  [AMBIENT_STEP], id="step-flag-not-ambient"),
-    *[pytest.param(FAST if phase in ("green", "refactor") else [], phase,
+    *[pytest.param([*(FAST if phase in ("green", "refactor") else []),
+                    *(["--step-green", "0123abc"] if phase == "refactor" else [])], phase,
                    "0123abc" if phase == "refactor" else "test_lowercases", GREEN, 0, 1, [SPEC, "VERDICT:"], [],
                    id="no-step-" + phase) for phase in ("red", "green", "refactor", "pin", "surround")],
 ])
@@ -1643,6 +1644,22 @@ def test_3104_verify_sh_hands_supersede_base_to_the_diff_prompt_so_the_leaf_judg
     assert code == 0
     assert len(prompts) == 1
     assert f"git diff {sha}" in prompts[0]
+
+
+def test_4544_verify_sh_hands_step_green_to_the_refactor_prompt_as_the_steps_green_commit_not_the_base_sha(
+        run_cli, tmp_path, monkeypatch, fake_processes):
+    (tmp_path / "spec.md").write_text(SPEC)
+    green = "abcdef1234567"
+    argv = [*BRANCH, *FAST, "--step-green", green, "refactor", str(tmp_path / "spec.md"), "tests/test_slugify.py",
+            "0123abc"]
+    launched = answering_leaf(monkeypatch, fake_processes, GREEN)
+    verify = importlib.import_module("veri.verify")
+
+    code, _, _ = run_cli(verify, argv, env={"HOME": str(tmp_path)}, cwd=tmp_path)
+
+    prompts = [" ".join(prompt.split()) for _, prompt in launched]
+    assert (code, len(prompts)) == (0, 1)
+    assert f"the step's green commit is `{green}`" in prompts[0]
 
 
 def test_3104_verify_sh_names_the_leaf_verify_diff_when_supersede_base_precedes_the_diff_phase(

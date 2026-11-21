@@ -2,7 +2,7 @@
 # run-verdict.sh — launch one verification, taking the step title through argv rather than
 # through a shell command string: a shim over veri/run_verdict.py.
 #
-# Usage:  run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] --branch-base <sha> <phase> <issue-spec-file> <test-path> [<target-test-id>]
+# Usage:  run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--step-green <sha>] --branch-base <sha> <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #
 # With a <phase> and a .tdd/ directory, verify.sh's stderr is appended to .tdd/verify-<phase>.stderr.
 #

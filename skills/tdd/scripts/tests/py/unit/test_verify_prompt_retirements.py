@@ -22,7 +22,7 @@ def test_each_verify_phase_renders_with_exit_0_its_issue_spec_text_and_no_unfill
     argvs = {
         "red": [*step, "red", str(spec), "tests/test_x.py", "test_x"],
         "green": [*step, "green", str(spec), "tests/test_x.py", "test_x"],
-        "refactor": [*step, "refactor", str(spec), "tests/test_x.py", "0123abc"],
+        "refactor": [*step, "--step-green", "0123abc", "refactor", str(spec), "tests/test_x.py", "0123abc"],
         "pin": [*step, "--branch-base", "0123abc", "pin", str(spec), "tests/test_x.py", "test_x"],
         "plan": ["plan", str(spec), str(ledger)],
         "rebase": ["rebase", str(spec), "0123abc", "0123abd"],
