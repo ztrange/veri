@@ -854,14 +854,14 @@ PROBE = "claude -p --model haiku --permission-mode bypassPermissions --output-fo
 NO_DENIALS = '{"type": "result", "is_error": false, "permission_denials": []}'
 
 
-def probe_answer(bash=True, write=True, result=NO_DENIALS, code=0, seen=None):
-    """A `claude -p` answer that, as the model would, creates the Bash and the Write nonce file it was asked for in
+def probe_answer(bash=True, write=True, shape=True, result=NO_DENIALS, code=0, seen=None):
+    """A `claude -p` answer that, as the model would, creates the Bash, the Write and the shape nonce file it was asked for in
     its working directory (each only when told to; a string writes that instead of the nonce), then prints <result>."""
     def answer(line, cwd=None, env=None, **kwargs):
         nonce = re.search(r"nonce ([0-9a-f]+)", line).group(1)
         if seen is not None:
             seen.append({"cwd": cwd, "env": env, "nonce": nonce})
-        for wanted, path in ((bash, "bash-probe.txt"), (write, "write-probe.txt")):
+        for wanted, path in ((bash, "bash-probe.txt"), (write, "write-probe.txt"), (shape, "shape-probe.txt")):
             if wanted:
                 with open(os.path.join(cwd, path), "w") as probe:
                     probe.write(nonce if wanted is True else wanted)

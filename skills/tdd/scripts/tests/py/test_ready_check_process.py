@@ -74,6 +74,7 @@ CLAUDE_PROBE = """for arg; do prompt=$arg; done
 nonce=$(printf '%s' "$prompt" | sed -n 's/.*nonce \\([0-9a-f]*\\).*/\\1/p')
 printf '%s' "$nonce" > bash-probe.txt
 printf '%s' "$nonce" > write-probe.txt
+printf '%s\\n' "$nonce" > shape-probe.txt
 echo '{"type":"result","is_error":false,"permission_denials":[]}'
 """
 """A `claude` that does what the bypassPermissions probe asks, as a model allowed both tools would."""
