@@ -1143,3 +1143,7 @@ def test_issue_4529_when_every_settings_file_is_unreadable_as_an_object_the_suba
 
     rows = [line for line in out.splitlines() if line.startswith("fail  subagent permissions")]
     assert len(rows) == 1 and "Bash(git *)" in rows[0], out
+
+
+def test_issue_4532_the_permissions_check_version_is_2_so_every_clones_permissions_checked_record_goes_stale(ready_check):
+    assert ready_check.PERMISSIONS_CHECK_VERSION == 2
