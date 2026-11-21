@@ -208,6 +208,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     if phase == "surround" and (fast_cmd or supersede_base):
         return _refused("build-verify-prompt: surround takes the pin phase's inputs, and --fast-cmd and "
                         "--supersede-base are not among them")
+    if phase == "branch" and test_path:
+        return _refused(f"build-verify-prompt: branch takes only <spec-file>, not '{test_path}'")
     fourth = test_id
     if phase == "diff":
         if not step_arg:

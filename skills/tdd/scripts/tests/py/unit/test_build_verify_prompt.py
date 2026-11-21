@@ -2123,3 +2123,16 @@ def test_main_carries_no_spec_rows_in_a_non_branch_prompt_whose_spec_file_names_
     out, _ = capsysbinary.readouterr()
 
     assert (code, b"Frob must nitz." in out, b"the base wording predates the run" in out) == (0, True, False)
+
+
+def test_branch_refuses_a_leaf_report_path(tmp_path, monkeypatch, capsysbinary, fake_processes, build_verify_prompt):
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "issue.md"
+    spec.write_bytes(b"Frob must nitz.\n")
+    fake_processes.answers({"git ls-files": every_file_tracked}, default=(0, "", ""))
+
+    code = build_verify_prompt.main(["--fast-cmd", "make unit", "--branch-base", "0123abcdef", "branch", str(spec),
+                                     ".tdd/develop-green.out"])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, out) == (2, b"")
