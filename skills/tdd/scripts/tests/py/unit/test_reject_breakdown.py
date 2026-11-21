@@ -40,3 +40,18 @@ def test_prints_one_reject_per_verify_line_per_week_summing_the_by_phase_verdict
         "week 2026-10-19: REJECT per verify 14.3% (2 of 14)",
         "week 2026-10-26: REJECT per verify 50.0% (2 of 4)",
     ])
+
+
+def test_prints_under_each_week_one_line_per_verifier_phase_with_a_verdict_that_week(tmp_path, run_cli, breakdown):
+    first = tmp_path / "issue-1-metrics.md"
+    first.write_text(report(phase_row("green", 7, 1), phase_row("red", 0, 0), phase_row("refactor", 2, 0)))
+    second = tmp_path / "issue-2-metrics.md"
+    second.write_text(report(phase_row("green", 3, 1), phase_row("pin", 0, 2)))
+
+    code, out, err = run_cli(breakdown, [], stdin=f"2026-10-21 {first}\n2026-10-22 {second}\n")
+
+    assert (code, out.splitlines()[1:]) == (0, [
+        "  phase green: 2 of 12",
+        "  phase pin: 2 of 2",
+        "  phase refactor: 0 of 2",
+    ])
