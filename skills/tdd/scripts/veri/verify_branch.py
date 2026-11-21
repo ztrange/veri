@@ -63,7 +63,12 @@ def repair(n, wt):
         reason = ""
     reason = " ".join(reason.replace("⟦", "[").replace("⟧", "]").replace("⟂", "").split())
     step = "fix what verify-branch rejected: %s ⟦diff-checked⟧ ⟦branch-repair⟧" % (reason or "see .tdd/verify-branch.reason")
-    return add_ledger_step.add(ledger, "after", steps[-1], [step])
+    code = add_ledger_step.add(ledger, "after", steps[-1], [step])
+    if code == 0:
+        paths = [ledger, add_ledger_step.added_file(ledger)]
+        fused.checked("1", "git", "add", "--", *paths, cwd=wt)
+        fused.checked("1", "git", "commit", "-q", "-m", "plan: verify-branch repair step", "--", *paths, cwd=wt)
+    return code
 
 
 def launch(n, wt, settled):

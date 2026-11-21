@@ -293,3 +293,32 @@ def test_4472_with_veri_branch_repairs_2_and_one_branch_repair_step_in_the_ledge
     run_cli(verify_branch, ["12"], cwd=str(tmp_path))
     ledger = (wt / ".tdd" / "issue-12.md").read_text()
     assert (ledger.count("⟦branch-repair⟧"), "bail.sh" in calls) == (2, False)
+
+
+def test_4472_a_reject_commits_the_appended_repair_step_as_one_plan_commit_holding_the_ledger_and_its_added_file(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    (wt / ".tdd" / "issue-12.md").write_text("- [x] a gear meshes ⟦criterion 1⟧\n")
+    monkeypatch.delenv("VERI_BRANCH_REPAIRS", raising=False)
+    gits = []
+
+    def run_script(name, *args, **kw):
+        if name == "git":
+            gits.append(list(args))
+        return (1, "", "") if name.endswith("wait-leaf.sh") else (0, "", "")
+
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: None)
+    monkeypatch.setattr(fused, "run_script", run_script)
+    run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    commits = [a for a in gits if "commit" in a]
+    named = {p.rsplit("/", 1)[-1] for a in gits if a[:1] in (["add"], ["commit"]) for p in a}
+    messages = [a[a.index("-m") + 1] for a in commits if "-m" in a]
+    assert (len(commits), [m.startswith("plan:") for m in messages],
+            {"issue-12.md", "issue-12-added.md"} <= named) == (1, [True], True)
