@@ -102,6 +102,9 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   rebased → **process** failure (the suite answered on the rebased tip).
 - `rebase-unresolved` — a rebase not resolved within budget → **process** failure (the
   conflict was not resolved, and the plumbing did not break).
+- `branch-rejected` — `verify-branch` said `REJECT` (exit **1**) with `VERI_BRANCH_REPAIRS`
+  repair steps already in the ledger → **process** failure (the methodology spoke: the
+  branch was judged and the repairs did not satisfy the verifier).
 - `missing-reroutes-exhausted` — a step's repeat `missing` reroutes spent
   `VERI_MISSING_REROUTE_BUDGET` and verify-green still names a behaviour no test pins →
   **process** failure (the methodology spoke: the tests still do not pin the criterion).
