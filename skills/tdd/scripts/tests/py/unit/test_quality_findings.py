@@ -63,6 +63,18 @@ def test_record_exits_2_writing_nothing_on_a_line_it_cannot_record(run_cli, test
     assert (code, reason in err, written) == (2, True, "an earlier record\n")
 
 
+def test_record_writes_the_valid_findings_and_names_one_naming_a_non_test_helper_on_stderr_4534(
+        run_cli, test_quality, worktree):
+    (worktree / "tests" / "test_alpha.py").write_text(ALPHA + "\n\ndef first_stages():\n    return []\n")
+    report = ("FINDING: weak-assertion | tests/test_alpha.py::test_adds | asserts arithmetic only\n"
+              "FINDING: redundant | tests/test_alpha.py::first_stages | a helper, not a case\n")
+
+    code, err, written = record(run_cli, test_quality, worktree, report)
+
+    assert (code, "tests/test_alpha.py::first_stages" in err, written) == (
+        0, True, "weak-assertion | tests/test_alpha.py::test_adds | asserts arithmetic only\n")
+
+
 def test_record_refuses_a_missing_verb_or_issue_number_with_exit_2(run_cli, test_quality, worktree):
     answers = [run_cli(test_quality, argv, stdin="FINDING: none\n", cwd=str(worktree))[0]
                for argv in ([], ["record"], ["record", "x"], ["list", "7"])]
