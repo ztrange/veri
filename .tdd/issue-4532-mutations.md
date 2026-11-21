@@ -1,0 +1,11 @@
+file 38
+skills/tdd/scripts/veri/ready_check.py
+old-b64 40
+aWYgUFJPQkVfRklMRVNbMl0gaW4gbWlzc2luZzo=
+new-b64 12
+aWYgVHJ1ZTo=
+context-b64 44
+ICAgIGlmIFBST0JFX0ZJTEVTWzJdIGluIG1pc3Npbmc6
+command 243
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ready_check.py::test_issue_4532_a_row_failing_with_shape_probe_holding_the_nonce_does_not_name_permissions_ask_or_block_reads_and_still_names_the_managed_settings_files_and_permissions_deny
+

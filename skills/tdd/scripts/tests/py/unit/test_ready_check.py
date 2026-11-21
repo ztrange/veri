@@ -967,6 +967,16 @@ def test_issue_4532_a_row_failing_on_shape_probe_names_it_says_claude_code_could
     assert "user" in verdict and "project" in verdict, verdict
 
 
+def test_issue_4532_a_row_failing_with_shape_probe_holding_the_nonce_does_not_name_permissions_ask_or_block_reads_and_still_names_the_managed_settings_files_and_permissions_deny(ready_check, fake_processes):
+    fake_processes.answers({PROBE: probe_answer(write=False)})
+
+    _, verdict = ready_check.bypass_permissions_row()
+
+    assert verdict, verdict
+    assert "permissions.ask" not in verdict and "permissions.blockReadsOutsideWorkingDirectories" not in verdict, verdict
+    assert all(place in verdict for place in PLACES), verdict
+
+
 def test_issue_4091_the_probes_claude_starts_without_a_session_variable_strip_session_env_strips(ready_check, fake_processes, monkeypatch):
     monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "sess-123")
     monkeypatch.setenv("CLAUDECODE", "1")
