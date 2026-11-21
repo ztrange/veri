@@ -1479,6 +1479,7 @@
 | SC634 | The `$S/ready-check.sh` entry says the `gh auth` row reads `gh api user` and each label row reads that label over REST (`gh api repos/{owner}/{repo}/labels/<name>`), under every `VERI_GH_DRIVER` value, and names neither `gh auth status` nor `gh label list`. | A Claude Code cloud session refuses GraphQL, and both porcelain probes use it: the rows failed there with the token and labels in place, and preflight stopped every run. |
 | SC635 | The `VERI_GH_DRIVER` paragraph (the `$S/solvable-issues.sh` entry) says that under `rest` (the default) no veri script calls `gh issue`, `gh pr`, `gh label` or `gh auth` porcelain, that a tree-audit case enforces it, and that a Claude Code cloud session, where GraphQL is refused, therefore needs nothing set. | The paragraph claimed this while six call sites broke it; without the guard the claim drifts back to false. |
 | SC619 | SCRIPTS.md names the `branch` phase of `build-verify-prompt.sh` (inputs `--fast-cmd`, `--branch-base`, the issue spec file) and places `verify-branch` among `run-pr.sh`'s stages, after `pr-checks` and before the title seam. | Docs drift blocks. |
+| SC620 | The catalogue lists `$S/verify-branch.sh <n>`: the Draft PR step's whole-branch verifier stage, run by `run-pr.sh` after `pr-checks.sh`, its PASS or skip exiting 0, a REJECT with budget left appending one `⟦diff-checked⟧ ⟦branch-repair⟧` step, exit 2 on bad arguments. | A reader of the catalogue finds the verify-branch stage. |
 
 ## skills/tdd/SKILL-EDIT.md
 
