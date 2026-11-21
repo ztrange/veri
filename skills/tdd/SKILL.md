@@ -1100,11 +1100,11 @@ that push; else the ending call's code (a bail's too).
    class — `overfit`, `uncovered-spec` or `beyond-spec` — or `none`; 3 and 4 below route them).
 2. **Check what the leaf left.** The conductor **checks** it, because verify-refactor judges the **settled tree** and can see neither of the two faults below. Ask git, not the report:
    ```
-   git status --porcelain                   # any output ⇒ refuse to go on, see below
-   git log --format=%s <green-sha>..HEAD    # every one must be a refactor:, or refuse to go on
-   git rev-list --count <green-sha>..HEAD   # the transforms that landed, narrated against the budget
+   git status --porcelain # any output ⇒ refuse to go on, see below
+   git log --format=%s <green-sha>..HEAD # every one must be a refactor:, or refuse to go on
+   git rev-list --count <green-sha>..HEAD # the transforms that landed, narrated against the budget
    ```
-   `<green-sha>` is the ledger's last commit, past any re-pin step's, so the range holds exactly what the step's refactor produced.
+   `<green-sha>` is this step's atomic green commit — the one carrying the ledger tick — so the range holds exactly what the step's refactor produced.
    - **A dirty tree** is work no suite run and no verifier has seen: the transform a killed leaf left half-applied on disk. Do **not** continue to verify-refactor over it — `git
      reset --hard HEAD` drops it, leaving the last committed transform, which the leaf's own suite run found green — and say in the narration that it was dropped.
    - **A commit in that range whose subject is not `refactor:`** is production code carried into a behaviour-preserving phase, where nothing asks whether a test earned it. Do
