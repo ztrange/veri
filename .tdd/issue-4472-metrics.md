@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 4472
 
-Wall time for the issue: 5396 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 35926 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 10 of 43 planned.
+Steps done: 35 of 48 planned.
 Outcome: the run bailed — no-verdict, a system failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $41.54 over 205 turns, in 12 sessions, on opus (estimate).
+Conductor own spending: $346.39 over 510 turns, in 54 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 88499 tokens, largest 94770 tokens
 Conductor context: first turn 88504 tokens, largest 117834 tokens
@@ -19,7 +19,49 @@ Conductor context: first turn 82584 tokens, largest 95555 tokens
 Conductor context: first turn 96513 tokens, largest 110871 tokens
 Conductor context: first turn 111770 tokens, largest 116890 tokens
 Conductor context: first turn 61766 tokens, largest 63550 tokens
-Conductor context: first turn 64491 tokens, largest 76683 tokens
+Conductor context: first turn 64491 tokens, largest 78132 tokens
+Conductor context: first turn 88425 tokens, largest 114245 tokens
+Conductor context: first turn 77608 tokens, largest 78491 tokens
+Conductor context: first turn 79531 tokens, largest 80506 tokens
+Conductor context: first turn 81213 tokens, largest 94841 tokens
+Conductor context: first turn 95962 tokens, largest 99163 tokens
+Conductor context: first turn 100000 tokens, largest 104455 tokens
+Conductor context: first turn 105474 tokens, largest 110715 tokens
+Conductor context: first turn 111732 tokens, largest 114927 tokens
+Conductor context: first turn 116009 tokens, largest 116722 tokens
+Conductor context: first turn 82064 tokens, largest 83966 tokens
+Conductor context: first turn 84825 tokens, largest 97434 tokens
+Conductor context: first turn 98425 tokens, largest 106513 tokens
+Conductor context: first turn 107637 tokens, largest 118477 tokens
+Conductor context: first turn 43854 tokens, largest 61267 tokens
+Conductor context: first turn 62062 tokens, largest 65110 tokens
+Conductor context: first turn 66082 tokens, largest 71496 tokens
+Conductor context: first turn 71624 tokens, largest 72071 tokens
+Conductor context: first turn 72919 tokens, largest 74734 tokens
+Conductor context: first turn 74931 tokens, largest 75352 tokens
+Conductor context: first turn 76199 tokens, largest 78448 tokens
+Conductor context: first turn 79471 tokens, largest 86187 tokens
+Conductor context: first turn 87303 tokens, largest 93827 tokens
+Conductor context: first turn 94803 tokens, largest 97488 tokens
+Conductor context: first turn 98487 tokens, largest 100387 tokens
+Conductor context: first turn 101375 tokens, largest 103270 tokens
+Conductor context: first turn 104256 tokens, largest 107441 tokens
+Conductor context: first turn 108080 tokens, largest 109480 tokens
+Conductor context: first turn 110482 tokens, largest 117072 tokens
+Conductor context: first turn 37935 tokens, largest 46287 tokens
+Conductor context: first turn 47033 tokens, largest 61599 tokens
+Conductor context: first turn 62584 tokens, largest 64652 tokens
+Conductor context: first turn 65656 tokens, largest 67448 tokens
+Conductor context: first turn 68388 tokens, largest 82645 tokens
+Conductor context: first turn 83451 tokens, largest 91209 tokens
+Conductor context: first turn 91310 tokens, largest 92286 tokens
+Conductor context: first turn 93210 tokens, largest 96217 tokens
+Conductor context: first turn 97041 tokens, largest 107682 tokens
+Conductor context: first turn 108065 tokens, largest 108780 tokens
+Conductor context: first turn 109749 tokens, largest 118004 tokens
+Conductor context: first turn 53172 tokens, largest 59586 tokens
+Conductor context: first turn 60801 tokens, largest 67264 tokens
+Conductor context: first turn 67956 tokens, largest 77582 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -218,14 +260,309 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 190 | $1.50 | 62480 |
 | 191 | $1.51 | 63023 |
 | 192 | $1.50 | 63550 |
-| 193 | $0.02 | 64491 |
-| 194 | $0.02 | 65922 |
-| 195 | $0.02 | 67291 |
-| 196 | $0.04 | 70454 |
-| 197 | $0.02 | 71558 |
-| 198 | $0.05 | 75622 |
-| 199 | $0.02 | 76141 |
-| 200 | $0.02 | 76683 |
+| 193 | $0.70 | 64491 |
+| 194 | $0.70 | 65922 |
+| 195 | $0.70 | 67291 |
+| 196 | $0.72 | 70454 |
+| 197 | $0.70 | 71558 |
+| 198 | $0.72 | 75622 |
+| 199 | $0.70 | 76141 |
+| 200 | $0.70 | 76683 |
+| 201 | $0.70 | 78132 |
+| 202 | $0.57 | 88425 |
+| 203 | $0.03 | 88671 |
+| 204 | $0.03 | 88970 |
+| 205 | $0.09 | 97210 |
+| 206 | $0.03 | 97928 |
+| 207 | $0.08 | 103480 |
+| 208 | $0.04 | 104935 |
+| 209 | $0.07 | 110083 |
+| 210 | $0.05 | 112573 |
+| 211 | $0.03 | 113305 |
+| 212 | $0.04 | 113814 |
+| 213 | $0.03 | 114245 |
+| 214 | $0.25 | 48100 |
+| 215 | $0.05 | 51781 |
+| 216 | $0.03 | 53558 |
+| 217 | $0.07 | 59545 |
+| 218 | $0.03 | 60500 |
+| 219 | $0.03 | 61684 |
+| 220 | $0.02 | 61967 |
+| 221 | $0.02 | 62413 |
+| 222 | $0.03 | 62635 |
+| 223 | $0.02 | 62781 |
+| 224 | $0.02 | 63167 |
+| 225 | $0.03 | 63925 |
+| 226 | $0.04 | 66140 |
+| 227 | $0.03 | 66951 |
+| 228 | $0.03 | 67844 |
+| 229 | $0.02 | 68528 |
+| 230 | $0.05 | 71020 |
+| 231 | $0.02 | 71540 |
+| 232 | $0.05 | 74520 |
+| 233 | $0.03 | 76038 |
+| 234 | $0.04 | 76999 |
+| 235 | $0.69 | 77608 |
+| 236 | $0.69 | 78069 |
+| 237 | $0.69 | 78491 |
+| 238 | $0.72 | 79531 |
+| 239 | $0.71 | 80042 |
+| 240 | $0.72 | 80506 |
+| 241 | $0.71 | 81213 |
+| 242 | $0.22 | 81882 |
+| 243 | $0.24 | 84352 |
+| 244 | $0.24 | 87628 |
+| 245 | $0.22 | 88142 |
+| 246 | $0.23 | 88779 |
+| 247 | $0.22 | 89101 |
+| 248 | $0.24 | 91790 |
+| 249 | $0.22 | 92362 |
+| 250 | $0.24 | 94236 |
+| 251 | $0.22 | 94841 |
+| 252 | $0.79 | 95962 |
+| 253 | $0.78 | 96713 |
+| 254 | $0.79 | 98444 |
+| 255 | $0.78 | 99163 |
+| 256 | $0.66 | 100000 |
+| 257 | $0.66 | 100761 |
+| 258 | $0.68 | 103185 |
+| 259 | $0.66 | 103984 |
+| 260 | $0.66 | 104455 |
+| 261 | $0.51 | 105474 |
+| 262 | $0.50 | 106092 |
+| 263 | $0.51 | 106694 |
+| 264 | $0.52 | 109290 |
+| 265 | $0.50 | 109742 |
+| 266 | $0.51 | 110099 |
+| 267 | $0.50 | 110715 |
+| 268 | $1.22 | 111732 |
+| 269 | $1.24 | 114376 |
+| 270 | $1.21 | 114927 |
+| 271 | $0.25 | 116009 |
+| 272 | $0.24 | 116722 |
+| 273 | $0.37 | 37616 |
+| 274 | $0.32 | 49715 |
+| 275 | $0.28 | 56587 |
+| 276 | $0.28 | 62428 |
+| 277 | $0.32 | 74018 |
+| 278 | $0.24 | 74915 |
+| 279 | $0.23 | 75592 |
+| 280 | $0.23 | 75953 |
+| 281 | $0.24 | 76587 |
+| 282 | $0.24 | 77130 |
+| 283 | $0.23 | 77821 |
+| 284 | $0.24 | 78542 |
+| 285 | $0.24 | 79183 |
+| 286 | $0.23 | 79793 |
+| 287 | $0.24 | 80364 |
+| 288 | $0.23 | 80935 |
+| 289 | $1.58 | 82064 |
+| 290 | $1.59 | 83101 |
+| 291 | $1.58 | 83966 |
+| 292 | $0.40 | 84825 |
+| 293 | $0.40 | 86546 |
+| 294 | $0.43 | 91791 |
+| 295 | $0.40 | 92858 |
+| 296 | $0.40 | 93748 |
+| 297 | $0.39 | 94176 |
+| 298 | $0.40 | 95009 |
+| 299 | $0.39 | 95392 |
+| 300 | $0.39 | 95650 |
+| 301 | $0.40 | 95835 |
+| 302 | $0.39 | 96393 |
+| 303 | $0.40 | 96814 |
+| 304 | $0.39 | 97434 |
+| 305 | $0.62 | 98425 |
+| 306 | $0.61 | 99351 |
+| 307 | $0.62 | 101155 |
+| 308 | $0.62 | 101889 |
+| 309 | $0.61 | 103063 |
+| 310 | $0.62 | 104627 |
+| 311 | $0.62 | 105576 |
+| 312 | $0.61 | 105921 |
+| 313 | $0.62 | 106513 |
+| 314 | $0.56 | 107637 |
+| 315 | $0.56 | 109271 |
+| 316 | $0.55 | 109669 |
+| 317 | $0.55 | 109981 |
+| 318 | $0.62 | 118477 |
+| 319 | $0.68 | 38217 |
+| 320 | $0.55 | 39163 |
+| 321 | $0.53 | 39464 |
+| 322 | $0.55 | 40599 |
+| 323 | $0.54 | 41870 |
+| 324 | $0.54 | 42981 |
+| 325 | $0.37 | 43854 |
+| 326 | $0.36 | 44143 |
+| 327 | $0.37 | 44591 |
+| 328 | $0.37 | 45856 |
+| 329 | $0.37 | 46720 |
+| 330 | $0.37 | 47209 |
+| 331 | $0.36 | 47899 |
+| 332 | $0.37 | 48349 |
+| 333 | $0.38 | 50018 |
+| 334 | $0.39 | 53923 |
+| 335 | $0.37 | 54967 |
+| 336 | $0.37 | 55292 |
+| 337 | $0.38 | 57234 |
+| 338 | $0.38 | 58853 |
+| 339 | $0.37 | 59799 |
+| 340 | $0.37 | 60273 |
+| 341 | $0.37 | 60870 |
+| 342 | $0.37 | 61267 |
+| 343 | $1.70 | 62062 |
+| 344 | $1.70 | 64046 |
+| 345 | $1.70 | 64834 |
+| 346 | $1.69 | 65110 |
+| 347 | $0.88 | 66082 |
+| 348 | $0.87 | 66946 |
+| 349 | $0.88 | 68450 |
+| 350 | $0.87 | 68758 |
+| 351 | $0.88 | 69358 |
+| 352 | $0.87 | 70345 |
+| 353 | $0.88 | 70768 |
+| 354 | $0.87 | 71496 |
+| 355 | $2.35 | 71624 |
+| 356 | $2.35 | 71794 |
+| 357 | $2.36 | 72071 |
+| 358 | $1.79 | 72919 |
+| 359 | $1.79 | 73619 |
+| 360 | $1.79 | 74039 |
+| 361 | $1.79 | 74734 |
+| 362 | $2.40 | 74931 |
+| 363 | $2.41 | 75082 |
+| 364 | $2.41 | 75352 |
+| 365 | $1.83 | 76199 |
+| 366 | $1.83 | 76997 |
+| 367 | $1.83 | 77430 |
+| 368 | $1.84 | 78448 |
+| 369 | $0.85 | 79471 |
+| 370 | $0.84 | 80527 |
+| 371 | $0.85 | 81804 |
+| 372 | $0.84 | 82414 |
+| 373 | $0.85 | 83266 |
+| 374 | $0.84 | 83932 |
+| 375 | $0.85 | 84546 |
+| 376 | $0.84 | 85381 |
+| 377 | $0.85 | 86187 |
+| 378 | $1.30 | 87303 |
+| 379 | $1.31 | 88226 |
+| 380 | $1.30 | 88936 |
+| 381 | $1.31 | 91296 |
+| 382 | $1.31 | 92553 |
+| 383 | $1.30 | 93827 |
+| 384 | $1.99 | 94803 |
+| 385 | $1.99 | 96023 |
+| 386 | $1.99 | 96472 |
+| 387 | $1.99 | 97488 |
+| 388 | $2.02 | 98487 |
+| 389 | $2.03 | 99227 |
+| 390 | $2.02 | 99688 |
+| 391 | $2.02 | 100387 |
+| 392 | $2.06 | 101375 |
+| 393 | $2.05 | 102102 |
+| 394 | $2.05 | 102573 |
+| 395 | $2.05 | 103270 |
+| 396 | $2.09 | 104256 |
+| 397 | $2.10 | 105314 |
+| 398 | $2.09 | 107083 |
+| 399 | $2.09 | 107441 |
+| 400 | $2.82 | 108080 |
+| 401 | $2.83 | 108511 |
+| 402 | $2.82 | 109480 |
+| 403 | $1.11 | 110482 |
+| 404 | $1.11 | 111165 |
+| 405 | $1.11 | 111639 |
+| 406 | $1.12 | 113208 |
+| 407 | $1.11 | 114261 |
+| 408 | $1.12 | 116034 |
+| 409 | $1.12 | 117072 |
+| 410 | $1.23 | 36747 |
+| 411 | $0.84 | 37935 |
+| 412 | $0.84 | 38378 |
+| 413 | $0.84 | 39193 |
+| 414 | $0.84 | 39726 |
+| 415 | $0.83 | 40188 |
+| 416 | $0.85 | 41662 |
+| 417 | $0.84 | 42176 |
+| 418 | $0.85 | 43844 |
+| 419 | $0.83 | 44442 |
+| 420 | $0.85 | 45647 |
+| 421 | $0.84 | 46287 |
+| 422 | $2.33 | 47033 |
+| 423 | $2.34 | 47606 |
+| 424 | $2.43 | 60403 |
+| 425 | $2.34 | 61599 |
+| 426 | $2.39 | 62584 |
+| 427 | $2.38 | 63324 |
+| 428 | $2.38 | 63805 |
+| 429 | $2.39 | 64652 |
+| 430 | $3.21 | 65656 |
+| 431 | $3.20 | 66702 |
+| 432 | $3.21 | 67448 |
+| 433 | $1.40 | 68388 |
+| 434 | $1.40 | 69059 |
+| 435 | $1.40 | 70110 |
+| 436 | $1.39 | 70755 |
+| 437 | $1.40 | 71028 |
+| 438 | $1.41 | 73447 |
+| 439 | $1.47 | 82645 |
+| 440 | $2.00 | 83451 |
+| 441 | $2.01 | 84243 |
+| 442 | $2.04 | 89476 |
+| 443 | $2.00 | 90293 |
+| 444 | $2.01 | 91209 |
+| 445 | $2.54 | 91310 |
+| 446 | $2.53 | 91525 |
+| 447 | $2.54 | 92004 |
+| 448 | $2.54 | 92286 |
+| 449 | $2.06 | 93210 |
+| 450 | $2.06 | 94089 |
+| 451 | $2.07 | 95246 |
+| 452 | $2.05 | 95523 |
+| 453 | $2.06 | 96217 |
+| 454 | $1.76 | 97041 |
+| 455 | $1.75 | 97605 |
+| 456 | $1.80 | 102974 |
+| 457 | $1.76 | 104456 |
+| 458 | $1.77 | 105926 |
+| 459 | $1.76 | 107682 |
+| 460 | $3.56 | 108065 |
+| 461 | $3.56 | 108439 |
+| 462 | $3.57 | 108780 |
+| 463 | $0.94 | 109749 |
+| 464 | $0.94 | 110021 |
+| 465 | $0.94 | 110534 |
+| 466 | $0.99 | 118004 |
+| 467 | $1.07 | 38284 |
+| 468 | $0.99 | 47021 |
+| 469 | $0.93 | 47694 |
+| 470 | $0.93 | 48703 |
+| 471 | $0.93 | 49728 |
+| 472 | $0.94 | 51724 |
+| 473 | $0.92 | 52014 |
+| 474 | $0.93 | 52311 |
+| 475 | $1.30 | 53172 |
+| 476 | $1.29 | 54145 |
+| 477 | $1.30 | 54744 |
+| 478 | $1.29 | 55035 |
+| 479 | $1.29 | 55320 |
+| 480 | $1.30 | 56691 |
+| 481 | $1.31 | 58533 |
+| 482 | $1.29 | 59294 |
+| 483 | $1.30 | 59586 |
+| 484 | $2.36 | 60801 |
+| 485 | $2.37 | 62227 |
+| 486 | $2.38 | 65643 |
+| 487 | $2.36 | 66915 |
+| 488 | $2.36 | 67264 |
+| 489 | $0.02 | 67956 |
+| 490 | $0.02 | 68613 |
+| 491 | $0.02 | 69946 |
+| 492 | $0.02 | 70926 |
+| 493 | $0.02 | 72173 |
+| 494 | $0.03 | 74473 |
+| 495 | $0.04 | 77582 |
 
 #### Conductor comments, by family
 
@@ -239,28 +576,37 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-green | 0 | 0 | $0.00 |
 | 🔎 verify-refactor | 0 | 0 | $0.00 |
 | 🔎 verify-<phase> (revised) | 0 | 0 | $0.00 |
-| 🗺️ Plan | 1 | 456 | $0.01 |
+| 🗺️ Plan | 2 | 746 | $0.01 |
 | 🗺️ verify-plan | 1 | 456 | $0.01 |
 | ▶️ Resuming | 0 | 0 | $0.00 |
 | ⛔ Bailed | 0 | 0 | $0.00 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 4 | 1869 | $0.04 |
+| Total | 5 | 2159 | $0.04 |
 
 #### Conductor by phase (estimated: each turn placed by its timestamp)
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 154 | 33.40 |
+| between | 401 | 258.83 |
 | plan | 30 | 1.57 |
-| untimed | 5 | 0.00 |
-| develop-diff | 2 | 1.28 |
-| refactor-loop | 7 | 2.36 |
-| push | 1 | 0.18 |
-| develop-red | 2 | 0.65 |
+| untimed | 15 | 0.00 |
+| develop-diff | 4 | 6.32 |
+| refactor-loop | 9 | 4.71 |
+| push | 2 | 2.58 |
+| develop-red | 12 | 13.77 |
 | develop-red-supersede | 1 | 0.16 |
-| develop-green | 1 | 0.16 |
+| develop-green | 7 | 9.26 |
 | author-skill-edit | 1 | 0.28 |
 | revise-red | 1 | 1.50 |
+| verify-red | 1 | 0.24 |
+| revise-green | 3 | 3.00 |
+| verify-green | 2 | 0.91 |
+| grade-prose | 4 | 6.58 |
+| rebase | 4 | 5.50 |
+| develop-rebase | 5 | 12.16 |
+| verify-rebase | 4 | 12.45 |
+| revise-rebase | 2 | 1.85 |
+| develop-test-quality | 2 | 4.72 |
 
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset, VERI_MODEL_REVISE_GREEN unset, VERI_EFFORT_VERIFIER unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
@@ -268,32 +614,45 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 5 | 1 | 4 | 0 | 88 | 77 | 5 | 10 | 9394 | 17973 | 284187 | 0.81 |
-| diff | 7 | 4 | 0 | 0 | 573 | 86 | 31 | 56 | 7299 | 625402 | 161648 | 0.54 |
-| red | 17 | 6 | 1 | 0 | 902 | 337 | 105 | 174 | 32152 | 2354305 | 490675 | 1.92 |
-| green | 12 | 5 | 0 | 0 | 1724 | 213 | 71 | 124 | 18669 | 1708167 | 349667 | 1.23 |
-| refactor | 5 | 0 | 0 | 0 | 36 | 22 | 10 | 20 | 1042 | 179989 | 134297 | 0.36 |
-| pin | 3 | 1 | 2 | 0 | 76 | 35 | 11 | 22 | 3274 | 253463 | 74868 | 0.25 |
+| plan | 8 | 2 | 6 | 0 | 159 | 142 | 9 | 18 | 17019 | 90801 | 462171 | 1.33 |
+| diff | 15 | 8 | 0 | 0 | 1742 | 245 | 79 | 148 | 22036 | 1949418 | 384536 | 1.38 |
+| red | 63 | 26 | 1 | 0 | 5582 | 1305 | 383 | 706 | 130140 | 9995560 | 1956388 | 7.33 |
+| green | 62 | 21 | 8 | 0 | 15940 | 1145 | 348 | 660 | 105053 | 8976222 | 2144290 | 8.07 |
+| refactor | 22 | 1 | 0 | 0 | 355 | 119 | 51 | 102 | 7385 | 1016496 | 571915 | 1.61 |
+| pin | 11 | 7 | 4 | 0 | 888 | 174 | 52 | 102 | 15513 | 1239481 | 312078 | 1.06 |
 | red-supersede | 1 | 0 | 0 | 0 | 93 | 29 | 9 | 12 | 3086 | 180129 | 33654 | 0.13 |
-| skill-edit | 1 | 0 | 0 | 0 | 12 | 9 | 3 | 6 | 1162 | 49249 | 17709 | 0.06 |
-| prose | 1 | 0 | 0 | 0 | 6 | 4 | 1 | 2 | 739 | 649 | 3803 | 0.02 |
+| skill-edit | 8 | 0 | 0 | 0 | 120 | 98 | 34 | 56 | 10295 | 1443183 | 486094 | 1.46 |
+| prose | 49 | 0 | 0 | 0 | 1435 | 1320 | 49 | 98 | 210819 | 447316 | 2027813 | 7.22 |
 | red-contradicted | 1 | 0 | 0 | 0 | 36 | 23 | 6 | 10 | 2444 | 139066 | 30228 | 0.11 |
+| exhausted | 2 | 0 | 0 | 0 | 413 | 45 | 7 | 14 | 3591 | 121140 | 84304 | 0.52 |
+| red-repair | 1 | 0 | 0 | 0 | 61 | 19 | 6 | 10 | 1849 | 129947 | 27115 | 0.10 |
+| red-missing | 1 | 0 | 0 | 0 | 35 | 18 | 4 | 8 | 2302 | 97457 | 27214 | 0.10 |
+| rebase | 4 | 1 | 1 | 0 | 3464 | 277 | 78 | 156 | 23398 | 2741237 | 356491 | 1.63 |
+| test-quality | 1 | 0 | 0 | 0 | 21 | 18 | 3 | 6 | 2157 | 58842 | 43575 | 0.14 |
 
 #### REJECT outcomes
 
 | phase | REJECT | caught | flipped | overturned | unresolved | pending | untracked |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 4 | 4 | 0 | 0 | 0 | 0 | 0 |
-| red | 1 | 0 | 0 | 0 | 1 | 0 | 0 |
-| pin | 2 | 0 | 0 | 0 | 2 | 0 | 0 |
+| plan | 6 | 6 | 0 | 0 | 0 | 0 | 0 |
+| red | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| green | 8 | 2 | 0 | 0 | 6 | 0 | 0 |
+| pin | 4 | 0 | 0 | 0 | 4 | 0 | 0 |
+| rebase | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 24 | 17 | 7 | 0 | 1560 | 322 | 80 | 152 | 29256 | 1718299 | 776524 | 2.41 |
-| developer | claude-sonnet-5-5 | 25 | 0 | 0 | 0 | 1886 | 436 | 157 | 254 | 42232 | 3434756 | 714651 | 2.55 |
-| developer | claude-opus-5-5 | 2 | 0 | 0 | 0 | 82 | 64 | 11 | 22 | 5872 | 305439 | 68049 | 0.40 |
+| verifier | claude-sonnet-5-5 | 87 | 66 | 20 | 0 | 15741 | 1284 | 362 | 696 | 114858 | 8379444 | 2839317 | 9.09 |
+| developer | claude-sonnet-5-5 | 93 | 0 | 0 | 0 | 8419 | 1777 | 543 | 998 | 178953 | 14164475 | 2917745 | 10.64 |
+| developer | claude-opus-5-5 | 12 | 0 | 0 | 0 | 4629 | 498 | 130 | 258 | 42162 | 4191877 | 676897 | 3.78 |
+
+#### Revise-green, by model
+
+| model | leaves | PASS | REJECT |
+| --- | ---: | ---: | ---: |
+| claude-opus-5-5 | 5 | 1 | 4 |
 
 #### Rework and waste, by phase
 
@@ -301,14 +660,19 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 277 | 0.82 |
-| green | 0 | 0.00 | 26 | 0.11 |
+| red | 316 | 0.77 | 507 | 1.11 |
+| green | 2966 | 1.62 | 5157 | 2.53 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
-| pin | 0 | 0.00 | 55 | 0.17 |
+| pin | 0 | 0.00 | 138 | 0.34 |
 | red-supersede | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 | prose | 0 | 0.00 | 0 | 0.00 |
-| red-contradicted | 0 | 0.00 | 36 | 0.11 |
+| red-contradicted | 0 | 0.00 | 0 | 0.00 |
+| exhausted | 0 | 0.00 | 413 | 0.52 |
+| red-repair | 0 | 0.00 | 0 | 0.00 |
+| red-missing | 0 | 0.00 | 0 | 0.00 |
+| rebase | 3464 | 1.63 | 0 | 0.00 |
+| test-quality | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -326,7 +690,34 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | With `branch` in the run's pinned skip list, the `✅ Done` comment's `⚠️ Unverified phases:` line names `branch` ⟦criterion 17⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 36 | 13 | 20 | 3938 | 265022 | 55584 | 0.20 | unknown | unknown | unknown | unknown |  |  | full |
 | ⟦skill-edit⟧ `skills/tdd/scripts/prompts/verify-branch.md` exists, its rows VB1–VB5 under `## skills/tdd/scripts/prompts/verify-branch.md` in `skills/tdd/scripts/prompts/REQUIREMENTS.md`, graded so `prose-owed.sh` exits 0 ⟦criterion 25⟧ | 2 | 0 | 0 | 0 | 0 | 0 | 13 | 4 | 8 | 1901 | 49898 | 21512 | 0.08 | 107 | unknown | unknown | unknown |  |  | full |
 | Test-only, no production change: the case in `skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py` that pins `build_verify_prompt.PHASES` as an exact ten-phase tuple is rewritten to assert each of those ten phases is in `PHASES`, in that order, so it passes on the code before and after a `branch` phase is added ⟦diff-checked⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 20 | 8 | 12 | 1825 | 122774 | 46057 | 0.15 | 355 | n/a | n/a | n/a |  |  | full |
-| `build-verify-prompt.sh --fast-cmd '<fast-cmd>' --branch-base <sha> branch <issue-spec-file>` exits 0 printing the `verify-branch.md` prompt filled with `git diff <sha>..HEAD`, the spec file's acceptance criteria and the fast command, and no other input ⟦criterion 2⟧ | 6 | 1 | 1 | 0 | 0 | 0 | 134 | 30 | 56 | 12321 | 746965 | 183628 | 0.79 | unknown | 2/2 | unknown | unknown |  |  | full |
+| `build-verify-prompt.sh --fast-cmd '<fast-cmd>' --branch-base <sha> branch <issue-spec-file>` exits 0 printing the `verify-branch.md` prompt filled with `git diff <sha>..HEAD`, the spec file's acceptance criteria and the fast command, and no other input ⟦criterion 2⟧ | 11 | 3 | 1 | 0 | 0 | 0 | 209 | 53 | 100 | 19951 | 1368904 | 334867 | 1.31 | 32403 | 2/2 | 0/5 | nothing-left |  |  | full |
+| The `branch` prompt's spec rows the issue names are read at `<branch-base>`: a row changed on the branch after the base appears in the prompt as it reads at the base ⟦criterion 2⟧ | 10 | 1 | 3 | 0 | 1 | 0 | 238 | 61 | 118 | 21624 | 1576093 | 481207 | 2.14 | unknown | 2/2 | unknown | unknown |  | exhausted | full |
+| The `branch` prompt's spec rows the issue names are read at `<branch-base>`: a row changed on the branch after the base appears in the prompt as it reads at the base ⟦added⟧ ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 122 | 34 | 66 | 12248 | 1040083 | 210972 | 0.75 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| When the named spec file holds no table rows at `<branch-base>`, the `branch` prompt's issue spec is the spec file's text, with nothing appended after it ⟦added⟧ ⟦criterion 2⟧ | 8 | 3 | 0 | 0 | 0 | 0 | 130 | 41 | 80 | 11748 | 930375 | 355613 | 1.10 | unknown | 0/? | 0/5 | nothing-left |  |  | full |
+| A phase other than `branch` given a spec file with a `Spec: <path> , rows …` line carries no spec rows read from that path in its prompt ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 43 | 11 | 22 | 3962 | 259903 | 92904 | 0.30 | unknown | unknown | unknown | unknown |  |  | pin |
+| `build-verify-prompt.sh branch` given any argument beyond `--fast-cmd`, `--branch-base` and the spec file exits 2, pinned by the case `test_branch_refuses_a_leaf_report_path` in `skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py`, which feeds a leaf report path (`.tdd/develop-green.out`) as a positional after the spec file, the refusal being the one guard line `if phase == "branch" and test_path:` in `build` in `skills/tdd/scripts/veri/build_verify_prompt.py` ⟦criterion 3⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 66 | 28 | 46 | 6655 | 566199 | 172601 | 0.55 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| `build-verify-prompt.sh branch` given a `--branch-base` not matching `^[0-9a-f]{7,40}$` exits 2 ⟦criterion 3⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 39 | 12 | 22 | 4177 | 319113 | 65813 | 0.24 | unknown | unknown | unknown | unknown |  |  | full |
+| Test-only, no production change: the cases in `skills/tdd/scripts/tests/py/unit/test_run_pr.py` that pin `run_pr.CALLS` as exactly five stages (the set-and-length case and the "for each of the five stage names" case) are rewritten to assert those five stages appear in `CALLS` in their order, so they pass on the code before and after a stage is added between `pr-checks.sh` and `pr-ready-wait.sh` ⟦diff-checked⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 25 | 9 | 16 | 2551 | 184448 | 49347 | 0.17 | unknown | n/a | n/a | n/a |  |  | full |
+| Test-only, no production change: the seven cases in `skills/tdd/scripts/tests/py/unit/test_run_pr.py` that pin `run-pr.sh`'s first call as exactly `branch-gate.sh`, `pr-prepare.sh` and `pr-checks.sh` (`test_4432_the_first_call_runs_the_three_stages_then_stops_at_the_title_seam`, `..._a_seam_record_whose_sha_is_not_the_ledgers_last_commit_...`, `..._it_prints_each_stages_call_line_...`, `..._a_stage_exiting_3_early_or_late_...`, `..._a_stage_exiting_4_or_a_signals_negative_code_...`, `..._an_empty_ledger_sha_never_matches_a_record_...`, `..._a_stacked_run_called_again_with_its_seam_current_...`) are rewritten to assert those three stages run first in that order with `verify-branch.sh` the only stage allowed after `pr-checks.sh` before the seam, so they pass on the code before and after `verify-branch.sh` is called there ⟦diff-checked⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 37 | 9 | 18 | 3439 | 227461 | 56381 | 0.20 | unknown | n/a | n/a | n/a |  |  | full |
+| `verify-branch.sh`, a new stage script (module `veri/verify_branch.py` behind a `/bin/sh` shim), lands with its contract and its declared caller in one step: given no argument it prints a usage line on stderr and exits 2, and `run-pr.sh` calls `verify-branch.sh <n>` after `pr-checks.sh` and before `pr-ready-wait.sh` ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 67 | 19 | 36 | 6663 | 443027 | 137392 | 0.45 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| `verify-branch.sh <n>` launches the `verdict-branch` leaf through `fused.launch` (`detach-leaf.sh` then `supervise.sh`) running `run-verdict.sh --fast-cmd '<fast-cmd>' --branch-base <recorded branch base> branch .tdd/issue-<n>-spec.md`, never `run-leaf.sh` or `claude` directly ⟦criterion 20⟧ | 9 | 1 | 3 | 0 | 0 | 0 | 219 | 58 | 114 | 19662 | 1652114 | 289977 | 1.44 | unknown | 2/2 | unknown | unknown |  | exhausted | full |
+| `verify-branch.sh <n>` launches the `verdict-branch` leaf through `fused.launch` (`detach-leaf.sh` then `supervise.sh`) running `run-verdict.sh --fast-cmd '<fast-cmd>' --branch-base <recorded branch base> branch .tdd/issue-<n>-spec.md`, with the leaf's stderr written to `.tdd/verify-branch.err`, never `run-leaf.sh` or `claude` directly ⟦added⟧ ⟦criterion 20⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 97 | 28 | 52 | 9894 | 765077 | 152994 | 0.56 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| the `verdict-branch` leaf `verify-branch.sh <n>` launches runs with `VERI_TEST_CMD` set to the run's fast command and `VERI_ISSUE` set to `<n>` in its environment ⟦added⟧ ⟦criterion 20⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 65 | 22 | 42 | 5763 | 530692 | 133929 | 0.45 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| when the launch stops (a stop requested by `stop-requested.sh`, or `detach-leaf.sh` exiting non-zero), `verify-branch.sh <n>` exits with that stop's code and launches no leaf ⟦added⟧ ⟦criterion 20⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 78 | 25 | 48 | 7352 | 650887 | 146857 | 0.51 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| The `verify-branch` leaf's model is `VERI_MODEL_VERIFIER` when set, else `VERI_MODEL`, else sonnet, and `VERI_MODEL_DEVELOPER` does not select it ⟦criterion 18⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 54 | 17 | 34 | 4988 | 532782 | 65008 | 0.27 | unknown | unknown | unknown | unknown |  |  | full |
+| `verify-branch.sh <n>` called again while its `verdict-branch` leaf is still running launches no second leaf and exits 3 while `wait-leaf.sh` exits 3 ⟦criterion 20⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 78 | 24 | 46 | 7472 | 611890 | 145274 | 0.50 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| When the `verdict-branch` leaf's verdict is PASS, `verify-branch.sh <n>` exits 0 with no step added to the ledger, and `run-pr.sh` goes on to `pr-ready-wait.sh` ⟦criterion 5⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 44 | 12 | 24 | 4316 | 332842 | 56762 | 0.22 | unknown | unknown | unknown | unknown |  |  | pin |
+| That REJECT's appended step is committed as one `plan:` commit holding `.tdd/issue-<n>.md` and `.tdd/issue-<n>-added.md` ⟦criterion 6⟧ | 34 | 14 | 1 | 0 | 0 | 0 | 571 | 169 | 332 | 53498 | 4560120 | 982466 | 3.45 | unknown | unknown | 0/5 | nothing-left |  |  | pin |
+| A later `run-pr.sh <n>` on the repaired ledger's new sha restarts at `branch-gate.sh`, calls `branch-gate.sh`, `pr-prepare.sh`, `pr-checks.sh` and `verify-branch.sh` again in order ⟦criterion 7⟧ | 4 | 2 | 0 | 0 | 0 | 0 | 88 | 22 | 44 | 9635 | 609961 | 121219 | 0.46 | unknown | unknown | unknown | unknown |  |  | pin |
+| When the `verdict-branch` leaf ends with no verdict (`wait-leaf.sh` exit 2 after `run-verdict.sh`'s `VERI_NO_VERDICT_RETRIES`), `verify-branch.sh <n>` exits 2, appends no step and records no `branch-rejected` bail ⟦criterion 14⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 48 | 13 | 26 | 4861 | 358436 | 57515 | 0.23 | unknown | unknown | unknown | unknown |  |  | pin |
+| With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` launches no leaf and records `verify-branch-skipped reason=switched-off` ⟦criterion 16⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 100 | 32 | 60 | 9326 | 812201 | 179869 | 0.73 | unknown | 1/2 | 0/5 | nothing-left |  |  | full |
+| With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` writes `skipped` to `.tdd/verdict-branch.exit` and exits 0 ⟦criterion 16⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 70 | 24 | 46 | 6288 | 609728 | 145920 | 0.49 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| ⟦skill-edit⟧ `skills/tdd/DRAFT-PR.md` states the `verify-branch` stage: position, inputs, PASS, REJECT and its repair step, `VERI_BRANCH_REPAIRS` and the `branch-rejected` bail, the no-verdict route, the skip, the `next=` return to the cycle loop (rows DP361, DP362, DP363) ⟦criterion 21⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 130 | 8 | 14 | 19839 | 194000 | 215715 | 0.76 | unknown | unknown | unknown | unknown |  |  | full |
+| ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md` names the `branch` phase of `build-verify-prompt.sh` and `verify-branch.sh` among `run-pr.sh`'s stages, after `pr-checks` and before the title seam (row SC<next>) ⟦criterion 23⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 201 | 8 | 16 | 30924 | 823393 | 769794 | 2.32 | unknown | unknown | unknown | unknown |  |  | full |
+| ⟦skill-edit⟧ `skills/tdd/BAIL.md` lists `branch-rejected`, exit 1, a process failure (row BL179) ⟦criterion 23⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 53 | 8 | 16 | 7496 | 118462 | 64892 | 0.25 | unknown | unknown | unknown | unknown |  |  | full |
+| ⟦skill-edit⟧ `CLAUDE.md`'s budget invariant reads twelve budgets on twelve axes naming `VERI_BRANCH_REPAIRS`, and its blind-verifier invariant lists `branch` among the `VERI_SKIP_VERIFY` phases (rows CM310, CM311) ⟦criterion 24⟧ | 13 | 0 | 0 | 0 | 0 | 0 | 223 | 26 | 42 | 32057 | 435380 | 268904 | 1.04 | unknown | unknown | unknown | unknown |  |  | full |
+| ⟦skill-edit⟧ `skills/tdd/PREFLIGHT.md` step 5 lists `VERI_BRANCH_REPAIRS` among the tunables it checks and `branch` among the `VERI_SKIP_VERIFY` phases (row PF73) ⟦criterion 24⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 64 | 7 | 14 | 9853 | 93020 | 73985 | 0.29 | unknown | unknown | unknown | unknown |  |  | full |
+| `docs/adr/0033-blind-verifiers-can-be-switched-off-per-phase.md`'s phase list gains `branch`, `plan` staying refused ⟦diff-checked⟧ ⟦criterion 15⟧ | 13 | 2 | 1 | 0 | 0 | 0 | 572 | 96 | 192 | 67407 | 3018913 | 763913 | 3.12 | unknown | 1/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER, VERI_MODEL_REVISE and VERI_MODEL_REVISE_GREEN.
 
@@ -339,6 +730,22 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `run-conductor.sh` accepts `branch` in `VERI_SKIP_VERIFY` (no exit 2 naming it), `plan` still refused ⟦criterion 15⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.07 |
 | `run-conductor.sh` with a `VERI_BRANCH_REPAIRS` that is not a whole number of at least 0 (e.g. `x`) exits 2 naming the variable before any leaf launches, `VERI_BRANCH_REPAIRS` being a tunable of `tunables.py` with default `1` ⟦criterion 12⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.07 |
 | Metrics count a `verify-branch-skipped` event on the `Verifiers switched off:` line as `branch`, `metrics.SWITCHED_OFF_EVENTS` naming it ⟦criterion 16⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.07 |
+| `build-verify-prompt.sh --fast-cmd '<fast-cmd>' --branch-base <sha> branch <issue-spec-file>` exits 0 printing the `verify-branch.md` prompt filled with `git diff <sha>..HEAD`, the spec file's acceptance criteria and the fast command, and no other input ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.07 |
+| The `branch` prompt's spec rows the issue names are read at `<branch-base>`: a row changed on the branch after the base appears in the prompt as it reads at the base ⟦added⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 12 | 0.08 |
+| When the named spec file holds no table rows at `<branch-base>`, the `branch` prompt's issue spec is the spec file's text, with nothing appended after it ⟦added⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 11 | 0.07 |
+| `build-verify-prompt.sh branch` given any argument beyond `--fast-cmd`, `--branch-base` and the spec file exits 2, pinned by the case `test_branch_refuses_a_leaf_report_path` in `skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py`, which feeds a leaf report path (`.tdd/develop-green.out`) as a positional after the spec file, the refusal being the one guard line `if phase == "branch" and test_path:` in `build` in `skills/tdd/scripts/veri/build_verify_prompt.py` ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 10 | 0.08 |
+| `verify-branch.sh`, a new stage script (module `veri/verify_branch.py` behind a `/bin/sh` shim), lands with its contract and its declared caller in one step: given no argument it prints a usage line on stderr and exits 2, and `run-pr.sh` calls `verify-branch.sh <n>` after `pr-checks.sh` and before `pr-ready-wait.sh` ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.07 |
+| `verify-branch.sh <n>` launches the `verdict-branch` leaf through `fused.launch` (`detach-leaf.sh` then `supervise.sh`) running `run-verdict.sh --fast-cmd '<fast-cmd>' --branch-base <recorded branch base> branch .tdd/issue-<n>-spec.md`, with the leaf's stderr written to `.tdd/verify-branch.err`, never `run-leaf.sh` or `claude` directly ⟦added⟧ ⟦criterion 20⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.07 |
+| the `verdict-branch` leaf `verify-branch.sh <n>` launches runs with `VERI_TEST_CMD` set to the run's fast command and `VERI_ISSUE` set to `<n>` in its environment ⟦added⟧ ⟦criterion 20⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.07 |
+| when the launch stops (a stop requested by `stop-requested.sh`, or `detach-leaf.sh` exiting non-zero), `verify-branch.sh <n>` exits with that stop's code and launches no leaf ⟦added⟧ ⟦criterion 20⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.07 |
+| `verify-branch.sh <n>` called again while its `verdict-branch` leaf is still running launches no second leaf and exits 3 while `wait-leaf.sh` exits 3 ⟦criterion 20⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.07 |
+| That REJECT's appended step is committed as one `plan:` commit holding `.tdd/issue-<n>.md` and `.tdd/issue-<n>-added.md` ⟦criterion 6⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.07 |
+| With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` launches no leaf and records `verify-branch-skipped reason=switched-off` ⟦criterion 16⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.07 |
+| With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` writes `skipped` to `.tdd/verdict-branch.exit` and exits 0 ⟦criterion 16⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 12 | 0.08 |
+
+#### Structural pass
+
+Stopped: nothing-structural
 
 #### Refactor totals
 
@@ -349,46 +756,73 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `run-conductor.sh` accepts `branch` in `VERI_SKIP_VERIFY` (no exit 2 naming it), `plan` still refused ⟦criterion 15⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `run-conductor.sh` with a `VERI_BRANCH_REPAIRS` that is not a whole number of at least 0 (e.g. `x`) exits 2 naming the variable before any leaf launches, `VERI_BRANCH_REPAIRS` being a tunable of `tunables.py` with default `1` ⟦criterion 12⟧ | 1 | 0 | 1 | nothing-left 1 |
 | Metrics count a `verify-branch-skipped` event on the `Verifiers switched off:` line as `branch`, `metrics.SWITCHED_OFF_EVENTS` naming it ⟦criterion 16⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 5 | 0 | 5 | nothing-left 5 |
+| `build-verify-prompt.sh --fast-cmd '<fast-cmd>' --branch-base <sha> branch <issue-spec-file>` exits 0 printing the `verify-branch.md` prompt filled with `git diff <sha>..HEAD`, the spec file's acceptance criteria and the fast command, and no other input ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
+| The `branch` prompt's spec rows the issue names are read at `<branch-base>`: a row changed on the branch after the base appears in the prompt as it reads at the base ⟦added⟧ ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
+| When the named spec file holds no table rows at `<branch-base>`, the `branch` prompt's issue spec is the spec file's text, with nothing appended after it ⟦added⟧ ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
+| `build-verify-prompt.sh branch` given any argument beyond `--fast-cmd`, `--branch-base` and the spec file exits 2, pinned by the case `test_branch_refuses_a_leaf_report_path` in `skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py`, which feeds a leaf report path (`.tdd/develop-green.out`) as a positional after the spec file, the refusal being the one guard line `if phase == "branch" and test_path:` in `build` in `skills/tdd/scripts/veri/build_verify_prompt.py` ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
+| `verify-branch.sh`, a new stage script (module `veri/verify_branch.py` behind a `/bin/sh` shim), lands with its contract and its declared caller in one step: given no argument it prints a usage line on stderr and exits 2, and `run-pr.sh` calls `verify-branch.sh <n>` after `pr-checks.sh` and before `pr-ready-wait.sh` ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| `verify-branch.sh <n>` launches the `verdict-branch` leaf through `fused.launch` (`detach-leaf.sh` then `supervise.sh`) running `run-verdict.sh --fast-cmd '<fast-cmd>' --branch-base <recorded branch base> branch .tdd/issue-<n>-spec.md`, with the leaf's stderr written to `.tdd/verify-branch.err`, never `run-leaf.sh` or `claude` directly ⟦added⟧ ⟦criterion 20⟧ | 1 | 0 | 1 | nothing-left 1 |
+| the `verdict-branch` leaf `verify-branch.sh <n>` launches runs with `VERI_TEST_CMD` set to the run's fast command and `VERI_ISSUE` set to `<n>` in its environment ⟦added⟧ ⟦criterion 20⟧ | 1 | 0 | 1 | nothing-left 1 |
+| when the launch stops (a stop requested by `stop-requested.sh`, or `detach-leaf.sh` exiting non-zero), `verify-branch.sh <n>` exits with that stop's code and launches no leaf ⟦added⟧ ⟦criterion 20⟧ | 1 | 0 | 1 | nothing-left 1 |
+| `verify-branch.sh <n>` called again while its `verdict-branch` leaf is still running launches no second leaf and exits 3 while `wait-leaf.sh` exits 3 ⟦criterion 20⟧ | 1 | 0 | 1 | nothing-left 1 |
+| That REJECT's appended step is committed as one `plan:` commit holding `.tdd/issue-<n>.md` and `.tdd/issue-<n>-added.md` ⟦criterion 6⟧ | 1 | 0 | 1 | nothing-left 1 |
+| With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` launches no leaf and records `verify-branch-skipped reason=switched-off` ⟦criterion 16⟧ | 1 | 0 | 1 | nothing-left 1 |
+| With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` writes `skipped` to `.tdd/verdict-branch.exit` and exits 0 ⟦criterion 16⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 18 | ? | ? | nothing-left 17, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 64 | 63 | 66 | 64 | 74 | 69 | 69 | 76 | 68 | 63 | 65 | 63 | 67 | 67 | 67 | 70 | 68 | 75 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| changed | 6 | 34 | 4 | 4 | 8 | 8 | 5 | 5 | 8 | 53 | 52 | 53 | 5 | 5 | 4 | 4 | 58 | 54 | 5 | 4 | 54 | 52 | 8 | 5 | 5 | 6 | 6 | 6 | 6 | 8 | 6 | 6 | 5 | 5 | 5 | 4 |
-| target | 5 | 5 | 5 | 4 | 5 | 6 | 4 | 5 | 6 | 1 | 4 | 5 | 5 | 4 | 5 | 3 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s | run 118 s | run 119 s | run 120 s | run 121 s | run 122 s | run 123 s | run 124 s | run 125 s | run 126 s | run 127 s | run 128 s | run 129 s | run 130 s | run 131 s | run 132 s | run 133 s | run 134 s | run 135 s | run 136 s | run 137 s | run 138 s | run 139 s | run 140 s | run 141 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fast | 64 | 63 | 66 | 64 | 74 | 69 | 69 | 76 | 68 | 63 | 65 | 63 | 67 | 67 | 67 | 70 | 68 | 75 | 68 | 69 | 72 | 81 | 141 | 332 | 277 | 148 | 179 | 148 | 149 | 163 | 159 | 314 | 149 | 150 | 147 | 153 | 151 | 136 | 123 | 211 | 103 | 95 | 97 | 92 | 95 | 96 | 102 | 96 | 97 | 96 | 98 | 145 | 141 | 142 | 144 | 144 | 144 | 144 | 145 | 146 | 147 | 145 | 146 | 148 | 147 | 144 | 147 | 146 | 148 | 150 | 141 | 109 | 119 | 128 | 86 | 77 | 82 | 74 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| changed | 6 | 34 | 4 | 4 | 8 | 8 | 5 | 5 | 8 | 53 | 52 | 53 | 5 | 5 | 4 | 4 | 58 | 54 | 5 | 4 | 54 | 52 | 8 | 5 | 5 | 6 | 6 | 6 | 6 | 8 | 6 | 6 | 5 | 5 | 5 | 4 | 7 | 6 | 26 | 0 | 6 | 6 | 28 | 30 | 17 | 70 | 115 | 204 | 57 | 156 | 11 | 238 | 195 | 12 | 163 | 23 | 21 | 15 | 13 | 373 | 230 | 13 | 106 | 24 | 64 | 180 | 9 | 12 | 10 | 7 | 8 | 8 | 9 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 8 | 7 | 7 | 6 | 7 | 8 | 6 | 7 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 7 | 7 | 6 | 6 | 7 | 0 | 6 | 7 | 7 | 6 | 6 | 6 | 7 | 7 | 6 | 4 | 5 | 7 | 7 | 6 | 7 | 6 | 6 | 7 | 6 | 7 | 7 | 6 | 6 | 7 | 6 | 7 | 7 | 6 | 7 | 7 | 6 | 5 | 5 | 6 | 0 | 6 | 6 | 6 | 21 |
+| target | 5 | 5 | 5 | 4 | 5 | 6 | 4 | 5 | 6 | 1 | 4 | 5 | 5 | 4 | 5 | 3 | 4 | 5 | 5 | 5 | 4 | 4 | 3 | 4 | 5 | 13 | 112 | 14 | 13 | 115 | 12 | 13 | 15 | 13 | 236 | 11 | 314 | 18 | 16 | 10 | 11 | 7 | 11 | 13 | 12 | 18 | 18 | 67 | 121 | 13 | 11 | 6 | 7 | 8 | 7 | 7 | 7 | 7 | 7 | 7 | 6 | 6 | 6 | 7 | 6 | 6 | 6 | 7 | 7 | 6 | 6 | 7 | 6 | 7 | 6 | 7 | 6 | 6 | 6 | 6 | 7 | 6 | 5 | 5 | 5 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 1 | 584 | 580 | 594 | 574 | 572 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Stages
 
 | stage | runs | ok | failed | no answer | nothing | unended | wall s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| preflight | 3 | 2 | 0 | 1 | 0 | 0 | 370 |
-| rebase | 2 | 1 | 0 | 0 | 1 | 0 | 4 |
-| baseline | 2 | 2 | 0 | 0 | 0 | 0 | 186 |
+| preflight | 4 | 3 | 0 | 1 | 0 | 0 | 541 |
+| rebase | 5 | 1 | 2 | 0 | 2 | 0 | 28 |
+| baseline | 3 | 3 | 0 | 0 | 0 | 0 | 271 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 306 |
-| push | 21 | 21 | 0 | 0 | 0 | 0 | 43 |
+| push | 65 | 65 | 0 | 0 | 0 | 0 | 140 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
-| refactor-loop | 5 | 5 | 0 | 0 | 0 | 0 | 316 |
+| refactor-loop | 21 | 21 | 0 | 0 | 0 | 0 | 2690 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 252 | 436 | 79261 | 5508392 | 1580736 | 46.97 (estimate) |
+| total | 1118 | 2106 | 557087 | 28626295 | 8947866 | 378.59 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
-Green rejects by route: none
+#### Green rejects
+
+| step | attempt | route | check | reason |
+| --- | ---: | --- | ---: | --- |
+| The `branch` prompt's spec rows the issue names are read at `<branch-base>`: a row changed on the branch after the base appears in the prompt as it reads at the base ⟦criterion 2⟧ | 1 | revise | 4 | The target test and `make unit` are green, but two guards added in `_branch_spec_rows` in `skills/tdd/scripts/veri/build_verify_prompt.py` are required by no test. (1) `or not os.path.exists(os.path.join(root, ".git"))` and (2) `if shown.returncode != 0: return b""` each leave the suites green when removed, probed with `mutation-probe.sh` over `test_build_verify_prompt.py` and `test_build_verify_prompt_process.py`. Remove both, or pin them in the step that requires them. |
+| The `branch` prompt's spec rows the issue names are read at `<branch-base>`: a row changed on the branch after the base appears in the prompt as it reads at the base ⟦criterion 2⟧ | 1 | revise | 4 | MISSING_TEST: the branch prompt includes only the spec rows the issue names, and leaves out other rows of the same spec file at the base |
+| The `branch` prompt's spec rows the issue names are read at `<branch-base>`: a row changed on the branch after the base appears in the prompt as it reads at the base ⟦criterion 2⟧ | 1 | bail | 4 | The target test, `make unit` and the affected test files are all green. Two guards the step added are not required by any test; removing either leaves `make unit` plus the affected files green, per `mutation-probe.sh`. |
+| `verify-branch.sh <n>` launches the `verdict-branch` leaf through `fused.launch` (`detach-leaf.sh` then `supervise.sh`) running `run-verdict.sh --fast-cmd '<fast-cmd>' --branch-base <recorded branch base> branch .tdd/issue-<n>-spec.md`, never `run-leaf.sh` or `claude` directly ⟦criterion 20⟧ | 1 | revise | 4 | Target test, fast tier and the new test file are green, but two pieces of code are not required by any test: the `or not argv[0].isdigit()` guard in `main`, and the `out=".tdd/verify-branch.reason"` path in `fused.launch`. Removing or changing either left the suite green. |
+| `verify-branch.sh <n>` launches the `verdict-branch` leaf through `fused.launch` (`detach-leaf.sh` then `supervise.sh`) running `run-verdict.sh --fast-cmd '<fast-cmd>' --branch-base <recorded branch base> branch .tdd/issue-<n>-spec.md`, never `run-leaf.sh` or `claude` directly ⟦criterion 20⟧ | 1 | revise | 4 | Production code in `skills/tdd/scripts/veri/verify_branch.py` that no test requires: the tightened guard `len(argv) != 1`, which rejects extra arguments. Reverting it to `not argv` leaves `make unit` and `test_verify_branch.py` green. Remove that change, or add a test only if a criterion needs the stricter guard. |
+| `verify-branch.sh <n>` launches the `verdict-branch` leaf through `fused.launch` (`detach-leaf.sh` then `supervise.sh`) running `run-verdict.sh --fast-cmd '<fast-cmd>' --branch-base <recorded branch base> branch .tdd/issue-<n>-spec.md`, never `run-leaf.sh` or `claude` directly ⟦criterion 20⟧ | 1 | bail | 4 | The target test and `make unit` pass, but three pieces of the step's code are required by no test (probe leaves the suite green): the `env=tunables.with_values(VERI_TEST_CMD=fast, VERI_ISSUE=n)` argument, the `err=".tdd/verify-branch.err"` argument, and the `except fused.Stop as stop: return stop.code` handler. Remove them, or pin each with a case. |
+| That REJECT's appended step is committed as one `plan:` commit holding `.tdd/issue-<n>.md` and `.tdd/issue-<n>-added.md` ⟦criterion 6⟧ | 1 | missing | 4 | MISSING_TEST: the `branch-rejected` bail call passes `--note-file .tdd/verify-branch.reason` to `bail.sh`; the test only checks the first two arguments (`n`, `cause`). |
+| With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` launches no leaf and records `verify-branch-skipped reason=switched-off` ⟦criterion 16⟧ | 1 | revise | 4 | The target test passes (14 passed in test_verify_branch.py), but the step adds production code that no test requires. In `skills/tdd/scripts/veri/verify_branch.py`, the `with open(os.path.join(wt, ".tdd", "verdict-branch.exit"), "w") as f: f.write("skipped\n")` block can be removed and the suite stays green (`mutation-probe.sh` reported green). That write is the next ledger step's behaviour, "writes `skipped` to `.tdd/verdict-branch.exit`", and this step's criterion doesn't cover it. I probed only that suite file, not `make unit` plus the affected test files, and I did not run the broader fast and changed tiers. |
+
+Green rejects by route: revise 5, bail 2, missing 1
+Green rejects by check: 4 8, unnamed 0
 
 #### Launch cost, by role
 
 | role | model | leaves | first-turn cache creation | first-turn cache read | first-turn input |
 | --- | --- | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 24 | 727854 | 131821 | 48 |
-| developer | claude-sonnet-5-5 | 26 | 601757 | 154806 | 52 |
-| author | claude-sonnet-5-5 | 1 | 14058 | 5992 | 2 |
-| grader | claude-sonnet-5-5 | 1 | 3803 | 649 | 2 |
-| developer | claude-opus-5-5 | 1 | 29261 | 0 | 2 |
+| verifier | claude-sonnet-5-5 | 86 | 2229396 | 549209 | 172 |
+| developer | claude-sonnet-5-5 | 96 | 2262367 | 544286 | 192 |
+| author | claude-sonnet-5-5 | 8 | 469104 | 47936 | 16 |
+| grader | claude-sonnet-5-5 | 49 | 2027813 | 447316 | 98 |
+| developer | claude-opus-5-5 | 9 | 249729 | 5943 | 18 |
 
-Gradings: 1, PASS 1, REJECT 0, cost $0.02, efforts default
+Gradings: 31, PASS 23, REJECT 8, cost $6.12, efforts default
