@@ -2088,3 +2088,17 @@ def test_pin_posts_already_satisfied_naming_the_last_done_step_with_the_verify_p
     assert "the criterion already holds on the before-state kilo" in posted[0][1]
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"]) for e in events] == [("comment", "pin")]
+
+
+def test_pin_with_verify_pin_switched_off_carries_the_skipped_line_where_the_reason_would_be(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = pin_fixture(monkeypatch, tmp_path, "# Plan for #7\n\n- [x] pinned step lima\n")
+    (tmp_path / ".tdd" / "verdict-pin.exit").write_text("skipped\n")
+
+    code, out, err = run_cli(comment, ["7", "pin"], cwd=tmp_path)
+
+    assert code == 0
+    assert posted[0][1].splitlines()[0] == "### 📌 Already satisfied — pinned step lima"
+    assert "verify-pin — SKIPPED (switched off)" in posted[0][1]
+    assert "before-state kilo" not in posted[0][1]
