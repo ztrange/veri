@@ -887,9 +887,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `run-done.sh`: the run's done comment, in one call.
 - `stop-settle.sh`: a stop, STOPPING.md steps 1–6, settled in one call.
 - `reset-cost.sh`: what each recorded restart of a run's conductor cost, and the growth knob it calls for.
-- `reset-wait.sh`: wait for a usage-limit reset.
 - `restart-conductor.sh`: stop and watch a conductor restart.
-- `role-growth.sh`: read a role session's context growth.
 - `role-state.sh`: the dev session's recorded state.
 - `role_state_cli`: role-state.sh's entry point: role_state's verbs, a written `set n` also writing the lane's test budget entry and printing the T it leaves; apart from role_state so that status never imports watch_runs.
 - `run-conductor.sh`: launch one conductor on an issue.
@@ -934,12 +932,11 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `rendered(issue)`: `(code, report, stderr)` of the markdown report of the working directory's run.
 
 ## role_state
-- `state_path(tree, role, lane=None)`: `.tdd/role-<role>[-<lane>].state` under `tree`. `read(path)`: text, `None` when missing.
+- `state_path(tree, role, lane=None)`: `.tdd/role-<role>[-<lane>].state` under `tree`.
 - `read_lines(role, lane=None)`: the role's state lines in the main tree, `None` when missing.
 - `State(lines)`: the grammar of the state file. `fields()` (every `key=value` line as a dict), `field(name)` (last `name=` value, `None`), `values(name)` (every `name=` value, in file order), `items(*kinds)` (raw item lines), `last_n()`, `timed_ns()` (`(value, expiry)` pairs), `override_numbers()`, `check()`. A bad line raises `Malformed(kind, line)` (`kind` one of `n-missing`, `n`, `timed-n`, `override`, `state`); each caller words it.
-- `checked(path)`: the file's `State` (no lines when missing) once `check()` passes, else `BadStateFile`, whose text is `malformed state file <path>`; role_growth reports it as is.
 - `run_verbs(argv, after_set_n=None)`, `USAGE`: role-state.sh's verbs and its usage line; after a written `set n`, it prints the line `after_set_n(path, n)` returns (role_state_cli's lane budget line).
-- `append(path, text)`, `now()`, `epoch(stamp)`, `STAMP`: append (written through a temp file and renamed); the stamp; a stamp's epoch seconds, read as local time; the stamp's strftime format. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
+- `STAMP`: the strftime format of the state file's stamps; reset_cost writes a restart's time in it.
 
 ## watch_runs
 - `live_conductors()`: the issues whose conductor is live, running per status, starting or pid-filed; dispatch's slot count and role_state_cli's lane need read it.
