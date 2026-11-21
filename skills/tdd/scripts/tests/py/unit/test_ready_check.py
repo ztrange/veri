@@ -928,6 +928,14 @@ def test_issue_4532_the_bypass_permissions_row_fails_when_only_shape_probe_is_mi
     assert name == "bypassPermissions" and verdict, verdict
 
 
+def test_issue_4532_the_bypass_permissions_row_fails_when_shape_probe_holds_something_other_than_the_nonce_though_the_other_nonce_files_hold_it_and_no_denial_is_listed(ready_check, fake_processes):
+    fake_processes.answers({PROBE: probe_answer(shape="something else")})
+
+    name, verdict = ready_check.bypass_permissions_row()
+
+    assert name == "bypassPermissions" and verdict, verdict
+
+
 def test_issue_4532_the_bypass_permissions_row_is_ok_when_all_three_files_hold_the_nonce_with_shape_probe_having_further_lines_and_no_denial_is_listed(ready_check, fake_processes):
     inner = probe_answer()
 
