@@ -9,4 +9,4 @@
 - [x] `role-state.sh dev recovered` no longer removes `reset-request-<role>` markers or drops `refused-at` lines, which nothing writes any more ⟦added⟧
 - [x] `skills/tdd/SCRIPTS.md` names no `role-growth.sh`, `reset-wait.sh`, `request-reset`, `resetter` or `dev` mode of `reset-cost.sh`, its rows SC134/SC137 dropped and SC135/SC220 rewritten, regraded ⟦criterion 7⟧
 - [x] `veri/README.md` lists no deleted script or module ⟦criterion 8⟧
-- [ ] `make unreachable` lists no script this issue left behind ⟦criterion 9⟧
+- [x] `make unreachable` lists no script this issue left behind ⟦criterion 9⟧
