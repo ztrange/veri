@@ -49,7 +49,8 @@ def run_stages(n, wt, stages, hands):
         if code:
             if code == 3:
                 record(wt, n, stage[:-3])
-            sys.stdout.write("seam=%s code=%d next=%s\n" % (stage[:-3], code, "run-pr.sh %s" % n if code == 3 else ANCHOR))
+            why = " reason=rejected" if (stage, code) == ("verify-branch.sh", 1) else ""
+            sys.stdout.write("seam=%s code=%d%s next=%s\n" % (stage[:-3], code, why, "run-pr.sh %s" % n if code == 3 else ANCHOR))
             return code
     return None
 
