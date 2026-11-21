@@ -1,5 +1,19 @@
 """CLAUDE.md stays under a byte cap (#4517, PRD 042.2)."""
 
+from conftest import ROOT
+
+# Root CLAUDE.md at 8cc6b5d1bc plus 1,000 B headroom; raise it here, as a reviewed change.
+CAP = 19215 + 1000
+
+# Bytes per `##` section of root CLAUDE.md at 8cc6b5d1bc, as section_bytes counts them.
+BASELINE = {
+    "Commands": 2929,
+    "Exit codes are the API": 576,
+    "Invariants worth not breaking": 5767,
+    "Testing idiom": 7165,
+    "Graded prose": 2087,
+}
+
 
 def section_bytes(text):
     sizes = {}
@@ -46,3 +60,9 @@ def test_a_text_over_the_cap_names_its_size_the_cap_and_the_most_grown_section_4
     assert str(size) in message
     assert "100" in message
     assert "Beta" in message
+
+
+def test_the_root_claude_md_is_within_its_cap_4517():
+    failure = cap_failure((ROOT / "CLAUDE.md").read_text(), CAP, BASELINE)
+
+    assert failure is None, failure
