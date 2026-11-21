@@ -3496,6 +3496,16 @@ def test_4527_a_queueing_line_then_a_runs_done_exit_at_a_later_poll_ends_on_the_
            "done 7 https://github.com/o/r/pull/9\n")
 
 
+def test_4527_a_queueing_line_then_an_empty_queue_at_a_later_poll_ends_on_queue_empty_after_it_and_exits_3(dispatch):
+    world = FakeWorld({"waiters": 1}, {"waiters": 2}, {"waiters": 3},
+                      {"queue": dispatch.watch_runs.QueueUnreadable("")}, {})
+
+    code = dispatch.main(["--target", "2"], world=world)
+
+    assert (code, "".join(world.said)) == (
+        3, "queueing 3 waiting for T=8, 0 workers in use: a lower N would shorten the wait\nqueue-empty\n")
+
+
 @pytest.mark.parametrize("counts", [(2, 2, 2), (3, 2, 1), (0, 1, 2), (2, 0, 3)], ids=["flat", "shrinking", "a-zero-first", "a-zero-between"])
 def test_4455_a_queue_that_is_not_above_0_at_each_of_the_last_3_polls_or_not_grown_from_the_oldest_prints_nothing(dispatch, counts):
     world = FakeWorld(*[{"waiters": k} for k in counts])
