@@ -375,3 +375,14 @@ def test_4511_the_step_pin_reject_route_adds_on_a_disarmed_pin_is_rechecked_by_d
     code, out, err, fake = diff(step=step, fake=RepinHistory())
 
     assert (code, fake.call("pin-recheck.sh")[1]) == (1, ("--branch-base", BRANCH_BASE, GREEN_PARENT)), err
+
+
+def test_4511_an_added_diff_checked_step_that_is_no_repin_rechecks_from_its_own_step_base(diff):
+    """Only the re-pin line pin-reject-route.sh --recheck writes moves the recheck base: any other ⟦added⟧
+    ⟦diff-checked⟧ step keeps its step base, so a disarmed pin of an earlier step is not charged to it."""
+    step = "⟦diff-checked⟧ rename the helper in tests/test_a.py ⟦added⟧ ⟦criterion 1⟧"
+    diff(step=step, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(step=step, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    code, out, err, fake = diff(step=step, fake=RepinHistory())
+
+    assert (code, fake.call("pin-recheck.sh")[1]) == (0, ("--branch-base", BRANCH_BASE, STEP_BASE)), err
