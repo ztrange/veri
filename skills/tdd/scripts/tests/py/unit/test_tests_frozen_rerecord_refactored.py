@@ -135,17 +135,17 @@ def test_rerecord_refactored_leaves_a_javascript_cases_record_when_the_refactor_
 
 
 @pytest.mark.parametrize("before, after", [
-    ('t.Fatalf("got %d", x)', 't.Fatalf("got %d, want 5", x+1)'),
-    ('t.Errorf("got %d", x)', 't.Errorf("got %d, want 5", x+1)'),
-    ('t.Fail()', 't.FailNow()'),
-    ('require.Equal(t, 1, x)', 'require.Equal(t, 5, x)'),
+    ('if x != 1 {\n\t\tt.Fatalf("got %d", x)', 'if x != 5 {\n\t\tt.Fatalf("got %d", x)'),
+    ('if x != 1 {\n\t\tt.Errorf("got %d", x)', 'if x != 5 {\n\t\tt.Errorf("got %d", x)'),
+    ('if x != 1 {\n\t\tt.Fail()', 'if x != 1 {\n\t\tt.FailNow()'),
+    ('if x != 1 {\n\t\trequire.Equal(t, 1, x)', 'if x != 1 {\n\t\trequire.Equal(t, 5, x)'),
 ])
 def test_rerecord_refactored_leaves_a_go_cases_record_when_the_refactor_changed_its_check_line_2809(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, before, after):
     step = STEPS[1]
     suite = tmp_path / GO_SUITE
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
-    suite.write_text("func TestOne(t *testing.T) {\n\tx := 1\n\tif x != 1 {\n\t\t%s\n\t}\n}\n" % before)
+    suite.write_text("func TestOne(t *testing.T) {\n\tx := 1\n\t%s\n\t}\n}\n" % before)
     repo.add(GO_SUITE)
     run_cli(tests_frozen, ["record", "--step", step, GO_SUITE], cwd=tmp_path)
     repo.commit("A red", all=True)
