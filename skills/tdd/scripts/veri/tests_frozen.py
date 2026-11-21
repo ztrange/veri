@@ -474,14 +474,14 @@ def rerecord_refactored(ledger, green):
             return skip(name, case, record, "helpers digest differs from green's")
         helpers = case_identity.called_helpers("HEAD", name, head)
         called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))
-        head_lines = [l for l in case_identity.assertion_lines(head) if l.split("(")[0] not in called]
-        verified_lines = case_identity.assertion_lines(verified)
-        verified_count = collections.Counter(verified_lines + case_identity.assertion_lines(case_identity.called_helpers(green, name, verified + "\n" + head)))
-        carried = collections.Counter(head_lines + case_identity.assertion_lines(helpers))
+        head_lines = [l for l in case_identity.checked_lines(head) if l.split("(")[0] not in called]
+        verified_lines = case_identity.checked_lines(verified)
+        verified_count = collections.Counter(verified_lines + case_identity.checked_lines(case_identity.called_helpers(green, name, verified + "\n" + head)))
+        carried = collections.Counter(head_lines + case_identity.checked_lines(helpers))
         if head_lines != verified_lines and carried != verified_count:
             return skip(name, case, record, "assertion lines of case plus helpers differ from green's")
-        if head_lines == verified_lines and len(case_identity.assertion_lines(helpers)) \
-                != len(case_identity.assertion_lines(case_identity.called_helpers(green, name, verified))):
+        if head_lines == verified_lines and len(case_identity.checked_lines(helpers)) \
+                != len(case_identity.checked_lines(case_identity.called_helpers(green, name, verified))):
             return skip(name, case, record, "helper assertion count differs from green's")
         if not verified_lines and case_identity.squeezed(head) != case_identity.squeezed(verified):
             return skip(name, case, record, "case has no assertion lines and its body changed")

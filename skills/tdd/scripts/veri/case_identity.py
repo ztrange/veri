@@ -11,6 +11,9 @@ Interface (a function says what it touches: text only, the tree's files, or case
   squeezed(text)                          `text` with every run of whitespace dropped. Text only.
   assertion_lines(body)                   the squeezed lines of `body` that start (after indentation) with
                                           assert, expect(, t.Fatal, t.Error, t.Fail or require. Text only.
+  checked_lines(body)                     assertion_lines(body), but a t.Fatal or t.Error line whose previous non-blank
+                                          line is an `if <cond> {` guard carries that guard, squeezed, in front of it,
+                                          so a changed condition changes the line. Text only.
   bodies_of(text, case)                   every body of the cases named `case` in test source `text`, in file
                                           order; [] when none. Text only; UnclosedCase from case_reader.cut_cases
                                           when a JS call never closes.
@@ -61,6 +64,18 @@ def squeezed(text):
 
 def assertion_lines(body):
     return [squeezed(line) for line in body.splitlines() if line.lstrip().startswith(("assert", "expect(", "t.Fatal", "t.Error", "t.Fail", "require."))]
+
+
+def checked_lines(body):
+    lines, guard = [], ""
+    for line in body.splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        if text.startswith(("assert", "expect(", "t.Fatal", "t.Error", "t.Fail", "require.")):
+            lines.append((guard if text.startswith(("t.Fatal", "t.Error")) else "") + squeezed(text))
+        guard = squeezed(text) if re.match(r"if\s.*\{$", text) else ""
+    return lines
 
 
 def bodies_of(text, case):
