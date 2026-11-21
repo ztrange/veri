@@ -517,6 +517,7 @@
 | CY413 | `DIFF-CHECKED.md` opens with one call line: run `$S/run-step.sh <n>`, again on exit 3, and on 1 or 2 go on by the paragraph its last line names; `diff-step by hand ends $S/step-tick.sh <n>`. Every paragraph stays. | The prose stays the fallback (DST13, S8). |
 | CY414 | The PASS bullet names the ledger commit's subject for a ⟦diff-checked⟧ tick: `chore: diff-checked — <step summary> (#<n>)`. | Runs commit it under that subject today and no skill file names it (DST6, S14). |
 | CY418 | The PASS bullet says that on a re-pin step, the one `pin-reject-route.sh --recheck` adds, `pin-recheck.sh` runs from `<green>~1`, `<green>` the re-armed step's green tick, the ledger's last commit before the step base that changes a line other than a re-pin step's, never from the step base. | From the step base, the re-pin plan commit, the range leaves out the fix that disarmed the pin, `pin-recheck.sh` exits 3 and a re-pin that left the pin green is ticked; a step that disarmed two pins gets a second re-pin after the first ticks, and the ledger's plain last commit would be that tick (#4511). |
+| CY419 | The PASS bullet says that on a re-pin step, before `pin-recheck.sh`, a net diff since the step base (`git diff --name-only <step-base-sha> HEAD`) holding no test file is a verify-diff REJECT that spends `REVISE_BUDGET`, naming the pin's file in its reason. | #4512: a re-pin step's deliverable is the edited case of its pin; one that edits no test file would otherwise tick with the pin still disarmed. |
 
 ## skills/tdd/GO-RED.md
 
