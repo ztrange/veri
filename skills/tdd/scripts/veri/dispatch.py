@@ -648,7 +648,7 @@ def _stretched(state, world, live):
             if key not in lines:
                 world.record_notified(lines + [key])
                 world.say(f"{key} {seconds}s, idle {idle}s\n")
-                return 0
+                return None
     return None
 
 

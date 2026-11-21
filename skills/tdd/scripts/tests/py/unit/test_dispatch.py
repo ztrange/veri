@@ -3598,14 +3598,14 @@ def test_4455_the_real_worlds_test_budget_is_the_legs_t_and_the_workers_live_reg
     assert dispatch.World().test_budget() == (8, 6)
 
 
-def test_4456_a_live_runs_test_stretch_event_prints_the_stretched_line_after_that_polls_launch_and_exits_0(dispatch):
-    world = FakeWorld({"live": ["7"], "queue": ["15"], "stretches": {"7": [("fast", "9", "3")]}}, {},
+def test_4527_a_live_runs_test_stretch_event_prints_the_stretched_line_after_that_polls_launch_and_keeps_watching(dispatch):
+    world = FakeWorld({"live": ["7"], "queue": ["15"], "stretches": {"7": [("fast", "9", "3")]}},
                       notified=["queue 0"])
 
     code = dispatch.main(["--target", "2"], world=world)
 
     assert (code, world.launched, world.waits, "".join(world.said), world.notified_lines) == (
-        0, ["15"], 0, "stretched 7 fast 9s, idle 3s\n", ["queue 0 0", "stretched 7 fast"])
+        None, ["15"], 1, "stretched 7 fast 9s, idle 3s\n", ["queue 0 0", "stretched 7 fast"])
 
 
 def test_4456_a_run_and_tier_already_reported_prints_nothing_while_its_other_tier_and_another_run_each_print_once(dispatch):
@@ -3616,7 +3616,7 @@ def test_4456_a_run_and_tier_already_reported_prints_nothing_while_its_other_tie
         results.append((dispatch.main(["--target", "2"], world=world), "".join(world.said)))
         notified = world.notified_lines
 
-    assert results == [(0, "stretched 7 all 30s, idle 10s\n"), (0, "stretched 8 fast 8s, idle 3s\n"), (None, "")]
+    assert results == [(None, "stretched 7 all 30s, idle 10s\n"), (None, "stretched 8 fast 8s, idle 3s\n"), (None, "")]
 
 
 def test_4456_a_run_that_is_not_live_is_never_asked_for_its_stretches(dispatch):
