@@ -615,3 +615,18 @@ def test_resolved_exits_2_leaving_the_record_untouched_when_head_lacks_the_onto_
     asked = [c for c in calls if c.startswith(("git fetch", "git rebase", "git merge-base"))]
     assert (code, named in err, record.read_text(), asked) == (
         2, True, PRE + "\n", [f"git merge-base --is-ancestor {ONTO} HEAD"] if named == ONTO else [])
+
+
+@pytest.mark.parametrize("had", [True, False], ids=["had a record", "had none"])
+def test_resolved_prints_the_sha_the_record_held_before_it_re_recorded_it_and_nothing_when_there_was_none_4553(
+        cli, fake_processes, tmp_path, had):
+    record = tmp_path / ".tdd" / "issue-12-branch-base"
+    if had:
+        record.parent.mkdir()
+        record.write_text(PRE + "\n")
+    git_fake(fake_processes, **{"git symbolic-ref --quiet --short HEAD": (0, "tdd/12-slug\n"),
+                                f"git merge-base --is-ancestor {ONTO} HEAD": (0, "")})
+
+    code, out, err = cli.run_cli(cli.module, ["--resolved", ONTO], cwd=str(tmp_path))
+
+    assert (code, out, err, record.read_text()) == (0, PRE + "\n" if had else "", "", ONTO + "\n")
