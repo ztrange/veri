@@ -94,15 +94,14 @@ instantly, with the previous cycle's code — and a `.tdd/<name>.pid` left the s
 supervisor long gone, would end it with a 2 before the new supervisor wrote its own. Then the launch, **detached** — through
 `detach-leaf.sh`, so the call returns at once and the leaf runs in a **session of its own**.
 Then `wait-leaf.sh` in the **foreground**, which blocks until the leaf finishes and exits
-with its code. On **exit 3** the leaf is still running and you have only spent the wait's
-budget: **call `wait-leaf.sh` again**, as many times as it takes. Make every foreground
+with its code. On **exit 3** the leaf is still running and only the wait's
+budget is spent: **call `wait-leaf.sh` again**, as many times as it takes. Make every foreground
 `wait-leaf.sh` call with no max-seconds argument and the Bash tool's maximum `timeout` of 600000 ms:
 the 600 s foreground cap is the limit, so a wait costs one call per 590 s and no fewer. Only a 0, 1 or 2 is an
 answer. Read the leaf's report from `.tdd/<name>.out` — the captured stdout — instead of
 from the launcher's stdout, which the detached call no longer hands you.
 Read it with `$S/extract-result.sh < .tdd/<name>.out`, which prints the report alone. Never `tail`,
-`head` or `cat` the file: it is the leaf's stream-json, so a few of its lines are the leaf's whole
-transcript.
+`head` or `cat` the file: it is the leaf's stream-json.
 
 A leaf's `BASH_DEFAULT_TIMEOUT_MS` and `BASH_MAX_TIMEOUT_MS` follow its effective timeout, the one
 `supervise.sh` enforces (`VERI_TIMEOUT`, else the run's `.tdd/issue-<n>-timeout`, else 900 s),
@@ -134,11 +133,12 @@ and veri did not kill it, so do not relaunch the leaf, and **bail** with cause `
 Whenever this procedure says **bail**, with the cause the bailing line names, `Read` and run `<base directory>/BAIL.md`.
 
 **A conductor never asks the user a question, and never declines the procedure's next instruction.** No
-one answers a headless run, so a turn that ends on a question leaves a run that looks in progress. If you
+one answers a headless run, so a turn ending on a question leaves a run that looks in progress. If you
 would ask, or would decline, **bail** with cause `needs-user` (a process failure) instead — this covers
-every place the procedure itself says to ask the user, preflight check 1's dirty-tree stop and
-*Detecting the test command*'s exit-3 ask among them — writing the
-question in full into the bail comment so a resume or the human can answer it (`Read` `<base directory>/BAIL.md`).
+every place the procedure says to ask the user, *Detecting the test command*'s exit-3 ask
+among them — writing the question in full into the bail comment so a resume or the human can answer it (`Read` `<base directory>/BAIL.md`).
+Preflight check 1's dirty-tree stop is not such an ask: it is a preflight refusal
+(`PREFLIGHT-FAILURES.md`), never a bail.
 
 The launch carries `VERI_TEST_CMD`: the run's test command, reaching the leaf through its
 **environment** rather than its prompt, so the verifier stays blind. It is a prefix on the
@@ -152,8 +152,7 @@ in-process by the supervisor and the verifier, which reads the run context out o
 environment. Nothing downstream can supply it — `leaf-role.sh` derives
 the actor, the phase and the attempt from the leaf's **name**, and no name says which issue
 is being solved or which step of its plan the leaf is on — so a launch that omits them
-leaves every one of that leaf's events with an empty `issue` and an empty `step`, and a
-reader can attribute the leaf to a step only by interleaving timestamps with `step-start`.
+leaves every one of that leaf's events with an empty `issue` and an empty `step`.
 
 **The step's title reaches a command line as data, never hand-typed into it where a
 script can read it instead.** Double quotes stop an apostrophe but not an expansion: a
@@ -214,8 +213,8 @@ conductor often runs as a print-mode session (`claude -p "/tdd <n>"` — one of 
 unattended modes `README.md`'s *Launching the conductor* describes), and in print mode that notification never arrives: the turn ends, the
 `claude -p` process exits, and the leaf is orphaned. The supervisor keeps running it under
 `.tdd/`, but nothing will ever read its result, tick the ledger or narrate the outcome (this
-is how #70 was lost). The detach-then-wait shape behaves identically interactively and
-unattended, so it is the only one this procedure uses.
+is how #70 was lost). Detach-then-wait behaves identically interactively and
+unattended, so it is the only shape this procedure uses.
 
 The same holds for the conductor's own long commands: no step backgrounds a command (the baseline or full-suite `make test` included) and ends its turn. They go through `detach-command.sh start`, then `detach-command.sh wait` in the foreground.
 
