@@ -562,3 +562,13 @@ def test_4499_a_reroute_naming_two_cases_excepts_each_on_its_own_once_in_order(g
     assert tail[1][:2] == ("tests-frozen.sh", ("check-earlier", ".tdd/issue-12.md", "--step", STEP,
                                                "--except", first, "--except", second))
     assert "verdict-green" in fake.launched()
+
+
+def test_4479_a_green_half_wait_record_naming_another_step_is_ignored_and_the_open_step_launches_develop_green(green):
+    values = {"test_path": "tests/test_old.py", "target_test": "tests/test_old.py::test_a"}
+    (green.wt / ".tdd" / "issue-12-green-half-wait").write_text(json.dumps(
+        {"conductor": None, "at": "verdict-green", "values": values, "step": "step A ⟦criterion 1⟧"}))
+    (green.wt / ".tdd" / "verdict-green.exit").write_text("0\n")
+    code, out, err, fake = green()
+
+    assert fake.launched()[:1] == ["develop-green"]

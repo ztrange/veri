@@ -164,7 +164,7 @@ def save_wait(wt, n, owner, at, values):
         json.dump({"conductor": conductor(wt), "at": at, "values": values}, f)
 
 
-def load_wait(wt, n, owner):
+def load_wait(wt, n, owner, step=None):
     """(at, values) a first call recorded before its wait ran out; None when there is no usable record. A record
     another conductor wrote is removed: its leaf is a dead run's (FC7)."""
     import json
@@ -176,6 +176,8 @@ def load_wait(wt, n, owner):
         return None
     if theirs != conductor(wt):
         os.remove(wait_record(wt, n, owner))
+        return None
+    if step is not None and record.get("step", step) != step:
         return None
     return at, values
 
