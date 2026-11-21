@@ -2562,3 +2562,30 @@ def test_a_change_step_on_a_heading_unit_whose_author_edits_its_file_counts_the_
                              env={"VERI_SKILL_EDIT_BUDGET": "1"})
 
     assert (code, launched, (tmp_path / "unit.md").read_text()) == (0, ["author-skill-edit-1"], edited), (code, out, err)
+
+
+def test_a_step_whose_issue_row_is_a_letter_suffixed_id_reword_of_a_held_row_is_not_refused_as_a_malformed_id_4541(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| QU6b | The widget is red. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| QU6b<reword> | The widget is blue. | because |\n")
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "reword QU6b", str(tmp_path / "issue.md"), "unit.md"])
+
+    assert "QU6b" not in err, (code, out, err)
+    assert code != 2, (code, out, err)
