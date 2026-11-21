@@ -5,10 +5,13 @@ from conftest import ROOT
 # Root CLAUDE.md at 8cc6b5d1bc plus 1,000 B headroom; raise it here, as a reviewed change.
 CAP = 19215 + 1000
 
+# The entry for the text above the first `##` heading.
+PREAMBLE = "(above the first ##)"
+
 # Bytes per `##` section of root CLAUDE.md at 8cc6b5d1bc, and above its first `##`,
 # as section_bytes counts them.
 BASELINE = {
-    "(above the first ##)": 691,
+    PREAMBLE: 691,
     "Commands": 2929,
     "Exit codes are the API": 576,
     "Invariants worth not breaking": 5767,
@@ -18,7 +21,7 @@ BASELINE = {
 
 
 def section_bytes(text):
-    title = "(above the first ##)"
+    title = PREAMBLE
     sizes = {title: 0}
     for line in text.splitlines(keepends=True):
         if line.startswith("## "):
@@ -37,7 +40,7 @@ def cap_failure(text, cap, baseline):
     grown = max(growth, key=growth.get)
     if growth[grown] <= 0:
         named = "no section grew over its baseline"
-    elif grown == "(above the first ##)":
+    elif grown == PREAMBLE:
         named = "%s grew most over its baseline" % grown
     else:
         named = "section '## %s' grew most over its baseline" % grown
