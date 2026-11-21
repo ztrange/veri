@@ -177,21 +177,37 @@ def test_4482_green_on_a_replaces_case_step_passes_check_earlier_one_except_per_
 
 
 def test_4499_green_on_a_step_a_reroute_rewrote_passes_check_earlier_each_rerouted_and_replaced_case_once_and_launches(revise):
-    step = "port it: replaces 'case one' and 'case two' in tests/py/test_x.py ⟦replaces-case⟧ ⟦criterion 2⟧"
+    step = "port it: replaces 'case_one' and 'case_two' in tests/py/test_x.py ⟦replaces-case⟧ ⟦criterion 2⟧"
     (revise.wt / ".tdd" / "issue-12.md").write_text(LEDGER % step)
     (revise.wt / ".tdd" / "issue-12-red-half").write_text(RED_HALF % step)
     rewritten = "tests/test_b.py::test_earlier"
     events = [{"event": "reroute", "actor": "conductor", "step": step, "kind": "red", "case": case}
-              for case in (rewritten, "case one")]
+              for case in (rewritten, "case_one")]
     (revise.wt / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
     revise(answers={("wait-leaf.sh", "revise-green-1"): (3, "")})
     code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
 
     assert code == 3
     assert fake.call("tests-frozen.sh", "check-earlier")[1] == (
-        "check-earlier", ".tdd/issue-12.md", "--step", step, "--except", rewritten, "--except", "case one",
-        "--except", "case two")
+        "check-earlier", ".tdd/issue-12.md", "--step", step, "--except", rewritten, "--except", "case_one",
+        "--except", "case_two")
     assert fake.launched() == ["verdict-green"]
+
+
+def test_4499_green_after_a_reroute_naming_two_cases_passes_check_earlier_one_except_per_case(revise):
+    step = "port it: replaces 'case one' and 'case two' in tests/py/test_x.py ⟦replaces-case⟧ ⟦criterion 2⟧"
+    (revise.wt / ".tdd" / "issue-12.md").write_text(LEDGER % step)
+    (revise.wt / ".tdd" / "issue-12-red-half").write_text(RED_HALF % step)
+    first, second = "tests/test_b.py::test_one", "tests/test_b.py::test_two"
+    event = {"event": "reroute", "actor": "conductor", "step": step, "kind": "red", "case": first + " " + second}
+    (revise.wt / ".tdd" / "events.jsonl").write_text(json.dumps(event) + "\n")
+    revise(answers={("wait-leaf.sh", "revise-green-1"): (3, "")})
+    code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
+
+    assert code == 3
+    assert fake.call("tests-frozen.sh", "check-earlier")[1] == (
+        "check-earlier", ".tdd/issue-12.md", "--step", step, "--except", first, "--except", second,
+        "--except", "case one", "--except", "case two")
 
 
 def test_4482_green_on_a_replaces_case_step_whose_cases_cannot_be_parsed_passes_check_earlier_no_except(revise):
