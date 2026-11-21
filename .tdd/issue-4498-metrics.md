@@ -1,16 +1,17 @@
 ### 📊 Metrics — issue 4498
 
-Wall time for the issue: 1720 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 366 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 1 of 2 planned.
-Outcome: the run bailed — repin-failed, a process failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/4506.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $3.54 over 49 turns, in 3 sessions, on opus (estimate).
+Conductor own spending: $8.20 over 108 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 88431 tokens, largest 107915 tokens
 Conductor context: first turn 108531 tokens, largest 117332 tokens
-Conductor context: first turn 65572 tokens, largest 81379 tokens
+Conductor context: first turn 65572 tokens, largest 83237 tokens
+Conductor context: first turn 84787 tokens, largest 109584 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -55,15 +56,74 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 36 | $0.10 | 63987 |
 | 37 | $0.08 | 64638 |
 | 38 | $0.09 | 65140 |
-| 39 | $0.02 | 65572 |
-| 40 | $0.02 | 66538 |
-| 41 | $0.03 | 68643 |
-| 42 | $0.02 | 69623 |
-| 43 | $0.03 | 72212 |
-| 44 | $0.02 | 73125 |
-| 45 | $0.02 | 73891 |
-| 46 | $0.02 | 74344 |
-| 47 | $0.07 | 81379 |
+| 39 | $0.22 | 65572 |
+| 40 | $0.23 | 66538 |
+| 41 | $0.24 | 68643 |
+| 42 | $0.23 | 69623 |
+| 43 | $0.24 | 72212 |
+| 44 | $0.23 | 73125 |
+| 45 | $0.22 | 73891 |
+| 46 | $0.23 | 74344 |
+| 47 | $0.28 | 81379 |
+| 48 | $0.23 | 82904 |
+| 49 | $0.23 | 83237 |
+| 50 | $0.53 | 84787 |
+| 51 | $0.03 | 86361 |
+| 52 | $0.05 | 90875 |
+| 53 | $0.07 | 97745 |
+| 54 | $0.02 | 98214 |
+| 55 | $0.02 | 98696 |
+| 56 | $0.05 | 102980 |
+| 57 | $0.03 | 103913 |
+| 58 | $0.03 | 104905 |
+| 59 | $0.03 | 106023 |
+| 60 | $0.05 | 109018 |
+| 61 | $0.03 | 109584 |
+| 62 | $0.22 | 45297 |
+| 63 | $0.02 | 46762 |
+| 64 | $0.02 | 48215 |
+| 65 | $0.02 | 50018 |
+| 66 | $0.02 | 51839 |
+| 67 | $0.03 | 53730 |
+| 68 | $0.01 | 54049 |
+| 69 | $0.02 | 54835 |
+| 70 | $0.03 | 57251 |
+| 71 | $0.02 | 57831 |
+| 72 | $0.01 | 58236 |
+| 73 | $0.02 | 59742 |
+| 74 | $0.02 | 60230 |
+| 75 | $0.01 | 60498 |
+| 76 | $0.03 | 62386 |
+| 77 | $0.10 | 72729 |
+| 78 | $0.02 | 73239 |
+| 79 | $0.05 | 77134 |
+| 80 | $0.04 | 79762 |
+| 81 | $0.02 | 80814 |
+| 82 | $0.02 | 81689 |
+| 83 | $0.02 | 82646 |
+| 84 | $0.03 | 84310 |
+| 85 | $0.03 | 85397 |
+| 86 | $0.02 | 86184 |
+| 87 | $0.02 | 87145 |
+| 88 | $0.02 | 87890 |
+| 89 | $0.02 | 88195 |
+| 90 | $0.03 | 89211 |
+| 91 | $0.02 | 89588 |
+| 92 | $0.02 | 89964 |
+| 93 | $0.02 | 90811 |
+| 94 | $0.02 | 91240 |
+| 95 | $0.05 | 95112 |
+| 96 | $0.02 | 95837 |
+| 97 | $0.03 | 97354 |
+| 98 | $0.04 | 99785 |
+| 99 | $0.03 | 100584 |
+| 100 | $0.02 | 101055 |
+| 101 | $0.03 | 101981 |
+| 102 | $0.03 | 102912 |
+| 103 | $0.02 | 103198 |
+| 104 | $0.02 | 103704 |
+| 105 | $0.03 | 104308 |
+| 106 | $0.02 | 104623 |
 
 #### Conductor comments, by family
 
@@ -88,10 +148,10 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 36 | 2.84 |
-| preflight | 1 | 0.04 |
+| between | 80 | 7.04 |
+| preflight | 2 | 0.07 |
 | plan | 1 | 0.04 |
-| refactor-loop | 8 | 0.54 |
+| refactor-loop | 22 | 0.97 |
 | develop-diff | 1 | 0.08 |
 | untimed | 2 | 0.00 |
 
@@ -101,18 +161,19 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 2 | 2 | 0 | 0 | 18 | 12 | 2 | 4 | 1451 | 5992 | 67275 | 0.18 |
+| plan | 3 | 3 | 0 | 0 | 27 | 18 | 3 | 6 | 2256 | 5992 | 100416 | 0.27 |
 | red | 2 | 1 | 0 | 0 | 137 | 25 | 7 | 12 | 2639 | 134149 | 61599 | 0.19 |
 | green | 2 | 1 | 0 | 0 | 354 | 23 | 7 | 14 | 2277 | 140956 | 42808 | 0.14 |
-| refactor | 1 | 0 | 0 | 0 | 8 | 5 | 2 | 4 | 355 | 32108 | 22736 | 0.06 |
+| refactor | 2 | 0 | 0 | 0 | 18 | 12 | 4 | 8 | 908 | 60463 | 40971 | 0.12 |
 | diff | 2 | 1 | 0 | 0 | 230 | 62 | 16 | 30 | 5779 | 360310 | 58227 | 0.24 |
+| test-quality | 1 | 0 | 0 | 0 | 15 | 13 | 2 | 4 | 1331 | 24888 | 34266 | 0.10 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 5 | 5 | 0 | 0 | 502 | 61 | 15 | 28 | 6197 | 253908 | 132256 | 0.42 |
-| developer | claude-sonnet-5-5 | 4 | 0 | 0 | 0 | 245 | 66 | 19 | 36 | 6304 | 419607 | 120389 | 0.41 |
+| verifier | claude-sonnet-5-5 | 6 | 6 | 0 | 0 | 511 | 67 | 16 | 30 | 7002 | 253908 | 165397 | 0.51 |
+| developer | claude-sonnet-5-5 | 6 | 0 | 0 | 0 | 270 | 86 | 23 | 44 | 8188 | 472850 | 172890 | 0.56 |
 
 #### Rework and waste, by phase
 
@@ -121,15 +182,16 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | plan | 0 | 0.00 | 0 | 0.00 |
 | red | 0 | 0.00 | 137 | 0.19 |
 | green | 0 | 0.00 | 354 | 0.14 |
-| refactor | 0 | 0.00 | 8 | 0.06 |
+| refactor | 0 | 0.00 | 18 | 0.12 |
 | diff | 0 | 0.00 | 0 | 0.00 |
+| test-quality | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
 | step | attempts | PASS | REJECT | kills | retries | no-verdict | API s | turns | input | output | cache read | cache creation | $ | wall s | revise | refactor | stopped | crossed at | split | kind |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
-| skill-edit-half.sh judges the open step's text without its `- [ ] ` checkbox prefix: on a ledger whose open step leads with the skill-edit marker (the exact line the issue's acceptance criterion quotes, for unit `skills/tdd/SKILL.md`) it passes the kind check and starts skill-edit-step.sh for unit `skills/tdd/SKILL.md` instead of exiting 2 (a small in-process case in tests/py/unit/test_skill_edit_half.py, failing on the current code) ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 53 | 16 | 30 | 5271 | 307213 | 127143 | 0.40 | unknown | unknown | 0/5 | nothing-left |  |  | full |
-| ⟦diff-checked⟧ edit the case of the pin on skills/tdd/scripts/veri/skill_edit_half.py so its recorded mutation turns it red ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 62 | 16 | 30 | 5779 | 360310 | 58227 | 0.24 | 463 | n/a | n/a | n/a |  |  | full |
+| skill-edit-half.sh judges the open step's text without its `- [ ] ` checkbox prefix: on a ledger whose open step leads with the skill-edit marker (the exact line the issue's acceptance criterion quotes, for unit `skills/tdd/SKILL.md`) it passes the kind check and starts skill-edit-step.sh for unit `skills/tdd/SKILL.md` instead of exiting 2 (a small in-process case in tests/py/unit/test_skill_edit_half.py, failing on the current code) ⟦criterion 1⟧ | 6 | 2 | 0 | 0 | 0 | 0 | 60 | 18 | 34 | 5824 | 335568 | 145378 | 0.46 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| ⟦diff-checked⟧ edit the case of the pin on skills/tdd/scripts/veri/skill_edit_half.py so its recorded mutation turns it red ⟦added⟧ ⟦criterion 1⟧ | 3 | 1 | 0 | 0 | 0 | 0 | 75 | 18 | 34 | 7110 | 385198 | 92493 | 0.34 | 40980 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER, VERI_MODEL_REVISE and VERI_MODEL_REVISE_GREEN.
 
@@ -137,14 +199,18 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | step | pass | refactor | stopped | verdict | revise | wall s | $ |
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
-| skill-edit-half.sh judges the open step's text without its `- [ ] ` checkbox prefix: on a ledger whose open step leads with the skill-edit marker (the exact line the issue's acceptance criterion quotes, for unit `skills/tdd/SKILL.md`) it passes the kind check and starts skill-edit-step.sh for unit `skills/tdd/SKILL.md` instead of exiting 2 (a small in-process case in tests/py/unit/test_skill_edit_half.py, failing on the current code) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.06 |
+| skill-edit-half.sh judges the open step's text without its `- [ ] ` checkbox prefix: on a ledger whose open step leads with the skill-edit marker (the exact line the issue's acceptance criterion quotes, for unit `skills/tdd/SKILL.md`) it passes the kind check and starts skill-edit-step.sh for unit `skills/tdd/SKILL.md` instead of exiting 2 (a small in-process case in tests/py/unit/test_skill_edit_half.py, failing on the current code) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 18 | 0.12 |
+
+#### Structural pass
+
+Stopped: nothing-structural
 
 #### Refactor totals
 
 | step | passes | transforms | landed nothing | stopped |
 | --- | ---: | ---: | ---: | --- |
 | skill-edit-half.sh judges the open step's text without its `- [ ] ` checkbox prefix: on a ledger whose open step leads with the skill-edit marker (the exact line the issue's acceptance criterion quotes, for unit `skills/tdd/SKILL.md`) it passes the kind check and starts skill-edit-step.sh for unit `skills/tdd/SKILL.md` instead of exiting 2 (a small in-process case in tests/py/unit/test_skill_edit_half.py, failing on the current code) ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 1 | 0 | 1 | nothing-left 1 |
+| issue | 2 | ? | ? | nothing-left 1, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
@@ -158,18 +224,19 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | stage | runs | ok | failed | no answer | nothing | unended | wall s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| preflight | 1 | 1 | 0 | 0 | 0 | 0 | 22 |
-| baseline | 1 | 1 | 0 | 0 | 0 | 0 | 1 |
+| preflight | 2 | 2 | 0 | 0 | 0 | 0 | 245 |
+| baseline | 2 | 2 | 0 | 0 | 0 | 0 | 140 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 6 |
-| push | 5 | 5 | 0 | 0 | 0 | 0 | 12 |
+| push | 9 | 9 | 0 | 0 | 0 | 0 | 20 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
-| refactor-loop | 1 | 0 | 1 | 0 | 0 | 0 | 346 |
+| refactor-loop | 2 | 1 | 1 | 0 | 0 | 0 | 544 |
+| rebase | 3 | 2 | 0 | 0 | 1 | 0 | 9 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 34 | 64 | 12501 | 673515 | 252645 | 4.36 (estimate) |
+| total | 39 | 74 | 15190 | 726758 | 338287 | 9.27 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
@@ -179,5 +246,5 @@ Green rejects by route: none
 
 | role | model | leaves | first-turn cache creation | first-turn cache read | first-turn input |
 | --- | --- | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 5 | 121930 | 23968 | 10 |
-| developer | claude-sonnet-5-5 | 4 | 81572 | 17976 | 8 |
+| verifier | claude-sonnet-5-5 | 6 | 155071 | 23968 | 12 |
+| developer | claude-sonnet-5-5 | 6 | 112819 | 28974 | 12 |
