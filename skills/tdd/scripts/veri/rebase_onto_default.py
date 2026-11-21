@@ -68,6 +68,9 @@ def record_branch_base(onto, done):
 
 
 def main(argv):
+    if argv[:1] == ["--resolved"]:
+        # A conflicted rebase resolved onto <onto-sha> by hand: re-record the base, rebase nothing.
+        return record_branch_base(argv[1], 0)
     return event.stage("rebase", lambda: rebase(argv))
 
 

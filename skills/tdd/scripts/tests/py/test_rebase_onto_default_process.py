@@ -159,6 +159,55 @@ def test_main_leaves_head_the_tree_and_the_rebase_state_untouched_when_up_to_dat
         untouched(clone, pre, *run_cli(rebase_onto_default, [], cwd=clone), 1, ["file.txt", "work.txt"])
 
 
+@pytest.mark.process("git: a real clone whose conflicting rebase is resolved by hand, then re-recorded with --resolved")
+def test_main_resolved_re_records_the_branch_base_as_the_onto_sha_a_hand_resolved_conflicting_rebase_landed_on_and_exits_0_4553(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, name, body, message):
+        (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, "file.txt", "base\n", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    old_base = git(clone, "rev-parse", "HEAD")
+    (clone / ".git" / "info" / "exclude").write_text(".tdd/\n")
+    (clone / ".tdd").mkdir()
+    record = clone / ".tdd" / "issue-1-branch-base"
+    record.write_text(f"{old_base}\n")  # preflight's record at the cut
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, "file.txt", "the run's edit\n", "feat: a step's green commit (#1)")
+    commit(seed, "file.txt", "another run's edit\n", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+    onto = git(seed, "rev-parse", "HEAD")
+
+    assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 1
+    # The develop-rebase leaf redoes the rebase onto <onto-sha> and resolves it.
+    subprocess.run(["git", "-C", str(clone), "rebase", onto], text=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    (clone / "file.txt").write_text("both edits\n")
+    git(clone, "add", "file.txt")
+    git(clone, "-c", "core.editor=true", "rebase", "--continue")
+    assert git(clone, "rev-parse", "HEAD~1") == onto
+    assert record.read_text() == f"{old_base}\n"
+
+    code, out, err = run_cli(rebase_onto_default, ["--resolved", onto], cwd=clone)
+
+    assert (code, err) == (0, "")
+    assert record.read_text() == f"{onto}\n"
+
+
 @pytest.mark.process("rebase-onto-default.sh run through a symlink to the skill directory, from the caller's clone")
 def test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository(
         monkeypatch, tmp_path):
