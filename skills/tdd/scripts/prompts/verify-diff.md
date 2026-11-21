@@ -3,7 +3,9 @@
 ## Phase: verify-diff
 
 The step under judgement is a criterion about this branch's own diff: something removed,
-left unchanged, or confined to named lines. No test is its deliverable. The run branched
+left unchanged, or confined to named lines. No test is its deliverable, save on a
+re-pin step, one whose text reads `edit the case of the pin on <path>`: its deliverable
+is that edited test case, so REJECT it when the step's own commits change no test file. The run branched
 at `{{BASE_SHA}}`. Judge the step's criterion against `git diff {{BASE_SHA}}..HEAD` alone,
 and do not read the range's commit messages: `git log` and `git show` on the range carry
 the author's rationale.
