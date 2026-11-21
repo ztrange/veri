@@ -7,6 +7,7 @@ CAP = 19215 + 1000
 
 # Bytes per `##` section of root CLAUDE.md at 8cc6b5d1bc, as section_bytes counts them.
 BASELINE = {
+    "(above the first ##)": 691,
     "Commands": 2929,
     "Exit codes are the API": 576,
     "Invariants worth not breaking": 5767,
@@ -16,14 +17,13 @@ BASELINE = {
 
 
 def section_bytes(text):
-    sizes = {}
-    title = None
+    title = "(above the first ##)"
+    sizes = {title: 0}
     for line in text.splitlines(keepends=True):
         if line.startswith("## "):
             title = line[3:].strip()
             sizes[title] = 0
-        if title is not None:
-            sizes[title] += len(line.encode("utf-8"))
+        sizes[title] += len(line.encode("utf-8"))
     return sizes
 
 
@@ -86,3 +86,14 @@ def test_the_most_grown_section_is_chosen_by_utf8_bytes_not_characters_4517():
     message = cap_failure(text, 10, {})
 
     assert "'## B'" in message
+
+
+def test_growth_above_the_first_section_is_named_as_its_own_pseudo_section_4517():
+    preamble = "# x\n\n" + "p" * 200 + "\n\n"
+    section = "## A\n\na\n"
+    text = preamble + section
+    baseline = {"(above the first ##)": 10, "A": len(section) - 1}
+
+    message = cap_failure(text, 10, baseline)
+
+    assert "(above the first ##)" in message
