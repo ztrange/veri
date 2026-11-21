@@ -3,6 +3,8 @@
 On entering this step run `$S/run-pr.sh <n>` first, again on exit 3; at its `title` seam set the title and call it again; at its `body`
 seam write the body and go on to sub-step 3; on any other stop go on by the point its last line names. Each stage's call line below stays.
 
+**The `verify-branch` stage.** It runs after `pr-prepare` and `pr-checks` and before the `title` seam, so on the rebased tip, the tree that merges. Its inputs are `git diff <branch-base>..HEAD`, the issue's acceptance criteria, the spec rows the issue names (read at the branch base) and the fast tier plus `changed` command, and nothing a leaf wrote, so the verifier stays blind. A `verify-branch` PASS goes on to readying with no step added. A REJECT with budget left appends one `⟦diff-checked⟧ ⟦branch-repair⟧` step carrying the reason, commits the ledger as a `plan:` commit, and returns the conductor to the cycle loop through `next=DRAFT-PR.md#4. Draft PR`, as a `⟦suite-repair⟧` step does; a later `run-pr.sh` on the new ledger sha restarts at `branch-gate`. `VERI_BRANCH_REPAIRS` (default 1) caps the `⟦branch-repair⟧` steps per run, and a REJECT beyond it bails `branch-rejected`. A `verify-branch` leaf that ends with no verdict takes the `no-verdict` route, never a repair step. `branch` in `VERI_SKIP_VERIFY` skips the leaf; that is recorded as skipped and never passed off as a PASS.
+
 At the first stage, run `$S/branch-gate.sh <n>` first, again on exit 3; on exit 0 take `branch_suite=` from its last lines
 (under `local` the branch's full run below is made green and its time recorded, and no `⟦full-suite⟧` line is ticked);
 on any other exit go on by the paragraphs below from the point its last line names.
