@@ -5,7 +5,8 @@ from conftest import ROOT
 # Root CLAUDE.md at 8cc6b5d1bc plus 1,000 B headroom; raise it here, as a reviewed change.
 CAP = 19215 + 1000
 
-# Bytes per `##` section of root CLAUDE.md at 8cc6b5d1bc, as section_bytes counts them.
+# Bytes per `##` section of root CLAUDE.md at 8cc6b5d1bc, and above its first `##`,
+# as section_bytes counts them.
 BASELINE = {
     "(above the first ##)": 691,
     "Commands": 2929,
