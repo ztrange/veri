@@ -572,3 +572,14 @@ def test_4479_a_green_half_wait_record_naming_another_step_is_ignored_and_the_op
     code, out, err, fake = green()
 
     assert fake.launched()[:1] == ["develop-green"]
+
+
+def test_4479_a_green_half_wait_record_naming_the_open_step_still_resumes_at_its_verdict_and_launches_nothing(green):
+    values = {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"}
+    (green.wt / ".tdd" / "issue-12-green-half-wait").write_text(json.dumps(
+        {"conductor": None, "at": "verdict-green", "values": values, "step": STEP}))
+    (green.wt / ".tdd" / "verdict-green.exit").write_text("0\n")
+    code, out, err, fake = green()
+
+    assert (code, fake.launched()) == (0, [])
+    assert [c[1][0] for c in fake.calls if c[0] == "git" and c[1][0] == "commit"] == ["commit"]
