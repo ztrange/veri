@@ -22,11 +22,6 @@ def state_path(tree, role, lane=None):
 STAMP = "%Y-%m-%dT%H:%M:%S"
 
 
-def marker_path(path):
-    name = os.path.basename(path)[len("role-"):-len(".state")]
-    return os.path.join(os.path.dirname(path), "reset-request-" + name)
-
-
 def now():
     return time.strftime(STAMP)
 
@@ -184,12 +179,7 @@ def do_recovered(path, argv):
     session = os.environ.get("CLAUDE_CODE_SESSION_ID")
     if not session:
         return usage()
-    kept = [l for l in (read(path) or "").splitlines(True) if not l.startswith(("refused-at=", "refused-now-at="))]
-    replace(path, "".join(kept) + "recovered-at=%s\nsession-id=%s\n" % (now(), session))
-    try:
-        os.remove(marker_path(path))
-    except FileNotFoundError:
-        pass
+    append(path, "recovered-at=%s\nsession-id=%s\n" % (now(), session))
     return 0
 
 
