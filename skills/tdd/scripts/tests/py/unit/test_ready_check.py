@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shlex
+from pathlib import Path
 
 import pytest
 
@@ -1013,7 +1014,7 @@ def test_issue_4529_allow_rules_spread_over_the_user_and_project_and_local_setti
     home = tmp_path / "scratch-home"
     (home / ".claude").mkdir(parents=True)
     (tmp_path / ".claude").mkdir()
-    scripts = ready_check.paths.resolved_scripts_of(ready_check.__file__)
+    scripts = Path(__file__).resolve().parents[3]
     (home / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"allow": ["Bash(git *)"]}}))
     (tmp_path / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"allow": ["Bash(ls)"]}}))
     (tmp_path / ".claude" / "settings.local.json").write_text(json.dumps({"permissions": {"allow": [f"Bash({scripts}/*)"]}}))
