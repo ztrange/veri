@@ -11,5 +11,5 @@
 - [x] When the named spec file holds no table rows at `<branch-base>`, the `branch` prompt's issue spec is the spec file's text, with nothing appended after it ⟦added⟧ ⟦criterion 2⟧
 - [x] A phase other than `branch` given a spec file with a `Spec: <path> , rows …` line carries no spec rows read from that path in its prompt ⟦added⟧ ⟦criterion 2⟧
 - [x] `verify-branch.sh <n>` launches the `verdict-branch` leaf through `fused.launch` (`detach-leaf.sh` then `supervise.sh`) running `run-verdict.sh --fast-cmd '<fast-cmd>' --branch-base <recorded branch base> branch .tdd/issue-<n>-spec.md`, with the leaf's stderr written to `.tdd/verify-branch.err`, never `run-leaf.sh` or `claude` directly ⟦added⟧ ⟦criterion 20⟧
-- [ ] the `verdict-branch` leaf `verify-branch.sh <n>` launches runs with `VERI_TEST_CMD` set to the run's fast command and `VERI_ISSUE` set to `<n>` in its environment ⟦added⟧ ⟦criterion 20⟧
+- [x] the `verdict-branch` leaf `verify-branch.sh <n>` launches runs with `VERI_TEST_CMD` set to the run's fast command and `VERI_ISSUE` set to `<n>` in its environment ⟦added⟧ ⟦criterion 20⟧
 - [ ] when the launch stops (a stop requested by `stop-requested.sh`, or `detach-leaf.sh` exiting non-zero), `verify-branch.sh <n>` exits with that stop's code and launches no leaf ⟦added⟧ ⟦criterion 20⟧
