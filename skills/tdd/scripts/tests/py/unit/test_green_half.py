@@ -571,7 +571,7 @@ def test_4479_a_green_half_wait_record_naming_another_step_is_ignored_and_the_op
     (green.wt / ".tdd" / "verdict-green.exit").write_text("0\n")
     code, out, err, fake = green()
 
-    assert fake.launched()[:1] == ["develop-green"]
+    assert fake.launched() == ["develop-green", "verdict-green"]
 
 
 def test_4479_a_green_half_wait_record_naming_the_open_step_still_resumes_at_its_verdict_and_launches_nothing(green):
