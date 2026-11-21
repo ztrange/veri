@@ -15,7 +15,8 @@ BRANCH_BASE = "abc1234"
 
 class Fake:
     """A run_script stand-in: records (basename, args, cwd, env, kw) and answers from <answers>, keyed by
-    (basename, first argument or None) -> (code, stdout)."""
+    (basename, first argument or None) -> (code, stdout). extract-result.sh answers <report>, less its TEST_PATH: and
+    TARGET_TEST: lines when reading a revise red report, which never carries them (#4497)."""
 
     def __init__(self, answers=None, report="OUTCOME: REWRITTEN\nAGAINST_UNMODIFIED: N/A\n", cost="1.00\n"):
         self.answers, self.calls, self.report, self.cost = dict(answers or {}), [], report, cost
@@ -27,6 +28,9 @@ class Fake:
             if base == script and (first is None or args[:1] == (first,)):
                 return code, out, ""
         if base == "extract-result.sh":
+            if "revise-red" in kw.get("stdin", ""):
+                return 0, "".join(line for line in self.report.splitlines(True)
+                                  if not line.startswith(("TEST_PATH:", "TARGET_TEST:"))), ""
             return 0, self.report, ""
         if base == "stop-requested.sh":
             return 3, "", ""
@@ -307,7 +311,8 @@ def _red(revise):
 
 
 def test_red_restores_production_gates_the_prediction_and_on_pass_records_and_resaves_red_halfs_wait(revise):
-    """PRD 038.9 criteria 1, 4, 5: REVISE.md sub-steps 3-5 for red, red-half's record not needed."""
+    """PRD 038.9 criteria 1, 4, 5: REVISE.md sub-steps 3-5 for red, red-half's record not needed. The test checked,
+    recorded and saved is develop-red.out's (RED_REPORT's tests/test_b.py), not the revise report's, which names none."""
     _red(revise)
     code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, "")}, report=RED_REPORT),
                                   argv=("12", "red"), missing=("red-half",))
@@ -328,6 +333,7 @@ def test_red_restores_production_gates_the_prediction_and_on_pass_records_and_re
                                          "tests/test_b.py")),
                     ("red-setup.sh", ("record", "12")), ("comment.sh", ("12", "verify-revised", "red"))]
     assert fake.call("red-setup.sh")[4]["stdin"] == "the revise-red-1.out report\n"
+    assert [c[4]["stdin"] for c in fake.calls if c[0] == "extract-result.sh"][0] == "the develop-red.out report\n"
     record = json.loads((revise.wt / ".tdd" / "issue-12-red-half-wait").read_text())
     assert (record["at"], record["values"]) == ("verdict-red", {
         **RED_VALUES, "test_path": "tests/test_b.py", "target_test": "tests/test_b.py::test_two", "revised": True})
@@ -751,15 +757,18 @@ def test_4435_an_outcome_impossible_line_with_no_dash_routes_nothing(revise):
     assert "verdict-green" in fake.launched()
 
 
+class Echo(Fake):
+    """A Fake whose extract-result.sh answers the report it is handed, so each report names only its own keys."""
+
+    def __call__(self, name, *args, **kw):
+        if os.path.basename(name) == "extract-result.sh":
+            self.calls.append(("extract-result.sh", args, kw.get("cwd"), kw.get("env"), kw))
+            return 0, kw["stdin"], ""
+        return super().__call__(name, *args, **kw)
+
+
 def test_4497_red_attempt_2_takes_the_test_path_from_develop_red_out_when_revise_red_1_out_names_none(revise):
     """The revise report names no TEST_PATH, so attempt 2's red values come from red's own report."""
-    class Echo(Fake):
-        def __call__(self, name, *args, **kw):
-            if os.path.basename(name) == "extract-result.sh":
-                self.calls.append(("extract-result.sh", args, kw.get("cwd"), kw.get("env"), kw))
-                return 0, kw["stdin"], ""
-            return super().__call__(name, *args, **kw)
-
     (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").write_text(
         json.dumps({"conductor": None, "at": "verdict-red", "values": RED_VALUES, "step": STEP}))
     (revise.wt / ".tdd" / "develop-red.out").write_text(
@@ -773,3 +782,25 @@ def test_4497_red_attempt_2_takes_the_test_path_from_develop_red_out_when_revise
     assert (code, out.splitlines()[-1]) == (3, "waiting on revise-red-2")
     assert fake.call("restore-production.sh")[1] == ("tests/test_a.py",)
     assert fake.launched() == ["revise-red-2"]
+
+
+def test_4497_a_matched_revised_red_verifies_and_records_develop_red_outs_test_when_its_report_names_none(revise):
+    """REVISE.md sub-steps 4-5: verdict-red, tests-frozen.sh and the wait record take red's own report's test, since a
+    revise report never carries TEST_PATH: or TARGET_TEST:."""
+    (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").write_text(
+        json.dumps({"conductor": None, "at": "verdict-red", "values": RED_VALUES, "step": STEP}))
+    (revise.wt / ".tdd" / "develop-red.out").write_text(
+        "TEST_PATH: tests/test_a.py\nTARGET_TEST: tests/test_a.py::test_one\nAGAINST_UNMODIFIED: FAILS\n")
+    (revise.wt / ".tdd" / "revise-red-1.out").write_text(
+        "OUTCOME: REWRITTEN\nAGAINST_UNMODIFIED: FAILS\nPREDICTION: AssertionError\n")
+    (revise.wt / ".tdd" / "verify-red.reason").write_text(REASON)
+    code, out, err, fake = revise(fake=Echo({("red-divergence.sh", None): (3, "")}), argv=("12", "red"),
+                                  missing=("red-half",))
+
+    assert code == 0, out
+    verdict = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
+    assert _short(verdict[1])[-2:] == ("tests/test_a.py", "tests/test_a.py::test_one")
+    assert fake.call("tests-frozen.sh", "record")[1][-2:] == ("tests/test_a.py::test_one", "tests/test_a.py")
+    record = json.loads((revise.wt / ".tdd" / "issue-12-red-half-wait").read_text())
+    assert (record["values"]["test_path"], record["values"]["target_test"]) == (
+        "tests/test_a.py", "tests/test_a.py::test_one")

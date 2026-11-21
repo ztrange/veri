@@ -221,11 +221,10 @@ UNMATCHED = {1: "REASON: prediction not written before the run\n",
 
 
 def red_checks(n, wt, settled, step, values):
-    """Red's sub-step 4: the revised report's test, then its prediction gated; exit 3 (matched) re-verifies, any
-    other exit spends the attempt, exit 0 or 2 (a divergence, or no readable prediction) marked `prediction-diverged`
-    with its tree preserved, best-effort (RVS4)."""
+    """Red's sub-step 4: the revised report's prediction gated, the test kept from `.tdd/develop-red.out` (the revise
+    report names neither key); exit 3 (matched) re-verifies, any other exit spends the attempt, exit 0 or 2 (a
+    divergence, or no readable prediction) marked `prediction-diverged` with its tree preserved, best-effort (RVS4)."""
     out = ".tdd/revise-red-%d.out" % values["k"]
-    values.update(judged(wt, out))
     gate = fused.call(fused.script("red-divergence.sh"), ".tdd/red-prediction.md", ".tdd/red-run-output.txt", cwd=wt,
                       stdin=read(wt, out), out=".tdd/verify-red.reason")[0]
     if gate == 3:
