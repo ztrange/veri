@@ -2,3 +2,5 @@
 
 - [x] the 5 records in `.tdd/issue-4450-mutations.md` whose old text `skills/tdd/scripts/veri/skill_edit_half.py` no longer holds are retired, with the reason ⟦criterion 1⟧
 - [x] `run-finished.sh <n>` exits 1 with a `stale-pin` line for each unretired record of the run's own mutation record whose old text its mutated file in the run's worktree no longer holds ⟦criterion 2⟧
+- [x] a `before` entry and an entry whose mutated file is gone add no `stale-pin` line to `run-finished.sh`, and its stderr hint names the record ⟦added⟧ ⟦criterion 2⟧
+- [x] `queued-merge.sh` exits 1 unmerged, the lock released, naming each stale pin of the PR's issue's mutation record ⟦added⟧ ⟦criterion 2⟧
