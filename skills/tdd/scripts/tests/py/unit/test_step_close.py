@@ -203,6 +203,14 @@ def test_4510_a_later_commit_adding_only_a_re_pin_step_leaves_the_step_green_com
     assert fake.call("tests-frozen.sh")[1] == ("rerecord-refactored", ".tdd/issue-12.md", GREEN_SHA)
 
 
+def test_4510_no_commit_that_changed_the_refactor_pending_line_stops_it_at_6_with_exit_2_before_any_check(close):
+    fake = History([("a" * 40, "# Plan for #12\n\n- [ ] %s\n- [ ] two ⟦criterion 2⟧\n" % STEP)])
+    code, out, err, fake = close(fake=fake)
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at 6 no green commit for %s in .tdd/issue-12.md" % STEP), err
+    assert "graded-changed.sh" not in fake.names()
+
+
 @pytest.mark.parametrize("record", [None, "", "HEAD\n", "abc12\n", BRANCH_BASE.upper() + "\n", "b" * 41 + "\n"])
 def test_4376_a_branch_base_record_missing_or_not_hex_stops_it_at_6_with_exit_2_naming_the_record_and_runs_no_pin_recheck(
         close, record):
