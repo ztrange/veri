@@ -74,3 +74,33 @@ def test_prints_under_each_week_one_line_per_reason_class_green_rejects_by_check
         "  reason green unclassified: 3",
         "  reason pin unclassified: 1",
     ])
+
+
+@pytest.mark.parametrize("bad", ["2026-10-21", "21-10-2026 issue-1-metrics.md", "2026-13-01 issue-1-metrics.md"])
+def test_exits_2_naming_the_line_for_a_stdin_line_that_is_not_a_date_and_a_path(tmp_path, run_cli, breakdown, bad):
+    good = tmp_path / "issue-1-metrics.md"
+    good.write_text(report(phase_row("green", 1, 0)))
+
+    code, out, err = run_cli(breakdown, [], stdin=f"2026-10-21 {good}\n{bad}\n")
+
+    assert (code, out) == (2, "")
+    assert f"line 2: not `<YYYY-MM-DD> <report path>`: {bad}" in err
+
+
+@pytest.mark.parametrize("content", [None, "### 📊 Metrics — issue 1\n\nno phase table\n"])
+def test_exits_2_naming_the_line_for_a_report_it_cannot_read(tmp_path, run_cli, breakdown, content):
+    missing = tmp_path / "issue-9-metrics.md"
+    if content is not None:
+        missing.write_text(content)
+
+    code, out, err = run_cli(breakdown, [], stdin=f"2026-10-21 {missing}\n")
+
+    assert (code, out) == (2, "")
+    assert f"line 1: cannot read {missing}" in err
+
+
+def test_exits_3_when_stdin_names_no_report(run_cli, breakdown):
+    code, out, err = run_cli(breakdown, [], stdin="\n")
+
+    assert (code, out) == (3, "")
+    assert "no report" in err
