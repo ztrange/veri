@@ -510,13 +510,23 @@ def test_4496_on_red_green_s_uncommitted_production_edit_is_restored_before_the_
 @pytest.mark.parametrize("said, leaf, restores", [
     ("red tests/test_b.py::test_two", "develop-red-contradicted", True),
     ("repair tests/test_a.py::test_one tests/test_c.py::test_old", "develop-red-repair", False),
-    ("supersede tests/test_c.py::test_x tests/test_d.py::test_y", "develop-red-supersede", False)])
+    ("supersede tests/test_c.py::test_x tests/test_d.py::test_y", "develop-red-supersede", False),
+    ("missing the empty list is rejected", "develop-red-missing", False)])
 def test_4496_only_a_red_answer_restores_production_before_its_leaf_launches(reroute, said, leaf, restores):
-    """Contrast: `red` restores production; `repair` and `supersede` launch their leaf with green's edit left alone."""
+    """Contrast: `red` restores production; `repair`, `supersede` and `missing` launch their leaf with green's edit
+    left alone."""
     fake = reroute(answers={("wrong-test-route.sh", None): (0, said + "\n"), ("wait-leaf.sh", None): (3, "")})[3]
 
     assert fake.launched() == [leaf]
     assert ("restore-production.sh" in fake.names()) is restores
+
+
+def test_4496_a_restore_production_exit_2_stops_the_reroute_at_exit_2_before_any_leaf_launches(reroute):
+    """No answer from restore-production.sh is no clean tree: the rerouted red is never launched over it."""
+    code, out, err, fake = reroute(answers={**ROUTE_RED, ("restore-production.sh", None): (2, "")})
+
+    assert (code, fake.launched()) == (2, []), out + err
+    assert out.splitlines()[-1].startswith("stopped at launch restore-production.sh")
 
 
 def test_4496_an_answer_it_does_not_run_calls_no_restore_production_leaving_the_edit_in_the_worktree(reroute):
