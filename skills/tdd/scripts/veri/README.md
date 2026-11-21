@@ -916,6 +916,11 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `kind(line)`: a `FLAGS:` or `CANDIDATES:` value's class, its first word. `detail(line, last=False)`: what it names after its class, the text after the first `|` (the last with `last`).
 - `verdict(wt)`: `(hash, flags)` from one read of `.tdd/verify-refactor.log`: its sha256 (`none` without one), the verdict a refactor-half file was settled after, and its `uncovered-spec` flags as `uncovered_spec=` values; every record naming `verdict_log=` takes both from it (#4029).
 
+## green_half
+- `run(n)`: green-half.sh's stage, which `seam-settle.sh green-half` runs through `fused.entry` to finish Green 3 from the wait record a revise.sh PASS re-saved with `revised` (#4551).
+- `launch_verdict(where, n, wt, settled, step, values)`: verdict-green's launch, the one set of `run-verdict.sh` arguments green-half.sh and `revise.sh`'s re-verify share (PRD 038.9 RVS13).
+- `rerouted_cases(wt, step)`: the cases the step's reroute events name, once each, in journal order, each event's `case` split into its cases, for `revise.sh`'s tests-frozen exemptions.
+
 ## red_half
 - `refused(step)`: the step kinds of `REFUSED` a step is, whose Red is not red-half's (RH1), ⟦go-red⟧ by `ledger.is_go_red`, each stopping `run-step.sh` before any stage on `seam=none`.
 - `launch_verdict(where, n, wt, settled, step, values)`: verdict-red's launch, the one set of `run-verdict.sh` arguments red-half.sh, `revise.sh`'s re-verify and `reroute.sh`'s verify-red share (PRD 038.9 RVS13, PRD 038.10 RRT10).
