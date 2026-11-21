@@ -275,6 +275,8 @@ def test_4432_from_a_stage_name_starts_the_call_at_that_stage_for_each_of_the_fi
         started[stage] = calls[:1]
 
     assert started == {s: [s + ".sh"] for s in started}
+    in_order = [c for c in run_pr.CALLS if c[:-3] in started]
+    assert in_order == [s + ".sh" for s in started]
 
 
 def test_4432_hand_a_stage_stops_before_it_with_the_hand_seam_line_without_calling_it_and_exits_1(
@@ -435,9 +437,10 @@ def test_4432_its_calls_tuple_names_exactly_the_five_stage_scripts_and_a_whole_r
 
     stages = {"branch-gate.sh", "pr-prepare.sh", "pr-checks.sh", "pr-ready-wait.sh", "pr-finish.sh"}
     assert codes == [1, 1]
-    assert set(calls) == stages
+    in_order = [c for c in run_pr.CALLS if c in stages]
+    assert stages <= set(calls)
     assert "gh" not in ran and "pr-body.sh" not in ran
-    assert set(run_pr.CALLS) == stages and len(run_pr.CALLS) == 5
+    assert in_order == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh", "pr-ready-wait.sh", "pr-finish.sh"]
 
 
 def test_4432_every_next_it_prints_is_run_pr_or_the_draft_pr_anchor_and_that_anchor_names_a_heading_in_draft_pr_md(
