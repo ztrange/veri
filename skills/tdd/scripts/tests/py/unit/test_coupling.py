@@ -90,3 +90,16 @@ def test_two_files_each_invoking_the_others_script_by_path_are_still_a_pair_4556
     monkeypatch.chdir(tmp_path)
     a, b = sorted(tree)
     assert (coupling.main(["base"]),) + tuple(capsys.readouterr()) == (0, "mutual: %s %s\n" % (a, b), "")
+
+
+@pytest.mark.parametrize("tree", [
+    {"veri/a.py": "import os, b as bee\n", "veri/b.py": "import veri.a\n"},
+    {"veri/a.py": "from b import run\n", "veri/b.py": "from veri.a import x\n"},
+    {"veri/a.py": "from veri import b\n", "veri/b.py": "from . import (\n    a,\n    c,\n)\n"},
+], ids=["import", "from module import", "from package import module"])
+def test_two_python_modules_each_importing_the_other_in_any_import_form_are_a_pair_4556(
+        tree, tmp_path, monkeypatch, capsys, coupling, fake_processes):
+    write(tmp_path, tree)
+    range_git(fake_processes, list(tree), list(tree))
+    monkeypatch.chdir(tmp_path)
+    assert (coupling.main(["base"]),) + tuple(capsys.readouterr()) == (0, "mutual: veri/a.py veri/b.py\n", "")
