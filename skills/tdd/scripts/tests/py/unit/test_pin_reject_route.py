@@ -566,3 +566,23 @@ def test_main_on_a_case_that_never_ran_exits_2_with_nothing_on_stdout_and_names_
                              env={"VERI_ISSUE": "99"}, cwd=tmp_path)
 
     assert (code, out, f"case {case} never run" in err, "stub-case-command --flag" in err) == (2, "", True, True), err
+
+
+def test_main_bare_target_test_name_runs_the_case_in_the_red_reports_test_path_file_4549(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ran = []
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: (ran.append(case) or 0, "", 0))
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_x.py").write_text("def test_holds():\n    assert True\n")
+    (ledger.parent / "develop-red.out").write_text(
+        "TEST_PATH: tests/test_x.py\nTARGET_TEST: test_holds\nFAIL_OUTPUT: x\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", "test_holds"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ran) == (0, "retired", ["tests/test_x.py::test_holds"]), err
