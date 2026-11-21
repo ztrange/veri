@@ -3,7 +3,7 @@
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
 product is `skills/tdd/`: a procedure (`SKILL.md`) Claude follows, plus the scripts it calls,
 which are Python modules behind `/bin/sh` shims. `invisible-work.sh` (#197),
-`unreachable.sh` (#498) and `test-ceiling.sh` (#4418) are maintenance utilities the procedure never calls. `CONTEXT.md` is the glossary; its terms (conductor, leaf,
+`unreachable.sh` (#498), `test-ceiling.sh` (#4418) and `reject-breakdown.sh` (#4568) are maintenance utilities the procedure never calls. `CONTEXT.md` is the glossary; its terms (conductor, leaf,
 supervisor, verdict, ledger, bail) are used precisely everywhere.
 Two sections no leaf reads, "Versions are tags, and nothing else" and "`make test` on the
 development Mac", live in [operator/MAINTAINING.md](operator/MAINTAINING.md).

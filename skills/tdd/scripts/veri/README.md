@@ -857,6 +857,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `github-outage.sh`: the dev session's local mode during a GitHub outage: the outage file of held PRs, the merging list and the one detached status wait per main working tree, each verb under one lock; the status read runs in-process through `github_status`.
 - `install-links.sh`: link veri's skills into a project.
 - `metrics.sh`: a run's metrics report.
+- `reject-breakdown.sh`: the verifier REJECTs of dated metrics reports per week, per phase and per reason class.
 - `no-product-caller.sh`: scan for callers of a product name.
 - `parallel-conductors.sh`: launch conductors in parallel up to the cap.
 - `prd_report`: report.sh's renderer, run in-process.
