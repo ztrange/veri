@@ -1,4 +1,4 @@
-"""PRD 026.8: the four role scripts, run as the shims they are, refuse `coord` and leave its state files alone (CR1,
+"""PRD 026.8: the role scripts, run as the shims they are, refuse `coord` and leave its state files alone (CR1,
 CR5); no tracked file under skills/tdd outside its tests names the retired role (CR7)."""
 import re
 import subprocess
@@ -14,10 +14,6 @@ CALLS = [
     ("role-state.sh", ["coord", "show"]),
     ("role-state.sh", ["coord", "--lane", "mu", "set", "n", "2"]),
     ("status.sh", ["--recover", "coord"]),
-    ("reset-wait.sh", ["idle", "coord", "1"]),
-    ("reset-wait.sh", ["recovered", "coord", "--lane", "mu", "1"]),
-    ("role-growth.sh", ["coord"]),
-    ("role-growth.sh", ["coord", "--lane", "mu"]),
 ]
 
 

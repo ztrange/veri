@@ -6,18 +6,12 @@ import pytest
 
 DEV_ONLY = {
     "role_state": "usage: role-state.sh dev ",
-    "reset_wait": "usage: reset-wait.sh marker|recovered dev",
-    "role_growth": "usage: role-growth.sh dev ",
 }
 
 
 @pytest.mark.parametrize("module,argv", [
     ("role_state", ["coord", "show"]),
     ("role_state", ["coord", "--lane", "mu", "set", "n", "2"]),
-    ("reset_wait", ["recovered", "coord", "5"]),
-    ("reset_wait", ["marker", "coord", "--lane", "mu"]),
-    ("role_growth", ["coord"]),
-    ("role_growth", ["coord", "--lane", "mu"]),
 ])
 def test_issue_4103_a_role_script_given_coord_exits_2_writing_nothing_with_a_usage_line_naming_dev_alone(
         module, argv, tmp_path, monkeypatch, run_cli):

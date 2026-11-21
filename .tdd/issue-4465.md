@@ -1,6 +1,6 @@
 # Plan for #4465 — PRD 041.2: delete the dev session's reset scripts, verb and tunables
 
-- [ ] `role-growth.sh`, `reset-wait.sh`, `veri/role_growth.py`, `veri/reset_wait.py` and their tests are gone, pinned by a case asserting none of those paths exists ⟦criterion 1⟧
+- [x] `role-growth.sh`, `reset-wait.sh`, `veri/role_growth.py`, `veri/reset_wait.py` and their tests are gone, pinned by a case asserting none of those paths exists ⟦criterion 1⟧
 - [ ] `role-state.sh dev request-reset` exits 2 as an unknown verb, `set resetter <id>` exits 2 as an unknown field, and `recovered` still records the session id ⟦criterion 2⟧
 - [ ] `role-state.sh dev set` refuses each role-growth-only field (`session`, `transcript`, `baseline`, `baseline-at`, `refused-at`, `refused-now-at`) as unknown, and the usage line names none of them ⟦criterion 3⟧
 - [ ] a role state file still holding a `resetter` line is read without error by `status.sh --recover dev` and by `dispatch.sh`, the line ignored ⟦criterion 4⟧

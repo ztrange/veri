@@ -26,8 +26,6 @@ EXEMPT = {
         "VERI_POLL, default 10 here, 1 elsewhere: two purposes, two defaults, declined",
     ("parallel_conductors.py", "VERI_POLL"):
         "VERI_POLL, default 1 here, 10 in github.py and wait_ci.py: two purposes, declined",
-    ("reset_wait.py", "VERI_POLL"):
-        "VERI_POLL, default 1 here, 10 in github.py and wait_ci.py: two purposes, declined",
     ("supervise.py", "VERI_POLL"):
         "VERI_POLL, default 1 here, 10 in github.py and wait_ci.py: two purposes, declined",
     ("wait_ci.py", "VERI_POLL"):
