@@ -181,6 +181,12 @@ def post_revise(issue, phase, attempt):
                            + read_or_empty(run_dir.run_file(".", f"verify-{phase}.reason")))
 
 
+def post_pin(issue):
+    """PIN.md's PASS mirror: the step just pinned, the last done one, and why it already holds."""
+    done = [r for r in read_steps(issue) if r.state == "done"]
+    return post_and_record(issue, "pin", f"### 📌 Already satisfied — {done[-1].text}\n\n{verdict_reason('pin')}")
+
+
 def post_verify_skipped(issue):
     return post_and_record(issue, "verify-refactor", "### 🔎 verify-refactor — SKIPPED (nothing landed)")
 
@@ -288,6 +294,8 @@ def main(argv):
         return post_bailed(argv[0], argv[3])
     if argv[1:] == ["verify-plan"]:
         return post_verify_plan(argv[0])
+    if argv[1:] == ["pin"]:
+        return post_pin(argv[0])
     if argv[1:] == ["plan"]:
         return post_plan(argv[0])
     if argv[1:] == ["verify-refactor", "--skipped"]:

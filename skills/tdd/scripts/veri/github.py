@@ -34,7 +34,7 @@ PARKED_HEADING = "### ⏸ Parked"
 VERI_COMMENT_PREFIXES = (
     PARKED_HEADING, "### ▶️ Resuming", "### ⛔ Bailed", "### ✅ Done", "### ✅ Step done", "### 📍 Run state",
     "### ⏹️ Stopped", "### ⛔ Preflight refused", "### 🔴 Red", "### 🟢 Green", "### 🛠️ Refactor", "### 🔎 ",
-    "### 🗺️ ", "### 📊 Metrics", "### ♻️ Revise ", "needs-user: the conductor stopped without a verdict.",
+    "### 🗺️ ", "### 📊 Metrics", "### ♻️ Revise ", "### 📌 Already satisfied", "needs-user: the conductor stopped without a verdict.",
 )
 
 # An absolute local path redact_local leaves (another account's home, any temp or /private path): to `<path>`, whole,
