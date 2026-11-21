@@ -30,6 +30,16 @@ GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-rep
                     "CI_REPAIR": "ci-repair", "FIXTURE_REPAIR": "fixture-repair"}
 
 
+def _spec_rows_at(spec_text, branch_base):
+    blocks = []
+    for path, ids in re.findall(r"^Spec: (\S+) , rows ([^\n]+)$", spec_text.decode(errors="replace"), re.M):
+        wanted = {name.strip(",") for name in ids.split()}
+        shown = git.out("show", f"{branch_base}:{path}")
+        blocks.append("\n".join(line for line in shown.splitlines()
+                               if line.startswith("|") and line.split("|")[1].strip() in wanted))
+    return b"\n\n" + "\n\n".join(blocks).encode() if blocks else b""
+
+
 def _last_phase_check(step_arg, phase, number):
     listed = re.search(r"⟦phases:([^⟧]*)⟧", step_arg)
     if not listed or listed[1].split(",")[-1].strip() != phase:
@@ -311,7 +321,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
     number = 5 if phase in ("expand", "cover-new", "migrate") else 4
     out = fill(out, ((b"LAST_PHASE_CHECK", _last_phase_check(step_arg, phase, number)),
-                               (b"RED_WRITTEN", written), (b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec)),
+                               (b"RED_WRITTEN", written), (b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec) + (_spec_rows_at(_read(spec), branch_base) if phase == "branch" else b"")),
                                *((placeholder.encode(), value) for placeholder, value in values.items()),
                                (b"TEST_PATH", os.fsencode(test_path)),
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),
