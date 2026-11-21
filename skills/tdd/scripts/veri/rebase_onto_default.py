@@ -69,16 +69,20 @@ def record_branch_base(onto, done):
 
 def main(argv):
     if argv[:1] == ["--resolved"]:
-        # A conflicted rebase resolved onto <onto-sha> by hand: re-record the base, rebase nothing.
-        if len(argv) != 2:
-            return refuse("--resolved takes one <onto-sha>", usage=USAGE)
-        onto = argv[1]
-        if not re.fullmatch(r"[0-9a-f]{7,40}", onto):
-            return refuse(f"--resolved {onto} is not a hex commit name")
-        if git("merge-base", "--is-ancestor", onto, "HEAD", text=True).returncode != 0:
-            return refuse(f"HEAD does not contain {onto}; nothing to re-record")
-        return record_branch_base(onto, 0)
+        return resolved(argv[1:])
     return event.stage("rebase", lambda: rebase(argv))
+
+
+def resolved(args):
+    """A conflicted rebase resolved onto <onto-sha> by hand: re-record the base, rebase nothing."""
+    if len(args) != 1:
+        return refuse("--resolved takes one <onto-sha>", usage=USAGE)
+    onto = args[0]
+    if not re.fullmatch(r"[0-9a-f]{7,40}", onto):
+        return refuse(f"--resolved {onto} is not a hex commit name")
+    if git("merge-base", "--is-ancestor", onto, "HEAD", text=True).returncode != 0:
+        return refuse(f"HEAD does not contain {onto}; nothing to re-record")
+    return record_branch_base(onto, 0)
 
 
 def rebase(argv):
