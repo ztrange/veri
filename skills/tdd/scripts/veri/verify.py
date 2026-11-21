@@ -234,10 +234,14 @@ def diff_gate(words, options):
 
 
 def rebase_gate(words, options):
-    """2 when tracked files hold uncommitted changes, 1 when the rebase committed conflict markers, else None."""
+    """2 when tracked files hold uncommitted changes or git status fails, 1 when the rebase committed conflict markers, else None."""
     if leaf_tree_guard.git("rev-parse", "--git-dir").returncode:
         return None
     status = leaf_tree_guard.git("status", "--porcelain", "--untracked-files=no")
+    if status.returncode:
+        write(sys.stderr, "verify: git status failed (exit %d), so whether the tree holds uncommitted changes "
+              "to tracked files is unknown" % status.returncode)
+        return 2
     dirty = [line[3:] for line in os.fsdecode(status.stdout).splitlines() if line.strip()]
     if dirty:
         write(sys.stderr, "verify: the tree has uncommitted changes to tracked files, "

@@ -2635,9 +2635,8 @@ def test_verify_sh_rebase_launches_the_leaf_and_returns_its_verdict_when_no_comm
     assert (code, "docs/backend.md" in out, started.exists()) == (0, False, True)
 
 
-@pytest.mark.process("a real git scratch repository whose working tree holds an uncommitted change to a tracked file, and a stub claude that records any start")
-def test_verify_sh_rebase_exits_2_without_launching_the_leaf_naming_a_tracked_file_left_modified_and_uncommitted_4552(
-        run_cli, tmp_path):
+def rebased_repo_and_recorder(tmp_path):
+    """A scratch repo with one clean commit past <onto>, and a stub claude that records any start."""
     repo = tmp_path / "repo"
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
@@ -2656,20 +2655,50 @@ def test_verify_sh_rebase_exits_2_without_launching_the_leaf_naming_a_tracked_fi
     origin_head_at(repo)
     (repo / "notes.txt").write_text("unrelated\n")
     commit("a clean rebased commit")
-    (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 3 |\n")
     started = tmp_path / "started"
     claude = tmp_path / "claude-record"
     claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
     claude.chmod(0o755)
     (tmp_path / "spec.md").write_text(SPEC)
-    verify = importlib.import_module("veri.verify")
+    return repo, onto, claude, started
 
-    code, _, err = run_cli(
-        verify, [*based(repo), "rebase", str(tmp_path / "spec.md"), onto, onto],
+
+def run_rebase_verify(run_cli, tmp_path, repo, onto, claude):
+    return run_cli(
+        importlib.import_module("veri.verify"), [*based(repo), "rebase", str(tmp_path / "spec.md"), onto, onto],
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
-    assert (code, "docs/backend.md" in err, started.exists()) == (2, True, False)
+
+@pytest.mark.process("a real git scratch repository whose working tree holds an uncommitted change to a tracked file, and a stub claude that records any start")
+def test_verify_sh_rebase_exits_2_without_launching_the_leaf_naming_a_tracked_file_left_modified_and_uncommitted_4552(
+        run_cli, tmp_path):
+    repo, onto, claude, started = rebased_repo_and_recorder(tmp_path)
+    (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 3 |\n")
+
+    code, _, err = run_rebase_verify(run_cli, tmp_path, repo, onto, claude)
+
+    assert (code, err.rstrip().endswith(": docs/backend.md"), started.exists()) == (2, True, False)
+
+
+@pytest.mark.process("a real git scratch repository whose index file is corrupt, so git status fails, and a stub claude that records any start")
+def test_verify_sh_rebase_exits_2_without_launching_the_leaf_when_git_status_fails_4552(run_cli, tmp_path):
+    repo, onto, claude, started = rebased_repo_and_recorder(tmp_path)
+    (repo / ".git" / "index").write_bytes(b"not an index")
+
+    code, _, err = run_rebase_verify(run_cli, tmp_path, repo, onto, claude)
+
+    assert (code, "git status failed" in err, started.exists()) == (2, True, False)
+
+
+@pytest.mark.process("a real git scratch repository whose tracked files are committed but which holds an untracked file, and a stub claude that records any start")
+def test_verify_sh_rebase_launches_the_leaf_when_only_an_untracked_file_is_present_4552(run_cli, tmp_path):
+    repo, onto, claude, started = rebased_repo_and_recorder(tmp_path)
+    (repo / "scratch.txt").write_text("untracked\n")
+
+    code, _, _ = run_rebase_verify(run_cli, tmp_path, repo, onto, claude)
+
+    assert (code, started.exists()) == (0, True)
 
 
 @pytest.mark.process("a real git scratch repository whose pin verifier leaf replaces a mutation record that was a directory before it ran")
