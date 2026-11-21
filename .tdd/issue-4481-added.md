@@ -1,0 +1,1 @@
+- [ ] fix the implementation-coupled case skills/tdd/scripts/tests/py/unit/test_step_close.py::test_4029_every_inner_call_in_the_ordered_list_is_a_script_the_refactor_loop_section_names: the expected list is the code's own `step_close.CALLS`; edit only that case, no production code ⟦test-quality⟧ ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 4⟧
