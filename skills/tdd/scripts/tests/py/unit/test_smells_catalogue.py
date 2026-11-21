@@ -42,7 +42,7 @@ def test_the_refactor_structural_and_verify_refactor_renders_each_carry_the_cata
     calls = {
         "develop refactor": (develop, ["refactor", str(spec), "the step", "make test", "a.py"]),
         "develop structural": (develop, ["structural", str(spec), "the candidate", "make test", "a.py"]),
-        "verify refactor": (verify, ["--fast-cmd", "make unit", "refactor", str(spec), "tests/t.py", "0123abc"]),
+        "verify refactor": (verify, ["--fast-cmd", "make unit", "--step-green", "0123abc", "refactor", str(spec), "tests/t.py", "0123abc"]),
     }
     results = {}
     for name, (module, argv) in calls.items():
