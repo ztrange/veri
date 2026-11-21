@@ -131,3 +131,16 @@ def test_the_over_cap_message_names_no_section_when_none_grew_over_its_baseline_
     for title in baseline:
         assert title not in message, title
     assert "grew most" not in message
+
+
+def test_growth_under_a_subheading_is_credited_to_its_parent_section_4517():
+    head = "## Big\n\nb\n\n"
+    sub = "### Sub\n\n" + "s" * 300 + "\n"
+    other = "## Other\n\n" + "o" * 50 + "\n"
+    text = "# x\n\n" + head + sub + other
+    baseline = {"(above the first ##)": 5, "Big": len(head), "Other": len(other) - 20}
+
+    message = cap_failure(text, 10, baseline)
+
+    assert "'## Big'" in message
+    assert "Sub" not in message
