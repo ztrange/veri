@@ -27,3 +27,10 @@ ICAgIGlmIHBoYXNlID09ICJicmFuY2giIGFuZCB0ZXN0X3BhdGg6
 command 132
 sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py::test_branch_refuses_a_leaf_report_path
 
+before 40
+50a6e8b31267663864c338bdd82d44ffba6eb6f4
+keep 54
+skills/tdd/scripts/tests/py/unit/test_verify_branch.py
+command 159
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_verify_branch.py::test_4472_when_the_verdict_branch_leaf_passes_it_exits_0_and_adds_no_step_to_the_ledger
+
