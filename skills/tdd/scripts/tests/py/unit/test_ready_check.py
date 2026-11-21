@@ -926,6 +926,20 @@ def test_issue_4532_the_bypass_permissions_row_fails_when_only_shape_probe_is_mi
     assert name == "bypassPermissions" and verdict, verdict
 
 
+def test_issue_4532_the_bypass_permissions_row_is_ok_when_all_three_files_hold_the_nonce_with_shape_probe_having_further_lines_and_no_denial_is_listed(ready_check, fake_processes):
+    inner = probe_answer()
+
+    def answer(line, cwd=None, env=None, **kwargs):
+        done = inner(line, cwd=cwd, env=env, **kwargs)
+        with open(os.path.join(cwd, "shape-probe.txt"), "a") as probe:
+            probe.write("\nfurther line after the nonce\n")
+        return done
+
+    fake_processes.answers({PROBE: answer})
+
+    assert ready_check.bypass_permissions_row() == ("bypassPermissions", None)
+
+
 PLACES = ("/Library/Application Support/ClaudeCode/managed-settings.json", "/etc/claude-code/managed-settings.json",
           "permissions.deny")
 

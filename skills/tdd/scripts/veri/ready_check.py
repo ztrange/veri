@@ -493,7 +493,8 @@ def probe_bypass(scratch):
         path = os.path.join(scratch, name)
         if os.path.exists(path):
             with open(path) as probe:
-                written.append(probe.read().strip() == nonce)
+                first = probe.read().strip().split("\n")[0].strip() if name == PROBE_FILES[2] else probe.read().strip()
+                written.append(first == nonce)
         else:
             written.append(False)
     if all(written) and not denials:
