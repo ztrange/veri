@@ -9,7 +9,7 @@ import entry
 import run_dir
 import timed_n_format
 
-USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|auto|session|transcript|baseline|baseline-at|refused-at|refused-now-at> <value>"
+USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|auto> <value>"
          " | add <decision|message|override|timed-n> <text>"
          " | drop <decision|message|override|timed-n> <id> | show | recovered\n")
 
@@ -245,7 +245,7 @@ def do_show(path, argv):
     return 0
 
 
-SET_FIELDS = ("n", "lane", "auto", "session", "transcript", "baseline", "baseline-at", "refused-at", "refused-now-at")
+SET_FIELDS = ("n", "lane", "auto")
 LISTS = ("decision", "message", "override", "timed-n")
 ITEM_KINDS = LISTS + ("dropped-decision",)
 VERBS = {"recovered": do_recovered, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}
