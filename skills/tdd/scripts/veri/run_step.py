@@ -90,7 +90,7 @@ def repin_after(pending):
     def chosen(record):
         follows = previous and previous[-1].text == pending and refactor_pending(previous[-1])
         previous.append(record)
-        return bool(follows) and record.state == "open" and record.kind == "diff-checked"
+        return bool(follows) and record.state == "open" and "⟦diff-checked⟧" in record.text
     return chosen
 
 
