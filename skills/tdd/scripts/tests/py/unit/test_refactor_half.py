@@ -178,7 +178,7 @@ def test_4028_it_opens_the_refactor_loop_stage_asks_the_budget_and_launches_deve
 
 
 REPIN_TICK = "e" * 40
-REPIN_LINE = importlib.import_module("veri.pin_reject_route").repin_step("tests/test_a.py") + " turns it red ⟦added⟧"
+REPIN_LINE = importlib.import_module("veri.pin_reject_route").repin_step("src/a.py") + " turns it red ⟦added⟧"
 
 
 def test_4510_after_a_repin_step_ticked_it_bounds_the_refactor_by_the_steps_own_green_tick_not_the_repins(tidy):

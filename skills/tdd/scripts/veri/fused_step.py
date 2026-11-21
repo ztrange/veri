@@ -37,11 +37,11 @@ def first_step(wt, n, chosen):
     return next((r.text for r in ledger_steps(ledger.read_ledger(run_dir.ledger(wt, n))) if chosen(r)), None)
 
 
-def green_tick(stage_label, wt, n, rev):
+def green_tick(where, wt, n, rev):
     """The newest ledger commit reachable from <rev> that changes a line other than a re-pin step's (one starting
     ledger.REPIN_STEP): the green tick of the step its re-pins re-arm, the plan and tick commits of those re-pins passed
     over (#4511, #4510). None when no commit does."""
-    log = checked(stage_label, "git", "log", "--format=%x00%H", "-p", "--unified=0", rev, "--", run_dir.ledger("", n),
+    log = checked(where, "git", "log", "--format=%x00%H", "-p", "--unified=0", rev, "--", run_dir.ledger("", n),
                   cwd=wt)
     for entry in log.split("\0")[1:]:
         sha, _, patch = entry.partition("\n")
