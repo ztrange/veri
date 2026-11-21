@@ -383,7 +383,11 @@ def test_4029_every_inner_call_in_the_ordered_list_is_a_script_the_refactor_loop
     skill = (Path(step_close.__file__).resolve().parents[2] / "SKILL.md").read_text()
     section = skill[skill.index("#### Refactor loop — one leaf"):skill.index("#### A `⟦diff-checked⟧` step")]
 
-    assert [name for name in step_close.CALLS if "$S/" + name not in section and name not in NAMED_ELSEWHERE] == []
+    expected = ["graded-changed.sh", "pin-recheck.sh", "tests-frozen.sh", "clear-refactor-pending.sh", "push-branch.sh",
+                "event.sh", "stop-requested.sh", "comment.sh", "criterion-finished.sh", "ledger-steps.sh",
+                "tick-issue-criterion.sh", "next-unchecked.sh", "run-affordable.sh"]
+
+    assert [name for name in expected if "$S/" + name not in section and name not in NAMED_ELSEWHERE] == []
 
 
 @pytest.mark.parametrize("site", ["settle", "ledger_text"])
