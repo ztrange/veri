@@ -46,7 +46,7 @@ def run(n):
         sys.stderr.write("green-half.sh: a step its prose runs: %s\n" % step)
         return 2
     values = {"test_path": red["test_path"], "target_test": red["target_test"]}
-    resumed = fused.load_wait(wt, n, NAME)
+    resumed = fused.load_wait(wt, n, NAME, step)
     if resumed is None:
         at = develop(n, wt, settled, step, values)
     else:
