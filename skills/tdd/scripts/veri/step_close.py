@@ -78,7 +78,7 @@ def mirror(wt, n, step):
                  err=".tdd/criterion-finished.err") == 0:
             body = plan_publish.gh("6", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", wt=wt)
             line = fused.checked("6", fused.script("ledger-steps.sh"), "criterion", k, cwd=wt, stdin=body).strip()
-            fused.checked("6", fused.script("tick-issue-criterion.sh"), n, line, cwd=wt)
+            fused.checked("6", fused.script("tick-issue-criterion.sh"), n, line, ok=(0, 3), cwd=wt)
     done = fused.checked("6", fused.script("ledger-steps.sh"), "last-done", cwd=wt, stdin=ledger_text(wt, n)).strip()
     fused.mark("6", wt, n, done, "step-done")
 
