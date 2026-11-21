@@ -117,6 +117,32 @@ def test_rerecord_refactored_whose_closing_check_earlier_exits_2_leaves_every_fr
     assert (code, len(records), [r.read_bytes() for r in records]) == (2, 1, before)
 
 
+def test_rerecord_refactored_whose_closing_check_earlier_fails_restores_two_earlier_steps_records_byte_identical_4554(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite, zed = tmp_path / ROOT_SUITE, tmp_path / "test_zed.py"
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    zed.write_text(BODY % ("zero", 5))
+    run_cli(tests_frozen, ["record", "--step", STEPS[0], zed.name], cwd=tmp_path)
+    repo.add(zed.name)
+    repo.commit("Z red", all=True)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1), BODY % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], ROOT_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    suite.write_text(suite.read_text().replace("x = 2\n    assert x\n", "x = 3\n    assert x\n"))
+    _ledger(tmp_path, Z="done", A="done")
+    green = repo.commit("A green", all=True)
+    zed.write_text(zed.read_text().replace("x = 5\n", "x = 6 - 1\n"))
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    repo.commit("A refactor", all=True)
+    (tmp_path / VERDICT).write_text("0")
+    records = _records(tmp_path)
+    before = [r.read_bytes() for r in records]
+
+    code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
+
+    assert (code, len(records), [r.read_bytes() for r in records]) == (1, 2, before)
+
+
 def test_rerecord_refactored_re_records_an_earlier_steps_case_whose_assertion_line_the_refactor_only_reformatted_2626(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     suite = tmp_path / ROOT_SUITE
