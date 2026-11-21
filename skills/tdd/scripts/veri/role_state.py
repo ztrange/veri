@@ -1,20 +1,17 @@
 """role-state.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import glob
 import os
 import re
 import sys
 import time
 
 import entry
-import event_log
 import run_dir
 import timed_n_format
-import tunables
 
-USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|auto|session|transcript|baseline|baseline-at|refused-at|refused-now-at|resetter> <value>"
+USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|auto|session|transcript|baseline|baseline-at|refused-at|refused-now-at> <value>"
          " | add <decision|message|override|timed-n> <text>"
-         " | drop <decision|message|override|timed-n> <id> | show | recovered | request-reset\n")
+         " | drop <decision|message|override|timed-n> <id> | show | recovered\n")
 
 
 def state_path(tree, role, lane=None):
@@ -196,42 +193,6 @@ def do_recovered(path, argv):
     return 0
 
 
-def launched_since(path, recovered):
-    since = epoch(recovered)
-    main = os.path.dirname(os.path.dirname(path))
-    runs = [main] + sorted(d for d in glob.glob(os.path.join(run_dir.worktrees(main), "*")) if os.path.isdir(d))
-    events = [e for run in runs for e in event_log.events(run, "conductor-start", "merged", skip_unreadable=True)]
-    return any(e.get("ts", 0) > since for e in events)
-
-
-def refusal(path, lines, stamp):
-    state = State(lines)
-    recovered = state.values("recovered-at")
-    if recovered:
-        decided = any(l.split()[2] > recovered[-1] for l in lines if l.startswith(("decision ", "dropped-decision ")))
-        if not decided and not launched_since(path, recovered[-1]):
-            return "request-reset refused: nothing launched, merged or decided since the last recovery"
-    hour_ago = epoch(stamp) - 3600
-    recent = [at for at in state.values("reset-at") if epoch(at) > hour_ago]
-    if len(recent) >= int(tunables.get("VERI_RESET_MAX_PER_HOUR")):
-        return "request-reset refused: %d resets in the last hour" % len(recent)
-    return None
-
-
-def do_request_reset(path, argv):
-    if argv[2:]:
-        return usage()
-    lines = (read(path) or "").splitlines()
-    stamp = now()
-    reason = refusal(path, lines, stamp)
-    if reason:
-        sys.stderr.write(reason + "\n")
-        return 1
-    append(path, "reset-at=%s\n" % stamp)
-    replace(marker_path(path), stamp + "\n")
-    return 0
-
-
 def do_set(path, argv):
     if len(argv) != 4 or argv[2] not in SET_FIELDS:
         return usage()
@@ -284,10 +245,10 @@ def do_show(path, argv):
     return 0
 
 
-SET_FIELDS = ("n", "lane", "auto", "session", "transcript", "baseline", "baseline-at", "refused-at", "refused-now-at", "resetter")
+SET_FIELDS = ("n", "lane", "auto", "session", "transcript", "baseline", "baseline-at", "refused-at", "refused-now-at")
 LISTS = ("decision", "message", "override", "timed-n")
 ITEM_KINDS = LISTS + ("dropped-decision",)
-VERBS = {"recovered": do_recovered, "request-reset": do_request_reset, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}
+VERBS = {"recovered": do_recovered, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}
 
 
 if __name__ == "__main__":
