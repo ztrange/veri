@@ -128,7 +128,6 @@ class Tunable:
 TUNABLES = {
     "VERI_CONDUCTOR_CTX_BUDGET": Tunable(tokens, "120000", "a whole number of tokens"),
     "VERI_RESET_GROWTH_CONDUCTOR": Tunable(positive_tokens, "70000", "a whole number of tokens >= 1"),
-    "VERI_RESET_GROWTH_DEV": Tunable(positive_tokens, "70000", "a whole number of tokens >= 1"),
     "VERI_KILL_POLL": Tunable(kill_poll, "0.1", "a non-negative number"),
     "REVISE_BUDGET": Tunable(tokens, "2", "a whole number"),
     "VERI_COMMENT_CHUNK": Tunable(positive_tokens, "25", "a whole number >= 1"),

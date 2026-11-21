@@ -1,9 +1,8 @@
-"""reset-cost.sh's logic, run in-process: what each recorded reset of a role cost, read from the files veri writes."""
+"""reset-cost.sh's logic, run in-process: what each recorded restart of a run's conductor cost, read from the files veri writes."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
 import math
 import os
-import re
 import statistics
 import sys
 import time
@@ -17,8 +16,7 @@ import role_state
 import run_dir
 import tunables
 
-USAGE = "usage: reset-cost.sh dev [--lane <lane>] | conductor <n>\n"
-LANE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
+USAGE = "usage: reset-cost.sh conductor <n>\n"
 CONTEXT_KEYS = ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
 
 
@@ -129,78 +127,6 @@ def _figure(value):
     return "unknown" if value is None else "%d" % round(value)
 
 
-def _read_records(path):
-    """(the transcript's JSON-object records, the count of its other non-blank lines); a file that cannot be read is a Failure."""
-    try:
-        with open(path) as f:
-            lines = [line for line in f if line.strip()]
-    except (OSError, UnicodeDecodeError):
-        raise Failure("reset-cost.sh: unreadable transcript %s\n" % path)
-    records = []
-    for line in lines:
-        try:
-            record = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(record, dict):
-            records.append(record)
-    return records, len(lines) - len(records)
-
-
-def _stamp(path, number, key, value):
-    try:
-        return role_state.epoch(value)
-    except (ValueError, OverflowError):
-        raise Failure("reset-cost.sh: %s line %d: %s is not a local time stamp\n" % (path, number, key))
-
-
-def dev_resets(path, lines):
-    """[reset-at text, its epoch, recovered-at epoch or None] for each reset the state lines record, in file order;
-    an unparseable stamp is a Failure naming the field and line, never its value."""
-    resets = []
-    for number, line in enumerate(lines, 1):
-        key, _, value = line.partition("=")
-        if key == "reset-at":
-            resets.append([value, _stamp(path, number, key, value), None])
-        elif key == "recovered-at" and resets and resets[-1][2] is None:
-            resets[-1][2] = _stamp(path, number, key, value)
-    return resets
-
-
-def dev(lane):
-    path = role_state.state_path(run_dir.main_tree_from_files(os.getcwd()), "dev", lane)
-    lines = (role_state.read(path) or "").splitlines()
-    resets = dev_resets(path, lines)
-    if not resets:
-        return None
-    transcripts = list(dict.fromkeys(l.partition("=")[2] for l in lines if l.startswith("transcript=")))
-    read = [_read_records(t) for t in transcripts]
-    skipped = sum(n for _, n in read)
-    found = [timed(records) for records, _ in read]
-    bad = sum(n for _, n in found)
-    records = sorted((pair for pairs, _ in found for pair in pairs), key=lambda pair: pair[0])
-    rows = []
-    measured = []
-    for i, (at, start, back) in enumerate(resets):
-        following = resets[i + 1][1] if i + 1 < len(resets) else float("inf")
-        in_order = following > start and (i == 0 or start > resets[i - 1][1]) and back is not None and back >= start
-        k = g = None
-        if in_order:
-            after = [(moment, r) for moment, r in records if start < moment < following]
-            upto = next((j for j, (moment, _) in enumerate(after) if moment >= back), None)
-            if upto is not None:
-                k = cost([r for _, r in after[:upto + 1]])
-                if k is not None:
-                    measured += [r for _, r in after[:upto + 1]]
-            g = per_request([r for moment, r in after if moment >= back])
-        rows.append((at, k, g))
-    sources = ("K and g from %s at the reset-at and recovered-at lines of %s, %s that are not a JSON object skipped, %s skipped"
-               % (", ".join(transcripts) or "no transcript", path,
-                  _count(skipped, "transcript line", "transcript lines"),
-                  _count(bad, "request with an unreadable timestamp", "requests with an unreadable timestamp")))
-    return rows, measured, sources, "VERI_RESET_GROWTH_DEV", _knob("VERI_RESET_GROWTH_DEV")
-
-
 def launches(lines):
     """(each launch's timed requests, a launch starting at each `system`/`init` record of a conductor log, and the count
     of requests without a readable timestamp); lines that are not a JSON object are skipped."""
@@ -267,20 +193,10 @@ def main(argv):
 
 
 def _main(argv):
-    lane = None
-    if argv[1:2] == ["--lane"] and len(argv) == 3:
-        lane = argv[2]
-        argv = argv[:1]
-    if lane is not None and not LANE.fullmatch(lane):
+    if not (len(argv) == 2 and argv[0] == "conductor" and entry.whole_number(argv[1]) is not None):
         raise Failure(USAGE)
-    if argv == ["dev"]:
-        _knob("VERI_RESET_GROWTH_DEV")
-        measures = dev(lane)
-    elif len(argv) == 2 and argv[0] == "conductor" and lane is None and entry.whole_number(argv[1]) is not None:
-        _knob("VERI_RESET_GROWTH_CONDUCTOR")
-        measures = conductor(argv[1])
-    else:
-        raise Failure(USAGE)
+    _knob("VERI_RESET_GROWTH_CONDUCTOR")
+    measures = conductor(argv[1])
     if measures is None:
         return 3
     rows, measured, sources, knob, value = measures

@@ -278,7 +278,6 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_REDACT_VARS` | `GH_TOKEN GITHUB_TOKEN ANTHROPIC_API_KEY CLAUDE_CODE_OAUTH_TOKEN` | its readers' own words |
 | `VERI_RESET_ACK_TIMEOUT` | `300` | its readers' own words |
 | `VERI_RESET_GROWTH_CONDUCTOR` | `70000` | a whole number of tokens >= 1 |
-| `VERI_RESET_GROWTH_DEV` | `70000` | a whole number of tokens >= 1 |
 | `VERI_RESET_MAX_PER_HOUR` | `2` | its readers' own words |
 | `VERI_RUN_BUDGET` | `120` | its readers' own words |
 | `VERI_RUN_TIMEOUT` | `14400` | its readers' own words |
@@ -889,7 +888,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `pr-finish.sh`: the refactor-owed render after a green first CI wait, in one call.
 - `run-done.sh`: the run's done comment, in one call.
 - `stop-settle.sh`: a stop, STOPPING.md steps 1–6, settled in one call.
-- `reset-cost.sh`: what each recorded reset of the dev session or a run's conductor cost, and the growth knob it calls for.
+- `reset-cost.sh`: what each recorded restart of a run's conductor cost, and the growth knob it calls for.
 - `reset-wait.sh`: wait for a usage-limit reset.
 - `restart-conductor.sh`: stop and watch a conductor restart.
 - `role-growth.sh`: read a role session's context growth.
