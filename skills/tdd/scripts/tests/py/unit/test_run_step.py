@@ -97,6 +97,17 @@ def test_4343_a_refactor_pending_step_with_no_seam_record_starts_at_refactor_hal
     assert stages.names() == ["refactor-half.sh", "step-close.sh"]
 
 
+REPIN = "a re-pin of the refactored case ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧"
+
+
+def test_4510_an_open_diff_checked_step_right_after_the_refactor_pending_step_runs_diff_step_before_its_close(step):
+    """The re-pin step pin-reject-route.sh --recheck inserts runs ahead of the refactor-pending step it re-pins."""
+    ledger = "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] %s\n- [ ] two ⟦criterion 2⟧\n" % (STEP, REPIN)
+
+    code, out, err, stages = step(ledger=ledger, answers={"diff-step.sh": (0, "next=cycle\n")})
+
+    assert (code, stages.names(), out.splitlines()[-1]) == (0, ["diff-step.sh"], "next=cycle"), err
+
 @pytest.mark.parametrize("argv, code, called", [
     (("12", "--from", "refactor-half"), 0, ["refactor-half.sh", "step-close.sh"]),
     (("12", "--from", "green-half"), 0, ["green-half.sh", "refactor-half.sh", "step-close.sh"]),

@@ -82,6 +82,18 @@ def refused(wt, n):
         return False
 
 
+def repin_after(pending):
+    """A first_step chooser taking the open `⟦diff-checked⟧` record that directly follows the refactor-pending step
+    whose text is <pending>."""
+    previous = []
+
+    def chosen(record):
+        follows = previous and previous[-1].text == pending and refactor_pending(previous[-1])
+        previous.append(record)
+        return bool(follows) and record.state == "open" and record.kind == "diff-checked"
+    return chosen
+
+
 def parse(argv):
     """(n, the --from stage or None, the --hand stages); None for arguments it does not take."""
     if not argv or not argv[0].isdigit():
@@ -110,7 +122,10 @@ def main(argv):
         return 2
     wt = given[1]
     pending = fused_step.first_step(wt, n, refactor_pending)
-    step = pending if pending is not None else fused_step.first_step(wt, n, ledger.handed_out)
+    # The re-pin step pin-reject-route.sh --recheck inserts runs before the step it re-pins is closed (#4510).
+    repin = fused_step.first_step(wt, n, repin_after(pending)) if pending is not None else None
+    step = repin or pending or fused_step.first_step(wt, n, ledger.handed_out)
+    pending = None if repin is not None else pending
     if step is None:
         sys.stderr.write("run-step.sh: no open step in %s\n" % (LEDGER % n))
         return 3
