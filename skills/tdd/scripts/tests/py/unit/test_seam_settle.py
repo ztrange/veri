@@ -122,3 +122,20 @@ def test_after_a_revised_green_pass_green_half_finishes_green_3_from_the_wait_re
     assert (code, record) == (0, "step=%s\ngreen_sha=%s\ntest_path=tests/test_h.py\n" % (STEP, GREEN_SHA))
     assert "- [x] %s ⟂ refactor pending\n" % STEP in (tdd / "issue-12.md").read_text()
     assert [a[0] for b, a in calls if b == "git" and a[0] == "commit"] == ["commit"]
+
+
+def test_a_green_half_wait_record_no_revise_passed_still_has_no_open_step_exit_2_and_finishes_nothing_4551(
+        settle, monkeypatch):
+    """Only a record revise.sh re-saved with `revised` owes Green 3; green-half's own mid-flight wait record (a verdict
+    still pending) is not finished by seam-settle, which still refuses with no open step."""
+    import json
+    values = {"test_path": "tests/test_h.py", "target_test": "tests/test_h.py::test_one"}
+    (settle.wt / ".tdd" / "issue-12-green-half-wait").write_text(json.dumps({"conductor": None, "at": "verdict-green",
+                                                                             "values": values}))
+    calls = []
+    monkeypatch.setattr(importlib.import_module("veri.fused"), "run_script",
+                        lambda name, *args, **kw: calls.append(os.path.basename(name)) or (0, GREEN_SHA + "\n", ""))
+    code, out, err, record = settle("green-half", "test_path=tests/test_h.py",
+                                    ledger="# Plan for #12\n\n- [ ] %s\n" % STEP)
+
+    assert (code, "no open step for green-half" in err, record, calls) == (2, True, None, [])
