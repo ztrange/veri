@@ -38,8 +38,9 @@ def record(issue, report):
         return 2, "the report has no FINDING: line", []
     if values == ["none"]:
         return 3, "", []
-    skipped = [refused for refused in map(refusal, values) if refused]
-    kept = [value for value in values if not refusal(value)]
+    judged = [(value, refusal(value)) for value in values]
+    skipped = [refused for _, refused in judged if refused]
+    kept = [value for value, refused in judged if not refused]
     if not kept:
         return 2, "; ".join(skipped), []
     return 0, "".join(" | ".join(field.strip() for field in value.split("|", 2)) + "\n" for value in kept), skipped
