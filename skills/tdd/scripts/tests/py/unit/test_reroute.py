@@ -507,14 +507,39 @@ def test_4496_on_red_green_s_uncommitted_production_edit_is_restored_before_the_
     assert sorted(fake.call("restore-production.sh")[1]) == ["tests/test_a.py", "tests/test_b.py"]
 
 
+def test_4546_on_repair_green_s_uncommitted_production_edit_is_restored_before_the_leaf_launches_keeping_the_tests(
+        reroute):
+    """A `repair <case> <superseded>…` answer: the production file reads as HEAD's when develop-red-repair is
+    launched; the step's test path and every routed case's file are the paths restore-production.sh keeps."""
+    prod = reroute.wt / "src_prod.py"
+    prod.write_text("green's edit\n")
+    seen = {}
+
+    class Restoring(Fake):
+        def __call__(self, name, *args, **kw):
+            base = os.path.basename(name)
+            if base == "restore-production.sh":
+                prod.write_text("HEAD\n")
+            if base == "detach-leaf.sh":
+                seen["at_launch"] = prod.read_text()
+            return super().__call__(name, *args, **kw)
+
+    fake = Restoring({("wrong-test-route.sh", None): (0, "repair tests/test_b.py::test_two tests/test_c.py::test_old\n"),
+                      ("wait-leaf.sh", "develop-red-repair"): (3, "")})
+    reroute(fake=fake)
+
+    assert (fake.launched(), seen.get("at_launch")) == (["develop-red-repair"], "HEAD\n")
+    assert sorted(fake.call("restore-production.sh")[1]) == ["tests/test_a.py", "tests/test_b.py", "tests/test_c.py"]
+
+
 @pytest.mark.parametrize("said, leaf, restores", [
     ("red tests/test_b.py::test_two", "develop-red-contradicted", True),
-    ("repair tests/test_a.py::test_one tests/test_c.py::test_old", "develop-red-repair", False),
+    ("repair tests/test_a.py::test_one tests/test_c.py::test_old", "develop-red-repair", True),
     ("supersede tests/test_c.py::test_x tests/test_d.py::test_y", "develop-red-supersede", False),
     ("missing the empty list is rejected", "develop-red-missing", False)])
-def test_4496_only_a_red_answer_restores_production_before_its_leaf_launches(reroute, said, leaf, restores):
-    """Contrast: `red` restores production; `repair`, `supersede` and `missing` launch their leaf with green's edit
-    left alone."""
+def test_4496_each_answer_kind_restores_production_or_not_before_its_leaf_launches(reroute, said, leaf, restores):
+    """Contrast, per answer kind: whether restore-production.sh runs before its leaf launches. `supersede` launches
+    with green's edit left alone (#4546 leaves it out of scope)."""
     fake = reroute(answers={("wrong-test-route.sh", None): (0, said + "\n"), ("wait-leaf.sh", None): (3, "")})[3]
 
     assert fake.launched() == [leaf]
