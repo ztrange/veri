@@ -14,7 +14,7 @@ import paths
 import restart_marker
 import run_dir
 import run_pins
-from ledger import handed_out, ledger_steps
+from ledger import handed_out, is_retired, ledger_steps
 from report import report_values
 
 USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>] [--pr]  (kinds include bailed, stopped, revise <phase> <k>; --pr only with bailed)"
@@ -188,6 +188,12 @@ def post_pin(issue):
     return post_and_record(issue, "pin", f"### 📌 Already satisfied — {done[-1].text}\n\n{reason}")
 
 
+def post_retire(issue):
+    """PIN.md's REJECT mirror once pin-reject-route.sh retired a step: the last retired step, and the verifier's reason."""
+    retired = [r for r in read_steps(issue) if r.state == "done" and is_retired(r.text)]
+    return post_and_record(issue, "retire", f"### 🪦 Retired — {retired[-1].text}\n\n{verdict_reason('pin')}")
+
+
 def post_verify_skipped(issue):
     return post_and_record(issue, "verify-refactor", "### 🔎 verify-refactor — SKIPPED (nothing landed)")
 
@@ -297,6 +303,8 @@ def main(argv):
         return post_verify_plan(argv[0])
     if argv[1:] == ["pin"]:
         return post_pin(argv[0])
+    if argv[1:] == ["retire"]:
+        return post_retire(argv[0])
     if argv[1:] == ["plan"]:
         return post_plan(argv[0])
     if argv[1:] == ["verify-refactor", "--skipped"]:

@@ -2102,3 +2102,19 @@ def test_pin_with_verify_pin_switched_off_carries_the_skipped_line_where_the_rea
     assert posted[0][1].splitlines()[0] == "### 📌 Already satisfied — pinned step lima"
     assert "verify-pin — SKIPPED (switched off)" in posted[0][1]
     assert "before-state kilo" not in posted[0][1]
+
+
+def test_retire_posts_the_retirement_naming_the_last_retired_step_with_the_verify_pin_reason(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = pin_fixture(monkeypatch, tmp_path, "# Plan for #7\n\n- [x] first step alpha\n"
+                         "- [x] retired step mike ⟂ retired already holds\n- [x] later step november\n")
+
+    code, out, err = run_cli(comment, ["7", "retire"], cwd=tmp_path)
+
+    assert (code, err) == (0, "")
+    assert [(n, b.splitlines()[0]) for n, b in posted] == [
+        ("7", "### 🪦 Retired — retired step mike ⟂ retired already holds")]
+    assert "the criterion already holds on the before-state kilo" in posted[0][1]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"]) for e in events] == [("comment", "retire")]
