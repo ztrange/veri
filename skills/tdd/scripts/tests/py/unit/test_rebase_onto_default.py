@@ -599,3 +599,19 @@ def test_a_rebase_of_a_run_branch_re_records_its_branch_base_as_the_onto_sha_and
                 "not a run branch": (0, None, False), "record unwritable": (2, None, True),
                 "up to date, record unwritable": (2, None, True)}[case]
     assert (code, record.read_text() if record.is_file() else None, str(record) in err) == expected
+
+
+@pytest.mark.parametrize("argv, named", [(["--resolved", ONTO], ONTO), (["--resolved", "origin/main"], "origin/main"),
+                                         (["--resolved"], "usage: ")], ids=["not in HEAD", "not hex", "missing"])
+def test_resolved_exits_2_leaving_the_record_untouched_when_head_lacks_the_onto_sha_or_it_is_no_hex_commit_name_4553(
+        cli, fake_processes, tmp_path, argv, named):
+    record = tmp_path / ".tdd" / "issue-12-branch-base"
+    record.parent.mkdir()
+    record.write_text(PRE + "\n")
+    calls = git_answers(fake_processes, **{"git symbolic-ref --quiet --short HEAD": (0, "tdd/12-slug\n")})
+
+    code, out, err = cli.run_cli(cli.module, argv, cwd=str(tmp_path))
+
+    asked = [c for c in calls if c.startswith(("git fetch", "git rebase", "git merge-base"))]
+    assert (code, named in err, record.read_text(), asked) == (
+        2, True, PRE + "\n", [f"git merge-base --is-ancestor {ONTO} HEAD"] if named == ONTO else [])
