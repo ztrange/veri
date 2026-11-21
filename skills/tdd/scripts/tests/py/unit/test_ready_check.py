@@ -955,6 +955,18 @@ def test_issue_4091_a_failing_bypass_permissions_row_quotes_the_denied_tools_and
     assert all(place in verdict for place in PLACES) and "user" in verdict and "project" in verdict, verdict
 
 
+def test_issue_4532_a_row_failing_on_shape_probe_names_it_says_claude_code_could_not_statically_analyze_the_command_and_names_every_place_to_look(ready_check, fake_processes):
+    fake_processes.answers({PROBE: probe_answer(shape=False)})
+
+    _, verdict = ready_check.bypass_permissions_row()
+
+    assert "shape-probe.txt" in verdict, verdict
+    assert "refused or asked" in verdict and "statically analyze" in verdict, verdict
+    for place in PLACES + ("permissions.ask", "permissions.blockReadsOutsideWorkingDirectories"):
+        assert place in verdict, (place, verdict)
+    assert "user" in verdict and "project" in verdict, verdict
+
+
 def test_issue_4091_the_probes_claude_starts_without_a_session_variable_strip_session_env_strips(ready_check, fake_processes, monkeypatch):
     monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "sess-123")
     monkeypatch.setenv("CLAUDECODE", "1")
