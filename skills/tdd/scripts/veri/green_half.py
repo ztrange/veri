@@ -108,9 +108,12 @@ def verify(n, wt, settled, step, values):
 
 
 def rerouted_cases(wt, step):
-    """The cases the step's reroute events name, once each, in journal order."""
-    named = [e.get("case") for e in event_log.events(wt, "reroute", skip_unreadable=True) if e.get("step") == step]
-    return list(dict.fromkeys(case for case in named if case))
+    """The cases the step's reroute events name, once each, in journal order. An event's `case` is the route's
+    cases joined by spaces (reroute.py writes `case=<rest>` and reads it back with `rest.split()`), so each is split
+    into its cases: tests-frozen.sh matches each `--except` exactly, and one `--except "a b"` exempts neither."""
+    named = [e.get("case") or "" for e in event_log.events(wt, "reroute", skip_unreadable=True)
+             if e.get("step") == step]
+    return list(dict.fromkeys(case for field in named for case in field.split()))
 
 
 def launch_verdict(where, n, wt, settled, step, values):

@@ -548,3 +548,17 @@ def test_4499_check_earlier_excepts_each_case_this_steps_reroutes_named_once_pas
     tail = _after(fake, "suite-reported.sh")
     assert tail[1][:2] == ("tests-frozen.sh", ("check-earlier", ".tdd/issue-12.md", "--step", STEP, "--except", mine))
     assert "verdict-green" in fake.launched()
+
+
+def test_4499_a_reroute_naming_two_cases_excepts_each_on_its_own_once_in_order(green):
+    first, second = "tests/test_b.py::test_one", "tests/test_b.py::test_two"
+    lines = [{"event": "reroute", "actor": "conductor", "step": STEP, "kind": "red", "case": first + " " + second},
+             {"event": "reroute", "actor": "conductor", "step": STEP, "kind": "red", "case": second}]
+    (green.wt / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in lines))
+
+    code, out, err, fake = green()
+
+    tail = _after(fake, "suite-reported.sh")
+    assert tail[1][:2] == ("tests-frozen.sh", ("check-earlier", ".tdd/issue-12.md", "--step", STEP,
+                                               "--except", first, "--except", second))
+    assert "verdict-green" in fake.launched()
