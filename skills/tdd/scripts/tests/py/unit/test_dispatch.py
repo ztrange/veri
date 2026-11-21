@@ -3714,3 +3714,20 @@ def test_4453_the_real_worlds_test_budget_write_is_its_lanes_entry_named_for_the
     name = "mu@" + hashlib.sha256(os.path.realpath(str(tmp_path)).encode()).hexdigest()[:16]
     root = os.environ["VERI_TEST_BUDGET_DIR"]
     assert {entry: open(os.path.join(root, entry)).read() for entry in os.listdir(root)} == {name: "6\n4600\n"}
+
+
+def test_issue_4465_main_with_no_target_reads_a_role_dev_state_file_holding_a_resetter_line_ignoring_it(
+        dispatch, monkeypatch, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev.state").write_text("n=1\nresetter=sess-old\n")
+    monkeypatch.setattr(dispatch.role_state.run_dir, "main_tree", lambda **_: str(tmp_path))
+
+    class FileWorld(FakeWorld):
+        def role_state(self):
+            return dispatch.World.role_state(self)
+
+    world = FileWorld({"queue": ["12"]})
+
+    dispatch.main([], world=world)
+
+    assert (world.launched, world.complained) == (["12"], [])

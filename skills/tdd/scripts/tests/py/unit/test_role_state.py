@@ -245,3 +245,18 @@ def test_issue_4465_dev_set_refuses_each_role_growth_only_field_as_unknown_and_t
 
     named = [f for f in fields if f in role_state.USAGE.split(" set ")[1].split(">")[0].split("|")]
     assert (results, named, list(tmp_path.iterdir())) == ([(2, "", role_state.USAGE)] * 6, [], [])
+
+
+def test_issue_4465_status_recover_dev_reads_a_state_file_holding_a_resetter_line_ignoring_it(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev.state").write_text("n=2\nresetter=sess-old\nlane=mu\n")
+    fake = fake_processes.answers({}, default=lambda line, **k: (0, "[]" if fake.argvs[-1][:1] == ["gh"] else "", ""))
+
+    code, out, err = run_cli(status, ["--recover", "dev"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    state = lines[lines.index("State") + 1:lines.index("Pending decisions")]
+    assert (code, err, state, "resetter" in out) == (0, "", ["n 2", "lane mu"], False)
