@@ -1022,3 +1022,18 @@ def test_issue_4529_allow_rules_spread_over_the_user_and_project_and_local_setti
     lines = out.splitlines()
     assert "ok    subagent permissions" in lines, out
     assert not [line for line in lines if line.startswith("fail  subagent permissions")], out
+
+
+def test_issue_4529_allow_rules_for_git_and_the_all_tests_command_and_scripts_split_over_the_user_and_project_settings_with_no_default_mode_make_the_subagent_permissions_row_ok(ready_check, run_cli, fake_processes, tmp_path):
+    fake_processes.answers(holding(**TIERS))
+    home = tmp_path / "scratch-home"
+    (home / ".claude").mkdir(parents=True)
+    (tmp_path / ".claude").mkdir()
+    scripts = ready_check.paths.resolved_scripts_of(ready_check.__file__)
+    (home / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"allow": ["Bash(git *)", "Bash(make test)"]}}))
+    (tmp_path / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"allow": [f"Bash({scripts}/*)"]}}))
+    _, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
+
+    lines = out.splitlines()
+    assert "ok    subagent permissions" in lines, out
+    assert not [line for line in lines if line.startswith("fail  subagent permissions")], out
