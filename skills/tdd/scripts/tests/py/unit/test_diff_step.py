@@ -310,3 +310,44 @@ def test_4435_a_develop_diff_leaf_with_no_suite_line_stops_exit_2_with_no_verifi
     assert (code, out.splitlines()[-1]) == (2, "stopped at develop suite-reported.sh develop-diff 2> "
                                                 ".tdd/suite-reported.err exit 2")
     assert (fake.launched(), "diff-leaf-deviation.sh" in fake.names()) == ([], False)
+
+
+REPIN = ("⟦diff-checked⟧ edit the case of the pin on tests/test_a.py so its recorded mutation turns it red "
+         "⟦added⟧ ⟦criterion 1⟧")
+GREEN = "d" * 40
+GREEN_PARENT = "e" * 40
+
+
+class RepinHistory(Fake):
+    """The history of a re-pin step: the ledger's last commit before the re-pin plan commit (STEP_BASE) is GREEN, the
+    green tick of the step whose pin it re-arms, and GREEN~1 is GREEN_PARENT; pin-recheck.sh finds the disarmed pin
+    (exit 1) only over a range from GREEN_PARENT, and nothing to check (exit 3) from any later base."""
+
+    def __call__(self, name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        if base == "git" and args[:2] == ("log", "-1") and STEP_BASE + "~1" in args:
+            self.calls.append((base, args, cwd, env, kw))
+            return 0, GREEN + "\n", ""
+        if base == "git" and args[:1] == ("rev-parse",) and GREEN + "~1" in args:
+            self.calls.append((base, args, cwd, env, kw))
+            return 0, GREEN_PARENT + "\n", ""
+        if base == "pin-recheck.sh":
+            self.calls.append((base, args, cwd, env, kw))
+            if args[-1:] == (GREEN_PARENT,):
+                return 1, "pin stayed green under its mutation: tests/test_a.py\n", ""
+            return 3, "", ""
+        return super().__call__(name, *args, cwd=cwd, env=env, **kw)
+
+
+def test_4511_a_repin_step_rechecks_from_the_rearmed_steps_green_parent_so_a_pin_left_green_is_a_reject(diff):
+    """A re-pin step's pin-recheck.sh range starts at <green>~1 of the step whose pin it re-arms, so a re-pin that
+    leaves the pin green under its mutation is a verify-diff REJECT, not a tick."""
+    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    code, out, err, fake = diff(step=REPIN, fake=RepinHistory())
+
+    assert code == 1, err
+    assert fake.call("pin-recheck.sh")[1] == ("--branch-base", BRANCH_BASE, GREEN_PARENT)
+    record = _rejected(diff)
+    assert (record["step"], record["at"]) == (REPIN, "verdict-diff")
+    assert "step-tick.sh" not in fake.names()
