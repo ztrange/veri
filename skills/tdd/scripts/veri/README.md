@@ -775,7 +775,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `ci-flake.sh`: rerun alone the test targets a red CI run's failed log names, and re-run its failed jobs once when all pass.
 - `ci_decision`: what a polled CI state means for `wait-ci.sh`, as a pure `decide()` (values in, a decision out).
 - `ci_marks`: the `.tdd/ci-*` marks `wait-ci.sh` keeps for a head, with their file names and contents.
-- `coupling.sh`: the pairs of same-extension code files, one changed in a range, that name each other, for the pull request body.
+- `coupling.sh`: the pairs of same-extension code files, one changed in a range, that import or invoke each other, for the pull request body.
 - `issue-worktree.sh`: create or reuse the worktree of an issue's run.
 - `lint-repair.sh`: compose the redacted repair step a red lint gets.
 - `merge-lock.sh`: take, release and gate on the merge lock.
