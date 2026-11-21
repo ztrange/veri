@@ -2,7 +2,7 @@
 
 - [x] a poll that prints the `queueing` line keeps watching: `dispatch.main` returns None once the fake world's wait() stops ⟦criterion 1⟧
 - [x] a poll that prints a `stretched` line keeps watching: `dispatch.main` returns None once the fake world's wait() stops ⟦criterion 2⟧
-- [ ] a poll that prints a `t-lowered` line keeps watching: `dispatch.main` returns None once the fake world's wait() stops ⟦criterion 3⟧
+- [x] a poll that prints a `t-lowered` line keeps watching: `dispatch.main` returns None once the fake world's wait() stops ⟦criterion 3⟧
 - [ ] a `queueing` line followed by a run's `### ✅ Done` exit ends on `done <n> <pr-url>`, after the `queueing` line, exit 0 ⟦criterion 4⟧
 - [ ] a `queueing` line followed by an empty queue ends on `queue-empty`, after the `queueing` line, exit 3 ⟦criterion 4⟧
 - [ ] over further polls of an unchanged world, the `queueing`, `stretched` and `t-lowered` lines each appear once ⟦criterion 5⟧
