@@ -1,4 +1,4 @@
-"""coupling.sh: the pairs of code files, one changed in a range, that name each other (PRD 032.8, CU1)."""
+"""coupling.sh: the pairs of code files, one changed in a range, that import or invoke each other (PRD 032.8, #4556)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import re
@@ -44,7 +44,8 @@ def refers(path, other):
 
 
 def pairs(changed, files):
-    """Each pair, in byte order, of a path in <changed> and another of <files> of its extension, each importing or invoking the other."""
+    """Each pair, in byte order, of a path in <changed> and another of <files> of its extension, each importing or
+    invoking the other."""
     found = set()
     for path in changed:
         ext = os.path.splitext(path)[1]
