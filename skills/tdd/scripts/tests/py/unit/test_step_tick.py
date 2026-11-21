@@ -178,3 +178,11 @@ def test_4450_a_skill_edit_step_stops_on_the_tree_check_before_the_tick_commit_w
     assert (code, out.splitlines()[-1]) == (1, "stopped at tick tree-check src/a.py")
     assert not {"tick-ledger.sh", "push-branch.sh"} & set(fake.names())
     assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("add",), ("commit",))]
+
+
+def test_4481_an_already_ticked_criterion_still_marks_step_done_and_exits_0(tick):
+    code, out, err, fake = tick(answers={("tick-issue-criterion.sh", None): (3, "")})
+
+    assert code == 0, err
+    assert ("event.sh", ("step-done",)) in [(c[0], c[1]) for c in fake.calls]
+    assert out.splitlines()[-1] == "next=cycle"
