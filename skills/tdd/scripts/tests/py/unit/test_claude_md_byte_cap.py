@@ -33,12 +33,15 @@ def cap_failure(text, cap, baseline):
     if size <= cap:
         return None
     sizes = section_bytes(text)
-    grown = max(sizes, key=lambda title: sizes[title] - baseline.get(title, 0))
-    return "CLAUDE.md is %d B, over its %d B cap; section '## %s' grew most over its baseline" % (
-        size,
-        cap,
-        grown,
-    )
+    growth = {title: sizes[title] - baseline.get(title, 0) for title in sizes}
+    grown = max(growth, key=growth.get)
+    if growth[grown] <= 0:
+        named = "no section grew over its baseline"
+    elif grown == "(above the first ##)":
+        named = "%s grew most over its baseline" % grown
+    else:
+        named = "section '## %s' grew most over its baseline" % grown
+    return "CLAUDE.md is %d B, over its %d B cap; %s" % (size, cap, named)
 
 
 def test_a_text_exactly_at_the_cap_reports_no_failure_4517():
@@ -98,3 +101,30 @@ def test_growth_above_the_first_section_is_named_as_its_own_pseudo_section_4517(
     message = cap_failure(text, 10, baseline)
 
     assert "(above the first ##)" in message
+
+
+def test_the_over_cap_message_names_the_pseudo_section_without_a_heading_prefix_4517():
+    preamble = "# x\n\n" + "p" * 200 + "\n\n"
+    section = "## A\n\na\n"
+    text = preamble + section
+    baseline = {"(above the first ##)": 10, "A": len(section) - 1}
+
+    message = cap_failure(text, 10, baseline)
+
+    assert "(above the first ##)" in message
+    assert "## (above the first ##)" not in message
+
+
+def test_the_over_cap_message_names_no_section_when_none_grew_over_its_baseline_4517():
+    preamble = "# x\n\n"
+    alpha = "## Alpha\n\n" + "a" * 50 + "\n"
+    beta = "## Beta\n\n" + "b" * 30 + "\n"
+    text = preamble + alpha + beta
+    baseline = {"(above the first ##)": len(preamble), "Alpha": len(alpha) + 5, "Beta": len(beta)}
+
+    message = cap_failure(text, 10, baseline)
+
+    assert message is not None
+    for title in baseline:
+        assert title not in message, title
+    assert "grew most" not in message
