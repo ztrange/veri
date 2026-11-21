@@ -68,7 +68,12 @@ def develop(n, wt, settled, step, test_path):
                   env=tunables.with_values(VERI_ISSUE=n))
     with open(os.path.join(wt, ".tdd", "stage-rl.t"), "w") as f:
         f.write("%d\n" % int(time.time()))
+    # The span starts at the ledger's last commit, past a re-pin step's commits; the files the leaf may tidy are those
+    # of the step's own green tick, which a re-pin step's tick after it is not (#4510).
     green_sha = fused.checked("1", "git", "log", "-1", "--format=%H", "--", LEDGER % n, cwd=wt).strip()
+    step_green = fused_step.green_tick("1", wt, n, "HEAD")
+    if step_green is None:
+        raise fused.Stop("1", "no green tick in " + LEDGER % n, 2)
     if fused_step.read_by(NAME, wt, n, step) == "green-half":
         fused_step.refresh(NAME, wt, n, "green-half", {"green_sha": green_sha})
     code, said, _ = fused.call(fused.script("refactor-budget.sh"), "0", cwd=wt)
@@ -77,7 +82,7 @@ def develop(n, wt, settled, step, test_path):
     found = re.search(r"refactor \d+/(\d+)", said)
     if found is None:
         raise fused.Stop("1", "refactor-budget.sh 0 printed no budget", 2)
-    touched = fused.checked("1", fused.script("refactor-touched.sh"), "HEAD", cwd=wt, ok=(0, 3)).strip()
+    touched = fused.checked("1", fused.script("refactor-touched.sh"), step_green, cwd=wt, ok=(0, 3)).strip()
     values = {"green_sha": green_sha, "budget": int(found.group(1)), "touched": touched, "test_path": test_path,
               "ran": code == 0}
     if code == 3:

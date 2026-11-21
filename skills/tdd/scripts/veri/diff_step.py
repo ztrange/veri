@@ -149,14 +149,9 @@ def recheck_base(n, wt, step, values):
     disarmed pin, are passed over. No such commit stops at `pin`, exit 2."""
     if not step.startswith(REPIN_STEP):
         return values["step_base"]
-    log = fused.checked("pin", "git", "log", "--format=%x00%H", "-p", "--unified=0", values["step_base"] + "~1",
-                        "--", LEDGER % n, cwd=wt)
-    for entry in log.split("\0")[1:]:
-        sha, _, patch = entry.partition("\n")
-        changed = [line for line in patch.splitlines() if line.startswith(("+", "-"))
-                   and not line.startswith(("+++ ", "--- "))]
-        if any(REPIN_STEP not in line for line in changed):
-            return fused.checked("pin", "git", "rev-parse", sha.strip() + "~1", cwd=wt).strip()
+    green = fused_step.green_tick("pin", wt, n, values["step_base"] + "~1")
+    if green is not None:
+        return fused.checked("pin", "git", "rev-parse", green + "~1", cwd=wt).strip()
     raise fused.Stop("pin", "no green tick of the re-armed step before " + values["step_base"], 2)
 
 

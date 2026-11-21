@@ -20,6 +20,10 @@ HAND_GREEN_HALF = "step=%s\ngreen_sha=" + GREEN_SHA + "\ntest_path=checks/green_
 REPORT = ("RESULT: extract f\nCANDIDATES: structural | src/a.py | split g\nCANDIDATES: cosmetic | src/a.py | rename h\n"
           "CANDIDATES: structural | src/a.py | inline k\nFLAGS: beyond-spec | negative sizes\n"
           "FLAGS: uncovered-spec | empty input returns 0\n")
+# `git log -p --unified=0` over the ledger, one entry per commit: (sha, the patch's changed lines).
+LEDGER_LOG = "".join("\0%s\n\ndiff --git a/.tdd/issue-12.md b/.tdd/issue-12.md\n--- a/.tdd/issue-12.md\n"
+                     "+++ b/.tdd/issue-12.md\n@@ -3 +3 @@\n%s" % entry for entry in (
+                         (GREEN_SHA, "-- [ ] %s\n+- [x] %s ⟂ refactor pending\n" % (STEP, STEP)),))
 VERDICT = "FLAGS: overfit | the size is hard-coded\nFLAGS: uncovered-spec | a tab separates too\nVERDICT: PASS\n"
 
 
@@ -28,8 +32,9 @@ class Fake:
     (basename, first argument or None) -> (code, stdout)."""
 
     def __init__(self, answers=None, report=REPORT, verdict=VERDICT, porcelain="", subjects="refactor: extract f (#12)\n",
-                 count="1\n"):
+                 count="1\n", ledger_log=LEDGER_LOG, last_ledger_commit=GREEN_SHA):
         self.answers, self.calls = dict(answers or {}), []
+        self.ledger_log, self.last_ledger_commit = ledger_log, last_ledger_commit
         self.report, self.verdict, self.porcelain, self.subjects, self.count = report, verdict, porcelain, subjects, count
 
     def __call__(self, name, *args, cwd=None, env=None, **kw):
@@ -45,7 +50,9 @@ class Fake:
         if base == "refactor-touched.sh":
             return 0, TOUCHED + "\n", ""
         if base == "git" and args[:2] == ("log", "-1"):
-            return 0, GREEN_SHA + "\n", ""
+            return 0, self.last_ledger_commit + "\n", ""
+        if base == "git" and args[:2] == ("log", "--format=%x00%H"):
+            return 0, self.ledger_log, ""
         if base == "git" and args[:1] == ("log",):
             return 0, self.subjects, ""
         if base == "git" and args[:1] == ("rev-list",):
@@ -153,20 +160,47 @@ def _after(fake, name, first=None):
 def test_4028_it_opens_the_refactor_loop_stage_asks_the_budget_and_launches_develop_refactor(tidy):
     code, out, err, fake = tidy(answers={("wait-leaf.sh", "verdict-refactor"): (3, "")})
 
-    assert [(c[0], c[1][:1]) for c in fake.calls[:8]] == [
-        ("event.sh", ("stage-start",)), ("git", ("log",)), ("refactor-budget.sh", ("0",)),
-        ("refactor-touched.sh", ("HEAD",)), ("build-develop-prompt.sh", ("refactor",)), ("stop-requested.sh", ()),
-        ("detach-leaf.sh", (fake.calls[6][1][0],)), ("wait-leaf.sh", ("develop-refactor",))]
+    assert [(c[0], c[1][:1]) for c in fake.calls[:9]] == [
+        ("event.sh", ("stage-start",)), ("git", ("log",)), ("git", ("log",)), ("refactor-budget.sh", ("0",)),
+        ("refactor-touched.sh", (GREEN_SHA,)), ("build-develop-prompt.sh", ("refactor",)), ("stop-requested.sh", ()),
+        ("detach-leaf.sh", (fake.calls[7][1][0],)), ("wait-leaf.sh", ("develop-refactor",))]
     assert fake.calls[0][1] == ("stage-start", "stage=refactor-loop")
     assert (tidy.wt / ".tdd" / "stage-rl.t").read_text().strip().isdigit()
     assert fake.calls[1][1] == ("log", "-1", "--format=%H", "--", ".tdd/issue-12.md")
-    assert fake.calls[4][1] == ("refactor", ".tdd/issue-12-spec.md", STEP, "make unit", TOUCHED)
-    assert fake.calls[4][4]["out"] == ".tdd/develop-refactor.prompt"
-    launch = fake.calls[6]
+    assert fake.calls[2][1] == ("log", "--format=%x00%H", "-p", "--unified=0", "HEAD", "--", ".tdd/issue-12.md")
+    assert fake.calls[5][1] == ("refactor", ".tdd/issue-12-spec.md", STEP, "make unit", TOUCHED)
+    assert fake.calls[5][4]["out"] == ".tdd/develop-refactor.prompt"
+    launch = fake.calls[7]
     assert _short(launch[1]) == ("supervise.sh", "develop-refactor", "run-leaf.sh", ".tdd/develop-refactor.prompt",
                                  "--permission-mode", "bypassPermissions")
     assert (launch[3]["VERI_TEST_CMD"], launch[3]["VERI_ISSUE"], launch[3]["VERI_STEP"]) == ("make unit", "12", STEP)
     assert (launch[4]["out"], launch[4]["err"]) == (".tdd/develop-refactor.out", ".tdd/develop-refactor.err")
+
+
+REPIN_TICK = "e" * 40
+REPIN_LINE = importlib.import_module("veri.pin_reject_route").repin_step("tests/test_a.py") + " turns it red ⟦added⟧"
+
+
+def test_4510_after_a_repin_step_ticked_it_bounds_the_refactor_by_the_steps_own_green_tick_not_the_repins(tidy):
+    """A re-pin step pin-reject-route.sh --recheck inserted and ticked after the step's green tick is the ledger's
+    last commit; the refactor leaf still tidies the files the step's own green tick touched, its span still starting
+    past the re-pin's commits."""
+    log = "".join("\0%s\n\ndiff --git a/.tdd/issue-12.md b/.tdd/issue-12.md\n@@ -4 +4 @@\n%s" % entry for entry in (
+        (REPIN_TICK, "-- [ ] %s\n+- [x] %s\n" % (REPIN_LINE, REPIN_LINE)), ("f" * 40, "+- [ ] %s\n" % REPIN_LINE),
+        (GREEN_SHA, "-- [ ] %s\n+- [x] %s ⟂ refactor pending\n" % (STEP, STEP))))
+    code, out, err, fake = tidy(fake=Fake({("wait-leaf.sh", "verdict-refactor"): (3, "")}, ledger_log=log,
+                                          last_ledger_commit=REPIN_TICK))
+
+    assert fake.call("refactor-touched.sh")[1] == (GREEN_SHA,), err
+    assert fake.call("git", "rev-list")[1][-1] == REPIN_TICK + "..HEAD"
+
+
+def test_4510_a_ledger_with_no_commit_but_repin_ones_stops_at_1_exit_2_before_the_budget(tidy):
+    log = "\0%s\n\ndiff --git a/.tdd/issue-12.md b/.tdd/issue-12.md\n@@ -4 +4 @@\n+- [ ] %s\n" % (REPIN_TICK, REPIN_LINE)
+    code, out, err, fake = tidy(fake=Fake(ledger_log=log, last_ledger_commit=REPIN_TICK))
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at 1 no green tick in .tdd/issue-12.md")
+    assert "refactor-budget.sh" not in fake.names()
 
 
 def test_4028_a_spent_budget_launches_no_refactor_leaf(tidy):
