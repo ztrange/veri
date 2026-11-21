@@ -2053,3 +2053,19 @@ def test_4111_break_renders_verify_break_md_given_a_hex_base_sha_and_exits_2_for
     assert rendered == {sha: (0, True, True) for sha in rendered}
     assert (refused, no_sha) == ({sha: 2 for sha in refused}, 2)
     assert ("break" in build_verify_prompt.PHASES, build_verify_prompt.NEEDS.get("break")) == (True, {"fast-cmd", "base-sha"})
+
+
+def test_main_renders_the_branch_prompt_with_exit_0_from_the_branch_diff_the_spec_and_the_fast_command_and_no_ambient_input(
+        tmp_path, monkeypatch, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    fast = 'make unit ZORBLAT=branch -- --only "frob & nitz/quux"'
+    monkeypatch.setenv("VERI_STEP", "I tidied the helper because it was ugly")
+    monkeypatch.setenv("VERI_RATIONALE", "the author meant well")
+
+    code = build_verify_prompt.main(["--fast-cmd", fast, "--branch-base", "0123abcdef", "branch", str(spec)])
+    out, err = capsysbinary.readouterr()
+    assert (code, err) == (0, b"")
+    assert (b"git diff 0123abcdef..HEAD" in out, b'zorblat("Frob & Nitz/Quux")' in out, fast.encode() in out,
+            b"{{" in out, b"tidied the helper" in out, b"the author meant well" in out) == (
+        True, True, True, False, False, False)
