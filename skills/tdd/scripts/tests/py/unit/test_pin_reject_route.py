@@ -642,3 +642,59 @@ def test_main_bare_target_test_name_only_a_prefix_of_a_case_the_test_path_file_h
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, out.strip(), ledger.read_text()) == (2, "", body), err
+
+
+def test_main_missing_reroute_already_holds_fallback_runs_the_joined_bare_name_4549(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ticks = []
+    answers = iter([1, 0])
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "tick",
+                        lambda ledger, matcher, **kw: (ticks.append((kw["retire"], kw["case"])), next(answers))[1])
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_x.py").write_text("def test_holds():\n    assert True\n")
+    (ledger.parent / "develop-red.out").write_text("TEST_PATH: tests/test_x.py\nTARGET_TEST: test_holds\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the behaviour already holds\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", "test_holds"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ticks) == (0, "retired", [("unpinnable", "tests/test_x.py::test_holds"),
+                                                         ("already-holds", "tests/test_x.py::test_holds")]), err
+
+
+def test_main_bare_target_test_name_with_a_red_report_lacking_test_path_reaches_the_case_run_unchanged_4549(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ran = []
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: (ran.append(case) or 0, "", 0))
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
+    (ledger.parent / "develop-red.out").write_text("TARGET_TEST: test_holds\nFAIL_OUTPUT: x\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", "test_holds"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ran) == (0, "retired", ["test_holds"]), err
+
+
+def test_main_bare_target_test_name_whose_red_report_test_path_file_is_missing_reaches_the_case_run_unchanged_4549(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ran = []
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: (ran.append(case) or 0, "", 0))
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
+    (ledger.parent / "develop-red.out").write_text("TEST_PATH: tests/test_gone.py\nTARGET_TEST: test_holds\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", "test_holds"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ran) == (0, "retired", ["test_holds"]), err
