@@ -161,8 +161,10 @@ def finish(n, wt, step, values):
     step-tick.sh, whose lines end this call's. Its 1, a pin this step disarmed, is a verify-diff REJECT (DST7). A re-pin
     step whose net diff since its step base changes no test file is a verify-diff REJECT before either (#4512)."""
     if step.startswith(REPIN_STEP):
-        changed = fused.checked("pin", "git", "diff", "--name-only", values["step_base"], "HEAD", cwd=wt).splitlines()
-        if not any(case_reader.is_test_path(path) for path in changed):
+        code, said, _ = fused.call("git", "diff", "--name-only", values["step_base"], "HEAD", cwd=wt)
+        if code:
+            raise fused.Stop("pin", "git diff --name-only %s HEAD exit %d" % (values["step_base"], code), 2)
+        if not any(case_reader.is_test_path(path) for path in said.splitlines()):
             pin = step[len(REPIN_STEP):].split(" ", 1)[0]
             reject(n, wt, step, values, "pin", "REJECT: the re-pin step's commits since %s change no test file; its "
                    "deliverable is the edited case of the pin on %s\n" % (values["step_base"], pin))
