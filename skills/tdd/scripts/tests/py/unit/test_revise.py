@@ -176,6 +176,24 @@ def test_4482_green_on_a_replaces_case_step_passes_check_earlier_one_except_per_
         "check-earlier", ".tdd/issue-12.md", "--step", step, "--except", "case one", "--except", "case two")
 
 
+def test_4499_green_on_a_step_a_reroute_rewrote_passes_check_earlier_each_rerouted_and_replaced_case_once_and_launches(revise):
+    step = "port it: replaces 'case one' and 'case two' in tests/py/test_x.py ⟦replaces-case⟧ ⟦criterion 2⟧"
+    (revise.wt / ".tdd" / "issue-12.md").write_text(LEDGER % step)
+    (revise.wt / ".tdd" / "issue-12-red-half").write_text(RED_HALF % step)
+    rewritten = "tests/test_b.py::test_earlier"
+    events = [{"event": "reroute", "actor": "conductor", "step": step, "kind": "red", "case": case}
+              for case in (rewritten, "case one")]
+    (revise.wt / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    revise(answers={("wait-leaf.sh", "revise-green-1"): (3, "")})
+    code, out, err, fake = revise(answers={("wait-leaf.sh", "verdict-green"): (3, "")})
+
+    assert code == 3
+    assert fake.call("tests-frozen.sh", "check-earlier")[1] == (
+        "check-earlier", ".tdd/issue-12.md", "--step", step, "--except", rewritten, "--except", "case one",
+        "--except", "case two")
+    assert fake.launched() == ["verdict-green"]
+
+
 def test_4482_green_on_a_replaces_case_step_whose_cases_cannot_be_parsed_passes_check_earlier_no_except(revise):
     step = "port it, naming no case to replace ⟦replaces-case⟧ ⟦criterion 2⟧"
     (revise.wt / ".tdd" / "issue-12.md").write_text(LEDGER % step)
