@@ -16,14 +16,15 @@
 #              step's base sha
 #     --step = the ledger's own line for the step under judgement: it scopes the
 #              verdict to that criterion, and carries the conductor's words, not the leaf's
-#     --step-green = refactor only: the step's green tick, whose files bound the refactor
-#              (default <base-sha>); 7-40 lowercase hex, exit 2 otherwise (#4544)
+#     --step-green = required for refactor, refused for any other phase: the step's green
+#              tick, whose files bound the refactor; 7-40 lowercase hex, exit 2 otherwise (#4544)
 #     --fast-cmd = the fast tier's test command, required for green, refactor and diff:
 #              verify-green and verify-refactor run it plus the test files covering the files the step changed, and a verifier in a target repository has
 #              no detect-test-command.sh of its own to ask. It is a command the conductor
 #              detected, never anything the developer leaf wrote.
 #
 # Prints the assembled prompt on stdout (feed it to run-leaf.sh). Exit 2 on an unknown
-# phase, a missing template/spec file, or a green, refactor or diff call without --fast-cmd.
+# phase, a missing template/spec file, a green, refactor or diff call without --fast-cmd, or a
+# refactor call without --step-green.
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(cd "$(dirname "$0")" && pwd)/veri/build_verify_prompt.py" "$@"

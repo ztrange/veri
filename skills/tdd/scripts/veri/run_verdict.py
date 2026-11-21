@@ -23,8 +23,8 @@ def cannot_start(verifier, why):
     print(f"run-verdict.sh: cannot start the verifier: {verifier}{why}", file=sys.stderr)
 
 
-USAGE = ("usage: run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] --branch-base <sha> <phase> <issue-spec-file>"
-         " <test-path> [<target-test-id>]")
+USAGE = ("usage: run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--step-green <sha>] --branch-base <sha>"
+         " <phase> <issue-spec-file> <test-path> [<target-test-id>]")
 
 
 def main(argv):

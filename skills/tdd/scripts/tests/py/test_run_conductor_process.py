@@ -4308,7 +4308,7 @@ def test_cli_2748_the_verify_refactor_leaf_given_fast_cmd_launched_alone_receive
         if list(args)[:1] != ["fake-claude"]:
             return run(args, *a, **kwargs)
         env = dict(os.environ, CLAUDE_BIN=str(stub), VERI_TEST_LEAF_PROMPT_OUT=str(tiers / "verify-refactor.received"), VERI_POLL="0.02", **step)
-        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--branch-base", head, "--step", "the step", "--fast-cmd", fast, "refactor", "spec.md", "t.test.sh", "abc1234"],
+        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--branch-base", head, "--step", "the step", "--fast-cmd", fast, "--step-green", "abc1234", "refactor", "spec.md", "t.test.sh", "abc1234"],
                                cwd=tiers, env=env, capture_output=True).returncode
         return subprocess.CompletedProcess(args, 0, None, None)
 
@@ -4343,7 +4343,7 @@ def test_cli_2748_the_verify_refactor_leaf_without_fast_cmd_launched_alone_exits
         if list(args)[:1] != ["fake-claude"]:
             return run(args, *a, **kwargs)
         env = dict(os.environ, CLAUDE_BIN=str(stub), VERI_TEST_LEAF_PROMPT_OUT=str(tiers / "verify-refactor-bare.received"), VERI_POLL="0.02", **step)
-        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--branch-base", head, "--step", "the step", "refactor", "spec.md", "t.test.sh", "abc1234"],
+        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--branch-base", head, "--step", "the step", "--step-green", "abc1234", "refactor", "spec.md", "t.test.sh", "abc1234"],
                                cwd=tiers, env=env, capture_output=True).returncode
         return subprocess.CompletedProcess(args, 0, None, None)
 

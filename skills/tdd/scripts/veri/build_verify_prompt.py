@@ -221,6 +221,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         if not HEX_SHA.fullmatch(value):
             return _refused(f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, got '{value}'")
         slots[slot] = value
+    if phase == "refactor" and not step_green:
+        return _refused("build-verify-prompt: refactor needs --step-green <sha>, the step's green tick")
     prompts = f"{HERE}/prompts"
     spec = spec_arg
     optional = {}
@@ -313,7 +315,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
                                (b"STEP_BASE_SHA", os.fsencode(slots["STEP_BASE_SHA"])),
                                # The step's green tick, the refactor's file bounds; the ledger's last commit, BASE_SHA,
                                # is past a re-pin step's commits and bounds only the reviewed range (#4544).
-                               (b"STEP_GREEN_SHA", os.fsencode(step_green or slots["BASE_SHA"])),
+                               (b"STEP_GREEN_SHA", os.fsencode(step_green)),
                                (b"BRANCH_BASE", os.fsencode(branch_base)),
                                (b"FAST_CMD", os.fsencode(fast_cmd)),
                                (b"FULL_CMD", lambda: run_line.full_line(root, branch_base)),
