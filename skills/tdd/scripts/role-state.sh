@@ -1,7 +1,7 @@
 #!/bin/sh
 # role-state.sh — the dev session's own state file: a shim over veri/role_state_cli.py.
 #
-# Usage:   role-state.sh dev [--lane <lane>] set <n|lane|auto|session|transcript|baseline|baseline-at|refused-at|refused-now-at> <value>
+# Usage:   role-state.sh dev [--lane <lane>] set <n|lane|auto> <value>
 #                       | add <decision|message|override|timed-n> <text>
 #                       | drop <decision|message|override|timed-n> <id> | show | recovered
 #          set n also writes the lane's test budget entry (VERI_TEST_BUDGET_DIR, need max(N, live conductors) x

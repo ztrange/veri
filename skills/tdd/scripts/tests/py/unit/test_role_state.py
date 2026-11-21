@@ -70,17 +70,6 @@ def test_issue_4100_set_auto_with_a_value_other_than_on_or_off_exits_2_writing_n
     assert (results, (tmp_path / ".tdd" / "role-dev.state").exists()) == ([(2, "", role_state.USAGE)] * 4, False)
 
 
-def test_issue_3241_set_accepts_each_growth_field_appending_it_to_the_state_file_and_exiting_0(tmp_path, monkeypatch, run_cli):
-    role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    fields = ["session", "transcript", "baseline", "baseline-at", "refused-at", "refused-now-at"]
-
-    codes = [run_cli(role_state, ["dev", "set", f, "v-" + f])[0] for f in fields]
-
-    state = (tmp_path / ".tdd" / "role-dev.state").read_text().splitlines()
-    assert (codes, state) == ([0] * 6, ["%s=v-%s" % (f, f) for f in fields])
-
-
 def test_issue_3241_dev_recovered_removes_the_roles_reset_marker_and_keeps_a_lanes(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
     monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
@@ -245,3 +234,14 @@ def test_issue_4465_dev_set_resetter_exits_2_as_an_unknown_field_writing_nothing
     code, out, err = run_cli(role_state, ["dev", "set", "resetter", "sess-1"])
 
     assert (code, out, err, list(tmp_path.iterdir())) == (2, "", role_state.USAGE, [])
+
+
+def test_issue_4465_dev_set_refuses_each_role_growth_only_field_as_unknown_and_the_usage_line_names_none(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    fields = ["session", "transcript", "baseline", "baseline-at", "refused-at", "refused-now-at"]
+
+    results = [run_cli(role_state, ["dev", "set", f, "v"]) for f in fields]
+
+    named = [f for f in fields if f in role_state.USAGE.split(" set ")[1].split(">")[0].split("|")]
+    assert (results, named, list(tmp_path.iterdir())) == ([(2, "", role_state.USAGE)] * 6, [], [])
