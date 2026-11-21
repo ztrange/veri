@@ -838,3 +838,19 @@ def test_4497_a_matched_revised_red_verifies_and_records_develop_red_outs_test_w
     record = json.loads((revise.wt / ".tdd" / "issue-12-red-half-wait").read_text())
     assert (record["values"]["test_path"], record["values"]["target_test"]) == (
         "tests/test_a.py", "tests/test_a.py::test_one")
+
+
+@pytest.mark.parametrize("phase", ["red", "green", "refactor"])
+def test_4500_with_no_veri_issue_exported_it_builds_the_revise_prompt_with_the_runs_issue_and_step_and_launches(
+        revise, phase):
+    """build-develop-prompt.sh refuses a revise prompt without VERI_ISSUE, so revise.sh hands it VERI_ISSUE=<n> and
+    VERI_STEP, as its leaf launch does, rather than relying on the caller's environment."""
+    _phase(revise, phase)
+    report = RED_REPORT if phase == "red" else "OUTCOME: REWRITTEN\n"
+    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "revise-%s-1" % phase): (3, "")}, report=report),
+                                  argv=("12", phase))
+
+    env = fake.call("build-develop-prompt.sh")[3] or {}
+    assert (env.get("VERI_ISSUE"), env.get("VERI_STEP")) == ("12", STEP)
+    assert fake.launched() == ["revise-%s-1" % phase]
+    assert code == 3, err
