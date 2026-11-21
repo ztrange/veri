@@ -314,7 +314,7 @@ def main(argv):
     issue_rows = unit_rows(issue, unit)
     for row in issue_rows:
         if not requirements.well_formed_row_id(row_id(row)):
-            print("Requirement row ID is neither <prefix><digits> nor <prefix><next>: " + row_id(row),
+            print("Requirement row ID is none of <prefix><digits>, <prefix><next> or <prefix><digits><letters><reword>: " + row_id(row),
                   file=sys.stderr)
             return 2
     explicit = [row_id(r) for r in issue_rows if not row_id(r).endswith("<next>")]
