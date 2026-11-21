@@ -172,6 +172,37 @@ def test_4029_it_checks_graded_units_and_pins_rerecords_checks_the_tree_clears_c
     assert all(c[2] == str(close.wt) for c in fake.calls)
 
 
+class History(Fake):
+    """A Fake whose `git log -1 --format=%H [-S <text>] -- <ledger>` answers from a ledger history, newest last, as
+    git does: the newest commit that changed the ledger, or with -S the newest that changed <text>'s count in it."""
+
+    def __init__(self, commits, **kw):
+        super().__init__(**kw)
+        self.commits = commits
+
+    def __call__(self, name, *args, **kw):
+        if os.path.basename(name) == "git" and args[:2] == ("log", "-1"):
+            self.calls.append(("git", args, kw.get("cwd"), kw.get("env"), kw))
+            text = args[args.index("-S") + 1] if "-S" in args else None
+            for (sha, after), (_, before) in zip(reversed(self.commits), reversed([(None, "")] + self.commits[:-1])):
+                if (before.count(text) != after.count(text)) if text else before != after:
+                    return 0, sha + "\n", ""
+            return 0, "", ""
+        return super().__call__(name, *args, **kw)
+
+
+def test_4510_a_later_commit_adding_only_a_re_pin_step_leaves_the_step_green_commit_as_the_checked_sha(close):
+    plan = "e" * 40
+    repinned = LEDGER % STEP + "- [ ] ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧ re-pin\n"
+    fake = History([("a" * 40, "# Plan for #12\n\n- [ ] %s\n- [ ] two ⟦criterion 2⟧\n" % STEP),
+                    (GREEN_SHA, LEDGER % STEP), (plan, repinned)])
+    code, out, err, fake = close(fake=fake, ledger=repinned)
+
+    assert fake.call("graded-changed.sh")[1] == (GREEN_SHA,)
+    assert fake.call("git", "rev-parse")[1] == ("rev-parse", GREEN_SHA + "~1")
+    assert fake.call("tests-frozen.sh")[1] == ("rerecord-refactored", ".tdd/issue-12.md", GREEN_SHA)
+
+
 @pytest.mark.parametrize("record", [None, "", "HEAD\n", "abc12\n", BRANCH_BASE.upper() + "\n", "b" * 41 + "\n"])
 def test_4376_a_branch_base_record_missing_or_not_hex_stops_it_at_6_with_exit_2_naming_the_record_and_runs_no_pin_recheck(
         close, record):
