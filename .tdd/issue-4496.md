@@ -1,0 +1,4 @@
+# Plan for #4496 — A red reroute after green launches the rerouted red with green's production edits still in the tree
+
+- [ ] `reroute.sh <n> <report>` on a `red <case>` answer, with an uncommitted edit to a production file in the worktree, restores that file to `HEAD` through `restore-production.sh`, keeping the step's test path and the rerouted case's file, before it launches the `develop-red-contradicted` leaf; the case reads the file's content when the leaf is launched (`unit/test_reroute.py`, a small in-process case) ⟦criterion 1⟧
+- [ ] `reroute.sh <n> <report>` on an answer it does not run (one that stops at route, launching nothing) calls no `restore-production.sh`, so the uncommitted production edit is still in the worktree when it exits (`unit/test_reroute.py`, a small in-process case) ⟦criterion 1⟧
