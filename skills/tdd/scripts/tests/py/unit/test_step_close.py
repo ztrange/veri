@@ -203,6 +203,19 @@ def test_4510_a_later_commit_adding_only_a_re_pin_step_leaves_the_step_green_com
     assert fake.call("tests-frozen.sh")[1] == ("rerecord-refactored", ".tdd/issue-12.md", GREEN_SHA)
 
 
+def test_4510_a_later_green_tick_of_a_step_whose_text_ends_in_this_one_leaves_the_step_green_commit_as_the_checked_sha(
+        close):
+    """-S matches the whole step text after its checkbox, so "no one thing works" ticked later is not its green."""
+    other = "no " + STEP
+    green = LEDGER % STEP + "- [ ] %s\n" % other
+    later = LEDGER % STEP + "- [x] %s ⟂ refactor pending\n" % other
+    fake = History([("a" * 40, "# Plan for #12\n\n- [ ] %s\n- [ ] two ⟦criterion 2⟧\n- [ ] %s\n" % (STEP, other)),
+                    (GREEN_SHA, green), ("e" * 40, later)])
+    code, out, err, fake = close(fake=fake, ledger=later)
+
+    assert fake.call("graded-changed.sh")[1] == (GREEN_SHA,), err
+
+
 def test_4510_no_commit_that_changed_the_refactor_pending_line_stops_it_at_6_with_exit_2_before_any_check(close):
     fake = History([("a" * 40, "# Plan for #12\n\n- [ ] %s\n- [ ] two ⟦criterion 2⟧\n" % STEP)])
     code, out, err, fake = close(fake=fake)
