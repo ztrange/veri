@@ -322,3 +322,30 @@ def test_4472_a_reject_commits_the_appended_repair_step_as_one_plan_commit_holdi
     messages = [a[a.index("-m") + 1] for a in commits if "-m" in a]
     assert (len(commits), [m.startswith("plan:") for m in messages],
             {"issue-12.md", "issue-12-added.md"} <= named) == (1, [True], True)
+
+
+def test_4472_a_verdict_branch_leaf_ending_with_no_verdict_exits_2_appends_no_step_and_records_no_branch_rejected_bail(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    (wt / ".tdd" / "issue-12.md").write_text("- [x] a gear meshes ⟦criterion 1⟧\n")
+    monkeypatch.delenv("VERI_BRANCH_REPAIRS", raising=False)
+    calls = []
+
+    def call(name, *args, **kw):
+        calls.append(name.rsplit("/", 1)[-1])
+        return (2, "", "") if name.endswith("wait-leaf.sh") else (0, "", "")
+
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: None)
+    monkeypatch.setattr(fused, "call", call)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "", ""))
+    code, _, _ = run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    ledger = (wt / ".tdd" / "issue-12.md").read_text()
+    assert (code, "bail.sh" in calls, "add-ledger-step.sh" in calls, ledger.count("⟦branch-repair⟧")) == (
+        2, False, False, 0)
