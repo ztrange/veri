@@ -7,7 +7,6 @@ import add_ledger_step
 import event
 import ledger
 import os
-import re
 import tick_ledger
 from report import report_values
 
