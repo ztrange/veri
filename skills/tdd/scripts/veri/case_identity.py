@@ -62,8 +62,11 @@ def squeezed(text):
     return re.sub(r"\s+", "", text)
 
 
+_ASSERTION_STARTS = ("assert", "expect(", "t.Fatal", "t.Error", "t.Fail", "require.")
+
+
 def assertion_lines(body):
-    return [squeezed(line) for line in body.splitlines() if line.lstrip().startswith(("assert", "expect(", "t.Fatal", "t.Error", "t.Fail", "require."))]
+    return [squeezed(line) for line in body.splitlines() if line.lstrip().startswith(_ASSERTION_STARTS)]
 
 
 def checked_lines(body):
@@ -72,7 +75,7 @@ def checked_lines(body):
         text = line.strip()
         if not text:
             continue
-        if text.startswith(("assert", "expect(", "t.Fatal", "t.Error", "t.Fail", "require.")):
+        if text.startswith(_ASSERTION_STARTS):
             lines.append((guard if text.startswith(("t.Fatal", "t.Error")) else "") + squeezed(text))
         guard = squeezed(text) if re.match(r"if\s.*\{$", text) else ""
     return lines
