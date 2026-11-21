@@ -12,8 +12,9 @@ Interface (a function says what it touches: text only, the tree's files, or case
   assertion_lines(body)                   the squeezed lines of `body` that start (after indentation) with
                                           assert, expect(, t.Fatal, t.Error, t.Fail or require. Text only.
   checked_lines(body)                     assertion_lines(body), but a t.Fatal or t.Error line whose previous non-blank
-                                          line is an `if <cond> {` guard carries that guard, squeezed, in front of it,
-                                          so a changed condition changes the line. Text only.
+                                          line is an `if <cond> {` guard is that guard, squeezed, then the call's name
+                                          (its text before the first `(`), message dropped: a changed condition changes
+                                          the line, a reworded message does not. An unguarded line stays whole. Text only.
   bodies_of(text, case)                   every body of the cases named `case` in test source `text`, in file
                                           order; [] when none. Text only; UnclosedCase from case_reader.cut_cases
                                           when a JS call never closes.
@@ -76,7 +77,8 @@ def checked_lines(body):
         if not text:
             continue
         if text.startswith(_ASSERTION_STARTS):
-            lines.append((guard if text.startswith(("t.Fatal", "t.Error")) else "") + squeezed(text))
+            guarded = guard and text.startswith(("t.Fatal", "t.Error"))
+            lines.append(guard + squeezed(text).split("(")[0] if guarded else squeezed(text))
         guard = squeezed(text) if re.match(r"if\s.*\{$", text) else ""
     return lines
 

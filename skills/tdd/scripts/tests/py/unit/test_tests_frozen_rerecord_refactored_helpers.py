@@ -873,3 +873,19 @@ def test_rerecord_refactored_skips_a_go_case_whose_refactor_moved_a_guarded_t_fa
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
     assert (code, _skip_lines(err, GO_SUITE + " TestX")) == (1, 1)
+
+
+def test_rerecord_refactored_re_records_a_go_case_whose_refactor_moved_a_guarded_t_fatalf_into_a_helper_under_the_same_condition_with_a_reworded_message_4545(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    inline = ("func TestX(t *testing.T) {\n\turl := \"/x\"\n\tresp, err := get(url)\n"
+              "\tif err != nil {\n\t\tt.Fatalf(\"GET: %v\", err)\n\t}\n\tuse(resp)\n}\n")
+    moved = ("func mustGet(t *testing.T, url string) {\n\t_, err := get(url)\n"
+             "\tif err != nil {\n\t\tt.Fatalf(\"GET %s: %v\", url, err)\n\t}\n}\n\n"
+             "func TestX(t *testing.T) {\n\turl := \"/x\"\n\tmustGet(t, url)\n\tuse(nil)\n}\n")
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, inline, moved)
+    before = _record_of(tmp_path).read_text()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, GO_SUITE + " TestX"), _record_of(tmp_path).read_text() != before) == (0, 0, True)
