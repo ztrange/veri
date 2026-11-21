@@ -21,7 +21,7 @@ def repin_step(path):
 
 
 def red_case(ledger_file, case):
-    """<case>, or a bare case name joined to the TEST_PATH of develop-red.out beside the ledger."""
+    """<case>, or a bare case name joined to the TEST_PATH of develop-red.out beside the ledger when that file holds it."""
     if "::" in case or "/" in case:
         return case
     red_out = os.path.join(os.path.dirname(ledger_file), "develop-red.out")
@@ -29,7 +29,18 @@ def red_case(ledger_file, case):
         return case
     with open(red_out, encoding="utf-8") as handle:
         path = report_values(handle.read(), "TEST_PATH", occurrence="last")
-    return case if path is None else path + "::" + case
+    if path is None or not holds(path, case):
+        return case
+    return path + "::" + case
+
+
+def holds(path, name):
+    """Whether the file at <path> names <name> as a whole word."""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            return re.search(r"\b" + re.escape(name) + r"\b", handle.read()) is not None
+    except OSError:
+        return False
 
 
 def recheck(argv):
