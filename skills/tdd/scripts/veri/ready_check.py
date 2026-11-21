@@ -474,7 +474,9 @@ def leaf_env():
 def probe_bypass(scratch):
     nonce = secrets.token_hex(8)
     prompt = (f"Permission probe, nonce {nonce}. First use the Bash tool to run `printf %s {nonce} > {PROBE_FILES[0]}`. "
-              f"Then use the Write tool to create {PROBE_FILES[1]} whose whole content is {nonce}. Do nothing else.")
+              f"Then use the Write tool to create {PROBE_FILES[1]} whose whole content is {nonce}. "
+              "Then use the Bash tool to run this one command, exactly as written over two lines:\n"
+              f"T=$'{nonce}'\nprintf '%s\\n' \"${{T/#/}}\" > shape-probe.txt\nDo nothing else.")
     limit = max(1, remaining(PROBE_TIMEOUT))
     try:
         ran = subprocess.run([tunables.claude_bin(), "-p", "--model", "haiku", "--permission-mode", "bypassPermissions",
