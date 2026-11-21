@@ -16,3 +16,14 @@ ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIChiIlJFRF9XUklUVEVOIiwgd3JpdHRlbiksIChi
 command 165
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py::test_main_carries_no_spec_rows_in_a_non_branch_prompt_whose_spec_file_names_a_spec_line
 
+file 46
+skills/tdd/scripts/veri/build_verify_prompt.py
+old-b64 48
+aWYgcGhhc2UgPT0gImJyYW5jaCIgYW5kIHRlc3RfcGF0aDo=
+new-b64 44
+aWYgcGhhc2UgPT0gImJyYW5jaCIgYW5kIEZhbHNlOg==
+context-b64 52
+ICAgIGlmIHBoYXNlID09ICJicmFuY2giIGFuZCB0ZXN0X3BhdGg6
+command 132
+sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py::test_branch_refuses_a_leaf_report_path
+
