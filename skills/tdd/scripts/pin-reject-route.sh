@@ -4,7 +4,7 @@
 # usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-file> <matcher> <target-test>
 #        pin-reject-route.sh --recheck <reason-file> <ledger-file> <matcher>
 # A bare <target-test> name (no `::`, no `/`) runs as <TEST_PATH>::<name>, TEST_PATH read off the
-# develop-red.out beside <ledger-file> when it has one.
+# develop-red.out beside <ledger-file> when it has one and that file holds the name.
 # Exit:    0 the reason says the mutation stays green or has a before-state-green clause: the step retired, `retired` printed;
 #          1 the reason does neither, or with --missing-reroute reports a surviving mutant of a
 #          case red on the before-state (`revise` printed); 2 a missing argument (<target-test>

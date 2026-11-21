@@ -586,3 +586,23 @@ def test_main_bare_target_test_name_runs_the_case_in_the_red_reports_test_path_f
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, out.strip(), ran) == (0, "retired", ["tests/test_x.py::test_holds"]), err
+
+
+def test_main_bare_target_test_name_the_red_reports_test_path_file_does_not_hold_exits_2_and_ticks_nothing_4549(
+        tmp_path, run_cli, pin_reject_route, monkeypatch, fake_processes):
+    monkeypatch.undo()
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n"
+    ledger.write_text(body)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_x.py").write_text("def test_holds():\n    assert True\n")
+    (ledger.parent / "develop-red.out").write_text("TEST_PATH: tests/test_x.py\nTARGET_TEST: test_holds\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+    fake_processes.answers({"detect-test-command.sh": (0, 'pytest "$1"\n', ""), "": (1, "", "")})
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", "test_elsewhere"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text()) == (2, "", body), err
