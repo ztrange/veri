@@ -7,6 +7,7 @@ import entry
 import event_log
 import fused
 import fused_step
+import green_half as green_half_script
 import run_dir
 import seam_contract
 from ledger import handed_out, same_step
@@ -29,9 +30,21 @@ def main(argv):
         return 2
     _, wt = given
     step = fused_step.first_step(wt, n, handed_out if stage == "red-half" else refactor_pending)
+    if step is None and stage == "green-half" and revised(wt, n):
+        code = green_half_script.main([n])
+        if code != 0:
+            return code
+        step = fused_step.first_step(wt, n, refactor_pending)
     if step is None:
         return entry.refuse("seam-settle.sh: no open step for %s in %s" % (stage, LEDGER % n))
     return fused.settle(wt, n, stage, ["step=" + step] + RECORDS[stage](wt, n, values, step))
+
+
+def revised(wt, n):
+    """True when green-half's wait record is the one a revise.sh PASS re-saved (`revised`): its Green 3 is still owed
+    (REVISE.md, PASS branch, #4551)."""
+    resumed = fused.load_wait(wt, n, "green-half")
+    return resumed is not None and bool(resumed[1].get("revised"))
 
 
 def refused(stage, pairs, values):
