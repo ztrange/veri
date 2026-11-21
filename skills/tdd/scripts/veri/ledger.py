@@ -20,6 +20,8 @@ OPEN_STEP = "- [ ]"
 TICKED_STEP = "- [x]"
 PENDING_MARK = " ⟂ refactor pending"
 ADDED_MARK = "⟦added⟧"
+# The text a re-pin step starts with: pin-reject-route.sh --recheck writes it, diff-step.sh matches it (#4511)
+REPIN_STEP = "⟦diff-checked⟧ edit the case of the pin on "
 CRITERION_TAG = "⟦criterion "
 SPACE = r"[ \t\n\v\f\r]"
 STEP_RE = re.compile(rf"({SPACE}*-{SPACE})\[([ xX])\]( (.*))?")
