@@ -66,3 +66,11 @@ def test_the_root_claude_md_is_within_its_cap_4517():
     failure = cap_failure((ROOT / "CLAUDE.md").read_text(), CAP, BASELINE)
 
     assert failure is None, failure
+
+
+def test_a_text_over_the_cap_in_utf8_bytes_but_not_in_characters_fails_4517():
+    text = "# x\n\n## A\n\n" + "é" * 10 + "\n"
+    cap = len(text.encode("utf-8")) - 1
+    assert cap >= len(text)
+
+    assert cap_failure(text, cap, {"A": 1}) is not None
