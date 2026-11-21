@@ -1,5 +1,7 @@
 #!/bin/sh
 # event.sh — append one line to the run's event log, .tdd/events.jsonl under the working directory: a shim over veri/event.py.
+# The line's issue is VERI_ISSUE, else VERI_STATE_LABEL_ISSUE (the conductor's export), and an event with an issue
+# also reaches that issue's run journal.
 #
 # With VERI_STATE_LABEL_ISSUE set, a bail labels that issue `bailed` and takes `pr-ready` off; a stop labels it `stopped`
 # (each only when the repository has the label: veri never creates it);

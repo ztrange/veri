@@ -394,6 +394,7 @@ def main(argv):
         sys.stderr.buffer.write(USAGE)
         return 2
     context = {key: tunables.read_bytes(name) for key, name in CONTEXT if name}
+    context[b"issue"] = context[b"issue"] or tunables.read_bytes("VERI_STATE_LABEL_ISSUE")
     return append("", context, argv[0], argv[1:])
 
 
