@@ -7,6 +7,7 @@ appends entries, pin_recheck reads and rewrites them, tick_ledger prunes them, s
 snapshots and restores whole files, verify names the file a pin's verifier may append to."""
 import base64
 import glob
+import os
 import re
 
 import run_dir
@@ -104,4 +105,27 @@ def records(text):
             if name + "-b64" in fields:
                 fields[name] = base64.b64decode(fields.pop(name + "-b64")).decode()
         out.append(fields)
+    return out
+
+
+def stale_pins(run, issue):
+    """(file, first line of old) per unretired entry of the run's own mutation record whose old text its file, in the
+    run's worktree, no longer holds; a missing record or mutated file adds nothing (pin-recheck names a missing file)."""
+    try:
+        with open(path(run, issue), encoding="utf-8") as f:
+            entries = records(f.read())
+    except FileNotFoundError:
+        return []
+    out = []
+    for entry in entries:
+        if "file" not in entry or "retired" in entry:
+            continue
+        try:
+            with open(os.path.join(run, entry["file"]), encoding="utf-8") as f:
+                held = f.read()
+        except FileNotFoundError:
+            continue
+        old = entry.get("old", "")
+        if old not in held:
+            out.append((entry["file"], (old.strip().splitlines() or [""])[0].strip()))
     return out
