@@ -275,6 +275,13 @@ def test_4481_an_already_ticked_criterion_still_marks_step_done_and_exits_0(clos
     assert ("event.sh", ("step-done",)) in [(c[0], c[1]) for c in fake.calls]
 
 
+def test_4481_a_tick_issue_criterion_exit_1_stops_at_6_with_1_before_the_step_done_mark(close):
+    code, out, err, fake = close(answers={("tick-issue-criterion.sh", None): (1, "")})
+
+    assert (code, out.splitlines()[-1].split(" 12 ")[0]) == (1, "stopped at 6 tick-issue-criterion.sh")
+    assert ("event.sh", ("step-done",)) not in [(c[0], c[1]) for c in fake.calls]
+
+
 @pytest.mark.parametrize("inner", [1, 2])
 def test_4029_an_unreadable_criterion_stops_it_with_its_code_before_the_step_done_mark(close, inner):
     code, out, err, fake = close(answers={("criterion-finished.sh", None): (inner, "")})
