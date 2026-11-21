@@ -88,13 +88,12 @@ def run(n, phase):
 
 
 def start(n, wt, step, phase, k):
-    """The values the rejected verifier judged: red's from the report it judged (`.tdd/develop-red.out` at attempt 1,
-    else the previous revise's), since red-half writes its record only after a PASS; green's from red-half's record,
+    """The values the rejected verifier judged: red's from the report it judged (`.tdd/develop-red.out`, at every
+    attempt: the revise report names neither key), since red-half writes its record only after a PASS; green's from red-half's record,
     and refactor's from refactor-half's rejected record, the only place its wait values survive (exit 2 without one).
     Green and refactor return None, the seam line printed, when no red-half record names the step (PRD 038.1 SC4)."""
     if phase == "red":
-        report = ".tdd/develop-red.out" if k == 1 else ".tdd/revise-red-%d.out" % (k - 1)
-        return judged(wt, report)
+        return judged(wt, ".tdd/develop-red.out")
     if phase == "diff":
         return rejected_values(wt, n, phase, step)
     red = fused_step.record(NAME, wt, n, step)
