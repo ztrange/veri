@@ -1,0 +1,7 @@
+before 40
+0edb4ffc9087d03fdeed1f78363469fedb9ec734
+keep 52
+skills/tdd/scripts/tests/py/unit/test_ready_check.py
+command 235
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ready_check.py::test_issue_4529_allow_rules_spread_over_the_user_and_project_and_local_settings_make_the_subagent_permissions_row_ok_with_no_rule_owed_for_an_unresolved_test_command
+
