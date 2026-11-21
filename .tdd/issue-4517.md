@@ -7,3 +7,4 @@
 - [x] the `##` section that grew most is chosen by UTF-8 bytes, not characters ⟦criterion 1⟧
 - [x] growth above the first `##` heading is named as the pseudo-section `(above the first ##)`, with its own baseline entry
 - [x] ⟦added⟧ the over-cap message names the pseudo-section `(above the first ##)` without a `## ` prefix, and names no section when none grew over its baseline
+- [ ] ⟦added⟧ growth under a `### ` subheading is credited to its parent `##` section
