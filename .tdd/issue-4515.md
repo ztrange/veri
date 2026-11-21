@@ -5,11 +5,11 @@
 - [x] `CLAUDE.md`'s *Testing idiom* has one plain-link line to `tests/py/README.md` for the leg's internals ⟦criterion 3⟧
 - [x] `CLAUDE.md`'s *Testing idiom* keeps the test-writing contract and `CM53`'s timeouts, its rows unchanged ⟦criterion 4⟧
 - [x] `tests/py/README.md` has a pytest leg section stating every moved rule once, its pointers retargeted ⟦criterion 5⟧
-- [ ] `skills/tdd/REQUIREMENTS.md` has the README's unit heading, signed in `skills/tdd/GRADED` ⟦criterion 6⟧
+- [x] `skills/tdd/REQUIREMENTS.md` has the README's unit heading, signed in `skills/tdd/GRADED` ⟦criterion 6⟧
 - [x] The README unit has a row per README section and the rows its audit and prose need ⟦criterion 7⟧
 - [x] The moved rows sit under the README heading, IDs unchanged, sites retargeted ⟦criterion 8⟧
 - [x] `CAP8` is split, its cap rule a new README row ⟦criterion 9⟧
 - [x] `CLAUDE.md`'s Commands, `veri:` lines, Invariants, Exit codes and Graded prose are byte-identical ⟦criterion 10⟧
 - [x] No file under `veri/`, `tests/leg/` or the `Makefile` changes ⟦criterion 11⟧
-- [ ] Both units regraded, `prose-owed.sh .` exits 0 ⟦criterion 12⟧
-- [ ] `make unit` passes ⟦criterion 13⟧
+- [x] Both units regraded, `prose-owed.sh .` exits 0 ⟦criterion 12⟧
+- [x] `make unit` passes ⟦criterion 13⟧
