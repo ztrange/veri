@@ -26,7 +26,7 @@
 - [x] the `verdict-branch` leaf `verify-branch.sh <n>` launches runs with `VERI_TEST_CMD` set to the run's fast command and `VERI_ISSUE` set to `<n>` in its environment ⟦added⟧ ⟦criterion 20⟧
 - [x] when the launch stops (a stop requested by `stop-requested.sh`, or `detach-leaf.sh` exiting non-zero), `verify-branch.sh <n>` exits with that stop's code and launches no leaf ⟦added⟧ ⟦criterion 20⟧
 - [x] The `verify-branch` leaf's model is `VERI_MODEL_VERIFIER` when set, else `VERI_MODEL`, else sonnet, and `VERI_MODEL_DEVELOPER` does not select it ⟦criterion 18⟧ ⟂ retired unpinnable
-- [ ] `verify-branch.sh <n>` called again while its `verdict-branch` leaf is still running launches no second leaf and exits 3 while `wait-leaf.sh` exits 3 ⟦criterion 20⟧
+- [x] `verify-branch.sh <n>` called again while its `verdict-branch` leaf is still running launches no second leaf and exits 3 while `wait-leaf.sh` exits 3 ⟦criterion 20⟧ ⟂ refactor pending
 - [ ] When the `verdict-branch` leaf's verdict is PASS, `verify-branch.sh <n>` exits 0 with no step added to the ledger, and `run-pr.sh` goes on to `pr-ready-wait.sh` ⟦criterion 5⟧
 - [ ] When `verify-branch.sh` exits 1 after appending a repair step, `run-pr.sh <n>` prints `seam=verify-branch code=1 reason=rejected next=DRAFT-PR.md#4. Draft PR`, exits 1 and calls no `pr-ready-wait.sh` ⟦criterion 7⟧
 - [ ] On a PASS, `verify-branch.sh <n>` writes the tip's `HEAD` sha to `.tdd/issue-<n>-branch-verified` ⟦criterion 19⟧
