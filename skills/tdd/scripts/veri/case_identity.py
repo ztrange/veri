@@ -67,7 +67,7 @@ def bodies_of(text, case):
     return [b for c, b in cut_cases(text) if c == case]
 
 
-_HELPER_NAME = r"^(?:(?:function|func|def)\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)"
+_HELPER_NAME = r"^(?:(?:function|func|def)\s+(?:\([^)]*\)\s*)?(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)"
 
 
 def helpers_in(text, body, legacy=False):
