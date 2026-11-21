@@ -82,7 +82,17 @@ def resolved(args):
         return refuse(f"--resolved {onto} is not a hex commit name")
     if git("merge-base", "--is-ancestor", onto, "HEAD", text=True).returncode != 0:
         return refuse(f"HEAD does not contain {onto}; nothing to re-record")
-    return record_branch_base(onto, 0)
+    # The replaced base, printed so a reset to the pre-rebase sha can put it back.
+    issue = run_dir.branch_issue(output("symbolic-ref", "--quiet", "--short", "HEAD"))
+    try:
+        replaced = run_pins.branch_base(issue, run_dir.main_tree_from_files()) if issue else ""
+    except FileNotFoundError:
+        replaced = ""
+    if record_branch_base(onto, 0):
+        return 2
+    if replaced:
+        sys.stdout.write(f"{replaced}\n")
+    return 0
 
 
 def rebase(argv):
