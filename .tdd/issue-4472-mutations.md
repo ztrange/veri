@@ -59,3 +59,10 @@ ICAgIGlmIHN1bShjYXJyaWVzX21hcmsobGluZSwgImJyYW5jaC1yZXBhaXIiKSBmb3IgbGluZSBpbiBz
 command 70
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_verify_branch.py
 
+before 40
+50a6e8b31267663864c338bdd82d44ffba6eb6f4
+keep 47
+skills/tdd/scripts/tests/py/unit/test_run_pr.py
+command 168
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4472_after_a_verify_branch_reject_a_run_pr_on_the_repaired_ledgers_new_sha_restarts_at_branch_gate
+
