@@ -899,6 +899,7 @@ def test_issue_4532_the_probes_one_claude_prompt_asks_for_a_multi_line_bash_comm
     assert len(command.split("\n")) > 1, command
     assert re.search(r"\$'[^']*'", command), command
     assert re.search(r"\$\{\w+/#/", command), command
+    assert command.startswith(f"T=$'{nonce}'\n"), command
     assert command.endswith("> shape-probe.txt"), command
 
 
