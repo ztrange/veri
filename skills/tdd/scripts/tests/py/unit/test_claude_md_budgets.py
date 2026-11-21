@@ -9,14 +9,14 @@ from veri.tunables import TUNABLES
 BUDGETS = {
     "VERI_STUCK_RETRIES", "VERI_NO_VERDICT_RETRIES", "REVISE_BUDGET", "VERI_REFACTOR_BUDGET",
     "VERI_STEP_GROWTH_PERCENT", "VERI_SKILL_EDIT_BUDGET", "VERI_MISSING_REROUTE_BUDGET", "VERI_ADJUDICATE_BUDGET",
-    "VERI_CI_FLAKE_RERUNS", "VERI_TEST_QUALITY_FIXES", "VERI_SURROUND_MUTANTS",
+    "VERI_CI_FLAKE_RERUNS", "VERI_TEST_QUALITY_FIXES", "VERI_SURROUND_MUTANTS", "VERI_BRANCH_REPAIRS",
 }
 
 
 def budgets_rows(claude_md):
     section = claude_md.split("\n## Invariants worth not breaking\n", 1)[1]
     section = re.split(r"^## ", section, maxsplit=1, flags=re.M)[0]
-    bullet = section.split("- **Eleven budgets on eleven axes, never merged**", 1)[1]
+    bullet = section.split("- **Twelve budgets on twelve axes, never merged**", 1)[1]
     bullet = re.split(r"^- \*\*", bullet, maxsplit=1, flags=re.M)[0]
     return dict(re.findall(r"^\s*\| `(\w+)` \| .* \| ([^|]+?) \|\s*$", bullet, flags=re.M))
 

@@ -115,6 +115,19 @@ def test_cli_a_revise_budget_that_is_not_a_whole_number_refuses_before_the_bash_
     assert (code, "REVISE_BUDGET" in stderr, calls) == (2, True, []), stderr
 
 
+def test_cli_a_branch_repairs_that_is_not_a_whole_number_exits_2_with_one_stderr_line_naming_it_before_any_process_starts(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    past_the_guards(monkeypatch)
+    monkeypatch.setenv("VERI_BRANCH_REPAIRS", "x")
+    calls = fake_processes()
+    run_conductor = importlib.import_module("veri.run_conductor")
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    lines = stderr.splitlines()
+    assert (code, len(lines), "VERI_BRANCH_REPAIRS" in stderr, calls) == (2, 1, True, []), stderr
+
+
 def test_cli_a_skip_verify_naming_plan_exits_2_naming_plan_on_stderr_before_any_process_starts(
         tmp_path, monkeypatch, run_cli, fake_processes):
     past_the_guards(monkeypatch)
@@ -127,7 +140,26 @@ def test_cli_a_skip_verify_naming_plan_exits_2_naming_plan_on_stderr_before_any_
     assert (code, "plan" in stderr, calls) == (2, True, ["ps -o lstart= -p %d" % os.getpid()]), stderr
 
 
+def test_cli_a_skip_verify_naming_branch_is_not_refused_as_a_phase_that_cannot_be_skipped_while_plan_still_is(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    past_the_guards(monkeypatch)
+    fake_processes()
+    run_conductor = importlib.import_module("veri.run_conductor")
+    refusals = {}
+
+    for word in ("branch", "plan"):
+        monkeypatch.setenv("VERI_SKIP_VERIFY", word)
+        try:
+            _, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+        except BaseException as error:
+            stderr = "raised %r" % (error,)
+        refusals[word] = "cannot be skipped" in stderr
+
+    assert refusals == {"branch": False, "plan": True}
+
+
 def test_cli_a_skip_verify_naming_surround_exits_2_naming_surround_on_stderr_before_any_process_starts_4107(
+
         tmp_path, monkeypatch, run_cli, fake_processes):
     past_the_guards(monkeypatch)
     monkeypatch.setenv("VERI_SKIP_VERIFY", "refactor,surround")

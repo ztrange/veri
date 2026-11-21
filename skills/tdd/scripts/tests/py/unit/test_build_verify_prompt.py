@@ -143,8 +143,9 @@ def test_main_parses_only_leading_options_in_either_order_the_last_winning_and_r
     assert (step_first[0], step_first[2]) == (0, b"")
     assert fast_first == step_first
     assert repeated == step_first
-    assert build_verify_prompt.PHASES == (
-        "red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround", "break")
+    ten = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround", "break")
+    assert all(p in build_verify_prompt.PHASES for p in ten)
+    assert [p for p in build_verify_prompt.PHASES if p in ten] == list(ten)
 
 
 def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_and_refuses_diff_without_step_ahead_of_its_shas(
@@ -2052,3 +2053,86 @@ def test_4111_break_renders_verify_break_md_given_a_hex_base_sha_and_exits_2_for
     assert rendered == {sha: (0, True, True) for sha in rendered}
     assert (refused, no_sha) == ({sha: 2 for sha in refused}, 2)
     assert ("break" in build_verify_prompt.PHASES, build_verify_prompt.NEEDS.get("break")) == (True, {"fast-cmd", "base-sha"})
+
+
+def test_main_renders_the_branch_prompt_with_exit_0_from_the_branch_diff_the_spec_and_the_fast_command_and_no_ambient_input(
+        tmp_path, monkeypatch, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    fast = 'make unit ZORBLAT=branch -- --only "frob & nitz/quux"'
+    monkeypatch.setenv("VERI_STEP", "I tidied the helper because it was ugly")
+    monkeypatch.setenv("VERI_RATIONALE", "the author meant well")
+
+    code = build_verify_prompt.main(["--fast-cmd", fast, "--branch-base", "0123abcdef", "branch", str(spec)])
+    out, err = capsysbinary.readouterr()
+    assert (code, err) == (0, b"")
+    assert (b"git diff 0123abcdef..HEAD" in out, b'zorblat("Frob & Nitz/Quux")' in out, fast.encode() in out,
+            b"{{" in out, b"tidied the helper" in out, b"the author meant well" in out) == (
+        True, True, True, False, False, False)
+
+
+def test_main_reads_the_branch_prompts_named_spec_rows_at_the_branch_base_not_at_head(
+        tmp_path, monkeypatch, capsysbinary, fake_processes, build_verify_prompt):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "specs").mkdir()
+    (tmp_path / "specs" / "prd-zz.md").write_bytes(b"| ZZ1 | the HEAD wording leaf-edited-it |\n")
+    spec = tmp_path / "issue.md"
+    spec.write_bytes(b"Frob must nitz.\n\nSpec: specs/prd-zz.md , rows ZZ1\n")
+    at_base = b"| ZZ1 | the base wording predates the run |\n"
+
+    def show(line, **_):
+        return (0, at_base.decode(), "") if line.endswith(":specs/prd-zz.md") or line.endswith(":./specs/prd-zz.md") else (1, "", "")
+
+    fake_processes.answers({"git ls-files": every_file_tracked, "git show": show}, default=(0, "", ""))
+    code = build_verify_prompt.main(["--fast-cmd", "make unit", "--branch-base", "0123abcdef", "branch", str(spec)])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, b"the base wording predates the run" in out, b"leaf-edited-it" in out) == (0, True, False)
+
+
+def test_main_appends_nothing_to_the_branch_prompts_spec_when_the_named_spec_file_holds_no_rows_at_the_branch_base(
+        tmp_path, monkeypatch, capsysbinary, fake_processes, build_verify_prompt):
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "issue.md"
+    spec_text = b"Frob must nitz.\n\nSpec: specs/prd-zz.md , rows ZZ1"
+    spec.write_bytes(spec_text)
+
+    def show(line, **_):
+        return (0, "# prd-zz\n\nProse only, no table.\n", "") if ":" in line else (1, "", "")
+
+    fake_processes.answers({"git ls-files": every_file_tracked, "git show": show}, default=(0, "", ""))
+    code = build_verify_prompt.main(["--fast-cmd", "make unit", "--branch-base", "0123abcdef", "branch", str(spec)])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, out.split(spec_text, 1)[1][:29]) == (0, b"\n\nRun the fast command, `make")
+
+
+def test_main_carries_no_spec_rows_in_a_non_branch_prompt_whose_spec_file_names_a_spec_line(
+        tmp_path, monkeypatch, capsysbinary, fake_processes, build_verify_prompt):
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "issue.md"
+    spec.write_bytes(b"Frob must nitz.\n\nSpec: specs/prd-zz.md , rows ZZ1\n")
+    at_base = "| ZZ1 | the base wording predates the run |\n"
+
+    def show(line, **_):
+        return (0, at_base, "") if ":" in line else (1, "", "")
+
+    fake_processes.answers({"git ls-files": every_file_tracked, "git show": show}, default=(0, "", ""))
+    code = build_verify_prompt.main(["--step", "the dead line is gone ⟦diff-checked⟧ ⟦criterion 2⟧", "--fast-cmd", "make unit",
+                                     "--branch-base", "0123abcdef", "diff", str(spec), "4567def"])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, b"Frob must nitz." in out, b"the base wording predates the run" in out) == (0, True, False)
+
+
+def test_branch_refuses_a_leaf_report_path(tmp_path, monkeypatch, capsysbinary, fake_processes, build_verify_prompt):
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "issue.md"
+    spec.write_bytes(b"Frob must nitz.\n")
+    fake_processes.answers({"git ls-files": every_file_tracked}, default=(0, "", ""))
+
+    code = build_verify_prompt.main(["--fast-cmd", "make unit", "--branch-base", "0123abcdef", "branch", str(spec),
+                                     ".tdd/develop-green.out"])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, out) == (2, b"")

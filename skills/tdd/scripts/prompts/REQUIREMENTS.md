@@ -1283,3 +1283,13 @@
 | ID | Requirement | Why |
 |---|---|---|
 | IC1 | The fragment holds the heading `### The interface change` followed by the `{{STEP}}` slot, then the included `_develop-spec-context-only.md`. (The whole fragment.) | An interface-phase developer reads the change first and the spec only as context. |
+
+## skills/tdd/scripts/prompts/verify-branch.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VB10 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-branch`. (First lines.) | The blind verifier's shared rules come first. |
+| VB11 | The opening paragraph says the run branched at `{{BASE_SHA}}` and tells the verifier to judge the whole branch against the issue's criteria from `git diff {{BASE_SHA}}..HEAD` alone, and not to read the range's commit messages, because `git log` and `git show` on the range carry the author's rationale. (Opening paragraph.) | The verifier stays blind and judges the branch as a whole. |
+| VB12 | After the opening, a `### The issue's behavior spec` heading sits over `{{ISSUE_SPEC}}`; the template has no `### Your checks` heading. (Sections.) | The verifier reads the criteria before the run instructions. |
+| VB13 | The run paragraph tells the verifier to run the fast command, `{{FAST_CMD}}`, then the test files covering the files the diff touched, as `affected-suites.sh` prints them, each through the wrapper, then the included `_exit-status-back.md` fragment, so a red run stays red. (Paragraph after the spec.) | A branch is proven green before it is judged. |
+| VB14 | The closing paragraph says PASS if the branch satisfies every acceptance criterion, and REJECT, naming each criterion or behaviour the diff leaves unmet or unpinned by a case, otherwise; REJECT, too, if the fast command or those test files are red; and ends with `VERDICT: PASS` or `VERDICT: REJECT`. (Closing paragraph.) | The verdict is about the whole branch against the criteria, and a missing line is no answer. |

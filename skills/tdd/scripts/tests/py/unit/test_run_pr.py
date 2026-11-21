@@ -15,6 +15,15 @@ def printing(spy):
     return call
 
 
+def first_stages(calls):
+    """<calls> without the one stage allowed between pr-checks.sh and the title seam, verify-branch.sh, which must
+    directly follow pr-checks.sh when present; each call is a name or a (name, args) pair."""
+    names = [c if isinstance(c, str) else c[0] for c in calls]
+    if "verify-branch.sh" in names:
+        assert names[names.index("verify-branch.sh") - 1] == "pr-checks.sh"
+    return [c for c, n in zip(calls, names) if n != "verify-branch.sh"]
+
+
 def test_4432_the_first_call_runs_the_three_stages_then_stops_at_the_title_seam(monkeypatch, run_cli, tmp_path):
     fused = importlib.import_module("veri.fused")
     run_pr = importlib.import_module("veri.run_pr")
@@ -32,7 +41,7 @@ def test_4432_the_first_call_runs_the_three_stages_then_stops_at_the_title_seam(
 
     code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
 
-    assert calls == [(s, ("12",)) for s in ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")]
+    assert first_stages(calls) == [(s, ("12",)) for s in ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh")]
     assert out.splitlines()[-1] == "seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR"
     assert code == 1, err
     assert run_cli(run_pr, [], cwd=str(tmp_path))[0] == 2
@@ -115,7 +124,7 @@ def test_4432_a_seam_record_whose_sha_is_not_the_ledgers_last_commit_is_not_resu
 
     code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
 
-    assert calls == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
+    assert first_stages(calls) == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
     assert out.splitlines()[-1] == "seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR"
     assert code == 1, err
 
@@ -275,6 +284,8 @@ def test_4432_from_a_stage_name_starts_the_call_at_that_stage_for_each_of_the_fi
         started[stage] = calls[:1]
 
     assert started == {s: [s + ".sh"] for s in started}
+    in_order = [c for c in run_pr.CALLS if c[:-3] in started]
+    assert in_order == [s + ".sh" for s in started]
 
 
 def test_4432_hand_a_stage_stops_before_it_with_the_hand_seam_line_without_calling_it_and_exits_1(
@@ -435,9 +446,10 @@ def test_4432_its_calls_tuple_names_exactly_the_five_stage_scripts_and_a_whole_r
 
     stages = {"branch-gate.sh", "pr-prepare.sh", "pr-checks.sh", "pr-ready-wait.sh", "pr-finish.sh"}
     assert codes == [1, 1]
-    assert set(calls) == stages
+    in_order = [c for c in run_pr.CALLS if c in stages]
+    assert stages <= set(calls)
     assert "gh" not in ran and "pr-body.sh" not in ran
-    assert set(run_pr.CALLS) == stages and len(run_pr.CALLS) == 5
+    assert in_order == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh", "pr-ready-wait.sh", "pr-finish.sh"]
 
 
 def test_4432_every_next_it_prints_is_run_pr_or_the_draft_pr_anchor_and_that_anchor_names_a_heading_in_draft_pr_md(
@@ -707,7 +719,7 @@ def test_4432_a_stage_exiting_3_early_or_late_is_resumed_at_exactly_that_stage_w
     for _ in range(4):
         del calls[:]
         code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
-        seen.append((list(calls), code, out.splitlines()[-1]))
+        seen.append((first_stages(calls), code, out.splitlines()[-1]))
 
     assert seen == [
         (["branch-gate.sh", "pr-prepare.sh"], 3, "seam=pr-prepare code=3 next=run-pr.sh 12"),
@@ -724,7 +736,7 @@ def test_4432_a_stage_exiting_4_or_a_signals_negative_code_is_exit_2_naming_the_
 
         code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path / str(c)))
 
-        assert calls == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
+        assert first_stages(calls) == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
         assert code == 2
         assert "pr-checks exited %d" % c in err
         assert "seam=" not in out
@@ -812,7 +824,7 @@ def test_4432_an_empty_ledger_sha_never_matches_a_record_and_the_call_restarts_a
         if answer[1].strip():
             assert calls[0] == "pr-ready-wait.sh"
         else:
-            assert calls == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
+            assert first_stages(calls) == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
             assert out.splitlines()[-1] == "seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR"
 
 
@@ -821,7 +833,7 @@ def test_4432_a_stacked_run_called_again_with_its_seam_current_calls_no_stage_an
     run_pr = importlib.import_module("veri.run_pr")
     calls = _git_run(monkeypatch, tmp_path, lambda args: (0, "aaaaaaa\n"), stacked=True)
     run_cli(run_pr, ["12"], cwd=str(tmp_path))
-    assert calls == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
+    assert first_stages(calls) == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh"]
     del calls[:]
 
     code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
@@ -829,3 +841,77 @@ def test_4432_a_stacked_run_called_again_with_its_seam_current_calls_no_stage_an
     assert calls == []
     assert out.splitlines()[-1] == "seam=pr-ready-wait code=1 reason=stacked next=DRAFT-PR.md#4. Draft PR"
     assert code == 1, err
+
+
+def test_4472_run_pr_calls_verify_branch_after_pr_checks_and_it_prints_usage_with_no_argument(monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+
+    def spy(name, *args, **kw):
+        calls.append((os.path.basename(name), args))
+        return 0, "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+
+    run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert calls == [(s, ("12",)) for s in ("branch-gate.sh", "pr-prepare.sh", "pr-checks.sh", "verify-branch.sh")]
+    verify_branch = importlib.import_module("veri.verify_branch")
+    code, out, err = run_cli(verify_branch, [])
+    assert code == 2
+    assert "usage: verify-branch.sh <n>" in err
+
+
+def test_4472_a_verify_branch_exit_1_prints_the_rejected_seam_exits_1_and_never_readies_the_pr(monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+
+    def spy(name, *args, **kw):
+        calls.append(os.path.basename(name))
+        return (1 if os.path.basename(name) == "verify-branch.sh" else 0), "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert out.splitlines()[-1] == "seam=verify-branch code=1 reason=rejected next=DRAFT-PR.md#4. Draft PR"
+    assert code == 1, err
+    assert "pr-ready-wait.sh" not in calls
+
+
+def test_4472_after_a_verify_branch_reject_a_run_pr_on_the_repaired_ledgers_new_sha_restarts_at_branch_gate(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+    verdict = [1]
+
+    def spy(name, *args, **kw):
+        calls.append(os.path.basename(name))
+        return (verdict[0] if os.path.basename(name) == "verify-branch.sh" else 0), "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "aaaaaaa\n", ""))
+    run_cli(run_pr, ["12"], cwd=str(tmp_path))
+    del calls[:]
+    verdict[0] = 0
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "bbbbbbb\n", ""))
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert calls == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh", "verify-branch.sh"]
+    assert out.splitlines()[-1] == "seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR"

@@ -15,7 +15,8 @@ CATEGORIES = {
          "uncovered", "ci-red", "suite-red", "rebased-tip-red", "unreplaced-cases", "needs-user", "step-added-off-route",
          "fixture-owed", "missing-reroutes-exhausted", "repair-reroutes-exhausted", "graded-edit-outside-skill-edit",
          "unpinnable-missing", "repin-failed", "skill-edit-refused", "prep-owed",
-         "no-seam", "surround-owed", "unwired", "surround-short", "tidy-first-owed"), "process"),
+         "no-seam", "surround-owed", "unwired", "surround-short", "tidy-first-owed",
+         "branch-rejected"), "process"),
 }
 
 

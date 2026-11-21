@@ -18,7 +18,7 @@ from ledger import INTERFACE_PHASES, carries_mark, ledger_steps, trailing_marker
 from replaces_case import is_replaces_case_step
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround", "break")
-VERIFY_ONLY_PHASES = ("beside", "dual-stub")
+VERIFY_ONLY_PHASES = ("beside", "dual-stub", "branch")
 WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
 NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "break": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
          "transform": {"fast-cmd", "base-sha"}, **dict.fromkeys(INTERFACE_PHASES + VERIFY_ONLY_PHASES, {"fast-cmd", "base-sha"})}
@@ -27,6 +27,18 @@ USAGE = ("usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [
          " <phase> <issue-spec-file> <test-path> [<target-test-id>]")
 GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair",
                     "CI_REPAIR": "ci-repair", "FIXTURE_REPAIR": "fixture-repair"}
+
+
+def _spec_rows_at(spec_text, branch_base):
+    blocks = []
+    for path, ids in re.findall(r"^Spec: (\S+) , rows ([^\n]+)$", spec_text.decode(errors="replace"), re.M):
+        wanted = {name.strip(",") for name in ids.split()}
+        shown = git.out("show", f"{branch_base}:{path}")
+        rows = "\n".join(line for line in shown.splitlines()
+                         if line.startswith("|") and line.split("|")[1].strip() in wanted)
+        if rows:
+            blocks.append(rows)
+    return b"\n\n" + "\n\n".join(blocks).encode() if blocks else b""
 
 
 def _last_phase_check(step_arg, phase, number):
@@ -71,7 +83,9 @@ def main(argv):
             return refuse(f"build-verify-prompt: {argv[0]} needs a value")
         options[argv[0]] = argv[1]
         argv = argv[2:]
-    if len(argv) < 3 or not all(argv[:3]):
+    if argv[:1] == ["branch"] and len(argv) == 2:
+        argv = [*argv, ""]
+    elif len(argv) < 3 or not all(argv[:3]):
         return refuse()
     if len(argv) > 4:
         return refuse("build-verify-prompt: too many arguments")
@@ -194,6 +208,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     if phase == "surround" and (fast_cmd or supersede_base):
         return _refused("build-verify-prompt: surround takes the pin phase's inputs, and --fast-cmd and "
                         "--supersede-base are not among them")
+    if phase == "branch" and test_path:
+        return _refused(f"build-verify-prompt: branch takes only <spec-file>, not '{test_path}'")
     fourth = test_id
     if phase == "diff":
         if not step_arg:
@@ -202,6 +218,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
             return _refused("build-verify-prompt: diff takes <spec-file> <step-base-sha>, and its branch base from "
                             f"--branch-base, not a third positional ('{fourth}')")
         shas = (("<step-base-sha>", "STEP_BASE_SHA", test_path), ("--branch-base", "BASE_SHA", branch_base))
+    elif phase == "branch":
+        shas = (("--branch-base", "BASE_SHA", branch_base),)
     elif "base-sha" in NEEDS.get(phase, ()):
         shas = (("<base-sha>", "BASE_SHA", fourth),)
     elif phase == "rebase":
@@ -298,7 +316,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
     number = 5 if phase in ("expand", "cover-new", "migrate") else 4
     out = fill(out, ((b"LAST_PHASE_CHECK", _last_phase_check(step_arg, phase, number)),
-                               (b"RED_WRITTEN", written), (b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec)),
+                               (b"RED_WRITTEN", written), (b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec) + (_spec_rows_at(_read(spec), branch_base) if phase == "branch" else b"")),
                                *((placeholder.encode(), value) for placeholder, value in values.items()),
                                (b"TEST_PATH", os.fsencode(test_path)),
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),

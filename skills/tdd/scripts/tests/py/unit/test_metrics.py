@@ -2080,6 +2080,16 @@ def test_the_report_counts_switched_off_diff_skips_as_diff_first_on_the_line_393
     assert "Verifiers switched off: diff 1, green 1, refactor 1\n" in render(metrics, capsys)
 
 
+def test_the_report_counts_a_switched_off_verify_branch_skip_as_branch_on_the_line_4472(tmp_path, monkeypatch, capsys, metrics):
+    skip = lambda phase, step: {"event": "verify-%s-skipped" % phase, "step": step, "reason": "switched-off"}
+    write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100}, skip("refactor", "1"),
+                         {"event": "step-done", "step": "1", "ts": 160},
+                         {"event": "verify-branch-skipped", "reason": "switched-off"}])
+    monkeypatch.chdir(tmp_path)
+
+    assert "Verifiers switched off: branch 1, refactor 1\n" in render(metrics, capsys)
+
+
 def transcript(path, prompt, turns):
     lines = [{"type": "user", "message": {"role": "user", "content": prompt}}]
     for number, (usage) in enumerate(turns):

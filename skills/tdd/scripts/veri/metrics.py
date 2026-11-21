@@ -61,7 +61,7 @@ COMMENT_FAMILIES = [
 USAGE = "usage: metrics.sh <issue-number> [--json]"
 JSON = "--json"
 # the skip events counted on the "Verifiers switched off:" line beside refactor's own count
-SWITCHED_OFF_EVENTS = {"verify-%s-skipped" % phase: phase for phase in ("diff", "green", "pin", "red")}
+SWITCHED_OFF_EVENTS = {"verify-%s-skipped" % phase: phase for phase in ("branch", "diff", "green", "pin", "red")}
 
 
 COUNTS = ["attempts", "PASS", "REJECT", "kills"]

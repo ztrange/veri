@@ -71,12 +71,12 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
   verifier reads `git diff <base-sha>..HEAD`, not commit messages. `--branch-base <sha>`, the conductor's recorded
   branch base every phase takes (#4375), `diff` included (#4376), is held to the same pattern. `verify-surround`, which judges a
   legacy step's characterization tests, is blind the same way: it takes the `pin` phase's inputs.
-  `VERI_SKIP_VERIFY` (pinned per run, `plan` and `surround` never) skips the named verifiers
-  (ADR-0033).
+  `VERI_SKIP_VERIFY` (pinned per run, `plan` and `surround` never) skips the named verifiers,
+  `branch` among the phases it may name (ADR-0033).
 - **The committed ledger is the source of truth** for done steps; the issue only mirrors it.
   A step's green tick appends `⟂ refactor pending`, removed only by its verify-refactor PASS,
   so a resumed run can tell green from finished.
-- **Eleven budgets on eleven axes, never merged**, one row each:
+- **Twelve budgets on twelve axes, never merged**, one row each:
 
   | Knob | Axis | Default |
   |---|---|---|
@@ -91,6 +91,7 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
   | `VERI_CI_FLAKE_RERUNS` | CI re-runs of a red head per run: a flaky CI job is not a defect; 0 keeps today's behaviour | 1 |
   | `VERI_TEST_QUALITY_FIXES` | cost: the test-quality steps one run may add: a weak test is not a rejected product | 1 |
   | `VERI_SURROUND_MUTANTS` | the mutants a legacy region owes: a missing mutant is not a rejected product | 5 |
+  | `VERI_BRANCH_REPAIRS` | the repair steps `verify-branch` may append per run: a rejected branch is not a stuck leaf or a missing verdict | 1 |
 
   One knob over any two would make different failures one decision (ADR-0020). A bad
   `VERI_REFACTOR_BUDGET` is caught in preflight.

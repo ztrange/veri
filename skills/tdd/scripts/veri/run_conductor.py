@@ -86,7 +86,7 @@ def main(argv):
     tunables.pop("VERI_EVENT_STRICT")  # a run never checks its events (PRD 014 JR3): telemetry never bails it
     for name in ("REVISE_BUDGET", "VERI_REBASED_TIP_SUITE", "VERI_BRANCH_SUITE", "VERI_BASELINE_FULL_TIER",
                  "VERI_FULL_TIER_MAX_AGE_DAYS", "VERI_CI_FLAKE_RERUNS",
-                 "VERI_TEST_QUALITY_FIXES"):
+                 "VERI_TEST_QUALITY_FIXES", "VERI_BRANCH_REPAIRS"):
         _, bad = tunables.resolve(name)
         if bad:
             sys.stderr.write("run-conductor: %s must be %s, got '%s'\n" % (name, bad[1], bad[0]))
@@ -127,8 +127,8 @@ def preflight_and_launch(argv, claim=None):
     resuming = mode == "resume"
     if not resuming:
         for word in tunables.get("VERI_SKIP_VERIFY").split(","):
-            if word and word not in ("refactor", "pin", "green", "red", "diff"):
-                sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped (only refactor, pin, green, red and diff can)\n" % word)
+            if word and word not in ("refactor", "pin", "green", "red", "diff", "branch"):
+                sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped (only refactor, pin, green, red, diff and branch can)\n" % word)
                 return 2
     carried = None
     if mode == "first" and not os.path.lexists(record):
