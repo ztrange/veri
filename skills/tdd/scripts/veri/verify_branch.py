@@ -3,9 +3,12 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import sys
 
+import add_ledger_step
 import fused
 import fused_step
+import run_dir
 import tunables
+from ledger import STEP_RE, carries_mark, read_ledger
 
 LEAF = "verdict-branch"
 OWNER = "verify-branch"
@@ -29,16 +32,35 @@ def main(argv):
         if fused.load_wait(wt, n, OWNER) is None:
             launch(n, wt, settled)
             fused.save_wait(wt, n, OWNER, "1", [])
-        fused.wait(wt, n, OWNER, LEAF)
+        code = fused.wait(wt, n, OWNER, LEAF)
     except fused.Stop as stop:
         return fused.stopped(stop)
     except fused.Waiting as waiting:
         sys.stdout.write("waiting on %s\n" % waiting.name)
         return 3
+    if code == 1:
+        return repair(n, wt)
+    if code != 0:
+        return code
     tip = fused.checked("1", "git", "rev-parse", "HEAD", cwd=wt).strip()
     with open(marker, "w") as f:
         f.write(tip + "\n")
     return 0
+
+
+def repair(n, wt):
+    ledger = run_dir.ledger(wt, n)
+    steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
+    if sum(carries_mark(line, "branch-repair") for line in steps) >= int(tunables.get("VERI_BRANCH_REPAIRS")):
+        return 1
+    try:
+        with open(os.path.join(wt, ".tdd/verify-branch.reason"), encoding="utf-8", errors="replace") as f:
+            reason = f.read()
+    except OSError:
+        reason = ""
+    reason = " ".join(reason.replace("⟦", "[").replace("⟧", "]").replace("⟂", "").split())
+    step = "fix what verify-branch rejected: %s ⟦diff-checked⟧ ⟦branch-repair⟧" % (reason or "see .tdd/verify-branch.reason")
+    return add_ledger_step.add(ledger, "after", steps[-1], [step])
 
 
 def launch(n, wt, settled):
