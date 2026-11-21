@@ -5190,6 +5190,20 @@ def test_cli_a_conductor_that_exits_0_with_a_result_ending_on_a_question_but_eve
     assert (code, [r.get("event") for r in events_named(tmp_path)]) == (0, [closing]), stderr
 
 
+def test_cli_a_conductor_exiting_0_over_a_preflight_refused_run_writes_no_needs_user_bail_and_no_bailed_label_4505(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    gh_calls = conductor_that_prints(monkeypatch, tmp_path, ["preflight-refused"],
+                                     result_record("The tree is dirty.\n\nShall I stash it?"))
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    labelled = ["api", "repos/{owner}/{repo}/issues/4242/labels", "-f", "labels[]=bailed"] in gh_calls
+    assert (code, [r.get("event") for r in events_named(tmp_path)], labelled) == (0, ["preflight-refused"], False), stderr
+
+
 @pytest.mark.parametrize("answer, log_events, bails", [
     ((True, "bailed", {"event": "bail"}), ["phase-start"], False),
     ((True, "unknown", {}), ["done"], True),
