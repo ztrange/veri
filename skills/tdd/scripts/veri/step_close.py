@@ -51,9 +51,10 @@ def run(n):
     for uncovered in read_half(wt, n).get("uncovered_spec", []):
         raise fused.Stop("6", "uncovered_spec=" + uncovered, 1)
     # The step's green commit is the last that changed its refactor-pending line's count: a later plan commit that
-    # only inserted a re-pin step after it leaves that count alone (#4510).
-    green_sha = fused.checked("6", "git", "log", "-1", "--format=%H", "-S", step + PENDING_MARK, "--", LEDGER % n,
-                              cwd=wt).strip()
+    # only inserted a re-pin step after it leaves that count alone (#4510). The checkbox's "] " anchors the text, so a
+    # step whose text ends in this one's is not matched.
+    line = "] " + step + PENDING_MARK
+    green_sha = fused.checked("6", "git", "log", "-1", "--format=%H", "-S", line, "--", LEDGER % n, cwd=wt).strip()
     if not green_sha:
         raise fused.Stop("6", "no green commit for %s in %s" % (step, LEDGER % n), 2)
     fused_step.refresh(NAME, wt, n, "refactor-half", {"green_sha": green_sha})
