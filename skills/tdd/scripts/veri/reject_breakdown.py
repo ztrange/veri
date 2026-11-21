@@ -29,20 +29,23 @@ def monday(day):
 
 
 def main(argv):
-    weeks = collections.defaultdict(lambda: [0, 0])
+    weeks = collections.defaultdict(lambda: collections.defaultdict(lambda: [0, 0]))
     for line in sys.stdin.read().splitlines():
         day, path = line.split(" ", 1)
         with open(path) as handle:
             text = handle.read()
         week = weeks[monday(day)]
-        for passes, rejects in phase_verdicts(text).values():
-            week[0] += passes
-            week[1] += rejects
-    for week, (passes, rejects) in sorted(weeks.items()):
-        verifies = passes + rejects
+        for phase, (passes, rejects) in phase_verdicts(text).items():
+            week[phase][0] += passes
+            week[phase][1] += rejects
+    for week, phases in sorted(weeks.items()):
+        rejects = sum(r for _, r in phases.values())
+        verifies = sum(p + r for p, r in phases.values())
         print(f"week {week}: REJECT per verify {100 * rejects / verifies:.1f}% ({rejects} of {verifies})")
+        for phase, (passes, phase_rejects) in sorted(phases.items()):
+            if passes + phase_rejects:
+                print(f"  phase {phase}: {phase_rejects} of {passes + phase_rejects}")
     return 0
-
 
 if __name__ == "__main__":
     import entry
