@@ -560,7 +560,7 @@ PERMISSION_CHECKS = (token_scopes_row, priority_label_row, bug_label_row, action
                      push_dry_run_row, bypass_permissions_row)
 # The permission rows' check version, which preflight's .tdd/permissions-checked record carries: raise it whenever a
 # permission row's probe changes, so every clone's record goes stale and the rows run again (PRD 016.9).
-PERMISSIONS_CHECK_VERSION = 1
+PERMISSIONS_CHECK_VERSION = 2
 
 
 def permission_row_names():
