@@ -3692,6 +3692,17 @@ def test_4454_a_lowering_newer_than_the_last_reported_is_printed(dispatch):
         None, "t-lowered 4 2 tests/c.py::test_z,tests/a.py::test_x\n", ["queue 0", "t-lowered 1700001300"])
 
 
+def test_4527_over_further_polls_of_an_unchanged_world_the_queueing_stretched_and_t_lowered_lines_each_appear_once(dispatch):
+    world = FakeWorld(*[{"live": ["7"], "waiters": waiters, "stretches": {"7": [("fast", "9", "3")]}, "lowering": LOWERING}
+                        for waiters in (1, 2, 3, 3, 3, 3)])
+
+    code = dispatch.main(["--target", "1"], world=world)
+
+    assert (code, world.waits, world.said) == (None, 6, [
+        "stretched 7 fast 9s, idle 3s\n", "t-lowered 6 4 tests/a.py::test_x,tests/b.py::test_y\n",
+        "queueing 3 waiting for T=8, 0 workers in use: a lower N would shorten the wait\n"])
+
+
 @pytest.mark.parametrize("held, expected", [
     ("4\n1700000600\n6\ntests/a.py::test_x,tests/b.py::test_y\n", (1700000600, 6, 4, "tests/a.py::test_x,tests/b.py::test_y")),
     ("4\n1700000600\n", None), ("", None), (None, None)], ids=["whole", "no-old-or-cases", "empty", "absent"])
