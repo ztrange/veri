@@ -9,6 +9,7 @@ import ledger
 import os
 import re
 import tick_ledger
+from report import report_values
 
 USAGE = ("usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-file> <matcher> <target-test>\n"
          "       pin-reject-route.sh --recheck <reason-file> <ledger-file> <matcher>")
@@ -17,6 +18,18 @@ USAGE = ("usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-f
 def repin_step(path):
     """The re-pin step's text, before its ` turns it red` tail, for the pin on <path>."""
     return ledger.REPIN_STEP + path + " so its recorded mutation"
+
+
+def red_case(ledger_file, case):
+    """<case>, or a bare case name joined to the TEST_PATH of develop-red.out beside the ledger."""
+    if "::" in case or "/" in case:
+        return case
+    red_out = os.path.join(os.path.dirname(ledger_file), "develop-red.out")
+    if not os.path.exists(red_out):
+        return case
+    with open(red_out, encoding="utf-8") as handle:
+        path = report_values(handle.read(), "TEST_PATH", occurrence="last")
+    return case if path is None else path + "::" + case
 
 
 def recheck(argv):
@@ -63,9 +76,10 @@ def main(argv):
         if "stays green" in reason:
             print("revise")
             return 1
-    code = tick_ledger.tick(argv[1], argv[2], case=argv[3], retire="unpinnable", reason_file=argv[0])
+    case = red_case(argv[1], argv[3])
+    code = tick_ledger.tick(argv[1], argv[2], case=case, retire="unpinnable", reason_file=argv[0])
     if code == 1 and missing:
-        code = tick_ledger.tick(argv[1], argv[2], case=argv[3], retire="already-holds", reason_file=argv[0])
+        code = tick_ledger.tick(argv[1], argv[2], case=case, retire="already-holds", reason_file=argv[0])
     if code == 0:
         print("retired")
     elif code == 1:
