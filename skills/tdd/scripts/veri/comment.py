@@ -184,7 +184,8 @@ def post_revise(issue, phase, attempt):
 def post_pin(issue):
     """PIN.md's PASS mirror: the step just pinned, the last done one, and why it already holds."""
     done = [r for r in read_steps(issue) if r.state == "done"]
-    return post_and_record(issue, "pin", f"### 📌 Already satisfied — {done[-1].text}\n\n{verdict_reason('pin')}")
+    reason = f"verify-pin — {SWITCHED_OFF}\n" if verdict_file("pin") == "skipped" else verdict_reason("pin")
+    return post_and_record(issue, "pin", f"### 📌 Already satisfied — {done[-1].text}\n\n{reason}")
 
 
 def post_verify_skipped(issue):
