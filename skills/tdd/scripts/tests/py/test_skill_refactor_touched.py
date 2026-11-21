@@ -41,7 +41,7 @@ def test_skill_md_computes_the_refactor_touched_files_list_through_refactor_touc
     for l in lines:
         if "$S/refactor-touched.sh" not in l:
             problems.append(f"SKILL.md computes touched without $S/refactor-touched.sh: {l}")
-        env = {**os.environ, "S": str(SCRIPTS), "green": green}
+        env = {**os.environ, "S": str(SCRIPTS), "step_green": green}
         run = subprocess.run(["bash", "-c", l + '\nprintf %s "$touched"'], cwd=repo, env=env,
                              capture_output=True, text=True)
         got = [x for x in (run.stdout + run.stderr).replace(",", "\n").split("\n") if x]

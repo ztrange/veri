@@ -70,16 +70,21 @@ them.
    **STEP** is that description, and this step's refactor loop is re-entered where it
    stopped:
    ```
-   green=<green-sha>
-   touched="$($S/refactor-touched.sh "$green")"
+   green="$(git log -1 --format=%H -- .tdd/issue-<n>.md)"
+   step_green=<step-green>
+   touched="$($S/refactor-touched.sh "$step_green")"
    count="$(git log --format=%s "$green"..HEAD | grep -c '^refactor:')"
    left=$(( ${VERI_REFACTOR_BUDGET:-5} - count )); (( left < 0 )) && left=0
    ```
-   `<green-sha>` is the step's own **green tick**: the newest commit whose change to
-   `.tdd/issue-<n>.md` touches a line other than a re-pin step's (`⟦diff-checked⟧ edit the
-   case of the pin on …`), as `fused_step.green_tick` finds it, so a re-pin plan or tick
-   committed while the step still carries the mark is passed over (#4510). The tick is
-   atomic with the green commit and the clear that would follow never happened. So `$touched`
+   Two shas, kept apart as the cycle loop keeps them. `$green` is the cycle loop's
+   `<green-sha>`, the ledger's last commit, past any re-pin step's: the span `$count` counts
+   and verify-refactor's argument. `$step_green` is `<step-green>`, the step's own **green
+   tick**: the newest commit whose change to `.tdd/issue-<n>.md` touches a line other than a
+   re-pin step's (`⟦diff-checked⟧ edit the case of the pin on …`), so a re-pin plan or tick
+   committed while the step still carries the mark is passed over (#4510). No script prints
+   it (`fused_step.green_tick` computes it inside `refactor-half.sh`): read it off
+   `git log -p -- .tdd/issue-<n>.md`. The tick is atomic with the green commit and the clear
+   that would follow never happened. So `$touched`
    — that commit's `git diff --name-only`, through the same script the cycle loop calls —
    is the same bounds the interrupted loop had, and `$count` the transforms it already
    committed. Run the **Refactor loop** (the cycle loop's sub-section) with `$touched` as

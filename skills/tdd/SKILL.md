@@ -1082,14 +1082,14 @@ that push; else the ending call's code (a bail's too).
    **through the supervisor** (exit **2** → **bail**, after the stop check in *Launching a leaf*; see `<base directory>/BAIL.md`):
    ```
    $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 5
-   touched="$($S/refactor-touched.sh "$green")"
+   touched="$($S/refactor-touched.sh "$step_green")"
    $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
    rm -f .tdd/develop-refactor.exit .tdd/develop-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh)" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor  # foreground; again on exit 3
    ```
    **One leaf for the whole step**, not one per transform. `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
-   comma-separated line. Compute it once: `$green` is `<green-sha>`, the step's own tick, not a re-pin's (#4510); `$S/refactor-touched.sh "$green"` prints its files — adding
+   comma-separated line. Compute it once: `$step_green` is the step's own tick, not a re-pin's (#4510); `$S/refactor-touched.sh "$step_green"` prints its files — adding
    anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work on disk. The template owns the rules — the leaf triages what it sees in those files into
    **structural** and **cosmetic** candidates and applies the structural ones, most valuable first, up to its budget; it runs only the touched files' tests after every
    transform and **reverts** one that turns them red rather than leave a red suite; it takes
