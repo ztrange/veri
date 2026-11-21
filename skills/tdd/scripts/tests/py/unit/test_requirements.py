@@ -304,3 +304,11 @@ def test_4336_two_lists_read_inside_one_parsed_once_block_each_answer_their_own_
         seen = [(requirements.headings(str(p)), requirements.claims(str(p), u))
                 for p, u in [(first, "a.md"), (second, "docs/b.md"), (first, "a.md")]]
     assert seen == [(["a.md"], "A1\tSays blue.\n"), (["docs/b.md"], "B1\tSays red.\n"), (["a.md"], "A1\tSays blue.\n")]
+
+
+def test_malformed_row_id_accepts_a_letter_suffixed_id_amended_with_reword_4541():
+    requirements = importlib.import_module("veri.requirements")
+    lines = ["## Requirements", "", "### skills/tdd/SKILL.md", "",
+             "| ID | Requirement | Why |", "|---|---|---|",
+             "| QU6b<reword> | A reworded claim. | because of the why |"]
+    assert requirements.malformed_row_id(lines) is None

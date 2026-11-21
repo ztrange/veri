@@ -31,7 +31,7 @@ def requirements_lines(lines):
 
 
 def well_formed_row_id(row_id):
-    return re.fullmatch(r".+(\d+(<reword>)?|<next>)", row_id) is not None
+    return re.fullmatch(r".+(\d+(<reword>)?|<next>|<reword>)", row_id) is not None
 
 
 def malformed_row_id(lines):
