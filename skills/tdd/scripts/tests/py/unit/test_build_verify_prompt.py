@@ -2105,3 +2105,21 @@ def test_main_appends_nothing_to_the_branch_prompts_spec_when_the_named_spec_fil
     out, _ = capsysbinary.readouterr()
 
     assert (code, out.split(spec_text, 1)[1][:29]) == (0, b"\n\nRun the fast command, `make")
+
+
+def test_main_carries_no_spec_rows_in_a_non_branch_prompt_whose_spec_file_names_a_spec_line(
+        tmp_path, monkeypatch, capsysbinary, fake_processes, build_verify_prompt):
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "issue.md"
+    spec.write_bytes(b"Frob must nitz.\n\nSpec: specs/prd-zz.md , rows ZZ1\n")
+    at_base = "| ZZ1 | the base wording predates the run |\n"
+
+    def show(line, **_):
+        return (0, at_base, "") if ":" in line else (1, "", "")
+
+    fake_processes.answers({"git ls-files": every_file_tracked, "git show": show}, default=(0, "", ""))
+    code = build_verify_prompt.main(["--step", "the dead line is gone ⟦diff-checked⟧ ⟦criterion 2⟧", "--fast-cmd", "make unit",
+                                     "--branch-base", "0123abcdef", "diff", str(spec), "4567def"])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, b"Frob must nitz." in out, b"the base wording predates the run" in out) == (0, True, False)

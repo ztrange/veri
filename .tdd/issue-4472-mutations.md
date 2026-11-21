@@ -5,3 +5,14 @@ skills/tdd/scripts/tests/py/unit/test_event_strict.py
 command 124
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_strict.py::test_strict_accepts_a_bail_with_cause_branch_rejected
 
+file 46
+skills/tdd/scripts/veri/build_verify_prompt.py
+old-b64 40
+aWYgcGhhc2UgPT0gImJyYW5jaCIgZWxzZSBiIiIp
+new-b64 24
+aWYgVHJ1ZSBlbHNlIGIiIik=
+context-b64 276
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIChiIlJFRF9XUklUVEVOIiwgd3JpdHRlbiksIChiIlNIQVJFRCIsIHNoYXJlZCksIChiIlNURVAiLCBzdGVwX2Jsb2NrKSwgKGIiSVNTVUVfU1BFQyIsIF9yZWFkKHNwZWMpICsgKF9zcGVjX3Jvd3NfYXQoX3JlYWQoc3BlYyksIGJyYW5jaF9iYXNlKSBpZiBwaGFzZSA9PSAiYnJhbmNoIiBlbHNlIGIiIikpLA==
+command 165
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py::test_main_carries_no_spec_rows_in_a_non_branch_prompt_whose_spec_file_names_a_spec_line
+
