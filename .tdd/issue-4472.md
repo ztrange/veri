@@ -32,7 +32,7 @@
 - [x] On a PASS, `verify-branch.sh <n>` writes the tip's `HEAD` sha to `.tdd/issue-<n>-branch-verified` ⟦criterion 19⟧
 - [x] `verify-branch.sh <n>` with `HEAD` equal to the sha in `.tdd/issue-<n>-branch-verified` launches no leaf and exits 0 ⟦criterion 19⟧
 - [x] `verify-branch.sh <n>` with `HEAD` differing from the sha in `.tdd/issue-<n>-branch-verified` launches the `verdict-branch` leaf ⟦criterion 19⟧
-- [ ] On a REJECT with fewer `⟦branch-repair⟧` steps in the ledger than `VERI_BRANCH_REPAIRS`, `verify-branch.sh <n>` appends one `⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion k⟧` step through `add-ledger-step.sh`, no `⟦added⟧`, its text carrying the verifier's reason from `.tdd/verify-branch.reason` ⟦criterion 6⟧
+- [x] On a REJECT with fewer `⟦branch-repair⟧` steps in the ledger than `VERI_BRANCH_REPAIRS`, `verify-branch.sh <n>` appends one `⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion k⟧` step through `add-ledger-step.sh`, no `⟦added⟧`, its text carrying the verifier's reason from `.tdd/verify-branch.reason` ⟦criterion 6⟧
 - [ ] On a REJECT with the ledger already holding `VERI_BRANCH_REPAIRS` (default 1) `⟦branch-repair⟧` steps, `verify-branch.sh <n>` appends no step, bails with cause `branch-rejected` through `bail.sh`, and exits 1 ⟦criterion 11⟧
 - [ ] With `VERI_BRANCH_REPAIRS=2` and one `⟦branch-repair⟧` step in the ledger, a REJECT appends a second repair step instead of bailing ⟦criterion 11⟧
 - [ ] That REJECT's appended step is committed as one `plan:` commit holding `.tdd/issue-<n>.md` and `.tdd/issue-<n>-added.md` ⟦criterion 6⟧
