@@ -8,5 +8,5 @@
 - [x] `reset-cost.sh dev …` exits 2 with the usage line, and `reset-cost.sh conductor <n>` prints what it prints today ⟦criterion 6⟧
 - [x] `role-state.sh dev recovered` no longer removes `reset-request-<role>` markers or drops `refused-at` lines, which nothing writes any more ⟦added⟧
 - [ ] `skills/tdd/SCRIPTS.md` names no `role-growth.sh`, `reset-wait.sh`, `request-reset`, `resetter` or `dev` mode of `reset-cost.sh`, its rows SC134/SC137 dropped and SC135/SC220 rewritten, regraded ⟦criterion 7⟧
-- [ ] `veri/README.md` lists no deleted script or module ⟦criterion 8⟧
+- [x] `veri/README.md` lists no deleted script or module ⟦criterion 8⟧
 - [ ] `make unreachable` lists no script this issue left behind ⟦criterion 9⟧

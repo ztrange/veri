@@ -10,3 +10,9 @@ DELETED = [SCRIPTS + p for p in (
 
 def test_issue_4465_no_dev_reset_script_module_or_test_exists():
     assert [p for p in DELETED if (ROOT / p).exists()] == []
+
+
+def test_issue_4465_veri_readme_names_no_deleted_script_or_module():
+    readme = (ROOT / SCRIPTS / "veri" / "README.md").read_text()
+
+    assert [n for n in ("role-growth.sh", "reset-wait.sh", "role_growth", "reset_wait") if n in readme] == []
