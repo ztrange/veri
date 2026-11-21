@@ -631,7 +631,6 @@ def _queueing(state, world):
     if growing and not notified:
         total, in_use = world.test_budget()
         world.say(f"queueing {waiting} waiting for T={total}, {in_use} workers in use: a lower N would shorten the wait\n")
-    return None
 
 
 STRETCHED = "stretched "
@@ -648,8 +647,7 @@ def _stretched(state, world, live):
             if key not in lines:
                 world.record_notified(lines + [key])
                 world.say(f"{key} {seconds}s, idle {idle}s\n")
-                return None
-    return None
+                return
 
 
 # The .tdd/dispatch-notified line the t-lowered rule owns: the time of the last lowering it reported.
@@ -661,16 +659,15 @@ def _lowered(state, world):
     recording its time so a restarted dispatch.sh never prints it again. Advice only, like _queueing."""
     lowering = world.lowering()
     if lowering is None:
-        return None
+        return
     at, old, new, cases = lowering
     lines = world.notified()
     reported = [int(word) for line in lines if line.startswith(LOWERED_LINE)
                 for word in line.split()[1:2] if word.isdigit()]
     if reported and reported[0] >= at:
-        return None
+        return
     world.record_notified([line for line in lines if not line.startswith(LOWERED_LINE)] + [LOWERED_LINE + str(at)])
     world.say(f"t-lowered {old} {new} {cases}\n")
-    return None
 
 
 def step(state, world):
@@ -695,11 +692,9 @@ def step(state, world):
     state.seen = live + state.absent + state.pending
     code = _launch_into_a_free_slot(state, world, live)
     if code is None:
-        code = _queueing(state, world)
-    if code is None:
-        code = _stretched(state, world, live)
-    if code is None:
-        code = _lowered(state, world)
+        _queueing(state, world)
+        _stretched(state, world, live)
+        _lowered(state, world)
     return state, code
 
 
