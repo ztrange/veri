@@ -54,6 +54,8 @@ def run(n):
     # only inserted a re-pin step after it leaves that count alone (#4510).
     green_sha = fused.checked("6", "git", "log", "-1", "--format=%H", "-S", step + PENDING_MARK, "--", LEDGER % n,
                               cwd=wt).strip()
+    if not green_sha:
+        raise fused.Stop("6", "no green commit for %s in %s" % (step, LEDGER % n), 2)
     fused_step.refresh(NAME, wt, n, "refactor-half", {"green_sha": green_sha})
     pins = [line for line in checks(wt, n, green_sha).splitlines() if line.startswith("needs a look")]
     try:
