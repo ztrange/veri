@@ -1,0 +1,11 @@
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old-b64 84
+aWYgaGVhZF9saW5lcyAhPSB2ZXJpZmllZF9saW5lcyBhbmQgY2FycmllZCAhPSB2ZXJpZmllZF9jb3VudDo=
+new-b64 12
+aWYgRmFsc2U6
+context-b64 96
+ICAgICAgICBpZiBoZWFkX2xpbmVzICE9IHZlcmlmaWVkX2xpbmVzIGFuZCBjYXJyaWVkICE9IHZlcmlmaWVkX2NvdW50Og==
+command 204
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tests_frozen_rerecord_refactored_helpers.py::test_rerecord_refactored_skips_a_go_case_whose_refactor_weakened_a_t_fatal_message_without_moving_it_4533
+

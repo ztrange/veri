@@ -804,3 +804,15 @@ def test_rerecord_refactored_then_check_earlier_exits_0_for_a_python_case_whose_
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert (code, "skipped:" in err, checked) == (0, False, (0, ""))
+
+
+def test_rerecord_refactored_skips_a_go_case_whose_refactor_weakened_a_t_fatal_message_without_moving_it_4533(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    inline = "func TestX(t *testing.T) {\n\tx := 1\n\tt.Fatalf(\"setup: %v\", x)\n\tt.Fatalf(\"bad: %v\", x)\n}\n"
+    weakened = "func TestX(t *testing.T) {\n\tx := 1\n\tt.Fatalf(\"setup: %v\", x)\n\tt.Fatalf(\"ok\")\n}\n"
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, inline, weakened)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, GO_SUITE + " TestX")) == (1, 1)
