@@ -176,10 +176,10 @@ def commit_amendment(path):
         print(NOT_DURABLE, file=sys.stderr)
 
 
-def drop_replaced_records(tdd, n, replaced):
-    """Remove each `<stage>-rejected` wait record under <tdd> naming the <replaced> step and each `verdict-<phase>.exit`
-    (#4547): ledger.same_step drops ⟦added⟧, and an exit file names no step, so the step put in its place would read
-    either as its own verdict."""
+def drop_replaced_records(tdd, n, replaced, was_open):
+    """Remove each `<stage>-rejected` wait record under <tdd> naming the <replaced> step and, when it <was_open> (the
+    exit files are the open step's), each `verdict-<phase>.exit` (#4547): ledger.same_step drops ⟦added⟧, and an exit
+    file names no step, so the step put in its place would read either as its own verdict."""
     import glob
     import json
     for path in glob.glob(os.path.join(tdd, "issue-%s-*-rejected-wait" % n)):
@@ -190,7 +190,7 @@ def drop_replaced_records(tdd, n, replaced):
             continue
         if isinstance(theirs, str) and same_step(theirs, replaced):
             os.remove(path)
-    for path in glob.glob(os.path.join(tdd, "verdict-*.exit")):
+    for path in glob.glob(os.path.join(tdd, "verdict-*.exit")) if was_open else ():
         os.remove(path)
 
 
@@ -332,7 +332,8 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
         tdd = os.path.dirname(os.path.abspath(path))
         if where == "instead-of":
             replaced = next(line for line in lines if is_anchor_step(line, anchor))
-            drop_replaced_records(tdd, issue.group(1), ledger_steps(replaced)[0].text)
+            first_open = next((line for line in lines if any(r.state == "open" for r in ledger_steps(line))), None)
+            drop_replaced_records(tdd, issue.group(1), ledger_steps(replaced)[0].text, replaced == first_open)
         event.mark(os.path.dirname(tdd), event.context(tunables.with_values(VERI_ISSUE=issue.group(1))),
                    "plan", ["steps=%d" % len(ledger_steps(grown))])
     return 0

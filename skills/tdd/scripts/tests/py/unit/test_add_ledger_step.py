@@ -1972,3 +1972,14 @@ def test_4547_instead_of_on_the_open_step_leaves_no_verdict_exit_file_of_the_rep
     assert add_ledger_step.main([str(ledger), "instead-of", "b two", "b two"]) == 0
 
     assert sorted(p.name for p in tmp_path.glob("verdict-*.exit")) == []
+
+
+def test_4547_instead_of_on_a_step_after_the_open_one_leaves_the_open_steps_verdict_exit_file(tmp_path, add_ledger_step):
+    """#4547: the exit file is the open step's, so replacing a later step must not erase its verdict."""
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "verdict-green.exit").write_text("1\n")
+
+    assert add_ledger_step.main([str(ledger), "instead-of", "c three", "c three"]) == 0
+
+    assert (tmp_path / "verdict-green.exit").read_text() == "1\n"
