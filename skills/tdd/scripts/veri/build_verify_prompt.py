@@ -18,7 +18,7 @@ from ledger import INTERFACE_PHASES, carries_mark, ledger_steps, trailing_marker
 from replaces_case import is_replaces_case_step
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround", "break")
-VERIFY_ONLY_PHASES = ("beside", "dual-stub")
+VERIFY_ONLY_PHASES = ("beside", "dual-stub", "branch")
 WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
 NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "break": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
          "transform": {"fast-cmd", "base-sha"}, **dict.fromkeys(INTERFACE_PHASES + VERIFY_ONLY_PHASES, {"fast-cmd", "base-sha"})}
@@ -73,7 +73,9 @@ def main(argv):
             return refuse(f"build-verify-prompt: {argv[0]} needs a value")
         options[argv[0]] = argv[1]
         argv = argv[2:]
-    if len(argv) < 3 or not all(argv[:3]):
+    if argv[:1] == ["branch"] and len(argv) == 2:
+        argv = [*argv, ""]
+    elif len(argv) < 3 or not all(argv[:3]):
         return refuse()
     if len(argv) > 4:
         return refuse("build-verify-prompt: too many arguments")
@@ -209,6 +211,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
             return _refused("build-verify-prompt: diff takes <spec-file> <step-base-sha>, and its branch base from "
                             f"--branch-base, not a third positional ('{fourth}')")
         shas = (("<step-base-sha>", "STEP_BASE_SHA", test_path), ("--branch-base", "BASE_SHA", branch_base))
+    elif phase == "branch":
+        shas = (("--branch-base", "BASE_SHA", branch_base),)
     elif "base-sha" in NEEDS.get(phase, ()):
         shas = (("<base-sha>", "BASE_SHA", fourth),)
     elif phase == "rebase":
