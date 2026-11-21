@@ -69,7 +69,8 @@ def develop(n, wt, settled, step, test_path):
     with open(os.path.join(wt, ".tdd", "stage-rl.t"), "w") as f:
         f.write("%d\n" % int(time.time()))
     # The span starts at the ledger's last commit, past a re-pin step's commits; the files the leaf may tidy are those
-    # of the step's own green tick, which a re-pin step's tick after it is not (#4510).
+    # of the step's own green tick, which a re-pin step's tick after it is not (#4510), and so is verify-refactor's
+    # BASE_SHA (#4544); a wait record saved before #4544 has no step_green and falls back to green_sha.
     green_sha = fused.checked("1", "git", "log", "-1", "--format=%H", "--", LEDGER % n, cwd=wt).strip()
     step_green = fused_step.green_tick("1", wt, n, "HEAD")
     if step_green is None:
@@ -83,7 +84,7 @@ def develop(n, wt, settled, step, test_path):
     if found is None:
         raise fused.Stop("1", "refactor-budget.sh 0 printed no budget", 2)
     touched = fused.checked("1", fused.script("refactor-touched.sh"), step_green, cwd=wt, ok=(0, 3)).strip()
-    values = {"green_sha": green_sha, "budget": int(found.group(1)), "touched": touched, "test_path": test_path,
+    values = {"green_sha": green_sha, "step_green": step_green, "budget": int(found.group(1)), "touched": touched, "test_path": test_path,
               "ran": code == 0}
     if code == 3:
         return None, values
@@ -175,7 +176,7 @@ def launch_verdict(where, n, wt, settled, step, values):
     fast = settled["fast_cmd"]
     fused.launch(where, wt, "verdict-refactor", "run-verdict.sh", "--step", step, "--fast-cmd", fast,
                  "--branch-base", fused_step.branch_base(where, wt, n), "refactor",
-                 SPEC % n, values["test_path"], values["green_sha"], env=fused.step_env(n, step, VERI_TEST_CMD=fast),
+                 SPEC % n, values["test_path"], values.get("step_green", values["green_sha"]), env=fused.step_env(n, step, VERI_TEST_CMD=fast),
                  out=".tdd/verify-refactor.reason", err=".tdd/verify-refactor.err")
 
 
