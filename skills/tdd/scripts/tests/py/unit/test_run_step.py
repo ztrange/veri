@@ -118,6 +118,23 @@ def test_4510_an_open_diff_checked_step_not_right_after_the_refactor_pending_ste
     assert (code, stages.names()) == (0, ["refactor-half.sh", "step-close.sh"]), err
 
 
+def test_4510_an_open_re_pin_step_after_a_step_that_is_not_refactor_pending_leaves_it_to_refactor_half(step):
+    ledger = "# Plan for #12\n\n- [x] one ⟦criterion 1⟧\n- [ ] %s\n- [x] %s ⟂ refactor pending\n" % (REPIN, STEP)
+
+    code, out, err, stages = step(ledger=ledger)
+
+    assert (code, stages.names()) == (0, ["refactor-half.sh", "step-close.sh"]), err
+
+
+def test_4510_a_planned_diff_checked_step_right_after_the_refactor_pending_step_leaves_it_to_refactor_half(step):
+    """Only the re-pin step pin-reject-route.sh --recheck writes jumps ahead; a ⟦diff-checked⟧ step of the plan waits."""
+    ledger = "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] the prompt says so ⟦diff-checked⟧ ⟦criterion 2⟧\n" % STEP
+
+    code, out, err, stages = step(ledger=ledger)
+
+    assert (code, stages.names()) == (0, ["refactor-half.sh", "step-close.sh"]), err
+
+
 def test_4510_a_ticked_diff_checked_step_right_after_the_refactor_pending_step_leaves_it_to_refactor_half(step):
     ledger = "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [x] %s\n- [ ] two ⟦criterion 2⟧\n" % (STEP, REPIN)
 

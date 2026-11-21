@@ -82,16 +82,14 @@ def refused(wt, n):
         return False
 
 
-def repin_after(pending):
-    """A first_step chooser taking the open `⟦diff-checked⟧` record that directly follows the refactor-pending step
-    whose text is <pending>."""
-    previous = []
-
-    def chosen(record):
-        follows = previous and previous[-1].text == pending and refactor_pending(previous[-1])
-        previous.append(record)
-        return bool(follows) and record.state == "open" and "⟦diff-checked⟧" in record.text
-    return chosen
+def repin_next(wt, n):
+    """The open re-pin step pin-reject-route.sh --recheck inserted directly after the first refactor-pending step, or
+    None (#4510)."""
+    records = ledger.ledger_steps(ledger.read_ledger(run_dir.ledger(wt, n)))
+    for before, record in zip(records, records[1:]):
+        if refactor_pending(before):
+            return record.text if record.state == "open" and record.text.startswith(ledger.REPIN_STEP) else None
+    return None
 
 
 def parse(argv):
@@ -123,8 +121,7 @@ def main(argv):
     wt = given[1]
     pending = fused_step.first_step(wt, n, refactor_pending)
     # The re-pin step pin-reject-route.sh --recheck inserts runs before the step it re-pins is closed (#4510).
-    repin = fused_step.first_step(wt, n, repin_after(pending)) if pending is not None else None
-    step = repin or pending or fused_step.first_step(wt, n, ledger.handed_out)
+    step = repin_next(wt, n) or pending or fused_step.first_step(wt, n, ledger.handed_out)
     if step is None:
         sys.stderr.write("run-step.sh: no open step in %s\n" % (LEDGER % n))
         return 3
