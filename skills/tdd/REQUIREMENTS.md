@@ -911,6 +911,7 @@
 | BL177 | The cause list has a `surround-short` bullet: a legacy step's mutant table stayed shorter than `VERI_SURROUND_MUTANTS` after its one free relaunch of `develop-surround` → **process** failure. | Every cause the procedure can bail with is named where bails are described. |
 | BL167 | The cause list has a `tidy-first-owed` bullet: a green leaf's `TIDY_FIRST:` step could not be inserted because `add-ledger-step.sh` exited 1 (the ledger at `VERI_STEP_GROWTH_PERCENT`), the bail naming the refactoring → **process** failure. | Every cause the procedure can bail with is named where bails are described (PRD 032, TI6). |
 | BL178 | Just before sub-step 1, *Bailing* tells the conductor it may run `$S/bail.sh <n> <cause> <phase> --note-file <path> [--attempt <k>]` for sub-steps 1–8, and that on its exit 2, or with the script unavailable, it bails by the sub-steps below, every one of which stays. | One call bails a run, and a bail never depends on that call (ADR-0019; PRD 038.12, BLS6). |
+| BL179 | BAIL.md lists `branch-rejected` among the bail causes, exit 1, a process failure: a `verify-branch` REJECT with `VERI_BRANCH_REPAIRS` repair steps already in the ledger. | A rejected product is a clean negative, not a system failure. |
 
 ## skills/tdd/SCOPE-LOOP.md
 
