@@ -8,13 +8,16 @@ from report import report_values
 def reason_of(path):
     try:
         with open(path) as handle:
-            reason = report_values(handle.read(), "REASON", occurrence="first", space="kept")
+            text = handle.read()
     except OSError as error:
         print(f"same-reject.sh: {path}: {error.strerror}", file=sys.stderr)
         return None
+    reason = report_values(text, "REASON", occurrence="first", space="kept")
     if reason is not None:
         return " ".join(("REASON:" + reason).split())
-    print(f"same-reject.sh: {path}: no REASON: line", file=sys.stderr)
+    if text.split():
+        return " ".join(text.split())
+    print(f"same-reject.sh: {path}: no reason", file=sys.stderr)
     return None
 
 
