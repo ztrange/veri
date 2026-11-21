@@ -73,7 +73,7 @@ Every other step takes the verdict as follows:
   *Green* does after its push (on a stop, `Read` `<base directory>/STOPPING.md`); where
   Green continues to the Refactor loop, a pin carries on to the mirror below.
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
-  verifier's reason, ask whether the step's criterion is finished
+  verifier's reason with `$S/comment.sh <n> pin`, ask whether the step's criterion is finished
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
   **issue body** (`$S/tick-issue-criterion.sh <n> "$(gh api repos/{owner}/{repo}/issues/<n> -q .body | $S/ledger-steps.sh criterion <k>)"`) — on exit **3** tick
   nothing — and mark it in the log —
@@ -97,7 +97,7 @@ Every other step takes the verdict as follows:
   added case (`stays green`, the target red on the before-state) is not that: it is exit 1 and
   enters the revise loop for red. The routing is the script's decision, never your reading of the reason. On its
   exit **0** the step is retired: commit the retired ledger, write no `revise` mark, spend no
-  `REVISE_BUDGET` attempt, post the step's retirement to the thread, and loop back to
+  `REVISE_BUDGET` attempt, post the step's retirement to the thread with `$S/comment.sh <n> retire`, and loop back to
   `next-unchecked.sh` for the next unchecked ledger step; this holds on a step reached by a
   `missing` reroute too, whose green is then not re-run. On its exit **1** enter the revise
   loop as follows (`build-develop-prompt.sh revise red` refuses, exit 2, only a `verify-pin.reason`
