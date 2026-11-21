@@ -482,7 +482,11 @@ def calls_in(fake, prefix):
 
 def test_issue_4088_each_resolved_tier_runs_in_a_detached_worktree_of_the_default_tip_through_detach_command_and_prints_an_ok_tier_run_row(ready_check, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers(holding(**TIERS))
-    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    home = tmp_path / "scratch-home"
+    home.mkdir()
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"defaultMode": "bypassPermissions"}}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
     lines = out.splitlines()
 
     for tier, command in (("fast", ["make", "unit"]), ("all", ["make", "test"])):
@@ -537,7 +541,11 @@ def test_issue_4088_each_tier_run_row_carries_its_wall_time_in_whole_seconds_whe
 @pytest.mark.parametrize("unresolved", [3, 2])
 def test_issue_4088_a_tier_that_resolves_to_nothing_prints_no_tier_run_row_and_starts_no_worktree_or_command(ready_check, run_cli, fake_processes, tmp_path, unresolved):
     fake = fake_processes.answers(holding(**{**TIERS, "detect-test-command.sh --tier all": (unresolved, "", "")}))
-    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    home = tmp_path / "scratch-home"
+    home.mkdir()
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"defaultMode": "bypassPermissions"}}))
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
     lines = out.splitlines()
 
     assert tier_run_line(lines, "all") is None, lines
@@ -581,10 +589,14 @@ def test_issue_4088_a_re_run_while_a_tier_is_still_running_waits_on_that_run_and
     monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=lambda: next(clock), monotonic=lambda: 0.0), raising=False)
     fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (3, "", ""), "git worktree list": listing(tmp_path),
                                                "detach-command.sh start ready-fast": running_suite("fast")}))
-    first, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    home = tmp_path / "scratch-home"
+    home.mkdir()
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"defaultMode": "bypassPermissions"}}))
+    first, _, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
     fake = fake_processes.answers(holding(**TIERS, **{"detach-command.sh wait ready-fast": (1, "4\n", ""), "git worktree list": listing(tmp_path, "fast"),
                                                       LSTART: (0, STARTED + "\n", "")}))
-    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
     lines = out.splitlines()
 
     assert first == 3
@@ -712,7 +724,11 @@ def test_issue_4088_a_tier_worktree_left_for_another_tip_or_command_is_not_reuse
 
 def test_issue_4092_ready_check_no_suites_is_accepted_prints_no_tier_run_row_and_runs_no_tier(ready_check, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers(holding(**TIERS))
-    code, out, err = run_cli(ready_check, ["--no-suites", str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    home = tmp_path / "scratch-home"
+    home.mkdir()
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"defaultMode": "bypassPermissions"}}))
+    code, out, err = run_cli(ready_check, ["--no-suites", str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
     lines = out.splitlines()
 
     assert (code, lines[-1]) == (0, "ready"), (out, err)
@@ -942,7 +958,11 @@ PERMISSION_ROWS = ("token scopes", "label priority", "label bug", "actions read"
 
 def test_issue_4093_ready_check_no_permissions_prints_no_permission_row_makes_none_of_their_probes_and_keeps_rd7s_rows(ready_check, run_cli, fake_processes, tmp_path):
     fake = fake_processes.answers(holding())
-    code, out, err = run_cli(ready_check, ["--no-suites", "--no-permissions", str(tmp_path)], env={"VERI_BASH_MAJOR": "5"})
+    home = tmp_path / "scratch-home"
+    home.mkdir()
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"defaultMode": "bypassPermissions"}}))
+    code, out, err = run_cli(ready_check, ["--no-suites", "--no-permissions", str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
     lines = out.splitlines()
 
     assert (code, lines[-1]) == (0, "ready"), (out, err)
@@ -974,3 +994,31 @@ def test_issue_4471_ready_check_with_no_pull_request_workflow_no_variable_and_no
 
     row = [line for line in lines if line.startswith("fail  pull_request:")]
     assert len(row) == 1 and "VERI_CI_ON_PR" in row[0] and "`veri: ci on pr: 0|1`" in row[0], lines
+
+
+def test_issue_4529_a_repo_whose_settings_neither_bypass_permissions_nor_allow_git_the_test_command_and_scripts_fails_a_subagent_permissions_row_naming_the_allow_rules(ready_check, run_cli, fake_processes, tmp_path):
+    fake_processes.answers(holding(**TIERS))
+    home = tmp_path / "scratch-home"
+    home.mkdir()
+    code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
+
+    rows = [line for line in out.splitlines() if line.startswith("fail  subagent permissions")]
+    assert code == 1, out
+    assert len(rows) == 1, out
+    assert "Bash(git *)" in rows[0] and "Bash(make test)" in rows[0] and "scripts" in rows[0], rows
+
+
+def test_issue_4529_allow_rules_spread_over_the_user_and_project_and_local_settings_make_the_subagent_permissions_row_ok_with_no_rule_owed_for_an_unresolved_test_command(ready_check, run_cli, fake_processes, tmp_path):
+    fake_processes.answers(holding(**{"detect-test-command.sh --tier all": (3, "", "")}))
+    home = tmp_path / "scratch-home"
+    (home / ".claude").mkdir(parents=True)
+    (tmp_path / ".claude").mkdir()
+    scripts = ready_check.paths.resolved_scripts_of(ready_check.__file__)
+    (home / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"allow": ["Bash(git *)"]}}))
+    (tmp_path / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"allow": ["Bash(ls)"]}}))
+    (tmp_path / ".claude" / "settings.local.json").write_text(json.dumps({"permissions": {"allow": [f"Bash({scripts}/*)"]}}))
+    _, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
+
+    lines = out.splitlines()
+    assert "ok    subagent permissions" in lines, out
+    assert not [line for line in lines if line.startswith("fail  subagent permissions")], out

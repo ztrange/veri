@@ -503,6 +503,38 @@ def probe_bypass(scratch):
         f"denied tools: {said}; nonce files missing or wrong: {', '.join(missing) or 'none'}; look in {DENY_PLACES}")
 
 
+SETTINGS_FILES = ("~/.claude/settings.json", ".claude/settings.json", ".claude/settings.local.json")
+
+
+def merged_permissions():
+    """(defaultModes, allow rules) across the user, project and local settings files that parse."""
+    modes, allowed = [], set()
+    for name in SETTINGS_FILES:
+        try:
+            with open(os.path.expanduser(name)) as handle:
+                permissions = json.load(handle).get("permissions") or {}
+            modes.append(permissions.get("defaultMode"))
+            allowed.update(permissions.get("allow") or [])
+        except (OSError, ValueError, AttributeError):
+            continue
+    return modes, allowed
+
+
+def subagent_permissions_row():
+    modes, allowed = merged_permissions()
+    if "bypassPermissions" in modes:
+        return "subagent permissions", None
+    wanted = ["Bash(git *)"]
+    command = resolved_tier("all")[1]
+    if command:
+        wanted.append(f"Bash({command})")
+    wanted.append(f"Bash({paths.resolved_scripts_of(__file__)}/*)")
+    missing = [rule for rule in wanted if rule not in allowed]
+    if not missing:
+        return "subagent permissions", None
+    return "subagent permissions", "the dev session's subagents would prompt; add to permissions.allow: " + ", ".join(missing)
+
+
 def bash_row():
     holds = launch_floor.bash_refusal("ready-check") == 0
     return "bash", None if holds else "install bash 5 or newer (`brew install bash`) and put it first on PATH"
@@ -515,7 +547,7 @@ def python_row():
 
 CHECKS = (tier_row("fast"), tier_row("all"), one_test_file_row, pull_request_row, push_row, test_file_row, tdd_ignored_row,
           gh_auth_row, push_access_row, label_row, *map(state_label_row, STATE_LABELS), token_scopes_row, priority_label_row, bug_label_row,
-          actions_read_row, run_state_ignore_row, push_dry_run_row, bypass_permissions_row, bash_row, python_row)
+          actions_read_row, run_state_ignore_row, push_dry_run_row, bypass_permissions_row, subagent_permissions_row, bash_row, python_row)
 # The permission rows (PRD 016.6a-c), which --no-permissions skips: RD7's rows are cheap and refuse a run, these only warn.
 PERMISSION_CHECKS = (token_scopes_row, priority_label_row, bug_label_row, actions_read_row, run_state_ignore_row,
                      push_dry_run_row, bypass_permissions_row)
