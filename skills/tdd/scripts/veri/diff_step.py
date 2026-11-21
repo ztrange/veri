@@ -4,6 +4,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import sys
 
+import case_reader
 import fused
 import fused_step
 import run_dir
@@ -157,7 +158,14 @@ def recheck_base(n, wt, step, values):
 
 def finish(n, wt, step, values):
     """The PASS branch: pin-recheck.sh over the step's range (0 or 3 leave the receipt the tick needs), then
-    step-tick.sh, whose lines end this call's. Its 1, a pin this step disarmed, is a verify-diff REJECT (DST7)."""
+    step-tick.sh, whose lines end this call's. Its 1, a pin this step disarmed, is a verify-diff REJECT (DST7). A re-pin
+    step whose net diff since its step base changes no test file is a verify-diff REJECT before either (#4512)."""
+    if step.startswith(REPIN_STEP):
+        changed = fused.checked("pin", "git", "diff", "--name-only", values["step_base"], "HEAD", cwd=wt).splitlines()
+        if not any(case_reader.is_test_path(path) for path in changed):
+            pin = step[len(REPIN_STEP):].split(" ", 1)[0]
+            reject(n, wt, step, values, "pin", "REJECT: the re-pin step's commits since %s change no test file; its "
+                   "deliverable is the edited case of the pin on %s\n" % (values["step_base"], pin))
     code, said, _ = fused.call(fused.script("pin-recheck.sh"), "--branch-base", fused_step.branch_base("pin", wt, n),
                                recheck_base(n, wt, step, values), cwd=wt)
     if code == 1:
