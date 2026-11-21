@@ -7,7 +7,8 @@
 #        test-quality.sh record <n> < <leaf-report>       (run from the worktree; writes .tdd/issue-<n>-test-quality)
 # Exit:  files: 0 printed; 3 none; 2 git could not answer, or bad arguments
 #        anchor: 0 printed; 3 none, or a step carries two criterion tags; 2 unreadable ledger
-#        record: 0 findings recorded; 3 FINDING: none, the file written with no finding;
-#        2 nothing written: bad arguments, no FINDING: line, or a line naming no <file>::<case> or a case its file does not define
+#        record: 0 findings recorded, each refused finding (no <file>::<case>, a kind or a why, or a case its file
+#        does not define) skipped and named on stderr; 3 FINDING: none, the file written with no finding;
+#        2 nothing written: bad arguments, no FINDING: line, or every finding refused
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/quality_findings.py" "$@"
