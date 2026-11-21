@@ -1051,3 +1051,30 @@ def test_issue_4529_a_default_mode_of_bypass_permissions_set_only_in_the_local_s
     lines = out.splitlines()
     assert "ok    subagent permissions" in lines, out
     assert not [line for line in lines if line.startswith("fail  subagent permissions")], out
+
+
+@pytest.mark.parametrize("broken", ["{not json", "[1, 2]", '{"permissions": "allow everything"}', '{"permissions": ["Bash(git *)"]}'],
+                         ids=["not-json", "not-an-object", "permissions-a-string", "permissions-a-list"])
+def test_issue_4529_a_settings_file_that_is_not_json_or_not_an_object_or_whose_permissions_is_not_an_object_is_skipped_and_the_other_files_still_answer_the_subagent_permissions_row(broken, ready_check, run_cli, fake_processes, tmp_path):
+    fake_processes.answers(holding(**TIERS))
+    home = tmp_path / "scratch-home"
+    (home / ".claude").mkdir(parents=True)
+    (tmp_path / ".claude").mkdir()
+    scripts = ready_check.paths.resolved_scripts_of(ready_check.__file__)
+    (home / ".claude" / "settings.json").write_text(broken)
+    (tmp_path / ".claude" / "settings.local.json").write_text(json.dumps({"permissions": {"allow": ["Bash(git *)", "Bash(make test)", f"Bash({scripts}/*)"]}}))
+    _, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
+
+    lines = out.splitlines()
+    assert "ok    subagent permissions" in lines, out
+
+
+def test_issue_4529_when_every_settings_file_is_unreadable_as_an_object_the_subagent_permissions_row_fails_naming_the_rules_and_nothing_crashes(ready_check, run_cli, fake_processes, tmp_path):
+    fake_processes.answers(holding(**TIERS))
+    home = tmp_path / "scratch-home"
+    (home / ".claude").mkdir(parents=True)
+    (home / ".claude" / "settings.json").write_text("{not json")
+    _, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
+
+    rows = [line for line in out.splitlines() if line.startswith("fail  subagent permissions")]
+    assert len(rows) == 1 and "Bash(git *)" in rows[0], out
