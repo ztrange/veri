@@ -2133,3 +2133,22 @@ def test_main_renders_the_branch_prompt_with_exit_0_from_the_branch_diff_the_spe
     assert (b"git diff 0123abcdef..HEAD" in out, b'zorblat("Frob & Nitz/Quux")' in out, fast.encode() in out,
             b"{{" in out, b"tidied the helper" in out, b"the author meant well" in out) == (
         True, True, True, False, False, False)
+
+
+def test_main_reads_the_branch_prompts_named_spec_rows_at_the_branch_base_not_at_head(
+        tmp_path, monkeypatch, capsysbinary, fake_processes, build_verify_prompt):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "specs").mkdir()
+    (tmp_path / "specs" / "prd-zz.md").write_bytes(b"| ZZ1 | the HEAD wording leaf-edited-it |\n")
+    spec = tmp_path / "issue.md"
+    spec.write_bytes(b"Frob must nitz.\n\nSpec: specs/prd-zz.md , rows ZZ1\n")
+    at_base = b"| ZZ1 | the base wording predates the run |\n"
+
+    def show(line, **_):
+        return (0, at_base.decode(), "") if line.endswith(":specs/prd-zz.md") or line.endswith(":./specs/prd-zz.md") else (1, "", "")
+
+    fake_processes.answers({"git ls-files": every_file_tracked, "git show": show}, default=(0, "", ""))
+    code = build_verify_prompt.main(["--fast-cmd", "make unit", "--branch-base", "0123abcdef", "branch", str(spec)])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, b"the base wording predates the run" in out, b"leaf-edited-it" in out) == (0, True, False)
