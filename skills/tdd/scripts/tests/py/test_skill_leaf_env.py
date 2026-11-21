@@ -43,6 +43,7 @@ PLACEHOLDERS = (
     ("<base-sha>", "89abcde"), ("<conflicting-files>", "probe.txt"), ("[target]", "probe-target"),
     ("<base>", "$(git log -1 --format=%H)"),  # the scratch tree's one commit: a recorded base (#4375)
     ("<branch-base>", "$(git log -1 --format=%H)"),  # 2c's spelling of the same recorded base (#4375)
+    ('"$step_green"', "0123abc"),  # Refactor 1's shell variable, the step's own green tick (#4544)
 )
 
 
@@ -210,7 +211,7 @@ def check_developer_launch(probe, lineno, line, launch):
 
 
 def check_verifier_launch(probe, lineno, line, launch):
-    clean = re.sub(r" --(step|fast-cmd) ('[^']*'|\"[^\"]*\")| --branch-base (\$\([^)]*\)|\S+)", "", launch)
+    clean = re.sub(r" --(step|fast-cmd) ('[^']*'|\"[^\"]*\")| --(branch-base|step-green) (\$\([^)]*\)|\S+)", "", launch)
     words = clean.split("run-verdict.sh ", 1)[1].split()
     words += [""] * (3 - len(words))
     phase, spec, subject = words[:3]
