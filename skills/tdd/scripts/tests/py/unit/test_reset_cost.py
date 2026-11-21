@@ -53,17 +53,6 @@ def two_resets(tmp_path):
     return transcript, state
 
 
-def test_dev_prints_each_reset_with_its_local_time_its_fixed_cost_and_its_growth_per_request(tmp_path, monkeypatch, run_cli):
-    reset_cost = importlib.import_module("veri.reset_cost")
-    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    two_resets(tmp_path)
-
-    code, out, err = run_cli(reset_cost, ["dev"])
-
-    assert (code, out.splitlines()[:2]) == (0, ["2026-11-13T10:00:00 K=28270 g=1000",
-                                                "2026-11-13T12:00:00 K=26410 g=500"]), err
-
-
 def restarted_conductor(tmp_path):
     """Run 7's conductor relaunched once at 10:30: its first request writes 40000 to the 1-hour cache
     (2 + 80000 + 500 + 50 = 80552 units) and its context then grows 2000 over 2 requests."""
@@ -100,54 +89,47 @@ def test_conductor_prints_each_restart_with_its_local_time_the_relaunch_first_re
 def test_after_the_resets_it_prints_the_medians_the_cache_read_rate_and_the_optimum_growth_next_to_the_knob(tmp_path, monkeypatch, run_cli):
     reset_cost = importlib.import_module("veri.reset_cost")
     monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    transcript, state = two_resets(tmp_path)
+    restarted_conductor(tmp_path)
 
-    code, out, err = run_cli(reset_cost, ["dev"], env={"VERI_RESET_GROWTH_DEV": "65000"})
+    code, out, err = run_cli(reset_cost, ["conductor", "7"], env={"VERI_RESET_GROWTH_CONDUCTOR": "65000"})
 
-    # medians K = (28270 + 26410) / 2 = 27340, g = (1000 + 500) / 2 = 750; r = 0.2 / 4 = 0.05;
-    # √(2 · 27340 · 750 / 0.05) = 28639.1
+    # one restart: medians K = 80552, g = 1000; r = 0.2 / 4 = 0.05; √(2 · 80552 · 1000 / 0.05) = 56763.4
     lines = out.splitlines() + ["", ""]
-    assert (code, lines[2], str(state) in lines[3], str(transcript) in lines[3]) == (
-        0, "median K=27340 g=750 r=0.05 optimum=28639 VERI_RESET_GROWTH_DEV=65000", True, True), err
+    log, journal = tmp_path / ".tdd" / "conductor-7.log", tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
+    assert (code, lines[1], str(log) in lines[2], str(journal) in lines[2]) == (
+        0, "median K=80552 g=1000 r=0.05 optimum=56763 VERI_RESET_GROWTH_CONDUCTOR=65000", True, True), err
 
 
-def test_with_no_reset_recorded_it_prints_nothing_and_exits_3(tmp_path, monkeypatch, run_cli):
+def test_with_no_restart_recorded_it_prints_nothing_and_exits_3(tmp_path, monkeypatch, run_cli):
     reset_cost = importlib.import_module("veri.reset_cost")
     monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     (tmp_path / ".tdd" / "wt" / "7").mkdir(parents=True)
     (tmp_path / ".tdd" / "conductor-7.log").write_text(json.dumps({"type": "system", "subtype": "init"}) + "\n")
-    (tmp_path / ".tdd" / "role-dev.state").write_text("n=1\nrecovered-at=2026-11-13T10:05:00\n")
 
-    dev = run_cli(reset_cost, ["dev"])
-    conductor = run_cli(reset_cost, ["conductor", "7"])
+    code, out, _ = run_cli(reset_cost, ["conductor", "7"])
 
-    assert (dev[:2], conductor[:2]) == ((3, ""), (3, ""))
+    assert (code, out) == (3, "")
 
 
-def test_an_unreadable_transcript_or_conductor_log_exits_2_naming_it(tmp_path, monkeypatch, run_cli):
+def test_an_unreadable_conductor_log_exits_2_naming_it(tmp_path, monkeypatch, run_cli):
     reset_cost = importlib.import_module("veri.reset_cost")
     monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    transcript, _ = two_resets(tmp_path)
-    transcript.unlink()
-    transcript.mkdir()
     restarted_conductor(tmp_path)
     log = tmp_path / ".tdd" / "conductor-7.log"
     log.unlink()
     log.mkdir()
 
-    dev = run_cli(reset_cost, ["dev"])
-    conductor = run_cli(reset_cost, ["conductor", "7"])
+    answer = run_cli(reset_cost, ["conductor", "7"])
 
-    assert (dev, conductor) == ((2, "", "reset-cost.sh: unreadable transcript %s\n" % transcript),
-                                (2, "", "reset-cost.sh: unreadable conductor log %s\n" % log))
+    assert answer == (2, "", "reset-cost.sh: unreadable conductor log %s\n" % log)
 
 
-def test_a_role_other_than_dev_or_conductor_a_bad_lane_or_a_bad_run_number_exits_2_with_the_usage_line(tmp_path, monkeypatch, run_cli):
+def test_a_role_other_than_conductor_a_lane_or_a_bad_run_number_exits_2_with_the_usage_line(tmp_path, monkeypatch, run_cli):
     reset_cost = importlib.import_module("veri.reset_cost")
     monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     two_resets(tmp_path)
     restarted_conductor(tmp_path)
-    usage = "usage: reset-cost.sh dev [--lane <lane>] | conductor <n>\n"
+    usage = "usage: reset-cost.sh conductor <n>\n"
     refused = [["coord"], ["coord", "--lane", "mu"], ["conductr", "7"], [], ["dev", "--lane", ""],
                ["dev", "--lane", "../mu"], ["dev", "--lane"], ["conductor", "0"], ["conductor", "x7"],
                ["conductor"], ["conductor", "7", "8"], ["dev", "extra"]]
@@ -157,109 +139,76 @@ def test_a_role_other_than_dev_or_conductor_a_bad_lane_or_a_bad_run_number_exits
     assert {argv: answer for argv, answer in answers.items() if answer != (2, "", usage)} == {}
 
 
-def test_a_reset_whose_requests_ran_on_an_unpriced_model_prints_its_K_as_unknown_never_0(tmp_path, monkeypatch, run_cli):
+def test_a_restart_whose_first_request_ran_on_an_unpriced_model_prints_its_K_as_unknown_never_0(tmp_path, monkeypatch, run_cli):
     reset_cost = importlib.import_module("veri.reset_cost")
     monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    transcript, _ = two_resets(tmp_path)
-    transcript.write_text(transcript.read_text().replace('"id": "m1", "model": "%s"' % MODEL,
-                                                         '"id": "m1", "model": "unpriced-model"'))
+    restarted_conductor(tmp_path)
+    log = tmp_path / ".tdd" / "conductor-7.log"
+    log.write_text(log.read_text().replace('"id": "c3", "model": "%s"' % MODEL, '"id": "c3", "model": "unpriced-model"'))
 
-    code, out, err = run_cli(reset_cost, ["dev"])
+    code, out, err = run_cli(reset_cost, ["conductor", "7"])
 
-    assert (code, out.splitlines()[:2]) == (0, ["2026-11-13T10:00:00 K=unknown g=1000",
-                                                "2026-11-13T12:00:00 K=26410 g=500"]), err
+    assert (code, out.splitlines()[:1]) == (0, ["2026-11-14T10:30:00 K=unknown g=1000"]), err
 
 
 def test_one_reset_with_an_unknown_figure_makes_the_optimum_unknown_and_the_sources_line_says_why(tmp_path, monkeypatch, run_cli):
     reset_cost = importlib.import_module("veri.reset_cost")
     monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    _, state = two_resets(tmp_path)
-    state.write_text(state.read_text().replace("recovered-at=2026-11-13T12:04:00\n", ""))
+    restarted_conductor(tmp_path)
+    log = tmp_path / ".tdd" / "conductor-7.log"
+    log.write_text(log.read_text().replace('"id": "c3", "model": "%s"' % MODEL, '"id": "c3", "model": "unpriced-model"'))
 
-    code, out, err = run_cli(reset_cost, ["dev"])
+    code, out, err = run_cli(reset_cost, ["conductor", "7"])
 
-    lines = out.splitlines() + ["", "", "", ""]
-    assert (code, lines[1], lines[2], "optimum unknown: 1 of 2 resets has an unknown K or g" in lines[3]) == (
-        0, "2026-11-13T12:00:00 K=unknown g=unknown",
-        "median K=28270 g=1000 r=0.05 optimum=unknown VERI_RESET_GROWTH_DEV=70000", True), out
-
-
-def test_a_transcript_line_that_is_not_a_json_object_is_skipped_and_counted_in_the_sources_line(tmp_path, monkeypatch, run_cli):
-    reset_cost = importlib.import_module("veri.reset_cost")
-    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    transcript, _ = two_resets(tmp_path)
-    transcript.write_text("[1, 2]\n" + transcript.read_text() + '{"type": "assistant", "timest')
-
-    code, out, err = run_cli(reset_cost, ["dev"])
-
-    lines = out.splitlines() + ["", "", "", ""]
-    assert (code, lines[:2], "2 transcript lines that are not a JSON object skipped" in lines[3]) == (
-        0, ["2026-11-13T10:00:00 K=28270 g=1000", "2026-11-13T12:00:00 K=26410 g=500"], True), (out, err)
+    lines = out.splitlines() + ["", "", ""]
+    assert (code, lines[1], "optimum unknown: 1 of 1 resets has an unknown K or g" in lines[2]) == (
+        0, "median K=unknown g=1000 r=unknown optimum=unknown VERI_RESET_GROWTH_CONDUCTOR=70000", True), out
 
 
 def test_a_request_with_an_unreadable_timestamp_is_skipped_counted_and_never_echoed(tmp_path, monkeypatch, run_cli):
     reset_cost = importlib.import_module("veri.reset_cost")
     monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    transcript, _ = two_resets(tmp_path)
-    bad = request("m9", "2026-11-13T11:30:00", cache_read=22500)
+    restarted_conductor(tmp_path)
+    log = tmp_path / ".tdd" / "conductor-7.log"
+    bad = request("c9", "2026-11-14T10:45:00", cache_read=51500)
     bad["timestamp"] = "SECRET-not-a-time"
-    transcript.write_text(transcript.read_text() + json.dumps(bad) + "\n")
+    log.write_text(log.read_text() + json.dumps(bad) + "\n")
 
-    code, out, err = run_cli(reset_cost, ["dev"])
+    code, out, err = run_cli(reset_cost, ["conductor", "7"])
 
-    lines = out.splitlines() + ["", "", "", ""]
-    assert (code, lines[:2], "1 request with an unreadable timestamp skipped" in lines[3], "SECRET" in out + err) == (
-        0, ["2026-11-13T10:00:00 K=28270 g=1000", "2026-11-13T12:00:00 K=26410 g=500"], True, False), (out, err)
+    lines = out.splitlines() + ["", "", ""]
+    assert (code, lines[0], "1 request with an unreadable timestamp skipped" in lines[2], "SECRET" in out + err) == (
+        0, "2026-11-14T10:30:00 K=80552 g=1000", True, False), (out, err)
 
 
-def test_a_negative_token_count_makes_its_reset_unknown_rather_than_a_negative_figure(tmp_path, monkeypatch, run_cli):
+def test_a_negative_token_count_makes_its_restart_unknown_rather_than_a_negative_figure(tmp_path, monkeypatch, run_cli):
     reset_cost = importlib.import_module("veri.reset_cost")
     monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    transcript, _ = two_resets(tmp_path)
-    transcript.write_text(transcript.read_text().replace('"input_tokens": 5, "cache_read_input_tokens": 0,',
-                                                         '"input_tokens": -50000, "cache_read_input_tokens": 0,'))
+    restarted_conductor(tmp_path)
+    log = tmp_path / ".tdd" / "conductor-7.log"
+    log.write_text(log.read_text().replace('"input_tokens": 2, "cache_read_input_tokens": 10000,',
+                                           '"input_tokens": -50000, "cache_read_input_tokens": 10000,'))
 
-    code, out, err = run_cli(reset_cost, ["dev"])
+    code, out, err = run_cli(reset_cost, ["conductor", "7"])
 
-    assert (code, out.splitlines()[:2]) == (0, ["2026-11-13T10:00:00 K=28270 g=1000",
-                                                "2026-11-13T12:00:00 K=unknown g=500"]), (out, err)
-
-
-def test_reset_at_lines_out_of_order_make_their_resets_unknown_and_nothing_negative_is_printed(tmp_path, monkeypatch, run_cli):
-    reset_cost = importlib.import_module("veri.reset_cost")
-    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    _, state = two_resets(tmp_path)
-    text = state.read_text()
-    first = "reset-at=2026-11-13T10:00:00\nrecovered-at=2026-11-13T10:05:00\n"
-    second = "reset-at=2026-11-13T12:00:00\nrecovered-at=2026-11-13T12:04:00\n"
-    state.write_text(text.replace(first, "@").replace(second, first).replace("@", second))
-
-    code, out, err = run_cli(reset_cost, ["dev"])
-
-    assert (code, out.splitlines()[:3]) == (0, ["2026-11-13T12:00:00 K=unknown g=unknown",
-                                                "2026-11-13T10:00:00 K=unknown g=unknown",
-                                                "median K=unknown g=unknown r=unknown optimum=unknown VERI_RESET_GROWTH_DEV=70000"]), (out, err)
-
-
-def test_an_unparseable_stamp_in_the_state_file_exits_2_printing_nothing_and_naming_the_field_and_line_not_its_value(tmp_path, monkeypatch, run_cli):
-    reset_cost = importlib.import_module("veri.reset_cost")
-    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    _, state = two_resets(tmp_path)
-    state.write_text(state.read_text().replace("reset-at=2026-11-13T12:00:00", "reset-at=SECRET"))
-
-    code, out, err = run_cli(reset_cost, ["dev"])
-
-    assert (code, out, err) == (2, "", "reset-cost.sh: %s line 6: reset-at is not a local time stamp\n" % state)
+    assert (code, out.splitlines()[:1]) == (0, ["2026-11-14T10:30:00 K=unknown g=unknown"]), (out, err)
 
 
 def test_a_growth_knob_that_is_not_a_whole_number_of_tokens_of_at_least_1_exits_2_naming_it_and_printing_nothing(tmp_path, monkeypatch, run_cli):
     reset_cost = importlib.import_module("veri.reset_cost")
     monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
-    two_resets(tmp_path)
     restarted_conductor(tmp_path)
 
-    answers = [run_cli(reset_cost, argv, env={knob: "abc"})
-               for argv, knob in ((["dev"], "VERI_RESET_GROWTH_DEV"), (["conductor", "7"], "VERI_RESET_GROWTH_CONDUCTOR"))]
+    code, out, err = run_cli(reset_cost, ["conductor", "7"], env={"VERI_RESET_GROWTH_CONDUCTOR": "abc"})
 
-    assert [(code, out, len(err.splitlines()), knob in err) for (code, out, err), knob in
-            zip(answers, ("VERI_RESET_GROWTH_DEV", "VERI_RESET_GROWTH_CONDUCTOR"))] == [(2, "", 1, True), (2, "", 1, True)]
+    assert (code, out, len(err.splitlines()), "VERI_RESET_GROWTH_CONDUCTOR" in err) == (2, "", 1, True)
+
+
+def test_4465_the_dev_mode_is_gone_so_dev_with_or_without_a_lane_exits_2_as_bad_arguments_with_the_usage_line(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    two_resets(tmp_path)
+
+    answers = [run_cli(reset_cost, argv) for argv in (["dev"], ["dev", "--lane", "mu"])]
+
+    assert answers == [(2, "", "usage: reset-cost.sh conductor <n>\n")] * 2

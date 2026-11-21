@@ -7,7 +7,6 @@ import pytest
 ENTRY_POINTS = {
     "VERI_CONDUCTOR_CTX_BUDGET": ("veri.parallel_conductors", [], {}),
     "VERI_RESET_GROWTH_CONDUCTOR": ("veri.restart_conductor", ["7"], {}),
-    "VERI_RESET_GROWTH_DEV": ("veri.reset_cost", ["dev"], {}),
     "REVISE_BUDGET": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_REBASED_TIP_SUITE": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_BRANCH_SUITE": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
@@ -340,7 +339,7 @@ def test_the_refusing_table_is_exactly_the_entries_that_state_a_refusal():
 
     assert tunables.TABLE == {n: e for n, e in tunables.TUNABLES.items() if e.refusal}
     assert set(tunables.TABLE) == {
-        "VERI_CONDUCTOR_CTX_BUDGET", "VERI_RESET_GROWTH_CONDUCTOR", "VERI_RESET_GROWTH_DEV",
+        "VERI_CONDUCTOR_CTX_BUDGET", "VERI_RESET_GROWTH_CONDUCTOR",
         "VERI_KILL_POLL", "REVISE_BUDGET", "VERI_COMMENT_CHUNK", "VERI_REBASED_TIP_SUITE",
         "VERI_BRANCH_SUITE", "VERI_BASELINE_FULL_TIER", "VERI_FULL_TIER_MAX_AGE_DAYS",
         "VERI_CI_FLAKE_RERUNS", "VERI_TEST_QUALITY_FIXES", "VERI_SURROUND_MUTANTS"}
