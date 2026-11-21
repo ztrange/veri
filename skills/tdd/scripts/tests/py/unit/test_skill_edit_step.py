@@ -2579,13 +2579,17 @@ def test_a_step_whose_issue_row_is_a_letter_suffixed_id_reword_of_a_held_row_is_
     def run(cmd, **kw):
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
+    grades = iter([(1, "QU6b: FAIL - not blue\n"), (0, "")])
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: next(grades))
+    authors = []
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: authors.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step, "subprocess",
                         types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
 
     code, out, err = run_cli(skill_edit_step, ["--added", "reword QU6b", str(tmp_path / "issue.md"), "unit.md"])
 
+    assert code == 0, (code, out, err)
     assert "QU6b" not in err, (code, out, err)
-    assert code != 2, (code, out, err)
+    assert len(authors) == 1, (code, out, err, authors)
