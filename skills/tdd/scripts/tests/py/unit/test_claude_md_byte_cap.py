@@ -74,3 +74,15 @@ def test_a_text_over_the_cap_in_utf8_bytes_but_not_in_characters_fails_4517():
     assert cap >= len(text)
 
     assert cap_failure(text, cap, {"A": 1}) is not None
+
+
+def test_the_most_grown_section_is_chosen_by_utf8_bytes_not_characters_4517():
+    more_characters = "## A\n\n" + "a" * 30 + "\n"
+    more_bytes = "## B\n\n" + "é" * 20 + "\n"
+    assert len(more_characters) > len(more_bytes)
+    assert len(more_characters.encode("utf-8")) < len(more_bytes.encode("utf-8"))
+    text = "# x\n\n" + more_characters + more_bytes
+
+    message = cap_failure(text, 10, {})
+
+    assert "'## B'" in message
