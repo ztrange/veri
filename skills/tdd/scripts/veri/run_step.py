@@ -125,7 +125,6 @@ def main(argv):
     # The re-pin step pin-reject-route.sh --recheck inserts runs before the step it re-pins is closed (#4510).
     repin = fused_step.first_step(wt, n, repin_after(pending)) if pending is not None else None
     step = repin or pending or fused_step.first_step(wt, n, ledger.handed_out)
-    pending = None if repin is not None else pending
     if step is None:
         sys.stderr.write("run-step.sh: no open step in %s\n" % (LEDGER % n))
         return 3
