@@ -2,7 +2,7 @@
 
 Blind verification ([ADR-0003](0003-blind-independent-verifier.md)) stays on by default. An
 operator may switch it off per phase for one run, using `VERI_SKIP_VERIFY=<phase>[,<phase>…]`
-with phases `red`, `pin`, `green`, `refactor` and `diff`. verify-plan can never be switched off.
+with phases `red`, `pin`, `green`, `refactor`, `diff` and `branch`. verify-plan can never be switched off.
 This amends ADR-0003, which states blindness without exception.
 
 ## Context
