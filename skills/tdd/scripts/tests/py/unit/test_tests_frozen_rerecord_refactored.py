@@ -66,12 +66,33 @@ def test_rerecord_refactored_re_records_a_case_the_verified_refactor_tidied_and_
     repo.commit("A refactor", all=True)
     (tmp_path / VERDICT).write_text("0")
 
-    code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
-    spared = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2], "--except", "test_two"],
-                     cwd=tmp_path)[:2]
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
     refused = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+    skips = (_skip_lines(err, "%s test_one" % ROOT_SUITE), _skip_lines(
+        err, "%s test_two (body digest matches neither green nor HEAD)" % ROOT_SUITE))
 
-    assert (code, spared, refused) == (1, (0, ""), (1, "test_two (%s)\n" % step))
+    assert (code, skips, refused[0]) == (1, (0, 1), 1)
+
+
+def test_rerecord_refactored_whose_closing_check_earlier_exits_1_leaves_every_frozen_record_byte_identical_4554(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite = tmp_path / ROOT_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1), BODY % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], ROOT_SUITE], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    suite.write_text(suite.read_text().replace("x = 2\n    assert x\n", "x = 3\n    assert x\n"))
+    _ledger(tmp_path, A="done")
+    green = repo.commit("A green", all=True)
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    repo.commit("A refactor", all=True)
+    (tmp_path / VERDICT).write_text("0")
+    records = sorted((tmp_path / ".tdd").glob("tests-frozen-*.record"))
+    before = [r.read_bytes() for r in records]
+
+    code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
+
+    assert (code, len(records), [r.read_bytes() for r in records]) == (1, 1, before)
 
 
 def test_rerecord_refactored_re_records_an_earlier_steps_case_whose_assertion_line_the_refactor_only_reformatted_2626(

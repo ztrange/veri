@@ -420,7 +420,7 @@ def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_
     assert (code, _skip_lines(err, "suite_test.go TestX"),
             _skip_lines(err, "suite_test.go TestY"),
             [line for line in after if "\tTestX\t" in line] == x_lines, held in after) == (
-        1, 1, 0, True, True)
+        1, 1, 0, True, False)
 
 
 def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_is_neither_greens_nor_heads_when_the_refactor_added_an_assertion_2985(
@@ -442,7 +442,7 @@ def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_
     assert (code, _skip_lines(err, "suite_test.go TestX"),
             _skip_lines(err, "suite_test.go TestY"),
             [line for line in after if "\tTestX\t" in line] == x_lines, held in after) == (
-        1, 1, 0, True, True)
+        1, 1, 0, True, False)
 
 
 def test_rerecord_refactored_skips_a_go_case_whose_body_digest_is_neither_greens_nor_heads_while_its_helpers_digest_is_greens_2985(
