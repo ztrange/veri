@@ -349,3 +349,26 @@ def test_4472_a_verdict_branch_leaf_ending_with_no_verdict_exits_2_appends_no_st
     ledger = (wt / ".tdd" / "issue-12.md").read_text()
     assert (code, "bail.sh" in calls, "add-ledger-step.sh" in calls, ledger.count("⟦branch-repair⟧")) == (
         2, False, False, 0)
+
+
+def test_4472_with_branch_in_the_pinned_skip_verify_it_launches_no_leaf_and_records_verify_branch_skipped_switched_off(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (wt / ".tdd" / "issue-12-skip-verify").write_text("branch\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    launches = []
+    marks = []
+
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: launches.append(a[2]))
+    monkeypatch.setattr(fused, "mark", lambda where, wt_, n, step, *fields, **more: marks.append(fields))
+    monkeypatch.setattr(fused, "call", lambda *a, **kw: (0, "", ""))
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "f" * 40 + "\n", "")
+                        if a[:2] == ("git", "rev-parse") else (0, "", ""))
+    run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    assert (launches, marks) == ([], [("verify-branch-skipped", "reason=switched-off")])
