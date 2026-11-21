@@ -5,7 +5,7 @@ import os
 import pytest
 
 from process_fakes import HANGS
-from veri import queued_merge
+from veri import mutation_record, queued_merge
 
 PR = "https://github.com/o/r/pull/7"
 ARGV = [PR, "/wt", "feature", "the capability"]
@@ -1807,3 +1807,31 @@ def test_4471_queued_merge_with_a_ci_on_pr_line_that_is_neither_0_nor_1_and_the_
     code, _, err = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], cwd=str(tmp_path))
 
     assert (code, "veri: ci on pr:" in err and "maybe" in err, len(err.strip().splitlines())) == (2, True, 1), err
+
+
+def test_4513_queued_merge_of_a_run_whose_mutation_record_pins_old_text_its_file_no_longer_holds_exits_1_naming_the_pin_frees_the_lock_and_makes_no_merge_call(
+        fake_processes, run_cli, tmp_path):
+    BRANCH = "tdd/3255-the-done-comment"
+    worktree = tmp_path / "wt"
+    (worktree / ".tdd").mkdir(parents=True)
+    (worktree / "lib").mkdir()
+    (worktree / ".tdd" / "issue-3255.md").write_text("# issue\n")
+    (worktree / "lib" / "calc.py").write_text("def add(a, b):\n    return a + b\n")
+    (worktree / ".tdd" / "issue-3255-mutations.md").write_text(
+        mutation_record.format_record([("file", "lib/calc.py"), ("old", "    return a - b\n"), ("new", "    return 0\n")]))
+    body = json.dumps({"body": "Closes #3255 — the capability\n"})
+
+    def with_body(answer):
+        def wrapped(line, **kwargs):
+            if "pr view" in line:
+                return 0, body, ""
+            return answer(line.replace(BRANCH, "feature"), **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(with_body)
+
+    code, _, err = run_cli(queued_merge, [PR, str(worktree), BRANCH, "the capability"], env={"VERI_GH_DRIVER": "graphql"})
+
+    merges = [c for c in calls if "pr merge" in c or "pulls/7/merge" in c]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, "lib/calc.py return a - b" in err, merges, len(released)) == (1, True, [], 1)
