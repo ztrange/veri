@@ -15,7 +15,10 @@ to a reader of the issue, not only in the conductor's log.
 
 ### Check 1 — repo and clean tree
 
-If the caller's checkout is dirty, stop and ask the user to commit or stash.
+A dirty caller's checkout is a preflight refusal, not a bail: call
+`$S/preflight-refused.sh <n> 1 <cause>`, `<cause>` naming the blocking paths (the `git status --porcelain`
+lines), and stop without a bail. The issue gets no `bailed` label and stays queued; the refusal comment
+tells the user to commit or stash.
 
 ### Step 2 — authentication and launch
 
