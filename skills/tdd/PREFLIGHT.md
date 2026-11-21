@@ -227,7 +227,15 @@ by the steps below. Steps 1 to 7 stay stated here.
    `VERI_SKILL_EDIT_BUDGET`.
 
    Then `VERI_SKIP_VERIFY`: it is a comma-separated list of phases whose verify is skipped. Each
-   word must be a phase this release can skip, and `plan` is never one. Any other word is false, before the baseline.
+   word must be a phase this release can skip, and `plan` is never one; `branch` is among the phases
+   it may name. Any other word is false, before the baseline.
+
+   Then `VERI_BRANCH_REPAIRS`, the repair steps `verify-branch` may append per run (default 1): it must
+   be unset, or a whole number ≥ 0. A bad value is exit 2, before the baseline. It is a twelfth budget
+   axis, never folded into the other eleven: a rejected branch is not a stuck leaf or a missing verdict.
+   ```
+   [[ "${VERI_BRANCH_REPAIRS:-1}" =~ ^[0-9]+$ ]]
+   ```
 
    Then `VERI_EFFORT_VERIFIER`, the effort every verifier leaf is launched at: it must be unset, empty, or one of
    `low`, `medium`, `high`, `xhigh` or `max`:
