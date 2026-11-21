@@ -1089,7 +1089,7 @@ that push; else the ending call's code (a bail's too).
    $S/wait-leaf.sh develop-refactor  # foreground; again on exit 3
    ```
    **One leaf for the whole step**, not one per transform. `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
-   comma-separated line. Compute it **once**: `$green` is the step's own green tick, not a re-pin's (#4510); `$S/refactor-touched.sh "$green"` prints its files — adding
+   comma-separated line. Compute it once: `$green` is `<green-sha>`, the step's own tick, not a re-pin's (#4510); `$S/refactor-touched.sh "$green"` prints its files — adding
    anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work on disk. The template owns the rules — the leaf triages what it sees in those files into
    **structural** and **cosmetic** candidates and applies the structural ones, most valuable first, up to its budget; it runs only the touched files' tests after every
    transform and **reverts** one that turns them red rather than leave a red suite; it takes
