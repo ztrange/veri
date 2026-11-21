@@ -34,3 +34,10 @@ skills/tdd/scripts/tests/py/unit/test_verify_branch.py
 command 159
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_verify_branch.py::test_4472_when_the_verdict_branch_leaf_passes_it_exits_0_and_adds_no_step_to_the_ledger
 
+before 40
+50a6e8b31267663864c338bdd82d44ffba6eb6f4
+keep 54
+skills/tdd/scripts/tests/py/unit/test_verify_branch.py
+command 185
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_verify_branch.py::test_4472_with_head_differing_from_the_sha_in_the_issues_branch_verified_file_it_launches_the_verdict_branch_leaf
+
