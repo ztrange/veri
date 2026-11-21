@@ -268,6 +268,13 @@ def test_4029_a_criterion_not_yet_finished_ticks_nothing(close):
     assert "tick-issue-criterion.sh" not in fake.names() and "gh" not in fake.names()
 
 
+def test_4481_an_already_ticked_criterion_still_marks_step_done_and_exits_0(close):
+    code, out, err, fake = close(answers={("tick-issue-criterion.sh", None): (3, "")})
+
+    assert code == 0, out
+    assert ("event.sh", ("step-done",)) in [(c[0], c[1]) for c in fake.calls]
+
+
 @pytest.mark.parametrize("inner", [1, 2])
 def test_4029_an_unreadable_criterion_stops_it_with_its_code_before_the_step_done_mark(close, inner):
     code, out, err, fake = close(answers={("criterion-finished.sh", None): (inner, "")})
