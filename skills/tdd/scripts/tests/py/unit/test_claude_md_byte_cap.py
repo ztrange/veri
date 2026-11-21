@@ -70,7 +70,7 @@ def test_a_text_over_the_cap_names_its_size_the_cap_and_the_most_grown_section_4
 
 
 def test_the_root_claude_md_is_within_its_cap_4517():
-    failure = cap_failure((ROOT / "CLAUDE.md").read_text(), CAP, BASELINE)
+    failure = cap_failure((ROOT / "CLAUDE.md").read_text(encoding="utf-8"), CAP, BASELINE)
 
     assert failure is None, failure
 
