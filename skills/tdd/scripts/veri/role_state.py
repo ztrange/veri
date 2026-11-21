@@ -26,10 +26,6 @@ def now():
     return time.strftime(STAMP)
 
 
-def epoch(stamp):
-    return time.mktime(time.strptime(stamp, STAMP))
-
-
 def replace(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".tmp"
@@ -121,23 +117,6 @@ class State:
             named = re.search(r"\d+", fields[3])
             found.append(named.group() if named else None)
         return found
-
-
-class BadStateFile(Exception):
-    """A state file `State.check` refuses; its text, `malformed state file <path>`, is the whole message."""
-
-    def __init__(self, path):
-        super().__init__("malformed state file %s\n" % path)
-
-
-def checked(path):
-    """The State of the file at `path` (no lines when it is missing), once `check` passes; raises BadStateFile naming `path` otherwise."""
-    state = State((read(path) or "").splitlines())
-    try:
-        state.check()
-    except Malformed:
-        raise BadStateFile(path)
-    return state
 
 
 def append(path, text):
