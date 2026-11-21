@@ -174,7 +174,8 @@ def checks(n, wt, settled, step, values):
         with open(os.path.join(wt, ".tdd", "verify-%s.reason" % values["phase"]), "w") as f:
             f.write("REASON: the revise changed a frozen test file: %s\n" % " ".join(said.split()))
         return None
-    check_earlier(n, wt, step, (replaces_case.parse(step) or ([], ""))[0])
+    check_earlier(n, wt, step, list(dict.fromkeys(green_half.rerouted_cases(wt, step)
+                                                  + (replaces_case.parse(step) or ([], ""))[0])))
     return verify(n, wt, settled, step, values)
 
 
