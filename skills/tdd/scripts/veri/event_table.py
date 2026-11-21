@@ -41,7 +41,7 @@ EVENTS = {
     "case-timeout": "nodeid:text workers:whole",
     "ci-flake": "head:sha run:whole files:text",
     "ci-rerun": "head:sha run:whole files:text",
-    "comment": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|revise|verify-revised|plan|verify-plan|pin"
+    "comment": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|revise|verify-revised|plan|verify-plan|pin|retire"
                "|resuming|done|bailed|stopped) url:url",
     "conductor-restart": "growth:whole knob:whole",
     "conductor-start": "pid:whole started:text,empty",
