@@ -110,6 +110,14 @@ def test_4510_an_open_diff_checked_step_right_after_the_refactor_pending_step_ru
     assert (code, stages.names(), out.splitlines()[-1]) == (0, ["diff-step.sh"], "next=cycle"), err
 
 
+def test_4510_an_open_diff_checked_step_not_right_after_the_refactor_pending_step_leaves_it_to_refactor_half(step):
+    ledger = "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] two ⟦criterion 2⟧\n- [ ] %s\n" % (STEP, REPIN)
+
+    code, out, err, stages = step(ledger=ledger)
+
+    assert (code, stages.names()) == (0, ["refactor-half.sh", "step-close.sh"]), err
+
+
 def test_4510_a_ticked_diff_checked_step_right_after_the_refactor_pending_step_leaves_it_to_refactor_half(step):
     ledger = "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [x] %s\n- [ ] two ⟦criterion 2⟧\n" % (STEP, REPIN)
 
