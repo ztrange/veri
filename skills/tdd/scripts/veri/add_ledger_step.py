@@ -17,7 +17,7 @@ import tunables
 
 from event_log import read_events
 from git import git
-from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
+from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, same_step, trailing_markers, unit_of
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR)
@@ -176,6 +176,21 @@ def commit_amendment(path):
         print(NOT_DURABLE, file=sys.stderr)
 
 
+def drop_replaced_records(tdd, n, replaced):
+    """Remove each `<stage>-rejected` wait record under <tdd> naming the <replaced> step (#4547): ledger.same_step drops
+    ⟦added⟧, so the step put in its place would read the record as its own REJECT."""
+    import glob
+    import json
+    for path in glob.glob(os.path.join(tdd, "issue-%s-*-rejected-wait" % n)):
+        try:
+            with open(path) as f:
+                theirs = json.load(f).get("step")
+        except (OSError, ValueError, AttributeError):
+            continue
+        if isinstance(theirs, str) and same_step(theirs, replaced):
+            os.remove(path)
+
+
 def main(argv):
     criterion = None
     planned = argv[:1] == ["--planned"]
@@ -312,6 +327,9 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     issue = re.fullmatch(r"issue-(\d+)\.md", os.path.basename(path))
     if issue:
         tdd = os.path.dirname(os.path.abspath(path))
+        if where == "instead-of":
+            replaced = next(line for line in lines if is_anchor_step(line, anchor))
+            drop_replaced_records(tdd, issue.group(1), ledger_steps(replaced)[0].text)
         event.mark(os.path.dirname(tdd), event.context(tunables.with_values(VERI_ISSUE=issue.group(1))),
                    "plan", ["steps=%d" % len(ledger_steps(grown))])
     return 0

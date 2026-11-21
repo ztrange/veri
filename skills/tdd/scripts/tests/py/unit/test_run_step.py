@@ -825,3 +825,22 @@ def test_4450_another_stages_exit_2_prints_no_skill_edit_out_line_before_its_sea
 
     assert (code, stages.names(), [line for line in out.splitlines() if line.startswith("out=")]) == (
         2, ["red-half.sh"], []), (out, err)
+
+
+def test_4547_a_step_replaced_instead_of_by_a_same_text_added_step_runs_red_half_not_the_replaced_steps_revise(
+        step, fake_processes):
+    """#4547: ledger.same_step drops ⟦added⟧, so the step add-ledger-step.sh instead-of puts in place of a rejected one
+    would read its `<stage>-rejected` record and go straight to the spent revise; the replacement starts fresh."""
+    add_ledger_step = importlib.import_module("veri.add_ledger_step")
+    ledger = step.wt / ".tdd" / "issue-12.md"
+    ledger.write_text(LEDGER % STEP)
+    fake_processes.answers({"git log --format=%H %s": (0, "beef plan: scope #12 into 3 steps (#12)\n", ""),
+                            "git show beef:./": (0, LEDGER % STEP, "")})
+    (step.wt / ".tdd" / "issue-12-green-half-rejected-wait").write_text(
+        '{"conductor": null, "at": "verdict-green", "values": {}, "step": "%s"}' % STEP)
+
+    assert add_ledger_step.add(str(ledger), "instead-of", "one thing works", ["one thing works"]) == 0
+    code, out, err, stages = step(ledger=ledger.read_text())
+
+    assert "one thing works ⟦added⟧" in ledger.read_text()
+    assert (code, stages.names()) == (0, list(STAGES)), err
