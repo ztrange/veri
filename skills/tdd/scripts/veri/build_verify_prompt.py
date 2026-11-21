@@ -24,6 +24,7 @@ NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "break": {
          "transform": {"fast-cmd", "base-sha"}, **dict.fromkeys(INTERFACE_PHASES + VERIFY_ONLY_PHASES, {"fast-cmd", "base-sha"})}
 HERE = paths.scripts_of(__file__)
 USAGE = ("usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>]"
+         " [--step-green <sha>]"
          " <phase> <issue-spec-file> <test-path> [<target-test-id>]")
 GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair",
                     "CI_REPAIR": "ci-repair", "FIXTURE_REPAIR": "fixture-repair"}
@@ -65,7 +66,8 @@ def _author_less_block(issue):
 
 
 def main(argv):
-    options = {"--step": "", "--fast-cmd": "", "--branch-base": "", "--ledger": "", "--supersede-base": ""}
+    options = {"--step": "", "--fast-cmd": "", "--branch-base": "", "--ledger": "", "--supersede-base": "",
+               "--step-green": ""}
     while argv[:1] and argv[0] in options:
         if len(argv) < 2 or not argv[1]:
             return refuse(f"build-verify-prompt: {argv[0]} needs a value")
@@ -81,7 +83,8 @@ def main(argv):
     if base and not HEX_SHA.fullmatch(base):
         return refuse(f"build-verify-prompt: --supersede-base needs 7-40 lowercase hex characters, got '{base}'")
     code, out = build(options["--step"], options["--fast-cmd"], *argv, branch_base=options["--branch-base"],
-                      ledger=options["--ledger"], supersede_base=options["--supersede-base"])
+                      ledger=options["--ledger"], supersede_base=options["--supersede-base"],
+                      step_green=options["--step-green"])
     sys.stdout.buffer.write(out)
     return code
 
@@ -177,9 +180,13 @@ def _refused(message=None):
 
 
 def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base="", ledger="", supersede_base="",
-          root="."):
+          root=".", step_green=""):
     if branch_base and not HEX_SHA.fullmatch(branch_base):
         return _refused(f"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got '{branch_base}'")
+    if step_green and not HEX_SHA.fullmatch(step_green):
+        return _refused(f"build-verify-prompt: --step-green needs 7-40 lowercase hex characters, got '{step_green}'")
+    if step_green and phase != "refactor":
+        return _refused(f"build-verify-prompt: --step-green is the refactor phase's alone, not {phase}'s")
     if phase not in PHASES + INTERFACE_PHASES + VERIFY_ONLY_PHASES:
         return _refused(f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})")
     cap = tunables.get("VERI_PLAN_TOUCHING_CASES")
@@ -304,6 +311,9 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),
                                (b"BASE_SHA", os.fsencode(slots["BASE_SHA"])),
                                (b"STEP_BASE_SHA", os.fsencode(slots["STEP_BASE_SHA"])),
+                               # The step's green tick, the refactor's file bounds; the ledger's last commit, BASE_SHA,
+                               # is past a re-pin step's commits and bounds only the reviewed range (#4544).
+                               (b"STEP_GREEN_SHA", os.fsencode(step_green or slots["BASE_SHA"])),
                                (b"BRANCH_BASE", os.fsencode(branch_base)),
                                (b"FAST_CMD", os.fsencode(fast_cmd)),
                                (b"FULL_CMD", lambda: run_line.full_line(root, branch_base)),

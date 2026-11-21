@@ -78,8 +78,9 @@ them.
    ```
    Two shas, kept apart as the cycle loop keeps them. `$green` is the cycle loop's
    `<green-sha>`, the ledger's last commit, past any re-pin step's: the span `$count` counts
-   and verify-refactor's argument. `$step_green` is `<step-green>`, the step's own **green
-   tick**: the newest commit whose change to `.tdd/issue-<n>.md` touches a line other than a
+   and verify-refactor's `<base-sha>`, the range it reviews. `$step_green` is `<step-green>`,
+   the step's own **green tick**, and verify-refactor's `--step-green`, the commit whose files
+   bound it (#4544): the newest commit whose change to `.tdd/issue-<n>.md` touches a line other than a
    re-pin step's (`⟦diff-checked⟧ edit the case of the pin on …`), so a re-pin plan or tick
    committed while the step still carries the mark is passed over (#4510). No script prints
    it (`fused_step.green_tick` computes it inside `refactor-half.sh`): read it off
@@ -96,8 +97,8 @@ them.
    cost the budget exists to bound. A `$left` of 0 is a budget already spent, and
    `refactor-budget.sh 0` then skips the leaf — the step is tidied as far as it was funded
    to be. Run its **verify-refactor** after it, unless the run pinned it off (below) — the check the interruption skipped — with
-   `$green` as the cycle loop's `<green-sha>`:
-   `verify.sh --branch-base <base> --step "<STEP>" --fast-cmd '<fast-cmd>' refactor <spec-file> <test-path> "$green"`, launched as there. Its
+   `$green` as the cycle loop's `<green-sha>` and `$step_green` as its `--step-green`:
+   `verify.sh --branch-base <base> --step-green "$step_green" --step "<STEP>" --fast-cmd '<fast-cmd>' refactor <spec-file> <test-path> "$green"`, launched as there. Its
    PASS clears the mark and commits the cleared ledger exactly as in the cycle loop; then
    come back here and ask sub-step 2 again.
    **Unless `refactor` is listed in `.tdd/issue-<n>-skip-verify`:** then no verify-refactor

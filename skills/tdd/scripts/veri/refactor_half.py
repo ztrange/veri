@@ -69,8 +69,8 @@ def develop(n, wt, settled, step, test_path):
     with open(os.path.join(wt, ".tdd", "stage-rl.t"), "w") as f:
         f.write("%d\n" % int(time.time()))
     # The span starts at the ledger's last commit, past a re-pin step's commits; the files the leaf may tidy are those
-    # of the step's own green tick, which a re-pin step's tick after it is not (#4510), and so is verify-refactor's
-    # BASE_SHA (#4544); a wait record saved before #4544 has no step_green and falls back to green_sha.
+    # of the step's own green tick, which a re-pin step's tick after it is not (#4510). verify-refactor gets both: the
+    # range it reviews from green_sha, the files in bounds from step_green (#4544).
     green_sha = fused.checked("1", "git", "log", "-1", "--format=%H", "--", LEDGER % n, cwd=wt).strip()
     step_green = fused_step.green_tick("1", wt, n, "HEAD")
     if step_green is None:
@@ -174,10 +174,11 @@ def launch_verdict(where, n, wt, settled, step, values):
     """verdict-refactor's launch, stopping at <where>: the one set of run-verdict.sh arguments refactor-half.sh and
     revise.sh's re-verify share (PRD 038.9 RVS13)."""
     fast = settled["fast_cmd"]
+    # A wait record saved before #4544 holds no step_green: its bounds fall back to green_sha, as they were.
     fused.launch(where, wt, "verdict-refactor", "run-verdict.sh", "--step", step, "--fast-cmd", fast,
-                 "--branch-base", fused_step.branch_base(where, wt, n), "refactor",
-                 SPEC % n, values["test_path"], values.get("step_green", values["green_sha"]),
-                 env=fused.step_env(n, step, VERI_TEST_CMD=fast),
+                 "--branch-base", fused_step.branch_base(where, wt, n),
+                 "--step-green", values.get("step_green", values["green_sha"]), "refactor",
+                 SPEC % n, values["test_path"], values["green_sha"], env=fused.step_env(n, step, VERI_TEST_CMD=fast),
                  out=".tdd/verify-refactor.reason", err=".tdd/verify-refactor.err")
 
 

@@ -203,16 +203,19 @@ def test_4510_a_ledger_with_no_commit_but_repin_ones_stops_at_1_exit_2_before_th
     assert "refactor-budget.sh" not in fake.names()
 
 
-def test_4544_after_a_repin_step_ticked_it_verifies_the_refactor_against_the_steps_own_green_tick_not_the_repins(tidy):
-    """verify-refactor reads `git diff --name-only BASE_SHA^ BASE_SHA` as the step's green files: after a re-pin
-    step's tick, the ledger's last commit, BASE_SHA is still the step's own green tick."""
+def test_4544_after_a_repin_step_ticked_verify_refactor_bounds_files_by_the_steps_green_tick_and_reviews_from_the_repins(
+        tidy):
+    """verify-refactor reads its in-bounds files off `--step-green`, the step's own green tick, and reviews the range
+    from `<base-sha>`, the ledger's last commit: after a re-pin step's tick the two differ, and the re-pin's commits,
+    which edit the pinned test, stay out of the reviewed range."""
     log = "".join("\0%s\n\ndiff --git a/.tdd/issue-12.md b/.tdd/issue-12.md\n@@ -4 +4 @@\n%s" % entry for entry in (
         (REPIN_TICK, "-- [ ] %s\n+- [x] %s\n" % (REPIN_LINE, REPIN_LINE)), ("f" * 40, "+- [ ] %s\n" % REPIN_LINE),
         (GREEN_SHA, "-- [ ] %s\n+- [x] %s ⟂ refactor pending\n" % (STEP, STEP))))
     code, out, err, fake = tidy(fake=Fake(ledger_log=log, last_ledger_commit=REPIN_TICK))
 
     launch = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
-    assert (launch[1][1], launch[1][-1]) == ("verdict-refactor", GREEN_SHA), err
+    args = launch[1]
+    assert (args[1], args[args.index("--step-green") + 1], args[-1]) == ("verdict-refactor", GREEN_SHA, REPIN_TICK), err
 
 
 def test_4028_a_spent_budget_launches_no_refactor_leaf(tidy):
@@ -438,7 +441,8 @@ def test_4028_otherwise_it_launches_verdict_refactor_with_refactor_5s_arguments(
 
     launch = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
     assert _short(launch[1]) == ("supervise.sh", "verdict-refactor", "run-verdict.sh", "--step", STEP, "--fast-cmd",
-                                 "make unit", "--branch-base", BRANCH_BASE, "refactor", ".tdd/issue-12-spec.md",
+                                 "make unit", "--branch-base", BRANCH_BASE, "--step-green", GREEN_SHA, "refactor",
+                                 ".tdd/issue-12-spec.md",
                                  "tests/test_a.py", GREEN_SHA)
     assert (launch[3]["VERI_TEST_CMD"], launch[3]["VERI_STEP"]) == ("make unit", STEP)
     assert (launch[4]["out"], launch[4]["err"]) == (".tdd/verify-refactor.reason", ".tdd/verify-refactor.err")

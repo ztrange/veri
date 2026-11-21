@@ -69,7 +69,8 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
   added that could. The `refactor` phase takes `<base-sha>` instead of the test id (#151),
   exit 2 unless it matches `^[0-9a-f]{7,40}$`, so it can carry only a hex commit name; the
   verifier reads `git diff <base-sha>..HEAD`, not commit messages. `--branch-base <sha>`, the conductor's recorded
-  branch base every phase takes (#4375), `diff` included (#4376), is held to the same pattern. `verify-surround`, which judges a
+  branch base every phase takes (#4375), `diff` included (#4376), and `--step-green <sha>`, the step's own green tick only
+  the `refactor` phase takes (#4544), are held to the same pattern. `verify-surround`, which judges a
   legacy step's characterization tests, is blind the same way: it takes the `pin` phase's inputs.
   `VERI_SKIP_VERIFY` (pinned per run, `plan` and `surround` never) skips the named verifiers
   (ADR-0033).

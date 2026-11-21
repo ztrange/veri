@@ -27,8 +27,10 @@ LEDGER_READ_RE = (r"cat \.tdd/issue-<n>\.md \| \$S/(next-(unchecked|pending-refa
                   r"|ledger-steps\.sh (current|current-or-last-done))")
 LAST_DONE_RE = r"\{ cat \.tdd/issue-<n>\.md \| \$S/ledger-steps\.sh last-done; \}"
 LEDGER_STEP_RE = (r'"\$\(' + LEDGER_READ_RE + r"( \|\| (" + LEDGER_READ_RE + "|" + LAST_DONE_RE + r"))?\)" + '"')
+# refactor's file bounds, the step's own green tick (#4544)
+STEP_GREEN_RE = r'(--step-green "\$step_green" )?'
 BLIND_RE = (
-    "^--branch-base (<base>|<branch-base>|<onto-sha>) (--step (" + DOUBLE_QUOTED_STEP + "|" + LEDGER_STEP_RE + r")( --fast-cmd '<fast-cmd>')? "
+    "^--branch-base (<base>|<branch-base>|<onto-sha>) " + STEP_GREEN_RE + "(--step (" + DOUBLE_QUOTED_STEP + "|" + LEDGER_STEP_RE + r")( --fast-cmd '<fast-cmd>')? "
     r"(red|green|refactor|pin|<phase>) " + SPEC_RE + r" <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])"
     "|--step (" + DOUBLE_QUOTED_STEP + "|" + LEDGER_STEP_RE + ") rebase " + SPEC_RE + " <onto-sha> <pre-rebase-sha>"
     "|--step (" + DOUBLE_QUOTED_STEP + "|" + LEDGER_STEP_RE + ") transform " + SPEC_RE

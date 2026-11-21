@@ -42,7 +42,7 @@ WRITE_BAN = {"PreToolUse": [{"matcher": "Write|Edit|MultiEdit|NotebookEdit", "ho
      "command": write_ban_command(sys.executable, os.path.join(SCRIPTS, "veri", "verifier_write_ban.py"))}]}]}
 LEAF_ARGS = ["--permission-mode", "bypassPermissions", "--settings", json.dumps({"hooks": WRITE_BAN})]
 USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>']"
-         " [--supersede-base <sha>] --branch-base <sha> <phase> <issue-spec-file>"
+         " [--supersede-base <sha>] [--step-green <sha>] --branch-base <sha> <phase> <issue-spec-file>"
          " <test-path> [<target-test-id>]")
 
 
@@ -272,7 +272,7 @@ PHASE_GATES = {"diff": diff_gate, "rebase": rebase_gate, "red": red_gate}
 
 
 def main(argv):
-    options = {"--step": "", "--fast-cmd": "", "--supersede-base": "", "--branch-base": ""}
+    options = {"--step": "", "--fast-cmd": "", "--supersede-base": "", "--branch-base": "", "--step-green": ""}
     words = list(argv)
     while words and takes_a_value(words[0]):
         if len(words) < 2 or not words[1]:
@@ -316,7 +316,8 @@ def main(argv):
     ledger = run_dir.ledger(".", issue) if issue else ""
     code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base,
                                             root=event.toplevel() or ".",
-                                            ledger=ledger, supersede_base=options["--supersede-base"])
+                                            ledger=ledger, supersede_base=options["--supersede-base"],
+                                            step_green=options["--step-green"])
     if code:
         return entry.to_contract(code)
     gate = PHASE_GATES.get(words[0])

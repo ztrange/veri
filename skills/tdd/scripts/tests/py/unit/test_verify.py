@@ -18,8 +18,8 @@ def no_ambient_leaf_args(monkeypatch):
 
 
 BRANCH = ["--branch-base", "0123abc"]  # the run's recorded branch base every phase takes (#4375, #4376)
-USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] --branch-base <sha> <phase>"
-         b" <issue-spec-file> <test-path> [<target-test-id>]")
+USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--step-green <sha>]"
+         b" --branch-base <sha> <phase> <issue-spec-file> <test-path> [<target-test-id>]")
 
 
 def write_inputs(directory):
@@ -65,7 +65,7 @@ def test_main_with_fewer_than_three_positionals_returns_2_with_the_usage_line_al
     code = verify.main(list(argv))
 
     captured = capfdbinary.readouterr()
-    assert len(USAGE) == 157
+    assert len(USAGE) == 178
     assert (code, captured.out, captured.err, calls) == (2, b"", USAGE + b"\n", [])
 
 
