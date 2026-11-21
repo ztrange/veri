@@ -76,3 +76,17 @@ def test_a_file_that_only_holds_the_others_stem_as_a_word_and_does_not_import_it
     range_git(fake_processes, list(tree), list(tree))
     monkeypatch.chdir(tmp_path)
     assert (coupling.main(["base"]),) + tuple(capsys.readouterr()) == (3, "", "")
+
+
+@pytest.mark.parametrize("tree", [
+    {"bin/a.sh": 'exec "$(dirname "$0")/b.sh" "$@"\n', "bin/b.sh": '. "$(dirname "$0")/a.sh"\n'},
+    {"bin/a.py": 'run([os.path.join(here, "b.sh")])\n', "bin/b.py": 'run(["python3", "a.py"])\n'},
+    {"bin/a.js": "const b = require('./b')\n", "bin/b.js": "import { a } from './a.js'\n"},
+], ids=["shell scripts by path", "python modules running each other's script", "javascript modules"])
+def test_two_files_each_invoking_the_others_script_by_path_are_still_a_pair_4556(
+        tree, tmp_path, monkeypatch, capsys, coupling, fake_processes):
+    write(tmp_path, tree)
+    range_git(fake_processes, list(tree), list(tree))
+    monkeypatch.chdir(tmp_path)
+    a, b = sorted(tree)
+    assert (coupling.main(["base"]),) + tuple(capsys.readouterr()) == (0, "mutual: %s %s\n" % (a, b), "")
