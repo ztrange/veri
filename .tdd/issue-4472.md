@@ -38,7 +38,7 @@
 - [x] That REJECT's appended step is committed as one `plan:` commit holding `.tdd/issue-<n>.md` and `.tdd/issue-<n>-added.md` ⟦criterion 6⟧
 - [x] A later `run-pr.sh <n>` on the repaired ledger's new sha restarts at `branch-gate.sh`, calls `branch-gate.sh`, `pr-prepare.sh`, `pr-checks.sh` and `verify-branch.sh` again in order ⟦criterion 7⟧
 - [x] When the `verdict-branch` leaf ends with no verdict (`wait-leaf.sh` exit 2 after `run-verdict.sh`'s `VERI_NO_VERDICT_RETRIES`), `verify-branch.sh <n>` exits 2, appends no step and records no `branch-rejected` bail ⟦criterion 14⟧
-- [ ] With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` launches no leaf and records `verify-branch-skipped reason=switched-off` ⟦criterion 16⟧
+- [x] With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` launches no leaf and records `verify-branch-skipped reason=switched-off` ⟦criterion 16⟧ ⟂ refactor pending
 - [ ] With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` writes `skipped` to `.tdd/verdict-branch.exit` and exits 0 ⟦criterion 16⟧
 - [ ] ⟦skill-edit⟧ `skills/tdd/DRAFT-PR.md` states the `verify-branch` stage: position, inputs, PASS, REJECT and its repair step, `VERI_BRANCH_REPAIRS` and the `branch-rejected` bail, the no-verdict route, the skip, the `next=` return to the cycle loop (rows DP361, DP362, DP363) ⟦criterion 21⟧
 - [ ] `skills/tdd/SKILL.md` grows by at most 0 B net: no step of the run edits it, so `git diff <branch-base>..HEAD -- skills/tdd/SKILL.md` is empty ⟦human-owed⟧ ⟦criterion 22⟧
