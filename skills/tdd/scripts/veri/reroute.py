@@ -150,13 +150,13 @@ def verify(n, wt, settled, step, values):
     """verdict-red over the edited case, launched by red-half's own launch, so it takes exactly the red phase's
     run-verdict.sh arguments (RRT10). The leaf launched; None with `red` switched off, the skip marked as Red's
     *Switched off* marks it (RRT7, ADR-0033)."""
+    fused.checked("verify", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step,
+                  *[arg for case in values["cases"] for arg in ("--except", case)], cwd=wt)
     if fused_step.verify_switched_off(wt, n, "red"):
         fused.mark("verify", wt, n, step, "verify-red-skipped", "reason=switched-off")
         with open(os.path.join(wt, ".tdd", "verdict-red.exit"), "w") as f:
             f.write("skipped\n")
         return None
-    fused.checked("verify", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step,
-                  *[arg for case in values["cases"] for arg in ("--except", case)], cwd=wt)
     path, target = values["verify"][0]
     red_half.launch_verdict("verify", n, wt, settled, step, {"test_path": path, "target_test": target})
     fused.save_wait(wt, n, NAME, "verdict-red", values)

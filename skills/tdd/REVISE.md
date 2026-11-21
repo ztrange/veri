@@ -106,6 +106,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    red phase's alone.
 
    When `<phase>` is green, run `$S/tests-frozen.sh check --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"` here, before the re-verify.
+   Then run `$S/tests-frozen.sh check-earlier` with the step's `--except` cases, as Green's own sub-step does; its exit 1 is handled as a tests-frozen exit 1 above.
    On tests-frozen exit 1 write a reason naming the changed file to `.tdd/verify-green.reason`, spend attempt `k`
    as a REJECT that spends REVISE_BUDGET, and launch no verifier for that attempt. On tests-frozen exit 0 the verifier is launched as before.
    On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, never a REJECT, and launch no verifier.
