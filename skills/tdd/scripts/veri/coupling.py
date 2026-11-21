@@ -1,6 +1,7 @@
 """coupling.sh: the pairs of code files, one changed in a range, that name each other (PRD 032.8, CU1)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import re
 import sys
 
 import case_reader
@@ -17,14 +18,29 @@ def code(path):
     return not case_reader.is_test_path(path) and os.path.splitext(path)[1] not in PROSE
 
 
+def importing(stem_, text):
+    """Whether <text>, as stem_walk.texts reads it, holds an import statement of the module <stem_>."""
+    word = re.escape(os.fsencode(stem_))
+    return any(re.search(pattern, text, re.MULTILINE) for pattern in (
+        rb"^[ \t]*import[ \t]+(?:[\w.]+(?:[ \t]+as[ \t]+\w+)?[ \t]*,[ \t]*)*(?:[\w.]+\.)?" + word + rb"(?![\w.])",
+        rb"^[ \t]*from[ \t]+(?:[\w.]*\.)?" + word + rb"(?:\.[\w.]+)?[ \t]+import\b",
+        rb"^[ \t]*from[ \t]+[\w.]+[ \t]+import[ \t]+(?:\([\s\w,]*?|[\w, \t]*?)(?<![\w.])" + word + rb"(?![\w.])",
+    ))
+
+
+def refers(path, other):
+    """Whether the file <path> imports the module of <other>."""
+    return any(importing(stem_walk.stem(other), text) for _, text in stem_walk.texts([path]))
+
+
 def pairs(changed, files):
-    """Each pair, in byte order, of a path in <changed> and another of <files> of its extension, naming each other."""
+    """Each pair, in byte order, of a path in <changed> and another of <files> of its extension, each importing the other."""
     found = set()
     for path in changed:
         ext = os.path.splitext(path)[1]
         peers = [f for f in files if f != path and os.path.splitext(f)[1] == ext]
         for other in stem_walk.naming(stem_walk.stem(path), peers):
-            if stem_walk.naming(stem_walk.stem(other), [path]):
+            if refers(other, path) and refers(path, other):
                 found.add(tuple(sorted((path, other), key=os.fsencode)))
     return sorted(found, key=lambda pair: tuple(map(os.fsencode, pair)))
 
