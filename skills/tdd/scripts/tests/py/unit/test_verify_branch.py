@@ -372,3 +372,25 @@ def test_4472_with_branch_in_the_pinned_skip_verify_it_launches_no_leaf_and_reco
                         if a[:2] == ("git", "rev-parse") else (0, "", ""))
     run_cli(verify_branch, ["12"], cwd=str(tmp_path))
     assert (launches, marks) == ([], [("verify-branch-skipped", "reason=switched-off")])
+
+
+def test_4472_with_branch_in_the_pinned_skip_verify_it_writes_skipped_to_the_verdict_branch_exit_file_and_exits_0(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (wt / ".tdd" / "issue-12-skip-verify").write_text("branch\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: None)
+    monkeypatch.setattr(fused, "mark", lambda *a, **kw: None)
+    monkeypatch.setattr(fused, "call", lambda *a, **kw: (0, "", ""))
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "f" * 40 + "\n", "")
+                        if a[:2] == ("git", "rev-parse") else (0, "", ""))
+    code, _, _ = run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    exit_file = wt / ".tdd" / "verdict-branch.exit"
+    assert (code, exit_file.read_text().strip() if exit_file.exists() else None) == (0, "skipped")

@@ -27,6 +27,8 @@ def main(argv):
     settled, wt = got
     if fused_step.verify_switched_off(wt, n, "branch"):
         fused.mark("1", wt, n, "", "verify-branch-skipped", "reason=switched-off")
+        with open(os.path.join(wt, ".tdd/verdict-branch.exit"), "w") as f:
+            f.write("skipped\n")
         return 0
     tip = fused.checked("1", "git", "rev-parse", "HEAD", cwd=wt).strip()
     marker = os.path.join(wt, ".tdd/issue-%s-branch-verified" % n)
