@@ -2117,3 +2117,19 @@ def test_the_refactor_phase_without_step_green_refuses_with_the_usage_line_it_ha
     assert (code, out, err) == (2, b"", b"build-verify-prompt: refactor needs --step-green <sha>, the step's green tick\n"
                                 b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>]"
                                 b" [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]\n")
+
+
+def test_main_renders_the_branch_prompt_with_exit_0_from_the_branch_diff_the_spec_and_the_fast_command_and_no_ambient_input(
+        tmp_path, monkeypatch, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    fast = 'make unit ZORBLAT=branch -- --only "frob & nitz/quux"'
+    monkeypatch.setenv("VERI_STEP", "I tidied the helper because it was ugly")
+    monkeypatch.setenv("VERI_RATIONALE", "the author meant well")
+
+    code = build_verify_prompt.main(["--fast-cmd", fast, "--branch-base", "0123abcdef", "branch", str(spec)])
+    out, err = capsysbinary.readouterr()
+    assert (code, err) == (0, b"")
+    assert (b"git diff 0123abcdef..HEAD" in out, b'zorblat("Frob & Nitz/Quux")' in out, fast.encode() in out,
+            b"{{" in out, b"tidied the helper" in out, b"the author meant well" in out) == (
+        True, True, True, False, False, False)
