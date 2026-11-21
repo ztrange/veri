@@ -59,3 +59,20 @@ def test_no_pair_exits_3_printing_nothing_and_a_base_that_does_not_resolve_exits
     fake_processes.answers({"git": (128, "", "fatal: bad revision\n")})
     results.append((coupling.main(["nope"]),) + tuple(capsys.readouterr()))
     assert results == [(3, "", ""), (2, "", "coupling: cannot resolve 'nope'\n")]
+
+
+@pytest.mark.parametrize("mention", [
+    '"""Events the revise phase writes."""\n',
+    "# the revise phase writes these\n",
+    "revise = 1\n",
+    "def write(revise):\n    return revise\n",
+    "def write(step):\n    return step.revise\n",
+    'PHASE = "revise"\n',
+], ids=["docstring", "comment", "variable", "parameter", "attribute", "string literal"])
+def test_a_file_that_only_holds_the_others_stem_as_a_word_and_does_not_import_it_makes_no_pair_exit_3_4556(
+        mention, tmp_path, monkeypatch, capsys, coupling, fake_processes):
+    tree = {"veri/event.py": mention, "veri/revise.py": "import event\n"}
+    write(tmp_path, tree)
+    range_git(fake_processes, list(tree), list(tree))
+    monkeypatch.chdir(tmp_path)
+    assert (coupling.main(["base"]),) + tuple(capsys.readouterr()) == (3, "", "")
