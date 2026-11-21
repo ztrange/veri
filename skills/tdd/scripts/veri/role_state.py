@@ -49,7 +49,7 @@ def read_lines(role, lane=None):
 
 
 class Malformed(ValueError):
-    """The one way a state line is refused. `kind` is "n-missing" (no `n=` line, `line` None), "n", "timed-n", "override" or "state"; `line` is the offending line. Each caller words it."""
+    """The one way a state line is refused. `kind` is "n-missing" (no `n=` line, `line` None), "n", "timed-n" or "override"; `line` is the offending line. Each caller words it."""
 
     def __init__(self, kind, line=None):
         super().__init__("%s: %s" % (kind, line))
@@ -78,12 +78,6 @@ class State:
     def items(self, *kinds):
         """The raw lines of the given item kinds, in file order."""
         return [line for line in self.lines if line.startswith(tuple(kind + " " for kind in kinds))]
-
-    def check(self):
-        """Raises Malformed("state") on a line that is neither `key=value` nor an item line."""
-        for line in self.lines:
-            if "=" not in line and not line.startswith(tuple(kind + " " for kind in ITEM_KINDS)):
-                raise Malformed("state", line)
 
     def last_n(self):
         """The target from the last `n=` line, as an int."""
@@ -216,7 +210,6 @@ def do_show(path, argv):
 
 SET_FIELDS = ("n", "lane", "auto")
 LISTS = ("decision", "message", "override", "timed-n")
-ITEM_KINDS = LISTS + ("dropped-decision",)
 VERBS = {"recovered": do_recovered, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}
 
 
