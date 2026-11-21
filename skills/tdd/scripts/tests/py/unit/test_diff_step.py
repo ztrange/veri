@@ -326,8 +326,10 @@ class RepinHistory(Fake):
     """The history of a re-pin step whose base is STEP_BASE: <ledger>, the commits before it that touch the ledger,
     newest first, each (sha, parent, the ledger lines it changed), the oldest GREEN, the green tick of the step whose
     pin the re-pin re-arms, whose parent is GREEN_PARENT. pin-recheck.sh finds the disarmed pin (exit 1) only over a
-    range from GREEN_PARENT, and nothing to check (exit 3) from any later base."""
+    range from GREEN_PARENT, and nothing to check (exit 3) from any later base. The step's net diff since STEP_BASE
+    (`git diff --name-only`) is <changed>."""
     ledger = [(GREEN, GREEN_PARENT, GREEN_TICK)]
+    changed = "tests/test_a.py\n"
 
     def __call__(self, name, *args, cwd=None, env=None, **kw):
         base = os.path.basename(name)
@@ -342,6 +344,9 @@ class RepinHistory(Fake):
         if base == "git" and args[:1] == ("rev-parse",) and args[-1] in parents:
             self.calls.append((base, args, cwd, env, kw))
             return 0, parents[args[-1]] + "\n", ""
+        if base == "git" and args[:2] == ("diff", "--name-only"):
+            self.calls.append((base, args, cwd, env, kw))
+            return 0, self.changed, ""
         if base == "pin-recheck.sh":
             self.calls.append((base, args, cwd, env, kw))
             if args[-1:] == (GREEN_PARENT,):
@@ -432,3 +437,31 @@ def test_4511_a_repin_step_with_no_green_tick_before_its_base_stops_at_pin_exit_
 
     assert (code, out.splitlines()[-1]) == (2, "stopped at pin no green tick of the re-armed step before " + STEP_BASE)
     assert not {"pin-recheck.sh", "step-tick.sh"} & set(fake.names())
+
+
+class NoTestEditHistory(RepinHistory):
+    """A re-pin step whose commits since STEP_BASE change production only, net: a test file edited then reverted
+    (#4498) is no edit; pin-recheck.sh finds nothing from any base."""
+    changed = "skills/tdd/scripts/veri/mutation_record.py\n"
+
+    def __call__(self, name, *args, **kw):
+        if os.path.basename(name) == "pin-recheck.sh":
+            self.calls.append((os.path.basename(name), args, kw.get("cwd"), kw.get("env"), kw))
+            return 3, "", ""
+        return super().__call__(name, *args, **kw)
+
+
+def test_4512_a_repin_step_whose_commits_change_no_test_file_is_a_verify_diff_reject_naming_the_missing_edit(diff):
+    """A re-pin step's deliverable is the edited case of the pin: with no test file in its net diff since its step
+    base, it is a verify-diff REJECT whose reason names the missing test edit, left for revise; nothing is ticked."""
+    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    code, out, err, fake = diff(step=REPIN, fake=NoTestEditHistory())
+
+    assert code == 1, err
+    reason = (diff.wt / ".tdd" / "verify-diff.reason").read_text()
+    assert reason.startswith("REJECT: ") and "change no test file" in reason and STEP_BASE in reason, reason
+    assert "tests/test_a.py" in reason, reason
+    record = _rejected(diff)
+    assert (record["step"], record["at"]) == (REPIN, "verdict-diff")
+    assert "step-tick.sh" not in fake.names()
