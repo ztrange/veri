@@ -96,8 +96,8 @@
 | KM3 | `CLAUDE.md`'s *Testing idiom* has one line that links `skills/tdd/scripts/tests/py/README.md` with a plain Markdown link, not an `@` import, and says the pytest leg's internals are stated there. | PRD 042 D1's pointer; an `@` import would load the README into every request and undo the saving (as PRD 024.11 found). |
 | KM4 | `CLAUDE.md`'s *Testing idiom* still states the case sizes and marks, the fast-tier admission bar, the `run_cli` fixture, the port convention, the `changed` and full tiers, "a suite asserts behaviour", and the go-red rule. | PRD 042 D1: the leaf's test-writing contract stays where every leaf reads it. |
 | KM5 | The rule that each case times out at 30 s, a `process` or `tree_audit` case at 90 s, and that a wait inside a case bounds itself below `VERI_PYTEST_TIMEOUT` stays in `CLAUDE.md`'s *Testing idiom* (`CM53`). | A leaf writing a case needs its timeout; the idle window that guards the leg does not. |
-| CM310 | The budget invariant reads twelve budgets on twelve axes and names `VERI_BRANCH_REPAIRS` (the repair steps `verify-branch` may append per run, default 1), a twelfth on an axis of its own, never folded into the other eleven. | Docs drift blocks; a rejected branch is not a stuck leaf or a missing verdict. |
-| CM311 | The blind-verifier invariant lists `branch` among the phases `VERI_SKIP_VERIFY` may name. | Docs drift blocks; the list is the contract. |
+| CM312 | The budget invariant reads twelve budgets on twelve axes and names `VERI_BRANCH_REPAIRS` (the repair steps `verify-branch` may append per run, default 1), a twelfth on an axis of its own, never folded into the other eleven. | Docs drift blocks; a rejected branch is not a stuck leaf or a missing verdict. |
+| CM313 | The blind-verifier invariant lists `branch` among the phases `VERI_SKIP_VERIFY` may name. | Docs drift blocks; the list is the contract. |
 
 ## README.md
 
