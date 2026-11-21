@@ -29,7 +29,7 @@
 - [x] `verify-branch.sh <n>` called again while its `verdict-branch` leaf is still running launches no second leaf and exits 3 while `wait-leaf.sh` exits 3 ⟦criterion 20⟧
 - [x] When the `verdict-branch` leaf's verdict is PASS, `verify-branch.sh <n>` exits 0 with no step added to the ledger, and `run-pr.sh` goes on to `pr-ready-wait.sh` ⟦criterion 5⟧
 - [x] When `verify-branch.sh` exits 1 after appending a repair step, `run-pr.sh <n>` prints `seam=verify-branch code=1 reason=rejected next=DRAFT-PR.md#4. Draft PR`, exits 1 and calls no `pr-ready-wait.sh` ⟦criterion 7⟧
-- [x] On a PASS, `verify-branch.sh <n>` writes the tip's `HEAD` sha to `.tdd/issue-<n>-branch-verified` ⟦criterion 19⟧ ⟂ refactor pending
+- [x] On a PASS, `verify-branch.sh <n>` writes the tip's `HEAD` sha to `.tdd/issue-<n>-branch-verified` ⟦criterion 19⟧
 - [ ] `verify-branch.sh <n>` with `HEAD` equal to the sha in `.tdd/issue-<n>-branch-verified` launches no leaf and exits 0 ⟦criterion 19⟧
 - [ ] `verify-branch.sh <n>` with `HEAD` differing from the sha in `.tdd/issue-<n>-branch-verified` launches the `verdict-branch` leaf ⟦criterion 19⟧
 - [ ] On a REJECT with fewer `⟦branch-repair⟧` steps in the ledger than `VERI_BRANCH_REPAIRS`, `verify-branch.sh <n>` appends one `⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion k⟧` step through `add-ledger-step.sh`, no `⟦added⟧`, its text carrying the verifier's reason from `.tdd/verify-branch.reason` ⟦criterion 6⟧
