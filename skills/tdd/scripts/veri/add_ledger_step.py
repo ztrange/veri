@@ -177,8 +177,9 @@ def commit_amendment(path):
 
 
 def drop_replaced_records(tdd, n, replaced):
-    """Remove each `<stage>-rejected` wait record under <tdd> naming the <replaced> step (#4547): ledger.same_step drops
-    ⟦added⟧, so the step put in its place would read the record as its own REJECT."""
+    """Remove each `<stage>-rejected` wait record under <tdd> naming the <replaced> step and each `verdict-<phase>.exit`
+    (#4547): ledger.same_step drops ⟦added⟧, and an exit file names no step, so the step put in its place would read
+    either as its own verdict."""
     import glob
     import json
     for path in glob.glob(os.path.join(tdd, "issue-%s-*-rejected-wait" % n)):
@@ -189,6 +190,8 @@ def drop_replaced_records(tdd, n, replaced):
             continue
         if isinstance(theirs, str) and same_step(theirs, replaced):
             os.remove(path)
+    for path in glob.glob(os.path.join(tdd, "verdict-*.exit")):
+        os.remove(path)
 
 
 def main(argv):
