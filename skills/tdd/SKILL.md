@@ -1089,13 +1089,13 @@ that push; else the ending call's code (a bail's too).
    $S/wait-leaf.sh develop-refactor  # foreground; again on exit 3
    ```
    **One leaf for the whole step**, not one per transform. `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
-   comma-separated line. Compute it once: `$step_green` is the step's own tick, not a re-pin's (#4510); `$S/refactor-touched.sh "$step_green"` prints its files — adding
+   comma-separated line. Compute it once: `$step_green` is the step's own tick, not a re-pin's, got as `RESUME.md` sub-step 2 says (#4510); `$S/refactor-touched.sh "$step_green"` prints its files — adding
    anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work on disk. The template owns the rules — the leaf triages what it sees in those files into
    **structural** and **cosmetic** candidates and applies the structural ones, most valuable first, up to its budget; it runs only the touched files' tests after every
    transform and **reverts** one that turns them red rather than leave a red suite; it takes
    **no untested generality** (that comes only from **triangulation**) and **flags overfit** code as needing a triangulating test instead of hand-generalizing it. It also **commits
    its own transforms**, one commit each: `git commit -m "refactor: <what> (#<n>)"`. The atomic tick-and-commit stays on green
-   (ADR-0007); it is the refactor commit that moved to the leaf. The report is in `.tdd/develop-refactor.out` and ends with `RESULT:` (one line per transform applied, or
+   (ADR-0007); only the refactor commit moved to the leaf. The report `.tdd/develop-refactor.out` ends with `RESULT:` (one line per transform applied, or
    `nothing left to tidy`), `CANDIDATES:` (one line per leftover it still sees, each carrying its class, or `none`) and `FLAGS:` (one finding per line, each carrying its
    class — `overfit`, `uncovered-spec` or `beyond-spec` — or `none`; 3 and 4 below route them).
 2. **Check what the leaf left.** The conductor **checks** it, because verify-refactor judges the **settled tree** and can see neither of the two faults below. Ask git, not the report:
@@ -1104,7 +1104,7 @@ that push; else the ending call's code (a bail's too).
    git log --format=%s <green-sha>..HEAD    # every one must be a refactor:, or refuse to go on
    git rev-list --count <green-sha>..HEAD   # the transforms that landed, narrated against the budget
    ```
-   `<green-sha>` is this step's atomic green commit — the one carrying the ledger tick — so the range holds exactly what the step's refactor produced.
+   `<green-sha>` is the ledger's last commit, past any re-pin step's, so the range holds exactly what the step's refactor produced.
    - **A dirty tree** is work no suite run and no verifier has seen: the transform a killed leaf left half-applied on disk. Do **not** continue to verify-refactor over it — `git
      reset --hard HEAD` drops it, leaving the last committed transform, which the leaf's own suite run found green — and say in the narration that it was dropped.
    - **A commit in that range whose subject is not `refactor:`** is production code carried into a behaviour-preserving phase, where nothing asks whether a test earned it. Do
