@@ -127,13 +127,3 @@
 | D154 | *Starting* starts no session at `/vdev` time, and the *Recovery* paragraph does not end by sending an `ack` to any session. | Nothing waits for that ack (PRD 041 R2). |
 | D155 | The *Recovery* paragraph says that after a compaction of the dev session's own context, the dev session re-invokes `/vdev`, with the lane word when it runs in a lane, before its next slot decision, and that the re-invocation runs *Recovery* from the role state file. | The only trigger left for recovery once nothing clears the session; veri adds no hook (PRD 041 D3). |
 | D156 | vdev names no context threshold and no autocompact setting, and says the dev session never compacts or clears its own context on its own judgment. | The compaction window is the human's Claude Code setting; veri reads, sets and documents none (PRD 041 D2). |
-| D29 | (dropped) | PRD 041.1: the dev session no longer resets itself; autocompact bounds its context. |
-| D52 | (dropped) | PRD 041.1: no reset, so no `request-reset`. |
-| D53 | (dropped) | PRD 041.1: no reset, so no refused reset to report. |
-| D54 | (dropped) | PRD 041.1: no reset, idle or otherwise. |
-| D55 | (dropped) | PRD 041.1: no resetter session is started. |
-| D56 | (dropped) | PRD 041.1: the *Resetter* section is gone. |
-| D57 | (dropped) | PRD 041.1: recovery sends no `ack`; no resetter waits for one. |
-| D58 | (dropped) | PRD 041.1: no turn runs `role-growth.sh`. |
-| D139 | (dropped) | PRD 041.1: the *Resetter* section is gone. |
-| D140 | (dropped) | PRD 041.1: the *Resetter* section is gone. |
