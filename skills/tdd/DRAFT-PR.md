@@ -420,8 +420,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$coupling" != 0 ] || { printf '### Coupling\n\n'; cat .tdd/coupling.out; } > .tdd/issue-<n>-coupling.md
    ```
    Exit **0** printed each pair of same-extension code files, at least one changed by the run,
-   that name each other (`mutual: <a> <b>`): the block wrote them all, under `### Coupling`, to
-   `.tdd/issue-<n>-coupling.md`, which sub-step 2 puts in the PR body. Then record exactly one
+   that each import the other's module or run its script by path (`mutual: <a> <b>`): the block
+   wrote them all, under `### Coupling`, to `.tdd/issue-<n>-coupling.md`, which sub-step 2 puts in
+   the PR body. Then record exactly one
    row, for the printed pair whose two files the range changed the most lines in (`git diff
    --numstat <branch-base>..HEAD`, added plus deleted, summed over the two files), the first
    printed on a tie, since `coupling.sh` prints in byte order:
