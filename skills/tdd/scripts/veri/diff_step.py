@@ -7,14 +7,13 @@ import sys
 import fused
 import fused_step
 import run_dir
-from ledger import handed_out
+from ledger import REPIN_STEP, handed_out
 
 NAME = "diff-step"
 USAGE = "usage: diff-step.sh <n>"
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
 KIND = "⟦diff-checked⟧"
-REPIN = KIND + " edit the case of the pin on "
 
 # The $S/ scripts this call makes, in the order each is first made (git aside).
 CALLS = ("build-develop-prompt.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh", "run-leaf.sh",
@@ -146,7 +145,7 @@ def recheck_base(n, wt, step, values):
     """The base pin-recheck.sh ranges from: the step base, save on a re-pin step (the one pin-reject-route.sh --recheck
     adds), whose range starts at <green>~1 of the step whose pin it re-arms, that step's green tick being the ledger's
     last commit before the re-pin plan commit; from the step base the range would leave out the disarming fix (#4511)."""
-    if not step.startswith(REPIN):
+    if not step.startswith(REPIN_STEP):
         return values["step_base"]
     green = fused.checked("pin", "git", "log", "-1", "--format=%H", values["step_base"] + "~1", "--", LEDGER % n,
                           cwd=wt).strip()
