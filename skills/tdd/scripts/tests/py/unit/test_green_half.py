@@ -519,3 +519,32 @@ def test_re_entered_after_a_revised_pass_it_finishes_once_without_a_second_verif
     assert (code, fake.launched()) == (0, [])
     assert [c[1][1] for c in fake.calls if c[0] == "comment.sh"] == ["green"]
     assert [c[1][0] for c in fake.calls if c[0] == "git" and c[1][0] == "commit"] == ["commit"]
+
+
+def test_4499_after_a_reroute_rewrote_an_earlier_steps_case_check_earlier_excepts_it_and_verify_green_launches(green):
+    rewritten = "tests/test_b.py::test_earlier"
+    event = {"event": "reroute", "actor": "conductor", "step": STEP, "kind": "red", "case": rewritten}
+    (green.wt / ".tdd" / "events.jsonl").write_text(json.dumps(event) + "\n")
+
+    code, out, err, fake = green()
+
+    tail = _after(fake, "suite-reported.sh")
+    assert tail[1][:2] == ("tests-frozen.sh", ("check-earlier", ".tdd/issue-12.md", "--step", STEP, "--except",
+                                               rewritten))
+    assert "verdict-green" in fake.launched()
+
+
+def test_4499_check_earlier_excepts_each_case_this_steps_reroutes_named_once_past_an_unreadable_line_and_not_another_steps(green):
+    mine, other = "tests/test_b.py::test_mine", "tests/test_c.py::test_other"
+    lines = [{"event": "reroute", "actor": "conductor", "step": STEP, "kind": "red", "case": mine},
+             {"event": "reroute", "actor": "conductor", "step": "another step ⟦criterion 2⟧", "kind": "red",
+              "case": other},
+             {"event": "reroute", "actor": "conductor", "step": STEP, "kind": "red", "case": mine}]
+    journal = "\n".join([json.dumps(lines[0]), "{not json", json.dumps(lines[1]), json.dumps(lines[2])]) + "\n"
+    (green.wt / ".tdd" / "events.jsonl").write_text(journal)
+
+    code, out, err, fake = green()
+
+    tail = _after(fake, "suite-reported.sh")
+    assert tail[1][:2] == ("tests-frozen.sh", ("check-earlier", ".tdd/issue-12.md", "--step", STEP, "--except", mine))
+    assert "verdict-green" in fake.launched()

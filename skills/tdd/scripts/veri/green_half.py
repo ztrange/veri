@@ -9,6 +9,7 @@ import fused_step
 import ledger
 import plan_publish
 import replaces_case
+import event_log
 import run_dir
 from ledger import handed_out
 
@@ -94,7 +95,8 @@ def verify(n, wt, settled, step, values):
             raise fused.Stop("1", "%s: %s" % (key, got[key]), 1)
     fused.checked("1", fused.script("suite-reported.sh"), "develop-green", cwd=wt, err=".tdd/suite-reported.err")
     fused.checked("1", fused.script("tests-frozen.sh"), "check", "--step", step, cwd=wt)
-    fused.checked("1", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step, cwd=wt)
+    excepted = [arg for case in rerouted_cases(wt, step) for arg in ("--except", case)]
+    fused.checked("1", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step, *excepted, cwd=wt)
     if fused_step.verify_switched_off(wt, n, "green"):
         fused.mark("2", wt, n, step, "verify-green-skipped", "reason=switched-off")
         with open(os.path.join(wt, ".tdd", "verdict-green.exit"), "w") as f:
@@ -103,6 +105,12 @@ def verify(n, wt, settled, step, values):
     launch_verdict("2", n, wt, settled, step, values)
     fused.save_wait(wt, n, NAME, "verdict-green", values)
     return "verdict-green"
+
+
+def rerouted_cases(wt, step):
+    """The cases the step's reroute events name, once each, in journal order."""
+    named = [e.get("case") for e in event_log.events(wt, "reroute", skip_unreadable=True) if e.get("step") == step]
+    return list(dict.fromkeys(case for case in named if case))
 
 
 def launch_verdict(where, n, wt, settled, step, values):
