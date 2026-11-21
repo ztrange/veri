@@ -2118,3 +2118,16 @@ def test_retire_posts_the_retirement_naming_the_last_retired_step_with_the_verif
     assert "the criterion already holds on the before-state kilo" in posted[0][1]
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"]) for e in events] == [("comment", "retire")]
+
+
+def test_retire_with_no_retired_step_in_the_ledger_exits_2_posting_and_journaling_nothing(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = pin_fixture(monkeypatch, tmp_path, "# Plan for #7\n\n- [x] first step alpha\n- [ ] second step bravo\n")
+
+    code, out, err = run_cli(comment, ["7", "retire"], cwd=tmp_path)
+
+    assert code == 2
+    assert err.count("\n") == 1 and "retired" in err
+    assert posted == []
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
