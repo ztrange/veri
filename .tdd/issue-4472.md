@@ -35,7 +35,7 @@
 - [x] On a REJECT with fewer `⟦branch-repair⟧` steps in the ledger than `VERI_BRANCH_REPAIRS`, `verify-branch.sh <n>` appends one `⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion k⟧` step through `add-ledger-step.sh`, no `⟦added⟧`, its text carrying the verifier's reason from `.tdd/verify-branch.reason` ⟦criterion 6⟧
 - [x] On a REJECT with the ledger already holding `VERI_BRANCH_REPAIRS` (default 1) `⟦branch-repair⟧` steps, `verify-branch.sh <n>` appends no step, bails with cause `branch-rejected` through `bail.sh`, and exits 1 ⟦criterion 11⟧
 - [x] With `VERI_BRANCH_REPAIRS=2` and one `⟦branch-repair⟧` step in the ledger, a REJECT appends a second repair step instead of bailing ⟦criterion 11⟧
-- [x] That REJECT's appended step is committed as one `plan:` commit holding `.tdd/issue-<n>.md` and `.tdd/issue-<n>-added.md` ⟦criterion 6⟧ ⟂ refactor pending
+- [x] That REJECT's appended step is committed as one `plan:` commit holding `.tdd/issue-<n>.md` and `.tdd/issue-<n>-added.md` ⟦criterion 6⟧
 - [ ] A later `run-pr.sh <n>` on the repaired ledger's new sha restarts at `branch-gate.sh`, calls `branch-gate.sh`, `pr-prepare.sh`, `pr-checks.sh` and `verify-branch.sh` again in order ⟦criterion 7⟧
 - [ ] When the `verdict-branch` leaf ends with no verdict (`wait-leaf.sh` exit 2 after `run-verdict.sh`'s `VERI_NO_VERDICT_RETRIES`), `verify-branch.sh <n>` exits 2, appends no step and records no `branch-rejected` bail ⟦criterion 14⟧
 - [ ] With `branch` in `.tdd/issue-<n>-skip-verify`, `verify-branch.sh <n>` launches no leaf and records `verify-branch-skipped reason=switched-off` ⟦criterion 16⟧
