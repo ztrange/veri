@@ -222,7 +222,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    A verify-rebase `REJECT` goes round the revise loop with phase `rebase`, within
    `REVISE_BUDGET` like any other phase (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). A malformed verdict does **bail** as a **system**
-   failure (`no-verdict`, see `<base directory>/BAIL.md`).
+   failure (`no-verdict`, see `<base directory>/BAIL.md`), and so does `verify.sh`'s exit 2 (through
+   `run-verdict.sh`) for a tracked file the leaf left modified and uncommitted (the verifier is never launched; `.tdd/verify-rebase.err` names the
+   paths), since the push would ship HEAD without that change.
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0: under `ci` the push under the lease pinned to `<pre-rebase-sha>` with no full test command before it, and under `VERI_REBASED_TIP_SUITE=local` the full test command once on the rebased tip (the regrade having already run before `verify-rebase`), a red result taking `$S/suite-red-resume.sh rebased-tip .tdd/issue-<n>.md <red-file> <pre-rebase-sha>`
    as above (its exit 0 appends the `⟦suite-repair⟧` step and returns to step 3; only its exit 1, after its own
    `git reset --hard <pre-rebase-sha>`, bails `rebased-tip-red`; its exit 2 bails `no-verdict`), and on green the push under
