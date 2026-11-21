@@ -181,6 +181,15 @@ def test_a_check_earlier_exit_1_is_exit_1_launching_no_verdict_red_4482(reroute)
     assert (code, fake.launched()) == (1, [])
 
 
+def test_a_check_earlier_exit_1_stops_the_stage_with_red_switched_off_too_4482(reroute):
+    code, out, err, fake = reroute(answers={**ROUTE_RED, ("tests-frozen.sh", "check-earlier"): (1, "earlier test changed\n")},
+                                   files={"develop-red-contradicted.out": REROUTED, "issue-12-skip-verify": "red\n"})
+
+    earlier = [c for c in fake.all("tests-frozen.sh") if c[1][:1] == ("check-earlier",)]
+    assert (code, len(earlier)) == (1, 1)
+    assert not (reroute.wt / ".tdd" / "verdict-red.exit").exists()
+
+
 def test_on_a_verify_red_pass_it_rerecords_the_frozen_tests_over_both_test_paths_and_exits_0_4434(reroute):
     """PRD 038.10 RRT2: `tests-frozen.sh record --step … --red-case '<red-test-id>' <test-path>…`, the step's own case."""
     reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
