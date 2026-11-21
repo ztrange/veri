@@ -12,6 +12,7 @@ from ledger import STEP_RE, carries_mark, read_ledger
 
 LEAF = "verdict-branch"
 OWNER = "verify-branch"
+REASON = ".tdd/verify-branch.reason"
 USAGE = "usage: verify-branch.sh <n>"
 
 
@@ -53,10 +54,10 @@ def repair(n, wt):
     steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
     if sum(carries_mark(line, "branch-repair") for line in steps) >= int(tunables.get("VERI_BRANCH_REPAIRS")):
         fused.call(fused.script("bail.sh"), n, "branch-rejected", "verify-branch", "--note-file",
-                   ".tdd/verify-branch.reason", cwd=wt)
+                   REASON, cwd=wt)
         return 1
     try:
-        with open(os.path.join(wt, ".tdd/verify-branch.reason"), encoding="utf-8", errors="replace") as f:
+        with open(os.path.join(wt, REASON), encoding="utf-8", errors="replace") as f:
             reason = f.read()
     except OSError:
         reason = ""
@@ -70,7 +71,7 @@ def launch(n, wt, settled):
     fused.launch("1", wt, LEAF, "run-verdict.sh", "--fast-cmd", settled["fast_cmd"], "--branch-base",
                  base, "branch", ".tdd/issue-%s-spec.md" % n,
                  env=tunables.with_values(VERI_TEST_CMD=settled["fast_cmd"], VERI_ISSUE=n),
-                 out=".tdd/verify-branch.reason", err=".tdd/verify-branch.err")
+                 out=REASON, err=".tdd/verify-branch.err")
 
 
 if __name__ == "__main__":
