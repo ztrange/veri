@@ -5,7 +5,7 @@ import os
 import pytest
 
 from process_fakes import HANGS
-from veri import queued_merge
+from veri import mutation_record, queued_merge
 
 PR = "https://github.com/o/r/pull/7"
 BRANCH = "tdd/7-slug"
@@ -283,6 +283,20 @@ def test_an_unticked_full_suite_line_does_not_block_a_join_and_any_other_unticke
     code, _, err = join(run_cli, other)
 
     assert (joined, code, pushed(other), len(released(other)), "a step" in err) == (0, 1, [], 1, True)
+
+
+def test_4513_a_join_of_a_run_whose_mutation_record_pins_old_text_its_file_no_longer_holds_exits_1_before_any_push(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path).install(fake_processes, monkeypatch)
+    os.makedirs(world.wt + "/lib")
+    with open(world.wt + "/lib/calc.py", "w") as f:
+        f.write("def add(a, b):\n    return a + b\n")
+    with open(world.wt + "/.tdd/issue-7-mutations.md", "w") as f:
+        f.write(mutation_record.format_record([("file", "lib/calc.py"), ("old", "    return a - b\n"), ("new", "0\n")]))
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, pushed(world), len(released(world)), "lib/calc.py return a - b" in err) == (1, [], 1, True), err
 
 
 def test_a_rebase_conflict_exits_1_aborting_the_rebase_pushing_nothing_and_releasing_the_lock(
