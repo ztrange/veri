@@ -327,7 +327,7 @@ class RepinHistory(Fake):
     newest first, each (sha, parent, the ledger lines it changed), the oldest GREEN, the green tick of the step whose
     pin the re-pin re-arms, whose parent is GREEN_PARENT. pin-recheck.sh finds the disarmed pin (exit 1) only over a
     range from GREEN_PARENT, and nothing to check (exit 3) from any later base. The step's net diff since STEP_BASE
-    (`git diff --name-only`) is <changed>."""
+    (`git diff --name-only STEP_BASE HEAD`) is <changed>; any other range changes nothing."""
     ledger = [(GREEN, GREEN_PARENT, GREEN_TICK)]
     changed = "tests/test_a.py\n"
 
@@ -346,7 +346,7 @@ class RepinHistory(Fake):
             return 0, parents[args[-1]] + "\n", ""
         if base == "git" and args[:2] == ("diff", "--name-only"):
             self.calls.append((base, args, cwd, env, kw))
-            return 0, self.changed, ""
+            return 0, self.changed if args[2:] == (STEP_BASE, "HEAD") else "", ""
         if base == "pin-recheck.sh":
             self.calls.append((base, args, cwd, env, kw))
             if args[-1:] == (GREEN_PARENT,):
