@@ -75,6 +75,12 @@ def test_well_formed_row_id_accepts_the_reword_suffix_after_a_numbered_id_3320()
     assert requirements.well_formed_row_id("SC85<reword>")
 
 
+@pytest.mark.parametrize("row_id", ["QU6b<reword><reword>", "<next><reword>", "QU6<next><reword>", "a b<reword>", "x<reword>"])
+def test_well_formed_row_id_refuses_a_reword_suffix_on_anything_but_a_held_id_4541(row_id):
+    requirements = importlib.import_module("veri.requirements")
+    assert not requirements.well_formed_row_id(row_id)
+
+
 def test_list_path_is_the_requirements_file_beside_the_unit():
     requirements = importlib.import_module("veri.requirements")
     assert requirements.list_path("skills/tdd/SKILL.md") == "skills/tdd/REQUIREMENTS.md"
