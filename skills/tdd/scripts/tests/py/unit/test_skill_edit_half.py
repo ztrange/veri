@@ -764,3 +764,19 @@ def test_4450_a_failing_gh_api_exits_2_keeping_the_body_file_and_starting_no_aut
 
     assert (code, (wt / ".tdd" / "issue-12-body").read_text(), [c[0] for c in calls if c[0] != "git"]) == (
         2, BODY, ["gh"]), calls
+
+
+def test_4498_an_open_step_leading_with_the_skill_edit_marker_starts_skill_edit_step_for_its_unit(
+        monkeypatch, run_cli, tmp_path):
+    """The kind check judges the step's text without its checkbox prefix, so a leading marker is recognised."""
+    wt = _skill_edit_worktree(tmp_path)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] ⟦skill-edit⟧ reword the prompt in `skills/tdd/SKILL.md` ⟦criterion 1⟧\n")
+    calls = []
+    _fake_calls(monkeypatch, calls, [(0, "", "")])
+
+    run_cli(importlib.import_module("veri.skill_edit_half"), ["12"], cwd=str(tmp_path))
+
+    start = [args for name, args in calls if name == "detach-command.sh" and args[:1] == ("start",)]
+    assert len(start) == 1, calls
+    assert (os.path.basename(start[0][2]), start[0][4]) == ("skill-edit-step.sh", "skills/tdd/SKILL.md"), start

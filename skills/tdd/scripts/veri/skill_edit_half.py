@@ -44,7 +44,7 @@ def run(argv):
     n = argv[0]
     wt = fused.read_settled(run_start.preflight_file(n))["worktree"]
     with open(ledger.ledger_path(wt, n)) as f:
-        step = next(line for line in f if line.startswith(ledger.OPEN_STEP + " "))
+        step = next(line for line in f if line.startswith(ledger.OPEN_STEP + " "))[len(ledger.OPEN_STEP) + 1:]
     if not ledger.is_skill_edit(step.rstrip("\n")):
         return 2
     unit = ledger.unit_of(step)
