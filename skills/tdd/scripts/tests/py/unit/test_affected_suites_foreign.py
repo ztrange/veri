@@ -66,6 +66,17 @@ def test_a_changed_source_file_selects_the_test_files_git_does_not_ignore_naming
         0, "src/widget.test.js\ntests/test_uses.py\n", "")
 
 
+def test_a_test_file_holding_the_changed_files_stem_only_in_a_comment_or_a_string_is_still_selected_4556(
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    write(tmp_path, {"src/revise.py": "x = 1\n",
+                     "tests/test_comment.py": "# the revise phase\n",
+                     "tests/test_string.py": 'PHASE = "revise"\n'})
+    foreign_git(fake_processes, ["src/revise.py"], ["src/revise.py", "tests/test_comment.py", "tests/test_string.py"])
+    monkeypatch.chdir(tmp_path)
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "tests/test_comment.py\ntests/test_string.py\n", "")
+
+
 def test_a_range_changing_only_run_state_under_tdd_exits_3_even_when_a_test_names_its_stem(
         tmp_path, monkeypatch, capsys, affected, fake_processes):
     write(tmp_path, {".tdd/issue-7.md": "- [ ] step\n", ".tdd/test_state.py": "",
