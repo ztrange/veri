@@ -606,3 +606,39 @@ def test_main_bare_target_test_name_the_red_reports_test_path_file_does_not_hold
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, out.strip(), ledger.read_text()) == (2, "", body), err
+
+
+def test_main_bare_target_test_name_with_no_red_report_reaches_the_case_run_unchanged_4549(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ran = []
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: (ran.append(case) or 0, "", 0))
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", "test_holds"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ran) == (0, "retired", ["test_holds"]), err
+
+
+def test_main_bare_target_test_name_only_a_prefix_of_a_case_the_test_path_file_holds_exits_2_and_ticks_nothing_4549(
+        tmp_path, run_cli, pin_reject_route, monkeypatch, fake_processes):
+    monkeypatch.undo()
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n"
+    ledger.write_text(body)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_x.py").write_text("def test_holds():\n    assert True\n")
+    (ledger.parent / "develop-red.out").write_text("TEST_PATH: tests/test_x.py\nTARGET_TEST: test_holds\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+    fake_processes.answers({"detect-test-command.sh": (0, 'pytest "$1"\n', ""), "": (1, "", "")})
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", "test_hold"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text()) == (2, "", body), err
