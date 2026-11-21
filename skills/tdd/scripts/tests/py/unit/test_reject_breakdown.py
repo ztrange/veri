@@ -50,8 +50,27 @@ def test_prints_under_each_week_one_line_per_verifier_phase_with_a_verdict_that_
 
     code, out, err = run_cli(breakdown, [], stdin=f"2026-10-21 {first}\n2026-10-22 {second}\n")
 
-    assert (code, out.splitlines()[1:]) == (0, [
+    assert (code, [line for line in out.splitlines() if line.startswith("  phase ")]) == (0, [
         "  phase green: 2 of 12",
         "  phase pin: 2 of 2",
         "  phase refactor: 0 of 2",
+    ])
+
+
+def test_prints_under_each_week_one_line_per_reason_class_green_rejects_by_check_and_the_rest_unclassified(
+        tmp_path, run_cli, breakdown):
+    checked = tmp_path / "issue-1-metrics.md"
+    checked.write_text(report(phase_row("green", 5, 5), phase_row("pin", 1, 1),
+                              tail="\nGreen rejects by route: revise 2, missing 2\n"
+                                   "Green rejects by check: 2 1, 4 3, unnamed 0\n"))
+    older = tmp_path / "issue-2-metrics.md"
+    older.write_text(report(phase_row("green", 1, 2)))
+
+    code, out, err = run_cli(breakdown, [], stdin=f"2026-11-17 {checked}\n2026-11-18 {older}\n")
+
+    assert (code, [line for line in out.splitlines() if line.startswith("  reason ")]) == (0, [
+        "  reason green check 2: 1",
+        "  reason green check 4: 3",
+        "  reason green unclassified: 3",
+        "  reason pin unclassified: 1",
     ])

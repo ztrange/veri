@@ -23,6 +23,14 @@ def phase_verdicts(text):
     return verdicts
 
 
+def green_checks(text):
+    """{check: REJECTs} off the report's `Green rejects by check:` line; `unnamed` is left unclassified."""
+    for line in text.splitlines():
+        if line.startswith("Green rejects by check:"):
+            pairs = (item.split() for item in line.split(":", 1)[1].split(","))
+            return {name: int(count) for name, count in pairs if name != "unnamed"}
+    return {}
+
 def monday(day):
     date = datetime.date.fromisoformat(day)
     return date - datetime.timedelta(days=date.weekday())
@@ -30,6 +38,7 @@ def monday(day):
 
 def main(argv):
     weeks = collections.defaultdict(lambda: collections.defaultdict(lambda: [0, 0]))
+    reasons = collections.defaultdict(collections.Counter)
     for line in sys.stdin.read().splitlines():
         day, path = line.split(" ", 1)
         with open(path) as handle:
@@ -38,6 +47,11 @@ def main(argv):
         for phase, (passes, rejects) in phase_verdicts(text).items():
             week[phase][0] += passes
             week[phase][1] += rejects
+            classified = green_checks(text) if phase == "green" else {}
+            for check, count in classified.items():
+                reasons[monday(day)][(phase, f"check {check}")] += count
+            if rejects - sum(classified.values()):
+                reasons[monday(day)][(phase, "unclassified")] += rejects - sum(classified.values())
     for week, phases in sorted(weeks.items()):
         rejects = sum(r for _, r in phases.values())
         verifies = sum(p + r for p, r in phases.values())
@@ -45,6 +59,8 @@ def main(argv):
         for phase, (passes, phase_rejects) in sorted(phases.items()):
             if passes + phase_rejects:
                 print(f"  phase {phase}: {phase_rejects} of {passes + phase_rejects}")
+        for (phase, reason), count in sorted(reasons[week].items()):
+            print(f"  reason {phase} {reason}: {count}")
     return 0
 
 if __name__ == "__main__":
