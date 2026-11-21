@@ -313,7 +313,7 @@ def finish(n, wt, step, values, at):
     kept["revised"] = True
     if at == SKIPPED:
         kept["posted"] = True
-    fused.save_wait(wt, n, stage, at, kept)
+    fused.save_wait(wt, n, stage, at, kept, step)
     with contextlib.suppress(FileNotFoundError):
         os.remove(fused.wait_record(wt, n, stage + "-rejected"))
     return 0

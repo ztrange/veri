@@ -156,12 +156,12 @@ def wait_record(wt, n, owner):
     return os.path.join(wt, ".tdd", "issue-%s-%s-wait" % (n, owner))
 
 
-def save_wait(wt, n, owner, at, values):
+def save_wait(wt, n, owner, at, values, step=None):
     """Record that <at>'s leaf was launched, with the conductor it runs under (FC7) and the values settled so far,
     so a second call only waits again (FC6)."""
     import json
     with open(wait_record(wt, n, owner), "w") as f:
-        json.dump({"conductor": conductor(wt), "at": at, "values": values}, f)
+        json.dump({"conductor": conductor(wt), "at": at, "values": values, **({"step": step} if step else {})}, f)
 
 
 def load_wait(wt, n, owner, step=None):
