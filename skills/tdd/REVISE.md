@@ -139,7 +139,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    - **REJECT (exit 1):** if attempts remain, loop; otherwise fall through to the bail below.
      When the re-verify was a verify-pin (a revised red whose report said `AGAINST_UNMODIFIED: PASSES`),
      first run `$S/pin-reject-route.sh .tdd/verify-pin.reason .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <target-test>`
-     (`<target-test>` is the step's `TARGET_TEST` from `.tdd/develop-red.out`, the case the revise leaf rewrote, since a revise report carries no `TARGET_TEST:` line; with `--missing-reroute` on a step reached by a `missing` reroute), as PIN.md's REJECT branch
+     (`<target-test>` is the step's `TARGET_TEST` from `.tdd/develop-red.out`, the case the revise leaf rewrote, never a `TARGET_TEST` of the revise report, since a revise report carries no `TARGET_TEST:` line; with `--missing-reroute` on a step reached by a `missing` reroute), as PIN.md's REJECT branch
      directs, before attempt `k+1`: its exit 0 retires the step and ends the loop; exit 1 (also a failing target test) continues
      as above; exit 2 bails (cause `unpinnable-missing`, a process failure, when the script printed that word; otherwise a system failure).
    - **Malformed / killed-stuck (exit 2):** **bail** (system failure).
