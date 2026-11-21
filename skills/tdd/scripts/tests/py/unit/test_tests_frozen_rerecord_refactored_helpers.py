@@ -164,7 +164,7 @@ def test_rerecord_refactored_re_records_two_go_cases_whose_refactor_moved_the_sa
 def test_rerecord_refactored_skips_two_go_cases_whose_refactor_moved_the_checks_into_one_new_shared_helper_but_changed_one_3332(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
-    changed = SHORT_CHECKS.replace('t.Fatal("b")', 't.Fatal("c")')
+    changed = SHORT_CHECKS.replace('if x != 1 {\n\t\tt.Fatal("b")', 'if x != 2 {\n\t\tt.Fatal("b")')
     extracted = SHORT_CALLERS + 'func checkShort(t *testing.T, x int) {\n%s}\n' % changed
     green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, SHORT_INLINE, extracted)
     recorded = (tmp_path / PLAN_LEDGER).read_text()
