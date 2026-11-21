@@ -31,16 +31,18 @@ def refusal(value):
 
 
 def record(issue, report):
+    """(code, text, skipped): the record's text from the findings refusal() accepts, and the refusals of the others,
+    so one finding naming a helper does not drop the report (#4534); exit 2 when none survives."""
     values = report_values(report, "FINDING", strip=True)
     if not values:
-        return 2, "the report has no FINDING: line"
+        return 2, "the report has no FINDING: line", []
     if values == ["none"]:
-        return 3, ""
-    for value in values:
-        refused = refusal(value)
-        if refused:
-            return 2, refused
-    return 0, "".join(" | ".join(field.strip() for field in value.split("|", 2)) + "\n" for value in values)
+        return 3, "", []
+    skipped = [refused for refused in map(refusal, values) if refused]
+    kept = [value for value in values if not refusal(value)]
+    if not kept:
+        return 2, "; ".join(skipped), []
+    return 0, "".join(" | ".join(field.strip() for field in value.split("|", 2)) + "\n" for value in kept), skipped
 
 
 def files(base):
@@ -83,7 +85,9 @@ def main(argv):
     if len(argv) != 2 or argv[0] != "record" or entry.whole_number(argv[1], 1) is None:
         print(USAGE, file=sys.stderr)
         return 2
-    code, text = record(argv[1], sys.stdin.read())
+    code, text, skipped = record(argv[1], sys.stdin.read())
+    for refused in skipped:
+        print(f"test-quality.sh: finding skipped: {refused}", file=sys.stderr)
     if code == 2:
         print(f"test-quality.sh: nothing recorded: {text}", file=sys.stderr)
         return 2
