@@ -2088,3 +2088,20 @@ def test_main_reads_the_branch_prompts_named_spec_rows_at_the_branch_base_not_at
     out, _ = capsysbinary.readouterr()
 
     assert (code, b"the base wording predates the run" in out, b"leaf-edited-it" in out) == (0, True, False)
+
+
+def test_main_appends_nothing_to_the_branch_prompts_spec_when_the_named_spec_file_holds_no_rows_at_the_branch_base(
+        tmp_path, monkeypatch, capsysbinary, fake_processes, build_verify_prompt):
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "issue.md"
+    spec_text = b"Frob must nitz.\n\nSpec: specs/prd-zz.md , rows ZZ1"
+    spec.write_bytes(spec_text)
+
+    def show(line, **_):
+        return (0, "# prd-zz\n\nProse only, no table.\n", "") if ":" in line else (1, "", "")
+
+    fake_processes.answers({"git ls-files": every_file_tracked, "git show": show}, default=(0, "", ""))
+    code = build_verify_prompt.main(["--fast-cmd", "make unit", "--branch-base", "0123abcdef", "branch", str(spec)])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, out.split(spec_text, 1)[1][:29]) == (0, b"\n\nRun the fast command, `make")
