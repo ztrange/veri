@@ -61,8 +61,12 @@ def build_ready_repo(tmp_path):
     gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api -i user") printf \'HTTP/2.0 200 OK\\r\\nX-Oauth-Scopes: repo\\r\\n\\r\\n{}\\n\' ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     gh.chmod(0o755)
     claude = write_stub(str(bin_dir / "claude-probe"), CLAUDE_PROBE)
+    (repo / ".claude").mkdir()
+    (repo / ".claude" / "settings.json").write_text('{"permissions": {"defaultMode": "bypassPermissions"}}\n')
+    home = tmp_path / "scratch-home"
+    home.mkdir()
     env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "VERI_LABEL": "veri", "VERI_POLL": "0.05",
-           "CLAUDE_BIN": claude}
+           "CLAUDE_BIN": claude, "HOME": str(home)}
     return repo, env
 
 
