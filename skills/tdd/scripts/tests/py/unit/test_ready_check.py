@@ -1037,3 +1037,16 @@ def test_issue_4529_allow_rules_for_git_and_the_all_tests_command_and_scripts_sp
     lines = out.splitlines()
     assert "ok    subagent permissions" in lines, out
     assert not [line for line in lines if line.startswith("fail  subagent permissions")], out
+
+
+def test_issue_4529_a_default_mode_of_bypass_permissions_set_only_in_the_local_settings_makes_the_subagent_permissions_row_ok_with_no_allow_rules(ready_check, run_cli, fake_processes, tmp_path):
+    fake_processes.answers(holding(**TIERS))
+    home = tmp_path / "scratch-home"
+    home.mkdir()
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.local.json").write_text(json.dumps({"permissions": {"defaultMode": "bypassPermissions"}}))
+    _, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
+
+    lines = out.splitlines()
+    assert "ok    subagent permissions" in lines, out
+    assert not [line for line in lines if line.startswith("fail  subagent permissions")], out
