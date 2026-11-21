@@ -749,3 +749,27 @@ def test_4435_an_outcome_impossible_line_with_no_dash_routes_nothing(revise):
 
     assert not out.splitlines()[-1].startswith("stopped at 3"), out
     assert "verdict-green" in fake.launched()
+
+
+def test_4497_red_attempt_2_takes_the_test_path_from_develop_red_out_when_revise_red_1_out_names_none(revise):
+    """The revise report names no TEST_PATH, so attempt 2's red values come from red's own report."""
+    class Echo(Fake):
+        def __call__(self, name, *args, **kw):
+            if os.path.basename(name) == "extract-result.sh":
+                self.calls.append(("extract-result.sh", args, kw.get("cwd"), kw.get("env"), kw))
+                return 0, kw["stdin"], ""
+            return super().__call__(name, *args, **kw)
+
+    (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").write_text(
+        json.dumps({"conductor": None, "at": "verdict-red", "values": RED_VALUES, "step": STEP}))
+    (revise.wt / ".tdd" / "develop-red.out").write_text(
+        "TEST_PATH: tests/test_a.py\nTARGET_TEST: tests/test_a.py::test_one\nAGAINST_UNMODIFIED: FAILS\n")
+    (revise.wt / ".tdd" / "revise-red-1.out").write_text("OUTCOME: REWRITTEN\nAGAINST_UNMODIFIED: FAILS\n")
+    (revise.wt / ".tdd" / "verify-red.reason").write_text(REASON)
+    (revise.wt / ".tdd" / "events.jsonl").write_text(json.dumps(
+        {"event": "revise", "actor": "conductor", "step": STEP, "phase": "red", "attempt": "1", "budget": "2"}) + "\n")
+    code, out, err, fake = revise(fake=Echo({("wait-leaf.sh", "revise-red-2"): (3, "")}), argv=("12", "red"))
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on revise-red-2")
+    assert fake.call("restore-production.sh")[1] == ("tests/test_a.py",)
+    assert fake.launched() == ["revise-red-2"]
