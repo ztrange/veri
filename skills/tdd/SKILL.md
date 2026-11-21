@@ -1231,8 +1231,8 @@ that push; else the ending call's code (a bail's too).
      the `.tdd/pin-recheck-ok` receipt, and `clear-refactor-pending.sh` and the tick refuse (exit 2) without it.
      **Only after that PASS, and before the step's ledger commit**, re-record the frozen cases the refactor changed, an earlier step's included, with
      `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>`: a case is re-recorded only when it kept its title and its assertion lines modulo whitespace, and its
-     record matched its body at `<green-sha>`, or at `<green-sha>^` when `<green-sha>` is one of the own commits of a ticked `⟦suite-repair⟧` step (the verified repair green that rewrote it;
-     another step's `⟦suite-repair⟧` tick does not count); one that did not is left as recorded, so `check-earlier` still refuses it. A case a `⟦replaces-case⟧` step of the ledger names, in the suite it names, is neither re-recorded nor refused. Its exit 1 is a
+     record matched its body at `<green-sha>`, or at `<green-sha>^` when `<green-sha>` is one of the own commits of a ticked `⟦suite-repair⟧` step;
+     one that did not is left as recorded, so `check-earlier` still refuses it. A case a `⟦replaces-case⟧` step of the ledger names, in the suite it names, is neither re-recorded nor refused. Exit 1 or 2 restores every frozen record byte-identical. Its exit 1 is a
      **bail** with cause `needs-user`, a process failure, quoting each `skipped:` line it printed, and its exit 2 a **bail** with cause `rerecord-failed`, a system failure; neither
      `clear-refactor-pending.sh` nor the step's ledger commit follows either (`Read` `<base directory>/BAIL.md`):
      ```
