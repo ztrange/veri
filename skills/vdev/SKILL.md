@@ -449,7 +449,8 @@ only what it surfaces reaches the human, as P21 says, stated in full (P4). A hel
 without `vjudge`: you record it (*Routing an exit*) and ask the human yourself, in full in your
 transcript in a session without `start_session`, and in a session with it by writing its question
 file yourself under step 2's four headings and running step 3, so no judge settles it and it
-always reaches the human. Everything else you decide and keep going; a turn never ends while a
+always reaches the human. Every other question put to the human quotes the `vjudge` ruling that
+surfaced it; a question with no such ruling is not asked but passed to `vjudge` first. Everything else you decide and keep going; a turn never ends while a
 slot can be filled (P5).
 
 **In a session without the app's `start_session` tool** (a terminal), your brief to `vjudge` names
