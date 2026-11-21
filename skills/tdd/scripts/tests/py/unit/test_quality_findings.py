@@ -75,6 +75,20 @@ def test_record_writes_the_valid_findings_and_names_one_naming_a_non_test_helper
         0, True, "weak-assertion | tests/test_alpha.py::test_adds | asserts arithmetic only\n")
 
 
+@pytest.mark.parametrize("bad, named", [
+    ("FINDING: redundant | tests/test_alpha.py | no case named\n", "names no <file>::<case>"),
+    ("FINDING: flaky | tests/test_alpha.py::test_inner | an unknown kind\n", "not one of"),
+])
+def test_record_writes_the_valid_finding_and_skips_a_malformed_or_unknown_kind_line_beside_it_4534(
+        run_cli, test_quality, worktree, bad, named):
+    report = ("FINDING: weak-assertion | tests/test_alpha.py::test_adds | asserts arithmetic only\n" + bad)
+
+    code, err, written = record(run_cli, test_quality, worktree, report)
+
+    assert (code, "finding skipped" in err, named in err, written) == (
+        0, True, True, "weak-assertion | tests/test_alpha.py::test_adds | asserts arithmetic only\n")
+
+
 def test_record_exits_2_writing_nothing_when_every_finding_of_the_report_is_refused_4534(
         run_cli, test_quality, worktree):
     previous = worktree / ".tdd" / "issue-7-test-quality"
