@@ -41,3 +41,21 @@ skills/tdd/scripts/tests/py/unit/test_verify_branch.py
 command 185
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_verify_branch.py::test_4472_with_head_differing_from_the_sha_in_the_issues_branch_verified_file_it_launches_the_verdict_branch_leaf
 
+before 40
+50a6e8b31267663864c338bdd82d44ffba6eb6f4
+keep 54
+skills/tdd/scripts/tests/py/unit/test_verify_branch.py
+command 70
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_verify_branch.py
+
+file 40
+skills/tdd/scripts/veri/verify_branch.py
+old-b64 60
+Pj0gaW50KHR1bmFibGVzLmdldCgiVkVSSV9CUkFOQ0hfUkVQQUlSUyIpKQ==
+new-b64 8
+Pj0gMQ==
+context-b64 148
+ICAgIGlmIHN1bShjYXJyaWVzX21hcmsobGluZSwgImJyYW5jaC1yZXBhaXIiKSBmb3IgbGluZSBpbiBzdGVwcykgPj0gaW50KHR1bmFibGVzLmdldCgiVkVSSV9CUkFOQ0hfUkVQQUlSUyIpKTo=
+command 70
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_verify_branch.py
+
