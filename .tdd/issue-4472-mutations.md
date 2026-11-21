@@ -66,3 +66,21 @@ skills/tdd/scripts/tests/py/unit/test_run_pr.py
 command 168
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_pr.py::test_4472_after_a_verify_branch_reject_a_run_pr_on_the_repaired_ledgers_new_sha_restarts_at_branch_gate
 
+before 40
+50a6e8b31267663864c338bdd82d44ffba6eb6f4
+keep 54
+skills/tdd/scripts/tests/py/unit/test_verify_branch.py
+command 186
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_verify_branch.py::test_4472_a_verdict_branch_leaf_ending_with_no_verdict_exits_2_appends_no_step_and_records_no_branch_rejected_bail
+
+file 40
+skills/tdd/scripts/veri/verify_branch.py
+old-b64 52
+ICAgIGlmIGNvZGUgPT0gMToKICAgICAgICByZXR1cm4gcmVwYWly
+new-b64 52
+ICAgIGlmIGNvZGUgIT0gMDoKICAgICAgICByZXR1cm4gcmVwYWly
+context-b64 24
+ICAgIGlmIGNvZGUgPT0gMTo=
+command 186
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_verify_branch.py::test_4472_a_verdict_branch_leaf_ending_with_no_verdict_exits_2_appends_no_step_and_records_no_branch_rejected_bail
+
