@@ -44,7 +44,7 @@
 - [ ] `skills/tdd/SKILL.md` grows by at most 0 B net: no step of the run edits it, so `git diff <branch-base>..HEAD -- skills/tdd/SKILL.md` is empty ⟦human-owed⟧ ⟦criterion 22⟧
 - [x] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md` names the `branch` phase of `build-verify-prompt.sh` and `verify-branch.sh` among `run-pr.sh`'s stages, after `pr-checks` and before the title seam (row SC<next>) ⟦criterion 23⟧
 - [x] ⟦skill-edit⟧ `skills/tdd/BAIL.md` lists `branch-rejected`, exit 1, a process failure (row BL179) ⟦criterion 23⟧
-- [ ] ⟦skill-edit⟧ `CLAUDE.md`'s budget invariant reads twelve budgets on twelve axes naming `VERI_BRANCH_REPAIRS`, and its blind-verifier invariant lists `branch` among the `VERI_SKIP_VERIFY` phases (rows CM310, CM311) ⟦criterion 24⟧
+- [x] ⟦skill-edit⟧ `CLAUDE.md`'s budget invariant reads twelve budgets on twelve axes naming `VERI_BRANCH_REPAIRS`, and its blind-verifier invariant lists `branch` among the `VERI_SKIP_VERIFY` phases (rows CM310, CM311) ⟦criterion 24⟧
 - [ ] ⟦skill-edit⟧ `skills/tdd/PREFLIGHT.md` step 5 lists `VERI_BRANCH_REPAIRS` among the tunables it checks and `branch` among the `VERI_SKIP_VERIFY` phases (row PF73) ⟦criterion 24⟧
 - [ ] `docs/adr/0033-blind-verifiers-can-be-switched-off-per-phase.md`'s phase list gains `branch`, `plan` staying refused ⟦diff-checked⟧ ⟦criterion 15⟧
 - [ ] The PR body carries the cost line: one sonnet verifier leaf per run (estimated $0.3-1, measured from the first runs' `| total |` line) plus at most one repair step, on the subscription; cheaper option not taken: the operator's review alone ⟦human-owed⟧ ⟦criterion 26⟧
