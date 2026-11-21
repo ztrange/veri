@@ -47,3 +47,12 @@ def test_4053_a_row_whose_default_differs_from_the_tables_default_is_named_and_a
              "VERI_C": tunables.Tunable(tunables.text, "30")}
 
     assert drift(text, table) == [("VERI_C", "default 3, not 30")]
+
+
+def test_4465_the_dev_reset_tunables_are_gone_from_tunables_and_the_readme_table_and_the_conductor_growth_knob_stays_in_both():
+    tunables = importlib.import_module("veri.tunables")
+    listed = rows(README.read_text())
+    gone = ("VERI_RESET_GROWTH_DEV", "VERI_RESET_ACK_TIMEOUT", "VERI_RESET_MAX_PER_HOUR")
+
+    assert ([n for n in gone if n in tunables.TUNABLES or n in listed],
+            "VERI_RESET_GROWTH_CONDUCTOR" in tunables.TUNABLES, "VERI_RESET_GROWTH_CONDUCTOR" in listed) == ([], True, True)
