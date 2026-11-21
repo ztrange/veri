@@ -4,7 +4,9 @@
 
 This step's criterion is a property of the branch's own diff: something removed, left
 unchanged, or confined to named lines. A blind verifier judges it against the diff alone,
-so no test is this step's deliverable.
+so no test is this step's deliverable. A re-pin step, one whose text reads `edit the case of the pin on <path>`, is the
+exception: its deliverable is that edited test case, and it is not ticked unless its
+commits change a test file.
 
 ### The step
 
@@ -17,7 +19,7 @@ so no test is this step's deliverable.
 2. When the criterion is that something stays unchanged, make no commit: leave the tree as
    you found it.
 3. Add no test. A case that pins this criterion by reading another file's text or the git
-   history is rejected.
+   history is rejected. On a re-pin step, edit the case it names instead, and add no other.
 4. {{INCLUDE:_develop-diff-run-fast-affected.md}}
 
 ### Report (last lines of your output)

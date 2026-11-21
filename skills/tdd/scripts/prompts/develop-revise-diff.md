@@ -5,7 +5,9 @@
 {{INCLUDE:_develop-revise-opening.md}}
 
 This step's criterion is a property of the branch's own diff, judged against the diff
-alone, so no test is this step's deliverable.
+alone, so no test is this step's deliverable. A re-pin step, one whose text reads `edit the case of the pin on <path>`, is the
+exception: its deliverable is that edited test case, and it is not ticked unless its
+commits change a test file.
 
 ### The step
 
@@ -28,7 +30,7 @@ alone, so no test is this step's deliverable.
 1. Read what this step left on disk and change it to answer that objection — and only
    that objection — then commit that change, its subject ending in `(#<issue>)`.
 2. Add no test. A case that pins this criterion by reading another file's text or the git
-   history is rejected.
+   history is rejected. On a re-pin step, edit the case it names instead, and add no other.
 3. {{INCLUDE:_develop-diff-run-fast-affected.md}}
 4. If the objection **cannot** be met — the criterion is already satisfied, or the reason
    asks for something the step cannot deliver — report `IMPOSSIBLE` and say why.
