@@ -84,8 +84,8 @@ def develop(n, wt, settled, step, test_path):
     if found is None:
         raise fused.Stop("1", "refactor-budget.sh 0 printed no budget", 2)
     touched = fused.checked("1", fused.script("refactor-touched.sh"), step_green, cwd=wt, ok=(0, 3)).strip()
-    values = {"green_sha": green_sha, "step_green": step_green, "budget": int(found.group(1)), "touched": touched, "test_path": test_path,
-              "ran": code == 0}
+    values = {"green_sha": green_sha, "step_green": step_green, "budget": int(found.group(1)), "touched": touched,
+              "test_path": test_path, "ran": code == 0}
     if code == 3:
         return None, values
     fast = settled["fast_cmd"]
@@ -176,7 +176,8 @@ def launch_verdict(where, n, wt, settled, step, values):
     fast = settled["fast_cmd"]
     fused.launch(where, wt, "verdict-refactor", "run-verdict.sh", "--step", step, "--fast-cmd", fast,
                  "--branch-base", fused_step.branch_base(where, wt, n), "refactor",
-                 SPEC % n, values["test_path"], values.get("step_green", values["green_sha"]), env=fused.step_env(n, step, VERI_TEST_CMD=fast),
+                 SPEC % n, values["test_path"], values.get("step_green", values["green_sha"]),
+                 env=fused.step_env(n, step, VERI_TEST_CMD=fast),
                  out=".tdd/verify-refactor.reason", err=".tdd/verify-refactor.err")
 
 
