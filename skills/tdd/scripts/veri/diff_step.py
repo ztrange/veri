@@ -14,6 +14,7 @@ USAGE = "usage: diff-step.sh <n>"
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
 KIND = "⟦diff-checked⟧"
+REPIN = KIND + " edit the case of the pin on "
 
 # The $S/ scripts this call makes, in the order each is first made (git aside).
 CALLS = ("build-develop-prompt.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh", "run-leaf.sh",
@@ -141,11 +142,22 @@ def launch_verdict(where, n, wt, settled, step, values):
                  err=".tdd/verify-diff.err")
 
 
+def recheck_base(n, wt, step, values):
+    """The base pin-recheck.sh ranges from: the step base, save on a re-pin step (the one pin-reject-route.sh --recheck
+    adds), whose range starts at <green>~1 of the step whose pin it re-arms, that step's green tick being the ledger's
+    last commit before the re-pin plan commit; from the step base the range would leave out the disarming fix (#4511)."""
+    if not step.startswith(REPIN):
+        return values["step_base"]
+    green = fused.checked("pin", "git", "log", "-1", "--format=%H", values["step_base"] + "~1", "--", LEDGER % n,
+                          cwd=wt).strip()
+    return fused.checked("pin", "git", "rev-parse", green + "~1", cwd=wt).strip()
+
+
 def finish(n, wt, step, values):
     """The PASS branch: pin-recheck.sh over the step's range (0 or 3 leave the receipt the tick needs), then
     step-tick.sh, whose lines end this call's. Its 1, a pin this step disarmed, is a verify-diff REJECT (DST7)."""
     code, said, _ = fused.call(fused.script("pin-recheck.sh"), "--branch-base", fused_step.branch_base("pin", wt, n),
-                               values["step_base"], cwd=wt)
+                               recheck_base(n, wt, step, values), cwd=wt)
     if code == 1:
         reject(n, wt, step, values, "pin", "REJECT: pin-recheck.sh found a pin this step disarmed\n" + said)
     if code not in (0, 3):
