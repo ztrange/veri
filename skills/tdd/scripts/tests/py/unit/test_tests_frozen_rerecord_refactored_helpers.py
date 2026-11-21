@@ -804,3 +804,45 @@ def test_rerecord_refactored_then_check_earlier_exits_0_for_a_python_case_whose_
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert (code, "skipped:" in err, checked) == (0, False, (0, ""))
+
+
+def test_rerecord_refactored_skips_a_go_case_whose_refactor_weakened_a_t_fatal_message_without_moving_it_4533(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    inline = "func TestX(t *testing.T) {\n\tx := 1\n\tt.Fatalf(\"setup: %v\", x)\n\tt.Fatalf(\"bad: %v\", x)\n}\n"
+    weakened = "func TestX(t *testing.T) {\n\tx := 1\n\tt.Fatalf(\"setup: %v\", x)\n\tt.Fatalf(\"ok\")\n}\n"
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, inline, weakened)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, GO_SUITE + " TestX")) == (1, 1)
+
+
+def test_rerecord_refactored_re_records_a_go_case_whose_setup_t_fatalf_lines_a_refactor_moved_into_an_existing_helper_worded_differently_4533(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    helper = "func h(t *testing.T, n int) {\n\tif n < 0 {\n\t\tt.Fatalf(\"h got %d\", n)\n\t}\n}\n\n"
+    inline = helper + "func TestX(t *testing.T) {\n\terr := start()\n\tif err != nil {\n\t\tt.Fatalf(\"start: %v\", err)\n\t}\n}\n"
+    moved = helper.replace("n int) {\n", "n int) {\n\terr := start()\n\tif err != nil {\n\t\tt.Fatalf(\"start: %v\", err)\n\t}\n") \
+        + "func TestX(t *testing.T) {\n\th(t, 1)\n}\n"
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, inline, moved)
+    before = _record_of(tmp_path).read_text()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, GO_SUITE + " TestX"), _record_of(tmp_path).read_text() != before) == (0, 0, True)
+
+
+def test_rerecord_refactored_re_records_a_go_case_whose_setup_t_fatalf_lines_a_refactor_moved_into_a_method_helper_with_a_receiver_4533(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    setup = "\terr := start()\n\tif err != nil {\n\t\tt.Fatalf(\"start: %v\", err)\n\t}\n"
+    inline = "func TestX(t *testing.T) {\n\tf := &fx{}\n" + setup + "\tf.use()\n}\n"
+    moved = ("func (f *fx) seed(t *testing.T) {\n" + setup + "}\n\n"
+             "func TestX(t *testing.T) {\n\tf := &fx{}\n\tf.seed(t)\n\tf.use()\n}\n")
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, inline, moved)
+    before = _record_of(tmp_path).read_text()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, GO_SUITE + " TestX"), _record_of(tmp_path).read_text() != before) == (0, 0, True)
