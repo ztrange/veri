@@ -1,0 +1,1 @@
+- [ ] the re-pin step's text prefix is one constant in ledger.py that pin-reject-route.sh writes and diff-step.sh matches, so the two cannot drift ⟦added⟧ ⟦criterion 1⟧
