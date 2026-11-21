@@ -74,8 +74,8 @@ def test_rerecord_refactored_re_records_a_case_the_verified_refactor_tidied_and_
     assert (code, skips, refused[0]) == (1, (0, 1), 1)
 
 
-def test_rerecord_refactored_whose_closing_check_earlier_exits_1_leaves_every_frozen_record_byte_identical_4554(
-        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+def _tidied_and_stale(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    """Step A's record over test_one, which the refactor tidies, and test_two, stale at green: returns the green."""
     suite = tmp_path / ROOT_SUITE
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
     suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1), BODY % ("two", 2)]))
@@ -87,12 +87,34 @@ def test_rerecord_refactored_whose_closing_check_earlier_exits_1_leaves_every_fr
     suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
     repo.commit("A refactor", all=True)
     (tmp_path / VERDICT).write_text("0")
-    records = sorted((tmp_path / ".tdd").glob("tests-frozen-*.record"))
+    return green
+
+
+def _records(tmp_path):
+    return sorted((tmp_path / ".tdd").glob("tests-frozen-*.record"))
+
+
+def test_rerecord_refactored_whose_closing_check_earlier_exits_1_leaves_every_frozen_record_byte_identical_4554(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    green = _tidied_and_stale(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    records = _records(tmp_path)
     before = [r.read_bytes() for r in records]
 
     code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
 
     assert (code, len(records), [r.read_bytes() for r in records]) == (1, 1, before)
+
+
+def test_rerecord_refactored_whose_closing_check_earlier_exits_2_leaves_every_frozen_record_byte_identical_4554(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    green = _tidied_and_stale(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    records = _records(tmp_path)
+    before = [r.read_bytes() for r in records]
+    monkeypatch.setattr(tests_frozen, "_check_earlier", lambda *args, **kwargs: 2)
+
+    code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
+
+    assert (code, len(records), [r.read_bytes() for r in records]) == (2, 1, before)
 
 
 def test_rerecord_refactored_re_records_an_earlier_steps_case_whose_assertion_line_the_refactor_only_reformatted_2626(
