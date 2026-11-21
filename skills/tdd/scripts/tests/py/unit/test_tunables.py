@@ -7,7 +7,7 @@ import pytest
 ENTRY_POINTS = {
     "VERI_CONDUCTOR_CTX_BUDGET": ("veri.parallel_conductors", [], {}),
     "VERI_RESET_GROWTH_CONDUCTOR": ("veri.restart_conductor", ["7"], {}),
-    "VERI_RESET_GROWTH_DEV": ("veri.role_growth", ["dev"], {}),
+    "VERI_RESET_GROWTH_DEV": ("veri.reset_cost", ["dev"], {}),
     "REVISE_BUDGET": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_REBASED_TIP_SUITE": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_BRANCH_SUITE": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
