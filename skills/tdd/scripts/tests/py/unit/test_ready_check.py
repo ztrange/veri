@@ -895,9 +895,11 @@ def test_issue_4532_the_probes_one_claude_prompt_asks_for_a_multi_line_bash_comm
     (prompt,) = prompts
     nonce = re.search(r"nonce ([0-9a-f]+)", prompt).group(1)
     assert "shape-probe.txt" in prompt and nonce in prompt, prompt
-    assert re.search(r"\$'[^']*'", prompt), prompt
-    assert re.search(r"\$\{\w+/#/", prompt), prompt
-    assert prompt.count("\n") >= 1, prompt
+    command = re.search(r"as written over two lines:\n(.*?)\nDo nothing else", prompt, re.S).group(1)
+    assert len(command.split("\n")) > 1, command
+    assert re.search(r"\$'[^']*'", command), command
+    assert re.search(r"\$\{\w+/#/", command), command
+    assert command.endswith("> shape-probe.txt"), command
 
 
 @pytest.mark.parametrize("files", [dict(bash=False), dict(write=False), dict(write="something else"), dict(bash=False, write=False)])
