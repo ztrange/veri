@@ -388,6 +388,13 @@ def test_4028_nothing_landed_marks_the_skip_posts_the_skipped_comment_and_launch
     assert comments == [("verify-refactor", "--skipped"), ("refactor", "--note-file", ".tdd/refactor-half-note.md")]
 
 
+def test_a_nothing_landed_refactor_replaces_an_earlier_steps_verdict_with_skipped_4555(tidy):
+    (tidy.wt / ".tdd" / "verdict-refactor.exit").write_text("0\n")
+    tidy(fake=Fake(count="0\n", subjects=""))
+
+    assert (tidy.wt / ".tdd" / "verdict-refactor.exit").read_text().strip() == "skipped"
+
+
 def test_4028_with_refactor_switched_off_it_marks_the_skip_writes_skipped_and_posts_verify_refactor_once(tidy):
     (tidy.wt / ".tdd" / "issue-12-skip-verify").write_text("refactor\n")
     code, out, err, fake = tidy()
