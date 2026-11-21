@@ -318,25 +318,44 @@ GREEN = "d" * 40
 GREEN_PARENT = "e" * 40
 
 
+GREEN_TICK = "-- [ ] zero ⟦criterion 1⟧\n+- [x] zero ⟦criterion 1⟧ ⟂ refactor pending\n"
+REPIN_LINE = "⟦diff-checked⟧ edit the case of the pin on tests/test_%s.py so its recorded mutation turns it red ⟦added⟧"
+
+
 class RepinHistory(Fake):
-    """The history of a re-pin step: the ledger's last commit before the re-pin plan commit (STEP_BASE) is GREEN, the
-    green tick of the step whose pin it re-arms, and GREEN~1 is GREEN_PARENT; pin-recheck.sh finds the disarmed pin
-    (exit 1) only over a range from GREEN_PARENT, and nothing to check (exit 3) from any later base."""
+    """The history of a re-pin step whose base is STEP_BASE: <ledger>, the commits before it that touch the ledger,
+    newest first, each (sha, parent, the ledger lines it changed), the oldest GREEN, the green tick of the step whose
+    pin the re-pin re-arms, whose parent is GREEN_PARENT. pin-recheck.sh finds the disarmed pin (exit 1) only over a
+    range from GREEN_PARENT, and nothing to check (exit 3) from any later base."""
+    ledger = [(GREEN, GREEN_PARENT, GREEN_TICK)]
 
     def __call__(self, name, *args, cwd=None, env=None, **kw):
         base = os.path.basename(name)
-        if base == "git" and args[:2] == ("log", "-1") and STEP_BASE + "~1" in args:
+        parents = {sha + "~1": parent for sha, parent, _ in self.ledger}
+        if base == "git" and args[:1] == ("log",) and STEP_BASE + "~1" in args:
             self.calls.append((base, args, cwd, env, kw))
-            return 0, GREEN + "\n", ""
-        if base == "git" and args[:1] == ("rev-parse",) and GREEN + "~1" in args:
+            if "-1" in args:
+                return 0, self.ledger[0][0] + "\n", ""
+            return 0, "".join("\0%s\n\ndiff --git a/.tdd/issue-12.md b/.tdd/issue-12.md\n--- a/.tdd/issue-12.md\n"
+                              "+++ b/.tdd/issue-12.md\n@@ -3 +3 @@\n%s" % (sha, lines)
+                              for sha, _, lines in self.ledger), ""
+        if base == "git" and args[:1] == ("rev-parse",) and args[-1] in parents:
             self.calls.append((base, args, cwd, env, kw))
-            return 0, GREEN_PARENT + "\n", ""
+            return 0, parents[args[-1]] + "\n", ""
         if base == "pin-recheck.sh":
             self.calls.append((base, args, cwd, env, kw))
             if args[-1:] == (GREEN_PARENT,):
                 return 1, "pin stayed green under its mutation: tests/test_a.py\n", ""
             return 3, "", ""
         return super().__call__(name, *args, cwd=cwd, env=env, **kw)
+
+
+class SecondRepinHistory(RepinHistory):
+    """A step that disarmed two pins: its first re-pin (on tests/test_b.py) was added and ticked before the second's
+    plan commit, so the ledger's last commit before STEP_BASE is that re-pin's tick, not GREEN."""
+    ledger = [("1" * 40, "2" * 40, "-- [ ] %s\n+- [x] %s\n" % (REPIN_LINE % "b", REPIN_LINE % "b")),
+              ("3" * 40, "4" * 40, "+- [ ] %s\n" % (REPIN_LINE % "b")),
+              (GREEN, GREEN_PARENT, GREEN_TICK)]
 
 
 def test_4511_a_repin_step_rechecks_from_the_rearmed_steps_green_parent_so_a_pin_left_green_is_a_reject(diff):
@@ -386,3 +405,30 @@ def test_4511_an_added_diff_checked_step_that_is_no_repin_rechecks_from_its_own_
     code, out, err, fake = diff(step=step, fake=RepinHistory())
 
     assert (code, fake.call("pin-recheck.sh")[1]) == (0, ("--branch-base", BRANCH_BASE, STEP_BASE)), err
+
+
+def test_4511_a_second_repin_of_one_step_rechecks_from_that_steps_green_parent_past_the_first_repins_commits(diff):
+    """A step whose fix disarmed two pins gets a second re-pin once the first ticks: its range still starts at the
+    re-armed step's <green>~1, skipping the first re-pin's plan and tick commits, so a pin it leaves green is a REJECT."""
+    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    code, out, err, fake = diff(step=REPIN, fake=SecondRepinHistory())
+
+    assert (code, fake.call("pin-recheck.sh")[1]) == (1, ("--branch-base", BRANCH_BASE, GREEN_PARENT)), err
+    assert "step-tick.sh" not in fake.names()
+
+
+class NoGreenHistory(RepinHistory):
+    """A ledger history before STEP_BASE holding only a re-pin's plan commit: no green tick to range from."""
+    ledger = [("3" * 40, "4" * 40, "+- [ ] %s\n" % (REPIN_LINE % "b"))]
+
+
+def test_4511_a_repin_step_with_no_green_tick_before_its_base_stops_at_pin_exit_2_and_ticks_nothing(diff):
+    """With no ledger commit before the step base but re-pin ones, the re-armed step's green is not found: no answer
+    could be obtained, so exit 2 at `pin`, never a recheck from a guessed base."""
+    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    code, out, err, fake = diff(step=REPIN, fake=NoGreenHistory())
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at pin no green tick of the re-armed step before " + STEP_BASE)
+    assert not {"pin-recheck.sh", "step-tick.sh"} & set(fake.names())

@@ -143,13 +143,21 @@ def launch_verdict(where, n, wt, settled, step, values):
 
 def recheck_base(n, wt, step, values):
     """The base pin-recheck.sh ranges from: the step base, save on a re-pin step (the one pin-reject-route.sh --recheck
-    adds), whose range starts at <green>~1 of the step whose pin it re-arms, that step's green tick being the ledger's
-    last commit before the re-pin plan commit; from the step base the range would leave out the disarming fix (#4511)."""
+    adds), whose range starts at <green>~1 of the step whose pin it re-arms; from the step base the range would leave
+    out the disarming fix (#4511). <green>, that step's green tick, is the newest ledger commit before the step base
+    that changes a line other than a re-pin step's, so the plan and tick commits of the step's earlier re-pins, one per
+    disarmed pin, are passed over. No such commit stops at `pin`, exit 2."""
     if not step.startswith(REPIN_STEP):
         return values["step_base"]
-    green = fused.checked("pin", "git", "log", "-1", "--format=%H", values["step_base"] + "~1", "--", LEDGER % n,
-                          cwd=wt).strip()
-    return fused.checked("pin", "git", "rev-parse", green + "~1", cwd=wt).strip()
+    log = fused.checked("pin", "git", "log", "--format=%x00%H", "-p", "--unified=0", values["step_base"] + "~1",
+                        "--", LEDGER % n, cwd=wt)
+    for entry in log.split("\0")[1:]:
+        sha, _, patch = entry.partition("\n")
+        changed = [line for line in patch.splitlines() if line.startswith(("+", "-"))
+                   and not line.startswith(("+++ ", "--- "))]
+        if any(REPIN_STEP not in line for line in changed):
+            return fused.checked("pin", "git", "rev-parse", sha.strip() + "~1", cwd=wt).strip()
+    raise fused.Stop("pin", "no green tick of the re-armed step before " + values["step_base"], 2)
 
 
 def finish(n, wt, step, values):
