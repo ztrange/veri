@@ -143,6 +143,16 @@ def test_rerecord_refactored_whose_closing_check_earlier_fails_restores_two_earl
     assert (code, len(records), [r.read_bytes() for r in records]) == (1, 2, before)
 
 
+def test_rerecord_refactored_exits_2_when_a_restored_record_cannot_be_written_4554(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    green = _tidied_and_stale(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    monkeypatch.setattr(tests_frozen, "write_record", lambda path, out: False)
+
+    code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
+
+    assert code == 2
+
+
 def test_rerecord_refactored_re_records_an_earlier_steps_case_whose_assertion_line_the_refactor_only_reformatted_2626(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     suite = tmp_path / ROOT_SUITE
