@@ -75,6 +75,18 @@ def test_record_writes_the_valid_findings_and_names_one_naming_a_non_test_helper
         0, True, "weak-assertion | tests/test_alpha.py::test_adds | asserts arithmetic only\n")
 
 
+def test_record_exits_2_writing_nothing_when_every_finding_of_the_report_is_refused_4534(
+        run_cli, test_quality, worktree):
+    previous = worktree / ".tdd" / "issue-7-test-quality"
+    previous.write_text("an earlier record\n")
+    report = ("FINDING: weak-assertion | tests/test_alpha.py::first_stages | a helper, not a case\n"
+              "FINDING: redundant | tests/test_alpha.py::test_gone | gone\n")
+
+    code, err, written = record(run_cli, test_quality, worktree, report)
+
+    assert (code, "nothing recorded" in err, written) == (2, True, "an earlier record\n")
+
+
 def test_record_refuses_a_missing_verb_or_issue_number_with_exit_2(run_cli, test_quality, worktree):
     answers = [run_cli(test_quality, argv, stdin="FINDING: none\n", cwd=str(worktree))[0]
                for argv in ([], ["record"], ["record", "x"], ["list", "7"])]
