@@ -177,3 +177,31 @@ def test_4472_with_head_equal_to_the_sha_in_the_issues_branch_verified_file_it_l
                         else (0, "", ""))
     code, _, _ = run_cli(verify_branch, ["12"], cwd=str(tmp_path))
     assert (code, launches) == (0, [])
+
+
+def test_4472_with_head_differing_from_the_sha_in_the_issues_branch_verified_file_it_launches_the_verdict_branch_leaf(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    tip = "f" * 40
+    (wt / ".tdd" / "issue-12-branch-verified").write_text("e" * 40 + "\n")
+    (tmp_path / ".tdd" / "issue-12-branch-verified").write_text("e" * 40 + "\n")
+    launches = []
+
+    def call(name, *args, **kw):
+        if name == "git" and "rev-parse" in args:
+            return (0, tip + "\n", "")
+        return (0, "", "")
+
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: launches.append(a[2]))
+    monkeypatch.setattr(fused, "call", call)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, tip + "\n", "") if a[:2] == ("git", "rev-parse")
+                        else (0, "", ""))
+    run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    assert launches == ["verdict-branch"]
