@@ -34,7 +34,7 @@ def write(root, files):
         path.write_text(text)
 
 
-def test_each_same_extension_non_test_pair_naming_each_other_one_of_them_changed_is_printed_in_byte_order(
+def test_each_same_extension_non_test_pair_importing_each_other_one_of_them_changed_is_printed_in_byte_order(
         tmp_path, monkeypatch, capsys, coupling, fake_processes):
     tree = {"src/b.py": "import a\n", "src/a.py": "import b\nimport Z\n",
             "src/c.py": "import a\n",
@@ -68,7 +68,18 @@ def test_no_pair_exits_3_printing_nothing_and_a_base_that_does_not_resolve_exits
     "def write(revise):\n    return revise\n",
     "def write(step):\n    return step.revise\n",
     'PHASE = "revise"\n',
-], ids=["docstring", "comment", "variable", "parameter", "attribute", "string literal"])
+    'print("revise.sh: %s" % error)\n',
+    'def journals(who="revise.sh"):\n    return who\n',
+    'if "revise.py" not in command:\n    pass\n',
+    'def mine(args):\n    return f"veri/revise.py {args} " in args\n',
+    'x = 1  # import revise\n',
+    'import revise_extra\nPHASE = "revise"\n',
+    'from pkg import prerevise\nPHASE = "revise"\n',
+    'rm -f $DIR/revise.pyc\n',
+], ids=["docstring", "comment", "variable", "parameter", "attribute", "string literal", "message prefix",
+        "keyword label", "membership test", "path inside a longer string", "import inside a comment",
+        "import of a longer module name", "from-import of a longer name",
+        "path with a longer extension"])
 def test_a_file_that_only_holds_the_others_stem_as_a_word_and_does_not_import_it_makes_no_pair_exit_3_4556(
         mention, tmp_path, monkeypatch, capsys, coupling, fake_processes):
     tree = {"veri/event.py": mention, "veri/revise.py": "import event\n"}
@@ -82,7 +93,9 @@ def test_a_file_that_only_holds_the_others_stem_as_a_word_and_does_not_import_it
     {"bin/a.sh": 'exec "$(dirname "$0")/b.sh" "$@"\n', "bin/b.sh": '. "$(dirname "$0")/a.sh"\n'},
     {"bin/a.py": 'run([os.path.join(here, "b.sh")])\n', "bin/b.py": 'run(["python3", "a.py"])\n'},
     {"bin/a.js": "const b = require('./b')\n", "bin/b.js": "import { a } from './a.js'\n"},
-], ids=["shell scripts by path", "python modules running each other's script", "javascript modules"])
+    {"bin/a.sh": '$S/b.sh --flag "$@"\n', "bin/b.sh": 'next="$HERE/a.sh"\n'},
+], ids=["shell scripts by path", "python modules running each other's script", "javascript modules",
+        "unquoted shell command and an assigned path"])
 def test_two_files_each_invoking_the_others_script_by_path_are_still_a_pair_4556(
         tree, tmp_path, monkeypatch, capsys, coupling, fake_processes):
     write(tmp_path, tree)

@@ -8,7 +8,7 @@ from repo_builder import commit_all, new_repo
 
 
 @pytest.mark.process("the coupling.sh shim over real git in a scratch foreign repo")
-def test_in_a_foreign_repo_only_the_pair_naming_each_other_is_printed(tmp_path):
+def test_in_a_foreign_repo_only_the_pair_importing_each_other_is_printed(tmp_path):
     repo = new_repo(tmp_path / "repo")
     (repo / "README.md").write_text("scratch\n")
     base = commit_all(repo, "base")

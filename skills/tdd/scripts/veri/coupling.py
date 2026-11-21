@@ -29,12 +29,19 @@ def importing(stem_, text):
 
 
 def invoking(stem_, ext, text):
-    """Whether <text> names the script <stem_> by path: quoted or after a `/`, with a `.sh`, `.py` or <ext> extension,
-    or extensionless after a `/` and closing a quoted module path."""
+    """Whether <text> runs the script <stem_> by path, its name ending in `.sh`, `.py` or <ext>: a whole string
+    literal that is a path holding a `/`, or the bare name as an argument (after `(`, `[` or `,`); an unquoted path
+    after a `/` ending a word outside any quote on its line, as a shell command line has it; or, extensionless, after
+    a `/` closing a quoted module path. A name inside a longer string (a message, `"x.sh: ..."`) or a bare name after
+    `=` or an operator (a `who="x.sh"` label, a `"x.py" in command` test) runs nothing."""
     word = re.escape(os.fsencode(stem_))
-    extension = b"|".join(re.escape(e) for e in {b"sh", b"py", os.fsencode(ext.lstrip("."))} if e)
-    return bool(re.search(rb"[/'\"]" + word + rb"\.(?:" + extension + rb")(?!\w)", text)
-                or re.search(rb"/" + word + rb"['\"]", text))
+    name = word + rb"\.(?:" + b"|".join(re.escape(e) for e in {b"sh", b"py", os.fsencode(ext.lstrip("."))} if e) + rb")"
+    literal = re.compile(rb"(['\"])[^'\"\n]*/" + name + rb"\1|[(\[,][ \t]*(['\"])" + name + rb"\2")
+    unquoted = re.compile(rb"/" + name + rb"(?=[\s;|&)]|$)")
+    if literal.search(text) or re.search(rb"/" + word + rb"['\"]", text):
+        return True
+    return any(not (line[:m.start()].count(b"'") % 2 or line[:m.start()].count(b'"') % 2)
+               for line in text.splitlines() for m in unquoted.finditer(line))
 
 
 def refers(path, other):
