@@ -3642,13 +3642,13 @@ def test_4456_the_real_world_reads_a_runs_test_stretch_events_from_its_worktrees
 LOWERING = (1700000600, 6, 4, "tests/a.py::test_x,tests/b.py::test_y")
 
 
-def test_4454_a_poll_finding_a_lowering_on_record_prints_the_t_lowered_line_exits_0_and_records_its_time(dispatch):
+def test_4527_a_poll_finding_a_lowering_on_record_prints_the_t_lowered_line_keeps_watching_and_records_its_time(dispatch):
     world = FakeWorld({"lowering": LOWERING, "queue": ["15"]}, notified=["queue 1"])
 
     code = dispatch.main(["--target", "2"], world=world)
 
-    assert (code, world.launched, "".join(world.said), world.notified_lines) == (
-        0, ["15"], "t-lowered 6 4 tests/a.py::test_x,tests/b.py::test_y\n", ["queue 1 0", "t-lowered 1700000600"])
+    assert (code, world.launched, world.waits, "".join(world.said), world.notified_lines) == (
+        None, ["15"], 1, "t-lowered 6 4 tests/a.py::test_x,tests/b.py::test_y\n", ["queue 1 0", "t-lowered 1700000600"])
 
 
 def test_4454_a_restarted_dispatch_never_prints_a_lowering_it_already_reported(dispatch):
@@ -3668,7 +3668,7 @@ def test_4454_a_lowering_newer_than_the_last_reported_is_printed(dispatch):
     code = dispatch.main(["--target", "2"], world=world)
 
     assert (code, "".join(world.said), world.notified_lines) == (
-        0, "t-lowered 4 2 tests/c.py::test_z,tests/a.py::test_x\n", ["queue 0", "t-lowered 1700001300"])
+        None, "t-lowered 4 2 tests/c.py::test_z,tests/a.py::test_x\n", ["queue 0", "t-lowered 1700001300"])
 
 
 @pytest.mark.parametrize("held, expected", [

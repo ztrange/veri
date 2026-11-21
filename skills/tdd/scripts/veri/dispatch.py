@@ -670,7 +670,7 @@ def _lowered(state, world):
         return None
     world.record_notified([line for line in lines if not line.startswith(LOWERED_LINE)] + [LOWERED_LINE + str(at)])
     world.say(f"t-lowered {old} {new} {cases}\n")
-    return 0
+    return None
 
 
 def step(state, world):
