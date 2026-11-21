@@ -205,3 +205,63 @@ def test_4472_with_head_differing_from_the_sha_in_the_issues_branch_verified_fil
                         else (0, "", ""))
     run_cli(verify_branch, ["12"], cwd=str(tmp_path))
     assert launches == ["verdict-branch"]
+
+
+def test_4472_on_a_reject_with_the_ledger_already_holding_veri_branch_repairs_steps_it_appends_none_bails_branch_rejected_and_exits_1(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "- [x] a gear meshes ⟦criterion 1⟧\n"
+        "- [ ] fix the branch: z ⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion 1⟧\n")
+    monkeypatch.delenv("VERI_BRANCH_REPAIRS", raising=False)
+    calls = []
+
+    def call(name, *args, **kw):
+        calls.append((name.rsplit("/", 1)[-1], args))
+        return (1, "", "") if name.endswith("wait-leaf.sh") else (0, "", "")
+
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: None)
+    monkeypatch.setattr(fused, "call", call)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "", ""))
+    code, _, _ = run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    bails = [args[:2] for name, args in calls if name == "bail.sh"]
+    added = [name for name, _ in calls if name == "add-ledger-step.sh"]
+    assert (code, bails, added) == (1, [("12", "branch-rejected")], [])
+
+
+def test_4472_the_branch_rejected_bail_hands_bail_the_verifiers_reason_file_as_its_note_file(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "- [x] a gear meshes ⟦criterion 1⟧\n"
+        "- [ ] fix the branch: z ⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion 1⟧\n")
+    monkeypatch.delenv("VERI_BRANCH_REPAIRS", raising=False)
+    calls = []
+
+    def call(name, *args, **kw):
+        calls.append((name.rsplit("/", 1)[-1], list(args)))
+        return (1, "", "") if name.endswith("wait-leaf.sh") else (0, "", "")
+
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: None)
+    monkeypatch.setattr(fused, "call", call)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "", ""))
+    code, _, _ = run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    bails = [args for name, args in calls if name == "bail.sh"]
+    assert code == 1 and len(bails) == 1
+    args = bails[0]
+    assert args[:2] == ["12", "branch-rejected"]
+    assert args[args.index("--note-file") + 1:][:1] == [".tdd/verify-branch.reason"]
