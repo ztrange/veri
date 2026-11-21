@@ -31,7 +31,7 @@ def main(argv):
     _, wt = given
     step = fused_step.first_step(wt, n, handed_out if stage == "red-half" else refactor_pending)
     if step is None and stage == "green-half" and revised(wt, n):
-        code = green_half_script.main([n])
+        code = fused.entry([n], "green-half.sh", green_half_script.run)
         if code != 0:
             return code
         step = fused_step.first_step(wt, n, refactor_pending)
