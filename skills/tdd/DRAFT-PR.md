@@ -369,8 +369,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/test-quality.sh record <n> < .tdd/develop-test-quality.out
    ```
    Exit **0** (findings recorded) and exit **3** (`FINDING: none`, the record written empty) go on.
-   Exit **2** (nothing recorded: no `FINDING:` line, or a line naming no `<file>::<case>` or a case
-   its file does not define) is a system failure: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`).
+   A finding naming no `<file>::<case>`, or a case its file does not define, is skipped and named on
+   stderr; the others are still recorded. Exit **2** (nothing recorded: no `FINDING:` line, or every
+   finding refused) is a system failure: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`).
    **Test-quality fixes.** Then, each time the run enters this step and the record holds findings
    (`record` exited 0 on this entry, or an earlier entry's record is non-empty), the run fixes the
    `weak-assertion` and `implementation-coupled` ones itself, each in a step of its own. A
