@@ -52,6 +52,8 @@ def repair(n, wt):
     ledger = run_dir.ledger(wt, n)
     steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
     if sum(carries_mark(line, "branch-repair") for line in steps) >= int(tunables.get("VERI_BRANCH_REPAIRS")):
+        fused.call(fused.script("bail.sh"), n, "branch-rejected", "verify-branch", "--note-file",
+                   ".tdd/verify-branch.reason", cwd=wt)
         return 1
     try:
         with open(os.path.join(wt, ".tdd/verify-branch.reason"), encoding="utf-8", errors="replace") as f:
