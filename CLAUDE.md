@@ -76,26 +76,24 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
 - **The committed ledger is the source of truth** for done steps; the issue only mirrors it.
   A step's green tick appends `⟂ refactor pending`, removed only by its verify-refactor PASS,
   so a resumed run can tell green from finished.
-- **Eleven budgets on eleven axes, never merged**: `VERI_STUCK_RETRIES` (liveness — no answer),
-  `VERI_NO_VERDICT_RETRIES` (protocol compliance — finished without a `VERDICT:` line),
-  `REVISE_BUDGET` (verdict — rejected), `VERI_REFACTOR_BUDGET` (cost — the transforms one
-  refactor leaf may apply for the whole step; ADR-0017) and `VERI_STEP_GROWTH_PERCENT` (plan
-  growth — max `⟦added⟧` steps per ledger, as a percent of the steps in the verified plan, rounded
-  up; ADR-0022), never folded into the other four, and
-  `VERI_SKILL_EDIT_BUDGET` (the attempts one `⟦skill-edit⟧` step's author may make), a sixth on an
-  axis of its own, never folded into the other five, and `VERI_MISSING_REROUTE_BUDGET` (repeat
-  missing reroutes per step), a seventh on an axis of its own: a missing test is not a rejected
-  product, and `REVISE_BUDGET` would bail correct code, and `VERI_ADJUDICATE_BUDGET` (exit-2
-  judgments per run, default 2; 0 keeps today's behaviour), an eighth on an axis of its own, never
-  folded into the other seven, and `VERI_CI_FLAKE_RERUNS` (CI re-runs of a red head per run, default
-  1; 0 keeps today's behaviour), a ninth on an axis of its own, never folded into the other eight: a
-  flaky CI job is not a defect, and `VERI_TEST_QUALITY_FIXES` (cost — the test-quality steps one run
-  may add, default 1), a tenth on an axis of its own, never folded into the other nine: a weak test
-  is not a rejected product, and `VERI_SURROUND_MUTANTS` (the mutants a legacy region owes,
-  default 5), an eleventh on an axis of its own, never folded into the other ten: a missing mutant
-  is not a rejected product. One knob over
-  any two would make different failures one decision (ADR-0020). A bad `VERI_REFACTOR_BUDGET`
-  is caught in preflight.
+- **Eleven budgets on eleven axes, never merged**, one row each:
+
+  | Knob | Axis | Default |
+  |---|---|---|
+  | `VERI_STUCK_RETRIES` | liveness: no answer | 1 |
+  | `VERI_NO_VERDICT_RETRIES` | protocol compliance: finished without a `VERDICT:` line | 1 |
+  | `REVISE_BUDGET` | verdict: rejected | 2 |
+  | `VERI_REFACTOR_BUDGET` | cost: the transforms one refactor leaf may apply for the whole step (ADR-0017) | 5 |
+  | `VERI_STEP_GROWTH_PERCENT` | plan growth: max `⟦added⟧` steps per ledger, as a percent of the steps in the verified plan, rounded up (ADR-0022) | 50 |
+  | `VERI_SKILL_EDIT_BUDGET` | the attempts one `⟦skill-edit⟧` step's author may make | 3 |
+  | `VERI_MISSING_REROUTE_BUDGET` | repeat missing reroutes per step: a missing test is not a rejected product, so `REVISE_BUDGET` would bail correct code | 3 |
+  | `VERI_ADJUDICATE_BUDGET` | exit-2 judgments per run; 0 keeps today's behaviour | 2 |
+  | `VERI_CI_FLAKE_RERUNS` | CI re-runs of a red head per run: a flaky CI job is not a defect; 0 keeps today's behaviour | 1 |
+  | `VERI_TEST_QUALITY_FIXES` | cost: the test-quality steps one run may add: a weak test is not a rejected product | 1 |
+  | `VERI_SURROUND_MUTANTS` | the mutants a legacy region owes: a missing mutant is not a rejected product | 5 |
+
+  One knob over any two would make different failures one decision (ADR-0020). A bad
+  `VERI_REFACTOR_BUDGET` is caught in preflight.
 - **The developer's and the verifier's models are separate knobs**: `VERI_MODEL` (every leaf),
   `VERI_MODEL_DEVELOPER` (`develop-*`, `revise-*`), `VERI_MODEL_REVISE` (redo leaves:
   `revise-*`, `develop-exhausted`), `VERI_MODEL_REVISE_GREEN` (`revise-green` only, so it beats
