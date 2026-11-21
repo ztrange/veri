@@ -465,3 +465,27 @@ def test_4512_a_repin_step_whose_commits_change_no_test_file_is_a_verify_diff_re
     record = _rejected(diff)
     assert (record["step"], record["at"]) == (REPIN, "verdict-diff")
     assert "step-tick.sh" not in fake.names()
+
+
+class FailingDiffHistory(RepinHistory):
+    """A re-pin step whose `git diff --name-only` fails, exit 1: its net diff cannot be read."""
+
+    def __call__(self, name, *args, **kw):
+        if os.path.basename(name) == "git" and args[:2] == ("diff", "--name-only"):
+            self.calls.append(("git", args, kw.get("cwd"), kw.get("env"), kw))
+            return 1, "", "fatal: bad revision\n"
+        return super().__call__(name, *args, **kw)
+
+
+def test_4512_a_failing_git_diff_on_a_repin_step_stops_at_pin_exit_2_and_ticks_nothing(diff):
+    """A re-pin step whose net diff cannot be read is no answer, exit 2 at `pin`, never git's own 1 read as a REJECT:
+    nothing is rechecked or ticked, and no reason or rejected record is left for revise."""
+    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
+    code, out, err, fake = diff(step=REPIN, fake=FailingDiffHistory())
+
+    assert code == 2, err
+    assert out.splitlines()[-1].startswith("stopped at pin"), out
+    assert not {"pin-recheck.sh", "step-tick.sh"} & set(fake.names())
+    assert not (diff.wt / ".tdd" / "verify-diff.reason").exists()
+    assert _rejected(diff) is None
