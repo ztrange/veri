@@ -368,3 +368,22 @@ def test_a_done_run_whose_mutation_record_names_old_text_its_file_no_longer_hold
     code, out, _ = finish(run_cli, fake_processes, repo, "Closes #4242")
 
     assert (code, out.splitlines()) == (1, ["stale-pin lib/calc.py return a - b"])
+
+
+def test_a_before_entry_and_an_entry_whose_file_is_gone_add_no_stale_pin_line_and_the_hint_names_the_record_4513(
+        tmp_path, run_cli, fake_processes):
+    mutation_record = importlib.import_module("veri.mutation_record")
+    repo = make_run(tmp_path, [LAUNCH % 1000, DONE])
+    worktree = repo / ".tdd" / "wt" / "4242"
+    (worktree / "lib").mkdir()
+    (worktree / "lib" / "calc.py").write_text("def add(a, b):\n    return a + b\n")
+    (worktree / ".tdd" / "issue-4242-mutations.md").write_text(
+        mutation_record.format_record([("before", "abc1234"), ("keep", "1"), ("command", "make test")])
+        + mutation_record.format_record([("file", "lib/gone.py"), ("old", "    return 1\n"), ("new", "    return 0\n")])
+        + mutation_record.format_record([("file", "lib/calc.py"), ("old", "    return a - b\n"), ("new", "    return 0\n")]))
+
+    code, out, err = finish(run_cli, fake_processes, repo, "Closes #4242")
+
+    assert (code, out.splitlines(), err.splitlines()) == (1, ["stale-pin lib/calc.py return a - b"], [
+        "run-finished.sh: re-record a stale pin with mutation-probe.sh (VERI_MUTATION_RECORD) or retire its entry "
+        "(a `retired <reason>` field) in %s" % (worktree / ".tdd" / "issue-4242-mutations.md")])
