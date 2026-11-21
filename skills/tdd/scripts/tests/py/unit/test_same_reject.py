@@ -68,3 +68,15 @@ def test_main_exits_0_for_two_identical_reason_files_with_no_reason_prefix_the_f
     code, out, err = run_cli(same_reject, [str(previous), str(current)])
 
     assert (code, out, err) == (0, "", "")
+
+
+def test_main_exits_1_for_two_reason_files_with_no_reason_prefix_whose_reasons_differ_4550(
+        tmp_path, run_cli, same_reject):
+    previous = tmp_path / "previous.txt"
+    previous.write_text("guard x is required by no test\nthe case pins mechanism\n")
+    current = tmp_path / "current.txt"
+    current.write_text("tests-frozen blocked the edit\n")
+
+    code, out, err = run_cli(same_reject, [str(previous), str(current)])
+
+    assert (code, out, err) == (1, "", "")
