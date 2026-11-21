@@ -196,3 +196,19 @@ def test_a_metrics_file_that_cannot_be_computed_or_written_leaves_the_event_writ
     assert journal[-1] == own[-1] and json.loads(own[-1])["secs"] == "40"
     assert len(err.splitlines()) == 1 and str(metrics_file(tmp_path)) in err, err
     assert ("fold broke" if failure == "the fold raises" else "Permission denied") in err, err
+
+
+def test_4576_the_metrics_file_of_a_journal_holding_two_bails_lists_both_under_run_bails_in_log_order(tmp_path, event):
+    clone = clone_at(tmp_path)
+    refactor = {"issue": "42", "actor": "conductor", "phase": "refactor", "step": "one", "attempt": "1"}
+    green = {"issue": "42", "actor": "conductor", "phase": "green", "step": "two", "attempt": "2"}
+
+    codes = (event.append(str(clone), refactor, "bail", ["cause=needs-user", "classification=process"], ts=1700000000),
+             event.append(str(clone), green, "bail", ["cause=revise-impossible", "classification=system"],
+                          ts=1700000060))
+
+    published = json.loads(metrics_file(tmp_path).read_text())
+    assert codes == (0, 0)
+    assert published["run"]["bails"] == [
+        {"cause": "needs-user", "classification": "process", "phase": "refactor", "step": "one"},
+        {"cause": "revise-impossible", "classification": "system", "phase": "green", "step": "two"}]
