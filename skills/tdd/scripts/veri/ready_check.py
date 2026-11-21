@@ -502,8 +502,12 @@ def probe_bypass(scratch):
     tools = sorted({str(denial.get("tool_name")) for denial in denials if isinstance(denial, dict)})
     said = ", ".join(f"`{tool}`" for tool in tools) or "none listed"
     missing = [name for name, held in zip(PROBE_FILES, written) if not held]
+    places = DENY_PLACES
+    if PROBE_FILES[2] in missing:
+        places += (", and permissions.ask and permissions.blockReadsOutsideWorkingDirectories, since Claude Code "
+                   f"refused or asked on {PROBE_FILES[2]}'s command, which it could not statically analyze")
     return "bypassPermissions", (
-        f"denied tools: {said}; nonce files missing or wrong: {', '.join(missing) or 'none'}; look in {DENY_PLACES}")
+        f"denied tools: {said}; nonce files missing or wrong: {', '.join(missing) or 'none'}; look in {places}")
 
 
 SETTINGS_FILES = ("~/.claude/settings.json", ".claude/settings.json", ".claude/settings.local.json")
