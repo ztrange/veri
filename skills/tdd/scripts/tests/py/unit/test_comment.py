@@ -2060,3 +2060,31 @@ def test_revise_posts_the_attempt_heading_over_revise_budget_then_the_reason_ver
     assert posted[0][1] == "### ♻️ Revise green — attempt 2/3\n\n" + reason
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "revise", url)]
+
+
+def pin_fixture(monkeypatch, tmp_path, ledger):
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body))
+                        or "https://github.com/o/r/issues/7#issuecomment-5")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text(ledger)
+    (tmp_path / ".tdd" / "verify-pin.reason").write_text("the criterion already holds on the before-state kilo\n")
+    return posted
+
+
+def test_pin_posts_already_satisfied_naming_the_last_done_step_with_the_verify_pin_reason(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = pin_fixture(monkeypatch, tmp_path, "# Plan for #7\n\n- [x] first step alpha\n- [x] pinned step lima\n"
+                         "- [ ] third step charlie\n")
+    (tmp_path / ".tdd" / "verdict-pin.exit").write_text("0\n")
+
+    code, out, err = run_cli(comment, ["7", "pin"], cwd=tmp_path)
+
+    assert (code, err) == (0, "")
+    assert [(n, b.splitlines()[0]) for n, b in posted] == [("7", "### 📌 Already satisfied — pinned step lima")]
+    assert "the criterion already holds on the before-state kilo" in posted[0][1]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"]) for e in events] == [("comment", "pin")]
