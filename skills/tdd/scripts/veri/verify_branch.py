@@ -1,5 +1,6 @@
 """verify-branch.sh's computation: the blind whole-branch verifier stage of the Draft PR step (PRD 040.1)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
 
 import fused
@@ -30,6 +31,9 @@ def main(argv):
     except fused.Waiting as waiting:
         sys.stdout.write("waiting on %s\n" % waiting.name)
         return 3
+    tip = fused.checked("1", "git", "rev-parse", "HEAD", cwd=wt).strip()
+    with open(os.path.join(wt, ".tdd/issue-%s-branch-verified" % n), "w") as f:
+        f.write(tip + "\n")
     return 0
 
 
