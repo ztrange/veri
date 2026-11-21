@@ -12,7 +12,7 @@ SCRIPTS = paths.scripts_of(__file__)
 
 
 def takes_a_value(word):
-    return word in ("--step", "--fast-cmd", "--supersede-base", "--branch-base")
+    return word in ("--step", "--fast-cmd", "--supersede-base", "--branch-base", "--step-green")
 
 
 def unopenable(path, error):

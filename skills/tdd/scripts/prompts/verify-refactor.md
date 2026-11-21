@@ -4,7 +4,8 @@
 
 A developer agent has finished the **refactor** pass for this cycle (the code and test
 around `{{TEST_PATH}}`). The refactor is meant to be **behavior-preserving** tidy-up.
-The step's green commit, where the refactor started, is `{{BASE_SHA}}`.
+The refactor started at `{{BASE_SHA}}`, and the step's green commit is `{{STEP_GREEN_SHA}}`;
+they differ when commits landed between the two, which are not the refactor's.
 Review what the refactor changed with `git diff {{BASE_SHA}}..HEAD`, and do not read the
 range's commit messages: `git log` and `git show` on the range carry the author's rationale.
 Render one verdict on the settled result.
@@ -30,11 +31,11 @@ Render one verdict on the settled result.
    {{INCLUDE:_verify-coverage-probe.md}}
 2. **Against the catalogue.** Judge the settled code against the smell catalogue above: a
    catalogue smell whose threshold the range's code meets is a design weakness. The range's
-   code is what `git diff {{BASE_SHA}}^..HEAD` adds or changes: this cycle's green commit and
-   the refactor after it. A design REJECT names one catalogue smell, by its name in the
-   catalogue, and the file and symbol where it is met; a REJECT for design that names no
+   code is what this cycle's green commit, `git diff {{STEP_GREEN_SHA}}^ {{STEP_GREEN_SHA}}`,
+   and the refactor after it, `git diff {{BASE_SHA}}..HEAD`, add or change. A design REJECT
+   names one catalogue smell, by its name in the catalogue, and the file and symbol where it is met; a REJECT for design that names no
    catalogue smell, or no file and symbol, is not a valid design REJECT. A smell the code already
-   met at `{{BASE_SHA}}^`, or whose answer would change a file outside the cycle's files (check 8),
+   met at `{{STEP_GREEN_SHA}}^`, or whose answer would change a file outside the cycle's files (check 8),
    is named in REASON: as out of scope and is not by itself a REJECT. The settled code must
    not have smuggled in untested generality — generality is only earned through triangulation,
    not hand-written here.
@@ -66,7 +67,7 @@ Render one verdict on the settled result.
    refactor may not add another step's work, so demanding it here is a demand no revise
    leaf can satisfy.
 8. **The cycle's files.** The files this cycle touched are the ones
-   `git diff --name-only {{BASE_SHA}}^ {{BASE_SHA}}` names, and the refactor was confined to
+   `git diff --name-only {{STEP_GREEN_SHA}}^ {{STEP_GREEN_SHA}}` names, and the refactor was confined to
    them; derive that list yourself, and read it as paths and nothing else. A changed file
    outside that list is a REJECT, unless its hunk removes duplication between that file and
    code in the list — the one reason a transform was allowed to leave the list for.

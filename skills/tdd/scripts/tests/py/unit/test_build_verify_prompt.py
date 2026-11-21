@@ -9,7 +9,7 @@ import pytest
 
 from conftest import SCRIPTS
 
-USAGE = b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]\n"
+USAGE = b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]\n"
 
 
 def scratch(tmp_path, name, drop=(), templates=None):
@@ -2052,3 +2052,34 @@ def test_4111_break_renders_verify_break_md_given_a_hex_base_sha_and_exits_2_for
     assert rendered == {sha: (0, True, True) for sha in rendered}
     assert (refused, no_sha) == ({sha: 2 for sha in refused}, 2)
     assert ("break" in build_verify_prompt.PHASES, build_verify_prompt.NEEDS.get("break")) == (True, {"fast-cmd", "base-sha"})
+
+
+def test_4544_refactor_bounds_its_files_by_step_green_and_reviews_from_base_sha_falling_back_to_base_sha_and_refuses_a_bad_or_misplaced_step_green(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"spec\n")
+    s, base_sha, step_green = str(spec), "aaaaaaa1111111", "bbbbbbb2222222"
+
+    def run(argv):
+        code = build_verify_prompt.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    code, out, _ = run(["--step-green", step_green, "--fast-cmd", "m", "refactor", s, "t", base_sha])
+    fallback = run(["--fast-cmd", "m", "refactor", s, "t", base_sha])[1]
+    bad = run(["--step-green", "BBBB222", "--fast-cmd", "m", "refactor", s, "t", base_sha])
+    misplaced = run(["--step-green", step_green, "--fast-cmd", "m", "green", s, "t", "test_x"])
+    assert {
+        "code": code,
+        "bounds": f"git diff --name-only {step_green}^ {step_green}".encode() in out,
+        "green commit": f"git diff {step_green}^ {step_green}".encode() in out,
+        "reviewed range": f"git diff {base_sha}..HEAD".encode() in out,
+        "no bounds from base": f"{base_sha}^".encode() in out,
+        "fallback bounds": f"git diff --name-only {base_sha}^ {base_sha}".encode() in fallback,
+        "bad": bad,
+        "misplaced": misplaced,
+    } == {
+        "code": 0, "bounds": True, "green commit": True, "reviewed range": True, "no bounds from base": False,
+        "fallback bounds": True,
+        "bad": (2, b"", b"build-verify-prompt: --step-green needs 7-40 lowercase hex characters, got 'BBBB222'\n" + USAGE),
+        "misplaced": (2, b"", b"build-verify-prompt: --step-green is the refactor phase's alone, not green's\n" + USAGE),
+    }

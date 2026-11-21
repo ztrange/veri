@@ -9,7 +9,8 @@ RESUME_MD = SKILL.with_name("RESUME.md")
 FLAG = '--step "<STEP>"'
 FAST_FLAG = "--fast-cmd '<fast-cmd>'"
 BASE_FLAG = "--branch-base <base>"  # the recorded branch base, ahead of every other flag (#4375)
-CALL_RE = rf"verify\.sh {BASE_FLAG} {FLAG}( {FAST_FLAG})? (red|green|refactor|pin|<phase>)"
+STEP_GREEN = r'( --step-green "\$step_green")?'  # refactor's file bounds (#4544)
+CALL_RE = rf"verify\.sh {BASE_FLAG}{STEP_GREEN} {FLAG}( {FAST_FLAG})? (red|green|refactor|pin|<phase>)"
 GREEN_RE = rf"verify\.sh {BASE_FLAG} {FLAG}( {FAST_FLAG})? (green|<phase>) "
 
 

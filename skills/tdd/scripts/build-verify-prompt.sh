@@ -5,9 +5,9 @@
 # the developer leaf's rationale, and none may be added that could, so the author's reasoning physically cannot reach the verifier — the
 # blindness guarantee is structural, not a matter of the conductor remembering to omit it.
 #
-# usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]
+# usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 # Usage:
-#   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]
+#   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #   build-verify-prompt.sh rebase <issue-spec-file> <onto-sha> <pre-rebase-sha>
 #   build-verify-prompt.sh --step '<STEP>' --fast-cmd '<CMD>' --branch-base <sha> diff <issue-spec-file> <step-base-sha>
 #     phase = red | green | refactor | pin | plan | rebase | transform | diff
@@ -16,6 +16,8 @@
 #              step's base sha
 #     --step = the ledger's own line for the step under judgement: it scopes the
 #              verdict to that criterion, and carries the conductor's words, not the leaf's
+#     --step-green = refactor only: the step's green tick, whose files bound the refactor
+#              (default <base-sha>); 7-40 lowercase hex, exit 2 otherwise (#4544)
 #     --fast-cmd = the fast tier's test command, required for green, refactor and diff:
 #              verify-green and verify-refactor run it plus the test files covering the files the step changed, and a verifier in a target repository has
 #              no detect-test-command.sh of its own to ask. It is a command the conductor

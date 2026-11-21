@@ -430,11 +430,25 @@ def test_refactor_runs_no_step_cost_reverifies_with_refactor_halfs_green_sha_and
     assert not {"step-cost.sh", "tests-frozen.sh"} & set(fake.names())
     assert fake.call("build-develop-prompt.sh")[1][:4] == ("revise", "refactor", ".tdd/issue-12-spec.md", STEP)
     verdict = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
-    assert _short(verdict[1])[-4:] == ("refactor", ".tdd/issue-12-spec.md", "tests/test_a.py", GREEN_SHA)
+    assert _short(verdict[1])[-6:] == ("--step-green", GREEN_SHA, "refactor", ".tdd/issue-12-spec.md",
+                                       "tests/test_a.py", GREEN_SHA)
     assert (fake.calls[-1][0], fake.calls[-1][1]) == ("comment.sh", ("12", "verify-revised", "refactor"))
     record = json.loads((revise.wt / ".tdd" / "issue-12-refactor-half-wait").read_text())
     assert (record["at"], record["values"]) == ("verdict-refactor", dict(REF_VALUES, revised=True))
     assert not (revise.wt / ".tdd" / "issue-12-refactor-half-rejected-wait").exists()
+
+
+def test_4544_refactor_reverifies_with_the_stored_step_green_as_its_bounds_and_green_sha_as_its_range(revise):
+    """A record refactor-half saved with its step's green tick re-verifies with it as `--step-green` and the ledger's
+    last commit as `<base-sha>`, the launch refactor-half made; a record without one bounds by green_sha, as before."""
+    _refactor(revise)
+    step_green = "d" * 40
+    (revise.wt / ".tdd" / "issue-12-refactor-half-rejected-wait").write_text(json.dumps(
+        {"conductor": None, "at": "verdict-refactor", "values": dict(REF_VALUES, step_green=step_green), "step": STEP}))
+    code, out, err, fake = revise(argv=("12", "refactor"))
+
+    args = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1][1]
+    assert (code, args[args.index("--step-green") + 1], args[-1]) == (0, step_green, GREEN_SHA), out
 
 
 def test_refactor_switched_off_resaves_refactor_halfs_wait_past_its_verify_with_the_comment_posted(revise):
