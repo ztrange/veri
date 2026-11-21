@@ -879,6 +879,27 @@ def test_issue_4091_the_bypass_permissions_row_is_ok_when_a_haiku_probe_in_a_scr
     assert os.path.dirname(os.path.realpath(probe["cwd"])) == os.path.realpath(tmp_path / ".tdd"), probe
 
 
+def test_issue_4532_the_probes_one_claude_prompt_asks_for_a_multi_line_bash_command_with_ansi_c_quoting_and_a_pattern_substitution_writing_the_nonce_to_shape_probe(ready_check, fake_processes):
+    prompts = []
+    inner = probe_answer()
+
+    def answer(line, cwd=None, env=None, **kwargs):
+        prompts.append(line)
+        return inner(line, cwd=cwd, env=env, **kwargs)
+
+    fake = fake_processes.answers({PROBE: answer})
+
+    ready_check.bypass_permissions_row()
+
+    assert [argv[0] for argv in fake.argvs] == ["claude"], fake.calls
+    (prompt,) = prompts
+    nonce = re.search(r"nonce ([0-9a-f]+)", prompt).group(1)
+    assert "shape-probe.txt" in prompt and nonce in prompt, prompt
+    assert re.search(r"\$'[^']*'", prompt), prompt
+    assert re.search(r"\$\{\w+/#/", prompt), prompt
+    assert prompt.count("\n") >= 1, prompt
+
+
 @pytest.mark.parametrize("files", [dict(bash=False), dict(write=False), dict(write="something else"), dict(bash=False, write=False)])
 def test_issue_4091_an_exit_0_with_is_error_false_but_a_nonce_file_missing_or_wrong_fails_the_bypass_permissions_row(ready_check, fake_processes, files):
     fake_processes.answers({PROBE: probe_answer(**files)})
