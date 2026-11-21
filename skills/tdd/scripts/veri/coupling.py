@@ -28,13 +28,23 @@ def importing(stem_, text):
     ))
 
 
+def invoking(stem_, ext, text):
+    """Whether <text> names the script <stem_> by path: quoted or after a `/`, with a `.sh`, `.py` or <ext> extension,
+    or extensionless after a `/` and closing a quoted module path."""
+    word = re.escape(os.fsencode(stem_))
+    extension = b"|".join(re.escape(e) for e in {b"sh", b"py", os.fsencode(ext.lstrip("."))} if e)
+    return bool(re.search(rb"[/'\"]" + word + rb"\.(?:" + extension + rb")(?!\w)", text)
+                or re.search(rb"/" + word + rb"['\"]", text))
+
+
 def refers(path, other):
-    """Whether the file <path> imports the module of <other>."""
-    return any(importing(stem_walk.stem(other), text) for _, text in stem_walk.texts([path]))
+    """Whether the file <path> imports the module of <other> or invokes its script by path."""
+    stem_, ext = stem_walk.stem(other), os.path.splitext(other)[1]
+    return any(importing(stem_, text) or invoking(stem_, ext, text) for _, text in stem_walk.texts([path]))
 
 
 def pairs(changed, files):
-    """Each pair, in byte order, of a path in <changed> and another of <files> of its extension, each importing the other."""
+    """Each pair, in byte order, of a path in <changed> and another of <files> of its extension, each importing or invoking the other."""
     found = set()
     for path in changed:
         ext = os.path.splitext(path)[1]
