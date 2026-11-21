@@ -19,9 +19,13 @@ def main(argv):
         return 2
     settled, wt = got
     base = fused_step.branch_base("1", wt, n)
-    fused.launch("1", wt, "verdict-branch", "run-verdict.sh", "--fast-cmd", settled["fast_cmd"], "--branch-base",
-                 base, "branch", ".tdd/issue-%s-spec.md" % n,
-                 env=tunables.with_values(VERI_TEST_CMD=settled["fast_cmd"], VERI_ISSUE=n), out=".tdd/verify-branch.reason", err=".tdd/verify-branch.err")
+    try:
+        fused.launch("1", wt, "verdict-branch", "run-verdict.sh", "--fast-cmd", settled["fast_cmd"], "--branch-base",
+                     base, "branch", ".tdd/issue-%s-spec.md" % n,
+                     env=tunables.with_values(VERI_TEST_CMD=settled["fast_cmd"], VERI_ISSUE=n),
+                     out=".tdd/verify-branch.reason", err=".tdd/verify-branch.err")
+    except fused.Stop as stop:
+        return fused.stopped(stop)
     return 0
 
 

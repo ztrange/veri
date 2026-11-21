@@ -50,3 +50,25 @@ def test_4472_the_verdict_branch_leaf_runs_with_veri_test_cmd_the_fast_command_a
     monkeypatch.delenv("VERI_ISSUE", raising=False)
     run_cli(verify_branch, ["12"], cwd=str(tmp_path))
     assert envs == [("make unit", "12")]
+
+
+def test_4472_a_stop_requested_before_the_launch_ends_verify_branch_with_that_stops_code_and_launches_no_leaf(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    named = []
+
+    def call(name, *args, **kw):
+        named.append(name.rsplit("/", 1)[-1])
+        return (1, "", "") if name.endswith("stop-requested.sh") else (0, "", "")
+
+    monkeypatch.setattr(fused, "call", call)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "", ""))
+    code, _, _ = run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    assert (code, "detach-leaf.sh" in named) == (1, False)
