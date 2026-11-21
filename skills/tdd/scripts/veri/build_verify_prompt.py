@@ -35,8 +35,10 @@ def _spec_rows_at(spec_text, branch_base):
     for path, ids in re.findall(r"^Spec: (\S+) , rows ([^\n]+)$", spec_text.decode(errors="replace"), re.M):
         wanted = {name.strip(",") for name in ids.split()}
         shown = git.out("show", f"{branch_base}:{path}")
-        blocks.append("\n".join(line for line in shown.splitlines()
-                               if line.startswith("|") and line.split("|")[1].strip() in wanted))
+        rows = "\n".join(line for line in shown.splitlines()
+                         if line.startswith("|") and line.split("|")[1].strip() in wanted)
+        if rows:
+            blocks.append(rows)
     return b"\n\n" + "\n\n".join(blocks).encode() if blocks else b""
 
 
