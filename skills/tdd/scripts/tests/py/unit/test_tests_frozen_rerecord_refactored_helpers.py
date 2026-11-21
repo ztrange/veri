@@ -816,3 +816,18 @@ def test_rerecord_refactored_skips_a_go_case_whose_refactor_weakened_a_t_fatal_m
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
     assert (code, _skip_lines(err, GO_SUITE + " TestX")) == (1, 1)
+
+
+def test_rerecord_refactored_re_records_a_go_case_whose_setup_t_fatalf_lines_a_refactor_moved_into_an_existing_helper_worded_differently_4533(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    helper = "func h(t *testing.T, n int) {\n\tif n < 0 {\n\t\tt.Fatalf(\"h got %d\", n)\n\t}\n}\n\n"
+    inline = helper + "func TestX(t *testing.T) {\n\terr := start()\n\tif err != nil {\n\t\tt.Fatalf(\"start: %v\", err)\n\t}\n}\n"
+    moved = helper.replace("n int) {\n", "n int) {\n\terr := start()\n\tif err != nil {\n\t\tt.Fatalf(\"start: %v\", err)\n\t}\n") \
+        + "func TestX(t *testing.T) {\n\th(t, 1)\n}\n"
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, inline, moved)
+    before = _record_of(tmp_path).read_text()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, GO_SUITE + " TestX"), _record_of(tmp_path).read_text() != before) == (0, 0, True)
