@@ -354,6 +354,7 @@ The mutation record `.tdd/issue-<n>-mutations.md`: its name and its entry format
 - `paths(run="")`: the records present, sorted, relative when `run` is empty. `snapshot(run="")`: `{path: bytes}` of them.
 - `format_record(fields)`: the text of one entry from (name, value) pairs. `append(record_path, fields)`: add one entry to a record.
 - `records(text)`: `[{name: value}]`, text fields decoded. `chunks(text)`: `[(raw, fields)]`, each entry's exact text with the blank lines after it and its undecoded fields; raises `MalformedRecord` (a `ValueError` whose `header` is the bad line).
+- `stale_pins(run, issue)`: `[(file, first line of old)]` per unretired entry of `<run>`'s record whose `old` text its file under `<run>` no longer holds; a missing record or file adds nothing (`run_finished`, `queued_merge`).
 
 ## pid_file
 - `number_in(file)`: the number on a pid file's first line, `None` when missing or malformed.

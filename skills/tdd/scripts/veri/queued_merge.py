@@ -15,9 +15,9 @@ import entry
 import event
 import git
 import merge_common
+import mutation_record
 import paths
 import run_dir
-import run_finished
 import run_records
 import stack_branch
 import tunables
@@ -348,7 +348,7 @@ def _before_merge(pid, pr, worktree, branch, before, head):
         body = json.loads(shown.stdout)["body"]
         if not re.search(r"Closes #%s\b" % number.group(1), body):
             return "the PR body of %s lacks the line 'Closes #%s'; not merged" % (pr, number.group(1)), 2
-        stale = run_finished.stale_pins(worktree, number.group(1))
+        stale = mutation_record.stale_pins(worktree, number.group(1))
         if stale:
             return ("the mutation record of #%s pins old text its file no longer holds (%s); re-record or retire it; "
                     "not merged" % (number.group(1), "; ".join("%s %s" % pin for pin in stale)), 1)
