@@ -14,6 +14,11 @@ USAGE = ("usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-f
          "       pin-reject-route.sh --recheck <reason-file> <ledger-file> <matcher>")
 
 
+def repin_step(path):
+    """The re-pin step's text, before its ` turns it red` tail, for the pin on <path>."""
+    return ledger.REPIN_STEP + path + " so its recorded mutation"
+
+
 def recheck(argv):
     with open(argv[0], encoding="utf-8") as handle:
         reason = handle.read()
@@ -22,7 +27,7 @@ def recheck(argv):
         print("revise")
         return 1
     path = found.group(1)
-    step = ledger.REPIN_STEP + path + " so its recorded mutation"
+    step = repin_step(path)
     text = step + " turns it red"
     held = ledger.TICKED_STEP + " " + step
     if held in ledger.read_ledger(argv[1]):
