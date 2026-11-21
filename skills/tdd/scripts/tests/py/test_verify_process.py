@@ -2635,6 +2635,43 @@ def test_verify_sh_rebase_launches_the_leaf_and_returns_its_verdict_when_no_comm
     assert (code, "docs/backend.md" in out, started.exists()) == (0, False, True)
 
 
+@pytest.mark.process("a real git scratch repository whose working tree holds an uncommitted change to a tracked file, and a stub claude that records any start")
+def test_verify_sh_rebase_exits_2_without_launching_the_leaf_naming_a_tracked_file_left_modified_and_uncommitted_4552(
+        run_cli, tmp_path):
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+
+    def commit(message):
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", message], check=True)
+        return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                              capture_output=True).stdout.decode().strip()
+
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "docs").mkdir()
+    (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 2 |\n")
+    onto = commit("onto")
+    origin_head_at(repo)
+    (repo / "notes.txt").write_text("unrelated\n")
+    commit("a clean rebased commit")
+    (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 3 |\n")
+    started = tmp_path / "started"
+    claude = tmp_path / "claude-record"
+    claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
+    claude.chmod(0o755)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+
+    code, _, err = run_cli(
+        verify, [*based(repo), "rebase", str(tmp_path / "spec.md"), onto, onto],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=repo)
+
+    assert (code, "docs/backend.md" in err, started.exists()) == (2, True, False)
+
+
 @pytest.mark.process("a real git scratch repository whose pin verifier leaf replaces a mutation record that was a directory before it ran")
 def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced_a_directory_mutation_record_with_a_regular_file_2772(
         run_cli, tmp_path, monkeypatch):
