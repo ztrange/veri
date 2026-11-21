@@ -3,7 +3,9 @@
 #
 # Inserts each <text> as an unchecked step `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` on the lines
 # after the step containing <anchor-substring>, or on the lines before it, in the order
-# given. `instead-of` puts them where that step was and drops the step itself.
+# given. `instead-of` puts them where that step was and drops the step itself, with every
+# .tdd/issue-<n>-<stage>-rejected-wait record naming it and, when it was the open step, every
+# .tdd/verdict-<phase>.exit, so a same-text replacement does not inherit its verdict (#4547).
 # VERI_STEP_GROWTH_PERCENT (default 50) caps how many ⟦added⟧ steps one ledger may hold at
 # ⌈percent × P ÷ 100⌉, P the steps the ledger held at the commit `ledger-growth.sh plan-sha`
 # prints (read with git log and git show beside the ledger), and the call is all or nothing: a batch that would exceed the cap inserts nothing and records every text as a
