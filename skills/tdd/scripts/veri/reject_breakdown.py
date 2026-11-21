@@ -4,6 +4,13 @@ import collections
 import datetime
 import sys
 
+import entry
+
+USAGE = """usage: reject-breakdown.sh < <dated reports>
+  stdin: one `<YYYY-MM-DD> <report path>` line per committed metrics report, the date its newest commit's
+  author date. Prints, per week, REJECT per verify, then each phase's REJECTs, then each reason class's.
+Exit: 0 printed; 2 a line not `<YYYY-MM-DD> <path>`, or a report unreadable or with no `#### By phase`
+  table, named by its line; 3 no report named."""
 
 def phase_verdicts(text):
     """{phase: (PASS, REJECT)} off the report's `#### By phase` table."""
@@ -39,12 +46,26 @@ def monday(day):
 def main(argv):
     weeks = collections.defaultdict(lambda: collections.defaultdict(lambda: [0, 0]))
     reasons = collections.defaultdict(collections.Counter)
-    for line in sys.stdin.read().splitlines():
-        day, path = line.split(" ", 1)
-        with open(path) as handle:
-            text = handle.read()
-        week = weeks[monday(day)]
-        for phase, (passes, rejects) in phase_verdicts(text).items():
+    named = 0
+    for number, line in enumerate(sys.stdin.read().splitlines(), 1):
+        if not line.strip():
+            continue
+        day, _, path = line.partition(" ")
+        try:
+            week_of = monday(day)
+        except ValueError:
+            week_of = None
+        if week_of is None or not path.strip():
+            return entry.refuse(f"reject-breakdown.sh: line {number}: not `<YYYY-MM-DD> <report path>`: {line}")
+        try:
+            with open(path) as handle:
+                text = handle.read()
+            verdicts = phase_verdicts(text)
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            return entry.refuse(f"reject-breakdown.sh: line {number}: cannot read {path}: {exc}")
+        named += 1
+        week = weeks[week_of]
+        for phase, (passes, rejects) in verdicts.items():
             week[phase][0] += passes
             week[phase][1] += rejects
             classified = green_checks(text) if phase == "green" else {}
@@ -52,6 +73,9 @@ def main(argv):
                 reasons[monday(day)][(phase, f"check {check}")] += count
             if rejects - sum(classified.values()):
                 reasons[monday(day)][(phase, "unclassified")] += rejects - sum(classified.values())
+    if not named:
+        entry.refuse("reject-breakdown.sh: no report named on stdin")
+        return 3
     for week, phases in sorted(weeks.items()):
         rejects = sum(r for _, r in phases.values())
         verifies = sum(p + r for p, r in phases.values())
@@ -64,5 +88,4 @@ def main(argv):
     return 0
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])
