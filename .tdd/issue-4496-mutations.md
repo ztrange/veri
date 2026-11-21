@@ -5,3 +5,14 @@ skills/tdd/scripts/tests/py/unit/test_reroute.py
 command 64
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_reroute.py
 
+file 34
+skills/tdd/scripts/veri/reroute.py
+old-b64 56
+ICAgIGlmIGNvZGUgaW4gKDAsIDEpIGFuZCBraW5kIGluIFNUT1BTOgo=
+new-b64 184
+ICAgIGlmIGNvZGUgaW4gKDAsIDEpIGFuZCBraW5kIGluIFNUT1BTOgogICAgICAgIGZ1c2VkLmNoZWNrZWQoImxhdW5jaCIsIGZ1c2VkLnNjcmlwdCgicmVzdG9yZS1wcm9kdWN0aW9uLnNoIiksIHJlZFsidGVzdF9wYXRoIl0sIGN3ZD13dCkK
+context-b64 56
+ICAgIGlmIGNvZGUgaW4gKDAsIDEpIGFuZCBraW5kIGluIFNUT1BTOg==
+command 162
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_reroute.py::test_4496_an_answer_it_does_not_run_calls_no_restore_production_leaving_the_edit_in_the_worktree
+
