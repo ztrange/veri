@@ -1983,3 +1983,16 @@ def test_4547_instead_of_on_a_step_after_the_open_one_leaves_the_open_steps_verd
     assert add_ledger_step.main([str(ledger), "instead-of", "c three", "c three"]) == 0
 
     assert (tmp_path / "verdict-green.exit").read_text() == "1\n"
+
+
+def test_4547_instead_of_leaves_the_rejected_wait_record_naming_the_open_step_when_it_replaces_a_later_one(
+        tmp_path, add_ledger_step):
+    """#4547: only the replaced step's `<stage>-rejected` record goes; the open step's own record stays."""
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    record = tmp_path / "issue-42-green-half-rejected-wait"
+    record.write_text('{"conductor": null, "at": "verdict-green", "values": {}, "step": "b two ⟦criterion 2⟧"}')
+
+    assert add_ledger_step.main([str(ledger), "instead-of", "c three", "c three"]) == 0
+
+    assert record.exists()

@@ -854,3 +854,12 @@ def test_4500_with_no_veri_issue_exported_it_builds_the_revise_prompt_with_the_r
     assert (env.get("VERI_ISSUE"), env.get("VERI_STEP")) == ("12", STEP)
     assert fake.launched() == ["revise-%s-1" % phase]
     assert code == 3, err
+
+
+def test_4547_a_missing_reason_file_exits_2_naming_it_with_no_traceback(revise):
+    """#4547 criterion 3: revise without `.tdd/verify-green.reason` is a refusal naming the file, not a FileNotFoundError."""
+    code, out, err, fake = revise(missing=("reason",))
+
+    assert code == 2
+    assert "verify-green.reason" in err
+    assert "Traceback" not in err
