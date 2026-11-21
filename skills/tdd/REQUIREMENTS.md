@@ -516,6 +516,7 @@
 | CY411 | The branch-base sha handed to the `diff` verifier is the conductor's recorded base, never `git merge-base HEAD origin/<default>`. | A leaf can rewrite the ref. |
 | CY413 | `DIFF-CHECKED.md` opens with one call line: run `$S/run-step.sh <n>`, again on exit 3, and on 1 or 2 go on by the paragraph its last line names; `diff-step by hand ends $S/step-tick.sh <n>`. Every paragraph stays. | The prose stays the fallback (DST13, S8). |
 | CY414 | The PASS bullet names the ledger commit's subject for a ⟦diff-checked⟧ tick: `chore: diff-checked — <step summary> (#<n>)`. | Runs commit it under that subject today and no skill file names it (DST6, S14). |
+| CY418 | The PASS bullet says that on a re-pin step, the one `pin-reject-route.sh --recheck` adds, `pin-recheck.sh` runs from `<green>~1`, `<green>` the ledger's last commit before the step base, the re-armed step's green tick, never from the step base. | From the step base, the re-pin plan commit, the range leaves out the fix that disarmed the pin, `pin-recheck.sh` exits 3 and a re-pin that left the pin green is ticked (#4511). |
 
 ## skills/tdd/GO-RED.md
 
