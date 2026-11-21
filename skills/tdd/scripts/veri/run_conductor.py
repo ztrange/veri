@@ -404,7 +404,7 @@ def launch(base, issue, commit, claim=None, **exports):
     else:
         bad = requirements.malformed_row_id(body.split("\n"))
         if bad is not None:
-            sys.stderr.write("run-conductor.sh: Requirement row ID is neither <prefix><digits> nor <prefix><next>: %s\n" % bad)
+            sys.stderr.write("run-conductor.sh: Requirement row ID is none of <prefix><digits>, <prefix><next> or <prefix><digits><letters><reword>: %s\n" % bad)
             return 2
     text = prompt(base, issue, commit)
     if text is None:
