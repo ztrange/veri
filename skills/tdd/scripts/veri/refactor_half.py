@@ -151,15 +151,14 @@ def open_after(wt, n, step):
 
 
 def verify(n, wt, settled, step, values):
-    """Refactor 5 (RL6): nothing landed marks the skip and posts the skipped comment; `refactor` switched off marks
-    it, writes `skipped` and posts verify-refactor once; otherwise verdict-refactor is launched. The leaf launched, or
-    None."""
+    """Refactor 5 (RL6): either skip marks it and writes `skipped` to verdict-refactor.exit, replacing an earlier
+    step's verdict (#4555); nothing landed posts the skipped comment, `refactor` switched off posts verify-refactor
+    once; otherwise verdict-refactor is launched. The leaf launched, or None."""
     if values["count"] == 0 or fused_step.verify_switched_off(wt, n, "refactor"):
         reason = "nothing-landed" if values["count"] == 0 else "switched-off"
         fused.mark("5", wt, n, step, "verify-refactor-skipped", "reason=" + reason)
-        if reason == "switched-off":
-            with open(os.path.join(wt, ".tdd", "verdict-refactor.exit"), "w") as f:
-                f.write("skipped\n")
+        with open(os.path.join(wt, ".tdd", "verdict-refactor.exit"), "w") as f:
+            f.write("skipped\n")
         tree_check(wt)
         fused.checked("5", fused.script("comment.sh"), n, "verify-refactor",
                       *(("--skipped",) if reason == "nothing-landed" else ()), cwd=wt)
