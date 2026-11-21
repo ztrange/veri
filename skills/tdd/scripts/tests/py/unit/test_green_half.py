@@ -583,3 +583,28 @@ def test_4479_a_green_half_wait_record_naming_the_open_step_still_resumes_at_its
 
     assert (code, fake.launched()) == (0, [])
     assert [c[1][0] for c in fake.calls if c[0] == "git" and c[1][0] == "commit"] == ["commit"]
+
+
+def test_4479_the_wait_record_a_revised_green_pass_re_saves_is_not_loaded_once_a_later_step_is_open_and_it_launches_develop_green(
+        green, monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    revise = importlib.import_module("veri.revise")
+    tdd = green.wt / ".tdd"
+    step_a, step_b = STEP, "two things work ⟦criterion 2⟧"
+    for name, text in {"issue-12-branch-base": BRANCH_BASE + "\n", "issue-12-spec.md": "# spec\n",
+                       "issue-12-preflight": "worktree=%s\nfast_cmd=make unit\n" % green.wt,
+                       "issue-12.md": LEDGER % step_a, "issue-12-red-half": RED_HALF % step_a,
+                       "verify-green.reason": "VERDICT: REJECT\nhardcoded\n", "revise-green-1.out": "report\n",
+                       "verdict-green.exit": "0\n"}.items():
+        (tdd / name).write_text(text)
+    (tdd / "issue-12-green-half-rejected-wait").write_text(json.dumps(
+        {"conductor": None, "at": "verdict-green", "step": step_a,
+         "values": {"test_path": "tests/test_a.py", "target_test": "tests/test_a.py::test_one"}}))
+    monkeypatch.setattr(fused, "run_script", Fake(wt=green.wt))
+    assert run_cli(revise, ["12", "green"], cwd=str(tmp_path))[0] == 0
+    (tdd / "issue-12.md").write_text(LEDGER.replace("- [ ] %s\n- [ ] two ⟦criterion 2⟧", "- [x] %s\n- [ ] " + step_b)
+                                     % (step_a, ))
+    (tdd / "issue-12-red-half").write_text(RED_HALF % step_b)
+    code, out, err, fake = green(step=step_b)
+
+    assert fake.launched()[:1] == ["develop-green"]
