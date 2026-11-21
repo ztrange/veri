@@ -887,3 +887,31 @@ def test_4472_a_verify_branch_exit_1_prints_the_rejected_seam_exits_1_and_never_
     assert out.splitlines()[-1] == "seam=verify-branch code=1 reason=rejected next=DRAFT-PR.md#4. Draft PR"
     assert code == 1, err
     assert "pr-ready-wait.sh" not in calls
+
+
+def test_4472_after_a_verify_branch_reject_a_run_pr_on_the_repaired_ledgers_new_sha_restarts_at_branch_gate(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    run_pr = importlib.import_module("veri.run_pr")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n")
+    calls = []
+    verdict = [1]
+
+    def spy(name, *args, **kw):
+        calls.append(os.path.basename(name))
+        return (verdict[0] if os.path.basename(name) == "verify-branch.sh" else 0), "", ""
+
+    monkeypatch.setattr(fused, "call", spy)
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "aaaaaaa\n", ""))
+    run_cli(run_pr, ["12"], cwd=str(tmp_path))
+    del calls[:]
+    verdict[0] = 0
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "bbbbbbb\n", ""))
+
+    code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
+
+    assert calls == ["branch-gate.sh", "pr-prepare.sh", "pr-checks.sh", "verify-branch.sh"]
+    assert out.splitlines()[-1] == "seam=pr-ready-wait code=1 reason=title next=DRAFT-PR.md#4. Draft PR"
