@@ -495,9 +495,9 @@ def rerecord_refactored(ledger, green):
     if not rewrite_records(_earlier_records(lines, ""), rewrite):
         return 2
     code = _check_earlier(ledger, "", sanctioned=exempt)
-    if code == 1:
-        # A failed check keeps no rewrite: .tdd/ is gitignored, so a record left at the refactored digests would
-        # make the revert route skip every case (#4554).
+    if code != 0:
+        # A failed check, exit 1 or 2, keeps no rewrite: .tdd/ is gitignored, so a record left at the refactored
+        # digests would make the revert route skip every case (#4554).
         for path, text in snapshot.items():
             if not write_record(path, [text]):
                 return 2
