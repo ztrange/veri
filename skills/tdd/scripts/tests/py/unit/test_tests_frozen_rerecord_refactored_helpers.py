@@ -323,12 +323,11 @@ def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_refactor_lost_a
                         recorded.replace("\tif x < 0 {\n\t\tt.Error(\"negative\")\n\t}\n", ""),
                         edit_record=lambda: _append_helpers_line(tmp_path, tests_frozen))
     record = _record_of(tmp_path)
-    head_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
     before = record.read_bytes()
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
-    assert (tests_frozen.body_line("suite_test.go", "TestX", head_body).encode() + b"\n" in before,
+    assert (b"body: suite_test.go\tTestX\td3354d8e746c7e77dfa4825bd1bbf69069b22ead3ac8bd0ed4592ef68c20f344\n" in before,
             b"\nhelpers: " in before, code, _skip_lines(err, "suite_test.go TestX"),
             record.read_bytes() == before) == (True, True, 1, 1, True)
 
