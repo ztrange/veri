@@ -442,7 +442,7 @@ def push_dry_run_row():
     return "push dry-run", said[-1] if said else f"git push --dry-run origin exited {pushed.returncode}"
 
 
-PROBE_FILES = ("bash-probe.txt", "write-probe.txt")
+PROBE_FILES = ("bash-probe.txt", "write-probe.txt", "shape-probe.txt")
 PROBE_TIMEOUT = 300  # seconds; one haiku turn writing two files takes well under a minute
 DENY_PLACES = ("/Library/Application Support/ClaudeCode/managed-settings.json, /etc/claude-code/managed-settings.json, "
                "and the user (~/.claude/settings.json) and project (.claude/settings.json) permissions.deny")

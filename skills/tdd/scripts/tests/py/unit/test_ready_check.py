@@ -918,6 +918,14 @@ def test_issue_4091_a_listed_permission_denial_fails_the_bypass_permissions_row_
     assert name == "bypassPermissions" and verdict, verdict
 
 
+def test_issue_4532_the_bypass_permissions_row_fails_when_only_shape_probe_is_missing_though_the_other_nonce_files_hold_the_nonce_and_no_denial_is_listed(ready_check, fake_processes):
+    fake_processes.answers({PROBE: probe_answer(shape=False)})
+
+    name, verdict = ready_check.bypass_permissions_row()
+
+    assert name == "bypassPermissions" and verdict, verdict
+
+
 PLACES = ("/Library/Application Support/ClaudeCode/managed-settings.json", "/etc/claude-code/managed-settings.json",
           "permissions.deny")
 
