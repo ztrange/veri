@@ -6,3 +6,4 @@
 - [x] the cap check fails a text whose UTF-8 byte count is over the cap while its character count is not ⟦criterion 1⟧
 - [x] the `##` section that grew most is chosen by UTF-8 bytes, not characters ⟦criterion 1⟧
 - [x] growth above the first `##` heading is named as the pseudo-section `(above the first ##)`, with its own baseline entry
+- [ ] ⟦added⟧ the over-cap message names the pseudo-section `(above the first ##)` without a `## ` prefix, and names no section when none grew over its baseline
