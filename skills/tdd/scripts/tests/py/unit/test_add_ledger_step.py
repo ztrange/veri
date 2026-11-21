@@ -1959,3 +1959,16 @@ def test_4123_a_lint_repair_step_carries_added_and_is_owed_once_the_growth_budge
 
     assert (code, out) == (1, "")
     assert ledger.read_bytes() == spent + f"\n## Owed steps\n\n- {text}\n".encode()
+
+
+def test_4547_instead_of_on_the_open_step_leaves_no_verdict_exit_file_of_the_replaced_step(tmp_path, add_ledger_step):
+    """#4547: a `.tdd/verdict-<phase>.exit` names no step, so the one the replaced open step's verifier left would be
+    read as the replacement's verdict."""
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    for phase in ("red", "green"):
+        (tmp_path / ("verdict-%s.exit" % phase)).write_text("1\n")
+
+    assert add_ledger_step.main([str(ledger), "instead-of", "b two", "b two"]) == 0
+
+    assert sorted(p.name for p in tmp_path.glob("verdict-*.exit")) == []
