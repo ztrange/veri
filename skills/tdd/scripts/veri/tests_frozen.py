@@ -488,9 +488,20 @@ def rerecord_refactored(ledger, green):
         head_text = case_history.text_at("HEAD", name, quiet=True)
         return body_line(name, case, head) + "\n" + frozen_record.helpers_line(
             name, case, case_identity.helper_digest(head_text, "\n".join(case_identity.bodies_of(head_text, case))))
+    snapshot = {}
+    for _, path, __ in _earlier_records(lines, ""):
+        with open(path, encoding="utf-8") as handle:
+            snapshot[path] = handle.read()
     if not rewrite_records(_earlier_records(lines, ""), rewrite):
         return 2
-    return _check_earlier(ledger, "", sanctioned=exempt)
+    code = _check_earlier(ledger, "", sanctioned=exempt)
+    if code == 1:
+        # A failed check keeps no rewrite: .tdd/ is gitignored, so a record left at the refactored digests would
+        # make the revert route skip every case (#4554).
+        for path, text in snapshot.items():
+            if not write_record(path, [text]):
+                return 2
+    return code
 
 
 def rerecord_rebased(ledger, pre):
