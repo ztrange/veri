@@ -6,6 +6,7 @@ import os
 import sys
 
 import github
+import mutation_record
 from ledger import OPEN_STEP, is_human_owed, ledger_steps
 import run_dir as layout
 import status
@@ -23,6 +24,29 @@ def pr_body(pr):
         return json.loads(page)["body"]
     except (ValueError, KeyError):
         raise github.NoAnswer("no PR body")
+
+
+def stale_pins(run_dir, issue):
+    """(file, first line of old) per unretired entry of the run's own mutation record whose old text its file, in the
+    run's worktree, no longer holds; a missing record or mutated file adds nothing (pin-recheck names a missing file)."""
+    try:
+        with open(mutation_record.path(run_dir, issue), encoding="utf-8") as f:
+            entries = mutation_record.records(f.read())
+    except FileNotFoundError:
+        return []
+    out = []
+    for entry in entries:
+        if "file" not in entry or "retired" in entry:
+            continue
+        try:
+            with open(os.path.join(run_dir, entry["file"]), encoding="utf-8") as f:
+                held = f.read()
+        except FileNotFoundError:
+            continue
+        old = entry.get("old", "")
+        if old not in held:
+            out.append((entry["file"], (old.strip().splitlines() or [""])[0].strip()))
+    return out
 
 
 def main(argv):
@@ -64,6 +88,11 @@ def main(argv):
              if ln.lstrip().startswith((open_line, star_line))]
     unmet += [("human-owed", t) for t in texts
               if is_human_owed(t)]
+    stale = stale_pins(run_dir, issue)
+    unmet += [("stale-pin", "%s %s" % pin) for pin in stale]
+    if stale:
+        sys.stderr.write("run-finished.sh: re-record a stale pin with mutation-probe.sh (VERI_MUTATION_RECORD) "
+                         "or retire its entry (a `retired <reason>` field) in %s\n" % mutation_record.path(run_dir, issue))
     for name, step in unmet:
         print("%s %s" % (name, step))
     return 1 if unmet else 0

@@ -350,3 +350,21 @@ def test_a_done_run_whose_ledger_is_missing_exits_2_with_one_stderr_line_naming_
     assert "issue-4242.md" in err
     assert len(err.splitlines()) == 1
     assert "Traceback" not in err
+
+
+def test_a_done_run_whose_mutation_record_names_old_text_its_file_no_longer_holds_exits_1_with_one_stale_pin_line_per_live_entry_4513(
+        tmp_path, run_cli, fake_processes):
+    mutation_record = importlib.import_module("veri.mutation_record")
+    repo = make_run(tmp_path, [LAUNCH % 1000, DONE])
+    worktree = repo / ".tdd" / "wt" / "4242"
+    (worktree / "lib").mkdir()
+    (worktree / "lib" / "calc.py").write_text("def add(a, b):\n    return a + b\n")
+    (worktree / ".tdd" / "issue-4242-mutations.md").write_text(
+        mutation_record.format_record([("file", "lib/calc.py"), ("old", "    return a - b\n"), ("new", "    return 0\n")])
+        + mutation_record.format_record([("file", "lib/calc.py"), ("old", "    return a * b\n"), ("new", "    return 0\n"),
+                                         ("retired", "superseded")])
+        + mutation_record.format_record([("file", "lib/calc.py"), ("old", "    return a + b\n"), ("new", "    return 0\n")]))
+
+    code, out, _ = finish(run_cli, fake_processes, repo, "Closes #4242")
+
+    assert (code, out.splitlines()) == (1, ["stale-pin lib/calc.py return a - b"])
