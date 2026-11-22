@@ -97,3 +97,20 @@ def test_no_pair_exits_3_printing_nothing(tmp_path, near_duplicates, run_cli):
     commit_all(repo, "feat: total", **{"src__calc.py": TOTAL})
     added = commit_all(repo, "feat: tax", **{"src__calc.py": TOTAL + "\nTAX = 2\n"})
     assert run_cli(near_duplicates, [added], cwd=repo) == (3, "", "")
+
+
+@pytest.mark.process("git over a scratch repository whose commit added the first 2 lines of a block whose last 3 lines were already there")
+def test_a_block_only_partly_added_is_not_a_run_of_added_lines(tmp_path, near_duplicates, run_cli):
+    tail = "    for parcel in parcels:\n        acc += parcel.mass\n    return acc\n"
+    repo = new_repo(tmp_path / "partly-added")
+    commit_all(repo, "feat: total", **{"src__calc.py": TOTAL + "\n" + tail})
+    added = commit_all(repo, "feat: weight", **{"src__calc.py": TOTAL + "\ndef weight(parcels):\n    acc = 0\n" + tail})
+    assert run_cli(near_duplicates, [added], cwd=repo) == (3, "", "")
+
+
+@pytest.mark.process("git over a scratch repository whose commit added 5 lines that all normalise to the same line")
+def test_added_lines_overlapping_their_own_shifted_copy_are_not_a_pair(tmp_path, near_duplicates, run_cli):
+    repo = new_repo(tmp_path / "self-overlap")
+    commit_all(repo, "feat: seed", **{"src__calc.py": "SEED = 1\n"})
+    added = commit_all(repo, "feat: calls", **{"src__calc.py": "SEED = 1\na = f(p)\nb = f(q)\nc = f(r)\nd = f(s)\ne = f(t)\n"})
+    assert run_cli(near_duplicates, [added], cwd=repo) == (3, "", "")
