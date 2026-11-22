@@ -13,7 +13,7 @@ Interface:
   revisions(path, since=None)   the shas of the commits that touched `path`, newest first; with `since`,
                                 only those in since..HEAD. [] when git cannot log.
   paths_at(rev, directory)      the repo-relative paths of the files directly in `directory` at `rev` (git
-                                ls-tree, not recursive); [] when git cannot list.
+                                ls-tree, not recursive; "" is the root); [] when git cannot list.
   subject(rev)                  `rev`'s commit subject plus its newline; "" when git cannot log.
   changed_test_files()          test files that differ from HEAD (changed, then untracked), repo-relative, in
                                 git's order; OSError ("git <diff|ls-files> failed: ...") when a listing fails,
@@ -89,7 +89,7 @@ def revisions(path, since=None):
 
 
 def paths_at(rev, directory):
-    listed = git.git("ls-tree", "--name-only", rev, "--", os.path.join(directory, ""), stdout=subprocess.PIPE,
+    listed = git.git("ls-tree", "--name-only", rev, "--", os.path.join(directory, "") or ".", stdout=subprocess.PIPE,
                      stderr=subprocess.DEVNULL)
     return os.fsdecode(listed.stdout).splitlines() if listed.returncode == 0 else []
 
