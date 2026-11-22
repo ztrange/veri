@@ -2929,6 +2929,33 @@ def test_a_restarted_dispatch_prints_no_queue_blocked_line_for_the_set_dispatch_
         f"skip 12 a.py {url}\nqueue-blocked {url}\n", f"skip 12 a.py {url}\n", True)
 
 
+def test_main_prints_no_queue_blocked_line_while_a_conductor_is_live_and_every_solvable_issue_overlaps_its_draft_pr_issue_4641(
+        dispatch):
+    url = "https://github.com/o/r/pull/90"
+    world = FakeWorld({"live": ["80"], "queue": ["12"], "overlaps": {"12": ("a.py", url)}})
+
+    code = dispatch.main(["--target", "2"], world=world)
+
+    assert (code, world.launched, "".join(world.said),
+            [line for line in world.notified_lines if line.startswith("queue-blocked ")]) == (
+        None, [], f"skip 12 a.py {url}\n", [])
+
+
+def test_a_queue_blocked_set_seen_again_after_another_set_prints_again_and_the_file_keeps_one_queue_blocked_line_issue_4641(
+        dispatch):
+    first, second = "https://github.com/o/r/pull/90", "https://github.com/o/r/pull/91"
+    notified, said = [], []
+    for url in (first, second, first):
+        world = FakeWorld({"queue": ["12"], "overlaps": {"12": ("a.py", url)}}, notified=notified)
+        dispatch.main(["--target", "1"], world=world)
+        notified = world.notified_lines
+        said += [text for text in world.said if text.startswith("queue-blocked ")]
+
+    assert (said, [line for line in notified if line.startswith("queue-blocked ")]) == (
+        [f"queue-blocked {first}\n", f"queue-blocked {second}\n", f"queue-blocked {first}\n"],
+        [f"queue-blocked {first}"])
+
+
 def test_the_overlap_guard_asks_its_one_open_pr_list_read_for_the_labels_field_the_parked_check_reads_issue_3545(
         monkeypatch, dispatch):
     asked = []
