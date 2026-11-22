@@ -61,3 +61,27 @@ def test_issue_4570_triggers_on_pull_request_answers_true_for_a_quoted_on_key_a_
         answers[name] = ci_on_pr.triggers_on_pull_request()
 
     assert answers == {name: True for name in forms}
+
+
+def test_issue_4570_pull_request_trigger_answers_false_only_for_a_workflow_read_in_full_and_none_for_one_it_did_not_read(
+        ci_on_pr):
+    texts = {
+        "block push only": "on:\n  push:\n",
+        "double-quoted push only": "\"on\":\n  push:\n",
+        "single-quoted push only": "'on':\n  push:\n",
+        "json push only": "{\"on\": {\"push\": {}}}\n",
+        "json without on": "{\"jobs\": {}}\n",
+        "flow root": "{on: push, jobs: {}}\n",
+        "empty": "",
+    }
+    answers = {name: ci_on_pr.pull_request_trigger(text) for name, text in texts.items()}
+
+    assert answers == {
+        "block push only": False,
+        "double-quoted push only": False,
+        "single-quoted push only": False,
+        "json push only": False,
+        "json without on": None,
+        "flow root": None,
+        "empty": None,
+    }
