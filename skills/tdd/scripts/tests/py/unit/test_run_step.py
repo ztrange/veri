@@ -656,6 +656,21 @@ def test_a_stale_green_half_rejected_record_after_a_reroute_to_red_never_revises
     assert [call[1] for call in stages.calls if os.path.basename(call[0]) == "revise.sh"] == [("12", "red")]
 
 
+def test_a_red_half_rejected_record_beside_a_refactor_pending_step_never_answers_green_or_restarts_at_red_4613(step):
+    """#4613: the red-half override is for a step still being developed; a step waiting for its refactor keeps
+    green's REJECT files and resumes at refactor-half, never back at red-half."""
+    (step.wt / ".tdd" / "issue-12-red-half-rejected-wait").write_text(REJECTED.replace("verdict-green", "verdict-red"))
+    green_rejected = step.wt / ".tdd" / "issue-12-green-half-rejected-wait"
+    green_rejected.write_text(REJECTED)
+    green_exit = step.wt / ".tdd" / "verdict-green.exit"
+    green_exit.write_text("1\n")
+
+    code, out, err, stages = step(ledger=PENDING)
+
+    assert (code, stages.names()) == (0, ["refactor-half.sh", "step-close.sh"]), err
+    assert (green_rejected.exists(), green_exit.exists()) == (True, True)
+
+
 def _reroute_wait(step, text):
     (step.wt / ".tdd" / "issue-12-reroute-wait").write_text(
         '{"conductor": null, "at": "verdict-red", "values": {"report": ".tdd/revise-green-1.out", "step": "%s"}}'
