@@ -43,3 +43,11 @@ def test_an_added_function_repeating_one_in_another_touched_file_prints_the_pair
     commit_all(repo, "feat: total", **{"src__calc.py": TOTAL})
     added = commit_all(repo, "feat: weight", **{"src__calc.py": TOTAL + "\nTAX = 2\n", "src__parcels.py": WEIGHT.lstrip()})
     assert run_cli(near_duplicates, [added], cwd=repo) == (0, "src/parcels.py:2-6 src/calc.py:1-5\n", "")
+
+
+@pytest.mark.process("git over a scratch repository whose commit added a copy of a function in a file it did not touch")
+def test_an_older_copy_in_a_file_the_commit_did_not_touch_is_not_reported(tmp_path, near_duplicates, run_cli):
+    repo = new_repo(tmp_path / "untouched")
+    commit_all(repo, "feat: total", **{"src__calc.py": TOTAL})
+    added = commit_all(repo, "feat: weight", **{"src__parcels.py": WEIGHT.lstrip()})
+    assert run_cli(near_duplicates, [added], cwd=repo)[1] == ""
