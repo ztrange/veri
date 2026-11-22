@@ -685,6 +685,7 @@ Every query runs in the current directory through `git.git`; a git failure becom
 - `toplevel()`: the working tree's root, `None` outside a repository. `has_rev(rev)`: bool. `current_branch()`: the abbreviated HEAD. `default_branch()`: origin's default branch as `refs/remotes/origin/HEAD` names it, asking no remote; raises `git.GitFailed` when it names none.
 - `text_at(rev, path, quiet=False)`: the file's text at `rev`, `""` when git cannot show it. `cases_at(rev, path)`: `{case name: body}`; raises OSError when git cannot read `rev`.
 - `revisions(path, since=None)`: shas of the commits that touched `path`, newest first. `subject(rev)`: its subject plus a newline.
+- `paths_at(rev, directory)`: the files directly in `directory` at `rev`, `""` meaning the root; [] when git cannot list.
 - `changed_test_files()`: test files that differ from HEAD; raises OSError when a listing fails. `step_commits(step, issue)`, `commit_of(rev)`, `first_revision_with(needle, path)`: a step's own commits, a rev's sha, the oldest commit touching `needle`.
 
 ## frozen_record
