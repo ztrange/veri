@@ -180,3 +180,16 @@ def test_refactor_half_with_no_open_step_never_finishes_a_revised_green_half_455
     code, out, err, record = settle("refactor-half", ledger="# Plan for #12\n\n- [ ] %s\n" % STEP)
 
     assert (code, "no open step for refactor-half" in err, record, ran) == (2, True, None, [])
+
+
+def test_settling_red_half_by_hand_removes_red_halfs_rejected_record_so_run_step_never_revises_red_again_4613(settle):
+    """#4613: red recovered by hand (REVISE.md) leaves the rejected record only revise.sh's finish removes; settling
+    red-half answers it, else a bare run-step.sh call would revise the recovered red and drop green's REJECT."""
+    open_step = "two ⟦criterion 2⟧"
+    rejected = settle.wt / ".tdd" / "issue-12-red-half-rejected-wait"
+    rejected.write_text('{"conductor": null, "at": "verdict-red", "values": {}, "step": "%s"}' % open_step)
+
+    code, out, err, record = settle("red-half", "test_path=tests/test_h.py", "target_test=test_two")
+
+    assert (code, record.startswith("step=%s\n" % open_step)) == (0, True), err
+    assert not rejected.exists()
