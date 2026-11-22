@@ -217,6 +217,15 @@ def test_4577_near_duplicates_exit_3_still_launches_the_refactor_leaf_its_pairs_
     assert (tidy.wt / build[1][5]).read_text() == ""
 
 
+def test_4577_near_duplicates_exit_2_stops_refactor_half_with_exit_2_before_any_leaf_is_launched(tidy):
+    """Criterion 3: near-duplicates.sh obtaining no answer (exit 2) is not "no pair"; the leaf is never launched on a
+    pairs file nobody vouches for, and refactor-half.sh says so with exit 2."""
+    code, out, err, fake = tidy(fake=Redirecting({("near-duplicates.sh", None): (2, "")}))
+
+    assert (code, fake.launched()) == (2, []), out
+    assert "build-develop-prompt.sh" not in fake.names()
+
+
 REPIN_TICK = "e" * 40
 REPIN_LINE = importlib.import_module("veri.pin_reject_route").repin_step("src/a.py") + " turns it red ⟦added⟧"
 
