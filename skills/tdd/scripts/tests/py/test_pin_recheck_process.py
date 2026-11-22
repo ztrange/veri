@@ -3457,6 +3457,37 @@ def test_4644_a_pin_whose_old_text_was_already_gone_at_the_base_is_stale_and_exi
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, False, True), ran.stdout + ran.stderr
 
 
+@pytest.mark.process("git, and pin-recheck.sh run over a range touching pa/a.go, already stale, and removing pb/b.go's pinned text")
+def test_4644_a_range_with_an_already_stale_pin_and_a_pin_it_broke_exits_1_for_the_broken_one_only(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "pa").mkdir()
+    (tmp_path / "pb").mkdir()
+    (tmp_path / "pa" / "a.go").write_text("package pa\n")
+    (tmp_path / "pb" / "b.go").write_text("package pb\nif beta\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4601-mutations.md", file="pa/a.go", old="if alpha", new="if (true)",
+           command="sh -c \"echo result\"")
+    record(tmp_path / ".tdd" / "issue-4602-mutations.md", file="pb/b.go", old="if beta", new="if (true)",
+           command="sh -c \"echo result\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "pa" / "a.go").write_text("package pa\n\nfunc f() {}\n")
+    (tmp_path / "pb" / "b.go").write_text("package pb\n")
+    git("commit", "-q", "-am", "touch a.go and delete b.go's guard")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, [line for line in ran.stdout.splitlines() if line.startswith("not checked:")],
+            "stale: .tdd/issue-4601-mutations.md pa/a.go\n" in ran.stdout,
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
+        1, ["not checked: pb/b.go (old text in no file of its package)"], True, False), ran.stdout + ran.stderr
+
+
 @pytest.mark.process("git, and pin-recheck.sh run over a range that copies the pinned text from x.go into y.go and z.go")
 def test_4602_a_pin_whose_old_text_is_in_more_than_one_other_file_is_not_checked_and_mutates_none_of_them(tmp_path):
     def git(*words):
