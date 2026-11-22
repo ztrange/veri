@@ -1,7 +1,7 @@
 # Plan for #4601 — A case a refactor moved byte-identical out of a still-existing frozen test file is found at its new path by tests-frozen check-earlier and rerecord-refactored
 
 - [x] `tests-frozen.sh check-earlier` exits 0 for a frozen Go case (body and helpers digests recorded in `a_test.go`) that was moved unchanged, with its helper, to a sibling `b_test.go` while `a_test.go` still exists without it ⟦criterion 1⟧
-- [x] `tests-frozen.sh rerecord-refactored` (which already exits 0 here) prints no `skipped:` line for a frozen Go case moved byte-identical with its helper from `a_test.go`, which still exists, to the sibling `b_test.go`, and writes that case's body record naming `b_test.go` ⟦added⟧ ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `tests-frozen.sh rerecord-refactored` (which already exits 0 here) prints no `skipped:` line for a frozen Go case moved byte-identical with its helper from `a_test.go`, which still exists, to the sibling `b_test.go`, and writes that case's body record naming `b_test.go` ⟦added⟧ ⟦criterion 1⟧
 - [ ] `tests-frozen.sh rerecord-refactored` writes that moved case's helpers record naming `b_test.go`, with the helpers digest read from `b_test.go`'s text rather than `a_test.go`'s, and exits 0 ⟦added⟧ ⟦criterion 1⟧
 - [ ] Guard: `tests-frozen.sh check-earlier` still exits 1 naming the case when a frozen case is missing from its still-existing recorded file and from every other file ⟦criterion 2⟧
 - [ ] Guard: `tests-frozen.sh check-earlier` still exits 1 naming the case when a frozen case moved out of its still-existing recorded file into a sibling file with its body changed ⟦criterion 2⟧
