@@ -487,6 +487,7 @@ class State:
         self.resume_at = 0  # no queue read before this clock() time: a rate limit's reset
         self.reported = set()  # the (issue, path, PR url) skips already printed
         self.missing = {}  # issue: the clock() time its silent exit was first seen
+        self.holding = []  # the runs this poll holds for a silent-exit decision: never called stalled meanwhile
         self.held_at = None  # the clock() time the queue last had nothing launchable
 
 
@@ -531,6 +532,7 @@ def _reported(issue, world):
 
 def _exits(state, world, live):
     """The vanish, restart, silent-exit and closing-line rules for each seen run no longer live."""
+    state.holding = []
     for issue in state.seen:
         if issue in live:
             continue
@@ -562,6 +564,7 @@ def _exits(state, world, live):
         if line.startswith("silent-exit") and world.clock() - state.missing.setdefault(issue, world.clock()) < 30:
             if issue not in state.pending:
                 state.pending.append(issue)
+            state.holding.append(issue)
             continue
         kept = [line for line in world.notified() if not line.startswith(f"{EXITED}{issue} ")]
         world.record_notified(kept + [f"{EXITED}{issue} {len(world.launched_runs())}"])
@@ -587,10 +590,13 @@ def _role_state_target(state, world):
 
 
 def _stalled(state, world):
-    """stalled <n> for the first seen run silent for the stall window whose issue is not closed."""
+    """stalled <n> for the first seen run silent for the stall window whose issue is not closed, save a run held for
+    a silent-exit decision: its exit is the answer, and a stalled line would end the call before the hold does."""
     stall = int(stall_window())
     states = None
     for issue in state.seen:
+        if issue in state.holding:
+            continue
         last = world.last_activity(issue)
         if last is not None and world.clock() - last >= stall:
             if states is None:

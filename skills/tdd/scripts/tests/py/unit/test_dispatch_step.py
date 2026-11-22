@@ -115,6 +115,17 @@ def test_4605_a_run_launched_per_dispatch_log_that_ended_silent_before_a_fresh_c
     assert (held, code, world.said, world.launched) == (None, 0, ["silent-exit 7\n"], [])
 
 
+def test_4605_a_logged_run_that_ended_silent_with_activity_older_than_the_stall_window_says_silent_exit_never_stalled(dispatch):
+    world = FakeWorld({"queue": ["12"], "activity": {"7": 0}, "clock": 7200},
+                      {"queue": ["12"], "activity": {"7": 0}, "clock": 7230}, logged=["7"], notified=["logged 0"])
+
+    state, held = dispatch.step(dispatch.State(target=1), world)
+    world.wait()
+    state, code = dispatch.step(state, world)
+
+    assert (held, code, world.said, world.launched) == (None, 0, ["silent-exit 7\n"], [])
+
+
 def test_4605_two_fresh_calls_over_the_same_ended_run_launched_per_dispatch_log_say_its_done_line_once(dispatch):
     world = FakeWorld({"queue": ["12"], "closing": {"7": "done 7 https://github.com/o/r/pull/9"}},
                       logged=["7"], notified=["logged 0"])
