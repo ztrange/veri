@@ -30,6 +30,26 @@ def refusal(value):
     return None
 
 
+def resolved(value):
+    """The FINDING: value with a package-relative file that is not a file as given replaced by the one line of
+    .tdd/test-quality-files that is it or ends in /<it> (#4624); the value unchanged otherwise."""
+    fields = value.split("|", 2)
+    if len(fields) < 3 or "::" not in fields[1]:
+        return value
+    path, _, rest = fields[1].strip().partition("::")
+    if os.path.isfile(path):
+        return value
+    try:
+        with open(os.path.join(".tdd", "test-quality-files"), encoding="utf-8") as listed:
+            lines = listed.read().splitlines()
+    except FileNotFoundError:
+        return value
+    matches = [line for line in lines if line == path or line.endswith("/" + path)]
+    if len(matches) != 1:
+        return value
+    return "|".join([fields[0], f" {matches[0]}::{rest} ", fields[2]])
+
+
 def record(issue, report):
     """(code, text, skipped): the record's text from the findings refusal() accepts, and the refusals of the others,
     so one finding naming a helper does not drop the report (#4534); exit 2 when none survives."""
@@ -38,7 +58,7 @@ def record(issue, report):
         return 2, "the report has no FINDING: line", []
     if values == ["none"]:
         return 3, "", []
-    judged = [(value, refusal(value)) for value in values]
+    judged = [(value, refusal(value)) for value in map(resolved, values)]
     skipped = [refused for _, refused in judged if refused]
     kept = [value for value, refused in judged if not refused]
     if not kept:
