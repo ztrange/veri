@@ -211,7 +211,14 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh develop-rebase $S/run-leaf.sh .tdd/develop-rebase.prompt --permission-mode bypassPermissions > .tdd/develop-rebase.out 2> .tdd/develop-rebase.err
    $S/wait-leaf.sh develop-rebase   # foreground; on exit 3 call it again
    ```
-   Once the `develop-rebase` leaf has resolved the conflict, run the regrade block below
+   Once the `develop-rebase` leaf has resolved the conflict, first re-record the run's branch base as the
+   commit the branch now sits on, so a stop or a resume before `verify-rebase` never reads the old one:
+   ```
+   $S/rebase-onto-default.sh --resolved <onto-sha>   # → <replaced-base>, the base it replaced (none printed when there was none)
+   ```
+   It fetches and rebases nothing; its exit 2 (HEAD does not contain `<onto-sha>`, or the record cannot be written)
+   does **bail** as a **system** failure (`no-verdict`, see `<base directory>/BAIL.md`).
+   Then run the regrade block below
    **before** `verify-rebase` is launched, so the verifier judges a tip whose `GRADED` lines are
    current. A stale `GRADED` line from the rebase is no defect of the resolution: it spends no
    `revise` mark and no `REVISE_BUDGET` attempt. Then launch the verifier:
@@ -237,6 +244,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    git reset --hard <pre-rebase-sha>
    ```
+   When `--resolved` re-recorded the branch base, put the record back too, since `<onto-sha>` is no ancestor of the
+   reset branch and a resume would refuse it: `$S/rebase-onto-default.sh --resolved <replaced-base>`, its exit 2 noted
+   in the bail comment.
    The branch is left un-rebased, and the run does **bail** with cause `rebase-unresolved`, a **process** failure, with the PR left a draft, its
    bail comment naming every conflicting file `rebase-onto-default.sh` printed, so the human it hands the conflict to knows where it is (`Read` `<base directory>/BAIL.md`).
 
