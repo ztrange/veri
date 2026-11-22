@@ -2322,3 +2322,12 @@ def test_4111_renders_develop_break_md_for_the_break_phase_and_a_revise_of_break
     assert ("break" in build_develop_prompt.PHASES, build_develop_prompt.WANT.get("break"),
             "break" in build_develop_prompt.REVISABLE_PHASES) == (True, 4, True)
 
+
+
+def test_4577_cli_refactor_given_an_unreadable_pairs_file_is_refused_naming_it_with_no_stdout(
+        tmp_path, run_cli, build_develop_prompt):
+    pairs = str(tmp_path / "absent-pairs.txt")
+
+    code, out, err = run_cli(build_develop_prompt, ["refactor", _spec(tmp_path), "s", "make test", "a.py", pairs])
+
+    assert (code, out, err) == (2, "", f"build-develop-prompt: cannot read '{pairs}'\n")
