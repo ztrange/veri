@@ -532,7 +532,7 @@ def _reported(issue, world):
 def _exits(state, world, live):
     """The vanish, restart, silent-exit and closing-line rules for each seen run no longer live."""
     for issue in state.seen:
-        if issue in live or (issue in state.logged and _reported(issue, world)):
+        if issue in live:
             continue
         if issue in state.logged and not world.has_worktree(issue):
             continue  # read back from dispatch.log, never seen live by this call: released, cleaned or merged
@@ -721,7 +721,8 @@ def step(state, world):
     world.say or world.complain as it is decided, so a later failure in the same poll never swallows it."""
     live = world.live_runs()
     if state.logged is None:
-        state.logged = [issue for issue in _logged_runs(world) if issue not in state.seen]
+        # a run an earlier call already reported is neither watched nor called stalled
+        state.logged = [issue for issue in _logged_runs(world) if issue not in state.seen and not _reported(issue, world)]
         state.seen += state.logged
     state.logged = [issue for issue in state.logged if issue not in live]
     code = _merge_failed(state, world)

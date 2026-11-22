@@ -174,3 +174,12 @@ def test_4605_bail_then_a_resume_this_call_sees_live_then_bail_again_says_bail_t
     state, code = dispatch.step(state, world)
 
     assert (watching, code, world.said) == (None, 0, ["bail 7\n", "bail 7\n"])
+
+
+def test_4605_a_logged_run_already_reported_exited_is_never_called_stalled_and_the_call_launches(dispatch):
+    world = FakeWorld({"queue": ["12"], "activity": {"7": 0}, "clock": 7200}, logged=["7"],
+                      notified=["logged 0", "exited 7 1"])
+
+    state, code = dispatch.step(dispatch.State(target=1), world)
+
+    assert (code, world.said, world.launched) == (None, [], ["12"])
