@@ -47,8 +47,10 @@ Interface (a function says what it touches: text only, the tree's files, or case
                                           starting "refactor:". False when `case` is not at HEAD, was never changed,
                                           or the history cannot be read (OSError). Asks case_history.
   called_helpers(rev, name, body)         helpers_in of the file `name` at `rev` (read quietly), then of every other
-                                          test file (case_reader.is_test_path) in `name`'s directory at `rev`; "" when
-                                          git can show none of them. Asks case_history.
+                                          test file (case_reader.is_test_path) in `name`'s directory at `rev`, each
+                                          name taken once: the case's own file wins, then the first sibling in
+                                          listing order, since Python/JS sibling files each define their own `check`;
+                                          "" when git can show none of them. Asks case_history.
 
 Error modes: only changed_by_refactor catches anything (OSError from case_history, answered False). The rest let
 case_reader's UnclosedCase, a file's OSError and case_history's OSError through to the caller, who decides.
@@ -93,7 +95,8 @@ def bodies_of(text, case):
 _HELPER_NAME = r"^(?:(?:function|func|def)\s+(?:\([^)]*\)\s*)?(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)"
 
 
-def helpers_in(text, body, legacy=False):
+def _named_helpers(text, body, legacy=False):
+    """(name, definition) of each helper in `text` that `body` calls, in file order."""
     helpers = []
     stop = r"func" if legacy else r"(?:function|func|def|const)"
     rest = re.compile(r"(?:(?!%s\b).*\n?)*" % stop)
@@ -103,8 +106,12 @@ def helpers_in(text, body, legacy=False):
         keyword = definition.split(None, 1)[0]
         collected = (keyword == "def" and name.startswith("test")) or (keyword == "func" and name.startswith("Test"))
         if not collected and re.search(r"\b%s\(" % name, body):
-            helpers.append(definition)
-    return "\n".join(helpers)
+            helpers.append((name, definition))
+    return helpers
+
+
+def helpers_in(text, body, legacy=False):
+    return "\n".join(definition for _, definition in _named_helpers(text, body, legacy))
 
 
 def helper_digest(text, body, legacy=False):
@@ -185,5 +192,10 @@ def changed_by_refactor(name, case):
 def called_helpers(rev, name, body):
     siblings = [path for path in case_history.paths_at(rev, os.path.dirname(name))
                 if path != os.path.normpath(name) and is_test_path(path)]
-    return "\n".join(filter(None, (helpers_in(case_history.text_at(rev, path, quiet=True), body)
-                                   for path in [name] + siblings)))
+    seen, helpers = set(), []
+    for path in [name] + siblings:
+        for helper, definition in _named_helpers(case_history.text_at(rev, path, quiet=True), body):
+            if helper not in seen:
+                seen.add(helper)
+                helpers.append(definition)
+    return "\n".join(helpers)
