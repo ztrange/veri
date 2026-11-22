@@ -224,12 +224,12 @@ def test_2847_baseline_full_tier_set_empty_resolves_to_the_default_reuse(monkeyp
     assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("reuse", None)
 
 
-def test_3223_reset_growth_conductor_is_in_the_readers_table_defaulting_to_70000_and_refusing_zero():
+def test_3223_reset_growth_conductor_is_in_the_readers_table_defaulting_to_30000_and_refusing_zero():
     tunables = importlib.import_module("veri.tunables")
 
     entry = tunables.TABLE["VERI_RESET_GROWTH_CONDUCTOR"]
 
-    assert (entry.default, entry("1"), entry("70000")) == ("70000", 1, 70000)
+    assert (entry.default, entry("1"), entry("30000")) == ("30000", 1, 30000)
     with pytest.raises(ValueError):
         entry("0")
 

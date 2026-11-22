@@ -162,7 +162,7 @@ def test_one_reset_with_an_unknown_figure_makes_the_optimum_unknown_and_the_sour
 
     lines = out.splitlines() + ["", "", ""]
     assert (code, lines[1], "optimum unknown: 1 of 1 resets has an unknown K or g" in lines[2]) == (
-        0, "median K=unknown g=1000 r=unknown optimum=unknown VERI_RESET_GROWTH_CONDUCTOR=70000", True), out
+        0, "median K=unknown g=1000 r=unknown optimum=unknown VERI_RESET_GROWTH_CONDUCTOR=30000", True), out
 
 
 def test_a_request_with_an_unreadable_timestamp_is_skipped_counted_and_never_echoed(tmp_path, monkeypatch, run_cli):
