@@ -36,10 +36,17 @@ Render one verdict on the settled result.
    names one catalogue smell, by its name in the catalogue, and the file and symbol where it is met; a REJECT for design that names no
    catalogue smell, or no file and symbol, is not a valid design REJECT. A smell the code already
    met at `{{STEP_GREEN_SHA}}^`, or whose answer would change a file outside the cycle's files (check 8),
-   is named in REASON: as out of scope and is not by itself a REJECT. The settled code must
-   not have smuggled in untested generality — generality is only earned through triangulation,
-   not hand-written here.
-   Run `{{NEAR_DUPLICATES}} {{STEP_GREEN_SHA}}` yourself: it prints the near-duplicate pairs the green commit added.
+   is named in REASON: as out of scope and is not by itself a REJECT. A pair the command below
+   prints is never out of scope under that clause: one of its sides was added in the range and
+   both sit in the cycle's files.
+   Run `{{NEAR_DUPLICATES}} {{STEP_GREEN_SHA}}` yourself. Each line it prints is one pair: first a block
+   added since `{{STEP_GREEN_SHA}}^`, then a place in the cycle's files (check 8) that repeats it,
+   ignoring whitespace and identifier names, each as `<file>:<first>-<last>`; exit 3 means it
+   printed no pair. Read both sites of each pair. A pair that meets the catalogue's Duplicated
+   Code row is a REJECT naming Duplicated Code and both sites' file and line range, whether or
+   not `{{BASE_SHA}}..HEAD` is empty; a pair that does not meet the row is not a REJECT.
+   The settled code must not have smuggled in untested generality — generality is only earned
+   through triangulation, not hand-written here.
 3. **A missing case is a flag, not a REJECT.** An obvious unhandled edge case the spec
    implies is not by itself a REJECT: handling it changes behavior, which a
    behavior-preserving refactor may not do, so the REJECT would demand what no revise leaf
@@ -62,7 +69,8 @@ Render one verdict on the settled result.
 6. **Empty range.** An empty range, which a reset of the leaf's commits leaves, is not a
    REJECT by itself: judge the settled result as it stands. When you find no catalogue smell
    in the range's files, do not reject the absence of a transform: a refactor is not owed
-   where nothing smells.
+   where nothing smells. A Duplicated Code pair check 2 finds is a smell, and stays a REJECT on
+   an empty range.
 7. **Out of scope.** A shortfall against a criterion outside the step under judgement is
    named in REASON: as out of scope and is not by itself a REJECT: a behavior-preserving
    refactor may not add another step's work, so demanding it here is a demand no revise
