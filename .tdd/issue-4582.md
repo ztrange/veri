@@ -10,4 +10,4 @@
 - [x] `near-duplicates.sh <commit>` exits 3 printing nothing when it finds no pair ⟦criterion 7⟧
 - [x] `near-duplicates.sh` with no `<commit>` exits 2 with a usage line on stderr ⟦criterion 7⟧
 - [x] `near-duplicates.sh <commit>` with an unresolvable `<commit>` exits 2 with a usage line on stderr ⟦criterion 7⟧
-- [ ] `skills/tdd/SCRIPTS.md` has a `near-duplicates.sh` entry under a new SC row in `skills/tdd/REQUIREMENTS.md`, graded PASS ⟦criterion 8⟧
+- [x] `skills/tdd/SCRIPTS.md` has a `near-duplicates.sh` entry under a new SC row in `skills/tdd/REQUIREMENTS.md`, graded PASS ⟦criterion 8⟧
