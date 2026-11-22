@@ -72,6 +72,10 @@ def main(argv):
     if not argv or not argv[0]:
         return entry.refuse(usage=USAGE)
     rev = argv[0]
+    check = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"],
+                           stdout=subprocess.DEVNULL)
+    if check.returncode != 0:
+        return entry.refuse(f"near-duplicates: cannot resolve commit '{rev}'", usage=USAGE)
     added = added_lines(rev)
     files = [(path, counting_lines(git("show", f"HEAD:{path}"), added.get(path, set())))
              for path in refactor_touched.touched_files([f"{rev}^", rev]) if not is_test_path(path)]
