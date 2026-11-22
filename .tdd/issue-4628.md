@@ -1,0 +1,3 @@
+# Plan for #4628 — A go-red probe names the case id the plan wrote, not the one the red leaf committed, so go-red-step bails exit 2
+
+- [ ] When a ⟦go-red⟧ step's probe names `<file>::test_x` and `<file>` defines no `test_x` but defines exactly one `test_<n>_x` (n the run's issue number, the issue-number prefix a red leaf adds), go-red-step.sh hands mutation-probe.sh the committed case `<file>::test_<n>_x` instead of the ledger's id, so the run no longer bails with `mutation-probe.sh: command fails on the unmutated file`; a small in-process unit case in skills/tdd/scripts/tests/py/unit/test_go_red_step.py, no git or subprocess ⟦criterion 1⟧
