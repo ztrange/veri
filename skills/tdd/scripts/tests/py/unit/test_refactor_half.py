@@ -160,22 +160,50 @@ def _after(fake, name, first=None):
 def test_4028_it_opens_the_refactor_loop_stage_asks_the_budget_and_launches_develop_refactor(tidy):
     code, out, err, fake = tidy(answers={("wait-leaf.sh", "verdict-refactor"): (3, "")})
 
-    assert [(c[0], c[1][:1]) for c in fake.calls[:9]] == [
+    assert [(c[0], c[1][:1]) for c in fake.calls[:10]] == [
         ("event.sh", ("stage-start",)), ("git", ("log",)), ("git", ("log",)), ("refactor-budget.sh", ("0",)),
-        ("refactor-touched.sh", (GREEN_SHA,)), ("build-develop-prompt.sh", ("refactor",)), ("stop-requested.sh", ()),
-        ("detach-leaf.sh", (fake.calls[7][1][0],)), ("wait-leaf.sh", ("develop-refactor",))]
+        ("refactor-touched.sh", (GREEN_SHA,)), ("near-duplicates.sh", (GREEN_SHA,)),
+        ("build-develop-prompt.sh", ("refactor",)), ("stop-requested.sh", ()),
+        ("detach-leaf.sh", (fake.calls[8][1][0],)), ("wait-leaf.sh", ("develop-refactor",))]
     assert fake.calls[0][1] == ("stage-start", "stage=refactor-loop")
     assert (tidy.wt / ".tdd" / "stage-rl.t").read_text().strip().isdigit()
     assert fake.calls[1][1] == ("log", "-1", "--format=%H", "--", ".tdd/issue-12.md")
     assert fake.calls[2][1] == ("log", "--format=%x00%H", "-p", "--unified=0", "HEAD", "--", ".tdd/issue-12.md")
-    assert fake.calls[5][1] == ("refactor", ".tdd/issue-12-spec.md", STEP, "make unit", TOUCHED)
-    assert fake.calls[5][4]["out"] == ".tdd/develop-refactor.prompt"
-    launch = fake.calls[7]
+    assert fake.calls[6][1][:5] == ("refactor", ".tdd/issue-12-spec.md", STEP, "make unit", TOUCHED)
+    assert fake.calls[6][4]["out"] == ".tdd/develop-refactor.prompt"
+    launch = fake.calls[8]
     assert _short(launch[1]) == ("supervise.sh", "develop-refactor", "run-leaf.sh", ".tdd/develop-refactor.prompt",
                                  "--permission-mode", "bypassPermissions")
     assert (launch[3]["VERI_TEST_CMD"], launch[3]["VERI_ISSUE"], launch[3]["VERI_STEP"]) == ("make unit", "12", STEP)
     assert (launch[4]["out"], launch[4]["err"]) == (".tdd/develop-refactor.out", ".tdd/develop-refactor.err")
 
+
+
+PAIR = "src/a.py:10-14 src/b.py:3-7\n"
+
+
+class Redirecting(Fake):
+    """A Fake whose call given <out> writes its stdout to that file under <cwd>, as run_script does."""
+
+    def __call__(self, name, *args, cwd=None, env=None, **kw):
+        code, out, err = super().__call__(name, *args, cwd=cwd, env=env, **kw)
+        if kw.get("out") is not None:
+            with open(os.path.join(cwd, kw["out"]), "w") as f:
+                f.write(out)
+            out = ""
+        return code, out, err
+
+
+def test_4577_the_near_duplicate_pair_of_the_steps_own_green_tick_reaches_the_refactor_prompts_pairs_file(tidy):
+    """Criterion 2: near-duplicates.sh runs on the step's own green tick, the commit refactor-touched.sh is handed, and
+    what it printed is the pairs file build-develop-prompt.sh fills the prompt's near-duplicates section from."""
+    code, out, err, fake = tidy(fake=Redirecting({("near-duplicates.sh", None): (0, PAIR),
+                                                  ("wait-leaf.sh", "develop-refactor"): (3, "")}))
+
+    assert fake.call("near-duplicates.sh")[1] == (GREEN_SHA,), err
+    build = fake.call("build-develop-prompt.sh", "refactor")
+    assert len(build[1]) == 6
+    assert (tidy.wt / build[1][5]).read_text() == PAIR
 
 REPIN_TICK = "e" * 40
 REPIN_LINE = importlib.import_module("veri.pin_reject_route").repin_step("src/a.py") + " turns it red ⟦added⟧"
@@ -606,6 +634,7 @@ def test_4028_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_
 # Inner calls the Refactor loop section does not name, each by name with its reason.
 NAMED_ELSEWHERE = {
     "extract-result.sh": "FC2: *Launching a leaf* reads a leaf's report only through it",
+    "near-duplicates.sh": "#4577: named by the Refactor loop's sub-step 1 once its SKILL.md step lands",
 }
 
 
