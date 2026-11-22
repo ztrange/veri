@@ -177,3 +177,13 @@ def test_4480_a_probe_whose_old_text_is_gone_is_named_as_stale_not_plumbing(go_r
     assert code == 1, out
     assert "mutation-probe.sh" not in fake.names() and "step-tick.sh" not in fake.names()
     assert out.splitlines()[-1] == "stopped at probe src/run.py no longer holds `if stacked:`"
+
+
+def test_4628_a_case_the_test_file_holds_only_under_the_red_leafs_issue_number_prefix_is_the_one_probed(go_red):
+    (go_red.wt / "tests").mkdir()
+    (go_red.wt / "tests" / "test_run.py").write_text("def test_4605_refuses_stacked():\n    pass\n")
+
+    code, out, err, fake = go_red()
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "tests/test_run.py::test_4605_refuses_stacked"
