@@ -1016,3 +1016,22 @@ def test_check_earlier_given_a_ledger_that_is_not_the_runs_removes_the_pass_mark
     code = run_cli(tests_frozen, ["check-earlier", ".tdd/plan-ledger.md", "--step", step], cwd=tmp_path)[0]
 
     assert (passed, code, list((tmp_path / ".tdd").glob("check-earlier-*.pass"))) == (0, 2, [])
+
+
+def test_check_earlier_exits_1_naming_a_case_weakened_in_its_still_existing_recorded_file_while_a_sibling_holds_its_original_body_4601(
+        tmp_path, run_cli, tests_frozen, fed_commits):
+    repo = _moving_based(tmp_path, fed_commits)
+    earlier, current = "step one adds a case", "step two adds another"
+    original = OLDER + "\n\ndef test_q_4601():\n    assert 1 == 1\n"
+    (tmp_path / SUITE).write_text(original)
+    run_cli(tests_frozen, ["record", "--step", earlier, SUITE], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / SUITE).write_text(OLDER + "\n\ndef test_q_4601():\n    assert True\n")
+    (tmp_path / MOVED).write_text(original)
+    repo.add("tests")
+    repo.commit("weaken the case and copy its original")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (1, "test_q_4601 (%s)\n" % earlier)
