@@ -39,6 +39,7 @@ Render one verdict on the settled result.
    is named in REASON: as out of scope and is not by itself a REJECT. The settled code must
    not have smuggled in untested generality — generality is only earned through triangulation,
    not hand-written here.
+   Run `{{NEAR_DUPLICATES}} {{STEP_GREEN_SHA}}` yourself: it prints the near-duplicate pairs the green commit added.
 3. **A missing case is a flag, not a REJECT.** An obvious unhandled edge case the spec
    implies is not by itself a REJECT: handling it changes behavior, which a
    behavior-preserving refactor may not do, so the REJECT would demand what no revise leaf
