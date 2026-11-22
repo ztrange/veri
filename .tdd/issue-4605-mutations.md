@@ -1,0 +1,7 @@
+before 40
+cd72101f4cfddb10301c5e42ed00f74f42340f73
+keep 54
+skills/tdd/scripts/tests/py/unit/test_dispatch_step.py
+command 184
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch_step.py::test_4605_a_run_launched_per_dispatch_log_that_ended_with_a_bail_before_a_fresh_call_says_bail_before_any_launch
+

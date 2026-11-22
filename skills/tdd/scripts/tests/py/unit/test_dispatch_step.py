@@ -97,3 +97,15 @@ def test_4605_a_run_launched_per_dispatch_log_that_ended_done_before_a_fresh_cal
     state, code = dispatch.step(dispatch.State(target=1), world)
 
     assert (code, world.said, world.launched) == (0, ["done 7 https://github.com/o/r/pull/9\n"], [])
+
+
+def test_4605_a_run_launched_per_dispatch_log_that_ended_with_a_bail_before_a_fresh_call_says_bail_before_any_launch(dispatch):
+    class LoggedWorld(FakeWorld):
+        def launched_runs(self):
+            return ["7"]
+
+    world = LoggedWorld({"queue": ["12"], "closing": {"7": "bail 7"}})
+
+    state, code = dispatch.step(dispatch.State(target=1), world)
+
+    assert (code, world.said, world.launched) == (0, ["bail 7\n"], [])
