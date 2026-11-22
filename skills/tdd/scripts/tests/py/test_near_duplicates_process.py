@@ -51,3 +51,11 @@ def test_an_older_copy_in_a_file_the_commit_did_not_touch_is_not_reported(tmp_pa
     commit_all(repo, "feat: total", **{"src__calc.py": TOTAL})
     added = commit_all(repo, "feat: weight", **{"src__parcels.py": WEIGHT.lstrip()})
     assert run_cli(near_duplicates, [added], cwd=repo)[1] == ""
+
+
+@pytest.mark.process("git over a scratch repository whose commit added an unrelated line to a file already holding two copies")
+def test_a_pair_neither_side_of_which_holds_an_added_line_is_never_printed(tmp_path, near_duplicates, run_cli):
+    repo = new_repo(tmp_path / "old-pair")
+    commit_all(repo, "feat: total and weight", **{"src__calc.py": TOTAL + WEIGHT})
+    added = commit_all(repo, "feat: tax", **{"src__calc.py": TOTAL + WEIGHT + "\nTAX = 2\n"})
+    assert run_cli(near_duplicates, [added], cwd=repo)[1] == ""
