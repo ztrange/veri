@@ -70,3 +70,13 @@ def test_a_run_of_fewer_than_3_counting_lines_prints_nothing_however_many_brace_
     commit_all(repo, "feat: total", **{"src__calc.js": older})
     added = commit_all(repo, "feat: weight", **{"src__calc.js": older + copy})
     assert run_cli(near_duplicates, [added], cwd=repo)[1] == ""
+
+
+@pytest.mark.process("git over a scratch repository whose commit added a 6-line copy of an older function")
+def test_one_maximal_6_line_repeat_prints_one_line_not_one_per_3_line_window(tmp_path, near_duplicates, run_cli):
+    older = TOTAL.replace("    return sum_\n", "    sum_ = round(sum_)\n    return sum_\n")
+    copy = "\ndef weight(parcels):\n  acc = 0\n  for parcel in parcels:\n    acc += parcel.mass\n  acc = round(acc)\n  return acc\n"
+    repo = new_repo(tmp_path / "maximal")
+    commit_all(repo, "feat: total", **{"src__calc.py": older})
+    added = commit_all(repo, "feat: weight", **{"src__calc.py": older + copy})
+    assert run_cli(near_duplicates, [added], cwd=repo) == (0, "src/calc.py:8-13 src/calc.py:1-6\n", "")
