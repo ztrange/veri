@@ -336,7 +336,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   call it from inside themselves, so their events are complete by construction; **your**
   marks — `step-start`, `step-done`, `pin`, `revise`, `bail`, `done`, `resume` — are prose,
   so each is prescribed below at the point the matching narration is, and the run's context
-  (`VERI_ISSUE`, `VERI_ACTOR=conductor`, `VERI_STEP`, `VERI_PHASE`, `VERI_ATTEMPT`) rides on
+  (`VERI_ISSUE`, else `VERI_STATE_LABEL_ISSUE`, `VERI_ACTOR=conductor`, `VERI_STEP`, `VERI_PHASE`, `VERI_ATTEMPT`) rides on
   the call in the environment. The log is run state: it is ignored, never committed, and
   goes with the worktree. With `VERI_STATE_LABEL_ISSUE=<n>` set, a `stop` event adds the `stopped`
   label (a `bail`, `bailed`) when the repository has it, never creating it, so every state a run can be in reads off the issue's labels, and `start` and `resume` remove
