@@ -21,6 +21,23 @@ wrote. Tidying code this cycle did not write is otherwise out of scope, however 
 
 {{NEAR_DUPLICATES}}
 
+Above is one `<file>:<first>-<last> <file>:<first>-<last>` line per pair, or `none`, as
+`near-duplicates.sh` printed them. Each pair is a block this cycle added, named first, and a
+place in the touched files that repeats it ignoring whitespace and names. It points at
+duplication that shows only against code an earlier step wrote, which reading this step's own
+change does not show.
+
+The list only points; the catalogue below stays the standard. Read both sites of each pair and
+judge it against the catalogue's Duplicated Code row. A pair that meets it is a structural
+candidate to apply first, as duplication removal against code this cycle wrote. A pair that
+does not meet it is not a candidate.
+
+Every listed pair that meets the Duplicated Code row and that you did not merge is named on a
+`CANDIDATES:` line of the class it falls into (`structural`, `in-step`, `out-of-scope` or
+`out-of-bounds`, as the four classes below decide), its transform text carrying both sites and
+the reason you left it. "nothing left to tidy" is not a result while such a pair is neither
+merged nor named.
+
 ### The issue's behavior spec (context — the behaviour that must not change)
 
 {{ISSUE_SPEC}}
