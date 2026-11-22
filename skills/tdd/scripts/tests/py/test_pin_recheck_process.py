@@ -3490,3 +3490,31 @@ def test_4602_a_moved_pin_is_looked_for_in_its_own_directory_not_the_repository_
     assert (ran.returncode, (tmp_path / "mutated.marker").exists(), (tmp_path / "pkg" / "y.go").read_bytes(),
             (tmp_path / "decoy.go").read_bytes(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         0, True, moved, decoy, True), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that moves the pinned text from a/main.go to b/other.go")
+def test_4643_a_pin_whose_old_text_moved_to_a_file_of_another_directory_is_replayed_there_and_exits_0_with_the_receipt(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    (tmp_path / "a" / "main.go").write_text("package main\nif guard\n")
+    (tmp_path / "b" / "other.go").write_text("package b\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4643-mutations.md", file="a/main.go", old="if guard", new="if (true)",
+           command="sh -c \"echo result; grep -q 'if guard' b/other.go || { touch mutated.marker; exit 1; }\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    moved = b"package b\nif guard\n"
+    (tmp_path / "a" / "main.go").write_text("package main\n")
+    (tmp_path / "b" / "other.go").write_bytes(moved)
+    git("commit", "-q", "-am", "move the guard to b/other.go")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "mutated.marker").exists(), (tmp_path / "b" / "other.go").read_bytes(),
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, moved, True), ran.stdout + ran.stderr

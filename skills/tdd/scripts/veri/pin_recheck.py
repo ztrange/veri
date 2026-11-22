@@ -244,10 +244,14 @@ def replay_before_state(pin, ledger, named, base, branch_base):
 
 
 def moved_to(pin):
-    """The files of the pin's directory holding its old text."""
+    """The files of the pin's directory holding its old text; when none does, the tracked files outside `.tdd/`
+    holding it."""
     old = pin["old"].encode()
     held = [f for f in sorted(Path(pin["file"]).parent.iterdir()) if f.is_file() and old in f.read_bytes()]
-    return held
+    if held:
+        return held
+    tracked = [Path(name) for name in git_out("ls-files", "-z").split("\0") if name and not name.startswith(".tdd/")]
+    return [f for f in tracked if f.is_file() and old in f.read_bytes()]
 
 
 def replay(pin, ledger, looks, branch_base):
