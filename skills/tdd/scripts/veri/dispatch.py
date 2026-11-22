@@ -435,6 +435,14 @@ class World:
             f.write("".join(line + "\n" for line in lines))
         os.replace(temporary, path)
 
+    def launched_runs(self):
+        """The issues of dispatch.log's `launched <n> <time>` lines, in order, [] when it is absent."""
+        path = layout.main_file(layout.main_tree(missing=""), "dispatch.log")
+        if not os.path.exists(path):
+            return []
+        with open(path) as log:
+            return [line.split()[1] for line in log]
+
     # acting
     def launch(self, issue):
         """Launch <issue>'s run and append its `launched <n> <time>` line to dispatch.log."""
@@ -466,6 +474,7 @@ class State:
         self.target = target
         self.follows_role_state = follows_role_state  # re-read the target from the role state file each poll
         self.previous = None  # the last issue launched
+        self.logged = False  # dispatch.log's launched runs already folded into seen
         self.seen = []  # the runs under watch: live, absent or pending
         self.absent = []  # gone with no worktree and no conductor process, for one poll so far
         self.pending = []  # gone but not yet reportable: in preflight, restarting, or a silent exit under 30 s
@@ -674,6 +683,9 @@ def step(state, world):
     """One poll: (state, exit code), the code None while dispatch keeps watching. Each line is printed through
     world.say or world.complain as it is decided, so a later failure in the same poll never swallows it."""
     live = world.live_runs()
+    if not state.logged:
+        state.logged = True
+        state.seen += getattr(world, "launched_runs", list)()
     code = _merge_failed(state, world)
     if code is None:
         code = _exits(state, world, live)

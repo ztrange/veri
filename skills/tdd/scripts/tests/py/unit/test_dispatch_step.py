@@ -85,3 +85,15 @@ def test_3990_a_rate_limited_queue_read_whose_reset_cannot_be_read_pauses_the_qu
     assert (codes, len(world.complained), "reset" in "".join(world.complained),
             [tick for key, tick in world.reads if key == "queue"], world.launched) == (
         [None, None, None], 1, True, [0, 2], ["12"])
+
+
+def test_4605_a_run_launched_per_dispatch_log_that_ended_done_before_a_fresh_call_says_done_before_any_launch(dispatch):
+    class LoggedWorld(FakeWorld):
+        def launched_runs(self):
+            return ["7"]
+
+    world = LoggedWorld({"queue": ["12"], "closing": {"7": "done 7 https://github.com/o/r/pull/9"}})
+
+    state, code = dispatch.step(dispatch.State(target=1), world)
+
+    assert (code, world.said, world.launched) == (0, ["done 7 https://github.com/o/r/pull/9\n"], [])
