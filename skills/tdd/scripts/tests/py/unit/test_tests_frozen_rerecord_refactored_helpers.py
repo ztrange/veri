@@ -889,3 +889,22 @@ def test_rerecord_refactored_re_records_a_go_case_whose_refactor_moved_a_guarded
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
     assert (code, _skip_lines(err, GO_SUITE + " TestX"), _record_of(tmp_path).read_text() != before) == (0, 0, True)
+
+
+def test_rerecord_refactored_re_records_a_go_case_a_refactor_moved_byte_identical_with_its_helper_to_a_sibling_file_while_the_recorded_file_stays_4601(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    sibling = "b_test.go"
+    moved = ('func checkX(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal("bad")\n\t}\n}\n\n'
+             'func TestX(t *testing.T) {\n\tx := 1\n\tcheckX(t, x)\n}\n')
+    stays = "func TestY(t *testing.T) {\n}\n"
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    (tmp_path / sibling).write_text("package a\n")
+    repo.add(sibling)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, "a_test.go", moved + "\n" + stays, stays)
+    (tmp_path / sibling).write_text(moved)
+    repo.commit("the refactor moves TestX and its helper to a sibling file", all=True)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    bodies = [l for l in _record_of(tmp_path).read_text().splitlines() if l.startswith("body: ")]
+    assert (code, "skipped:" in err, any(sibling + "\tTestX\t" in l for l in bodies)) == (0, False, True), err
