@@ -120,3 +120,22 @@ def test_growth_3389_returns_none_when_an_init_record_follows_the_last_usage_rec
         {"type": "system", "subtype": "init"},
     ]
     assert growth(records) is None
+
+
+def test_growth_4599_an_init_repeating_the_previous_init_session_id_keeps_the_first_usage_as_the_baseline_while_a_new_session_id_resets_it(growth):
+    def turn(msg_id, read):
+        usage = {
+            "input_tokens": 2,
+            "cache_read_input_tokens": read,
+            "cache_creation_input_tokens": 100,
+        }
+        return {"type": "assistant", "message": {"id": msg_id, "usage": usage}}
+
+    def init(session_id):
+        return {"type": "system", "subtype": "init", "session_id": session_id}
+
+    woken = [init("s1"), turn("a1", 20000), turn("a2", 50000), init("s1"), turn("a3", 60000), turn("a4", 64000)]
+    assert growth(woken) == 64000 - 20000
+
+    restarted = [init("s1"), turn("a1", 20000), turn("a2", 50000), init("s2"), turn("b1", 60000), turn("b2", 64000)]
+    assert growth(restarted) == 64000 - 60000
