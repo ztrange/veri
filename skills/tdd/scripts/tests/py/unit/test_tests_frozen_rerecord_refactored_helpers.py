@@ -922,8 +922,7 @@ def test_rerecord_refactored_writes_the_helpers_record_of_a_go_case_moved_to_a_s
     green = _refactored(tmp_path, run_cli, tests_frozen, repo, "a_test.go", moved + "\n" + stays, stays)
     (tmp_path / sibling).write_text(moved)
     repo.commit("the refactor moves TestX and its helper to a sibling file", all=True)
-    helper = moved.split("\n\n")[0] + "\n"
-    expected = tests_frozen.body_digest("\n".join(sorted(tests_frozen._assertion_lines(helper))))
+    expected = "f0780c48381da294935f07291e399ed7dd7ad1cb153e2e4961ce361062e4404b"
 
     code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
 
