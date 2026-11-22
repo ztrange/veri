@@ -50,6 +50,16 @@ def test_4577_a_refactor_prompt_without_a_pairs_file_reads_none_under_near_dupli
     assert section.strip() == b"none"
 
 
+def test_4577_a_refactor_prompt_given_a_pairs_file_prints_each_of_its_lines_under_near_duplicates(bdp, spec, tmp_path):
+    pairs = tmp_path / "pairs.txt"
+    pairs.write_bytes(b"src/a.py:10-14 src/b.py:3-7\nsrc/c.py:1-5 src/d.py:20-24\n")
+
+    text = rendered(bdp, ["refactor", spec, "s", "make test", "a.py", str(pairs)])
+
+    section = text.partition(b"### Near-duplicate pairs this cycle added")[2].split(b"\n###", 1)[0]
+    assert section.strip() == b"src/a.py:10-14 src/b.py:3-7\nsrc/c.py:1-5 src/d.py:20-24"
+
+
 def test_a_missing_spec_is_refused_naming_it_with_no_usage_line(bdp, tmp_path):
     missing = str(tmp_path / "gone.md")
 

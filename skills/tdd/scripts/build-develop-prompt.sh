@@ -11,7 +11,7 @@
 # Usage:
 #   build-develop-prompt.sh red      <issue-spec-file> <step-text> <test-cmd>
 #   build-develop-prompt.sh green    <issue-spec-file> <step-text> <test-cmd> <test-path> <target> <fast-cmd>
-#   build-develop-prompt.sh refactor <issue-spec-file> <step-text> <test-cmd> <touched-files>
+#   build-develop-prompt.sh refactor <issue-spec-file> <step-text> <test-cmd> <touched-files> [<pairs-file>]
 #   build-develop-prompt.sh cover     <issue-spec-file> <step-text> <test-cmd>
 #   build-develop-prompt.sh transform <issue-spec-file> <step-text> <test-cmd>
 #   build-develop-prompt.sh diff      <issue-spec-file> <step-text> <test-cmd> <fast-cmd>
