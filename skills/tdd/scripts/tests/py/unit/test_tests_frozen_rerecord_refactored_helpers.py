@@ -931,25 +931,46 @@ def test_rerecord_refactored_writes_the_helpers_record_of_a_go_case_moved_to_a_s
     assert (code, [h[2] for h in held]) == (0, [expected]), held
 
 
-def test_rerecord_refactored_re_records_a_go_case_whose_guarded_http_get_lines_a_refactor_moved_into_a_helper_in_a_new_sibling_test_file_4606(
-        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+SIBLING_CASE, SIBLING_HELPERS = "cmd/x/a_test.go", "cmd/x/b_test.go"
+GUARDED_GET = "\tresp, err := http.Get(url)\n\tif err != nil {\n\t\tt.Fatalf(\"GET %s: %v\", url, err)\n\t}\n"
+
+
+def _moved_to_sibling(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, moved=GUARDED_GET):
+    """Step A records a Go case holding GUARDED_GET in SIBLING_CASE; a verified refactor moves `moved` into
+    getPage in a new SIBLING_HELPERS of the same directory, the case calling it; returns the green revision."""
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
     (tmp_path / "cmd/x").mkdir(parents=True)
-    case, sibling = "cmd/x/a_test.go", "cmd/x/b_test.go"
-    check = "\tresp, err := http.Get(url)\n\tif err != nil {\n\t\tt.Fatalf(\"GET %s: %v\", url, err)\n\t}\n"
-    (tmp_path / case).write_text("func TestPage(t *testing.T) {\n\turl := \"/x\"\n" + check + "\tuse(resp)\n}\n")
-    repo.add(case)
-    run_cli(tests_frozen, ["record", "--step", STEPS[1], case], cwd=tmp_path)
+    case = tmp_path / SIBLING_CASE
+    case.write_text("func TestPage(t *testing.T) {\n\turl := \"/x\"\n" + GUARDED_GET + "\tuse(resp)\n}\n")
+    repo.add(SIBLING_CASE)
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], SIBLING_CASE], cwd=tmp_path)
     repo.commit("A red", all=True)
     _ledger(tmp_path, A="done")
     green = repo.commit("A green", all=True)
-    (tmp_path / case).write_text("func TestPage(t *testing.T) {\n\turl := \"/x\"\n\tuse(getPage(t, url))\n}\n")
-    (tmp_path / sibling).write_text("func getPage(t *testing.T, url string) string {\n" + check + "\treturn read(resp)\n}\n")
-    repo.add(sibling)
+    case.write_text("func TestPage(t *testing.T) {\n\turl := \"/x\"\n\tuse(getPage(t, url))\n}\n")
+    (tmp_path / SIBLING_HELPERS).write_text(
+        "func getPage(t *testing.T, url string) string {\n" + moved + "\treturn read(resp)\n}\n")
+    repo.add(SIBLING_HELPERS)
     repo.commit("A refactor moves the GET into a helper in a sibling file", all=True)
     (tmp_path / VERDICT).write_text("0")
+    return green
+
+
+def test_rerecord_refactored_re_records_a_go_case_whose_guarded_http_get_lines_a_refactor_moved_into_a_helper_in_a_new_sibling_test_file_4606(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    green = _moved_to_sibling(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
     before = _record_of(tmp_path).read_text()
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
-    assert (code, _skip_lines(err, case + " TestPage"), _record_of(tmp_path).read_text() != before) == (0, 0, True)
+    assert (code, _skip_lines(err, SIBLING_CASE + " TestPage"), _record_of(tmp_path).read_text() != before) == (0, 0, True)
+
+
+def test_check_earlier_exits_0_for_a_go_case_re_recorded_after_a_refactor_moved_its_guarded_get_into_a_sibling_test_file_4606(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    green = _moved_to_sibling(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked == (0, "")
