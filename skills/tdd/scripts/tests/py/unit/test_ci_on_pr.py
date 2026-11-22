@@ -85,3 +85,16 @@ def test_issue_4570_pull_request_trigger_answers_false_only_for_a_workflow_read_
         "flow root": None,
         "empty": None,
     }
+
+
+def test_issue_4570_triggers_on_pull_request_ignores_a_workflows_entry_that_is_not_a_yml_or_yaml_file(
+        tmp_path, monkeypatch, ci_on_pr):
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text("on: push\n")
+    (workflows / ".gitkeep").write_text("")
+    (workflows / "README.md").write_text("# workflows\n")
+    (workflows / "notes.yml.bak").write_text("")
+    monkeypatch.chdir(tmp_path)
+
+    assert ci_on_pr.triggers_on_pull_request() is False

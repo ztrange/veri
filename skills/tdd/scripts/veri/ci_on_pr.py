@@ -7,6 +7,7 @@ import detect_test_command
 import tunables
 
 WORKFLOWS = ".github/workflows"
+WORKFLOW_SUFFIXES = (".yml", ".yaml")
 ON_KEYS = ("on:", '"on":', "'on':")
 
 
@@ -66,6 +67,8 @@ def triggers_on_pull_request():
     if not os.path.isdir(WORKFLOWS):
         return False
     for name in os.listdir(WORKFLOWS):
+        if not name.endswith(WORKFLOW_SUFFIXES):
+            continue
         with open(os.path.join(WORKFLOWS, name)) as workflow:
             if pull_request_trigger(workflow.read()) is not False:
                 return True
