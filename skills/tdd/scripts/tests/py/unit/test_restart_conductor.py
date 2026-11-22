@@ -122,11 +122,11 @@ def test_3223_the_sleep_wrapper_waits_by_handing_the_seconds_to_time_sleep(monke
     assert waits == [2.5]
 
 
-def test_3223_a_live_conductor_whose_growth_reaches_85_percent_of_the_default_knob_at_59500_is_stopped_with_mode_at_ledger(tmp_path, run_cli, monkeypatch):
+def test_3223_a_live_conductor_whose_growth_reaches_85_percent_of_the_default_knob_at_25500_is_stopped_with_mode_at_ledger(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
     usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
-    records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
+    records = [{"type": "system", "subtype": "init"}, usage(1000), usage(26500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     alive = iter([True, True, False])
     calls = []
@@ -194,11 +194,11 @@ def test_3346_a_conductor_log_that_exists_but_cannot_be_read_exits_2_with_a_stde
     assert (code, "conductor-7.log" in err) == (2, True)
 
 
-def test_3223_a_live_conductor_whose_growth_is_59499_with_the_default_knob_is_not_stopped(tmp_path, run_cli, monkeypatch):
+def test_3223_a_live_conductor_whose_growth_is_25499_with_the_default_knob_is_not_stopped(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
     usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
-    records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60499)]
+    records = [{"type": "system", "subtype": "init"}, usage(1000), usage(26499)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     alive = iter([True, True, False])
     calls = []
@@ -395,7 +395,7 @@ def test_3223_a_relaunch_records_exactly_one_conductor_restart_event_with_the_gr
 
     lines = [json.loads(l) for l in events.read_text().splitlines()] if events.exists() else []
     restarts = [(e.get("growth"), e.get("knob")) for e in lines if e.get("event") == "conductor-restart"]
-    assert restarts == [("59500", "70000")]
+    assert restarts == [("59500", "30000")]
 
 
 def test_3223_after_the_relaunch_the_restart_pending_file_is_removed(tmp_path, run_cli, monkeypatch):
@@ -1427,3 +1427,31 @@ def test_4331_an_operators_stop_already_pending_when_growth_crosses_the_threshol
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out.splitlines()[-1:], launches, seen) == (0, ["restarts 7 0"], [], ["at-leaf\n"])
+
+
+def test_4599_with_the_default_knob_a_one_session_log_rising_from_78446_gets_an_at_ledger_stop_before_its_context_passes_110000(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    (tmp_path / ".tdd" / "wt" / "7" / ".tdd").mkdir(parents=True)
+    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    log = tmp_path / ".tdd" / "conductor-7.log"
+    log.write_text("".join(json.dumps(r) + "\n" for r in [{"type": "system", "subtype": "init", "session_id": "s1"}, usage(78446)]))
+    rising = [85000, 95000, 104000, 110000]
+    written = [78446]
+
+    def nap(seconds):  # between two polls the conductor takes its next turn
+        if rising:
+            written.append(rising.pop(0))
+            with open(log, "a") as f:
+                f.write(json.dumps(usage(written[-1])) + "\n")
+
+    stops = []
+    alive = iter([True] * 6)
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: stops.append((mode, written[-1])), raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: None, raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
+
+    run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert [mode for mode, _ in stops] == ["at-ledger"] and stops[0][1] < 110000, stops
