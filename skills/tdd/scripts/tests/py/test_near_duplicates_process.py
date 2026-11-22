@@ -59,3 +59,14 @@ def test_a_pair_neither_side_of_which_holds_an_added_line_is_never_printed(tmp_p
     commit_all(repo, "feat: total and weight", **{"src__calc.py": TOTAL + WEIGHT})
     added = commit_all(repo, "feat: tax", **{"src__calc.py": TOTAL + WEIGHT + "\nTAX = 2\n"})
     assert run_cli(near_duplicates, [added], cwd=repo)[1] == ""
+
+
+@pytest.mark.process("git over a scratch repository whose commit added a copy matching on two counting lines and many brace-only and blank ones")
+def test_a_run_of_fewer_than_3_counting_lines_prints_nothing_however_many_brace_only_or_blank_lines_it_spans(
+        tmp_path, near_duplicates, run_cli):
+    older = "function total(items) {\n  {\n  }\n\n  return items;\n}\n"
+    copy = "\nfunction weight(parcels) {\n    {\n    }\n\n    return parcels;\n}\n"
+    repo = new_repo(tmp_path / "braces")
+    commit_all(repo, "feat: total", **{"src__calc.js": older})
+    added = commit_all(repo, "feat: weight", **{"src__calc.js": older + copy})
+    assert run_cli(near_duplicates, [added], cwd=repo)[1] == ""
