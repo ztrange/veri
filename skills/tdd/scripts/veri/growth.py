@@ -5,9 +5,12 @@ def growth(records, baseline=None):
     context = None
     first = None
     seen = set()
+    session = None
     for record in records:
         if record.get("type") == "system" and record.get("subtype") == "init":
-            first = None
+            if record.get("session_id") is None or record["session_id"] != session:
+                first = None
+            session = record.get("session_id")
         usage = record.get("message", {}).get("usage")
         if usage:
             msg_id = record["message"].get("id")
