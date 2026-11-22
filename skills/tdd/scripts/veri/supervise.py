@@ -200,6 +200,9 @@ def heartbeat_line(line):
     return isinstance(record, dict) and record.get("type") == "tool_progress" and record.get("heartbeat") is True
 
 
+TOOL_COMMAND_LIMIT = 120
+
+
 def in_flight_tool(text):
     """The last `tool_use` in a stream log with no `tool_result` after it, as `<name>: <command> (<secs>s)`, else None."""
     call, answered, secs = None, set(), {}
@@ -222,7 +225,10 @@ def in_flight_tool(text):
                 answered.add(block.get("tool_use_id"))
     if call is None or call.get("id") in answered:
         return None
-    command = (call.get("input") or {}).get("command", "")
+    lines = (call.get("input") or {}).get("command", "").splitlines()
+    command = lines[0] if lines else ""
+    if len(command) > TOOL_COMMAND_LIMIT:
+        command = command[:TOOL_COMMAND_LIMIT] + "…"
     return f"{call.get('name')}: {command} ({secs.get(call.get('id'), 0)}s)"
 
 
