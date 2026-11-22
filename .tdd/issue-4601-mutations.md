@@ -1,0 +1,7 @@
+before 40
+a1ed4e4f4b6671dbc34891005b27c58688c8c41a
+keep 81
+skills/tdd/scripts/tests/py/unit/test_tests_frozen_rerecord_refactored_helpers.py
+command 229
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tests_frozen_rerecord_refactored_helpers.py::test_rerecord_refactored_writes_the_helpers_record_of_a_go_case_moved_to_a_sibling_file_naming_it_with_the_digest_of_its_text_4601
+
