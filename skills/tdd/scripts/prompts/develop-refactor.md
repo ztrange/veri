@@ -17,6 +17,10 @@ Confine the transform to those files, with one exception: a transform may touch 
 outside that list only when it removes duplication between that file and code this cycle
 wrote. Tidying code this cycle did not write is otherwise out of scope, however tempting.
 
+### Near-duplicate pairs this cycle added
+
+{{NEAR_DUPLICATES}}
+
 ### The issue's behavior spec (context — the behaviour that must not change)
 
 {{ISSUE_SPEC}}
