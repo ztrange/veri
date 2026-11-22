@@ -655,7 +655,6 @@ def test_4028_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_
 # Inner calls the Refactor loop section does not name, each by name with its reason.
 NAMED_ELSEWHERE = {
     "extract-result.sh": "FC2: *Launching a leaf* reads a leaf's report only through it",
-    "near-duplicates.sh": "#4577: named by the Refactor loop's sub-step 1 once its SKILL.md step lands",
 }
 
 
