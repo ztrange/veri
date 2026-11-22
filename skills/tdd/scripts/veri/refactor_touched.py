@@ -24,6 +24,13 @@ def named_files(candidate):
     return named
 
 
+def touched_files(span):
+    """The paths `git diff --name-only <span>` prints, in its order, minus those under `.tdd/`."""
+    diff = subprocess.run(["git", "diff", "--name-only", *span],
+                          stdout=subprocess.PIPE, text=True)
+    return [p for p in diff.stdout.splitlines() if not p.startswith(".tdd/")]
+
+
 def main(argv):
     candidate = None
     check_only = "--check" in argv
@@ -45,9 +52,7 @@ def main(argv):
                            stdout=subprocess.DEVNULL)
     if check.returncode != 0:
         return entry.refuse(f"refactor-touched: cannot resolve commit '{rev}'", usage=USAGE)
-    diff = subprocess.run(["git", "diff", "--name-only", *span],
-                          stdout=subprocess.PIPE, text=True)
-    touched = [p for p in diff.stdout.splitlines() if not p.startswith(".tdd/")]
+    touched = touched_files(span)
     if not touched:
         return 3
     if candidate:

@@ -1,6 +1,6 @@
 # Plan for #4582 — near-duplicates.sh lists the blocks a step's commit added that repeat code elsewhere in the files it touched
 
-- [ ] `near-duplicates.sh <commit>` prints one line `<file>:<first>-<last> <file>:<first>-<last>`, the added block first, when a function added between `<commit>^` and `HEAD` repeats 3 or more consecutive counting lines of an older function in the same file under different identifier names and indentation, and exits 0 ⟦criterion 1⟧
+- [x] `near-duplicates.sh <commit>` prints one line `<file>:<first>-<last> <file>:<first>-<last>`, the added block first, when a function added between `<commit>^` and `HEAD` repeats 3 or more consecutive counting lines of an older function in the same file under different identifier names and indentation, and exits 0 ⟦criterion 1⟧
 - [ ] `near-duplicates.sh <commit>` finds the older copy in another file `<commit>` touched ⟦criterion 2⟧
 - [ ] `near-duplicates.sh <commit>` does not report an older copy in a file `<commit>` did not touch ⟦criterion 2⟧
 - [ ] `near-duplicates.sh <commit>` prints no pair neither side of which holds a line added between `<commit>^` and `HEAD`, over a file that already held two copies ⟦criterion 3⟧
