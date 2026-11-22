@@ -282,3 +282,13 @@ def test_a_stream_log_whose_last_tool_use_has_its_tool_result_names_no_in_flight
            '"content":"ok"}]},"session_id":"s"}\n')
 
     assert supervise.in_flight_tool(log) is None
+
+
+def test_an_in_flight_tool_calls_multi_line_command_is_named_by_its_first_line_only_cut_to_120_characters_4627(supervise):
+    import json
+    first = "make test TESTS=" + "x" * 200
+    use = {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "toolu_X", "name": "Bash",
+                                                         "input": {"command": first + "\necho done"}}]}}
+    log = json.dumps(use) + "\n"
+
+    assert supervise.in_flight_tool(log) == "Bash: " + first[:120] + "… (0s)"
