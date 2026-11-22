@@ -213,7 +213,8 @@ def in_flight_tool(text):
         if record.get("type") == "tool_progress":
             secs[record.get("parent_tool_use_id")] = record.get("elapsed_time_seconds", 0)
             continue
-        content = (record.get("message") or {}).get("content") if isinstance(record.get("message"), dict) else None
+        message = record.get("message")
+        content = message.get("content") if isinstance(message, dict) else None
         for block in content if isinstance(content, list) else []:
             if isinstance(block, dict) and block.get("type") == "tool_use":
                 call = block
@@ -223,6 +224,15 @@ def in_flight_tool(text):
         return None
     command = (call.get("input") or {}).get("command", "")
     return f"{call.get('name')}: {command} ({secs.get(call.get('id'), 0)}s)"
+
+
+def log_in_flight_tool(log):
+    """`in_flight_tool` over the log at `log`, None when it cannot be read (read_log already reports that)."""
+    try:
+        with open(log, "rb") as f:
+            return in_flight_tool(f.read().decode("utf-8", errors="replace"))
+    except OSError:
+        return None
 
 
 def pause(poll):
@@ -496,11 +506,7 @@ def attempt_once(holder, name, cmd, log, rcfile, leaf_env, preexec, watch):
         if reason:
             status = "killed-stuck"
             kill_tree(leaf, kill_poll)
-            try:
-                with open(log, "rb") as f:
-                    tool = in_flight_tool(f.read().decode("utf-8", errors="replace"))
-            except OSError:
-                tool = None
+            tool = log_in_flight_tool(log)
             if tool:
                 reason += f"; in-flight tool call {tool}"
             break
