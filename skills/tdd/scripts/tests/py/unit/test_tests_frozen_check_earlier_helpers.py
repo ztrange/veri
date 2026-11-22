@@ -72,9 +72,9 @@ def _plan_repo(root, monkeypatch, fed_commits):
     return repo
 
 
-def _refactored(root, run_cli, tests_frozen, repo, path, recorded, refactored, message="A refactor"):
-    """Step A records `recorded` in `path` (red, green), a verified refactor then rewrites it to `refactored`, and
-    rerecord-refactored runs over it from green."""
+def _refactored(root, run_cli, tests_frozen, repo, path, recorded, refactored, message="A refactor", moved=None):
+    """Step A records `recorded` in `path` (red, green), a verified refactor then rewrites it to `refactored` and writes
+    each `moved` file (path: text, a new sibling), and rerecord-refactored runs over it from green."""
     (root / path).write_text(recorded)
     repo.add(path)
     run_cli(tests_frozen, ["record", "--step", STEPS[1], path], cwd=root)
@@ -83,6 +83,9 @@ def _refactored(root, run_cli, tests_frozen, repo, path, recorded, refactored, m
     repo.commit("A green", all=True)
     green = repo.head
     (root / path).write_text(refactored)
+    for sibling, text in (moved or {}).items():
+        (root / sibling).write_text(text)
+        repo.add(sibling)
     repo.commit(message, all=True)
     (root / ".tdd/verdict-refactor.exit").write_text("0")
     run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=root)
@@ -472,6 +475,20 @@ def test_check_earlier_exits_0_for_a_go_case_moved_with_its_helper_to_a_sibling_
     (tmp_path / sibling).write_text(GO_CHECK_X + GO_CALLS_CHECK_X)
     repo.add(GO_SUITE, sibling)
     repo.commit("a refactor moves TestX and its helper to a sibling file")
+
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked == (0, "")
+
+
+def test_check_earlier_exits_0_for_a_go_case_a_verified_refactor_moved_with_its_helper_to_a_sibling_file_after_the_rerecord_4601(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE,
+                GO_CHECK_X + GO_CALLS_CHECK_X + "\nfunc TestY(t *testing.T) {\n}\n",
+                "func TestY(t *testing.T) {\n}\n",
+                "A refactor moves TestX and its helper to a sibling file",
+                moved={"b_test.go": GO_CHECK_X + GO_CALLS_CHECK_X})
 
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
