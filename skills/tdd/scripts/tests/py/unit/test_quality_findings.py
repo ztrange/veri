@@ -120,6 +120,18 @@ def test_record_writes_a_package_relative_finding_under_the_one_listed_file_it_m
         0, "", "weak-assertion | cmd/spend-app/spend_test.go::TestSpend | asserts nothing\n")
 
 
+def test_record_matches_a_package_relative_finding_on_a_whole_file_name_not_a_listed_name_ending_in_it_4624(
+        run_cli, test_quality, worktree):
+    for listed in ("cmd/a/spend_test.go", "cmd/b/old_spend_test.go"):
+        (worktree / listed).parent.mkdir(parents=True)
+        (worktree / listed).write_text("package main\n\nfunc TestSpend(t *testing.T) {\n}\n")
+    (worktree / ".tdd" / "test-quality-files").write_text("cmd/a/spend_test.go\ncmd/b/old_spend_test.go\n")
+    report = "FINDING: weak-assertion | spend_test.go::TestSpend | asserts nothing\n"
+
+    assert record(run_cli, test_quality, worktree, report) == (
+        0, "", "weak-assertion | cmd/a/spend_test.go::TestSpend | asserts nothing\n")
+
+
 @pytest.mark.parametrize("listing", [
     "cmd/a/spend_test.go\ncmd/b/spend_test.go\n",
     "tests/test_alpha.py\n",
