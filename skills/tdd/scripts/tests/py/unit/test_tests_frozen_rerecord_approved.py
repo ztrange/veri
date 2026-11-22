@@ -53,3 +53,42 @@ def test_rerecord_approved_re_records_only_the_named_stale_case_and_check_earlie
     untouched = lambda lines: [l for l in lines if "\ttest_one\t" not in l]
     assert (code, untouched(after) == untouched(before), after != before, checked) == (
         0, True, True, (1, "test_two (%s)\n" % STEPS[0]))
+
+
+GO_SUITE = "suite_test.go"
+VERDICT = ".tdd/verdict-refactor.exit"
+
+
+def _step_a(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, path, recorded):
+    """The plan repository, then step A recording `recorded` in `path` and ticking itself; returns (repo, green)."""
+    monkeypatch.setenv("VERI_ISSUE", "9")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / SUITE).write_text(CASE % ("base", 0))
+    _ledger(tmp_path, " ")
+    repo = fed_commits(root=tmp_path)
+    repo.add(SUITE, PLAN_LEDGER)
+    repo.commit("plan")
+    (tmp_path / path).write_text(recorded)
+    repo.add(path)
+    run_cli(tests_frozen, ["record", "--step", STEPS[0], path], cwd=tmp_path)
+    _ledger(tmp_path, "x")
+    return repo, repo.commit("A green", all=True)
+
+
+def test_rerecord_approved_re_records_a_case_rerecord_refactored_skipped_for_its_moved_helper_lines_so_check_earlier_passes_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    chk = lambda m: '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
+    inline = 'func TestOne(t *testing.T) {\n\tx := 1\n' + chk("a") + chk("b") + chk("c") + '}\n'
+    moved = ('func TestOne(t *testing.T) {\n\tx := 1\n' + chk("b") + '\tcheck(t, x)\n}\n\n'
+             'func check(t *testing.T, x int) {\n' + chk("a") + '}\n')
+    repo, green = _step_a(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, GO_SUITE, inline)
+    (tmp_path / GO_SUITE).write_text(moved)
+    repo.commit("A refactor", all=True)
+    (tmp_path / VERDICT).write_text("0")
+    skipped = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
+
+    code = run_cli(tests_frozen, ["rerecord-approved", PLAN_LEDGER, "--approval", "keep it", "TestOne"],
+                   cwd=tmp_path)[0]
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[1]], cwd=tmp_path)[:2]
+
+    assert (skipped, code, checked) == (1, 0, (0, ""))

@@ -1,7 +1,7 @@
 # Plan for #4642 — tests-frozen.sh has no verb to re-record named stale cases on a human's word after a rerecord-refactored skip
 
 - [x] `tests-frozen.sh rerecord-approved <ledger> --approval <text> <case>...` re-records exactly the named case at its HEAD body with its `helpers:` line, every other record byte-identical, and `check-earlier` still refuses the unnamed stale case ⟦criterion 1⟧
-- [ ] `rerecord-approved` naming a case `rerecord-refactored` skipped (helper lines moved) exits 0 and `check-earlier` then passes ⟦criterion 2⟧
+- [x] `rerecord-approved` naming a case `rerecord-refactored` skipped (helper lines moved) exits 0 and `check-earlier` then passes ⟦criterion 2⟧
 - [ ] `rerecord-approved` naming a case no record holds exits 2 naming it and writes nothing, and with no case named exits 2 ⟦criterion 3⟧
 - [ ] `rerecord-approved` naming a recorded case absent at HEAD exits 2 naming it and writes nothing ⟦criterion 4⟧
 - [ ] `rerecord-approved` whose record cannot be written exits 2 and restores every record it had rewritten byte-identical ⟦criterion 5⟧
