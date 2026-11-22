@@ -3795,3 +3795,15 @@ def test_4605_launched_runs_is_empty_when_dispatch_log_is_not_utf_8(dispatch, mo
     monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
 
     assert dispatch.World().launched_runs() == []
+
+
+def test_4605_main_prints_stalled_for_a_run_held_for_a_silent_exit_that_restarted_live_and_then_went_silent_past_the_stall_window(
+        monkeypatch, dispatch):
+    monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
+    world = FakeWorld({"live": ["7"], "clock": 1000},
+                      {"live": [], "clock": 1001},
+                      {"live": ["7"], "clock": 1010, "activity": {"7": 1000}})
+
+    code = dispatch.main(["--target", "1"], world=world)
+
+    assert (code, "".join(world.said)) == (0, "stalled 7\n")
