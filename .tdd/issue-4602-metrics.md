@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 4602
 
-Wall time for the issue: 259 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 4 of 9 planned.
+Wall time for the issue: 139 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
+Steps done: 4 of 10 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/4612.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $12.82 over 199 turns, in 8 sessions, on opus (estimate).
+Conductor own spending: $15.46 over 246 turns, in 9 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 85008 tokens, largest 113851 tokens
 Conductor context: first turn 93588 tokens, largest 95194 tokens
@@ -22,7 +22,8 @@ Conductor context: first turn 85009 tokens, largest 116334 tokens
 Conductor context: first turn 85008 tokens, largest 115658 tokens
 Conductor context: first turn 85008 tokens, largest 111672 tokens
 Conductor context: first turn 76508 tokens, largest 83956 tokens
-Conductor context: first turn 85007 tokens, largest 109397 tokens
+Conductor context: first turn 85007 tokens, largest 113817 tokens
+Conductor context: first turn 84749 tokens, largest 104912 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -207,20 +208,66 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 176 | $0.05 | 82875 |
 | 177 | $0.03 | 83956 |
 | 178 | $0.54 | 85007 |
-| 179 | $0.03 | 86468 |
-| 180 | $0.05 | 90590 |
-| 181 | $0.03 | 92098 |
-| 182 | $0.04 | 94225 |
-| 183 | $0.02 | 94647 |
+| 179 | $0.04 | 86468 |
+| 180 | $0.06 | 90590 |
+| 181 | $0.04 | 92098 |
+| 182 | $0.05 | 94225 |
+| 183 | $0.03 | 94647 |
 | 184 | $0.07 | 100487 |
-| 185 | $0.03 | 101461 |
-| 186 | $0.03 | 102528 |
-| 187 | $0.03 | 103747 |
+| 185 | $0.04 | 101461 |
+| 186 | $0.04 | 102528 |
+| 187 | $0.04 | 103747 |
 | 188 | $0.04 | 105596 |
-| 189 | $0.03 | 106460 |
+| 189 | $0.04 | 106460 |
 | 190 | $0.04 | 108258 |
-| 191 | $0.03 | 109133 |
-| 192 | $0.02 | 109397 |
+| 191 | $0.04 | 109133 |
+| 192 | $0.03 | 109397 |
+| 193 | $0.04 | 110422 |
+| 194 | $0.06 | 113817 |
+| 195 | $0.19 | 39844 |
+| 196 | $0.02 | 40806 |
+| 197 | $0.02 | 41645 |
+| 198 | $0.04 | 44041 |
+| 199 | $0.03 | 44893 |
+| 200 | $0.02 | 45495 |
+| 201 | $0.02 | 46018 |
+| 202 | $0.02 | 46432 |
+| 203 | $0.02 | 46793 |
+| 204 | $0.03 | 47550 |
+| 205 | $0.02 | 47870 |
+| 206 | $0.05 | 51288 |
+| 207 | $0.03 | 53440 |
+| 208 | $0.04 | 55166 |
+| 209 | $0.03 | 56836 |
+| 210 | $0.03 | 57798 |
+| 211 | $0.10 | 67823 |
+| 212 | $0.13 | 81820 |
+| 213 | $0.04 | 82578 |
+| 214 | $0.04 | 84987 |
+| 215 | $0.04 | 86136 |
+| 216 | $0.04 | 87605 |
+| 217 | $0.03 | 88795 |
+| 218 | $0.03 | 89630 |
+| 219 | $0.05 | 92379 |
+| 220 | $0.04 | 92957 |
+| 221 | $0.03 | 93892 |
+| 222 | $0.03 | 94188 |
+| 223 | $0.05 | 96231 |
+| 224 | $0.03 | 96437 |
+| 225 | $0.05 | 99428 |
+| 226 | $0.05 | 101747 |
+| 227 | $0.09 | 109293 |
+| 228 | $0.05 | 112619 |
+| 229 | $0.04 | 113596 |
+| 230 | $0.53 | 84749 |
+| 231 | $0.03 | 86187 |
+| 232 | $0.02 | 86785 |
+| 233 | $0.05 | 91122 |
+| 234 | $0.03 | 92381 |
+| 235 | $0.03 | 93447 |
+| 236 | $0.03 | 94643 |
+| 237 | $0.03 | 95485 |
+| 238 | $0.09 | 104912 |
 
 #### Conductor comments, by family
 
@@ -245,13 +292,13 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 145 | 10.40 |
+| between | 190 | 13.01 |
 | plan | 18 | 1.23 |
 | revise-diff | 8 | 0.39 |
-| untimed | 7 | 0.00 |
+| untimed | 8 | 0.00 |
 | develop-diff | 1 | 0.03 |
 | verify-green | 18 | 0.69 |
-| preflight | 2 | 0.07 |
+| preflight | 3 | 0.11 |
 
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset, VERI_MODEL_REVISE_GREEN unset, VERI_EFFORT_VERIFIER unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
@@ -259,13 +306,13 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 8 | 7 | 1 | 0 | 114 | 83 | 18 | 36 | 11155 | 401780 | 327855 | 0.97 |
+| plan | 9 | 8 | 1 | 0 | 125 | 91 | 19 | 38 | 12154 | 401780 | 367086 | 1.08 |
 | diff | 10 | 4 | 1 | 0 | 1960 | 98 | 36 | 72 | 11608 | 600764 | 181446 | 0.73 |
-| red | 9 | 4 | 1 | 0 | 1184 | 120 | 44 | 86 | 15541 | 901173 | 195071 | 0.85 |
-| green | 12 | 3 | 3 | 0 | 5010 | 167 | 58 | 112 | 21811 | 1090374 | 296814 | 1.25 |
+| red | 11 | 5 | 1 | 0 | 1299 | 145 | 55 | 108 | 19057 | 1110070 | 237463 | 1.01 |
+| green | 14 | 4 | 3 | 0 | 5233 | 193 | 71 | 134 | 25218 | 1306763 | 333997 | 1.40 |
 | red-missing | 1 | 0 | 0 | 0 | 37 | 25 | 6 | 12 | 3495 | 144851 | 25740 | 0.11 |
-| refactor | 3 | 0 | 0 | 0 | 17 | 7 | 8 | 16 | 722 | 122559 | 67820 | 0.19 |
-| prose | 15 | 0 | 0 | 0 | 711 | 661 | 15 | 30 | 111313 | 429180 | 2261395 | 6.81 |
+| refactor | 4 | 0 | 0 | 0 | 22 | 9 | 10 | 20 | 868 | 150678 | 84898 | 0.24 |
+| prose | 17 | 0 | 0 | 0 | 878 | 822 | 17 | 34 | 140177 | 431464 | 2691308 | 8.17 |
 | skill-edit | 2 | 0 | 0 | 0 | 23 | 16 | 10 | 18 | 1929 | 1614411 | 450594 | 1.31 |
 | test-quality | 1 | 0 | 0 | 0 | 16 | 11 | 5 | 8 | 1535 | 107256 | 49228 | 0.15 |
 
@@ -282,8 +329,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 24 | 18 | 6 | 0 | 5568 | 245 | 79 | 156 | 31895 | 1449795 | 667218 | 2.13 |
-| developer | claude-sonnet-5-5 | 14 | 0 | 0 | 0 | 1644 | 156 | 60 | 118 | 20535 | 1187050 | 326835 | 1.24 |
+| verifier | claude-sonnet-5-5 | 27 | 21 | 6 | 0 | 5789 | 278 | 92 | 180 | 36108 | 1662638 | 742818 | 2.38 |
+| developer | claude-sonnet-5-5 | 17 | 0 | 0 | 0 | 1777 | 184 | 74 | 144 | 24390 | 1427612 | 387119 | 1.46 |
 | developer | claude-opus-5-5 | 6 | 0 | 0 | 0 | 1126 | 110 | 36 | 68 | 13437 | 731912 | 149921 | 0.88 |
 
 #### Revise-green, by model
@@ -298,10 +345,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 1960 | 0.73 |
-| red | 773 | 0.53 | 0 | 0.00 |
-| green | 11064 | 2.21 | 0 | 0.00 |
+| red | 773 | 0.53 | 115 | 0.16 |
+| green | 11064 | 2.21 | 223 | 0.15 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
-| refactor | 0 | 0.00 | 0 | 0.00 |
+| refactor | 0 | 0.00 | 5 | 0.05 |
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 | test-quality | 0 | 0.00 | 16 | 0.15 |
@@ -317,6 +364,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | A mutation pin whose old text is gone from its recorded file and occurs in more than one other file of that file's directory is not counted as checked: `pin-recheck.sh` prints `not checked: <file> (old text in more than one file of its package)` on stdout, exits 1 and writes no `.tdd/pin-recheck-ok`, and mutates none of those files; a medium case with real git and `pin-recheck.sh` processes in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 49 | 20 | 38 | 6951 | 349503 | 131243 | 0.43 | unknown | unknown | 0/5 | nothing-left |  |  | full |
 | fix the regrade REJECT of `skills/tdd/SCRIPTS.md` — SC83: FAIL: delete `old text gone` from the `pin-recheck.sh` entry's list of reasons a `needs a look` line names, since such a pin now prints `not checked:` ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 2⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 11 | 5 | 8 | 1535 | 107256 | 49228 | 0.15 | unknown | unknown | unknown | unknown |  |  | full |
 | fix the weak-assertion case skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_4602_a_pin_whose_old_text_is_in_more_than_one_other_file_is_not_checked_and_mutates_none_of_them: its `grep -q 'if guard' y.go z.go` command stays green if only one of the two files is mutated, so `mutated.marker` cannot show a mutation and the "mutates none" claim is unproven; edit only that case, no production code ⟦test-quality⟧ ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 17 | 7 | 14 | 2181 | 112578 | 31231 | 0.11 | unknown | n/a | n/a | n/a |  |  | full |
+| <fix the CI failure: skills/tdd/scripts/tests/py/test_prd_014_1_removals.py — FAILED test_no_tracked_file_outside_the_record_names_the_removed_scripts - assert (0 == 1)> ⟦ci-repair⟧ ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 53 | 26 | 48 | 7069 | 453405 | 96653 | 0.36 | unknown | unknown | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER, VERI_MODEL_REVISE and VERI_MODEL_REVISE_GREEN.
 
@@ -327,6 +375,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | A mutation pin recorded on `x.go` whose old text the range moved to `y.go` in the same directory, where it occurs exactly once, is replayed in `y.go`: `pin-recheck.sh --branch-base <base> <base-sha>` applies the mutation to `y.go` (a marker the recorded command writes only when `y.go` no longer holds the old text exists afterwards), restores `y.go` byte for byte, prints no `needs a look` line and exits 0 with `.tdd/pin-recheck-ok` — the issue's reproduction, which prints `needs a look: x.go (old text gone)` before the fix; `pin_recheck.py` finds that file in a new function `moved_to`, which `replay` calls as `moved = moved_to(`; a medium case with real git and `pin-recheck.sh` processes in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 4 | 0.05 |
 | A mutation pin whose old text is gone from its recorded file and occurs in no other file of that file's directory is not counted as checked: `pin-recheck.sh` prints `not checked: <file> (old text in no file of its package)` on stdout, exits 1 and writes no `.tdd/pin-recheck-ok`; a medium case with real git and `pin-recheck.sh` processes in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.08 |
 | A mutation pin whose old text is gone from its recorded file and occurs in more than one other file of that file's directory is not counted as checked: `pin-recheck.sh` prints `not checked: <file> (old text in more than one file of its package)` on stdout, exits 1 and writes no `.tdd/pin-recheck-ok`, and mutates none of those files; a medium case with real git and `pin-recheck.sh` processes in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 5 | 0.06 |
+| <fix the CI failure: skills/tdd/scripts/tests/py/test_prd_014_1_removals.py — FAILED test_no_tracked_file_outside_the_record_names_the_removed_scripts - assert (0 == 1)> ⟦ci-repair⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 5 | 0.05 |
 
 #### Structural pass
 
@@ -339,33 +388,36 @@ Stopped: nothing-structural
 | A mutation pin recorded on `x.go` whose old text the range moved to `y.go` in the same directory, where it occurs exactly once, is replayed in `y.go`: `pin-recheck.sh --branch-base <base> <base-sha>` applies the mutation to `y.go` (a marker the recorded command writes only when `y.go` no longer holds the old text exists afterwards), restores `y.go` byte for byte, prints no `needs a look` line and exits 0 with `.tdd/pin-recheck-ok` — the issue's reproduction, which prints `needs a look: x.go (old text gone)` before the fix; `pin_recheck.py` finds that file in a new function `moved_to`, which `replay` calls as `moved = moved_to(`; a medium case with real git and `pin-recheck.sh` processes in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | A mutation pin whose old text is gone from its recorded file and occurs in no other file of that file's directory is not counted as checked: `pin-recheck.sh` prints `not checked: <file> (old text in no file of its package)` on stdout, exits 1 and writes no `.tdd/pin-recheck-ok`; a medium case with real git and `pin-recheck.sh` processes in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
 | A mutation pin whose old text is gone from its recorded file and occurs in more than one other file of that file's directory is not counted as checked: `pin-recheck.sh` prints `not checked: <file> (old text in more than one file of its package)` on stdout, exits 1 and writes no `.tdd/pin-recheck-ok`, and mutates none of those files; a medium case with real git and `pin-recheck.sh` processes in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 4 | ? | ? | nothing-left 3, nothing-structural 1 |
+| <fix the CI failure: skills/tdd/scripts/tests/py/test_prd_014_1_removals.py — FAILED test_no_tracked_file_outside_the_record_names_the_removed_scripts - assert (0 == 1)> ⟦ci-repair⟧ ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 5 | ? | ? | nothing-left 4, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s | run 118 s | run 119 s | run 120 s | run 121 s | run 122 s | run 123 s | run 124 s | run 125 s | run 126 s | run 127 s | run 128 s | run 129 s | run 130 s | run 131 s | run 132 s | run 133 s | run 134 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 165 | 150 | 150 | 161 | 141 | 143 | 138 | 132 | 160 | 137 | 129 | 134 | 122 | 123 | 132 | 136 | 136 | 126 | 157 | 135 | 90 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| changed | 61 | 44 | 46 | 50 | 44 | 37 | 9 | 41 | 38 | 8 | 35 | 8 | 36 | 43 | 37 | 38 | 55 | 40 | 38 | 45 | 42 | 8 | 33 | 39 | 35 | 9 | 34 | 46 | 38 | 49 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 14 | 14 | 11 | 9 | 6 | 7 | 7 | 7 | 9 | 9 | 8 | 8 | 6 | 7 | 7 | 6 | 6 | 7 | 7 | 6 | 6 | 1 | 2 | 8 | 14 | 8 | 7 | 8 | 8 | 7 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 6 | 6 | 7 | 7 | 7 | 7 | 6 | 5 | 6 | 1 | 2 | 8 | 7 | 7 | 7 | 4 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 1 | 2 | 7 | 8 | 9 | 8 | 8 | 8 | 8 | 8 | 9 | 12 | 12 | 12 | 8 | 8 | 9 | 5 | 7 | 6 | 7 | 6 | 6 | 7 | 6 | 5 | 0 | 2 | 8 | 8 | 8 | 8 | 7 | 7 | 7 | 7 | 7 | 8 | 7 | 8 | 7 | 7 | 7 | 5 | 6 | 5 | 5 | 6 | 5 | 5 | 6 | 5 | 1 | 2 | 11 | 9 | 9 | 9 | 5 | 8 | 6 | 8 | 7 | 9 | 6 | 6 | 6 | 1 | 3 |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s | run 118 s | run 119 s | run 120 s | run 121 s | run 122 s | run 123 s | run 124 s | run 125 s | run 126 s | run 127 s | run 128 s | run 129 s | run 130 s | run 131 s | run 132 s | run 133 s | run 134 s | run 135 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fast | 165 | 150 | 150 | 161 | 141 | 143 | 138 | 132 | 160 | 137 | 129 | 134 | 122 | 123 | 132 | 136 | 136 | 126 | 157 | 135 | 90 | 85 | 93 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| changed | 61 | 44 | 46 | 50 | 44 | 37 | 9 | 41 | 38 | 8 | 35 | 8 | 36 | 43 | 37 | 38 | 55 | 40 | 38 | 45 | 42 | 8 | 33 | 39 | 35 | 9 | 34 | 46 | 38 | 49 | 5 | 6 | 6 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 14 | 14 | 11 | 9 | 6 | 7 | 7 | 7 | 9 | 9 | 8 | 8 | 6 | 7 | 7 | 6 | 6 | 7 | 7 | 6 | 6 | 1 | 2 | 8 | 14 | 8 | 7 | 8 | 8 | 7 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 6 | 6 | 7 | 7 | 7 | 7 | 6 | 5 | 6 | 1 | 2 | 8 | 7 | 7 | 7 | 4 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 1 | 2 | 7 | 8 | 9 | 8 | 8 | 8 | 8 | 8 | 9 | 12 | 12 | 12 | 8 | 8 | 9 | 5 | 7 | 6 | 7 | 6 | 6 | 7 | 6 | 5 | 0 | 2 | 8 | 8 | 8 | 8 | 7 | 7 | 7 | 7 | 7 | 8 | 7 | 8 | 7 | 7 | 7 | 5 | 6 | 5 | 5 | 6 | 5 | 5 | 6 | 5 | 1 | 2 | 11 | 9 | 9 | 9 | 5 | 8 | 6 | 8 | 7 | 9 | 6 | 6 | 6 | 1 | 3 | 6 |
 
 #### Stages
 
 | stage | runs | ok | failed | no answer | nothing | unended | wall s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| preflight | 8 | 7 | 0 | 1 | 0 | 0 | 1846 |
-| baseline | 7 | 7 | 0 | 0 | 0 | 0 | 958 |
+| preflight | 9 | 8 | 0 | 1 | 0 | 0 | 2089 |
+| baseline | 8 | 8 | 0 | 0 | 0 | 0 | 1099 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 265 |
-| push | 19 | 19 | 0 | 0 | 0 | 0 | 38 |
+| push | 25 | 25 | 0 | 0 | 0 | 0 | 50 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
-| rebase | 11 | 0 | 0 | 0 | 11 | 0 | 23 |
-| refactor-loop | 3 | 3 | 0 | 0 | 0 | 0 | 1338 |
+| rebase | 14 | 2 | 0 | 0 | 12 | 0 | 48 |
+| refactor-loop | 4 | 4 | 0 | 0 | 0 | 0 | 1376 |
+| ready | 1 | 1 | 0 | 0 | 0 | 0 | 4 |
+| ci-wait | 2 | 0 | 1 | 1 | 0 | 0 | 306 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 200 | 390 | 179109 | 5412348 | 3855963 | 25.19 (estimate) |
+| total | 229 | 444 | 216041 | 5868037 | 4421760 | 29.66 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
@@ -384,10 +436,10 @@ Green rejects by check: 4 3, unnamed 0
 
 | role | model | leaves | first-turn cache creation | first-turn cache read | first-turn input |
 | --- | --- | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 24 | 528809 | 122290 | 48 |
-| developer | claude-sonnet-5-5 | 16 | 264560 | 77896 | 32 |
+| verifier | claude-sonnet-5-5 | 27 | 597677 | 134274 | 54 |
+| developer | claude-sonnet-5-5 | 19 | 317819 | 89880 | 38 |
 | developer | claude-opus-5-5 | 4 | 85706 | 0 | 8 |
-| grader | claude-sonnet-5-5 | 15 | 2261395 | 429180 | 30 |
+| grader | claude-sonnet-5-5 | 17 | 2691308 | 431464 | 34 |
 | author | claude-sonnet-5-5 | 2 | 447423 | 10006 | 4 |
 
-Gradings: 8, PASS 5, REJECT 3, cost $5.36, efforts default
+Gradings: 10, PASS 7, REJECT 3, cost $6.72, efforts default
