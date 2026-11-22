@@ -2593,3 +2593,28 @@ def test_a_step_whose_issue_row_is_a_letter_suffixed_id_reword_of_a_held_row_is_
     assert code == 0, (code, out, err)
     assert "QU6b" not in err, (code, out, err)
     assert len(authors) == 1, (code, out, err, authors)
+
+
+def test_a_row_whose_text_the_unit_holds_under_another_id_though_its_own_id_holds_other_text_is_not_refused_and_leaves_the_list_byte_identical_4588(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    head = "| ID | Requirement | Why |\n|---|---|---|\n"
+    listing = "## unit.md\n\n" + head + "| A10 | The widget is round. | shape |\n| A12 | The widget is blue. | because |\n"
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue and is round.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(listing)
+    (tmp_path / "issue.md").write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n" + head + "| A10 | The widget is blue. | because |\n")
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code, (tmp_path / "REQUIREMENTS.md").read_text()) == (3, listing), (code, out, err)
