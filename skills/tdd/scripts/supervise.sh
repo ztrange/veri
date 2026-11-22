@@ -47,6 +47,11 @@
 # wrapper does with `verify.sh`'s verdict code: the leaf's own record is the answer and is
 # left alone.
 #
+# A kill while the last `tool_use` in the leaf's stream log has no `tool_result` appends that
+# call to the kill cause (#4627): `; in-flight tool call <tool>: <command's first line, cut to
+# 120 characters> (<secs>s)`, the seconds from the call's last `tool_progress` heartbeat (0
+# with none), so a hung test run is named in the retry, the exit event and the bail.
+#
 # Three kinds of event are appended to the run's event log, `.tdd/events.jsonl` (ADR-0014):
 # one `launch` — the leaf's name, the command behind it, the model it runs on
 # (empty when the run chose none) and the attempt its name encodes — one `retry` per
