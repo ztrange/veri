@@ -244,10 +244,10 @@ def replay_before_state(pin, ledger, named, base, branch_base):
 
 
 def moved_to(pin):
-    """The first file of the pin's directory holding its old text, else None."""
+    """The files of the pin's directory holding its old text."""
     old = pin["old"].encode()
     held = [f for f in sorted(Path(pin["file"]).parent.iterdir()) if f.is_file() and old in f.read_bytes()]
-    return held[0] if held else None
+    return held
 
 
 def replay(pin, ledger, looks, branch_base):
@@ -260,10 +260,11 @@ def replay(pin, ledger, looks, branch_base):
     original = path.read_bytes()
     if pin["old"].encode() not in original:
         moved = moved_to(pin)
-        if moved is None:
-            sys.stdout.write(f"not checked: {pin['file']} (old text in no file of its package)\n")
+        if len(moved) != 1:
+            where = "no file" if not moved else "more than one file"
+            sys.stdout.write(f"not checked: {pin['file']} (old text in {where} of its package)\n")
             return 1
-        path = moved
+        path = moved[0]
         original = path.read_bytes()
     if original.count(pin["old"].encode()) > 1:
         needs_a_look(looks, pin["file"], "old text occurs more than once")
