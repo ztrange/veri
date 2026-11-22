@@ -372,16 +372,17 @@ def awake_span_or_wall(start, end, clocked):
 
 
 def planned_steps(path):
-    """(number of steps the ledger at `path` plans, or None; number of ticked full-suite lines)."""
+    """(number of steps the ledger at `path` plans, or None; number of ticked full-suite lines; number of done steps)."""
     try:
         with open(path, "rb") as f:
             text = decode_ledger(f.read())
     except OSError:
-        return None, 0
+        return None, 0, 0
     steps = ledger_steps(text)
     records = "".join("\t".join(record) + "\n" for record in steps)
     full_suite = sum(1 for record in steps if record.state == "done" and record.kind == "full-suite")
-    return counted(len(records.splitlines())), full_suite
+    done = sum(1 for record in steps if record.state == "done")
+    return counted(len(records.splitlines())), full_suite, done
 
 
 class _Tally:
@@ -724,7 +725,8 @@ class Fold:
                                 # event lacks is None
     issue_wall: object          # seconds from the opening mark to the ending, or None
     asleep: object              # seconds of that span the machine was not running, or None
-    steps_done: object          # steps recovered plus ticked full-suite lines, or None when zero
+    steps_done: object          # steps recovered plus ticked full-suite lines, or the ledger's done steps when
+                                # more, or None when zero
     planned: object             # steps the ledger plans, or None
     lane: str                   # the label the run was opted in by
     flaked: list                # files named by suite-flake events
@@ -960,7 +962,7 @@ def fold(issue, path, ledger, run=BESIDE, cut=False):
             ended, cause, ending = True, run_end.MARKS["done"], cut
     ending = ending or None
     wall_span, awake_span = wall_and_awake_spans(tally.opening, ending, clocked)
-    planned, full_suite = planned_steps(ledger) if ledger is not None else (None, 0)
+    planned, full_suite, ledger_done = planned_steps(ledger) if ledger is not None else (None, 0, 0)
     pinned = (run_pins.skip_verify(issue, *roots) or "") if run is not None else ""
     sessions, turn_rows = [], []
     if not tally.conductor_counted and run is not None:
@@ -1006,7 +1008,7 @@ def fold(issue, path, ledger, run=BESIDE, cut=False):
                 operator_sessions=operator_sessions,
                 issue_wall=awake_span_or_wall(tally.opening, ending, clocked),
                 asleep=None if awake_span is None or wall_span is None else max(0, wall_span - awake_span),
-                steps_done=counted(len(tally.recovered) + full_suite), planned=planned,
+                steps_done=counted(max(len(tally.recovered) + full_suite, ledger_done)), planned=planned,
                 lane=tunables.get("VERI_LABEL", unless_empty=True),
                 flaked=[name for mark in marks if mark.get("event") == "suite-flake"
                         for name in str(mark.get("files", "")).split(",")],
