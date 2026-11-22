@@ -436,12 +436,17 @@ class World:
         os.replace(temporary, path)
 
     def launched_runs(self):
-        """The issues of dispatch.log's `launched <n> <time>` lines, in order, [] when it is absent."""
-        path = layout.main_file(layout.main_tree(missing=""), "dispatch.log")
-        if not os.path.exists(path):
+        """The issues of dispatch.log's `launched <n> <time>` lines, in order; a blank or malformed line is skipped, and
+        [] when the log is absent or unreadable, or no main working tree can be named."""
+        main = layout.main_tree(missing="")
+        if not main:
             return []
-        with open(path) as log:
-            return [line.split()[1] for line in log]
+        try:
+            with open(layout.main_file(main, "dispatch.log")) as log:
+                words = [line.split() for line in log]
+        except (OSError, UnicodeDecodeError):
+            return []
+        return [w[1] for w in words if len(w) >= 2 and w[0] == "launched" and w[1].isascii() and w[1].isdigit()]
 
     # acting
     def launch(self, issue):

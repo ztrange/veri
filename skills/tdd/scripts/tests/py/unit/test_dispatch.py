@@ -3763,3 +3763,18 @@ def test_issue_4465_main_with_no_target_reads_a_role_dev_state_file_holding_a_re
     dispatch.main([], world=world)
 
     assert (world.launched, world.complained) == (["12"], [])
+
+
+def test_4605_launched_runs_reads_the_issues_of_dispatch_log_skipping_a_blank_and_a_malformed_line(dispatch, monkeypatch, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "dispatch.log").write_text(
+        "launched 7 2026-11-21T21:29:06\n\nlaunched\ngarbage 8 x\nlaunched x9 2026-11-21T21:30:00\nlaunched 12 2026-11-21T21:58:07\n")
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
+
+    assert dispatch.World().launched_runs() == ["7", "12"]
+
+
+def test_4605_launched_runs_is_empty_when_dispatch_log_is_absent(dispatch, monkeypatch, tmp_path):
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
+
+    assert dispatch.World().launched_runs() == []
