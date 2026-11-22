@@ -37,6 +37,15 @@ def counting_lines(text, added):
             for number, line in enumerate(text.splitlines(), 1) if re.search(r"[A-Za-z0-9]", line)]
 
 
+def run_length(lines, i, others, j):
+    """How many counting lines from lines[i] on are added and equal to those from others[j] on."""
+    length = 0
+    while (i + length < len(lines) and j + length < len(others) and lines[i + length][2]
+           and lines[i + length][1] == others[j + length][1]):
+        length += 1
+    return length
+
+
 def pairs(files):
     """The `<file>:<first>-<last> <file>:<first>-<last>` lines, over [(path, counting lines)] in touched order."""
     found = []
@@ -50,10 +59,7 @@ def pairs(files):
                         continue
                     if i and j and lines[i - 1][2] and lines[i - 1][1] == others[j - 1][1]:
                         continue
-                    length = 0
-                    while (i + length < len(lines) and j + length < len(others) and lines[i + length][2]
-                           and lines[i + length][1] == others[j + length][1]):
-                        length += 1
+                    length = run_length(lines, i, others, j)
                     if length < MINIMUM or (other_path == path and i < j + length and j < i + length):
                         continue
                     found.append(f"{path}:{lines[i][0]}-{lines[i + length - 1][0]} "
