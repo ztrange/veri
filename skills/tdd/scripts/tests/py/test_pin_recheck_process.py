@@ -3595,3 +3595,33 @@ def test_4602_a_moved_pin_is_looked_for_in_its_own_directory_not_the_repository_
     assert (ran.returncode, (tmp_path / "mutated.marker").exists(), (tmp_path / "pkg" / "y.go").read_bytes(),
             (tmp_path / "decoy.go").read_bytes(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         0, True, moved, decoy, True), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range whose middle commit object is corrupt, so git log cannot answer")
+def test_4644_a_pin_whose_old_text_is_gone_and_whose_range_git_cannot_search_exits_2_with_the_git_error(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "x.go").write_text("package p\n")
+    (tmp_path / "y.go").write_text("package p\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4602-mutations.md", file="x.go", old="if guard", new="if (true)",
+           command="sh -c \"echo result\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "y.go").write_text("package p\n\nfunc g() {}\n")
+    git("commit", "-q", "-am", "middle")
+    middle = git("rev-parse", "HEAD")
+    (tmp_path / "x.go").write_text("package p\n\nfunc f() {}\n")
+    git("commit", "-q", "-am", "touch x.go without the guard")
+    loose = tmp_path / ".git" / "objects" / middle[:2] / middle[2:]
+    loose.chmod(0o644)
+    loose.write_bytes(b"not a git object")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "cannot search " in ran.stderr, "stale:" in ran.stdout,
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (2, True, False, False), ran.stdout + ran.stderr
