@@ -1,2 +1,2 @@
 - [x] `tests-frozen.sh rerecord-refactored` (which already exits 0 here) prints no `skipped:` line for a frozen Go case moved byte-identical with its helper from `a_test.go`, which still exists, to the sibling `b_test.go`, and writes that case's body record naming `b_test.go` ⟦added⟧ ⟦criterion 1⟧
-- [ ] `tests-frozen.sh rerecord-refactored` writes that moved case's helpers record naming `b_test.go`, with the helpers digest read from `b_test.go`'s text rather than `a_test.go`'s, and exits 0 ⟦added⟧ ⟦criterion 1⟧
+- [x] `tests-frozen.sh rerecord-refactored` writes that moved case's helpers record naming `b_test.go`, with the helpers digest read from `b_test.go`'s text rather than `a_test.go`'s, and exits 0 ⟦added⟧ ⟦criterion 1⟧
