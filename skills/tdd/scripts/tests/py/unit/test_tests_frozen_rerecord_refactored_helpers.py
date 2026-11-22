@@ -935,9 +935,10 @@ SIBLING_CASE, SIBLING_HELPERS = "cmd/x/a_test.go", "cmd/x/b_test.go"
 GUARDED_GET = "\tresp, err := http.Get(url)\n\tif err != nil {\n\t\tt.Fatalf(\"GET %s: %v\", url, err)\n\t}\n"
 
 
-def _moved_to_sibling(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, moved=GUARDED_GET):
+def _moved_to_sibling(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, moved=GUARDED_GET, others=None):
     """Step A records a Go case holding GUARDED_GET in SIBLING_CASE; a verified refactor moves `moved` into
-    getPage in a new SIBLING_HELPERS of the same directory, the case calling it; returns the green revision."""
+    getPage in a new SIBLING_HELPERS of the same directory, the case calling it, and adds `others` ({path: text});
+    returns the green revision."""
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
     (tmp_path / "cmd/x").mkdir(parents=True)
     case = tmp_path / SIBLING_CASE
@@ -950,7 +951,9 @@ def _moved_to_sibling(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits,
     case.write_text("func TestPage(t *testing.T) {\n\turl := \"/x\"\n\tuse(getPage(t, url))\n}\n")
     (tmp_path / SIBLING_HELPERS).write_text(
         "func getPage(t *testing.T, url string) string {\n" + moved + "\treturn read(resp)\n}\n")
-    repo.add(SIBLING_HELPERS)
+    for path, text in (others or {}).items():
+        (tmp_path / path).write_text(text)
+    repo.add(SIBLING_HELPERS, *(others or {}))
     repo.commit("A refactor moves the GET into a helper in a sibling file", all=True)
     (tmp_path / VERDICT).write_text("0")
     return green
@@ -974,3 +977,16 @@ def test_check_earlier_exits_0_for_a_go_case_re_recorded_after_a_refactor_moved_
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert checked == (0, "")
+
+
+def test_rerecord_refactored_still_skips_a_sibling_move_that_dropped_the_t_fatalf_another_siblings_uncalled_helper_holds_4606(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    dropped = GUARDED_GET.replace("\t\tt.Fatalf(\"GET %s: %v\", url, err)\n", "")
+    uncalled = "func mustGet(t *testing.T, url string) {\n" + GUARDED_GET + "}\n"
+    green = _moved_to_sibling(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, moved=dropped,
+                              others={"cmd/x/c_test.go": uncalled})
+    before = _record_of(tmp_path).read_text()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, SIBLING_CASE + " TestPage"), _record_of(tmp_path).read_text()) == (1, 1, before)
