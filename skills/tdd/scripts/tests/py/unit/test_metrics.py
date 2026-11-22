@@ -892,6 +892,25 @@ def test_4625_a_ledger_step_ticked_green_but_still_refactor_pending_is_not_count
     assert "Steps done: 1 of 2 planned.\n" in render(metrics, capsys)
 
 
+@pytest.mark.parametrize("ledger", ["a directory", "missing"])
+def test_4625_a_log_with_no_step_done_and_no_readable_ledger_reports_steps_done_as_unknown(
+        tmp_path, monkeypatch, capsys, metrics, ledger):
+    write_log(tmp_path, conductor("a", 30000, "step-start"))
+    if ledger == "a directory":
+        (tmp_path / ".tdd" / "issue-108.md").mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    assert "Steps done: unknown of unknown planned.\n" in render(metrics, capsys)
+
+
+def test_4625_a_log_with_no_step_done_folded_without_a_ledger_reports_steps_done_as_unknown(tmp_path, capsys, metrics):
+    write_log(tmp_path, conductor("a", 30000, "step-start"))
+
+    out = metrics.report("108", str(tmp_path / ".tdd" / "events.jsonl"), None)
+
+    assert "Steps done: unknown of unknown planned.\n" in out
+
+
 def test_issue_934_a_log_with_no_ledger_beside_it_reports_the_planned_figure_as_unknown(tmp_path, monkeypatch, capsys, metrics):
     events = []
     for i, step in enumerate("abcd"):
