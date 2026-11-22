@@ -183,3 +183,12 @@ def test_4605_a_logged_run_already_reported_exited_is_never_called_stalled_and_t
     state, code = dispatch.step(dispatch.State(target=1), world)
 
     assert (code, world.said, world.launched) == (None, [], ["12"])
+
+
+def test_4605_another_issues_exited_line_never_silences_a_logged_runs_exit(dispatch):
+    world = FakeWorld({"closing": {"7": "bail 7"}}, logged=["7"], notified=["logged 0", "exited 8 1"])
+
+    state, code = dispatch.step(dispatch.State(target=0), world)
+
+    assert (code, world.said) == (0, ["bail 7\n"])
+
