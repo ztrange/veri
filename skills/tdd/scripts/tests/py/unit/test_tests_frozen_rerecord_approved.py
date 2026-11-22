@@ -92,3 +92,34 @@ def test_rerecord_approved_re_records_a_case_rerecord_refactored_skipped_for_its
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[1]], cwd=tmp_path)[:2]
 
     assert (skipped, code, checked) == (1, 0, (0, ""))
+
+
+def _two_stale(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    """Step A records test_one and test_two, a later commit edits both; returns (repo, the record file)."""
+    repo = _step_a(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, SUITE,
+                   CASE % ("one", 1) + "\n\n" + CASE % ("two", 2))[0]
+    (tmp_path / SUITE).write_text(CASE % ("one", 10) + "\n\n" + CASE % ("two", 20))
+    repo.commit("edit both cases", all=True)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    return repo, record
+
+
+def test_rerecord_approved_naming_a_case_no_record_holds_exits_2_naming_it_and_writes_nothing_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    record = _two_stale(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)[1]
+    before = record.read_bytes()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-approved", PLAN_LEDGER, "--approval", "yes", "test_one",
+                                          "test_nowhere"], cwd=tmp_path)
+
+    assert (code, "test_nowhere" in err, record.read_bytes() == before) == (2, True, True)
+
+
+def test_rerecord_approved_naming_no_case_exits_2_with_the_usage_and_writes_nothing_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    record = _two_stale(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)[1]
+    before = record.read_bytes()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-approved", PLAN_LEDGER, "--approval", "yes"], cwd=tmp_path)
+
+    assert (code, "rerecord-approved <ledger>" in err, record.read_bytes() == before) == (2, True, True)

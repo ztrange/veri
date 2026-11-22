@@ -522,6 +522,12 @@ def rerecord_approved(ledger, approval, cases):
     with open(ledger, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
     os.chdir(_toplevel())
+    recorded = {body[1] for _, __, records in _earlier_records(lines, "")
+                for body in filter(None, map(body_record, records))}
+    unknown = [case for case in cases if case not in recorded]
+    if unknown:
+        write(sys.stderr, "tests-frozen.sh: no earlier record holds %s" % ", ".join(unknown))
+        return 2
 
     def rewrite(_, record, name, case, __):
         if case not in cases:
@@ -748,7 +754,7 @@ def _main(argv):
         return rerecord_earlier(argv[1], argv[3])
     if argv[:1] == ["rerecord-refactored"] and len(argv) == 3:
         return rerecord_refactored(argv[1], argv[2])
-    if argv[:1] == ["rerecord-approved"] and len(argv) >= 4 and argv[2] == "--approval":
+    if argv[:1] == ["rerecord-approved"] and len(argv) >= 5 and argv[2] == "--approval":
         return rerecord_approved(argv[1], argv[3], argv[4:])
     if argv[:1] == ["rerecord-rebased"] and len(argv) == 3:
         return rerecord_rebased(argv[1], argv[2])
