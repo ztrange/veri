@@ -504,7 +504,6 @@ class State:
         self.missing = {}  # issue: the clock() time its silent exit was first seen
         self.holding = []  # the runs this poll holds for a silent-exit decision: never called stalled meanwhile
         self.held_at = None  # the clock() time the queue last had nothing launchable
-        self.blocked = None  # the PR urls the last queue-blocked line named
 
 
 def _merge_failed(state, world):
@@ -628,6 +627,11 @@ def _stalled(state, world):
     return None
 
 
+# The .tdd/dispatch-notified line the queue-blocked rule owns: the last line it printed, so a restarted dispatch.sh
+# prints it again only for a different set of blocking PRs.
+BLOCKED_LINE = "queue-blocked "
+
+
 def _launch_into_a_free_slot(state, world, live):
     """Launch the first launchable issue while fewer than the target runs hold a slot and nothing pauses launching."""
     ledger = state.previous and world.has_ledger(state.previous)
@@ -666,10 +670,11 @@ def _launch_into_a_free_slot(state, world, live):
         return None
     state.held_at = world.clock() if not free and (queue or live) else None
     if queue and not free and not live:
-        blocking = sorted({world.overlap(issue, changed)[1] for issue in queue})
-        if blocking != state.blocked:
-            state.blocked = blocking
-            world.say(f"queue-blocked {' '.join(blocking)}\n")
+        line = BLOCKED_LINE + " ".join(sorted({world.overlap(issue, changed)[1] for issue in queue}))
+        lines = world.notified()
+        if line not in lines:
+            world.record_notified([kept for kept in lines if not kept.startswith(BLOCKED_LINE)] + [line])
+            world.say(line + "\n")
     if free:
         state.previous = free[0]
         world.launch(state.previous)

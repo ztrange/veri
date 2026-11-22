@@ -2915,6 +2915,20 @@ def test_main_prints_one_queue_blocked_line_naming_each_blocking_pr_when_every_s
         None, [], f"skip 12 a.py {first}\nskip 15 b.py {second}\nqueue-blocked {second} {first}\n")
 
 
+def test_a_restarted_dispatch_prints_no_queue_blocked_line_for_the_set_dispatch_notified_records_and_keeps_its_other_lines_issue_4641(
+        dispatch):
+    url = "https://github.com/o/r/pull/90"
+    blocked = {"queue": ["12"], "overlaps": {"12": ("a.py", url)}}
+    first = FakeWorld(blocked, notified=["t-lowered 1700000000"])
+    dispatch.main(["--target", "1"], world=first)
+    restarted = FakeWorld(blocked, notified=first.notified_lines)
+
+    dispatch.main(["--target", "1"], world=restarted)
+
+    assert ("".join(first.said), "".join(restarted.said), "t-lowered 1700000000" in restarted.notified_lines) == (
+        f"skip 12 a.py {url}\nqueue-blocked {url}\n", f"skip 12 a.py {url}\n", True)
+
+
 def test_the_overlap_guard_asks_its_one_open_pr_list_read_for_the_labels_field_the_parked_check_reads_issue_3545(
         monkeypatch, dispatch):
     asked = []
