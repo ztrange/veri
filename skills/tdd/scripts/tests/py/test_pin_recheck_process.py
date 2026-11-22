@@ -3407,3 +3407,27 @@ def test_4602_a_pin_whose_old_text_moved_to_another_file_of_the_directory_is_rep
             (tmp_path / "y.go").read_bytes(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         0, False, True, moved, True), ran.stdout + ran.stderr
 
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that deletes the pinned text from every file of the directory")
+def test_4602_a_pin_whose_old_text_is_in_no_file_of_the_directory_is_not_checked_and_exits_1_without_the_receipt(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "x.go").write_text("package p\nif guard\n")
+    (tmp_path / "y.go").write_text("package p\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4602-mutations.md", file="x.go", old="if guard", new="if (true)",
+           command="sh -c \"echo result\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "x.go").write_text("package p\n")
+    git("commit", "-q", "-am", "delete the guard")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "not checked: x.go (old text in no file of its package)\n" in ran.stdout,
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (1, True, False), ran.stdout + ran.stderr

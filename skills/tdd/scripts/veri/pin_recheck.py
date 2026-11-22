@@ -261,8 +261,8 @@ def replay(pin, ledger, looks, branch_base):
     if pin["old"].encode() not in original:
         moved = moved_to(pin)
         if moved is None:
-            needs_a_look(looks, pin["file"], "old text gone")
-            return 0
+            sys.stdout.write(f"not checked: {pin['file']} (old text in no file of its package)\n")
+            return 1
         path = moved
         original = path.read_bytes()
     if original.count(pin["old"].encode()) > 1:
