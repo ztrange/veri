@@ -32,8 +32,10 @@ Interface (a function says what it touches: text only, the tree's files, or case
                                           basename `only` when given) one of whose `case` bodies, or a root variant of
                                           one, hashes into `digests`, as os.walk spells it ("./tests/x.py"); None when
                                           none does. Reads the tree's files; OSError when one cannot be opened.
-  moved_path(name, case, digests)         `name` while that file exists, else the path_holding of a file of the same
-                                          basename, else of any file, else `name`. Reads the tree's files.
+  moved_path(name, case, digests)         `name` while that file holds a body of `case`, whatever its digest (a case
+                                          changed in place is judged there, never at a copy elsewhere); else the
+                                          path_holding of a file of the same basename, else of any file, else `name`.
+                                          Reads the tree's files; UnclosedCase from case_reader when `name` cannot be cut.
 
   renamed_to(name, case, digest, text, consumed)
                                           the case of `text` that is the recorded `case` of file `name` but for its
@@ -135,17 +137,17 @@ def path_holding(case, digests, only=None):
     return None
 
 
-def _holds(path, case, digests):
+def _has_case(path, case):
     try:
         with open(path, encoding="utf-8", errors="replace") as handle:
             text = handle.read()
     except OSError:
         return False
-    return _text_holds(text, case, digests)
+    return bool(bodies_of(text, case))
 
 
 def moved_path(name, case, digests):
-    if _holds(name, case, digests):
+    if _has_case(name, case):
         return name
     return (
         path_holding(case, digests, only=os.path.basename(name))
