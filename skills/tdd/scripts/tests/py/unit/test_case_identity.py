@@ -155,13 +155,22 @@ def _write(tmp_path, relative, text):
     path.write_text(text)
 
 
-def test_moved_path_is_the_name_itself_while_that_file_exists_even_when_a_copy_elsewhere_holds_the_case(
+def test_moved_path_finds_a_copy_elsewhere_holding_the_case_when_the_still_existing_recorded_file_lacks_it(
         case_identity, digest, tmp_path):
     _write(tmp_path, "tests/moved_cases.py", "def test_other():\n    assert True\n")
     _write(tmp_path, "tests/unit/moved_cases.py", MOVED)
 
     assert case_identity.moved_path("tests/moved_cases.py", "test_moved_3284", _recorded(digest, MOVED)) == (
         "./tests/unit/moved_cases.py")
+
+
+def test_moved_path_is_the_name_itself_while_that_file_holds_the_case_with_a_changed_body_even_when_a_copy_elsewhere_holds_the_recorded_one_4601(
+        case_identity, digest, tmp_path):
+    _write(tmp_path, "tests/moved_cases.py", MOVED.replace("1 == 1", "True"))
+    _write(tmp_path, "tests/unit/other_cases.py", MOVED)
+
+    assert case_identity.moved_path("tests/moved_cases.py", "test_moved_3284", _recorded(digest, MOVED)) == (
+        "tests/moved_cases.py")
 
 
 def test_moved_path_finds_a_file_of_the_same_basename_in_another_directory_that_holds_the_recorded_case(
