@@ -881,6 +881,17 @@ def test_4625_a_resumed_run_whose_ledger_has_every_step_done_counts_them_all_wit
     assert "Steps done: 3 of 3 planned.\n" in render(metrics, capsys)
 
 
+def test_4625_a_ledger_step_ticked_green_but_still_refactor_pending_is_not_counted_as_done(
+        tmp_path, monkeypatch, capsys, metrics):
+    ledger = importlib.import_module("veri.ledger")
+    write_log(tmp_path, conductor("a", 30000, "step-start") + conductor("a", 30100, "step-done")
+              + conductor("b", 30200, "step-start"))
+    (tmp_path / ".tdd" / "issue-108.md").write_text("- [x] a\n- [x] b%s\n" % ledger.PENDING_MARK)
+    monkeypatch.chdir(tmp_path)
+
+    assert "Steps done: 1 of 2 planned.\n" in render(metrics, capsys)
+
+
 def test_issue_934_a_log_with_no_ledger_beside_it_reports_the_planned_figure_as_unknown(tmp_path, monkeypatch, capsys, metrics):
     events = []
     for i, step in enumerate("abcd"):
