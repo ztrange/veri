@@ -112,6 +112,21 @@ def test_revisions_since_a_base_lists_only_the_commits_after_it(case_history, ru
     assert case_history.revisions("t_x.py", since="base") == ["bbb"]
 
 
+def test_paths_at_lists_the_files_directly_in_a_directory(case_history, runs):
+    runs({("ls-tree", "--name-only", "abc", "--", "cmd/x/"): (0, b"cmd/x/a_test.go\ncmd/x/b_test.go\n", b"")})
+    assert case_history.paths_at("abc", "cmd/x") == ["cmd/x/a_test.go", "cmd/x/b_test.go"]
+
+
+def test_paths_at_lists_the_root_level_files_for_the_empty_directory_4606(case_history, runs):
+    runs({("ls-tree", "--name-only", "abc", "--", "."): (0, b"a_test.go\nb_test.go\n", b"")})
+    assert case_history.paths_at("abc", "") == ["a_test.go", "b_test.go"]
+
+
+def test_paths_at_is_empty_when_git_cannot_list(case_history, runs):
+    runs({})
+    assert case_history.paths_at("abc", "cmd/x") == []
+
+
 def test_subject_is_the_first_line_of_the_commit_message(case_history, runs):
     runs({("log", "-1", "--format=%s", "abc"): (0, b"refactor: tidy\n", b"")})
     assert case_history.subject("abc") == "refactor: tidy\n"
