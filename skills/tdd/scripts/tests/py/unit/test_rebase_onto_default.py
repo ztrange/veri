@@ -630,3 +630,34 @@ def test_resolved_prints_the_sha_the_record_held_before_it_re_recorded_it_and_no
     code, out, err = cli.run_cli(cli.module, ["--resolved", ONTO], cwd=str(tmp_path))
 
     assert (code, out, err, record.read_text()) == (0, PRE + "\n" if had else "", "", ONTO + "\n")
+
+
+def test_resolved_exits_2_naming_the_resolved_re_record_when_the_branch_base_record_cannot_be_written_4553(
+        cli, fake_processes, tmp_path, monkeypatch):
+    record = tmp_path / ".tdd" / "issue-12-branch-base"
+    record.parent.mkdir()
+    record.write_text(PRE + "\n")
+    git_fake(fake_processes, **{"git symbolic-ref --quiet --short HEAD": (0, "tdd/12-slug\n"),
+                                f"git merge-base --is-ancestor {ONTO} HEAD": (0, "")})
+
+    def unwritable(*_args):
+        raise OSError(13, "Permission denied")
+
+    monkeypatch.setattr(cli.module.run_pins, "write_branch_base", unwritable)
+
+    code, out, err = cli.run_cli(cli.module, ["--resolved", ONTO], cwd=str(tmp_path))
+
+    assert (code, out, f"--resolved {ONTO} could not re-record the branch base {record}" in err, "rebased onto" in err,
+            record.read_text()) == (2, "", True, False, PRE + "\n")
+
+
+def test_resolved_exits_2_with_its_usage_when_given_more_than_one_onto_sha_4553(cli, fake_processes, tmp_path):
+    record = tmp_path / ".tdd" / "issue-12-branch-base"
+    record.parent.mkdir()
+    record.write_text(PRE + "\n")
+    calls = git_answers(fake_processes, **{"git symbolic-ref --quiet --short HEAD": (0, "tdd/12-slug\n"),
+                                           f"git merge-base --is-ancestor {ONTO} HEAD": (0, "")})
+
+    code, out, err = cli.run_cli(cli.module, ["--resolved", ONTO, "extra"], cwd=str(tmp_path))
+
+    assert (code, out, "usage: " in err, record.read_text(), calls) == (2, "", True, PRE + "\n", [])

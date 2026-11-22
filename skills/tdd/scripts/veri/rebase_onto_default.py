@@ -51,10 +51,11 @@ def union_graded(path):
     git("add", path, text=True)
 
 
-def record_branch_base(onto, done):
+def record_branch_base(onto, done, doing=None):
     """Re-record a run branch's base as <onto>, the record a resume reads its fast command at (#4374).
 
-    Returns `done`, or the refusal when the write fails; a branch that is no run's records nothing."""
+    Returns `done`, or the refusal, led by `doing` (else what the rebase did), when the write fails; a branch that
+    is no run's records nothing."""
     issue = run_dir.branch_issue(output("symbolic-ref", "--quiet", "--short", "HEAD"))
     if issue:
         main = run_dir.main_tree_from_files()
@@ -62,7 +63,8 @@ def record_branch_base(onto, done):
         try:
             run_pins.write_branch_base(main, issue, onto)
         except OSError as error:
-            return refuse(f"{'up to date with' if done == 3 else 'rebased onto'} {onto}, but could not re-record"
+            doing = doing or f"{'up to date with' if done == 3 else 'rebased onto'} {onto}, but"
+            return refuse(f"{doing} could not re-record"
                           f" the branch base {record}: {error.strerror}")
     return done
 
@@ -88,7 +90,7 @@ def resolved(args):
         replaced = run_pins.branch_base(issue, run_dir.main_tree_from_files()) if issue else ""
     except FileNotFoundError:
         replaced = ""
-    if record_branch_base(onto, 0):
+    if record_branch_base(onto, 0, doing=f"--resolved {onto}"):
         return 2
     if replaced:
         sys.stdout.write(f"{replaced}\n")
