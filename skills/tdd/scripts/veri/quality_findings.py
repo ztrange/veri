@@ -14,7 +14,7 @@ from ledger import CRITERION_TAG, ledger_steps, multi_tag_refusal, read_ledger, 
 from report import report_values
 
 USAGE = "usage: test-quality.sh files <branch-base> | anchor <ledger> | record <n> < <leaf-report>"
-KINDS = ("weak-assertion", "redundant", "implementation-coupled")
+KINDS = ("weak-assertion", "redundant", "implementation-coupled", "fixed-wait")
 
 
 def refusal(value):

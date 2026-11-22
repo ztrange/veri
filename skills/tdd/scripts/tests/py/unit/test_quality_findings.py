@@ -36,6 +36,13 @@ def test_record_writes_each_finding_in_report_order_and_exits_0(run_cli, test_qu
         "redundant | tests/test_alpha.py::TestGroup::test_inner | asserts nothing at all\n"))
 
 
+def test_record_writes_a_fixed_wait_finding_and_exits_0_4578(run_cli, test_quality, worktree):
+    report = "FINDING: fixed-wait | tests/test_alpha.py::test_adds | sleeps 2 s instead of polling\n"
+
+    assert record(run_cli, test_quality, worktree, report) == (
+        0, "", "fixed-wait | tests/test_alpha.py::test_adds | sleeps 2 s instead of polling\n")
+
+
 def test_the_record_is_named_so_the_installed_ignore_rule_never_readmits_it(run_cli, test_quality, worktree):
     record(run_cli, test_quality, worktree, "FINDING: none\n")
 
