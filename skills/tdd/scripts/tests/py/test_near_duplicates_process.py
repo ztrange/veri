@@ -80,3 +80,12 @@ def test_one_maximal_6_line_repeat_prints_one_line_not_one_per_3_line_window(tmp
     commit_all(repo, "feat: total", **{"src__calc.py": older})
     added = commit_all(repo, "feat: weight", **{"src__calc.py": older + copy})
     assert run_cli(near_duplicates, [added], cwd=repo) == (0, "src/calc.py:8-13 src/calc.py:1-6\n", "")
+
+
+@pytest.mark.process("git over a scratch repository whose commit added a copy, in one test file, of a function in another test file")
+def test_a_repeat_between_two_test_files_is_never_paired(tmp_path, near_duplicates, run_cli):
+    repo = new_repo(tmp_path / "test-files")
+    commit_all(repo, "test: total", **{"tests__test_calc.py": TOTAL})
+    added = commit_all(repo, "test: weight", **{
+        "tests__test_calc.py": TOTAL + "\nTAX = 2\n", "tests__test_parcels.py": WEIGHT.lstrip()})
+    assert run_cli(near_duplicates, [added], cwd=repo)[1] == ""
