@@ -89,3 +89,11 @@ def test_a_repeat_between_two_test_files_is_never_paired(tmp_path, near_duplicat
     added = commit_all(repo, "test: weight", **{
         "tests__test_calc.py": TOTAL + "\nTAX = 2\n", "tests__test_parcels.py": WEIGHT.lstrip()})
     assert run_cli(near_duplicates, [added], cwd=repo)[1] == ""
+
+
+@pytest.mark.process("git over a scratch repository whose commit added a line repeating nothing")
+def test_no_pair_exits_3_printing_nothing(tmp_path, near_duplicates, run_cli):
+    repo = new_repo(tmp_path / "no-pair")
+    commit_all(repo, "feat: total", **{"src__calc.py": TOTAL})
+    added = commit_all(repo, "feat: tax", **{"src__calc.py": TOTAL + "\nTAX = 2\n"})
+    assert run_cli(near_duplicates, [added], cwd=repo) == (3, "", "")
