@@ -264,9 +264,11 @@ def replay(pin, ledger, looks, branch_base):
     original = path.read_bytes()
     if pin["old"].encode() not in original:
         moved = moved_to(pin)
-        if len(moved) != 1:
-            where = "no file" if not moved else "more than one file"
-            sys.stdout.write(f"not checked: {pin['file']} (old text in {where} of its package)\n")
+        if not moved:
+            sys.stdout.write(f"not checked: {pin['file']} (old text in no tracked file)\n")
+            return 1
+        if len(moved) > 1:
+            sys.stdout.write(f"not checked: {pin['file']} (old text in more than one file of its package)\n")
             return 1
         path = moved[0]
         original = path.read_bytes()
