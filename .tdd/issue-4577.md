@@ -9,4 +9,4 @@
 - [x] `near-duplicates.sh` exit 2 stops `refactor-half.sh` with exit 2 before any leaf is launched ⟦criterion 3⟧
 - [x] `develop-refactor.md`'s near-duplicates section tells the leaf what the pairs are and to answer each, graded against its new RE rows ⟦criterion 4⟧
 - [x] `SKILL.md`'s Refactor loop sub-step 1 builds the prompt the way `refactor-half.sh` does, graded against its new RF row ⟦criterion 5⟧
-- [ ] `SCRIPTS.md`'s `build-develop-prompt.sh` and `refactor-half.sh` entries state the pairs file and the `near-duplicates.sh` call, graded against new SC rows
+- [x] `SCRIPTS.md`'s `build-develop-prompt.sh` and `refactor-half.sh` entries state the pairs file and the `near-duplicates.sh` call, graded against new SC rows
