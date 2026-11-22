@@ -161,7 +161,7 @@ def test_moved_path_is_the_name_itself_while_that_file_exists_even_when_a_copy_e
     _write(tmp_path, "tests/unit/moved_cases.py", MOVED)
 
     assert case_identity.moved_path("tests/moved_cases.py", "test_moved_3284", _recorded(digest, MOVED)) == (
-        "tests/moved_cases.py")
+        "./tests/unit/moved_cases.py")
 
 
 def test_moved_path_finds_a_file_of_the_same_basename_in_another_directory_that_holds_the_recorded_case(
