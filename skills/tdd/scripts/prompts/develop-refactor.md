@@ -21,7 +21,9 @@ wrote. Tidying code this cycle did not write is otherwise out of scope, however 
 
 {{NEAR_DUPLICATES}}
 
-Above is one `<file>:<first>-<last> <file>:<first>-<last>` line per pair, or `none`, as
+#### What the pairs are, and answering each
+
+The slot above is one `<file>:<first>-<last> <file>:<first>-<last>` line per pair, or `none`, as
 `near-duplicates.sh` printed them. Each pair is a block this cycle added, named first, and a
 place in the touched files that repeats it ignoring whitespace and names. It points at
 duplication that shows only against code an earlier step wrote, which reading this step's own
