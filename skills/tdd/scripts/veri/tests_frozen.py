@@ -187,9 +187,12 @@ def _earlier_records(lines, step, strict=False):
         yield match.group(2), path, records
 
 
-def _helpers_stale(releg, name, case, recorded, text, body):
+def _helpers_stale(releg, name, case, recorded, text, body, at):
     current = case_identity.helper_digest(text, body)
-    if recorded == current:
+    # A Go case's helper may live in a sibling _test.go file (#4606): rerecord-refactored records the digest over
+    # the case's file plus those siblings, so weakening the sibling's helper makes this record stale. A record
+    # written from the case's own file alone (every record before #4606) still matches `current`.
+    if recorded in (current, case_identity.helper_digest_beside(at, text, body)):
         return False
     if recorded != case_identity.helper_digest(text, body, legacy=True):
         return True
@@ -267,7 +270,7 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
         if case not in exempt and (name, case) not in sanctioned and not (fixture and name == fixture.group(1)) and (
                 not nows or any(d not in held for d, held in zip(digests, accepted))
                 or ((name, case) in helper_digests
-                    and _helpers_stale(releg, name, case, helper_digests[(name, case)], text, "\n".join(nows)))):
+                    and _helpers_stale(releg, name, case, helper_digests[(name, case)], text, "\n".join(nows), moved))):
             entry = "%s (%s)" % (case, owner)
             if nows and case_identity.changed_by_refactor(name, case):
                 entry += ": the record is stale against a verified refactor"
@@ -491,7 +494,7 @@ def rerecord_refactored(ledger, green):
             return skip(name, case, record, "case has no assertion lines and its body changed")
         head_text = case_history.text_at("HEAD", at, quiet=True)
         return body_line(at, case, head) + "\n" + frozen_record.helpers_line(
-            at, case, case_identity.helper_digest(head_text, "\n".join(case_identity.bodies_of(head_text, case))))
+            at, case, case_identity.helper_digest_beside(at, head_text, "\n".join(case_identity.bodies_of(head_text, case))))
     snapshot = {}
     for _, path, __ in _earlier_records(lines, ""):
         with open(path, encoding="utf-8") as handle:
