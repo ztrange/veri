@@ -22,8 +22,8 @@ def main(argv):
             units.append(heading)
     clashing = []
     for unit in units:
-        texts = skill_edit_step.listed_texts(requirements.list_path(unit), unit)
-        clashing += [skill_edit_step.row_id(r) for r in skill_edit_step.clashes(skill_edit_step.unit_rows(issue, unit), texts)]
+        rows = skill_edit_step.unit_rows(issue, unit)
+        clashing += [skill_edit_step.row_id(r) for r in skill_edit_step.clashes(rows, requirements.list_path(unit), unit)]
     missing = []
     unitless = []
     if len(argv) > 1:

@@ -106,8 +106,11 @@ def listed_texts(path, unit):
     return dict(row.split("\t", 1) for row in (_claimed(path, unit) or "").splitlines())
 
 
-def clashes(rows, texts):
-    return [r for r in rows if row_id(r) in texts and _row_text(r) != texts[row_id(r)]]
+def clashes(rows, path, unit):
+    """The rows whose ID the unit holds with other text, save a row whose Requirement and Why it holds under any ID."""
+    texts = listed_texts(path, unit)
+    held = _held_texts(requirements.read_lines(path), unit) if os.path.exists(path) else set()
+    return [r for r in rows if row_id(r) in texts and _row_text(r) != texts[row_id(r)] and _full_text(r) not in held]
 
 
 def _listed_ids(path, unit):
@@ -333,7 +336,7 @@ def main(argv):
 
     listed = _listed_ids(path, unit)
     texts = listed_texts(path, unit)
-    clashing = clashes(issue_rows, texts)
+    clashing = clashes(issue_rows, path, unit)
     for r in clashing:
         print("Requirement row ID already held with different text: %s (existing: %s) (incoming: %s)"
               % (row_id(r), texts[row_id(r)], _row_text(r)), file=sys.stderr)
