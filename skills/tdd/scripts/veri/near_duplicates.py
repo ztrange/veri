@@ -73,9 +73,10 @@ def main(argv):
     added = added_lines(rev)
     files = [(path, counting_lines(git("show", f"HEAD:{path}"), added.get(path, set())))
              for path in refactor_touched.touched_files([f"{rev}^", rev]) if not is_test_path(path)]
-    for line in pairs(files):
+    found = pairs(files)
+    for line in found:
         print(line)
-    return 0
+    return 0 if found else 3
 
 
 if __name__ == "__main__":
