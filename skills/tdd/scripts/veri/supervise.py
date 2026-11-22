@@ -200,6 +200,31 @@ def heartbeat_line(line):
     return isinstance(record, dict) and record.get("type") == "tool_progress" and record.get("heartbeat") is True
 
 
+def in_flight_tool(text):
+    """The last `tool_use` in a stream log with no `tool_result` after it, as `<name>: <command> (<secs>s)`, else None."""
+    call, answered, secs = None, set(), {}
+    for line in text.splitlines():
+        try:
+            record = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(record, dict):
+            continue
+        if record.get("type") == "tool_progress":
+            secs[record.get("parent_tool_use_id")] = record.get("elapsed_time_seconds", 0)
+            continue
+        content = (record.get("message") or {}).get("content") if isinstance(record.get("message"), dict) else None
+        for block in content if isinstance(content, list) else []:
+            if isinstance(block, dict) and block.get("type") == "tool_use":
+                call = block
+            elif isinstance(block, dict) and block.get("type") == "tool_result":
+                answered.add(block.get("tool_use_id"))
+    if call is None or call.get("id") in answered:
+        return None
+    command = (call.get("input") or {}).get("command", "")
+    return f"{call.get('name')}: {command} ({secs.get(call.get('id'), 0)}s)"
+
+
 def pause(poll):
     try:
         secs = float(poll)
@@ -471,6 +496,13 @@ def attempt_once(holder, name, cmd, log, rcfile, leaf_env, preexec, watch):
         if reason:
             status = "killed-stuck"
             kill_tree(leaf, kill_poll)
+            try:
+                with open(log, "rb") as f:
+                    tool = in_flight_tool(f.read().decode("utf-8", errors="replace"))
+            except OSError:
+                tool = None
+            if tool:
+                reason += f"; in-flight tool call {tool}"
             break
         pause(poll)
     leaf.wait()
