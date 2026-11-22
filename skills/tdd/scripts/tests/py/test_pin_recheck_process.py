@@ -3511,6 +3511,33 @@ def test_4644_a_pin_whose_old_text_is_at_head_replays_even_when_its_base_lacks_i
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, False, True), ran.stdout + ran.stderr
 
 
+@pytest.mark.process("git, and pin-recheck.sh run over a green commit adding x.go's pinned text and a refactor removing it")
+def test_4644_a_pin_on_text_the_step_added_then_refactored_away_is_not_checked_not_stale(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "x.go").write_text("package p\n")
+    (tmp_path / "x_test.go").write_text("package p\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "red")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "x.go").write_text("package p\nif guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4644-mutations.md", file="x.go", old="if guard", new="if (true)",
+           command="sh -c \"echo result\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "green adds the guard and its pin")
+    (tmp_path / "x.go").write_text("package p\nif other\n")
+    git("commit", "-q", "-am", "refactor rewrites the guard away")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "not checked: x.go (old text in no file of its package)\n" in ran.stdout, "stale:" in ran.stdout,
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (1, True, False, False), ran.stdout + ran.stderr
+
+
 @pytest.mark.process("git, and pin-recheck.sh run over a range that copies the pinned text from x.go into y.go and z.go")
 def test_4602_a_pin_whose_old_text_is_in_more_than_one_other_file_is_not_checked_and_mutates_none_of_them(tmp_path):
     def git(*words):
