@@ -522,6 +522,7 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `build-develop-prompt.sh`: render a developer leaf's prompt (red, green, refactor, revise).
 - `build-verify-prompt.sh`: render the blind verifier's prompt.
 - `cover-outcome.sh`: read a cover leaf's report on stdin.
+- `near-duplicates.sh`: list the blocks a commit added that repeat code in the files it touched.
 - `pin-target.sh`: read a pin leaf's target from its report.
 - `quality_findings`: test-quality.sh: list the test files a run's range touched, and check and record the develop-test-quality leaf's `FINDING:` lines.
 - `red-divergence.sh`: read a red leaf's report on stdin.
