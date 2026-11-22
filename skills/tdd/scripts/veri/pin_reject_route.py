@@ -45,7 +45,7 @@ def holds(path, name):
 def recheck(argv):
     with open(argv[0], encoding="utf-8") as handle:
         reason = handle.read()
-    unchecked = re.search(r"not checked: (\S+) \(old text in no file of its package\)", reason)
+    unchecked = re.search(r"not checked: (\S+) \(old text in (?:no file|more than one file) of its package\)", reason)
     if unchecked is not None:
         print("not-checked " + unchecked.group(1))
         return 1

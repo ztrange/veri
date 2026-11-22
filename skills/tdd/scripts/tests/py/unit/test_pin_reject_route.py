@@ -714,3 +714,19 @@ def test_main_recheck_not_checked_pin_with_old_text_in_no_file_prints_not_checke
 
     assert (code, out.strip(), ledger.read_text(), (ledger.parent / "issue-42-added.md").exists()) == (
         1, "not-checked tests/py/test_review.py", body, False), err
+
+
+def test_main_recheck_not_checked_pin_with_old_text_in_more_than_one_file_prints_not_checked_and_leaves_ledger_and_added_record_untouched_4630(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("not checked: tests/py/test_review.py (old text in more than one file of its package)\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text(), (ledger.parent / "issue-42-added.md").exists()) == (
+        1, "not-checked tests/py/test_review.py", body, False), err
