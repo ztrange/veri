@@ -1,6 +1,8 @@
 """seam-settle.sh's computation, run in-process: after a stage done by hand, write the record that stage's script
 would have written, so the next stage runs as after a clean call (PRD 038.1 SC6, SC7)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
+import os
 import sys
 
 import entry
@@ -37,7 +39,13 @@ def main(argv):
         step = fused_step.first_step(wt, n, refactor_pending)
     if step is None:
         return entry.refuse("seam-settle.sh: no open step for %s in %s" % (stage, LEDGER % n))
-    return fused.settle(wt, n, stage, ["step=" + step] + RECORDS[stage](wt, n, values, step))
+    code = fused.settle(wt, n, stage, ["step=" + step] + RECORDS[stage](wt, n, values, step))
+    if stage == "red-half":
+        # Red recovered by hand answers its REJECT: only revise.sh's finish removes this record otherwise, and a left
+        # one would send a later bare run-step.sh call back to revise.sh <n> red (#4613).
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(fused.wait_record(wt, n, "red-half-rejected"))
+    return code
 
 
 def revised(wt, n):
