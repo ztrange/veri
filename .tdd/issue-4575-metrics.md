@@ -1,6 +1,6 @@
 ### 📊 Metrics — issue 4575
 
-Wall time for the issue: 1825 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1828 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 4 of 4 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/4604.
@@ -118,7 +118,7 @@ Stopped: nothing-structural
 | preflight | 1 | 1 | 0 | 0 | 0 | 0 | 36 |
 | baseline | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 1 |
-| push | 6 | 6 | 0 | 0 | 0 | 0 | 13 |
+| push | 7 | 7 | 0 | 0 | 0 | 0 | 15 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
 | rebase | 1 | 1 | 0 | 0 | 0 | 0 | 3 |
 
