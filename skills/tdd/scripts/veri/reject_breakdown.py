@@ -6,11 +6,7 @@ import sys
 
 import entry
 
-USAGE = """usage: reject-breakdown.sh < <dated reports>
-  stdin: one `<YYYY-MM-DD> <report path>` line per committed metrics report, the date its newest commit's
-  author date. Prints, per week, REJECT per verify, then each phase's REJECTs, then each reason class's.
-Exit: 0 printed; 2 a line not `<YYYY-MM-DD> <path>`, or a report unreadable or with no `#### By phase`
-  table, named by its line; 3 no report named."""
+USAGE = """usage: reject-breakdown.sh < <dated reports>"""
 
 def phase_verdicts(text):
     """{phase: (PASS, REJECT)} off the report's `#### By phase` table."""
