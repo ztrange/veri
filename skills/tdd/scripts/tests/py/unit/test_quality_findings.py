@@ -120,6 +120,25 @@ def test_record_writes_a_package_relative_finding_under_the_one_listed_file_it_m
         0, "", "weak-assertion | cmd/veri-dashboard/spend_test.go::TestSpend | asserts nothing\n")
 
 
+@pytest.mark.parametrize("listing", [
+    "cmd/a/spend_test.go\ncmd/b/spend_test.go\n",
+    "tests/test_alpha.py\n",
+])
+def test_record_exits_2_on_a_package_relative_finding_matching_no_listed_file_or_several_4624(
+        run_cli, test_quality, worktree, listing):
+    for package in ("a", "b"):
+        (worktree / "cmd" / package).mkdir(parents=True)
+        (worktree / "cmd" / package / "spend_test.go").write_text(
+            "package main\n\nfunc TestSpend(t *testing.T) {\n}\n")
+    (worktree / ".tdd" / "test-quality-files").write_text(listing)
+    (worktree / ".tdd" / "issue-7-test-quality").write_text("an earlier record\n")
+    report = "FINDING: weak-assertion | spend_test.go::TestSpend | asserts nothing\n"
+
+    code, err, written = record(run_cli, test_quality, worktree, report)
+
+    assert (code, "spend_test.go" in err, written) == (2, True, "an earlier record\n")
+
+
 def test_record_refuses_a_missing_verb_or_issue_number_with_exit_2(run_cli, test_quality, worktree):
     answers = [run_cli(test_quality, argv, stdin="FINDING: none\n", cwd=str(worktree))[0]
                for argv in ([], ["record"], ["record", "x"], ["list", "7"])]
