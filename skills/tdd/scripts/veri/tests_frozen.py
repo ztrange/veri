@@ -542,7 +542,16 @@ def rerecord_approved(ledger, approval, cases):
         head = heads[(name, case)]
         return body_line(name, case, head) + "\n" + frozen_record.helpers_line(
             name, case, case_identity.helper_digest(texts[name], head))
-    return 0 if rewrite_records(_earlier_records(lines, ""), rewrite) else 2
+    snapshot = {}
+    for _, path, __ in _earlier_records(lines, ""):
+        with open(path, encoding="utf-8") as handle:
+            snapshot[path] = handle.read()
+    if rewrite_records(_earlier_records(lines, ""), rewrite):
+        return 0
+    # A record that could not be written keeps no rewrite of the others: the approval took whole or not at all.
+    for path, text in snapshot.items():
+        write_record(path, [text])
+    return 2
 
 
 def rerecord_rebased(ledger, pre):

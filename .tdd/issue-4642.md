@@ -4,7 +4,7 @@
 - [x] `rerecord-approved` naming a case `rerecord-refactored` skipped (helper lines moved) exits 0 and `check-earlier` then passes ⟦criterion 2⟧
 - [x] `rerecord-approved` naming a case no record holds exits 2 naming it and writes nothing, and with no case named exits 2 ⟦criterion 3⟧
 - [x] `rerecord-approved` naming a recorded case absent at HEAD exits 2 naming it and writes nothing ⟦criterion 4⟧
-- [ ] `rerecord-approved` whose record cannot be written exits 2 and restores every record it had rewritten byte-identical ⟦criterion 5⟧
+- [x] `rerecord-approved` whose record cannot be written exits 2 and restores every record it had rewritten byte-identical ⟦criterion 5⟧
 - [ ] `rerecord-approved` logs one `tests-frozen-rerecord-approved` event per re-recorded case with `case`, `file` and `approval`, accepted under `VERI_EVENT_STRICT=1`, and without the approval text exits 2 writing no event ⟦criterion 6⟧
 - [ ] the usage text `tests-frozen.sh` prints names `rerecord-approved`, and `skills/tdd/SCRIPTS.md`'s `tests-frozen.sh` entry and the shim's usage block name its arguments, exits and event ⟦criterion 7⟧
 - [ ] `skills/vbail/SKILL.md` *Classify first* routes a `needs-user` verify-refactor bail answered re-record to `tests-frozen.sh rerecord-approved`, graded against a new B row ⟦criterion 8⟧
