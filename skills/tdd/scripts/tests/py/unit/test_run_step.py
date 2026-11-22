@@ -615,6 +615,27 @@ def test_a_reroutes_route_revise_red_goes_back_to_red_half_whose_rejected_record
     assert not (step.wt / ".tdd" / "verdict-green.exit").exists()
 
 
+def test_a_call_after_a_reroute_to_red_recorded_at_green_half_calls_revise_red_first_never_starting_at_green_4613(
+        step):
+    """#4613 criterion 2: reroute.sh's `route=revise phase=red` outside this call left red-half's rejected record
+    naming the step while the step seam still says green-half; red is revised first, never skipped."""
+    rejected = step.wt / ".tdd" / "issue-12-red-half-rejected-wait"
+    rejected.write_text(REJECTED.replace("verdict-green", "verdict-red"))
+    (step.wt / ".tdd" / "issue-12-step").write_text("stage=green-half\nstep=%s\n" % STEP)
+
+    class RedRevise(Stages):
+        def __call__(self, name, *args, **kw):
+            if os.path.basename(name) == "revise.sh":
+                rejected.unlink()
+            return super().__call__(name, *args, **kw)
+
+    code, out, err, stages = step(stages=RedRevise())
+
+    assert (code, out.splitlines()[-1]) == (0, "next=cycle"), err
+    assert stages.names() == ["revise.sh"] + list(STAGES)
+    assert stages.calls[0][1] == ("12", "red")
+
+
 def _reroute_wait(step, text):
     (step.wt / ".tdd" / "issue-12-reroute-wait").write_text(
         '{"conductor": null, "at": "verdict-red", "values": {"report": ".tdd/revise-green-1.out", "step": "%s"}}'
