@@ -3,7 +3,7 @@
 - [x] `near-duplicates.sh <commit>` prints one line `<file>:<first>-<last> <file>:<first>-<last>`, the added block first, when a function added between `<commit>^` and `HEAD` repeats 3 or more consecutive counting lines of an older function in the same file under different identifier names and indentation, and exits 0 ⟦criterion 1⟧
 - [x] `near-duplicates.sh <commit>` finds the older copy in another file `<commit>` touched ⟦criterion 2⟧
 - [x] `near-duplicates.sh <commit>` does not report an older copy in a file `<commit>` did not touch ⟦criterion 2⟧
-- [ ] `near-duplicates.sh <commit>` prints no pair neither side of which holds a line added between `<commit>^` and `HEAD`, over a file that already held two copies ⟦criterion 3⟧
+- [x] `near-duplicates.sh <commit>` prints no pair neither side of which holds a line added between `<commit>^` and `HEAD`, over a file that already held two copies ⟦criterion 3⟧
 - [ ] `near-duplicates.sh <commit>` prints nothing for a run of matching lines with fewer than 3 lines holding a letter or a digit, however many brace-only or blank lines it spans ⟦criterion 4⟧
 - [ ] `near-duplicates.sh <commit>` prints one line for one maximal 6-line repeat, not one per 3-line window ⟦criterion 5⟧
 - [ ] `near-duplicates.sh <commit>` never pairs a test file, the only repeat being between two test files ⟦criterion 6⟧
