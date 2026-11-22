@@ -636,6 +636,26 @@ def test_a_call_after_a_reroute_to_red_recorded_at_green_half_calls_revise_red_f
     assert stages.calls[0][1] == ("12", "red")
 
 
+def test_a_stale_green_half_rejected_record_after_a_reroute_to_red_never_revises_green_4613(step):
+    """#4613 criterion 1: a reroute to red left red-half's rejected record naming the step beside an older green-half
+    rejected record also naming it; red is revised, then green-half runs afresh, never revise.sh <n> green."""
+    rejected = step.wt / ".tdd" / "issue-12-red-half-rejected-wait"
+    rejected.write_text(REJECTED.replace("verdict-green", "verdict-red"))
+    (step.wt / ".tdd" / "issue-12-green-half-rejected-wait").write_text(REJECTED)
+
+    class RedRevise(Stages):
+        def __call__(self, name, *args, **kw):
+            if os.path.basename(name) == "revise.sh":
+                rejected.unlink(missing_ok=True)
+            return super().__call__(name, *args, **kw)
+
+    code, out, err, stages = step(stages=RedRevise())
+
+    assert (code, out.splitlines()[-1]) == (0, "next=cycle"), err
+    assert stages.names() == ["revise.sh"] + list(STAGES)
+    assert [call[1] for call in stages.calls if os.path.basename(call[0]) == "revise.sh"] == [("12", "red")]
+
+
 def _reroute_wait(step, text):
     (step.wt / ".tdd" / "issue-12-reroute-wait").write_text(
         '{"conductor": null, "at": "verdict-red", "values": {"report": ".tdd/revise-green-1.out", "step": "%s"}}'
