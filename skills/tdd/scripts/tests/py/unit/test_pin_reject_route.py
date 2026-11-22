@@ -747,3 +747,24 @@ def test_main_recheck_reason_with_no_disarm_line_and_no_refactor_rejected_record
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, out.strip(), ledger.read_text()) == (1, "revise-impossible", body), err
+
+
+@pytest.mark.parametrize("record", [
+    {"conductor": "1", "at": "refactor", "values": {}, "step": "b two ⟦criterion 2⟧"},
+    {"conductor": "1", "at": "refactor", "values": {}},
+    {"conductor": "1", "at": "refactor", "values": {}, "step": 7},
+], ids=["another-step", "no-step", "non-text-step"])
+def test_main_recheck_reason_with_no_disarm_line_and_a_record_naming_no_matched_step_prints_revise_impossible_4630(
+        tmp_path, run_cli, pin_reject_route, record):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("needs a look: tests/py/test_review.py\n")
+    (ledger.parent / "issue-42-refactor-half-rejected-wait").write_text(json.dumps(record))
+
+    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text()) == (1, "revise-impossible", body), err

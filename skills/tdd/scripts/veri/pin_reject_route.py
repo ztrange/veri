@@ -54,7 +54,7 @@ def refactor_rejected(ledger_file, matcher):
             step = json.load(handle).get("step")
     except (OSError, ValueError, AttributeError):
         return False
-    return step is not None and ledger.same_step(step, matcher)
+    return isinstance(step, str) and ledger.same_step(step, matcher)
 
 
 def recheck(argv):
