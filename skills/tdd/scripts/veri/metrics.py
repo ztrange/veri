@@ -372,7 +372,7 @@ def awake_span_or_wall(start, end, clocked):
 
 
 def planned_steps(path):
-    """(number of steps the ledger at `path` plans, or None; number of ticked full-suite lines; number of done steps)."""
+    """(number of steps the ledger at `path` plans, or None; number of ticked full-suite lines; number of done steps not still refactor pending)."""
     try:
         with open(path, "rb") as f:
             text = decode_ledger(f.read())
@@ -381,7 +381,7 @@ def planned_steps(path):
     steps = ledger_steps(text)
     records = "".join("\t".join(record) + "\n" for record in steps)
     full_suite = sum(1 for record in steps if record.state == "done" and record.kind == "full-suite")
-    done = sum(1 for record in steps if record.state == "done")
+    done = sum(1 for record in steps if record.state == "done" and record.pending == "0")
     return counted(len(records.splitlines())), full_suite, done
 
 
