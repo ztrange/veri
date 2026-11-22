@@ -464,3 +464,23 @@ def test_event_main_with_an_empty_veri_issue_writes_the_bail_to_veri_state_label
     journal = tmp_path / "runs" / "acme-widgets" / "28.jsonl"
     lines = [json.loads(text) for text in journal.read_text().splitlines()] if journal.exists() else []
     assert (code, [(entry["event"], entry["issue"]) for entry in lines]) == (0, [("bail", "28")])
+
+
+def test_event_main_with_both_issues_set_writes_to_veri_issues_journal_not_veri_state_label_issues(tmp_path, monkeypatch):
+    import importlib
+    event = importlib.import_module("veri.event")
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".git" / "config").write_text(
+        '[remote "origin"]\n\turl = https://github.com/acme/widgets.git\n')
+    monkeypatch.chdir(clone)
+    monkeypatch.setenv("VERI_ISSUE", "27")
+    monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "28")
+    monkeypatch.setattr(event.github, "gh_label_exists", lambda label: True)
+    monkeypatch.setattr(event.github, "gh_issue_add_label", lambda issue, label: None)
+    monkeypatch.setattr(event.github, "gh_issue_remove_label", lambda issue, label: None)
+
+    code = event.main([b"bail", b"cause=needs-user", b"classification=process"])
+
+    journals = tmp_path / "runs" / "acme-widgets"
+    assert (code, (journals / "27.jsonl").exists(), (journals / "28.jsonl").exists()) == (0, True, False)
