@@ -22,13 +22,15 @@ Judge the cases of the files above by the catalogue's **Rules for test code**.
    - `redundant`: the case asserts nothing another case of those files does not.
    - `implementation-coupled`: the case imports or asserts on a name private to the code
      under test, or computes its expected value with that code.
+   - `fixed-wait`: the case sleeps a fixed time, or waits out a window of fixed length, for a
+     condition it could wait on directly under a timeout.
 3. Name each case as `<file>::<case>`, the file as listed above and the case as its file
    defines it, and say in one line why it is that kind.
 4. When no case of those files is one of those kinds, report the one line `FINDING: none`.
 
 ### Report (last lines of your output)
 
-FINDING: <weak-assertion | redundant | implementation-coupled> | <file>::<case> | <why, in one line>
+FINDING: <weak-assertion | redundant | implementation-coupled | fixed-wait> | <file>::<case> | <why, in one line>
 
 one line per finding, or
 
