@@ -79,7 +79,7 @@ A **notice** — the MCP
 launch line of *Starting*, a missing `delegate` skill, `github-outage.sh hold`'s exit 2, a red
 stack that stays frozen after its failed jobs' re-run, `record-answer.sh`'s exit 2 (*Answers*), a
 question session's failed start (*When to stop and ask*, step 3), a failed join or a landing
-reported under *Routing an exit*, `dispatch.sh`'s `queueing`, `stretched` and `t-lowered` lines, each line `voutage` tells the human — is
+reported under *Routing an exit*, `dispatch.sh`'s `queueing`, `stretched` and `t-lowered` lines (each one the ended watch printed, sent as its own notice when a closing line ends the watch), each line `voutage` tells the human — is
 sent once: as one `PushNotification`
 where the session has that tool, else as one line in its transcript.
 
@@ -187,12 +187,19 @@ and prints one line per event:
 - `merge-failed <pr-url>`
 - `stalled <n>`
 - `queue-empty`
+
+Those are the closing lines: each ends the watch. Three more lines are advice, printed while
+`dispatch.sh` keeps watching, never the end of the watch; they change nothing:
+
 - `queueing <k> waiting for T=<t>, <w> workers in use: a lower N would shorten the wait`: test
-  runs keep queueing; advice only, which changes nothing
+  runs keep queueing
 - `stretched <n> <tier> <seconds>s, idle <idle>s`: a run's `fast` or `all` test run took more than
-  twice its idle duration, once per run and tier; advice only, which changes nothing
+  twice its idle duration, once per run and tier
 - `t-lowered <old> <new> <cases>`: a load timeout lowered T from `<old>` to `<new>`, the timed-out
   `<cases>` named; dispatch reports it once
+
+When a closing line ends the watch, send each `queueing`, `stretched` and `t-lowered` line that
+watch printed as a notice (*Speaking*), then route the closing line.
 
 You arm no other wait for conductors, ledgers or merges: no `watch-runs.sh`, no
 `until [ -f … ]`, no `while kill -0 <pid>`. `voutage`'s wait on GitHub's status page is its own.
