@@ -234,3 +234,21 @@ def test_3686_a_skill_edit_step_with_no_path_shaped_backticked_token_exits_2_nam
     code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
 
     assert code == 2 and "no path-shaped unit for skill-edit step: " in err and "route the `missing` case" in err, (code, out, err)
+
+
+def test_4588_a_row_whose_text_the_unit_holds_under_another_id_is_no_clash_though_its_own_id_holds_other_text(tmp_path, run_cli):
+    requirements_preflight = importlib.import_module("veri.requirements_preflight")
+    (tmp_path / "unit.md").write_text("Unit text.\n")
+    head = "| ID | Requirement | Why |\n|---|---|---|\n"
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n" + head + "| A10 | The widget is round. | shape |\n"
+        "| A12 | The widget is blue. | because |\n")
+    issue = tmp_path / "issue.md"
+
+    issue.write_text("## Requirements\n\n### unit.md\n\n" + head + "| A10 | The widget is blue. | because |\n")
+    held = run_cli(requirements_preflight, [str(issue)], cwd=tmp_path)
+
+    issue.write_text("## Requirements\n\n### unit.md\n\n" + head + "| A10 | The widget is green. | because |\n")
+    unheld = run_cli(requirements_preflight, [str(issue)], cwd=tmp_path)
+
+    assert held[::2] == (0, "") and unheld[0] == 2 and "A10" in unheld[2], (held, unheld)
