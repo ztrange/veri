@@ -120,6 +120,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   verifier's run lines are read from `CLAUDE.md` as it stood at that sha, from the lines it declares alone, never
   from the working tree, and a `pin` or `surround` verifier takes its before-state there. No phase reads a
   remote-tracking ref for its base: a leaf can rewrite one.
+  `refactor` requires `--step-green <sha>`, the step's green tick, and every other phase refuses it (exit 2, from
+  `build-verify-prompt.sh`, before any leaf launches) (#4544).
   A `diff` call with a third positional after `<spec-file>` exits 2 naming it.
   The `rebase` phase, which judges a `develop-rebase` or `revise-rebase` leaf's resolution, runs two gates
   before it launches any leaf, in this order. A tracked file with an uncommitted change (`git status
@@ -150,8 +152,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/run-verdict.sh [--step "<STEP>"] [--fast-cmd '<cmd>'] [--supersede-base <sha>] [--step-green <sha>] --branch-base <sha> <red|green|refactor|pin|plan> <spec-file> <test-path> [target]`
   — the **verdict launcher**: `verify.sh`'s own call, argument for argument, reached as a
   command rather than as a shell string. This is what `supervise.sh verdict-<phase>` runs;
-  it passes every argument, `--supersede-base <sha>` and `--branch-base <sha>` included, through untouched and `exec`s the verify verb, so the step title
-  travels in argv and its exit code is `verify.sh`'s.
+  it passes every argument, `--supersede-base <sha>`, `--branch-base <sha>` and `--step-green <sha>` included, through untouched and `exec`s the verify verb, so the step title
+  travels in argv and its exit code is `verify.sh`'s: `refactor` without `--step-green` exits 2.
 - `$S/parse-verdict.sh` — extracts `PASS|REJECT` + reason from a leaf's output (used by
   `verify.sh`).
 - `$S/tick-issue-criterion.sh <n> "<substring>"` — tick a criterion checkbox in the
