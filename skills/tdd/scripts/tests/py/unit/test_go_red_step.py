@@ -187,3 +187,14 @@ def test_4628_a_case_the_test_file_holds_only_under_the_red_leafs_issue_number_p
 
     assert code == 0, err
     assert fake.call("mutation-probe.sh")[1][-1] == "tests/test_run.py::test_4605_refuses_stacked"
+
+
+def test_4628_a_case_the_test_file_defines_itself_is_probed_unchanged_beside_a_prefixed_twin(go_red):
+    (go_red.wt / "tests").mkdir()
+    (go_red.wt / "tests" / "test_run.py").write_text(
+        "def test_refuses_stacked():\n    pass\n\n\ndef test_4605_refuses_stacked():\n    pass\n")
+
+    code, out, err, fake = go_red()
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == CASE
