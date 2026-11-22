@@ -1,10 +1,10 @@
 """near-duplicates.sh's pairs of an added block and an older copy of it, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import re
-import subprocess
 import sys
 
 import entry
+import git
 from case_reader import is_test_path
 import refactor_touched
 
@@ -14,15 +14,23 @@ IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 HUNK = re.compile(r"^@@ -\S+ \+(\d+)(?:,(\d+))? @@")
 
 
-def git(*args):
-    return subprocess.run(["git", *args], stdout=subprocess.PIPE, text=True, errors="replace").stdout
+def file_at_head(path):
+    """The text of <path> at HEAD, empty when HEAD does not hold it (the commit deleted it)."""
+    try:
+        return git.out("show", f"HEAD:{path}")
+    except git.GitFailed:
+        return ""
 
 
 def added_lines(rev):
     """{path: the HEAD line numbers the diff from <rev>^ to HEAD added}."""
     added = {}
     path = None
-    for line in git("diff", "-U0", "--no-color", "--no-renames", f"{rev}^", "HEAD").splitlines():
+    try:
+        diff = git.out("diff", "-U0", "--no-color", "--no-renames", f"{rev}^", "HEAD")
+    except git.GitFailed:
+        return added
+    for line in diff.splitlines():
         if line.startswith("+++ "):
             path = line[len("+++ b/"):] if line.startswith("+++ b/") else None
         elif path is not None and (hunk := HUNK.match(line)):
@@ -72,12 +80,10 @@ def main(argv):
     if not argv or not argv[0]:
         return entry.refuse(usage=USAGE)
     rev = argv[0]
-    check = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"],
-                           stdout=subprocess.DEVNULL)
-    if check.returncode != 0:
+    if not git.ok("rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"):
         return entry.refuse(f"near-duplicates: cannot resolve commit '{rev}'", usage=USAGE)
     added = added_lines(rev)
-    files = [(path, counting_lines(git("show", f"HEAD:{path}"), added.get(path, set())))
+    files = [(path, counting_lines(file_at_head(path), added.get(path, set())))
              for path in refactor_touched.touched_files([f"{rev}^", rev]) if not is_test_path(path)]
     found = pairs(files)
     for line in found:
