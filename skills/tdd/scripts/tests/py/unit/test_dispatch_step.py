@@ -123,3 +123,16 @@ def test_4605_a_run_launched_per_dispatch_log_that_ended_silent_before_a_fresh_c
     state, code = dispatch.step(state, world)
 
     assert (held, code, world.said, world.launched) == (None, 0, ["silent-exit 7\n"], [])
+
+
+def test_4605_two_fresh_calls_over_the_same_ended_run_launched_per_dispatch_log_say_its_done_line_once(dispatch):
+    class LoggedWorld(FakeWorld):
+        def launched_runs(self):
+            return ["7"]
+
+    world = LoggedWorld({"queue": ["12"], "closing": {"7": "done 7 https://github.com/o/r/pull/9"}})
+
+    dispatch.step(dispatch.State(target=1), world)
+    dispatch.step(dispatch.State(target=1), world)
+
+    assert world.said == ["done 7 https://github.com/o/r/pull/9\n"]
