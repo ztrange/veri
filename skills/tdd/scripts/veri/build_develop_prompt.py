@@ -250,7 +250,7 @@ def render(parsed, chosen):
                 "\n\nThe step also supersedes these older cases:" + _bullets(args[5:]))
     if phase == "refactor":
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.get("VERI_REFACTOR_BUDGET", unless_empty=True))
-        values["NEAR_DUPLICATES"] = _read(args[4]) if args[4:] else b"none"
+        values["NEAR_DUPLICATES"] = (_read(args[4]).strip() if args[4:] else b"") or b"none"
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
     try:
         text = expand_includes(_read(paths[0]), prompts_b)
