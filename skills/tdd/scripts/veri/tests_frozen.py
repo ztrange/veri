@@ -27,7 +27,8 @@ USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> [--red-
          "check-earlier <ledger> --step <step-text> [--except <case>]... | "
          "rerecord-earlier <ledger> --step <step-text> | "
          "rerecord-refactored <ledger> <green-sha> | "
-         "rerecord-rebased <ledger> <pre-rebase-sha> | path <step-text>")
+         "rerecord-rebased <ledger> <pre-rebase-sha> | "
+         "rerecord-approved <ledger> --approval <text> <case>... | path <step-text>")
 REPAIR_MARKS = ("suite-repair", "ci-repair", "fixture-repair")
 
 
@@ -515,6 +516,23 @@ def rerecord_refactored(ledger, green):
     return code
 
 
+def rerecord_approved(ledger, approval, cases):
+    """`rerecord-approved`: re-record the named `cases` of every earlier record at their HEAD bodies, each with its
+    `helpers:` line, on a human's approval; every other record line is left as it was."""
+    with open(ledger, encoding="utf-8") as handle:
+        lines = handle.read().splitlines()
+    os.chdir(_toplevel())
+
+    def rewrite(_, record, name, case, __):
+        if case not in cases:
+            return record
+        head_text = case_history.text_at("HEAD", name, quiet=True)
+        head = "\n".join(case_identity.bodies_of(head_text, case))
+        return body_line(name, case, head) + "\n" + frozen_record.helpers_line(
+            name, case, case_identity.helper_digest(head_text, head))
+    return 0 if rewrite_records(_earlier_records(lines, ""), rewrite) else 2
+
+
 def rerecord_rebased(ledger, pre):
     try:
         with open(ledger, encoding="utf-8") as handle:
@@ -730,6 +748,8 @@ def _main(argv):
         return rerecord_earlier(argv[1], argv[3])
     if argv[:1] == ["rerecord-refactored"] and len(argv) == 3:
         return rerecord_refactored(argv[1], argv[2])
+    if argv[:1] == ["rerecord-approved"] and len(argv) >= 4 and argv[2] == "--approval":
+        return rerecord_approved(argv[1], argv[3], argv[4:])
     if argv[:1] == ["rerecord-rebased"] and len(argv) == 3:
         return rerecord_rebased(argv[1], argv[2])
     if (argv[:1] == ["check-earlier"] and len(argv) >= 4 and argv[2] == "--step" and argv[3]
