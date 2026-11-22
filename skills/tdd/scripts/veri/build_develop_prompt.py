@@ -216,7 +216,7 @@ def render(parsed, chosen):
         optional["REJECTION_REASON"] = args[3]
     if chosen.bug:
         optional["BUG_REPRODUCTION"] = f"{prompts}/{chosen.bug}"
-    if phase == "red-repair":
+    if phase in ("red-repair", "refactor") and args[4:]:
         paths.append(args[4])
     if phase == "replaces-report":
         optional["MISSING_CASES"] = args[4]
