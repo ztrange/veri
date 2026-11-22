@@ -3,4 +3,4 @@
 - [x] A leaf killed-stuck while its stream log's last `tool_use` has no `tool_result` gets a kill reason, on `supervise.sh`'s stderr status line and in its `exit` event's `cause`, naming that tool call's command and the seconds it ran ⟦criterion 1⟧
 - [x] A leaf killed-stuck while its stream log's last `tool_use` has its `tool_result` keeps today's kill reason, unchanged ⟦criterion 1⟧
 - [x] The in-flight tool call's command is named by its first line only, cut to a bounded length ⟦criterion 1⟧
-- [ ] A killed-stuck leaf whose last in-flight `tool_use` has an `input` that is not an object, or a `command` that is not a string, gets a kill reason naming the tool by name only, and the supervisor never raises
+- [x] A killed-stuck leaf whose last in-flight `tool_use` has an `input` that is not an object, or a `command` that is not a string, gets a kill reason naming the tool by name only, and the supervisor never raises
