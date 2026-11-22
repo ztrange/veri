@@ -110,14 +110,14 @@ def test_record_exits_2_writing_nothing_when_every_finding_of_the_report_is_refu
 
 def test_record_writes_a_package_relative_finding_under_the_one_listed_file_it_matches_4624(
         run_cli, test_quality, worktree):
-    package = worktree / "cmd" / "veri-dashboard"
+    package = worktree / "cmd" / "spend-app"
     package.mkdir(parents=True)
     (package / "spend_test.go").write_text("package main\n\nfunc TestSpend(t *testing.T) {\n}\n")
-    (worktree / ".tdd" / "test-quality-files").write_text("tests/test_alpha.py\ncmd/veri-dashboard/spend_test.go\n")
+    (worktree / ".tdd" / "test-quality-files").write_text("tests/test_alpha.py\ncmd/spend-app/spend_test.go\n")
     report = "FINDING: weak-assertion | spend_test.go::TestSpend | asserts nothing\n"
 
     assert record(run_cli, test_quality, worktree, report) == (
-        0, "", "weak-assertion | cmd/veri-dashboard/spend_test.go::TestSpend | asserts nothing\n")
+        0, "", "weak-assertion | cmd/spend-app/spend_test.go::TestSpend | asserts nothing\n")
 
 
 @pytest.mark.parametrize("listing", [
