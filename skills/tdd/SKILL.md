@@ -1075,32 +1075,17 @@ and when it ends `VERI_ISSUE=<n> $S/event.sh stage-end stage=refactor-loop statu
 0 once 6's `chore: refactor verified` push exits 0 unless `step-close.sh` pushed it (it ends the stage), or its reconcile succeeds, before its stop check; 1 at 6's `repin`, before the commit; 3 at a stop before
 that push; else the ending call's code (a bail's too).
 
-1. **One refactor leaf for the step.** Ask the budget first, with a count of **0**: that
-   call decides whether the leaf runs at all, since `VERI_REFACTOR_BUDGET=0` switches refactoring off. Then build the prompt from the `refactor` template — which
-   carries the budget to the leaf as the number of transforms it may apply — and launch
-   **through the supervisor** (exit **2** → **bail**, after the stop check in *Launching a leaf*; see `<base directory>/BAIL.md`):
+1. **One refactor leaf for the step.** Ask the budget first, with a count of **0**: that call decides whether the leaf runs at all, since `VERI_REFACTOR_BUDGET=0` switches refactoring off. Then build the prompt from the `refactor` template — which carries the budget to the leaf as the number of transforms it may apply — and launch **through the supervisor** (exit **2** → **bail**, after the stop check in *Launching a leaf*; see `<base directory>/BAIL.md`):
    ```
-   $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 5
-   touched="$($S/refactor-touched.sh "$step_green")"
-   $S/near-duplicates.sh "$step_green" > .tdd/develop-refactor.pairs   # exit 0 or 3 ⇒ go on; exit 2 ⇒ bail
-   $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<test-cmd>' "$touched" .tdd/develop-refactor.pairs > .tdd/develop-refactor.prompt
+   $S/refactor-budget.sh 0   # 0 ⇒ launch the leaf below; 3 ⇒ the budget is 0, go to 5
+   touched="$($S/refactor-touched.sh "$step_green")"; step="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"
+   $S/near-duplicates.sh "$step_green" > .tdd/develop-refactor.pairs
+   $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md "$step" '<test-cmd>' "$touched" .tdd/develop-refactor.pairs > .tdd/develop-refactor.prompt
    rm -f .tdd/develop-refactor.exit .tdd/develop-refactor.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh)" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$step" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor  # foreground; again on exit 3
    ```
-   **One leaf for the whole step**, not one per transform. `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
-   comma-separated line. Compute it once: `$step_green` is the step's own tick, not a re-pin's, got as `RESUME.md` sub-step 2 says (#4510); `$S/refactor-touched.sh "$step_green"` prints its files — adding
-   anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work on disk. `$S/near-duplicates.sh "$step_green"` writes the near-duplicate
-   pairs that tick added to `.tdd/develop-refactor.pairs`, the prompt's last argument, as `refactor-half.sh` does: exit 3 is no pair, and the leaf is still launched,
-   its prompt's near-duplicates section reading `none`; exit 2 is a **bail** as a system failure, the detector having given no answer, never read as "no
-   duplication" (`<base directory>/BAIL.md`). The template owns the rules — the leaf triages what it sees in those files into
-   **structural** and **cosmetic** candidates and applies the structural ones, most valuable first, up to its budget; it runs only the touched files' tests after every
-   transform and **reverts** one that turns them red rather than leave a red suite; it takes
-   **no untested generality** (that comes only from **triangulation**) and **flags overfit** code as needing a triangulating test instead of hand-generalizing it. It also **commits
-   its own transforms**, one commit each: `git commit -m "refactor: <what> (#<n>)"`. The atomic tick-and-commit stays on green
-   (ADR-0007); only the refactor commit moved to the leaf. The report `.tdd/develop-refactor.out` ends with `RESULT:` (one line per transform applied, or
-   `nothing left to tidy`), `CANDIDATES:` (one line per leftover it still sees, each carrying its class, or `none`) and `FLAGS:` (one finding per line, each carrying its
-   class — `overfit`, `uncovered-spec` or `beyond-spec` — or `none`; 3 and 4 below route them).
+   **One leaf for the whole step**, not one per transform. `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one comma-separated line. Compute it once: `$step_green` is the step's own tick, not a re-pin's, got as `RESUME.md` sub-step 2 says; `$S/refactor-touched.sh "$step_green"` prints its files — adding anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work on disk. `near-duplicates.sh` exit 3 is no pair: the leaf still launches; exit 2 is a **bail**, a system failure (`<base directory>/BAIL.md`). The template owns the rules — the leaf triages what it sees in those files into **structural** and **cosmetic** candidates and applies the structural ones, most valuable first, up to its budget; it runs only the touched files' tests after every transform and **reverts** one that turns them red rather than leave a red suite; it takes **no untested generality** (that comes only from **triangulation**) and **flags overfit** code as needing a triangulating test instead of hand-generalizing it. It also **commits its own transforms**, one commit each: `git commit -m "refactor: <what> (#<n>)"`. The atomic tick-and-commit stays on green (ADR-0007); only the refactor commit moved to the leaf. The report `.tdd/develop-refactor.out` ends with `RESULT:` (one line per transform applied, or `nothing left to tidy`), `CANDIDATES:` (one line per leftover it still sees, each carrying its class, or `none`) and `FLAGS:` (one finding per line, each carrying its class — `overfit`, `uncovered-spec` or `beyond-spec` — or `none`; 3 and 4 below route them).
 2. **Check what the leaf left.** The conductor **checks** it, because verify-refactor judges the **settled tree** and can see neither of the two faults below. Ask git, not the report:
    ```
    git status --porcelain # any output ⇒ refuse to go on, see below
@@ -1108,59 +1093,19 @@ that push; else the ending call's code (a bail's too).
    git rev-list --count <green-sha>..HEAD # the transforms that landed, narrated against the budget
    ```
    `<green-sha>` is this step's atomic green commit — the one carrying the ledger tick — so the range holds exactly what the step's refactor produced.
-   - **A dirty tree** is work no suite run and no verifier has seen: the transform a killed leaf left half-applied on disk. Do **not** continue to verify-refactor over it — `git
-     reset --hard HEAD` drops it, leaving the last committed transform, which the leaf's own suite run found green — and say in the narration that it was dropped.
-   - **A commit in that range whose subject is not `refactor:`** is production code carried into a behaviour-preserving phase, where nothing asks whether a test earned it. Do
-     **not** continue either — `git reset --hard <green-sha>` drops every commit the leaf made for this step, the well-formed ones with it, since a leaf that committed
-     production code here is not one whose other commits can be taken on trust — and the step goes to verify-refactor on its green state, with what was dropped named in the narration.
-3. **An `overfit` flag is answered inside this step.** A `FLAGS:` line whose class is **overfit** names code that passes this step's test
-   without implementing the criterion the step states, and names the case that would force the general implementation. **One whose case is a later unchecked step's
-   criterion** (as `refactor-half.sh` matches it) **gets no triangulating red**, narrated in the `### 🛠️ Refactor`
-   comment at 6 as owed by that step, and the loop goes on to 5. For any other, stop the refactor loop there (its stage stays open). **When the loop has landed
-   commits since `<green-sha>`, first run 2's checks and verify-refactor (5) over them**, before the triangulating red, and launch the red only after that PASS. On that PASS run
-   `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>` for the landed commits; the ` ⟂ refactor pending` mark stays and **no ledger tick is committed**, both
-   left for the step's final verify-refactor PASS, so the triangulating red's
-   `check-earlier` needs no `--except` for those cases. Treat `rerecord-refactored`'s exits 1 and 2 as at the final verify-refactor
-   PASS below (exit 1 a bail `needs-user`, exit 2 a bail `rerecord-failed`, a system failure), and launch no triangulating red (to bail, `Read` `<base directory>/BAIL.md`). A REJECT of that early
-   verify-refactor goes the normal revise path (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`), spends `REVISE_BUDGET`, and launches no triangulation
-   until it passes. When no commit landed, no early verify-refactor runs. Then run, for that case, one
-   triangulating **red → verify-red → green → verify-green** inside this same step, exactly as the **Red** and **Green** phases above run them. An overfit flag grows **no ledger
-   step**, makes **no plan amendment** and posts **no second step-done comment**: a step is mirrored done once, at the end of its own cycle, and the step is interrupted here, not
-   finished. The triangulation's own green commit is this step's `<green-sha>` from here on — that is the state the tidying now starts from, so 2
-   above still reads exactly what the step's refactor produced. Then **resume this step's refactor loop** at 1 with the **budget it had left**, asking
-   `$S/refactor-budget.sh <count>` with the transforms already landed as `<count>`, so an overfit flag costs the step a triangulation and never a second budget. The step's final
-   verify-refactor then judges only what the resumed loop landed.
-   **A step's triangulation runs at most once:** a flag raised inside a triangulation's own refactor loop about the same
-   code is **narrated** in the `### 🛠️ Refactor` comment at 6 as a follow-up, not triangulated again.
-4. **An `uncovered-spec` flag is the one class that grows the plan.** A `FLAGS:` line whose class is **uncovered-spec** names a behaviour the issue's
-   spec requires that **no ledger step covers**. That
-   is the **only** flag class a plan amendment is made from: its behaviour is carried, verbatim as a criterion, into the `add-ledger-step.sh
-   --criterion <k> … after "<STEP>"` call for the criterion it serves at 6's PASS branch, one call per criterion, beside the verdict's own
-   `uncovered-spec` flags, so the missing step is planned and built like any other. No other class amends the plan — an **overfit** flag is answered
-   inside the step at 3, and the plan never grows for what the spec did not ask for.
-   - **A `beyond-spec` flag is narrated as a follow-up in the `### 🛠️ Refactor` comment at 6 and in the PR body, and is not planned and not built in
-     this run.** It names an input class or an edge the issue's spec never asked for, which the blind verifier, given the spec, could not judge.
-5. **Verify (blind, once) on the settled result — unless nothing landed.** After the checks
-   in 2, when `git rev-list --count <green-sha>..HEAD` is 0 and `git status --porcelain`
-   prints nothing — the leaf landed no transform, or the budget was 0 and no leaf ran —
-   launch **no** verify-refactor. Record
-   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" $S/event.sh verify-refactor-skipped reason=nothing-landed`,
-   write `skipped` to `.tdd/verdict-refactor.exit`, post `### 🔎 verify-refactor — SKIPPED (nothing landed)` with `$S/comment.sh <n> verify-refactor --skipped`, and treat the step as on a
-   verify-refactor PASS whose verdict carries no flags: 6's PASS branch runs with the
-   leaf's flags only.
-   **Switched off:** when `refactor` is listed in `.tdd/issue-<n>-skip-verify` and a refactor landed, launch **no** verify-refactor either. Record the
-   same event (same `VERI_STEP`) as `verify-refactor-skipped reason=switched-off`, write `skipped` to `.tdd/verdict-refactor.exit`, then post `### 🔎
-   verify-refactor — SKIPPED (switched off)` once, by running `$S/comment.sh <n> verify-refactor` (6 posts it no second time), and take 6's PASS
-   branch, `pin-recheck.sh` and the pending-mark clear included. Otherwise:
+   - **A dirty tree** is work no suite run and no verifier has seen: the transform a killed leaf left half-applied on disk. Do **not** continue to verify-refactor over it — `git reset --hard HEAD` drops it, leaving the last committed transform, which the leaf's own suite run found green — and say in the narration that it was dropped.
+   - **A commit in that range whose subject is not `refactor:`** is production code carried into a behaviour-preserving phase, where nothing asks whether a test earned it. Do **not** continue either — `git reset --hard <green-sha>` drops every commit the leaf made for this step, the well-formed ones with it, since a leaf that committed production code here is not one whose other commits can be taken on trust — and the step goes to verify-refactor on its green state, with what was dropped named in the narration.
+3. **An `overfit` flag is answered inside this step.** A `FLAGS:` line whose class is **overfit** names code that passes this step's test without implementing the criterion the step states, and names the case that would force the general implementation. **One whose case is a later unchecked step's criterion** (as `refactor-half.sh` matches it) **gets no triangulating red**, narrated in the `### 🛠️ Refactor` comment at 6 as owed by that step, and the loop goes on to 5. For any other, stop the refactor loop there (its stage stays open). **When the loop has landed commits since `<green-sha>`, first run 2's checks and verify-refactor (5) over them**, before the triangulating red, and launch the red only after that PASS. On that PASS run `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>` for the landed commits; the ` ⟂ refactor pending` mark stays and **no ledger tick is committed**, both left for the step's final verify-refactor PASS, so the triangulating red's `check-earlier` needs no `--except` for those cases. Treat `rerecord-refactored`'s exits 1 and 2 as at the final verify-refactor PASS below (exit 1 a bail `needs-user`, exit 2 a bail `rerecord-failed`, a system failure), and launch no triangulating red (to bail, `Read` `<base directory>/BAIL.md`). A REJECT of that early verify-refactor goes the normal revise path (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`), spends `REVISE_BUDGET`, and launches no triangulation until it passes. When no commit landed, no early verify-refactor runs. Then run, for that case, one triangulating **red → verify-red → green → verify-green** inside this same step, exactly as the **Red** and **Green** phases above run them. An overfit flag grows **no ledger step**, makes **no plan amendment** and posts **no second step-done comment**: a step is mirrored done once, at the end of its own cycle, and the step is interrupted here, not finished. The triangulation's own green commit is this step's `<green-sha>` from here on — that is the state the tidying now starts from, so 2 above still reads exactly what the step's refactor produced. Then **resume this step's refactor loop** at 1 with the **budget it had left**, asking `$S/refactor-budget.sh <count>` with the transforms already landed as `<count>`, so an overfit flag costs the step a triangulation and never a second budget. The step's final verify-refactor then judges only what the resumed loop landed. **A step's triangulation runs at most once:** a flag raised inside a triangulation's own refactor loop about the same code is **narrated** in the `### 🛠️ Refactor` comment at 6 as a follow-up, not triangulated again.
+4. **An `uncovered-spec` flag is the one class that grows the plan.** A `FLAGS:` line whose class is **uncovered-spec** names a behaviour the issue's spec requires that **no ledger step covers**. That is the **only** flag class a plan amendment is made from: its behaviour is carried, verbatim as a criterion, into the `add-ledger-step.sh --criterion <k> … after "<STEP>"` call for the criterion it serves at 6's PASS branch, one call per criterion, beside the verdict's own `uncovered-spec` flags, so the missing step is planned and built like any other. No other class amends the plan — an **overfit** flag is answered inside the step at 3, and the plan never grows for what the spec did not ask for.
+   - **A `beyond-spec` flag is narrated as a follow-up in the `### 🛠️ Refactor` comment at 6 and in the PR body, and is not planned and not built in this run.** It names an input class or an edge the issue's spec never asked for, which the blind verifier, given the spec, could not judge.
+5. **Verify (blind, once) on the settled result — unless nothing landed.** After the checks in 2, when `git rev-list --count <green-sha>..HEAD` is 0 and `git status --porcelain` prints nothing — the leaf landed no transform, or the budget was 0 and no leaf ran — launch **no** verify-refactor. Record `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" $S/event.sh verify-refactor-skipped reason=nothing-landed`, write `skipped` to `.tdd/verdict-refactor.exit`, post `### 🔎 verify-refactor — SKIPPED (nothing landed)` with `$S/comment.sh <n> verify-refactor --skipped`, and treat the step as on a verify-refactor PASS whose verdict carries no flags: 6's PASS branch runs with the leaf's flags only. **Switched off:** when `refactor` is listed in `.tdd/issue-<n>-skip-verify` and a refactor landed, launch **no** verify-refactor either. Record the same event (same `VERI_STEP`) as `verify-refactor-skipped reason=switched-off`, write `skipped` to `.tdd/verdict-refactor.exit`, then post `### 🔎 verify-refactor — SKIPPED (switched off)` once, by running `$S/comment.sh <n> verify-refactor` (6 posts it no second time), and take 6's PASS branch, `pin-recheck.sh` and the pending-mark clear included. Otherwise:
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --branch-base <base> --step-green "$step_green" --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
    $S/wait-leaf.sh verdict-refactor  # foreground; again on exit 3
    ```
-   — one verdict on the final state (the **fast tier** plus only the touched files' tests still green — neither
-   it nor the leaf runs the `affected` tier or a broader one — no catalogue smell met, no smuggled generality).
-6. **Narrate + branch.** Post `### 🛠️ Refactor` by running `$S/comment.sh <n> refactor` (the transforms applied, or "no refactor
-   warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT|SKIPPED` by running `$S/comment.sh <n> verify-refactor`.
+   — one verdict on the final state (the **fast tier** plus only the touched files' tests still green — neither it nor the leaf runs the `affected` tier or a broader one — no catalogue smell met, no smuggled generality).
+6. **Narrate + branch.** Post `### 🛠️ Refactor` by running `$S/comment.sh <n> refactor` (the transforms applied, or "no refactor warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT|SKIPPED` by running `$S/comment.sh <n> verify-refactor`.
    Say **how many transforms landed** — the `git rev-list --count` figure, never the leaf's own account of what it did — against the budget, in
    `refactor-budget.sh`'s own shape (`refactor 2/5`). A count **above** the budget is narrated as an **overrun** (`refactor 7/5 — overrun`), never
    clamped to the budget: a count over it is the leaf ignoring the number it was given. Say too **why the tidying stopped**: the leaf reported
