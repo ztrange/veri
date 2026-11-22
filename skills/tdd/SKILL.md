@@ -1141,7 +1141,7 @@ that push; else the ending call's code (a bail's too).
    prints nothing — the leaf landed no transform, or the budget was 0 and no leaf ran —
    launch **no** verify-refactor. Record
    `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" $S/event.sh verify-refactor-skipped reason=nothing-landed`,
-   post `### 🔎 verify-refactor — SKIPPED (nothing landed)` by running `$S/comment.sh <n> verify-refactor --skipped`, and treat the step as on a
+   write `skipped` to `.tdd/verdict-refactor.exit`, then post `### 🔎 verify-refactor — SKIPPED (nothing landed)` by running `$S/comment.sh <n> verify-refactor --skipped`, and treat the step as on a
    verify-refactor PASS whose verdict carries no flags: 6's PASS branch runs with the
    leaf's flags only.
    **Switched off:** when `refactor` is listed in `.tdd/issue-<n>-skip-verify` and a refactor landed, launch **no** verify-refactor either. Record the
