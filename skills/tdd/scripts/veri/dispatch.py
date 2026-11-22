@@ -496,10 +496,13 @@ def _merge_failed(state, world):
     return None
 
 
+EXITED = "exited "
+
+
 def _exits(state, world, live):
     """The vanish, restart, silent-exit and closing-line rules for each seen run no longer live."""
     for issue in state.seen:
-        if issue in live:
+        if issue in live or f"{EXITED}{issue}" in world.notified():
             continue
         if not world.has_worktree(issue):
             if world.conductor_alive(issue):
@@ -528,6 +531,7 @@ def _exits(state, world, live):
             if issue not in state.pending:
                 state.pending.append(issue)
             continue
+        world.record_notified(world.notified() + [f"{EXITED}{issue}"])
         world.say(line + "\n")
         return 0
     return None
