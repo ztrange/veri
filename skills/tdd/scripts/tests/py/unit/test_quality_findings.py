@@ -139,6 +139,19 @@ def test_record_exits_2_on_a_package_relative_finding_matching_no_listed_file_or
     assert (code, "spend_test.go" in err, written) == (2, True, "an earlier record\n")
 
 
+def test_record_keeps_a_finding_whose_file_exists_as_given_though_a_listed_file_ends_in_it_4624(
+        run_cli, test_quality, worktree):
+    go_test = "package main\n\nfunc TestSpend(t *testing.T) {\n}\n"
+    (worktree / "spend_test.go").write_text(go_test)
+    (worktree / "cmd" / "x").mkdir(parents=True)
+    (worktree / "cmd" / "x" / "spend_test.go").write_text(go_test)
+    (worktree / ".tdd" / "test-quality-files").write_text("cmd/x/spend_test.go\n")
+    report = "FINDING: weak-assertion | spend_test.go::TestSpend | asserts nothing\n"
+
+    assert record(run_cli, test_quality, worktree, report) == (
+        0, "", "weak-assertion | spend_test.go::TestSpend | asserts nothing\n")
+
+
 def test_record_refuses_a_missing_verb_or_issue_number_with_exit_2(run_cli, test_quality, worktree):
     answers = [run_cli(test_quality, argv, stdin="FINDING: none\n", cwd=str(worktree))[0]
                for argv in ([], ["record"], ["record", "x"], ["list", "7"])]
