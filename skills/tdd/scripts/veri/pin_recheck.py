@@ -243,6 +243,13 @@ def replay_before_state(pin, ledger, named, base, branch_base):
     return 0
 
 
+def moved_to(pin):
+    """The first file of the pin's directory holding its old text, else None."""
+    old = pin["old"].encode()
+    held = [f for f in sorted(Path(pin["file"]).parent.iterdir()) if f.is_file() and old in f.read_bytes()]
+    return held[0] if held else None
+
+
 def replay(pin, ledger, looks, branch_base):
     """Replay a mutation pin: the mutation, then a control run; 0 nothing to count, 1 a red status, 2 no answer."""
     path = Path(pin["file"])
@@ -252,8 +259,12 @@ def replay(pin, ledger, looks, branch_base):
     pin["command"] = current_wrapper(pin["command"])
     original = path.read_bytes()
     if pin["old"].encode() not in original:
-        needs_a_look(looks, pin["file"], "old text gone")
-        return 0
+        moved = moved_to(pin)
+        if moved is None:
+            needs_a_look(looks, pin["file"], "old text gone")
+            return 0
+        path = moved
+        original = path.read_bytes()
     if original.count(pin["old"].encode()) > 1:
         needs_a_look(looks, pin["file"], "old text occurs more than once")
         return 0

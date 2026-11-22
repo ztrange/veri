@@ -3401,3 +3401,31 @@ def test_4376_a_named_test_missing_at_head_that_the_branch_base_sha_holds_exits_
 
     assert (ran.returncode, "named test missing at HEAD: tests/test_guard.py (pin file .tdd/issue-835-mutations.md)\n"
             in ran.stderr, (tmp_path / "ran.witness").exists()) == (2, True, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that moves the pinned text from x.go to y.go")
+def test_4602_a_pin_whose_old_text_moved_to_another_file_of_the_directory_is_replayed_there_and_exits_0_with_the_receipt(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "x.go").write_text("package p\nif guard\n")
+    (tmp_path / "y.go").write_text("package p\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4602-mutations.md", file="x.go", old="if guard", new="if (true)",
+           command="sh -c \"echo result; grep -q 'if guard' y.go || { touch mutated.marker; exit 1; }\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    moved = b"package p\nif guard\n"
+    (tmp_path / "x.go").write_text("package p\n")
+    (tmp_path / "y.go").write_bytes(moved)
+    git("commit", "-q", "-am", "move the guard to y.go")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "needs a look" in ran.stdout, (tmp_path / "mutated.marker").exists(),
+            (tmp_path / "y.go").read_bytes(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
+        0, False, True, moved, True), ran.stdout + ran.stderr
+
