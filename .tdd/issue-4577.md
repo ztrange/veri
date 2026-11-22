@@ -5,7 +5,7 @@
 - [x] `build-develop-prompt.sh refactor` given an empty pairs file renders the near-duplicates section reading `none` ⟦criterion 1⟧
 - [x] `build-develop-prompt.sh refactor` given an unreadable pairs file exits 2 with no stdout
 - [x] `refactor-half.sh` runs `near-duplicates.sh` on the step's own green tick and passes what it printed as the pairs file, so `.tdd/develop-refactor.prompt` carries the pair ⟦criterion 2⟧
-- [ ] `near-duplicates.sh` exit 3 still launches the refactor leaf, its prompt's near-duplicates section reading `none` ⟦criterion 3⟧
+- [x] `near-duplicates.sh` exit 3 still launches the refactor leaf, its prompt's near-duplicates section reading `none` ⟦criterion 3⟧
 - [ ] `near-duplicates.sh` exit 2 stops `refactor-half.sh` with exit 2 before any leaf is launched ⟦criterion 3⟧
 - [ ] `develop-refactor.md`'s near-duplicates section tells the leaf what the pairs are and to answer each, graded against its new RE rows ⟦criterion 4⟧
 - [ ] `SKILL.md`'s Refactor loop sub-step 1 builds the prompt the way `refactor-half.sh` does, graded against its new RF row ⟦criterion 5⟧
