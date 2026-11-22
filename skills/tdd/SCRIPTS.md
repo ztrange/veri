@@ -484,7 +484,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   for it is open (a lookup that gets no answer is exit 2 too).
   A fresh cut is refused as claimed (`… claims the issue (Closes #<n>)`, **exit 2**) only for an open PR saying
   `Closes #<n>` whose head is in this repository; a PR from a fork, open or merged into the stack, does not stop the run.
-- `$S/rebase-onto-default.sh [--graded-only]` — rebase the run's branch, from the worktree it runs in, onto
+- `$S/rebase-onto-default.sh [--graded-only] | --resolved <onto-sha>` — rebase the run's branch, from the worktree it runs in, onto
   `origin/<default>` as just fetched and checked against what origin reports; `--graded-only` resolves a conflict
   confined to `GRADED` files by keeping each side's re-signed units. **Where the worktree holds `.tdd/issue-<n>-base`**,
   the base `issue-worktree.sh` recorded when it cut the run from a stack, **and it names the stack `stack-branch.sh`
