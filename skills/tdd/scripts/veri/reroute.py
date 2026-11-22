@@ -212,9 +212,10 @@ def launch(n, wt, settled, step, report, own, red):
     fast = settled["fast_cmd"]
     fused.checked("launch", fused.script("build-develop-prompt.sh"), phase, SPEC % n, step, fast,
                   *prompt(kind, rest.split(), report), cwd=wt, out=".tdd/%s.prompt" % leaf)
-    if kind in ("red", "repair"):
+    if kind in ("red", "repair", "missing"):
+        cases = [] if kind == "missing" else rest.split()
         fused.checked("launch", fused.script("restore-production.sh"), red["test_path"],
-                      *dict.fromkeys(case.partition("::")[0] for case in rest.split()), cwd=wt)
+                      *dict.fromkeys(case.partition("::")[0] for case in cases), cwd=wt)
     fused.launch("launch", wt, leaf, "run-leaf.sh", ".tdd/%s.prompt" % leaf, "--permission-mode", "bypassPermissions",
                  env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/%s.out" % leaf, err=".tdd/%s.err" % leaf)
     values = {"step": step, "kind": kind, "cases": rest.split(), "report": report, "own": own, "own_path": red["test_path"],
