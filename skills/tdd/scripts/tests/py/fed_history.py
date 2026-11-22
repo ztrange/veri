@@ -33,7 +33,8 @@ import ledger
 from case_reader import cut_cases, is_js_test_file, is_test_path
 
 ANSWERED = ("toplevel", "has_rev", "current_branch", "text_at", "cases_at", "revisions",
-            "first_revision_with", "changed_test_files", "commit_of", "step_commits", "subject", "default_branch")
+            "first_revision_with", "changed_test_files", "commit_of", "step_commits", "subject", "default_branch",
+            "paths_at")
 REV = re.compile(r"^(?P<name>[^~^]+)(?:~(?P<back>\d+)|(?P<parent>\^))?$")
 
 
@@ -119,6 +120,14 @@ class FedHistory:
     def text_at(self, rev, path, quiet=False):
         found = self.lookup(rev)
         return "" if found is None else found[1].get(self.path(path), "")
+
+    def paths_at(self, rev, directory):
+        """The repository-relative files directly in `directory` at `rev`, sorted as git ls-tree lists them; [] for a
+        revision the table does not hold."""
+        found = self.lookup(rev)
+        directory = self.path(directory).rstrip(os.sep) if directory else ""
+        directory = "" if directory == "." else directory
+        return [] if found is None else sorted(path for path in found[1] if os.path.dirname(path) == directory)
 
     def cases_at(self, rev, path):
         text = self.tree(rev).get(self.path(path))

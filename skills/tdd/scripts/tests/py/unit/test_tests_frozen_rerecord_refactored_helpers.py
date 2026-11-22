@@ -929,3 +929,27 @@ def test_rerecord_refactored_writes_the_helpers_record_of_a_go_case_moved_to_a_s
     held = [l.split("\t") for l in _record_of(tmp_path).read_text().splitlines()
             if l.startswith("helpers: " + sibling + "\t") and l.split("\t")[1] == "TestX"]
     assert (code, [h[2] for h in held]) == (0, [expected]), held
+
+
+def test_rerecord_refactored_re_records_a_go_case_whose_guarded_http_get_lines_a_refactor_moved_into_a_helper_in_a_new_sibling_test_file_4606(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    (tmp_path / "cmd/x").mkdir(parents=True)
+    case, sibling = "cmd/x/a_test.go", "cmd/x/b_test.go"
+    check = "\tresp, err := http.Get(url)\n\tif err != nil {\n\t\tt.Fatalf(\"GET %s: %v\", url, err)\n\t}\n"
+    (tmp_path / case).write_text("func TestPage(t *testing.T) {\n\turl := \"/x\"\n" + check + "\tuse(resp)\n}\n")
+    repo.add(case)
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], case], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    green = repo.commit("A green", all=True)
+    (tmp_path / case).write_text("func TestPage(t *testing.T) {\n\turl := \"/x\"\n\tuse(getPage(t, url))\n}\n")
+    (tmp_path / sibling).write_text("func getPage(t *testing.T, url string) string {\n" + check + "\treturn read(resp)\n}\n")
+    repo.add(sibling)
+    repo.commit("A refactor moves the GET into a helper in a sibling file", all=True)
+    (tmp_path / VERDICT).write_text("0")
+    before = _record_of(tmp_path).read_text()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, case + " TestPage"), _record_of(tmp_path).read_text() != before) == (0, 0, True)
