@@ -334,3 +334,25 @@ def test_an_in_flight_tool_call_whose_input_is_not_an_object_or_command_not_a_st
     log = json.dumps(use) + "\n" + json.dumps(progress) + "\n"
 
     assert supervise.in_flight_tool(log) == "Bash (870s)"
+
+
+def test_an_in_flight_tool_calls_short_multi_line_command_is_named_by_its_first_line_alone_never_its_later_lines_4627(
+        supervise):
+    import json
+    use = {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "toolu_X", "name": "Bash",
+                                                         "input": {"command": "make test\necho done"}}]}}
+
+    named = supervise.in_flight_tool(json.dumps(use) + "\n")
+
+    assert named == "Bash: make test (0s)"
+    assert "echo done" not in named
+
+
+def test_a_stream_log_holding_json_lines_that_are_not_objects_still_names_the_unanswered_tool_call_without_raising_4627(
+        supervise):
+    import json
+    use = {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "toolu_X", "name": "Bash",
+                                                         "input": {"command": "make test"}}]}}
+    log = '7\n"x"\n[]\n' + json.dumps(use) + "\n" + '[]\n"x"\n7\n'
+
+    assert supervise.in_flight_tool(log) == "Bash: make test (0s)"
