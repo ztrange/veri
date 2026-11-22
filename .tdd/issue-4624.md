@@ -3,3 +3,4 @@
 - [x] `test-quality.sh record` records a finding whose file is a package-relative path matching exactly one test file `.tdd/test-quality-files` lists, under that file's repo-relative path (exit 0) ⟦criterion 1⟧
 - [x] `test-quality.sh record` refuses a finding whose package-relative path matches more than one test file `.tdd/test-quality-files` lists, exiting 2 when none survives ⟦criterion 1⟧
 - [x] the `$S/test-quality.sh` entry of `skills/tdd/SCRIPTS.md` says `record` resolves a package-relative path matching exactly one listed test file, and the entry is regraded
+- [x] `test-quality.sh record` keeps a finding whose file exists as given from the worktree root under that path, even when a listed test file ends in it
