@@ -119,7 +119,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    re-verifies as `pin`, and a `pin` step whose text names a go-red control still launches it (`PIN.md`). Otherwise:
    ```
    rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --branch-base <base> --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" --fast-cmd '<fast-cmd>' [--step-green "$step_green"] <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --branch-base <base> --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" --fast-cmd '<fast-cmd>' <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
    $S/wait-leaf.sh verdict-<phase>      # foreground; on exit 3 call it again
    ```
    — overwriting the reason file, so attempt `k+1` carries the newest objection. The
@@ -128,7 +128,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    build without it (exit 2) and their prompts have the verifier run it, red's prompt has the verifier
    run it once and REJECT a red that fails it for any reason other than the target test's expected
    failure, and the pin, plan and rebase prompts name no fast command, so it changes nothing there.
-   `--step-green "$step_green"` rides along for `refactor` alone: `$step_green` is the step's own green
+   For `refactor` alone, add `--step-green "$step_green"` before `<phase>`: `$step_green` is the step's own green
    tick, the one the *Refactor loop* computed for its bounds (`SKILL.md` sub-step 2; on a resume as
    `RESUME.md` sub-step 2 reads it off the ledger), and a refactor re-verify without it exits 2, as
    does any other phase given it (#4544). Both `rm
