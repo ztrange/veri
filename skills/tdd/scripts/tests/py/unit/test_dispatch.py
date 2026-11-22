@@ -2014,7 +2014,8 @@ def test_main_has_the_skip_line_in_a_block_buffered_redirected_stdout_file_when_
         with pytest.raises(_StopWaiting):
             dispatch.main(["--target", "1"])
 
-    assert seen_at_wait == ["skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"]
+    assert seen_at_wait == ["skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
+                            "queue-blocked https://github.com/o/r/pull/90\n"]
 
 
 def test_main_has_the_merge_failed_line_in_a_block_buffered_redirected_stdout_file_when_main_returns_issue_3613(
@@ -2372,7 +2373,8 @@ def test_main_prints_a_skip_line_once_per_issue_pr_and_path_for_the_life_of_the_
 
     dispatch.main(["--target", "1"], world=world)
 
-    assert "".join(world.said) == "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
+    assert "".join(world.said) == (
+        "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\nqueue-blocked https://github.com/o/r/pull/90\n")
 
 
 def test_main_while_every_solvable_issue_overlaps_reads_each_issue_body_once_each_pr_diff_once_per_head_sha_and_the_pr_list_once_per_poll_window_issue_3478(
@@ -2613,7 +2615,8 @@ def test_main_exits_2_naming_a_pr_list_diff_or_issue_body_read_still_rate_limite
 @pytest.mark.parametrize("where, launched, said", [
     ({"isCrossRepository": True}, ["7"], ""),
     ({"head": {"ref": "tdd/9-x", "sha": "aaa", "repo": None}, "base": {"repo": {"full_name": "o/r"}}}, ["7"], ""),
-    ({"isCrossRepository": False}, [], "skip 7 skills/tdd/SCRIPTS.md https://github.com/o/r/pull/90\n"),
+    ({"isCrossRepository": False}, [],
+     "skip 7 skills/tdd/SCRIPTS.md https://github.com/o/r/pull/90\nqueue-blocked https://github.com/o/r/pull/90\n"),
 ])
 def test_main_counts_a_draft_on_a_tdd_branch_as_a_run_pr_only_when_its_head_is_in_this_repository_issue_3975(
         monkeypatch, capsys, tmp_path, dispatch, where, launched, said):
@@ -2660,7 +2663,7 @@ def test_main_skips_an_overlap_read_through_the_rest_pr_shape_naming_its_html_ur
         dispatch.main(["--target", "1"])
 
     assert (launches, diff_reads, capsys.readouterr().out) == (
-        [], [0, 70], f"skip 12 {path} https://github.com/o/r/pull/90\n")
+        [], [0, 70], f"skip 12 {path} https://github.com/o/r/pull/90\nqueue-blocked https://github.com/o/r/pull/90\n")
 
 
 def test_main_prints_no_second_skip_line_for_the_same_overlap_seen_again_after_the_poll_hold_expires_issue_3478(
@@ -2671,7 +2674,8 @@ def test_main_prints_no_second_skip_line_for_the_same_overlap_seen_again_after_t
     dispatch.main(["--target", "1"], world=world)
 
     assert ([index for key, index in world.reads if key == "queue"], "".join(world.said)) == (
-        [0, 1, 2], "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n")
+        [0, 1, 2], "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
+                   "queue-blocked https://github.com/o/r/pull/90\n")
 
 
 def test_main_at_target_3_launches_nothing_with_three_live_pid_files_one_hand_launched_issue_3525(
@@ -2897,7 +2901,18 @@ def test_main_still_skips_an_issue_naming_a_path_an_unlabelled_run_draft_pr_chan
     with pytest.raises(_StopWaiting):
         dispatch.main(["--target", "1"])
 
-    assert (launches, capsys.readouterr().out) == ([], f"skip 12 skills/tdd/SCRIPTS.md {url}\n")
+    assert (launches, capsys.readouterr().out) == ([], f"skip 12 skills/tdd/SCRIPTS.md {url}\nqueue-blocked {url}\n")
+
+
+def test_main_prints_one_queue_blocked_line_naming_each_blocking_pr_when_every_solvable_issue_overlaps_and_no_run_is_live_issue_4641(
+        dispatch):
+    first, second = "https://github.com/o/r/pull/91", "https://github.com/o/r/pull/90"
+    world = FakeWorld({"queue": ["12", "15"], "overlaps": {"12": ("a.py", first), "15": ("b.py", second)}})
+
+    code = dispatch.main(["--target", "1"], world=world)
+
+    assert (code, world.launched, "".join(world.said)) == (
+        None, [], f"skip 12 a.py {first}\nskip 15 b.py {second}\nqueue-blocked {second} {first}\n")
 
 
 def test_the_overlap_guard_asks_its_one_open_pr_list_read_for_the_labels_field_the_parked_check_reads_issue_3545(
