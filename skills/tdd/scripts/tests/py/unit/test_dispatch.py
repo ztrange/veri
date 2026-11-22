@@ -1941,8 +1941,9 @@ _REAL = {}
 
 @pytest.fixture(autouse=True)
 def no_open_run_prs(monkeypatch, dispatch):
-    _REAL.update({name: getattr(dispatch, name, None) for name in ("run_pr_paths", "issue_paths")})
+    _REAL.update({name: getattr(dispatch, name, None) for name in ("run_pr_paths", "issue_paths", "parked_issues")})
     monkeypatch.setattr(dispatch, "run_pr_paths", lambda: {}, raising=False)
+    monkeypatch.setattr(dispatch, "parked_issues", lambda: set(), raising=False)
     monkeypatch.setattr(dispatch, "issue_paths", lambda issue: [], raising=False)
 
 
@@ -2860,6 +2861,24 @@ def test_main_launches_an_issue_naming_a_path_only_a_parked_run_draft_pr_changes
         dispatch.main(["--target", "1"])
 
     assert (launches, capsys.readouterr().out) == (["12"], f"skip 15 skills/tdd/scripts/veri/status.py {other}\n")
+
+
+def test_main_launches_an_issue_naming_a_path_only_an_unlabelled_run_draft_pr_changes_when_that_prs_issue_is_labelled_parked_issue_4641(
+        monkeypatch, capsys, tmp_path, dispatch):
+    launches, _ = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/SCRIPTS.md"]}, _REAL["run_pr_paths"])
+    monkeypatch.setattr(dispatch, "parked_issues", _REAL["parked_issues"], raising=False)
+    _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isCrossRepository": False, "isDraft": True,
+         "headRefName": "tdd/80-parked", "headRefOid": "a1", "labels": []}])
+    monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", lambda number: ["skills/tdd/SCRIPTS.md"])
+    monkeypatch.setattr(dispatch.github, "gh_issue_list",
+                        lambda *args: json.dumps([{"number": 80}] if "parked" in args else []))
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert (launches, capsys.readouterr().out) == (["12"], "")
 
 
 def test_the_overlap_guard_asks_its_one_open_pr_list_read_for_the_labels_field_the_parked_check_reads_issue_3545(
