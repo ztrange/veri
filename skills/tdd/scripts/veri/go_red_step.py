@@ -76,8 +76,8 @@ def committed_case(wt, case):
     text = body.decode("utf-8", "replace")
     if re.search(r"^def %s\b" % re.escape(name), text, re.M):
         return case
-    found = re.search(r"^def (test_\d+_%s)\b" % re.escape(name[5:]), text, re.M)
-    return "%s::%s" % (file, found.group(1)) if found else case
+    found = re.findall(r"^def (test_\d+_%s)\b" % re.escape(name[5:]), text, re.M)
+    return "%s::%s" % (file, found[0]) if len(found) == 1 else case
 
 
 def command(wt, case):
