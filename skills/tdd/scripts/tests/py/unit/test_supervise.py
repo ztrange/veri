@@ -269,3 +269,16 @@ def test_a_lock_wait_marker_rewritten_after_the_read_is_judged_by_the_pid_that_w
     monkeypatch.setattr(supervise, "open", open_then_rewrite, raising=False)
 
     assert marker_judged(monkeypatch, supervise, marker, started="Mon Nov 16 10:00:00 2026") is True
+
+
+def test_a_stream_log_whose_last_tool_use_has_its_tool_result_names_no_in_flight_tool_call_so_the_kill_keeps_todays_reason_4627(
+        supervise):
+    log = ('{"type":"system","subtype":"init","session_id":"s"}\n'
+           '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_X","name":"Bash",'
+           '"input":{"command":"make test"}}]},"session_id":"s"}\n'
+           '{"type":"tool_progress","tool_use_id":"toolu_X-heartbeat-3","tool_name":"Bash",'
+           '"parent_tool_use_id":"toolu_X","elapsed_time_seconds":870,"heartbeat":true,"session_id":"s","uuid":"u"}\n'
+           '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_X",'
+           '"content":"ok"}]},"session_id":"s"}\n')
+
+    assert supervise.in_flight_tool(log) is None
