@@ -2881,6 +2881,25 @@ def test_main_launches_an_issue_naming_a_path_only_an_unlabelled_run_draft_pr_ch
     assert (launches, capsys.readouterr().out) == (["12"], "")
 
 
+def test_main_still_skips_an_issue_naming_a_path_an_unlabelled_run_draft_pr_changes_when_another_issue_is_parked_issue_4641(
+        monkeypatch, capsys, tmp_path, dispatch):
+    url = "https://github.com/o/r/pull/90"
+    launches, _ = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/SCRIPTS.md"]}, _REAL["run_pr_paths"])
+    monkeypatch.setattr(dispatch, "parked_issues", _REAL["parked_issues"], raising=False)
+    _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
+        {"number": 90, "url": url, "isCrossRepository": False, "isDraft": True,
+         "headRefName": "tdd/80-live", "headRefOid": "a1", "labels": []}])
+    monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", lambda number: ["skills/tdd/SCRIPTS.md"])
+    monkeypatch.setattr(dispatch.github, "gh_issue_list",
+                        lambda *args: json.dumps([{"number": 81}] if "parked" in args else []))
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert (launches, capsys.readouterr().out) == ([], f"skip 12 skills/tdd/SCRIPTS.md {url}\n")
+
+
 def test_the_overlap_guard_asks_its_one_open_pr_list_read_for_the_labels_field_the_parked_check_reads_issue_3545(
         monkeypatch, dispatch):
     asked = []
