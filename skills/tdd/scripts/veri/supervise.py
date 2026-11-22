@@ -231,8 +231,12 @@ def in_flight_tool(text):
                 answered.add(block.get("tool_use_id"))
     if call is None or call.get("id") in answered:
         return None
-    command = command_head((call.get("input") or {}).get("command", ""))
-    return f"{call.get('name')}: {command} ({secs.get(call.get('id'), 0)}s)"
+    tool_input = call.get("input")
+    command = tool_input.get("command") if isinstance(tool_input, dict) else None
+    seconds = f"({secs.get(call.get('id'), 0)}s)"
+    if not isinstance(command, str):
+        return f"{call.get('name')} {seconds}"
+    return f"{call.get('name')}: {command_head(command)} {seconds}"
 
 
 def log_in_flight_tool(log):
