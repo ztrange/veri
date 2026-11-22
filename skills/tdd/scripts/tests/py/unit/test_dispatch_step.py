@@ -192,3 +192,10 @@ def test_4605_another_issues_exited_line_never_silences_a_logged_runs_exit(dispa
 
     assert (code, world.said) == (0, ["bail 7\n"])
 
+
+def test_4605_a_malformed_logged_line_is_no_mark_and_the_call_records_one(dispatch):
+    world = FakeWorld({}, logged=["7"], notified=["logged x"])
+
+    state, code = dispatch.step(dispatch.State(target=0), world)
+
+    assert (code, world.said, world.notified_lines[:2]) == (None, [], ["logged x", "logged 1"])

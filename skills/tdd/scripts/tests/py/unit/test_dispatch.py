@@ -3778,3 +3778,20 @@ def test_4605_launched_runs_is_empty_when_dispatch_log_is_absent(dispatch, monke
     monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
 
     assert dispatch.World().launched_runs() == []
+
+
+def test_4605_launched_runs_is_empty_when_no_main_working_tree_can_be_named_even_beside_a_relative_dispatch_log(dispatch, monkeypatch, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "dispatch.log").write_text("launched 7 2026-11-21T21:29:06\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: "")
+
+    assert dispatch.World().launched_runs() == []
+
+
+def test_4605_launched_runs_is_empty_when_dispatch_log_is_not_utf_8(dispatch, monkeypatch, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "dispatch.log").write_bytes(b"launched 7 \xff\xfe\n")
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
+
+    assert dispatch.World().launched_runs() == []
