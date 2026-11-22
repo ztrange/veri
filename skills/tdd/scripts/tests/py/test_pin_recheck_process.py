@@ -3444,7 +3444,7 @@ def test_4602_a_pin_whose_old_text_is_in_more_than_one_other_file_is_not_checked
     (tmp_path / "z.go").write_text("package p\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-4602-mutations.md", file="x.go", old="if guard", new="if (true)",
-           command="sh -c \"echo result; grep -q 'if guard' y.go z.go || touch mutated.marker\"")
+           command="sh -c \"echo result; grep -q 'if guard' y.go && grep -q 'if guard' z.go || touch mutated.marker\"")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
