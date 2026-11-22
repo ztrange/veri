@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 4602
 
-Wall time for the issue: 139 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 563 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 4 of 10 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/4612.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $15.46 over 246 turns, in 9 sessions, on opus (estimate).
+Conductor own spending: $15.56 over 249 turns, in 9 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 85008 tokens, largest 113851 tokens
 Conductor context: first turn 93588 tokens, largest 95194 tokens
@@ -23,7 +23,7 @@ Conductor context: first turn 85008 tokens, largest 115658 tokens
 Conductor context: first turn 85008 tokens, largest 111672 tokens
 Conductor context: first turn 76508 tokens, largest 83956 tokens
 Conductor context: first turn 85007 tokens, largest 113817 tokens
-Conductor context: first turn 84749 tokens, largest 104912 tokens
+Conductor context: first turn 84749 tokens, largest 108901 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -268,6 +268,9 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 236 | $0.03 | 94643 |
 | 237 | $0.03 | 95485 |
 | 238 | $0.09 | 104912 |
+| 239 | $0.03 | 105797 |
+| 240 | $0.04 | 108181 |
+| 241 | $0.03 | 108901 |
 
 #### Conductor comments, by family
 
@@ -292,7 +295,7 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 190 | 13.01 |
+| between | 193 | 13.10 |
 | plan | 18 | 1.23 |
 | revise-diff | 8 | 0.39 |
 | untimed | 8 | 0.00 |
@@ -406,18 +409,18 @@ Stopped: nothing-structural
 | preflight | 9 | 8 | 0 | 1 | 0 | 0 | 2089 |
 | baseline | 8 | 8 | 0 | 0 | 0 | 0 | 1099 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 265 |
-| push | 25 | 25 | 0 | 0 | 0 | 0 | 50 |
+| push | 26 | 26 | 0 | 0 | 0 | 0 | 52 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
 | rebase | 14 | 2 | 0 | 0 | 12 | 0 | 48 |
 | refactor-loop | 4 | 4 | 0 | 0 | 0 | 0 | 1376 |
-| ready | 1 | 1 | 0 | 0 | 0 | 0 | 4 |
-| ci-wait | 2 | 0 | 1 | 1 | 0 | 0 | 306 |
+| ready | 2 | 2 | 0 | 0 | 0 | 0 | 8 |
+| ci-wait | 3 | 1 | 1 | 1 | 0 | 0 | 694 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 229 | 444 | 216041 | 5868037 | 4421760 | 29.66 (estimate) |
+| total | 229 | 444 | 216041 | 5868037 | 4421760 | 29.75 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
