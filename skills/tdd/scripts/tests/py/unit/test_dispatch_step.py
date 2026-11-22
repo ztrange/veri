@@ -126,6 +126,18 @@ def test_4605_a_logged_run_that_ended_silent_with_activity_older_than_the_stall_
     assert (held, code, world.said, world.launched) == (None, 0, ["silent-exit 7\n"], [])
 
 
+def test_4605_a_logged_run_this_call_saw_live_that_then_loses_its_worktree_is_reported_vanished(dispatch):
+    world = FakeWorld({"live": ["7"]}, {"no_worktree": ["7"]}, logged=["7"], notified=["logged 0"])
+
+    state, watching = dispatch.step(dispatch.State(target=0), world)
+    world.wait()
+    state, absent = dispatch.step(state, world)
+    state, code = dispatch.step(state, world)
+
+    assert (watching, absent, code, world.complained) == (
+        None, None, 2, ["run 7 vanished: no worktree left behind\n"])
+
+
 def test_4605_two_fresh_calls_over_the_same_ended_run_launched_per_dispatch_log_say_its_done_line_once(dispatch):
     world = FakeWorld({"queue": ["12"], "closing": {"7": "done 7 https://github.com/o/r/pull/9"}},
                       logged=["7"], notified=["logged 0"])
