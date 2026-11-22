@@ -990,3 +990,16 @@ def test_rerecord_refactored_still_skips_a_sibling_move_that_dropped_the_t_fatal
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
     assert (code, _skip_lines(err, SIBLING_CASE + " TestPage"), _record_of(tmp_path).read_text()) == (1, 1, before)
+
+
+def test_rerecord_refactored_never_counts_a_function_of_a_production_file_beside_the_case_as_a_helper_4606(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    dropped = GUARDED_GET.replace("\t\tt.Fatalf(\"GET %s: %v\", url, err)\n", "")
+    production = "func use(t *testing.T, url string) {\n" + GUARDED_GET + "}\n"
+    green = _moved_to_sibling(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, moved=dropped,
+                              others={"cmd/x/use.go": production})
+    before = _record_of(tmp_path).read_text()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, SIBLING_CASE + " TestPage"), _record_of(tmp_path).read_text()) == (1, 1, before)
