@@ -132,6 +132,16 @@ def test_record_matches_a_package_relative_finding_on_a_whole_file_name_not_a_li
         0, "", "weak-assertion | cmd/a/spend_test.go::TestSpend | asserts nothing\n")
 
 
+def test_record_writes_the_valid_finding_and_skips_a_pipe_less_line_beside_it_4624(run_cli, test_quality, worktree):
+    report = ("FINDING: weak-assertion | tests/test_alpha.py::test_adds | asserts arithmetic only\n"
+              "FINDING: garbage\n")
+
+    code, err, written = record(run_cli, test_quality, worktree, report)
+
+    assert (code, "names no <file>::<case>" in err, written) == (
+        0, True, "weak-assertion | tests/test_alpha.py::test_adds | asserts arithmetic only\n")
+
+
 @pytest.mark.parametrize("listing", [
     "cmd/a/spend_test.go\ncmd/b/spend_test.go\n",
     "tests/test_alpha.py\n",
