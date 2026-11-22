@@ -1947,8 +1947,10 @@ def no_open_run_prs(monkeypatch, dispatch):
     monkeypatch.setattr(dispatch, "issue_paths", lambda issue: [], raising=False)
 
 
-def _overlap_case(monkeypatch, tmp_path, dispatch, solvable, named, prs, waits_before_stop=1):
+def _overlap_case(monkeypatch, tmp_path, dispatch, solvable, named, prs, waits_before_stop=1, notified=()):
     (tmp_path / ".tdd").mkdir(exist_ok=True)
+    if notified:
+        (tmp_path / ".tdd" / "dispatch-notified").write_text("".join(line + "\n" for line in notified))
     launches = []
     waits = []
 
@@ -2000,7 +2002,8 @@ def test_main_has_the_skip_line_in_a_block_buffered_redirected_stdout_file_when_
     _overlap_case(
         monkeypatch, tmp_path, dispatch, lambda: ["12"],
         {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
-        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]})
+        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]},
+        notified=["queue-blocked https://github.com/o/r/pull/90"])
     out = tmp_path / "dispatch.out"
     seen_at_wait = []
 
@@ -2014,8 +2017,7 @@ def test_main_has_the_skip_line_in_a_block_buffered_redirected_stdout_file_when_
         with pytest.raises(_StopWaiting):
             dispatch.main(["--target", "1"])
 
-    assert seen_at_wait == ["skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
-                            "queue-blocked https://github.com/o/r/pull/90\n"]
+    assert seen_at_wait == ["skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"]
 
 
 def test_main_has_the_merge_failed_line_in_a_block_buffered_redirected_stdout_file_when_main_returns_issue_3613(
@@ -2125,7 +2127,7 @@ def test_main_has_the_queue_empty_line_in_a_block_buffered_redirected_stdout_fil
 def test_main_launches_nothing_and_keeps_waiting_never_reporting_queue_empty_when_every_solvable_issue_overlaps_issue_3478(
         dispatch):
     tick = {"queue": ["12", "15"], "overlaps": {"12": _OVERLAP, "15": ("skills/tdd/SCRIPTS.md", _OVERLAP[1])}}
-    world = FakeWorld(tick, tick)
+    world = FakeWorld(tick, tick, notified=["queue-blocked https://github.com/o/r/pull/90"])
 
     dispatch.main(["--target", "1"], world=world)
 
@@ -2369,12 +2371,11 @@ def test_main_sleeps_the_vari_dispatch_retry_sleep_seconds_once_per_failed_http_
 def test_main_prints_a_skip_line_once_per_issue_pr_and_path_for_the_life_of_the_process_not_on_every_pass_issue_3478(
         dispatch):
     tick = {"queue": ["12"], "overlaps": {"12": _OVERLAP}}
-    world = FakeWorld(tick, tick, tick)
+    world = FakeWorld(tick, tick, tick, notified=["queue-blocked https://github.com/o/r/pull/90"])
 
     dispatch.main(["--target", "1"], world=world)
 
-    assert "".join(world.said) == (
-        "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\nqueue-blocked https://github.com/o/r/pull/90\n")
+    assert "".join(world.said) == "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
 
 
 def test_main_while_every_solvable_issue_overlaps_reads_each_issue_body_once_each_pr_diff_once_per_head_sha_and_the_pr_list_once_per_poll_window_issue_3478(
@@ -2382,7 +2383,8 @@ def test_main_while_every_solvable_issue_overlaps_reads_each_issue_body_once_eac
     times = [0, 10, 70, 80, 140]
     listed, diffed, viewed = [], [], []
     _, waits = _overlap_case(
-        monkeypatch, tmp_path, dispatch, lambda: ["12", "15"], {}, _REAL["run_pr_paths"], waits_before_stop=len(times))
+        monkeypatch, tmp_path, dispatch, lambda: ["12", "15"], {}, _REAL["run_pr_paths"], waits_before_stop=len(times),
+        notified=["queue-blocked https://github.com/o/r/pull/90"])
     monkeypatch.setattr(dispatch, "issue_paths", _REAL["issue_paths"])
     monkeypatch.setattr(dispatch, "clock", lambda: times[len(waits)])
 
@@ -2628,8 +2630,10 @@ def test_main_counts_a_draft_on_a_tdd_branch_as_a_run_pr_only_when_its_head_is_i
                                "headRefName": "tdd/9-x", "headRefOid": "aaa"}, **where)],
                         {"7": f"Change `{path}`.\n"}, {90: [path]})
 
-    with pytest.raises(_StopWaiting):
+    try:
         dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        pass
 
     assert (launches, capsys.readouterr().out) == (launched, said)
 
@@ -2641,7 +2645,7 @@ def test_main_skips_an_overlap_read_through_the_rest_pr_shape_naming_its_html_ur
     times = [0, 70]
     diff_reads = []
     launches, waits = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["12"], {}, None,
-                                    waits_before_stop=len(times))
+                                    waits_before_stop=len(times), notified=["queue-blocked https://github.com/o/r/pull/90"])
 
     def run(argv, **kw):
         if argv[:3] == ["gh", "pr", "diff"]:
@@ -2663,19 +2667,18 @@ def test_main_skips_an_overlap_read_through_the_rest_pr_shape_naming_its_html_ur
         dispatch.main(["--target", "1"])
 
     assert (launches, diff_reads, capsys.readouterr().out) == (
-        [], [0, 70], f"skip 12 {path} https://github.com/o/r/pull/90\nqueue-blocked https://github.com/o/r/pull/90\n")
+        [], [0, 70], f"skip 12 {path} https://github.com/o/r/pull/90\n")
 
 
 def test_main_prints_no_second_skip_line_for_the_same_overlap_seen_again_after_the_poll_hold_expires_issue_3478(
         dispatch):
     held = {"queue": ["12"], "overlaps": {"12": _OVERLAP}}
-    world = FakeWorld({**held, "clock": 0}, {**held, "clock": 70}, {**held, "clock": 140})
+    world = FakeWorld({**held, "clock": 0}, {**held, "clock": 70}, {**held, "clock": 140}, notified=["queue-blocked https://github.com/o/r/pull/90"])
 
     dispatch.main(["--target", "1"], world=world)
 
     assert ([index for key, index in world.reads if key == "queue"], "".join(world.said)) == (
-        [0, 1, 2], "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
-                   "queue-blocked https://github.com/o/r/pull/90\n")
+        [0, 1, 2], "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n")
 
 
 def test_main_at_target_3_launches_nothing_with_three_live_pid_files_one_hand_launched_issue_3525(
@@ -2898,10 +2901,10 @@ def test_main_still_skips_an_issue_naming_a_path_an_unlabelled_run_draft_pr_chan
     monkeypatch.setattr(dispatch.github, "gh_issue_list",
                         lambda *args: json.dumps([{"number": 81}] if "parked" in args else []))
 
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "1"])
+    code = dispatch.main(["--target", "1"])
 
-    assert (launches, capsys.readouterr().out) == ([], f"skip 12 skills/tdd/SCRIPTS.md {url}\nqueue-blocked {url}\n")
+    assert (code, launches, capsys.readouterr().out) == (
+        0, [], f"skip 12 skills/tdd/SCRIPTS.md {url}\nqueue-blocked {url}\n")
 
 
 def test_main_prints_one_queue_blocked_line_naming_each_blocking_pr_when_every_solvable_issue_overlaps_and_no_run_is_live_issue_4641(
@@ -2912,7 +2915,21 @@ def test_main_prints_one_queue_blocked_line_naming_each_blocking_pr_when_every_s
     code = dispatch.main(["--target", "1"], world=world)
 
     assert (code, world.launched, "".join(world.said)) == (
-        None, [], f"skip 12 a.py {first}\nskip 15 b.py {second}\nqueue-blocked {second} {first}\n")
+        0, [], f"skip 12 a.py {first}\nskip 15 b.py {second}\nqueue-blocked {second} {first}\n")
+
+
+def test_a_new_queue_blocked_line_ends_the_watch_with_exit_0_and_a_recorded_set_keeps_it_watching_issue_4641(dispatch):
+    # vdev reads dispatch's lines only when a closing line ends the watch; with no run live nothing else would end it.
+    url = "https://github.com/o/r/pull/90"
+    blocked = {"queue": ["12"], "overlaps": {"12": ("a.py", url)}}
+    first = FakeWorld(blocked, blocked)
+    first_code = dispatch.main(["--target", "1"], world=first)
+    restarted = FakeWorld(blocked, blocked, notified=first.notified_lines)
+
+    restarted_code = dispatch.main(["--target", "1"], world=restarted)
+
+    assert (first_code, first.waits, "".join(first.said), restarted_code, restarted.waits, "".join(restarted.said)) == (
+        0, 0, f"skip 12 a.py {url}\nqueue-blocked {url}\n", None, 2, f"skip 12 a.py {url}\n")
 
 
 def test_a_restarted_dispatch_prints_no_queue_blocked_line_for_the_set_dispatch_notified_records_and_keeps_its_other_lines_issue_4641(
