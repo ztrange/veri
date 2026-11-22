@@ -109,3 +109,17 @@ def test_4605_a_run_launched_per_dispatch_log_that_ended_with_a_bail_before_a_fr
     state, code = dispatch.step(dispatch.State(target=1), world)
 
     assert (code, world.said, world.launched) == (0, ["bail 7\n"], [])
+
+
+def test_4605_a_run_launched_per_dispatch_log_that_ended_silent_before_a_fresh_call_says_silent_exit_after_the_hold_before_any_launch(dispatch):
+    class LoggedWorld(FakeWorld):
+        def launched_runs(self):
+            return ["7"]
+
+    world = LoggedWorld({"queue": ["12"], "clock": 1000}, {"queue": ["12"], "clock": 1030})
+
+    state, held = dispatch.step(dispatch.State(target=1), world)
+    world.wait()
+    state, code = dispatch.step(state, world)
+
+    assert (held, code, world.said, world.launched) == (None, 0, ["silent-exit 7\n"], [])
