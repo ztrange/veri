@@ -587,3 +587,17 @@ def test_4614_a_skill_edit_step_is_refused_with_exit_2_when_the_spec_has_no_requ
     assert code == 2
     assert err == "scope-check.sh: no ### heading for skill-edit unit: skills/tdd/SCRIPTS.md\n"
     assert not (tdd / "events.jsonl").exists()
+
+
+def test_4614_a_ledger_without_a_skill_edit_step_passes_silently_when_the_spec_has_no_requirements_section(
+    tmp_path, run_cli, scope_check
+):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-4614.md"
+    ledger.write_text("- [ ] pin the plain behaviour ⟦criterion 1⟧\n", encoding="utf-8")
+    (tdd / "issue-4614-spec.md").write_text("## What happened\n\nNo requirements here.\n", encoding="utf-8")
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")
