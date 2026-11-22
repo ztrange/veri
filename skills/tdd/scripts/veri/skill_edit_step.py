@@ -196,7 +196,7 @@ def apply(issue, unit):
     lines = requirements.read_lines(path)
     held = _held_texts(lines, unit)
     new = [r for r in rows if row_id(r) not in have and _full_text(r) not in held]
-    reworded = {row_id(r): r for r in rows}
+    reworded = {row_id(r): r for r in rows if _full_text(r) not in held}
     last = None
     in_unit = False
     for number, line in enumerate(lines):
