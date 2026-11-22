@@ -628,7 +628,8 @@ def _stalled(state, world):
 
 
 # The .tdd/dispatch-notified line the queue-blocked rule owns: the last line it printed, so a restarted dispatch.sh
-# prints it again only for a different set of blocking PRs.
+# prints it again only for a different set of blocking PRs. A new line is a closing line: it ends the watch (exit 0),
+# since vdev reads advice only when a closing line ends it, and a fully blocked queue with no live run ends no other way.
 BLOCKED_LINE = "queue-blocked "
 
 
@@ -675,6 +676,7 @@ def _launch_into_a_free_slot(state, world, live):
         if line not in lines:
             world.record_notified([kept for kept in lines if not kept.startswith(BLOCKED_LINE)] + [line])
             world.say(line + "\n")
+            return 0
     if free:
         state.previous = free[0]
         world.launch(state.previous)

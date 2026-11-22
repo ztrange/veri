@@ -8,6 +8,9 @@
 # overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front.
 # Each poll writes the lane's test budget entry (VERI_TEST_BUDGET_DIR): need max(N, live conductors) x
 # VERI_CONDUCTOR_TEST_WORKERS, expiring after VERI_TEST_BUDGET_TTL seconds; the pytest leg narrows T to the needs.
+# Closing lines (each ends the watch): done, bail, silent-exit, merge-failed, stalled, queue-empty (exit 3), and
+# queue-blocked <pr-url>... (exit 0), printed once per set of blocking PRs when every solvable issue overlaps and no
+# run is live; a set .tdd/dispatch-notified already holds prints nothing and the watch goes on.
 # Exit:    2 bad arguments, or no --target and that role state file unreadable or an override line has fewer than 4 fields
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/dispatch.py" "$@"
