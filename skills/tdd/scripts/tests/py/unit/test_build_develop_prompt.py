@@ -181,7 +181,7 @@ def test_main_refuses_in_the_check_order_each_missing_argument_by_its_own_name_a
         results[argv] = (code, *capsysbinary.readouterr())
 
     complete = [("red", s, "s", "c"), ("cover", s, "s", "c"), ("transform", s, "s", "c"),
-                ("diff", s, "s", "c", "f"), ("refactor", s, "s", "c", "t"), ("structural", s, "s", "c", "t"),
+                ("diff", s, "s", "c", "f"), ("refactor", s, "s", "c", "t", r), ("structural", s, "s", "c", "t"),
                 ("predicate", s, "s", "c", "t"), ("exhausted", s, "s", "c", r),
                 ("revise", "red", s, "s", "c", r), ("revise", "green", s, "s", "c", r),
                 ("revise", "refactor", s, "s", "c", r), ("revise", "transform", s, "s", "c", r),
