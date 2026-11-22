@@ -1158,3 +1158,12 @@ def test_issue_4529_when_every_settings_file_is_unreadable_as_an_object_the_suba
 
 def test_issue_4532_the_permissions_check_version_is_2_so_every_clones_permissions_checked_record_goes_stale(ready_check):
     assert ready_check.PERMISSIONS_CHECK_VERSION == 2
+
+
+def test_issue_4570_the_pull_request_and_push_rows_accept_a_quoted_on_key(ready_check, fake_processes):
+    answers = {}
+    for quote in ("\"", "'"):
+        fake_processes.answers({**WITH_WORKFLOWS, "git show": (0, "%son%s:\n  pull_request:\n  push:\n" % (quote, quote), "")})
+        answers[quote] = (ready_check.triggers_on("pull_request"), ready_check.triggers_on("push"))
+
+    assert answers == {"\"": (True, True), "'": (True, True)}

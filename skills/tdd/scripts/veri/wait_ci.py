@@ -18,7 +18,7 @@ import ci_marks
 import event
 import event_log
 from ci_decision import Crash, Loop, Need, Observation, Options, Record, Sleep, UNREAD_LIMIT, decide, decimal, retry_sleep
-from ci_on_pr import declared, pull_request_trigger, trigger_lines
+from ci_on_pr import WORKFLOW_SUFFIXES, declared, pull_request_trigger, trigger_lines
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha] | --fresh-window <head-sha>"
 PASSING = ("success", "neutral", "skipped")
@@ -198,6 +198,8 @@ def no_pull_request_workflow(repo, head):
     except ValueError:
         return False
     for entry in entries:
+        if not entry["name"].endswith(WORKFLOW_SUFFIXES):
+            continue
         run = gh_api("%s/%s?ref=%s" % (root, entry["name"], head), stderr=subprocess.PIPE)
         if run.returncode != 0:
             return False

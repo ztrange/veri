@@ -3060,3 +3060,28 @@ def test_4230_wait_ci_refusing_its_arguments_exits_2_and_marks_no_stage(
     returned = wait_ci.main(argv)
 
     assert (returned, [r for r in events.records(tmp_path) if "stage" in r]) == (2, [])
+
+
+def test_main_exits_0_on_a_no_checks_pr_whose_push_only_workflow_sits_beside_a_gitkeep_and_a_readme_issue_4570(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                               "head": {"sha": FULL_SHA}})
+    contents = {"ci.yml": "on: push\n", ".gitkeep": "", "README.md": "# workflows\n"}
+
+    def workflows(line):
+        if ".github/workflows" not in line:
+            return None
+        name = line.split("?")[0].rsplit("/", 1)[-1]
+        if name in contents:
+            return json.dumps({"name": name, "type": "file", "encoding": "base64",
+                               "content": base64.b64encode(contents[name].encode()).decode()})
+        return json.dumps([{"name": n, "type": "file", "path": ".github/workflows/" + n} for n in contents])
+
+    served(fake_processes, bodies, workflows)
+    code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, out, "no check will come" in err) == (0, "", True)
