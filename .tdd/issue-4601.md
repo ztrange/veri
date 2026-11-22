@@ -7,3 +7,7 @@
 - [x] Guard: `tests-frozen.sh check-earlier` still exits 1 naming the case when a frozen case moved out of its still-existing recorded file into a sibling file with its body changed ⟦criterion 2⟧ ⟂ retired unpinnable
 - [x] `tests-frozen.sh check-earlier` reads a moved case's helpers digest from the sibling file that now holds the case: repairs the fixture '_refactored' in skills/tdd/scripts/tests/py/unit/test_tests_frozen_check_earlier_helpers.py, reproduced by a case in skills/tdd/scripts/tests/py/unit/test_tests_frozen_check_earlier_helpers.py ⟦fixture-repair⟧ ⟦added⟧ ⟦criterion 3⟧
 - [ ] `tests-frozen.sh check-earlier` reads a moved case's helpers digest from the sibling file that now holds the case: it exits 1 naming the case when the helper in the holding file changed, even though the recorded file still holds the original helper unchanged ⟦criterion 3⟧
+
+## Owed steps
+
+- `tests-frozen.sh check-earlier` reads a moved case's helpers digest from the sibling file that now holds the case while the recorded file keeps the original helper: repairs the fixture '_refactored' in skills/tdd/scripts/tests/py/unit/test_tests_frozen_check_earlier_helpers.py, reproduced by a case in skills/tdd/scripts/tests/py/unit/test_tests_frozen_check_earlier_helpers.py ⟦fixture-repair⟧
