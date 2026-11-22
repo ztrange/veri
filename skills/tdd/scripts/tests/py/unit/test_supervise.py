@@ -294,6 +294,15 @@ def test_an_in_flight_tool_calls_multi_line_command_is_named_by_its_first_line_o
     assert supervise.in_flight_tool(log) == "Bash: " + first[:120] + "… (0s)"
 
 
+def test_an_in_flight_tool_calls_command_of_exactly_120_characters_is_named_whole_without_a_cut_4627(supervise):
+    import json
+    first = "make test TESTS=" + "x" * 104
+    use = {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "toolu_X", "name": "Bash",
+                                                         "input": {"command": first}}]}}
+
+    assert supervise.in_flight_tool(json.dumps(use) + "\n") == "Bash: " + first + " (0s)"
+
+
 @pytest.mark.parametrize("tool_input", [["make", "test"], {"command": 7}], ids=["input-a-list", "command-a-number"])
 def test_an_in_flight_tool_call_whose_input_is_not_an_object_or_command_not_a_string_is_named_by_its_tool_only_4627(
         supervise, tool_input):
