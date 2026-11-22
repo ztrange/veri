@@ -136,3 +136,23 @@ def test_rerecord_approved_naming_a_recorded_case_absent_at_head_exits_2_naming_
                                           "test_one"], cwd=tmp_path)
 
     assert (code, "test_one" in err, record.read_bytes() == before) == (2, True, True)
+
+
+def test_rerecord_approved_whose_second_record_cannot_be_written_exits_2_and_restores_the_first_byte_identical_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    first = _two_stale(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)[1]
+    second = tmp_path / tests_frozen.record_path(STEPS[1])
+    second.write_bytes(first.read_bytes())
+    (tmp_path / PLAN_LEDGER).write_text("- [x] %s\n- [x] %s\n" % tuple(STEPS))
+    before = (first.read_bytes(), second.read_bytes())
+    real_open = open
+
+    def refusing_open(path, mode="r", *args, **kwargs):
+        if "w" in mode and str(path).endswith(second.name):
+            raise OSError("read-only record")
+        return real_open(path, mode, *args, **kwargs)
+    monkeypatch.setattr(tests_frozen, "open", refusing_open, raising=False)
+
+    code = run_cli(tests_frozen, ["rerecord-approved", PLAN_LEDGER, "--approval", "yes", "test_one"], cwd=tmp_path)[0]
+
+    assert (code, first.read_bytes() == before[0], second.read_bytes() == before[1]) == (2, True, True)
