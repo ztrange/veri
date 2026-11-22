@@ -1077,12 +1077,12 @@ that push; else the ending call's code (a bail's too).
 
 1. **One refactor leaf for the step.** Ask the budget first, with a count of **0**: that call decides whether the leaf runs at all, since `VERI_REFACTOR_BUDGET=0` switches refactoring off. Then build the prompt from the `refactor` template — which carries the budget to the leaf as the number of transforms it may apply — and launch **through the supervisor** (exit **2** → **bail**, after the stop check in *Launching a leaf*; see `<base directory>/BAIL.md`):
    ```
-   $S/refactor-budget.sh 0   # 0 ⇒ launch the leaf below; 3 ⇒ the budget is 0, go to 5
-   touched="$($S/refactor-touched.sh "$step_green")"; step="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"
+   $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 5
+   touched="$($S/refactor-touched.sh "$step_green")"
    $S/near-duplicates.sh "$step_green" > .tdd/develop-refactor.pairs
-   $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md "$step" '<test-cmd>' "$touched" .tdd/develop-refactor.pairs > .tdd/develop-refactor.prompt
+   $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<test-cmd>' "$touched" .tdd/develop-refactor.pairs > .tdd/develop-refactor.prompt
    rm -f .tdd/develop-refactor.exit .tdd/develop-refactor.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$step" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh)" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor  # foreground; again on exit 3
    ```
    **One leaf for the whole step**, not one per transform. `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one comma-separated line. Compute it once: `$step_green` is the step's own tick, not a re-pin's, got as `RESUME.md` sub-step 2 says; `$S/refactor-touched.sh "$step_green"` prints its files — adding anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work on disk. `near-duplicates.sh` exit 3 is no pair: the leaf still launches; exit 2 is a **bail**, a system failure (`<base directory>/BAIL.md`). The template owns the rules — the leaf triages what it sees in those files into **structural** and **cosmetic** candidates and applies the structural ones, most valuable first, up to its budget; it runs only the touched files' tests after every transform and **reverts** one that turns them red rather than leave a red suite; it takes **no untested generality** (that comes only from **triangulation**) and **flags overfit** code as needing a triangulating test instead of hand-generalizing it. It also **commits its own transforms**, one commit each: `git commit -m "refactor: <what> (#<n>)"`. The atomic tick-and-commit stays on green (ADR-0007); only the refactor commit moved to the leaf. The report `.tdd/develop-refactor.out` ends with `RESULT:` (one line per transform applied, or `nothing left to tidy`), `CANDIDATES:` (one line per leftover it still sees, each carrying its class, or `none`) and `FLAGS:` (one finding per line, each carrying its class — `overfit`, `uncovered-spec` or `beyond-spec` — or `none`; 3 and 4 below route them).
@@ -1106,32 +1106,11 @@ that push; else the ending call's code (a bail's too).
    ```
    — one verdict on the final state (the **fast tier** plus only the touched files' tests still green — neither it nor the leaf runs the `affected` tier or a broader one — no catalogue smell met, no smuggled generality).
 6. **Narrate + branch.** Post `### 🛠️ Refactor` by running `$S/comment.sh <n> refactor` (the transforms applied, or "no refactor warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT|SKIPPED` by running `$S/comment.sh <n> verify-refactor`.
-   Say **how many transforms landed** — the `git rev-list --count` figure, never the leaf's own account of what it did — against the budget, in
-   `refactor-budget.sh`'s own shape (`refactor 2/5`). A count **above** the budget is narrated as an **overrun** (`refactor 7/5 — overrun`), never
-   clamped to the budget: a count over it is the leaf ignoring the number it was given. Say too **why the tidying stopped**: the leaf reported
-   **nothing left to tidy**, it spent the **budget** it was given, or `$S/refactor-triage.sh < .tdd/develop-refactor.out` says so — exit **2**, a
-   malformed report, is **narrated** as that rather than bailed on; exit **3**, nothing structural is left, so the tidying **stops** owing nothing;
-   exit **0**, structural candidates remain and a follow-up owes them. Then **list what the step did not do**, taken verbatim from the leaf's
-   `CANDIDATES:` lines and filed in **two separate lists** — the **structural** leftovers, which a follow-up owes, and the **cosmetic** ones, which
-   nobody owes. A **test-only** candidate, and an **out-of-scope** one the rule below leaves to the structural pass, is in neither list: it is
-   recorded through `refactor-owed.sh`, below and at the Draft PR, and is not narrated as a backlog. Each list says **how many candidates** it holds
-   and then **lists** them, one per line.
+   Say **how many transforms landed** — the `git rev-list --count` figure, never the leaf's own account of what it did — against the budget, in `refactor-budget.sh`'s own shape (`refactor 2/5`). A count **above** the budget is narrated as an **overrun** (`refactor 7/5 — overrun`), never clamped to the budget: a count over it is the leaf ignoring the number it was given. Say too **why the tidying stopped**: the leaf reported **nothing left to tidy**, it spent the **budget** it was given, or `$S/refactor-triage.sh < .tdd/develop-refactor.out` says so — exit **2**, a malformed report, is **narrated** as that rather than bailed on; exit **3**, nothing structural is left, so the tidying **stops** owing nothing; exit **0**, structural candidates remain and a follow-up owes them. Then **list what the step did not do**, taken verbatim from the leaf's `CANDIDATES:` lines and filed in **two separate lists** — the **structural** leftovers, which a follow-up owes, and the **cosmetic** ones, which nobody owes. A **test-only** candidate, and an **out-of-scope** one the rule below leaves to the structural pass, is in neither list: it is recorded through `refactor-owed.sh`, below and at the Draft PR, and is not narrated as a backlog. Each list says **how many candidates** it holds and then **lists** them, one per line.
 
-   An **out-of-scope** candidate is routed by whether its transform changes a file in `<touched-files>`. One that changes **at least one** is done in
-   the step, and the refactor leaf reports it as a `CANDIDATES: in-step | <files> | <transform>` line: a cover leaf (`build-develop-prompt.sh cover`,
-   launched through the supervisor and read through `$S/cover-outcome.sh`, as the structural pass does) first mutates the code the candidate will
-   move; on `COVERED: no` it is recorded with `refactor-owed.sh` as for a test-only one (RF20) and not transformed. Its `<bound>` is `<touched-files>`
-   plus the `<files>` that line names. When covered, its transform is bounded to `<touched-files>` plus the files the candidate names, is checked with
-   `$S/transform-touches-tests.sh <green-sha> <bound> --touched <touched-files>` before verify-refactor runs (its exit 1 rejects the transform), and
-   counts against the step's budget. One that changes **no** file in `<touched-files>`, reported as a `CANDIDATES: out-of-bounds | <candidate>` line,
-   is never done in the step: it is recorded with `refactor-owed.sh` as `out-of-bounds`, apart from the candidates left to the structural pass at the
-   Draft PR.
+   An **out-of-scope** candidate is routed by whether its transform changes a file in `<touched-files>`. One that changes **at least one** is done in the step, and the refactor leaf reports it as a `CANDIDATES: in-step | <files> | <transform>` line: a cover leaf (`build-develop-prompt.sh cover`, launched through the supervisor and read through `$S/cover-outcome.sh`, as the structural pass does) first mutates the code the candidate will move; on `COVERED: no` it is recorded with `refactor-owed.sh` as for a test-only one (RF20) and not transformed. Its `<bound>` is `<touched-files>` plus the `<files>` that line names. When covered, its transform is bounded to `<touched-files>` plus the files the candidate names, is checked with `$S/transform-touches-tests.sh <green-sha> <bound> --touched <touched-files>` before verify-refactor runs (its exit 1 rejects the transform), and counts against the step's budget. One that changes **no** file in `<touched-files>`, reported as a `CANDIDATES: out-of-bounds | <candidate>` line, is never done in the step: it is recorded with `refactor-owed.sh` as `out-of-bounds`, apart from the candidates left to the structural pass at the Draft PR.
 
-   Mark the same three figures in the log — the observed count, unclamped,
-   the budget, and why it stopped (`nothing-left`, `budget`, `malformed`, `nothing-structural` for triage exit **3** or
-   `structural-owed` for triage exit **0**) — and which pass of the step's refactor this is,
-   `pass`: `1` for the step's first pass, and one more each time the triangulation path at 3
-   resumes the refactor loop and reaches this sub-step again:
+   Mark the same three figures in the log — the observed count, unclamped, the budget, and why it stopped (`nothing-left`, `budget`, `malformed`, `nothing-structural` for triage exit **3** or `structural-owed` for triage exit **0**) — and which pass of the step's refactor this is, `pass`: `1` for the step's first pass, and one more each time the triangulation path at 3 resumes the refactor loop and reaches this sub-step again:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" VERI_PHASE=refactor $S/event.sh refactor transforms=<count> budget=<VERI_REFACTOR_BUDGET> stopped=<reason> pass="$pass"
    ```
