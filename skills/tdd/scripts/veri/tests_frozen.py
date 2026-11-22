@@ -462,6 +462,10 @@ def rerecord_refactored(ledger, green):
         k = seen[(name, case)] = seen.get((name, case), -1) + 1
         verified = nth(green, name, case, k)
         head = nth("HEAD", name, case, k)
+        at = name
+        if head is None:
+            at = os.path.normpath(case_identity.moved_path(name, case, [digest]))
+            head = nth("HEAD", at, case, k)
         green_text = case_history.text_at(green, name, quiet=True)
         before = nth(green + "^", name, case, k) if repaired else None
         if verified is None or head is None or digest not in {body_digest(verified), body_digest(head), *map(
@@ -472,7 +476,7 @@ def rerecord_refactored(ledger, green):
         if (digest != body_digest(head) or digest == body_digest(verified)) and recorded_helpers.get(
                 (name, case), green_helpers) != green_helpers:
             return skip(name, case, record, "helpers digest differs from green's")
-        helpers = case_identity.called_helpers("HEAD", name, head)
+        helpers = case_identity.called_helpers("HEAD", at, head)
         called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))
         head_lines = [l for l in case_identity.checked_lines(head) if l.split("(")[0] not in called]
         verified_lines = case_identity.checked_lines(verified)
@@ -485,9 +489,9 @@ def rerecord_refactored(ledger, green):
             return skip(name, case, record, "helper assertion count differs from green's")
         if not verified_lines and case_identity.squeezed(head) != case_identity.squeezed(verified):
             return skip(name, case, record, "case has no assertion lines and its body changed")
-        head_text = case_history.text_at("HEAD", name, quiet=True)
-        return body_line(name, case, head) + "\n" + frozen_record.helpers_line(
-            name, case, case_identity.helper_digest(head_text, "\n".join(case_identity.bodies_of(head_text, case))))
+        head_text = case_history.text_at("HEAD", at, quiet=True)
+        return body_line(at, case, head) + "\n" + frozen_record.helpers_line(
+            at, case, case_identity.helper_digest(head_text, "\n".join(case_identity.bodies_of(head_text, case))))
     snapshot = {}
     for _, path, __ in _earlier_records(lines, ""):
         with open(path, encoding="utf-8") as handle:
