@@ -495,6 +495,11 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   (`tdd/<n>-<slug>`) an exit 0 or 3 first re-records `.tdd/issue-<n>-branch-base` in the main working tree as the onto
   sha (on exit 3 the one HEAD already contains), so a resume reads the new base and a write that failed after an earlier
   rebase is redone; a record it cannot write is exit **2** naming it, the rebase kept.
+  `$S/rebase-onto-default.sh --resolved <onto-sha>` fetches and rebases nothing: run after a `develop-rebase` leaf
+  resolved a conflicted rebase onto `<onto-sha>`, it re-records the run's branch base as `<onto-sha>` the same way,
+  **exit 0**, stdout the sha the record held before (nothing when there was none), so the reset path can put it back
+  with `--resolved <that-sha>`; it writes no stage line. A missing argument, one that is not a hex commit name, one HEAD
+  does not contain, or a record it cannot write is exit **2**, the record untouched.
   **Exit 0** rebased, stdout the pre-rebase sha then the onto sha; **1** a
   conflict, aborted, stdout the conflicting files; **2** git refused the rebase, no base branch resolved (a
   `stack-branch.sh` exit 2 included), origin not fetched, or the remote-tracking ref stale; **3** the branch already
