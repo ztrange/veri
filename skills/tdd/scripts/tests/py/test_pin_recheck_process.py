@@ -3625,3 +3625,34 @@ def test_4644_a_pin_whose_old_text_is_gone_and_whose_range_git_cannot_search_exi
 
     assert (ran.returncode, "cannot search " in ran.stderr, "stale:" in ran.stdout,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (2, True, False, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that copies the pinned text from a/main.py into b/other.py and c/other.py")
+def test_4643_a_pin_whose_old_text_is_in_two_files_of_two_other_directories_is_not_checked_and_mutates_neither(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    for directory in ("a", "b", "c"):
+        (tmp_path / directory).mkdir()
+    (tmp_path / "a" / "main.py").write_text("x = 1\ndef guard(): pass\n")
+    (tmp_path / "b" / "other.py").write_text("y = 1\n")
+    (tmp_path / "c" / "other.py").write_text("z = 1\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4643-mutations.md", file="a/main.py", old="def guard(): pass", new="def guard(): fail",
+           command="sh -c \"echo result; grep -q 'def guard(): pass' b/other.py && grep -q 'def guard(): pass' c/other.py || touch mutated.marker\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    copied = b"def guard(): pass\n"
+    (tmp_path / "a" / "main.py").write_text("x = 1\n")
+    (tmp_path / "b" / "other.py").write_bytes(copied)
+    (tmp_path / "c" / "other.py").write_bytes(copied)
+    git("commit", "-q", "-am", "copy the guard into b/other.py and c/other.py")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "not checked: a/main.py (" in ran.stdout, (tmp_path / "mutated.marker").exists(),
+            (tmp_path / "b" / "other.py").read_bytes(), (tmp_path / "c" / "other.py").read_bytes(),
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (1, True, False, copied, copied, False), ran.stdout + ran.stderr
