@@ -42,6 +42,21 @@ def holds(path, name):
         return False
 
 
+def refactor_rejected(ledger_file, matcher):
+    """Whether a refactor-half-rejected record beside <ledger_file> names <matcher>'s step, read without removing it:
+    `revise.sh <n> refactor` exits 2 without one."""
+    import json
+    import fused
+    wt = os.path.dirname(os.path.dirname(os.path.abspath(ledger_file)))
+    n = re.sub(r"^issue-|\.md$", "", os.path.basename(ledger_file))
+    try:
+        with open(fused.wait_record(wt, n, "refactor-half-rejected"), encoding="utf-8") as handle:
+            step = json.load(handle).get("step")
+    except (OSError, ValueError, AttributeError):
+        return False
+    return step is not None and ledger.same_step(step, matcher)
+
+
 def recheck(argv):
     with open(argv[0], encoding="utf-8") as handle:
         reason = handle.read()
@@ -51,7 +66,7 @@ def recheck(argv):
         return 1
     found = re.search(r"pin stayed green (?:under its mutation|on the before-state): (\S+)", reason)
     if found is None:
-        print("revise")
+        print("revise" if refactor_rejected(argv[1], argv[2]) else "revise-impossible")
         return 1
     path = found.group(1)
     step = repin_step(path)
