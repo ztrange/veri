@@ -236,6 +236,25 @@ Then back to the next step's Red.
   visible, so its deviations are too. With a ledger, the same goes for an unticked line.
 - Branch → push → draft PR. **This skill never merges.**
 
+Before the PR is marked ready, the break and the mutation runs below, each through a subagent that
+returns one line per criterion or mutant. A step's Red only proved its test fails against code that
+did not exist yet; these prove the finished code is pinned.
+
+- **Break each acceptance criterion's behaviour.** For each acceptance criterion of the issue,
+  break the behaviour in the product code, never the test, run the criterion's test and watch it go
+  red, then restore the product code and see it green again. **A criterion whose test stays green
+  is not done**: strengthen its test, back to Red with the reason said, or report the criterion as
+  unpinnable.
+- **Mutate each guard, exit-code and delete path the change added**: a condition inverted, an exit
+  code swapped, a deletion skipped, one mutant at a time, the covering suites run after each, the
+  code restored after each. **Every mutant that survives**, the suites still green, gets a test that
+  fails on it, through a Red of its own.
+- **The PR body lists, per acceptance criterion, the test that pins it** (`file::case`) **and that
+  it was watched red** by the break above, alongside the deviations and the full-suite counts.
+
+Mark the PR ready only once every criterion's test went red, no mutant survives, and the body says
+so.
+
 ## What it does not do
 
 veri's `/tdd` (`skills/tdd/`) does all of this and carries, additionally: a conductor process
