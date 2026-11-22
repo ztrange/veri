@@ -1003,3 +1003,29 @@ def test_rerecord_refactored_never_counts_a_function_of_a_production_file_beside
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
     assert (code, _skip_lines(err, SIBLING_CASE + " TestPage"), _record_of(tmp_path).read_text()) == (1, 1, before)
+
+
+SAME_DIR_A, SAME_DIR_B = "t/test_a.py", "t/test_b.py"
+OWN_CHECK = "def check(x):\n    assert x\n\n\n"
+
+
+def test_rerecord_refactored_reads_a_python_case_s_helper_from_its_own_file_when_a_sibling_test_file_defines_one_of_the_same_name_4606(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    (tmp_path / "t").mkdir()
+    a, b = tmp_path / SAME_DIR_A, tmp_path / SAME_DIR_B
+    a.write_text(OWN_CHECK + "def test_a():\n    x = 1\n    assert 1\n    check(x)\n")
+    b.write_text(OWN_CHECK + "def test_b():\n    check(2)\n")
+    repo.add(SAME_DIR_A, SAME_DIR_B)
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], SAME_DIR_A, SAME_DIR_B], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    green = repo.commit("A green", all=True)
+    a.write_text(OWN_CHECK + "def test_a():\n    y = 1\n    assert 1\n    check(y)\n")
+    b.write_text(OWN_CHECK.replace("    assert x\n", "    assert x\n    assert x > 0\n") + "def test_b():\n    check(2)\n")
+    repo.commit("A refactor", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, SAME_DIR_A + " test_a")) == (0, 0), err
