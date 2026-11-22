@@ -49,7 +49,10 @@ tells the user to commit or stash.
   one of two defects, all named at once: a `## Requirements` row that clashes with a held ID (it needs
   `<ID><reword>`), or a `⟦skill-edit⟧` step whose unit has no `### <path>` heading in the issue. Like every
   other preflight refusal it writes a `preflight-refused` event and posts one issue comment naming the
-  check and its cause (`$S/preflight-refused.sh <n> <check> <cause>`). The fix is to correct the issue's `## Requirements`.
+  check and its cause (`$S/preflight-refused.sh <n> <check> <cause>`). A `## Requirements` row whose
+  Requirement and Why cells the unit's section already holds under another ID is not a clash, so a
+  resumed run whose branch renumbered a row is not refused for the body's old ID; only a held ID with
+  different text, whose text the unit does not hold, is. The fix is to correct the issue's `## Requirements`.
 - `detach-command.sh wait` answers 1 when it finished red with its code on stdout (a red suite: stop
   and report) and 2 when it died recording nothing. A 2 while `$S/stop-requested.sh` exits 0 and prints
   `now` is the stop being carried out: not a preflight failure and not a poisoned baseline. The
