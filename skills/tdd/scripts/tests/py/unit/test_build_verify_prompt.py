@@ -145,8 +145,7 @@ def test_main_parses_only_leading_options_in_either_order_the_last_winning_and_r
     assert fast_first == step_first
     assert repeated == step_first
     ten = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround", "break")
-    assert all(p in build_verify_prompt.PHASES for p in ten)
-    assert [p for p in build_verify_prompt.PHASES if p in ten] == list(ten)
+    assert build_verify_prompt.PHASES == ten
 
 
 def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_and_refuses_diff_without_step_ahead_of_its_shas(
