@@ -56,6 +56,15 @@ what fills a TDD session's context; none of it belongs in the main thread.
   per transform. Push and PR stay with the main thread.
 - **Same step, same agent.** A split, a re-prediction or a "go ahead with Refactor" goes back by
   `SendMessage` to the agent that already holds the test in its context, not to a fresh one.
+- **Every child runs in the foreground, never in the background**: the cycle agent, the baseline
+  and full-suite runners, and the CI watch. The main thread's turn stays open until the child
+  returns; a turn that ends while a background child runs is never woken again, and the work stalls
+  with nothing live in the worktree.
+- **The turn ends only on the final report or on a blocker.** The final report is the PR url, the
+  steps done out of total and the CI verdict; a blocker is a question the user must answer. Never
+  end the turn on a per-step progress line, or to wait for a child's report: the host reads a
+  turn's last text as the final report, so a progress line ends the work early and a "waiting for
+  the report" turn is never resumed.
 - **Model**: the cycle agent runs on the session's model (it writes code you will not re-read); the
   baseline and full-suite runners run on the cheapest model that can do it, `haiku` (they only
   count), and return counts and the names of failing cases only.
