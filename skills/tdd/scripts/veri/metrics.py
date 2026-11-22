@@ -198,7 +198,16 @@ def conductor_sessions(issue, path):
                         # a session's turns: the more of those its result counts and those the log shows, so no
                         # turn by_phase attributes is missing from the per-run count
                         turns = max(counted_turns, shown_turns) if isinstance(counted_turns, int) else shown_turns
-                        sessions.append(record if turns == counted_turns else dict(record, num_turns=turns))
+                        session = record if turns == counted_turns else dict(record, num_turns=turns)
+                        woken = record.get("session_id")
+                        if woken is not None and sessions and sessions[-1].get("session_id") == woken:
+                            # a wake of the same session (#4599): its total is cumulative, its turns its own
+                            earlier = sessions.pop()
+                            session = dict(session, num_turns=turns + (earlier.get("num_turns") or 0))
+                            if isinstance(record.get("total_cost_usd"), (int, float)) and \
+                                    isinstance(earlier.get("total_cost_usd"), (int, float)):
+                                record = dict(record, total_cost_usd=record["total_cost_usd"] - earlier["total_cost_usd"])
+                        sessions.append(session)
                         count_families(turn_rows, opened["families"], (record.get("usage") or {}).get("output_tokens"))
                         total = record.get("total_cost_usd")
                         open_rows = opened["rows"]
