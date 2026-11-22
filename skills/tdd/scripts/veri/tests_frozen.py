@@ -522,11 +522,16 @@ def rerecord_approved(ledger, approval, cases):
     with open(ledger, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
     os.chdir(_toplevel())
-    recorded = {body[1] for _, __, records in _earlier_records(lines, "")
+    recorded = {(body[0], body[1]) for _, __, records in _earlier_records(lines, "")
                 for body in filter(None, map(body_record, records))}
-    unknown = [case for case in cases if case not in recorded]
+    unknown = [case for case in cases if case not in {c for _, c in recorded}]
     if unknown:
         write(sys.stderr, "tests-frozen.sh: no earlier record holds %s" % ", ".join(unknown))
+        return 2
+    gone = ["%s (%s)" % (case, name) for name, case in sorted(recorded) if case in cases
+            and not case_identity.bodies_of(case_history.text_at("HEAD", name, quiet=True), case)]
+    if gone:
+        write(sys.stderr, "tests-frozen.sh: HEAD does not hold %s" % ", ".join(gone))
         return 2
 
     def rewrite(_, record, name, case, __):

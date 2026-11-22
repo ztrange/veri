@@ -123,3 +123,16 @@ def test_rerecord_approved_naming_no_case_exits_2_with_the_usage_and_writes_noth
     code, _, err = run_cli(tests_frozen, ["rerecord-approved", PLAN_LEDGER, "--approval", "yes"], cwd=tmp_path)
 
     assert (code, "rerecord-approved <ledger>" in err, record.read_bytes() == before) == (2, True, True)
+
+
+def test_rerecord_approved_naming_a_recorded_case_absent_at_head_exits_2_naming_it_and_writes_nothing_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo, record = _two_stale(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    (tmp_path / SUITE).write_text(CASE % ("two", 20))
+    repo.commit("delete test_one", all=True)
+    before = record.read_bytes()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-approved", PLAN_LEDGER, "--approval", "yes", "test_two",
+                                          "test_one"], cwd=tmp_path)
+
+    assert (code, "test_one" in err, record.read_bytes() == before) == (2, True, True)
