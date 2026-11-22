@@ -203,8 +203,14 @@ def heartbeat_line(line):
 TOOL_COMMAND_LIMIT = 120
 
 
+def command_head(command):
+    """A command's first line, cut to TOOL_COMMAND_LIMIT characters with a trailing `…` when longer."""
+    first = (command.splitlines() or [""])[0]
+    return first if len(first) <= TOOL_COMMAND_LIMIT else first[:TOOL_COMMAND_LIMIT] + "…"
+
+
 def in_flight_tool(text):
-    """The last `tool_use` in a stream log with no `tool_result` after it, as `<name>: <command> (<secs>s)`, else None."""
+    """The last `tool_use` in a stream log with no `tool_result` after it, as `<name>: <command_head> (<secs>s)`, else None."""
     call, answered, secs = None, set(), {}
     for line in text.splitlines():
         try:
@@ -225,10 +231,7 @@ def in_flight_tool(text):
                 answered.add(block.get("tool_use_id"))
     if call is None or call.get("id") in answered:
         return None
-    lines = (call.get("input") or {}).get("command", "").splitlines()
-    command = lines[0] if lines else ""
-    if len(command) > TOOL_COMMAND_LIMIT:
-        command = command[:TOOL_COMMAND_LIMIT] + "…"
+    command = command_head((call.get("input") or {}).get("command", ""))
     return f"{call.get('name')}: {command} ({secs.get(call.get('id'), 0)}s)"
 
 
