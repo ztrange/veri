@@ -1498,6 +1498,22 @@ def test_main_reports_the_conductor_total_dollars_and_turns_summed_over_every_se
     assert "spending is not in it" not in out
 
 
+def test_issue_4599_a_session_woken_again_under_the_same_session_id_is_priced_at_its_last_cumulative_total_and_counted_once(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    sessions = [{"type": "system", "subtype": "init", "session_id": "a"},
+                {"type": "result", "session_id": "a", "total_cost_usd": 2.0, "num_turns": 30},
+                {"type": "system", "subtype": "init", "session_id": "a"},
+                {"type": "result", "session_id": "a", "total_cost_usd": 5.0, "num_turns": 8},
+                {"type": "system", "subtype": "init", "session_id": "b"},
+                {"type": "result", "session_id": "b", "total_cost_usd": 1.0, "num_turns": 4}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert "Conductor own spending: $6.00 over 42 turns, in 2 sessions.\n" in out
+
+
 def test_issue_1868_a_report_with_a_conductor_session_lacking_a_result_record_says_its_own_spending_is_estimated_for_want_of_output_tokens(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     turn = {"type": "assistant", "message": {"usage": {"input_tokens": 10, "output_tokens": 5}}}
