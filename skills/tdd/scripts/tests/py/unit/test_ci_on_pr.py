@@ -41,3 +41,23 @@ def test_no_module_under_veri_other_than_ci_on_pr_reads_the_variable(veri_module
     readers = [name for name in veri_modules_index.names if reader.search(veri_modules_index.text(name))]
     assert "ci_on_pr" in veri_modules_index.names
     assert readers == ["ci_on_pr"]
+
+
+def test_issue_4570_triggers_on_pull_request_answers_true_for_a_quoted_on_key_a_json_document_or_a_flow_mapping_root(
+        tmp_path, monkeypatch, ci_on_pr):
+    forms = {
+        "double-quoted on": "\"on\":\n  pull_request:\n",
+        "single-quoted on": "'on':\n  pull_request:\n",
+        "json": "{\"on\": {\"pull_request\": {}}, \"jobs\": {}}\n",
+        "flow root scalar": "{on: pull_request, jobs: {}}\n",
+        "flow root list": "{on: [pull_request], jobs: {}}\n",
+    }
+    answers = {}
+    for name, text in forms.items():
+        root = tmp_path / name.replace(" ", "-")
+        (root / ".github" / "workflows").mkdir(parents=True)
+        (root / ".github" / "workflows" / "ci.yml").write_text(text)
+        monkeypatch.chdir(root)
+        answers[name] = ci_on_pr.triggers_on_pull_request()
+
+    assert answers == {name: True for name in forms}

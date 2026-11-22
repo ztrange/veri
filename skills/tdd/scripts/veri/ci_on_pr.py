@@ -67,7 +67,7 @@ def triggers_on_pull_request():
         return False
     for name in os.listdir(WORKFLOWS):
         with open(os.path.join(WORKFLOWS, name)) as workflow:
-            if any("pull_request" in line for line in trigger_lines(workflow.read())):
+            if pull_request_trigger(workflow.read()) is not False:
                 return True
     return False
 
