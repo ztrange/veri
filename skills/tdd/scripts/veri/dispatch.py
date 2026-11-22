@@ -504,6 +504,7 @@ class State:
         self.missing = {}  # issue: the clock() time its silent exit was first seen
         self.holding = []  # the runs this poll holds for a silent-exit decision: never called stalled meanwhile
         self.held_at = None  # the clock() time the queue last had nothing launchable
+        self.blocked = None  # the PR urls the last queue-blocked line named
 
 
 def _merge_failed(state, world):
@@ -664,6 +665,11 @@ def _launch_into_a_free_slot(state, world, live):
             return 3
         return None
     state.held_at = world.clock() if not free and (queue or live) else None
+    if queue and not free and not live:
+        blocking = sorted({world.overlap(issue, changed)[1] for issue in queue})
+        if blocking != state.blocked:
+            state.blocked = blocking
+            world.say(f"queue-blocked {' '.join(blocking)}\n")
     if free:
         state.previous = free[0]
         world.launch(state.previous)
