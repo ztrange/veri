@@ -1029,3 +1029,38 @@ def test_rerecord_refactored_reads_a_python_case_s_helper_from_its_own_file_when
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
     assert (code, _skip_lines(err, SAME_DIR_A + " test_a")) == (0, 0), err
+
+
+def test_check_earlier_fails_a_go_case_re_recorded_with_its_helper_in_a_sibling_test_file_once_that_helper_drops_its_t_fatalf_4606(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    green = _moved_to_sibling(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    helpers = tmp_path / SIBLING_HELPERS
+    helpers.write_text(helpers.read_text().replace("\t\tt.Fatalf(\"GET %s: %v\", url, err)\n", ""))
+
+    code, out = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (code, "TestPage" in out) == (1, True), out
+
+
+def test_rerecord_refactored_never_reads_a_python_case_s_imported_helper_from_a_sibling_test_file_defining_the_same_name_4606(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    (tmp_path / "t").mkdir()
+    a, b, imported = tmp_path / SAME_DIR_A, tmp_path / SAME_DIR_B, tmp_path / "t/helpers.py"
+    imported.write_text(OWN_CHECK)
+    a.write_text("from helpers import check\n\n\ndef test_a():\n    x = 1\n    assert 1\n    check(x)\n")
+    b.write_text(OWN_CHECK + "def test_b():\n    assert 2\n")
+    repo.add(SAME_DIR_A, SAME_DIR_B, "t/helpers.py")
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], SAME_DIR_A], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    green = repo.commit("A green", all=True)
+    a.write_text("from helpers import check\n\n\ndef test_a():\n    y = 1\n    assert 1\n    check(y)\n")
+    b.write_text(OWN_CHECK.replace("    assert x\n", "    assert x\n    assert x > 0\n") + "def test_b():\n    assert 2\n")
+    repo.commit("A refactor", all=True)
+    (tmp_path / VERDICT).write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, SAME_DIR_A + " test_a")) == (0, 0), err
