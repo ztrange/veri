@@ -132,8 +132,17 @@ def path_holding(case, digests, only=None):
     return None
 
 
+def _holds(path, case, digests):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            text = handle.read()
+    except OSError:
+        return False
+    return any(body_digest(v) in digests for body in bodies_of(text, case) for v in root_variants(body))
+
+
 def moved_path(name, case, digests):
-    if os.path.exists(name):
+    if _holds(name, case, digests):
         return name
     return (
         path_holding(case, digests, only=os.path.basename(name))

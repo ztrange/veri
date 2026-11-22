@@ -457,3 +457,22 @@ def test_check_earlier_exits_1_naming_the_case_and_leaves_the_record_untouched_w
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
 
     assert (code, "test_a" in out, record.read_text()) == (1, True, before)
+
+
+def test_check_earlier_exits_0_for_a_go_case_moved_with_its_helper_to_a_sibling_file_while_the_recorded_file_stays_4601(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    sibling = "b_test.go"
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    (tmp_path / GO_SUITE).write_text(GO_CHECK_X + GO_CALLS_CHECK_X + "\nfunc TestY(t *testing.T) {\n}\n")
+    repo.add(GO_SUITE)
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], GO_SUITE], cwd=tmp_path)
+    _ledger(tmp_path, A="done")
+    repo.commit("step A adds the cases")
+    (tmp_path / GO_SUITE).write_text("func TestY(t *testing.T) {\n}\n")
+    (tmp_path / sibling).write_text(GO_CHECK_X + GO_CALLS_CHECK_X)
+    repo.add(GO_SUITE, sibling)
+    repo.commit("a refactor moves TestX and its helper to a sibling file")
+
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked == (0, "")
