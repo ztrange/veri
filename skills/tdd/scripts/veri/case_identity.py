@@ -46,11 +46,16 @@ Interface (a function says what it touches: text only, the tree's files, or case
   changed_by_refactor(name, case)         True when the newest commit that changed `case` in `name` has a subject
                                           starting "refactor:". False when `case` is not at HEAD, was never changed,
                                           or the history cannot be read (OSError). Asks case_history.
-  called_helpers(rev, name, body)         helpers_in of the file `name` at `rev` (read quietly), then of every other
-                                          test file (case_reader.is_test_path) in `name`'s directory at `rev`, each
-                                          name taken once: the case's own file wins, then the first sibling in
-                                          listing order, since Python/JS sibling files each define their own `check`;
-                                          "" when git can show none of them. Asks case_history.
+  called_helpers(rev, name, body)         helpers_in of the file `name` at `rev` (read quietly), then, for a Go
+                                          `_test.go` file only, of every other `_test.go` file in its directory at
+                                          `rev` (one package, one namespace), each name taken once, the case's own file
+                                          first. A Python or JS case never reads a sibling test file: its helper may be
+                                          imported from anywhere, and a sibling's same-named one is not it. "" when git
+                                          can show none of them. Asks case_history.
+  helper_digest_beside(name, text, body)  helper_digest over `text` (the file `name`) plus, for a Go `_test.go` file,
+                                          the tree's other `_test.go` files in its directory, each name taken once,
+                                          `text` first: the digest called_helpers' definitions give. Reads the tree's
+                                          files; a sibling that cannot be read adds nothing.
 
 Error modes: only changed_by_refactor catches anything (OSError from case_history, answered False). The rest let
 case_reader's UnclosedCase, a file's OSError and case_history's OSError through to the caller, who decides.
@@ -60,7 +65,7 @@ import re
 
 import case_history
 import renamed_case
-from case_reader import cut_cases, is_test_path
+from case_reader import cut_cases
 from frozen_record import body_digest
 
 
@@ -189,13 +194,38 @@ def changed_by_refactor(name, case):
     return False
 
 
-def called_helpers(rev, name, body):
-    siblings = [path for path in case_history.paths_at(rev, os.path.dirname(name))
-                if path != os.path.normpath(name) and is_test_path(path)]
+def _go_siblings(name, paths):
+    if not name.endswith("_test.go"):
+        return []
+    return [path for path in paths if path != os.path.normpath(name) and path.endswith("_test.go")]
+
+
+def _first_named(texts, body):
     seen, helpers = set(), []
-    for path in [name] + siblings:
-        for helper, definition in _named_helpers(case_history.text_at(rev, path, quiet=True), body):
+    for text in texts:
+        for helper, definition in _named_helpers(text, body):
             if helper not in seen:
                 seen.add(helper)
                 helpers.append(definition)
     return "\n".join(helpers)
+
+
+def called_helpers(rev, name, body):
+    siblings = _go_siblings(name, case_history.paths_at(rev, os.path.dirname(name)))
+    return _first_named((case_history.text_at(rev, path, quiet=True) for path in [name] + siblings), body)
+
+
+def _tree_text(path):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            return handle.read()
+    except OSError:
+        return ""
+
+
+def helper_digest_beside(name, text, body):
+    directory = os.path.dirname(name)
+    listed = sorted(os.path.normpath(os.path.join(directory, f)) for f in os.listdir(directory or "."))
+    siblings = _go_siblings(os.path.normpath(name), listed)
+    helpers = _first_named([text] + [_tree_text(path) for path in siblings], body)
+    return body_digest("\n".join(sorted(assertion_lines(helpers))))
