@@ -195,15 +195,25 @@ def issue_paths(issue):
     return re.findall(r"`([^`\s]+)`", bodies[issue])
 
 
+def parked_issues():
+    """The numbers of the open issues labelled parked, as strings."""
+    listed = answered("the parked issue list", github.gh_issue_list,
+                      "--state", "open", "--label", "parked", "--limit", "1000", "--json", "number")
+    return {str(item["number"]) for item in json.loads(listed)}
+
+
 def run_prs():
     """(url, number, head sha) of every open run draft PR (head tdd/… in this repository, not a fork's), on any
-    machine, listed at most once per VERI_DISPATCH_OVERLAP_POLL seconds."""
+    machine, listed at most once per VERI_DISPATCH_OVERLAP_POLL seconds. A PR labelled parked, or whose issue
+    (the <p> of its tdd/<p>-… head) is, blocks nothing and is left out."""
     listed = _reads.get("listed")
     if listed is None or clock() - listed[0] >= int(overlap_poll()):
         prs = []
+        parked = parked_issues()
         for pr in answered("the open PR list", github.open_pulls,
                            "number,url,isDraft,headRefName,headRefOid,labels,isCrossRepository", limit=None):
-            if "parked" in pr.labels:
+            if "parked" in pr.labels or re.match(r"tdd/(\d+)-", pr.head_ref or "") and \
+                    re.match(r"tdd/(\d+)-", pr.head_ref).group(1) in parked:
                 continue
             if pr.draft is True and pr.head_ref.startswith("tdd/") and not pr.cross_repository:
                 url = pr.url or pr.html_url
