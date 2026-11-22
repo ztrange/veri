@@ -296,6 +296,33 @@ def test_2427_a_leaf_killed_by_the_supervisors_own_hard_timeout_stays_killed_stu
         2, 1, ["hard timeout 1s exceeded"]), ran.stderr
 
 
+@pytest.mark.process("supervise.sh runs a real leaf that streams a tool call with no result, then outlives VERI_TIMEOUT")
+@pytest.mark.timeout(60)
+def test_4627_a_leaf_killed_stuck_with_a_tool_call_in_flight_gets_a_kill_reason_naming_its_command_and_seconds(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    stream = tmp_path / "stream.jsonl"
+    stream.write_text(
+        '{"type":"system","subtype":"init","session_id":"s"}\n'
+        '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_X","name":"Bash",'
+        '"input":{"command":"make test"}}]},"session_id":"s"}\n'
+        '{"type":"tool_progress","tool_use_id":"toolu_X-heartbeat-3","tool_name":"Bash",'
+        '"parent_tool_use_id":"toolu_X","elapsed_time_seconds":870,"heartbeat":true,"session_id":"s","uuid":"u"}\n')
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c", 'cat "$1"; exec sleep 60',
+                          "sh", str(stream)],
+                         cwd=work, capture_output=True, text=True, timeout=30,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_TIMEOUT": "1", "VERI_HEARTBEAT": "600",
+                              "VERI_ISSUE": "4627", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    events = [json.loads(l) for l in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
+    causes = [e.get("cause", "") for e in events if e.get("event") == "exit"]
+    status = [l for l in ran.stderr.splitlines() if l.startswith("supervise[develop-red]: killed-stuck")]
+
+    assert (ran.returncode, [("make test" in c, "870" in c) for c in causes + status]) == (
+        2, [(True, True), (True, True)]), ran.stderr
+
+
 @pytest.mark.process("supervise.sh runs a real leaf that outlives the wait the shared helper gives it")
 @pytest.mark.timeout(60)
 def test_2644_a_supervisor_whose_leaf_outlives_the_cases_wait_is_gone_after_the_helper_exits(tmp_path):
