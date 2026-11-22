@@ -294,6 +294,26 @@ def test_an_in_flight_tool_calls_multi_line_command_is_named_by_its_first_line_o
     assert supervise.in_flight_tool(log) == "Bash: " + first[:120] + "… (0s)"
 
 
+def test_an_answered_tool_call_followed_by_an_unanswered_one_names_the_second_with_its_own_heartbeats_seconds_4627(
+        supervise):
+    import json
+
+    def use(call_id, command):
+        return {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": call_id, "name": "Bash",
+                                                              "input": {"command": command}}]}}
+
+    def progress(call_id, secs):
+        return {"type": "tool_progress", "tool_use_id": call_id + "-heartbeat", "tool_name": "Bash",
+                "parent_tool_use_id": call_id, "elapsed_time_seconds": secs, "heartbeat": True}
+
+    result = {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "toolu_A", "content": ""}]}}
+    records = [use("toolu_A", "git status"), progress("toolu_A", 4), result,
+               use("toolu_B", "make test"), progress("toolu_B", 870), progress("toolu_A", 5)]
+    log = "".join(json.dumps(r) + "\n" for r in records)
+
+    assert supervise.in_flight_tool(log) == "Bash: make test (870s)"
+
+
 def test_an_in_flight_tool_calls_command_of_exactly_120_characters_is_named_whole_without_a_cut_4627(supervise):
     import json
     first = "make test TESTS=" + "x" * 104
