@@ -528,8 +528,10 @@ def rerecord_approved(ledger, approval, cases):
     if unknown:
         write(sys.stderr, "tests-frozen.sh: no earlier record holds %s" % ", ".join(unknown))
         return 2
-    gone = ["%s (%s)" % (case, name) for name, case in sorted(recorded) if case in cases
-            and not case_identity.bodies_of(case_history.text_at("HEAD", name, quiet=True), case)]
+    texts = {name: case_history.text_at("HEAD", name, quiet=True) for name, case in recorded if case in cases}
+    heads = {(name, case): "\n".join(case_identity.bodies_of(texts[name], case))
+             for name, case in recorded if case in cases}
+    gone = ["%s (%s)" % (case, name) for name, case in sorted(heads) if not heads[(name, case)]]
     if gone:
         write(sys.stderr, "tests-frozen.sh: HEAD does not hold %s" % ", ".join(gone))
         return 2
@@ -537,10 +539,9 @@ def rerecord_approved(ledger, approval, cases):
     def rewrite(_, record, name, case, __):
         if case not in cases:
             return record
-        head_text = case_history.text_at("HEAD", name, quiet=True)
-        head = "\n".join(case_identity.bodies_of(head_text, case))
+        head = heads[(name, case)]
         return body_line(name, case, head) + "\n" + frozen_record.helpers_line(
-            name, case, case_identity.helper_digest(head_text, head))
+            name, case, case_identity.helper_digest(texts[name], head))
     return 0 if rewrite_records(_earlier_records(lines, ""), rewrite) else 2
 
 
