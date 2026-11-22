@@ -233,10 +233,8 @@ def in_flight_tool(text):
         return None
     tool_input = call.get("input")
     command = tool_input.get("command") if isinstance(tool_input, dict) else None
-    seconds = f"({secs.get(call.get('id'), 0)}s)"
-    if not isinstance(command, str):
-        return f"{call.get('name')} {seconds}"
-    return f"{call.get('name')}: {command_head(command)} {seconds}"
+    label = f"{call.get('name')}: {command_head(command)}" if isinstance(command, str) else f"{call.get('name')}"
+    return f"{label} ({secs.get(call.get('id'), 0)}s)"
 
 
 def log_in_flight_tool(log):
