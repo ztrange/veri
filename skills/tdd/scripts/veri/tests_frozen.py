@@ -475,9 +475,13 @@ def rerecord_refactored(ledger, green):
                 body_digest, (b for c, b in old_cut_cases_all(green_text) if c == case)),
                 *([body_digest(before)] if before else [])}:
             return skip(name, case, record, "body digest matches neither green nor HEAD")
-        green_helpers = case_identity.helper_digest(green_text, verified)
+        # The record may hold the case's own file's digest (record, rerecord-earlier) or, for a Go case, the digest
+        # over its file plus its sibling _test.go files this command writes below (#4606): either one matching green
+        # is green's. Accepting only the first would skip a case a later step's refactor edits again.
+        green_helpers = {case_identity.helper_digest(green_text, verified), body_digest("\n".join(sorted(
+            case_identity.assertion_lines(case_identity.called_helpers(green, name, verified)))))}
         if (digest != body_digest(head) or digest == body_digest(verified)) and recorded_helpers.get(
-                (name, case), green_helpers) != green_helpers:
+                (name, case), next(iter(green_helpers))) not in green_helpers:
             return skip(name, case, record, "helpers digest differs from green's")
         helpers = case_identity.called_helpers("HEAD", at, head)
         called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))
