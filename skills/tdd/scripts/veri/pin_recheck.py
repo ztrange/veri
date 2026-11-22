@@ -250,6 +250,25 @@ def moved_to(pin):
     return held
 
 
+def gone_before_range(pin, base_sha):
+    """Whether the pin's old text was already gone from its file at <base-sha> and no commit of the range added or
+    removed it there (`git log -S`), so a step that added the text and refactored it away is not called stale; None
+    when git could not answer."""
+    if in_tree(base_sha, pin["file"]):
+        shown = subprocess.run(["git", "show", f"{base_sha}:{pin['file']}"], capture_output=True)
+        if shown.returncode != 0:
+            sys.stderr.write(f"cannot read {pin['file']} at {base_sha}: {shown.stderr.decode(errors='replace').strip()}\n")
+            return None
+        if pin["old"].encode() in shown.stdout:
+            return False
+    touched = subprocess.run(["git", "log", "--format=%H", f"-S{pin['old']}", f"{base_sha}..HEAD", "--", pin["file"]],
+                             capture_output=True, text=True)
+    if touched.returncode != 0:
+        sys.stderr.write(f"cannot search {base_sha}..HEAD for the old text of {pin['file']}: {touched.stderr.strip()}\n")
+        return None
+    return not touched.stdout.strip()
+
+
 def replay(pin, ledger, looks, branch_base, base_sha):
     """Replay a mutation pin: the mutation, then a control run; 0 nothing to count, 1 a red status, 2 no answer."""
     path = Path(pin["file"])
@@ -261,8 +280,10 @@ def replay(pin, ledger, looks, branch_base, base_sha):
     if pin["old"].encode() not in original:
         moved = moved_to(pin)
         if len(moved) != 1:
-            at_base = subprocess.run(["git", "show", f"{base_sha}:{pin['file']}"], capture_output=True).stdout
-            if pin["old"].encode() not in at_base:
+            gone = gone_before_range(pin, base_sha)
+            if gone is None:
+                return 2
+            if gone:
                 sys.stdout.write(f"stale: {ledger} {pin['file']}\n")
                 return 0
             where = "no file" if not moved else "more than one file"
