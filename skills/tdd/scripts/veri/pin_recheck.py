@@ -250,7 +250,7 @@ def moved_to(pin):
     return held
 
 
-def replay(pin, ledger, looks, branch_base):
+def replay(pin, ledger, looks, branch_base, base_sha):
     """Replay a mutation pin: the mutation, then a control run; 0 nothing to count, 1 a red status, 2 no answer."""
     path = Path(pin["file"])
     if not path.exists():
@@ -261,6 +261,10 @@ def replay(pin, ledger, looks, branch_base):
     if pin["old"].encode() not in original:
         moved = moved_to(pin)
         if len(moved) != 1:
+            at_base = subprocess.run(["git", "show", f"{base_sha}:{pin['file']}"], capture_output=True).stdout
+            if pin["old"].encode() not in at_base:
+                sys.stdout.write(f"stale: {ledger} {pin['file']}\n")
+                return 0
             where = "no file" if not moved else "more than one file"
             sys.stdout.write(f"not checked: {pin['file']} (old text in {where} of its package)\n")
             return 1
@@ -380,7 +384,7 @@ def recheck(argv, looks):
         if outcome.kind is Kind.REPLAY_BEFORE:
             code = replay_before_state(pin, ledger, outcome.named, argv[0], branch_base)
         else:
-            code = replay(pin, ledger, looks, branch_base)
+            code = replay(pin, ledger, looks, branch_base, argv[0])
         if code == 2:
             return 2
         status = status or code
