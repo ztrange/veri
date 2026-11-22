@@ -18,7 +18,7 @@ import ci_marks
 import event
 import event_log
 from ci_decision import Crash, Loop, Need, Observation, Options, Record, Sleep, UNREAD_LIMIT, decide, decimal, retry_sleep
-from ci_on_pr import declared, trigger_lines
+from ci_on_pr import declared, pull_request_trigger, trigger_lines
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha] | --fresh-window <head-sha>"
 PASSING = ("success", "neutral", "skipped")
@@ -202,7 +202,7 @@ def no_pull_request_workflow(repo, head):
         if run.returncode != 0:
             return False
         text = base64.b64decode(json.loads(run.stdout)["content"]).decode()
-        if any("pull_request" in line for line in trigger_lines(text)):
+        if pull_request_trigger(text) is not False:
             return False
     return True
 

@@ -1,11 +1,13 @@
 """Whether CI runs on pull requests here: the one reader of VERI_CI_ON_PR, of CLAUDE.md's `veri: ci on pr:` line,
 and of the workflows in the current directory."""
+import json
 import os
 
 import detect_test_command
 import tunables
 
 WORKFLOWS = ".github/workflows"
+ON_KEYS = ("on:", '"on":', "'on':")
 
 
 def trigger_lines(text):
@@ -17,9 +19,23 @@ def trigger_lines(text):
         if indent is not None and depth > indent:
             yield line
             continue
-        indent = depth if line.lstrip(" ").startswith("on:") else None
+        indent = depth if line.lstrip(" ").startswith(ON_KEYS) else None
         if indent is not None:
             yield line
+
+
+def pull_request_trigger(text):
+    """True when a workflow's text holds a pull_request trigger, False when it was read in full and holds none (a JSON
+    mapping, or a block YAML whose `on:` block was found), None when it was not read: no `on` key found, so a caller
+    fails closed."""
+    try:
+        document = json.loads(text)
+    except ValueError:
+        document = None
+    if isinstance(document, dict):
+        return "pull_request" in json.dumps(document["on"]) if "on" in document else None
+    lines = list(trigger_lines(text))
+    return any("pull_request" in line for line in lines) if lines else None
 
 
 def line_answer(root="."):
