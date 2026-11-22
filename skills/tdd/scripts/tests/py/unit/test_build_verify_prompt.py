@@ -2103,3 +2103,16 @@ def test_the_refactor_prompt_carries_the_near_duplicates_command_on_the_step_gre
 
     assert f"{build_verify_prompt.HERE}/near-duplicates.sh {green}" in prompt
     assert f"near-duplicates.sh {base}" not in prompt
+
+
+def test_the_refactor_phase_without_step_green_refuses_with_the_usage_line_it_had_before_4583(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+
+    code = build_verify_prompt.main(["--fast-cmd", "m", "refactor", str(spec), "t", "0123abc"])
+    out, err = capsysbinary.readouterr()
+
+    assert (code, out, err) == (2, b"", b"build-verify-prompt: refactor needs --step-green <sha>, the step's green tick\n"
+                                b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>]"
+                                b" [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]\n")
