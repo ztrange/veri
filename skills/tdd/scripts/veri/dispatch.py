@@ -521,10 +521,18 @@ def _logged_runs(world):
     return list(dict.fromkeys(runs[marks[0]:]))
 
 
+def _reported(issue, world):
+    """True when an earlier call printed <issue>'s exit and dispatch.log names no launch of it since: its
+    `exited <n> <k>` line, <k> the log's launched-line count when the exit was printed. A relaunch supersedes it."""
+    runs = world.launched_runs()
+    return any(issue not in runs[int(words[2]):] for words in map(str.split, world.notified())
+               if len(words) == 3 and f"{words[0]} " == EXITED and words[1] == issue and words[2].isdigit())
+
+
 def _exits(state, world, live):
     """The vanish, restart, silent-exit and closing-line rules for each seen run no longer live."""
     for issue in state.seen:
-        if issue in live or f"{EXITED}{issue}" in world.notified():
+        if issue in live or (issue in state.logged and _reported(issue, world)):
             continue
         if issue in state.logged and not world.has_worktree(issue):
             continue  # read back from dispatch.log, never seen live by this call: released, cleaned or merged
@@ -555,7 +563,8 @@ def _exits(state, world, live):
             if issue not in state.pending:
                 state.pending.append(issue)
             continue
-        world.record_notified(world.notified() + [f"{EXITED}{issue}"])
+        kept = [line for line in world.notified() if not line.startswith(f"{EXITED}{issue} ")]
+        world.record_notified(kept + [f"{EXITED}{issue} {len(world.launched_runs())}"])
         world.say(line + "\n")
         return 0
     return None

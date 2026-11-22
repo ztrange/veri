@@ -151,3 +151,26 @@ def test_4605_only_runs_logged_after_the_mark_are_watched(dispatch):
     state, code = dispatch.step(dispatch.State(target=0), world)
 
     assert (code, world.said) == (0, ["bail 8\n"])
+
+
+def test_4605_bail_then_a_dispatch_relaunch_then_bail_again_between_calls_says_bail_twice(dispatch):
+    world = FakeWorld({"queue": ["7"], "closing": {"7": "bail 7"}}, logged=["7"], notified=["logged 0"])
+
+    dispatch.step(dispatch.State(target=1), world)
+    dispatch.step(dispatch.State(target=1), world)
+    dispatch.step(dispatch.State(target=0), world)
+
+    assert (world.launched, world.said) == (["7"], ["bail 7\n", "bail 7\n"])
+
+
+def test_4605_bail_then_a_resume_this_call_sees_live_then_bail_again_says_bail_twice(dispatch):
+    world = FakeWorld({"closing": {"7": "bail 7"}}, {"live": ["7"]}, {"closing": {"7": "bail 7"}},
+                      logged=["7"], notified=["logged 0"])
+
+    dispatch.step(dispatch.State(target=0), world)
+    world.wait()
+    state, watching = dispatch.step(dispatch.State(target=0), world)
+    world.wait()
+    state, code = dispatch.step(state, world)
+
+    assert (watching, code, world.said) == (None, 0, ["bail 7\n", "bail 7\n"])
