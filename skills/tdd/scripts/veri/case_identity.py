@@ -118,6 +118,10 @@ def as_recorded(body, digests):
     return next((v for v in root_variants(body) if body_digest(v) in digests), body)
 
 
+def _text_holds(text, case, digests):
+    return any(body_digest(v) in digests for body in bodies_of(text, case) for v in root_variants(body))
+
+
 def path_holding(case, digests, only=None):
     for top, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if not d.startswith(".")]
@@ -126,8 +130,7 @@ def path_holding(case, digests, only=None):
                 continue
             path = os.path.join(top, file)
             with open(path, encoding="utf-8", errors="replace") as handle:
-                if any(body_digest(v) in digests for body in bodies_of(handle.read(), case)
-                       for v in root_variants(body)):
+                if _text_holds(handle.read(), case, digests):
                     return path
     return None
 
@@ -138,7 +141,7 @@ def _holds(path, case, digests):
             text = handle.read()
     except OSError:
         return False
-    return any(body_digest(v) in digests for body in bodies_of(text, case) for v in root_variants(body))
+    return _text_holds(text, case, digests)
 
 
 def moved_path(name, case, digests):
