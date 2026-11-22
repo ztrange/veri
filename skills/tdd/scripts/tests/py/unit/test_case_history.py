@@ -122,8 +122,8 @@ def test_paths_at_lists_the_root_level_files_for_the_empty_directory_4606(case_h
     assert case_history.paths_at("abc", "") == ["a_test.go", "b_test.go"]
 
 
-def test_paths_at_is_empty_when_git_cannot_list(case_history, runs):
-    runs({})
+def test_paths_at_is_empty_when_git_cannot_list_even_if_it_printed_paths(case_history, runs):
+    runs({("ls-tree", "--name-only", "abc", "--", "cmd/x/"): (128, b"cmd/x/a_test.go\n", b"fatal: bad tree\n")})
     assert case_history.paths_at("abc", "cmd/x") == []
 
 
