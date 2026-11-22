@@ -202,6 +202,12 @@ def parked_issues():
     return {str(item["number"]) for item in json.loads(listed)}
 
 
+def head_issue(head_ref):
+    """The <p> of a run branch tdd/<p>-…, else None."""
+    run = re.match(r"tdd/(\d+)-", head_ref or "")
+    return run and run.group(1)
+
+
 def run_prs():
     """(url, number, head sha) of every open run draft PR (head tdd/… in this repository, not a fork's), on any
     machine, listed at most once per VERI_DISPATCH_OVERLAP_POLL seconds. A PR labelled parked, or whose issue
@@ -212,8 +218,7 @@ def run_prs():
         parked = parked_issues()
         for pr in answered("the open PR list", github.open_pulls,
                            "number,url,isDraft,headRefName,headRefOid,labels,isCrossRepository", limit=None):
-            if "parked" in pr.labels or re.match(r"tdd/(\d+)-", pr.head_ref or "") and \
-                    re.match(r"tdd/(\d+)-", pr.head_ref).group(1) in parked:
+            if "parked" in pr.labels or head_issue(pr.head_ref) in parked:
                 continue
             if pr.draft is True and pr.head_ref.startswith("tdd/") and not pr.cross_repository:
                 url = pr.url or pr.html_url
