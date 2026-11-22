@@ -2194,6 +2194,40 @@ def test_main_exits_0_warning_no_check_will_come_when_ci_on_pr_is_unset_and_a_pu
 
     assert answers == {"inline": (0, "", True), "map": (0, "", True)}
 
+
+def test_main_keeps_its_wait_with_3_on_a_no_checks_pr_whose_only_workflow_holds_pull_request_in_a_form_not_read_as_a_mapping_in_full_issue_4570(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    forms = {
+        "double-quoted-on": ("base64", "\"on\":\n  pull_request:\n"),
+        "single-quoted-on": ("base64", "'on':\n  pull_request:\n"),
+        "json": ("base64", "{\"on\": {\"pull_request\": {}}, \"jobs\": {}}\n"),
+        "flow-root": ("base64", "{on: pull_request, jobs: {}}\n"),
+        "flow-root-list": ("base64", "{on: [pull_request], jobs: {}}\n"),
+        "over-1-mb": ("none", ""),
+    }
+    answers = {}
+    for name, (encoding, workflow) in forms.items():
+        work = tmp_path / ("work-" + name)
+        (work / ".tdd").mkdir(parents=True)
+        bodies = sha_bodies([], [], "pending")
+        bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                                   "head": {"sha": FULL_SHA}})
+        content = base64.b64encode(workflow.encode()).decode() if encoding == "base64" else workflow
+
+        def workflows(line, encoding=encoding, content=content):
+            if ".github/workflows" not in line:
+                return None
+            if line.split("?")[0].endswith("ci.yml"):
+                return json.dumps({"name": "ci.yml", "type": "file", "encoding": encoding, "content": content})
+            return json.dumps([{"name": "ci.yml", "type": "file", "path": ".github/workflows/ci.yml"}])
+
+        served(fake_processes, bodies, workflows)
+        code, out, _ = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+        answers[name] = (code, out)
+
+    assert answers == {name: (3, "") for name in forms}
+
 def test_main_exits_0_warning_no_check_will_come_on_a_mergeable_pr_with_no_checks_when_ci_on_pr_is_unset_and_the_head_tree_has_no_workflows_directory_issue_2885(
         tmp_path, wait_ci, fake_processes, run_cli):
     work = tmp_path / "work"
