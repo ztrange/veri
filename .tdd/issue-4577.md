@@ -1,6 +1,6 @@
 # Plan for #4577 — The refactor leaf is handed its step's near-duplicate pairs and names each one it leaves
 
-- [ ] `build-develop-prompt.sh refactor` with no sixth argument renders the near-duplicates section reading `none` ⟦criterion 1⟧
+- [x] `build-develop-prompt.sh refactor` with no sixth argument renders the near-duplicates section reading `none` ⟦criterion 1⟧
 - [ ] `build-develop-prompt.sh refactor` given a pairs file prints each of its lines in the near-duplicates section ⟦criterion 1⟧
 - [ ] `build-develop-prompt.sh refactor` given an empty pairs file renders the near-duplicates section reading `none` ⟦criterion 1⟧
 - [ ] `build-develop-prompt.sh refactor` given an unreadable pairs file exits 2 with no stdout

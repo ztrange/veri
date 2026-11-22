@@ -43,6 +43,13 @@ def test_the_refactor_budget_is_the_tunable_and_five_when_unset(bdp, spec, monke
     assert (b"budget of 5 transforms" in unset, b"budget of 9 transforms" in set_to_nine) == (True, True)
 
 
+def test_4577_a_refactor_prompt_without_a_pairs_file_reads_none_under_near_duplicates(bdp, spec):
+    text = rendered(bdp, ["refactor", spec, "s", "make test", "a.py"])
+
+    section = text.partition(b"### Near-duplicate pairs this cycle added")[2].split(b"\n###", 1)[0]
+    assert section.strip() == b"none"
+
+
 def test_a_missing_spec_is_refused_naming_it_with_no_usage_line(bdp, tmp_path):
     missing = str(tmp_path / "gone.md")
 

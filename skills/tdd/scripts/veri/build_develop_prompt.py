@@ -234,7 +234,7 @@ def render(parsed, chosen):
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES", "ISSUE_NUMBER", "STEP_ARGUMENT",
-                            "AFFECTED_RUN_LINE", "RUN_LINE", "TEST_FILES", "SMELL_NAMES"), b"")
+                            "AFFECTED_RUN_LINE", "RUN_LINE", "TEST_FILES", "SMELL_NAMES", "NEAR_DUPLICATES"), b"")
     for name, value in zip(names[3:], args[3:]):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
@@ -250,6 +250,7 @@ def render(parsed, chosen):
                 "\n\nThe step also supersedes these older cases:" + _bullets(args[5:]))
     if phase == "refactor":
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.get("VERI_REFACTOR_BUDGET", unless_empty=True))
+        values["NEAR_DUPLICATES"] = b"none"
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
     try:
         text = expand_includes(_read(paths[0]), prompts_b)
