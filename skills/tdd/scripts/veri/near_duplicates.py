@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 import entry
+from case_reader import is_test_path
 import refactor_touched
 
 USAGE = "usage: near-duplicates.sh <commit>"
@@ -71,7 +72,7 @@ def main(argv):
     rev = argv[0]
     added = added_lines(rev)
     files = [(path, counting_lines(git("show", f"HEAD:{path}"), added.get(path, set())))
-             for path in refactor_touched.touched_files([f"{rev}^", rev])]
+             for path in refactor_touched.touched_files([f"{rev}^", rev]) if not is_test_path(path)]
     for line in pairs(files):
         print(line)
     return 0
