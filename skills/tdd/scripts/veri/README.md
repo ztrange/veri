@@ -636,6 +636,7 @@ Choosing and running the suites of the project veri works on: finding its test c
 - `declared(root=".")`: `VERI_CI_ON_PR` as `"0"` or `"1"`; when it is unset or empty, the `veri: ci on pr:` line of `root`'s `CLAUDE.md` as `"0"` or `"1"`, else `""`; ValueError naming the variable or the line on any other value. `queued_merge` passes its worktree; the other callers read the directory they run in.
 - `trigger_lines(text)`: generator of the lines of a workflow's `on:` block (an `on:`, `"on":` or `'on':` key).
 - `pull_request_trigger(text)`: True when a workflow's text holds a `pull_request` trigger, False when it was read in full and holds none (a JSON mapping, or a block YAML whose `on:` block was found), None when it was not read (no `on` key found: a flow-mapping root, empty contents); `wait_ci` and `runs_on_pull_requests` fail closed on None.
+- `WORKFLOW_SUFFIXES`: the file-name endings (`.yml`, `.yaml`) of the entries of `.github/workflows/` GitHub reads as workflows; the local and the remote readers skip other names.
 
 ## detect_test_command
 - `resolved(tier, issue, root, claude_md=None)`: the test command for a tier, `None` when none is found; `claude_md`, when given, is the CLAUDE.md text read instead of `root`'s file, and only a line it declares answers (no tier is inferred from `root`'s other files).
