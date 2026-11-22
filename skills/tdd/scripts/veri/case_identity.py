@@ -46,8 +46,9 @@ Interface (a function says what it touches: text only, the tree's files, or case
   changed_by_refactor(name, case)         True when the newest commit that changed `case` in `name` has a subject
                                           starting "refactor:". False when `case` is not at HEAD, was never changed,
                                           or the history cannot be read (OSError). Asks case_history.
-  called_helpers(rev, name, body)         helpers_in of the file `name` at `rev` (read quietly); "" when git cannot
-                                          show it. Asks case_history.
+  called_helpers(rev, name, body)         helpers_in of the file `name` at `rev` (read quietly), then of every other
+                                          test file (case_reader.is_test_path) in `name`'s directory at `rev`; "" when
+                                          git can show none of them. Asks case_history.
 
 Error modes: only changed_by_refactor catches anything (OSError from case_history, answered False). The rest let
 case_reader's UnclosedCase, a file's OSError and case_history's OSError through to the caller, who decides.
@@ -57,7 +58,7 @@ import re
 
 import case_history
 import renamed_case
-from case_reader import cut_cases
+from case_reader import cut_cases, is_test_path
 from frozen_record import body_digest
 
 
@@ -182,4 +183,7 @@ def changed_by_refactor(name, case):
 
 
 def called_helpers(rev, name, body):
-    return helpers_in(case_history.text_at(rev, name, quiet=True), body)
+    siblings = [path for path in case_history.paths_at(rev, os.path.dirname(name))
+                if path != os.path.normpath(name) and is_test_path(path)]
+    return "\n".join(filter(None, (helpers_in(case_history.text_at(rev, path, quiet=True), body)
+                                   for path in [name] + siblings)))

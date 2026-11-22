@@ -224,7 +224,8 @@ def test_path_holding_restricts_itself_to_the_given_basename_and_answers_none_wh
 
 
 class History:
-    """Stands in for case_history on one file: `versions` is {rev: source}, newest first; `subjects` {rev: subject}."""
+    """Stands in for case_history on one file, alone in its directory: `versions` is {rev: source}, newest first;
+    `subjects` {rev: subject}."""
 
     def __init__(self, monkeypatch, case_identity, versions, subjects=None):
         self.versions, self.subjects, self.quiet = versions, subjects or {}, []
@@ -232,6 +233,7 @@ class History:
         monkeypatch.setattr(history, "revisions", lambda path, since=None: list(self.versions))
         monkeypatch.setattr(history, "cases_at", self.cases_at)
         monkeypatch.setattr(history, "text_at", self.text_at)
+        monkeypatch.setattr(history, "paths_at", lambda rev, directory: [])
         monkeypatch.setattr(history, "subject", lambda rev: self.subjects.get(rev, ""))
 
     def text_at(self, rev, path, quiet=False):

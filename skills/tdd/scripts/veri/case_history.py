@@ -12,6 +12,8 @@ Interface:
                                 cannot read `rev` at all. Twin names keep the last body.
   revisions(path, since=None)   the shas of the commits that touched `path`, newest first; with `since`,
                                 only those in since..HEAD. [] when git cannot log.
+  paths_at(rev, directory)      the repo-relative paths of the files directly in `directory` at `rev` (git
+                                ls-tree, not recursive); [] when git cannot list.
   subject(rev)                  `rev`'s commit subject plus its newline; "" when git cannot log.
   changed_test_files()          test files that differ from HEAD (changed, then untracked), repo-relative, in
                                 git's order; OSError ("git <diff|ls-files> failed: ...") when a listing fails,
@@ -26,7 +28,7 @@ Interface:
                                 the oldest commit whose change to `path` adds or removes an occurrence of
                                 `needle` (git log -S); "" when none does or git cannot log.
 
-Error modes: toplevel, has_rev, current_branch, revisions, subject and first_revision_with turn a git failure into None / False / "" and
+Error modes: toplevel, has_rev, current_branch, revisions, paths_at, subject and first_revision_with turn a git failure into None / False / "" and
 raise only OSError when git cannot start. Every query runs in the current directory and
 runs git through git.git, the runner veri shares, untouched: the caller owns the working directory.
 """
@@ -84,6 +86,12 @@ def revisions(path, since=None):
     listed = git.git("log", "--format=%H", *(["%s..HEAD" % since] if since else []), "--", path,
                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     return os.fsdecode(listed.stdout).split()
+
+
+def paths_at(rev, directory):
+    listed = git.git("ls-tree", "--name-only", rev, "--", os.path.join(directory, ""), stdout=subprocess.PIPE,
+                     stderr=subprocess.DEVNULL)
+    return os.fsdecode(listed.stdout).splitlines() if listed.returncode == 0 else []
 
 
 def subject(rev):
