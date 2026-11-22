@@ -871,6 +871,16 @@ def test_issue_934_an_unticked_full_suite_line_does_not_count_as_done(tmp_path, 
     assert "Steps done: 4 of 5 planned.\n" in render(metrics, capsys)
 
 
+def test_4625_a_resumed_run_whose_ledger_has_every_step_done_counts_them_all_without_the_earlier_step_done_marks(
+        tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, conductor("a", 30000, "step-start") + conductor("c", 30500, "resume")
+              + conductor("c", 30600, "step-start") + conductor("c", 30700, "step-done"))
+    (tmp_path / ".tdd" / "issue-108.md").write_text("".join("- [x] %s\n" % step for step in "abc"))
+    monkeypatch.chdir(tmp_path)
+
+    assert "Steps done: 3 of 3 planned.\n" in render(metrics, capsys)
+
+
 def test_issue_934_a_log_with_no_ledger_beside_it_reports_the_planned_figure_as_unknown(tmp_path, monkeypatch, capsys, metrics):
     events = []
     for i, step in enumerate("abcd"):
