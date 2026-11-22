@@ -244,14 +244,14 @@ def replay_before_state(pin, ledger, named, base, branch_base):
 
 
 def moved_to(pin):
-    """The files of the pin's directory holding its old text; when none does, the tracked files outside `.tdd/`
-    holding it."""
+    """Where the pin's old text went, and the files holding it: the files of the pin's directory, its package; when
+    none does, the tracked files outside `.tdd/`."""
     old = pin["old"].encode()
     held = [f for f in sorted(Path(pin["file"]).parent.iterdir()) if f.is_file() and old in f.read_bytes()]
     if held:
-        return held
+        return "file of its package", held
     tracked = [Path(name) for name in git_out("ls-files", "-z").split("\0") if name and not name.startswith(".tdd/")]
-    return [f for f in tracked if f.is_file() and old in f.read_bytes()]
+    return "tracked file", [f for f in tracked if f.is_file() and old in f.read_bytes()]
 
 
 def replay(pin, ledger, looks, branch_base):
@@ -263,12 +263,12 @@ def replay(pin, ledger, looks, branch_base):
     pin["command"] = current_wrapper(pin["command"])
     original = path.read_bytes()
     if pin["old"].encode() not in original:
-        moved = moved_to(pin)
+        where, moved = moved_to(pin)
         if not moved:
-            sys.stdout.write(f"not checked: {pin['file']} (old text in no tracked file)\n")
+            sys.stdout.write(f"not checked: {pin['file']} (old text in no {where})\n")
             return 1
         if len(moved) > 1:
-            sys.stdout.write(f"not checked: {pin['file']} (old text in more than one file of its package)\n")
+            sys.stdout.write(f"not checked: {pin['file']} (old text in more than one {where})\n")
             return 1
         path = moved[0]
         original = path.read_bytes()

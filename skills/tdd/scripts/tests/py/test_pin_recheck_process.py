@@ -3518,3 +3518,36 @@ def test_4643_a_pin_whose_old_text_moved_to_a_file_of_another_directory_is_repla
 
     assert (ran.returncode, (tmp_path / "mutated.marker").exists(), (tmp_path / "b" / "other.go").read_bytes(),
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, moved, True), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that copies the pinned text from a/main.go into b/one.go and c/two.go")
+def test_4643_a_pin_whose_old_text_is_in_more_than_one_tracked_file_elsewhere_is_not_checked_and_mutates_none_of_them(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    for name in ("a", "b", "c"):
+        (tmp_path / name).mkdir()
+    (tmp_path / "a" / "main.go").write_text("package main\nif guard\n")
+    (tmp_path / "a" / "util.go").write_text("package main\n")
+    (tmp_path / "b" / "one.go").write_text("package b\n")
+    (tmp_path / "c" / "two.go").write_text("package c\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4643-mutations.md", file="a/main.go", old="if guard", new="if (true)",
+           command="sh -c \"echo result; grep -q 'if guard' b/one.go && grep -q 'if guard' c/two.go || touch mutated.marker\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    one, two = b"package b\nif guard\n", b"package c\nif guard\n"
+    (tmp_path / "a" / "main.go").write_text("package main\n")
+    (tmp_path / "b" / "one.go").write_bytes(one)
+    (tmp_path / "c" / "two.go").write_bytes(two)
+    git("commit", "-q", "-am", "copy the guard into b/one.go and c/two.go")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "not checked: a/main.go (old text in more than one tracked file)\n" in ran.stdout,
+            (tmp_path / "mutated.marker").exists(), (tmp_path / "b" / "one.go").read_bytes(),
+            (tmp_path / "c" / "two.go").read_bytes(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
+        1, True, False, one, two, False), ran.stdout + ran.stderr
