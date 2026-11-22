@@ -479,7 +479,7 @@ class State:
         self.target = target
         self.follows_role_state = follows_role_state  # re-read the target from the role state file each poll
         self.previous = None  # the last issue launched
-        self.logged = False  # dispatch.log's launched runs already folded into seen
+        self.logged = None  # the runs dispatch.log names after the mark, folded into seen at the first poll
         self.seen = []  # the runs under watch: live, absent or pending
         self.absent = []  # gone with no worktree and no conductor process, for one poll so far
         self.pending = []  # gone but not yet reportable: in preflight, restarting, or a silent exit under 30 s
@@ -502,6 +502,23 @@ def _merge_failed(state, world):
 
 
 EXITED = "exited "
+# The .tdd/dispatch-notified line that bounds the runs read back from dispatch.log: how many of its launched lines
+# came before the first call that kept it. Only the launches after the mark are watched, so an upgrade never reports
+# (or calls vanished) a run launched, and maybe already reported, before the record of reported exits existed.
+LOGGED_LINE = "logged "
+
+
+def _logged_runs(world):
+    """The runs dispatch.log names after the mark, each once; with no mark yet, records one at the log's current
+    length and answers []."""
+    runs = world.launched_runs()
+    lines = world.notified()
+    marks = [int(word) for line in lines if line.startswith(LOGGED_LINE)
+             for word in line.split()[1:2] if word.isdigit()]
+    if not marks:
+        world.record_notified(lines + [f"{LOGGED_LINE}{len(runs)}"])
+        return []
+    return list(dict.fromkeys(runs[marks[0]:]))
 
 
 def _exits(state, world, live):
@@ -509,6 +526,8 @@ def _exits(state, world, live):
     for issue in state.seen:
         if issue in live or f"{EXITED}{issue}" in world.notified():
             continue
+        if issue in state.logged and not world.has_worktree(issue):
+            continue  # read back from dispatch.log, never seen live by this call: released, cleaned or merged
         if not world.has_worktree(issue):
             if world.conductor_alive(issue):
                 if issue in state.absent:
@@ -692,9 +711,10 @@ def step(state, world):
     """One poll: (state, exit code), the code None while dispatch keeps watching. Each line is printed through
     world.say or world.complain as it is decided, so a later failure in the same poll never swallows it."""
     live = world.live_runs()
-    if not state.logged:
-        state.logged = True
-        state.seen += getattr(world, "launched_runs", list)()
+    if state.logged is None:
+        state.logged = [issue for issue in _logged_runs(world) if issue not in state.seen]
+        state.seen += state.logged
+    state.logged = [issue for issue in state.logged if issue not in live]
     code = _merge_failed(state, world)
     if code is None:
         code = _exits(state, world, live)

@@ -3536,14 +3536,14 @@ def test_4455_a_veri_queue_polls_not_a_whole_number_of_at_least_2_exits_2_naming
 
 
 def test_4455_a_restarted_dispatch_continues_the_waiter_counts_dispatch_notified_holds_and_keeps_its_other_lines(dispatch):
-    quiet = FakeWorld({"waiters": 1}, {"waiters": 1}, notified=["t-lowered 1700000000"])
+    quiet = FakeWorld({"waiters": 1}, {"waiters": 1}, notified=["t-lowered 1700000000", "logged 0"])
     dispatch.main(["--target", "2"], world=quiet)
     restarted = FakeWorld({"waiters": 3}, notified=quiet.notified_lines)
 
     code = dispatch.main(["--target", "2"], world=restarted)
 
     assert (quiet.notified_lines, code, "".join(restarted.said)) == (
-        ["t-lowered 1700000000", "queue 1 1"], None,
+        ["t-lowered 1700000000", "logged 0", "queue 1 1"], None,
         "queueing 3 waiting for T=8, 0 workers in use: a lower N would shorten the wait\n")
 
 
@@ -3621,12 +3621,12 @@ def test_4455_the_real_worlds_test_budget_is_the_legs_t_and_the_workers_live_reg
 
 def test_4527_a_live_runs_test_stretch_event_prints_the_stretched_line_after_that_polls_launch_and_keeps_watching(dispatch):
     world = FakeWorld({"live": ["7"], "queue": ["15"], "stretches": {"7": [("fast", "9", "3")]}},
-                      notified=["queue 0"])
+                      notified=["logged 0", "queue 0"])
 
     code = dispatch.main(["--target", "2"], world=world)
 
     assert (code, world.launched, world.waits, "".join(world.said), world.notified_lines) == (
-        None, ["15"], 1, "stretched 7 fast 9s, idle 3s\n", ["queue 0 0", "stretched 7 fast"])
+        None, ["15"], 1, "stretched 7 fast 9s, idle 3s\n", ["logged 0", "queue 0 0", "stretched 7 fast"])
 
 
 def test_4456_a_run_and_tier_already_reported_prints_nothing_while_its_other_tier_and_another_run_each_print_once(dispatch):
@@ -3664,12 +3664,12 @@ LOWERING = (1700000600, 6, 4, "tests/a.py::test_x,tests/b.py::test_y")
 
 
 def test_4527_a_poll_finding_a_lowering_on_record_prints_the_t_lowered_line_keeps_watching_and_records_its_time(dispatch):
-    world = FakeWorld({"lowering": LOWERING, "queue": ["15"]}, notified=["queue 1"])
+    world = FakeWorld({"lowering": LOWERING, "queue": ["15"]}, notified=["logged 0", "queue 1"])
 
     code = dispatch.main(["--target", "2"], world=world)
 
     assert (code, world.launched, world.waits, "".join(world.said), world.notified_lines) == (
-        None, ["15"], 1, "t-lowered 6 4 tests/a.py::test_x,tests/b.py::test_y\n", ["queue 1 0", "t-lowered 1700000600"])
+        None, ["15"], 1, "t-lowered 6 4 tests/a.py::test_x,tests/b.py::test_y\n", ["logged 0", "queue 1 0", "t-lowered 1700000600"])
 
 
 def test_4454_a_restarted_dispatch_never_prints_a_lowering_it_already_reported(dispatch):
@@ -3684,12 +3684,12 @@ def test_4454_a_restarted_dispatch_never_prints_a_lowering_it_already_reported(d
 
 def test_4454_a_lowering_newer_than_the_last_reported_is_printed(dispatch):
     world = FakeWorld({"lowering": (1700001300, 4, 2, "tests/c.py::test_z,tests/a.py::test_x")},
-                      notified=["t-lowered 1700000600"])
+                      notified=["logged 0", "t-lowered 1700000600"])
 
     code = dispatch.main(["--target", "2"], world=world)
 
     assert (code, "".join(world.said), world.notified_lines) == (
-        None, "t-lowered 4 2 tests/c.py::test_z,tests/a.py::test_x\n", ["queue 0", "t-lowered 1700001300"])
+        None, "t-lowered 4 2 tests/c.py::test_z,tests/a.py::test_x\n", ["logged 0", "queue 0", "t-lowered 1700001300"])
 
 
 def test_4527_over_further_polls_of_an_unchanged_world_the_queueing_stretched_and_t_lowered_lines_each_appear_once(dispatch):

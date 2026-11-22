@@ -30,12 +30,14 @@ What it records: `said` (stdout text), `complained` (stderr text), `launched` (i
 `launched_at_wait` (the launches made so far, one list per wait, taken as the wait is called),
 `reads` ((tick key, tick index) of every answer asked for, in order), `notified_lines` (.tdd/dispatch-notified's
 lines as last recorded; the constructor's `notified` until then), `budget_written` (the lane need of every
-test-budget write, in order).
+test-budget write, in order), `logged` (dispatch.log's launched issues: the constructor's `logged`, then each
+launch appended).
 """
 
 
 class FakeWorld:
-    def __init__(self, *ticks, role_state=(), role_state_file="/main/.tdd/role-dev.state", unreadable=False, notified=()):
+    def __init__(self, *ticks, role_state=(), role_state_file="/main/.tdd/role-dev.state", unreadable=False, notified=(),
+                 logged=()):
         self.ticks = list(ticks) or [{}]
         self.index = 0
         self.role_state_lines = list(role_state)
@@ -48,6 +50,7 @@ class FakeWorld:
         self.launched_at_wait = []
         self.reads = []
         self.notified_lines = list(notified)
+        self.logged = list(logged)
         self.budget_written = []
 
     def _tick(self):
@@ -141,9 +144,13 @@ class FakeWorld:
     def record_notified(self, lines):
         self.notified_lines = list(lines)
 
+    def launched_runs(self):
+        return list(self.logged)
+
     # acting
     def launch(self, issue):
         self.launched.append(issue)
+        self.logged.append(issue)
 
     def say(self, text):
         self.said.append(text)

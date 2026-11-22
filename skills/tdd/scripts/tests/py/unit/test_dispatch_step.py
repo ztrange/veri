@@ -88,11 +88,8 @@ def test_3990_a_rate_limited_queue_read_whose_reset_cannot_be_read_pauses_the_qu
 
 
 def test_4605_a_run_launched_per_dispatch_log_that_ended_done_before_a_fresh_call_says_done_before_any_launch(dispatch):
-    class LoggedWorld(FakeWorld):
-        def launched_runs(self):
-            return ["7"]
-
-    world = LoggedWorld({"queue": ["12"], "closing": {"7": "done 7 https://github.com/o/r/pull/9"}})
+    world = FakeWorld({"queue": ["12"], "closing": {"7": "done 7 https://github.com/o/r/pull/9"}},
+                      logged=["7"], notified=["logged 0"])
 
     state, code = dispatch.step(dispatch.State(target=1), world)
 
@@ -100,11 +97,7 @@ def test_4605_a_run_launched_per_dispatch_log_that_ended_done_before_a_fresh_cal
 
 
 def test_4605_a_run_launched_per_dispatch_log_that_ended_with_a_bail_before_a_fresh_call_says_bail_before_any_launch(dispatch):
-    class LoggedWorld(FakeWorld):
-        def launched_runs(self):
-            return ["7"]
-
-    world = LoggedWorld({"queue": ["12"], "closing": {"7": "bail 7"}})
+    world = FakeWorld({"queue": ["12"], "closing": {"7": "bail 7"}}, logged=["7"], notified=["logged 0"])
 
     state, code = dispatch.step(dispatch.State(target=1), world)
 
@@ -112,11 +105,8 @@ def test_4605_a_run_launched_per_dispatch_log_that_ended_with_a_bail_before_a_fr
 
 
 def test_4605_a_run_launched_per_dispatch_log_that_ended_silent_before_a_fresh_call_says_silent_exit_after_the_hold_before_any_launch(dispatch):
-    class LoggedWorld(FakeWorld):
-        def launched_runs(self):
-            return ["7"]
-
-    world = LoggedWorld({"queue": ["12"], "clock": 1000}, {"queue": ["12"], "clock": 1030})
+    world = FakeWorld({"queue": ["12"], "clock": 1000}, {"queue": ["12"], "clock": 1030}, logged=["7"],
+                      notified=["logged 0"])
 
     state, held = dispatch.step(dispatch.State(target=1), world)
     world.wait()
@@ -126,13 +116,38 @@ def test_4605_a_run_launched_per_dispatch_log_that_ended_silent_before_a_fresh_c
 
 
 def test_4605_two_fresh_calls_over_the_same_ended_run_launched_per_dispatch_log_say_its_done_line_once(dispatch):
-    class LoggedWorld(FakeWorld):
-        def launched_runs(self):
-            return ["7"]
-
-    world = LoggedWorld({"queue": ["12"], "closing": {"7": "done 7 https://github.com/o/r/pull/9"}})
+    world = FakeWorld({"queue": ["12"], "closing": {"7": "done 7 https://github.com/o/r/pull/9"}},
+                      logged=["7"], notified=["logged 0"])
 
     dispatch.step(dispatch.State(target=1), world)
     dispatch.step(dispatch.State(target=1), world)
 
     assert world.said == ["done 7 https://github.com/o/r/pull/9\n"]
+
+
+def test_4605_a_logged_run_with_no_worktree_is_never_reported_vanished(dispatch):
+    world = FakeWorld({"queue": ["12"], "no_worktree": ["7"]}, logged=["7"], notified=["logged 0"])
+
+    state, first = dispatch.step(dispatch.State(target=0), world)
+    state, second = dispatch.step(state, world)
+    state, third = dispatch.step(state, world)
+
+    assert (first, second, third, world.complained, world.said) == (None, None, None, [], [])
+
+
+def test_4605_the_first_call_with_no_mark_records_dispatch_logs_length_and_reports_no_run_logged_before_it(dispatch):
+    world = FakeWorld({"queue": ["12"], "closing": {"7": "done 7 https://github.com/o/r/pull/9"}},
+                      logged=["7", "7"], notified=["stretched 5 unit"])
+
+    state, code = dispatch.step(dispatch.State(target=0), world)
+
+    assert (code, world.said, world.notified_lines[:2]) == (None, [], ["stretched 5 unit", "logged 2"])
+
+
+def test_4605_only_runs_logged_after_the_mark_are_watched(dispatch):
+    world = FakeWorld({"closing": {"7": "done 7 https://github.com/o/r/pull/9", "8": "bail 8"}},
+                      logged=["7", "8"], notified=["logged 1"])
+
+    state, code = dispatch.step(dispatch.State(target=0), world)
+
+    assert (code, world.said) == (0, ["bail 8\n"])
