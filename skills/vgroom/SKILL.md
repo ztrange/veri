@@ -177,9 +177,20 @@ Then, in the project repo:
 1. Group the LIVE items by module.
 2. Write **one consolidated issue per module** listing every source item, each with its
    location and the refactor owed. A module whose items hold more than one deliverable gets one
-   issue per deliverable, whatever the extra runs cost (P16). File each at once, unless it is
-   big-impact (`## Applying outcomes`): show a big-impact one to the human in full and file it
-   only on their yes.
+   issue per deliverable, whatever the extra runs cost (P16).
+   - **Body.** Write it in the issue body `../vfile/SKILL.md` states (`## The issue body`): a
+     refactor's criteria are structural predicates, each with a runnable check where one exists.
+   - **Sites.** The sites listed under `## Problem` are found by **searching the default branch
+     for the smell the source items describe**, across the whole module or tree the issue's goal
+     names, never copied from the source items' locations alone: two items naming one file may
+     sit beside copies in ten others.
+   - **Check before filing.** Check each criterion as `../vfile/SKILL.md`'s *Before filing*
+     check 2 states: every input it names exists, and its **literal rule meets its goal**, so a
+     check that counts or searches reads every file holding a listed site, not one of them.
+     A criterion that fails the check is rewritten before the issue is filed.
+
+   File each at once, unless it is big-impact (`## Applying outcomes`): show a big-impact one to
+   the human in full and file it only on their yes.
 3. Close every source — GONE and FOLDS-INTO-OTHER with their reason at once, LIVE with a
    pointer to the consolidated issue once that issue is filed.
 
