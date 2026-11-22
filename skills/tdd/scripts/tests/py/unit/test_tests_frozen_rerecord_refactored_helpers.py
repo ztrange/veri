@@ -1104,3 +1104,52 @@ def test_check_earlier_passes_silently_a_go_case_whose_helpers_record_covers_its
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)
 
     assert (checked, _record_of(tmp_path).read_text()) == ((0, "", ""), before)
+
+
+def test_rerecord_refactored_re_records_a_go_case_calling_a_sibling_helper_whose_helpers_record_covers_its_own_file_only_4606(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    (tmp_path / "cmd/x").mkdir(parents=True)
+    case, helpers = tmp_path / SIBLING_CASE, tmp_path / SIBLING_HELPERS
+    case.write_text("func TestPage(t *testing.T) {\n\turl := \"/x\"\n\tuse(getPage(t, url))\n}\n")
+    helpers.write_text("func getPage(t *testing.T, url string) string {\n" + GUARDED_GET + "\treturn read(resp)\n}\n")
+    repo.add(SIBLING_CASE, SIBLING_HELPERS)
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], SIBLING_CASE], cwd=tmp_path)
+    own = tests_frozen._helper_digest(case.read_text(), tests_frozen._bodies_of(case.read_text(), "TestPage")[0])
+    with _record_of(tmp_path).open("a") as handle:
+        handle.write("helpers: %s\tTestPage\t%s\n" % (SIBLING_CASE, own))
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    green = repo.commit("A green", all=True)
+    case.write_text(case.read_text().replace("url := \"/x\"\n", "url := \"/x\"\n\n"))
+    repo.commit("A refactor spaces the case out", all=True)
+    (tmp_path / VERDICT).write_text("0")
+    before = _record_of(tmp_path).read_text()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, SIBLING_CASE + " TestPage"), _record_of(tmp_path).read_text() != before) == (0, 0, True), err
+
+
+def test_rerecord_refactored_writes_the_empty_helpers_digest_for_a_python_case_whose_called_function_only_a_go_test_file_beside_it_defines_4606(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    (tmp_path / "t").mkdir()
+    a, go = tmp_path / SAME_DIR_A, tmp_path / "t/z_test.go"
+    go.write_text("func check(t *testing.T) {\n\tif !ok {\n\t\tt.Fatal(\"no\")\n\t}\n}\n")
+    a.write_text("from helpers import check\n\n\ndef test_a():\n    x = 1\n    assert 1\n    check(x)\n")
+    repo.add(SAME_DIR_A, "t/z_test.go")
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], SAME_DIR_A], cwd=tmp_path)
+    repo.commit("A red", all=True)
+    _ledger(tmp_path, A="done")
+    green = repo.commit("A green", all=True)
+    a.write_text(a.read_text().replace("x = 1", "y = 1").replace("check(x)", "check(y)"))
+    repo.commit("A refactor", all=True)
+    (tmp_path / VERDICT).write_text("0")
+    nothing = tests_frozen._helper_digest("", "")
+
+    code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
+
+    held = [l.split("\t")[2] for l in _record_of(tmp_path).read_text().splitlines()
+            if l.startswith("helpers: " + SAME_DIR_A + "\t") and l.split("\t")[1] == "test_a"]
+    assert (code, held[-1:]) == (0, [nothing]), held
