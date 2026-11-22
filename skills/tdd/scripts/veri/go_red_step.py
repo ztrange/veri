@@ -2,6 +2,7 @@
 names, recorded in the run's mutation record, then step-tick.sh (#4443)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import re
 import sys
 
 import fused
@@ -42,7 +43,7 @@ def run(n):
     before = read_bytes(wt, path)
     if before is not None and old.encode() not in before:
         raise fused.Stop("probe", "%s no longer holds `%s`" % (path, old), 1)
-    code = fused.call(fused.script("mutation-probe.sh"), path, old, new, "--", *command(wt, case), cwd=wt,
+    code = fused.call(fused.script("mutation-probe.sh"), path, old, new, "--", *command(wt, committed_case(wt, case)), cwd=wt,
                       env=tunables.with_values(VERI_MUTATION_RECORD=RECORD % n), out=".tdd/go-red-probe.out")[0]
     if code == 1:
         raise fused.Stop("probe", "%s stayed green with %s→%s in %s" % (case, old, new, path), 1)
@@ -64,6 +65,16 @@ def read_bytes(wt, path):
             return f.read()
     except OSError:
         return None
+
+
+def committed_case(wt, case):
+    """<case>, or the `test_<digits>_x` case its file defines for `test_x` (the red leaf's issue-number prefix)."""
+    file, _, name = case.partition("::")
+    body = read_bytes(wt, file)
+    if body is None:
+        return case
+    found = re.search(r"^def (test_\d+_%s)\b" % re.escape(name[5:]), body.decode("utf-8", "replace"), re.M)
+    return "%s::%s" % (file, found.group(1)) if found else case
 
 
 def command(wt, case):
