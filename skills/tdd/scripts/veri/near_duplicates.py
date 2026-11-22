@@ -37,34 +37,37 @@ def counting_lines(text, added):
             for number, line in enumerate(text.splitlines(), 1) if re.search(r"[A-Za-z0-9]", line)]
 
 
-def pairs_within(path, lines):
+def pairs(files):
+    """The `<file>:<first>-<last> <file>:<first>-<last>` lines, over [(path, counting lines)] in touched order."""
     found = []
-    for i, (_, text, is_added) in enumerate(lines):
-        if not is_added:
-            continue
-        for j, (_, other, _) in enumerate(lines):
-            if other != text or j == i:
+    for path, lines in files:
+        for i, (_, text, is_added) in enumerate(lines):
+            if not is_added:
                 continue
-            if i and j and lines[i - 1][2] and lines[i - 1][1] == lines[j - 1][1]:
-                continue
-            length = 0
-            while (i + length < len(lines) and j + length < len(lines) and lines[i + length][2]
-                   and lines[i + length][1] == lines[j + length][1]):
-                length += 1
-            if length < MINIMUM or (i < j + length and j < i + length):
-                continue
-            found.append(f"{path}:{lines[i][0]}-{lines[i + length - 1][0]} "
-                         f"{path}:{lines[j][0]}-{lines[j + length - 1][0]}")
+            for other_path, others in files:
+                for j, (_, other, _) in enumerate(others):
+                    if other != text or (other_path == path and j == i):
+                        continue
+                    if i and j and lines[i - 1][2] and lines[i - 1][1] == others[j - 1][1]:
+                        continue
+                    length = 0
+                    while (i + length < len(lines) and j + length < len(others) and lines[i + length][2]
+                           and lines[i + length][1] == others[j + length][1]):
+                        length += 1
+                    if length < MINIMUM or (other_path == path and i < j + length and j < i + length):
+                        continue
+                    found.append(f"{path}:{lines[i][0]}-{lines[i + length - 1][0]} "
+                                 f"{other_path}:{others[j][0]}-{others[j + length - 1][0]}")
     return found
 
 
 def main(argv):
     rev = argv[0]
     added = added_lines(rev)
-    for path in refactor_touched.touched_files([f"{rev}^", rev]):
-        text = git("show", f"HEAD:{path}")
-        for line in pairs_within(path, counting_lines(text, added.get(path, set()))):
-            print(line)
+    files = [(path, counting_lines(git("show", f"HEAD:{path}"), added.get(path, set())))
+             for path in refactor_touched.touched_files([f"{rev}^", rev])]
+    for line in pairs(files):
+        print(line)
     return 0
 
 
