@@ -3488,6 +3488,29 @@ def test_4644_a_range_with_an_already_stale_pin_and_a_pin_it_broke_exits_1_for_t
         1, ["not checked: pb/b.go (old text in no file of its package)"], True, False), ran.stdout + ran.stderr
 
 
+@pytest.mark.process("git, and pin-recheck.sh run over a range that adds the pinned text to x.go, absent at the base")
+def test_4644_a_pin_whose_old_text_is_at_head_replays_even_when_its_base_lacks_it(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "x.go").write_text("package p\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4602-mutations.md", file="x.go", old="if guard", new="if (true)",
+           command="sh -c \"echo result; grep -q 'if guard' x.go || { touch mutated.marker; exit 1; }\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "x.go").write_text("package p\nif guard\n")
+    git("commit", "-q", "-am", "add the guard")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "mutated.marker").exists(), "stale:" in ran.stdout,
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, False, True), ran.stdout + ran.stderr
+
+
 @pytest.mark.process("git, and pin-recheck.sh run over a range that copies the pinned text from x.go into y.go and z.go")
 def test_4602_a_pin_whose_old_text_is_in_more_than_one_other_file_is_not_checked_and_mutates_none_of_them(tmp_path):
     def git(*words):
