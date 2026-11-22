@@ -428,6 +428,15 @@ def _is_suite_repair_green(lines, green):
     return False
 
 
+def _snapshot(lines):
+    """Each earlier record's path and text, to write back when a rewrite must not stand."""
+    snapshot = {}
+    for _, path, __ in _earlier_records(lines, ""):
+        with open(path, encoding="utf-8") as handle:
+            snapshot[path] = handle.read()
+    return snapshot
+
+
 def rerecord_refactored(ledger, green):
     with open(ledger, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
@@ -500,10 +509,7 @@ def rerecord_refactored(ledger, green):
         head_text = case_history.text_at("HEAD", at, quiet=True)
         return body_line(at, case, head) + "\n" + frozen_record.helpers_line(
             at, case, case_identity.helper_digest_beside(at, head_text, "\n".join(case_identity.bodies_of(head_text, case))))
-    snapshot = {}
-    for _, path, __ in _earlier_records(lines, ""):
-        with open(path, encoding="utf-8") as handle:
-            snapshot[path] = handle.read()
+    snapshot = _snapshot(lines)
     if not rewrite_records(_earlier_records(lines, ""), rewrite):
         return 2
     code = _check_earlier(ledger, "", sanctioned=exempt)
@@ -542,10 +548,7 @@ def rerecord_approved(ledger, approval, cases):
         head = heads[(name, case)]
         return body_line(name, case, head) + "\n" + frozen_record.helpers_line(
             name, case, case_identity.helper_digest(texts[name], head))
-    snapshot = {}
-    for _, path, __ in _earlier_records(lines, ""):
-        with open(path, encoding="utf-8") as handle:
-            snapshot[path] = handle.read()
+    snapshot = _snapshot(lines)
     if rewrite_records(_earlier_records(lines, ""), rewrite):
         return 0
     # A record that could not be written keeps no rewrite of the others: the approval took whole or not at all.
