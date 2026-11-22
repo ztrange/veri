@@ -2090,3 +2090,16 @@ def test_4544_refactor_bounds_its_files_by_step_green_and_reviews_from_base_sha_
         "bad": (2, b"", b"build-verify-prompt: --step-green needs 7-40 lowercase hex characters, got 'BBBB222'\n" + USAGE),
         "misplaced": (2, b"", b"build-verify-prompt: --step-green is the refactor phase's alone, not green's\n" + USAGE),
     }
+
+
+def test_the_refactor_prompt_carries_the_near_duplicates_command_on_the_step_green_sha_not_the_base_4583(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    green, base = "1a2b3c4d5e6f", "6f5e4d3c2b1a"
+    assert build_verify_prompt.main(
+        ["--step-green", green, "--fast-cmd", "make unit", "refactor", str(spec), "tests/test_x.py", base]) == 0
+    prompt = capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape")
+
+    assert f"{build_verify_prompt.HERE}/near-duplicates.sh {green}" in prompt
+    assert f"near-duplicates.sh {base}" not in prompt
