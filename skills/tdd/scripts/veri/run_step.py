@@ -138,6 +138,10 @@ def main(argv):
         start = order.index(start_at)
     elif kinds:
         start = 0
+    elif pending is None and fused_step.rejected(wt, n, "red-half", step) is not None:
+        # A reroute's `route=revise phase=red` outside this call (#4613): red is revised first, whatever stage the
+        # step seam recorded.
+        start = order.index("red-half")
     else:
         start = max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
     out, i, action = "", start, None
