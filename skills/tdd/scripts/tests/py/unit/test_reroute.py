@@ -532,11 +532,36 @@ def test_4546_on_repair_green_s_uncommitted_production_edit_is_restored_before_t
     assert sorted(fake.call("restore-production.sh")[1]) == ["tests/test_a.py", "tests/test_b.py", "tests/test_c.py"]
 
 
+def test_4546_on_missing_green_s_uncommitted_production_edit_is_restored_before_the_leaf_launches_keeping_the_test(
+        reroute):
+    """A `missing <behaviour>` answer: the production file reads as HEAD's when develop-red-missing is launched; the
+    step's test path is the one path restore-production.sh keeps, since the answer names a behaviour, not a case."""
+    prod = reroute.wt / "src_prod.py"
+    prod.write_text("green's edit\n")
+    seen = {}
+
+    class Restoring(Fake):
+        def __call__(self, name, *args, **kw):
+            base = os.path.basename(name)
+            if base == "restore-production.sh":
+                prod.write_text("HEAD\n")
+            if base == "detach-leaf.sh":
+                seen["at_launch"] = prod.read_text()
+            return super().__call__(name, *args, **kw)
+
+    fake = Restoring({("wrong-test-route.sh", None): (0, "missing the empty list is rejected\n"),
+                      ("wait-leaf.sh", "develop-red-missing"): (3, "")})
+    reroute(fake=fake)
+
+    assert (fake.launched(), seen.get("at_launch")) == (["develop-red-missing"], "HEAD\n")
+    assert list(fake.call("restore-production.sh")[1]) == ["tests/test_a.py"]
+
+
 @pytest.mark.parametrize("said, leaf, restores", [
     ("red tests/test_b.py::test_two", "develop-red-contradicted", True),
     ("repair tests/test_a.py::test_one tests/test_c.py::test_old", "develop-red-repair", True),
     ("supersede tests/test_c.py::test_x tests/test_d.py::test_y", "develop-red-supersede", False),
-    ("missing the empty list is rejected", "develop-red-missing", False)])
+    ("missing the empty list is rejected", "develop-red-missing", True)])
 def test_4496_each_answer_kind_restores_production_or_not_before_its_leaf_launches(reroute, said, leaf, restores):
     """Contrast, per answer kind: whether restore-production.sh runs before its leaf launches. `supersede` launches
     with green's edit left alone (#4546 leaves it out of scope)."""
