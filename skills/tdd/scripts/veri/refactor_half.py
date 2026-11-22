@@ -91,7 +91,7 @@ def develop(n, wt, settled, step, test_path):
         return None, values
     fast = settled["fast_cmd"]
     # The pairs the step's own green tick added, the leaf's to answer (#4577).
-    fused.checked("1", fused.script("near-duplicates.sh"), step_green, cwd=wt, out=PAIRS)
+    fused.checked("1", fused.script("near-duplicates.sh"), step_green, cwd=wt, out=PAIRS, ok=(0, 3))
     fused.checked("1", fused.script("build-develop-prompt.sh"), "refactor", SPEC % n, step, fast, touched, PAIRS,
                   cwd=wt, out=".tdd/develop-refactor.prompt")
     fused.launch("1", wt, "develop-refactor", "run-leaf.sh", ".tdd/develop-refactor.prompt", "--permission-mode",

@@ -205,6 +205,18 @@ def test_4577_the_near_duplicate_pair_of_the_steps_own_green_tick_reaches_the_re
     assert len(build[1]) == 6
     assert (tidy.wt / build[1][5]).read_text() == PAIR
 
+
+def test_4577_near_duplicates_exit_3_still_launches_the_refactor_leaf_its_pairs_file_empty(tidy):
+    """Criterion 3: no pair (exit 3) is not a stop; the leaf launches on a prompt built from an empty pairs file,
+    which build-develop-prompt.sh renders as the near-duplicates section reading `none`."""
+    code, out, err, fake = tidy(fake=Redirecting({("near-duplicates.sh", None): (3, ""),
+                                                  ("wait-leaf.sh", "develop-refactor"): (3, "")}))
+
+    assert fake.launched() == ["develop-refactor"], out
+    build = fake.call("build-develop-prompt.sh", "refactor")
+    assert (tidy.wt / build[1][5]).read_text() == ""
+
+
 REPIN_TICK = "e" * 40
 REPIN_LINE = importlib.import_module("veri.pin_reject_route").repin_step("src/a.py") + " turns it red ⟦added⟧"
 
