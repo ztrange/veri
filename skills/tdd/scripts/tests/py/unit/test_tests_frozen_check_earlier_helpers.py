@@ -493,3 +493,20 @@ def test_check_earlier_exits_0_for_a_go_case_a_verified_refactor_moved_with_its_
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert checked == (0, "")
+
+
+def test_check_earlier_exits_1_naming_a_go_case_moved_to_a_sibling_file_whose_copy_of_its_helper_lost_an_assertion_while_the_recorded_file_keeps_the_original_4601(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    sibling = "b_test.go"
+    weakened = "func checkX(t *testing.T, x int) {\n\tif x != 1 {\n\t}\n}\n\n"
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, GO_X, GO_CHECK_X + GO_CALLS_CHECK_X,
+                "A refactor extracts checkX")
+    (tmp_path / GO_SUITE).write_text(GO_CHECK_X + "func TestY(t *testing.T) {\n}\n")
+    (tmp_path / sibling).write_text(weakened + GO_CALLS_CHECK_X)
+    repo.add(GO_SUITE, sibling)
+    repo.commit("TestX moves to a sibling file with a copy of its helper that lost its t.Fatal line")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)
+
+    assert (code, "TestX" in out) == (1, True), out
