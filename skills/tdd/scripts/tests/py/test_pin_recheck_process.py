@@ -3460,3 +3460,33 @@ def test_4602_a_pin_whose_old_text_is_in_more_than_one_other_file_is_not_checked
     assert (ran.returncode, "not checked: x.go (old text in more than one file of its package)\n" in ran.stdout,
             (tmp_path / "mutated.marker").exists(), (tmp_path / "y.go").read_bytes(), (tmp_path / "z.go").read_bytes(),
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (1, True, False, copied, copied, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that moves the pinned text from pkg/x.go to pkg/y.go beside a root decoy")
+def test_4602_a_moved_pin_is_looked_for_in_its_own_directory_not_the_repository_root(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "x.go").write_text("package p\nif guard\n")
+    (tmp_path / "pkg" / "y.go").write_text("package p\n")
+    decoy = b"package main\nif guard\n"
+    (tmp_path / "decoy.go").write_bytes(decoy)
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4602-mutations.md", file="pkg/x.go", old="if guard", new="if (true)",
+           command="sh -c \"echo result; grep -q 'if guard' pkg/y.go || { touch mutated.marker; exit 1; }\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    moved = b"package p\nif guard\n"
+    (tmp_path / "pkg" / "x.go").write_text("package p\n")
+    (tmp_path / "pkg" / "y.go").write_bytes(moved)
+    git("commit", "-q", "-am", "move the guard to pkg/y.go")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "mutated.marker").exists(), (tmp_path / "pkg" / "y.go").read_bytes(),
+            (tmp_path / "decoy.go").read_bytes(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
+        0, True, moved, decoy, True), ran.stdout + ran.stderr
