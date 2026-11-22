@@ -69,6 +69,8 @@ def pairs(files):
 
 
 def main(argv):
+    if not argv or not argv[0]:
+        return entry.refuse(usage=USAGE)
     rev = argv[0]
     added = added_lines(rev)
     files = [(path, counting_lines(git("show", f"HEAD:{path}"), added.get(path, set())))
