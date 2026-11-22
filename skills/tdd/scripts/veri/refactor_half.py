@@ -19,11 +19,12 @@ NAME = "refactor-half"
 USAGE = "usage: refactor-half.sh <n>"
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
+PAIRS = ".tdd/develop-refactor.pairs"
 
 # The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_refactor_half.py fails when
 # one is a script SKILL.md's Refactor loop section does not name, save one it exempts by name (FC19).
-CALLS = ("event.sh", "refactor-budget.sh", "refactor-touched.sh", "build-develop-prompt.sh", "stop-requested.sh",
-         "detach-leaf.sh", "supervise.sh", "run-leaf.sh", "wait-leaf.sh", "extract-result.sh", "refactor-triage.sh",
+CALLS = ("event.sh", "refactor-budget.sh", "refactor-touched.sh", "near-duplicates.sh", "build-develop-prompt.sh",
+         "stop-requested.sh", "detach-leaf.sh", "supervise.sh", "run-leaf.sh", "wait-leaf.sh", "extract-result.sh", "refactor-triage.sh",
          "run-verdict.sh", "comment.sh", "refactor-owed.sh")
 
 
@@ -89,8 +90,10 @@ def develop(n, wt, settled, step, test_path):
     if code == 3:
         return None, values
     fast = settled["fast_cmd"]
-    fused.checked("1", fused.script("build-develop-prompt.sh"), "refactor", SPEC % n, step, fast, touched, cwd=wt,
-                  out=".tdd/develop-refactor.prompt")
+    # The pairs the step's own green tick added, the leaf's to answer (#4577).
+    fused.checked("1", fused.script("near-duplicates.sh"), step_green, cwd=wt, out=PAIRS)
+    fused.checked("1", fused.script("build-develop-prompt.sh"), "refactor", SPEC % n, step, fast, touched, PAIRS,
+                  cwd=wt, out=".tdd/develop-refactor.prompt")
     fused.launch("1", wt, "develop-refactor", "run-leaf.sh", ".tdd/develop-refactor.prompt", "--permission-mode",
                  "bypassPermissions", env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/develop-refactor.out",
                  err=".tdd/develop-refactor.err")
