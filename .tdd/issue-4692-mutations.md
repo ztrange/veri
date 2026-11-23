@@ -1,0 +1,11 @@
+file 33
+skills/tdd/scripts/veri/revise.py
+old-b64 104
+cmV0dXJuIGdvdCBpcyBub3QgTm9uZSBhbmQgKGdvdCA9PSAiUEFTU0VTIiBvciBnb3Quc3RhcnRzd2l0aCgiUEFTU0VTIiArIFdIWSkp
+new-b64 32
+cmV0dXJuIGdvdCBpcyBub3QgTm9uZQ==
+context-b64 112
+ICAgIHJldHVybiBnb3QgaXMgbm90IE5vbmUgYW5kIChnb3QgPT0gIlBBU1NFUyIgb3IgZ290LnN0YXJ0c3dpdGgoIlBBU1NFUyIgKyBXSFkpKQ==
+command 169
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise.py::test_4692_a_revised_red_reporting_against_unmodified_fails_with_a_why_still_gates_and_re_verifies_as_red
+
