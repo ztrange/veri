@@ -44,10 +44,19 @@ _LOCAL_PATH = re.compile(run_records.PATH_START + r"(?:/System/Volumes/Data)?(?:
                         + r"(?:/[^\s\"'`<>()\[\]]*(?<![,.;:]))?")
 
 
+_TEMP_SCRIPT = re.compile(r"<tmp>(?:/[^\s/\"'`<>()\[\]]+)+/([\w.-]+\.sh)(?![\w./-])")
+
+
 def published(text):
     """<text> as a comment veri posts publishes it: this machine's paths, host and account names redacted as a PR body's
     are (`~` for the home directory), then any other absolute local path replaced by `<path>`."""
-    return _LOCAL_PATH.sub("<path>", run_records.redact_local(text, os.getcwd()))
+    redacted = _TEMP_SCRIPT.sub(r"<path>/\1", run_records.redact_local(text, os.getcwd()))
+    return _LOCAL_PATH.sub(_redacted_path, redacted)
+
+
+def _redacted_path(match):
+    script = re.search(r"/([\w.-]+\.sh)$", match.group(0))
+    return "<path>/" + script.group(1) if script else "<path>"
 
 
 class NoAnswer(Exception):
