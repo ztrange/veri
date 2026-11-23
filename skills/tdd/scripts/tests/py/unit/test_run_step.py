@@ -933,3 +933,59 @@ def test_4547_a_step_replaced_instead_of_by_a_same_text_added_step_runs_red_half
 
     assert "one thing works ⟦added⟧" in ledger.read_text()
     assert (code, stages.names()) == (0, list(STAGES)), err
+
+
+def test_4682_a_skill_edit_step_whose_reword_row_states_text_held_under_another_id_ends_on_exit_2_unticked_with_no_step_done(
+        step, monkeypatch, fake_processes):
+    """The real skill_edit_half and skill_edit_step run in-process under run_step; only the process boundaries (gh, git,
+    detach-command.sh, step-tick.sh, the grader and the author) are faked (#4682 criterion 2)."""
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    wt = step.wt
+    listing = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+               "| X1 | The widget is blue. | because |\n| X2 | The widget is red. | since |\n")
+    (wt / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (wt / "REQUIREMENTS.md").write_text(listing)
+    (wt / "GRADED").write_text("")
+    body = ("## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+            "| ID | Requirement | Why |\n|---|---|---|\n| X2<reword> | The widget is blue. | because |\n")
+    fake_processes.answers({}, default=lambda line, **_: (0, "abc1234\n", ""))
+    monkeypatch.setattr(importlib.import_module("veri.leaf"), "launch", lambda *a, **k: 0)
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
+    detached, ticks = [], []
+
+    def boundary(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        if base == "skill-edit-half.sh":
+            return skill_edit_half.main(list(args)), "", ""
+        if base == "gh":
+            return 0, body, ""
+        if base == "git":
+            return (1 if "ls-files" in args else 0), "", ""
+        if base == "detach-command.sh" and args[0] == "start":
+            detached.append(list(args[3:]))
+            return 0, "", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            here = os.getcwd()
+            os.chdir(cwd)
+            try:
+                code = skill_edit_step.main(detached[-1])
+            finally:
+                os.chdir(here)
+            return (0, "", "") if code == 0 else (1, "%d\n" % code, "")
+        if base == "step-tick.sh":
+            ticks.append(args)
+            return 0, "", ""
+        raise AssertionError("unexpected process: %s %s" % (name, args))
+
+    ledger = LEDGER % "reword the rows of `unit.md` ⟦skill-edit⟧ ⟦criterion 1⟧"
+    code, out, err, _ = step(ledger=ledger, stages=boundary)
+
+    assert detached and detached[-1][-1] == "unit.md", detached
+    assert (code, ticks) == (2, []), (code, ticks, out, err)
+    assert "X2" in err and "X1" in err, err
+    assert (wt / ".tdd" / "issue-12.md").read_text() == ledger
+    assert (wt / "REQUIREMENTS.md").read_text() == listing
+    events = [p for p in (wt, wt.parent.parent.parent) if (p / ".tdd" / "events.jsonl").exists()]
+    assert not any("step-done" in (p / ".tdd" / "events.jsonl").read_text() for p in events), events
