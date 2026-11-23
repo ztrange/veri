@@ -5,6 +5,7 @@ import os
 import pathlib
 import re
 import subprocess
+import re
 import sys
 import time
 
@@ -1404,11 +1405,15 @@ def test_gh_issue_list_reads_the_rest_issues_listing_dropping_pull_requests_and_
 def test_4663_gh_issue_list_under_rest_never_runs_gh_issue_list(fake_processes, monkeypatch, github):
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
     monkeypatch.setenv("VERI_GH_DRIVER", "rest")
-    path = "repos/{owner}/{repo}/issues?state=all&per_page=100&page="
-    fake_gh(fake_processes, {
-        ("gh", "api", path + "1"): (0, '[{"number":1,"state":"open"}]', ""),
-        ("gh", "api", path + "2"): (0, "[]", ""),
-    })
+    listing = re.compile(r"gh api repos/\{owner\}/\{repo\}/issues\?(?:(?:state|labels)=[^&]*&)*per_page=100&page=(\d+)")
+
+    def rest_listing(line, **kwargs):
+        found = listing.fullmatch(line)
+        if not found:
+            raise AssertionError("unexpected command: %r" % (line,))
+        return (0, '[{"number":1,"state":"open"}]' if found.group(1) == "1" else "[]", "")
+
+    fake_processes.answers({}, default=rest_listing)
     calls = []
     real = github.run_gh
 
