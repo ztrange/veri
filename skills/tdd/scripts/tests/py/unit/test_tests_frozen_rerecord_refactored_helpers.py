@@ -1153,3 +1153,22 @@ def test_rerecord_refactored_writes_the_empty_helpers_digest_for_a_python_case_w
     held = [l.split("\t")[2] for l in _record_of(tmp_path).read_text().splitlines()
             if l.startswith("helpers: " + SAME_DIR_A + "\t") and l.split("\t")[1] == "test_a"]
     assert (code, held[-1:]) == (0, [nothing]), held
+
+
+OWN = "\tif x != 1 {\n\t\tt.Fatal(\"own\")\n\t}\n"
+WRITE_FOLDER = "func writeDataFolder(t *testing.T, x int) {\n" + THREE + "}\n\n"
+CALLS_DIRECTLY = WRITE_FOLDER + "func TestX(t *testing.T) {\n\tx := 1\n\twriteDataFolder(t, x)\n" + OWN + "}\n"
+CALLS_VIA_WRAPPER = (WRITE_FOLDER + "func planThenApply(t *testing.T, x int) {\n\twriteDataFolder(t, x)\n}\n\n"
+                     "func TestX(t *testing.T) {\n\tx := 1\n\tplanThenApply(t, x)\n" + OWN + "}\n")
+
+
+def test_rerecord_refactored_re_records_a_go_case_whose_direct_helper_call_a_refactor_moved_into_a_new_helper_that_calls_it_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, CALLS_DIRECTLY, CALLS_VIA_WRAPPER,
+                        message="A refactor extracts the helper call into a wrapper")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (code, _skip_lines(err, GO_SUITE + " TestX"), checked) == (0, 0, (0, ""))
