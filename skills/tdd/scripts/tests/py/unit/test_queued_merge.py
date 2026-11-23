@@ -94,6 +94,17 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
     return fake_processes(answer)
 
 
+def rest_body(answer, line, read, **kwargs):
+    """The REST read of the PR (`gh api repos/o/r/pulls/7`) answering `read` as the body read once the branch is rebased, the world's answer before."""
+    code, out, err = answer(line, **kwargs)
+    rebased = answer("git rev-parse --verify HEAD", **kwargs)[1].strip() == PUSHED_HEAD
+    if code or not rebased:
+        return code, out, err
+    if read[0] or not read[1].lstrip().startswith("{"):
+        return read
+    return code, json.dumps({**json.loads(out), **json.loads(read[1])}), err
+
+
 def first(calls, needle):
     return next((i for i, c in enumerate(calls) if needle in c), None)
 
@@ -1046,6 +1057,8 @@ def test_3422_queued_merge_of_a_pr_whose_body_carries_closes_for_the_runs_issue_
         def wrapped(line, **kwargs):
             if "pr view" in line:
                 return 0, body, ""
+            if line.endswith("gh api repos/o/r/pulls/7"):
+                return rest_body(answer, line, (0, body, ""), **kwargs)
             return answer(line, **kwargs)
         return fake_processes(wrapped)
 
@@ -1068,6 +1081,8 @@ def test_3980_queued_merge_whose_pr_body_read_answers_text_that_is_not_json_rele
                 return 0, ".tdd/issue-3255.md\n", ""
             if "pr view" in line:
                 return 0, "<html>502 Bad Gateway</html>", ""
+            if line.endswith("gh api repos/o/r/pulls/7"):
+                return rest_body(answer, line, (0, "<html>502 Bad Gateway</html>", ""), **kwargs)
             return answer(line, **kwargs)
         return fake_processes(wrapped)
 
@@ -1093,6 +1108,8 @@ def test_3422_queued_merge_of_a_pr_whose_body_lacks_closes_for_the_runs_issue_ex
                 return 0, ".tdd/issue-3255.md\n", ""
             if "pr view" in line:
                 return 0, body, ""
+            if line.endswith("gh api repos/o/r/pulls/7"):
+                return rest_body(answer, line, (0, body, ""), **kwargs)
             return answer(line, **kwargs)
         return fake_processes(wrapped)
 
@@ -1117,6 +1134,8 @@ def test_3422_queued_merge_of_a_pr_whose_only_closing_line_is_for_a_longer_issue
                 return 0, ".tdd/issue-3255.md\n", ""
             if "pr view" in line:
                 return 0, body, ""
+            if line.endswith("gh api repos/o/r/pulls/7"):
+                return rest_body(answer, line, (0, body, ""), **kwargs)
             return answer(line, **kwargs)
         return fake_processes(wrapped)
 
@@ -1141,6 +1160,8 @@ def test_3422_queued_merge_on_a_worktree_holding_other_issues_ledgers_and_their_
         def wrapped(line, **kwargs):
             if "pr view" in line:
                 return 0, body, ""
+            if line.endswith("gh api repos/o/r/pulls/7"):
+                return rest_body(answer, line, (0, body, ""), **kwargs)
             return answer(line.replace(BRANCH, "feature"), **kwargs)
         return fake_processes(wrapped)
 
@@ -1164,6 +1185,8 @@ def test_3452_queued_merge_whose_pr_body_read_fails_exits_2_naming_the_pr_frees_
                     return 0, ".tdd/issue-3255.md\n", ""
                 if "pr view" in line:
                     return read
+                if line.endswith("gh api repos/o/r/pulls/7"):
+                    return rest_body(answer, line, read, **kwargs)
                 return answer(line, **kwargs)
             return fake_processes(wrapped)
 
@@ -1195,6 +1218,8 @@ def test_3452_queued_merge_on_a_branch_not_named_tdd_n_whose_worktree_holds_a_me
                     return 0, changed, ""
                 if "pr view" in line:
                     return 0, json.dumps({"body": "Closes #3255 — the capability\n"}), ""
+                if line.endswith("gh api repos/o/r/pulls/7"):
+                    return rest_body(answer, line, (0, json.dumps({"body": "Closes #3255 — the capability\n"}), ""), **kwargs)
                 return answer(line, **kwargs)
             return fake_processes(wrapped)
 

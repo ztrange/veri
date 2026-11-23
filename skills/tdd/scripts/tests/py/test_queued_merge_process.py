@@ -620,6 +620,7 @@ done
 head=$("$REAL_GIT" -C "$WORKTREE" rev-parse HEAD)
 case "$*" in
   *"pr view"*) echo "{\\"body\\": \\"$PR_BODY\\"}" ;;
+  *"gh api repos/"*"/pulls/"[0-9]) if [ ! -e "$marker" ]; then echo "{\\"body\\": \\"$PR_BODY\\", \\"state\\": \\"open\\", \\"merged\\": false, \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}"; else echo "{\\"body\\": \\"$PR_BODY\\", \\"merged\\": true, \\"merge_commit_sha\\": \\"fedcba9\\", \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}"; fi ;;
   *"check-runs?page=1"*) echo '{"check_runs": [{"name": "CI", "status": "completed", "conclusion": "success"}]}' ;;
   *check-runs*) echo '{"check_runs": []}' ;;
   *"/status"*) echo '{"statuses": []}' ;;
