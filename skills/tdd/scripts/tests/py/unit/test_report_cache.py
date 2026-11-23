@@ -2139,9 +2139,11 @@ def test_refresh_snapshots_every_issue_the_rest_search_answers_issue_4663(
         if line.startswith("gh api graphql") or line.startswith("gh issue list"):
             return (1, "", "HTTP 403: GraphQL refused")
         if line.startswith("gh api search/issues"):
+            if "repo:{owner}/{repo}" not in line:
+                return (1, "", "gh: Validation Failed (HTTP 422)")  # gh substitutes only a literal placeholder
             asked = unquote_plus(line)
             page = int(re.search(r"page=(\d+)", asked).group(1))
-            listing = "sort=updated" in asked and "order=desc" in asked
+            listing = "sort=updated" in asked and "order=desc" in asked and "state:all" not in asked
             return (0, json.dumps({"items": items if listing and page == 1 else []}), "")
         return (0, "{}", "")
 
@@ -2198,9 +2200,11 @@ def test_refresh_snapshots_the_body_of_a_prd_issue_as_the_rest_search_answers_it
 
     def gh(line, **kwargs):
         if line.startswith("gh api search/issues"):
+            if "repo:{owner}/{repo}" not in line:
+                return (1, "", "gh: Validation Failed (HTTP 422)")  # gh substitutes only a literal placeholder
             asked = unquote_plus(line)
             page = int(re.search(r"page=(\d+)", asked).group(1))
-            listing = "sort=updated" in asked and "order=desc" in asked
+            listing = "sort=updated" in asked and "order=desc" in asked and "state:all" not in asked
             return (0, json.dumps({"items": items if listing and page == 1 else []}), "")
         return (1, "", "HTTP 403: GraphQL refused")
 

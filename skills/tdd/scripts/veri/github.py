@@ -593,8 +593,10 @@ def _search_issues(args):
             order = "&sort=%s&order=%s" % (field, direction)
         else:
             words.append(word)
-    q = "repo:{owner}/{repo} is:issue state:%s %s" % (state, " ".join(words))
-    for run in _pages("search/issues?q=%s%s" % (urllib.parse.quote_plus(q.strip()), order)):
+    # gh api substitutes only a literal {owner}/{repo}: encoded, it reaches GitHub as is and the search is HTTP 422.
+    # GitHub search has no state:all and answers it with no rows: all states is no state qualifier.
+    q = "is:issue %s%s" % ("" if state == "all" else "state:%s " % state, " ".join(words))
+    for run in _pages("search/issues?q=repo:{owner}/{repo}+%s%s" % (urllib.parse.quote_plus(q.strip()), order)):
         if run.returncode != 0:
             raise NoAnswer("", run.stderr or "")
         items = json.loads(run.stdout)["items"]

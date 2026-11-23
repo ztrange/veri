@@ -283,6 +283,8 @@ def test_a_rerun_finds_and_replaces_the_open_issue_through_the_rest_search_issue
         if line.startswith("gh api graphql") or line.startswith("gh issue list"):
             return (1, "", "HTTP 403: GraphQL refused")
         if line.startswith("gh api search/issues"):
+            if "repo:{owner}/{repo}" not in line:
+                return (1, "", "gh: Validation Failed (HTTP 422)")  # gh substitutes only a literal placeholder
             searches.append(unquote_plus(line))
             page = int(re.search(r"page=(\d+)", line).group(1))
             return (0, __import__("json").dumps({"items": items if page == 1 else []}), "")
