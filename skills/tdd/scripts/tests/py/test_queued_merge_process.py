@@ -620,7 +620,7 @@ done
 head=$("$REAL_GIT" -C "$WORKTREE" rev-parse HEAD)
 case "$*" in
   *"pr view"*) echo "{\\"body\\": \\"$PR_BODY\\"}" ;;
-  *"gh api repos/"*"/pulls/"[0-9]) if [ ! -e "$marker" ]; then echo "{\\"body\\": \\"$PR_BODY\\", \\"state\\": \\"open\\", \\"merged\\": false, \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}"; else echo "{\\"body\\": \\"$PR_BODY\\", \\"merged\\": true, \\"merge_commit_sha\\": \\"fedcba9\\", \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}"; fi ;;
+  *"api repos/"*"/pulls/"[0-9]) if [ ! -e "$marker" ]; then echo "{\\"body\\": \\"$PR_BODY\\", \\"state\\": \\"open\\", \\"merged\\": false, \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}"; else echo "{\\"body\\": \\"$PR_BODY\\", \\"merged\\": true, \\"merge_commit_sha\\": \\"fedcba9\\", \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}"; fi ;;
   *"check-runs?page=1"*) echo '{"check_runs": [{"name": "CI", "status": "completed", "conclusion": "success"}]}' ;;
   *check-runs*) echo '{"check_runs": []}' ;;
   *"/status"*) echo '{"statuses": []}' ;;
@@ -669,7 +669,11 @@ def queued_merge_on_a_non_tdd_branch(tmp_path, pr_body, failing_diff=False):
     subprocess.run([real_git, "clone", "-q", "-b", "claude/x", str(remote), str(worktree)], check=True, capture_output=True, cwd=tmp_path)
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    plant(bin_dir, "gh", FAKE_GH_WITH_BODY)
+    graphql_refused = FAKE_GH_WITH_BODY.replace(
+        '''  *"pr view"*) echo "{\\"body\\": \\"$PR_BODY\\"}" ;;''',
+        '''  *"pr view"*) echo "HTTP 403: Resource not accessible (graphql)" >&2; exit 1 ;;''')
+    assert graphql_refused != FAKE_GH_WITH_BODY
+    plant(bin_dir, "gh", graphql_refused)
     if failing_diff:
         plant(bin_dir, "git", FAKE_GIT_FAILING_LEDGER_DIFF)
     call_log = tmp_path / "calls.log"

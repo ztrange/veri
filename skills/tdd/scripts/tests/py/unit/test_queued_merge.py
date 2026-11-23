@@ -1122,6 +1122,32 @@ def test_3422_queued_merge_of_a_pr_whose_body_lacks_closes_for_the_runs_issue_ex
     assert (code, "Closes #3255" in err, merges, len(released)) == (2, True, [], 1)
 
 
+def test_4664_queued_merge_with_graphql_refused_reads_the_pr_body_over_rest_and_refuses_one_lacking_closes_for_the_runs_issue_exit_2_no_merge_lock_released(
+        fake_processes, run_cli, tmp_path):
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    body = json.dumps({"body": "## Review fixes\n- tidy\n"})
+
+    def rest_only(answer):
+        def wrapped(line, **kwargs):
+            if "diff --name-only origin/main...HEAD" in line:
+                return 0, ".tdd/issue-3255.md\n", ""
+            if "pr view" in line:
+                return 1, "", "HTTP 403: Resource not accessible (graphql)"
+            if line.endswith("gh api repos/o/r/pulls/7"):
+                return rest_body(answer, line, (0, body, ""), **kwargs)
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(rest_only)
+
+    code, _, err = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], env={"VERI_GH_DRIVER": "rest"})
+
+    merges = [c for c in calls if "pr merge" in c or "pulls/7/merge" in c]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, "Closes #3255" in err, merges, len(released)) == (2, True, [], 1)
+
+
 def test_3422_queued_merge_of_a_pr_whose_only_closing_line_is_for_a_longer_issue_number_sharing_the_runs_number_as_a_prefix_exits_2_and_makes_no_merge_call(
         fake_processes, run_cli, tmp_path):
     worktree = tmp_path / "wt"

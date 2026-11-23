@@ -21,7 +21,7 @@ import run_dir
 import run_records
 import stack_branch
 import tunables
-from github import TimedOut, bounded_group, gh_api, gh_probe
+from github import NoAnswer, TimedOut, bounded_group, gh_api, gh_json_page
 
 USAGE = ("usage: queued-merge.sh [--skip-suite <model-id> <reason>] <pr-url> <worktree> <branch> <tag-message|->\n"
          "       queued-merge.sh --local-green")
@@ -317,7 +317,7 @@ def _before_rebase(repo, pr, worktree, branch):
     return lease, None
 
 
-def _before_merge(pid, pr, worktree, branch, before, head):
+def _before_merge(pid, repo, pr, worktree, branch, before, head):
     """The checks between the pushed head's CI and the merge call: None to go, (message, code) to refuse."""
     if ci_on_pr.declared(worktree) == "0" and before != head:
         found = subprocess.run([os.path.join(SCRIPTS, "detect-test-command.sh"), "--tier", "all"],
@@ -342,10 +342,11 @@ def _before_merge(pid, pr, worktree, branch, before, head):
         number = re.match(r"issue-(\d+)\.md", os.path.basename(path))
         if not number:
             continue
-        shown = gh_probe("pr", "view", pr, "--json", "body")
-        if shown.returncode:
+        try:
+            shown = gh_json_page("pr-body.json", "repos/%s/pulls/%s" % (repo, _number(pr)), "pr", "view", pr, "--json", "body")
+        except NoAnswer:
             return "could not read the PR body of %s; not merged" % pr, 2
-        body = json.loads(shown.stdout)["body"]
+        body = json.loads(shown)["body"]
         if not re.search(r"Closes #%s\b" % number.group(1), body):
             return "the PR body of %s lacks the line 'Closes #%s'; not merged" % (pr, number.group(1)), 2
         stale = mutation_record.stale_pins(worktree, number.group(1))
@@ -391,7 +392,7 @@ def _to_merge(pid, repo, pr, worktree, branch):
                                                        cwd=worktree))
     if code:
         return "", (code, LEAVE)
-    refusal = _before_merge(pid, pr, worktree, branch, before, head)
+    refusal = _before_merge(pid, repo, pr, worktree, branch, before, head)
     if refusal:
         return "", _refused(*refusal)
     return head, None
