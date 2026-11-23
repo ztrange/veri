@@ -605,6 +605,8 @@ def _search_issues(args):
                    "labels": [{"name": l["name"]} for l in i.get("labels") or []],
                    "closedAt": i.get("closed_at"), "updatedAt": i.get("updated_at"),
                    "createdAt": i.get("created_at"), "body": i.get("body")}
+            if "comments" in wanted:
+                row["comments"] = [{"body": c["body"]} for c in rest_items("%s/comments" % _issue(i["number"]))]
             issues.append({"number": i["number"], "title": i["title"], "url": i["html_url"],
                            **{k: row[k] for k in wanted if k in row}})
         if limit is not None and len(issues) >= limit:
