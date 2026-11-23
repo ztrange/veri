@@ -610,6 +610,41 @@ def test_a_step_whose_issue_row_id_cell_is_id_reword_naming_a_listed_row_with_di
     assert code == 3, (code, out, err)
 
 
+def test_a_step_whose_issue_row_x2_reword_states_the_full_text_the_section_holds_under_x1_exits_2_naming_both_ids_before_any_git_call_leaving_the_files_byte_identical_4682(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    prose = "The widget is painted a deep blue.\n"
+    listing = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+               "| X1 | The widget is blue. | because |\n| X2 | The widget is red. | since |\n")
+    (tmp_path / "unit.md").write_text(prose)
+    (tmp_path / "REQUIREMENTS.md").write_text(listing)
+    (tmp_path / "GRADED").write_text("")
+    (tmp_path / "issue.md").write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| X2<reword> | The widget is blue. | because |\n")
+    commands = []
+    launched = []
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: launched.append(a) or (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "reword X2", str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code, "X2" in err and "X1" in err, commands, launched) == (2, True, [], []), (code, err, commands, launched)
+    assert (tmp_path / "REQUIREMENTS.md").read_text() == listing
+    assert (tmp_path / "unit.md").read_text() == prose
+    assert (tmp_path / "GRADED").read_text() == ""
+
+
 def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_appends_a_skill_edit_no_author_event_naming_the_unit_2997(tmp_path, monkeypatch, run_cli):
     monkeypatch.chdir(tmp_path)
     import subprocess

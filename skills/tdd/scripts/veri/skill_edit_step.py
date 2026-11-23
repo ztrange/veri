@@ -177,6 +177,25 @@ def _held_texts(lines, unit):
     return held
 
 
+def _holders(lines, unit):
+    in_unit = False
+    holders = {}
+    for line in lines:
+        if line.startswith("## "):
+            in_unit = line[3:] == unit
+        elif in_unit and line.startswith("|"):
+            holders.setdefault(_full_text(line), requirements.split_cells(line)[1])
+    return holders
+
+
+def _duplicated_rewords(issue_rows, path, unit):
+    if not os.path.exists(path):
+        return []
+    holders = _holders(requirements.read_lines(path), unit)
+    return [(row_id(r)[:-len("<reword>")], holders[_full_text(r)]) for r in issue_rows
+            if row_id(r).endswith("<reword>") and _full_text(r) in holders]
+
+
 def apply(issue, unit):
     path = requirements.list_path(unit)
     moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
@@ -325,6 +344,13 @@ def main(argv):
         if explicit.count(dup) > 1:
             print("Requirement rows resolve to the same ID twice: " + dup, file=sys.stderr)
             return 2
+    path = requirements.list_path(unit)
+    duplicated = _duplicated_rewords(issue_rows, path, unit)
+    for reworded_id, held_id in duplicated:
+        print("Requirement row %s<reword> states the full text the unit already holds under %s" % (reworded_id, held_id),
+              file=sys.stderr)
+    if duplicated:
+        return 2
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     path = requirements.list_path(unit)
     graded_file = grade_prose.graded_path(unit)
