@@ -222,6 +222,14 @@ def test_4621_a_spec_heading_that_only_starts_with_refactor_is_no_refactor_secti
     assert (code, stages.names()) == (0, list(STAGES)), out + err
 
 
+def test_4621_a_spec_with_no_refactor_section_still_runs_red_half_first(step):
+    (step.wt / ".tdd" / "issue-12-spec.md").write_text("Fix the parser.\n\n## Bug\n\n- What happened\n")
+
+    code, out, err, stages = step()
+
+    assert (code, stages.names()[:1]) == (0, ["red-half.sh"]), out + err
+
+
 RECORD ="seam=green-half code=1 reason=record next=seam-settle.sh 12 red-half test_path=… target_test=…"
 
 
