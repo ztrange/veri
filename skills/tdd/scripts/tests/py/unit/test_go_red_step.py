@@ -230,3 +230,13 @@ def test_4626_a_bare_test_function_name_is_probed_through_the_test_file_that_def
 
     assert code == 0, err
     assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"
+
+
+def test_4626_a_case_id_with_a_double_colon_is_passed_unchanged_even_when_another_file_defines_the_name(go_red):
+    (go_red.wt / "pkg").mkdir()
+    (go_red.wt / "pkg" / "other_test.go").write_text("package pkg\n\nfunc test_refuses_stacked(t *testing.T) {\n}\n")
+
+    code, out, err, fake = go_red()
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == CASE
