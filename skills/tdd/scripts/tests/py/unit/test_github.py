@@ -1432,3 +1432,12 @@ def test_4663_gh_issue_list_under_rest_never_runs_gh_issue_list(fake_processes, 
     assert [c for c in calls if c[:2] == ("issue", "list")] == []
     assert json.loads(out) == [{"number": 7, "title": "x in title", "url": "https://github.example/o/r/issues/7"}]
     assert queries and all("repo:{owner}/{repo} is:issue" in q and "state:open" in q and "x in:title" in q for q in queries)
+
+
+def test_4663_gh_issue_list_search_raises_no_answer_when_the_rest_search_read_exits_non_zero(fake_processes, monkeypatch, github):
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    fake_processes.answers({}, default=lambda line, **kwargs: (1, "", "HTTP 422: search failed"))
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_issue_list("--state", "open", "--limit", "5", "--search", "x in:title", "--json", "number,title")
