@@ -56,7 +56,7 @@ def main(argv):
     created = True
     if run.returncode != 0:
         run = github.gh_label_create(taken)
-        created = run.returncode == 0 or "already exists" in run.stderr
+        created = run.returncode == 0 or "already exists" in run.stderr or "already_exists" in run.stdout
     if created:
         run = github.gh_api_add_label("repos/{owner}/{repo}/issues/%s/labels" % argv[0], taken)
     if run.returncode != 0:

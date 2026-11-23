@@ -276,8 +276,8 @@ def gh_api_delete(path):
 
 
 def gh_label_create(name):
-    return run_gh("label", "create", name, "--color", "ededed",
-               "--description", "Claimed by a veri run", stderr=subprocess.PIPE)
+    return run_gh("api", "-X", "POST", "-f", "name=%s" % name, "-f", "color=ededed",
+                  "-f", "description=Claimed by a veri run", "repos/{owner}/{repo}/labels", stderr=subprocess.PIPE)
 
 
 def gh_api_add_label(path, name):
