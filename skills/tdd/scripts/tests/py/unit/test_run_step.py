@@ -214,6 +214,14 @@ def test_4621_an_ordinary_open_step_under_a_refactor_spec_calls_no_stage_and_sto
     assert (code, stages.names(), out) == (1, [], "seam=none code=1 reason=kind next=REFACTOR-KIND.md\n"), err
 
 
+def test_4621_a_spec_heading_that_only_starts_with_refactor_is_no_refactor_section_so_the_cycle_still_runs(step):
+    (step.wt / ".tdd" / "issue-12-spec.md").write_text("Fix the parser.\n\n## Refactoring notes\n\nNone.\n")
+
+    code, out, err, stages = step()
+
+    assert (code, stages.names()) == (0, list(STAGES)), out + err
+
+
 RECORD ="seam=green-half code=1 reason=record next=seam-settle.sh 12 red-half test_path=… target_test=…"
 
 
