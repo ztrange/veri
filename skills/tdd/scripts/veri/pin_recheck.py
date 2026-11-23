@@ -247,7 +247,10 @@ def moved_to(pin):
     """The files of the pin's directory holding its old text."""
     old = pin["old"].encode()
     held = [f for f in sorted(Path(pin["file"]).parent.iterdir()) if f.is_file() and old in f.read_bytes()]
-    return held
+    if held:
+        return held
+    tracked = git_out("ls-files", "-z").split("\0")
+    return [f for f in map(Path, tracked) if f.parts and f.parts[0] != ".tdd" and old in f.read_bytes()]
 
 
 def gone_before_range(pin, base_sha):

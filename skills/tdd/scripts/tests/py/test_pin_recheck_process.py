@@ -3684,3 +3684,32 @@ def test_4643_a_pin_whose_old_text_is_held_only_by_an_untracked_file_of_another_
 
     assert (ran.returncode, "not checked: a/main.py (" in ran.stdout, (tmp_path / "b" / "untracked.py").read_bytes(),
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (1, True, held, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that moves the pinned text from a/main.py to b/other.py")
+def test_4643_a_pin_whose_old_text_moved_to_a_file_of_another_directory_is_replayed_there_and_exits_0_with_the_receipt(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    for directory in ("a", "b"):
+        (tmp_path / directory).mkdir()
+    (tmp_path / "a" / "main.py").write_text("x = 1\ndef guard(): pass\n")
+    (tmp_path / "b" / "other.py").write_text("y = 1\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4643-mutations.md", file="a/main.py", old="def guard(): pass", new="def guard(): fail",
+           command="sh -c \"echo result; grep -q 'def guard(): pass' b/other.py || { touch mutated.marker; exit 1; }\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    moved = b"y = 1\ndef guard(): pass\n"
+    (tmp_path / "a" / "main.py").write_text("x = 1\n")
+    (tmp_path / "b" / "other.py").write_bytes(moved)
+    git("commit", "-q", "-am", "move the guard to b/other.py")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "not checked" in ran.stdout, (tmp_path / "mutated.marker").exists(),
+            (tmp_path / "b" / "other.py").read_bytes(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
+        0, False, True, moved, True), ran.stdout + ran.stderr
