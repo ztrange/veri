@@ -23,3 +23,10 @@ skills/tdd/scripts/tests/py/unit/test_status.py
 command 147
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_status.py::test_4663_status_json_reads_every_issue_state_lower_cased_through_the_rest_listing
 
+before 40
+148903b92a17eed78cc4e947949a0319a5b7ffc1
+keep 49
+skills/tdd/scripts/tests/py/unit/test_dispatch.py
+command 149
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_issue_states_reads_the_seen_issues_states_through_the_rest_listing_issue_4663
+

@@ -3920,3 +3920,25 @@ def test_4605_main_prints_stalled_for_a_run_held_for_a_silent_exit_that_restarte
     code = dispatch.main(["--target", "1"], world=world)
 
     assert (code, "".join(world.said)) == (0, "stalled 7\n")
+
+
+@pytest.mark.parametrize("driver", [None, "rest", "auto"])
+def test_issue_states_reads_the_seen_issues_states_through_the_rest_listing_issue_4663(
+        fake_processes, monkeypatch, dispatch, driver):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("exp_dispatch_real_4663", dispatch.__file__)
+    real = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(real)
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    if driver is None:
+        monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    else:
+        monkeypatch.setenv("VERI_GH_DRIVER", driver)
+    path = "repos/{owner}/{repo}/issues?state=all&per_page=100&page="
+    fake_processes.answers({
+        "gh api " + path + "1": (0, '[{"number":5,"state":"open"},{"number":6,"state":"closed"},'
+                                    '{"number":7,"state":"open","pull_request":{}}]', ""),
+        "gh api " + path + "2": (0, "[]", ""),
+    }, default=(1, "", "HTTP 403: GraphQL refused"), exact=True)
+
+    assert real.issue_states(["5", "6", "7", "9"]) == {"5": "OPEN", "6": "CLOSED"}
