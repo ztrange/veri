@@ -58,7 +58,7 @@ def build_ready_repo(tmp_path):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     gh = bin_dir / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api -i user") printf \'HTTP/2.0 200 OK\\r\\nX-Oauth-Scopes: repo\\r\\n\\r\\n{}\\n\' ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api user"*) exit 0 ;;\n  "api repos/"*"/labels/veri"|"api repos/"*"/labels/pr-ready"|"api repos/"*"/labels/bailed"|"api repos/"*"/labels/parked"|"api repos/"*"/labels/stopped") echo \'{}\' ;;\n  "api repos/"*"/labels/"*) echo "gh: Not Found (HTTP 404)" >&2; exit 1 ;;\n  "api -i user") printf \'HTTP/2.0 200 OK\\r\\nX-Oauth-Scopes: repo\\r\\n\\r\\n{}\\n\' ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     gh.chmod(0o755)
     claude = write_stub(str(bin_dir / "claude-probe"), CLAUDE_PROBE)
     (repo / ".claude").mkdir()
@@ -256,7 +256,7 @@ def test_issue_3055_ready_check_with_tdd_not_ignored_exits_1_with_a_fail_row_nam
 def test_issue_3055_ready_check_with_gh_not_authenticated_exits_1_with_a_fail_row_naming_its_fix(tmp_path):
     repo, env = build_ready_repo(tmp_path)
     gh = tmp_path / "bin" / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 1 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 1 ;;\n  "api user"*) exit 1 ;;\n  "api repos/"*"/labels/veri"|"api repos/"*"/labels/pr-ready"|"api repos/"*"/labels/bailed"|"api repos/"*"/labels/parked"|"api repos/"*"/labels/stopped") echo \'{}\' ;;\n  "api repos/"*"/labels/"*) echo "gh: Not Found (HTTP 404)" >&2; exit 1 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     lines = ran.stdout.splitlines()
 
@@ -269,7 +269,7 @@ def test_issue_3055_ready_check_with_gh_not_authenticated_exits_1_with_a_fail_ro
 def test_issue_3055_ready_check_with_no_push_access_exits_1_with_a_fail_row_naming_its_fix(tmp_path):
     repo, env = build_ready_repo(tmp_path)
     gh = tmp_path / "bin" / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":false,"admin":false}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api user"*) exit 0 ;;\n  "api repos/"*"/labels/veri"|"api repos/"*"/labels/pr-ready"|"api repos/"*"/labels/bailed"|"api repos/"*"/labels/parked"|"api repos/"*"/labels/stopped") echo \'{}\' ;;\n  "api repos/"*"/labels/"*) echo "gh: Not Found (HTTP 404)" >&2; exit 1 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":false,"admin":false}}\' ;;\nesac\n')
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     lines = ran.stdout.splitlines()
 
@@ -285,7 +285,7 @@ def test_issue_3055_ready_check_with_unusable_repo_api_output_fails_the_push_acc
         sub.mkdir()
         repo, env = build_ready_repo(sub)
         gh = sub / "bin" / "gh"
-        gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'' + body + '\' ;;\nesac\n')
+        gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api user"*) exit 0 ;;\n  "api repos/"*"/labels/veri"|"api repos/"*"/labels/pr-ready"|"api repos/"*"/labels/bailed"|"api repos/"*"/labels/parked"|"api repos/"*"/labels/stopped") echo \'{}\' ;;\n  "api repos/"*"/labels/"*) echo "gh: Not Found (HTTP 404)" >&2; exit 1 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'' + body + '\' ;;\nesac\n')
         ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
         lines = ran.stdout.splitlines()
 
@@ -308,7 +308,7 @@ def test_issue_3055_ready_check_prints_an_ok_row_for_each_check_that_holds_befor
 def test_issue_3055_ready_check_with_the_opt_in_label_missing_exits_1_with_a_fail_row_naming_its_fix(tmp_path):
     repo, env = build_ready_repo(tmp_path)
     gh = tmp_path / "bin" / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api user"*) exit 0 ;;\n  "api repos/"*"/labels/"*) echo "gh: Not Found (HTTP 404)" >&2; exit 1 ;;\n  *label*) echo \'[]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     lines = ran.stdout.splitlines()
 
@@ -321,7 +321,7 @@ def test_issue_3055_ready_check_with_the_opt_in_label_missing_exits_1_with_a_fai
 def test_issue_3055_ready_check_with_two_failing_rows_counts_both_in_its_last_line(tmp_path):
     repo, env = build_ready_repo(tmp_path)
     gh = tmp_path / "bin" / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 1 ;;\n  *label*) echo \'[]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 1 ;;\n  "api user"*) exit 1 ;;\n  "api repos/"*"/labels/"*) echo "gh: Not Found (HTTP 404)" >&2; exit 1 ;;\n  *label*) echo \'[]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     lines = ran.stdout.splitlines()
 
@@ -334,7 +334,7 @@ def test_issue_3055_ready_check_with_two_failing_rows_counts_both_in_its_last_li
 def test_issue_3055_ready_check_with_a_failing_gh_label_list_fails_the_label_row_instead_of_crashing(tmp_path):
     repo, env = build_ready_repo(tmp_path)
     gh = tmp_path / "bin" / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "label "*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\'; echo "boom" >&2; exit 1 ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api user"*) exit 0 ;;\n  "api repos/"*"/labels/"*) echo "boom" >&2; exit 1 ;;\n  "label "*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\'; echo "boom" >&2; exit 1 ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     lines = ran.stdout.splitlines()
 
@@ -406,7 +406,7 @@ def test_issue_3055_ready_check_where_every_row_holds_leaves_tree_index_and_refs
     repo, env = build_ready_repo(tmp_path)
     log = tmp_path / "gh.log"
     gh = tmp_path / "bin" / "gh"
-    gh.write_text('#!/bin/sh\necho "$*" >> "' + str(log) + '"\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    gh.write_text('#!/bin/sh\necho "$*" >> "' + str(log) + '"\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  "api user"*) exit 0 ;;\n  "api repos/"*"/labels/veri"|"api repos/"*"/labels/pr-ready"|"api repos/"*"/labels/bailed"|"api repos/"*"/labels/parked"|"api repos/"*"/labels/stopped") echo \'{}\' ;;\n  "api repos/"*"/labels/"*) echo "gh: Not Found (HTTP 404)" >&2; exit 1 ;;\n  *label*) echo \'[{"name":"veri"},{"name":"pr-ready"},{"name":"bailed"},{"name":"parked"},{"name":"stopped"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
     before = _repo_state(repo)
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     after = _repo_state(repo)
@@ -484,7 +484,7 @@ def test_issue_3173_ready_check_with_veri_label_unset_prints_an_ok_label_row_nam
     repo, env = build_ready_repo(tmp_path)
     env.pop("VERI_LABEL")
     gh = tmp_path / "bin" / "gh"
-    gh.write_text(gh.read_text().replace('"name":"veri"', '"name":"ready-for-agent"'))
+    gh.write_text(gh.read_text().replace('"name":"veri"', '"name":"ready-for-agent"').replace('/labels/veri"', '/labels/ready-for-agent"'))
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     lines = ran.stdout.splitlines()
 

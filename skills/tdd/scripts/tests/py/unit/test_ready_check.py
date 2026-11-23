@@ -34,6 +34,7 @@ def holding(**overrides):
         "git ls-files": (0, "tests/test_x.py\n", ""),
         "git check-ignore": (0, "", ""),
         "gh auth status": (0, "", ""),
+        "gh api user": (0, "{}", ""),
         "gh api repos/{owner}/{repo}": (0, '{"permissions": {"push": true}}', ""),
         "gh label list": (0, '[{"name": "ready-for-agent"}, {"name": "pr-ready"}, {"name": "bailed"}, {"name": "parked"}, '
                              '{"name": "stopped"}]', ""),
@@ -74,7 +75,7 @@ def test_issue_4087_ready_check_prints_an_ok_one_test_file_row_when_detect_test_
 
 def test_issue_4081_ready_check_prints_a_row_per_state_label_failing_with_the_create_fix_and_exits_1_when_gh_label_list_lacks_one(ready_check, run_cli, fake_processes, tmp_path):
     listed = '[{"name": "ready-for-agent"}, {"name": "pr-ready"}, {"name": "bailed"}, {"name": "parked"}]'
-    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{"gh label list": (0, listed, "")})
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{"gh label list": (0, listed, ""), "gh api repos/{owner}/{repo}/labels/stopped": NOT_FOUND})
 
     for label in ("pr-ready", "bailed", "parked"):
         assert f"ok    label {label}" in lines, (label, lines)
@@ -1045,7 +1046,7 @@ def test_issue_4093_ready_check_no_permissions_prints_no_permission_row_makes_no
     assert (code, lines[-1]) == (0, "ready"), (out, err)
     assert not [line for line in lines if any(line.endswith("  " + row) or ("  " + row + ":") in line for row in PERMISSION_ROWS)], lines
     assert {"ok    gh auth", "ok    push access", "ok    label ready-for-agent"} <= set(lines), lines
-    probes = ("gh api -i user", "gh api repos/{owner}/{repo}/labels/", ACTIONS_RUNS, "git rev-parse --git-common-dir",
+    probes = ("gh api -i user", "gh api repos/{owner}/{repo}/labels/priority", "gh api repos/{owner}/{repo}/labels/bug", ACTIONS_RUNS, "git rev-parse --git-common-dir",
               "git push", "git remote get-url --push origin", "claude")
     assert not [c for c in fake.calls if c.startswith(probes)], fake.calls
     assert not (tmp_path / ".tdd").exists()
