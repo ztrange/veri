@@ -755,14 +755,14 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 
 For a cycle step run `$S/run-step.sh <n>` once, again on exit 3: it runs Red, Green and the Refactor loop to 6's
 PASS branch and ends on `step-close.sh`'s `next=`; a refactor-kind run (spec has `## Refactor`) stops on `reason=kind`:
-follow `<base directory>/REFACTOR-KIND.md`. A `seam=<stage>` last line is where the prose takes over, from the
+see `<base directory>/REFACTOR-KIND.md`. A `seam=<stage>` last line is where the prose takes over, from the
 sub-step its `stopped at` line names (`--hand <stage>` keeps a stage, `--from <stage>` hands one back).
 Red, Green or the loop by hand, a revise's PASS too, ends with its `seam-settle.sh`, then
 `$S/run-step.sh <n> --from <next stage>`, never a bare re-call.
 Red by hand ends `$S/seam-settle.sh <n> red-half test_path=<path> target_test=<id>`.
 
 1. **Develop.** Before the prompt is built, run `$S/refresh-spec.sh <n> .tdd/issue-<n>-spec.md`.
-   Exits 0, 2 and 3 go on; the step's `### 🔴 Red` comment names a 0 as a refreshed spec,
+   Exits 0, 2, 3 go on; the step's `### 🔴 Red` comment names a 0 as a refreshed spec,
    a 2 as the capture kept, either note through `comment.sh red --note-file`.
    Exit 1 (the live criteria count differs from the capture's) **bails** with cause
    `needs-user`, naming both counts in the bail comment, before any leaf of the step
@@ -775,7 +775,7 @@ Red by hand ends `$S/seam-settle.sh <n> red-half test_path=<path> target_test=<i
    ```
    $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' > .tdd/develop-red.prompt
    rm -f .tdd/develop-red.exit .tdd/develop-red.pid .tdd/red-prediction.md .tdd/red-run-output.txt
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/detach-leaf.sh $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err
    $S/wait-leaf.sh develop-red  # foreground; again on exit 3
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
