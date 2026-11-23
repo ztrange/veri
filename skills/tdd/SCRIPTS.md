@@ -831,8 +831,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   other value, is **exit 2**, with a stderr line naming `VERI_GH_DRIVER` and the value, checked
   at call time. Operations with no GraphQL route — issue edit and create, `gh_rest_list`,
   `gh_json` with no gh args, selection's issue listing — use REST under every value, and `VERI_GH_JSON` takes precedence
-  over it. A Claude Code cloud session, where GraphQL is refused, needs nothing set: the
-  default is already `rest`. The conductor does not call this —
+  over it. Under `rest` (the default) no veri script calls `gh issue`, `gh pr`, `gh label` or
+  `gh auth` porcelain, and the tree-audit case in
+  `skills/tdd/scripts/tests/py/test_gh_porcelain_guard.py` enforces it; a Claude Code cloud
+  session, where GraphQL is refused, therefore needs nothing set. The conductor does not call this —
   it is rung 2's, driven by the loop branch of this skill.
 - `$S/wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha] | --fresh-window <head-sha>` — **wait one bounded slice
   for a PR's checks**, then be called again: *4. Draft PR*'s CI wait. The second form, `wait-ci.sh --fresh-window <head-sha>`, removes `.tdd/ci-deadline-<sha>`, `.tdd/ci-queued-<sha>`, `.tdd/ci-none-<sha>` and `.tdd/ci-head-<sha>` for that sha so the next wait records a fresh deadline and a fresh head wait; it reads no checks and exits 0. Reads the check runs and
