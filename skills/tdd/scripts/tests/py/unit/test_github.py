@@ -1331,3 +1331,12 @@ def test_gh_json_page_with_no_gh_args_reads_the_path_through_gh_api_never_runnin
     page = github.gh_json_page("", path)
 
     assert (page, fake.argvs) == ('[{"body": "x"}]', [["gh", "api", path]])
+
+
+def test_published_keeps_a_veri_script_name_and_drops_every_directory_of_a_path_outside_home_4661(monkeypatch, github):
+    monkeypatch.setenv("HOME", "/root")
+
+    posted = [github.published(line) for line in ("/home/user/x/run-conductor.sh 7",
+                                                  "/tmp/alice/secret/run-conductor.sh 7")]
+
+    assert posted == ["<path>/run-conductor.sh 7", "<path>/run-conductor.sh 7"]
