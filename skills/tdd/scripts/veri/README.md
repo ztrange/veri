@@ -859,7 +859,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `decision-log.sh`: record a judge's decision about no issue in `.tdd/decisions.jsonl` of the main working tree.
 - `dispatch.sh`: the dev session's dispatch target and exits watch.
 - `dispatch_live`: dispatch.sh's real `World` and the helpers only it uses, which look up each name a test patches on dispatch through `dispatch_reads.via`.
-- `dispatch_reads`: dispatch.sh's GitHub, queued-merge and overlap reads, which look up each name a test patches on dispatch in the namespace dispatch.py hands them (`bind`, `via`).
+- `dispatch_reads`: dispatch.sh's GitHub, queued-merge and overlap reads, its argument parsing, output and queue order, which look up each name a test patches on dispatch in the namespace dispatch.py hands them (`bind`, `via`).
 - `github-outage.sh`: the dev session's local mode during a GitHub outage: the outage file of held PRs, the merging list and the one detached status wait per main working tree, each verb under one lock; the status read runs in-process through `github_status`.
 - `install-links.sh`: link veri's skills into a project.
 - `metrics.sh`: a run's metrics report.
@@ -972,3 +972,4 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `target_repo()`, `owner_repo(pr_url)`, `PR_URL`, `queued_merges()`, `pr_state(pr_url)`, `issue_states(issues)`: the queued merges of this clone for the target repo and the states of PRs and issues.
 - `answered(what, read, *args, **kwargs)`, `transient(detail)`, `TRANSIENT_RETRY_BOUND`: a gh read whose no-answer is an unreadable queue naming `what`, a transient refusal retried at most the bound.
 - `overlap_poll()`, `issue_paths(issue)`, `parked_issues()`, `head_issue(head_ref)`, `run_prs()`, `run_pr_paths()`, `overlap(issue, changed)`, `launchable(issue, changed, reported, world=None)`: the overlap between an issue's named paths and the open run draft PRs' diffs.
+- `say(text)`, `parse_args(argv)`, `prioritize(free, lines)`: a line written to stdout and flushed, the `--target <n>` argument (None when it or a tunable is malformed), and the free issues with the role state's named overrides moved first.
