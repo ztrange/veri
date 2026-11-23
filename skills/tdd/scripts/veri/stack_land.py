@@ -301,8 +301,8 @@ def main(argv):
                                     % (ci, head, slice_branch), pr))
         code = merge_common.merge(gate, pr, repo, number, head, driver="rest")
         if re.search(RULES, said[-1]):
-            return _refused("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock"
-                            " freed, nothing retried" % (pr, code, " ".join(said[-1].split())))
+            return _freed("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock freed,"
+                          " nothing retried" % (pr, code, " ".join(said[-1].split())))
         if "HTTP 409" in said[-1]:
             return _refused("the merge of %s was refused: its head is not the sha sent, the head mismatch (exit %d): %s;"
                             " the merge lock freed, nothing retried" % (pr, code, " ".join(said[-1].split())))
