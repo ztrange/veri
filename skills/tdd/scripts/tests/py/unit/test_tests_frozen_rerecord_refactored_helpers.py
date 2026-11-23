@@ -1172,3 +1172,25 @@ def test_rerecord_refactored_re_records_a_go_case_whose_direct_helper_call_a_ref
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert (code, _skip_lines(err, GO_SUITE + " TestX"), checked) == (0, 0, (0, ""))
+
+
+def test_rerecord_refactored_re_records_a_case_whose_record_holds_the_non_transitive_helpers_digest_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    nested = ("func inner(t *testing.T, x int) {\n" + THREE + "}\n\nfunc outer(t *testing.T, x int) {\n\tinner(t, x)\n}\n\n"
+              "func TestX(t *testing.T) {\n\tx := 1\n\touter(t, x)\n" + OWN + "}\n")
+    identity = importlib.import_module("veri.case_identity")
+    body = "\n".join(identity.bodies_of(nested, "TestX"))
+
+    def as_written_before_the_transitive_walk():
+        record = _record_of(tmp_path)
+        kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
+        record.write_text("".join(kept) + "helpers: %s\tTestX\t%s\n" % (
+            GO_SUITE, identity.helper_digest(nested, body, transitive=False)))
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, nested, nested.replace(
+        "outer(t, x)\n" + OWN, "outer(t, x)\n\t// tidied\n" + OWN), edit_record=as_written_before_the_transitive_walk)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (code, _skip_lines(err, GO_SUITE + " TestX"), checked) == (0, 0, (0, ""))
