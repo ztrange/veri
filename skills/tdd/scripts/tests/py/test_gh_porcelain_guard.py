@@ -1,9 +1,7 @@
 import ast
-import pathlib
 
 import pytest
 
-VERI = pathlib.Path(__file__).resolve().parents[2] / "veri"
 PORCELAIN = {"issue", "pr", "label", "auth"}
 GRAPHQL_HOMES = {"github.py", "merge_common.py"}
 GH_CALLERS = {"run_gh", "gh_probe"}
@@ -38,8 +36,7 @@ def _on_graphql_branch(source, chain):
     return any(isinstance(n, ast.If) and _mentions_graphql(source, n.test) for n in ast.walk(function))
 
 
-def _breaches(path):
-    source = path.read_text()
+def _breaches(path, source, tree):
     found = []
 
     def visit(node, chain):
@@ -48,11 +45,13 @@ def _breaches(path):
         for child in ast.iter_child_nodes(node):
             visit(child, chain + [node])
 
-    visit(ast.parse(source), [])
+    visit(tree, [])
     return found
 
 
 @pytest.mark.tree_audit("skills/tdd/scripts/veri")
-def test_issue_4667_no_veri_module_calls_gh_porcelain_off_the_graphql_branch():
-    breaches = [b for path in sorted(VERI.glob("*.py")) for b in _breaches(path)]
+def test_issue_4667_no_veri_module_calls_gh_porcelain_off_the_graphql_branch(veri_modules_index):
+    index = veri_modules_index
+    breaches = [b for name in index.names
+                for b in _breaches(index.path(name), index.text(name), index.tree(name))]
     assert not breaches, "gh issue/pr/label/auth porcelain reached off the graphql branch at: " + ", ".join(breaches)
