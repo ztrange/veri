@@ -1769,3 +1769,37 @@ def test_verify_sh_and_run_verdict_sh_answer_a_rebase_or_diff_verdict_from_one_l
     assert (code, first if want_first is not None else None, [leaf for leaf, _ in launches]) == (
         want_code, want_first, want_leaves)
     assert [text for text in present for _, prompt in launches if text not in prompt] == []
+
+
+def test_4472_the_argv_verify_branch_launches_run_verdict_with_passes_verifys_argument_parsing_and_reaches_the_leaf(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    """verify_branch.launch hands run-verdict.sh, which passes argv to verify.sh unexamined, `branch <spec>` with no
+    <test-path>; run #4698 bailed when verify.main refused that arity with its usage line, exit 2."""
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    base = "abc1234def5678"
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("the behavior spec\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(base + "\n")
+    launched = []
+
+    def launch(where, wt_, name, command, *args, env, out, err, clear=()):
+        launched.append((command, list(args)))
+
+    monkeypatch.setattr(fused, "launch", launch)
+    monkeypatch.setattr(fused, "call", lambda *a, **kw: (0, "", ""))
+    monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "", ""))
+    run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    assert [command for command, _ in launched] == ["run-verdict.sh"]
+
+    (tmp_path / ".git").rmdir()  # no git tree around the verifier, so the builder reads nothing at the fake base
+    monkeypatch.chdir(wt)
+    leaves = answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nthe branch holds")
+    verify = importlib.import_module("veri.verify")
+    code = verify.main(launched[0][1])
+
+    assert (code, [name for name, _ in leaves]) == (0, ["verify-branch"])
+    assert "the behavior spec" in leaves[0][1]

@@ -7,6 +7,7 @@
 #          phase = red | green | refactor | pin | plan | diff
 #          diff takes the run's branch base from --branch-base, and <step-base-sha> as its one sha positional:
 #          verify.sh --step '<STEP>' --branch-base <sha> diff <issue-spec-file> <step-base-sha>
+#          branch judges the whole branch and names no test: verify.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>
 #
 # stdout: the verifier's reason.
 # exit:   0 PASS · 1 REJECT · 2 malformed verdict, killed-stuck, a leaf that modified the
