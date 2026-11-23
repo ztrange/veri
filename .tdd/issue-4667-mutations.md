@@ -5,3 +5,14 @@ skills/tdd/scripts/tests/py/test_gh_porcelain_guard.py
 command 70
 make test TESTS=skills/tdd/scripts/tests/py/test_gh_porcelain_guard.py
 
+file 39
+skills/tdd/scripts/veri/queued_merge.py
+old-b64 144
+Z2hfanNvbl9wYWdlKCJwci1ib2R5Lmpzb24iLCAicmVwb3MvJXMvcHVsbHMvJXMiICUgKHJlcG8sIF9udW1iZXIocHIpKSwgInByIiwgInZpZXciLCBwciwgIi0tanNvbiIsICJib2R5Iik=
+new-b64 60
+Z2hfcHJvYmUoInByIiwgInZpZXciLCBwciwgIi0tanNvbiIsICJib2R5Iik=
+context-b64 172
+ICAgICAgICAgICAgc2hvd24gPSBnaF9qc29uX3BhZ2UoInByLWJvZHkuanNvbiIsICJyZXBvcy8lcy9wdWxscy8lcyIgJSAocmVwbywgX251bWJlcihwcikpLCAicHIiLCAidmlldyIsIHByLCAiLS1qc29uIiwgImJvZHkiKQ==
+command 160
+sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/test_gh_porcelain_guard.py::test_issue_4667_no_veri_module_calls_gh_porcelain_off_the_graphql_branch
+
