@@ -62,6 +62,10 @@ reads the plan out of these headings.
   go-red criterion** (the guard, broken on purpose, goes red), not one criterion per site. The
   sites are **listed under `## Problem`**. This bounds criteria, not size: sites that group into
   changes useful on their own are filed as one sweep per group, whatever the extra runs cost (P16).
+  A sweep whose one change breaks every site at once (a rename, a retyped shared symbol), so that
+  no group of sites lands green alone, is filed as its **expand** issue (the new form added beside
+  the old). The report names as follow-ups **one migrate issue per group of sites**, each blocked
+  by the expand, and **a contract issue** removing the old form, blocked by every migrate issue.
 - **`## Blocked by`** holds only blocker lines (`#N` of an issue that must land first) or
   the literal `None.`. veri reads every `#N` there as a blocker, so a related issue goes
   elsewhere in the body, never here.
