@@ -289,7 +289,7 @@ def tdd_ignored_row():
 
 
 def gh_auth_row():
-    return "gh auth", None if gh("auth", "status").returncode == 0 else "run `gh auth login`"
+    return "gh auth", None if gh("api", "user").returncode == 0 else "run `gh auth login`"
 
 
 def push_access_row():

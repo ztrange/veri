@@ -96,6 +96,14 @@ def test_issue_4081_a_state_label_past_the_first_30_labels_reads_ok(ready_check,
     assert [l for l in lines if l.startswith("fail  label")] == [], lines
 
 
+def test_issue_4662_gh_auth_row_reads_ok_when_graphql_is_refused_and_gh_api_user_answers(ready_check, run_cli, fake_processes, tmp_path):
+    refused = (1, "", "GitHub GraphQL is not available from Claude Code sessions; use the REST API")
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{
+        "gh auth status": refused, "gh label list": refused, "gh api graphql": refused, "gh api user": (0, "{}", "")})
+
+    assert "ok    gh auth" in lines, lines
+
+
 def one_test_file_row(lines):
     return next((line for line in lines if "one test file" in line), None)
 
