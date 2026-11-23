@@ -585,3 +585,32 @@ def test_main_refuses_a_missing_or_non_numeric_issue_number_with_exit_2_and_the_
     assert (usage, usage_err, non_numeric, non_numeric_err) == (
         2, "usage: unlabel-issue.sh <issue-number>\n",
         2, "unlabel-issue.sh: issue number must be numeric, got 'x7'\n")
+
+
+def test_main_4667_creates_a_missing_taken_lane_label_through_the_rest_route_under_the_default_driver_and_calls_no_gh_label_create(monkeypatch, capsys, fake_processes):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    issue_labels = {"7": {"ready-for-agent"}}
+    calls = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        calls.append(args)
+        read = _labels_read(args, issue_labels)
+        if read:
+            return read
+        if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
+            return subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n")
+        return subprocess.CompletedProcess(args, 0, "[]", "")
+
+    _install(fake_processes, fake_run)
+
+    code = unlabel_issue.main(["7"])
+
+    creates = [call for call in calls if call[:4] == ["gh", "api", "-X", "POST"] and call[-1] == "repos/{owner}/{repo}/labels"]
+    fields = _create_fields(creates[0]) if creates else {}
+    adds = [call for call in calls if "labels[]=taken:main" in call]
+    ordered = bool(creates) and bool(adds) and calls.index(creates[0]) < calls.index(adds[0])
+    assert (code, fields.get("name"), fields.get("color"), fields.get("description"),
+            [call for call in calls if call[:3] == ["gh", "label", "create"]], ordered) == (
+        0, "taken:main", "ededed", "Claimed by a veri run", [], True)
