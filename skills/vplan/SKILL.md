@@ -93,6 +93,23 @@ each row one claim that can be marked true or false. The later sub-PRDs are outl
 Every measured figure names the commit it was measured at and its conditions. A speed or cost
 goal is stated as a target in prose; the acceptance criteria are the behaviours that force it.
 
+A sub-PRD's words are the target repository's glossary terms, and the plan respects its ADRs in
+the area it touches. Where the glossary and the ADRs live is read from the target repo's
+CLAUDE.md.
+
+### A change that breaks many callers at once
+
+A rename or a retyped shared symbol is shaped expand–contract: an **expand** sub-PRD adds the
+new form beside the old; **migrate** sub-PRDs move the callers in batches, each depending on
+the expand; a **contract** sub-PRD, depending on every batch, removes the old form. Each lands
+with the full suite green, and no two share an integration branch.
+
+### Prefactors
+
+A prefactor, a structural change that makes the next sub-PRD's behaviour easy to add, is its
+own sub-PRD. It depends on nothing new and blocks only the next sub-PRD that needs it. It is
+planned when that sub-PRD is next; no prefactor is planned for an outline.
+
 ### Redefining an existing issue
 
 Keep its old text in a comment on that issue first. The plan then says what happened to each of
@@ -112,3 +129,7 @@ A PRD issue that is not itself the work carries no opt-in label.
 
 File only the children the human names, each through `/vfile`, titled
 `PRD <nnn>.<k>: …`. Never start a run.
+
+File the named children in dependency order, blockers first, so each child's `## Blocked by`
+names its blocker's real `#N`. A named child whose blocker is neither filed nor named is not
+filed until the human says whether to file the blocker too.
