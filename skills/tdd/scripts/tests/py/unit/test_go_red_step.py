@@ -245,7 +245,7 @@ def test_4626_a_case_id_with_a_double_colon_is_passed_unchanged_even_when_anothe
 def test_4626_a_case_naming_an_existing_path_is_passed_unchanged_never_sent_through_the_defining_file_lookup(go_red):
     (go_red.wt / "pkg").mkdir()
     (go_red.wt / "pkg" / "foo_test.go").write_text("package pkg\n")
-    (go_red.wt / "notes.txt").write_text("func pkg/foo_test.go\n")
+    (go_red.wt / "notes_test.go").write_text("func pkg/foo_test.go\n")
     step = STEP.replace(CASE, "pkg/foo_test.go")
 
     code, out, err, fake = go_red(step=step)
@@ -254,19 +254,68 @@ def test_4626_a_case_naming_an_existing_path_is_passed_unchanged_never_sent_thro
     assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"
 
 
-def test_4626_a_copy_defining_the_bare_name_only_under_git_or_tdd_is_not_a_defining_file_so_the_name_is_passed_unchanged(
+@pytest.mark.parametrize("hidden", [".git", ".tdd"])
+def test_4626_a_copy_defining_the_bare_name_under_git_or_tdd_is_not_a_defining_file_so_the_real_test_file_resolves(
+        go_red, hidden):
+    (go_red.wt / "pkg").mkdir()
+    (go_red.wt / "pkg" / "foo_test.go").write_text("package pkg\n\nfunc TestFoo(t *testing.T) {\n}\n")
+    (go_red.wt / hidden).mkdir(exist_ok=True)
+    (go_red.wt / hidden / "foo_test.go").write_text("package pkg\n\nfunc TestFoo(t *testing.T) {\n}\n")
+    step = STEP.replace(CASE, "TestFoo")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"
+
+
+def test_4626_a_bare_name_only_a_longer_function_starts_with_is_defined_by_no_test_file_and_stops_at_probe_with_exit_2(
         go_red):
-    for hidden in (".git", ".tdd"):
-        (go_red.wt / hidden).mkdir(exist_ok=True)
-        (go_red.wt / hidden / "foo_test.go").write_text("package pkg\n\nfunc TestFoo(t *testing.T) {\n}\n")
+    (go_red.wt / "pkg").mkdir()
+    (go_red.wt / "pkg" / "foo_test.go").write_text("package pkg\n\nfunc TestFooBar(t *testing.T) {\n}\n")
     step = STEP.replace(CASE, "TestFoo")
 
     code, out, err, fake = go_red(step=step)
 
     assert code == 2, out
-    assert "TestFoo" in err
+    assert "no test file under the worktree defines the case TestFoo" in err
     assert "mutation-probe.sh" not in fake.names()
-    assert out.splitlines()[-1].startswith("stopped at probe ")
+
+
+def test_4626_a_bare_name_resolves_to_the_file_defining_it_never_to_one_defining_only_a_longer_function(go_red):
+    (go_red.wt / "pkg").mkdir()
+    (go_red.wt / "pkg" / "a_test.go").write_text("package pkg\n\nfunc TestFoo(t *testing.T) {\n}\n")
+    (go_red.wt / "pkg" / "b_test.go").write_text("package pkg\n\nfunc TestFooBar(t *testing.T) {\n}\n")
+    step = STEP.replace(CASE, "TestFoo")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "pkg/a_test.go"
+
+
+def test_4626_a_non_test_go_file_defining_the_bare_name_is_not_a_defining_file(go_red):
+    (go_red.wt / "pkg").mkdir()
+    (go_red.wt / "pkg" / "foo_test.go").write_text("package pkg\n\nfunc TestFoo(t *testing.T) {\n}\n")
+    (go_red.wt / "pkg" / "helpers.go").write_text("package pkg\n\nfunc TestFoo(t *testing.T) {\n}\n")
+    step = STEP.replace(CASE, "TestFoo")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"
+
+
+def test_4626_a_test_file_that_is_not_utf_8_is_skipped_never_raised_on_so_the_defining_file_resolves(go_red):
+    (go_red.wt / "pkg").mkdir()
+    (go_red.wt / "pkg" / "foo_test.go").write_text("package pkg\n\nfunc TestFoo(t *testing.T) {\n}\n")
+    (go_red.wt / "pkg" / "x_test.go").write_bytes(b"package pkg\n\xff\xfe\x80 // not utf-8\n")
+    step = STEP.replace(CASE, "TestFoo")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"
 
 
 def test_4626_a_bare_test_function_name_defined_by_no_test_file_stops_at_probe_with_exit_2_naming_the_case_probing_nothing(
