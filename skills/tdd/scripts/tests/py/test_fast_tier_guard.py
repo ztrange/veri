@@ -420,7 +420,7 @@ def test_the_guards_command_line_prints_every_offence_by_file_and_line_and_exits
 
 FROZEN_OUTSIDE_THE_TIER = ("test_events_jsonl_openers.py", "test_events_jsonl_openers_shapes.py",
                           "test_skill_refactor_readers.py", "test_skill_phased_readers.py",
-                          "test_prose_listing_single_source.py")
+                          "test_prose_listing_single_source.py", "test_skill_prose_gh_rest.py")
 
 
 def _misplaced(tier):
@@ -443,6 +443,11 @@ FROZEN_OUTSIDE_THE_TIER += ("test_gh_porcelain_guard.py",)
 @pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
 def test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it():
     assert _misplaced(SCRIPTS / "tests" / "py") == []
+
+
+@pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
+def test_4666_the_gh_rest_prose_guard_is_not_reported_misplaced_outside_the_tier():
+    assert [m for m in _misplaced(SCRIPTS / "tests" / "py") if "test_skill_prose_gh_rest" in m] == []
 
 
 def test_the_placement_audit_still_names_an_offending_file_inside_the_tier_that_the_exemption_table_lists(tmp_path, monkeypatch):
