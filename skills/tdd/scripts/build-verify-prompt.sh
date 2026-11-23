@@ -5,12 +5,14 @@
 # the developer leaf's rationale, and none may be added that could, so the author's reasoning physically cannot reach the verifier — the
 # blindness guarantee is structural, not a matter of the conductor remembering to omit it.
 #
-# usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]
+# usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--branch-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]
+#        build-verify-prompt.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>
 # Usage:
-#   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]
+#   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--branch-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #   build-verify-prompt.sh rebase <issue-spec-file> <onto-sha> <pre-rebase-sha>
+#   build-verify-prompt.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>
 #   build-verify-prompt.sh --step '<STEP>' --fast-cmd '<CMD>' --branch-base <sha> diff <issue-spec-file> <step-base-sha>
-#     phase = red | green | refactor | pin | plan | rebase | transform | diff
+#     phase = red | green | refactor | pin | plan | rebase | transform | diff | branch
 #              for plan the third positional names the proposed ledger, not a test;
 #              for transform it names the step's predicate record, and the fourth is the
 #              step's base sha

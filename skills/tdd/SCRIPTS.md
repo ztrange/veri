@@ -363,7 +363,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   retries and budgets spent, per phase and per step. A non-empty pinned `.tdd/issue-<n>-skip-verify` adds the line
   `⚠️ Unverified phases: <list>`, and any `reason=switched-off` skips (apart from `nothing-landed` ones) add
   `Verifiers switched off: <phase> <n>[, <phase> <n>…]`, one pair per phase with at least one such skip
-  (`verify-diff-skipped` counts as `diff`, `verify-green-skipped` as `green`, `verify-pin-skipped` as `pin`, `verify-red-skipped` as `red`, `verify-refactor-skipped` as `refactor`),
+  (`verify-branch-skipped` counts as `branch`, `verify-diff-skipped` as `diff`, `verify-green-skipped` as `green`, `verify-pin-skipped` as `pin`, `verify-red-skipped` as `red`, `verify-refactor-skipped` as `refactor`),
   comma-separated, the phases in alphabetical order. Everything it knows comes from
   `.tdd/events.jsonl` in the worktree you are in, so it is called there and at the end, once
   the marks it reads have all been written. The conductor both commits its output beside the

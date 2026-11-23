@@ -24,8 +24,9 @@ NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "break": {
          "transform": {"fast-cmd", "base-sha"}, **dict.fromkeys(INTERFACE_PHASES + VERIFY_ONLY_PHASES, {"fast-cmd", "base-sha"})}
 HERE = paths.scripts_of(__file__)
 USAGE = ("usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>]"
-         " [--step-green <sha>]"
-         " <phase> <issue-spec-file> <test-path> [<target-test-id>]")
+         " [--branch-base <sha>] [--step-green <sha>]"
+         " <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+         "\n       build-verify-prompt.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>")
 GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair",
                     "CI_REPAIR": "ci-repair", "FIXTURE_REPAIR": "fixture-repair"}
 
