@@ -95,8 +95,8 @@ reads the plan out of these headings.
 
 ## Before filing
 
-1. **Duplicates and related issues.** Search the repo's issues (`gh api --paginate`, not a
-   capped `gh issue list`) for a duplicate and for related ones. A duplicate is not filed again;
+1. **Duplicates and related issues.** Search the repo's issues over REST (`gh api --paginate repos/{owner}/{repo}/issues`,
+   or `gh api search/issues` for a query; never a capped listing) for a duplicate and for related ones. A duplicate is not filed again;
    report it instead. Name any **follow-ups** the issue leaves for later.
    **A duplicate bug is a bug hit again**, so before reporting it, on the existing issue: post one
    comment, `Hit again: run #<n> (lane `<lane>`)` (or `Hit again: reported by the human` outside a
@@ -117,7 +117,7 @@ reported, not made** (P11).
 
 4. **Preflight the `## Requirements` rows** (an issue with a `## Requirements` section only).
    Write the body to a file and run `requirements-preflight.sh <body-file>` **before**
-   `gh issue create`; file only on exit 0. On exit 2, fix **every row the stderr names**: a new
+   filing it over REST (`gh api repos/{owner}/{repo}/issues`); file only on exit 0. On exit 2, fix **every row the stderr names**: a new
    row takes the next free ID (one past the highest number the unit's own section holds for the
    prefix), and a row amending a held ID is written `<ID><reword>` with its full new text. Then
    re-run the check.
@@ -152,7 +152,8 @@ fall back to the names below only where it names none.
   and `candidate` and **never opted in** (no `ready-for-agent`). It lists each defect; grooming
   splits it into issues of its own.
 
-File with `gh issue create`.
+File over REST: `gh api repos/{owner}/{repo}/issues -f title=… -F body=@<file>`, adding each label
+with `-f 'labels[]=<name>'`.
 
 ## Parent
 
