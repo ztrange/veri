@@ -1,0 +1,11 @@
+file 38
+skills/tdd/scripts/veri/ready_check.py
+old-b64 92
+Tm9uZSBpZiBnaCgiYXBpIiwgInVzZXIiKS5yZXR1cm5jb2RlID09IDAgZWxzZSAicnVuIGBnaCBhdXRoIGxvZ2luYCI=
+new-b64 8
+Tm9uZQ==
+context-b64 120
+ICAgIHJldHVybiAiZ2ggYXV0aCIsIE5vbmUgaWYgZ2goImFwaSIsICJ1c2VyIikucmV0dXJuY29kZSA9PSAwIGVsc2UgInJ1biBgZ2ggYXV0aCBsb2dpbmAi
+command 170
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ready_check.py::test_issue_4662_gh_auth_row_fails_naming_gh_auth_login_when_graphql_is_refused_and_gh_api_user_fails
+
