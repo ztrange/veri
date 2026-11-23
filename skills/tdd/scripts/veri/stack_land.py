@@ -294,7 +294,7 @@ def main(argv):
             if ci != 0:
                 return _freed(_kept("wait-ci.sh exits %d: no answer on CI at the rebased head %s of the slice branch %s"
                                     % (ci, head, slice_branch), pr))
-        code = merge_common.merge(gate, pr, repo, number, head, driver="graphql")
+        code = merge_common.merge(gate, pr, repo, number, head, driver="rest")
         if re.search(RULES, said[-1]):
             return _freed("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock freed,"
                           " nothing retried" % (pr, code, " ".join(said[-1].split())))
