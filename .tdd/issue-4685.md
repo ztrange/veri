@@ -1,0 +1,3 @@
+# Plan for #4685 — A resumed run's detach-command.sh wait reads the previous run's stale .tdd/skill-edit-<n>.exit as the new author's answer
+
+- [ ] With a previous run's leftover `.tdd/skill-edit-<n>.exit` (content `3`), `.out`, `.pid` and `.tdd/issue-<n>-skill-edit-half-wait` present, `skill-edit-half.sh <n>` on a resumed run (a different conductor) does not return the stale exit file's answer: it launches the author (detach-command.sh start) or exits 2 naming the stale file on stderr, ticking nothing — a small unit case in `skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py` ⟦criterion 1⟧
