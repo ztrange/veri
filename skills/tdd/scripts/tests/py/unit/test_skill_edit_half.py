@@ -424,7 +424,8 @@ def test_4450_skill_edit_step_exit_1_stops_with_1_before_step_tick(
 
 def test_4450_skill_edit_step_exit_2_stops_with_2_before_step_tick(
         monkeypatch, run_cli, tmp_path):
-    """SKH16: skill-edit-step.sh's exit 2 (wait reports exit 1, printing 2) stops the stage with 2, before step-tick.sh."""
+    """SKH16: skill-edit-step.sh's exit 2 (wait reports exit 1, printing 2) stops the stage with 2, before step-tick.sh:
+    no step-tick.sh call and the ledger left unticked (#4682 criterion 2)."""
     fused = importlib.import_module("veri.fused")
     skill_edit_half = importlib.import_module("veri.skill_edit_half")
     wt = tmp_path / ".tdd" / "wt" / "12"
@@ -443,9 +444,13 @@ def test_4450_skill_edit_step_exit_2_stops_with_2_before_step_tick(
 
     monkeypatch.setattr(fused, "run_script", fake)
 
+    ledger_before = (wt / ".tdd" / "issue-12.md").read_text()
+
     code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
 
     assert (code, [c[0] for c in calls if c[0] in ("step-tick.sh", "skill-edit-step.sh")]) == (2, []), (code, calls)
+    assert [c for c in calls if c[0] == "step-tick.sh"] == [], calls
+    assert (wt / ".tdd" / "issue-12.md").read_text() == ledger_before
 
 
 def test_4450_it_exits_2_before_any_call_when_the_open_step_does_not_carry_the_skill_edit_mark(
