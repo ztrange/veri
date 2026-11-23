@@ -241,3 +241,17 @@ def test_2782_the_eleven_wording_rows_sit_under_their_units_and_the_five_units_o
                          capture_output=True, text=True)
 
     assert (missing, [u for u in owed if u not in graded], ran.returncode, ran.stdout) == ([], [], 0, ""), ran.stderr
+
+
+@pytest.mark.process("prose-owed.sh run as a script")
+@pytest.mark.tree_audit("the repository's own graded prose units")
+def test_4472_the_four_branch_stage_prose_units_are_signed_and_owe_no_grade():
+    repo = SCRIPTS.parents[2]
+    units = ["skills/tdd/DRAFT-PR.md", "skills/tdd/PREFLIGHT.md", "skills/tdd/BAIL.md",
+             "skills/tdd/scripts/prompts/verify-branch.md"]
+    graded = graded_units(repo / "skills/tdd/GRADED")
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(repo)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert ([u for u in units if u not in graded], ran.returncode, ran.stdout) == ([], 0, ""), ran.stderr
