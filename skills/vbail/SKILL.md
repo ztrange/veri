@@ -48,6 +48,12 @@ and label it with `$S/classify-bail.sh <cause>`; check its answer against the le
 - `needs-user` with no `classification` field: the conductor stopped unmarked (a red baseline
   or any other preflight stop, with the issue comment `needs-user: the conductor stopped
   without a verdict.`). No source tells these apart, so ask the human which;
+- `needs-user` at verify-refactor whose cause is a `rerecord-refactored` skip (the `skipped: <file> <case>`
+  lines), once the human answers re-record: carry it out with
+  `$S/tests-frozen.sh rerecord-approved .tdd/wt/<n>/.tdd/issue-<n>.md --approval "<the human's answer>" <case>...`,
+  naming the cases the human approved, never by hand through the Python record functions; run from the run's
+  worktree `.tdd/wt/<n>`, since the script reads the repository from the current directory. A revert answer needs no
+  such call;
 - `unwired`: a file nothing names, which only a human can wire, remove or accept. Do not
   resume it once: a resume without `release-issue.sh` bails `unwired` again. Park it at once
   (see A second bail: park), the unblock naming the listed files and that a release accepts them;
