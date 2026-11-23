@@ -3653,7 +3653,8 @@ def test_4643_a_pin_whose_old_text_is_in_two_files_of_two_other_directories_is_n
     ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
                          cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, "not checked: a/main.py (" in ran.stdout, (tmp_path / "mutated.marker").exists(),
+    assert (ran.returncode, "not checked: a/main.py (old text in more than one file of its package)\n" in ran.stdout,
+            (tmp_path / "mutated.marker").exists(),
             (tmp_path / "b" / "other.py").read_bytes(), (tmp_path / "c" / "other.py").read_bytes(),
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (1, True, False, copied, copied, False), ran.stdout + ran.stderr
 
