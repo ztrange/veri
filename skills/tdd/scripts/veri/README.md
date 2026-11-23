@@ -858,6 +858,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `comment.sh`: post the run's Done or Bail comment on the issue.
 - `decision-log.sh`: record a judge's decision about no issue in `.tdd/decisions.jsonl` of the main working tree.
 - `dispatch.sh`: the dev session's dispatch target and exits watch.
+- `dispatch_live`: dispatch.sh's real `World` and the helpers only it uses, which look up each name a test patches on dispatch through `dispatch_reads.via`.
 - `dispatch_reads`: dispatch.sh's GitHub, queued-merge and overlap reads, which look up each name a test patches on dispatch in the namespace dispatch.py hands them (`bind`, `via`).
 - `github-outage.sh`: the dev session's local mode during a GitHub outage: the outage file of held PRs, the merging list and the one detached status wait per main working tree, each verb under one lock; the status read runs in-process through `github_status`.
 - `install-links.sh`: link veri's skills into a project.
@@ -964,3 +965,10 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 
 ## status
 - `json_document(scope=None, read_states=True)`: `(exit code, --json document)`.
+
+## dispatch_reads
+- `bind(namespace)`: hands the module dispatch.py's module namespace, the first binder winning, so a copy of dispatch.py a test loads from its file never takes the lookups. `via(name)`: `<name>` as that namespace holds it now, a test's patch included; dispatch_live's `World` looks every helper up through it.
+- `comment_bodies(issue)`, `last_comment(issue)`, `exit_line(issue)`: an issue's trusted comment bodies, the last one, and the `done`/`bail`/`silent-exit` line its closing comment makes. `RateLimitPersists`: a read still rate-limited after `VERI_GH_REFUSAL_RETRIES` waits.
+- `target_repo()`, `owner_repo(pr_url)`, `PR_URL`, `queued_merges()`, `pr_state(pr_url)`, `issue_states(issues)`: the queued merges of this clone for the target repo and the states of PRs and issues.
+- `answered(what, read, *args, **kwargs)`, `transient(detail)`, `TRANSIENT_RETRY_BOUND`: a gh read whose no-answer is an unreadable queue naming `what`, a transient refusal retried at most the bound.
+- `overlap_poll()`, `issue_paths(issue)`, `parked_issues()`, `head_issue(head_ref)`, `run_prs()`, `run_pr_paths()`, `overlap(issue, changed)`, `launchable(issue, changed, reported, world=None)`: the overlap between an issue's named paths and the open run draft PRs' diffs.
