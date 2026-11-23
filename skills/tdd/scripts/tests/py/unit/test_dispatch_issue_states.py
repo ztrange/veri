@@ -5,8 +5,8 @@ import json
 import pytest
 
 
-@pytest.fixture(autouse=True)
-def _graphql_driver(monkeypatch):
+@pytest.fixture
+def graphql_driver(monkeypatch):
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
 
 
@@ -46,6 +46,7 @@ class _StopWaiting(Exception):
     pass
 
 
+@pytest.mark.usefixtures("graphql_driver")
 def test_main_waits_out_a_403_secondary_rate_limit_on_the_stall_check_issue_states_read_and_goes_on_issue_3582(
         monkeypatch, capsys, tmp_path):
     import os
@@ -140,6 +141,7 @@ def test_main_exits_2_naming_the_issue_body_read_when_a_403_secondary_rate_limit
     assert (code, "issue 12's body" in capsys.readouterr().err) == (2, True)
 
 
+@pytest.mark.usefixtures("graphql_driver")
 def test_main_waits_out_a_403_marked_only_by_a_retry_after_header_on_the_stall_check_issue_states_read_and_goes_on_issue_3582(
         monkeypatch, capsys, tmp_path):
     import os
@@ -189,6 +191,7 @@ def test_main_waits_out_a_403_marked_only_by_a_retry_after_header_on_the_stall_c
     assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
 
 
+@pytest.mark.usefixtures("graphql_driver")
 def test_main_waits_out_a_403_marked_only_by_a_mixed_case_retry_after_header_on_the_stall_check_issue_states_read_and_goes_on_issue_3582(
         monkeypatch, capsys, tmp_path):
     import os
@@ -238,6 +241,7 @@ def test_main_waits_out_a_403_marked_only_by_a_mixed_case_retry_after_header_on_
     assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
 
 
+@pytest.mark.usefixtures("graphql_driver")
 def test_main_waits_out_a_429_marked_only_by_a_retry_after_header_on_the_stall_check_issue_states_read_and_goes_on_issue_3582(
         monkeypatch, capsys, tmp_path):
     import os
@@ -287,6 +291,7 @@ def test_main_waits_out_a_429_marked_only_by_a_retry_after_header_on_the_stall_c
     assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
 
 
+@pytest.mark.usefixtures("graphql_driver")
 def test_main_waits_out_a_403_marked_only_by_an_x_ratelimit_remaining_zero_header_on_the_stall_check_issue_states_read_and_goes_on_issue_3582(
         monkeypatch, capsys, tmp_path):
     import os
@@ -336,6 +341,7 @@ def test_main_waits_out_a_403_marked_only_by_an_x_ratelimit_remaining_zero_heade
     assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
 
 
+@pytest.mark.usefixtures("graphql_driver")
 def test_main_waits_out_a_429_marked_only_by_an_x_ratelimit_remaining_zero_header_on_the_stall_check_issue_states_read_and_goes_on_issue_3582(
         monkeypatch, capsys, tmp_path):
     import os
