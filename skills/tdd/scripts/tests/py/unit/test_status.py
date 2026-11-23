@@ -14,6 +14,11 @@ def text_mode(monkeypatch):
 
 
 @pytest.fixture
+def graphql_driver(monkeypatch):
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+
+
+@pytest.fixture
 def status():
     return importlib.import_module("veri.status")
 
@@ -66,6 +71,7 @@ def test_status_with_no_run_under_the_main_working_tree_prints_no_runs_and_exits
     assert run_cli(status, []) == (3, "no runs\n", "")
 
 
+@pytest.mark.usefixtures("graphql_driver")
 def test_status_lists_a_run_under_tdd_wt_with_its_issue_number_title_branch_and_step_n_of_m(tmp_path, fake_processes, run_cli, status):
     run = ledger_run(tmp_path, "7", "# Plan for #7 \u2014 widgets spin when clicked\n\n- [x] a widget exists\n"
                                     "- [ ] a clicked widget spins\n- [ ] a spinning widget stops\n")
@@ -76,6 +82,7 @@ def test_status_lists_a_run_under_tdd_wt_with_its_issue_number_title_branch_and_
     assert run_cli(status, []) == (0, "#7  widgets spin when clicked  tdd/7-widgets-spin  step 2 of 3\n", "")
 
 
+@pytest.mark.usefixtures("graphql_driver")
 def test_status_shows_a_runs_state_running_done_with_its_pr_url_bailed_with_phase_and_classification_or_stale(
         tmp_path, monkeypatch, fake_processes, run_cli, status):
     runs = {issue: lamp_run(tmp_path, issue) for issue in ("11", "12", "13", "14")}
@@ -104,6 +111,7 @@ def test_status_shows_a_runs_state_running_done_with_its_pr_url_bailed_with_phas
         "#14  lamps glow  tdd/14-lamps" + head + "1000s  attempt 1  $0.00  0 tokens  closed\n")
 
 
+@pytest.mark.usefixtures("graphql_driver")
 def test_status_watch_redraws_in_place_recomputing_every_run_from_disk_on_each_render(
         tmp_path, monkeypatch, fake_processes, run_cli, status):
     run = lamp_run(tmp_path, "41")
@@ -134,6 +142,7 @@ def test_status_watch_redraws_in_place_recomputing_every_run_from_disk_on_each_r
                                                         "\033[H\033[2J" + line + "done https://github.com/o/r/pull/41\n")
 
 
+@pytest.mark.usefixtures("graphql_driver")
 def test_status_exits_2_naming_the_failure_when_a_ledger_cannot_be_read_as_text(tmp_path, fake_processes, run_cli, status):
     run = ledger_run(tmp_path, "9", "")
     (run / ".tdd" / "issue-9.md").write_bytes(b"# Plan for #9 \xe2\x80\x94 locked\n\n- [ ] a \xff lock\n")
