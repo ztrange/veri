@@ -1376,3 +1376,24 @@ def test_gh_pr_diff_names_answers_every_file_of_a_pr_spanning_two_rest_pages_whe
     fake_processes.answers({}, default=answer)
 
     assert github.gh_pr_diff_names(12) == ["a/one.py", "a/two.py", "b/three.py"]
+
+
+@pytest.mark.parametrize("driver", [None, "rest", "auto"])
+def test_gh_issue_list_reads_the_rest_issues_listing_dropping_pull_requests_and_upper_casing_state_issue_4663(fake_processes, monkeypatch, github, driver):
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    if driver is None:
+        monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    else:
+        monkeypatch.setenv("VERI_GH_DRIVER", driver)
+    path = "repos/{owner}/{repo}/issues?state=all&per_page=100&page="
+    fake = fake_gh(fake_processes, {
+        ("gh", "api", path + "1"): (0, '[{"number":1,"state":"open","title":"a"},'
+                                       '{"number":2,"state":"open","pull_request":{}}]', ""),
+        ("gh", "api", path + "2"): (0, '[{"number":3,"state":"closed","title":"c"}]', ""),
+        ("gh", "api", path + "3"): (0, "[]", ""),
+    })
+
+    answer = github.gh_issue_list("--state", "all", "--limit", "1000", "--json", "number,state")
+
+    assert json.loads(answer) == [{"number": 1, "state": "OPEN"}, {"number": 3, "state": "CLOSED"}]
+    assert [call[:3] for call in fake.argvs if call[1] != "api"] == []
