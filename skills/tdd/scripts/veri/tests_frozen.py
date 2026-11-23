@@ -524,7 +524,8 @@ def rerecord_refactored(ledger, green):
 
 def rerecord_approved(ledger, approval, cases):
     """`rerecord-approved`: re-record the named `cases` of every earlier record at their HEAD bodies, each with its
-    `helpers:` line, on a human's approval; every other record line is left as it was."""
+    `helpers:` line, on a human's non-empty `approval`; every other record line is left as it was. Each re-recorded case
+    logs one `tests-frozen-rerecord-approved` event carrying the approval as given."""
     with open(ledger, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
     os.chdir(_toplevel())
@@ -550,6 +551,9 @@ def rerecord_approved(ledger, approval, cases):
             name, case, case_identity.helper_digest(texts[name], head))
     snapshot = _snapshot(lines)
     if rewrite_records(_earlier_records(lines, ""), rewrite):
+        for name, case in sorted(heads):
+            event.mark(".", event.context(os.environ), "tests-frozen-rerecord-approved",
+                       ["case=" + case, "file=" + name, "approval=" + approval])
         return 0
     # A record that could not be written keeps no rewrite of the others: the approval took whole or not at all.
     for path, text in snapshot.items():
@@ -772,7 +776,7 @@ def _main(argv):
         return rerecord_earlier(argv[1], argv[3])
     if argv[:1] == ["rerecord-refactored"] and len(argv) == 3:
         return rerecord_refactored(argv[1], argv[2])
-    if argv[:1] == ["rerecord-approved"] and len(argv) >= 5 and argv[2] == "--approval":
+    if argv[:1] == ["rerecord-approved"] and len(argv) >= 5 and argv[2] == "--approval" and argv[3]:
         return rerecord_approved(argv[1], argv[3], argv[4:])
     if argv[:1] == ["rerecord-rebased"] and len(argv) == 3:
         return rerecord_rebased(argv[1], argv[2])
