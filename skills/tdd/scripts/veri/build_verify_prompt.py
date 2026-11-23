@@ -31,11 +31,29 @@ GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-rep
                     "CI_REPAIR": "ci-repair", "FIXTURE_REPAIR": "fixture-repair"}
 
 
+ROW_ID = r"[A-Z][A-Za-z]*\d+"
+SPEC_LINE = re.compile(r"\bSpec: (?:https://github\.com/[^/\s]+/[^/\s]+/blob/[^/\s]+/)?(\S+) , rows "
+                       r"(%s(?:[-–](?:%s|\d+))?(?:,? +%s(?:[-–](?:%s|\d+))?)*)" % ((ROW_ID,) * 4))
+
+
+def _row_ids(listed):
+    """The row ids a `rows` list names, each range `A1-A3` (or `A1-3`) spelled out as A1, A2, A3."""
+    wanted = set()
+    for item in re.split(r"[, ]+", listed.strip()):
+        prefix, start, end = re.fullmatch(r"([A-Z][A-Za-z]*)(\d+)(?:[-–](?:[A-Z][A-Za-z]*)?(\d+))?", item).groups()
+        wanted.update(prefix + str(k) for k in range(int(start), int(end or start) + 1))
+    return wanted
+
+
 def _spec_rows_at(spec_text, branch_base):
     blocks = []
-    for path, ids in re.findall(r"^Spec: (\S+) , rows ([^\n]+)$", spec_text.decode(errors="replace"), re.M):
-        wanted = {name.strip(",") for name in ids.split()}
-        shown = git.out("show", f"{branch_base}:{path}")
+    for path, listed in SPEC_LINE.findall(spec_text.decode(errors="replace")):
+        wanted = _row_ids(listed)
+        try:
+            shown = git.out("show", f"{branch_base}:{path}")
+        except git.GitFailed:
+            sys.stderr.write(f"build-verify-prompt: {path} is not at the branch base {branch_base}; its rows are left out\n")
+            continue
         rows = "\n".join(line for line in shown.splitlines()
                          if line.startswith("|") and line.split("|")[1].strip() in wanted)
         if rows:
