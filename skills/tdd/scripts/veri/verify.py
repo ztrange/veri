@@ -43,7 +43,8 @@ WRITE_BAN = {"PreToolUse": [{"matcher": "Write|Edit|MultiEdit|NotebookEdit", "ho
 LEAF_ARGS = ["--permission-mode", "bypassPermissions", "--settings", json.dumps({"hooks": WRITE_BAN})]
 USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>']"
          " [--supersede-base <sha>] [--step-green <sha>] --branch-base <sha> <phase> <issue-spec-file>"
-         " <test-path> [<target-test-id>]")
+         " <test-path> [<target-test-id>]"
+         "\n       verify.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>")
 
 
 def is_echo_flag(value):
