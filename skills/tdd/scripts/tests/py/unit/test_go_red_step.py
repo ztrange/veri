@@ -240,3 +240,15 @@ def test_4626_a_case_id_with_a_double_colon_is_passed_unchanged_even_when_anothe
 
     assert code == 0, err
     assert fake.call("mutation-probe.sh")[1][-1] == CASE
+
+
+def test_4626_a_case_naming_an_existing_path_is_passed_unchanged_never_sent_through_the_defining_file_lookup(go_red):
+    (go_red.wt / "pkg").mkdir()
+    (go_red.wt / "pkg" / "foo_test.go").write_text("package pkg\n")
+    (go_red.wt / "notes.txt").write_text("func pkg/foo_test.go\n")
+    step = STEP.replace(CASE, "pkg/foo_test.go")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"
