@@ -29,14 +29,14 @@ make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_a
 
 file 42
 skills/tdd/scripts/veri/skill_edit_step.py
-old 106
+old 116
             in_unit = line[3:] == unit
         elif in_unit and line.startswith("|"):
-            held.add
-new 94
+            yield number, line
+new 104
             in_unit = True
         elif in_unit and line.startswith("|"):
-            held.add
+            yield number, line
 context 38
             in_unit = line[3:] == unit
 command 203
