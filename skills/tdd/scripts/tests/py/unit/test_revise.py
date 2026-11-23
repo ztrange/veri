@@ -374,6 +374,18 @@ def test_red_restores_production_gates_the_prediction_and_on_pass_records_and_re
     assert not (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").exists()
 
 
+def test_4692_a_revised_red_reporting_against_unmodified_passes_with_a_why_re_verifies_as_pin_with_no_divergence_gate(revise):
+    """REVISE.md sub-steps 4-5: `AGAINST_UNMODIFIED: PASSES — <why>` is a pin, so verdict-pin, never verdict-red."""
+    _red(revise)
+    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS",
+                                "AGAINST_UNMODIFIED: PASSES — the case passes on the unmodified tree")
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, "")}, report=report),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert fake.launched() == ["revise-red-1", "verdict-pin"], err
+    assert "red-divergence.sh" not in fake.names()
+
+
 @pytest.mark.parametrize("gate", [0, 1, 2])
 def test_a_red_prediction_gate_exit_0_1_or_2_spends_the_attempt_without_a_verifier(revise, gate):
     """PRD 038.9 criterion 4: REVISE.md sub-step 4; only exit 3 (matched) re-verifies."""
