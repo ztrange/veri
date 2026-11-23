@@ -1,1 +1,1 @@
-- [ ] fix the full-suite failure by editing `skills/tdd/scripts/prompts/verify-plan.md`: skills/tdd/scripts/prose-owed.sh — skills/tdd/scripts/prompts/verify-plan.md ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 2⟧
+- [x] fix the full-suite failure by editing `skills/tdd/scripts/prompts/verify-plan.md`: skills/tdd/scripts/prose-owed.sh — skills/tdd/scripts/prompts/verify-plan.md ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 2⟧
