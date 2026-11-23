@@ -82,6 +82,8 @@ def committed_case(wt, case):
 
 def defining_file(wt, case):
     """The repo-relative path of the first file under the worktree defining `func <case>`, else <case>."""
+    if os.path.exists(os.path.join(wt, case)):
+        return case
     pattern = re.compile(r"func\s+" + case)
     for root, _, files in os.walk(wt):
         for name in files:
