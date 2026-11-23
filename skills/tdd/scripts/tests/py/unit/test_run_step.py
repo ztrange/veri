@@ -197,6 +197,15 @@ def test_4343_a_step_that_is_not_a_cycle_step_exits_1_on_a_kind_seam_calling_no_
     assert not (step.wt / ".tdd" / "issue-12-step").exists()
 
 
+def test_4621_a_special_kind_step_under_a_refactor_spec_keeps_its_own_kind_route_not_the_refactor_kind_seam(step):
+    text = "repairs the fixture 'f' in tests/test_a.py ⟦fixture-repair⟧ ⟦criterion 1⟧"
+    (step.wt / ".tdd" / "issue-12-spec.md").write_text("## Refactor\n\nExtract Function loadPlanInputs.\n")
+
+    code, out, err, stages = step(ledger=LEDGER % text)
+
+    assert (code, stages.names(), out) == (1, [], "seam=none code=1 reason=kind next=%s\n" % RED), err
+
+
 RECORD = "seam=green-half code=1 reason=record next=seam-settle.sh 12 red-half test_path=… target_test=…"
 
 
