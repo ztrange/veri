@@ -1,16 +1,20 @@
 ### 📊 Metrics — issue 4666
 
-Wall time for the issue: 363 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 979 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 5 of 5 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/4680.
+Steps done: 7 of 7 planned.
+Outcome: the run bailed — revise-impossible, a process failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $3.74 over 48 turns, in 3 sessions, on opus (estimate).
+Conductor own spending: $11.50 over 175 turns, in 7 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 84888 tokens, largest 121037 tokens
 Conductor context: first turn 84888 tokens, largest 121121 tokens
-Conductor context: first turn 84889 tokens, largest 119983 tokens
+Conductor context: first turn 84889 tokens, largest 150694 tokens
+Conductor context: first turn 85067 tokens, largest 140626 tokens
+Conductor context: first turn 85069 tokens, largest 139868 tokens
+Conductor context: first turn 85067 tokens, largest 118561 tokens
+Conductor context: first turn 85108 tokens, largest 147086 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -49,22 +53,149 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 30 | $0.04 | 117682 |
 | 31 | $0.05 | 120236 |
 | 32 | $0.04 | 121121 |
-| 33 | $0.53 | 84889 |
-| 34 | $0.02 | 85090 |
+| 33 | $0.54 | 84889 |
+| 34 | $0.03 | 85090 |
 | 35 | $0.06 | 89856 |
-| 36 | $0.08 | 97982 |
-| 37 | $0.02 | 98340 |
-| 38 | $0.03 | 99648 |
+| 36 | $0.09 | 97982 |
+| 37 | $0.03 | 98340 |
+| 38 | $0.04 | 99648 |
 | 39 | $0.05 | 103012 |
-| 40 | $0.03 | 104077 |
-| 41 | $0.03 | 105376 |
-| 42 | $0.04 | 107632 |
-| 43 | $0.04 | 110351 |
+| 40 | $0.04 | 104077 |
+| 41 | $0.04 | 105376 |
+| 42 | $0.05 | 107632 |
+| 43 | $0.05 | 110351 |
 | 44 | $0.03 | 110900 |
 | 45 | $0.03 | 111321 |
-| 46 | $0.03 | 112754 |
-| 47 | $0.03 | 113621 |
-| 48 | $0.07 | 119983 |
+| 46 | $0.04 | 112754 |
+| 47 | $0.04 | 113621 |
+| 48 | $0.08 | 119983 |
+| 49 | $0.04 | 121114 |
+| 50 | $0.04 | 121531 |
+| 51 | $0.05 | 123761 |
+| 52 | $0.05 | 126205 |
+| 53 | $0.07 | 130953 |
+| 54 | $0.06 | 134784 |
+| 55 | $0.05 | 135729 |
+| 56 | $0.05 | 137995 |
+| 57 | $0.07 | 142035 |
+| 58 | $0.04 | 142745 |
+| 59 | $0.04 | 143337 |
+| 60 | $0.04 | 144448 |
+| 61 | $0.05 | 145445 |
+| 62 | $0.04 | 145914 |
+| 63 | $0.04 | 146477 |
+| 64 | $0.05 | 147540 |
+| 65 | $0.05 | 150067 |
+| 66 | $0.05 | 150694 |
+| 67 | $0.54 | 85067 |
+| 68 | $0.04 | 87233 |
+| 69 | $0.06 | 91472 |
+| 70 | $0.04 | 93001 |
+| 71 | $0.04 | 95069 |
+| 72 | $0.05 | 98069 |
+| 73 | $0.04 | 99167 |
+| 74 | $0.03 | 99961 |
+| 75 | $0.05 | 102285 |
+| 76 | $0.05 | 104686 |
+| 77 | $0.05 | 107074 |
+| 78 | $0.03 | 107986 |
+| 79 | $0.04 | 109113 |
+| 80 | $0.03 | 109448 |
+| 81 | $0.04 | 110264 |
+| 82 | $0.04 | 111700 |
+| 83 | $0.04 | 113252 |
+| 84 | $0.03 | 113648 |
+| 85 | $0.04 | 114063 |
+| 86 | $0.05 | 116824 |
+| 87 | $0.05 | 119017 |
+| 88 | $0.05 | 121386 |
+| 89 | $0.04 | 122190 |
+| 90 | $0.03 | 122727 |
+| 91 | $0.04 | 123402 |
+| 92 | $0.06 | 127075 |
+| 93 | $0.07 | 131092 |
+| 94 | $0.06 | 134684 |
+| 95 | $0.06 | 137611 |
+| 96 | $0.04 | 138938 |
+| 97 | $0.04 | 139539 |
+| 98 | $0.05 | 140626 |
+| 99 | $0.54 | 85069 |
+| 100 | $0.04 | 87234 |
+| 101 | $0.06 | 91564 |
+| 102 | $0.06 | 95680 |
+| 103 | $0.05 | 98243 |
+| 104 | $0.06 | 103059 |
+| 105 | $0.04 | 103900 |
+| 106 | $0.10 | 112957 |
+| 107 | $0.04 | 113756 |
+| 108 | $0.05 | 116742 |
+| 109 | $0.05 | 119243 |
+| 110 | $0.04 | 120063 |
+| 111 | $0.04 | 121178 |
+| 112 | $0.03 | 121827 |
+| 113 | $0.04 | 122460 |
+| 114 | $0.03 | 122821 |
+| 115 | $0.04 | 123377 |
+| 116 | $0.04 | 124053 |
+| 117 | $0.05 | 126345 |
+| 118 | $0.05 | 129189 |
+| 119 | $0.04 | 129976 |
+| 120 | $0.05 | 131106 |
+| 121 | $0.03 | 131624 |
+| 122 | $0.04 | 132044 |
+| 123 | $0.05 | 133654 |
+| 124 | $0.04 | 134889 |
+| 125 | $0.06 | 138459 |
+| 126 | $0.04 | 139153 |
+| 127 | $0.04 | 139868 |
+| 128 | $0.54 | 85067 |
+| 129 | $0.05 | 87269 |
+| 130 | $0.02 | 87877 |
+| 131 | $0.10 | 96792 |
+| 132 | $0.04 | 97915 |
+| 133 | $0.04 | 100180 |
+| 134 | $0.04 | 100964 |
+| 135 | $0.03 | 102342 |
+| 136 | $0.04 | 103062 |
+| 137 | $0.03 | 103519 |
+| 138 | $0.04 | 104593 |
+| 139 | $0.03 | 105252 |
+| 140 | $0.04 | 106352 |
+| 141 | $0.06 | 110711 |
+| 142 | $0.05 | 112746 |
+| 143 | $0.04 | 113849 |
+| 144 | $0.03 | 114279 |
+| 145 | $0.05 | 116852 |
+| 146 | $0.05 | 118561 |
+| 147 | $0.55 | 85108 |
+| 148 | $0.03 | 87299 |
+| 149 | $0.06 | 92307 |
+| 150 | $0.03 | 93933 |
+| 151 | $0.03 | 95115 |
+| 152 | $0.03 | 96311 |
+| 153 | $0.03 | 97028 |
+| 154 | $0.03 | 97993 |
+| 155 | $0.08 | 105473 |
+| 156 | $0.03 | 106135 |
+| 157 | $0.03 | 107645 |
+| 158 | $0.06 | 113028 |
+| 159 | $0.03 | 113742 |
+| 160 | $0.02 | 113977 |
+| 161 | $0.03 | 114718 |
+| 162 | $0.03 | 115808 |
+| 163 | $0.03 | 116061 |
+| 164 | $0.03 | 117096 |
+| 165 | $0.09 | 125582 |
+| 166 | $0.03 | 126064 |
+| 167 | $0.08 | 133321 |
+| 168 | $0.03 | 134042 |
+| 169 | $0.05 | 136675 |
+| 170 | $0.03 | 137584 |
+| 171 | $0.04 | 139060 |
+| 172 | $0.03 | 139924 |
+| 173 | $0.06 | 143415 |
+| 174 | $0.05 | 146300 |
+| 175 | $0.04 | 147086 |
 
 #### Conductor comments, by family
 
@@ -89,30 +220,41 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 42 | 3.52 |
-| preflight | 2 | 0.07 |
-| push | 2 | 0.10 |
-| rebase | 2 | 0.06 |
+| between | 163 | 11.01 |
+| preflight | 5 | 0.19 |
+| push | 3 | 0.16 |
+| rebase | 2 | 0.07 |
+| develop-rebase | 2 | 0.07 |
 
-Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset, VERI_MODEL_REVISE_GREEN unset, VERI_EFFORT_VERIFIER unset; models that answered: claude-sonnet-5-5.
+Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset, VERI_MODEL_REVISE_GREEN unset, VERI_EFFORT_VERIFIER unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 3 | 3 | 0 | 0 | 43 | 35 | 5 | 10 | 3799 | 88974 | 91629 | 0.28 |
-| prose | 18 | 0 | 0 | 0 | 366 | 325 | 18 | 36 | 47926 | 58710 | 232100 | 1.07 |
+| plan | 5 | 5 | 0 | 0 | 66 | 53 | 7 | 14 | 5777 | 100958 | 151430 | 0.45 |
+| prose | 22 | 0 | 0 | 0 | 504 | 451 | 22 | 44 | 67968 | 64264 | 311866 | 1.47 |
 | skill-edit | 3 | 0 | 0 | 0 | 37 | 31 | 13 | 20 | 3248 | 210539 | 80449 | 0.25 |
-| red | 1 | 0 | 0 | 0 | 65 | 43 | 9 | 18 | 5104 | 224569 | 26224 | 0.14 |
+| red | 3 | 1 | 0 | 0 | 148 | 77 | 18 | 36 | 8822 | 401264 | 72113 | 0.31 |
 | pin | 1 | 1 | 0 | 0 | 19 | 10 | 3 | 6 | 869 | 50505 | 17412 | 0.06 |
 | test-quality | 1 | 0 | 0 | 0 | 7 | 5 | 2 | 4 | 391 | 26426 | 15091 | 0.04 |
+| green | 2 | 1 | 0 | 0 | 209 | 59 | 18 | 36 | 5750 | 427634 | 44978 | 0.21 |
+| refactor | 1 | 0 | 0 | 0 | 6 | 4 | 2 | 4 | 170 | 29395 | 19772 | 0.05 |
+| rebase | 4 | 0 | 1 | 0 | 435 | 112 | 36 | 68 | 8520 | 724044 | 88125 | 0.52 |
+
+#### REJECT outcomes
+
+| phase | REJECT | caught | flipped | overturned | unresolved | pending | untracked |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| rebase | 1 | 0 | 0 | 0 | 1 | 0 | 0 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 4 | 4 | 0 | 0 | 62 | 45 | 8 | 16 | 4668 | 139479 | 109041 | 0.33 |
-| developer | claude-sonnet-5-5 | 2 | 0 | 0 | 0 | 72 | 48 | 11 | 22 | 5495 | 250995 | 41315 | 0.18 |
+| verifier | claude-sonnet-5-5 | 9 | 8 | 1 | 0 | 440 | 101 | 23 | 44 | 10123 | 376736 | 222523 | 0.70 |
+| developer | claude-sonnet-5-5 | 5 | 0 | 0 | 0 | 264 | 117 | 31 | 62 | 12612 | 707615 | 114739 | 0.48 |
+| developer | claude-opus-5-5 | 3 | 0 | 0 | 0 | 186 | 102 | 32 | 62 | 7564 | 675875 | 71659 | 0.46 |
 
 #### Rework and waste, by phase
 
@@ -121,9 +263,12 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | plan | 0 | 0.00 | 0 | 0.00 |
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 65 | 0.14 |
+| red | 0 | 0.00 | 148 | 0.31 |
 | pin | 0 | 0.00 | 19 | 0.06 |
 | test-quality | 0 | 0.00 | 0 | 0.00 |
+| green | 0 | 0.00 | 209 | 0.21 |
+| refactor | 0 | 0.00 | 6 | 0.05 |
+| rebase | 435 | 0.52 | 0 | 0.00 |
 
 #### By step
 
@@ -131,8 +276,16 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
 | A `@pytest.mark.tree_audit("skills/*/SKILL.md")` case in skills/tdd/scripts/tests/py/test_skill_prose_gh_rest.py fails, naming file and line, for any instruction in a skills/*/SKILL.md that names a backticked gh issue list/view/create or gh pr view/diff/merge/list command, and allows a line that forbids it (the vreport Q5 wording, "run a full `gh issue list` (Q5)" after "never"); against the edited tree it passes (a pin), no production change ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 53 | 12 | 24 | 5973 | 275074 | 43636 | 0.20 | unknown | unknown | unknown | unknown |  |  | already-satisfied |
 | With one site restored the guard case goes red, probe `skills/vmerge/SKILL.md` `gh api repos/{owner}/{repo}/pulls/<pr> --jq .body` → `gh pr view <pr> --json body` on `skills/tdd/scripts/tests/py/test_skill_prose_gh_rest.py` ⟦go-red⟧ ⟦criterion 2⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 5 | 2 | 4 | 391 | 26426 | 15091 | 0.04 | unknown | unknown | unknown | unknown |  |  | full |
+| fix the CI failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it and test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_by_any_case_that_reads_the_real_table: test_skill_prose_gh_rest.py: guard-clean, outside the tier; skills/tdd/scripts/tests/py/unit/test_operator_comment_reads_bounded.py — FAILED test_every_gh_comment_read_in_vdev_is_bounded: whole-thread gh comment read: skills/vdev/REQUIREMENTS.md and skills/vdev/SKILL.md: gh api repos/{owner}/{repo}/issues/<n>/comments ⟦ci-repair⟧ ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 97 | 29 | 58 | 9638 | 633724 | 110639 | 0.44 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| fix the full-suite failure by editing `skills/vdev/SKILL.md`: prose-owed.sh — skills/vdev/SKILL.md ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 2⟧ | 4 | 0 | 1 | 0 | 0 | 0 | 112 | 36 | 68 | 8520 | 724044 | 88125 | 0.52 | unknown | 1/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER, VERI_MODEL_REVISE and VERI_MODEL_REVISE_GREEN.
+
+#### By refactor pass
+
+| step | pass | refactor | stopped | verdict | revise | wall s | $ |
+| --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
+| fix the CI failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it and test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_by_any_case_that_reads_the_real_table: test_skill_prose_gh_rest.py: guard-clean, outside the tier; skills/tdd/scripts/tests/py/unit/test_operator_comment_reads_bounded.py — FAILED test_every_gh_comment_read_in_vdev_is_bounded: whole-thread gh comment read: skills/vdev/REQUIREMENTS.md and skills/vdev/SKILL.md: gh api repos/{owner}/{repo}/issues/<n>/comments ⟦ci-repair⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.05 |
 
 #### Structural pass
 
@@ -142,31 +295,37 @@ Stopped: nothing-structural
 
 | step | passes | transforms | landed nothing | stopped |
 | --- | ---: | ---: | ---: | --- |
-| issue | 1 | ? | ? | nothing-structural 1 |
+| fix the CI failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it and test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_by_any_case_that_reads_the_real_table: test_skill_prose_gh_rest.py: guard-clean, outside the tier; skills/tdd/scripts/tests/py/unit/test_operator_comment_reads_bounded.py — FAILED test_every_gh_comment_read_in_vdev_is_bounded: whole-thread gh comment read: skills/vdev/REQUIREMENTS.md and skills/vdev/SKILL.md: gh api repos/{owner}/{repo}/issues/<n>/comments ⟦ci-repair⟧ ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 2 | ? | ? | nothing-left 1, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s |
-| --- | ---: | ---: | ---: |
-| changed | 4 | 2 |  |
-| target | 2 | 2 | 2 |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| changed | 4 | 2 | 6 | 6 | 7 |
+| target | 2 | 2 | 2 | 7 | 2 |
+| fast | 31 | 27 |  |  |  |
+| all | 30 | 36 | 239 |  |  |
 
 #### Stages
 
 | stage | runs | ok | failed | no answer | nothing | unended | wall s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| preflight | 3 | 3 | 0 | 0 | 0 | 0 | 475 |
-| baseline | 3 | 3 | 0 | 0 | 0 | 0 | 325 |
+| preflight | 7 | 5 | 2 | 0 | 0 | 0 | 951 |
+| baseline | 7 | 5 | 2 | 0 | 0 | 0 | 591 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 1 |
-| push | 11 | 11 | 0 | 0 | 0 | 0 | 24 |
+| push | 19 | 19 | 0 | 0 | 0 | 0 | 40 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
-| rebase | 4 | 0 | 0 | 0 | 4 | 0 | 9 |
+| rebase | 11 | 0 | 6 | 1 | 4 | 0 | 25 |
+| ready | 1 | 1 | 0 | 0 | 0 | 0 | 4 |
+| ci-wait | 1 | 0 | 1 | 0 | 0 | 0 | 323 |
+| refactor-loop | 1 | 1 | 0 | 0 | 0 | 0 | 33 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 50 | 94 | 61337 | 659723 | 462905 | 5.58 (estimate) |
+| total | 121 | 232 | 101515 | 2035029 | 801236 | 14.87 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
@@ -176,9 +335,10 @@ Green rejects by route: none
 
 | role | model | leaves | first-turn cache creation | first-turn cache read | first-turn input |
 | --- | --- | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 4 | 104441 | 23968 | 8 |
-| grader | claude-sonnet-5-5 | 18 | 232100 | 58710 | 36 |
+| verifier | claude-sonnet-5-5 | 9 | 210292 | 53928 | 18 |
+| grader | claude-sonnet-5-5 | 22 | 311866 | 64264 | 44 |
 | author | claude-sonnet-5-5 | 3 | 75701 | 15995 | 6 |
-| developer | claude-sonnet-5-5 | 2 | 31481 | 11984 | 4 |
+| developer | claude-sonnet-5-5 | 7 | 116944 | 35952 | 14 |
+| developer | claude-opus-5-5 | 1 | 21695 | 0 | 2 |
 
-Gradings: 12, PASS 9, REJECT 3, cost $0.96, efforts default
+Gradings: 16, PASS 13, REJECT 3, cost $1.36, efforts default
