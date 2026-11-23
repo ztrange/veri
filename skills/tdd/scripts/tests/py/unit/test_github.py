@@ -1397,3 +1397,27 @@ def test_gh_issue_list_reads_the_rest_issues_listing_dropping_pull_requests_and_
 
     assert json.loads(answer) == [{"number": 1, "state": "OPEN"}, {"number": 3, "state": "CLOSED"}]
     assert [call[:3] for call in fake.argvs if call[1] != "api"] == []
+
+
+
+
+def test_4663_gh_issue_list_under_rest_never_runs_gh_issue_list(fake_processes, monkeypatch, github):
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    path = "repos/{owner}/{repo}/issues?state=all&per_page=100&page="
+    fake_gh(fake_processes, {
+        ("gh", "api", path + "1"): (0, '[{"number":1,"state":"open"}]', ""),
+        ("gh", "api", path + "2"): (0, "[]", ""),
+    })
+    calls = []
+    real = github.run_gh
+
+    def spy(*args, **kwargs):
+        calls.append(args)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(github, "run_gh", spy)
+
+    github.gh_issue_list("--state", "open", "--limit", "5", "--search", "x in:title", "--json", "number,title")
+
+    assert [c for c in calls if c[:2] == ("issue", "list")] == []
