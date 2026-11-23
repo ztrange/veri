@@ -588,6 +588,8 @@ def gh_issue_list(*args):
             state = args[args.index("--state") + 1]
             words = "repo:{owner}/{repo} is:issue state:%s %s" % (state, args[args.index("--search") + 1])
             for run in _pages("search/issues?q=%s" % urllib.parse.quote_plus(words)):
+                if run.returncode != 0:
+                    raise NoAnswer("", run.stderr or "")
                 items = json.loads(run.stdout)["items"]
                 if not items:
                     break
