@@ -11,7 +11,7 @@ A revise of red, green or refactor is built from a prompt that asks for no `SUIT
 exits 0 straight into its verifier and nothing checks for the line. The `diff` revise does ask for one:
 its check is stated in DIFF-CHECKED.md (`Read` `<base directory>/DIFF-CHECKED.md`).
 
-The phases sent to `build-develop-prompt.sh revise <phase>` are red, green, refactor, transform, diff, rebase and the interface phases expand, beside, cover-new, dual-stub, migrate, contract-a, contract-b; a rejected transform is revised as `revise transform`, never mapped to `refactor`; a rebase rejection (the Draft PR step's rebase verifier) is revised as `revise rebase`.
+The phases sent to `build-develop-prompt.sh revise <phase>` are red, green, refactor, transform, diff, rebase and the interface phases expand, beside, cover-new, dual-stub, migrate, contract-a, contract-b; a rejected transform is revised as `revise transform`, never mapped to `refactor`; a rebase rejection (the Draft PR step's rebase verifier) is revised as `revise rebase`. A `verify-branch` REJECT is never revised and spends no `REVISE_BUDGET` attempt: it appends one `⟦diff-checked⟧ ⟦branch-repair⟧` step, or bails `branch-rejected` past `VERI_BRANCH_REPAIRS` (DRAFT-PR.md, *The `verify-branch` stage*); that step's own REJECT is a `diff` REJECT, revised as `revise diff`.
 
 A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line (formats `revise-wrong-test` with `SUPERSEDED:`, `revise-wrong-test-contradicts` with `CONTRADICTS:`) and is routed as a
 develop-green `WRONG_TEST:` report is, as is one carrying a `SUPERSEDED:` line, with or without `WRONG_TEST:`: `$S/wrong-test-route.sh --spec .tdd/issue-<n>-spec.md .tdd/revise-green-<k>.out '<target-test-id>'` runs
