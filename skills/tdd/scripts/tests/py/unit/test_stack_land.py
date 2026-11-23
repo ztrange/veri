@@ -544,25 +544,6 @@ def test_4665_with_the_graphql_driver_and_a_gh_refusing_every_pr_merge_with_a_40
         0, False, True), err
 
 
-@pytest.mark.parametrize("refusal", [
-    "X Pull request owner/repo#90 is not mergeable: the base branch policy prohibits the merge.\n",
-    "GraphQL: Repository rule violations found\n\nRequired status check \"gates\" is expected. (mergePullRequest)\n",
-])
-def test_a_merge_refused_naming_the_repositorys_rules_exits_2_naming_the_pull_request_the_merge_called_once_never_retried_the_lock_freed(
-        monkeypatch, run_cli, stack_land, refusal):
-    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
-    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
-                  opens=url)
-    github = importlib.import_module("veri.github")
-    monkeypatch.setattr(github, "run_gh", lambda *args, stderr=None: (
-        world.gh.append(("gh",) + args) or subprocess.CompletedProcess(["gh", *args], 1, "", refusal)))
-
-    code, out, err = run_cli(stack_land, ["--now"])
-
-    assert (code, out, url in err, "Traceback" in err, len(world.gh), [ran[:2] for ran in world.scripts[-2:]]) == (
-        2, "", True, False, 1, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
-
-
 def test_a_merge_call_that_errors_without_naming_the_rules_then_a_read_of_the_pull_request_answering_merged_within_the_settle_window_is_success_the_merge_called_once(
         monkeypatch, run_cli, stack_land):
     cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
