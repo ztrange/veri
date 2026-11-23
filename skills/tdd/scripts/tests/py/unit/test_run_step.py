@@ -215,7 +215,7 @@ def test_4621_an_ordinary_open_step_under_a_refactor_spec_calls_no_stage_and_sto
 
 
 def test_4621_a_spec_heading_that_only_starts_with_refactor_is_no_refactor_section_so_the_cycle_still_runs(step):
-    (step.wt / ".tdd" / "issue-12-spec.md").write_text("Fix the parser.\n\n## Refactoring notes\n\nNone.\n")
+    (step.wt / ".tdd" / "issue-12-spec.md").write_text("Fix the parser.\n\n## Refactoring notes\n\nNone.\n\n### Refactor\n\nNone.\n")
 
     code, out, err, stages = step()
 
