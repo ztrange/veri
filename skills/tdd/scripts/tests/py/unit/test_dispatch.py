@@ -3964,3 +3964,12 @@ def test_parked_issues_reads_the_open_parked_issues_through_the_rest_listing_iss
     }, default=(1, "", "HTTP 403: GraphQL refused"), exact=True)
 
     assert real.parked_issues() == {"5", "8"}
+
+
+def test_run_worktrees_leaves_out_a_regular_file_issue_4658(monkeypatch, tmp_path):
+    dispatch_live = importlib.import_module("veri.dispatch_live")
+    (tmp_path / ".tdd" / "wt" / "4001").mkdir(parents=True)
+    (tmp_path / ".tdd" / "wt" / "note.txt").write_text("stray\n")
+    monkeypatch.setattr(dispatch_live.layout, "main_tree", lambda **_: str(tmp_path))
+
+    assert dispatch_live.World().run_worktrees() == ["4001"]
