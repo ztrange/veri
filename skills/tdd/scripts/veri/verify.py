@@ -279,7 +279,11 @@ def main(argv):
             return entry.refuse("verify: %s needs a value" % words[0], usage=USAGE)
         options[words[0]] = words[1]
         words = words[2:]
-    if len(words) < 3:
+    if words[:1] == ["branch"] and len(words) == 2:
+        # The branch phase judges the whole branch, so it names no test (build-verify-prompt.sh's own branch form);
+        # verify-branch.sh launches it as `branch <issue-spec-file>`, and an empty <test-path> is what the builder takes.
+        words = [*words, ""]
+    elif len(words) < 3:
         return entry.refuse(usage=USAGE)
     if not build_verify_prompt.HEX_SHA.fullmatch(options["--branch-base"]):
         return entry.refuse("verify: %s needs --branch-base <sha> as 7-40 lowercase hex characters, got '%s'"
@@ -305,7 +309,7 @@ def main(argv):
                    " variable resolved '%s' — which one the leaf would run on is flag order;"
                    " unset one of them" % model)
             return 2
-    if not all(words[:3]):
+    if not all(words[:2 if words[0] == "branch" else 3]):
         return entry.to_contract(build_verify_prompt.refuse())
     if len(words) > 4:
         return entry.to_contract(build_verify_prompt.refuse("build-verify-prompt: too many arguments"))
