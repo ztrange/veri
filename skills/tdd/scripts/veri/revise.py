@@ -163,6 +163,8 @@ def checks(n, wt, settled, step, values):
     the re-verify is launched (its leaf, or SKIPPED)."""
     routed(wt, values)
     if values["phase"] == "red":
+        if passes_unmodified(wt, values):
+            return verify(n, wt, settled, step, values, "pin")
         return red_checks(n, wt, settled, step, values)
     if values["phase"] == "refactor":
         return verify(n, wt, settled, step, values)
@@ -178,6 +180,12 @@ def checks(n, wt, settled, step, values):
     check_earlier(n, wt, step, list(dict.fromkeys(green_half.rerouted_cases(wt, step)
                                                   + (replaces_case.parse(step) or ([], ""))[0])))
     return verify(n, wt, settled, step, values)
+
+
+def passes_unmodified(wt, values):
+    """A revised red whose report says `AGAINST_UNMODIFIED: PASSES`, bare or followed by its why, is a pin."""
+    got = fused.report("4", wt, ".tdd/revise-red-%d.out" % values["k"], "AGAINST_UNMODIFIED")["AGAINST_UNMODIFIED"]
+    return got is not None and (got == "PASSES" or got.startswith("PASSES" + WHY))
 
 
 def check_earlier(n, wt, step, excepted):
@@ -196,7 +204,7 @@ def diff_checks(n, wt, settled, step, values):
 
 
 # The revise report's answers that route it elsewhere (RVS7), per phase: the conductor's routes, never an attempt.
-ROUTES = {"red": (("OUTCOME", "IMPOSSIBLE"), ("AGAINST_UNMODIFIED", "PASSES")),
+ROUTES = {"red": (("OUTCOME", "IMPOSSIBLE"),),
           "green": (("OUTCOME", "IMPOSSIBLE"), ("WRONG_TEST", None), ("SUPERSEDED", None)),
           "refactor": (("OUTCOME", "IMPOSSIBLE"),), "diff": (("OUTCOME", "IMPOSSIBLE"),)}
 
@@ -249,19 +257,27 @@ def read(wt, path):
         return f.read()
 
 
-def verify(n, wt, settled, step, values):
+def launch_pin(where, n, wt, settled, step, values):
+    fused.launch(where, wt, "verdict-pin", "run-verdict.sh", "--step", step, "--fast-cmd", settled["fast_cmd"],
+                 "--branch-base", fused_step.branch_base(where, wt, n), "pin",
+                 SPEC % n, values["test_path"], values["target_test"],
+                 env=fused.step_env(n, step, VERI_TEST_CMD=settled["fast_cmd"]), out=".tdd/verify-pin.reason",
+                 err=".tdd/verify-pin.err")
+
+
+def verify(n, wt, settled, step, values, as_phase=None):
     """REVISE.md sub-step 5's re-verify: verdict-<phase> launched by the phase stage's own launch, so it takes exactly
     that stage's run-verdict.sh arguments and the run's recorded branch base (RVS13). The leaf launched, or SKIPPED
     with the phase switched off (ADR-0033): its skip marked and `skipped` written to its exit file, as the stage does."""
-    phase = values["phase"]
+    phase = as_phase or values["phase"]
     if fused_step.verify_switched_off(wt, n, phase):
         fused.mark("5", wt, n, step, "verify-%s-skipped" % phase, "reason=switched-off")
         with open(os.path.join(wt, ".tdd", "verdict-%s.exit" % phase), "w") as f:
             f.write("skipped\n")
         return SKIPPED
-    LAUNCH[phase]("5", n, wt, settled, step, values)
-    fused.save_wait(wt, n, NAME, "verdict-" + values["phase"], values)
-    return "verdict-" + values["phase"]
+    (launch_pin if as_phase else LAUNCH[phase])("5", n, wt, settled, step, values)
+    fused.save_wait(wt, n, NAME, "verdict-" + phase, values)
+    return "verdict-" + phase
 
 
 def recorded(n, wt, step, values):
