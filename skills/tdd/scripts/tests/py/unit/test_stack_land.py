@@ -544,6 +544,33 @@ def test_4665_with_the_graphql_driver_and_a_gh_refusing_every_pr_merge_with_a_40
         0, False, True), err
 
 
+def test_4665_a_rest_merge_answering_405_with_repository_rule_violations_exits_1_with_the_rule_refusal_line_the_merge_called_once_no_settle_read_the_lock_freed(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url)
+    github = importlib.import_module("veri.github")
+    said = "gh: Repository rule violations found (HTTP 405)"
+    monkeypatch.setattr(github, "run_gh", lambda *args, stderr=None: (
+        world.gh.append(("gh",) + args) or subprocess.CompletedProcess(["gh", *args], 1, "", said + "\n")))
+    pull, reads = "repos/owner/repo/pulls/90", []
+    listing = github.gh_api
+
+    def gh_api(path, stderr=None):
+        if path == pull:
+            reads.append(path)
+        return listing(path, stderr=stderr)
+
+    monkeypatch.setattr(github, "gh_api", gh_api)
+
+    code, out, err = run_cli(stack_land, ["--now"], env={"VERI_GH_DRIVER": "graphql"})
+
+    assert (code, out, "stack-land: the merge of %s was refused under the repository's rules (exit 1): %s; the merge lock"
+            " freed, nothing retried" % (url, said) in err, len(world.gh), reads,
+            [ran[:2] for ran in world.scripts[-2:]]) == (
+        1, "", True, 1, [], [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
+
+
 def test_a_merge_call_that_errors_without_naming_the_rules_then_a_read_of_the_pull_request_answering_merged_within_the_settle_window_is_success_the_merge_called_once(
         monkeypatch, run_cli, stack_land):
     cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
