@@ -303,6 +303,9 @@ def main(argv):
         if re.search(RULES, said[-1]):
             return _refused("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock"
                             " freed, nothing retried" % (pr, code, " ".join(said[-1].split())))
+        if "HTTP 409" in said[-1]:
+            return _refused("the merge of %s was refused: its head is not the sha sent, the head mismatch (exit %d): %s;"
+                            " the merge lock freed, nothing retried" % (pr, code, " ".join(said[-1].split())))
         answers = merge_common.settle(lambda: _pull(repo, number), window, wait_first=bool(code))
         if merge_common.merged(answers[-1]):
             closed = re.findall(r"^Closes #(\d+)$", answers[-1].get("body") or "", re.M)
