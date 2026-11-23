@@ -39,39 +39,12 @@ from dispatch_reads import (RateLimitPersists, comment_bodies, last_comment, tar
                             queued_merges, pr_state, issue_states, TRANSIENT_RETRY_BOUND, transient, answered,
                             overlap_poll, issue_paths, parked_issues, head_issue, run_prs, run_pr_paths, overlap,
                             launchable, exit_line)
+from dispatch_reads import say, parse_args, prioritize
 from dispatch_live import restart_pending, now, run_dir, launch, lane, state_file, World
 
 
 def stall_window():
     return tunables.get("VERI_DISPATCH_STALL")
-
-
-def say(text):
-    sys.stdout.write(text)
-    sys.stdout.flush()
-
-
-def parse_args(argv):
-    if (
-        not argv
-        or not stall_window().isdigit()
-        or not overlap_poll().isdigit()
-        or len(argv) != 2
-        or argv[0] != "--target"
-        or not argv[1].isdigit()
-    ):
-        return None
-    return int(argv[1])
-
-
-def prioritize(free, lines):
-    named_before = set()
-    for named in role_state.State(lines).override_numbers():
-        if named in free and named not in named_before:
-            named_before.add(named)
-            free.remove(named)
-            free.insert(0, named)
-    return free
 
 
 class State:

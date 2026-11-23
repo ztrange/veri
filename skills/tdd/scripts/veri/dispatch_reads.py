@@ -6,12 +6,14 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 
 import github
 import json_documents
 import paths
 import pid_file
+import role_state
 import tunables
 import watch_runs
 import workqueue
@@ -234,3 +236,31 @@ def exit_line(issue):
     if not heading.startswith("### ✅ Done"):
         return f"silent-exit {issue}"
     return f"done {issue} {heading.split()[-1]}"
+
+
+def say(text):
+    sys.stdout.write(text)
+    sys.stdout.flush()
+
+
+def parse_args(argv):
+    if (
+        not argv
+        or not via("stall_window")().isdigit()
+        or not via("overlap_poll")().isdigit()
+        or len(argv) != 2
+        or argv[0] != "--target"
+        or not argv[1].isdigit()
+    ):
+        return None
+    return int(argv[1])
+
+
+def prioritize(free, lines):
+    named_before = set()
+    for named in role_state.State(lines).override_numbers():
+        if named in free and named not in named_before:
+            named_before.add(named)
+            free.remove(named)
+            free.insert(0, named)
+    return free
