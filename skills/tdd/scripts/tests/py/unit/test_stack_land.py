@@ -510,7 +510,9 @@ def test_with_origin_default_an_ancestor_of_the_cut_merges_the_slice_pull_reques
 
     code, out, err = run_cli(stack_land, ["--now"], env={"VERI_GH_DRIVER": "rest"})
 
-    assert world.gh in merge_calls(url, cut), err
+    rest_merge = ("gh", "api", "-X", "PUT", "repos/owner/repo/pulls/90/merge", "-f", "merge_method=rebase",
+                  "-f", "sha=%s" % cut)
+    assert (rest_merge in world.gh, [ran for ran in world.gh if ran[:3] == ("gh", "pr", "merge")]) == (True, []), err
 
 
 def test_4665_with_the_graphql_driver_and_a_gh_refusing_every_pr_merge_with_a_403_the_land_merges_over_rest_at_the_cut_and_exits_0(
