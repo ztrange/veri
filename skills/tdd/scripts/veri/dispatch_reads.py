@@ -24,7 +24,7 @@ _home = {}
 def bind(namespace):
     """Hands this module the namespace its lookups read: dispatch.py's globals(). The first binder wins, so a copy of
     dispatch.py a test loads from its file (spec_from_file_location) never takes the lookups from the module it copies;
-    dispatch.sh runs dispatch.py as __main__, the one binder."""
+    dispatch.sh runs dispatch.py as its main module, the one binder."""
     _home.setdefault("namespace", namespace)
 
 
