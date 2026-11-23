@@ -1413,6 +1413,8 @@ def test_4663_gh_issue_list_under_rest_never_runs_gh_issue_list(fake_processes, 
         found = listing.fullmatch(line)
         if not found:
             raise AssertionError("unexpected command: %r" % (line,))
+        if "repo:{owner}/{repo}" not in line:
+            return (1, "", "gh: Validation Failed (HTTP 422)")  # gh substitutes only a literal placeholder
         queries.append(unquote_plus(line))
         items = [{"number": 7, "title": "x in title", "html_url": "https://github.example/o/r/issues/7"}]
         return (0, json.dumps({"items": items if found.group(1) == "1" else []}), "")
@@ -1432,6 +1434,32 @@ def test_4663_gh_issue_list_under_rest_never_runs_gh_issue_list(fake_processes, 
     assert [c for c in calls if c[:2] == ("issue", "list")] == []
     assert json.loads(out) == [{"number": 7, "title": "x in title", "url": "https://github.example/o/r/issues/7"}]
     assert queries and all("repo:{owner}/{repo} is:issue" in q and "state:open" in q and "x in:title" in q for q in queries)
+
+
+def test_4663_gh_issue_list_search_with_state_all_sends_no_state_qualifier_since_github_search_answers_none(
+        fake_processes, monkeypatch, github):
+    from urllib.parse import unquote_plus
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    listing = re.compile(r"gh api search/issues\?.*page=(\d+)")
+    queries = []
+
+    def github_search(line, **kwargs):
+        found = listing.fullmatch(line)
+        if not found:
+            raise AssertionError("unexpected command: %r" % (line,))
+        if "repo:{owner}/{repo}" not in line:
+            return (1, "", "gh: Validation Failed (HTTP 422)")
+        asked = unquote_plus(line)
+        queries.append(asked)
+        items = [{"number": 7, "title": "x", "html_url": "u7"}]
+        return (0, json.dumps({"items": items if found.group(1) == "1" and "state:all" not in asked else []}), "")
+
+    fake_processes.answers({}, default=github_search)
+
+    out = github.gh_issue_list("--state", "all", "--limit", "5", "--search", "x in:title", "--json", "number")
+
+    assert ([r["number"] for r in json.loads(out)], [q for q in queries if "state:" in q]) == ([7], [])
 
 
 def test_4663_gh_issue_list_search_raises_no_answer_when_the_rest_search_read_exits_non_zero(fake_processes, monkeypatch, github):
