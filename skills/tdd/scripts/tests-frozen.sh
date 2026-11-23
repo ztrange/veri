@@ -25,8 +25,9 @@
 #
 # rerecord-approved re-records exactly the named cases of the earlier records at their HEAD bodies, each with its
 # helpers: line, on a human's non-empty --approval text, and logs one tests-frozen-rerecord-approved event per case
-# (case, file, approval). Exit 0 re-recorded; 2 no answer: no case or approval given, a named case no record holds or
-# absent at HEAD (nothing written), or a record that cannot be written (every rewritten record restored).
+# (case, file, approval). A case is named <file>::<case>, or by a bare case name that must match exactly one recorded
+# case. Exit 0 re-recorded; 2 no answer: no case or approval given, a named case no record holds or absent at HEAD, a
+# bare name matching more than one recorded case (each match named; nothing written), or a record that cannot be written (every rewritten record restored).
 #
 # rerecord-earlier, for a ⟦diff-checked⟧ step, rewrites the earlier steps' frozen records of the cases
 # that step's own diff (step base..HEAD) changed, at their content at HEAD; any other step exits 3.
