@@ -85,7 +85,8 @@ def defining_file(wt, case):
     if os.path.exists(os.path.join(wt, case)):
         return case
     pattern = re.compile(r"func\s+" + case)
-    for root, _, files in os.walk(wt):
+    for root, dirs, files in os.walk(wt):
+        dirs[:] = [d for d in dirs if d not in (".git", ".tdd")]
         for name in files:
             full = os.path.join(root, name)
             with open(full, encoding="utf-8") as f:

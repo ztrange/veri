@@ -252,3 +252,16 @@ def test_4626_a_case_naming_an_existing_path_is_passed_unchanged_never_sent_thro
 
     assert code == 0, err
     assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"
+
+
+def test_4626_a_copy_defining_the_bare_name_only_under_git_or_tdd_is_not_a_defining_file_so_the_name_is_passed_unchanged(
+        go_red):
+    for hidden in (".git", ".tdd"):
+        (go_red.wt / hidden).mkdir(exist_ok=True)
+        (go_red.wt / hidden / "foo_test.go").write_text("package pkg\n\nfunc TestFoo(t *testing.T) {\n}\n")
+    step = STEP.replace(CASE, "TestFoo")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "TestFoo"
