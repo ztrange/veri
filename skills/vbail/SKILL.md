@@ -9,8 +9,8 @@ description: >-
 Obeys `operator/PRINCIPLES.md` under the veri clone root (`git -C <base dir> rev-parse --show-toplevel`); read it first.
 
 `$S` is `skills/tdd/scripts/`, reached from this skill's base directory as `../tdd/scripts/`.
-Every command runs from the target repository's main working tree, except the save and restore in
-the run's worktree `.tdd/wt/<n>`.
+Every command runs from the target repository's main working tree, except the save and restore and
+the `tests-frozen.sh rerecord-approved` call, which run in the run's worktree `.tdd/wt/<n>`.
 
 ## Invocation
 
@@ -50,10 +50,10 @@ and label it with `$S/classify-bail.sh <cause>`; check its answer against the le
   without a verdict.`). No source tells these apart, so ask the human which;
 - `needs-user` at verify-refactor whose cause is a `rerecord-refactored` skip (the `skipped: <file> <case>`
   lines), once the human answers re-record: carry it out with
-  `$S/tests-frozen.sh rerecord-approved .tdd/wt/<n>/.tdd/issue-<n>.md --approval "<the human's answer>" <case>...`,
-  naming the cases the human approved, never by hand through the Python record functions; run from the run's
-  worktree `.tdd/wt/<n>`, since the script reads the repository from the current directory. A revert answer needs no
-  such call;
+  `$S/tests-frozen.sh rerecord-approved .tdd/issue-<n>.md --approval "<the human's answer>" <case>...`,
+  naming the cases the human approved, never by hand through the Python record functions; it runs in the run's
+  worktree `.tdd/wt/<n>` (so the ledger path is `.tdd/issue-<n>.md` there), since the script reads the repository
+  from the current directory. A revert answer needs no such call;
 - `unwired`: a file nothing names, which only a human can wire, remove or accept. Do not
   resume it once: a resume without `release-issue.sh` bails `unwired` again. Park it at once
   (see A second bail: park), the unblock naming the listed files and that a release accepts them;
