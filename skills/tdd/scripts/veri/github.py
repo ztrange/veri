@@ -582,7 +582,17 @@ def gh_list(path, *args):
 
 
 def gh_issue_list(*args):
-    _select("list")
+    if type(_select("list")) is not GraphQLOnlyAdapter:
+        issues = []
+        for run in _pages("%s?state=all&per_page=100" % _ISSUES):
+            if run.returncode != 0:
+                raise NoAnswer("", run.stderr or "")
+            page = json.loads(run.stdout)
+            if not page:
+                break
+            issues += [{"number": i["number"], "state": i["state"].upper()}
+                       for i in page if "pull_request" not in i]
+        return json.dumps(issues)
     run = _retry_refused(lambda: run_gh("issue", "list", *args, stderr=subprocess.PIPE), "stderr")
     if run.returncode != 0:
         raise NoAnswer(" ".join(run.stderr.split()))

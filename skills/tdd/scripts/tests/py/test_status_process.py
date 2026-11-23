@@ -18,11 +18,6 @@ def text_mode(monkeypatch):
 
 
 @pytest.fixture
-def graphql_driver(monkeypatch):
-    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
-
-
-@pytest.fixture
 def status():
     return importlib.import_module("veri.status")
 
@@ -466,11 +461,11 @@ def test_main_json_lists_every_run_with_issue_state_unknown_and_exits_0_when_git
     assert (code, [(r["issue"], r.get("issue_state")) for r in doc["runs"]]) == (0, [("13", "unknown"), ("14", "unknown")])
 
 
-@pytest.mark.usefixtures("graphql_driver")
 def test_main_json_gives_each_run_the_issue_state_github_reports_not_one_inferred_from_its_bail_2497(tmp_path, monkeypatch, capsys, status):
     bailed, closed = lamp_run(tmp_path, "13"), lamp_run(tmp_path, "14")
     write_events(bailed / ".tdd" / "events.jsonl", [lamp_ev(9900, "13", "bail", actor="conductor", classification="process")])
     lamp_git(monkeypatch, tmp_path, [bailed, closed])
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     answering = subprocess.run
     github = json.dumps([{"number": 13, "state": "OPEN"}, {"number": 14, "state": "CLOSED"}])
 
@@ -487,7 +482,6 @@ def test_main_json_gives_each_run_the_issue_state_github_reports_not_one_inferre
     assert (code, [(r["issue"], r.get("issue_state")) for r in doc["runs"]]) == (0, [("13", "open"), ("14", "closed")])
 
 
-@pytest.mark.usefixtures("graphql_driver")
 def test_main_json_reports_state_closed_for_a_run_whose_issue_is_closed_and_bailed_for_an_open_one_2497(tmp_path, monkeypatch, capsys, status):
     open_run, closed_run = lamp_run(tmp_path, "13"), lamp_run(tmp_path, "14")
     for run, issue in ((open_run, "13"), (closed_run, "14")):
@@ -495,6 +489,7 @@ def test_main_json_reports_state_closed_for_a_run_whose_issue_is_closed_and_bail
             lamp_ev(9800, issue, "launch", name="develop-red"),
             lamp_ev(9900, issue, "bail", actor="conductor", classification="process")])
     lamp_git(monkeypatch, tmp_path, [open_run, closed_run])
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     answering = subprocess.run
     github = json.dumps([{"number": 13, "state": "OPEN"}, {"number": 14, "state": "CLOSED"}])
 
@@ -542,7 +537,6 @@ def test_main_json_reports_every_run_when_gh_answers_json_that_is_not_a_list_of_
     assert (code, [r["issue"] for r in doc["runs"]]) == (0, ["13"])
 
 
-@pytest.mark.usefixtures("graphql_driver")
 def test_main_prints_closed_in_place_of_bailed_for_a_run_whose_issue_is_closed_and_leaves_an_open_runs_line_2497(tmp_path, monkeypatch, capsys, status):
     open_run, closed_run = lamp_run(tmp_path, "13"), lamp_run(tmp_path, "14")
     for run, issue in ((open_run, "13"), (closed_run, "14")):
@@ -550,6 +544,7 @@ def test_main_prints_closed_in_place_of_bailed_for_a_run_whose_issue_is_closed_a
             lamp_ev(9800, issue, "launch", name="develop-red"),
             lamp_ev(9900, issue, "bail", actor="conductor", classification="process")])
     lamp_git(monkeypatch, tmp_path, [open_run, closed_run])
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     answering = subprocess.run
     github = json.dumps([{"number": 13, "state": "OPEN"}, {"number": 14, "state": "CLOSED"}])
 
@@ -711,7 +706,8 @@ def test_status_sh_run_through_a_symlink_to_the_skill_directory_and_from_another
     (tmp_path / "linked-skill").symlink_to(SCRIPTS.parents[1], target_is_directory=True)
 
     def status_sh(script, cwd):
-        ran = subprocess.run([str(script)], cwd=cwd, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+        ran = subprocess.run([str(script)], cwd=cwd, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                             env=dict(os.environ, VERI_GH_DRIVER="graphql"))
         return ran.returncode, ran.stdout, ran.stderr
 
     in_place = status_sh(SCRIPTS / "status.sh", repo)
