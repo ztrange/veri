@@ -156,16 +156,15 @@ def test_issue_4252_no_answer_from_gh_exits_2_naming_the_call(world, run_cli, mo
     assert posted == []
 
 
-def local_names():
-    """(home, host, account) as this machine names them, as run_records learns them."""
-    run_records = importlib.import_module("veri.run_records")
-    return (os.path.expanduser("~"), sorted(run_records._host_forms(), key=len)[-1],
-            sorted(run_records._account_names(), key=len)[-1])
-
-
-def test_issue_4252_the_posted_body_carries_no_local_path_host_or_account_name_nor_a_token(world, run_cli, tmp_path):
+def test_issue_4252_the_posted_body_carries_no_local_path_host_or_account_name_nor_a_token(world, run_cli, tmp_path, monkeypatch):
     record_answer, comments, posted, write_file = world
-    home, host, account = local_names()
+    run_records = importlib.import_module("veri.run_records")
+    home, host, account = "/home/pat-smith", "pats-laptop", "pat-smith"
+    monkeypatch.setenv("HOME", home)
+    monkeypatch.setattr(run_records.socket, "gethostname", lambda: host)
+    monkeypatch.setattr(run_records.platform, "node", lambda: host)
+    monkeypatch.setattr(run_records, "_plist_names", lambda: set())
+    monkeypatch.setattr(run_records.getpass, "getuser", lambda: account)
     token = "ghp_" + "a1" * 18
     path = write_file("#### Question\n\nSee %s/notes.txt and %s/x on %s.\n\n#### Options\n\n## Answer\n\n"
                       "Yes, %s may (%s).\n" % (home, tmp_path, host, account, token))
