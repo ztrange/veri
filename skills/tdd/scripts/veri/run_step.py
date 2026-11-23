@@ -80,7 +80,7 @@ def refactor_kind(wt, n):
     """Whether the run's spec carries the `## Refactor` section capture-spec.sh writes for the `refactor` label."""
     try:
         with open(os.path.join(wt, SPEC % n), encoding="utf-8", errors="surrogateescape") as f:
-            return "## Refactor" in f.read()
+            return re.search(r"^## Refactor$", f.read(), re.M) is not None
     except FileNotFoundError:
         return False
 
