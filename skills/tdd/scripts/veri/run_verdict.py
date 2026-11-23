@@ -24,7 +24,8 @@ def cannot_start(verifier, why):
 
 
 USAGE = ("usage: run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--step-green <sha>] --branch-base <sha>"
-         " <phase> <issue-spec-file> <test-path> [<target-test-id>]")
+         " <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+         "\n       run-verdict.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>")
 
 
 def main(argv):
