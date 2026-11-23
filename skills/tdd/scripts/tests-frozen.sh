@@ -6,8 +6,8 @@
 #        tests-frozen.sh check-earlier <ledger> --step <step-text> [--except <case>]...
 #        tests-frozen.sh rerecord-earlier <ledger> --step <step-text>
 #        tests-frozen.sh rerecord-refactored <ledger> <green-sha>
-#        tests-frozen.sh rerecord-approved <ledger> --approval <text> <case>...
 #        tests-frozen.sh rerecord-rebased <ledger> <pre-rebase-sha>
+#        tests-frozen.sh rerecord-approved <ledger> --approval <text> <case>...
 #        tests-frozen.sh path <step-text>
 #
 # path prints the step's record file, .tdd/tests-frozen-<k>.record, where <k> is the first 16 hex
