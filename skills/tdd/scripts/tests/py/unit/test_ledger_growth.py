@@ -306,6 +306,17 @@ def test_3427_reopen_unticks_a_passed_skill_edit_step_with_the_change_and_added_
         "- [ ] " + step + "\n")
 
 
+def test_4684_reopen_of_a_step_whose_skill_edit_mark_is_trailing_keeps_it_a_skill_edit_step_naming_the_same_unit(
+        tmp_path, run_cli, ledger_growth):
+    from veri import ledger
+    ledger_file = tmp_path / "issue-42.md"
+    ledger_file.write_text(
+        "# Plan for #42\n\n- [x] reword `skills/x/SKILL.md` row X1 ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 2⟧\n")
+    code = run_cli(ledger_growth, ["reopen", str(ledger_file), "row X1", "drop row X1"])[0]
+    body = ledger_file.read_text().splitlines()[-1].removeprefix("- [ ] ")
+    assert (code, ledger.is_skill_edit(body), ledger.unit_of(body)) == (0, True, "skills/x/SKILL.md")
+
+
 def test_3427_reopen_on_an_unreadable_ledger_exits_2_naming_the_ledger_file_on_stderr(
         tmp_path, run_cli, ledger_growth):
     missing = tmp_path / "issue-42.md"

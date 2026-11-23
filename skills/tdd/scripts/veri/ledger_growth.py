@@ -145,7 +145,10 @@ def reopen(ledger, needle, change):
         return 3
     head, tag, k = step_body.rpartition(" " + CRITERION_TAG)
     head = head.removesuffix(" " + ADDED_MARK)
-    step = f"{head} change: {change} {ADDED_MARK}{tag}{k}"
+    skill_edit = " ⟦skill-edit⟧"
+    kept = skill_edit if head.endswith(skill_edit) else ""
+    head = head.removesuffix(kept)
+    step = f"{head} change: {change}{kept} {ADDED_MARK}{tag}{k}"
     lines[i] = open_step_line(step)
     replace_ledger(ledger, "\n".join(lines))
     with open(added_file(ledger), "ab") as f:
