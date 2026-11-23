@@ -1,0 +1,1 @@
+- [ ] fix the CI failure: skills/tdd/scripts/tests/py/unit/test_prd_015_prose_signed.py — FAILED test_prose_owed_sh_prints_nothing_for_veri_plan_skill_and_requirements_list_vpl1_to_vpl21 - AssertionError: the VPL row ids are VPL1..VPL25, the case pins VPL1..VPL21 ⟦ci-repair⟧ ⟦criterion 5⟧
