@@ -2518,7 +2518,7 @@ def _gh_rest(monkeypatch, dispatch, times, waits, limited_until, limited_read, r
     def run(argv, **kw):
         if argv[:3] == ["gh", "api", "rate_limit"]:
             return subprocess.CompletedProcess(argv, 0, stdout=f"{limited_until}\n", stderr="")
-        what = "diff" if argv[:3] == ["gh", "pr", "diff"] else "list" if "/pulls" in argv[2] else "body"
+        what = "diff" if "/files" in argv[2] else "list" if "/pulls" in argv[2] else "body"
         if what == limited_read and not argv[2].endswith("page=2"):
             reads.append(times[len(waits)])
             if times[len(waits)] < limited_until:
@@ -2531,7 +2531,8 @@ def _gh_rest(monkeypatch, dispatch, times, waits, limited_until, limited_read, r
                    ' "head": {"ref": "tdd/80-other", "sha": "aaa", "repo": {"full_name": "o/r"}}, "base": {"repo": {"full_name": "o/r"}}}]'
             return subprocess.CompletedProcess(argv, 0, stdout=page if argv[2].endswith("page=1") else "[]", stderr="")
         if what == "diff":
-            return subprocess.CompletedProcess(argv, 0, stdout="skills/tdd/SCRIPTS.md\n", stderr="")
+            page = '[{"filename": "skills/tdd/SCRIPTS.md"}]'
+            return subprocess.CompletedProcess(argv, 0, stdout=page if argv[2].endswith("page=1") else "[]", stderr="")
         body = '{"body": "Change `skills/tdd/scripts/veri/dispatch.py`.", "labels": []}'
         return subprocess.CompletedProcess(argv, 0, stdout=body, stderr="")
 
@@ -2553,7 +2554,7 @@ def test_main_with_a_rate_limited_pr_list_or_issue_body_read_waits_for_the_reset
     served = dispatch.github.subprocess.run
 
     def run(argv, **kw):
-        if argv[:3] not in (["gh", "api", "rate_limit"], ["gh", "pr", "diff"]) and "/pulls" not in argv[2]:
+        if argv[:3] != ["gh", "api", "rate_limit"] and "/pulls" not in argv[2]:
             body_reads.append(argv)
             if len(body_reads) <= 2:
                 return subprocess.CompletedProcess(argv, 1, stdout="", stderr=secondary)
@@ -2648,9 +2649,10 @@ def test_main_skips_an_overlap_read_through_the_rest_pr_shape_naming_its_html_ur
                                     waits_before_stop=len(times), notified=["queue-blocked https://github.com/o/r/pull/90"])
 
     def run(argv, **kw):
-        if argv[:3] == ["gh", "pr", "diff"]:
-            diff_reads.append(times[len(waits)])
-            return subprocess.CompletedProcess(argv, 0, stdout=path + "\n", stderr="")
+        if "/files" in argv[2]:
+            if argv[2].endswith("page=1"):
+                diff_reads.append(times[len(waits)])
+            return subprocess.CompletedProcess(argv, 0, stdout='[{"filename": "%s"}]' % path if argv[2].endswith("page=1") else "[]", stderr="")
         if "/pulls" in argv[2]:
             sha = "aaa" if times[len(waits)] < 70 else "bbb"
             page = '[{"number": 90, "html_url": "https://github.com/o/r/pull/90", "draft": true,' \

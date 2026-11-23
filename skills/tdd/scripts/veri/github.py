@@ -878,11 +878,8 @@ def closed_issues(body, loose=False):
 
 
 def gh_pr_diff_names(number):
-    """The paths open PR <number> changes, from `gh pr diff --name-only`."""
-    run = run_gh("pr", "diff", str(number), "--name-only", stderr=subprocess.PIPE)
-    if run.returncode != 0:
-        raise NoAnswer(run.stderr)
-    return run.stdout.split()
+    """The paths open PR <number> changes, from `gh api repos/{owner}/{repo}/pulls/<number>/files`, every page."""
+    return [f["filename"] for f in rest_items("repos/{owner}/{repo}/pulls/%s/files" % number)]
 
 
 def gh_issue_view(number, field):
