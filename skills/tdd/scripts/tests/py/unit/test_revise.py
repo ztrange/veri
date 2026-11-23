@@ -386,6 +386,18 @@ def test_4692_a_revised_red_reporting_against_unmodified_passes_with_a_why_re_ve
     assert "red-divergence.sh" not in fake.names()
 
 
+def test_4692_a_revised_red_reporting_against_unmodified_fails_with_a_why_still_gates_and_re_verifies_as_red(revise):
+    """`AGAINST_UNMODIFIED: FAILS — <why>` stays a red: red-divergence.sh, then verdict-red, never verdict-pin."""
+    _red(revise)
+    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS",
+                                "AGAINST_UNMODIFIED: FAILS — the case fails on the unmodified tree")
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, "")}, report=report),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert "red-divergence.sh" in fake.names(), err
+    assert fake.launched() == ["revise-red-1", "verdict-red"], err
+
+
 @pytest.mark.parametrize("gate", [0, 1, 2])
 def test_a_red_prediction_gate_exit_0_1_or_2_spends_the_attempt_without_a_verifier(revise, gate):
     """PRD 038.9 criterion 4: REVISE.md sub-step 4; only exit 3 (matched) re-verifies."""
