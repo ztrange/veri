@@ -16,3 +16,10 @@ ICAgIGlmIHR5cGUoX3NlbGVjdCgibGlzdCIpKSBpcyBub3QgR3JhcGhRTE9ubHlBZGFwdGVyOg==
 command 140
 sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/unit/test_github.py::test_4663_gh_issue_list_under_rest_never_runs_gh_issue_list
 
+before 40
+148903b92a17eed78cc4e947949a0319a5b7ffc1
+keep 47
+skills/tdd/scripts/tests/py/unit/test_status.py
+command 147
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_status.py::test_4663_status_json_reads_every_issue_state_lower_cased_through_the_rest_listing
+

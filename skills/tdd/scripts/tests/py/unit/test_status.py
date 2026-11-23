@@ -544,3 +544,24 @@ def test_report_passes_on_a_stack_scripts_reason_when_it_gives_no_answer_issue_4
 
     assert (code, section(out, "Stack")[0], "HTTP 502" in err, "not red" in err) == (
         0, "stacky: joined 3, tested ?, landed 2 in 24h", True, False), (out, err)
+
+
+@pytest.mark.parametrize("driver", [None, "rest", "auto"])
+def test_4663_status_json_reads_every_issue_state_lower_cased_through_the_rest_listing(tmp_path, monkeypatch, fake_processes, run_cli, status, driver):
+    if driver is None:
+        monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    else:
+        monkeypatch.setenv("VERI_GH_DRIVER", driver)
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    runs = {issue: ledger_run(tmp_path, issue, "# Plan for #%s \u2014 widgets spin\n\n- [ ] a widget exists\n" % issue)
+            for issue in ("4", "5")}
+    git = git_answering(tmp_path, {str(run): "tdd/%s-widgets" % issue for issue, run in runs.items()})
+    path = "gh api repos/{owner}/{repo}/issues?state=all&per_page=100&page="
+    pages = {path + "1": '[{"number":4,"state":"open"},{"number":5,"state":"closed"}]', path + "2": "[]"}
+    fake_processes(lambda line, **kwargs: ((0, pages[line], "") if line in pages else (1, "", "refused: " + line))
+                   if line.startswith("gh ") else git(line, **kwargs))
+
+    code, out, err = run_cli(status, ["--json"])
+
+    assert code == 0
+    assert {r["issue"]: r["issue_state"] for r in json.loads(out)["runs"]} == {"4": "open", "5": "closed"}
