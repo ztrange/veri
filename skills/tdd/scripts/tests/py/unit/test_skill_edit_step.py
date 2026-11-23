@@ -2656,3 +2656,40 @@ def test_a_change_step_whose_author_drops_a_requirements_row_and_leaves_the_pros
                              env={"VERI_SKILL_EDIT_BUDGET": "3"})
 
     assert (code, len(authors), len(commits)) == (0, 1, 1), (code, out, err, authors, commits)
+
+
+def test_a_change_step_whose_author_rewrites_requirements_rows_and_is_graded_fail_starts_its_next_attempt_on_the_rows_it_began_with_and_exits_1_4689(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    rows = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+            "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | shape |\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(rows)
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    commits = []
+    seen = []
+
+    def launch(name, prompt, *args, env=None):
+        seen.append((tmp_path / "REQUIREMENTS.md").read_text())
+        (tmp_path / "REQUIREMENTS.md").write_text(
+            "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+        return subprocess.CompletedProcess([name], 0, b"", None)
+
+    def run(cmd, **kw):
+        if cmd[:2] == ["git", "commit"]:
+            commits.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "FAIL: rows\n"))
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+    monkeypatch.setattr(importlib.import_module("veri.leaf"), "launch", launch)
+
+    code, out, err = run_cli(skill_edit_step, ["--change", "drop row A2", "issue.md", "unit.md"],
+                             env={"VERI_SKILL_EDIT_BUDGET": "2"})
+
+    assert (code, seen, (tmp_path / "REQUIREMENTS.md").read_text(), commits) == (1, [rows, rows], rows, []), (code, out, err)
