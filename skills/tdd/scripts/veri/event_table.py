@@ -99,6 +99,7 @@ EVENTS = {
     "test-stretch": "tier:(fast|all) seconds:whole idle:whole",
     "tidy-first": "anchor:text refactoring:text",
     "tests-frozen-refused": "exit:(1|2) reason:text,empty",
+    "tests-frozen-rerecord-approved": "case:text file:text approval:text",
     "unpinnable-missing": "step:text",
     "unpinnable-step": "step:text reason:text,empty",
     "usage": "duration_ms:whole duration_api_ms:whole num_turns:whole total_cost_usd:decimal input_tokens:whole"

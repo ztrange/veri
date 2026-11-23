@@ -5,6 +5,7 @@ re-records exactly those cases at their HEAD bodies, each with its `helpers:` li
 byte-identical. Every commit goes through fed_commits, so case_history answers HEAD's text from the fed log.
 """
 import importlib
+import json
 
 import pytest
 
@@ -156,3 +157,33 @@ def test_rerecord_approved_whose_second_record_cannot_be_written_exits_2_and_res
     code = run_cli(tests_frozen, ["rerecord-approved", PLAN_LEDGER, "--approval", "yes", "test_one"], cwd=tmp_path)[0]
 
     assert (code, first.read_bytes() == before[0], second.read_bytes() == before[1]) == (2, True, True)
+
+
+def _approved_events(tmp_path):
+    journal = tmp_path / ".tdd" / "events.jsonl"
+    lines = journal.read_text().splitlines() if journal.exists() else []
+    return sorted((e["case"], e["file"], e["approval"]) for e in map(json.loads, filter(str.strip, lines))
+                  if e["event"] == "tests-frozen-rerecord-approved")
+
+
+def test_rerecord_approved_re_recording_two_cases_logs_one_event_per_case_with_its_file_and_the_approval_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    _two_stale(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+
+    code = run_cli(tests_frozen, ["rerecord-approved", PLAN_LEDGER, "--approval", "the human: re-record both", "test_one",
+                                  "test_two"], cwd=tmp_path)[0]
+
+    assert (code, _approved_events(tmp_path)) == (0, [("test_one", SUITE, "the human: re-record both"),
+                                                     ("test_two", SUITE, "the human: re-record both")])
+
+
+@pytest.mark.parametrize("approval", [[], ["--approval", ""]], ids=["missing", "empty"])
+def test_rerecord_approved_without_the_approval_text_exits_2_with_the_usage_and_writes_no_record_or_event_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, approval):
+    record = _two_stale(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)[1]
+    before = record.read_bytes()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-approved", PLAN_LEDGER] + approval + ["test_one"], cwd=tmp_path)
+
+    assert (code, "rerecord-approved <ledger> --approval" in err, record.read_bytes() == before,
+            _approved_events(tmp_path)) == (2, True, True, [])
