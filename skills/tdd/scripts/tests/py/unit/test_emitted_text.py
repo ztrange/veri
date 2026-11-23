@@ -50,7 +50,7 @@ USAGE = [
     ("2409820604 312", "tick-ledger.sh", []),
     ("1826447128 65", "timed-test-run.sh", []),
     ("3094254233 81", "transform-touches-tests.sh", []),
-    ("3224333025 186", "verify.sh", []),
+    ("584227798 267", "verify.sh", []),
     ("3132011146 48", "wait-leaf.sh", []),
     ("3914217436 179", "add-ledger-step.sh", [".tdd/issue-1.md", "after", "anchor"]),
     ("82452057 368", "build-develop-prompt.sh", ["green", "spec", "step"]),
@@ -65,9 +65,9 @@ USAGE = [
     ("1825838473 75", "supervise.sh", ["develop-red"]),
     ("1826447128 65", "timed-test-run.sh", ["all"]),
     ("1826447128 65", "timed-test-run.sh", ["all", ""]),
-    ("3224333025 186", "verify.sh", ["green"]),
-    ("3224333025 186", "verify.sh", ["green", "spec"]),
-    ("316603781 215", "verify.sh", ["--step"]),
+    ("584227798 267", "verify.sh", ["green"]),
+    ("584227798 267", "verify.sh", ["green", "spec"]),
+    ("3947390116 296", "verify.sh", ["--step"]),
 ]
 
 def emitted(run_cli, script, argv):
