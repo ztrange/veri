@@ -581,38 +581,43 @@ def gh_list(path, *args):
     return _select("list").list(path, *args)
 
 
+def _search_issues(args):
+    issues = []
+    state = args[args.index("--state") + 1]
+    limit = int(args[args.index("--limit") + 1]) if "--limit" in args else None
+    wanted = args[args.index("--json") + 1].split(",") if "--json" in args else []
+    words, order = [], ""
+    for word in args[args.index("--search") + 1].split():
+        if word.startswith("sort:"):
+            field, _, direction = word[5:].partition("-")
+            order = "&sort=%s&order=%s" % (field, direction)
+        else:
+            words.append(word)
+    q = "repo:{owner}/{repo} is:issue state:%s %s" % (state, " ".join(words))
+    for run in _pages("search/issues?q=%s%s" % (urllib.parse.quote_plus(q.strip()), order)):
+        if run.returncode != 0:
+            raise NoAnswer("", run.stderr or "")
+        items = json.loads(run.stdout)["items"]
+        if not items:
+            break
+        for i in items:
+            row = {"state": (i.get("state") or "").upper(),
+                   "labels": [{"name": l["name"]} for l in i.get("labels") or []],
+                   "closedAt": i.get("closed_at"), "updatedAt": i.get("updated_at"),
+                   "createdAt": i.get("created_at"), "body": i.get("body")}
+            issues.append({"number": i["number"], "title": i["title"], "url": i["html_url"],
+                           **{k: row[k] for k in wanted if k in row}})
+        if limit is not None and len(issues) >= limit:
+            issues = issues[:limit]
+            break
+    return json.dumps(issues)
+
+
 def gh_issue_list(*args):
     if type(_select("list")) is not GraphQLOnlyAdapter:
-        issues = []
         if "--search" in args:
-            state = args[args.index("--state") + 1]
-            limit = int(args[args.index("--limit") + 1]) if "--limit" in args else None
-            wanted = args[args.index("--json") + 1].split(",") if "--json" in args else []
-            words, order = [], ""
-            for word in args[args.index("--search") + 1].split():
-                if word.startswith("sort:"):
-                    field, _, direction = word[5:].partition("-")
-                    order = "&sort=%s&order=%s" % (field, direction)
-                else:
-                    words.append(word)
-            q = "repo:{owner}/{repo} is:issue state:%s %s" % (state, " ".join(words))
-            for run in _pages("search/issues?q=%s%s" % (urllib.parse.quote_plus(q.strip()), order)):
-                if run.returncode != 0:
-                    raise NoAnswer("", run.stderr or "")
-                items = json.loads(run.stdout)["items"]
-                if not items:
-                    break
-                for i in items:
-                    row = {"state": (i.get("state") or "").upper(),
-                           "labels": [{"name": l["name"]} for l in i.get("labels") or []],
-                           "closedAt": i.get("closed_at"), "updatedAt": i.get("updated_at"),
-                           "createdAt": i.get("created_at"), "body": i.get("body")}
-                    issues.append({"number": i["number"], "title": i["title"], "url": i["html_url"],
-                                   **{k: row[k] for k in wanted if k in row}})
-                if limit is not None and len(issues) >= limit:
-                    issues = issues[:limit]
-                    break
-            return json.dumps(issues)
+            return _search_issues(args)
+        issues = []
         query = "state=%s" % (args[args.index("--state") + 1] if "--state" in args else "all")
         if "--label" in args:
             query += "&labels=%s" % args[args.index("--label") + 1]
