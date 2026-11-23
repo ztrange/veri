@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 4663
 
-Wall time for the issue: 965 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 16 of 17 planned.
-Outcome: the run bailed — needs-user, a process failure.
+Wall time for the issue: 370 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
+Steps done: 18 of 18 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/4677.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $15.89 over 295 turns, in 5 sessions, on opus (estimate).
+Conductor own spending: $19.18 over 336 turns, in 7 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 85282 tokens, largest 149844 tokens
 Conductor context: first turn 85048 tokens, largest 134027 tokens
@@ -33,6 +33,8 @@ Conductor context: first turn 160142 tokens, largest 163619 tokens
 Conductor context: first turn 164235 tokens, largest 165182 tokens
 Conductor context: first turn 85073 tokens, largest 128478 tokens
 Conductor context: first turn 85074 tokens, largest 167334 tokens
+Conductor context: first turn 85073 tokens, largest 128285 tokens
+Conductor context: first turn 85114 tokens, largest 126663 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -295,43 +297,83 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 254 | $0.04 | 124771 |
 | 255 | $0.06 | 127536 |
 | 256 | $0.04 | 128478 |
-| 257 | $0.54 | 85074 |
-| 258 | $0.05 | 89204 |
-| 259 | $0.08 | 96967 |
-| 260 | $0.07 | 102694 |
-| 261 | $0.07 | 108547 |
-| 262 | $0.03 | 109740 |
-| 263 | $0.03 | 110833 |
-| 264 | $0.03 | 112245 |
-| 265 | $0.04 | 114528 |
-| 266 | $0.07 | 120956 |
-| 267 | $0.03 | 121707 |
-| 268 | $0.03 | 122040 |
-| 269 | $0.03 | 122910 |
-| 270 | $0.03 | 123465 |
-| 271 | $0.03 | 123776 |
-| 272 | $0.03 | 124332 |
-| 273 | $0.03 | 124564 |
-| 274 | $0.03 | 125197 |
-| 275 | $0.09 | 133492 |
-| 276 | $0.03 | 134002 |
-| 277 | $0.08 | 141255 |
-| 278 | $0.05 | 144188 |
-| 279 | $0.03 | 144883 |
-| 280 | $0.04 | 145721 |
-| 281 | $0.04 | 146655 |
-| 282 | $0.04 | 148022 |
-| 283 | $0.04 | 148933 |
-| 284 | $0.03 | 149411 |
+| 257 | $0.55 | 85074 |
+| 258 | $0.06 | 89204 |
+| 259 | $0.09 | 96967 |
+| 260 | $0.08 | 102694 |
+| 261 | $0.08 | 108547 |
+| 262 | $0.04 | 109740 |
+| 263 | $0.04 | 110833 |
+| 264 | $0.05 | 112245 |
+| 265 | $0.05 | 114528 |
+| 266 | $0.09 | 120956 |
+| 267 | $0.04 | 121707 |
+| 268 | $0.04 | 122040 |
+| 269 | $0.04 | 122910 |
+| 270 | $0.04 | 123465 |
+| 271 | $0.04 | 123776 |
+| 272 | $0.04 | 124332 |
+| 273 | $0.04 | 124564 |
+| 274 | $0.04 | 125197 |
+| 275 | $0.11 | 133492 |
+| 276 | $0.04 | 134002 |
+| 277 | $0.09 | 141255 |
+| 278 | $0.07 | 144188 |
+| 279 | $0.04 | 144883 |
+| 280 | $0.05 | 145721 |
+| 281 | $0.05 | 146655 |
+| 282 | $0.05 | 148022 |
+| 283 | $0.05 | 148933 |
+| 284 | $0.05 | 149411 |
 | 285 | $0.05 | 151442 |
-| 286 | $0.05 | 153824 |
+| 286 | $0.07 | 153824 |
 | 287 | $0.04 | 154489 |
-| 288 | $0.04 | 155071 |
-| 289 | $0.04 | 156513 |
-| 290 | $0.04 | 158012 |
-| 291 | $0.04 | 159572 |
-| 292 | $0.07 | 164478 |
-| 293 | $0.06 | 167334 |
+| 288 | $0.05 | 155071 |
+| 289 | $0.06 | 156513 |
+| 290 | $0.05 | 158012 |
+| 291 | $0.06 | 159572 |
+| 292 | $0.08 | 164478 |
+| 293 | $0.07 | 167334 |
+| 294 | $0.14 | 34446 |
+| 295 | $0.54 | 85073 |
+| 296 | $0.05 | 87753 |
+| 297 | $0.04 | 89756 |
+| 298 | $0.03 | 90475 |
+| 299 | $0.03 | 91528 |
+| 300 | $0.04 | 92912 |
+| 301 | $0.13 | 106174 |
+| 302 | $0.05 | 108827 |
+| 303 | $0.04 | 110175 |
+| 304 | $0.03 | 111111 |
+| 305 | $0.04 | 112009 |
+| 306 | $0.04 | 113074 |
+| 307 | $0.03 | 114203 |
+| 308 | $0.04 | 115407 |
+| 309 | $0.05 | 117580 |
+| 310 | $0.05 | 120550 |
+| 311 | $0.04 | 121100 |
+| 312 | $0.03 | 121644 |
+| 313 | $0.04 | 122014 |
+| 314 | $0.04 | 122717 |
+| 315 | $0.03 | 123562 |
+| 316 | $0.04 | 124096 |
+| 317 | $0.04 | 124825 |
+| 318 | $0.05 | 127569 |
+| 319 | $0.04 | 128285 |
+| 320 | $0.54 | 85114 |
+| 321 | $0.05 | 89843 |
+| 322 | $0.03 | 90902 |
+| 323 | $0.12 | 103620 |
+| 324 | $0.02 | 104044 |
+| 325 | $0.03 | 105576 |
+| 326 | $0.05 | 109692 |
+| 327 | $0.05 | 113714 |
+| 328 | $0.03 | 114839 |
+| 329 | $0.03 | 115680 |
+| 330 | $0.03 | 116032 |
+| 331 | $0.03 | 116658 |
+| 332 | $0.09 | 124907 |
+| 333 | $0.04 | 126663 |
 
 #### Conductor comments, by family
 
@@ -356,15 +398,15 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 206 | 12.27 |
+| between | 243 | 15.43 |
 | plan | 16 | 0.98 |
-| develop-diff | 2 | 0.14 |
+| develop-diff | 3 | 0.20 |
 | push | 3 | 0.15 |
 | preflight | 2 | 0.09 |
 | develop-red-supersede | 2 | 0.08 |
 | adjudicate-step-add-refused | 1 | 0.04 |
 | refactor-loop | 37 | 1.34 |
-| untimed | 2 | 0.00 |
+| untimed | 3 | 0.00 |
 | develop-red | 5 | 0.14 |
 | verify-green | 7 | 0.17 |
 | develop-cover | 1 | 0.03 |
@@ -372,9 +414,11 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | verify-refactor | 1 | 0.04 |
 | verify-pin | 1 | 0.03 |
 | grade-prose | 2 | 0.08 |
-| develop-rebase | 2 | 0.07 |
+| develop-rebase | 2 | 0.08 |
 | revise-rebase | 3 | 0.14 |
 | verify-rebase | 1 | 0.05 |
+| rebase | 1 | 0.04 |
+| develop-test-quality | 1 | 0.04 |
 
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset, VERI_MODEL_REVISE_GREEN unset, VERI_EFFORT_VERIFIER unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
@@ -382,8 +426,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 5 | 4 | 1 | 0 | 109 | 96 | 12 | 24 | 10948 | 393377 | 239118 | 0.75 |
-| diff | 8 | 5 | 0 | 0 | 643 | 126 | 38 | 72 | 12134 | 750138 | 169358 | 0.62 |
+| plan | 7 | 6 | 1 | 0 | 129 | 111 | 14 | 28 | 12927 | 405361 | 329840 | 0.99 |
+| diff | 10 | 6 | 0 | 0 | 786 | 156 | 53 | 96 | 16081 | 1008158 | 211170 | 0.79 |
 | red | 29 | 14 | 1 | 0 | 1426 | 622 | 163 | 294 | 64686 | 3777262 | 739466 | 3.00 |
 | green | 32 | 7 | 6 | 0 | 7016 | 836 | 245 | 470 | 79539 | 6275090 | 747330 | 3.56 |
 | red-supersede | 2 | 0 | 0 | 0 | 183 | 101 | 22 | 44 | 9645 | 713061 | 72867 | 0.35 |
@@ -394,9 +438,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | red-missing | 3 | 0 | 0 | 0 | 129 | 81 | 17 | 32 | 9251 | 420950 | 88311 | 0.36 |
 | cover | 1 | 0 | 0 | 0 | 18 | 12 | 4 | 8 | 1266 | 77445 | 19201 | 0.07 |
 | structural | 1 | 0 | 0 | 0 | 36 | 15 | 6 | 12 | 1570 | 136863 | 22963 | 0.09 |
-| prose | 18 | 0 | 0 | 0 | 897 | 860 | 18 | 36 | 129243 | 585797 | 2596610 | 7.84 |
+| prose | 21 | 0 | 0 | 0 | 1209 | 1164 | 21 | 42 | 179797 | 589716 | 3255988 | 10.00 |
 | skill-edit | 2 | 0 | 0 | 0 | 46 | 42 | 8 | 16 | 2559 | 1420934 | 460937 | 1.32 |
 | rebase | 8 | 1 | 2 | 0 | 1758 | 355 | 94 | 186 | 28057 | 2779010 | 285774 | 1.95 |
+| test-quality | 1 | 0 | 0 | 0 | 20 | 18 | 4 | 8 | 1481 | 77912 | 29610 | 0.10 |
 
 #### REJECT outcomes
 
@@ -411,8 +456,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 46 | 36 | 10 | 0 | 7222 | 724 | 190 | 368 | 67534 | 4108121 | 1158572 | 3.98 |
-| developer | claude-sonnet-5-5 | 42 | 0 | 0 | 0 | 2216 | 988 | 273 | 492 | 101828 | 6444129 | 1120072 | 4.59 |
+| verifier | claude-sonnet-5-5 | 49 | 39 | 10 | 0 | 7292 | 747 | 196 | 380 | 70313 | 4195255 | 1268499 | 4.29 |
+| developer | claude-sonnet-5-5 | 44 | 0 | 0 | 0 | 2329 | 1028 | 288 | 516 | 106456 | 6704911 | 1172289 | 4.79 |
 | adjudicator | claude-opus-5-5 | 1 | 0 | 0 | 0 | 13 | 10 | 2 | 4 | 817 | 16869 | 18077 | 0.11 |
 | developer | claude-opus-5-5 | 15 | 0 | 0 | 0 | 2136 | 681 | 182 | 364 | 60693 | 5564376 | 426756 | 3.17 |
 
@@ -441,6 +486,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 | rebase | 1120 | 1.56 | 638 | 0.40 |
+| test-quality | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -462,6 +508,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | A REST issues listing that exits non-zero (`HTTP 404: Not Found`) gives each caller its existing no-answer path under `VERI_GH_DRIVER=rest`, the issue's one unit case parametrized over the two callers, one outcome per caller: `report_cache.main(["refresh"])` gets no answer (exit 2, stderr ending `report-cache.sh: the REST issues listing failed: HTTP 404: Not Found`, the old snapshot byte-identical), and dispatch's stall-check read `dispatch.answered("issue states", dispatch.issue_states, ["7"])` gets no answer (`watch_runs.QueueUnreadable` whose text is `dispatch.sh: reading issue states failed: HTTP 404: Not Found`); in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, faking only the gh boundary ⟦criterion 3⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 178 | 51 | 98 | 16810 | 1320748 | 171344 | 0.83 | unknown | 1/2 | 0/5 | nothing-left |  |  | full |
 | `skills/tdd/SCRIPTS.md`: rows SC89, SC115 and SC94 of its requirements list take the issue's `## Requirements` wording, and the catalogue's `dispatch.sh` entry (the stall check's one issue-states read per poll) and `report-cache.sh refresh` entry (how it lists every issue, and what its exit 2 names when `gh` gave no answer) name the paginated REST issues listing (`gh api`, pull requests dropped; `state=all` for dispatch) in place of `gh issue list`, graded by those rows ⟦skill-edit⟧ ⟦criterion 4⟧ | 6 | 1 | 1 | 0 | 0 | 0 | 295 | 81 | 160 | 23148 | 2505752 | 213789 | 1.56 | unknown | 2/2 | unknown | unknown |  |  | full |
 | `skills/tdd/SCRIPTS.md` grades PASS again on the rebased tip: the regrade REJECTed row SC110 ("one `gh issue list --state all` read per poll"), while the catalogue's `dispatch.sh` entry now names the paginated REST issues listing ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 4⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 60 | 13 | 26 | 4909 | 273258 | 71985 | 0.40 | unknown | 1/2 | unknown | unknown |  |  | full |
+| `skills/tdd/SCRIPTS.md`: row SC110 of its requirements list says the stall check makes one paginated REST issues listing read (`gh api`, `state=all`) per poll, in place of one `gh issue list --state all` read, so the unit regrades PASS (regrade REJECT: "SC110: FAIL — Row says stall check does one gh issue list --state all read; prose says paginated REST listing via gh api instead") ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 4⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 18 | 4 | 8 | 1481 | 77912 | 29610 | 0.10 | 143 | unknown | unknown | unknown |  |  | full |
+| fix the weak-assertion case skills/tdd/scripts/tests/py/unit/test_report_cache.py::test_a_failing_rest_issues_listing_gives_each_caller_its_no_answer_path_issue_4663: its `dispatch` parameter only checks that `dispatch.answered` raises `watch_runs.QueueUnreadable` with its message, so make it also assert that dispatch exits 2 with the stderr line `dispatch.sh: reading issue states failed: HTTP 404: Not Found`; edit only that case, no production code ⟦test-quality⟧ ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 4⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 30 | 15 | 24 | 3947 | 258020 | 41812 | 0.17 | unknown | n/a | n/a | n/a |  |  | full |
 
 Adjudications: retry 1, bail 0, route 0, unparsed 0
 
@@ -479,6 +527,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `report-cache.sh refresh`'s comments search (`report_cache.comment_rows`, `--json number,comments`) gets each listed issue's comment bodies under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: a requested `comments` field is read from the paginated REST `repos/{owner}/{repo}/issues/<number>/comments` as a list of `{"body": …}`, so a PRD-titled issue whose comment carries a `### 📊 Metrics` block with `Wall time for the issue: <s> s` gets that `wallSeconds` in the snapshot; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.07 |
 | A REST issues listing that exits non-zero (`HTTP 404: Not Found`) gives each caller its existing no-answer path under `VERI_GH_DRIVER=rest`, the issue's one unit case parametrized over the two callers, one outcome per caller: `report_cache.main(["refresh"])` gets no answer (exit 2, stderr ending `report-cache.sh: the REST issues listing failed: HTTP 404: Not Found`, the old snapshot byte-identical), and dispatch's stall-check read `dispatch.answered("issue states", dispatch.issue_states, ["7"])` gets no answer (`watch_runs.QueueUnreadable` whose text is `dispatch.sh: reading issue states failed: HTTP 404: Not Found`); in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, faking only the gh boundary ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.06 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Refactor totals
 
 | step | passes | transforms | landed nothing | stopped |
@@ -490,34 +542,34 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `report-cache.sh refresh` (`report_cache.main(["refresh"])`, the listing `read_issue_page` makes with `--json number,title,state,labels,closedAt,updatedAt,body` and `--search sort:updated-desc`) writes a snapshot holding every issue the REST search answers, each with its title, upper-cased state, label names, `closedAt`, `updatedAt` and body, under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: the REST read returns at most `--limit` rows, maps `closed_at`/`updated_at`/`created_at` to `closedAt`/`updatedAt`/`createdAt` and labels to `[{"name": …}]`, and turns a `sort:<field>-<order>` search word into the search API's `sort=<field>&order=<order>`; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | 1 | 0 | nothing-left 1 |
 | `report-cache.sh refresh`'s comments search (`report_cache.comment_rows`, `--json number,comments`) gets each listed issue's comment bodies under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: a requested `comments` field is read from the paginated REST `repos/{owner}/{repo}/issues/<number>/comments` as a list of `{"body": …}`, so a PRD-titled issue whose comment carries a `### 📊 Metrics` block with `Wall time for the issue: <s> s` gets that `wallSeconds` in the snapshot; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | A REST issues listing that exits non-zero (`HTTP 404: Not Found`) gives each caller its existing no-answer path under `VERI_GH_DRIVER=rest`, the issue's one unit case parametrized over the two callers, one outcome per caller: `report_cache.main(["refresh"])` gets no answer (exit 2, stderr ending `report-cache.sh: the REST issues listing failed: HTTP 404: Not Found`, the old snapshot byte-identical), and dispatch's stall-check read `dispatch.answered("issue states", dispatch.issue_states, ["7"])` gets no answer (`watch_runs.QueueUnreadable` whose text is `dispatch.sh: reading issue states failed: HTTP 404: Not Found`); in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, faking only the gh boundary ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 7 | 1 | 6 | nothing-left 7 |
+| issue | 8 | ? | ? | nothing-left 7, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 48 | 43 | 45 | 105 | 60 | 67 | 46 | 49 | 37 | 41 | 33 | 40 | 44 | 38 | 38 | 35 | 44 | 66 | 56 | 64 | 43 | 46 | 41 | 61 | 35 | 36 | 36 | 49 | 30 | 32 | 28 | 31 | 29 | 27 | 28 | 29 | 31 | 28 | 29 | 42 | 54 | 34 | 56 | 40 | 31 | 37 | 36 | 28 | 27 | 29 | 35 | 28 | 35 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| changed | 3 | 3 | 3 | 2 | 2 | 4 | 67 | 3 | 3 | 0 | 2 | 3 | 63 | 63 | 3 | 6 | 6 | 3 | 3 | 2 | 3 | 2 | 3 | 0 | 4 | 4 | 3 | 2 | 3 | 3 | 3 | 3 | 2 | 2 | 3 | 2 | 7 | 7 | 3 | 4 | 4 | 4 | 3 | 3 | 7 | 7 | 9 | 5 | 2 | 5 | 2 | 2 | 2 | 5 | 32 | 28 | 33 | 3 | 2 | 4 | 5 | 5 | 1 | 3 | 2 | 2 | 5 | 6 | 3 | 3 | 4 | 5 | 43 | 42 | 39 | 3 | 19 | 2 | 19 | 21 | 3 | 7 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 3 | 3 | 2 |  |
-| target | 3 | 2 | 3 | 2 | 3 | 3 | 3 | 3 | 4 | 2 | 3 | 2 | 2 | 3 | 2 | 0 | 2 | 4 | 3 | 4 | 4 | 4 | 3 | 3 | 3 | 4 | 3 | 1 | 0 | 1 | 0 | 1 | 3 | 3 | 2 | 2 | 3 | 2 | 2 | 2 | 3 | 2 | 3 | 2 | 0 | 0 | 0 | 0 | 0 | 2 | 26 | 2 | 2 | 2 | 3 | 2 | 2 | 2 | 31 | 2 | 3 | 2 | 2 | 4 | 2 | 23 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 35 | 2 | 3 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 2 | 2 | 2 | 2 | 1 | 0 | 2 | 0 | 2 | 2 |
-| all | 35 | 360 | 324 | 29 | 272 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fast | 48 | 43 | 45 | 105 | 60 | 67 | 46 | 49 | 37 | 41 | 33 | 40 | 44 | 38 | 38 | 35 | 44 | 66 | 56 | 64 | 43 | 46 | 41 | 61 | 35 | 36 | 36 | 49 | 30 | 32 | 28 | 31 | 29 | 27 | 28 | 29 | 31 | 28 | 29 | 42 | 54 | 34 | 56 | 40 | 31 | 37 | 36 | 28 | 27 | 29 | 35 | 28 | 35 | 27 | 29 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| changed | 3 | 3 | 3 | 2 | 2 | 4 | 67 | 3 | 3 | 0 | 2 | 3 | 63 | 63 | 3 | 6 | 6 | 3 | 3 | 2 | 3 | 2 | 3 | 0 | 4 | 4 | 3 | 2 | 3 | 3 | 3 | 3 | 2 | 2 | 3 | 2 | 7 | 7 | 3 | 4 | 4 | 4 | 3 | 3 | 7 | 7 | 9 | 5 | 2 | 5 | 2 | 2 | 2 | 5 | 32 | 28 | 33 | 3 | 2 | 4 | 5 | 5 | 1 | 3 | 2 | 2 | 5 | 6 | 3 | 3 | 4 | 5 | 43 | 42 | 39 | 3 | 19 | 2 | 19 | 21 | 3 | 7 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 3 | 3 | 2 | 10 | 2 |
+| target | 3 | 2 | 3 | 2 | 3 | 3 | 3 | 3 | 4 | 2 | 3 | 2 | 2 | 3 | 2 | 0 | 2 | 4 | 3 | 4 | 4 | 4 | 3 | 3 | 3 | 4 | 3 | 1 | 0 | 1 | 0 | 1 | 3 | 3 | 2 | 2 | 3 | 2 | 2 | 2 | 3 | 2 | 3 | 2 | 0 | 0 | 0 | 0 | 0 | 2 | 26 | 2 | 2 | 2 | 3 | 2 | 2 | 2 | 31 | 2 | 3 | 2 | 2 | 4 | 2 | 23 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 35 | 2 | 3 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 2 | 2 | 2 | 2 | 1 | 0 | 2 | 0 | 2 | 2 | 2 |
+| all | 35 | 360 | 324 | 29 | 272 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Stages
 
 | stage | runs | ok | failed | no answer | nothing | unended | wall s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| preflight | 5 | 5 | 0 | 0 | 0 | 0 | 504 |
-| baseline | 5 | 5 | 0 | 0 | 0 | 0 | 220 |
+| preflight | 7 | 7 | 0 | 0 | 0 | 0 | 670 |
+| baseline | 7 | 7 | 0 | 0 | 0 | 0 | 297 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 208 |
-| push | 33 | 32 | 1 | 0 | 0 | 0 | 93 |
+| push | 37 | 36 | 1 | 0 | 0 | 0 | 104 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
-| rebase | 10 | 1 | 4 | 3 | 2 | 0 | 17 |
+| rebase | 14 | 1 | 4 | 3 | 6 | 0 | 25 |
 | refactor-loop | 7 | 7 | 0 | 0 | 0 | 0 | 1019 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 673 | 1280 | 362674 | 18140226 | 5781024 | 36.91 (estimate) |
+| total | 697 | 1322 | 420635 | 18492061 | 6602546 | 42.87 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
@@ -539,11 +591,11 @@ Green rejects by check: 4 6, unnamed 0
 
 | role | model | leaves | first-turn cache creation | first-turn cache read | first-turn input |
 | --- | --- | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 46 | 868727 | 384791 | 92 |
-| developer | claude-sonnet-5-5 | 50 | 885693 | 355602 | 100 |
+| verifier | claude-sonnet-5-5 | 49 | 977424 | 401781 | 98 |
+| developer | claude-sonnet-5-5 | 52 | 918641 | 367586 | 104 |
 | adjudicator | claude-opus-5-5 | 1 | 16869 | 0 | 2 |
 | developer | claude-opus-5-5 | 7 | 160164 | 11886 | 14 |
-| grader | claude-sonnet-5-5 | 18 | 2596610 | 585797 | 36 |
+| grader | claude-sonnet-5-5 | 21 | 3255988 | 589716 | 42 |
 | author | claude-sonnet-5-5 | 2 | 457347 | 10992 | 4 |
 
-Gradings: 8, PASS 4, REJECT 4, cost $5.59, efforts default
+Gradings: 11, PASS 7, REJECT 4, cost $7.75, efforts default
