@@ -8,6 +8,6 @@
 - [x] `rerecord-approved` logs one `tests-frozen-rerecord-approved` event per re-recorded case with `case`, `file` and `approval`, accepted under `VERI_EVENT_STRICT=1`, and without the approval text exits 2 writing no event ⟦criterion 6⟧
 - [x] the usage text `tests-frozen.sh` prints names `rerecord-approved`, and `skills/tdd/SCRIPTS.md`'s `tests-frozen.sh` entry and the shim's usage block name its arguments, exits and event ⟦criterion 7⟧
 - [x] `skills/vbail/SKILL.md` *Classify first* routes a `needs-user` verify-refactor bail answered re-record to `tests-frozen.sh rerecord-approved`, graded against a new B row ⟦criterion 8⟧
-- [ ] helper collection follows calls transitively within the case's file, so `rerecord-refactored` re-records a Go case whose direct helper call moved into a new helper that calls it ⟦criterion 9⟧
-- [ ] the transitive helper walk terminates on a self-recursive helper and on a mutually recursive pair, each helper's lines counted once ⟦criterion 9⟧
+- [x] helper collection follows calls transitively within the case's file, so `rerecord-refactored` re-records a Go case whose direct helper call moved into a new helper that calls it ⟦criterion 9⟧
+- [x] the transitive helper walk terminates on a self-recursive helper and on a mutually recursive pair, each helper's lines counted once ⟦criterion 9⟧
 - [ ] a record whose `helpers:` digest was computed by the non-transitive collection still passes `check` and `check-earlier` after the change, naming no case weakened or edited, while a digest matching neither collection still exits 1 ⟦criterion 10⟧

@@ -342,3 +342,33 @@ def test_called_helpers_reads_the_file_at_the_revision_quietly_and_returns_the_h
     history = History(monkeypatch, case_identity, {"r1": PY_HELPER + PY_CASE})
 
     assert (case_identity.called_helpers("r1", "f.py", PY_CASE), history.quiet) == (PY_HELPER, [True])
+
+
+def _go(name, calls, line=None):
+    return "func %s(t *testing.T) {\n%s%s}\n\n" % (name, "".join("\t%s(t)\n" % c for c in calls),
+                                                   "\tt.Fatal(%s)\n" % line if line else "")
+
+
+def test_helpers_in_follows_a_helper_the_body_calls_into_the_helper_that_helper_calls_once_each_4642(case_identity):
+    text = _go("outer", ["inner"], '"o"') + _go("inner", ["leaf"], '"i"') + _go("leaf", [], '"l"') + _go("unused", [], '"u"')
+
+    found = case_identity.helpers_in(text, "outer(t)\n\tinner(t)\n")
+
+    assert sorted(found.count(w) for w in ('"o"', '"i"', '"l"', '"u"')) == [0, 1, 1, 1]
+
+
+def test_helpers_in_ends_on_a_helper_that_calls_itself_and_on_two_helpers_that_call_each_other_4642(case_identity):
+    text = (_go("selfish", ["selfish"], '"s"') + _go("ping", ["pong"], '"p"') + _go("pong", ["ping"], '"q"'))
+
+    alone = case_identity.helpers_in(text, "selfish(t)\n")
+    pair = case_identity.helpers_in(text, "ping(t)\n")
+
+    assert [alone.count('"s"'), pair.count('"p"'), pair.count('"q"')] == [1, 1, 1]
+
+
+def test_helpers_in_without_transitive_keeps_only_the_helpers_the_body_calls_4642(case_identity):
+    text = _go("outer", ["inner"], '"o"') + _go("inner", [], '"i"')
+
+    found = case_identity.helpers_in(text, "outer(t)\n", transitive=False)
+
+    assert (found.count('"o"'), found.count('"i"')) == (1, 0)
