@@ -9,3 +9,14 @@ ICAgICAgICByZXR1cm4gc3VicHJvY2Vzcy5ydW4ocGluWyJjb21tYW5kIl0sIHNoZWxsPVRydWUsIGN3
 command 170
 make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_4698_a_moved_pin_green_under_its_mutation_at_head_but_red_on_the_base_is_charged_and_exits_1
 
+file 38
+skills/tdd/scripts/veri/pin_recheck.py
+old-b64 28
+dGFyZ2V0ID0gdHJlZSAvIHBhdGg=
+new-b64 36
+dGFyZ2V0ID0gdHJlZSAvIHBpblsiZmlsZSJd
+context-b64 40
+ICAgICAgICB0YXJnZXQgPSB0cmVlIC8gcGF0aA==
+command 180
+sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_4698_a_moved_pin_green_under_its_mutation_at_head_and_at_the_base_is_stale_and_exits_0
+
