@@ -210,7 +210,7 @@ You arm no other wait for conductors, ledgers or merges: no `watch-runs.sh`, no
 ## Routing an exit
 
 On each conductor exit, read the facts — the issue's last comment only
-over REST (`gh api repos/{owner}/{repo}/issues/<n>/comments`, the last element of the last
+over REST (`gh api repos/{owner}/{repo}/issues/<n>/comments --jq '.[-1].body'`, the last element of the last
 page, never `gh issue view` and never the whole comment thread), the committed ledger, the PR — never the exit code alone, and route:
 
 - **Last comment ✅ Done.** Where `$S/stack-branch.sh` exits 0 (the target repository's
