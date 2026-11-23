@@ -122,6 +122,17 @@ def test_issue_4662_each_listed_label_row_reads_ok_when_graphql_is_refused_and_e
         assert f"ok    label {label}" in lines, (label, lines)
 
 
+def test_issue_4662_a_listed_label_row_fails_with_the_create_fix_when_graphql_is_refused_and_its_rest_read_is_404_while_the_other_label_rows_hold(ready_check, run_cli, fake_processes, tmp_path):
+    refused = (1, "", "GitHub GraphQL is not available from Claude Code sessions; use the REST API")
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{
+        "gh auth status": refused, "gh label list": refused, "gh api graphql": refused,
+        "gh api repos/{owner}/{repo}/labels/pr-ready": NOT_FOUND})
+
+    assert "fail  label pr-ready: create the `pr-ready` label in the repository" in lines, lines
+    for label in ("ready-for-agent", "bailed", "parked", "stopped"):
+        assert f"ok    label {label}" in lines, (label, lines)
+
+
 def one_test_file_row(lines):
     return next((line for line in lines if "one test file" in line), None)
 
