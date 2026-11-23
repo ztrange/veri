@@ -195,6 +195,10 @@ def _helpers_stale(releg, name, case, recorded, text, body, at):
     # written from the case's own file alone (every record before #4606) still matches `current`.
     if recorded in (current, case_identity.helper_digest_beside(at, text, body)):
         return False
+    # A record from before the transitive walk (#4642) holds the digest over the helpers the case calls directly.
+    if recorded in (case_identity.helper_digest(text, body, transitive=False),
+                    case_identity.helper_digest_beside(at, text, body, transitive=False)):
+        return False
     if recorded != case_identity.helper_digest(text, body, legacy=True):
         return True
     releg[(name, case)] = current
@@ -488,8 +492,11 @@ def rerecord_refactored(ledger, green):
         # The record may hold the case's own file's digest (record, rerecord-earlier) or, for a Go case, the digest
         # over its file plus its sibling _test.go files this command writes below (#4606): either one matching green
         # is green's. Accepting only the first would skip a case a later step's refactor edits again.
-        green_helpers = {case_identity.helper_digest(green_text, verified), body_digest("\n".join(sorted(
-            case_identity.assertion_lines(case_identity.called_helpers(green, name, verified)))))}
+        green_helpers = set()
+        for transitive in (True, False):
+            green_helpers.add(case_identity.helper_digest(green_text, verified, transitive=transitive))
+            green_helpers.add(body_digest("\n".join(sorted(case_identity.assertion_lines(
+                case_identity.called_helpers(green, name, verified, transitive))))))
         if (digest != body_digest(head) or digest == body_digest(verified)) and recorded_helpers.get(
                 (name, case), next(iter(green_helpers))) not in green_helpers:
             return skip(name, case, record, "helpers digest differs from green's")

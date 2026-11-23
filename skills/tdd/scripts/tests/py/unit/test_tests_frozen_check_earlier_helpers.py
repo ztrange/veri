@@ -510,3 +510,42 @@ def test_check_earlier_exits_1_naming_a_go_case_moved_to_a_sibling_file_whose_co
     code, out, _ = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)
 
     assert (code, "TestX" in out) == (1, True), out
+
+
+NESTED = ("func inner(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal(\"in\")\n\t}\n}\n\n"
+          "func outer(t *testing.T, x int) {\n\tinner(t, x)\n}\n\n"
+          "func TestX(t *testing.T) {\n\tx := 1\n\touter(t, x)\n}\n")
+
+
+def _with_helpers_digest(tmp_path, digest_of):
+    """Rewrites the one record's helpers: line to `digest_of(text, body)` over the case's file."""
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    text = (tmp_path / GO_SUITE).read_text()
+    identity = importlib.import_module("veri.case_identity")
+    body = "\n".join(identity.bodies_of(text, "TestX"))
+    kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
+    record.write_text("".join(kept) + "helpers: %s\tTestX\t%s\n" % (GO_SUITE, digest_of(identity, text, body)))
+    return record
+
+
+def test_check_earlier_exits_0_naming_no_case_for_a_record_whose_helpers_digest_is_the_non_transitive_one_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    _green(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, NESTED)
+    record = _with_helpers_digest(tmp_path, lambda c, text, body: c.helper_digest(text, body, transitive=False))
+    before = record.read_bytes()
+
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)
+
+    assert (checked[:2], record.read_bytes() == before, "re-recorded" in checked[2]) == ((0, ""), True, False)
+
+
+def test_check_earlier_exits_1_naming_the_case_for_a_helpers_digest_matching_neither_collection_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    _green(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, NESTED)
+    _with_helpers_digest(tmp_path, lambda c, text, body: c.body_digest("neither collection"))
+
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)
+
+    assert (checked[0], "TestX" in checked[1]) == (1, True)
