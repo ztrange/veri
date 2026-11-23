@@ -3429,7 +3429,7 @@ def test_4602_a_pin_whose_old_text_is_in_no_file_of_the_directory_is_not_checked
     ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
                          cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, "not checked: x.go (old text in no file of its package)\n" in ran.stdout,
+    assert (ran.returncode, "not checked: x.go (old text in no file of the repo)\n" in ran.stdout,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (1, True, False), ran.stdout + ran.stderr
 
 
@@ -3485,7 +3485,7 @@ def test_4644_a_range_with_an_already_stale_pin_and_a_pin_it_broke_exits_1_for_t
     assert (ran.returncode, [line for line in ran.stdout.splitlines() if line.startswith("not checked:")],
             "stale: .tdd/issue-4601-mutations.md pa/a.go\n" in ran.stdout,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
-        1, ["not checked: pb/b.go (old text in no file of its package)"], True, False), ran.stdout + ran.stderr
+        1, ["not checked: pb/b.go (old text in no file of the repo)"], True, False), ran.stdout + ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a range that adds the pinned text to x.go, absent at the base")
@@ -3534,7 +3534,7 @@ def test_4644_a_pin_on_text_the_step_added_then_refactored_away_is_not_checked_n
     ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
                          cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, "not checked: x.go (old text in no file of its package)\n" in ran.stdout, "stale:" in ran.stdout,
+    assert (ran.returncode, "not checked: x.go (old text in no file of the repo)\n" in ran.stdout, "stale:" in ran.stdout,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (1, True, False, False), ran.stdout + ran.stderr
 
 
@@ -3562,7 +3562,7 @@ def test_4602_a_pin_whose_old_text_is_in_more_than_one_other_file_is_not_checked
     ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
                          cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, "not checked: x.go (old text in more than one file of its package)\n" in ran.stdout,
+    assert (ran.returncode, "not checked: x.go (old text in more than one file of the repo)\n" in ran.stdout,
             (tmp_path / "mutated.marker").exists(), (tmp_path / "y.go").read_bytes(), (tmp_path / "z.go").read_bytes(),
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (1, True, False, copied, copied, False), ran.stdout + ran.stderr
 
@@ -3653,7 +3653,7 @@ def test_4643_a_pin_whose_old_text_is_in_two_files_of_two_other_directories_is_n
     ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
                          cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, "not checked: a/main.py (old text in more than one file of its package)\n" in ran.stdout,
+    assert (ran.returncode, "not checked: a/main.py (old text in more than one file of the repo)\n" in ran.stdout,
             (tmp_path / "mutated.marker").exists(),
             (tmp_path / "b" / "other.py").read_bytes(), (tmp_path / "c" / "other.py").read_bytes(),
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (1, True, False, copied, copied, False), ran.stdout + ran.stderr
