@@ -830,4 +830,5 @@ def test_4685_a_resumed_run_does_not_take_a_previous_runs_leftover_exit_file_as_
 
     detached = [c[1][0] for c in calls if c[0] == "detach-command.sh"]
     ticked = [c for c in calls if c[0] == "step-tick.sh"]
-    assert (detached[:1] == ["start"] or code == 2) and not ticked, (code, calls)
+    assert detached[:1] == ["start"], (code, calls)
+    assert not ticked, (code, calls)
