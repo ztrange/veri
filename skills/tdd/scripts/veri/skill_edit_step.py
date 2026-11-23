@@ -370,7 +370,7 @@ def main(argv):
             undo()
             return 2
     _change[0] = change
-    before = _read_existing([file, *pins])
+    before = _read_existing([file, path, *pins])
     for attempt in range(1, int(budget) + 1):
         if graded != 1 and not (change is not None and attempt == 1):
             break
@@ -387,7 +387,7 @@ def main(argv):
                                               and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
         if not graded:
             graded, said = _grade(path, unit)
-        if change is not None and graded == 0 and _read_existing([file]).get(file) == before.get(file):
+        if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
             graded, said = 1, "FAIL: the author left the prose unchanged\n"
         if graded == 1:
             _restore(before, *before)
