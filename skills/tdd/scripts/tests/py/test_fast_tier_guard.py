@@ -436,6 +436,10 @@ def _misplaced(tier):
     ]
 
 
+# #4667's criterion names the porcelain guard's path beside the tier, not under unit/.
+FROZEN_OUTSIDE_THE_TIER += ("test_gh_porcelain_guard.py",)
+
+
 @pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
 def test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it():
     assert _misplaced(SCRIPTS / "tests" / "py") == []
