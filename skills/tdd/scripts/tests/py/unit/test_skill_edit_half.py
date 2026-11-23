@@ -780,3 +780,17 @@ def test_4498_an_open_step_leading_with_the_skill_edit_marker_starts_skill_edit_
     start = [args for name, args in calls if name == "detach-command.sh" and args[:1] == ("start",)]
     assert len(start) == 1, calls
     assert (os.path.basename(start[0][2]), start[0][4]) == ("skill-edit-step.sh", "skills/tdd/SKILL.md"), start
+
+
+def test_4684_exiting_2_because_the_open_step_is_not_a_skill_edit_step_prints_one_stderr_line_naming_it(
+        run_cli, tmp_path):
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    step = "reword the prompt in `skills/tdd/SKILL.md` ⟦criterion 1⟧"
+    (wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [ ] %s\n" % step)
+
+    code, _, err = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    assert code == 2 and len(err.strip().splitlines()) == 1 and step in err, (code, err)

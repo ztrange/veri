@@ -46,6 +46,7 @@ def run(argv):
     with open(ledger.ledger_path(wt, n)) as f:
         step = next(line for line in f if line.startswith(ledger.OPEN_STEP + " "))[len(ledger.OPEN_STEP) + 1:]
     if not ledger.is_skill_edit(step.rstrip("\n")):
+        sys.stderr.write("skill-edit-half.sh: the open step is not a ⟦skill-edit⟧ step: %s\n" % step.rstrip("\n"))
         return 2
     unit = ledger.unit_of(step)
     if unit is None:
