@@ -178,8 +178,7 @@ def test_with_no_worker_count_set_make_unit_runs_min_4_and_the_available_cores_a
     tree, log = planted_tree(tmp_path, small=WORKER_COUNT_CASE), tmp_path / "ran.log"
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "legs"))
     monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
-    cores = 6
-    (tmp_path / "veri-test-ceiling").write_text("%d\n" % cores)
+    (tmp_path / "veri-test-ceiling").write_text("6\n")
     env = {k: v for k, v in os.environ.items() if not k.startswith(("VERI_", "PYTEST_XDIST_"))}
     env["PLANTED_RAN_LOG"] = str(log)
     env["VERI_PYTEST_LEGS"] = str(tmp_path / "legs")
@@ -187,7 +186,7 @@ def test_with_no_worker_count_set_make_unit_runs_min_4_and_the_available_cores_a
     env["VERI_TEST_CAP_FILE"] = os.environ["VERI_TEST_CAP_FILE"]  # nor the machine's cap
     env["VERI_TEST_BUDGET_DIR"] = os.environ["VERI_TEST_BUDGET_DIR"]  # nor the machine's lane budgets
     env["VERI_TEST_LOAD_FILE"] = os.environ["VERI_TEST_LOAD_FILE"]  # nor the machine's load record
-    for target, workers in (("unit", min(4, cores)), ("test", cores)):
+    for target, workers in (("unit", 4), ("test", 6)):
         log.write_text("")
         ran = subprocess.run(["make", "-C", str(tree), target], env=env, stdin=subprocess.DEVNULL,
                              capture_output=True, text=True)
