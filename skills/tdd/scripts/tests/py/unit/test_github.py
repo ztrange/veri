@@ -1340,3 +1340,20 @@ def test_published_keeps_a_veri_script_name_and_drops_every_directory_of_a_path_
                                                   "/tmp/alice/secret/run-conductor.sh 7")]
 
     assert posted == ["<path>/run-conductor.sh 7", "<path>/run-conductor.sh 7"]
+
+
+def test_published_leaves_a_temp_path_whose_last_component_only_starts_with_a_script_name_as_redact_local_left_it_4661(
+        monkeypatch, github):
+    monkeypatch.setenv("HOME", "/root")
+
+    posted = [github.published(line) for line in ("/tmp/alice/x/foo.shell 7", "/tmp/alice/x/foo.sh.bak 7")]
+
+    assert posted == ["<tmp>/alice/x/foo.shell 7", "<tmp>/alice/x/foo.sh.bak 7"]
+
+
+def test_published_drops_a_directory_named_like_a_script_whole_with_the_path_after_it_4661(monkeypatch, github):
+    monkeypatch.setenv("HOME", "/root")
+
+    posted = [github.published(line) for line in ("/home/alice/x/foo.sh/secret 7", "/home/alice/x/foo.sh.bak 7")]
+
+    assert posted == ["<path> 7", "<path> 7"]

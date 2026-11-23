@@ -49,7 +49,9 @@ _TEMP_SCRIPT = re.compile(r"<tmp>(?:/[^\s/\"'`<>()\[\]]+)+/([\w.-]+\.sh)(?![\w./
 
 def published(text):
     """<text> as a comment veri posts publishes it: this machine's paths, host and account names redacted as a PR body's
-    are (`~` for the home directory), then any other absolute local path replaced by `<path>`."""
+    are (`~` for the home directory), then any other absolute local path replaced by `<path>`, save that one ending in a
+    `.sh` file keeps that last component (`<path>/run-conductor.sh`); a path redact_local left under `<tmp>` is
+    rewritten only when it so ends, else kept as it was."""
     redacted = _TEMP_SCRIPT.sub(r"<path>/\1", run_records.redact_local(text, os.getcwd()))
     return _LOCAL_PATH.sub(_redacted_path, redacted)
 
