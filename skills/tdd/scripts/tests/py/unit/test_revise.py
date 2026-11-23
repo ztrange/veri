@@ -386,6 +386,18 @@ def test_4692_a_revised_red_reporting_against_unmodified_passes_with_a_why_re_ve
     assert "red-divergence.sh" not in fake.names()
 
 
+def test_4692_a_revised_red_reporting_bare_against_unmodified_passes_re_verifies_as_pin_not_exit_1(revise):
+    """The bare `AGAINST_UNMODIFIED: PASSES` is a pin too: verdict-pin, no divergence gate, no exit-1 stop."""
+    _red(revise)
+    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
+    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, "")}, report=report),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert fake.launched() == ["revise-red-1", "verdict-pin"], (code, err)
+    assert "red-divergence.sh" not in fake.names()
+    assert code != 1
+
+
 def test_4692_a_revised_red_reporting_against_unmodified_fails_with_a_why_still_gates_and_re_verifies_as_red(revise):
     """`AGAINST_UNMODIFIED: FAILS — <why>` stays a red: red-divergence.sh, then verdict-red, never verdict-pin."""
     _red(revise)

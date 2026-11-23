@@ -9,3 +9,10 @@ ICAgIHJldHVybiBnb3QgaXMgbm90IE5vbmUgYW5kIChnb3QgPT0gIlBBU1NFUyIgb3IgZ290LnN0YXJ0
 command 169
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise.py::test_4692_a_revised_red_reporting_against_unmodified_fails_with_a_why_still_gates_and_re_verifies_as_red
 
+before 40
+e96ffb13a8e1d08ada65e01ceac00e303ab50052
+keep 47
+skills/tdd/scripts/tests/py/unit/test_revise.py
+command 159
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise.py::test_4692_a_revised_red_reporting_bare_against_unmodified_passes_re_verifies_as_pin_not_exit_1
+
