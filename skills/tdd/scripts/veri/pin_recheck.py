@@ -150,11 +150,11 @@ def replay_on_base(pin, ledger, branch_base, span=None):
         return None if tree is None else replay_before(pin, ledger, tree, span)
 
 
-def mutation_green_on_base(pin, branch_base):
+def mutation_green_on_base(pin, branch_base, path):
     with base_worktree(branch_base) as tree:
         if tree is None:
             return None
-        target = tree / pin["file"]
+        target = tree / path
         if not target.exists() or pin["old"].encode() not in target.read_bytes():
             return False
         target.write_bytes(target.read_bytes().replace(pin["old"].encode(), pin["new"].encode()))
@@ -332,7 +332,7 @@ def replay(pin, ledger, looks, branch_base, base_sha):
         if control.returncode == 0:
             needs_a_look(looks, pin["file"], "mutation and control green")
             return 0
-        on_base = mutation_green_on_base(pin, branch_base)
+        on_base = mutation_green_on_base(pin, branch_base, path)
         if on_base is None:
             return 2
         if on_base:
