@@ -220,14 +220,20 @@ def test_issue_4252_a_clone_whose_main_working_tree_cannot_be_found_exits_2_post
     assert err.startswith("record-answer.sh: cannot find the clone's main working tree: ") and err.count("\n") == 1
 
 
-def test_issue_4252_a_long_question_is_redacted_before_it_is_cut_so_no_part_of_a_path_survives(world, run_cli):
+@pytest.mark.parametrize("home", ["/root", "/r", "/home/someone-long"])
+def test_issue_4252_a_long_question_is_redacted_before_it_is_cut_so_no_part_of_a_path_survives(
+        world, run_cli, monkeypatch, home):
     record_answer, comments, posted, write_file = world
-    home = os.path.expanduser("~")
-    question = "q" * (2000 - len(home) // 2) + home + "/x"
+    monkeypatch.setenv("HOME", home)
+    filler = "q" * (record_answer.LIMIT - len("~/x"))
+    question = filler + home + "/x"
+    assert len(question) > record_answer.LIMIT
 
     assert run_cli(record_answer, ["42", write_file("#### Question\n\n%s\n\n## Answer\n\nYes.\n" % question)])[0] == 0
-    assert home[:len(home) // 2] not in posted[0][1]
-    assert posted[0][1].startswith("Question: " + "q" * (2000 - len(home) // 2) + "~/x\n")
+    assert home not in posted[0][1]
+    if len(home) >= 4:
+        assert home[1:] not in posted[0][1]
+    assert posted[0][1].startswith("Question: " + filler + "~/x\n")
 
 
 @pytest.mark.parametrize("answer", [None, {"body": "x"}, [{"no": "body"}], ["text"]])
