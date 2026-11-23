@@ -2341,6 +2341,15 @@ def test_a_failing_rest_issues_listing_gives_each_caller_its_no_answer_path_issu
         with pytest.raises(watch_runs.QueueUnreadable) as raised:
             dispatch.answered("issue states", dispatch.issue_states, ["7"])
         assert str(raised.value).strip() == "dispatch.sh: reading issue states failed: HTTP 404: Not Found"
+        import types
+        complaints = []
+        state = types.SimpleNamespace(seen=["7"], holding=set())
+        world = types.SimpleNamespace(
+            last_activity=lambda issue: 0, clock=lambda: 10 ** 9, complain=complaints.append,
+            issue_states=lambda issues: dispatch.answered("issue states", dispatch.issue_states, issues), say=lambda text: None)
+        code = dispatch._stalled(state, world)
+        assert (code, [c.strip() for c in complaints]) == (
+            2, ["dispatch.sh: reading issue states failed: HTTP 404: Not Found"])
         return
 
     report_cache = importlib.import_module("veri.report_cache")
