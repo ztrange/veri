@@ -358,3 +358,17 @@ def test_4626_a_dangling_test_file_symlink_is_skipped_never_raised_on_so_the_def
 
     assert code == 0, err
     assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"
+
+
+def test_4626_a_test_file_that_only_calls_runs_or_mentions_the_case_is_not_a_defining_file(go_red):
+    (go_red.wt / "pkg").mkdir()
+    (go_red.wt / "pkg" / "foo_test.go").write_text("package pkg\n\nfunc TestFoo(t *testing.T) {\n}\n")
+    (go_red.wt / "pkg" / "bar_test.go").write_text(
+        "package pkg\n\n// TestFoo covers the same path.\nfunc TestBar(t *testing.T) {\n"
+        "\tTestFoo(t)\n\tt.Run(\"TestFoo\", func(t *testing.T) {})\n}\n")
+    step = STEP.replace(CASE, "TestFoo")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"
