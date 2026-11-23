@@ -9,7 +9,8 @@ import pytest
 
 from conftest import SCRIPTS
 
-USAGE = b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]\n"
+USAGE = (b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--branch-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+         b"\n       build-verify-prompt.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>\n")
 
 
 def scratch(tmp_path, name, drop=(), templates=None):
@@ -1276,7 +1277,7 @@ def test_995_diff_with_fast_cmd_refuses_a_non_hex_base_a_missing_step_and_a_bad_
              [*step, *fc, "--branch-base", "tidied the helper", "diff", spec, STEP_BASE]),
             ("diff with no --step", "build-verify-prompt: diff needs --step '<STEP>'",
              [*fc, "--branch-base", DIFF_BASE, "diff", spec, DIFF_BASE]),
-            ("diff with no step base", USAGE.decode().rstrip("\n"),
+            ("diff with no step base", USAGE.decode().split("\n")[0],
              [*step, *fc, "--branch-base", DIFF_BASE, "diff", spec]),
             ("diff with a non-hex step base", hex_message("<step-base-sha>", "tidied the helper"),
              [*step, *fc, "--branch-base", DIFF_BASE, "diff", spec, "tidied the helper"]),
@@ -2116,7 +2117,8 @@ def test_the_refactor_phase_without_step_green_refuses_with_the_usage_line_it_ha
 
     assert (code, out, err) == (2, b"", b"build-verify-prompt: refactor needs --step-green <sha>, the step's green tick\n"
                                 b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>]"
-                                b" [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]\n")
+                                b" [--branch-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+                                b"\n       build-verify-prompt.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>\n")
 
 
 def test_main_renders_the_branch_prompt_with_exit_0_from_the_branch_diff_the_spec_and_the_fast_command_and_no_ambient_input(

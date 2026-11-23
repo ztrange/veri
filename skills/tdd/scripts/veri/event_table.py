@@ -107,6 +107,7 @@ EVENTS = {
              " model_usage?:json first_turn_cache_creation_input_tokens?:whole first_turn_cache_read_input_tokens?:whole"
              " first_turn_input_tokens?:whole name?:text",
     "verdict": "verdict:(PASS|REJECT|malformed) reason:text,empty cause?:(no-verdict) check?:(1|2|3|4|5) tree?:sha name?:text",
+    "verify-branch-skipped": "reason:(switched-off)",
     "verify-diff-skipped": "reason:(switched-off)",
     "verify-green-skipped": "reason:(switched-off)",
     "verify-pin-skipped": "reason:(switched-off)",
