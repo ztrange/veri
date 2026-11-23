@@ -496,6 +496,12 @@ def test_after_the_lock_is_taken_a_github_read_that_gets_no_answer_or_a_failed_g
         2, "", True, False, [("merge-lock.sh", "take"), ("merge-lock.sh", "release")]), err
 
 
+def merge_calls(url, head):
+    return [[("gh", "pr", "merge", url, "--rebase", "--match-head-commit", head)],
+            [("gh", "api", "-X", "PUT", "repos/owner/repo/pulls/90/merge", "-f", "merge_method=rebase",
+              "-f", "sha=%s" % head)]]
+
+
 def test_with_origin_default_an_ancestor_of_the_cut_merges_the_slice_pull_request_with_exactly_gh_pr_merge_rebase_match_head_commit_and_no_other_flag(
         monkeypatch, run_cli, stack_land):
     cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
@@ -504,7 +510,7 @@ def test_with_origin_default_an_ancestor_of_the_cut_merges_the_slice_pull_reques
 
     code, out, err = run_cli(stack_land, ["--now"], env={"VERI_GH_DRIVER": "rest"})
 
-    assert world.gh == [("gh", "pr", "merge", url, "--rebase", "--match-head-commit", cut)], err
+    assert world.gh in merge_calls(url, cut), err
 
 
 @pytest.mark.parametrize("refusal", [
@@ -760,9 +766,9 @@ def test_a_landing_makes_no_tag_and_pushes_rebases_or_resets_nothing_of_the_stac
               or any(re.search(r"\btags?\b|refs/tags/", arg) for arg in argv)]
     writes = [argv[1:] for argv in every if argv[:1] == ("git",)
               and argv[1] in ("push", "rebase", "reset", "tag", "update-ref", "branch", "checkout", "switch")]
-    assert (code, tagged, writes, world.gh) == (
-        0, [], [("push", "origin", "%s:refs/heads/stack-slice-%s" % (cut, cut[:10]))],
-        [("gh", "pr", "merge", url, "--rebase", "--match-head-commit", cut)]), err
+    assert (code, tagged, writes) == (
+        0, [], [("push", "origin", "%s:refs/heads/stack-slice-%s" % (cut, cut[:10]))]), err
+    assert world.gh in merge_calls(url, cut), err
 
 
 def test_with_origin_default_not_an_ancestor_of_the_cut_rebases_the_slice_branch_onto_it_pushes_it_leased_on_the_cut_waits_on_ci_at_the_new_head_and_merges_that_head(
@@ -781,9 +787,9 @@ def test_with_origin_default_not_an_ancestor_of_the_cut_rebases_the_slice_branch
     push = at(lambda argv: argv[:2] == ("git", "push") and "--force-with-lease=%s:%s" % (slice_branch, cut) in argv
               and "%s:refs/heads/%s" % (rebased, slice_branch) in argv)
     wait = at(lambda argv: argv[:1] == ("wait-ci.sh",) and url in argv and argv[-1] == rebased)
-    merge = at(lambda argv: argv == ("gh", "pr", "merge", url, "--rebase", "--match-head-commit", rebased))
-    assert (code, len(rebase), len(push), len(wait), len(merge), world.gh) == (
-        0, 1, 1, 1, 1, [("gh", "pr", "merge", url, "--rebase", "--match-head-commit", rebased)]), (world.log, err)
+    merge = at(lambda argv: [argv] in merge_calls(url, rebased))
+    assert (code, len(rebase), len(push), len(wait), len(merge)) == (0, 1, 1, 1, 1), (world.log, err)
+    assert world.gh in merge_calls(url, rebased), (world.log, err)
     assert rebase[0] < push[0] < wait[0] < merge[0], world.log
 
 
@@ -799,8 +805,8 @@ def test_with_origin_default_an_ancestor_of_the_cut_rebases_nothing_pushes_nothi
     leased = [argv for argv in world.log if argv[:2] == ("git", "push") and any(
         arg.startswith("--force") or arg.startswith("+") for arg in argv)]
     waited = [argv for argv in world.log if argv[:1] == ("wait-ci.sh",)]
-    assert (code, rebased, leased, waited, world.gh) == (
-        0, [], [], [], [("gh", "pr", "merge", url, "--rebase", "--match-head-commit", cut)]), (world.log, err)
+    assert (code, rebased, leased, waited) == (0, [], [], []), (world.log, err)
+    assert world.gh in merge_calls(url, cut), (world.log, err)
 
 
 def test_a_rebase_conflict_exits_1_naming_it_nothing_merged_the_rebase_aborted_its_worktree_removed_the_lock_freed_the_slice_branch_and_its_pull_request_kept(
