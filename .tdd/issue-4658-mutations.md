@@ -1,5 +1,5 @@
-file 35
-skills/tdd/scripts/veri/dispatch.py
+file 40
+skills/tdd/scripts/veri/dispatch_live.py
 old-b64 56
 IGlmIG9zLnBhdGguaXNkaXIob3MucGF0aC5qb2luKHd0LCBuYW1lKSk=
 new-b64 0
@@ -9,8 +9,8 @@ ICAgICAgICByZXR1cm4gW25hbWUgZm9yIG5hbWUgaW4gb3MubGlzdGRpcih3dCkgaWYgb3MucGF0aC5p
 command 122
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_run_worktrees_leaves_out_a_regular_file_issue_4658
 
-file 35
-skills/tdd/scripts/veri/dispatch.py
+file 40
+skills/tdd/scripts/veri/dispatch_live.py
 old-b64 56
 IGlmIG9zLnBhdGguaXNkaXIob3MucGF0aC5qb2luKHd0LCBuYW1lKSk=
 new-b64 0
