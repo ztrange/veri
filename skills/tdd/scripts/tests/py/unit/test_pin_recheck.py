@@ -43,3 +43,18 @@ def test_4669_moved_to_skips_a_tracked_directory_symlink_and_returns_only_the_fi
     found = pin_recheck.moved_to({"file": "pinned/mod.py", "old": "the old text"})
 
     assert [str(f) for f in found] == ["elsewhere/moved.py"]
+
+
+def test_4669_moved_to_skips_a_tracked_file_symlink_and_returns_only_the_regular_file_holding_the_old_text(
+        tmp_path, monkeypatch):
+    (tmp_path / "pinned").mkdir()
+    (tmp_path / "pinned" / "mod.py").write_text("nothing here\n")
+    (tmp_path / "elsewhere").mkdir()
+    (tmp_path / "elsewhere" / "moved.py").write_text("the old text\n")
+    (tmp_path / "alias.py").symlink_to(tmp_path / "elsewhere" / "moved.py")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(pin_recheck, "git_out", lambda *args: "alias.py\0elsewhere/moved.py\0")
+
+    found = pin_recheck.moved_to({"file": "pinned/mod.py", "old": "the old text"})
+
+    assert [str(f) for f in found] == ["elsewhere/moved.py"]
