@@ -2272,3 +2272,48 @@ def test_refresh_reads_the_comments_of_a_prd_issue_from_rest_for_its_wall_time_i
 
     cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
     assert (code, [(i["number"], i["wallSeconds"]) for i in cache["issues"]]) == (0, [(7, 321)])
+
+
+@pytest.mark.parametrize("driver", [None, "rest", "auto"])
+def test_refresh_reads_prd_comments_in_created_windows_when_the_one_search_gets_no_answer_issue_4663(
+        fake_processes, run_cli, monkeypatch, tmp_path, driver):
+    import json
+    import re
+
+    report_cache = importlib.import_module("veri.report_cache")
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    if driver is None:
+        monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    else:
+        monkeypatch.setenv("VERI_GH_DRIVER", driver)
+    (tmp_path / ".git").mkdir()
+    item = {"number": 7, "title": "PRD 001 parent", "state": "open", "labels": [], "closed_at": None,
+            "updated_at": "2026-10-20T10:00:00Z", "created_at": "2026-10-01T10:00:00Z",
+            "body": "", "html_url": "https://github.example/acme/widgets/issues/7"}
+    metrics = "### 📊 Metrics\n\nWall time for the issue: 321 s\n"
+    comment_reads = []
+    searches = []
+
+    def gh(line, **kwargs):
+        if line.startswith("gh api graphql") or line.startswith("gh issue list"):
+            return (1, "", "HTTP 403: GraphQL refused")
+        page = re.search(r"page=(\d+)", line)
+        first = page is not None and page.group(1) == "1"
+        if line.startswith("gh api search/issues"):
+            searches.append(line)
+            return (0, json.dumps({"items": [item] if first else []}), "")
+        if "/issues/7/comments" in line:
+            comment_reads.append(line)
+            if len(comment_reads) == 1:
+                return (1, "", "HTTP 504: comments search timed out")
+            return (0, json.dumps([{"body": metrics}] if first else []), "")
+        return (1, "", "HTTP 404: unexpected read")
+
+    fake_processes.answers({"gh": gh})
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    assert (code, [(i["number"], i["wallSeconds"]) for i in cache["issues"]],
+            any("created%3A2026-10-01T10%3A00%3A00Z..2026-10-01T10%3A00%3A00Z" in s for s in searches)) == (
+        0, [(7, 321)], True)
