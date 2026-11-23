@@ -1805,6 +1805,24 @@ def test_stopped_carries_the_branch_the_worktree_path_and_the_resume_command(mon
     assert any(line.endswith("/run-conductor.sh 7") for line in lines)
 
 
+def test_stopped_resume_line_keeps_run_conductor_name_and_no_account_when_scripts_dir_is_outside_home_4661(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "", ""))
+    monkeypatch.setattr(comment.paths, "resolved_scripts_of", lambda file: "/home/user/veri/skills/tdd/scripts")
+    monkeypatch.setenv("HOME", "/root")
+
+    code, out, err = run_cli(comment, ["7", "stopped"], cwd=tmp_path)
+
+    assert code == 0, err
+    last = posted[0][1].splitlines()[-1]
+    assert last.endswith("/run-conductor.sh 7")
+    assert "user" not in last and "/home/user" not in last
+
+
 def test_stopped_carries_the_failed_render_line_in_place_of_the_metrics_block_and_still_posts_the_rest(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")
