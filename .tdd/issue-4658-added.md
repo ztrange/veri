@@ -1,0 +1,1 @@
+- [ ] ⟦diff-checked⟧ edit the case of the pin on skills/tdd/scripts/veri/dispatch.py so its recorded mutation turns it red ⟦added⟧ ⟦criterion 1⟧
