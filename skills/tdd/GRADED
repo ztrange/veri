@@ -163,4 +163,4 @@ skills/tdd/scripts/prompts/verify-refactor.md 7ccfe4c67964f6be5a0bba23e6e88f9502
 skills/tdd/scripts/prompts/develop-refactor.md 0e46f3ede0b46a19d9868a37b34cbf97ad09c15dd45e419e5efdb3cdc6583c02 2026-11-22 599df3956cdf48eeb3981ed1baa85472 748391c71624
 skills/tdd/SKILL.md#Refactor%20loop%20—%20one%20leaf%20applies%20the%20step's%20transforms,%20then%20verify-refactor%20(blind,%20once) bc31a963ab8da0ca3e103796ee9b05c7d2f468ae9ec87093d792c05b7570f91f 2026-11-22 e97d64990cc846a99e045fdd4b61c89f 748391c71624
 skills/tdd/scripts/prompts/verify-plan.md 720595a55f4d8bae28b487e42e7cebbcba6643f7d9f06ef67b2f36fcc1f8c987 2026-11-22 856207a465d8408f9832d8041731a32d 748391c71624
-skills/tdd/SCRIPTS.md 4f89abfe521fb9eabaf968983272ee3b0a03d4a19fe8134c4371321c5f1f18a2 2026-11-23 764a2fb7852d4b6ea161c7afdd7f40cf 748391c71624
+skills/tdd/SCRIPTS.md 9cf8ca5dbd39814ce1c903cd34da9609b78004e3e4df63ff0ee08775b5b5b650 2026-11-23 2248c665d34e47089d777cba0fa37b0f 748391c71624
