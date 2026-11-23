@@ -1,7 +1,9 @@
 """In-process cases for veri/github.py, veri's GitHub access through gh and its GraphQL→REST fallback."""
 import importlib
+import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import time
@@ -1357,3 +1359,20 @@ def test_published_drops_a_directory_named_like_a_script_whole_with_the_path_aft
     posted = [github.published(line) for line in ("/home/alice/x/foo.sh/secret 7", "/home/alice/x/foo.sh.bak 7")]
 
     assert posted == ["<path> 7", "<path> 7"]
+
+
+def test_gh_pr_diff_names_answers_every_file_of_a_pr_spanning_two_rest_pages_when_graphql_refuses_issue_4664(fake_processes, monkeypatch, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    pages = {"1": [{"filename": "a/one.py"}, {"filename": "a/two.py"}], "2": [{"filename": "b/three.py"}]}
+
+    def answer(line, **kwargs):
+        if line.startswith("gh pr "):
+            return (1, "", "GraphQL: HTTP 403\n")
+        page = re.search(r"page=(\d+)", line)
+        if line.startswith("gh api ") and "repos/{owner}/{repo}/pulls/12/files" in line and page:
+            return (0, json.dumps(pages.get(page.group(1), [])) + "\n", "")
+        raise AssertionError("unexpected command: %r" % (line,))
+
+    fake_processes.answers({}, default=answer)
+
+    assert github.gh_pr_diff_names(12) == ["a/one.py", "a/two.py", "b/three.py"]
