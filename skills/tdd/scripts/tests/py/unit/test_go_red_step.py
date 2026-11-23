@@ -219,3 +219,14 @@ def test_4628_a_committed_case_that_only_extends_the_ledgers_name_is_not_taken_a
 
     assert code == 0, err
     assert fake.call("mutation-probe.sh")[1][-1] == CASE
+
+
+def test_4626_a_bare_test_function_name_is_probed_through_the_test_file_that_defines_it(go_red):
+    (go_red.wt / "pkg").mkdir()
+    (go_red.wt / "pkg" / "foo_test.go").write_text("package pkg\n\nfunc TestFoo(t *testing.T) {\n}\n")
+    step = STEP.replace(CASE, "TestFoo")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"

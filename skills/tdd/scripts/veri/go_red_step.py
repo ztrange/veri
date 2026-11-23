@@ -80,12 +80,24 @@ def committed_case(wt, case):
     return "%s::%s" % (file, found[0]) if len(found) == 1 else case
 
 
+def defining_file(wt, case):
+    """The repo-relative path of the first file under the worktree defining `func <case>`, else <case>."""
+    pattern = re.compile(r"func\s+" + case)
+    for root, _, files in os.walk(wt):
+        for name in files:
+            full = os.path.join(root, name)
+            with open(full, encoding="utf-8") as f:
+                if pattern.search(f.read()):
+                    return os.path.relpath(full, wt)
+    return case
+
+
 def command(wt, case):
     """The probe's command: the `veri: one test file:` command on <case>. Its absence (detect-test-command.sh exit 3)
     stops with exit 2, as does any other exit but 0: the all-tier command would probe every case, not the named one."""
     code, alone, _ = fused.call(fused.script("detect-test-command.sh"), "--tier", "one test file", cwd=wt)
     if code == 0:
-        return ("sh", "-c", alone.strip(), "sh", case)
+        return ("sh", "-c", alone.strip(), "sh", defining_file(wt, case))
     if code == 3:
         sys.stderr.write("go-red-step.sh: no `veri: one test file:` line, so the case %s cannot be probed alone\n" % case)
     raise fused.Stop("probe", "detect-test-command.sh --tier one test file exit %d" % code, 2)
