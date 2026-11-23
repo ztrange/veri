@@ -2,6 +2,13 @@
 import importlib
 import json
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _graphql_driver(monkeypatch):
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+
 
 def test_issue_states_answers_open_and_closed_for_every_named_issue_from_one_github_read_issue_3551(monkeypatch):
     dispatch = importlib.import_module("veri.dispatch")
