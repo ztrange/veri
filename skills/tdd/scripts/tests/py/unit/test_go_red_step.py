@@ -263,5 +263,20 @@ def test_4626_a_copy_defining_the_bare_name_only_under_git_or_tdd_is_not_a_defin
 
     code, out, err, fake = go_red(step=step)
 
-    assert code == 0, err
-    assert fake.call("mutation-probe.sh")[1][-1] == "TestFoo"
+    assert code == 2, out
+    assert "TestFoo" in err
+    assert "mutation-probe.sh" not in fake.names()
+
+
+def test_4626_a_bare_test_function_name_defined_by_no_test_file_stops_at_probe_with_exit_2_naming_the_case_probing_nothing(
+        go_red):
+    (go_red.wt / "pkg").mkdir()
+    (go_red.wt / "pkg" / "foo_test.go").write_text("package pkg\n\nfunc TestOther(t *testing.T) {\n}\n")
+    step = STEP.replace(CASE, "TestMissing")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 2, out
+    assert "TestMissing" in err
+    assert "mutation-probe.sh" not in fake.names()
+    assert out.splitlines()[-1].startswith("stopped at probe ")

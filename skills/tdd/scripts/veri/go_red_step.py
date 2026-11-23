@@ -81,7 +81,7 @@ def committed_case(wt, case):
 
 
 def defining_file(wt, case):
-    """The repo-relative path of the first file under the worktree defining `func <case>`, else <case>."""
+    """The repo-relative path of the first file under the worktree defining `func <case>`, else stops at probe (exit 2)."""
     if os.path.exists(os.path.join(wt, case)):
         return case
     pattern = re.compile(r"func\s+" + case)
@@ -92,7 +92,10 @@ def defining_file(wt, case):
             with open(full, encoding="utf-8") as f:
                 if pattern.search(f.read()):
                     return os.path.relpath(full, wt)
-    return case
+    if not re.fullmatch(r"\w+", case):
+        return case
+    sys.stderr.write("go-red-step.sh: no test file under the worktree defines the case %s\n" % case)
+    raise fused.Stop("probe", "no test file defines %s" % case, 2)
 
 
 def command(wt, case):
