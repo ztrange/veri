@@ -75,6 +75,28 @@ def _claim_call(args):
     return None
 
 
+def _is_create(args):
+    """Whether a call creates a label, by `gh label create` or by the REST create."""
+    return args[:3] == ["gh", "label", "create"] or args[:4] == ["gh", "api", "-X", "POST"] and args[-1] == "repos/{owner}/{repo}/labels"
+
+
+def _create_fields(args):
+    """The name, colour, description and force flag a create call carries, whichever route made it."""
+    if args[:3] == ["gh", "label", "create"]:
+        return {"name": args[3], "color": args[args.index("--color") + 1] if "--color" in args else "",
+                "description": args[args.index("--description") + 1] if "--description" in args else "",
+                "force": "--force" in args}
+    fields = {word.partition("=")[0]: word.partition("=")[2] for word in args if "=" in word and not word.startswith("repos/")}
+    return {"name": fields.get("name", ""), "color": fields.get("color", ""), "description": fields.get("description", ""),
+            "force": "--force" in args}
+
+
+def _already_exists(args):
+    if args[:3] == ["gh", "label", "create"]:
+        return subprocess.CompletedProcess(args, 1, "", 'label with name "taken:main" already exists; use `--force` to update its color and description\n')
+    return subprocess.CompletedProcess(args, 1, '{"errors":[{"resource":"Label","code":"already_exists","field":"name"}]}', "gh: Validation Failed (HTTP 422)\n")
+
+
 def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label_already_absent_exits_0(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
@@ -172,7 +194,7 @@ def test_main_1672_exits_2_naming_a_nonexistent_issue_while_an_existing_issue_wi
         if read:
             return read
         claim = _claim_call(args)
-        if claim and args[-1].partition("/issues/")[2].partition("/")[0] in labels or args[:3] == ["gh", "label", "create"]:
+        if claim and args[-1].partition("/issues/")[2].partition("/")[0] in labels or _is_create(args):
             return claim
         if args[:2] != ["gh", "api"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -254,7 +276,7 @@ def test_main_2030_adds_the_taken_lane_label_named_after_the_text_after_the_last
         code = unlabel_issue.main(["7"])
         added = sorted({word[len("labels[]="):] for call in calls if call[:4] == ["gh", "api", "-X", "POST"]
                         for word in call if word.startswith("labels[]=taken:")})
-        label_writes = [call for call in calls if call[:3] in (["gh", "label", "create"], ["gh", "label", "edit"])]
+        label_writes = [call for call in calls if _is_create(call) or call[:3] == ["gh", "label", "edit"]]
         return code, added, label_writes
 
     assert [taken_after(None), taken_after("ready-for-agent"), taken_after("ready-for-agent:mu")] == [
@@ -277,8 +299,8 @@ def test_main_2030_creates_the_taken_lane_label_in_the_repository_when_absent_so
             if args[-1].rpartition("/labels/")[2].replace("%3A", ":") in repository_labels:
                 return subprocess.CompletedProcess(args, 0, "{}", "")
             return subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n")
-        if args[:3] == ["gh", "label", "create"]:
-            repository_labels.add(args[3])
+        if _is_create(args):
+            repository_labels.add(_create_fields(args)["name"])
             return subprocess.CompletedProcess(args, 0, "", "")
         if args[:4] == ["gh", "api", "-X", "DELETE"]:
             issue_labels["7"].discard(args[4].rpartition("/labels/")[2].replace("%3A", ":"))
@@ -315,7 +337,7 @@ def test_main_2030_exits_0_when_the_issue_already_carries_the_taken_lane_label_a
             return read
         if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
             return subprocess.CompletedProcess(args, 0, "{}", "")
-        if args[:3] == ["gh", "label", "create"]:
+        if _is_create(args):
             return subprocess.CompletedProcess(args, 0, "", "")
         if args[:4] == ["gh", "api", "-X", "DELETE"]:
             name = args[4].rpartition("/labels/")[2].replace("%3A", ":")
@@ -354,7 +376,7 @@ def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_crea
                 return subprocess.CompletedProcess(args, 0, "{}", "")
             if args[:4] == ["gh", "api", "-X", "DELETE"]:
                 return subprocess.CompletedProcess(args, 0, "[]", "")
-            asked = "create" if args[:3] == ["gh", "label", "create"] else "add"
+            asked = "create" if _is_create(args) else "add"
             if asked == step:
                 return subprocess.CompletedProcess(args, 1, "", "error connecting to api.github.com\n")
             return subprocess.CompletedProcess(args, 0, "[]", "")
@@ -390,17 +412,17 @@ def test_main_2301_creates_a_missing_taken_lane_label_once_with_a_fixed_colour_a
         return code, calls, capsys.readouterr().err
 
     code, calls, _ = claim(lambda args: subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n"))
-    creates = [call for call in calls if call[:3] == ["gh", "label", "create"]]
+    creates = [call for call in calls if _is_create(call)]
     adds = [call for call in calls if "labels[]=taken:main" in call]
-    create = creates[0] if creates else []
-    colour = create[create.index("--color") + 1] if "--color" in create else ""
-    description = create[create.index("--description") + 1] if "--description" in create else ""
+    fields = _create_fields(creates[0]) if creates else {"color": "", "description": "", "force": False}
+    colour = fields["color"]
+    description = fields["description"]
     ordered = bool(creates) and bool(adds) and calls.index(creates[0]) < calls.index(adds[0])
     assert (code, len(creates), len(colour) == 6 and set(colour) <= set("0123456789abcdefABCDEF"), bool(description),
-            "--force" in create, ordered) == (0, 1, True, True, False, True)
+            fields["force"], ordered) == (0, 1, True, True, False, True)
 
     code, calls, err = claim(lambda args: subprocess.CompletedProcess(args, 1, "", "error connecting to api.github.com\n"))
-    assert (code, "taken:main" in err, "#7" in err, [call for call in calls if call[:3] == ["gh", "label", "create"]]) == (2, True, True, [])
+    assert (code, "taken:main" in err, "#7" in err, [call for call in calls if _is_create(call)]) == (2, True, True, [])
 
 
 def test_main_2328_adds_the_taken_lane_label_and_exits_0_when_the_create_fails_because_the_label_already_exists(monkeypatch, capsys, fake_processes):
@@ -415,8 +437,8 @@ def test_main_2328_adds_the_taken_lane_label_and_exits_0_when_the_create_fails_b
             return read
         if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
             return subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n")
-        if args[:3] == ["gh", "label", "create"]:
-            return subprocess.CompletedProcess(args, 1, "", 'label with name "taken:main" already exists; use `--force` to update its color and description\n')
+        if _is_create(args):
+            return _already_exists(args)
         if args[:4] == ["gh", "api", "-X", "DELETE"]:
             issue_labels["7"].discard(args[4].rpartition("/labels/")[2])
             return subprocess.CompletedProcess(args, 0, "[]", "")
@@ -444,7 +466,7 @@ def test_main_2328_exits_2_and_adds_no_taken_label_when_the_create_fails_with_an
             return read
         if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
             return subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n")
-        if args[:3] == ["gh", "label", "create"]:
+        if _is_create(args):
             return subprocess.CompletedProcess(args, 1, "", "error connecting to api.github.com\n")
         if args[:4] == ["gh", "api", "-X", "DELETE"]:
             issue_labels["7"].discard(args[4].rpartition("/labels/")[2])
