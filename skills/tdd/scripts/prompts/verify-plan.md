@@ -55,6 +55,8 @@ or `⟦human-owed⟧` line, even where check 1 alone would pass it: a Red leaf h
 only answer `UNTESTABLE`, and the run bails. Also REJECT a plan that marks a go-red guard step
 `⟦human-owed⟧`: that leaves a check an agent can do waiting on a human.
 
+REJECT a Red/Green step when a criterion of the issue forbids adding or changing tests, as in run #72: a refactor whose criterion says the test diff changes only one existing call, planned as a Red/Green step whose Red adds a case the diff phase must then delete, which verify-diff rejects on every revision; such a criterion is planned as a refactor or `⟦diff-checked⟧` step instead.
+
 A go-red guard is one line, ``- [ ] <criterion>, probe `<file>` `<old>` → `<new>` on `<case>`
 ⟦go-red⟧ ⟦criterion k⟧``: the break (`<old>` replaced by `<new>` in `<file>`, none of them holding
 a backtick, `<new>` possibly empty) and the existing case it must turn red. For check 1 such a line
