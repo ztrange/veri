@@ -177,7 +177,8 @@ def refresh():
         issues = fetch_pages(since)
         comments_by_number = fetch_comments()
     except github.NoAnswer as failure:
-        sys.stderr.write("report-cache.sh: gh issue list failed: %s\n" % failure.answer)
+        listing = "gh issue list" if tunables.get("VERI_GH_DRIVER") == "graphql" else "the REST issues listing"
+        sys.stderr.write("report-cache.sh: %s failed: %s\n" % (listing, failure.detail or str(failure.answer)))
         return 2
     if stale:
         sys.stderr.write("report-cache.sh: %s has issues without links, rebuilding\n" % path)

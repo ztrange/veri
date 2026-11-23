@@ -2317,3 +2317,40 @@ def test_refresh_reads_prd_comments_in_created_windows_when_the_one_search_gets_
     assert (code, [(i["number"], i["wallSeconds"]) for i in cache["issues"]],
             any("created%3A2026-10-01T10%3A00%3A00Z..2026-10-01T10%3A00%3A00Z" in s for s in searches)) == (
         0, [(7, 321)], True)
+
+
+@pytest.mark.parametrize("caller", ["report_cache", "dispatch"])
+def test_a_failing_rest_issues_listing_gives_each_caller_its_no_answer_path_issue_4663(
+        fake_processes, run_cli, monkeypatch, tmp_path, caller):
+    import json
+
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
+
+    def gh(line, **kwargs):
+        if line.startswith("gh api graphql") or line.startswith("gh issue list"):
+            return (1, "", "HTTP 403: GraphQL refused")
+        return (1, "", "HTTP 404: Not Found")
+
+    fake_processes.answers({"gh": gh})
+
+    if caller == "dispatch":
+        dispatch = importlib.import_module("veri.dispatch")
+        watch_runs = importlib.import_module("veri.watch_runs")
+        with pytest.raises(watch_runs.QueueUnreadable) as raised:
+            dispatch.answered("issue states", dispatch.issue_states, ["7"])
+        assert str(raised.value).strip() == "dispatch.sh: reading issue states failed: HTTP 404: Not Found"
+        return
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache_file = tmp_path / ".tdd" / "report-cache.json"
+    cache_file.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": []}))
+    before = cache_file.read_bytes()
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, err.strip().endswith("report-cache.sh: the REST issues listing failed: HTTP 404: Not Found"),
+            cache_file.read_bytes() == before) == (2, True, True)
