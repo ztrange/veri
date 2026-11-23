@@ -81,18 +81,25 @@ def committed_case(wt, case):
 
 
 def defining_file(wt, case):
-    """The repo-relative path of the first file under the worktree defining `func <case>`, else stops at probe (exit 2)."""
+    """The repo-relative path of the one Go test file (`*_test.go`) under the worktree, outside `.git` and `.tdd`,
+    defining `func <case>` as a whole name; else stops at probe (exit 2). A file that cannot be read is skipped."""
     if os.path.exists(os.path.join(wt, case)):
         return case
-    pattern = re.compile(r"func\s+" + case)
+    pattern = re.compile(r"\bfunc\s+" + re.escape(case) + r"(?!\w)")
     found = []
     for root, dirs, files in os.walk(wt):
         dirs[:] = [d for d in dirs if d not in (".git", ".tdd")]
         for name in files:
+            if not name.endswith("_test.go"):
+                continue
             full = os.path.join(root, name)
-            with open(full, encoding="utf-8") as f:
-                if pattern.search(f.read()):
-                    found.append(os.path.relpath(full, wt))
+            try:
+                with open(full, encoding="utf-8", errors="replace") as f:
+                    text = f.read()
+            except OSError:
+                continue
+            if pattern.search(text):
+                found.append(os.path.relpath(full, wt))
     if len(found) == 1:
         return found[0]
     if found:
