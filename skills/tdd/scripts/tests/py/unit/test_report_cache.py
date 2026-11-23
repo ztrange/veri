@@ -2110,3 +2110,128 @@ def test_read_issue_page_reads_an_empty_page_retry_sleep_as_empty_and_fails_not_
 
     with pytest.raises(ValueError):
         report_cache.read_issue_page(10)
+
+
+@pytest.mark.parametrize("driver", [None, "rest", "auto"])
+def test_refresh_snapshots_every_issue_the_rest_search_answers_issue_4663(
+        fake_processes, run_cli, monkeypatch, tmp_path, driver):
+    import json
+    import re
+    from urllib.parse import unquote_plus
+
+    report_cache = importlib.import_module("veri.report_cache")
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    if driver is None:
+        monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    else:
+        monkeypatch.setenv("VERI_GH_DRIVER", driver)
+    (tmp_path / ".git").mkdir()
+    items = [
+        {"number": 7, "title": "open one", "state": "open", "labels": [{"name": "bug"}, {"name": "ready"}],
+         "closed_at": None, "updated_at": "2026-10-20T10:00:00Z", "created_at": "2026-10-01T10:00:00Z",
+         "body": "open body", "html_url": "https://github.example/acme/widgets/issues/7"},
+        {"number": 8, "title": "closed one", "state": "closed", "labels": [],
+         "closed_at": "2026-10-21T09:00:00Z", "updated_at": "2026-10-21T09:00:00Z", "created_at": "2026-10-02T10:00:00Z",
+         "body": "closed body", "html_url": "https://github.example/acme/widgets/issues/8"},
+    ]
+
+    def gh(line, **kwargs):
+        if line.startswith("gh api graphql") or line.startswith("gh issue list"):
+            return (1, "", "HTTP 403: GraphQL refused")
+        if line.startswith("gh api search/issues"):
+            asked = unquote_plus(line)
+            page = int(re.search(r"page=(\d+)", asked).group(1))
+            listing = "sort=updated" in asked and "order=desc" in asked
+            return (0, json.dumps({"items": items if listing and page == 1 else []}), "")
+        return (0, "{}", "")
+
+    fake_processes.answers({"gh": gh})
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    kept = {i["number"]: i for i in cache["issues"]}
+    assert (code, sorted(kept)) == (0, [7, 8])
+    assert [(kept[n]["title"], kept[n]["state"], kept[n]["labels"], kept[n]["closedAt"], kept[n]["updatedAt"])
+            for n in (7, 8)] == [
+        ("open one", "OPEN", [{"name": "bug"}, {"name": "ready"}], None, "2026-10-20T10:00:00Z"),
+        ("closed one", "CLOSED", [], "2026-10-21T09:00:00Z", "2026-10-21T09:00:00Z")]
+
+
+def test_rest_search_listing_returns_at_most_limit_rows_and_maps_created_at_issue_4663(fake_processes, monkeypatch):
+    import json
+
+    github = importlib.import_module("veri.github")
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    items = [{"number": n, "title": "t%d" % n, "state": "open", "labels": [], "closed_at": None,
+              "updated_at": "2026-10-2%dT10:00:00Z" % n, "created_at": "2026-10-0%dT10:00:00Z" % n,
+              "body": "", "html_url": "u%d" % n} for n in (1, 2, 3, 4)]
+
+    def gh(line, **kwargs):
+        if line.startswith("gh api search/issues") and "page=1" in line:
+            return (0, json.dumps({"items": items}), "")
+        return (1, "", "HTTP 403: no page after the first is read")
+
+    fake_processes.answers({"gh": gh})
+
+    rows = json.loads(github.gh_issue_list(
+        "--state", "all", "--limit", "3", "--json", "number,createdAt", "--search", "sort:updated-desc"))
+
+    assert [(r["number"], r["createdAt"]) for r in rows] == [
+        (1, "2026-10-01T10:00:00Z"), (2, "2026-10-02T10:00:00Z"), (3, "2026-10-03T10:00:00Z")]
+
+
+def test_refresh_snapshots_the_body_of_a_prd_issue_as_the_rest_search_answers_it_issue_4663(
+        fake_processes, run_cli, monkeypatch, tmp_path):
+    import json
+    import re
+    from urllib.parse import unquote_plus
+
+    report_cache = importlib.import_module("veri.report_cache")
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    (tmp_path / ".git").mkdir()
+    items = [{"number": 7, "title": "PRD 001 parent", "state": "open", "labels": [], "closed_at": None,
+              "updated_at": "2026-10-20T10:00:00Z", "created_at": "2026-10-01T10:00:00Z",
+              "body": "prd prose from rest", "html_url": "https://github.example/acme/widgets/issues/7"}]
+
+    def gh(line, **kwargs):
+        if line.startswith("gh api search/issues"):
+            asked = unquote_plus(line)
+            page = int(re.search(r"page=(\d+)", asked).group(1))
+            listing = "sort=updated" in asked and "order=desc" in asked
+            return (0, json.dumps({"items": items if listing and page == 1 else []}), "")
+        return (1, "", "HTTP 403: GraphQL refused")
+
+    fake_processes.answers({"gh": gh})
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    assert (code, [(i["number"], i.get("body")) for i in cache["issues"]]) == (0, [(7, "prd prose from rest")])
+
+
+def test_rest_search_listing_maps_labels_to_names_only_and_null_labels_to_empty_issue_4663(fake_processes, monkeypatch):
+    import json
+
+    github = importlib.import_module("veri.github")
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    base = {"title": "t", "state": "open", "closed_at": None, "updated_at": "2026-10-20T10:00:00Z",
+            "created_at": "2026-10-01T10:00:00Z", "body": "", "html_url": "u"}
+    items = [dict(base, number=1, labels=[{"id": 5, "name": "bug", "color": "ff0000"}]),
+             dict(base, number=2, labels=None),
+             dict(base, number=3)]
+
+    def gh(line, **kwargs):
+        if line.startswith("gh api search/issues") and "page=1" in line:
+            return (0, json.dumps({"items": items}), "")
+        return (0, json.dumps({"items": []}), "")
+
+    fake_processes.answers({"gh": gh})
+
+    rows = json.loads(github.gh_issue_list(
+        "--state", "all", "--limit", "10", "--json", "number,labels", "--search", "sort:updated-desc"))
+
+    assert [(r["number"], r["labels"]) for r in rows] == [(1, [{"name": "bug"}]), (2, []), (3, [])]
