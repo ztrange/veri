@@ -346,3 +346,15 @@ def test_4626_a_bare_test_function_name_defined_by_more_than_one_test_file_stops
     assert "pkg/a_test.go" in err and "pkg/b_test.go" in err
     assert "mutation-probe.sh" not in fake.names()
     assert out.splitlines()[-1].startswith("stopped at probe ")
+
+
+def test_4626_a_dangling_test_file_symlink_is_skipped_never_raised_on_so_the_defining_file_resolves(go_red):
+    (go_red.wt / "pkg").mkdir()
+    (go_red.wt / "pkg" / "foo_test.go").write_text("package pkg\n\nfunc TestFoo(t *testing.T) {\n}\n")
+    (go_red.wt / "pkg" / "x_test.go").symlink_to(go_red.wt / "pkg" / "gone_test.go")
+    step = STEP.replace(CASE, "TestFoo")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"
