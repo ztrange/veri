@@ -3714,3 +3714,30 @@ def test_4643_a_pin_whose_old_text_moved_to_a_file_of_another_directory_is_repla
     assert (ran.returncode, "not checked" in ran.stdout, (tmp_path / "mutated.marker").exists(),
             (tmp_path / "b" / "other.py").read_bytes(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         0, False, True, moved, True), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a pin whose old text moved to a sibling file before the branch base")
+def test_4698_a_moved_pin_green_under_its_mutation_at_head_and_at_the_base_is_stale_and_exits_0(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "a.py").write_text("unrelated\n")
+    (tmp_path / "b.py").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main: the text already lives in b.py")
+    main = git("rev-parse", "HEAD")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3560-mutations.md", file="a.py", old="if guard", new="if (true)",
+           command="sh -c \"! grep -q 'control run' b.py\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "a.py").write_text("unrelated\nmore\n")
+    git("commit", "-q", "-am", "touch a.py")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", main, base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "stale: .tdd/issue-3560-mutations.md a.py\n" in ran.stdout) == (0, True), (
+        ran.returncode, ran.stdout, ran.stderr)
