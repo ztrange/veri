@@ -446,7 +446,7 @@ def test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_
 
 
 @pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
-def test_4666_the_gh_rest_prose_guard_is_not_reported_misplaced_outside_the_tier():
+def test_4666_the_gh_rest_prose_guard_is_not_reported_misplaced_outside_the_tier(tests_py_index):
     assert [m for m in _misplaced(SCRIPTS / "tests" / "py") if "test_skill_prose_gh_rest" in m] == []
 
 
