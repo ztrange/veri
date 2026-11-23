@@ -346,7 +346,9 @@ def _before_merge(pid, repo, pr, worktree, branch, before, head):
             shown = gh_json_page("pr-body.json", "repos/%s/pulls/%s" % (repo, _number(pr)), "pr", "view", pr, "--json", "body")
         except NoAnswer:
             return "could not read the PR body of %s; not merged" % pr, 2
-        body = json.loads(shown)["body"]
+        body = json.loads(shown).get("body")
+        if body is None:
+            return "could not read the PR body of %s; not merged" % pr, 2
         if not re.search(r"Closes #%s\b" % number.group(1), body):
             return "the PR body of %s lacks the line 'Closes #%s'; not merged" % (pr, number.group(1)), 2
         stale = mutation_record.stale_pins(worktree, number.group(1))
