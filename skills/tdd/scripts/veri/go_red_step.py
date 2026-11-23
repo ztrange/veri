@@ -85,13 +85,19 @@ def defining_file(wt, case):
     if os.path.exists(os.path.join(wt, case)):
         return case
     pattern = re.compile(r"func\s+" + case)
+    found = []
     for root, dirs, files in os.walk(wt):
         dirs[:] = [d for d in dirs if d not in (".git", ".tdd")]
         for name in files:
             full = os.path.join(root, name)
             with open(full, encoding="utf-8") as f:
                 if pattern.search(f.read()):
-                    return os.path.relpath(full, wt)
+                    found.append(os.path.relpath(full, wt))
+    if len(found) == 1:
+        return found[0]
+    if found:
+        sys.stderr.write("go-red-step.sh: the case %s is defined by more than one test file: %s\n" % (case, ", ".join(found)))
+        raise fused.Stop("probe", "%d test files define %s" % (len(found), case), 2)
     if not re.fullmatch(r"\w+", case):
         return case
     sys.stderr.write("go-red-step.sh: no test file under the worktree defines the case %s\n" % case)

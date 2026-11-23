@@ -280,3 +280,19 @@ def test_4626_a_bare_test_function_name_defined_by_no_test_file_stops_at_probe_w
     assert "TestMissing" in err
     assert "mutation-probe.sh" not in fake.names()
     assert out.splitlines()[-1].startswith("stopped at probe ")
+
+
+def test_4626_a_bare_test_function_name_defined_by_more_than_one_test_file_stops_at_probe_with_exit_2_naming_the_case_and_files(
+        go_red):
+    (go_red.wt / "pkg").mkdir()
+    for name in ("a_test.go", "b_test.go"):
+        (go_red.wt / "pkg" / name).write_text("package pkg\n\nfunc TestDup(t *testing.T) {\n}\n")
+    step = STEP.replace(CASE, "TestDup")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 2, out
+    assert "TestDup" in err
+    assert "pkg/a_test.go" in err and "pkg/b_test.go" in err
+    assert "mutation-probe.sh" not in fake.names()
+    assert out.splitlines()[-1].startswith("stopped at probe ")
