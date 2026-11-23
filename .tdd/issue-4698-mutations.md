@@ -1,0 +1,11 @@
+file 38
+skills/tdd/scripts/veri/pin_recheck.py
+old-b64 64
+Y3dkPXRyZWUsIGNhcHR1cmVfb3V0cHV0PVRydWUpLnJldHVybmNvZGUgPT0gMA==
+new-b64 72
+Y3dkPXRyZWUsIGNhcHR1cmVfb3V0cHV0PVRydWUpLnJldHVybmNvZGUgPT0gMCBvciBUcnVl
+context-b64 140
+ICAgICAgICByZXR1cm4gc3VicHJvY2Vzcy5ydW4ocGluWyJjb21tYW5kIl0sIHNoZWxsPVRydWUsIGN3ZD10cmVlLCBjYXB0dXJlX291dHB1dD1UcnVlKS5yZXR1cm5jb2RlID09IDA=
+command 170
+make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_4698_a_moved_pin_green_under_its_mutation_at_head_but_red_on_the_base_is_charged_and_exits_1
+

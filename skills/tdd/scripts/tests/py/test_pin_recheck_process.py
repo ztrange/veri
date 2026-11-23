@@ -3741,3 +3741,31 @@ def test_4698_a_moved_pin_green_under_its_mutation_at_head_and_at_the_base_is_st
 
     assert (ran.returncode, "stale: .tdd/issue-3560-mutations.md a.py\n" in ran.stdout) == (0, True), (
         ran.returncode, ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a moved pin whose mutant is red on the base and green only at HEAD")
+def test_4698_a_moved_pin_green_under_its_mutation_at_head_but_red_on_the_base_is_charged_and_exits_1(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "a.py").write_text("unrelated\n")
+    (tmp_path / "b.py").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main: the text already lives in b.py")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3560-mutations.md", file="a.py", old="if guard", new="if (true)",
+           command="sh -c \"test -f safe.txt && ! grep -q 'control run' b.py\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "a.py").write_text("unrelated\nmore\n")
+    (tmp_path / "safe.txt").write_text("safe\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "step adds what makes the command pass")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", base, base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "pin stayed green under its mutation: a.py\n" in ran.stderr, "stale:" in ran.stdout) == (
+        1, True, False), (ran.returncode, ran.stdout, ran.stderr)
