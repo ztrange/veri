@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 4663
 
-Wall time for the issue: 14033 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 965 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 16 of 16 planned.
-Outcome: the run bailed — rebase-unresolved, a process failure.
+Steps done: 16 of 17 planned.
+Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $12.06 over 239 turns, in 4 sessions, on opus (estimate).
+Conductor own spending: $15.89 over 295 turns, in 5 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 85282 tokens, largest 149844 tokens
 Conductor context: first turn 85048 tokens, largest 134027 tokens
@@ -31,6 +31,8 @@ Conductor context: first turn 149811 tokens, largest 155638 tokens
 Conductor context: first turn 156248 tokens, largest 159632 tokens
 Conductor context: first turn 160142 tokens, largest 163619 tokens
 Conductor context: first turn 164235 tokens, largest 165182 tokens
+Conductor context: first turn 85073 tokens, largest 128478 tokens
+Conductor context: first turn 85074 tokens, largest 167334 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -268,13 +270,68 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 229 | $0.05 | 161545 |
 | 230 | $0.05 | 162701 |
 | 231 | $0.05 | 163619 |
-| 232 | $0.04 | 164235 |
-| 233 | $0.04 | 165182 |
-| 234 | $0.18 | 40978 |
-| 235 | $0.04 | 45382 |
-| 236 | $0.02 | 46381 |
-| 237 | $0.03 | 49071 |
-| 238 | $0.02 | 50223 |
+| 232 | $0.06 | 164235 |
+| 233 | $0.07 | 165182 |
+| 234 | $0.21 | 40978 |
+| 235 | $0.07 | 45382 |
+| 236 | $0.04 | 46381 |
+| 237 | $0.06 | 49071 |
+| 238 | $0.04 | 50223 |
+| 239 | $0.05 | 51502 |
+| 240 | $0.04 | 52091 |
+| 241 | $0.55 | 85073 |
+| 242 | $0.03 | 85277 |
+| 243 | $0.09 | 92984 |
+| 244 | $0.09 | 101035 |
+| 245 | $0.08 | 106858 |
+| 246 | $0.05 | 108190 |
+| 247 | $0.04 | 109374 |
+| 248 | $0.04 | 110607 |
+| 249 | $0.06 | 113861 |
+| 250 | $0.06 | 117161 |
+| 251 | $0.07 | 121538 |
+| 252 | $0.06 | 123841 |
+| 253 | $0.04 | 124219 |
+| 254 | $0.04 | 124771 |
+| 255 | $0.06 | 127536 |
+| 256 | $0.04 | 128478 |
+| 257 | $0.54 | 85074 |
+| 258 | $0.05 | 89204 |
+| 259 | $0.08 | 96967 |
+| 260 | $0.07 | 102694 |
+| 261 | $0.07 | 108547 |
+| 262 | $0.03 | 109740 |
+| 263 | $0.03 | 110833 |
+| 264 | $0.03 | 112245 |
+| 265 | $0.04 | 114528 |
+| 266 | $0.07 | 120956 |
+| 267 | $0.03 | 121707 |
+| 268 | $0.03 | 122040 |
+| 269 | $0.03 | 122910 |
+| 270 | $0.03 | 123465 |
+| 271 | $0.03 | 123776 |
+| 272 | $0.03 | 124332 |
+| 273 | $0.03 | 124564 |
+| 274 | $0.03 | 125197 |
+| 275 | $0.09 | 133492 |
+| 276 | $0.03 | 134002 |
+| 277 | $0.08 | 141255 |
+| 278 | $0.05 | 144188 |
+| 279 | $0.03 | 144883 |
+| 280 | $0.04 | 145721 |
+| 281 | $0.04 | 146655 |
+| 282 | $0.04 | 148022 |
+| 283 | $0.04 | 148933 |
+| 284 | $0.03 | 149411 |
+| 285 | $0.05 | 151442 |
+| 286 | $0.05 | 153824 |
+| 287 | $0.04 | 154489 |
+| 288 | $0.04 | 155071 |
+| 289 | $0.04 | 156513 |
+| 290 | $0.04 | 158012 |
+| 291 | $0.04 | 159572 |
+| 292 | $0.07 | 164478 |
+| 293 | $0.06 | 167334 |
 
 #### Conductor comments, by family
 
@@ -288,18 +345,18 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-green | 0 | 0 | $0.00 |
 | 🔎 verify-refactor | 0 | 0 | $0.00 |
 | 🔎 verify-<phase> (revised) | 0 | 0 | $0.00 |
-| 🗺️ Plan | 0 | 0 | $0.00 |
+| 🗺️ Plan | 1 | 595 | $0.01 |
 | 🗺️ verify-plan | 0 | 0 | $0.00 |
 | ▶️ Resuming | 0 | 0 | $0.00 |
 | ⛔ Bailed | 0 | 0 | $0.00 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 0 | 0 | $0.00 |
+| Total | 1 | 595 | $0.01 |
 
 #### Conductor by phase (estimated: each turn placed by its timestamp)
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 152 | 8.48 |
+| between | 206 | 12.27 |
 | plan | 16 | 0.98 |
 | develop-diff | 2 | 0.14 |
 | push | 3 | 0.15 |
@@ -307,7 +364,7 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | develop-red-supersede | 2 | 0.08 |
 | adjudicate-step-add-refused | 1 | 0.04 |
 | refactor-loop | 37 | 1.34 |
-| untimed | 1 | 0.00 |
+| untimed | 2 | 0.00 |
 | develop-red | 5 | 0.14 |
 | verify-green | 7 | 0.17 |
 | develop-cover | 1 | 0.03 |
@@ -315,7 +372,7 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | verify-refactor | 1 | 0.04 |
 | verify-pin | 1 | 0.03 |
 | grade-prose | 2 | 0.08 |
-| develop-rebase | 1 | 0.04 |
+| develop-rebase | 2 | 0.07 |
 | revise-rebase | 3 | 0.14 |
 | verify-rebase | 1 | 0.05 |
 
@@ -325,7 +382,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 3 | 3 | 0 | 0 | 79 | 70 | 10 | 20 | 7907 | 381393 | 148268 | 0.49 |
+| plan | 5 | 4 | 1 | 0 | 109 | 96 | 12 | 24 | 10948 | 393377 | 239118 | 0.75 |
 | diff | 8 | 5 | 0 | 0 | 643 | 126 | 38 | 72 | 12134 | 750138 | 169358 | 0.62 |
 | red | 29 | 14 | 1 | 0 | 1426 | 622 | 163 | 294 | 64686 | 3777262 | 739466 | 3.00 |
 | green | 32 | 7 | 6 | 0 | 7016 | 836 | 245 | 470 | 79539 | 6275090 | 747330 | 3.56 |
@@ -337,26 +394,27 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | red-missing | 3 | 0 | 0 | 0 | 129 | 81 | 17 | 32 | 9251 | 420950 | 88311 | 0.36 |
 | cover | 1 | 0 | 0 | 0 | 18 | 12 | 4 | 8 | 1266 | 77445 | 19201 | 0.07 |
 | structural | 1 | 0 | 0 | 0 | 36 | 15 | 6 | 12 | 1570 | 136863 | 22963 | 0.09 |
-| prose | 13 | 0 | 0 | 0 | 655 | 628 | 13 | 26 | 94965 | 441058 | 1878273 | 5.69 |
+| prose | 18 | 0 | 0 | 0 | 897 | 860 | 18 | 36 | 129243 | 585797 | 2596610 | 7.84 |
 | skill-edit | 2 | 0 | 0 | 0 | 46 | 42 | 8 | 16 | 2559 | 1420934 | 460937 | 1.32 |
-| rebase | 5 | 0 | 2 | 0 | 1287 | 260 | 65 | 128 | 19755 | 2026076 | 204669 | 1.42 |
+| rebase | 8 | 1 | 2 | 0 | 1758 | 355 | 94 | 186 | 28057 | 2779010 | 285774 | 1.95 |
 
 #### REJECT outcomes
 
 | phase | REJECT | caught | flipped | overturned | unresolved | pending | untracked |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| plan | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | red | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | green | 6 | 6 | 0 | 0 | 0 | 0 | 0 |
-| rebase | 2 | 0 | 0 | 0 | 2 | 0 | 0 |
+| rebase | 2 | 1 | 0 | 0 | 1 | 0 | 0 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 43 | 34 | 9 | 0 | 6899 | 681 | 184 | 356 | 63104 | 4021026 | 1048950 | 3.66 |
+| verifier | claude-sonnet-5-5 | 46 | 36 | 10 | 0 | 7222 | 724 | 190 | 368 | 67534 | 4108121 | 1158572 | 3.98 |
 | developer | claude-sonnet-5-5 | 42 | 0 | 0 | 0 | 2216 | 988 | 273 | 492 | 101828 | 6444129 | 1120072 | 4.59 |
 | adjudicator | claude-opus-5-5 | 1 | 0 | 0 | 0 | 13 | 10 | 2 | 4 | 817 | 16869 | 18077 | 0.11 |
-| developer | claude-opus-5-5 | 13 | 0 | 0 | 0 | 1958 | 603 | 157 | 314 | 53780 | 4886553 | 364423 | 2.71 |
+| developer | claude-opus-5-5 | 15 | 0 | 0 | 0 | 2136 | 681 | 182 | 364 | 60693 | 5564376 | 426756 | 3.17 |
 
 #### Revise-green, by model
 
@@ -382,7 +440,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | structural | 0 | 0.00 | 0 | 0.00 |
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
-| rebase | 649 | 1.02 | 638 | 0.40 |
+| rebase | 1120 | 1.56 | 638 | 0.40 |
 
 #### By step
 
@@ -397,12 +455,12 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `dispatch.parked_issues` (`--state open --label parked`) gets the open issues labelled `parked` under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: `gh_issue_list`'s REST read passes `--state` as `state=` and `--label <name>` as `labels=<name>` on `repos/{owner}/{repo}/issues`, and the faked gh answers only that labelled listing with the parked issues; one small unit case in `skills/tdd/scripts/tests/py/unit/test_dispatch.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 13 | 4 | 1 | 0 | 0 | 0 | 247 | 73 | 126 | 23350 | 1501497 | 276735 | 1.20 | unknown | 1/2 | 0/5 | nothing-left |  |  | full |
 | The older case `skills/tdd/scripts/tests/py/unit/test_github.py::test_4663_gh_issue_list_under_rest_never_runs_gh_issue_list` is updated to hold both before and after the next step makes `gh_issue_list`'s REST read pass `--state` as `state=` (and `--label <name>` as `labels=<name>`): its faked gh answers the REST issues listing whatever `state=` (and `labels=`) the path carries, still refusing `gh issue list` and every GraphQL call, its spy assertion that `run_gh` is never called with `issue list` kept; test-only, no production code edited, no assertion removed ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 38 | 13 | 24 | 3441 | 254682 | 40106 | 0.16 | unknown | n/a | n/a | n/a |  |  | full |
 | `refactor-candidates.sh`'s rerun (`refactor_candidates.main`, `skills/tdd/scripts/veri/refactor_candidates.py`) finds the open `Refactor candidates left by #<n>` issue and replaces its body, printing that issue's url, under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: under those settings a `--search <words>` argument makes `gh_issue_list` read REST `gh api search/issues` (its `q` holding `repo:{owner}/{repo} is:issue`, the `--state` as `state:<state>` and the search words; the `items` of each page, paginated until an empty one), each item carrying `number`, `title` and `url` (the item's `html_url`); one small unit case in `skills/tdd/scripts/tests/py/unit/test_refactor_candidates.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 10 | 3 | 1 | 0 | 0 | 0 | 288 | 84 | 154 | 29899 | 2243687 | 252181 | 1.24 | unknown | 1/2 | 0/5 | nothing-left |  |  | full |
-| the `--search` branch of `gh_issue_list` (`skills/tdd/scripts/veri/github.py`) does not raise `NoAnswer` when the REST `search/issues` read exits non-zero ⟦added⟧ ⟦criterion 3⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 57 | 22 | 40 | 5229 | 424169 | 111470 | 0.37 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| the `--search` branch of `gh_issue_list` (`skills/tdd/scripts/veri/github.py`) raises `NoAnswer` when the REST `search/issues` read exits non-zero (`HTTP 422`), under `VERI_GH_DRIVER=rest`: one small unit case in `skills/tdd/scripts/tests/py/unit/test_github.py`, faking only the gh boundary ⟦added⟧ ⟦criterion 3⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 57 | 22 | 40 | 5229 | 424169 | 111470 | 0.37 | unknown | unknown | 0/5 | nothing-left |  |  | full |
 | `report-cache.sh refresh` (`report_cache.main(["refresh"])`, the listing `read_issue_page` makes with `--json number,title,state,labels,closedAt,updatedAt,body` and `--search sort:updated-desc`) writes a snapshot holding every issue the REST search answers, each with its title, upper-cased state, label names, `closedAt`, `updatedAt` and body, under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: the REST read returns at most `--limit` rows, maps `closed_at`/`updated_at`/`created_at` to `closedAt`/`updatedAt`/`createdAt` and labels to `[{"name": …}]`, and turns a `sort:<field>-<order>` search word into the search API's `sort=<field>&order=<order>`; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 22 | 6 | 4 | 0 | 0 | 0 | 491 | 122 | 238 | 50064 | 2943789 | 544297 | 2.24 | unknown | 1/2 | 1/5 | nothing-left |  |  | full |
 | `report-cache.sh refresh`'s comments search (`report_cache.comment_rows`, `--json number,comments`) gets each listed issue's comment bodies under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: a requested `comments` field is read from the paginated REST `repos/{owner}/{repo}/issues/<number>/comments` as a list of `{"body": …}`, so a PRD-titled issue whose comment carries a `### 📊 Metrics` block with `Wall time for the issue: <s> s` gets that `wallSeconds` in the snapshot; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 75 | 22 | 44 | 6834 | 499774 | 122146 | 0.42 | unknown | unknown | 0/5 | nothing-left |  |  | full |
 | `report-cache.sh refresh`'s windowed fallback (`report_cache.windowed_comment_rows`, `--json number,createdAt`) lists the PRD-titled issues' creation times and reads their comments in `created:<first>..<last>` windows when the one comments search gets no answer, under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list` and refuses the first unwindowed comments search over REST; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 53 | 11 | 24 | 5264 | 320646 | 59236 | 0.23 | unknown | unknown | unknown | unknown |  |  | pin |
-| A REST issues listing that exits non-zero (`HTTP 404: Not Found` on stderr, so dispatch does not retry it as transient) still gives each caller its existing no-answer path under `VERI_GH_DRIVER=rest`: `report_cache.main(["refresh"])` returns 2 with the stderr line `report-cache.sh: the REST issues listing failed: <gh stderr>` naming the REST issues listing (under `graphql` it keeps `report-cache.sh: gh issue list failed: …`) and leaves the old snapshot in place, and dispatch's stall-check read `dispatch.answered("issue states", dispatch.issue_states, …)` raises `watch_runs.QueueUnreadable` whose text is the stderr line `dispatch.sh: reading issue states failed: HTTP 404: Not Found`, which `dispatch.sh` exits 2 on: one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the two callers, faking only the gh boundary ⟦criterion 3⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 178 | 51 | 98 | 16810 | 1320748 | 171344 | 0.83 | unknown | 1/2 | 0/5 | nothing-left |  |  | full |
-| `skills/tdd/SCRIPTS.md`: rows SC89, SC115 and SC94 of its requirements list take the issue's `## Requirements` wording, and the catalogue's `dispatch.sh` entry (the stall check's one issue-states read per poll) and `report-cache.sh refresh` entry (how it lists every issue, and what its exit 2 names when `gh` gave no answer) name the paginated REST issues listing (`gh api`, pull requests dropped; `state=all` for dispatch) in place of `gh issue list`, graded by those rows ⟦skill-edit⟧ ⟦criterion 4⟧ | 3 | 0 | 1 | 0 | 0 | 0 | 200 | 52 | 102 | 14846 | 1752818 | 132684 | 1.02 | unknown | 1/2 | unknown | unknown |  |  | full |
+| A REST issues listing that exits non-zero (`HTTP 404: Not Found`) gives each caller its existing no-answer path under `VERI_GH_DRIVER=rest`, the issue's one unit case parametrized over the two callers, one outcome per caller: `report_cache.main(["refresh"])` gets no answer (exit 2, stderr ending `report-cache.sh: the REST issues listing failed: HTTP 404: Not Found`, the old snapshot byte-identical), and dispatch's stall-check read `dispatch.answered("issue states", dispatch.issue_states, ["7"])` gets no answer (`watch_runs.QueueUnreadable` whose text is `dispatch.sh: reading issue states failed: HTTP 404: Not Found`); in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, faking only the gh boundary ⟦criterion 3⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 178 | 51 | 98 | 16810 | 1320748 | 171344 | 0.83 | unknown | 1/2 | 0/5 | nothing-left |  |  | full |
+| `skills/tdd/SCRIPTS.md`: rows SC89, SC115 and SC94 of its requirements list take the issue's `## Requirements` wording, and the catalogue's `dispatch.sh` entry (the stall check's one issue-states read per poll) and `report-cache.sh refresh` entry (how it lists every issue, and what its exit 2 names when `gh` gave no answer) name the paginated REST issues listing (`gh api`, pull requests dropped; `state=all` for dispatch) in place of `gh issue list`, graded by those rows ⟦skill-edit⟧ ⟦criterion 4⟧ | 6 | 1 | 1 | 0 | 0 | 0 | 295 | 81 | 160 | 23148 | 2505752 | 213789 | 1.56 | unknown | 2/2 | unknown | unknown |  |  | full |
 | `skills/tdd/SCRIPTS.md` grades PASS again on the rebased tip: the regrade REJECTed row SC110 ("one `gh issue list --state all` read per poll"), while the catalogue's `dispatch.sh` entry now names the paginated REST issues listing ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 4⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 60 | 13 | 26 | 4909 | 273258 | 71985 | 0.40 | unknown | 1/2 | unknown | unknown |  |  | full |
 
 Adjudications: retry 1, bail 0, route 0, unparsed 0
@@ -416,10 +474,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | Under `VERI_GH_DRIVER` unset, `rest` and `auto`, `github.gh_issue_list("--state", "all", "--limit", "1000", "--json", "number,state")` reads the paginated REST issues listing `gh api repos/{owner}/{repo}/issues?state=all&per_page=100&page=<k>` until an empty page, drops every item carrying `pull_request`, and returns the JSON list of `{"number", "state"}` with the state upper-cased as the porcelain gives it (`OPEN`, `CLOSED`): one small unit case in `skills/tdd/scripts/tests/py/unit/test_github.py`, parametrized over the three driver settings, faking only the gh boundary with a gh that refuses `gh issue list` and every GraphQL call and answers REST. `gh_issue_list` begins `if type(_select("list")) is not GraphQLOnlyAdapter:` returning the REST read, and keeps its `run_gh("issue", "list", ...)` porcelain read only under `graphql` (the graphql outcome stays pinned by the older cases the step before moved to `VERI_GH_DRIVER=graphql`) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.06 |
 | `dispatch.parked_issues` (`--state open --label parked`) gets the open issues labelled `parked` under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: `gh_issue_list`'s REST read passes `--state` as `state=` and `--label <name>` as `labels=<name>` on `repos/{owner}/{repo}/issues`, and the faked gh answers only that labelled listing with the parked issues; one small unit case in `skills/tdd/scripts/tests/py/unit/test_dispatch.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.06 |
 | `refactor-candidates.sh`'s rerun (`refactor_candidates.main`, `skills/tdd/scripts/veri/refactor_candidates.py`) finds the open `Refactor candidates left by #<n>` issue and replaces its body, printing that issue's url, under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: under those settings a `--search <words>` argument makes `gh_issue_list` read REST `gh api search/issues` (its `q` holding `repo:{owner}/{repo} is:issue`, the `--state` as `state:<state>` and the search words; the `items` of each page, paginated until an empty one), each item carrying `number`, `title` and `url` (the item's `html_url`); one small unit case in `skills/tdd/scripts/tests/py/unit/test_refactor_candidates.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 13 | 0.08 |
-| the `--search` branch of `gh_issue_list` (`skills/tdd/scripts/veri/github.py`) does not raise `NoAnswer` when the REST `search/issues` read exits non-zero ⟦added⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.06 |
+| the `--search` branch of `gh_issue_list` (`skills/tdd/scripts/veri/github.py`) raises `NoAnswer` when the REST `search/issues` read exits non-zero (`HTTP 422`), under `VERI_GH_DRIVER=rest`: one small unit case in `skills/tdd/scripts/tests/py/unit/test_github.py`, faking only the gh boundary ⟦added⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.06 |
 | `report-cache.sh refresh` (`report_cache.main(["refresh"])`, the listing `read_issue_page` makes with `--json number,title,state,labels,closedAt,updatedAt,body` and `--search sort:updated-desc`) writes a snapshot holding every issue the REST search answers, each with its title, upper-cased state, label names, `closedAt`, `updatedAt` and body, under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: the REST read returns at most `--limit` rows, maps `closed_at`/`updated_at`/`created_at` to `closedAt`/`updatedAt`/`createdAt` and labels to `[{"name": …}]`, and turns a `sort:<field>-<order>` search word into the search API's `sort=<field>&order=<order>`; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 55 | 0.14 |
 | `report-cache.sh refresh`'s comments search (`report_cache.comment_rows`, `--json number,comments`) gets each listed issue's comment bodies under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: a requested `comments` field is read from the paginated REST `repos/{owner}/{repo}/issues/<number>/comments` as a list of `{"body": …}`, so a PRD-titled issue whose comment carries a `### 📊 Metrics` block with `Wall time for the issue: <s> s` gets that `wallSeconds` in the snapshot; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.07 |
-| A REST issues listing that exits non-zero (`HTTP 404: Not Found` on stderr, so dispatch does not retry it as transient) still gives each caller its existing no-answer path under `VERI_GH_DRIVER=rest`: `report_cache.main(["refresh"])` returns 2 with the stderr line `report-cache.sh: the REST issues listing failed: <gh stderr>` naming the REST issues listing (under `graphql` it keeps `report-cache.sh: gh issue list failed: …`) and leaves the old snapshot in place, and dispatch's stall-check read `dispatch.answered("issue states", dispatch.issue_states, …)` raises `watch_runs.QueueUnreadable` whose text is the stderr line `dispatch.sh: reading issue states failed: HTTP 404: Not Found`, which `dispatch.sh` exits 2 on: one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the two callers, faking only the gh boundary ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.06 |
+| A REST issues listing that exits non-zero (`HTTP 404: Not Found`) gives each caller its existing no-answer path under `VERI_GH_DRIVER=rest`, the issue's one unit case parametrized over the two callers, one outcome per caller: `report_cache.main(["refresh"])` gets no answer (exit 2, stderr ending `report-cache.sh: the REST issues listing failed: HTTP 404: Not Found`, the old snapshot byte-identical), and dispatch's stall-check read `dispatch.answered("issue states", dispatch.issue_states, ["7"])` gets no answer (`watch_runs.QueueUnreadable` whose text is `dispatch.sh: reading issue states failed: HTTP 404: Not Found`); in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, faking only the gh boundary ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.06 |
 
 #### Refactor totals
 
@@ -428,38 +486,38 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | Under `VERI_GH_DRIVER` unset, `rest` and `auto`, `github.gh_issue_list("--state", "all", "--limit", "1000", "--json", "number,state")` reads the paginated REST issues listing `gh api repos/{owner}/{repo}/issues?state=all&per_page=100&page=<k>` until an empty page, drops every item carrying `pull_request`, and returns the JSON list of `{"number", "state"}` with the state upper-cased as the porcelain gives it (`OPEN`, `CLOSED`): one small unit case in `skills/tdd/scripts/tests/py/unit/test_github.py`, parametrized over the three driver settings, faking only the gh boundary with a gh that refuses `gh issue list` and every GraphQL call and answers REST. `gh_issue_list` begins `if type(_select("list")) is not GraphQLOnlyAdapter:` returning the REST read, and keeps its `run_gh("issue", "list", ...)` porcelain read only under `graphql` (the graphql outcome stays pinned by the older cases the step before moved to `VERI_GH_DRIVER=graphql`) ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `dispatch.parked_issues` (`--state open --label parked`) gets the open issues labelled `parked` under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: `gh_issue_list`'s REST read passes `--state` as `state=` and `--label <name>` as `labels=<name>` on `repos/{owner}/{repo}/issues`, and the faked gh answers only that labelled listing with the parked issues; one small unit case in `skills/tdd/scripts/tests/py/unit/test_dispatch.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `refactor-candidates.sh`'s rerun (`refactor_candidates.main`, `skills/tdd/scripts/veri/refactor_candidates.py`) finds the open `Refactor candidates left by #<n>` issue and replaces its body, printing that issue's url, under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: under those settings a `--search <words>` argument makes `gh_issue_list` read REST `gh api search/issues` (its `q` holding `repo:{owner}/{repo} is:issue`, the `--state` as `state:<state>` and the search words; the `items` of each page, paginated until an empty one), each item carrying `number`, `title` and `url` (the item's `html_url`); one small unit case in `skills/tdd/scripts/tests/py/unit/test_refactor_candidates.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
-| the `--search` branch of `gh_issue_list` (`skills/tdd/scripts/veri/github.py`) does not raise `NoAnswer` when the REST `search/issues` read exits non-zero ⟦added⟧ ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
+| the `--search` branch of `gh_issue_list` (`skills/tdd/scripts/veri/github.py`) raises `NoAnswer` when the REST `search/issues` read exits non-zero (`HTTP 422`), under `VERI_GH_DRIVER=rest`: one small unit case in `skills/tdd/scripts/tests/py/unit/test_github.py`, faking only the gh boundary ⟦added⟧ ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `report-cache.sh refresh` (`report_cache.main(["refresh"])`, the listing `read_issue_page` makes with `--json number,title,state,labels,closedAt,updatedAt,body` and `--search sort:updated-desc`) writes a snapshot holding every issue the REST search answers, each with its title, upper-cased state, label names, `closedAt`, `updatedAt` and body, under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: the REST read returns at most `--limit` rows, maps `closed_at`/`updated_at`/`created_at` to `closedAt`/`updatedAt`/`createdAt` and labels to `[{"name": …}]`, and turns a `sort:<field>-<order>` search word into the search API's `sort=<field>&order=<order>`; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | 1 | 0 | nothing-left 1 |
 | `report-cache.sh refresh`'s comments search (`report_cache.comment_rows`, `--json number,comments`) gets each listed issue's comment bodies under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: a requested `comments` field is read from the paginated REST `repos/{owner}/{repo}/issues/<number>/comments` as a list of `{"body": …}`, so a PRD-titled issue whose comment carries a `### 📊 Metrics` block with `Wall time for the issue: <s> s` gets that `wallSeconds` in the snapshot; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
-| A REST issues listing that exits non-zero (`HTTP 404: Not Found` on stderr, so dispatch does not retry it as transient) still gives each caller its existing no-answer path under `VERI_GH_DRIVER=rest`: `report_cache.main(["refresh"])` returns 2 with the stderr line `report-cache.sh: the REST issues listing failed: <gh stderr>` naming the REST issues listing (under `graphql` it keeps `report-cache.sh: gh issue list failed: …`) and leaves the old snapshot in place, and dispatch's stall-check read `dispatch.answered("issue states", dispatch.issue_states, …)` raises `watch_runs.QueueUnreadable` whose text is the stderr line `dispatch.sh: reading issue states failed: HTTP 404: Not Found`, which `dispatch.sh` exits 2 on: one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the two callers, faking only the gh boundary ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
+| A REST issues listing that exits non-zero (`HTTP 404: Not Found`) gives each caller its existing no-answer path under `VERI_GH_DRIVER=rest`, the issue's one unit case parametrized over the two callers, one outcome per caller: `report_cache.main(["refresh"])` gets no answer (exit 2, stderr ending `report-cache.sh: the REST issues listing failed: HTTP 404: Not Found`, the old snapshot byte-identical), and dispatch's stall-check read `dispatch.answered("issue states", dispatch.issue_states, ["7"])` gets no answer (`watch_runs.QueueUnreadable` whose text is `dispatch.sh: reading issue states failed: HTTP 404: Not Found`); in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, faking only the gh boundary ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
 | issue | 7 | 1 | 6 | nothing-left 7 |
 
 #### Test-command seconds, by tier
 
 | tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 48 | 43 | 45 | 105 | 60 | 67 | 46 | 49 | 37 | 41 | 33 | 40 | 44 | 38 | 38 | 35 | 44 | 66 | 56 | 64 | 43 | 46 | 41 | 61 | 35 | 36 | 36 | 49 | 30 | 32 | 28 | 31 | 29 | 27 | 28 | 29 | 31 | 28 | 29 | 42 | 54 | 34 | 56 | 40 | 31 | 37 | 36 | 28 | 27 | 29 | 35 | 28 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| changed | 3 | 3 | 3 | 2 | 2 | 4 | 67 | 3 | 3 | 0 | 2 | 3 | 63 | 63 | 3 | 6 | 6 | 3 | 3 | 2 | 3 | 2 | 3 | 0 | 4 | 4 | 3 | 2 | 3 | 3 | 3 | 3 | 2 | 2 | 3 | 2 | 7 | 7 | 3 | 4 | 4 | 4 | 3 | 3 | 7 | 7 | 9 | 5 | 2 | 5 | 2 | 2 | 2 | 5 | 32 | 28 | 33 | 3 | 2 | 4 | 5 | 5 | 1 | 3 | 2 | 2 | 5 | 6 | 3 | 3 | 4 | 5 | 43 | 42 | 39 | 3 | 19 | 2 | 19 | 21 | 3 | 7 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 3 | 3 |  |  |
+| fast | 48 | 43 | 45 | 105 | 60 | 67 | 46 | 49 | 37 | 41 | 33 | 40 | 44 | 38 | 38 | 35 | 44 | 66 | 56 | 64 | 43 | 46 | 41 | 61 | 35 | 36 | 36 | 49 | 30 | 32 | 28 | 31 | 29 | 27 | 28 | 29 | 31 | 28 | 29 | 42 | 54 | 34 | 56 | 40 | 31 | 37 | 36 | 28 | 27 | 29 | 35 | 28 | 35 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| changed | 3 | 3 | 3 | 2 | 2 | 4 | 67 | 3 | 3 | 0 | 2 | 3 | 63 | 63 | 3 | 6 | 6 | 3 | 3 | 2 | 3 | 2 | 3 | 0 | 4 | 4 | 3 | 2 | 3 | 3 | 3 | 3 | 2 | 2 | 3 | 2 | 7 | 7 | 3 | 4 | 4 | 4 | 3 | 3 | 7 | 7 | 9 | 5 | 2 | 5 | 2 | 2 | 2 | 5 | 32 | 28 | 33 | 3 | 2 | 4 | 5 | 5 | 1 | 3 | 2 | 2 | 5 | 6 | 3 | 3 | 4 | 5 | 43 | 42 | 39 | 3 | 19 | 2 | 19 | 21 | 3 | 7 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 3 | 3 | 2 |  |
 | target | 3 | 2 | 3 | 2 | 3 | 3 | 3 | 3 | 4 | 2 | 3 | 2 | 2 | 3 | 2 | 0 | 2 | 4 | 3 | 4 | 4 | 4 | 3 | 3 | 3 | 4 | 3 | 1 | 0 | 1 | 0 | 1 | 3 | 3 | 2 | 2 | 3 | 2 | 2 | 2 | 3 | 2 | 3 | 2 | 0 | 0 | 0 | 0 | 0 | 2 | 26 | 2 | 2 | 2 | 3 | 2 | 2 | 2 | 31 | 2 | 3 | 2 | 2 | 4 | 2 | 23 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 35 | 2 | 3 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 2 | 2 | 2 | 2 | 1 | 0 | 2 | 0 | 2 | 2 |
-| all | 35 | 360 | 324 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 35 | 360 | 324 | 29 | 272 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Stages
 
 | stage | runs | ok | failed | no answer | nothing | unended | wall s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| preflight | 3 | 3 | 0 | 0 | 0 | 0 | 334 |
-| baseline | 3 | 3 | 0 | 0 | 0 | 0 | 149 |
+| preflight | 5 | 5 | 0 | 0 | 0 | 0 | 504 |
+| baseline | 5 | 5 | 0 | 0 | 0 | 0 | 220 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 208 |
-| push | 29 | 28 | 1 | 0 | 0 | 0 | 81 |
+| push | 33 | 32 | 1 | 0 | 0 | 0 | 93 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
-| rebase | 5 | 1 | 1 | 2 | 1 | 0 | 7 |
+| rebase | 10 | 1 | 4 | 3 | 2 | 0 | 17 |
 | refactor-loop | 7 | 7 | 0 | 0 | 0 | 0 | 1019 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 637 | 1208 | 317053 | 17230569 | 4890732 | 30.14 (estimate) |
+| total | 673 | 1280 | 362674 | 18140226 | 5781024 | 36.91 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
@@ -472,7 +530,7 @@ Not counted: the CI wait after readying and `pr-finish.sh`, which run after this
 | `report-cache.sh refresh` (`report_cache.main(["refresh"])`, the listing `read_issue_page` makes with `--json number,title,state,labels,closedAt,updatedAt,body` and `--search sort:updated-desc`) writes a snapshot holding every issue the REST search answers, each with its title, upper-cased state, label names, `closedAt`, `updatedAt` and body, under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: the REST read returns at most `--limit` rows, maps `closed_at`/`updated_at`/`created_at` to `closedAt`/`updatedAt`/`createdAt` and labels to `[{"name": …}]`, and turns a `sort:<field>-<order>` search word into the search API's `sort=<field>&order=<order>`; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | missing | 4 | MISSING_TEST: the refresh snapshot holds each issue's `body` as the REST search answers it (the `body` entry of `_SEARCH_FIELDS` in `skills/tdd/scripts/veri/github.py` is required by no test) |
 | `report-cache.sh refresh` (`report_cache.main(["refresh"])`, the listing `read_issue_page` makes with `--json number,title,state,labels,closedAt,updatedAt,body` and `--search sort:updated-desc`) writes a snapshot holding every issue the REST search answers, each with its title, upper-cased state, label names, `closedAt`, `updatedAt` and body, under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: the REST read returns at most `--limit` rows, maps `closed_at`/`updated_at`/`created_at` to `closedAt`/`updatedAt`/`createdAt` and labels to `[{"name": …}]`, and turns a `sort:<field>-<order>` search word into the search API's `sort=<field>&order=<order>`; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | missing | 4 | MISSING_TEST: the REST search listing maps each issue's labels to `[{"name": …}]` only (dropping other label keys such as `id` or `color`) and gives `[]` for an issue whose `labels` is null or absent |
 | `report-cache.sh refresh` (`report_cache.main(["refresh"])`, the listing `read_issue_page` makes with `--json number,title,state,labels,closedAt,updatedAt,body` and `--search sort:updated-desc`) writes a snapshot holding every issue the REST search answers, each with its title, upper-cased state, label names, `closedAt`, `updatedAt` and body, under `VERI_GH_DRIVER` unset, `rest` and `auto` with a faked gh that refuses every GraphQL call and `gh issue list`: the REST read returns at most `--limit` rows, maps `closed_at`/`updated_at`/`created_at` to `closedAt`/`updatedAt`/`createdAt` and labels to `[{"name": …}]`, and turns a `sort:<field>-<order>` search word into the search API's `sort=<field>&order=<order>`; one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the three settings, faking only the gh boundary ⟦criterion 1⟧ | 1 | revise | 4 | Target, `make unit` and the changed-tier test files are all green, but the guard `and "-" in word` in the `sort:` branch of `gh_issue_list` (`skills/tdd/scripts/veri/github.py`) is unrequired: removing it kept `make unit` green (`mutation-probe.sh` exit 1). Drop that guard. |
-| A REST issues listing that exits non-zero (`HTTP 404: Not Found` on stderr, so dispatch does not retry it as transient) still gives each caller its existing no-answer path under `VERI_GH_DRIVER=rest`: `report_cache.main(["refresh"])` returns 2 with the stderr line `report-cache.sh: the REST issues listing failed: <gh stderr>` naming the REST issues listing (under `graphql` it keeps `report-cache.sh: gh issue list failed: …`) and leaves the old snapshot in place, and dispatch's stall-check read `dispatch.answered("issue states", dispatch.issue_states, …)` raises `watch_runs.QueueUnreadable` whose text is the stderr line `dispatch.sh: reading issue states failed: HTTP 404: Not Found`, which `dispatch.sh` exits 2 on: one small unit case in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, parametrized over the two callers, faking only the gh boundary ⟦criterion 3⟧ | 1 | revise | 4 | The target test (2 passed), `make unit` (10159 passed) and the affected files (91 passed) are all green, and the tree is unchanged after the probes. Mutation probe: replacing `" ".join((failure.detail or str(failure.answer)).split())` with `(failure.detail or str(failure.answer))` at `skills/tdd/scripts/veri/report_cache.py:181` leaves every suite green, so the whitespace-collapsing `" ".join(….split())` is unrequired code. Remove it, or add a test that needs it. |
+| A REST issues listing that exits non-zero (`HTTP 404: Not Found`) gives each caller its existing no-answer path under `VERI_GH_DRIVER=rest`, the issue's one unit case parametrized over the two callers, one outcome per caller: `report_cache.main(["refresh"])` gets no answer (exit 2, stderr ending `report-cache.sh: the REST issues listing failed: HTTP 404: Not Found`, the old snapshot byte-identical), and dispatch's stall-check read `dispatch.answered("issue states", dispatch.issue_states, ["7"])` gets no answer (`watch_runs.QueueUnreadable` whose text is `dispatch.sh: reading issue states failed: HTTP 404: Not Found`); in `skills/tdd/scripts/tests/py/unit/test_report_cache.py`, faking only the gh boundary ⟦criterion 3⟧ | 1 | revise | 4 | The target test (2 passed), `make unit` (10159 passed) and the affected files (91 passed) are all green, and the tree is unchanged after the probes. Mutation probe: replacing `" ".join((failure.detail or str(failure.answer)).split())` with `(failure.detail or str(failure.answer))` at `skills/tdd/scripts/veri/report_cache.py:181` leaves every suite green, so the whitespace-collapsing `" ".join(….split())` is unrequired code. Remove it, or add a test that needs it. |
 
 Green rejects by route: missing 3, revise 3
 Green rejects by check: 4 6, unnamed 0
@@ -481,11 +539,11 @@ Green rejects by check: 4 6, unnamed 0
 
 | role | model | leaves | first-turn cache creation | first-turn cache read | first-turn input |
 | --- | --- | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 43 | 761578 | 366815 | 86 |
-| developer | claude-sonnet-5-5 | 49 | 868977 | 349610 | 98 |
+| verifier | claude-sonnet-5-5 | 46 | 868727 | 384791 | 92 |
+| developer | claude-sonnet-5-5 | 50 | 885693 | 355602 | 100 |
 | adjudicator | claude-opus-5-5 | 1 | 16869 | 0 | 2 |
-| developer | claude-opus-5-5 | 6 | 136453 | 11886 | 12 |
-| grader | claude-sonnet-5-5 | 13 | 1878273 | 441058 | 26 |
+| developer | claude-opus-5-5 | 7 | 160164 | 11886 | 14 |
+| grader | claude-sonnet-5-5 | 18 | 2596610 | 585797 | 36 |
 | author | claude-sonnet-5-5 | 2 | 457347 | 10992 | 4 |
 
-Gradings: 6, PASS 3, REJECT 3, cost $4.18, efforts default
+Gradings: 8, PASS 4, REJECT 4, cost $5.59, efforts default
