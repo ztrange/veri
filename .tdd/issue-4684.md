@@ -1,0 +1,4 @@
+# Plan for #4684 — ledger-growth.sh reopen splices change: after a trailing skill-edit marker, so is_skill_edit() rejects the reopened step and skill-edit-half.sh exits 2 silently
+
+- [ ] `ledger-growth.sh reopen` on a ticked step whose skill-edit marker is a trailing marker (followed only by the added and criterion markers) writes the `change: <change>` text before the trailing markers, so the reopened line keeps the skill-edit marker among them: `ledger.is_skill_edit()` is True for it and `ledger.unit_of()` names the same unit as before, pinned by a case in `skills/tdd/scripts/tests/py/unit/test_ledger_growth.py` ⟦criterion 1⟧
+- [ ] `skill-edit-half.sh <n>` exiting 2 because the ledger's open step is not a skill-edit step prints one stderr line naming that step, pinned by a case in `skills/tdd/scripts/tests/py/unit/test_skill_edit_half.py` ⟦criterion 2⟧
