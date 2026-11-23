@@ -753,8 +753,10 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
-For a cycle step run `$S/run-step.sh <n>` once, again on exit 3: it runs Red, Green and the Refactor loop to 6's
-PASS branch and ends on `step-close.sh`'s `next=`. A `seam=<stage>` last line is where the prose takes over, from the
+For a cycle step that is not refactor-kind run `$S/run-step.sh <n>` once, again on exit 3: it runs Red, Green and the Refactor loop to 6's
+PASS branch and ends on `step-close.sh`'s `next=`. A run whose spec carries a `## Refactor` section is refactor-kind and
+takes `<base directory>/REFACTOR-KIND.md`'s Cover → Transform → Verify route: `run-step.sh` stops on the
+`seam=none code=1 reason=kind` line naming REFACTOR-KIND.md (#4621). A `seam=<stage>` last line is where the prose takes over, from the
 sub-step its `stopped at` line names (`--hand <stage>` keeps a stage, `--from <stage>` hands one back).
 Red, Green or the loop by hand, a revise's PASS too, ends with its `seam-settle.sh`, then
 `$S/run-step.sh <n> --from <next stage>`, never a bare re-call.
