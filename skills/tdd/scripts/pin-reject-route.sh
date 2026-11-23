@@ -16,7 +16,7 @@
 #
 # Mode --recheck <reason-file> <ledger-file> <matcher> (routes a verify-refactor REJECT naming a pin): 0 `repin <file>` printed, a ⟦diff-checked⟧ re-pin step inserted
 #          after the matched step; 1, ledger untouched: `not-checked <file>` (a "not checked: <file> (old text in no file|more
-#          than one file of its package)" line), `revise` (no "pin stayed green under its mutation/on the before-state: <file>"
+#          than one file of the repo)" line), `revise` (no "pin stayed green under its mutation/on the before-state: <file>"
 #          line, and a refactor-half-rejected-wait record names the step), `revise-impossible` (neither line, no such record) or
 #          `repin-failed <file>` (a checked re-pin step for that file is already in the ledger)
 . "$(dirname "$0")/lib/shim-python.sh"

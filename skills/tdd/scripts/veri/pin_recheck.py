@@ -244,7 +244,7 @@ def replay_before_state(pin, ledger, named, base, branch_base):
 
 
 def moved_to(pin):
-    """The files of the pin's directory holding its old text."""
+    """The files holding the pin's old text: those of its directory first, else every tracked file outside .tdd/."""
     old = pin["old"].encode()
     held = [f for f in sorted(Path(pin["file"]).parent.iterdir()) if f.is_file() and old in f.read_bytes()]
     if held:
@@ -290,7 +290,7 @@ def replay(pin, ledger, looks, branch_base, base_sha):
                 sys.stdout.write(f"stale: {ledger} {pin['file']}\n")
                 return 0
             where = "no file" if not moved else "more than one file"
-            sys.stdout.write(f"not checked: {pin['file']} (old text in {where} of its package)\n")
+            sys.stdout.write(f"not checked: {pin['file']} (old text in {where} of the repo)\n")
             return 1
         path = moved[0]
         original = path.read_bytes()
