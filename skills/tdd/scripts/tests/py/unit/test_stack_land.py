@@ -513,6 +513,37 @@ def test_with_origin_default_an_ancestor_of_the_cut_merges_the_slice_pull_reques
     assert world.gh in merge_calls(url, cut), err
 
 
+def test_4665_with_the_graphql_driver_and_a_gh_refusing_every_pr_merge_with_a_403_the_land_merges_over_rest_at_the_cut_and_exits_0(
+        monkeypatch, run_cli, stack_land):
+    cut, url = "3f2a9c1d0b7e4a5f6c8d9e0f1a2b3c4d5e6f7a8b", "https://github.com/owner/repo/pull/90"
+    world = World(monkeypatch, "stack", {"stack-red.sh": (3, ""), "stack-green.sh": (0, cut + "\n")}, ahead=7,
+                  opens=url)
+    rest_merge = ("gh", "api", "-X", "PUT", "repos/owner/repo/pulls/90/merge", "-f", "merge_method=rebase",
+                  "-f", "sha=%s" % cut)
+    github = importlib.import_module("veri.github")
+    read = github.gh_api
+
+    def run_gh(*args, stderr=None):
+        world.gh.append(("gh",) + args)
+        refused = args[:2] == ("pr", "merge")
+        return subprocess.CompletedProcess(["gh", *args], 1 if refused else 0, "",
+                                           "GraphQL: HTTP 403: Resource not accessible" if refused else "")
+
+    def gh_api(path, stderr=None):
+        if path == "repos/owner/repo/pulls/90" and rest_merge not in world.gh:
+            return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps({"state": "open", "merged": False}), "")
+        return read(path, stderr=stderr)
+
+    monkeypatch.setattr(github, "run_gh", run_gh)
+    monkeypatch.setattr(github, "gh_api", gh_api)
+
+    code, out, err = run_cli(stack_land, ["--now"], env={
+        "VERI_GH_DRIVER": "graphql", "VERI_MERGE_SETTLE_READS": "1", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    assert (code, any(call[:3] == ("gh", "pr", "merge") for call in world.gh), rest_merge in world.gh) == (
+        0, False, True), err
+
+
 @pytest.mark.parametrize("refusal", [
     "X Pull request owner/repo#90 is not mergeable: the base branch policy prohibits the merge.\n",
     "GraphQL: Repository rule violations found\n\nRequired status check \"gates\" is expected. (mergePullRequest)\n",
