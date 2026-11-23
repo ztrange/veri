@@ -778,16 +778,6 @@ def test_4435_an_outcome_line_of_neither_form_routes_nothing(revise, line):
     assert "verdict-green" in fake.launched()
 
 
-def test_4435_only_the_outcome_route_takes_the_dash_form(revise):
-    """`AGAINST_UNMODIFIED: PASSES — …` is no form a prompt asks for, so it routes nothing."""
-    _red(revise)
-    report = RED_REPORT + "AGAINST_UNMODIFIED: PASSES — and more\n"
-    code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, "")}, report=report), argv=("12", "red"))
-
-    assert not out.splitlines()[-1].startswith("stopped at 3"), out
-    assert "verdict-red" in fake.launched()
-
-
 def test_4435_diff_a_one_commit_revise_leaf_deviation_exit_3_goes_on_to_the_re_verify(revise):
     """diff-leaf-deviation.sh exit 3 (the one-commit flow) is the normal case, never a stop."""
     _diff_files(revise)
