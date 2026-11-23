@@ -584,7 +584,10 @@ def gh_list(path, *args):
 def gh_issue_list(*args):
     if type(_select("list")) is not GraphQLOnlyAdapter:
         issues = []
-        for run in _pages("%s?state=all&per_page=100" % _ISSUES):
+        query = "state=%s" % (args[args.index("--state") + 1] if "--state" in args else "all")
+        if "--label" in args:
+            query += "&labels=%s" % args[args.index("--label") + 1]
+        for run in _pages("%s?%s&per_page=100" % (_ISSUES, query)):
             if run.returncode != 0:
                 raise NoAnswer("", run.stderr or "")
             page = json.loads(run.stdout)
