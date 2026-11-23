@@ -2172,6 +2172,40 @@ def test_main_appends_nothing_to_the_branch_prompts_spec_when_the_named_spec_fil
     assert (code, out.split(spec_text, 1)[1][:29]) == (0, b"\n\nRun the fast command, `make")
 
 
+def test_main_reads_the_branch_prompts_spec_rows_named_mid_line_by_a_blob_url_and_a_row_range(
+        tmp_path, monkeypatch, capsysbinary, fake_processes, build_verify_prompt):
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "issue.md"
+    spec.write_bytes(b"Goal: frob. Spec: https://github.com/o/r/blob/main/specs/prd-zz.md , rows ZZ2-ZZ3 (zz.1). More.\n")
+    at_base = "| ZZ1 | outside-the-range |\n| ZZ2 | second-row-wording |\n| ZZ3 | third-row-wording |\n| ZZ4 | past-the-range |\n"
+
+    def show(line, **_):
+        return (0, at_base, "") if line.endswith("0123abcdef:specs/prd-zz.md") else (1, "", "")
+
+    fake_processes.answers({"git ls-files": every_file_tracked, "git show": show}, default=(0, "", ""))
+    code = build_verify_prompt.main(["--fast-cmd", "make unit", "--branch-base", "0123abcdef", "branch", str(spec)])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, [word in out for word in (b"outside-the-range", b"second-row-wording", b"third-row-wording",
+                                            b"past-the-range")]) == (0, [False, True, True, False])
+
+
+def test_main_renders_the_branch_prompt_without_rows_and_names_the_spec_file_absent_at_the_branch_base(
+        tmp_path, monkeypatch, capsysbinary, fake_processes, build_verify_prompt):
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "issue.md"
+    spec.write_bytes(b"Frob must nitz.\n\nSpec: specs/prd-new.md , rows ZZ1\n")
+
+    def show(line, **_):
+        return (128, "", "fatal: path 'specs/prd-new.md' does not exist in '0123abcdef'\n")
+
+    fake_processes.answers({"git ls-files": every_file_tracked, "git show": show}, default=(0, "", ""))
+    code = build_verify_prompt.main(["--fast-cmd", "make unit", "--branch-base", "0123abcdef", "branch", str(spec)])
+    out, err = capsysbinary.readouterr()
+
+    assert (code, b"Frob must nitz." in out, b"specs/prd-new.md" in err) == (0, True, True)
+
+
 def test_main_carries_no_spec_rows_in_a_non_branch_prompt_whose_spec_file_names_a_spec_line(
         tmp_path, monkeypatch, capsysbinary, fake_processes, build_verify_prompt):
     monkeypatch.chdir(tmp_path)
