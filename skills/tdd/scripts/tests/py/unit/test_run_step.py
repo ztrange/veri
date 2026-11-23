@@ -206,7 +206,15 @@ def test_4621_a_special_kind_step_under_a_refactor_spec_keeps_its_own_kind_route
     assert (code, stages.names(), out) == (1, [], "seam=none code=1 reason=kind next=%s\n" % RED), err
 
 
-RECORD = "seam=green-half code=1 reason=record next=seam-settle.sh 12 red-half test_path=… target_test=…"
+def test_4621_an_ordinary_open_step_under_a_refactor_spec_calls_no_stage_and_stops_on_the_refactor_kind_seam(step):
+    (step.wt / ".tdd" / "issue-12-spec.md").write_text("Split runPlan.\n\n## Refactor\n\nRun kind: refactor.\n")
+
+    code, out, err, stages = step()
+
+    assert (code, stages.names(), out) == (1, [], "seam=none code=1 reason=kind next=REFACTOR-KIND.md\n"), err
+
+
+RECORD ="seam=green-half code=1 reason=record next=seam-settle.sh 12 red-half test_path=… target_test=…"
 
 
 @pytest.mark.parametrize("reason, kw, last", [
