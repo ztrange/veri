@@ -794,3 +794,40 @@ def test_4684_exiting_2_because_the_open_step_is_not_a_skill_edit_step_prints_on
     code, _, err = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
 
     assert code == 2 and len(err.strip().splitlines()) == 1 and step in err, (code, err)
+
+
+def test_4685_a_resumed_run_does_not_take_a_previous_runs_leftover_exit_file_as_its_author_answer(
+        monkeypatch, run_cli, tmp_path):
+    """A dead run's .exit (3), .out, .pid and wait record: the resumed conductor launches the author or exits 2, ticking nothing."""
+    fused = importlib.import_module("veri.fused")
+    skill_edit_half = importlib.import_module("veri.skill_edit_half")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12.md").write_text(
+        "# Plan for #12\n\n- [ ] reword the prompt in `skills/tdd/SKILL.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n")
+    (wt / ".tdd" / "conductor.pid").write_text("4242\n1700000000\n")
+    fused.save_wait(str(wt), "12", "skill-edit-half", "skill-edit-12", {})
+    (wt / ".tdd" / "conductor.pid").write_text("9999\n1800000000\n")
+    exit_file = wt / ".tdd" / "skill-edit-12.exit"
+    exit_file.write_text("3")
+    (wt / ".tdd" / "skill-edit-12.out").write_text("old\n")
+    (wt / ".tdd" / "skill-edit-12.pid").write_text("1\n")
+    calls = []
+
+    def fake(name, *args, cwd=None, env=None, **kw):
+        base = os.path.basename(name)
+        calls.append((base, args[:2]))
+        if base == "detach-command.sh" and args[:1] == ("start",):
+            exit_file.unlink(missing_ok=True)
+        if base == "detach-command.sh" and args[:1] == ("wait",):
+            return (1, "3\n", "") if exit_file.exists() else (3, "", "")
+        return 0, BODY if base == "gh" else "", ""
+
+    monkeypatch.setattr(fused, "run_script", fake)
+
+    code, _, _ = run_cli(skill_edit_half, ["12"], cwd=str(tmp_path))
+
+    detached = [c[1][0] for c in calls if c[0] == "detach-command.sh"]
+    ticked = [c for c in calls if c[0] == "step-tick.sh"]
+    assert (detached[:1] == ["start"] or code == 2) and not ticked, (code, calls)
