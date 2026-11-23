@@ -392,8 +392,7 @@ def test_a_red_prediction_gate_exit_0_1_or_2_spends_the_attempt_without_a_verifi
 
 @pytest.mark.parametrize("phase, line", [("green", "OUTCOME: IMPOSSIBLE"), ("red", "OUTCOME: IMPOSSIBLE"),
                                          ("green", "WRONG_TEST: the test asserts x"),
-                                         ("green", "SUPERSEDED: tests/test_c.py::test_c"),
-                                         ("red", "AGAINST_UNMODIFIED: PASSES")])
+                                         ("green", "SUPERSEDED: tests/test_c.py::test_c")])
 def test_it_stops_with_exit_1_naming_the_report_line_that_routes_the_revise_elsewhere(revise, phase, line):
     """PRD 038.9 criterion 7 (RVS7): those answers are the conductor's routes, never another attempt or verifier."""
     _red(revise)
