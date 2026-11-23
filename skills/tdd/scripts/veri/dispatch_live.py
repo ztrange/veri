@@ -80,7 +80,9 @@ class World:
     def run_worktrees(self):
         """The names under the main tree's worktrees directory, [] when it is absent."""
         wt = layout.worktrees(layout.main_tree(missing=""))
-        return os.listdir(wt) if os.path.isdir(wt) else []
+        if not os.path.isdir(wt):
+            return []
+        return [name for name in os.listdir(wt) if os.path.isdir(os.path.join(wt, name))]
 
     def has_ledger(self, issue):
         return os.path.exists(layout.ledger(via("run_dir")(issue), issue))
