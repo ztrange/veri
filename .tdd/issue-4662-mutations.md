@@ -16,3 +16,10 @@ skills/tdd/scripts/tests/py/unit/test_ready_check.py
 command 211
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_ready_check.py::test_issue_4662_a_listed_label_row_fails_with_the_create_fix_when_graphql_is_refused_and_its_rest_read_is_404_while_the_other_label_rows_hold
 
+before 40
+148903b92a17eed78cc4e947949a0319a5b7ffc1
+keep 52
+skills/tdd/scripts/tests/py/unit/test_ready_check.py
+command 214
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ready_check.py::test_issue_4662_a_listed_label_row_fails_rather_than_crashing_when_graphql_is_refused_and_its_rest_read_is_a_502_while_the_other_label_rows_hold
+
