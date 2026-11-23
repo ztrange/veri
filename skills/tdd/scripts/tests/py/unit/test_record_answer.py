@@ -2,7 +2,6 @@
 posted on the issue as one comment, read back by issue_decisions and park_decision, with gh faked at
 github.issue_comments and github.gh_comment_post."""
 import importlib
-import os
 
 import pytest
 
