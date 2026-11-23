@@ -24,6 +24,9 @@ REVISE = "REVISE.md#Revising on a REJECT"
 REFACTOR = "SKILL.md#Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 DIFF = "DIFF-CHECKED.md#A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"
 GO_RED = "GO-RED.md#A `⟦go-red⟧` step — a mutation probe on its named case"
+# A refactor-kind run's procedure: the whole file, which has no heading of its own (#4621).
+REFACTOR_KIND = "REFACTOR-KIND.md"
+SPEC = ".tdd/issue-%s-spec.md"
 
 # The stages in the order they run -> (the heading anchor, `<file>#<heading>` under the skill's directory, of the
 # section whose prose takes over at a stop there (S4); the marks of the step kinds it does not handle (S3, RN6): it
@@ -71,6 +74,15 @@ REFUSAL = re.compile(
     r"|## Requirements has no ### heading for unit: "
     r"|## Requirements table for .* lacks its header: "
     r"|skill-edit-guard.sh: ")
+
+
+def refactor_kind(wt, n):
+    """Whether the run's spec carries the `## Refactor` section capture-spec.sh writes for the `refactor` label."""
+    try:
+        with open(os.path.join(wt, SPEC % n), encoding="utf-8", errors="surrogateescape") as f:
+            return "## Refactor" in f.read()
+    except FileNotFoundError:
+        return False
 
 
 def refused(wt, n):
@@ -126,6 +138,11 @@ def main(argv):
         sys.stderr.write("run-step.sh: no open step in %s\n" % (LEDGER % n))
         return 3
     kinds = red_half.refused(step)
+    if not kinds and refactor_kind(wt, n):
+        # A refactor-kind run's step takes REFACTOR-KIND.md's Cover → Transform → Verify, never Red/Green (#4621);
+        # a special kind keeps its own route there, ⟦diff-checked⟧'s diff-step included.
+        sys.stdout.write("seam=none code=1 reason=kind next=%s\n" % REFACTOR_KIND)
+        return 1
     for kind in kinds:
         if KINDS[kind][1] is None:
             sys.stdout.write("seam=none code=1 reason=kind next=%s\n" % KINDS[kind][0])
