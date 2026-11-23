@@ -665,8 +665,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   A module, `skills/tdd/scripts/veri/stack_land.py`, behind a `/bin/sh` shim. It refuses (**exit 2**) when
   `stack-branch.sh` does not exit 0, and refuses (**exit 1**) a red stack (`stack-red.sh` exit 0). It cuts only at the
   commit `stack-green.sh` prints, never at another. It lands when that cut is `VERI_SLICE_COMMITS` (default 100) or
-  more commits ahead of the default branch, or when the stack is idle; it merges with
-  `gh pr merge --rebase --match-head-commit` and no bypass flag. `--now` skips the size-or-idle rule and no other.
+  more commits ahead of the default branch, or when the stack is idle. Whatever `VERI_GH_DRIVER` says, it merges over
+  REST and never through `gh pr merge`: one `PUT repos/{owner}/{repo}/pulls/<n>/merge` with `merge_method=rebase` and
+  `sha` set to the tested head, and no bypass flag. `--now` skips the size-or-idle rule and no other.
   After a landing it made, it frees the merge lock, runs `stack-carry.sh <cut>`, then `stack-tag.sh <slice-pr-url>`,
   then reads the slice's `Closes` issues; each runs whatever the one before answered. The carry-over and the tagging
   take the merge lock themselves and run under no bound of `stack-land.sh`'s, since each bounds its own network calls
