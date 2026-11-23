@@ -4,6 +4,11 @@ import importlib
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _graphql_driver(monkeypatch):
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+
+
 def test_no_subcommand_or_an_unknown_one_exits_2_with_the_usage_on_stderr(run_cli):
     report_cache = importlib.import_module("veri.report_cache")
 
