@@ -262,3 +262,39 @@ def test_the_body_it_files_or_edits_carries_no_local_path_of_the_run_or_the_home
 
     assert (code, len(bodies), any(str(tmp_path) in b or home in b for b in bodies),
             "rename helper in" in "".join(bodies)) == (0, 1, False, True)
+
+
+@pytest.mark.parametrize("driver", [None, "rest", "auto"])
+def test_a_rerun_finds_and_replaces_the_open_issue_through_the_rest_search_issue_4663(
+        tmp_path, monkeypatch, fake_processes, run_cli, driver):
+    import re
+    from urllib.parse import unquote_plus
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    if driver is None:
+        monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    else:
+        monkeypatch.setenv("VERI_GH_DRIVER", driver)
+    url = "https://github.example/acme/widgets/issues/13"
+    items = [{"number": 12, "title": "Refactor candidates left by #42 and more", "html_url": "https://github.example/acme/widgets/issues/12"},
+             {"number": 13, "title": "Refactor candidates left by #42", "html_url": url}]
+    searches = []
+
+    def gh(line, **kwargs):
+        if line.startswith("gh api graphql") or line.startswith("gh issue list"):
+            return (1, "", "HTTP 403: GraphQL refused")
+        if line.startswith("gh api search/issues"):
+            searches.append(unquote_plus(line))
+            page = int(re.search(r"page=(\d+)", line).group(1))
+            return (0, __import__("json").dumps({"items": items if page == 1 else []}), "")
+        return (0, "{}", "")
+
+    fake_processes.answers({"gh": gh})
+    owed = tmp_path / "owed.md"
+    owed.write_text(OWED)
+    refactor_candidates = importlib.import_module("veri.refactor_candidates")
+
+    code, out, err = run_cli(refactor_candidates, ["42", str(owed)])
+
+    assert (code, out.strip()) == (0, url)
+    assert all("repo:{owner}/{repo} is:issue" in s and "state:open" in s and "Refactor candidates left by #42" in s
+               for s in searches) and searches
