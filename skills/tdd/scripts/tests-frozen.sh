@@ -6,6 +6,7 @@
 #        tests-frozen.sh check-earlier <ledger> --step <step-text> [--except <case>]...
 #        tests-frozen.sh rerecord-earlier <ledger> --step <step-text>
 #        tests-frozen.sh rerecord-refactored <ledger> <green-sha>
+#        tests-frozen.sh rerecord-approved <ledger> --approval <text> <case>...
 #        tests-frozen.sh rerecord-rebased <ledger> <pre-rebase-sha>
 #        tests-frozen.sh path <step-text>
 #
@@ -21,6 +22,11 @@
 # fixture file the record holds no case bodies for is flagged like any other.
 # A step marked ⟦guard-subject: <path>⟧ may change the file it
 # names (any other unrecorded test file is still flagged); the case pinning the behaviour stays frozen.
+#
+# rerecord-approved re-records exactly the named cases of the earlier records at their HEAD bodies, each with its
+# helpers: line, on a human's non-empty --approval text, and logs one tests-frozen-rerecord-approved event per case
+# (case, file, approval). Exit 0 re-recorded; 2 no answer: no case or approval given, a named case no record holds or
+# absent at HEAD (nothing written), or a record that cannot be written (every rewritten record restored).
 #
 # rerecord-earlier, for a ⟦diff-checked⟧ step, rewrites the earlier steps' frozen records of the cases
 # that step's own diff (step base..HEAD) changed, at their content at HEAD; any other step exits 3.

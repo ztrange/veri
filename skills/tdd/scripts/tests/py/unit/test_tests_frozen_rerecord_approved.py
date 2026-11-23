@@ -6,6 +6,7 @@ byte-identical. Every commit goes through fed_commits, so case_history answers H
 """
 import importlib
 import json
+from pathlib import Path
 
 import pytest
 
@@ -187,3 +188,20 @@ def test_rerecord_approved_without_the_approval_text_exits_2_with_the_usage_and_
 
     assert (code, "rerecord-approved <ledger> --approval" in err, record.read_bytes() == before,
             _approved_events(tmp_path)) == (2, True, True, [])
+
+
+def test_tests_frozen_usage_text_names_the_rerecord_approved_verb_4642(run_cli, tests_frozen):
+    code, _, err = run_cli(tests_frozen, [])
+
+    assert (code, "rerecord-approved" in err) == (2, True)
+
+
+def test_rerecord_approved_is_named_with_its_arguments_and_event_in_the_shim_header_and_scripts_md_4642():
+    scripts = Path(__file__).resolve().parents[3]
+    header = (scripts / "tests-frozen.sh").read_text().split("\nexec ")[0]
+    entry = [line for line in (scripts.parent / "SCRIPTS.md").read_text().splitlines()
+             if line.startswith("- `$S/tests-frozen.sh ")][0]
+
+    assert ["tests-frozen.sh rerecord-approved <ledger> --approval <text> <case>..." in header,
+            "rerecord-approved <ledger> --approval <text> <case>..." in entry,
+            "tests-frozen-rerecord-approved" in header, "tests-frozen-rerecord-approved" in entry] == [True] * 4
