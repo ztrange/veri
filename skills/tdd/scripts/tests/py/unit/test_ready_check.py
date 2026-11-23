@@ -112,6 +112,16 @@ def test_issue_4662_gh_auth_row_fails_naming_gh_auth_login_when_graphql_is_refus
     assert "fail  gh auth: run `gh auth login`" in lines, lines
 
 
+def test_issue_4662_each_listed_label_row_reads_ok_when_graphql_is_refused_and_each_labels_rest_read_answers(ready_check, run_cli, fake_processes, tmp_path):
+    refused = (1, "", "GitHub GraphQL is not available from Claude Code sessions; use the REST API")
+    code, lines = check(ready_check, run_cli, fake_processes, tmp_path, **{
+        "gh auth status": refused, "gh label list": refused, "gh api graphql": refused,
+        "gh api repos/{owner}/{repo}/labels/": (0, "{}", "")})
+
+    for label in ("ready-for-agent", "pr-ready", "bailed", "parked", "stopped"):
+        assert f"ok    label {label}" in lines, (label, lines)
+
+
 def one_test_file_row(lines):
     return next((line for line in lines if "one test file" in line), None)
 

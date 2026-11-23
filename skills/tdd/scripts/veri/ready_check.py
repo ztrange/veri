@@ -16,6 +16,7 @@ import urllib.parse
 import ci_on_pr
 import ensure_run_state_ignored
 import git
+import github
 import launch_floor
 import paths
 import pid_file as pid_file_module
@@ -302,14 +303,12 @@ def push_access_row():
 
 
 def listed_label_row(label):
-    """The row for <label>: ok when `gh label list` names it; a failing call fails it like a missing label. The limit
-    lifts gh's default of 30, past which a label that exists would read missing."""
-    listed = gh("label", "list", "--limit", "1000", "--json", "name")
+    """The row for <label>: ok when its REST read finds it; a failing read fails it like a missing label."""
     try:
-        names = [entry["name"] for entry in json.loads(listed.stdout)] if listed.returncode == 0 else []
-    except (ValueError, KeyError, TypeError):
-        names = []
-    return f"label {label}", None if label in names else f"create the `{label}` label in the repository"
+        exists = github.gh_label_exists(label)
+    except github.NoAnswer:
+        exists = False
+    return f"label {label}", None if exists else f"create the `{label}` label in the repository"
 
 
 def label_row():
