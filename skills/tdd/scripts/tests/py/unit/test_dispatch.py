@@ -3973,3 +3973,18 @@ def test_run_worktrees_leaves_out_a_regular_file_issue_4658(monkeypatch, tmp_pat
     monkeypatch.setattr(dispatch_live.layout, "main_tree", lambda **_: str(tmp_path))
 
     assert dispatch_live.World().run_worktrees() == ["4001"]
+
+
+def test_a_stray_file_in_the_worktrees_directory_holds_no_slot_issue_4658(dispatch, monkeypatch, tmp_path):
+    dispatch_live = importlib.import_module("veri.dispatch_live")
+    (tmp_path / ".tdd" / "wt").mkdir(parents=True)
+    (tmp_path / ".tdd" / "wt" / "note.txt").write_text("stray\n")
+    monkeypatch.setattr(dispatch_live.layout, "main_tree", lambda **_: str(tmp_path))
+    real = dispatch_live.World()
+    world = FakeWorld({"live": [], "queue": ["12"]})
+    world.run_worktrees = real.run_worktrees
+    world.restarting = real.restarting
+
+    dispatch.step(dispatch.State(1), world)
+
+    assert world.launched == ["12"]
