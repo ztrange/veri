@@ -858,6 +858,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `comment.sh`: post the run's Done or Bail comment on the issue.
 - `decision-log.sh`: record a judge's decision about no issue in `.tdd/decisions.jsonl` of the main working tree.
 - `dispatch.sh`: the dev session's dispatch target and exits watch.
+- `dispatch_reads`: dispatch.sh's GitHub, queued-merge and overlap reads, which look up each name a test patches on dispatch in the namespace dispatch.py hands them (`bind`, `via`).
 - `github-outage.sh`: the dev session's local mode during a GitHub outage: the outage file of held PRs, the merging list and the one detached status wait per main working tree, each verb under one lock; the status read runs in-process through `github_status`.
 - `install-links.sh`: link veri's skills into a project.
 - `metrics.sh`: a run's metrics report.

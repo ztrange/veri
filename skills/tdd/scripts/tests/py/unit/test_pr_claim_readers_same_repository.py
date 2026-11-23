@@ -25,7 +25,7 @@ EXEMPT = {
 }
 
 # The readers PRD 022.14-022.16 put behind the rule; the detector must keep finding them.
-KNOWN_READERS = ("dispatch", "issue_worktree", "parallel_conductors", "solvable_issues")
+KNOWN_READERS = ("dispatch_reads", "issue_worktree", "parallel_conductors", "solvable_issues")
 
 _READERS = {"open_pulls", "open_pulls_text", "pulls_in", "joined_issues", "stack_pulls", "closed_issues"}
 
