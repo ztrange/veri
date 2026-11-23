@@ -6,7 +6,9 @@ runs only the gh porcelain command, with no fallback; auto tries GraphQL, then R
 but empty, or any other value, raises NoAnswer at call time with a stderr line naming the
 variable and the value. Operations with no GraphQL route (issue edit and create,
 gh_rest_list, gh_json and gh_json_page with no gh args) use REST under every value, and VERI_GH_JSON takes
-precedence over it. A Claude Code cloud session, where GraphQL is refused, needs nothing set.
+precedence over it. A Claude Code cloud session, where GraphQL is refused, needs nothing set: the
+tree-audit case in skills/tdd/scripts/tests/py/test_gh_porcelain_guard.py holds that claim, refusing gh
+issue, gh pr, gh label and gh auth porcelain off the graphql branch.
 """
 import contextlib
 import json
