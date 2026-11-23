@@ -19,8 +19,8 @@ import stack_fix
 import tunables
 
 USAGE = "usage: stack-land.sh [--now]"
-# A merge refusal naming the repository's rules: gh's own, for a pull request its base branch's rules block, and
-# GitHub's, for a merge a ruleset refuses.
+# A merge refusal naming the repository's rules in the REST merge's answer: for a pull request its base branch's
+# rules block, or for a merge a ruleset refuses.
 RULES = r"base branch policy|Repository rule violations"
 
 
