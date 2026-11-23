@@ -172,7 +172,7 @@ def test_issue_4252_the_posted_body_carries_no_local_path_host_or_account_name_n
 
     assert (code, err) == (0, "")
     body = posted[0][1]
-    assert "~/notes.txt" in body and "[redacted]" in body
+    assert body == "Question: See ~/notes.txt and <repo>/x on <host>.\n\nOwner's answer: Yes, <user> may ([redacted])."
     assert not [leak for leak in (home, str(tmp_path), host, account, token) if leak.casefold() in body.casefold()]
 
 
