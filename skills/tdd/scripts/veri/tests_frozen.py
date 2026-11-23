@@ -538,20 +538,32 @@ def rerecord_approved(ledger, approval, cases):
     os.chdir(_toplevel())
     recorded = {(body[0], body[1]) for _, __, records in _earlier_records(lines, "")
                 for body in filter(None, map(body_record, records))}
-    unknown = [case for case in cases if case not in {c for _, c in recorded}]
+    # A selector is `<file>::<case>`, or a bare case name that must match exactly one recorded case.
+    chosen, unknown, ambiguous = set(), [], []
+    for selector in cases:
+        path, sep, case = selector.partition("::")
+        found = {key for key in recorded if (key == (path, case) if sep else key[1] == selector)}
+        if not found:
+            unknown.append(selector)
+        elif len(found) > 1:
+            ambiguous.append("%s matches %s" % (selector, ", ".join("%s::%s" % key for key in sorted(found))))
+        chosen |= found
     if unknown:
         write(sys.stderr, "tests-frozen.sh: no earlier record holds %s" % ", ".join(unknown))
         return 2
-    texts = {name: case_history.text_at("HEAD", name, quiet=True) for name, case in recorded if case in cases}
+    if ambiguous:
+        write(sys.stderr, "tests-frozen.sh: ambiguous case name, name it <file>::<case>: %s" % "; ".join(ambiguous))
+        return 2
+    texts = {name: case_history.text_at("HEAD", name, quiet=True) for name, case in chosen}
     heads = {(name, case): "\n".join(case_identity.bodies_of(texts[name], case))
-             for name, case in recorded if case in cases}
+             for name, case in chosen}
     gone = ["%s (%s)" % (case, name) for name, case in sorted(heads) if not heads[(name, case)]]
     if gone:
         write(sys.stderr, "tests-frozen.sh: HEAD does not hold %s" % ", ".join(gone))
         return 2
 
     def rewrite(_, record, name, case, __):
-        if case not in cases:
+        if (name, case) not in chosen:
             return record
         head = heads[(name, case)]
         return body_line(name, case, head) + "\n" + frozen_record.helpers_line(

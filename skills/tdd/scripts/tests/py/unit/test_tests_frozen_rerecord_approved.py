@@ -205,3 +205,54 @@ def test_rerecord_approved_is_named_with_its_arguments_and_event_in_the_shim_hea
     assert ["tests-frozen.sh rerecord-approved <ledger> --approval <text> <case>..." in header,
             "rerecord-approved <ledger> --approval <text> <case>..." in entry,
             "tests-frozen-rerecord-approved" in header, "tests-frozen-rerecord-approved" in entry] == [True] * 4
+
+
+OTHER = "other_suite.py"
+
+
+def _same_case_in_two_files(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    """Step A records test_one in SUITE and in OTHER, a later commit edits both; returns the record file."""
+    monkeypatch.setenv("VERI_ISSUE", "9")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / SUITE).write_text(CASE % ("base", 0))
+    _ledger(tmp_path, " ")
+    repo = fed_commits(root=tmp_path)
+    repo.add(SUITE, PLAN_LEDGER)
+    repo.commit("plan")
+    for path in (SUITE, OTHER):
+        (tmp_path / path).write_text(CASE % ("one", 1))
+    repo.add(OTHER)
+    run_cli(tests_frozen, ["record", "--step", STEPS[0], SUITE, OTHER], cwd=tmp_path)
+    _ledger(tmp_path, "x")
+    repo.commit("A green", all=True)
+    for path in (SUITE, OTHER):
+        (tmp_path / path).write_text(CASE % ("one", 10))
+    repo.commit("edit both files", all=True)
+    return next((tmp_path / ".tdd").glob("tests-frozen-*.record"))
+
+
+def test_rerecord_approved_file_double_colon_case_re_records_only_that_files_case_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    record = _same_case_in_two_files(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    before = record.read_text().splitlines()
+
+    code = run_cli(tests_frozen, ["rerecord-approved", PLAN_LEDGER, "--approval", "yes", SUITE + "::test_one"],
+                   cwd=tmp_path)[0]
+    after = record.read_text().splitlines()
+
+    other = lambda lines: [l for l in lines if ": %s\t" % OTHER in l]
+    changed = [l for l in after if l not in before]
+    assert (code, other(after) == other(before), bool(changed), all(": %s\t" % SUITE in l for l in changed)) == (
+        0, True, True, True)
+
+
+def test_rerecord_approved_bare_case_name_matching_two_recorded_cases_exits_2_naming_both_and_writes_nothing_4642(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    record = _same_case_in_two_files(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits)
+    before = record.read_bytes()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-approved", PLAN_LEDGER, "--approval", "yes", "test_one"],
+                           cwd=tmp_path)
+
+    assert (code, SUITE + "::test_one" in err, OTHER + "::test_one" in err, record.read_bytes() == before) == (
+        2, True, True, True)
