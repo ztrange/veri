@@ -1,5 +1,5 @@
-file 35
-skills/tdd/scripts/veri/dispatch.py
+file 37
+skills/tdd/scripts/veri/watch_runs.py
 old 59
 sys.stderr.write(str(failure))
                     return 2
@@ -8,8 +8,8 @@ sys.stderr.write(str(failure))
                     return 0
 context 50
                     sys.stderr.write(str(failure))
-command 163
-make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_exits_2_naming_the_diff_read_when_gh_pr_diff_answers_http_500_on_every_read_issue_3560
+command 160
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_watch_runs.py::test_main_with_target_exits_2_and_passes_on_stderr_when_solvable_issues_exits_non_zero_1930
 
 file 35
 skills/tdd/scripts/veri/dispatch.py
