@@ -388,7 +388,7 @@ def main(argv):
         if not graded:
             graded, said = _grade(path, unit)
         if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
-            graded, said = 1, "FAIL: the author left the prose unchanged\n"
+            graded, said = 1, "FAIL: the author left the prose and the rows unchanged\n"
         if graded == 1:
             _restore(before, *before)
     if graded:

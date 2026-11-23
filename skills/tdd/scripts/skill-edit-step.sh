@@ -3,7 +3,7 @@
 #
 # Usage:   skill-edit-step.sh [--change "<change>"] [--added "<step>"] <issue-body-file> <unit-file> [<pin-file>...]
 #          each pin file is a test file the author may change; it is committed with the unit, list and GRADED
-#          --change runs an author even on a unit already graded PASS; the prose must differ afterwards, else exit 1
+#          --change runs an author even on a unit already graded PASS; the unit's prose or its REQUIREMENTS.md rows must differ afterwards, else exit 1
 # Env:     VERI_SKILL_EDIT_BUDGET author attempts, a whole number >= 1 (default 3)
 # Exit:    0 list and GRADED committed after an author attempt; 1 the grader rejects every attempt;
 #          2 bad arguments, budget or heading, or no answer, or, before any author runs, a path changed since

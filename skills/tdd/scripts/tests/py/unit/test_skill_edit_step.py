@@ -1810,7 +1810,7 @@ def test_a_change_step_whose_author_edits_only_a_pin_file_leaves_the_unit_byte_i
                                                "issue.md", "unit.md", "pin.md"],
                              env={"VERI_SKILL_EDIT_BUDGET": "1"})
 
-    assert (code, "FAIL: the author left the prose unchanged" in out, commits) == (1, True, []), (code, out, err)
+    assert (code, "FAIL: the author left the prose and the rows unchanged" in out, commits) == (1, True, []), (code, out, err)
 
 
 def test_a_change_step_whose_author_edits_the_unit_and_leaves_every_pin_file_untouched_still_succeeds_and_commits_2473(tmp_path, monkeypatch, run_cli):
