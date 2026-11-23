@@ -1403,15 +1403,19 @@ def test_gh_issue_list_reads_the_rest_issues_listing_dropping_pull_requests_and_
 
 
 def test_4663_gh_issue_list_under_rest_never_runs_gh_issue_list(fake_processes, monkeypatch, github):
+    from urllib.parse import unquote_plus
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
     monkeypatch.setenv("VERI_GH_DRIVER", "rest")
-    listing = re.compile(r"gh api repos/\{owner\}/\{repo\}/issues\?(?:(?:state|labels)=[^&]*&)*per_page=100&page=(\d+)")
+    listing = re.compile(r"gh api search/issues\?.*page=(\d+)")
+    queries = []
 
     def rest_listing(line, **kwargs):
         found = listing.fullmatch(line)
         if not found:
             raise AssertionError("unexpected command: %r" % (line,))
-        return (0, '[{"number":1,"state":"open"}]' if found.group(1) == "1" else "[]", "")
+        queries.append(unquote_plus(line))
+        items = [{"number": 7, "title": "x in title", "html_url": "https://github.example/o/r/issues/7"}]
+        return (0, json.dumps({"items": items if found.group(1) == "1" else []}), "")
 
     fake_processes.answers({}, default=rest_listing)
     calls = []
@@ -1423,6 +1427,8 @@ def test_4663_gh_issue_list_under_rest_never_runs_gh_issue_list(fake_processes, 
 
     monkeypatch.setattr(github, "run_gh", spy)
 
-    github.gh_issue_list("--state", "open", "--limit", "5", "--search", "x in:title", "--json", "number,title")
+    out = github.gh_issue_list("--state", "open", "--limit", "5", "--search", "x in:title", "--json", "number,title")
 
     assert [c for c in calls if c[:2] == ("issue", "list")] == []
+    assert json.loads(out) == [{"number": 7, "title": "x in title", "url": "https://github.example/o/r/issues/7"}]
+    assert queries and all("repo:{owner}/{repo} is:issue" in q and "state:open" in q and "x in:title" in q for q in queries)

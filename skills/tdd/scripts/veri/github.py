@@ -584,6 +584,15 @@ def gh_list(path, *args):
 def gh_issue_list(*args):
     if type(_select("list")) is not GraphQLOnlyAdapter:
         issues = []
+        if "--search" in args:
+            state = args[args.index("--state") + 1]
+            words = "repo:{owner}/{repo} is:issue state:%s %s" % (state, args[args.index("--search") + 1])
+            for run in _pages("search/issues?q=%s" % urllib.parse.quote_plus(words)):
+                items = json.loads(run.stdout)["items"]
+                if not items:
+                    break
+                issues += [{"number": i["number"], "title": i["title"], "url": i["html_url"]} for i in items]
+            return json.dumps(issues)
         query = "state=%s" % (args[args.index("--state") + 1] if "--state" in args else "all")
         if "--label" in args:
             query += "&labels=%s" % args[args.index("--label") + 1]
