@@ -30,3 +30,10 @@ skills/tdd/scripts/tests/py/unit/test_dispatch.py
 command 149
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_issue_states_reads_the_seen_issues_states_through_the_rest_listing_issue_4663
 
+before 40
+148903b92a17eed78cc4e947949a0319a5b7ffc1
+keep 53
+skills/tdd/scripts/tests/py/unit/test_report_cache.py
+command 167
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_report_cache.py::test_refresh_reads_prd_comments_in_created_windows_when_the_one_search_gets_no_answer_issue_4663
+
