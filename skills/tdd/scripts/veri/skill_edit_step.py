@@ -166,25 +166,23 @@ def _full_text(row):
     return tuple(requirements.split_cells(row)[2:4])
 
 
-def _held_texts(lines, unit):
+def _section_table_lines(lines, unit):
     in_unit = False
-    held = set()
-    for line in lines:
+    for number, line in enumerate(lines):
         if line.startswith("## "):
             in_unit = line[3:] == unit
         elif in_unit and line.startswith("|"):
-            held.add(_full_text(line))
-    return held
+            yield number, line
+
+
+def _held_texts(lines, unit):
+    return {_full_text(line) for _, line in _section_table_lines(lines, unit)}
 
 
 def _holders(lines, unit):
-    in_unit = False
     holders = {}
-    for line in lines:
-        if line.startswith("## "):
-            in_unit = line[3:] == unit
-        elif in_unit and line.startswith("|"):
-            holders.setdefault(_full_text(line), requirements.split_cells(line)[1])
+    for _, line in _section_table_lines(lines, unit):
+        holders.setdefault(_full_text(line), requirements.split_cells(line)[1])
     return holders
 
 
@@ -217,14 +215,10 @@ def apply(issue, unit):
     new = [r for r in rows if row_id(r) not in have and _full_text(r) not in held]
     reworded = {row_id(r): r for r in rows if _full_text(r) not in held}
     last = None
-    in_unit = False
-    for number, line in enumerate(lines):
-        if line.startswith("## "):
-            in_unit = line[3:] == unit
-        elif in_unit and line.startswith("|"):
-            last = number
-            row = reworded.get(row_id(line), line)
-            lines[number] = None if _row_text(row) == "(dropped)" else row
+    for number, line in _section_table_lines(lines, unit):
+        last = number
+        row = reworded.get(row_id(line), line)
+        lines[number] = None if _row_text(row) == "(dropped)" else row
     lines[last + 1:last + 1] = new
     _write(path, [l for l in lines if l is not None])
     return moved
