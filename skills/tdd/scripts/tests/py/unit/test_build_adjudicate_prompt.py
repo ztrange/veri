@@ -224,3 +224,35 @@ def test_4712_ci_timeout_s_prompt_does_not_offer_deviate(run_cli, build_adjudica
     )
     assert code == 0
     assert "deviate" not in out
+
+
+def test_4712_a_rule_id_named_only_by_the_waivable_rules_section_is_not_an_eligible_cause(
+    run_cli, build_adjudicate_prompt, tmp_path
+):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "x.err"
+    stderr_file.write_text("x\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt, ["7", "graded-edit", "1", str(stderr_file), "graded-changed.sh"], cwd=tmp_path
+    )
+    assert (code, out) == (2, "")
+    assert "cause not eligible: graded-edit" in err
+
+
+def test_4712_a_waivable_cause_s_purpose_line_holds_the_purpose_alone_not_its_resume_action(
+    run_cli, build_adjudicate_prompt, tmp_path
+):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "graded-changed.err"
+    stderr_file.write_text("skills/tdd/BAIL.md\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt,
+        ["7", "graded-edit-outside-skill-edit", "1", str(stderr_file), "graded-changed.sh", "abc1234"],
+        cwd=tmp_path,
+    )
+    assert code == 0
+    assert [line for line in out.splitlines() if line.startswith("Purpose:")] == [
+        "Purpose: only a `⟦skill-edit⟧` step signs a graded unit, so no graded prose lands without a grade."
+    ]

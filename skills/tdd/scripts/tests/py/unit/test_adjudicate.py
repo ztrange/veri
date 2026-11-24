@@ -315,6 +315,22 @@ def test_record_under_graded_edit_outside_skill_edit_on_deviate_prints_deviate_w
     }]
 
 
+def test_record_under_graded_edit_outside_skill_edit_on_retry_records_retry_and_exits_0_which_bails(
+    run_cli, adjudicate, tmp_path
+):
+    import json
+
+    (tmp_path / ".tdd").mkdir()
+    leaf = tmp_path / "leaf.out"
+    leaf.write_text("ADJUDICATION: retry — run it again\n")
+    code, out, err = run_cli(adjudicate, ["record", "7", "graded-edit-outside-skill-edit", str(leaf)], cwd=tmp_path)
+    assert (code, out) == (0, "retry\n")
+    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e.get("cause"), e.get("outcome")) for e in events if e.get("event") == "adjudicated"] == [
+        ("graded-edit-outside-skill-edit", "retry")
+    ]
+
+
 def test_record_under_ci_timeout_which_no_waivable_rule_names_on_deviate_writes_unparsed_and_exits_2(
     run_cli, adjudicate, tmp_path
 ):
