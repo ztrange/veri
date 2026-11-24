@@ -516,3 +516,10 @@ def test_4709_a_step_only_quoting_test_quality_in_its_prose_runs_no_flip(diff):
 
     assert code == 0, err
     assert "mutation-probe.sh" not in fake.names()
+
+
+def test_4709_a_step_only_quoting_diff_checked_in_its_prose_is_exit_2_before_any_call(diff):
+    code, out, err, fake = diff(step="document the `⟦diff-checked⟧` mark in `a.md` ⟦criterion 1⟧")
+
+    assert (code, fake.calls) == (2, [])
+    assert "no open ⟦diff-checked⟧ step" in err
