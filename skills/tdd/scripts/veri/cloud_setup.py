@@ -1,6 +1,7 @@
 """cloud-setup.sh's computations, run in-process."""
 # hazard: runs on a python3 below VENV_FLOOR, so nothing here may need more than Python 3.9.
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import hashlib
 import os
 import shutil
 import subprocess
@@ -19,15 +20,36 @@ USAGE = "usage: cloud-setup.sh"
 def main(argv):
     if os.environ.get("CLAUDE_CODE_REMOTE") != "true":
         return 0
-    floor = launch_floor.python_floor()
     venv = tunables.venv_dir()
-    python = next(name for name in _candidates(floor) if _meets(_version(name), floor))
-    _install(python, venv)
+    stamp = os.path.join(venv, ".veri-lock-sha256")
+    lock = _lock_sha256()
+    if _read(stamp) != lock:
+        floor = launch_floor.python_floor()
+        python = next(name for name in _candidates(floor) if _meets(_version(name), floor))
+        _install(python, venv)
+        os.makedirs(venv, exist_ok=True)
+        with open(stamp, "w") as out:
+            out.write(lock)
     env_file = os.environ.get("CLAUDE_ENV_FILE")
-    if env_file:
+    line = 'export PATH="' + venv + '/bin:$PATH"\n'
+    if env_file and line not in _read(env_file).splitlines(True):
         with open(env_file, "a") as out:
-            out.write('export PATH="' + venv + '/bin:$PATH"\n')
+            out.write(line)
     return 0
+
+
+def _lock_sha256():
+    with open(os.path.join(ROOT, "requirements-dev.txt"), "rb") as lock:
+        return hashlib.sha256(lock.read()).hexdigest()
+
+
+def _read(path):
+    """The text of the file at path, or "" when there is none."""
+    try:
+        with open(path) as text:
+            return text.read()
+    except FileNotFoundError:
+        return ""
 
 
 def _candidates(floor):
