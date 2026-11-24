@@ -21,25 +21,34 @@ def main(argv):
     if os.environ.get("CLAUDE_CODE_REMOTE") != "true":
         return 0
     venv = tunables.venv_dir()
-    stamp = os.path.join(venv, ".veri-lock-sha256")
-    lock = _lock_sha256()
-    if _read(stamp) != lock:
-        floor = launch_floor.python_floor()
-        tried = [(name, _version(name)) for name in _candidates(floor)]
-        python = next((name for name, version in tried if _meets(version, floor)), None)
-        if python is None:
-            return entry.refuse(*[(name + " is version " + version + ".") if version else ("no " + name + " on PATH.")
-                                  for name, version in tried],
-                                prefix="cloud-setup: veri needs Python " + floor + " or newer; ")
-        _install(python, venv)
-        os.makedirs(venv, exist_ok=True)
-        with open(stamp, "w") as out:
-            out.write(lock)
+    code = _build(venv)
+    if code:
+        return code
     env_file = os.environ.get("CLAUDE_ENV_FILE")
     line = 'export PATH="' + venv + '/bin:$PATH"\n'
     if env_file and line not in _read(env_file).splitlines(True):
         with open(env_file, "a") as out:
             out.write(line)
+    return 0
+
+
+def _build(venv):
+    """Install veri's environment at venv unless its stamp names the current lock; 0, or 2 with no interpreter for it."""
+    stamp = os.path.join(venv, ".veri-lock-sha256")
+    lock = _lock_sha256()
+    if _read(stamp) == lock:
+        return 0
+    floor = launch_floor.python_floor()
+    tried = [(name, _version(name)) for name in _candidates(floor)]
+    python = next((name for name, version in tried if _meets(version, floor)), None)
+    if python is None:
+        return entry.refuse(*[(name + " is version " + version + ".") if version else ("no " + name + " on PATH.")
+                              for name, version in tried],
+                            prefix="cloud-setup: veri needs Python " + floor + " or newer; ")
+    _install(python, venv)
+    os.makedirs(venv, exist_ok=True)
+    with open(stamp, "w") as out:
+        out.write(lock)
     return 0
 
 
