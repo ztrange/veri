@@ -222,6 +222,16 @@ def is_human_owed(step):
     return step.startswith("⟦human-owed⟧") or carries_mark(trailing_markers(step), "human-owed")
 
 
+DEVIATION_RE = re.compile(r"⟦deviation ([^⟧]+)⟧")
+
+
+def deviation_rule(step):
+    """The rule a deviation line's trailing ⟦deviation <rule>⟧ marker names, the line a bail's deviate answer leaves
+    for a human's review; None for any other line."""
+    found = DEVIATION_RE.search(trailing_markers(step))
+    return found.group(1) if found else None
+
+
 def listed_phases(step):
     """The phases step lists, in order; [] for a step that lists none."""
     listed = PHASES_RE.search(trailing_markers(step))
