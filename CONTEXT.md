@@ -119,6 +119,12 @@ commits, pushes the branch, posts a diagnostic comment that classifies the cause
 opens no PR. Re-running resumes from the ledger.
 _Avoid_: abort, fail (unqualified)
 
+**Deviation**:
+A whitelisted rule's refusal the adjudicator waived for one step, instead of the **bail** it
+would have caused. It is recorded as a `deviated` event and an unticked ⟦human-owed⟧ ledger
+line, and `/vmerge` reviews it before the merge.
+_Avoid_: exception, override, waiver (unqualified)
+
 **Pin**:
 A step outcome for a criterion that earlier work already satisfies: the developer leaf's
 honest test passes against the unmodified code. Instead of verify-red (which can only
