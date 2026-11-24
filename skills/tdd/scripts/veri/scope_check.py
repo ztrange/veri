@@ -25,7 +25,7 @@ def existing_by_basename(root):
 
 
 def skill_edit_refused(steps, spec_text):
-    skill_edits = [record[-1] for record in steps if ledger.carries_mark(record[-1], "skill-edit")]
+    skill_edits = [record[-1] for record in steps if ledger.is_skill_edit(record[-1])]
     headings = {re.sub(r" \(new\)$", "", heading)
                 for heading, line in requirements.requirements_lines(spec_text.splitlines())
                 if line.startswith("### ")}

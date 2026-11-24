@@ -11,7 +11,7 @@ import git
 import tunables
 
 from event_log import read_events
-from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body, carries_mark, is_added, ledger_steps, open_step_line, read_ledger, replace_ledger
+from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body, has_kind, is_added, is_skill_edit, ledger_steps, open_step_line, read_ledger, replace_ledger
 
 RETIRED = ("VERI_STEP_GROWTH is retired: unset it; VERI_STEP_GROWTH_PERCENT (default 50) caps ⟦added⟧ steps"
            " as a percent of the verified plan's steps")
@@ -137,7 +137,7 @@ def reopen(ledger, needle, change):
         return 2
     i, match = hits[0]
     step_body = body(match.group(4))
-    if not carries_mark(step_body, "skill-edit"):
+    if not is_skill_edit(step_body):
         print(f"ledger-growth.sh: not a skill-edit step: {step_body}", file=sys.stderr)
         return 2
     if match.group(2) == " ":
@@ -172,7 +172,7 @@ SCOPE_RE = re.compile(r"[0-9a-f]+ plan: scope\b")
 def counted_steps(text):
     """The ledger's steps that count toward its size: every step line but a ⟦suite-repair⟧, ⟦ci-repair⟧ or ⟦branch-repair⟧ one."""
     return [step for step in ledger_steps(text)
-            if not any(carries_mark(step.text, mark) for mark in ("suite-repair", "ci-repair", "branch-repair"))]
+            if not any(has_kind(step.text, mark) for mark in ("⟦suite-repair⟧", "⟦ci-repair⟧", "⟦branch-repair⟧"))]
 
 
 def split(ledger):
