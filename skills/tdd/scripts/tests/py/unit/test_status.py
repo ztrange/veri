@@ -96,6 +96,21 @@ def test_4671_an_open_human_owed_check_before_a_ticked_step_is_not_the_current_s
 
 
 @pytest.mark.usefixtures("graphql_driver")
+def test_4671_an_open_step_listed_after_an_open_human_owed_check_is_the_current_step(
+        tmp_path, fake_processes, run_cli, status):
+    run = ledger_run(tmp_path, "7", "# Plan for #7 — widgets spin when clicked\n\n"
+                                    "- [x] a clicked widget spins\n"
+                                    "- [ ] a person spins a widget by hand ⟦human-owed⟧\n"
+                                    "- [ ] a spinning widget stops when clicked again\n"
+                                    "- [ ] a stopped widget shows its last angle\n")
+    git = git_answering(tmp_path, {str(run): "tdd/7-widgets-spin"})
+    github = json.dumps([{"number": 7, "state": "OPEN"}])
+    fake_processes(lambda line, **kwargs: (0, github, "") if line.startswith("gh ") else git(line, **kwargs))
+
+    assert run_cli(status, []) == (0, "#7  widgets spin when clicked  tdd/7-widgets-spin  step 3 of 4\n", "")
+
+
+@pytest.mark.usefixtures("graphql_driver")
 def test_status_shows_a_runs_state_running_done_with_its_pr_url_bailed_with_phase_and_classification_or_stale(
         tmp_path, monkeypatch, fake_processes, run_cli, status):
     runs = {issue: lamp_run(tmp_path, issue) for issue in ("11", "12", "13", "14")}
