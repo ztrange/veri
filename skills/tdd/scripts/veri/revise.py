@@ -123,7 +123,8 @@ def spent(wt, step, phase):
     marks = 0
     for e in event_log.events(wt, "revise", "step-split", skip_unreadable=True):
         if e.get("event") == "step-split":
-            marks = 0
+            if ledger.same_step(e.get("anchor", ""), step):
+                marks = 0
         elif (e.get("actor") == "conductor" and e.get("phase") == phase
               and ledger.same_step(e.get("step", ""), step)):
             marks += 1
