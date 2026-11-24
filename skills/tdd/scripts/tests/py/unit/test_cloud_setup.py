@@ -71,3 +71,27 @@ def test_with_no_interpreter_at_or_above_the_floor_and_no_uv_it_exits_2_naming_e
     assert err == ("cloud-setup: veri needs Python 3.12 or newer; python3 is version 3.11.9.\n"
                    "cloud-setup: veri needs Python 3.12 or newer; no python3.13 on PATH.\n"
                    "cloud-setup: veri needs Python 3.12 or newer; no python3.12 on PATH.\n")
+
+
+def test_with_no_interpreter_at_or_above_the_floor_but_uv_it_installs_one_with_uv_and_uses_it(
+        tmp_path, run_cli, cloud_setup, monkeypatch):
+    venv = tmp_path / "venv"
+    installed = []
+    installs = []
+
+    def uv(*args):
+        if args == ("python", "install", "3.12"):
+            installed.append("3.12")
+            return ""
+        if args == ("python", "find", "3.12") and installed:
+            return "/root/.local/share/uv/python/cpython-3.12.7/bin/python3.12\n"
+        raise AssertionError("unexpected uv call: %r" % (args,))
+
+    monkeypatch.setattr(cloud_setup, "_version", {"python3": "3.11.9"}.get)
+    monkeypatch.setattr(cloud_setup, "_uv", uv)
+    monkeypatch.setattr(cloud_setup, "_install", lambda python, where: installs.append((python, where)))
+
+    code, out, err = run_cli(cloud_setup, [], env={"CLAUDE_CODE_REMOTE": "true", "VERI_VENV": str(venv)})
+
+    assert (code, err) == (0, "")
+    assert installs == [("/root/.local/share/uv/python/cpython-3.12.7/bin/python3.12", str(venv))]

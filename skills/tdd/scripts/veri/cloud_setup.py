@@ -33,7 +33,8 @@ def main(argv):
 
 
 def _build(venv):
-    """Install veri's environment at venv unless its stamp names the current lock; 0, or 2 with no interpreter for it."""
+    """Install veri's environment at venv unless its stamp names the current lock, with the first candidate at or above
+    the floor, else one uv installs; 0, or 2 with neither."""
     stamp = os.path.join(venv, ".veri-lock-sha256")
     lock = _lock_sha256()
     if _read(stamp) == lock:
@@ -41,6 +42,8 @@ def _build(venv):
     floor = launch_floor.python_floor()
     tried = [(name, _version(name)) for name in _candidates(floor)]
     python = next((name for name, version in tried if _meets(version, floor)), None)
+    if python is None and _uv("python", "install", floor) is not None:
+        python = _uv("python", "find", floor).strip()
     if python is None:
         return entry.refuse(*[(name + " is version " + version + ".") if version else ("no " + name + " on PATH.")
                               for name, version in tried],
@@ -85,6 +88,14 @@ def _version(name):
     probe = subprocess.run([path, "-c", "import platform; print(platform.python_version())"],
                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True)
     return probe.stdout.strip() if probe.returncode == 0 else None
+
+
+def _uv(*args):
+    """uv's stdout for args, or None when uv is not on PATH; a uv that fails raises."""
+    path = shutil.which("uv")
+    if not path:
+        return None
+    return subprocess.run([path] + list(args), stdout=subprocess.PIPE, universal_newlines=True, check=True).stdout
 
 
 def _install(python, venv):
