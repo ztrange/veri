@@ -242,6 +242,7 @@ DEFAULTED = {
     "VERI_NO_VERDICT_RETRIES": ("1", "010", None),
     "VERI_SKILL_EDIT_BUDGET": ("3", "1", "0"),
     "VERI_ADJUDICATE_BUDGET": ("2", "0", "-1"),
+    "VERI_DEVIATION_BUDGET": ("1", "0", "-1"),
     "VERI_STUCK_RETRIES": ("1", "0", "x"),
     "VERI_HEARTBEAT": ("180", "1", "1.5"),
     "VERI_TOOL_IDLE": ("600", "1", "1e3"),

@@ -14,7 +14,7 @@ def test_main_with_no_argument_exits_2_printing_the_usage_line_on_stderr(run_cli
     assert (code, out, err) == (
         2,
         "",
-        "usage: adjudicate.sh --check-budget | left <n> | record <n> <cause> <leaf-output>\n",
+        "usage: adjudicate.sh --check-budget | left <n> | deviation-left <n> | record <n> <cause> <leaf-output>\n",
     )
 
 
@@ -329,3 +329,60 @@ def test_record_under_ci_timeout_which_no_waivable_rule_names_on_deviate_writes_
     assert [(e.get("cause"), e.get("outcome")) for e in events if e.get("event") == "adjudicated"] == [
         ("ci-timeout", "unparsed")
     ]
+
+
+def _write_events(tmp_path, events):
+    import json
+
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+
+
+def test_deviation_left_exits_0_while_the_issue_holds_fewer_deviated_events_than_the_default_budget_of_1(
+    run_cli, adjudicate, monkeypatch, tmp_path
+):
+    monkeypatch.delenv("VERI_DEVIATION_BUDGET", raising=False)
+    _write_events(tmp_path, [
+        {"issue": "7", "event": "conductor-start"},
+        {"issue": "8", "event": "deviated", "rule": "graded-edit", "step": "3", "reason": "x"},
+    ])
+    code, out, err = run_cli(adjudicate, ["deviation-left", "7"], cwd=tmp_path)
+    assert (code, out, err) == (0, "", "")
+
+
+def test_deviation_left_exits_3_once_the_issue_holds_as_many_deviated_events_as_the_budget(
+    run_cli, adjudicate, monkeypatch, tmp_path
+):
+    monkeypatch.delenv("VERI_DEVIATION_BUDGET", raising=False)
+    _write_events(tmp_path, [
+        {"issue": "7", "event": "conductor-start"},
+        {"issue": "7", "event": "deviated", "rule": "graded-edit", "step": "3", "reason": "x"},
+    ])
+    code, out, err = run_cli(adjudicate, ["deviation-left", "7"], cwd=tmp_path)
+    assert (code, out, err) == (3, "", "")
+
+
+def test_deviation_left_exits_2_naming_the_variable_when_the_budget_is_not_a_whole_number(
+    run_cli, adjudicate, monkeypatch, tmp_path
+):
+    _write_events(tmp_path, [{"issue": "7", "event": "conductor-start"}])
+    for bad in ("-1", "one", "1.5"):
+        monkeypatch.setenv("VERI_DEVIATION_BUDGET", bad)
+        code, out, err = run_cli(adjudicate, ["deviation-left", "7"], cwd=tmp_path)
+        assert (code, out, "VERI_DEVIATION_BUDGET" in err) == (2, "", True), bad
+
+
+def test_check_budget_exits_2_naming_the_variable_for_a_deviation_budget_that_is_not_a_whole_number(
+    run_cli, adjudicate, monkeypatch
+):
+    monkeypatch.delenv("VERI_ADJUDICATE_BUDGET", raising=False)
+    monkeypatch.setenv("VERI_DEVIATION_BUDGET", "two")
+    code, out, err = run_cli(adjudicate, ["--check-budget"])
+    assert (code, out, "VERI_DEVIATION_BUDGET" in err) == (2, "", True)
+
+
+def test_deviation_left_exits_2_when_the_event_log_cannot_be_read(run_cli, adjudicate, monkeypatch, tmp_path):
+    monkeypatch.delenv("VERI_DEVIATION_BUDGET", raising=False)
+    (tmp_path / ".tdd" / "events.jsonl").mkdir(parents=True)
+    code, out, err = run_cli(adjudicate, ["deviation-left", "7"], cwd=tmp_path)
+    assert (code, out) == (2, "")
