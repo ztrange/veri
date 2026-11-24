@@ -170,3 +170,9 @@ def test_4712_the_table_declares_deviated_with_rule_step_and_a_non_empty_reason_
     assert (set(event_table.keys("deviated")), event_table.required("deviated")) == ({"rule", "step", "reason"},) * 2
     assert (event_table.valid("deviated", "reason", ""), event_table.valid("deviated", "rule", "graded-edit")) == (False, True)
     assert event_table.valid("adjudicated", "outcome", "deviate")
+
+
+def test_4730_the_table_allows_cause_tests_frozen_refused_on_adjudicated():
+    from veri import event_table
+
+    assert event_table.valid("adjudicated", "cause", "tests-frozen-refused")
