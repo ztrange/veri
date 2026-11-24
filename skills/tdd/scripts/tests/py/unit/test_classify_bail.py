@@ -258,3 +258,9 @@ def test_4472_main_classifies_branch_rejected_as_a_process_failure_with_0(capsys
     code = classify_bail.main(["branch-rejected"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_4719_main_classifies_go_red_probe_unresolvable_as_a_system_failure_with_0(capsys, classify_bail):
+    code = classify_bail.main(["go-red-probe-unresolvable"])
+
+    assert (code, *capsys.readouterr()) == (0, "system\n", "")

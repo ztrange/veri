@@ -173,6 +173,16 @@ def test_strict_accepts_a_bail_with_cause_branch_rejected(how, clone, tmp_path, 
     assert code == 0, err
 
 
+@pytest.mark.parametrize("how", ["mark", "sh"])
+def test_4719_strict_accepts_a_bail_with_cause_go_red_probe_unresolvable(how, clone, tmp_path, monkeypatch, run_cli, capfd):
+    monkeypatch.setenv("VERI_EVENT_STRICT", "1")
+
+    code, err = write(how, clone, monkeypatch, run_cli, "bail", ["cause=go-red-probe-unresolvable"])
+    err = capfd.readouterr().err if err is None else err
+
+    assert code == 0, err
+
+
 def test_4712_strict_event_sh_refuses_a_deviated_event_without_its_rule_and_writes_one_that_names_it(
     clone, tmp_path, monkeypatch, run_cli
 ):
