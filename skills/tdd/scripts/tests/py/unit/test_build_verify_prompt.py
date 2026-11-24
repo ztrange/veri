@@ -2235,3 +2235,18 @@ def test_branch_refuses_a_leaf_report_path(tmp_path, monkeypatch, capsysbinary, 
     out, _ = capsysbinary.readouterr()
 
     assert (code, out) == (2, b"")
+
+
+def test_4709_a_step_only_quoting_fixture_repair_in_its_prose_gets_no_fixture_repair_paragraph(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"The awake-clock stub must not leak wall time.\n")
+    step = "document the `⟦fixture-repair⟧` mark in `a.md` ⟦criterion 1⟧"
+
+    code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", "green", str(spec),
+                                     "tests/zorblat.test.sh", "case"])
+    out, _ = capsysbinary.readouterr()
+    line = next(l for l in (SCRIPTS / "prompts" / "_verify-green-fixture-repair.md").read_bytes().splitlines()
+                if l and b"{{" not in l)
+
+    assert (code, re.sub(rb"\s+", b" ", line) in re.sub(rb"\s+", b" ", out)) == (0, False)
