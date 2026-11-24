@@ -135,3 +135,10 @@ def test_parse_answers_outcome_and_reason_of_the_last_adjudication_line_or_none_
     assert parse_adjudication.parse(str(bare)) is None
     assert parse_adjudication.parse(str(tmp_path / "missing.out")) is None
     assert capsys.readouterr() == ("", "")
+
+
+def test_main_on_a_deviate_line_prints_deviate_then_reason_exiting_0(run_cli, parse_adjudication, tmp_path):
+    leaf = tmp_path / "leaf.out"
+    leaf.write_text("thinking\nADJUDICATION: deviate — the criterion names the prose this step changed\n")
+    code, out, err = run_cli(parse_adjudication, [str(leaf)])
+    assert (code, out) == (0, "deviate\nthe criterion names the prose this step changed\n")
