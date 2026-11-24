@@ -13,7 +13,7 @@ USAGE = "usage: cloud-install.sh [repo-root]"
 
 def main(argv):
     root = argv[0] if argv else os.getcwd()
-    setup = os.path.join(os.path.realpath(SCRIPTS), "cloud-setup.sh")
+    setup = os.path.join(SCRIPTS, "cloud-setup.sh")
     real_root = os.path.realpath(root)
     if os.path.commonpath([real_root, setup]) == real_root:
         setup = '"$CLAUDE_PROJECT_DIR"/' + os.path.relpath(setup, real_root)
