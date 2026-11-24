@@ -290,8 +290,8 @@ def replay(pin, ledger, looks, branch_base, base_sha):
                 sys.stdout.write(f"stale: {ledger} {pin['file']}\n")
                 return 0
             where = "no file" if not moved else "more than one file"
-            sys.stdout.write(f"not checked: {pin['file']} (old text in {where} of the repo)\n")
-            return 1
+            needs_a_look(looks, pin["file"], f"old text in {where} of the repo")
+            return 0
         path = moved[0]
         original = path.read_bytes()
     if original.count(pin["old"].encode()) > 1:
