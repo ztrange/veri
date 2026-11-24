@@ -1,27 +1,75 @@
 """In-process cases for veri/skill_edit_step.py, the module skill-edit-step.sh is a shim over."""
 import importlib
 import json
+import subprocess
+import types
 
 import pytest
 
 
-def test_apply_adds_the_issue_rows_the_units_list_lacks_at_its_end_and_no_row_the_issue_does_not_state(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "other.md").write_text("Other unit.\n")
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    requirements = importlib.import_module("veri.requirements")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+UNIT_TEXT = "The widget is painted a deep blue.\n"
+LISTING = "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n"
+ISSUE = "## Problem\n\nText.\n"
+
+
+def _git_ok(cmd, **kw):
+    return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+
+@pytest.fixture
+def skill_edit(tmp_path, monkeypatch):
+    """A factory: chdir into tmp_path, write the tree (unit.md, REQUIREMENTS.md, issue.md: `unit`, `listing`,
+    `issue`, each None to write no such file), and, unless `stubbed=False`, install the four stubs every run
+    of the step needs: `_grade` (`grade`: a (code, text) answered every time, a list of them answered in order,
+    or a callable), `_author` (`author`: an exit code or a callable), `event.append`, and a fake `subprocess`
+    whose `run` (`run`: a callable, default answering 0 with "abc1234\\n") stands in for git. `author=None` or
+    `run=None` leaves that one unstubbed, for a case that fakes `leaf.launch` or uses `fake_processes`;
+    `guard`, when given, replaces `skill_edit_guard.offending`. Returns a namespace: `step` (the module) and
+    the recorded `graded`, `launched` (author calls), `events` and `commands` (every run argv)."""
+    def install(unit=UNIT_TEXT, listing=LISTING, issue=ISSUE, grade=(1, "A1: FAIL - no\n"), author=0,
+                run=_git_ok, guard=None, stubbed=True):
+        monkeypatch.chdir(tmp_path)
+        skill_edit_step = importlib.import_module("veri.skill_edit_step")
+        for name, text in (("unit.md", unit), ("REQUIREMENTS.md", listing), ("issue.md", issue)):
+            if text is not None:
+                (tmp_path / name).write_text(text)
+        case = types.SimpleNamespace(step=skill_edit_step, graded=[], launched=[], events=[], commands=[])
+        if not stubbed:
+            return case
+        if isinstance(grade, list):
+            answer = lambda *a: grade.pop(0)
+        elif isinstance(grade, tuple):
+            answer = lambda *a: grade
+        else:
+            answer = grade
+        monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: case.graded.append(a) or answer(*a))
+        if author is not None:
+            launch = author if callable(author) else (lambda *a: author)
+            monkeypatch.setattr(skill_edit_step, "_author", lambda *a: case.launched.append(a) or launch(*a))
+        monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: case.events.append(a))
+        if guard is not None:
+            monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", guard)
+        if run is not None:
+            monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
+                run=lambda cmd, **kw: case.commands.append(cmd) or run(cmd, **kw), PIPE=subprocess.PIPE))
+        return case
+    return install
+
+
+def test_apply_adds_the_issue_rows_the_units_list_lacks_at_its_end_and_no_row_the_issue_does_not_state(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n"
         "| A2 | The widget is round. | shape |\n\n"
-        "## other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| B1 | Other. | o |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "## other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| B1 | Other. | o |\n",
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
         "| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n"
         "| A3 | The widget is shiny. | gloss |\n\n"
-        "### other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| B2 | Not ours. | n |\n")
+        "### other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| B2 | Not ours. | n |\n",
+        stubbed=False).step
+    (tmp_path / "other.md").write_text("Other unit.\n")
+    requirements = importlib.import_module("veri.requirements")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -29,19 +77,16 @@ def test_apply_adds_the_issue_rows_the_units_list_lacks_at_its_end_and_no_row_th
     assert ids == ["A1", "A2", "A3"], ids
 
 
-def test_apply_rewords_a_row_the_list_already_holds_in_place_keeping_its_id_and_position(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+def test_apply_rewords_a_row_the_list_already_holds_in_place_keeping_its_id_and_position(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n"
         "| A2 | The widget is round. | shape |\n"
-        "| A3 | The widget is shiny. | gloss |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n"
+        "| A3 | The widget is shiny. | gloss |\n",
+        issue="## Requirements\n\n### unit.md\n\n"
         "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A2 | The widget is square. | corners |\n")
+        "| A2 | The widget is square. | corners |\n",
+        stubbed=False).step
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -53,19 +98,16 @@ def test_apply_rewords_a_row_the_list_already_holds_in_place_keeping_its_id_and_
     ], rows
 
 
-def test_apply_rewords_in_place_a_row_whose_id_cell_is_id_reword_writing_the_id_bare_3320(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+def test_apply_rewords_in_place_a_row_whose_id_cell_is_id_reword_writing_the_id_bare_3320(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n"
         "| A2 | The widget is round. | shape |\n"
-        "| A3 | The widget is shiny. | gloss |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n"
+        "| A3 | The widget is shiny. | gloss |\n",
+        issue="## Requirements\n\n### unit.md\n\n"
         "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A2<reword> | The widget is square. | corners |\n")
+        "| A2<reword> | The widget is square. | corners |\n",
+        stubbed=False).step
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -77,19 +119,16 @@ def test_apply_rewords_in_place_a_row_whose_id_cell_is_id_reword_writing_the_id_
     ], rows
 
 
-def test_apply_drops_the_row_an_issue_marks_dropped_and_renumbers_no_other_row(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+def test_apply_drops_the_row_an_issue_marks_dropped_and_renumbers_no_other_row(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n"
         "| A2 | The widget is round. | shape |\n"
-        "| A3 | The widget is shiny. | gloss |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n"
+        "| A3 | The widget is shiny. | gloss |\n",
+        issue="## Requirements\n\n### unit.md\n\n"
         "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A2 | (dropped) | no longer wanted |\n")
+        "| A2 | (dropped) | no longer wanted |\n",
+        stubbed=False).step
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -100,11 +139,9 @@ def test_apply_drops_the_row_an_issue_marks_dropped_and_renumbers_no_other_row(t
     ], rows
 
 
-def test_apply_leaves_the_list_byte_for_byte_when_the_issue_has_no_requirements_section_or_none_for_the_unit(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+def test_apply_leaves_the_list_byte_for_byte_when_the_issue_has_no_requirements_section_or_none_for_the_unit(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(listing=None, issue=None, stubbed=False).step
     (tmp_path / "other.md").write_text("Other unit.\n")
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
     original = (
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n"
@@ -123,14 +160,14 @@ def test_apply_leaves_the_list_byte_for_byte_when_the_issue_has_no_requirements_
         assert (tmp_path / "REQUIREMENTS.md").read_bytes() == original.encode(), body
 
 
-def test_apply_creates_a_new_unit_empty_and_its_section_in_a_requirements_list_it_creates(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md (new)\n\n"
+def test_apply_creates_a_new_unit_empty_and_its_section_in_a_requirements_list_it_creates(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(
+        unit=None, listing=None,
+        issue="## Requirements\n\n### unit.md (new)\n\n"
         "| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n"
-        "| A2 | The widget is round. | shape |\n")
+        "| A2 | The widget is round. | shape |\n",
+        stubbed=False).step
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -143,16 +180,15 @@ def test_apply_creates_a_new_unit_empty_and_its_section_in_a_requirements_list_i
     assert "## unit.md" in (tmp_path / "REQUIREMENTS.md").read_text().splitlines()
 
 
-def test_apply_keeps_the_sections_of_an_existing_requirements_list_when_it_creates_a_new_unit(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_apply_keeps_the_sections_of_an_existing_requirements_list_when_it_creates_a_new_unit(tmp_path, skill_edit):
     other = ("## other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
              "| B1 | The gadget hums. | sound |\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(other)
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md (new)\n\n"
+    skill_edit_step = skill_edit(
+        unit=None, listing=other,
+        issue="## Requirements\n\n### unit.md (new)\n\n"
         "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is blue. | because |\n")
+        "| A1 | The widget is blue. | because |\n",
+        stubbed=False).step
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -162,24 +198,14 @@ def test_apply_keeps_the_sections_of_an_existing_requirements_list_when_it_creat
     assert "| A1 | The widget is blue. | because |" in text.splitlines(), text
 
 
-def test_a_veri_skill_edit_budget_that_is_not_a_whole_number_of_at_least_one_exits_2_before_any_grading_or_launch_and_the_shim_header_names_it(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
+def test_a_veri_skill_edit_budget_that_is_not_a_whole_number_of_at_least_one_exits_2_before_any_grading_or_launch_and_the_shim_header_names_it(tmp_path, skill_edit, run_cli):
     from conftest import SCRIPTS
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
     calls = []
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: calls.append("grade") or (1, "A1: FAIL - no\n"))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: calls.append("author") or 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: calls.append("guard") or [])
-    fake = types.SimpleNamespace(
-        run=lambda cmd, **kw: calls.append(" ".join(cmd[:2])) or subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
-        PIPE=subprocess.PIPE)
-    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
+    skill_edit_step = skill_edit(
+        grade=lambda *a: calls.append("grade") or (1, "A1: FAIL - no\n"),
+        author=lambda *a: calls.append("author") or 0,
+        guard=lambda unit, base, pins: calls.append("guard") or [],
+        run=lambda cmd, **kw: calls.append(" ".join(cmd[:2])) or _git_ok(cmd)).step
 
     codes = {}
     for budget in ["", "0", "-1", "two", "1.5"]:
@@ -191,91 +217,62 @@ def test_a_veri_skill_edit_budget_that_is_not_a_whole_number_of_at_least_one_exi
         == ({b: 2 for b in ["", "0", "-1", "two", "1.5"]}, [], True), (codes, calls)
 
 
-def test_a_guard_exit_2_exits_the_step_2_signing_nothing_and_committing_nothing(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
-    grades = iter([(1, "A1: FAIL - no\n"), (0, "")])
-    gits = []
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: next(grades))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
-
+def test_a_guard_exit_2_exits_the_step_2_signing_nothing_and_committing_nothing(tmp_path, skill_edit, run_cli):
     def refuse_the_base(unit, base, pins):
         raise skill_edit_step.skill_edit_guard.Refusal("skill-edit-guard.sh: %s is not a commit" % base)
 
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", refuse_the_base)
-    fake = types.SimpleNamespace(
-        run=lambda cmd, **kw: gits.append(cmd[:2]) or subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
-        PIPE=subprocess.PIPE)
-    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
+    case = skill_edit(grade=[(1, "A1: FAIL - no\n"), (0, "")], guard=refuse_the_base)
+    skill_edit_step = case.step
 
     code = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])[0]
 
+    gits = [c[:2] for c in case.commands]
     assert (code, [g for g in gits if g[1] in ("add", "commit")], (tmp_path / "GRADED").exists()) == (2, [], False), (code, gits)
 
 
-def test_the_author_attempts_follow_veri_skill_edit_budget_alone_whatever_the_other_five_budgets_say(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
-    authors = []
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\n"))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: authors.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
-    fake = types.SimpleNamespace(
-        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
-        PIPE=subprocess.PIPE)
-    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
+def test_the_author_attempts_follow_veri_skill_edit_budget_alone_whatever_the_other_five_budgets_say(tmp_path, skill_edit, run_cli):
+    case = skill_edit(guard=lambda unit, base, pins: [])
     others = {"REVISE_BUDGET": "7", "VERI_STUCK_RETRIES": "8", "VERI_NO_VERDICT_RETRIES": "9",
               "VERI_REFACTOR_BUDGET": "10", "VERI_STEP_GROWTH": "11"}
 
-    code = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"],
+    code = run_cli(case.step, [str(tmp_path / "issue.md"), "unit.md"],
                    env={**others, "VERI_SKILL_EDIT_BUDGET": "2"})[0]
 
+    authors = case.launched
     assert (code, len(authors)) == (1, 2), (code, len(authors))
 
 
-def test_apply_reads_no_rows_for_a_unit_below_the_root_under_a_heading_holding_only_its_basename_1959(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_apply_reads_no_rows_for_a_unit_below_the_root_under_a_heading_holding_only_its_basename_1959(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(
+        unit=None, listing=None,
+        issue="## Requirements\n\n### SKILL.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A2 | The widget is round. | shape |\n",
+        stubbed=False).step
     (tmp_path / "sub").mkdir()
     (tmp_path / "sub" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
     original = (
         "## SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n")
     (tmp_path / "sub" / "REQUIREMENTS.md").write_bytes(original.encode())
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### SKILL.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A2 | The widget is round. | shape |\n")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "sub/SKILL.md")
 
     assert (tmp_path / "sub" / "REQUIREMENTS.md").read_bytes() == original.encode()
 
 
-def test_apply_adds_the_rows_under_a_repo_relative_path_heading_to_the_list_beside_a_unit_below_the_root_1959(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_apply_adds_the_rows_under_a_repo_relative_path_heading_to_the_list_beside_a_unit_below_the_root_1959(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(
+        unit=None, listing=None,
+        issue="## Requirements\n\n### skills/vdev/SKILL.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A2 | The widget is round. | shape |\n",
+        stubbed=False).step
     (tmp_path / "skills" / "vdev").mkdir(parents=True)
     (tmp_path / "skills" / "vdev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
     (tmp_path / "skills" / "vdev" / "REQUIREMENTS.md").write_text(
         "## skills/vdev/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### skills/vdev/SKILL.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A2 | The widget is round. | shape |\n")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "skills/vdev/SKILL.md")
 
@@ -286,52 +283,42 @@ def test_apply_adds_the_rows_under_a_repo_relative_path_heading_to_the_list_besi
     ], rows
 
 
-def test_apply_reads_no_rows_for_a_unit_under_a_heading_naming_a_different_units_repo_relative_path_1959(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_apply_reads_no_rows_for_a_unit_under_a_heading_naming_a_different_units_repo_relative_path_1959(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(
+        unit=None, listing=None,
+        issue="## Requirements\n\n### skills/other/SKILL.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A2 | The widget is round. | shape |\n",
+        stubbed=False).step
     (tmp_path / "skills" / "vdev").mkdir(parents=True)
     (tmp_path / "skills" / "vdev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
     original = (
         "## SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n")
     (tmp_path / "skills" / "vdev" / "REQUIREMENTS.md").write_bytes(original.encode())
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### skills/other/SKILL.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A2 | The widget is round. | shape |\n")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "skills/vdev/SKILL.md")
 
     assert (tmp_path / "skills" / "vdev" / "REQUIREMENTS.md").read_bytes() == original.encode()
 
 
-def test_a_unit_with_no_requirements_list_run_against_an_issue_with_no_requirements_section_is_left_unchanged_and_exits_3_1959(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    fake = types.SimpleNamespace(
-        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
-        PIPE=subprocess.PIPE)
-    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
+def test_a_unit_with_no_requirements_list_run_against_an_issue_with_no_requirements_section_is_left_unchanged_and_exits_3_1959(tmp_path, skill_edit, run_cli):
+    skill_edit_step = skill_edit(listing=None, grade=(0, "")).step
 
     code = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])[0]
 
     assert (code, (tmp_path / "unit.md").read_bytes()) == (3, b"The widget is painted a deep blue.\n")
 
 
-def test_apply_makes_the_issue_rows_the_new_list_beside_a_unit_with_no_requirements_list_1959(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_apply_makes_the_issue_rows_the_new_list_beside_a_unit_with_no_requirements_list_1959(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(
+        unit=None, listing=None,
+        issue="## Requirements\n\n### skills/vdev/SKILL.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n",
+        stubbed=False).step
     (tmp_path / "skills" / "vdev").mkdir(parents=True)
     (tmp_path / "skills" / "vdev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### skills/vdev/SKILL.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is blue. | because |\n")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "skills/vdev/SKILL.md")
 
@@ -339,41 +326,32 @@ def test_apply_makes_the_issue_rows_the_new_list_beside_a_unit_with_no_requireme
     assert rows == ["| A1 | The widget is blue. | because |"], rows
 
 
-def test_a_unit_with_no_table_whose_requirements_list_holds_only_another_units_section_run_against_an_issue_stating_no_rows_for_it_exits_3_leaving_the_list_byte_identical_1959(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_a_unit_with_no_table_whose_requirements_list_holds_only_another_units_section_run_against_an_issue_stating_no_rows_for_it_exits_3_leaving_the_list_byte_identical_1959(tmp_path, skill_edit, run_cli):
+    skill_edit_step = skill_edit(unit=None, listing=None, grade=(0, "")).step
     (tmp_path / "skills" / "vdev").mkdir(parents=True)
     (tmp_path / "skills" / "vdev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
     original = ("## skills/other/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
                 "| B1 | The gadget is red. | colour |\n")
     (tmp_path / "skills" / "vdev" / "REQUIREMENTS.md").write_text(original)
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    fake = types.SimpleNamespace(
-        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
-        PIPE=subprocess.PIPE)
-    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
 
     code, _, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "skills/vdev/SKILL.md"])
 
     assert (code, (tmp_path / "skills" / "vdev" / "REQUIREMENTS.md").read_bytes()) == (3, original.encode()), err
 
 
-def test_apply_appends_the_issue_rows_as_a_new_section_beside_a_list_holding_only_another_units_section_1959(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_apply_appends_the_issue_rows_as_a_new_section_beside_a_list_holding_only_another_units_section_1959(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(
+        unit=None, listing=None,
+        issue="## Requirements\n\n### skills/vdev/SKILL.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n",
+        stubbed=False).step
     (tmp_path / "skills" / "vdev").mkdir(parents=True)
     (tmp_path / "skills" / "vdev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
     other = ("## skills/other/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
              "| B1 | The gadget is red. | colour |\n")
     listing = tmp_path / "skills" / "vdev" / "REQUIREMENTS.md"
     listing.write_text(other)
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### skills/vdev/SKILL.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is blue. | because |\n")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "skills/vdev/SKILL.md")
 
@@ -383,9 +361,8 @@ def test_apply_appends_the_issue_rows_as_a_new_section_beside_a_list_holding_onl
     assert "| A1 | The widget is blue. | because |" in text.splitlines(), text
 
 
-def test_apply_moves_a_units_own_table_into_a_list_holding_only_another_units_section_leaving_that_section_unchanged_1959(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_apply_moves_a_units_own_table_into_a_list_holding_only_another_units_section_leaving_that_section_unchanged_1959(tmp_path, skill_edit):
+    skill_edit_step = skill_edit(unit=None, listing=None, stubbed=False).step
     (tmp_path / "skills" / "vdev").mkdir(parents=True)
     unit = tmp_path / "skills" / "vdev" / "SKILL.md"
     unit.write_text(
@@ -395,7 +372,6 @@ def test_apply_moves_a_units_own_table_into_a_list_holding_only_another_units_se
              "| B1 | The gadget is red. | colour |\n")
     listing = tmp_path / "skills" / "vdev" / "REQUIREMENTS.md"
     listing.write_text(other)
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "skills/vdev/SKILL.md")
 
@@ -406,16 +382,8 @@ def test_apply_moves_a_units_own_table_into_a_list_holding_only_another_units_se
     assert "## Requirements" not in unit.read_text().splitlines(), unit.read_text()
 
 
-def test_a_guard_rejected_attempts_edits_to_the_unit_are_reset_before_the_next_author_attempt_1959(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_a_guard_rejected_attempts_edits_to_the_unit_are_reset_before_the_next_author_attempt_1959(tmp_path, skill_edit, run_cli):
     unit = tmp_path / "unit.md"
-    unit.write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
     seen = []
 
     def author(*a):
@@ -426,43 +394,19 @@ def test_a_guard_rejected_attempts_edits_to_the_unit_are_reset_before_the_next_a
     def guard(unit, base, pins):
         return ["stray.md"] if seen else []
 
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\n"))
-    monkeypatch.setattr(skill_edit_step, "_author", author)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", guard)
-    fake = types.SimpleNamespace(
-        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
-        PIPE=subprocess.PIPE)
-    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
+    skill_edit_step = skill_edit(author=author, guard=guard).step
 
     run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})
 
     assert seen == ["The widget is painted a deep blue.\n"] * 2, seen
 
 
-def test_a_list_already_passing_the_grader_launches_no_author_commits_the_list_and_graded_and_exits_3_1959(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
-    launched = []
-    commands = []
+def test_a_list_already_passing_the_grader_launches_no_author_commits_the_list_and_graded_and_exits_3_1959(tmp_path, skill_edit, run_cli):
+    case = skill_edit(grade=(0, ""))
 
-    def run(cmd, **kw):
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+    code, out, err = run_cli(case.step, [str(tmp_path / "issue.md"), "unit.md"])
 
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
-
-    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
-
+    launched, commands = case.launched, case.commands
     commits = [c for c in commands if c[:2] == ["git", "commit"]]
     assert launched == [], launched
     assert len(commits) == 1 and "REQUIREMENTS.md" in commits[0], commands
@@ -470,69 +414,35 @@ def test_a_list_already_passing_the_grader_launches_no_author_commits_the_list_a
     assert code == 3, (code, out, err)
 
 
-def test_an_added_step_on_a_unit_graded_pass_before_any_author_ran_exits_2_naming_the_step_launching_and_committing_nothing_2063(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+def test_an_added_step_on_a_unit_graded_pass_before_any_author_ran_exits_2_naming_the_step_launching_and_committing_nothing_2063(tmp_path, skill_edit, run_cli):
+    case = skill_edit(grade=(0, ""))
+    skill_edit_step = case.step
     grade_prose = importlib.import_module("veri.grade_prose")
     grade_prose.record_graded("unit.md", grade_prose.signature("REQUIREMENTS.md", "unit.md"), "g1")
     graded_before = (tmp_path / "GRADED").read_text()
-    launched = []
-    commands = []
-    events = []
-
-    def run(cmd, **kw):
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
-
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: events.append(a))
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
     step = "map each grade to the mode stop-run.sh accepts"
 
     code, out, err = run_cli(skill_edit_step, ["--added", step, str(tmp_path / "issue.md"), "unit.md"])
     usage = run_cli(skill_edit_step, [])[2]
 
+    launched, events, commands = case.launched, case.events, case.commands
     commits = [c for c in commands if c[:2] in (["git", "add"], ["git", "commit"])]
     assert (code, step in err, launched, events, commits, (tmp_path / "GRADED").read_text(), "--added" in usage) \
         == (2, True, [], [], [], graded_before, True), (code, err, launched, events, commits, usage)
 
 
-def test_an_added_step_stating_a_row_new_to_the_list_on_a_unit_graded_pass_launches_no_author_commits_the_row_and_graded_and_exits_3_2513(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_an_added_step_stating_a_row_new_to_the_list_on_a_unit_graded_pass_launches_no_author_commits_the_row_and_graded_and_exits_3_2513(tmp_path, skill_edit, run_cli):
     prose = "The widget is painted a deep blue and round.\n"
-    (tmp_path / "unit.md").write_text(prose)
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+    case = skill_edit(
+        unit=prose,
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
         "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | shape |\n")
-    launched = []
-    commands = []
+        "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | shape |\n",
+        grade=(0, ""))
 
-    def run(cmd, **kw):
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+    code, out, err = run_cli(case.step, ["--added", "add the round row", str(tmp_path / "issue.md"), "unit.md"])
 
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
-
-    code, out, err = run_cli(skill_edit_step, ["--added", "add the round row", str(tmp_path / "issue.md"), "unit.md"])
-
+    launched, commands = case.launched, case.commands
     commits = [c for c in commands if c[:2] == ["git", "commit"]]
     assert launched == [], launched
     assert (tmp_path / "unit.md").read_text() == prose
@@ -541,34 +451,18 @@ def test_an_added_step_stating_a_row_new_to_the_list_on_a_unit_graded_pass_launc
     assert code == 3, (code, out, err)
 
 
-def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_launches_no_author_rewrites_the_row_regrades_commits_and_exits_3_2997(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_launches_no_author_rewrites_the_row_regrades_commits_and_exits_3_2997(tmp_path, skill_edit, run_cli):
     prose = "The widget is painted a deep blue.\n"
-    (tmp_path / "unit.md").write_text(prose)
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n")
-    launched = []
-    graded = []
-    commands = []
+    case = skill_edit(
+        unit=prose,
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n",
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n",
+        grade=(0, ""))
 
-    def run(cmd, **kw):
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+    code, out, err = run_cli(case.step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
 
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: graded.append(a) or (0, ""))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
-
-    code, out, err = run_cli(skill_edit_step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
-
+    launched, graded, commands = case.launched, case.graded, case.commands
     commits = [c for c in commands if c[:2] == ["git", "commit"]]
     listed = (tmp_path / "REQUIREMENTS.md").read_text()
     assert launched == [], launched
@@ -579,30 +473,16 @@ def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_la
     assert code == 3, (code, out, err)
 
 
-def test_a_step_whose_issue_row_id_cell_is_id_reword_naming_a_listed_row_with_different_text_rewords_it_under_its_bare_id_and_exits_as_a_reword_does_3320(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n")
-    launched = []
+def test_a_step_whose_issue_row_id_cell_is_id_reword_naming_a_listed_row_with_different_text_rewords_it_under_its_bare_id_and_exits_as_a_reword_does_3320(tmp_path, skill_edit, run_cli):
+    case = skill_edit(
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n",
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n",
+        grade=(0, ""))
 
-    def run(cmd, **kw):
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+    code, out, err = run_cli(case.step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
 
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
-
-    code, out, err = run_cli(skill_edit_step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
-
+    launched = case.launched
     listed = (tmp_path / "REQUIREMENTS.md").read_text()
     assert launched == [], launched
     assert "| A1 | The widget is blue. | because |" in listed and "The widget is red." not in listed, listed
@@ -610,18 +490,16 @@ def test_a_step_whose_issue_row_id_cell_is_id_reword_naming_a_listed_row_with_di
     assert code == 3, (code, out, err)
 
 
-def test_a_step_whose_issue_row_x2_reword_states_the_full_text_the_section_holds_under_x1_exits_2_naming_both_ids_before_any_git_call_leaving_the_files_byte_identical_4682(tmp_path, monkeypatch, run_cli, fake_processes):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_a_step_whose_issue_row_x2_reword_states_the_full_text_the_section_holds_under_x1_exits_2_naming_both_ids_before_any_git_call_leaving_the_files_byte_identical_4682(tmp_path, monkeypatch, skill_edit, run_cli, fake_processes):
     prose = "The widget is painted a deep blue.\n"
     listing = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
                "| X1 | The widget is blue. | because |\n| X2 | The widget is red. | since |\n")
-    (tmp_path / "unit.md").write_text(prose)
-    (tmp_path / "REQUIREMENTS.md").write_text(listing)
+    skill_edit_step = skill_edit(
+        unit=prose, listing=listing,
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| X2<reword> | The widget is blue. | because |\n",
+        stubbed=False).step
     (tmp_path / "GRADED").write_text("")
-    (tmp_path / "issue.md").write_text(
-        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n| X2<reword> | The widget is blue. | because |\n")
     launched = []
     fake = fake_processes.answers({}, default=lambda line, **_: (0, "abc1234\n", ""))
     leaf = importlib.import_module("veri.leaf")
@@ -635,47 +513,22 @@ def test_a_step_whose_issue_row_x2_reword_states_the_full_text_the_section_holds
     assert (tmp_path / "GRADED").read_text() == ""
 
 
-def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_appends_a_skill_edit_no_author_event_naming_the_unit_2997(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n")
-    events = []
+def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_appends_a_skill_edit_no_author_event_naming_the_unit_2997(tmp_path, skill_edit, run_cli):
+    case = skill_edit(
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n",
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n",
+        grade=(0, ""))
 
-    def run(cmd, **kw):
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+    code, out, err = run_cli(case.step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
 
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: events.append(a))
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
-
-    code, out, err = run_cli(skill_edit_step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
-
+    events = case.events
     named = [a for a in events if "skill-edit-no-author" in a]
     assert len(named) == 1 and "unit=unit.md" in named[0][-1], (code, out, err, events)
 
 
-def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_author_with_the_reworded_text_not_the_old_2997(tmp_path, monkeypatch, run_cli, fake_processes):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    leaf = importlib.import_module("veri.leaf")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep green.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n")
+def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_author_with_the_reworded_text_not_the_old_2997(tmp_path, monkeypatch, skill_edit, run_cli, fake_processes):
     prompts = []
-    grades = [(1, "A1: FAIL - not blue\n"), (0, "")]
 
     def launch(name, prompt, *args, env=None):
         prompts.append(open(prompt).read())
@@ -685,9 +538,14 @@ def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_a
         cmd = fake.argvs[-1]
         return 0, "abc1234\n", ""
 
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    skill_edit_step = skill_edit(
+        unit="The widget is painted a deep green.\n",
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n",
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n",
+        grade=[(1, "A1: FAIL - not blue\n"), (0, "")], author=None, run=None,
+        guard=lambda unit, base, pins: []).step
+    leaf = importlib.import_module("veri.leaf")
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     fake = fake_processes.answers({"": run})
     monkeypatch.setattr(leaf, "launch", launch)
@@ -698,37 +556,22 @@ def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_a
     assert "The widget is blue." in prompts[0] and "The widget is red." not in prompts[0], prompts[0]
 
 
-def test_an_added_step_stating_only_rows_the_list_already_carries_on_a_unit_graded_pass_exits_2_naming_the_step_leaving_list_unit_and_graded_unmodified_2583(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_an_added_step_stating_only_rows_the_list_already_carries_on_a_unit_graded_pass_exits_2_naming_the_step_leaving_list_unit_and_graded_unmodified_2583(tmp_path, skill_edit, run_cli):
     prose = "The widget is painted a deep blue.\n"
     listing = "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n"
-    (tmp_path / "unit.md").write_text(prose)
-    (tmp_path / "REQUIREMENTS.md").write_text(listing)
-    (tmp_path / "issue.md").write_text(
-        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    case = skill_edit(
+        unit=prose, listing=listing,
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n",
+        grade=(0, ""))
     grade_prose = importlib.import_module("veri.grade_prose")
     grade_prose.record_graded("unit.md", grade_prose.signature("REQUIREMENTS.md", "unit.md"), "g1")
     graded_before = (tmp_path / "GRADED").read_text()
-    launched = []
-    commands = []
-
-    def run(cmd, **kw):
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
-
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
     step = "restate the blue row"
 
-    code, out, err = run_cli(skill_edit_step, ["--added", step, str(tmp_path / "issue.md"), "unit.md"])
+    code, out, err = run_cli(case.step, ["--added", step, str(tmp_path / "issue.md"), "unit.md"])
 
+    launched, commands = case.launched, case.commands
     commits = [c for c in commands if c[:2] in (["git", "add"], ["git", "commit"])]
     assert (code, step in err, launched, commits, (tmp_path / "GRADED").read_text()) == (2, True, [], [], graded_before), \
         (code, err, launched, commits)
@@ -736,36 +579,21 @@ def test_an_added_step_stating_only_rows_the_list_already_carries_on_a_unit_grad
     assert (tmp_path / "unit.md").read_text() == prose
 
 
-def test_an_added_step_on_a_unit_graded_pass_exits_2_naming_the_step_leaving_the_list_unchanged_when_every_issue_row_equals_its_listed_row_2997(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_an_added_step_on_a_unit_graded_pass_exits_2_naming_the_step_leaving_the_list_unchanged_when_every_issue_row_equals_its_listed_row_2997(tmp_path, skill_edit, run_cli):
     prose = "The widget is painted a deep blue and round.\n"
     rows = "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | because |\n"
     listing = "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n" + rows
-    (tmp_path / "unit.md").write_text(prose)
-    (tmp_path / "REQUIREMENTS.md").write_text(listing)
-    (tmp_path / "issue.md").write_text(
-        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n" + rows)
+    case = skill_edit(
+        unit=prose, listing=listing,
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n" + rows,
+        grade=(0, ""))
     grade_prose = importlib.import_module("veri.grade_prose")
     grade_prose.record_graded("unit.md", grade_prose.signature("REQUIREMENTS.md", "unit.md"), "g1")
     graded_before = (tmp_path / "GRADED").read_text()
-    launched = []
-    commands = []
 
-    def run(cmd, **kw):
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+    code, out, err = run_cli(case.step, ["--added", "restate both rows", str(tmp_path / "issue.md"), "unit.md"])
 
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
-
-    code, out, err = run_cli(skill_edit_step, ["--added", "restate both rows", str(tmp_path / "issue.md"), "unit.md"])
-
+    launched, commands = case.launched, case.commands
     commits = [c for c in commands if c[:2] in (["git", "add"], ["git", "commit"])]
     assert code == 2 and "graded PASS before any author ran" in err, (code, out, err)
     assert launched == [] and commits == [], (launched, commits)
@@ -773,35 +601,18 @@ def test_an_added_step_on_a_unit_graded_pass_exits_2_naming_the_step_leaving_the
     assert (tmp_path / "GRADED").read_text() == graded_before
 
 
-def test_an_added_step_on_a_unit_graded_pass_with_a_current_graded_line_and_no_new_row_exits_2_naming_the_step_leaving_requirements_unit_and_graded_unmodified_3310(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+def test_an_added_step_on_a_unit_graded_pass_with_a_current_graded_line_and_no_new_row_exits_2_naming_the_step_leaving_requirements_unit_and_graded_unmodified_3310(tmp_path, skill_edit, run_cli):
     prose = "The widget is painted a deep blue.\n"
     listing = "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n"
-    (tmp_path / "unit.md").write_text(prose)
-    (tmp_path / "REQUIREMENTS.md").write_text(listing)
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    case = skill_edit(unit=prose, listing=listing, grade=(0, ""))
     grade_prose = importlib.import_module("veri.grade_prose")
     grade_prose.record_graded("unit.md", grade_prose.signature("REQUIREMENTS.md", "unit.md"), "g1")
     graded_before = (tmp_path / "GRADED").read_text()
-    launched = []
-    commands = []
-
-    def run(cmd, **kw):
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
-
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
     step = "sign the blue unit"
 
-    code, out, err = run_cli(skill_edit_step, ["--added", step, str(tmp_path / "issue.md"), "unit.md"])
+    code, out, err = run_cli(case.step, ["--added", step, str(tmp_path / "issue.md"), "unit.md"])
 
+    launched, commands = case.launched, case.commands
     commits = [c for c in commands if c[:2] in (["git", "add"], ["git", "commit"])]
     assert (code, step in err, launched, commits) == (2, True, [], []), (code, err, launched, commits)
     assert (tmp_path / "REQUIREMENTS.md").read_text() == listing
@@ -809,44 +620,18 @@ def test_an_added_step_on_a_unit_graded_pass_with_a_current_graded_line_and_no_n
     assert (tmp_path / "GRADED").read_text() == graded_before
 
 
-def test_an_added_step_on_a_unit_whose_grade_fails_first_runs_its_author_attempt_commits_the_list_graded_and_unit_and_exits_0_2063(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
-    launched = []
-    commands = []
-    grades = [(1, "A1: FAIL - no\n"), (0, "")]
+def test_an_added_step_on_a_unit_whose_grade_fails_first_runs_its_author_attempt_commits_the_list_graded_and_unit_and_exits_0_2063(tmp_path, skill_edit, run_cli):
+    case = skill_edit(grade=[(1, "A1: FAIL - no\n"), (0, "")], guard=lambda unit, base, pins: [])
 
-    def run(cmd, **kw):
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+    code, out, err = run_cli(case.step, ["--added", "map each grade to a mode", str(tmp_path / "issue.md"), "unit.md"])
 
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
-
-    code, out, err = run_cli(skill_edit_step, ["--added", "map each grade to a mode", str(tmp_path / "issue.md"), "unit.md"])
-
+    launched, commands = case.launched, case.commands
     commits = [c for c in commands if c[:2] == ["git", "commit"]]
     assert len(launched) == 1 and code == 0, (code, err, launched)
     assert len(commits) == 1 and all(any(n in p for p in commits[0]) for n in ("REQUIREMENTS.md", "GRADED", "unit.md")), commands
 
 
-def test_the_author_prompt_names_every_pin_file_and_tells_it_to_update_the_checksum_or_verbatim_pins_there_2232(tmp_path, monkeypatch, run_cli, fake_processes):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+def test_the_author_prompt_names_every_pin_file_and_tells_it_to_update_the_checksum_or_verbatim_pins_there_2232(tmp_path, monkeypatch, skill_edit, run_cli, fake_processes):
     prompts = []
 
     def run(line, **kw):
@@ -855,13 +640,12 @@ def test_the_author_prompt_names_every_pin_file_and_tells_it_to_update_the_check
             prompts.append(open(cmd[3]).read())
         return 0, "abc1234\n", ""
 
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    skill_edit_step = skill_edit(grade=lambda *a: next(grades), author=None, run=None,
+                                 guard=lambda unit, base, pins: []).step
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     fake = fake_processes.answers({"": run})
     for pins in (["tests/test_alpha.py", "tests/test_beta.py"], []):
         grades = iter([(1, "A1: FAIL - no\n"), (0, "")])
-        monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: next(grades))
         run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md", *pins])
 
     with_pins, without = prompts
@@ -869,18 +653,8 @@ def test_the_author_prompt_names_every_pin_file_and_tells_it_to_update_the_check
             "tests/test_" in without) == (True, False), (with_pins, without)
 
 
-def test_a_rejected_attempts_edits_to_a_pin_file_are_reset_with_the_unit_so_the_committed_pin_matches_the_committed_unit_2232(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is blue.\n")
-    (tmp_path / "pin.py").write_text("PINNED = 'The widget is blue.'\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget hums. | because |\n")
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+def test_a_rejected_attempts_edits_to_a_pin_file_are_reset_with_the_unit_so_the_committed_pin_matches_the_committed_unit_2232(tmp_path, skill_edit, run_cli):
     committed = []
-    grades = [(1, "A1: FAIL - silent\n"), (1, "A1: FAIL - red is wrong\n"), (0, "")]
     attempts = iter([
         lambda: ((tmp_path / "unit.md").write_text("The widget is red.\n"),
                  (tmp_path / "pin.py").write_text("PINNED = 'The widget is red.'\n")),
@@ -892,41 +666,25 @@ def test_a_rejected_attempts_edits_to_a_pin_file_are_reset_with_the_unit_so_the_
             committed.append(((tmp_path / "unit.md").read_text(), (tmp_path / "pin.py").read_text()))
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: next(attempts)() and 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+    skill_edit_step = skill_edit(
+        unit="The widget is blue.\n",
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget hums. | because |\n",
+        grade=[(1, "A1: FAIL - silent\n"), (1, "A1: FAIL - red is wrong\n"), (0, "")],
+        author=lambda *a: next(attempts)() and 0, run=run, guard=lambda unit, base, pins: []).step
+    (tmp_path / "pin.py").write_text("PINNED = 'The widget is blue.'\n")
 
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md", "pin.py"])
 
     assert (code, committed) == (0, [("The widget is blue.\nIt hums.\n", "PINNED = 'The widget is blue.'\n")]), (code, err)
 
 
-def test_an_added_step_on_a_unit_no_requirements_list_claims_exits_2_naming_the_step_launching_and_committing_nothing_2236(tmp_path, monkeypatch, run_cli):
-    monkeypatch.chdir(tmp_path)
-    import subprocess
-    import types
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
-    launched = []
-    commands = []
-
-    def run(cmd, **kw):
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
-
-    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
-    monkeypatch.setattr(skill_edit_step, "subprocess",
-                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+def test_an_added_step_on_a_unit_no_requirements_list_claims_exits_2_naming_the_step_launching_and_committing_nothing_2236(tmp_path, skill_edit, run_cli):
+    case = skill_edit(listing=None, grade=(0, ""))
     step = "map each grade to the mode stop-run.sh accepts"
 
-    code, out, err = run_cli(skill_edit_step, ["--added", step, str(tmp_path / "issue.md"), "unit.md"])
+    code, out, err = run_cli(case.step, ["--added", step, str(tmp_path / "issue.md"), "unit.md"])
 
+    launched, commands = case.launched, case.commands
     commits = [c for c in commands if c[:2] in (["git", "add"], ["git", "commit"])]
     assert (code, step in err, launched, commits) == (2, True, [], []), (code, err, launched, commits)
 
