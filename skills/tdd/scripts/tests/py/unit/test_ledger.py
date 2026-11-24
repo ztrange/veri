@@ -40,6 +40,14 @@ def test_ledger_steps_returns_kind_diff_checked_for_an_open_diff_checked_step():
 
 
 
+def test_4709_a_repin_step_leading_with_repin_step_has_kind_diff_checked():
+    ledger = importlib.import_module("veri.ledger")
+
+    line = "- [ ] " + ledger.REPIN_STEP + "a.py so its recorded mutation turns it red ⟦added⟧ ⟦criterion 2⟧\n"
+
+    assert [(step.kind, step.criterion) for step in ledger.ledger_steps(line)] == [("diff-checked", "2")]
+
+
 def test_4472_a_diff_checked_step_verify_branch_appended_keeps_its_kind_past_the_branch_repair_mark():
     ledger = importlib.import_module("veri.ledger")
 
