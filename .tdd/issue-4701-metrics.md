@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 4701
 
-Wall time for the issue: 4670 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
+Wall time for the issue: 3596 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: unknown of 8 planned.
 Outcome: the run bailed — unpinnable-missing, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $11.69 over 214 turns, in 6 sessions, on opus (estimate).
+Conductor own spending: $14.02 over 263 turns, in 7 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 84914 tokens, largest 106587 tokens
 Conductor context: first turn 107693 tokens, largest 117690 tokens
@@ -31,6 +31,11 @@ Conductor context: first turn 108617 tokens, largest 109555 tokens
 Conductor context: first turn 110073 tokens, largest 110719 tokens
 Conductor context: first turn 111262 tokens, largest 112040 tokens
 Conductor context: first turn 112726 tokens, largest 116043 tokens
+Conductor context: first turn 85110 tokens, largest 115067 tokens
+Conductor context: first turn 115629 tokens, largest 115629 tokens
+Conductor context: first turn 39271 tokens, largest 40686 tokens
+Conductor context: first turn 41433 tokens, largest 43322 tokens
+Conductor context: first turn 44137 tokens, largest 78320 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -234,15 +239,61 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 195 | $0.03 | 111262 |
 | 196 | $0.03 | 111539 |
 | 197 | $0.03 | 112040 |
-| 198 | $0.03 | 112726 |
-| 199 | $0.03 | 113733 |
-| 200 | $0.03 | 114212 |
-| 201 | $0.03 | 115405 |
-| 202 | $0.03 | 116043 |
-| 203 | $0.18 | 40783 |
-| 204 | $0.01 | 41258 |
-| 205 | $0.06 | 48214 |
-| 206 | $0.01 | 48715 |
+| 198 | $0.04 | 112726 |
+| 199 | $0.05 | 113733 |
+| 200 | $0.04 | 114212 |
+| 201 | $0.05 | 115405 |
+| 202 | $0.05 | 116043 |
+| 203 | $0.20 | 40783 |
+| 204 | $0.02 | 41258 |
+| 205 | $0.08 | 48214 |
+| 206 | $0.03 | 48715 |
+| 207 | $0.03 | 49115 |
+| 208 | $0.03 | 49486 |
+| 209 | $0.55 | 85110 |
+| 210 | $0.03 | 86052 |
+| 211 | $0.03 | 87403 |
+| 212 | $0.04 | 88956 |
+| 213 | $0.03 | 89507 |
+| 214 | $0.05 | 93134 |
+| 215 | $0.07 | 98589 |
+| 216 | $0.04 | 100077 |
+| 217 | $0.03 | 100565 |
+| 218 | $0.03 | 101108 |
+| 219 | $0.03 | 102687 |
+| 220 | $0.08 | 108441 |
+| 221 | $0.04 | 110098 |
+| 222 | $0.03 | 110622 |
+| 223 | $0.05 | 113943 |
+| 224 | $0.04 | 114743 |
+| 225 | $0.03 | 115067 |
+| 226 | $0.05 | 115629 |
+| 227 | $0.16 | 34526 |
+| 228 | $0.03 | 35082 |
+| 229 | $0.06 | 38251 |
+| 230 | $0.03 | 38599 |
+| 231 | $0.02 | 39271 |
+| 232 | $0.02 | 39899 |
+| 233 | $0.02 | 40686 |
+| 234 | $0.02 | 41433 |
+| 235 | $0.02 | 42064 |
+| 236 | $0.02 | 42823 |
+| 237 | $0.01 | 43322 |
+| 238 | $0.02 | 44137 |
+| 239 | $0.02 | 45128 |
+| 240 | $0.02 | 45953 |
+| 241 | $0.09 | 56621 |
+| 242 | $0.02 | 57109 |
+| 243 | $0.03 | 59375 |
+| 244 | $0.03 | 61248 |
+| 245 | $0.03 | 63023 |
+| 246 | $0.02 | 64205 |
+| 247 | $0.02 | 65005 |
+| 248 | $0.02 | 65680 |
+| 249 | $0.02 | 66372 |
+| 250 | $0.04 | 69525 |
+| 251 | $0.02 | 70867 |
+| 252 | $0.07 | 78320 |
 
 #### Conductor comments, by family
 
@@ -267,11 +318,11 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 156 | 9.86 |
+| between | 202 | 12.19 |
 | preflight | 5 | 0.16 |
 | plan | 1 | 0.05 |
 | verify-green | 27 | 1.05 |
-| untimed | 8 | 0.00 |
+| untimed | 11 | 0.00 |
 | verify-red | 1 | 0.02 |
 | develop-green | 10 | 0.35 |
 | develop-exhausted | 6 | 0.20 |
@@ -282,11 +333,11 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 6 | 5 | 1 | 0 | 89 | 71 | 13 | 26 | 8765 | 213235 | 174468 | 0.55 |
-| red | 12 | 6 | 1 | 0 | 1112 | 221 | 69 | 134 | 27614 | 1564127 | 275697 | 1.24 |
-| green | 26 | 0 | 11 | 0 | 13456 | 591 | 161 | 320 | 69359 | 3563629 | 774749 | 3.66 |
-| red-missing | 3 | 0 | 0 | 0 | 166 | 69 | 20 | 40 | 9540 | 617354 | 118309 | 0.45 |
-| pin | 2 | 0 | 2 | 0 | 87 | 25 | 9 | 18 | 3230 | 166990 | 36519 | 0.14 |
+| plan | 7 | 6 | 1 | 0 | 102 | 82 | 14 | 28 | 10040 | 213235 | 203925 | 0.63 |
+| red | 14 | 7 | 1 | 0 | 1257 | 259 | 81 | 156 | 32239 | 1822542 | 325456 | 1.44 |
+| green | 29 | 0 | 12 | 0 | 14564 | 641 | 174 | 346 | 75718 | 3844339 | 853662 | 3.95 |
+| red-missing | 4 | 0 | 0 | 0 | 242 | 102 | 25 | 50 | 13522 | 734673 | 146887 | 0.58 |
+| pin | 3 | 0 | 3 | 0 | 109 | 40 | 12 | 24 | 4601 | 216471 | 54049 | 0.20 |
 | exhausted | 3 | 0 | 0 | 0 | 52 | 45 | 7 | 14 | 4297 | 76891 | 63518 | 0.42 |
 | red-repair | 1 | 0 | 0 | 0 | 84 | 40 | 10 | 20 | 5204 | 293516 | 34440 | 0.17 |
 
@@ -296,15 +347,15 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | red | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
-| green | 11 | 0 | 0 | 0 | 11 | 0 | 0 |
-| pin | 2 | 0 | 0 | 0 | 2 | 0 | 0 |
+| green | 12 | 0 | 0 | 0 | 12 | 0 | 0 |
+| pin | 3 | 0 | 0 | 0 | 3 | 0 | 0 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 28 | 11 | 15 | 0 | 11373 | 363 | 111 | 218 | 44061 | 1951011 | 686820 | 2.35 |
-| developer | claude-sonnet-5-5 | 17 | 0 | 0 | 0 | 2970 | 509 | 136 | 270 | 63616 | 3649080 | 578577 | 2.78 |
+| verifier | claude-sonnet-5-5 | 33 | 13 | 17 | 0 | 12427 | 419 | 125 | 244 | 50214 | 2141263 | 801371 | 2.72 |
+| developer | claude-sonnet-5-5 | 20 | 0 | 0 | 0 | 3280 | 600 | 156 | 310 | 75075 | 4164753 | 668263 | 3.18 |
 | developer | claude-opus-5-5 | 8 | 0 | 0 | 0 | 703 | 190 | 42 | 84 | 20332 | 895651 | 212303 | 1.49 |
 
 #### Revise-green, by model
@@ -319,10 +370,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 1112 | 1.24 |
-| green | 0 | 0.00 | 13456 | 3.66 |
-| red-missing | 0 | 0.00 | 166 | 0.45 |
-| pin | 0 | 0.00 | 87 | 0.14 |
+| red | 0 | 0.00 | 1257 | 1.44 |
+| green | 0 | 0.00 | 14564 | 3.95 |
+| red-missing | 0 | 0.00 | 242 | 0.58 |
+| pin | 0 | 0.00 | 109 | 0.20 |
 | exhausted | 0 | 0.00 | 52 | 0.42 |
 | red-repair | 0 | 0.00 | 84 | 0.17 |
 
@@ -333,33 +384,34 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | pin-recheck.sh re-records a mutation pin whose recorded old text is in no file of the repo when its changed lines (the record's old and new text less the lines they share at the start and at the end) occur at exactly one site of its recorded file at HEAD and its recorded command goes red with that same change applied there: the pin's record in its `.tdd/issue-<n>-mutations.md` is rewritten against that site (same mutation, new old text and context), no `not checked` line is printed for it, and the run exits 0 with the `.tdd/pin-recheck-ok` receipt written ⟦criterion 1⟧ | 15 | 2 | 5 | 0 | 0 | 0 | 329 | 89 | 178 | 41323 | 1952730 | 423195 | 1.96 | unknown | 2/2 | unknown | unknown |  | exhausted | full |
 | pin-recheck.sh rewrites, in its `.tdd/issue-<n>-mutations.md`, only the record of a pin whose recorded old text is in no file of the repo and whose changed lines occur at exactly one site of its recorded file at HEAD. The rewrite keeps the same mutation and gives it new old text and context. Every other record in that ledger stays byte-for-byte unchanged, including another pin on the same file. No `not checked` line is printed for that pin, and the run exits 0 with `.tdd/pin-recheck-ok` written. ⟦criterion 1⟧ | 12 | 2 | 3 | 0 | 0 | 0 | 283 | 73 | 142 | 31604 | 1788246 | 355601 | 1.70 | unknown | 2/2 | unknown | unknown |  | exhausted | full |
 | pin-recheck.sh re-records a pin whose recorded old text is in no file of the repo when its changed lines (old and new text of the same line count) occur at exactly one site of its recorded file at HEAD, its recorded command goes red with the change applied there and passes with the file restored: only that pin's record in `.tdd/issue-<n>-mutations.md` is rewritten (same mutation, new old text and context), every other record, another pin on the same file included, stays byte-for-byte unchanged, no `not checked` line is printed for it, `.tdd/pin-recheck-ok` is written and it exits 0. This step adds only that path; each refusal below arrives with its own step and case. ⟦criterion 1⟧ | 20 | 2 | 6 | 0 | 2 | 0 | 379 | 114 | 226 | 46317 | 2541531 | 524436 | 2.42 | unknown | green 2/2,  0/?, red 1/2 | unknown | unknown |  |  | full |
+| pin-recheck.sh re-records a pin whose recorded old text is in no file of the repo when its changed lines (old and new text of the same line count) occur in its recorded file at HEAD, the change applied at the first site they occur, its recorded command goes red with the change applied there and passes with the file restored: only that pin's record in `.tdd/issue-<n>-mutations.md` is rewritten (same mutation, new old text and context), every other record, another pin on the same file included, stays byte-for-byte unchanged, no `not checked` line is printed for it, `.tdd/pin-recheck-ok` is written and it exits 0. This step adds only that path; each refusal below arrives with its own step and case. Its green adds no guard on the site count, the line count or an empty change: steps 4, 6 and 7 add those, each red first. ⟦criterion 1⟧ | 7 | 1 | 2 | 0 | 0 | 0 | 136 | 33 | 64 | 16337 | 705925 | 174780 | 0.67 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER, VERI_MODEL_REVISE and VERI_MODEL_REVISE_GREEN.
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| changed | 24 | 26 | 22 | 21 | 5 | 5 | 4 | 34 | 34 | 34 | 34 | 34 | 5 | 34 | 34 | 34 | 34 | 34 | 35 | 0 | 34 | 34 | 34 | 35 | 35 | 5 | 5 | 21 | 22 | 22 | 21 | 24 | 89 | 22 | 59 | 41 | 73 | 18 | 73 | 108 | 34 | 35 | 32 | 4 | 5 |
-| fast | 84 | 71 | 109 | 64 | 90 | 88 | 88 | 89 | 90 | 90 | 90 | 93 | 88 | 89 | 92 | 64 | 64 | 70 | 73 | 107 | 140 | 90 | 76 | 91 | 90 | 97 | 91 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 5 | 21 | 46 | 34 | 4 | 4 | 4 | 4 | 4 | 5 | 208 | 6 | 88 | 4 | 6 | 5 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| changed | 24 | 26 | 22 | 21 | 5 | 5 | 4 | 34 | 34 | 34 | 34 | 34 | 5 | 34 | 34 | 34 | 34 | 34 | 35 | 0 | 34 | 34 | 34 | 35 | 35 | 5 | 5 | 21 | 22 | 22 | 21 | 24 | 89 | 22 | 59 | 41 | 73 | 18 | 73 | 108 | 34 | 35 | 32 | 4 | 5 | 5 | 4 | 35 | 35 | 34 |
+| fast | 84 | 71 | 109 | 64 | 90 | 88 | 88 | 89 | 90 | 90 | 90 | 93 | 88 | 89 | 92 | 64 | 64 | 70 | 73 | 107 | 140 | 90 | 76 | 91 | 90 | 97 | 91 | 94 | 93 | 92 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 5 | 21 | 46 | 34 | 4 | 4 | 4 | 4 | 4 | 5 | 208 | 6 | 88 | 4 | 6 | 5 | 4 | 4 | 9 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Stages
 
 | stage | runs | ok | failed | no answer | nothing | unended | wall s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| preflight | 6 | 5 | 1 | 0 | 0 | 0 | 978 |
-| baseline | 6 | 5 | 1 | 0 | 0 | 0 | 542 |
+| preflight | 7 | 5 | 2 | 0 | 0 | 0 | 1170 |
+| baseline | 8 | 6 | 2 | 0 | 0 | 0 | 748 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 4 |
-| push | 10 | 9 | 1 | 0 | 0 | 0 | 21 |
+| push | 13 | 11 | 2 | 0 | 0 | 0 | 29 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 3 |
-| rebase | 5 | 3 | 0 | 0 | 2 | 0 | 16 |
+| rebase | 7 | 4 | 0 | 0 | 3 | 0 | 23 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 289 | 572 | 128009 | 6495742 | 1477700 | 18.32 (estimate) |
+| total | 323 | 638 | 145621 | 7201667 | 1681937 | 21.40 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
@@ -378,14 +430,15 @@ Not counted: the CI wait after readying and `pr-finish.sh`, which run after this
 | pin-recheck.sh re-records a pin whose recorded old text is in no file of the repo when its changed lines (old and new text of the same line count) occur at exactly one site of its recorded file at HEAD, its recorded command goes red with the change applied there and passes with the file restored: only that pin's record in `.tdd/issue-<n>-mutations.md` is rewritten (same mutation, new old text and context), every other record, another pin on the same file included, stays byte-for-byte unchanged, no `not checked` line is printed for it, `.tdd/pin-recheck-ok` is written and it exits 0. This step adds only that path; each refusal below arrives with its own step and case. ⟦criterion 1⟧ | 1 | revise | 4 | MISSING_TEST: none (the guards below are outside this step's criterion, so they should be removed rather than tested) |
 | pin-recheck.sh re-records a pin whose recorded old text is in no file of the repo when its changed lines (old and new text of the same line count) occur at exactly one site of its recorded file at HEAD, its recorded command goes red with the change applied there and passes with the file restored: only that pin's record in `.tdd/issue-<n>-mutations.md` is rewritten (same mutation, new old text and context), every other record, another pin on the same file included, stays byte-for-byte unchanged, no `not checked` line is printed for it, `.tdd/pin-recheck-ok` is written and it exits 0. This step adds only that path; each refusal below arrives with its own step and case. ⟦criterion 1⟧ | 1 | bail | 4 | Check 4 fails: no test requires these two guards in `re_record` in `skills/tdd/scripts/veri/pin_recheck.py`. (1) The `if fields else None` guard in `record = mutation_record.records(raw)[0] if fields else None`: replacing it with `if raw` left every suite green. (2) The `record.get("file") == pin["file"]` and `record.get("new") == pin["new"]` conditions: removing both left every suite green. Remove them, or have a later step's test require them. |
 | pin-recheck.sh re-records a pin whose recorded old text is in no file of the repo when its changed lines (old and new text of the same line count) occur at exactly one site of its recorded file at HEAD, its recorded command goes red with the change applied there and passes with the file restored: only that pin's record in `.tdd/issue-<n>-mutations.md` is rewritten (same mutation, new old text and context), every other record, another pin on the same file included, stays byte-for-byte unchanged, no `not checked` line is printed for it, `.tdd/pin-recheck-ok` is written and it exits 0. This step adds only that path; each refusal below arrives with its own step and case. ⟦criterion 1⟧ | 1 | missing | 4 | MISSING_TEST: a pin whose changed lines occur at more than one site of its recorded file at HEAD is not re-recorded, and it prints `not checked: <file> (old text in no file of the repo)` and exits 1 |
+| pin-recheck.sh re-records a pin whose recorded old text is in no file of the repo when its changed lines (old and new text of the same line count) occur in its recorded file at HEAD, the change applied at the first site they occur, its recorded command goes red with the change applied there and passes with the file restored: only that pin's record in `.tdd/issue-<n>-mutations.md` is rewritten (same mutation, new old text and context), every other record, another pin on the same file included, stays byte-for-byte unchanged, no `not checked` line is printed for it, `.tdd/pin-recheck-ok` is written and it exits 0. This step adds only that path; each refusal below arrives with its own step and case. Its green adds no guard on the site count, the line count or an empty change: steps 4, 6 and 7 add those, each red first. ⟦criterion 1⟧ | 1 | missing | 4 | MISSING_TEST: a pin whose old text moved whole to exactly one other file, with its changed lines also at one site of its recorded file, is still replayed and not re-recorded (the `not moved` guard) |
 
-Green rejects by route: revise 6, bail 3, missing 2
-Green rejects by check: 2 1, 4 10, unnamed 0
+Green rejects by route: revise 6, bail 3, missing 3
+Green rejects by check: 2 1, 4 11, unnamed 0
 
 #### Launch cost, by role
 
 | role | model | leaves | first-turn cache creation | first-turn cache read | first-turn input |
 | --- | --- | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 26 | 401914 | 188864 | 52 |
-| developer | claude-sonnet-5-5 | 15 | 276599 | 89880 | 30 |
+| verifier | claude-sonnet-5-5 | 30 | 482218 | 200848 | 60 |
+| developer | claude-sonnet-5-5 | 18 | 324072 | 106870 | 36 |
 | developer | claude-opus-5-5 | 10 | 205411 | 0 | 20 |
