@@ -8,7 +8,7 @@ import fused
 import fused_step
 import run_dir
 import tunables
-from ledger import STEP_RE, added_file, carries_mark, read_ledger
+from ledger import STEP_RE, added_file, has_kind, read_ledger
 
 LEAF = "verdict-branch"
 OWNER = "verify-branch"
@@ -57,7 +57,7 @@ def main(argv):
 def repair(n, wt):
     ledger = run_dir.ledger(wt, n)
     steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
-    if sum(carries_mark(line, "branch-repair") for line in steps) >= int(tunables.get("VERI_BRANCH_REPAIRS")):
+    if sum(has_kind(line, "⟦branch-repair⟧") for line in steps) >= int(tunables.get("VERI_BRANCH_REPAIRS")):
         fused.call(fused.script("bail.sh"), n, "branch-rejected", "verify-branch", "--note-file",
                    REASON, cwd=wt)
         return 1

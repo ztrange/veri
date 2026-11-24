@@ -8,7 +8,7 @@ import case_reader
 import fused
 import fused_step
 import run_dir
-from ledger import REPIN_STEP, handed_out
+from ledger import REPIN_STEP, handed_out, has_kind
 
 NAME = "diff-step"
 USAGE = "usage: diff-step.sh <n>"
@@ -46,7 +46,7 @@ def run(n):
         code = fused.wait(wt, n, NAME, "verdict-diff", rejected_step=step)
         if code != 0:
             raise fused.Stop("verify", "wait-leaf.sh verdict-diff exit %d" % code, code)
-    if "⟦test-quality⟧" in step:
+    if has_kind(step, "⟦test-quality⟧"):
         flip(n, wt, step, values)
     return finish(n, wt, step, values)
 

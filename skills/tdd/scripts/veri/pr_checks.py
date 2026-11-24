@@ -9,6 +9,7 @@ import fused
 import fused_step
 import run_dir
 import tunables
+from ledger import has_kind
 
 NAME = "pr-checks"
 USAGE = "usage: pr-checks.sh <n>"
@@ -194,7 +195,7 @@ def owes_fix(record, ledger):
     """Whether the recorded findings still owe a ⟦test-quality⟧ step: a weak-assertion or implementation-coupled
     finding whose <file>::<case> no such step of the ledger names, while VERI_TEST_QUALITY_FIXES exceeds the steps the
     ledger already holds."""
-    steps = [line for line in ledger.splitlines() if "⟦test-quality⟧" in line]
+    steps = [line for line in ledger.splitlines() if has_kind(line, "⟦test-quality⟧")]
     unfixed = [fields[1] for fields in (line.split(" | ", 2) for line in record.splitlines())
                if len(fields) == 3 and fields[0] in ("weak-assertion", "implementation-coupled")
                and not any(fields[1] in step for step in steps)]
