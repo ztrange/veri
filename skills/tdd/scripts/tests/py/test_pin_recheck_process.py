@@ -3839,3 +3839,29 @@ def test_4710_a_pin_whose_old_text_is_in_more_than_one_file_of_the_repo_needs_a_
 
     assert (ran.returncode, "needs a look: x.go (old text in more than one file of the repo)\n" in ran.stdout,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, True), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a mutation pin green under its mutation at HEAD and red on the base")
+def test_4710_a_mutation_pin_green_under_its_mutation_at_head_and_red_on_the_base_needs_a_look_and_exits_0(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c \"grep -q 'if guard' guard.txt || grep -q safe guard.txt\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nsafe\n")
+    git("commit", "-q", "-am", "later commit makes the test pass with the guard reverted")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "needs a look: guard.txt (pin stayed green under its mutation)\n" in ran.stdout,
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, True), ran.stdout + ran.stderr

@@ -338,8 +338,8 @@ def replay(pin, ledger, looks, branch_base, base_sha):
         if on_base:
             sys.stdout.write(f"stale: {ledger} {pin['file']}\n")
             return 0
-        sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
-        return 1
+        needs_a_look(looks, pin["file"], "pin stayed green under its mutation")
+        return 0
     seen.parent.mkdir(parents=True, exist_ok=True)
     seen.touch()
     return 0
