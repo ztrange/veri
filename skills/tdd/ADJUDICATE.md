@@ -25,6 +25,24 @@ the first three already have a budget of their own (`VERI_STUCK_RETRIES`,
 `VERI_NO_VERDICT_RETRIES`), a kill from outside is the operator's word, and a refused
 preflight has spent nothing to judge. Any other exit 2 bails as before.
 
+### Waivable rules
+
+A few rules may be waived once per run, for one step, when the adjudicator answers `deviate`
+(ADR-0037). This list is read by a script: one bullet per rule, `` - `<rule-id>`: `` then the
+bail cause that names it, backticked, then its purpose and its resume action.
+
+- `graded-edit`: `graded-edit-outside-skill-edit` — purpose: only a `⟦skill-edit⟧` step signs a
+  graded unit, so no graded prose lands without a grade. Resume action: keep the step's commit
+  and append, through `add-ledger-step.sh`, one `⟦added⟧` `⟦skill-edit⟧` step naming each unit
+  `graded-changed.sh` printed (it counts against `VERI_STEP_GROWTH_PERCENT`), then go on from
+  the refusing step's next sub-step. An `add-ledger-step.sh` refusal bails with the original
+  cause.
+
+A rule absent from this list is never waived, whatever the adjudicator answers. These are never
+waivable: the blind verifier's inputs, a verify-green or verify-refactor REJECT of production
+code, exit-code semantics, `supervise.sh`, the committed ledger, the skill snapshot pin, a
+missing or obsolete target, and a real spec gap.
+
 ### Procedure
 
 Run it in order, at the site where the eligible exit 2 came back.

@@ -33,14 +33,18 @@ def main(argv):
         return 0 if spent < int(budget()) else 3
     if len(argv) == 4 and argv[0] == "record":
         parsed = parse_adjudication.parse(argv[3], argv[2])
-        code = 2 if parsed is None else 0
-        outcome, reason = ("unparsed", "no ADJUDICATION line") if parsed is None else parsed
+        if parsed is not None and parsed[0] == "deviate" and parse_adjudication.waivable_rule(argv[2]) is None:
+            parsed = ("unparsed", "deviate for a cause no waivable rule names")
+        elif parsed is None:
+            parsed = ("unparsed", "no ADJUDICATION line")
+        outcome, reason = parsed
+        code = 2 if outcome == "unparsed" else 0
         event.mark(".", event.context(tunables.with_values(VERI_ISSUE=argv[1])), "adjudicated",
                    ["cause=" + argv[2], "outcome=" + outcome.split()[0], "reason=" + reason])
         print(outcome)
         if code:
             return 2
-        return 0 if outcome == "retry" else 1
+        return {"retry": 0, "deviate": 4}.get(outcome, 1)
     print(USAGE, file=sys.stderr)
     return 2
 
