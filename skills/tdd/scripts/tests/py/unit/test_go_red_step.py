@@ -423,3 +423,59 @@ def test_4719_a_bare_pytest_case_name_is_not_probed_through_a_test_py_file_defin
 
     assert code == 0, err
     assert fake.call("mutation-probe.sh")[1][-1] == "tests/test_chart.py"
+
+
+def test_4719_a_node_test_case_title_defined_by_no_test_file_stops_at_probe_with_exit_2_naming_it_probing_nothing(
+        go_red):
+    title = "no component inlines the label-thinning formula"
+    (go_red.wt / "site" / "test").mkdir(parents=True)
+    (go_red.wt / "site" / "test" / "axis.test.mjs").write_text(
+        "import { test } from \"node:test\";\n\ntest(\"thins the axis labels\", () => {\n});\n")
+    step = STEP.replace(CASE, title)
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 2, out
+    assert title in err
+    assert "mutation-probe.sh" not in fake.names()
+    assert out.splitlines()[-1].startswith("stopped at probe ")
+
+
+def test_4719_a_test_mjs_file_whose_near_miss_test_call_opens_and_closes_with_different_quotes_or_is_another_name_is_not_a_defining_file(
+        go_red):
+    title = "no component inlines the label-thinning formula"
+    (go_red.wt / "site" / "test").mkdir(parents=True)
+    (go_red.wt / "site" / "test" / "quotes.test.mjs").write_text(
+        "import { test } from \"node:test\";\n\ntest('%s\" and its quote', () => {\n});\n" % title)
+    (go_red.wt / "site" / "test" / "helper.test.mjs").write_text(
+        "import { test } from \"node:test\";\n\nmytest(\"%s\", () => {\n});\n" % title)
+    (go_red.wt / "site" / "test" / "chart-geometry.test.mjs").write_text(
+        "import { test } from \"node:test\";\n\ntest(\"%s\", () => {\n});\n" % title)
+    step = STEP.replace(CASE, title)
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "site/test/chart-geometry.test.mjs"
+
+
+def test_4719_a_test_py_file_naming_the_case_only_after_a_longer_word_ending_in_def_is_not_a_defining_file(go_red):
+    (go_red.wt / "tests").mkdir()
+    (go_red.wt / "tests" / "test_axis.py").write_text("# undef test_thins_labels when the axis is hidden\n")
+    (go_red.wt / "tests" / "test_chart.py").write_text("def test_thins_labels():\n    pass\n")
+    step = STEP.replace(CASE, "test_thins_labels")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "tests/test_chart.py"
+
+
+def test_4719_a_case_id_with_a_double_colon_and_a_parameter_holding_a_space_is_passed_unchanged_never_stopped(go_red):
+    case = "tests/test_chart.py::test_thins_labels[two words]"
+    step = STEP.replace(CASE, case)
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == case
