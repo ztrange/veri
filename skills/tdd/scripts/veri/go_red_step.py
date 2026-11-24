@@ -85,7 +85,9 @@ def defining_file(wt, case):
     """The repo-relative path of the one test file under the worktree, outside `.git` and `.tdd`, defining <case>: a
     Go test file (`*_test.go`) holding `func <case>` as a whole name, a node test file (`*.test.mjs`) holding
     `test(` with <case> as its whole quoted first argument, or a Python test file (`test_*.py`) holding `def <case>` as
-    a whole name; else stops at probe (exit 2). A file that cannot be read is skipped."""
+    a whole name. A <case> no such file defines passes unchanged when it is a `<file>::<name>` id, or neither a bare
+    name nor a title holding whitespace; otherwise, or when several files define it, it stops at probe (exit 2). A file
+    that cannot be read is skipped."""
     if os.path.exists(os.path.join(wt, case)):
         return case
     patterns = {"*_test.go": re.compile(r"\bfunc\s+" + re.escape(case) + r"(?!\w)"),
@@ -111,7 +113,7 @@ def defining_file(wt, case):
     if found:
         sys.stderr.write("go-red-step.sh: the case %s is defined by more than one test file: %s\n" % (case, ", ".join(found)))
         raise fused.Stop("probe", "%d test files define %s" % (len(found), case), 2)
-    if not re.fullmatch(r"\w+", case):
+    if "::" in case or not (re.fullmatch(r"\w+", case) or re.search(r"\s", case)):
         return case
     sys.stderr.write("go-red-step.sh: no test file under the worktree defines the case %s\n" % case)
     raise fused.Stop("probe", "no test file defines %s" % case, 2)
