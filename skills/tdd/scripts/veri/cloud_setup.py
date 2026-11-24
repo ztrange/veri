@@ -18,6 +18,9 @@ USAGE = "usage: cloud-setup.sh"
 
 
 def main(argv):
+    refused = entry.no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     if os.environ.get("CLAUDE_CODE_REMOTE") != "true":
         return 0
     venv = tunables.venv_dir()
@@ -102,7 +105,7 @@ def _install(python, venv):
     """Create the environment at venv with python when it has no bin/python3, then run veri's make install-dev into it."""
     if not os.path.exists(os.path.join(venv, "bin", "python3")):
         subprocess.run([python, "-m", "venv", venv], check=True)
-    subprocess.run(["make", "-C", ROOT, "install-dev"], env=dict(os.environ, VERI_VENV=venv), check=True)
+    subprocess.run(["make", "-C", ROOT, "install-dev"], env=tunables.with_values(VERI_VENV=venv), check=True)
 
 
 if __name__ == "__main__":

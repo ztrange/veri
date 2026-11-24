@@ -29,6 +29,8 @@ NOT_A_LEAFS_INPUT = {
     "OFFLINE_REAL_GIT": "set by the Makefile for the make it nests; unset, the recipe finds git itself",
     "BASH_VERSION": "a shell variable bash sets, not an environment input",
     "BASH_VERSINFO": "a shell variable bash sets, not an environment input",
+    "CLAUDE_CODE_REMOTE": "read by cloud_setup, which only a cloud session's SessionStart hook runs, never a leaf",
+    "CLAUDE_ENV_FILE": "read by cloud_setup, which only a cloud session's SessionStart hook runs, never a leaf",
 }
 
 
