@@ -224,7 +224,7 @@ def classify(ledger, pin, deleted, declared):
     return Outcome(kind, named, gone, command=command)
 
 
-def replay_before_state(pin, ledger, named, base, branch_base):
+def replay_before_state(pin, ledger, named, base, branch_base, looks):
     """Replay a before-pin on the range, then on the base; 0 nothing to count, 1 a red status, 2 no answer."""
     green, names = replay_names(pin, ledger)
     span = (green, present_in_range(names, base))
@@ -238,8 +238,7 @@ def replay_before_state(pin, ledger, named, base, branch_base):
         if on_base == 0:
             sys.stdout.write(f"stale: {ledger} {(named[0].split('::')[0] if named else pin['keep'])}\n")
         else:
-            sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
-            return 1
+            needs_a_look(looks, named[0].split("::")[0] if named else pin["keep"], "pin stayed green on the before-state")
     return 0
 
 
@@ -406,7 +405,7 @@ def recheck(argv, looks):
             retired += 1
             continue
         if outcome.kind is Kind.REPLAY_BEFORE:
-            code = replay_before_state(pin, ledger, outcome.named, argv[0], branch_base)
+            code = replay_before_state(pin, ledger, outcome.named, argv[0], branch_base, looks)
         else:
             code = replay(pin, ledger, looks, branch_base, argv[0])
         if code == 2:

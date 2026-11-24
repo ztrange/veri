@@ -3865,3 +3865,29 @@ def test_4710_a_mutation_pin_green_under_its_mutation_at_head_and_red_on_the_bas
 
     assert (ran.returncode, "needs a look: guard.txt (pin stayed green under its mutation)\n" in ran.stdout,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, True), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before-state pin green at HEAD and red on the range's base")
+def test_4710_a_before_state_pin_green_at_head_and_red_on_the_base_needs_a_look_and_exits_0_with_the_receipt(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    main_disarmed_on_base(git, tmp_path)
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("commit", "-q", "-am", "fix and pin")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4710-mutations.md", before=base, keep="pin.txt",
+           command="grep -q old src.txt && test ! -e marker.txt")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "needs a look: pin.txt (pin stayed green on the before-state)\n" in ran.stdout,
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, True), ran.stdout + ran.stderr
