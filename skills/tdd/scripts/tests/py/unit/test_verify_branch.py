@@ -442,3 +442,27 @@ def test_4709_a_step_only_quoting_branch_repair_in_its_prose_does_not_count_towa
     monkeypatch.setattr(fused, "run_script", lambda *a, **kw: (0, "", ""))
     run_cli(verify_branch, ["12"], cwd=str(tmp_path))
     assert "bail.sh" not in calls
+
+
+def test_4707_a_reject_whose_reason_holds_a_missing_test_line_appends_a_branch_repair_step_without_diff_checked(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (wt / ".tdd" / "verify-branch.reason").write_text(
+        "criterion 3 has no case\nMISSING_TEST: a gear meshes\nVERDICT: REJECT\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    (wt / ".tdd" / "issue-12.md").write_text("- [x] a gear meshes ⟦criterion 1⟧\n")
+    monkeypatch.delenv("VERI_BRANCH_REPAIRS", raising=False)
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: None)
+    monkeypatch.setattr(fused, "call", lambda name, *a, **kw: (
+        (1, "", "") if name.endswith("wait-leaf.sh") else (0, "", "")))
+    monkeypatch.setattr(fused, "run_script",
+                        lambda name, *a, **kw: (1, "", "") if name.endswith("wait-leaf.sh") else (0, "", ""))
+    run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    repairs = [l for l in (wt / ".tdd" / "issue-12.md").read_text().split("\n") if "⟦branch-repair⟧" in l]
+    assert [("⟦diff-checked⟧" in l) for l in repairs] == [False]
