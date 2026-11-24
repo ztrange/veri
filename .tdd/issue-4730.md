@@ -1,7 +1,7 @@
 # Plan for #4730 — PRD 043.2: the test freeze can be a recorded deviation at its first refusal
 
 - [x] `veri/event_table.py` allows `cause=tests-frozen-refused` on the `adjudicated` event, so under `VERI_EVENT_STRICT=1` `event.sh adjudicated cause=tests-frozen-refused …` is accepted (a case in `unit/test_event_table.py`) ⟦criterion 3⟧
-- [x] `veri/event_table.py` allows `rule=tests-frozen` on the `deviated` event (a case in `unit/test_event_table.py`) ⟦criterion 3⟧ ⟂ refactor pending
+- [x] `veri/event_table.py` allows `rule=tests-frozen` on the `deviated` event (a case in `unit/test_event_table.py`) ⟦criterion 3⟧
 - [ ] Under `VERI_EVENT_STRICT=1`, `event.sh deviated rule=nope step=1 reason=x` still exits 2, a rule no waivable rule names staying refused (a case in `unit/test_event_table.py`) ⟦criterion 3⟧
 - [ ] After `tests-frozen.sh record --step "<step>"` and an edit to a recorded test file, `tests-frozen.sh diff --step "<step>"` prints, exit 0, the unified diff from the content the record kept to the file's current content (a case in a new `unit/test_tests_frozen_diff.py`, in-process, no git) ⟦criterion 1⟧
 - [ ] `tests-frozen.sh diff --step "<step>"` also prints, exit 0, a unified diff for a test file outside the record that now differs from `HEAD`, the file `check --step` names as unrecorded (a case in `unit/test_tests_frozen_diff.py`) ⟦criterion 1⟧
