@@ -506,7 +506,8 @@ def probe_bypass(scratch):
         places += (", and permissions.ask and permissions.blockReadsOutsideWorkingDirectories, since Claude Code "
                    f"refused or asked on {PROBE_FILES[2]}'s command, which it could not statically analyze")
     return "bypassPermissions", (
-        f"denied tools: {said}; nonce files missing or wrong: {', '.join(missing) or 'none'}; look in {places}")
+        f"denied tools: {said}; nonce files missing or wrong: {', '.join(missing) or 'none'}; "
+        f"claude printed: {ran.stderr.strip()}; look in {places}")
 
 
 SETTINGS_FILES = ("~/.claude/settings.json", ".claude/settings.json", ".claude/settings.local.json")

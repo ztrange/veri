@@ -527,3 +527,22 @@ def test_issue_4200_bypass_permissions_row_under_a_uid_0_claude_writing_the_nonc
     monkeypatch.setenv("CLAUDE_BIN", stub)
 
     assert ready_check.bypass_permissions_row() == ("bypassPermissions", None)
+
+
+CLAUDE_ROOT_REFUSAL = """echo '--dangerously-skip-permissions cannot be used with root/sudo privileges' >&2
+exit 1
+"""
+
+
+@pytest.mark.process("a CLAUDE_BIN stub run as a subprocess by bypass_permissions_row, behaving as a claude running as uid 0 that refuses and writes nothing")
+def test_issue_4200_bypass_permissions_row_under_a_uid_0_claude_refusing_as_root_fails_with_the_line_it_printed(tmp_path, monkeypatch):
+    from veri import ready_check
+    stub = write_stub(str(tmp_path / "claude-root-refuses"), CLAUDE_ROOT_REFUSAL)
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    monkeypatch.setenv("CLAUDE_BIN", stub)
+
+    name, message = ready_check.bypass_permissions_row()
+
+    assert message is not None and "--dangerously-skip-permissions cannot be used with root/sudo privileges" in message, (name, message)
