@@ -1,0 +1,11 @@
+file 38
+skills/tdd/scripts/veri/event_table.py
+old-b64 44
+cnVsZTooZ3JhZGVkLWVkaXR8dGVzdHMtZnJvemVuKQ==
+new-b64 12
+cnVsZTp0ZXh0
+context-b64 100
+ICAgICJkZXZpYXRlZCI6ICJydWxlOihncmFkZWQtZWRpdHx0ZXN0cy1mcm96ZW4pIHN0ZXA6d2hvbGUgcmVhc29uOnRleHQiLA==
+command 145
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_table.py::test_4730_the_table_still_refuses_a_rule_no_waivable_rule_names_on_deviated
+
