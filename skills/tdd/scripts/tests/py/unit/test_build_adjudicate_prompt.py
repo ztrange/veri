@@ -194,3 +194,33 @@ def test_a_cause_listed_with_no_route_exits_0_its_prompt_carrying_routes_none(
     assert (code, err) == (0, "")
     assert f"Cause: {cause}\n" in out
     assert "Routes: none\n" in out
+
+
+def test_4712_a_waivable_cause_s_prompt_names_its_rule_states_its_purpose_and_allows_deviate(
+    run_cli, build_adjudicate_prompt, tmp_path
+):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "graded-changed.err"
+    stderr_file.write_text("skills/tdd/BAIL.md\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt,
+        ["7", "graded-edit-outside-skill-edit", "1", str(stderr_file), "graded-changed.sh", "abc1234"],
+        cwd=tmp_path,
+    )
+    assert (code, err) == (0, "")
+    assert "Rule: graded-edit\n" in out
+    assert "Purpose: only a `⟦skill-edit⟧` step signs a graded unit" in out
+    assert out.rstrip("\n").splitlines()[-1].startswith("End with one final line: ADJUDICATION: deviate|bail")
+
+
+def test_4712_ci_timeout_s_prompt_does_not_offer_deviate(run_cli, build_adjudicate_prompt, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "wait-ci.err"
+    stderr_file.write_text("still pending\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt, ["7", "ci-timeout", "2", str(stderr_file), "wait-ci.sh", "abc1234"], cwd=tmp_path
+    )
+    assert code == 0
+    assert "deviate" not in out
