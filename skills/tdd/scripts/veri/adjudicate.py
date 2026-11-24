@@ -8,19 +8,30 @@ import event_log
 import parse_adjudication
 import tunables
 
-USAGE = "usage: adjudicate.sh --check-budget | left <n> | record <n> <cause> <leaf-output>"
+USAGE = "usage: adjudicate.sh --check-budget | left <n> | deviation-left <n> | record <n> <cause> <leaf-output>"
 
 
-def budget():
-    return tunables.get("VERI_ADJUDICATE_BUDGET")
+def budget(knob="VERI_ADJUDICATE_BUDGET"):
+    return tunables.get(knob)
+
+
+def bad_budget(knob):
+    """Print the refusal and answer True when knob is not a non-negative whole number."""
+    if entry.whole_number(budget(knob), minimum=0) is None:
+        print(f"{knob} must be a non-negative whole number, got {budget(knob)!r}", file=sys.stderr)
+        return True
+    return False
 
 
 def main(argv):
     if argv == ["--check-budget"]:
-        if entry.whole_number(budget(), minimum=0) is None:
-            print(f"VERI_ADJUDICATE_BUDGET must be a non-negative whole number, got {budget()!r}", file=sys.stderr)
+        return 2 if bad_budget("VERI_ADJUDICATE_BUDGET") or bad_budget("VERI_DEVIATION_BUDGET") else 0
+    if len(argv) == 2 and argv[0] == "deviation-left":
+        if bad_budget("VERI_DEVIATION_BUDGET"):
             return 2
-        return 0
+        spent = sum(1 for e in event_log.read_events(event_log.path("."))
+                    if str(e.get("issue")) == argv[1] and e.get("event") == "deviated")
+        return 0 if spent < int(budget("VERI_DEVIATION_BUDGET")) else 3
     if len(argv) == 2 and argv[0] == "left":
         spent = 0
         for e in event_log.read_events(event_log.path(".")):
