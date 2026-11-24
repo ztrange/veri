@@ -560,3 +560,21 @@ def test_4709_a_kind_mark_quoted_in_the_prose_is_no_kind_and_one_in_the_trailing
 
     assert refused("appends a step carrying no `%s` mark ⟦criterion 1⟧" % mark) == []
     assert refused("does the thing %s ⟦criterion 1⟧" % mark) == [kind]
+
+
+MIXED_LEDGER = ("# Plan for #12\n\n"
+                "- [x] re-pin the moved case ⟦diff-checked⟧ ⟦criterion 1⟧\n"
+                "- [ ] appends a repair step carrying `⟦branch-repair⟧` and no `⟦diff-checked⟧` ⟦criterion 1⟧\n"
+                "- [ ] a plain step ⟦criterion 2⟧\n"
+                "- [ ] edit the fixture ⟦diff-checked⟧ ⟦criterion 2⟧\n"
+                "- [ ] names `⟦skill-edit⟧`, `⟦fixture-repair⟧` and `⟦phases: expand, migrate⟧` in passing ⟦criterion 3⟧\n"
+                "- [ ] another plain step ⟦criterion 3⟧\n")
+
+
+def test_4709_refused_and_ledger_steps_agree_on_every_steps_kind_in_a_ledger_mixing_quoted_and_trailing_marks():
+    red_half, ledger = importlib.import_module("veri.red_half"), importlib.import_module("veri.ledger")
+
+    for step in ledger.ledger_steps(MIXED_LEDGER):
+        kinds = red_half.refused(step.text)
+        assert ("⟦diff-checked⟧" in kinds) == (step.kind == "diff-checked"), step.text
+        assert [kind for kind in kinds if kind not in ledger.trailing_markers(step.text)] == [], step.text
