@@ -928,3 +928,13 @@ def test_4732_a_step_split_that_replaced_a_different_step_leaves_the_spent_count
         "".join(json.dumps(e) + "\n" for e in (mark, dict(mark, attempt="2"), split)))
 
     assert module.spent(str(tmp_path), STEP, "green") == 2
+
+
+def test_4732_two_revise_marks_with_no_step_split_after_them_still_count_two_toward_spent(tmp_path):
+    module = importlib.import_module("veri.revise")
+    (tmp_path / ".tdd").mkdir()
+    mark = {"event": "revise", "actor": "conductor", "step": STEP, "phase": "green", "attempt": "1", "budget": "2"}
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        "".join(json.dumps(e) + "\n" for e in (mark, dict(mark, attempt="2"))))
+
+    assert module.spent(str(tmp_path), STEP, "green") == 2
