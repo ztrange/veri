@@ -182,3 +182,9 @@ def test_4730_the_table_allows_rule_tests_frozen_on_deviated():
     from veri import event_table
 
     assert event_table.valid("deviated", "rule", "tests-frozen")
+
+
+def test_4730_the_table_still_refuses_a_rule_no_waivable_rule_names_on_deviated():
+    from veri import event_table
+
+    assert not event_table.valid("deviated", "rule", "nope")
