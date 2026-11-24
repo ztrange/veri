@@ -22,12 +22,12 @@ def main(argv):
                 data = json.load(text)
             except json.JSONDecodeError as exc:
                 return entry.refuse("cloud-install: " + settings + ": not valid JSON: " + str(exc))
-    os.makedirs(os.path.dirname(settings), exist_ok=True)
     groups = data.setdefault("hooks", {}).setdefault("SessionStart", [])
     if any(hook.get("command") == command for group in groups for hook in group.get("hooks", [])):
         print("already present in " + settings)
         return 0
     groups.append({"hooks": [{"type": "command", "command": command}]})
+    os.makedirs(os.path.dirname(settings), exist_ok=True)
     with open(settings, "w") as out:
         out.write(json.dumps(data, indent=2) + "\n")
     print("added the cloud SessionStart hook to " + settings)
