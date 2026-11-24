@@ -482,3 +482,14 @@ def test_4709_has_kind_reads_the_trailing_run_and_exactly_two_leading_forms(step
     ledger = importlib.import_module("veri.ledger")
 
     assert ledger.has_kind(step, mark) is expected
+
+
+def test_4712_a_deviation_line_is_an_unticked_human_owed_line_of_its_criterion_naming_its_rule():
+    ledger = importlib.import_module("veri.ledger")
+    line = ("deviated from graded-edit at step 3: added a ⟦skill-edit⟧ step — the criterion names the prose"
+            " ⟦human-owed⟧ ⟦deviation graded-edit⟧ ⟦criterion 2⟧")
+
+    steps = ledger.ledger_steps("- [ ] " + line + "\n")
+
+    assert [(step.state, step.kind, step.criterion) for step in steps] == [("open", "human-owed", "2")]
+    assert (ledger.deviation_rule(line), ledger.deviation_rule("x ⟦human-owed⟧ ⟦criterion 2⟧")) == ("graded-edit", None)
