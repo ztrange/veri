@@ -275,7 +275,7 @@ def items_at(rev, path):
 # One ledger step. A tuple, so it unpacks, compares and tab-joins as the plain 7-tuple always did; the flag fields
 # (pending, added) stay the strings "1"/"0" that ledger-steps.sh prints. `number` is the 1-based position among
 # step lines (named so it does not shadow tuple.index), `state` "open" or "done", `kind` "step", "full-suite",
-# "diff-checked" or "human-owed". `collections.namedtuple`, not typing.NamedTuple: typing costs ~3 ms of import
+# "diff-checked" (also a step starting REPIN_STEP, as red_half.refused reads it) or "human-owed". `collections.namedtuple`, not typing.NamedTuple: typing costs ~3 ms of import
 # every importer of this module would pay.
 Step = namedtuple("Step", "number state kind pending added criterion text")
 
@@ -300,7 +300,7 @@ def ledger_steps(text):
         records.append(Step(
             str(len(records) + 1),
             state,
-            kind.group(1) if kind else "human-owed" if is_human_owed(step) else "step",
+            kind.group(1) if kind else "diff-checked" if step.startswith(REPIN_STEP) else "human-owed" if is_human_owed(step) else "step",
             "1" if pending else "0",
             "1" if added else "0",
             criterion,
