@@ -32,7 +32,7 @@ def run(n):
         return 2
     settled, wt = given
     step = fused_step.first_step(wt, n, handed_out)
-    if step is None or KIND not in step:
+    if step is None or not has_kind(step, KIND):
         sys.stderr.write("diff-step.sh: no open %s step in %s\n" % (KIND, LEDGER % n))
         return 2
     resumed = fused.load_wait(wt, n, NAME)

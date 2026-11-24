@@ -14,7 +14,7 @@ import run_line
 import tunables
 from entry import write
 from prompt_template import IncludeRefused, expand_includes, fill, has_heading, read as _read, spec_text_of
-from ledger import INTERFACE_PHASES, carries_mark, ledger_steps, trailing_markers
+from ledger import INTERFACE_PHASES, carries_mark, has_kind, ledger_steps, trailing_markers
 from replaces_case import is_replaces_case_step
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround", "break")
@@ -272,8 +272,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         optional["LEGACY_PLAN"] = f"{prompts}/_verify-plan-legacy.md"
     trailing = trailing_markers(step_arg)
     for placeholder, mark in GREEN_PARAGRAPHS.items():
-        marked = is_replaces_case_step(step_arg) if mark == "replaces-case" else carries_mark(
-            trailing if mark in ("suite-repair", "ci-repair") else step_arg, mark)
+        marked = is_replaces_case_step(step_arg) if mark == "replaces-case" else has_kind(step_arg, f"⟦{mark}⟧")
         if phase == "green" and marked:
             optional[placeholder] = f"{prompts}/_verify-green-{mark}.md"
     if phase == "red" and fast_cmd:
