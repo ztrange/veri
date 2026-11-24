@@ -95,7 +95,7 @@ def step_of_total(text):
     records = ledger_steps(text)
     total = records[-1].number if records else "0"
     step = next((r.number for r in records if r.pending == "1"), None) \
-        or next((r.number for r in records if r.state == "open"), total)
+        or next((r.number for r in records if r.state == "open" and r.kind != "human-owed"), total)
     return "%s of %s" % (step, total)
 
 
