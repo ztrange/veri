@@ -27,4 +27,6 @@ command naming the case), so no go-red step is ticked without its probe.
 - **Exit 2** ticks nothing: no open `⟦go-red⟧` step, a step naming no probe, no `veri: one test file:` line,
   the case already red on the unmutated file, a probe or `detect-test-command.sh` exit 2, the file
   not restored, or any `step-tick.sh` exit but 0 (a stray file its tree check finds included):
-  plumbing, never the case staying green. Bail as a system failure.
+  plumbing, never the case staying green. Bail as a system failure; when the last line is
+  `stopped at probe no test file defines <case>` or `stopped at probe <k> test files define <case>`, with
+  `cause=go-red-probe-unresolvable`.
