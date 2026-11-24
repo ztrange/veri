@@ -372,3 +372,16 @@ def test_4626_a_test_file_that_only_calls_runs_or_mentions_the_case_is_not_a_def
 
     assert code == 0, err
     assert fake.call("mutation-probe.sh")[1][-1] == "pkg/foo_test.go"
+
+
+def test_4719_a_node_test_case_title_is_probed_through_the_test_mjs_file_whose_test_call_names_it(go_red):
+    title = "no component inlines the label-thinning formula"
+    (go_red.wt / "site" / "test").mkdir(parents=True)
+    (go_red.wt / "site" / "test" / "chart-geometry.test.mjs").write_text(
+        "import { test } from \"node:test\";\n\ntest(\"%s\", () => {\n});\n" % title)
+    step = STEP.replace(CASE, title)
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "site/test/chart-geometry.test.mjs"

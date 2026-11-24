@@ -81,16 +81,20 @@ def committed_case(wt, case):
 
 
 def defining_file(wt, case):
-    """The repo-relative path of the one Go test file (`*_test.go`) under the worktree, outside `.git` and `.tdd`,
-    defining `func <case>` as a whole name; else stops at probe (exit 2). A file that cannot be read is skipped."""
+    """The repo-relative path of the one test file under the worktree, outside `.git` and `.tdd`, defining <case>: a
+    Go test file (`*_test.go`) holding `func <case>` as a whole name, or a node test file (`*.test.mjs`) holding
+    `test(` with <case> as its whole quoted first argument; else stops at probe (exit 2). A file that cannot be read
+    is skipped."""
     if os.path.exists(os.path.join(wt, case)):
         return case
-    pattern = re.compile(r"\bfunc\s+" + re.escape(case) + r"(?!\w)")
+    patterns = {"_test.go": re.compile(r"\bfunc\s+" + re.escape(case) + r"(?!\w)"),
+                ".test.mjs": re.compile(r"\btest\(\s*([\"'`])" + re.escape(case) + r"\1")}
     found = []
     for root, dirs, files in os.walk(wt):
         dirs[:] = [d for d in dirs if d not in (".git", ".tdd")]
         for name in files:
-            if not name.endswith("_test.go"):
+            pattern = next((p for suffix, p in patterns.items() if name.endswith(suffix)), None)
+            if pattern is None:
                 continue
             full = os.path.join(root, name)
             try:
