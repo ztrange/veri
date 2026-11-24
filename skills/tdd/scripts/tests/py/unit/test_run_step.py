@@ -996,3 +996,9 @@ def test_4709_a_step_that_only_quotes_diff_checked_in_its_prose_runs_the_cycle_s
     code, out, err, stages = step(ledger=LEDGER % text)
 
     assert (code, stages.names()) == (0, list(STAGES)), err
+
+
+def test_4709_a_step_only_quoting_a_green_half_unhandled_mark_in_its_prose_does_not_stop_unmodelled(step):
+    code, out, err, stages = step(ledger=LEDGER % "document the `⟦ci-repair⟧` mark in `a.md` ⟦criterion 1⟧")
+
+    assert "reason=unmodelled" not in out, out

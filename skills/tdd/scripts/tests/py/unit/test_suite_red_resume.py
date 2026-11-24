@@ -898,3 +898,32 @@ def test_insert_still_adds_the_suite_repair_step_for_a_red_mixing_the_stale_grad
 
     assert code == 0, err
     assert ledger.read_text().count("⟦suite-repair⟧") == 1
+
+
+def _quoting_skill_edit_case(run_cli, tmp_path, monkeypatch, steps):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SCRIPTS.md"
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", unit)], []))
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n" + steps.replace("UNIT", unit))
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "revise-impossible"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_prd_015_prose_signed.py\n")
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+    return code, ledger.read_text()
+
+
+def test_4709_a_first_unchecked_step_only_quoting_skill_edit_in_its_prose_is_no_pending_skill_edit_step(run_cli, tmp_path, monkeypatch):
+    code, text = _quoting_skill_edit_case(
+        run_cli, tmp_path, monkeypatch, "- [ ] document the `⟦skill-edit⟧` mark for `UNIT` ⟦criterion 2⟧\n")
+
+    assert code == 0 and "⟦suite-repair⟧" in text
+
+
+def test_4709_a_later_unchecked_step_only_quoting_skill_edit_in_its_prose_is_no_separated_skill_edit_step(run_cli, tmp_path, monkeypatch):
+    code, text = _quoting_skill_edit_case(
+        run_cli, tmp_path, monkeypatch,
+        "- [ ] b ⟦criterion 2⟧\n- [ ] document the `⟦skill-edit⟧` mark for `UNIT` ⟦criterion 3⟧\n")
+
+    assert code == 0 and "⟦suite-repair⟧" in text

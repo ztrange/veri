@@ -508,3 +508,11 @@ def test_4512_a_failing_git_diff_on_a_repin_step_stops_at_pin_exit_2_and_ticks_n
     assert not {"pin-recheck.sh", "step-tick.sh"} & set(fake.names())
     assert not (diff.wt / ".tdd" / "verify-diff.reason").exists()
     assert _rejected(diff) is None
+
+
+def test_4709_a_step_only_quoting_test_quality_in_its_prose_runs_no_flip(diff):
+    step = "document the `⟦test-quality⟧` mark in `a.md` ⟦diff-checked⟧ ⟦criterion 1⟧"
+    code, out, err, fake = _verified(diff, step=step, report="SUITE: ok\n")
+
+    assert code == 0, err
+    assert "mutation-probe.sh" not in fake.names()
