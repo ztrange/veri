@@ -66,10 +66,8 @@ def repair(n, wt):
             reason = f.read()
     except OSError:
         reason = ""
-    missing = any(line.startswith("MISSING_TEST:") for line in reason.splitlines())
     reason = " ".join(reason.replace("⟦", "[").replace("⟧", "]").replace("⟂", "").split())
-    step = "fix what verify-branch rejected: %s%s ⟦branch-repair⟧" % (
-        reason or "see .tdd/verify-branch.reason", "" if missing else " ⟦diff-checked⟧")
+    step = "fix what verify-branch rejected: %s ⟦diff-checked⟧ ⟦branch-repair⟧" % (reason or "see .tdd/verify-branch.reason")
     code = add_ledger_step.add(ledger, "after", steps[-1], [step])
     if code != 0:
         return code
