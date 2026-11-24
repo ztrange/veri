@@ -8,9 +8,10 @@ import sys
 
 import entry
 import launch_floor
+import paths
 import tunables
 
-ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", ".."))
+ROOT = os.path.realpath(os.path.join(paths.resolved_scripts_of(__file__), "..", "..", ".."))
 
 USAGE = "usage: cloud-setup.sh"
 
