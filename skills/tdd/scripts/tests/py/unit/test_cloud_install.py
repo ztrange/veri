@@ -64,3 +64,18 @@ def test_on_settings_that_are_not_valid_json_it_exits_2_naming_the_file_and_leav
     assert (code, out) == (2, "")
     assert err.count("\n") == 1 and str(settings) in err
     assert settings.read_bytes() == b'{"model": "opus",\n'
+
+
+def test_on_the_repository_holding_its_own_scripts_it_names_cloud_setup_through_claude_project_dir(tmp_path, run_cli, cloud_install, monkeypatch):
+    repo = tmp_path / "repo"
+    scripts = repo / "skills" / "tdd" / "scripts"
+    scripts.mkdir(parents=True)
+    (tmp_path / "link").symlink_to(repo)
+    monkeypatch.setattr(cloud_install, "SCRIPTS", str(scripts))
+
+    code, out, err = run_cli(cloud_install, [str(tmp_path / "link")])
+
+    settings = repo / ".claude" / "settings.json"
+    assert (code, err) == (0, "")
+    assert json.loads(settings.read_text()) == {
+        "hooks": {"SessionStart": [cloud_hook('"$CLAUDE_PROJECT_DIR"/skills/tdd/scripts/cloud-setup.sh')]}}
