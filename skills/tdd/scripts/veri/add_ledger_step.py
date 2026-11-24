@@ -17,7 +17,7 @@ import tunables
 
 from event_log import read_events
 from git import git
-from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, same_step, trailing_markers, unit_of
+from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body as step_body, carries_mark, has_kind, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, same_step, trailing_markers, unit_of
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR, "branch-repair")
@@ -317,7 +317,7 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
         owed += "".join(f"- {text}\n" for text in texts)
         write_ledger(path, read_ledger(path), owed)
         return 1
-    bare = next((line for line in inserted_lines if carries_mark(line, "diff-checked") and CRITERION_TAG not in line), None)
+    bare = next((line for line in inserted_lines if has_kind(line, "⟦diff-checked⟧") and CRITERION_TAG not in line), None)
     if bare:
         return entry.refuse("add-ledger-step.sh: a diff-checked step needs a ⟦criterion k⟧ tag: " + bare)
     awake = event.awake_reading()

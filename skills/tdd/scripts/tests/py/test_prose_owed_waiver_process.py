@@ -17,7 +17,7 @@ def test_2081_on_a_run_branch_a_unit_a_pending_skill_edit_step_names_prints_noth
         "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2081.md").write_text(
-        "- [ ] ⟦added⟧ ⟦skill-edit⟧ regrade `skills/demo/SKILL.md`\n")
+        "- [ ] ⟦skill-edit⟧ regrade `skills/demo/SKILL.md` ⟦added⟧ ⟦criterion 1⟧\n")
 
     ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
@@ -34,7 +34,7 @@ def test_2081_a_waived_unit_is_logged_as_a_prose_owed_waived_event_naming_the_st
         "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2081.md").write_text(
-        "- [ ] ⟦added⟧ ⟦skill-edit⟧ regrade `skills/demo/SKILL.md`\n")
+        "- [ ] ⟦skill-edit⟧ regrade `skills/demo/SKILL.md` ⟦added⟧ ⟦criterion 1⟧\n")
 
     subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
                    capture_output=True, text=True)
@@ -55,7 +55,7 @@ def test_2119_a_unit_a_pending_skill_edit_step_names_bare_exits_0_and_prints_not
         "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2119.md").write_text(
-        "- [ ] ⟦added⟧ ⟦skill-edit⟧ skills/demo/SKILL.md maps each grade\n")
+        "- [ ] ⟦skill-edit⟧ skills/demo/SKILL.md maps each grade ⟦added⟧ ⟦criterion 1⟧\n")
 
     ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
@@ -72,7 +72,7 @@ def test_2119_a_unit_a_pending_skill_edit_step_names_in_backticks_still_exits_0_
         "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2119.md").write_text(
-        "- [ ] ⟦added⟧ ⟦skill-edit⟧ `skills/demo/SKILL.md` maps each grade\n")
+        "- [ ] ⟦skill-edit⟧ `skills/demo/SKILL.md` maps each grade ⟦added⟧ ⟦criterion 1⟧\n")
 
     ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
@@ -89,8 +89,8 @@ def test_2119_a_unit_path_only_inside_a_longer_path_on_a_skill_edit_step_does_no
         "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2119.md").write_text(
-        "- [ ] ⟦added⟧ ⟦skill-edit⟧ skills/demo/SKILL.md.bak maps each grade\n"
-        "- [ ] ⟦added⟧ ⟦skill-edit⟧ x/skills/demo/SKILL.md maps each grade\n")
+        "- [ ] ⟦skill-edit⟧ skills/demo/SKILL.md.bak maps each grade ⟦added⟧ ⟦criterion 1⟧\n"
+        "- [ ] ⟦skill-edit⟧ x/skills/demo/SKILL.md maps each grade ⟦added⟧ ⟦criterion 1⟧\n")
 
     ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
@@ -107,7 +107,7 @@ def test_2101_on_main_a_unit_a_pending_skill_edit_step_names_is_still_owed_and_e
         "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2101.md").write_text(
-        "- [ ] ⟦added⟧ ⟦skill-edit⟧ regrade `skills/demo/SKILL.md`\n")
+        "- [ ] ⟦skill-edit⟧ regrade `skills/demo/SKILL.md` ⟦added⟧ ⟦criterion 1⟧\n")
 
     ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
@@ -124,7 +124,7 @@ def test_2101_on_a_run_branch_with_no_ledger_of_its_own_another_issues_pending_s
         "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-7.md").write_text(
-        "- [ ] ⟦added⟧ ⟦skill-edit⟧ regrade `skills/demo/SKILL.md`\n")
+        "- [ ] ⟦skill-edit⟧ regrade `skills/demo/SKILL.md` ⟦added⟧ ⟦criterion 1⟧\n")
 
     ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
@@ -142,7 +142,7 @@ def test_2101_on_a_run_branch_whose_own_ledger_names_no_stale_unit_another_issue
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2101.md").write_text("- [ ] pin the branch gate\n")
     (tmp_path / ".tdd" / "issue-7.md").write_text(
-        "- [ ] ⟦added⟧ ⟦skill-edit⟧ regrade `skills/demo/SKILL.md`\n")
+        "- [ ] ⟦skill-edit⟧ regrade `skills/demo/SKILL.md` ⟦added⟧ ⟦criterion 1⟧\n")
 
     ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
@@ -159,7 +159,7 @@ def test_2101_on_a_run_branch_a_unit_whose_skill_edit_step_is_already_checked_is
         "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2101.md").write_text(
-        "- [x] ⟦added⟧ ⟦skill-edit⟧ regrade `skills/demo/SKILL.md`\n")
+        "- [x] ⟦skill-edit⟧ regrade `skills/demo/SKILL.md` ⟦added⟧ ⟦criterion 1⟧\n")
 
     ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
@@ -178,7 +178,7 @@ def test_2101_on_a_run_branch_a_second_stale_unit_no_pending_skill_edit_step_nam
         "## skills/other/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2101.md").write_text(
-        "- [ ] ⟦added⟧ ⟦skill-edit⟧ regrade `skills/demo/SKILL.md`\n")
+        "- [ ] ⟦skill-edit⟧ regrade `skills/demo/SKILL.md` ⟦added⟧ ⟦criterion 1⟧\n")
 
     ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)

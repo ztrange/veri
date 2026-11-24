@@ -8,7 +8,7 @@ import sys
 import event
 import git
 from grade_prose import listed_pairs, owed_listed
-from ledger import OPEN_STEP, carries_mark
+from ledger import OPEN_STEP, is_skill_edit
 
 USAGE = "usage: prose-owed.sh <repo-root>"
 PROMPTS = "skills/tdd/scripts/prompts"
@@ -25,7 +25,7 @@ def rowless():
 
 
 def waive(ledger, owed):
-    steps = [l for l in ledger.splitlines() if l.startswith(OPEN_STEP) and carries_mark(l, "skill-edit")]
+    steps = [l for l in ledger.splitlines() if l.startswith(OPEN_STEP) and is_skill_edit(l)]
     still, waived = [], []
     for unit in owed:
         step = next((s for s in steps if re.search(r"(?<![\w./-])" + re.escape(unit) + r"(?![\w/-]|\.\w)", s)), None)
