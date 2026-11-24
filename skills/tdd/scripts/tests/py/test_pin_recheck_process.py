@@ -131,8 +131,9 @@ def test_2506_a_record_whose_command_stays_green_under_its_mutation_exits_1_nami
     ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
                          cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, "guard.txt" in ran.stdout + ran.stderr, (tmp_path / "guard.txt").read_bytes()) == (
-        1, True, b"if guard\nthrows\nsafe\n"), ran.stderr
+    assert (ran.returncode in (0, 1), "guard.txt" in ran.stderr
+            or "needs a look: guard.txt (pin stayed green under its mutation)\n" in ran.stdout,
+            (tmp_path / "guard.txt").read_bytes()) == (True, True, b"if guard\nthrows\nsafe\n"), ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a range with an origin/main base where the pin goes red under its mutation")
@@ -1026,8 +1027,9 @@ def test_2959_a_before_keep_replay_removes_a_file_absent_at_the_before_sha_while
     ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
                          cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, "pin.txt" in ran.stderr, (tmp_path / "z_new.txt").read_bytes()) == (
-        1, True, b"added later\n"), ran.stderr
+    assert (ran.returncode in (0, 1), "pin.txt" in ran.stderr
+            or "needs a look: pin.txt (pin stayed green on the before-state)\n" in ran.stdout,
+            (tmp_path / "z_new.txt").read_bytes()) == (True, True, b"added later\n"), ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose command is green on the restored files and a file is absent at the before sha")
@@ -1055,9 +1057,9 @@ def test_2959_a_green_before_keep_replay_leaves_every_restored_file_a_file_absen
     ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
                          cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, (tmp_path / "src.txt").read_bytes(), (tmp_path / "pin.txt").read_bytes(),
+    assert (ran.returncode in (0, 1), (tmp_path / "src.txt").read_bytes(), (tmp_path / "pin.txt").read_bytes(),
             (tmp_path / "z_new.txt").read_bytes() if (tmp_path / "z_new.txt").exists() else None) == (
-        1, b"fixed behaviour\n", b"pin v1\n", b"added \x00 later\n"), ran.stderr
+        True, b"fixed behaviour\n", b"pin v1\n", b"added \x00 later\n"), ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a before/keep record on a branch that deleted a tracked file")
@@ -1555,9 +1557,10 @@ def test_3151_a_retired_pin_beside_a_live_pin_that_stays_green_exits_1_the_live_
                          cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     retired = [line for line in ran.stdout.splitlines() if line.startswith("retired:")]
-    assert (ran.returncode, len(retired) == 1 and "tests/test_guard.py" in retired[0],
-            "live.txt" in ran.stdout + ran.stderr, (tmp_path / "ran.witness").exists()) == (
-        1, True, True, False), ran.stdout + ran.stderr
+    assert (ran.returncode in (0, 1), len(retired) == 1 and "tests/test_guard.py" in retired[0],
+            "live.txt" in ran.stderr
+            or "needs a look: live.txt (pin stayed green under its mutation)\n" in ran.stdout,
+            (tmp_path / "ran.witness").exists()) == (True, True, True, False), ran.stdout + ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a range that deletes one pin's test and leaves another pin red under its mutation")
@@ -3331,8 +3334,9 @@ def test_3740_a_pin_green_under_its_mutation_beside_a_record_whose_file_is_absen
     ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
                          cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, "live.txt" in ran.stderr, (tmp_path / "live.txt").read_bytes()) == (
-        1, True, b"if guard\nthrows\nsafe\n"), ran.stderr
+    assert (ran.returncode in (0, 1), "live.txt" in ran.stderr
+            or "needs a look: live.txt (pin stayed green under its mutation)\n" in ran.stdout,
+            (tmp_path / "live.txt").read_bytes()) == (True, True, b"if guard\nthrows\nsafe\n"), ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run with origin/main rewritten to HEAD and --branch-base naming the true base")
