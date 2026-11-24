@@ -4,3 +4,9 @@
 - [ ] pin-recheck.sh leaves the record unchanged and still prints `not checked: <file> (old text in no file of the repo)`, exit 1 and no receipt, when the pin's changed lines occur at no site or at more than one site of its recorded file at HEAD ⟦criterion 3⟧
 - [ ] pin-recheck.sh leaves the record unchanged and still prints `not checked: <file> (old text in no file of the repo)`, exit 1 and no receipt, when the pin's changed lines occur at exactly one site but its recorded command stays green with the change applied there ⟦criterion 3⟧
 - [ ] pin-recheck.sh rewrites a re-recorded pin's record only once its recorded command has passed with the file restored after the red mutated run: when the restored run fails, the record is left unchanged, the mutated file is byte-identical to HEAD, and the pin is printed `not checked: <file> (old text in no file of the repo)` with exit 1 ⟦criterion 2⟧
+
+## Owed steps
+
+- pin-recheck.sh rewrites, in its `.tdd/issue-<n>-mutations.md`, only the record of a pin whose recorded old text is in no file of the repo and whose changed lines occur at exactly one site of its recorded file at HEAD. The rewrite keeps the same mutation and gives it new old text and context. Every other record in that ledger stays byte-for-byte unchanged, including another pin on the same file. No `not checked` line is printed for that pin, and the run exits 0 with `.tdd/pin-recheck-ok` written.
+- pin-recheck.sh leaves a pin's record unchanged and still prints its `not checked` line, exiting 1, when the old text is in more than one file of the repo, or when the changed lines occur at no site or at more than one site of the recorded file at HEAD.
+- pin-recheck.sh re-records such a pin only when its recorded command goes red with the same change applied at that one site. When the command stays green, the record stays unchanged and the `not checked` line is still printed, exiting 1.
