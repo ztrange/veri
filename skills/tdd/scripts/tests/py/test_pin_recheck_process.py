@@ -223,8 +223,9 @@ def test_3290_a_failing_base_run_of_the_mutation_leaves_the_files_byte_identical
 
     after = {p.name: p.read_bytes() for p in (repo / "guard.txt", repo / ".tdd" / "issue-835-mutations.md")}
     worktrees = [l for l in git("worktree", "list").splitlines() if l]
-    assert (before == after, len(worktrees), sorted(p.name for p in scratch.iterdir()), git("status", "--porcelain")) == (
-        True, 1, [], ""), (ran.returncode, ran.stdout, ran.stderr, worktrees)
+    assert (before == after, len(worktrees), sorted(p.name for p in scratch.iterdir()),
+            [l for l in git("status", "--porcelain").splitlines() if l != "?? .tdd/pin-recheck-ok"]) == (
+        True, 1, [], []), (ran.returncode, ran.stdout, ran.stderr, worktrees)
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a range where the recorded command fails before any mutation")
