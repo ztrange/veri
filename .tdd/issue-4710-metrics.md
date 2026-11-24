@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 4710
 
-Wall time for the issue: 292 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 768 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 3 of 10 planned.
-Outcome: the run bailed — step-add-refused, a system failure.
+Steps done: 9 of 11 planned.
+Outcome: the run bailed — revise-exhausted, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $8.24 over 117 turns, in 5 sessions, on opus (estimate).
+Conductor own spending: $16.42 over 209 turns, in 11 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 85108 tokens, largest 111812 tokens
 Conductor context: first turn 88444 tokens, largest 95988 tokens
@@ -15,6 +15,13 @@ Conductor context: first turn 85070 tokens, largest 115620 tokens
 Conductor context: first turn 85053 tokens, largest 104812 tokens
 Conductor context: first turn 105594 tokens, largest 115497 tokens
 Conductor context: first turn 85044 tokens, largest 111369 tokens
+Conductor context: first turn 85045 tokens, largest 116742 tokens
+Conductor context: first turn 85075 tokens, largest 118656 tokens
+Conductor context: first turn 85074 tokens, largest 117064 tokens
+Conductor context: first turn 85073 tokens, largest 115951 tokens
+Conductor context: first turn 35214 tokens, largest 42966 tokens
+Conductor context: first turn 85074 tokens, largest 115829 tokens
+Conductor context: first turn 85088 tokens, largest 117912 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -109,32 +116,119 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 86 | $0.04 | 56099 |
 | 87 | $0.03 | 56533 |
 | 88 | $0.04 | 56818 |
-| 89 | $0.54 | 85044 |
-| 90 | $0.02 | 85314 |
-| 91 | $0.07 | 91956 |
-| 92 | $0.05 | 96400 |
-| 93 | $0.07 | 102219 |
-| 94 | $0.03 | 103502 |
-| 95 | $0.03 | 104984 |
-| 96 | $0.03 | 106333 |
-| 97 | $0.03 | 107347 |
-| 98 | $0.03 | 108969 |
-| 99 | $0.04 | 111369 |
-| 100 | $0.21 | 44434 |
-| 101 | $0.02 | 45944 |
-| 102 | $0.01 | 46589 |
-| 103 | $0.11 | 58882 |
-| 104 | $0.02 | 59916 |
-| 105 | $0.01 | 60290 |
-| 106 | $0.02 | 61200 |
-| 107 | $0.02 | 61700 |
-| 108 | $0.02 | 62782 |
-| 109 | $0.02 | 64042 |
-| 110 | $0.03 | 66648 |
-| 111 | $0.02 | 67305 |
+| 89 | $0.55 | 85044 |
+| 90 | $0.03 | 85314 |
+| 91 | $0.08 | 91956 |
+| 92 | $0.06 | 96400 |
+| 93 | $0.08 | 102219 |
+| 94 | $0.04 | 103502 |
+| 95 | $0.04 | 104984 |
+| 96 | $0.05 | 106333 |
+| 97 | $0.04 | 107347 |
+| 98 | $0.04 | 108969 |
+| 99 | $0.05 | 111369 |
+| 100 | $0.23 | 44434 |
+| 101 | $0.03 | 45944 |
+| 102 | $0.02 | 46589 |
+| 103 | $0.12 | 58882 |
+| 104 | $0.03 | 59916 |
+| 105 | $0.03 | 60290 |
+| 106 | $0.03 | 61200 |
+| 107 | $0.03 | 61700 |
+| 108 | $0.03 | 62782 |
+| 109 | $0.03 | 64042 |
+| 110 | $0.05 | 66648 |
+| 111 | $0.03 | 67305 |
 | 112 | $0.02 | 67742 |
-| 113 | $0.02 | 68428 |
-| 114 | $0.07 | 75870 |
+| 113 | $0.03 | 68428 |
+| 114 | $0.09 | 75870 |
+| 115 | $0.03 | 77096 |
+| 116 | $0.03 | 77445 |
+| 117 | $0.54 | 85045 |
+| 118 | $0.05 | 88819 |
+| 119 | $0.08 | 95143 |
+| 120 | $0.06 | 99749 |
+| 121 | $0.07 | 105504 |
+| 122 | $0.04 | 106826 |
+| 123 | $0.06 | 110970 |
+| 124 | $0.05 | 113282 |
+| 125 | $0.05 | 115963 |
+| 126 | $0.03 | 116742 |
+| 127 | $0.55 | 85075 |
+| 128 | $0.04 | 85359 |
+| 129 | $0.09 | 92055 |
+| 130 | $0.11 | 102199 |
+| 131 | $0.05 | 103462 |
+| 132 | $0.05 | 104782 |
+| 133 | $0.05 | 106511 |
+| 134 | $0.13 | 118656 |
+| 135 | $0.17 | 37190 |
+| 136 | $0.05 | 39604 |
+| 137 | $0.06 | 43689 |
+| 138 | $0.05 | 46826 |
+| 139 | $0.04 | 49368 |
+| 140 | $0.04 | 50141 |
+| 141 | $0.55 | 85074 |
+| 142 | $0.03 | 85335 |
+| 143 | $0.07 | 91603 |
+| 144 | $0.12 | 101920 |
+| 145 | $0.03 | 102371 |
+| 146 | $0.08 | 108005 |
+| 147 | $0.08 | 113821 |
+| 148 | $0.05 | 115768 |
+| 149 | $0.04 | 116420 |
+| 150 | $0.03 | 116732 |
+| 151 | $0.04 | 117064 |
+| 152 | $0.15 | 35922 |
+| 153 | $0.03 | 36561 |
+| 154 | $0.02 | 36786 |
+| 155 | $0.06 | 42652 |
+| 156 | $0.03 | 43567 |
+| 157 | $0.04 | 46176 |
+| 158 | $0.03 | 46942 |
+| 159 | $0.55 | 85073 |
+| 160 | $0.05 | 86866 |
+| 161 | $0.03 | 87269 |
+| 162 | $0.08 | 93529 |
+| 163 | $0.12 | 104058 |
+| 164 | $0.04 | 104493 |
+| 165 | $0.08 | 110102 |
+| 166 | $0.09 | 115951 |
+| 167 | $0.14 | 33904 |
+| 168 | $0.02 | 34603 |
+| 169 | $0.03 | 34800 |
+| 170 | $0.02 | 35214 |
+| 171 | $0.02 | 36540 |
+| 172 | $0.02 | 37438 |
+| 173 | $0.03 | 39564 |
+| 174 | $0.04 | 42180 |
+| 175 | $0.02 | 42966 |
+| 176 | $0.55 | 85074 |
+| 177 | $0.04 | 85324 |
+| 178 | $0.08 | 91580 |
+| 179 | $0.08 | 98012 |
+| 180 | $0.08 | 103086 |
+| 181 | $0.08 | 108730 |
+| 182 | $0.08 | 113837 |
+| 183 | $0.05 | 115396 |
+| 184 | $0.04 | 115829 |
+| 185 | $0.14 | 33798 |
+| 186 | $0.05 | 37522 |
+| 187 | $0.03 | 38343 |
+| 188 | $0.54 | 85088 |
+| 189 | $0.02 | 85370 |
+| 190 | $0.02 | 85906 |
+| 191 | $0.02 | 86511 |
+| 192 | $0.06 | 92275 |
+| 193 | $0.03 | 94078 |
+| 194 | $0.11 | 105923 |
+| 195 | $0.03 | 106655 |
+| 196 | $0.03 | 107960 |
+| 197 | $0.03 | 108590 |
+| 198 | $0.03 | 109733 |
+| 199 | $0.09 | 117912 |
+| 200 | $0.15 | 37440 |
+| 201 | $0.01 | 38023 |
 
 #### Conductor comments, by family
 
@@ -159,14 +253,16 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 91 | 7.35 |
-| preflight | 3 | 0.14 |
+| between | 167 | 15.07 |
+| preflight | 5 | 0.21 |
 | plan | 6 | 0.23 |
 | develop-diff | 2 | 0.07 |
-| untimed | 3 | 0.00 |
+| untimed | 8 | 0.00 |
 | refactor-loop | 4 | 0.14 |
 | develop-green | 4 | 0.16 |
-| develop-exhausted | 4 | 0.14 |
+| develop-exhausted | 4 | 0.15 |
+| verify-green | 8 | 0.36 |
+| push | 1 | 0.04 |
 
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset, VERI_MODEL_REVISE_GREEN unset, VERI_EFFORT_VERIFIER unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
@@ -174,15 +270,17 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 6 | 5 | 1 | 0 | 107 | 89 | 10 | 20 | 11569 | 184542 | 265887 | 0.80 |
-| diff | 4 | 1 | 1 | 0 | 754 | 193 | 43 | 78 | 25043 | 1457402 | 164742 | 0.94 |
-| red | 6 | 3 | 0 | 0 | 739 | 81 | 30 | 56 | 9603 | 676652 | 151478 | 0.54 |
-| green | 7 | 1 | 0 | 0 | 716 | 117 | 37 | 62 | 11499 | 856637 | 216510 | 1.13 |
-| refactor | 1 | 0 | 0 | 0 | 7 | 4 | 2 | 4 | 234 | 31651 | 20809 | 0.06 |
+| plan | 12 | 11 | 1 | 0 | 188 | 156 | 17 | 36 | 19777 | 273045 | 533454 | 1.56 |
+| diff | 6 | 2 | 1 | 0 | 949 | 208 | 49 | 90 | 26651 | 1559885 | 200551 | 1.06 |
+| red | 13 | 6 | 0 | 0 | 1310 | 200 | 68 | 130 | 23863 | 1566909 | 331837 | 1.37 |
+| green | 13 | 4 | 0 | 0 | 1842 | 196 | 74 | 128 | 20728 | 1617535 | 355379 | 1.65 |
+| refactor | 4 | 0 | 0 | 0 | 32 | 18 | 10 | 20 | 1554 | 174947 | 91274 | 0.26 |
 | pin | 1 | 1 | 0 | 0 | 29 | 11 | 4 | 8 | 1250 | 81303 | 20471 | 0.07 |
 | red-contradicted | 1 | 0 | 0 | 0 | 38 | 13 | 3 | 6 | 1704 | 58608 | 22953 | 0.08 |
 | exhausted | 2 | 0 | 0 | 0 | 114 | 41 | 7 | 14 | 3183 | 202075 | 85683 | 0.53 |
 | step-add-refused | 1 | 0 | 0 | 0 | 16 | 13 | 3 | 6 | 1154 | 41866 | 14032 | 0.10 |
+| prose | 17 | 0 | 0 | 0 | 539 | 498 | 17 | 34 | 83986 | 606682 | 1533938 | 4.74 |
+| skill-edit | 4 | 0 | 0 | 0 | 98 | 86 | 18 | 36 | 9680 | 2603183 | 772737 | 2.29 |
 
 #### REJECT outcomes
 
@@ -195,31 +293,33 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 13 | 11 | 2 | 0 | 969 | 173 | 45 | 84 | 19926 | 931497 | 437660 | 1.39 |
-| developer | claude-opus-5-5 | 5 | 0 | 0 | 0 | 583 | 219 | 36 | 68 | 26387 | 1336909 | 240561 | 1.57 |
-| developer | claude-sonnet-5-5 | 10 | 0 | 0 | 0 | 952 | 157 | 55 | 96 | 17772 | 1280464 | 270312 | 1.20 |
+| verifier | claude-sonnet-5-5 | 26 | 24 | 2 | 0 | 2230 | 317 | 83 | 158 | 36319 | 1615293 | 848096 | 2.65 |
+| developer | claude-opus-5-5 | 8 | 0 | 0 | 0 | 699 | 290 | 56 | 108 | 35109 | 1874990 | 334091 | 2.09 |
+| developer | claude-sonnet-5-5 | 18 | 0 | 0 | 0 | 1573 | 236 | 93 | 166 | 27282 | 2044024 | 459415 | 1.84 |
 | adjudicator | claude-opus-5-5 | 1 | 0 | 0 | 0 | 16 | 13 | 3 | 6 | 1154 | 41866 | 14032 | 0.10 |
 
 #### Revise-green, by model
 
 | model | leaves | PASS | REJECT |
 | --- | ---: | ---: | ---: |
-| claude-opus-5-5 | 1 | 0 | 0 |
-| claude-sonnet-5-5 | 1 | 0 | 0 |
+| claude-opus-5-5 | 1 | 1 | 0 |
+| claude-sonnet-5-5 | 1 | 1 | 0 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| diff | 0 | 0.00 | 754 | 0.94 |
-| red | 0 | 0.00 | 478 | 0.42 |
-| green | 0 | 0.00 | 716 | 1.13 |
+| diff | 0 | 0.00 | 949 | 1.06 |
+| red | 0 | 0.00 | 177 | 0.17 |
+| green | 0 | 0.00 | 308 | 0.14 |
 | refactor | 0 | 0.00 | 7 | 0.06 |
 | pin | 0 | 0.00 | 0 | 0.00 |
-| red-contradicted | 0 | 0.00 | 38 | 0.08 |
-| exhausted | 0 | 0.00 | 114 | 0.53 |
+| red-contradicted | 0 | 0.00 | 0 | 0.00 |
+| exhausted | 0 | 0.00 | 0 | 0.00 |
 | step-add-refused | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 0 | 0.00 |
+| skill-edit | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -228,7 +328,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | The older cases of `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` and `skills/tdd/scripts/tests/py/unit/test_pin_recheck_build_error.py` that read a pin-recheck finding — a mutation pin that stayed green under its mutation, a before-state pin green at `HEAD` and red on the base, a `not checked` pin (old text in no file or in more than one file of the repo), or a mutation that did not build — are updated to hold both before and after the later steps turn each such finding into exit 0 (status 0), the `.tdd/pin-recheck-ok` receipt written, and one `needs a look: <file> (<reason>)` line on stdout in place of the `not checked: <file> (<reason>)` stdout line or the `pin stayed green under its mutation: <file>` / `pin stayed green on the before-state: <keep>` stderr line: each exit or status assertion accepts 0 or 1, the receipt's presence or absence is left unasserted, and each assertion reading one of those old lines (contained in stdout or stderr, or an exact stdout or stderr value) accepts either the old line where it was or the matching `needs a look` line on stdout, every other assertion of the case kept (the stale, retired, exit-2 and restored-file assertions unchanged); only those two test files change, no production change ⟦diff-checked⟧ ⟦criterion 1⟧ | 4 | 1 | 1 | 0 | 0 | 0 | 193 | 43 | 78 | 25043 | 1457402 | 164742 | 0.94 | unknown | 1/2 | unknown | unknown |  |  | full |
 | Over a range that rewrote a mutation pin's old text so that no file of the repo holds it, `pin-recheck.sh --branch-base B B` exits 0, prints `needs a look: <file> (old text in no file of the repo)` on stdout and writes `.tdd/pin-recheck-ok`: the `process` case `test_4710_a_pin_whose_old_text_is_in_no_file_of_the_repo_needs_a_look_and_exits_0_with_the_receipt` in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path`; in `pin_recheck.replay` the `not checked` path becomes `needs_a_look(looks, pin["file"], f"old text in {where} of the repo")` followed by `return 0` ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 59 | 20 | 38 | 5342 | 398020 | 110979 | 0.37 | unknown | unknown | 0/5 | nothing-left |  |  | full |
 | Over a range that leaves a mutation pin's old text in more than one file of the repo, `pin-recheck.sh --branch-base B B` exits 0, prints `needs a look: <file> (old text in more than one file of the repo)` on stdout and writes `.tdd/pin-recheck-ok`: a `process` case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path` ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 29 | 11 | 20 | 4027 | 254088 | 52633 | 0.20 | unknown | unknown | unknown | unknown |  |  | pin |
-| A mutation pin green under its mutation at `HEAD` and red under it on the base makes `pin-recheck.sh --branch-base B B` exit 0, print `needs a look: <file> (pin stayed green under its mutation)` on stdout and write `.tdd/pin-recheck-ok`: a `process` case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path` ⟦criterion 3⟧ | 11 | 2 | 0 | 0 | 0 | 0 | 179 | 52 | 92 | 18104 | 1254818 | 354292 | 1.85 | unknown | 2/2 | unknown | unknown |  |  | full |
+| A mutation pin green under its mutation at `HEAD` and red under it on the base makes `pin-recheck.sh --branch-base B B` exit 0, print `needs a look: <file> (pin stayed green under its mutation)` on stdout and write `.tdd/pin-recheck-ok`: a `process` case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path` ⟦criterion 3⟧ | 17 | 4 | 0 | 0 | 0 | 0 | 264 | 83 | 148 | 28343 | 1916870 | 508174 | 2.55 | 1070 | green 2/2, red 1/2 | 0/5 | nothing-left |  |  | full |
+| prep `skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_3290_a_failing_base_run_of_the_mutation_leaves_the_files_byte_identical_and_removes_the_base_worktree`: its `git status --porcelain` assertion ignores the untracked `.tdd/pin-recheck-ok` receipt and still requires every tracked file byte-identical ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 15 | 6 | 12 | 1608 | 102483 | 35809 | 0.12 | unknown | n/a | n/a | n/a |  |  | full |
+| A before-state pin green at `HEAD` and red on the range's base makes `pin-recheck.sh --branch-base B B` exit 0, print `needs a look: <test path> (pin stayed green on the before-state)` on stdout and write `.tdd/pin-recheck-ok`: a `process` case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path` ⟦criterion 4⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 66 | 27 | 52 | 8240 | 606613 | 117885 | 0.44 | 1305 | unknown | 0/5 | nothing-left |  |  | full |
+| A mutated run that did not build makes `pin-recheck.sh --branch-base B B` exit 0, not 1, still printing `needs a look: <file> (mutation did not build)` and writing `.tdd/pin-recheck-ok`, so the script never exits 1: a `process` case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path` ⟦criterion 7⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 61 | 25 | 48 | 6330 | 525786 | 117926 | 0.41 | unknown | unknown | 0/5 | nothing-left |  |  | full |
 
 Adjudications: retry 1, bail 0, route 0, unparsed 0
 
@@ -239,39 +342,45 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | step | pass | refactor | stopped | verdict | revise | wall s | $ |
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
 | Over a range that rewrote a mutation pin's old text so that no file of the repo holds it, `pin-recheck.sh --branch-base B B` exits 0, prints `needs a look: <file> (old text in no file of the repo)` on stdout and writes `.tdd/pin-recheck-ok`: the `process` case `test_4710_a_pin_whose_old_text_is_in_no_file_of_the_repo_needs_a_look_and_exits_0_with_the_receipt` in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path`; in `pin_recheck.replay` the `not checked` path becomes `needs_a_look(looks, pin["file"], f"old text in {where} of the repo")` followed by `return 0` ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.06 |
+| A mutation pin green under its mutation at `HEAD` and red under it on the base makes `pin-recheck.sh --branch-base B B` exit 0, print `needs a look: <file> (pin stayed green under its mutation)` on stdout and write `.tdd/pin-recheck-ok`: a `process` case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path` ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.06 |
+| A before-state pin green at `HEAD` and red on the range's base makes `pin-recheck.sh --branch-base B B` exit 0, print `needs a look: <test path> (pin stayed green on the before-state)` on stdout and write `.tdd/pin-recheck-ok`: a `process` case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path` ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.06 |
+| A mutated run that did not build makes `pin-recheck.sh --branch-base B B` exit 0, not 1, still printing `needs a look: <file> (mutation did not build)` and writing `.tdd/pin-recheck-ok`, so the script never exits 1: a `process` case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path` ⟦criterion 7⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 13 | 0.09 |
 
 #### Refactor totals
 
 | step | passes | transforms | landed nothing | stopped |
 | --- | ---: | ---: | ---: | --- |
 | Over a range that rewrote a mutation pin's old text so that no file of the repo holds it, `pin-recheck.sh --branch-base B B` exits 0, prints `needs a look: <file> (old text in no file of the repo)` on stdout and writes `.tdd/pin-recheck-ok`: the `process` case `test_4710_a_pin_whose_old_text_is_in_no_file_of_the_repo_needs_a_look_and_exits_0_with_the_receipt` in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path`; in `pin_recheck.replay` the `not checked` path becomes `needs_a_look(looks, pin["file"], f"old text in {where} of the repo")` followed by `return 0` ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 1 | 0 | 1 | nothing-left 1 |
+| A mutation pin green under its mutation at `HEAD` and red under it on the base makes `pin-recheck.sh --branch-base B B` exit 0, print `needs a look: <file> (pin stayed green under its mutation)` on stdout and write `.tdd/pin-recheck-ok`: a `process` case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path` ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
+| A before-state pin green at `HEAD` and red on the range's base makes `pin-recheck.sh --branch-base B B` exit 0, print `needs a look: <test path> (pin stayed green on the before-state)` on stdout and write `.tdd/pin-recheck-ok`: a `process` case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path` ⟦criterion 4⟧ | 1 | 0 | 1 | nothing-left 1 |
+| A mutated run that did not build makes `pin-recheck.sh --branch-base B B` exit 0, not 1, still printing `needs a look: <file> (mutation did not build)` and writing `.tdd/pin-recheck-ok`, so the script never exits 1: a `process` case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git repo in `tmp_path` ⟦criterion 7⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 4 | 0 | 4 | nothing-left 4 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 112 | 98 | 97 | 100 | 97 | 70 | 105 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| changed | 35 | 36 | 37 | 38 | 5 | 38 | 36 | 62 | 25 | 70 | 22 | 22 | 21 | 22 | 59 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 4 | 5 | 5 | 5 | 3 | 4 | 3 | 3 | 4 | 4 | 4 | 3 | 3 | 0 | 1 | 4 | 5 | 5 | 5 | 5 | 4 | 5 | 5 | 5 | 5 | 5 | 4 | 5 | 5 | 5 | 3 | 3 | 4 | 3 | 3 | 4 | 4 | 3 | 3 | 1 | 2 | 5 |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s | run 118 s | run 119 s | run 120 s | run 121 s | run 122 s | run 123 s | run 124 s | run 125 s | run 126 s | run 127 s | run 128 s | run 129 s | run 130 s | run 131 s | run 132 s | run 133 s | run 134 s | run 135 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fast | 112 | 98 | 97 | 100 | 97 | 70 | 105 | 67 | 63 | 62 | 65 | 66 | 108 | 106 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| changed | 35 | 36 | 37 | 38 | 5 | 38 | 36 | 62 | 25 | 70 | 22 | 22 | 21 | 22 | 59 | 23 | 0 | 5 | 5 | 6 | 21 | 22 | 6 | 22 | 24 | 37 | 37 | 54 | 43 | 39 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 4 | 5 | 5 | 5 | 3 | 4 | 3 | 3 | 4 | 4 | 4 | 3 | 3 | 0 | 1 | 4 | 5 | 5 | 5 | 5 | 4 | 5 | 5 | 5 | 5 | 5 | 4 | 5 | 5 | 5 | 3 | 3 | 4 | 3 | 3 | 4 | 4 | 3 | 3 | 1 | 2 | 5 | 47 | 4 | 4 | 5 | 3 | 3 | 4 | 3 | 3 | 4 | 3 | 4 | 3 | 0 | 1 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 6 | 5 | 8 | 6 | 7 | 5 | 5 | 5 | 4 | 4 | 4 | 4 | 4 | 4 | 3 | 4 | 3 | 0 | 1 | 5 | 5 | 5 | 4 | 5 | 5 | 5 | 5 | 5 | 4 | 5 | 5 | 5 | 4 | 5 | 3 | 4 | 4 | 4 | 4 | 4 | 4 | 3 | 4 | 0 | 2 | 6 | 47 | 8 | 6 | 5 | 5 | 6 | 6 | 5 | 5 | 5 | 5 | 5 | 6 | 6 | 3 | 5 | 4 | 4 | 4 | 3 | 3 | 3 | 4 | 1 | 2 |
 
 #### Stages
 
 | stage | runs | ok | failed | no answer | nothing | unended | wall s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| preflight | 5 | 5 | 0 | 0 | 0 | 0 | 828 |
-| baseline | 5 | 5 | 0 | 0 | 0 | 0 | 428 |
+| preflight | 11 | 11 | 0 | 0 | 0 | 0 | 1959 |
+| baseline | 11 | 11 | 0 | 0 | 0 | 0 | 1047 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 34 |
-| push | 12 | 12 | 0 | 0 | 0 | 0 | 26 |
+| push | 29 | 29 | 0 | 0 | 0 | 0 | 65 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
-| rebase | 4 | 2 | 0 | 0 | 2 | 0 | 12 |
-| refactor-loop | 1 | 1 | 0 | 0 | 0 | 0 | 321 |
+| rebase | 10 | 4 | 0 | 0 | 6 | 0 | 32 |
+| refactor-loop | 4 | 4 | 0 | 0 | 0 | 0 | 1390 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 139 | 254 | 65239 | 3590736 | 962565 | 12.49 (estimate) |
+| total | 270 | 508 | 193530 | 8786038 | 3962309 | 30.13 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
@@ -281,7 +390,11 @@ Green rejects by route: none
 
 | role | model | leaves | first-turn cache creation | first-turn cache read | first-turn input |
 | --- | --- | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 13 | 382157 | 46990 | 26 |
-| developer | claude-sonnet-5-5 | 10 | 166041 | 77515 | 20 |
-| developer | claude-opus-5-5 | 5 | 216284 | 11886 | 10 |
+| verifier | claude-sonnet-5-5 | 26 | 726380 | 133445 | 52 |
+| developer | claude-sonnet-5-5 | 20 | 354103 | 131443 | 40 |
+| developer | claude-opus-5-5 | 6 | 240231 | 11886 | 12 |
 | adjudicator | claude-opus-5-5 | 1 | 11592 | 5943 | 2 |
+| grader | claude-sonnet-5-5 | 17 | 1533938 | 606682 | 34 |
+| author | claude-sonnet-5-5 | 4 | 731997 | 17967 | 8 |
+
+Gradings: 6, PASS 1, REJECT 5, cost $3.09, efforts default
