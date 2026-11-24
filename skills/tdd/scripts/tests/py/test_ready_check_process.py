@@ -510,3 +510,20 @@ def test_issue_3173_ready_check_with_veri_label_set_but_empty_prints_a_fail_labe
     label_rows = [l for l in ran.stdout.splitlines() if l.startswith("fail") and "label" in l]
 
     assert label_rows and all("VERI_LABEL" in l and "create the ``" not in l for l in label_rows), (ran.returncode, ran.stdout, ran.stderr)
+
+
+CLAUDE_ROOT_PROBE = CLAUDE_PROBE.replace(
+    "echo '{",
+    "echo 'running as uid 0 with IS_SANDBOX' >&2\necho '{")
+
+
+@pytest.mark.process("a CLAUDE_BIN stub run as a subprocess by bypass_permissions_row, behaving as a claude running as uid 0")
+def test_issue_4200_bypass_permissions_row_under_a_uid_0_claude_writing_the_nonce_files_with_no_denial_is_ok(tmp_path, monkeypatch):
+    from veri import ready_check
+    stub = write_stub(str(tmp_path / "claude-root"), CLAUDE_ROOT_PROBE)
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    monkeypatch.setenv("CLAUDE_BIN", stub)
+
+    assert ready_check.bypass_permissions_row() == ("bypassPermissions", None)
