@@ -2006,3 +2006,20 @@ def test_4709_main_adds_a_step_only_quoting_diff_checked_in_its_prose_after_an_u
 
     err = capsys.readouterr().err
     assert (code, "- [ ] document the `⟦diff-checked⟧` mark in `a.md` ⟦added⟧" in ledger.read_text()) == (0, True), err
+
+
+def test_main_before_inserts_an_untagged_diff_checked_text_with_the_anchor_criterion_and_refuses_a_tagged_one_4728(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    text = "make `test_split_rounds_half_cents` observe the rounding ⟦diff-checked⟧"
+
+    refused = run_cli(add_ledger_step, [str(ledger), "before", "c three", text + " ⟦criterion 3⟧"])
+    refused = (refused[0], refused[1], "⟦criterion 3⟧" in refused[2], ledger.read_bytes() == LEDGER)
+    code, out, _ = run_cli(add_ledger_step, [str(ledger), "before", "c three", text])
+
+    assert (refused, code, out, ledger.read_text().split("\n")[4:6]) == (
+        (2, "", True, True),
+        0,
+        "",
+        ["- [ ] " + text + " ⟦added⟧ ⟦criterion 3⟧", "- [ ] c three ⟦criterion 3⟧"],
+    )
