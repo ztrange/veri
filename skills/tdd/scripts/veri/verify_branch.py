@@ -10,14 +10,14 @@ import fused_step
 import run_dir
 import tunables
 from ledger import STEP_RE, added_file, has_kind, read_ledger
-from parse_verdict import SPACE
 
 LEAF = "verdict-branch"
 OWNER = "verify-branch"
 REASON = ".tdd/verify-branch.reason"
 USAGE = "usage: verify-branch.sh <n>"
-# parse_verdict's leniency (leading whitespace, any case) plus a list bullet and an opening backtick.
-MISSING_TEST_RE = re.compile(f"^[{SPACE}]*(?:[-*][{SPACE}]+)?`?missing_test:", re.IGNORECASE | re.ASCII)
+# parse_verdict's leniency (leading whitespace, any case; ASCII \s is its SPACE set) plus a list bullet and an
+# opening backtick.
+MISSING_TEST_RE = re.compile(r"^\s*(?:[-*]\s+)?`?missing_test:", re.IGNORECASE | re.ASCII)
 
 
 def main(argv):
