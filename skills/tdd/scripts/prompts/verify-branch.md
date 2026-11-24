@@ -17,5 +17,6 @@ diff touched, as `affected-suites.sh` prints them, each through the wrapper:
 {{INCLUDE:_exit-status-back.md}} so a red run stays red.
 
 PASS if the branch satisfies every acceptance criterion. REJECT, naming each criterion or
-behaviour the diff leaves unmet or unpinned by a case, otherwise. REJECT, too, if the fast
+behaviour the diff leaves unmet or unpinned by a case, otherwise, and write one
+`MISSING_TEST: <behaviour>` line for each criterion or behaviour no case pins. REJECT, too, if the fast
 command or those test files are red. End with `VERDICT: PASS` or `VERDICT: REJECT`.
