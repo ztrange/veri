@@ -989,3 +989,10 @@ def test_4682_a_skill_edit_step_whose_reword_row_states_text_held_under_another_
     assert (wt / "REQUIREMENTS.md").read_text() == listing
     events = [p for p in (wt, wt.parent.parent.parent) if (p / ".tdd" / "events.jsonl").exists()]
     assert not any("step-done" in (p / ".tdd" / "events.jsonl").read_text() for p in events), events
+
+
+def test_4709_a_step_that_only_quotes_diff_checked_in_its_prose_runs_the_cycle_series_not_diff_step(step):
+    text = "appends a repair step carrying `⟦branch-repair⟧` and no `⟦diff-checked⟧` ⟦criterion 1⟧"
+    code, out, err, stages = step(ledger=LEDGER % text)
+
+    assert (code, stages.names()) == (0, list(STAGES)), err
