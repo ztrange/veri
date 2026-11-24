@@ -162,3 +162,11 @@ def test_every_literal_event_and_key_of_an_event_sh_call_under_skills_is_declare
              for key in keys if key not in event_table.keys(event)]
 
     assert not gaps, "event.sh call sites under skills/ the table does not declare:\n" + "\n".join(gaps)
+
+
+def test_4712_the_table_declares_deviated_with_rule_step_and_a_non_empty_reason_required_and_allows_outcome_deviate():
+    from veri import event_table
+
+    assert (set(event_table.keys("deviated")), event_table.required("deviated")) == ({"rule", "step", "reason"},) * 2
+    assert (event_table.valid("deviated", "reason", ""), event_table.valid("deviated", "rule", "graded-edit")) == (False, True)
+    assert event_table.valid("adjudicated", "outcome", "deviate")
