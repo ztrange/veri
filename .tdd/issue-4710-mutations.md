@@ -5,3 +5,14 @@ skills/tdd/scripts/tests/py/test_pin_recheck_process.py
 command 182
 make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_4710_a_pin_whose_old_text_is_in_more_than_one_file_of_the_repo_needs_a_look_and_exits_0_with_the_receipt
 
+file 38
+skills/tdd/scripts/veri/pin_recheck.py
+old-b64 48
+ZiJvbGQgdGV4dCBpbiB7d2hlcmV9IG9mIHRoZSByZXBvIik=
+new-b64 60
+ZiJvbGQgdGV4dCBpbiB7d2hlcmV9IG9mIHRoZSByZXBvIik7IHJldHVybiAx
+context-b64 108
+ICAgICAgICAgICAgbmVlZHNfYV9sb29rKGxvb2tzLCBwaW5bImZpbGUiXSwgZiJvbGQgdGV4dCBpbiB7d2hlcmV9IG9mIHRoZSByZXBvIik=
+command 187
+sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_4710_a_pin_whose_old_text_is_in_no_file_of_the_repo_needs_a_look_and_exits_0_with_the_receipt
+
