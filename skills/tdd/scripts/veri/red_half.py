@@ -21,12 +21,11 @@ REFUSED = ("⟦diff-checked⟧", ledger.GO_RED_MARK, "⟦phases:", "⟦skill-edi
 
 
 def refused(step):
-    """The REFUSED kinds <step> is, in REFUSED's order; ⟦go-red⟧ by ledger.is_go_red, the others by their mark in the
-    step's trailing marker run or at its start (ledger.REPIN_STEP, a leading ⟦skill-edit⟧); a mark quoted anywhere
-    else in the prose is no kind (#4709)."""
-    trailing = ledger.trailing_markers(step)
+    """The REFUSED kinds <step> is, in REFUSED's order; ⟦go-red⟧ by ledger.is_go_red, the others by ledger.has_kind:
+    the trailing marker run, a leading ⟦skill-edit⟧ or a step starting ledger.REPIN_STEP; a mark quoted anywhere
+    else, or leading any other step, is no kind (#4709)."""
     return [kind for kind in REFUSED if (ledger.is_go_red(step) if kind == ledger.GO_RED_MARK
-                                         else kind in trailing or step.startswith(kind))]
+                                         else ledger.has_kind(step, kind))]
 
 # The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_red_half.py fails when one
 # is a script SKILL.md's Red section does not name, save three it exempts by name (FC19).

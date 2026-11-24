@@ -181,8 +181,22 @@ def carries_mark(text, name):
     return f"⟦{name}⟧" in text
 
 
+def has_kind(step, mark):
+    """True when step is of the kind <mark> names (a full mark, "⟦ci-repair⟧"; "⟦phases:" for a phases mark).
+
+    A kind comes from the step's trailing marker run, plus exactly two leading forms: a leading ⟦skill-edit⟧, and,
+    for ⟦diff-checked⟧, a step starting REPIN_STEP. step may be a whole ledger line, its `- [ ] ` / `- [x] `
+    prefix is dropped first. A mark quoted anywhere else, or leading any other step, is no kind (#4709)."""
+    found = STEP_RE.fullmatch(step)
+    text = (found.group(4) or "") if found else step
+    if mark in trailing_markers(text):
+        return True
+    return text.startswith("⟦skill-edit⟧") if mark == "⟦skill-edit⟧" else (
+        text.startswith(REPIN_STEP) if mark == "⟦diff-checked⟧" else False)
+
+
 def is_skill_edit(step):
-    return step.startswith("⟦skill-edit⟧") or carries_mark(trailing_markers(step), "skill-edit")
+    return has_kind(step, "⟦skill-edit⟧")
 
 
 GO_RED_MARK = "⟦go-red⟧"
