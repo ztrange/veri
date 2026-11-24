@@ -1,6 +1,7 @@
 """verify-branch.sh's computation: the blind whole-branch verifier stage of the Draft PR step (PRD 040.1)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import re
 import sys
 
 import add_ledger_step
@@ -9,11 +10,14 @@ import fused_step
 import run_dir
 import tunables
 from ledger import STEP_RE, added_file, has_kind, read_ledger
+from parse_verdict import SPACE
 
 LEAF = "verdict-branch"
 OWNER = "verify-branch"
 REASON = ".tdd/verify-branch.reason"
 USAGE = "usage: verify-branch.sh <n>"
+# parse_verdict's leniency (leading whitespace, any case) plus a list bullet and an opening backtick.
+MISSING_TEST_RE = re.compile(f"^[{SPACE}]*(?:[-*][{SPACE}]+)?`?missing_test:", re.IGNORECASE | re.ASCII)
 
 
 def main(argv):
@@ -66,7 +70,7 @@ def repair(n, wt):
             reason = f.read()
     except OSError:
         reason = ""
-    missing = any(line.startswith("MISSING_TEST:") for line in reason.split("\n"))
+    missing = any(MISSING_TEST_RE.match(line) for line in reason.split("\n"))
     reason = " ".join(reason.replace("⟦", "[").replace("⟧", "]").replace("⟂", "").split())
     step = "fix what verify-branch rejected: %s%s ⟦branch-repair⟧" % (
         reason or "see .tdd/verify-branch.reason", "" if missing else " ⟦diff-checked⟧")

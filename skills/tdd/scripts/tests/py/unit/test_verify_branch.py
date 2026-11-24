@@ -1,6 +1,8 @@
 """In-process cases for veri/verify_branch.py, the module verify-branch.sh is a shim over (PRD 040.1, #4472)."""
 import importlib
 
+import pytest
+
 BASE = "abc1234def5678"
 
 
@@ -496,3 +498,27 @@ def test_4707_a_reject_whose_reason_holds_no_missing_test_line_still_appends_a_d
     messages = [a[a.index("-m") + 1] for a in gits if "commit" in a and "-m" in a]
     assert ([("⟦diff-checked⟧" in l, "usage string omits the flag" in l) for l in repairs],
             [m.startswith("plan:") for m in messages]) == ([(True, True)], [True])
+
+
+@pytest.mark.parametrize("line", ["   MISSING_TEST: a gear meshes", "- `MISSING_TEST: a gear meshes`"])
+def test_4707_a_missing_test_line_indented_or_written_as_a_backticked_bullet_still_drops_diff_checked(
+        monkeypatch, run_cli, tmp_path, line):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (wt / ".tdd" / "verify-branch.reason").write_text("criterion 3 has no case\n%s\nVERDICT: REJECT\n" % line)
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    (wt / ".tdd" / "issue-12.md").write_text("- [x] a gear meshes ⟦criterion 1⟧\n")
+    monkeypatch.delenv("VERI_BRANCH_REPAIRS", raising=False)
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: None)
+    monkeypatch.setattr(fused, "call", lambda name, *a, **kw: (
+        (1, "", "") if name.endswith("wait-leaf.sh") else (0, "", "")))
+    monkeypatch.setattr(fused, "run_script",
+                        lambda name, *a, **kw: (1, "", "") if name.endswith("wait-leaf.sh") else (0, "", ""))
+    run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    repairs = [l for l in (wt / ".tdd" / "issue-12.md").read_text().split("\n") if "⟦branch-repair⟧" in l]
+    assert [("⟦diff-checked⟧" in l) for l in repairs] == [False]
