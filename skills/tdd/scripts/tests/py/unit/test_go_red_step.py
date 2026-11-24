@@ -396,3 +396,18 @@ def test_4719_a_bare_pytest_case_name_is_probed_through_the_test_py_file_whose_d
 
     assert code == 0, err
     assert fake.call("mutation-probe.sh")[1][-1] == "tests/test_chart.py"
+
+
+def test_4719_a_node_test_case_title_is_not_probed_through_a_test_mjs_file_whose_test_title_only_starts_with_it(go_red):
+    title = "no component inlines the label-thinning formula"
+    (go_red.wt / "site" / "test").mkdir(parents=True)
+    (go_red.wt / "site" / "test" / "axis.test.mjs").write_text(
+        "import { test } from \"node:test\";\n\ntest(\"%s and more\", () => {\n});\n" % title)
+    (go_red.wt / "site" / "test" / "chart-geometry.test.mjs").write_text(
+        "import { test } from \"node:test\";\n\ntest(\"%s\", () => {\n});\n" % title)
+    step = STEP.replace(CASE, title)
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "site/test/chart-geometry.test.mjs"
