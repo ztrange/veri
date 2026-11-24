@@ -13,6 +13,7 @@ description: >-
 Invoked as `/vinstall [repo-root]`. Run `$S/install-links.sh [repo-root]`, passing the
 argument through when the user gave one. Then report each skill the script linked,
 repaired or removed, by name (a removed one prints as `removed <name>`).
+When the first argument is `cloud`, follow `## Cloud sessions` instead.
 
 ## Stacking finished runs
 
@@ -100,3 +101,25 @@ overwrite that path, and do not link by hand. The path belongs to the operator.
 
 Re-running `/vinstall` is the way to repair an install. A missing or dangling link is
 relinked by running it again; there is no separate repair command.
+
+## Cloud sessions
+
+Invoked as `/vinstall cloud [repo-root]`, it prepares the repository so a Claude Code cloud session can
+run veri. Such a session starts with no venv and a Python below veri's floor.
+
+1. Run `$S/cloud-install.sh [repo-root]`, passing the argument through when the user gave one. It adds
+   one `SessionStart` hook to the repository's `.claude/settings.json`, creating the file when missing
+   and keeping every other key and hook. The hook runs `$S/cloud-setup.sh` only when
+   `CLAUDE_CODE_REMOTE=true`, so it does nothing on a local session. `cloud-setup.sh` finds or installs a
+   Python at the floor, builds veri's venv once per lock and puts its `bin` on the session's PATH. On
+   exit 0, report the line the script printed and tell the operator to commit `.claude/settings.json`:
+   a cloud session sees only what is committed. On exit 2, report its stderr exactly and stop.
+2. Print the claude.ai environment settings the operator must make by hand, in the cloud environment's
+   settings on claude.ai:
+   - `GH_TOKEN`, a token `gh` and `git push` can use for this repository;
+   - a network level that reaches github.com and pypi.org, since setup installs from PyPI.
+
+   Say that no CLI or API sets them: `claude` offers no command to create or configure a cloud
+   environment, so they live only in the web UI.
+3. Then run `/vready`'s readiness check through a subagent, briefed as `## Checking readiness` says,
+   whatever `cloud-install.sh` changed, and report its answer.
