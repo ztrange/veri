@@ -1,6 +1,7 @@
 """go-red-step.sh's computation, run in-process: a ⟦go-red⟧ step's one stage, a mutation probe on the case the step
 names, recorded in the run's mutation record, then step-tick.sh (#4443)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import fnmatch
 import os
 import re
 import sys
@@ -82,18 +83,19 @@ def committed_case(wt, case):
 
 def defining_file(wt, case):
     """The repo-relative path of the one test file under the worktree, outside `.git` and `.tdd`, defining <case>: a
-    Go test file (`*_test.go`) holding `func <case>` as a whole name, or a node test file (`*.test.mjs`) holding
-    `test(` with <case> as its whole quoted first argument; else stops at probe (exit 2). A file that cannot be read
-    is skipped."""
+    Go test file (`*_test.go`) holding `func <case>` as a whole name, a node test file (`*.test.mjs`) holding
+    `test(` with <case> as its whole quoted first argument, or a Python test file (`test_*.py`) holding `def <case>` as
+    a whole name; else stops at probe (exit 2). A file that cannot be read is skipped."""
     if os.path.exists(os.path.join(wt, case)):
         return case
-    patterns = {"_test.go": re.compile(r"\bfunc\s+" + re.escape(case) + r"(?!\w)"),
-                ".test.mjs": re.compile(r"\btest\(\s*([\"'`])" + re.escape(case) + r"\1")}
+    patterns = {"*_test.go": re.compile(r"\bfunc\s+" + re.escape(case) + r"(?!\w)"),
+                "*.test.mjs": re.compile(r"\btest\(\s*([\"'`])" + re.escape(case) + r"\1"),
+                "test_*.py": re.compile(r"\bdef\s+" + re.escape(case) + r"(?!\w)")}
     found = []
     for root, dirs, files in os.walk(wt):
         dirs[:] = [d for d in dirs if d not in (".git", ".tdd")]
         for name in files:
-            pattern = next((p for suffix, p in patterns.items() if name.endswith(suffix)), None)
+            pattern = next((p for glob, p in patterns.items() if fnmatch.fnmatchcase(name, glob)), None)
             if pattern is None:
                 continue
             full = os.path.join(root, name)
