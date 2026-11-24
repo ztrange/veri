@@ -28,7 +28,9 @@ preflight has spent nothing to judge. Any other exit 2 bails as before.
 ### Waivable rules
 
 A few rules may be waived once per run, for one step, when the adjudicator answers `deviate`
-(ADR-0037). This list is read by a script: one bullet per rule, `` - `<rule-id>`: `` then the
+(ADR-0037). A waivable cause is a bail, not an exit 2: `BAIL.md`'s first sub-step sends it
+through the *Procedure* below, and the adjudicator judges whether the refused change is needed
+for the criterion and whether the rule's resume action keeps the rule's purpose. This list is read by a script: one bullet per rule, `` - `<rule-id>`: `` then the
 bail cause that names it, backticked, then its purpose and its resume action.
 
 - `graded-edit`: `graded-edit-outside-skill-edit` — Purpose: only a `⟦skill-edit⟧` step signs a
@@ -70,6 +72,9 @@ Run it in order, at the site where the eligible exit 2 came back.
    `push-branch.sh` for the second push's exit 2.
    At the `criterion-unreadable` site (`SKILL.md`, a step's mirror to the issue) they are
    `.tdd/criterion-finished.err` and `criterion-finished.sh <k>`.
+   For `graded-edit-outside-skill-edit` (`BAIL.md`'s first sub-step) they are
+   `.tdd/graded-changed.out`, the units `graded-changed.sh` printed, and that
+   `graded-changed.sh <sha>` call.
 3. **Launch the leaf** `adjudicate-<cause>` through `supervise.sh`, detached, then wait in the
    foreground (on an exit 3 call the wait again). Remove the cause's completion and pid files
    first, as *Launching a leaf* in `SKILL.md` does, so a second adjudication of one cause never
@@ -93,6 +98,19 @@ Run it in order, at the site where the eligible exit 2 came back.
      states, and `unreplaced-cases`'s `replaces-report` the correction leaf its site in `SKILL.md`
      states).
    - `2` — unparsed: a bail with the original cause and class.
+   - `4` — `deviate`, read only for a cause *Waivable rules* names (for any other cause the
+     answer is unparsed, exit 2). Run `$S/adjudicate.sh deviation-left <n>`, which reads
+     `VERI_DEVIATION_BUDGET` (default 1); its exit 3 (spent) or 2 (unreadable log, bad knob) bails
+     with the original cause and class. On exit 0 record the deviation, `<id>` the rule,
+     `<k>` the step and `<reason>` the answer's one line of reason:
+     ```
+     VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh deviated rule=<id> step=<k> reason="<reason>"
+     ```
+     then append to the committed ledger, and commit it, the line
+     `- [ ] deviated from <id> at step <k>: <action> — <reason> ⟦human-owed⟧ ⟦deviation <id>⟧ ⟦criterion k⟧`,
+     `<action>` the resume action in a few words (`added a ⟦skill-edit⟧ step` for
+     `graded-edit`), and take the rule's resume action. `/vmerge` reviews that line before the
+     merge.
 
 ### Guards
 
