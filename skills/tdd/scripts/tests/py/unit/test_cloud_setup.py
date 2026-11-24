@@ -1,5 +1,6 @@
 """In-process cases for veri/cloud_setup.py, the module cloud-setup.sh is a shim over."""
 import importlib
+import subprocess
 
 import pytest
 
@@ -95,3 +96,106 @@ def test_with_no_interpreter_at_or_above_the_floor_but_uv_it_installs_one_with_u
 
     assert (code, err) == (0, "")
     assert installs == [("/root/.local/share/uv/python/cpython-3.12.7/bin/python3.12", str(venv))]
+
+
+class Processes:
+    """subprocess.run and shutil.which at cloud_setup's process boundary: which finds only the names given, run records
+    each call and answers with the returncode and stdout a rule gives, raising as run does when check is set."""
+
+    def __init__(self, on_path, answers):
+        self.on_path, self.answers, self.calls = on_path, answers, []
+
+    def which(self, name):
+        return "/fake/" + name if name in self.on_path else None
+
+    def run(self, args, check=False, env=None, **_):
+        self.calls.append((list(args), env))
+        code, out = next((answer for prefix, answer in self.answers if list(args[:len(prefix)]) == prefix), (0, ""))
+        if check and code:
+            raise subprocess.CalledProcessError(code, args)
+        return subprocess.CompletedProcess(args, code, stdout=out)
+
+
+def boundary(monkeypatch, cloud_setup, on_path, answers):
+    processes = Processes(on_path, answers)
+    monkeypatch.setattr(cloud_setup.shutil, "which", processes.which)
+    monkeypatch.setattr(cloud_setup.subprocess, "run", processes.run)
+    return processes
+
+
+PROBE = ["/fake/python3", "-c", "import platform; print(platform.python_version())"]
+
+
+def test_with_no_venv_it_creates_one_with_the_interpreter_found_and_runs_make_install_dev_into_it(
+        tmp_path, run_cli, cloud_setup, monkeypatch):
+    venv = tmp_path / "venv"
+    processes = boundary(monkeypatch, cloud_setup, {"python3"}, [(PROBE, (0, "3.12.7\n"))])
+
+    code, out, err = run_cli(cloud_setup, [], env={"CLAUDE_CODE_REMOTE": "true", "VERI_VENV": str(venv)})
+
+    assert (code, err) == (0, "")
+    assert [args for args, env in processes.calls] == [
+        PROBE, ["python3", "-m", "venv", str(venv)], ["make", "-C", cloud_setup.ROOT, "install-dev"]]
+    assert processes.calls[-1][1]["VERI_VENV"] == str(venv)
+    assert (venv / ".veri-lock-sha256").read_text() == cloud_setup._lock_sha256()
+
+
+def test_with_a_venv_holding_bin_python3_but_no_stamp_it_runs_make_install_dev_without_creating_the_venv_again(
+        tmp_path, run_cli, cloud_setup, monkeypatch):
+    venv = tmp_path / "venv"
+    (venv / "bin").mkdir(parents=True)
+    (venv / "bin" / "python3").write_text("")
+    processes = boundary(monkeypatch, cloud_setup, {"python3"}, [(PROBE, (0, "3.12.7\n"))])
+
+    code, out, err = run_cli(cloud_setup, [], env={"CLAUDE_CODE_REMOTE": "true", "VERI_VENV": str(venv)})
+
+    assert (code, err) == (0, "")
+    assert [args for args, env in processes.calls] == [PROBE, ["make", "-C", cloud_setup.ROOT, "install-dev"]]
+
+
+def test_when_make_install_dev_fails_it_exits_2_writing_no_stamp_and_no_path_line(
+        tmp_path, run_cli, cloud_setup, monkeypatch):
+    venv = tmp_path / "venv"
+    env_file = tmp_path / "claude-env"
+    boundary(monkeypatch, cloud_setup, {"python3"}, [(PROBE, (0, "3.12.7\n")), (["make"], (2, ""))])
+
+    code, out, err = run_cli(cloud_setup, [], env={"CLAUDE_CODE_REMOTE": "true", "VERI_VENV": str(venv),
+                                                   "CLAUDE_ENV_FILE": str(env_file)})
+
+    assert code == 2
+    assert not (venv / ".veri-lock-sha256").exists() and not env_file.exists()
+
+
+def test_an_interpreter_whose_version_probe_fails_counts_as_none_even_when_it_printed_a_version(
+        tmp_path, run_cli, cloud_setup, monkeypatch):
+    venv = tmp_path / "venv"
+    processes = boundary(monkeypatch, cloud_setup, {"python3"}, [(PROBE, (1, "3.12.7\n"))])
+
+    code, out, err = run_cli(cloud_setup, [], env={"CLAUDE_CODE_REMOTE": "true", "VERI_VENV": str(venv)})
+
+    assert code == 2
+    assert [args for args, env in processes.calls] == [PROBE]
+    assert not venv.exists()
+
+
+def test_given_an_argument_it_exits_2_naming_it_and_runs_nothing(tmp_path, run_cli, cloud_setup, monkeypatch):
+    venv = tmp_path / "venv"
+    processes = boundary(monkeypatch, cloud_setup, {"python3"}, [(PROBE, (0, "3.12.7\n"))])
+
+    code, out, err = run_cli(cloud_setup, ["extra"], env={"CLAUDE_CODE_REMOTE": "true", "VERI_VENV": str(venv)})
+
+    assert (code, out) == (2, "")
+    assert err == "cloud-setup.sh: unexpected argument 'extra'\nusage: cloud-setup.sh\n"
+    assert processes.calls == [] and not venv.exists()
+
+
+def test_with_veri_venv_unset_it_hands_make_the_default_venv_as_veri_venv(tmp_path, run_cli, cloud_setup, monkeypatch):
+    monkeypatch.delenv("VERI_VENV", raising=False)
+    home = tmp_path / "home"
+    processes = boundary(monkeypatch, cloud_setup, {"python3"}, [(PROBE, (0, "3.12.7\n"))])
+
+    code, out, err = run_cli(cloud_setup, [], env={"CLAUDE_CODE_REMOTE": "true", "HOME": str(home)})
+
+    assert (code, err) == (0, "")
+    make = [env for args, env in processes.calls if args[0] == "make"]
+    assert [env.get("VERI_VENV") for env in make] == [str(home / ".veri-tools" / "venv")]
