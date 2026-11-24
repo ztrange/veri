@@ -3419,6 +3419,31 @@ def test_main_4721_prints_later_for_the_later_step_own_text_when_two_open_steps_
     assert (code, stdout) == (0, "later %s\n" % later)
 
 
+@pytest.mark.parametrize("step, later, behaviour", [
+    ("metaDirty is true when any one field differs ⟦criterion 1⟧", "⟦criterion 1⟧", "a cog never moves alone"),
+    ("metaDirty is true when any one field differs ⟦criterion 1⟧",
+     "metaDirty is false for an unchanged draft ⟦criterion 1⟧", "a cog never moves alone"),
+    ("metaDirty is true when any one field differs ⟦added⟧", "metaDirty is false for an unchanged draft ⟦added⟧",
+     "metaDirty is false for an unchanged draft"),
+], ids=["later-step-with-no-own-text", "behaviour-unrelated-to-both", "shared-marker-is-not-a-criterion"])
+def test_main_4721_prints_missing_when_no_later_step_owns_the_behaviour_by_its_own_text_under_a_shared_criterion_marker(
+        run_cli, tmp_path, monkeypatch, step, later, behaviour):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (step, later))
+    spec = tmp_path / ".tdd" / "issue-77-spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] The tests pin metaBody, toDraft and metaDirty\n")
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: %s\nVERDICT: REJECT\n" % behaviour)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, ["--spec", str(spec), str(report), "test_meta_dirty_true"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "missing %s\n" % behaviour)
+
+
 def test_main_3135_exits_2_with_the_usage_and_nothing_on_stdout_when_spec_is_absent_even_if_a_ledger_step_matches(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
