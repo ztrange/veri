@@ -452,3 +452,25 @@ def test_is_go_red_counts_the_marker_only_among_the_steps_trailing_markers_4443(
     ledger = importlib.import_module("veri.ledger")
 
     assert ledger.is_go_red(step) is expected
+
+
+@pytest.mark.parametrize("step, mark, expected", [
+    ("repair the build ⟦ci-repair⟧ ⟦criterion 1⟧", "⟦ci-repair⟧", True),
+    ("repair the build ⟦ci-repair⟧", "⟦ci-repair⟧", True),
+    ("a step quoting `⟦ci-repair⟧` in prose ⟦criterion 1⟧", "⟦ci-repair⟧", False),
+    ("expand it ⟦phases: expand, migrate⟧ ⟦criterion 1⟧", "⟦phases:", True),
+    ("⟦skill-edit⟧ edit `a/b.md` ⟦criterion 1⟧", "⟦skill-edit⟧", True),
+    ("⟦diff-checked⟧ edit the case of the pin on `t.py::c` ⟦criterion 1⟧", "⟦diff-checked⟧", True),
+    ("⟦ci-repair⟧ repair the build ⟦criterion 1⟧", "⟦ci-repair⟧", False),
+    ("⟦diff-checked⟧ edit a case ⟦criterion 1⟧", "⟦diff-checked⟧", False),
+    ("⟦diff-checked⟧ edit the case of the pin on `t.py::c` ⟦criterion 1⟧", "⟦skill-edit⟧", False),
+    ("- [ ] ⟦skill-edit⟧ edit `a/b.md` ⟦criterion 1⟧", "⟦skill-edit⟧", True),
+    ("- [x] ⟦skill-edit⟧ edit `a/b.md` ⟦criterion 1⟧", "⟦skill-edit⟧", True),
+    ("- [ ] ⟦diff-checked⟧ edit the case of the pin on `t.py::c` ⟦criterion 1⟧", "⟦diff-checked⟧", True),
+    ("- [ ] ⟦ci-repair⟧ repair the build ⟦criterion 1⟧", "⟦ci-repair⟧", False),
+    ("- [ ] repair the build ⟦ci-repair⟧ ⟦criterion 1⟧", "⟦ci-repair⟧", True),
+])
+def test_4709_has_kind_reads_the_trailing_run_and_exactly_two_leading_forms(step, mark, expected):
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.has_kind(step, mark) is expected
