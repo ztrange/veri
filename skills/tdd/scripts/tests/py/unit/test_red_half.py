@@ -550,3 +550,13 @@ def test_4443_a_go_red_step_is_exit_2_before_any_inner_call(red):
 
     assert (code, fake.calls) == (2, [])
     assert "a step its prose runs" in err
+
+
+@pytest.mark.parametrize("kind, mark", [("⟦diff-checked⟧", "⟦diff-checked⟧"), ("⟦go-red⟧", "⟦go-red⟧"),
+                                        ("⟦phases:", "⟦phases: expand, migrate⟧"), ("⟦skill-edit⟧", "⟦skill-edit⟧"),
+                                        ("⟦fixture-repair⟧", "⟦fixture-repair⟧")])
+def test_4709_a_kind_mark_quoted_in_the_prose_is_no_kind_and_one_in_the_trailing_run_is(kind, mark):
+    refused = importlib.import_module("veri.red_half").refused
+
+    assert refused("appends a step carrying no `%s` mark ⟦criterion 1⟧" % mark) == []
+    assert refused("does the thing %s ⟦criterion 1⟧" % mark) == [kind]
