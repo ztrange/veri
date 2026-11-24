@@ -176,3 +176,9 @@ def test_4730_the_table_allows_cause_tests_frozen_refused_on_adjudicated():
     from veri import event_table
 
     assert event_table.valid("adjudicated", "cause", "tests-frozen-refused")
+
+
+def test_4730_the_table_allows_rule_tests_frozen_on_deviated():
+    from veri import event_table
+
+    assert event_table.valid("deviated", "rule", "tests-frozen")

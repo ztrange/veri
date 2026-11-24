@@ -48,7 +48,7 @@ EVENTS = {
     "conductor-start": "pid:whole started:text,empty",
     "core-wait": "seconds:whole",
     "criterion-unticked": "matcher:text,empty",
-    "deviated": "rule:(graded-edit) step:whole reason:text",
+    "deviated": "rule:(graded-edit|tests-frozen) step:whole reason:text",
     "diff-leaf-deviation": "leaf:text base:sha head:sha commits:whole",
     "done": "pr:url wall_seconds?:whole awake_seconds?:whole lane?:text",
     "exit": "status:whole cause?:text secs:whole name?:text",
