@@ -13,8 +13,13 @@ def main(argv):
     root = argv[0] if argv else os.getcwd()
     command = '[ "$CLAUDE_CODE_REMOTE" != true ] || ' + os.path.join(SCRIPTS, "cloud-setup.sh")
     settings = os.path.join(root, ".claude", "settings.json")
+    data = {}
+    if os.path.exists(settings):
+        with open(settings) as text:
+            data = json.load(text)
     os.makedirs(os.path.dirname(settings), exist_ok=True)
-    data = {"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": command}]}]}}
+    groups = data.setdefault("hooks", {}).setdefault("SessionStart", [])
+    groups.append({"hooks": [{"type": "command", "command": command}]})
     with open(settings, "w") as out:
         out.write(json.dumps(data, indent=2) + "\n")
     print("added the cloud SessionStart hook to " + settings)

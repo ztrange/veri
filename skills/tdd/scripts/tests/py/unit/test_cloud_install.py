@@ -24,3 +24,19 @@ def test_on_a_repository_with_no_settings_it_creates_them_holding_one_cloud_sess
     setup = os.path.join(os.path.realpath(SCRIPTS), "cloud-setup.sh")
     assert (code, err) == (0, "")
     assert json.loads(settings.read_text()) == {"hooks": {"SessionStart": [cloud_hook(setup)]}}
+
+
+def test_on_existing_settings_it_adds_the_hook_and_keeps_every_existing_key_and_hook(tmp_path, run_cli, cloud_install):
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir()
+    theirs = {"hooks": [{"type": "command", "command": "echo hello"}]}
+    stop = {"hooks": [{"type": "command", "command": "echo bye"}]}
+    settings.write_text(json.dumps({"model": "opus", "permissions": {"allow": ["Bash(ls)"]},
+                                    "hooks": {"SessionStart": [theirs], "Stop": [stop]}}))
+
+    code, out, err = run_cli(cloud_install, [str(tmp_path)])
+
+    setup = os.path.join(os.path.realpath(SCRIPTS), "cloud-setup.sh")
+    assert (code, err) == (0, "")
+    assert json.loads(settings.read_text()) == {"model": "opus", "permissions": {"allow": ["Bash(ls)"]},
+                                                "hooks": {"SessionStart": [theirs, cloud_hook(setup)], "Stop": [stop]}}
