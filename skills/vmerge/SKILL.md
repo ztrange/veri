@@ -48,6 +48,8 @@ A **hand pull request**, one whose base is the stack branch and whose head branc
 
 An unticked ⟦human-owed⟧ line gets one read-only review subagent (it may read, never write). If it answers OK, tick the line; if NOT OK, the line goes to the human and nothing merges.
 
+An unticked ⟦human-owed⟧ line carrying `⟦deviation <id>⟧` records a rule the adjudicator waived for one step (`tdd/ADJUDICATE.md`, *Waivable rules*). Its review subagent judges whether the deviation was right, reading the diff of the step the line names and rule `<id>`'s purpose from *Waivable rules*. On OK, tick the line in the committed ledger with ` ⟦reviewed ok⟧` appended, commit and push that on the PR branch, and update the PR body's copy of the line to match, all before the merge: `run-finished.sh` blocks on an unticked line in the PR body. On NOT OK, comment the line and the subagent's reason on the issue, hand it to the human, and merge nothing.
+
 ## The merge lock
 
 Take the merge lock with `$S/merge-lock.sh take --pid <driver> --owner <token>` before the first write and hold it to the last. A `take` that exits non-zero means the lock was not taken (another holder outlasted its bounded wait, the holder is dead or reused, or the call was refused): stop the merge there, before its first write, release nothing, and report `take`'s stderr to the human; never run `merge-lock.sh release --force` yourself. `<driver>` is the long-lived process driving the merge: `$PPID` in an agent session's Bash call. `<token>` is an owner token of this merge's own, one per merge (a fresh random string); two merges driven from one session share `$PPID`, so only the token tells them apart: they exclude each other, and only the holder can release.
