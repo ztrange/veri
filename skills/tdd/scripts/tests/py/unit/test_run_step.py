@@ -1002,3 +1002,10 @@ def test_4709_a_step_only_quoting_a_green_half_unhandled_mark_in_its_prose_does_
     code, out, err, stages = step(ledger=LEDGER % "document the `⟦ci-repair⟧` mark in `a.md` ⟦criterion 1⟧")
 
     assert "reason=unmodelled" not in out, out
+
+
+def test_4707_a_branch_repair_step_without_diff_checked_runs_the_red_green_series_not_diff_step(step):
+    text = "fix what verify-branch rejected: criterion 3 has no case MISSING_TEST: a gear meshes ⟦branch-repair⟧"
+    code, out, err, stages = step(ledger=LEDGER % text)
+
+    assert (code, stages.names()) == (0, list(STAGES)), out + err
