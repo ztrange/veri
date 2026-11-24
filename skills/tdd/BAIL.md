@@ -146,6 +146,17 @@ below, every one of which stays.
 
 To bail:
 
+0. **Ask whether the rule may be waived.** Before the bail is classified or anything is reset,
+   check whether its cause is one `ADJUDICATE.md`'s *Waivable rules* names
+   (`graded-edit-outside-skill-edit`, rule `graded-edit`). If it is, and
+   `$S/adjudicate.sh left <n>` and `$S/adjudicate.sh deviation-left <n>` both exit 0, run the
+   adjudicator as `ADJUDICATE.md`'s *Procedure* says. On `deviate` (exit 4) the run does not
+   bail: it takes the rule's resume action. For `graded-edit` that is: keep the step's commit,
+   append through `add-ledger-step.sh` one `⟦added⟧` `⟦skill-edit⟧` step naming each unit
+   `graded-changed.sh` printed (it counts against `VERI_STEP_GROWTH_PERCENT`), then go on from
+   the refusing step's next sub-step; an `add-ledger-step.sh` refusal bails with the original
+   cause. Any other answer, or either budget spent or unreadable (exit 3 or 2), goes on to
+   sub-step 1 with the original cause and class. `bail.sh` does not run this sub-step.
 1. **Preserve the attempt first.** The tree the troubled leaf left is the evidence a reader
    of this bail will want, and the very next step throws it away — so snapshot it before the
    reset, from inside the worktree:
