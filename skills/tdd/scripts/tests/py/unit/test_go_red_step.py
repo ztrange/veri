@@ -411,3 +411,15 @@ def test_4719_a_node_test_case_title_is_not_probed_through_a_test_mjs_file_whose
 
     assert code == 0, err
     assert fake.call("mutation-probe.sh")[1][-1] == "site/test/chart-geometry.test.mjs"
+
+
+def test_4719_a_bare_pytest_case_name_is_not_probed_through_a_test_py_file_defining_only_a_longer_name(go_red):
+    (go_red.wt / "tests").mkdir()
+    (go_red.wt / "tests" / "test_axis.py").write_text("def test_thins_labels_twice():\n    pass\n")
+    (go_red.wt / "tests" / "test_chart.py").write_text("def test_thins_labels():\n    pass\n")
+    step = STEP.replace(CASE, "test_thins_labels")
+
+    code, out, err, fake = go_red(step=step)
+
+    assert code == 0, err
+    assert fake.call("mutation-probe.sh")[1][-1] == "tests/test_chart.py"
