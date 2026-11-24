@@ -27,3 +27,9 @@ def test_2081_only_the_unit_a_pending_skill_edit_step_names_is_waived_and_anothe
     owed, waived = prose_owed.waive(step + "\n", [u, v])
     assert owed == [v]
     assert waived == [(u, step)]
+
+
+def test_4709_a_unit_named_on_an_unchecked_step_only_quoting_skill_edit_in_its_prose_stays_owed():
+    unit = "skills/vstop/SKILL.md"
+    ledger = "- [ ] document the `⟦skill-edit⟧` mark in `" + unit + "` ⟦criterion 1⟧\n"
+    assert prose_owed.waive(ledger, [unit]) == ([unit], [])
