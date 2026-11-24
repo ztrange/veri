@@ -546,3 +546,18 @@ def test_issue_4200_bypass_permissions_row_under_a_uid_0_claude_refusing_as_root
     name, message = ready_check.bypass_permissions_row()
 
     assert message is not None and "--dangerously-skip-permissions cannot be used with root/sudo privileges" in message, (name, message)
+
+
+@pytest.mark.process("a CLAUDE_BIN stub run as a subprocess by bypass_permissions_row, behaving as a claude running as uid 0 that never answers")
+def test_issue_4200_bypass_permissions_row_under_a_uid_0_claude_that_never_answers_yields_no_answer_within_the_probe_timeout(tmp_path, monkeypatch):
+    from veri import ready_check
+    stub = write_stub(str(tmp_path / "claude-root-silent"), "echo 'running as uid 0 with IS_SANDBOX' >&2\nexec sleep 25\n")
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    monkeypatch.setenv("CLAUDE_BIN", stub)
+    monkeypatch.setattr(ready_check, "PROBE_TIMEOUT", 1)
+
+    name, message = ready_check.bypass_permissions_row()
+
+    assert name == "bypassPermissions" and message is not None and message.startswith("no answer was obtained"), (name, message)
