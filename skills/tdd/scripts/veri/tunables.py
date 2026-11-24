@@ -145,6 +145,7 @@ TUNABLES = {
     "VERI_NO_VERDICT_RETRIES": Tunable(tokens, "1"),
     "VERI_SKILL_EDIT_BUDGET": Tunable(decimal_at_least_one, "3"),
     "VERI_ADJUDICATE_BUDGET": Tunable(tokens, "2"),
+    "VERI_DEVIATION_BUDGET": Tunable(tokens, "1"),
     "VERI_SURROUND_MUTANTS": Tunable(positive_tokens, "5", "a whole number >= 1"),
     "VERI_STUCK_RETRIES": Tunable(tokens, "1"),
     "VERI_HEARTBEAT": Tunable(tokens, "180"),
