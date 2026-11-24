@@ -25,7 +25,12 @@ def main(argv):
     lock = _lock_sha256()
     if _read(stamp) != lock:
         floor = launch_floor.python_floor()
-        python = next(name for name in _candidates(floor) if _meets(_version(name), floor))
+        tried = [(name, _version(name)) for name in _candidates(floor)]
+        python = next((name for name, version in tried if _meets(version, floor)), None)
+        if python is None:
+            return entry.refuse(*[(name + " is version " + version + ".") if version else ("no " + name + " on PATH.")
+                                  for name, version in tried],
+                                prefix="cloud-setup: veri needs Python " + floor + " or newer; ")
         _install(python, venv)
         os.makedirs(venv, exist_ok=True)
         with open(stamp, "w") as out:
