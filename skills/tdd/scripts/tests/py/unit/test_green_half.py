@@ -608,3 +608,10 @@ def test_4479_the_wait_record_a_revised_green_pass_re_saves_is_not_loaded_once_a
     code, out, err, fake = green(step=step_b)
 
     assert fake.launched()[:1] == ["develop-green"]
+
+
+def test_4709_a_step_only_quoting_ci_repair_in_its_prose_is_not_refused_as_a_step_its_prose_runs(green):
+    code, out, err, fake = green(step="document the `⟦ci-repair⟧` mark in `a.md` ⟦criterion 1⟧",
+                                 answers={("wait-leaf.sh", "verdict-green"): (3, "")})
+
+    assert "a step its prose runs" not in err

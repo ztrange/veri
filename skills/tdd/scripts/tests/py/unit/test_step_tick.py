@@ -186,3 +186,10 @@ def test_4481_an_already_ticked_criterion_still_marks_step_done_and_exits_0(tick
     assert code == 0, err
     assert ("event.sh", ("step-done",)) in [(c[0], c[1]) for c in fake.calls]
     assert out.splitlines()[-1] == "next=cycle"
+
+
+def test_4709_a_step_only_quoting_diff_checked_in_its_prose_is_refused_as_not_a_diff_checked_step(tick):
+    code, out, err, fake = tick(ledger=LEDGER % "document the `⟦diff-checked⟧` mark in `a.md` ⟦criterion 1⟧")
+
+    assert (code, fake.calls) == (2, [])
+    assert "not a ⟦diff-checked⟧ step" in err

@@ -311,3 +311,12 @@ def test_4392_draft_pr_sub_step_1_names_pr_checks_and_every_script_of_its_ordere
     assert set(pr_checks.CALLS) - set(made) == {"stop-requested.sh"} and set(made) <= set(pr_checks.CALLS)
     firsts = [made.index(name) for name in pr_checks.CALLS if name in made]
     assert firsts == sorted(firsts)
+
+
+def test_4709_a_step_only_quoting_test_quality_in_its_prose_is_no_existing_test_quality_step(checks):
+    (checks.wt / ".tdd" / "issue-12-test-quality").write_text(WEAK)
+    quoting = "- [ ] document tests/test_a.py::test_one and the `⟦test-quality⟧` mark ⟦criterion 2⟧\n"
+    code, out, err, fake = checks(ledger=LEDGER + quoting)
+
+    assert code == 1, out + err
+    assert out.splitlines()[-1] == "stopped at test-quality .tdd/issue-12-test-quality owes a fix step"
