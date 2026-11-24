@@ -90,9 +90,9 @@ Run it in order, at the site where the eligible exit 2 came back.
    reads the answer with `parse-adjudication.sh` and records the `adjudicated` event. Act on
    its exit:
    - `0` — `retry`: run the step that returned 2 once more, but only where the cause's own site
-     states a retry (`ci-timeout`, `ci-conflict`, `pr-ready-failed`). For any other cause exit
-     `0` is a bail with the original cause and class, the `adjudicated` event still saying
-     `outcome=retry`.
+     states a retry (`ci-timeout`, `ci-conflict`, `pr-ready-failed`). For any other cause, a
+     waivable one included, exit `0` is a bail with the original cause and class, the
+     `adjudicated` event still saying `outcome=retry`.
    - `1` — `bail` or `route`: bail, or take the route token the cause allows (`ci-timeout`
      allows none, so it bails; `ci-conflict`'s `rebase` is the path its site in `DRAFT-PR.md`
      states, and `unreplaced-cases`'s `replaces-report` the correction leaf its site in `SKILL.md`
@@ -101,7 +101,10 @@ Run it in order, at the site where the eligible exit 2 came back.
    - `4` — `deviate`, read only for a cause *Waivable rules* names (for any other cause the
      answer is unparsed, exit 2). Run `$S/adjudicate.sh deviation-left <n>`, which reads
      `VERI_DEVIATION_BUDGET` (default 1); its exit 3 (spent) or 2 (unreadable log, bad knob) bails
-     with the original cause and class. On exit 0 record the deviation, `<id>` the rule,
+     with the original cause and class. On exit 0 take the rule's resume action first (for
+     `graded-edit`, the `add-ledger-step.sh` call); a refused resume action bails with the
+     original cause and class, and since nothing was recorded it spends no deviation budget.
+     Only once the resume action succeeded record the deviation, in this order, `<id>` the rule,
      `<k>` the step and `<reason>` the answer's one line of reason:
      ```
      VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh deviated rule=<id> step=<k> reason="<reason>"
@@ -109,8 +112,7 @@ Run it in order, at the site where the eligible exit 2 came back.
      then append to the committed ledger, and commit it, the line
      `- [ ] deviated from <id> at step <k>: <action> — <reason> ⟦human-owed⟧ ⟦deviation <id>⟧ ⟦criterion k⟧`,
      `<action>` the resume action in a few words (`added a ⟦skill-edit⟧ step` for
-     `graded-edit`), and take the rule's resume action. `/vmerge` reviews that line before the
-     merge.
+     `graded-edit`). `/vmerge` reviews that line before the merge.
 
 ### Guards
 
