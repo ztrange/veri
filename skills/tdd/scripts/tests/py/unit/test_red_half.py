@@ -578,3 +578,19 @@ def test_4709_refused_and_ledger_steps_agree_on_every_steps_kind_in_a_ledger_mix
         kinds = red_half.refused(step.text)
         assert ("⟦diff-checked⟧" in kinds) == (step.kind == "diff-checked"), step.text
         assert [kind for kind in kinds if kind not in ledger.trailing_markers(step.text)] == [], step.text
+
+
+@pytest.mark.parametrize("step", ["⟦fixture-repair⟧ rebuild the fixture ⟦criterion 1⟧",
+                                  "⟦phases: expand, migrate⟧ move the interface ⟦criterion 1⟧",
+                                  "⟦go-red⟧ guard ⟦criterion 1⟧", "⟦diff-checked⟧ re-edit a case ⟦criterion 1⟧"])
+def test_4709_a_step_that_only_starts_with_a_refused_mark_gets_no_kind(step):
+    refused = importlib.import_module("veri.red_half").refused
+
+    assert refused(step) == []
+
+
+def test_4709_the_two_leading_forms_still_give_their_kind():
+    red_half, ledger = importlib.import_module("veri.red_half"), importlib.import_module("veri.ledger")
+
+    assert red_half.refused(ledger.REPIN_STEP + "`a.py::c` ⟦criterion 1⟧") == ["⟦diff-checked⟧"]
+    assert red_half.refused("⟦skill-edit⟧ edit `skills/tdd/SKILL.md` ⟦criterion 1⟧") == ["⟦skill-edit⟧"]
