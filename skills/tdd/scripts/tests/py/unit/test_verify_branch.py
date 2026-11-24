@@ -466,3 +466,33 @@ def test_4707_a_reject_whose_reason_holds_a_missing_test_line_appends_a_branch_r
     run_cli(verify_branch, ["12"], cwd=str(tmp_path))
     repairs = [l for l in (wt / ".tdd" / "issue-12.md").read_text().split("\n") if "⟦branch-repair⟧" in l]
     assert [("⟦diff-checked⟧" in l) for l in repairs] == [False]
+
+
+def test_4707_a_reject_whose_reason_holds_no_missing_test_line_still_appends_a_diff_checked_branch_repair_step_carrying_the_reason_committed_as_a_plan_commit(
+        monkeypatch, run_cli, tmp_path):
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (wt / ".tdd" / "verify-branch.reason").write_text(
+        "the usage string omits the flag\nVERDICT: REJECT\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    (wt / ".tdd" / "issue-12.md").write_text("- [x] a gear meshes ⟦criterion 1⟧\n")
+    monkeypatch.delenv("VERI_BRANCH_REPAIRS", raising=False)
+    gits = []
+
+    def run_script(name, *args, **kw):
+        if name == "git":
+            gits.append(list(args))
+        return (1, "", "") if name.endswith("wait-leaf.sh") else (0, "", "")
+
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: None)
+    monkeypatch.setattr(fused, "run_script", run_script)
+    run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+    repairs = [l for l in (wt / ".tdd" / "issue-12.md").read_text().split("\n") if "⟦branch-repair⟧" in l]
+    messages = [a[a.index("-m") + 1] for a in gits if "commit" in a and "-m" in a]
+    assert ([("⟦diff-checked⟧" in l, "usage string omits the flag" in l) for l in repairs],
+            [m.startswith("plan:") for m in messages]) == ([(True, True)], [True])

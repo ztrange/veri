@@ -1,0 +1,11 @@
+file 40
+skills/tdd/scripts/veri/verify_branch.py
+old-b64 56
+IiIgaWYgbWlzc2luZyBlbHNlICIg4p+mZGlmZi1jaGVja2Vk4p+nIg==
+new-b64 4
+IiI=
+context-b64 124
+ICAgICAgICByZWFzb24gb3IgInNlZSAudGRkL3ZlcmlmeS1icmFuY2gucmVhc29uIiwgIiIgaWYgbWlzc2luZyBlbHNlICIg4p+mZGlmZi1jaGVja2Vk4p+nIik=
+command 225
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_verify_branch.py::test_4707_a_reject_whose_reason_holds_no_missing_test_line_still_appends_a_diff_checked_branch_repair_step_carrying_the_reason_committed_as_a_plan_commit
+
