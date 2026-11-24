@@ -568,6 +568,7 @@ MIXED_LEDGER = ("# Plan for #12\n\n"
                 "- [ ] a plain step ⟦criterion 2⟧\n"
                 "- [ ] edit the fixture ⟦diff-checked⟧ ⟦criterion 2⟧\n"
                 "- [ ] names `⟦skill-edit⟧`, `⟦fixture-repair⟧` and `⟦phases: expand, migrate⟧` in passing ⟦criterion 3⟧\n"
+                "- [ ] ⟦diff-checked⟧ edit the case of the pin on skills/x/test_a.py so its recorded mutation turns it red ⟦added⟧ ⟦criterion 3⟧\n"
                 "- [ ] another plain step ⟦criterion 3⟧\n")
 
 
@@ -577,7 +578,7 @@ def test_4709_refused_and_ledger_steps_agree_on_every_steps_kind_in_a_ledger_mix
     for step in ledger.ledger_steps(MIXED_LEDGER):
         kinds = red_half.refused(step.text)
         assert ("⟦diff-checked⟧" in kinds) == (step.kind == "diff-checked"), step.text
-        assert [kind for kind in kinds if kind not in ledger.trailing_markers(step.text)] == [], step.text
+        assert [kind for kind in kinds if kind not in ledger.trailing_markers(step.text) and not (kind == "⟦diff-checked⟧" and step.text.startswith(ledger.REPIN_STEP))] == [], step.text
 
 
 @pytest.mark.parametrize("step", ["⟦fixture-repair⟧ rebuild the fixture ⟦criterion 1⟧",
