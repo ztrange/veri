@@ -345,6 +345,8 @@ BELOW_FLOOR_INTERPRETER_EXEMPT = {
         "the shim's refusal when no python3 is found is the subject",
     "test_shims_process.py::test_issue_2106_shim_with_both_python3s_exiting_1_silently_exits_2_naming_each_interpreter_and_an_unknown_version":
         "the shim's refusal of interpreters reporting no version is the subject",
+    "test_cloud_setup_process.py::test_its_shim_runs_its_module_on_a_python3_below_the_floor":
+        "cloud-setup.sh running its module on a below-floor python3 is the subject",
 }
 
 

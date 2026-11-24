@@ -10,5 +10,5 @@
 - [x] cloud-setup.sh called again with the same venv lock runs no install ⟦criterion 4⟧
 - [x] cloud-setup.sh with no interpreter at or above the floor and no `uv` exits 2 naming each interpreter tried and its version ⟦criterion 5⟧
 - [x] cloud-setup.sh with no interpreter at or above the floor but `uv` on PATH installs one with `uv` and uses it
-- [ ] cloud-setup.sh runs its module on a python3 below `VENV_FLOOR`: its shim does not refuse
+- [x] cloud-setup.sh runs its module on a python3 below `VENV_FLOOR`: its shim does not refuse
 - [ ] `skills/vinstall/SKILL.md` has a `## Cloud sessions` section and `SCRIPTS.md` catalogues both scripts, graded by the issue's rows ⟦criterion 6⟧

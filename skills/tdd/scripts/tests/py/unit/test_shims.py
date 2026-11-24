@@ -335,6 +335,9 @@ def test_issue_2106_no_shim_execs_the_python3_on_path_unconditionally():
 
 @pytest.mark.tree_audit("every ported scripts/**/*.sh shim, the exempt ones included, read as text for the floor-checking canonical shim")
 def test_issue_2106_every_ported_shim_sources_the_floor_check_then_execs_the_py_it_sets():
+    # cloud-setup.sh runs on a cloud session's below-floor python3 by design: its module finds or installs one that meets it.
+    below_floor_by_design = {"cloud-setup.sh"}
+
     def floor_checked(lines):
         code = [line for line in lines if line.strip() and not line.startswith("#")]
         return FLOOR_SOURCE in code and code[-1].startswith('exec "$py" ') and code.index(FLOOR_SOURCE) < len(code) - 1
@@ -342,6 +345,7 @@ def test_issue_2106_every_ported_shim_sources_the_floor_check_then_execs_the_py_
     offenders = sorted(
         str(path.relative_to(SCRIPTS)) for path in SCRIPTS.rglob("*.sh")
         if "tests" not in path.relative_to(SCRIPTS).parts and re.search(r"/veri/\w+\.py", path.read_text())
-        and not floor_checked(path.read_text().splitlines()))
+        and not floor_checked(path.read_text().splitlines())
+        and str(path.relative_to(SCRIPTS)) not in below_floor_by_design)
 
     assert offenders == []
