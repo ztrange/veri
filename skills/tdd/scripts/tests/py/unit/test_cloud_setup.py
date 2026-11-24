@@ -53,3 +53,21 @@ def test_called_again_with_the_same_venv_lock_it_runs_no_install_and_leaves_one_
     assert (code, err) == (0, "")
     assert installs == [("python3", str(venv))]
     assert env_file.read_text() == 'export PATH="' + str(venv) + '/bin:$PATH"\n'
+
+
+def test_with_no_interpreter_at_or_above_the_floor_and_no_uv_it_exits_2_naming_each_interpreter_tried_and_its_version(
+        tmp_path, run_cli, cloud_setup, monkeypatch):
+    empty = tmp_path / "bin"
+    empty.mkdir()
+    venv = tmp_path / "venv"
+    installs = []
+    monkeypatch.setattr(cloud_setup, "_version", {"python3": "3.11.9"}.get)
+    monkeypatch.setattr(cloud_setup, "_install", lambda python, where: installs.append((python, where)))
+
+    code, out, err = run_cli(cloud_setup, [], env={"CLAUDE_CODE_REMOTE": "true", "PATH": str(empty),
+                                                   "VERI_VENV": str(venv)})
+
+    assert (code, out, installs) == (2, "", [])
+    assert err == ("cloud-setup: veri needs Python 3.12 or newer; python3 is version 3.11.9.\n"
+                   "cloud-setup: veri needs Python 3.12 or newer; no python3.13 on PATH.\n"
+                   "cloud-setup: veri needs Python 3.12 or newer; no python3.12 on PATH.\n")
