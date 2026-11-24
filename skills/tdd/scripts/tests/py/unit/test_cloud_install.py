@@ -52,3 +52,15 @@ def test_run_a_second_time_it_changes_nothing_and_leaves_one_hook(tmp_path, run_
     assert (code, out, err) == (0, "already present in " + str(settings) + "\n", "")
     assert settings.read_bytes() == first
     assert len(json.loads(first)["hooks"]["SessionStart"]) == 1
+
+
+def test_on_settings_that_are_not_valid_json_it_exits_2_naming_the_file_and_leaves_it_unchanged(tmp_path, run_cli, cloud_install):
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir()
+    settings.write_bytes(b'{"model": "opus",\n')
+
+    code, out, err = run_cli(cloud_install, [str(tmp_path)])
+
+    assert (code, out) == (2, "")
+    assert err.count("\n") == 1 and str(settings) in err
+    assert settings.read_bytes() == b'{"model": "opus",\n'

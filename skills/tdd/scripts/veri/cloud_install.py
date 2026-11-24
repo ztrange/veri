@@ -4,6 +4,8 @@ import json
 import os
 import sys
 
+import entry
+
 SCRIPTS = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 USAGE = "usage: cloud-install.sh [repo-root]"
@@ -16,7 +18,10 @@ def main(argv):
     data = {}
     if os.path.exists(settings):
         with open(settings) as text:
-            data = json.load(text)
+            try:
+                data = json.load(text)
+            except json.JSONDecodeError as exc:
+                return entry.refuse("cloud-install: " + settings + ": not valid JSON: " + str(exc))
     os.makedirs(os.path.dirname(settings), exist_ok=True)
     groups = data.setdefault("hooks", {}).setdefault("SessionStart", [])
     if any(hook.get("command") == command for group in groups for hook in group.get("hooks", [])):
@@ -30,5 +35,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])
