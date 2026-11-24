@@ -31,7 +31,7 @@ A few rules may be waived once per run, for one step, when the adjudicator answe
 (ADR-0037). This list is read by a script: one bullet per rule, `` - `<rule-id>`: `` then the
 bail cause that names it, backticked, then its purpose and its resume action.
 
-- `graded-edit`: `graded-edit-outside-skill-edit` — purpose: only a `⟦skill-edit⟧` step signs a
+- `graded-edit`: `graded-edit-outside-skill-edit` — Purpose: only a `⟦skill-edit⟧` step signs a
   graded unit, so no graded prose lands without a grade. Resume action: keep the step's commit
   and append, through `add-ledger-step.sh`, one `⟦added⟧` `⟦skill-edit⟧` step naming each unit
   `graded-changed.sh` printed (it counts against `VERI_STEP_GROWTH_PERCENT`), then go on from
