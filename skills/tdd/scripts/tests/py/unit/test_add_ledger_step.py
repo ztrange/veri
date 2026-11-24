@@ -1996,3 +1996,13 @@ def test_4547_instead_of_leaves_the_rejected_wait_record_naming_the_open_step_wh
     assert add_ledger_step.main([str(ledger), "instead-of", "c three", "c three"]) == 0
 
     assert record.exists()
+
+
+def test_4709_main_adds_a_step_only_quoting_diff_checked_in_its_prose_after_an_untagged_anchor(tmp_path, capsys, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes("# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two\n".encode())
+
+    code = add_ledger_step.main([str(ledger), "after", "b two", "document the `⟦diff-checked⟧` mark in `a.md`"])
+
+    err = capsys.readouterr().err
+    assert (code, "- [ ] document the `⟦diff-checked⟧` mark in `a.md` ⟦added⟧" in ledger.read_text()) == (0, True), err

@@ -560,3 +560,28 @@ def test_4251_split_exits_2_with_nothing_on_stdout_and_one_stderr_line_when_no_a
     code, out, err = run_cli(ledger_growth, [arg.format(**paths) for arg in argv], env=env)
 
     assert (code, out, err.count("\n"), err.endswith("\n"), names in err) == (2, "", 1, True, True), (err, fake.calls)
+
+
+def test_4709_reopen_of_a_passed_step_only_quoting_skill_edit_in_its_prose_exits_2_as_not_a_skill_edit_step(
+        tmp_path, run_cli, ledger_growth):
+    ledger = tmp_path / "issue-42.md"
+    text = "# Plan for #42\n\n- [x] document the `⟦skill-edit⟧` mark in `a.md` ⟦criterion 1⟧\n"
+    ledger.write_text(text)
+
+    code, out, err = run_cli(ledger_growth, ["reopen", str(ledger), "document the", "a change"])
+
+    assert (code, "not a skill-edit step" in err, ledger.read_text()) == (2, True, text), err
+
+
+def test_4709_split_counts_a_step_only_quoting_ci_repair_in_its_prose_toward_the_growth(
+        tmp_path, run_cli, ledger_growth, fake_processes):
+    split_history(fake_processes)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦criterion 2⟧\n"
+        "- [ ] a gear meshes ⟦added⟧ ⟦criterion 2⟧\n- [ ] document the `⟦ci-repair⟧` mark in `a.md` ⟦criterion 2⟧\n")
+
+    code, out, err = run_cli(ledger_growth, ["split", str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": "50"})
+
+    assert (code, out.split("\n")[0]) == (
+        0, "plan grew from 2 to 4 steps, past the growth bound of 1 (VERI_STEP_GROWTH_PERCENT 50% of 2, rounded up)"), err

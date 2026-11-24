@@ -601,3 +601,20 @@ def test_4614_a_ledger_without_a_skill_edit_step_passes_silently_when_the_spec_h
     code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
 
     assert (code, err) == (0, "")
+
+
+def test_4709_a_step_only_quoting_skill_edit_in_its_prose_is_not_refused_though_its_unit_has_no_heading(
+    tmp_path, run_cli, scope_check
+):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-4709.md"
+    ledger.write_text("- [ ] document the `⟦skill-edit⟧` mark in `skills/tdd/SCRIPTS.md` ⟦criterion 1⟧\n", encoding="utf-8")
+    (tdd / "issue-4709-spec.md").write_text(
+        "## Requirements\n\n### skills/tdd/PIN.md\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")
