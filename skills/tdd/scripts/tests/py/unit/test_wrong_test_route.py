@@ -3397,6 +3397,28 @@ def test_main_3135_counts_a_checked_box_before_the_later_one_so_criterion_k_is_i
     assert (code, stdout, stderr) == (0, "later a gear holds ⟦criterion 3⟧\n", "")
 
 
+@pytest.mark.parametrize("marker", ["", " ⟦criterion 1⟧"])
+def test_main_4721_prints_later_for_the_later_step_own_text_when_two_open_steps_share_a_criterion_marker(
+        run_cli, tmp_path, monkeypatch, marker):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "metaDirty is true when any one field differs ⟦criterion 1⟧"
+    later = "metaDirty is false for an unchanged draft and one differing only by surrounding whitespace ⟦criterion 1⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (step, later))
+    spec = tmp_path / ".tdd" / "issue-77-spec.md"
+    spec.write_text("## Acceptance criteria\n\n- [ ] The tests pin metaBody, toDraft and metaDirty\n")
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    behaviour = "metaDirty is false for an unchanged draft and one differing only by surrounding whitespace" + marker
+    report.write_text("MISSING_TEST: %s\nVERDICT: REJECT\n" % behaviour)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, ["--spec", str(spec), str(report), "test_meta_dirty_true"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "later %s\n" % later)
+
+
 def test_main_3135_exits_2_with_the_usage_and_nothing_on_stdout_when_spec_is_absent_even_if_a_ledger_step_matches(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")

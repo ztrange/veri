@@ -324,7 +324,20 @@ def _later(report, behaviour, spec):
         after = _open_after()
     except OSError:
         return None
-    return later_owner(behaviour, spec, after)
+    return later_owner(behaviour, spec, after) or _ledger_owner(behaviour, tunables.read("VERI_STEP"), after)
+
+
+def _ledger_owner(behaviour, current, after):
+    """The first of the step names <after> that carries <current>'s ⟦criterion N⟧ marker and whose own text, markers
+    removed, <behaviour> contains, compared case-insensitively: steps sharing a marker share its criterion text, so
+    only their own texts tell them apart (#4721). Any other step matches by its criterion text alone (#3135)."""
+    marker = re.search(r"⟦criterion \d+⟧", current)
+    wanted = behaviour.lower()
+    for name in after:
+        text = re.sub(r"⟦[^⟧]*⟧", "", name).strip().lower()
+        if marker and marker.group(0) in name and text and text in wanted:
+            return name
+    return None
 
 
 def later_owner(behaviour, spec, after):
