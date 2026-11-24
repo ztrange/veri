@@ -1,7 +1,7 @@
 ---
 name: vinstall
 description: >-
-  Link veri's skills into a project: `/vinstall [repo-root]`. Use when the user asks to install veri, set up a project, or repair a broken install.
+  Link veri's skills into a project: `/vinstall [repo-root]`, or prepare a repository for Claude Code cloud sessions: `/vinstall cloud [repo-root]`. Use when the user asks to install veri, set up a project, or repair a broken install.
 ---
 
 # vinstall — link veri's skills into a project
@@ -105,7 +105,8 @@ relinked by running it again; there is no separate repair command.
 ## Cloud sessions
 
 Invoked as `/vinstall cloud [repo-root]`, it prepares the repository so a Claude Code cloud session can
-run veri. Such a session starts with no venv and a Python below veri's floor.
+run veri. Such a session starts with no venv and a Python below veri's floor. It supports only veri's own
+repository for now: on any other repository `cloud-install.sh` exits 2 saying so and writes nothing.
 
 1. Run `$S/cloud-install.sh [repo-root]`, passing the argument through when the user gave one. It adds
    one `SessionStart` hook to the repository's `.claude/settings.json`, creating the file when missing
