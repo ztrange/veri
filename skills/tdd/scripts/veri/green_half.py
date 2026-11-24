@@ -42,7 +42,7 @@ def run(n):
     red = fused_step.record(NAME, wt, n, step)
     if red is None:
         return 1
-    if replaces_case.is_replaces_case_step(step) or "⟦ci-repair⟧" in step:
+    if replaces_case.is_replaces_case_step(step) or ledger.has_kind(step, "⟦ci-repair⟧"):
         sys.stderr.write("green-half.sh: a step its prose runs: %s\n" % step)
         return 2
     values = {"test_path": red["test_path"], "target_test": red["target_test"]}

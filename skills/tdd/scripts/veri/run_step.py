@@ -10,6 +10,7 @@ import fused
 import fused_step
 import ledger
 import red_half
+import replaces_case
 import reroute as reroute_stage
 import revise as revise_stage
 import run_dir
@@ -170,7 +171,7 @@ def main(argv):
         if action is None:
             if stage in hand:
                 return seam(wt, n, step, stage, 1, anchor, "hand")
-            if any(mark in step for mark in unhandled):
+            if any(replaces_case.is_replaces_case_step(step) if mark == "⟦replaces-case⟧" else ledger.has_kind(step, mark) for mark in unhandled):
                 return seam(wt, n, step, stage, 1, anchor, "unmodelled")
             report = reroute_stage.pending(wt, n, step) if stage == "green-half" else None
             if report is not None:

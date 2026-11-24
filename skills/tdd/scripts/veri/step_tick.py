@@ -42,7 +42,7 @@ def run(n):
         sys.stderr.write("step-tick.sh: no open step in %s\n" % (LEDGER % n))
         return 2
     kind = (ledger.GO_RED_MARK if ledger.is_go_red(step) else "⟦skill-edit⟧" if ledger.is_skill_edit(step)
-            else "⟦diff-checked⟧" if "⟦diff-checked⟧" in step else None)
+            else "⟦diff-checked⟧" if ledger.has_kind(step, "⟦diff-checked⟧") else None)
     if kind is None:
         sys.stderr.write("step-tick.sh: not a ⟦diff-checked⟧ step nor a ⟦go-red⟧ one: %s\n" % step)
         return 2
