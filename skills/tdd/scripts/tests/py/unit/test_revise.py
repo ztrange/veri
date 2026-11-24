@@ -905,3 +905,14 @@ def test_4547_a_missing_reason_file_exits_2_naming_it_with_no_traceback(revise):
     assert code == 2
     assert "verify-green.reason" in err
     assert "Traceback" not in err
+
+
+def test_4732_revise_marks_recorded_before_the_step_split_that_replaced_the_step_do_not_count_toward_spent(tmp_path):
+    module = importlib.import_module("veri.revise")
+    (tmp_path / ".tdd").mkdir()
+    mark = {"event": "revise", "actor": "conductor", "step": STEP, "phase": "green", "attempt": "1", "budget": "2"}
+    split = {"event": "step-split", "anchor": STEP, "text": STEP, "added": "1"}
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        "".join(json.dumps(e) + "\n" for e in (mark, dict(mark, attempt="2"), split)))
+
+    assert module.spent(str(tmp_path), STEP, "green") == 0
