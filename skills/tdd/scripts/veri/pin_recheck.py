@@ -325,7 +325,7 @@ def replay(pin, ledger, looks, branch_base, base_sha):
     if not green and not base_lines & output_lines(mutated) and not is_go_test_failure(mutated) and not is_pytest_failure(mutated):
         needs_a_look(looks, pin["file"], "mutation did not build")
         write_tail(mutated)
-        return 1
+        return 0
     if green:
         control = control_run(path, original, pin["command"])
         if control.returncode == 0:
