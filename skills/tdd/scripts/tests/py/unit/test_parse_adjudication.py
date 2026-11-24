@@ -142,3 +142,17 @@ def test_main_on_a_deviate_line_prints_deviate_then_reason_exiting_0(run_cli, pa
     leaf.write_text("thinking\nADJUDICATION: deviate — the criterion names the prose this step changed\n")
     code, out, err = run_cli(parse_adjudication, [str(leaf)])
     assert (code, out) == (0, "deviate\nthe criterion names the prose this step changed\n")
+
+
+def test_4712_a_route_token_only_the_waivable_rules_section_backticks_is_not_a_listed_route(
+    run_cli, parse_adjudication, tmp_path, monkeypatch
+):
+    _use_fixture_adjudicate_md(
+        parse_adjudication, tmp_path, monkeypatch,
+        "- `ci-timeout`: none\n\n### Waivable rules\n\n"
+        "- `graded-edit`: `graded-edit-outside-skill-edit` — Purpose: p. Resume action: `add-ledger-step.sh`.\n",
+    )
+    leaf = tmp_path / "leaf.out"
+    leaf.write_text("ADJUDICATION: route graded-edit-outside-skill-edit — x\n")
+    code, out, err = run_cli(parse_adjudication, [str(leaf)])
+    assert (code, out) == (2, "")
