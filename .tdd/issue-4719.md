@@ -5,4 +5,4 @@
 - [x] `classify-bail.sh go-red-probe-unresolvable` names a category, and `event.sh` accepts a `bail` event with that cause ⟦criterion 3⟧
 - [x] `skills/tdd/BAIL.md` lists `go-red-probe-unresolvable` among the bail causes: a `go-red-step.sh` probe stop (exit 2) on a case no test file defines ⟦skill-edit⟧
 - [x] `defining_file()` does not resolve a node title to a `*.test.mjs` file whose `test(` title only starts with it
-- [ ] `defining_file()` does not resolve a pytest name to a `test_*.py` file defining only a longer name that starts with it
+- [x] `defining_file()` does not resolve a pytest name to a `test_*.py` file defining only a longer name that starts with it
