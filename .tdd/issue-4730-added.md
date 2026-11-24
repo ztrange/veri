@@ -1,0 +1,1 @@
+- [ ] Go-red: the waivable-rules bullet for `tests-frozen` left unmatched in a temp copy (its cause renamed) turns the `adjudicate.sh record … tests-frozen-refused` deviate case red (exit 2, unparsed), probe `skills/tdd/ADJUDICATE.md` `tests-frozen-refused` → `tests-frozen-refusal` on `skills/tdd/scripts/tests/py/unit/test_adjudicate.py` ⟦go-red⟧ ⟦criterion 5⟧
