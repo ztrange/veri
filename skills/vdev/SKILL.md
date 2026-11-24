@@ -412,6 +412,10 @@ Load `vhandoff` yourself, in every session, by reading `<resolved base dir>/../v
 Load `voutage` yourself, at `<resolved base dir>/../voutage/SKILL.md`: it holds the session's own
 merge state.
 
+When the human asks to stop, pause or wind down runs, read `<resolved base dir>/../vstop/SKILL.md`
+yourself and follow it, its *After each conductor exits* checks included: `vstop` is not linked
+into the project, so this is the only route to it. Stopping never changes N.
+
 The dev session never compacts or clears its own context on its own judgment.
 
 ## Parked issues
