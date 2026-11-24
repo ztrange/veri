@@ -3811,3 +3811,30 @@ def test_4710_a_pin_whose_old_text_is_in_no_file_of_the_repo_needs_a_look_and_ex
 
     assert (ran.returncode, "needs a look: x.go (old text in no file of the repo)\n" in ran.stdout,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, True), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that copies the pinned text from x.go into y.go and z.go")
+def test_4710_a_pin_whose_old_text_is_in_more_than_one_file_of_the_repo_needs_a_look_and_exits_0_with_the_receipt(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    new_repo(tmp_path)
+    (tmp_path / "x.go").write_text("package p\nif guard\n")
+    (tmp_path / "y.go").write_text("package p\n")
+    (tmp_path / "z.go").write_text("package p\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-4710-mutations.md", file="x.go", old="if guard", new="if (true)",
+           command="sh -c \"echo result\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "x.go").write_text("package p\n")
+    (tmp_path / "y.go").write_text("package p\nif guard\n")
+    (tmp_path / "z.go").write_text("package p\nif guard\n")
+    git("commit", "-q", "-am", "copy the guard into y.go and z.go")
+
+    ran = subprocess.run(["sh", RECHECK, "--branch-base", branch_base(tmp_path), base],
+                         cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "needs a look: x.go (old text in more than one file of the repo)\n" in ran.stdout,
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, True), ran.stdout + ran.stderr

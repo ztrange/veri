@@ -1,0 +1,7 @@
+before 40
+492520c3981a0abdf91a58ed6d63c6ad8fb5c369
+keep 55
+skills/tdd/scripts/tests/py/test_pin_recheck_process.py
+command 182
+make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_4710_a_pin_whose_old_text_is_in_more_than_one_file_of_the_repo_needs_a_look_and_exits_0_with_the_receipt
+
