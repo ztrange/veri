@@ -19,6 +19,9 @@ def main(argv):
             data = json.load(text)
     os.makedirs(os.path.dirname(settings), exist_ok=True)
     groups = data.setdefault("hooks", {}).setdefault("SessionStart", [])
+    if any(hook.get("command") == command for group in groups for hook in group.get("hooks", [])):
+        print("already present in " + settings)
+        return 0
     groups.append({"hooks": [{"type": "command", "command": command}]})
     with open(settings, "w") as out:
         out.write(json.dumps(data, indent=2) + "\n")

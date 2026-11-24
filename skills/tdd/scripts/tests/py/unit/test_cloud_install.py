@@ -40,3 +40,15 @@ def test_on_existing_settings_it_adds_the_hook_and_keeps_every_existing_key_and_
     assert (code, err) == (0, "")
     assert json.loads(settings.read_text()) == {"model": "opus", "permissions": {"allow": ["Bash(ls)"]},
                                                 "hooks": {"SessionStart": [theirs, cloud_hook(setup)], "Stop": [stop]}}
+
+
+def test_run_a_second_time_it_changes_nothing_and_leaves_one_hook(tmp_path, run_cli, cloud_install):
+    settings = tmp_path / ".claude" / "settings.json"
+    run_cli(cloud_install, [str(tmp_path)])
+    first = settings.read_bytes()
+
+    code, out, err = run_cli(cloud_install, [str(tmp_path)])
+
+    assert (code, out, err) == (0, "already present in " + str(settings) + "\n", "")
+    assert settings.read_bytes() == first
+    assert len(json.loads(first)["hooks"]["SessionStart"]) == 1
