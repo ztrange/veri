@@ -77,7 +77,7 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
 - **The committed ledger is the source of truth** for done steps; the issue only mirrors it.
   A step's green tick appends `⟂ refactor pending`, removed only by its verify-refactor PASS,
   so a resumed run can tell green from finished.
-- **Twelve budgets on twelve axes, never merged**, one row each:
+- **Thirteen budgets on thirteen axes, never merged**, one row each:
 
   | Knob | Axis | Default |
   |---|---|---|
@@ -93,6 +93,7 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
   | `VERI_TEST_QUALITY_FIXES` | cost: the test-quality steps one run may add: a weak test is not a rejected product | 1 |
   | `VERI_SURROUND_MUTANTS` | the mutants a legacy region owes: a missing mutant is not a rejected product | 5 |
   | `VERI_BRANCH_REPAIRS` | the repair steps `verify-branch` may append per run: a rejected branch is not a stuck leaf or a missing verdict | 1 |
+  | `VERI_DEVIATION_BUDGET` | deviations: proceeding past a whitelisted rule the adjudicator waived (ADR-0037) | 1 |
 
   One knob over any two would make different failures one decision (ADR-0020). A bad
   `VERI_REFACTOR_BUDGET` is caught in preflight.
