@@ -120,8 +120,14 @@ def judged(wt, report):
 
 def spent(wt, step, phase):
     """The attempts already spent on <phase> in the open step: the conductor's `revise` marks naming both."""
-    return len([e for e in event_log.events(wt, "revise", skip_unreadable=True) if e.get("actor") == "conductor"
-                and e.get("phase") == phase and ledger.same_step(e.get("step", ""), step)])
+    marks = 0
+    for e in event_log.events(wt, "revise", "step-split", skip_unreadable=True):
+        if e.get("event") == "step-split":
+            marks = 0
+        elif (e.get("actor") == "conductor" and e.get("phase") == phase
+              and ledger.same_step(e.get("step", ""), step)):
+            marks += 1
+    return marks
 
 
 def attempt(n, wt, settled, step, values):
