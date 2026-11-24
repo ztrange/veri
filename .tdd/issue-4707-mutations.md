@@ -20,3 +20,14 @@ ICAgICAgICAgICAga2luZC5ncm91cCgxKSBpZiBraW5kIGVsc2UgImRpZmYtY2hlY2tlZCIgaWYgc3Rl
 command 156
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_ledger.py::test_4472_a_branch_repair_step_without_diff_checked_is_read_as_kind_step_with_its_criterion
 
+file 40
+skills/tdd/scripts/veri/verify_branch.py
+old-b64 56
+IiIgaWYgbWlzc2luZyBlbHNlICIg4p+mZGlmZi1jaGVja2Vk4p+nIg==
+new-b64 28
+IiDin6ZkaWZmLWNoZWNrZWTin6ci
+context-b64 124
+ICAgICAgICByZWFzb24gb3IgInNlZSAudGRkL3ZlcmlmeS1icmFuY2gucmVhc29uIiwgIiIgaWYgbWlzc2luZyBlbHNlICIg4p+mZGlmZi1jaGVja2Vk4p+nIik=
+command 195
+sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/unit/test_verify_branch.py::test_4707_a_reject_whose_reason_holds_a_missing_test_line_appends_a_branch_repair_step_without_diff_checked
+
