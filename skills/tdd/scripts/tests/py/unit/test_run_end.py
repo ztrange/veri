@@ -198,6 +198,21 @@ def test_a_run_whose_latest_result_mentions_rate_limit_and_whose_last_leaf_log_h
     assert (ended, cause, not mark) == (True, "unknown", True)
 
 
+def test_a_run_whose_latest_result_mentions_usage_limit_mid_sentence_has_ended_with_cause_unknown_not_usage_limit_4737(tmp_path):
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    records = [{"type": "system", "subtype": "init"},
+               {"type": "result", "result": "bailed: untestable-criterion — the criterion asks to retry on a usage limit"}]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    (tmp_path / ".tdd" / "develop-green.log").write_text(json.dumps({"type": "assistant"}) + "\n")
+
+    ended, cause, mark = run_end.run_end(tmp_path)
+
+    assert (ended, cause, not mark) == (True, "unknown", True)
+
+
 def test_a_pid_that_answers_kill_0_but_whose_process_is_not_a_conductor_has_ended_with_the_cause_read_from_the_conductor_log_2007(tmp_path, monkeypatch):
     run_end = importlib.import_module("veri.run_end")
     (tmp_path / ".tdd").mkdir()
