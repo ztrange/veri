@@ -28,12 +28,12 @@ preflight has spent nothing to judge. Any other exit 2 bails as before.
 ### Waivable rules
 
 A few rules may be waived once per run, for one step, when the adjudicator answers `deviate`
-(ADR-0037). A waivable cause is a bail, not an exit 2. `graded-edit-outside-skill-edit` is
+(ADR-0037). `graded-edit-outside-skill-edit` is
 judged at the bail: `BAIL.md`'s first sub-step sends it through the *Procedure* below.
 `tests-frozen-refused` is judged at the step's first freeze refusal in the green phase, before
 any `REVISE_BUDGET` is spent. The adjudicator judges whether the refused change is needed
 for the criterion and whether the rule's resume action keeps the rule's purpose. This list is read by a script: one bullet per rule, `` - `<rule-id>`: `` then the
-bail cause that names it, backticked, then its purpose and its resume action.
+cause that names it, backticked, then its purpose and its resume action.
 
 - `graded-edit`: `graded-edit-outside-skill-edit` — Purpose: only a `⟦skill-edit⟧` step signs a
   graded unit, so no graded prose lands without a grade. Resume action: keep the step's commit
