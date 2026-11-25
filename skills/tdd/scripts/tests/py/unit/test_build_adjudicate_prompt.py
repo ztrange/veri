@@ -256,3 +256,22 @@ def test_4712_a_waivable_cause_s_purpose_line_holds_the_purpose_alone_not_its_re
     assert [line for line in out.splitlines() if line.startswith("Purpose:")] == [
         "Purpose: only a `⟦skill-edit⟧` step signs a graded unit, so no graded prose lands without a grade."
     ]
+
+
+def test_4730_tests_frozen_refused_prompt_names_the_rule_tests_frozen_a_purpose_and_offers_deviate_or_bail(
+    run_cli, build_adjudicate_prompt, tmp_path
+):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "tests-frozen.err"
+    stderr_file.write_text("tests/test_x.py\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt,
+        ["7", "tests-frozen-refused", "1", str(stderr_file), "tests-frozen.sh", "check"],
+        cwd=tmp_path,
+    )
+    assert (code, err) == (0, "")
+    assert "Rule: tests-frozen\n" in out
+    purposes = [line for line in out.splitlines() if line.startswith("Purpose:")]
+    assert len(purposes) == 1 and purposes[0] != "Purpose:"
+    assert out.rstrip("\n").splitlines()[-1].startswith("End with one final line: ADJUDICATION: deviate|bail")

@@ -63,3 +63,10 @@ YHRlc3RzLWZyb3plbi1yZWZ1c2VkYCBpcyBqdWRnZWQgYXQgdGhlIHN0ZXAncyBmaXJzdCBmcmVlemUg
 command 83
 sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/unit/test_adjudicate.py
 
+before 40
+abb93d094d2068e1d8a5ca86555b16e919188af5
+keep 64
+skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py
+command 184
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py::test_4730_tests_frozen_refused_prompt_names_the_rule_tests_frozen_a_purpose_and_offers_deviate_or_bail
+
