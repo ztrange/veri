@@ -186,6 +186,16 @@ def test_main_exits_3_naming_a_file_no_rule_handles_and_never_widens_to_every_su
         3, "", "affected-suites: no rule places docs/notes.md; no test file covers them, so the full suite at the PR runs them\n")
 
 
+def test_main_lists_the_pyflakes_gate_case_for_a_changed_py_file_no_rule_places(tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["projects/other/serve.py"]))
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "skills/tdd/scripts/tests/py/unit").mkdir(parents=True)
+    (tmp_path / "skills/tdd/scripts/tests/py/test_ruff_tree_audit_process.py").write_text("")
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/test_ruff_tree_audit_process.py\n",
+        "affected-suites: no rule places projects/other/serve.py; no test file covers them, so the full suite at the PR runs them\n")
+
+
 def test_main_treats_a_file_under_a_projects_directory_like_any_file_no_rule_places_and_prints_none_of_its_tests(
         tmp_path, monkeypatch, capsys, affected, fake_processes):
     _install(fake_processes, fake_git(["projects/other/serve.py"]))
