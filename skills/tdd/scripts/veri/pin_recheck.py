@@ -14,7 +14,6 @@ import sys
 from pathlib import Path
 
 import entry
-import event
 import mutation_record
 import run_dir
 from event_log import run_keeping_journal
@@ -382,7 +381,6 @@ def recheck(argv, looks):
         if outcome.kind is Kind.RETIRE_DECLARED:
             sys.stdout.write(f"retired: {ledger} {mutated_file} {outcome.reason}\n")
             retired += 1
-            event.append("", {}, "pin-retired", [f"reason={outcome.reason}"])
             pin["retired"] = outcome.reason
             Path(ledger).write_text("".join(mutation_record.format_record(r.items()) for f, r in found if f == ledger))
             continue

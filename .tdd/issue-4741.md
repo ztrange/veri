@@ -11,7 +11,7 @@
 - [x] `run-finished.sh <n>` on a done run with a stale mutation record exits 0 and prints no `stale-pin` line; `run_finished` does not import `mutation_record` ⟦criterion 9⟧
 - [x] `queued-merge.sh` does not refuse a PR whose worktree holds a stale mutation record; `queued_merge` does not import `mutation_record` ⟦criterion 9⟧
 - [x] `supervise.sh` keeps a `develop-*`/`revise-*` leaf's edit to `.tdd/issue-<n>-mutations.md` and emits no `mutation-record-restored` event ⟦criterion 10⟧
-- [ ] `veri/event_table.py` declares no `mutation-record-restored` and no `pin-retired` event (`event.sh pin-retired reason=x` exits 2 under `VERI_EVENT_STRICT=1`) ⟦criterion 11⟧
+- [x] `veri/event_table.py` declares no `mutation-record-restored` and no `pin-retired` event (`event.sh pin-retired reason=x` exits 2 under `VERI_EVENT_STRICT=1`) ⟦criterion 11⟧
 - [ ] `veri/classify_bail.py` knows no `repin-failed` cause, and `skills/tdd/JOURNAL.md` names none of `repin-failed`, `not-checked`, `mutation-record-restored`, `pin-retired` ⟦criterion 11⟧
 - [ ] `.gitignore` has no `!.tdd/issue-*-mutations.md` line and `veri/ensure_run_state_ignored.py`'s rule names no `mutations` file ⟦criterion 12⟧
 - [ ] `veri/pin_recheck.py`, `veri/mutation_record.py`, `pin-recheck.sh`, their tests and the plan's `mutation-record:` directive are deleted; `unreachable.sh` lists no new script ⟦criterion 13⟧

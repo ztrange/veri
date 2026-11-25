@@ -45,7 +45,6 @@ only ever in the worktree's event log, never in the journal:
 - `comment` (`comment.sh`)
 - `diff-leaf-deviation` (`diff-leaf-deviation.sh`)
 - `grading` (`grade-prose.sh`)
-- `pin-retired` (`pin-recheck.sh`)
 - `prose-owed-waived` (`prose-owed.sh`)
 - `rebase-refresh-retry` (`queued-merge.sh`)
 - `suite-flake` (`rerun-alone.sh` and `suite-red-resume.sh flake`)
