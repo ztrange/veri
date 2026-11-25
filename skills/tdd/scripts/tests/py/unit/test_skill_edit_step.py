@@ -541,6 +541,20 @@ def test_an_issue_row_not_splitting_into_id_requirement_and_why_exits_2_naming_t
     assert (tmp_path / "REQUIREMENTS.md").read_text() == listing
 
 
+def test_an_issue_row_with_too_few_cells_exits_2_naming_the_row_id_and_the_cell_count_without_advising_an_escape_4752(tmp_path, skill_edit, run_cli):
+    listing = "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n"
+    case = skill_edit(
+        listing=listing,
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| SC1 | text |\n",
+        grade=(0, ""))
+
+    code, out, err = run_cli(case.step, ["--added", "add SC1", str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code, "Requirement row SC1 splits into 2 cells" in err, "escape" in err) == (2, True, False), (code, out, err)
+    assert (tmp_path / "REQUIREMENTS.md").read_text() == listing
+
+
 def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_appends_a_skill_edit_no_author_event_naming_the_unit_2997(tmp_path, skill_edit, run_cli):
     case = skill_edit(
         listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n",
