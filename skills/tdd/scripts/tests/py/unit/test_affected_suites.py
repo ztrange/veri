@@ -110,6 +110,17 @@ def test_main_also_lists_the_pyflakes_gate_case_for_a_changed_unit_test_file(tmp
         "")
 
 
+def test_main_leaves_out_the_pyflakes_gate_case_for_a_range_changing_only_a_markdown_file(
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["README.md"]))
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "skills/tdd/scripts/tests/py/unit").mkdir(parents=True)
+    (tmp_path / "skills/tdd/scripts/tests/py/unit/test_readme.py").write_text('README = ROOT / "README.md"\n')
+    (tmp_path / "skills/tdd/scripts/tests/py/test_ruff_tree_audit_process.py").write_text("")
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/unit/test_readme.py\n", "")
+
+
 def test_main_maps_a_readme_edit_to_the_suite_files_naming_it_and_not_a_directory_named_like_one(tmp_path, monkeypatch, capsys, affected, fake_processes):
     _install(fake_processes, fake_git(["README.md"]))
     monkeypatch.chdir(tmp_path)
