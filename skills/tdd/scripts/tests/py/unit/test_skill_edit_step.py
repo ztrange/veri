@@ -515,6 +515,18 @@ def test_a_step_whose_issue_row_x2_reword_states_the_full_text_the_section_holds
     assert (tmp_path / "GRADED").read_text() == ""
 
 
+def test_a_reword_row_differing_from_the_held_row_in_its_cells_is_not_refused_as_stating_the_held_full_text_when_both_hold_an_unescaped_pipe_in_a_code_span_4752(tmp_path, skill_edit, run_cli):
+    case = skill_edit(
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| SC1 | offers `a|b` here. | old why |\n",
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| SC1<reword> | offers `a|b` here. | new why |\n",
+        grade=(0, ""))
+
+    code, out, err = run_cli(case.step, ["--added", "reword SC1", str(tmp_path / "issue.md"), "unit.md"])
+
+    assert "states the full text the unit already holds" not in err, (code, out, err)
+
+
 def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_appends_a_skill_edit_no_author_event_naming_the_unit_2997(tmp_path, skill_edit, run_cli):
     case = skill_edit(
         listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n",

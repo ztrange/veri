@@ -163,7 +163,7 @@ def _numbered(rows, have):
 
 
 def _full_text(row):
-    return tuple(requirements.split_cells(row)[2:4])
+    return tuple(requirements.split_cells(row)[2:])
 
 
 def _section_table_lines(lines, unit):
