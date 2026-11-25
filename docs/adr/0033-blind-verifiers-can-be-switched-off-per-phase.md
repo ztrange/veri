@@ -48,4 +48,5 @@ cost-capped night) are better off trading it away, and there was no way to do th
   verify-green reason (`missing`, `later`); the routes read from the green leaf's own report, and
   a `mutation-parity.sh` REJECT's `missing`, still fire.
 - Mechanical checks that are not verifier leaves keep running: `pin-recheck.sh`, the full
-  suite and `mutation-parity.sh` (decided in 018.2).
+  suite and `mutation-parity.sh` (decided in 018.2). `pin-recheck.sh` has since been removed:
+  see [ADR-0038](0038-pins-carry-no-recorded-mutation.md).
