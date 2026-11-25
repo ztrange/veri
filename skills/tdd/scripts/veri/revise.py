@@ -88,6 +88,8 @@ def run(n, phase):
                                    values["target_test"], cwd=wt)[0]
                 if route == 0:
                     raise fused.Stop("5", "pin-reject-route.sh exit 0: the step retired", 1)
+                if route != 1:
+                    raise fused.Stop("5", "pin-reject-route.sh exit %d" % route, route)
                 shutil.copyfile(os.path.join(wt, ".tdd", "verify-pin.reason"),
                                 os.path.join(wt, ".tdd", "verify-red.reason"))
         values = dict(values, k=values["k"] + 1)
