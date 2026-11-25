@@ -2,4 +2,4 @@
 
 - [x] a run whose latest conductor result text mentions `rate-limit`, with no `rate_limit` error event in its last leaf log, is not classified `usage-limit` by `run_end._launch_cause` ⟦criterion 1⟧
 - [x] a run whose latest conductor result text mentions `usage limit` mid-sentence (a bail's own wording, not the harness's message, which opens the result) is not classified `usage-limit` ⟦criterion 1⟧
-- [ ] a run whose latest conductor result is the harness's `You've hit your 5-hour limit · resets 9pm` message is still classified `usage-limit` ⟦criterion 2⟧
+- [x] a run whose latest conductor result is the harness's `You've hit your 5-hour limit · resets 9pm` message is still classified `usage-limit` ⟦criterion 2⟧
