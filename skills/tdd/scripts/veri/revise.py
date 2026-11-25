@@ -59,7 +59,11 @@ def run(n, phase):
     if given is None:
         return 2
     settled, wt = given
-    step = fused_step.first_step(wt, n, refactor_pending if phase == "refactor" else handed_out)
+    # A step whose refactor is pending is the open one, as run-step.sh takes it: a red reroute inside its refactor
+    # loop is revised on it, never on the next unchecked step (#4734).
+    step = fused_step.first_step(wt, n, refactor_pending)
+    if step is None and phase != "refactor":
+        step = fused_step.first_step(wt, n, handed_out)
     resumed = fused.load_wait(wt, n, NAME)
     if resumed is None:
         k = spent(wt, step, phase) + 1
