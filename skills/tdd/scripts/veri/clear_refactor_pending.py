@@ -23,10 +23,6 @@ def main(argv):
     cleared, new = ledger.ledger_clear_pending(text, argv[1] if len(argv) > 1 else "")
     if not cleared:
         return 3
-    refusal = ledger.receipt_refusal(argv[0])
-    if refusal:
-        complain(argv[0], refusal)
-        return 2
     left = ledger.rewrite_ledger(argv[0], new)
     if left is None:
         return 0
