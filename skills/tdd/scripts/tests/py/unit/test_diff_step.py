@@ -377,30 +377,6 @@ def test_4511_a_repin_step_rechecks_from_the_rearmed_steps_green_parent_so_a_pin
     assert "step-tick.sh" not in fake.names()
 
 
-def test_4511_the_step_pin_reject_route_adds_on_a_disarmed_pin_is_rechecked_by_diff_step_as_a_repin(
-        diff, run_cli, tmp_path, fake_processes):
-    """The re-pin line pin-reject-route.sh --recheck writes is the one diff-step recognises as a re-pin step: its
-    pin-recheck.sh range starts at the re-armed step's <green>~1, so the two cannot drift apart."""
-    route = importlib.import_module("veri.pin_reject_route")
-    planned = tmp_path / "route" / ".tdd" / "issue-12.md"
-    planned.parent.mkdir(parents=True)
-    planned.write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n- [ ] two ⟦criterion 2⟧\n")
-    fake_processes.answers({"git log --format=%H %s": (0, "beef plan: scope #12 into 2 steps (#12)\n", ""),
-                            "git show beef:./issue-12.md": (0, planned.read_text(), "")})
-    reason = tmp_path / "route" / "reason.txt"
-    reason.write_text("pin stayed green under its mutation: tests/test_a.py\n")
-    code, out, err = run_cli(route, ["--recheck", str(reason), str(planned), "zero"], env={"VERI_ISSUE": "12"},
-                             cwd=str(planned.parent.parent))
-    assert (code, out.strip()) == (0, "repin tests/test_a.py"), err
-    step = planned.read_text().splitlines()[3].split("] ", 1)[1]
-
-    diff(step=step, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
-    diff(step=step, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
-    code, out, err, fake = diff(step=step, fake=RepinHistory())
-
-    assert (code, fake.call("pin-recheck.sh")[1]) == (1, ("--branch-base", BRANCH_BASE, GREEN_PARENT)), err
-
-
 def test_4511_an_added_diff_checked_step_that_is_no_repin_rechecks_from_its_own_step_base(diff):
     """Only the re-pin line pin-reject-route.sh --recheck writes moves the recheck base: any other ⟦added⟧
     ⟦diff-checked⟧ step keeps its step base, so a disarmed pin of an earlier step is not charged to it."""

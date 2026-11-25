@@ -98,7 +98,7 @@ def test_4343_a_refactor_pending_step_with_no_seam_record_starts_at_refactor_hal
 
 
 # The re-pin line as pin-reject-route.sh --recheck writes it, its mark leading (#4510).
-REPIN = importlib.import_module("veri.pin_reject_route").repin_step("skills/x.py") + " turns it red ⟦added⟧ ⟦criterion 1⟧"
+REPIN = importlib.import_module("veri.ledger").REPIN_STEP + "skills/x.py so its recorded mutation turns it red ⟦added⟧ ⟦criterion 1⟧"
 
 
 def test_4510_an_open_diff_checked_step_right_after_the_refactor_pending_step_runs_diff_step_before_its_close(step):

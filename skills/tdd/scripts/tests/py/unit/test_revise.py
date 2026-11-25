@@ -1087,7 +1087,7 @@ def test_4734_a_red_revise_opened_while_a_steps_refactor_is_pending_names_that_s
 
 def test_4734_with_an_open_re_pin_step_right_after_the_refactor_pending_step_a_red_revise_names_the_re_pin_step(revise):
     """#4510's re-pin step runs before the step it re-pins is closed, as run-step.sh takes it: its revise is its own."""
-    repin = importlib.import_module("veri.pin_reject_route").repin_step("skills/x.py") + " turns it red ⟦added⟧"
+    repin = importlib.import_module("veri.ledger").REPIN_STEP + "skills/x.py so its recorded mutation turns it red ⟦added⟧"
     _red(revise)
     (revise.wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] %s\n"
                                                     "- [ ] two ⟦criterion 2⟧\n" % (STEP, repin))
@@ -1102,7 +1102,7 @@ def test_4734_with_an_open_re_pin_step_right_after_the_refactor_pending_step_a_r
 def test_4734_with_an_open_re_pin_step_after_the_refactor_pending_step_a_refactor_revise_still_names_the_pending_step(
         revise):
     """The refactor phase revises the step whose refactor was rejected, never the re-pin step run-step.sh runs first."""
-    repin = importlib.import_module("veri.pin_reject_route").repin_step("skills/x.py") + " turns it red ⟦added⟧"
+    repin = importlib.import_module("veri.ledger").REPIN_STEP + "skills/x.py so its recorded mutation turns it red ⟦added⟧"
     _refactor(revise)
     (revise.wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] %s\n"
                                                     "- [ ] two ⟦criterion 2⟧\n" % (STEP, repin))

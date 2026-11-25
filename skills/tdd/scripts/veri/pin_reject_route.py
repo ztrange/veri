@@ -3,20 +3,13 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import re
 import sys
 
-import add_ledger_step
 import event
 import ledger
 import os
 import tick_ledger
 from report import report_values
 
-USAGE = ("usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-file> <matcher> <target-test>\n"
-         "       pin-reject-route.sh --recheck <reason-file> <ledger-file> <matcher>")
-
-
-def repin_step(path):
-    """The re-pin step's text, before its ` turns it red` tail, for the pin on <path>."""
-    return ledger.REPIN_STEP + path + " so its recorded mutation"
+USAGE = "usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-file> <matcher> <target-test>"
 
 
 def red_case(ledger_file, case):
@@ -42,50 +35,14 @@ def holds(path, name):
         return False
 
 
-def refactor_rejected(ledger_file, matcher):
-    """Whether a refactor-half-rejected record beside <ledger_file> names <matcher>'s step, read without removing it:
-    `revise.sh <n> refactor` exits 2 without one."""
-    import json
-    import fused
-    wt = os.path.dirname(os.path.dirname(os.path.abspath(ledger_file)))
-    n = re.sub(r"^issue-|\.md$", "", os.path.basename(ledger_file))
-    try:
-        with open(fused.wait_record(wt, n, "refactor-half-rejected"), encoding="utf-8") as handle:
-            step = json.load(handle).get("step")
-    except (OSError, ValueError, AttributeError):
-        return False
-    return isinstance(step, str) and ledger.same_step(step, matcher)
-
-
-def recheck(argv):
-    with open(argv[0], encoding="utf-8") as handle:
-        reason = handle.read()
-    unchecked = re.search(r"not checked: (\S+) \(old text in (?:no file|more than one file) of the repo\)", reason)
-    if unchecked is not None:
-        print("not-checked " + unchecked.group(1))
-        return 1
-    found = re.search(r"pin stayed green (?:under its mutation|on the before-state): (\S+)", reason)
-    if found is None:
-        print("revise" if refactor_rejected(argv[1], argv[2]) else "revise-impossible")
-        return 1
-    path = found.group(1)
-    step = repin_step(path)
-    text = step + " turns it red"
-    held = ledger.TICKED_STEP + " " + step
-    if held in ledger.read_ledger(argv[1]):
-        print("repin-failed " + path)
-        return 1
-    add_ledger_step.add(argv[1], "after", argv[2], [text])
-    print("repin " + path)
-    return 0
-
-
 def main(argv):
-    if argv[:1] == ["--recheck"]:
-        return recheck(argv[1:])
     missing = argv[:1] == ["--missing-reroute"]
     if missing:
         argv = argv[1:]
+    if argv[:1] and argv[0].startswith("--"):
+        print("pin-reject-route.sh: unknown argument: " + argv[0], file=sys.stderr)
+        print(USAGE, file=sys.stderr)
+        return 2
     if len(argv) < 4:
         print(USAGE, file=sys.stderr)
         return 2
