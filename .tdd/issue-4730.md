@@ -5,7 +5,7 @@
 - [x] Under `VERI_EVENT_STRICT=1`, `event.sh deviated rule=nope step=1 reason=x` still exits 2, a rule no waivable rule names staying refused (a case in `unit/test_event_table.py`) ⟦criterion 3⟧
 - [x] After `tests-frozen.sh record --step "<step>"` and an edit to a recorded test file, `tests-frozen.sh diff --step "<step>"` prints, exit 0, the unified diff from the content the record kept to the file's current content (a case in a new `unit/test_tests_frozen_diff.py`, in-process, no git) ⟦criterion 1⟧
 - [x] `tests-frozen.sh diff --step "<step>"` prints, exit 0, a unified diff from empty content for a test file outside the record that now differs from `HEAD`, the file `check --step` names as unrecorded (a case in `unit/test_tests_frozen_diff.py`) ⟦criterion 1⟧
-- [ ] `tests-frozen.sh diff --step "<step>"` prints, exit 0, a unified diff to empty content for a recorded test file deleted since the record (a case in `unit/test_tests_frozen_diff.py`) ⟦criterion 1⟧
+- [x] `tests-frozen.sh diff --step "<step>"` prints, exit 0, a unified diff to empty content for a recorded test file deleted since the record (a case in `unit/test_tests_frozen_diff.py`) ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] `tests-frozen.sh diff --step "<step>"` prints nothing and exits 0 when `check --step` would pass, no test file having changed since the record (a case in `unit/test_tests_frozen_diff.py`; a pin step if it already holds) ⟦criterion 1⟧
 - [ ] `tests-frozen.sh diff --step "<step>"` exits 2 when the step has no record (a case in `unit/test_tests_frozen_diff.py`) ⟦criterion 1⟧
 - [ ] `tests-frozen.sh check --step` exit 1 writes a `tests-frozen-refused exit=1 reason=<changed file>` event naming the changed test file (a case in `unit/test_tests_frozen_check_step.py`) ⟦criterion 2⟧
