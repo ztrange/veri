@@ -1,10 +1,9 @@
 """`snapshot --step` cases for veri/tests_frozen.py that run git in a real repository under tmp_path."""
 import importlib
-import subprocess
 
 import pytest
 
-from repo_builder import new_repo
+from repo_builder import git, new_repo
 
 STEP = "step one adds a case"
 OWN = "tests/test_own.py"
@@ -14,11 +13,6 @@ OLD = "tests/test_old.py"
 @pytest.fixture
 def tests_frozen():
     return importlib.import_module("veri.tests_frozen")
-
-
-def git(repo, *argv):
-    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *argv], cwd=repo, check=True,
-                          capture_output=True, text=True).stdout
 
 
 @pytest.fixture
