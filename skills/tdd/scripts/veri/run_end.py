@@ -1,11 +1,13 @@
 """One rule for whether a run has ended."""
 import os
+import re
 
 import event_log
 from event_log import read_events
 from pid_file import live_conductor
 from run_dir import run_file
 
+USAGE_LIMIT = re.compile(r"usage limit|hit your (?:\w+ )?limit")
 OUTAGE = ("Can't reach the API server", "ENOTFOUND")
 MARKS = {"done": "done", "bail": "bailed", "stop": "stopped",
          "preflight-refused": "refused"}
@@ -39,7 +41,7 @@ def _launch_cause(run_dir, issue):
     launched, result = latest_result(path)
     if result is None:
         return "killed" if launched else None
-    if "limit" in result.get("result", ""):
+    if USAGE_LIMIT.search(result.get("result", "")):
         return "usage-limit"
     if any(marker in result.get("result", "") for marker in OUTAGE):
         return "outage"
