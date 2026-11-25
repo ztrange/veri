@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-VERI = Path(__file__).resolve().parents[2] / "veri"
+VERI = Path(__file__).resolve().parents[3] / "veri"
 
 
 @pytest.mark.tree_audit("every file under veri/")
