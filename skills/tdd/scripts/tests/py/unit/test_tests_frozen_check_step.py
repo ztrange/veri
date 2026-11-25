@@ -1,5 +1,6 @@
 """In-process `check --step` cases for veri/tests_frozen.py, on a case history fed by fed_history (PRD 017.4)."""
 import importlib
+import json
 import types
 
 import pytest
@@ -535,3 +536,36 @@ def test_check_exits_0_on_a_record_holding_helper_data_when_no_test_file_changed
     code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (code, out) == (0, "")
+
+
+def test_check_step_exit_1_writes_a_tests_frozen_refused_event_naming_the_changed_test_file_4730(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    red_recorded({NEW: "one\n", OTHER: "one\n"})
+
+    (tmp_path / OTHER).write_text("one, weakened\n")
+    code = run_cli(tests_frozen, ["check", "--step", STEP], cwd=tmp_path)[0]
+    journal = tmp_path / ".tdd" / "events.jsonl"
+    events = [json.loads(line) for line in journal.read_text().splitlines() if line.strip()] if journal.exists() else []
+
+    assert (code, [(e["event"], e["exit"], e["reason"]) for e in events]) == (
+        1, [("tests-frozen-refused", "1", OTHER)])
+
+
+def test_check_by_record_file_exit_1_writes_no_tests_frozen_refused_event_where_check_step_does_4730(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    red_recorded({NEW: "one\n", OTHER: "one\n"})
+    record_file = tmp_path / "frozen.rec"
+    recorded = run_cli(tests_frozen, ["record", str(record_file), OTHER], cwd=tmp_path)[0]
+    journal = tmp_path / ".tdd" / "events.jsonl"
+
+    def refused():
+        lines = journal.read_text().splitlines() if journal.exists() else []
+        return [json.loads(line)["event"] for line in lines if line.strip()]
+
+    (tmp_path / OTHER).write_text("one, weakened\n")
+    by_file = run_cli(tests_frozen, ["check", str(record_file)], cwd=tmp_path)[0]
+    after_file_check = refused()
+    by_step = run_cli(tests_frozen, ["check", "--step", STEP], cwd=tmp_path)[0]
+
+    assert (recorded, by_file, after_file_check, by_step, refused()) == (
+        0, 1, [], 1, ["tests-frozen-refused"])

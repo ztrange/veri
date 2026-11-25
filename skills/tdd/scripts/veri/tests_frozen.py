@@ -673,6 +673,8 @@ def main(argv):
     code = _main(argv)
     if argv[:1] == ["record"] and code in (1, 2):
         _log_refusal(code)
+    elif argv[:2] == ["check", "--step"] and code == 1:
+        _log_refusal(code)
     return code
 
 
