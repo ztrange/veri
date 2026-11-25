@@ -83,18 +83,23 @@ def run(n, phase):
                 raise fused.Stop("5", "wait-leaf.sh %s exit %d" % (at, code), code)
             if code == 0 and recorded(n, wt, step, values):
                 return finish(n, wt, step, values, at)
-            if code == 1 and at == "verdict-pin":  # the pin's reason is the one attempt k+1 compares and revises
-                route = fused.call(fused.script("pin-reject-route.sh"), ".tdd/verify-pin.reason", LEDGER % n, step,
-                                   values["target_test"], cwd=wt)[0]
-                if route == 0:
-                    raise fused.Stop("5", "pin-reject-route.sh exit 0: the step retired", 1)
-                if route != 1:
-                    raise fused.Stop("5", "pin-reject-route.sh exit %d" % route, route)
-                shutil.copyfile(os.path.join(wt, ".tdd", "verify-pin.reason"),
-                                os.path.join(wt, ".tdd", "verify-red.reason"))
+            if code == 1 and at == "verdict-pin":
+                route_pin_reject(n, wt, step, values)
         values = dict(values, k=values["k"] + 1)
         at = attempt(n, wt, settled, step, values)
 
+
+def route_pin_reject(n, wt, step, values):
+    """REVISE.md sub-step 5, a red revise's verify-pin REJECT: pin-reject-route.sh's exit 0 retires the step (Stop,
+    exit 1), any code but 1 bails (Stop, its code); on 1 the pin's reason becomes the one attempt k+1 compares and
+    revises."""
+    route = fused.call(fused.script("pin-reject-route.sh"), ".tdd/verify-pin.reason", LEDGER % n, step,
+                       values["target_test"], cwd=wt)[0]
+    if route == 0:
+        raise fused.Stop("5", "pin-reject-route.sh exit 0: the step retired", 1)
+    if route != 1:
+        raise fused.Stop("5", "pin-reject-route.sh exit %d" % route, route)
+    shutil.copyfile(os.path.join(wt, ".tdd", "verify-pin.reason"), os.path.join(wt, ".tdd", "verify-red.reason"))
 
 def start(n, wt, step, phase, k):
     """The values the rejected verifier judged: red's from the report it judged (`.tdd/develop-red.out`, at every
