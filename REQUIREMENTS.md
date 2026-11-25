@@ -99,6 +99,7 @@
 | CM312 | The budgets table names `VERI_BRANCH_REPAIRS` (the repair steps `verify-branch` may append per run, default 1) on an axis of its own. | Docs drift blocks; a rejected branch is not a stuck leaf or a missing verdict. |
 | CM313 | The blind-verifier invariant lists `branch` among the phases `VERI_SKIP_VERIFY` may name. | Docs drift blocks; the list is the contract. |
 | CM314 | The budgets table's `VERI_DEVIATION_BUDGET` row gives its axis as deviations, proceeding past a whitelisted rule, and its default as 1. (Invariants, budgets table.) | PRD 043 D4: a deviation is not a no-answer, a rejection or a missing verdict. |
+| CM315 | The Testing idiom paragraph on `affected-suites.sh` says that in veri's own tree a range changing any `.py` file also lists `tests/py/test_ruff_tree_audit_process.py`, the pyflakes gate. (Testing idiom, docs-suite paragraph.) | A lint error a step introduces is caught in that step's `changed` run, not at CI's full suite where it costs a `⟦ci-repair⟧` step (PRD 039, #4421). |
 
 ## README.md
 

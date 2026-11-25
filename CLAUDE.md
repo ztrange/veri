@@ -177,6 +177,7 @@ full suite. A changed `veri/<m>.py` (or `tests/leg/<m>.py`, or its `<m>.sh` shim
 `tests/py/test_<m>.py`, `unit/test_<m>.py` and `tests/py/test_<m>_process.py` where they exist, and every `tests/py/test_*_process.py`
 that imports or runs it by name (`veri.<m>`, `<m>.py`, `<m>.sh`, or the name of any shim whose `exec` line names `veri/<m>.py`, as a whole word), so a process file needs no name map;
 when no process file names it, it lists those naming a module that imports it directly, one hop and no further (#4425).
+In veri's own tree a range changing any `.py` file, a test file included, also lists `tests/py/test_ruff_tree_audit_process.py`, the pyflakes gate.
 Each run goes through `timed-test-run.sh`, which saves the whole output under the worktree's
 `.tdd/test-runs/` and never hands a leaf the runner's raw stream. A project that declares `veri: quiet test files:`
 gets that command, over the paths, as the `changed` run's command, its output reaching the leaf unchanged (its exit 2

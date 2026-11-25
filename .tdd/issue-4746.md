@@ -5,5 +5,5 @@
 - [x] in veri's own tree, a range changing only a `.md` file does not print the pyflakes gate case ⟦criterion 2⟧
 - [x] in veri's own tree, a range changing only a `.sh` shim does not print the pyflakes gate case ⟦criterion 2⟧
 - [x] a foreign tree's range changing a `.py` file does not print the pyflakes gate case ⟦criterion 3⟧
-- [ ] CLAUDE.md's Testing idiom paragraph on `affected-suites.sh` states the pyflakes gate rule, regraded ⟦criterion 5⟧
+- [x] CLAUDE.md's Testing idiom paragraph on `affected-suites.sh` states the pyflakes gate rule, regraded ⟦criterion 5⟧
 - [ ] SCRIPTS.md's `affected-suites.sh` entry states the pyflakes gate rule, regraded ⟦criterion 6⟧
