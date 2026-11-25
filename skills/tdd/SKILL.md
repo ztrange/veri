@@ -953,7 +953,17 @@ Green by hand ends `$S/seam-settle.sh <n> green-half test_path=<path>`.
    Exit 1 is a verify-red REJECT that spends `REVISE_BUDGET` (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`): a reroute deleted the case, nothing is re-recorded, and tests-frozen names the deleted case on stdout, which the command leaves in `.tdd/verify-red.reason` as the reason. Exit 2 is a **bail** as a system failure (`Read` `<base directory>/BAIL.md`).
 
    After that and before verify-green is launched, run `$S/tests-frozen.sh check --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`.
-   On tests-frozen exit 1 a test file changed since verify-red, so write a reason naming the changed file to
+   On tests-frozen exit 1 a test file changed since verify-red. At the step's first such refusal, when `$S/adjudicate.sh left <n>` and
+   `$S/adjudicate.sh deviation-left <n>` both exit 0, run the adjudicator for the cause `tests-frozen-refused` as
+   `<base directory>/ADJUDICATE.md`'s *Procedure* says (`Read` it; the check's output is the `<stderr-file>` `.tdd/tests-frozen-check.err`, and
+   the `<command…>` is `tests-frozen.sh check --step <STEP>`). On `deviate`, run the blind `diff` verifier on the step's test-only edit, its diff the output of
+   `$S/tests-frozen.sh diff --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`, as the `supersede-diff` route does (`verdict-diff`; with `diff` in
+   `.tdd/issue-<n>-skip-verify`, take the PASS branch). On PASS, re-record the step's frozen tests with the re-record command above
+   (`tests-frozen.sh record --step … --red-case '<red-test-id>' <test-path>…`, a non-zero exit stopping as that site does), then emit
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh deviated rule=tests-frozen step=<k> reason="<reason>"`, append the
+   `- [ ] deviated from tests-frozen at step <k>: <action> — <reason> ⟦human-owed⟧ ⟦deviation tests-frozen⟧ ⟦criterion k⟧` ledger line, commit it, and launch verify-green.
+   On a `diff` REJECT the attempt is a verify-green REJECT that spends `REVISE_BUDGET`, and no deviation is recorded or spent.
+   Otherwise, or on any answer but `deviate`, write a reason naming the changed file to
    `.tdd/verify-green.reason`, treat the attempt as a verify-green REJECT that spends REVISE_BUDGET, and launch
    no verifier for that attempt. Run the earlier-steps check there too, as before verify-red above: its exit 1 is a verify-green
    REJECT naming the case and its step, spending REVISE_BUDGET, with no verifier launched; exit 2 bails (see `<base directory>/BAIL.md`). On tests-frozen exit 0 (and an
