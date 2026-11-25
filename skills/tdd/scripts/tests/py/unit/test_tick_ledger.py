@@ -866,7 +866,8 @@ def test_main_runs_the_case_command_without_tests_makeflags_or_makelevel_in_its_
         seen.write_text("".join(f"{k}\n" for k in env))
         return (0, "1 passed\n", "")
 
-    fake_processes.answers({"detect-test-command.sh": (0, "stub-case-command\n", ""), "": run_case})
+    monkeypatch.chdir(tmp_path)
+    fake_processes.answers({"detect-test-command.sh": (0, "stub-case-command\n", ""), "git": (0, "", ""), "": run_case})
 
     code = tick_ledger.main([flag, str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
@@ -893,7 +894,8 @@ def test_main_runs_the_fallback_make_without_makeflags_or_makelevel_in_its_envir
         ran["env"] = sorted({"MAKEFLAGS", "MAKELEVEL"} & set(env))
         return (0, "1 passed\n", "")
 
-    fake = fake_processes.answers({"detect-test-command.sh": (0, "", ""), "": run_case})
+    monkeypatch.chdir(tmp_path)
+    fake = fake_processes.answers({"detect-test-command.sh": (0, "", ""), "git": (0, "", ""), "": run_case})
 
     code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 

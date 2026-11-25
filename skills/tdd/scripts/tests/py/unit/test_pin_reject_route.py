@@ -24,6 +24,13 @@ def passing_case(pin_reject_route, monkeypatch):
     monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0))
 
 
+@pytest.fixture(autouse=True)
+def clean_tree(pin_reject_route, monkeypatch):
+    """A retire lists the test files differing from HEAD through git: a work tree with none, unless a case says otherwise."""
+    import subprocess
+    monkeypatch.setattr(pin_reject_route.tick_ledger.git, "git", lambda *args, **kw: subprocess.CompletedProcess(["git", *args], 0, b"", b""))
+
+
 def test_main_stays_green_reject_retires_the_step_unpinnable_with_no_revise_event_3300(
         tmp_path, run_cli, pin_reject_route):
     ledger = tmp_path / ".tdd" / "issue-42.md"
@@ -641,3 +648,58 @@ def test_main_recheck_is_an_unknown_argument_exit_2_printing_no_route_and_leavin
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, out, "unknown argument: --recheck" in err, ledger.read_text()) == (2, "", True, body), err
+
+
+class FakeRepo:
+    """git's answers over a work tree at <root> whose HEAD holds <head> ({path: text}): the listing of files differing
+    from HEAD (diff and untracked) read off the tree, `checkout HEAD -- <paths>` writing HEAD's text back."""
+
+    def __init__(self, root, head):
+        self.root, self.head = root, head
+
+    def __call__(self, *args, **kwargs):
+        import subprocess
+        args = list(args)
+        if args[:2] == ["-C", str(self.root)]:
+            args = args[2:]
+        out = b""
+        if args[:1] == ["diff"] and "--name-only" in args:
+            out = b"".join(path.encode() + b"\0" for path, text in self.head.items()
+                           if not (self.root / path).exists() or (self.root / path).read_text() != text)
+        elif args[:1] == ["ls-files"] and "--others" in args:
+            out = b"".join(str(p.relative_to(self.root)).encode() + b"\0" for p in sorted(self.root.rglob("*"))
+                           if p.is_file() and ".tdd" not in p.parts
+                           and str(p.relative_to(self.root)) not in self.head)
+        elif args[:2] == ["rev-parse", "--show-toplevel"]:
+            out = str(self.root).encode() + b"\n"
+        elif args[:3] == ["checkout", "HEAD", "--"]:
+            for path in args[3:]:
+                (self.root / path).parent.mkdir(parents=True, exist_ok=True)
+                (self.root / path).write_text(self.head[path])
+        else:
+            return subprocess.CompletedProcess(["git", *args], 128, b"", b"fake git: unanswered\n")
+        return subprocess.CompletedProcess(["git", *args], 0, out, b"")
+
+
+def test_main_hand_mutation_stays_green_retire_deletes_an_untracked_test_file_and_restores_a_modified_one_4739(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
+    tests = tmp_path / "tests" / "py"
+    tests.mkdir(parents=True)
+    (tests / "test_old.py").write_text("def test_old():\n    assert True\n    assert 1\n")
+    (tests / "test_new.py").write_text("def test_new():\n    assert True\n")
+    monkeypatch.setattr(pin_reject_route.tick_ledger.git, "git",
+                        FakeRepo(tmp_path, {"tests/py/test_old.py": "def test_old():\n    assert True\n",
+                                            "reason.txt": reason.read_text()}))
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text().split("\n")[2], (tests / "test_new.py").exists(),
+            (tests / "test_old.py").read_text()) == (
+        0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable", False,
+        "def test_old():\n    assert True\n"), err
