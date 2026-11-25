@@ -315,6 +315,29 @@ def test_record_under_graded_edit_outside_skill_edit_on_deviate_prints_deviate_w
     }]
 
 
+def test_record_under_tests_frozen_refused_on_deviate_prints_deviate_writes_a_deviate_event_and_exits_4(
+    run_cli, adjudicate, tmp_path
+):
+    import json
+
+    (tmp_path / ".tdd").mkdir()
+    leaf = tmp_path / "leaf.out"
+    leaf.write_text("thinking\nADJUDICATION: deviate — the fixture the criterion needs moved\n")
+    code, out, err = run_cli(adjudicate, ["record", "7", "tests-frozen-refused", str(leaf)], cwd=tmp_path)
+    assert (code, out) == (4, "deviate\n")
+    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [
+        {k: e.get(k) for k in ("issue", "cause", "outcome", "reason")}
+        for e in events
+        if e.get("event") == "adjudicated"
+    ] == [{
+        "issue": "7",
+        "cause": "tests-frozen-refused",
+        "outcome": "deviate",
+        "reason": "the fixture the criterion needs moved",
+    }]
+
+
 def test_record_under_graded_edit_outside_skill_edit_on_retry_records_retry_and_exits_0_which_bails(
     run_cli, adjudicate, tmp_path
 ):
