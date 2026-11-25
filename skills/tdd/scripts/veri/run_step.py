@@ -74,6 +74,8 @@ REFUSAL = re.compile(
     r"|a ## Requirements row is under no ### unit heading"
     r"|## Requirements has no ### heading for unit: "
     r"|## Requirements table for .* lacks its header: "
+    r"|Requirement row .* splits into \d+ cells, not ID, Requirement and Why"
+    r"|Requirement row .*<reword> states the full text the unit already holds under "
     r"|skill-edit-guard.sh: ")
 
 
