@@ -16,3 +16,10 @@ skills/tdd/scripts/tests/py/unit/test_tests_frozen_diff.py
 command 165
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_tests_frozen_diff.py::test_diff_step_prints_an_edited_recorded_file_once_with_no_second_diff_from_empty_content
 
+before 40
+abb93d094d2068e1d8a5ca86555b16e919188af5
+keep 58
+skills/tdd/scripts/tests/py/unit/test_tests_frozen_diff.py
+command 160
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tests_frozen_diff.py::test_diff_step_prints_nothing_and_exits_0_when_no_test_file_changed_since_the_record
+
