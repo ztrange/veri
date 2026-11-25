@@ -121,6 +121,19 @@ def test_main_leaves_out_the_pyflakes_gate_case_for_a_range_changing_only_a_mark
         0, "skills/tdd/scripts/tests/py/unit/test_readme.py\n", "")
 
 
+def test_main_leaves_out_the_pyflakes_gate_case_for_a_range_changing_only_a_shim(
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/foo-bar.sh"]))
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "skills/tdd/scripts/veri").mkdir(parents=True)
+    (tmp_path / "skills/tdd/scripts/veri/foo_bar.py").write_text("")
+    (tmp_path / "skills/tdd/scripts/tests/py/unit").mkdir(parents=True)
+    (tmp_path / "skills/tdd/scripts/tests/py/unit/test_foo_bar.py").write_text("")
+    (tmp_path / "skills/tdd/scripts/tests/py/test_ruff_tree_audit_process.py").write_text("")
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/unit/test_foo_bar.py\n", "")
+
+
 def test_main_maps_a_readme_edit_to_the_suite_files_naming_it_and_not_a_directory_named_like_one(tmp_path, monkeypatch, capsys, affected, fake_processes):
     _install(fake_processes, fake_git(["README.md"]))
     monkeypatch.chdir(tmp_path)
