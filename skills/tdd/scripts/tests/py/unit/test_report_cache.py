@@ -959,7 +959,6 @@ def test_refresh_with_no_cache_whose_page_keeps_failing_exits_2_after_bounded_at
 
 
 def test_refresh_takes_its_page_retry_count_and_sleep_from_the_one_tunable_reader_2244(fake_processes, run_cli, monkeypatch, tmp_path):
-    import json
 
     report_cache = importlib.import_module("veri.report_cache")
     tunables = report_cache.tunables
@@ -1766,7 +1765,6 @@ def test_refresh_with_a_bad_comment_chunk_exits_2_naming_the_knob_and_its_value_
 
 
 def test_refresh_with_an_empty_comment_chunk_reads_windows_of_25(fake_processes, run_cli, monkeypatch, tmp_path):
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -1976,7 +1974,6 @@ def _windowed_comments_gh(fake_processes, issues, comment_reads, window_fails=Fa
 
 def test_refresh_whose_comments_search_times_out_reads_it_in_created_windows_and_keeps_every_link(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()

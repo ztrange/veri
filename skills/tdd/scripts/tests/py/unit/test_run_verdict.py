@@ -115,7 +115,6 @@ def test_main_empties_the_phase_reason_file_in_place_before_the_exec_and_never_c
 def test_main_finds_the_phase_value_blind_past_leading_step_and_fast_cmd_pairs_as_the_library_says(
         tmp_path, monkeypatch):
     import signal
-    import subprocess
     scripts = tmp_path / "scripts"
     run_verdict = staged_module(scripts)
     (scripts / "verify.sh").write_text("#!/usr/bin/env bash\nexit 0\n")

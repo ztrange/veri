@@ -2,7 +2,6 @@
 
 Each case's subject is source text: it reads the files of the repository as text and never runs them.
 """
-import sys
 
 import pytest
 

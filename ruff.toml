@@ -1,0 +1,17 @@
+# ruff, the static checker `make test` runs over every tracked Python file (PRD 039,
+# tests/py/test_ruff_tree_audit_process.py). pyflakes rules only: unused imports, undefined and
+# redefined names. F841 (unused local variable) is left off: its only fix is unsafe, and on this
+# tree it deleted a loop-carried assignment pyflakes misreads (pytest_leg.py's `began`).
+target-version = "py312"
+extend-exclude = [".tdd"]
+
+[lint]
+select = ["F"]
+ignore = ["F841"]
+
+# Facade modules: other modules and tests reach names through them (`dispatch.subprocess`,
+# `from wait_ci import trigger_lines`), so an import unused inside the file is still used.
+# F401's "safe" fix deleted them and broke 570 cases of `make test`.
+[lint.per-file-ignores]
+"skills/tdd/scripts/veri/dispatch.py" = ["F401"]
+"skills/tdd/scripts/veri/wait_ci.py" = ["F401"]

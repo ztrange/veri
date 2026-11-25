@@ -1,5 +1,4 @@
 """Cases for DRAFT-PR.md's first CI-wait block against a real rebase-onto-default.sh and a real git repository."""
-import os
 import subprocess
 from pathlib import Path
 

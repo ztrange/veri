@@ -3598,7 +3598,6 @@ SESSION_VARS = ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_HOST_SESSIO
 
 def leaf_model_chain(monkeypatch, tmp_path, supervise, run_cli, name, extra=(), env=None, cwd=None):
     """supervise decides the model and records the exit with the leaf's start spied; run_leaf then builds claude's argv from that environment, claude's start faked."""
-    import io
     import subprocess
     run_leaf = importlib.import_module("veri.run_leaf")
     started = []
@@ -3797,7 +3796,6 @@ def test_cli_recovers_a_killed_leaf_from_a_terminal_result_record_in_its_log_wit
 def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_relaunched_attempt_and_the_final_one_each_as_its_own_tree_and_log(
         monkeypatch, tmp_path, supervise, run_cli):
     import signal
-    import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     clean_env(monkeypatch)
     for key in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "EMAIL"):

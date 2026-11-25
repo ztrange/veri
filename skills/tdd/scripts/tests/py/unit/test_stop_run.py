@@ -576,7 +576,6 @@ def test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_a_detach
 
 def test_3375_stop_run_mode_now_exits_0_when_a_member_of_the_detached_group_is_alive_at_the_first_probes_after_kill_and_gone_at_a_later_probe(
         monkeypatch, tmp_path, capsys, stop_run):
-    import signal
     run = tmp_path / "run"
     (run / ".tdd").mkdir(parents=True)
     (run / ".tdd" / "fulltier.pid").write_text("777\nT0\n")
@@ -602,7 +601,6 @@ def test_3375_stop_run_mode_now_exits_0_when_a_member_of_the_detached_group_is_a
 
 def test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_the_survivor_probe_of_a_detached_group_is_refused(
         monkeypatch, tmp_path, capsys, stop_run):
-    import signal
     run = tmp_path / "run"
     (run / ".tdd").mkdir(parents=True)
     (run / ".tdd" / "fulltier.pid").write_text("777\nT0\n")

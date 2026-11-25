@@ -1,6 +1,5 @@
 """Cases for which suites still read SKILL.md's `#### A ⟦phases: …⟧ step — each listed phase, a developer leaf then a blind verifier` subsection by its content."""
 import pathlib
-import re
 import sys
 
 import pytest

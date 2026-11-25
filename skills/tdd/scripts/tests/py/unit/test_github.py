@@ -5,7 +5,6 @@ import os
 import pathlib
 import re
 import subprocess
-import re
 import sys
 import time
 

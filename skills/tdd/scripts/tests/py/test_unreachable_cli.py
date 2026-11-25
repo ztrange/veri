@@ -1,5 +1,4 @@
 """unreachable.sh through a real make and a real symlinked run, the two boundaries run_cli cannot cross."""
-import os
 import shutil
 import subprocess
 

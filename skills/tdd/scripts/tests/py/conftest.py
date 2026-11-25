@@ -316,7 +316,7 @@ def veri_pycache_snapshot(cache):
         entries = [entry for entry in REAL_SCANDIR(cache) if not entry.name.startswith(".")]
     except FileNotFoundError:
         return stats, racy
-    for entry in entries:
+    for entry in entries:  # noqa: F402 -- the import is unused in this function
         found = entry.stat()
         name = f"{cache.name}/{entry.name}"
         stats[name] = (found.st_ino, found.st_size, found.st_mtime_ns, found.st_ctime_ns)

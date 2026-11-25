@@ -103,7 +103,7 @@ def stop_leaves(run, killed=None):
     tdd = run_dir.run_file(run, "")
     termed = {}
     refused = []
-    for entry in sorted(os.listdir(tdd)):
+    for entry in sorted(os.listdir(tdd)):  # noqa: F402 -- the import is unused in this function
         if entry.startswith(".") or not entry.endswith(".pid"):
             continue
         name = entry.removesuffix(".pid")

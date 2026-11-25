@@ -314,7 +314,7 @@ def test_main_answers_every_refactor_owed_contract_case_outside_the_floor_as_the
                      "two append calls for different steps keep both steps")
     assert append(owed, first, 'RESULT: applied "x", suite green', "FLAGS: none",
                   f"CANDIDATES: structural | {fold}") == 0
-    assert append(owed, second, f"CANDIDATES: cosmetic | reflow the header",
+    assert append(owed, second, "CANDIDATES: cosmetic | reflow the header",
                   f"CANDIDATES: structural | {hoist}") == 0
     text = owed.read_text()
     assert all(w in text for w in (first, second, fold, hoist))

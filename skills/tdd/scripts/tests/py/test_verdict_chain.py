@@ -1,7 +1,5 @@
 """The verdict launch SKILL.md prescribes, run through every real script between the launch and the exit code."""
-import hashlib
 import importlib
-import json
 import os
 import subprocess
 

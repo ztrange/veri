@@ -149,7 +149,7 @@ def main(argv):
         misses = 0
         reasons = []
         while misses < 3:
-            if asked and _stop_mark(run) not in (None, mark):
+            if asked and _stop_mark(run) not in (None, mark):  # noqa: F821 -- set on an earlier pass, when asked
                 foreign = True
             if not conductor_alive(run):
                 misses += 1

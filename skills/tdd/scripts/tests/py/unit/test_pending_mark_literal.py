@@ -3,7 +3,6 @@
 Each case's subject is source text: it reads the files under skills/tdd/scripts as text and
 never runs them.
 """
-import pathlib
 import pytest
 
 from conftest import SCRIPTS

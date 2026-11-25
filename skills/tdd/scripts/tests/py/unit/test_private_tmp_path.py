@@ -1,6 +1,5 @@
 """The pytest leg's tmp_path plugin: one fresh directory under the session basetemp, made without numbering."""
 import _pytest.tmpdir
-import pytest
 
 import private_tmp_path
 

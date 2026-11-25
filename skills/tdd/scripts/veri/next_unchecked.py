@@ -1,9 +1,7 @@
 """next-unchecked.sh's computation, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import os
 import sys
 
-import tunables
 from entry import no_arguments
 from ledger import handed_out, ledger_steps, read_ledger_stdin
 
