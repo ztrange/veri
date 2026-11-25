@@ -86,3 +86,19 @@ def test_diff_step_prints_a_unified_diff_to_empty_content_for_a_recorded_test_fi
     lines = out.splitlines()
     assert "-one" in lines and "-two" in lines
     assert not any(line.startswith("+") and not line.startswith("+++") for line in lines)
+
+
+def test_diff_step_prints_nothing_and_exits_0_when_no_test_file_changed_since_the_record(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    fed_history(("base", "base", {NEW: "one\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, NEW], cwd=tmp_path)[0] == 0
+    assert run_cli(tests_frozen, ["check", "--step", STEP], cwd=tmp_path)[0] == 0
+
+    code, out, _ = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=tmp_path)
+
+    assert code == 0
+    assert out == ""
