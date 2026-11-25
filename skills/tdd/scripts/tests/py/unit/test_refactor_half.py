@@ -227,7 +227,7 @@ def test_4577_near_duplicates_exit_2_stops_refactor_half_with_exit_2_before_any_
 
 
 REPIN_TICK = "e" * 40
-REPIN_LINE = importlib.import_module("veri.pin_reject_route").repin_step("src/a.py") + " turns it red ⟦added⟧"
+REPIN_LINE = importlib.import_module("veri.ledger").REPIN_STEP + "src/a.py so its recorded mutation turns it red ⟦added⟧"
 
 
 def test_4510_after_a_repin_step_ticked_it_bounds_the_refactor_by_the_steps_own_green_tick_not_the_repins(tidy):

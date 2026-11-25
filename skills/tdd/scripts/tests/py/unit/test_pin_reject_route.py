@@ -393,87 +393,6 @@ def test_main_missing_reroute_before_state_and_green_in_different_clauses_prints
         1, "revise", body.encode(), False), err
 
 
-def test_main_recheck_stayed_green_pin_inserts_a_diff_checked_repin_step_after_the_ticked_step_3469(
-        tmp_path, run_cli, pin_reject_route, fake_processes):
-    ledger = tmp_path / ".tdd" / "issue-42.md"
-    ledger.parent.mkdir()
-    ledger.write_text("# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
-    fake_processes.answers(plan_commit(ledger.read_text()))
-    reason = tmp_path / "reason.txt"
-    reason.write_text("pin stayed green under its mutation: tests/py/test_review.py\n")
-
-    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
-                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
-
-    lines = ledger.read_text().split("\n")
-    at = next(i for i, line in enumerate(lines) if "a one" in line)
-    inserted = lines[at + 1]
-    added_file = ledger.parent / "issue-42-added.md"
-    added = added_file.read_text() if added_file.exists() else ""
-    assert (code, out.strip(), "⟦diff-checked⟧" in inserted, "⟦added⟧" in inserted,
-            "tests/py/test_review.py" in inserted, "tests/py/test_review.py" in added) == (
-        0, "repin tests/py/test_review.py", True, True, True, True), (err, lines)
-
-
-def test_main_recheck_before_state_pin_disarmed_by_the_range_inserts_a_diff_checked_repin_step_3469(
-        tmp_path, run_cli, pin_reject_route, fake_processes):
-    ledger = tmp_path / ".tdd" / "issue-42.md"
-    ledger.parent.mkdir()
-    ledger.write_text("# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
-    fake_processes.answers(plan_commit(ledger.read_text()))
-    reason = tmp_path / "reason.txt"
-    reason.write_text("pin stayed green on the before-state: tests/py/test_review.py\n")
-
-    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
-                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
-
-    lines = ledger.read_text().split("\n")
-    at = next(i for i, line in enumerate(lines) if "a one" in line)
-    inserted = lines[at + 1]
-    added_file = ledger.parent / "issue-42-added.md"
-    added = added_file.read_text() if added_file.exists() else ""
-    assert (code, out.strip(), "⟦diff-checked⟧" in inserted, "⟦added⟧" in inserted,
-            "tests/py/test_review.py" in inserted, "tests/py/test_review.py" in added) == (
-        0, "repin tests/py/test_review.py", True, True, True, True), (err, lines)
-
-
-def test_main_recheck_reason_with_no_disarm_line_prints_revise_and_leaves_ledger_and_added_record_untouched_3469(
-        tmp_path, run_cli, pin_reject_route):
-    ledger = tmp_path / ".tdd" / "issue-42.md"
-    ledger.parent.mkdir()
-    body = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
-    ledger.write_text(body)
-    reason = tmp_path / "reason.txt"
-    reason.write_text("needs a look: tests/py/test_review.py\n")
-    (ledger.parent / "issue-42-refactor-half-rejected-wait").write_text(json.dumps(
-        {"conductor": "1", "at": "refactor", "values": {}, "step": "a one ⟦criterion 1⟧"}))
-
-    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
-                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
-
-    assert (code, out.strip(), ledger.read_text(), (ledger.parent / "issue-42-added.md").exists()) == (
-        1, "revise", body, False), err
-
-
-def test_main_recheck_pin_whose_file_already_has_a_checked_repin_step_prints_repin_failed_adds_no_step_and_exits_1_3469(
-        tmp_path, run_cli, pin_reject_route):
-    ledger = tmp_path / ".tdd" / "issue-42.md"
-    ledger.parent.mkdir()
-    body = ("# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n"
-            "- [x] ⟦diff-checked⟧ edit the case of the pin on tests/py/test_review.py"
-            " so its recorded mutation turns it red ⟦added⟧\n"
-            "- [ ] b two ⟦criterion 2⟧\n")
-    ledger.write_text(body)
-    reason = tmp_path / "reason.txt"
-    reason.write_text("pin stayed green under its mutation: tests/py/test_review.py\n")
-
-    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
-                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
-
-    assert (code, out.strip(), ledger.read_text(), (ledger.parent / "issue-42-added.md").exists()) == (
-        1, "repin-failed tests/py/test_review.py", body, False), err
-
-
 def test_main_before_state_green_reject_without_stays_green_retires_the_step_unpinnable_3644(
         tmp_path, run_cli, pin_reject_route):
     ledger = tmp_path / ".tdd" / "issue-42.md"
@@ -702,69 +621,23 @@ def test_main_bare_target_test_name_whose_red_report_test_path_file_is_missing_r
     assert (code, out.strip(), ran) == (0, "retired", ["test_holds"]), err
 
 
-def test_main_recheck_not_checked_pin_with_old_text_in_no_file_prints_not_checked_and_leaves_ledger_and_added_record_untouched_4630(
-        tmp_path, run_cli, pin_reject_route):
+@pytest.mark.parametrize("reason_text", [
+    "not checked: tests/py/test_review.py (old text in no file of the repo)\n",
+    "pin stayed green under its mutation: tests/py/test_review.py\n",
+], ids=["not-checked", "repin-failed"])
+def test_main_recheck_is_an_unknown_argument_exit_2_printing_no_route_and_leaving_the_ledger_untouched_4741(
+        tmp_path, run_cli, pin_reject_route, reason_text):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
-    body = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    body = ("# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n"
+            "- [x] ⟦diff-checked⟧ edit the case of the pin on tests/py/test_review.py"
+            " so its recorded mutation turns it red ⟦added⟧\n"
+            "- [ ] b two ⟦criterion 2⟧\n")
     ledger.write_text(body)
     reason = tmp_path / "reason.txt"
-    reason.write_text("not checked: tests/py/test_review.py (old text in no file of the repo)\n")
+    reason.write_text(reason_text)
 
-    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
+    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one", TARGET],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
-    assert (code, out.strip(), ledger.read_text(), (ledger.parent / "issue-42-added.md").exists()) == (
-        1, "not-checked tests/py/test_review.py", body, False), err
-
-
-def test_main_recheck_not_checked_pin_with_old_text_in_more_than_one_file_prints_not_checked_and_leaves_ledger_and_added_record_untouched_4630(
-        tmp_path, run_cli, pin_reject_route):
-    ledger = tmp_path / ".tdd" / "issue-42.md"
-    ledger.parent.mkdir()
-    body = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
-    ledger.write_text(body)
-    reason = tmp_path / "reason.txt"
-    reason.write_text("not checked: tests/py/test_review.py (old text in more than one file of the repo)\n")
-
-    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
-                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
-
-    assert (code, out.strip(), ledger.read_text(), (ledger.parent / "issue-42-added.md").exists()) == (
-        1, "not-checked tests/py/test_review.py", body, False), err
-
-
-def test_main_recheck_reason_with_no_disarm_line_and_no_refactor_rejected_record_prints_revise_impossible_4630(
-        tmp_path, run_cli, pin_reject_route):
-    ledger = tmp_path / ".tdd" / "issue-42.md"
-    ledger.parent.mkdir()
-    body = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
-    ledger.write_text(body)
-    reason = tmp_path / "reason.txt"
-    reason.write_text("needs a look: tests/py/test_review.py\n")
-
-    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
-                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
-
-    assert (code, out.strip(), ledger.read_text()) == (1, "revise-impossible", body), err
-
-
-@pytest.mark.parametrize("record", [
-    {"conductor": "1", "at": "refactor", "values": {}, "step": "b two ⟦criterion 2⟧"},
-    {"conductor": "1", "at": "refactor", "values": {}},
-    {"conductor": "1", "at": "refactor", "values": {}, "step": 7},
-], ids=["another-step", "no-step", "non-text-step"])
-def test_main_recheck_reason_with_no_disarm_line_and_a_record_naming_no_matched_step_prints_revise_impossible_4630(
-        tmp_path, run_cli, pin_reject_route, record):
-    ledger = tmp_path / ".tdd" / "issue-42.md"
-    ledger.parent.mkdir()
-    body = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
-    ledger.write_text(body)
-    reason = tmp_path / "reason.txt"
-    reason.write_text("needs a look: tests/py/test_review.py\n")
-    (ledger.parent / "issue-42-refactor-half-rejected-wait").write_text(json.dumps(record))
-
-    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
-                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
-
-    assert (code, out.strip(), ledger.read_text()) == (1, "revise-impossible", body), err
+    assert (code, out, "unknown argument: --recheck" in err, ledger.read_text()) == (2, "", True, body), err
