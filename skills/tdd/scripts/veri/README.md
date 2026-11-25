@@ -463,6 +463,7 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 
 ## ledger_steps
 - `current_record(records)`: the current step of `ledger.ledger_steps` records (the first done step whose refactor is pending, else the first open step), `None` when there is none.
+- `open_record(records)`: the step `ledger-steps.sh open` prints, as `fused_step.open_step` takes it: the open re-pin step directly after the first refactor-pending step, else `current_record`'s answer (#4734).
 - `current_or_last_done_record(records)`: the step `ledger-steps.sh current-or-last-done` prints, the current step else the last done one, `None` when neither; `coverage_blocker` names it as the coverage issue's region.
 
 ## preserve_attempt
