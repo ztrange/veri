@@ -75,6 +75,19 @@ def test_main_maps_a_touched_module_to_its_pytest_file_in_the_fast_tier(tmp_path
         0, "skills/tdd/scripts/tests/py/unit/test_foo.py\n", "")
 
 
+def test_main_also_lists_the_pyflakes_gate_case_for_a_changed_veri_module(tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/veri/foo.py"]))
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "skills/tdd/scripts/tests/py/unit").mkdir(parents=True)
+    (tmp_path / "skills/tdd/scripts/tests/py/unit/test_foo.py").write_text("")
+    (tmp_path / "skills/tdd/scripts/tests/py/test_ruff_tree_audit_process.py").write_text("")
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0,
+        "skills/tdd/scripts/tests/py/test_ruff_tree_audit_process.py\n"
+        "skills/tdd/scripts/tests/py/unit/test_foo.py\n",
+        "")
+
+
 def test_main_selects_a_changed_pytest_file_in_the_fast_tier_as_itself(tmp_path, monkeypatch, capsys, affected, fake_processes):
     _install(fake_processes, fake_git(["skills/tdd/scripts/tests/py/unit/test_bar.py"]))
     monkeypatch.chdir(tmp_path)
