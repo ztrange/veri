@@ -15,7 +15,7 @@
 - [x] `veri/classify_bail.py` knows no `repin-failed` cause, and `skills/tdd/JOURNAL.md` names none of `repin-failed`, `not-checked`, `mutation-record-restored`, `pin-retired` ⟦criterion 11⟧
 - [x] `.gitignore` has no `!.tdd/issue-*-mutations.md` line and `veri/ensure_run_state_ignored.py`'s rule names no `mutations` file ⟦criterion 12⟧
 - [x] `veri/pin_recheck.py`, `veri/mutation_record.py`, `pin-recheck.sh`, their tests and the plan's `mutation-record:` directive are deleted; `unreachable.sh` lists no new script ⟦criterion 13⟧
-- [ ] `skills/tdd/SKILL.md` (*Refactor loop*, *2. Scope & plan*) names no pin-recheck, re-pin step, `.tdd/pin-recheck-ok` or mutation record, its rows reworded, regraded ⟦criterion 1⟧
+- [x] `skills/tdd/SKILL.md` (*Refactor loop*, *2. Scope & plan*) names no pin-recheck, re-pin step, `.tdd/pin-recheck-ok` or mutation record, its rows reworded, regraded ⟦criterion 1⟧
 - [ ] `DIFF-CHECKED.md`, `PIN.md`, `GO-RED.md`, `SUITE-REPAIR.md`, `RESUME.md`, `BAIL.md`, `PUBLISHED.md` name none of them, rows reworded, regraded ⟦criterion 1⟧
 - [ ] `SCRIPTS.md` names none of them, rows reworded or dropped, regraded ⟦criterion 1⟧
 - [ ] `tests/py/README.md`, `prompts/develop-diff.md`, `prompts/develop-revise-diff.md` and `skills/vmerge/SKILL.md` name none of them, rows reworded, regraded ⟦criterion 1⟧
