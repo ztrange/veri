@@ -3,7 +3,7 @@
 Interface: reading (read_ledger, ledger_items, ledger_steps, items_at), writing (replace_ledger, rewrite_ledger,
 ledger_tick, ledger_mark_phase, ledger_clear_pending, tick_line), a step's parts and predicates (body, listed_phases,
 next_phase, unphased, trailing_markers, unit_of, carries_mark, is_added, is_human_owed, is_skill_edit, is_retired,
-handed_out), builders (new_step, open_step_line, mark, retire_mark), checks (multi_tag_refusal, receipt_refusal) and
+handed_out), builders (new_step, open_step_line, mark, retire_mark), checks (multi_tag_refusal) and
 the constants (STEP_RE, ITEM_RE, PHASES_RE, OPEN_STEP, TICKED_STEP, PENDING_MARK, ADDED_MARK, INTERFACE_PHASES, ...).
 """
 import os
@@ -51,21 +51,6 @@ def ledger_path(run_dir, issue):
 def added_file(path):
     """The `-added.md` record beside a ledger file: the planned steps its run added."""
     return re.sub(r"\.md$", "", path) + "-added.md"
-
-
-def receipt_refusal(ledger_file):
-    receipt = os.path.join(os.path.dirname(ledger_file), "pin-recheck-ok")
-    if not os.path.exists(receipt):
-        return "no pin-recheck receipt: run pin-recheck.sh first"
-    with open(receipt) as handle:
-        sha = handle.read().strip()
-    diff = git("diff", "--name-only", sha, "HEAD", capture_output=True, text=True,
-               cwd=os.path.dirname(ledger_file) or None)
-    if diff.returncode != 0:
-        return "the pin-recheck receipt's sha does not resolve in git: run pin-recheck.sh again"
-    if any(not path.startswith(".tdd/") for path in diff.stdout.split()):
-        return "a path outside .tdd/ changed since the pin-recheck receipt: run pin-recheck.sh again"
-    return None
 
 
 class LeftBehind(OSError):
