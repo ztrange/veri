@@ -100,3 +100,10 @@ def test_a_name_assigned_twice_or_inside_a_function_is_not_resolved():
     source = 'K = "a"\nK = "b"\ndef go():\n    J = "c"\n    event.mark(r, {}, K, [])\n    event.mark(r, {}, J, [])\n'
 
     assert journal_schema.writer_calls(source) == [(5, None, []), (6, None, [])]
+
+
+def test_4741_the_real_journal_names_no_retired_bail_cause_or_event():
+    text = (Path(journal_schema.__file__).resolve().parents[2] / "JOURNAL.md").read_text(encoding="utf-8")
+
+    assert [name for name in ("repin-failed", "not-checked", "mutation-record-restored", "pin-retired")
+            if name in text] == []
