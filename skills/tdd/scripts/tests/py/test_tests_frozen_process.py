@@ -1,7 +1,6 @@
 """Cases for veri/tests_frozen.py that run git in a real repository under tmp_path."""
 import importlib
 import subprocess
-import sys
 
 import pytest
 
