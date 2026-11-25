@@ -858,6 +858,22 @@ def test_4450_a_skill_edit_half_exit_2_with_an_out_file_holding_a_remaining_requ
             "seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step"]), err
 
 
+@pytest.mark.parametrize("refusal", [
+    "Requirement row SC1 splits into 4 cells, not ID, Requirement and Why: escape an unescaped | as \\|",
+    "Requirement row SC1 splits into 2 cells, not ID, Requirement and Why",
+    "Requirement row SC2<reword> states the full text the unit already holds under SC1",
+])
+def test_4752_a_skill_edit_half_exit_2_with_an_out_file_holding_a_requirement_row_refusal_prints_refusal_yes(step, refusal):
+    (step.wt / ".tdd" / "skill-edit-12.out").write_text(refusal + "\n")
+
+    code, out, err, stages = step(ledger=LEDGER % SKILL_EDIT_STEP,
+                                  answers={"skill-edit-half.sh": (2, "stopped at 2 skill-edit-step.sh exit 2\n")})
+
+    assert (code, out.splitlines()[-2:]) == (
+        2, ["out=.tdd/skill-edit-12.out refusal=yes",
+            "seam=skill-edit-half code=2 next=SKILL-EDIT.md#The skill-edit step"]), err
+
+
 def test_4450_a_skill_edit_half_exit_2_with_an_out_file_holding_a_guard_refusal_line_prints_refusal_yes(step):
     (step.wt / ".tdd" / "skill-edit-12.out").write_text("skill-edit-guard.sh: refusing to edit skills/tdd/SKILL.md\n")
 
