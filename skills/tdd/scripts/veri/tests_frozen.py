@@ -9,7 +9,6 @@ import sys
 import case_history
 import case_identity
 import ledger
-import renamed_case
 import replaces_case
 import run_dir
 import tunables
@@ -20,7 +19,7 @@ from frozen_record import (body_digest, body_line, body_record, helper_records,
 import event
 import frozen_record
 from ledger import ITEM_RE, KIND_RE, carries_mark, trailing_markers
-from case_reader import UnclosedCase, cut_cases, old_cut_cases_all, is_js_test_file, is_test_path
+from case_reader import UnclosedCase, cut_cases, old_cut_cases_all
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> [--red-case <red-test-id>] <test-file>... | "
          "check <record-file>|--step <step-text> | "

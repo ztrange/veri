@@ -2,7 +2,6 @@
 import importlib.metadata
 import re
 
-from packaging.markers import Marker
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
@@ -41,7 +40,7 @@ def test_requirements_dev_txt_locks_every_package_the_direct_pins_pull_in_each_w
     unhashed = [line for line in lock if not re.search(r"==\S+ .*--hash=sha256:[0-9a-f]{64}\b", line)]
     header = ROOT.joinpath("requirements-dev.txt").read_text().split("\n\n")[0]
 
-    assert (len(direct), unhashed, sorted(pulled_in(r.name for r in direct) - pins.keys())) == (3, [], [])
+    assert (len(direct), unhashed, sorted(pulled_in(r.name for r in direct) - pins.keys())) == (4, [], [])
     assert {canonicalize_name(r.name): str(r.specifier) for r in direct} == {
         name: "==" + pins[name] for name in (canonicalize_name(r.name) for r in direct)}
     assert [word in header for word in ("requirements-dev.in", "pip download", "shasum -a 256", "pip-compile")] == [

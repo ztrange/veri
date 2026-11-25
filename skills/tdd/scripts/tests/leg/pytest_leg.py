@@ -369,7 +369,7 @@ def claim(cleanups=None, cap=None):
                         f.write(registration(count))
                     if said:
                         event.mark("", event.context(tunables.environment()), "core-wait",
-                                   ["seconds=%d" % round(time.monotonic() - began)])
+                                   ["seconds=%d" % round(time.monotonic() - began)])  # noqa: F821 -- set on an earlier pass of the loop
                     return count, entry, total
                 if not said:
                     holders = registered_legs(legs)

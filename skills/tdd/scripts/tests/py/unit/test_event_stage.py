@@ -1,7 +1,6 @@
 """event.stage: one helper marks a stage, a `stage-start` before its body and a `stage-end` after it on every exit
 (PRD 035.5a, MW2, MW8)."""
 import json
-import os
 
 import pytest
 

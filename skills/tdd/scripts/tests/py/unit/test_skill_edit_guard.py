@@ -41,3 +41,10 @@ def test_offending_takes_a_heading_unit_as_its_file_allowing_edits_to_the_file_a
 
     assert skill_edit_guard.offending("skills/foo/FOO.md#Part A", "base1", []) == ["stray.py"]
     assert ["git", "cat-file", "-e", "base1:skills/foo/FOO.md"] in fake.argvs, fake.argvs
+
+
+def test_main_takes_a_heading_unit_as_its_file_printing_only_the_stray_path_4210(fake_processes, run_cli, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    fake_processes.answers(repo(changed="skills/foo/FOO.md\nskills/foo/REQUIREMENTS.md\nstray.py\n"))
+
+    assert run_cli(skill_edit_guard, ["skills/foo/FOO.md#Part A", "base1"]) == (1, "stray.py\n", "")

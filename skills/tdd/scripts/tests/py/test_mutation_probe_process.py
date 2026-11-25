@@ -555,7 +555,7 @@ def test_issue_3396_mutate_probe_exits_0_and_appends_one_record_when_the_baselin
     target = tmp_path / "target.txt"
     target.write_text("x")
     record = tmp_path / "issue-3396-mutations.md"
-    result = subprocess.run([str(PROBE), str(target), "x", "y", "--", "sh", "-c", f'! grep -q y "$1"', "sh", str(target)],
+    result = subprocess.run([str(PROBE), str(target), "x", "y", "--", "sh", "-c", '! grep -q y "$1"', "sh", str(target)],
                             capture_output=True, text=True, timeout=20,
                             env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
     command = f"sh -c '! grep -q y \"$1\"' sh {target}"

@@ -270,7 +270,6 @@ def test_a_resume_after_a_done_with_no_live_conductor_reads_unknown(tmp_path, mo
 
 
 def test_issue_2008_a_bail_then_resume_then_launch_with_a_live_conductor_prints_no_outcome_yet(tmp_path, monkeypatch, capsys, metrics):
-    import run_end
     write_log(tmp_path, ONE_STEP + [{"event": "bail", "issue": "108", "cause": "stuck", "classification": "process"},
                                     {"event": "resume", "issue": "108"},
                                     {"event": "launch", "issue": "108", "step": "1", "phase": "red", "attempt": "1"}])

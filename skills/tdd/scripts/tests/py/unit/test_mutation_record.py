@@ -1,7 +1,6 @@
 """In-process cases for veri/mutation_record.py, the owner of issue-<n>-mutations.md."""
 import base64
 import importlib
-import os
 
 import pytest
 

@@ -7,7 +7,6 @@ import builtins
 import io
 import os
 import pathlib
-import re
 import shlex
 import shutil
 import signal

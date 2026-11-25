@@ -2,7 +2,6 @@
 import json
 import hashlib
 import importlib
-import types
 
 import pytest
 

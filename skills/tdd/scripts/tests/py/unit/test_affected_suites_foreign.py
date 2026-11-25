@@ -1,7 +1,6 @@
 """In-process cases for veri/affected_suites.py outside veri's own tree: a working tree with no
 skills/tdd/scripts/tests/py directory selects by the repo's own test files (#4105)."""
 import importlib
-import subprocess
 
 import pytest
 

@@ -1,7 +1,6 @@
 """merge-lock.sh gate around a rebased force-with-lease push, against a real local bare remote."""
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest

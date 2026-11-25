@@ -417,7 +417,6 @@ def test_2741_a_leg_whose_xdist_run_ends_in_an_internalerror_says_on_stderr_that
 @pytest.mark.process("the launcher run as a child over a planted tests tree whose case reports its own tmp_path")
 def test_2051_a_case_s_tmp_path_under_the_launcher_is_the_private_tmp_path_directory_of_mode_0700_under_the_run_s_basetemp_not_a_numbered_one(tmp_path):
     import os
-    import stat
     import subprocess
 
     scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
