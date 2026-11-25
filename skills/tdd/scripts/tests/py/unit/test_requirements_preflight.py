@@ -252,3 +252,19 @@ def test_4588_a_row_whose_text_the_unit_holds_under_another_id_is_no_clash_thoug
     unheld = run_cli(requirements_preflight, [str(issue)], cwd=tmp_path)
 
     assert held[::2] == (0, "") and unheld[0] == 2 and "A10" in unheld[2], (held, unheld)
+
+
+def test_an_issue_row_that_does_not_split_into_id_requirement_and_why_exits_2_naming_the_row_4752(tmp_path, run_cli):
+    requirements_preflight = importlib.import_module("veri.requirements_preflight")
+    (tmp_path / "unit.md").write_text("Unit text.\n")
+    head = "| ID | Requirement | Why |\n|---|---|---|\n"
+    (tmp_path / "REQUIREMENTS.md").write_text("## unit.md\n\n" + head + "| A1 | The widget is blue. | because |\n")
+    issue = tmp_path / "issue.md"
+    issue.write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n" + head +
+        "| A1 | The widget is blue. | because |\n"
+        "| SC1 | offers `a|b` here. | why |\n")
+
+    code, out, err = run_cli(requirements_preflight, [str(issue)], cwd=tmp_path)
+
+    assert code == 2 and "SC1" in err, (code, out, err)

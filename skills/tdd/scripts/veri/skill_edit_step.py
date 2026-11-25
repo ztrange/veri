@@ -84,7 +84,11 @@ def _refusal(issue, unit):
         return "## Requirements has no ### heading for unit: " + unit
     if _headerless(issue, unit):
         return "## Requirements table for %s lacks its header: %s" % (unit, " / ".join(TABLE_HEAD))
-    for row in unit_rows(issue, unit):
+    return malformed_row(unit_rows(issue, unit))
+
+
+def malformed_row(rows):
+    for row in rows:
         cells = requirements.split_cells(row)
         if len(cells) != 5:
             return "Requirement row %s splits into %d cells, not ID, Requirement and Why: escape an unescaped | as \\|" % (
