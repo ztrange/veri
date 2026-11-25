@@ -35,8 +35,8 @@ LEDGER = run_dir.ledger("", "%s")
 # The $S/ scripts this call makes, in the order each is first made.
 CALLS = ("build-develop-prompt.sh", "comment.sh", "event.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh",
          "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "tests-frozen.sh", "run-verdict.sh",
-         "same-reject.sh", "restore-production.sh", "extract-result.sh", "red-divergence.sh", "preserve-attempt.sh",
-         "red-setup.sh")
+         "pin-reject-route.sh", "same-reject.sh", "restore-production.sh", "extract-result.sh", "red-divergence.sh",
+         "preserve-attempt.sh", "red-setup.sh")
 
 
 def main(argv):
@@ -84,6 +84,8 @@ def run(n, phase):
             if code == 0 and recorded(n, wt, step, values):
                 return finish(n, wt, step, values, at)
             if code == 1 and at == "verdict-pin":  # the pin's reason is the one attempt k+1 compares and revises
+                fused.call(fused.script("pin-reject-route.sh"), ".tdd/verify-pin.reason", LEDGER % n, step,
+                           values["target_test"], cwd=wt)
                 shutil.copyfile(os.path.join(wt, ".tdd", "verify-pin.reason"),
                                 os.path.join(wt, ".tdd", "verify-red.reason"))
         values = dict(values, k=values["k"] + 1)
