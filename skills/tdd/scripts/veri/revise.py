@@ -84,8 +84,10 @@ def run(n, phase):
             if code == 0 and recorded(n, wt, step, values):
                 return finish(n, wt, step, values, at)
             if code == 1 and at == "verdict-pin":  # the pin's reason is the one attempt k+1 compares and revises
-                fused.call(fused.script("pin-reject-route.sh"), ".tdd/verify-pin.reason", LEDGER % n, step,
-                           values["target_test"], cwd=wt)
+                route = fused.call(fused.script("pin-reject-route.sh"), ".tdd/verify-pin.reason", LEDGER % n, step,
+                                   values["target_test"], cwd=wt)[0]
+                if route == 0:
+                    raise fused.Stop("5", "pin-reject-route.sh exit 0: the step retired", 1)
                 shutil.copyfile(os.path.join(wt, ".tdd", "verify-pin.reason"),
                                 os.path.join(wt, ".tdd", "verify-red.reason"))
         values = dict(values, k=values["k"] + 1)
