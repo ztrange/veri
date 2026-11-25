@@ -806,8 +806,9 @@ def diff(record_file):
         with open(record_file) as handle:
             names = [entry[1] for entry in map(frozen_record.digest_entry, handle) if entry]
         for name in names:
-            with open(_kept_path(record_file, name)) as kept, open(name) as now:
-                for line in difflib.unified_diff(kept.read().splitlines(), now.read().splitlines(),
+            with open(_kept_path(record_file, name)) as kept:
+                current = open(name).read().splitlines() if os.path.exists(name) else []
+                for line in difflib.unified_diff(kept.read().splitlines(), current,
                                                  "recorded/" + name, name, lineterm=""):
                     write(sys.stdout, line)
         for name in differing_tests():

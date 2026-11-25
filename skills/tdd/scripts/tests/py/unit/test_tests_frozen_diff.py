@@ -68,3 +68,21 @@ def test_diff_step_prints_an_edited_recorded_file_once_with_no_second_diff_from_
     assert "-two" in lines and "+two, changed" in lines
     assert "+one" not in lines
     assert sum(1 for line in lines if line.startswith("--- ")) == 1
+
+
+def test_diff_step_prints_a_unified_diff_to_empty_content_for_a_recorded_test_file_deleted_since_the_record(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    fed_history(("base", "base", {NEW: "one\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, NEW], cwd=tmp_path)[0] == 0
+
+    (tmp_path / NEW).unlink()
+    code, out, _ = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=tmp_path)
+
+    assert code == 0
+    lines = out.splitlines()
+    assert "-one" in lines and "-two" in lines
+    assert not any(line.startswith("+") and not line.startswith("+++") for line in lines)
