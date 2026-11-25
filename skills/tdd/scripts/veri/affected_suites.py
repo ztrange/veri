@@ -259,8 +259,7 @@ def suite_of(f, revisions=None):
                 found += suite_of(script)
         return found
     if match(SCRIPTS + "/veri/*.py", SCRIPTS + "/tests/leg/*.py"):  # tests/leg/: the pytest leg, out of veri/ (#4051)
-        name = basename(f, ".py")
-        return pytest_files_of(name) + existing(PYFLAKES_GATE)
+        return pytest_files_of(basename(f, ".py"))
     if match(SCRIPTS + "/*.sh"):
         return pytest_files_of(basename(f, ".sh").replace("-", "_"))
     if match(".tdd/*"):
@@ -349,6 +348,8 @@ def main(argv):
 
     placed, unplaced = [], []
     for f in files.split("\n"):
+        if unquoted(f).endswith(".py"):  # the pyflakes gate checks every .py file, a test file's included (#4746)
+            placed += existing(PYFLAKES_GATE)
         try:
             placed += suite_of(f, revisions)
         except Unplaced:
