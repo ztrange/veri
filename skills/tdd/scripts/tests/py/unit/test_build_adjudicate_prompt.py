@@ -275,3 +275,32 @@ def test_4730_tests_frozen_refused_prompt_names_the_rule_tests_frozen_a_purpose_
     purposes = [line for line in out.splitlines() if line.startswith("Purpose:")]
     assert len(purposes) == 1 and purposes[0] != "Purpose:"
     assert out.rstrip("\n").splitlines()[-1].startswith("End with one final line: ADJUDICATION: deviate|bail")
+
+
+def test_4730_tests_frozen_refused_prompt_holds_the_output_of_tests_frozen_diff_for_the_current_step(
+    run_cli, build_adjudicate_prompt, tmp_path, monkeypatch
+):
+    tests_frozen = importlib.import_module("tests_frozen")
+    step = "the current step"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] %s\n" % step)
+    suite = tmp_path / "test_x.py"
+    suite.write_text("def test_x():\n    assert 1 == 1\n")
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen.case_history, "cases_at", lambda rev, name: {})
+    assert run_cli(tests_frozen, ["record", "--step", step, "test_x.py"], cwd=tmp_path)[0] == 0
+    suite.write_text("def test_x():\n    assert 2 == 2\n")
+    code, diff_out, _ = run_cli(tests_frozen, ["diff", "--step", step], cwd=tmp_path)
+    assert code == 0 and "+    assert 2 == 2" in diff_out
+    stderr_file = tmp_path / "tests-frozen.err"
+    stderr_file.write_text("test_x.py\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt,
+        ["7", "tests-frozen-refused", "1", str(stderr_file), "tests-frozen.sh", "check", "--step", step],
+        cwd=tmp_path,
+    )
+    assert (code, err) == (0, "")
+    assert diff_out in out
