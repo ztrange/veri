@@ -3,18 +3,17 @@
 __pycache__/
 *.pyc
 
-# veri commits five kinds of .tdd/ file: the ledger .tdd/issue-<n>.md (the source of
-# truth for which steps are done), .tdd/issue-<n>-added.md, -mutations.md,
-# -refactor-owed.md and -metrics.md (a run's only committed figures, since the journal
+# veri commits four kinds of .tdd/ file: the ledger .tdd/issue-<n>.md (the source of
+# truth for which steps are done), .tdd/issue-<n>-added.md, -refactor-owed.md and
+# -metrics.md (a run's only committed figures, since the journal
 # is ignored). Everything else under .tdd/ is run state and ignored: leaf logs and
 # prompts, the blind spec -spec.md, the Draft-PR step's -pr-body.md, any other
 # issue-<n>-*.md, and the journal events.jsonl. Last match wins: every issue-*-*.md is
-# re-ignored, then the four suffixed kinds are admitted again.
+# re-ignored, then the three suffixed kinds are admitted again.
 .tdd/*
 !.tdd/issue-*.md
 .tdd/issue-*-*.md
 !.tdd/issue-*-added.md
-!.tdd/issue-*-mutations.md
 !.tdd/issue-*-refactor-owed.md
 !.tdd/issue-*-metrics.md
 */**/.tdd/

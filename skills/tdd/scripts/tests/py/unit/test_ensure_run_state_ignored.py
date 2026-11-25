@@ -7,7 +7,7 @@ import pytest
 
 from conftest import SCRIPTS
 
-RULE = (".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-*.md\n!.tdd/issue-*-added.md\n!.tdd/issue-*-mutations.md\n"
+RULE = (".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-*.md\n!.tdd/issue-*-added.md\n"
         "!.tdd/issue-*-refactor-owed.md\n!.tdd/issue-*-metrics.md\n")
 
 
@@ -119,13 +119,32 @@ def test_main_reports_already_present_from_the_gitignore_alone_and_leaves_both_f
     assert (carried / ".git" / "info" / "exclude").read_text() == RULE
 
 
+def test_4741_the_rule_names_no_mutations_file(ensure_run_state_ignored):
+    assert [line for line in ensure_run_state_ignored.RULE if "mutations" in line] == []
+
+
+def test_4741_a_gitignore_carrying_the_rule_with_the_retired_mutations_line_is_already_present(
+        tmp_path, capsys, ensure_run_state_ignored, fake_processes):
+    fake_rev_parse(fake_processes, 0, ".git\n")
+    retired = RULE.replace("!.tdd/issue-*-added.md\n", "!.tdd/issue-*-added.md\n!.tdd/issue-*-mutations.md\n")
+    root = tmp_path / "repo"
+    (root / ".git" / "info").mkdir(parents=True)
+    (root / ".gitignore").write_text(retired)
+    (root / ".git" / "info" / "exclude").write_text(retired)
+
+    code = ensure_run_state_ignored.main([str(root)])
+
+    assert (code, capsys.readouterr()[:]) == (0, ("already present\n", ""))
+    assert (root / ".gitignore").read_text() == retired
+    assert (root / ".git" / "info" / "exclude").read_text() == retired
+
 def test_main_appends_after_a_newline_only_where_one_is_missing_and_refuses_a_misordered_rule(
         tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     fake_rev_parse(fake_processes, 0, ".git\n")
     appended = (
         ("newline_terminated", b"node_modules/\n", b"node_modules/\n"),
         ("misordered", b".tdd/*\n!.tdd/issue-*-metrics.md\n!.tdd/issue-*.md\n.tdd/issue-*-*.md\n!.tdd/issue-*-added.md\n"
-                       b"!.tdd/issue-*-mutations.md\n!.tdd/issue-*-refactor-owed.md\n", None),
+                       b"!.tdd/issue-*-refactor-owed.md\n", None),
         ("no_trailing_newline", b"node_modules/", b"node_modules/\n"),
         ("crlf", b"node_modules/\r\n", b"node_modules/\r\n"),
         ("empty", b"", b""),
