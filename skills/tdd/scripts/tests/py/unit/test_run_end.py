@@ -228,6 +228,36 @@ def test_a_run_whose_latest_result_is_the_harness_5_hour_limit_message_has_ended
     assert (ended, cause, not mark) == (True, "usage-limit", True)
 
 
+def test_a_run_whose_latest_result_quotes_the_harness_claude_usage_limit_message_mid_sentence_has_ended_with_cause_unknown_not_usage_limit_4737(tmp_path):
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    records = [{"type": "system", "subtype": "init"},
+               {"type": "result", "result": 'bailed: untestable-criterion — the criterion asks to retry when Claude usage limit reached is printed'}]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    (tmp_path / ".tdd" / "develop-green.log").write_text(json.dumps({"type": "assistant"}) + "\n")
+
+    ended, cause, mark = run_end.run_end(tmp_path)
+
+    assert (ended, cause, not mark) == (True, 'unknown', True)
+
+
+def test_a_run_whose_latest_result_is_the_harness_you_have_hit_your_limit_message_has_ended_with_cause_usage_limit_4737(tmp_path):
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    records = [{"type": "system", "subtype": "init"},
+               {"type": "result", "result": 'You have hit your weekly limit · resets Mon 9am'}]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    (tmp_path / ".tdd" / "develop-green.log").write_text(json.dumps({"type": "assistant"}) + "\n")
+
+    ended, cause, mark = run_end.run_end(tmp_path)
+
+    assert (ended, cause, not mark) == (True, 'usage-limit', True)
+
+
 def test_a_pid_that_answers_kill_0_but_whose_process_is_not_a_conductor_has_ended_with_the_cause_read_from_the_conductor_log_2007(tmp_path, monkeypatch):
     run_end = importlib.import_module("veri.run_end")
     (tmp_path / ".tdd").mkdir()
