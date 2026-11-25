@@ -1243,106 +1243,88 @@ GO_RED_STEP = ("- [ ] Go-red guard: the stacked refusal, probe `src/run.py` `if 
                "`tests/test_run.py::test_refuses_stacked` ⟦go-red⟧ ⟦criterion 3⟧\n")
 
 
-def test_main_refuses_a_tick_of_a_go_red_step_whose_mutation_record_holds_no_entry_for_its_probed_file_leaving_the_ledger_untouched_4443(
-        tmp_path, capsys, tick_ledger):
-    ledger = tmp_path / "issue-7.md"
-    seed = ("# Plan for #7\n\n" + GO_RED_STEP).encode()
-    ledger.write_bytes(seed)
-    (tmp_path / "issue-7-mutations.md").write_text(
-        "file 12\nsrc/other.py\nold 3\nabc\nnew 3\nxyz\ncommand 6\npytest\n\n")
-
-    code = tick_ledger.main([str(ledger), "Go-red guard"])
-    err = capsys.readouterr().err
-
-    assert (code, "issue-7-mutations.md" in err, ledger.read_bytes()) == (2, True, seed)
+GO_RED_PROBE = "probe `src/run.py` `if stacked:` → `if False:` on `tests/test_run.py::test_refuses_stacked`"
+PROBED_SHA = "84603a1e8c0ffee0000000000000000000000000"
 
 
-def go_red_entry(old="if stacked:", new="if False:", case="tests/test_run.py::test_refuses_stacked", file="src/run.py",
-                 command=True):
-    """A mutation-probe.sh entry for GO_RED_STEP's probe, as the probe writes it (text fields base64-encoded); each
-    keyword varies one field, `command=False` leaving the command field out."""
-    record = importlib.import_module("veri.mutation_record")
-    fields = [("file", file), ("old", old), ("new", new), ("context", old)]
-    if command:
-        fields.append(("command", "sh -c 'make test TESTS=\"$1\"' sh " + case))
-    return record.format_record(fields)
+def go_red_receipt(tmp_path, probe=GO_RED_PROBE, sha=PROBED_SHA):
+    """go-red-step.sh's receipt beside the ledger: line 1 the probe clause, line 2 the sha HEAD was at."""
+    (tmp_path / "go-red-probed").write_text(f"{probe}\n{sha}\n")
 
 
-def test_main_ticks_a_go_red_step_once_the_mutation_record_holds_an_entry_for_its_probed_file_4443(tmp_path, tick_ledger):
+@pytest.fixture
+def resolving(monkeypatch, tick_ledger):
+    """The shas the receipt's commit check resolves, faked at the wrapper: the set starts holding PROBED_SHA."""
+    known = {PROBED_SHA}
+    monkeypatch.setattr(tick_ledger, "commit_resolves", lambda root, sha: sha in known, raising=False)
+    return known
+
+
+def test_main_ticks_a_go_red_step_on_a_receipt_holding_its_probe_line_and_a_resolving_sha_4741(
+        tmp_path, tick_ledger, resolving):
     ledger = tmp_path / "issue-7.md"
     ledger.write_text("# Plan for #7\n\n" + GO_RED_STEP)
-    (tmp_path / "issue-7-mutations.md").write_text(go_red_entry())
+    go_red_receipt(tmp_path)
 
     code = tick_ledger.main([str(ledger), "Go-red guard"])
 
     assert (code, "- [x] Go-red guard" in ledger.read_text()) == (0, True)
 
 
-def test_main_refuses_a_tick_of_a_go_red_step_with_no_mutation_record_or_no_parseable_probe_leaving_the_ledger_untouched_4443(
-        tmp_path, capsys, tick_ledger):
-    results = []
-    for step in (GO_RED_STEP, "- [ ] Go-red guard: the stacked refusal, probe `src/run.py` ⟦go-red⟧ ⟦criterion 3⟧\n"):
-        ledger = tmp_path / "issue-7.md"
-        seed = ("# Plan for #7\n\n" + step).encode()
-        ledger.write_bytes(seed)
-        record = tmp_path / "issue-7-mutations.md"
-        record.unlink(missing_ok=True)
-        if "on `" not in step:
-            record.write_text("file 10\nsrc/run.py\nold 3\nabc\nnew 3\nxyz\ncommand 6\npytest\n\n")
-        code = tick_ledger.main([str(ledger), "Go-red guard"])
-        results.append((code, "issue-7-mutations.md" in capsys.readouterr().err, ledger.read_bytes() == seed))
-
-    assert results == [(2, True, True), (2, True, True)]
-
-
-@pytest.mark.parametrize("entry", [go_red_entry(file="src/other.py"), go_red_entry(old="if stacked"),
-                                   go_red_entry(new="if True:"),
-                                   go_red_entry(case="tests/test_run.py::test_another_case"),
-                                   go_red_entry(command=False)],
-                         ids=["only-file", "only-old", "only-new", "only-case", "no-command"])
-def test_main_refuses_a_go_red_tick_whose_record_entry_differs_from_its_probe_in_one_field_or_has_no_command_4443(
-        tmp_path, capsys, tick_ledger, entry):
+def test_main_refuses_a_go_red_tick_with_no_receipt_naming_it_leaving_the_ledger_byte_identical_4741(
+        tmp_path, capsys, tick_ledger, resolving):
     ledger = tmp_path / "issue-7.md"
     seed = ("# Plan for #7\n\n" + GO_RED_STEP).encode()
     ledger.write_bytes(seed)
-    (tmp_path / "issue-7-mutations.md").write_text(entry)
 
     code = tick_ledger.main([str(ledger), "Go-red guard"])
 
-    assert (code, "issue-7-mutations.md" in capsys.readouterr().err, ledger.read_bytes()) == (2, True, seed)
+    assert (code, "go-red-probed" in capsys.readouterr().err, ledger.read_bytes()) == (2, True, seed)
 
 
-def test_main_refuses_a_go_red_tick_over_a_malformed_mutation_record_naming_the_record_4443(tmp_path, capsys, tick_ledger):
+def test_main_refuses_a_go_red_tick_on_a_receipt_naming_another_steps_probe_leaving_the_ledger_byte_identical_4741(
+        tmp_path, capsys, tick_ledger, resolving):
     ledger = tmp_path / "issue-7.md"
     seed = ("# Plan for #7\n\n" + GO_RED_STEP).encode()
     ledger.write_bytes(seed)
-    (tmp_path / "issue-7-mutations.md").write_text("not a header\n" + go_red_entry())
+    go_red_receipt(tmp_path, probe=GO_RED_PROBE.replace("test_refuses_stacked", "test_another_case"))
 
     code = tick_ledger.main([str(ledger), "Go-red guard"])
 
-    assert (code, "issue-7-mutations.md: no mutation record" in capsys.readouterr().err, ledger.read_bytes()) == (
-        2, True, seed)
+    assert (code, "go-red-probed" in capsys.readouterr().err, ledger.read_bytes()) == (2, True, seed)
+
+
+def test_main_refuses_a_go_red_tick_on_a_receipt_whose_sha_does_not_resolve_leaving_the_ledger_byte_identical_4741(
+        tmp_path, capsys, tick_ledger, resolving):
+    ledger = tmp_path / "issue-7.md"
+    seed = ("# Plan for #7\n\n" + GO_RED_STEP).encode()
+    ledger.write_bytes(seed)
+    go_red_receipt(tmp_path, sha="0123456789abcdef0123456789abcdef01234567")
+
+    code = tick_ledger.main([str(ledger), "Go-red guard"])
+
+    assert (code, "go-red-probed" in capsys.readouterr().err, ledger.read_bytes()) == (2, True, seed)
 
 
 LEADING_GO_RED_STEP = ("- [ ] ⟦go-red⟧ Go-red guard: the stacked refusal, probe `src/run.py` `if stacked:` → `if False:` on "
                        "`tests/test_run.py::test_refuses_stacked` ⟦criterion 3⟧\n")
 
 
-@pytest.mark.parametrize("recorded", [False, True], ids=["no-record", "matching-record"])
-def test_main_refuses_a_leading_go_red_marker_as_misplaced_with_or_without_a_record_4443(
-        tmp_path, capsys, tick_ledger, recorded):
+@pytest.mark.parametrize("received", [False, True], ids=["no-receipt", "matching-receipt"])
+def test_main_refuses_a_leading_go_red_marker_as_misplaced_with_or_without_a_receipt_4443(
+        tmp_path, capsys, tick_ledger, resolving, received):
     ledger = tmp_path / "issue-7.md"
     seed = ("# Plan for #7\n\n" + LEADING_GO_RED_STEP).encode()
     ledger.write_bytes(seed)
-    if recorded:
-        (tmp_path / "issue-7-mutations.md").write_text(go_red_entry())
+    if received:
+        go_red_receipt(tmp_path)
 
     code = tick_ledger.main([str(ledger), "Go-red guard"])
 
     assert (code, "must trail the step" in capsys.readouterr().err, ledger.read_bytes()) == (2, True, seed)
 
 
-def test_main_ticks_a_step_mentioning_go_red_in_backticks_with_no_mutation_record_4443(tmp_path, tick_ledger):
+def test_main_ticks_a_step_mentioning_go_red_in_backticks_with_no_receipt_4443(tmp_path, tick_ledger):
     ledger = tmp_path / "issue-7.md"
     ledger.write_text("# Plan for #7\n\n- [ ] `⟦go-red⟧` steps run through go-red-step.sh ⟦criterion 3⟧\n")
 
@@ -1351,10 +1333,11 @@ def test_main_ticks_a_step_mentioning_go_red_in_backticks_with_no_mutation_recor
     assert (code, "- [x] `⟦go-red⟧` steps" in ledger.read_text()) == (0, True)
 
 
-def test_main_ticks_a_step_whose_go_red_marker_also_trails_it_on_its_probes_record_4443(tmp_path, tick_ledger):
+def test_main_ticks_a_step_whose_go_red_marker_also_trails_it_on_its_probes_receipt_4443(
+        tmp_path, tick_ledger, resolving):
     ledger = tmp_path / "issue-7.md"
     ledger.write_text("# Plan for #7\n\n" + LEADING_GO_RED_STEP.replace(" ⟦criterion 3⟧", " ⟦go-red⟧ ⟦criterion 3⟧"))
-    (tmp_path / "issue-7-mutations.md").write_text(go_red_entry())
+    go_red_receipt(tmp_path)
 
     code = tick_ledger.main([str(ledger), "Go-red guard"])
 

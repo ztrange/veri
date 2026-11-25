@@ -140,20 +140,28 @@ def drop_missing_cases(record, root):
         handle.write("".join(kept))
 
 
-def probed(record, probe):
-    """Whether the mutation record at <record> holds an entry of <probe>, a go-red step's (file, old, new, case): its
-    file, old and new equal to the probe's, and its command naming the case (an entry with no command proves no case).
-    False for no probe, no record, or a malformed one."""
-    if not probe:
-        return False
-    path, old, new, case = probe
+def commit_resolves(root, sha):
+    """Whether <sha> names a commit in the repository at <root>."""
+    return subprocess.run(["git", "-C", root, "rev-parse", "--verify", "--quiet", sha + "^{commit}"],
+                          capture_output=True).returncode == 0
+
+
+def go_red_receipt_refusal(ledger_path, step_line):
+    """Why go-red-step.sh's receipt, `.tdd/go-red-probed` beside the ledger, does not prove step_line's probe ran:
+    absent, its line 1 not the step's probe clause, or its line 2 no commit of the worktree; None when it does."""
+    receipt = os.path.join(os.path.dirname(os.path.abspath(ledger_path)), "go-red-probed")
     try:
-        with open(record, encoding="utf-8") as handle:
-            entries = mutation_record.records(handle.read())
-    except (OSError, mutation_record.MalformedRecord):
-        return False
-    return any(e.get("file") == path and e.get("old") == old and e.get("new") == new
-               and case in e.get("command", "") for e in entries)
+        with open(receipt, encoding="utf-8") as handle:
+            lines = handle.read().split("\n")
+    except (OSError, UnicodeDecodeError):
+        return f"{receipt}: no go-red receipt"
+    probe = ledger.GO_RED_PROBE_RE.search(step_line)
+    if not probe or lines[0] != probe.group(0):
+        return f"{receipt}: not the receipt of the probe the step's go-red line names"
+    sha = lines[1] if len(lines) > 1 else ""
+    if not re.fullmatch(r"[0-9a-f]{7,40}", sha) or not commit_resolves(os.path.dirname(os.path.dirname(receipt)), sha):
+        return f"{receipt}: its sha {sha!r} names no commit"
+    return None
 
 
 def mutations_path(ledger_path):
@@ -225,8 +233,8 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
     event; it needs a `case`. `pending` and `phase` do not combine.
     Returns 0 ticked; 1 clean negative (the case fails; the reason does not qualify for `retire`; retire with no
     case); 2 no answer (case never ran, bad combination, unreadable ledger, no mutation record for the step's
-    go-red control, or of the probe a ⟦go-red⟧ step names (file, old, new and case), or no parseable probe on
-    such a step, missing receipt, a ledger left behind, an empty ledger_path -> usage line); 3 nothing to tick. Writes the ledger (and its added-steps record) and, for a retirement, events.jsonl and the mutation
+    go-red control, a ⟦go-red⟧ step with no `.tdd/go-red-probed` beside the ledger holding its probe clause and a
+    commit's sha, a ledger left behind, an empty ledger_path -> usage line); 3 nothing to tick. Writes the ledger (and its added-steps record) and, for a retirement, events.jsonl and the mutation
     record; stderr as the script prints it.
     """
     retired_mark, event_name = ledger.retire_mark("unpinnable"), "unpinnable-step"
@@ -302,9 +310,9 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
         complain(f"{matcher}: {ledger.GO_RED_MARK} must trail the step, after its text and before its criterion tag")
         return 2
     if ledger.is_go_red(step_line):
-        record = mutations_path(ledger_path)
-        if not probed(record, ledger.go_red_probe(step_line)):
-            complain(f"{record}: no mutation record of the probe the step's go-red line names")
+        refusal = go_red_receipt_refusal(ledger_path, step_line)
+        if refusal:
+            complain(refusal)
             return 2
     left = ledger.rewrite_ledger(ledger_path, new)
     if left is None:
