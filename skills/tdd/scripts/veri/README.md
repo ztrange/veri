@@ -705,6 +705,12 @@ The record of a step's frozen tests (`.tdd/tests-frozen-<key>.record`) and its p
 - `record(record_file, files, step=None)`, `check(record_file, step=None)`: the `record` and `check` subcommands with explicit arguments; each returns the exit code (0, 1 or 2) and speaks as the CLI does. `step=None` records or checks the files given; with a step it also covers the test files that differ from HEAD.
 - `is_diff_checked(line)`: bool for a `⟦diff-checked⟧` step. `rerecord_earlier(ledger, step)`, `rerecord_committed(step, root)`: re-record earlier steps' frozen cases; `rerecord_earlier` returns 3 for a step that is not diff-checked, 2 on an unreadable ledger or outside a repo.
 
+## wrong_test_route
+- `IDENTIFIER`: the pattern of a criterion (`⟦criterion k⟧`, `criterion k`) or requirement id (letters then digits) a behaviour names.
+- `later_owner(behaviour, spec, after)`: the first step name of `after` whose criterion text in `spec` contains `behaviour` or is contained in it, case-insensitively; `None` for none.
+- `later_owner_by_id(behaviour, spec, after)`: the first step name of `after` that `behaviour` names by an `IDENTIFIER`; `None` for none.
+- `missing_reroutes(step)`: how many `reroute` events of kind `missing` name `step` since the last `resume`, read from the cwd's `.tdd/events.jsonl`.
+
 # GitHub and issues
 
 gh access, issue selection (solvable, parked, blocked), claiming and releasing issues, specs captured from issues and ticking an issue's criteria. Builds on Ledger and plan, Run state and journal, Target suites and tiers and Foundations.
