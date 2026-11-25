@@ -956,9 +956,11 @@ Green by hand ends `$S/seam-settle.sh <n> green-half test_path=<path>`.
    On tests-frozen exit 1 a test file changed since verify-red. At the step's first such refusal, when `$S/adjudicate.sh left <n>` and
    `$S/adjudicate.sh deviation-left <n>` both exit 0, run the adjudicator for the cause `tests-frozen-refused` as
    `<base directory>/ADJUDICATE.md`'s *Procedure* says (`Read` it; `.tdd/tests-frozen-check.err`, where that command left the changed files the check named, is the `<stderr-file>`, and
-   the `<command…>` is `tests-frozen.sh check --step <STEP>`). On `deviate`, run the blind `diff` verifier on the step's test-only edit, its diff the output of
-   `$S/tests-frozen.sh diff --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`, as the `supersede-diff` route does (`verdict-diff`; with `diff` in
-   `.tdd/issue-<n>-skip-verify`, take the PASS branch). On PASS, re-record the step's frozen tests with the re-record command above
+   the `<command…>` is `tests-frozen.sh check --step <STEP>`). On `deviate`, run the blind `diff` verifier on the step's test-only edit: take `<frozen-base>` as the output of
+   `$S/tests-frozen.sh snapshot --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`, a commit holding the working tree with each file the check named
+   returned to its frozen content, so `git diff <frozen-base>` is exactly the edit `tests-frozen.sh diff --step` prints, then run
+   `run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' --supersede-base <frozen-base> --branch-base <base> diff .tdd/issue-<n>-spec.md <step-base-sha>`
+   as the `supersede-diff` route does (`verdict-diff`; with `diff` in `.tdd/issue-<n>-skip-verify`, take the PASS branch, recording `verify-diff-skipped` as that route does). A `snapshot` exit 2 is a **bail** as a system failure (`Read` `<base directory>/BAIL.md`). On PASS, re-record the step's frozen tests with the re-record command above
    (`tests-frozen.sh record --step … --red-case '<red-test-id>' <test-path>…`, a non-zero exit stopping as that site does), then emit
    `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh deviated rule=tests-frozen step=<k> reason="<reason>"`, append the
    `- [ ] deviated from tests-frozen at step <k>: <action> — <reason> ⟦human-owed⟧ ⟦deviation tests-frozen⟧ ⟦criterion k⟧` ledger line, commit it, and launch verify-green.
