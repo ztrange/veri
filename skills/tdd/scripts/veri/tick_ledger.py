@@ -148,7 +148,8 @@ def git_answer(*args):
 
 
 def return_tests_to_head():
-    """Return every test file differing from HEAD to HEAD: an untracked one deleted, any other checked out."""
+    """Return every test file differing from HEAD to HEAD: an untracked one deleted, one staged as new (absent from
+    HEAD) removed from the index and the tree, any other checked out."""
     root = os.fsdecode(git_answer("rev-parse", "--show-toplevel")).rstrip("\n")
     untracked = {os.fsdecode(raw) for raw in git_answer(
         "ls-files", "--others", "--exclude-standard", "--full-name", "-z", ":/").split(b"\0") if raw}
@@ -158,8 +159,15 @@ def return_tests_to_head():
             os.remove(os.path.join(root, name))
         else:
             tracked.append(name)
-    if tracked:
-        git_answer("-C", root, "checkout", "HEAD", "--", *tracked)
+    if not tracked:
+        return
+    in_head = {os.fsdecode(raw) for raw in git_answer(
+        "-C", root, "ls-tree", "-r", "--name-only", "-z", "HEAD", "--", *tracked).split(b"\0") if raw}
+    staged = [name for name in tracked if name not in in_head]
+    if staged:
+        git_answer("-C", root, "rm", "-q", "-f", "--", *staged)
+    if in_head:
+        git_answer("-C", root, "checkout", "HEAD", "--", *[name for name in tracked if name in in_head])
 
 
 def surround_short(ledger_path, matcher):

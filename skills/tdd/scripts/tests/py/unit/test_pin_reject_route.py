@@ -651,11 +651,13 @@ def test_main_recheck_is_an_unknown_argument_exit_2_printing_no_route_and_leavin
 
 
 class FakeRepo:
-    """git's answers over a work tree at <root> whose HEAD holds <head> ({path: text}): the listing of files differing
-    from HEAD (diff and untracked) read off the tree, `checkout HEAD -- <paths>` writing HEAD's text back."""
+    """git's answers over a work tree at <root> whose HEAD holds <head> ({path: text}) and whose index also holds the
+    paths in <staged> (added, absent from HEAD): the listing of files differing from HEAD (diff, staged ones included,
+    and untracked) read off the tree, `checkout HEAD -- <paths>` writing HEAD's text back and failing, as git does, on a
+    path HEAD lacks, `ls-tree` naming the paths HEAD holds, `rm -f` dropping a path from the index and the tree."""
 
-    def __init__(self, root, head):
-        self.root, self.head = root, head
+    def __init__(self, root, head, staged=()):
+        self.root, self.head, self.staged = root, head, set(staged)
 
     def __call__(self, *args, **kwargs):
         import subprocess
@@ -663,19 +665,38 @@ class FakeRepo:
         if args[:2] == ["-C", str(self.root)]:
             args = args[2:]
         out = b""
+        paths = args[args.index("--") + 1:] if "--" in args else []
         if args[:1] == ["diff"] and "--name-only" in args:
             out = b"".join(path.encode() + b"\0" for path, text in self.head.items()
                            if not (self.root / path).exists() or (self.root / path).read_text() != text)
+            out += b"".join(path.encode() + b"\0" for path in sorted(self.staged) if (self.root / path).exists())
         elif args[:1] == ["ls-files"] and "--others" in args:
             out = b"".join(str(p.relative_to(self.root)).encode() + b"\0" for p in sorted(self.root.rglob("*"))
                            if p.is_file() and ".tdd" not in p.parts
-                           and str(p.relative_to(self.root)) not in self.head)
+                           and str(p.relative_to(self.root)) not in self.head
+                           and str(p.relative_to(self.root)) not in self.staged)
         elif args[:2] == ["rev-parse", "--show-toplevel"]:
             out = str(self.root).encode() + b"\n"
         elif args[:3] == ["checkout", "HEAD", "--"]:
-            for path in args[3:]:
+            unknown = [path for path in paths if path not in self.head]
+            if unknown:
+                return subprocess.CompletedProcess(["git", *args], 1, b"", (
+                    "error: pathspec '%s' did not match any file(s) known to git\n" % unknown[0]).encode())
+            for path in paths:
                 (self.root / path).parent.mkdir(parents=True, exist_ok=True)
                 (self.root / path).write_text(self.head[path])
+        elif args[:1] == ["ls-tree"] and "HEAD" in args:
+            out = b"".join(path.encode() + b"\0" for path in paths if path in self.head)
+        elif args[:1] == ["rm"] and "-f" in args:
+            unknown = [path for path in paths if path not in self.head and path not in self.staged]
+            if unknown:
+                return subprocess.CompletedProcess(["git", *args], 128, b"", (
+                    "fatal: pathspec '%s' did not match any files\n" % unknown[0]).encode())
+            for path in paths:
+                self.staged.discard(path)
+                self.head.pop(path, None)
+                if (self.root / path).exists():
+                    (self.root / path).unlink()
         else:
             return subprocess.CompletedProcess(["git", *args], 128, b"", b"fake git: unanswered\n")
         return subprocess.CompletedProcess(["git", *args], 0, out, b"")
@@ -794,3 +815,20 @@ def test_main_missing_reroute_already_holds_retire_removes_no_test_file_4739(
     assert (code, out.strip(), ledger.read_text().split("\n")[2],
             {p.name: p.read_text() for p in sorted(tests.iterdir())}) == (
         0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired already holds", before), err
+
+
+def test_main_removing_retire_deletes_a_test_file_staged_as_new_and_leaves_it_out_of_the_index_4739(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ledger, reason, tests, _ = red_tree(tmp_path, monkeypatch, pin_reject_route, "the hand mutation stays green")
+    (tests / "test_staged.py").write_text("def test_staged():\n    assert True\n")
+    repo = FakeRepo(tmp_path, {"tests/py/test_old.py": "def test_old():\n    assert True\n",
+                               "reason.txt": reason.read_text()}, staged=["tests/py/test_staged.py"])
+    monkeypatch.setattr(pin_reject_route.tick_ledger.git, "git", repo)
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text().split("\n")[2], sorted(p.name for p in tests.iterdir()),
+            (tests / "test_old.py").read_text(), sorted(repo.staged)) == (
+        0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable", ["test_old.py"],
+        "def test_old():\n    assert True\n", []), err
