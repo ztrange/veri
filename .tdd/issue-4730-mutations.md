@@ -34,3 +34,14 @@ ICAgICAgICByZXR1cm4gMg==
 command 145
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_tests_frozen_diff.py::test_diff_step_exits_2_and_prints_nothing_when_the_step_has_no_record
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old-b64 100
+YXJndls6Ml0gPT0gWyJjaGVjayIsICItLXN0ZXAiXSBhbmQgY29kZSA9PSAxOgogICAgICAgIF9sb2dfcmVmdXNhbChjb2RlKQ==
+new-b64 76
+YXJndls6Ml0gPT0gWyJjaGVjayIsICItLXN0ZXAiXToKICAgICAgICBfbG9nX3JlZnVzYWwoMSk=
+context-b64 76
+ICAgIGVsaWYgYXJndls6Ml0gPT0gWyJjaGVjayIsICItLXN0ZXAiXSBhbmQgY29kZSA9PSAxOg==
+command 189
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tests_frozen_check_step.py::test_check_step_exit_0_when_no_test_file_changed_since_the_record_writes_no_tests_frozen_refused_event_4730
+

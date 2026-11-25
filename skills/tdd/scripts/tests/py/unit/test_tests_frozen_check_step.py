@@ -569,3 +569,15 @@ def test_check_by_record_file_exit_1_writes_no_tests_frozen_refused_event_where_
 
     assert (recorded, by_file, after_file_check, by_step, refused()) == (
         0, 1, [], 1, ["tests-frozen-refused"])
+
+
+def test_check_step_exit_0_when_no_test_file_changed_since_the_record_writes_no_tests_frozen_refused_event_4730(
+        tmp_path, run_cli, tests_frozen, red_recorded):
+    red_recorded({NEW: "one\n", OTHER: "one\n"})
+
+    (tmp_path / "lib.py").write_text("one, changed\n")
+    code = run_cli(tests_frozen, ["check", "--step", STEP], cwd=tmp_path)[0]
+    journal = tmp_path / ".tdd" / "events.jsonl"
+    events = [json.loads(line)["event"] for line in journal.read_text().splitlines() if line.strip()] if journal.exists() else []
+
+    assert (code, events) == (0, [])
