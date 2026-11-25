@@ -18,6 +18,7 @@ import stem_walk
 USAGE = "usage: affected-suites.sh <base>..<head>"
 SCRIPTS = "skills/tdd/scripts"
 PYTEST_DIRS = (SCRIPTS + "/tests/py", SCRIPTS + "/tests/py/unit")
+PYFLAKES_GATE = SCRIPTS + "/tests/py/test_ruff_tree_audit_process.py"
 SKILL_DOCS = ("skills/tdd/SCRIPTS.md", "skills/tdd/STOPPING.md", "skills/tdd/RECONCILE.md",
               "skills/tdd/BAIL.md", "skills/tdd/PIN.md", "skills/tdd/RESUME.md",
               "skills/tdd/REVISE.md", "skills/tdd/SKILL-EDIT.md", "skills/tdd/STRUCTURAL.md",
@@ -259,7 +260,7 @@ def suite_of(f, revisions=None):
         return found
     if match(SCRIPTS + "/veri/*.py", SCRIPTS + "/tests/leg/*.py"):  # tests/leg/: the pytest leg, out of veri/ (#4051)
         name = basename(f, ".py")
-        return pytest_files_of(name)
+        return pytest_files_of(name) + existing(PYFLAKES_GATE)
     if match(SCRIPTS + "/*.sh"):
         return pytest_files_of(basename(f, ".sh").replace("-", "_"))
     if match(".tdd/*"):
