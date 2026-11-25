@@ -694,6 +694,7 @@ The record of a step's frozen tests (`.tdd/tests-frozen-<key>.record`) and its p
 ## tests_frozen
 - `differing_tests()`: test files changed against HEAD; raises OSError when git cannot list.
 - `record(record_file, files, step=None)`, `check(record_file, step=None)`: the `record` and `check` subcommands with explicit arguments; each returns the exit code (0, 1 or 2) and speaks as the CLI does. `step=None` records or checks the files given; with a step it also covers the test files that differ from HEAD.
+- `record_path`: `frozen_record.record_path`, imported. `diff(record_file)`: the `diff --step` subcommand with an explicit record: prints the unified diff from each recorded file's kept content, and from nothing for an unrecorded differing test file, to its current content; returns 0, or 2 when the record or a kept content cannot be read.
 - `is_diff_checked(line)`: bool for a `⟦diff-checked⟧` step. `rerecord_earlier(ledger, step)`, `rerecord_committed(step, root)`: re-record earlier steps' frozen cases; `rerecord_earlier` returns 3 for a step that is not diff-checked, 2 on an unreadable ledger or outside a repo.
 
 ## wrong_test_route
