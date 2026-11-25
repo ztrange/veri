@@ -1,0 +1,25 @@
+# Plan for #4741 — PRD 044.1: no recorded mutation, no pin-recheck
+
+- [ ] `tick-ledger.sh` ticks a `⟦diff-checked⟧` step with no `.tdd/pin-recheck-ok` in the worktree (exit 0, the ledger changed) ⟦criterion 2⟧
+- [ ] `clear-refactor-pending.sh` clears `⟂ refactor pending` with no `.tdd/pin-recheck-ok` in the worktree (exit 0, the ledger changed) ⟦criterion 2⟧
+- [ ] `go-red-step.sh` runs `mutation-probe.sh` with no `VERI_MUTATION_RECORD`, writes `.tdd/go-red-probed` (probe line + HEAD sha) after a probe exit 0 then ticks, and writes no receipt on a non-zero probe ⟦criterion 3⟧
+- [ ] `tick-ledger.sh` ticks a `⟦go-red⟧` step on a `.tdd/go-red-probed` holding its probe line and a resolving sha, and exits 2 ledger byte-identical when the receipt is absent, names another step's probe, or holds an unresolvable sha ⟦criterion 4⟧
+- [ ] Go-red: `veri/tick_ledger.py` broken to skip the `.tdd/go-red-probed` check turns the missing-receipt case red; restored, green ⟦criterion 5⟧
+- [ ] `tick-ledger.sh` ticks a step naming a go-red control with no `.tdd/issue-<n>-mutations.md` present ⟦criterion 6⟧
+- [ ] `pin-reject-route.sh --recheck …` exits 2 as an unknown argument, and no output line is `repin-failed …` or `not-checked …` ⟦criterion 7⟧
+- [ ] `mutation-probe.sh` writes no `.tdd/issue-<n>-mutations.md`, and `VERI_MUTATION_RECORD` appears in no file under `skills/tdd/scripts/veri/` (a `tree_audit` case) ⟦criterion 8⟧
+- [ ] `run-finished.sh <n>` on a done run with a stale mutation record exits 0 and prints no `stale-pin` line; `run_finished` does not import `mutation_record` ⟦criterion 9⟧
+- [ ] `queued-merge.sh` does not refuse a PR whose worktree holds a stale mutation record; `queued_merge` does not import `mutation_record` ⟦criterion 9⟧
+- [ ] `supervise.sh` keeps a `develop-*`/`revise-*` leaf's edit to `.tdd/issue-<n>-mutations.md` and emits no `mutation-record-restored` event ⟦criterion 10⟧
+- [ ] `veri/event_table.py` declares no `mutation-record-restored` and no `pin-retired` event (`event.sh pin-retired reason=x` exits 2 under `VERI_EVENT_STRICT=1`) ⟦criterion 11⟧
+- [ ] `veri/classify_bail.py` knows no `repin-failed` cause, and `skills/tdd/JOURNAL.md` names none of `repin-failed`, `not-checked`, `mutation-record-restored`, `pin-retired` ⟦criterion 11⟧
+- [ ] `.gitignore` has no `!.tdd/issue-*-mutations.md` line and `veri/ensure_run_state_ignored.py`'s rule names no `mutations` file ⟦criterion 12⟧
+- [ ] `veri/pin_recheck.py`, `veri/mutation_record.py`, `pin-recheck.sh`, their tests and the plan's `mutation-record:` directive are deleted; `unreachable.sh` lists no new script ⟦criterion 13⟧
+- [ ] `skills/tdd/SKILL.md` (*Refactor loop*, *2. Scope & plan*) names no pin-recheck, re-pin step, `.tdd/pin-recheck-ok` or mutation record, its rows reworded, regraded ⟦criterion 1⟧
+- [ ] `DIFF-CHECKED.md`, `PIN.md`, `GO-RED.md`, `SUITE-REPAIR.md`, `RESUME.md`, `BAIL.md`, `PUBLISHED.md` name none of them, rows reworded, regraded ⟦criterion 1⟧
+- [ ] `SCRIPTS.md` names none of them, rows reworded or dropped, regraded ⟦criterion 1⟧
+- [ ] `tests/py/README.md`, `prompts/develop-diff.md`, `prompts/develop-revise-diff.md` and `skills/vmerge/SKILL.md` name none of them, rows reworded, regraded ⟦criterion 1⟧
+- [ ] A `tree_audit` case: no file under `skills/tdd/` but a `REQUIREMENTS.md` or `test_*.py` names `pin-recheck`, `pin-recheck-ok`, `repin-failed`, `--recheck`, `mutation-record` or `issue-<n>-mutations.md` ⟦criterion 15⟧
+- [ ] Go-red: the sweep case goes red with one of those names written back into `skills/tdd/SCRIPTS.md`; restored, green ⟦criterion 16⟧
+- [ ] `docs/adr/0038-pins-carry-no-recorded-mutation.md` records D4 and supersedes ADR-0033's `pin-recheck.sh` naming; ADR-0033 links to it ⟦criterion 17⟧
+- [ ] Every committed `.tdd/issue-*-mutations.md` is removed with `git rm`, as the branch's last change ⟦criterion 14⟧
