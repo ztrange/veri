@@ -1,17 +1,18 @@
 ### 📊 Metrics — issue 4200
 
-Wall time for the issue: 372 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 3 of 5 planned.
-Outcome: the run bailed — revise-impossible, a process failure.
+Wall time for the issue: 675 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
+Steps done: 5 of 5 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/4706.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $5.74 over 76 turns, in 4 sessions, on opus (estimate).
+Conductor own spending: $7.76 over 120 turns, in 5 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 85321 tokens, largest 116238 tokens
 Conductor context: first turn 85320 tokens, largest 114657 tokens
 Conductor context: first turn 85321 tokens, largest 116577 tokens
-Conductor context: first turn 85024 tokens, largest 113344 tokens
+Conductor context: first turn 85024 tokens, largest 116036 tokens
+Conductor context: first turn 85088 tokens, largest 115798 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -80,17 +81,61 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 60 | $0.08 | 44819 |
 | 61 | $0.03 | 45716 |
 | 62 | $0.02 | 46102 |
-| 63 | $0.54 | 85024 |
-| 64 | $0.02 | 85302 |
+| 63 | $0.55 | 85024 |
+| 64 | $0.03 | 85302 |
 | 65 | $0.02 | 85904 |
-| 66 | $0.04 | 88325 |
-| 67 | $0.06 | 94073 |
+| 66 | $0.05 | 88325 |
+| 67 | $0.07 | 94073 |
 | 68 | $0.03 | 95408 |
 | 69 | $0.06 | 99897 |
 | 70 | $0.04 | 101792 |
-| 71 | $0.05 | 104994 |
+| 71 | $0.06 | 104994 |
 | 72 | $0.03 | 105970 |
-| 73 | $0.08 | 113344 |
+| 73 | $0.09 | 113344 |
+| 74 | $0.03 | 114299 |
+| 75 | $0.04 | 114737 |
+| 76 | $0.03 | 115094 |
+| 77 | $0.04 | 116036 |
+| 78 | $0.54 | 85088 |
+| 79 | $0.03 | 86384 |
+| 80 | $0.03 | 87660 |
+| 81 | $0.04 | 89932 |
+| 82 | $0.03 | 90841 |
+| 83 | $0.05 | 94648 |
+| 84 | $0.02 | 95203 |
+| 85 | $0.02 | 95879 |
+| 86 | $0.02 | 96532 |
+| 87 | $0.03 | 98350 |
+| 88 | $0.13 | 112270 |
+| 89 | $0.03 | 113158 |
+| 90 | $0.02 | 113414 |
+| 91 | $0.03 | 114091 |
+| 92 | $0.03 | 114781 |
+| 93 | $0.03 | 115180 |
+| 94 | $0.03 | 115798 |
+| 95 | $0.16 | 38275 |
+| 96 | $0.02 | 39418 |
+| 97 | $0.02 | 41197 |
+| 98 | $0.01 | 42039 |
+| 99 | $0.01 | 42536 |
+| 100 | $0.01 | 43227 |
+| 101 | $0.03 | 45816 |
+| 102 | $0.02 | 46993 |
+| 103 | $0.02 | 47922 |
+| 104 | $0.02 | 49103 |
+| 105 | $0.06 | 54895 |
+| 106 | $0.02 | 56558 |
+| 107 | $0.02 | 57315 |
+| 108 | $0.02 | 57946 |
+| 109 | $0.02 | 58515 |
+| 110 | $0.05 | 62677 |
+| 111 | $0.02 | 63923 |
+| 112 | $0.02 | 64900 |
+| 113 | $0.02 | 65793 |
+| 114 | $0.07 | 73347 |
+| 115 | $0.02 | 74135 |
+| 116 | $0.02 | 74515 |
+| 117 | $0.03 | 76310 |
 
 #### Conductor comments, by family
 
@@ -115,8 +160,8 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 68 | 5.54 |
-| preflight | 2 | 0.06 |
+| between | 111 | 7.53 |
+| preflight | 3 | 0.09 |
 | verify-green | 2 | 0.10 |
 | refactor-loop | 1 | 0.04 |
 | untimed | 3 | 0.00 |
@@ -127,20 +172,21 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 4 | 4 | 0 | 0 | 47 | 38 | 10 | 20 | 4823 | 157367 | 101426 | 0.32 |
-| red | 4 | 1 | 0 | 0 | 334 | 60 | 24 | 46 | 8052 | 515224 | 87651 | 0.35 |
-| pin | 2 | 1 | 1 | 0 | 58 | 26 | 9 | 18 | 3156 | 168227 | 37829 | 0.14 |
+| plan | 6 | 5 | 1 | 0 | 64 | 51 | 12 | 24 | 6589 | 163359 | 143924 | 0.44 |
+| red | 5 | 1 | 0 | 0 | 363 | 73 | 28 | 54 | 9923 | 594710 | 108904 | 0.43 |
+| pin | 3 | 1 | 2 | 0 | 167 | 38 | 13 | 26 | 4623 | 239988 | 56123 | 0.21 |
 | green | 4 | 1 | 1 | 0 | 893 | 52 | 21 | 38 | 6210 | 377265 | 64857 | 0.35 |
 | refactor | 2 | 0 | 0 | 0 | 13 | 7 | 5 | 10 | 671 | 97703 | 20193 | 0.07 |
 | test-quality | 1 | 0 | 0 | 0 | 11 | 10 | 3 | 4 | 1184 | 25866 | 34858 | 0.10 |
-| branch | 1 | 0 | 1 | 0 | 11 | 8 | 4 | 8 | 771 | 68546 | 16852 | 0.06 |
+| branch | 2 | 1 | 1 | 0 | 235 | 16 | 8 | 16 | 1650 | 134186 | 33022 | 0.11 |
 | diff | 6 | 0 | 2 | 0 | 543 | 66 | 22 | 42 | 7599 | 348401 | 113126 | 0.55 |
 
 #### REJECT outcomes
 
 | phase | REJECT | caught | flipped | overturned | unresolved | pending | untracked |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| pin | 1 | 0 | 0 | 0 | 1 | 0 | 0 |
+| plan | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| pin | 2 | 0 | 0 | 0 | 1 | 1 | 0 |
 | green | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | branch | 1 | 0 | 0 | 1 | 0 | 0 | 0 |
 | diff | 2 | 0 | 0 | 0 | 2 | 0 | 0 |
@@ -149,8 +195,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 12 | 7 | 5 | 0 | 877 | 115 | 42 | 80 | 13790 | 699818 | 224018 | 0.77 |
-| developer | claude-sonnet-5-5 | 9 | 0 | 0 | 0 | 644 | 111 | 42 | 80 | 14196 | 826902 | 187029 | 0.78 |
+| verifier | claude-sonnet-5-5 | 16 | 9 | 7 | 0 | 1227 | 148 | 52 | 100 | 17902 | 843211 | 300980 | 1.02 |
+| developer | claude-sonnet-5-5 | 10 | 0 | 0 | 0 | 673 | 124 | 46 | 88 | 16067 | 906388 | 208282 | 0.86 |
 | developer | claude-opus-5-5 | 3 | 0 | 0 | 0 | 389 | 41 | 14 | 26 | 4480 | 231879 | 65745 | 0.39 |
 
 #### Revise-green, by model
@@ -164,8 +210,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 272 | 0.25 |
-| pin | 0 | 0.00 | 31 | 0.07 |
+| red | 0 | 0.00 | 301 | 0.33 |
+| pin | 0 | 0.00 | 140 | 0.14 |
 | green | 0 | 0.00 | 893 | 0.35 |
 | refactor | 0 | 0.00 | 13 | 0.07 |
 | test-quality | 0 | 0.00 | 11 | 0.10 |
@@ -181,6 +227,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | When a fake `claude` behaving as uid 0 never answers, `bypass_permissions_row` still returns the `no answer was obtained` failure within `PROBE_TIMEOUT` (shrunk by the case so it ends well inside the case timeout), with no hang; pinned by a `process` case in `skills/tdd/scripts/tests/py/test_ready_check_process.py` ⟦criterion 3⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 34 | 12 | 24 | 4504 | 269507 | 43578 | 0.18 | unknown | unknown | unknown | unknown |  |  | full |
 | When a fake `claude` behaving as uid 0 never answers, `bypass_permissions_row` still returns the `no answer was obtained` failure within `PROBE_TIMEOUT` (shrunk by the case so it ends well inside the case timeout), with no hang; pinned by a `process` case in `skills/tdd/scripts/tests/py/test_ready_check_process.py` ⟦criterion 3⟧ ⟂ retired unpinnable | 1 | 0 | 0 | 0 | 0 | 0 | 10 | 3 | 4 | 1184 | 25866 | 34858 | 0.10 | unknown | unknown | unknown | unknown |  |  | full |
 | fix what verify-branch rejected: Criterion 3 (a `claude` that never answers yields `no answer was obtained` within `PROBE_TIMEOUT`, pinned by a case in `test_ready_check_process.py`) has no case anywhere in the tests. Criterion 4 (the cloud-run output in the PR body) is still owed by the operator. I did not run the test suites, because the missing criterion decides the verdict. ⟦diff-checked⟧ ⟦branch-repair⟧ ⟦criterion 4⟧ | 6 | 0 | 2 | 0 | 0 | 0 | 66 | 22 | 42 | 7599 | 348401 | 113126 | 0.55 | unknown | 2/2 | unknown | unknown |  |  | full |
+| When a fake `claude` behaving as uid 0 never answers, `bypass_permissions_row` returns the `no answer was obtained` failure within `PROBE_TIMEOUT` (shrunk by the case so it ends well inside the case timeout), with no hang; pinned by a `process` case in `skills/tdd/scripts/tests/py/test_ready_check_process.py` ⟦criterion 3⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 25 | 8 | 16 | 3338 | 151247 | 39547 | 0.15 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER, VERI_MODEL_REVISE and VERI_MODEL_REVISE_GREEN.
 
@@ -203,29 +250,29 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| changed | 34 | 32 | 32 | 35 | 35 | 35 | 35 | 0 | 36 | 35 | 35 | 34 |
-| target | 4 | 4 | 4 | 4 | 5 | 1 | 1 | 1 | 1 | 2 | 1 | 4 |
-| fast | 90 | 91 | 89 | 90 | 88 | 90 | 89 | 89 |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| changed | 34 | 32 | 32 | 35 | 35 | 35 | 35 | 0 | 36 | 35 | 35 | 34 | 6 |
+| target | 4 | 4 | 4 | 4 | 5 | 1 | 1 | 1 | 1 | 2 | 1 | 4 | 79 |
+| fast | 90 | 91 | 89 | 90 | 88 | 90 | 89 | 89 |  |  |  |  |  |
 
 #### Stages
 
 | stage | runs | ok | failed | no answer | nothing | unended | wall s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| preflight | 4 | 4 | 0 | 0 | 0 | 0 | 584 |
-| baseline | 4 | 4 | 0 | 0 | 0 | 0 | 327 |
+| preflight | 6 | 5 | 1 | 0 | 0 | 0 | 947 |
+| baseline | 6 | 5 | 1 | 0 | 0 | 0 | 509 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 1 |
-| push | 9 | 9 | 0 | 0 | 0 | 0 | 18 |
+| push | 16 | 15 | 1 | 0 | 0 | 0 | 32 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
 | refactor-loop | 2 | 1 | 0 | 0 | 0 | 1 | 79 |
-| rebase | 5 | 1 | 0 | 0 | 4 | 0 | 12 |
+| rebase | 8 | 4 | 0 | 0 | 4 | 0 | 27 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 98 | 186 | 32466 | 1758599 | 476792 | 7.68 (estimate) |
+| total | 112 | 214 | 38449 | 1981478 | 575007 | 10.02 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
@@ -242,6 +289,6 @@ Green rejects by check: 4 1, unnamed 0
 
 | role | model | leaves | first-turn cache creation | first-turn cache read | first-turn input |
 | --- | --- | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 12 | 191534 | 69213 | 24 |
-| developer | claude-sonnet-5-5 | 9 | 119285 | 70639 | 18 |
+| verifier | claude-sonnet-5-5 | 16 | 261533 | 87189 | 32 |
+| developer | claude-sonnet-5-5 | 10 | 134779 | 76631 | 20 |
 | developer | claude-opus-5-5 | 3 | 60725 | 0 | 6 |
