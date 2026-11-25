@@ -102,3 +102,17 @@ def test_diff_step_prints_nothing_and_exits_0_when_no_test_file_changed_since_th
 
     assert code == 0
     assert out == ""
+
+
+def test_diff_step_exits_2_and_prints_nothing_when_the_step_has_no_record(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    fed_history(("base", "base", {NEW: "one\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+
+    code, out, _ = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=tmp_path)
+
+    assert code == 2
+    assert out == ""
