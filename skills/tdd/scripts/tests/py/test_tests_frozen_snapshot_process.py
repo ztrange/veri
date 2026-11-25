@@ -1,5 +1,7 @@
 """`snapshot --step` cases for veri/tests_frozen.py that run git in a real repository under tmp_path."""
 import importlib
+import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -8,6 +10,7 @@ from repo_builder import git, new_repo
 STEP = "step one adds a case"
 OWN = "tests/test_own.py"
 OLD = "tests/test_old.py"
+SHIM = Path(__file__).resolve().parents[2] / "tests-frozen.sh"
 
 
 @pytest.fixture
@@ -62,9 +65,10 @@ def test_snapshot_step_prints_a_commit_with_an_empty_diff_when_check_step_would_
     assert git(red, "diff", out.strip()) == ""
 
 
-@pytest.mark.process("a real git repository under tmp_path, asked for HEAD")
-def test_snapshot_step_exits_2_on_a_missing_record_4730(red, run_cli, tests_frozen):
-    code, out, err = run_cli(tests_frozen, ["snapshot", "--step", STEP], cwd=red)
+@pytest.mark.process("the tests-frozen.sh shim, run in a real git repository under tmp_path")
+def test_the_shims_snapshot_step_exits_2_with_nothing_on_stdout_on_a_missing_record_4730(red):
+    ran = subprocess.run([str(SHIM), "snapshot", "--step", STEP], cwd=red, capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL, timeout=20)
 
-    assert (code, out) == (2, "")
-    assert "missing" in err
+    assert (ran.returncode, ran.stdout) == (2, "")
+    assert "missing" in ran.stderr
