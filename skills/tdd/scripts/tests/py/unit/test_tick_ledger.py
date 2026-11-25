@@ -682,101 +682,18 @@ def test_cli_without_refactor_pending_ticks_an_unchecked_suite_repair_line_leavi
     assert ledger.read_text() == "- [x] add lowercasing\n- [x] fix the full-suite failure: suite_x ⟦suite-repair⟧\n"
 
 
-def test_main_refuses_a_tick_of_a_step_naming_a_go_red_control_with_no_mutation_record_leaving_the_ledger_untouched_2952(
-        tmp_path, capsys, tick_ledger):
+@pytest.mark.parametrize("control", ["prove the go-red with mutation-probe.sh --before 84603a1e8",
+                                     "the go-red control is scripts/smoke-core.mjs at ab20a4945"])
+def test_main_ticks_a_step_naming_a_go_red_control_with_no_mutation_record_present_4741(tmp_path, tick_ledger,
+                                                                                         control):
     ledger = tmp_path / "issue-7.md"
-    seed = ("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: the go-red control is "
-            "scripts/smoke-core.mjs at ab20a4945 ⟦added⟧ ⟦criterion 3⟧\n").encode()
-    ledger.write_bytes(seed)
-
-    code = tick_ledger.main([str(ledger), "A refused start"])
-    err = capsys.readouterr().err
-
-    assert (code, "mutations" in err, ledger.read_bytes()) == (2, True, seed)
-
-
-def test_main_refuses_a_tick_of_a_step_naming_mutation_probe_before_a_sha_with_no_mutation_record_leaving_the_ledger_untouched_2952(
-        tmp_path, capsys, tick_ledger):
-    ledger = tmp_path / "issue-7.md"
-    seed = ("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: prove the go-red with "
-            "mutation-probe.sh --before 84603a1e8 ⟦added⟧ ⟦criterion 3⟧\n").encode()
-    ledger.write_bytes(seed)
-
-    code = tick_ledger.main([str(ledger), "A refused start"])
-    err = capsys.readouterr().err
-
-    assert (code, "mutations" in err, ledger.read_bytes()) == (2, True, seed)
-
-
-def test_main_ticks_a_step_naming_a_before_sha_once_the_mutation_record_holds_a_before_record_for_that_sha_2952(
-        tmp_path, tick_ledger):
-    ledger = tmp_path / "issue-7.md"
-    ledger.write_text("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: prove the go-red with "
-                      "mutation-probe.sh --before 84603a1e8 ⟦added⟧ ⟦criterion 3⟧\n")
-    (tmp_path / "issue-7-mutations.md").write_text(
-        "before 9\n84603a1e8\nkeep 4\nt.py\ncommand 6\npytest\ngreen 1\n0\n\n")
+    ledger.write_text(f"# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: {control} "
+                      "⟦added⟧ ⟦criterion 3⟧\n")
 
     code = tick_ledger.main([str(ledger), "A refused start"])
 
-    assert (code, "- [x] A refused start" in ledger.read_text()) == (0, True)
-
-
-def test_main_refuses_a_tick_of_a_step_naming_a_before_sha_when_the_mutation_record_holds_only_a_before_record_for_a_different_sha_2952(
-        tmp_path, capsys, tick_ledger):
-    ledger = tmp_path / "issue-7.md"
-    seed = ("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: prove the go-red with "
-            "mutation-probe.sh --before 84603a1e8 ⟦added⟧ ⟦criterion 3⟧\n").encode()
-    ledger.write_bytes(seed)
-    (tmp_path / "issue-7-mutations.md").write_text(
-        "before 9\n58beded4d\nkeep 4\nt.py\ncommand 6\npytest\ngreen 1\n0\n\n")
-
-    code = tick_ledger.main([str(ledger), "A refused start"])
-    err = capsys.readouterr().err
-
-    assert (code, "mutations" in err, ledger.read_bytes()) == (2, True, seed)
-
-
-def test_main_ticks_a_step_naming_its_go_red_control_file_once_the_mutation_record_holds_a_file_old_new_record_for_that_file_2952(
-        tmp_path, tick_ledger):
-    ledger = tmp_path / "issue-7.md"
-    ledger.write_text("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: the go-red control is "
-                      "scripts/smoke-core.mjs at ab20a4945 ⟦added⟧ ⟦criterion 3⟧\n")
-    (tmp_path / "issue-7-mutations.md").write_text(
-        "file 22\nscripts/smoke-core.mjs\nold 3\nabc\nnew 3\nxyz\ncommand 6\npytest\n\n")
-
-    code = tick_ledger.main([str(ledger), "A refused start"])
-
-    assert (code, "- [x] A refused start" in ledger.read_text()) == (0, True)
-
-
-def test_main_refuses_a_tick_of_a_step_naming_its_go_red_control_file_when_the_mutation_record_holds_only_a_file_old_new_record_for_a_different_file_2952(
-        tmp_path, capsys, tick_ledger):
-    ledger = tmp_path / "issue-7.md"
-    seed = ("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: the go-red control is "
-            "scripts/smoke-core.mjs at ab20a4945 ⟦added⟧ ⟦criterion 3⟧\n").encode()
-    ledger.write_bytes(seed)
-    (tmp_path / "issue-7-mutations.md").write_text(
-        "file 20\nscripts/other-file.mjs\nold 3\nabc\nnew 3\nxyz\ncommand 6\npytest\n\n")
-
-    code = tick_ledger.main([str(ledger), "A refused start"])
-    err = capsys.readouterr().err
-
-    assert (code, "mutations" in err, ledger.read_bytes()) == (2, True, seed)
-
-
-def test_main_refuses_a_tick_of_a_step_naming_a_go_red_control_file_with_regex_metacharacters_when_the_record_names_a_file_the_unescaped_name_would_match_2952(
-        tmp_path, capsys, tick_ledger):
-    ledger = tmp_path / "issue-7.md"
-    seed = ("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: the go-red control is "
-            "scripts/smoke-core.mjs at ab20a4945 ⟦added⟧ ⟦criterion 3⟧\n").encode()
-    ledger.write_bytes(seed)
-    (tmp_path / "issue-7-mutations.md").write_text(
-        "file 20\nscripts/smoke-core_mjs\nold 3\nabc\nnew 3\nxyz\ncommand 6\npytest\n\n")
-
-    code = tick_ledger.main([str(ledger), "A refused start"])
-    err = capsys.readouterr().err
-
-    assert (code, "mutations" in err, ledger.read_bytes()) == (2, True, seed)
+    assert (code, (tmp_path / "issue-7-mutations.md").exists(), "- [x] A refused start" in ledger.read_text()) == (
+        0, False, True)
 
 
 def test_main_ticks_a_step_mentioning_go_red_control_bare_with_neither_wording_and_no_mutation_record_exiting_0_2952(
@@ -784,19 +701,6 @@ def test_main_ticks_a_step_mentioning_go_red_control_bare_with_neither_wording_a
     ledger = tmp_path / "issue-7.md"
     ledger.write_text("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: the go-red control "
                       "needs no record here ⟦added⟧ ⟦criterion 3⟧\n")
-
-    code = tick_ledger.main([str(ledger), "A refused start"])
-
-    assert (code, "- [x] A refused start" in ledger.read_text()) == (0, True)
-
-
-def test_main_ticks_a_step_naming_its_go_red_control_file_at_a_sha_once_the_mutation_record_holds_a_before_record_for_that_sha_2952(
-        tmp_path, tick_ledger):
-    ledger = tmp_path / "issue-7.md"
-    ledger.write_text("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: the go-red control is "
-                      "scripts/smoke-core.mjs at ab20a4945 ⟦added⟧ ⟦criterion 3⟧\n")
-    (tmp_path / "issue-7-mutations.md").write_text(
-        "before 9\nab20a4945\nkeep 4\nt.py\ncommand 6\npytest\ngreen 1\n0\n\n")
 
     code = tick_ledger.main([str(ledger), "A refused start"])
 
