@@ -6,7 +6,7 @@ import types
 
 import pytest
 
-USAGE = b"usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>|has-mark <name>]\n"
+USAGE = b"usage: ledger-steps.sh [current|last-done|current-or-last-done|open|next-phase|criterion <k>|has-mark <name>]\n"
 
 
 @pytest.fixture
@@ -700,3 +700,23 @@ def test_criterion_skips_a_fenced_checkbox_and_stops_at_a_top_level_heading_as_t
         results[k] = (code, *capsysbinary.readouterr())
 
     assert results == {"1": (0, b"c1\n", b""), "2": (0, b"c2\n", b""), "3": (3, b"", b"")}
+
+
+def test_4734_open_prints_the_open_re_pin_step_after_the_refactor_pending_step_else_currents_answer(
+        run_cli, ledger_steps):
+    repin = "⟦diff-checked⟧ edit the case of the pin on the cog is oiled ⟦criterion 2⟧"
+    ledgers = (
+        "- [x] the cog is oiled ⟦criterion 2⟧ ⟂ refactor pending\n- [ ] " + repin + "\n- [ ] the cog stops ⟦criterion 3⟧\n",
+        "- [x] the cog is oiled ⟦criterion 2⟧ ⟂ refactor pending\n- [ ] the cog stops ⟦criterion 3⟧\n",
+        "- [x] the cog is oiled ⟦criterion 2⟧\n- [ ] " + repin + "\n- [ ] the cog stops ⟦criterion 3⟧\n",
+        "- [x] the cog is oiled ⟦criterion 2⟧\n",
+    )
+
+    got = [run_cli(via_stdin(ledger_steps, ledger), ["open"]) for ledger in ledgers]
+
+    assert got == [
+        (0, repin + "\n", ""),
+        (0, "the cog is oiled ⟦criterion 2⟧\n", ""),
+        (0, repin + "\n", ""),
+        (3, "", ""),
+    ]
