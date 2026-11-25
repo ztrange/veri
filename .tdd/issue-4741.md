@@ -18,7 +18,7 @@
 - [x] `skills/tdd/SKILL.md` (*Refactor loop*, *2. Scope & plan*) names no pin-recheck, re-pin step, `.tdd/pin-recheck-ok` or mutation record, its rows reworded, regraded ⟦criterion 1⟧
 - [x] `DIFF-CHECKED.md`, `PIN.md`, `GO-RED.md`, `SUITE-REPAIR.md`, `RESUME.md`, `BAIL.md`, `PUBLISHED.md` name none of them, rows reworded, regraded ⟦criterion 1⟧
 - [x] `SCRIPTS.md` names none of them, rows reworded or dropped, regraded ⟦criterion 1⟧
-- [ ] `tests/py/README.md`, `prompts/develop-diff.md`, `prompts/develop-revise-diff.md` and `skills/vmerge/SKILL.md` name none of them, rows reworded, regraded ⟦criterion 1⟧
+- [x] `tests/py/README.md`, `prompts/develop-diff.md`, `prompts/develop-revise-diff.md` and `skills/vmerge/SKILL.md` name none of them, rows reworded, regraded ⟦criterion 1⟧
 - [ ] A `tree_audit` case: no file under `skills/tdd/` but a `REQUIREMENTS.md` or `test_*.py` names `pin-recheck`, `pin-recheck-ok`, `repin-failed`, `--recheck`, `mutation-record` or `issue-<n>-mutations.md` ⟦criterion 15⟧
 - [ ] Go-red: the sweep case goes red with one of those names written back into `skills/tdd/SCRIPTS.md`; restored, green ⟦criterion 16⟧
 - [ ] `docs/adr/0038-pins-carry-no-recorded-mutation.md` records D4 and supersedes ADR-0033's `pin-recheck.sh` naming; ADR-0033 links to it ⟦criterion 17⟧

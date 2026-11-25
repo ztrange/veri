@@ -7,7 +7,7 @@ import sys
 
 import requirements
 
-LEDGER = re.compile(r"\.tdd/issue-\d+(-added|-mutations|-pr-body)?\.md")
+LEDGER = re.compile(r"\.tdd/issue-\d+(-added|-pr-body)?\.md")
 USAGE = "usage: skill-edit-guard.sh <unit-file> <base-sha> [<pin-file>...]"
 
 

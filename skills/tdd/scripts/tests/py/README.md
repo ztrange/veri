@@ -73,7 +73,6 @@ Directly under `tests/py/`, beside `conftest.py`; import them flat (`from repo_b
 - `fed_commits`: `repo = fed_commits(root=tmp_path, branch="main")`; a git index and commit log over the work tree (`repo.add(*paths)`, `repo.commit(subject, all=False)` naming revisions c1, c2, ..., `repo.mv(source, target)`, `repo.head`), each commit fed to case_history through `fed_history`, and the check-earlier pass marker's git calls answered by `fake_processes` (work-tree hash `fed-tree`, HEAD `repo.head`).
 - `events`: `events.records(directory)` reads `.tdd/events.jsonl` without `ts` and `awake`; `events.unappendable`, `events.refuse_event_sh()`.
 - `listing`: `listing(answers)` puts a stub `gh` on PATH that answers the open-issue and PR listings (`conftest.serve_through_gh`).
-- `leave_receipt`: `leave_receipt(ledger, repo=None)` writes a pin-recheck-ok receipt beside a ledger and, in-process, fakes `git()` to answer its sha.
 
 Also importable from conftest as plain names (not fixtures): `SCRIPTS`, `ROOT`, `INTERPRETER_VENV`, `script(path, body)`,
 `fixture_root(root)`, `live_conductor(monkeypatch, run_tdd, issue)`, `serve_listing`, `issues_listing`, `listed`,
@@ -92,7 +91,7 @@ Also importable from conftest as plain names (not fixtures): `SCRIPTS`, `ROOT`, 
 | the event journal | the `events` fixture; `events.refuse_event_sh()` for a journal that cannot be written |
 | a live conductor, a pid file | `conftest.live_conductor(monkeypatch, run_tdd, issue)` |
 | the environment | `monkeypatch.setenv`, or `run_cli(..., env={...})`; `hermetic_environment` already cleared the ambient `VERI_*` |
-| a pin-recheck receipt | `leave_receipt`; a check-earlier marker: `pass_marker.write_pass_marker` |
+| a check-earlier pass marker | `pass_marker.write_pass_marker` |
 | SKILL.md prose | read through `skill_sections`; a case reading one subsection by content is counted by `subsection_readers` |
 
 ## Audits that check a new test file
