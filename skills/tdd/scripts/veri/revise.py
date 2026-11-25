@@ -83,6 +83,9 @@ def run(n, phase):
                 raise fused.Stop("5", "wait-leaf.sh %s exit %d" % (at, code), code)
             if code == 0 and recorded(n, wt, step, values):
                 return finish(n, wt, step, values, at)
+            if code == 1 and at == "verdict-pin":  # the pin's reason is the one attempt k+1 compares and revises
+                shutil.copyfile(os.path.join(wt, ".tdd", "verify-pin.reason"),
+                                os.path.join(wt, ".tdd", "verify-red.reason"))
         values = dict(values, k=values["k"] + 1)
         at = attempt(n, wt, settled, step, values)
 
