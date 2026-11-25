@@ -522,6 +522,8 @@ def test_a_reword_row_differing_from_the_held_row_in_its_cells_is_not_refused_as
         "| ID | Requirement | Why |\n|---|---|---|\n| SC1<reword> | offers `a|b` here. | new why |\n",
         grade=(0, ""))
 
+    issue_rows = case.step.unit_rows(str(tmp_path / "issue.md"), "unit.md")
+    assert case.step._duplicated_rewords(issue_rows, str(tmp_path / "REQUIREMENTS.md"), "unit.md") == []
     code, out, err = run_cli(case.step, ["--added", "reword SC1", str(tmp_path / "issue.md"), "unit.md"])
 
     assert "states the full text the unit already holds" not in err, (code, out, err)
@@ -537,7 +539,7 @@ def test_an_issue_row_not_splitting_into_id_requirement_and_why_exits_2_naming_t
 
     code, out, err = run_cli(case.step, ["--added", "add SC1", str(tmp_path / "issue.md"), "unit.md"])
 
-    assert (code, "Requirement row SC1 splits into 4 cells" in err) == (2, True), (code, out, err)
+    assert (code, "Requirement row SC1 splits into 4 cells" in err, "escape" in err) == (2, True, True), (code, out, err)
     assert (tmp_path / "REQUIREMENTS.md").read_text() == listing
 
 
