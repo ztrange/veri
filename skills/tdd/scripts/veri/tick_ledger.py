@@ -140,10 +140,11 @@ def go_red_receipt_refusal(ledger_path, step_line):
 
 
 def git_answer(*args):
-    """`git <args>`'s stdout as bytes; OSError naming the call on a non-zero exit."""
+    """`git <args>`'s stdout as bytes; OSError naming the subcommand (past a leading `-C <dir>`) on a non-zero exit."""
     done = git.git(*args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if done.returncode != 0:
-        raise OSError("git %s failed: %s" % (args[0], " ".join(os.fsdecode(done.stderr).split())))
+        command = args[2] if args[:1] == ("-C",) else args[0]
+        raise OSError("git %s failed: %s" % (command, " ".join(os.fsdecode(done.stderr).split())))
     return done.stdout
 
 
