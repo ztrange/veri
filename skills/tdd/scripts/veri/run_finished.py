@@ -6,7 +6,6 @@ import os
 import sys
 
 import github
-import mutation_record
 from ledger import OPEN_STEP, is_human_owed, ledger_steps
 import run_dir as layout
 import status
@@ -65,10 +64,6 @@ def main(argv):
              if ln.lstrip().startswith((open_line, star_line))]
     unmet += [("human-owed", t) for t in texts
               if is_human_owed(t)]
-    stale = mutation_record.stale_pins(run_dir, issue)
-    unmet += [("stale-pin", "%s %s" % pin) for pin in stale]
-    if stale:
-        sys.stderr.write("run-finished.sh: retire a stale pin's entry (a `retired <reason>` field) in %s\n" % mutation_record.path(run_dir, issue))
     for name, step in unmet:
         print("%s %s" % (name, step))
     return 1 if unmet else 0
