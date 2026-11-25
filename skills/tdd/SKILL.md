@@ -952,10 +952,10 @@ Green by hand ends `$S/seam-settle.sh <n> green-half test_path=<path>`.
    ```
    Exit 1 is a verify-red REJECT that spends `REVISE_BUDGET` (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`): a reroute deleted the case, nothing is re-recorded, and tests-frozen names the deleted case on stdout, which the command leaves in `.tdd/verify-red.reason` as the reason. Exit 2 is a **bail** as a system failure (`Read` `<base directory>/BAIL.md`).
 
-   After that and before verify-green is launched, run `$S/tests-frozen.sh check --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`.
+   After that and before verify-green is launched, run `$S/tests-frozen.sh check --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" > .tdd/tests-frozen-check.err 2>&1`.
    On tests-frozen exit 1 a test file changed since verify-red. At the step's first such refusal, when `$S/adjudicate.sh left <n>` and
    `$S/adjudicate.sh deviation-left <n>` both exit 0, run the adjudicator for the cause `tests-frozen-refused` as
-   `<base directory>/ADJUDICATE.md`'s *Procedure* says (`Read` it; the check's output is the `<stderr-file>` `.tdd/tests-frozen-check.err`, and
+   `<base directory>/ADJUDICATE.md`'s *Procedure* says (`Read` it; `.tdd/tests-frozen-check.err`, where that command left the changed files the check named, is the `<stderr-file>`, and
    the `<command…>` is `tests-frozen.sh check --step <STEP>`). On `deviate`, run the blind `diff` verifier on the step's test-only edit, its diff the output of
    `$S/tests-frozen.sh diff --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`, as the `supersede-diff` route does (`verdict-diff`; with `diff` in
    `.tdd/issue-<n>-skip-verify`, take the PASS branch). On PASS, re-record the step's frozen tests with the re-record command above
