@@ -1097,3 +1097,17 @@ def test_4734_with_an_open_re_pin_step_right_after_the_refactor_pending_step_a_r
     assert code == 3, out
     assert fake.call("build-develop-prompt.sh")[1][:4] == ("revise", "red", ".tdd/issue-12-spec.md", repin)
     assert fake.call("event.sh")[3]["VERI_STEP"] == repin
+
+
+def test_4734_with_an_open_re_pin_step_after_the_refactor_pending_step_a_refactor_revise_still_names_the_pending_step(
+        revise):
+    """The refactor phase revises the step whose refactor was rejected, never the re-pin step run-step.sh runs first."""
+    repin = importlib.import_module("veri.pin_reject_route").repin_step("skills/x.py") + " turns it red ⟦added⟧"
+    _refactor(revise)
+    (revise.wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] %s\n"
+                                                    "- [ ] two ⟦criterion 2⟧\n" % (STEP, repin))
+    code, out, err, fake = revise(answers={("wait-leaf.sh", "revise-refactor-1"): (3, "")}, argv=("12", "refactor"))
+
+    assert code == 3, out
+    assert fake.call("build-develop-prompt.sh")[1][:4] == ("revise", "refactor", ".tdd/issue-12-spec.md", STEP)
+    assert fake.call("event.sh")[3]["VERI_STEP"] == STEP
