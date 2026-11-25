@@ -450,3 +450,48 @@ def test_ticking_refactor_pending_refuses_to_pair_two_renamed_cases_by_file_posi
     assert (ticked, [record.read_bytes() for record in records],
             records[0].name in err, "test_alpha_2913" in err or "test_beta_2913" in err) \
         == (2, before, True, True)
+
+
+GO_RED_STEP = ("- [ ] Go-red guard: the stacked refusal, probe `src/run.py` `if stacked:` → `if False:` on "
+               "`tests/test_run.py::test_refuses_stacked` ⟦go-red⟧ ⟦criterion 3⟧\n")
+GO_RED_PROBE = "probe `src/run.py` `if stacked:` → `if False:` on `tests/test_run.py::test_refuses_stacked`"
+
+
+def go_red_repo(tmp_path):
+    """A real repository holding one commit, its ledger under .tdd/ holding GO_RED_STEP; returns (ledger, head sha)."""
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    (repo / "README").write_text("seed\n")
+    git(repo, "init", "-q")
+    git(repo, "add", "README")
+    git(repo, "commit", "-q", "-m", "seed")
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                          text=True).stdout.strip()
+    ledger = repo / ".tdd/issue-7.md"
+    ledger.write_text("# Plan for #7\n\n" + GO_RED_STEP)
+    return ledger, head
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked whether the go-red receipt's sha names a commit")
+def test_go_red_tick_resolves_the_receipts_commit_in_the_ledgers_repository_from_another_cwd_4741(tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    ledger, head = go_red_repo(tmp_path)
+    (ledger.parent / "go-red-probed").write_text(f"{GO_RED_PROBE}\n{head}\n")
+    (tmp_path / "elsewhere").mkdir()
+
+    code, out, err = run_cli(tick_ledger, [str(ledger), "Go-red guard"], cwd=tmp_path / "elsewhere")
+
+    assert (code, err, "- [x] Go-red guard" in ledger.read_text()) == (0, "", True)
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked whether a 40-hex sha naming no object is a commit")
+def test_go_red_tick_refuses_a_receipt_whose_full_length_sha_names_no_commit_4741(tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    ledger, head = go_red_repo(tmp_path)
+    seed = ledger.read_bytes()
+    absent = "0123456789abcdef0123456789abcdef01234567"
+    (ledger.parent / "go-red-probed").write_text(f"{GO_RED_PROBE}\n{absent}\n")
+
+    code, out, err = run_cli(tick_ledger, [str(ledger), "Go-red guard"], cwd=ledger.parent.parent)
+
+    assert (code, f"its sha {absent!r} names no commit" in err, ledger.read_bytes()) == (2, True, seed)
