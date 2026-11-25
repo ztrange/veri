@@ -23,3 +23,14 @@ skills/tdd/scripts/tests/py/unit/test_tests_frozen_diff.py
 command 160
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_tests_frozen_diff.py::test_diff_step_prints_nothing_and_exits_0_when_no_test_file_changed_since_the_record
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old-b64 56
+ICAgICAgICByZXR1cm4gMgogICAgcmV0dXJuIDAKCgpkZWYgX21haW4=
+new-b64 56
+ICAgICAgICByZXR1cm4gMAogICAgcmV0dXJuIDAKCgpkZWYgX21haW4=
+context-b64 24
+ICAgICAgICByZXR1cm4gMg==
+command 145
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tests_frozen_diff.py::test_diff_step_exits_2_and_prints_nothing_when_the_step_has_no_record
+
