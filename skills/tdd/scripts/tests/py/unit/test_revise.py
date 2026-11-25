@@ -38,7 +38,7 @@ class Fake:
             return 0, self.cost, ""
         if base == "step-budget.sh":
             return 0, "12\n120\n", ""
-        if base == "same-reject.sh":
+        if base in ("same-reject.sh", "pin-reject-route.sh"):
             return 1, "", ""
         return 0, "", ""
 
@@ -986,3 +986,19 @@ def test_4735_after_a_pin_reject_it_routes_the_pin_reason_and_on_route_exit_1_la
     assert fake.launched() == ["revise-red-1", "verdict-pin", "revise-red-2"], (code, out, err)
     second = next(i for i, c in enumerate(fake.calls) if c[0] == "detach-leaf.sh" and c[1][1] == "revise-red-2")
     assert fake.names().index("pin-reject-route.sh") < second
+
+
+def test_4735_after_a_pin_reject_route_exit_0_retires_the_step_launches_no_attempt_2_and_exits_1(revise):
+    """REVISE.md sub-step 5: pin-reject-route.sh exit 0 after a red revise's verify-pin REJECT retired the step; the
+    loop ends there, no revise-red-2, exit 1 with a last line naming the retirement."""
+    _red(revise)
+    (revise.wt / ".tdd" / "verify-pin.reason").write_text("VERDICT: REJECT\nthe case pins behaviour the tree has\n")
+    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
+    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "verdict-pin"): (1, ""),
+                                             ("wait-leaf.sh", "revise-red-2"): (3, ""),
+                                             ("pin-reject-route.sh", None): (0, "")}, report=report),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert fake.launched() == ["revise-red-1", "verdict-pin"], (code, out, err)
+    assert code == 1
+    assert "pin-reject-route.sh" in out.splitlines()[-1] and "retired" in out.splitlines()[-1], out
