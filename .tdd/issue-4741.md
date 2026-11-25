@@ -1,6 +1,6 @@
 # Plan for #4741 — PRD 044.1: no recorded mutation, no pin-recheck
 
-- [ ] `tick-ledger.sh` ticks a `⟦diff-checked⟧` step with no `.tdd/pin-recheck-ok` in the worktree (exit 0, the ledger changed) ⟦criterion 2⟧
+- [x] `tick-ledger.sh` ticks a `⟦diff-checked⟧` step with no `.tdd/pin-recheck-ok` in the worktree (exit 0, the ledger changed) ⟦criterion 2⟧
 - [ ] `clear-refactor-pending.sh` clears `⟂ refactor pending` with no `.tdd/pin-recheck-ok` in the worktree (exit 0, the ledger changed) ⟦criterion 2⟧
 - [ ] `go-red-step.sh` runs `mutation-probe.sh` with no `VERI_MUTATION_RECORD`, writes `.tdd/go-red-probed` (probe line + HEAD sha) after a probe exit 0 then ticks, and writes no receipt on a non-zero probe ⟦criterion 3⟧
 - [ ] `tick-ledger.sh` ticks a `⟦go-red⟧` step on a `.tdd/go-red-probed` holding its probe line and a resolving sha, and exits 2 ledger byte-identical when the receipt is absent, names another step's probe, or holds an unresolvable sha ⟦criterion 4⟧

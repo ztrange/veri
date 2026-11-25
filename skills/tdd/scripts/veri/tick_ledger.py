@@ -306,11 +306,6 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
         if not probed(record, ledger.go_red_probe(step_line)):
             complain(f"{record}: no mutation record of the probe the step's go-red line names")
             return 2
-    if tests_frozen.is_diff_checked(step_line):
-        refusal = ledger.receipt_refusal(ledger_path)
-        if refusal:
-            complain(f"{ledger_path}: {refusal}")
-            return 2
     left = ledger.rewrite_ledger(ledger_path, new)
     if left is None:
         tick_added(ledger_path, step_line)
