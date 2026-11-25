@@ -1,24 +1,16 @@
 """mutation-probe.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import re
-import shlex
 import signal
 import subprocess
 import sys
 from pathlib import Path
 
-import mutation_record
 import tunables
 from event_log import run_keeping_journal
 
 USAGE = "usage: mutation-probe.sh <file> <old> <new> -- <command…>"
 BEFORE_USAGE = "usage: mutation-probe.sh --before <sha> --keep <test-path> -- <command…>"
-
-
-def append_record(fields):
-    record = tunables.read("VERI_MUTATION_RECORD")
-    if record:
-        mutation_record.append(record, fields)
 
 
 def run_with(contents, command):
@@ -71,22 +63,7 @@ def before_state(argv):
     returncode = run_with(restored, command)
     if returncode == 0:
         return 1
-    fields = [("before", sha), ("keep", keep), ("command", shlex.join(timed_stripped(command)))]
-    if not names_issue_ledger(tunables.read("VERI_MUTATION_RECORD")):
-        green = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-        fields.append(("green", green))
-    append_record(fields)
     return 0
-
-
-def timed_stripped(command):
-    if Path(command[0]).resolve() == Path(__file__).resolve().parent.parent / "timed-test-run.sh":
-        return command[3:]
-    return command
-
-
-def names_issue_ledger(record):
-    return mutation_record.is_record(record)
 
 
 def main(argv):
@@ -114,10 +91,6 @@ def main(argv):
     if returncode == 0:
         sys.stderr.write("mutation-probe.sh: suite stayed green under the mutation\n")
         return 1
-    text = saved.decode()
-    start = text.index(argv[1])
-    context = text[text.rfind("\n", 0, start) + 1:].split("\n", 1)[0]
-    append_record((("file", argv[0]), ("old", argv[1]), ("new", argv[2]), ("context", context), ("command", shlex.join(timed_stripped(argv[4:])))))
     return 0
 
 

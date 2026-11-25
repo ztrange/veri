@@ -352,15 +352,11 @@ def main(argv):
         return 2
     role = {**os.environ, **leaf_role(leaf)}
     relaunches = 0
-    if record:
-        launch_env = tunables.with_values(VERI_MUTATION_RECORD=record)
-    else:
-        launch_env = tunables.without("VERI_MUTATION_RECORD")
     while True:
         launched = leaf_tree_guard.start(
             [sibling("supervise.sh"), leaf,
              sibling("run-leaf.sh"), prompt_path, *flags],
-            env=launch_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         said = (launched.stderr or b"").decode("utf-8", "replace")
         if said:
             write(sys.stderr, said.removesuffix("\n"))

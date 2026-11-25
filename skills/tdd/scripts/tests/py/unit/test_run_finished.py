@@ -385,5 +385,4 @@ def test_a_before_entry_and_an_entry_whose_file_is_gone_add_no_stale_pin_line_an
     code, out, err = finish(run_cli, fake_processes, repo, "Closes #4242")
 
     assert (code, out.splitlines(), err.splitlines()) == (1, ["stale-pin lib/calc.py return a - b"], [
-        "run-finished.sh: re-record a stale pin with mutation-probe.sh (VERI_MUTATION_RECORD) or retire its entry "
-        "(a `retired <reason>` field) in %s" % (worktree / ".tdd" / "issue-4242-mutations.md")])
+        "run-finished.sh: retire a stale pin's entry (a `retired <reason>` field) in %s" % (worktree / ".tdd" / "issue-4242-mutations.md")])

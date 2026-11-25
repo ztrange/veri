@@ -7,7 +7,7 @@
 - [x] Go-red: `veri/tick_ledger.py` broken to skip the `.tdd/go-red-probed` check turns the missing-receipt case red; restored, green ⟦criterion 5⟧
 - [x] `tick-ledger.sh` ticks a step naming a go-red control with no `.tdd/issue-<n>-mutations.md` present ⟦criterion 6⟧
 - [x] `pin-reject-route.sh --recheck …` exits 2 as an unknown argument, and no output line is `repin-failed …` or `not-checked …` ⟦criterion 7⟧
-- [ ] `mutation-probe.sh` writes no `.tdd/issue-<n>-mutations.md`, and `VERI_MUTATION_RECORD` appears in no file under `skills/tdd/scripts/veri/` (a `tree_audit` case) ⟦criterion 8⟧
+- [x] `mutation-probe.sh` writes no `.tdd/issue-<n>-mutations.md`, and `VERI_MUTATION_RECORD` appears in no file under `skills/tdd/scripts/veri/` (a `tree_audit` case) ⟦criterion 8⟧
 - [ ] `run-finished.sh <n>` on a done run with a stale mutation record exits 0 and prints no `stale-pin` line; `run_finished` does not import `mutation_record` ⟦criterion 9⟧
 - [ ] `queued-merge.sh` does not refuse a PR whose worktree holds a stale mutation record; `queued_merge` does not import `mutation_record` ⟦criterion 9⟧
 - [ ] `supervise.sh` keeps a `develop-*`/`revise-*` leaf's edit to `.tdd/issue-<n>-mutations.md` and emits no `mutation-record-restored` event ⟦criterion 10⟧

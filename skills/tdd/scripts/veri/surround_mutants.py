@@ -38,7 +38,7 @@ def refuse(message):
 def probe(row, command):
     """'red', 'survived' or 'no-answer': mutation-probe.sh's answer for one row, its stderr relayed."""
     ran = subprocess.run([os.path.join(paths.scripts_of(__file__), "mutation-probe.sh"), *row, "--", *command],
-                         stdin=subprocess.DEVNULL, capture_output=True, env=tunables.without("VERI_MUTATION_RECORD"))
+                         stdin=subprocess.DEVNULL, capture_output=True)
     if ran.returncode not in RESULTS and ran.stderr:
         write(sys.stderr, ran.stderr.decode("utf-8", "replace").rstrip("\n"), before=False, after=False)
     return RESULTS.get(ran.returncode, "no-answer")

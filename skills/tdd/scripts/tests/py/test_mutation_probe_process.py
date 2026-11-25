@@ -363,76 +363,6 @@ def test_issue_2900_before_state_probe_exits_2_without_running_the_command_when_
     assert (result.returncode, (tmp_path / "ran.marker").exists()) == (2, False), result.stderr
 
 
-@pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
-def test_issue_2900_before_state_probe_exiting_0_appends_before_keep_and_command_to_the_record(tmp_path):
-    def git(*words):
-        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
-                              capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
-    (tmp_path / "quote.txt").write_text("0\n")
-    git("add", ".")
-    git("commit", "-q", "-m", "base")
-    base = git("rev-parse", "HEAD").strip()
-    (tmp_path / "quote.txt").write_text("10\n")
-    (tmp_path / "test.sh").write_text('test "$(cat quote.txt)" = 10\n')
-    git("add", ".")
-    git("commit", "-q", "-m", "feature")
-    green = git("rev-parse", "HEAD").strip()
-    record = tmp_path.parent / (tmp_path.name + "-mutations.md")
-    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
-                            cwd=tmp_path, capture_output=True, text=True, timeout=20,
-                            env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
-    expected = f"before {len(base)}\n{base}\nkeep 7\ntest.sh\ncommand 10\nsh test.sh\ngreen {len(green)}\n{green}\n\n"
-    assert (result.returncode, record.read_text() if record.exists() else None) == (0, expected), result.stderr
-
-
-@pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
-def test_issue_2974_before_state_probe_exiting_0_records_the_green_commit_head_names_beside_before_keep_and_command(tmp_path):
-    def git(*words):
-        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
-                              capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
-    (tmp_path / "quote.txt").write_text("0\n")
-    git("add", ".")
-    git("commit", "-q", "-m", "base")
-    base = git("rev-parse", "HEAD").strip()
-    (tmp_path / "quote.txt").write_text("10\n")
-    (tmp_path / "test.sh").write_text('test "$(cat quote.txt)" = 10\n')
-    git("add", ".")
-    git("commit", "-q", "-m", "feature")
-    green = git("rev-parse", "HEAD").strip()
-    record = tmp_path.parent / (tmp_path.name + "-mutations.md")
-    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
-                            cwd=tmp_path, capture_output=True, text=True, timeout=20,
-                            env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
-    text = record.read_text() if record.exists() else ""
-    assert (result.returncode, f"green {len(green)}\n{green}\n" in text, f"before {len(base)}\n{base}\n" in text) == (0, True, True), (
-        result.stderr, text)
-
-
-@pytest.mark.process("git, mutation-probe.sh --before, timed-test-run.sh and the sh command it runs against a scratch repo")
-def test_issue_3357_before_state_probe_records_the_command_without_the_timed_test_run_wrapper_and_its_path(tmp_path):
-    def git(*words):
-        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
-                              capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
-    (tmp_path / "quote.txt").write_text("0\n")
-    git("add", ".")
-    git("commit", "-q", "-m", "base")
-    base = git("rev-parse", "HEAD").strip()
-    (tmp_path / "quote.txt").write_text("10\n")
-    (tmp_path / "test.sh").write_text('test "$(cat quote.txt)" = 10\n')
-    git("add", ".")
-    git("commit", "-q", "-m", "feature")
-    record = tmp_path.parent / (tmp_path.name + "-mutations.md")
-    wrapper = PROBE.parent / "timed-test-run.sh"
-    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", str(wrapper), "target", "test.sh", "sh", "test.sh"],
-                            cwd=tmp_path, capture_output=True, text=True, timeout=20,
-                            env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
-    text = record.read_text() if record.exists() else ""
-    assert (result.returncode, "command 10\nsh test.sh\n" in text) == (0, True), (result.stderr, text)
-
-
 @pytest.mark.process("git, mutation-probe.sh --before and python running a test that stubs the quote, against a scratch repo")
 def test_issue_2900_before_state_probe_exits_1_for_a_test_stubbing_the_quote_and_leaves_the_working_tree_unchanged(tmp_path):
     def git(*words):
@@ -457,31 +387,6 @@ def test_issue_2900_before_state_probe_exits_1_for_a_test_stubbing_the_quote_and
             "quote.py": 'def fetch(deps=()): return {"deps": 10 * len(deps)}\n',
             "check_view.py": 'import sys\nfrom view import render\nsys.exit(0 if render({"deps": 10}) == "10" else 1)\n'},
         ""), result.stderr
-
-
-@pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
-def test_issue_3016_before_state_probe_at_a_plan_only_head_does_not_stamp_head_as_green(tmp_path):
-    def git(*words):
-        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
-                              capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
-    (tmp_path / "quote.txt").write_text("0\n")
-    git("add", ".")
-    git("commit", "-q", "-m", "base")
-    base = git("rev-parse", "HEAD").strip()
-    (tmp_path / "quote.txt").write_text("10\n")
-    (tmp_path / "test.sh").write_text('test "$(cat quote.txt)" = 10\n')
-    (tmp_path / ".tdd").mkdir()
-    (tmp_path / ".tdd" / "issue-3016.md").write_text("- [ ] 1. the step\n")
-    git("add", ".")
-    git("commit", "-q", "-m", "plan")
-    head = git("rev-parse", "HEAD").strip()
-    record = tmp_path / ".tdd" / "issue-3016-mutations.md"
-    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
-                            cwd=tmp_path, capture_output=True, text=True, timeout=20,
-                            env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
-    text = record.read_text() if record.exists() else ""
-    assert (result.returncode, f"green {len(head)}\n{head}\n" in text) == (0, False), (result.stderr, text)
 
 
 @pytest.mark.process("git, mutation-probe.sh applying an event.py mutant and a copied timed-test-run.sh in a scratch repo")
@@ -548,21 +453,6 @@ def test_issue_3396_mutate_probe_exits_1_without_a_record_when_the_mutant_surviv
                             capture_output=True, text=True, timeout=20,
                             env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
     assert (result.returncode, record.exists(), target.read_bytes()) == (1, False, b"x"), result.stderr
-
-
-@pytest.mark.process("mutation-probe.sh and the sh command it runs against the fixture")
-def test_issue_3396_mutate_probe_exits_0_and_appends_one_record_when_the_baseline_is_green_and_the_mutant_fails(tmp_path):
-    target = tmp_path / "target.txt"
-    target.write_text("x")
-    record = tmp_path / "issue-3396-mutations.md"
-    result = subprocess.run([str(PROBE), str(target), "x", "y", "--", "sh", "-c", '! grep -q y "$1"', "sh", str(target)],
-                            capture_output=True, text=True, timeout=20,
-                            env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
-    command = f"sh -c '! grep -q y \"$1\"' sh {target}"
-    expected = "".join(f"{name} {len(value)}\n{value}\n" for name, value in
-                       (("file", str(target)), ("old-b64", "eA=="), ("new-b64", "eQ=="), ("context-b64", "eA=="),
-                        ("command", command))) + "\n"
-    assert (result.returncode, record.read_text() if record.exists() else None, target.read_bytes()) == (0, expected, b"x"), result.stderr
 
 
 @pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
