@@ -80,6 +80,8 @@ Run it in order, at the site where the eligible exit 2 came back.
    For `graded-edit-outside-skill-edit` (`BAIL.md`'s first sub-step) they are
    `.tdd/graded-changed.out`, the units `graded-changed.sh` printed, and that
    `graded-changed.sh <sha>` call.
+   At the `tests-frozen-refused` site (`SKILL.md`, the check before verify-green) they are
+   `.tdd/tests-frozen-check.err`, the changed files the check named, and `tests-frozen.sh check --step <STEP>`.
 3. **Launch the leaf** `adjudicate-<cause>` through `supervise.sh`, detached, then wait in the
    foreground (on an exit 3 call the wait again). Remove the cause's completion and pid files
    first, as *Launching a leaf* in `SKILL.md` does, so a second adjudication of one cause never
