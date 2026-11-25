@@ -280,7 +280,8 @@ def _rerouted(step):
     return bool(_reroutes(step))
 
 
-def _missing_reroutes(step):
+def missing_reroutes(step):
+    """The `reroute` events of kind `missing` naming <step> since the last `resume`, in `.tdd/events.jsonl` of the cwd."""
     return sum(1 for e in _reroutes(step) if e.get("kind") == "missing")
 
 
@@ -385,7 +386,7 @@ def main(argv):
             write(sys.stdout, "later " + later)
             return 0
         budget = tunables.get("VERI_MISSING_REROUTE_BUDGET", unless_empty=True)
-        if _missing_reroutes(step) >= int(budget):
+        if missing_reroutes(step) >= int(budget):
             write(sys.stdout, "missing-exhausted " + missing)
             return 1
         write(sys.stdout, "missing " + missing)

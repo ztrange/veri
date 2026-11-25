@@ -95,7 +95,7 @@ def route_pin_reject(n, wt, step, values):
     exit 1), any code but 1 bails (Stop, its code); on 1 the pin's reason becomes the one attempt k+1 compares and
     revises. A step reached by a `missing` reroute passes `--missing-reroute` (PIN.md)."""
     with contextlib.chdir(wt):
-        missing = ("--missing-reroute",) if wrong_test_route._missing_reroutes(step) else ()
+        missing = ("--missing-reroute",) if wrong_test_route.missing_reroutes(step) else ()
     route = fused.call(fused.script("pin-reject-route.sh"), *missing, ".tdd/verify-pin.reason", LEDGER % n, step,
                        values["target_test"], cwd=wt)[0]
     if route == 0:
