@@ -10,7 +10,6 @@ import fused
 import fused_step
 import ledger
 import run_dir
-import tunables
 from ledger import handed_out
 
 NAME = "go-red-step"
@@ -46,7 +45,7 @@ def run(n):
     if before is not None and old.encode() not in before:
         raise fused.Stop("probe", "%s no longer holds `%s`" % (path, old), 1)
     code = fused.call(fused.script("mutation-probe.sh"), path, old, new, "--", *command(wt, committed_case(wt, case)), cwd=wt,
-                      env=tunables.without("VERI_MUTATION_RECORD"), out=".tdd/go-red-probe.out")[0]
+                      out=".tdd/go-red-probe.out")[0]
     if code == 1:
         raise fused.Stop("probe", "%s stayed green with %s→%s in %s" % (case, old, new, path), 1)
     if code != 0:

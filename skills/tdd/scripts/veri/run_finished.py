@@ -68,8 +68,7 @@ def main(argv):
     stale = mutation_record.stale_pins(run_dir, issue)
     unmet += [("stale-pin", "%s %s" % pin) for pin in stale]
     if stale:
-        sys.stderr.write("run-finished.sh: re-record a stale pin with mutation-probe.sh (VERI_MUTATION_RECORD) "
-                         "or retire its entry (a `retired <reason>` field) in %s\n" % mutation_record.path(run_dir, issue))
+        sys.stderr.write("run-finished.sh: retire a stale pin's entry (a `retired <reason>` field) in %s\n" % mutation_record.path(run_dir, issue))
     for name, step in unmet:
         print("%s %s" % (name, step))
     return 1 if unmet else 0

@@ -489,15 +489,6 @@ def test_4719_a_case_id_with_a_double_colon_and_a_parameter_holding_a_space_is_p
     assert fake.call("mutation-probe.sh")[1][-1] == case
 
 
-def test_4741_the_probe_runs_with_no_veri_mutation_record_in_its_environment_even_when_one_is_set(go_red, monkeypatch):
-    monkeypatch.setenv("VERI_MUTATION_RECORD", ".tdd/issue-12-mutations.md")
-
-    code, out, err, fake = go_red()
-
-    assert code == 0, err
-    assert "VERI_MUTATION_RECORD" not in fake.call("mutation-probe.sh")[3]
-
-
 def test_4741_a_probe_exit_0_writes_go_red_probed_holding_the_probe_line_and_heads_sha_before_the_tick(go_red):
     receipt = go_red.wt / ".tdd" / "go-red-probed"
     seen = []
