@@ -14,7 +14,7 @@ import replaces_case
 import reroute as reroute_stage
 import revise as revise_stage
 import run_dir
-from next_pending_refactor import refactor_pending, repin_next
+from next_pending_refactor import refactor_pending
 
 NAME = "run-step"
 USAGE = "usage: run-step.sh <n> [--from <stage>] [--hand <stage>]…"
@@ -123,8 +123,7 @@ def main(argv):
         return 2
     wt = given[1]
     pending = fused_step.first_step(wt, n, refactor_pending)
-    # The re-pin step pin-reject-route.sh --recheck inserts runs before the step it re-pins is closed (#4510).
-    step = repin_next(wt, n) or pending or fused_step.first_step(wt, n, ledger.handed_out)
+    step = fused_step.open_step(wt, n)
     if step is None:
         sys.stderr.write("run-step.sh: no open step in %s\n" % (LEDGER % n))
         return 3

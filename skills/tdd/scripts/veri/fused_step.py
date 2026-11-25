@@ -13,6 +13,7 @@ import run_start
 from fused import Stop, call, checked, label, read_settled, script
 import ledger
 from ledger import ledger_steps
+from next_pending_refactor import refactor_pending, repin_next
 
 
 def inputs(name, n, *files):
@@ -36,6 +37,13 @@ def first_step(wt, n, chosen):
     for none."""
     return next((r.text for r in ledger_steps(ledger.read_ledger(run_dir.ledger(wt, n))) if chosen(r)), None)
 
+
+
+def open_step(wt, n):
+    """The step a run works on now, as run-step.sh takes it: the re-pin step pin-reject-route.sh --recheck inserted
+    after a refactor-pending step (#4510), else that refactor-pending step, else the first unchecked one; None for
+    none."""
+    return repin_next(wt, n) or first_step(wt, n, refactor_pending) or first_step(wt, n, ledger.handed_out)
 
 def green_tick(where, wt, n, rev):
     """The newest ledger commit reachable from <rev> that changes a line other than a re-pin step's (one starting
