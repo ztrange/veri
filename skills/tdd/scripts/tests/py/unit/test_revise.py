@@ -1083,3 +1083,17 @@ def test_4734_a_red_revise_opened_while_a_steps_refactor_is_pending_names_that_s
     assert fake.call("build-develop-prompt.sh")[1][:4] == ("revise", "red", ".tdd/issue-12-spec.md", STEP)
     mark = fake.call("event.sh")
     assert (mark[1][0], mark[3]["VERI_PHASE"], mark[3]["VERI_STEP"]) == ("revise", "red", STEP)
+
+
+def test_4734_with_an_open_re_pin_step_right_after_the_refactor_pending_step_a_red_revise_names_the_re_pin_step(revise):
+    """#4510's re-pin step runs before the step it re-pins is closed, as run-step.sh takes it: its revise is its own."""
+    repin = importlib.import_module("veri.pin_reject_route").repin_step("skills/x.py") + " turns it red ⟦added⟧"
+    _red(revise)
+    (revise.wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] %s\n"
+                                                    "- [ ] two ⟦criterion 2⟧\n" % (STEP, repin))
+    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "revise-red-1"): (3, "")}, report=RED_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert code == 3, out
+    assert fake.call("build-develop-prompt.sh")[1][:4] == ("revise", "red", ".tdd/issue-12-spec.md", repin)
+    assert fake.call("event.sh")[3]["VERI_STEP"] == repin
