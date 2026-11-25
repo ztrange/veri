@@ -5,7 +5,7 @@
 - [x] an unpinnable retire on a reason with both the before-state-green and the guard-mutation clause leaves every test file as it was ⟦criterion 3⟧
 - [x] a removing retire leaves the ledger rewrite, a .tdd/ file and a modified production file unchanged ⟦criterion 4⟧
 - [x] a hand-mutation reason whose target case fails prints revise, exits 1 and removes no test file ⟦criterion 5⟧
-- [ ] a --missing-reroute retire through --already-holds removes no test file ⟦criterion 6⟧
+- [x] a --missing-reroute retire through --already-holds removes no test file ⟦criterion 6⟧
 - [ ] a removing retire deletes a test file staged as new but absent from HEAD and leaves it out of the index
 - [ ] PIN.md's REJECT branch states which retires remove the Red test changes and how stays-green reasons route ⟦criterion 9⟧
 - [ ] SCRIPTS.md's tick-ledger.sh --unpinnable and pin-reject-route.sh entries state the removal ⟦criterion 10⟧
