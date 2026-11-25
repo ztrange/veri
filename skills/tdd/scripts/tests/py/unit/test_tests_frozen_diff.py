@@ -1,5 +1,6 @@
 """In-process `diff --step` cases for veri/tests_frozen.py."""
 import importlib
+import pathlib
 
 import pytest
 
@@ -213,3 +214,40 @@ def test_diff_step_exits_2_and_prints_nothing_when_the_step_has_no_record(
 
     assert code == 2
     assert out == ""
+
+
+def test_diff_step_exits_2_and_prints_nothing_when_an_edited_recorded_files_kept_content_is_missing_4730(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    fed_history(("base", "base", {NEW: "one\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, NEW], cwd=tmp_path)[0] == 0
+    record = tests_frozen.record_path(STEP)
+    kept = tests_frozen._kept_path(str(tmp_path / record), NEW)
+    (tmp_path / NEW).write_text("one\ntwo, changed\n")
+    pathlib.Path(kept).unlink()
+
+    code, out, err = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=tmp_path)
+
+    assert code == 2
+    assert out == ""
+    assert err != ""
+
+
+def test_diff_without_step_exits_2_with_the_usage_line_4730(tmp_path, run_cli, tests_frozen, fed_history):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    fed_history(("base", "base", {NEW: "one\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, NEW], cwd=tmp_path)[0] == 0
+    (tmp_path / NEW).write_text("one\ntwo, changed\n")
+    record = tests_frozen.record_path(STEP)
+
+    code, out, err = run_cli(tests_frozen, ["diff", record], cwd=tmp_path)
+
+    assert code == 2
+    assert out == ""
+    assert tests_frozen.USAGE in err
