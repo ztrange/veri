@@ -734,3 +734,16 @@ def test_main_before_state_green_retire_leaves_every_test_file_as_it_was_4739(
     assert (code, out.strip(), ledger.read_text().split("\n")[2],
             {p.name: p.read_text() for p in sorted(tests.iterdir())}) == (
         0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable", before), err
+
+
+def test_main_before_state_green_and_guard_mutation_stays_green_retire_leaves_every_test_file_as_it_was_4739(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ledger, reason, tests, before = red_tree(tmp_path, monkeypatch, pin_reject_route,
+                                             "the real before-state stays green; the guard mutation stays green")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text().split("\n")[2],
+            {p.name: p.read_text() for p in sorted(tests.iterdir())}) == (
+        0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable", before), err
