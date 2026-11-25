@@ -1069,3 +1069,17 @@ def test_4735_on_a_missing_rerouted_step_a_before_state_green_pin_reject_is_unpi
     assert [e["event"] for e in written][-1] == "unpinnable-missing", written
     assert fake.launched() == ["revise-red-1", "verdict-pin"], (code, out, err)
     assert code == 2
+
+
+def test_4734_a_red_revise_opened_while_a_steps_refactor_is_pending_names_that_step_not_the_next_unchecked(revise):
+    """#4734: step 1 ticked `⟂ refactor pending`, a REJECT recorded for its red reroute: the revise is step 1's."""
+    _red(revise)
+    (revise.wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] %s ⟂ refactor pending\n"
+                                                    "- [ ] two ⟦criterion 2⟧\n" % STEP)
+    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "revise-red-1"): (3, "")}, report=RED_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert code == 3, out
+    assert fake.call("build-develop-prompt.sh")[1][:4] == ("revise", "red", ".tdd/issue-12-spec.md", STEP)
+    mark = fake.call("event.sh")
+    assert (mark[1][0], mark[3]["VERI_PHASE"], mark[3]["VERI_STEP"]) == ("revise", "red", STEP)
