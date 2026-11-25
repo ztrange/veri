@@ -13,7 +13,7 @@ import run_start
 from fused import Stop, call, checked, label, read_settled, script
 import ledger
 from ledger import ledger_steps
-from next_pending_refactor import refactor_pending, repin_next
+from next_pending_refactor import refactor_pending
 
 
 def inputs(name, n, *files):
@@ -40,22 +40,20 @@ def first_step(wt, n, chosen):
 
 
 def open_step(wt, n):
-    """The step a run works on now, as run-step.sh takes it: the re-pin step pin-reject-route.sh --recheck inserted
-    after a refactor-pending step (#4510), else that refactor-pending step, else the first unchecked one; None for
-    none."""
-    return repin_next(wt, n) or first_step(wt, n, refactor_pending) or first_step(wt, n, ledger.handed_out)
+    """The step a run works on now, as run-step.sh takes it: the refactor-pending step, else the first unchecked one;
+    None for none."""
+    return first_step(wt, n, refactor_pending) or first_step(wt, n, ledger.handed_out)
 
 def green_tick(where, wt, n, rev):
-    """The newest ledger commit reachable from <rev> that changes a line other than a re-pin step's (one starting
-    ledger.REPIN_STEP): the green tick of the step its re-pins re-arm, the plan and tick commits of those re-pins passed
-    over (#4511, #4510). None when no commit does."""
+    """The newest ledger commit reachable from <rev> that changes a ledger line: the green tick of the step a refactor
+    follows (#4510). None when no commit does."""
     log = checked(where, "git", "log", "--format=%x00%H", "-p", "--unified=0", rev, "--", run_dir.ledger("", n),
                   cwd=wt)
     for entry in log.split("\0")[1:]:
         sha, _, patch = entry.partition("\n")
         changed = [line for line in patch.splitlines() if line.startswith(("+", "-"))
                    and not line.startswith(("+++ ", "--- "))]
-        if any(ledger.REPIN_STEP not in line for line in changed):
+        if changed:
             return sha.strip()
     return None
 

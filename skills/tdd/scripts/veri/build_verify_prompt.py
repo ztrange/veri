@@ -350,7 +350,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
                                (b"BASE_SHA", os.fsencode(slots["BASE_SHA"])),
                                (b"STEP_BASE_SHA", os.fsencode(slots["STEP_BASE_SHA"])),
                                # The step's green tick, the refactor's file bounds; the ledger's last commit, BASE_SHA,
-                               # is past a re-pin step's commits and bounds only the reviewed range (#4544).
+                               # bounds only the reviewed range (#4544).
                                (b"STEP_GREEN_SHA", os.fsencode(step_green)),
                                (b"BRANCH_BASE", os.fsencode(branch_base)),
                                (b"FAST_CMD", os.fsencode(fast_cmd)),

@@ -7,12 +7,12 @@ import subprocess
 import sys
 
 import event
+import git
 import ledger
-import mutation_record
 import paths
 import tests_frozen
 
-USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --surround-short | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher> (--unpinnable and --already-holds drop every mutation record whose named test is absent from the tree)"
+USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --surround-short | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher>"
 
 
 def complain(message):
@@ -116,34 +116,9 @@ def tick_added(path, step_line):
             return
 
 
-def drop_missing_cases(record, root):
-    with open(record, encoding="utf-8") as handle:
-        text = handle.read()
-    try:
-        entries = mutation_record.chunks(text)
-    except mutation_record.MalformedRecord as error:
-        raise ValueError(f"{record}: malformed mutation record {error.header!r}")
-    kept = []
-    for raw, fields in entries:
-        target = re.search(r"TESTS=(\S+?)::(?:\w+::)*(\w+)", fields.get("command", ""))
-        if target:
-            try:
-                with open(os.path.join(root, target.group(1)), encoding="utf-8") as handle:
-                    if not re.search(rf"def {target.group(2)}\b", handle.read()):
-                        continue
-            except FileNotFoundError:
-                continue
-        kept.append(raw)
-    if "".join(kept) == text:
-        return
-    with open(record, "w", encoding="utf-8") as handle:
-        handle.write("".join(kept))
-
-
 def commit_resolves(root, sha):
     """Whether <sha> names a commit in the repository at <root>."""
-    return subprocess.run(["git", "-C", root, "rev-parse", "--verify", "--quiet", sha + "^{commit}"],
-                          capture_output=True).returncode == 0
+    return git.ok("-C", root, "rev-parse", "--verify", "--quiet", sha + "^{commit}")
 
 
 def go_red_receipt_refusal(ledger_path, step_line):
@@ -162,10 +137,6 @@ def go_red_receipt_refusal(ledger_path, step_line):
     if not re.fullmatch(r"[0-9a-f]{7,40}", sha) or not commit_resolves(os.path.dirname(os.path.dirname(receipt)), sha):
         return f"{receipt}: its sha {sha!r} names no commit"
     return None
-
-
-def mutations_path(ledger_path):
-    return mutation_record.of_ledger(ledger_path)
 
 
 def surround_short(ledger_path, matcher):
@@ -228,13 +199,12 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
 
     `case` is a test id to run first (the tick waits for it to pass); `pending` appends the `⟂ refactor pending`
     mark; `phase` ticks one phase of a step that lists phases, `owed` marking it owed (contract phases only);
-    `retire` ("unpinnable" or "already-holds") with a non-empty `reason_file` retires the step instead, dropping
-    the mutation records whose test is gone and appending the matching `unpinnable-step` / `already-holds-step`
+    `retire` ("unpinnable" or "already-holds") with a non-empty `reason_file` retires the step instead, appending
+    the matching `unpinnable-step` / `already-holds-step`
     event; it needs a `case`. `pending` and `phase` do not combine.
     Returns 0 ticked; 1 clean negative (the case fails; the reason does not qualify for `retire`; retire with no
     case); 2 no answer (case never ran, bad combination, unreadable ledger, a ⟦go-red⟧ step with no `.tdd/go-red-probed` beside the ledger holding its probe clause and a
-    commit's sha, a ledger left behind, an empty ledger_path -> usage line); 3 nothing to tick. Writes the ledger (and its added-steps record) and, for a retirement, events.jsonl and the mutation
-    record; stderr as the script prints it.
+    commit's sha, a ledger left behind, an empty ledger_path -> usage line); 3 nothing to tick. Writes the ledger (and its added-steps record) and, for a retirement, events.jsonl; stderr as the script prints it.
     """
     retired_mark, event_name = ledger.retire_mark("unpinnable"), "unpinnable-step"
     if retire == "already-holds":
@@ -312,13 +282,6 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
         reason = next((l[7:].strip() for l in reason_text.splitlines()
                        if l.startswith("REASON:") and l[7:].strip()), "")
         tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(ledger_path)))
-        mutations = mutations_path(os.path.abspath(ledger_path))
-        if os.path.exists(mutations):
-            try:
-                drop_missing_cases(mutations, tdd_parent)
-            except ValueError as error:
-                complain(str(error))
-                return 2
         return event.append(tdd_parent, event.context(os.environ), event_name,
                             ["step=" + step.split("] ", 1)[1], "reason=" + reason])
     if left is None:

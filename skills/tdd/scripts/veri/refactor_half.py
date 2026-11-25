@@ -69,9 +69,9 @@ def develop(n, wt, settled, step, test_path):
                   env=tunables.with_values(VERI_ISSUE=n))
     with open(os.path.join(wt, ".tdd", "stage-rl.t"), "w") as f:
         f.write("%d\n" % int(time.time()))
-    # The span starts at the ledger's last commit, past a re-pin step's commits; the files the leaf may tidy are those
-    # of the step's own green tick, which a re-pin step's tick after it is not (#4510). verify-refactor gets both: the
-    # range it reviews from green_sha, the files in bounds from step_green (#4544).
+    # The span starts at the ledger's last commit; the files the leaf may tidy are those of the step's own green tick
+    # (#4510). verify-refactor gets both: the range it reviews from green_sha, the files in bounds from step_green
+    # (#4544).
     green_sha = fused.checked("1", "git", "log", "-1", "--format=%H", "--", LEDGER % n, cwd=wt).strip()
     step_green = fused_step.green_tick("1", wt, n, "HEAD")
     if step_green is None:

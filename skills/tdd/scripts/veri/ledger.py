@@ -20,8 +20,6 @@ OPEN_STEP = "- [ ]"
 TICKED_STEP = "- [x]"
 PENDING_MARK = " ⟂ refactor pending"
 ADDED_MARK = "⟦added⟧"
-# The text a re-pin step starts with: pin-reject-route.sh --recheck writes it, diff-step.sh matches it (#4511)
-REPIN_STEP = "⟦diff-checked⟧ edit the case of the pin on "
 CRITERION_TAG = "⟦criterion "
 SPACE = r"[ \t\n\v\f\r]"
 STEP_RE = re.compile(rf"({SPACE}*-{SPACE})\[([ xX])\]( (.*))?")
@@ -169,15 +167,14 @@ def carries_mark(text, name):
 def has_kind(step, mark):
     """True when step is of the kind <mark> names (a full mark, "⟦ci-repair⟧"; "⟦phases:" for a phases mark).
 
-    A kind comes from the step's trailing marker run, plus exactly two leading forms: a leading ⟦skill-edit⟧, and,
-    for ⟦diff-checked⟧, a step starting REPIN_STEP. step may be a whole ledger line, its `- [ ] ` / `- [x] `
-    prefix is dropped first. A mark quoted anywhere else, or leading any other step, is no kind (#4709)."""
+    A kind comes from the step's trailing marker run, plus exactly one leading form: a leading ⟦skill-edit⟧.
+    step may be a whole ledger line, its `- [ ] ` / `- [x] ` prefix is dropped first. A mark quoted anywhere else,
+    or leading any other step, is no kind (#4709)."""
     found = STEP_RE.fullmatch(step)
     text = (found.group(4) or "") if found else step
     if mark in trailing_markers(text):
         return True
-    return text.startswith("⟦skill-edit⟧") if mark == "⟦skill-edit⟧" else (
-        text.startswith(REPIN_STEP) if mark == "⟦diff-checked⟧" else False)
+    return mark == "⟦skill-edit⟧" and text.startswith("⟦skill-edit⟧")
 
 
 def is_skill_edit(step):
@@ -270,7 +267,7 @@ def items_at(rev, path):
 # One ledger step. A tuple, so it unpacks, compares and tab-joins as the plain 7-tuple always did; the flag fields
 # (pending, added) stay the strings "1"/"0" that ledger-steps.sh prints. `number` is the 1-based position among
 # step lines (named so it does not shadow tuple.index), `state` "open" or "done", `kind` "step", "full-suite",
-# "diff-checked" (also a step starting REPIN_STEP, as red_half.refused reads it) or "human-owed". `collections.namedtuple`, not typing.NamedTuple: typing costs ~3 ms of import
+# "diff-checked" or "human-owed". `collections.namedtuple`, not typing.NamedTuple: typing costs ~3 ms of import
 # every importer of this module would pay.
 Step = namedtuple("Step", "number state kind pending added criterion text")
 
@@ -295,7 +292,7 @@ def ledger_steps(text):
         records.append(Step(
             str(len(records) + 1),
             state,
-            kind.group(1) if kind else "diff-checked" if step.startswith(REPIN_STEP) else "human-owed" if is_human_owed(step) else "step",
+            kind.group(1) if kind else "human-owed" if is_human_owed(step) else "step",
             "1" if pending else "0",
             "1" if added else "0",
             criterion,

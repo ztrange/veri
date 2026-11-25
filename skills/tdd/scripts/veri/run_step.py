@@ -190,7 +190,7 @@ def main(argv):
             continue
         if code == 1 and stage in PHASES and (verdict(wt, PHASES[stage]) == "1" or stage in KIND_STAGES and
                                               fused_step.rejected(wt, n, stage, step) is not None):
-            # diff-step's flip and pin-recheck REJECTs leave its rejected record with the verifier's PASS in place.
+            # diff-step's flip REJECT leaves its rejected record with the verifier's PASS in place.
             action = ("reroute", VERIFY_GREEN_REASON) if stage == "green-half" else ("revise",)
             continue
         if code != 0:

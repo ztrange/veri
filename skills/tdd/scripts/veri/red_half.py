@@ -22,8 +22,8 @@ REFUSED = ("⟦diff-checked⟧", ledger.GO_RED_MARK, "⟦phases:", "⟦skill-edi
 
 def refused(step):
     """The REFUSED kinds <step> is, in REFUSED's order; ⟦go-red⟧ by ledger.is_go_red, the others by ledger.has_kind:
-    the trailing marker run, a leading ⟦skill-edit⟧ or a step starting ledger.REPIN_STEP; a mark quoted anywhere
-    else, or leading any other step, is no kind (#4709)."""
+    the trailing marker run or a leading ⟦skill-edit⟧; a mark quoted anywhere else, or leading any other step, is
+    no kind (#4709)."""
     return [kind for kind in REFUSED if (ledger.is_go_red(step) if kind == ledger.GO_RED_MARK
                                          else ledger.has_kind(step, kind))]
 

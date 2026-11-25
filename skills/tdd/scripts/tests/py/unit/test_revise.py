@@ -734,7 +734,7 @@ def test_4435_diff_after_its_leaf_it_runs_no_cost_check_and_re_verifies_against_
 
 
 def test_4435_diff_a_revised_pass_re_saves_diff_steps_wait_naming_the_revise_leaf(revise):
-    """DST7, S15: diff-step.sh called again goes on from its verdict to the flip check, pin-recheck.sh and the tick,
+    """DST7, S15: diff-step.sh called again goes on from its verdict to the flip check and the tick,
     reading the FLIP: line of the revise leaf that made the last commit."""
     _diff_files(revise)
     revise(argv=("12", "diff"), missing=("red-half",), answers={("wait-leaf.sh", "revise-diff-1"): (3, "")})
@@ -1084,30 +1084,3 @@ def test_4734_a_red_revise_opened_while_a_steps_refactor_is_pending_names_that_s
     mark = fake.call("event.sh")
     assert (mark[1][0], mark[3]["VERI_PHASE"], mark[3]["VERI_STEP"]) == ("revise", "red", STEP)
 
-
-def test_4734_with_an_open_re_pin_step_right_after_the_refactor_pending_step_a_red_revise_names_the_re_pin_step(revise):
-    """#4510's re-pin step runs before the step it re-pins is closed, as run-step.sh takes it: its revise is its own."""
-    repin = importlib.import_module("veri.ledger").REPIN_STEP + "skills/x.py so its recorded mutation turns it red ⟦added⟧"
-    _red(revise)
-    (revise.wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] %s\n"
-                                                    "- [ ] two ⟦criterion 2⟧\n" % (STEP, repin))
-    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "revise-red-1"): (3, "")}, report=RED_REPORT),
-                                  argv=("12", "red"), missing=("red-half",))
-
-    assert code == 3, out
-    assert fake.call("build-develop-prompt.sh")[1][:4] == ("revise", "red", ".tdd/issue-12-spec.md", repin)
-    assert fake.call("event.sh")[3]["VERI_STEP"] == repin
-
-
-def test_4734_with_an_open_re_pin_step_after_the_refactor_pending_step_a_refactor_revise_still_names_the_pending_step(
-        revise):
-    """The refactor phase revises the step whose refactor was rejected, never the re-pin step run-step.sh runs first."""
-    repin = importlib.import_module("veri.ledger").REPIN_STEP + "skills/x.py so its recorded mutation turns it red ⟦added⟧"
-    _refactor(revise)
-    (revise.wt / ".tdd" / "issue-12.md").write_text("# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] %s\n"
-                                                    "- [ ] two ⟦criterion 2⟧\n" % (STEP, repin))
-    code, out, err, fake = revise(answers={("wait-leaf.sh", "revise-refactor-1"): (3, "")}, argv=("12", "refactor"))
-
-    assert code == 3, out
-    assert fake.call("build-develop-prompt.sh")[1][:4] == ("revise", "refactor", ".tdd/issue-12-spec.md", STEP)
-    assert fake.call("event.sh")[3]["VERI_STEP"] == STEP

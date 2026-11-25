@@ -34,8 +34,6 @@ EXEMPT = {
         "VERI_POLL, default 1 here, 10 in github.py and wait_ci.py: two purposes, declined",
     ("build_develop_prompt.py", "VERI_ISSUE"):
         "a run-context field the conductor exports, not a tunable: `or \"\"` states no default, only its absence",
-    ("supervise.py", "VERI_STEP"):
-        "a run-context field the conductor exports, not a tunable: `or \"\"` states no default, only its absence",
 }
 
 

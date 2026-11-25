@@ -4,11 +4,10 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import sys
 
-import case_reader
 import fused
 import fused_step
 import run_dir
-from ledger import REPIN_STEP, handed_out, has_kind
+from ledger import handed_out, has_kind
 
 NAME = "diff-step"
 USAGE = "usage: diff-step.sh <n>"
@@ -18,8 +17,7 @@ KIND = "⟦diff-checked⟧"
 
 # The $S/ scripts this call makes, in the order each is first made (git aside).
 CALLS = ("build-develop-prompt.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh", "run-leaf.sh",
-         "wait-leaf.sh", "suite-reported.sh", "diff-leaf-deviation.sh", "run-verdict.sh", "pin-recheck.sh",
-         "step-tick.sh")
+         "wait-leaf.sh", "suite-reported.sh", "diff-leaf-deviation.sh", "run-verdict.sh", "step-tick.sh")
 
 
 def main(argv):
@@ -48,7 +46,8 @@ def run(n):
             raise fused.Stop("verify", "wait-leaf.sh verdict-diff exit %d" % code, code)
     if has_kind(step, "⟦test-quality⟧"):
         flip(n, wt, step, values)
-    return finish(n, wt, step, values)
+    fused.checked("tick", fused.script("step-tick.sh"), n, cwd=wt)
+    return 0
 
 
 def flip(n, wt, step, values):
@@ -89,7 +88,7 @@ def parse_flip(value):
 
 
 def reject(n, wt, step, values, where, reason):
-    """A verify-diff REJECT the stage itself finds (the flip, pin-recheck.sh): <reason> written to
+    """A verify-diff REJECT the stage itself finds (the flip): <reason> written to
     .tdd/verify-diff.reason, the step's rejected record left as a verifier's REJECT leaves it, so revise.sh <n> diff
     takes the step up; then a stop with exit 1."""
     import json
@@ -141,41 +140,6 @@ def launch_verdict(where, n, wt, settled, step, values):
                  env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/verify-diff.reason",
                  err=".tdd/verify-diff.err")
 
-
-def recheck_base(n, wt, step, values):
-    """The base pin-recheck.sh ranges from: the step base, save on a re-pin step (the one pin-reject-route.sh --recheck
-    adds), whose range starts at <green>~1 of the step whose pin it re-arms; from the step base the range would leave
-    out the disarming fix (#4511). <green>, that step's green tick, is the newest ledger commit before the step base
-    that changes a line other than a re-pin step's, so the plan and tick commits of the step's earlier re-pins, one per
-    disarmed pin, are passed over. No such commit stops at `pin`, exit 2."""
-    if not step.startswith(REPIN_STEP):
-        return values["step_base"]
-    green = fused_step.green_tick("pin", wt, n, values["step_base"] + "~1")
-    if green is not None:
-        return fused.checked("pin", "git", "rev-parse", green + "~1", cwd=wt).strip()
-    raise fused.Stop("pin", "no green tick of the re-armed step before " + values["step_base"], 2)
-
-
-def finish(n, wt, step, values):
-    """The PASS branch: pin-recheck.sh over the step's range (0 or 3 leave the receipt the tick needs), then
-    step-tick.sh, whose lines end this call's. Its 1, a pin this step disarmed, is a verify-diff REJECT (DST7). A re-pin
-    step whose net diff since its step base changes no test file is a verify-diff REJECT before either (#4512)."""
-    if step.startswith(REPIN_STEP):
-        code, said, _ = fused.call("git", "diff", "--name-only", values["step_base"], "HEAD", cwd=wt)
-        if code:
-            raise fused.Stop("pin", "git diff --name-only %s HEAD exit %d" % (values["step_base"], code), 2)
-        if not any(case_reader.is_test_path(path) for path in said.splitlines()):
-            pin = step[len(REPIN_STEP):].split(" ", 1)[0]
-            reject(n, wt, step, values, "pin", "REJECT: the re-pin step's commits since %s change no test file; its "
-                   "deliverable is the edited case of the pin on %s\n" % (values["step_base"], pin))
-    code, said, _ = fused.call(fused.script("pin-recheck.sh"), "--branch-base", fused_step.branch_base("pin", wt, n),
-                               recheck_base(n, wt, step, values), cwd=wt)
-    if code == 1:
-        reject(n, wt, step, values, "pin", "REJECT: pin-recheck.sh found a pin this step disarmed\n" + said)
-    if code not in (0, 3):
-        raise fused.Stop("pin", "pin-recheck.sh exit %d" % code, code)
-    fused.checked("tick", fused.script("step-tick.sh"), n, cwd=wt)
-    return 0
 
 
 if __name__ == "__main__":

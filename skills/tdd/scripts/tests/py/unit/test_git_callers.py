@@ -30,7 +30,6 @@ MODULES_RUNNING_GIT_DIRECTLY = {
     "mutation_probe": "git rev-parse, diff, ls-files and show, through subprocess",
     "parallel_conductors": "git rev-parse --git-common-dir, through subprocess",
     "park_issue": "git remote get-url, through subprocess",
-    "pin_recheck": "git worktree, cat-file, log and show, through subprocess",
     "push_branch": "git rev-parse, push and ls-remote, through subprocess",
     "queued_merge": "its own _git helper over git -C <root>",
     "refactor_touched": "git rev-parse, diff --name-only and ls-files, through subprocess",

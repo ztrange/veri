@@ -14,7 +14,6 @@ import build_verify_prompt
 import entry
 import event
 import leaf_tree_guard
-import mutation_record
 import parse_verdict
 import preserve_attempt
 import renamed_case
@@ -336,8 +335,7 @@ def main(argv):
     os.makedirs(run_state, exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.rstrip(b"\n"))
-    record = os.path.abspath(mutation_record.path(run, tunables.read("VERI_ISSUE"))) if words[0] == "pin" else None
-    guard = leaf_tree_guard.snapshot(record, (top or os.getcwd()) if record else None)
+    guard = leaf_tree_guard.snapshot()
     if isinstance(guard, leaf_tree_guard.Unreadable):
         write(sys.stderr, "verify: could not read the tree before the %s leaf; its verdict is not accepted" % leaf)
         return 2

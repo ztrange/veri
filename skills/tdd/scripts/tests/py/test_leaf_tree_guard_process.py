@@ -19,7 +19,6 @@ def repo(tmp_path, monkeypatch):
     git(repo, "init", "-q", "-b", "main")
     (repo / "a.txt").write_text("one\n")
     (repo / "run.sh").write_text("echo hi\n")
-    (repo / ".tdd" / "issue-7-mutations.md").write_text("command 1\nsh run.sh\n")
     git(repo, "add", ".")
     git(repo, "commit", "-q", "-m", "first")
     home = tmp_path / "home"
@@ -32,10 +31,6 @@ def repo(tmp_path, monkeypatch):
 
 def guard_module():
     return importlib.import_module("veri.leaf_tree_guard")
-
-
-def record_of(repo):
-    return str(repo / ".tdd" / "issue-7-mutations.md")
 
 
 @pytest.mark.process("git")
@@ -91,35 +86,6 @@ def test_an_unreadable_global_git_config_is_reported_with_its_error(repo):
     found = guard_module().snapshot()
 
     assert (type(found).__name__, found.path, found.strerror) == ("ConfigUnreadable", config, "Is a directory")
-
-
-@pytest.mark.process("git")
-def test_only_appending_to_the_own_record_is_no_change(repo):
-    guard = guard_module().snapshot(record=record_of(repo), root=str(repo))
-    with open(record_of(repo), "a") as f:
-        f.write("command 2\nsh run.sh\n")
-
-    assert guard.changes() is None
-
-
-@pytest.mark.process("git")
-def test_an_append_recording_a_command_outside_the_root_is_a_change_naming_the_command(repo):
-    guard = guard_module().snapshot(record=record_of(repo), root=str(repo))
-    with open(record_of(repo), "a") as f:
-        f.write("command 2\nsh ../elsewhere.sh\n")
-
-    found = guard.changes()
-
-    assert found.paths == [".tdd/issue-7-mutations.md", "command sh ../elsewhere.sh"]
-
-
-@pytest.mark.process("git")
-def test_rewriting_the_own_record_rather_than_appending_is_a_change(repo):
-    guard = guard_module().snapshot(record=record_of(repo), root=str(repo))
-    with open(record_of(repo), "w") as f:
-        f.write("command 9\nsh run.sh\n")
-
-    assert guard.changes().paths == [".tdd/issue-7-mutations.md"]
 
 
 @pytest.mark.process("git")

@@ -55,8 +55,7 @@ def tick(monkeypatch, run_cli, tmp_path):
 
     def go(answers=None, missing=(), argv=None, ledger=None):
         files = {"preflight": (wt / ".tdd" / "issue-12-preflight", "worktree=%s\nfast_cmd=make unit\n" % wt),
-                 "ledger": (wt / ".tdd" / "issue-12.md", ledger or LEDGER % STEP),
-                 "receipt": (wt / ".tdd" / "pin-recheck-ok", "e" * 40 + "\n")}
+                 "ledger": (wt / ".tdd" / "issue-12.md", ledger or LEDGER % STEP)}
         for key, (path, text) in files.items():
             if key not in missing and not path.exists():
                 path.write_text(text)
@@ -92,14 +91,13 @@ def test_4435_it_ticks_commits_under_the_diff_checked_subject_pushes_asks_the_st
 
 
 @pytest.mark.parametrize("given, named", [
-    ({"missing": ("receipt",)}, ".tdd/pin-recheck-ok"),
     ({"missing": ("preflight",)}, ".tdd/issue-12-preflight"),
     ({"missing": ("ledger",)}, ".tdd/issue-12.md"),
     ({"argv": ()}, "usage: step-tick.sh <n>"),
     ({"argv": ("x",)}, "usage: step-tick.sh <n>"),
     ({"ledger": "# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n"}, "no open step"),
 ])
-def test_4435_a_missing_receipt_preflight_or_ledger_or_a_bad_argument_is_exit_2_before_any_call(tick, given, named):
+def test_4435_a_missing_preflight_or_ledger_or_a_bad_argument_is_exit_2_before_any_call(tick, given, named):
     """DST6, DST10: the refusal comes before any commit, so nothing is ticked, committed or pushed."""
     code, out, err, fake = tick(**given)
 
@@ -149,8 +147,8 @@ def test_4435_a_cycle_step_is_exit_2_before_any_call(tick):
 GO_RED = "Go-red guard: the stacked refusal, probe `src/run.py` `if stacked:` → `if False:` on `t.py::c` ⟦go-red⟧ ⟦criterion 1⟧"
 
 
-def test_4443_a_go_red_step_closes_without_a_pin_recheck_receipt_under_the_go_red_subject(tick):
-    code, out, err, fake = tick(missing=("receipt",), ledger=LEDGER % GO_RED)
+def test_4443_a_go_red_step_closes_under_the_go_red_subject(tick):
+    code, out, err, fake = tick(ledger=LEDGER % GO_RED)
 
     assert code == 0, err
     assert fake.call("tick-ledger.sh")[1] == (".tdd/issue-12.md", GO_RED)
@@ -163,8 +161,8 @@ def test_4443_a_go_red_step_closes_without_a_pin_recheck_receipt_under_the_go_re
 SKILL_EDIT = "Edit `skills/tdd/SKILL-EDIT.md` to name the tick subject ⟦skill-edit⟧ ⟦criterion 9⟧"
 
 
-def test_4450_a_skill_edit_step_closes_without_a_pin_recheck_receipt_under_the_skill_edit_subject(tick):
-    code, out, err, fake = tick(missing=("receipt",), ledger=LEDGER % SKILL_EDIT)
+def test_4450_a_skill_edit_step_closes_under_the_skill_edit_subject(tick):
+    code, out, err, fake = tick(ledger=LEDGER % SKILL_EDIT)
 
     assert code == 0, err
     assert fake.call("git", "commit")[1] == (

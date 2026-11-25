@@ -2,7 +2,6 @@
 in one call (PRD 038.3 DST6): the tick, its commit and push, the stop ask, and step-close.sh's mirror and next stop,
 reused by import."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import os
 import sys
 
 import fused
@@ -15,8 +14,6 @@ from step_close import mirror, next_stop
 NAME = "step-tick"
 USAGE = "usage: step-tick.sh <n>"
 LEDGER = run_dir.ledger("", "%s")
-# The receipt pin-recheck.sh leaves on its 0 or 3, without which tick-ledger.sh refuses a ⟦diff-checked⟧ tick.
-RECEIPT = ".tdd/pin-recheck-ok"
 # The kinds it closes, a step no cycle closes (038.4 adds ⟦skill-edit⟧; a cycle step's close is step-close.sh's) -> the
 # subject its tick commits under: a ⟦diff-checked⟧ one the one runs use (PRD 038.3 S14), a ⟦go-red⟧ one a test commit,
 # since its product is the proof a guard's case goes red (#4443).
@@ -45,9 +42,6 @@ def run(n):
             else "⟦diff-checked⟧" if ledger.has_kind(step, "⟦diff-checked⟧") else None)
     if kind is None:
         sys.stderr.write("step-tick.sh: not a ⟦diff-checked⟧ step nor a ⟦go-red⟧ one: %s\n" % step)
-        return 2
-    if kind == "⟦diff-checked⟧" and not os.path.isfile(os.path.join(wt, RECEIPT)):
-        sys.stderr.write("step-tick.sh: no %s: run pin-recheck.sh first\n" % RECEIPT)
         return 2
     # PRD 027 D10: the tree is checked before the irreversible act, so no change outside .tdd/ rides the tick commit.
     stray = [path for path in fused.changed_paths("tick", wt) if not path.startswith(".tdd/")]

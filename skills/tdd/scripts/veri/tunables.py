@@ -33,12 +33,6 @@ def with_values(**values):
     return dict(os.environ, **values)
 
 
-def without(name):
-    env = with_values()
-    env.pop(name, None)
-    return env
-
-
 def read_bytes(name, default=b""):
     return os.environb.get(os.fsencode(name), default)
 
