@@ -121,6 +121,13 @@ Run it in order, at the site where the eligible exit 2 came back.
      `<action>` the resume action in a few words (`added a ⟦skill-edit⟧ step` for
      `graded-edit`). `/vmerge` reviews that line before the merge.
 
+   **The `tests-frozen-refused` exception.** That cause comes from a freeze refusal, a clean
+   negative, so in step 4 none of the outcomes above bails: exit `0`, `1` and `2`, a
+   `deviation-left` exit 3 or 2, and a refused resume action (the `diff` verifier's `REJECT`) are
+   each a verify-green `REJECT` that spends `REVISE_BUDGET` and records no deviation, as its site
+   in `SKILL.md` says. A re-record that fails after the `diff` verifier's `PASS` stops as that
+   site says.
+
 ### Guards
 
 - The adjudicator writes no file and no ledger line; the conductor records the event.
