@@ -29,3 +29,42 @@ def test_diff_step_prints_the_unified_diff_from_the_recorded_content_to_the_curr
     lines = out.splitlines()
     assert "-two" in lines and "+two, changed" in lines
     assert " one" in lines
+
+
+def test_diff_step_prints_a_unified_diff_from_empty_content_for_an_unrecorded_test_file_that_differs_from_head(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    other = "tests/test_other.py"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    (tmp_path / other).write_text("alpha\n")
+    fed_history(("base", "base", {NEW: "one\n", other: "alpha\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, NEW], cwd=tmp_path)[0] == 0
+
+    (tmp_path / other).write_text("alpha\nbeta\n")
+    code, out, _ = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=tmp_path)
+
+    assert code == 0
+    lines = out.splitlines()
+    assert "+alpha" in lines and "+beta" in lines
+    assert not any(line.startswith("-") and not line.startswith("---") for line in lines)
+
+
+def test_diff_step_prints_an_edited_recorded_file_once_with_no_second_diff_from_empty_content(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    fed_history(("base", "base", {NEW: "one\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, NEW], cwd=tmp_path)[0] == 0
+
+    (tmp_path / NEW).write_text("one\ntwo, changed\n")
+    code, out, _ = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=tmp_path)
+
+    assert code == 0
+    lines = out.splitlines()
+    assert "-two" in lines and "+two, changed" in lines
+    assert "+one" not in lines
+    assert sum(1 for line in lines if line.startswith("--- ")) == 1

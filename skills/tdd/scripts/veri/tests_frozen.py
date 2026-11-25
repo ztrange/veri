@@ -810,6 +810,11 @@ def diff(record_file):
                 for line in difflib.unified_diff(kept.read().splitlines(), now.read().splitlines(),
                                                  "recorded/" + name, name, lineterm=""):
                     write(sys.stdout, line)
+        for name in differing_tests():
+            if name not in names:
+                with open(name) as now:
+                    for line in difflib.unified_diff([], now.read().splitlines(), "recorded/" + name, name, lineterm=""):
+                        write(sys.stdout, line)
     except OSError as error:
         write(sys.stderr, "tests-frozen.sh: %s" % error)
         return 2

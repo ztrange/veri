@@ -9,3 +9,10 @@ ICAgICJkZXZpYXRlZCI6ICJydWxlOihncmFkZWQtZWRpdHx0ZXN0cy1mcm96ZW4pIHN0ZXA6d2hvbGUg
 command 145
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_table.py::test_4730_the_table_still_refuses_a_rule_no_waivable_rule_names_on_deviated
 
+before 40
+5ca918658fa1e7f31ae170d8a01967adc0482877
+keep 58
+skills/tdd/scripts/tests/py/unit/test_tests_frozen_diff.py
+command 165
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tests_frozen_diff.py::test_diff_step_prints_an_edited_recorded_file_once_with_no_second_diff_from_empty_content
+
