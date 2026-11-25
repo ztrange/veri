@@ -537,7 +537,7 @@ def test_an_issue_row_not_splitting_into_id_requirement_and_why_exits_2_naming_t
 
     code, out, err = run_cli(case.step, ["--added", "add SC1", str(tmp_path / "issue.md"), "unit.md"])
 
-    assert (code, "SC1" in err and "4" in err) == (2, True), (code, out, err)
+    assert (code, "Requirement row SC1 splits into 4 cells" in err) == (2, True), (code, out, err)
     assert (tmp_path / "REQUIREMENTS.md").read_text() == listing
 
 
