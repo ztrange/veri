@@ -747,3 +747,24 @@ def test_main_before_state_green_and_guard_mutation_stays_green_retire_leaves_ev
     assert (code, out.strip(), ledger.read_text().split("\n")[2],
             {p.name: p.read_text() for p in sorted(tests.iterdir())}) == (
         0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable", before), err
+
+
+def test_main_removing_retire_leaves_the_ledger_rewrite_a_tdd_file_and_a_modified_production_file_unchanged_4739(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ledger, reason, tests, _ = red_tree(tmp_path, monkeypatch, pin_reject_route, "the hand mutation stays green")
+    (tmp_path / ".tdd" / "notes.md").write_text("notes now\n")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "prod.py").write_text("x = 2\n")
+    monkeypatch.setattr(pin_reject_route.tick_ledger.git, "git",
+                        FakeRepo(tmp_path, {"tests/py/test_old.py": "def test_old():\n    assert True\n",
+                                            "reason.txt": reason.read_text(),
+                                            ".tdd/issue-42.md": ledger.read_text(),
+                                            ".tdd/notes.md": "notes at HEAD\n",
+                                            "src/prod.py": "x = 1\n"}))
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text().split("\n")[2], (tmp_path / ".tdd" / "notes.md").read_text(),
+            (tmp_path / "src" / "prod.py").read_text(), sorted(p.name for p in tests.iterdir())) == (
+        0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable", "notes now\n", "x = 2\n", ["test_old.py"]), err
