@@ -8,6 +8,7 @@ import re
 import sys
 
 import case_history
+import git
 import case_identity
 import ledger
 import replaces_case
@@ -23,7 +24,7 @@ from ledger import ITEM_RE, KIND_RE, carries_mark, trailing_markers
 from case_reader import UnclosedCase, cut_cases, old_cut_cases_all
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> [--red-case <red-test-id>] <test-file>... | "
-         "check <record-file>|--step <step-text> | diff --step <step-text> | "
+         "check <record-file>|--step <step-text> | diff --step <step-text> | snapshot --step <step-text> | "
          "check-earlier <ledger> --step <step-text> [--except <case>]... | "
          "rerecord-earlier <ledger> --step <step-text> | "
          "rerecord-refactored <ledger> <green-sha> | "
@@ -823,13 +824,7 @@ def diff(record_file, step):
         return 2
     try:
         for name, expected in changed:
-            if expected is None:
-                base = case_history.text_at("HEAD", name, quiet=True)
-            elif expected == "deleted":
-                base = ""
-            else:
-                with open(_kept_path(record_file, name)) as kept:
-                    base = kept.read()
+            base = _base_text(record_file, name, expected) or ""
             current = open(name).read() if os.path.exists(name) else ""
             for line in difflib.unified_diff(base.splitlines(), current.splitlines(),
                                              "recorded/" + name, name, lineterm=""):
@@ -837,6 +832,63 @@ def diff(record_file, step):
     except OSError as error:
         return _no_answer(error)
     return 0
+
+
+def _base_text(record_file, name, expected, probe_head=False):
+    """The content the freeze compares `name` against: its kept copy when recorded, its HEAD content when outside the
+    record; None when there is none: recorded as deleted, or, with `probe_head`, outside the record and absent from
+    HEAD (without it, such a file's HEAD content reads as empty)."""
+    if expected == "deleted":
+        return None
+    if expected is None:
+        if probe_head and not git.out("ls-tree", "--name-only", "HEAD", "--", name):
+            return None
+        return case_history.text_at("HEAD", name, quiet=True)
+    with open(_kept_path(record_file, name)) as kept:
+        return kept.read()
+
+
+def snapshot(record_file, step):
+    """`snapshot --step`: print a commit whose tree is the work tree's tracked content (`git stash create`, or HEAD
+    when nothing differs) with each file `check --step` would name returned to the content `diff --step` diffs it
+    from, so `git diff <commit>` shows those files' edits and nothing else, never a production change; a named file
+    on disk that git does not track is first marked intent-to-add (`git add -N`), since `git diff <commit>` shows no
+    untracked file. The exit code, 2 where `diff` gives no answer or a git call fails."""
+    record_file = os.path.abspath(record_file)
+    changed = _changed(record_file, step)
+    if changed is None:
+        return 2
+    index = record_file + ".snapshot-index"
+    scratch = dict(os.environ, GIT_INDEX_FILE=index)
+    try:
+        start = git.out("stash", "create") or git.out("rev-parse", "HEAD")
+        _git_env(scratch, "read-tree", start)
+        for name, expected in changed:
+            base = _base_text(record_file, name, expected, probe_head=True)
+            if base is None:
+                _git_env(scratch, "update-index", "--force-remove", "--", name)
+            else:
+                blob = _git_env(scratch, "hash-object", "-w", "--stdin", stdin=base)
+                mode = (_git_env(scratch, "ls-files", "-s", "--", name).split() or ["100644"])[0]
+                _git_env(scratch, "update-index", "--add", "--cacheinfo", "%s,%s,%s" % (mode, blob, name))
+            if os.path.exists(name) and not git.ok("ls-files", "--error-unmatch", "--", name):
+                git.out("add", "-N", "--", name)
+        tree = _git_env(scratch, "write-tree")
+        commit = _git_env(scratch, "commit-tree", tree, "-p", "HEAD", "-m", "tests-frozen snapshot", stdin="")
+    except (OSError, git.GitFailed) as error:
+        return _no_answer(" ".join(((getattr(error, "stderr", "") or "") + " " + str(error)).split()))
+    finally:
+        if os.path.exists(index):
+            os.remove(index)
+    write(sys.stdout, commit)
+    return 0
+
+
+def _git_env(env, *args, stdin=None):
+    done = git.git(*args, env=env, input=stdin, capture_output=True, text=True)
+    if done.returncode != 0:
+        raise git.GitFailed(args, done.returncode, done.stderr)
+    return done.stdout.strip()
 
 
 def _main(argv):
@@ -878,6 +930,8 @@ def _main(argv):
         return check(record_file, step)
     if mode == "diff" and step is not None:
         return diff(record_file, step)
+    if mode == "snapshot" and step is not None:
+        return snapshot(record_file, step)
     write(sys.stderr, USAGE)
     return 2
 
