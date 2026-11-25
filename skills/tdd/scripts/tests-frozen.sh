@@ -3,6 +3,7 @@
 #
 # usage: tests-frozen.sh record <record-file>|--step <step-text> [--red-case <red-test-id>] <test-file>...
 #        tests-frozen.sh check <record-file>|--step <step-text>
+#        tests-frozen.sh diff --step <step-text>
 #        tests-frozen.sh check-earlier <ledger> --step <step-text> [--except <case>]...
 #        tests-frozen.sh rerecord-earlier <ledger> --step <step-text>
 #        tests-frozen.sh rerecord-refactored <ledger> <green-sha>
